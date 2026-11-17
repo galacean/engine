@@ -11,6 +11,7 @@ import {
   Material,
   MeshTopology,
   Script,
+  ShaderProperty,
   Vector3,
   Texture2D,
   VertexElement,
@@ -125,6 +126,7 @@ export class TerrainClipmap {
   private _destroyed = false;
   private _heightFrameBounds?: ReadonlyMap<BufferMesh, readonly [number, number]>;
   private readonly _heightFrameRegions = new Set<string>();
+  private _regionHeightPyramids: RegionHeightPyramid[] = [];
 
   /** @returns Region count in this renderer instance's current residency set. */
   get activeRegionCount(): number {
@@ -264,6 +266,9 @@ export class TerrainClipmap {
         )
       : (materialOrBinding as TerrainClipmapRenderBinding);
     this._gridOrigin = materialBinding.gridOrigin;
+    this._regionHeightPyramids = projectMaterial
+      ? buildRegionHeightPyramids((heightGrid as TerrainClipmapDescriptor).sources)
+      : [];
     let follower: TerrainClipmapFollower | undefined;
     let resources: Entity | undefined;
     try {
@@ -400,9 +405,11 @@ export class TerrainClipmap {
     this._materialBinding = nextBinding;
     this._heightFrameBounds = undefined;
     this._heightFrameRegions.clear();
+    this._regionHeightPyramids = buildRegionHeightPyramids(heightGrid.sources);
     this._puddleHydrologyOptions = { ...puddleHydrologyOptions };
     this._macroVariationOptions = macroVariationOptions;
     this._resourceOwner.replace(nextBinding);
+    this._updateAllSegmentVerticalBounds();
   }
 
   /** @returns Whether renderer-only macro variation currently participates in Terrain shading. */
@@ -459,13 +466,16 @@ export class TerrainClipmap {
     if (!this._materialBinding.prepareRegionUpdate) throw Error("Terrain binding does not support prepared regions");
     const prepared = this._materialBinding.prepareRegionUpdate(update);
     const bounds = captureVerticalBounds(this._segments),
-      oldFrameBounds = this._heightFrameBounds;
+      oldFrameBounds = this._heightFrameBounds,
+      oldPyramids = this._regionHeightPyramids;
     const oldFrameRegions = new Set(this._heightFrameRegions);
     const restore = () => {
       this._heightFrameBounds = oldFrameBounds;
+      this._regionHeightPyramids = oldPyramids;
       this._heightFrameRegions.clear();
       for (const id of oldFrameRegions) this._heightFrameRegions.add(id);
       restoreVerticalBounds(bounds);
+      this._updateAllSegmentVerticalBounds();
     };
     let state: "prepared" | "committed" | "finished" = "prepared";
     const rollback = () => {
@@ -486,10 +496,12 @@ export class TerrainClipmap {
           state = "committed";
           this._heightFrameBounds ??= bounds;
           for (const source of update.sources) this._heightFrameRegions.add(source.id);
+          this._regionHeightPyramids = buildRegionHeightPyramids(update.sources);
           this._synchronizeHeightBounds();
           // This is the new canonical baseline, including subsequent animation bounds.
           this._heightFrameBounds = undefined;
           this._heightFrameRegions.clear();
+          this._updateAllSegmentVerticalBounds();
         } catch (error) {
           try {
             prepared.rollback();
@@ -521,8 +533,10 @@ export class TerrainClipmap {
   updateHeightRegion(patch: TerrainHeightAtlasPatch): void {
     this._assertAlive();
     this._materialBinding.updateHeightRegion(patch);
+    this._patchRegionHeightPyramid(patch);
     this._heightFrameRegions.delete(patch.regionId);
     this._synchronizeHeightBounds();
+    if (!this._heightFrameBounds) this._updateAllSegmentVerticalBounds();
   }
 
   /**
@@ -541,7 +555,10 @@ export class TerrainClipmap {
     if (patch.heightDecode) {
       this._heightFrameBounds ??= captureVerticalBounds(this._segments);
       this._heightFrameRegions.add(patch.regionId);
-    } else this._heightFrameRegions.delete(patch.regionId);
+    } else {
+      this._patchRegionHeightPyramid(patch);
+      this._heightFrameRegions.delete(patch.regionId);
+    }
     this._synchronizeHeightBounds();
   }
 
@@ -550,6 +567,7 @@ export class TerrainClipmap {
     if (!this._heightFrameRegions.size) {
       restoreVerticalBounds(this._heightFrameBounds);
       this._heightFrameBounds = undefined;
+      this._updateAllSegmentVerticalBounds();
       return;
     }
     const source = this._materialBinding.heightSamplingSource;
@@ -565,6 +583,10 @@ export class TerrainClipmap {
       maximum = Math.max(maximum, source.regionHeightDecode[i * 2] + source.regionHeightDecode[i * 2 + 1]);
     }
     if (source.regionCount) updateVerticalBounds(this._segments, minimum, maximum);
+    for (const segment of this._segments) {
+      segment.renderer.clearVerticalBounds();
+      segment.wireRenderer.clearVerticalBounds();
+    }
   }
 
   /**
@@ -580,8 +602,12 @@ export class TerrainClipmap {
     } else {
       for (const patch of patches) this._materialBinding.updateHeightRegion(patch);
     }
-    for (const patch of patches) this._heightFrameRegions.delete(patch.regionId);
+    for (const patch of patches) {
+      this._patchRegionHeightPyramid(patch);
+      this._heightFrameRegions.delete(patch.regionId);
+    }
     this._synchronizeHeightBounds();
+    if (!this._heightFrameBounds) this._updateAllSegmentVerticalBounds();
   }
 
   /**
@@ -685,11 +711,58 @@ export class TerrainClipmap {
         }
       }
       const scale = segment.scale;
+      const worldX = offsetX * scale + snapX;
+      const worldZ = offsetZ * scale + snapZ;
       segment.entity.transform.setScale(scale, 1, scale);
-      segment.entity.transform.setPosition(offsetX * scale + snapX, 0, offsetZ * scale + snapZ);
+      segment.entity.transform.setPosition(worldX, 0, worldZ);
       segment.wireEntity.transform.setScale(scale, 1, scale);
-      segment.wireEntity.transform.setPosition(offsetX * scale + snapX, 0, offsetZ * scale + snapZ);
+      segment.wireEntity.transform.setPosition(worldX, 0, worldZ);
+      this._updateSegmentVerticalBounds(segment, worldX, worldZ);
     }
+  }
+
+  private _patchRegionHeightPyramid(patch: TerrainHeightAtlasPatch): void {
+    for (let i = 0; i < this._regionHeightPyramids.length; i++) {
+      const pyramid = this._regionHeightPyramids[i]!;
+      if (pyramid.id === patch.regionId) {
+        patchRegionHeightPyramid(pyramid, patch);
+        break;
+      }
+    }
+  }
+
+  private _updateAllSegmentVerticalBounds(): void {
+    for (let i = 0; i < this._segments.length; i++) {
+      const segment = this._segments[i]!;
+      const pos = segment.entity.transform.position;
+      this._updateSegmentVerticalBounds(segment, pos.x, pos.z);
+    }
+  }
+
+  private _updateSegmentVerticalBounds(segment: Segment, worldX: number, worldZ: number): void {
+    if (this._heightFrameBounds || this._regionHeightPyramids.length === 0) {
+      segment.renderer.clearVerticalBounds();
+      segment.wireRenderer.clearVerticalBounds();
+      return;
+    }
+    const scale = segment.scale;
+    const morphPad = scale * 2;
+    const segMinX = worldX;
+    const segMaxX = worldX + segment.mesh.bounds.max.x * scale;
+    const segMinZ = worldZ;
+    const segMaxZ = worldZ + segment.mesh.bounds.max.z * scale;
+    const waveLift = segment.entity.scene?.shaderData.getFloat(ENTRANCE_WAVE_LIFT_PROPERTY) ?? 0;
+    const verticalMargin = Math.abs(waveLift) * 1.25 + 1.0;
+    const [minY, maxY] = queryPyramidsVerticalBounds(
+      this._regionHeightPyramids,
+      segMinX - morphPad,
+      segMaxX + morphPad,
+      segMinZ - morphPad,
+      segMaxZ + morphPad,
+      verticalMargin
+    );
+    segment.renderer.setVerticalBounds(minY, maxY);
+    segment.wireRenderer.setVerticalBounds(minY, maxY);
   }
 
   /**
@@ -765,6 +838,7 @@ export class TerrainClipmap {
       renderer.mesh = mesh;
       renderer.setMaterial(material);
       renderer.setLod(lod, this._offsets.meshSize);
+      renderer.priority = -200;
       renderer.castShadows = false;
       renderer.receiveShadows = true;
       renderer.setDebugWire(false);
@@ -1199,3 +1273,246 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 const GROUP_NAMES = ["tile", "edge-a", "edge-b", "fill-a", "fill-b"] as const;
+
+const HEIGHT_BOUNDS_BLOCK_SAMPLES = 16;
+const HEIGHT_BOUNDS_SUMMARY_BLOCKS = 8;
+const ENTRANCE_WAVE_LIFT_PROPERTY = ShaderProperty.getByName("scene_EntranceWaveLift");
+
+interface RegionHeightPyramid {
+  readonly id: string;
+  readonly minWorldX: number;
+  readonly minWorldZ: number;
+  readonly maxWorldX: number;
+  readonly maxWorldZ: number;
+  readonly worldWidth: number;
+  readonly worldDepth: number;
+  readonly sampleWidth: number;
+  readonly sampleHeight: number;
+  readonly decodeOffset: number;
+  readonly decodeScale: number;
+  readonly blockCols: number;
+  readonly blockRows: number;
+  readonly blockMinY: Float32Array;
+  readonly blockMaxY: Float32Array;
+  readonly summaryCols: number;
+  readonly summaryRows: number;
+  readonly summaryMinY: Float32Array;
+  readonly summaryMaxY: Float32Array;
+}
+
+function buildRegionHeightPyramids(sources: readonly TerrainClipmapRegionSource[]): RegionHeightPyramid[] {
+  const pyramids: RegionHeightPyramid[] = [];
+  for (const source of sources) {
+    const sampleWidth = source.heightSampleSize[0];
+    const sampleHeight = source.heightSampleSize[1];
+    const worldWidth = source.worldSize[0];
+    const worldDepth = source.worldSize[2];
+    if (sampleWidth < 2 || sampleHeight < 2 || worldWidth <= 0 || worldDepth <= 0) continue;
+
+    const blockCols = Math.max(1, Math.ceil((sampleWidth - 1) / HEIGHT_BOUNDS_BLOCK_SAMPLES));
+    const blockRows = Math.max(1, Math.ceil((sampleHeight - 1) / HEIGHT_BOUNDS_BLOCK_SAMPLES));
+    const blockMinY = new Float32Array(blockCols * blockRows);
+    const blockMaxY = new Float32Array(blockCols * blockRows);
+    const surfaceHeights = source.surfaceHeights;
+    const heightSamples = source.heightSamples;
+    const decodeOffset = source.heightDecodeOffset;
+    const decodeScale = source.heightDecodeScale;
+
+    for (let bz = 0; bz < blockRows; bz++) {
+      const sz0 = bz * HEIGHT_BOUNDS_BLOCK_SAMPLES;
+      const sz1 = Math.min(sampleHeight - 1, sz0 + HEIGHT_BOUNDS_BLOCK_SAMPLES);
+      for (let bx = 0; bx < blockCols; bx++) {
+        const sx0 = bx * HEIGHT_BOUNDS_BLOCK_SAMPLES;
+        const sx1 = Math.min(sampleWidth - 1, sx0 + HEIGHT_BOUNDS_BLOCK_SAMPLES);
+        let bMin = Number.POSITIVE_INFINITY;
+        let bMax = Number.NEGATIVE_INFINITY;
+        for (let sz = sz0; sz <= sz1; sz++) {
+          const row = sz * sampleWidth;
+          for (let sx = sx0; sx <= sx1; sx++) {
+            const idx = row + sx;
+            const h = surfaceHeights
+              ? surfaceHeights[idx]!
+              : decodeOffset + (heightSamples[idx]! / 65535) * decodeScale;
+            if (h < bMin) bMin = h;
+            if (h > bMax) bMax = h;
+          }
+        }
+        const blockIdx = bz * blockCols + bx;
+        blockMinY[blockIdx] = Number.isFinite(bMin) ? bMin : 0;
+        blockMaxY[blockIdx] = Number.isFinite(bMax) ? bMax : 0;
+      }
+    }
+
+    const summaryCols = Math.max(1, Math.ceil(blockCols / HEIGHT_BOUNDS_SUMMARY_BLOCKS));
+    const summaryRows = Math.max(1, Math.ceil(blockRows / HEIGHT_BOUNDS_SUMMARY_BLOCKS));
+    const summaryMinY = new Float32Array(summaryCols * summaryRows);
+    const summaryMaxY = new Float32Array(summaryCols * summaryRows);
+    for (let uz = 0; uz < summaryRows; uz++) {
+      const bz0 = uz * HEIGHT_BOUNDS_SUMMARY_BLOCKS;
+      const bz1 = Math.min(blockRows - 1, bz0 + HEIGHT_BOUNDS_SUMMARY_BLOCKS - 1);
+      for (let ux = 0; ux < summaryCols; ux++) {
+        const bx0 = ux * HEIGHT_BOUNDS_SUMMARY_BLOCKS;
+        const bx1 = Math.min(blockCols - 1, bx0 + HEIGHT_BOUNDS_SUMMARY_BLOCKS - 1);
+        let sMin = Number.POSITIVE_INFINITY;
+        let sMax = Number.NEGATIVE_INFINITY;
+        for (let bz = bz0; bz <= bz1; bz++) {
+          const row = bz * blockCols;
+          for (let bx = bx0; bx <= bx1; bx++) {
+            const bIdx = row + bx;
+            const bMin = blockMinY[bIdx]!;
+            const bMax = blockMaxY[bIdx]!;
+            if (bMin < sMin) sMin = bMin;
+            if (bMax > sMax) sMax = bMax;
+          }
+        }
+        const summaryIdx = uz * summaryCols + ux;
+        summaryMinY[summaryIdx] = Number.isFinite(sMin) ? sMin : 0;
+        summaryMaxY[summaryIdx] = Number.isFinite(sMax) ? sMax : 0;
+      }
+    }
+
+    const minWorldX = source.worldPosition[0];
+    const minWorldZ = source.worldPosition[2];
+    pyramids.push({
+      id: source.id,
+      minWorldX,
+      minWorldZ,
+      maxWorldX: minWorldX + worldWidth,
+      maxWorldZ: minWorldZ + worldDepth,
+      worldWidth,
+      worldDepth,
+      sampleWidth,
+      sampleHeight,
+      decodeOffset,
+      decodeScale,
+      blockCols,
+      blockRows,
+      blockMinY,
+      blockMaxY,
+      summaryCols,
+      summaryRows,
+      summaryMinY,
+      summaryMaxY
+    });
+  }
+  return pyramids;
+}
+
+function patchRegionHeightPyramid(pyramid: RegionHeightPyramid, patch: TerrainHeightAtlasPatch): void {
+  const [ox, oz] = patch.sampleOrigin;
+  const [pw, ph] = patch.sampleSize;
+  if (pw <= 0 || ph <= 0) return;
+  let patchMin = Number.POSITIVE_INFINITY;
+  let patchMax = Number.NEGATIVE_INFINITY;
+  const samples = patch.samples;
+  for (let i = 0; i < samples.length; i++) {
+    const h = pyramid.decodeOffset + (samples[i]! / 65535) * pyramid.decodeScale;
+    if (h < patchMin) patchMin = h;
+    if (h > patchMax) patchMax = h;
+  }
+  if (!Number.isFinite(patchMin) || !Number.isFinite(patchMax)) return;
+
+  const bx0 = clamp(Math.floor(Math.max(0, ox - 1) / HEIGHT_BOUNDS_BLOCK_SAMPLES), 0, pyramid.blockCols - 1);
+  const bx1 = clamp(Math.floor((ox + pw) / HEIGHT_BOUNDS_BLOCK_SAMPLES), 0, pyramid.blockCols - 1);
+  const bz0 = clamp(Math.floor(Math.max(0, oz - 1) / HEIGHT_BOUNDS_BLOCK_SAMPLES), 0, pyramid.blockRows - 1);
+  const bz1 = clamp(Math.floor((oz + ph) / HEIGHT_BOUNDS_BLOCK_SAMPLES), 0, pyramid.blockRows - 1);
+  for (let bz = bz0; bz <= bz1; bz++) {
+    const row = bz * pyramid.blockCols;
+    for (let bx = bx0; bx <= bx1; bx++) {
+      const idx = row + bx;
+      if (patchMin < pyramid.blockMinY[idx]!) pyramid.blockMinY[idx] = patchMin;
+      if (patchMax > pyramid.blockMaxY[idx]!) pyramid.blockMaxY[idx] = patchMax;
+    }
+  }
+
+  const ux0 = Math.floor(bx0 / HEIGHT_BOUNDS_SUMMARY_BLOCKS);
+  const ux1 = Math.floor(bx1 / HEIGHT_BOUNDS_SUMMARY_BLOCKS);
+  const uz0 = Math.floor(bz0 / HEIGHT_BOUNDS_SUMMARY_BLOCKS);
+  const uz1 = Math.floor(bz1 / HEIGHT_BOUNDS_SUMMARY_BLOCKS);
+  for (let uz = uz0; uz <= uz1; uz++) {
+    const row = uz * pyramid.summaryCols;
+    for (let ux = ux0; ux <= ux1; ux++) {
+      const sIdx = row + ux;
+      if (patchMin < pyramid.summaryMinY[sIdx]!) pyramid.summaryMinY[sIdx] = patchMin;
+      if (patchMax > pyramid.summaryMaxY[sIdx]!) pyramid.summaryMaxY[sIdx] = patchMax;
+    }
+  }
+}
+
+function queryPyramidsVerticalBounds(
+  pyramids: readonly RegionHeightPyramid[],
+  minX: number,
+  maxX: number,
+  minZ: number,
+  maxZ: number,
+  verticalMargin: number
+): readonly [minY: number, maxY: number] {
+  let outMinY = Number.POSITIVE_INFINITY;
+  let outMaxY = Number.NEGATIVE_INFINITY;
+  let foundOverlap = false;
+  let fullyCovered = false;
+
+  for (let i = 0; i < pyramids.length; i++) {
+    const p = pyramids[i]!;
+    if (minX >= p.minWorldX && maxX <= p.maxWorldX && minZ >= p.minWorldZ && maxZ <= p.maxWorldZ) {
+      fullyCovered = true;
+    }
+    const ox0 = Math.max(minX, p.minWorldX);
+    const ox1 = Math.min(maxX, p.maxWorldX);
+    const oz0 = Math.max(minZ, p.minWorldZ);
+    const oz1 = Math.min(maxZ, p.maxWorldZ);
+    if (ox0 > ox1 || oz0 > oz1) continue;
+
+    foundOverlap = true;
+    const u0 = (ox0 - p.minWorldX) / p.worldWidth;
+    const u1 = (ox1 - p.minWorldX) / p.worldWidth;
+    const v0 = (oz0 - p.minWorldZ) / p.worldDepth;
+    const v1 = (oz1 - p.minWorldZ) / p.worldDepth;
+    const sx0 = clamp(Math.floor(u0 * (p.sampleWidth - 1)), 0, p.sampleWidth - 1);
+    const sx1 = clamp(Math.ceil(u1 * (p.sampleWidth - 1)), 0, p.sampleWidth - 1);
+    const sz0 = clamp(Math.floor(v0 * (p.sampleHeight - 1)), 0, p.sampleHeight - 1);
+    const sz1 = clamp(Math.ceil(v1 * (p.sampleHeight - 1)), 0, p.sampleHeight - 1);
+
+    const bx0 = clamp(Math.floor(sx0 / HEIGHT_BOUNDS_BLOCK_SAMPLES), 0, p.blockCols - 1);
+    const bx1 = clamp(Math.floor(sx1 / HEIGHT_BOUNDS_BLOCK_SAMPLES), 0, p.blockCols - 1);
+    const bz0 = clamp(Math.floor(sz0 / HEIGHT_BOUNDS_BLOCK_SAMPLES), 0, p.blockRows - 1);
+    const bz1 = clamp(Math.floor(sz1 / HEIGHT_BOUNDS_BLOCK_SAMPLES), 0, p.blockRows - 1);
+
+    if ((bx1 - bx0 + 1) * (bz1 - bz0 + 1) <= 64) {
+      for (let bz = bz0; bz <= bz1; bz++) {
+        const row = bz * p.blockCols;
+        for (let bx = bx0; bx <= bx1; bx++) {
+          const idx = row + bx;
+          const bMin = p.blockMinY[idx]!;
+          const bMax = p.blockMaxY[idx]!;
+          if (bMin < outMinY) outMinY = bMin;
+          if (bMax > outMaxY) outMaxY = bMax;
+        }
+      }
+    } else {
+      const ux0 = Math.floor(bx0 / HEIGHT_BOUNDS_SUMMARY_BLOCKS);
+      const ux1 = Math.floor(bx1 / HEIGHT_BOUNDS_SUMMARY_BLOCKS);
+      const uz0 = Math.floor(bz0 / HEIGHT_BOUNDS_SUMMARY_BLOCKS);
+      const uz1 = Math.floor(bz1 / HEIGHT_BOUNDS_SUMMARY_BLOCKS);
+      for (let uz = uz0; uz <= uz1; uz++) {
+        const row = uz * p.summaryCols;
+        for (let ux = ux0; ux <= ux1; ux++) {
+          const idx = row + ux;
+          const sMin = p.summaryMinY[idx]!;
+          const sMax = p.summaryMaxY[idx]!;
+          if (sMin < outMinY) outMinY = sMin;
+          if (sMax > outMaxY) outMaxY = sMax;
+        }
+      }
+    }
+  }
+
+  if (!foundOverlap) {
+    return [-verticalMargin, verticalMargin];
+  }
+  if (!fullyCovered) {
+    if (0 < outMinY) outMinY = 0;
+    if (0 > outMaxY) outMaxY = 0;
+  }
+  return [outMinY - verticalMargin, outMaxY + verticalMargin];
+}

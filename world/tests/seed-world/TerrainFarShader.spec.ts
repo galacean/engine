@@ -107,4 +107,57 @@ describe("Terrain near/far production shader variants", () => {
       expect(near).toContain("1.0 - detailVisibility");
     }
   );
+
+  it("keeps ground shadow PCF for near ground and skips far and pick variants", () => {
+    const baseMacros = new Map([
+      ["GRAPHICS_API_WEBGL2", ""],
+      ["SCENE_DIRECT_LIGHT_COUNT", "1"],
+      ["SCENE_SHADOW_TYPE", "3"],
+      ["SCENE_SHADOW_CASCADED_COUNT", "2"],
+      ["RENDERER_IS_RECEIVE_SHADOWS", ""],
+      ["MATERIAL_TERRAIN_LAYERS", ""]
+    ]);
+    const near = ShaderMacroProcessor.evaluate(forward.fragmentShaderInstructions, baseMacros);
+    expect(near).toContain("sampleTerrainProjectGroundShadowMap");
+    expect(near).toContain("terrainProjectGroundShadowGradient");
+
+    const farMacros = new Map(baseMacros);
+    farMacros.set("MATERIAL_TERRAIN_FAR", "");
+    const far = ShaderMacroProcessor.evaluate(forward.fragmentShaderInstructions, farMacros);
+    expect(far).not.toContain("sampleTerrainProjectGroundShadowMap");
+    expect(far).not.toContain("terrainProjectGroundShadowGradient");
+    expect(far).toContain("sampleTerrainProjectShadow");
+
+    const pickMacros = new Map(baseMacros);
+    pickMacros.set("RENDERER_WORLD_PICK", "");
+    const pick = ShaderMacroProcessor.evaluate(forward.fragmentShaderInstructions, pickMacros);
+    expect(pick).not.toContain("sampleTerrainProjectGroundShadowMap");
+    expect(pick).not.toContain("terrainProjectGroundShadowGradient");
+
+    const grass = JSON.parse(
+      fs.readFileSync(
+        new URL("../../../packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc", import.meta.url),
+        "utf8"
+      )
+    );
+    const grassForward = grass.subShaders[0].passes.find((pass) => pass.name === "Forward");
+    const grassMacros = new Map([
+      ["GRAPHICS_API_WEBGL2", ""],
+      ["SCENE_DIRECT_LIGHT_COUNT", "1"],
+      ["SCENE_SHADOW_TYPE", "3"],
+      ["SCENE_SHADOW_CASCADED_COUNT", "2"],
+      ["RENDERER_IS_RECEIVE_SHADOWS", ""]
+    ]);
+    const grassDefault = ShaderMacroProcessor.evaluate(grassForward.fragmentShaderInstructions, grassMacros);
+    expect(grassDefault).not.toContain("sampleTerrainProjectGroundShadowMap");
+
+    grassMacros.set("MATERIAL_FARM_GROUND_SURFACE", "");
+    const grassGround = ShaderMacroProcessor.evaluate(grassForward.fragmentShaderInstructions, grassMacros);
+    expect(grassGround).toContain("sampleTerrainProjectGroundShadowMap");
+    expect(grassGround).toContain("terrainProjectGroundShadowGradient");
+
+    grassMacros.set("RENDERER_WORLD_PICK", "");
+    const grassGroundPick = ShaderMacroProcessor.evaluate(grassForward.fragmentShaderInstructions, grassMacros);
+    expect(grassGroundPick).not.toContain("sampleTerrainProjectGroundShadowMap");
+  });
 });

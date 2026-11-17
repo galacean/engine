@@ -21,41 +21,33 @@ export class InstanceBuffer {
   private _data: ArrayBuffer;
   private _floatView: Float32Array;
   private _intView: Int32Array;
-  private _cursor: number = 0;
-  private _maxBlockBytes: number = 0;
 
   constructor(engine: Engine) {
     this._engine = engine;
   }
 
   /**
-   * Set UBO layout and allocate ring buffer if needed.
+   * Set UBO layout and allocate buffer if needed.
    */
   setLayout(layout: InstanceBufferLayout): void {
     this._layout = layout;
     const totalBytes = layout.instanceMaxCount * layout.structSize;
-    if (!this._data || totalBytes > this._data.byteLength) {
+    // Only reallocate when buffer is too small
+    if (!this.buffer || totalBytes > this.buffer.byteLength) {
       this._data = new ArrayBuffer(totalBytes);
       this._floatView = new Float32Array(this._data);
       this._intView = new Int32Array(this._data);
-    }
-    const supportsRange = typeof this._engine._hardwareRenderer.bindUniformBufferRange === "function";
-    const requiredBufferBytes = supportsRange ? Math.max(totalBytes * 8, 512 * 1024) : totalBytes;
-    // Only reallocate when GPU ring buffer is too small for a full UBO block
-    if (!this.buffer || totalBytes > this._maxBlockBytes || totalBytes > this.buffer.byteLength) {
       this.buffer?.destroy();
-      this.buffer = new Buffer(this._engine, BufferBindFlag.ConstantBuffer, requiredBufferBytes, BufferUsage.Dynamic);
+      this.buffer = new Buffer(this._engine, BufferBindFlag.ConstantBuffer, totalBytes, BufferUsage.Dynamic);
       this.buffer.isGCIgnored = true;
-      this._maxBlockBytes = totalBytes;
-      this._cursor = 0;
     }
   }
 
   /**
-   * Pack renderer data into the ring UBO and upload to GPU, returning the bound byte offset.
+   * Pack renderer data into UBO and upload to GPU.
    */
-  upload(renderers: Renderer[], start: number, count: number): number {
-    const { instanceFields, structSize, instanceMaxCount } = this._layout;
+  upload(renderers: Renderer[], start: number, count: number): void {
+    const { instanceFields, structSize } = this._layout;
     const elementsPerInstance = structSize / 4;
     const { _floatView: floatView, _intView: intView } = this;
     const modelMatId = Renderer._worldMatrixProperty._uniqueId;
@@ -83,25 +75,7 @@ export class InstanceBuffer {
       }
     }
 
-    const rhi = this._engine._hardwareRenderer;
-    if (typeof rhi.bindUniformBufferRange !== "function") {
-      this.buffer.setData(floatView, 0, 0, count * elementsPerInstance, SetDataOptions.Discard);
-      return 0;
-    }
-
-    const blockBytes = instanceMaxCount * structSize;
-    if (this._cursor + blockBytes > this.buffer.byteLength) {
-      this._cursor = 0;
-    }
-    const offset = this._cursor;
-    // Orphan the ring buffer only on wrap to offset 0; sub-allocations write disjoint ranges.
-    const options = offset === 0 ? SetDataOptions.Discard : SetDataOptions.None;
-    this.buffer.setData(floatView, offset, 0, count * elementsPerInstance, options);
-
-    const align = rhi.uniformBufferOffsetAlignment || 256;
-    const usedBytes = count * structSize;
-    this._cursor = offset + Math.ceil(usedBytes / align) * align;
-    return offset;
+    this.buffer.setData(floatView, 0, 0, count * elementsPerInstance, SetDataOptions.Discard);
   }
 
   destroy(): void {
@@ -109,7 +83,5 @@ export class InstanceBuffer {
     this._data = null!;
     this._floatView = null!;
     this._intView = null!;
-    this._cursor = 0;
-    this._maxBlockBytes = 0;
   }
 }

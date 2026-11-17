@@ -8,7 +8,10 @@ import {
   type RuntimeComponentIdentity
 } from "./runtime-component-identity";
 import type {} from "../generated/editor-source-schema";
-import type { RuntimeProjectEdit } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
+import type {
+  RuntimeProjectEdit,
+  RuntimeSceneMutation
+} from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
 import {
   instanceMemberId,
   readSourcePrefab,
@@ -39,6 +42,7 @@ function instanceEntityPatch(
 /** Edits the existing Editor source format; no engine objects or runtime state enter the draft. */
 export class RuntimeSceneEdit {
   private batchSource?: GalaceanSourceSceneFile;
+  private batchMutation?: RuntimeSceneMutation | null;
 
   constructor(
     private readonly project: RuntimeProjectEdit,
@@ -50,6 +54,7 @@ export class RuntimeSceneEdit {
     if (this.batchSource) throw Error("Scene batches cannot be nested");
     const before = this.content();
     const original = (this.batchSource = this.parse(before));
+    this.batchMutation = {};
     try {
       const result: unknown = action();
       if (result && typeof (result as Promise<unknown>).then === "function")
@@ -57,10 +62,12 @@ export class RuntimeSceneEdit {
       if (this.content() !== before) throw Error("Scene source changed during batch");
       if (this.batchSource !== original) {
         const after = JSON.stringify(this.batchSource);
-        if (after !== before && after !== JSON.stringify(original)) this.project.update(this.sceneId, after);
+        if (after !== before && after !== JSON.stringify(original))
+          this.project.update(this.sceneId, after, this.batchMutation ?? undefined);
       }
     } finally {
       this.batchSource = undefined;
+      this.batchMutation = undefined;
     }
   }
 
@@ -75,7 +82,7 @@ export class RuntimeSceneEdit {
       if (JSON.stringify(previous) === JSON.stringify(next)) return;
       const source = this.read();
       source.components.find((record) => record.id === id)!.props = structuredClone(next);
-      this.write(source);
+      this.write(source, { components: [id] });
     } else {
       const removed = Object.keys(previous).filter((key) => owned.includes(key) && !(key in props));
       if (removed.length) this.revertComponent(id, removed);
@@ -243,13 +250,17 @@ export class RuntimeSceneEdit {
     scene.entities.push(entity);
     if (parent) (parent.children ??= []).push(id);
     else scene.scene.rootEntities.push(id);
-    this.write(scene);
+    this.write(
+      scene,
+      prefab === undefined ? { entities: [id, ...(parent ? [parent.id] : [])], roots: !parent } : undefined
+    );
     return { id };
   }
 
   update(id: string, patch: RuntimeEntityPatch): void {
     const scene = this.read();
     let entity: RuntimeEntityPatch | undefined = scene.entities.find((entity) => entity.id === id);
+    const local = entity && !(entity as GalaceanSourceEntitySchema).instance;
     if (!entity || (entity as GalaceanSourceEntitySchema).instance) {
       const member = this.instanceEntity(scene, id);
       if (member.nested) {
@@ -266,7 +277,7 @@ export class RuntimeSceneEdit {
     for (const key of entityProperties) {
       if (patch[key] !== undefined) Object.assign(entity, { [key]: structuredClone(patch[key]) });
     }
-    this.write(scene);
+    this.write(scene, local ? { entities: [id] } : undefined);
   }
 
   revert(id: string, keys: readonly (keyof RuntimeEntityPatch)[] = entityProperties): void {
@@ -407,7 +418,18 @@ export class RuntimeSceneEdit {
         } else Object.assign(sourceEntity, transform);
       }
     }
-    this.write(scene);
+    this.write(
+      scene,
+      sourceEntity && !sourceEntity.instance
+        ? {
+            entities: [
+              id,
+              ...[parents.get(id), parentEntityId].filter((value): value is string => typeof value === "string")
+            ],
+            roots: !parents.has(id) || parentEntityId === null
+          }
+        : undefined
+    );
   }
 
   delete(id: string): void {
@@ -463,12 +485,16 @@ export class RuntimeSceneEdit {
     const removedComponents = new Set(
       scene.entities.filter((entity) => removed.has(entity.id)).flatMap((entity) => entity.components ?? [])
     );
+    const parents = scene.entities
+      .filter((entity) => entity.children?.some((child) => removed.has(child)))
+      .map((entity) => entity.id);
+    const roots = scene.scene.rootEntities.some((root) => removed.has(root));
     scene.entities = scene.entities.filter((entity) => !removed.has(entity.id));
     for (const entity of scene.entities)
       if (entity.children) entity.children = entity.children.filter((child) => !removed.has(child));
     scene.components = scene.components.filter((component) => !removedComponents.has(component.id));
     scene.scene.rootEntities = scene.scene.rootEntities.filter((root) => !removed.has(root));
-    this.write(scene);
+    this.write(scene, { entities: [...removed, ...parents], components: [...removedComponents], roots });
   }
 
   addComponent(entityId: string, input: Omit<GalaceanSourceComponentSchema, "id">): { id: string } {
@@ -501,7 +527,7 @@ export class RuntimeSceneEdit {
     }
     scene.components.push({ ...structuredClone(input), id });
     (entity.components ??= []).push(id);
-    this.write(scene);
+    this.write(scene, { entities: [entityId], components: [id] });
     return { id };
   }
 
@@ -536,7 +562,7 @@ export class RuntimeSceneEdit {
         this.pruneOverride(member);
       }
     }
-    this.write(scene);
+    this.write(scene, component ? { components: [id] } : undefined);
   }
 
   /** Restore template inheritance, including properties whose default is owned by the Engine. */
@@ -583,10 +609,11 @@ export class RuntimeSceneEdit {
       this.write(scene);
       return;
     }
+    const owners = scene.entities.filter((entity) => entity.components?.includes(id)).map((entity) => entity.id);
     scene.components = scene.components.filter((component) => component.id !== id);
     for (const entity of scene.entities)
       if (entity.components) entity.components = entity.components.filter((component) => component !== id);
-    this.write(scene);
+    this.write(scene, { entities: owners, components: [id] });
   }
 
   /** Detached, mutable Source for an edit that ends in write(). */
@@ -622,12 +649,21 @@ export class RuntimeSceneEdit {
     }
     return scene;
   }
-  private write(scene: GalaceanSourceSceneFile): void {
+  private write(scene: GalaceanSourceSceneFile, mutation?: RuntimeSceneMutation): void {
     if (this.batchSource) {
       this.batchSource = scene;
+      const prior = this.batchMutation;
+      this.batchMutation =
+        !mutation || prior === null
+          ? null
+          : {
+              entities: [...new Set([...(prior?.entities ?? []), ...(mutation.entities ?? [])])],
+              components: [...new Set([...(prior?.components ?? []), ...(mutation.components ?? [])])],
+              roots: !!(prior?.roots || mutation.roots)
+            };
       return;
     }
-    this.project.update(this.sceneId, JSON.stringify(scene));
+    this.project.update(this.sceneId, JSON.stringify(scene), mutation);
   }
   private readonly lookupInstanceAsset = (path: string) => this.project.lookupTextAsset(path);
 

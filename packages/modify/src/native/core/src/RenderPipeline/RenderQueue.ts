@@ -255,25 +255,10 @@ export class RenderQueue {
           const instanceBuffer = engine._batcherManager.instanceBuffer;
 
           instanceBuffer.setLayout(layout);
-          const blockBytes = maxCount * layout.structSize;
-          const useRange = typeof rhi.bindUniformBufferRange === "function";
-          if (!useRange) {
-            rhi.bindUniformBufferBase(
-              ConstantBufferBindingPoint.RendererInstance,
-              instanceBuffer.buffer._platformBuffer
-            );
-          }
+          rhi.bindUniformBufferBase(ConstantBufferBindingPoint.RendererInstance, instanceBuffer.buffer._platformBuffer);
           for (let start = 0; start < totalCount; start += maxCount) {
             const count = Math.min(maxCount, totalCount - start);
-            const offset = instanceBuffer.upload(instancedRenderers, start, count);
-            if (useRange) {
-              rhi.bindUniformBufferRange(
-                ConstantBufferBindingPoint.RendererInstance,
-                instanceBuffer.buffer._platformBuffer,
-                offset,
-                blockBytes
-              );
-            }
+            instanceBuffer.upload(instancedRenderers, start, count);
             primitive.instanceCount = count;
             rhi.drawPrimitive(primitive, subPrimitive, program);
             drawCount++;

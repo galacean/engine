@@ -103,6 +103,7 @@ struct Varyings {
 vec4 material_GrassGroundColor;
 vec4 material_GrassSurfaceSnowResponse;
 vec4 renderer_GrassRoadColor;
+vec4 renderer_GrassLodDebugColor;
 #include "shared/GrassGroundFusion.glsl"
 #ifdef TERRAIN_PROJECT_GRASS_TERRAIN_SURFACE
   #ifndef TERRAIN_PROJECT_GROUND_MATERIAL_BINDING
@@ -488,6 +489,9 @@ void GrassFragment(Varyings input) {
   #if SCENE_FOG_MODE != 0
     color = fog(vec4(color, 1.0), input.positionVS).rgb;
   #endif
+  if (renderer_GrassLodDebugColor.a > 0.0) {
+    color = mix(color, renderer_GrassLodDebugColor.rgb, renderer_GrassLodDebugColor.a);
+  }
   gl_FragColor = vec4(color, 1.0);
   #endif
 }

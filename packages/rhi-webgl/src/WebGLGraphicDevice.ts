@@ -90,8 +90,6 @@ export interface WebGLGraphicDeviceOptions {
  */
 export class WebGLGraphicDevice implements IHardwareRenderer {
   maxUniformBlockSize: number;
-  /** @internal */
-  uniformBufferOffsetAlignment: number = 256;
 
   /** @internal */
   _readFrameBuffer: WebGLFramebuffer | null = null;
@@ -297,11 +295,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   bindUniformBufferBase(bindingPoint: number, buffer: IPlatformBuffer): void {
     const gl = <WebGL2RenderingContext>this._gl;
     gl.bindBufferBase(gl.UNIFORM_BUFFER, bindingPoint, (<GLBuffer>buffer)._glBuffer);
-  }
-
-  bindUniformBufferRange(bindingPoint: number, buffer: IPlatformBuffer, offset: number, byteLength: number): void {
-    const gl = <WebGL2RenderingContext>this._gl;
-    gl.bindBufferRange(gl.UNIFORM_BUFFER, bindingPoint, (<GLBuffer>buffer)._glBuffer, offset, byteLength);
   }
 
   bindUniformBlock(program: WebGLProgram, blockName: string, bindingPoint: number): number {
@@ -652,9 +645,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
     }
     if (this._isWebGL2) {
-      const gl2 = <WebGL2RenderingContext>gl;
-      this.maxUniformBlockSize = gl2.getParameter(gl2.MAX_UNIFORM_BLOCK_SIZE);
-      this.uniformBufferOffsetAlignment = Math.max(16, gl2.getParameter(gl2.UNIFORM_BUFFER_OFFSET_ALIGNMENT) || 256);
+      this.maxUniformBlockSize = (<WebGL2RenderingContext>gl).getParameter(
+        (<WebGL2RenderingContext>gl).MAX_UNIFORM_BLOCK_SIZE
+      );
     }
   }
 

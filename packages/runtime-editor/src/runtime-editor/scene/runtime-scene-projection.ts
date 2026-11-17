@@ -1,4 +1,6 @@
+import type { RuntimeSceneChangeSet } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
 import { RuntimeProjectInputs } from "@galacean/engine-project/runtime-editor/project/runtime-project-inputs";
+import { RuntimeSceneChanges, RuntimeSceneRecords } from "./runtime-scene-changes";
 import { readSourcePrefab, RuntimeInstanceSource } from "./runtime-instance-source";
 import { RuntimeInstanceIdentities } from "./runtime-instance-identities";
 import { RuntimeAssetChanges } from "../../project/runtime-asset-changes.ts";
@@ -44,6 +46,18 @@ const removedValue = (before: unknown, after: unknown): boolean => {
 };
 const same = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
 
+/** Opaque transaction-owned plan. The projection verifies its baseline and inputs before use. */
+export interface RuntimeScenePreparation {
+  readonly changedAssets: readonly string[];
+}
+interface PreparedScene {
+  baseline: RuntimeSceneRecords;
+  records: RuntimeSceneRecords;
+  changes: RuntimeSceneChanges;
+  inputs: RuntimeProjectInputs;
+  referenceIds: ReturnType<typeof runtimeSourceReferenceIds>;
+}
+
 /** Stable source identities map onto existing Engine objects; unrelated gameplay objects stay host-owned. */
 export class RuntimeSceneProjection {
   private readonly entities = new Map<string, Entity>();
@@ -51,6 +65,10 @@ export class RuntimeSceneProjection {
   private sourceIds = new WeakMap<Entity | Component, string>();
   // A failed activation invalidates the diff baseline: live objects may be partially updated.
   private needsResync = false;
+  // Retain mutation intent before invoking setters/constructors: failures may occur after a partial write.
+  private readonly pendingEntities = new Set<string>();
+  private readonly pendingComponents = new Set<string>();
+  private readonly pendingSceneGroups = new Set<string>();
   private instances: RuntimeInstanceIdentities;
   private componentIdentities = new WeakMap<Component, RuntimeComponentIdentity>();
   private previous: GalaceanSourceSceneFile;
@@ -58,6 +76,9 @@ export class RuntimeSceneProjection {
   private previousMembers: RuntimeInstanceSource;
   private readonly assetChanges: RuntimeAssetChanges;
   private appliedInputs: RuntimeProjectInputs;
+  private records: RuntimeSceneRecords;
+  private appliedSceneContent: string;
+  private readonly preparations = new WeakMap<RuntimeScenePreparation, PreparedScene>();
 
   constructor(
     private readonly scene: Scene,
@@ -65,8 +86,10 @@ export class RuntimeSceneProjection {
     pack: RuntimeProjectPackage
   ) {
     this.previous = this.source(pack);
+    this.appliedSceneContent = pack.contents[path] as string;
     this.previousMembers = new RuntimeInstanceSource(this.previous, pack);
     this.previousRuntime = JSON.parse(compileProjectResource(pack, path) as string);
+    this.records = new RuntimeSceneRecords(this.previous, this.previousRuntime);
     this.assetChanges = new RuntimeAssetChanges(pack);
     this.appliedInputs = new RuntimeProjectInputs(pack, { rootTypes: ["Scene"] });
     const source = this.previous;
@@ -140,6 +163,11 @@ export class RuntimeSceneProjection {
       const owner = this.sourceIdentity(object.entity);
       return owner && { ...owner, componentId: id };
     }
+  }
+
+  /** Domain before-hooks must not query identities from a failed projection. */
+  get requiresRecovery(): boolean {
+    return this.needsResync;
   }
 
   /** Only a successfully activated Scene can provide callable component identities. */
@@ -245,37 +273,95 @@ export class RuntimeSceneProjection {
     return { source, runtime };
   }
 
-  /** Activates already-committed authoring data. A failure must be reported in the execution receipt. */
-  async apply(pack: RuntimeProjectPackage, signal?: AbortSignal): Promise<void> {
-    signal?.throwIfAborted();
+  /** Compute the net delta after every draft writer/preparation has finished, including undo.
+   * Prefab topology and external asset changes keep the existing full projection path. */
+  prepare(
+    pack: RuntimeProjectPackage,
+    changedAssets: readonly string[],
+    journal?: RuntimeSceneChangeSet
+  ): RuntimeScenePreparation {
     const { source, runtime } = this.validate(pack);
+    const preparation = Object.freeze({ changedAssets: Object.freeze([...changedAssets]) });
+    if (
+      journal &&
+      journal.before === this.appliedSceneContent &&
+      journal.after === pack.contents[this.path] &&
+      !this.needsResync &&
+      !source.entities.some((record) => record.instance) &&
+      !this.previous.entities.some((record) => record.instance) &&
+      same(source.prefab, this.previous.prefab) &&
+      [...this.assetChanges.affected(pack)].every((path) => path === this.path)
+    ) {
+      const records = new RuntimeSceneRecords(source, runtime, this.records, journal);
+      this.preparations.set(preparation, {
+        baseline: this.records,
+        records,
+        changes: new RuntimeSceneChanges(this.records, records, journal),
+        inputs: new RuntimeProjectInputs(pack, { rootTypes: ["Scene"] }),
+        referenceIds: runtimeSourceReferenceIds(source)
+      });
+    }
+    return preparation;
+  }
+
+  /** Activates already-committed authoring data. A failure must be reported in the execution receipt. */
+  async apply(pack: RuntimeProjectPackage, signal?: AbortSignal, preparation?: RuntimeScenePreparation): Promise<void> {
+    signal?.throwIfAborted();
+    // Publications replace the accepted project/maps. Pin those inputs across awaits;
+    // a later publication or cache fill must not become this apply's asset baseline.
+    pack = { ...pack, contents: { ...pack.contents }, documents: pack.documents && { ...pack.documents } };
+    const candidate = preparation && this.preparations.get(preparation);
+    const prepared =
+      candidate &&
+      !this.needsResync &&
+      candidate.baseline === this.records &&
+      candidate.inputs.matches(pack) &&
+      this.bindingsUnchanged(pack)
+        ? candidate
+        : undefined;
+    const { source, runtime } = prepared?.records ?? this.validate(pack);
+    const changes = prepared?.changes;
     // Source equality alone is insufficient: scripts can change live parents or
     // registered classes, and a previous failed activation must be retried.
-    if (!this.needsResync && this.appliedInputs.matches(pack) && this.bindingsUnchanged(pack)) {
+    if (!prepared && !this.needsResync && this.appliedInputs.matches(pack) && this.bindingsUnchanged(pack)) {
       this.assetChanges.accept(pack);
       return;
     }
-    const inputSnapshot = new RuntimeProjectInputs(pack, { rootTypes: ["Scene"] });
-    const referenceIds = runtimeSourceReferenceIds(source, {
-      resolveInstanceSourceFile: (path) => readSourcePrefab(pack, path),
-      resolveInstanceAssetKind: (path) =>
-        pack.project.files.find((file) => file.virtualPath === path)?.type === "glTF" ? "glTF" : "Prefab"
-    });
-    const members = new RuntimeInstanceSource(source, pack);
+    const inputSnapshot = prepared?.inputs ?? new RuntimeProjectInputs(pack, { rootTypes: ["Scene"] });
+    const nextRecords = prepared?.records ?? new RuntimeSceneRecords(source, runtime);
+    const entityRecords = changes
+      ? [...changes.entities].flatMap((id) => nextRecords.entities.get(id) ?? [])
+      : source.entities;
+    const componentRecords = changes
+      ? [...changes.components].flatMap((id) => nextRecords.components.get(id) ?? [])
+      : source.components;
+    const referenceIds =
+      prepared?.referenceIds ??
+      runtimeSourceReferenceIds(source, {
+        resolveInstanceSourceFile: (path) => readSourcePrefab(pack, path),
+        resolveInstanceAssetKind: (path) =>
+          pack.project.files.find((file) => file.virtualPath === path)?.type === "glTF" ? "glTF" : "Prefab"
+      });
+    const members = prepared ? this.previousMembers : new RuntimeInstanceSource(source, pack);
     const entityOwner = (id: string) => members.entities.get(id)?.root ?? id;
     const componentOwner = (id: string) => {
       const member = members.components.get(id);
       return member && entityOwner(member.entityId);
     };
     const recovering = this.needsResync;
+    const recoveryEntities = new Set(this.pendingEntities);
+    const recoveryComponents = new Set(this.pendingComponents);
     this.needsResync = true;
     const changedAssets = this.assetChanges.affected(pack);
     const replacedComponents = new Set<string>();
     const replacedEntities = new Set<string>();
     // Returning inline members to Scene ownership creates new live objects under the same Source IDs.
-    for (const record of source.entities)
-      if (!this.entities.has(record.id) && this.instances.entities.has(record.id)) replacedEntities.add(record.id);
-    for (const record of source.components)
+    for (const record of entityRecords) {
+      const live = this.entities.get(record.id);
+      if ((!live && this.instances.entities.has(record.id)) || live?.destroyed || live?.pendingDestroy)
+        replacedEntities.add(record.id);
+    }
+    for (const record of componentRecords)
       if (!this.components.has(record.id) && this.instances.components.has(record.id))
         replacedComponents.add(record.id);
     // The compiler lowers stable component IDs to { entity: number[], type, index }.
@@ -353,11 +439,12 @@ export class RuntimeSceneProjection {
       return instance;
     };
     const instanceIndices: number[] = [];
-    for (const [index, record] of source.entities.entries()) {
-      const prior = this.previous.entities.find((entity) => entity.id === record.id);
+    for (const [index, record] of (prepared ? [] : source.entities).entries()) {
+      const prior = this.records.entities.get(record.id);
       if (
         record.instance &&
-        (recovering ||
+        (recoveryEntities.has(record.id) ||
+          replacedEntities.has(record.id) ||
           !this.entities.has(record.id) ||
           !same(instanceStructure(record, members), instanceStructure(prior, this.previousMembers)) ||
           !same(nestedState(source, members, record.id), nestedState(this.previous, this.previousMembers, record.id)) ||
@@ -368,26 +455,26 @@ export class RuntimeSceneProjection {
         replacedEntities.add(record.id);
       } else if (!record.instance && prior?.instance) replacedEntities.add(record.id);
     }
-    const priorEntities = new Map((recovering ? [] : this.previous.entities).map((entity) => [entity.id, entity]));
-    const priorComponents = new Map(this.previous.components.map((component) => [component.id, component]));
-    const oldRuntimeComponents = new Map(
-      this.previous.components.map((component, index) => [component.id, this.previousRuntime.components[index]])
-    );
-    const classes = new Map(source.components.map((component) => [component.id, this.componentClass(component, pack)]));
-    const owners = new Map(
-      source.entities.flatMap((entity) => (entity.components ?? []).map((id) => [id, entity.id] as const))
-    );
-    for (const [index, record] of source.components.entries()) {
+    const priorEntities = new Map(this.records.entities);
+    for (const id of recoveryEntities) priorEntities.delete(id);
+    const priorComponents = this.records.components;
+    const oldRuntimeComponents = this.records.runtimeComponents;
+    const classes = new Map(componentRecords.map((component) => [component.id, this.componentClass(component, pack)]));
+    const owners = nextRecords.owners;
+    for (const record of componentRecords) {
       const existing = this.components.get(record.id);
       const old = oldRuntimeComponents.get(record.id);
-      const next = runtime.components[index];
+      const next = nextRecords.runtimeComponents.get(record.id)!;
       const removedProperties = removedValue(old?.props, next.props);
       const resetCalls =
         !same(priorComponents.get(record.id)?.calls, record.calls) ||
         (old?.calls ?? []).some((call) => !(next.calls ?? []).some((next) => next.method === call.method));
       if (
         existing &&
-        (recovering ||
+        (recoveryComponents.has(record.id) ||
+          existing.destroyed ||
+          existing.pendingDestroy ||
+          replacedEntities.has(owners.get(record.id)!) ||
           existing.constructor !== classes.get(record.id) ||
           existing.entity !== this.entities.get(owners.get(record.id)!) ||
           removedProperties ||
@@ -400,7 +487,7 @@ export class RuntimeSceneProjection {
     let expanded: boolean;
     do {
       expanded = false;
-      for (const [index, record] of source.entities.entries()) {
+      for (const [index, record] of (prepared ? [] : source.entities).entries()) {
         if (record.instance && !replacedEntities.has(record.id) && referencesChanged(record.instance)) {
           instanceIndices.push(index);
           replacedEntities.add(record.id);
@@ -412,63 +499,78 @@ export class RuntimeSceneProjection {
       ["background", "ambient", "shadow", "fog", "ambientOcclusion"].filter((key) => {
         const group = key as keyof GalaceanSourceSceneSchema;
         return (
-          recovering || !same(source.scene[group], this.previous.scene[group]) || referencesChanged(source.scene[group])
+          this.pendingSceneGroups.has(key) ||
+          !same(source.scene[group], this.previous.scene[group]) ||
+          referencesChanged(source.scene[group])
         );
       })
     );
+    for (const group of sceneGroups) this.pendingSceneGroups.add(group);
     await applyRuntimeSceneSettings(this.scene, runtime, sceneGroups, signal);
     if (recovering || source.scene.name !== this.previous.scene.name) this.scene.name = source.scene.name ?? "";
-    for (const record of source.entities) {
+    for (const record of entityRecords) {
       if (!this.entities.has(record.id)) {
+        this.pendingEntities.add(record.id);
         const entity = new Entity(this.scene.engine, record.name);
         this.entities.set(record.id, entity);
       }
     }
     const retiredRoots: Entity[] = [];
-    for (const record of source.entities)
-      if (
-        !record.instance &&
-        replacedEntities.has(record.id) &&
-        this.previous.entities.some((value) => value.id === record.id)
-      ) {
+    for (const record of entityRecords)
+      if (!record.instance && replacedEntities.has(record.id) && this.records.entities.has(record.id)) {
+        this.pendingEntities.add(record.id);
         retiredRoots.push(this.entities.get(record.id)!);
         this.entities.set(record.id, new Entity(this.scene.engine, record.name));
       }
     const resume = new Map<Entity, boolean>();
-    for (const record of source.entities) {
+    for (const record of entityRecords) {
       const entity = this.entities.get(record.id)!;
       if (
         !priorEntities.has(record.id) ||
+        replacedEntities.has(record.id) ||
         record.isActive !== priorEntities.get(record.id)?.isActive ||
         (record.components ?? []).some((id) => !this.components.has(id) || replacedComponents.has(id))
       ) {
-        const prior = priorEntities.get(record.id);
+        const prior = replacedEntities.has(record.id) ? undefined : priorEntities.get(record.id);
         resume.set(entity, !prior || record.isActive !== prior.isActive ? (record.isActive ?? true) : entity.isActive);
         entity.isActive = false;
       }
     }
     try {
-      const nextIds = new Set(source.components.map((record) => record.id));
-      for (const [id, component] of this.components) {
-        if (!nextIds.has(id) || replacedComponents.has(id)) {
+      const removals = changes
+        ? new Set([...changes.removedComponents, ...replacedComponents])
+        : new Set(
+            [...this.components.keys()].filter((id) => !nextRecords.components.has(id) || replacedComponents.has(id))
+          );
+      for (const id of removals) {
+        const component = this.components.get(id);
+        if (component) {
+          this.pendingComponents.add(id);
+          this.sourceIds.delete(component);
+          this.componentIdentities.delete(component);
           component.destroy();
           this.components.delete(id);
         }
       }
       const context = new ParserContext(this.scene.engine, ParserType.Scene, this.scene);
-      context.entityInstances = referenceIds.entities.map((id) => {
-        const member = members.entities.get(id);
-        if (!member) return this.entities.get(id)!;
-        let entity = this.entities.get(member.root);
-        for (const index of member.path) entity = entity?.children[index];
-        return entity!;
-      });
+      context.entityInstances = prepared
+        ? []
+        : referenceIds.entities.map((id) => {
+            const member = members.entities.get(id);
+            if (!member) return this.entities.get(id)!;
+            let entity = this.entities.get(member.root);
+            for (const index of member.path) entity = entity?.children[index];
+            return entity!;
+          });
       // Allocate ordinary components before instance overrides can reference them.
-      for (const record of source.entities)
+      for (const record of entityRecords)
         if (!record.instance) {
           const entity = this.entities.get(record.id)!;
           for (const id of record.components ?? [])
-            if (!this.components.has(id)) this.components.set(id, entity.addComponent(classes.get(id)!));
+            if (!this.components.has(id)) {
+              this.pendingComponents.add(id);
+              this.components.set(id, entity.addComponent(classes.get(id)!));
+            }
         }
       // Compiled selectors describe authored order. Replaced components are appended by
       // Entity, so translate ordinary component IDs to their current native selectors.
@@ -489,6 +591,7 @@ export class RuntimeSceneProjection {
         return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, rebindComponentReferences(child)]));
       };
       if (instanceIndices.length) {
+        for (const index of instanceIndices) this.pendingEntities.add(source.entities[index].id);
         const instanceRuntime = suppressUnavailableScriptPayloads(
           runtime,
           (path) => Loader.getClass(path)?.prototype instanceof UnavailableProjectScript
@@ -508,17 +611,15 @@ export class RuntimeSceneProjection {
         }
       }
       const parser = new ReflectionParser(context, runtime.refs);
-      const runtimeComponents = new Map(
-        source.components.map((component, index) => [component.id, runtime.components[index]])
-      );
-      const sourceComponents = new Map(source.components.map((component) => [component.id, component]));
-      for (const record of source.entities) {
+      const runtimeComponents = nextRecords.runtimeComponents;
+      for (const record of entityRecords) {
         const entity = this.entities.get(record.id)!;
-        const priorRecord = priorEntities.get(record.id);
+        const priorRecord = replacedEntities.has(record.id) ? undefined : priorEntities.get(record.id);
         const current = { ...members.entities.get(record.id)?.record, ...record };
         const prior = priorRecord && { ...this.previousMembers.entities.get(record.id)?.record, ...priorRecord };
         // Native instance loading already applied template values and authored root overrides.
         if (record.instance && replacedEntities.has(record.id)) continue;
+        if (!prior || !same(current, prior)) this.pendingEntities.add(record.id);
         for (const key of ["position", "rotation", "scale"] as const) {
           if (!same(current[key], prior?.[key])) {
             const value = current[key] ?? (key === "scale" ? [1, 1, 1] : [0, 0, 0]);
@@ -531,6 +632,7 @@ export class RuntimeSceneProjection {
           entity.isActive = current.isActive ?? true;
         for (const id of record.components ?? []) {
           if (!this.components.has(id)) {
+            this.pendingComponents.add(id);
             const component = entity.addComponent(classes.get(id)!);
             this.components.set(id, component);
           }
@@ -540,7 +642,7 @@ export class RuntimeSceneProjection {
         if (!value || typeof value !== "object") return value;
         if (Array.isArray(value)) return value.map(liveReferences);
         const entityPath = (path: number[]): Entity => {
-          let entity = context.entityInstances[path[0]];
+          let entity = prepared ? this.entities.get(referenceIds.entities[path[0]])! : context.entityInstances[path[0]];
           for (const index of path.slice(1)) entity = entity?.children[index];
           if (!entity) throw new Error("Cannot resolve applied entity reference");
           return entity;
@@ -564,9 +666,10 @@ export class RuntimeSceneProjection {
         if (value.$entity) return { $entity: [contextIndex(entityPath(value.$entity))] };
         return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, liveReferences(child)]));
       };
-      for (const [id, record] of sourceComponents) {
+      for (const record of componentRecords) {
+        const id = record.id;
         signal?.throwIfAborted();
-        const previous = replacedComponents.has(id) ? undefined : priorComponents.get(id);
+        const previous = replacedComponents.has(id) || recoveryComponents.has(id) ? undefined : priorComponents.get(id);
         if (previous && same(previous, record) && !referencesChanged(record)) continue;
         const component = this.components.get(id)!;
         const config = runtimeComponents.get(id)!;
@@ -586,40 +689,52 @@ export class RuntimeSceneProjection {
             return !same(oldRuntimeComponents.get(id)?.props?.[key], value);
           })
         );
-        await parser.parseProps(component, liveReferences(changedProps));
+        if (Object.keys(changedProps).length) {
+          this.pendingComponents.add(id);
+          await parser.parseProps(component, liveReferences(changedProps));
+        }
         const calls =
           !previous || !same(oldRuntimeComponents.get(id)?.calls, config.calls)
             ? config.calls
             : config.calls?.filter((call) => referencesChanged(call, true));
-        await parser.parseCalls(component, liveReferences(calls));
+        if (calls?.length) {
+          this.pendingComponents.add(id);
+          await parser.parseCalls(component, liveReferences(calls));
+        }
       }
       signal?.throwIfAborted();
-      const parents = new Map<string, string>();
-      for (const record of source.entities) for (const child of record.children ?? []) parents.set(child, record.id);
+      const parents = nextRecords.parents;
       // Detach changed edges first so valid parent/child reversals never create an intermediate cycle.
-      for (const record of source.entities) {
+      for (const record of entityRecords) {
         const entity = this.entities.get(record.id)!;
         const parentId = parents.get(record.id);
-        if (entity.parent && entity.parent !== (parentId ? this.entities.get(parentId) : null))
+        if (entity.parent && entity.parent !== (parentId ? this.entities.get(parentId) : null)) {
+          this.pendingEntities.add(record.id);
           entity.parent.removeChild(entity);
+        }
       }
-      for (const record of source.entities) {
+      for (const record of entityRecords) {
         const entity = this.entities.get(record.id)!;
         const parentId = parents.get(record.id);
         const parent = parentId ? this.entities.get(parentId)! : null;
-        if (parent && entity.parent !== parent) parent.addChild(entity);
-        else if (!parent && (entity.parent || entity.scene !== this.scene)) this.scene.addRootEntity(entity);
+        if (parent && entity.parent !== parent) {
+          this.pendingEntities.add(record.id);
+          parent.addChild(entity);
+        } else if (!parent && (entity.parent || entity.scene !== this.scene)) {
+          this.pendingEntities.add(record.id);
+          this.scene.addRootEntity(entity);
+        }
       }
       if (
         recovering ||
-        !same(source.scene.rootEntities, this.previous.scene.rootEntities) ||
-        source.scene.rootEntities.some((id) => replacedEntities.has(id))
+        (changes ? changes.rootsChanged : !same(source.scene.rootEntities, this.previous.scene.rootEntities)) ||
+        (!prepared && source.scene.rootEntities.some((id) => replacedEntities.has(id)))
       ) {
         source.scene.rootEntities.forEach((id, index) => {
           this.entities.get(id)!.siblingIndex = index;
         });
       }
-      for (const record of source.entities) {
+      for (const record of entityRecords) {
         if (
           !same(record.children, priorEntities.get(record.id)?.children) ||
           record.children?.some((id) => replacedEntities.has(id))
@@ -629,30 +744,52 @@ export class RuntimeSceneProjection {
           });
         }
       }
-      const retained = new Set(source.entities.map((entity) => entity.id));
-      for (const [id, entity] of this.entities)
-        if (!retained.has(id)) {
+      const removedEntities =
+        changes?.removedEntities ?? [...this.entities.keys()].filter((id) => !nextRecords.entities.has(id));
+      for (const id of removedEntities) {
+        const entity = this.entities.get(id);
+        if (entity) {
+          this.pendingEntities.add(id);
+          this.sourceIds.delete(entity);
           entity.destroy();
           this.entities.delete(id);
         }
+      }
     } finally {
       for (const entity of retiredRoots) if (!entity.destroyed) entity.destroy();
       for (const [entity, active] of resume) if (!entity.destroyed) entity.isActive = active;
     }
-    this.instances = new RuntimeInstanceIdentities(source, this.path, pack, (id) => this.entities.get(id));
-    this.indexIdentities(source);
-    this.previous = structuredClone(source);
+    if (changes) {
+      for (const record of entityRecords) this.sourceIds.set(this.entities.get(record.id)!, record.id);
+      for (const record of componentRecords) {
+        const component = this.components.get(record.id)!;
+        this.sourceIds.set(component, record.id);
+        this.componentIdentities.set(component, {
+          scene: this.path,
+          entityId: owners.get(record.id)!,
+          id: record.id,
+          type: record.type
+        });
+      }
+    } else {
+      this.instances = new RuntimeInstanceIdentities(source, this.path, pack, (id) => this.entities.get(id));
+      this.indexIdentities(source);
+    }
+    this.records = nextRecords;
+    this.previous = source;
     this.previousRuntime = runtime;
     this.previousMembers = members;
     this.assetChanges.accept(pack);
     this.appliedInputs = inputSnapshot;
+    this.appliedSceneContent = pack.contents[this.path] as string;
     this.needsResync = false;
+    this.pendingEntities.clear();
+    this.pendingComponents.clear();
+    this.pendingSceneGroups.clear();
   }
 
   private bindingsUnchanged(pack: RuntimeProjectPackage): boolean {
-    const parents = new Map(
-      this.previous.entities.flatMap((record) => (record.children ?? []).map((child) => [child, record.id] as const))
-    );
+    const parents = this.records.parents;
     for (const record of this.previous.entities) {
       const entity = this.entities.get(record.id),
         parent = parents.get(record.id);
@@ -666,7 +803,7 @@ export class RuntimeSceneProjection {
         return false;
       for (const id of record.components ?? []) {
         const component = this.components.get(id),
-          source = this.previous.components.find((record) => record.id === id);
+          source = this.records.components.get(id);
         if (
           !component ||
           !source ||
@@ -678,6 +815,7 @@ export class RuntimeSceneProjection {
           return false;
       }
     }
+    if (!this.instances.entities.size && !this.instances.components.size) return true;
     // Preserve live Prefab identity refresh semantics if runtime code changes its tree.
     try {
       const instances = new RuntimeInstanceIdentities(this.previous, this.path, pack, (id) => this.entities.get(id));

@@ -26,7 +26,8 @@ import {
 import { nativeAssetFormats } from "./runtime-native-formats.ts";
 import type {
   RuntimeAssetFormat,
-  RuntimeProjectUndo
+  RuntimeProjectUndo,
+  RuntimeSceneChangeSet
 } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
 import {
   RuntimeDependencyMaintenance,
@@ -714,7 +715,7 @@ export class RuntimeProjectSession {
     candidate: RuntimeProjectPackage,
     expectedRevision = this.publicationRevision,
     deletedAssets: readonly string[] = [],
-    history?: { transactionId: string; move?: HistoryMove }
+    history?: { transactionId: string; move?: HistoryMove; sceneChanges?: Record<string, RuntimeSceneChangeSet> }
   ): Promise<RuntimeProjectUndo> {
     const snapshot = cloneRuntimeProjectPackage(candidate),
       removals = [...deletedAssets];
@@ -809,7 +810,7 @@ export class RuntimeProjectSession {
   private async commitPackage(
     candidate: RuntimeProjectPackage,
     runtimeWrite?: string,
-    history?: { transactionId: string; move?: HistoryMove }
+    history?: { transactionId: string; move?: HistoryMove; sceneChanges?: Record<string, RuntimeSceneChangeSet> }
   ): Promise<RuntimeProjectUndo> {
     this.lifetime.signal.throwIfAborted();
     const checkpoint = runtimeEditWork();
@@ -852,8 +853,20 @@ export class RuntimeProjectSession {
     if (!runtimeWrite) {
       if (history?.move) this.history.patch(history.move);
       else this.history.assertNew(transactionId);
-      const before = projectHistoryPatch(candidate, this.projectPackage, this.runtimeAssets, authoredContentPaths);
-      const after = projectHistoryPatch(this.projectPackage, candidate, this.runtimeAssets, authoredContentPaths);
+      const before = projectHistoryPatch(
+        candidate,
+        this.projectPackage,
+        this.runtimeAssets,
+        authoredContentPaths,
+        history?.sceneChanges
+      );
+      const after = projectHistoryPatch(
+        this.projectPackage,
+        candidate,
+        this.runtimeAssets,
+        authoredContentPaths,
+        history?.sceneChanges
+      );
       this.history.accept(transactionId, before, after, history?.move);
       undo = before;
     }

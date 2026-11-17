@@ -15,7 +15,14 @@ type Inputs = { plan: IslandPlan; terrain: ConstructionTerrainSource };
  * Prefab overrides), never the previous native projection. */
 export function buildingScenePreparation(scenePath: string,
   inputs: (edit: AuthoringEdit, signal: AbortSignal) => Promise<Inputs>): RuntimeEditPreparation {
-  return async (edit, signal) => {
+  return async (edit, signal, context) => {
+    const shared = context?.after.scene(scenePath);
+    if (shared && !shared.hasInstances) {
+      const generators = shared.components(["BuildingGeneratorComponent"]);
+      if (generators.length > 1) throw Error("Scene has multiple building generators");
+      const generator = generators[0];
+      if (!generator || generator.props?.initialized === true || generator.props?.enabled === false) return;
+    }
     const identity = await edit.run(({ draft }) => {
       const scene = new RuntimeSceneEdit(draft, scenePath);
       const generators = scene.queryComponents({ type: "BuildingGeneratorComponent" });

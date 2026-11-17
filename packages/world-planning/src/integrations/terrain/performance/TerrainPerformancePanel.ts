@@ -267,6 +267,8 @@ export interface TerrainPerformanceSceneMetrics {
   readonly screenSpaceReflectionEstimatedBytes?: number;
   /** Number of configured directional-light shadow cascades. */
   readonly shadowCascadeCount: number;
+  /** Summary of visible vs Horizon-occluded water chunks. */
+  readonly waterSummary?: string;
 }
 
 /**
@@ -567,6 +569,7 @@ export class TerrainPerformancePanel {
       "screenSpaceReflection",
       `${scene.screenSpaceReflectionEffective ? "Active" : "Off"} · ${scene.screenSpaceReflectionRequested ? "requested" : "idle"} · ${scene.screenSpaceReflectionConsumerLeaseCount ?? 0} leases${scene.screenSpaceReflectionSelectedConsumerLabel ? ` [${scene.screenSpaceReflectionSelectedConsumerLabel}]` : ""} · O ${scene.screenSpaceReflectionOpaqueDraws ?? 0} + T ${scene.screenSpaceReflectionTransparentDraws ?? 0} draws · ${formatMegabytes(scene.screenSpaceReflectionEstimatedBytes ?? 0)} MB`
     );
+    this._setValue("water", scene.waterSummary ?? "—");
   }
 
   private _updateFarmingMetrics(farm: TerrainFarmingPerformanceMetrics | undefined): void {

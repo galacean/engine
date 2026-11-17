@@ -57,6 +57,7 @@ import { plasterPalette } from "./ConstructionPlasterPalette";
 import { type ConstructionPreview, constructionBrickLayer, woodPalette, wallPalette } from "./ConstructionPreview";
 import type { BuildingPaletteSlot } from "./BuildingGlobals";
 import { createDecorationNativeView } from "./DecorationNativeView";
+import { createBuildingFarProxy } from "./BuildingFarProxy";
 export interface BuildingDistanceInput {
   colorOwners: readonly ({ id: string } & BuildingPaletteSlot)[];
   paletteSlots: readonly BuildingPaletteSlot[];
@@ -152,6 +153,7 @@ export async function createBuildingDistanceView(
   const decorationMaterials: PBRMaterial[] = [];
   let decorationTextureLease: ReturnType<typeof leaseDecorationTextures> | undefined;
   let nativeDecorationView: ReturnType<typeof createDecorationNativeView> | undefined;
+  let farProxy: ReturnType<typeof createBuildingFarProxy> | undefined;
   const nativeDecorationPicks: SeedWorldPickBatch[] = [];
   const disposeView = () => {
     if (disposed) return;
@@ -159,6 +161,7 @@ export async function createBuildingDistanceView(
     nativeDecorationView?.destroy();
     tintSubscriptions.forEach((subscription) => subscription.destroy());
     destroyV2ViewResources(resources);
+    farProxy?.destroy();
     const releaseTextures = () => {
       for (const texture of lodTextures.values()) texture.destroy();
       lodTextures.clear();
@@ -289,6 +292,7 @@ export async function createBuildingDistanceView(
       entities.push(entity);
       ownerEntities.set(p.owner, entities);
       const renderer = entity.getComponent(MeshRenderer)!;
+      renderer.priority = -100;
       renderer.castShadows = false;
       if (!p.plaster) {
         const caster = shadowRoot.createChild(p.owner).addComponent(MeshRenderer);
@@ -360,12 +364,51 @@ export async function createBuildingDistanceView(
       })
     ]).then(() => undefined);
     const surfaceTriangles = geometry.parts.reduce((n, p) => n + p.indices.length / 3, 0);
+    farProxy = createBuildingFarProxy(
+      engine,
+      resources.root,
+      geometry.parts,
+      group.colorOwners,
+      appearance,
+      geometry.decorationParts
+    );
+    if (farProxy) {
+      let proxyPaletteInitialized = false;
+      const proxyRef = farProxy;
+      tintSubscriptions.push(
+        appearance.subscribe(() => {
+          if (!proxyPaletteInitialized) {
+            proxyPaletteInitialized = true;
+            return;
+          }
+          if (!disposed) proxyRef.refreshColors();
+        })
+      );
+    }
+    let visualVisible = true;
+    let farProxyMode = false;
+    let entranceSettled = true;
+    const hiddenOwners = new Set<string>();
+    const syncVisualRoots = () => {
+      const useFar = visualVisible && farProxyMode && entranceSettled && hiddenOwners.size === 0 && !!farProxy;
+      if (farProxy) farProxy.root.isActive = useFar;
+      visualRoot.isActive = visualVisible && !useFar;
+    };
     return {
       ready,
       entranceRanges,
       setEntrance(states: ReadonlyMap<string, ConstructionEntranceState>) {
         for (const binding of entranceBindings) binding.apply(states.get(binding.owner));
         nativeDecorationView?.setEntrance(states);
+        let settled = true;
+        for (const s of states.values()) {
+          if (s.progress < 1) {
+            settled = false;
+            break;
+          }
+        }
+        entranceSettled = settled;
+        syncVisualRoots();
       },
       root: resources.root,
       bounds: geometry.bounds,
@@ -378,24 +421,54 @@ export async function createBuildingDistanceView(
         return residencyProbes.some((renderer) => !renderer.isCulled);
       },
       get isVisualVisible() {
-        return visualRoot.isActiveInHierarchy;
+        return visualRoot.isActiveInHierarchy || (farProxy?.root.isActiveInHierarchy ?? false);
       },
       setOwnerVisible(owner: string, visible: boolean) {
+        if (visible) hiddenOwners.delete(owner);
+        else hiddenOwners.add(owner);
         for (const entity of ownerEntities.get(owner) ?? []) entity.isActive = visible;
         nativeDecorationView?.setOwnerVisible(owner, visible);
+        syncVisualRoots();
       },
       setVisualVisible(visible: boolean) {
-        visualRoot.isActive = visible;
+        visualVisible = visible;
+        syncVisualRoots();
+      },
+      setFarProxyActive(active: boolean) {
+        if (farProxyMode === active) return;
+        farProxyMode = active;
+        syncVisualRoots();
       },
       setFade(fade: number) {
         for (const batch of batches) batch.renderer.shaderData.setFloat("renderer_MasonryLodFade", fade);
         nativeDecorationView?.setFade(fade);
+        farProxy?.setFade(fade);
+      },
+      setLodDebugEnabled(enabled: boolean) {
+        const lod1Color = enabled ? new Vector4(0.95, 0.78, 0.08, 0.82) : new Vector4(0, 0, 0, 0);
+        for (const batch of batches) batch.renderer.shaderData.setVector4("renderer_MasonryLodDebugColor", lod1Color);
+        nativeDecorationView?.setLodDebugEnabled(enabled);
+        if (enabled) farProxy?.setLodDebugColor(0.95, 0.2, 0.18, 0.82);
+        else farProxy?.setLodDebugColor(0, 0, 0, 0);
       },
       visitPickBatches(visitor: SeedWorldPickVisitor) {
-        if (visualRoot.isActiveInHierarchy) {
-          for (const b of batches) if (b.renderer.enabled && b.renderer.entity.isActiveInHierarchy) visitor(b);
-          for (const b of nativeDecorationPicks)
-            if (b.renderer.enabled && b.renderer.entity.isActiveInHierarchy) visitor(b);
+        if (visualVisible && resources.root.isActiveInHierarchy) {
+          const prevVisual = visualRoot.isActive;
+          const prevFar = farProxy?.root.isActive ?? false;
+          if (!prevVisual) {
+            visualRoot.isActive = true;
+            if (farProxy) farProxy.root.isActive = false;
+          }
+          try {
+            for (const b of batches) if (b.renderer.enabled && b.renderer.entity.isActiveInHierarchy) visitor(b);
+            for (const b of nativeDecorationPicks)
+              if (b.renderer.enabled && b.renderer.entity.isActiveInHierarchy) visitor(b);
+          } finally {
+            if (!prevVisual) {
+              visualRoot.isActive = prevVisual;
+              if (farProxy) farProxy.root.isActive = prevFar;
+            }
+          }
         }
       },
       destroy: disposeView

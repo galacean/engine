@@ -12,6 +12,16 @@ The application combines native and domain declarations. SeedWorldAgentDefinitio
 
 Tests include a native-only typecheck without Seed World. Integration and historical evidence live in `../../tests/runtime-editor/`.
 
+## Prepared scene changes
+
+Structured Scene writers record touched Entity/Component IDs and root-order changes in the transaction, guarded by the exact before/after Source versions. After preparation extensions finish, `RuntimeSceneProjection.prepare` validates the candidate and compares only those IDs against the last successful projection. It updates reference edges only for touched Components and closes over old/new incoming references, including cycles. It does not derive changes by diffing every Scene record. Raw whole-Scene writes invalidate the journal; unknown writers, mismatched versions, Prefab scenes and external resource changes use the full activation path without a prepare-time full diff.
+
+The transaction retains an opaque plan. Activation checks its input snapshot, successful baseline and live bindings, allocates objects before resolving references, and preserves existing Entity deactivation/reactivation. Unchanged reference consumers are rebound when their targets are replaced. Undo/redo restores Source first and carries the union of touched IDs across contiguous history entries. Source guards are reconstructed from existing history snapshots; stale or missing guards force the full path.
+
+Failed activation keeps committed authoring/history and blocks identity queries until recovery. Projection records mutation intent before invoking setters, constructors or Scene-settings application. Recovery validates the complete candidate but only forces reconstruction/replay of possibly mutated objects and settings; unrelated host-owned runtime state survives. The Water host avoids querying invalid projection identities in its before-hook and balances only entered update batches. A failed downstream consumer does not replay a successful object addition on retry.
+
+Preparation still parses, compiles and validates the full Source and constructs/copies ID maps. Activation still checks all live bindings and retains resource/input checks. This is not a constant-time editing pipeline. No new Engine lifecycle API or persistent project format is introduced. Regression coverage includes `runtime-incremental-projection.spec.ts`, `runtime-scene-journal-index.spec.ts` and the project write-boundary tests. Real-scene performance reproduction is documented in `world/scripts/acceptance/incremental-scene/README.md` (repository-relative).
+
 ## Reproducing performance checks
 
 Keep tests and runnable measurement/analysis scripts in version control. The `tests/runtime-editor/performance/` directory is ignored local output: historical reports, traces, profiles, screenshots and review snapshots are not PR inputs or test fixtures. Historical measurements below are observations from those runs, not guaranteed results on another machine.
@@ -210,6 +220,18 @@ Console and Return are separate result/debug channels. A 64 KiB display budget r
 运行时 Skill 由各系统自行提供，通过 AgentScriptApiCatalog.skills 注册。`createAgentProjectFiles` 将正文挂载到 VFS 根目录 skills/<name>/SKILL.md，子 Skill 和参考资料通过 documents 挂载；路径不可被项目资产或文档写入覆盖。`buildAgentMessages` 在 skills 上下文携带名称、用途与 SKILL.md 路径，不将全文加入 System Prompt。LLM 按需通过 read 读取正文和引用。
 
 当前注册 galacean-editor，资产使用参考文档沿用 Editor 的职责划分，并使用当前 runtime editor 的真实 API。Skill 前言与注册元数据保持一致，链接与只读边界由 runtime-native-knowledge、files-draft 和 agent-skills 测试覆盖。Skill 不增加 Worker 权限；资产导入仍由 RuntimeEditor 事务和格式校验负责。
+
+## Transaction preparation dependencies
+
+`RuntimeEditor.registerPreparation(callback, { name, dependencies })` optionally declares an extension's complete source dependencies. Existing unscoped callbacks and `{ rootTypes }` scopes remain supported. The callback receives `(edit, signal, context?)`; the optional context preserves direct/bootstrap invocation compatibility. A host must initialize its authoring before registering a scoped extension. Dependency selection is not a cache of successful validation results.
+
+The public layer knows only component type selectors (exact names or prefixes), hierarchy/settings flags, asset references, asset namespace and document paths. The owning extension declares its domain types; the public layer contains no domain-specific branches. Omitted dependency categories are an explicit promise that those inputs cannot affect the extension. Use `assets: "referenced"` for the selected components' old and new transitive asset references, or `"all"` when that narrower contract is insufficient. `ignoreAssetDescriptions` excludes `.meta` description documents only when the extension explicitly declares them irrelevant.
+
+`context.before` and `context.after` are detached, immutable authoring views, not runtime objects. Scene parsing and entity/component/type/parent indexes are shared within a transaction for identical Source text. Binary reads return copies. `context.changes.scenes` contains guarded transaction journals: an absent entry does **not** prove an unchanged Scene. Changed Source without an exact journal, linked Prefab topology and unknown referenced dependency edges conservatively run the extension. Dependency selection examines both old and new types, owners, ancestors and asset closures, so removals and reference replacement still invalidate readers.
+
+Extensions run sequentially. A draft revision change, including document writes and actual lazy hydration, creates a new snapshot for subsequent readers; already supplied views stay immutable. Unchanged Scene text reuses its parsed view. Views belong to the transaction and are released after successful preparation or discard. Failed/cancelled preparations do not install a cross-transaction reuse baseline. Undo/redo and explicit undo restoration retain the existing exact-history replay path and skip authoring extensions.
+
+This mechanism skips irrelevant extension calls; it does not bypass resource compilation, final candidate validation, commit validation or runtime recovery. It still constructs project snapshots and indexes changed Source, so it does not make all of `prepare` proportional to the journal size. In particular, a host validator may do its first parse at commit when its preparation callback was skipped. Measure commit and total latency alongside prepare. Seed World's declarations live in its host registrations, and building initialization consumes the shared Scene view before invoking its existing initialization path.
 
 ## Virtual roots
 

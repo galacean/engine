@@ -1,6 +1,12 @@
 import type { Camera, Engine, Entity } from "@galacean/engine";
 import type { EngineResidentScene } from "./EngineResidentScene";
-import { MASONRY_RESIDENCY, type MasonryLodProbe, type MasonryLod } from "./MasonryLodPolicy";
+import {
+  MASONRY_RESIDENCY,
+  getMasonryLodTuning,
+  subscribeMasonryLodTuning,
+  type MasonryLodProbe,
+  type MasonryLod
+} from "./MasonryLodPolicy";
 import type { MasonryLodTransition } from "./MasonryLodTransition";
 
 /** Disposable display state. No author directory, plan, object IDs or persistence. */
@@ -10,6 +16,8 @@ export interface MasonryResidencyEntry {
     root: Entity;
     readonly recentlyRendered: boolean;
     setVisualVisible(visible: boolean): void;
+    setFarProxyActive?(active: boolean): void;
+    setLodDebugEnabled?(enabled: boolean): void;
     setFade(fade: number): void;
   };
   lod: MasonryLod;
@@ -57,7 +65,29 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
     private readonly metrics: ReturnType<typeof createMasonryResidencyMetrics>,
     private readonly onDemandChanged: () => void,
     private readonly onResourcesChanged: (evicted: E) => void
-  ) {}
+  ) {
+    const ref = new WeakRef(this);
+    const unsub = subscribeMasonryLodTuning(() => {
+      const self = ref.deref();
+      if (!self) {
+        unsub();
+        return;
+      }
+      self.selectionDirty = true;
+      self.residencyDirty = true;
+      self.syncLodDebugColors();
+    });
+  }
+  private appliedDebugColorized = false;
+  private syncLodDebugColors(): void {
+    const colorized = getMasonryLodTuning().colorizeLod;
+    if (this.appliedDebugColorized === colorized && !colorized) return;
+    this.appliedDebugColorized = colorized;
+    for (const e of this.entries) {
+      e.view.setLodDebugEnabled?.(colorized);
+      e.fine?.runtime.setLodDebugTint(colorized);
+    }
+  }
   invalidate(): void {
     this.residencyDirty = true;
   }
@@ -132,9 +162,14 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
       e.prefetch = e.probe.eligible;
       // Coarse-only visibility changes need no residency sort, transition update
       // or metrics rebuild. Final per-renderer culling remains engine-owned.
-      if (!e.fine && e.coarseVisible !== e.visible) {
-        e.view.setVisualVisible(e.visible);
-        e.coarseVisible = e.visible;
+      if (!e.fine) {
+        if (e.coarseVisible !== e.visible) {
+          e.view.setFarProxyActive?.(e.visible && e.lod === 2);
+          e.view.setVisualVisible(e.visible);
+          e.coarseVisible = e.visible;
+        } else if (e.visible && e.lod === 2) {
+          e.view.setFarProxyActive?.(true);
+        }
       }
       const wanted = e.lod < 2 && e.prefetch;
       if (wanted !== this.desired.has(e)) {
@@ -318,6 +353,7 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
           e.presentation = states.flatMap((s) => [s.lodIndex, s.signedFade]);
         }
         runtime.root.isActive = fineVisible && e.visible;
+        if (getMasonryLodTuning().colorizeLod) runtime.setLodDebugTint(true);
         // Prefetch retains nearby resources in every direction, independent of rendering.
         const retained = this.desired.has(e) || fineVisible;
         // Start retention on departure, even after hours with a stationary camera.
@@ -325,6 +361,7 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
         e.retained = retained;
       }
       e.view.root.isActive = true;
+      e.view.setFarProxyActive?.(coarseVisible && e.lod === 2 && !fineVisible);
       if (e.coarseVisible !== coarseVisible) {
         e.view.setVisualVisible(coarseVisible);
         e.coarseVisible = coarseVisible;

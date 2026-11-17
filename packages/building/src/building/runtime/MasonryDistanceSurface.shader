@@ -71,6 +71,7 @@ Shader "Masonry/SupportSurface" {
    vec4 material_MasonryPlaster;
    float material_MasonryEmission;
    float material_MasonryUnit;
+   vec4 renderer_MasonryLodDebugColor;
    #ifdef MASONRY_LAYOUT_APPEARANCE
      sampler2D material_MasonryLayout;
      vec4 material_MasonryLayoutUV;
@@ -160,8 +161,9 @@ Shader "Masonry/SupportSurface" {
       }
       vec3 emission=vec3(1.0,.57,.18)*v.uv1.y;float roughness=.9;
       if(material_MasonryPattern > -1.5) albedo=masonryDecorationFinish(v.uv,v.decorationData.w,v.decorationData.xyz,v.positionWS,albedo,v.uv1.y,camera_Position,n,emission,roughness);
-      vec4 decorationColor=vec4(masonrySceneFog(masonryResidentSceneLight(albedo,n,v.positionWS,roughness)+emission,v.positionWS),1.0);
-      gl_FragColor=decorationColor;
+      vec3 outRgb = masonrySceneFog(masonryResidentSceneLight(albedo,n,v.positionWS,roughness)+emission,v.positionWS);
+      if (renderer_MasonryLodDebugColor.a > 0.0) outRgb = mix(outRgb, renderer_MasonryLodDebugColor.rgb, renderer_MasonryLodDebugColor.a);
+      gl_FragColor=vec4(outRgb,1.0);
     } else {
     float surfaceRoughness=material_Roughness;
     #ifdef MASONRY_STONE_FLOOR
@@ -177,8 +179,9 @@ Shader "Masonry/SupportSurface" {
     #endif
     vec3 color=masonryResidentSceneLight(surfaceAlbedo,surfaceNormal,v.positionWS,surfaceRoughness);
     color+=vec3(1.0,.57,.18)*material_MasonryEmission;
-    vec4 finalColor=vec4(masonrySceneFog(color,v.positionWS),1.0);
-    gl_FragColor=finalColor;
+    vec3 outRgb=masonrySceneFog(color,v.positionWS);
+    if (renderer_MasonryLodDebugColor.a > 0.0) outRgb = mix(outRgb, renderer_MasonryLodDebugColor.rgb, renderer_MasonryLodDebugColor.a);
+    gl_FragColor=vec4(outRgb,1.0);
     }
     #endif
    }

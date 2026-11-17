@@ -274,6 +274,7 @@ export async function mountSeedWorldDemo(
   let obbDebug: PlanningSeedObbDebug | undefined;
   let runtimeDebug: PlanningSeedRuntimeDebug | undefined;
   let debugSidebar: PlanningSeedDebugSidebar | undefined;
+  let lodDebugPanel: import("./src/SeedWorldLodDebugPanel.ts").SeedWorldLodDebugPanel | undefined;
   let exposure: TerrainWindGpuExposureProvider | undefined;
   let detachWindExposure: (() => void) | undefined;
   let resizeObserver: ResizeObserver | undefined;
@@ -413,6 +414,7 @@ export async function mountSeedWorldDemo(
       () => {
         lightingProfile?.dispose();
         debugSidebar?.destroy();
+        lodDebugPanel?.dispose();
         disconnectEditorAssets?.();
         tools?.dispose();
         nativeBuildingPanel?.destroy();
@@ -804,6 +806,7 @@ export async function mountSeedWorldDemo(
       if (!restoreMasonryView) playerState?.observe();
       if ((debugReadoutElapsed += dt) >= 0.1) {
         debugSidebar?.update();
+        lodDebugPanel?.update();
         runtimeDebug?.refresh();
         debugReadoutElapsed = 0;
         const current = publication?.current;
@@ -1921,6 +1924,13 @@ export async function mountSeedWorldDemo(
     const publish = async (restorePlayerState: boolean, projectTransaction = false) => {
       const accepted = publication!.current!;
       const plan = accepted.plan;
+      water?.setTerrainOcclusionProvider({
+        isOccluded: (candidateId, bounds) => accepted.world.terrainOcclusion.isWaterBoundsOccluded(candidateId, bounds),
+        get revision() {
+          return accepted.world.terrainOcclusion.visibilityRevision;
+        }
+      });
+      water?.update(0);
       if (isFarmingPlanned() !== boundFarmingEnabled) {
         await bindFarming().catch((error) => console.warn("[seed-world-planner] farming activation failed", error));
         if (publication!.current !== accepted || disposed) return;
@@ -2027,9 +2037,17 @@ export async function mountSeedWorldDemo(
     const initialBuildingDocument = source.session.export();
     nativeEditor.editor.registerPreparation(
       preparePlanningWaterSource(() => runtimeProject!.projectPackage),
-      { rootTypes: ["Scene"] }
+      { name: "planning-water", dependencies: {
+        scene: { componentTypes: ["WaterBodyComponent", "PlanningProjectAuthoring", "PlanningEntityAuthoring"], hierarchy: true },
+        namespace: true, documents: "all", ignoreAssetDescriptions: true
+      } }
     );
-    nativeEditor.editor.registerPreparation(validatePlanningSource, { rootTypes: ["Scene"] });
+    nativeEditor.editor.registerPreparation(validatePlanningSource, {
+      name: "planning-validation", dependencies: {
+        scene: { componentTypes: ["WaterBodyComponent"], componentTypePrefixes: ["Planning"], hierarchy: true },
+        namespace: true, documents: "all", ignoreAssetDescriptions: true
+      }
+    });
     nativeEditor.editor.registerPreparation(
       buildingScenePreparation(runtimeProject.projectPackage.project.scene, (edit, signal) =>
         buildingInitializationInputs(
@@ -2043,7 +2061,10 @@ export async function mountSeedWorldDemo(
           initialBuildingDocument
         )
       ),
-      { rootTypes: ["Scene"] }
+      { name: "building-initialization", dependencies: {
+        scene: { componentTypes: ["BuildingGeneratorComponent"], hierarchy: true },
+        assets: "all", namespace: true, documents: "all", ignoreAssetDescriptions: true
+      } }
     );
     progress(0.94, "准备世界画面");
     desert?.applyDesertShadows(lighting);
@@ -2113,9 +2134,10 @@ export async function mountSeedWorldDemo(
     });
     recordPublicationPhase("hudCreation", hudCreationAt);
     if (pageUrl.searchParams.get("debug") === "1") {
-      const [{ PlanningSeedRuntimeDebug }, { PlanningSeedDebugSidebar }] = await Promise.all([
+      const [{ PlanningSeedRuntimeDebug }, { PlanningSeedDebugSidebar }, { SeedWorldLodDebugPanel }] = await Promise.all([
         import("./src/planning/spatial/runtime/PlanningSeedRuntimeDebug.ts"),
-        import("./src/planning/spatial/runtime/PlanningSeedDebugSidebar.ts")
+        import("./src/planning/spatial/runtime/PlanningSeedDebugSidebar.ts"),
+        import("./src/SeedWorldLodDebugPanel.ts")
       ]);
       runtimeDebug = await PlanningSeedRuntimeDebug.create({
         extraControls: desert
@@ -2263,6 +2285,14 @@ export async function mountSeedWorldDemo(
       const bookmark = publication.current?.playerBookmark;
       if (bookmark) debugSidebar.restoreCameraMode(bookmark.mode);
       if (obbDebug) debugSidebar.mountObbControl(obbDebug.button);
+      lodDebugPanel = new SeedWorldLodDebugPanel({
+        host: shell,
+        engine,
+        camera,
+        readPopulation: () => readWorld()?.population,
+        readMasonryMetrics: () => publication?.current?.masonry?.metrics
+      });
+      lodDebugPanel.update();
     }
     // Dense visible details belong to the world presentation, including photo captures.
     publication.current?.world.warmupPopulationDetails();

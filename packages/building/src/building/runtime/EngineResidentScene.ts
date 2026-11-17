@@ -115,7 +115,7 @@ export function residentFragment(source: string) {
   // The Engine flips projection when drawing into its internal color target.
   // Preserve the original top-down derivative convention across both targets.
   return (
-    "uniform vec4 camera_ProjectionParams;\nuniform float renderer_WorldPickBase;\nuniform float renderer_MasonryPickObjects;\n" +
+    "uniform vec4 camera_ProjectionParams;\nuniform float renderer_WorldPickBase;\nuniform float renderer_MasonryPickObjects;\nuniform vec4 renderer_MasonryLodDebugColor;\n" +
     lodDither.replace("float renderer_MasonryLodFade;", "uniform float renderer_MasonryLodFade;") +
     source
       .replace(encoded, "residentColor=vec4(v,1.0);")
@@ -124,6 +124,9 @@ export function residentFragment(source: string) {
       .replace(
         /}\s*$/,
         `
+if (renderer_MasonryLodDebugColor.a > 0.0) {
+  residentColor.rgb = mix(residentColor.rgb, renderer_MasonryLodDebugColor.rgb, renderer_MasonryLodDebugColor.a);
+}
 #ifdef RENDERER_WORLD_PICK
  float pickId=floor(renderer_WorldPickBase+0.5);
 ${source.includes("flat in float masonryPickIndex;") ? "pickId+=floor(masonryPickIndex+0.5)*renderer_MasonryPickObjects;" : ""}
@@ -796,7 +799,10 @@ export class EngineResidentScene {
     renderer.mesh = mesh;
     renderer.setMaterial(material);
     renderer.enabled = !d.variant || d.variant === "roof_tile";
+    renderer.priority = -100;
+    renderer.castShadows = false;
     renderer.shaderData.setFloat("renderer_MasonryLodFade", 1);
+    renderer.shaderData.setVector4("renderer_MasonryLodDebugColor", new Vector4(0, 0, 0, 0));
     const lodRenderer = this.root
       .createChild(d.id + "/lod-transition")
       .addComponent(
@@ -805,7 +811,10 @@ export class EngineResidentScene {
     lodRenderer.setMaterial(material);
     lodRenderer.mesh = meshes[meshes.length - 1];
     lodRenderer.enabled = false;
+    lodRenderer.priority = -100;
+    lodRenderer.castShadows = false;
     lodRenderer.shaderData.setFloat("renderer_MasonryLodFade", 1);
+    lodRenderer.shaderData.setVector4("renderer_MasonryLodDebugColor", new Vector4(0, 0, 0, 0));
     let unitLod: UnitDrawLod | undefined;
     let lowMaterial: Material | undefined;
     if (isBrick) {
@@ -948,6 +957,42 @@ export class EngineResidentScene {
       }
     }
   }
+  private lodDebugEnabled = false;
+  private lodDebugFixedLod?: 0 | 1;
+  private readonly lodDebugColor0 = new Vector4(0.12, 0.85, 0.25, 0.82);
+  private readonly lodDebugColor1 = new Vector4(0.95, 0.78, 0.08, 0.82);
+  private readonly lodDebugColorOff = new Vector4(0, 0, 0, 0);
+
+  /** Toggles LOD0 (green) vs LOD1 (yellow) debug tinting across all resident draws. */
+  setLodDebugTint(enabled: boolean, fixedLod?: 0 | 1) {
+    this.lodDebugEnabled = enabled;
+    this.lodDebugFixedLod = fixedLod;
+    const states = this.lodStates ?? [{ lodIndex: 0, signedFade: 1 }];
+    const detail = states.filter((s) => s.lodIndex < 2);
+    for (const draw of this.draws.values()) {
+      if (!enabled) {
+        draw.renderer.shaderData.setVector4("renderer_MasonryLodDebugColor", this.lodDebugColorOff);
+        draw.lodRenderer.shaderData.setVector4("renderer_MasonryLodDebugColor", this.lodDebugColorOff);
+        continue;
+      }
+      if (fixedLod !== undefined) {
+        const c = fixedLod === 0 ? this.lodDebugColor0 : this.lodDebugColor1;
+        draw.renderer.shaderData.setVector4("renderer_MasonryLodDebugColor", c);
+        draw.lodRenderer.shaderData.setVector4("renderer_MasonryLodDebugColor", c);
+        continue;
+      }
+      if (draw.unitLod) {
+        draw.renderer.shaderData.setVector4("renderer_MasonryLodDebugColor", this.lodDebugColor0);
+        draw.lodRenderer.shaderData.setVector4("renderer_MasonryLodDebugColor", this.lodDebugColor1);
+        continue;
+      }
+      const c0 = (detail[0]?.lodIndex ?? 0) === 0 ? this.lodDebugColor0 : this.lodDebugColor1;
+      const c1 = (detail[1]?.lodIndex ?? 1) === 0 ? this.lodDebugColor0 : this.lodDebugColor1;
+      draw.renderer.shaderData.setVector4("renderer_MasonryLodDebugColor", c0);
+      draw.lodRenderer.shaderData.setVector4("renderer_MasonryLodDebugColor", c1);
+    }
+  }
+
   /** Pure binding/coverage changes; templates, masks and feedback buffers stay shared. */
   setLod(level: 0 | 1) {
     this.setLodStates([{ lodIndex: level, signedFade: 1 }]);
@@ -988,6 +1033,7 @@ export class EngineResidentScene {
         }
       }
     }
+    if (this.lodDebugEnabled) this.setLodDebugTint(true, this.lodDebugFixedLod);
     this.updateTriangleMetrics();
   }
   private updateTriangleMetrics() {

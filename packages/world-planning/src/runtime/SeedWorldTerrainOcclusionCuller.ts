@@ -338,6 +338,39 @@ export class SeedWorldTerrainOcclusionCuller {
       ? state.occluded
       : this._evaluateOcclusionState(candidateId, bounds, this._worldStates);
   }
+
+  /**
+   * Conservative occlusion check tailored for water bodies, adding exact near-field
+   * heightfield line-of-sight tests inside `OCCLUSION_MINIMUM_TARGET_DISTANCE_METRES`
+   * so lakes/rivers tucked behind a nearby hill ridge still sleep SSR cleanly.
+   */
+  isWaterBoundsOccluded(candidateId: string, bounds: BoundingBox): boolean {
+    if (this.isBoundsOccluded(candidateId, bounds)) return true;
+    if (this._occlusionBypassedThisFrame) return false;
+    const cameraX = this._lastCameraX;
+    const cameraY = this._lastCameraY;
+    const cameraZ = this._lastCameraZ;
+    if (!Number.isFinite(cameraX) || !Number.isFinite(cameraY) || !Number.isFinite(cameraZ)) {
+      return false;
+    }
+    const nearestX = Math.max(bounds.min.x - cameraX, 0, cameraX - bounds.max.x);
+    const nearestZ = Math.max(bounds.min.z - cameraZ, 0, cameraZ - bounds.max.z);
+    const nearestDistance = Math.hypot(nearestX, nearestZ);
+    // Skip when camera is right over / inside the horizontal footprint or outside near-field cutoff.
+    if (nearestDistance < 8 || nearestDistance >= OCCLUSION_MINIMUM_TARGET_DISTANCE_METRES) {
+      return false;
+    }
+    const targetY = bounds.max.y + OCCLUSION_TARGET_CLEARANCE_METRES;
+    const centerX = (bounds.min.x + bounds.max.x) * 0.5;
+    const centerZ = (bounds.min.z + bounds.max.z) * 0.5;
+    return (
+      this._isPointBehindNearTerrain(centerX, targetY, centerZ, cameraX, cameraY, cameraZ) &&
+      this._isPointBehindNearTerrain(bounds.min.x, targetY, bounds.min.z, cameraX, cameraY, cameraZ) &&
+      this._isPointBehindNearTerrain(bounds.max.x, targetY, bounds.min.z, cameraX, cameraY, cameraZ) &&
+      this._isPointBehindNearTerrain(bounds.min.x, targetY, bounds.max.z, cameraX, cameraY, cameraZ) &&
+      this._isPointBehindNearTerrain(bounds.max.x, targetY, bounds.max.z, cameraX, cameraY, cameraZ)
+    );
+  }
   /** Returns whether one child SubCell of a retained parent can be omitted from batch construction. */
   isSubCellOccluded(subCellId: string, bounds: BoundingBox, candidateRendererCount: number): boolean {
     this._ensureVisibilityStatisticsFrame();
@@ -853,6 +886,34 @@ export class SeedWorldTerrainOcclusionCuller {
     }
     const targetSlope = (targetY - originY) / distance;
     return conservativeHorizonSlope > targetSlope;
+  }
+
+  private _isPointBehindNearTerrain(
+    targetX: number,
+    targetY: number,
+    targetZ: number,
+    originX: number,
+    originY: number,
+    originZ: number
+  ): boolean {
+    const dx = targetX - originX;
+    const dy = targetY - originY;
+    const dz = targetZ - originZ;
+    const horizontalDistance = Math.hypot(dx, dz);
+    if (horizontalDistance <= 8) return false;
+    const sampleCount = Math.min(24, Math.max(4, Math.ceil(horizontalDistance / 6)));
+    for (let step = 1; step < sampleCount; step++) {
+      const t = step / sampleCount;
+      const sx = originX + dx * t;
+      const sz = originZ + dz * t;
+      const groundHeight = this._sampleHeight(sx, sz);
+      if (groundHeight === undefined) continue;
+      const rayY = originY + dy * t;
+      if (groundHeight - OCCLUSION_TERRAIN_CLEARANCE_METRES > rayY) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private _sampleHeight(worldX: number, worldZ: number): number | undefined {
