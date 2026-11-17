@@ -1,0 +1,40 @@
+packages/core/src/Polyfill.ts
+  h_bd4dd7d663e619 9-13,20,34
+packages/galacean/package.json
+  h_bd4dd7d663e619 48
+packages/galacean/src/index.ts
+  h_bd4dd7d663e619 1-5,14-27,29-31
+packages/rhi-null/package.json
+  h_bd4dd7d663e619 23-27
+packages/rhi-null/src/HeadlessCanvas.ts
+  h_bd4dd7d663e619 1
+packages/rhi-null/src/HeadlessEngine.ts
+  h_bd4dd7d663e619 1
+packages/rhi-null/src/NullBuffer.ts
+  h_bd4dd7d663e619 1
+packages/rhi-null/src/NullGraphicDevice.ts
+  h_bd4dd7d663e619 1,9
+packages/rhi-null/src/NullTexture.ts
+  h_bd4dd7d663e619 9
+pnpm-lock.yaml
+  h_bd4dd7d663e619 55,271-272,274,359-361,421-423,5194
+tests/package-consumer/HeadlessEngine.test.ts
+  h_bd4dd7d663e619 11-12,459,484-488,491,503-504
+tests/package.json
+  h_bd4dd7d663e619 23
+tests/src/rhi-webgl/HeadlessEngine.test.ts
+  h_bd4dd7d663e619 2,13-14
+tests/vitest.config.ts
+  h_bd4dd7d663e619 15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "14cfa0ec4ec7cd883022979c019bfde6155d955c",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

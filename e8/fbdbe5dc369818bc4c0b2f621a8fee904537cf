@@ -1,0 +1,60 @@
+packages/core/src/postProcess/PostProcessManager.ts
+  s_87cc7a3b1b4ffa::t_66991348d84c16 92-93
+packages/core/src/physics/Collider.ts
+  s_87cc7a3b1b4ffa::t_62cfa97bbd3bbf 272-273
+  s_87cc7a3b1b4ffa::t_cd23b07885d476 204-205
+  s_87cc7a3b1b4ffa::t_69388f4f1c4488 33-35
+  s_87cc7a3b1b4ffa::t_9179d87181caa0 27-32
+  s_87cc7a3b1b4ffa::t_a64f7cace6a5dc 51,57-62,103,117,213,220-232,271,292,391-392,428-429,496-503
+tests/src/core/postProcess/PostProcess.test.ts
+  s_87cc7a3b1b4ffa::t_1cadbda2eb0355 15
+  s_87cc7a3b1b4ffa::t_d8bea021b51ddf 40,445-456
+packages/core/src/physics/CharacterController.ts
+  s_87cc7a3b1b4ffa::t_07b314a6213079 273
+packages/core/src/physics/MeshCollider.ts
+  s_87cc7a3b1b4ffa::t_7e110f3af6d72c 110-111,120-121,131,153
+packages/core/src/physics/PhysicsScene.ts
+  s_87cc7a3b1b4ffa::t_3c514dfba56823 31,88-91,101-105,750,801-803,819-824,977-997
+packages/core/src/physics/Rigidbody.ts
+  s_87cc7a3b1b4ffa::t_88eaf81c31ad9e 630
+packages/core/src/physics/joint/Joint.ts
+  s_87cc7a3b1b4ffa::t_7f7e4fa470acaa 2,42,213-219,222
+packages/design/src/physics/IPhysics.ts
+  s_87cc7a3b1b4ffa::t_bb3a8f00ffc885 111,119
+packages/physics-physx/src/PhysXCharacterController.ts
+  s_87cc7a3b1b4ffa::t_d36f6236cd5f9a 57-59,77-79,206-207,243-247
+packages/physics-physx/src/PhysXCollider.ts
+  s_87cc7a3b1b4ffa::t_5b1fba582595e2 14,60-65,98-99
+packages/physics-physx/src/PhysXPhysics.ts
+  s_87cc7a3b1b4ffa::t_fce5f9967a3d91 226,228
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_87cc7a3b1b4ffa::t_c59b1189005a05 39-40,68,154,191,406-410,415-416,418,424,462-486
+packages/physics-physx/src/shape/PhysXMeshColliderShape.ts
+  s_87cc7a3b1b4ffa::t_4af288244969ad 23
+tests/src/core/physics/CharacterController.test.ts
+  s_87cc7a3b1b4ffa::t_4a2c2576d2db87 177-193
+tests/src/core/physics/Collider.test.ts
+  s_87cc7a3b1b4ffa::t_6b4e734f134d25 307-370
+tests/src/core/physics/ColliderLayer.test.ts
+  s_87cc7a3b1b4ffa::t_db96a2e8db597f 12-15,18,21-26,198-249
+tests/src/core/physics/MeshCollider.test.ts
+  s_87cc7a3b1b4ffa::t_88c914ef9f4a16 99-110
+tests/src/core/physics/Rigidbody.test.ts
+  s_87cc7a3b1b4ffa::t_29a176c579f13b 9-11,520-540
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e8fbdbe5dc369818bc4c0b2f621a8fee904537cf",
+  "prompts": {},
+  "sessions": {
+    "s_87cc7a3b1b4ffa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f72a317a-6fd5-4cfb-824b-a6a922a66a1d",
+        "model": "claude-fable-5-2"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
