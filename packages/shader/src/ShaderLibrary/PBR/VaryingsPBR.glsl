@@ -17,7 +17,7 @@ struct Varyings{
 	    vec3 positionVS;
 	#endif
 
-	#if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
+	#ifdef NEED_VERTEX_NORMAL
 	    vec3 normalWS;
 	    #ifdef NEED_VERTEX_TANGENT
 			vec3 tangentWS;

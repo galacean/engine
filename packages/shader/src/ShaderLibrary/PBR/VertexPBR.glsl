@@ -9,7 +9,7 @@ struct VertexInputs{
         vec3 positionVS;
     #endif
 
-    #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
+    #ifdef NEED_VERTEX_NORMAL
         vec3 normalWS;
         #ifdef NEED_VERTEX_TANGENT
             vec3 tangentWS;
@@ -62,7 +62,7 @@ VertexInputs getVertexInputs(Attributes attributes){
         mat4 skinMatrix = getSkinMatrix(attributes);
         position = skinMatrix * position;
 
-        #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
+        #ifdef NEED_VERTEX_NORMAL
             mat3 skinNormalMatrix = INVERSE_MAT(mat3(skinMatrix));
             normal = normal * skinNormalMatrix;
             #ifdef NEED_VERTEX_TANGENT
@@ -74,7 +74,7 @@ VertexInputs getVertexInputs(Attributes attributes){
     #endif
 
     // TBN world space
-    #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
+    #ifdef NEED_VERTEX_NORMAL
         mat3 normalMat = mat3(renderer_NormalMat);
         inputs.normalWS = normalize( normalMat * normal );
 

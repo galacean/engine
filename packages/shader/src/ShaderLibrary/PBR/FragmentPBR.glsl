@@ -184,7 +184,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
 
     // Normal
     float faceDirection = float( isFrontFacing ) * 2.0 - 1.0;
-    #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
+    #ifdef NEED_VERTEX_NORMAL
         vec3 normal = normalize(v.normalWS);
     #elif defined(HAS_DERIVATIVES)
         vec3 pos_dx = dFdx(v.positionWS);
