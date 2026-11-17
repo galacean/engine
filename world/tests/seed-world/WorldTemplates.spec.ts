@@ -253,9 +253,10 @@ describe("authored world templates", () => {
     expect(plan.rocks.length).toBeGreaterThan(40);
     expect(new Set(plan.rocks.map(rock => rock.materialVariant))).toEqual(new Set(["red", "yellow"]));
     expect(plan.rocks.every((rock) => /^mojave\/A0[1-6]$/.test(rock.assetId ?? "") && rock.obb.length === 4)).toBe(true);
-    expect(plan.landscapes?.filter(({ assetId }) => /^mojave\/R0[1-6]$/.test(assetId ?? "")).length).toBeGreaterThan(100);
+    const stones = plan.landscapes?.filter((item) => item.kind === "rock") ?? [];
+    expect(stones.length).toBeGreaterThan(100);
+    expect(stones.every(({ assetId, assetRenderMode, collision }) => !assetId && !assetRenderMode && collision === false)).toBe(true);
     expect(new Set(plan.rocks.map(rock => rock.assetId)).size).toBe(6);
-    expect(new Set(plan.landscapes?.filter(item => item.kind === "rock").map(item => item.assetId)).size).toBe(6);
     expect(plan.landscapes?.filter(({ assetId, assetRenderMode }) => assetId === "mojave/J03" && assetRenderMode === "prefab").length).toBeGreaterThan(0);
     expect(plan.farming).toBeUndefined();
     expect(plan.naturalVegetation?.settings.companionStoneDensity).toBe(0);

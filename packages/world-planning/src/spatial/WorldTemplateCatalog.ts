@@ -26,6 +26,8 @@ export interface WorldTemplate {
   farming?: false;
   /** Named asset pool, or template-owned placements. Defaults to the project shared pool. */
   rockSource?: keyof typeof rockVariants.pools | "authored";
+  /** Overrides the source for small stones independently of the mountain source. */
+  stoneSource?: WorldTemplate["rockSource"];
   /** Source of the color on grass-bearing rock tops. */
   rockTopCover?: "grass" | "ground";
   terrain: { heightM: number; widthM: number; count: number; coverage: number };
@@ -160,6 +162,7 @@ export const WORLD_TEMPLATES: readonly WorldTemplate[] = [
   {
     id: "titan-wasteland",
     rockSource: "authored",
+    stoneSource: "shared",
     name: "幻兽荒原",
     icon: "🏜️",
     family: "desert",

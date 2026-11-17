@@ -152,11 +152,12 @@ function rankedPool(seed: number, role: string, entries: readonly RockVariantEnt
 /** Both placement systems draw from the same seed-specific palette. */
 export function rockVariantPools(plan: IslandPlan) {
   const seed = plan.parameters.seed;
-  const source = worldTemplate(plan.parameters.worldTemplate?.id)?.rockSource ?? "shared";
-  if (source === "authored") return undefined;
-  const pool = variantPools[source];
-  const mountains = rankedPool(seed, "mountains", pool.mountains);
-  const stones = rankedPool(seed, "stones", pool.stones);
+  const template = worldTemplate(plan.parameters.worldTemplate?.id);
+  const rockSource = template?.rockSource ?? "shared";
+  const stoneSource = template?.stoneSource ?? rockSource;
+  if (rockSource === "authored" && stoneSource === "authored") return undefined;
+  const mountains = rockSource === "authored" ? [] : rankedPool(seed, "mountains", variantPools[rockSource].mountains);
+  const stones = stoneSource === "authored" ? [] : rankedPool(seed, "stones", variantPools[stoneSource].stones);
   const mountainCount = Math.min(mountains.length, Math.max(MAX_VARIANTS / 2, MAX_VARIANTS - stones.length));
   mountains.length = mountainCount;
   stones.length = Math.min(stones.length, MAX_VARIANTS - mountainCount);

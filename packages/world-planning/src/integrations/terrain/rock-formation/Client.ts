@@ -27,7 +27,9 @@ export class RockFormationClient {
       this.preparationMetrics = { totalMs: performance.now() - started, fitted: 0, cached: 0 };
       return [];
     }
-    const jobs = rockFormationJobs(plan, planningGroundSurface(plan));
+    const jobs = rockFormationJobs(plan, planningGroundSurface(plan)).filter(
+      (job) => (job.surfaceGrass === false ? pools.stones : pools.mountains).length > 0
+    );
     const engine = this.engine();
     const live = new Map(resident.map((formation) => [formation.id, formation]));
     const tasks = new Map<string, ReturnType<typeof prepareRockVariant>>();

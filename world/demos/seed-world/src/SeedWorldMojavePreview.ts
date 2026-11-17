@@ -44,7 +44,7 @@ interface RockInstance {
   entity: Entity;
   definition: LodDefinition;
   runtime: TerrainLodGroupRendererRuntime;
-  family: "groups" | "stones" | "plants";
+  family: "groups" | "plants";
 }
 /** Scene-owned enable and vegetation controls. Rock thresholds use the shared screen policy. */
 export const mojaveLodTuning = {
@@ -311,7 +311,7 @@ export async function createSeedWorldMojavePreview(
         entity: model,
         definition,
         runtime: undefined!,
-        family: plant ? "plants" : source.id.startsWith("A") ? "groups" : "stones"
+        family: plant ? "plants" : "groups"
       });
     }
     driver.rebuild();
