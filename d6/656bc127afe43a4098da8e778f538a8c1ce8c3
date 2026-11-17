@@ -1,0 +1,24 @@
+packages/loader/src/GLTFContentRestorer.ts
+  h_bd4dd7d663e619 16,65-70
+packages/loader/src/ImageDecoder.ts
+  h_bd4dd7d663e619 1,6-8,12,14-16,19-31,33,37,42-48,75
+packages/loader/src/gltf/GLTFUtils.ts
+  h_bd4dd7d663e619 13,368
+packages/loader/src/gltf/parser/GLTFTextureParser.ts
+  h_bd4dd7d663e619 12,67-83,85-86,88-89,91,93
+tests/package-consumer/HeadlessEngine.test.ts
+  h_bd4dd7d663e619 1,438-522
+tests/src/loader/ImageDecoder.test.ts
+  h_bd4dd7d663e619 1-10,181-243
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d6656bc127afe43a4098da8e778f538a8c1ce8c3",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
