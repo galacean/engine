@@ -1,0 +1,23 @@
+packages/water/src/bridges/SuspensionBridgeView.ts
+  s_45bb612ddb9392::t_4df63552074409 1-2
+packages/water/src/water/compiler/lake/LakeTerrainBoundary.ts
+  s_45bb612ddb9392::t_70379a27d64b26 1-4
+packages/water/src/water/runtime/spatial/WaterWetNearShoreSearch.ts
+  s_45bb612ddb9392::t_a8b92ec511a64f 1-4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5f128b4cb181f0b4ea990208d3a31e84600b0d48",
+  "prompts": {},
+  "sessions": {
+    "s_45bb612ddb9392": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e31e-2061-71e0-a047-8c2fc391eaae",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

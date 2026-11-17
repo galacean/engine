@@ -1,0 +1,20 @@
+packages/shader/src/ShaderLibrary/PBR/ForwardPassPBR.glsl
+  h_a3c79ce84ffdc2 4-8,54
+packages/shader/src/ShaderLibrary/PBR/FragmentPBR.glsl
+  h_a3c79ce84ffdc2 187
+packages/shader/src/ShaderLibrary/PBR/VaryingsPBR.glsl
+  h_a3c79ce84ffdc2 20
+packages/shader/src/ShaderLibrary/PBR/VertexPBR.glsl
+  h_a3c79ce84ffdc2 12,65,77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cce75d2408227be62aeadb45d10c1395596fd7a1",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
