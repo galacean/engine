@@ -1,4 +1,5 @@
 import type { IslandPlan, PlanPoint } from "../semantic-study/IslandPlanModel";
+import { ribbonOutline } from "../semantic-study/WorldRibbon";
 import { WORLD_TEMPLATE_ART } from "./WorldTemplateArtDirection";
 
 export function worldTemplateStreet(plan: IslandPlan) {
@@ -12,7 +13,8 @@ export function worldTemplateStreet(plan: IslandPlan) {
 const streetPuddles = new WeakMap<IslandPlan, ReturnType<typeof createStreetPuddles>>();
 
 export function worldTemplateStreetPuddles(plan: IslandPlan) {
-  if (plan.parameters.worldTemplate?.id !== "neon-alley") return undefined;
+  const art = WORLD_TEMPLATE_ART[plan.parameters.worldTemplate?.id ?? ""];
+  if (!art?.streetSigns) return undefined;
   if (!streetPuddles.has(plan)) streetPuddles.set(plan, createStreetPuddles(plan));
   return streetPuddles.get(plan);
 }
@@ -55,16 +57,31 @@ function createStreetPuddles(plan: IslandPlan) {
   }
 
   const stations = street.volumes.map(({ boxes: [box] }) => project(box.center.x, box.center.z).station);
-  const start = Math.max(0, Math.min(...stations) - 8);
-  const end = Math.min(length, Math.max(...stations) + 7);
+  const shoulder = WORLD_TEMPLATE_ART[plan.parameters.worldTemplate!.id].streetSigns!.pavedShoulderM ?? 0;
+  const pavedWidth = Math.max(street.rule.pathWidthM, street.rule.curveGapM ?? 0) + 2 * shoulder;
+  const start = Math.max(0, Math.min(...stations) - pavedWidth / 2);
+  const end = Math.min(length, Math.max(...stations) + pavedWidth / 2);
   const halfWidth = street.rule.pathWidthM / 2;
+  const pointAt = (station: number) => {
+    const segment = segments.findLast((s) => s.station <= station)!;
+    return {
+      x: segment.start.x + segment.ux * (station - segment.station),
+      z: segment.start.z + segment.uz * (station - segment.station)
+    };
+  };
+  const pavementPoints = [
+    pointAt(start),
+    ...segments.filter((s) => s.station > start && s.station < end).map((s) => s.start),
+    pointAt(end)
+  ];
+  const pavement = ribbonOutline(pavementPoints, [pavedWidth], undefined, true);
   const pools: { station: number; lateral: number; across: number; along: number; depth: number }[] = [];
-  for (let station = start + 6, i = 0; station < end - 2; station += 8 + 1.5 * (1 + Math.sin(i * 2.4)), i++) {
+  for (let station = start + halfWidth, i = 0; station < end - 2; station += 8 + 1.5 * (1 + Math.sin(i * 2.4)), i++) {
     pools.push({
       station,
       lateral: (i % 2 ? -1 : 1) * halfWidth * (0.32 + 0.1 * Math.sin(i * 1.7)),
-      across: halfWidth * (0.33 + 0.06 * Math.cos(i * 2.1)),
-      along: 2.8 + 0.65 * Math.sin(i * 1.3),
+      across: halfWidth * (0.45 + 0.08 * Math.cos(i * 2.1)),
+      along: halfWidth * (0.72 + 0.13 * Math.sin(i * 1.3)),
       depth: 0.034 + (0.009 * (1 + Math.sin(i * 2.2))) / 2
     });
   }
@@ -76,6 +93,7 @@ function createStreetPuddles(plan: IslandPlan) {
   const maxZ = Math.max(...spine.map((point) => point.z)) + padding;
 
   return {
+    pavement,
     basinCount: pools.length,
     sample(x: number, z: number) {
       if (x < minX || x > maxX || z < minZ || z > maxZ) return undefined;

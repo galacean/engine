@@ -104,6 +104,7 @@ export async function mountSpatialEditor(
   const client = new PlanningWorkerClient();
   client.onProgress=stage=>{ui("progress").hidden=false;ui("progress").textContent=stage+"…";};
   let initialDocument: PlanningDocument;
+  let replacePlanning = false;
   try {
     const template = initialPlanningTemplate(pageUrl.url.search, parameters.seed,
       saved ? exportPlanningRecipe(saved).parameters.worldTemplate?.id ?? "" : undefined);
@@ -111,7 +112,7 @@ export async function mountSpatialEditor(
     if (template !== undefined) initialDocument = storage.retainWater(initialDocument);
     removeDesertCamelPreset(initialDocument);
     if (template !== undefined) applyPlanningTemplateSurface(initialDocument);
-    if (!storageWarning) await storage.migrateToSource(initialDocument, template !== undefined && !!saved);
+    replacePlanning = template !== undefined && !!saved;
   } catch (error) {
     client.dispose();
     project.dispose();
@@ -685,6 +686,7 @@ export async function mountSpatialEditor(
   root.inert = true;
   try {
     await session.initialize();
+    if (!storageWarning) await storage.migrateToSource(session.document, replacePlanning);
   } catch (error) {
     dispose();
     throw error;

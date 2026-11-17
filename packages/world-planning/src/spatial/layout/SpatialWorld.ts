@@ -1,7 +1,7 @@
 import { finalizePlanningFarm } from "../farming/PlanningFarmingFinalization";
 import { applyMojaveDesertAppearance } from "./MojaveDesertLayout";
 import { PLANNING_REFERENCE } from "../../planning-data/PlanningReference";
-import { planWorldTemplateSite, resolveConfiguredTemplateSpawn } from "../WorldTemplatePlanning";
+import { planWorldTemplateSite, publishTemplateStones, resolveConfiguredTemplateSpawn } from "../WorldTemplatePlanning";
 import { resolveWorldTemplateScene, resolveWorldTemplateView } from "../WorldTemplateView";
 import { WORLD_TEMPLATE_ART } from "../WorldTemplateArtDirection";
 import { PLANNING_RUNTIME_OPTIONS } from "../runtime/RuntimeOptions";
@@ -257,6 +257,7 @@ export function tryRevealSpatialWorld(
   inheritPlanningHeightmap(plan, previous.plan);
   // A worker publication may have no main-thread raster. Resolve only requested contact samples.
   const ground = height?.sample ?? ((point: PlanPoint) => planningGroundSurface(plan).sample(point));
+  publishTemplateStones(plan, ground);
   // Composition trees are generated from their own fixed candidates, outside
   // the natural-landscape basemap. Reveal both populations before instance edits.
   publishCompositionTrees(plan, createPlanningGroundSampler(plan), config.landscape, recipe.edits);
@@ -1207,6 +1208,7 @@ function* spatialWorldStages(
     landscapeBase = revealSpatialEcology(environment);
     publishCompositionTrees(plan, ground, config.landscape, recipe.edits);
     applyMojaveDesertAppearance(plan, recipe);
+    publishTemplateStones(plan, ground);
   }
   // Spawn belongs to a populated village when one exists; layout order also includes rock POIs.
   const first =

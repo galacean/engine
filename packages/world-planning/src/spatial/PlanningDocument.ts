@@ -423,6 +423,103 @@ export function exportPlanningRecipe(document: PlanningDocument): SemanticRecipe
   return recipe;
 }
 
+/** Refresh the former baked Sakura shrub defaults without changing edited material slots. */
+function upgradeSakuraShrubPalette(component: SpatialComponent | undefined): void {
+  if (!component || component.base) return;
+  const art = WORLD_TEMPLATE_ART["sakura-pearl"];
+  if (!art.grass || !art.plantPalette) return;
+  const palette = art.plantPalette;
+  const previous: Readonly<Record<string, { color: string; intensity: number }>> = {
+    foliage: { color: "#e48bb5", intensity: 1.2 },
+    leaves: { color: "#e18bbb", intensity: 1.15 }
+  };
+  const colors = normalizePlantMaterialFields(component.values);
+  const channels = ["r", "g", "b"] as const;
+  let changed = false;
+  for (const slot of PLANT_MATERIAL_SLOTS) {
+    const oldSwatch = previous[slot.part];
+    if (!slot.layers.includes("shrubs") || !oldSwatch) continue;
+    const newSwatch =
+      palette.slots?.[slot.assetId]?.[slot.materialId] ??
+      palette.species?.[slot.assetId]?.[slot.part] ??
+      palette.parts[slot.part];
+    if (!newSwatch) continue;
+    const fields = channels.map((channel) => plantMaterialField(slot.assetId, slot.materialId, channel));
+    const oldColor = templateLinearColor(oldSwatch.color);
+    if (!fields.every((field, i) => colors[field] === oldColor[i] * oldSwatch.intensity)) continue;
+    const newColor = templateLinearColor(newSwatch.color);
+    fields.forEach((field, i) => (colors[field] = newColor[i] * newSwatch.intensity));
+    changed = true;
+  }
+  if (changed) component.values = colors;
+}
+
+function upgradeNeonAlleyPresentation(world: Record<string, SpatialComponent>): void {
+  const art = WORLD_TEMPLATE_ART["neon-alley"];
+  const template = world.worldTemplate.values;
+  if (template.weatherPresetVersion === undefined) {
+    const weather = world.weather;
+    // The former Neon preset explicitly disabled the water-film ripple normals.
+    // Migrate its stored default once so a later authored zero survives reload.
+    if (weather && !weather.base && weather.values.surfaceRippleStrength === 0)
+      delete weather.values.surfaceRippleStrength;
+    template.weatherPresetVersion = 1;
+  }
+  const defaults = [
+    [
+      world.lighting,
+      art.lighting,
+      {
+        ambientIntensity: 3.2,
+        skyExposure: 0.65,
+        fogDensity: 0.0008,
+        fogExponent: undefined,
+        customSkyZenithR: 1,
+        customSkyZenithG: 1,
+        customSkyZenithB: 1,
+        customSkyHorizonR: 1,
+        customSkyHorizonG: 1,
+        customSkyHorizonB: 1,
+        moonColorR: 1.6,
+        moonColorG: 1.1,
+        moonColorB: 1.4,
+        moonDiskIntensity: undefined,
+        starIntensity: undefined,
+        twilightIntensity: undefined,
+        fogTintR: 1.15,
+        fogTintG: 0.9,
+        fogTintB: 1.3
+      }
+    ],
+    [
+      world.weather,
+      art.weather!,
+      {
+        cloudCoverage: 0.65,
+        surfaceWaterCoverage: 0.56,
+        puddleStorageBias: 0.58,
+        surfaceReflectionIntensity: 2.25,
+        surfaceRoughness: 0.16,
+        standingWaterRoughness: 0.05,
+        surfaceNormalFlattening: 0.55
+      }
+    ],
+    [
+      world.terrain,
+      {
+        surfaceTileM: art.surfaceTextures!.tileSizeM,
+        surfaceNormalScale: art.surfaceTextures!.strength
+      },
+      { surfaceTileM: 4.8, surfaceNormalScale: 3.2 }
+    ]
+  ] as const;
+  for (const [component, next, previous] of defaults) {
+    if (!component || component.base) continue;
+    for (const [key, value] of Object.entries(previous))
+      if (component.values[key] === value) component.values[key] = (next as Record<string, unknown>)[key];
+  }
+}
+
 /** Remove retired authoring contracts once, while retaining registered extension components and current overrides. */
 export function upgradePlanningDocument(input: PlanningDocument): PlanningDocument {
   const document = exportPlanningAuthoring(input);
@@ -430,17 +527,20 @@ export function upgradePlanningDocument(input: PlanningDocument): PlanningDocume
     const world = scope.entities.world?.components;
     const legacy = world?.worldTemplate?.values;
     const id = typeof legacy?.id === "string" ? legacy.id : "";
+    if (world && id === "neon-alley") upgradeNeonAlleyPresentation(world);
     const preset = WORLD_TEMPLATE_ART[id]?.generation;
     if (!world || !preset) continue;
-    if (!world.landscapeComposition?.base && !Object.keys(world.landscapeComposition?.values ?? {}).length)
-      world.landscapeComposition = {
-        values: spatialCompositionParameters({
-          ...preset,
-          seed: templateBaseSeed(id),
-          ...(typeof legacy?.centerX === "number" ? { centerX: legacy.centerX } : {}),
-          ...(typeof legacy?.centerZ === "number" ? { centerZ: legacy.centerZ } : {})
-        })
-      };
+    if (!world.landscapeComposition?.base && !Object.keys(world.landscapeComposition?.values ?? {}).length) {
+      // Keep the saved Seed's layout and leave the variation policy unset for a new Seed scope.
+      const { varyWithWorldSeed: _legacySeedPolicy, ...values } = spatialCompositionParameters({
+        ...preset,
+        seed: templateBaseSeed(id),
+        ...(typeof legacy?.centerX === "number" ? { centerX: legacy.centerX } : {}),
+        ...(typeof legacy?.centerZ === "number" ? { centerZ: legacy.centerZ } : {})
+      });
+      world.landscapeComposition = { values };
+    }
+    if (id === "sakura-pearl") upgradeSakuraShrubPalette(world.plantMaterial);
     const composition = world.landscapeComposition;
     if (
       id === "sakura-pearl" &&

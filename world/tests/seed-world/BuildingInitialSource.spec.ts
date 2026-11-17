@@ -15,6 +15,15 @@ import {
 } from "@galacean/engine-building/building/core/index.ts";
 import { createBuildingTypeRegistry, MOUNTED_PART_TYPES } from "@galacean/engine-building/building/partTypes/index.ts";
 import { coreBuildingEnvironment } from "@galacean/engine-building/building/render/CoreBuilding.ts";
+import { BUILTIN_BUILDING_ASSETS } from "@galacean/engine-building/building/resources/BuiltinBuildingAssets";
+import * as assetKit from "@galacean/engine-building/building/resources/BuildingAssetKit";
+import { RuntimeProjectEdit } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
+import { RUNTIME_PROJECT_SAVE_VERSION } from "@galacean/engine-project/runtime-editor/project/runtime-project";
+import { RuntimeSceneEdit } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-scene-edit";
+import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
+import { createTemplatePlanningDocument } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
+import { generatePlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningRuntime";
+import { buildingScenePreparation } from "../../demos/seed-world/masonry/BuildingSceneInitialization";
 
 it("keeps the mounted parts the design lays when the initial plan is saved as native author Source", async () => {
   const plan = structuredClone(buildingGenerationPlan);
@@ -56,3 +65,58 @@ it("keeps the mounted parts the design lays when the initial plan is saved as na
   // Some houses carry a Gothic dormer on their roof.
   expect(parts.some((p) => p.type === "dormer")).toBe(true);
 });
+
+it("publishes the current street when a legacy Seed has initialized a different native building layout", async () => {
+  const grid = {
+    samples: new Uint16Array(4), resolution: 2, origin: [0, 0] as [number, number], size: 1024,
+    decode: { offset: 0, scale: 1 }
+  };
+  const legacy = await initialBuildingSource(
+    { ...buildingGenerationPlan, buildings: buildingGenerationPlan.buildings.slice(0, 1), fences: [], courtyards: [] },
+    grid, constructionGeometry, BUILTIN_BUILDING_ASSETS
+  );
+  expect(legacy.rootEntities).toHaveLength(1);
+  const path = "Seed.scene";
+  const draft = new RuntimeProjectEdit({
+    version: RUNTIME_PROJECT_SAVE_VERSION,
+    project: { scene: path, files: [
+      { virtualPath: path, path, type: "Scene" },
+      { virtualPath: BUILTIN_BUILDING_ASSETS, path: BUILTIN_BUILDING_ASSETS, type: "Prefab" }
+    ] },
+    contents: {
+      [path]: JSON.stringify({
+        asset: { version: "2.0" }, scene: { rootEntities: ["generator"] },
+        entities: [{ id: "generator", components: ["init"], children: [...legacy.rootEntities, "author-prop"] },
+          ...legacy.entities, { id: "author-prop", name: "Hand placed" }],
+        components: [{ id: "init", type: "BuildingGeneratorComponent", props: { initialized: true } }, ...legacy.components]
+      })
+    }
+  }, nativeAssetFormats(() => ({})));
+  const result = generatePlanningDocument(createTemplatePlanningDocument(1, "neon-alley"), undefined, [], undefined, { environment: false });
+  expect(result.accepted).toBe(true);
+  const plan = { ...result.plan, buildings: result.plan.buildings.slice(0, 2) };
+  const scene = new RuntimeSceneEdit(draft, path);
+  const kit = vi.spyOn(assetKit, "buildingAssets")
+    .mockReturnValue({ compilation: constructionGeometry } as ReturnType<typeof assetKit.buildingAssets>);
+  const edit = {
+    run: async (run: (args: { draft: RuntimeProjectEdit; edited: () => void }) => unknown) => run({ draft, edited() {} }),
+    withAsset: async (_path: string, use: (asset: { resource: unknown }) => unknown) => use({ resource: {} })
+  } as unknown as Parameters<ReturnType<typeof buildingScenePreparation>>[0];
+  const prepare = buildingScenePreparation(path, async () => ({ plan, terrain: { grid, revision: 0 } }), plan);
+  try {
+    await prepare(edit, new AbortController().signal);
+    const children = scene.readEntity("generator").children!.map((id) => scene.readEntity(id));
+    const archive = children.find((child) => child.isActive === false)!;
+    expect(archive.children).toEqual(legacy.rootEntities);
+    expect(scene.readEntity(legacy.rootEntities[0]).position).toEqual(legacy.entities[0].position);
+    const street = children.find((child) => child.isActive === true)!;
+    expect(street.children?.length).toBeGreaterThan(0);
+    expect(children.some((child) => child.id === "author-prop")).toBe(true);
+    const before = draft.read(path);
+    await prepare(edit, new AbortController().signal);
+    expect(draft.read(path)).toBe(before);
+    expect(kit).toHaveBeenCalledOnce();
+  } finally {
+    kit.mockRestore();
+  }
+}, 60000);

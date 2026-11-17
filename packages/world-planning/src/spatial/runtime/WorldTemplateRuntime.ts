@@ -43,6 +43,7 @@ import { worldTemplateStreet } from "../WorldTemplateStreet";
 import { resolveWorldTemplateScene, type ResolvedWorldTemplateScene } from "../WorldTemplateView";
 import { fitTemplateAsset, stretchTemplateAsset, type TemplateNode } from "../WorldTemplateGeometry";
 import { mountOilPaintGround, oilPaintMaterial } from "./OilPaintMesh";
+import { mountTemplateProceduralPlants } from "./TemplateProceduralPlants";
 import { StreetFacadeRuntime } from "./StreetFacadeRuntime";
 import translucentShader from "./TemplateTranslucent.shader?raw";
 import fireflyShader from "./TemplateFirefly.shader?raw";
@@ -78,6 +79,7 @@ export class WorldTemplateRuntime {
   private petalMaterial?: ParticleMaterial;
   private groundPaintMaterial?: Material;
   private groundPaintMeshes: ModelMesh[] = [];
+  private disposeProceduralPlants?: () => void;
   private destroyed = false;
   private readonly anchor: { x: number; y: number; z: number };
   private focusBounds?: ResolvedWorldTemplateScene["focusBounds"];
@@ -271,6 +273,16 @@ export class WorldTemplateRuntime {
       if (petals) {
         if (!petalTexture) throw new Error("Missing template petal texture");
         this.createPetalParticles(petals, ground, petalTexture);
+      }
+      const proceduralPlants = WORLD_TEMPLATE_ART[template.id].proceduralPlants;
+      if (proceduralPlants?.length) {
+        this.disposeProceduralPlants = mountTemplateProceduralPlants(
+          this.root,
+          this.anchor,
+          ground,
+          proceduralPlants,
+          plan.parameters.seed
+        );
       }
       const signs = WORLD_TEMPLATE_ART[template.id].streetSigns;
       if (signs && atlas && spine)
@@ -771,6 +783,7 @@ export class WorldTemplateRuntime {
     this.sporeMaterial?.destroy();
     this.sporeTexture?.destroy();
     this.sporeEmissionMesh?.destroy();
+    this.disposeProceduralPlants?.();
     this.petalMaterial?.destroy();
     this.groundPaintMaterial?.destroy();
     for (const mesh of this.groundPaintMeshes) mesh.destroy();

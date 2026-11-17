@@ -158,12 +158,15 @@ export function buildWorldTemplateGeometry(
       };
     });
   } else {
+    const q = spatialCompositionParameters(parameters ?? art.generation),
+      frame = { ...q, centerX: 0, centerZ: 0 };
     nodes = art.models.map((node) => {
       if (!("position" in node)) throw new Error("模板资产缺少布局生成参数：" + node.id);
+      const p = compositionPoint(frame, node.position[0], node.position[2]);
       return {
         ...structuredClone(node),
-        position: [0 - node.position[0], node.position[1], node.position[2]] as Vec3,
-        rotation: [node.rotation[0], 0 - node.rotation[1], node.rotation[2]] as Vec3
+        position: [p.x, node.position[1], p.z] as Vec3,
+        rotation: [node.rotation[0], 0 - node.rotation[1] - q.headingDegrees, node.rotation[2]] as Vec3
       };
     });
   }

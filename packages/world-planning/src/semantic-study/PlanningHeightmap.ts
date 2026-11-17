@@ -439,7 +439,7 @@ export function compilePlanningWaterHeightmap(
 }
 
 function heightKey(plan: IslandPlan, resolution: number): string {
-  const street = plan.parameters.worldTemplate?.id === "neon-alley" ? worldTemplateStreet(plan) : undefined;
+  const street = worldTemplateStreet(plan);
   return JSON.stringify([
     "canonical-float32-v1",
     RIVER_BANK_PROFILE_VERSION,
@@ -447,6 +447,8 @@ function heightKey(plan: IslandPlan, resolution: number): string {
     street && [
       street.construction?.spine,
       street.rule.pathWidthM,
+      street.rule.curveGapM,
+      worldTemplateStreetPuddles(plan)?.pavement,
       street.volumes.map(({ boxes: [box] }) => box.center)
     ],
     resolution,

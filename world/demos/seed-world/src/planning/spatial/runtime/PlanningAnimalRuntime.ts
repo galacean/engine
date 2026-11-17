@@ -253,8 +253,10 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
             birthHabitats.set(id, preference);
           }
           // Proximity is a soft preference: a bounded local budget cannot prevent valid global births.
-          if (preference.nearSpawn && attempt < 32)
-            return habitat.spawnPointCandidate(position, preference.medium, preference.shore, spawnPoints.get(typeId)!.radius, random);
+          if (preference.nearSpawn && attempt < 32) {
+            const sp = spawnPoints.get(typeId)!;
+            return habitat.spawnPointCandidate(position, preference.medium, preference.shore, sp.radius, random, sp.center);
+          }
           return habitat.spawnCandidate(position, preference.medium, preference.shore, random);
         },
         samplePosition: ({ id, typeId, appearanceId, position: point }) => {

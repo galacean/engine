@@ -324,13 +324,13 @@ export class PlanningAnimalHabitat {
    * outside the preferred disk; ground/air sample the disk uniformly. Final support/collision
    * validation is shared with whole-map births. Caller bounds attempts before global fallback.
    */
-  spawnPointCandidate(point: PlanPoint, medium: PlanningAnimalMedium, shore: boolean, radius: number, random: () => number): PlanPoint | undefined {
+  spawnPointCandidate(point: PlanPoint, medium: PlanningAnimalMedium, shore: boolean, radius: number, random: () => number, origin: PlanPoint = this.origin): PlanPoint | undefined {
     if (medium === "water" || shore) {
       const candidate = this.spawnCandidate(point, medium, shore, random);
-      return candidate && (candidate.x - this.origin.x) ** 2 + (candidate.z - this.origin.z) ** 2 <= radius * radius ? candidate : undefined;
+      return candidate && (candidate.x - origin.x) ** 2 + (candidate.z - origin.z) ** 2 <= radius * radius ? candidate : undefined;
     }
     const angle = random() * Math.PI * 2, distance = radius * Math.sqrt(random());
-    return { x: this.origin.x + Math.cos(angle) * distance, z: this.origin.z + Math.sin(angle) * distance };
+    return { x: origin.x + Math.cos(angle) * distance, z: origin.z + Math.sin(angle) * distance };
   }
 
   /** Lazily index water/banks once per publication, never in the simulation loop. */

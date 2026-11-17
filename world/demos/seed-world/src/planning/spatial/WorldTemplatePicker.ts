@@ -1,6 +1,7 @@
 import "./WorldTemplatePicker.css";
 import { WORLD_TEMPLATES, worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
 import { SEMANTIC_DEFAULTS } from "@galacean/engine-world-planning/semantic-study/WorldPlanningContract";
+import { randomPlanningSeed } from "./PlanningStartupTemplate.ts";
 
 /** Select a world style and Seed.
  * @param host Toolbar that owns the entry button.
@@ -24,12 +25,12 @@ export function mountWorldTemplatePicker(
   dialog.className = "sp-template-dialog" + (startup ? " sp-template-startup" : "");
   dialog.setAttribute("aria-labelledby", "world-template-title");
   dialog.innerHTML = `<header><div><p>SEED WORLD / 世界风格</p><h2 id="world-template-title">选择你的世界</h2></div><button type="button" data-close aria-label="关闭风格选择">✕</button></header>
-    <p class="sp-template-intro">保留主题布局，周边地貌随 Seed 小幅变化。同一风格与 Seed 可重建同一世界。</p>
+    <p class="sp-template-intro">主景保留原有构图，周边布局随 Seed 变化。同一风格与 Seed 可重建同一世界。</p>
     <div class="sp-template-grid" role="group" aria-label="世界风格"></div>
     <footer><label>Seed <input aria-label="风格世界 Seed" type="number" min="0" max="4294967295" step="1" required></label><button type="button" data-random>随机 Seed</button><button type="button" data-palette title="更新当前工程配色，保留布局、建筑、光照和后处理">仅应用配色</button><button type="button" data-apply>应用风格</button><p role="status" aria-live="polite"></p><small>应用风格会替换当前规划参数；仅应用配色保留现有布局与光照。</small></footer>`;
   if (startup) {
     dialog.querySelector("[data-close]")!.remove();
-    dialog.querySelector(".sp-template-intro")!.textContent = "选择主题后生成世界。";
+    dialog.querySelector(".sp-template-intro")!.textContent = "选择主题和 Seed 生成世界，周边布局随 Seed 变化。";
     dialog.querySelector("footer small")!.textContent = "同一 Seed 的已有世界保留编辑；切换主题会重新规划。";
     dialog.addEventListener("cancel", event => event.preventDefault());
     entry.hidden = true;
@@ -94,7 +95,7 @@ export function mountWorldTemplatePicker(
   const close = dialog.querySelector<HTMLButtonElement>("[data-close]");
   if (close) close.onclick = () => dialog.close();
   dialog.querySelector<HTMLButtonElement>("[data-random]")!.onclick = () => {
-    input.value = String(crypto.getRandomValues(new Uint32Array(1))[0]);
+    input.value = String(randomPlanningSeed());
   };
   submit.onclick = async () => {
     if (pending || !input.reportValidity() || !Number.isSafeInteger(input.valueAsNumber)) return;

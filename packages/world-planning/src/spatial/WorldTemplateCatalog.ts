@@ -123,10 +123,10 @@ export const WORLD_TEMPLATES: readonly WorldTemplate[] = [
   {
     id: "voxel-arcade",
     name: "像素潮玩",
-    icon: "🛹",
+    icon: "🕹️",
     family: "arcade",
-    colors: ["#263560", "#777bed", "#ff75d9", "#10203d"],
-    subject: "体素街机厅 · 霓虹网格 · 微型关卡",
+    colors: ["#3b8c29", "#35b6e6", "#d78aff", "#4e9dd4"],
+    subject: "巨型像素街机 · 草地步道 · 远景浮岛",
     terrain: { ...gentleBaseTerrain, heightM: 8, widthM: 240, count: 1, coverage: 0.8 }
   },
   {
@@ -161,14 +161,14 @@ export const WORLD_TEMPLATES: readonly WorldTemplate[] = [
   },
   {
     id: "titan-wasteland",
-    rockSource: "authored",
-    stoneSource: "shared",
+    rockSource: "shared",
+    rockTopCover: "ground",
     name: "幻兽荒原",
     icon: "🏜️",
     family: "desert",
     vegetation: "desert",
-    colors: ["#d89756", "#f4c781", "#ffc474", "#7d456b"],
-    subject: "整图荒原 · 连绵沙丘",
+    colors: ["#d89756", "#f4c781", "#207b5d", "#e34f3b"],
+    subject: "红岩绿洲 · 绯树砾岸",
     terrain: { ...gentleBaseTerrain, widthM: 270, count: 4, coverage: 0.85 }
   },
   {

@@ -83,7 +83,7 @@ export class StreetFacadeRuntime {
     const houses = new Map<BuildingGroupComponent, HouseShared>();
     for (const group of manager?.listGroups() ?? []) {
       const house = group.definition?.shared?.house as HouseShared | undefined;
-      if (!house?.footprint || house.height < 4 || !group.frame) continue;
+      if (!house?.footprint || house.height < 4) continue;
       houses.set(group, house);
     }
     for (const [group, mount] of this.mounts) {
@@ -95,7 +95,9 @@ export class StreetFacadeRuntime {
     }
     for (const [group, parameters] of houses) {
       if (this.mounts.has(group) || this.q.signsPerBuilding <= 0) continue;
-      const frame = group.frame!;
+      // The shared frame can contain several buildings. The authored footprint is in
+      // the individual group's coordinates, which the native wall compiler also uses.
+      const wall = group.entity;
       const mountOffset = profileWallEnvelope(parameters.footprint, parameters.wallUnit).finishOuter + 0.1;
       const shape = profileShape(parameters.footprint);
       let points = shapeCurve(shape).points;
@@ -131,8 +133,8 @@ export class StreetFacadeRuntime {
 
           const world = new Vector3(),
             outer = new Vector3();
-          Vector3.transformCoordinate(new Vector3(x, 0, z), frame.transform.worldMatrix, world);
-          Vector3.transformCoordinate(new Vector3(x + nx, 0, z + nz), frame.transform.worldMatrix, outer);
+          Vector3.transformCoordinate(new Vector3(x, 0, z), wall.transform.worldMatrix, world);
+          Vector3.transformCoordinate(new Vector3(x + nx, 0, z + nz), wall.transform.worldMatrix, outer);
           const normalX = outer.x - world.x,
             normalZ = outer.z - world.z;
           let roadDistance = Infinity,
@@ -161,7 +163,7 @@ export class StreetFacadeRuntime {
           return { x, z, nx, nz, length, world, score: roadDistance - 10 * facing - 3 * approach };
         })
         .sort((a, b) => a.score - b.score || b.length - a.length);
-      const root = frame.createChild("Mounted emissive signs");
+      const root = wall.createChild("Mounted emissive signs");
       this.mounts.set(group, { shape: JSON.stringify(parameters), root });
       for (let rank = 0; rank < Math.min(this.q.signsPerBuilding, segments.length); rank++) {
         const { x, z, nx, nz, length, world } = segments[rank];

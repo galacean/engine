@@ -497,7 +497,16 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
       number("centerZ", "主体中心 Z", {
         unit: "m",
         description: "参考构图的世界坐标锚点；重设风格时从固定基础地貌求得。"
-      })
+      }),
+      {
+        key: "weatherPresetVersion",
+        label: "天气预设版本",
+        type: "number",
+        min: 1,
+        integer: true,
+        hidden: true,
+        affectsLayout: false
+      }
     ],
     global: { id: "worldTemplate.id", centerX: "worldTemplate.centerX", centerZ: "worldTemplate.centerZ" }
   },

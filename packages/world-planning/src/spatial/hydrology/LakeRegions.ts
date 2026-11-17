@@ -65,7 +65,7 @@ export function generateLakeRegions(
     .filter(
       (id) =>
         id.startsWith("lake:") &&
-        local[id].enabled !== false &&
+        (local[id].enabled ?? config.enabled) &&
         (id.startsWith("lake:authored:") || local[id].shoreline !== undefined)
     )
     .sort();

@@ -16,6 +16,12 @@
 
 用户明确要求使用对应资产，缺失资产仅放无标注白盒。本轮检索原有资源及本地资产库后，仍未确认参考图中的完整主题模型；通用街机、蘑菇、水晶不冒充同款资产。当前缺失主体各用一个纯白长方体表达占地和体量，不拼装仿制模型、不新增交互条、音频或替代粒子。真实模型、洞穴内壁、极光、发光材质、花雨、鱼群／鲸鱼运动及 WOW 交互尚未由对应资产实现，当前不能视为原图最终美术还原。
 
+2026-11-11「像素潮玩」使用红白赛车街机作为中央主景和最近的一台小街机，两侧使用直立街机。四台街机均等比缩放。草地、树石、弯曲步道和晴空日照由现有原生系统生成，机柜和基础设施共用布局朝向，使正面接受日照。主场景保持落地，远景补入五座高低错落的草顶浮岛，复用原生封闭岩体生成器的收尖底部与现有乔木。浮岛及岛顶树木均使用悬空布局，不清除地面植被。飞船和像素小怪继续留空。入口为风格选择中的「像素潮玩」，已有工程可重新应用风格取得当前模板。
+
+街机模型采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。工程副本对齐底座中心，直立街机移除预览地板并将柜身设置为不透明材质。素材来自 heycronus 的 [Arcade Retro Racing Pixel art](https://sketchfab.com/3d-models/arcade-retro-racing-pixel-art-9f14519288d4409987f0fff71a51106b) 和 Wade_Kenny 的 [Arcade Machine - Pixel-art Low-Poly](https://sketchfab.com/3d-models/arcade-machine-pixel-art-low-poly-2e95a489783e4e75a132bcc9e42b69e6)。
+
+浮岛模型由 `node world/scripts/generate-arcade-floating-island.mjs` 烘焙到既有模板资产目录；加 `--check` 可逐字节校验源参数与成品一致。
+
 | URL / 文档 | 用途 |
 | --- | --- |
 | `/demos/terrain/seed-world-planner/index.html?seed=1` | 原 Seed 全屏 3D、漫游与 HUD |

@@ -13,7 +13,12 @@ export const PLANNING_WEATHER_COMPONENT: PlanningComponentDefinition = {
   fields: [
     { key: "cloudCoverage", label: "云覆盖率", type: "number", min: 0, max: 1, unit: "比例", default: 0.45 },
     { key: "cloudBaseAltitudeM", label: "云底高度", type: "number", min: 0, unit: "m" },
+    { key: "cloudThicknessM", label: "云层厚度", type: "number", min: 1, unit: "m" },
     { key: "cloudFeatureSize", label: "云团大小倍率", type: "number", min: Number.EPSILON, step: 0.05 },
+    { key: "cloudDensityMultiplier", label: "云密度倍率", type: "number", min: 0, max: 4 },
+    { key: "cloudEnvelopeScale", label: "云包络尺度", type: "number", min: 0.01, max: 4 },
+    { key: "cloudTopDensityMultiplier", label: "云顶密度倍率", type: "number", min: 0, max: 4 },
+    { key: "cloudDetailNoiseMultiplier", label: "云细节噪声倍率", type: "number", min: 0, max: 4 },
     { key: "rainRate", label: "降雨强度", type: "number", min: 0, max: 1, unit: "比例", default: 0 },
     { key: "snowRate", label: "降雪强度", type: "number", min: 0, max: 1, unit: "比例", default: 0 },
     { key: "temperatureCelsius", label: "气温", type: "number", unit: "°C", default: 22 },
@@ -55,22 +60,99 @@ export function applyPlanningWeather(
   const signature = JSON.stringify(values);
   const previous = applied.get(environment);
   if (previous?.signature === signature) return;
-  const { cloudBaseAltitudeM, cloudFeatureSize } = values;
+  const {
+    cloudBaseAltitudeM,
+    cloudThicknessM,
+    cloudFeatureSize,
+    cloudDensityMultiplier,
+    cloudEnvelopeScale,
+    cloudTopDensityMultiplier,
+    cloudDetailNoiseMultiplier
+  } = values;
+  const hasCustomMorphology =
+    cloudEnvelopeScale !== undefined ||
+    cloudTopDensityMultiplier !== undefined ||
+    cloudDetailNoiseMultiplier !== undefined;
   const cloudScale =
-    cloudBaseAltitudeM === undefined && cloudFeatureSize === undefined
+    cloudBaseAltitudeM === undefined &&
+    cloudThicknessM === undefined &&
+    cloudFeatureSize === undefined &&
+    !hasCustomMorphology
       ? undefined
-      : JSON.stringify([cloudBaseAltitudeM, cloudFeatureSize]);
+      : JSON.stringify([cloudBaseAltitudeM, cloudThicknessM, cloudFeatureSize, hasCustomMorphology]);
   if (cloudScale !== previous?.cloudScale) {
     const defaults = TERRAIN_CLEAR_VOLUMETRIC_CLOUD_SCALE_SETTINGS;
     const size = Number(cloudFeatureSize ?? 1);
-    environment.setCloudScaleSettings({
+    environment.setCloudScaleSettings?.({
       baseAltitude: Number(cloudBaseAltitudeM ?? defaults.baseAltitude),
-      shapeScale: defaults.shapeScale / size,
-      detailScale: defaults.detailScale / size
+      ...(cloudThicknessM === undefined ? {} : { thickness: Number(cloudThicknessM) }),
+      weatherScale: defaults.weatherScale / size,
+      shapeScale: (defaults.shapeScale / size) * (hasCustomMorphology ? 1.65 : 1),
+      detailScale: hasCustomMorphology ? (defaults.shapeScale / size) * 6.5 : defaults.detailScale / size,
+      ...(hasCustomMorphology ? { shapeVerticalFrequency: 0.62, detailVerticalFrequency: 2.6 } : {})
+    });
+  }
+  const shapeProfile = {
+    ...(hasCustomMorphology
+      ? {
+          detailLodNearDistance: 1500,
+          detailLodFarDistance: 9500,
+          baseErosionIntensity: 0.26,
+          detailErosionScale: 0.85,
+          maxDetailErosion: 0.62,
+          curlIntensity: 0.45,
+          bottomFadeExponent: 10.0,
+          bottomFadeStrength: 0.92,
+          topFadeExponent: 7.0,
+          topFadeStrength: 0.96,
+          topCutoff: 0.82
+        }
+      : {}),
+    ...(cloudEnvelopeScale === undefined ? {} : { envelopeScale: Number(cloudEnvelopeScale) }),
+    ...(cloudTopDensityMultiplier === undefined ? {} : { topDensityMultiplier: Number(cloudTopDensityMultiplier) }),
+    ...(cloudDetailNoiseMultiplier === undefined ? {} : { detailNoiseMultiplier: Number(cloudDetailNoiseMultiplier) })
+  };
+  if (Object.keys(shapeProfile).length) environment.setCloudShapeProfile?.(shapeProfile);
+  if (hasCustomMorphology) {
+    environment.setCloudQuality?.("high");
+    environment.setCloudLightingProfile?.({
+      lightMarchDistanceScale: 0.35,
+      extinctionScale: 0.024,
+      densitySmoothness: 0.86,
+      singleScatteringAlbedo: 0.995,
+      directionalEnergyScale: 2.35,
+      directionalEnergyCompression: 0.08,
+      inscatteringDensityScale: 2.2,
+      ambientSkyBottom: 0.24,
+      ambientSkyTop: 0.44,
+      ambientGroundBottom: 0.16,
+      ambientGroundTop: 0.08,
+      ambientShadowStrength: 0.28,
+      multipleScatteringMinimum: 0.22,
+      powderDensityScale: 2.4,
+      powderDirectMinimum: 0.72,
+      powderDirectMaximum: 1.15,
+      extinctionEdgeStart: 0.025,
+      extinctionEdgeEnd: 0.11,
+      edgeLightIntensity: 1.1
     });
   }
   const current = environment.weatherSystem.getSnapshot();
-  environment.setCloud({ ...current.cloud, cloudCoverage: Number(values.cloudCoverage) });
+  const prevDuration = environment.getSnapshot?.().transitionDuration;
+  if (hasCustomMorphology && !previous && prevDuration !== undefined) environment.setTransitionDuration?.(0);
+  try {
+    environment.setCloud({
+      ...current.cloud,
+      cloudCoverage: Number(values.cloudCoverage),
+      ...(hasCustomMorphology ? { cloudType: 0.62, cloudDetail: 0.72 } : {}),
+      ...(cloudDensityMultiplier === undefined ? {} : { cloudDensityMultiplier: Number(cloudDensityMultiplier) })
+    });
+  } finally {
+    if (hasCustomMorphology && !previous && prevDuration !== undefined) {
+      environment.setTransitionDuration?.(prevDuration);
+      environment.invalidateCloudHistory?.();
+    }
+  }
   environment.setPrecipitation({
     rainRate: Number(values.rainRate),
     snowRate: Number(values.snowRate),
