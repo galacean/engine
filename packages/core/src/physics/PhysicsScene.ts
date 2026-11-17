@@ -749,7 +749,23 @@ export class PhysicsScene {
       nativePhysicsScene.update(fixedTimeStep);
       const bodies = this._bodies;
       for (let i = 0, n = bodies.length; i < n; i++) {
-        bodies[i]._writeBack();
+        let body = bodies[i];
+        let parent = body.entity.parent;
+        while (parent) {
+          const ancestor = parent.getComponent(Rigidbody);
+          if (ancestor && ancestor._index !== -1) {
+            if (ancestor._index < i) break;
+            // World-pose setters need ancestors first; reorder the existing registration, not a second hierarchy.
+            const ancestorIndex = ancestor._index;
+            bodies[i] = ancestor;
+            bodies[ancestorIndex] = body;
+            body._index = ancestorIndex;
+            ancestor._index = i;
+            body = ancestor;
+          }
+          parent = parent.parent;
+        }
+        body._writeBack();
       }
       this._dispatchEvents(nativePhysicsScene.updateEvents());
     }

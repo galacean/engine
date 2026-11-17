@@ -64,6 +64,81 @@ describe("Collider", () => {
     expect(actual.z).toBeCloseTo(z, 4);
   }
 
+  it.each([false, true])(
+    "keeps a nested Rigidbody independent of its moving parent (parent added last=%s)",
+    (parentLast) => {
+      const parent = root.createChild("moving parent");
+      parent.addComponent(BoxCollider);
+      const parentBody = parentLast ? undefined : parent.addComponent(Rigidbody);
+      const child = parent.createChild("independent child");
+      child.transform.setPosition(10, 0, 0);
+      child.addComponent(BoxCollider);
+      const childBody = child.addComponent(Rigidbody);
+      childBody.useGravity = false;
+      const movingBody = parentBody ?? parent.addComponent(Rigidbody);
+      movingBody.useGravity = false;
+      movingBody.linearVelocity.set(6, 0, 0);
+
+      update();
+      expect(parent.transform.worldPosition.x).toBeCloseTo(0.1, 4);
+      expect(child.transform.worldPosition.x).toBeCloseTo(10, 4);
+      update();
+      expect(parent.transform.worldPosition.x).toBeCloseTo(0.2, 4);
+      expect(child.transform.worldPosition.x).toBeCloseTo(10, 4);
+    }
+  );
+
+  it.each([false, true])(
+    "writes nested poses after reparenting through an intermediate entity (intermediate body disabled=%s)",
+    (disabledBoundary) => {
+      const child = root.createChild("independent child");
+      child.transform.setPosition(10, 0, 0);
+      child.addComponent(BoxCollider);
+      child.addComponent(Rigidbody).useGravity = false;
+      const parent = root.createChild("rotating parent");
+      parent.addComponent(BoxCollider);
+      const parentBody = parent.addComponent(Rigidbody);
+      parentBody.useGravity = false;
+      parentBody.angularVelocity.set(0, 90, 0);
+      const middle = parent.createChild("intermediate");
+      if (disabledBoundary) middle.addComponent(Rigidbody).enabled = false;
+      middle.addChild(child);
+
+      update(2);
+      expect(Math.abs(parent.transform.worldRotationQuaternion.y)).toBeGreaterThan(0);
+      expectPoint(child.transform.worldPosition, 10, 0, 0);
+      expectPoint(child.transform.worldRotation, 0, 0, 0);
+    }
+  );
+
+  it("keeps independent poses and registration after reordering three nested bodies", () => {
+    const parent = root.createChild("parent");
+    parent.addComponent(BoxCollider);
+    const middle = parent.createChild("middle");
+    middle.transform.setPosition(5, 0, 0);
+    middle.addComponent(BoxCollider);
+    const child = middle.createChild("child");
+    child.transform.setPosition(5, 0, 0);
+    const childCollider = child.addComponent(BoxCollider);
+    child.addComponent(Rigidbody).useGravity = false;
+    const middleBody = middle.addComponent(Rigidbody);
+    middleBody.useGravity = false;
+    middleBody.linearVelocity.set(12, 0, 0);
+    const parentBody = parent.addComponent(Rigidbody);
+    parentBody.useGravity = false;
+    parentBody.linearVelocity.set(6, 0, 0);
+
+    update(2);
+    expectPoint(parent.transform.worldPosition, 0.2, 0, 0);
+    expectPoint(middle.transform.worldPosition, 5.4, 0, 0);
+    expectPoint(child.transform.worldPosition, 10, 0, 0);
+    middleBody.enabled = false;
+    update();
+    expectPoint(parent.transform.worldPosition, 0.3, 0, 0);
+    expectPoint(child.transform.worldPosition, 10, 0, 0);
+    expect(physics.overlapSphereAll(new Vector3(10, 0, 0), 0.1)).toEqual([childCollider]);
+  });
+
   describe.each([
     { name: "BoxCollider", Type: BoxCollider },
     { name: "SphereCollider", Type: SphereCollider },
