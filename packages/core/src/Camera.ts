@@ -647,14 +647,14 @@ export class Camera extends Component {
     if (this._cameraType !== CameraType.Normal && !this._renderTarget) {
       ignoreClearFlags = engine.xrManager._getCameraIgnoreClearFlags(this._cameraType);
     }
-    this._renderPipeline.render(
-      context,
-      cubeFace,
-      engine._hardwareRenderer._resolveFramebufferMipLevel(mipLevel),
-      ignoreClearFlags
-    );
+    this._renderPipeline.render(context, cubeFace, this._resolveFramebufferMipLevel(mipLevel), ignoreClearFlags);
     engine._renderCount++;
     context.camera = null!;
+  }
+
+  /** @internal */
+  _resolveFramebufferMipLevel(mipLevel: number): number {
+    return mipLevel;
   }
 
   /**

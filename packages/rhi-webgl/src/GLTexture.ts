@@ -600,7 +600,16 @@ export class GLTexture implements IPlatformTexture {
     const texture = this._texture;
     if (!texture._mipmap) return;
 
-    if (!this._rhi._supportsGenerateMipmaps(texture.width, texture.height, texture.format, texture.isSRGBColorSpace)) {
+    if (
+      !TextureUtils.supportGenerateMipmapsWithCorrection(
+        texture.engine,
+        texture.width,
+        texture.height,
+        texture.format,
+        texture._mipmap,
+        texture.isSRGBColorSpace
+      )
+    ) {
       Logger.warn("Automatic mipmap generation is not supported for this texture.");
       return;
     }
@@ -682,7 +691,7 @@ export class GLTexture implements IPlatformTexture {
     const gl = this._gl;
     const { baseFormat, dataType, readFormat, alignment } = this._formatDetail;
 
-    mipLevel = this._rhi._resolveFramebufferMipLevel(mipLevel);
+    mipLevel = this._resolveFramebufferMipLevel(mipLevel);
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
 
     if (face != null) {
@@ -702,6 +711,10 @@ export class GLTexture implements IPlatformTexture {
     gl.readPixels(x, y, width, height, readFormat ?? baseFormat!, dataType!, out);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  protected _resolveFramebufferMipLevel(mipLevel: number): number {
+    return mipLevel;
   }
 
   protected _uploadCompressedPixels(
@@ -737,12 +750,16 @@ export class GLTexture implements IPlatformTexture {
     }
   }
 
+  protected _resolveTextureWrapMode(mode: TextureWrapMode, _width: number, _height: number): TextureWrapMode {
+    return mode;
+  }
+
   private _setWrapMode(value: TextureWrapMode, pname: GLenum): void {
     const gl = this._gl;
     const target = this._target;
     const { width, height } = this._texture;
 
-    switch (this._rhi._resolveTextureWrapMode(value, width, height)) {
+    switch (this._resolveTextureWrapMode(value, width, height)) {
       case TextureWrapMode.Clamp:
         gl.texParameteri(target, pname, gl.CLAMP_TO_EDGE);
         break;

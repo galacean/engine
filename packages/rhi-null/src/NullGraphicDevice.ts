@@ -41,22 +41,6 @@ export class NullGraphicDevice implements IHardwareRenderer {
     return true;
   }
 
-  _supportsGenerateMipmaps(): boolean {
-    return true;
-  }
-
-  _supportsTextureStorage(): boolean {
-    return true;
-  }
-
-  _resolveTextureMipmaps(mipmap: boolean): boolean {
-    return mipmap;
-  }
-
-  _resolveFramebufferMipLevel(mipLevel: number): number {
-    return mipLevel;
-  }
-
   supportsRenderTargetColorFormat(): boolean {
     return true;
   }

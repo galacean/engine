@@ -62,8 +62,8 @@ it("supports RGBA16F color attachments on WebGL2 with only EXT_color_buffer_half
     const rhi = engine._hardwareRenderer;
     expect(rhi.canIUse(GLCapabilityType.colorBufferHalfFloat)).toBe(true);
     expect(rhi.canIUse(GLCapabilityType.colorBufferFloat)).toBe(false);
-    expect(rhi._supportsColorAttachment(TextureFormat.R16G16B16A16)).toBe(true);
-    expect(rhi._supportsColorAttachment(TextureFormat.R11G11B10_UFloat)).toBe(false);
+    expect(rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16)).toBe(true);
+    expect(rhi.supportsRenderTargetColorFormat(TextureFormat.R11G11B10_UFloat)).toBe(false);
   } finally {
     extension.mockRestore();
     engine?.destroy();

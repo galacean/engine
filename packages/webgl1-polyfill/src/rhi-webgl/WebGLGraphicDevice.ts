@@ -1,12 +1,4 @@
-import {
-  Logger,
-  type Texture,
-  type Texture2DArray,
-  TextureFormat,
-  TextureUtils,
-  TextureWrapMode
-} from "@galacean/engine-core";
-import { MathUtil } from "@galacean/engine-math";
+import { Logger, type Texture, type Texture2DArray, TextureFormat, TextureUtils } from "@galacean/engine-core";
 import { GLCapability, GLExtensions, GLRenderStates, WebGLGraphicDevice } from "@galacean/engine-rhi-webgl";
 import { Mixin, Overwrite } from "@/override";
 import { adaptContext } from "./context";
@@ -24,47 +16,11 @@ export class WebGLGraphicDeviceMixin {
   declare canIUse: WebGL1GraphicDevice["canIUse"];
 
   @Overwrite
-  _resolveFramebufferMipLevel(mipLevel: number): number {
-    if (mipLevel > 0) {
-      Logger.error("mipLevel only take effect in WebGL2.0");
-      return 0;
-    }
-    return mipLevel;
-  }
-
-  @Overwrite
-  _resolveTextureMipmaps(mipmap: boolean, width: number, height: number): boolean {
-    if (mipmap && !isPowerOfTwoTexture(width, height)) {
-      Logger.warn(
-        "Non-power-2 texture is not supported for mipmap in WebGL1, and has automatically downgraded to non-mipmap"
-      );
-      return false;
-    }
-    return mipmap;
-  }
-
-  @Overwrite
-  _resolveTextureWrapMode(mode: TextureWrapMode, width: number, height: number): TextureWrapMode {
-    if (mode !== TextureWrapMode.Clamp && !isPowerOfTwoTexture(width, height)) {
-      Logger.warn(
-        "non-power-2 texture is not supported for REPEAT or MIRRORED_REPEAT in WebGL1,and has automatically downgraded to CLAMP_TO_EDGE"
-      );
-      return TextureWrapMode.Clamp;
-    }
-    return mode;
-  }
-
-  @Overwrite
   _supportsSRGBColorSpace(format: TextureFormat): boolean {
     if (format === TextureFormat.R8G8B8 || format === TextureFormat.R8G8B8A8) {
       return this.canIUse(WebGL1Extension.sRGB);
     }
     return TextureUtils.supportSRGB(format);
-  }
-
-  @Overwrite
-  _supportsGenerateMipmaps(width: number, height: number, format: TextureFormat, isSRGBColorSpace: boolean): boolean {
-    return isPowerOfTwoTexture(width, height) && (!isSRGBColorSpace || !TextureUtils.supportSRGB(format));
   }
 
   @Overwrite
@@ -122,10 +78,6 @@ export class WebGLGraphicDeviceMixin {
     session.updateRenderState({ baseLayer: layer });
     return layer;
   }
-}
-
-function isPowerOfTwoTexture(width: number, height: number): boolean {
-  return MathUtil.isPowerOf2(width) && MathUtil.isPowerOf2(height);
 }
 
 // The Core constructor registers the resource before asking the device to allocate it.

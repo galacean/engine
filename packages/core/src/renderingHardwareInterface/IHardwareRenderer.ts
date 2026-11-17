@@ -44,14 +44,6 @@ export interface IHardwareRenderer {
   canIUse(capability: GLCapabilityType): boolean;
   canIUseCompressedTextureInternalFormat(format: number): boolean;
   supportsTextureFormat(format: TextureFormat, isSRGBColorSpace?: boolean): boolean;
-  /** @internal */
-  _supportsGenerateMipmaps(width: number, height: number, format: TextureFormat, isSRGBColorSpace: boolean): boolean;
-  /** @internal */
-  _supportsTextureStorage(format: TextureFormat, isSRGBColorSpace: boolean): boolean;
-  /** @internal */
-  _resolveTextureMipmaps(mipmap: boolean, width: number, height: number): boolean;
-  /** @internal */
-  _resolveFramebufferMipLevel(mipLevel: number): number;
   supportsRenderTargetColorFormat(format: TextureFormat): boolean;
   createPlatformPrimitive(primitive: Primitive): IPlatformPrimitive;
   createPlatformBuffer(

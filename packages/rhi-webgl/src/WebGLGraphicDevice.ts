@@ -29,8 +29,7 @@ import {
   TextureCube,
   TextureCubeFace,
   TextureFormat,
-  TextureUtils,
-  TextureWrapMode
+  TextureUtils
 } from "@galacean/engine-core";
 import { Color, Vector4 } from "@galacean/engine-math";
 import { GLBuffer } from "./GLBuffer";
@@ -350,48 +349,17 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
    */
   supportsTextureFormat(format: TextureFormat, isSRGBColorSpace = false): boolean {
     if (isSRGBColorSpace && !this._supportsSRGBColorSpace(format)) return false;
-    return this._supportsTextureStorage(format, isSRGBColorSpace);
+    const gl = this._gl as WebGLRenderingContext & WebGL2RenderingContext;
+    const detail = GLTexture._findFormatDetail(format, isSRGBColorSpace, gl, this);
+    return !!detail && (!detail.isCompressed || this.canIUseCompressedTextureInternalFormat(detail.internalFormat));
   }
 
   supportsRenderTargetColorFormat(format: TextureFormat): boolean {
-    return this._supportsColorAttachment(format);
+    return GLTexture._supportRenderBufferColorFormat(format, this);
   }
 
   private _supportsSRGBColorSpace(format: TextureFormat): boolean {
     return TextureUtils.supportSRGB(format);
-  }
-
-  /** @internal */
-  _supportsTextureStorage(format: TextureFormat, isSRGBColorSpace: boolean): boolean {
-    const gl = this._gl as WebGLRenderingContext & WebGL2RenderingContext;
-    const srgb = isSRGBColorSpace && TextureUtils.supportSRGB(format);
-    const detail = GLTexture._findFormatDetail(format, srgb, gl, this);
-    return !!detail && (!detail.isCompressed || this.canIUseCompressedTextureInternalFormat(detail.internalFormat));
-  }
-
-  /** @internal */
-  _supportsColorAttachment(format: TextureFormat): boolean {
-    return GLTexture._supportRenderBufferColorFormat(format, this);
-  }
-
-  /** @internal */
-  _resolveFramebufferMipLevel(mipLevel: number): number {
-    return mipLevel;
-  }
-
-  /** @internal */
-  _resolveTextureMipmaps(mipmap: boolean, _width: number, _height: number): boolean {
-    return mipmap;
-  }
-
-  /** @internal */
-  _resolveTextureWrapMode(mode: TextureWrapMode, _width: number, _height: number): TextureWrapMode {
-    return mode;
-  }
-
-  /** @internal */
-  _supportsGenerateMipmaps(_width: number, _height: number, format: TextureFormat, isSRGBColorSpace: boolean): boolean {
-    return !isSRGBColorSpace || !TextureUtils.supportSRGB(format) || format === TextureFormat.R8G8B8A8;
   }
 
   viewport(x: number, y: number, width: number, height: number): void {

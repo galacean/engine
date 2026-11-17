@@ -17,7 +17,7 @@ export class TextureUtils {
     mipmap: boolean,
     isSRGBColorSpace: boolean
   ): boolean {
-    return mipmap && engine._hardwareRenderer._supportsGenerateMipmaps(width, height, format, isSRGBColorSpace);
+    return mipmap && (!isSRGBColorSpace || !TextureUtils.supportSRGB(format) || format === TextureFormat.R8G8B8A8);
   }
 
   static isHDRFormat(format: TextureFormat): boolean {

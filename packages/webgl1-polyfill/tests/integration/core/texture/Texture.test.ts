@@ -16,3 +16,20 @@ it("leaves the public depth compare function unchanged", async () => {
     engine.destroy();
   }
 });
+
+it("initializes the mip chain after applying NPOT fallback", async () => {
+  const { engine } = await createEngine();
+  try {
+    for (const [width, height, mipmap, expectedCount] of [
+      [3, 5, true, 1],
+      [4, 8, true, 4],
+      [4, 8, false, 1]
+    ] as const) {
+      const texture = new Texture2D(engine, width, height, undefined, mipmap);
+      expect(texture.mipmapCount).toBe(expectedCount);
+      texture.destroy();
+    }
+  } finally {
+    engine.destroy();
+  }
+});

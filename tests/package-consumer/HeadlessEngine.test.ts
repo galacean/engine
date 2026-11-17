@@ -315,6 +315,19 @@ describe("@galacean/engine-rhi-null in Node without browser globals", () => {
     instance.destroy();
   });
 
+  it("keeps 32-bit indexed geometry available without GPU capabilities", async () => {
+    const engine = await createEngine();
+    const mesh = PrimitiveMesh.createPlane(engine, 2, 4, { widthSegments: 256, keepMeshData: true });
+    try {
+      expect(mesh.vertexCount).toBe(257 * 257);
+      const indices = mesh.getIndices()!;
+      expect(indices).toBeInstanceOf(Uint32Array);
+      expect(indices.some((index: number) => index > 65535)).toBe(true);
+    } finally {
+      mesh.destroy();
+    }
+  });
+
   it("updates custom renderers and initial CPU particle step before culling without cameras", async () => {
     vi.useFakeTimers({ toFake: ["performance"] });
     const engine = await createEngine();

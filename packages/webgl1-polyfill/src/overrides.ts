@@ -1,5 +1,6 @@
 import "./core/2d/atlas/FontAtlas";
 import "./core/BasicResources";
+import "./core/Camera";
 import "./core/Engine";
 import "./core/mesh/SkinnedMeshRenderer";
 import "./core/particle/modules/InheritVelocityModule";
@@ -18,6 +19,7 @@ import "./core/shader/ShaderPass";
 import "./core/shader/ShaderProgram";
 import "./core/shadow/CascadedShadowCasterPass";
 import "./core/texture/Texture";
+import "./core/texture/TextureUtils";
 import "./rhi-webgl/GLCapability";
 import "./rhi-webgl/GLPrimitive";
 import "./rhi-webgl/GLTexture";

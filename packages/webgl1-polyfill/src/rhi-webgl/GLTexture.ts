@@ -1,5 +1,6 @@
+import { MathUtil } from "@galacean/engine-math";
 import { GLTexture } from "@galacean/engine-rhi-webgl";
-import { type TextureDepthCompareFunction, TextureFormat } from "@galacean/engine-core";
+import { Logger, type TextureDepthCompareFunction, TextureFormat, TextureWrapMode } from "@galacean/engine-core";
 import type { WebGL1GraphicDevice } from "./GLCapability";
 import { Mixin, Overwrite, Shadow } from "@/override";
 import { textureFormat } from "./textureFormat";
@@ -12,6 +13,26 @@ const allocatedMips = new WeakMap<GLTextureMixin, Map<number, number>>();
 export class GLTextureMixin {
   @Shadow declare _formatDetail: { isCompressed: boolean; internalFormat: number };
   @Shadow declare _gl: WebGLRenderingContext;
+
+  @Overwrite
+  _resolveFramebufferMipLevel(mipLevel: number): number {
+    if (mipLevel > 0) {
+      Logger.error("mipLevel only take effect in WebGL2.0");
+      return 0;
+    }
+    return mipLevel;
+  }
+
+  @Overwrite
+  _resolveTextureWrapMode(mode: TextureWrapMode, width: number, height: number): TextureWrapMode {
+    if (mode !== TextureWrapMode.Clamp && !(MathUtil.isPowerOf2(width) && MathUtil.isPowerOf2(height))) {
+      Logger.warn(
+        "non-power-2 texture is not supported for REPEAT or MIRRORED_REPEAT in WebGL1,and has automatically downgraded to CLAMP_TO_EDGE"
+      );
+      return TextureWrapMode.Clamp;
+    }
+    return mode;
+  }
 
   @Overwrite
   setUseDepthCompareMode() {}
