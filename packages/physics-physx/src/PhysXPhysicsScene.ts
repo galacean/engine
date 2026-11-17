@@ -3,7 +3,6 @@ import { IPhysicsScene, IPhysicsEvents, IContactEvent, ITriggerEvent } from "@ga
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXPhysics } from "./PhysXPhysics";
-import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
 
 /**
  * Simulates colliders and runs scene queries through PhysX.
@@ -24,7 +23,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _capsuleGeometry: any = null;
 
   private _physXPhysics: PhysXPhysics;
-  private _physXManager: PhysXPhysicsManager;
   private _pxScene: any;
   private _pxSceneQueries: any;
   private _physXSimulationCallbackInstance: any;
@@ -36,17 +34,16 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _physicsEvents: IPhysicsEvents = { contactEvents: [], contactEventCount: 0, triggerEvents: [] };
 
   private _triggerEventPool: TriggerEvent[] = [];
-  // Event map of each shape id removed since the last step, to tell whether another scene has added the id back
-  private _removedShapes = new Map<number, Record<number, TriggerEvent | undefined>>();
+  // Trigger pairs are scene-local: only shapes on actors of this scene can form a pair
+  private _eventMap: Record<number, Record<number, TriggerEvent | undefined>> = {};
+  private _removedShapeIds = new Set<number>();
 
   /**
    * Creates a PhysX scene with buffered collision and trigger events.
    * @param physXPhysics - The native physics implementation
-   * @param physicsManager - The manager that tracks collider pairs
    */
-  constructor(physXPhysics: PhysXPhysics, physicsManager: PhysXPhysicsManager) {
+  constructor(physXPhysics: PhysXPhysics) {
     this._physXPhysics = physXPhysics;
-    this._physXManager = physicsManager;
 
     const physX = physXPhysics._physX;
 
@@ -63,7 +60,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       onTriggerBegin: (index1, index2) => {
         const small = Math.min(index1, index2);
         const big = Math.max(index1, index2);
-        const existing = this._physXManager._eventMap[small][big];
+        const existing = this._eventMap[small][big];
         if (existing) {
           // Found again after the shape was removed and added back: the overlap continues
           existing.state = PhysicsEventState.Stay;
@@ -76,11 +73,11 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       onTriggerEnd: (index1, index2) => {
         let event: TriggerEvent;
         if (index1 < index2) {
-          const subMap = this._physXManager._eventMap[index1];
+          const subMap = this._eventMap[index1];
           event = subMap[index2]!;
           subMap[index2] = undefined;
         } else {
-          const subMap = this._physXManager._eventMap[index2];
+          const subMap = this._eventMap[index2];
           event = subMap[index1]!;
           subMap[index1] = undefined;
         }
@@ -178,7 +175,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       _activeTriggers: activeTriggers,
       _triggerEvents: triggerEvents
     } = this;
-    const eventMap = this._physXManager._eventMap;
+    const eventMap = this._eventMap;
     triggerEvents.length = 0;
     activeTriggers.forEach((event, i) => {
       event.dispatchState = event.state;
@@ -405,8 +402,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    */
   _addColliderShape(id: number): void {
     // Added back before the next step: keep its trigger pairs for PhysX to find again
-    if (!this._removedShapes.delete(id)) {
-      this._physXManager._eventMap[id] = Object.create(null);
+    if (!this._removedShapeIds.delete(id)) {
+      this._eventMap[id] = Object.create(null);
     }
   }
 
@@ -421,7 +418,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         event.state = PhysicsEventState.Exit;
       }
     });
-    this._removedShapes.set(id, this._physXManager._eventMap[id]!);
+    this._removedShapeIds.add(id);
   }
 
   private _readHit(
@@ -463,25 +460,22 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * Drop the trigger pairs of shapes removed since the last step and not added back.
    */
   private _releaseRemovedShapes(): void {
-    const removedShapes = this._removedShapes;
-    if (removedShapes.size === 0) {
+    const removedIds = this._removedShapeIds;
+    if (removedIds.size === 0) {
       return;
     }
     const { _triggerEventPool: triggerEventPool, _activeTriggers: activeTriggers } = this;
-    const eventMap = this._physXManager._eventMap;
+    const eventMap = this._eventMap;
     activeTriggers.forEach((event, i) => {
-      if (removedShapes.has(event.index1) || removedShapes.has(event.index2)) {
+      if (removedIds.has(event.index1) || removedIds.has(event.index2)) {
         activeTriggers.deleteByIndex(i);
         triggerEventPool.push(event);
         const subMap = eventMap[event.index1];
         subMap[event.index2] === event && (subMap[event.index2] = undefined);
       }
     });
-    // The event map is shared by all scenes: a shape that entered another scene meanwhile owns a new one
-    removedShapes.forEach((subMap, id) => {
-      eventMap[id] === subMap && delete eventMap[id];
-    });
-    removedShapes.clear();
+    removedIds.forEach((id) => delete eventMap[id]);
+    removedIds.clear();
   }
 
   private _simulate(elapsedTime: number): void {
@@ -501,7 +495,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     } else {
       event = new TriggerEvent(index1, index2);
     }
-    this._physXManager._eventMap[index1][index2] = event;
+    this._eventMap[index1][index2] = event;
     return event;
   }
 

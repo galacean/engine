@@ -191,6 +191,20 @@ describe("CharacterController", () => {
     expect(role.transform.position.x).toBeGreaterThan(0.05);
   });
 
+  it("retries creation when only the offending field is corrected", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    controller.size = new Vector3(1, 1, 1);
+    controller.stepOffset = 100;
+    role.transform.setPosition(0, 2, 0);
+    physics._update(physics.fixedTimeStep);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("failed to create"));
+
+    // Correcting stepOffset alone must be enough, without another geometry change
+    controller.stepOffset = 0.1;
+    controller.move(new Vector3(0.1, 0, 0), 0, physics.fixedTimeStep);
+    expect(role.transform.position.x).toBeGreaterThan(0.05);
+  });
+
   it("reports unsupported getClosestPoint without changing its output", () => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     const closest = new Vector3(1, 2, 3);

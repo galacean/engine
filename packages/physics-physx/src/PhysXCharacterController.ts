@@ -93,7 +93,7 @@ export class PhysXCharacterController implements ICharacterController {
    */
   setContactOffset(offset: number): void {
     this._contactOffset = offset;
-    this._pxController?.setContactOffset(offset);
+    this._applyToController((controller) => controller.setContactOffset(offset));
   }
 
   /**
@@ -101,7 +101,7 @@ export class PhysXCharacterController implements ICharacterController {
    */
   setMaterial(material: PhysXPhysicsMaterial): void {
     this._pxMaterial = material._pxMaterial;
-    this._pxController?.setMaterial(this._pxMaterial);
+    this._applyToController((controller) => controller.setMaterial(this._pxMaterial));
   }
 
   /**
@@ -109,8 +109,7 @@ export class PhysXCharacterController implements ICharacterController {
    */
   setCollisionLayer(layer: number): void {
     this._collisionLayer = layer;
-    const pxController = this._pxController;
-    pxController && this._physXPhysics._physX.setGroup(pxController.getActor(), layer);
+    this._applyToController((controller) => this._physXPhysics._physX.setGroup(controller.getActor(), layer));
   }
 
   /**
@@ -118,7 +117,7 @@ export class PhysXCharacterController implements ICharacterController {
    */
   setIsSceneQuery(value: boolean): void {
     this._isSceneQuery = value;
-    this._pxController?.setSceneQueryEnabled(value);
+    this._applyToController((controller) => controller.setSceneQueryEnabled(value));
   }
 
   /**
@@ -152,7 +151,7 @@ export class PhysXCharacterController implements ICharacterController {
    */
   setStepOffset(offset: number): void {
     this._stepOffset = offset;
-    this._pxController?.setStepOffset(offset);
+    this._applyToController((controller) => controller.setStepOffset(offset));
   }
 
   /**
@@ -160,7 +159,7 @@ export class PhysXCharacterController implements ICharacterController {
    */
   setNonWalkableMode(flag: number): void {
     this._nonWalkableMode = flag;
-    this._pxController?.setNonWalkableMode(flag);
+    this._applyToController((controller) => controller.setNonWalkableMode(flag));
   }
 
   /**
@@ -168,7 +167,7 @@ export class PhysXCharacterController implements ICharacterController {
    */
   setUpDirection(up: Vector3): void {
     this._upDirection.copyFrom(up);
-    this._pxController?.setUpDirection(up);
+    this._applyToController((controller) => controller.setUpDirection(up));
   }
 
   /**
@@ -176,7 +175,7 @@ export class PhysXCharacterController implements ICharacterController {
    */
   setSlopeLimit(slopeLimit: number): void {
     this._slopeLimit = slopeLimit;
-    this._pxController?.setSlopeLimit(Math.cos((slopeLimit * Math.PI) / 180));
+    this._applyToController((controller) => controller.setSlopeLimit(Math.cos((slopeLimit * Math.PI) / 180)));
   }
 
   /**
@@ -262,11 +261,20 @@ export class PhysXCharacterController implements ICharacterController {
   }
 
   private _updateNativePosition(): void {
+    const position = PhysXCharacterController._tempVec;
+    Vector3.add(this._worldPosition, this._center, position);
+    this._applyToController((controller) => controller.setPosition(position));
+  }
+
+  /**
+   * Update the native controller, or retry a failed creation now that a field changed.
+   */
+  private _applyToController(apply: (controller: any) => void): void {
     const pxController = this._pxController;
     if (pxController) {
-      const position = PhysXCharacterController._tempVec;
-      Vector3.add(this._worldPosition, this._center, position);
-      pxController.setPosition(position);
+      apply(pxController);
+    } else {
+      this._rebuild();
     }
   }
 }

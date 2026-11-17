@@ -73,7 +73,7 @@ export class PhysicsScene {
 
     const engine = scene.engine;
     if (engine._physicsInitialized) {
-      this._nativePhysicsScene = Engine._nativePhysics.createPhysicsScene(engine._nativePhysicsManager);
+      this._nativePhysicsScene = Engine._nativePhysics.createPhysicsScene();
       this._nativePhysicsScene.setContactEventEnabled(false);
     }
   }
@@ -747,7 +747,10 @@ export class PhysicsScene {
       componentsManager.callScriptOnPhysicsUpdate();
       this._syncColliders();
       nativePhysicsScene.update(fixedTimeStep);
-      this._writeBack();
+      const bodies = this._bodies;
+      for (let i = 0, n = bodies.length; i < n; i++) {
+        bodies[i]._writeBack();
+      }
       this._dispatchEvents(nativePhysicsScene.updateEvents());
     }
   }
@@ -972,27 +975,6 @@ export class PhysicsScene {
   private static _normalizeDirection(direction: Vector3): Vector3 | null {
     const out = PhysicsScene._tempDirection;
     return Vector3.normalize(direction, out) ? out : null;
-  }
-
-  /**
-   * Write the simulated poses back to the Entities.
-   * @remarks Moving a Rigidbody keeps the pose of each attached Collider relative to it, so the Collider syncs queued by
-   * the write-back are dropped. Reading the world matrix still re-arms their transform change notifications.
-   */
-  private _writeBack(): void {
-    const bodies = this._bodies;
-    for (let i = 0, n = bodies.length; i < n; i++) {
-      bodies[i]._writeBack();
-    }
-    // Every queued sync comes from the write-back: the queue was flushed before the step and no script ran since
-    const dirtyColliders = this._dirtyColliders;
-    for (let i = dirtyColliders.length - 1; i >= 0; i--) {
-      const collider = dirtyColliders[i];
-      if (collider._attachedBody) {
-        collider.entity.transform.worldMatrix;
-        PhysicsScene._removeDirty(dirtyColliders, collider);
-      }
-    }
   }
 
   private _setGravity(): void {

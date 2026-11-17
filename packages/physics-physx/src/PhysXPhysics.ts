@@ -8,7 +8,6 @@ import {
   IHingeJoint,
   IMeshColliderShape,
   IPhysics,
-  IPhysicsManager,
   IPhysicsMaterialProperties,
   IPhysicsScene,
   IPlaneColliderShape,
@@ -19,7 +18,6 @@ import {
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXDynamicCollider } from "./PhysXDynamicCollider";
-import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
 import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
 import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
 import { PhysXStaticCollider } from "./PhysXStaticCollider";
@@ -139,17 +137,10 @@ export class PhysXPhysics implements IPhysics {
   }
 
   /**
-   * {@inheritDoc IPhysics.createPhysicsManager }
-   */
-  createPhysicsManager(): IPhysicsManager {
-    return new PhysXPhysicsManager();
-  }
-
-  /**
    * {@inheritDoc IPhysics.createPhysicsScene }
    */
-  createPhysicsScene(physicsManager: PhysXPhysicsManager): IPhysicsScene {
-    const scene = new PhysXPhysicsScene(this, physicsManager);
+  createPhysicsScene(): IPhysicsScene {
+    const scene = new PhysXPhysicsScene(this);
     return scene;
   }
 

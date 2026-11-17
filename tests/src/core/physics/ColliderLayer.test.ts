@@ -225,7 +225,7 @@ describe("Collider layer validation", () => {
     const box = root.createChild("box").addComponent(BoxCollider);
     expect(() => (box.collisionLayer = Layer.Layer0 | Layer.Layer1)).toThrow();
     expect(() => (box.collisionLayer = 0.5 as Layer)).toThrow();
-    expect(() => (box.collisionLayer = 2 ** 32 as Layer)).toThrow();
+    expect(() => (box.collisionLayer = (2 ** 32) as Layer)).toThrow();
     expect(box.collisionLayer).toBe(Layer.Layer0);
     expect(() => physics.setColliderLayerCollision(Layer.Layer0 | Layer.Layer2, Layer.Layer1, true)).toThrow();
     expect(() => physics.getColliderLayerCollision(0.5 as Layer, Layer.Layer1)).toThrow();

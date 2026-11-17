@@ -10,6 +10,7 @@ import {
   PhysicsScene,
   PlaneCollider,
   Rigidbody,
+  Scene,
   Script,
   SphereCollider
 } from "@galacean/engine-core";
@@ -366,6 +367,60 @@ describe("Collider", () => {
     expect(hit.collider).toBe(box);
     expect(hit.point.x).toBeCloseTo(x + 2, 1);
     expect(physics.raycast(new Ray(new Vector3(2, 5, 0), new Vector3(0, -1, 0)), hit)).toBe(false);
+  });
+
+  it("syncs collider geometry when simulated rotation changes its world scale", () => {
+    const parent = root.createChild("scaled parent");
+    parent.transform.setScale(2, 1, 1);
+    const entity = parent.createChild("rotating body");
+    const box = entity.addComponent(BoxCollider);
+    const body = entity.addComponent(Rigidbody);
+    body.useGravity = false;
+    body.angularVelocity = new Vector3(0, 0, Math.PI / 2);
+    update(30);
+    const transform = entity.transform;
+    const point = new Vector3(10, 0, 0);
+    Vector3.transformByQuat(point, transform.worldRotationQuaternion, point);
+    Vector3.add(point, transform.worldPosition, point);
+    const closest = new Vector3();
+    // The query must reflect the current lossy scale, not the scale from before the simulated rotation
+    expect(box.getClosestPoint(point, closest)).toBeCloseTo(10 - 0.5 * transform.lossyWorldScale.x, 2);
+  });
+
+  it("keeps trigger events working when a collider moves between scenes and back", () => {
+    const sceneA = engine.sceneManager.activeScene;
+    const probe = root.createChild("probe");
+    const sphere = probe.addComponent(SphereCollider);
+    sphere.isTrigger = true;
+    probe.addComponent(Rigidbody).isKinematic = true;
+    const recorder = probe.addComponent(CollisionRecorder);
+    root.createChild("volume").addComponent(BoxCollider);
+    update(2);
+    expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
+
+    const sceneB = new Scene(engine);
+    engine.sceneManager.addScene(sceneB);
+    const flushB = () => sceneB.physics.raycast(new Ray(new Vector3(0, 100, 0), new Vector3(0, -1, 0)));
+    const updateB = () => sceneB.physics._update(sceneB.physics.fixedTimeStep);
+
+    sceneB.addRootEntity(probe);
+    flushB();
+    sceneA.addRootEntity(probe);
+    update();
+    // The removed scene updates first: its deferred cleanup must not touch the other scene's pairs
+    updateB();
+    expect(() => update(2)).not.toThrow();
+    const enters = recorder.onTriggerEnter.mock.calls.length;
+
+    // Move both sides, then deactivate before the old scene steps
+    sceneB.addRootEntity(probe);
+    sceneB.addRootEntity(root.children.find((child) => child.name === "volume")!);
+    flushB();
+    probe.isActive = false;
+    updateB();
+    expect(() => update(2)).not.toThrow();
+    expect(recorder.onTriggerEnter.mock.calls.length).toBeGreaterThanOrEqual(enters);
+    sceneB.destroy();
   });
 
   describe("collision response", () => {

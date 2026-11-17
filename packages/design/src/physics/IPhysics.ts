@@ -2,7 +2,6 @@ import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { ICharacterController } from "./ICharacterController";
 import { ICollider } from "./ICollider";
 import { IDynamicCollider } from "./IDynamicCollider";
-import { IPhysicsManager } from "./IPhysicsManager";
 import { IPhysicsMaterial, IPhysicsMaterialProperties } from "./IPhysicsMaterial";
 import { IPhysicsScene } from "./IPhysicsScene";
 import { IStaticCollider } from "./IStaticCollider";
@@ -28,13 +27,11 @@ export interface IPhysics {
   /**
    * Create physics manager.
    */
-  createPhysicsManager(): IPhysicsManager;
 
   /**
    * Create physics scene.
-   * @param physicsManager - The physics manager
    */
-  createPhysicsScene(physicsManager: IPhysicsManager): IPhysicsScene;
+  createPhysicsScene(): IPhysicsScene;
 
   /**
    * Create dynamic collider.

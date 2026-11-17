@@ -1,4 +1,4 @@
-import { IInputOptions, IPhysics, IPhysicsManager, IShaderCompiler, IXRDevice } from "@galacean/engine-design";
+import { IInputOptions, IPhysics, IShaderCompiler, IXRDevice } from "@galacean/engine-design";
 import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
@@ -78,8 +78,6 @@ export class Engine extends EventDispatcher {
   _processingPendingDestroys = false;
   /** @internal */
   _physicsInitialized: boolean = false;
-  /** @internal */
-  _nativePhysicsManager: IPhysicsManager;
   /** @internal */
   _hardwareRenderer: IHardwareRenderer;
   /** @internal */
@@ -659,7 +657,6 @@ export class Engine extends EventDispatcher {
             Engine._nativePhysics = physics;
             BasicResources._initializePhysics();
           }
-          this._nativePhysicsManager = physics.createPhysicsManager();
           this._physicsInitialized = true;
           return this;
         })
