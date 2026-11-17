@@ -1,0 +1,4 @@
+interface:
+  display_name: "Seed World LOD 制作与验收"
+  short_description: "制作静态模型 LOD 并验证同机位、出生点环拍差异与三角面"
+  default_prompt: "用 $seed-world-lod 为岩石生成 LOD 候选，并在实际 Seed Demo 中采集出生点对照和面数。"
