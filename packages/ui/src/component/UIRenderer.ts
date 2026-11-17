@@ -11,15 +11,17 @@ import {
   RendererUpdateFlags,
   ShaderMacroCollection,
   ShaderProperty,
+  SpriteMaskInteraction,
   Vector3,
   Vector4,
   dependentComponents,
   ignoreClone
 } from "@galacean/engine";
-import type { PrimitiveChunkManager } from "@galacean/engine";
+import type { IMaskRenderable, PrimitiveChunkManager } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { UIHitResult } from "../input/UIHitResult";
 import { IGraphics } from "../interface/IGraphics";
+import { RectMask2D } from "./advanced/RectMask2D";
 import { EntityUIModifyFlags, UICanvas } from "./UICanvas";
 import { GroupModifyFlags, UIGroup } from "./UIGroup";
 import { UITransform } from "./UITransform";
@@ -36,6 +38,16 @@ export class UIRenderer extends Renderer implements IGraphics {
   static _tempPlane: Plane = new Plane();
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_UITexture");
+  /** @internal */
+  static _rectClipRectProperty: ShaderProperty = ShaderProperty.getByName("renderer_UIRectClipRect");
+  /** @internal */
+  static _rectClipEnabledProperty: ShaderProperty = ShaderProperty.getByName("renderer_UIRectClipEnabled");
+  /** @internal */
+  static _rectClipSoftnessProperty: ShaderProperty = ShaderProperty.getByName("renderer_UIRectClipSoftness");
+  /** @internal */
+  static _rectClipHardClipProperty: ShaderProperty = ShaderProperty.getByName("renderer_UIRectClipHardClip");
+  /** @internal */
+  static _tempRect: Vector4 = new Vector4();
 
   /**
    * Custom boundary for raycast detection.
@@ -67,6 +79,24 @@ export class UIRenderer extends Renderer implements IGraphics {
   /** @internal */
   @ignoreClone
   _subChunk;
+  /** @internal */
+  @ignoreClone
+  override _uiMasks: IMaskRenderable[] = [];
+  /** @internal */
+  @ignoreClone
+  _rectMasks: RectMask2D[] = [];
+  /** @internal */
+  @ignoreClone
+  _rectMaskRect: Vector4 = new Vector4();
+  /** @internal */
+  @ignoreClone
+  _rectMaskEnabled: boolean = false;
+  /** @internal */
+  @ignoreClone
+  _rectMaskSoftness: Vector4 = new Vector4();
+  /** @internal */
+  @ignoreClone
+  _rectMaskHardClip: boolean = false;
 
   private _raycastEnabled: boolean = true;
   protected _color: Color = new Color(1, 1, 1, 1);
@@ -81,6 +111,20 @@ export class UIRenderer extends Renderer implements IGraphics {
   set color(value: Color) {
     if (this._color !== value) {
       this._color.copyFrom(value);
+    }
+  }
+
+  /**
+   * Visibility relative to the intersection of ancestor UI Masks. Defaults to VisibleInsideMask.
+   * With no ancestor Mask, the renderer is unaffected. RectMask2D clipping is independent.
+   */
+  get maskInteraction(): SpriteMaskInteraction {
+    return this._maskInteraction;
+  }
+
+  set maskInteraction(value: SpriteMaskInteraction) {
+    if (this._maskInteraction !== value) {
+      this._maskInteraction = value;
     }
   }
 
@@ -100,12 +144,16 @@ export class UIRenderer extends Renderer implements IGraphics {
    */
   constructor(entity: Entity) {
     super(entity);
+    this._maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
     this._dirtyUpdateFlag = RendererUpdateFlags.WorldVolume | UIRendererUpdateFlags.Color;
     this._onColorChanged = this._onColorChanged.bind(this);
     //@ts-ignore
     this._color._onValueChanged = this._onColorChanged;
     this._groupListener = this._groupListener.bind(this);
     this._rootCanvasListener = this._rootCanvasListener.bind(this);
+    this.shaderData.setFloat(UIRenderer._rectClipEnabledProperty, 0);
+    this.shaderData.setVector4(UIRenderer._rectClipSoftnessProperty, this._rectMaskSoftness);
+    this.shaderData.setFloat(UIRenderer._rectClipHardClipProperty, 0);
   }
 
   /**
@@ -139,6 +187,7 @@ export class UIRenderer extends Renderer implements IGraphics {
       this._update(context);
     }
 
+    this._updateRectMaskClipState();
     this._render(context);
 
     // union camera global macro and renderer macro.
@@ -243,6 +292,32 @@ export class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
+  _getUIMask(): IMaskRenderable | null {
+    return null;
+  }
+
+  /** @internal */
+  _setMasks(masks: IMaskRenderable[], count: number): void {
+    // An 8-bit stencil buffer can represent at most 255 overlapping ancestors.
+    if (count > 255) throw new Error("UI Mask supports at most 255 active ancestors.");
+    this._uiMasks.length = count;
+    for (let i = 0; i < count; i++) {
+      this._uiMasks[i] = masks[i];
+    }
+  }
+
+  /** @internal */
+  _setRectMasks(rectMasks: RectMask2D[], count: number): void {
+    const targetMasks = this._rectMasks;
+    targetMasks.length = count;
+    for (let i = 0; i < count; i++) {
+      targetMasks[i] = rectMasks[i];
+    }
+  }
+
+  /**
+   * @internal
+   */
   _raycast(ray: Ray, out: UIHitResult, distance: number): boolean {
     const plane = UIRenderer._tempPlane;
     const transform = <UITransform>this._transformEntity!.transform;
@@ -255,7 +330,11 @@ export class UIRenderer extends Renderer implements IGraphics {
       Matrix.invert(transform.worldMatrix, worldMatrixInv);
       const localPosition = UIRenderer._tempVec31;
       Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, localPosition);
-      if (this._hitTest(localPosition)) {
+      if (
+        this._hitTest(localPosition) &&
+        this._isRaycastVisibleByRectMask(hitPointWorld) &&
+        this._isRaycastVisibleByMask(hitPointWorld)
+      ) {
         out.component = this;
         out.distance = curDistance;
         out.entity = this.entity;
@@ -281,6 +360,169 @@ export class UIRenderer extends Renderer implements IGraphics {
     );
   }
 
+  private _isRaycastVisibleByMask(hitPointWorld: Vector3): boolean {
+    const maskInteraction = this._maskInteraction;
+    if (maskInteraction === SpriteMaskInteraction.None) {
+      return true;
+    }
+    const masks = this._uiMasks;
+    if (masks.length === 0) return true;
+    let inside = true;
+    for (let i = 0; i < masks.length; i++) {
+      if (!masks[i]._containsWorldPoint(hitPointWorld)) {
+        inside = false;
+        break;
+      }
+    }
+    return maskInteraction === SpriteMaskInteraction.VisibleOutsideMask ? !inside : inside;
+  }
+
+  private _isRaycastVisibleByRectMask(hitPointWorld: Vector3): boolean {
+    const rectMasks = this._rectMasks;
+    for (let i = 0, n = rectMasks.length; i < n; i++) {
+      const rectMask = rectMasks[i];
+      if (!rectMask.enabled || !rectMask.entity.isActiveInHierarchy) {
+        continue;
+      }
+      if (!rectMask._containsWorldPoint(hitPointWorld)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private _updateRectMaskClipState(): void {
+    const rectMasks = this._rectMasks;
+    const count = rectMasks.length;
+    if (count <= 0) {
+      if (this._rectMaskEnabled) {
+        this._rectMaskEnabled = false;
+        this.shaderData.setFloat(UIRenderer._rectClipEnabledProperty, 0);
+      }
+      const rectMaskSoftness = this._rectMaskSoftness;
+      if (
+        rectMaskSoftness.x !== 0 ||
+        rectMaskSoftness.y !== 0 ||
+        rectMaskSoftness.z !== 0 ||
+        rectMaskSoftness.w !== 0
+      ) {
+        rectMaskSoftness.set(0, 0, 0, 0);
+        this.shaderData.setVector4(UIRenderer._rectClipSoftnessProperty, rectMaskSoftness);
+      }
+      if (this._rectMaskHardClip) {
+        this._rectMaskHardClip = false;
+        this.shaderData.setFloat(UIRenderer._rectClipHardClipProperty, 0);
+      }
+      return;
+    }
+
+    let minX = Number.NEGATIVE_INFINITY;
+    let minY = Number.NEGATIVE_INFINITY;
+    let maxX = Number.POSITIVE_INFINITY;
+    let maxY = Number.POSITIVE_INFINITY;
+    let clipSoftnessLeft = 0;
+    let clipSoftnessBottom = 0;
+    let clipSoftnessRight = 0;
+    let clipSoftnessTop = 0;
+    let clipHardClip = false;
+    let hasActiveMask = false;
+    const tempRect = UIRenderer._tempRect;
+    for (let i = 0; i < count; i++) {
+      const rectMask = rectMasks[i];
+      if (!rectMask.enabled || !rectMask.entity.isActiveInHierarchy) {
+        continue;
+      }
+      hasActiveMask = true;
+      const softness = rectMask.softness;
+      if (!clipHardClip && rectMask.alphaClip) {
+        clipHardClip = true;
+      }
+      if (!rectMask._getWorldRect(tempRect)) {
+        minX = 1;
+        minY = 1;
+        maxX = 0;
+        maxY = 0;
+        break;
+      }
+      if (tempRect.x > minX) {
+        minX = tempRect.x;
+        clipSoftnessLeft = softness.x;
+      }
+      if (tempRect.y > minY) {
+        minY = tempRect.y;
+        clipSoftnessBottom = softness.y;
+      }
+      if (tempRect.z < maxX) {
+        maxX = tempRect.z;
+        clipSoftnessRight = softness.x;
+      }
+      if (tempRect.w < maxY) {
+        maxY = tempRect.w;
+        clipSoftnessTop = softness.y;
+      }
+    }
+
+    if (!hasActiveMask) {
+      if (this._rectMaskEnabled) {
+        this._rectMaskEnabled = false;
+        this.shaderData.setFloat(UIRenderer._rectClipEnabledProperty, 0);
+      }
+      const rectMaskSoftness = this._rectMaskSoftness;
+      if (
+        rectMaskSoftness.x !== 0 ||
+        rectMaskSoftness.y !== 0 ||
+        rectMaskSoftness.z !== 0 ||
+        rectMaskSoftness.w !== 0
+      ) {
+        rectMaskSoftness.set(0, 0, 0, 0);
+        this.shaderData.setVector4(UIRenderer._rectClipSoftnessProperty, rectMaskSoftness);
+      }
+      if (this._rectMaskHardClip) {
+        this._rectMaskHardClip = false;
+        this.shaderData.setFloat(UIRenderer._rectClipHardClipProperty, 0);
+      }
+      return;
+    }
+
+    if (minX >= maxX || minY >= maxY) {
+      minX = 1;
+      minY = 1;
+      maxX = 0;
+      maxY = 0;
+      clipSoftnessLeft = 0;
+      clipSoftnessBottom = 0;
+      clipSoftnessRight = 0;
+      clipSoftnessTop = 0;
+    }
+
+    const rectMaskRect = this._rectMaskRect;
+    if (rectMaskRect.x !== minX || rectMaskRect.y !== minY || rectMaskRect.z !== maxX || rectMaskRect.w !== maxY) {
+      rectMaskRect.set(minX, minY, maxX, maxY);
+      this.shaderData.setVector4(UIRenderer._rectClipRectProperty, rectMaskRect);
+    }
+
+    const rectMaskSoftness = this._rectMaskSoftness;
+    if (
+      rectMaskSoftness.x !== clipSoftnessLeft ||
+      rectMaskSoftness.y !== clipSoftnessBottom ||
+      rectMaskSoftness.z !== clipSoftnessRight ||
+      rectMaskSoftness.w !== clipSoftnessTop
+    ) {
+      rectMaskSoftness.set(clipSoftnessLeft, clipSoftnessBottom, clipSoftnessRight, clipSoftnessTop);
+      this.shaderData.setVector4(UIRenderer._rectClipSoftnessProperty, rectMaskSoftness);
+    }
+
+    if (this._rectMaskHardClip !== clipHardClip) {
+      this._rectMaskHardClip = clipHardClip;
+      this.shaderData.setFloat(UIRenderer._rectClipHardClipProperty, clipHardClip ? 1 : 0);
+    }
+
+    if (!this._rectMaskEnabled) {
+      this._rectMaskEnabled = true;
+      this.shaderData.setFloat(UIRenderer._rectClipEnabledProperty, 1);
+    }
+  }
+
   protected override _onDestroy(): void {
     if (this._subChunk) {
       this._getChunkManager().freeSubChunk(this._subChunk);
@@ -290,6 +532,9 @@ export class UIRenderer extends Renderer implements IGraphics {
     //@ts-ignore
     this._color._onValueChanged = null;
     this._color = null!;
+    this._uiMasks.length = 0;
+    this._rectMasks = null!;
+    this._rectMaskSoftness = null!;
   }
 }
 

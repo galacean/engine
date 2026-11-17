@@ -1,4 +1,5 @@
-import { SpriteMask } from "../2d";
+import { IMaskRenderable } from "../2d/sprite/MaskRenderable";
+import { SpriteMask } from "../2d/sprite/SpriteMask";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Material } from "../material";
@@ -41,6 +42,7 @@ export class MaskManager {
 
   private _preMaskLayer = SpriteMaskLayer.Nothing;
   private _allSpriteMasks = new DisorderedArray<SpriteMask>();
+  private _uiMasks: IMaskRenderable[] = [];
 
   addSpriteMask(mask: SpriteMask): void {
     mask._maskIndex = this._allSpriteMasks.length;
@@ -53,7 +55,57 @@ export class MaskManager {
     mask._maskIndex = -1;
   }
 
+  /** Update only the changed suffix of the ancestor chain. Each shape contributes one stencil count. */
+  drawUIMasks(context: RenderContext, stage: string, masks: readonly IMaskRenderable[]): void {
+    if (this._preMaskLayer !== SpriteMaskLayer.Nothing) {
+      this.clearMask(context, stage);
+    }
+    const previous = this._uiMasks;
+    let common = 0;
+    while (common < previous.length && common < masks.length && previous[common] === masks[common]) {
+      common++;
+    }
+    this._drawUIMaskRange(context, stage, previous, common, RenderQueueMaskType.Decrement);
+    previous.length = common;
+    this._drawUIMaskRange(context, stage, masks, common, RenderQueueMaskType.Increment);
+    for (let i = common; i < masks.length; i++) {
+      previous.push(masks[i]);
+    }
+  }
+
+  clearUIMasks(context: RenderContext, stage: string): void {
+    this._drawUIMaskRange(context, stage, this._uiMasks, 0, RenderQueueMaskType.Decrement);
+    this._uiMasks.length = 0;
+  }
+
+  private _drawUIMaskRange(
+    context: RenderContext,
+    stage: string,
+    masks: readonly IMaskRenderable[],
+    start: number,
+    type: RenderQueueMaskType
+  ): void {
+    if (start === masks.length) return;
+    const queue =
+      type === RenderQueueMaskType.Increment
+        ? MaskManager.getMaskIncrementRenderQueue()
+        : MaskManager.getMaskDecrementRenderQueue();
+    for (let i = start; i < masks.length; i++) {
+      const mask = masks[i];
+      // Prepare even offscreen masks: an invalid/empty ancestor must still constrain its children.
+      if (mask._renderMask(0)) {
+        queue.pushRenderElement(mask._renderElement);
+      }
+    }
+    const batcher = context.camera.engine._batcherManager;
+    queue.batch(batcher);
+    batcher.uploadBuffer();
+    queue.render(context, stage, type);
+    queue.clear();
+  }
+
   drawMask(context: RenderContext, pipelineStageTagValue: string, maskLayer: SpriteMaskLayer): void {
+    this.clearUIMasks(context, pipelineStageTagValue);
     const incrementMaskQueue = MaskManager.getMaskIncrementRenderQueue();
     const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
 
@@ -71,6 +123,7 @@ export class MaskManager {
   }
 
   clearMask(context: RenderContext, pipelineStageTagValue: string): void {
+    this.clearUIMasks(context, pipelineStageTagValue);
     const preMaskLayer = this._preMaskLayer;
     if (preMaskLayer !== SpriteMaskLayer.Nothing) {
       if (this.hasStencilWritten) {
@@ -78,7 +131,9 @@ export class MaskManager {
         const masks = this._allSpriteMasks;
         for (let i = 0, n = masks.length; i < n; i++) {
           const mask = masks.get(i);
-          mask.influenceLayers & preMaskLayer && decrementMaskQueue.pushRenderElement(mask._renderElement);
+          if (mask.influenceLayers & preMaskLayer && mask._renderMask(mask._distanceForSort)) {
+            decrementMaskQueue.pushRenderElement(mask._renderElement);
+          }
         }
 
         const batcherManager = context.camera.engine._batcherManager;
@@ -134,6 +189,7 @@ export class MaskManager {
     const allSpriteMasks = this._allSpriteMasks;
     allSpriteMasks.length = 0;
     allSpriteMasks.garbageCollection();
+    this._uiMasks.length = 0;
   }
 
   private _buildMaskRenderElement(
@@ -155,9 +211,9 @@ export class MaskManager {
           continue;
         }
 
-        if (influenceLayers & curMaskLayer) {
+        if (influenceLayers & curMaskLayer && mask._renderMask(mask._distanceForSort)) {
           incrementMaskQueue.pushRenderElement(mask._renderElement);
-        } else if (influenceLayers & reduceLayer) {
+        } else if (influenceLayers & reduceLayer && mask._renderMask(mask._distanceForSort)) {
           decrementMaskQueue.pushRenderElement(mask._renderElement);
         }
       }
