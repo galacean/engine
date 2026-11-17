@@ -1,0 +1,35 @@
+packages/core/src/Engine.ts
+  s_87cc7a3b1b4ffa::t_f6b78a875338c1 1
+packages/core/src/physics/PhysicsScene.ts
+  s_87cc7a3b1b4ffa::t_384a3e6e86ca6d 76,750-753
+packages/design/src/physics/IPhysics.ts
+  s_87cc7a3b1b4ffa::t_dfcc6d523dbfbd 34
+packages/physics-physx/src/PhysXCharacterController.ts
+  s_87cc7a3b1b4ffa::t_975f3fc27062cf 96,104,112,120,154,162,170,178,264-272,275-277
+packages/physics-physx/src/PhysXPhysics.ts
+  s_87cc7a3b1b4ffa::t_7dbb96309da37a 142-143
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_87cc7a3b1b4ffa::t_7d43c3981bb989 37-39,45,63,76,80,178,405-406,421,463-464,468,470,477-478,498
+tests/src/core/physics/CharacterController.test.ts
+  s_87cc7a3b1b4ffa::t_249578db336de3 194-207
+tests/src/core/physics/Collider.test.ts
+  s_87cc7a3b1b4ffa::t_0b24c94d780da6 13,372-425
+tests/src/core/physics/ColliderLayer.test.ts
+  s_87cc7a3b1b4ffa::t_f0af1c66ffc871 228
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "09a55e3b4ae6ba73c82b66341c618b4f7a86bde6",
+  "prompts": {},
+  "sessions": {
+    "s_87cc7a3b1b4ffa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f72a317a-6fd5-4cfb-824b-a6a922a66a1d",
+        "model": "claude-fable-5-2"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
