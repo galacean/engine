@@ -1,3 +1,4 @@
+import { OCEAN_NEARSHORE_DEFAULT_BUDGET } from "../compiler/ocean/constants";
 import { createOceanNearshoreFromTerrain } from "../compiler/ocean/OceanTerrainCompiler";
 import type { OceanNearshoreDescriptorV1 } from "../authoring/ocean/OceanNearshoreDescriptor";
 import { createImmutableWaterSnapshot } from "../authoring/identity/WaterImmutableSnapshot";
@@ -271,6 +272,11 @@ export function compileWaterShape(
     });
   }
   const outside = OceanNearshoreOutsidePolicy.DeepOcean;
+  const { columns, rows } = terrain;
+  const budget =
+    columns > OCEAN_NEARSHORE_DEFAULT_BUDGET.maxWidth || rows > OCEAN_NEARSHORE_DEFAULT_BUDGET.maxHeight
+      ? { maxWidth: columns, maxHeight: rows, maxTexelCount: columns * rows, maxAtlasByteLength: columns * rows * 4 }
+      : undefined;
   const descriptor = {
     schemaVersion: 2,
     id,
@@ -286,6 +292,7 @@ export function compileWaterShape(
           width: terrain.columns,
           height: terrain.rows
         },
+        ...(budget ? { budget } : {}),
         bedHeights: Float32Array.from(terrain.heights),
         wetSource: { kind: "water-level", minimumDepth: 0 },
         outsidePolicy: { negativeX: outside, positiveX: outside, negativeZ: outside, positiveZ: outside }

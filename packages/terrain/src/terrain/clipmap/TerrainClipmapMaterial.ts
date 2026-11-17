@@ -472,9 +472,7 @@ export function createTerrainClipmapMaterialBinding(
     material.shaderData.setInt("material_TerrainDetilingLayerMask", 0);
     for (const macro of farMaterialOptions?.sharedMacros ?? []) material.shaderData.enableMacro(macro);
     farMaterialOptions?.configureMaterial?.(material);
-    if (!ScreenSpaceReflection.setMaterialReceiver(material, ScreenSpaceReflectionReceiverMode.OpaqueComposite, 1)) {
-      throw new Error("Terrain Shader does not expose the required puddle SSR receiver contract");
-    }
+    ScreenSpaceReflection.setMaterialReceiver(material, ScreenSpaceReflectionReceiverMode.OpaqueComposite, 1);
     if (farMaterialOptions) {
       if (farMaterialOptions.nearTransitionMacro) {
         material.shaderData.enableMacro(farMaterialOptions.nearTransitionMacro);
@@ -485,9 +483,7 @@ export function createTerrainClipmapMaterialBinding(
         farMaterial.shaderData.disableMacro(farMaterialOptions.nearTransitionMacro);
       }
       farMaterial.shaderData.enableMacro(farMaterialOptions.farMacro);
-      if (!ScreenSpaceReflection.setMaterialReceiver(farMaterial, ScreenSpaceReflectionReceiverMode.Disabled)) {
-        throw new Error("Terrain Shader does not expose the required SSR receiver contract");
-      }
+      ScreenSpaceReflection.setMaterialReceiver(farMaterial, ScreenSpaceReflectionReceiverMode.Disabled);
     }
   } catch (error) {
     farMaterial?.destroy();

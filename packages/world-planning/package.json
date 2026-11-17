@@ -29,6 +29,8 @@
     "./assistant/SeedWorldViewCapture": "./src/assistant/SeedWorldViewCapture.ts",
     "./authoring/terrain/TerrainHeightfield": "./src/authoring/terrain/TerrainHeightfield.ts",
     "./generation/terrain/CoastalSeabed": "./src/generation/terrain/CoastalSeabed.ts",
+    "./generation/terrain/StylizedTerrainMaterial": "./src/generation/terrain/StylizedTerrainMaterial.ts",
+    "./generation/terrain/TerrainIslandGenerator": "./src/generation/terrain/TerrainIslandGenerator.ts",
     "./generation/terrain/TerrainHydrology": "./src/generation/terrain/TerrainHydrology.ts",
     "./generation/noise/PromptNoiseHash": "./src/generation/noise/PromptNoiseHash.ts",
     "./generation/noise/PromptNoiseRiverFieldCompiler": "./src/generation/noise/PromptNoiseRiverFieldCompiler.ts",
