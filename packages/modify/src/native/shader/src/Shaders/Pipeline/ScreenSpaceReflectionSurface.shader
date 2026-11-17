@@ -31,7 +31,10 @@ Shader "Pipeline/ScreenSpaceReflectionSurface" {
       #include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflection.glsl"
 
       float material_ScreenSpaceReflectionMode;
-      float material_ScreenSpaceReflectionIntensity;
+      #ifndef PBR_TRANSMISSION_SSR
+        float material_ScreenSpaceReflectionIntensity;
+      #endif
+
 
       struct ScreenSpaceReflectionSurfaceOutput {
         layout(location = 0) vec4 geometry;
@@ -76,6 +79,13 @@ Shader "Pipeline/ScreenSpaceReflectionSurface" {
               surfaceData.dotNV
             ) *
             bsdfData.energyCompensation;
+          #ifdef MATERIAL_ENABLE_CLEAR_COAT
+            baseLobeResponse *= evaluateClearCoatIBLAttenuation(surfaceData, bsdfData);
+          #endif
+          #ifdef MATERIAL_ENABLE_SHEEN
+            // Match Forward's base-layer attenuation, leaving the Sheen term unchanged.
+            baseLobeResponse *= bsdfData.sheenScaling;
+          #endif
           float fogVisibility = 1.0;
           #if SCENE_FOG_MODE != 0
             fogVisibility = getScreenSpaceReflectionFogVisibility(varyings.positionVS);
@@ -84,7 +94,14 @@ Shader "Pipeline/ScreenSpaceReflectionSurface" {
         }
 
         ScreenSpaceReflectionSurfaceOutput output;
-        output.geometry = packScreenSpaceReflectionSurface(surfaceData.normal, bsdfData.roughness, 1.0);
+        // Match the direction already used by Forward's anisotropic IBL.
+        // The same packed normal drives Trace and the environment subtraction.
+        #ifdef MATERIAL_ENABLE_ANISOTROPY
+          vec3 receiverNormal = surfaceData.anisotropicN;
+        #else
+          vec3 receiverNormal = surfaceData.normal;
+        #endif
+        output.geometry = packScreenSpaceReflectionSurface(receiverNormal, bsdfData.roughness, 1.0);
         output.responseColor = vec4(reflectionResponse, 1.0);
         return output;
       }

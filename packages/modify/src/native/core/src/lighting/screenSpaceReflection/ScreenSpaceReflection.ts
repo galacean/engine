@@ -12,6 +12,7 @@ import type { Camera } from "../../Camera";
 import { PipelineStage } from "../../RenderPipeline/enums/PipelineStage";
 import type { Material } from "../../material";
 import { RenderQueueType, ShaderMacro, ShaderProperty, ShaderTagKey } from "../../shader";
+import type { ShaderPass } from "../../shader/ShaderPass";
 import type { ScreenSpaceReflectionProfiler } from "./ScreenSpaceReflectionProfiler";
 import { ScreenSpaceReflectionUpsamplingMode } from "./enums/ScreenSpaceReflectionUpsamplingMode";
 import { ScreenSpaceReflectionActivationMode } from "./enums/ScreenSpaceReflectionActivationMode";
@@ -413,16 +414,30 @@ export class ScreenSpaceReflection {
   static readonly MATERIAL_AUTO_RECEIVER_CONTRACT = "PbrV1";
   /** RGBA8 world-space oct8 normal, roughness/weight and a separate colored response. V2 used view-space normals. */
   static readonly MATERIAL_RECEIVER_CONTRACT = "ColorResponseV3";
+  /** @internal Register the actual bundled pass, independently of later namesakes. */
+  static _registerPbrSurfacePass(pass: ShaderPass): void {
+    ScreenSpaceReflection._pbrSurfacePasses.add(pass);
+  }
   /** Forward implements sampling of the published camera SSR texture. */
   static readonly MATERIAL_TRANSPARENT_SAMPLE_TAG = "screenSpaceReflectionTransparentSample";
   static readonly MATERIAL_TRANSPARENT_SAMPLE_CONTRACT = "SampleV1";
+  /** PBR Forward samples only the non-alpha-blended Transmission variant. */
+  static readonly MATERIAL_TRANSMISSION_SAMPLE_CONTRACT = "TransmissionV1";
   static supportsMaterialTransparentSampling(material: Material): boolean {
+    const macros = material.shaderData._macroCollection;
+    // Keep conditional PBR capability intact through UsePass and shader copies.
+    const transmission =
+      macros.isEnable(ScreenSpaceReflection._transmissionMacro) &&
+      !macros.isEnable(ScreenSpaceReflection._transparentMacro);
     return (
       material.shader?.subShaders[0]?.passes.some(
         (pass) =>
           pass.getTagValue(ScreenSpaceReflection._pipelineStageTag) === PipelineStage.Forward &&
-          pass.getTagValue(ScreenSpaceReflection.MATERIAL_TRANSPARENT_SAMPLE_TAG) ===
-            ScreenSpaceReflection.MATERIAL_TRANSPARENT_SAMPLE_CONTRACT
+          (pass.getTagValue(ScreenSpaceReflection.MATERIAL_TRANSPARENT_SAMPLE_TAG) ===
+            ScreenSpaceReflection.MATERIAL_TRANSPARENT_SAMPLE_CONTRACT ||
+            (transmission &&
+              pass.getTagValue(ScreenSpaceReflection.MATERIAL_TRANSPARENT_SAMPLE_TAG) ===
+                ScreenSpaceReflection.MATERIAL_TRANSMISSION_SAMPLE_CONTRACT))
       ) ?? false
     );
   }
@@ -452,6 +467,7 @@ export class ScreenSpaceReflection {
 
   private static readonly _unpublishedMaxRoughness = -1;
   private static readonly _emptyTextures = new WeakMap<Engine, Texture2D>();
+  private static readonly _pbrSurfacePasses = new WeakSet<ShaderPass>();
   /** @internal */
   static readonly _cameraMaxRoughnessProperty = ShaderProperty.getByName("camera_ScreenSpaceReflectionMaxRoughness");
   /** @internal */
@@ -466,16 +482,18 @@ export class ScreenSpaceReflection {
   private static readonly _roughnessMetallicTextureProperty = ShaderProperty.getByName(
     "material_RoughnessMetallicTexture"
   );
+  private static readonly _transmissionMacro = ShaderMacro.getByName("MATERIAL_ENABLE_TRANSMISSION");
+  private static readonly _transparentMacro = ShaderMacro.getByName("MATERIAL_IS_TRANSPARENT");
   /** @internal */
   // Kept only to clear state serialized by the former macro-based registration.
-  // Receiver ownership itself is ordinary Material state and never affects program variants.
+  // Author intent stays ordinary Material state; optional Forward sampling is selected per draw.
   private static readonly _legacyReceiverMacro = ShaderMacro.getByName("MATERIAL_IS_SCREEN_SPACE_REFLECTION_RECEIVER");
-  private static readonly _unsupportedLobeMacros = [
+  private static readonly _pbrExtensionMacros = [
     ShaderMacro.getByName("MATERIAL_ENABLE_CLEAR_COAT"),
+    ShaderMacro.getByName("MATERIAL_ENABLE_SHEEN"),
     ShaderMacro.getByName("MATERIAL_ENABLE_ANISOTROPY"),
     ShaderMacro.getByName("MATERIAL_ENABLE_IRIDESCENCE"),
-    ShaderMacro.getByName("MATERIAL_ENABLE_SHEEN"),
-    ShaderMacro.getByName("MATERIAL_ENABLE_TRANSMISSION")
+    ScreenSpaceReflection._transmissionMacro
   ] as const;
   private static readonly _pipelineStageTag = ShaderTagKey.getByName("pipelineStage");
   private static readonly _autoReceiverTag = ShaderTagKey.getByName(ScreenSpaceReflection.MATERIAL_AUTO_RECEIVER_TAG);
@@ -876,6 +894,7 @@ export class ScreenSpaceReflection {
     const activeSubShader = subShaders?.[0];
     let activeHasSurfacePass = false;
     let activeHasIncompatibleContract = false;
+    let activeUsesPbrSurface = true;
     let activeIncompatibleContract: string | null = null;
     if (activeSubShader) {
       const passes = activeSubShader.passes;
@@ -885,6 +904,7 @@ export class ScreenSpaceReflection {
           continue;
         }
         activeHasSurfacePass = true;
+        activeUsesPbrSurface &&= ScreenSpaceReflection._pbrSurfacePasses.has(pass);
         const contract = (pass.getTagValue(ScreenSpaceReflection._receiverContractTag) as string | null) ?? null;
         if (!activeHasIncompatibleContract && contract !== ScreenSpaceReflection.MATERIAL_RECEIVER_CONTRACT) {
           activeHasIncompatibleContract = true;
@@ -896,9 +916,11 @@ export class ScreenSpaceReflection {
     if (activeHasSurfacePass) {
       if (!activeHasIncompatibleContract) {
         const macroCollection = material.shaderData._macroCollection;
-        const unsupportedLobeMacros = ScreenSpaceReflection._unsupportedLobeMacros;
-        for (let i = 0, n = unsupportedLobeMacros.length; i < n; i++) {
-          if (macroCollection.isEnable(unsupportedLobeMacros[i])) {
+        // The shared PBR Surface supplies the common response. Mixed extensions
+        // remain outside this first approximation, as do custom V3 Surfaces.
+        let extensionCount = 0;
+        for (const macro of ScreenSpaceReflection._pbrExtensionMacros) {
+          if (macroCollection.isEnable(macro) && (++extensionCount > 1 || !activeUsesPbrSurface)) {
             return ScreenSpaceReflection._unsupportedLobesCapability;
           }
         }
@@ -1069,7 +1091,8 @@ export class ScreenSpaceReflection {
     if (
       explicitMode !== ScreenSpaceReflectionReceiverMode.Auto ||
       this._authorSettings.receiverPolicy !== ScreenSpaceReflectionReceiverPolicy.StandardPbrAuto ||
-      renderQueueType === RenderQueueType.Transparent ||
+      (renderQueueType === RenderQueueType.Transparent &&
+        !ScreenSpaceReflection.supportsMaterialTransparentSampling(material)) ||
       !ScreenSpaceReflection._supportsShaderAutoReceiver(material.shader) ||
       (shaderData.getFloat(ScreenSpaceReflection._receiverIntensityProperty) ?? 0) <= 0
     ) {
@@ -1080,7 +1103,12 @@ export class ScreenSpaceReflection {
     // remains eligible because the Surface pass applies the per-pixel gate.
     if (shaderData.getTexture(ScreenSpaceReflection._roughnessMetallicTextureProperty)) return true;
     const roughness = shaderData.getFloat(ScreenSpaceReflection._roughnessProperty);
-    return roughness === undefined || roughness <= this._opaqueResolvedSettingsState.maxRoughness;
+    const maxRoughness = (
+      renderQueueType === RenderQueueType.Transparent
+        ? this._transparentResolvedSettingsState
+        : this._opaqueResolvedSettingsState
+    ).maxRoughness;
+    return roughness === undefined || roughness <= maxRoughness;
   }
 
   /** @internal */

@@ -17,9 +17,9 @@ function decodeHalf(bits: number): number {
   return sign * 2 ** (exponent - HALF_EXPONENT_BIAS) * (1 + mantissa / HALF_MANTISSA_SCALE);
 }
 
-/** Read the first colour attachment of an SSR trace target as RGBA floats, whatever its storage format. */
-export function readTraceTarget(target: RenderTarget, size: number): Float32Array {
-  const texture = target.getColorTexture(0) as Texture2D;
+/** Read a colour attachment of an SSR trace target as RGBA floats, whatever its storage format. */
+export function readTraceTarget(target: RenderTarget, size: number, attachment = 0): Float32Array {
+  const texture = target.getColorTexture(attachment) as Texture2D;
   const values = new Float32Array(size * size * 4);
   if (texture.format === TextureFormat.R16G16B16A16) {
     const halves = new Uint16Array(size * size * 4);

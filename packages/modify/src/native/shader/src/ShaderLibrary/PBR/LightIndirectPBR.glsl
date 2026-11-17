@@ -2,6 +2,14 @@
 #ifndef LIGHT_INDIRECT_PBR_INCLUDED
 #define LIGHT_INDIRECT_PBR_INCLUDED
 
+#if defined(RENDERER_ENABLE_TRANSMISSION_SSR) && defined(MATERIAL_ENABLE_TRANSMISSION) && !defined(MATERIAL_IS_TRANSPARENT) && !defined(MATERIAL_ENABLE_CLEAR_COAT) && !defined(MATERIAL_ENABLE_SHEEN) && !defined(MATERIAL_ENABLE_ANISOTROPY) && !defined(MATERIAL_ENABLE_IRIDESCENCE)
+  #define PBR_TRANSMISSION_SSR
+  float material_ScreenSpaceReflectionIntensity;
+  highp sampler2D camera_ScreenSpaceReflectionTexture;
+  float camera_ScreenSpaceReflectionIntensity;
+  float camera_ScreenSpaceReflectionMaxRoughness;
+#endif
+
 #ifndef FUNCTION_DIFFUSE_IBL
     #define FUNCTION_DIFFUSE_IBL evaluateDiffuseIBL
 #endif
@@ -253,7 +261,7 @@ float evaluateClearCoatIBL(Varyings varyings, SurfaceData surfaceData, BSDFData 
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         vec3 clearCoatRadiance = getLightProbeRadiance(surfaceData, surfaceData.clearCoatNormal, bsdfData.clearCoatRoughness);
         specularColor += clearCoatRadiance * surfaceData.clearCoat * evaluateClearCoatIBLResponse(surfaceData, bsdfData);
-        radianceAttenuation -= surfaceData.clearCoat * F_Schlick(bsdfData.clearCoatSpecularColor.r, 1.0, surfaceData.clearCoatDotNV);
+        radianceAttenuation = evaluateClearCoatIBLAttenuation(surfaceData, bsdfData);
     #endif
 
     return radianceAttenuation;
@@ -261,6 +269,18 @@ float evaluateClearCoatIBL(Varyings varyings, SurfaceData surfaceData, BSDFData 
 
 void evaluateSpecularIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, float radianceAttenuation, inout vec3 outSpecularColor){
     vec3 radiance = getLightProbeRadiance(surfaceData, surfaceData.normal, bsdfData.roughness);
+    #ifdef PBR_TRANSMISSION_SSR
+        if (material_ScreenSpaceReflectionIntensity > 0.0 &&
+            bsdfData.roughness < camera_ScreenSpaceReflectionMaxRoughness) {
+            vec2 ssrUV = surfaceData.positionCS.xy / surfaceData.positionCS.w * 0.5 + 0.5;
+            vec4 ssr = texture2D(camera_ScreenSpaceReflectionTexture, ssrUV);
+            float ssrScale = saturate(camera_ScreenSpaceReflectionIntensity) * saturate(material_ScreenSpaceReflectionIntensity);
+            // Published RGB is confidence-premultiplied. Replace only base radiance;
+            // refraction, diffuse and direct lighting stay in their existing paths.
+            radiance = radiance * (1.0 - saturate(ssr.a * ssrScale)) + ssr.rgb * ssrScale;
+        }
+    #endif
+
 
     float specularAO = evaluateSpecularOcclusion(surfaceData.dotNV, bsdfData.diffuseAO, bsdfData.roughness);
     outSpecularColor += specularAO * radianceAttenuation * radiance * envBRDFApprox(bsdfData.resolvedSpecularF0, bsdfData.specularF90 , bsdfData.roughness, surfaceData.dotNV) * bsdfData.energyCompensation;

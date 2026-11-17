@@ -103,8 +103,8 @@ it("renders all receive/contribute combinations with correct alpha, opaque occlu
   const red = new PBRMaterial(engine);
   const samplingSource = PBRSource.replace('Shader "PBR"', 'Shader "ContributionReceiver"')
     .replace(
-      'Tags { pipelineStage = "Forward"}',
-      'Tags { pipelineStage = "Forward", screenSpaceReflectionTransparentSample = "SampleV1" }'
+      /screenSpaceReflectionTransparentSample\s*=\s*"[^"]+"/,
+      'screenSpaceReflectionTransparentSample = "SampleV1"'
     )
     .replace("FragmentShader = PBRFragment;", "FragmentShader = receiverForward;")
     .replace(

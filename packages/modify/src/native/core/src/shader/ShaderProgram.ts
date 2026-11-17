@@ -76,6 +76,11 @@ export class ShaderProgram {
     return this._isValid;
   }
 
+  /** Assigned sampler units, including every element of sampler arrays. */
+  get textureUnitCount(): number {
+    return this._activeTextureUint;
+  }
+
   constructor(
     engine: Engine,
     vertexSource: string,

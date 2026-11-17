@@ -141,7 +141,7 @@ Shader "PBR" {
       UsePass "Pipeline/ScreenSpaceReflectionSurface/Default/ScreenSpaceReflectionSurface"
 
       Pass "Forward Pass" {
-        Tags { pipelineStage = "Forward"}
+        Tags { pipelineStage = "Forward", screenSpaceReflectionTransparentSample = "TransmissionV1" }
 
         RenderQueueType renderQueueType;
         BlendFactor sourceColorBlendFactor;

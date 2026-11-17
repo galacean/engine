@@ -15,6 +15,7 @@ const names = [
   "rhi-webgl",
   "shader",
   "shader-compiler",
+  "shader-parser",
   "ui"
 ];
 // Only this script-owned staging directory is replaced. Never build in the native checkout.
@@ -45,7 +46,7 @@ for (const { original, replacement } of JSON.parse(
 // from the same public entry graph as Rollup, rather than orphaned implementation files.
 const coreConfigPath = path.join(output, "packages/core/tsconfig.json");
 const coreConfig = JSON.parse(fs.readFileSync(coreConfigPath));
-coreConfig.include = ["src/index.ts"];
+coreConfig.include = ["src/index.ts", "src/2d/atlas/types.ts"];
 fs.writeFileSync(coreConfigPath, JSON.stringify(coreConfig, null, 2));
 // Reuse installed tooling without installing or accidentally resolving workspace packages to native sources.
 function linkDependencies(source, target) {

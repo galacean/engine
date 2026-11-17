@@ -22,10 +22,21 @@ Auto 使用有效 consumer 请求的整组参数。ForceOn 使用作者的相机
 
 ## Shader 契约与透明贡献
 
-- Surface 几何附件保持 RGBA8：RG 是世界空间法线的 oct8 编码，B 是粗糙度，A 是响应权重；独立的响应颜色附件不变。所有 Surface 生产者必须传入最终世界空间法线，Trace、Upsample 和 Composite 解码后再转到视空间。ReceiverNormal Debug 仍显示视空间法线颜色。
+- Surface 几何附件保持 RGBA8：RG 是世界空间法线的 oct8 编码，B 是粗糙度，A 是响应权重；响应颜色使用独立 RGBA8 附件。所有 Surface 生产者必须传入最终世界空间法线，Trace、Upsample 和 Composite 解码后再转到视空间。ReceiverNormal Debug 仍显示视空间法线颜色。
 - 固定的世界空间法线不会因相机旋转跨越量化档；这不消除 oct8 的静态角误差（世界向上法线约 0.226°），也不提高动态波浪、法线贴图或物体旋转造成的真实法线变化精度。真实法线仍会跨量化档，未增加时域纹理或改变显存预算。水体原有面向视线的法线翻面规则保留。
 - 接收 Surface 声明 `screenSpaceReflectionReceiver = "ColorResponseV3"`，明确 RG 使用世界空间 oct8。旧视空间 `ColorResponseV2` 资产仍可加载并执行 Forward，但接收能力检查会拒绝它，显式注册、作者 On 和 Auto 均不会执行其 Surface/Trace；需重建 Shader 后才能重新接收 SSR。
-- 透明接收还需 Forward 声明 `screenSpaceReflectionTransparentSample = "SampleV1"`，并实际采样 SSR。普通 PBR 不支持透明接收；River / Heightfield 支持。
+- 透明接收还需 Forward 声明 `screenSpaceReflectionTransparentSample = "SampleV1"`，并实际采样 SSR。River / Heightfield 保持此合同。内置 PBR Forward 使用条件声明 `TransmissionV1`，仅允许未开启 Alpha 混合的独立 Transmission 接收；该条件在 UsePass、改名或复制 Shader 后仍有效，普通 Alpha 混合 PBR 继续拒绝。
+- 内置 PBR 支持单独启用 Clear Coat、Sheen、Anisotropy、Iridescence 或 Transmission。Clear Coat、Sheen、Iridescence 使用基础层世界空间法线；Anisotropy 复用 Forward 已计算的弯曲法线，使 Trace 与环境扣除方向一致，但仍只有单条射线和一个粗糙度，不提供完整各向异性反射模糊。所有特性使用贴图解析及法线抗锯齿后的基础层粗糙度。粗糙基础层即使覆盖光滑清漆，也不再获得清漆专属的 SSR 倒影。
+- SSR 只替换基础层环境反射。Surface 的基础层响应复用 Forward 的清漆衰减或 `bsdfData.sheenScaling`，衰减只应用一次。清漆环境反射、Sheen 光泽、直接光、漫反射和自发光仍由原有 Forward 计算。SSR 未命中或强度为零时保留 Forward 结果，LDR 场景复制可能产生原有的最多 1 LSB 量化差异。
+- Clear Coat 的强度贴图及独立法线仍影响原有光照和基础层衰减。清漆法线和清漆粗糙度不决定 SSR 射线或截止。清漆强度为零或强度贴图值为零时恢复普通 PBR。Sheen 颜色或颜色贴图为零时也恢复普通 PBR。Sheen 粗糙度影响基础层衰减，不决定 SSR 追踪粗糙度。完整 Charlie 环境照明及 Sheen 光泽层自身的 SSR 不在此范围。
+- 保持两个 RGBA8 Surface MRT、每接收阶段一次 Trace 和原有全屏 Composite。不增加材质 Resolve、附件或扩展特性专用 Surface / Trace 协议。已移除动态选层、选层置信度及其 RGBA16F 响应附件升级，因此 Clear Coat 不再要求 Half Float 响应附件。Trace 纹理仍按现有能力选择 Half Float 或 RGBA8，其格式策略不变。
+- 保留普通 SSR 的命中可信度、边缘淡出、距离淡出和粗糙度衰减。Trace 在过滤前以命中可信度预乘 RGB / Alpha，三种重建模式沿用同一信号。没有额外的选层淡出，也没有反预乘放大小 Alpha 的过程。
+- Iridescence 复用 `initBSDFData()` 已解析的 `resolvedSpecularF0` 及能量补偿。强度、IOR、厚度及对应贴图影响现有彩色响应，不增加独立虹彩 SSR 协议。各向异性的直接高光和虹彩的原有材质光照继续由 Forward 计算。
+- `transmission > 0` 会强制进入 Transparent 队列，即使 `isTransparent = false` 或启用 Alpha Test。SSR 保留这一折射绘制顺序。未开启 Alpha 混合的独立 Transmission 使用透明 Surface / Trace / Publish，随后 Forward 仅替换基础层镜面环境辐射，保留原有透射、漫反射、直接光和自发光。不提供新的屏幕空间折射，不允许 Alpha 混合透明 PBR 自动接收。
+- Transmission 的 Auto 接收遵守 `StandardPbrAuto`，On 则显式启用。Pipeline 按当前相机和绘制元素检查接收意图、当前帧发布状态以及 stencil / mask 过滤；只有通过检查的 Forward 才选择带 SSR sampler 的可选变体。不会把派生宏写入共享 Material、Camera 或 Engine，因此被过滤的元素不会误采样其他接收者的反射。材质和相机强度各乘一次。Max Roughness 使用透明接收阶段的基础层粗糙度预算。Transmission 为零时恢复普通 PBR 队列；强度贴图局部为零时保留晚期队列，但透射贡献归零。
+- Transmission 默认 Forward 不含 SSR sampler。可选变体在基础程序已链接后检查其实际纹理单元占用；仅在为 SSR 保留一个单元后仍不超过片元上限时启用，否则沿用基础 Forward IBL。计数包含 sampler 数组元素，并保守计入顶点阶段使用的单元。变体复用既有 ShaderPass / Engine 缓存和销毁路径，不新增纹理附件；接收阶段仍可能为最终回退 IBL 的满预算材质生成 Trace。
+- 扩展材质的基础层接收仅允许复用内置 `Pipeline/ScreenSpaceReflectionSurface` 的实际 Pass。ShaderPool 在内置注册时记录 Pass 的弱引用身份，能力检查不查询最新同名 Shader；同名自定义 Shader 不会获得授权，也不会使已有材质失去能力。多次内置注册及 UsePass 保留各自的可信 Pass 身份，不因源 Shader 从名称表移除而改变。自定义 V3 Surface 的普通接收合同保持不变，不会因启用上述特性而自动获得基础层支持。首版只支持逐项启用，任意两项或更多扩展组合继续被拒绝。未发布的 `SingleLayerV1`、`BaseLayerV1` 和 `SignedAlphaV1` 专用 tag 不再使用。
+- 相对原本不接收 SSR 的材质，这些特性仍增加接收面绘制及有效追踪覆盖。Transmission 复用已有透明接收阶段；与不透明接收者共存时会分别追踪两阶段。附件数量不变和删除分支不能代替移动设备 GPU 性能验收。本方案保留扩展层的原有间接反射，不等同于 Filament 按 SSR 权重统一替换整组间接镜面反射。
 - Scene / Camera 的 `reflectionContent` 默认为 `OpaqueOnly`；选择 `OpaqueAndTransparent` 后，才捕获显式开启贡献的透明材质。
 - 贡献 Shader 同时提供 `ScreenSpaceReflectionContributionColor` / `ScreenSpaceReflectionContributionDepth`，声明 `screenSpaceReflectionContribution = "ColorDepthV1"`，两个 Pass 都解析为透明队列。
 
@@ -50,7 +61,7 @@ node packages/modify/build/local-engine.mjs
 pnpm exec vitest run --config packages/modify/tests/vitest.config.mjs
 ```
 
-构建脚本将 core、design、galacean、loader、math、physics-physx、rhi-webgl、shader、shader-compiler、ui 复制到忽略目录 `.cache/engine`，应用 override 后执行原生模块和声明构建；design 按原生规则仅生成声明。构建不修改原生源码或发布配置。Editor 及 Sandbox 需使用同一套兼容产物，个人联调配置留在仓库外或忽略目录。
+构建脚本将 core、design、galacean、loader、math、physics-physx、rhi-webgl、shader、shader-compiler、shader-parser、ui 复制到忽略目录 `.cache/engine`，应用 override 后执行原生模块和声明构建；design 按原生规则仅生成声明。构建不修改原生源码或发布配置。Editor 及 Sandbox 需使用同一套兼容产物，个人联调配置留在仓库外或忽略目录。
 
 核心验证覆盖作者配置/Loader/生命周期、旧运行注册兼容、临时开关、六字段预设、透明能力声明及实际渲染。贡献用例保留接收/贡献四组合、Alpha 零、混合、遮挡、1x/4x MSAA、分配失败降级，以及 Heightfield / River 真实后端的 Auto 请求、可见倒影、贡献和销毁释放；不依赖静态截图文件。
 

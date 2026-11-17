@@ -1,4 +1,4 @@
-import { BuiltinShaders, Shader, ShaderFactory } from "@galacean/engine-core";
+import { BuiltinShaders, ScreenSpaceReflection, Shader, ShaderFactory } from "@galacean/engine-core";
 import {
   shaderLibrary,
   PBRSource,
@@ -105,7 +105,15 @@ export class ShaderPool {
       // Gaussian Splatting shader
     ];
 
-    const shaders = new Map(sources.map((source) => [source, Shader._createFromPrecompiled(source)] as const));
+    const shaders = new Map(
+      sources.map((source) => {
+        const shader = Shader._createFromPrecompiled(source);
+        if (source === ScreenSpaceReflectionSurfaceSource) {
+          ScreenSpaceReflection._registerPbrSurfacePass(shader.subShaders[0].passes[0]);
+        }
+        return [source, shader] as const;
+      })
+    );
 
     // Keep feedback configuration on the same shader objects returned to Engine.
     const feedbackPass = shaders.get(ParticleFeedbackSource)!.subShaders[0].passes[0];

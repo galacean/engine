@@ -62,6 +62,12 @@ float evaluateSpecularOcclusion(float dotNV, float diffuseAO, float roughness){
 }
 
 #ifdef MATERIAL_ENABLE_CLEAR_COAT
+float evaluateClearCoatIBLAttenuation(SurfaceData surfaceData, BSDFData bsdfData) {
+    return 1.0 - surfaceData.clearCoat * F_Schlick(
+        bsdfData.clearCoatSpecularColor.r, 1.0, surfaceData.clearCoatDotNV
+    );
+}
+
 vec3 evaluateClearCoatIBLResponse(SurfaceData surfaceData, BSDFData bsdfData) {
     float specularAO = evaluateSpecularOcclusion(
         surfaceData.clearCoatDotNV,

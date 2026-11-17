@@ -5,6 +5,8 @@ import type { Material } from "../material";
 import { RenderQueueType, Shader } from "../shader";
 import { ConstantBufferBindingPoint } from "../shader/enums/ConstantBufferBindingPoint";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
+import type { ShaderPass } from "../shader/ShaderPass";
+import type { ShaderProgram } from "../shader/ShaderProgram";
 import { BatcherManager } from "./BatcherManager";
 import { InstanceBuffer } from "./InstanceBuffer";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
@@ -82,7 +84,10 @@ export class RenderQueue {
     maskType: RenderQueueMaskType = RenderQueueMaskType.No,
     elementFilter: ((material: Material, element: RenderElement) => boolean) | null = null,
     applyMaskState: boolean = true,
-    renderStateOverrides: RenderStateElementMap | null = null
+    renderStateOverrides: RenderStateElementMap | null = null,
+    resolveShaderProgram:
+      | ((element: RenderElement, pass: ShaderPass, macros: ShaderMacroCollection) => ShaderProgram)
+      | null = null
   ): number {
     const batchedElements = this.batchedElements;
     const length = batchedElements.length;
@@ -170,7 +175,9 @@ export class RenderQueue {
           }
         }
 
-        const program = shaderPass._getShaderProgram(engine, compileMacros);
+        const program = resolveShaderProgram
+          ? resolveShaderProgram(curElement, shaderPass, compileMacros)
+          : shaderPass._getShaderProgram(engine, compileMacros);
         if (!program.isValid) {
           continue;
         }
