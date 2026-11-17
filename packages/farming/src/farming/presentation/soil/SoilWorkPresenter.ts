@@ -1,4 +1,4 @@
-import type { SurfaceTriangle } from "@galacean/engine-terrain/geometry/SurfaceTriangles";
+import type { SurfaceTriangle } from "../../geometry/SurfaceTriangles";
 import { restoreResource } from "@galacean/engine-modify/rendering/RestorableResources";
 import {
   BoundingBox,

@@ -1,4 +1,4 @@
-import type { SurfaceTriangle } from "@galacean/engine-terrain/geometry/SurfaceTriangles";
+import type { SurfaceTriangle } from "../geometry/SurfaceTriangles";
 /** Host-owned ground facts. No Engine, renderer or storage dependencies. */
 export interface PlotGrid {
   readonly originX: number;

@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { WaterBodyComponent } from "@galacean/engine-water/water/native/index";
 import { BUILTIN_WATER_PROJECT_URL } from "@galacean/engine-water/water/native/WaterBuiltinAssets";
 import { RuntimeSceneEdit } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-scene-edit";
-import type { WaterSourceAuthoring } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
+import type { WaterSourceAuthoring } from "../src/spatial/runtime/NativeWaterEditor";
 import { openWaterEditorFixture } from "./WaterEditorFixture";
 
 it("keeps nested Prefab overrides, reverts and inline water in Source across reopening", async () => {

@@ -1,4 +1,4 @@
-import { destroyOwnedMesh } from "@galacean/engine-terrain/geometry/destroyOwnedMesh";
+import { destroyOwnedMesh } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
 import type { ModelMesh } from "@galacean/engine";
 import { warmupPhotoPresentation } from "@galacean/engine-world-planning/world/SeedWorldPhotoWarmup";
 import type { PhotoImage } from "@galacean/engine-world-planning/world/SeedWorldPhotoImage";

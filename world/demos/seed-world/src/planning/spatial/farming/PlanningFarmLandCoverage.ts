@@ -1,6 +1,6 @@
 import type { FarmSnapshot, FarmingStorageDefinitions, GroundBounds } from "@galacean/engine-farming/farming/api/index";
 import { cellBounds, containerBounds } from "@galacean/engine-farming/farming/storage/StoragePlacement";
-import { surfaceTransitionWeight } from "@galacean/engine-terrain/geometry/surfaceTransitionWeight";
+import { surfaceTransitionWeight } from "@galacean/engine-world-planning/geometry/surfaceTransitionWeight";
 
 export const FARM_LAND_MARGIN_M = 2;
 export const FARM_LAND_MASK_SPACING_M = 0.1;

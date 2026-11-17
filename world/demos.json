@@ -72,12 +72,6 @@
     "owner": "environment"
   },
   {
-    "entry": "demos/integrated-world/index.html",
-    "title": "Integrated World",
-    "mode": "static",
-    "owner": "world-planning（综合业务 Demo）"
-  },
-  {
     "entry": "demos/landform-study/index.html",
     "title": "地貌白盒图集 · 五种结构",
     "mode": "static",
@@ -88,12 +82,6 @@
     "title": "米制白盒测试场",
     "mode": "static",
     "owner": "world-planning"
-  },
-  {
-    "entry": "demos/prompt-noise-world/index.html",
-    "title": "World PCG Pure Noise Terrain",
-    "mode": "static",
-    "owner": "world-planning / terrain"
   },
   {
     "entry": "demos/rain-wind/index.html",
@@ -136,12 +124,6 @@
     "title": "Snow × Wind Lab",
     "mode": "static",
     "owner": "environment"
-  },
-  {
-    "entry": "demos/terrain-editor/index.html",
-    "title": "Terrain Editor",
-    "mode": "static",
-    "owner": "terrain / runtime-editor"
   },
   {
     "entry": "demos/tree-reconstruction/index.html",

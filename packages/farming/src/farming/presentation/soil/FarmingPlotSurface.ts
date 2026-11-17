@@ -1,4 +1,4 @@
-import { clipSurfaceTriangles, type SurfacePoint } from "@galacean/engine-terrain/geometry/SurfaceTriangles";
+import { clipSurfaceTriangles, type SurfacePoint } from "../../geometry/SurfaceTriangles";
 import { Entity } from "@galacean/engine";
 import { plotBounds, type PlotGrid, type FarmingGroundProvider } from "../../domain/FarmingGround";
 import type { PlotState } from "../../domain/FarmState";
