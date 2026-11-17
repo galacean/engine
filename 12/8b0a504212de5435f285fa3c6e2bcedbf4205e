@@ -1,0 +1,82 @@
+packages/loader/src/prefab/PrefabParser.ts
+  s_d8ee274aaca994::t_13f78c6e891883 39
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  s_d8ee274aaca994::t_386339453c6056 263,265-266,281-282
+  s_d8ee274aaca994::t_b208849f427323 259-260,262,264,267,269-270,273,275-280
+  s_d8ee274aaca994::t_f5be06847a78fe 261
+  s_d8ee274aaca994::t_b252dcbb66387f 268,271-272,274
+  s_d8ee274aaca994::t_1e11055ccfae01 52
+  s_d8ee274aaca994::t_5beb5a040f0762 301
+  s_d8ee274aaca994::t_0fb4ddb4c3d90e 17
+tests/src/loader/PrefabResource.test.ts
+  s_d8ee274aaca994::t_253b373867608b 189-190,200-204
+  s_d8ee274aaca994::t_607c29c9d681d4 50
+  s_d8ee274aaca994::t_8ce65542ed8e38 116,255
+  s_d8ee274aaca994::t_3ac7694511ab1a 266
+  s_d8ee274aaca994::t_8bf3e9fed01516 289-292,294-299
+  s_d8ee274aaca994::t_43dbd7ada63106 3
+  s_d8ee274aaca994::t_7ce48bae02638c 4
+  s_d8ee274aaca994::t_3e43a9b81264b2 217-218
+  s_d8ee274aaca994::t_16772ff22dd26c 20
+  s_d8ee274aaca994::t_7c91a2e468ae8b 149
+  s_d8ee274aaca994::t_fbb59d3006f347 98-101
+  s_d8ee274aaca994::t_07e91dea0793e4 183
+  s_d8ee274aaca994::t_285e758a5c4853 69,132-143,145-148,150-159,161-182,184-188,191-199,205-216,219-237,242-254,256-265,267-271,276-288
+  s_d8ee274aaca994::t_0ac51d6e2fa79e 75,79-84
+  s_d8ee274aaca994::t_8dad2840ef3a64 123-125
+  s_d8ee274aaca994::t_9ef1e329f76821 272-275
+  s_d8ee274aaca994::t_3c5431a5a3dbb8 144
+  s_d8ee274aaca994::t_77eacca5000d97 70-74,76-78,85-97,102-115,117-122,126-131,293
+  s_d8ee274aaca994::t_3e0bbf2868a741 18-19,21-37
+  s_d8ee274aaca994::t_77c1efa1750c29 160
+  s_d8ee274aaca994::t_5c1541654bc379 238-241
+packages/loader/README.md
+  s_d8ee274aaca994::t_5e43012f9ac793 4-5
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  s_d8ee274aaca994::t_1730c7a669574a 224-225
+  s_d8ee274aaca994::t_121fef5e45bdb1 228-235
+  s_d8ee274aaca994::t_df1387a231af37 236
+  s_d8ee274aaca994::t_bc3abb1f32c75b 6-8
+  s_d8ee274aaca994::t_efe27a9c32e72b 15-16
+  s_d8ee274aaca994::t_964d556a454b6b 159-164
+tests/src/loader/SceneFormatV2.test.ts
+  s_d8ee274aaca994::t_92c3430a19de0f 694-700,705-721,725-730
+  s_d8ee274aaca994::t_639f5fcd1d66bc 722-724
+  s_d8ee274aaca994::t_f1d4c3dc86b353 3
+  s_d8ee274aaca994::t_1ed8421d6ff61c 83-88
+  s_d8ee274aaca994::t_08b7073a4edd8b 701-704
+  s_d8ee274aaca994::t_dcd37d9dfc3c97 731-746
+packages/loader/src/resource-deserialize/resources/parser/ParserContext.ts
+  s_d8ee274aaca994::t_9c373f8161be20 26-27
+  s_d8ee274aaca994::t_5c97c38216febd 3,5,7,9-11
+  s_d8ee274aaca994::t_b80526c48f1da8 45
+  s_d8ee274aaca994::t_4b2d7c75cbb78c 4,6,8
+packages/loader/src/schema/HierarchySchema.ts
+  s_d8ee274aaca994::t_ba3edbc36eab0b 6-9
+  s_d8ee274aaca994::t_9eb814eab48710 10
+packages/core/src/Entity.ts
+  s_d8ee274aaca994::t_dbc1d3db36cc17 462-466
+packages/loader/src/prefab/PrefabResource.ts
+  s_d8ee274aaca994::t_3046e15b5338d8 71
+  s_d8ee274aaca994::t_723c54f8a2d133 45-49
+  s_d8ee274aaca994::t_9ed8e8afc228c8 10-11
+  s_d8ee274aaca994::t_9c1cd03d03fed1 34-36,38-44,50-54
+  s_d8ee274aaca994::t_1940033634dada 37
+  s_d8ee274aaca994::t_b0b468c41d9fdc 2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "128b0a504212de5435f285fa3c6e2bcedbf4205e",
+  "prompts": {},
+  "sessions": {
+    "s_d8ee274aaca994": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cf59e742-f257-4c31-b534-b6b028898e35",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": null
+    }
+  }
+}
