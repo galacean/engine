@@ -66,8 +66,9 @@ export function createRockCollider(
     const shape = new (MeshColliderShape as unknown as { new (): MeshColliderShape })();
     collider.addShape(shape);
     shape.isConvex = false;
-    shape.material.staticFriction = 0.15;
-    shape.material.dynamicFriction = 0.05;
+    const material = shape.getInstanceMaterial();
+    material.staticFriction = 0.15;
+    material.dynamicFriction = 0.05;
     shape.mesh = mesh;
     return {
       triangles: indices.length / 3,

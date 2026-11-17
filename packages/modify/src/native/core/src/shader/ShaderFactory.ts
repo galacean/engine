@@ -194,12 +194,7 @@ mat3 _normalMatFromModel(mat3 m) {
    */
   static convertTo300(shader: string, isFrag?: boolean): string {
     shader = shader.replace(/\bvarying\b/g, isFrag ? "in" : "out");
-    shader = shader.replace(/\btexture(2D|Cube)\b/g, "texture");
-    shader = shader.replace(/\btexture2DProj\b/g, "textureProj");
-    shader = shader.replace(/\btexture(2D|Cube)LodEXT\b/g, "textureLod");
-    shader = shader.replace(/\btexture(2D|Cube)GradEXT\b/g, "textureGrad");
-    shader = shader.replace(/\btexture2DProjLodEXT\b/g, "textureProjLod");
-    shader = shader.replace(/\btexture2DProjGradEXT\b/g, "textureProjGrad");
+    shader = ShaderFactory.convertTextureCallsTo300(shader);
 
     if (isFrag) {
       shader = shader.replace(/\bgl_FragDepthEXT\b/g, "gl_FragDepth");
@@ -220,6 +215,17 @@ mat3 _normalMatFromModel(mat3 m) {
     }
 
     return shader;
+  }
+
+  /** Normalize shared ES100 sampling helpers without changing ES300 interfaces. @internal */
+  static convertTextureCallsTo300(shader: string): string {
+    return shader
+      .replace(/\btexture(2D|Cube)\b/g, "texture")
+      .replace(/\btexture2DProj\b/g, "textureProj")
+      .replace(/\btexture(2D|Cube)LodEXT\b/g, "textureLod")
+      .replace(/\btexture(2D|Cube)GradEXT\b/g, "textureGrad")
+      .replace(/\btexture2DProjLodEXT\b/g, "textureProjLod")
+      .replace(/\btexture2DProjGradEXT\b/g, "textureProjGrad");
   }
 
   /** Replaces the realtime SH array uniform with a std140 block after ShaderLab preprocessing. @internal */
@@ -407,12 +413,9 @@ mat3 _normalMatFromModel(mat3 m) {
     mrtIndexSet.forEach((index) => {
       declaration += `layout(location=${index}) out vec4 fragOutColor${index};\n`;
     });
-    declaration += `void main(`;
-
     shader = shader.replace(/\bgl_FragData\[(.+?)\]/g, "fragOutColor$1");
-
-    shader = shader.replace(/void\s+?main\s*\(/g, declaration);
-    return shader;
+    // Lowered fragment helpers can write outputs before main is declared.
+    return declaration + shader;
   }
 }
 

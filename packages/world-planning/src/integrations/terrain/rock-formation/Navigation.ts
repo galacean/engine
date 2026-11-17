@@ -79,7 +79,8 @@ export class RockNavigation implements TerrainNavigationLocomotionOwner {
         capsule.radius = PLANNING_REFERENCE.actor.radiusM;
         capsule.height = PLANNING_REFERENCE.actor.heightM - 2 * capsule.radius;
         capsule.contactOffset = 0.025;
-        capsule.material.staticFriction = capsule.material.dynamicFriction = 0;
+        const material = capsule.getInstanceMaterial();
+        material.staticFriction = material.dynamicFriction = 0;
         controller.addShape(capsule);
         controller.slopeLimit = 50;
         controller.stepOffset = 0.32;
