@@ -32,6 +32,33 @@ describe("Terrain near/far production shader variants", () => {
     expect(farSand).not.toContain("material_TerrainMicroNormal");
     expect(farSand).not.toContain("material_TerrainSandRippleParams");
   });
+  it("restricts sand glints to the near sunlit forward variant with sand micro detail", () => {
+    const macros = new Map([
+      ["GRAPHICS_API_WEBGL2", ""],
+      ["MATERIAL_TERRAIN_LAYERS", ""],
+      ["SCENE_DIRECT_LIGHT_COUNT", "1"]
+    ]);
+    const source = () => ShaderMacroProcessor.evaluate(forward.fragmentShaderInstructions, macros);
+    expect(source()).not.toContain("material_TerrainSandGlintStrength");
+    macros.set("MATERIAL_TERRAIN_MICRO_NORMAL", "");
+    const microNormalSamples = /textureGrad\s*\(\s*material_TerrainMicroNormal\b/g;
+    expect(source().match(microNormalSamples)).toHaveLength(1);
+    macros.set("MATERIAL_TERRAIN_SAND_GLINTS", "");
+    expect(source()).toContain("material_TerrainSandGlintStrength");
+    expect(source()).toContain("material_TerrainSandGlintRoughness");
+    expect(source().match(microNormalSamples)).toHaveLength(1);
+    for (const pass of terrain.subShaders[0].passes.filter((pass) => pass.name !== "Forward")) {
+      expect(ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions, macros)).not.toContain(
+        "material_TerrainSandGlintStrength"
+      );
+    }
+    macros.delete("MATERIAL_TERRAIN_MICRO_NORMAL");
+    expect(source()).not.toContain("material_TerrainSandGlintStrength");
+    macros.set("MATERIAL_TERRAIN_MICRO_NORMAL", "");
+    macros.set("MATERIAL_TERRAIN_FAR", "");
+    expect(source()).not.toContain("material_TerrainSandGlintStrength");
+  });
+
   it.each(["Forward", "ScreenSpaceReflectionSurface"])(
     "uses the same opt-in puddle edge in %s",
     (name) => {

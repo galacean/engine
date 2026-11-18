@@ -5,6 +5,9 @@ float renderer_WorldPickBase;
 #define TERRAIN_PROJECT_TERRAIN_FORWARD_PASS_INCLUDED
 
 #define TERRAIN_PROJECT_FORWARD_PASS
+#if defined(MATERIAL_TERRAIN_SAND_GLINTS) && defined(MATERIAL_TERRAIN_MICRO_NORMAL) && defined(MATERIAL_TERRAIN_LAYERS) && defined(SCENE_DIRECT_LIGHT_COUNT) && !defined(MATERIAL_TERRAIN_FAR) && !defined(RENDERER_WORLD_PICK)
+  #define TERRAIN_PROJECT_SAND_GLINTS
+#endif
 #include "ShaderLibrary/Common/Common.glsl"
 #include "ShaderLibrary/Common/Transform.glsl"
 #include "ShaderLibrary/Common/Attributes.glsl"
@@ -47,6 +50,9 @@ struct Varyings {
 #include "terrain/TerrainEvaluation.glsl"
 #include "shared/Lighting.glsl"
 #include "shared/EntranceWave.glsl"
+#ifdef TERRAIN_PROJECT_SAND_GLINTS
+  #include "terrain/TerrainSandGlints.glsl"
+#endif
 
 Varyings TerrainVertex(Attributes attributes) {
   Varyings varyings;
@@ -91,6 +97,10 @@ Varyings TerrainVertex(Attributes attributes) {
 }
 
 void TerrainFragment(Varyings varyings) {
+  #ifdef TERRAIN_PROJECT_SAND_GLINTS
+    vec2 glintDx = dFdx(varyings.positionWS.xz);
+    vec2 glintDy = dFdy(varyings.positionWS.xz);
+  #endif
   #ifdef TERRAIN_PROJECT_GROUND_SHADOW_PCF
     // Derivatives must precede discards and per-pixel layer/water-film branches.
     vec3 shadowPositionDx = dFdx(varyings.positionWS);
@@ -128,6 +138,11 @@ void TerrainFragment(Varyings varyings) {
       alphamapCount
       )) {
       TerrainProjectLightingResult lighting = terrainProjectCreateLightingResult();
+      #ifdef TERRAIN_PROJECT_SAND_GLINTS
+        float sandCoverage = 0.0;
+        vec3 sandNormalSum = vec3(0.0);
+      #endif
+      TerrainProjectSandMicroDetail microDetail = terrainProjectSandMicroDetail(varyings);
       #ifdef TERRAIN_PROJECT_WATER_LAYER
         TerrainProjectWaterFilmAccumulator waterFilmAccumulator = terrainProjectCreateWaterFilmAccumulator();
         SurfaceData waterFilmSubstrate;
@@ -150,7 +165,8 @@ void TerrainFragment(Varyings varyings) {
             SurfaceData surfaceData = evaluateTerrainLayerSurface(
               varyings,
               geometryNormal,
-              layerBlend
+              layerBlend,
+              microDetail.slope
               #ifdef TERRAIN_PROJECT_WATER_LAYER
                 , waterFilm
               #endif
@@ -161,6 +177,13 @@ void TerrainFragment(Varyings varyings) {
               #endif
               hasSurface = true;
             }
+            #ifdef TERRAIN_PROJECT_SAND_GLINTS
+              float exposedSand = layerBlend.sandWeight * groupWeight;
+              exposedSand *= 1.0 - clamp(scene_SurfaceClimate.z * layerBlend.snowResponse, 0.0, 1.0);
+              exposedSand *= 1.0 - waterFilm.coverage;
+              sandCoverage += exposedSand;
+              sandNormalSum += surfaceData.normal * exposedSand;
+            #endif
             terrainProjectAccumulateLighting(
               lighting,
               evaluateTerrainProjectLightingWithShadow(varyings, surfaceData, shadowAttenuation),
@@ -173,6 +196,10 @@ void TerrainFragment(Varyings varyings) {
         }
       }
       if (hasSurface) {
+        #ifdef TERRAIN_PROJECT_SAND_GLINTS
+          terrainProjectApplySandGrains(lighting, varyings.positionWS, waterFilmSubstrate.viewDir, sandNormalSum, microDetail,
+            glintDx, glintDy, sandCoverage, shadowAttenuation);
+        #endif
         #ifdef TERRAIN_PROJECT_WATER_LAYER
           TerrainProjectWaterFilm waterFilm = terrainProjectResolveWaterFilm(
             waterFilmAccumulator,

@@ -84,14 +84,17 @@ export function configureDesertClouds(environment: WorldEnvironmentRuntime, oasi
   }
 }
 
-/** Keep the accepted broad color fields and only the 512px sand normal detail. */
+/** Combines the authored ground colour fields with sand normals and the desert's glint strength. */
 export function desertSurfaceOptions(
-  _plan: import("@galacean/engine-world-planning/semantic-study/IslandPlanModel").IslandPlan,
+  plan: import("@galacean/engine-world-planning/semantic-study/IslandPlanModel").IslandPlan,
   options: import("@galacean/engine-world-planning/runtime/SeedWorldTerrainRuntime").SeedWorldTerrainSurfaceOptions = {},
   _edits: import("@galacean/engine-world-planning/semantic-study/WorldPlanningContract").SemanticRecipe["edits"] = {}
 ): import("@galacean/engine-world-planning/runtime/SeedWorldTerrainRuntime").SeedWorldTerrainSurfaceOptions {
+  const isWasteland = plan.parameters.worldTemplate?.id === "titan-wasteland";
   return {
     ...options, palette: undefined, baseTextureUrl: undefined, roadPattern: true,
+    sandGlintStrength: options.sandGlintStrength ?? (isWasteland ? 3 : 0),
+    sandGlintRoughness: options.sandGlintRoughness ?? (isWasteland ? 0.06 : undefined),
     normalTextureUrl: mojaveAssets.surface.rippleNormal,
     microNormalTextureUrl: mojaveAssets.surface.microNormal
   };

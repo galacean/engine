@@ -292,19 +292,29 @@ export class PlanningSeedRuntimeDebug {
     if (authoredSandNormals) {
       const host = session.inspector.terrainFolderHost;
       const folder = host.folder("沙漠法线", true);
-      const tuning = { ...authoredSandNormals };
-      const apply = () => world.setSandNormalTuning(tuning);
+      const defaults = {
+        ...authoredSandNormals,
+        glintColor: `#${authoredSandNormals.glintColor.toString(16).padStart(6, "0")}`
+      };
+      const tuning = { ...defaults };
+      const apply = () => world.setSandNormalTuning({
+        ...tuning,
+        glintColor: sandGlintPickerRgb(tuning.glintColor)
+      });
       const controllers = [
         folder.add(tuning, "rippleStrength", 0, 2, 0.01).name("沙纹强度"),
         folder.add(tuning, "rippleTileMetres", 1, 36, 0.1).name("沙纹平铺尺寸（m）"),
         folder.add(tuning, "rippleFadeDistanceMetres", 5, 150, 1).name("沙纹渐隐距离（m）"),
         folder.add(tuning, "microStrength", 0, 2, 0.01).name("微法线强度"),
         folder.add(tuning, "microTileMetres", 0.25, 6, 0.05).name("微法线平铺尺寸（m）"),
-        folder.add(tuning, "microFadeDistanceMetres", 2, 40, 1).name("微法线渐隐距离（m）")
+        folder.add(tuning, "microFadeDistanceMetres", 2, 40, 1).name("微法线渐隐距离（m）"),
+        folder.add(tuning, "glintStrength", 0, 3, 0.01).name("沙粒闪光强度"),
+        folder.add(tuning, "glintRoughness", 0.06, 1, 0.01).name("沙粒高光粗糙度"),
+        folder.addColor(tuning, "glintColor").name("沙粒高光颜色")
       ];
       for (const controller of controllers) controller.onChange(apply);
       host.addAction(folder, "恢复沙漠法线默认值", () => {
-        Object.assign(tuning, authoredSandNormals);
+        Object.assign(tuning, defaults);
         apply();
         for (const controller of controllers) controller.updateDisplay();
       });
@@ -513,4 +523,11 @@ export class PlanningSeedRuntimeDebug {
       waterSummary: water.getPerformanceSummary()
     };
   }
+}
+
+// dat.GUI emits six-digit hex from the picker and also accepts CSS rgb()/rgba() text.
+function sandGlintPickerRgb(color: string): number {
+  if (color.startsWith("#")) return Number.parseInt(color.slice(1), 16);
+  const [red, green, blue] = color.slice(color.indexOf("(") + 1, -1).split(",").map(Number);
+  return (red << 16) | (green << 8) | blue;
 }

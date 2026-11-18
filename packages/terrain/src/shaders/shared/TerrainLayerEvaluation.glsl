@@ -160,6 +160,9 @@
     float snowResponse;
     float grassWeight;
     float roadWeight;
+    #ifdef TERRAIN_PROJECT_SAND_GLINTS
+      float sandWeight;
+    #endif
     float weight;
   };
 
@@ -314,6 +317,10 @@
       blend.ambientOcclusion += weight;
       #endif
       blend.snowResponse += snowResponse * weight;
+      #ifdef TERRAIN_PROJECT_SAND_GLINTS
+        // Seed's sand layers carry the ripple normal. Untextured roads, soil and river beds do not.
+        if (layerStorage.z >= 0.0 && appearanceRole != 2.0) blend.sandWeight += weight;
+      #endif
       blend.grassWeight += (appearanceRole == 1.0 ? weight : 0.0);
       #if defined(MATERIAL_TERRAIN_GRASS_SHADING) || defined(MATERIAL_TERRAIN_ROAD_PALETTE)
         blend.roadWeight += (appearanceRole == 2.0 ? weight : 0.0);
@@ -341,6 +348,9 @@
   #if defined(MATERIAL_TERRAIN_UNTEXTURED_SINGLE_MAP) || defined(MATERIAL_TERRAIN_SINGLE_DIFFUSE_SINGLE_MAP)
   TerrainProjectLayerBlend terrainProjectSimpleGroundSurface(vec3 positionWS, vec2 positionDx, vec2 positionDy) {
     TerrainProjectLayerBlend blend;
+    #ifdef TERRAIN_PROJECT_SAND_GLINTS
+      blend.sandWeight = 0.0; // This variant has no layer normal maps.
+    #endif
     blend.albedo = vec3(0.0);
     blend.tangentNormal = vec3(0.0);
     blend.metallic = 0.0;
@@ -419,6 +429,9 @@
     return true;
     #else
     blend.albedo = vec3(0.0);
+    #ifdef TERRAIN_PROJECT_SAND_GLINTS
+      blend.sandWeight = 0.0;
+    #endif
     blend.tangentNormal = vec3(0.0);
     blend.metallic = 0.0;
     blend.smoothness = 0.0;
@@ -449,6 +462,9 @@
       blend.snowResponse *= inverseWeight;
       blend.grassWeight *= inverseWeight;
       blend.roadWeight *= inverseWeight;
+      #ifdef TERRAIN_PROJECT_SAND_GLINTS
+        blend.sandWeight *= inverseWeight;
+      #endif
     }
     return true;
     #endif
@@ -478,6 +494,9 @@
 
   TerrainProjectLayerBlend terrainProjectGroundSurface(vec3 positionWS) {
     TerrainProjectLayerBlend result;
+    #ifdef TERRAIN_PROJECT_SAND_GLINTS
+      result.sandWeight = 0.0;
+    #endif
     result.albedo = vec3(0.0); result.tangentNormal = vec3(0.0);
     result.metallic = 0.0; result.smoothness = 0.0; result.ambientOcclusion = 0.0;
     result.snowResponse = 0.0; result.grassWeight = 0.0; result.roadWeight = 0.0; result.weight = 0.0;
@@ -493,6 +512,9 @@
           result.smoothness += part.smoothness * part.weight;
           result.ambientOcclusion += part.ambientOcclusion * part.weight;
           result.snowResponse += part.snowResponse * part.weight;
+          #ifdef TERRAIN_PROJECT_SAND_GLINTS
+            result.sandWeight += part.sandWeight * part.weight;
+          #endif
           result.grassWeight += part.grassWeight * part.weight;
           result.roadWeight += part.roadWeight * part.weight;
           result.weight += part.weight;
@@ -500,6 +522,9 @@
       }
     }
     float inverse = 1.0 / max(result.weight, 0.00001);
+    #ifdef TERRAIN_PROJECT_SAND_GLINTS
+      result.sandWeight *= inverse;
+    #endif
     result.albedo *= inverse; result.metallic *= inverse; result.smoothness *= inverse;
     result.ambientOcclusion *= inverse; result.snowResponse *= inverse;
     result.grassWeight *= inverse; result.roadWeight *= inverse;

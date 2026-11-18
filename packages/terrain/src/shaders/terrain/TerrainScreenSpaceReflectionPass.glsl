@@ -120,6 +120,7 @@ TerrainProjectScreenSpaceReflectionSurface terrainProjectResolveScreenSpaceRefle
     )) {
       TerrainProjectWaterFilmAccumulator waterFilmAccumulator = terrainProjectCreateWaterFilmAccumulator();
       float totalWeight = 0.0;
+      TerrainProjectSandMicroDetail microDetail = terrainProjectSandMicroDetail(varyings);
       for (int groupIndex = 0; groupIndex < TERRAIN_PROJECT_MAX_ALPHAMAPS_PER_REGION; groupIndex++) {
         if (groupIndex >= alphamapCount) break;
         TerrainProjectLayerBlend layerBlend;
@@ -136,6 +137,7 @@ TerrainProjectScreenSpaceReflectionSurface terrainProjectResolveScreenSpaceRefle
               varyings,
               geometryNormal,
               layerBlend,
+              microDetail.slope,
               candidateWaterFilm
             );
             if (totalWeight <= 0.0) resolved.substrate = candidate;

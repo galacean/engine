@@ -160,6 +160,12 @@ export interface SeedWorldTerrainSurfaceOptions {
   readonly normalScale?: number;
   readonly roadPattern?: boolean;
   readonly microNormalTextureUrl?: string;
+  /** Direct-light glint strength for sand. Omitted or zero disables glints. */
+  readonly sandGlintStrength?: number;
+  /** Highlight tint packed as 0xRRGGBB in sRGB. */
+  readonly sandGlintColor?: number;
+  /** Width of the sand glint reflection lobe in tangent slope space, from 0.06 to 1. */
+  readonly sandGlintRoughness?: number;
 }
 
 export interface SeedWorldSandNormalTuning {
@@ -169,6 +175,12 @@ export interface SeedWorldSandNormalTuning {
   microStrength: number;
   microTileMetres: number;
   microFadeDistanceMetres: number;
+  /** Omitted when editing normals to preserve the current glint strength. */
+  glintStrength?: number;
+  /** Highlight tint packed as 0xRRGGBB in sRGB. */
+  glintColor?: number;
+  /** Lower roughness gives a narrower angular response to light or camera movement. */
+  glintRoughness?: number;
 }
 
 interface SeedWorldTerrainSurface {
@@ -184,7 +196,7 @@ interface SeedWorldTerrainMaterialState {
   readonly surface?: SeedWorldTerrainSurface;
   readonly roadPattern?: boolean;
   readonly microNormal?: Texture2D;
-  sandNormals?: SeedWorldSandNormalTuning;
+  sandNormals?: Required<SeedWorldSandNormalTuning>;
   readonly grassTexture: Texture2D;
   readonly soilTexture?: Texture2D;
   readonly vistaFromDetail?: boolean;
@@ -397,27 +409,34 @@ export class SeedWorldTerrainRuntime {
   }
 
   /** Returns the live sand normal controls when the surface has a ripple texture. */
-  getSandNormalTuning(): SeedWorldSandNormalTuning | undefined {
+  getSandNormalTuning(): Required<SeedWorldSandNormalTuning> | undefined {
     const tuning = this._terrainMaterialState.sandNormals;
     return tuning && { ...tuning };
   }
 
-  /** Update only the shader uniforms, keeping the terrain, texture residency and camera in place. */
+  /** Updates sand shading on resident materials and on future clipmap material rebuilds. */
   setSandNormalTuning(tuning: SeedWorldSandNormalTuning): void {
     const { surface, sandNormals } = this._terrainMaterialState;
     if (!sandNormals || !surface) return;
+    const glintStrength = tuning.glintStrength ?? sandNormals.glintStrength;
+    const glintColor = tuning.glintColor ?? sandNormals.glintColor;
+    const glintRoughness = tuning.glintRoughness ?? sandNormals.glintRoughness;
     const values = [
       tuning.rippleStrength,
       tuning.rippleTileMetres,
       tuning.rippleFadeDistanceMetres,
       tuning.microStrength,
       tuning.microTileMetres,
-      tuning.microFadeDistanceMetres
+      tuning.microFadeDistanceMetres,
+      glintStrength
     ];
     if (
       !values.every(Number.isFinite) ||
       tuning.rippleStrength < 0 ||
       tuning.microStrength < 0 ||
+      glintStrength < 0 ||
+      !isSandGlintColor(glintColor) ||
+      !isSandGlintRoughness(glintRoughness) ||
       Math.min(
         tuning.rippleTileMetres,
         tuning.rippleFadeDistanceMetres,
@@ -426,9 +445,9 @@ export class SeedWorldTerrainRuntime {
       ) <= 0
     )
       throw new RangeError("Invalid sand normal tuning");
-    for (const material of this.clipmap.renderMaterials)
-      bindSeedTerrainSandNormals(material, tuning, surface.tileMetres);
-    this._terrainMaterialState.sandNormals = { ...tuning };
+    const next = { ...tuning, glintStrength, glintColor, glintRoughness };
+    for (const material of this.clipmap.renderMaterials) bindSeedTerrainSandNormals(material, next, surface.tileMetres);
+    this._terrainMaterialState.sandNormals = next;
   }
 
   /** Restores the authored road colour and complete shared grass colour field. */
@@ -486,6 +505,12 @@ export class SeedWorldTerrainRuntime {
     surfaceOptions: SeedWorldTerrainSurfaceOptions = {}
   ): Promise<SeedWorldTerrainRuntime> {
     signal?.throwIfAborted();
+    const glintStrength = surfaceOptions.sandGlintStrength ?? 0;
+    if (!Number.isFinite(glintStrength) || glintStrength < 0) throw new RangeError("Invalid sand glint strength");
+    const glintRoughness = surfaceOptions.sandGlintRoughness ?? 0.23;
+    if (!isSandGlintRoughness(glintRoughness)) throw new RangeError("Invalid sand glint roughness");
+    const glintColor = surfaceOptions.sandGlintColor ?? 0xffd495;
+    if (!isSandGlintColor(glintColor)) throw new RangeError("Invalid sand glint color");
     const root = parent.createChild(`Seed World ${plan.rootSeed}`);
     // Candidate construction deliberately yields across several animation
     // frames. Keep the incomplete hierarchy outside update/render traversal
@@ -555,7 +580,10 @@ export class SeedWorldTerrainRuntime {
                 rippleFadeDistanceMetres: 115,
                 microStrength: 0.55,
                 microTileMetres: 2,
-                microFadeDistanceMetres: 18
+                microFadeDistanceMetres: 18,
+                glintStrength,
+                glintColor,
+                glintRoughness
               }
             : undefined,
         roadPattern: surfaceOptions.roadPattern,
@@ -1304,11 +1332,33 @@ function bindSeedTerrainMaterialState(material: Material, state: SeedWorldTerrai
   material.shaderData.setFloat(MATERIAL_TERRAIN_FAR_LOD, state.farLod);
 }
 
+function isSandGlintRoughness(value: number): boolean {
+  return Number.isFinite(value) && value >= 0.06 && value <= 1;
+}
+
+function isSandGlintColor(color: number): boolean {
+  return Number.isInteger(color) && color >= 0 && color <= 0xffffff;
+}
+
 function bindSeedTerrainSandNormals(
   material: Material,
-  tuning: SeedWorldSandNormalTuning,
+  tuning: Required<SeedWorldSandNormalTuning>,
   authoredTileMetres: number
 ): void {
+  const glintStrength = tuning.glintStrength;
+  if (glintStrength > 0) material.shaderData.enableMacro("MATERIAL_TERRAIN_SAND_GLINTS");
+  else material.shaderData.disableMacro("MATERIAL_TERRAIN_SAND_GLINTS");
+  material.shaderData.setFloat("material_TerrainSandGlintStrength", glintStrength);
+  material.shaderData.setFloat("material_TerrainSandGlintRoughness", tuning.glintRoughness);
+  const rgb = tuning.glintColor;
+  material.shaderData.setVector3(
+    "material_TerrainSandGlintColor",
+    new Vector3(
+      Color.sRGBToLinearSpace((rgb >>> 16) / 255),
+      Color.sRGBToLinearSpace(((rgb >>> 8) & 255) / 255),
+      Color.sRGBToLinearSpace((rgb & 255) / 255)
+    )
+  );
   material.shaderData.setVector3(
     "material_TerrainSandRippleParams",
     new Vector3(tuning.rippleStrength, authoredTileMetres / tuning.rippleTileMetres, tuning.rippleFadeDistanceMetres)

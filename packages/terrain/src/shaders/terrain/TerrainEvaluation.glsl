@@ -72,25 +72,40 @@ void terrainProjectApplyTerrainClimate(
   #if defined(MATERIAL_TERRAIN_MICRO_NORMAL) && !defined(MATERIAL_TERRAIN_FAR)
     sampler2D material_TerrainMicroNormal;
     vec3 material_TerrainSandMicroParams; // strength, repeats per metre, fade distance in metres
-    vec3 terrainProjectAddMicroNormal(vec3 normalTS, vec3 positionWS, float lodWeight) {
+  #endif
+  struct TerrainProjectSandMicroDetail {
+    vec2 slope;
+    float visibility;
+  };
+  TerrainProjectSandMicroDetail terrainProjectSandMicroDetail(Varyings varyings) {
+    TerrainProjectSandMicroDetail detail;
+    detail.slope = vec2(0.0);
+    detail.visibility = 0.0;
+    #if defined(MATERIAL_TERRAIN_MICRO_NORMAL) && !defined(MATERIAL_TERRAIN_FAR)
+      vec3 positionWS = varyings.positionWS;
+      float lodWeight = 1.0;
+      #ifdef MATERIAL_TERRAIN_DETAIL_TRANSITION
+        lodWeight = terrainProjectFarDetailVisibility(varyings);
+      #endif
       float distanceLimit = material_TerrainSandMicroParams.z;
+      detail.visibility = lodWeight * (1.0 - smoothstep(distanceLimit / 3.0, distanceLimit, distance(positionWS, camera_Position)));
       vec2 uv = positionWS.xz * material_TerrainSandMicroParams.y;
       vec2 dx = dFdx(uv), dy = dFdy(uv);
       vec2 texels = vec2(textureSize(material_TerrainMicroNormal, 0));
       float footprint = max(length(dx * texels), length(dy * texels));
-      float weight = lodWeight * (1.0 - smoothstep(1.25, 6.0, footprint)) *
-        (1.0 - smoothstep(distanceLimit / 3.0, distanceLimit, distance(positionWS, camera_Position)));
-      weight *= material_TerrainSandMicroParams.x;
-      if (weight <= 0.0) return normalTS;
-      vec3 detail = textureGrad(material_TerrainMicroNormal, uv, dx, dy).rgb * 2.0 - 1.0;
-      normalTS.xy += detail.xy / max(detail.z, 0.1) * normalTS.z * weight;
-      return normalTS;
-    }
-  #endif
+      float weight = detail.visibility * (1.0 - smoothstep(1.25, 6.0, footprint)) * material_TerrainSandMicroParams.x;
+      if (weight > 0.0) {
+        vec3 normalTS = textureGrad(material_TerrainMicroNormal, uv, dx, dy).rgb * 2.0 - 1.0;
+        detail.slope = normalTS.xy / max(normalTS.z, 0.1) * weight;
+      }
+    #endif
+    return detail;
+  }
   SurfaceData evaluateTerrainLayerSurface(
     Varyings varyings,
     vec3 geometryNormal,
-    TerrainProjectLayerBlend layerBlend
+    TerrainProjectLayerBlend layerBlend,
+    vec2 sandMicroSlope
     #ifdef TERRAIN_PROJECT_WATER_LAYER
       , out TerrainProjectWaterFilm waterFilm
     #endif
@@ -110,7 +125,7 @@ void terrainProjectApplyTerrainClimate(
         tangentNormal = mix(vec3(0.0, 0.0, 1.0), tangentNormal, rippleWeight);
       #endif
       #ifdef MATERIAL_TERRAIN_MICRO_NORMAL
-        tangentNormal = terrainProjectAddMicroNormal(tangentNormal, varyings.positionWS, detailVisibility);
+        tangentNormal.xy += sandMicroSlope * tangentNormal.z;
       #endif
     #endif
     vec3 shadingNormal = terrainProjectLayerNormalToWorld(tangentNormal, geometryNormal);
