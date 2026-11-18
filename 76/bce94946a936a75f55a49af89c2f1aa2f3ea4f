@@ -1,0 +1,52 @@
+tests/src/shader-compiler/ShaderCompiler.test.ts
+  s_da48a1c3cefcb7::t_e0c333e0aff056 919-942
+  s_da48a1c3cefcb7::t_cd1cb06d9962f4 69,75
+packages/core/src/shader/enums/ShaderLanguage.ts
+  s_da48a1c3cefcb7::t_70eb6873cde3d9 6
+tests/package-consumer/PublishedShaderPackages.test.ts
+  s_da48a1c3cefcb7::t_70eb6873cde3d9 273,278,285,294,304-305,307-308,313,682-683,702,706
+tests/src/core/BuiltinShaderIdentity.test.ts
+  s_da48a1c3cefcb7::t_70eb6873cde3d9 12,130-131
+tests/src/core/texture/RenderTarget.test.ts
+  s_da48a1c3cefcb7::t_e0c333e0aff056 1,77-91
+tests/src/core/resource/ResourceManager.test.ts
+  s_da48a1c3cefcb7::t_70eb6873cde3d9 1,180-182
+packages/shader-compiler/src/codeGen/GLES300.ts
+  s_da48a1c3cefcb7::t_ea1cab8013b939 143,159,215-220,222
+  s_da48a1c3cefcb7::t_b49dcee0737a69 57-71,221,223
+tests/src/rhi-webgl/HeadlessEngine.test.ts
+  s_da48a1c3cefcb7::t_e0c333e0aff056 1-11,73-91
+  s_da48a1c3cefcb7::t_7cc961892007ae 92
+tests/src/core/texture/TextureCubeMap.test.ts
+  s_da48a1c3cefcb7::t_e0c333e0aff056 21,48,52,56,65,73,75,86
+packages/core/src/mesh/BlendShapeManager.ts
+  s_da48a1c3cefcb7::t_ea1cab8013b939 156-157
+  s_da48a1c3cefcb7::t_13081b5179938b 155,158
+tests/src/loader/MaterialLoader.test.ts
+  s_da48a1c3cefcb7::t_70eb6873cde3d9 1,17,31,78
+  s_da48a1c3cefcb7::t_a73478aca3b85f 179-183
+tests/src/core/texture/Texture2D.test.ts
+  s_da48a1c3cefcb7::t_e0c333e0aff056 20,45,49,52-53,61,63,74
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  s_da48a1c3cefcb7::t_ea1cab8013b939 185-201
+tests/src/rhi-webgl/WebGLEngine.test.ts
+  s_da48a1c3cefcb7::t_e0c333e0aff056 17-26
+packages/loader/src/TextureLoader.ts
+  s_da48a1c3cefcb7::t_9a6a9e77773443 85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "76bce94946a936a75f55a49af89c2f1aa2f3ea4f",
+  "prompts": {},
+  "sessions": {
+    "s_da48a1c3cefcb7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1524d-29ee-7280-8621-925d13a5c914",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
