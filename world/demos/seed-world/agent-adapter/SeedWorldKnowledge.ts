@@ -9,7 +9,6 @@ import environmentSkill from "@galacean/engine-environment/skills/environment/SK
 import terrainSkill from "@galacean/engine-terrain/skills/terrain/SKILL.md?raw";
 import vegetationSkill from "@galacean/engine-vegetation/skills/vegetation/SKILL.md?raw";
 import waterSkill from "@galacean/engine-water/skills/water/SKILL.md?raw";
-import { BUILTIN_BUILDING_ASSETS } from "@galacean/engine-building/building/resources/BuiltinBuildingAssets";
 const localFiles = import.meta.glob("./skills/**/SKILL.md", { eager: true, as: "raw" }) as Record<string, string>;
 /** System-owned Skills live in their packages; this Demo adds its API index and registered components. */
 const files: Readonly<Record<string, string>> = {
@@ -30,8 +29,6 @@ const SKILL_DOMAINS: Readonly<Record<string, readonly string[]>> = {
   animals: ["animals"]
 };
 const HOST_NOTES = [
-  "用户要在面前挖河或溪流时，先读 declare/editor/world/tools/water.digRiver.d.ts，调用 tools.water.digRiver。它负责河床与河流水面。没有指定尺寸时传 {}。不要先执行独立地形笔刷。提交成功且没有运行错误后就可回复。需要核验水深时，用返回中心线上的 {x,z} 调用 tools.water.sample，无需查询项目组件 ID。",
-  `用户要在面前建房子时，使用 tools.spatial.resolve 的 viewer/front 和 terrain、avoidWater 解析落点，再在同一 execute 内调用 tools.building.generate（European.buildHouses）、editor.asset.create 和 editor.entity.create。Seed World 建筑库是 ${BUILTIN_BUILDING_ASSETS}，无需遍历已有房子。实体实例的位置必须为 [x, 0, z]，只取落点的 X/Z，宿主会自动贴地。见 skills/building/references/planning.md。`,
   "world_state.snapshot.viewer.atSubmission 是当前 inputId 提交时冻结的位姿和拍摄时间，不是对话开始的时间。没有生效的输入时，它为 null。viewer.current 在每次模型请求时采样。用户可能在执行期间移动或转向。相对指令按提交时的参照解析。验证已创建的对象时，核对身份和目标位置。截图使用自己的 metadata.viewer 和 capturedAt。对象不在当前画面中，不能证明创建失败。不要为了验证而重新创建对象，也不要为了验证而移动用户的相机。",
   "execute 中的世界接口都在 `tools` 下，例如 `await tools.world.parameters.query(...)`。组件扩展使用 `await editor.component.query(...)` 和返回代理上声明的方法。按方法声明中打印的完整写法调用：`spatial.resolve` 的写法是 `tools.spatial.resolve`，不是 `tools.world.spatial.resolve`。Skill 目录只是主题，不是运行时命名空间。",
   "execute 的代码是 JavaScript，不能写类型注解。代码运行前会做类型检查：字段名以声明为准，可能为 null 的字段要先判断。只有 declare/editor/ 中声明的接口可以在当前宿主调用。read 返回 `next` 表示内容还没读完。依赖返回结构前，先按该 offset 继续读取。"

@@ -121,6 +121,9 @@ describe("Agent skills and declarations", () => {
     expect(listed.find((skill: { name: string }) => skill.name === "assets").path).toBe("skills/assets/SKILL.md");
     expect(JSON.stringify(listed)).not.toContain("## ");
     expect(contexts[0].notes).toContain("tools.spatial.resolve");
+    expect(contexts[0].notes).not.toMatch(/water\.digRiver|building\.generate|building-kit\.prefab/);
+    expect(files.read("skills/water/SKILL.md")).toContain("tools.water.digRiver");
+    expect(files.read("skills/building/references/planning.md")).toContain("Building/Units/building-kit.prefab");
   });
 });
 
@@ -152,7 +155,7 @@ describe("building skill examples", () => {
     const checker = new AgentJavaScriptChecker(agentTypecheckLibraries);
     const examples = [...buildingPlanning.matchAll(/```js\n([\s\S]*?)```/g)].map((match) => match[1]);
     expect(examples).toHaveLength(2);
-    expect(checker.check(`const x = 0, z = 0;\n${examples[0]}`, catalog.modules)).toBeUndefined();
+    expect(checker.check(examples[0], catalog.modules)).toBeUndefined();
     expect(checker.check(examples[1], catalog.modules)).toBeUndefined();
   });
 });
