@@ -108,6 +108,39 @@ Shader "Lighting/ScreenSpaceReflection" {
         );
       }
 
+      bool sampleScreenSpaceReflectionReceiverCandidate(
+        vec2 surfacePixel,
+        out vec2 candidateUV,
+        out vec4 candidateSurface,
+        out float candidateDepth
+      ) {
+        if (
+          surfacePixel.x < 0.0 ||
+          surfacePixel.y < 0.0 ||
+          surfacePixel.x >= material_SSRSurfaceTexelSize.z ||
+          surfacePixel.y >= material_SSRSurfaceTexelSize.w
+        ) {
+          return false;
+        }
+        candidateUV = (surfacePixel + vec2(0.5)) * material_SSRSurfaceTexelSize.xy;
+        candidateSurface = texture2D(material_SSRSurfaceTexture, candidateUV);
+        if (candidateSurface.a <= 0.0 || candidateSurface.b >= material_SSRMaxRoughness) return false;
+
+        candidateDepth = texture2D(material_SSRReceiverDepthTexture, candidateUV).r;
+        if (candidateDepth >= 0.999999) return false;
+        float candidateEyeDepth = remapDepthBufferEyeDepth(candidateDepth);
+        float rawSceneDepth = texture2D(material_SSROpaqueDepthTexture, candidateUV).r;
+        if (rawSceneDepth < 0.999999) {
+          float sceneEyeDepth = remapDepthBufferEyeDepth(rawSceneDepth);
+          // Occlusion must not reuse the hit thickness: near a contact edge the hidden receiver
+          // lies only a few centimetres behind the occluder, and a thickness-sized tolerance
+          // would treat it as visible and composite its reflection onto the occluder pixel.
+          float occlusionTolerance = sceneEyeDepth * 0.001;
+          if (candidateEyeDepth > sceneEyeDepth + occlusionTolerance) return false;
+        }
+        return true;
+      }
+
       bool selectScreenSpaceReflectionReceiver(
         vec2 traceUV,
         out vec2 receiverUV,
@@ -148,6 +181,17 @@ Shader "Lighting/ScreenSpaceReflection" {
           firstSurfacePixel,
           max(surfacePixelEnd - vec2(1.0), firstSurfacePixel)
         );
+        if (
+          sampleScreenSpaceReflectionReceiverCandidate(
+            preferredSurfacePixel,
+            receiverUV,
+            receiverSurface,
+            receiverDepth
+          )
+        ) {
+          return true;
+        }
+
         float closestPixelDistance = 100000000.0;
         bool found = false;
         receiverUV = vec2(0.0);
@@ -155,35 +199,30 @@ Shader "Lighting/ScreenSpaceReflection" {
         receiverDepth = 1.0;
 
         // resolutionScale is clamped to at least 0.25, so one trace cell covers
-        // no more than 4x4 authoritative receiver pixels. Trace the stable pixel
-        // represented by this low-resolution texel and only search spatially
-        // nearby when that pixel has no receiver coverage.
+        // no more than 4x4 authoritative receiver pixels. Search spatially
+        // nearby only when the preferred pixel has no receiver coverage.
         for (int y = 0; y < 4; ++y) {
           for (int x = 0; x < 4; ++x) {
             vec2 surfacePixel = firstSurfacePixel + vec2(float(x), float(y));
             if (
               surfacePixel.x >= surfacePixelEnd.x ||
               surfacePixel.y >= surfacePixelEnd.y ||
-              surfacePixel.x >= material_SSRSurfaceTexelSize.z ||
-              surfacePixel.y >= material_SSRSurfaceTexelSize.w
+              all(equal(surfacePixel, preferredSurfacePixel))
             ) {
               continue;
             }
-            vec2 candidateUV = (surfacePixel + vec2(0.5)) * material_SSRSurfaceTexelSize.xy;
-            vec4 candidateSurface = texture2D(material_SSRSurfaceTexture, candidateUV);
-            if (candidateSurface.a <= 0.0 || candidateSurface.b >= material_SSRMaxRoughness) continue;
-
-            float candidateDepth = texture2D(material_SSRReceiverDepthTexture, candidateUV).r;
-            if (candidateDepth >= 0.999999) continue;
-            float candidateEyeDepth = remapDepthBufferEyeDepth(candidateDepth);
-            float rawSceneDepth = texture2D(material_SSROpaqueDepthTexture, candidateUV).r;
-            if (rawSceneDepth < 0.999999) {
-              float sceneEyeDepth = remapDepthBufferEyeDepth(rawSceneDepth);
-              // Occlusion must not reuse the hit thickness: near a contact edge the hidden receiver
-              // lies only a few centimetres behind the occluder, and a thickness-sized tolerance
-              // would treat it as visible and composite its reflection onto the occluder pixel.
-              float occlusionTolerance = sceneEyeDepth * 0.001;
-              if (candidateEyeDepth > sceneEyeDepth + occlusionTolerance) continue;
+            vec2 candidateUV;
+            vec4 candidateSurface;
+            float candidateDepth;
+            if (
+              !sampleScreenSpaceReflectionReceiverCandidate(
+                surfacePixel,
+                candidateUV,
+                candidateSurface,
+                candidateDepth
+              )
+            ) {
+              continue;
             }
             vec2 pixelOffset = surfacePixel - preferredSurfacePixel;
             float pixelDistance = dot(pixelOffset, pixelOffset);
@@ -602,14 +641,13 @@ Shader "Lighting/ScreenSpaceReflection" {
         vec2 uv = varyings.v_uv;
         vec4 baseColor = texture2D(material_SSRSceneColorTexture, uv);
         vec4 surface = texture2D(material_SSRSurfaceTexture, uv);
-        vec4 response = texture2D(material_SSRResponseTexture, uv);
-        vec4 trace = texture2D(material_SSRTraceTexture, uv);
-        float receiverDepth = texture2D(material_SSRReceiverDepthTexture, uv).r;
-        // A low-resolution trace can originate from a smoother neighboring pixel.
-        // Enforce the current receiver's cutoff even when reconstruction is skipped.
-        if (surface.b >= material_SSRMaxRoughness) trace = vec4(0.0);
 
         if (material_SSRDebugMode > 0.5) {
+          vec4 trace = texture2D(material_SSRTraceTexture, uv);
+          // A low-resolution trace can originate from a smoother neighboring pixel.
+          // Enforce the current receiver's cutoff even when reconstruction is skipped.
+          if (surface.b >= material_SSRMaxRoughness) trace = vec4(0.0);
+          float receiverDepth = texture2D(material_SSRReceiverDepthTexture, uv).r;
           if (material_SSRDebugMode < 1.5) {
             return baseColor;
           } else if (material_SSRDebugMode < 2.5) {
@@ -626,10 +664,17 @@ Shader "Lighting/ScreenSpaceReflection" {
           }
         }
 
-        if (surface.a <= 0.0 || trace.a <= 0.0 || receiverDepth >= 0.999999) {
+        if (surface.a <= 0.0 || surface.b >= material_SSRMaxRoughness) {
           return baseColor;
         }
 
+        vec4 trace = texture2D(material_SSRTraceTexture, uv);
+        float receiverDepth = texture2D(material_SSRReceiverDepthTexture, uv).r;
+        if (trace.a <= 0.0 || receiverDepth >= 0.999999) {
+          return baseColor;
+        }
+
+        vec4 response = texture2D(material_SSRResponseTexture, uv);
         vec3 viewPosition = reconstructScreenSpaceReflectionViewPosition(uv, receiverDepth);
         vec3 viewNormal = decodeScreenSpaceReflectionViewNormal(surface.rg);
         vec3 environmentRadiance = sampleScreenSpaceReflectionEnvironment(viewPosition, viewNormal, surface.b);
