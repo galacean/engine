@@ -1,0 +1,21 @@
+world/demos/seed-world/agent-adapter/knowledge/README.md
+  s_b4932ee6673859::t_4714d426345ee5 9
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAuthoringComponents.ts
+  s_b4932ee6673859::t_4714d426345ee5 19-22,25,326
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "04bee97a1bdda9246cc5270e175bb0e8e17fe881",
+  "prompts": {},
+  "sessions": {
+    "s_b4932ee6673859": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ed5a-1ad6-72d1-bbb3-b76240cdaf12",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
