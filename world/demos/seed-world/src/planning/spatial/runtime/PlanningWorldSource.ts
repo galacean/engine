@@ -1,6 +1,6 @@
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
 import { applyPlanningTemplateSurface, initialPlanningTemplate, refreshLowPolyPreview, updateDesertPreviewRelief } from "../PlanningStartupTemplate.ts";
-import { removeDesertCamelPreset } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
+import { refreshDesertAnimalPreset } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
 import { resetPlanningFarmSaveChoice } from "../farming/PlanningFarmSave.ts";
 import { PlanningSession, type PlanningSessionOptions } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import { exportPlanningRecipe, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
@@ -48,7 +48,7 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
       catch (error) { client.dispose(); throw error; }
     }
   }
-  if (document) removeDesertCamelPreset(document);
+  if (document) refreshDesertAnimalPreset(document);
   let accepted = handoff?.result;
   if (storage.initialize) {
     try {

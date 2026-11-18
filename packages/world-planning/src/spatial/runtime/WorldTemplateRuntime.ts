@@ -1,5 +1,6 @@
 import {
   AssetType,
+  BlendFactor,
   BlendMode,
   BoundingBox,
   BoxShape,
@@ -24,6 +25,7 @@ import {
   ParticleSimulationSpace,
   PBRMaterial,
   PointLight,
+  RenderFace,
   Shader,
   UnlitMaterial,
   PrimitiveMesh,
@@ -31,6 +33,7 @@ import {
   TextureFilterMode,
   TextureFormat,
   TextureWrapMode,
+  Vector2,
   Vector3,
   Vector4,
   VertexElement,
@@ -62,6 +65,7 @@ import {
 import translucentShader from "./TemplateTranslucent.shader?raw";
 import fireflyShader from "./TemplateFirefly.shader?raw";
 import petalShader from "./TemplatePetal.shader?raw";
+import butterflyShader from "./TemplateButterfly.shader?raw";
 
 function modelBounds(entity: Entity): BoundingBox {
   const bounds = new BoundingBox(
@@ -90,6 +94,10 @@ export class WorldTemplateRuntime {
   private sporeTexture?: Texture2D;
   private petalRenderer?: ParticleRenderer;
   private petalMaterial?: ParticleMaterial;
+  private butterflyRenderer?: ParticleRenderer;
+  private butterflyMaterial?: ParticleMaterial;
+  private butterflyWingMesh?: ModelMesh;
+  private butterflyEmissionMesh?: ModelMesh;
   private readonly foliageWindDisposals: Array<() => void> = [];
   private disposeProceduralPlants?: () => void;
   private readonly leafTemplate?: Material;
@@ -144,9 +152,25 @@ export class WorldTemplateRuntime {
           }
         })
       : Promise.resolve(undefined);
-    const [leafTemplate, petalTexture, plantResources] = await Promise.all([
+    const butterflyTextureUrl = WORLD_TEMPLATE_ART[template.id].butterflies?.textureUrl;
+    const butterflyTextureTask = butterflyTextureUrl
+      ? parent.engine.resourceManager.load<Texture2D>({
+          type: AssetType.Texture,
+          url: butterflyTextureUrl,
+          params: {
+            isSRGBColorSpace: true,
+            mipmap: true,
+            filterMode: TextureFilterMode.Trilinear,
+            wrapModeU: TextureWrapMode.Clamp,
+            wrapModeV: TextureWrapMode.Clamp,
+            anisoLevel: 4
+          }
+        })
+      : Promise.resolve(undefined);
+    const [leafTemplate, petalTexture, butterflyTexture, plantResources] = await Promise.all([
       leafTemplateTask,
       petalTextureTask,
+      butterflyTextureTask,
       plantResourcesTask,
       ...[...urls].map(async (url) => {
         assets.set(
@@ -170,6 +194,7 @@ export class WorldTemplateRuntime {
       ground,
       leafTemplate,
       petalTexture,
+      butterflyTexture,
       formations,
       plantResources
     );
@@ -183,6 +208,7 @@ export class WorldTemplateRuntime {
     ground: (x: number, z: number) => number | undefined,
     leafTemplate?: Material,
     petalTexture?: Texture2D,
+    butterflyTexture?: Texture2D,
     formations?: readonly RockFormationMesh[],
     plantResources?: TemplateProceduralPlantResources
   ) {
@@ -277,6 +303,11 @@ export class WorldTemplateRuntime {
       if (petals) {
         if (!petalTexture) throw new Error("Missing template petal texture");
         this.createPetalParticles(petals, ground, petalTexture);
+      }
+      const butterflies = WORLD_TEMPLATE_ART[template.id].butterflies;
+      if (butterflies) {
+        if (!butterflyTexture) throw new Error("Missing template butterfly texture");
+        this.createButterflyParticles(butterflies, ground, butterflyTexture);
       }
       const proceduralPlants = WORLD_TEMPLATE_ART[template.id].proceduralPlants;
       if (proceduralPlants?.length) {
@@ -446,6 +477,159 @@ export class WorldTemplateRuntime {
     );
     generator.play(false);
     generator.emit(Math.ceil(petals.count / 2));
+  }
+  private createButterflyParticles(
+    butterflies: NonNullable<WorldTemplateArtDirection["butterflies"]>,
+    ground: (x: number, z: number) => number | undefined,
+    texture: Texture2D
+  ): void {
+    const { engine } = this.root;
+    const { x, y, z } = this.anchor;
+    const seed = templateBaseSeed(this.template.id);
+    const sampleCount = Math.max(48, butterflies.count * 2);
+    const positions: Vector3[] = [];
+    for (let i = 0; i < sampleCount; i++) {
+      const sample = (field: string) => settlementRandom(seed, `butterfly:${i}:${field}`);
+      const isCanopy = sample("tier") < butterflies.canopyRatio;
+      const radialSpread = isCanopy ? 0.85 : 1.0;
+      const angle = sample("angle") * Math.PI * 2;
+      const radius = Math.sqrt(sample("radius")) * 0.5 * radialSpread;
+      const bx = butterflies.center[0] + Math.cos(angle) * butterflies.extent[0] * radius;
+      const bz = butterflies.center[2] + Math.sin(angle) * butterflies.extent[2] * radius;
+      const floor = ground(x - bx, z + bz);
+      if (floor === undefined) continue;
+      const heightOffset = isCanopy
+        ? butterflies.center[1] + butterflies.extent[1] * (0.34 + 0.66 * sample("height"))
+        : 0.68 + butterflies.center[1] * 1.35 * sample("height");
+      positions.push(new Vector3(-bx, floor - y + heightOffset, bz));
+    }
+    if (!positions.length) return;
+
+    const emissionMesh = (this.butterflyEmissionMesh = new ModelMesh(engine, "Oasis butterfly emission points"));
+    emissionMesh.setPositions(positions);
+    emissionMesh.setNormals(positions.map(() => new Vector3(0, 1, 0)));
+    BoundingBox.fromPoints(positions, emissionMesh.bounds);
+    emissionMesh.uploadData(false);
+    const shape = new MeshShape();
+    shape.mesh = emissionMesh;
+
+    // 6-quad hinged 2-wing butterfly plane in XZ (thorax along Z, left/right wings along +-X).
+    const wingMesh = (this.butterflyWingMesh = new ModelMesh(engine, "Butterfly wing mesh"));
+    const cols = [-0.5, -0.32, -0.14, 0.0, 0.14, 0.32, 0.5];
+    const rows = [-0.5, 0.5];
+    const meshPositions: Vector3[] = [];
+    const meshUVs: Vector2[] = [];
+    for (const rz of rows) {
+      for (const cx of cols) {
+        meshPositions.push(new Vector3(cx, 0, rz));
+        meshUVs.push(new Vector2(cx + 0.5, 0.5 - rz));
+      }
+    }
+    const indices = new Uint16Array((cols.length - 1) * 6);
+    let write = 0;
+    for (let c = 0; c < cols.length - 1; c++) {
+      const i0 = c;
+      const i1 = c + 1;
+      const i2 = cols.length + c;
+      const i3 = cols.length + c + 1;
+      indices[write++] = i0;
+      indices[write++] = i2;
+      indices[write++] = i1;
+      indices[write++] = i1;
+      indices[write++] = i2;
+      indices[write++] = i3;
+    }
+    wingMesh.setPositions(meshPositions);
+    wingMesh.setUVs(meshUVs);
+    wingMesh.setIndices(indices);
+    wingMesh.addSubMesh(0, indices.length);
+    wingMesh.bounds.min.set(-0.65, -0.65, -0.65);
+    wingMesh.bounds.max.set(0.65, 0.65, 0.65);
+    wingMesh.uploadData(false);
+
+    const shader = Shader.find("Planning/ButterflyParticle") ?? Shader.create(butterflyShader);
+    const material = (this.butterflyMaterial = new ParticleMaterial(engine, shader));
+    material.name = "Oasis ambient butterflies";
+    material.renderFace = RenderFace.Double;
+    material.blendMode = BlendMode.Normal;
+    material.shaderData.setInt("sourceColorBlendFactor", BlendFactor.One);
+    material.shaderData.setInt("destinationColorBlendFactor", BlendFactor.OneMinusSourceAlpha);
+    material.shaderData.setInt("depthTestEnabled", 1);
+    material.shaderData.setInt("depthWriteEnabled", 0);
+    material.shaderData.setFloat("material_FlapSpeed", butterflies.flapSpeed);
+    material.shaderData.setFloat("material_FlapAngleMin", -0.62);
+    material.shaderData.setFloat("material_FlapAngleMax", 1.12);
+    material.shaderData.setFloat("material_HdrIntensity", butterflies.emissionIntensity);
+    material.baseTexture = texture;
+    const [r, g, b] = templateLinearColor(butterflies.color);
+    material.baseColor = new Color(r * butterflies.intensity, g * butterflies.intensity, b * butterflies.intensity, 1);
+
+    const renderer = (this.butterflyRenderer = this.root
+      .createChild("Oasis butterflies")
+      .addComponent(ParticleRenderer));
+    renderer.renderMode = ParticleRenderMode.Mesh;
+    renderer.mesh = wingMesh;
+    renderer.setMaterial(material);
+    renderer.castShadows = renderer.receiveShadows = false;
+
+    const generator = renderer.generator;
+    const main = generator.main;
+    generator.randomSeed = seed ^ 0x5bf03635;
+    main.playOnEnabled = false;
+    main.isLoop = true;
+    main.duration = butterflies.lifetimeSeconds;
+    main.maxParticles = butterflies.count;
+    main.simulationSpace = ParticleSimulationSpace.World;
+    main.startSpeed = new ParticleCompositeCurve(0.18, 0.52);
+    main.startSize = new ParticleCompositeCurve(...butterflies.sizeM);
+    main.startLifetime = new ParticleCompositeCurve(
+      butterflies.lifetimeSeconds * 0.8,
+      butterflies.lifetimeSeconds * 1.2
+    );
+    main.gravityModifier.constant = 0;
+    main.startRotation3D = true;
+    main.startRotationX = new ParticleCompositeCurve(-26, 26);
+    main.startRotationY = new ParticleCompositeCurve(0, 360);
+    main.startRotationZ = new ParticleCompositeCurve(-16, 16);
+
+    generator.emission.shape = shape;
+    generator.emission.rateOverTime.constant = butterflies.count / butterflies.lifetimeSeconds;
+
+    generator.velocityOverLifetime.enabled = true;
+    generator.velocityOverLifetime.space = ParticleSimulationSpace.World;
+    generator.velocityOverLifetime.velocityX = new ParticleCompositeCurve(-0.42, 0.42);
+    generator.velocityOverLifetime.velocityY = new ParticleCompositeCurve(-0.16, 0.24);
+    generator.velocityOverLifetime.velocityZ = new ParticleCompositeCurve(-0.42, 0.42);
+
+    generator.noise.enabled = true;
+    generator.noise.strengthX.constant = butterflies.flutterMps;
+    generator.noise.frequency = 1 / butterflies.flutterWavelengthM;
+    generator.noise.scrollSpeed = butterflies.flutterMps / butterflies.flutterWavelengthM;
+
+    generator.rotationOverLifetime.enabled = true;
+    generator.rotationOverLifetime.separateAxes = true;
+    generator.rotationOverLifetime.rotationX = new ParticleCompositeCurve(-18, 18);
+    generator.rotationOverLifetime.rotationY = new ParticleCompositeCurve(
+      -butterflies.turnDegreesPerSecond,
+      butterflies.turnDegreesPerSecond
+    );
+    generator.rotationOverLifetime.rotationZ = new ParticleCompositeCurve(-18, 18);
+
+    generator.colorOverLifetime.enabled = true;
+    const white = new Color(1, 1, 1, 1);
+    generator.colorOverLifetime.color = new ParticleCompositeGradient(
+      new ParticleGradient(
+        [new GradientColorKey(0, white), new GradientColorKey(1, white)],
+        [
+          new GradientAlphaKey(0, 0),
+          new GradientAlphaKey(0.12, 1),
+          new GradientAlphaKey(0.86, 1),
+          new GradientAlphaKey(1, 0)
+        ]
+      )
+    );
+    generator.play(false);
+    generator.emit(Math.ceil(butterflies.count * 0.78));
   }
   private createSporeParticles(
     spores: NonNullable<WorldTemplateArtDirection["spores"]>,
@@ -975,6 +1159,23 @@ export class WorldTemplateRuntime {
               .some((macro) => macro.name === "RENDERER_TRANSFORM_FEEDBACK")
           }
         : undefined,
+      butterflies: this.butterflyRenderer
+        ? {
+            renderer: "ParticleRenderer",
+            renderMode: "Mesh",
+            shader: this.butterflyMaterial!.shader.name,
+            capacity: this.butterflyRenderer.generator.main.maxParticles,
+            active: this.butterflyRenderer.generator.isAlive,
+            flapSpeed: this.butterflyMaterial!.shaderData.getFloat("material_FlapSpeed"),
+            sizeM: [
+              this.butterflyRenderer.generator.main.startSize.constantMin,
+              this.butterflyRenderer.generator.main.startSize.constantMax
+            ],
+            gpuSimulation: this.butterflyRenderer.shaderData
+              .getMacros()
+              .some((macro) => macro.name === "RENDERER_TRANSFORM_FEEDBACK")
+          }
+        : undefined,
       lights: this.root.getComponentsIncludeChildren(PointLight, []).map((light) => ({
         name: light.entity.name,
         color: [light.color.r, light.color.g, light.color.b],
@@ -1044,6 +1245,9 @@ export class WorldTemplateRuntime {
     this.foliageWindDisposals.length = 0;
     this.disposeProceduralPlants?.();
     this.petalMaterial?.destroy();
+    this.butterflyMaterial?.destroy();
+    this.butterflyWingMesh?.destroy();
+    this.butterflyEmissionMesh?.destroy();
     this.material?.destroy();
     this.mesh?.destroy();
   }

@@ -253,7 +253,7 @@ describe("authored world templates", () => {
     const source = createTemplatePlanningDocument(110613, "titan-wasteland");
     const components = source.entities.world.components;
     expect(components.lighting.values).toMatchObject({ timeHours: 14, fogDensity: 0.0024, fogExponent: 1.5 });
-    expect(components.postProcess.values).toMatchObject({ contrast: 18, postExposure: 0.06, bloom: false });
+    expect(components.postProcess.values).toMatchObject({ contrast: 18, postExposure: 0.06, bloom: true });
     expect(
       source.authoredResources?.filter((resource) => resource.resourceType === "terrain-feature").length
     ).toBeGreaterThanOrEqual(3);

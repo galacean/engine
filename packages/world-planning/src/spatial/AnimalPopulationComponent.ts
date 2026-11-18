@@ -4,6 +4,7 @@ import {
 } from "@galacean/engine-animals/gameplay/animal/FireflyPopulation";
 import animalTypes from "../planning-data/animal-types.json";
 import populationDefaults from "../planning-data/animal-population-defaults.json";
+import templateWildlife from "../planning-data/template-wildlife.json";
 import {
   DEFAULT_ANIMAL_INTERACTION,
   animalInteractionConfig
@@ -16,6 +17,15 @@ import { ComponentRegistry, resolveComponent, type SpatialField } from "./Spatia
 
 /** Lightweight registration metadata; inspecting configuration never imports GLBs or animation runtimes. */
 export const SEED_ANIMAL_TYPES = animalTypes.map((type) => ({ ...type, canEat: type.canEat === true }));
+const templatePopulations = new Map(
+  Object.entries(templateWildlife).map(([id, population]) => [
+    id,
+    { ...population, models: new Set([...population.residents, population.flock.typeId]) }
+  ])
+);
+export function templateAnimalPopulation(template: unknown) {
+  return typeof template === "string" ? templatePopulations.get(template) : undefined;
+}
 /** Biological species are independent of pack, model/body variant and texture appearance. */
 export const SEED_ANIMAL_SPECIES = [...new Set(animalTypes.map((t) => t.speciesId))].sort().map((speciesId) => {
   const types = SEED_ANIMAL_TYPES.filter((t) => t.speciesId === speciesId);
@@ -271,17 +281,40 @@ export function readAnimalPopulationConfig(document: PlanningDocument): AnimalPo
     Math.floor(sample(key) * (Number(values[`${prefix}.max`]) - Number(values[`${prefix}.min`]) + 1));
   const totalSpecies = integer("species", "count");
   const birdTotal = integer("birdCount", "bird-count");
+  const templateId = document.entities.world.components.worldTemplate?.values.id;
+  const wildlife = templateAnimalPopulation(templateId);
+  const models = wildlife?.models;
+  const eligible = models ? SEED_ANIMAL_TYPES.filter((type) => models.has(type.typeId)) : SEED_ANIMAL_TYPES;
+  const speciesPool = models
+    ? SEED_ANIMAL_SPECIES.flatMap((species) => {
+        const typeIds = species.typeIds.filter((id) => models.has(id));
+        const flyingTypeIds = species.flyingTypeIds.filter((id) => models.has(id));
+        return typeIds.length
+          ? [
+              {
+                ...species,
+                typeIds,
+                flyingTypeIds,
+                canFly: flyingTypeIds.length > 0,
+                eatingTypeIds: species.eatingTypeIds.filter((id) => models.has(id))
+              }
+            ]
+          : [];
+      })
+    : SEED_ANIMAL_SPECIES;
   const allowedBirds = new Set(
     String(values["birdCount.species"] ?? "")
       .split(",")
       .map((id) => id.trim())
       .filter(Boolean)
   );
-  const ranked = SEED_ANIMAL_SPECIES.filter((s) =>
-    s.canFly
-      ? birdTotal > 0 && (!allowedBirds.size || allowedBirds.has(s.speciesId))
-      : Number(values[`species.${s.speciesId}.max`]) > 0
-  ).sort((a, b) => sample(a.speciesId) - sample(b.speciesId) || a.speciesId.localeCompare(b.speciesId));
+  const ranked = speciesPool
+    .filter((s) =>
+      s.canFly
+        ? birdTotal > 0 && (!allowedBirds.size || allowedBirds.has(s.speciesId))
+        : Number(values[`species.${s.speciesId}.max`]) > 0
+    )
+    .sort((a, b) => sample(a.speciesId) - sample(b.speciesId) || a.speciesId.localeCompare(b.speciesId));
   const flying = ranked.find((s) => s.flyingTypeIds.length);
   const selected = totalSpecies && flying ? [flying] : [];
   const requiredFeeders = new Map<string, number>();
@@ -311,8 +344,10 @@ export function readAnimalPopulationConfig(document: PlanningDocument): AnimalPo
         : Math.max(requiredFeeders.get(s.speciesId) ?? 0, integer(`species.${s.speciesId}`, `count:${s.speciesId}`))
     ])
   );
+  // Keep one representative of each flying species; additional birds form the template's flock.
+  const flock = wildlife && birdSpecies.find((s) => s.speciesId === wildlife.flock.speciesId);
   for (let i = birdSpecies.length; birdSpecies.length && i < birdTotal; i++) {
-    const s = birdSpecies[Math.floor(sample(`bird:${i}`) * birdSpecies.length)];
+    const s = flock ?? birdSpecies[Math.floor(sample(`bird:${i}`) * birdSpecies.length)];
     allocations.set(s.speciesId, allocations.get(s.speciesId)! + 1);
   }
   const counts = new Map<string, number>();
@@ -336,6 +371,22 @@ export function readAnimalPopulationConfig(document: PlanningDocument): AnimalPo
   const birdCenter =
     Number.isFinite(centerX) && Number.isFinite(centerZ) && centerX >= 0 && centerZ >= 0
       ? { x: centerX, z: centerZ }
+      : undefined;
+  const flockSite = {
+    weight: Number(values.birdSpawnPointWeight),
+    radius: Number(values.spawnPointRadius),
+    ...(birdCenter ? { center: birdCenter } : {})
+  };
+  const clearing =
+    wildlife && birdCenter
+      ? {
+          weight: flockSite.weight,
+          radius: wildlife.residentSite.radius,
+          center: {
+            x: birdCenter.x + wildlife.flock.offsetX - wildlife.residentSite.offsetX,
+            z: birdCenter.z - wildlife.flock.offsetZ + wildlife.residentSite.offsetZ
+          }
+        }
       : undefined;
   return {
     version: 2,
@@ -361,18 +412,14 @@ export function readAnimalPopulationConfig(document: PlanningDocument): AnimalPo
       noiseScale: Number(values.noiseScale),
       noiseStrength: Number(values.noiseStrength)
     },
-    types: SEED_ANIMAL_TYPES.map(({ typeId, speciesId, canFly }) => ({
+    types: eligible.map(({ typeId, speciesId, canFly }) => ({
       typeId,
       densityGroup: speciesId,
-      ...(canFly
-        ? {
-            spawnPoint: {
-              weight: Number(values.birdSpawnPointWeight),
-              radius: Number(values.spawnPointRadius),
-              ...(birdCenter ? { center: birdCenter } : {})
-            }
-          }
-        : {}),
+      ...(clearing && typeId !== wildlife?.flock.typeId
+        ? { spawnPoint: clearing }
+        : canFly
+          ? { spawnPoint: flockSite }
+          : {}),
       min: counts.get(typeId) ?? 0,
       max: counts.get(typeId) ?? 0
     }))

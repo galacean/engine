@@ -3,6 +3,7 @@ import type { TemplateProceduralPlantInstance } from "./runtime/TemplateProcedur
 import type { SeedWorldCameraBookmark } from "../world/SeedWorldCameraBookmark";
 import type { SpatialCompositionParameters } from "./SpatialCompositionParameters";
 import { WORLD_TEMPLATE_CONFIGS } from "./WorldTemplateConfig";
+import templateWildlife from "../planning-data/template-wildlife.json";
 import { LOW_POLY_VALLEY } from "./world-templates/LowPolyValley";
 import {
   OASIS_BANK_PLANTS,
@@ -113,6 +114,23 @@ export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
     color: string;
     intensity: number;
     emission?: { color: string; intensity: number };
+  };
+  /** 3D wing-flapping ambient butterfly mesh particles around a focal tree and floral island. */
+  butterflies?: {
+    textureUrl: string;
+    count: number;
+    center: [number, number, number];
+    extent: [number, number, number];
+    canopyRatio: number;
+    sizeM: [number, number];
+    lifetimeSeconds: number;
+    flapSpeed: number;
+    flutterMps: number;
+    flutterWavelengthM: number;
+    turnDegreesPerSecond: number;
+    color: string;
+    intensity: number;
+    emissionIntensity: number;
   };
   /** Scalar authoring only; roads, water, relief and populations are derived. */
   generation?: Partial<SpatialCompositionParameters>;
@@ -342,7 +360,8 @@ const sakuraSubject = sakura.spawn?.subject;
 const templateAssets: Readonly<Record<string, string>> = {
   "pink-tree": new URL("../assets/pink-tree.glb", import.meta.url).href,
   "forest-giant-oak": new URL("../assets/forest-giant-oak.glb", import.meta.url).href,
-  "sakura-petal": new URL("../assets/sakura-petal.png", import.meta.url).href
+  "sakura-petal": new URL("../assets/sakura-petal.png", import.meta.url).href,
+  "oasis-butterflies": new URL("../assets/oasis-butterflies.png", import.meta.url).href
 };
 const sakuraPetals =
   sakura.petals &&
@@ -352,6 +371,8 @@ const sakuraPetals =
     if (!textureUrl) throw new Error(`未知花瓣粒子贴图：${texture}`);
     return { ...effect, textureUrl };
   })();
+
+const oasisWildlife = templateWildlife["titan-wasteland"];
 
 export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirection>> = {
   "low-poly": LOW_POLY_VALLEY,
@@ -564,6 +585,22 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       terraceTreadM: 30,
       terrainRoughness: 0.25,
       replacePopulation: true
+    },
+    butterflies: {
+      textureUrl: templateAssets["oasis-butterflies"],
+      count: 58,
+      center: [-14.0, 1.9, -1.6],
+      extent: [19.5, 10.2, 11.0],
+      canopyRatio: 0.44,
+      sizeM: [0.48, 0.78],
+      lifetimeSeconds: 6.5,
+      flapSpeed: 20,
+      flutterMps: 0.92,
+      flutterWavelengthM: 2.2,
+      turnDegreesPerSecond: 62,
+      color: "#ffffff",
+      intensity: 1.25,
+      emissionIntensity: 7.5
     },
     models: [
       {
@@ -1097,7 +1134,9 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       direct: true,
       environment: true,
       shadows: true,
-      shadowStrength: 0.8
+      shadowStrength: 0.8,
+      bloomThreshold: 2.2,
+      bloomIntensity: 0.52
     },
     weather: {
       cloudCoverage: 0.32,
@@ -1120,7 +1159,10 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       temperature: 6,
       contrast: 18,
       saturation: 8,
-      bloom: false
+      bloom: true,
+      bloomThreshold: 2.2,
+      bloomIntensity: 0.52,
+      bloomScatter: 0.7
     },
     landscape: {
       grassRelativeHeight: 0.2,
@@ -1153,15 +1195,15 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     animals: {
       enabled: true,
       "fireflies.enabled": false,
-      "species.min": 1,
-      "species.max": 1,
-      "birdCount.min": 10,
-      "birdCount.max": 13,
-      "birdCount.species": "flamingo",
-      "birdCount.offsetX": 16.0,
-      "birdCount.offsetZ": -11.0,
-      birdSpawnPointWeight: 256,
-      spawnPointRadius: 5.5
+      "species.min": oasisWildlife.residents.length + 1,
+      "species.max": oasisWildlife.residents.length + 1,
+      "birdCount.min": oasisWildlife.flock.min + 1,
+      "birdCount.max": oasisWildlife.flock.max + 1,
+      "birdCount.species": "flamingo,swan",
+      "birdCount.offsetX": oasisWildlife.flock.offsetX,
+      "birdCount.offsetZ": oasisWildlife.flock.offsetZ,
+      minimumEatingAnimals: 0,
+      spawnPointRadius: oasisWildlife.flock.radius
     }
   }
 };
