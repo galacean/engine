@@ -311,30 +311,39 @@ export function writePlanningProjectSource(draft: RuntimeProjectEdit, path: stri
         const file = JSON.parse(draft.read(lakeMaterial) as string) as WaterMaterialFile;
         if (file.shaderData && Object.keys(file.shaderData).length > 0) {
           const colored = withSeedWorldWaterColor(resolveWaterMaterialFileLook(file), pool.color);
-          const look = {
+          // Optical tint distance describes the water, independently of the dimensions of its bed.
+          const appearance = colored.appearance.appearance;
+          const depth = appearance.depthResponse;
+          const tintedLook = "distanceMeters" in depth && pool.depthTintDistanceM !== undefined ? {
             ...colored,
+            appearance: {
+              ...colored.appearance,
+              appearance: { ...appearance, depthResponse: { ...depth, distanceMeters: pool.depthTintDistanceM } }
+            }
+          } : colored;
+          const look = {
+            ...tintedLook,
             optics: {
-              ...colored.optics,
+              ...tintedLook.optics,
               profile: {
-                ...colored.optics.profile,
-                absorptionCoefficient: [2.2, 0.08, 0.48] as const,
-                scatteringCoefficient: 1.35,
-                scatteringColor: [0.02, 0.72, 0.42] as const,
-                maximumSurfaceOpticalDistance: 1.2,
-                reflectionIntensity: 0.32
+                ...tintedLook.optics.profile,
+                absorptionCoefficient: [1.75, 0.16, 0.3] as const,
+                scatteringCoefficient: 0.48,
+                scatteringColor: [0.05, 0.72, 0.58] as const,
+                maximumSurfaceOpticalDistance: 2.2,
+                reflectionIntensity: 0.58
               }
             }
           };
           const content = updateWaterMaterialParameters(file, look);
-          content.shaderData.material_AppearanceV2DepthDistance = { type: "Float", value: 0.28 };
-          content.shaderData.material_AppearanceV2DepthExponent = { type: "Float", value: 0.45 };
+          content.shaderData.material_AppearanceV2DepthDistance = {
+            type: "Float",
+            value: pool.depthTintDistanceM ?? 0.65
+          };
+          content.shaderData.material_AppearanceV2DepthExponent = { type: "Float", value: 0.65 };
           content.shaderData.material_AppearanceV2DepthColor = {
             type: "Vector4",
-            value: { x: 0.006, y: 0.48, z: 0.25, w: 1 }
-          };
-          content.shaderData.material_Water_appearance_appearance_boundaryEffects_0_rangeMeters = {
-            type: "Float",
-            value: 0.22
+            value: { x: 0.012, y: 0.48, z: 0.4, w: 1 }
           };
           content.name = `${activeTemplateId} ${pool.id}`;
           draft.create({ virtualPath: target, path: target, type: "Material" }, JSON.stringify(content));

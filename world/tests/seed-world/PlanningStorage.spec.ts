@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs";
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization.ts";
+import { createTemplatePlanningDocument } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring.ts";
 import { generatePlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningRuntime.ts";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { planningSeedURL } from "../../demos/seed-world/src/planning/spatial/PlanningDocumentCodec";
 import { planningProjectFixture as fixture } from "./PlanningProjectFixture";
 import { importPlanningDocument, exportPlanningRecipe, exportPlanningAuthoring } from "@galacean/engine-world-planning/spatial/PlanningDocument.ts";
@@ -228,4 +230,26 @@ it("migrates scalar river depth in active and archived authoring without losing 
   setRaw(raw);
   await expect(store.load(1)).rejects.toThrow("本地工程格式无效");
   expect(getRaw()).toBe(raw);
+});
+
+it("installs builtin water defaults during SpatialEditor migrateToSource when a template authors lake water", async () => {
+  vi.stubGlobal("fetch", async (url: string | URL) => new Response(readFileSync(new URL(url))));
+  try {
+    const { project, store } = fixture();
+    const scene = project.projectPackage.project.scene;
+    project.projectPackage.contents[scene] = JSON.stringify({
+      asset: { version: "2.0" },
+      scene: { rootEntities: [] },
+      entities: [],
+      components: []
+    });
+    const document = createTemplatePlanningDocument(20261110, "titan-wasteland");
+    await store.migrateToSource(document);
+    const paths = project.projectPackage.project.files.map((file) => file.virtualPath);
+    expect(paths).toContain("Water/Materials/lake.mat");
+    expect(paths).toContain("Water/Materials/template-titan-wasteland-oasis-lagoon.mat");
+    expect(await store.load(20261110)).toBeDefined();
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

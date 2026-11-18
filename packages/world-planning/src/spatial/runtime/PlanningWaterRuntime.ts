@@ -870,29 +870,31 @@ export class PlanningWaterRuntime {
       const templateWaters = templateId ? WORLD_TEMPLATE_ART[templateId]?.water : undefined;
       requests.push(
         ...lakeRequests.map((lakeRequest) => {
-          const authoredColor = templateWaters?.find((pool) => lakeRequest.bodyId.endsWith(`:${pool.id}`))?.color as
-            | SeedWorldWaterColorRgb
-            | undefined;
+          const pool = templateWaters?.find((entry) => lakeRequest.bodyId.endsWith(`:${entry.id}`));
+          const authoredColor = pool?.color as SeedWorldWaterColorRgb | undefined;
           if (!authoredColor) return lakeRequest;
           const lookId = `${LAKE_WATER_LOOK_PRESET_ID}:${templateId}:${lakeRequest.bodyId}`;
           const baseSnapshot = this.host.assets.getLookAuthoringSnapshot(LAKE_WATER_LOOK_PRESET_ID);
           if (!baseSnapshot) return lakeRequest;
           const tinted = withSeedWorldWaterColor(baseSnapshot, authoredColor);
           const appearanceAsset = tinted.appearance.appearance;
+          const depthMeters = pool?.depthTintDistanceM ?? 0.65;
           const depthResponse =
             appearanceAsset.depthResponse && "distanceMeters" in appearanceAsset.depthResponse
-              ? { ...appearanceAsset.depthResponse, distanceMeters: 1.0 }
+              ? { ...appearanceAsset.depthResponse, distanceMeters: depthMeters }
               : appearanceAsset.depthResponse;
           const opticsProfile = {
             ...tinted.optics.profile,
-            absorptionCoefficient: [1.15, 0.55, 0.82] as const,
-            scatteringCoefficient: 0.18,
+            absorptionCoefficient: [1.75, 0.16, 0.3] as const,
+            scatteringCoefficient: 0.48,
+            scatteringColor: [0.05, 0.72, 0.58] as const,
             maximumSurfaceOpticalDistance: 2.2,
+            reflectionIntensity: 0.62,
             refractionStrength: 0.03
           };
           const appearanceId = `${lookId}:appearance`;
           const opticsId = `${lookId}:optics`;
-          this.host.registerAuthoringOnce(lookId, hashRiverStableValue(authoredColor), (registry) => {
+          this.host.registerAuthoringOnce(lookId, hashRiverStableValue([authoredColor, depthMeters]), (registry) => {
             registry.registerAppearancePreset({
               ...tinted.appearance,
               id: appearanceId,

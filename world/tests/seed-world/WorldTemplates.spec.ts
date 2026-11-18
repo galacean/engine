@@ -217,7 +217,9 @@ describe("authored world templates", () => {
     ]);
     expect(plan.islands).toHaveLength(0);
     expect(plan.poiDistribution!.sites.some((site) => site.active)).toBe(true);
-    expect(plan.parameters.terrainPatches!.length).toBeGreaterThan(0);
+    const template = WORLD_TEMPLATES.find((entry) => entry.id === "titan-wasteland")!;
+    if (template.terrain.count > 0) expect(plan.parameters.terrainPatches!.length).toBeGreaterThan(0);
+    else expect(plan.parameters.terrainPatches).toHaveLength(0);
     expect(plan.waters).toHaveLength(1);
     expect(plan.waters[0].kind).toBe("lake");
     expect(plan.waters[0].lake?.holes?.length).toBeGreaterThanOrEqual(1);
@@ -231,7 +233,6 @@ describe("authored world templates", () => {
     expect(stones.filter((item) => item.id.includes("island-pillar-"))).toHaveLength(4);
     expect(plan.farming).toBeUndefined();
     expect(plan.naturalVegetation?.settings.companionStoneDensity).toBe(0);
-    const template = WORLD_TEMPLATES.find((entry) => entry.id === "titan-wasteland")!;
     expect(template.rockSource).toBe("shared");
     expect(template.rockTopCover).toBe("ground");
     expect(buildWorldTemplateGeometry(template, 110613).nodes.some((node) => node.id === "oasis-scarlet-tree")).toBe(true);
@@ -1055,7 +1056,7 @@ describe("authored world templates", () => {
         expect(anchors(terrainA)).not.toEqual(anchors(terrainB));
       } else {
         expect(createSpatialTerrainPlan(sameShape).land).toEqual(terrainA.land);
-        if (art.initialPlanning?.relief) expect(anchors(terrainA)).not.toEqual(anchors(terrainB));
+        if (art.initialPlanning?.relief && template.terrain.count > 0) expect(anchors(terrainA)).not.toEqual(anchors(terrainB));
         else expect(anchors(terrainA)).toEqual(anchors(terrainB));
         for (const recipe of [a, b]) {
           const heightRatio = recipe.parameters.terrainSkeleton!.heightM / template.terrain.heightM;

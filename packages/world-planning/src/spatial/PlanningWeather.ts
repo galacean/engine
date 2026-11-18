@@ -87,9 +87,9 @@ export function applyPlanningWeather(
       baseAltitude: Number(cloudBaseAltitudeM ?? defaults.baseAltitude),
       ...(cloudThicknessM === undefined ? {} : { thickness: Number(cloudThicknessM) }),
       weatherScale: defaults.weatherScale / size,
-      shapeScale: (defaults.shapeScale / size) * (hasCustomMorphology ? 1.65 : 1),
-      detailScale: hasCustomMorphology ? (defaults.shapeScale / size) * 6.5 : defaults.detailScale / size,
-      ...(hasCustomMorphology ? { shapeVerticalFrequency: 0.62, detailVerticalFrequency: 2.6 } : {})
+      shapeScale: (defaults.shapeScale / size) * (hasCustomMorphology ? 1.85 : 1),
+      detailScale: hasCustomMorphology ? (defaults.shapeScale / size) * 8.2 : defaults.detailScale / size,
+      ...(hasCustomMorphology ? { shapeVerticalFrequency: 0.68, detailVerticalFrequency: 2.9 } : {})
     });
   }
   const shapeProfile = {
@@ -97,13 +97,13 @@ export function applyPlanningWeather(
       ? {
           detailLodNearDistance: 1500,
           detailLodFarDistance: 9500,
-          baseErosionIntensity: 0.26,
-          detailErosionScale: 0.85,
-          maxDetailErosion: 0.62,
-          curlIntensity: 0.45,
-          bottomFadeExponent: 10.0,
-          bottomFadeStrength: 0.92,
-          topFadeExponent: 7.0,
+          baseErosionIntensity: 0.28,
+          detailErosionScale: 0.92,
+          maxDetailErosion: 0.7,
+          curlIntensity: 0.52,
+          bottomFadeExponent: 10.5,
+          bottomFadeStrength: 0.94,
+          topFadeExponent: 7.5,
           topFadeStrength: 0.96,
           topCutoff: 0.82
         }
