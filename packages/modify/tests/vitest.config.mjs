@@ -9,7 +9,7 @@ if (!fs.existsSync(packages)) {
 }
 const alias = fs.readdirSync(packages).map((name) => {
   const pkg = JSON.parse(fs.readFileSync(path.join(packages, name, "package.json")));
-  return { find: pkg.name, replacement: path.join(packages, name, "dist/module.js") };
+  return { find: pkg.name, replacement: path.join(packages, name) };
 });
 export default defineConfig({
   resolve: { alias },

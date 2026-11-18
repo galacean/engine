@@ -19,6 +19,7 @@ export class NullGraphicDevice implements IHardwareRenderer {
   readonly _options = {};
   readonly capability = {
     maxTextureSize: 0,
+    maxDrawBuffers: 0,
     maxAntiAliasing: 1,
     maxVertexUniformVectors: 0,
     canUseFloatTextureBlendShape: false,

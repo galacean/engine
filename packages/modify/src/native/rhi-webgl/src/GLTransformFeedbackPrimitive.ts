@@ -1,5 +1,9 @@
-import type { IPlatformTransformFeedbackPrimitive, VertexBufferBinding, VertexElement } from "@galacean/engine-core";
-import type { IPlatformShaderProgram } from "@galacean/engine-design";
+import type {
+  IPlatformShaderProgram,
+  IPlatformTransformFeedbackPrimitive,
+  VertexBufferBinding,
+  VertexElement
+} from "@galacean/engine-core";
 import type { GLBuffer } from "./GLBuffer";
 
 /**
