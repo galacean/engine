@@ -1553,6 +1553,8 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
           )
         );
         float coverage = smoothstep(-coverageHalfWidth, coverageHalfWidth, signedDistance);
+        bool precomposedReplace = material_CompositionMode > 0.5;
+        if (precomposedReplace && coverage <= 0.001) discard;
         float elapsedTime = surfaceTime();
         vec3 fieldViewDirection = safeNormalize3(camera_Position - input.worldPosition, input.macroNormalWS);
         float sceneRayEyeScale = input.surfaceEyeDepth / max(length(camera_Position - input.worldPosition), 0.001);
@@ -2099,8 +2101,7 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
         fragmentColor = mix(fragmentColor, presentationCrestColor, presentationCrest * 0.72);
         fragmentAlpha *= presentationVisibility;
 #endif
-        if (material_CompositionMode > 0.5) {
-          if (coverage <= 0.001) discard;
+        if (precomposedReplace) {
           // Precomposed-replace writes complete C. Blend is disabled by the
           // matching material render-state binding, so B is not consumed again.
           fragmentAlpha = 1.0;

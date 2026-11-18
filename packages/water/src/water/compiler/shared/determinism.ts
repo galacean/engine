@@ -16,6 +16,20 @@ function toHex(hash: number): string {
   return (hash >>> 0).toString(16).padStart(8, "0");
 }
 
+class StableNumericArray {
+  constructor(readonly values: ArrayLike<number> & ArrayBufferView) {}
+}
+
+/** Borrow a numeric view and hash it with the same array encoding as Array.from(view). */
+export function asStableHashArray(values: ArrayLike<number> & ArrayBufferView): unknown {
+  return new StableNumericArray(values);
+}
+
+function stableArrayValues(value: unknown): ArrayLike<unknown> | undefined {
+  if (Array.isArray(value)) return value;
+  if (value instanceof StableNumericArray) return value.values;
+}
+
 function writeStableValue(value: unknown, write: (chunk: string) => void): void {
   if (value === null) {
     write("null");
@@ -25,12 +39,13 @@ function writeStableValue(value: unknown, write: (chunk: string) => void): void 
     write(JSON.stringify(value));
     return;
   }
-  if (Array.isArray(value)) {
+  const array = stableArrayValues(value);
+  if (array) {
     write("[");
-    for (let i = 0; i < value.length; i++) {
+    for (let i = 0; i < array.length; i++) {
       if (i) write(",");
       // Preserve the previous map/join representation of sparse arrays.
-      if (i in value) writeStableValue(value[i], write);
+      if (i in array) writeStableValue(array[i], write);
     }
     write("]");
     return;
@@ -85,12 +100,13 @@ function* stableValueChunks(value: unknown): Generator<string> {
     yield JSON.stringify(value);
     return;
   }
-  if (Array.isArray(value)) {
+  const array = stableArrayValues(value);
+  if (array) {
     let chunk = "[";
-    for (let i = 0; i < value.length; i++) {
+    for (let i = 0; i < array.length; i++) {
       if (i) chunk += ",";
-      if (i in value) {
-        const child = value[i];
+      if (i in array) {
+        const child = array[i];
         if (child === null || typeof child !== "object") {
           chunk +=
             typeof child === "number" || typeof child === "boolean" || typeof child === "string"

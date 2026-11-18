@@ -8,7 +8,7 @@ import {
   type OceanNearshoreOutsidePolicies,
   type ValidatedOceanNearshoreDescriptor
 } from "../../authoring/ocean/OceanNearshoreTypes";
-import { hashStableValue } from "../shared/determinism";
+import { asStableHashArray, hashStableValue } from "../shared/determinism";
 import { WaterBufferOwnership } from "../shared/WaterBufferOwnership";
 import type {
   OceanNearshoreCompileResult,
@@ -245,9 +245,9 @@ export class OceanNearshoreCompiler {
       id: descriptor.id,
       waterLevel: descriptor.waterLevel,
       grid: descriptor.grid,
-      bedHeights: Array.from(descriptor.bedHeights),
-      signedShoreDistances: Array.from(shoreDistances),
-      wetMask: Array.from(wetMask),
+      bedHeights: asStableHashArray(descriptor.bedHeights),
+      signedShoreDistances: asStableHashArray(shoreDistances),
+      wetMask: asStableHashArray(wetMask),
       outsidePolicy: descriptor.outsidePolicy
     });
     const compiledHash = hashStableValue({
@@ -258,7 +258,7 @@ export class OceanNearshoreCompiler {
         height: atlas.height,
         maximumDepth: atlas.maximumDepth,
         shoreDistanceRange: atlas.shoreDistanceRange,
-        pixels: Array.from(atlas.pixels)
+        pixels: asStableHashArray(atlas.pixels.borrowTypedArray())
       }
     });
     const data: OceanNearshoreCompiledData = Object.freeze({

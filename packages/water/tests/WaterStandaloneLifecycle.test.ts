@@ -9,6 +9,7 @@ import {
   AssetType,
   BufferAsset,
   Camera,
+  Downsampling,
   JSONAsset,
   Material,
   MeshRenderer,
@@ -165,6 +166,51 @@ it("synchronizes a staged lake material with SSR activation and recovery", async
     await f.close();
   }
 });
+
+it.each([
+  { enabled: true, original: Downsampling.None, expected: Downsampling.None },
+  { enabled: false, original: Downsampling.None, expected: Downsampling.TwoX },
+  { enabled: true, original: Downsampling.FourX, expected: Downsampling.TwoX }
+])(
+  "arbitrates lake refraction with Camera Opaque Texture $enabled/$original",
+  async ({ enabled, original, expected }) => {
+    const f = await fixture("lake");
+    try {
+      const camera = f.system.camera!;
+      camera.opaqueTextureEnabled = enabled;
+      camera.opaqueTextureDownsampling = original;
+      const originalDepthMode = camera.depthTextureMode;
+      f.engine.canvas.setResolution(64, 64);
+      const body = f.scene.createRootEntity("Refraction lake").addComponent(WaterBodyComponent);
+      const publish = async (quality: typeof f.authoring.quality) => {
+        body.authoring = { ...f.authoring, quality };
+        await (await f.system.prepareBatch([{ body, configuration: body._compileAuthoring() }])).commit()
+          .retiredCleanup;
+        f.engine.update();
+      };
+      const expectOpaque = (downsampling: Downsampling) => {
+        expect(camera.opaqueTextureEnabled).toBe(true);
+        expect(camera.opaqueTextureDownsampling).toBe(downsampling);
+        const color = camera.shaderData.getTexture("camera_OpaqueTexture");
+        const size = 64 / downsampling;
+        expect([color.width, color.height]).toEqual([size, size]);
+        const depth = camera.shaderData.getTexture("camera_DepthTexture");
+        expect([depth.width, depth.height]).toEqual([64, 64]);
+      };
+
+      await publish(f.authoring.quality);
+      expectOpaque(expected);
+      await publish(createWaterQualitySettings("lake", { opaqueDownsampling: "none" }));
+      expectOpaque(Downsampling.None);
+      await (await f.system.prepareBatch([], undefined, [body])).commit().retiredCleanup;
+      expect(camera.opaqueTextureEnabled).toBe(enabled);
+      expect(camera.opaqueTextureDownsampling).toBe(original);
+      expect(camera.depthTextureMode).toBe(originalDepthMode);
+    } finally {
+      await f.close();
+    }
+  }
+);
 
 it.each(["connection", "target"] as const)("keeps a lake usable after deleting its %s", async (removed) => {
   const f = await fixture("lake");

@@ -9,6 +9,7 @@ import lakeSource from "../src/water/native/assets/Water/Shaders/lake.shader?raw
 import riverSource from "../src/water/native/assets/Water/Shaders/river.shader?raw";
 import sourceHashes from "../src/water/native/assets/Water/Shaders/builtin/sources.json";
 import { digestSha256Hex } from "../src/water/resources/sha256";
+import { ShaderMacroProcessor } from "../../core/src/shader/ShaderMacroProcessor";
 
 it("registers all three authoring contracts without a runtime compiler and loads name-only materials", async () => {
   const originalCompiler = Shader._shaderCompiler;
@@ -95,6 +96,37 @@ it.each(["lake", "river", "ocean"] as const)(
     }
   }
 );
+
+it("culls precomposed shore pixels before shading in both shipped Lake programs", async () => {
+  registerWaterBuiltinShaders();
+  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+  let aot: Shader | undefined;
+  try {
+    aot = await engine.resourceManager.load<Shader>({
+      type: AssetType.Shader,
+      url: new URL("../src/water/native/assets/Water/Shaders/lake-heightfield-high-hybrid-v2.shaderc", import.meta.url)
+        .href
+    });
+    expect(aot.name).toBe("AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0");
+    for (const shader of [Shader.find(WATER_BUILTIN_SHADER_NAMES.lake)!, aot]) {
+      const passes = shader.subShaders[0].passes;
+      expect(passes.map((pass) => pass.name)).toEqual(["Forward", "ScreenSpaceReflectionSurface"]);
+      const fragment = ShaderMacroProcessor.evaluate(passes[0]._fragmentShaderInstructions, new Map()).replace(
+        /\s/g,
+        ""
+      );
+      const gate =
+        "boolprecomposedReplace=material_CompositionMode>0.5;if(precomposedReplace&&coverage<=0.001)discard;";
+      expect(fragment).toContain(gate);
+      expect(fragment.indexOf("floatelapsedTime=surfaceTime();")).toBeGreaterThan(fragment.indexOf(gate));
+      expect(fragment.match(/coverage<=0\.001/g)).toHaveLength(1);
+      expect(shader.compileVariant(engine, [])).toBe(true);
+    }
+  } finally {
+    aot?.destroy();
+    engine.destroy();
+  }
+});
 
 it("keeps authoring registrations out of the existing lake/river runtime lookup names", () => {
   registerWaterBuiltinShaders();

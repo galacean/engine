@@ -1,5 +1,10 @@
 import { expect, it } from "vitest";
-import { hashStableValue, hashStableValueAsync } from "@galacean/engine-water/water/compiler/shared/determinism";
+import {
+  asStableHashArray,
+  hashStableValue,
+  hashStableValueAsync
+} from "@galacean/engine-water/water/compiler/shared/determinism";
+import { OceanNearshoreCompiler } from "@galacean/engine-water/water/compiler/ocean/OceanNearshoreCompiler";
 import { createRiver } from "@galacean/engine-water/water/authoring/river/createRiver";
 import {
   createRiverWaterBodyAsset,
@@ -57,6 +62,38 @@ it("retains exact persisted hashes for numbers, Unicode, sparse arrays and lexic
     expect(hashStableValue(input)).toBe(legacy(input));
     expect(await hashStableValueAsync(input)).toBe(legacy(input));
   }
+});
+it("hashes borrowed numeric views as dense arrays in both hash paths", async () => {
+  const heights = new Float32Array([77, -0, 0.1, NaN, Infinity, 99]).subarray(1, 5);
+  const pixels = Uint8Array.from({ length: 4096 }, (_, i) => i % 256);
+  const value = { heights: asStableHashArray(heights), pixels: asStableHashArray(pixels) };
+  const expected = legacy({ heights: Array.from(heights), pixels: Array.from(pixels) });
+  expect(hashStableValue(value)).toBe(expected);
+  expect(await hashStableValueAsync(value)).toBe(expected);
+});
+it("keeps legacy Ocean nearshore source and compiled hashes for the same input", () => {
+  const bedHeights = Float32Array.from({ length: 16 }, (_, i) => (i % 4 < 2 ? 1 : -(1 + (i % 3) * 0.25)));
+  const mask = Uint8Array.from(bedHeights, (height) => (height < 0 ? 1 : 0));
+  const input = {
+    schemaVersion: 1,
+    id: "review-nearshore",
+    waterLevel: 0,
+    grid: { originXZ: [3, 2], cellSizeXZ: [1, 2], width: 4, height: 4 },
+    bedHeights,
+    signedShoreDistances: Float32Array.from(mask, (wet, i) => (wet ? 1 : -1) * (1 + (i % 2) * 0.25)),
+    wetSource: { kind: "mask", mask },
+    outsidePolicy: { negativeX: "dry", positiveX: "deep-ocean", negativeZ: "dry", positiveZ: "dry" },
+    budget: { maxWidth: 4, maxHeight: 4, maxTexelCount: 16, maxAtlasByteLength: 64 }
+  };
+  const result = OceanNearshoreCompiler.compile(input);
+  expect(result.valid).toBe(true);
+  expect(result.data?.sourceHash).toBe("1a05c8b4d7ea059f");
+  expect(result.data?.compiledHash).toBe("33de91a0fd0e2442");
+  bedHeights[2] -= 0.125;
+  const edited = OceanNearshoreCompiler.compile(input);
+  expect(edited.valid).toBe(true);
+  expect(edited.data?.sourceHash).not.toBe(result.data?.sourceHash);
+  expect(edited.data?.compiledHash).not.toBe(result.data?.compiledHash);
 });
 it("yields to tasks and rejects cancellation without returning a partial identity", async () => {
   const controller = new AbortController();

@@ -10,9 +10,21 @@ import {
   waterMaterialKey
 } from "../src/water/native/WaterMaterial";
 import { resolveWaterSurfaceAppearanceForQuality } from "../src/water/authoring/quality/WaterSurfaceAppearanceQuality";
+import { resolveWaterOpaqueDownsampling } from "../src/water/authoring/quality/WaterQualityPlan";
+import { createWaterQualitySettings } from "../src/water/native/WaterQualitySettings";
 import { scopedLook } from "../src/water/native/WaterResources";
 import { WaterSurfaceAppearanceCompiler } from "../src/water/compiler/surface/WaterSurfaceAppearanceCompiler";
 import { resolveWaterSurfaceAppearanceBinding } from "../src/water/runtime/surface/WaterSurfaceAppearanceBinding";
+
+it("defaults refraction to half resolution and honors full-resolution overrides", () => {
+  expect(resolveWaterOpaqueDownsampling({ sceneFields: "scene-color-depth" })).toBe("2x");
+  for (const kind of ["lake", "river", "ocean"] as const) {
+    expect(resolveWaterOpaqueDownsampling(createWaterQualitySettings(kind))).toBe("2x");
+    expect(resolveWaterOpaqueDownsampling(createWaterQualitySettings(kind, { opaqueDownsampling: "none" }))).toBe(
+      "none"
+    );
+  }
+});
 
 async function materialFor(profile: "lake" | "river" | "ocean" = "lake") {
   const file = createWaterMaterialDefaults(profile);

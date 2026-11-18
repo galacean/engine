@@ -273,9 +273,8 @@ export class CameraWaterFeatureBroker {
 
   private _apply(): void {
     let depthRequested = false;
-    let opaqueRequested = false;
-    let selectedDownsampling = Downsampling.FourX;
-    let hasOpaqueResolution = false;
+    let opaqueRequested = this._originalOpaqueTextureEnabled;
+    let selectedDownsampling = this._originalOpaqueTextureDownsampling;
     const requests = [
       ...[...this._requests].map(([consumerId, request]) => ({ consumerId, request })),
       ...this._leaseRequests.values()
@@ -291,13 +290,12 @@ export class CameraWaterFeatureBroker {
         });
       }
       depthRequested ||= request.depthTexture;
-      opaqueRequested ||= request.opaqueTexture;
       if (!request.opaqueTexture) continue;
       const downsampling = request.opaqueDownsampling ?? qualityDownsampling(request.quality);
-      if (!hasOpaqueResolution || downsamplingRank(downsampling) < downsamplingRank(selectedDownsampling)) {
+      if (!opaqueRequested || downsamplingRank(downsampling) < downsamplingRank(selectedDownsampling)) {
         selectedDownsampling = downsampling;
-        hasOpaqueResolution = true;
       }
+      opaqueRequested = true;
     }
     this._setDepthTextureRequired(depthRequested);
     if (this._originalForwardDepthResolveEnabled !== undefined) {
@@ -305,10 +303,8 @@ export class CameraWaterFeatureBroker {
         this._originalForwardDepthResolveEnabled ||
         (depthRequested && this._originalDepthTextureMode === DepthTextureMode.None);
     }
-    this._camera.opaqueTextureEnabled = opaqueRequested || this._originalOpaqueTextureEnabled;
-    this._camera.opaqueTextureDownsampling = opaqueRequested
-      ? selectedDownsampling
-      : this._originalOpaqueTextureDownsampling;
+    this._camera.opaqueTextureEnabled = opaqueRequested;
+    this._camera.opaqueTextureDownsampling = selectedDownsampling;
     screenSpaceReflectionCandidates.sort(compareScreenSpaceReflectionCandidates);
     const selectedScreenSpaceReflection = screenSpaceReflectionCandidates[0];
     const frozenScreenSpaceReflectionRequest = selectedScreenSpaceReflection?.request;

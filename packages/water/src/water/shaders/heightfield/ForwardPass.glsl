@@ -211,6 +211,8 @@
           )
         );
         float coverage = smoothstep(-coverageHalfWidth, coverageHalfWidth, signedDistance);
+        bool precomposedReplace = material_CompositionMode > {{VALUE_092_HEIGHTFIELDWATERCOMPOSITIONMODE_ALPHABLEND_0_5}};
+        if (precomposedReplace && coverage <= 0.001) discard;
 #if defined(SSR_CONTRIBUTION_DEPTH) && {{PRECOMPOSED_REPLACE}}
         // The shared precomposed closure always returns alpha=1. Color cannot
         // affect depth; only geometric coverage, connections and reveal clip it.
@@ -313,8 +315,7 @@
 #endif
         fragmentAlpha *= presentationVisibility;
 #endif
-        if (material_CompositionMode > {{VALUE_092_HEIGHTFIELDWATERCOMPOSITIONMODE_ALPHABLEND_0_5}}) {
-          if (coverage <= 0.001) discard;
+        if (precomposedReplace) {
           // Precomposed-replace writes complete C. Blend is disabled by the
           // matching material render-state binding, so B is not consumed again.
           fragmentAlpha = 1.0;

@@ -101,7 +101,7 @@ export function createWaterQualitySettings(
     surfaceShading: "high",
     sceneFields: "scene-color-depth",
     query: "dense",
-    opaqueDownsampling: kind === "ocean" ? "2x" : "none",
+    opaqueDownsampling: "2x",
     ...input,
     reflectionBudget: { environment: true, screenSpace: kind !== "ocean", ...input.reflectionBudget },
     surfaceEffectBudget: { caustics: true, ...input.surfaceEffectBudget },

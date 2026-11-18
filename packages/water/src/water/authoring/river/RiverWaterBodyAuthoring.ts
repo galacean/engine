@@ -263,7 +263,6 @@ export function registerRiverWaterBodyPresets(registry: WaterBodyAssetRegistry):
       surfaceShading: tier,
       // River has one High rendering contract.
       sceneFields: "scene-color-depth",
-      opaqueDownsampling: "none",
       reflectionBudget: { environment: true, screenSpace: true },
       query: "dense",
       spatialField: {

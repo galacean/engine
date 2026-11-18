@@ -62,7 +62,7 @@
             "geometry": "high",
             "surfaceShading": "high",
             "sceneFields": "scene-color-depth",
-            "opaqueDownsampling": "none",
+            "opaqueDownsampling": "2x",
             "reflectionBudget": {
               "environment": true,
               "screenSpace": true

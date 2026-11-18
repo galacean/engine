@@ -25,7 +25,7 @@
   "budgets": {
     "maximumProfileArtifactBytes": 600000,
     "maximumTotalArtifactBytes": 1200000,
-    "actualTotalArtifactBytes": 259672
+    "actualTotalArtifactBytes": 259742
   },
   "profiles": [
     {
@@ -34,11 +34,11 @@
       "variantKey": "heightfield:appearanceVariantKey=surface-appearance-v2%3Aed93d4a81a01602d;depthSource=hybrid-optional-scene-depth;quality=high;surfaceAppearance=1;surfaceAppearanceVersion=2;waveSlotCount=0",
       "sourcePath": "source/Shader/Water/LakeHeightfieldHighHybrid.shader",
       "virtualPath": "Shader/Water/lake-heightfield-high-hybrid-v2.shaderc",
-      "path": "public/Shader/Water/lake-heightfield-high-hybrid-v2.e63de9387dc822a1dd299a1af333b8023dc7e145fac9c0c55fe9e648f739b5c2.shaderc",
-      "cacheKey": "e63de9387dc822a1dd299a1af333b8023dc7e145fac9c0c55fe9e648f739b5c2",
-      "materializedSourceSha256": "5a0110243e680f246075430fdffdc1bb2a6ecc2a7f4a4bc16b93ef1420974b01",
-      "artifactSha256": "e63de9387dc822a1dd299a1af333b8023dc7e145fac9c0c55fe9e648f739b5c2",
-      "artifactBytes": 111313,
+      "path": "public/Shader/Water/lake-heightfield-high-hybrid-v2.d0c7aa288369a09d15f12e26b7d335e40489b59246bcd63d2aab74d35863a48d.shaderc",
+      "cacheKey": "d0c7aa288369a09d15f12e26b7d335e40489b59246bcd63d2aab74d35863a48d",
+      "materializedSourceSha256": "f2ced441e9b3a724059ef4ae941928d16c10e88061104bcbc855dce6c89856a4",
+      "artifactSha256": "d0c7aa288369a09d15f12e26b7d335e40489b59246bcd63d2aab74d35863a48d",
+      "artifactBytes": 111383,
       "passTopology": [
         [
           {
@@ -75,12 +75,13 @@
       },
       "compilerSha256": "df9413e216a230b9a0e60a52aeb6786b6c1b39cd161c04387f4722d1c1a1f958",
       "postprocess": {
-        "operation": "upgrade-world-space-ssr-contract-v3",
-        "source": "world/scripts/generate-water-assets.mjs (Lake owner factory)",
+        "operation": "recompile-forward-shoreline-discard",
+        "source": "packages/water/src/water/shaders/heightfield/ForwardPass.glsl",
         "compilerPackage": "@galacean/engine-shader-compiler/precompile",
-        "compilerVersion": "2.0.0-alpha.55.local.ca07d71841e54da7",
-        "compilerSha256": "df9413e216a230b9a0e60a52aeb6786b6c1b39cd161c04387f4722d1c1a1f958",
-        "includeMapSha256": "24893a0adb70a073b4e311a1fc379aa2f73a8d636e122ce7abd08611b3a9930d"
+        "compilerSha256": "c22bbf9b8151f0bc928dad138a78d6574d92a5f8c15a7d026164353626a95930",
+        "includeMapSha256": "0135d6e22b65aff9a38c67d384d10550a08d97aa401f628ff0ef364b05a2ebc1",
+        "compilerVersion": "2.0.0-alpha.59",
+        "inputArtifactSha256": "e63de9387dc822a1dd299a1af333b8023dc7e145fac9c0c55fe9e648f739b5c2"
       }
     },
     {

@@ -66,12 +66,12 @@ const SCENE_FIELDS = Object.freeze(["local-only", "scene-color", "scene-color-de
 const OPAQUE_DOWNSAMPLING = Object.freeze(["none", "2x", "4x"] as const);
 const QUERIES = Object.freeze(["off", "sparse", "dense"] as const);
 
-/** Preserves the V2 default while allowing products to budget Scene Color independently from Scene Depth. */
+/** Scene Color defaults to half resolution, independently of Scene Depth. */
 export function resolveWaterOpaqueDownsampling(
   plan: Pick<WaterQualityPlanV2, "sceneFields" | "opaqueDownsampling">
 ): WaterOpaqueDownsampling {
   if (plan.opaqueDownsampling !== undefined) return plan.opaqueDownsampling;
-  return plan.sceneFields === "scene-color-depth" ? "none" : plan.sceneFields === "scene-color" ? "2x" : "4x";
+  return plan.sceneFields === "local-only" ? "4x" : "2x";
 }
 
 function freezeReflectionBudget(
