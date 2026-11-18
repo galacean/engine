@@ -1332,9 +1332,7 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       direct: true,
       environment: true,
       shadows: true,
-      shadowStrength: 0.8,
-      bloomThreshold: 2.2,
-      bloomIntensity: 0.52
+      shadowStrength: 0.8
     },
     weather: {
       cloudCoverage: 0.32,
