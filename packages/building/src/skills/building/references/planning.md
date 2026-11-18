@@ -30,16 +30,17 @@
 
 `tools.building.generate` 内部调用上述生成器和 `buildingDraftSource`，返回 Prefab JSON。
 
-下面一次 execute 就能建好一栋房子。先用 `tools.spatial.resolve` 解析落点，取它的水平坐标。Y 写 0，地形由场景宿主求解，不需要查询现有建筑的高度。
+在 Seed World 中，使用内置建筑资产库 `Building/Units/building-kit.prefab`。下面以「在我面前建一座小房子」为例，在一次 execute 内选地并创建房子。对于未指定门窗或其他构件的普通小房子，直接使用示例的屋身与屋顶参数，省略 `attachments`。明确要求加门窗时，按[墙](skills/building/references/wall.md)确定安装位置和尺寸。
 
 ```js
 const scene = "<project.json 的 scene 字段>";
-// 复用真实的资产库路径。这里只复用路径，不是把那个建筑的几何复制成模板。
-const groups = await editor.component.query({ scene, type: "BuildingGroupComponent" });
-const { props } = await editor.component.read({ scene, id: groups[0].id });
-const library = props?.assetLibrary;
-if (!library || typeof library !== "object" || !("$ref" in library) || typeof library.$ref !== "string")
-  throw new Error("没有找到资产库");
+const { anchor } = await tools.spatial.resolve({
+  anchor: { kind: "viewer" },
+  relation: { kind: "front" },
+  placement: { snapTo: "terrain", avoidWater: true }
+});
+if (anchor.kind !== "position") throw new Error("没有解析到建筑位置");
+const { x, z } = anchor;
 
 const generated = await tools.building.generate({
   generator: "European.buildHouses",
@@ -48,7 +49,7 @@ const generated = await tools.building.generate({
     rectangle: { center: [0, 0], size: [6, 5], rotation: 0 },
     roof: { height: 0.5 }
   },
-  source: { id: "small-house-frame", name: "小房子", assetLibrary: library.$ref }
+  source: { id: "small-house-frame", name: "小房子", assetLibrary: "Building/Units/building-kit.prefab" }
 });
 const asset = await editor.asset.create({ path: "Building/SmallHouse.prefab", type: "Prefab", content: generated.content });
 return await editor.entity.create({ scene, name: "小房子", prefab: asset.path, position: [x, 0, z], rotation: [0, 0, 0] });
@@ -56,6 +57,8 @@ return await editor.entity.create({ scene, name: "小房子", prefab: asset.path
 
 - 生成接口是纯计算，不修改场景，也不发布或渲染。
 - 资产创建和实例化在同一个 execute 的 Editor 事务中提交，失败时整体回滚。
+- 贴地房屋的根节点 Y 写 0，场景宿主按占地采样实际地表，包括山坡和高地。要在当地地面上抬高房身，设置 `foundation.height` 并按需选择实心台基或柱式台基。
+- 项目使用自定义建筑库时，从项目资产或已有建筑的 `assetLibrary` 取得对应虚拟路径。
 - 没有 `component.plan`，不要同时保存风格参数和最终构件这两份数据。
 - 后续修改高度或窗户时，直接更新实例的 BuildingPartComponent，不保存另一份 plan，也不用启动时重建脚本。需要重新生成时，由作者操作明确替换基础构件。
 - 可复用的 Prefab 通常保持局部原点，在 `entity.create` 中设置实例位置。不要把同一个世界位置同时写入两处。
