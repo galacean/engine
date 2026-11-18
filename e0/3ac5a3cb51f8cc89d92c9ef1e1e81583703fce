@@ -1,0 +1,36 @@
+packages/world-planning/src/runtime/NaturalVegetationCell.ts
+  s_a975bf164e8b11::t_4c24e350b0bf2e 484,500,505-512,531
+  s_a975bf164e8b11::t_ee962422500001 99-114
+packages/vegetation/src/asset-assembly/PlantSpeciesSources.ts
+  s_a975bf164e8b11::t_f2519e84b96a94 33,36,39,47,49-73,78,88-89,114,116,123,129,142,155,162,164-165,170,172,174,182,184,190,204,211
+packages/vegetation/src/asset-assembly/ProceduralPlantLibraryRuntime.ts
+  s_a16cd97515d897::t_5b21a01b1e115a 9,102-216,265-266,272-276,285-297,316,319,333-337,352
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetation.ts
+  s_a16cd97515d897::t_cf454b74ace150 32-35,104-108,115,301-307,311,329-332,336,364-370,376-429,431-432,501,535,551
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  s_a16cd97515d897::t_cf1aebd439167f 51-54,89-92,134-142,146,173-187,336-547,580-582,584,586,590-605,607-631,634-658,664-665,674-675,677-682,709-731,787-791,811-812,849,917-918,928,950-970,973,1085-1238,1240,1283,1297,1302-1303,1305-1311,1318-1321,1326,1329,1355,1371-1373,1375-1401,1405-1449,1453,1461,1549,1557-1571,1580,1618,1765-1780,1793-1803,1805,1814-1816,1885-1887,1889,1902,1913-1940,1942-1963,1978-1982,1988-1992,1995-2024,2081-2082,2084-2085
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e03ac5a3cb51f8cc89d92c9ef1e1e81583703fce",
+  "prompts": {},
+  "sessions": {
+    "s_a16cd97515d897": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1efa6-2b81-7b30-b916-49dbc5cec2dc",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    },
+    "s_a975bf164e8b11": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e843-35ba-7e21-997a-bae227cd9412",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}
