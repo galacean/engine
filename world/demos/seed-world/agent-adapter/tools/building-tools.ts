@@ -14,7 +14,7 @@ export const buildingGenerateContract = defineSeedWorldApiContract({
   inputDescription:
     "generator 对应 Building.European 的同名函数；parameters 使用该函数的原有参数，必须含 id。只有 buildHouses 接受参数数组。source.id 是 Prefab 根身份；assetLibrary 使用现有 BuildingGroupComponent 的真实资产库路径。原生轮廓建筑 position.y 为 0，地形由场景宿主求解。",
   outputDescription:
-    "content 是 Prefab JSON；在同一 execute 中交给 editor.asset.create({path,type:'Prefab',content})，再用 editor.entity.create 实例化。execute 提交后才生成渲染结果。后续修改通过组件 Source 事务，勿持久化第二份生成器参数。",
+    "content 是 Prefab JSON；在同一 execute 中交给 editor.asset.create({path,type:'Prefab',content})，再用 editor.entity.create({scene,prefab,position:[x,0,z]}) 实例化。实例 Y 必须为 0，由宿主贴地。execute 提交后才生成渲染结果。后续修改通过组件 Source 事务，勿持久化第二份生成器参数。",
   input: z.strictObject({
     generator: z.enum([
       "European.buildHouses",

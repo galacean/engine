@@ -1,4 +1,8 @@
 import type { PlanningSession } from "@galacean/engine-world-planning/spatial/PlanningSession";
+import type { PlanningWaterCreation } from "@galacean/engine-world-planning/spatial/PlanningWaterAuthoring";
+import type { PlanPoint } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
+import { createPlanningRingQuery } from "@galacean/engine-world-planning/semantic-study/WorldPlanningTerrain";
+import { ribbonOutline } from "@galacean/engine-world-planning/semantic-study/WorldRibbon";
 import type { PlantProjectResources } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
 
 /** Owns planning transactions independently of any building representation. */
@@ -13,6 +17,27 @@ export class SeedWorldPlanningService {
   }
 
   document() { return this.session.export(); }
+
+  /** Stage a water body through the same solver and publication path as the editor. */
+  createWater(input: PlanningWaterCreation) {
+    this.assertActive();
+    return this.session.createWater(input);
+  }
+
+  /** Build a placement test against the accepted land, hydrology and template footprints. */
+  riverPlacementTest(width: number): (centerline: PlanPoint[]) => boolean {
+    const plan = this.session.result?.plan;
+    if (!plan) throw new Error("Planning world is not ready");
+    const land = createPlanningRingQuery(plan.land);
+    const obstacles = [
+      ...plan.waters.map(water => water.outline),
+      ...(plan.worldTemplateSite?.footprints ?? []).map(footprint => footprint.outline)
+    ].filter(outline => outline.length >= 3).map(createPlanningRingQuery);
+    return centerline => {
+      const outline = ribbonOutline(centerline, centerline.map(() => width), undefined, true);
+      return land.containsPolygon(outline) && !obstacles.some(obstacle => obstacle.overlapsPolygon(outline));
+    };
+  }
 
   beginEdit() {
     this.assertActive();
