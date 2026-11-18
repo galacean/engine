@@ -272,7 +272,10 @@ export class ScreenSpaceReflectionPass {
       shaderData.setTexture(ScreenSpaceReflectionPass._sceneDepthProperty, sceneDepth);
       shaderData.setTexture(ScreenSpaceReflectionPass._opaqueDepthProperty, sceneDepth);
       shaderData.setTexture(ScreenSpaceReflectionPass._surfaceProperty, surfaceTarget.getColorTexture(0));
-      shaderData.setTexture(ScreenSpaceReflectionPass._responseProperty, surfaceTarget.getColorTexture(1));
+      shaderData.setTexture(
+        ScreenSpaceReflectionPass._responseProperty,
+        surfaceTarget.colorTextureCount > 1 ? surfaceTarget.getColorTexture(1) : null
+      );
       shaderData.setTexture(ScreenSpaceReflectionPass._receiverDepthProperty, surfaceTarget.depthTexture);
       shaderData.setTexture(ScreenSpaceReflectionPass._traceProperty, this._traceTarget!.getColorTexture(0));
       shaderData.setTexture(
@@ -665,7 +668,7 @@ export class ScreenSpaceReflectionPass {
       TextureWrapMode.Clamp,
       TextureFilterMode.Point,
       TextureFilterMode.Point,
-      [TextureFormat.R8G8B8A8]
+      this.hasOpaqueReceivers ? [TextureFormat.R8G8B8A8] : undefined
     );
     this._configurePhaseTraceTarget(firstReceiverMode);
     (this._surfaceTarget.depthTexture as Texture2D).filterMode = TextureFilterMode.Point;
@@ -842,9 +845,14 @@ export class ScreenSpaceReflectionPass {
       this._peakRenderTargetCount,
       3 + optionalTargets + Number(this._contributionTarget !== null)
     );
+    // Scene color and receiver depth are always present; count the actual Surface and Trace color attachments.
     this._peakRenderTextureCount = Math.max(
       this._peakRenderTextureCount,
-      4 + this._traceTarget!.colorTextureCount + optionalTargets + 2 * Number(this._contributionTarget !== null)
+      2 +
+        this._surfaceTarget!.colorTextureCount +
+        this._traceTarget!.colorTextureCount +
+        optionalTargets +
+        2 * Number(this._contributionTarget !== null)
     );
   }
 
