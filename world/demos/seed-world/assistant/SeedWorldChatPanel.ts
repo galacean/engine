@@ -7,6 +7,7 @@ import type { ProjectFileProvider } from "@galacean/engine-project/project-files
 import type { RuntimeNativeEditor } from "@galacean/engine-runtime-editor/runtime-editor-agent/runtime-native-editor";
 import { createContextCompactionRequest, type ContextCompactionBudget } from "@galacean/engine-ai-chat/ai-chat/context-compaction";
 import {
+  BoolUpdateFlag,
   Camera,
   Color,
   Engine,
@@ -1616,6 +1617,9 @@ class VoiceHudLayout extends Script {
     window.removeEventListener("pointermove", this._onPointerInput, true);
     window.removeEventListener("pointerdown", this._onPointerInput, true);
     window.removeEventListener("blur", this._onPointerBlur);
+    this._clipTransformFlag?.destroy();
+    this._clipTransformFlag = undefined;
+    this._clipTransformEntity = undefined;
   }
   setPointerOverPanel(inside: boolean): void {
     this._pointerOverPanel = inside;
@@ -1649,6 +1653,11 @@ class VoiceHudLayout extends Script {
   private readonly _scroll = new SeedWorldTranscriptScroll();
   private readonly _clipMatrix = new Matrix();
   private readonly _clipBounds = new Vector4();
+  private _clipTransformFlag: BoolUpdateFlag | undefined;
+  private _clipTransformEntity: Entity | undefined;
+  private _clipMaterial: Material | undefined;
+  private _clipViewportWidth = NaN;
+  private _clipViewportHeight = NaN;
   private _lineCount = 1;
   private _visibleLines = 1;
   private _footerFirst = -1;
@@ -1970,14 +1979,33 @@ class VoiceHudLayout extends Script {
     }
     const viewport = this.transcriptViewport?.entity.transform as UITransform | undefined;
     const text = this.transcript?.entity.transform as UITransform | undefined;
-    if (!viewport || !text || !this.transcriptMaterial) return;
+    const material = this.transcriptMaterial;
+    if (!viewport || !text || !material || !viewport.entity.isActiveInHierarchy) return;
     text.alignTop = -this._scroll.offset;
-    // UI text vertices are world-space. Clip in the viewport's local space so
-    // the mask follows the glass's translation, tilt and lift during a throw.
-    Matrix.invert(viewport.worldMatrix, this._clipMatrix);
-    this.transcriptMaterial.shaderData.setMatrix("material_SeedWorldTextClipMatrix", this._clipMatrix);
-    this._clipBounds.set(-viewport.size.x / 2, -viewport.size.y / 2, viewport.size.x / 2, viewport.size.y / 2);
-    this.transcriptMaterial.shaderData.setVector4("material_SeedWorldTextClipBounds", this._clipBounds);
+    if (this._clipTransformEntity !== viewport.entity) {
+      this._clipTransformFlag?.destroy();
+      this._clipTransformEntity = viewport.entity;
+      this._clipTransformFlag = viewport.entity.registerWorldChangeFlag();
+    }
+    const width = viewport.size.x;
+    const height = viewport.size.y;
+    if (
+      this._clipTransformFlag!.flag ||
+      width !== this._clipViewportWidth ||
+      height !== this._clipViewportHeight ||
+      material !== this._clipMaterial
+    ) {
+      this._clipTransformFlag!.flag = false;
+      this._clipViewportWidth = width;
+      this._clipViewportHeight = height;
+      this._clipMaterial = material;
+      // UI text vertices are world-space. Clip in the viewport's local space so
+      // the mask follows the glass's translation, tilt and lift during a throw.
+      Matrix.invert(viewport.worldMatrix, this._clipMatrix);
+      material.shaderData.setMatrix("material_SeedWorldTextClipMatrix", this._clipMatrix);
+      this._clipBounds.set(-width / 2, -height / 2, width / 2, height / 2);
+      material.shaderData.setVector4("material_SeedWorldTextClipBounds", this._clipBounds);
+    }
     if (this.transcriptFooter && this.canScroll) {
       const first = Math.floor(Math.max(0, Math.min(this._scroll.maximum, this._scroll.offset)) / this._lineHeight);
       const last = Math.min(first + this._visibleLines, this._lineCount);

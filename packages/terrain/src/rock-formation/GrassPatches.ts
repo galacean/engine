@@ -12,27 +12,24 @@ export interface RockGrassPlacement {
   origin: V3;
 }
 interface PatchState<B> {
+  entry: Entry<B>;
   source: RockGrassPatch;
   batches: B[];
   task?: ReturnType<typeof compileRockGrassPatch>;
   complete: boolean;
+  distance: number;
   metrics: RockGrassCompilationMetrics;
 }
 interface Entry<B> extends RockGrassPlacement {
   patches: PatchState<B>[];
-}
-interface Work<B> {
-  entry: Entry<B>;
-  patch: PatchState<B>;
-  distance: number;
 }
 
 /** Surface adapter for Seed World's existing grass batches, materials and wind.
  * CPU sampling is resumable; publication neither compiles candidates nor uploads buffers. */
 export class RockGrassPatches<B> {
   private entries = new Map<string, Entry<B>>();
-  private queue: Work<B>[] = [];
-  private residents: Work<B>[] = [];
+  private queue: PatchState<B>[] = [];
+  private residents: PatchState<B>[] = [];
   private retired: B[] = [];
   // Scalar residency/sampling keys keep the per-frame update allocation-free
   private cameraCellX = NaN;
@@ -95,15 +92,21 @@ export class RockGrassPatches<B> {
         next.set(placement.formation.id, current);
         retained++;
       } else {
-        next.set(placement.formation.id, {
-          ...placement,
-          patches: (placement.formation.grass?.patches ?? []).map((source) => ({
-            source,
-            batches: [],
-            complete: false,
-            metrics: emptyMetrics()
-          }))
-        });
+        const entry: Entry<B> = { ...placement, patches: [] };
+        const sourcePatches = placement.formation.grass?.patches;
+        if (sourcePatches) {
+          for (let i = 0; i < sourcePatches.length; i++) {
+            entry.patches.push({
+              entry,
+              source: sourcePatches[i],
+              batches: [],
+              complete: false,
+              distance: 0,
+              metrics: emptyMetrics()
+            });
+          }
+        }
+        next.set(placement.formation.id, entry);
         changed++;
       }
     }
@@ -120,8 +123,10 @@ export class RockGrassPatches<B> {
       this.lastEdit = oldEdit;
       this.error = oldError;
       this.dirty = true;
-      for (const { patch } of this.residents)
-        for (const batch of patch.batches) this.render.visible(batch, this.lastEnabled);
+      for (let i = 0, n = this.residents.length; i < n; i++) {
+        const batches = this.residents[i].batches;
+        for (let j = 0, m = batches.length; j < m; j++) this.render.visible(batches[j], this.lastEnabled);
+      }
       state = "prepared";
     };
     return {
@@ -206,10 +211,12 @@ export class RockGrassPatches<B> {
       this.cameraDistance = distance;
       this.cameraEnabled = enabled;
       this.dirty = false;
-      this.queue = [];
-      this.residents = [];
-      for (const entry of this.entries.values())
-        for (const patch of entry.patches) {
+      this.queue.length = 0;
+      this.residents.length = 0;
+      for (const entry of this.entries.values()) {
+        const patches = entry.patches;
+        for (let i = 0, n = patches.length; i < n; i++) {
+          const patch = patches[i];
           const d = patchDistanceSquared(entry, patch.source, camera);
           // One patch of hysteresis prevents camera jitter at the draw boundary from rebuilding grass.
           const resident = d <= (distance + ROCK_GRASS_PATCH_METRES) ** 2;
@@ -217,13 +224,18 @@ export class RockGrassPatches<B> {
             if (patch.task || patch.complete || patch.batches.length) this.release(patch);
             continue;
           }
-          const work = { entry, patch, distance: d };
-          this.residents.push(work);
-          if (!patch.complete) this.queue.push(work);
+          patch.distance = d;
+          this.residents.push(patch);
+          if (!patch.complete) this.queue.push(patch);
         }
-      this.queue.sort((a, b) => b.distance - a.distance);
+      }
+      this.queue.sort(comparePatchDistanceDescending);
     }
-    for (const { patch } of this.residents) for (const batch of patch.batches) this.render.visible(batch, enabled);
+    const residents = this.residents;
+    for (let i = 0, n = residents.length; i < n; i++) {
+      const batches = residents[i].batches;
+      for (let j = 0, m = batches.length; j < m; j++) this.render.visible(batches[j], enabled);
+    }
     let uploaded = false,
       quanta = 0;
     while (
@@ -234,7 +246,8 @@ export class RockGrassPatches<B> {
       now() - started < budgetMs &&
       quanta++ < 128
     ) {
-      const { entry, patch } = this.queue[this.queue.length - 1];
+      const patch = this.queue[this.queue.length - 1];
+      const entry = patch.entry;
       patch.task ??= compileRockGrassPatch(
         entry.formation,
         patch.source,
@@ -273,11 +286,18 @@ export class RockGrassPatches<B> {
   }
 
   visitBatches(visit: (batch: B) => void): void {
-    for (const { patch } of this.residents) for (const batch of patch.batches) visit(batch);
+    const residents = this.residents;
+    for (let i = 0, n = residents.length; i < n; i++) {
+      const batches = residents[i].batches;
+      for (let j = 0, m = batches.length; j < m; j++) visit(batches[j]);
+    }
   }
 
   get candidateCount(): number {
-    return this.residents.reduce((count, { patch }) => count + patch.metrics.candidates, 0);
+    let count = 0;
+    const residents = this.residents;
+    for (let i = 0, n = residents.length; i < n; i++) count += residents[i].metrics.candidates;
+    return count;
   }
 
   get diagnostics() {
@@ -348,4 +368,8 @@ function axisDistance(value: number, min: number, max: number): number {
 /** Key equality matching the previous string keys: NaN equals NaN and signed zeros are equal. */
 function sameKey(a: number | undefined, b: number | undefined): boolean {
   return a === b || (a !== a && b !== b);
+}
+
+function comparePatchDistanceDescending<B>(a: PatchState<B>, b: PatchState<B>): number {
+  return b.distance - a.distance;
 }

@@ -493,7 +493,8 @@ export class BasicRenderPipeline {
 
   /** Borrow the last main-view batches without rebuilding or changing their LOD state. @internal */
   _visitRenderViewRenderers(visitor: (renderer: Renderer) => void): void {
-    for (const renderer of this._submittedViewRenderers) visitor(renderer);
+    const renderers = this._submittedViewRenderers;
+    for (let i = 0, n = renderers.length; i < n; i++) visitor(renderers[i]);
   }
 
   /** Runs registered batch sources for the main Camera view. @internal */
@@ -943,6 +944,17 @@ export class BasicRenderPipeline {
     return true;
   }
 
+  private static _resolveStencilValue(
+    dataMap: ShaderPass["_renderStateDataMap"],
+    shaderData: Material["shaderData"],
+    key: RenderStateElementKey,
+    fixedValue: number,
+    defaultValue: number
+  ): number {
+    const property = dataMap[key];
+    return property === undefined ? fixedValue : (shaderData.getFloat(property) ?? defaultValue);
+  }
+
   private static _hasUnsafeStencil(pass: ShaderPass, material: Material): boolean {
     const stencil = pass._renderState.stencilState;
     const dataMap = pass._renderStateDataMap;
@@ -951,16 +963,16 @@ export class BasicRenderPipeline {
     const enabled = enabledProperty === undefined ? stencil.enabled : !!(shaderData.getFloat(enabledProperty) ?? false);
     if (!enabled) return false;
 
-    const resolve = (key: RenderStateElementKey, fixedValue: number, defaultValue: number): number => {
-      const property = dataMap[key];
-      return property === undefined ? fixedValue : (shaderData.getFloat(property) ?? defaultValue);
-    };
-    const compareFunctionFront = resolve(
+    const compareFunctionFront = BasicRenderPipeline._resolveStencilValue(
+      dataMap,
+      shaderData,
       RenderStateElementKey.StencilStateCompareFunctionFront,
       stencil.compareFunctionFront,
       CompareFunction.Always
     );
-    const compareFunctionBack = resolve(
+    const compareFunctionBack = BasicRenderPipeline._resolveStencilValue(
+      dataMap,
+      shaderData,
       RenderStateElementKey.StencilStateCompareFunctionBack,
       stencil.compareFunctionBack,
       CompareFunction.Always
@@ -969,16 +981,58 @@ export class BasicRenderPipeline {
       return true;
     }
 
-    const writeMask = resolve(RenderStateElementKey.StencilStateWriteMask, stencil.writeMask, 0xff);
+    const writeMask = BasicRenderPipeline._resolveStencilValue(
+      dataMap,
+      shaderData,
+      RenderStateElementKey.StencilStateWriteMask,
+      stencil.writeMask,
+      0xff
+    );
     if (writeMask === 0) return false;
     const keep = StencilOperation.Keep;
     return (
-      resolve(RenderStateElementKey.StencilStatePassOperationFront, stencil.passOperationFront, keep) !== keep ||
-      resolve(RenderStateElementKey.StencilStatePassOperationBack, stencil.passOperationBack, keep) !== keep ||
-      resolve(RenderStateElementKey.StencilStateFailOperationFront, stencil.failOperationFront, keep) !== keep ||
-      resolve(RenderStateElementKey.StencilStateFailOperationBack, stencil.failOperationBack, keep) !== keep ||
-      resolve(RenderStateElementKey.StencilStateZFailOperationFront, stencil.zFailOperationFront, keep) !== keep ||
-      resolve(RenderStateElementKey.StencilStateZFailOperationBack, stencil.zFailOperationBack, keep) !== keep
+      BasicRenderPipeline._resolveStencilValue(
+        dataMap,
+        shaderData,
+        RenderStateElementKey.StencilStatePassOperationFront,
+        stencil.passOperationFront,
+        keep
+      ) !== keep ||
+      BasicRenderPipeline._resolveStencilValue(
+        dataMap,
+        shaderData,
+        RenderStateElementKey.StencilStatePassOperationBack,
+        stencil.passOperationBack,
+        keep
+      ) !== keep ||
+      BasicRenderPipeline._resolveStencilValue(
+        dataMap,
+        shaderData,
+        RenderStateElementKey.StencilStateFailOperationFront,
+        stencil.failOperationFront,
+        keep
+      ) !== keep ||
+      BasicRenderPipeline._resolveStencilValue(
+        dataMap,
+        shaderData,
+        RenderStateElementKey.StencilStateFailOperationBack,
+        stencil.failOperationBack,
+        keep
+      ) !== keep ||
+      BasicRenderPipeline._resolveStencilValue(
+        dataMap,
+        shaderData,
+        RenderStateElementKey.StencilStateZFailOperationFront,
+        stencil.zFailOperationFront,
+        keep
+      ) !== keep ||
+      BasicRenderPipeline._resolveStencilValue(
+        dataMap,
+        shaderData,
+        RenderStateElementKey.StencilStateZFailOperationBack,
+        stencil.zFailOperationBack,
+        keep
+      ) !== keep
     );
   }
 

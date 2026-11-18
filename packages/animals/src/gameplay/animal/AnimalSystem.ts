@@ -33,7 +33,7 @@ interface Deadline {
 
 /** One simulation clock, cancellable deadline heap and fair, deduplicated behavior queue. */
 export class AnimalSystem {
-  private readonly _motionStepsBefore = new Set<(seconds: number) => void>();
+  private readonly _motionStepsBefore: ((seconds: number) => void)[] = [];
   private readonly _animals = new Set<AnimalAgent>();
   private readonly _moving = new Set<AnimalAgent>();
   private readonly _requestedMoving = new Set<AnimalAgent>();
@@ -54,6 +54,18 @@ export class AnimalSystem {
   private _lastEvaluations = 0;
   private _deferringPose = false;
   private readonly _pendingPoseFlush = new Set<AnimalAgent>();
+  private _substepDt = 0;
+  private _wakeCollectLimit = 0;
+  private readonly _advanceMovingAnimal = (animal: AnimalAgent): void => {
+    animal.advanceMotion(this._substepDt);
+    this._motionSteps++;
+  };
+  private readonly _flushPendingPose = (animal: AnimalAgent): void => {
+    animal.flushPose?.();
+  };
+  private readonly _collectWake = (animal: AnimalAgent): void => {
+    if (this._decisionQueue.length < this._wakeCollectLimit) this._decisionQueue.push(animal);
+  };
 
   /**
    * Shared per-update budgets for decisions and cooperative route planning.
@@ -146,16 +158,15 @@ export class AnimalSystem {
         const dt = Math.min(remaining, 1 / 60);
         remaining -= dt;
         this._deferringPose = remaining > 1e-8;
-        for (const step of this._motionStepsBefore) step(dt);
-        for (const animal of this._moving) {
-          animal.advanceMotion(dt);
-          this._motionSteps++;
-        }
+        this._substepDt = dt;
+        const steps = this._motionStepsBefore;
+        for (let i = 0, len = steps.length; i < len; i++) steps[i](dt);
+        this._moving.forEach(this._advanceMovingAnimal);
       }
     } finally {
       this._deferringPose = false;
       if (this._pendingPoseFlush.size) {
-        for (const animal of this._pendingPoseFlush) animal.flushPose?.();
+        this._pendingPoseFlush.forEach(this._flushPendingPose);
         this._pendingPoseFlush.clear();
       }
     }
@@ -179,12 +190,13 @@ export class AnimalSystem {
     // Snapshot the eligible count: a terminal tree cannot restart itself indefinitely in this frame.
     const count = Math.min(this._wakes.size, this.maxDecisionsPerFrame);
     const queue = this._decisionQueue;
-    for (const animal of this._wakes) {
-      queue.push(animal);
-      if (queue.length === count) break;
+    if (count > 0) {
+      this._wakeCollectLimit = count;
+      this._wakes.forEach(this._collectWake);
     }
     try {
-      for (const animal of queue) {
+      for (let i = 0, len = queue.length; i < len; i++) {
+        const animal = queue[i];
         if (!this._animals.has(animal) || this._inactive.has(animal)) {
           this._wakes.delete(animal);
           continue;
@@ -317,8 +329,12 @@ export class AnimalSystem {
 
   /** Register a shared movement world; runs once before actor animation in every bounded substep. */
   addMotionStep(step: (seconds: number) => void): () => void {
-    this._motionStepsBefore.add(step);
-    return () => this._motionStepsBefore.delete(step);
+    const steps = this._motionStepsBefore;
+    if (!steps.includes(step)) steps.push(step);
+    return () => {
+      const idx = steps.indexOf(step);
+      if (idx >= 0) steps.splice(idx, 1);
+    };
   }
 
   /** @internal Completion events enqueue; they never evaluate a tree inline. */
@@ -361,25 +377,29 @@ export class AnimalSystem {
       this._inactive.delete(animal);
       const interval = this._motionIntervals.get(animal);
       if (interval) interval.at = this._time;
-      for (const deadline of this._ownedDeadlines.get(animal) ?? []) {
-        if (deadline.remaining === undefined) continue;
-        deadline.at = this._time + deadline.remaining;
-        deadline.remaining = undefined;
-        deadline.index = this._deadlines.length;
-        this._deadlines.push(deadline);
-        this._up(deadline.index);
-      }
+      const owned = this._ownedDeadlines.get(animal);
+      if (owned)
+        for (const deadline of owned) {
+          if (deadline.remaining === undefined) continue;
+          deadline.at = this._time + deadline.remaining;
+          deadline.remaining = undefined;
+          deadline.index = this._deadlines.length;
+          this._deadlines.push(deadline);
+          this._up(deadline.index);
+        }
       if (this._requestedMoving.has(animal)) this.setMoving(animal, true);
       this.requestWake(animal);
     } else {
       this._inactive.add(animal);
       this._moving.delete(animal);
       this._wakes.delete(animal);
-      for (const deadline of this._ownedDeadlines.get(animal) ?? []) {
-        if (deadline.index < 0) continue;
-        deadline.remaining = Math.max(0, deadline.at - this._time);
-        this._removeDeadline(deadline.index);
-      }
+      const owned = this._ownedDeadlines.get(animal);
+      if (owned)
+        for (const deadline of owned) {
+          if (deadline.index < 0) continue;
+          deadline.remaining = Math.max(0, deadline.at - this._time);
+          this._removeDeadline(deadline.index);
+        }
     }
     animal.setActive?.(active);
   }
@@ -428,7 +448,8 @@ export class AnimalSystem {
     this._inactive.delete(animal);
     this._wakes.delete(animal);
     this._motionIntervals.delete(animal);
-    for (const deadline of this._ownedDeadlines.get(animal) ?? []) this._releaseDeadline(deadline);
+    const owned = this._ownedDeadlines.get(animal);
+    if (owned) for (const deadline of owned) this._releaseDeadline(deadline);
   }
 
   /** Cancels all animals, deadlines and pending decisions. The host can create a fresh system to restart. */
@@ -449,7 +470,7 @@ export class AnimalSystem {
     this._moving.clear();
     this._requestedMoving.clear();
     this._inactive.clear();
-    this._motionStepsBefore.clear();
+    this._motionStepsBefore.length = 0;
   }
 
   private _before(a: Deadline, b: Deadline): boolean {
@@ -468,7 +489,9 @@ export class AnimalSystem {
 
   private _swap(a: number, b: number): void {
     const heap = this._deadlines;
-    [heap[a], heap[b]] = [heap[b], heap[a]];
+    const item = heap[a];
+    heap[a] = heap[b];
+    heap[b] = item;
     heap[a].index = a;
     heap[b].index = b;
   }

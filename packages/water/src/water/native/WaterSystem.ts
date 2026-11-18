@@ -446,6 +446,11 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
   private _disposeTask?: Promise<void>;
   private _lifetime = new AbortController();
   private _activation = new AbortController();
+  private _updateDeltaSeconds = 0;
+  private readonly _updateBody = (body: WaterBodyComponent): void => {
+    if (this._host?.getBodyHandle(body.waterId)?.active)
+      this._ocean.updateRuntime(body.waterId, this._updateDeltaSeconds);
+  };
 
   get revision(): number {
     return this._revision;
@@ -482,8 +487,8 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
   override onUpdate(deltaSeconds: number): void {
     if (!this._runtimeState.effectiveEnabled) return;
     // Discovery is an authoring operation; never traverse the Scene in the frame loop.
-    for (const body of this._bodies.values())
-      if (this._host?.getBodyHandle(body.waterId)?.active) this._ocean.updateRuntime(body.waterId, deltaSeconds);
+    this._updateDeltaSeconds = deltaSeconds;
+    this._bodies.forEach(this._updateBody);
   }
   override onDestroy(): void {
     void this.dispose().catch(() => {});
