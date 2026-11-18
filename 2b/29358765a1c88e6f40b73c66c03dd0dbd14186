@@ -1,0 +1,294 @@
+packages/core/src/shader/ShaderUniform.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 22
+tests/src/core/texture/Texture2D.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 3,20,45,49,52-53,61,63,74
+tests/src/shader-compiler/MacroBodyWriteEffects.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 67,165,175,183,185-186,202
+tests/src/shader-compiler/HeadlessRegression.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 26
+tests/src/shader-compiler/ShaderNeutralIR.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 165,184,201,216,233,257,279,317,390,411,436,465,467-468
+packages/core/src/particle/modules/VelocityOverLifetimeModule.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 349-350,457,494
+tests/src/rhi-webgl/WebGLEngine.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 13-31
+tests/src/shader-compiler/ConditionalOutputArguments.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 53,110,113,132
+tests/src/shader-compiler/ShaderValidate.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 46
+packages/core/src/shader/ShaderPass.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 57,65,149-151,170
+tests/src/loader/PrimitiveMeshLoader.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 708-723
+tests/src/shader-compiler/ExternalMacroPrecedence.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 30,37,85
+packages/shader-compiler/src/bundler/precompile.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 70,75,108,148,194,283
+tests/src/core/Shader.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 27
+packages/core/src/RenderPipeline/DepthOnlyPass.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 22,27
+tests/src/shader-compiler/StateIsolation.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 173
+packages/rhi-webgl/src/GLTexture2DArray.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 10,12,16,123
+tests/src/core/particle/SubEmitterRendering.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 19,34
+packages/core/src/particle/ParticleGenerator.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 644,646,650
+e2e/case/particleRenderer-shape-mesh.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 21,27
+tests/src/shader-compiler/DiagnosticDriverConsistency.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 33,37,439,862
+tests/src/shader-compiler/PreprocessorCacheIdentity.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 22,29,80
+tests/src/shader-compiler/InterfaceValueSemantics.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 184,191,413,423,442
+packages/core/src/2d/text/TextUtils.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 434
+packages/rhi-webgl/src/GLTexture2D.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 12,15-16,42
+packages/xr-webxr/src/WebXRDevice.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 71,73
+packages/core/src/particle/ParticleRenderer.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 174
+tests/src/shader-compiler/PrecompileBenchmark.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 176,193,243,281,327
+packages/rhi-webgl/src/WebGLEngine.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 6
+packages/loader/src/TextureLoader.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 85
+tests/src/shader-compiler/ConditionImplicationInheritance.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 85,124,132,202,353
+tests/src/rhi-webgl/HeadlessEngine.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 1-11,73-91
+  s_3ee6eea2868467::t_4d80fbba8c938b 92
+packages/core/src/2d/atlas/FontAtlas.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 23
+packages/core/src/BasicResources.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 186-201
+docs/zh/core/engine.mdx
+  s_3ee6eea2868467::t_0a8313eded26bc 17,34,37
+packages/shader/src/Shaders/Blit/Blit.shader
+  s_3ee6eea2868467::t_0a8313eded26bc 39
+e2e/case/particleRenderer-emissive.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 21,27
+tests/src/shader-compiler/LayeredInheritanceCoverage.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 9,39,46
+tests/src/shader-compiler/PreprocessorConditionConformance.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 178,183,219,243,359,390,428,432,444,463,487,491,506,510,541,635,650,681,689,713,720
+packages/core/src/shader/enums/ShaderLanguage.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 6
+tests/src/shader-analyzer/ReviewRegression.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 78,573,587,601,691,721
+packages/core/src/shader/ShaderProgram.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 66,514-522
+tests/package-consumer/fixtures/DeferredOwnershipRoundTrip.js
+  s_3ee6eea2868467::t_0a8313eded26bc 59,68
+packages/rhi-null/src/NullGraphicDevice.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 21,32-33
+examples/src/gpu-instancing-custom-data.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 20,109
+tests/src/shader-compiler/expected/define-struct-access.frag.glsl
+  s_3ee6eea2868467::t_0a8313eded26bc 1,6-7,21
+e2e/case/shadow-transparent.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 17,23
+tests/src/shader-compiler/MacroBranchRuntime.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 36,51,53,59,92,112,131,152,169,185,200,215,232,545,580,586,657,678,728,793,851,887,917,976,1012,1042,1071,1104,1130,1157,1184,1219,1266,1322,1416,1480,1504,1555
+tests/src/shader-compiler/ConditionalInheritance.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 19,306
+packages/shader-compiler/src/ShaderPrecompiler.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 52
+packages/rhi-webgl/src/GLRenderTarget.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 16,33,59,124,233,267,317
+e2e/case/multi-camera-no-clear.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 19
+packages/core/src/shader/ShaderFactory.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 13
+e2e/case/multi-scene-no-clear.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 18,24
+packages/core/src/shader/state/StencilState.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 157
+tests/src/loader/MaterialLoader.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 1,17,31,78,179-183
+packages/rhi-webgl/src/GLRenderStates.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 5,8,10
+tests/src/shader-compiler/DeclarationIdentity.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 1,51-52,57
+tests/src/shader-compiler/expected/define-struct-access.vert.glsl
+  s_3ee6eea2868467::t_0a8313eded26bc 6-7,16-17
+packages/shader-compiler/src/bundler/rollup.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 15
+packages/core/src/texture/TextureUtils.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 23,56,58
+tests/src/core/ShaderIdentity.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 51,54,91
+e2e/case/camera-ssao.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 19,29
+packages/rhi-webgl/src/GLPrimitive.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 1,13,27,59-61,63-66,69,82,117
+tests/src/core/mesh/BlendShapeManager.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 10
+packages/core/src/shader/state/DepthState.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 81
+packages/shader/src/ShaderLibrary/PBR/FragmentPBR.glsl
+  s_3ee6eea2868467::t_0a8313eded26bc 188
+packages/shader/src/ShaderLibrary/Common/Common.glsl
+  s_3ee6eea2868467::t_0a8313eded26bc 56
+examples/src/gpu-instancing-auto-batch.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 23,124
+tests/src/core/resource/ResourceManager.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 1,180-182
+packages/core/src/mesh/SkinnedMeshRenderer.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 185-189,191-193
+tests/src/core/texture/RenderTarget.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 1,77-91
+e2e/case/particleRenderer-inherit-velocity-stretched.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 22,27
+docs/en/core/engine.mdx
+  s_3ee6eea2868467::t_0a8313eded26bc 17,34,37,76
+packages/shader-compiler/src/GLESBackend.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 9,30-33,50
+examples/src/CSS-DOM.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 7,14
+tests/src/shader-compiler/DeferredStructOwnership.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 12,134,151
+packages/core/src/shader/state/BlendState.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 63,65,160
+packages/core/src/particle/modules/InheritVelocityModule.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 105,110,233
+tests/src/core/mesh/PrimitiveMesh.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 1,4,181-184,186-191
+tests/src/shader-compiler/expected/define-struct-access-global.vert.glsl
+  s_3ee6eea2868467::t_0a8313eded26bc 6-7,15
+packages/core/src/particle/modules/SubEmittersModule.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 57
+packages/loader/src/PrimitiveMeshLoader.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 16
+tests/src/rhi-webgl/GLCapability.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 2,13,22
+e2e/case/particleRenderer-force.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 24
+packages/shader-compiler/src/codeGen/NameAllocator.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 2
+tests/src/core/texture/TextureCubeMap.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 3,21,48,52,56,65,73,75,86
+packages/shader/src/Shaders/Blit/BlitScreen.shader
+  s_3ee6eea2868467::t_0a8313eded26bc 39
+tests/src/shader-compiler/ConditionCoverageFallback.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 62,116,124,134,230,423,517,519
+tests/src/shader-compiler/ReturnStatementInvariant.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 1,44,55-56,60
+docs/en/graphics/texture/texture.mdx
+  s_3ee6eea2868467::t_0a8313eded26bc 32
+tests/src/shader-compiler/CollectiveInheritance.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 63,107,115,201,346
+packages/core/src/shader/state/RasterState.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 62
+packages/rhi-webgl/src/index.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 5
+tests/src/shader-compiler/ForwardFunctionDeclarations.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 135,232,274,280,287
+tests/src/shader-compiler/ParticleFeedbackReturn.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 6,16,23
+packages/shader-compiler/src/codeGen/GLESVisitor.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 483
+tests/src/shader-analyzer/LoopReturnCoverage.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 2,16-35,38-39,41
+tests/src/shader-compiler/Precompile.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 47,85,113,139,185,804,806,809,815-820,895,918,939,943,948,969,980,987,1002,1018,1037,1052,1128,1172,1195,1204,1216,1247,1260,1278,1300,1312,1324,1340,1364,1377,1417,1423,1442
+packages/core/src/texture/enums/TextureFormat.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 93
+e2e/case/particleRenderer-velocity-orbital-constant.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 19,24
+packages/rhi-webgl/src/GLTextureCube.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 12,15-16,33,42-51
+tests/src/shader-compiler/ExternalConditionInheritance.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 132,181,186
+packages/core/src/Engine.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 262-264
+tests/src/shader-compiler/ConditionalIOCoverage.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 130,197
+tests/src/shader-compiler/MacroTextExpansion.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 129
+tests/src/shader-compiler/FunctionPrototypeLifetime.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 9,170,174,180
+docs/zh/graphics/texture/texture.mdx
+  s_3ee6eea2868467::t_0a8313eded26bc 33
+tests/package-consumer/PublishedShaderPackages.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 121,273,278,285,294,304-305,307-308,313,327,355,519,682-683,702,706
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 1,104-118,127,298
+tests/src/shader-compiler/TypeDependencies.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 1,109-110,115
+packages/core/src/mesh/BlendShapeManager.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 155-158
+packages/rhi-webgl/src/GLBuffer.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 8,76,99-100,118
+tests/src/shader-compiler/TransformFeedbackNames.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 2,34,92,110,118
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 111,118,123,195
+tests/src/shader-compiler/PrecompileABTest.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 143,154,165-166,192,203,245,249,254,259,264,269,273,277,281,288,296,301,306,311,316,321,325,329,340,346,362,364,379,381,399,437,441,445,450,455,459,471,483,510,536,571,601,626,646,658,678
+e2e/case/particleRenderer-sub-emitter.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 30,35
+packages/rhi-webgl/src/GLCapability.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 26,48,92-93,100,112-113,127-155,159,164-172,174-175,184-185,191,193,221,225,227,229-230
+tests/src/core/BuiltinShaderIdentity.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 12,130-131
+tests/src/shader-compiler/PreprocessorReachability.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 30,41,57,139
+packages/core/src/shader/Shader.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 48,83,109
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 22
+tests/src/shader-compiler/expected/define-struct-access-global.frag.glsl
+  s_3ee6eea2868467::t_0a8313eded26bc 1,5,19
+packages/loader/src/ktx2/KTX2Loader.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 55-56,59-60,63-64,67-68,71,74,76,186-188,195-197,237
+packages/shader-parser/src/parser/AST.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 452
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 76,98,122,186-188,192-193,195-198,201-205,263-264,271-272,585,597
+tests/src/shader-compiler/DiscardStageDiagnostic.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 292,295,315
+packages/rhi-webgl/src/GLTexture.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 28,33-35,42-43,51,59,67,75,83,269,271,277,279,285,293,331,335,337,343,345,367,410,461-462,464-468,472,509,539,567,664-665
+packages/shader-compiler/src/codeGen/GLES300.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 2,57-71,77-83,86-102,105,107,110,113,115,117,151,164,167,223-231
+packages/core/src/base/Constant.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 87,111
+tests/src/shader-analyzer/MacroBranchMatrix.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 28
+tests/src/shader-compiler/InterfaceMRTConversion.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 1,93,98,115
+tests/src/core/Camera.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 92
+tests/src/shader-compiler/ShaderCompiler.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 18,42-90,93,97-131,144-153,155-156,159,161,166,210,274,541,557,560-561,574,593,615,622,636,650,662,665,709,910,912-913,961-984,1022-1023,1042,1074,1113,1140,1158-1163,1180-1185,1199-1204,1212,1395,1400,1430-1436,1441
+tests/src/core/particle/InheritVelocity.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 17
+tests/src/core/particle/VelocityOverLifetime.test.ts
+  s_3ee6eea2868467::t_0a8313eded26bc 111-112,117-118
+tests/src/core/texture/FloatTexture.test.ts
+  s_3ee6eea2868467::t_70578c15a3965d 1,8
+tests/src/loader/NativeFloatKTX2.test.ts
+  s_3ee6eea2868467::t_d55db11046a6b8 1,8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2b29358765a1c88e6f40b73c66c03dd0dbd14186",
+  "prompts": {},
+  "sessions": {
+    "s_3ee6eea2868467": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e9f3-3257-7082-9101-0df93aec4a93",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
