@@ -53,7 +53,7 @@ import {
 } from "./RenderViewCulling";
 import { PipelineStage } from "./enums/PipelineStage";
 import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
-import type { RenderElementSubsetCount } from "./RenderQueue";
+import type { RenderElementFilter, RenderElementSubsetCount } from "./RenderQueue";
 /**
  * Basic render pipeline.
  */
@@ -124,21 +124,11 @@ export class BasicRenderPipeline {
   private _destroyed = false;
   // Bound once so per-frame SSR queue scans and draws allocate no closures
   private readonly _receiverCount: RenderElementSubsetCount = { total: 0, subset: 0 };
-  private readonly _opaqueReceiverMaterialFilter = (material: Material): boolean =>
-    this._isScreenSpaceReflectionReceiver(material, RenderQueueType.Opaque);
-  private readonly _alphaTestReceiverMaterialFilter = (material: Material): boolean =>
-    this._isScreenSpaceReflectionReceiver(material, RenderQueueType.AlphaTest);
-  private readonly _transparentReceiverMaterialFilter = (material: Material): boolean =>
-    this._isScreenSpaceReflectionReceiver(material, RenderQueueType.Transparent);
-  private readonly _opaqueMaskSafeFilter = (material: Material, element: RenderElement): boolean =>
-    this._isScreenSpaceReflectionReceiver(material, RenderQueueType.Opaque) &&
-    this._isScreenSpaceReflectionElementMaskSafe(element, RenderQueueType.Opaque);
-  private readonly _alphaTestMaskSafeFilter = (material: Material, element: RenderElement): boolean =>
-    this._isScreenSpaceReflectionReceiver(material, RenderQueueType.AlphaTest) &&
-    this._isScreenSpaceReflectionElementMaskSafe(element, RenderQueueType.AlphaTest);
-  private readonly _transparentMaskSafeFilter = (material: Material, element: RenderElement): boolean =>
-    this._isScreenSpaceReflectionReceiver(material, RenderQueueType.Transparent) &&
-    this._isScreenSpaceReflectionElementMaskSafe(element, RenderQueueType.Transparent);
+  private readonly _receiverMaterialFilter: RenderElementFilter = (material, _element, queueType) =>
+    this._isScreenSpaceReflectionReceiver(material, queueType);
+  private readonly _receiverFilter: RenderElementFilter = (material, element, queueType) =>
+    this._isScreenSpaceReflectionReceiver(material, queueType) &&
+    this._isScreenSpaceReflectionElementMaskSafe(element, queueType);
   private readonly _contributionCapabilities = new Map<Material, boolean>();
   private _contributionContext: RenderContext | null = null;
   private readonly _contributesScreenSpaceReflection = (material: Material, element: RenderElement): boolean => {
@@ -294,26 +284,26 @@ export class BasicRenderPipeline {
       // One scan per queue yields both registered receivers and the mask-safe subset
       const receiverStage = PipelineStage.ScreenSpaceReflectionSurface;
       const count = this._receiverCount;
-      cullingResults.opaqueQueue.countRenderElementSubset(
+      cullingResults.opaqueQueue.countRenderElements(
         receiverStage,
-        this._opaqueReceiverMaterialFilter,
-        this._opaqueMaskSafeFilter,
+        this._receiverMaterialFilter,
+        this._receiverFilter,
         count
       );
       let registeredReceiverCount = count.total;
       let opaqueReceiverCount = count.subset;
-      cullingResults.alphaTestQueue.countRenderElementSubset(
+      cullingResults.alphaTestQueue.countRenderElements(
         receiverStage,
-        this._alphaTestReceiverMaterialFilter,
-        this._alphaTestMaskSafeFilter,
+        this._receiverMaterialFilter,
+        this._receiverFilter,
         count
       );
       registeredReceiverCount += count.total;
       opaqueReceiverCount += count.subset;
-      cullingResults.transparentQueue.countRenderElementSubset(
+      cullingResults.transparentQueue.countRenderElements(
         receiverStage,
-        this._transparentReceiverMaterialFilter,
-        this._transparentMaskSafeFilter,
+        this._receiverMaterialFilter,
+        this._receiverFilter,
         count
       );
       registeredReceiverCount += count.total;
@@ -738,7 +728,7 @@ export class BasicRenderPipeline {
                   context,
                   PipelineStage.ScreenSpaceReflectionSurface,
                   RenderQueueMaskType.No,
-                  this._opaqueMaskSafeFilter,
+                  this._receiverFilter,
                   false,
                   surfaceStates
                 ) +
@@ -746,7 +736,7 @@ export class BasicRenderPipeline {
                   context,
                   PipelineStage.ScreenSpaceReflectionSurface,
                   RenderQueueMaskType.No,
-                  this._alphaTestMaskSafeFilter,
+                  this._receiverFilter,
                   false,
                   surfaceStates
                 );
@@ -825,7 +815,7 @@ export class BasicRenderPipeline {
               context,
               PipelineStage.ScreenSpaceReflectionSurface,
               RenderQueueMaskType.No,
-              this._transparentMaskSafeFilter,
+              this._receiverFilter,
               false,
               BasicRenderPipeline._getScreenSpaceReflectionSurfaceStates(internalColorTarget!)
             );

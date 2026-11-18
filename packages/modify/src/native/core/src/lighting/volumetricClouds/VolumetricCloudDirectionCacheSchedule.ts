@@ -1,10 +1,10 @@
 /** One frame of the checkerboard/slice direction-cache update schedule. */
 export interface VolumetricCloudDirectionCacheSchedule {
-  readonly checkerParity: 0 | 1;
-  readonly sliceIndex: number;
-  readonly sliceCount: number;
-  readonly publishAfterUpdate: boolean;
-  readonly burstRefreshActive: boolean;
+  checkerParity: 0 | 1;
+  sliceIndex: number;
+  sliceCount: number;
+  publishAfterUpdate: boolean;
+  burstRefreshActive: boolean;
 }
 
 const DIRECTION_CACHE_PARITY_COUNT = 2;
@@ -55,42 +55,15 @@ export function resolveVolumetricCloudDirectionHistoryMotion(
  * The working cache is published only after both parities complete, so consumers
  * never observe a texture assembled from two different cloud times. Invalidated
  * histories temporarily use the burst slice count provided by the active quality preset.
+ * Per-frame callers pass `out` to reuse one record.
  */
 export function createVolumetricCloudDirectionCacheSchedule(
   frameIndex: number,
   requestedSliceCount: number,
   burstFramesRemaining: number,
-  requestedBurstSliceCount = requestedSliceCount
+  requestedBurstSliceCount = requestedSliceCount,
+  out = <VolumetricCloudDirectionCacheSchedule>{}
 ): VolumetricCloudDirectionCacheSchedule {
-  return Object.freeze(
-    resolveVolumetricCloudDirectionCacheSchedule(
-      { checkerParity: 0, sliceIndex: 0, sliceCount: 1, publishAfterUpdate: false, burstRefreshActive: false },
-      frameIndex,
-      requestedSliceCount,
-      burstFramesRemaining,
-      requestedBurstSliceCount
-    )
-  );
-}
-
-/** Mutable schedule record reused by per-frame callers. @internal */
-export type MutableVolumetricCloudDirectionCacheSchedule = {
-  -readonly [K in keyof VolumetricCloudDirectionCacheSchedule]: VolumetricCloudDirectionCacheSchedule[K];
-};
-
-/**
- * Allocation-free form of {@link createVolumetricCloudDirectionCacheSchedule}.
- * @param out - Record receiving this frame's schedule
- * @returns The same `out` record
- * @internal
- */
-export function resolveVolumetricCloudDirectionCacheSchedule(
-  out: MutableVolumetricCloudDirectionCacheSchedule,
-  frameIndex: number,
-  requestedSliceCount: number,
-  burstFramesRemaining: number,
-  requestedBurstSliceCount = requestedSliceCount
-): MutableVolumetricCloudDirectionCacheSchedule {
   const regularSliceCount = Math.max(1, Math.floor(requestedSliceCount));
   const burstRefreshActive = burstFramesRemaining > 0;
   const burstSliceCount = Math.max(1, Math.floor(requestedBurstSliceCount));

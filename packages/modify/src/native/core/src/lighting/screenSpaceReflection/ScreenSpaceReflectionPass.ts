@@ -12,10 +12,7 @@ import { Material } from "../../material";
 import { Shader, ShaderProperty } from "../../shader";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
 import { TextureUtils } from "../../texture/TextureUtils";
-import type {
-  ScreenSpaceReflectionConsumerReceiverMode,
-  ScreenSpaceReflectionRenderStats
-} from "./ScreenSpaceReflection";
+import type { ScreenSpaceReflectionConsumerReceiverMode } from "./ScreenSpaceReflection";
 import type { ScreenSpaceReflectionProfiler, ScreenSpaceReflectionStage } from "./ScreenSpaceReflectionProfiler";
 import { ScreenSpaceReflection } from "./ScreenSpaceReflection";
 import { ScreenSpaceReflectionUpsamplingMode } from "./enums/ScreenSpaceReflectionUpsamplingMode";
@@ -89,28 +86,6 @@ export class ScreenSpaceReflectionPass {
   private _pipelineEstimatedTextureBytes = 0;
   private _pipelineEstimatedRenderBufferBytes = 0;
   private _destroyed = false;
-  // Copied field-by-field by the receiver, so one scratch record serves every frame
-  private readonly _renderStats: ScreenSpaceReflectionRenderStats = {
-    width: 0,
-    height: 0,
-    contributionColorDrawCount: 0,
-    contributionDepthDrawCount: 0,
-    opaqueSurfacePassDrawCount: 0,
-    transparentSurfacePassDrawCount: 0,
-    tracePassCount: 0,
-    compositePassCount: 0,
-    sceneCopyPassCount: 0,
-    filterPassCount: 0,
-    upsamplePassCount: 0,
-    fullscreenPassCount: 0,
-    renderTargetCount: 0,
-    renderTextureCount: 0,
-    renderBufferCount: 0,
-    retainedRenderTargetCount: 0,
-    estimatedTextureBytes: 0,
-    estimatedRenderBufferBytes: 0,
-    estimatedBytes: 0
-  };
 
   get hasOpaqueReceivers(): boolean {
     return this._opaqueReceiverElementCount > 0;
@@ -568,27 +543,27 @@ export class ScreenSpaceReflectionPass {
   private _publishRenderStats(): void {
     const estimatedTextureBytes = this._peakEstimatedBytes + this._pipelineEstimatedTextureBytes;
     const estimatedRenderBufferBytes = this._pipelineEstimatedRenderBufferBytes;
-    const stats = this._renderStats;
-    stats.width = this._peakTraceWidth;
-    stats.height = this._peakTraceHeight;
-    stats.contributionColorDrawCount = this._contributionColorDrawCount;
-    stats.contributionDepthDrawCount = this._contributionDepthDrawCount;
-    stats.opaqueSurfacePassDrawCount = this._opaqueSurfacePassDrawCount;
-    stats.transparentSurfacePassDrawCount = this._transparentSurfacePassDrawCount;
-    stats.tracePassCount = this._tracePassCount;
-    stats.compositePassCount = this._compositePassCount;
-    stats.sceneCopyPassCount = this._sceneCopyPassCount;
-    stats.filterPassCount = this._filterPassCount;
-    stats.upsamplePassCount = this._upsamplePassCount;
-    stats.fullscreenPassCount = this._fullscreenPassCount;
-    stats.renderTargetCount = this._peakRenderTargetCount + this._pipelineRenderTargetCount;
-    stats.renderTextureCount = this._peakRenderTextureCount + this._pipelineRenderTextureCount;
-    stats.renderBufferCount = this._pipelineRenderBufferCount;
-    stats.retainedRenderTargetCount = 0;
-    stats.estimatedTextureBytes = estimatedTextureBytes;
-    stats.estimatedRenderBufferBytes = estimatedRenderBufferBytes;
-    stats.estimatedBytes = estimatedTextureBytes + estimatedRenderBufferBytes;
-    this._camera.screenSpaceReflection._setRenderStats(stats);
+    const metrics = this._camera.screenSpaceReflection._renderMetrics;
+    metrics.width = this._peakTraceWidth;
+    metrics.height = this._peakTraceHeight;
+    metrics.contributionColorDrawCount = this._contributionColorDrawCount;
+    metrics.contributionDepthDrawCount = this._contributionDepthDrawCount;
+    metrics.opaqueSurfacePassDrawCount = this._opaqueSurfacePassDrawCount;
+    metrics.transparentSurfacePassDrawCount = this._transparentSurfacePassDrawCount;
+    metrics.surfacePassDrawCount = this._opaqueSurfacePassDrawCount + this._transparentSurfacePassDrawCount;
+    metrics.tracePassCount = this._tracePassCount;
+    metrics.compositePassCount = this._compositePassCount;
+    metrics.sceneCopyPassCount = this._sceneCopyPassCount;
+    metrics.filterPassCount = this._filterPassCount;
+    metrics.upsamplePassCount = this._upsamplePassCount;
+    metrics.fullscreenPassCount = this._fullscreenPassCount;
+    metrics.renderTargetCount = this._peakRenderTargetCount + this._pipelineRenderTargetCount;
+    metrics.renderTextureCount = this._peakRenderTextureCount + this._pipelineRenderTextureCount;
+    metrics.renderBufferCount = this._pipelineRenderBufferCount;
+    metrics.retainedRenderTargetCount = 0;
+    metrics.estimatedTextureBytes = estimatedTextureBytes;
+    metrics.estimatedRenderBufferBytes = estimatedRenderBufferBytes;
+    metrics.estimatedBytes = estimatedTextureBytes + estimatedRenderBufferBytes;
   }
 
   release(): void {

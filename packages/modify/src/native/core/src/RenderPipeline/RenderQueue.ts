@@ -12,6 +12,12 @@ import { RenderElement } from "./RenderElement";
 import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
 
 /**
+ * Render queue element filter; the queue type lets one filter serve every queue.
+ * @internal
+ */
+export type RenderElementFilter = (material: Material, element: RenderElement, queueType: RenderQueueType) => boolean;
+
+/**
  * @internal
  */
 export interface RenderElementSubsetCount {
@@ -56,20 +62,27 @@ export class RenderQueue {
     batcherManager.batch(this.elements, this.batchedElements);
   }
 
-  /** Count explicitly eligible elements that expose a pass for this queue and stage. */
+  /**
+   * Count explicitly eligible elements that expose a pass for this queue and stage.
+   * @param subsetFilter - Optional narrower filter whose count is written to `out.subset` in the same scan
+   * @returns Elements accepted by `elementFilter`
+   */
   countRenderElements(
     pipelineStageTagValue: string,
-    elementFilter: (material: Material, element: RenderElement) => boolean
+    elementFilter: RenderElementFilter,
+    subsetFilter?: RenderElementFilter,
+    out?: RenderElementSubsetCount
   ): number {
     const batchedElements = this.batchedElements;
     const pipelineStageKey = RenderContext.pipelineStageKey;
     const renderQueueType = this.renderQueueType;
     let count = 0;
+    let subset = 0;
 
     for (let i = 0, n = batchedElements.length; i < n; i++) {
       const element = batchedElements[i];
       const material = element.material;
-      if (!elementFilter(material, element)) continue;
+      if (!elementFilter(material, element, renderQueueType)) continue;
       const passes = element.subShader.passes;
       for (let j = 0, m = passes.length; j < m; j++) {
         const pass = passes[j];
@@ -77,54 +90,23 @@ export class RenderQueue {
         const queueType = pass._renderState._getRenderQueueByShaderData(pass._renderStateDataMap, material.shaderData);
         if (queueType === renderQueueType) {
           count++;
+          if (subsetFilter?.(material, element, renderQueueType)) subset++;
           break;
         }
       }
+    }
+    if (out) {
+      out.total = count;
+      out.subset = subset;
     }
     return count;
-  }
-
-  /**
-   * Count stage-eligible elements accepted by `elementFilter`, and the subset also accepted by `subsetFilter`.
-   * @param out - Receives `total` and `subset` counts
-   */
-  countRenderElementSubset(
-    pipelineStageTagValue: string,
-    elementFilter: (material: Material, element: RenderElement) => boolean,
-    subsetFilter: (material: Material, element: RenderElement) => boolean,
-    out: RenderElementSubsetCount
-  ): void {
-    const batchedElements = this.batchedElements;
-    const pipelineStageKey = RenderContext.pipelineStageKey;
-    const renderQueueType = this.renderQueueType;
-    let total = 0;
-    let subset = 0;
-
-    for (let i = 0, n = batchedElements.length; i < n; i++) {
-      const element = batchedElements[i];
-      const material = element.material;
-      if (!elementFilter(material, element)) continue;
-      const passes = element.subShader.passes;
-      for (let j = 0, m = passes.length; j < m; j++) {
-        const pass = passes[j];
-        if (pass.getTagValue(pipelineStageKey) !== pipelineStageTagValue) continue;
-        const queueType = pass._renderState._getRenderQueueByShaderData(pass._renderStateDataMap, material.shaderData);
-        if (queueType === renderQueueType) {
-          total++;
-          if (subsetFilter(material, element)) subset++;
-          break;
-        }
-      }
-    }
-    out.total = total;
-    out.subset = subset;
   }
 
   render(
     context: RenderContext,
     pipelineStageTagValue: string,
     maskType: RenderQueueMaskType = RenderQueueMaskType.No,
-    elementFilter: ((material: Material, element: RenderElement) => boolean) | null = null,
+    elementFilter: RenderElementFilter | null = null,
     applyMaskState: boolean = true,
     renderStateOverrides: RenderStateElementMap | null = null
   ): number {
@@ -154,7 +136,7 @@ export class RenderQueue {
     for (let i = 0; i < length; i++) {
       const curElement = batchedElements[i];
       const { component, material } = curElement;
-      if (elementFilter && !elementFilter(material, curElement)) {
+      if (elementFilter && !elementFilter(material, curElement, renderQueueType)) {
         continue;
       }
       const isInstanced = curElement.instancedRenderers.length > 0;

@@ -4,14 +4,12 @@ import { Blitter } from "../../RenderPipeline/Blitter";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { GLCapabilityType } from "../../base";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
-import { ShaderProperty } from "../../shader";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
 import {
-  resolveVolumetricCloudDirectionCacheSchedule,
+  createVolumetricCloudDirectionCacheSchedule,
   resolveVolumetricCloudDirectionHistoryMotion,
   resolveVolumetricCloudDirectionHistoryWeight,
   VOLUMETRIC_CLOUD_DIRECTION_CACHE_WARMUP_SWEEPS,
-  type MutableVolumetricCloudDirectionCacheSchedule,
   type VolumetricCloudDirectionCacheSchedule
 } from "./VolumetricCloudDirectionCacheSchedule";
 import type {
@@ -40,29 +38,6 @@ export class VolumetricCloudDirectionCacheRenderer {
   profiler: VolumetricCloudDirectionCacheProfiler | null = null;
 
   private static readonly _clearColor = new Color(0, 0, 0, 0);
-  private static readonly _cacheHDRCompressionProperty = ShaderProperty.getByName("material_CacheHDRCompression");
-  private static readonly _cloudHistoryProperty = ShaderProperty.getByName("material_CloudHistory");
-  private static readonly _directionCacheReadyProperty = ShaderProperty.getByName("material_DirectionCacheReady");
-  private static readonly _directionCheckerParityProperty = ShaderProperty.getByName("material_DirectionCheckerParity");
-  private static readonly _directionDisplayMotionProperty = ShaderProperty.getByName("material_DirectionDisplayMotion");
-  private static readonly _directionHistoryMetadataProperty = ShaderProperty.getByName(
-    "material_DirectionHistoryMetadata"
-  );
-  private static readonly _directionHistoryMotionProperty = ShaderProperty.getByName("material_DirectionHistoryMotion");
-  private static readonly _directionHistoryWeightProperty = ShaderProperty.getByName("material_DirectionHistoryWeight");
-  private static readonly _directionHistoryValidProperty = ShaderProperty.getByName("material_DirectionHistoryValid");
-  private static readonly _directionPreviousCacheProperty = ShaderProperty.getByName("material_DirectionPreviousCache");
-  private static readonly _directionPreviousMetadataProperty = ShaderProperty.getByName(
-    "material_DirectionPreviousMetadata"
-  );
-  private static readonly _frameJitterProperty = ShaderProperty.getByName("material_FrameJitter");
-  private static readonly _historyTexelSizeProperty = ShaderProperty.getByName("material_HistoryTexelSize");
-  private static readonly _horizonFadeStartProperty = ShaderProperty.getByName("material_HorizonFadeStart");
-  private static readonly _horizonStepMultiplierProperty = ShaderProperty.getByName("material_HorizonStepMultiplier");
-  private static readonly _maxStepsProperty = ShaderProperty.getByName("material_MaxSteps");
-  private static readonly _timeProperty = ShaderProperty.getByName("material_Time");
-  private static readonly _windOffsetWSProperty = ShaderProperty.getByName("material_WindOffsetWS");
-  private static readonly _windVelocityWSProperty = ShaderProperty.getByName("material_WindVelocityWS");
 
   private readonly _historyTexelSize = new Vector4();
   private readonly _sliceViewport = new Vector4();
@@ -90,13 +65,7 @@ export class VolumetricCloudDirectionCacheRenderer {
   private _endpointBorrower: VolumetricCloudDirectionCacheRenderer | null = null;
   private _borrowedFrom: VolumetricCloudDirectionCacheRenderer | null = null;
   private _borrowedTarget: RenderTarget | null = null;
-  private readonly _schedule: MutableVolumetricCloudDirectionCacheSchedule = {
-    checkerParity: 0,
-    sliceIndex: 0,
-    sliceCount: 1,
-    publishAfterUpdate: false,
-    burstRefreshActive: false
-  };
+  private readonly _schedule = <VolumetricCloudDirectionCacheSchedule>{};
 
   constructor(private readonly _engine: Engine) {}
 
@@ -282,18 +251,12 @@ export class VolumetricCloudDirectionCacheRenderer {
     if (!texture) return;
     this._calculateHistoryMotionAtWind(material._cloudWindOffsetWS, this._displayMotion);
     const data = material.shaderData;
-    data.setTexture(VolumetricCloudDirectionCacheRenderer._cloudHistoryProperty, texture);
-    data.setTexture(
-      VolumetricCloudDirectionCacheRenderer._directionHistoryMetadataProperty,
-      this._displayTarget!.getColorTexture(1)
-    );
-    data.setVector4(VolumetricCloudDirectionCacheRenderer._historyTexelSizeProperty, this._historyTexelSize);
-    data.setVector3(VolumetricCloudDirectionCacheRenderer._directionDisplayMotionProperty, this._displayMotion);
-    data.setFloat(
-      VolumetricCloudDirectionCacheRenderer._cacheHDRCompressionProperty,
-      this._cacheFormat === TextureFormat.R8G8B8A8 ? 1 : 0
-    );
-    data.setFloat(VolumetricCloudDirectionCacheRenderer._directionCacheReadyProperty, this.ready ? 1 : 0);
+    data.setTexture("material_CloudHistory", texture);
+    data.setTexture("material_DirectionHistoryMetadata", this._displayTarget!.getColorTexture(1));
+    data.setVector4("material_HistoryTexelSize", this._historyTexelSize);
+    data.setVector3("material_DirectionDisplayMotion", this._displayMotion);
+    data.setFloat("material_CacheHDRCompression", this._cacheFormat === TextureFormat.R8G8B8A8 ? 1 : 0);
+    data.setFloat("material_DirectionCacheReady", this.ready ? 1 : 0);
   }
 
   private _ensureTargets(size: number, format: TextureFormat): boolean {
@@ -375,12 +338,12 @@ export class VolumetricCloudDirectionCacheRenderer {
       this._resetAndClearTargets(Math.min(preset.directionInvalidationBurstSlices, preset.directionCacheSlices));
       this._invalidated = false;
     }
-    const schedule = resolveVolumetricCloudDirectionCacheSchedule(
-      this._schedule,
+    const schedule = createVolumetricCloudDirectionCacheSchedule(
       this._updateFrame,
       preset.directionCacheSlices,
       this._burstFramesRemaining,
-      preset.directionInvalidationBurstSlices
+      preset.directionInvalidationBurstSlices,
+      this._schedule
     );
     if ((schedule.checkerParity === 0 && schedule.sliceIndex === 0) || !this._sweepValid) {
       this._sweepCloudTime = material._cloudFrameTime;
@@ -390,39 +353,24 @@ export class VolumetricCloudDirectionCacheRenderer {
     }
     const data = material.shaderData;
     this._calculateHistoryMotionAtWind(this._sweepCloudWindOffsetWS, this._historyMotion);
-    data.setTexture(
-      VolumetricCloudDirectionCacheRenderer._directionPreviousCacheProperty,
-      this._displayTarget!.getColorTexture(0)
-    );
-    data.setTexture(
-      VolumetricCloudDirectionCacheRenderer._directionPreviousMetadataProperty,
-      this._displayTarget!.getColorTexture(1)
-    );
-    data.setVector4(VolumetricCloudDirectionCacheRenderer._historyTexelSizeProperty, this._historyTexelSize);
-    data.setVector3(VolumetricCloudDirectionCacheRenderer._directionHistoryMotionProperty, this._historyMotion);
-    data.setFloat(VolumetricCloudDirectionCacheRenderer._directionCheckerParityProperty, schedule.checkerParity);
-    data.setFloat(VolumetricCloudDirectionCacheRenderer._directionHistoryValidProperty, this._displayValid ? 1 : 0);
+    data.setTexture("material_DirectionPreviousCache", this._displayTarget!.getColorTexture(0));
+    data.setTexture("material_DirectionPreviousMetadata", this._displayTarget!.getColorTexture(1));
+    data.setVector4("material_HistoryTexelSize", this._historyTexelSize);
+    data.setVector3("material_DirectionHistoryMotion", this._historyMotion);
+    data.setFloat("material_DirectionCheckerParity", schedule.checkerParity);
+    data.setFloat("material_DirectionHistoryValid", this._displayValid ? 1 : 0);
     data.setFloat(
-      VolumetricCloudDirectionCacheRenderer._directionHistoryWeightProperty,
+      "material_DirectionHistoryWeight",
       resolveVolumetricCloudDirectionHistoryWeight(this._accumulatedSweepCount, preset.directionHistoryWeight)
     );
-    data.setFloat(VolumetricCloudDirectionCacheRenderer._maxStepsProperty, preset.directionCacheSteps);
-    data.setFloat(
-      VolumetricCloudDirectionCacheRenderer._horizonStepMultiplierProperty,
-      preset.directionHorizonStepMultiplier
-    );
-    data.setFloat(VolumetricCloudDirectionCacheRenderer._horizonFadeStartProperty, preset.directionHorizonFadeStart);
-    data.setFloat(
-      VolumetricCloudDirectionCacheRenderer._cacheHDRCompressionProperty,
-      this._cacheFormat === TextureFormat.R8G8B8A8 ? 1 : 0
-    );
-    data.setFloat(
-      VolumetricCloudDirectionCacheRenderer._frameJitterProperty,
-      radicalInverseBase3(this._jitterCycle + 1)
-    );
-    data.setFloat(VolumetricCloudDirectionCacheRenderer._timeProperty, this._sweepCloudTime);
-    data.setVector3(VolumetricCloudDirectionCacheRenderer._windOffsetWSProperty, this._sweepCloudWindOffsetWS);
-    data.setVector3(VolumetricCloudDirectionCacheRenderer._windVelocityWSProperty, this._sweepCloudWindVelocityWS);
+    data.setFloat("material_MaxSteps", preset.directionCacheSteps);
+    data.setFloat("material_HorizonStepMultiplier", preset.directionHorizonStepMultiplier);
+    data.setFloat("material_HorizonFadeStart", preset.directionHorizonFadeStart);
+    data.setFloat("material_CacheHDRCompression", this._cacheFormat === TextureFormat.R8G8B8A8 ? 1 : 0);
+    data.setFloat("material_FrameJitter", radicalInverseBase3(this._jitterCycle + 1));
+    data.setFloat("material_Time", this._sweepCloudTime);
+    data.setVector3("material_WindOffsetWS", this._sweepCloudWindOffsetWS);
+    data.setVector3("material_WindVelocityWS", this._sweepCloudWindVelocityWS);
 
     const sliceStart = Math.floor((schedule.sliceIndex * this._cacheSize) / schedule.sliceCount);
     const sliceEnd = Math.floor(((schedule.sliceIndex + 1) * this._cacheSize) / schedule.sliceCount);
@@ -436,9 +384,9 @@ export class VolumetricCloudDirectionCacheRenderer {
       material,
       0
     );
-    data.setFloat(VolumetricCloudDirectionCacheRenderer._timeProperty, material._cloudFrameTime);
-    data.setVector3(VolumetricCloudDirectionCacheRenderer._windOffsetWSProperty, material._cloudWindOffsetWS);
-    data.setVector3(VolumetricCloudDirectionCacheRenderer._windVelocityWSProperty, material._cloudWindVelocityWS);
+    data.setFloat("material_Time", material._cloudFrameTime);
+    data.setVector3("material_WindOffsetWS", material._cloudWindOffsetWS);
+    data.setVector3("material_WindVelocityWS", material._cloudWindVelocityWS);
     return schedule;
   }
 

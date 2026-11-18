@@ -162,7 +162,8 @@ export interface ScreenSpaceReflectionConsumerLease {
   release(): void;
 }
 
-interface MutableScreenSpaceReflectionMetrics {
+/** @internal */
+export interface MutableScreenSpaceReflectionMetrics {
   activationMode: ScreenSpaceReflectionActivationMode;
   receiverPolicy: ScreenSpaceReflectionReceiverPolicy;
   globalEnabled: boolean;
@@ -207,29 +208,6 @@ interface MutableScreenSpaceReflectionMetrics {
   estimatedBytes: number;
   unsupportedReason: string | null;
   inactiveReason: string | null;
-}
-
-/** @internal */
-export interface ScreenSpaceReflectionRenderStats {
-  contributionColorDrawCount: number;
-  contributionDepthDrawCount: number;
-  width: number;
-  height: number;
-  opaqueSurfacePassDrawCount: number;
-  transparentSurfacePassDrawCount: number;
-  tracePassCount: number;
-  sceneCopyPassCount: number;
-  filterPassCount: number;
-  upsamplePassCount: number;
-  fullscreenPassCount: number;
-  compositePassCount: number;
-  renderTargetCount: number;
-  renderTextureCount: number;
-  renderBufferCount: number;
-  retainedRenderTargetCount: number;
-  estimatedTextureBytes: number;
-  estimatedRenderBufferBytes: number;
-  estimatedBytes: number;
 }
 
 interface MutableScreenSpaceReflectionResolvedSettings {
@@ -1171,29 +1149,9 @@ export class ScreenSpaceReflection {
     this._metricsState.maskedReceiverElementCount = maskedCount;
   }
 
-  /** @internal */
-  _setRenderStats(stats: ScreenSpaceReflectionRenderStats): void {
-    const metrics = this._metricsState;
-    metrics.width = stats.width;
-    metrics.height = stats.height;
-    metrics.opaqueSurfacePassDrawCount = stats.opaqueSurfacePassDrawCount;
-    metrics.transparentSurfacePassDrawCount = stats.transparentSurfacePassDrawCount;
-    metrics.contributionColorDrawCount = stats.contributionColorDrawCount;
-    metrics.contributionDepthDrawCount = stats.contributionDepthDrawCount;
-    metrics.surfacePassDrawCount = stats.opaqueSurfacePassDrawCount + stats.transparentSurfacePassDrawCount;
-    metrics.tracePassCount = stats.tracePassCount;
-    metrics.sceneCopyPassCount = stats.sceneCopyPassCount;
-    metrics.filterPassCount = stats.filterPassCount;
-    metrics.upsamplePassCount = stats.upsamplePassCount;
-    metrics.fullscreenPassCount = stats.fullscreenPassCount;
-    metrics.compositePassCount = stats.compositePassCount;
-    metrics.renderTargetCount = stats.renderTargetCount;
-    metrics.renderTextureCount = stats.renderTextureCount;
-    metrics.renderBufferCount = stats.renderBufferCount;
-    metrics.retainedRenderTargetCount = stats.retainedRenderTargetCount;
-    metrics.estimatedTextureBytes = stats.estimatedTextureBytes;
-    metrics.estimatedRenderBufferBytes = stats.estimatedRenderBufferBytes;
-    metrics.estimatedBytes = stats.estimatedBytes;
+  /** Mutable per-frame render metrics written by the camera's SSR pass. @internal */
+  get _renderMetrics(): MutableScreenSpaceReflectionMetrics {
+    return this._metricsState;
   }
 
   /** @internal */
