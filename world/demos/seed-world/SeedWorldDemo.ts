@@ -2144,11 +2144,11 @@ export async function mountSeedWorldDemo(
     );
     progress(0.94, "准备世界画面");
     desert?.applyDesertShadows(lighting);
+    scene!.ambientOcclusion.enabled = false;
     if (desert) {
       scene!.shadowFadeBorder = 0.2;
       sun.shadowBias = 0.5;
       sun.shadowNormalBias = 0.5;
-      scene!.ambientOcclusion.enabled = !!startupArt?.water?.length;
       scene!.ambientOcclusion.intensity = 0.5;
       scene!.ambientOcclusion.radius = 0.5;
     }

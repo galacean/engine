@@ -547,7 +547,7 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     sandRippleFadeM: 150,
     initialPlanning: {
       landMode: "continuous",
-      relief: { reliefNearAmplitudeM: 0.1, reliefAmplitudeM: 0.7, reliefFarAmplitudeM: 7, reliefScaleM: 230 },
+      relief: { reliefNearAmplitudeM: 0.1, reliefAmplitudeM: 0.7, reliefFarAmplitudeM: 95, reliefScaleM: 230 },
       roadsEnabled: false,
       farmingEnabled: false,
       poiMemberMax: 0,
@@ -634,10 +634,7 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       { id: "east-dune-slope", x: 68, z: -18, kind: "patch", radius: 24, height: 1.6 },
       { id: "west-canyon-bench", x: -56, z: 151, kind: "plateau", length: 106, width: 47, height: 3.0, heading: 83 },
       { id: "east-canyon-bench", x: 70, z: 198, kind: "plateau", length: 124, width: 60, height: 4.5, heading: 102 },
-      { id: "far-canyon-bench", x: -35, z: 267, kind: "ridge", length: 154, width: 52, height: 3.0, heading: 71 },
-      { id: "gap-east-peak", x: -5, z: 315, kind: "mountain", length: 138, width: 88, height: 42, heading: 94 },
-      { id: "west-skyline-peak", x: -148, z: 340, kind: "mountain", length: 125, width: 80, height: 74, heading: 82 },
-      { id: "east-skyline-peak", x: 152, z: 395, kind: "mountain", length: 155, width: 82, height: 54, heading: 72 }
+      { id: "far-canyon-bench", x: -35, z: 267, kind: "ridge", length: 154, width: 52, height: 3.0, heading: 71 }
     ],
     water: [
       {
