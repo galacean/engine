@@ -63,7 +63,7 @@ const catalog = await api.execute({ operation: "getCatalog", input: { farmId: ar
 
 ## Scene / Prefab 与生命周期
 
-`serializeFarmingResource` 输出纯 JSON 资源，ResourceManager 以 `FarmingResource` 加载、缓存并管理引用。组件引用使用原生 `{$ref: index}`；先注册虚拟资源路径或真实 URL，再按 Engine 2.0 Scene/Prefab 格式加载。
+`serializeFarmingResource` 输出纯 JSON 资源，ResourceManager 以原生 `JSON` 加载、缓存；`farmingCatalog(asset)` / `farmingRules(asset)` 提供校验后的只读领域视图。组件引用使用原生 `{$ref: index}`；先注册虚拟资源路径或真实 URL，再按 Engine 2.0 Scene/Prefab 格式加载。
 
 保存时 `await farmingAreaComponentData(area, resource => refsIndex(resource))`，内部等待服务检查点并导出当前作物身份、进度、土壤、库存、模拟时钟和回执。禁用且未启动的组件保留初始定义/快照。演出和临时形变不保存。宿主拥有其他 Scene 实体与最终文件/URL；本层不定义第二套 Scene 文件格式。
 
@@ -73,7 +73,7 @@ const catalog = await api.execute({ operation: "getCatalog", input: { farmId: ar
 
 ## Agent 与生成检查
 
-`createFarmingAgentPackage(api)` 提供 FarmingSystem/FarmingAreaComponent 身份代理绑定、内部 RPC 工具、真实方法声明和四份只读虚拟文档。Agent 通过 editor.component.query 获取代理并调用异步方法；内部工具名不作为另一套公开调用协议。将其返回的 `definition/tools` 注册给现有通用 Agent；不修改应用层、Agent Loop 或 Prompt。API 索引来自 `FARMING_API_CONTRACT`，声明从传递类型提取，knowledge 来自本目录的 Markdown。
+`createFarmingAgentPackage(api)` 提供 FarmingSystem/FarmingAreaComponent 身份代理绑定、内部 RPC 工具、真实方法声明和只读参考文档。Agent 通过 editor.component.query 获取代理并调用异步方法；内部工具名不作为另一套公开调用协议。将其返回的 `definition/tools` 注册给现有通用 Agent；不修改应用层、Agent Loop 或 Prompt。API 索引来自 `FARMING_API_CONTRACT`，声明从传递类型提取；参考文档来自 `src/skills/farming`，方法文档由契约生成至 `FarmingMethodDocs.ts`。
 
 从仓库运行：
 
@@ -90,3 +90,11 @@ pnpm --dir world build:farming:all
 已注册的 FarmingSystem 与 FarmingAreaComponent 固定属于原 Scene，不能通过 addRootEntity 迁移。迁移会拒绝继续访问旧运行时并取消等待；需要迁移数据时先保存快照，再在目标 Scene 创建新组件并注入目标地形、仓储及演出依赖。克隆/Prefab 新实例由目标 Scene 单独初始化。
 
 临时存储加载失败会释放失败实例，并以 STORAGE_FAILURE/retryable=true 返回。下一次 API 状态或操作请求重试一次，也可由宿主调用 area.retryInitialization()；定义或存档不兼容须修正后重新创建组件。
+
+项目资源使用 `.json`，不注册 `.farming` Loader。JSONAsset 生命周期由创建者或 Engine 管理；组件借用共享资源，不在配置完成后提前 destroy。现有专用格式只在 SeedWorld 显式导入边界转换，不保留运行加载路径。
+
+Seed World 的 `cropGrowthMultiplier` 现为 Source 项目属性，面板修改会进入公共历史并随项目保存，取代原先的会话内调试值。原生 `FarmingSystem` setter 自行将变更排入各区域服务的串行队列；独立宿主无需显式调用 Host 同步。
+
+Seed World 存档采用 `project` 保留策略。移除组件或切换 `state` 后，旧路径在当前会话内仍禁止删除；先完成作者提交、保存和受控关闭，再重新打开项目，确认没有组件重新持有旧文件并查询资产引用后删除。组件释放不撤销已接受的玩法进度。
+
+Seed World 打开含旧 `.farming` 资源或旧预置的工程时，将不支持的农场内容隔离到工程文档，保留已有状态。在同一世界的 3D 页面地址添加 `rebuildFarm=1` 后重新打开，可用当前预置创建独立的新状态。

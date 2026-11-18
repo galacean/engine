@@ -1,12 +1,17 @@
-import { AssetType, Utils, type Engine } from "@galacean/engine-core";
+import nativeManifest from "../../native/assets/manifest.json";
+import { AssetType, type Engine } from "@galacean/engine-core";
 
 /** Farming-owned prop resources. Virtual paths keep Prefab refs independent of build URLs. */
-const resources = [
-  {
-    virtualPath: "Farming/Props/Sowing/seed-sack.glb",
-    path: new URL("../../assets/sowing/seed-sack.glb", import.meta.url).href,
-    type: AssetType.GLTF
-  },
+const nativeUrls = import.meta.glob<string>("../../native/assets/**/*.{mesh,mat,ani,prefab}", {
+  eager: true,
+  as: "url"
+});
+export const builtinFarmingPropFiles = [
+  ...nativeManifest.map((file) => ({
+    virtualPath: file.virtualPath,
+    path: nativeUrls[`../../native/assets/${file.file}`],
+    type: file.type
+  })),
   {
     virtualPath: "Farming/Props/Sowing/seed-sack.prefab",
     path: new URL("../../assets/sowing/seed-sack.prefab", import.meta.url).href,
@@ -14,39 +19,20 @@ const resources = [
   },
   ...Object.entries(import.meta.glob<string>("../../assets/prop-textures/*.ktx2", { eager: true, as: "url" })).map(
     ([path, url]) => ({
-      // Use the loader's URL normalization too (file URL hosts normalize the first path component).
-      virtualPath: Utils.resolveAbsoluteUrl(
-        "Farming/Props/Storage/cart.glb",
-        `../prop-textures/${path.slice(path.lastIndexOf("/") + 1)}`
-      ),
+      virtualPath: `Farming/Props/prop-textures/${path.slice(path.lastIndexOf("/") + 1)}`,
       path: url,
       type: AssetType.KTX2
     })
   ),
-  {
-    virtualPath: "Farming/Props/Storage/cart.glb",
-    path: new URL("../../assets/storage/cart.glb", import.meta.url).href,
-    type: AssetType.GLTF
-  },
   {
     virtualPath: "Farming/Props/Storage/cart.prefab",
     path: new URL("../../assets/storage/cart.prefab", import.meta.url).href,
     type: AssetType.Prefab
   },
   {
-    virtualPath: "Farming/Props/Storage/basket.glb",
-    path: new URL("../../assets/storage/basket.glb", import.meta.url).href,
-    type: AssetType.GLTF
-  },
-  {
     virtualPath: "Farming/Props/Storage/basket.prefab",
     path: new URL("../../assets/storage/basket.prefab", import.meta.url).href,
     type: AssetType.Prefab
-  },
-  {
-    virtualPath: "Farming/Props/Harvest/basket.glb",
-    path: new URL("../../assets/harvest/basket.glb", import.meta.url).href,
-    type: AssetType.GLTF
   },
   {
     virtualPath: "Farming/Props/Harvest/basket.prefab",
@@ -56,7 +42,8 @@ const resources = [
   {
     virtualPath: "Farming/Props/Watering/watering-can.glb",
     path: new URL("../../assets/watering/watering-can.glb", import.meta.url).href,
-    type: AssetType.GLTF
+    type: AssetType.GLTF,
+    params: { sourceContentRevision: "e0c3b6ee32362b02c6f2f04af82932878f6a314fe83c743fadbff86fb38a1069" }
   },
   {
     virtualPath: "Farming/Props/Watering/watering.animCtrl",
@@ -69,11 +56,6 @@ const resources = [
     type: AssetType.Prefab
   },
   {
-    virtualPath: "Farming/Props/Tilling/hoe.glb",
-    path: new URL("../../assets/tilling/hoe.glb", import.meta.url).href,
-    type: AssetType.GLTF
-  },
-  {
     virtualPath: "Farming/Props/Tilling/hoe.animCtrl",
     path: new URL("../../assets/tilling/hoe.animCtrl", import.meta.url).href,
     type: AssetType.AnimatorController
@@ -82,11 +64,6 @@ const resources = [
     virtualPath: "Farming/Props/Tilling/hoe.prefab",
     path: new URL("../../assets/tilling/hoe.prefab", import.meta.url).href,
     type: AssetType.Prefab
-  },
-  {
-    virtualPath: "Farming/Props/Tilling/rake.glb",
-    path: new URL("../../assets/tilling/rake.glb", import.meta.url).href,
-    type: AssetType.GLTF
   },
   {
     virtualPath: "Farming/Props/Tilling/rake.animCtrl",
@@ -99,6 +76,10 @@ const resources = [
     type: AssetType.Prefab
   }
 ] as const;
+
+export const FARMING_PROP_ROOTS: readonly string[] = builtinFarmingPropFiles
+  .filter((file) => file.type === AssetType.Prefab || file.type === AssetType.AnimatorController)
+  .map((file) => file.virtualPath);
 
 export const FARMING_WATERING_PROP = Object.freeze({
   prefabUrl: "Farming/Props/Watering/watering-can.prefab",
@@ -118,5 +99,9 @@ export type FarmingPropAnimationId = keyof typeof FARMING_PROP_ANIMATIONS;
 
 /** Register declarations on the host engine; ResourceManager owns the loaded dependencies. */
 export function registerFarmingPropResources(engine: Engine): void {
-  engine.resourceManager.registerVirtualResources(resources);
+  // A project may already map these paths to edited native assets. Never overwrite that mapping.
+  const registered = engine.resourceManager._virtualPathResourceMap;
+  engine.resourceManager.registerVirtualResources(
+    builtinFarmingPropFiles.filter((file) => !registered[file.virtualPath])
+  );
 }

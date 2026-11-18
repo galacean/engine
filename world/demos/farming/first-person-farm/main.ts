@@ -13,7 +13,7 @@ import { findPlayerItemDropPosition } from "@galacean/engine-farming/farming/app
 import { FarmGround, FARM_GROUND_ID } from "./scene/FarmGround.ts";
 import { plotBounds, type GroundTarget } from "@galacean/engine-farming/farming/api/index";
 import type { FarmChange } from "@galacean/engine-farming/farming/domain/FarmCommands";
-import { WebGLEngine } from "@galacean/engine";
+import { Scene, WebGLEngine } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import {
   BrowserSystemClock,
@@ -105,6 +105,7 @@ let farmUi: FarmUi | null = null;
 let service: FarmingService | null = null;
 let farmingSystem: FarmingSystem | null = null;
 let farmingArea: FarmingAreaComponent | null = null;
+let farmingResources: ReturnType<typeof createFarmingResources> | null = null;
 let nativeApi: FarmingAPI | null = null;
 let repository: IndexedDBFarmRepository | null = null;
 let itemInteraction: FarmingItemInteraction | null = null;
@@ -117,11 +118,13 @@ const events = new AbortController();
 
 window.addEventListener("pagehide", dispose, { once: true });
 void main().catch((error) => {
+  if (disposed) return;
   const message = error instanceof Error ? error.message : "农场初始化失败";
   document.getElementById("loading-message")!.textContent = message;
   document.getElementById("loading")!.removeAttribute("hidden");
   hud?.setSaveState("error", "加载失败");
   console.error(error);
+  dispose();
 });
 
 async function main(): Promise<void> {
@@ -152,7 +155,8 @@ async function main(): Promise<void> {
     return;
   }
   registerNativeFarming();
-  const nativeScene = engine.sceneManager.activeScene!;
+  const nativeScene = engine.sceneManager.activeScene ?? new Scene(engine);
+  engine.sceneManager.activeScene = nativeScene;
   farmingSystem = nativeScene.createRootEntity("Farming System").addComponent(FarmingSystem);
   farmingSystem.debugMode = parameters.get("debug") === "1";
   farmingSystem.configureRuntime(() => ({
@@ -162,21 +166,16 @@ async function main(): Promise<void> {
     clock,
     autoAdvance: !manualClock
   }));
-  const resources = createFarmingResources(engine, FARM_DEFINITIONS);
+  farmingResources = createFarmingResources(engine, FARM_DEFINITIONS);
   farmingArea = nativeScene.createRootEntity("种植区域").addComponent(FarmingAreaComponent);
-  try {
-    await farmingArea.configure({
-      farmId,
-      layoutId: FARM_LAYOUT_ID,
-      layoutVersion: FARM_LAYOUT_VERSION,
-      grid: FARM_GRID,
-      plots: FARM_PLOTS,
-      ...resources
-    });
-  } finally {
-    resources.catalog.destroy();
-    resources.rules.destroy();
-  }
+  await farmingArea.configure({
+    farmId,
+    layoutId: FARM_LAYOUT_ID,
+    layoutVersion: FARM_LAYOUT_VERSION,
+    grid: FARM_GRID,
+    plots: FARM_PLOTS,
+    ...farmingResources
+  });
   if (disposed) return;
   service = farmingArea.service;
   nativeApi = new FarmingAPI(farmingSystem);
@@ -198,6 +197,7 @@ async function main(): Promise<void> {
         .map(async ({ id }) => [id, await farmUi!.loadIcon(FARM_ACTION_PRESENTATION[id].iconUrl)] as const)
     )
   ) as Record<FarmActionId, Sprite>;
+  if (disposed) return;
   const cropIcons = await loadCropIcons(farmUi);
   if (disposed) return;
   hud = new FarmHud(
@@ -693,18 +693,29 @@ function dispose(): void {
   const oldScene = scene,
     oldRepository = repository,
     oldEngine = engine,
-    oldService = service;
-  const cleanup = farmingSystem?.dispose() ?? Promise.resolve();
-  void cleanup
+    oldService = service,
+    oldSystem = farmingSystem,
+    oldResources = farmingResources;
+  void Promise.resolve()
+    .then(() => oldSystem?.dispose())
     .then(async () => {
       oldService?.dispose();
       await oldService?.whenIdle();
     })
     .finally(() => {
-      oldScene?.dispose();
-      oldRepository?.dispose();
-      oldEngine?.destroy();
-    });
+      try {
+        oldResources?.catalog.destroy();
+        oldResources?.rules.destroy();
+        oldScene?.dispose();
+      } finally {
+        try {
+          oldRepository?.dispose();
+        } finally {
+          oldEngine?.destroy();
+        }
+      }
+    })
+    .catch((error) => console.error("Farming cleanup failed", error));
   interaction = null;
   cropStatusOverlay = null;
   hud = null;
@@ -715,5 +726,6 @@ function dispose(): void {
   engine = null;
   farmingArea = null;
   farmingSystem = null;
+  farmingResources = null;
   nativeApi = null;
 }

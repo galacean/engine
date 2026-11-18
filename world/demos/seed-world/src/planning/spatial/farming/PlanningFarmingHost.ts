@@ -1,6 +1,6 @@
 import type { FarmingSystem } from "@galacean/engine-farming/farming/native/index";
 import type { RuntimeSceneProjection } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-scene-projection";
-import { planningFarmingStatePath } from "./PlanningFarmingAssets.ts";
+import { planningFarmingStatePath, planningFarmingAssetRoots } from "./PlanningFarmingAssets.ts";
 import type { PlanningFarmingRuntime } from "./PlanningFarmingRuntime.ts";
 import { PlanningFarmingSwitch } from "./PlanningFarmingSwitch.ts";
 
@@ -16,7 +16,7 @@ export class PlanningFarmingHost {
   constructor(private readonly options: {
     projection: Pick<RuntimeSceneProjection, "queryComponents" | "resolveComponent" | "readComponent">;
     isPlannedEnabled(): boolean;
-    create(system: FarmingSystem, statePath: string): PlanningFarmingRuntime;
+    create(system: FarmingSystem, statePath: string, assetRoots: readonly string[]): PlanningFarmingRuntime;
     publish(runtime: PlanningFarmingRuntime): void;
   }) {}
 
@@ -43,6 +43,7 @@ export class PlanningFarmingHost {
     for (const identity of identities) (projection.resolveComponent(identity) as FarmingSystem).assertScene();
     const identity = identities.find(value => !(projection.resolveComponent(value) as FarmingSystem).isDisposed);
     const system = identity ? projection.resolveComponent(identity) as FarmingSystem : undefined;
+    const assetRoots = identity ? planningFarmingAssetRoots(projection.readComponent(identity)) : [];
     const statePath = identity ? planningFarmingStatePath(projection.readComponent(identity)) : undefined;
     if (this.retired) await this.retire();
     if (this.disposed) return;
@@ -56,13 +57,14 @@ export class PlanningFarmingHost {
       }
     }
     if (enabled && system && this.current &&
-      this.current.system === system && this.current.usesAssets(system, statePath!)) {
+      this.current.system === system && this.current.usesAssets(system, statePath!, assetRoots)) {
       this.current.synchronizeStateResource();
+      await system.synchronizeAuthoring();
       return;
     }
     await this.retire();
     if (!enabled || !system || this.disposed) return;
-    this.current = this.options.create(system, statePath!);
+    this.current = this.options.create(system, statePath!, assetRoots);
     this.options.publish(this.current);
   }
 

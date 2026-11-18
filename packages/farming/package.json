@@ -56,7 +56,6 @@
     "./farming/domain/GrowthFactors": "./src/farming/domain/GrowthFactors.ts",
     "./farming/domain/PlotQueries": "./src/farming/domain/PlotQueries.ts",
     "./farming/domain/ResolveCarriedAction": "./src/farming/domain/ResolveCarriedAction.ts",
-    "./farming/domain/RetiredFarmItems": "./src/farming/domain/RetiredFarmItems.ts",
     "./farming/domain/SoilCultivation": "./src/farming/domain/SoilCultivation.ts",
     "./farming/domain/SoilMoisture": "./src/farming/domain/SoilMoisture.ts",
     "./farming/domain/applyFarmCommand": "./src/farming/domain/applyFarmCommand.ts",

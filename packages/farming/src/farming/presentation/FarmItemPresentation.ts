@@ -27,7 +27,7 @@ import { FarmItemLookDownPose } from "./FarmItemLookDownPose";
 import { FarmItemHighlight, FARM_ITEM_WARNING_SECONDS, farmItemWarningStrength } from "./FarmItemHighlight";
 import { FarmItemGroundPose } from "./FarmItemGroundPose";
 import { isNearbyFarmTool } from "../application/FarmingWorkTarget";
-import { destroyOwnedMesh, destroyOwnedMeshSet } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
+import { destroyOwnedMesh } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
 import { FarmingGrowthVisibility } from "./FarmingGrowthVisibility";
 import { preparePlantShaderPrograms } from "../procedural/runtime/preparePlantShaderPrograms";
 import {
@@ -54,6 +54,7 @@ interface ItemVisual {
   loading?: Promise<void>;
   contentPreparation?: Promise<void>;
   contentController?: AbortController;
+  contentError?: string;
   error?: string;
   seedId?: string;
   labelRenderer?: MeshRenderer;
@@ -72,8 +73,6 @@ interface ItemVisual {
 export class FarmItemPresentation {
   readonly root: Entity;
   private readonly visuals = new Map<string, ItemVisual>();
-  private readonly meshes = new Set<ModelMesh>();
-  private readonly materials: PBRMaterial[] = [];
   private readonly produceMaterial: PBRMaterial;
   private readonly seedSackMaterials = new SeedSackMaterials();
   private readonly release: () => void;
@@ -112,8 +111,8 @@ export class FarmItemPresentation {
     this.root = parent.createChild("Persistent farming items");
     registerFarmingPropResources(parent.engine);
     this.produceMaterial = new PBRMaterial(parent.engine);
+    this.produceMaterial._addReferCount(1);
     this.produceMaterial.roughness = 0.9;
-    this.materials.push(this.produceMaterial);
     this.release = service.subscribe(() => this.sync());
     this.sync();
   }
@@ -170,9 +169,17 @@ export class FarmItemPresentation {
         visual.content.enabled = false;
         visual.content.mesh = null!;
         destroyOwnedMesh(visual.cargoMesh);
-        visual.cargoMesh = item.contents.length ? createBasketContentsMesh(this.root.engine, item.contents) : undefined;
-        visual.content.mesh = visual.cargoMesh ?? null!;
+        visual.cargoMesh = undefined;
+        visual.contentError = undefined;
         visual.cargoKey = key;
+        try {
+          visual.cargoMesh = item.contents.length
+            ? createBasketContentsMesh(this.root.engine, item.contents)
+            : undefined;
+          visual.content.mesh = visual.cargoMesh ?? null!;
+        } catch (error) {
+          visual.contentError = String(error);
+        }
         if (visual.cargoMesh) {
           const controller = new AbortController();
           visual.contentController = controller;
@@ -182,7 +189,7 @@ export class FarmItemPresentation {
               if (!this.disposed && !controller.signal.aborted) current.content.enabled = true;
             })
             .catch((error) => {
-              if (!this.disposed && !controller.signal.aborted) current.error = String(error);
+              if (!this.disposed && !controller.signal.aborted) current.contentError = String(error);
             })
             .finally(() => {
               if (current.contentPreparation === task) current.contentPreparation = undefined;
@@ -571,7 +578,9 @@ export class FarmItemPresentation {
       contentsBatches: [...this.visuals.values()].filter((v) => v.cargoMesh).length,
       heldBounds: { ...this.heldBounds },
       capacityWarning: this.capacityWarning ? { ...this.capacityWarning } : null,
-      errors: [...this.visuals.values()].flatMap((v) => (v.error ? [v.error] : []))
+      errors: [...this.visuals.values()].flatMap((v) =>
+        [v.error, v.contentError].filter((error): error is string => error !== undefined)
+      )
     };
   }
   dispose(): void {
@@ -580,17 +589,20 @@ export class FarmItemPresentation {
     this.disposed = true;
     this.preparationController.abort();
     this.release();
+    this.seedSackMaterials.dispose();
     for (const visual of this.visuals.values()) {
       visual.contentController?.abort();
-      visual.content.mesh = null!;
+      if (!visual.content.destroyed) {
+        visual.content.mesh = null!;
+        visual.content.setMaterial(null);
+      }
       visual.highlight?.dispose();
       visual.root.destroy();
       destroyOwnedMesh(visual.cargoMesh);
     }
     this.visuals.clear();
     this.root.destroy();
-    destroyOwnedMeshSet(this.meshes);
-    for (const material of this.materials) material.destroy();
-    this.seedSackMaterials.dispose();
+    this.produceMaterial._addReferCount(-1);
+    this.produceMaterial.destroy();
   }
 }

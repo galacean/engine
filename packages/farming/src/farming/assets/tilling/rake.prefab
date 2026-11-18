@@ -2,7 +2,10 @@
   "version": "2.0",
   "refs": [
     {
-      "url": "Farming/Props/Tilling/rake.glb"
+      "url": "Farming/Native/Tilling/rake/mesh-0-0.mesh"
+    },
+    {
+      "url": "Farming/Native/Tilling/rake/material-0.mat"
     },
     {
       "url": "Farming/Props/Tilling/rake.animCtrl"
@@ -10,51 +13,165 @@
   ],
   "entities": [
     {
-      "instance": {
-        "asset": 0,
-        "overrides": {
-          "entityProps": [
+      "name": "FarmingRakeTool",
+      "children": [
+        4
+      ],
+      "components": [
+        5
+      ],
+      "isActive": false
+    },
+    {
+      "name": "RakeContact",
+      "children": [],
+      "components": [
+        0
+      ]
+    },
+    {
+      "name": "RakeTool_LOD0",
+      "children": [],
+      "components": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "RakeMotion",
+      "children": [
+        1,
+        2
+      ],
+      "components": [
+        3
+      ]
+    },
+    {
+      "name": "RakeRoot",
+      "children": [
+        3
+      ],
+      "components": [
+        4
+      ]
+    }
+  ],
+  "components": [
+    {
+      "type": "Transform",
+      "props": {
+        "position": {
+          "x": 0,
+          "y": -0.07344412058591843,
+          "z": -0.07163144648075104
+        },
+        "rotationQuaternion": {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "w": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      }
+    },
+    {
+      "type": "Transform",
+      "props": {
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuaternion": {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "w": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      }
+    },
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 0
+        },
+        "castShadows": true,
+        "receiveShadows": true
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
             {
-              "path": [],
-              "name": "FarmingRakeTool",
-              "isActive": false
-            }
-          ],
-          "componentProps": [
-            {
-              "path": [],
-              "selector": {
-                "type": "Animator",
-                "index": 0
-              },
-              "props": {
-                "animatorController": {
-                  "$ref": 1
-                },
-                "enabled": false,
-                "cullingMode": 0
-              }
-            },
-            {
-              "path": [
-                0,
-                0,
-                1
-              ],
-              "selector": {
-                "type": "MeshRenderer",
-                "index": 0
-              },
-              "props": {
-                "castShadows": true,
-                "receiveShadows": true
-              }
+              "$ref": 1
             }
           ]
         }
+      ]
+    },
+    {
+      "type": "Transform",
+      "props": {
+        "position": {
+          "x": 0.3325261175632477,
+          "y": 0.3519755005836487,
+          "z": 0.40094178915023804
+        },
+        "rotationQuaternion": {
+          "x": -0.32347536087036133,
+          "y": 0.10703572630882263,
+          "z": 0.03685535863041878,
+          "w": 0.9394406676292419
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      }
+    },
+    {
+      "type": "Transform",
+      "props": {
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuaternion": {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "w": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      }
+    },
+    {
+      "type": "Animator",
+      "props": {
+        "animatorController": {
+          "$ref": 2
+        },
+        "enabled": false,
+        "cullingMode": 0
       }
     }
   ],
-  "components": [],
   "root": 0
 }

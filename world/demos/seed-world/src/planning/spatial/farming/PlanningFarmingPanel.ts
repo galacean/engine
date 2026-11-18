@@ -60,7 +60,7 @@ export class PlanningFarmingPanel {
       const controller = growth
         .add(controls.state, key, 0, MAX_GROWTH_MULTIPLIER, 0.1)
         .name(label)
-        .onFinishChange((value: number) => void controls.setGrowthMultiplier(key, value));
+        .onFinishChange((value: number) => void controls.setGrowthMultiplier(value));
       const input = controller.domElement.querySelector("input")!;
       input.setAttribute("aria-label", label);
       input.dataset.farmGrowth = key;
@@ -69,7 +69,7 @@ export class PlanningFarmingPanel {
     host.addReadout(
       growth,
       "说明"
-    )("1 倍为正常速度，0 倍暂停对应生长；只影响成长，不加速水分或昼夜。当前会话有效，重新加载后恢复 1 倍。");
+    )("1 倍为正常速度，0 倍暂停对应生长；只影响成长，不加速水分或昼夜。通过场景组件保存，可撤销、重做；重新加载后保留。");
     const operation = host.subfolder(folder, "耕地与操作", true);
     const plots = operation
       .add(controls.state, "plotId", { 未选择: "" })

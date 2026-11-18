@@ -1202,7 +1202,6 @@
   "shared/farming/assets/watering/README.md": "packages/farming/src/farming/assets/watering/README.md",
   "shared/farming/assets/watering/watering-can.glb": "packages/farming/src/farming/assets/watering/watering-can.glb",
   "shared/farming/assets/watering/watering-can.prefab": "packages/farming/src/farming/assets/watering/watering-can.prefab",
-  "shared/farming/domain/RetiredFarmItems.ts": "packages/farming/src/farming/domain/RetiredFarmItems.ts",
   "shared/farming/domain/FarmCommands.ts": "packages/farming/src/farming/domain/FarmCommands.ts",
   "shared/farming/domain/FarmingGroundInspectionCache.ts": "packages/farming/src/farming/domain/FarmingGroundInspectionCache.ts",
   "shared/farming/domain/FarmQueries.ts": "packages/farming/src/farming/domain/FarmQueries.ts",

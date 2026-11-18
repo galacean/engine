@@ -58,6 +58,8 @@ const catalog = createPlantingCatalog(speciesDefinitions, registry.list());
 
 部件着色 Shader 在开发／构建服务预编译，显示帧不解析 Shader 源码。Gallery 已启用 `tools/plant-shader-precompile.cjs` 的 `plantShaderPrecompile()`；独立 Vite 宿主也需注册该插件，使用当前 Engine 的 ShaderLibrary 生成预编译指令。没有运行时源码编译回退。
 
+`PlantOrganTint`、`SoilMoisture`、`ItemRimLight` 和 `HarvestDissolve` 不提供 SSR 接收 Surface pass。植物器官遮罩、湿土的覆盖、颜色和粗糙度不能复用通用 PBR Surface；这些派生 shader 统一保守关闭接收，包括显式注册和从 PBR 克隆的作者设置。Forward、深度和阴影保留。湿土反射需要独立实现与 Forward 相同的湿度及覆盖计算后才能启用。参见 [FarmingSSRSurface.spec.ts](../../../../../world/tests/seed-world/FarmingSSRSurface.spec.ts)。
+
 `PlantPresenter` 将材质、几何、GPU 分配、着色、生长、Shader 程序准备和发布纳入同一帧队列。同株独立程序先全部排队提交，再按帧预算轮询不同程序，避免已缓存程序也逐个等待两帧；提交／检查全部结算后才报告失败，迟到任务不会越过局部资源释放。程序准备只覆盖首个活动 SubShader，复用已有 Pass 标签、公开场景/相机配置和材质接收契约，按设备能力保守预热候选阴影、深度与 SSR；实际绘制阶段仍由原管线决定。Forward depth resolve 时可能多预热一个深度变体，SSR 消费者未启动时也可能提前准备接收材质；不复制管线的目标选择、日光仲裁或消费者状态，不受支持的 SSR 不参与创建。ShaderData 宏通过公开 getMacros() 读取；分帧提交和轮询仍需现有 Engine 内部编译桥接，公开 compileVariant 会同步编译全部 Pass，不能替代。程序提交与完成轮询使用当前 Engine 的延迟编译接口；支持 `KHR_parallel_shader_compile` 时不在首次绘制等待链接，缺少扩展时仍遵循 Engine 的同步回退。1 ms 为软预算，不能中断单个 Engine 调用。部分植株保持隐藏，取消会释放局部资源，程序缓存由 Engine 持有。当前 World Engine 根据真实 active uniform 的空位置识别 block 成员，仅有 block 成员时查询与绑定 uniform block，避免普通植物程序进行无用驱动查询。
 
 ```ts
@@ -245,7 +247,7 @@ Gallery 的“程序化种植系统”下提供“种植动画预览”，入口
 
 `pnpm --dir world build:farming:animations` 构建该页面，`build:farming:all` 也包含它。动画页不加载作物目录，因此不要求打包 14 个配方；仍执行道具模型白名单与植物 GLB 禁入检查。资源来源和重新导出命令见 `assets/tilling/README.md`。
 
-土地准备只有 `raw → leveled`：锄地成功后直接成为已整平、可种植的耕地。未开垦地面不保存为地块，持久化耕地只允许 `leveled`；不迁移旧 `tilled` 存档。农场不再提供耙子和耙地操作。旧存档加载时移除耙子实例，若正拿着耙子则清空携带槽，其他道具、作物和库存保留。耙子素材只供独立动画预览。
+土地准备只有 `raw → leveled`。锄地成功后直接形成可种植的耕地。耙子素材供独立动画预览。保存恢复校验道具及其回执绑定，遇到已退役的道具或操作、无效携带项、重复道具 ID 时拒绝恢复原快照。
 
 耕地通过宿主 `FarmingGroundView.surfaceTriangles` 获取原始地表三角形，沿种植区域裁切后覆盖，面数随宿主网格和边界变化，不再固定为 8 × 8 或 128 面。实际渲染宿主必须提供此几何能力，纯玩法宿主可省略；不会以重新采样的网格冒充原表面。表面只贴合宿主地形并保留防重叠偏移，不生成土块、沟纹或耙齿起伏。工具动画保留。地面不会随触地过程变形或发射翻土粒子；耕地材质从锄头首次触地到最后触地逐渐显现，邻地交界使用同一显现曲线接合。提交成功后保持可见，取消或提交失败恢复原地面与邻地外缘。已有耕地再次锄地保持可见。外轮廓使用独立 65 × 65 R8 覆盖纹理保留静态柔和边缘，相邻已提交耕地共享连续轮廓，不依赖密集顶点。覆盖纹理约 4.1 KiB/地块（不含驱动开销），随地块释放并支持设备恢复。
 
@@ -302,16 +304,16 @@ SeedWorld 已接入默认空间配方、规划地图、实际道路图检查、�
 
 玩家与 Native API 的替玩家操作共用道具和串行协调器。锄头按原始地开垦、有作物清除作物、空地还原三种意图执行，点击时固定版本和占用，失败不降级。管理区外开垦沿用同一网格、存档和近水分片调度。AI 不受玩家距离限制，优先使用当前道具，否则在目标附近生成或复用；每类软上限20，重试沿用持久命令身份。
 
-`queryItems/getCarry/getItemTotals/generateItems/pickupItem/placeItem/useCarriedItem/unloadBasket` 为正式接口；移除旧 `showBasket/hideBasket/getBasket`。`getInventory` 只读固定设施，`getItemTotals` 区分已存仓和篮中待卸货数量。当前快照只接受 schema9，不迁移旧档。
+`queryItems/getCarry/getItemTotals/generateItems/pickupItem/placeItem/useCarriedItem/unloadBasket` 为正式接口。`getInventory` 只读固定设施，`getItemTotals` 区分已存仓和篮中待卸货数量。当前快照格式为 schema 10。
 
 
 Planner 近身操作使用 `FarmingWorldPresentation.getPlayerWorkTarget`：锄头、水壶只操作身前约 1.6 米附近的一格，最远 2.35 米；操作中锁定目标；进度低于 75% 时移动取消，达到 75% 后移动不打断，转动视角不打断。篮子与种子继续按点击射线操作远处目标。`FarmItemWorkMotion` 把持久道具平滑衔接到真实地块上的工作动画，土壤接触和出水沿用同一动画来源；静止拿取位置由 `FarmItemCarryPoses` 分横竖屏保存。独立展示案例可不接入近身选地能力。
 
 ## 生长调试与营养条件（2026-10-21）
 
-Planner 的“种植 → 生长调试”提供作物生长倍数，取值 0–100，步长 0.1，默认 1。0 暂停对应生长；不会加速昼夜、蒸发、近水补水或农具动作。作物仍受水分、温度、光照、pH、病虫压力及健康状态约束。修改前按旧倍率结算经过的时间；保存失败不切换倍率。参数仅当前会话有效，重新加载恢复默认，已结算的成长进度仍会保存。
+Planner 的“种植 → 生长调试”提供作物生长倍数，取值 0–100，步长 0.1，默认 1。0 暂停作物生长，昼夜、蒸发、近水补水和农具动作按原速推进。修改前按旧倍率结算经过的时间。作者参数通过场景组件保存，支持撤销、重做和重新加载。
 
-营养条件视为最佳。已移除施肥操作、Native API、肥力状态、肥力消耗、响应曲线、表现与调试入口；肥力不参与成长计算。新快照 schema9 不迁移旧版农场存档。
+营养条件视为最佳。目录和规则资源须使用当前格式，包含已退役肥力字段的文件会被拒绝。
 
 道具停止使用时从当前显示姿态在 0.25 秒内平滑收回持握位置，位置与旋转共同过渡。收回独立于操作进度，取消立即停止进度与出水，不提交农事结果；收回跟随当前视角，新一轮动作等收回完成后开始。
 

@@ -507,6 +507,17 @@ button.primary {
   border-color: #ffb39e;
   background: rgb(126 38 24 / 72%);
 }
+.world-loading-farm-recovery,
+.world-loading[data-state="farm-recovery"] .world-loading-percent {
+  display: none;
+}
+.world-loading[data-state="farm-recovery"] .world-loading-farm-recovery {
+  display: block;
+  place-self: end start;
+  margin: 0 12px calc(52px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+  pointer-events: auto;
+  text-decoration: none;
+}
 .world-loading[data-state="error"] {
   border-color: rgb(255 159 130 / 58%);
 }

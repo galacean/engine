@@ -2,7 +2,16 @@
   "version": "2.0",
   "refs": [
     {
-      "url": "Farming/Props/Tilling/hoe.glb"
+      "url": "Farming/Native/Tilling/hoe/mesh-0-0.mesh"
+    },
+    {
+      "url": "Farming/Native/Tilling/hoe/material-0.mat"
+    },
+    {
+      "url": "Farming/Native/Tilling/hoe/mesh-0-1.mesh"
+    },
+    {
+      "url": "Farming/Native/Tilling/hoe/material-1.mat"
     },
     {
       "url": "Farming/Props/Tilling/hoe.animCtrl"
@@ -10,51 +19,184 @@
   ],
   "entities": [
     {
-      "instance": {
-        "asset": 0,
-        "overrides": {
-          "entityProps": [
+      "name": "FarmingHoeTool",
+      "children": [
+        4
+      ],
+      "components": [
+        6
+      ],
+      "isActive": false
+    },
+    {
+      "name": "HoeContact",
+      "children": [],
+      "components": [
+        0
+      ]
+    },
+    {
+      "name": "HoeTool_LOD0",
+      "children": [],
+      "components": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "HoeMotion",
+      "children": [
+        1,
+        2
+      ],
+      "components": [
+        4
+      ]
+    },
+    {
+      "name": "HoeRoot",
+      "children": [
+        3
+      ],
+      "components": [
+        5
+      ]
+    }
+  ],
+  "components": [
+    {
+      "type": "Transform",
+      "props": {
+        "position": {
+          "x": 0.0010763821192085743,
+          "y": -0.27289319038391113,
+          "z": -0.05709860473871231
+        },
+        "rotationQuaternion": {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "w": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      }
+    },
+    {
+      "type": "Transform",
+      "props": {
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuaternion": {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "w": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      }
+    },
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 0
+        },
+        "castShadows": true,
+        "receiveShadows": true
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
             {
-              "path": [],
-              "name": "FarmingHoeTool",
-              "isActive": false
-            }
-          ],
-          "componentProps": [
-            {
-              "path": [],
-              "selector": {
-                "type": "Animator",
-                "index": 0
-              },
-              "props": {
-                "animatorController": {
-                  "$ref": 1
-                },
-                "enabled": false,
-                "cullingMode": 0
-              }
-            },
-            {
-              "path": [
-                0,
-                0,
-                1
-              ],
-              "selector": {
-                "type": "MeshRenderer",
-                "index": 0
-              },
-              "props": {
-                "castShadows": true,
-                "receiveShadows": true
-              }
+              "$ref": 1
             }
           ]
         }
+      ]
+    },
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 2
+        }
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Transform",
+      "props": {
+        "position": {
+          "x": 0.31268197298049927,
+          "y": 0.5210055708885193,
+          "z": 0.24488605558872223
+        },
+        "rotationQuaternion": {
+          "x": -0.355302095413208,
+          "y": 0.12185671925544739,
+          "z": 0.046776410192251205,
+          "w": 0.9255936145782471
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      }
+    },
+    {
+      "type": "Transform",
+      "props": {
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuaternion": {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "w": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      }
+    },
+    {
+      "type": "Animator",
+      "props": {
+        "animatorController": {
+          "$ref": 4
+        },
+        "enabled": false,
+        "cullingMode": 0
       }
     }
   ],
-  "components": [],
   "root": 0
 }

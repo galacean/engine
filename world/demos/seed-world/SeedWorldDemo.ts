@@ -77,12 +77,14 @@ import { waitForSnapshotWarmup } from "./src/SeedWorldSnapshotWarmup.ts";
 import { openSeedWorldProject } from "./SeedWorldProject.ts";
 import { createSeedWorldProjectClose } from "./SeedWorldProjectClose.ts";
 import { SEED_WORLD_EDITOR_PATH, seedWorldProjectFormats } from "./SeedWorldProjectFormats.ts";
+import { setPlanningFarmingGrowth } from "./src/planning/spatial/farming/PlanningFarmingAuthoring.ts";
 import { PlanningFarmingHost } from "./src/planning/spatial/farming/PlanningFarmingHost.ts";
 import { PlanningFarmingRuntime } from "./src/planning/spatial/farming/PlanningFarmingRuntime.ts";
 import {
   planningFarmingProjectStatePath,
   preparePlanningFarmingScene
 } from "./src/planning/spatial/farming/PlanningFarmingScene.ts";
+import { planningFarmingRecoveryNotice, planningFarmingRecoveryUrl, REBUILD_FARM_QUERY } from "./src/planning/spatial/farming/PlanningFarmingQuarantine.ts";
 import { effectivePlanningWaterId } from "./src/planning/spatial/PlanningWaterSource.ts";
 import { PlanningAnimalProjectAuthoring } from "./src/planning/spatial/runtime/PlanningAnimalAuthoring.ts";
 import { PlanningAnimalFood } from "./src/planning/spatial/runtime/PlanningAnimalFood.ts";
@@ -593,7 +595,10 @@ export async function mountSeedWorldDemo(
     );
     void sourceTask.catch(() => {});
     await timed("preparePlanningFarmingScene", () =>
-      preparePlanningFarmingScene(runtimeProject!, { baseUrl: location.href })
+      preparePlanningFarmingScene(runtimeProject!, {
+        baseUrl: location.href,
+        rebuildQuarantinedFarm: pageUrl.searchParams.get(REBUILD_FARM_QUERY) === "1"
+      })
     );
     source = await timed("await planning source", () => sourceTask!);
     await timed("planningStorage.migrateToSource", () =>
@@ -1022,8 +1027,9 @@ export async function mountSeedWorldDemo(
     farmingHost = new PlanningFarmingHost({
       projection: nativeEditor.projection,
       isPlannedEnabled: isFarmingPlanned,
-      create: (system, statePath) =>
+      create: (system, statePath, assetRoots) =>
         new PlanningFarmingRuntime({
+          assetRoots,
           canvas,
           visualQuery,
           isInputEnabled: () => ready && !disposed && !tools?.listening && !runtimeDebug?.farmingPicking,
@@ -2251,8 +2257,10 @@ export async function mountSeedWorldDemo(
             return farmingHost?.runtime;
           },
           readEnabled: () => farmingSwitch.enabled,
+          readRecoveryNotice: () => planningFarmingRecoveryNotice(runtimeProject!.projectPackage),
           readSwitchError: () => farmingSwitch.error,
           setEnabled: (enabled) => farmingSwitch.setEnabled(enabled),
+          setGrowthMultiplier: value => setPlanningFarmingGrowth(nativeEditor!.editor, runtimeProject!.projectPackage.project.scene, value),
           readCurrent: () => publication?.current,
           isInputEnabled: () => ready && !disposed && !tools?.listening,
           beforeTravel: () => {
@@ -2523,7 +2531,16 @@ export async function mountSeedWorldDemo(
       );
     });
     if (options.showAssistant !== false) tools.show();
-    loading.hidden = true;
+    const farmRecoveryUrl = planningFarmingRecoveryUrl(runtimeProject.projectPackage, pageUrl);
+    if (farmRecoveryUrl) {
+      loading.dataset.state = "farm-recovery";
+      loading.setAttribute("aria-label", "旧农场恢复");
+      const rebuild = document.createElement("a");
+      rebuild.className = "world-loading-retry world-loading-farm-recovery";
+      rebuild.href = farmRecoveryUrl.href;
+      rebuild.textContent = "旧农场已隔离 · 重建农场";
+      loading.append(rebuild);
+    } else loading.hidden = true;
     canvas.dataset.status = "ready";
     document.body.dataset.worldReady = "true";
     // The world is already visible and navigable. Two independent preparations start now:

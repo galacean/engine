@@ -1,0 +1,221 @@
+{
+  "name": "SeedSack",
+  "shader": "PBR",
+  "macros": [
+    {
+      "name": "MATERIAL_HAS_BASETEXTURE"
+    },
+    {
+      "name": "MATERIAL_HAS_NORMALTEXTURE"
+    },
+    {
+      "name": "MATERIAL_NEED_WORLD_POS"
+    },
+    {
+      "name": "MATERIAL_NEED_TILING_OFFSET"
+    },
+    {
+      "name": "REFRACTION_MODE",
+      "value": "1"
+    },
+    {
+      "name": "MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE"
+    },
+    {
+      "name": "MATERIAL_HAS_OCCLUSION_TEXTURE"
+    }
+  ],
+  "shaderData": {
+    "material_ScreenSpaceReflectionMode": {
+      "type": "Float",
+      "value": 3
+    },
+    "material_ScreenSpaceReflectionIntensity": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Roughness": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_RoughnessMetallicTexture": {
+      "type": "Texture",
+      "value": {
+        "url": "Farming/Props/prop-textures/T_SeedSack_ORM.ktx2"
+      }
+    },
+    "material_ShadowCasterRenderQueue": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_DepthOnlyRenderQueue": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_BaseColor": {
+      "type": "Color",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    "material_BaseTexture": {
+      "type": "Texture",
+      "value": {
+        "url": "Farming/Props/prop-textures/T_SeedSack_C.ktx2"
+      }
+    },
+    "material_TilingOffset": {
+      "type": "Vector4",
+      "value": {
+        "x": 1,
+        "y": 1,
+        "z": 0,
+        "w": 0
+      }
+    },
+    "material_NormalTexture": {
+      "type": "Texture",
+      "value": {
+        "url": "Farming/Props/prop-textures/T_SeedSack_N.ktx2"
+      }
+    },
+    "material_NormalIntensity": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_EmissiveColor": {
+      "type": "Color",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      }
+    },
+    "material_AlphaCutoff": {
+      "type": "Float",
+      "value": 0
+    },
+    "blendEnabled": {
+      "type": "Integer",
+      "value": 0
+    },
+    "depthWriteEnabled": {
+      "type": "Integer",
+      "value": 1
+    },
+    "renderQueueType": {
+      "type": "Integer",
+      "value": 0
+    },
+    "sourceColorBlendFactor": {
+      "type": "Integer",
+      "value": 6
+    },
+    "destinationColorBlendFactor": {
+      "type": "Integer",
+      "value": 7
+    },
+    "sourceAlphaBlendFactor": {
+      "type": "Integer",
+      "value": 1
+    },
+    "destinationAlphaBlendFactor": {
+      "type": "Integer",
+      "value": 7
+    },
+    "rasterStateCullMode": {
+      "type": "Integer",
+      "value": 2
+    },
+    "material_SpecularColor": {
+      "type": "Color",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    "material_OcclusionIntensity": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_OcclusionTextureCoord": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_OcclusionTexture": {
+      "type": "Texture",
+      "value": {
+        "url": "Farming/Props/prop-textures/T_SeedSack_ORM.ktx2"
+      }
+    },
+    "material_ClearCoat": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_ClearCoatRoughness": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_Metal": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_IOR": {
+      "type": "Float",
+      "value": 1.5
+    },
+    "material_AnisotropyInfo": {
+      "type": "Vector3",
+      "value": {
+        "x": 1,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "material_IridescenceInfo": {
+      "type": "Vector4",
+      "value": {
+        "x": 0,
+        "y": 1.3,
+        "z": 100,
+        "w": 400
+      }
+    },
+    "material_SheenColor": {
+      "type": "Color",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      }
+    },
+    "material_Transmission": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_AttenuationColor": {
+      "type": "Color",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    "material_Thickness": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_SpecularIntensity": {
+      "type": "Float",
+      "value": 1
+    }
+  }
+}

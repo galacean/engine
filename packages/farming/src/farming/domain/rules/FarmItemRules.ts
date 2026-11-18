@@ -262,10 +262,11 @@ export function validateFarmItems(snapshot: FarmSnapshot, definitions: FarmingDe
   const ids = new Set<string>();
   for (const item of state.instances) {
     requireStableId(item.id, "item");
+    if (ids.has(item.id)) throw new FarmSnapshotCompatibilityError(`Duplicate farm item identity: ${item.id}`);
+    if (!FARM_ITEM_TYPES.includes(item.type))
+      throw new FarmSnapshotCompatibilityError(`Unsupported farm item: ${item.type}`);
     requireStableId(item.groundId, "item ground");
     if (
-      ids.has(item.id) ||
-      !FARM_ITEM_TYPES.includes(item.type) ||
       !Array.isArray(item.position) ||
       item.position.length !== 3 ||
       !item.position.every(Number.isFinite) ||

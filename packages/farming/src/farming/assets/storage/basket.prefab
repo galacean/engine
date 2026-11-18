@@ -2,16 +2,69 @@
   "version": "2.0",
   "refs": [
     {
-      "url": "Farming/Props/Storage/basket.glb"
+      "url": "Farming/Native/Storage/basket/mesh-0-0.mesh"
+    },
+    {
+      "url": "Farming/Native/Storage/basket/material-0.mat"
     }
   ],
   "entities": [
     {
-      "instance": {
-        "asset": 0
-      }
+      "name": "GLTF_ROOT",
+      "children": [
+        1
+      ],
+      "components": []
+    },
+    {
+      "name": "FarmingStorageBasket",
+      "children": [],
+      "components": [
+        0,
+        1
+      ]
     }
   ],
-  "components": [],
+  "components": [
+    {
+      "type": "Transform",
+      "props": {
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuaternion": {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "w": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      }
+    },
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 0
+        }
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 1
+            }
+          ]
+        }
+      ]
+    }
+  ],
   "root": 0
 }

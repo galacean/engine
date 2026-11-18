@@ -49,7 +49,7 @@ export class PlanningFarmRepository implements FarmRepository {
         path: "runtime-world:farming",
         type: PLANNING_FARMING_PROJECT_TYPE
       },
-      "owner"
+      "project"
     );
   }
   private content() {

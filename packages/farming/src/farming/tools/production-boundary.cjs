@@ -13,15 +13,7 @@ function plantingProductionBoundary({ requirePlantCatalog = true } = {}) {
     generateBundle(_options, bundle) {
       const modules = [...this.getModuleIds()];
       const plantingModules = modules.filter((id) => id.startsWith(`${farmingRoot}/`));
-      const propModelsAllowed = [
-        "assets/sowing/seed-sack.glb",
-        "assets/watering/watering-can.glb",
-        "assets/tilling/hoe.glb",
-        "assets/tilling/rake.glb",
-        "assets/harvest/basket.glb",
-        "assets/storage/cart.glb",
-        "assets/storage/basket.glb"
-      ].map((file) => path.join(farmingRoot, file));
+      const propModelsAllowed = ["assets/watering/watering-can.glb"].map((file) => path.join(farmingRoot, file));
       const sourceAtlases = plantingModules.filter((id) =>
         /\/catalog\/plants\/[^/]+\/procedural\/atlas\.png(?:\?|$)/.test(id)
       );

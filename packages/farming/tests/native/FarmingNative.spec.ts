@@ -6,7 +6,27 @@ import { FarmingAreaComponent, nativeFarmingOwners } from "../../src/farming/nat
 import { FarmingSystem } from "../../src/farming/native/FarmingSystem";
 import { FarmingAPI } from "../../src/farming/native/FarmingAPI";
 import { farmingAreaComponentData } from "../../src/farming/native/FarmingSceneData";
-import { createFarmingResources, parseFarmingResource, serializeFarmingResource } from "../../src/farming/native/FarmingResources";
+import { JSONAsset, type Engine } from "@galacean/engine";
+import {
+  createFarmingResources,
+  encodeFarmingResourceFile,
+  farmingCatalog,
+  farmingResourceData,
+  farmingRules,
+  parseFarmingResource,
+  parseFarmingResourceFile,
+  resolveFarmingJSONReferences,
+  serializeFarmingResource,
+  validateFarmingResourceFile
+} from "../../src/farming/native/FarmingResources";
+import {
+  MAX_GROWTH_MULTIPLIER,
+  resolveSimulationConfig,
+  validateFarmingGrowthMultiplier,
+  validateSimulationParameters
+} from "../../src/farming/config/FarmingSimulationConfig";
+import { FARM_DEFINITIONS } from "../../src/farming/content/DefaultFarmingDefinitions";
+import { DEFAULT_STORAGE_DEFINITIONS } from "../../src/farming/storage/StorageDefaults";
 import { FARMING_API_DECLARATION } from "../../src/farming/native/FarmingAPIDeclarations";
 import { FARMING_METHOD_DOCS } from "../../src/farming/native/FarmingMethodDocs";
 import { FARMING_API_CONTRACT } from "../../src/farming/native/FarmingAPIContract";
@@ -54,26 +74,17 @@ describe("native farming contracts and state", () => {
     expect(f.area.service.getSnapshot()).toEqual(before);
   });
 
-  it("loads legacy v1 fertility resources without replacing authored catalog or water rules", async () => {
+  it("rejects retired fertility fields in catalog and rules assets", async () => {
     const f = await create();
     const catalog = JSON.parse(serializeFarmingResource(f.resources.catalog));
-    catalog.data.crops[0].name = "Saved custom crop";
     catalog.data.crops[0].growthFactors.fertility = {
       minimum: 5, optimalMinimum: 55, optimalMaximum: 100, maximum: 100
     };
-    const expected = structuredClone(catalog.data);
-    delete expected.crops[0].growthFactors.fertility;
-    const loaded = parseFarmingResource(f.engine, JSON.stringify(catalog));
-    expect(loaded.data).toEqual(expected);
-    expect(parseFarmingResource(f.engine, serializeFarmingResource(loaded)).data).toEqual(expected);
-    catalog.data.crops[0].growthFactors.unrecognizedFactor = {};
-    expect(() => parseFarmingResource(f.engine, JSON.stringify(catalog))).toThrow(/unrecognizedFactor/);
+    expect(() => parseFarmingResource(f.engine, JSON.stringify(catalog))).toThrow(/fertility/);
 
     const rules = JSON.parse(serializeFarmingResource(f.resources.rules));
     rules.data.soilProfile.initialFertilityUnits = 75;
-    rules.data.simulationConfig = { cropGrowthMultiplier: 2 };
-    const parsed = parseFarmingResource(f.engine, JSON.stringify(rules));
-    expect(parsed.data).toEqual({ ...f.resources.rules.data, simulationConfig: { cropGrowthMultiplier: 2 } });
+    expect(() => parseFarmingResource(f.engine, JSON.stringify(rules))).toThrow(/initialFertilityUnits/);
   });
 
   it("rejects the removed fertilizer operation without changing farm state", async () => {
@@ -199,6 +210,95 @@ describe("native farming contracts and state", () => {
     expect(await repository.read("native-farm")).toEqual(snapshot);
   });
 
+  it("rejects duplicate item IDs, retired items and retired receipts without changing the save", async () => {
+    const f = await create();
+    const result = await f.api.execute({
+      operation: "generateItems", input: { farmId: f.area.farmId, itemType: "hoe", count: 1, groundId: "native", position: [6, 0, 6] }
+    });
+    expect(result.ok).toBe(true);
+    const snapshot = f.area.service.getSnapshot();
+    const item = snapshot.items.instances[0];
+    const rejectSaved = async (saved: typeof snapshot, diagnostic: RegExp) => {
+      const repository = new MemoryFarmRepository();
+      repository.seed(saved);
+      const restored = nativeFixture(f.area.farmId, { repository });
+      fixtures.push(restored);
+      await expect(restored.ready).rejects.toThrow(diagnostic);
+      expect(await repository.read(f.area.farmId)).toBe(saved);
+    };
+    for (const [invalid, diagnostic] of [
+      [{ ...snapshot.items, instances: [item, item] }, /Duplicate farm item identity/],
+      [{ ...snapshot.items, instances: [{ ...item, type: "rake" }], carried: { itemId: item.id } }, /Unsupported farm item/],
+      [{ ...snapshot.items, carried: { itemId: `${f.area.farmId}/item-missing` } }, /Invalid carried item/]
+    ] as const) {
+      await rejectSaved({ ...snapshot, items: invalid } as typeof snapshot, diagnostic);
+    }
+
+    const receipt = snapshot.recentReceipts.at(-1)!;
+    const binding = receipt.binding!;
+    expect(binding.command.type).toBe("spawn-item");
+    const retiredReceipt = { ...receipt, binding: { ...binding, command: { ...binding.command, itemType: "rake" } } };
+    await rejectSaved(
+      {
+        ...snapshot,
+        recentReceipts: [...snapshot.recentReceipts.slice(0, -1), retiredReceipt] as typeof snapshot.recentReceipts
+      },
+      /Invalid command receipt binding/
+    );
+  });
+
+  it("does not retry a failing area's checkpoint while initializing a different area", async () => {
+    const repository = new MemoryFarmRepository();
+    const f = await create("area-a", { repository });
+    const report = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      repository.failNextTransaction = true;
+      f.system.cropGrowthMultiplier = 2;
+      await f.area.service.whenIdle();
+      expect(f.area.service.simulationConfig.cropGrowthMultiplier).toBe(1);
+
+      const transact = repository.transact.bind(repository);
+      const aFailure = new Error("A checkpoint unavailable");
+      const calls = vi.spyOn(repository, "transact").mockImplementation((farmId, initial, operation, signal) =>
+        farmId === f.area.farmId ? Promise.reject(aFailure) : transact(farmId, initial, operation, signal)
+      );
+      const b = f.root("area-b").addComponent(FarmingAreaComponent);
+      await b.configure({ ...f.config, farmId: "area-b" });
+      expect(b.initialized).toBe(true);
+      expect(b.service.simulationConfig.cropGrowthMultiplier).toBe(2);
+      expect((await repository.read(b.farmId))?.farmId).toBe(b.farmId);
+      expect(calls.mock.calls.every(([farmId]) => farmId === b.farmId)).toBe(true);
+      calls.mockRestore();
+
+      f.system.cropGrowthMultiplier = 0;
+      await f.system.synchronizeAuthoring();
+      expect([f.area, b].map((area) => area.service.simulationConfig.cropGrowthMultiplier)).toEqual([0, 0]);
+    } finally {
+      report.mockRestore();
+    }
+  });
+
+  it("applies a growth multiplier changed while the area's initial snapshot is pending", async () => {
+    const repository = new MemoryFarmRepository();
+    const transact = repository.transact.bind(repository);
+    const started = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const gate = vi.spyOn(repository, "transact").mockImplementationOnce(async (farmId, initial, operation, signal) => {
+      started.resolve();
+      await release.promise;
+      return transact(farmId, initial, operation, signal);
+    });
+    const f = nativeFixture("initializing", { repository });
+    fixtures.push(f);
+    await started.promise;
+    expect(f.area.initialized).toBe(false);
+    f.system.cropGrowthMultiplier = 0;
+    release.resolve();
+    await f.ready;
+    expect(f.area.service.simulationConfig.cropGrowthMultiplier).toBe(0);
+    gate.mockRestore();
+  });
+
   it("isolates shared resources and rejects duplicate Scene IDs without breaking the first area", async () => {
     const f = await create();
     const other = f.root("other").addComponent(FarmingAreaComponent);
@@ -246,7 +346,7 @@ describe("native farming contracts and state", () => {
       { ok: false, error: { code: "INVALID_COMMAND" } }
     );
     const { FarmingRulesResource, farmingDefinitions } = await import("../../src/farming/native/FarmingResources");
-    const rules = new FarmingRulesResource(f.engine, { ...f.resources.rules.data, version: 2 });
+    const rules = new FarmingRulesResource(f.engine, { ...farmingRules(f.resources.rules).data, version: 2 });
     expect(() => farmingDefinitions(f.resources.catalog, rules)).toThrow(/版本/);
   });
 
@@ -483,7 +583,8 @@ describe("native farming contracts and state", () => {
     expect(subscribe).toHaveBeenCalledTimes(1);
     expect(f.area.lastError).toBeUndefined();
     expect(Object.keys(f.area.service.getSnapshot().crops)).toHaveLength(1);
-    expect((f.resources.catalog as any).refs).toBe(1);
+    expect(f.resources.catalog.destroyed).toBe(false);
+    expect(farmingCatalog(f.resources.catalog).catalog.getCrop("berry")).toBeDefined();
   });
 
   it("starts configured areas when the host subsequently injects missing dependencies", async () => {
@@ -557,7 +658,7 @@ describe("native farming contracts and state", () => {
     await f.area.dispose();
     expect(await retry).toMatchObject({ ok: false, error: { code: "CANCELLED" } });
     expect(subscribe).not.toHaveBeenCalled();
-    expect((f.resources.catalog as any).refs).toBe(0);
+    expect(f.resources.catalog.destroyed).toBe(false);
     expect(await repository.read(f.area.farmId)).toBeUndefined();
   });
 
@@ -735,25 +836,39 @@ describe("deterministic instruction replay through the generic Agent Script runt
     });
 });
 
-it("retains shared catalog/rules for each component reference and releases them without destroying assets", async () => {
+it("borrows native JSON resources and clears component references without destroying host assets", async () => {
   const f = await create();
-  const catalog = f.resources.catalog as typeof f.resources.catalog & {refs:number};
-  const rules = f.resources.rules as typeof f.resources.rules & {refs:number};
-  const initial = {catalog:catalog.refs,rules:rules.refs};
+  const { catalog, rules } = f.resources;
   f.system.catalog = catalog;
   f.system.rules = rules;
   f.system.catalog = catalog;
-  expect(catalog.refs).toBe(initial.catalog + 1);
-  expect(rules.refs).toBe(initial.rules + 1);
+  expect(f.system.catalog).toBe(catalog);
+  expect(f.system.rules).toBe(rules);
   const replacement = createFarmingResources(f.engine, TEST_FARMING_DEFINITIONS);
   f.system.catalog = replacement.catalog;
-  expect(catalog.refs).toBe(initial.catalog);
-  expect((replacement.catalog as typeof catalog).refs).toBe(1);
-  await f.system.dispose();
-  expect((replacement.catalog as typeof catalog).refs).toBe(0);
-  expect(catalog.refs).toBe(0);
-  expect(rules.refs).toBe(0);
+  expect(f.system.catalog).toBe(replacement.catalog);
   expect(catalog.destroyed).toBe(false);
+  await f.system.dispose();
+  expect(f.system.catalog).toBeNull();
+  expect(f.system.rules).toBeNull();
+  expect(replacement.catalog.destroyed).toBe(false);
+  expect(rules.destroyed).toBe(false);
+  expect(catalog.destroyed).toBe(false);
+  expect(farmingCatalog(catalog).catalog.getCrop("berry")).toBeDefined();
+});
+
+it("prepares an inactive loaded Scene before onAwake without rejecting its registered areas", async () => {
+  const f = await create("inactive", {}, {}, TEST_FARMING_DEFINITIONS, false);
+  const service = f.area.service;
+  expect(f.system.areas).toEqual([f.area]);
+  expect(f.system.areas).toEqual([f.area]);
+  expect(f.area.lastError).toBeUndefined();
+  for (const entity of [f.system.entity, f.area.entity])
+    (entity as unknown as { isActiveInHierarchy: boolean }).isActiveInHierarchy = true;
+  f.system.onAwake();
+  f.area.onAwake();
+  expect(f.area.service).toBe(service);
+  expect(await f.api.execute({ ...plant, input: { ...plant.input, farmId: "inactive" } })).toMatchObject({ ok: true });
 });
 
 it("releases a host binding without disposing its authored component or a later binding", async () => {
@@ -773,4 +888,53 @@ it("releases a host binding without disposing its authored component or a later 
   releaseSecond();
   expect(() => owner.dependencies(f.area)).toThrow("MISSING_DEPENDENCY");
   await owner.dispose();
+});
+
+const resourceData = farmingResourceData(FARM_DEFINITIONS);
+
+it.each([null, 0, MAX_GROWTH_MULTIPLIER])("accepts growth boundary %s", (value) =>
+  expect(() => validateFarmingGrowthMultiplier(value)).not.toThrow()
+);
+
+it.each([-1, MAX_GROWTH_MULTIPLIER + 1, NaN, Infinity, "0", undefined])("rejects invalid growth value %s", (value) =>
+  expect(() => validateFarmingGrowthMultiplier(value)).toThrow()
+);
+
+it("rejects null cropGrowthMultiplier in resolved simulation, round-trips atlas refs, and enforces JSONAsset kinds & storage rules", () => {
+  const config = resolveSimulationConfig(resourceData.rules.soilProfile);
+  expect(() =>
+    validateSimulationParameters({ ...config, cropGrowthMultiplier: null } as unknown as typeof config)
+  ).toThrow();
+
+  const file = {
+    version: 1 as const,
+    kind: "catalog" as const,
+    data: {
+      ...resourceData.catalog,
+      plants: resourceData.catalog.plants.map((entry) => ({ ...entry, atlasUrl: `Textures/${entry.id}.ktx2` }))
+    }
+  };
+  const before = structuredClone(file);
+  expect(resolveFarmingJSONReferences(encodeFarmingResourceFile(file))).toEqual(file);
+  expect(file).toEqual(before);
+
+  const engine = {} as Engine;
+  const catalog = new JSONAsset(engine),
+    rules = new JSONAsset(engine);
+  catalog.data = { version: 1, kind: "catalog", data: resourceData.catalog };
+  rules.data = { version: 1, kind: "rules", data: resourceData.rules };
+  expect(farmingCatalog(catalog).data).toEqual(JSON.parse(JSON.stringify(resourceData.catalog)));
+  expect(farmingRules(rules).data).toEqual(JSON.parse(JSON.stringify(resourceData.rules)));
+  expect(() => farmingRules(catalog)).toThrow("Expected farming rules");
+  expect(() => farmingCatalog(rules)).toThrow("Expected farming catalog");
+
+  const storage = {
+    ...DEFAULT_STORAGE_DEFINITIONS,
+    containers: DEFAULT_STORAGE_DEFINITIONS.containers.map((container) => ({ ...container, width: 0 }))
+  };
+  const encode = (data: object) => parseFarmingResourceFile(JSON.stringify({ version: 1, kind: "rules", data }));
+  expect(() => validateFarmingResourceFile(encode({ ...resourceData.rules, storage }))).toThrow(
+    "Invalid container definition"
+  );
+  expect(() => validateFarmingResourceFile(encode({ ...resourceData.rules, storage: undefined }))).not.toThrow();
 });

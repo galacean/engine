@@ -9,15 +9,6 @@ vi.mock("@galacean/engine-core", async importOriginal => ({
       return this.entity.engine;
     }
   },
-  ReferResource: class {
-    destroyed = false;
-    refs = 0;
-    constructor(readonly engine: unknown) {}
-    _addReferCount(n: number) {
-      this.refs += n;
-    }
-    destroy() {}
-  },
   Loader: class {
     static registerClass() {}
   },
@@ -40,7 +31,8 @@ export function nativeFixture(
   farmId = "native-farm",
   overrides: Partial<FarmingAreaDependencies> = {},
   configuration: Partial<FarmingAreaConfiguration> = {},
-  definitions = TEST_FARMING_DEFINITIONS
+  definitions = TEST_FARMING_DEFINITIONS,
+  awake = true
 ) {
   const engine = {} as Engine;
   const scene = { rootEntities: [] as Entity[] } as unknown as Scene;
@@ -51,13 +43,13 @@ export function nativeFixture(
       engine,
       scene,
       children: [],
-      isActiveInHierarchy: true,
+      isActiveInHierarchy: awake,
       getComponent: (type: any) => components.find((c) => c instanceof type) ?? null,
       addComponent: (Type: any) => {
         const component = new Type();
         component.entity = entity;
         components.push(component);
-        component.onAwake?.();
+        if (awake) component.onAwake?.();
         return component;
       }
     } as unknown as Entity;
