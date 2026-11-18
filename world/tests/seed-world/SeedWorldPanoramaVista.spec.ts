@@ -67,6 +67,21 @@ describe("PanoramaVistaGenerator & SeedWorld integration", () => {
     expect(topCoverageSum / vistaA.width).toBeLessThan(32);
   });
 
+  it("keeps the near cutoff from painting opaque vertical slices into the panorama", () => {
+    const { farA, farB } = generatePanoramaVistaBuffers({
+      seed: 1_729,
+      width: 256,
+      height: 64,
+      radialSteps: 64
+    });
+
+    let opaqueCutoffTexels = 0;
+    for (let offset = 0; offset < farA.length; offset += 4) {
+      if (farA[offset + 3] === 255 && farB[offset] === 0) opaqueCutoffTexels++;
+    }
+    expect(opaqueCutoffTexels).toBe(0);
+  });
+
   it("builds a transition skirt mesh whose inner seam matches the boundary sampler and morphs outward", () => {
     const plan = SeedWorldPlanner.generate({ rootSeed: 1_729 });
     const baseProfile = extractSeedWorldBoundaryProfile(plan, undefined, 64);

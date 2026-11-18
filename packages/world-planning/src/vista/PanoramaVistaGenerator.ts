@@ -380,6 +380,8 @@ export function generatePanoramaVistaBuffers(options: PanoramaVistaOptions): Pan
   const minEl = options.minElevationRadians ?? -0.042;
   const maxEl = options.maxElevationRadians ?? 0.28;
   const spanEl = maxEl - minEl;
+  const minTangent = Math.tan(minEl);
+  const nearFadeEndKm = Math.min(minDistanceKm * 1.5, maxDistanceKm);
   const sunAz = options.sunAzimuthRadians ?? 2.45;
   const observerAlt = options.observerAltitudeMetres ?? 85;
   const profile = options.boundaryProfile;
@@ -424,8 +426,11 @@ export function generatePanoramaVistaBuffers(options: PanoramaVistaOptions): Pan
     const energyScale = (0.78 + 0.58 * azEnergy) * (0.55 + 0.45 * distanceGrowth);
     const worldElevation = (220 + (820 + 2450 * Math.pow(M, 1.18)) * G * (0.3 + 0.96 * R)) * energyScale;
 
-    // Subtract observer altitude and Earth curvature drop (-0.0786 * rKm^2)
-    return worldElevation - observerAlt - 0.0786 * rKm * rKm;
+    const apparentHeight = worldElevation - observerAlt - 0.0786 * rKm * rKm;
+    // Raise the terrain gradually from below the lowest ray at the inner edge.
+    // A high first sample fills every lower row with a single distance and normal.
+    const floorHeight = minTangent * rKm * 1000 - 1;
+    return lerpVista(floorHeight, apparentHeight, smoothVista(minDistanceKm, nearFadeEndKm, rKm));
   };
 
   const rad = new Float64Array(radialSteps);
@@ -456,7 +461,7 @@ export function generatePanoramaVistaBuffers(options: PanoramaVistaOptions): Pan
     const azLand = profile ? sampleAzimuthArray(profile.landMask, az) : 1.0;
 
     dist.fill(0);
-    let maxT = Math.tan(minEl);
+    let maxT = minTangent;
     let tPrev = maxT;
     let rPrev = minDistanceKm;
     let kBot = height;
@@ -494,8 +499,8 @@ export function generatePanoramaVistaBuffers(options: PanoramaVistaOptions): Pan
       const z = dz * rr;
       const e = Math.max(0.025, rr * 0.0008);
       const h0 = farHeightMetres(x, z, rr, azEnergy, azLand, 8);
-      const hx = farHeightMetres(x + e, z, rr, azEnergy, azLand, 8);
-      const hz = farHeightMetres(x, z + e, rr, azEnergy, azLand, 8);
+      const hx = farHeightMetres(x + e, z, Math.hypot(x + e, z), azEnergy, azLand, 8);
+      const hz = farHeightMetres(x, z + e, Math.hypot(x, z + e), azEnergy, azLand, 8);
       const gx = -(hx - h0) / (e * 1000);
       const gz = -(hz - h0) / (e * 1000);
       const il = 1 / Math.hypot(gx, 1, gz);
