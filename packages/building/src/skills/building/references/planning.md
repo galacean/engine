@@ -30,7 +30,7 @@
 
 `tools.building.generate` 内部调用上述生成器和 `buildingDraftSource`，返回 Prefab JSON。
 
-在 Seed World 中，使用内置建筑资产库 `Building/Units/building-kit.prefab`。下面以「在我面前建一座小房子」为例，在一次 execute 内选地并创建房子。对于未指定门窗或其他构件的普通小房子，直接使用示例的屋身与屋顶参数，省略 `attachments`。明确要求加门窗时，按[墙](references/wall.md)确定安装位置和尺寸。
+在 Seed World 中，使用内置建筑资产库 `Building/Units/building-kit.prefab`。下面以「在我面前建一座小房子」为例，在一次 execute 内选地并创建房子。对于未指定门窗或其他构件的普通小房子，直接使用示例的屋身与屋顶参数，省略 `attachments`。明确要求加门窗时，按[墙](skills/building/references/wall.md)确定安装位置和尺寸。
 
 ```js
 const scene = "<project.json 的 scene 字段>";
