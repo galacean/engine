@@ -1,0 +1,261 @@
+world/demos/farming/native-preview/NativePreviewHost.ts
+  s_97a2bd932aa3f2::t_1e2c1cff93abc8 113,371-372,375-376
+  s_97a2bd932aa3f2::t_eadfa4dd8f6154 7,15,110
+  s_97a2bd932aa3f2::t_7a1f78650835e0 27,105-109,112,115-116,122,135,165-168,182-184,232,242,247,260,267,277-301,304-313,315-336,363-370,373-374,377-387
+packages/farming/EDITOR_MIGRATION_IMPLEMENTATION.md
+  s_97a2bd932aa3f2::t_397fa66bd38d30 52,60
+  s_97a2bd932aa3f2::t_06c07aeb352169 3,56,70,76
+  s_97a2bd932aa3f2::t_d5d9fdd93a6a70 1-2,4-51,53-54,58-59,61-65,67-69
+  s_97a2bd932aa3f2::t_1b209bfed6ce3d 55,57,66,71-75,77-88
+world/demos/seed-world/systems/runtime-declarations.json
+  s_97a2bd932aa3f2::t_ec65c56b842666 1
+packages/farming/src/farming/README.md
+  s_97a2bd932aa3f2::t_397fa66bd38d30 61-62,250,307,314,316
+packages/modify/tests/ScreenSpaceReflectionAutoTag.test.ts
+  s_97a2bd932aa3f2::t_ef50593d431ca8 13,30-34,38,43,64-65
+packages/farming/src/farming/presentation/sowing/SowingSeedLibrary.ts
+  s_97a2bd932aa3f2::t_6ccdcc53731402 17,81-82,86
+  s_97a2bd932aa3f2::t_2cdb74d7b5d986 59-60
+  s_97a2bd932aa3f2::t_dae2eeed31749a 2,72-79,84
+  s_97a2bd932aa3f2::t_41ee55572d3a0a 20,83
+world/tests/farming/FarmingAuthoring.spec.ts
+  s_97a2bd932aa3f2::t_533bd7665cf901 26-29,174-176,187-188,197-202,205-215,222-224,243-245
+  s_97a2bd932aa3f2::t_9fbff81fbc9000 7-9,24-25,30-31,166-173,177-186,189-196,203-204,216-221,225-242,246-256
+  s_97a2bd932aa3f2::t_b09a449d7966a3 151-155,157-161
+  s_97a2bd932aa3f2::t_1e2c1cff93abc8 32,96,103,115
+  s_97a2bd932aa3f2::t_002b2197bc0b6d 100,109-113,128-130
+  s_97a2bd932aa3f2::t_7490da9cc449e9 143-150,156,162-165,257-258
+  s_97a2bd932aa3f2::t_19f0b17ec515eb 1-6,10-23,41-95,97-99,101-102,104-108,114,116-127,131-142,259-290
+  s_97a2bd932aa3f2::t_b359244049a208 33-40
+packages/farming/src/farming/presentation/SeedSackMaterials.ts
+  s_97a2bd932aa3f2::t_dae2eeed31749a 1,7,14-20,27-30,34-36,40-47,49
+  s_97a2bd932aa3f2::t_41ee55572d3a0a 6,21-23,31-32,50-55
+packages/farming/src/farming/native/README.md
+  s_97a2bd932aa3f2::t_397fa66bd38d30 66,76,93-100
+world/demos/farming/native-preview/main.ts
+  s_97a2bd932aa3f2::t_7a1f78650835e0 1,11-16,19-23,27-37,40,49-50,147,150-154
+world/demos/seed-world/SeedWorldDemo.ts
+  s_97a2bd932aa3f2::t_0b0f9dc1244984 80,598-601,1025,1027,2254,2257
+  s_97a2bd932aa3f2::t_438482b84215c3 87,2528-2537
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingScene.ts
+  s_97a2bd932aa3f2::t_0b0f9dc1244984 1,16,39-41,44,50,54,58,60,83,87,119,142,145-153,155
+  s_97a2bd932aa3f2::t_de0fe1f9b845e0 70,72-75
+  s_97a2bd932aa3f2::t_2a8aa1143c50b9 3-4,11-12,15,20-30,61-69,71,76-80,85-86,88-116,127,156-158
+  s_97a2bd932aa3f2::t_4f5a5bdbdf581c 18-19,122
+  s_97a2bd932aa3f2::t_64ed7c41706430 17
+packages/farming/src/farming/presentation/sowing/SowingPresenter.ts
+  s_97a2bd932aa3f2::t_dae2eeed31749a 135-139
+packages/farming/src/farming/application/FarmingService.ts
+  s_97a2bd932aa3f2::t_4f5a5bdbdf581c 111,750
+  s_97a2bd932aa3f2::t_df78fb2fdd91bf 751-754,762
+world/tests/farming/FarmingMigrationAcceptance.ts
+  s_97a2bd932aa3f2::t_7827923cab1e81 1-3,8-60,62-75,86-217,231,241-263,265-324,326-327,329-345,356-423,426-461,467-486,492-493,499-529,531-566,584-633,639-649
+  s_97a2bd932aa3f2::t_19f0b17ec515eb 4-7,264,530
+  s_97a2bd932aa3f2::t_533bd7665cf901 227-230,233-240,635-638
+  s_97a2bd932aa3f2::t_e122501826e047 61,218-226,232,634
+  s_97a2bd932aa3f2::t_48e9d73b014da6 346-355,462-466,487-491,494-498
+  s_97a2bd932aa3f2::t_397fa66bd38d30 567-583
+  s_97a2bd932aa3f2::t_ea60efbbc0ccda 76-85,325,328,424-425
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingQuarantine.ts
+  s_97a2bd932aa3f2::t_3af4e430051e11 61-62,66,82,153-154,168-178,180-181,183-184
+  s_97a2bd932aa3f2::t_39dd05b8f4b7b5 201-203,208-211,219-222
+  s_97a2bd932aa3f2::t_dc164efde03efe 1-3,10,15-29,37,43,45,64-65,84-85,191-200,205-207,212,218,224,235-239,242-244,260,268,287-288,290,292,308-311,321,323
+  s_97a2bd932aa3f2::t_ab7c412cb76b4d 4,204
+  s_97a2bd932aa3f2::t_438482b84215c3 30-36
+  s_97a2bd932aa3f2::t_f8eb4e19578b0d 266
+  s_97a2bd932aa3f2::t_533bd7665cf901 40-42,303
+  s_97a2bd932aa3f2::t_b09a449d7966a3 213-215,217,246-249,293-300,307,313-317
+  s_97a2bd932aa3f2::t_20b34ed9e5826d 305
+  s_97a2bd932aa3f2::t_7a0e2271cfdcf6 5-8,57-59,63,223,225-226,252,312,318-320
+  s_97a2bd932aa3f2::t_393b187d53282e 44,46-56,227-234,301-302,304,306,322
+  s_97a2bd932aa3f2::t_10fdcb9b443dc6 38-39,60,67-70,77,80,86-108,112-113,115-148,187-190,240-241,250,253-259,261,269-275,286,289,291
+  s_97a2bd932aa3f2::t_0bc7c5ecb69ade 11-14,71-76,78-79,81,83,245,251,262-265,267,276-285
+  s_97a2bd932aa3f2::t_e96f2a6eef4a48 109-111,114,155-167,179,216
+  s_97a2bd932aa3f2::t_b2a591392837c3 9,149-152,182,185-186
+packages/farming/src/farming/storage/StorageRules.ts
+  s_97a2bd932aa3f2::t_32ae4f03f1dc68 41-43,62,64,68-72
+  s_97a2bd932aa3f2::t_5d067c80384e89 73-74
+world/tests/seed-world/editor/seed-world-project.spec.ts
+  s_97a2bd932aa3f2::t_2695ea82f1bc1c 29-30,98-108,166-185,192-203,209-224,261-264,278,280-282,299-303,306,311,328,330-333,346-348,364-365,367-377,489
+  s_97a2bd932aa3f2::t_de0fe1f9b845e0 334-345,378-391
+  s_97a2bd932aa3f2::t_438482b84215c3 31,163,366,470-472
+  s_97a2bd932aa3f2::t_0bc7c5ecb69ade 410,414-415,417-418,425,435-440,444,448,451-452,454-455,474-476,481
+  s_97a2bd932aa3f2::t_efac276ec8debc 283-293,296-298
+  s_97a2bd932aa3f2::t_9c196504648be6 492-502,504-511,513-515,517-518,520-531,533-534,541,543-545,549-557,559-561
+  s_97a2bd932aa3f2::t_467bc51d868818 146-162,164-165,186-187,191,225-242,323-325,327,329
+  s_97a2bd932aa3f2::t_77043ff3803457 464-465,482-483
+  s_97a2bd932aa3f2::t_4f5a5bdbdf581c 204-208,279,312,319-320,326
+  s_97a2bd932aa3f2::t_b2a591392837c3 24-26,268-270,304-305
+  s_97a2bd932aa3f2::t_3af4e430051e11 519,532,542,547-548,558
+  s_97a2bd932aa3f2::t_e96f2a6eef4a48 491,503,512,516,535-540,546
+  s_97a2bd932aa3f2::t_1e7dd859aec41b 23,392-409,411-413,416,419-424,426-434,441-443,445-447,449-450,453,456-463,466-469,473,477-480,484-488
+  s_97a2bd932aa3f2::t_7f99f1b65e4c86 188-190,243-260,265-267,271-277,294-295,309,314-318,321-322,349-363
+  s_97a2bd932aa3f2::t_397fa66bd38d30 307-308,310,313
+  s_97a2bd932aa3f2::t_e5d4443b6b37ea 490
+packages/farming/src/farming/presentation/FarmItemPresentation.ts
+  s_97a2bd932aa3f2::t_dae2eeed31749a 30,57,172-173,175-182,192,581-583,592,595-596
+  s_97a2bd932aa3f2::t_41ee55572d3a0a 114
+  s_97a2bd932aa3f2::t_1c8179e932e599 597-598,605-606
+packages/farming/src/farming/domain/FarmValidation.ts
+  s_97a2bd932aa3f2::t_bca1515a436ad8 44,340,350
+packages/farming/src/farming/native/FarmingResources.ts
+  s_97a2bd932aa3f2::t_bca1515a436ad8 1,40-43,45,47-48,50-51,54,57-82,84-99,144-146,184-201,205,211
+  s_97a2bd932aa3f2::t_32ae4f03f1dc68 14,121
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingControls.ts
+  s_97a2bd932aa3f2::t_0b0f9dc1244984 1,34,36,362-369,481,489-490,492-495
+world/demos/seed-world/SeedWorldProject.ts
+  s_97a2bd932aa3f2::t_0b0f9dc1244984 30,86-88
+  s_97a2bd932aa3f2::t_19f0b17ec515eb 28-29,74,96
+packages/farming/src/farming/domain/rules/FarmItemRules.ts
+  s_97a2bd932aa3f2::t_bca1515a436ad8 265-266
+  s_97a2bd932aa3f2::t_3b0de6c1fd04b4 267
+world/demos/seed-world/styles.css
+  s_97a2bd932aa3f2::t_438482b84215c3 510-520
+world/tests/farming/FarmingOwnership.spec.ts
+  s_97a2bd932aa3f2::t_61dab1cb9cb081 14
+  s_97a2bd932aa3f2::t_533bd7665cf901 20-21,23,33-35,66-70
+  s_97a2bd932aa3f2::t_de0fe1f9b845e0 15
+  s_97a2bd932aa3f2::t_a1b05b71614f4c 1-3,63-65,71-94
+  s_97a2bd932aa3f2::t_1e2c1cff93abc8 5,24-32,36-62
+  s_97a2bd932aa3f2::t_eadfa4dd8f6154 4,6-13,16-19,22
+world/tests/farming/FarmingOwnershipAcceptance.ts
+  s_97a2bd932aa3f2::t_533bd7665cf901 1-13,69-72,75-78,112-113,115-118,123-126,130-133,135-138,142-145,160-161,164-167,182-189,201-208,210-213,227-230,247-254
+  s_97a2bd932aa3f2::t_eadfa4dd8f6154 18,24-29,48-68,73-74,79-81,85-86,89-91,119-122,127-128,194-195,217,232
+  s_97a2bd932aa3f2::t_20b34ed9e5826d 103-104,109
+  s_97a2bd932aa3f2::t_3d907c21a77691 14-17,19-23,30-47,82-84,87-88,92-102,105-108,110-111,114,129,134,139-141,146-159,162-163,168-181,190-193,196-200,209,214-216,218-226,231,233-246,255-259
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingAuthoring.ts
+  s_97a2bd932aa3f2::t_32ae4f03f1dc68 6-7,9-10,52-53,56-60,66-74,76-80,85,87,92,109-121,125-127
+  s_97a2bd932aa3f2::t_533bd7665cf901 61-65,75,95,122-124
+  s_97a2bd932aa3f2::t_19f0b17ec515eb 1-5,8,11-51,54-55,81-84,86,88-91,93-94,96-108,128
+world/tests/farming/FarmingSSRSurfaceAcceptance.ts
+  s_97a2bd932aa3f2::t_467bc51d868818 1-219
+packages/farming/src/farming/native/FarmingAreaComponent.ts
+  s_97a2bd932aa3f2::t_ef50593d431ca8 5,15,24-25,52-53,245-248,260-267,409,443-444,448-449
+packages/farming/src/farming/native/FarmingSystem.ts
+  s_97a2bd932aa3f2::t_ef50593d431ca8 1,4,23-24,28,30,32,38,40-41,44-74,101-106,151-152,227-230
+  s_97a2bd932aa3f2::t_9887c84c9a6830 231,266,307
+packages/farming/tests/native/FarmingNative.spec.ts
+  s_97a2bd932aa3f2::t_ab7c412cb76b4d 193,221-227
+  s_97a2bd932aa3f2::t_da362b8f65cc77 201,208-214,216-220
+  s_97a2bd932aa3f2::t_7490da9cc449e9 9,57,63,67,194-200,202-207,215,228-281,329,566-567,641,819,821,825-826,829-830,832-835,837-851
+world/demos/farming/first-person-farm/main.ts
+  s_97a2bd932aa3f2::t_7a1f78650835e0 16,108,127,158-159,169,171-178,696,698,717-718,729
+  s_97a2bd932aa3f2::t_b2a591392837c3 121,200
+  s_97a2bd932aa3f2::t_1e2c1cff93abc8 697,699-700,706-716
+packages/farming/src/farming/assets/harvest/basket.prefab
+  s_97a2bd932aa3f2::t_8e2c59857a06f2 3-10,12-97
+packages/farming/src/farming/assets/sowing/seed-sack.prefab
+  s_97a2bd932aa3f2::t_097a413a244b60 3-16,18-122
+packages/farming/src/farming/assets/storage/basket.prefab
+  s_97a2bd932aa3f2::t_ebb1374a340847 5-8,13-47,49-66
+packages/farming/src/farming/assets/storage/cart.prefab
+  s_97a2bd932aa3f2::t_8dca8b85007010 5-8,13-47,49-66
+packages/farming/src/farming/assets/tilling/hoe.animCtrl
+  s_97a2bd932aa3f2::t_ad460e9af5f161 17
+packages/farming/src/farming/assets/tilling/hoe.prefab
+  s_97a2bd932aa3f2::t_2dc646fb9d45b9 5-14,22-122,124,126-140,142,146-197
+packages/farming/src/farming/assets/tilling/rake.animCtrl
+  s_97a2bd932aa3f2::t_62e9556ee38d6b 17
+packages/farming/src/farming/assets/tilling/rake.prefab
+  s_97a2bd932aa3f2::t_1515a61764b8e6 5-8,16-115,117,121-172
+packages/farming/src/farming/config/FarmingSimulationConfig.ts
+  s_97a2bd932aa3f2::t_03e9f972438662 6-14,97-98
+packages/farming/src/farming/native/FarmingAPI.ts
+  s_97a2bd932aa3f2::t_ccd728a31d8a2d 20,414
+packages/farming/src/farming/native/FarmingSceneData.ts
+  s_97a2bd932aa3f2::t_3b0744a0731b67 2,5
+packages/farming/src/farming/native/assets/Harvest/basket/material-0.mat
+  s_97a2bd932aa3f2::t_8f936976fc9de2 1-212
+packages/farming/src/farming/native/assets/Sowing/seed-sack/material-0.mat
+  s_97a2bd932aa3f2::t_146649fcd3f955 1-197
+packages/farming/src/farming/native/assets/Sowing/seed-sack/material-1.mat
+  s_97a2bd932aa3f2::t_d0711ffcb8208c 1-221
+packages/farming/src/farming/native/assets/Storage/basket/material-0.mat
+  s_97a2bd932aa3f2::t_a3984e42a6c18f 1-212
+packages/farming/src/farming/native/assets/Storage/cart/material-0.mat
+  s_97a2bd932aa3f2::t_87cf5b6aa42284 1-212
+packages/farming/src/farming/native/assets/Tilling/hoe/material-0.mat
+  s_97a2bd932aa3f2::t_6058bc69b7ec1a 1-212
+packages/farming/src/farming/native/assets/Tilling/hoe/material-1.mat
+  s_97a2bd932aa3f2::t_bc1414b9fc7630 1-212
+packages/farming/src/farming/native/assets/Tilling/rake/material-0.mat
+  s_97a2bd932aa3f2::t_3885b99a11be7d 1-212
+packages/farming/src/farming/native/assets/conversion-report.json
+  s_97a2bd932aa3f2::t_cc0045d4d4683f 1-48
+packages/farming/src/farming/native/assets/manifest.json
+  s_97a2bd932aa3f2::t_a530052c44a230 1-92
+packages/farming/src/farming/native/index.ts
+  s_97a2bd932aa3f2::t_aeb4ca6584b629 17-19
+packages/farming/src/farming/presentation/FarmItemHighlight.ts
+  s_97a2bd932aa3f2::t_e8083fbb4795fb 1,6,39,46
+packages/farming/src/farming/presentation/harvest/HarvestProduceMesh.ts
+  s_97a2bd932aa3f2::t_ea28d98a8bfe45 14-15,22-36
+packages/farming/src/farming/presentation/props/FarmingPropResources.ts
+  s_97a2bd932aa3f2::t_c5d8d088b18f2b 1-2,5-14,22,45-46,80-83,102-106
+packages/farming/src/farming/presentation/storage/StorageProduceLibrary.ts
+  s_97a2bd932aa3f2::t_035008a039558f 15,37
+packages/farming/src/farming/procedural/runtime/PlantOrganTint.shader
+  s_97a2bd932aa3f2::t_810195a6b2e281 5-6
+packages/farming/src/farming/procedural/runtime/ProceduralPlant.ts
+  s_97a2bd932aa3f2::t_a74e7225404155 141
+packages/farming/src/farming/tools/convert-native-props.py
+  s_97a2bd932aa3f2::t_b3cc2cc2849519 1-192
+packages/farming/src/farming/tools/generate-host-declarations.mjs
+  s_97a2bd932aa3f2::t_4f33cabb637339 1-56
+packages/farming/src/farming/tools/native-materials.source.json
+  s_97a2bd932aa3f2::t_1968bd80fdaee9 1-2103
+packages/farming/src/farming/tools/native-prefabs.source.json
+  s_97a2bd932aa3f2::t_429bcff2ca70d6 1-206
+packages/farming/src/farming/tools/production-boundary.cjs
+  s_97a2bd932aa3f2::t_2d7fb842368373 16
+packages/farming/src/skills/farming/references/saves-and-assets.md
+  s_97a2bd932aa3f2::t_0a3430b27229ad 15,37,39,52-53,55,66-75
+packages/farming/tests/native/native-fixtures.ts
+  s_97a2bd932aa3f2::t_07dbfabc62ec76 34-35,46,52
+world/demos/farming/first-person-farm/scene/FarmScene.ts
+  s_97a2bd932aa3f2::t_93678e4741d45d 940
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmRepository.ts
+  s_97a2bd932aa3f2::t_97a9c4f2817faa 52
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingAssets.ts
+  s_97a2bd932aa3f2::t_44af672520fed7 1-3,7,17-18,20,22-28,30-60,62,64,100-133
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingHost.ts
+  s_97a2bd932aa3f2::t_3b2367f398f98b 3,19,46,60,62,67
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingPanel.ts
+  s_97a2bd932aa3f2::t_a23f43298ebb8d 63,72
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingRuntime.ts
+  s_97a2bd932aa3f2::t_935819c1bc10c5 2-3,31-32,68-70,81,83-86,102,146,168,201-202,505,847
+world/tests/farming/FarmingAssetChanges.spec.ts
+  s_97a2bd932aa3f2::t_421c8803f8f79b 1-66
+world/tests/farming/FarmingHighlight.spec.ts
+  s_97a2bd932aa3f2::t_1388761f007e18 1-85
+world/tests/farming/FarmingNativeBinary.spec.ts
+  s_97a2bd932aa3f2::t_f88147b5355607 1-139
+world/tests/farming/FarmingSSRSurface.spec.ts
+  s_97a2bd932aa3f2::t_2580df1a314d56 1-62
+world/tests/farming/FarmingTestProject.ts
+  s_97a2bd932aa3f2::t_608650b43b8704 1-6,8-18,20-36,38-48
+world/tests/farming/SSR_SURFACE_ACCEPTANCE.md
+  s_97a2bd932aa3f2::t_28449ea7974858 1-74
+world/tests/farming/index.html
+  s_97a2bd932aa3f2::t_308ec47102ad1a 1
+world/tests/farming/ssr-surface.html
+  s_97a2bd932aa3f2::t_b30bcd45c07710 1-25
+world/tests/farming/vitest.config.mjs
+  s_97a2bd932aa3f2::t_f625269b43da34 1-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f034fd69d3ba62e2a5af116320948be5d26c1033",
+  "prompts": {},
+  "sessions": {
+    "s_97a2bd932aa3f2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1af8d-d94c-7263-b9b5-ffc911b9f798",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
