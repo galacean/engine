@@ -19,6 +19,7 @@ export const PLANNING_WEATHER_COMPONENT: PlanningComponentDefinition = {
     { key: "cloudEnvelopeScale", label: "云包络尺度", type: "number", min: 0.01, max: 4 },
     { key: "cloudTopDensityMultiplier", label: "云顶密度倍率", type: "number", min: 0, max: 4 },
     { key: "cloudDetailNoiseMultiplier", label: "云细节噪声倍率", type: "number", min: 0, max: 4 },
+    { key: "cloudAmbientFloor", label: "云底天空补光强度", type: "number", min: 0, max: 2 },
     { key: "rainRate", label: "降雨强度", type: "number", min: 0, max: 1, unit: "比例", default: 0 },
     { key: "snowRate", label: "降雪强度", type: "number", min: 0, max: 1, unit: "比例", default: 0 },
     { key: "temperatureCelsius", label: "气温", type: "number", unit: "°C", default: 22 },
@@ -114,21 +115,22 @@ export function applyPlanningWeather(
   };
   if (Object.keys(shapeProfile).length) environment.setCloudShapeProfile?.(shapeProfile);
   if (hasCustomMorphology) {
+    const brightFloor = values.cloudAmbientFloor !== undefined ? Number(values.cloudAmbientFloor) : undefined;
     environment.setCloudQuality?.("high");
     environment.setCloudLightingProfile?.({
       lightMarchDistanceScale: 0.35,
       extinctionScale: 0.024,
       densitySmoothness: 0.86,
       singleScatteringAlbedo: 0.995,
-      directionalEnergyScale: 2.35,
+      directionalEnergyScale: brightFloor !== undefined ? 2.65 : 2.35,
       directionalEnergyCompression: 0.08,
       inscatteringDensityScale: 2.2,
-      ambientSkyBottom: 0.24,
-      ambientSkyTop: 0.44,
-      ambientGroundBottom: 0.16,
-      ambientGroundTop: 0.08,
-      ambientShadowStrength: 0.28,
-      multipleScatteringMinimum: 0.22,
+      ambientSkyBottom: brightFloor ?? 0.24,
+      ambientSkyTop: brightFloor !== undefined ? Math.min(1.2, brightFloor + 0.18) : 0.44,
+      ambientGroundBottom: brightFloor !== undefined ? 0.03 : 0.16,
+      ambientGroundTop: brightFloor !== undefined ? 0.01 : 0.08,
+      ambientShadowStrength: brightFloor !== undefined ? 0.1 : 0.28,
+      multipleScatteringMinimum: brightFloor !== undefined ? 0.42 : 0.22,
       powderDensityScale: 2.4,
       powderDirectMinimum: 0.72,
       powderDirectMaximum: 1.15,

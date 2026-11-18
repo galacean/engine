@@ -132,6 +132,7 @@ export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
     cloudEnvelopeScale?: number;
     cloudTopDensityMultiplier?: number;
     cloudDetailNoiseMultiplier?: number;
+    cloudAmbientFloor?: number;
     rainRate?: number;
     snowRate?: number;
     temperatureCelsius?: number;
