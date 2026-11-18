@@ -7,7 +7,7 @@ import { RIVER_BANK_PROFILE_VERSION } from "./PlanningRiverBank";
 import profile from "../planning-data/settlement-profile.json";
 import type { IslandPlan, PlanPoint } from "./IslandPlanModel";
 import { createPlanningGroundSampler, createPlanningRingQuery } from "./WorldPlanningTerrain";
-import { sampleFloat32GridTriangle as sampleTerrainGrid } from "@galacean/engine-terrain/geometry/GridInterpolation";
+import { sampleFloat32GridTriangle as sampleTerrainGrid } from "@galacean/engine-water/water/authoring/terrain/GridInterpolation";
 import { worldTemplateStreet, worldTemplateStreetPuddles } from "../spatial/WorldTemplateStreet";
 import { planningTerrainAuthoringInputs } from "../spatial/PlanningResources";
 

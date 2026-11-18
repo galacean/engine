@@ -1,4 +1,4 @@
-import { planeSurfaceTriangles } from "@galacean/engine-terrain/geometry/SurfaceTriangles.ts";
+import { planeSurfaceTriangles } from "../../src/farming/geometry/SurfaceTriangles";
 import { freezeSnapshot } from "../../src/farming/domain/FarmState";
 import type { FarmingDefinitionSet, CropDefinition } from "../../src/farming/domain/index";
 import { createPlantingCatalog } from "../../src/farming/content/PlantingCatalog";

@@ -182,7 +182,9 @@
     "./farming/storage/StoragePlacement": "./src/farming/storage/StoragePlacement.ts",
     "./farming/storage/StorageRules": "./src/farming/storage/StorageRules.ts",
     "./farming/storage/StorageTypes": "./src/farming/storage/StorageTypes.ts",
-    "./index": "./src/index.ts"
+    "./index": "./src/index.ts",
+    "./farming/geometry/GridInterpolation": "./src/farming/geometry/GridInterpolation.ts",
+    "./farming/geometry/SurfaceTriangles": "./src/farming/geometry/SurfaceTriangles.ts"
   },
   "scripts": {},
   "dependencies": {

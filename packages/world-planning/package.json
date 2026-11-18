@@ -10,8 +10,12 @@
   "types": "./src/index.ts",
   "typesVersions": {
     "*": {
-      "terrain-authoring": ["src/generation/terrain/TerrainAuthoring.d.mts"],
-      "terrain-rendering": ["src/generation/terrain/TerrainRuntime.d.mts"]
+      "terrain-authoring": [
+        "src/generation/terrain/TerrainAuthoring.d.mts"
+      ],
+      "terrain-rendering": [
+        "src/generation/terrain/TerrainRuntime.d.mts"
+      ]
     }
   },
   "exports": {
@@ -471,7 +475,8 @@
     "./masonry/BuildingInitialSource": "./src/masonry/BuildingInitialSource.ts",
     "./runtime/SeedWorldRockMaterial": "./src/runtime/SeedWorldRockMaterial.ts",
     "./runtime/SeedWorldRockSurfaceStyle": "./src/runtime/SeedWorldRockSurfaceStyle.ts",
-    "./spatial/runtime/PlanningAnimalWorldChange": "./src/spatial/runtime/PlanningAnimalWorldChange.ts"
+    "./spatial/runtime/PlanningAnimalWorldChange": "./src/spatial/runtime/PlanningAnimalWorldChange.ts",
+    "./geometry/surfaceTransitionWeight": "./src/geometry/surfaceTransitionWeight.ts"
   },
   "scripts": {},
   "dependencies": {

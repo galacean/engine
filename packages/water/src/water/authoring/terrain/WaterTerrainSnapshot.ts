@@ -1,8 +1,5 @@
 import { waterTerrainContentHash } from "./WaterTerrainIdentity";
-import {
-  interpolateGridTriangle,
-  sampleFloat32GridTriangle
-} from "@galacean/engine-terrain/geometry/GridInterpolation";
+import { interpolateGridTriangle, sampleFloat32GridTriangle } from "./GridInterpolation";
 
 /** Read-only external bed data, in body-local metres (Y up). Water never edits its owner. */
 export interface WaterTerrainSnapshot {

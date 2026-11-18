@@ -1,4 +1,4 @@
-import { float32GridCell, sampleFloat32GridTriangle } from "@galacean/engine-terrain/geometry/GridInterpolation";
+import { float32GridCell, sampleFloat32GridTriangle } from "../../authoring/terrain/GridInterpolation";
 import { LAKE_BOUNDARY_EPSILON } from "./LakeBoundaryCompiler";
 import {
   sampleBilinearGridHeight,

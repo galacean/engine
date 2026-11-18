@@ -1,4 +1,4 @@
-import { compareTerrainStableValues } from "../TerrainStableOrder";
+import { compareTerrainStableIds as compareTerrainStableValues } from "../clipmap/TerrainHeightAtlas";
 import type { TerrainProjectRef, TerrainProjectRegion } from "./TerrainProjectContract";
 
 /** Standard Project resource type referenced directly by a canonical Region manifest. */

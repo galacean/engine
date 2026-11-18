@@ -9,7 +9,7 @@ import { waterMaterialTextures } from "@galacean/engine-water/water/native/Water
 import { createWaterQualitySettings } from "@galacean/engine-water/water/native/WaterQualitySettings";
 import { encodeWaterTerrainAssets } from "@galacean/engine-water/water/native/WaterTerrainAssets";
 import { OceanTextureLibrary } from "@galacean/engine-water/water/runtime/ocean/OceanTextureLibrary";
-import { writeWaterTerrainAssets } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
+import { writeWaterTerrainAssets } from "../src/spatial/runtime/NativeWaterEditor";
 import { expect, it } from "vitest";
 import { lake, terrain } from "../../water/tests/WaterFixtures";
 import { editTestWaterSource as editWaterSource } from "./WaterTestClient";

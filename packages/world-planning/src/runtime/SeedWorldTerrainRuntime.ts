@@ -56,7 +56,7 @@ import type {
   TerrainLayerResidencyRegionSource,
   TerrainLayerResolvedSource
 } from "@galacean/engine-terrain/terrain/clipmap/TerrainLayerResidency";
-import type { TerrainClipmapRegionSource } from "@galacean/engine-terrain/terrain/clipmap/TerrainClipmapSource";
+import type { TerrainClipmapRegionSource } from "@galacean/engine-terrain/terrain/clipmap/TerrainHeightAtlas";
 import type { TerrainLodRendererTuning } from "@galacean/engine-terrain/terrain/lod/TerrainLodGroupRendererRuntime";
 import type { SeedWorldPresentationDecorationInstance } from "../world/SeedWorldDecorations.ts";
 import {
@@ -576,7 +576,6 @@ export class SeedWorldTerrainRuntime {
         terrainSettings.clipmapLodCount,
         layers,
         authoredPuddles ? { maximumSpacingMetres: 1.25, authoredCoverage: authoredPuddles } : undefined,
-        undefined,
         {
           firstLod: farLod,
           nearTransitionMacro: "MATERIAL_TERRAIN_DETAIL_TRANSITION",

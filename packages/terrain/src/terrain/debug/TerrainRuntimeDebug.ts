@@ -369,7 +369,6 @@ export class TerrainRuntimeDebug {
   setWireframe(enabled: boolean): void {
     this._assertAlive();
     this._wireframe = enabled;
-    this._clipmap.setWireframe(enabled);
   }
 
   /**
@@ -476,7 +475,6 @@ export class TerrainRuntimeDebug {
   destroy(): void {
     if (this._destroyed) return;
     this._restoreProductionMaterials();
-    this._clipmap.setWireframe(false);
     if (this._lightingControl && this._initialLightingVisibility) {
       this._lightingControl.setVisibility(this._initialLightingVisibility);
     } else {
