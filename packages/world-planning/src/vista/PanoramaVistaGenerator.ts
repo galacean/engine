@@ -321,19 +321,19 @@ export function extractSeedWorldBoundaryProfile(
 export interface PanoramaVistaOptions {
   /** Deterministic seed driving the distant mountain ranges (e.g. `plan.stageSeeds.geology ^ plan.rootSeed`). */
   readonly seed: number;
-  /** Panoramic texture width in pixels (default `1024`). Covers the full 360° horizon (`-π .. +π`). */
+  /** Panoramic texture width in pixels (default `2048`). Covers the full 360° horizon (`-π .. +π`). */
   readonly width?: number;
   /** Panoramic texture height in pixels (default `256`). */
   readonly height?: number;
-  /** Near ray-march start distance in kilometres (default `6.0`). */
+  /** Near ray-march start distance in kilometres (default `20`). */
   readonly minDistanceKm?: number;
   /** Far ray-march end distance in kilometres (default `160.0`). */
   readonly maxDistanceKm?: number;
-  /** Number of log-spaced radial steps per azimuth column (default `160`). */
+  /** Number of log-spaced radial steps per azimuth column (default `240`). */
   readonly radialSteps?: number;
   /** Minimum elevation angle in radians at the bottom row of the panorama (default `-0.042`). */
   readonly minElevationRadians?: number;
-  /** Maximum elevation angle in radians at the top row of the panorama (default `0.28`). */
+  /** Maximum elevation angle in radians at the top row of the panorama (default `0.16`). */
   readonly maxElevationRadians?: number;
   /** Sun azimuth in radians used when baking the multi-step horizon self-shadow channel (default `2.45`). */
   readonly sunAzimuthRadians?: number;
@@ -372,13 +372,13 @@ export interface PanoramaVistaBuffers {
  * geology seed and azimuthal boundary profile.
  */
 export function generatePanoramaVistaBuffers(options: PanoramaVistaOptions): PanoramaVistaBuffers {
-  const width = options.width ?? 1024;
+  const width = options.width ?? 2048;
   const height = options.height ?? 256;
-  const minDistanceKm = options.minDistanceKm ?? 6.0;
+  const minDistanceKm = options.minDistanceKm ?? 20;
   const maxDistanceKm = options.maxDistanceKm ?? 160.0;
-  const radialSteps = options.radialSteps ?? 160;
+  const radialSteps = options.radialSteps ?? 240;
   const minEl = options.minElevationRadians ?? -0.042;
-  const maxEl = options.maxElevationRadians ?? 0.28;
+  const maxEl = options.maxElevationRadians ?? 0.16;
   const spanEl = maxEl - minEl;
   const minTangent = Math.tan(minEl);
   const nearFadeEndKm = Math.min(minDistanceKm * 1.5, maxDistanceKm);
@@ -389,18 +389,13 @@ export function generatePanoramaVistaBuffers(options: PanoramaVistaOptions): Pan
   const noise = createVistaKeyedNoise(options.seed);
   const vn = (x: number, z: number) => noise.vnoise2Unit(x, z, 0);
 
-  const OCT_FREQ = [0.22, 0.45, 0.93, 1.91, 3.92, 8.05, 16.5, 33.8];
-  const OCT_AMP = [0.46, 0.25, 0.135, 0.072, 0.038, 0.02, 0.01, 0.005];
+  const OCT_FREQ = [0.22, 0.45, 0.93, 1.91, 3.92, 8.05];
+  const OCT_AMP = [0.46, 0.25, 0.135, 0.072, 0.038, 0.02];
   const logRatio = Math.log(maxDistanceKm / minDistanceKm);
+  const radialSpacing = Math.expm1(logRatio / (radialSteps - 1));
+  const sampleSpacing = Math.max(TAU / width, radialSpacing);
 
-  const farHeightMetres = (
-    xKm: number,
-    zKm: number,
-    rKm: number,
-    azEnergy: number,
-    _azLand: number,
-    nOct: number
-  ): number => {
+  const farHeightMetres = (xKm: number, zKm: number, rKm: number, azEnergy: number): number => {
     const wx = xKm + 3.6 * (vn(xKm * 0.08 + 1.3, zKm * 0.08 + 4.7) - 0.5);
     const wz = zKm + 3.6 * (vn(xKm * 0.08 + 8.2, zKm * 0.08 + 2.1) - 0.5);
     const m = vn(wx * 0.046 + 5.1, wz * 0.046 + 3.3);
@@ -411,11 +406,15 @@ export function generatePanoramaVistaBuffers(options: PanoramaVistaOptions): Pan
     let w = 1;
     let px = wx;
     let pz = wz;
-    for (let i = 0; i < nOct; i++) {
+    const footprintKm = rKm * sampleSpacing;
+    for (let i = 0; i < OCT_FREQ.length; i++) {
       const f = OCT_FREQ[i]!;
+      // Fine terrain detail below the bake's sample spacing aliases into bands.
+      const weight = 1 - smoothVista(0.18, 0.5, f * footprintKm);
+      if (weight === 0) break;
       const n = 1 - Math.abs(2 * vn(px * f + i * 17.3, pz * f + i * 31.7) - 1);
       const r = n * n;
-      R += r * OCT_AMP[i]! * w;
+      R += r * OCT_AMP[i]! * w * weight;
       w = clampVista(r * 2.1, 0.22, 1.0);
       const t = px * 0.8 - pz * 0.6;
       pz = px * 0.6 + pz * 0.8;
@@ -458,7 +457,6 @@ export function generatePanoramaVistaBuffers(options: PanoramaVistaOptions): Pan
     const dx = Math.sin(az);
     const dz = -Math.cos(az);
     const azEnergy = profile ? sampleAzimuthArray(profile.mountainEnergy, az) : 0.85;
-    const azLand = profile ? sampleAzimuthArray(profile.landMask, az) : 1.0;
 
     dist.fill(0);
     let maxT = minTangent;
@@ -468,7 +466,7 @@ export function generatePanoramaVistaBuffers(options: PanoramaVistaOptions): Pan
 
     for (let i = 0; i < radialSteps; i++) {
       const r = rad[i]!;
-      const t = farHeightMetres(dx * r, dz * r, r, azEnergy, azLand, 6) / (r * 1000);
+      const t = farHeightMetres(dx * r, dz * r, r, azEnergy) / (r * 1000);
       if (t > maxT) {
         const kTop = Math.max(0, Math.ceil(rowOf(t)));
         for (let k = Math.min(kBot, height) - 1; k >= kTop; k--) {
@@ -497,12 +495,14 @@ export function generatePanoramaVistaBuffers(options: PanoramaVistaOptions): Pan
       if (top < 0) top = k;
       const x = dx * rr;
       const z = dz * rr;
-      const e = Math.max(0.025, rr * 0.0008);
-      const h0 = farHeightMetres(x, z, rr, azEnergy, azLand, 8);
-      const hx = farHeightMetres(x + e, z, Math.hypot(x + e, z), azEnergy, azLand, 8);
-      const hz = farHeightMetres(x, z + e, Math.hypot(x, z + e), azEnergy, azLand, 8);
-      const gx = -(hx - h0) / (e * 1000);
-      const gz = -(hz - h0) / (e * 1000);
+      const e = Math.max(0.025, rr * sampleSpacing * 0.5);
+      const h0 = farHeightMetres(x, z, rr, azEnergy);
+      const east = farHeightMetres(x + e, z, Math.hypot(x + e, z), azEnergy);
+      const west = farHeightMetres(x - e, z, Math.hypot(x - e, z), azEnergy);
+      const south = farHeightMetres(x, z + e, Math.hypot(x, z + e), azEnergy);
+      const north = farHeightMetres(x, z - e, Math.hypot(x, z - e), azEnergy);
+      const gx = (west - east) / (2 * e * 1000);
+      const gz = (north - south) / (2 * e * 1000);
       const il = 1 / Math.hypot(gx, 1, gz);
 
       let hzn = -0.1;
@@ -511,13 +511,12 @@ export function generatePanoramaVistaBuffers(options: PanoramaVistaOptions): Pan
         const sx = x + sdx * stepKm;
         const sz = z + sdz * stepKm;
         const sr = Math.hypot(sx, sz);
-        const q = (farHeightMetres(sx, sz, sr, azEnergy, azLand, 5) - h0) / (stepKm * 1000);
+        const q = (farHeightMetres(sx, sz, sr, azEnergy) - h0) / (stepKm * 1000);
         if (q > hzn) hzn = q;
       }
 
       const worldElev = h0 + observerAlt + 0.0786 * rr * rr;
-      const strataBand = 0.5 + 0.5 * Math.sin((worldElev / 72) * TAU + vn(x * 1.4, z * 1.4) * 2.2);
-      const rock = smoothVista(0.88, 0.68, il + (vn(x * 2.7 + 5, z * 2.7) - 0.5) * 0.24 - strataBand * 0.08);
+      const rock = smoothVista(0.88, 0.68, il + (vn(x * 0.42 + 5, z * 0.42) - 0.5) * 0.16);
       const normElev = clampVista((worldElev - 80) / 2200, 0, 1);
 
       const o = (k * width + c) * 4;

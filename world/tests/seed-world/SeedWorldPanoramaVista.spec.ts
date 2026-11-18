@@ -53,6 +53,7 @@ describe("PanoramaVistaGenerator & SeedWorld integration", () => {
 
     expect(vistaA.farA.length).toBe(256 * 64 * 4);
     expect(vistaA.farB.length).toBe(256 * 64 * 4);
+    expect(vistaA.minDistanceKm).toBe(20);
     expect(Buffer.from(vistaA.farA).equals(Buffer.from(vistaB.farA))).toBe(true);
     expect(Buffer.from(vistaA.farB).equals(Buffer.from(vistaB.farB))).toBe(true);
 
@@ -72,6 +73,7 @@ describe("PanoramaVistaGenerator & SeedWorld integration", () => {
       seed: 1_729,
       width: 256,
       height: 64,
+      minDistanceKm: 6,
       radialSteps: 64
     });
 

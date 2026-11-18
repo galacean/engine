@@ -332,8 +332,8 @@ const FAR_HORIZON_SHADER = `Shader "${FAR_HORIZON_SHADER_NAME}" {
       vec3 material_HorizonColor;
       vec3 material_SnowAlbedo;
       vec3 material_FoothillColor;
-      // x: minEl, y: spanEl, z: minDistanceMetres, w: logMaxOverMin
-      vec4 material_VistaRange;
+      // x: minDistanceMetres, y: logMaxOverMin
+      vec2 material_VistaDistance;
       // x: winterWeight, y: autumnWeight, z: aerialExtinctionScale, w: overallOpacity
       vec4 material_VistaSeason;
 
@@ -343,7 +343,6 @@ const FAR_HORIZON_SHADER = `Shader "${FAR_HORIZON_SHADER_NAME}" {
       };
 
       struct Varyings {
-        vec3 v_rayDir;
         vec2 v_uv;
       };
 
@@ -352,21 +351,14 @@ const FAR_HORIZON_SHADER = `Shader "${FAR_HORIZON_SHADER_NAME}" {
 
       Varyings vert(Attributes attributes) {
         Varyings output;
-        output.v_rayDir = attributes.POSITION.xyz;
         output.v_uv = attributes.TEXCOORD_0;
         gl_Position = renderer_MVPMat * attributes.POSITION;
         return output;
       }
 
       void frag(Varyings input) {
-        vec3 d = normalize(input.v_rayDir);
-        float az = atan(d.x, -d.z);
-        float el = atan(d.y, max(length(d.xz), 1e-4));
-        float minEl = material_VistaRange.x;
-        float spanEl = material_VistaRange.y;
-        float maxEl = minEl + spanEl;
-
-        vec2 uv = vec2(fract(az / 6.28318530718 + 0.5), (maxEl - el) / spanEl);
+        // The mesh duplicates its seam vertices so texture filtering sees a continuous UV gradient.
+        vec2 uv = input.v_uv;
         vec3 outColor = material_HorizonColor;
         float outAlpha = 0.0;
 
@@ -375,14 +367,13 @@ const FAR_HORIZON_SHADER = `Shader "${FAR_HORIZON_SHADER_NAME}" {
           if (A.a > 0.004) {
             vec4 B = texture2D(material_FarB, uv);
             vec3 N = normalize(A.xyz * 2.0 - 1.0);
-            float dist = material_VistaRange.z * exp(B.x * material_VistaRange.w);
+            float dist = material_VistaDistance.x * exp(B.x * material_VistaDistance.y);
             vec3 L = normalize(material_SunDir);
             float tanE = L.y / max(length(L.xz), 1e-3);
             float sh = smoothstep(-0.035, 0.055, tanE - (B.y * 1.1 - 0.1));
             float ndl = dot(N, L);
 
             vec3 amb = material_AmbSky * (1.05 + 0.75 * N.y) + material_AmbGnd * (0.42 - 0.32 * N.y);
-            vec3 sunFar = material_SunColor * 1.35;
 
             float rockMask = B.z;
             float normElev = B.w;
@@ -390,16 +381,15 @@ const FAR_HORIZON_SHADER = `Shader "${FAR_HORIZON_SHADER_NAME}" {
             float snowThreshold = mix(0.38, 0.04, winterWeight);
             float snowCover = smoothstep(snowThreshold - 0.14, snowThreshold + 0.14, normElev + (1.0 - rockMask) * 0.16);
 
-            vec3 snowLit = material_SnowAlbedo * (sunFar * clamp((ndl + 0.18) / 1.18, 0.0, 1.0) * sh + amb);
+            vec3 snowLit = material_SnowAlbedo * (material_SunColor * clamp((ndl + 0.18) / 1.18, 0.0, 1.0) * sh + amb);
             vec3 rockAlbedo = mix(material_FoothillColor, vec3(0.145, 0.135, 0.138), clamp(rockMask * 1.25 + normElev * 0.35, 0.0, 1.0));
-            vec3 rockLit = rockAlbedo * (sunFar * clamp(ndl, 0.0, 1.0) * sh + amb);
+            vec3 rockLit = rockAlbedo * (material_SunColor * clamp(ndl, 0.0, 1.0) * sh + amb);
             vec3 mtnCol = mix(rockLit, snowLit, clamp(snowCover * (1.0 - rockMask * 0.58), 0.0, 1.0));
 
-            // Exponential aerial perspective across 6 km .. 160 km
-            float tr = exp(-dist / max(28000.0, material_VistaSeason.z));
-            outColor = mix(material_HorizonColor, mtnCol, clamp(0.32 + tr * 0.62, 0.28, 0.94));
+            float transmittance = exp(-dist / material_VistaSeason.z);
+            outColor = mix(material_HorizonColor, mtnCol, transmittance);
 
-            float bottomFeather = smoothstep(minEl, minEl + spanEl * 0.12, el);
+            float bottomFeather = 1.0 - smoothstep(0.88, 1.0, uv.y);
             float topFeather = smoothstep(0.015, 0.08, uv.y);
             outAlpha = A.a * bottomFeather * topFeather * material_VistaSeason.w;
           }
@@ -630,7 +620,7 @@ export class SeedWorldPanoramaVistaRuntime {
   private readonly _climateParams = new Vector4(0, 0, 0.00022, 6800);
   private readonly _strataParams = new Vector4(64, 1.0, SEED_WORLD_SEA_LEVEL_METRES, 1536);
   private readonly _worldCenter = new Vector4(1536, 1536, 0, SEED_WORLD_SEA_LEVEL_METRES);
-  private readonly _vistaRange = new Vector4(-0.042, 0.322, 6000, Math.log(160 / 6));
+  private readonly _vistaDistance = new Vector2();
   private readonly _vistaSeason = new Vector4(0, 0, 62000, 1.0);
 
   constructor(options: SeedWorldPanoramaVistaRuntimeOptions) {
@@ -657,24 +647,12 @@ export class SeedWorldPanoramaVistaRuntime {
     });
     const panorama = generatePanoramaVistaBuffers({
       seed: geologySeed,
-      width: 1024,
-      height: 256,
-      minDistanceKm: 6.0,
-      maxDistanceKm: 160.0,
-      radialSteps: 140,
-      minElevationRadians: -0.042,
-      maxElevationRadians: 0.28,
       sunAzimuthRadians,
       boundaryProfile: profile
     });
     this._strataParams.w = profile.worldHalfSizeMetres;
     this._worldCenter.set(profile.worldCenterX, profile.worldCenterZ, 0, SEED_WORLD_SEA_LEVEL_METRES);
-    this._vistaRange.set(
-      panorama.minElevationRadians,
-      panorama.maxElevationRadians - panorama.minElevationRadians,
-      panorama.minDistanceKm * 1000,
-      Math.log(panorama.maxDistanceKm / panorama.minDistanceKm)
-    );
+    this._vistaDistance.set(panorama.minDistanceKm * 1000, Math.log(panorama.maxDistanceKm / panorama.minDistanceKm));
 
     this.root = options.parent.createChild("SeedWorldPanoramaVista");
     this._detailTex = createVistaDetailTexture(engine);
@@ -720,7 +698,7 @@ export class SeedWorldPanoramaVistaRuntime {
     hData.setVector3("material_HorizonColor", this._fogColor);
     hData.setVector3("material_SnowAlbedo", this._snowAlbedo);
     hData.setVector3("material_FoothillColor", this._foothillColor);
-    hData.setVector4("material_VistaRange", this._vistaRange);
+    hData.setVector2("material_VistaDistance", this._vistaDistance);
     hData.setVector4("material_VistaSeason", this._vistaSeason);
 
     this._horizonMesh = buildFarHorizonCylinderMesh(
