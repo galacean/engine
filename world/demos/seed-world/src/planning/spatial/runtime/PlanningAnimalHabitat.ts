@@ -7,6 +7,12 @@ import { planningWhiteboxes } from "@galacean/engine-world-planning/semantic-stu
 
 export type PlanningAnimalMedium = "ground" | "air" | "water";
 
+/** Uniform area sampling around an authored site; the caller validates the complete body on the actual land or water. */
+export function sampleAnimalSpawnDisk(origin: PlanPoint, radius: number, random: () => number): PlanPoint {
+  const angle = random() * Math.PI * 2, distance = radius * Math.sqrt(random());
+  return { x: origin.x + Math.cos(angle) * distance, z: origin.z + Math.sin(angle) * distance };
+}
+
 /** Existing navigation support, including bridge decks and water contacts. */
 export interface PlanningAnimalNavigation {
   /** The provider refreshes dynamic water each update and retains snapshot heights until publication invalidates them. */
@@ -329,8 +335,7 @@ export class PlanningAnimalHabitat {
       const candidate = this.spawnCandidate(point, medium, shore, random);
       return candidate && (candidate.x - origin.x) ** 2 + (candidate.z - origin.z) ** 2 <= radius * radius ? candidate : undefined;
     }
-    const angle = random() * Math.PI * 2, distance = radius * Math.sqrt(random());
-    return { x: origin.x + Math.cos(angle) * distance, z: origin.z + Math.sin(angle) * distance };
+    return sampleAnimalSpawnDisk(origin, radius, random);
   }
 
   /** Lazily index water/banks once per publication, never in the simulation loop. */

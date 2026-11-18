@@ -10,7 +10,7 @@ import { seedWorldProjectFormats } from "../../../SeedWorldProjectFormats.ts";
 import { createSeedWorldProjectClose } from "../../../SeedWorldProjectClose.ts";
 import { planningSourceDocument, retainPlanningWaterSource } from "./runtime/PlanningProjectSource.ts";
 import { exportPlanningScene, importPlanningScene } from "./PlanningSceneAsset.ts";
-import { createWorldStylePlanningDocument, removeDesertCamelPreset, worldTemplatePaletteValues } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
+import { createWorldStylePlanningDocument, refreshDesertAnimalPreset, worldTemplatePaletteValues } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
 import { mountWorldTemplatePicker } from "./WorldTemplatePicker.ts";
 import { wayfindingPolicy } from "@galacean/engine-world-planning/spatial/guidance/WayfindingPolicy";
 import { wayfindingHighlights } from "./guidance/WayfindingHighlights.ts";
@@ -110,7 +110,7 @@ export async function mountSpatialEditor(
       saved ? exportPlanningRecipe(saved).parameters.worldTemplate?.id ?? "" : undefined);
     initialDocument = template === undefined && saved ? saved : await client.initialize(parameters.seed, undefined, template);
     if (template !== undefined) initialDocument = storage.retainWater(initialDocument);
-    removeDesertCamelPreset(initialDocument);
+    refreshDesertAnimalPreset(initialDocument);
     if (template !== undefined) applyPlanningTemplateSurface(initialDocument);
     replacePlanning = template !== undefined && !!saved;
   } catch (error) {
