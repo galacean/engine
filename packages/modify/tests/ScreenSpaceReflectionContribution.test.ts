@@ -12,6 +12,7 @@ import {
   ShaderLanguage,
   ScreenSpaceReflection as SSR,
   type ScreenSpaceReflectionPass,
+  ScreenSpaceReflectionActivationMode as Activation,
   ScreenSpaceReflectionContent as Content,
   ScreenSpaceReflectionReceiverMode as Receiver,
   ScreenSpaceReflectionUpsamplingMode as Upsampling,
@@ -304,6 +305,7 @@ it("renders all receive/contribute combinations with correct alpha, opaque occlu
 /** Repeat the same Water draw with and without an opaque receiver, without advancing simulation time. */
 function verifySurfaceAttachments(camera: Camera, cube: MeshRenderer, output: Texture2D): void {
   const ssr = camera.screenSpaceReflection;
+  const previousHalfInputs = ssr.useHalfResolutionInputs;
   const material = cube.getMaterial() as PBRMaterial;
   const previousReceiver = material.screenSpaceReflection;
   const previousRoughness = material.roughness;
@@ -314,6 +316,7 @@ function verifySurfaceAttachments(camera: Camera, cube: MeshRenderer, output: Te
       _renderPipeline: {
         _screenSpaceReflectionPass: {
           _surfaceTarget: RenderTarget;
+          _sceneColorTarget: RenderTarget;
           _material: PBRMaterial;
         };
       };
@@ -335,6 +338,8 @@ function verifySurfaceAttachments(camera: Camera, cube: MeshRenderer, output: Te
       beginSample(stage) {
         if (stage !== "trace") return;
         surface = pass._surfaceTarget;
+        expect(pass._sceneColorTarget.width).toBe(surface.width);
+        expect(pass._sceneColorTarget.height).toBe(surface.height);
         expect(pass._material.shaderData.getTexture("material_SSRResponseTexture") ?? null).toBe(
           surface.colorTextures[1] ?? null
         );
@@ -379,7 +384,29 @@ function verifySurfaceAttachments(camera: Camera, cube: MeshRenderer, output: Te
     expect(again.renderTextureCount).toBe(single.renderTextureCount);
     expect(again.estimatedBytes).toBe(single.estimatedBytes);
     expect(again.pixels.every((value, i) => value === single.pixels[i])).toBe(true);
+
+    ssr.useHalfResolutionInputs = true;
+    const half = render();
+    expect([half.surface.width, half.surface.height]).toEqual([
+      Math.ceil(output.width / 2),
+      Math.ceil(output.height / 2)
+    ]);
+    expect([half.width, half.height]).toEqual([single.width, single.height]);
+    expect(half.estimatedTextureBytes).toBeLessThan(single.estimatedTextureBytes);
+    material.screenSpaceReflection = { mode: "On", intensity: 1 };
+    const halfMixed = render();
+    expect([halfMixed.surface.width, halfMixed.surface.height]).toEqual([output.width, output.height]);
+    expect(halfMixed.compositePassCount).toBe(1);
+    expect(halfMixed.sceneCopyPassCount).toBe(mixed.sceneCopyPassCount);
+    expect(halfMixed.renderTextureCount).toBe(mixed.renderTextureCount);
+    expect(halfMixed.estimatedTextureBytes).toBe(mixed.estimatedTextureBytes);
+    expect(halfMixed.pixels.every((value, i) => value === mixed.pixels[i])).toBe(true);
+    material.screenSpaceReflection = { mode: "Off", intensity: 1 };
+    const halfAgain = render();
+    expect(halfAgain.surface).toBe(half.surface);
+    expect(halfAgain.pixels.every((value, i) => value === half.pixels[i])).toBe(true);
   } finally {
+    ssr.useHalfResolutionInputs = previousHalfInputs;
     ssr.profiler = previousProfiler;
     ssr.setReceiverTraceSettingsOverride(Receiver.OpaqueComposite, opaque ?? undefined);
     ssr.setReceiverTraceSettingsOverride(Receiver.TransparentSampleOnly, transparent ?? undefined);
@@ -387,6 +414,89 @@ function verifySurfaceAttachments(camera: Camera, cube: MeshRenderer, output: Te
     material.roughness = previousRoughness;
     cube.entity.layer = layer;
     camera.cullingMask = mask;
+  }
+}
+
+/** Count red from the reflected object above the same draw without its SSR contribution. */
+function countRedReflection(pixels: Uint8Array, baseline: Uint8Array): number {
+  let count = 0;
+  for (let i = 0; i < pixels.length; i += 4) {
+    const redChroma = pixels[i] - pixels[i + 1];
+    if (redChroma > 5 && redChroma - (baseline[i] - baseline[i + 1]) > 10) count++;
+  }
+  return count;
+}
+
+function verifyClonedLakeCamera(source: Camera, cube: MeshRenderer, output: Texture2D): void {
+  const scene = source.scene!;
+  const entity = source.entity.clone();
+  scene.addRootEntity(entity);
+  const camera = entity.getComponent(Camera)!;
+  camera.renderTarget = source.renderTarget;
+  const ssr = camera.screenSpaceReflection;
+  // Consumer leases belong to the original camera.
+  ssr.activationMode = Activation.ForceOn;
+  ssr.reflectionContent = Content.OpaqueAndTransparent;
+  const opaque = cube.getMaterial() as PBRMaterial;
+  const glass = opaque.clone();
+  glass.isTransparent = true;
+  glass.baseColor.a = 0.75;
+  cube.setMaterial(glass);
+  const cover = scene.createRootEntity("opaque cover");
+  const coverMaterial = new PBRMaterial(engine);
+  cover.isActive = false;
+  const renderer = cover.addComponent(MeshRenderer);
+  renderer.mesh = cube.mesh;
+  renderer.setMaterial(coverMaterial);
+  cover.transform.position.copyFrom(cube.entity.transform.position);
+  cover.transform.setScale(1.5, 1.5, 1.5);
+  const pass = camera._renderPipeline["_screenSpaceReflectionPass"];
+  ssr.profiler = {
+    beginSample(stage) {
+      if (stage !== "trace") return;
+      const surface = pass["_surfaceTarget"]!;
+      expect([surface.width, surface.height]).toEqual([129, 129]);
+      const contribution = pass["_contributionTarget"];
+      expect(contribution && [contribution.width, contribution.height]).toEqual(
+        glass.contributeScreenSpaceReflection ? [129, 129] : null
+      );
+    },
+    endSample() {}
+  };
+  const render = (contributes: boolean) => {
+    glass.contributeScreenSpaceReflection = contributes;
+    camera.render();
+    const pixels = new Uint8Array(output.width * output.height * 4);
+    output.getPixelBuffer(0, 0, output.width, output.height, 0, pixels);
+    return pixels;
+  };
+  try {
+    ssr.setReceiverTraceSettingsOverride(Receiver.TransparentSampleOnly, {
+      resolutionScale: 0.5,
+      upsamplingMode: Upsampling.Bilinear
+    });
+    const baseline = render(false);
+    const coarse = countRedReflection(render(true), baseline);
+    expect(coarse).toBeGreaterThan(100);
+    ssr.setReceiverTraceSettingsOverride(Receiver.TransparentSampleOnly, {
+      resolutionScale: 1,
+      upsamplingMode: Upsampling.Bilinear
+    });
+    const fineBaseline = render(false);
+    const fine = countRedReflection(render(true), fineBaseline);
+    expect([ssr.metrics.width, ssr.metrics.height]).toEqual([257, 257]);
+    // A finer trace must retain the reflection across neighbouring pixels of each receiver texel.
+    expect(fine).toBeGreaterThan(coarse / 2);
+    cover.isActive = true;
+    const occluded = render(false);
+    expect(countRedReflection(render(true), occluded)).toBe(0);
+    expect(engine._hardwareRenderer.gl.getError()).toBe(0);
+  } finally {
+    entity.destroy();
+    cover.destroy();
+    coverMaterial.destroy();
+    cube.setMaterial(opaque);
+    glass.destroy();
   }
 }
 
@@ -445,8 +555,9 @@ it("verifies Heightfield and River Auto rendering, contribution and lifecycle", 
       const camera = scene.createRootEntity("water-camera").addComponent(Camera);
       camera.entity.transform.setPosition(3, family === "river" ? 1.5 : 3, 6);
       camera.entity.transform.lookAt(new Vector3(0, 0, 0));
-      const output = new Texture2D(engine, 256, 256, TextureFormat.R8G8B8A8, false, false);
-      const target = new RenderTarget(engine, 256, 256, output, TextureFormat.Depth24);
+      const size = family === "heightfield" ? 257 : 256;
+      const output = new Texture2D(engine, size, size, TextureFormat.R8G8B8A8, false, false);
+      const target = new RenderTarget(engine, size, size, output, TextureFormat.Depth24);
       camera.renderTarget = target;
       const cube = scene.createRootEntity("reflection-target").addComponent(MeshRenderer);
       cube.mesh = PrimitiveMesh.createCuboid(engine, 1.5, 1.5, 1.5);
@@ -456,8 +567,8 @@ it("verifies Heightfield and River Auto rendering, contribution and lifecycle", 
       cube.setMaterial(cubeMaterial);
       const renderPixels = () => {
         engine.update();
-        const pixels = new Uint8Array(256 * 256 * 4);
-        output.getPixelBuffer(0, 0, 256, 256, 0, pixels);
+        const pixels = new Uint8Array(size * size * 4);
+        output.getPixelBuffer(0, 0, size, size, 0, pixels);
         return pixels;
       };
       const waterRoot = scene.createRootEntity("water");
@@ -548,6 +659,10 @@ it("verifies Heightfield and River Auto rendering, contribution and lifecycle", 
         if (backend instanceof HeightfieldWaterBackend) backend.setRuntimeSurfaceTimeOverride("water", 0);
         verifySurfaceAttachments(camera, cube, output);
         const on = renderPixels();
+        camera.screenSpaceReflection.useHalfResolutionInputs = true;
+        const halfInputPixels = renderPixels();
+        if (family === "heightfield") verifyClonedLakeCamera(camera, cube, output);
+        camera.screenSpaceReflection.useHalfResolutionInputs = false;
         const preview = scene.createRootEntity("disabled-ssr-preview").addComponent(Camera);
         preview.entity.transform.setPosition(3, family === "river" ? 1.5 : 3, 6);
         preview.entity.transform.lookAt(new Vector3(0, 0, 0));
@@ -579,12 +694,9 @@ it("verifies Heightfield and River Auto rendering, contribution and lifecycle", 
         const off = renderPixels();
         // A changed fallback alone is not evidence of a reflected object. Require red chroma
         // that is absent with SSR off; the unchanged red cube itself cannot satisfy this.
-        let reflectedPixels = 0;
-        for (let i = 0; i < on.length; i += 4) {
-          const redChroma = on[i] - on[i + 1];
-          if (redChroma > 5 && redChroma - (off[i] - off[i + 1]) > 10) reflectedPixels++;
+        for (const pixels of [on, halfInputPixels]) {
+          expect(countRedReflection(pixels, off), `${family} must visibly reflect the red object`).toBeGreaterThan(0);
         }
-        expect(reflectedPixels, `${family} must visibly reflect the red object`).toBeGreaterThan(0);
         expect(camera.screenSpaceReflection.metrics.activeConsumerLeaseCount).toBe(1);
         scene.screenSpaceReflection.activationMode = 0;
         scene.screenSpaceReflection.reflectionContent = 1;

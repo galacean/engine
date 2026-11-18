@@ -288,18 +288,22 @@ it("round-trips camera source and dormant overrides and releases leases on destr
   const c = scene.createRootEntity().addComponent(Camera);
   c.screenSpaceReflection.applySettings({ activationMode: Mode.ForceOff, intensity: 0.35 });
   c.screenSpaceReflection.settingsSource = Source.UseSceneSettings;
+  c.screenSpaceReflection.useHalfResolutionInputs = true;
   const data = sceneData({ activationMode: Mode.ForceOn });
   data.components[1].props = {
     screenSpaceReflectionSettings: JSON.parse(JSON.stringify(c.screenSpaceReflectionSettings))
   };
   const restored = await engine.resourceManager.load<Scene>({ type: AssetType.Scene, url: resource(data) });
   const ssr = restored.rootEntities[1].getComponent(Camera)!.screenSpaceReflection;
+  expect(ssr.useHalfResolutionInputs).toBe(true);
   ssr._prepareSettings();
   expect(ssr.metrics.requested).toBe(true);
   ssr.settingsSource = Source.Override;
   ssr._prepareSettings();
   expect(ssr.metrics.requested).toBe(false);
   expect(ssr.intensity).toBe(0.35);
+  c.screenSpaceReflectionSettings = { settingsSource: Source.UseSceneSettings };
+  expect(c.screenSpaceReflection.useHalfResolutionInputs).toBe(false);
   const lease = ssr.acquireConsumer("test");
   restored.destroy();
   expect(lease.active).toBe(false);
@@ -312,7 +316,9 @@ it("copies scene authors on the first Override only, including after a never-ove
   const scene = new Scene(engine);
   const c = scene.createRootEntity().addComponent(Camera);
   scene.screenSpaceReflection.intensity = 0.23;
-  expect(c.screenSpaceReflectionSettings.overrideSettings).toBeUndefined();
+  c.screenSpaceReflection.useHalfResolutionInputs = true;
+  const following = JSON.parse(JSON.stringify(c.screenSpaceReflectionSettings));
+  expect(following.overrideSettings).toBeUndefined();
   c.screenSpaceReflection.settingsSource = Source.Override;
   expect(c.screenSpaceReflection.intensity).toBe(0.23);
   c.screenSpaceReflection.settingsSource = Source.UseSceneSettings;
@@ -320,9 +326,10 @@ it("copies scene authors on the first Override only, including after a never-ove
   c.screenSpaceReflection.settingsSource = Source.Override;
   expect(c.screenSpaceReflection.intensity).toBe(0.23);
   const data = sceneData({ intensity: 0.67 });
-  data.components[1].props = { screenSpaceReflectionSettings: { settingsSource: Source.UseSceneSettings } } as any;
+  data.components[1].props = { screenSpaceReflectionSettings: following };
   const loaded = await engine.resourceManager.load<Scene>({ type: AssetType.Scene, url: resource(data) });
   const ssr = loaded.rootEntities[1].getComponent(Camera)!.screenSpaceReflection;
+  expect(ssr.useHalfResolutionInputs).toBe(true);
   ssr.settingsSource = Source.Override;
   expect(ssr.intensity).toBe(0.67);
   loaded.destroy();
