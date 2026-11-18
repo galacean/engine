@@ -45,7 +45,7 @@ export class Shader implements IReferable {
    * ```
    *
    * @param shaderSource - Shader code
-   * @param platformTarget - Shader platform target, @defaultValue ShaderLanguage.GLSLES100
+   * @param platformTarget - Shader platform target, @defaultValue ShaderLanguage.GLSLES300
    * @returns A new shader. Shaders with the same name remain independent objects.
    *
    * @throws
@@ -80,7 +80,7 @@ export class Shader implements IReferable {
       const platformTarget =
         typeof shaderPassesOrSubShadersOrPlatformTarget === "number"
           ? shaderPassesOrSubShadersOrPlatformTarget
-          : ShaderLanguage.GLSLES100;
+          : ShaderLanguage.GLSLES300;
       return Shader._createFromSource(nameOrShaderSource, platformTarget);
     }
 
@@ -106,7 +106,7 @@ export class Shader implements IReferable {
    */
   static _createFromSource(
     shaderSource: string,
-    platformTarget: ShaderLanguage = ShaderLanguage.GLSLES100,
+    platformTarget: ShaderLanguage = ShaderLanguage.GLSLES300,
     sourceFile?: string
   ): Shader {
     const shaderCompiler = Shader._shaderCompiler;

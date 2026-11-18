@@ -64,7 +64,7 @@ function programs(source: string, requireValid = true) {
   if (requireValid) expect(analyzer.diagnostics).toEqual([]);
   const compiler = new ShaderCompiler();
   const pass = compiler._parseShaderSource(source).subShaders[0].passes[0];
-  return [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300].flatMap((target) => {
+  return [ShaderLanguage.GLSLES300].flatMap((target) => {
     const paths = [
       ["analyzer", compiler.generate(analyzer.passes[0], target)],
       ["live", compiler._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, target)],
@@ -162,9 +162,7 @@ describe.runIf(typeof document !== "undefined")("macro body effects and native G
   function context(target: ShaderLanguage) {
     let gl = contexts.get(target);
     if (!gl) {
-      gl = document.createElement("canvas").getContext(target === ShaderLanguage.GLSLES300 ? "webgl2" : "webgl") as
-        | WebGLRenderingContext
-        | WebGL2RenderingContext;
+      gl = document.createElement("canvas").getContext("webgl2") as WebGLRenderingContext | WebGL2RenderingContext;
       expect(gl).not.toBeNull();
       contexts.set(target, gl);
     }
@@ -174,7 +172,7 @@ describe.runIf(typeof document !== "undefined")("macro body effects and native G
     for (const gl of contexts.values()) gl.getExtension("WEBGL_lose_context")?.loseContext();
   });
 
-  it.each(writes)("compiles expanded $name artifacts on GLES100/300", ({ definitions, vertex, fragment }) => {
+  it.each(writes)("compiles expanded $name artifacts on GLES300", ({ definitions, vertex, fragment }) => {
     for (const { target, path, program } of programs(shader(definitions, vertex, fragment))) {
       const gl = context(target);
       for (const [type, instructions] of [
@@ -182,14 +180,10 @@ describe.runIf(typeof document !== "undefined")("macro body effects and native G
         [gl.FRAGMENT_SHADER, program.fragmentShaderInstructions!]
       ] as const) {
         const object = gl.createShader(type)!;
-        const version = target === ShaderLanguage.GLSLES300 ? "#version 300 es\n" : "";
+        const version = "#version 300 es\n";
         const expanded = ShaderMacroProcessor.evaluate(instructions, new Map());
-        let extension = "";
-        if (target === ShaderLanguage.GLSLES100 && type === gl.FRAGMENT_SHADER && expanded.includes("gl_FragData")) {
-          expect(gl.getExtension("WEBGL_draw_buffers")).not.toBeNull();
-          extension = "#extension GL_EXT_draw_buffers : require\n";
-        }
-        gl.shaderSource(object, `${version}${extension}precision highp float;\n${expanded}`);
+
+        gl.shaderSource(object, `${version}precision highp float;\n${expanded}`);
         gl.compileShader(object);
         expect(gl.getShaderParameter(object, gl.COMPILE_STATUS), `${path}: ${gl.getShaderInfoLog(object)}`).toBe(true);
         gl.deleteShader(object);
@@ -205,7 +199,7 @@ describe.runIf(typeof document !== "undefined")("macro body effects and native G
     for (const { target, path, program } of programs(source, false)) {
       const gl = context(target);
       const object = gl.createShader(gl.VERTEX_SHADER)!;
-      const version = target === ShaderLanguage.GLSLES300 ? "#version 300 es\n" : "";
+      const version = "#version 300 es\n";
       const expanded = ShaderMacroProcessor.evaluate(program.vertexShaderInstructions!, new Map());
       expect(expanded, path).toContain("gl_FragCoord");
       gl.shaderSource(object, `${version}precision highp float;\n${expanded}`);

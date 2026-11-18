@@ -84,30 +84,14 @@ export enum DataType {
 }
 
 /**
- * GL Capabilities
- * Some capabilities can be smoothed out by extension, and some capabilities must use WebGL 2.0.
+ * Optional GL capabilities.
  * */
 export enum GLCapabilityType {
-  shaderVertexID = "shaderVertexID",
-  standardDerivatives = "OES_standard_derivatives",
-  shaderTextureLod = "EXT_shader_texture_lod",
-  elementIndexUint = "OES_element_index_uint",
-  depthTexture = "WEBGL_depth_texture",
-  drawBuffers = "WEBGL_draw_buffers",
-  vertexArrayObject = "OES_vertex_array_object",
-  instancedArrays = "ANGLE_instanced_arrays",
-  multipleSample = "multipleSampleOnlySupportedInWebGL2",
-  textureFloat = "OES_texture_float",
   textureNorm16 = "EXT_texture_norm16",
   textureFloatLinear = "OES_texture_float_linear",
-  textureHalfFloat = "OES_texture_half_float",
-  textureHalfFloatLinear = "OES_texture_half_float_linear",
-  WEBGL_colorBufferFloat = "WEBGL_color_buffer_float",
   colorBufferFloat = "EXT_color_buffer_float",
   colorBufferHalfFloat = "EXT_color_buffer_half_float",
   textureFilterAnisotropic = "EXT_texture_filter_anisotropic",
-  blendMinMax = "EXT_blend_minmax",
-  fragDepth = "EXT_frag_depth",
 
   astc = "WEBGL_compressed_texture_astc",
   astc_webkit = "WEBKIT_WEBGL_compressed_texture_astc",
@@ -124,9 +108,7 @@ export enum GLCapabilityType {
 
   bptc = "EXT_texture_compression_bptc",
 
-  WEBGL_lose_context = "WEBGL_lose_context",
-
-  sRGB = "EXT_sRGB"
+  WEBGL_lose_context = "WEBGL_lose_context"
 }
 
 export type TypedArray =

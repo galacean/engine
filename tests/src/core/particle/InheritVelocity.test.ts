@@ -14,8 +14,7 @@ import {
   ParticleSimulationSpace,
   ParticleStopMode,
   Vector3,
-  WebGLEngine,
-  WebGLMode
+  WebGLEngine
 } from "@galacean/engine";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -433,40 +432,6 @@ describe("InheritVelocityModule", () => {
 
     random.mockRestore();
     renderer.entity.destroy();
-  });
-
-  it("Initial Curve remains available on WebGL1", async () => {
-    const webgl1Engine = await WebGLEngine.create({
-      canvas: document.createElement("canvas"),
-      webGLMode: WebGLMode.WebGL1
-    });
-    const camera = webgl1Engine.sceneManager.activeScene.createRootEntity("Camera");
-    camera.addComponent(Camera);
-    camera.transform.setPosition(0, 0, 10);
-    webgl1Engine.run();
-
-    const renderer = createParticleRenderer(webgl1Engine, "initial-inherit-velocity-webgl1");
-    const generator = renderer.generator;
-    generator.inheritVelocity.mode = ParticleInheritVelocityMode.Initial;
-    generator.inheritVelocity.curve = new ParticleCompositeCurve(
-      new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1))
-    );
-    generator.emission.clearBurst();
-    generator.emission.addBurst(new Burst(0.15, new ParticleCompositeCurve(1)));
-    expect(generator._feedbackSimulator).to.not.exist;
-
-    const webgl1Time = { value: 0 };
-    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
-    generator.play();
-    tick(webgl1Engine, webgl1Time);
-    renderer.entity.transform.setPosition(1, 0, 0);
-    tick(webgl1Engine, webgl1Time);
-
-    const vertices = (generator as any)._instanceVertices as Float32Array;
-    expect(vertices[15]).to.equal(0);
-    expect(vertices[40]).to.be.closeTo(10, 1e-5);
-
-    webgl1Engine.destroy();
   });
 
   it("Initial evaluates TwoCurves over each particle lifetime using its birth velocity", () => {

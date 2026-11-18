@@ -59,7 +59,7 @@ export class RasterState extends DataObject {
     frontFaceInvert: boolean,
     customStates?: RenderStateElementMap | null
   ): void {
-    const gl = <WebGLRenderingContext>rhi.gl;
+    const gl = <WebGL2RenderingContext>rhi.gl;
     let { cullMode, depthBias, slopeScaledDepthBias } = this;
 
     if (customStates) {

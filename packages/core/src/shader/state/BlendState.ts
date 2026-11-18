@@ -2,7 +2,6 @@ import { DataObject } from "../../base/DataObject";
 import type { IHardwareRenderer } from "../../renderingHardwareInterface";
 import { Color } from "@galacean/engine-math";
 import { RenderStateElementMap } from "../../BasicResources";
-import { GLCapabilityType } from "../../base/Constant";
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
 import { BlendFactor } from "../enums/BlendFactor";
@@ -61,15 +60,9 @@ export class BlendState extends DataObject {
       case BlendOperation.ReverseSubtract:
         return gl.FUNC_REVERSE_SUBTRACT;
       case BlendOperation.Min:
-        if (!rhi.canIUse(GLCapabilityType.blendMinMax)) {
-          throw new Error("BlendOperation.Min is not supported in this context");
-        }
-        return (gl as WebGL2RenderingContext).MIN; // in webgl1.0 is an extension
+        return (gl as WebGL2RenderingContext).MIN;
       case BlendOperation.Max:
-        if (!rhi.canIUse(GLCapabilityType.blendMinMax)) {
-          throw new Error("BlendOperation.Max is not supported in this context");
-        }
-        return (gl as WebGL2RenderingContext).MAX; // in webgl1.0 is an extension
+        return (gl as WebGL2RenderingContext).MAX;
     }
   }
 
@@ -164,7 +157,7 @@ export class BlendState extends DataObject {
     lastState: BlendState,
     customStates?: RenderStateElementMap | null
   ): void {
-    const gl = <WebGLRenderingContext>rhi.gl;
+    const gl = <WebGL2RenderingContext>rhi.gl;
     const lastTargetBlendState = lastState.targetBlendState;
 
     let {

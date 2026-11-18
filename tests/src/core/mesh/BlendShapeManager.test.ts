@@ -7,15 +7,13 @@ import {
   BlendShapeFrame,
   UnlitMaterial
 } from "@galacean/engine-core";
-import { WebGLEngine, WebGLMode } from "@galacean/engine";
+import { WebGLEngine } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
 import { describe, beforeAll, expect, it } from "vitest";
 
 describe("BlendShapeManager", () => {
   let engineWebGL2: WebGLEngine;
-  let engineWebGL1: WebGLEngine;
   let rootEntity1: Entity;
-  let rootEntity2: Entity;
 
   beforeAll(async () => {
     engineWebGL2 = await WebGLEngine.create({
@@ -29,21 +27,6 @@ describe("BlendShapeManager", () => {
     cameraEntity.transform.rotate(new Vector3(0, 0, 0));
 
     engineWebGL2.run();
-
-    engineWebGL1 = await WebGLEngine.create({
-      canvas: document.createElement("canvas"),
-      graphicDeviceOptions: {
-        webGLMode: WebGLMode.WebGL1
-      }
-    });
-
-    rootEntity2 = engineWebGL1.sceneManager.activeScene.createRootEntity("root");
-    const cameraEntity2 = rootEntity2.createChild("camera");
-    cameraEntity2.addComponent(Camera);
-    cameraEntity2.transform.setPosition(0, 0, 10);
-    cameraEntity2.transform.rotate(new Vector3(0, 0, 0));
-
-    engineWebGL1.run();
   });
 
   it("_updateShaderData", () => {
@@ -273,24 +256,6 @@ describe("BlendShapeManager", () => {
 
     // Test that shaderData contains the correct macros if BlendShapeFrame doesn't have normal and tangent.
     meshRendererWebgl2.shaderData.getMacros(macros);
-    expect(macros.find((macro) => macro.name === "RENDERER_HAS_BLENDSHAPE")).to.be.not.undefined;
-    expect(macros.find((macro) => macro.name === "RENDERER_BLENDSHAPE_COUNT")).to.be.undefined;
-    expect(macros.find((macro) => macro.name === "RENDERER_BLENDSHAPE_USE_TEXTURE")).to.be.undefined;
-    expect(macros.find((macro) => macro.name === "RENDERER_BLENDSHAPE_HAS_NORMAL")).to.be.undefined;
-    expect(macros.find((macro) => macro.name === "RENDERER_BLENDSHAPE_HAS_TANGENT")).to.be.undefined;
-
-    const skinnedMREntity2 = rootEntity2.createChild("skinnedMR");
-    const meshRendererWebgl1 = skinnedMREntity2.addComponent(SkinnedMeshRenderer);
-    const modelMeshWebgl1 = PrimitiveMesh.createCuboid(engineWebGL1, 0.5, 0.5, 0.5);
-    modelMeshWebgl1.addBlendShape(blendShapeWeights0_5);
-    modelMeshWebgl1.addBlendShape(blendShapeWeights0_7);
-    modelMeshWebgl1.addBlendShape(blendShapeWeights0_7);
-    modelMeshWebgl1.addBlendShape(blendShapeWeights0_5);
-    modelMeshWebgl1.uploadData(false);
-    meshRendererWebgl1.mesh = modelMeshWebgl1;
-    engineWebGL1.update();
-
-    // Test that shaderData contains the correct macros not useTextureMode.
     expect(macros.find((macro) => macro.name === "RENDERER_HAS_BLENDSHAPE")).to.be.not.undefined;
     expect(macros.find((macro) => macro.name === "RENDERER_BLENDSHAPE_COUNT")).to.be.undefined;
     expect(macros.find((macro) => macro.name === "RENDERER_BLENDSHAPE_USE_TEXTURE")).to.be.undefined;

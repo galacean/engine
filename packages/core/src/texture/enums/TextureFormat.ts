@@ -90,14 +90,5 @@ export enum TextureFormat {
   /** 16-bit depth + 8-bit stencil format. */
   Depth24Stencil8 = 33,
   /** 32-bit depth + 8-bit stencil format. */
-  Depth32Stencil8 = 34,
-
-  /** @deprecated Use 'TextureFormat.R8' instead. */
-  Alpha8 = 5,
-  /** @deprecated Use 'TextureFormat.R8G8' instead. */
-  LuminanceAlpha = 6,
-  /** @deprecated Use `TextureFormat.BC1` instead. */
-  DXT1 = 10,
-  /** @deprecated Use `TextureFormat.BC3` instead. */
-  DXT5 = 11
+  Depth32Stencil8 = 34
 }

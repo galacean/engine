@@ -19,7 +19,7 @@ export class ShaderUniform {
   textureUseCompareMode: boolean = false;
 
   private _rhi: IHardwareRenderer;
-  private _gl: WebGLRenderingContext;
+  private _gl: WebGL2RenderingContext;
 
   constructor(engine: Engine) {
     const rhi = engine._hardwareRenderer;

@@ -71,9 +71,6 @@ export class GLTFTextureParser extends GLTFParser {
           const { width, height } = image;
           const format = TextureFormat.R8G8B8A8;
           const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
-            engine,
-            width,
-            height,
             format,
             samplerInfo?.mipmap ?? true,
             isSRGBColorSpace!

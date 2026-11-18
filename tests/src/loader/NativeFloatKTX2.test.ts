@@ -1,11 +1,11 @@
-import { AssetType, Texture2D, TextureFormat, WebGLEngine, WebGLMode } from "@galacean/engine";
+import { AssetType, Texture2D, TextureFormat, WebGLEngine } from "@galacean/engine";
 import { afterAll, beforeAll, expect, it } from "vitest";
 
 let engine: WebGLEngine;
 let gl: WebGL2RenderingContext;
 beforeAll(async () => {
   const canvas = document.createElement("canvas");
-  engine = await WebGLEngine.create({ canvas, graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 } });
+  engine = await WebGLEngine.create({ canvas });
   gl = canvas.getContext("webgl2")!;
 });
 afterAll(() => engine.destroy());

@@ -19,8 +19,7 @@ import type { IPlatformTransformFeedbackPrimitive } from "./IPlatformTransformFe
 /** Graphics resource and command boundary used by the engine. */
 export interface IHardwareRenderer {
   /** WebGL access requires a graphics-capable backend. */
-  readonly gl: WebGLRenderingContext | WebGL2RenderingContext;
-  readonly isWebGL2: boolean;
+  readonly gl: WebGL2RenderingContext;
   readonly maxUniformBlockSize: number;
   /** Whether this device can execute rendering commands. */
   readonly supportsRendering: boolean;
@@ -28,10 +27,7 @@ export interface IHardwareRenderer {
     readonly maxTextureSize: number;
     readonly maxAntiAliasing: number;
     readonly maxVertexUniformVectors: number;
-    readonly canUseFloatTextureBlendShape: boolean;
-    readonly isFragmentHighPrecision: boolean;
   };
-  readonly canIUseMoreJoints: boolean;
   /** @internal */
   readonly _options: {
     readonly depth?: boolean;

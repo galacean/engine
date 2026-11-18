@@ -1,9 +1,10 @@
+layout(location = 0) out vec4 output_color;
 struct Varyings {
 vec2 v_uv;
 vec3 v_normal;
 };
-varying vec2 v_uv;
-varying vec3 v_normal;
+in vec2 v_uv;
+in vec3 v_normal;
 Varyings read_Varyings() { Varyings interface_value;
 interface_value.v_uv = v_uv;
 interface_value.v_normal = v_normal;
@@ -17,7 +18,7 @@ void frag ( Varyings v ) {
 #define FRAG_NORMAL v.v_normal
 
 float NdotL = dot ( FRAG_NORMAL , u_lightDir ) ;
-gl_FragColor = texture2D ( u_texture , FRAG_UV ) * NdotL ; }
+output_color = texture ( u_texture , FRAG_UV ) * NdotL ; }
 void main() {
 
 Varyings input_v = read_Varyings();

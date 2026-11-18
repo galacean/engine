@@ -16,8 +16,7 @@ import {
   PrimitiveMesh,
   RenderTarget,
   Texture2D,
-  WebGLEngine,
-  WebGLMode
+  WebGLEngine
 } from "@galacean/engine";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -32,7 +31,7 @@ describe("Sub-emitter rendering", () => {
     time = 0;
     vi.spyOn(performance, "now").mockImplementation(() => time);
     canvas = document.createElement("canvas");
-    engine = await WebGLEngine.create({ canvas, graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 } });
+    engine = await WebGLEngine.create({ canvas });
     const scene = engine.sceneManager.activeScene;
     scene.background.solidColor.set(0, 0, 0, 1);
     camera = scene.createRootEntity("Camera").addComponent(Camera);

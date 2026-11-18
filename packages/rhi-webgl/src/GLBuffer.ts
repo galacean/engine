@@ -1,15 +1,13 @@
 import { BufferBindFlag, BufferUsage, IPlatformBuffer, SetDataOptions } from "@galacean/engine-core";
 import type { WebGLGraphicDevice } from "./WebGLGraphicDevice";
-import { WebGLExtension } from "./type";
 
 export class GLBuffer implements IPlatformBuffer {
   /** @internal */
   _glBuffer: WebGLBuffer | null;
 
-  private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
+  private _gl: WebGL2RenderingContext;
   private _glBindTarget: number;
   private _glBufferUsage: number;
-  private _isWebGL2: boolean;
 
   constructor(
     rhi: WebGLGraphicDevice,
@@ -37,7 +35,6 @@ export class GLBuffer implements IPlatformBuffer {
     this._glBuffer = glBuffer;
     this._glBufferUsage = glBufferUsage;
     this._glBindTarget = glBindTarget;
-    this._isWebGL2 = rhi.isWebGL2;
 
     this.bind();
 
@@ -76,7 +73,7 @@ export class GLBuffer implements IPlatformBuffer {
 
     if (dataOffset !== 0 || dataByteLength < data.byteLength) {
       const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
-      if (this._isWebGL2 && isArrayBufferView) {
+      if (isArrayBufferView) {
         gl.bufferSubData(
           glBindTarget,
           bufferByteOffset!,
@@ -99,13 +96,8 @@ export class GLBuffer implements IPlatformBuffer {
   }
 
   getData(data: ArrayBufferView, bufferByteOffset?: number, dataOffset?: number, dataLength?: number): void {
-    if (this._isWebGL2) {
-      const gl = <WebGL2RenderingContext>this._gl;
-      this.bind();
-      gl.getBufferSubData(this._glBindTarget, bufferByteOffset!, data, dataOffset, dataLength);
-    } else {
-      throw "Buffer is write-only on WebGL1.0 platforms.";
-    }
+    this.bind();
+    this._gl.getBufferSubData(this._glBindTarget, bufferByteOffset!, data, dataOffset, dataLength);
   }
 
   copyFromBuffer(srcBuffer: IPlatformBuffer, srcByteOffset: number, dstByteOffset: number, byteLength: number): void {
@@ -123,7 +115,7 @@ export class GLBuffer implements IPlatformBuffer {
     this._glBuffer = null!;
   }
 
-  private _getGLBufferUsage(gl: WebGLRenderingContext, bufferUsage: BufferUsage): number {
+  private _getGLBufferUsage(gl: WebGL2RenderingContext, bufferUsage: BufferUsage): number {
     switch (bufferUsage) {
       case BufferUsage.Static:
         return gl.STATIC_DRAW;
