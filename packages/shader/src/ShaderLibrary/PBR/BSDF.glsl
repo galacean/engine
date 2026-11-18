@@ -1,6 +1,7 @@
 #ifndef BSDF_INCLUDED
 #define BSDF_INCLUDED
 
+#include "ShaderLibrary/PBR/CommonPBR.glsl"
 #include "ShaderLibrary/PBR/Refraction.glsl"
 
 #define MIN_PERCEPTUAL_ROUGHNESS 0.045
@@ -215,30 +216,23 @@ float DG_GGX(float alpha, float dotNV, float dotNL, float dotNH) {
 #endif
 
 // GGX Distribution, Schlick Fresnel, GGX-Smith Visibility
-vec3 BRDF_Specular_GGX(vec3 incidentDirection, SurfaceData surfaceData, BSDFData bsdfData, vec3 normal, vec3 specularColor, float roughness ) {
-
-	float alpha = pow2( roughness ); // UE4's roughness
-
-	vec3 halfDir = normalize( incidentDirection + surfaceData.viewDir );
-
-	float dotNL = saturate( dot( normal, incidentDirection ) );
-    float dotNV = saturate( dot( normal, surfaceData.viewDir ) );
-	float dotNH = saturate( dot( normal, halfDir ) );
-	float dotLH = saturate( dot( incidentDirection, halfDir ) );
-
-    vec3 F = F_Schlick(specularColor, bsdfData.specularF90 , dotLH );
-    #ifdef MATERIAL_ENABLE_IRIDESCENCE
-        F = mix(F, bsdfData.iridescenceSpecularColor, surfaceData.iridescenceFactor);
-    #endif
-	
-
-    #ifdef MATERIAL_ENABLE_ANISOTROPY
-        float GD = DG_GGX_anisotropic(halfDir, incidentDirection, surfaceData, alpha, dotNV, dotNL, dotNH);
-    #else
-        float GD = DG_GGX(alpha, dotNV, dotNL, dotNH);
-    #endif
-    return F * GD;
+vec3 BRDF_Specular_GGX(vec3 incidentDirection, vec3 halfDir, vec3 viewDir, vec3 normal, vec3 fresnel, float roughness) {
+    float alpha = pow2(roughness);
+    float dotNL = saturate(dot(normal, incidentDirection));
+    float dotNV = saturate(dot(normal, viewDir));
+    float dotNH = saturate(dot(normal, halfDir));
+    return fresnel * DG_GGX(alpha, dotNV, dotNL, dotNH);
 }
+
+#ifdef MATERIAL_ENABLE_ANISOTROPY
+    vec3 BRDF_Specular_GGX_Anisotropic(vec3 incidentDirection, vec3 halfDir, SurfaceData surfaceData, vec3 fresnel, float roughness) {
+        float alpha = pow2(roughness);
+        float dotNL = saturate(dot(surfaceData.normal, incidentDirection));
+        float dotNV = saturate(dot(surfaceData.normal, surfaceData.viewDir));
+        float dotNH = saturate(dot(surfaceData.normal, halfDir));
+        return fresnel * DG_GGX_anisotropic(halfDir, incidentDirection, surfaceData, alpha, dotNV, dotNL, dotNH);
+    }
+#endif
 
 vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor) {
 	return RECIPROCAL_PI * diffuseColor;

@@ -1,6 +1,8 @@
 #ifndef VERTEX_INCLUDE
 #define VERTEX_INCLUDE
 
+#include "ShaderLibrary/PBR/CommonPBR.glsl"
+
 struct VertexInputs{
     vec4 positionOS;
     vec3 positionWS;
@@ -9,11 +11,14 @@ struct VertexInputs{
         vec3 positionVS;
     #endif
 
-    #ifdef RENDERER_HAS_NORMAL
+    #ifdef NEED_VERTEX_NORMAL
         vec3 normalWS;
         #ifdef NEED_VERTEX_TANGENT
             vec3 tangentWS;
             vec3 bitangentWS;
+            #ifdef MATERIAL_ENABLE_ANISOTROPY
+                float tangentSign;
+            #endif
         #endif
     #endif
 };
@@ -33,10 +38,7 @@ VertexInputs getVertexInputs(Attributes attributes){
     VertexInputs inputs;
     vec4 position = vec4(attributes.POSITION, 1.0);
 
-    // tangent must follow RENDERER_HAS_TANGENT here so the call site stays in
-    // sync with calculateBlendShape's signature (which is gated on the same
-    // mesh-attribute macro). Downstream worldspace projection + varying writes
-    // are separately gated on NEED_VERTEX_TANGENT below.
+    // Match calculateBlendShape's attribute gates even when no tangent varying is needed.
     #ifdef RENDERER_HAS_NORMAL
         vec3 normal = vec3( attributes.NORMAL );
         #ifdef RENDERER_HAS_TANGENT
@@ -62,26 +64,37 @@ VertexInputs getVertexInputs(Attributes attributes){
         mat4 skinMatrix = getSkinMatrix(attributes);
         position = skinMatrix * position;
 
-        #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
+        #ifdef NEED_VERTEX_NORMAL
             mat3 skinNormalMatrix = INVERSE_MAT(mat3(skinMatrix));
             normal = normal * skinNormalMatrix;
             #ifdef NEED_VERTEX_TANGENT
-                tangent.xyz = tangent.xyz * skinNormalMatrix;
+                tangent.xyz = mat3(skinMatrix) * tangent.xyz;
+                // The blended skin matrix can reflect even when individual joints do not.
+                tangent.w *= dot( cross( skinMatrix[0].xyz, skinMatrix[1].xyz ), skinMatrix[2].xyz ) < 0.0 ? -1.0 : 1.0;
             #endif
         #endif
     #endif
 
     // TBN world space
-    #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
+    #ifdef NEED_VERTEX_NORMAL
         mat3 normalMat = mat3(renderer_NormalMat);
         inputs.normalWS = normalize( normalMat * normal );
 
         #ifdef NEED_VERTEX_TANGENT
-            vec3 tangentWS = normalize( normalMat * tangent.xyz );
-            vec3 bitangentWS = cross( inputs.normalWS, tangentWS ) * tangent.w;
+            vec3 tangentWS = mat3(renderer_ModelMat) * tangent.xyz;
+            // Keep zero tangents finite for fragment-stage frame recovery.
+            float tangentLengthSquared = dot(tangentWS, tangentWS);
+            if (tangentLengthSquared > 0.0) {
+                tangentWS *= inversesqrt(tangentLengthSquared);
+            }
+            float worldHandedness = dot( cross( renderer_ModelMat[0].xyz, renderer_ModelMat[1].xyz ), renderer_ModelMat[2].xyz ) < 0.0 ? -1.0 : 1.0;
+            vec3 bitangentWS = cross( inputs.normalWS, tangentWS ) * ( tangent.w * worldHandedness );
 
             inputs.tangentWS = tangentWS;
             inputs.bitangentWS = bitangentWS;
+            #ifdef MATERIAL_ENABLE_ANISOTROPY
+                inputs.tangentSign = tangent.w * worldHandedness;
+            #endif
         #endif
     #endif
 

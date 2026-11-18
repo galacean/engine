@@ -1,6 +1,8 @@
 #ifndef VARYINGS_PBR_INCLUDED
 #define VARYINGS_PBR_INCLUDED
 
+#include "ShaderLibrary/PBR/CommonPBR.glsl"
+
 struct Varyings{
 	vec2 uv;
 	#ifdef RENDERER_HAS_UV1
@@ -17,11 +19,14 @@ struct Varyings{
 	    vec3 positionVS;
 	#endif
 
-	#ifdef RENDERER_HAS_NORMAL
+	#ifdef NEED_VERTEX_NORMAL
 	    vec3 normalWS;
 	    #ifdef NEED_VERTEX_TANGENT
 			vec3 tangentWS;
 			vec3 bitangentWS;
+            #ifdef MATERIAL_ENABLE_ANISOTROPY
+                float tangentSign;
+            #endif
 	    #endif
 	#endif
 
