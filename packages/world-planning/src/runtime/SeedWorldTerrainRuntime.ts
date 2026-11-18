@@ -39,6 +39,8 @@ import {
   Entity,
   Material,
   type MeshRenderer,
+  ScreenSpaceReflection,
+  ScreenSpaceReflectionReceiverMode,
   ShaderProperty,
   Texture2D,
   Vector2,
@@ -278,6 +280,20 @@ export class SeedWorldTerrainRuntime {
   /** Stable centre point used when entering the generated terrain preview. */
   readonly observationAnchor: Readonly<{ x: number; y: number; z: number }>;
   private readonly _grassAppearanceMaterials = new Map<Material, number>();
+  private _surfaceWaterSsrMaterial?: Material;
+  private _surfaceWaterSsrEnabled = false;
+
+  /** Applies the current weather demand to the runtime-owned near material, including replacements. */
+  setSurfaceWaterSsrEnabled(enabled: boolean): void {
+    const material = this.clipmap.material;
+    if (material === this._surfaceWaterSsrMaterial && enabled === this._surfaceWaterSsrEnabled) return;
+    ScreenSpaceReflection.setMaterialReceiver(
+      material,
+      enabled ? ScreenSpaceReflectionReceiverMode.OpaqueComposite : ScreenSpaceReflectionReceiverMode.Disabled
+    );
+    this._surfaceWaterSsrMaterial = material;
+    this._surfaceWaterSsrEnabled = enabled;
+  }
 
   /** Borrow the current native field when creating an external surface material. */
   getGrassColorFieldBinding(): SeedWorldGrassColorFieldBinding {
