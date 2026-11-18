@@ -1,6 +1,7 @@
 #ifndef MATERIAL_INPUT_PBR_INCLUDED
 #define MATERIAL_INPUT_PBR_INCLUDED
 
+#include "ShaderLibrary/PBR/CommonPBR.glsl"
 #include "ShaderLibrary/Common/Normal.glsl"
 
 float material_AlphaCutoff;
@@ -215,11 +216,11 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
                 // Interpolation can reverse the TBN determinant without changing vertex handedness.
                 float tangentSign = v.tangentSign < 0.0 ? -1.0 : 1.0;
                 vec3 tangent = v.tangentWS - normal * dot(normal, v.tangentWS);
-                float tangentScale = dot(v.tangentWS, v.tangentWS);
-                // Valid vertex tangents can cancel or become parallel to N after interpolation.
-                if (dot(tangent, tangent) <= EPSILON * tangentScale) {
+                // Vertex tangents are unit-normalized before interpolation; compare against unit scale
+                // so near-zero in-plane cancellation residuals still recover from the bitangent or fallback.
+                float tangentScale = 1.0;
+                if (dot(tangent, tangent) <= EPSILON) {
                     tangent = cross(v.bitangentWS, normal) * tangentSign;
-                    tangentScale = dot(v.bitangentWS, v.bitangentWS);
                 }
             #else
                 float tangentSign = dot(cross(normal, tbn[0]), tbn[1]) < 0.0 ? -1.0 : 1.0;

@@ -11,6 +11,8 @@ import {
   RenderFace,
   RenderTarget,
   Shader,
+  ShaderFactory,
+  ShaderLanguage,
   Skin,
   SkinnedMeshRenderer,
   Texture2D,
@@ -24,6 +26,8 @@ import {
   WebGLEngine
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
+import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 describe("PBR anisotropy", () => {
@@ -436,31 +440,51 @@ describe("PBR anisotropy", () => {
 
   it("uses the clearcoat normal for environment reflection with base anisotropy", () => {
     const environment = new TextureCube(engine, 1, TextureFormat.R8G8B8A8, false, false);
+    const coatNormalMap = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false, false);
     const ambient = engine.sceneManager.activeScene!.ambientLight;
     const previous = ambient.specularTexture;
     try {
-      for (let face = 0; face < 6; face++) {
-        const value = face === TextureCubeFace.PositiveZ ? 255 : 0;
-        environment.setPixelBuffer(face, new Uint8Array([value, value, value, 255]));
-      }
+      const setPositiveZEnvironment = (value: number) => {
+        for (let face = 0; face < 6; face++) {
+          const channel = face === TextureCubeFace.PositiveZ ? value : 0;
+          environment.setPixelBuffer(face, new Uint8Array([channel, channel, channel, 255]));
+        }
+      };
+      setPositiveZEnvironment(0);
       ambient.specularTexture = environment;
       texture.setPixelBuffer(new Uint8Array([255, 128, 191, 255]));
-      withProductionPBR((pbr, read) => {
+      coatNormalMap.setPixelBuffer(new Uint8Array([255, 128, 191, 255]));
+      withProductionPBR((pbr, read, light) => {
+        light.enabled = false;
         pbr.baseColor.set(0, 0, 0, 1);
         pbr.normalTexture = texture;
         pbr.clearCoat = 1;
         pbr.clearCoatRoughness = 0.25;
+        const dark = read();
+        dark.forEach((value) => expect(value).toBeLessThanOrEqual(1));
+
+        setPositiveZEnvironment(255);
         const reference = read();
-        expect(reference[0]).toBeGreaterThan(5);
+        expect(reference[0] - dark[0]).toBeGreaterThan(5);
         expect(reference[0]).toBeLessThan(250);
+
+        pbr.clearCoatNormalTexture = coatNormalMap;
+        const tiltedCoat = read();
+        expect(reference[0] - tiltedCoat[0]).toBeGreaterThan(5);
+        pbr.clearCoatNormalTexture = null!;
+
         pbr.anisotropy = 0.8;
         for (const rotation of [0, 45, 90]) {
           pbr.anisotropyRotation = rotation;
           read().forEach((value, channel) => expect(Math.abs(value - reference[channel])).toBeLessThanOrEqual(1));
         }
+
+        pbr.clearCoatNormalTexture = coatNormalMap;
+        expect(reference[0] - read()[0]).toBeGreaterThan(5);
       });
     } finally {
       ambient.specularTexture = previous;
+      coatNormalMap.destroy();
       environment.destroy();
     }
   });
@@ -832,6 +856,70 @@ describe("PBR anisotropy", () => {
   );
 
   it.each(
+    [true, false].flatMap((withSurvivingBitangent) =>
+      [1, -1].flatMap((handedness) =>
+        [
+          [0, 0],
+          [0, 1e-4],
+          [0, -1e-4],
+          [1e-4, 0]
+        ].map(([x, y]) => ({ withSurvivingBitangent, handedness, x, y }))
+      )
+    )
+  )(
+    "recovers non-collinear near-zero vertex tangent residuals (bitangent $withSurvivingBitangent; sign $handedness; offset $x, $y)",
+    ({ withSurvivingBitangent, handedness, x, y }) => {
+      const s = Math.sqrt(3) / 2;
+      mesh.setPositions([new Vector3(-1, -1, 0), new Vector3(1, -1, 0), new Vector3(0, 2, 0)]);
+      mesh.bounds.max.y = 2;
+      mesh.setNormals(
+        withSurvivingBitangent
+          ? [new Vector3(0, s, 0.5), new Vector3(0, 0, 1), new Vector3(0, 0, 1)]
+          : Array.from({ length: 3 }, () => new Vector3(0, 0, 1))
+      );
+      // Near the centroid, residual T points along (~±60° or ~150°), non-collinear with recovered -X or fallback +X.
+      mesh.setTangents([
+        new Vector4(1, 0, 0, handedness),
+        new Vector4(-0.5, s, 0, handedness),
+        new Vector4(-0.5, -s, 0, handedness)
+      ]);
+      material.anisotropyRotation = 30;
+      camera.isOrthographic = true;
+      camera.orthographicSize = 2;
+      camera.entity.transform.setPosition(-1 / 8 + x, 1 / 8 + y, 3);
+
+      const angle = Math.PI / 6;
+      if (withSurvivingBitangent) {
+        // Interpolated N=(0, sqrt(3), 5)/sqrt(28) and B=sign*(0, -1, -sqrt(3))/6 give T=-X.
+        const invLen = 1 / Math.sqrt(28);
+        expectDirectionAndStrength(
+          new Vector3(
+            -Math.cos(angle),
+            handedness * -5 * invLen * Math.sin(angle),
+            handedness * Math.sqrt(3) * invLen * Math.sin(angle)
+          ),
+          0.8
+        );
+        if (x === 0 && y === 0) {
+          // Normal-map decoding must still use the un-reorthogonalized interpolated TBN.
+          const baked = new Vector3(0, handedness * s, 0.5);
+          texture.setPixelBuffer(
+            new Uint8Array([baked.x, baked.y, baked.z, 1].map((v, i) => Math.round((i < 3 ? v * 0.5 + 0.5 : v) * 255)))
+          );
+          material.normalTexture = texture;
+          material.shaderData.enableMacro("INSPECT_SURFACE_NORMAL");
+          expectDirectionAndStrength(new Vector3(0, 0, 1), 0.8);
+          material.shaderData.disableMacro("INSPECT_SURFACE_NORMAL");
+          material.normalTexture = null!;
+        }
+      } else {
+        // Both T and B cancel on the flat plane; the deterministic fallback for N=+Z is T=+X.
+        expectDirectionAndStrength(new Vector3(Math.cos(angle), handedness * Math.sin(angle), 0), 0.8);
+      }
+    }
+  );
+
+  it.each(
     [
       { width: 1, shear: 0, handedness: 1 },
       { width: 2, shear: 0, handedness: 1 },
@@ -1022,6 +1110,110 @@ describe("PBR anisotropy", () => {
     } finally {
       resource?.destroy();
       URL.revokeObjectURL(url);
+    }
+  });
+
+  it("compiles and renders standalone PBR submodules without ForwardPassPBR across GLSL ES 100/300", () => {
+    const customPassSource = `Shader "StandalonePBRSubmodules" {
+      SubShader "Default" {
+        Pass "Forward" {
+          CullMode rasterStateCullMode;
+          RasterState = { CullMode = rasterStateCullMode; };
+          VertexShader = CustomPBRVertex;
+          FragmentShader = CustomPBRFragment;
+
+          #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL) && defined(RENDERER_HAS_TANGENT) && (defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) || defined(MATERIAL_ENABLE_ANISOTROPY))
+            #define NEED_VERTEX_TANGENT
+          #endif
+
+          #include "ShaderLibrary/Common/Common.glsl"
+          #include "ShaderLibrary/Common/Fog.glsl"
+          #include "ShaderLibrary/Common/Transform.glsl"
+          #include "ShaderLibrary/Common/Attributes.glsl"
+          #include "ShaderLibrary/Skin/Skin.glsl"
+          #include "ShaderLibrary/Skin/BlendShape.glsl"
+          #include "ShaderLibrary/Shadow/Shadow.glsl"
+          #include "ShaderLibrary/PBR/VaryingsPBR.glsl"
+          #include "ShaderLibrary/PBR/BSDF.glsl"
+          #include "ShaderLibrary/PBR/VertexPBR.glsl"
+          #include "ShaderLibrary/PBR/FragmentPBR.glsl"
+
+          Varyings CustomPBRVertex(Attributes attributes) {
+            Varyings varyings;
+            varyings.uv = getUV0(attributes);
+            VertexInputs vertexInputs = getVertexInputs(attributes);
+            varyings.positionWS = vertexInputs.positionWS;
+            #ifdef NEED_VERTEX_NORMAL
+              varyings.normalWS = vertexInputs.normalWS;
+              #ifdef NEED_VERTEX_TANGENT
+                varyings.tangentWS = vertexInputs.tangentWS;
+                varyings.bitangentWS = vertexInputs.bitangentWS;
+                #ifdef MATERIAL_ENABLE_ANISOTROPY
+                  varyings.tangentSign = vertexInputs.tangentSign;
+                #endif
+              #endif
+            #endif
+            gl_Position = renderer_MVPMat * vertexInputs.positionOS;
+            varyings.positionCS = gl_Position;
+            return varyings;
+          }
+
+          void CustomPBRFragment(Varyings varyings) {
+            SurfaceData surface = getSurfaceData(varyings, varyings.uv, gl_FrontFacing);
+            #ifdef INSPECT_SURFACE_NORMAL
+              vec3 direction = surface.normal;
+            #else
+              vec3 direction = surface.anisotropicT;
+            #endif
+            gl_FragColor = vec4(direction * 0.5 + 0.5, surface.anisotropy);
+          }
+        }
+      }
+    }`;
+
+    const precompiler = new ShaderPrecompiler();
+    precompiler.setIncludeMap(ShaderFactory.includeMap);
+    const es100 = precompiler.precompile(customPassSource, ShaderLanguage.GLSLES100);
+    const es300 = precompiler.precompile(customPassSource, ShaderLanguage.GLSLES300);
+
+    for (const precompiled of [es100, es300]) {
+      const pass = precompiled.subShaders[0].passes[0];
+      const withNormal = new Map<string, string>([
+        ["RENDERER_HAS_NORMAL", ""],
+        ["RENDERER_HAS_TANGENT", ""],
+        ["RENDERER_HAS_UV", ""],
+        ["MATERIAL_ENABLE_ANISOTROPY", ""]
+      ]);
+      expect(ShaderMacroProcessor.evaluate(pass.vertexShaderInstructions!, withNormal)).toContain("normalWS");
+      expect(ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions!, withNormal)).toContain("v.tangentSign");
+
+      const omitted = new Map(withNormal);
+      omitted.set("MATERIAL_OMIT_NORMAL", "");
+      omitted.set("HAS_DERIVATIVES", "");
+      expect(ShaderMacroProcessor.evaluate(pass.vertexShaderInstructions!, omitted)).not.toContain("normalWS");
+      expect(ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions!, omitted)).toContain("getTBNByDerivatives");
+    }
+
+    const standaloneShader = Shader._createFromPrecompiled(es100);
+    try {
+      material.shader = standaloneShader;
+      material.anisotropyRotation = 45;
+      mesh.setNormals(Array.from({ length: 3 }, () => new Vector3(0.6, 0, 0.8)));
+      material.shaderData.enableMacro("INSPECT_SURFACE_NORMAL");
+      expectDirectionAndStrength(new Vector3(0.6, 0, 0.8), 0.8);
+
+      mesh.setNormals(Array.from({ length: 3 }, () => new Vector3(0, 0, 1)));
+      mesh.setTangents(Array.from({ length: 3 }, () => new Vector4(1, 0, 0, -1)));
+      material.shaderData.disableMacro("INSPECT_SURFACE_NORMAL");
+      expectDirectionAndStrength(new Vector3(Math.SQRT1_2, -Math.SQRT1_2, 0), 0.8);
+
+      material.shaderData.enableMacro("INSPECT_SURFACE_NORMAL");
+      material.shaderData.enableMacro("MATERIAL_OMIT_NORMAL");
+      mesh.setNormals(Array.from({ length: 3 }, () => new Vector3(0.6, 0, 0.8)));
+      expectDirectionAndStrength(new Vector3(0, 0, 1), 0.8);
+    } finally {
+      material.shader = shader;
+      standaloneShader.destroy(true);
     }
   });
 });

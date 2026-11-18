@@ -1,16 +1,10 @@
 #ifndef FORWARD_PASS_PBR_INCLUDED
 #define FORWARD_PASS_PBR_INCLUDED
 
-#if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
-    #define NEED_VERTEX_NORMAL
-#endif
+#include "ShaderLibrary/PBR/CommonPBR.glsl"
 
-#if defined(NEED_VERTEX_NORMAL) && defined(RENDERER_HAS_TANGENT) && (defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) || defined(MATERIAL_ENABLE_ANISOTROPY))
+#if defined(NEED_VERTEX_NORMAL) && defined(RENDERER_HAS_TANGENT) && defined(NEED_TANGENT_SPACE)
     #define NEED_VERTEX_TANGENT
-#endif
-
-#if defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) || defined(MATERIAL_ENABLE_ANISOTROPY)
-    #define NEED_TANGENT_SPACE
 #endif
 
 #include "ShaderLibrary/Common/Common.glsl"

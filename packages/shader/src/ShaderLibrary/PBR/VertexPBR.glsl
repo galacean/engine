@@ -1,6 +1,8 @@
 #ifndef VERTEX_INCLUDE
 #define VERTEX_INCLUDE
 
+#include "ShaderLibrary/PBR/CommonPBR.glsl"
+
 struct VertexInputs{
     vec4 positionOS;
     vec3 positionWS;
