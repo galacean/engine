@@ -33,6 +33,7 @@ import {
   type VistaTransitionSkirtMeshData
 } from "../vista/PanoramaVistaGenerator.ts";
 import { SEED_WORLD_SEA_LEVEL_METRES, sampleSeedWorldHeight, type SeedWorldFields } from "./SeedWorldFields.ts";
+import { SEED_WORLD_ROAD_COLOR_DEFAULT } from "./SeedWorldTerrainRuntime.ts";
 
 const TRANSITION_SKIRT_SHADER_NAME = "SeedWorld/PanoramaTransitionSkirt";
 const FAR_HORIZON_SHADER_NAME = "SeedWorld/PanoramaFarHorizon";
@@ -65,10 +66,10 @@ const TRANSITION_SKIRT_SHADER = `Shader "${TRANSITION_SKIRT_SHADER_NAME}" {
       vec3 material_AmbSky;
       vec3 material_AmbGnd;
       vec3 material_FogColor;
-      vec3 material_ZenithColor;
-      vec3 material_GrassTint;
-      vec3 material_LeafTint;
+      vec3 material_GroundColor;
+      vec3 material_RockTint;
       vec3 material_SnowAlbedo;
+      float material_VistaHeightScale;
       // x: spring, y: summer, z: autumn, w: winter
       vec4 material_SeasonWeights;
       // x: wetness, y: snowCover, z: fogDensity, w: outerFadeRadius
@@ -97,11 +98,28 @@ const TRANSITION_SKIRT_SHADER = `Shader "${TRANSITION_SKIRT_SHADER_NAME}" {
 
       Varyings vert(Attributes attributes) {
         Varyings output;
-        output.v_worldPos = attributes.POSITION.xyz;
+        vec4 position = attributes.POSITION;
+        vec2 fromCenter = position.xz - material_WorldCenter.xy;
+        vec2 axes = abs(fromCenter);
+        float halfSize = material_StrataParams.w;
+        float blendDistance = max(1.0, (material_ClimateParams.w - halfSize) * 0.25);
+        // Fade in the height adjustment beyond the playable map's square boundary.
+        float t = clamp((max(axes.x, axes.y) - halfSize) / blendDistance, 0.0, 1.0);
+        float scaleDelta = material_VistaHeightScale - 1.0;
+        float scale = 1.0 + scaleDelta * t * t * (3.0 - 2.0 * t);
+        float relief = max(0.0, position.y - material_WorldCenter.z);
+        position.y += relief * (scale - 1.0);
+        output.v_worldPos = position.xyz;
         output.v_normal = normalize(attributes.NORMAL);
         output.v_channels = attributes.COLOR_0;
         output.v_slopes = attributes.TEXCOORD_0;
-        gl_Position = renderer_MVPMat * attributes.POSITION;
+        if (relief > 0.0) {
+          // Match the terrain slopes to the gradient of the height adjustment.
+          vec2 outward = axes.x > axes.y ? vec2(sign(fromCenter.x), 0.0) : vec2(0.0, sign(fromCenter.y));
+          float gradient = relief * scaleDelta * 6.0 * t * (1.0 - t) / blendDistance;
+          output.v_slopes = output.v_slopes * scale + outward * gradient;
+        }
+        gl_Position = renderer_MVPMat * position;
         return output;
       }
 
@@ -193,8 +211,9 @@ const TRANSITION_SKIRT_SHADER = `Shader "${TRANSITION_SKIRT_SHADER_NAME}" {
         float steepRock = 1.0 - smoothstep(0.62, 0.76, Nc.y + (e3.z - 0.5) * 0.12);
         float rock = clamp(max(rb, steepRock * 0.82), 0.0, 1.0);
 
-        // Seasonal snowline & biome weights
-        float winterWeight = clamp(max(material_SeasonWeights.w, material_ClimateParams.y), 0.0, 1.0);
+        // The scene's snow cover controls how much of the seasonal snowline is visible.
+        float surfaceSnow = clamp(material_ClimateParams.y, 0.0, 1.0);
+        float winterWeight = clamp(max(material_SeasonWeights.w, surfaceSnow), 0.0, 1.0);
         float autumnWeight = clamp(material_SeasonWeights.z * (1.0 - winterWeight), 0.0, 1.0);
         float snowLineMetres = mix(330.0 - autumnWeight * 55.0, -30.0, winterWeight);
         float elevSnow = smoothstep(
@@ -202,7 +221,7 @@ const TRANSITION_SKIRT_SHADER = `Shader "${TRANSITION_SKIRT_SHADER_NAME}" {
           snowLineMetres + 65.0,
           wp.y + conc * 58.0 + bench * 26.0 + (e1.z - 0.5) * 38.0
         );
-        float snowMask = clamp(max(elevSnow, winterWeight * 0.94) * (1.0 - rock * 0.82), 0.0, 1.0);
+        float snowMask = surfaceSnow * max(elevSnow, winterWeight * 0.94) * (1.0 - rock * 0.82);
 
         vec2 g1 = decodeSnowSlope(d1) * (0.65 * f1);
         vec2 g3 = decodeSnowSlope(d3) * (0.42 * f3);
@@ -211,22 +230,15 @@ const TRANSITION_SKIRT_SHADER = `Shader "${TRANSITION_SKIRT_SHADER_NAME}" {
         float ndl = clamp(dot(N, L), 0.0, 1.0);
         float wrap = clamp((dot(N, L) + 0.12) / 1.12, 0.0, 1.0);
 
-        // Meadow & forest substrate (Spring / Summer / Autumn)
+        // Keep procedural brightness variation under the resolved ground color.
         float canopyPatch = smoothstep(0.36, 0.66, e2.z * 0.6 + e3.z * 0.4 + conc * 0.2);
-        vec3 meadowSummer = vec3(0.115, 0.168, 0.072) * material_GrassTint * (0.82 + 0.36 * e1.z);
-        vec3 forestSummer = vec3(0.052, 0.095, 0.054) * material_LeafTint * (0.78 + 0.42 * e3.z);
-        vec3 meadowAutumn = vec3(0.245, 0.165, 0.078) * (0.84 + 0.32 * e1.z);
-        vec3 forestAutumn = mix(vec3(0.23, 0.11, 0.042), vec3(0.065, 0.095, 0.052), smoothstep(0.35, 0.72, e1.w));
-        vec3 meadowCol = mix(meadowSummer, meadowAutumn, autumnWeight);
-        vec3 forestCol = mix(forestSummer, forestAutumn, autumnWeight);
         float treeLineMask = 1.0 - smoothstep(235.0, 340.0, wp.y);
-        vec3 biomeGround = mix(meadowCol, forestCol, canopyPatch * treeLineMask * smoothstep(0.66, 0.88, Nc.y));
-
-        // Coastal shelf & submerged seabed tint near water level (datum Y = 0)
+        float groundValue = mix(0.82 + 0.36 * e1.z, 0.54 + 0.28 * e3.z,
+          canopyPatch * treeLineMask * smoothstep(0.66, 0.88, Nc.y));
         float oceanDatum = material_WorldCenter.z;
         float shoreBlend = 1.0 - smoothstep(oceanDatum - 3.0, oceanDatum + 14.0, wp.y);
-        vec3 sandColor = vec3(0.21, 0.185, 0.14) * (0.85 + 0.3 * e3.z);
-        biomeGround = mix(biomeGround, sandColor, shoreBlend * (1.0 - winterWeight * 0.7));
+        groundValue = mix(groundValue, 0.85 + 0.3 * e3.z, shoreBlend);
+        vec3 biomeGround = material_GroundColor * groundValue;
 
         vec3 amb = material_AmbSky * (0.65 + 0.35 * N.y) + material_AmbGnd * (0.38 - 0.28 * N.y);
         vec3 groundLit = biomeGround * (material_SunColor * ndl * farShadow + amb * ao);
@@ -241,9 +253,7 @@ const TRANSITION_SKIRT_SHADER = `Shader "${TRANSITION_SKIRT_SHADER_NAME}" {
         if (rock > 0.001) {
           vec4 sb = texture2D(material_DetailTex, vec2((relXZ.x - relXZ.y) / 1024.0 + 0.37, tau * 0.25 + 0.61));
           float lay = clamp(0.5 + ((sb.z - 0.5) * 1.7 + (sa.z - 0.5) * 0.9), 0.0, 1.0);
-          vec3 ra = mix(vec3(0.115, 0.110, 0.118), vec3(0.28, 0.255, 0.225), lay);
-          ra = mix(ra, vec3(0.26, 0.19, 0.135), smoothstep(0.55, 0.75, sb.z) * 0.35);
-          ra *= 0.82 + 0.36 * e1.z;
+          vec3 ra = material_RockTint * (0.24 + 0.50 * lay) * (0.82 + 0.36 * e1.z);
 
           vec3 tdir = vec3(0.0, 1.0, 0.0) - N * N.y;
           float fs = fract(tau * 7.0 + 0.75 * sin(tau * 6.2831853 + sa.x * 3.0) + (sa.x - 0.5) * 0.9);
@@ -331,10 +341,11 @@ const FAR_HORIZON_SHADER = `Shader "${FAR_HORIZON_SHADER_NAME}" {
       vec3 material_AmbGnd;
       vec3 material_HorizonColor;
       vec3 material_SnowAlbedo;
-      vec3 material_FoothillColor;
+      vec3 material_GroundColor;
+      vec3 material_RockTint;
       // x: minDistanceMetres, y: logMaxOverMin
       vec2 material_VistaDistance;
-      // x: winterWeight, y: autumnWeight, z: aerialExtinctionScale, w: overallOpacity
+      // x: winterWeight, y: surfaceSnowCover, z: aerialExtinctionScale, w: overallOpacity
       vec4 material_VistaSeason;
 
       struct Attributes {
@@ -379,10 +390,12 @@ const FAR_HORIZON_SHADER = `Shader "${FAR_HORIZON_SHADER_NAME}" {
             float normElev = B.w;
             float winterWeight = material_VistaSeason.x;
             float snowThreshold = mix(0.38, 0.04, winterWeight);
-            float snowCover = smoothstep(snowThreshold - 0.14, snowThreshold + 0.14, normElev + (1.0 - rockMask) * 0.16);
+            float snowCover = material_VistaSeason.y * smoothstep(
+              snowThreshold - 0.14, snowThreshold + 0.14, normElev + (1.0 - rockMask) * 0.16);
 
             vec3 snowLit = material_SnowAlbedo * (material_SunColor * clamp((ndl + 0.18) / 1.18, 0.0, 1.0) * sh + amb);
-            vec3 rockAlbedo = mix(material_FoothillColor, vec3(0.145, 0.135, 0.138), clamp(rockMask * 1.25 + normElev * 0.35, 0.0, 1.0));
+            float rockWeight = clamp(rockMask * 1.25 + normElev * 0.35, 0.0, 1.0);
+            vec3 rockAlbedo = mix(material_GroundColor * 0.88, material_RockTint * 0.48, rockWeight);
             vec3 rockLit = rockAlbedo * (material_SunColor * clamp(ndl, 0.0, 1.0) * sh + amb);
             vec3 mtnCol = mix(rockLit, snowLit, clamp(snowCover * (1.0 - rockMask * 0.58), 0.0, 1.0));
 
@@ -572,6 +585,12 @@ function buildFarHorizonCylinderMesh(
   return mesh;
 }
 
+/** Resolved linear RGB colors from the accepted Seed World. */
+export interface SeedWorldVistaPalette {
+  readonly groundColor: readonly [number, number, number];
+  readonly rockTint: readonly [number, number, number];
+}
+
 export interface SeedWorldPanoramaVistaRuntimeOptions {
   readonly engine: Engine;
   readonly scene: Scene;
@@ -581,6 +600,7 @@ export interface SeedWorldPanoramaVistaRuntimeOptions {
   readonly environment: WorldEnvironmentRuntime;
   readonly plan: SeedWorldVistaPlanSource;
   readonly fields: SeedWorldFields;
+  readonly palette?: SeedWorldVistaPalette;
 }
 
 /**
@@ -589,6 +609,7 @@ export interface SeedWorldPanoramaVistaRuntimeOptions {
  */
 export class SeedWorldPanoramaVistaRuntime {
   readonly root: Entity;
+  readonly heightRange = { minimum: 50, maximum: 100 } as const;
   private readonly _scene: Scene;
   private readonly _camera: Camera;
   private readonly _lighting: TerrainLightingRuntime;
@@ -611,11 +632,9 @@ export class SeedWorldPanoramaVistaRuntime {
   private readonly _ambSky = new Vector3(0.28, 0.36, 0.52);
   private readonly _ambGnd = new Vector3(0.14, 0.15, 0.16);
   private readonly _fogColor = new Vector3(0.58, 0.68, 0.78);
-  private readonly _zenithColor = new Vector3(0.22, 0.36, 0.62);
-  private readonly _grassTint = new Vector3(1, 1, 1);
-  private readonly _leafTint = new Vector3(1, 1, 1);
+  private readonly _groundColor = new Vector3(...SEED_WORLD_ROAD_COLOR_DEFAULT);
+  private readonly _rockTint = new Vector3(1, 1, 1);
   private readonly _snowAlbedo = new Vector3(0.88, 0.93, 0.98);
-  private readonly _foothillColor = new Vector3(0.11, 0.15, 0.1);
   private readonly _seasonWeights = new Vector4(0, 1, 0, 0);
   private readonly _climateParams = new Vector4(0, 0, 0.00022, 6800);
   private readonly _strataParams = new Vector4(64, 1.0, SEED_WORLD_SEA_LEVEL_METRES, 1536);
@@ -668,9 +687,8 @@ export class SeedWorldPanoramaVistaRuntime {
     sData.setVector3("material_AmbSky", this._ambSky);
     sData.setVector3("material_AmbGnd", this._ambGnd);
     sData.setVector3("material_FogColor", this._fogColor);
-    sData.setVector3("material_ZenithColor", this._zenithColor);
-    sData.setVector3("material_GrassTint", this._grassTint);
-    sData.setVector3("material_LeafTint", this._leafTint);
+    sData.setVector3("material_GroundColor", this._groundColor);
+    sData.setVector3("material_RockTint", this._rockTint);
     sData.setVector3("material_SnowAlbedo", this._snowAlbedo);
     sData.setVector4("material_SeasonWeights", this._seasonWeights);
     sData.setVector4("material_ClimateParams", this._climateParams);
@@ -697,7 +715,8 @@ export class SeedWorldPanoramaVistaRuntime {
     hData.setVector3("material_AmbGnd", this._ambGnd);
     hData.setVector3("material_HorizonColor", this._fogColor);
     hData.setVector3("material_SnowAlbedo", this._snowAlbedo);
-    hData.setVector3("material_FoothillColor", this._foothillColor);
+    hData.setVector3("material_GroundColor", this._groundColor);
+    hData.setVector3("material_RockTint", this._rockTint);
     hData.setVector2("material_VistaDistance", this._vistaDistance);
     hData.setVector4("material_VistaSeason", this._vistaSeason);
 
@@ -714,7 +733,36 @@ export class SeedWorldPanoramaVistaRuntime {
     horizonRenderer.priority = -10;
     horizonRenderer.receiveShadows = false;
     horizonRenderer.castShadows = false;
+    this.heightPercent = 85;
+    if (options.palette) this.setPalette(options.palette);
     this.update();
+  }
+
+  get visible(): boolean {
+    return this.root.isActive;
+  }
+
+  set visible(value: boolean) {
+    this.root.isActive = value;
+  }
+
+  /** Scale the vista above the horizon while keeping the terrain boundary fixed. */
+  get heightPercent(): number {
+    return Math.round(this._horizonEntity.transform.scale.y * 100);
+  }
+
+  set heightPercent(value: number) {
+    if (!Number.isFinite(value)) return;
+    const { minimum, maximum } = this.heightRange;
+    const scale = clampVista(value, minimum, maximum) / 100;
+    this._horizonEntity.transform.setScale(1, scale, 1);
+    this._skirtMaterial.shaderData.setFloat("material_VistaHeightScale", scale);
+  }
+
+  /** Both vista shaders share these uniforms for live palette changes. */
+  setPalette(palette: SeedWorldVistaPalette): void {
+    this._groundColor.set(...palette.groundColor);
+    this._rockTint.set(...palette.rockTint);
   }
 
   /**
@@ -747,29 +795,19 @@ export class SeedWorldPanoramaVistaRuntime {
       lerpVista(0.11, Math.max(0.36, fogCol.b * 1.05), dayFactor)
     );
     this._ambGnd.set(this._ambSky.x * 0.45, this._ambSky.y * 0.44, this._ambSky.z * 0.42);
-    this._zenithColor.set(this._ambSky.x * 0.65, this._ambSky.y * 0.85, this._ambSky.z * 1.25);
 
     const env = this._environment.getSnapshot();
     const w = env.season.weights;
     this._seasonWeights.set(w.spring, w.summer, w.autumn, w.winter);
-    const sc = env.seasonColors;
-    this._grassTint.set(sc.grass.r, sc.grass.g, sc.grass.b);
-    this._leafTint.set(sc.treeLeaf.r, sc.treeLeaf.g, sc.treeLeaf.b);
-
-    const winterWeight = clampVista(Math.max(w.winter, env.surface.snowCover), 0, 1);
-    const autumnWeight = clampVista(w.autumn * (1 - winterWeight), 0, 1);
-    this._foothillColor.set(
-      lerpVista(0.085, 0.21, autumnWeight),
-      lerpVista(0.135, 0.125, autumnWeight),
-      lerpVista(0.085, 0.065, autumnWeight)
-    );
+    const snowCover = clampVista(env.surface.snowCover, 0, 1);
+    const winterWeight = Math.max(w.winter, snowCover);
 
     const fogEnabled = this._lighting.getVisibility().fog;
     const baseFogDensity = fogEnabled ? Math.max(0.00009, this._scene.fogDensity * 0.32) : 0.00006;
-    this._climateParams.set(env.surface.wetness, env.surface.snowCover, baseFogDensity, this._outerSkirtRadiusMetres);
+    this._climateParams.set(env.surface.wetness, snowCover, baseFogDensity, this._outerSkirtRadiusMetres);
 
     const aerialScale = fogEnabled ? clampVista(0.75 / Math.max(1e-5, baseFogDensity), 42_000, 105_000) : 110_000;
-    this._vistaSeason.set(winterWeight, autumnWeight, aerialScale, 1.0);
+    this._vistaSeason.set(winterWeight, snowCover, aerialScale, 1.0);
   }
 
   destroy(): void {
@@ -815,6 +853,7 @@ export class SeedWorldPanoramaVistaRuntime {
     mesh.setUVs(uvArray);
     mesh.setIndices(data.indices);
     BoundingBox.fromPoints(posArray, mesh.bounds);
+    mesh.bounds.min.y = Math.min(mesh.bounds.min.y, this._worldCenter.z);
     mesh.uploadData(true);
     mesh.addSubMesh(0, data.indices.length, MeshTopology.Triangles);
 

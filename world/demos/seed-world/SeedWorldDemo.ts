@@ -38,6 +38,7 @@ import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemp
 import { readAnimalPopulationConfig } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
 import { planningFarmInitializationRequest } from "@galacean/engine-world-planning/spatial/farming/PlanningFarmInitialization";
 import { planningWaterQueryProjection } from "@galacean/engine-world-planning/spatial/hydrology/PlanningWaterEdits";
+import type { PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import {
   readGrassAppearance,
   readGrassGroundFusion,
@@ -2091,8 +2092,24 @@ export async function mountSeedWorldDemo(
     };
     camera.enabled = true;
     progress(0.2, "准备原 Seed 环境光照");
-    await source.initialize(preparePublication);
-    const initialTerrain = publication!.current!.data;
+    const readVistaPalette = (document: PlanningDocument, world: SeedWorldTerrainRuntime) => ({
+      groundColor: readSurfacePalette(document, world.defaultGroundColor),
+      rockTint: readRockFormationSettings(document).colorBlend.color
+    });
+    await source.initialize(async (document, result, context) => {
+      const prepared = await preparePublication(document, result, context);
+      return {
+        ...prepared,
+        afterCommit: () => {
+          const accepted = publication?.current;
+          if (!disposed && vista && accepted && source?.session.document.revision === document.revision) {
+            vista.setPalette(readVistaPalette(document, accepted.world));
+          }
+          return prepared.afterCommit?.();
+        }
+      };
+    });
+    const initial = publication!.current!;
     vista = new SeedWorldPanoramaVistaRuntime({
       engine,
       scene: scene!,
@@ -2100,8 +2117,9 @@ export async function mountSeedWorldDemo(
       camera,
       lighting,
       environment,
-      plan: initialTerrain.plan,
-      fields: initialTerrain.fields
+      plan: initial.data.plan,
+      fields: initial.data.fields,
+      palette: readVistaPalette(source.session.document, initial.world)
     });
     const initialBuildingDocument = source.session.export();
     nativeEditor.editor.registerPreparation(
@@ -2220,6 +2238,7 @@ export async function mountSeedWorldDemo(
         environment,
         water,
         audio: audio.audio,
+        vista,
         setGrassGroundFusion: (enabled) =>
           tools!.dispatchParameters([
             {

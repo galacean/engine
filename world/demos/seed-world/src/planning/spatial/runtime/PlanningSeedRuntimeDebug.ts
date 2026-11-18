@@ -21,6 +21,7 @@ import {
   type TerrainPerformanceSceneMetrics
 } from "@galacean/engine-world-planning/integrations/terrain/performance/TerrainPerformancePanel";
 import { RockFormationPanel } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Panel";
+import type { SeedWorldPanoramaVistaRuntime } from "@galacean/engine-world-planning/runtime/SeedWorldPanoramaVistaRuntime";
 import {
   decodeSeedWorldHeight,
   seedWorldOriginX,
@@ -58,6 +59,7 @@ export interface PlanningSeedRuntimeDebugOptions {
   readonly post: TerrainPostProcessRuntime;
   readonly environment: WorldEnvironmentRuntime;
   readonly audio?: EnvironmentAudioRuntime;
+  readonly vista: SeedWorldPanoramaVistaRuntime;
   readonly water: PlanningWaterRuntime;
   readonly setGrassGroundFusion?: (enabled: boolean) => Promise<unknown>;
   readonly readSolidsRoot: () => Entity | undefined;
@@ -210,6 +212,7 @@ export class PlanningSeedRuntimeDebug {
         },
         inspector: {
           audio: options.audio,
+          vista: options.vista,
           postProcess: options.post,
           lighting: options.lighting,
           environment: options.environment,
