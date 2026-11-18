@@ -1,26 +1,19 @@
 import type { WorldTemplateArtDirection } from "../WorldTemplateArtDirection";
 import type { TemplateNode } from "../WorldTemplateGeometry";
 
-const cottage =
-  "https://mdn.alipayobjects.com/oasis_be/uri/file/as/galacean-world/templates/low-poly/f1ebb3493930474d/cottage.glb";
-const barn =
-  "https://mdn.alipayobjects.com/oasis_be/uri/file/as/galacean-world/templates/low-poly/058d083441c28508/barn.glb";
-const oak =
-  "https://mdn.alipayobjects.com/oasis_be/uri/file/as/galacean-world/templates/low-poly/0c5bcec92e28ecd7/oak.glb";
-const pine =
-  "https://mdn.alipayobjects.com/oasis_be/uri/file/as/galacean-world/templates/low-poly/0cfdc02326988a12/pine.glb";
-const westArch =
-  "https://mdn.alipayobjects.com/oasis_be/uri/file/as/galacean-world/templates/low-poly/867acd071ebacb99/arch-west.glb";
-const eastArch =
-  "https://mdn.alipayobjects.com/oasis_be/uri/file/as/galacean-world/templates/low-poly/a9d0b2725fdf5dab/arch-east.glb";
-const wheat =
-  "https://mdn.alipayobjects.com/oasis_be/uri/file/as/galacean-world/templates/low-poly/b50fe049aed72ac0/wheat.glb";
-const greens =
-  "https://mdn.alipayobjects.com/oasis_be/uri/file/as/galacean-world/templates/low-poly/52c5129aff4f5e41/greens.glb";
-const boulder =
-  "https://mdn.alipayobjects.com/oasis_be/uri/file/as/galacean-world/templates/low-poly/b8f673ac5f570083/boulder.glb";
-const mountain =
-  "https://mdn.alipayobjects.com/oasis_be/uri/file/as/galacean-world/templates/low-poly/3b3b4c79d1d4fa07/mountain.glb";
+const asset = (file: string) => new URL(`../../assets/low-poly/${file}`, import.meta.url).href;
+
+const cottage = asset("cottage.glb");
+const barn = asset("barn.glb");
+const oak = asset("oak.glb");
+const pine = asset("pine.glb");
+const westArch = asset("arch-west.glb");
+const eastArch = asset("arch-east.glb");
+const wheat = asset("wheat.glb");
+const greens = asset("greens.glb");
+const boulder = asset("boulder.glb");
+const mountain = asset("mountain.glb");
+const mountainBlue = asset("mountain-blue.glb");
 
 function model(
   id: string,
@@ -29,7 +22,8 @@ function model(
   z: number,
   scale: TemplateNode["scale"],
   yaw = 0,
-  footprint?: TemplateNode["footprint"]
+  footprint?: TemplateNode["footprint"],
+  assetGroundY?: number
 ): TemplateNode {
   return {
     id,
@@ -39,7 +33,8 @@ function model(
     rotation: [0, yaw, 0],
     grounded: true,
     footprint,
-    ...(assetUrl === mountain ? { stretchToEnvelope: true } : {})
+    ...(assetGroundY === undefined ? {} : { assetGroundY }),
+    ...(assetUrl === mountain || assetUrl === mountainBlue ? { stretchToEnvelope: true } : {})
   };
 }
 
@@ -52,12 +47,12 @@ export const LOW_POLY_VALLEY: WorldTemplateArtDirection = {
   focus: ["stone-arch-west", "stone-arch-east"],
   frameFraction: 0.65,
   azimuthDegrees: 0,
-  lookAtOffset: [2, -2.6, 0],
+  lookAtOffset: [2.6, 0.85, 0],
   initialPlanning: {
     landMode: "continuous",
     poiMemberMax: 0,
     wayfinding: { routeCoverage: 0 },
-    relief: { reliefNearAmplitudeM: 1, reliefAmplitudeM: 5, reliefFarAmplitudeM: 32, reliefScaleM: 270 },
+    relief: { reliefNearAmplitudeM: 0.35, reliefAmplitudeM: 3.8, reliefFarAmplitudeM: 28, reliefScaleM: 270 },
     population: { villageMin: 0, villageMax: 0, buildingMin: 0, buildingMax: 0 }
   },
   generation: {
@@ -73,109 +68,121 @@ export const LOW_POLY_VALLEY: WorldTemplateArtDirection = {
     replacePopulation: true
   },
   models: [
-    model("stone-arch-west", westArch, -3.5, 2, [8, 6, 1.7], 0, [1.6, 1.7]),
-    model("stone-arch-east", eastArch, 3.5, 2, [8, 6, 1.7], 0, [1.6, 1.7]),
-    model("lakeside-cottage", cottage, -11, -5, [9, 8.3, 9], 23),
-    model("village-cottage", cottage, -2, 37, [10, 8.3, 9], -7),
-    model("village-west", cottage, -17, 29, [9, 7.4, 8.1], 19),
-    model("village-east", cottage, 13, 30, [9.6, 8, 8.7], -17),
-    model("farm-barn", barn, 35, 38, [13, 9.5, 10], -18),
-    model("foreground-oak", oak, -11, -19, [15, 13, 14], 31, [2, 2]),
-    model("cottage-pine", pine, -20, -8, [5, 10, 5], 27, [1, 1]),
-    model("shore-pine", pine, 33, -17, [5, 10, 5], 9, [1, 1]),
-    model("village-oak", oak, -10, 24, [7, 6, 7], -13, [1, 1]),
-    model("barn-oak", oak, 45, 29, [9, 8, 8], 74, [1.3, 1.3]),
-    model("west-grove-oak", oak, -31, 24, [11, 10, 10], -27, [1.4, 1.4]),
-    model("pond-bank-oak", oak, 28, 6, [7.5, 7, 7], 42, [1, 1]),
-    model("wheat-west", wheat, 22, 19, [5.5, 1.65, 8.5], -10),
-    model("wheat-east", wheat, 28, 20, [5.5, 1.65, 8.5], -10),
-    model("vegetable-garden", greens, 34, 21, [5.5, 1.65, 8.5], -10),
-    model("west-green-hill", mountain, -82, 136, [115, 28, 78], 29, [1, 1]),
-    model("east-green-hill", mountain, 82, 148, [128, 34, 83], -21, [1, 1]),
-    model("west-mountain", mountain, -81, 220, [183, 74, 112], -14, [1, 1]),
-    model("east-mountain", mountain, 103, 246, [204, 91, 133], 18, [1, 1]),
-    model("far-mountain", mountain, 10, 335, [196, 88, 125], -31, [1, 1]),
+    model("stone-arch-west", westArch, -3.5, 2, [8, 6, 1.7], 0, [1.6, 1.7], 0),
+    model("stone-arch-east", eastArch, 3.5, 2, [8, 6, 1.7], 0, [1.6, 1.7], 0),
+    model("lakeside-cottage", cottage, -10.8, -7.0, [9.2, 8.4, 9.2], 24),
+    model("village-cottage", cottage, -1.6, 37, [9.8, 8.2, 8.8], -6),
+    model("village-west", cottage, 11.6, 34, [9.4, 7.9, 8.5], -12),
+    model("village-east", cottage, 24.4, 32, [9.8, 8.2, 8.8], -16),
+    model("farm-barn", barn, 88, 22, [13, 9.5, 10], -18),
+    // Overhanging left-foreground oak bough framing the upper-left corner cleanly above the cottage roof.
+    model("foreground-oak", oak, -11.4, -20.5, [11.6, 11.6, 11.6], 18, [1.2, 1.2]),
+    model("cottage-pine", pine, -20, -8, [5.4, 10.5, 5.4], 27, [1, 1]),
+    model("shore-pine", pine, 30.5, 11, [6.2, 12.2, 6.2], 9, [1, 1]),
+    model("shore-pine-east", pine, 34.5, 9.5, [6.6, 13.0, 6.6], 41, [1, 1]),
+    model("shore-pine-back", pine, 27.8, 16.5, [5.4, 10.6, 5.4], 63, [1, 1]),
+    model("village-oak", oak, -8.4, 14.5, [7.2, 6.4, 7.2], -15, [1, 1]),
+    model("barn-oak", oak, 47, 29, [9, 8, 8], 74, [1.3, 1.3]),
+    model("west-grove-oak", oak, -28, 24, [11, 10, 10], -27, [1.4, 1.4]),
+    model("pond-bank-oak", oak, 22.4, 12.5, [8.4, 7.4, 8.4], 38, [1.1, 1.1]),
+    model("wheat-west", wheat, 20.4, 23.2, [5.5, 1.75, 7.6], 74),
+    model("wheat-east", wheat, 27.6, 22.0, [5.5, 1.75, 7.6], -14),
+    model("vegetable-garden", greens, 35.5, 22.5, [5.5, 1.65, 8.5], -10),
+    // Layered low-poly alpine foothills & snow-banded sharp pyramidal peaks across the horizon.
+    model("west-green-hill", mountainBlue, -68, 138, [108, 36, 74], 24, [1, 1]),
+    model("arch-blue-peak", mountainBlue, -18, 188, [112, 58, 82], -12, [1, 1]),
+    model("east-green-hill", mountainBlue, 76, 152, [122, 38, 80], -21, [1, 1]),
+    model("west-mountain", mountain, -96, 215, [186, 88, 118], -14, [1, 1]),
+    model("center-west-peak", mountain, 18, 246, [156, 98, 108], 11, [1, 1]),
+    model("east-mountain", mountain, 68, 242, [172, 108, 118], -19, [1, 1]),
+    model("far-east-peak", mountain, 162, 232, [178, 94, 116], 22, [1, 1]),
+    model("far-mountain", mountain, -8, 328, [196, 96, 125], -31, [1, 1]),
     ...[
-      [-227, 230, 166, 84, 102, 8],
-      [-158, 307, 187, 106, 120, -21],
-      [-74, 339, 152, 112, 101, 16],
-      [82, 343, 179, 114, 103, 12],
-      [161, 311, 187, 90, 100, -18],
-      [240, 247, 160, 78, 112, 23],
-      [-299, 163, 150, 68, 94, -12],
-      [306, 167, 153, 76, 103, 17],
-      [-325, 23, 135, 62, 106, 31],
-      [328, 24, 129, 63, 105, -22],
+      [-227, 230, 166, 88, 102, 8],
+      [-158, 307, 187, 108, 120, -21],
+      [-74, 339, 152, 114, 101, 16],
+      [92, 343, 179, 116, 103, 12],
+      [178, 311, 187, 94, 100, -18],
+      [246, 247, 160, 82, 112, 23],
+      [-299, 163, 150, 72, 94, -12],
+      [306, 167, 153, 78, 103, 17],
+      [-325, 23, 135, 66, 106, 31],
+      [328, 24, 129, 66, 105, -22],
       [-308, -118, 160, 78, 112, -12],
-      [310, -130, 158, 73, 108, 14],
+      [310, -130, 158, 76, 108, 14],
       [-217, -263, 164, 88, 105, -27],
-      [202, -273, 171, 82, 113, 24],
+      [202, -273, 171, 84, 113, 24],
       [-65, -318, 189, 87, 112, 19],
       [78, -329, 163, 93, 105, -18]
     ].map(([x, z, w, h, d, yaw], i) => model(`surrounding-mountain-${i + 1}`, mountain, x, z, [w, h, d], yaw, [1, 1])),
     ...[
-      [-5.6, -24, 1.1],
-      [7.2, -24, 2.7],
-      [11, -23, 1.4],
-      [6.4, -17, 1.4],
-      [5.6, -8, 1.3],
-      [10, 1.5, 2.3],
-      [22, 4.6, 2.1],
-      [32.7, -5, 2.4],
-      [30, -19.3, 1.65],
-      [-6, 1, 2.3],
-      [5.9, 3, 1.7],
+      [-5.8, -24, 1.1],
+      [6.2, -23.6, 2.7],
+      [9.6, -22.8, 1.6],
+      [6.2, -16.8, 1.35],
+      [5.7, -8.2, 1.25],
+      [9.8, 1.8, 2.1],
+      [22.0, 4.6, 2.0],
+      [32.8, -5.0, 2.3],
+      [30.2, -19.4, 1.65],
+      [-5.9, 1.2, 2.15],
+      [5.9, 3.0, 1.7],
       [-18, -19, 2.2],
-      [-26, 29, 2.8],
-      [36, 10, 2.6],
-      [46, 39, 3.3]
-    ].map(([x, z, w], i) => model(`valley-boulder-${i + 1}`, boulder, x, z, [w, w * 0.7, w * 0.86], i * 67)),
+      [-24, 29, 2.8],
+      [36, 10, 2.5],
+      [74, 34, 3.2]
+    ].map(([x, z, w], i) =>
+      model(`valley-boulder-${i + 1}`, boulder, x, z, [w, w * 0.72, w * 0.88], i === 1 ? 28 : i * 67, [
+        Math.min(1.1, w * 0.45),
+        Math.min(1.1, w * 0.45)
+      ])
+    ),
     ...[
-      [-37, 32, 9],
-      [-29, 38, 8],
+      [-37, 32, 10],
+      [-29, 38, 9],
       [-38, 46, 12],
-      [-21, 47, 11],
-      [-12, 51, 9],
-      [-3, 54, 11],
-      [8, 51, 8],
-      [16, 53, 11],
-      [23, 47, 8],
-      [34, 51, 10],
-      [43, 45, 12],
-      [48, 36, 8],
-      [-54, 58, 11],
+      [-21, 47, 12],
+      [-12, 48, 11],
+      [-5, 52, 12],
+      [5, 49, 11],
+      [15, 48, 12],
+      [24, 46, 11],
+      [34, 50, 12],
+      [43, 45, 13],
+      [48, 36, 10],
+      [-54, 58, 12],
       [-46, 65, 13],
-      [-30, 61, 10],
-      [-24, 73, 12],
-      [-16, 66, 9],
-      [-6, 74, 11],
-      [8, 72, 11],
-      [18, 65, 9],
-      [32, 69, 12],
-      [49, 65, 11],
-      [57, 53, 10],
+      [-30, 61, 11],
+      [-24, 73, 13],
+      [-16, 66, 11],
+      [-6, 74, 12],
+      [8, 72, 12],
+      [18, 65, 11],
+      [32, 69, 13],
+      [49, 65, 12],
+      [57, 53, 11],
       [-68, 84, 12],
-      [-52, 93, 10],
-      [-36, 89, 11],
-      [31, 87, 12],
-      [49, 93, 10],
+      [-52, 93, 11],
+      [-36, 89, 12],
+      [31, 87, 13],
+      [49, 93, 11],
       [62, 76, 13],
-      // Stagger the grove behind the roofs so its crowns read above the village.
+      // Stagger the grove behind the roofs so its crowns read crisply above the village.
       [-32, 48, 17],
-      [-25, 55, 15],
-      [-16, 57, 17],
-      [-8, 61, 14],
-      [1, 63, 16],
-      [9, 59, 14],
-      [17, 61, 16],
-      [25, 56, 14],
-      [32, 59, 17],
-      [39, 58, 15],
+      [-25, 55, 16],
+      [-16, 56, 17],
+      [-9, 58, 15],
+      [-1, 61, 16],
+      [7, 57, 15],
+      [15, 59, 17],
+      [23, 55, 15],
+      [31, 58, 17],
+      [39, 57, 16],
       [46, 57, 17],
       [-44, 73, 16],
-      [-36, 77, 13],
+      [-36, 77, 14],
       [-28, 84, 16],
-      [-19, 78, 14],
+      [-19, 78, 15],
       [-11, 86, 17],
       [-3, 81, 15],
       [6, 88, 16],
@@ -184,17 +191,17 @@ export const LOW_POLY_VALLEY: WorldTemplateArtDirection = {
       [34, 81, 15],
       [43, 83, 17],
       // Side groves leave the main path and water clear.
-      [-22, 3, 9],
-      [-29, 10, 12],
-      [-23, 18, 10],
-      [-36, 16, 13],
-      [-43, 25, 12],
+      [-15, 10, 11],
+      [-19, 17, 13],
+      [-23, 24, 12],
+      [-32, 18, 13],
+      [-41, 25, 13],
       [-47, 35, 15],
-      [37, -1, 9],
-      [44, 5, 11],
-      [39, 10, 8],
-      [48, 14, 14],
-      [52, 22, 10],
+      [37, 2, 11],
+      [42, 8, 13],
+      [39, 15, 10],
+      [47, 16, 14],
+      [52, 22, 11],
       [58, 30, 15],
       [-58, 101, 13],
       [-47, 105, 16],
@@ -205,7 +212,7 @@ export const LOW_POLY_VALLEY: WorldTemplateArtDirection = {
       [36, 104, 16],
       [54, 105, 14],
       [66, 98, 17],
-      // Near the spawn, the groves extend around the player as well as into the opening view.
+      // Near the spawn, groves extend around the player as well as into the opening view.
       [-19, -28, 12],
       [-26, -24, 10],
       [-28, -37, 14],
@@ -221,7 +228,7 @@ export const LOW_POLY_VALLEY: WorldTemplateArtDirection = {
       [-42, -5, 10],
       [-35, 2, 11],
       [-51, 6, 13],
-      [15, -36, 8],
+      [16, -36, 9],
       [24, -39, 12],
       [32, -32, 13],
       [41, -27, 10],
@@ -241,7 +248,6 @@ export const LOW_POLY_VALLEY: WorldTemplateArtDirection = {
       [-17, -77, 12],
       [2, -83, 13],
       [15, -76, 9],
-      // Break up the meadow with separate stands across the two-POI neighbourhood.
       [-77, -43, 15],
       [-87, -50, 13],
       [-96, -36, 14],
@@ -310,7 +316,6 @@ export const LOW_POLY_VALLEY: WorldTemplateArtDirection = {
       [65, -286, 16],
       [86, -271, 12],
       [106, -295, 15],
-      // Sparse stands beyond the main valley, to the sides of the mountain meshes.
       [-180, 201, 14],
       [-199, 218, 16],
       [-217, 203, 12],
@@ -337,16 +342,70 @@ export const LOW_POLY_VALLEY: WorldTemplateArtDirection = {
       [264, 359, 13],
       [280, 346, 17],
       [293, 369, 14]
-    ].map(([x, z, h], i) => model(`ridge-pine-${i + 1}`, pine, x, z, [h / 2, h, h / 2], i * 53, [1, 1]))
+    ].map(([x, z, h], i) => model(`ridge-pine-${i + 1}`, pine, x, z, [h * 0.54, h, h * 0.54], i * 53, [1, 1]))
   ],
-  water: [{ id: "valley-pond", x: 19, z: -10, radius: 12.5, depth: 2.6, color: [48, 132, 153] }],
-  grass: ["#527b37", "#9eaf47"],
-  ground: "#d7e5c8",
-  road: "#b66b3c",
-  foliage: "#66a344",
-  bark: "#806246",
-  flowers: "#fff5cf",
-  stone: "#958a7d",
+  water: [
+    {
+      id: "valley-pond",
+      x: 19,
+      z: -10,
+      radius: 12.5,
+      depth: 2.6,
+      depthTintDistanceM: 0.42,
+      color: [38, 145, 168]
+    }
+  ],
+  proceduralPlants: [
+    // Dainty white meadow wildflower sprigs bordering both grassy verges of the dirt path & around the hero boulder.
+    ...[
+      [-3.5, -27.2, 0.27, 18, 0, 1.05],
+      [-4.8, -26.2, 0.3, 94, 1, 1.08],
+      [-2.9, -24.8, 0.25, 168, 2, 1.0],
+      [-5.9, -24.8, 0.29, 242, 3, 1.06],
+      [-3.6, -22.0, 0.28, 52, 0, 1.04],
+      [-5.2, -20.4, 0.31, 128, 1, 1.08],
+      [-3.3, -17.6, 0.27, 204, 2, 1.02],
+      [-6.4, -16.0, 0.3, 286, 3, 1.06],
+      [-3.8, -12.8, 0.29, 36, 0, 1.05],
+      [-5.6, -9.4, 0.31, 112, 1, 1.08],
+      [-4.2, -4.6, 0.28, 188, 2, 1.04],
+      [3.1, -27.4, 0.26, 64, 0, 1.02],
+      [4.5, -26.5, 0.29, 142, 1, 1.06],
+      [5.7, -25.8, 0.27, 218, 2, 1.04],
+      [3.6, -24.0, 0.26, 294, 3, 1.0],
+      [4.8, -22.4, 0.28, 48, 0, 1.05],
+      [3.7, -20.6, 0.28, 126, 1, 1.04],
+      [4.5, -18.0, 0.3, 202, 2, 1.06],
+      [6.2, -18.2, 0.31, 278, 3, 1.08],
+      [4.0, -14.2, 0.28, 84, 0, 1.04],
+      [5.1, -9.8, 0.3, 162, 1, 1.06],
+      [4.6, -5.2, 0.28, 238, 2, 1.04]
+    ].map(([x, z, heightM, yawDegrees, variant, spreadScale], i) => ({
+      id: `roadside-white-flower-${i + 1}`,
+      kind: "meadow-flower" as const,
+      x,
+      z,
+      heightM,
+      yawDegrees,
+      variant,
+      spreadScale
+    }))
+  ],
+  grass: ["#2f6e1e", "#98cc32"],
+  ground: "#69a434",
+  road: "#c97d39",
+  foliage: "#6cb322",
+  bark: "#57381e",
+  flowers: "#ffffff",
+  stone: "#beb7ab",
+  plantPalette: {
+    layers: ["flowers"],
+    parts: {
+      petals: { color: "#ffffff", intensity: 1.6 },
+      stem: { color: "#549423", intensity: 1.0 },
+      foliage: { color: "#549423", intensity: 1.0 }
+    }
+  },
   surfaceTextures: {
     baseUrl: new URL("../../assets/low-poly/meadow-blocks.jpg", import.meta.url).href,
     tileSizeM: 43,
@@ -354,18 +413,78 @@ export const LOW_POLY_VALLEY: WorldTemplateArtDirection = {
   },
   grassGroundFusion: false,
   landscape: {
-    grassRelativeHeight: 0.17,
+    grassRelativeHeight: 0.22,
     density: 0,
     companionStoneDensity: 0,
     "vegetation.trees": 0,
     "vegetation.shrubs": 0
   },
   initialLandscape: {
-    "vegetation.grass": 0.58,
-    "vegetation.flowers": 0.24
+    "vegetation.grass": 0.78,
+    "vegetation.flowers": 0.35
   },
-  flowerCoverage: 0.21,
-  weather: { cloudCoverage: 0.24, cloudBaseAltitudeM: 940, cloudFeatureSize: 0.8, relativeHumidity: 0.49 },
-  lighting: { timeHours: 14.6 },
-  postProcess: {}
+  flowerCoverage: 0.24,
+  weather: {
+    cloudCoverage: 0.3,
+    cloudBaseAltitudeM: 940,
+    cloudThicknessM: 300,
+    cloudFeatureSize: 0.5,
+    cloudDensityMultiplier: 1.32,
+    cloudEnvelopeScale: 0.43,
+    cloudTopDensityMultiplier: 0.36,
+    cloudDetailNoiseMultiplier: 1.35,
+    cloudAmbientFloor: 0.48,
+    rainRate: 0,
+    snowRate: 0,
+    temperatureCelsius: 22,
+    relativeHumidity: 0.3
+  },
+  lighting: {
+    timeHours: 14.8,
+    northOffsetDegrees: 211,
+    sunIntensity: 2.48,
+    ambientIntensity: 1.38,
+    iblIntensity: 1.1,
+    sunColorR: 1.0,
+    sunColorG: 0.96,
+    sunColorB: 0.88,
+    atmosphereThickness: 0.74,
+    skyExposure: 0.8,
+    skyTintR: 0.214,
+    skyTintG: 0.214,
+    skyTintB: 0.214,
+    customSkyTintStrength: 0.94,
+    customSkyZenithR: 0.2,
+    customSkyZenithG: 0.7,
+    customSkyZenithB: 1.34,
+    customSkyHorizonR: 0.5,
+    customSkyHorizonG: 1.02,
+    customSkyHorizonB: 1.44,
+    groundTintR: 0.27,
+    groundTintG: 0.45,
+    groundTintB: 0.65,
+    fogDensity: 0.0005,
+    fogExponent: 1.6,
+    fogRadianceIntensity: 0.65,
+    fogTintR: 0.75,
+    fogTintG: 0.88,
+    fogTintB: 1.0,
+    direct: true,
+    environment: true,
+    shadows: true,
+    shadowStrength: 0.75,
+    fog: true
+  },
+  postProcess: {
+    enabled: true,
+    tonemapping: true,
+    postExposure: 0.44,
+    temperature: 4,
+    contrast: 13,
+    saturation: 11,
+    bloom: true,
+    bloomThreshold: 0.96,
+    bloomIntensity: 0.16,
+    bloomScatter: 0.6
+  }
 };

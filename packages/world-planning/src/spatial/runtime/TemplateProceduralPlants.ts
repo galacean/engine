@@ -60,7 +60,13 @@ import { TREE_STRUCTURE as DEAD_TREE_STRUCTURE } from "@galacean/engine-vegetati
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
 import { templateLinearColor } from "../WorldTemplateCatalog";
 
-export type TemplateProceduralPlantKind = "dead-wood" | "dry-grass" | "plume-grass" | "desert-shrub" | "pastel-flower";
+export type TemplateProceduralPlantKind =
+  | "dead-wood"
+  | "dry-grass"
+  | "plume-grass"
+  | "desert-shrub"
+  | "pastel-flower"
+  | "meadow-flower";
 
 export interface TemplateProceduralPlantInstance {
   readonly id: string;
@@ -103,6 +109,11 @@ const PROCEDURAL_PALETTE: Record<TemplateProceduralPlantKind, Record<string, Pla
     foliage: hexPalette("#94a678", "#86986a", "#a2b286"),
     petals: hexPalette("#d8b0fa", "#f4bae8", "#c8a0f4", "#ecd2fc"),
     petalsAlt: hexPalette("#e4bcf8", "#f6c6ec", "#d2acf6", "#f0d8fc")
+  },
+  "meadow-flower": {
+    foliage: hexPalette("#4b8e20", "#5aa129", "#3f7d1b"),
+    petals: hexPalette("#ffffff", "#fffdf0", "#f8fbff", "#fff9e0"),
+    petalsAlt: hexPalette("#fffbe8", "#ffffff", "#fff6d6", "#f6faff")
   }
 };
 
@@ -123,6 +134,11 @@ const SLOT_TEXTURES: Partial<
     foliage: { textureKey: "grassBlade", alphaCutoff: 0.22, textureBlend: 0.2 },
     petals: { textureKey: "flowerBlossom", alphaCutoff: 0.16, textureBlend: 0.32 },
     petalsAlt: { textureKey: "flowerPetal", alphaCutoff: 0.16, textureBlend: 0.32 }
+  },
+  "meadow-flower": {
+    foliage: { textureKey: "grassBlade", alphaCutoff: 0.22, textureBlend: 0.18 },
+    petals: { textureKey: "flowerBlossom", alphaCutoff: 0.18, textureBlend: 0.16 },
+    petalsAlt: { textureKey: "flowerPetal", alphaCutoff: 0.18, textureBlend: 0.16 }
   },
   "dry-grass": {
     foliage: { textureKey: "grassBlade", alphaCutoff: 0.24, textureBlend: 0.24 }
@@ -287,7 +303,7 @@ function compileProductionGeometry(
     };
   }
 
-  if (kind === "pastel-flower") {
+  if (kind === "pastel-flower" || kind === "meadow-flower") {
     const structure = resources.flowerAsset.geometryLods[0];
     const baseParts = buildProceduralPlantGeometry(structure, 0);
     const baseSpan = Math.max(
@@ -298,13 +314,13 @@ function compileProductionGeometry(
     );
     const baseMaxY = Math.max(0.05, ...baseParts.map(({ mesh }) => mesh.bounds[1][1]));
     const rawPetalId = "appearance-e7bfcdb9301d4d83";
+    const headBoost = kind === "meadow-flower" ? 1.28 : 1.95;
     // Enlarge each alpha-cutout blossom card slightly around its head center so petals stay lush from afar AND crisp up close!
     const enlargedParts = baseParts.map((part) => {
       if (part.materialId !== rawPetalId) return part;
       const cx = (part.mesh.bounds[0][0] + part.mesh.bounds[1][0]) * 0.5;
       const cy = (part.mesh.bounds[0][1] + part.mesh.bounds[1][1]) * 0.5;
       const cz = (part.mesh.bounds[0][2] + part.mesh.bounds[1][2]) * 0.5;
-      const headBoost = 1.95;
       const min: [number, number, number] = [Infinity, Infinity, Infinity];
       const max: [number, number, number] = [-Infinity, -Infinity, -Infinity];
       const positions = part.mesh.positions.map(([px, py, pz]) => {
@@ -321,13 +337,15 @@ function compileProductionGeometry(
       });
       return { ...part, mesh: { ...part.mesh, positions, bounds: [min, max] as const } };
     });
-    // Compose 9 dense, low-domed wildflower sub-clumps + fine alpha-cutout basal grass blades into a rich cushion.
+    // Compose airy wildflower sprigs (5 for meadow-flower, 9 dense cushions for pastel-flower) + basal grass blades.
     const goldenAngle = Math.PI * (3 - Math.sqrt(5));
     const assembled: PlantPartMesh[] = [];
     const q = new Quaternion();
     const mat = new Matrix();
-    for (let i = 0; i < 9; i++) {
-      const r = (i === 0 ? 0 : 0.2 + Math.sqrt(i / 8) * 0.52) * baseSpan;
+    const sprigCount = kind === "meadow-flower" ? 5 : 9;
+    const radiusScale = kind === "meadow-flower" ? 0.72 : 0.52;
+    for (let i = 0; i < sprigCount; i++) {
+      const r = (i === 0 ? 0 : 0.24 + Math.sqrt(i / Math.max(1, sprigCount - 1)) * radiusScale) * baseSpan;
       const theta = i * goldenAngle;
       const x = Math.cos(theta) * r;
       const z = Math.sin(theta) * r;
@@ -523,7 +541,8 @@ const PROCEDURAL_WIND_PARAMS: Record<
   "dry-grass": [0.32, 0.65, 0, 1.15],
   "plume-grass": [0.38, 0.68, 0, 1.2],
   "desert-shrub": [0.16, 0.52, 0.14, 1.15],
-  "pastel-flower": [0.28, 0.68, 0, 1.25]
+  "pastel-flower": [0.28, 0.68, 0, 1.25],
+  "meadow-flower": [0.24, 0.68, 0, 1.22]
 };
 
 function createProceduralWindMaterial(
@@ -724,11 +743,13 @@ export function mountTemplateProceduralPlants(
         const cfg = slotConfigs[slot];
         const texture = cfg?.textureKey ? plantResources.textures[cfg.textureKey] : undefined;
         const brightness =
-          kind === "pastel-flower" && (slot === "petals" || slot === "petalsAlt")
-            ? 1.32
-            : kind === "desert-shrub"
-              ? 1.72
-              : 1.48;
+          kind === "meadow-flower" && (slot === "petals" || slot === "petalsAlt")
+            ? 1.75
+            : kind === "pastel-flower" && (slot === "petals" || slot === "petalsAlt")
+              ? 1.32
+              : kind === "desert-shrub"
+                ? 1.72
+                : 1.48;
         const desaturation = kind === "desert-shrub" ? 0.32 : 0;
         const material = createProceduralWindMaterial(
           root.engine,
@@ -751,9 +772,10 @@ export function mountTemplateProceduralPlants(
       new Vector3(-Infinity, -Infinity, -Infinity)
     );
     const transforms = positioned.map(({ entry, localX, localY, localZ }) => {
-      const effectiveHeight = kind === "pastel-flower" ? entry.heightM * 0.78 : entry.heightM;
+      const isFlowerCushion = kind === "pastel-flower" || kind === "meadow-flower";
+      const effectiveHeight = isFlowerCushion ? entry.heightM * 0.78 : entry.heightM;
       const scaleY = effectiveHeight / sourceHeight;
-      const spread = kind === "pastel-flower" ? 1 + ((entry.spreadScale ?? 1) - 1) * 0.55 : (entry.spreadScale ?? 1);
+      const spread = isFlowerCushion ? 1 + ((entry.spreadScale ?? 1) - 1) * 0.55 : (entry.spreadScale ?? 1);
       const scaleXZ = scaleY * spread;
       const sink = entry.onRock ? Math.min(0.08, effectiveHeight * 0.08) : Math.min(0.035, effectiveHeight * 0.06);
       const base = localY - floor * scaleY - sink;
