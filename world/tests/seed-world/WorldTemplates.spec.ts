@@ -154,8 +154,9 @@ describe("authored world templates", () => {
         expect.arrayContaining(["stone-arch-west", "stone-arch-east", "lakeside-cottage", "farm-barn"])
       );
       const { center, spawnView } = plan.worldTemplateSite!;
-      expect(spawnView?.eye[0]).toBe(center.x);
-      expect(spawnView?.eye[2]).toBe(center.z - 32);
+      const expectedView = WORLD_TEMPLATE_ART["low-poly"].resolveView!(seed);
+      expect(spawnView?.eye[0]).toBeCloseTo(center.x - expectedView.spawnOffset![0], 6);
+      expect(spawnView?.eye[2]).toBeCloseTo(center.z + expectedView.spawnOffset![1], 6);
       expect(plan.farming?.placementCheck.state).toBe("ready");
       const nodes = buildWorldTemplateGeometry(WORLD_TEMPLATES.find(({ id }) => id === "low-poly")!, seed).nodes;
       expect(nodes.every(({ assetUrl }) => assetUrl?.endsWith(".glb"))).toBe(true);
@@ -174,6 +175,81 @@ describe("authored world templates", () => {
         postExposure: 0.44
       });
       expect(nodes.every(({ assetUrl }) => Boolean(assetUrl && /\/low-poly\/[\w-]+\.glb$/.test(assetUrl)))).toBe(true);
+    },
+    60_000
+  );
+
+  it(
+    "Low Poly varies camera pose and valley layout across Seeds while framing buildings, grass, stones and water",
+    () => {
+      const seeds = [1, 42, 20261113, 1949748228, 2864397056];
+      const spawnEyes = new Set<string>();
+      const pondCenters = new Set<string>();
+      const cottagePositions = new Set<string>();
+      const aspect = 16 / 9;
+      const fovDegrees = 50;
+      const tanY = Math.tan((fovDegrees * Math.PI) / 360);
+      const tanX = tanY * aspect;
+
+      for (const seed of seeds) {
+        const doc = createTemplatePlanningDocument(seed, "low-poly");
+        expect(doc.entities.world.components.landscape.values["vegetation.grass"]).toBe(0.78);
+        const result = generatePlanningDocument(doc, undefined, [], undefined, { environment: false });
+        expect(result.accepted).toBe(true);
+        const { plan } = result;
+
+        const surface = planningGroundSurface(plan);
+        const ground = (x: number, z: number) => surface.sample({ x, z });
+        const scene = resolveWorldTemplateScene({ ...plan, worldTemplateSite: { ...plan.worldTemplateSite!, spawnView: undefined } }, ground)!;
+        const { eye, target } = resolveWorldTemplateView(scene, aspect, fovDegrees, 1.8, ground).pose;
+
+        spawnEyes.add(`${eye[0].toFixed(2)},${eye[2].toFixed(2)}->${target[0].toFixed(2)},${target[2].toFixed(2)}`);
+
+        const forward = target.map((v, i) => v - eye[i]);
+        const fLen = Math.hypot(...forward);
+        forward.forEach((v, i) => (forward[i] = v / fLen));
+        const right = [forward[2], 0, -forward[0]];
+        const rLen = Math.hypot(...right);
+        right.forEach((v, i) => (right[i] = v / rLen));
+        const up = [
+          right[1] * forward[2] - right[2] * forward[1],
+          right[2] * forward[0] - right[0] * forward[2],
+          right[0] * forward[1] - right[1] * forward[0]
+        ];
+        const dot = (a: number[], b: number[]) => a.reduce((sum, v, i) => sum + v * b[i], 0);
+        const inFrustum = (pos: readonly [number, number, number], maxNdcX = 0.9, maxNdcY = 0.9) => {
+          const v = [pos[0] - eye[0], pos[1] - eye[1], pos[2] - eye[2]];
+          const depth = dot(v, forward);
+          if (depth <= 2) return false;
+          return Math.abs(dot(v, right) / (depth * tanX)) <= maxNdcX && Math.abs(dot(v, up) / (depth * tanY)) <= maxNdcY;
+        };
+
+        // 1. Buildings in view (foreground cottage + village cottages + stone arch)
+        const heroCottage = scene.nodes.find((n) => n.node.id === "lakeside-cottage")!;
+        const villageCottage = scene.nodes.find((n) => n.node.id === "village-cottage")!;
+        cottagePositions.add(`${heroCottage.position[0].toFixed(2)},${heroCottage.position[2].toFixed(2)}`);
+        expect(inFrustum(heroCottage.position, 0.88, 0.88)).toBe(true);
+        expect(inFrustum(villageCottage.position, 0.88, 0.88)).toBe(true);
+
+        // 2. Water (`valley-pond`) in view and player dry outside the lake
+        const pond = plan.waters.find((w) => w.id.endsWith(":valley-pond"))!;
+        expect(pond).toBeDefined();
+        const pondX = pond.outline.reduce((s, p) => s + p.x, 0) / pond.outline.length;
+        const pondZ = pond.outline.reduce((s, p) => s + p.z, 0) / pond.outline.length;
+        pondCenters.add(`${pondX.toFixed(2)},${pondZ.toFixed(2)}`);
+        const visibleShorePoints = pond.outline.filter((p) => inFrustum([p.x, ground(p.x, p.z), p.z], 0.88, 0.9));
+        expect(visibleShorePoints.length).toBeGreaterThanOrEqual(12);
+
+        // 3. Stones (`valley-boulder-*`) in view
+        const visibleBoulders = scene.nodes.filter(
+          (n) => n.node.id.startsWith("valley-boulder-") && inFrustum(n.position, 0.85, 0.9)
+        );
+        expect(visibleBoulders.length).toBeGreaterThanOrEqual(4);
+      }
+
+      expect(spawnEyes.size).toBe(seeds.length);
+      expect(pondCenters.size).toBe(seeds.length);
+      expect(cottagePositions.size).toBe(seeds.length);
     },
     60_000
   );
@@ -1186,7 +1262,8 @@ describe("authored world templates", () => {
       const geometry = buildWorldTemplateGeometry(template, 0);
       expect(buildWorldTemplateGeometry(template, 0)).toEqual(geometry);
       const other = buildWorldTemplateGeometry(template, 0xffffffff);
-      expect(other).toEqual(geometry);
+      if (art.resolveModels) expect(other).not.toEqual(geometry);
+      else expect(other).toEqual(geometry);
       expect(geometry.nodes).toHaveLength(art.models.length);
       const ids = new Set<string>();
       for (const node of geometry.nodes) {

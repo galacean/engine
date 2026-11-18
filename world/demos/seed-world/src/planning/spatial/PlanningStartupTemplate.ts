@@ -45,10 +45,10 @@ export function initialPlanningTemplate(search: string, seed: number, savedTempl
 export function applyPlanningTemplateSurface(_document: PlanningDocument): void {}
 
 /** Refresh local saves from the unreleased Low Poly preview without replacing edited values. */
-export function refreshLowPolyPreview(document: PlanningDocument): void {
+export function refreshLowPolyPreview(document: PlanningDocument): boolean {
   const { worldTemplate, lighting, postProcess, terrain, layout, landscape, wayfinding, surfacePalette } =
     document.entities.world.components;
-  if (worldTemplate?.values.id !== "low-poly") return;
+  if (worldTemplate?.values.id !== "low-poly") return false;
   const previousLight = {
     sunIntensity: 1.75,
     sunColorR: 1,
@@ -152,6 +152,36 @@ export function refreshLowPolyPreview(document: PlanningDocument): void {
       Object.assign(params, art.initialPlanning?.relief);
     }
   }
+  const pondId = "lake:authored:template:low-poly:water:valley-pond";
+  const pond = document.entities[pondId];
+  const shoreline = pond?.components.lakes?.values.shoreline;
+  const legacyAnchor = worldTemplate.values.centerX !== 512 || worldTemplate.values.centerZ !== 512;
+  if (legacyAnchor || (pond?.origin === "generated" && Array.isArray(shoreline) && shoreline.length !== 60)) {
+    const seed = exportPlanningRecipe(document).parameters.seed;
+    const fresh = createTemplatePlanningDocument(seed, "low-poly");
+    const freshWorld = fresh.entities.world.components;
+    worldTemplate.values = structuredClone(freshWorld.worldTemplate.values);
+    const composition = document.entities.world.components.landscapeComposition;
+    if (composition && !composition.base && freshWorld.landscapeComposition) {
+      composition.values.centerX = freshWorld.landscapeComposition.values.centerX;
+      composition.values.centerZ = freshWorld.landscapeComposition.values.centerZ;
+    }
+    if (document.passthrough?.parameters) {
+      Object.assign(document.passthrough.parameters, art.initialPlanning?.relief);
+      document.passthrough.parameters.worldTemplate = structuredClone(
+        exportPlanningRecipe(fresh).parameters.worldTemplate
+      );
+      if (document.passthrough.parameters.spatialComposition) {
+        document.passthrough.parameters.spatialComposition.centerX = 512;
+        document.passthrough.parameters.spatialComposition.centerZ = 512;
+      }
+    }
+    if (fresh.entities[pondId] && (!pond || pond.origin === "generated")) {
+      document.entities[pondId] = structuredClone(fresh.entities[pondId]);
+    }
+    return true;
+  }
+  return false;
 }
 
 /** Refreshes an older desert preview that still carries the original template relief values. */

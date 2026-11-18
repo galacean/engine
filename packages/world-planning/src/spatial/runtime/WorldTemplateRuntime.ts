@@ -124,7 +124,11 @@ export class WorldTemplateRuntime {
     const leafModelUrls = new Set(
       nodes.filter(({ node }) => node.assetLeafMaterials?.length && node.assetUrl).map(({ node }) => node.assetUrl!)
     );
-    const hasProceduralPlants = Boolean(WORLD_TEMPLATE_ART[template.id].proceduralPlants?.length);
+    const art = WORLD_TEMPLATE_ART[template.id];
+    const resolvedPlants = art.resolveProceduralPlants
+      ? art.resolveProceduralPlants(plan.parameters.seed)
+      : art.proceduralPlants;
+    const hasProceduralPlants = Boolean(resolvedPlants?.length);
     const needsLeafMaterial = leafModelUrls.size > 0 || hasProceduralPlants;
     const leafTemplateTask = needsLeafMaterial
       ? parent.engine.resourceManager.load<Material>({
@@ -310,7 +314,10 @@ export class WorldTemplateRuntime {
         if (!butterflyTexture) throw new Error("Missing template butterfly texture");
         this.createButterflyParticles(butterflies, ground, butterflyTexture);
       }
-      const proceduralPlants = WORLD_TEMPLATE_ART[template.id].proceduralPlants;
+      const templateArt = WORLD_TEMPLATE_ART[template.id];
+      const proceduralPlants = templateArt.resolveProceduralPlants
+        ? templateArt.resolveProceduralPlants(plan.parameters.seed)
+        : templateArt.proceduralPlants;
       if (proceduralPlants?.length) {
         const rockSurface = formations?.length ? rockFormationGround(plan, formations) : undefined;
         const rockGround = rockSurface
@@ -345,7 +352,10 @@ export class WorldTemplateRuntime {
     const hasSubjectTerrace = Boolean(
       compositionSubjectTerraceBox(spatialCompositionParameters(plan.parameters.spatialComposition))
     );
-    const proceduralPlants = WORLD_TEMPLATE_ART[this.template.id].proceduralPlants;
+    const templateArt = WORLD_TEMPLATE_ART[this.template.id];
+    const proceduralPlants = templateArt.resolveProceduralPlants
+      ? templateArt.resolveProceduralPlants(plan.parameters.seed)
+      : templateArt.proceduralPlants;
     const hasRockPlants = Boolean(proceduralPlants?.some((plant) => plant.onRock));
     if (!hasSubjectTerrace && !hasRockPlants) return;
     const scene = hasSubjectTerrace ? resolveWorldTemplateScene(plan, ground, formations) : undefined;

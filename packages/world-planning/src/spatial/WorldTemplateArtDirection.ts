@@ -72,6 +72,19 @@ export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
   /** Composition aim relative to the focus envelope; a side subject stays at the side. */
   lookAtOffset?: [number, number, number];
   models: (TemplateNode | TemplateAssetSlot)[];
+  /** Optional deterministic per-Seed model layout while keeping `models` as the canonical default roster. */
+  resolveModels?: (seed: number) => (TemplateNode | TemplateAssetSlot)[];
+  /** Optional deterministic per-Seed water bodies while keeping `water` as the canonical optical catalog. */
+  resolveWater?: (seed: number) => NonNullable<WorldTemplateArtDirection["water"]>;
+  /** Optional deterministic per-Seed procedural plant placements. */
+  resolveProceduralPlants?: (seed: number) => TemplateProceduralPlantInstance[];
+  /** Optional deterministic per-Seed camera framing overrides. */
+  resolveView?: (seed: number) => {
+    spawnOffset?: [number, number];
+    lookAtOffset?: [number, number, number];
+    azimuthDegrees?: number;
+    frameFraction?: number;
+  };
   surfaceTextures?: {
     baseUrl: string;
     normalUrl?: string;

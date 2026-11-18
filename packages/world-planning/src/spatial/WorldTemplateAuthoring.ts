@@ -111,6 +111,52 @@ const cores = new Map<
   string,
   { anchor: { x: number; z: number }; resources: PlanningResource[]; lakes: SpatialEntity[] }
 >();
+function buildTemplateLakes(
+  id: string,
+  anchor: { x: number; z: number },
+  waters: NonNullable<(typeof WORLD_TEMPLATE_ART)[string]["water"]>
+): SpatialEntity[] {
+  return waters.map((pool) => {
+    const lakeId = `lake:authored:template:${id}:water:${pool.id}`;
+    const toPoint = (px: number, pz: number, i: number, ring: string) => ({
+      id: `${lakeId}:${ring}:${i}`,
+      ring,
+      x: anchor.x - px,
+      z: anchor.z + pz
+    });
+    const outer = pool.shoreline
+      ? pool.shoreline.map(([px, pz], i) => toPoint(px, pz, i, "shore"))
+      : Array.from({ length: 96 }, (_, i) => {
+          const angle = (i * 2 * Math.PI) / 96;
+          return toPoint(pool.x - Math.cos(angle) * pool.radius, pool.z + Math.sin(angle) * pool.radius, i, "shore");
+        });
+    const holes = (pool.holes ?? []).flatMap((ring, holeIndex) =>
+      ring.map(([px, pz], i) => toPoint(px, pz, i, `island-${holeIndex + 1}`))
+    );
+    const shoreline = [...outer, ...holes];
+    return {
+      id: lakeId,
+      name: pool.id,
+      parent: "world",
+      origin: "generated",
+      components: {
+        lakes: {
+          base: { entity: "world", component: "lakes" },
+          values: {
+            ...LAKE_DEFAULTS,
+            count: 0,
+            radiusM: pool.radius,
+            depthM: pool.depth,
+            ...(pool.bankWidthM === undefined ? {} : { bankWidthM: pool.bankWidthM }),
+            shoreline,
+            referenceLevel: 0
+          }
+        }
+      }
+    };
+  });
+}
+
 function templateCore(template: WorldTemplate) {
   const cached = cores.get(template.id);
   if (cached) return cached;
@@ -175,45 +221,7 @@ function templateCore(template: WorldTemplate) {
           }
         }
   );
-  const lakes: SpatialEntity[] = (art.water ?? []).map((pool) => {
-    const lakeId = `lake:authored:template:${id}:water:${pool.id}`;
-    const toPoint = (px: number, pz: number, i: number, ring: string) => ({
-      id: `${lakeId}:${ring}:${i}`,
-      ring,
-      x: anchor.x - px,
-      z: anchor.z + pz
-    });
-    const outer = pool.shoreline
-      ? pool.shoreline.map(([px, pz], i) => toPoint(px, pz, i, "shore"))
-      : Array.from({ length: 96 }, (_, i) => {
-          const angle = (i * 2 * Math.PI) / 96;
-          return toPoint(pool.x - Math.cos(angle) * pool.radius, pool.z + Math.sin(angle) * pool.radius, i, "shore");
-        });
-    const holes = (pool.holes ?? []).flatMap((ring, holeIndex) =>
-      ring.map(([px, pz], i) => toPoint(px, pz, i, `island-${holeIndex + 1}`))
-    );
-    const shoreline = [...outer, ...holes];
-    return {
-      id: lakeId,
-      name: pool.id,
-      parent: "world",
-      origin: "generated",
-      components: {
-        lakes: {
-          base: { entity: "world", component: "lakes" },
-          values: {
-            ...LAKE_DEFAULTS,
-            count: 0,
-            radiusM: pool.radius,
-            depthM: pool.depth,
-            ...(pool.bankWidthM === undefined ? {} : { bankWidthM: pool.bankWidthM }),
-            shoreline,
-            referenceLevel: 0
-          }
-        }
-      }
-    };
-  });
+  const lakes = buildTemplateLakes(id, anchor, art.water ?? []);
   for (const grove of art.plantings ?? [])
     resources.push({
       resourceType: "vegetation-brush",
@@ -341,7 +349,8 @@ export function createTemplatePlanningDocument(
     rivers: { countMin: 0, countMax: 0 },
     lakes: { countMin: 0, countMax: 0 }
   });
-  const { anchor, resources, lakes } = templateCore(template);
+  const { anchor, resources, lakes: baseLakes } = templateCore(template);
+  const lakes = art.resolveWater ? buildTemplateLakes(id, anchor, art.resolveWater(seed)) : baseLakes;
   if (!art.plannedSubjects) Object.assign(recipe.parameters.worldTemplate!, { centerX: anchor.x, centerZ: anchor.z });
   if (art.generation)
     recipe.parameters.spatialComposition = spatialCompositionParameters({

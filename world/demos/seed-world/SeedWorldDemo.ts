@@ -1632,10 +1632,12 @@ export async function mountSeedWorldDemo(
                 navigation.eyeHeight,
                 templateGround
               );
+            const seedChanged =
+              context.previousDocument.entities.world.components.world?.values.seed !== plan.parameters.seed;
             if (
               !presentationPose &&
               templateView &&
-              ((initial && !bookmark) ||
+              (((initial || seedChanged) && !bookmark) ||
                 context.previousDocument.entities.world.components.worldTemplate?.values.id !==
                   plan.parameters.worldTemplate?.id)
             ) {
