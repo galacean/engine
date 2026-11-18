@@ -14,10 +14,16 @@ describe("webgl engine test", () => {
     const canvas = document.createElement("canvas");
     const getContext = vi.spyOn(canvas, "getContext").mockReturnValue(null);
     try {
-      await expect(Promise.resolve().then(() => WebGLEngine.create({ canvas }))).rejects.toThrow(
-        "WebGL2 is not supported."
-      );
-      expect(getContext.mock.calls.map(([name]) => name)).toEqual(["webgl2", "experimental-webgl2"]);
+      for (let attempt = 0; attempt < 2; attempt++) {
+        await expect(Promise.resolve().then(() => WebGLEngine.create({ canvas }))).rejects.toThrow(
+          "WebGL2 is not supported."
+        );
+        expect(getContext.mock.calls.map(([name]) => name)).toEqual(["webgl2", "experimental-webgl2"]);
+        getContext.mockClear();
+        const lost = new Event("webglcontextlost", { cancelable: true });
+        canvas.dispatchEvent(lost);
+        expect(lost.defaultPrevented).toBe(false);
+      }
     } finally {
       getContext.mockRestore();
     }

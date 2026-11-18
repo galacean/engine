@@ -182,25 +182,27 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   init(canvas: Canvas, onDeviceLost: () => void, onDeviceRestored: () => void): void {
     const webCanvas = (canvas as WebCanvas)._webCanvas;
 
+    webCanvas.addEventListener("webglcontextcreationerror", this._onContextCreationError, false);
+    try {
+      const webGLOptions = this._webGLOptions;
+      let gl = webCanvas.getContext("webgl2", webGLOptions);
+      if (!gl && !(canvas as WebCanvas)._isOffscreenCanvas()) {
+        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", webGLOptions);
+      }
+      if (!gl || !gl.deleteQuery) {
+        throw new Error("WebGL2 is not supported.");
+      }
+      this._gl = gl;
+      this._initGLState(gl);
+    } finally {
+      webCanvas.removeEventListener("webglcontextcreationerror", this._onContextCreationError, false);
+    }
+
+    this._webCanvas = webCanvas;
     this._onDeviceLost = onDeviceLost;
     this._onDeviceRestored = onDeviceRestored;
     webCanvas.addEventListener("webglcontextlost", this._onWebGLContextLost, false);
     webCanvas.addEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
-    webCanvas.addEventListener("webglcontextcreationerror", this._onContextCreationError, false);
-
-    this._webCanvas = webCanvas;
-
-    const webGLOptions = this._webGLOptions;
-    let gl = webCanvas.getContext("webgl2", webGLOptions);
-    if (!gl && !(canvas as WebCanvas)._isOffscreenCanvas()) {
-      gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", webGLOptions);
-    }
-    if (!gl || !gl.deleteQuery) {
-      throw new Error("WebGL2 is not supported.");
-    }
-
-    this._gl = gl;
-    this._initGLState(gl);
   }
 
   createPlatformPrimitive(primitive: Primitive): IPlatformPrimitive {
@@ -597,7 +599,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   destroy(): void {
     const webCanvas = this._webCanvas;
-    webCanvas.removeEventListener("webglcontextcreationerror", this._onContextCreationError, false);
     webCanvas.removeEventListener("webglcontextlost", this._onWebGLContextLost, false);
     webCanvas.removeEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
   }

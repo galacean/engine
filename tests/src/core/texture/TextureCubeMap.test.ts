@@ -18,7 +18,7 @@ describe("TextureCube", () => {
     it("引擎不支持的格式", () => {
       expect(() => {
         new TextureCube(engine, size, 1234567 as any);
-      }).to.throw;
+      }).to.throw();
     });
   });
 
@@ -45,15 +45,15 @@ describe("TextureCube", () => {
       const buffer = new Uint8Array(width * height * 4);
       expect(() => {
         texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer);
-      }).not.to.throw;
+      }).not.to.throw();
 
       expect(() => {
         texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer, 0);
-      }).not.to.throw;
+      }).not.to.throw();
 
       expect(() => {
         texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer, 0, 0, 0, width, height);
-      }).not.to.throw;
+      }).not.to.throw();
 
       expect(() => {
         texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer, 0, 0, 0, width, height);
@@ -62,7 +62,7 @@ describe("TextureCube", () => {
         texture.setPixelBuffer(TextureCubeFace.NegativeY, buffer, 0, 0, 0, width, height);
         texture.setPixelBuffer(TextureCubeFace.PositiveZ, buffer, 0, 0, 0, width, height);
         texture.setPixelBuffer(TextureCubeFace.NegativeZ, buffer, 0, 0, 0, width, height);
-      }).not.to.throw;
+      }).not.to.throw();
     });
 
     it("浮点纹理写入数据", () => {
@@ -70,9 +70,9 @@ describe("TextureCube", () => {
         const texture = new TextureCube(engine, size, TextureFormat.R32G32B32A32);
         const buffer = new Float32Array(4);
 
-        texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer);
+        texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer, 0, 0, 0, 1, 1);
         texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer, 1, 0, 0, 1, 1);
-      }).not.to.throw;
+      }).not.to.throw();
     });
   });
 
@@ -83,7 +83,7 @@ describe("TextureCube", () => {
         const buffer = new Uint8Array(4);
 
         texture.getPixelBuffer(TextureCubeFace.PositiveX, 0, 0, 1, 1, buffer);
-      }).to.throw;
+      }).to.throw();
     });
     it("读取成功", () => {
       const texture = new TextureCube(engine, size);

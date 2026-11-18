@@ -82,14 +82,7 @@ class TextureLoader extends Loader<Texture> {
 
       const engine = resourceManager.engine;
       const { width, height } = img;
-      const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
-        engine,
-        width,
-        height,
-        format,
-        mipmap,
-        isSRGBColorSpace
-      );
+      const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(format, mipmap, isSRGBColorSpace);
 
       const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
       texture.setImageSource(img);

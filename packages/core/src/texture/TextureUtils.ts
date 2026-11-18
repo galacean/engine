@@ -1,4 +1,3 @@
-import { Engine } from "../Engine";
 import { TextureFormat } from "./enums/TextureFormat";
 
 /**
@@ -9,9 +8,6 @@ export class TextureUtils {
    * Check if the texture config supports auto mipmap generation with real correction for mipmap and isSRGBColorSpace.
    */
   static supportGenerateMipmapsWithCorrection(
-    engine: Engine,
-    width: number,
-    height: number,
     format: TextureFormat,
     mipmap: boolean,
     isSRGBColorSpace: boolean

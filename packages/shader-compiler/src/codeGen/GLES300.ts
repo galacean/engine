@@ -54,8 +54,21 @@ export class GLES300Visitor extends GLESVisitor {
   }
 
   override getMRTProp(prop: StructProp): string {
-    this._registerFragDataVariable(prop.mrtIndex!);
-    return "";
+    const index = prop.mrtIndex!;
+    if (!prop.isInMacroBranch) {
+      this._registerFragDataVariable(index);
+      return "";
+    }
+
+    // Parser declaration IDs are positive; each conditional output location owns one negative ID.
+    const id = -(index + 1);
+    const owner = { id, group: id, sourceScope: 0 };
+    this._registerFragDataVariable(index, owner);
+    // Activate the output at the member's source position, reachable only from its selected struct.
+    return (
+      ShaderInstructionEncoder.declaration("", owner) +
+      ShaderInstructionEncoder.reference(this.currentDeclarationOwner?.id ?? 0, id)
+    );
   }
 
   override visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
@@ -127,7 +140,7 @@ export class GLES300Visitor extends GLESVisitor {
   }
 
   protected override mrtOutput(prop: StructProp): string {
-    return this._registerFragDataVariable(prop.mrtIndex!);
+    return this._fragmentDataVariableName(prop.mrtIndex!);
   }
 
   private _fragmentColorName(): string {
@@ -143,10 +156,9 @@ export class GLES300Visitor extends GLESVisitor {
     this._registerOutput(name, `layout(location = 0) out vec4 ${name};`);
   }
 
-  private _registerOutput(name: string, text: string): void {
+  private _registerOutput(name: string, text: string, owner = this.currentDeclarationOwner): void {
     let output = this._outputDeclarations.get(name);
     if (!output) this._outputDeclarations.set(name, (output = { text, owners: new Map(), unconditional: false }));
-    const owner = this.currentDeclarationOwner;
     if (owner) output.owners.set(owner.id, owner);
     else output.unconditional = true;
   }
@@ -200,12 +212,15 @@ export class GLES300Visitor extends GLESVisitor {
     this._registerOutput(name, `layout(location = 0) out vec4 ${name}[gl_MaxDrawBuffers];`);
   }
 
-  private _registerFragDataVariable(index: number): string {
-    const name =
-      index === 0
-        ? this._fragmentColorName()
-        : this.context.names.allocate(`fragment-output:${index}`, `output_color_${index}`);
-    this._registerOutput(name, `layout(location = ${index}) out vec4 ${name};`);
+  private _fragmentDataVariableName(index: number): string {
+    return index === 0
+      ? this._fragmentColorName()
+      : this.context.names.allocate(`fragment-output:${index}`, `output_color_${index}`);
+  }
+
+  private _registerFragDataVariable(index: number, owner = this.currentDeclarationOwner): string {
+    const name = this._fragmentDataVariableName(index);
+    this._registerOutput(name, `layout(location = ${index}) out vec4 ${name};`, owner);
     return name;
   }
 }

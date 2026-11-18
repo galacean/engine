@@ -270,18 +270,19 @@ void pass;
              const { ShaderPrecompiler } = await import("@galacean/engine-shader-compiler/precompile");`;
       const probe = runNode(
         `${imports}
-         const precompiled = new ShaderPrecompiler().precompile(${JSON.stringify(shaderSource(undefined, "1.0"))}, 1);
+         const precompiled = new ShaderPrecompiler().precompile(${JSON.stringify(shaderSource(undefined, "1.0"))});
          let invalidAssignmentRejected = false;
          try {
            new ShaderPrecompiler().precompile(${JSON.stringify(
              shaderSource(undefined, "1.0").replace("gl_FragColor = vec4(1.0);", "1 = 2; gl_FragColor = vec4(1.0);")
-           )}, 1);
+           )});
          } catch (error) {
            invalidAssignmentRejected = String(error).includes("modifiable l-value");
          }
          process.stdout.write(JSON.stringify({
            hasRuntimePrecompiler: "ShaderPrecompiler" in runtime,
            invalidAssignmentRejected,
+           platformTarget: precompiled.platformTarget,
            name: precompiled.name
          }));`,
         mode === "import"
@@ -290,6 +291,7 @@ void pass;
       expect(JSON.parse(probe.stdout)).toEqual({
         hasRuntimePrecompiler: false,
         invalidAssignmentRejected: true,
+        platformTarget: 0,
         name: "Consumer"
       });
     }
@@ -299,14 +301,16 @@ void pass;
     for (const mode of ["require", "import"] as const) {
       const imports =
         mode === "require"
-          ? `const { ShaderAnalyzer } = require("@galacean/engine-shader-analyzer");
+          ? `const { ShaderLanguage } = require("@galacean/engine-core");
+             const { ShaderAnalyzer } = require("@galacean/engine-shader-analyzer");
              const { ShaderCompiler } = require("@galacean/engine-shader-compiler");`
-          : `const { ShaderAnalyzer } = await import("@galacean/engine-shader-analyzer");
+          : `const { ShaderLanguage } = await import("@galacean/engine-core");
+             const { ShaderAnalyzer } = await import("@galacean/engine-shader-analyzer");
              const { ShaderCompiler } = await import("@galacean/engine-shader-compiler");`;
       const probe = runNode(
         `${imports}
          const analysis = ShaderAnalyzer.analyze(${JSON.stringify(shaderSource(undefined, "1.0"))});
-         const generated = new ShaderCompiler().generate(analysis.passes[0], 1);
+         const generated = new ShaderCompiler().generate(analysis.passes[0], ShaderLanguage.GLSLES300);
          process.stdout.write("SHARED_PARSE_RESULT:" + JSON.stringify({
            diagnostics: analysis.diagnostics,
            passCount: analysis.passes.length,
@@ -675,7 +679,8 @@ VertexShader = vert; FragmentShader = frag;
       [
         "--expose-gc",
         "--eval",
-        `const { ShaderAnalyzer } = require("@galacean/engine-shader-analyzer");
+        `const { ShaderLanguage } = require("@galacean/engine-core");
+         const { ShaderAnalyzer } = require("@galacean/engine-shader-analyzer");
          const { ShaderCompiler } = require("@galacean/engine-shader-compiler");
          const source = ${JSON.stringify(shaderSource(undefined, "1.0"))};
          const passBody = "void vert() { gl_Position = vec4(0.0); }\\nvoid frag() { gl_FragColor = vec4(1.0); }";
@@ -694,11 +699,11 @@ VertexShader = vert; FragmentShader = frag;
          const sharedCodegen = measure(() => {
            const analysis = ShaderAnalyzer.analyze(source);
            for (const pass of analysis.passes) {
-             compiler.generate(pass, 1);
+             compiler.generate(pass, ShaderLanguage.GLSLES300);
            }
          }, 200);
          const runtimeCodegen = measure(() => {
-           compiler._parseShaderPass(passBody, "vert", "frag", 1, "");
+           compiler._parseShaderPass(passBody, "vert", "frag", ShaderLanguage.GLSLES300, "");
          }, 400);
          process.stdout.write("MEMORY_RESULT:" + JSON.stringify({ analyzerOnly, sharedCodegen, runtimeCodegen }));`
       ],

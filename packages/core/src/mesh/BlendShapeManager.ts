@@ -152,7 +152,10 @@ export class BlendShapeManager {
    * @internal
    */
   _useTextureMode(): boolean {
-    return this._blendShapeCount > this._getVertexBufferModeSupportCount();
+    return (
+      this._blendShapeCount > this._getVertexBufferModeSupportCount() &&
+      this._engine._hardwareRenderer.supportsRendering
+    );
   }
 
   /**

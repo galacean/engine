@@ -17,7 +17,7 @@ describe("Texture2D", () => {
     it("引擎不支持的格式", () => {
       expect(() => {
         new Texture2D(engine, width, height, 1234567 as any, undefined, false);
-      }).to.throw;
+      }).to.throw();
     });
   });
 
@@ -42,15 +42,15 @@ describe("Texture2D", () => {
       const buffer = new Uint8Array(width * height * 4);
       expect(() => {
         texture.setPixelBuffer(buffer);
-      }).not.to.throw;
+      }).not.to.throw();
 
       expect(() => {
         texture.setPixelBuffer(buffer, 1);
-      }).not.to.throw;
+      }).not.to.throw();
 
       expect(() => {
-        texture.setPixelBuffer(buffer, 1, 0, 0, width, height);
-      }).not.to.throw;
+        texture.setPixelBuffer(buffer, 1, 0, 0, width / 2, height / 2);
+      }).not.to.throw();
     });
 
     it("浮点纹理写入数据", () => {
@@ -58,9 +58,9 @@ describe("Texture2D", () => {
         const texture = new Texture2D(engine, width, height, TextureFormat.R32G32B32A32);
         const buffer = new Float32Array(4);
 
-        texture.setPixelBuffer(buffer);
+        texture.setPixelBuffer(buffer, 0, 0, 0, 1, 1);
         texture.setPixelBuffer(buffer, 1, 0, 0, 1, 1);
-      }).not.to.throw;
+      }).not.to.throw();
     });
   });
 
@@ -71,7 +71,7 @@ describe("Texture2D", () => {
         const buffer = new Uint8Array(4);
 
         texture.getPixelBuffer(0, 0, 1, 1, buffer);
-      }).to.throw;
+      }).to.throw();
     });
     it("读取 R8G8B8A8 成功", () => {
       const texture = new Texture2D(engine, width, height);

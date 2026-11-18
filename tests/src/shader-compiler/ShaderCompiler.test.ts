@@ -66,13 +66,13 @@ describe("ShaderCompiler", async () => {
     glslValidate(engine, source, shaderCompilerRelease);
   });
 
-  it("rejects the removed numeric shader target", () => {
+  it("rejects an unknown shader target", () => {
     expect(
       shaderCompilerRelease._parseShaderPass(
         "void vert() { gl_Position = vec4(0.0); } void frag() { gl_FragColor = vec4(1.0); }",
         "vert",
         "frag",
-        0 as ShaderLanguage
+        -1 as ShaderLanguage
       )
     ).to.be.undefined;
   });
@@ -914,6 +914,30 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
         ShaderLanguage.GLSLES300
       )
     ).to.be.undefined;
+  });
+
+  it("emits conditional MRT attachments only in variants that use them", () => {
+    const gl = canvas.getContext("webgl2")!;
+    const source = (location: number) => `Shader "conditional-mrt-member" { SubShader "s" { Pass "p" {
+      struct Outputs {
+        layout(location = 0) vec4 color;
+        #ifdef EXTRA
+        layout(location = ${location}) vec4 extra;
+        #endif
+      };
+      void vert() { gl_Position = vec4(0.0); }
+      Outputs frag() {
+        Outputs o;
+        o.color = vec4(1.0);
+        #ifdef EXTRA
+        o.extra = o.color;
+        #endif
+        return o;
+      }
+      VertexShader = vert; FragmentShader = frag;
+    } } }`;
+    glslValidate(engine, source(gl.getParameter(gl.MAX_DRAW_BUFFERS)), shaderCompilerRelease);
+    glslValidate(engine, source(1), shaderCompilerRelease, [{ name: "EXTRA" }]);
   });
 
   it("keeps mutually exclusive color and MRT fragment-entry modes compilable", () => {

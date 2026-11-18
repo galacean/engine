@@ -3,5 +3,5 @@
  */
 export enum ShaderLanguage {
   /** GLSL ES 300. */
-  GLSLES300 = 1
+  GLSLES300 = 0
 }
