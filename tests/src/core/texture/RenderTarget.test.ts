@@ -31,6 +31,17 @@ describe("RenderTarget", async () => {
     rhi.capability._maxAntiAliasing = maxAntiAliasing;
   });
 
+  it("leaves attachments and resource pools unchanged when target creation fails", () => {
+    const manager = engine.resourceManager;
+    const references = renderColorTexture.refCount;
+    const graphics = Object.keys(manager["_graphicResourcePool"]);
+    const resources = Object.keys(manager["_referResourcePool"]);
+    expect(() => new RenderTarget(engine, width - 1, height, renderColorTexture)).toThrow(/size/);
+    expect(renderColorTexture.refCount).toBe(references);
+    expect(Object.keys(manager["_graphicResourcePool"])).toEqual(graphics);
+    expect(Object.keys(manager["_referResourcePool"])).toEqual(resources);
+  });
+
   describe("创建渲染目标", () => {
     it("创建渲染目标-通过颜色纹理和深度格式", () => {
       const renderTarget = new RenderTarget(engine, width, height, renderColorTexture);
