@@ -41,7 +41,7 @@ async function capture(
       "feedback",
       ShaderInstructionEncoder.parse(vertex),
       ShaderInstructionEncoder.parse(fragment),
-      ShaderLanguage.GLSLES,
+      ShaderLanguage.GLSLES300,
       undefined,
       vertexOutputNames
     );
@@ -89,7 +89,7 @@ describe("transform feedback captures interface members by source name", () => {
   ];
   for (const [label, source] of sources) {
     const outputName = label === "reserved member" ? "input" : "feedbackValue";
-    for (const target of [ShaderLanguage.GLSLES]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       for (const precompiled of [false, true]) {
         it(`captures ${label} for target ${target}, precompiled=${precompiled}`, async () => {
           const compiler = new ShaderCompiler();
@@ -115,7 +115,7 @@ describe("transform feedback captures interface members by source name", () => {
       }
     }
 
-    for (const target of [ShaderLanguage.GLSLES]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       for (const precompiled of [false, true]) {
         it(`captures ${label} through Shader, target ${target}, precompiled=${precompiled}`, async () => {
           const previousCompiler = Shader._shaderCompiler;

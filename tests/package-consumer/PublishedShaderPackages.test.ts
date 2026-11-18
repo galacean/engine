@@ -118,7 +118,7 @@ import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 
 const analysis = ShaderAnalyzer.analyze(${JSON.stringify(shaderSource(undefined, "1.0"))});
 const pass: ParsedShaderPass = analysis.passes[0];
-new ShaderCompiler().generate(pass, ShaderLanguage.GLSLES);
+new ShaderCompiler().generate(pass, ShaderLanguage.GLSLES300);
 `
     );
     const typecheck = spawnSync(
@@ -310,7 +310,7 @@ void pass;
       const probe = runNode(
         `${imports}
          const analysis = ShaderAnalyzer.analyze(${JSON.stringify(shaderSource(undefined, "1.0"))});
-         const generated = new ShaderCompiler().generate(analysis.passes[0], ShaderLanguage.GLSLES);
+         const generated = new ShaderCompiler().generate(analysis.passes[0], ShaderLanguage.GLSLES300);
          process.stdout.write("SHARED_PARSE_RESULT:" + JSON.stringify({
            diagnostics: analysis.diagnostics,
            passCount: analysis.passes.length,
@@ -516,7 +516,7 @@ void vert()`
     );
   });
 
-  it.each(["GLSLES"])("compiles nested inherited conditions within a 256 MiB heap on %s", (target) => {
+  it.each(["GLSLES300"])("compiles nested inherited conditions within a 256 MiB heap on %s", (target) => {
     let guard = "defined(F0)";
     for (let index = 1; index <= 240; index++) guard = `(${guard} + defined(F${index}) == 1)`;
     const source = `Shader "bounded-memory" {
@@ -699,11 +699,11 @@ VertexShader = vert; FragmentShader = frag;
          const sharedCodegen = measure(() => {
            const analysis = ShaderAnalyzer.analyze(source);
            for (const pass of analysis.passes) {
-             compiler.generate(pass, ShaderLanguage.GLSLES);
+             compiler.generate(pass, ShaderLanguage.GLSLES300);
            }
          }, 200);
          const runtimeCodegen = measure(() => {
-           compiler._parseShaderPass(passBody, "vert", "frag", ShaderLanguage.GLSLES, "");
+           compiler._parseShaderPass(passBody, "vert", "frag", ShaderLanguage.GLSLES300, "");
          }, 400);
          process.stdout.write("MEMORY_RESULT:" + JSON.stringify({ analyzerOnly, sharedCodegen, runtimeCodegen }));`
       ],

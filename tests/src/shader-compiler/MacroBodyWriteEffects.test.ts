@@ -64,7 +64,7 @@ function programs(source: string, requireValid = true) {
   if (requireValid) expect(analyzer.diagnostics).toEqual([]);
   const compiler = new ShaderCompiler();
   const pass = compiler._parseShaderSource(source).subShaders[0].passes[0];
-  return [ShaderLanguage.GLSLES].flatMap((target) => {
+  return [ShaderLanguage.GLSLES300].flatMap((target) => {
     const paths = [
       ["analyzer", compiler.generate(analyzer.passes[0], target)],
       ["live", compiler._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, target)],
@@ -182,9 +182,8 @@ describe.runIf(typeof document !== "undefined")("macro body effects and native G
         const object = gl.createShader(type)!;
         const version = "#version 300 es\n";
         const expanded = ShaderMacroProcessor.evaluate(instructions, new Map());
-        let extension = "";
 
-        gl.shaderSource(object, `${version}${extension}precision highp float;\n${expanded}`);
+        gl.shaderSource(object, `${version}precision highp float;\n${expanded}`);
         gl.compileShader(object);
         expect(gl.getShaderParameter(object, gl.COMPILE_STATUS), `${path}: ${gl.getShaderInfoLog(object)}`).toBe(true);
         gl.deleteShader(object);

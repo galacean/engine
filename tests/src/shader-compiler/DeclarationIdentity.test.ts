@@ -48,8 +48,8 @@ const cases = [
 
 describe("conditional declaration identity", () => {
   for (const mode of ["runtime", "precompiled"] as const) {
-    for (const language of [ShaderLanguage.GLSLES]) {
-      it.each(cases)(`${mode} GLSLES${language}: $name`, async (testCase) => {
+    for (const language of [ShaderLanguage.GLSLES300]) {
+      it.each(cases)(`${mode} GLSLES300${language}: $name`, async (testCase) => {
         const previousCompiler = Shader._shaderCompiler;
         const compiler = new ShaderCompiler();
         const engine = await WebGLEngine.create({

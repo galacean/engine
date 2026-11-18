@@ -31,17 +31,12 @@ Shader "Blit/BlitScreen" {
         return v;
       }
 
-        vec4 texture2DLodSRGB(sampler2D tex, vec2 uv, float lod) {
-          vec4 color = texture2DLodEXT(tex, uv, lod);
-          return color;
-        }
-
       void frag(Varyings v) {
         vec2 uv = v.v_uv;
         // Screen uv is flipped
         uv.y = 1.0 - uv.y;
 
-          gl_FragColor = texture2DLodSRGB(renderer_BlitTexture, uv, renderer_BlitMipLevel);
+        gl_FragColor = textureLod(renderer_BlitTexture, uv, renderer_BlitMipLevel);
 
         // Color space in screen is in gamma space but without sRGB texture, so convert to linear space
         gl_FragColor = sRGBToLinear(gl_FragColor);

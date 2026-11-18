@@ -6,7 +6,7 @@ import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
 import { getParsedShaderPassPayload, ShaderSourceParser } from "@galacean/engine-shader-parser/internal";
 import { describe, expect, it, vi } from "vitest";
 
-const targets = [ShaderLanguage.GLSLES];
+const targets = [ShaderLanguage.GLSLES300];
 const prototype = "float helper(float value);";
 const definition = "float helper(float value) { return value + 0.5; }";
 const vertex = "void vert() { gl_Position = vec4(helper(0.0)); }";

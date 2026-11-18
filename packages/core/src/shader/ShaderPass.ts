@@ -32,9 +32,6 @@ export class ShaderPass extends ShaderPart {
   private static _shaderMacroList: ShaderMacro[] = [];
   private static _macroMap: Map<string, string> = new Map();
 
-  /** @internal */
-  _platformTarget: ShaderLanguage;
-
   /** @internal - Flat instruction array for vertex shader. */
   _vertexShaderInstructions: ShaderInstruction[];
   /** @internal */
@@ -57,7 +54,7 @@ export class ShaderPass extends ShaderPart {
    * @param name - Shader pass name
    * @param vertexShaderInstructions - Precompiled vertex instruction array
    * @param fragmentShaderInstructions - Precompiled fragment instruction array
-   * @param platformTarget - Target shader language
+   * @param _platformTarget - Target shader language
    * @param tags - Tags
    * @param vertexOutputNames - Source output names mapped to generated GLSL names
    */
@@ -65,7 +62,7 @@ export class ShaderPass extends ShaderPart {
     name: string,
     vertexShaderInstructions: ShaderInstruction[],
     fragmentShaderInstructions: ShaderInstruction[],
-    platformTarget: ShaderLanguage,
+    _platformTarget: ShaderLanguage,
     tags?: Record<string, number | string | boolean>,
     vertexOutputNames?: Readonly<Record<string, string>>
   ) {
@@ -75,7 +72,6 @@ export class ShaderPass extends ShaderPart {
     this._name = name;
     this._vertexShaderInstructions = vertexShaderInstructions;
     this._fragmentShaderInstructions = fragmentShaderInstructions;
-    this._platformTarget = platformTarget;
     this._vertexOutputNames = vertexOutputNames;
 
     const mergedTags = { pipelineStage: PipelineStage.Forward, ...tags };

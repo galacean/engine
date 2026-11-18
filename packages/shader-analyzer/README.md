@@ -25,7 +25,7 @@ import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 
 const analysis = ShaderAnalyzer.analyze(shaderSource);
 const compiler = new ShaderCompiler();
-const programs = analysis.passes.map((pass) => compiler.generate(pass, ShaderLanguage.GLSLES));
+const programs = analysis.passes.map((pass) => compiler.generate(pass, ShaderLanguage.GLSLES300));
 ```
 
 `sourceFile` is optional metadata, not a requirement for analysis. Without it, `./Common.glsl` resolves from the logical include-registry root. Supply it when relative includes should resolve from a logical subdirectory or when an editor needs stable source attribution:

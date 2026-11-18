@@ -178,7 +178,7 @@ describe("ResourceManager", () => {
         .spyOn(resourceManager, "_requestByRemoteUrl")
         .mockReturnValue(
           AssetPromise.resolve(
-            JSON.stringify({ name: "custom", platformTarget: ShaderLanguage.GLSLES, subShaders: [] })
+            JSON.stringify({ name: "custom", platformTarget: ShaderLanguage.GLSLES300, subShaders: [] })
           ) as any
         );
       // @ts-ignore

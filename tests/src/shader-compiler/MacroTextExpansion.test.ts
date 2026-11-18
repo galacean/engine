@@ -126,7 +126,7 @@ FragmentShader = frag;
     expect(analysis.diagnostics).toEqual([]);
     const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
     const compiler = new ShaderCompiler();
-    for (const target of [ShaderLanguage.GLSLES]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       const programs = [
         compiler.generate(analysis.passes[0], target),
         compiler._parseShaderPass(

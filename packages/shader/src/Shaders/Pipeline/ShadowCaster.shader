@@ -112,8 +112,6 @@ Shader "Pipeline/ShadowCaster" {
             }
           #endif
         #endif
-
-          gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
       }
     }
   }

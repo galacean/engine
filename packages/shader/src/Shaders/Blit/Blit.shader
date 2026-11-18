@@ -32,16 +32,11 @@ Shader "Blit/Blit" {
         return v;
       }
 
-        vec4 texture2DLodSRGB(sampler2D tex, vec2 uv, float lod) {
-          vec4 color = texture2DLodEXT(tex, uv, lod);
-          return color;
-        }
-
       void frag(Varyings v) {
         vec2 uv = v.v_uv;
         uv = uv * renderer_SourceScaleOffset.xy + renderer_SourceScaleOffset.zw;
 
-          gl_FragColor = texture2DLodSRGB(renderer_BlitTexture, uv, renderer_BlitMipLevel);
+        gl_FragColor = textureLod(renderer_BlitTexture, uv, renderer_BlitMipLevel);
       }
     }
   }

@@ -106,8 +106,8 @@ const cases: { name: string; helper: string; fragment: string; materialType?: st
 
 describe("shader declaration type dependencies", () => {
   for (const mode of ["runtime", "precompiled"] as const) {
-    for (const language of [ShaderLanguage.GLSLES]) {
-      it.each(cases)(`${mode} GLSLES${language}: $name retains transitive types and guards`, async (testCase) => {
+    for (const language of [ShaderLanguage.GLSLES300]) {
+      it.each(cases)(`${mode} GLSLES300${language}: $name retains transitive types and guards`, async (testCase) => {
         const previousCompiler = Shader._shaderCompiler;
         const compiler = new ShaderCompiler();
         const engine = await WebGLEngine.create({

@@ -44,7 +44,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
   private _shadowMapSize: Vector4 = new Vector4();
   private _shadowTileResolution: number;
   private _shadowBias: Vector2 = new Vector2();
-  private _shadowMapFormat: TextureFormat;
   private _shadowCascadeMode: ShadowCascadesMode;
   private _shadowSliceData: ShadowSliceData = new ShadowSliceData();
   private _lightUp: Vector3 = new Vector3();
@@ -108,7 +107,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
       width,
       height,
       null,
-      this._shadowMapFormat,
+      TextureFormat.Depth16,
       true,
       false,
       false,
@@ -290,19 +289,13 @@ export class CascadedShadowCasterPass extends PipelinePass {
   private _updateShadowSettings(): void {
     const camera = this._camera;
     const scene = camera.scene!;
-    const shadowFormat = TextureFormat.Depth16;
     const shadowResolution = ShadowUtils.shadowResolution(scene.shadowResolution);
     const shadowCascades = scene.shadowCascades;
     const shadowFar = Math.min(scene.shadowDistance, camera.farClipPlane);
 
     this._getCascadesSplitDistance(shadowFar);
 
-    if (
-      shadowFormat !== this._shadowMapFormat ||
-      shadowResolution !== this._shadowMapResolution ||
-      shadowCascades !== this._shadowCascadeMode
-    ) {
-      this._shadowMapFormat = shadowFormat;
+    if (shadowResolution !== this._shadowMapResolution || shadowCascades !== this._shadowCascadeMode) {
       this._shadowMapResolution = shadowResolution;
       this._shadowCascadeMode = shadowCascades;
 
