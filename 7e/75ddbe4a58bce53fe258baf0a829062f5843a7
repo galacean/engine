@@ -1,0 +1,26 @@
+packages/world-planning/src/integrations/grasslands/GrasslandsWaterPcg.ts
+  s_a71f0ec6cb2ba3::t_cda702fa532520 1-8,65
+packages/water/src/water/runtime/optics/CameraWaterFeatureBroker.ts
+  s_a71f0ec6cb2ba3::t_cda702fa532520 7,81-82,92,102,139,161,181,331-338
+  s_a71f0ec6cb2ba3::t_0d4412dc681b94 339
+world/tests/seed-world/SeedWorldScreenSpaceReflection.spec.ts
+  s_a71f0ec6cb2ba3::t_bc60c930a7a006 7,12-16,68,71-96,101-114,119-123
+  s_a71f0ec6cb2ba3::t_f7ee6b9f32d6de 97-100,115-118
+  s_a71f0ec6cb2ba3::t_0f40ffc41daf82 124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7e75ddbe4a58bce53fe258baf0a829062f5843a7",
+  "prompts": {},
+  "sessions": {
+    "s_a71f0ec6cb2ba3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ed14-9176-7b50-92c9-d23705d25bb5",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
