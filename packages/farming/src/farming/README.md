@@ -58,7 +58,7 @@ const catalog = createPlantingCatalog(speciesDefinitions, registry.list());
 
 部件着色 Shader 在开发／构建服务预编译，显示帧不解析 Shader 源码。Gallery 已启用 `tools/plant-shader-precompile.cjs` 的 `plantShaderPrecompile()`；独立 Vite 宿主也需注册该插件，使用当前 Engine 的 ShaderLibrary 生成预编译指令。没有运行时源码编译回退。
 
-`PlantOrganTint`、`SoilMoisture`、`ItemRimLight` 和 `HarvestDissolve` 不提供 SSR 接收 Surface pass。植物器官遮罩、湿土的覆盖、颜色和粗糙度不能复用通用 PBR Surface；这些派生 shader 统一保守关闭接收，包括显式注册和从 PBR 克隆的作者设置。Forward、深度和阴影保留。湿土反射需要独立实现与 Forward 相同的湿度及覆盖计算后才能启用。参见 [#3156 验证记录](../../../../../world/tests/farming/SSR_SURFACE_ACCEPTANCE.md)。
+`PlantOrganTint`、`SoilMoisture`、`ItemRimLight` 和 `HarvestDissolve` 不提供 SSR 接收 Surface pass。植物器官遮罩、湿土的覆盖、颜色和粗糙度不能复用通用 PBR Surface；这些派生 shader 统一保守关闭接收，包括显式注册和从 PBR 克隆的作者设置。Forward、深度和阴影保留。湿土反射需要独立实现与 Forward 相同的湿度及覆盖计算后才能启用。参见 [FarmingSSRSurface.spec.ts](../../../../../world/tests/seed-world/FarmingSSRSurface.spec.ts)。
 
 `PlantPresenter` 将材质、几何、GPU 分配、着色、生长、Shader 程序准备和发布纳入同一帧队列。同株独立程序先全部排队提交，再按帧预算轮询不同程序，避免已缓存程序也逐个等待两帧；提交／检查全部结算后才报告失败，迟到任务不会越过局部资源释放。程序准备只覆盖首个活动 SubShader，复用已有 Pass 标签、公开场景/相机配置和材质接收契约，按设备能力保守预热候选阴影、深度与 SSR；实际绘制阶段仍由原管线决定。Forward depth resolve 时可能多预热一个深度变体，SSR 消费者未启动时也可能提前准备接收材质；不复制管线的目标选择、日光仲裁或消费者状态，不受支持的 SSR 不参与创建。ShaderData 宏通过公开 getMacros() 读取；分帧提交和轮询仍需现有 Engine 内部编译桥接，公开 compileVariant 会同步编译全部 Pass，不能替代。程序提交与完成轮询使用当前 Engine 的延迟编译接口；支持 `KHR_parallel_shader_compile` 时不在首次绘制等待链接，缺少扩展时仍遵循 Engine 的同步回退。1 ms 为软预算，不能中断单个 Engine 调用。部分植株保持隐藏，取消会释放局部资源，程序缓存由 Engine 持有。当前 World Engine 根据真实 active uniform 的空位置识别 block 成员，仅有 block 成员时查询与绑定 uniform block，避免普通植物程序进行无用驱动查询。
 

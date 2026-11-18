@@ -1,5 +1,6 @@
 """Offline GLB import into existing Galacean Mesh/Material/AnimationClip/Prefab formats.
 Run from any directory. Sources remain importer fixtures; production uses only output files.
+Maintained .mat files under native/assets are the single material source of truth.
 Reject unsupported features rather than silently dropping rendering or animation data.
 """
 import hashlib
@@ -11,9 +12,30 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'native/assets'
-MATERIALS = json.loads((Path(__file__).parent / 'native-materials.source.json').read_text())
-WRAPPERS = json.loads((Path(__file__).parent / 'native-prefabs.source.json').read_text())
+
+# Watering/watering-can.glb contains animated morph normals; the current native Mesh decoder drops them.
+# Keep its original importer until that public format can preserve the animation.
+OVERRIDES = {
+    'Sowing/seed-sack': {'name': 'FarmingSeedSack'},
+    'Storage/cart': {},
+    'Storage/basket': {},
+    'Harvest/basket': {'name': 'FarmingHarvestBasket'},
+    'Tilling/hoe': {
+        'name': 'FarmingHoeTool',
+        'isActive': False,
+        'controller': 'Farming/Props/Tilling/hoe.animCtrl',
+        'shadowMeshPath': [0, 0, 1],
+    },
+    'Tilling/rake': {
+        'name': 'FarmingRakeTool',
+        'isActive': False,
+        'controller': 'Farming/Props/Tilling/rake.animCtrl',
+        'shadowMeshPath': [0, 0, 1],
+    },
+}
+
 ARTIFACTS = {}
+SOURCE_MATS = set()
 FILES = []
 REPORT = []
 
@@ -35,17 +57,18 @@ def binary(kind, name, payload, version=1):
     return result
 
 
+def register_file(path, kind):
+    virtual_path = 'Farming/Native/' + path
+    FILES.append({'virtualPath': virtual_path, 'file': path, 'type': kind})
+    return virtual_path
+
+
 def emit(path, kind, value):
     ARTIFACTS[OUT / path] = bytes(value) if isinstance(value, (bytes, bytearray)) else (json.dumps(value, indent=2) + '\n').encode()
-    FILES.append({'virtualPath': 'Farming/Native/' + path, 'file': path, 'type': kind})
-    return 'Farming/Native/' + path
+    return register_file(path, kind)
 
 
-for prop, materials in MATERIALS.items():
-    # Watering contains animated morph normals; the current native Mesh decoder drops these normals.
-    # Keep its original importer until that public format can preserve the animation.
-    if prop == 'Watering/watering-can':
-        continue
+for prop, override in OVERRIDES.items():
     category, name = prop.split('/')
     source = ROOT / 'assets' / category.lower() / (name + '.glb')
     raw = source.read_bytes()
@@ -67,12 +90,20 @@ for prop, materials in MATERIALS.items():
         return rows, fmt
 
     material_paths = []
-    for i, material in enumerate(materials):
-        # Material snapshots preserve the actual opted-in Engine's PBR defaults, macros and render-state uniforms.
+    expected_mats = len(doc.get('materials', []))
+    for i in range(expected_mats):
+        mat_rel = f'{prop}/material-{i}.mat'
+        mat_file = OUT / mat_rel
+        if not mat_file.is_file():
+            raise RuntimeError(f'Missing maintained native material: {mat_file}')
+        material = json.loads(mat_file.read_text())
+        if not isinstance(material, dict) or not isinstance(material.get('shader'), str) or not isinstance(material.get('shaderData'), dict):
+            raise RuntimeError(f'Invalid native material schema: {mat_file}')
         for value in material['shaderData'].values():
-            if value['type'] == 'Texture':
+            if isinstance(value, dict) and value.get('type') == 'Texture':
                 assert (ROOT / 'assets/prop-textures' / Path(value['value']['url']).name).exists()
-        material_paths.append(emit(f'{prop}/material-{i}.mat', 'Material', material))
+        SOURCE_MATS.add(mat_file)
+        material_paths.append(register_file(mat_rel, 'Material'))
 
     mesh_paths = {}
     vertices = indices_count = 0
@@ -148,37 +179,34 @@ for prop, materials in MATERIALS.items():
         clip_paths.append(emit(f'{prop}/{animation["name"]}.ani', 'AnimationClip', binary('AnimationClip', animation['name'], clip, 2)))
     if clip_paths:
         component(entities[0], {'type': 'Animator'})
-    # Flatten the original wrapper at the offline boundary. The public importer rejects runtime
-    # Prefab instances without Source topology; an ordinary native hierarchy needs no custom loader.
-    wrapper = WRAPPERS[prop]
-    overrides = wrapper['entities'][0]['instance'].get('overrides', {})
+
     def entity_at(path):
         index = 0
         for child in path:
             index = entities[index]['children'][child]
         return entities[index]
-    def wrapper_value(value):
-        if isinstance(value, list):
-            return [wrapper_value(item) for item in value]
-        if not isinstance(value, dict):
-            return value
-        if '$ref' in value:
-            return ref(wrapper['refs'][value['$ref']]['url'])
-        return {key: wrapper_value(item) for key, item in value.items()}
-    for override in overrides.get('entityProps', []):
-        entity_at(override['path']).update({key: value for key, value in override.items() if key != 'path'})
-    for override in overrides.get('componentProps', []):
-        entity = entity_at(override['path'])
-        selector = override['selector']
-        matches = [components[index] for index in entity['components'] if components[index]['type'] == selector['type']]
-        matches[selector['index']].setdefault('props', {}).update(wrapper_value(override.get('props', {})))
+
+    if 'name' in override:
+        entities[0]['name'] = override['name']
+    if 'isActive' in override:
+        entities[0]['isActive'] = override['isActive']
+    if 'controller' in override:
+        animator = next(components[index] for index in entities[0]['components'] if components[index]['type'] == 'Animator')
+        animator.setdefault('props', {}).update({'animatorController': ref(override['controller']), 'enabled': False, 'cullingMode': 0})
+    if 'shadowMeshPath' in override:
+        renderer = next(components[index] for index in entity_at(override['shadowMeshPath'])['components'] if components[index]['type'] == 'MeshRenderer')
+        renderer.setdefault('props', {}).update({'castShadows': True, 'receiveShadows': True})
+
     destination = ROOT / 'assets' / category.lower() / (name + '.prefab')
     ARTIFACTS[destination] = (json.dumps({'version': '2.0', 'refs': refs, 'entities': entities, 'components': components, 'root': 0}, indent=2) + '\n').encode()
     REPORT.append({'source': str(source.relative_to(ROOT)), 'sha256': hashlib.sha256(raw).hexdigest(), 'vertices': vertices, 'indices': indices_count, 'clips': clip_paths})
 
 ARTIFACTS[OUT / 'manifest.json'] = (json.dumps(FILES, indent=2) + '\n').encode()
 ARTIFACTS[OUT / 'conversion-report.json'] = (json.dumps(REPORT, indent=2) + '\n').encode()
-stale = [path for path in OUT.rglob('*') if path.is_file() and path not in ARTIFACTS]
+extra_mats = [path for path in OUT.rglob('*.mat') if path.is_file() and path not in SOURCE_MATS]
+if extra_mats:
+    raise RuntimeError(f'Unexpected extra native materials: {extra_mats}')
+stale = [path for path in OUT.rglob('*') if path.is_file() and path not in ARTIFACTS and path not in SOURCE_MATS]
 changed = [path for path, value in ARTIFACTS.items() if not path.exists() or path.read_bytes() != value]
 if '--check' in sys.argv:
     if changed or stale:

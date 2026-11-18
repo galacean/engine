@@ -1,12 +1,5 @@
 import { expect, it } from "vitest";
-import {
-  Shader,
-  ShaderLanguage,
-  ScreenSpaceReflection,
-  ShaderData,
-  ShaderDataGroup,
-  type Material
-} from "@galacean/engine";
+import { Shader, ShaderLanguage, ScreenSpaceReflection, ShaderData, ShaderDataGroup, type Material } from "@galacean/engine";
 import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -19,15 +12,14 @@ import { PLANT_HARVEST_SHADER } from "../../../packages/farming/src/farming/pres
 const compiler = new ShaderPrecompiler();
 const includes: Record<string, string> = {};
 const library = fileURLToPath(new URL("../../../packages/modify/.cache/shader-src/ShaderLibrary/", import.meta.url));
-function readIncludes(directory: string) {
+(function readIncludes(directory: string) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const file = path.join(directory, entry.name);
     if (entry.isDirectory()) readIncludes(file);
     else if (entry.name.endsWith(".glsl"))
       includes[`ShaderLibrary/${path.relative(library, file)}`] = readFileSync(file, "utf8");
   }
-}
-readIncludes(library);
+})(library);
 compiler.setIncludeMap(includes);
 
 for (const [name, source] of Object.entries({
@@ -37,17 +29,13 @@ for (const [name, source] of Object.entries({
   HarvestDissolve: PLANT_HARVEST_SHADER
 })) {
   it(`${name} compiles without advertising a generic SSR surface contract`, () => {
-    const data = compiler.precompile(
-      source.replace(`Farming/${name}`, `Test3156/${name}`),
-      ShaderLanguage.GLSLES100,
-      "shaders://root/"
+    const shader = Shader._createFromPrecompiled(
+      compiler.precompile(source.replace(`Farming/${name}`, `Test3156/${name}`), ShaderLanguage.GLSLES100, "shaders://root/")
     );
-    const shader = Shader._createFromPrecompiled(data);
     if (!shader) throw new Error(`${name}: shader creation failed`);
     const stages = shader.subShaders[0].passes.map((pass) => pass.getTagValue("pipelineStage"));
     expect(stages).toEqual(expect.arrayContaining(["Forward", "DepthOnly", "ShadowCaster"]));
     expect(stages).not.toContain("ScreenSpaceReflectionSurface");
-    // Capability query requires only these real shader/material data objects; no Engine or GPU is simulated.
     const material = { shader, shaderData: new ShaderData(ShaderDataGroup.Material) } as Material;
     expect(ScreenSpaceReflection.getMaterialReceiverCapability(material)).toMatchObject({
       supported: false,

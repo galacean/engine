@@ -6,7 +6,27 @@ import { FarmingAreaComponent, nativeFarmingOwners } from "../../src/farming/nat
 import { FarmingSystem } from "../../src/farming/native/FarmingSystem";
 import { FarmingAPI } from "../../src/farming/native/FarmingAPI";
 import { farmingAreaComponentData } from "../../src/farming/native/FarmingSceneData";
-import { createFarmingResources, farmingCatalog, farmingRules, parseFarmingResource, serializeFarmingResource } from "../../src/farming/native/FarmingResources";
+import { JSONAsset, type Engine } from "@galacean/engine";
+import {
+  createFarmingResources,
+  encodeFarmingResourceFile,
+  farmingCatalog,
+  farmingResourceData,
+  farmingRules,
+  parseFarmingResource,
+  parseFarmingResourceFile,
+  resolveFarmingJSONReferences,
+  serializeFarmingResource,
+  validateFarmingResourceFile
+} from "../../src/farming/native/FarmingResources";
+import {
+  MAX_GROWTH_MULTIPLIER,
+  resolveSimulationConfig,
+  validateFarmingGrowthMultiplier,
+  validateSimulationParameters
+} from "../../src/farming/config/FarmingSimulationConfig";
+import { FARM_DEFINITIONS } from "../../src/farming/content/DefaultFarmingDefinitions";
+import { DEFAULT_STORAGE_DEFINITIONS } from "../../src/farming/storage/StorageDefaults";
 import { FARMING_API_DECLARATION } from "../../src/farming/native/FarmingAPIDeclarations";
 import { FARMING_METHOD_DOCS } from "../../src/farming/native/FarmingMethodDocs";
 import { FARMING_API_CONTRACT } from "../../src/farming/native/FarmingAPIContract";
@@ -868,4 +888,53 @@ it("releases a host binding without disposing its authored component or a later 
   releaseSecond();
   expect(() => owner.dependencies(f.area)).toThrow("MISSING_DEPENDENCY");
   await owner.dispose();
+});
+
+const resourceData = farmingResourceData(FARM_DEFINITIONS);
+
+it.each([null, 0, MAX_GROWTH_MULTIPLIER])("accepts growth boundary %s", (value) =>
+  expect(() => validateFarmingGrowthMultiplier(value)).not.toThrow()
+);
+
+it.each([-1, MAX_GROWTH_MULTIPLIER + 1, NaN, Infinity, "0", undefined])("rejects invalid growth value %s", (value) =>
+  expect(() => validateFarmingGrowthMultiplier(value)).toThrow()
+);
+
+it("rejects null cropGrowthMultiplier in resolved simulation, round-trips atlas refs, and enforces JSONAsset kinds & storage rules", () => {
+  const config = resolveSimulationConfig(resourceData.rules.soilProfile);
+  expect(() =>
+    validateSimulationParameters({ ...config, cropGrowthMultiplier: null } as unknown as typeof config)
+  ).toThrow();
+
+  const file = {
+    version: 1 as const,
+    kind: "catalog" as const,
+    data: {
+      ...resourceData.catalog,
+      plants: resourceData.catalog.plants.map((entry) => ({ ...entry, atlasUrl: `Textures/${entry.id}.ktx2` }))
+    }
+  };
+  const before = structuredClone(file);
+  expect(resolveFarmingJSONReferences(encodeFarmingResourceFile(file))).toEqual(file);
+  expect(file).toEqual(before);
+
+  const engine = {} as Engine;
+  const catalog = new JSONAsset(engine),
+    rules = new JSONAsset(engine);
+  catalog.data = { version: 1, kind: "catalog", data: resourceData.catalog };
+  rules.data = { version: 1, kind: "rules", data: resourceData.rules };
+  expect(farmingCatalog(catalog).data).toEqual(JSON.parse(JSON.stringify(resourceData.catalog)));
+  expect(farmingRules(rules).data).toEqual(JSON.parse(JSON.stringify(resourceData.rules)));
+  expect(() => farmingRules(catalog)).toThrow("Expected farming rules");
+  expect(() => farmingCatalog(rules)).toThrow("Expected farming catalog");
+
+  const storage = {
+    ...DEFAULT_STORAGE_DEFINITIONS,
+    containers: DEFAULT_STORAGE_DEFINITIONS.containers.map((container) => ({ ...container, width: 0 }))
+  };
+  const encode = (data: object) => parseFarmingResourceFile(JSON.stringify({ version: 1, kind: "rules", data }));
+  expect(() => validateFarmingResourceFile(encode({ ...resourceData.rules, storage }))).toThrow(
+    "Invalid container definition"
+  );
+  expect(() => validateFarmingResourceFile(encode({ ...resourceData.rules, storage: undefined }))).not.toThrow();
 });

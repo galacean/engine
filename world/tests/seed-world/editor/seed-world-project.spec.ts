@@ -143,13 +143,38 @@ it.each(["runtime", "planning"] as const)(
   }
 );
 
+async function saveInitialSession(
+  f: ReturnType<typeof storageFixture>,
+  initial?: RuntimeProjectManifest,
+  prepare = false
+) {
+  const project = await openSeedWorldProject(f.url, initial);
+  sessions.push(project);
+  if (prepare) await preparePlanningFarmingScene(project, { baseUrl: f.url.href });
+  await project.save();
+  project.dispose();
+  sessions.pop();
+  return { id: project.id, saved: f.records.get(project.id)! };
+}
+
+function addSavedAsset(
+  saved: RuntimeProjectPackage,
+  virtualPath: string,
+  type: string,
+  content: string | object,
+  dependencies: string[] = []
+) {
+  saved.project.files.push({ virtualPath, path: `runtime:${virtualPath}`, type, dependencies });
+  saved.contents[virtualPath] = typeof content === "string" ? content : JSON.stringify(content);
+}
+
 it("keeps an ordinary JSON asset with a .farming filename on reopen", async () => {
   const f = storageFixture();
   const project = await openSeedWorldProject(f.url);
   sessions.push(project);
   await preparePlanningFarmingScene(project, { baseUrl: f.url.href });
-  const path = "Other/Config.farming";
-  const content = '{\n  "kind": "catalog",\n  "example": true\n}\n';
+  const path = "Other/Config.farming",
+    content = '{\n  "kind": "catalog",\n  "example": true\n}\n';
   await project.publishAsset({ virtualPath: path, path: "runtime:other-config", type: "JSON" }, content);
   await project.flush();
   project.dispose();
@@ -166,30 +191,23 @@ it("keeps an ordinary JSON asset with a .farming filename on reopen", async () =
 it.each([1, 2, 3])("opens other authoring when farm preset %s contains unsupported resources", async (version) => {
   const f = storageFixture();
   const initial = JSON.parse(await readCatalogFile(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl)) as RuntimeProjectManifest;
-  const project = await openSeedWorldProject(f.url, initial);
-  sessions.push(project);
-  await preparePlanningFarmingScene(project, { baseUrl: f.url.href });
-  await project.save();
-  project.dispose();
-  sessions.pop();
-
-  const saved = f.records.get(project.id)!;
-  const scenePath = saved.project.scene;
-  const marker = `${scenePath}.farming-preset.json`;
-  const archivePath = `${scenePath}.farming-quarantine.json`;
-  const farmStatePath = "World/Farming.json";
-  const oldCatalogPath = "World/Farming/Catalog.farming";
-  const oldRulesPath = "World/Farming/Rules.farming";
-  const catalogPath = "World/Farming/Catalog.json";
-  const rulesPath = "World/Farming/Rules.json";
-  const legacyScript = "World/Farming/legacy.ts";
-  const ownerScript = "Other/Owner.ts";
-  const ownerScriptText = 'import { Script } from "@galacean/engine"; export default class Owner extends Script {}';
-  const legacyBinary = "World/Farming/Legacy.mesh";
-  const missingLegacy = "World/Farming/Missing.farming";
+  const { id, saved } = await saveInitialSession(f, initial, true);
+  const scenePath = saved.project.scene,
+    marker = `${scenePath}.farming-preset.json`,
+    archivePath = `${scenePath}.farming-quarantine.json`,
+    farmStatePath = "World/Farming.json",
+    oldCatalogPath = "World/Farming/Catalog.farming",
+    oldRulesPath = "World/Farming/Rules.farming",
+    catalogPath = "World/Farming/Catalog.json",
+    rulesPath = "World/Farming/Rules.json",
+    legacyScript = "World/Farming/legacy.ts",
+    ownerScript = "Other/Owner.ts",
+    ownerScriptText = 'import { Script } from "@galacean/engine"; export default class Owner extends Script {}',
+    legacyBinary = "World/Farming/Legacy.mesh",
+    missingLegacy = "World/Farming/Missing.farming",
+    otherDocument = "Notes/World.txt";
   const coldBodies = new Map<string, Uint8Array<ArrayBuffer>>();
   const detachedComponents = new Set(["legacy-farm-script", "farm-owner", "farm-owner-consumer"]);
-  const otherDocument = "Notes/World.txt";
   const farmComponent = JSON.parse(saved.contents[scenePath] as string).components.find(
     (component: GalaceanSourceComponentSchema) => component.type === "FarmingSystem"
   ) as GalaceanSourceComponentSchema;
@@ -212,34 +230,29 @@ it.each([1, 2, 3])("opens other authoring when farm preset %s contains unsupport
       file.dependencies = file.dependencies!.map((ref) => rename.get(ref) ?? ref);
     }
     const scene = JSON.parse(saved.contents[scenePath] as string) as GalaceanSourceSceneFile;
-    const system = scene.components.find(({ id }) => id === farmComponent.id)!;
+    const system = scene.components.find(({ id: cid }) => cid === farmComponent.id)!;
     system.props!.catalog = { $ref: oldCatalogPath };
     system.props!.rules = { $ref: oldRulesPath };
-    const owner = scene.entities.find((entity) => entity.components?.includes(system.id))!;
-    const scriptComponent = "legacy-farm-script";
-    owner.components!.push(scriptComponent);
-    scene.components.push({ id: scriptComponent, type: "Script", script: { $ref: legacyScript } });
-    saved.project.files.find((file) => file.virtualPath === scenePath)!.dependencies!.push(legacyScript);
-    saved.project.files.push({ virtualPath: legacyScript, path: "runtime:legacy-farm-script", type: "script", dependencies: [oldCatalogPath] });
-    saved.contents[legacyScript] = 'import catalog from "./Catalog.farming"; export default catalog;';
-
-    const root = scene.entities.find((entity) => entity.id === scene.scene.rootEntities[0])!;
-    (root.components ??= []).push("farm-owner-consumer", "farm-owner", "unrelated-owner");
-    const script = { type: "Script", script: { $ref: ownerScript } };
-    scene.components.push(
-      { ...script, id: "farm-owner-consumer", props: { inputs: [{ $component: "farm-owner" }] } },
-      { ...script, id: "farm-owner", props: { owner: { $component: system.id } } },
-      { ...script, id: "unrelated-owner" }
+    scene.entities.find((entity) => entity.components?.includes(system.id))!.components!.push("legacy-farm-script");
+    (scene.entities.find((entity) => entity.id === scene.scene.rootEntities[0])!.components ??= []).push(
+      "farm-owner-consumer",
+      "farm-owner",
+      "unrelated-owner"
     );
-    saved.project.files.find((file) => file.virtualPath === scenePath)!.dependencies!.push(ownerScript);
-    saved.project.files.push({ virtualPath: ownerScript, path: "runtime:owner-script", type: "script", dependencies: [] });
+    scene.components.push(
+      { id: "legacy-farm-script", type: "Script", script: { $ref: legacyScript } },
+      { id: "farm-owner-consumer", type: "Script", script: { $ref: ownerScript }, props: { inputs: [{ $component: "farm-owner" }] } },
+      { id: "farm-owner", type: "Script", script: { $ref: ownerScript }, props: { owner: { $component: system.id } } },
+      { id: "unrelated-owner", type: "Script", script: { $ref: ownerScript } }
+    );
+    saved.project.files.find((file) => file.virtualPath === scenePath)!.dependencies!.push(legacyScript, ownerScript);
+    saved.project.files.push(
+      { virtualPath: legacyScript, path: "runtime:legacy-farm-script", type: "script", dependencies: [oldCatalogPath] },
+      { virtualPath: ownerScript, path: "runtime:owner-script", type: "script", dependencies: [] }
+    );
+    saved.contents[legacyScript] = 'import catalog from "./Catalog.farming"; export default catalog;';
     saved.contents[ownerScript] = ownerScriptText;
-    // Node has no browser Worker. Only Script dependency analysis is stubbed; Scene compilation is real.
-    vi.spyOn(RuntimeProjectSession.prototype, "compileScripts").mockResolvedValue({
-      dependencies: { [ownerScript]: [] },
-      entries: {},
-      files: {}
-    });
+    vi.spyOn(RuntimeProjectSession.prototype, "compileScripts").mockResolvedValue({ dependencies: { [ownerScript]: [] }, entries: {}, files: {} });
     const coldAsset = (path: string, type: string, body?: Uint8Array<ArrayBuffer>) => {
       const url = new URL(path, f.url.origin).href;
       const existing = saved.project.files.find((file) => file.virtualPath === path);
@@ -254,7 +267,7 @@ it.each([1, 2, 3])("opens other authoring when farm preset %s contains unsupport
     const regularFetch = f.fetcher.getMockImplementation()!;
     f.fetcher.mockImplementation((input, init) => {
       const path = new URL(String(input)).pathname.slice(1);
-      if (path === missingLegacy) return Promise.resolve(new Response(null, {status: 404}));
+      if (path === missingLegacy) return Promise.resolve(new Response(null, { status: 404 }));
       const body = coldBodies.get(path);
       return body ? Promise.resolve(new Response(body)) : regularFetch(input, init);
     });
@@ -268,13 +281,10 @@ it.each([1, 2, 3])("opens other authoring when farm preset %s contains unsupport
   const keepProps = new Set(legacyResources ? [keptProp, ...keptPropFile.dependencies!] : []);
   saved.project.files = saved.project.files.filter((file) => !props.has(file.virtualPath) || keepProps.has(file.virtualPath));
   for (const path of props) if (!keepProps.has(path)) delete saved.contents[path];
-  if (legacyResources) {
-    saved.contents[keptProp] = keptPropText;
-  }
-  const occupiedState = "World/Farming/Rebuilt/State.json";
-  saved.project.files.push({ virtualPath: occupiedState, path: "runtime:existing-rebuilt-state", type: "JSON", dependencies: [] });
-  const occupiedStateText = '{"keep":"previous author content"}';
-  saved.contents[occupiedState] = occupiedStateText;
+  if (legacyResources) saved.contents[keptProp] = keptPropText;
+  const occupiedState = "World/Farming/Rebuilt/State.json",
+    occupiedStateText = '{"keep":"previous author content"}';
+  addSavedAsset(saved, occupiedState, "JSON", occupiedStateText);
   const oldState = saved.contents[farmStatePath];
   expect(typeof oldState).toBe("string");
   const originalScene = saved.contents[scenePath];
@@ -282,17 +292,15 @@ it.each([1, 2, 3])("opens other authoring when farm preset %s contains unsupport
 
   if (legacyResources) {
     const invalid = JSON.parse(originalScene as string) as GalaceanSourceSceneFile;
-    invalid.components.find(({ id }) => id === "unrelated-owner")!.props = {
-      owner: { $component: "missing-component" }
-    };
+    invalid.components.find(({ id: cid }) => cid === "unrelated-owner")!.props = { owner: { $component: "missing-component" } };
     const invalidText = JSON.stringify(invalid);
     saved.contents[scenePath] = invalidText;
     f.save.mockClear();
     await expect(openSeedWorldProject(f.url, initial)).rejects.toThrow(/\$component references missing component/);
     expect(f.save).not.toHaveBeenCalled();
-    expect(f.records.get(project.id)?.contents[scenePath]).toBe(invalidText);
-    expect(f.records.get(project.id)?.contents[oldCatalogPath]).toBeUndefined();
-    expect(f.records.get(project.id)?.documents?.[archivePath]).toBeUndefined();
+    expect(f.records.get(id)?.contents[scenePath]).toBe(invalidText);
+    expect(f.records.get(id)?.contents[oldCatalogPath]).toBeUndefined();
+    expect(f.records.get(id)?.documents?.[archivePath]).toBeUndefined();
     saved.contents[scenePath] = originalScene;
   }
 
@@ -326,7 +334,7 @@ it.each([1, 2, 3])("opens other authoring when farm preset %s contains unsupport
   }
   await expect(opened.resources()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ virtualPath: scenePath })]));
   expect((JSON.parse(opened.projectPackage.contents[scenePath] as string) as GalaceanSourceSceneFile).components).toEqual(
-    originalComponents.filter(({ type, id }) => type !== "FarmingSystem" && !detachedComponents.has(id))
+    originalComponents.filter(({ type, id: cid }) => type !== "FarmingSystem" && !detachedComponents.has(cid))
   );
   expect(planningFarmingRecoveryNotice(opened.projectPackage)).toContain("rebuildFarm=1");
   await preparePlanningFarmingScene(opened, { baseUrl: f.url.href });
@@ -355,8 +363,7 @@ it.each([1, 2, 3])("opens other authoring when farm preset %s contains unsupport
   expect(reopenedProject.contents[occupiedState]).toBe(occupiedStateText);
   const hoe = "Farming/Props/Tilling/hoe.prefab";
   expect(JSON.parse(opened.fileProvider().read(hoe) as string).asset.version).toBe("2.0");
-  expect(reopenedProject.project.files.find((file) => file.virtualPath === hoe)?.dependencies)
-    .toContain("Farming/Props/Tilling/hoe.animCtrl");
+  expect(reopenedProject.project.files.find((file) => file.virtualPath === hoe)?.dependencies).toContain("Farming/Props/Tilling/hoe.animCtrl");
   expect(reopenedProject.project.files.filter((file) => props.has(file.virtualPath))).toHaveLength(props.size);
   expect(reopenedProject.project.files.find((file) => file.virtualPath.endsWith("/Rebuilt-2/Catalog.json"))?.dependencies)
     .toEqual(expect.arrayContaining([expect.stringMatching(/^World\/Farming\/Rebuilt-2\/Textures\//)]));
@@ -380,8 +387,7 @@ it.each([1, 2, 3])("opens other authoring when farm preset %s contains unsupport
     const firstRebuild = restored.projectPackage.contents[rebuiltState];
     restored.dispose();
     sessions.pop();
-    // Model a project that was independently quarantined again after an earlier successful rebuild.
-    f.records.get(project.id)!.documents![marker] = JSON.stringify({ version: 2, scene: scenePath });
+    f.records.get(id)!.documents![marker] = JSON.stringify({ version: 2, scene: scenePath });
     const isolatedAgain = await openSeedWorldProject(f.url, initial);
     sessions.push(isolatedAgain);
     expect(isolatedAgain.projectPackage.contents["World/Farming/Rebuilt-3/State.json"]).toBeUndefined();
@@ -393,74 +399,56 @@ it.each([1, 2, 3])("opens other authoring when farm preset %s contains unsupport
 
 it("isolates a retired Prefab component, its instance references and overrides in their Source scope", async () => {
   const f = storageFixture();
-  const project = await openSeedWorldProject(f.url);
-  sessions.push(project);
-  await project.save();
-  project.dispose();
-  sessions.pop();
-
-  const saved = f.records.get(project.id)!;
-  const scenePath = saved.project.scene;
-  const farmPrefab = "Virtual/PrefabFarm.prefab";
-  const controlPrefab = "Virtual/Control.prefab";
-  const catalog = "World/Farming/Catalog.farming";
-  const script = "Other/Owner.ts";
-  const scriptText = 'import { Script } from "@galacean/engine"; export default class Owner extends Script {}';
-  const scopedId = "prefab-component";
+  const { id, saved } = await saveInitialSession(f);
+  const scenePath = saved.project.scene,
+    farmPrefab = "Virtual/PrefabFarm.prefab",
+    controlPrefab = "Virtual/Control.prefab",
+    catalog = "World/Farming/Catalog.farming",
+    script = "Other/Owner.ts",
+    scriptText = 'import { Script } from "@galacean/engine"; export default class Owner extends Script {}',
+    scopedId = "prefab-component";
   const makePrefab = (...components: GalaceanSourceComponentSchema[]): string =>
     JSON.stringify({
       asset: { version: "2.0" },
       root: "prefab-root",
-      entities: [{ id: "prefab-root", components: components.map(({ id }) => id) }],
+      entities: [{ id: "prefab-root", components: components.map(({ id: cid }) => cid) }],
       components
     } satisfies GalaceanSourcePrefabFile);
   const companion = { id: "prefab-companion", type: "Script", script: { $ref: script } };
   const farmSource = makePrefab({ id: scopedId, type: "FarmingSystem", props: { catalog: { $ref: catalog } } }, companion);
   const controlSource = makePrefab({ id: scopedId, type: "Script", script: { $ref: script } });
-  const addAsset = (path: string, type: string, content: string, dependencies: string[] = []) => {
-    saved.project.files.push({ virtualPath: path, path: `runtime:${path}`, type, dependencies });
-    saved.contents[path] = content;
-  };
-  addAsset(catalog, "FarmingResource", "{}");
-  addAsset(farmPrefab, "Prefab", farmSource, [catalog, script]);
-  addAsset(controlPrefab, "Prefab", controlSource, [script]);
-  addAsset(script, "script", scriptText);
+  addSavedAsset(saved, catalog, "FarmingResource", "{}");
+  addSavedAsset(saved, farmPrefab, "Prefab", farmSource, [catalog, script]);
+  addSavedAsset(saved, controlPrefab, "Prefab", controlSource, [script]);
+  addSavedAsset(saved, script, "script", scriptText);
 
   const scene = JSON.parse(saved.contents[scenePath] as string) as GalaceanSourceSceneFile;
-  const addInstance = (id: string, path: string, overrides: GalaceanInstanceOverrides) => {
-    scene.scene.rootEntities.push(id);
-    scene.entities.push({ id, instance: { asset: { $ref: path }, overrides } });
-  };
   const propertyOverride = [{ target: scopedId, props: { enabled: false } }];
-  addInstance("farm-instance", farmPrefab, {
-    componentProps: [
-      ...propertyOverride,
-      { target: companion.id, props: { owner: { $component: { instance: "farm-instance", target: scopedId } } } }
-    ]
-  });
-  addInstance("farm-with-removal", farmPrefab, { removedComponents: [scopedId] });
-  addInstance("control-instance", controlPrefab, { componentProps: propertyOverride });
+  for (const [instanceId, path, overrides] of [
+    ["farm-instance", farmPrefab, { componentProps: [...propertyOverride, { target: companion.id, props: { owner: { $component: { instance: "farm-instance", target: scopedId } } } }] }],
+    ["farm-with-removal", farmPrefab, { removedComponents: [scopedId] }],
+    ["control-instance", controlPrefab, { componentProps: propertyOverride }]
+  ] as [string, string, GalaceanInstanceOverrides][]) {
+    scene.scene.rootEntities.push(instanceId);
+    scene.entities.push({ id: instanceId, instance: { asset: { $ref: path }, overrides } });
+  }
   const root = scene.entities.find((entity) => entity.id === scene.scene.rootEntities[0])!;
-  const makeObserver = (id: string, instance: string, target = scopedId): GalaceanSourceComponentSchema => ({
-    id,
+  const makeObserver = (cid: string, instance: string, target = scopedId): GalaceanSourceComponentSchema => ({
+    id: cid,
     type: "Script",
     script: { $ref: script },
     props: { owner: { $component: { instance, target } } }
   });
-  const farmObserver = makeObserver("farm-observer", "farm-instance");
-  const companionObserver = makeObserver("companion-observer", "farm-instance", companion.id);
-  const otherCompanionObserver = makeObserver("other-companion-observer", "farm-with-removal", companion.id);
-  const controlObserver = makeObserver("control-observer", "control-instance");
+  const farmObserver = makeObserver("farm-observer", "farm-instance"),
+    companionObserver = makeObserver("companion-observer", "farm-instance", companion.id),
+    otherCompanionObserver = makeObserver("other-companion-observer", "farm-with-removal", companion.id),
+    controlObserver = makeObserver("control-observer", "control-instance");
   (root.components ??= []).push(farmObserver.id, companionObserver.id, otherCompanionObserver.id, controlObserver.id);
   scene.components.push(farmObserver, companionObserver, otherCompanionObserver, controlObserver);
   const originalScene = JSON.stringify(scene);
   saved.contents[scenePath] = originalScene;
   saved.project.files.find(({ virtualPath }) => virtualPath === scenePath)!.dependencies!.push(farmPrefab, controlPrefab, script);
-  vi.spyOn(RuntimeProjectSession.prototype, "compileScripts").mockResolvedValue({
-    dependencies: { [script]: [] },
-    entries: {},
-    files: {}
-  });
+  vi.spyOn(RuntimeProjectSession.prototype, "compileScripts").mockResolvedValue({ dependencies: { [script]: [] }, entries: {}, files: {} });
   for (const path of [scenePath, farmPrefab])
     expect(JSON.parse(compileProjectResource(saved, path) as string)).toMatchObject({ version: "2.0" });
 
@@ -471,11 +459,13 @@ it("isolates a retired Prefab component, its instance references and overrides i
   expect(planningFarmingRecoveryUrl(current, viewerUrl)?.href).toBe(`${viewerUrl.origin}${viewerUrl.pathname}${viewerUrl.search}&rebuildFarm=1#overview`);
   expect(viewerUrl.searchParams.has("rebuildFarm")).toBe(false);
   const source = JSON.parse(current.contents[scenePath] as string) as GalaceanSourceSceneFile;
-  expect(source.components).toEqual(scene.components.filter(({ id }) => id !== farmObserver.id && id !== companionObserver.id));
-  const farmOverrides = source.entities.find(({ id }) => id === "farm-instance")?.instance?.overrides;
-  expect(farmOverrides).toEqual({ componentProps: [], removedComponents: [companion.id] });
-  expect(source.entities.find(({ id }) => id === "farm-with-removal")?.instance?.overrides?.removedComponents).toEqual([]);
-  expect(source.entities.find(({ id }) => id === "control-instance")?.instance?.overrides?.componentProps).toEqual(propertyOverride);
+  expect(source.components).toEqual(scene.components.filter(({ id: cid }) => cid !== farmObserver.id && cid !== companionObserver.id));
+  expect(source.entities.find(({ id: eid }) => eid === "farm-instance")?.instance?.overrides).toEqual({
+    componentProps: [],
+    removedComponents: [companion.id]
+  });
+  expect(source.entities.find(({ id: eid }) => eid === "farm-with-removal")?.instance?.overrides?.removedComponents).toEqual([]);
+  expect(source.entities.find(({ id: eid }) => eid === "control-instance")?.instance?.overrides?.componentProps).toEqual(propertyOverride);
   expect(current.contents[controlPrefab]).toBe(controlSource);
   expect(current.contents[script]).toBe(scriptText);
   expect(JSON.parse(current.contents[farmPrefab] as string).components).toEqual([companion]);
@@ -483,46 +473,41 @@ it("isolates a retired Prefab component, its instance references and overrides i
     expect(JSON.parse(compileProjectResource(current, path) as string)).toMatchObject({ version: "2.0" });
   await expect(opened.resources()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ virtualPath: scenePath })]));
   await opened.flush();
-  expect(f.records.get(project.id)?.contents[scenePath]).toBe(current.contents[scenePath]);
-  const archive = JSON.parse(current.documents![`${scenePath}.farming-quarantine.json`]);
-  expect(archive[0].originalHierarchies).toMatchObject({ [scenePath]: originalScene, [farmPrefab]: farmSource });
+  expect(f.records.get(id)?.contents[scenePath]).toBe(current.contents[scenePath]);
+  expect(JSON.parse(current.documents![`${scenePath}.farming-quarantine.json`])[0].originalHierarchies).toMatchObject({
+    [scenePath]: originalScene,
+    [farmPrefab]: farmSource
+  });
 });
 
 it.each(["template", "override", "added component"])("keeps unrelated native nested overrides with the retired asset in the %s", async (location) => {
   const f = storageFixture();
-  const original = await openSeedWorldProject(f.url);
-  sessions.push(original);
-  await original.save();
-  original.dispose();
-  sessions.pop();
-  const saved = f.records.get(original.id)!;
-  const scenePath = saved.project.scene;
-  const retired = "World/Farming/Nested.farming";
-  const inner = "Virtual/InnerFarm.prefab";
-  const outer = "Virtual/OuterFarm.prefab";
-  const inherited = location !== "added component";
-  const addAsset = (virtualPath: string, type: string, content: object, dependencies: string[] = []) => {
-    saved.project.files.push({ virtualPath, type, path: `runtime:${virtualPath}`, dependencies });
-    saved.contents[virtualPath] = JSON.stringify(content);
-  };
-  addAsset(retired, "FarmingResource", { legacy: true });
-  addAsset(inner, "Prefab", {
-    asset: { version: "2.0" }, root: "inner",
-    entities: [
-      { id: "inner", components: inherited ? ["nested-farm"] : [], children: ["light-child"] },
-      { id: "light-child", components: ["unrelated-light"] }
-    ],
-    components: [
-      ...(inherited ? [{ id: "nested-farm", type: "FarmingSystem", props: location === "template" ? { catalog: { $ref: retired } } : {} }] : []),
-      { id: "unrelated-light", type: "PointLight", props: { intensity: 1 } }
-    ]
-  } satisfies GalaceanSourcePrefabFile, location === "template" ? [retired] : []);
-  addAsset(outer, "Prefab", {
-    asset: { version: "2.0" }, root: "outer",
-    entities: [
-      { id: "outer", children: ["nested-anchor"] },
-      { id: "nested-anchor", instance: { asset: { $ref: inner } } }
-    ],
+  const { saved } = await saveInitialSession(f);
+  const scenePath = saved.project.scene,
+    retired = "World/Farming/Nested.farming",
+    inner = "Virtual/InnerFarm.prefab",
+    outer = "Virtual/OuterFarm.prefab",
+    inherited = location !== "added component";
+  addSavedAsset(saved, retired, "FarmingResource", { legacy: true });
+  addSavedAsset(
+    saved,
+    inner,
+    "Prefab",
+    {
+      asset: { version: "2.0" },
+      root: "inner",
+      entities: [{ id: "inner", components: inherited ? ["nested-farm"] : [], children: ["light-child"] }, { id: "light-child", components: ["unrelated-light"] }],
+      components: [
+        ...(inherited ? [{ id: "nested-farm", type: "FarmingSystem", props: location === "template" ? { catalog: { $ref: retired } } : {} }] : []),
+        { id: "unrelated-light", type: "PointLight", props: { intensity: 1 } }
+      ]
+    } satisfies GalaceanSourcePrefabFile,
+    location === "template" ? [retired] : []
+  );
+  addSavedAsset(saved, outer, "Prefab", {
+    asset: { version: "2.0" },
+    root: "outer",
+    entities: [{ id: "outer", children: ["nested-anchor"] }, { id: "nested-anchor", instance: { asset: { $ref: inner } } }],
     components: []
   } satisfies GalaceanSourcePrefabFile, [inner]);
   const formats = nativeAssetFormats(() => ({}));
@@ -542,9 +527,7 @@ it.each(["template", "override", "added component"])("keeps unrelated native nes
   if (second) edit.updateComponent(nestedLight(edit, second).id, { intensity: 12 });
   const before = draft.read(scenePath) as string;
   saved.contents[scenePath] = before;
-  saved.project.files.find((file) => file.virtualPath === scenePath)!.dependencies!.push(outer, inner);
-  if (location !== "template")
-    saved.project.files.find((file) => file.virtualPath === scenePath)!.dependencies!.push(retired);
+  saved.project.files.find((file) => file.virtualPath === scenePath)!.dependencies!.push(outer, inner, ...(location === "template" ? [] : [retired]));
   expect(JSON.parse(before).prefab.nestedOverrides).toHaveLength(second ? 2 : 1);
   expect(JSON.parse(compileProjectResource(saved, scenePath) as string).version).toBe("2.0");
 
