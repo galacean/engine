@@ -96,6 +96,22 @@ export function compileNaturalVegetationCell(
   surface: (x: number, z: number) => LandscapeSurfaceSample,
   sampling: NaturalCellSampling
 ): VegetationLandscapePlan {
+  const steps = compileNaturalVegetationCellSteps(request, assets, surface, sampling);
+  for (;;) {
+    const next = steps.next();
+    if (next.done) return next.value;
+  }
+}
+
+export function* compileNaturalVegetationCellSteps(
+  request: Pick<
+    VegetationLandscapeRequest,
+    "seed" | "regionId" | "region" | "seams" | "exclusions" | "views" | "focalTargets" | "budget"
+  > & { readonly layers: readonly NaturalVegetationLayerRule[] },
+  assets: readonly LandscapePlantAsset[],
+  surface: (x: number, z: number) => LandscapeSurfaceSample,
+  sampling: NaturalCellSampling
+): Generator<void, VegetationLandscapePlan, void> {
   const { seed } = request,
     { min, max } = sampling.bounds;
   const byAsset = new Map(assets.map((asset) => [asset.id, asset]));
@@ -465,6 +481,7 @@ export function compileNaturalVegetationCell(
         if (decoration) decoration.placed++;
       };
       const rate = density * envelope * (localCompanions ? 1 - companion!.strength : 1);
+      let workSteps = 0;
       if (rate > 0) {
         const step = 1 / Math.sqrt(rate);
         const nx = Math.ceil(max[0] / step) - Math.floor(min[0] / step),
@@ -480,10 +497,19 @@ export function compileNaturalVegetationCell(
               (z + vegetationRankFromHash(hash, "/z")) * step
             ];
             if (p[0] >= min[0] && p[0] < max[0] && p[1] >= min[1] && p[1] < max[1]) accept(id, hash, p);
+            if ((++workSteps & 511) === 0) yield;
           }
       }
       if (localCompanions)
         for (const patch of pockets!.patches) {
+          const maxReach = Math.max(patch.a, patch.b);
+          if (
+            patch.x + maxReach < min[0] ||
+            patch.x - maxReach > max[0] ||
+            patch.z + maxReach < min[1] ||
+            patch.z - maxReach > max[1]
+          )
+            continue;
           const mass = Math.PI * patch.a * patch.b * companion!.densityPerM2! * companion!.strength * envelope;
           if (!Number.isFinite(mass)) throw new Error("Natural vegetation candidate budget exceeded");
           let arrival = 0;
@@ -502,6 +528,7 @@ export function compileNaturalVegetationCell(
               patch.z + u * patch.sin + v * patch.cos
             ];
             if (p[0] >= min[0] && p[0] < max[0] && p[1] >= min[1] && p[1] < max[1]) accept(id, hash, p, true);
+            if ((++workSteps & 511) === 0) yield;
           }
         }
     }

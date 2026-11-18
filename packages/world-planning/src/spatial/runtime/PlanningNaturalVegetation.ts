@@ -29,7 +29,10 @@ import {
   SEED_WORLD_NATURAL_VEGETATION_EXCLUDED_ASSET_IDS,
   type NaturalVegetationLayerRule
 } from "../../runtime/NaturalVegetationLayers.ts";
-import { compileNaturalVegetationCell } from "../../runtime/NaturalVegetationCell.ts";
+import {
+  compileNaturalVegetationCell,
+  compileNaturalVegetationCellSteps
+} from "../../runtime/NaturalVegetationCell.ts";
 import {
   type LandscapeBounds,
   type LandscapePlantAsset,
@@ -98,16 +101,18 @@ export function planningNaturalTrees(
   height: Pick<PlanningHeightmap, "sample">,
   assets: readonly PlanningPlantAsset[]
 ): LandscapePlantInstance[] {
+  const removed = planningRemovedObjectIds(plan.authoredResources ?? []);
+  const candidates = (plan.landscapes ?? []).filter(
+    (p) => p.kind === "tree" && p.assetRenderMode !== "prefab" && !removed.has(p.id)
+  );
+  if (!candidates.length) return [];
   const speciesAt = createNaturalTreeSpeciesRegions(plan.parameters.seed);
   const palette = NATURAL_VEGETATION_PALETTES.trees.map((id) => {
     const asset = assets.find((asset) => asset.id === id);
     if (!asset) throw new Error(`Missing planned tree asset: ${id}`);
     return asset;
   });
-  const removed = planningRemovedObjectIds(plan.authoredResources ?? []);
-  return (plan.landscapes ?? [])
-    .filter((p) => p.kind === "tree" && p.assetRenderMode !== "prefab" && !removed.has(p.id))
-    .map((tree) => {
+  return candidates.map((tree) => {
       const assetId =
         tree.assetId ?? naturalTreeDimensions(plan.parameters.seed, tree.id, tree.height, tree.center).assetId;
       const asset = palette.find((asset) => asset.id === assetId);
@@ -293,10 +298,17 @@ export class PlanningNaturalVegetation {
     // Prove that once before spending a cell's candidate budget; flowers and stones
     // have independent suitability and must retain their own generation rules.
     const hasSubstrate = this.grass.some((value, index) => value > 0 && !fields.waterMask[index]);
+    const distribution = plan.naturalVegetation ?? publishNaturalVegetation(plan);
+    const hasPositiveLayerAbundance = (layerId: string) => {
+      const key = NATURAL_VEGETATION_CONTROLS.find((control) => control.label === layerId)?.key;
+      if (!key) return true;
+      if ((distribution.world[key] ?? 0) > 0) return true;
+      return Object.values(distribution.regions).some((region) => (region[key] ?? 0) > 0);
+    };
     const stoneDensity =
       plan.naturalVegetation?.settings.companionStoneDensity ?? NATURAL_VEGETATION_DEFAULTS.companionStoneDensity;
     const stones =
-      stoneDensity > 0 && worldTemplate(plan.parameters.worldTemplate?.id)?.vegetation !== "grass"
+      stoneDensity > 0 && (worldTemplate(plan.parameters.worldTemplate?.id)?.vegetation as string | undefined) !== "grass"
         ? createNaturalCompanionStoneLayer(assets.filter((asset) => asset.kind === "stone"))
         : undefined;
     this.layers = [
@@ -314,11 +326,14 @@ export class PlanningNaturalVegetation {
             : layer.id === "零星野花"
               ? {
                   ...layer,
-                  density: FLOWER_DEFAULTS.densityPerM2,
+                  density:
+                    this.flowerRegions.some((r) => r.config.densityPerM2 > 0) && hasPositiveLayerAbundance("零星野花")
+                      ? FLOWER_DEFAULTS.densityPerM2
+                      : 0,
                   maxSlopeDegrees: 90,
                   palette: layer.palette.map((member) => ({ ...member, weight: 1 }))
                 }
-              : hasSubstrate
+              : hasSubstrate && hasPositiveLayerAbundance(layer.id)
                 ? layer
                 : { ...layer, density: 0 }
         )
@@ -346,13 +361,75 @@ export class PlanningNaturalVegetation {
     };
   }
   compileCell(x: number, z: number) {
+    const steps = this.compileCellSteps(x, z);
+    for (;;) {
+      const next = steps.next();
+      if (next.done) return next.value;
+    }
+  }
+  *compileCellSteps(x: number, z: number) {
     const { width, depth, seed } = this.plan.parameters,
       cell = SEED_WORLD_POPULATION_CELL_METRES;
     const settings = this.plan.naturalVegetation?.settings ?? NATURAL_VEGETATION_DEFAULTS;
     const min = [x * cell, z * cell] as const,
       max = [Math.min(width, (x + 1) * cell), Math.min(depth, (z + 1) * cell)] as const;
+    const nearbyAnchors = this.anchors.filter((anchor) => {
+      const reach = companionAnchorReach(anchor.radius, NATURAL_VEGETATION_COMPANION_PATCHES);
+      return (
+        anchor.position[0] + reach >= min[0] &&
+        anchor.position[0] - reach <= max[0] &&
+        anchor.position[2] + reach >= min[1] &&
+        anchor.position[2] - reach <= max[1]
+      );
+    });
+    const cellHasTreeAnchors = nearbyAnchors.some((anchor) => anchor.layerId === "乔木");
+    let cellHasGrassSubstrate = false;
+    {
+      const resolution = this.fields.surfaceResolution,
+        n = resolution - 1;
+      const minX = Math.max(0, Math.floor((min[0] / width) * n)),
+        maxX = Math.min(n, Math.ceil((max[0] / width) * n)),
+        minZ = Math.max(0, Math.floor((min[1] / depth) * n)),
+        maxZ = Math.min(n, Math.ceil((max[1] / depth) * n));
+      outerGrass: for (let iz = minZ; iz <= maxZ; iz++) {
+        const row = iz * resolution;
+        for (let ix = minX; ix <= maxX; ix++) {
+          const i = row + ix;
+          if (this.grass[i] > 0 && !this.fields.waterMask[i]) {
+            cellHasGrassSubstrate = true;
+            break outerGrass;
+          }
+        }
+      }
+    }
+    let cellHasFlowers = false;
+    if (this.flowerRegions.length > 0) {
+      const field = this.flowerCoverage,
+        n = field.resolution - 1;
+      const minX = Math.max(0, Math.floor((min[0] / width) * n)),
+        maxX = Math.min(n, Math.ceil((max[0] / width) * n)),
+        minZ = Math.max(0, Math.floor((min[1] / depth) * n)),
+        maxZ = Math.min(n, Math.ceil((max[1] / depth) * n));
+      outerFlowers: for (let iz = minZ; iz <= maxZ; iz++) {
+        const row = iz * field.resolution;
+        for (let ix = minX; ix <= maxX; ix++) {
+          const i = row + ix;
+          if (field.flowers[i] > 0 && this.flowerRegions[field.ownership.samples[i] - 1]) {
+            cellHasFlowers = true;
+            break outerFlowers;
+          }
+        }
+      }
+    }
+    const cellLayers = this.layers.map((layer) => {
+      if (layer.density === 0) return layer;
+      if (layer.id === "树脚石块") return cellHasTreeAnchors ? layer : { ...layer, density: 0 };
+      if (layer.id === "零星野花") return cellHasFlowers ? layer : { ...layer, density: 0 };
+      return cellHasGrassSubstrate ? layer : { ...layer, density: 0 };
+    });
     const plantRadius = Math.max(
-      ...this.layers
+      0,
+      ...cellLayers
         .filter((layer) => layer.density > 0)
         .flatMap((layer) =>
           layer.palette.map(
@@ -421,18 +498,9 @@ export class PlanningNaturalVegetation {
           }))
       ],
       seams,
-      layers: this.layers,
+      layers: cellLayers,
       budget: naturalVegetationSamplingBudget((max[0] - min[0]) * (max[1] - min[1]))
     };
-    const nearbyAnchors = this.anchors.filter((anchor) => {
-      const reach = companionAnchorReach(anchor.radius, NATURAL_VEGETATION_COMPANION_PATCHES);
-      return (
-        anchor.position[0] + reach >= min[0] &&
-        anchor.position[0] - reach <= max[0] &&
-        anchor.position[2] + reach >= min[1] &&
-        anchor.position[2] - reach <= max[1]
-      );
-    });
     const densityKeys = new Map(
       this.layers.map((layer) => [
         layer.id,
@@ -464,7 +532,7 @@ export class PlanningNaturalVegetation {
         slopeDegrees: (Math.atan(Math.hypot(slopeX, slopeZ)) * 180) / Math.PI
       };
     };
-    const result = compileNaturalVegetationCell(request, this.assets, sample, {
+    return yield* compileNaturalVegetationCellSteps(request, this.assets, sample, {
       bounds: { min, max },
       anchors: nearbyAnchors,
       density,
@@ -480,7 +548,7 @@ export class PlanningNaturalVegetation {
       populationAreas: {},
       populationFields: {
         零星野花: {
-          ratePerM2: this.flowerRegions.length
+          ratePerM2: cellHasFlowers
             ? Math.max(FLOWER_DEFAULTS.densityPerM2, ...this.flowerRegions.map((region) => region.config.densityPerM2))
             : 0,
           at: (x, z) => {
@@ -501,7 +569,6 @@ export class PlanningNaturalVegetation {
       },
       populationAssetWeights: { 零星野花: this.flowerAssetWeights }
     });
-    return result;
   }
 }
 

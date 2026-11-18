@@ -6,7 +6,7 @@ import {
   plantExhibitionVariants,
   sizeVariantEntry
 } from "./PlantExhibitionLayout";
-import { type Camera, type Entity, type Material, Matrix, MeshRenderer, Vector3, Vector4 } from "@galacean/engine";
+import { type Camera, type Engine, type Entity, type Material, Matrix, MeshRenderer, Vector3, Vector4 } from "@galacean/engine";
 import { AssetStageLabels, ASSET_STAGE_CLEARANCE } from "./AssetStageLabels";
 import { PlantDrawCallProfiler } from "./PlantDrawCallProfiler";
 import { TERRAIN_FLOWER_WIND_RESPONSE_PROFILE } from "@galacean/engine-terrain/terrain/project/TerrainWindResponseProfiles";
@@ -99,6 +99,121 @@ interface InstanceBatch {
 }
 
 /** Independent plant renderers share Mesh/Material resources; the Engine instances them after culling. */
+type LibraryIndexDocument = {
+  assets: ProceduralPlantLibraryEntry[];
+  prototypes?: ProceduralPlantLibraryEntry[];
+};
+
+const cachedLibraryIndices = new Map<string, Promise<LibraryIndexDocument>>();
+const cachedDecodedParameters = new Map<string, Promise<ProceduralPlantAsset>>();
+const cachedCompiledSpecimens = new Map<string, ReturnType<typeof compileSpecimen>>();
+const cachedPlacementMetadata = new Map<
+  string,
+  { entry: ProceduralPlantLibraryEntry; bounds: AssetAssemblyStandBounds; lodCount: number }
+>();
+
+function resolveLibraryIndexUrl(indexUrl: string): string {
+  return /^[.\/]/u.test(indexUrl) ? new URL(indexUrl, location.href).href : indexUrl;
+}
+
+function loadCachedLibraryIndex(engine: Engine, indexUrl: string): Promise<LibraryIndexDocument> {
+  const resolved = resolveLibraryIndexUrl(indexUrl);
+  let pending = cachedLibraryIndices.get(resolved);
+  if (!pending) {
+    pending = loadPlantJSON<LibraryIndexDocument>(engine, resolved);
+    cachedLibraryIndices.set(resolved, pending);
+  }
+  return pending;
+}
+
+function loadCachedPlantAsset(
+  engine: Engine,
+  entry: ProceduralPlantLibraryEntry,
+  resolvedIndexUrl: string
+): Promise<ProceduralPlantAsset> {
+  const paramUrl = resolvePlantResourceReference(entry.parameterFile!, resolvedIndexUrl);
+  let pending = cachedDecodedParameters.get(paramUrl);
+  if (!pending) {
+    pending = (async () => {
+      const asset = await loadPlantParameters<ProceduralPlantAsset>(engine, paramUrl, validateProceduralPlantAsset);
+      if (asset.id !== entry.id || asset.category !== entry.category)
+        throw new Error(`${entry.id}: plant library identity mismatch`);
+      return asset;
+    })();
+    cachedDecodedParameters.set(paramUrl, pending);
+  }
+  return pending;
+}
+
+function getCompiledSpecimenCached(asset: ProceduralPlantAsset, lod: number): ReturnType<typeof compileSpecimen> {
+  const key = `${asset.id}#lod${lod}`;
+  let compiled = cachedCompiledSpecimens.get(key);
+  if (!compiled) {
+    compiled = compileSpecimen(asset, lod);
+    cachedCompiledSpecimens.set(key, compiled);
+  }
+  return compiled;
+}
+
+/** Resolves exact CPU placement bounds for procedural plant species without uploading GPU meshes or textures. */
+export async function loadProceduralPlantPlacementMetadata(
+  engine: Engine,
+  indexUrl: string,
+  assetIds?: ReadonlySet<string>
+): Promise<readonly { entry: ProceduralPlantLibraryEntry; bounds: AssetAssemblyStandBounds; lodCount: number }[]> {
+  const resolvedIndexUrl = resolveLibraryIndexUrl(indexUrl);
+  const library = await loadCachedLibraryIndex(engine, resolvedIndexUrl);
+  const entries = library.assets.filter((entry) => (!assetIds || assetIds.has(entry.id)) && !entry.sourceAssetId);
+  const sources = [...entries, ...(library.prototypes ?? [])];
+  const available = entries.filter((entry) => entry.parameterFile);
+  if (!available.length) return [];
+
+  const uncached = available.filter((entry) => !cachedPlacementMetadata.has(`${resolvedIndexUrl}::${entry.id}`));
+  if (uncached.length > 0) {
+    const resolvedSources = uncached.map((entry) => {
+      const source = entry.prototypeId ? sources.find((item) => item.id === entry.prototypeId) : entry;
+      if (!source?.parameterFile || (source.prototypeId && source.prototypeId !== source.id))
+        throw new Error(`${entry.id}: invalid plant prototype`);
+      if (
+        entry.instanceScale &&
+        (entry.instanceScale.length !== 3 || !entry.instanceScale.every((v) => Number.isFinite(v) && v > 0))
+      )
+        throw new Error(`${entry.id}: invalid instance scale`);
+      return { entry, source };
+    });
+    const uniqueSources = [...new Map(resolvedSources.map(({ source }) => [source.id, source])).values()];
+    const loadedAssets = new Map(
+      await Promise.all(
+        uniqueSources.map(async (source) => [source.id, await loadCachedPlantAsset(engine, source, resolvedIndexUrl)] as const)
+      )
+    );
+    let sliceStartedAt = performance.now();
+    for (const { entry, source } of resolvedSources) {
+      const asset = loadedAssets.get(source.id)!;
+      validatePlantGeometryInstances(entry, asset);
+      validatePlantInstanceVariation(entry);
+      const base = getCompiledSpecimenCached(asset, 0);
+      const placement = instantiateSpecimen(base, entry);
+      if (placement.geometry.length > 0) {
+        cachedPlacementMetadata.set(`${resolvedIndexUrl}::${entry.id}`, {
+          entry: { ...entry, parameterFile: source.parameterFile },
+          bounds: translateBounds(placement.localBounds, 0, 0),
+          lodCount: asset.geometryLods.length
+        });
+      }
+      if (performance.now() - sliceStartedAt >= 8) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        sliceStartedAt = performance.now();
+      }
+    }
+  }
+
+  return available.flatMap((entry) => {
+    const meta = cachedPlacementMetadata.get(`${resolvedIndexUrl}::${entry.id}`);
+    return meta ? [meta] : [];
+  });
+}
+
 export class ProceduralPlantLibraryRuntime {
   private readonly _specimens: Specimen[] = [];
   private _labels?: AssetStageLabels;
@@ -147,39 +262,18 @@ export class ProceduralPlantLibraryRuntime {
       options.normalMapped ?? false
     );
     try {
-      const indexUrl = /^[.\/]/u.test(options.indexUrl)
-        ? new URL(options.indexUrl, location.href).href
-        : options.indexUrl;
-      const library = await loadPlantJSON<{
-        assets: ProceduralPlantLibraryEntry[];
-        prototypes?: ProceduralPlantLibraryEntry[];
-      }>(options.owner.engine, indexUrl);
+      const indexUrl = resolveLibraryIndexUrl(options.indexUrl);
+      const library = await loadCachedLibraryIndex(options.owner.engine, indexUrl);
       const entries = library.assets.filter((entry) => !options.assetIds || options.assetIds.has(entry.id));
       const sources = [...entries, ...(library.prototypes ?? [])];
       runtime._camera = options.camera;
       if (!options.populationOnly) runtime._drawCalls = new PlantDrawCallProfiler(options.camera);
-      const parameters = new Map<string, Promise<ProceduralPlantAsset>>();
-      const loadAsset = (entry: ProceduralPlantLibraryEntry) => {
-        let pending = parameters.get(entry.id);
-        if (!pending) {
-          pending = (async () => {
-            const asset = await loadPlantParameters<ProceduralPlantAsset>(
-              options.owner.engine,
-              resolvePlantResourceReference(entry.parameterFile!, indexUrl),
-              validateProceduralPlantAsset
-            );
-            if (asset.id !== entry.id || asset.category !== entry.category)
-              throw new Error(`${entry.id}: plant library identity mismatch`);
-            return asset;
-          })();
-          parameters.set(entry.id, pending);
-        }
-        return pending;
-      };
-      const compiled = new Map<string, ReturnType<typeof compileSpecimen>>();
       const available = entries.filter((entry) => entry.parameterFile);
-      if (!available.length) throw new Error("Plant library contains no parameter assets");
-      for (const entry of available) {
+      if (!available.length) {
+        if (options.populationOnly) return runtime;
+        throw new Error("Plant library contains no parameter assets");
+      }
+      const resolvedEntries = available.map((entry) => {
         const source = entry.prototypeId ? sources.find((item) => item.id === entry.prototypeId) : entry;
         if (!source?.parameterFile || (source.prototypeId && source.prototypeId !== source.id))
           throw new Error(`${entry.id}: invalid plant prototype`);
@@ -188,7 +282,19 @@ export class ProceduralPlantLibraryRuntime {
           (entry.instanceScale.length !== 3 || !entry.instanceScale.every((v) => Number.isFinite(v) && v > 0))
         )
           throw new Error(`${entry.id}: invalid instance scale`);
-        const asset = await loadAsset(source);
+        return { entry, source };
+      });
+      const uniqueSources = [...new Map(resolvedEntries.map(({ source }) => [source.id, source])).values()];
+      const loadedAssets = new Map(
+        await Promise.all(
+          uniqueSources.map(
+            async (source) => [source.id, await loadCachedPlantAsset(options.owner.engine, source, indexUrl)] as const
+          )
+        )
+      );
+      let sliceStartedAt = performance.now();
+      for (const { entry, source } of resolvedEntries) {
+        const asset = loadedAssets.get(source.id)!;
         validatePlantGeometryInstances(entry, asset);
         validatePlantInstanceVariation(entry);
         // Materials and independent colours still belong to the instance identity.
@@ -207,11 +313,10 @@ export class ProceduralPlantLibraryRuntime {
         const colors = new Map(
           activeSlots.map(([id]) => [id, options.colorForSlot(appearanceAsset, entry.materialAliases?.[id] ?? id)])
         );
-        let base = compiled.get(source.id);
-        if (!base) compiled.set(source.id, (base = compileSpecimen(asset, 0)));
+        const base = getCompiledSpecimenCached(asset, 0);
         const placement = instantiateSpecimen(base, entry);
         const lod = Math.min(options.lod ?? 0, asset.geometryLods.length - 1);
-        const geometry = lod === 0 ? placement : instantiateSpecimen(compileSpecimen(asset, lod), entry);
+        const geometry = lod === 0 ? placement : instantiateSpecimen(getCompiledSpecimenCached(asset, lod), entry);
         runtime._specimens.push({
           entry: { ...entry, parameterFile: source.parameterFile },
           asset,
@@ -225,8 +330,11 @@ export class ProceduralPlantLibraryRuntime {
           placementBounds: placement.localBounds
         });
         options.onProgress?.(runtime._specimens.length, available.length);
-        // Let loading feedback paint between CPU geometry compilations.
-        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        // Time-budgeted yield so 200+ specimens do not incur 200 serial timer clamps.
+        if (performance.now() - sliceStartedAt >= 8) {
+          await new Promise<void>((resolve) => setTimeout(resolve, 0));
+          sliceStartedAt = performance.now();
+        }
       }
       if (options.addSizeVariants) {
         const groups = new Map<string, Specimen[]>();
@@ -241,7 +349,7 @@ export class ProceduralPlantLibraryRuntime {
             const base = group[0];
             for (const [index, variant] of plantExhibitionVariants(base.entry).entries()) {
               const entry = sizeVariantEntry(base.entry, variant, index + 1);
-              const geometry = instantiateSpecimen(compiled.get(base.asset.id)!, entry);
+              const geometry = instantiateSpecimen(getCompiledSpecimenCached(base.asset, 0), entry);
               runtime._specimens.push({
                 ...base,
                 entry,

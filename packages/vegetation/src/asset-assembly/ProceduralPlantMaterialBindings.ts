@@ -35,55 +35,77 @@ export interface PlantTexturePreview {
   readonly baseColors: readonly (readonly [number, number, number])[];
 }
 
+const cachedManifests = new Map<string, Promise<PlantMaterialManifest>>();
+
 export async function loadProceduralPlantMaterialBindings(
   engine: Engine,
   source: AssetAssemblySourceLibrary,
-  manifestUrl: string
+  manifestUrl: string,
+  assetIds?: ReadonlySet<string>
 ) {
-  const manifest = await loadPlantJSON<PlantMaterialManifest>(engine, manifestUrl);
-  validatePlantMaterialManifest(manifest);
+  let manifestTask = cachedManifests.get(manifestUrl);
+  if (!manifestTask) {
+    manifestTask = loadPlantJSON<PlantMaterialManifest>(engine, manifestUrl).then((m) => {
+      validatePlantMaterialManifest(m);
+      return m;
+    });
+    cachedManifests.set(manifestUrl, manifestTask);
+  }
+  const manifest = await manifestTask;
   // Load the alpha-card grass material explicitly: Seed World's grass source can
   // be replaced by terrain blades and does not own the imported plant contract.
-  const grassMaterial = await engine.resourceManager.load<Material>({
+  const grassMaterialTask = engine.resourceManager.load<Material>({
     type: AssetType.Material,
     url: usesProjectPlantResources(engine)
       ? "Material/Vegetation/grass-3.mat"
       : new URL("../../../terrain/src/data/seed-world/public/Material/Vegetation/grass-3.mat", import.meta.url).href
   });
   const textures = new Map<string, Texture2D>();
-  for (const [id, descriptor] of Object.entries(manifest.textures)) {
-    const texture = await engine.resourceManager.load<Texture2D>({
-      type: AssetType.Texture,
-      url: resolvePlantResourceReference(descriptor.url, manifestUrl),
-      params: {
-        isSRGBColorSpace: true,
-        mipmap: true,
-        filterMode: TextureFilterMode.Trilinear,
-        wrapModeU: descriptor.wrapU === "repeat" ? TextureWrapMode.Repeat : TextureWrapMode.Clamp,
-        wrapModeV: descriptor.wrapV === "repeat" ? TextureWrapMode.Repeat : TextureWrapMode.Clamp,
-        anisoLevel: 8
+  const nativeMaterials = new Map<string, Material>();
+
+  const ensureAssets = async (targetAssetIds?: Iterable<string>): Promise<void> => {
+    const selectedSlots = targetAssetIds
+      ? [...targetAssetIds].flatMap((id) => (manifest.assets[id] ? [manifest.assets[id]] : []))
+      : Object.values(manifest.assets);
+    const neededTextures = new Set<string>();
+    const neededMaterials = new Set<string>();
+    for (const slots of selectedSlots) {
+      for (const binding of Object.values(slots)) {
+        if (binding.albedo !== null && !textures.has(binding.albedo)) neededTextures.add(binding.albedo);
+        if (binding.material && !nativeMaterials.has(binding.material)) neededMaterials.add(binding.material);
       }
-    });
-    if (!(texture instanceof Texture2D) || texture.width !== descriptor.width || texture.height !== descriptor.height)
-      throw new Error(`Plant appearance image dimensions changed: ${id}`);
-    textures.set(id, texture);
-  }
-  const nativeMaterials = new Map(
-    await Promise.all(
-      [
-        ...new Set(
-          Object.values(manifest.assets).flatMap((slots) =>
-            Object.values(slots).flatMap((binding) => (binding.material ? [binding.material] : []))
-          )
-        )
-      ].map(
-        async (path) =>
-          [path, await engine.resourceManager.load<Material>({ type: AssetType.Material, url: path })] as const
-      )
-    )
-  );
+    }
+    await Promise.all([
+      ...[...neededTextures].map(async (id) => {
+        const descriptor = manifest.textures[id];
+        if (!descriptor) throw new Error(`Missing plant texture descriptor: ${id}`);
+        const texture = await engine.resourceManager.load<Texture2D>({
+          type: AssetType.Texture,
+          url: resolvePlantResourceReference(descriptor.url, manifestUrl),
+          params: {
+            isSRGBColorSpace: true,
+            mipmap: true,
+            filterMode: TextureFilterMode.Trilinear,
+            wrapModeU: descriptor.wrapU === "repeat" ? TextureWrapMode.Repeat : TextureWrapMode.Clamp,
+            wrapModeV: descriptor.wrapV === "repeat" ? TextureWrapMode.Repeat : TextureWrapMode.Clamp,
+            anisoLevel: 8
+          }
+        });
+        if (!(texture instanceof Texture2D) || texture.width !== descriptor.width || texture.height !== descriptor.height)
+          throw new Error(`Plant appearance image dimensions changed: ${id}`);
+        textures.set(id, texture);
+      }),
+      ...[...neededMaterials].map(async (path) => {
+        const mat = await engine.resourceManager.load<Material>({ type: AssetType.Material, url: path });
+        nativeMaterials.set(path, mat);
+      })
+    ]);
+  };
+
+  const [grassMaterial] = await Promise.all([grassMaterialTask, ensureAssets(assetIds)]);
   return {
     ...createProceduralPlantMaterialBindings(source, manifest, textures, grassMaterial, nativeMaterials),
+    ensureAssets,
     getTexturePreviews(assetIds: readonly string[]): readonly PlantTexturePreview[] {
       const used = new Map<
         string,
