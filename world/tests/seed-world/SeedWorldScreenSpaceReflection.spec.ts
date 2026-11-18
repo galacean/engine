@@ -4,10 +4,16 @@ import {
   RenderQueueType,
   ScreenSpaceReflection,
   ScreenSpaceReflectionReceiverMode as ReceiverMode,
+  ScreenSpaceReflectionUpsamplingMode as UpsamplingMode,
   Shader,
   ShaderData,
   ShaderDataGroup
 } from "@galacean/engine";
+import {
+  CameraWaterFeatureBroker,
+  type WaterCameraFeatureRequest
+} from "@galacean/engine-water/water/runtime/optics/CameraWaterFeatureBroker";
+import { TERRAIN_WATER_SSR_CAMERA_SETTINGS } from "@galacean/engine-world-planning/integrations/grasslands/GrasslandsWaterPcg";
 import {
   TERRAIN_DEFAULT_SURFACE_WATER_TUNING,
   WorldEnvironmentRuntime
@@ -59,8 +65,62 @@ function fixture(requiresRain = true) {
     weather["_synchronizeSurfaceWaterScreenSpaceReflection"](rate);
     terrain.setSurfaceWaterSsrEnabled(weather.surfaceWaterSsrRequested);
   };
-  return { reflection, clipmap, terrain, weather, updateRain };
+  return { camera, reflection, clipmap, terrain, weather, updateRain };
 }
+
+const waterRequest: WaterCameraFeatureRequest = {
+  reflection: "ssr",
+  quality: "high",
+  depthTexture: false,
+  opaqueTexture: false,
+  caustics: false
+};
+
+it.each([
+  ["low", 0.25],
+  ["medium", 0.5],
+  ["high", 0.5]
+] as const)("forwards the %s water trace preset to the transparent phase", (quality, resolutionScale) => {
+  const { camera, reflection } = fixture();
+  new CameraWaterFeatureBroker(camera).setRequest("lake", { ...waterRequest, quality });
+  expect(reflection.metrics.transparentResolvedSettings).toMatchObject({
+    resolutionScale,
+    upsamplingMode: UpsamplingMode.Bilinear
+  });
+});
+
+it("applies mode-only water updates and rejects an invalid mode without replacing the request", () => {
+  const { camera, reflection } = fixture();
+  const broker = new CameraWaterFeatureBroker(camera);
+  const request = { ...waterRequest, screenSpaceReflection: TERRAIN_WATER_SSR_CAMERA_SETTINGS };
+  const setMode = (upsamplingMode: UpsamplingMode) =>
+    broker.setRequest("lake", {
+      ...request,
+      screenSpaceReflection: { ...request.screenSpaceReflection, upsamplingMode }
+    });
+  broker.setRequest("lake", request);
+  expect(request.screenSpaceReflection.upsamplingMode).toBe(UpsamplingMode.Bilinear);
+  for (const mode of [UpsamplingMode.Bilateral, UpsamplingMode.GaussianBilateral, UpsamplingMode.Bilinear]) {
+    setMode(mode);
+    expect(reflection.metrics.transparentResolvedSettings.upsamplingMode).toBe(mode);
+  }
+  expect(() => setMode(-1 as UpsamplingMode)).toThrow(RangeError);
+  expect(reflection.metrics.transparentResolvedSettings.upsamplingMode).toBe(UpsamplingMode.Bilinear);
+  expect(reflection.metrics.activeConsumerLeaseCount).toBe(1);
+});
+
+it("uses the mode to break a tie between leases with the same label and priority", () => {
+  const { camera, reflection } = fixture();
+  const broker = new CameraWaterFeatureBroker(camera);
+  broker.acquireRequest("lake", {
+    ...waterRequest,
+    screenSpaceReflection: { upsamplingMode: UpsamplingMode.Bilateral }
+  });
+  const bilinear = broker.acquireRequest("lake", waterRequest);
+  expect(reflection.metrics.transparentResolvedSettings.upsamplingMode).toBe(UpsamplingMode.Bilinear);
+  bilinear.destroy();
+  expect(reflection.metrics.transparentResolvedSettings.upsamplingMode).toBe(UpsamplingMode.Bilateral);
+});
 
 it("keeps dry terrain out of SSR even with a water lease and retained puddles", () => {
   const { reflection, clipmap, updateRain } = fixture();

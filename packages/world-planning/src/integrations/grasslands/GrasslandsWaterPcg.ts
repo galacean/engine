@@ -1,4 +1,11 @@
-import { Camera, ScreenSpaceReflectionQuality, type AmbientLight, type Engine, type Entity } from "@galacean/engine";
+import {
+  Camera,
+  ScreenSpaceReflectionQuality,
+  ScreenSpaceReflectionUpsamplingMode,
+  type AmbientLight,
+  type Engine,
+  type Entity
+} from "@galacean/engine";
 import type { WaterRegionMaskV1 } from "@galacean/engine-water/water/index";
 import {
   createWaterReflectionPresentationPolicy,
@@ -55,6 +62,7 @@ const PRESENTATION_REVEAL_TILE_SIZE_METRES = 180;
 export const TERRAIN_WATER_SSR_CAMERA_SETTINGS = Object.freeze({
   quality: ScreenSpaceReflectionQuality.High,
   resolutionScale: TERRAIN_SCREEN_SPACE_REFLECTION_RESOLUTION_SCALE,
+  upsamplingMode: ScreenSpaceReflectionUpsamplingMode.Bilinear,
   maxRayDistance: TERRAIN_SCREEN_SPACE_REFLECTION_MAX_RAY_DISTANCE_METRES,
   thickness: TERRAIN_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES,
   maxRoughness: 0.7,
