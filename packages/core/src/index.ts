@@ -1,7 +1,5 @@
 export { Platform } from "./Platform";
 export { Engine } from "./Engine";
-/** @internal */
-export { BasicResources } from "./BasicResources";
 export { SystemInfo } from "./SystemInfo";
 export { Canvas } from "./Canvas";
 

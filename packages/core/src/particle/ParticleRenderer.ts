@@ -185,13 +185,6 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  override _prepareRender(context: RenderContext): void {
-    super._prepareRender(context);
-  }
-
-  /**
-   * @internal
-   */
   override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean): void {
     //@todo: Don't need to update transform shader data, temp solution
     this._updateWorldSpaceTransformShaderData(context, onlyMVP);

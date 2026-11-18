@@ -53,7 +53,6 @@ export class Texture2DArray extends Texture {
 
   /**
    * Setting pixels data through color buffer data, designated area and texture mipmapping level,it's also applicable to compressed formats.
-   * @remarks If it is the WebGL1.0 platform and the texture format is compressed, the first upload must be filled with textures.
    * @param offsetIndex - The texture array element offset index
    * @param colorBuffer - Color buffer data
    * @param mipLevel - Texture mipmapping level

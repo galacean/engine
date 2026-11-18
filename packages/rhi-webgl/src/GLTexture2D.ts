@@ -9,10 +9,10 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
   constructor(rhi: WebGLGraphicDevice, texture2D: Texture2D) {
     super(rhi, texture2D, rhi.gl.TEXTURE_2D);
 
-    this._validate(texture2D, rhi);
+    this._validate(texture2D);
 
     const { format, isSRGBColorSpace } = texture2D;
-    this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace, this._gl, rhi);
+    this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace, this._gl);
     this._init(false);
   }
 
@@ -39,7 +39,8 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
     this._bind();
 
     if (formatDetail.isCompressed) {
-      this._uploadCompressedPixels(this._target, mipLevel, x, y, width, height, colorBuffer);
+      const { internalFormat } = formatDetail;
+      gl.compressedTexSubImage2D(this._target, mipLevel, x, y, width, height, internalFormat, colorBuffer);
     } else {
       const { baseFormat, dataType } = formatDetail;
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);

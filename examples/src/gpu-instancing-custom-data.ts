@@ -106,6 +106,7 @@ const customInstanceShaderSource = `Shader "CustomInstanceShader" {
 
 WebGLEngine.create({
   canvas: "canvas",
+
   shaderCompiler
 }).then((engine) => {
   Shader.create(customInstanceShaderSource);

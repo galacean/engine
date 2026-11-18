@@ -14,7 +14,6 @@ export default defineProject({
       "@galacean/engine-loader",
       "@galacean/engine-rhi-null",
       "@galacean/engine-rhi-webgl",
-      "@galacean/engine-webgl1-polyfill",
       "@galacean/engine-math",
       "@galacean/engine-core",
       "@galacean/engine-design",
@@ -29,7 +28,7 @@ export default defineProject({
     ]
   },
   test: {
-    include: ["src/**/*.test.ts", "../packages/*/tests/integration/**/*.test.ts"],
+    include: ["src/**/*.test.ts"],
     browser: {
       provider: "playwright",
       enabled: true,

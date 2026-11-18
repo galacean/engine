@@ -1,5 +1,4 @@
 import {
-  SystemInfo,
   AssetPromise,
   AssetType,
   ContentRestorer,
@@ -18,7 +17,7 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 import { MathUtil } from "@galacean/engine-math";
-import { ColorModel, KTX2Container } from "./KTX2Container";
+import { ColorModel, DFDTransferFunction, KTX2Container } from "./KTX2Container";
 import { KTX2TargetFormat } from "./KTX2TargetFormat";
 import { TranscodeResult } from "./transcoder/AbstractTranscoder";
 import { BinomialLLCTranscoder } from "./transcoder/BinomialLLCTranscoder";
@@ -42,6 +41,31 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       KTX2TargetFormat.PVRTC
     ],
     [ColorModel.UASTC_HDR_4X4]: [KTX2TargetFormat.ASTC_HDR_4x4, KTX2TargetFormat.BC6H, KTX2TargetFormat.R16G16B16A16]
+  };
+  private static _capabilityMap = {
+    [KTX2TargetFormat.ASTC]: {
+      [DFDTransferFunction.linear]: [GLCapabilityType.astc, GLCapabilityType.astc_webkit],
+      [DFDTransferFunction.sRGB]: [GLCapabilityType.astc, GLCapabilityType.astc_webkit]
+    },
+    [KTX2TargetFormat.ETC]: {
+      [DFDTransferFunction.linear]: [GLCapabilityType.etc, GLCapabilityType.etc_webkit],
+      [DFDTransferFunction.sRGB]: [GLCapabilityType.etc, GLCapabilityType.etc_webkit]
+    },
+    [KTX2TargetFormat.BC7]: {
+      [DFDTransferFunction.linear]: [GLCapabilityType.bptc],
+      [DFDTransferFunction.sRGB]: [GLCapabilityType.bptc]
+    },
+    [KTX2TargetFormat.BC1_BC3]: {
+      [DFDTransferFunction.linear]: [GLCapabilityType.s3tc],
+      [DFDTransferFunction.sRGB]: [GLCapabilityType.s3tc_srgb]
+    },
+    [KTX2TargetFormat.BC6H]: {
+      [DFDTransferFunction.linear]: [GLCapabilityType.bptc]
+    },
+    [KTX2TargetFormat.ASTC_HDR_4x4]: {
+      [DFDTransferFunction.linear]: [GLCapabilityType.astc_hdr]
+    },
+    [KTX2TargetFormat.PVRTC]: { [DFDTransferFunction.linear]: [GLCapabilityType.pvrtc, GLCapabilityType.pvrtc_webkit] }
   };
 
   /**
@@ -86,7 +110,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     const faceCount = faces.length;
     const mipmaps = faces[0];
     const mipmap = mipmaps.length > 1;
-    const engineFormat = this._getEngineTextureFormat(targetFormat, transcodeResult.hasAlpha);
+    const engineFormat = this._getEngineTextureFormat(targetFormat, transcodeResult);
     let texture: Texture2D | TextureCube;
     if (faceCount !== 6) {
       texture = restoredTexture || new Texture2D(engine, width, height, engineFormat, mipmap, isSRGB);
@@ -117,8 +141,9 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     ktx2Container: KTX2Container,
     priorityFormats?: KTX2TargetFormat[]
   ): KTX2TargetFormat {
+    const renderer = (engine as any)._hardwareRenderer;
     const { isSRGB, pixelWidth, pixelHeight } = ktx2Container;
-    const targetFormat = this._detectSupportedFormat(engine, priorityFormats!, isSRGB) as KTX2TargetFormat;
+    const targetFormat = this._detectSupportedFormat(renderer, priorityFormats!, isSRGB) as KTX2TargetFormat;
 
     if (
       targetFormat === KTX2TargetFormat.PVRTC &&
@@ -136,21 +161,31 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   }
 
   private static _detectSupportedFormat(
-    engine: Engine,
+    renderer: any,
     priorityFormats: KTX2TargetFormat[],
     isSRGB: boolean
   ): KTX2TargetFormat | null {
-    for (const target of priorityFormats) {
-      const format = this._getEngineTextureFormat(target, false);
-      if (format === undefined || !SystemInfo.supportsTextureFormat(engine, format, isSRGB)) continue;
-
-      if (
-        target === KTX2TargetFormat.ASTC_HDR_4x4 &&
-        (isSRGB || !engine._hardwareRenderer.canIUse(GLCapabilityType.astc_hdr))
-      ) {
-        continue;
+    for (let i = 0; i < priorityFormats.length; i++) {
+      const format = priorityFormats[i];
+      const capabilities =
+        this._capabilityMap[format]?.[isSRGB ? DFDTransferFunction.sRGB : DFDTransferFunction.linear];
+      if (capabilities) {
+        for (let j = 0; j < capabilities.length; j++) {
+          if (renderer.canIUse(capabilities[j])) {
+            return format;
+          }
+        }
+      } else {
+        switch (priorityFormats[i]) {
+          case KTX2TargetFormat.R8G8B8A8:
+            return format;
+          case KTX2TargetFormat.R8:
+          case KTX2TargetFormat.R8G8:
+            return format;
+          case KTX2TargetFormat.R16G16B16A16:
+            if (!isSRGB) return format;
+        }
       }
-      return target;
     }
     return null;
   }
@@ -159,7 +194,11 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     return (this._binomialLLCTranscoder ??= new BinomialLLCTranscoder(workerCount));
   }
 
-  private static _getEngineTextureFormat(basisFormat: KTX2TargetFormat, hasAlpha: boolean): TextureFormat | undefined {
+  private static _getEngineTextureFormat(
+    basisFormat: KTX2TargetFormat,
+    transcodeResult: TranscodeResult
+  ): TextureFormat | undefined {
+    const { hasAlpha } = transcodeResult;
     switch (basisFormat) {
       case KTX2TargetFormat.ASTC:
         return TextureFormat.ASTC_4x4;

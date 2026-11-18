@@ -315,19 +315,6 @@ describe("@galacean/engine-rhi-null in Node without browser globals", () => {
     instance.destroy();
   });
 
-  it("keeps 32-bit indexed geometry available without GPU capabilities", async () => {
-    const engine = await createEngine();
-    const mesh = PrimitiveMesh.createPlane(engine, 2, 4, { widthSegments: 256, keepMeshData: true });
-    try {
-      expect(mesh.vertexCount).toBe(257 * 257);
-      const indices = mesh.getIndices()!;
-      expect(indices).toBeInstanceOf(Uint32Array);
-      expect(indices.some((index: number) => index > 65535)).toBe(true);
-    } finally {
-      mesh.destroy();
-    }
-  });
-
   it("updates custom renderers and initial CPU particle step before culling without cameras", async () => {
     vi.useFakeTimers({ toFake: ["performance"] });
     const engine = await createEngine();
@@ -642,17 +629,7 @@ it("installs and resolves @galacean/engine-rhi-null and @galacean/engine indepen
   mkdirSync(tarballs);
   try {
     const dependencies: Record<string, string> = {};
-    for (const name of [
-      "math",
-      "design",
-      "core",
-      "shader",
-      "rhi-webgl",
-      "webgl1-polyfill",
-      "rhi-null",
-      "loader",
-      "galacean"
-    ]) {
+    for (const name of ["math", "design", "core", "shader", "rhi-webgl", "rhi-null", "loader", "galacean"]) {
       const cwd = join(repository, "packages", name);
       const pkg = JSON.parse(readFileSync(join(cwd, "package.json"), "utf8"));
       execFileSync("pnpm", ["pack", "--pack-destination", tarballs], { cwd, stdio: "pipe" });

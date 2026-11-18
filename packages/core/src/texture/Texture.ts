@@ -2,11 +2,11 @@ import { GraphicsResource } from "../asset/GraphicsResource";
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
 import { IPlatformTexture } from "../renderingHardwareInterface";
+import { SystemInfo } from "../SystemInfo";
 import { TextureDepthCompareFunction } from "./enums/TextureDepthCompareFunction";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
 import { TextureUsage } from "./enums/TextureUsage";
-import { TextureUtils } from "./TextureUtils";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
 
 /**
@@ -167,11 +167,6 @@ export abstract class Texture extends GraphicsResource {
     }
   }
 
-  /** @internal */
-  static _supportsFormat(engine: Engine, format: TextureFormat, isSRGBColorSpace: boolean): boolean {
-    return engine._hardwareRenderer.supportsTextureFormat(format, isSRGBColorSpace && TextureUtils.supportSRGB(format));
-  }
-
   /**
    * Initialize base texture metadata and validate format support.
    * @param engine - Owning engine instance
@@ -190,7 +185,7 @@ export abstract class Texture extends GraphicsResource {
     mipmap: boolean,
     isSRGBColorSpace: boolean
   ) {
-    if (!Texture._supportsFormat(engine, format, isSRGBColorSpace)) {
+    if (!SystemInfo.supportsTextureFormat(engine, format)) {
       throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
     }
 
@@ -199,14 +194,9 @@ export abstract class Texture extends GraphicsResource {
     this._width = width;
     this._height = height;
     this._format = format;
+    this._mipmap = mipmap;
     this._isSRGBColorSpace = isSRGBColorSpace;
 
-    this._initializeMipmaps(mipmap);
-  }
-
-  /** @internal */
-  _initializeMipmaps(mipmap: boolean): void {
-    this._mipmap = mipmap;
     this._mipmapCount = this._getMipmapCount();
   }
 

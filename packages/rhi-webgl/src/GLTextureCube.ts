@@ -9,10 +9,10 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
   constructor(rhi: WebGLGraphicDevice, textureCube: TextureCube) {
     super(rhi, textureCube, rhi.gl.TEXTURE_CUBE_MAP);
 
-    this._validate(textureCube, rhi);
+    this._validate(textureCube);
 
     const { format, isSRGBColorSpace } = textureCube;
-    this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace, this._gl, rhi);
+    this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace, this._gl);
     this._init(true);
   }
 
@@ -30,7 +30,7 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
   ): void {
     const gl = this._gl;
     const formatDetail = this._formatDetail;
-    const { baseFormat, dataType, isCompressed } = formatDetail;
+    const { internalFormat, baseFormat, dataType, isCompressed } = formatDetail;
     const mipSize = Math.max(1, this._texture.width >> mipLevel);
 
     width = width || mipSize - x;
@@ -39,7 +39,16 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
     this._bind();
 
     if (isCompressed) {
-      this._uploadCompressedPixels(gl.TEXTURE_CUBE_MAP_POSITIVE_X + face, mipLevel, x, y, width, height, colorBuffer);
+      gl.compressedTexSubImage2D(
+        gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
+        mipLevel,
+        x,
+        y,
+        width,
+        height,
+        internalFormat,
+        colorBuffer
+      );
     } else {
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
       gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);

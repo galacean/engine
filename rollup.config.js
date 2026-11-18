@@ -83,16 +83,6 @@ function config({ location, pkgJson }) {
       __buildVersion: pkgJson.version
     })
   );
-  curPlugins.push({
-    name: "preserve-external-dynamic-import",
-    renderDynamicImport({ format, targetModuleId }) {
-      // Keep external imports splittable when an application bundles the CommonJS entry.
-      if (format === "cjs" && targetModuleId && isExternal(targetModuleId)) {
-        return { left: "import(", right: ")" };
-      }
-      return null;
-    }
-  });
   return {
     umd: (compress) => {
       const umdConfig = pkgJson.umd;
@@ -113,7 +103,6 @@ function config({ location, pkgJson }) {
             file,
             name: umdConfig.name,
             format: "umd",
-            inlineDynamicImports: true,
             sourcemap: true,
             globals: umdConfig.globals
           }
@@ -177,7 +166,8 @@ function config({ location, pkgJson }) {
       };
     },
     bundled: (compress) => {
-      const suffix = compress ? ".min.js" : ".js";
+      // ES module format with no external dependencies (bundled)
+      const bundledFile = path.join(location, "dist", compress ? "bundled.module.min.js" : "bundled.module.js");
 
       const bundledPlugins = Array.from(curPlugins);
 
@@ -195,9 +185,7 @@ function config({ location, pkgJson }) {
         external: [], // No external dependencies - bundle everything
         output: [
           {
-            dir: path.join(location, "dist"),
-            entryFileNames: `bundled.module${suffix}`,
-            chunkFileNames: `chunks/[name]-[hash]${suffix}`,
+            file: bundledFile,
             format: "es",
             sourcemap: true
           }

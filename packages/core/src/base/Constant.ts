@@ -84,8 +84,8 @@ export enum DataType {
 }
 
 /**
- * Optional WebGL capabilities reported by the device.
- */
+ * Optional GL capabilities.
+ * */
 export enum GLCapabilityType {
   textureFloatLinear = "OES_texture_float_linear",
   colorBufferFloat = "EXT_color_buffer_float",

@@ -103,7 +103,7 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
    */
   _updateEmitterVelocity(elapsedTime: number): void {
     const renderer = this._generator._renderer;
-    if (!this._shouldTrackEmitterVelocity()) {
+    if (this._generator.main.simulationSpace !== ParticleSimulationSpace.World) {
       this._resyncEmitterVelocity();
       return;
     }
@@ -121,10 +121,6 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
     }
     this._previousWorldPosition.copyFrom(worldPosition);
     this._hasPreviousWorldPosition = true;
-  }
-
-  private _shouldTrackEmitterVelocity(): boolean {
-    return this._generator.main.simulationSpace === ParticleSimulationSpace.World;
   }
 
   /**

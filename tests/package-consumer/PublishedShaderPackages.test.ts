@@ -118,7 +118,7 @@ import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 
 const analysis = ShaderAnalyzer.analyze(${JSON.stringify(shaderSource(undefined, "1.0"))});
 const pass: ParsedShaderPass = analysis.passes[0];
-new ShaderCompiler().generate(pass, ShaderLanguage.GLSLES100);
+new ShaderCompiler().generate(pass, ShaderLanguage.GLSLES300);
 `
     );
     const typecheck = spawnSync(
@@ -270,12 +270,12 @@ void pass;
              const { ShaderPrecompiler } = await import("@galacean/engine-shader-compiler/precompile");`;
       const probe = runNode(
         `${imports}
-         const precompiled = new ShaderPrecompiler().precompile(${JSON.stringify(shaderSource(undefined, "1.0"))}, 0);
+         const precompiled = new ShaderPrecompiler().precompile(${JSON.stringify(shaderSource(undefined, "1.0"))}, 1);
          let invalidAssignmentRejected = false;
          try {
            new ShaderPrecompiler().precompile(${JSON.stringify(
              shaderSource(undefined, "1.0").replace("gl_FragColor = vec4(1.0);", "1 = 2; gl_FragColor = vec4(1.0);")
-           )}, 0);
+           )}, 1);
          } catch (error) {
            invalidAssignmentRejected = String(error).includes("modifiable l-value");
          }
@@ -306,7 +306,7 @@ void pass;
       const probe = runNode(
         `${imports}
          const analysis = ShaderAnalyzer.analyze(${JSON.stringify(shaderSource(undefined, "1.0"))});
-         const generated = new ShaderCompiler().generate(analysis.passes[0], 0);
+         const generated = new ShaderCompiler().generate(analysis.passes[0], 1);
          process.stdout.write("SHARED_PARSE_RESULT:" + JSON.stringify({
            diagnostics: analysis.diagnostics,
            passCount: analysis.passes.length,
@@ -320,7 +320,7 @@ void pass;
       const output = JSON.parse(probe.stdout.slice(marker + "SHARED_PARSE_RESULT:".length));
       expect(output.diagnostics).toEqual([]);
       expect(output.passCount).toBe(1);
-      expect(output.fragment).toContain("gl_FragColor");
+      expect(output.fragment).toContain("output_color");
     }
   });
 
@@ -348,7 +348,7 @@ void pass;
       const marker = "OWNERSHIP_ROUNDTRIP_RESULT:";
       expect(probe.stdout).toContain(marker);
       const results = JSON.parse(probe.stdout.slice(probe.stdout.lastIndexOf(marker) + marker.length));
-      expect(results).toHaveLength(24);
+      expect(results).toHaveLength(12);
       expect(results.some((result: { bodies: number }) => result.bodies === 1)).toBe(true);
     }
   });
@@ -512,7 +512,7 @@ void vert()`
     );
   });
 
-  it.each(["GLSLES100", "GLSLES300"])("compiles nested inherited conditions within a 256 MiB heap on %s", (target) => {
+  it.each(["GLSLES300"])("compiles nested inherited conditions within a 256 MiB heap on %s", (target) => {
     let guard = "defined(F0)";
     for (let index = 1; index <= 240; index++) guard = `(${guard} + defined(F${index}) == 1)`;
     const source = `Shader "bounded-memory" {
@@ -694,11 +694,11 @@ VertexShader = vert; FragmentShader = frag;
          const sharedCodegen = measure(() => {
            const analysis = ShaderAnalyzer.analyze(source);
            for (const pass of analysis.passes) {
-             compiler.generate(pass, 0);
+             compiler.generate(pass, 1);
            }
          }, 200);
          const runtimeCodegen = measure(() => {
-           compiler._parseShaderPass(passBody, "vert", "frag", 0, "");
+           compiler._parseShaderPass(passBody, "vert", "frag", 1, "");
          }, 400);
          process.stdout.write("MEMORY_RESULT:" + JSON.stringify({ analyzerOnly, sharedCodegen, runtimeCodegen }));`
       ],

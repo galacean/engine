@@ -56,7 +56,7 @@ function finalSource(pass, target, macros) {
     pass.fragmentShaderInstructions,
     target
   )._compileShaderSource(
-    { _hardwareRenderer: { isWebGL2: target === ShaderLanguage.GLSLES300, canIUse: () => false } },
+    { _hardwareRenderer: { canIUse: () => false } },
     data._macroCollection,
     false
   );
@@ -65,7 +65,7 @@ function finalSource(pass, target, macros) {
 const analysis = ShaderAnalyzer.analyze(source);
 assert.deepEqual(analysis.diagnostics, []);
 const results = [];
-for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+for (const target of [ShaderLanguage.GLSLES300]) {
   const generated = new ShaderCompiler().generate(analysis.passes[0], target);
   assert.ok(generated);
   assertSerializable(generated);

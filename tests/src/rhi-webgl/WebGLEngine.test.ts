@@ -10,6 +10,19 @@ describe("webgl engine test", () => {
     expect(engine).not.be.null;
   });
 
+  it("fails without a WebGL2 context and requests no other context version", async () => {
+    const canvas = document.createElement("canvas");
+    const getContext = vi.spyOn(canvas, "getContext").mockReturnValue(null);
+    try {
+      await expect(Promise.resolve().then(() => WebGLEngine.create({ canvas }))).rejects.toThrow(
+        "WebGL2 is not supported."
+      );
+      expect(getContext.mock.calls.map(([name]) => name)).toEqual(["webgl2", "experimental-webgl2"]);
+    } finally {
+      getContext.mockRestore();
+    }
+  });
+
   it("engine destroy", async () => {
     class ParentScript extends Script {
       onAwake() {

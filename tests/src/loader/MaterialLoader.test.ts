@@ -14,7 +14,7 @@ function registerShaderResource(shaderName: string, shaderPath = `MaterialLoader
   engine.resourceManager.registerVirtualResources([
     {
       virtualPath: shaderPath,
-      path: createBlobURL({ name: shaderName, platformTarget: 0, subShaders: [] }, "shader"),
+      path: createBlobURL({ name: shaderName, platformTarget: 1, subShaders: [] }, "shader"),
       type: AssetType.Shader
     }
   ]);
@@ -28,7 +28,7 @@ function loadMaterial(data: unknown) {
 beforeAll(async () => {
   engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   materialShaderName = `MaterialLoaderTestShader-${Math.random()}`;
-  Shader._createFromPrecompiled({ name: materialShaderName, platformTarget: 0, subShaders: [] });
+  Shader._createFromPrecompiled({ name: materialShaderName, platformTarget: 1, subShaders: [] });
 });
 
 afterAll(() => {
@@ -75,7 +75,7 @@ VertexShader = vert; FragmentShader = frag;
 
   it("caches precompiled shaders by resource URL even when their names match", async () => {
     const name = `ShaderLoaderDuplicate-${Math.random()}`;
-    const source = { name, platformTarget: 0, subShaders: [] };
+    const source = { name, platformTarget: 1, subShaders: [] };
 
     const urls = [createBlobURL(source, "shader"), createBlobURL(source, "shader")];
     const shaders = await Promise.all(
@@ -176,7 +176,7 @@ describe("MaterialLoader", () => {
 
   it("binds each material to its explicit shader resource when names collide", async () => {
     const name = `MaterialLoaderNamesakes-${Math.random()}`;
-    const registered = Shader._createFromPrecompiled({ name, platformTarget: 0, subShaders: [] });
+    const registered = Shader._createFromPrecompiled({ name, platformTarget: 1, subShaders: [] });
     const paths = [registerShaderResource(name, `${name}/first`), registerShaderResource(name, `${name}/second`)];
     const materials = await Promise.all(
       paths.map((url) =>

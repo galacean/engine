@@ -3,23 +3,9 @@
 
 
 ivec4 renderer_Layer;
-#ifndef GRAPHICS_API_WEBGL2
-    bool isBitSet(float value, float mask, float bitIndex){
-        return mod(floor(value / pow(2.0, bitIndex)), 2.0) == 1.0 && mod(floor(mask / pow(2.0, bitIndex)), 2.0) == 1.0;
-    }
-#endif
 
 bool isRendererCulledByLight(ivec2 rendererLayer, ivec2 lightCullingMask){
-    #ifdef GRAPHICS_API_WEBGL2
     return !((rendererLayer.x & lightCullingMask.x) != 0 || (rendererLayer.y & lightCullingMask.y) != 0);
-    #else
-    for (int i = 0; i < 16; i++) {
-        if (isBitSet( float(rendererLayer.x), float(lightCullingMask.x), float(i)) || isBitSet( float(rendererLayer.y), float(lightCullingMask.y), float(i))) {
-            return false;
-        }
-    }
-    return true;
-    #endif
 }
 
 // Directional light
@@ -34,7 +20,6 @@ bool isRendererCulledByLight(ivec2 rendererLayer, ivec2 lightCullingMask){
     vec3 scene_DirectLightColor[SCENE_DIRECT_LIGHT_COUNT];
     vec3 scene_DirectLightDirection[SCENE_DIRECT_LIGHT_COUNT];
 
-    #ifdef GRAPHICS_API_WEBGL2
         DirectLight getDirectLight(int index){
             DirectLight light;
             light.color = scene_DirectLightColor[index];
@@ -42,7 +27,6 @@ bool isRendererCulledByLight(ivec2 rendererLayer, ivec2 lightCullingMask){
     
             return light;
         }
-    #endif
 
 #endif
 
@@ -61,7 +45,6 @@ bool isRendererCulledByLight(ivec2 rendererLayer, ivec2 lightCullingMask){
     vec3 scene_PointLightPosition[ SCENE_POINT_LIGHT_COUNT ];
     float scene_PointLightDistance[ SCENE_POINT_LIGHT_COUNT ];
 
-    #ifdef GRAPHICS_API_WEBGL2
         PointLight getPointLight(int index){
             PointLight light;
             light.color = scene_PointLightColor[index];
@@ -70,7 +53,6 @@ bool isRendererCulledByLight(ivec2 rendererLayer, ivec2 lightCullingMask){
 
             return light;
         }
-    #endif
 
 #endif
 
@@ -95,7 +77,6 @@ bool isRendererCulledByLight(ivec2 rendererLayer, ivec2 lightCullingMask){
     float scene_SpotLightAngleCos[ SCENE_SPOT_LIGHT_COUNT ];
     float scene_SpotLightPenumbraCos[ SCENE_SPOT_LIGHT_COUNT ];
 
-    #ifdef GRAPHICS_API_WEBGL2
         SpotLight getSpotLight(int index){
             SpotLight light;
             light.color = scene_SpotLightColor[index];
@@ -107,7 +88,6 @@ bool isRendererCulledByLight(ivec2 rendererLayer, ivec2 lightCullingMask){
 
             return light;
         }
-    #endif
 
 
 #endif

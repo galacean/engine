@@ -177,7 +177,7 @@ describe("ResourceManager", () => {
       const requestSpy = vi
         .spyOn(resourceManager, "_requestByRemoteUrl")
         .mockReturnValue(
-          AssetPromise.resolve(JSON.stringify({ name: "custom", platformTarget: 0, subShaders: [] })) as any
+          AssetPromise.resolve(JSON.stringify({ name: "custom", platformTarget: 1, subShaders: [] })) as any
         );
       // @ts-ignore
       const createSpy = vi.spyOn(Shader, "_createFromPrecompiled").mockReturnValue({ name: "custom" } as Shader);

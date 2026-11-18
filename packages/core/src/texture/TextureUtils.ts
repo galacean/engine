@@ -1,4 +1,3 @@
-import { MathUtil } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { TextureFormat } from "./enums/TextureFormat";
 
@@ -17,7 +16,15 @@ export class TextureUtils {
     mipmap: boolean,
     isSRGBColorSpace: boolean
   ): boolean {
-    return mipmap && (!isSRGBColorSpace || !TextureUtils.supportSRGB(format) || format === TextureFormat.R8G8B8A8);
+    if (!mipmap) {
+      return false;
+    }
+
+    if (isSRGBColorSpace && !TextureUtils.supportSRGB(format)) {
+      isSRGBColorSpace = false;
+    }
+
+    return TextureUtils.supportGenerateMipmaps(format, mipmap, isSRGBColorSpace);
   }
 
   static isHDRFormat(format: TextureFormat): boolean {
@@ -48,6 +55,15 @@ export class TextureUtils {
       default:
         return false;
     }
+  }
+
+  static supportGenerateMipmaps(format: TextureFormat, mipmap: boolean, isSRGBColorSpace: boolean): boolean {
+    // Auto generating mipmaps for sRGB textures is only supported in [WebGL2 + RGBA]
+    if (mipmap && isSRGBColorSpace && format !== TextureFormat.R8G8B8A8) {
+      return false;
+    }
+
+    return true;
   }
 
   static getTextureByteCount(

@@ -35,40 +35,7 @@
             mediump int cascadeIndex = computeCascadeIndex(positionWS);
         #endif
     
-        #ifdef GRAPHICS_API_WEBGL2
             mat4 shadowMatrix = scene_ShadowMatrices[cascadeIndex];
-        #else
-            mat4 shadowMatrix;
-            #if SCENE_SHADOW_CASCADED_COUNT == 4
-                if (cascadeIndex == 0) {
-                    shadowMatrix = scene_ShadowMatrices[0];
-                } else if (cascadeIndex == 1) {
-                    shadowMatrix = scene_ShadowMatrices[1];
-                } else if (cascadeIndex == 2) {
-                    shadowMatrix = scene_ShadowMatrices[2];
-                } else if (cascadeIndex == 3) {
-                    shadowMatrix = scene_ShadowMatrices[3];
-                } else {
-                    shadowMatrix = scene_ShadowMatrices[4];
-                }
-            #endif
-            #if SCENE_SHADOW_CASCADED_COUNT == 2
-                if (cascadeIndex == 0) {
-                    shadowMatrix = scene_ShadowMatrices[0];
-                } else if (cascadeIndex == 1) {
-                    shadowMatrix = scene_ShadowMatrices[1];
-                } else {
-                    shadowMatrix = scene_ShadowMatrices[2];
-                } 
-            #endif
-            #if SCENE_SHADOW_CASCADED_COUNT == 1
-                if (cascadeIndex == 0) {
-                    shadowMatrix = scene_ShadowMatrices[0];
-                } else  {
-                    shadowMatrix = scene_ShadowMatrices[1];
-                } 
-            #endif
-        #endif
     
         vec4 shadowCoord = shadowMatrix * vec4(positionWS, 1.0);
         return shadowCoord.xyz;
@@ -81,29 +48,9 @@
     vec4 scene_ShadowInfo;
     vec4 scene_ShadowMapSize;
 
-    #ifdef GRAPHICS_API_WEBGL2
         mediump sampler2DShadow scene_ShadowMap;
         #define SAMPLE_TEXTURE2D_SHADOW(textureName, coord3) textureLod(textureName, coord3 , 0.0)
         #define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2DShadow shadowMap
-    #else
-        sampler2D scene_ShadowMap;
-        #ifdef ENGINE_NO_DEPTH_TEXTURE
-            const vec4 bitShift = vec4(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));
-            float textureShadowMapDowngrade(sampler2D scene_ShadowMap, vec3 shadowCoord){
-                vec4 rgbaDepth = texture2D(scene_ShadowMap, shadowCoord.xy);
-                float unpackDepth = dot(rgbaDepth, bitShift);
-                return unpackDepth < shadowCoord.z ? 0.0 : 1.0;
-            }
-            #define SAMPLE_TEXTURE2D_SHADOW(textureName, coord3) textureShadowMapDowngrade(textureName, coord3)
-        #else
-            float textureShadowMapDowngrade(sampler2D scene_ShadowMap, vec3 shadowCoord){
-                float depth = texture2D(scene_ShadowMap, shadowCoord.xy).r;
-                return depth < shadowCoord.z ? 0.0 : 1.0;
-            }
-            #define SAMPLE_TEXTURE2D_SHADOW(textureName, coord3) textureShadowMapDowngrade(textureName, coord3)
-        #endif
-        #define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2D shadowMap
-    #endif
 
     #if SCENE_SHADOW_TYPE == 2
         float sampleShadowMapFiltered4(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, vec4 shadowMapSize) {

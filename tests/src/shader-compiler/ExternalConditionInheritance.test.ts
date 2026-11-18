@@ -129,7 +129,7 @@ function* programs(
   if (analysis) expect(analysis.diagnostics).toEqual([]);
   compiler._setIncludeMap(includeMap);
   precompiler.setIncludeMap(includeMap);
-  for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+  for (const target of [ShaderLanguage.GLSLES300]) {
     const parsed = compiler._parseShaderSource(source);
     const offline = runtimeOnly ? undefined : precompiler.precompile(source, target);
     for (const [passIndex, pass] of parsed.subShaders[0].passes.entries()) {
@@ -178,12 +178,12 @@ afterAll(() => {
 function expectDriverAcceptance(program: Program): void {
   let gl = contexts.get(program.target);
   if (!gl) {
-    const contextType = program.target === ShaderLanguage.GLSLES300 ? "webgl2" : "webgl";
+    const contextType = "webgl2";
     gl = document.createElement("canvas").getContext(contextType) as WebGLRenderingContext | WebGL2RenderingContext;
     expect(gl, contextType).not.toBeNull();
     contexts.set(program.target, gl);
   }
-  const version = program.target === ShaderLanguage.GLSLES300 ? "#version 300 es\n" : "";
+  const version = "#version 300 es\n";
   const shaders: WebGLShader[] = [];
   const linked = gl.createProgram()!;
   try {

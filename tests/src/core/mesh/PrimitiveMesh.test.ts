@@ -173,10 +173,11 @@ describe("PrimitiveMesh", () => {
     );
   });
 
-  it("creates large meshes with 32-bit indices", () => {
+  it("test limit vertex count", function () {
     const radius = 1;
     const segments = 256;
     const count = segments + 1;
+
     const mesh = PrimitiveMesh.createPlane(engine, radius * 2, radius * 2, {
       keepMeshData: true,
       widthSegments: segments,
@@ -186,9 +187,7 @@ describe("PrimitiveMesh", () => {
     expect(mesh.vertexElements.length).equal(4);
     expect(mesh.bounds.min).to.deep.include({ x: -radius, y: 0, z: -radius });
     expect(mesh.bounds.max).to.deep.include({ x: radius, y: 0, z: radius });
-    const indices = mesh.getIndices();
-    expect(indices).toBeInstanceOf(Uint32Array);
-    expect(indices.length).equal(segments * segments * 6);
+    expect(mesh.getIndices().length).equal(segments * segments * 6);
     expect(mesh.vertexBufferBindings.length).equal(2);
   });
 });

@@ -1,12 +1,6 @@
 import { IPlatformPrimitive, IPlatformShaderProgram, Logger, Primitive, SubPrimitive } from "@galacean/engine-core";
 import { GLBuffer } from "./GLBuffer";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
-import { WebGLExtension } from "./type";
-
-/**
- * Improvement of VAO:
- * 1) WebGL2.0 must support VAO, almost all devices support vao extensions in webgl1.0, we can use PollyFill,only keep VAO mode.
- */
 
 /**
  * @internal
@@ -16,7 +10,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   private _attribLocArray: number[] = [];
   private readonly _primitive: Primitive;
 
-  private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
+  private _gl: WebGL2RenderingContext;
   private _vaoMap: Map<number, WebGLVertexArrayObject | null> = new Map();
 
   constructor(rhi: WebGLGraphicDevice, primitive: Primitive) {

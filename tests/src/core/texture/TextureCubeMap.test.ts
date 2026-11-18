@@ -10,20 +10,11 @@ describe("TextureCube", () => {
   const canvas = document.createElement("canvas");
 
   let engine: Engine;
-  let rhi: any;
   beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: canvas });
-    // @ts-ignore
-    rhi = engine._hardwareRenderer;
   });
 
   describe("格式测试", () => {
-    it("不支持浮点纹理", () => {
-      expect(() => {
-        rhi.canIUse.mockReturnValueOnce(false);
-        new TextureCube(engine, size, TextureFormat.R32G32B32A32);
-      }).to.throw;
-    });
     it("引擎不支持的格式", () => {
       expect(() => {
         new TextureCube(engine, size, 1234567 as any);
@@ -32,9 +23,7 @@ describe("TextureCube", () => {
   });
 
   describe("mipmap", () => {
-    it("webgl2 支持非2次幂开启 mipmap ", async ({ skip }) => {
-      if (!rhi.isWebGL2) skip();
-
+    it("webgl2 支持非2次幂开启 mipmap ", () => {
       const texture1 = new TextureCube(engine, 100);
       const texture2 = new TextureCube(engine, 100, undefined, true);
 
@@ -46,7 +35,6 @@ describe("TextureCube", () => {
 
       expect(texture.mipmapCount).to.eq(1);
     });
-
   });
 
   // todo: dom test

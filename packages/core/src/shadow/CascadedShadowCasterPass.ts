@@ -1,4 +1,4 @@
-import { Color, MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
 import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
@@ -35,7 +35,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
   private static _cascadesSplitDistance: number[] = new Array(CascadedShadowCasterPass._maxCascades + 1);
 
   private static _viewport = new Vector4(0, 0, 1, 1);
-  private static _clearColor = new Color(1, 1, 1, 1);
   private static _tempVector = new Vector3();
   private static _tempMatrix0 = new Matrix();
 
@@ -76,33 +75,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
     this._renderDirectShadowMap(context, light);
     this._updateReceiversShaderData(light);
   }
-  private _prepareShadowMap(context: RenderContext): void {
-    const { z: width, w: height } = this._shadowMapSize;
-    const target = PipelineUtils.recreateRenderTargetIfNeeded(
-      this.engine,
-      this._renderTarget,
-      width,
-      height,
-      null,
-      this._shadowMapFormat,
-      true,
-      false,
-      false,
-      1,
-      TextureWrapMode.Clamp,
-      TextureFilterMode.Bilinear
-    );
-    const texture = target.depthTexture as Texture2D;
-    texture.depthCompareFunction = TextureDepthCompareFunction.Less;
-    this._renderTarget = target;
-    this._depthTexture = texture;
-    context.setRenderTarget(target, CascadedShadowCasterPass._viewport, 0);
-    this.engine._hardwareRenderer.clearRenderTarget(this.engine, CameraClearFlags.Depth, null);
-  }
-
-  private _getShadowFormat(): TextureFormat {
-    return TextureFormat.Depth16;
-  }
 
   private _renderDirectShadowMap(context: RenderContext, light: DirectLight): void {
     const {
@@ -128,8 +100,33 @@ export class CascadedShadowCasterPass extends PipelinePass {
     const lightSide = this._lightSide;
     const lightForward = shadowSliceData.virtualCamera.forward;
 
+    // Prepare render target
     const { z: width, w: height } = this._shadowMapSize;
-    this._prepareShadowMap(context);
+    const format = this._shadowMapFormat;
+    const renderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
+      engine,
+      this._renderTarget,
+      width,
+      height,
+      null,
+      format,
+      true,
+      false,
+      false,
+      1,
+      TextureWrapMode.Clamp,
+      TextureFilterMode.Bilinear
+    );
+    const shadowTexture = <Texture2D>renderTarget.depthTexture;
+
+    shadowTexture.depthCompareFunction = TextureDepthCompareFunction.Less;
+
+    this._renderTarget = renderTarget;
+    this._depthTexture = shadowTexture;
+
+    // @todo: shouldn't set viewport and scissor in activeRenderTarget
+    context.setRenderTarget(renderTarget, CascadedShadowCasterPass._viewport, 0);
+    rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
 
     // prepare light and camera direction
     Matrix.rotationQuaternion(light.entity.transform.worldRotationQuaternion, lightWorld);
@@ -294,7 +291,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
   private _updateShadowSettings(): void {
     const camera = this._camera;
     const scene = camera.scene!;
-    const shadowFormat = this._getShadowFormat();
+    const shadowFormat = TextureFormat.Depth16;
     const shadowResolution = ShadowUtils.shadowResolution(scene.shadowResolution);
     const shadowCascades = scene.shadowCascades;
     const shadowFar = Math.min(scene.shadowDistance, camera.farClipPlane);

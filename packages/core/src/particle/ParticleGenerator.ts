@@ -641,15 +641,18 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
    */
   _setTransformFeedback(): void {
     const { engine } = this._renderer;
+    const supportsRendering = engine._hardwareRenderer.supportsRendering;
     const useTrajectory =
-      this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death, false) ||
-      this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth, false);
+      supportsRendering &&
+      (this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death, false) ||
+        this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth, false));
     const useFeedback =
-      useTrajectory ||
-      this.limitVelocityOverLifetime.enabled ||
-      this.noise.enabled ||
-      this.inheritVelocity._needTransformFeedback() ||
-      this.velocityOverLifetime._needTransformFeedback();
+      supportsRendering &&
+      (useTrajectory ||
+        this.limitVelocityOverLifetime.enabled ||
+        this.noise.enabled ||
+        this.inheritVelocity._needTransformFeedback() ||
+        this.velocityOverLifetime._needTransformFeedback());
     const feedbackLayoutChanged = useTrajectory !== (this._feedbackSimulator?.trajectoryEnabled ?? false);
     if (useFeedback === (this._feedbackSimulator !== null) && !feedbackLayoutChanged) {
       return;

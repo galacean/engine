@@ -705,6 +705,22 @@ describe("PrimitiveMeshLoader", () => {
     }
   );
 
+  it("resolves .mesh URLs with PrimitiveMeshLoader by default when type is omitted", async () => {
+    const request = vi
+      .spyOn(engine.resourceManager, "_request")
+      .mockReturnValue(AssetPromise.resolve({ type: "cuboid", cuboidWidth: 2, cuboidHeight: 4, cuboidDepth: 6 }) as any);
+    try {
+      const mesh = await engine.resourceManager.load<ModelMesh>("default-cuboid.mesh");
+      try {
+        expect(mesh.bounds.max.toJSON()).toEqual({ x: 1, y: 2, z: 3 });
+      } finally {
+        mesh.destroy();
+      }
+    } finally {
+      request.mockRestore();
+    }
+  });
+
   it("rejects an unknown primitive mesh type", async () => {
     const request = vi
       .spyOn(engine.resourceManager, "_request")

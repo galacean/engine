@@ -14,5 +14,3 @@ export { OverflowMode } from "./enums/TextOverflow";
 export * from "./sprite/index";
 export * from "./text/index";
 export type { ITextRenderer } from "./text/ITextRenderer";
-/** @internal */
-export { FontAtlas } from "./atlas/FontAtlas";

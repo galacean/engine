@@ -63,7 +63,7 @@ export class ShaderProgram implements IPlatformShaderProgram {
   // @todo: move to RHI.
   private _isValid: boolean;
   private _engine: Engine;
-  private _gl: WebGLRenderingContext;
+  private _gl: WebGL2RenderingContext;
   private _glProgram: WebGLProgram | null;
   private _activeTextureUint: number = 0;
 
@@ -510,13 +510,7 @@ export class ShaderProgram implements IPlatformShaderProgram {
       this.attributeLocation[name] = gl.getAttribLocation(program, name);
     });
 
-    this._recordUniformBlocks();
-  }
-
-  private _recordUniformBlocks(): void {
-    const gl = this._gl;
-    const program = this._glProgram!;
-
+    // Record uniform block indices and bind binding points (WebGL2 only)
     const gl2 = <WebGL2RenderingContext>gl;
     const bindingMap = ShaderFactory.uniformBlockBindingMap;
     const blockCount = gl2.getProgramParameter(program, gl2.ACTIVE_UNIFORM_BLOCKS) ?? 0;

@@ -14,7 +14,7 @@ label: Core
 
 ## Initialization
 
-To facilitate users directly creating a web engine, we provide the [WebGLEngine](/apis/rhi-webgl/#WebGLEngine), which supports WebGL1.0 and WebGL2.0.
+To facilitate users directly creating a web engine, we provide the [WebGLEngine](/apis/rhi-webgl/#WebGLEngine), which requires WebGL2.0.
 
 ```typescript
 const engine = await WebGLEngine.create({
@@ -31,7 +31,7 @@ Below is a description of the [configuration](/apis/galacean/#WebGLEngineConfigu
 | Configuration                                                  | Description                                                 |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | canvas                                                       | Can be a canvas ID (`string`) or a canvas object (`HTMLCanvasElement | OffscreenCanvas`) |
-| [graphicDeviceOptions](/apis/galacean/#WebGLGraphicDeviceOptions) | WebGL context creation attributes. |
+| [graphicDeviceOptions](/apis/galacean/#WebGLGraphicDeviceOptions) | WebGL2 context options; see [getContext parameters](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext#parameters). |
 | [colorSpace](/apis/galacean/#ColorSpace)                     | Color space, `ColorSpace.Gamma` or `ColorSpace.Linear`.        |
 | gltf                                                         | GLTF Loader configuration, `workerCount` is used to configure the number of workers for meshOpt: `{ meshOpt: { workerCount: number } }`. |
 | ktx2Loader                                                   | KTX2 Loader configuration, `workerCount` is used to configure the number of workers for the ktx2 decoder: `{ priorityFormats: Array<KTX2TargetFormat>; transcoder: KTX2Transcoder; workerCount: number }`. If workerCount is greater than 0, worker threads will be created; if it equals 0, only the main thread will be used. |

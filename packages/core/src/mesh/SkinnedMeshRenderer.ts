@@ -181,7 +181,23 @@ export class SkinnedMeshRenderer extends MeshRenderer {
             4
         );
 
-        this._configureJointStorage(boneCount, remainUniformJointCount, boneCountChange, skin._skinMatrices);
+        if (boneCount > remainUniformJointCount) {
+          const engine = this.engine;
+          if (boneCountChange) {
+            this._jointTexture?.destroy();
+            this._jointTexture = new Texture2D(engine, 4, boneCount, TextureFormat.R32G32B32A32, false, false);
+            this._jointTexture.filterMode = TextureFilterMode.Point;
+            this._jointTexture.isGCIgnored = true;
+          }
+          shaderData.disableMacro("RENDERER_JOINTS_NUM");
+          shaderData.enableMacro("RENDERER_USE_JOINT_TEXTURE");
+          shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this._jointTexture);
+        } else {
+          this._jointTexture?.destroy();
+          shaderData.disableMacro("RENDERER_USE_JOINT_TEXTURE");
+          shaderData.enableMacro("RENDERER_JOINTS_NUM", remainUniformJointCount.toString());
+          shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, skin._skinMatrices);
+        }
         boneDataCreateCache.set(boneCount, bsUniformOccupiesCount);
       }
 
@@ -191,36 +207,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
 
     super._update(context);
-  }
-
-  private _configureJointStorage(
-    boneCount: number,
-    remainUniformJointCount: number,
-    boneCountChange: boolean,
-    matrices: Float32Array
-  ): void {
-    const { shaderData } = this;
-    if (boneCount > remainUniformJointCount) {
-      this._configureJointTexture(boneCount, boneCountChange);
-    } else {
-      this._jointTexture?.destroy();
-      shaderData.disableMacro("RENDERER_USE_JOINT_TEXTURE");
-      shaderData.enableMacro("RENDERER_JOINTS_NUM", remainUniformJointCount.toString());
-      shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, matrices);
-    }
-  }
-
-  private _configureJointTexture(boneCount: number, boneCountChange: boolean): void {
-    if (boneCountChange) {
-      this._jointTexture?.destroy();
-      this._jointTexture = new Texture2D(this.engine, 4, boneCount, TextureFormat.R32G32B32A32, false, false);
-      this._jointTexture.filterMode = TextureFilterMode.Point;
-      this._jointTexture.isGCIgnored = true;
-    }
-    const { shaderData } = this;
-    shaderData.disableMacro("RENDERER_JOINTS_NUM");
-    shaderData.enableMacro("RENDERER_USE_JOINT_TEXTURE");
-    shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this._jointTexture);
   }
 
   /**

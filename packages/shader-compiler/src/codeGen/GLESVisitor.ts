@@ -34,7 +34,6 @@ import { ShaderInstructionEncoder } from "../ShaderInstructionEncoder";
  * @internal
  */
 export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBackend, IPoolElement {
-  protected readonly supportsArrayStructReturn: boolean = true;
   /** Names of pass-scope declarations, which stage-interface globals must not redeclare. */
   private readonly _globalNames = new Set<string>();
   /** Interface type and variable tokens whose source names GLSL ES rejects. */
@@ -464,7 +463,6 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
         index: item.location.start.index
       }));
       for (const prop of node.propList) {
-        if (!retain(prop)) continue;
         segments.push({ text: emit(prop), index: prop.ident.location.start.index });
       }
       return segments
@@ -479,14 +477,10 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
           ? context._referencedVaryingList
           : context._referencedMRTList;
     const used = (prop: StructProp) => !!references[prop.ident.lexeme]?.includes(prop);
-    // Interface members have no array wire form, and GLSL ES 1.00 functions cannot return structures that contain
-    // arrays. GLES100 therefore omits array members from interface structures.
-    const retain = (prop: StructProp) => this.supportsArrayStructReturn || !this._containsArray(prop);
     const declaration = (prop: StructProp) =>
       `${prop.typeInfo.typeLexeme} ${this.interfaceMemberName(prop.ident.lexeme)}${prop.typeInfo.arraySpecifier?.codeGen(this) ?? ""};`;
     let structCode: string;
-    const hasRetainedField = node.propList.some(retain);
-    if (hasRetainedField && !node.macroExpressions.length) {
+    if (node.propList.length && !node.macroExpressions.length) {
       structCode = `struct ${typeName} {\n${memberCode(declaration)}\n};`;
     } else {
       const hasFields = context.names.allocate(node, `${typeName}_has_fields`);
@@ -522,16 +516,6 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       ? `${typeName} ${this._transferName(node, true)}() { ${typeName} ${value};\n${assignments}\nreturn ${value}; }`
       : `void ${this._transferName(node, false)}(${typeName} ${value}) {\n${assignments}\n}`;
     return `${structCode}\n${declarations}\n${transfer}`;
-  }
-
-  private _containsArray(prop: StructProp, visited = new Set<ASTNode.StructSpecifier>()): boolean {
-    if (prop.typeInfo.arraySpecifier) return true;
-    for (const struct of prop.typeInfo.structDeclarations) {
-      if (visited.has(struct)) continue;
-      visited.add(struct);
-      if (struct.propList.some((member) => this._containsArray(member, visited))) return true;
-    }
-    return false;
   }
 
   override defaultCodeGen(children: NodeChild[]): string {

@@ -43,7 +43,7 @@ export interface IHardwareRenderer {
   init(canvas: Canvas, onDeviceLost: () => void, onDeviceRestored: () => void): void;
   canIUse(capability: GLCapabilityType): boolean;
   canIUseCompressedTextureInternalFormat(format: number): boolean;
-  supportsTextureFormat(format: TextureFormat, isSRGBColorSpace?: boolean): boolean;
+  supportsTextureFormat(format: TextureFormat): boolean;
   supportsRenderTargetColorFormat(format: TextureFormat): boolean;
   createPlatformPrimitive(primitive: Primitive): IPlatformPrimitive;
   createPlatformBuffer(

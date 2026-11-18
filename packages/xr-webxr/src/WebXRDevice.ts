@@ -67,7 +67,25 @@ export class WebXRDevice implements IXRDevice {
           }
           gl.makeXRCompatible().then(() => {
             const scaleFactor = XRWebGLLayer.getNativeFramebufferScaleFactor(session);
-            const layer = rhi._createXRLayer(session, scaleFactor);
+            let layer: XRWebGLLayer;
+            if (session.renderState.layers === undefined) {
+              const layerInit = {
+                antialias: session.renderState.layers === undefined ? attributes.antialias : true,
+                alpha: true,
+                depth: attributes.depth,
+                stencil: attributes.stencil,
+                framebufferScaleFactor: scaleFactor
+              };
+              layer = new XRWebGLLayer(session, gl, layerInit);
+              session.updateRenderState({
+                baseLayer: layer
+              });
+            } else {
+              layer = new XRWebGLLayer(session, gl);
+              session.updateRenderState({
+                layers: [layer]
+              });
+            }
             session.requestReferenceSpace("local").then((referenceSpace: XRReferenceSpace) => {
               resolve(new WebXRSession(rhi, session, layer, referenceSpace));
             }, reject);

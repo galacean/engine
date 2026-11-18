@@ -1,17 +1,17 @@
-import { GLCapabilityType } from "@galacean/engine-core";
+import { GLCapabilityType, TextureFormat } from "@galacean/engine-core";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import { GLCompressedTextureInternalFormat } from "./type";
 
 /**
  * GL capability.
  */
-export class GLCapability<Key extends string = GLCapabilityType> {
+export class GLCapability {
   private _maxDrawBuffers: number;
   private _maxAnisoLevel: number;
   private _maxAntiAliasing: number;
 
   _rhi: WebGLGraphicDevice;
-  capabilityList: Map<string, boolean>;
+  capabilityList: Map<GLCapabilityType, boolean>;
 
   get maxTextureSize(): number {
     return this.rhi.renderStates.getParameter(this.rhi.gl.MAX_TEXTURE_SIZE);
@@ -23,14 +23,9 @@ export class GLCapability<Key extends string = GLCapabilityType> {
 
   get maxDrawBuffers() {
     if (!this._maxDrawBuffers) {
-      this._maxDrawBuffers = this._getMaxDrawBuffers();
+      this._maxDrawBuffers = this._rhi.gl.getParameter(this._rhi.gl.MAX_DRAW_BUFFERS);
     }
     return this._maxDrawBuffers;
-  }
-
-  private _getMaxDrawBuffers(): number {
-    const gl = this._rhi.gl;
-    return gl.getParameter(gl.MAX_DRAW_BUFFERS);
   }
 
   /**
@@ -67,12 +62,10 @@ export class GLCapability<Key extends string = GLCapabilityType> {
   }
 
   /**
-   * Check a detected device capability. Core WebGL2 features do not require a capability query.
-   * @param capabilityType - Capability to check
-   * @returns Whether the capability was detected
+   * Check device capabilities.
    */
-  canIUse(capabilityType: GLCapabilityType | Key): boolean {
-    return this.capabilityList.get(capabilityType) ?? false;
+  canIUse(capabilityType: GLCapabilityType): boolean {
+    return this.capabilityList.get(capabilityType)!;
   }
 
   /**
@@ -124,10 +117,75 @@ export class GLCapability<Key extends string = GLCapabilityType> {
     return false;
   }
 
-  private _getColorBufferSupport(): { float: boolean; halfFloat: boolean } {
-    const float = !!this.rhi.requireExtension(GLCapabilityType.colorBufferFloat);
-    const halfFloat = float || !!this.rhi.requireExtension(GLCapabilityType.colorBufferHalfFloat);
-    return { float, halfFloat };
+  /**
+   * Check whether the given texture format is supported.
+   */
+  supportsTextureFormat(format: TextureFormat): boolean {
+    switch (format) {
+      case TextureFormat.BC1:
+      case TextureFormat.BC3:
+        return this.canIUse(GLCapabilityType.s3tc);
+      case TextureFormat.BC7:
+      case TextureFormat.BC6H:
+        return this.canIUse(GLCapabilityType.bptc);
+      case TextureFormat.ETC1_RGB:
+        return this.canIUse(GLCapabilityType.etc1);
+      case TextureFormat.ETC2_RGB:
+      case TextureFormat.ETC2_RGBA5:
+      case TextureFormat.ETC2_RGBA8:
+        return this.canIUse(GLCapabilityType.etc);
+      case TextureFormat.PVRTC_RGB2:
+      case TextureFormat.PVRTC_RGBA2:
+      case TextureFormat.PVRTC_RGB4:
+      case TextureFormat.PVRTC_RGBA4:
+        return this.canIUse(GLCapabilityType.pvrtc);
+      case TextureFormat.ASTC_4x4:
+      case TextureFormat.ASTC_5x5:
+      case TextureFormat.ASTC_6x6:
+      case TextureFormat.ASTC_8x8:
+      case TextureFormat.ASTC_10x10:
+      case TextureFormat.ASTC_12x12:
+        return this.canIUse(GLCapabilityType.astc);
+      case TextureFormat.R8G8B8:
+      case TextureFormat.R8G8B8A8:
+      case TextureFormat.R4G4B4A4:
+      case TextureFormat.R5G5B5A1:
+      case TextureFormat.R5G6B5:
+      case TextureFormat.Alpha8:
+      case TextureFormat.LuminanceAlpha:
+      case TextureFormat.R16G16B16A16:
+      case TextureFormat.R32G32B32A32:
+      case TextureFormat.R32G32B32A32_UInt:
+      case TextureFormat.R11G11B10_UFloat:
+      case TextureFormat.R8:
+      case TextureFormat.R8G8:
+      case TextureFormat.Depth:
+      case TextureFormat.DepthStencil:
+      case TextureFormat.Depth16:
+      case TextureFormat.Depth24:
+      case TextureFormat.Depth32:
+      case TextureFormat.Depth24Stencil8:
+      case TextureFormat.Depth32Stencil8:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Check whether the given texture format can be rendered to as a color attachment.
+   */
+  supportsRenderTargetColorFormat(format: TextureFormat): boolean {
+    switch (format) {
+      case TextureFormat.R16G16B16A16:
+        return this.canIUse(GLCapabilityType.colorBufferHalfFloat);
+      case TextureFormat.R32G32B32A32:
+        return this.canIUse(GLCapabilityType.colorBufferFloat);
+      case TextureFormat.R11G11B10_UFloat:
+        return this.canIUse(GLCapabilityType.colorBufferFloat);
+      default:
+        return this.supportsTextureFormat(format);
+    }
   }
 
   /**
@@ -136,6 +194,7 @@ export class GLCapability<Key extends string = GLCapabilityType> {
   private _init() {
     const cap = this.capabilityList;
     const requireExtension = this.rhi.requireExtension.bind(this.rhi);
+
     const {
       astc,
       astc_webkit,
@@ -154,31 +213,22 @@ export class GLCapability<Key extends string = GLCapabilityType> {
       textureFloatLinear,
       colorBufferFloat,
       colorBufferHalfFloat,
-      textureFilterAnisotropic,
-      WEBGL_lose_context
+      textureFilterAnisotropic
     } = GLCapabilityType;
     cap.set(textureFloatLinear, !!requireExtension(textureFloatLinear));
-    const colorBufferSupport = this._getColorBufferSupport();
-    cap.set(colorBufferFloat, colorBufferSupport.float);
-    cap.set(colorBufferHalfFloat, colorBufferSupport.halfFloat);
+    cap.set(colorBufferFloat, !!requireExtension(colorBufferFloat));
+    cap.set(colorBufferHalfFloat, !!requireExtension(colorBufferFloat) || !!requireExtension(colorBufferHalfFloat));
     cap.set(textureFilterAnisotropic, !!requireExtension(textureFilterAnisotropic));
-    for (const [name, alias] of [
-      [etc, etc_webkit],
-      [etc1, etc1_webkit],
-      [pvrtc, pvrtc_webkit],
-      [s3tc, s3tc_webkit],
-      [astc, astc_webkit]
-    ]) {
-      const extension = requireExtension(name);
-      const aliasExtension = requireExtension(alias);
-      cap.set(name, !!(extension || aliasExtension));
-      cap.set(alias, !!aliasExtension);
-    }
+
+    cap.set(etc, !!(requireExtension(etc) || requireExtension(etc_webkit)));
+    cap.set(etc1, !!(requireExtension(etc1) || requireExtension(etc1_webkit)));
+    cap.set(pvrtc, !!(requireExtension(pvrtc) || requireExtension(pvrtc_webkit)));
+    cap.set(s3tc, !!(requireExtension(s3tc) || requireExtension(s3tc_webkit)));
     cap.set(s3tc_srgb, !!requireExtension(s3tc_srgb));
     cap.set(bptc, !!requireExtension(bptc));
-    cap.set(WEBGL_lose_context, !!requireExtension(WEBGL_lose_context));
 
     const astcExtension = requireExtension(astc) || requireExtension(astc_webkit);
+    cap.set(astc, !!astcExtension);
     cap.set(
       astc_hdr,
       typeof astcExtension?.getSupportedProfiles === "function" && astcExtension.getSupportedProfiles().includes("hdr")

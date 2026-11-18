@@ -60,9 +60,9 @@ export class BlendState extends DataObject {
       case BlendOperation.ReverseSubtract:
         return gl.FUNC_REVERSE_SUBTRACT;
       case BlendOperation.Min:
-        return gl.MIN;
+        return (gl as WebGL2RenderingContext).MIN;
       case BlendOperation.Max:
-        return gl.MAX;
+        return (gl as WebGL2RenderingContext).MAX;
     }
   }
 
@@ -157,7 +157,7 @@ export class BlendState extends DataObject {
     lastState: BlendState,
     customStates?: RenderStateElementMap | null
   ): void {
-    const gl = <WebGLRenderingContext>rhi.gl;
+    const gl = <WebGL2RenderingContext>rhi.gl;
     const lastTargetBlendState = lastState.targetBlendState;
 
     let {

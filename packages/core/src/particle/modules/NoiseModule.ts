@@ -211,10 +211,6 @@ export class NoiseModule extends ParticleGeneratorModule {
   }
 
   override set enabled(value: boolean) {
-    this._setEnabled(value);
-  }
-
-  private _setEnabled(value: boolean): void {
     if (value !== this._enabled) {
       this._enabled = value;
       this._generator._setTransformFeedback();

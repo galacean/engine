@@ -9,20 +9,11 @@ describe("Texture2D", () => {
   const canvas = document.createElement("canvas");
 
   let engine: Engine;
-  let rhi: any;
   beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: canvas });
-    // @ts-ignore
-    rhi = engine._hardwareRenderer;
   });
 
   describe("格式测试", () => {
-    it("不支持浮点纹理", () => {
-      expect(() => {
-        rhi.canIUse.mockReturnValueOnce(false);
-        new Texture2D(engine, width, height, TextureFormat.R32G32B32A32, undefined, false);
-      }).to.throw;
-    });
     it("引擎不支持的格式", () => {
       expect(() => {
         new Texture2D(engine, width, height, 1234567 as any, undefined, false);
@@ -31,9 +22,7 @@ describe("Texture2D", () => {
   });
 
   describe("mipmap", () => {
-    it("webgl2 支持非2次幂开启 mipmap ", async ({ skip }) => {
-      if (!rhi.isWebGL2) skip();
-
+    it("webgl2 支持非2次幂开启 mipmap ", () => {
       const texture1 = new Texture2D(engine, 100, 100);
       const texture2 = new Texture2D(engine, 100, 100, undefined, true);
 
@@ -45,7 +34,6 @@ describe("Texture2D", () => {
 
       expect(texture.mipmapCount).to.eq(1);
     });
-
   });
 
   describe("设置颜色缓冲", () => {

@@ -1,5 +1,4 @@
 import { Camera } from "../Camera";
-import { Engine } from "../Engine";
 import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
@@ -15,10 +14,6 @@ import { PipelineStage } from "./enums/PipelineStage";
  */
 export class DepthOnlyPass extends PipelinePass {
   renderTarget: RenderTarget | null;
-
-  constructor(engine: Engine) {
-    super(engine);
-  }
 
   onConfig(camera: Camera): void {
     const engine = this.engine;

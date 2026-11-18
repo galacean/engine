@@ -259,23 +259,15 @@ export class Engine extends EventDispatcher {
       this.xrManager._initialize(this, xrDevice);
     }
 
-    this._initializeDefaultTextures();
+    const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false, false);
+    depthTexture2D.isGCIgnored = true;
+    this._depthTexture2D = depthTexture2D;
 
     this._basicResources = new BasicResources(this, Engine._builtinShaders);
     this._particleBufferUtils = new ParticleBufferUtils(this);
 
     const uberPass = new PostProcessUberPass(this);
     this.addPostProcessPass(uberPass);
-  }
-
-  private _initializeDefaultTextures(): void {
-    this._createDefaultDepthTexture();
-  }
-
-  private _createDefaultDepthTexture(): void {
-    const depthTexture = new Texture2D(this, 1, 1, TextureFormat.Depth16, false, false);
-    depthTexture.isGCIgnored = true;
-    this._depthTexture2D = depthTexture;
   }
 
   /**

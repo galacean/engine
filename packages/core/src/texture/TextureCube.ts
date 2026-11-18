@@ -34,7 +34,6 @@ export class TextureCube extends Texture {
 
   /**
    * Setting pixels data through cube face,color buffer data, designated area and texture mipmapping level,it's also applicable to compressed formats.
-   * @remarks When compressed texture is in WebGL1, the texture must be filled first before writing the sub-region
    * @param face - Cube face
    * @param colorBuffer - Color buffer data
    * @param mipLevel - Texture mipmapping level

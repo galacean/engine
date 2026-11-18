@@ -2041,8 +2041,9 @@ export class PrimitiveMesh {
     }
     const data = generate(...args);
     data.trim();
-    const { vertices, indices } = data;
-    const mesh = PrimitiveMesh._createIndexedMesh(engine, indices);
+    const mesh = new ModelMesh(engine);
+    const vertices = data.vertices;
+    const indices = data.indices;
     mesh.setVertexElements([
       new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0),
       new VertexElement(VertexAttribute.Normal, 12, VertexElementFormat.Vector3, 0),
@@ -2050,6 +2051,7 @@ export class PrimitiveMesh {
     ]);
     const vertexBuffer = new Buffer(mesh.engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static, true);
     mesh.setVertexBufferBinding(vertexBuffer, 32, 0);
+    mesh.setIndices(indices);
     mesh.calculateTangents();
     PrimitiveMesh._setBounds(mesh, data);
     mesh.uploadData(!keepMeshData);
@@ -2064,12 +2066,6 @@ export class PrimitiveMesh {
       mesh.addSubMesh(0, indices.length);
     }
     engine.resourceManager.addContentRestorer(new PrimitiveMeshRestorer(mesh, generate, args));
-    return mesh;
-  }
-
-  private static _createIndexedMesh(engine: Engine, indices: Uint16Array | Uint32Array): ModelMesh {
-    const mesh = new ModelMesh(engine);
-    mesh.setIndices(indices);
     return mesh;
   }
 

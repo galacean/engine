@@ -127,7 +127,7 @@ void frag() { gl_FragColor = vec4(OWNER(owner).uv, 0.0, 1.0); }
     const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
     const compiler = new ShaderCompiler();
 
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       const programs = [
         compiler.generate(analysis.passes[0], target),
         compiler._parseShaderPass(
@@ -194,7 +194,7 @@ ${member}
     const analysis = ShaderAnalyzer.analyze(source);
     const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
     const compiler = new ShaderCompiler();
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       expect(compiler.generate(analysis.passes[0], target)).toBeUndefined();
       expect(
         compiler._parseShaderPass(

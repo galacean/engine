@@ -10,7 +10,6 @@ describe("RenderTarget", async () => {
 
   let engine: WebGLEngine;
   let rhi: any;
-  let isWebGL2: boolean;
   let maxAntiAliasing: number;
   let renderColorTexture: Texture2D;
   let renderColorTexture2: Texture2D;
@@ -19,7 +18,6 @@ describe("RenderTarget", async () => {
     engine = await WebGLEngine.create({ canvas: canvas });
     // @ts-ignore
     rhi = engine._hardwareRenderer;
-    isWebGL2 = rhi.isWebGL2;
     maxAntiAliasing = rhi.capability._maxAntiAliasing;
     renderColorTexture = new Texture2D(engine, width, height);
     renderColorTexture2 = new Texture2D(engine, width, height);
@@ -27,7 +25,6 @@ describe("RenderTarget", async () => {
   });
 
   beforeEach(() => {
-    rhi._isWebGL2 = isWebGL2;
     rhi.capability._maxAntiAliasing = maxAntiAliasing;
   });
 

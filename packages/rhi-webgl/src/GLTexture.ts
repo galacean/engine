@@ -11,7 +11,6 @@ import {
   TextureUtils,
   TextureWrapMode
 } from "@galacean/engine-core";
-import type { GLCapability } from "./GLCapability";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
 
@@ -19,8 +18,6 @@ import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
  * Texture in WebGL platform.
  */
 export class GLTexture implements IPlatformTexture {
-  // The capability object is replaced when the context is initialized or restored.
-  private static readonly _formatDetails = new WeakMap<GLCapability, Map<TextureFormat, TextureFormatDetail>[]>();
   /**
    * Get more texture info from TextureFormat.
    * @internal
@@ -28,44 +25,8 @@ export class GLTexture implements IPlatformTexture {
   static _getFormatDetail(
     format: TextureFormat,
     isSRGBColorSpace: boolean,
-    gl: WebGLRenderingContext & WebGL2RenderingContext,
-    rhi: WebGLGraphicDevice
+    gl: WebGL2RenderingContext
   ): TextureFormatDetail {
-    const detail = this._findFormatDetail(format, isSRGBColorSpace, gl, rhi);
-    if (!detail) {
-      throw new Error(`this TextureFormat is not supported in Galacean Engine: ${format}`);
-    }
-    return detail;
-  }
-
-  /** @internal */
-  static _findFormatDetail(
-    format: TextureFormat,
-    isSRGBColorSpace: boolean,
-    gl: WebGLRenderingContext & WebGL2RenderingContext,
-    rhi: WebGLGraphicDevice
-  ): TextureFormatDetail | undefined {
-    const capability = rhi.capability;
-    let formats = GLTexture._formatDetails.get(capability);
-    if (!formats) GLTexture._formatDetails.set(capability, (formats = [new Map(), new Map()]));
-
-    const cache = formats[isSRGBColorSpace ? 1 : 0];
-    let detail = cache.get(format);
-    if (!detail) {
-      detail = this._resolveFormatDetail(format, isSRGBColorSpace, gl, rhi);
-      if (detail) cache.set(format, detail);
-    }
-    return detail;
-  }
-
-  private static _resolveFormatDetail(
-    format: TextureFormat,
-    isSRGBColorSpace: boolean,
-    gl: WebGLRenderingContext & WebGL2RenderingContext,
-    rhi: WebGLGraphicDevice
-  ): TextureFormatDetail | undefined {
-    const platformFormat = this._getPlatformFormat(format, isSRGBColorSpace, gl, rhi, false);
-    if (platformFormat !== undefined) return platformFormat ?? undefined;
     switch (format) {
       case TextureFormat.R8G8B8:
         return {
@@ -141,7 +102,6 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 8
         };
-      // Only WebGL2 support
       case TextureFormat.R11G11B10_UFloat:
         return {
           internalFormat: gl.R11F_G11F_B10F,
@@ -151,7 +111,6 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 4
         };
-      // Only WebGL2 support
       case TextureFormat.R32G32B32A32_UInt:
         return {
           internalFormat: gl.RGBA32UI,
@@ -160,7 +119,6 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 8
         };
-      // Only WebGL2 support
       case TextureFormat.R8:
         return {
           internalFormat: gl.R8,
@@ -169,7 +127,6 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 1
         };
-      // Only WebGL2 support
       case TextureFormat.R8G8:
         return {
           internalFormat: gl.RG8,
@@ -325,7 +282,6 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
-      // Only WebGL2 support
       case TextureFormat.Depth24:
         return {
           internalFormat: gl.DEPTH_COMPONENT24,
@@ -334,7 +290,6 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
-      // Only WebGL2 support
       case TextureFormat.Depth32:
         return {
           internalFormat: gl.DEPTH_COMPONENT32F,
@@ -343,7 +298,6 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
-      // Only WebGL2 support
       case TextureFormat.Depth32Stencil8:
         return {
           internalFormat: gl.DEPTH32F_STENCIL8,
@@ -352,35 +306,15 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
+      default:
+        throw new Error(`this TextureFormat is not supported in Galacean Engine: ${format}`);
     }
   }
 
   /**
-   * In WebGL 1, internalformat must be the same as baseFormat when call texImage2D.
    * @internal
    */
-  // undefined selects the common format table. null rejects the format for this device.
-  private static _getPlatformFormat(
-    _format: TextureFormat,
-    _isSRGB: boolean,
-    _gl: WebGLRenderingContext,
-    _rhi: WebGLGraphicDevice,
-    _renderbuffer: boolean
-  ): TextureFormatDetail | null | undefined {
-    return undefined;
-  }
-
-  static _getRenderBufferDepthFormatDetail(
-    format: TextureFormat,
-    gl: WebGLRenderingContext & WebGL2RenderingContext,
-    rhi: WebGLGraphicDevice
-  ): TextureFormatDetail {
-    const platformFormat = this._getPlatformFormat(format, false, gl, rhi, true);
-    if (platformFormat === null) {
-      throw new Error(`TextureFormat is not supported:${TextureFormat[format]} in RenderTarget`);
-    }
-    if (platformFormat !== undefined) return platformFormat;
-
+  static _getRenderBufferDepthFormatDetail(format: TextureFormat, gl: WebGL2RenderingContext): TextureFormatDetail {
     switch (format) {
       case TextureFormat.Depth:
         return {
@@ -452,21 +386,6 @@ export class GLTexture implements IPlatformTexture {
     }
   }
 
-  /**
-   * @internal
-   */
-  static _supportRenderBufferColorFormat(format: TextureFormat, rhi: WebGLGraphicDevice): boolean {
-    switch (format) {
-      case TextureFormat.R16G16B16A16:
-        return rhi.canIUse(GLCapabilityType.colorBufferHalfFloat) && rhi.supportsTextureFormat(format, false);
-      case TextureFormat.R32G32B32A32:
-      case TextureFormat.R11G11B10_UFloat:
-        return rhi.canIUse(GLCapabilityType.colorBufferFloat) && rhi.supportsTextureFormat(format, false);
-      default:
-        return true;
-    }
-  }
-
   /** @internal */
   _texture: Texture;
   /** @internal */
@@ -474,8 +393,7 @@ export class GLTexture implements IPlatformTexture {
   /** @internal */
   _rhi: WebGLGraphicDevice;
   /** @internal */
-  _gl: WebGLRenderingContext & WebGL2RenderingContext;
-  /** @internal */
+  _gl: WebGL2RenderingContext;
   /** @internal */
   _target: GLenum; // gl.TEXTURE_2D | gl.TEXTURE_CUBE_MAP
   /** @internal */
@@ -574,7 +492,7 @@ export class GLTexture implements IPlatformTexture {
   constructor(rhi: WebGLGraphicDevice, texture: Texture, target: GLenum) {
     this._texture = texture;
     this._rhi = rhi;
-    this._gl = rhi.gl as WebGLRenderingContext & WebGL2RenderingContext;
+    this._gl = rhi.gl;
     this._target = target;
     this._glTexture = this._gl.createTexture();
   }
@@ -602,19 +520,12 @@ export class GLTexture implements IPlatformTexture {
    */
   generateMipmaps(): void {
     const texture = this._texture;
-    if (!texture._mipmap) return;
+    const mipmap = texture._mipmap;
 
-    if (
-      !TextureUtils.supportGenerateMipmapsWithCorrection(
-        texture.engine,
-        texture.width,
-        texture.height,
-        texture.format,
-        texture._mipmap,
-        texture.isSRGBColorSpace
-      )
-    ) {
-      Logger.warn("Automatic mipmap generation is not supported for this texture.");
+    if (!TextureUtils.supportGenerateMipmaps(texture.format, mipmap, texture.isSRGBColorSpace)) {
+      Logger.warn(
+        "Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + R8G8B8A8], you must generate mipmaps manually."
+      );
       return;
     }
 
@@ -695,7 +606,6 @@ export class GLTexture implements IPlatformTexture {
     const gl = this._gl;
     const { baseFormat, dataType, readFormat, alignment } = this._formatDetail;
 
-    mipLevel = this._resolveFramebufferMipLevel(mipLevel);
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
 
     if (face != null) {
@@ -711,26 +621,9 @@ export class GLTexture implements IPlatformTexture {
     }
 
     gl.pixelStorei(gl.PACK_ALIGNMENT, alignment!);
-    // Base format is different from read format in webgl1.0 with sRGB
     gl.readPixels(x, y, width, height, readFormat ?? baseFormat!, dataType!, out);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  }
-
-  protected _resolveFramebufferMipLevel(mipLevel: number): number {
-    return mipLevel;
-  }
-
-  protected _uploadCompressedPixels(
-    target: number,
-    mipLevel: number,
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    data: ArrayBufferView
-  ): void {
-    this._gl.compressedTexSubImage2D(target, mipLevel, x, y, width, height, this._formatDetail.internalFormat, data);
   }
 
   protected _getReadFrameBuffer(): WebGLFramebuffer | null {
@@ -741,7 +634,7 @@ export class GLTexture implements IPlatformTexture {
     return frameBuffer;
   }
 
-  protected _validate(texture: Texture, rhi: WebGLGraphicDevice): void {
+  protected _validate(texture: Texture): void {
     const { format } = texture;
 
     // Validate sRGB format
@@ -754,16 +647,10 @@ export class GLTexture implements IPlatformTexture {
     }
   }
 
-  protected _resolveTextureWrapMode(mode: TextureWrapMode, _width: number, _height: number): TextureWrapMode {
-    return mode;
-  }
-
   private _setWrapMode(value: TextureWrapMode, pname: GLenum): void {
     const gl = this._gl;
     const target = this._target;
-    const { width, height } = this._texture;
-
-    switch (this._resolveTextureWrapMode(value, width, height)) {
+    switch (value) {
       case TextureWrapMode.Clamp:
         gl.texParameteri(target, pname, gl.CLAMP_TO_EDGE);
         break;

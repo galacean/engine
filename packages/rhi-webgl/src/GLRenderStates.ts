@@ -2,12 +2,12 @@
  * @private
  */
 export class GLRenderStates {
-  private _gl: WebGLRenderingContext;
+  private _gl: WebGL2RenderingContext;
   private _parameters = {};
   /**
-   * @param {WebGLRenderingContext} gl
+   * @param {WebGL2RenderingContext} gl
    */
-  constructor(gl: WebGLRenderingContext) {
+  constructor(gl: WebGL2RenderingContext) {
     this._gl = gl;
     this._parameters = {}; // current gl state parameters
 

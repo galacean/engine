@@ -54,14 +54,20 @@ export class GLES300Visitor extends GLESVisitor {
   }
 
   override getMRTProp(prop: StructProp): string {
-    return `layout(location = ${prop.mrtIndex}) out vec4 ${this.interfaceName(prop, ShaderStructRole.Mrt)};`;
+    this._registerFragDataVariable(prop.mrtIndex!);
+    return "";
   }
 
   override visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
     const children = node.children;
     const typeSpecifier = children[0] as ASTNode.TypeSpecifier;
-    if (!node.isBuiltin || typeSpecifier.children.length !== 1 || typeSpecifier.structDependencies.length) {
-      // Struct constructors still need the shared type-dependency visitor.
+    const call = node.parent;
+    if (
+      (call instanceof ASTNode.FunctionCallGeneric && call.fnSymbol) ||
+      typeSpecifier.children.length !== 1 ||
+      typeSpecifier.structDependencies.length
+    ) {
+      // Preserve resolved user functions and struct type dependencies.
       return super.visitFunctionIdentifier(node);
     }
     let ident = node.lexeme;
@@ -121,7 +127,7 @@ export class GLES300Visitor extends GLESVisitor {
   }
 
   protected override mrtOutput(prop: StructProp): string {
-    return this.interfaceName(prop, ShaderStructRole.Mrt);
+    return this._registerFragDataVariable(prop.mrtIndex!);
   }
 
   private _fragmentColorName(): string {
@@ -134,7 +140,7 @@ export class GLES300Visitor extends GLESVisitor {
 
   private _registerFragColorVariable(): void {
     const name = this._fragmentColorName();
-    this._registerOutput(name, `out vec4 ${name};`);
+    this._registerOutput(name, `layout(location = 0) out vec4 ${name};`);
   }
 
   private _registerOutput(name: string, text: string): void {
@@ -195,7 +201,10 @@ export class GLES300Visitor extends GLESVisitor {
   }
 
   private _registerFragDataVariable(index: number): string {
-    const name = this.context.names.allocate(`fragment-output:${index}`, `output_color_${index}`);
+    const name =
+      index === 0
+        ? this._fragmentColorName()
+        : this.context.names.allocate(`fragment-output:${index}`, `output_color_${index}`);
     this._registerOutput(name, `layout(location = ${index}) out vec4 ${name};`);
     return name;
   }

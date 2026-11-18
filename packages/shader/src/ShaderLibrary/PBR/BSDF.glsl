@@ -107,12 +107,8 @@ float getAARoughnessFactor(vec3 normal) {
     // Kaplanyan 2016, "Stable specular highlights"
     // Tokuyoshi 2017, "Error Reduction and Simplification for Shading Anti-Aliasing"
     // Tokuyoshi and Kaplanyan 2019, "Improved Geometric Specular Antialiasing"
-    #ifdef HAS_DERIVATIVES
         vec3 dxy = max( abs(dFdx(normal)), abs(dFdy(normal)) );
         return max( max(dxy.x, dxy.y), dxy.z );
-    #else
-        return 0.0;
-    #endif
 }
 
 
@@ -359,11 +355,7 @@ vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor) {
     }
 
     float prefilteredSheenDFG(float dotNV, float sheenRoughness) {
-        #ifdef HAS_TEX_LOD
             return texture2DLodEXT(scene_PrefilteredDFG, vec2(dotNV, sheenRoughness), 0.0).b;
-        #else
-            return texture2D(scene_PrefilteredDFG, vec2(dotNV, sheenRoughness),0.0).b;
-        #endif  
     }
 #endif
 

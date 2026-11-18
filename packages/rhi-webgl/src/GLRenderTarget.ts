@@ -7,18 +7,16 @@ import {
   TextureFormat
 } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
-import type { TextureFormatDetail } from "./type";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
 /**
  * The render target in WebGL platform is used for off-screen rendering.
  */
 export class GLRenderTarget implements IPlatformRenderTarget {
-  private _gl: WebGLRenderingContext & WebGL2RenderingContext;
+  private _gl: WebGL2RenderingContext;
   private _target: RenderTarget;
   private _frameBuffer: WebGLFramebuffer | null;
   private _MSAAFrameBuffer: WebGLFramebuffer | null;
-  private _depthRenderBufferFormat: TextureFormatDetail | undefined;
   private _depthRenderBuffer: WebGLRenderbuffer | null;
   private _MSAAColorRenderBuffers: (WebGLRenderbuffer | null)[] = [];
   private _MSAADepthRenderBuffer: WebGLRenderbuffer | null;
@@ -32,7 +30,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
    * Create render target in WebGL platform.
    */
   constructor(rhi: WebGLGraphicDevice, target: RenderTarget) {
-    this._gl = rhi.gl as WebGLRenderingContext & WebGL2RenderingContext;
+    this._gl = rhi.gl;
     this._target = target;
     this._antiAliasing = Math.min(target.antiAliasing, rhi.capability.maxAntiAliasing);
 
@@ -44,10 +42,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
      * MRT + Cube + [,MSAA]
      * MRT + MSAA
      */
-
-    if (_colorTextures.length > 1 && _colorTextures.length > rhi.capability.maxDrawBuffers) {
-      throw new Error("MRT is not supported for this number of color attachments.");
-    }
 
     for (let i = 0, n = _colorTextures.length; i < n; i++) {
       const { format, isSRGBColorSpace } = _colorTextures[i];
@@ -70,10 +64,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     // todo: necessary to support MRT + Cube + [,MSAA] ?
     if (_colorTextures.length > 1 && _colorTextures.some((v: Texture) => v instanceof TextureCube)) {
       throw new Error("MRT+Cube+[,MSAA] is not supported");
-    }
-
-    if (_depth !== null && !isDepthTexture) {
-      this._depthRenderBufferFormat = GLTexture._getRenderBufferDepthFormatDetail(_depth, this._gl, rhi);
     }
 
     this._frameBuffer = this._gl.createFramebuffer();
@@ -130,8 +120,9 @@ export class GLRenderTarget implements IPlatformRenderTarget {
         );
       }
     } else {
-      if (mipChanged && this._depthRenderBufferFormat) {
-        const { internalFormat } = this._depthRenderBufferFormat;
+      if (mipChanged) {
+        // @ts-ignore
+        const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl);
         gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthRenderBuffer);
         gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, target.width >> mipLevel, target.height >> mipLevel);
       }
@@ -240,7 +231,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           );
         }
       } else if (this._antiAliasing <= 1) {
-        const { internalFormat, attachment } = this._depthRenderBufferFormat!;
+        const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl);
         this._depthRenderBuffer = this._createRenderBuffer(internalFormat, attachment!);
       }
     }
@@ -274,7 +265,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       const { internalFormat, attachment } =
         _depth instanceof Texture
           ? (_depth._platformTexture as GLTexture)._formatDetail
-          : this._depthRenderBufferFormat!;
+          : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl);
 
       this._MSAADepthRenderBuffer = this._createRenderBuffer(internalFormat, attachment!);
     }
@@ -324,7 +315,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           );
         }
         break;
-      case gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: // Only for WebGL2
+      case gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
         throw new Error(
           "The values of gl.RENDERBUFFER_SAMPLES are different among attached renderbuffers, or are non-zero if the attached images are a mix of renderbuffers and textures."
         );

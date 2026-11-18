@@ -20,11 +20,9 @@ describe("VelocityOverLifetimeModule", function () {
   let engine: Engine;
   let particleRenderer: ParticleRenderer;
   let entity: Entity;
-  let isWebGL2: boolean;
 
   beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-    isWebGL2 = (engine as any)._hardwareRenderer.isWebGL2;
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity("root");
 
@@ -89,8 +87,6 @@ describe("VelocityOverLifetimeModule", function () {
   });
 
   it("inactive random orbital curves do not consume particle random data", function () {
-    if (!isWebGL2) return;
-
     const vol = particleRenderer.generator.velocityOverLifetime;
     vol.enabled = true;
     vol.radial = new ParticleCompositeCurve(1);
@@ -112,14 +108,14 @@ describe("VelocityOverLifetimeModule", function () {
     expect(generator._feedbackSimulator).to.not.exist;
 
     vol.orbitalY = new ParticleCompositeCurve(2);
-    expect(vol._needTransformFeedback()).to.eq(isWebGL2);
-    expect(Boolean(generator._feedbackSimulator)).to.eq(isWebGL2);
+    expect(vol._needTransformFeedback()).to.eq(true);
+    expect(Boolean(generator._feedbackSimulator)).to.eq(true);
 
     vol.orbitalY = new ParticleCompositeCurve(0);
     expect(generator._feedbackSimulator).to.not.exist;
     vol.radial = new ParticleCompositeCurve(1);
-    expect(vol._needTransformFeedback()).to.eq(isWebGL2);
-    expect(Boolean(generator._feedbackSimulator)).to.eq(isWebGL2);
+    expect(vol._needTransformFeedback()).to.eq(true);
+    expect(Boolean(generator._feedbackSimulator)).to.eq(true);
 
     vol.radial = new ParticleCompositeCurve(0);
     expect(vol._needTransformFeedback()).to.eq(false);
@@ -127,8 +123,6 @@ describe("VelocityOverLifetimeModule", function () {
   });
 
   it("integrates linear velocity after orbital displacement", function () {
-    if (!isWebGL2) return;
-
     const testEntity = engine.sceneManager.activeScene.createRootEntity("orbital-linear-order");
     const testRenderer = testEntity.addComponent(ParticleRenderer);
     const generator = testRenderer.generator;

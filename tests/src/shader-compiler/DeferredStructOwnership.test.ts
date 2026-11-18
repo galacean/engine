@@ -9,7 +9,7 @@ const flags = Array.from({ length: 12 }, (_, index) => `defined(F${index})`);
 const inheritedGuard = `(${flags.map((flag, index) => `(${flag} << ${index})`).join(" + ")}) != 0`;
 const replacementGuard = flags.join(" || ");
 const point = "gl_Position = vec4(0.0, 0.0, 0.0, 1.0); gl_PointSize = 1.0;";
-const targets = [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300];
+const targets = [ShaderLanguage.GLSLES300];
 const variants = [{}, { F0: "0" }, { F11: "0" }];
 const contexts = new Map<ShaderLanguage, WebGLRenderingContext | WebGL2RenderingContext>();
 afterAll(() => {
@@ -131,7 +131,7 @@ function driver(program: Program): void {
   if (!gl) {
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 1;
-    gl = canvas.getContext(program.target === ShaderLanguage.GLSLES300 ? "webgl2" : "webgl", {
+    gl = canvas.getContext("webgl2", {
       antialias: false,
       preserveDrawingBuffer: true
     }) as WebGLRenderingContext | WebGL2RenderingContext;
@@ -148,10 +148,7 @@ function driver(program: Program): void {
     ] as const) {
       const shader = gl.createShader(type)!;
       shaders.push(shader);
-      gl.shaderSource(
-        shader,
-        `${program.target === ShaderLanguage.GLSLES300 ? "#version 300 es\n" : ""}precision mediump float;\n${source}`
-      );
+      gl.shaderSource(shader, `${"#version 300 es\n"}precision mediump float;\n${source}`);
       gl.compileShader(shader);
       expect(gl.getShaderParameter(shader, gl.COMPILE_STATUS), `${label}: ${gl.getShaderInfoLog(shader)}`).toBe(true);
       gl.attachShader(linked, shader);

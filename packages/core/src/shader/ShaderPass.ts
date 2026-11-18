@@ -171,11 +171,6 @@ export class ShaderPass extends ShaderPart {
       instanceLayout = injected.instanceLayout;
     }
 
-    if (this._platformTarget === ShaderLanguage.GLSLES100) {
-      vertexSource = ShaderFactory.convertTo300(vertexSource);
-      fragmentSource = ShaderFactory.convertTo300(fragmentSource, true);
-    }
-
     const versionStr = "#version 300 es";
 
     return {

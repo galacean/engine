@@ -4,16 +4,7 @@
  * @thumbnail https://mdn.alipayobjects.com/merchant_appfe/afts/img/A*fZ8pR6j51Q0AAAAAAAAAAAAADiR2AQ/original
  * @thumbnail https://mdn.alipayobjects.com/merchant_appfe/afts/img/A*FBjgQJeAQwsAAAAAAAAAAAAADiR2AQ/original
  */
-import {
-  AssetType,
-  Camera,
-  Entity,
-  GLTFResource,
-  Logger,
-  Script,
-  Vector3,
-  WebGLEngine
-} from "@galacean/engine";
+import { AssetType, Camera, Entity, GLTFResource, Logger, Script, Vector3, WebGLEngine } from "@galacean/engine";
 import { OrbitControl } from "@galacean/engine-toolkit";
 
 async function main() {

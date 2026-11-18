@@ -6,7 +6,3 @@ export { Blitter } from "./Blitter";
 export { RenderElement } from "./RenderElement";
 export { RenderQueue } from "./RenderQueue";
 export { PipelineStage } from "./enums/PipelineStage";
-/** @internal */
-export { DepthOnlyPass } from "./DepthOnlyPass";
-/** @internal */
-export { PipelineUtils } from "./PipelineUtils";

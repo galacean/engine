@@ -1,4 +1,3 @@
-import { createWebGL1Canvas } from "../../../packages/webgl1-polyfill/tests/helpers/canvas";
 import { Logger, Shader, ShaderLanguage, WebGLEngine } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
@@ -49,12 +48,12 @@ const cases = [
 
 describe("conditional declaration identity", () => {
   for (const mode of ["runtime", "precompiled"] as const) {
-    for (const language of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const language of [ShaderLanguage.GLSLES300]) {
       it.each(cases)(`${mode} GLSLES${language}: $name`, async (testCase) => {
         const previousCompiler = Shader._shaderCompiler;
         const compiler = new ShaderCompiler();
         const engine = await WebGLEngine.create({
-          canvas: language === ShaderLanguage.GLSLES100 ? createWebGL1Canvas() : document.createElement("canvas"),
+          canvas: document.createElement("canvas"),
           shaderCompiler: compiler
         });
         let shader: Shader | undefined;
