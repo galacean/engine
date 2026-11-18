@@ -1,0 +1,37 @@
+packages/building/src/building/runtime/BuildingDistanceView.ts
+  s_8218ca53b52918::t_5fc58e3c3db34d 507-522
+  s_8218ca53b52918::t_1059824f46d75e 22-29
+  s_8218ca53b52918::t_c19b8063138445 505-506
+  s_8218ca53b52918::t_4dc00262ecd2ce 523-524
+packages/building/src/building/runtime/BuildingFarProxy.ts
+  s_43e2da275089c4::t_4f48def3985994 60
+  s_43e2da275089c4::t_ebf2ecaaf1202d 57-59
+packages/farming/src/farming/assets/prop-textures/manifest.json
+  s_43e2da275089c4::t_071c7a7e23202a 18-20,28-30,38-40,48-50,58-60,68-70,78-80,88-90,98-100,108-110,118-120,128-130,138-140,148-150,158-160,168-170
+packages/farming/src/farming/presentation/watering/WateringPresenter.ts
+  s_43e2da275089c4::t_318270b1906fac 45-48,51,70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "20fead27c81de0430a88809c0f561300a7f9caeb",
+  "prompts": {},
+  "sessions": {
+    "s_43e2da275089c4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e33c-02ef-7632-b762-2829c92512e4",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    },
+    "s_8218ca53b52918": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1edcf-a57b-7052-b000-27b770533941",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
