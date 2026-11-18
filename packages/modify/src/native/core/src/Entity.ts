@@ -58,7 +58,10 @@ export class Entity extends EngineObject {
    * @internal
    */
   static _traverseSetOwnerScene(entity: Entity, scene: Scene | null | undefined): void {
-    entity._scene = scene;
+    if (entity._scene !== scene) {
+      entity._notifyBindingChange();
+      entity._scene = scene;
+    }
     const children = entity._children;
     for (let i = children.length - 1; i >= 0; i--) {
       this._traverseSetOwnerScene(children[i], scene);
@@ -442,6 +445,8 @@ export class Entity extends EngineObject {
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
+      child._assertCanDetachFromScene();
+      child._notifyBindingChange();
       child._parent = null;
 
       let activeChangeFlag = ActiveChangeFlag.None;
@@ -602,6 +607,7 @@ export class Entity extends EngineObject {
     const oldParent = this._parent;
     if (oldParent != null) {
       Entity._removeFromChildren(oldParent._children, this);
+      this._notifyBindingChange();
       this._parent = null;
       oldParent._dispatchModify(EntityModifyFlags.Child, oldParent);
     }
@@ -634,6 +640,12 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
+  _assertCanDetachFromScene(): void {
+    // The component transition belongs to this Scene until its callbacks finish.
+    if (this._activeChangedComponents) throw new Error("Cannot detach an Entity while its active state is changing");
+  }
+
+  /** @internal */
   _setParentChange() {
     this._transform._parentChange();
     this._dispatchModify(EntityModifyFlags.Parent, this);
@@ -665,6 +677,8 @@ export class Entity extends EngineObject {
   private _setParent(parent: Entity | null, siblingIndex?: number): void {
     const oldParent = this._parent;
     if (parent !== oldParent) {
+      if (this._activeChangedComponents && !parent?._scene) this._assertCanDetachFromScene();
+      this._notifyBindingChange();
       if (this._isRoot) {
         Entity._removeFromChildren(this._scene!._rootEntities, this);
         this._isRoot = false;
@@ -740,14 +754,26 @@ export class Entity extends EngineObject {
 
   private _setActiveComponents(isActive: boolean, activeChangeFlag: ActiveChangeFlag): void {
     const activeChangedComponents = this._activeChangedComponents!;
-    for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
-      const component = activeChangedComponents[i];
-      // Skip components whose scene was already cleared by an earlier callback's removeChild
-      if (!isActive && !component._entity._scene) continue;
-      component._setActive(isActive, activeChangeFlag);
+    // Hierarchy flags have already changed for the whole subtree. Finish the
+    // component transitions and release the re-entry guard even if a hook fails.
+    const manager = this._scene!._componentsManager;
+    let failure: { error: unknown } | undefined;
+    try {
+      for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
+        const component = activeChangedComponents[i];
+        // An earlier callback may have removed this component's Entity.
+        if (!isActive && !component._entity._scene) continue;
+        try {
+          component._setActive(isActive, activeChangeFlag);
+        } catch (error) {
+          failure ??= { error };
+        }
+      }
+    } finally {
+      this._activeChangedComponents = null;
+      manager.putActiveChangedTempList(activeChangedComponents);
     }
-    this._scene!._componentsManager.putActiveChangedTempList(activeChangedComponents);
-    this._activeChangedComponents = null;
+    if (failure) throw failure.error;
   }
 
   private _setActiveInHierarchy(activeChangedComponents: Component[], activeChangeFlag: ActiveChangeFlag): void {

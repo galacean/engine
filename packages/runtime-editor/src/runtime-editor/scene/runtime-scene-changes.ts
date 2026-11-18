@@ -8,6 +8,8 @@ const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 export class RuntimeSceneRecords {
   readonly entities: Map<string, GalaceanSourceEntitySchema>;
   readonly components: Map<string, GalaceanSourceComponentSchema>;
+  readonly entityOrder = new Map<string, number>();
+  readonly componentOrder = new Map<string, number>();
   readonly runtimeComponents: Map<string, SceneFile["components"][number]>;
   readonly parents: Map<string, string>;
   readonly owners: Map<string, string>;
@@ -20,8 +22,18 @@ export class RuntimeSceneRecords {
     previous?: RuntimeSceneRecords,
     mutation?: RuntimeSceneMutation
   ) {
-    this.entities = new Map(source.entities.map((record) => [record.id, record]));
-    this.components = new Map(source.components.map((record) => [record.id, record]));
+    this.entities = new Map(
+      source.entities.map((record, index) => {
+        this.entityOrder.set(record.id, index);
+        return [record.id, record];
+      })
+    );
+    this.components = new Map(
+      source.components.map((record, index) => {
+        this.componentOrder.set(record.id, index);
+        return [record.id, record];
+      })
+    );
     this.runtimeComponents = new Map(source.components.map((record, index) => [record.id, runtime.components[index]]));
     const incremental = previous && mutation;
     this.parents = new Map(incremental ? previous.parents : []);

@@ -6,7 +6,7 @@ vi.hoisted(() => {
 vi.mock("../src/runtime-editor/scene/runtime-scene-settings", () => ({
   applyRuntimeSceneSettings: vi.fn(async () => {})
 }));
-import { Component, Entity, Loader, ReflectionParser, Signal } from "@galacean/engine";
+import { Component, Entity, Loader, ReflectionParser, Script, Signal } from "@galacean/engine";
 import { historyFixture } from "./runtime-history-fixture";
 import { NativeWaterHost } from "../../world-planning/src/spatial/runtime/NativeWaterHost";
 import type { WaterSystem } from "../../water/src/water/native/WaterSystem";
@@ -291,7 +291,8 @@ it("falls back after runtime parent or registered class changes", async () => {
   const next = await f.edit("class-change", (s) => s.updateComponent(f.a, { value: 7 }));
   await next.commit();
   class Replacement extends Probe {}
-  Loader.registerClass("IncrementalProbe", Replacement);
+  abstract class ProjectLoader extends Loader<unknown> {}
+  ProjectLoader.registerClass("IncrementalProbe", Replacement);
   validate.mockClear();
   await next.activate(f.signal);
   expect(validate).toHaveBeenCalled();
@@ -673,5 +674,165 @@ it("reapplies only attempted Scene settings after partial settings activation fa
   await undo.activate(f.signal);
   expect([...vi.mocked(applyRuntimeSceneSettings).mock.calls[0][2]]).toEqual(["background"]);
   expect(f.component(f.c)).toBe(before);
+  expect(f.projection.requiresRecovery).toBe(false);
+});
+
+it("preserves authored setter order and reference identity through incremental edit, undo and redo", async () => {
+  class Reader extends Probe {
+    seen = 0;
+    get capture() {
+      return 0;
+    }
+    set capture(_value: number) {
+      this.seen = this.target!.value;
+    }
+  }
+  Loader.registerClass("IncrementalReader", Reader);
+  const f = await setup();
+  let readerId = "";
+  const link = await f.edit("link-reader", (s) => {
+    s.updateComponent(f.a, { value: 1 });
+    readerId = s.addComponent(f.unrelated, {
+      type: "IncrementalReader",
+      props: { target: { $component: f.a }, capture: 1 }
+    }).id;
+  });
+  await link.commit();
+  await link.activate(f.signal);
+  const edit = f.editor.beginEdit("reverse-order", f.signal);
+  await f.invoke(edit, "component.update", { scene: scenePath, id: readerId, props: { capture: 9 } });
+  await f.invoke(edit, "component.update", { scene: scenePath, id: f.a, props: { value: 9 } });
+  const target = f.component(f.a);
+  const reader = f.component(readerId) as Reader;
+  for (const [name, tx, value] of [
+    ["edit", edit, 9],
+    ["undo", f.editor.beginEdit("reader-undo", f.signal), 1],
+    ["redo", f.editor.beginEdit("reader-redo", f.signal), 9]
+  ] as const) {
+    if (name !== "edit") await f.invoke(tx, "history." + name, { transactionIds: ["reverse-order"] });
+    await tx.prepare(f.signal);
+    const validation = vi.spyOn(f.projection, "validate");
+    await tx.commit();
+    await tx.activate(f.signal);
+    expect(validation).not.toHaveBeenCalled();
+    validation.mockRestore();
+    expect(f.component(readerId)).toBe(reader);
+    expect(reader.target).toBe(target);
+    expect(reader.seen).toBe(value);
+  }
+});
+
+it.each(["disable", "enable"] as const)(
+  "restores the whole subtree around a Script on%s failure and preserves truthful history",
+  async (hook) => {
+    let shouldThrow = false;
+    const lifecycle: string[] = [];
+    class FaultScript extends Script {
+      override onEnable() {
+        lifecycle.push("enable");
+        if (shouldThrow && hook === "enable") throw Error("onEnable failed");
+      }
+      override onDisable() {
+        lifecycle.push("disable");
+        if (shouldThrow && hook === "disable") throw Error("onDisable failed");
+      }
+    }
+    Loader.registerClass("IncrementalFaultScript", FaultScript);
+    const f = await setup();
+    Object.assign(f.scene._componentsManager, { addOnStartScript() {}, removeOnStartScript() {} });
+    const seed = await f.edit("fault-script", (s) => void s.addComponent(f.child, { type: "IncrementalFaultScript" }));
+    await seed.commit();
+    await seed.activate(f.signal);
+    const before = f.project.projectPackage.contents[scenePath];
+    const owner = f.projection.entity(f.root)!;
+    const child = f.projection.entity(f.child)!;
+    const edit = f.editor.beginEdit("add-with-life-failure", f.signal);
+    await f.invoke(edit, "component.add", { scene: scenePath, entityId: f.root, type: "IncrementalProbe" });
+    await edit.prepare(f.signal);
+    await edit.commit();
+    shouldThrow = true;
+    lifecycle.length = 0;
+    events.length = 0;
+    await expect(edit.activate(f.signal)).rejects.toThrow(hook === "disable" ? "onDisable failed" : "onEnable failed");
+    expect(events).toEqual(expect.arrayContaining(["disable:Root", "enable:Root"]));
+    expect(lifecycle).toEqual(["disable", "enable"]);
+    expect(owner.isActiveInHierarchy).toBe(true);
+    expect(child.isActiveInHierarchy).toBe(true);
+    expect(f.project.history.read("add-with-life-failure").runtime).toBe("failed");
+    expect(() => f.projection.queryComponents()).toThrow("recovery");
+
+    const undo = f.editor.beginEdit("undo-life-failure", f.signal);
+    await f.invoke(undo, "history.undo", { transactionIds: ["add-with-life-failure"] });
+    await undo.prepare(f.signal);
+    await undo.commit();
+    await expect(undo.activate(f.signal)).rejects.toThrow(hook === "disable" ? "onDisable failed" : "onEnable failed");
+    expect(f.project.projectPackage.contents[scenePath]).toBe(before);
+    expect(f.project.history.read("add-with-life-failure").runtime).toBe("failed");
+    expect(f.projection.requiresRecovery).toBe(true);
+
+    shouldThrow = false;
+    await undo.activate(f.signal);
+    expect(f.project.history.read("add-with-life-failure").runtime).toBe("applied");
+    expect(f.projection.requiresRecovery).toBe(false);
+    expect(f.projection.entity(f.root)).toBe(owner);
+    expect(f.projection.entity(f.child)).toBe(child);
+    expect(owner.isActive).toBe(true);
+    expect(owner.isActiveInHierarchy).toBe(true);
+    expect(child.isActiveInHierarchy).toBe(true);
+    expect(owner.getComponents(Probe, [])).toEqual([f.component(f.a)]);
+    expect(() => f.projection.queryComponents()).not.toThrow();
+  }
+);
+
+it("checks a sparse edit without reading unrelated live bindings", async () => {
+  const f = await setup();
+  const unrelated = f.projection.entity(f.unrelated)!;
+  const edit = await f.edit("incremental-guard", (s) => {
+    s.addComponent(f.root, { type: "IncrementalProbe" });
+  });
+  await edit.commit();
+  const parent = vi.spyOn(unrelated, "parent", "get");
+  const owner = vi.spyOn(f.component(f.c), "entity", "get");
+  const validate = vi.spyOn(f.projection, "validate");
+  await edit.activate(f.signal);
+  expect(parent).not.toHaveBeenCalled();
+  expect(owner).not.toHaveBeenCalled();
+  expect(validate).not.toHaveBeenCalled();
+});
+
+it("notices deferred destruction of an unrelated binding before a prepared edit", async () => {
+  const f = await setup();
+  const stale = f.component(f.c);
+  const edit = await f.edit("after-pending-destroy", (s) => s.updateComponent(f.a, { value: 10 }));
+  await edit.commit();
+  const engine = f.scene.engine;
+  engine._pendingDestroyObjects = [];
+  engine._frameInProcess = true;
+  try {
+    stale.destroy();
+    expect(stale.pendingDestroy).toBe(true);
+  } finally {
+    engine._frameInProcess = false;
+  }
+  const validate = vi.spyOn(f.projection, "validate");
+  await edit.activate(f.signal);
+  expect(validate).toHaveBeenCalledOnce();
+  expect(stale.destroyed).toBe(true);
+  expect(f.component(f.c)).not.toBe(stale);
+  expect(f.component(f.a).value).toBe(10);
+});
+
+it("rejects a new binding drift during activation and repairs it on retry", async () => {
+  const f = await setup();
+  const child = f.projection.entity(f.child)!;
+  const unrelated = f.projection.entity(f.unrelated)!;
+  const edit = await f.edit("during-apply", (s) => s.updateComponent(f.c, { value: 6 }));
+  await edit.commit();
+  vi.mocked(applyRuntimeSceneSettings).mockImplementationOnce(async () => unrelated.addChild(child));
+  await expect(edit.activate(f.signal)).rejects.toThrow("Scene bindings changed during activation");
+  expect(f.projection.requiresRecovery).toBe(true);
+  await edit.activate(f.signal);
+  expect(child.parent).toBe(f.projection.entity(f.root));
+  expect(f.component(f.c).value).toBe(6);
   expect(f.projection.requiresRecovery).toBe(false);
 });

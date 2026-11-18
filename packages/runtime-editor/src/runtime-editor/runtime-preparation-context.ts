@@ -215,6 +215,7 @@ export class RuntimePreparationContext {
           if (!same(old, next) || previous.owner(id) !== current.owner(id)) return true;
       }
       if (dependencies.scene.hierarchy) {
+        if (journal.roots && !same(previous.source.scene.rootEntities, current.source.scene.rootEntities)) return true;
         const ancestors = new Set<string>();
         for (const view of [previous, current])
           for (const component of view.components(

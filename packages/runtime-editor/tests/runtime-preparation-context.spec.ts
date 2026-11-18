@@ -46,7 +46,7 @@ function fixture() {
         entities: [
           { id: "root", children: ["child"], components: [] },
           { id: "child", components: ["a"] },
-          { id: "other", components: ["b"] }
+          { id: "other", children: [], components: ["b"] }
         ],
         components: [
           { id: "a", type: "ContextAlpha", props: { value: 1, payload: { $ref: "a.json" } } },
@@ -84,6 +84,18 @@ it("shares immutable Scene views, exposes guarded journals, and ignores an unrel
   expect(next.after.scene()).toBe(context.after.scene());
   expect(next.affected(dependency)).toBe(true);
   expect(context.after.documents["policy.json"]).toBe("{}");
+});
+
+it.each(["root", "other"])("filters net root-order changes when moving %s out and back", (id) => {
+  const f = fixture();
+  f.scene.reparent(id, id === "root" ? "other" : "root", false);
+  f.scene.reparent(id, null, false);
+  const context = f.context();
+  const reordered = id === "root";
+  expect(context.after.scene().source.entities).toEqual(context.before.scene().source.entities);
+  expect(context.after.scene().source.scene.rootEntities).toEqual(reordered ? ["other", "root"] : ["root", "other"]);
+  expect(context.affected(dependency)).toBe(reordered);
+  expect(context.affected({ scene: { componentTypes: ["ContextAlpha"] } })).toBe(false);
 });
 
 it.each(["component", "remove", "ancestor", "reparent"])(

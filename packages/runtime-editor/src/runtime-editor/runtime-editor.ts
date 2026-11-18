@@ -431,6 +431,7 @@ export class RuntimeEditor {
 
   dispose(): void {
     this.lifetime.abort();
+    this.projection.dispose();
     this.preparations.clear();
     this.unobserveAssetReads();
     this.unregisterTextAssets();
