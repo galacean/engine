@@ -387,6 +387,8 @@ export class Scene extends EngineObject {
    */
   removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene == this) {
+      entity._assertCanDetachFromScene();
+      entity._notifyBindingChange();
       Entity._removeFromChildren(this._rootEntities, entity);
       entity._isRoot = false;
       let inActiveChangeFlag = ActiveChangeFlag.None;

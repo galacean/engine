@@ -89,6 +89,8 @@ export interface TemplateProceduralPlantResources {
   readonly grassAsset: ProceduralPlantAsset;
   readonly plumeAsset: ProceduralPlantAsset;
   readonly textures: Readonly<Record<string, Texture2D>>;
+  readonly deadBarkAlbedo?: Texture2D;
+  readonly deadBarkNormal?: Texture2D;
 }
 
 type PlantColorways = readonly PlantPoint[];
@@ -181,17 +183,38 @@ export function preloadTemplateProceduralPlantResources(engine: Engine): Promise
         anisoLevel: 8
       }
     });
+  const deadResources = TREE_SPECIES_MATERIAL_RESOURCES["dead-tree"];
+  const loadOptionalTex = (url: string | undefined) =>
+    url
+      ? engine.resourceManager
+          .load<Texture2D>({ type: AssetType.Texture, url })
+          .then((tex) => (tex instanceof Texture2D ? tex : undefined))
+          .catch(() => undefined)
+      : Promise.resolve(undefined);
   const task = Promise.all([
     loadTex("meadow-birch-bark-256.png", true),
     loadTex("meadow-birchtree_leaf_01_summer-part-01-256.png"),
     loadTex("meadow-flowers_01-part-01-256.png"),
     loadTex("meadow-flowers_02-part-05-256.png"),
     loadTex("meadow-grass_02_summer-part-01-256.png"),
-    loadTex("meadow-flowers_03-part-01-256.png")
+    loadTex("meadow-flowers_03-part-01-256.png"),
+    loadOptionalTex(deadResources?.barkAlbedoUrl),
+    loadOptionalTex(deadResources?.barkNormalUrl)
   ]).then(
-    ([bark, shrubLeaf, flowerBlossom, flowerPetal, grassBlade, plumeSpray]): TemplateProceduralPlantResources => ({
+    ([
+      bark,
+      shrubLeaf,
+      flowerBlossom,
+      flowerPetal,
+      grassBlade,
+      plumeSpray,
+      deadBarkAlbedo,
+      deadBarkNormal
+    ]): TemplateProceduralPlantResources => ({
       ...getDecodedPlantAssets(),
-      textures: { bark, shrubLeaf, flowerBlossom, flowerPetal, grassBlade, plumeSpray }
+      textures: { bark, shrubLeaf, flowerBlossom, flowerPetal, grassBlade, plumeSpray },
+      deadBarkAlbedo,
+      deadBarkNormal
     })
   );
   cachedResources.set(engine, task);
@@ -433,7 +456,16 @@ function compileProductionGeometry(
   };
 }
 
-function createDeadTreeVariantMeshes(engine: Engine): readonly { mesh: ModelMesh; destroy: () => void }[] {
+const cachedDeadTreeMeshes = new WeakMap<Engine, readonly ModelMesh[]>();
+
+function getDeadTreeVariantMeshes(engine: Engine): readonly ModelMesh[] {
+  const cached = cachedDeadTreeMeshes.get(engine);
+  if (
+    cached &&
+    cached.every((mesh) => !mesh.destroyed && !mesh.vertexBufferBindings.some((binding) => binding?.buffer.destroyed))
+  ) {
+    return cached;
+  }
   const deadParams = TREE_SPECIES_PARAMETERS["dead-tree"]!;
   const lodPolicy = TREE_SPECIES_LOD_POLICIES["dead-tree"]!;
   const foliageTuning = createProceduralTreeFoliageGeometryTuning();
@@ -454,6 +486,7 @@ function createDeadTreeVariantMeshes(engine: Engine): readonly { mesh: ModelMesh
     foliageTuning,
     lodPolicy.triangleBudget
   )[0]!;
+  measuredLod.crown.destroy();
 
   const saplingBase: ProceduralTreeSource = {
     id: `${DEAD_TREE_ASSET_ID}:weeping-desert`,
@@ -497,31 +530,31 @@ function createDeadTreeVariantMeshes(engine: Engine): readonly { mesh: ModelMesh
     foliageTuning,
     lodPolicy.triangleBudget
   )[0]!;
+  weepingLod.crown.destroy();
 
-  return [
-    {
-      mesh: measuredLod.trunk,
-      destroy: () => {
-        measuredLod.trunk.destroy();
-        measuredLod.crown.destroy();
-      }
-    },
-    {
-      mesh: weepingLod.trunk,
-      destroy: () => {
-        weepingLod.trunk.destroy();
-        weepingLod.crown.destroy();
-      }
-    }
-  ];
+  const meshes = [measuredLod.trunk, weepingLod.trunk] as const;
+  cachedDeadTreeMeshes.set(engine, meshes);
+  return meshes;
 }
 
-function bindDeadTreeBarkTextures(engine: Engine, material: PBRMaterial, isDisposed: () => boolean): void {
+function bindDeadTreeBarkTextures(
+  engine: Engine,
+  material: PBRMaterial,
+  isDisposed: () => boolean,
+  plantResources?: TemplateProceduralPlantResources
+): void {
   const resources = TREE_SPECIES_MATERIAL_RESOURCES["dead-tree"];
   if (!resources) return;
   const [uScale, vScale] = resources.trunkUvTilesPerMeter;
   material.shaderData.setVector2("material_UvScale", new Vector2(uScale, vScale));
   material.shaderData.enableMacro("MATERIAL_HAS_UV_SCALE");
+  if (plantResources?.deadBarkAlbedo && !plantResources.deadBarkAlbedo.destroyed) {
+    material.baseTexture = plantResources.deadBarkAlbedo;
+  }
+  if (plantResources?.deadBarkNormal && !plantResources.deadBarkNormal.destroyed) {
+    material.normalTexture = plantResources.deadBarkNormal;
+  }
+  if (material.baseTexture && material.normalTexture) return;
   void Promise.all([
     engine.resourceManager.load<Texture2D>({ type: AssetType.Texture, url: resources.barkAlbedoUrl }),
     engine.resourceManager.load<Texture2D>({ type: AssetType.Texture, url: resources.barkNormalUrl })
@@ -642,17 +675,16 @@ export function mountTemplateProceduralPlants(
       const material = createSurfaceMaterial(root.engine, { baseColor: new Color(1, 1, 1, 1), normalStrength: 0.75 });
       material.renderFace = RenderFace.Double;
       disposals.push(() => material.destroy());
-      bindDeadTreeBarkTextures(root.engine, material, () => disposed);
+      bindDeadTreeBarkTextures(root.engine, material, () => disposed, plantResources);
 
-      const variants = createDeadTreeVariantMeshes(root.engine);
-      for (const variant of variants) disposals.push(variant.destroy);
+      const variants = getDeadTreeVariantMeshes(root.engine);
       const colors = PROCEDURAL_PALETTE["dead-wood"].bark;
 
       variants.forEach((variantMesh, variantIndex) => {
         const subset = positioned.filter(({ entry }, idx) => ((entry.variant ?? idx) & 1) === variantIndex);
         if (!subset.length) return;
-        const floor = variantMesh.mesh.bounds.min.y;
-        const sourceHeight = Math.max(0.01, variantMesh.mesh.bounds.max.y - floor);
+        const floor = variantMesh.bounds.min.y;
+        const sourceHeight = Math.max(0.01, variantMesh.bounds.max.y - floor);
         const bounds = new BoundingBox(
           new Vector3(Infinity, Infinity, Infinity),
           new Vector3(-Infinity, -Infinity, -Infinity)
@@ -705,7 +737,7 @@ export function mountTemplateProceduralPlants(
         const name = `dead-wood/variant-${variantIndex}`;
         const view = createTreeAssemblyInstancedMesh(
           root.engine,
-          variantMesh.mesh,
+          variantMesh,
           subset.length,
           bounds,
           name,

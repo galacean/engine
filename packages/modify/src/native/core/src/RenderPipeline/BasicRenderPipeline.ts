@@ -89,6 +89,14 @@ export class BasicRenderPipeline {
     return eligible;
   }
 
+  private _clearScreenSpaceReflectionReceiverCache(): void {
+    const caches = this._screenSpaceReflectionReceiverCache;
+    for (let queue = RenderQueueType.Opaque; queue <= RenderQueueType.Transparent; queue++) {
+      const cache = caches[queue];
+      if (cache.size) cache.clear();
+    }
+  }
+
   private static _getScreenSpaceReflectionSurfaceStates(forwardTarget: RenderTarget): RenderStateElementMap {
     return forwardTarget.antiAliasing > 1
       ? BasicRenderPipeline._screenSpaceReflectionMsaaSurfaceStates
@@ -106,7 +114,7 @@ export class BasicRenderPipeline {
   private _opaqueTexturePass: OpaqueTexturePass;
   private _finalPass: FinalPass;
   private _copyBackgroundTexture: Texture2D | null;
-  private readonly _afterCullingPasses: RegisteredPipelinePass[] = [];
+  private _afterCullingPasses: RegisteredPipelinePass[] = [];
   private readonly _submittedViewRenderers: Renderer[] = [];
   private readonly _renderViewCullingSources: RegisteredRenderViewCullingSource[] = [];
   private readonly _renderViewCullingContext = new RenderViewCullingContextImpl();
@@ -147,7 +155,7 @@ export class BasicRenderPipeline {
     for (let i = 0, n = afterCullingPasses.length; i < n; i++) {
       afterCullingPasses[i].active = false;
     }
-    afterCullingPasses.length = 0;
+    this._afterCullingPasses = [];
     const renderViewCullingSources = this._renderViewCullingSources;
     for (let i = 0, n = renderViewCullingSources.length; i < n; i++) {
       renderViewCullingSources[i].source = null;
@@ -167,9 +175,7 @@ export class BasicRenderPipeline {
       this._copyBackgroundTexture = null;
     }
 
-    this._screenSpaceReflectionReceiverCache[RenderQueueType.Opaque].clear();
-    this._screenSpaceReflectionReceiverCache[RenderQueueType.AlphaTest].clear();
-    this._screenSpaceReflectionReceiverCache[RenderQueueType.Transparent].clear();
+    this._clearScreenSpaceReflectionReceiverCache();
     this._camera = null!;
   }
 
@@ -181,9 +187,7 @@ export class BasicRenderPipeline {
    * @param ignoreClear - Ignore clear flag
    */
   render(context: RenderContext, cubeFace?: TextureCubeFace, mipLevel?: number, ignoreClear?: CameraClearFlags) {
-    this._screenSpaceReflectionReceiverCache[RenderQueueType.Opaque].clear();
-    this._screenSpaceReflectionReceiverCache[RenderQueueType.AlphaTest].clear();
-    this._screenSpaceReflectionReceiverCache[RenderQueueType.Transparent].clear();
+    this._clearScreenSpaceReflectionReceiverCache();
     this._cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.All);
 
     const camera = this._camera;
@@ -405,9 +409,7 @@ export class BasicRenderPipeline {
     }
 
     this._drawRenderPass(context, camera, finalClearFlags, forwardDepthResolveEnabled, cubeFace, mipLevel);
-    this._screenSpaceReflectionReceiverCache[RenderQueueType.Opaque].clear();
-    this._screenSpaceReflectionReceiverCache[RenderQueueType.AlphaTest].clear();
-    this._screenSpaceReflectionReceiverCache[RenderQueueType.Transparent].clear();
+    this._clearScreenSpaceReflectionReceiverCache();
 
     // Return the per-frame leases so the next camera with matching shape can reuse them
     if (this._internalColorTarget) {
@@ -438,8 +440,8 @@ export class BasicRenderPipeline {
       unregister: () => {
         if (!entry.active) return;
         entry.active = false;
-        const index = passes.indexOf(entry);
-        if (index >= 0) passes.splice(index, 1);
+        // Active renders retain the old list and can skip this deactivated entry.
+        this._afterCullingPasses = this._afterCullingPasses.filter((item) => item !== entry);
       }
     };
   }
@@ -519,11 +521,10 @@ export class BasicRenderPipeline {
     context: RenderContext,
     cullingResults: CullingResults
   ): void {
-    // Snapshot iteration gives registration changes deterministic next-stage semantics. An
-    // unregistered entry is marked inactive immediately and therefore cannot run later this frame.
-    const snapshot = this._passesForStage(stage).slice();
-    for (let i = 0, n = snapshot.length; i < n; i++) {
-      const entry = snapshot[i];
+    // Appends start at the next invocation. Removals publish a new list and deactivate the old entry.
+    const passes = this._passesForStage(stage);
+    for (let i = 0, n = passes.length; i < n; i++) {
+      const entry = passes[i];
       if (entry.active) entry.pass.onRender(context, cullingResults);
     }
   }

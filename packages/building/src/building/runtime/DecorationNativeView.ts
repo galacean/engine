@@ -41,6 +41,7 @@ interface DecorationNativeViewState {
   destroyed: boolean;
   loading: boolean;
   fade: number;
+  lodDebug: boolean;
   entrance: ReadonlyMap<string, ConstructionEntranceState>;
   hiddenOwners: Set<string>;
 }
@@ -59,6 +60,7 @@ export function createDecorationNativeView(
     destroyed: false,
     loading: false,
     fade: 1,
+    lodDebug: false,
     entrance: new Map(),
     hiddenOwners: new Set()
   };
@@ -180,6 +182,7 @@ async function loadDecorationNativeView(
     if (options.rigidDecorations) state.scene.bindRigidDecorations(options.rigidDecorations.resolve);
     if (options.camera) state.scene.bindCamera(options.camera);
     state.scene.setLodStates([{ lodIndex: 0, signedFade: state.fade }]);
+    if (state.lodDebug) state.scene.setLodDebugTint(true, 1);
     state.scene.setEntrance(state.entrance);
     for (const draw of state.scene.draws.values())
       if (draw.ownerId && state.hiddenOwners.has(draw.ownerId))
@@ -209,6 +212,10 @@ function decorationNativeViewControls(state: DecorationNativeViewState, ready: P
     setFade(value: number) {
       state.fade = value;
       if (!state.destroyed && !state.loading) state.scene?.setLodStates([{ lodIndex: 0, signedFade: state.fade }]);
+    },
+    setLodDebugEnabled(enabled: boolean) {
+      state.lodDebug = enabled;
+      if (!state.destroyed && !state.loading) state.scene?.setLodDebugTint(enabled, 1);
     },
     setEntrance(states: ReadonlyMap<string, ConstructionEntranceState>) {
       state.entrance = new Map([...states].map(([id, state]) => [id, { ...state }]));

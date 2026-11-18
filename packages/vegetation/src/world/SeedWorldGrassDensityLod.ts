@@ -1,7 +1,7 @@
-/** Retained fraction, smoothly decreasing from 100% at the camera to 20% at the original draw limit. */
-export function grassDensityLodFraction(distance: number, maximumDistance: number): number {
+/** Retained fraction, smoothly decreasing from 100% at the camera to minimumFraction at the draw limit. */
+export function grassDensityLodFraction(distance: number, maximumDistance: number, minimumFraction = 0.2): number {
   const t = Math.max(0, Math.min(1, distance / Math.max(maximumDistance, 0.001)));
-  return 1 - 0.8 * t * t * (3 - 2 * t);
+  return 1 - (1 - minimumFraction) * t * t * (3 - 2 * t);
 }
 
 /** Distributes stable prefixes over an entire patch, without changing any transform or population count. */

@@ -20,6 +20,53 @@ export const MASONRY_RESIDENCY = {
   fullTriangleBudget: 2_000_000
 };
 
+export interface MasonryLodTuning {
+  enterFullUnitPx: number;
+  leaveFullUnitPx: number;
+  enterDetailSizePx: number;
+  leaveDetailSizePx: number;
+  enterDetailUnitPx: number;
+  leaveDetailUnitPx: number;
+  colorizeLod: boolean;
+}
+
+export const DEFAULT_MASONRY_LOD_TUNING: Readonly<MasonryLodTuning> = {
+  enterFullUnitPx: 20,
+  leaveFullUnitPx: 16,
+  enterDetailSizePx: 144,
+  leaveDetailSizePx: 108,
+  enterDetailUnitPx: 3.6,
+  leaveDetailUnitPx: 2.7,
+  colorizeLod: false
+};
+
+const masonryLodTuning: MasonryLodTuning = { ...DEFAULT_MASONRY_LOD_TUNING };
+let masonryLodTuningVersion = 0;
+const masonryLodListeners = new Set<() => void>();
+
+export function getMasonryLodTuning(): Readonly<MasonryLodTuning> {
+  return masonryLodTuning;
+}
+
+export function setMasonryLodTuning(patch: Partial<MasonryLodTuning>): void {
+  let changed = false;
+  for (const key of Object.keys(patch) as (keyof MasonryLodTuning)[]) {
+    const value = patch[key];
+    if (value !== undefined && masonryLodTuning[key] !== value) {
+      (masonryLodTuning as unknown as Record<string, unknown>)[key] = value;
+      changed = true;
+    }
+  }
+  if (!changed) return;
+  masonryLodTuningVersion++;
+  for (const listener of masonryLodListeners) listener();
+}
+
+export function subscribeMasonryLodTuning(listener: () => void): () => void {
+  masonryLodListeners.add(listener);
+  return () => masonryLodListeners.delete(listener);
+}
+
 /** Cached group-level residency probe. Actual draw culling remains engine-owned. */
 export class MasonryLodProbe {
   readonly x: number;
@@ -38,6 +85,7 @@ export class MasonryLodProbe {
   private nearSquared = 0;
   private orthographic = false;
   private initialized = false;
+  private tuningVersion = -1;
   eligible = false;
   visible = false;
   lod: MasonryLod = 2;
@@ -57,16 +105,20 @@ export class MasonryLodProbe {
   /** flags: view=1, world position=2, projection/viewport/clips=4. */
   update(camera: MasonryLodView, position: { x: number; y: number; z: number }, flags: number, previous: MasonryLod) {
     if (!this.initialized) flags = 7;
-    if (flags & 4) {
+    const tuningDirty = this.tuningVersion !== masonryLodTuningVersion;
+    if (flags & 4 || tuningDirty) {
       const scale = (this.projectionScale = Math.abs(camera.projection[5]) * camera.pixelHeight * 0.5);
       const unit = this.unitSize * scale,
         size = this.size * scale;
-      this.enterDetail = Math.min(size / 32, unit / 0.85) ** 2;
-      this.leaveDetail = Math.min(size / 24, unit / 0.65) ** 2;
-      this.enterFull = (unit / 14) ** 2;
-      this.leaveFull = (unit / 11) ** 2;
+      this.enterDetail =
+        Math.min(size / masonryLodTuning.enterDetailSizePx, unit / masonryLodTuning.enterDetailUnitPx) ** 2;
+      this.leaveDetail =
+        Math.min(size / masonryLodTuning.leaveDetailSizePx, unit / masonryLodTuning.leaveDetailUnitPx) ** 2;
+      this.enterFull = (unit / masonryLodTuning.enterFullUnitPx) ** 2;
+      this.leaveFull = (unit / masonryLodTuning.leaveFullUnitPx) ** 2;
       this.nearSquared = camera.near ** 2;
       this.orthographic = camera.orthographic;
+      this.tuningVersion = masonryLodTuningVersion;
     }
     if (flags & 2) {
       const dx = this.x - position.x,
@@ -74,7 +126,7 @@ export class MasonryLodProbe {
         dz = this.z - position.z;
       this.distanceSquared = dx * dx + dy * dy + dz * dz;
     }
-    if (flags & 6 || previous !== this.lod) {
+    if (flags & 6 || previous !== this.lod || tuningDirty) {
       const d = this.orthographic ? 1 : Math.max(this.nearSquared, this.distanceSquared);
       this.lod =
         d <= (previous < 2 ? this.leaveDetail : this.enterDetail)

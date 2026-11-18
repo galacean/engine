@@ -762,8 +762,14 @@ export class PlanningNaturalVegetationRuntime {
         )
           foliageRenderers.push(renderer);
         if (level === 0 && role === "bark") barkRenderers.push(renderer);
+        const worldHeight = (b.max[1] - b.min[1]) * (instance.scaleAxes?.[1] ?? instance.scale);
         renderer.enableVertexColor = original.enableVertexColor;
-        renderer.castShadows = source.kind === "stone" ? original.castShadows : shadows.castShadows;
+        renderer.castShadows =
+          source.kind === "stone"
+            ? original.castShadows && level === 0 && worldHeight >= 1.5
+            : tree
+              ? shadows.castShadows
+              : shadows.castShadows && level === 0;
         renderer.receiveShadows = source.kind === "stone" ? original.receiveShadows : shadows.receiveShadows;
         const pick = new SeedWorldArrayPickBatch(renderer);
         pick.count = 1;

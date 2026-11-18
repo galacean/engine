@@ -242,9 +242,16 @@ interface WaterSceneBackendInstallation<TBackend extends WaterBodyBackend = Wate
 /** Allocation-free current-frame Camera visibility shared by every active Water runtime. */
 class SourceCameraWaterVisibilityProvider implements WaterCameraVisibilityProvider {
   private readonly _viewProjection = new Matrix();
+  private readonly _invViewProjection = new Matrix();
   private readonly _frustum = new BoundingFrustum();
   private _cullingMask = 0;
   private _frustumCullingEnabled = true;
+  private _frustumMinX = Number.NEGATIVE_INFINITY;
+  private _frustumMaxX = Number.POSITIVE_INFINITY;
+  private _frustumMinY = Number.NEGATIVE_INFINITY;
+  private _frustumMaxY = Number.POSITIVE_INFINITY;
+  private _frustumMinZ = Number.NEGATIVE_INFINITY;
+  private _frustumMaxZ = Number.POSITIVE_INFINITY;
 
   update(camera: Camera): void {
     this._cullingMask = camera.cullingMask;
@@ -252,10 +259,65 @@ class SourceCameraWaterVisibilityProvider implements WaterCameraVisibilityProvid
     if (!this._frustumCullingEnabled) return;
     Matrix.multiply(camera.projectionMatrix, camera.viewMatrix, this._viewProjection);
     this._frustum.calculateFromMatrix(this._viewProjection);
+
+    Matrix.invert(this._viewProjection, this._invViewProjection);
+    const m = this._invViewProjection.elements;
+    let minX = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+    let minZ = Number.POSITIVE_INFINITY;
+    let maxZ = Number.NEGATIVE_INFINITY;
+    let validCorners = 0;
+    for (let i = 0; i < 8; i++) {
+      const nx = (i & 1) === 0 ? -1 : 1;
+      const ny = (i & 2) === 0 ? -1 : 1;
+      const nz = (i & 4) === 0 ? -1 : 1;
+      const ww = m[3]! * nx + m[7]! * ny + m[11]! * nz + m[15]!;
+      if (!Number.isFinite(ww) || Math.abs(ww) <= 1e-7) continue;
+      const invW = 1 / ww;
+      const wx = (m[0]! * nx + m[4]! * ny + m[8]! * nz + m[12]!) * invW;
+      const wy = (m[1]! * nx + m[5]! * ny + m[9]! * nz + m[13]!) * invW;
+      const wz = (m[2]! * nx + m[6]! * ny + m[10]! * nz + m[14]!) * invW;
+      if (wx < minX) minX = wx;
+      if (wx > maxX) maxX = wx;
+      if (wy < minY) minY = wy;
+      if (wy > maxY) maxY = wy;
+      if (wz < minZ) minZ = wz;
+      if (wz > maxZ) maxZ = wz;
+      validCorners++;
+    }
+    if (validCorners === 8) {
+      this._frustumMinX = minX;
+      this._frustumMaxX = maxX;
+      this._frustumMinY = minY;
+      this._frustumMaxY = maxY;
+      this._frustumMinZ = minZ;
+      this._frustumMaxZ = maxZ;
+    } else {
+      this._frustumMinX = Number.NEGATIVE_INFINITY;
+      this._frustumMaxX = Number.POSITIVE_INFINITY;
+      this._frustumMinY = Number.NEGATIVE_INFINITY;
+      this._frustumMaxY = Number.POSITIVE_INFINITY;
+      this._frustumMinZ = Number.NEGATIVE_INFINITY;
+      this._frustumMaxZ = Number.POSITIVE_INFINITY;
+    }
   }
 
   isVisible(bounds: BoundingBox, layer: number): boolean {
-    return (this._cullingMask & layer) !== 0 && (!this._frustumCullingEnabled || this._frustum.intersectsBox(bounds));
+    if ((this._cullingMask & layer) === 0) return false;
+    if (!this._frustumCullingEnabled) return true;
+    if (
+      bounds.max.y < this._frustumMinY ||
+      bounds.min.y > this._frustumMaxY ||
+      bounds.max.x < this._frustumMinX ||
+      bounds.min.x > this._frustumMaxX ||
+      bounds.max.z < this._frustumMinZ ||
+      bounds.min.z > this._frustumMaxZ
+    ) {
+      return false;
+    }
+    return this._frustum.intersectsBox(bounds);
   }
 }
 
@@ -978,6 +1040,51 @@ export class WaterSceneRuntimeHost {
       this._pickVisitor = undefined;
       this._pickRenderers.length = 0;
     }
+  }
+
+  /** Summarizes published surface renderer states, including chunks hidden by Terrain Horizon. */
+  summarizeBodyRenderers(): {
+    finiteTotal: number;
+    finiteVisible: number;
+    finiteOccluded: number;
+    oceanTotal: number;
+    oceanVisible: number;
+  } {
+    let finiteTotal = 0;
+    let finiteVisible = 0;
+    let finiteOccluded = 0;
+    let oceanTotal = 0;
+    let oceanVisible = 0;
+    const renderers = this._pickRenderers;
+    for (const [bodyId, body] of this._activeBodies) {
+      if (!body.root.isActiveInHierarchy) continue;
+      renderers.length = 0;
+      body.root.getComponentsIncludeChildren(MeshRenderer, renderers);
+      for (let i = 0; i < renderers.length; i++) {
+        const renderer = renderers[i]!;
+        if (!renderer.entity.isActiveInHierarchy) continue;
+        const materials = renderer.getMaterials();
+        let isSurface = false;
+        for (let j = 0; j < materials.length; j++) {
+          const material = materials[j];
+          if (material && supportsWaterSurfacePicking(material)) {
+            isSurface = true;
+            break;
+          }
+        }
+        if (!isSurface) continue;
+        if (bodyId === "planning-ocean") {
+          oceanTotal++;
+          if (renderer.enabled && !renderer.isCulled) oceanVisible++;
+        } else {
+          finiteTotal++;
+          if (!renderer.enabled) finiteOccluded++;
+          else if (!renderer.isCulled) finiteVisible++;
+        }
+      }
+    }
+    renderers.length = 0;
+    return { finiteTotal, finiteVisible, finiteOccluded, oceanTotal, oceanVisible };
   }
 
   /** Reverse lookup over the current publication. Safe inside a surface visitor. */

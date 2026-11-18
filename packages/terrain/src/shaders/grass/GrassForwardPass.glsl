@@ -39,6 +39,7 @@ struct Attributes {
 
 #ifdef RENDERER_WORLD_PICK
   float renderer_WorldPickBase;
+  float renderer_WorldPickInstanced;
 #endif
 // Compact instance data describes geometry. An explicit mode can opt out of the legacy ground path.
 #if defined(TERRAIN_PROJECT_GROUND_MATERIAL_BINDING) || (defined(RENDERER_SEED_WORLD_DETAIL_COMPACT) && !defined(RENDERER_SURFACE_GRASS_ATTACHMENT) && (!defined(RENDERER_GRASS_MATCH_GROUND) || RENDERER_GRASS_MATCH_GROUND == 1))
@@ -104,6 +105,7 @@ struct Varyings {
 vec4 material_GrassGroundColor;
 vec4 material_GrassSurfaceSnowResponse;
 vec4 renderer_GrassRoadColor;
+vec4 renderer_GrassLodDebugColor;
 #include "shared/GrassGroundFusion.glsl"
 #ifdef TERRAIN_PROJECT_GRASS_TERRAIN_SURFACE
   #ifndef TERRAIN_PROJECT_GROUND_MATERIAL_BINDING
@@ -175,7 +177,7 @@ vec3 grassWindPosition(
 Varyings GrassVertex(Attributes attributes) {
   Varyings output;
   #ifdef RENDERER_WORLD_PICK
-    output.worldPickId = renderer_WorldPickBase + float(gl_InstanceID);
+    output.worldPickId = renderer_WorldPickBase + float(gl_InstanceID) * renderer_WorldPickInstanced;
   #endif
   #ifdef MATERIAL_GRASS_GROUND_SURFACE
     // A ground surface shares the grass palette and lighting, but has no blade deformation or distance collapse.
@@ -505,6 +507,9 @@ void GrassFragment(Varyings input) {
   #if SCENE_FOG_MODE != 0
     color = fog(vec4(color, 1.0), input.positionVS).rgb;
   #endif
+  if (renderer_GrassLodDebugColor.a > 0.0) {
+    color = mix(color, renderer_GrassLodDebugColor.rgb, renderer_GrassLodDebugColor.a);
+  }
   gl_FragColor = vec4(color, 1.0);
   #endif
 }

@@ -7,6 +7,8 @@ export interface AnimalAgent {
   evaluateBehavior(): void;
   /** Integrate active movement in simulation seconds. */
   advanceMotion(seconds: number, coarse?: boolean): void;
+  /** Flush any deferred pose evaluation accumulated during bounded simulation substeps. */
+  flushPose?(): void;
   /** Cancel work and unregister from the system. */
   dispose(): void;
   /** Optional capability hook for suspending bounded perception while its component is disabled. */
@@ -50,6 +52,8 @@ export class AnimalSystem {
   private _evaluations = 0;
   private _motionSteps = 0;
   private _lastEvaluations = 0;
+  private _deferringPose = false;
+  private readonly _pendingPoseFlush = new Set<AnimalAgent>();
 
   /**
    * Shared per-update budgets for decisions and cooperative route planning.
@@ -75,6 +79,16 @@ export class AnimalSystem {
 
   get time(): number {
     return this._time;
+  }
+
+  /** True during intermediate 1/60s substeps so pose evaluation can run once per rendered frame. @internal */
+  get deferringPose(): boolean {
+    return this._deferringPose;
+  }
+
+  /** @internal */
+  markPendingPoseFlush(animal: AnimalAgent): void {
+    this._pendingPoseFlush.add(animal);
   }
 
   /** Diagnostic snapshot; request on demand rather than allocating in the animation loop. */
@@ -127,13 +141,22 @@ export class AnimalSystem {
     // Full-motion integration stays independent of other owners' deadlines, so
     // adding an animal cannot change an existing animal's deterministic trajectory.
     let remaining = seconds;
-    while (remaining > 1e-8 && this._moving.size) {
-      const dt = Math.min(remaining, 1 / 60);
-      remaining -= dt;
-      for (const step of this._motionStepsBefore) step(dt);
-      for (const animal of this._moving) {
-        animal.advanceMotion(dt);
-        this._motionSteps++;
+    try {
+      while (remaining > 1e-8 && this._moving.size) {
+        const dt = Math.min(remaining, 1 / 60);
+        remaining -= dt;
+        this._deferringPose = remaining > 1e-8;
+        for (const step of this._motionStepsBefore) step(dt);
+        for (const animal of this._moving) {
+          animal.advanceMotion(dt);
+          this._motionSteps++;
+        }
+      }
+    } finally {
+      this._deferringPose = false;
+      if (this._pendingPoseFlush.size) {
+        for (const animal of this._pendingPoseFlush) animal.flushPose?.();
+        this._pendingPoseFlush.clear();
       }
     }
     const end = this._time + seconds;

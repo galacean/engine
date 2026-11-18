@@ -12,6 +12,7 @@ export abstract class Loader<T> {
    * @param obj - class object
    */
   public static registerClass(className: string, classDefine: { new (...args: any): any }) {
+    if (this._engineObjects[className] !== classDefine) Loader._classRegistryRevision++;
     this._engineObjects[className] = classDefine;
     this._classNameMap.set(classDefine, className);
   }
@@ -36,6 +37,12 @@ export abstract class Loader<T> {
 
   private static _engineObjects: { [key: string]: any } = {};
   private static _classNameMap: Map<object, string> = new Map();
+  private static _classRegistryRevision = 0;
+
+  /** @internal */
+  static get _bindingRevision(): number {
+    return this._classRegistryRevision;
+  }
 
   constructor(public readonly useCache: boolean) {}
   initialize?(engine: Engine, configuration: EngineConfiguration): Promise<void> | void;

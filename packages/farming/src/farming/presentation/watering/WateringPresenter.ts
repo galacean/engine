@@ -42,12 +42,13 @@ export class WateringPresenter extends Script {
   private readonly lookTarget = new Vector3();
 
   static create(parent: Entity): WateringPresenter {
-    const effect = parent.createChild("Farm watering presentation").addComponent(WateringPresenter);
-    effect.loadTask = effect.load();
-    return effect;
+    return parent.createChild("Farm watering presentation").addComponent(WateringPresenter);
+  }
+  private ensureLoaded(): Promise<void> {
+    return (this.loadTask ??= this.load());
   }
   async whenReady(): Promise<boolean> {
-    await this.loadTask;
+    await this.ensureLoaded();
     return this.ready && !this.disposed && !this.error;
   }
   get workPose(): { model: Entity; elapsed: number } | null {
@@ -66,6 +67,7 @@ export class WateringPresenter extends Script {
       target.releaseSoil();
       return;
     }
+    void this.ensureLoaded();
     // Each request owns a distinct batch hold. Replacing a pending request must
     // release its neighbors too, even when the source plot is unchanged.
     this.pending?.releaseSoil();

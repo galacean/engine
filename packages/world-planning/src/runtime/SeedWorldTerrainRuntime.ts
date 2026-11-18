@@ -231,9 +231,10 @@ export class SeedWorldTerrainRuntime {
 
   visitPickBatches(
     visitor: SeedWorldPickVisitor,
-    detailIdentity?: (category: "grass" | "flower", x: number, z: number, owner?: string) => string | undefined
+    detailIdentity?: (category: "grass" | "flower", x: number, z: number, owner?: string) => string | undefined,
+    grasslandId?: string
   ): void {
-    this.population.visitPickBatches(visitor, detailIdentity);
+    this.population.visitPickBatches(visitor, detailIdentity, grasslandId);
     this.exactPickVisitor = visitor;
     try {
       const instances = this.exactPrefabs.exactInstances;

@@ -1,9 +1,15 @@
+import { sampleSeedWorldTerrainNormal, sampleTerrestrialGrassSurfaceWeights } from "./SeedWorldGrassSampling";
 import {
   DETAIL_TRANSFORM_FLOATS,
   DETAIL_TRANSFORM_STRIDE_BYTES,
   createSeedWorldDetailInstancedMesh,
   type SeedWorldDetailInstancedMesh
 } from "./SeedWorldDetailInstancedMesh.ts";
+import {
+  SeedWorldForwardGrass,
+  type ForwardGrassUpdateParams,
+  type ForwardGrassSamplerContext
+} from "./SeedWorldForwardGrass.ts";
 import {
   GrassRockAppearance,
   GRASS_ROCK_APPEARANCE_STRIDE
@@ -198,7 +204,6 @@ import {
   seedWorldGrassCoverageScale,
   seedWorldTerrestrialGrassDensityMultiplier
 } from "./SeedWorldGrassAppearance.ts";
-import { resolveSeedWorldGrassSurfaceWeight } from "./SeedWorldSurfaceIntent.ts";
 import {
   resolveSeedWorldTreeTransitionHeights,
   SEED_WORLD_TREE_SOURCE_LOD_INDICES
@@ -343,6 +348,8 @@ const DETAIL_LOCAL_MATRIX = ShaderProperty.getByName("renderer_DetailLocalMatrix
 const DETAIL_LOCAL_NORMAL_MATRIX = ShaderProperty.getByName("renderer_DetailLocalNormalMat");
 const RENDERER_GRASS_ROAD_COLOR = ShaderProperty.getByName("renderer_GrassRoadColor");
 const DETAIL_FADE_DISTANCE = ShaderProperty.getByName("material_GrassFadeDistance");
+const GRASS_DENSITY_LOD = ShaderProperty.getByName("renderer_GrassDensityLod");
+const GRASS_LOD_DEBUG_COLOR = ShaderProperty.getByName("renderer_GrassLodDebugColor");
 // Position + yaw, anisotropic scale, Terrain surface weights, and Terrain normal. The compact
 // record replaces density, hash, height, scale, coverage, and terrain-normal work in every vertex.
 const DETAIL_SURFACE_WEIGHTS_FLOAT_OFFSET = 7;
@@ -493,7 +500,139 @@ interface DetailPopulationBatch {
   rockSurfacePatch?: SeedWorldRockSurfaceGrassPatch;
   grassScaleMinimum?: number;
   grassScaleMaximum?: number;
+  grassDensityLodUniform?: Vector4;
+  grassDensityLodCount?: number;
+  grassDensityLodEnabled?: boolean;
+  grassDensityLodEnd?: number;
+  grassLodLevel?: 0 | 1 | 2;
+  grassLodDebugColorized?: boolean;
   destroyed: boolean;
+}
+
+export interface GrassLodDebugConfig {
+  colorizeLod: boolean;
+  lod1DistanceMetres: number;
+  lod2DistanceMetres: number;
+  maximumDistanceMetres: number;
+  minimumDensityFraction: number;
+  distanceMode: "edge" | "center";
+}
+
+export interface GrassLodBucketStats {
+  batches: number;
+  instances: number;
+  triangles: number;
+}
+
+export interface GrassLodDiagnostics {
+  lod0: GrassLodBucketStats;
+  lod1: GrassLodBucketStats;
+  lod2: GrassLodBucketStats;
+}
+
+export interface GrassDensityLodUniformTarget {
+  instanceCount: number;
+  renderer: {
+    shaderData: {
+      setVector4(property: ShaderProperty, value: Vector4): void;
+    };
+  };
+  grassDensityLodUniform?: Vector4;
+  grassDensityLodCount?: number;
+  grassDensityLodEnabled?: boolean;
+  grassDensityLodEnd?: number;
+}
+
+const GRASS_DETAIL_LOD1_DISTANCE_METRES = 20;
+const GRASS_DETAIL_LOD2_DISTANCE_METRES = 34;
+const GRASS_LOD_DEBUG_COLORS: Readonly<Record<0 | 1 | 2, Vector4>> = {
+  0: new Vector4(0.12, 0.85, 0.25, 0.85),
+  1: new Vector4(0.95, 0.78, 0.08, 0.85),
+  2: new Vector4(0.95, 0.2, 0.18, 0.85)
+};
+const GRASS_LOD_DEBUG_OFF = new Vector4(0, 0, 0, 0);
+
+function boundsDistanceToPoint(bounds: BoundingBox, point: Vector3): number {
+  return Math.hypot(
+    Math.max(bounds.min.x - point.x, 0, point.x - bounds.max.x),
+    Math.max(bounds.min.y - point.y, 0, point.y - bounds.max.y),
+    Math.max(bounds.min.z - point.z, 0, point.z - bounds.max.z)
+  );
+}
+
+function grassBatchDistance(bounds: BoundingBox, point: Vector3, mode: "edge" | "center"): number {
+  if (mode === "edge") return boundsDistanceToPoint(bounds, point);
+  const cx = (bounds.min.x + bounds.max.x) * 0.5;
+  const cy = (bounds.min.y + bounds.max.y) * 0.5;
+  const cz = (bounds.min.z + bounds.max.z) * 0.5;
+  return Math.hypot(cx - point.x, cy - point.y, cz - point.z);
+}
+
+/** Switches a grass batch sub-mesh between LOD0, LOD1, and LOD2 indices and updates optional debug tinting. */
+function syncGrassDetailGeometryLod(
+  batch: DetailPopulationBatch,
+  distance: number,
+  config: Readonly<GrassLodDebugConfig>
+): void {
+  const { lod2Count, lod2Start, lod1Count, lod1Start, lod0Count, lod0Start, mesh } = batch.resources;
+  const subMesh = mesh.subMeshes[0];
+  let lod: 0 | 1 | 2 = 0;
+  let nextStart = lod0Start;
+  let nextCount = lod0Count;
+  if (lod2Count > 0 && distance >= config.lod2DistanceMetres) {
+    lod = 2;
+    nextStart = lod2Start;
+    nextCount = lod2Count;
+  } else if (lod1Count > 0 && distance >= config.lod1DistanceMetres) {
+    lod = 1;
+    nextStart = lod1Start;
+    nextCount = lod1Count;
+  }
+  if (subMesh && (subMesh.start !== nextStart || subMesh.count !== nextCount)) {
+    subMesh.start = nextStart;
+    subMesh.count = nextCount;
+  }
+  if (batch.grassLodLevel !== lod || batch.grassLodDebugColorized !== config.colorizeLod) {
+    batch.grassLodLevel = lod;
+    batch.grassLodDebugColorized = config.colorizeLod;
+    batch.renderer.shaderData.setVector4(
+      GRASS_LOD_DEBUG_COLOR,
+      config.colorizeLod ? GRASS_LOD_DEBUG_COLORS[lod] : GRASS_LOD_DEBUG_OFF
+    );
+  }
+}
+
+/**
+ * Syncs `renderer_GrassDensityLod` onto a grass batch only when its uniform values change,
+ * avoiding per-frame Vector4 allocations and ShaderData dirty updates.
+ */
+export function syncGrassDensityLodUniform(
+  batch: GrassDensityLodUniformTarget,
+  enabled: boolean,
+  terminalDistance: number
+): void {
+  if (
+    batch.grassDensityLodUniform &&
+    batch.grassDensityLodCount === batch.instanceCount &&
+    batch.grassDensityLodEnabled === enabled &&
+    batch.grassDensityLodEnd === terminalDistance
+  ) {
+    return;
+  }
+  let uniform = batch.grassDensityLodUniform;
+  if (uniform) {
+    uniform.x = batch.instanceCount;
+    uniform.y = enabled ? 1 : 0;
+    uniform.z = terminalDistance;
+    uniform.w = 0.01;
+  } else {
+    uniform = new Vector4(batch.instanceCount, enabled ? 1 : 0, terminalDistance, 0.01);
+    batch.grassDensityLodUniform = uniform;
+  }
+  batch.grassDensityLodCount = batch.instanceCount;
+  batch.grassDensityLodEnabled = enabled;
+  batch.grassDensityLodEnd = terminalDistance;
+  batch.renderer.shaderData.setVector4(GRASS_DENSITY_LOD, uniform);
 }
 
 interface DetailCompactionPatch {
@@ -710,6 +849,9 @@ export interface SeedWorldPopulationInspectionRange {
   readonly maximumZ: number;
 }
 
+type GrassWaterContactSampler = ((worldX: number, worldZ: number) => boolean) &
+  Pick<SeedWorldGrassCoverageSampler, "stableWorldSamples">;
+
 /**
  * Camera-resident Population Cell runtime backed exclusively by the shared Seed World Population Producer.
  * Cells control residency and coarse spatial queries; render owners choose their own GPU batch granularity.
@@ -729,13 +871,27 @@ export class SeedWorldPopulationRuntime {
   private readonly _detailCells: SeedWorldPopulationCellSet<DetailPopulationCellResource>;
   private readonly _engine: Engine;
   private _grassDensityLodEnabled = true;
+  private _grassLodDebugConfig: GrassLodDebugConfig = {
+    colorizeLod: false,
+    lod1DistanceMetres: GRASS_DETAIL_LOD1_DISTANCE_METRES,
+    lod2DistanceMetres: GRASS_DETAIL_LOD2_DISTANCE_METRES,
+    maximumDistanceMetres: seedWorldPopulationDetailFadeTerminalDistance(),
+    minimumDensityFraction: 0.25,
+    distanceMode: "edge"
+  };
+  private _forwardGrass?: SeedWorldForwardGrass;
+  private _forwardGrassParams?: {
+    -readonly [K in Exclude<keyof ForwardGrassUpdateParams, "samplerContext">]: ForwardGrassUpdateParams[K];
+  } & {
+    samplerContext: { -readonly [K in keyof ForwardGrassSamplerContext]: ForwardGrassSamplerContext[K] };
+  };
   private readonly _camera: Camera;
   private readonly _sourceLibrary: AssetAssemblySourceLibrary;
   private readonly _detailMaterials = new Map<Material, Material>();
   private _rockGroundSettings?: RockFormationSettings;
   private _grassTerrainMaterial: Material | undefined;
   private _grassSurfaceCoverage: SeedWorldGrassCoverageSampler | undefined;
-  private _grassContactIsWater: ((worldX: number, worldZ: number) => boolean) | undefined;
+  private _grassContactIsWater: GrassWaterContactSampler | undefined;
   private readonly _detailTransformPool = new DetailTransformBufferPool();
   private readonly _detailSurfaceWeightsScratch: [grass: number, road: number, remaining: number] = [1, 0, 0];
   private readonly _detailTerrainNormalScratch: [x: number, y: number, z: number] = [0, 1, 0];
@@ -1106,12 +1262,13 @@ export class SeedWorldPopulationRuntime {
     this._pickVisitor!(descriptor);
   }
   /** Borrow current camera descriptors synchronously; identities change when visibility is repacked. */
-  visitPickBatches(visitor: SeedWorldPickVisitor, detailIdentity?: DetailPickIdentity): void {
+  visitPickBatches(visitor: SeedWorldPickVisitor, detailIdentity?: DetailPickIdentity, grasslandId?: string): void {
     this._pickVisitor = visitor;
     this._detailIdentity = detailIdentity;
     try {
       this._treeRenderer.visitPickBatches(this._visitSparsePickBound);
       this._shrubRenderer.visitPickBatches(this._visitSparsePickBound);
+      this._forwardGrass?.visitPickBatches(visitor, grasslandId);
       const cells = this._detailCells.cells;
       for (let i = 0; i < cells.length; i++) cells[i]!.resource.detailBatches.forEach(this._visitDetailCategoryBound);
       for (let i = 0; i < this._rockSurfaceGrassBatches.length; i++)
@@ -1190,7 +1347,10 @@ export class SeedWorldPopulationRuntime {
   setDetailCategoryVisible(category: "grass" | "flower", visible: boolean): void {
     if (this._detailCategoryVisible[category] === visible) return;
     this._detailCategoryVisible[category] = visible;
-    if (category === "grass") this._rockSurfaceGrassRoot.isActive = visible;
+    if (category === "grass") {
+      this._rockSurfaceGrassRoot.isActive = visible;
+      this._updateForwardGrass(this.details.isActiveInHierarchy && visible);
+    }
     const position = this._camera.entity.transform.worldPosition;
     for (const cell of this._detailCells.cells) this._updateDetailBatchVisibility(cell, position);
   }
@@ -1205,6 +1365,60 @@ export class SeedWorldPopulationRuntime {
     this._grassDensityLodEnabled = enabled;
     const position = this._camera.entity.transform.worldPosition;
     for (const cell of this._detailCells.cells) this._updateDetailBatchVisibility(cell, position);
+    this._updateForwardGrass(this.details.isActiveInHierarchy && this._detailCategoryVisible.grass);
+  }
+
+  /** Returns the current live grass LOD tuning & visualization configuration. */
+  getGrassLodDebugConfig(): Readonly<GrassLodDebugConfig> {
+    return this._grassLodDebugConfig;
+  }
+
+  /** Updates live grass LOD thresholds, max draw distance, or LOD color visualization. */
+  setGrassLodDebugConfig(patch: Partial<GrassLodDebugConfig>): void {
+    this._grassLodDebugConfig = { ...this._grassLodDebugConfig, ...patch };
+    const maxDist = Math.max(5, this._grassLodDebugConfig.maximumDistanceMetres);
+    this._grassLodDebugConfig.maximumDistanceMetres = maxDist;
+    for (const material of this._detailMaterials.values()) {
+      material.shaderData.setFloat(DETAIL_FADE_DISTANCE, maxDist);
+    }
+    const position = this._camera.entity.transform.worldPosition;
+    for (const cell of this._detailCells.cells) this._updateDetailBatchVisibility(cell, position);
+    this._updateRockSurfaceGrassVisibility(position);
+    this._updateForwardGrass(this.details.isActiveInHierarchy && this._detailCategoryVisible.grass);
+  }
+
+  /** Computes current active grass batches, GPU instances, and triangles broken down by LOD0/LOD1/LOD2. */
+  getGrassLodDiagnostics(): GrassLodDiagnostics {
+    const stats: GrassLodDiagnostics = {
+      lod0: { batches: 0, instances: 0, triangles: 0 },
+      lod1: { batches: 0, instances: 0, triangles: 0 },
+      lod2: { batches: 0, instances: 0, triangles: 0 }
+    };
+    const accum = (batch: DetailPopulationBatch) => {
+      if (!batch.renderer.enabled || batch.destroyed) return;
+      const lod = batch.grassLodLevel ?? 0;
+      const bucket = lod === 0 ? stats.lod0 : lod === 1 ? stats.lod1 : stats.lod2;
+      const inst = batch.resources.mesh.instanceCount;
+      const idxCount = batch.resources.mesh.subMeshes[0]?.count ?? 0;
+      bucket.batches += 1;
+      bucket.instances += inst;
+      bucket.triangles += Math.round((inst * idxCount) / 3);
+    };
+    if (this._forwardGrass) {
+      const fg = this._forwardGrass.getDiagnostics();
+      for (const tier of ["lod0", "lod1", "lod2"] as const) {
+        stats[tier].batches += fg[tier].batches;
+        stats[tier].instances += fg[tier].instances;
+        stats[tier].triangles += fg[tier].triangles;
+      }
+    } else {
+      for (const cell of this._detailCells.cells) {
+        const batches = cell.resource.detailBatches.get("grass");
+        if (batches) for (const b of batches) accum(b);
+      }
+    }
+    for (const b of this._rockSurfaceGrassBatches) accum(b);
+    return stats;
   }
 
   /** Current deterministic per-instance grass uniform XYZ scale range. */
@@ -1719,6 +1933,7 @@ export class SeedWorldPopulationRuntime {
     }
     for (const batch of this._rockSurfaceGrassBatches) bindGrassColorField(batch.renderer, this._grassColorField);
     this._generatedRockGrass?.visitBatches((batch) => bindGrassColorField(batch.renderer, this._grassColorField!));
+    this._forwardGrass?.visitRenderers((renderer) => bindGrassColorField(renderer, this._grassColorField!));
   }
 
   /** Updates the road endpoint used by the Terrain-weighted grass surface colour. */
@@ -1732,6 +1947,7 @@ export class SeedWorldPopulationRuntime {
     }
     for (const batch of this._rockSurfaceGrassBatches) bindGrassRoadColor(batch.renderer, next);
     this._generatedRockGrass?.visitBatches((batch) => bindGrassRoadColor(batch.renderer, next));
+    this._forwardGrass?.visitRenderers((renderer) => bindGrassRoadColor(renderer, next));
   }
 
   /** Uses the same continuous ground coverage as Terrain; roads affect size, not density. */
@@ -1741,7 +1957,7 @@ export class SeedWorldPopulationRuntime {
   }
 
   /** Filters terrestrial grass using the same authoritative water winner as navigation. */
-  setGrassWaterCoverage(sampleContactIsWater: (worldX: number, worldZ: number) => boolean): void {
+  setGrassWaterCoverage(sampleContactIsWater: GrassWaterContactSampler): void {
     this._grassContactIsWater = sampleContactIsWater;
     this._invalidateAllDetailCells();
   }
@@ -1753,6 +1969,7 @@ export class SeedWorldPopulationRuntime {
   setGrassTerrainSurface(material: Material): void {
     this._grassTerrainMaterial = material;
     this._refreshGrassRockAppearance();
+    this._forwardGrass?.visitRenderers((renderer) => bindSeedWorldGrassTerrainSurface(renderer, material));
     for (const cell of this._detailCells.cells) {
       for (const batch of cell.resource.detailBatches.get("grass") ?? []) {
         bindSeedWorldGrassTerrainSurface(batch.renderer, material);
@@ -2104,6 +2321,7 @@ export class SeedWorldPopulationRuntime {
       this._groundCoverBase = oldBase;
       this._grassSurfaceCoverage = oldCoverage;
       this._grassContactIsWater = oldWater;
+      this._forwardGrass?.invalidateMask();
       for (const c of staged)
         try {
           setVisible(c.cell, activity.get(c.cell) ?? false);
@@ -2133,6 +2351,7 @@ export class SeedWorldPopulationRuntime {
           this._groundCoverBase = baseLayout;
           this._grassSurfaceCoverage = coverage;
           this._grassContactIsWater = waterContact;
+          this._forwardGrass?.invalidateMask();
           for (const c of staged) {
             setVisible(c.cell, false);
             c.next.resource.detailsActive = c.cell.resource.detailsActive;
@@ -2358,10 +2577,14 @@ export class SeedWorldPopulationRuntime {
         ...(inspectionRange ? { activeCellRange: inspectionRange } : {})
       }
     );
+    this._forwardGrass = this._createForwardGrass();
     try {
       this.update(0);
       this._sparseRenderDirty = true;
     } catch (error) {
+      this._forwardGrass?.destroy();
+      this._forwardGrass?.destroy();
+      this._forwardGrass = undefined;
       this._detailCells.destroy();
       this._sparseCells.destroy();
       this._shrubRenderer.destroy();
@@ -2370,6 +2593,81 @@ export class SeedWorldPopulationRuntime {
       this.details.destroy();
       throw error;
     }
+  }
+
+  private _createForwardGrass(): SeedWorldForwardGrass | undefined {
+    if (!SeedWorldForwardGrass.isSupported(this._engine)) return undefined;
+    const grassField = this._populationLayout.detailDensityFields.find(
+      (field) => field.category === "grass" && field.maximumDensityPerSquareMetre > 0
+    );
+    if (!grassField) return undefined;
+    const source = detailSourceForPrototype(this._detailFamily("grass"), grassField.assetProfileKey);
+    const binding = source.lods[0].renderer;
+    const material = this._detailMaterial(binding.material);
+    return new SeedWorldForwardGrass(this._engine, this.details, binding.mesh, material, (renderer) => {
+      renderer.castShadows = SEED_WORLD_POPULATION_RUNTIME_PROFILE.shadows.castShadows;
+      renderer.receiveShadows = SEED_WORLD_POPULATION_RUNTIME_PROFILE.shadows.receiveShadows;
+      renderer.enableVertexColor = binding.enableVertexColor;
+      renderer.shaderData.enableMacro(SEED_WORLD_DETAIL_COMPACT_MACRO);
+      renderer.shaderData.setMatrix(DETAIL_LOCAL_MATRIX, binding.localMatrix);
+      renderer.shaderData.setMatrix(DETAIL_LOCAL_NORMAL_MATRIX, binding.localNormalMatrix);
+      if (this._grassColorField) bindGrassColorField(renderer, this._grassColorField);
+      if (this._grassRoadColor) bindGrassRoadColor(renderer, this._grassRoadColor);
+      if (this._grassTerrainMaterial) bindSeedWorldGrassTerrainSurface(renderer, this._grassTerrainMaterial);
+    });
+  }
+
+  private _updateForwardGrass(active: boolean): void {
+    if (!this._forwardGrass) return;
+    const config = this._grassLodDebugConfig;
+    const authoredScaleRange = getSeedWorldAssetPlacementProfile("grass").roleScale.field!;
+    const minScale = this._grassScaleRange ? this._grassScaleRange.minimum : authoredScaleRange.minimum;
+    const maxScale = this._grassScaleRange ? this._grassScaleRange.maximum : authoredScaleRange.maximum;
+    const params = (this._forwardGrassParams ??= {
+      camera: this._camera,
+      active,
+      lod1DistanceMetres: config.lod1DistanceMetres,
+      lod2DistanceMetres: config.lod2DistanceMetres,
+      maximumDistanceMetres: config.maximumDistanceMetres,
+      minimumDensityFraction: this._grassDensityLodEnabled ? config.minimumDensityFraction : 1,
+      minScale,
+      maxScale,
+      useEcologicalHeight: !this._grassHeightOverride,
+      colorizeLod: config.colorizeLod,
+      debugColors: GRASS_LOD_DEBUG_COLORS,
+      debugOffColor: GRASS_LOD_DEBUG_OFF,
+      lodDebugColorProperty: "renderer_GrassLodDebugColor",
+      revealRangeSetter: setAssetEntranceRevealRangeValues,
+      samplerContext: {
+        fields: this._fields,
+        densityFields: this._populationLayout.detailDensityFields,
+        speciesProfiles: this._populationLayout.detailSpeciesProfiles,
+        resolveDensityMultiplier: (field) => this._detailDensityMultiplier(field),
+        sampleSurfaceWeights: sampleTerrestrialGrassSurfaceWeights,
+        sampleTerrainNormal: sampleSeedWorldTerrainNormal,
+        sampleGrassCoverage: this._grassSurfaceCoverage,
+        sampleContactIsWater: this._grassContactIsWater
+      }
+    });
+    params.camera = this._camera;
+    params.active = active;
+    params.lod1DistanceMetres = config.lod1DistanceMetres;
+    params.lod2DistanceMetres = config.lod2DistanceMetres;
+    params.maximumDistanceMetres = config.maximumDistanceMetres;
+    params.minimumDensityFraction = this._grassDensityLodEnabled ? config.minimumDensityFraction : 1;
+    params.minScale = minScale;
+    params.maxScale = maxScale;
+    params.useEcologicalHeight = !this._grassHeightOverride;
+    params.colorizeLod = config.colorizeLod;
+    params.samplerContext.reuseWindowSamples =
+      (!this._grassContactIsWater || this._grassContactIsWater.stableWorldSamples === true) &&
+      (!this._grassSurfaceCoverage || this._grassSurfaceCoverage.stableWorldSamples === true);
+    params.samplerContext.fields = this._fields;
+    params.samplerContext.densityFields = this._populationLayout.detailDensityFields;
+    params.samplerContext.speciesProfiles = this._populationLayout.detailSpeciesProfiles;
+    params.samplerContext.sampleGrassCoverage = this._grassSurfaceCoverage;
+    params.samplerContext.sampleContactIsWater = this._grassContactIsWater;
+    this._forwardGrass.update(params);
   }
 
   /**
@@ -2433,11 +2731,13 @@ export class SeedWorldPopulationRuntime {
       if (cameraChanged || !this._detailsWereActive || this._rockSurfaceGrassVisibilityDirty) {
         this._updateRockSurfaceGrassVisibility(cameraPosition);
       }
+      this._updateForwardGrass(this._detailCategoryVisible.grass);
       this._detailsWereActive = true;
     } else {
       for (let batchIndex = 0; batchIndex < this._rockSurfaceGrassBatches.length; batchIndex++) {
         this._rockSurfaceGrassBatches[batchIndex]!.renderer.enabled = false;
       }
+      this._updateForwardGrass(false);
       this._detailsWereActive = false;
     }
     this._advanceDetailEntrances();
@@ -2565,7 +2865,7 @@ export class SeedWorldPopulationRuntime {
     return this._sparseCells.size + this._detailCells.size;
   }
 
-  /** Forces sparse batches to consume a newly published or invalidated shared Horizon. */
+  /** Forces sparse and detail batches to consume a newly published or invalidated shared Horizon. */
   invalidateTerrainOcclusionVisibility(): void {
     this._sparseRenderDirty = true;
   }
@@ -2622,6 +2922,10 @@ export class SeedWorldPopulationRuntime {
    */
   get detailSubmittedCounts(): Readonly<Record<DetailCategory, number>> {
     const counts: Record<DetailCategory, number> = { grass: 0, flower: 0 };
+    if (this._forwardGrass) {
+      const fg = this._forwardGrass.getDiagnostics();
+      counts.grass += fg.lod0.instances + fg.lod1.instances + fg.lod2.instances;
+    }
     for (const cell of this._detailCells.cells) {
       for (const [category, batches] of cell.resource.detailBatches) {
         for (const batch of batches) {
@@ -2644,6 +2948,10 @@ export class SeedWorldPopulationRuntime {
    */
   get detailCompactedCounts(): Readonly<Record<DetailCategory, number>> {
     const counts: Record<DetailCategory, number> = { grass: 0, flower: 0 };
+    if (this._forwardGrass) {
+      const fg = this._forwardGrass.getDiagnostics();
+      counts.grass += fg.lod0.instances + fg.lod1.instances + fg.lod2.instances;
+    }
     for (const cell of this._detailCells.cells) {
       for (const [category, batches] of cell.resource.detailBatches) {
         for (const batch of batches) counts[category] += batch.instanceCount;
@@ -2662,6 +2970,10 @@ export class SeedWorldPopulationRuntime {
    */
   get detailCandidateCounts(): Readonly<Record<DetailCategory, number>> {
     const counts: Record<DetailCategory, number> = { grass: 0, flower: 0 };
+    if (this._forwardGrass) {
+      const fg = this._forwardGrass.getDiagnostics();
+      counts.grass += fg.lod0.instances + fg.lod1.instances + fg.lod2.instances;
+    }
     for (const cell of this._detailCells.cells) {
       for (const [category, batches] of cell.resource.detailBatches) {
         for (const batch of batches) counts[category] += batch.candidateCount;
@@ -2744,6 +3056,8 @@ export class SeedWorldPopulationRuntime {
     for (const entrance of this._detailAuthoringEntrances) {
       entrance.finish(new Error("Seed World Detail runtime was destroyed during entrance playback"));
     }
+    this._forwardGrass?.destroy();
+    this._forwardGrass = undefined;
     this._detailCells.destroy();
     this._sparseCells.destroy();
     this._shrubRenderer.destroy();
@@ -2976,12 +3290,21 @@ export class SeedWorldPopulationRuntime {
     for (let batchIndex = 0; batchIndex < this._rockSurfaceGrassBatches.length; batchIndex++) {
       const batch = this._rockSurfaceGrassBatches[batchIndex]!;
       const patch = batch.rockSurfacePatch!;
-      batch.renderer.enabled =
+      const enabled =
         hierarchyActive &&
         rockSurfaceGrassPatchIsResident(patch, cameraPosition) &&
         this._populationFrustum.intersectsBox(batch.bounds) &&
         (detailBoundsContainsCamera(batch.bounds, cameraPosition) ||
-          seedWorldPopulationDetailBoundsIsActive(batch.bounds, cameraPosition));
+          seedWorldPopulationDetailBoundsIsActive(
+            batch.bounds,
+            cameraPosition,
+            this._grassLodDebugConfig.maximumDistanceMetres
+          ));
+      batch.renderer.enabled = enabled;
+      if (enabled) {
+        const distance = grassBatchDistance(batch.bounds, cameraPosition, this._grassLodDebugConfig.distanceMode);
+        syncGrassDetailGeometryLod(batch, distance, this._grassLodDebugConfig);
+      }
     }
     this._rockSurfaceGrassVisibilityDirty = !windowReady;
   }
@@ -3109,8 +3432,7 @@ export class SeedWorldPopulationRuntime {
     if (cached) return cached;
     const material = sourceMaterial.clone();
     if (this._rockGroundSettings) bindRockGrassGroundMaterial(material, this._rockGroundSettings);
-    const fade = SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade;
-    material.shaderData.setFloat(DETAIL_FADE_DISTANCE, fade.maximumDistanceMetres);
+    material.shaderData.setFloat(DETAIL_FADE_DISTANCE, this._grassLodDebugConfig.maximumDistanceMetres);
     this._detailMaterials.set(sourceMaterial, material);
     return material;
   }
@@ -3252,7 +3574,9 @@ export class SeedWorldPopulationRuntime {
     dirtyPatches?: ReadonlySet<number>
   ): DetailCellCompactionTask {
     return {
-      fields: layout.detailDensityFields,
+      fields: this._forwardGrass
+        ? layout.detailDensityFields.filter((field) => field.category !== "grass")
+        : layout.detailDensityFields,
       dirtyPatches,
       completed: [],
       fieldIndex: 0,
@@ -3667,14 +3991,10 @@ export class SeedWorldPopulationRuntime {
         if (category === "grass") {
           this._bindGrassRockAppearance(batch, fields, work);
           batch.renderer.shaderData.enableMacro("RENDERER_GRASS_DENSITY_LOD");
-          batch.renderer.shaderData.setVector4(
-            "renderer_GrassDensityLod",
-            new Vector4(
-              batch.instanceCount,
-              this._grassDensityLodEnabled ? 1 : 0,
-              seedWorldPopulationDetailFadeTerminalDistance(),
-              0.01
-            )
+          syncGrassDensityLodUniform(
+            batch,
+            this._grassDensityLodEnabled,
+            seedWorldPopulationDetailFadeTerminalDistance()
           );
         }
         if (category === "grass" && this._grassTerrainMaterial) {
@@ -3801,32 +4121,29 @@ export class SeedWorldPopulationRuntime {
     grass = false
   ): void {
     if (!batches) return;
+    const grassEnd = grass ? this._grassLodDebugConfig.maximumDistanceMetres : 0;
+    const flowerEnd = seedWorldPopulationDetailFadeTerminalDistance();
     for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
       const batch = batches[batchIndex]!;
-      if (grass) {
-        const bounds = batch.bounds;
-        const distance = Math.hypot(
-          Math.max(bounds.min.x - cameraPosition.x, 0, cameraPosition.x - bounds.max.x),
-          Math.max(bounds.min.y - cameraPosition.y, 0, cameraPosition.y - bounds.max.y),
-          Math.max(bounds.min.z - cameraPosition.z, 0, cameraPosition.z - bounds.max.z)
-        );
-        const end = seedWorldPopulationDetailFadeTerminalDistance();
-        batch.resources.mesh.instanceCount = this._grassDensityLodEnabled
-          ? Math.ceil(batch.instanceCount * grassDensityLodFraction(distance, end))
-          : batch.instanceCount;
-        batch.renderer.shaderData.setVector4(
-          "renderer_GrassDensityLod",
-          new Vector4(batch.instanceCount, this._grassDensityLodEnabled ? 1 : 0, end, 0.01)
-        );
-      }
-      this._setDetailBatchEnabled(
-        batch,
+      const enabled =
         detailsActive &&
-          batch.instanceCount > 0 &&
-          this._populationFrustum.intersectsBox(batch.bounds) &&
-          (detailBoundsContainsCamera(batch.bounds, cameraPosition) ||
-            seedWorldPopulationDetailBoundsIsActive(batch.bounds, cameraPosition))
-      );
+        batch.instanceCount > 0 &&
+        this._populationFrustum.intersectsBox(batch.bounds) &&
+        (detailBoundsContainsCamera(batch.bounds, cameraPosition) ||
+          seedWorldPopulationDetailBoundsIsActive(batch.bounds, cameraPosition, grass ? grassEnd : flowerEnd));
+      this._setDetailBatchEnabled(batch, enabled);
+      if (!grass || !enabled) {
+        continue;
+      }
+      const distance = grassBatchDistance(batch.bounds, cameraPosition, this._grassLodDebugConfig.distanceMode);
+      batch.resources.mesh.instanceCount = this._grassDensityLodEnabled
+        ? Math.ceil(
+            batch.instanceCount *
+              grassDensityLodFraction(distance, grassEnd, this._grassLodDebugConfig.minimumDensityFraction)
+          )
+        : batch.instanceCount;
+      syncGrassDetailGeometryLod(batch, distance, this._grassLodDebugConfig);
+      syncGrassDensityLodUniform(batch, this._grassDensityLodEnabled, grassEnd);
     }
   }
 
@@ -3849,6 +4166,7 @@ export class SeedWorldPopulationRuntime {
     entrance?: DetailAuthoringEntrance,
     dirtyAreas?: readonly SeedWorldAuthoringRuntimeBoundsV1[]
   ): void {
+    this._forwardGrass?.invalidateMask();
     for (const cell of this._detailCells.cells) {
       if (!dirtyCellIds.has(cell.data.id)) continue;
       cell.resource.expectedCounts = expectedDetailCounts(
@@ -3897,6 +4215,7 @@ export class SeedWorldPopulationRuntime {
   }
 
   private _refreshDetailCellsGrounding(dirtyCellIds: ReadonlySet<string>): void {
+    this._forwardGrass?.invalidateMask();
     for (const cell of this._detailCells.cells) {
       if (!dirtyCellIds.has(cell.data.id)) continue;
       if (cell.resource.compactionTask) {
@@ -5325,7 +5644,7 @@ class SeedWorldShrubLodRenderer implements RenderViewCullingSource {
   cull(context: RenderViewCullingContext): void {
     if (
       context.viewType === RenderViewType.ShadowCascade &&
-      !SEED_WORLD_POPULATION_RUNTIME_PROFILE.shrub.shadows.castShadows
+      (!SEED_WORLD_POPULATION_RUNTIME_PROFILE.shrub.shadows.castShadows || context.shadowCascadeIndex >= 1)
     )
       return;
     if (this._destroyed || context.camera !== this._camera || !this._lodStateEpoch) {
@@ -6764,7 +7083,8 @@ function createRockSurfaceGrassBatch(
       patch.transforms,
       instanceCount,
       bounds,
-      entity.name
+      entity.name,
+      true
     );
     renderer.mesh = resources.mesh;
     renderer.setMaterial(material);
@@ -6880,7 +7200,8 @@ function createCompactedDetailPopulationBatch(
       patch.transforms,
       patch.instanceCount,
       bounds,
-      entity.name
+      entity.name,
+      field.category === "grass"
     );
     renderer.mesh = resources.mesh;
     renderer.setMaterial(material);
@@ -7360,87 +7681,6 @@ function createRockSurfaceGrassDensity(
       return density;
     }
   });
-}
-
-function sampleTerrestrialGrassSurfaceWeights(
-  fields: SeedWorldFields,
-  worldX: number,
-  worldZ: number,
-  out: [grass: number, road: number, remaining: number]
-): void {
-  const resolution = fields.surfaceResolution;
-  // Match Terrain's endpoint-aligned alphamap grid for grass density and clump scale.
-  const x = clamp((worldX - seedWorldOriginX(fields)) / fields.sizeMetres, 0, 1) * (resolution - 1);
-  const z = clamp((worldZ - seedWorldOriginZ(fields)) / fields.sizeMetres, 0, 1) * (resolution - 1);
-  const x0 = clamp(Math.floor(x), 0, resolution - 1);
-  const z0 = clamp(Math.floor(z), 0, resolution - 1);
-  const x1 = Math.min(resolution - 1, x0 + 1);
-  const z1 = Math.min(resolution - 1, z0 + 1);
-  const fractionX = clamp(x - x0, 0, 1);
-  const fractionZ = clamp(z - z0, 0, 1);
-  const index00 = z0 * resolution + x0;
-  const index10 = z0 * resolution + x1;
-  const index01 = z1 * resolution + x0;
-  const index11 = z1 * resolution + x1;
-  const grass00 = resolveSeedWorldGrassSurfaceWeight(fields, index00);
-  const grass10 = resolveSeedWorldGrassSurfaceWeight(fields, index10);
-  const grass01 = resolveSeedWorldGrassSurfaceWeight(fields, index01);
-  const grass11 = resolveSeedWorldGrassSurfaceWeight(fields, index11);
-  const road00 = fields.materialWeights[index00 * 4 + 3]!;
-  const road10 = fields.materialWeights[index10 * 4 + 3]!;
-  const road01 = fields.materialWeights[index01 * 4 + 3]!;
-  const road11 = fields.materialWeights[index11 * 4 + 3]!;
-  out[0] = bilinearSurfaceWeight(grass00, grass10, grass01, grass11, fractionX, fractionZ);
-  out[1] = bilinearSurfaceWeight(road00, road10, road01, road11, fractionX, fractionZ);
-  out[2] = bilinearSurfaceWeight(
-    Math.max(0, 255 - grass00 - road00),
-    Math.max(0, 255 - grass10 - road10),
-    Math.max(0, 255 - grass01 - road01),
-    Math.max(0, 255 - grass11 - road11),
-    fractionX,
-    fractionZ
-  );
-}
-
-function bilinearSurfaceWeight(
-  value00: number,
-  value10: number,
-  value01: number,
-  value11: number,
-  fractionX: number,
-  fractionZ: number
-): number {
-  const near = value00 * (1 - fractionX) + value10 * fractionX;
-  const far = value01 * (1 - fractionX) + value11 * fractionX;
-  return (near * (1 - fractionZ) + far * fractionZ) / 255;
-}
-
-function sampleSeedWorldTerrainNormal(
-  fields: SeedWorldFields,
-  worldX: number,
-  worldZ: number,
-  out: [x: number, y: number, z: number]
-): void {
-  const originX = seedWorldOriginX(fields),
-    originZ = seedWorldOriginZ(fields);
-  const metresPerTexel = fields.sizeMetres / fields.heightResolution;
-  const left = sampleSeedWorldHeight(fields, Math.max(originX, worldX - metresPerTexel), worldZ);
-  const right = sampleSeedWorldHeight(fields, Math.min(originX + fields.sizeMetres, worldX + metresPerTexel), worldZ);
-  const down = sampleSeedWorldHeight(fields, worldX, Math.max(originZ, worldZ - metresPerTexel));
-  const up = sampleSeedWorldHeight(fields, worldX, Math.min(originZ + fields.sizeMetres, worldZ + metresPerTexel));
-  if (left === undefined || right === undefined || down === undefined || up === undefined) {
-    out[0] = 0;
-    out[1] = 1;
-    out[2] = 0;
-    return;
-  }
-  const normalX = left - right;
-  const normalY = metresPerTexel * 2;
-  const normalZ = down - up;
-  const inverseLength = 1 / Math.max(Math.hypot(normalX, normalY, normalZ), Number.EPSILON);
-  out[0] = normalX * inverseLength;
-  out[1] = normalY * inverseLength;
-  out[2] = normalZ * inverseLength;
 }
 
 function rescaleGrassDetailBatchHeight(

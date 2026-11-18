@@ -6,6 +6,8 @@ import { seedWorldGrassCoverageScale } from "./SeedWorldGrassAppearance.ts";
 /** Continuous coverage, optionally accompanied by a conservative region query. */
 export interface SeedWorldGrassCoverageSampler {
   (worldX: number, worldZ: number): number;
+  /** Samples remain stable until a new surface is published. */
+  stableWorldSamples?: boolean;
   /** False guarantees every clump in the rectangle has zero size, including interpolated edges. */
   hasGrassInArea?(minimumX: number, minimumZ: number, maximumX: number, maximumZ: number): boolean;
 }
@@ -51,6 +53,7 @@ export function createSeedWorldGrassCoverageSampler(
       ((at(x0, z0) * (1 - tx) + at(x1, z0) * tx) * (1 - tz) + (at(x0, z1) * (1 - tx) + at(x1, z1) * tx) * tz) / 255
     );
   };
+  sample.stableWorldSamples = true;
   sample.hasGrassInArea = (minimumX, minimumZ, maximumX, maximumZ) => {
     // Include all four contributors to bilinear interpolation, not just pixel centres inside the area.
     const x0 = Math.floor(Math.max(0, Math.min(width - 1, ((minimumX - originX) / sizeX) * (width - 1))));

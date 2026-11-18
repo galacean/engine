@@ -50,6 +50,7 @@ export class NativeWaterHost {
     };
     bindIdentities();
     let applied = false;
+    let entered = false;
     this.unregister = [
       system.observeRuntimeState((state) => {
         if (state.effectiveEnabled === effectiveEnabled) return;
@@ -58,15 +59,18 @@ export class NativeWaterHost {
       }),
       project.registerRuntimeActivation({
         before: async () => {
+          entered = false;
+          applied = false;
           // Startup projection may complete after this host was constructed.
           // Bind its identities before comparing the first physical publication.
-          bindIdentities();
+          // A failed projection cannot serve identity queries until it recovers.
+          if (!editor.projection.requiresRecovery) bindIdentities();
           // World publication can install water outside an editor activation (for
           // example after the initial empty Scene). Compare this edit with its live
           // starting state; retain a failed activation's baseline until recovery.
           if (!this.diagnostic) physicalKey = readPhysicalKey();
-          applied = false;
           system.beginInputUpdate();
+          entered = true;
         },
         apply: async () => {
           bindIdentities();
@@ -80,7 +84,12 @@ export class NativeWaterHost {
           }
           applied = true;
         },
-        finish: () => system.endInputUpdate(applied, false),
+        finish: () => {
+          if (entered) {
+            entered = false;
+            system.endInputUpdate(applied, false);
+          }
+        },
         after: async () => {
           try {
             await options.consumeHostInputs?.();
