@@ -892,8 +892,11 @@ export class ScreenSpaceReflection {
     unsupportedReason: "missing-screen-space-reflection-surface-pass"
   });
 
-  /** Query whether a material exposes the versioned SSR surface pass contract. */
-  static getMaterialReceiverCapability(material: Material): ScreenSpaceReflectionMaterialReceiverCapability {
+  /** Query the SSR Surface contract. Pass a receiver mode to check the restrictions on mixed PBR extensions. */
+  static getMaterialReceiverCapability(
+    material: Material,
+    mode?: ScreenSpaceReflectionReceiverMode
+  ): ScreenSpaceReflectionMaterialReceiverCapability {
     const subShaders = material.shader?.subShaders;
     const activeSubShader = subShaders?.[0];
     let activeHasSurfacePass = false;
@@ -920,13 +923,23 @@ export class ScreenSpaceReflection {
     if (activeHasSurfacePass) {
       if (!activeHasIncompatibleContract) {
         const macroCollection = material.shaderData._macroCollection;
-        // The shared PBR Surface supplies the common response. Mixed extensions
-        // remain outside this first approximation, as do custom V3 Surfaces.
         let extensionCount = 0;
         for (const macro of ScreenSpaceReflection._pbrExtensionMacros) {
-          if (macroCollection.isEnable(macro) && (++extensionCount > 1 || !activeUsesPbrSurface)) {
-            return ScreenSpaceReflection._unsupportedLobesCapability;
+          if (macroCollection.isEnable(macro)) {
+            if (!activeUsesPbrSurface) return ScreenSpaceReflection._unsupportedLobesCapability;
+            extensionCount++;
           }
+        }
+        // Shared Surface already evaluates the combined base response. The first
+        // rollout requests it explicitly, through the opaque composite path only.
+        if (
+          extensionCount > 1 &&
+          (mode === ScreenSpaceReflectionReceiverMode.Auto ||
+            mode === ScreenSpaceReflectionReceiverMode.TransparentSampleOnly ||
+            macroCollection.isEnable(ScreenSpaceReflection._transmissionMacro) ||
+            macroCollection.isEnable(ScreenSpaceReflection._transparentMacro))
+        ) {
+          return ScreenSpaceReflection._unsupportedLobesCapability;
         }
         return ScreenSpaceReflection._supportedReceiverCapability;
       }
@@ -977,7 +990,7 @@ export class ScreenSpaceReflection {
     mode: ScreenSpaceReflectionReceiverMode,
     intensity: number
   ): boolean {
-    const capability = ScreenSpaceReflection.getMaterialReceiverCapability(material);
+    const capability = ScreenSpaceReflection.getMaterialReceiverCapability(material, mode);
     const validMode =
       mode === ScreenSpaceReflectionReceiverMode.Disabled ||
       mode === ScreenSpaceReflectionReceiverMode.OpaqueComposite ||
@@ -1059,7 +1072,7 @@ export class ScreenSpaceReflection {
         !material._screenSpaceReflectionReceiverRegistered) ||
       (mode === ScreenSpaceReflectionReceiverMode.Auto &&
         !ScreenSpaceReflection._supportsShaderAutoReceiver(material.shader)) ||
-      !ScreenSpaceReflection.getMaterialReceiverCapability(material).supported ||
+      !ScreenSpaceReflection.getMaterialReceiverCapability(material, mode).supported ||
       (mode === ScreenSpaceReflectionReceiverMode.TransparentSampleOnly &&
         !ScreenSpaceReflection.supportsMaterialTransparentSampling(material))
     )

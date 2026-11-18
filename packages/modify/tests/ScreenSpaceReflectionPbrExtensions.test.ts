@@ -1,6 +1,7 @@
 import {
   Camera,
   CompareFunction,
+  DirectLight,
   Engine,
   GLCapabilityType,
   Material,
@@ -62,6 +63,7 @@ interface PassInternals {
   _traceTarget: RenderTarget;
   _filteredTraceTarget: RenderTarget;
   _material: Material;
+  composite(colorTarget: RenderTarget): void;
   publish(): void;
 }
 
@@ -226,8 +228,13 @@ afterAll(() => engine.destroy());
 
 const features = ["anisotropy", "iridescence", "transmission"] as const;
 type Feature = (typeof features)[number];
-function enable(material: PBRMaterial, feature: Feature) {
-  material[feature] = 0.8;
+function enable(material: PBRMaterial, feature: Feature | "clearCoat" | "sheen") {
+  if (feature === "sheen") {
+    material.sheenColor.set(0.7, 0.4, 0.2, 1);
+    material.sheenRoughness = 0.5;
+  } else {
+    material[feature] = 0.8;
+  }
   if (feature === "iridescence") material.iridescenceThicknessRange.set(200, 500);
 }
 
@@ -256,7 +263,7 @@ it.each(features)("accepts standalone %s through its real queue and preserves au
   }
 });
 
-it("keeps all extension pairs and unadapted custom V3 Surfaces outside the approximation", () => {
+it("rejects mixed Transmission and unadapted custom V3 Surfaces", () => {
   const f = fixture();
   const macros = ["CLEAR_COAT", "SHEEN", "ANISOTROPY", "IRIDESCENCE", "TRANSMISSION"];
   const shader = Shader.create(
@@ -277,7 +284,8 @@ it("keeps all extension pairs and unadapted custom V3 Surfaces outside the appro
       for (let j = i + 1; j < macros.length; j++) {
         const b = `MATERIAL_ENABLE_${macros[j]}`;
         f.material.shaderData.enableMacro(b);
-        expect(SSR.getMaterialReceiverCapability(f.material).supported).toBe(false);
+        expect(SSR.getMaterialReceiverCapability(f.material).supported).toBe(macros[j] !== "TRANSMISSION");
+        expect(SSR.getMaterialReceiverCapability(f.material, Receiver.Auto).supported).toBe(false);
         f.material.shaderData.disableMacro(b);
       }
       f.material.shaderData.disableMacro(a);
@@ -286,6 +294,138 @@ it("keeps all extension pairs and unadapted custom V3 Surfaces outside the appro
     f.destroy();
     custom.destroy();
     shader.destroy();
+  }
+});
+
+const opaqueExtensions = ["clearCoat", "sheen", "anisotropy", "iridescence"] as const;
+const combinations = Array.from({ length: 15 }, (_, i) => opaqueExtensions.filter((_, j) => (i + 1) & (1 << j)))
+  .filter((extensions) => extensions.length > 1)
+  .flatMap((extensions) =>
+    [false, true].map((alphaTest) => ({
+      label: extensions.join(" + "),
+      extensions,
+      alphaTest,
+      queue: alphaTest ? RenderQueueType.AlphaTest : RenderQueueType.Opaque
+    }))
+  );
+
+it.each(combinations)(
+  "traces $label with alphaTest=$alphaTest only when explicitly enabled",
+  ({ extensions, alphaTest, queue }) => {
+    const f = fixture();
+    try {
+      f.material.roughness = 0.1;
+      f.material.alphaCutoff = alphaTest ? 0.5 : 0;
+      for (const feature of extensions) enable(f.material, feature);
+      if (extensions.includes("anisotropy")) f.material.anisotropy = 0.5;
+      expect(f.material.shaderData.getInt("renderQueueType")).toBe(queue);
+      const automatic = f.render();
+      expect(automatic.metrics.surfacePassDrawCount).toBe(0);
+      f.material.screenSpaceReflection = { mode: "On", intensity: 1 };
+      const on = f.render();
+      expect(on.metrics).toMatchObject({ surfacePassDrawCount: 1, tracePassCount: 1, compositePassCount: 1 });
+      expect(on.surfaceFormats).toEqual([TextureFormat.R8G8B8A8, TextureFormat.R8G8B8A8]);
+      let hits = 0;
+      for (let i = 3; i < on.trace.length; i += 4) if (on.trace[i] > 0.01) hits++;
+      expect(hits).toBeGreaterThan(10);
+      expect(maxByteDelta(on.pixels, automatic.pixels)).toBeGreaterThan(2);
+
+      f.material.isTransparent = true;
+      expect(f.render().metrics.surfacePassDrawCount).toBe(0);
+      f.material.isTransparent = false;
+      expect(f.render().metrics.surfacePassDrawCount).toBe(1);
+    } finally {
+      f.destroy();
+    }
+  }
+);
+
+it.each([
+  { samples: 1, alphaTest: false },
+  { samples: 4, alphaTest: true }
+])("subtracts only the combined material's Forward base reflection at $samples samples", ({ samples, alphaTest }) => {
+  const f = fixture(samples);
+  try {
+    const light = f.scene.createRootEntity().addComponent(DirectLight);
+    light.intensity = 0.2;
+    light.entity.transform.setRotation(-30, 30, 0);
+    f.scene.ambientLight.diffuseIntensity = 0.05;
+    f.scene.ambientLight.specularIntensity = 0.4;
+    // A wrong ray direction should subtract a different color, even if the
+    // attenuation and Fresnel terms still match.
+    const colors = [
+      [255, 96, 96],
+      [96, 255, 96],
+      [96, 96, 255],
+      [255, 255, 96],
+      [96, 255, 255],
+      [255, 96, 255]
+    ];
+    colors.forEach((rgb, face) => f.environment.setPixelBuffer(face as TextureCubeFace, new Uint8Array([...rgb, 255])));
+    f.material.metallic = 0.7;
+    f.material.roughness = 0.35;
+    f.material.baseColor.set(0.45, 0.35, 0.25, 1);
+    f.material.emissiveColor.set(0.05, 0.03, 0.01, 1);
+    f.material.alphaCutoff = alphaTest ? 0.5 : 0;
+    for (const feature of opaqueExtensions) enable(f.material, feature);
+    f.material.clearCoatRoughness = 0.05;
+    f.material.anisotropy = 0.9;
+    f.material.anisotropyRotation = 90;
+    if (alphaTest) {
+      f.material.screenSpaceReflection = null;
+      expect(SSR.setMaterialReceiver(f.material, Receiver.Auto)).toBe(false);
+      expect(SSR.setMaterialReceiver(f.material, Receiver.OpaqueComposite)).toBe(true);
+    } else {
+      f.material.screenSpaceReflection = { mode: "On", intensity: 1 };
+    }
+
+    f.scene.screenSpaceReflection.activationMode = Activation.ForceOff;
+    const forward = f.render();
+    const coat = f.material.clearCoat;
+    f.material.clearCoat = 0;
+    const baseWithEnv = f.render();
+    const intensity = f.scene.ambientLight.specularIntensity;
+    f.scene.ambientLight.specularIntensity = 0;
+    const baseWithoutEnv = f.render();
+    f.scene.ambientLight.specularIntensity = intensity;
+    f.material.clearCoat = coat;
+
+    // The flat plane's center gives N·V from the known camera position. Without
+    // clear coat, changing environment intensity isolates Forward's base term.
+    const dotNV = 1.2 / Math.hypot(1.2, 6);
+    const attenuation = 1 - coat * (0.04 + 0.96 * (1 - dotNV) ** 5);
+    f.scene.screenSpaceReflection.activationMode = Activation.ForceOn;
+    const blackHit = f.render([0, 0, 0, 255]);
+    expect(blackHit.metrics.surfacePassDrawCount).toBe(1);
+    expect(blackHit.geometry[3]).toBe(255);
+    const removed = forward.color.slice(0, 3).map((value, c) => value - blackHit.color[c]);
+    expect(Math.max(...removed)).toBeGreaterThan(5);
+    for (let c = 0; c < 3; c++) {
+      const expected = (baseWithEnv.color[c] - baseWithoutEnv.color[c]) * attenuation;
+      expect(Math.abs(removed[c] - expected)).toBeLessThanOrEqual(2);
+    }
+    const miss = f.render([0, 0, 0, 0]);
+    expect(miss.metrics.compositePassCount).toBe(1);
+    // Keep the same SSR camera target and MSAA resolve path for the control.
+    // ForceOff can change edge quantization even if Composite adds no reflection.
+    const composite = vi.spyOn(f.pass, "composite").mockImplementation(() => {});
+    try {
+      const withoutComposite = f.render([0, 0, 0, 0]);
+      expect(withoutComposite.metrics.tracePassCount).toBe(1);
+      expect(withoutComposite.metrics.compositePassCount).toBe(0);
+      expect(maxByteDelta(miss.pixels, withoutComposite.pixels)).toBeLessThanOrEqual(1);
+    } finally {
+      composite.mockRestore();
+    }
+
+    if (alphaTest) {
+      f.material.baseTexture = f.texture([255, 255, 255, 0]);
+      const cutout = f.render();
+      expect(cutout.geometry[3]).toBe(0);
+      expect(cutout.trace.some((value, i) => i % 4 === 3 && value > 0)).toBe(false);
+    }
+  } finally {
+    f.destroy();
   }
 });
 

@@ -181,7 +181,7 @@ function fixture(samples = 1) {
 
 afterAll(() => engine.destroy());
 
-it("accepts built-in Clear Coat for opaque / Alpha Test while excluding transparency and mixed effects", () => {
+it("accepts built-in Clear Coat for opaque / Alpha Test while excluding transparency and mixed Transmission", () => {
   const f = fixture();
   try {
     f.material.clearCoat = 1;
@@ -190,11 +190,8 @@ it("accepts built-in Clear Coat for opaque / Alpha Test while excluding transpar
     expect(f.camera.screenSpaceReflection._isMaterialReceiver(f.material, RenderQueueType.Opaque)).toBe(true);
     expect(f.camera.screenSpaceReflection._isMaterialReceiver(f.material, RenderQueueType.AlphaTest)).toBe(true);
     expect(f.camera.screenSpaceReflection._isMaterialReceiver(f.material, RenderQueueType.Transparent)).toBe(false);
-    for (const macro of ["ANISOTROPY", "IRIDESCENCE", "SHEEN", "TRANSMISSION"]) {
-      f.material.shaderData.enableMacro(`MATERIAL_ENABLE_${macro}`);
-      expect(SSR.getMaterialReceiverCapability(f.material).supported).toBe(false);
-      f.material.shaderData.disableMacro(`MATERIAL_ENABLE_${macro}`);
-    }
+    f.material.transmission = 0.5;
+    expect(SSR.getMaterialReceiverCapability(f.material).supported).toBe(false);
   } finally {
     f.destroy();
   }

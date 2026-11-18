@@ -168,7 +168,7 @@ function fixture(samples = 1, knownDFG = true) {
   };
 }
 
-it("supports the built-in Sheen base layer for opaque and Alpha Test, excluding mixed effects", () => {
+it("supports the built-in Sheen base layer for opaque and Alpha Test, excluding mixed Transmission", () => {
   const f = fixture();
   try {
     f.material.sheenColor.set(0.8, 0.4, 0.2, 1);
@@ -178,11 +178,8 @@ it("supports the built-in Sheen base layer for opaque and Alpha Test, excluding 
     f.material.alphaCutoff = 0.5;
     expect(f.camera.screenSpaceReflection._isMaterialReceiver(f.material, RenderQueueType.AlphaTest)).toBe(true);
     expect(f.camera.screenSpaceReflection._isMaterialReceiver(f.material, RenderQueueType.Transparent)).toBe(false);
-    for (const macro of ["CLEAR_COAT", "ANISOTROPY", "IRIDESCENCE", "TRANSMISSION"]) {
-      f.material.shaderData.enableMacro(`MATERIAL_ENABLE_${macro}`);
-      expect(SSR.getMaterialReceiverCapability(f.material).supported).toBe(false);
-      f.material.shaderData.disableMacro(`MATERIAL_ENABLE_${macro}`);
-    }
+    f.material.transmission = 0.5;
+    expect(SSR.getMaterialReceiverCapability(f.material).supported).toBe(false);
   } finally {
     f.destroy();
   }
