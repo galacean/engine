@@ -1,0 +1,1397 @@
+{
+  "version": 1,
+  "profiles": {
+    "roaming": [
+      {
+        "activity": "move",
+        "gait": "walk",
+        "weight": 78
+      },
+      {
+        "activity": "move",
+        "gait": "run",
+        "weight": 8
+      },
+      {
+        "activity": "idle",
+        "weight": 10
+      },
+      {
+        "activity": "eat",
+        "weight": 4
+      },
+      {
+        "activity": "display",
+        "weight": 8
+      }
+    ],
+    "grazing": [
+      {
+        "activity": "move",
+        "gait": "walk",
+        "weight": 70
+      },
+      {
+        "activity": "move",
+        "gait": "run",
+        "weight": 3
+      },
+      {
+        "activity": "idle",
+        "weight": 10
+      },
+      {
+        "activity": "eat",
+        "weight": 17
+      },
+      {
+        "activity": "display",
+        "weight": 8
+      }
+    ],
+    "groundBird": [
+      {
+        "activity": "move",
+        "gait": "walk",
+        "weight": 78
+      },
+      {
+        "activity": "move",
+        "gait": "run",
+        "weight": 10
+      },
+      {
+        "activity": "idle",
+        "weight": 8
+      },
+      {
+        "activity": "eat",
+        "weight": 4
+      },
+      {
+        "activity": "display",
+        "weight": 8
+      }
+    ],
+    "hopping": [
+      {
+        "activity": "move",
+        "gait": "hop",
+        "weight": 90
+      },
+      {
+        "activity": "idle",
+        "weight": 8
+      },
+      {
+        "activity": "eat",
+        "weight": 2
+      },
+      {
+        "activity": "display",
+        "weight": 8
+      }
+    ],
+    "flying": [
+      {
+        "activity": "move",
+        "gait": "fly",
+        "weight": 84
+      },
+      {
+        "activity": "move",
+        "gait": "walk",
+        "weight": 10
+      },
+      {
+        "activity": "idle",
+        "weight": 2
+      },
+      {
+        "activity": "eat",
+        "weight": 4
+      },
+      {
+        "activity": "display",
+        "weight": 8
+      }
+    ],
+    "waterBird": [
+      {
+        "activity": "move",
+        "gait": "swim",
+        "weight": 65
+      },
+      {
+        "activity": "move",
+        "gait": "fly",
+        "weight": 28
+      },
+      {
+        "activity": "idle",
+        "weight": 5
+      },
+      {
+        "activity": "eat",
+        "weight": 2
+      },
+      {
+        "activity": "display",
+        "weight": 8
+      }
+    ],
+    "swimming": [
+      {
+        "activity": "move",
+        "gait": "swim",
+        "weight": 90
+      },
+      {
+        "activity": "idle",
+        "weight": 8
+      },
+      {
+        "activity": "eat",
+        "weight": 2
+      },
+      {
+        "activity": "display",
+        "weight": 8
+      }
+    ]
+  },
+  "note": "按物种注册的游戏行为预设：仅可用动画与当前运动介质参与加权；权重是任务选择概率，不是时间占比。环境仅消费alphamap道路/草地/河流，waterside为河流边缘的派生偏好。海豹和海象使用河流作为演示水域，不表示真实淡水栖息适宜性。缺少游泳素材的企鹅、河马、鸭嘴兽只倾向岸边；食物偏好是元数据，只有世界确实提供的目标才能触发进食。 Gesture以源片段身份注册为display，默认相对权重8，按当前介质筛选；已识别的Lama_Gesture仍是受食物条件约束的eat。 Seed庄园玩法按已确认eat动画开放取食；没有eat动画的模型不参与。",
+  "ecology": {
+    "low-poly-100:penguin": {
+      "profile": "groundBird",
+      "habitats": [
+        {
+          "habitat": "waterside",
+          "weight": 10
+        },
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ],
+      "fleeSpeedMultiplier": 1.5
+    },
+    "low-poly-100:polar-bear": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:gorilla": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:elephant": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:swan": {
+      "profile": "waterBird",
+      "habitats": [
+        {
+          "habitat": "river",
+          "weight": 10
+        },
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "water",
+      "fleeWeights": [
+        {
+          "gait": "fly",
+          "weight": 90
+        },
+        {
+          "gait": "swim",
+          "weight": 10
+        }
+      ],
+      "fleeSpeedMultiplier": 1.5
+    },
+    "low-poly-100:goat": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:zebra": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:hippopotamus": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "waterside",
+          "weight": 10
+        },
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:raccoon": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:walrus": {
+      "profile": "swimming",
+      "habitats": [
+        {
+          "habitat": "river",
+          "weight": 10
+        }
+      ],
+      "preferredMedium": "water",
+      "fleeWeights": [
+        {
+          "gait": "swim",
+          "weight": 100
+        },
+        {
+          "gait": "run",
+          "weight": 1
+        }
+      ]
+    },
+    "low-poly-100:seal": {
+      "profile": "swimming",
+      "habitats": [
+        {
+          "habitat": "river",
+          "weight": 10
+        }
+      ],
+      "preferredMedium": "water",
+      "fleeWeights": [
+        {
+          "gait": "swim",
+          "weight": 100
+        },
+        {
+          "gait": "run",
+          "weight": 1
+        }
+      ]
+    },
+    "low-poly-100:flamingo": {
+      "profile": "flying",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "air",
+      "fleeWeights": [
+        {
+          "gait": "fly",
+          "weight": 100
+        },
+        {
+          "gait": "run",
+          "weight": 1
+        }
+      ],
+      "fleeSpeedMultiplier": 1.5
+    },
+    "low-poly-100:bear": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:panda": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:cattle": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:rhinoceros": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:roe-deer": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:fox": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:dog": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:lion": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:wolf": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:pig": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:cat": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:monkey": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:sheep": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:lama": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:tiger": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:koala": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:kangaroo": {
+      "profile": "hopping",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:bison": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:giraffe": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:horse": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:donkey": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:moose": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:camel": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "low-poly-100:crocodile": {
+      "profile": "swimming",
+      "habitats": [
+        {
+          "habitat": "river",
+          "weight": 10
+        }
+      ],
+      "preferredMedium": "water",
+      "fleeWeights": [
+        {
+          "gait": "swim",
+          "weight": 100
+        },
+        {
+          "gait": "run",
+          "weight": 1
+        }
+      ]
+    },
+    "low-poly-100:chicken": {
+      "profile": "groundBird",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ],
+      "fleeSpeedMultiplier": 1.5
+    },
+    "low-poly-100:duck": {
+      "profile": "swimming",
+      "habitats": [
+        {
+          "habitat": "river",
+          "weight": 10
+        }
+      ],
+      "preferredMedium": "water",
+      "fleeWeights": [
+        {
+          "gait": "swim",
+          "weight": 100
+        },
+        {
+          "gait": "run",
+          "weight": 1
+        }
+      ],
+      "fleeSpeedMultiplier": 1.5
+    },
+    "low-poly-100:pigeon": {
+      "profile": "flying",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "air",
+      "fleeWeights": [
+        {
+          "gait": "fly",
+          "weight": 100
+        },
+        {
+          "gait": "run",
+          "weight": 1
+        }
+      ],
+      "fleeSpeedMultiplier": 1.5
+    },
+    "low-poly-100:deer": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        },
+        {
+          "gait": "hop",
+          "weight": 10
+        }
+      ]
+    },
+    "bull": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        }
+      ]
+    },
+    "chameleon": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        }
+      ]
+    },
+    "fox": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        }
+      ]
+    },
+    "koala": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        }
+      ]
+    },
+    "leopard": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        }
+      ]
+    },
+    "meerkat": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        }
+      ]
+    },
+    "mule": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        }
+      ]
+    },
+    "ostrich": {
+      "profile": "groundBird",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        }
+      ],
+      "fleeSpeedMultiplier": 1.5
+    },
+    "platypus": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "waterside",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        }
+      ]
+    },
+    "porcupine": {
+      "profile": "grazing",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        }
+      ]
+    },
+    "raccoon": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        }
+      ]
+    },
+    "skunk": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        }
+      ]
+    },
+    "squirrel": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        }
+      ]
+    },
+    "wolf": {
+      "profile": "roaming",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "preferredMedium": "ground",
+      "fleeWeights": [
+        {
+          "gait": "run",
+          "weight": 10
+        },
+        {
+          "gait": "walk",
+          "weight": 0
+        }
+      ]
+    }
+  }
+}

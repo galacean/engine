@@ -1,0 +1,100 @@
+[
+  {
+    "id": "bull",
+    "vertices": 719,
+    "verticesOverFourInfluences": 0,
+    "maxDiscardedNormalizedWeight": 0,
+    "meanDiscardedNormalizedWeight": 0.0
+  },
+  {
+    "id": "chameleon",
+    "vertices": 442,
+    "verticesOverFourInfluences": 0,
+    "maxDiscardedNormalizedWeight": 0,
+    "meanDiscardedNormalizedWeight": 0.0
+  },
+  {
+    "id": "fox",
+    "vertices": 1422,
+    "verticesOverFourInfluences": 17,
+    "maxDiscardedNormalizedWeight": 0.003290152024819041,
+    "meanDiscardedNormalizedWeight": 1.9994964791140857e-05
+  },
+  {
+    "id": "koala",
+    "vertices": 872,
+    "verticesOverFourInfluences": 20,
+    "maxDiscardedNormalizedWeight": 0.021802395432119148,
+    "meanDiscardedNormalizedWeight": 0.00010322739411695762
+  },
+  {
+    "id": "leopard",
+    "vertices": 1414,
+    "verticesOverFourInfluences": 16,
+    "maxDiscardedNormalizedWeight": 0.003314620482831718,
+    "meanDiscardedNormalizedWeight": 2.087456898109902e-05
+  },
+  {
+    "id": "meerkat",
+    "vertices": 357,
+    "verticesOverFourInfluences": 0,
+    "maxDiscardedNormalizedWeight": 0,
+    "meanDiscardedNormalizedWeight": 0.0
+  },
+  {
+    "id": "mule",
+    "vertices": 687,
+    "verticesOverFourInfluences": 54,
+    "maxDiscardedNormalizedWeight": 0.025139131460669876,
+    "meanDiscardedNormalizedWeight": 0.0003225922296087738
+  },
+  {
+    "id": "ostrich",
+    "vertices": 968,
+    "verticesOverFourInfluences": 11,
+    "maxDiscardedNormalizedWeight": 0.004387800036406051,
+    "meanDiscardedNormalizedWeight": 3.09220737583092e-05
+  },
+  {
+    "id": "platypus",
+    "vertices": 432,
+    "verticesOverFourInfluences": 0,
+    "maxDiscardedNormalizedWeight": 0,
+    "meanDiscardedNormalizedWeight": 0.0
+  },
+  {
+    "id": "porcupine",
+    "vertices": 372,
+    "verticesOverFourInfluences": 2,
+    "maxDiscardedNormalizedWeight": 0.0011331978358908844,
+    "meanDiscardedNormalizedWeight": 6.092461483284324e-06
+  },
+  {
+    "id": "raccoon",
+    "vertices": 1414,
+    "verticesOverFourInfluences": 20,
+    "maxDiscardedNormalizedWeight": 0.0030251795883054207,
+    "meanDiscardedNormalizedWeight": 2.3013785179971556e-05
+  },
+  {
+    "id": "skunk",
+    "vertices": 1296,
+    "verticesOverFourInfluences": 2,
+    "maxDiscardedNormalizedWeight": 0.0011967124210867095,
+    "meanDiscardedNormalizedWeight": 1.8467784276029467e-06
+  },
+  {
+    "id": "squirrel",
+    "vertices": 478,
+    "verticesOverFourInfluences": 1,
+    "maxDiscardedNormalizedWeight": 0.008522142501896418,
+    "meanDiscardedNormalizedWeight": 1.7828750003967402e-05
+  },
+  {
+    "id": "wolf",
+    "vertices": 1430,
+    "verticesOverFourInfluences": 24,
+    "maxDiscardedNormalizedWeight": 0.010390101165167727,
+    "meanDiscardedNormalizedWeight": 3.250264721702427e-05
+  }
+]

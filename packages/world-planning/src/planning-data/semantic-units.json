@@ -1,0 +1,551 @@
+{
+  "version": 1,
+  "units": [
+    {
+      "id": "actor",
+      "label": "角色",
+      "level": "primitive",
+      "components": [],
+      "referencePaths": [
+        "actor"
+      ],
+      "snapshotField": "actor"
+    },
+    {
+      "id": "building",
+      "label": "建筑",
+      "level": "primitive",
+      "components": [],
+      "referencePaths": [
+        "building"
+      ],
+      "snapshotField": "buildings",
+      "moduleProfile": "units/building.json",
+      "profileStatus": "active-settlements"
+    },
+    {
+      "id": "rock.peak",
+      "label": "峰体",
+      "level": "primitive",
+      "components": [],
+      "referencePaths": [
+        "rockShapes.crown"
+      ],
+      "snapshotField": "rocks"
+    },
+    {
+      "id": "rock.spire",
+      "label": "尖塔",
+      "level": "primitive",
+      "components": [],
+      "referencePaths": [
+        "rockShapes.spire"
+      ],
+      "snapshotField": "rock-catalog-only"
+    },
+    {
+      "id": "rock.wall",
+      "label": "岩壁",
+      "level": "primitive",
+      "components": [],
+      "referencePaths": [
+        "rockShapes.wall"
+      ],
+      "snapshotField": "rocks"
+    },
+    {
+      "id": "rock.shoulder",
+      "label": "山肩",
+      "level": "primitive",
+      "components": [],
+      "referencePaths": [
+        "rockShapes.buttress/shoulder"
+      ],
+      "snapshotField": "rocks"
+    },
+    {
+      "id": "rock.terrace",
+      "label": "台体",
+      "level": "primitive",
+      "components": [],
+      "referencePaths": [
+        "rockShapes.terrace/cap"
+      ],
+      "snapshotField": "rocks"
+    },
+    {
+      "id": "rock.skirt",
+      "label": "裙边",
+      "level": "primitive",
+      "components": [],
+      "referencePaths": [
+        "rockShapes.skirt"
+      ],
+      "snapshotField": "rocks"
+    },
+    {
+      "id": "rock.mass",
+      "label": "普通体量",
+      "level": "primitive",
+      "components": [],
+      "referencePaths": [
+        "rockShapes.mass"
+      ],
+      "snapshotField": "rock-catalog-only"
+    },
+    {
+      "id": "fence",
+      "label": "围栏段",
+      "level": "primitive",
+      "components": [],
+      "referencePaths": [
+        "courtyard.fenceSegmentM",
+        "courtyard.fenceWidthM",
+        "courtyard.fenceHeightM"
+      ],
+      "snapshotField": "courtyards.fences"
+    },
+    {
+      "id": "gate",
+      "label": "院门",
+      "level": "port",
+      "components": [],
+      "referencePaths": [
+        "courtyard.gateWidthM"
+      ],
+      "snapshotField": "courtyards.gate"
+    },
+    {
+      "id": "entrance",
+      "label": "场所入口",
+      "level": "port",
+      "components": [],
+      "referencePaths": [
+        "world.roadWidthM"
+      ],
+      "snapshotField": "planning.ports"
+    },
+    {
+      "id": "junction",
+      "label": "内部连接点",
+      "level": "port",
+      "components": [],
+      "referencePaths": [
+        "village.internalRoadMinWidthM"
+      ],
+      "snapshotField": "planning.ports"
+    },
+    {
+      "id": "road",
+      "label": "道路",
+      "level": "corridor",
+      "components": [],
+      "referencePaths": [
+        "world.roadWidthM",
+        "traversal"
+      ],
+      "snapshotField": "routes",
+      "moduleProfile": "units/road.json",
+      "profileStatus": "active-settlements"
+    },
+    {
+      "id": "yard-path",
+      "label": "院内小径",
+      "level": "corridor",
+      "components": [],
+      "referencePaths": [
+        "courtyard.pathWidthM"
+      ],
+      "snapshotField": "courtyards.path"
+    },
+    {
+      "id": "bridge",
+      "label": "桥梁",
+      "level": "corridor",
+      "components": [],
+      "referencePaths": [
+        "traversal.maxCrossingSpan",
+        "traversal.landingLength"
+      ],
+      "snapshotField": "bridges"
+    },
+    {
+      "id": "courtyard",
+      "label": "院落",
+      "level": "assembly",
+      "components": [
+        "building",
+        "gate",
+        "fence",
+        "yard-path"
+      ],
+      "referencePaths": [
+        "courtyard"
+      ],
+      "snapshotField": "courtyards"
+    },
+    {
+      "id": "village",
+      "label": "村庄",
+      "level": "assembly",
+      "components": [
+        "building",
+        "road",
+        "plaza",
+        "entrance",
+        "junction",
+        "fence"
+      ],
+      "referencePaths": [
+        "village",
+        "world.villageSizeM",
+        "spacing"
+      ],
+      "snapshotField": "regions",
+      "moduleProfile": "units/village.json",
+      "profileStatus": "active-settlements"
+    },
+    {
+      "id": "canyon",
+      "label": "峡谷",
+      "level": "assembly",
+      "components": [
+        "rock.wall",
+        "rock.shoulder",
+        "rock.terrace",
+        "rock.peak"
+      ],
+      "referencePaths": [
+        "landform.canyonSeconds",
+        "landformViews.canyon"
+      ],
+      "snapshotField": "mountains"
+    },
+    {
+      "id": "cliff",
+      "label": "断崖",
+      "level": "assembly",
+      "components": [
+        "rock.wall",
+        "rock.shoulder",
+        "rock.skirt"
+      ],
+      "referencePaths": [
+        "landform.cliffSeconds",
+        "landformViews.cliff"
+      ],
+      "snapshotField": "mountains"
+    },
+    {
+      "id": "plateau",
+      "label": "台地",
+      "level": "assembly",
+      "components": [
+        "rock.terrace",
+        "rock.wall",
+        "rock.shoulder"
+      ],
+      "referencePaths": [
+        "landform.plateauSeconds",
+        "landformViews.plateau"
+      ],
+      "snapshotField": "mountains",
+      "moduleProfile": "units/plateau.json",
+      "profileStatus": "data-only"
+    },
+    {
+      "id": "peaks",
+      "label": "峰群",
+      "level": "assembly",
+      "components": [
+        "rock.peak",
+        "rock.shoulder",
+        "rock.skirt"
+      ],
+      "referencePaths": [
+        "landform.peaksSeconds",
+        "landformViews.peaks"
+      ],
+      "snapshotField": "mountains"
+    },
+    {
+      "id": "pass",
+      "label": "山口",
+      "level": "assembly",
+      "components": [
+        "rock.peak",
+        "rock.shoulder"
+      ],
+      "referencePaths": [
+        "landform.passSeconds",
+        "landformViews.pass"
+      ],
+      "snapshotField": "mountains"
+    },
+    {
+      "id": "mountain",
+      "label": "山群",
+      "level": "assembly",
+      "components": [
+        "rock.peak",
+        "rock.wall",
+        "rock.shoulder",
+        "rock.terrace",
+        "rock.skirt"
+      ],
+      "referencePaths": [
+        "world.mountainWidthM",
+        "world.mountainHeightM"
+      ],
+      "snapshotField": "mountains",
+      "moduleProfile": "units/mountain.json",
+      "profileStatus": "data-only"
+    },
+    {
+      "id": "water",
+      "label": "水域",
+      "level": "region",
+      "components": [],
+      "referencePaths": [
+        "world.riverWidthM",
+        "world.lakeSizeM"
+      ],
+      "snapshotField": "waters"
+    },
+    {
+      "id": "water-domain",
+      "label": "水系统可编辑域",
+      "level": "region",
+      "components": [],
+      "referencePaths": [],
+      "snapshotField": "structures.waterDomain"
+    },
+    {
+      "id": "lookout",
+      "label": "眺望点",
+      "level": "assembly",
+      "components": [
+        "building",
+        "entrance"
+      ],
+      "referencePaths": [
+        "lookout"
+      ],
+      "snapshotField": "places",
+      "moduleProfile": "units/lookout.json",
+      "profileStatus": "data-only"
+    },
+    {
+      "id": "spawn",
+      "label": "出生点",
+      "level": "point",
+      "components": [],
+      "referencePaths": [
+        "actor"
+      ],
+      "snapshotField": "spawn"
+    },
+    {
+      "id": "land",
+      "label": "陆域",
+      "level": "region",
+      "components": [],
+      "referencePaths": [],
+      "snapshotField": "land"
+    },
+    {
+      "id": "island",
+      "label": "离岛",
+      "level": "region",
+      "components": [],
+      "referencePaths": [],
+      "snapshotField": "islands"
+    },
+    {
+      "id": "grass",
+      "label": "草地",
+      "level": "surface",
+      "components": [],
+      "referencePaths": [],
+      "snapshotField": "alphamap.R"
+    },
+    {
+      "id": "soil",
+      "label": "泥土与道路",
+      "level": "surface",
+      "components": [],
+      "referencePaths": [],
+      "snapshotField": "alphamap.G"
+    },
+    {
+      "id": "water-surface",
+      "label": "水面",
+      "level": "surface",
+      "components": [],
+      "referencePaths": [],
+      "snapshotField": "alphamap.B"
+    },
+    {
+      "id": "sightline",
+      "label": "视觉动线",
+      "level": "relation",
+      "components": [],
+      "referencePaths": [
+        "landformViews"
+      ],
+      "snapshotField": "sights"
+    },
+    {
+      "id": "open",
+      "label": "开放区域",
+      "level": "region",
+      "components": [],
+      "referencePaths": [],
+      "snapshotField": "regions"
+    },
+    {
+      "id": "rock-cluster",
+      "label": "岩石组",
+      "level": "assembly",
+      "components": [],
+      "referencePaths": [],
+      "snapshotField": "regions"
+    },
+    {
+      "id": "water-port",
+      "label": "水系连接点",
+      "level": "port",
+      "components": [],
+      "referencePaths": [],
+      "snapshotField": "planning.ports"
+    },
+    {
+      "id": "summit",
+      "label": "峰顶连接点",
+      "level": "port",
+      "components": [],
+      "referencePaths": [],
+      "snapshotField": "planning.ports"
+    },
+    {
+      "id": "plaza",
+      "label": "公共广场",
+      "level": "region",
+      "components": [],
+      "referencePaths": [],
+      "snapshotField": "plazas",
+      "settlementReferencePaths": [
+        "village.plazaWidth",
+        "village.plazaDepth"
+      ]
+    },
+    {
+      "id": "landscape.tree",
+      "label": "景观树",
+      "level": "solid",
+      "components": [],
+      "referencePaths": [],
+      "snapshotField": "landscapes",
+      "settlementReferencePaths": [
+        "landscape"
+      ],
+      "moduleProfile": "units/landscape.tree.json",
+      "profileStatus": "active-settlements"
+    },
+    {
+      "id": "landscape.rock",
+      "label": "景观石",
+      "level": "solid",
+      "components": [],
+      "referencePaths": [],
+      "snapshotField": "landscapes",
+      "settlementReferencePaths": [
+        "landscape"
+      ],
+      "moduleProfile": "units/landscape.rock.json",
+      "profileStatus": "active-settlements"
+    },
+    {
+      "id": "landscape",
+      "label": "沿路景观",
+      "level": "assembly",
+      "components": [
+        "landscape.tree",
+        "landscape.rock"
+      ],
+      "referencePaths": [],
+      "snapshotField": "landscapes",
+      "settlementReferencePaths": [
+        "landscape"
+      ],
+      "moduleProfile": "units/landscape.json",
+      "profileStatus": "active-settlements"
+    },
+    {
+      "id": "door",
+      "label": "建筑门",
+      "level": "primitive",
+      "components": [],
+      "referencePaths": [],
+      "settlementReferencePaths": [
+        "building.doorWidth",
+        "building.doorHeight"
+      ],
+      "snapshotField": "planning.ports"
+    },
+    {
+      "id": "landscape.shrub",
+      "label": "低矮植被体",
+      "level": "primitive",
+      "components": [],
+      "referencePaths": [],
+      "moduleProfile": "units/landscape.shrub.json",
+      "profileStatus": "data-only",
+      "snapshotField": "not-generated"
+    }
+  ],
+  "relations": [
+    {
+      "id": "contains",
+      "label": "包含",
+      "meaning": "村庄包含建筑与公共广场；旧院落实验保留独立组合"
+    },
+    {
+      "id": "connects",
+      "label": "连接",
+      "meaning": "建筑门接公共道路，公共道路连接广场与村口，村口连接村际道路"
+    },
+    {
+      "id": "clearance",
+      "label": "通行净空",
+      "meaning": "按角色碰撞范围保留可通行宽度"
+    },
+    {
+      "id": "spacing",
+      "label": "间距",
+      "meaning": "占地边界之间的间隔，不能混同中心距",
+      "referencePaths": [
+        "spacing"
+      ]
+    },
+    {
+      "id": "collision",
+      "label": "占地避让",
+      "meaning": "沿用现有碰撞检查与预算，不新增全局求解"
+    },
+    {
+      "id": "crossing",
+      "label": "跨水承接",
+      "meaning": "道路跨水处由桥梁连接",
+      "referencePaths": [
+        "traversal",
+        "road.crossingDetourRatio"
+      ]
+    },
+    {
+      "id": "observes",
+      "label": "视线意图",
+      "meaning": "保留目标与方向，不表示当前已做完整视觉约束验收"
+    }
+  ]
+}

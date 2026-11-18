@@ -1,0 +1,15 @@
+{
+ "units": 24391,
+ "unitBytes": 5073328,
+ "draws": 170,
+ "previewTriangles": 10058,
+ "distanceTextureBytes": 11102602,
+ "structureTriangles": 10058,
+ "retainedDistanceUnits": 354,
+ "documentBytes": 12361013,
+ "ms": {
+  "prepare": 1531,
+  "compile": 1235,
+  "package": 127
+ }
+}

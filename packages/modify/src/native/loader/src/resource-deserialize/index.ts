@@ -1,0 +1,43 @@
+import { AssetPromise, Engine } from "@galacean/engine-core";
+import { BufferReader } from "./utils/BufferReader";
+import { decoderMap } from "./utils/Decorator";
+import { FileHeader } from "./utils/FileHeader";
+
+export * from "./resources/animationClip/AnimationClipDecoder";
+export type { IModelMesh } from "./resources/mesh/IModelMesh";
+export { MeshDecoder } from "./resources/mesh/MeshDecoder";
+export { ReflectionParser } from "./resources/parser/ReflectionParser";
+import "./resources/texture2D/Texture2DDecoder";
+import "./resources/textureCube/TextureCubeDecoder";
+export { parseTexturePixelsData } from "./resources/texture/TexturePixelsDecoder";
+export { parseBufferMeshData } from "./resources/mesh/BufferMeshDecoder";
+
+/**
+ * Decode engine binary resource.
+ * @param arrayBuffer - array buffer of decode binary file
+ * @param engine - engine
+ * @returns
+ */
+export function decode<T>(arrayBuffer: ArrayBuffer, engine: Engine, ...args: any[]): AssetPromise<T> {
+  const header = FileHeader.decode(arrayBuffer);
+  const bufferReader = new BufferReader(
+    new Uint8Array(arrayBuffer),
+    header.headerLength,
+    header.dataLength,
+    true,
+    header
+  );
+  return decoderMap[header.type].decode(engine, bufferReader, ...args).then((object) => {
+    object.name = header.name;
+    return object;
+  });
+}
+
+export * from "./resources/parser/HierarchyParser";
+export * from "./resources/parser/ParserContext";
+export * from "./resources/scene/SceneParser";
+export * from "../schema";
+
+export * from "./utils/BufferReader";
+export * from "./utils/Decorator";
+export * from "./utils/FileHeader";

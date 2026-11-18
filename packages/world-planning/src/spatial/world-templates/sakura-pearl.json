@@ -1,0 +1,398 @@
+{
+  "palette": {
+    "treeFoliage": {
+      "SM_BirchTree_01": "#ff8ea0",
+      "SM_BirchTree_02": "#c179ed",
+      "SM_BirchTree_07": "#ff9fcb",
+      "cartoon/tree/highlands-fir-3-candidate/v1": "#da96c7"
+    },
+    "plantPalette": {
+      "layers": [
+        "shrubs",
+        "herbs",
+        "cover",
+        "flowers",
+        "litter"
+      ],
+      "slots": {
+        "SM_Flower_08_01": {
+          "appearance-540a4c6f542dc7f0": {
+            "color": "#ff006f",
+            "intensity": 20
+          }
+        },
+        "SM_Flower_08_02": {
+          "appearance-540a4c6f542dc7f0": {
+            "color": "#ff006b",
+            "intensity": 20
+          }
+        },
+        "SM_Flower_08_03": {
+          "appearance-540a4c6f542dc7f0": {
+            "color": "#ff0268",
+            "intensity": 20
+          }
+        },
+        "SM_CoverPlant_06": {
+          "appearance-d7b4b46b60c4bf96": {
+            "color": "#e01a56",
+            "intensity": 15
+          }
+        },
+        "SM_BirchTree_01": {
+          "appearance-58da25ba7b394497": {
+            "color": "#825636",
+            "intensity": 1
+          },
+          "appearance-a8b3441a505dd0f2": {
+            "color": "#a06f49",
+            "intensity": 1
+          },
+          "appearance-e832df91cc4eb1a2": {
+            "color": "#ff6681",
+            "intensity": 2
+          }
+        },
+        "SM_BirchTree_02": {
+          "appearance-296c00a2f4125733": {
+            "color": "#825636",
+            "intensity": 1
+          },
+          "appearance-60463a2042d1d2fe": {
+            "color": "#a06f49",
+            "intensity": 1
+          },
+          "appearance-e832df91cc4eb1a2": {
+            "color": "#ff6681",
+            "intensity": 2
+          }
+        },
+        "SM_BirchTree_07": {
+          "appearance-58da25ba7b394497": {
+            "color": "#825636",
+            "intensity": 1
+          },
+          "appearance-a8b3441a505dd0f2": {
+            "color": "#a06f49",
+            "intensity": 1
+          },
+          "appearance-e832df91cc4eb1a2": {
+            "color": "#ff6681",
+            "intensity": 2
+          }
+        }
+      },
+      "parts": {
+        "foliage": {
+          "color": "#66b83f",
+          "intensity": 1.1
+        },
+        "leaves": {
+          "color": "#93cf50",
+          "intensity": 1.1
+        },
+        "blades": {
+          "color": "#83c747",
+          "intensity": 1.1
+        },
+        "stem": {
+          "color": "#509633",
+          "intensity": 1.05
+        },
+        "petals": {
+          "color": "#ff75bd",
+          "intensity": 5
+        },
+        "cap": {
+          "color": "#f4b3cf",
+          "intensity": 1.35
+        },
+        "bark": {
+          "color": "#c5a3b0",
+          "intensity": 1
+        }
+      },
+      "species": {
+        "cartoon/shrub/highlands-bush-2/v1": {
+          "foliage": {
+            "color": "#ff414e",
+            "intensity": 9.26
+          }
+        },
+        "SM_Flower_01_01": {
+          "petals": {
+            "color": "#fff0da",
+            "intensity": 4
+          }
+        },
+        "SM_Flower_01_02": {
+          "petals": {
+            "color": "#fff0da",
+            "intensity": 4
+          }
+        },
+        "SM_Flower_01_03": {
+          "petals": {
+            "color": "#fff0da",
+            "intensity": 4
+          }
+        },
+        "SM_Flower_02_01": {
+          "petals": {
+            "color": "#ffb6d3",
+            "intensity": 4.5
+          }
+        },
+        "SM_Flower_02_02": {
+          "petals": {
+            "color": "#ffb6d3",
+            "intensity": 4.5
+          }
+        },
+        "SM_Flower_02_03": {
+          "petals": {
+            "color": "#ffb6d3",
+            "intensity": 4.5
+          }
+        },
+        "SM_Flower_03_01": {
+          "petals": {
+            "color": "#c18aee",
+            "intensity": 6
+          }
+        },
+        "SM_Flower_03_02": {
+          "petals": {
+            "color": "#c18aee",
+            "intensity": 6
+          }
+        },
+        "SM_Flower_03_03": {
+          "petals": {
+            "color": "#c18aee",
+            "intensity": 6
+          }
+        },
+        "SM_Flower_04_01": {
+          "petals": {
+            "color": "#e798d7",
+            "intensity": 5
+          }
+        },
+        "SM_Flower_04_02": {
+          "petals": {
+            "color": "#e798d7",
+            "intensity": 5
+          }
+        },
+        "SM_Flower_04_03": {
+          "petals": {
+            "color": "#e798d7",
+            "intensity": 5
+          }
+        },
+        "SM_Flower_06_01": {
+          "petals": {
+            "color": "#ffd0ac",
+            "intensity": 4
+          }
+        },
+        "SM_Flower_06_02": {
+          "petals": {
+            "color": "#ffd0ac",
+            "intensity": 4
+          }
+        },
+        "SM_Flower_06_03": {
+          "petals": {
+            "color": "#ffd0ac",
+            "intensity": 4
+          }
+        },
+        "SM_Flower_07_01": {
+          "petals": {
+            "color": "#ffa2c2",
+            "intensity": 4.5
+          }
+        },
+        "SM_Flower_07_02": {
+          "petals": {
+            "color": "#ffa2c2",
+            "intensity": 4.5
+          }
+        },
+        "SM_Flower_07_03": {
+          "petals": {
+            "color": "#ffa2c2",
+            "intensity": 4.5
+          }
+        },
+        "SM_Flower_09_01": {
+          "petals": {
+            "color": "#b77ee8",
+            "intensity": 6
+          }
+        },
+        "SM_Flower_09_02": {
+          "petals": {
+            "color": "#b77ee8",
+            "intensity": 6
+          }
+        },
+        "SM_Flower_09_03": {
+          "petals": {
+            "color": "#b77ee8",
+            "intensity": 6
+          }
+        },
+        "SM_Flower_10_01": {
+          "petals": {
+            "color": "#fff0da",
+            "intensity": 4
+          }
+        },
+        "SM_Mushroom_01": {
+          "stem": {
+            "color": "#ffe4cf",
+            "intensity": 1.1
+          }
+        },
+        "SM_Mushroom_02": {
+          "stem": {
+            "color": "#ffe4cf",
+            "intensity": 1.1
+          }
+        },
+        "SM_Mushroom_03": {
+          "stem": {
+            "color": "#ffe4cf",
+            "intensity": 1.1
+          }
+        },
+        "SM_Mushroom_04": {
+          "stem": {
+            "color": "#ffe4cf",
+            "intensity": 1.1
+          }
+        },
+        "SM_Mushroom_05": {
+          "stem": {
+            "color": "#ffe4cf",
+            "intensity": 1.1
+          }
+        },
+        "SM_Mushroom_06": {
+          "stem": {
+            "color": "#ffe4cf",
+            "intensity": 1.1
+          }
+        },
+        "SM_Mushroom_07": {
+          "stem": {
+            "color": "#ffe4cf",
+            "intensity": 1.1
+          }
+        },
+        "SM_Mushroom_08": {
+          "stem": {
+            "color": "#ffe4cf",
+            "intensity": 1.1
+          }
+        },
+        "SM_Mushroom_09": {
+          "stem": {
+            "color": "#ffe4cf",
+            "intensity": 1.1
+          }
+        },
+        "SM_Mushroom_10": {
+          "stem": {
+            "color": "#ffe4cf",
+            "intensity": 1.1
+          }
+        },
+        "SM_Mushroom_11": {
+          "stem": {
+            "color": "#ffe4cf",
+            "intensity": 1.1
+          }
+        },
+        "SM_Mushroom_12": {
+          "stem": {
+            "color": "#ffe4cf",
+            "intensity": 1.1
+          }
+        }
+      }
+    },
+    "grass": ["#ff64a8", "#79c846"],
+    "ground": "#f0bfd6",
+    "road": "#dbbeaa",
+    "foliage": "#e6a0cb",
+    "bark": "#e4dce8",
+    "flowers": "#fff4e8",
+    "stone": "#ffffff"
+  },
+  "spawn": {
+    "position": { "x": 512, "z": 384 },
+    "subject": {
+      "id": "pearl-cherry-tree",
+      "asset": "pink-tree",
+      "position": { "x": 512, "z": 550 },
+      "size": [198, 98, 166],
+      "footprint": [32, 27],
+      "groundingFootprint": [37, 32],
+      "assetGroundY": 1.0934512615203857,
+      "assetYawDegrees": -155,
+      "leaf": { "materials": ["Foliage_PBR_512"], "color": "#ff82a4", "intensity": 1.6, "textureBlend": 0 },
+      "bark": { "material": "Bark_PBR_512", "color": "#f2e9e1", "intensity": 1.1 }
+    }
+  },
+  "petals": {
+    "texture": "sakura-petal",
+    "count": 280,
+    "center": [0, 18, -95],
+    "extent": [96, 28, 210],
+    "sizeM": [0.45, 1.1],
+    "lifetimeSeconds": 22,
+    "fallSpeedMps": [0.3, 0.65],
+    "windMps": [0.7, 0, 0.25],
+    "flutterMps": 0.2,
+    "flutterWavelengthM": 3,
+    "spinDegreesPerSecond": [-45, 45],
+    "renderPriority": 1000,
+    "depthTest": false,
+    "color": "#ffffff",
+    "intensity": 1.15,
+    "emission": { "color": "#ff9dcc", "intensity": 4 }
+  },
+  "spawnPoi": {
+    "sizeWeight": [2, 3.4],
+    "landscape": {
+      "density": [1.7, 2.1],
+      "contexts.openland": [0.45, 0.55],
+      "edgeDensity": [0.42, 0.55],
+      "vegetation.shrubs": [0.16, 0.22]
+    },
+    "layout": {
+      "pattern": "connected",
+      "branchShape": "curve",
+      "elementProfile": "outcrop",
+      "roadMode": "backbone",
+      "curveHeadingDegrees": [82, 98],
+      "curveBendM": [18, 29],
+      "curveGapM": [46, 60],
+      "curveLateralVariationM": [2, 6],
+      "curveVariationScaleM": [65, 120],
+      "spacingMinM": [10, 18],
+      "spacingMaxM": [22, 35],
+      "widthMinM": [14, 20],
+      "widthMaxM": [25, 36],
+      "depthMinM": [13, 18],
+      "depthMaxM": [24, 34],
+      "heightMinM": [57, 59],
+      "heightMaxM": [63, 66],
+      "orientationVariation": [0.08, 0.25]
+    }
+  }
+}

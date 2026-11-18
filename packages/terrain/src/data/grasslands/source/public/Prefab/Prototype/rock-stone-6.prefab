@@ -1,0 +1,219 @@
+{
+  "version": "2.0",
+  "refs": [
+    {
+      "url": "Models/199b9ade0054b4da.glb",
+      "key": "meshes[2][0]"
+    },
+    {
+      "url": "Material/Surface/stone-56.mat"
+    },
+    {
+      "url": "Models/199b9ade0054b4da.glb",
+      "key": "meshes[0][0]"
+    },
+    {
+      "url": "Models/199b9ade0054b4da.glb",
+      "key": "meshes[1][0]"
+    },
+    {
+      "url": "/Script/TerrainPrototypeMetadata.ts"
+    }
+  ],
+  "entities": [
+    {
+      "name": "rock-stone-6",
+      "children": [
+        1,
+        2,
+        3
+      ],
+      "components": [
+        3
+      ]
+    },
+    {
+      "name": "rock-stone-6-lod0-Stone_6",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        0
+      ]
+    },
+    {
+      "name": "rock-stone-6-lod1-Stone_6_LOD0",
+      "position": [
+        0.000003662109293145477,
+        2.0503996722709417e-7,
+        -1.907348590179936e-8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        1
+      ]
+    },
+    {
+      "name": "rock-stone-6-lod2-Stone_6_LOD1",
+      "position": [
+        0.000003662109293145477,
+        2.0503996722709417e-7,
+        -1.907348590179936e-8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        2
+      ]
+    }
+  ],
+  "components": [
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 0
+        },
+        "castShadows": true,
+        "receiveShadows": true
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 2
+        },
+        "castShadows": true,
+        "receiveShadows": true
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 3
+        },
+        "castShadows": true,
+        "receiveShadows": true
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Script",
+      "script": 4,
+      "props": {
+        "geometry": {
+          "kind": "lod-group",
+          "lodGroup": {
+            "fadeMode": "CrossFade",
+            "animateCrossFading": true,
+            "localReferencePoint": [
+              -0.12760568,
+              1.8561685,
+              -0.015908957
+            ],
+            "size": 4.5188794,
+            "lods": [
+              {
+                "screenRelativeTransitionHeight": 0.30496978759765625,
+                "fadeTransitionWidth": 0,
+                "renderers": [
+                  {
+                    "entityPath": [
+                      0
+                    ],
+                    "componentIndex": 0
+                  }
+                ]
+              },
+              {
+                "screenRelativeTransitionHeight": 0.14976626634597778,
+                "fadeTransitionWidth": 0,
+                "renderers": [
+                  {
+                    "entityPath": [
+                      1
+                    ],
+                    "componentIndex": 0
+                  }
+                ]
+              },
+              {
+                "screenRelativeTransitionHeight": 0.028616007417440414,
+                "fadeTransitionWidth": 0,
+                "renderers": [
+                  {
+                    "entityPath": [
+                      2
+                    ],
+                    "componentIndex": 0
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "root": 0
+}

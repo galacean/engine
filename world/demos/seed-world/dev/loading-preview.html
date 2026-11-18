@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>World Bubble Loading Preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #071126;
+      }
+
+      #world-preview,
+      #loading-canvas,
+      #loading-ui {
+        position: fixed;
+        inset: 0;
+      }
+
+      #world-preview {
+        overflow: hidden;
+        background: radial-gradient(
+            circle at 72% 22%,
+            rgba(255, 244, 178, 0.9) 0 4%,
+            rgba(255, 205, 119, 0.28) 5%,
+            transparent 16%
+          ),
+          linear-gradient(180deg, #75d6e6 0%, #a8e6d0 54%, #499477 55%, #1c514d 100%);
+      }
+
+      #world-preview::before,
+      #world-preview::after {
+        position: absolute;
+        right: -12%;
+        bottom: -30%;
+        left: -12%;
+        height: 62%;
+        border-radius: 50% 58% 0 0;
+        background: #3d8d6d;
+        content: "";
+        transform: rotate(-4deg);
+      }
+
+      #world-preview::after {
+        right: -18%;
+        bottom: -43%;
+        left: 20%;
+        height: 70%;
+        background: #246856;
+        transform: rotate(8deg);
+      }
+
+      #loading-canvas {
+        z-index: 2;
+        display: block;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+
+      #loading-ui {
+        z-index: 3;
+        pointer-events: none;
+        transition: opacity 220ms ease;
+      }
+
+      #loading-ui[data-state="revealing"] {
+        opacity: 0;
+      }
+
+      .loading-card {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        transform: translate(-50%, -50%);
+      }
+
+      #loading-percent {
+        display: block;
+        color: #fff;
+        font-size: clamp(13px, 2.6vh, 28px);
+        font-variant-numeric: tabular-nums;
+        font-weight: 500;
+        letter-spacing: -0.04em;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="world-preview" aria-hidden="true"></div>
+    <canvas id="loading-canvas" aria-hidden="true"></canvas>
+    <div
+      id="loading-ui"
+      role="progressbar"
+      aria-label="World loading progress"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+    >
+      <div class="loading-card">
+        <output id="loading-percent">0%</output>
+      </div>
+    </div>
+    <script type="module">
+      import { WorldBubbleLoadingScene } from "/packages/terrain/src/terrain/loading/WorldBubbleLoadingScene.ts";
+
+      const canvas = document.querySelector("#loading-canvas");
+      const percent = document.querySelector("#loading-percent");
+      const loadingUi = document.querySelector("#loading-ui");
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const updateVisualProgress = (progress) => {
+        const progressPercent = Math.round(progress * 100);
+        percent.value = `${progressPercent}%`;
+        loadingUi.setAttribute("aria-valuenow", `${progressPercent}`);
+      };
+      const loading = await WorldBubbleLoadingScene.create(canvas, {
+        reducedMotion,
+        onVisualProgress: updateVisualProgress,
+        onRevealStart: () => {
+          loadingUi.dataset.state = "revealing";
+        }
+      });
+      const duration = reducedMotion ? 3600 : 8200;
+      const startTime = performance.now();
+      let revealStarted = false;
+
+      const animateProgress = (time) => {
+        const elapsed = Math.min((time - startTime) / duration, 1);
+        const progress = elapsed * elapsed * (3 - 2 * elapsed);
+        loading.setProgress(progress);
+
+        if (elapsed < 1) {
+          requestAnimationFrame(animateProgress);
+        } else if (!revealStarted) {
+          revealStarted = true;
+          window.setTimeout(
+            async () => {
+              await loading.reveal();
+              loading.destroy();
+              canvas.remove();
+            },
+            reducedMotion ? 100 : 420
+          );
+        }
+      };
+
+      requestAnimationFrame(animateProgress);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,124 @@
+import { afterEach, expect, it, vi } from "vitest";
+import { RuntimeProjectEdit } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
+import {
+  RUNTIME_PROJECT_SAVE_VERSION,
+  type RuntimeProjectPackage
+} from "@galacean/engine-project/runtime-editor/project/runtime-project";
+import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
+import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
+import {
+  planningSourceDocument,
+  validatePlanningProject,
+  writePlanningProjectSource
+} from "../../demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource";
+
+afterEach(() => vi.restoreAllMocks());
+function fixture(): RuntimeProjectPackage {
+  const pack: RuntimeProjectPackage = {
+    version: RUNTIME_PROJECT_SAVE_VERSION,
+    project: {
+      scene: "Main.scene",
+      files: [
+        { virtualPath: "Main.scene", path: "Main.scene", type: "Scene" },
+        { virtualPath: "host", path: "host", type: "Host" }
+      ]
+    },
+    contents: {
+      "Main.scene": JSON.stringify({
+        asset: { version: "2.0" },
+        scene: { rootEntities: [] },
+        entities: [],
+        components: []
+      }),
+      host: "time:1"
+    }
+  };
+  const draft = new RuntimeProjectEdit(
+    pack,
+    new Map([...nativeAssetFormats(() => ({})), ["Host", { validate() {}, references: () => [], referenceTypes: [] }]])
+  );
+  writePlanningProjectSource(draft, "Main.scene", createSeedPlanningDocument(1));
+  return draft.finish();
+}
+
+it("reuses parsed Source for host-only edits and isolates returned documents", () => {
+  const pack = fixture(),
+    read = vi.spyOn(RuntimeProjectEdit.prototype, "preview");
+  const first = planningSourceDocument(pack)!;
+  const count = read.mock.calls.length;
+  expect(count).toBeGreaterThan(0);
+  first.revision = 12345;
+  pack.contents.host = "time:2";
+  expect(planningSourceDocument(pack)!.revision).not.toBe(12345);
+  expect(read.mock.calls.length).toBe(count);
+  validatePlanningProject(pack);
+  const source = JSON.parse(pack.contents[pack.project.scene] as string);
+  source.components.find((c: any) => c.type === "PlanningGroundWind").props.windEnabled = "invalid";
+  pack.contents[pack.project.scene] = JSON.stringify(source);
+  expect(() => validatePlanningProject(pack)).toThrow();
+});
+
+it("invalidates on restored Source and import markers, including prior failures", () => {
+  const pack = fixture(),
+    original = pack.contents[pack.project.scene];
+  expect(planningSourceDocument(pack)).toBeDefined();
+  pack.contents[pack.project.scene] = JSON.stringify({
+    asset: { version: "2.0" },
+    scene: { rootEntities: [] },
+    entities: [],
+    components: []
+  });
+  expect(planningSourceDocument(pack)).toBeUndefined();
+  pack.documents = { [`${pack.project.scene}.planning-source.json`]: '{"version":2}' };
+  expect(() => validatePlanningProject(pack)).toThrow("requires a PlanningProjectAuthoring owner");
+  pack.contents[pack.project.scene] = original;
+  expect(() => validatePlanningProject(pack)).not.toThrow();
+  expect(planningSourceDocument(pack)).toBeDefined();
+});
+
+it("does not write or dirty an unchanged Scene, including formatted Source", () => {
+  const pack = fixture();
+  pack.contents[pack.project.scene] = JSON.stringify(JSON.parse(pack.contents[pack.project.scene] as string), null, 2);
+  const draft = new RuntimeProjectEdit(
+    pack,
+    nativeAssetFormats(() => ({}))
+  );
+  const update = vi.spyOn(draft, "update");
+  writePlanningProjectSource(draft, pack.project.scene, planningSourceDocument(pack)!);
+  expect(update).not.toHaveBeenCalled();
+  expect(draft.changed.size).toBe(0);
+  expect(draft.read(pack.project.scene)).toBe(pack.contents[pack.project.scene]);
+});
+
+it("writes one final Scene for multiple component changes, retaining unrelated properties and validation", () => {
+  const pack = fixture();
+  const source = JSON.parse(pack.contents[pack.project.scene] as string);
+  const owner = source.components.find((c: any) => c.type === "PlanningProjectAuthoring");
+  owner.props.unowned = { keep: true };
+  pack.contents[pack.project.scene] = JSON.stringify(source);
+  const document = planningSourceDocument(pack)!;
+  document.revision++;
+  document.authoredResources = [
+    {
+      resourceId: "test-brush",
+      resourceType: "terrain-patch",
+      properties: { x: 500, z: 500, radiusMetres: 20, heightDeltaMetres: 1 }
+    }
+  ];
+  const draft = new RuntimeProjectEdit(
+    pack,
+    nativeAssetFormats(() => ({}))
+  );
+  const update = vi.spyOn(draft, "update");
+  writePlanningProjectSource(draft, pack.project.scene, document);
+  expect(update).toHaveBeenCalledTimes(1);
+  const next = draft.preview();
+  expect(planningSourceDocument(next)!.authoredResources).toEqual(document.authoredResources);
+  expect(
+    JSON.parse(next.contents[pack.project.scene] as string).components.find((c: any) => c.id === owner.id).props.unowned
+  ).toEqual({ keep: true });
+  expect(() => validatePlanningProject(next)).not.toThrow();
+  update.mockClear();
+  writePlanningProjectSource(draft, pack.project.scene, planningSourceDocument(next)!);
+  expect(update).not.toHaveBeenCalled();
+});

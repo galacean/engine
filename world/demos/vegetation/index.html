@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>地形地表素材校验</title>
+  </head>
+  <body data-state="loading" data-view="atoms">
+    <canvas id="canvas" aria-label="Asset Assembly viewport"></canvas>
+
+    <header class="hero">
+      <p>Terrain / Production asset validation</p>
+      <h1>Asset Assembly</h1>
+      <div class="hero__signal"><span></span>左侧基础株 · 前矮后高 · 右侧同排实例</div>
+    </header>
+
+    <nav class="view-toolbar" aria-label="Asset Assembly view">
+      <label>
+        <span>STYLE</span>
+        <select id="style" disabled>
+          <option value="cartoon">Cartoon</option>
+        </select>
+      </label>
+      <div class="segmented">
+        <button type="button" data-view="atoms" data-active="true">场景资源</button>
+        <button type="button" data-view="assembled">植被参数</button>
+        <button type="button" data-view="meadow">全部植被</button>
+        <button type="button" data-view="landscape">自然植被</button>
+      </div>
+    </nav>
+
+    <aside class="landscape-panel" aria-label="自然植被生成">
+      <div class="control-panel__title"><div><small>NATURAL VEGETATION</small><strong>自然植被生成</strong></div><button type="button" data-landscape-collapse>收起规则</button></div>
+      <div class="landscape-panel__body">
+      <p class="leaf-mask-status">低草连片铺底，杂草与灌木不规则成丛；贴近接缝生长，保留主体和行走视线。</p>
+      <label class="control"><span>视觉中心示例</span><select aria-label="视觉中心示例" data-landscape-example>
+        <option value="building">小屋建筑</option><option value="tree">主景树</option><option value="rock">岩石</option>
+      </select></label>
+      <label class="control"><span>场景状态</span><select aria-label="场景状态" data-landscape-story><option value="inhabited">常有人走的小路</option><option value="abandoned">荒废后的草木回生</option></select></label>
+      <label class="control"><span>生成种子</span><input aria-label="生成种子" data-landscape-seed type="number" min="0" max="4294967295" step="1" value="1729"></label>
+      <button type="button" data-landscape-generate>生成自然植被</button>
+      <details><summary>场景意图</summary>
+        <p class="leaf-mask-status">接收上层生成的布局、植被配色与光照参数；应用时保持当前观察位置。</p>
+        <textarea aria-label="场景意图参数" data-scene-direction rows="12" spellcheck="false" placeholder="粘贴上层生成的场景意图参数"></textarea>
+        <button type="button" data-scene-direction-apply>应用场景意图</button>
+        <button type="button" data-scene-direction-reset>恢复原场景</button>
+      </details>
+      <output data-scene-direction-evidence aria-live="polite"></output>
+      <label class="control"><span>观察位置</span><select aria-label="观察位置" data-landscape-view></select></label>
+      <label class="control"><span>草地铺底对比</span><select aria-label="草地铺底对比" data-landscape-grass>
+        <option value="mixed">混合 · 面片草 + 1729 草</option><option value="cards">面片草</option><option value="mesh" selected>1729 原版草 · Seed World</option>
+      </select></label>
+      <p class="leaf-mask-status">1729 草与地皮共用世界空间颜色遮罩；草连续铺底，路肩柔和过渡。切换草种保持当前视角。</p>
+      <label class="control"><span>显示植被（关闭可查看原始接缝）</span><input type="checkbox" aria-label="显示植被" data-landscape-vegetation checked></label>
+      <output data-landscape-summary aria-live="polite"></output>
+      <output data-landscape-rendering aria-label="植被渲染统计"></output>
+      <p class="leaf-mask-status">近处更密，远处保留连续草底；墙脚、石边与少受踩踏的角落聚集草木，路肩渐变。视角切换不会重排植被。</p>
+      <p class="leaf-mask-status">小屋为体量示意；树木与岩石复用当前资源。真实主体由上层场景提供。</p>
+      <details><summary>上层环境输入</summary>
+        <p class="leaf-mask-status">米制世界坐标，Y 向上。可编辑区域、焦点及其可见部位、多个观景点、禁种区域、通路及路肩、接缝、活动影响区和各层植被规则。</p>
+        <textarea aria-label="上层环境输入 JSON" data-landscape-request rows="14" spellcheck="false"></textarea>
+        <button type="button" data-landscape-apply>应用环境输入</button>
+      </details>
+      <p class="field-error" data-landscape-error role="alert" hidden></p>
+      </div>
+    </aside>
+
+    <aside class="meadow-panel" aria-label="统一植被陈列">
+      <div class="control-panel__title"><div><small>VEGETATION</small><strong>统一植被展场</strong></div></div>
+      <label class="control"><span>类别</span><select data-meadow-category aria-label="植被类别"><option value="">全部类别</option></select></label>
+      <label class="control"><span>定位主植物</span><select data-meadow-asset aria-label="主植物"></select></label>
+      <label class="control"><span>细节级别</span><select data-meadow-lod aria-label="植被细节级别"></select></label>
+      <button type="button" data-meadow-overview>查看当前分类全景</button>
+      <output aria-live="polite"></output>
+      <div class="plant-drawcalls" data-meadow-drawcalls></div>
+      <section data-meadow-textures aria-label="当前植被贴图"></section>
+      <p class="leaf-mask-status">保留默认相对比例，统一展示缩放。地面每格 5 米。所选 LOD 作用于导入植被，原有可调树木沿用独立 LOD 控制。</p>
+      <p class="leaf-mask-status">独立灰度＋Alpha 图，最长边 256。明暗、轮廓与材质颜色分开控制。法线和 UV 仍有待修正项。</p>
+      <a data-meadow-download hidden>下载当前参数 JSON</a>
+      <a href="?view=procedural-plants&amp;library=meadow">单体参数预览</a>
+    </aside>
+
+    <details class="terrain-layer-swatches" aria-label="Seed World terrain texture layers">
+      <summary>地表材质 · GRASS / MUD</summary>
+      <div class="terrain-layer-swatches__grid">
+        <figure>
+          <img src="../../../packages/terrain/src/data/seed-world/public/textures/terrain-grass-2.png" alt="Grass 2 terrain texture" />
+          <figcaption><strong>00 · GRASS 2</strong><span>grass surface / sRGB</span></figcaption>
+        </figure>
+        <figure>
+          <img src="../../../packages/terrain/src/data/seed-world/public/textures/terrain-mud-2.png" alt="Mud 2 terrain texture" />
+          <figcaption><strong>01 · MUD 2</strong><span>river · slope · road / sRGB</span></figcaption>
+        </figure>
+      </div>
+    </details>
+
+    <aside class="control-panel" aria-label="Assembled asset controls">
+      <div class="control-panel__title">
+        <div><small>POPULATION TOKENS</small><strong>植被参数与材质</strong></div>
+      </div>
+
+      <div id="asset-panels" class="asset-panels">
+        <p class="leaf-mask-status">与全部植被共用同一展场。锥形针叶乔木、团簇灌木可在此修改。Size 100% 为默认尺寸。</p>
+        <details class="asset-panel" data-category="tree">
+          <summary><span>乔木</span><output data-summary></output></summary>
+          <div class="asset-panel__body">
+            <div class="panel-actions">
+              <span>POPULATION TOKEN</span><button data-action="new-seed">NEW SEED</button>
+            </div>
+            <label class="control seed-control"
+              ><span>Population token (pt1)</span><textarea data-field="token" rows="3"></textarea>
+            </label>
+            <p class="field-error" data-seed-error hidden></p>
+            <label class="control"
+              ><span>基础树形</span
+              ><select data-field="asset"></select
+            ></label>
+            <label class="control"
+              ><span>Size <output data-output="size"></output></span><input data-field="size" type="number" step="1"
+            /></label>
+            <label class="color-control"><span>Color</span><input data-field="color" type="color" /></label>
+            <div class="material-control-group leaf-texture-control">
+              <strong>LEAF TEXTURE / 树叶贴图</strong>
+              <label class="control"
+                ><span>预设贴图</span
+                ><select data-field="leaf-mask" aria-label="Tree leaf Alpha-Test mask"></select
+              ></label>
+              <label class="control file-control"
+                ><span>上传贴图 · PNG / WebP</span
+                ><input data-field="leaf-mask-file" aria-label="上传树叶贴图" type="file"
+                  accept=".png,.webp,image/png,image/webp"
+              /></label>
+              <img class="leaf-texture-preview" data-leaf-texture-preview alt="当前自定义树叶贴图" hidden />
+              <p class="leaf-mask-status" data-leaf-mask-status aria-live="polite"></p>
+              <button data-action="reset-leaf-texture" type="button">恢复默认贴图</button>
+              <p class="leaf-mask-status">透明区域裁切叶片，颜色叠加现有材质。仅本次预览生效，刷新恢复默认。</p>
+              <p class="field-error" data-leaf-mask-error role="alert" hidden></p>
+            </div>
+            <div class="material-control-group">
+              <strong>TRUNK PBR MATERIAL / 树干材质</strong>
+              <label class="color-control"
+                ><span>Base Color / 基础色</span><input data-field="trunk-base-color" type="color" value="#ffffff"
+              /></label>
+              <label class="control"
+                ><span>UV Tiling / 贴图平铺 <output data-output="trunk-tiling"></output></span
+                ><input data-field="trunk-tiling" type="number" min="0.01" max="64" step="0.01" value="1"
+              /></label>
+              <label class="control"
+                ><span>Normal Strength / 法线强度 <output data-output="trunk-normal-strength"></output></span
+                ><input data-field="trunk-normal-strength" type="number" min="0" max="8" step="0.05" value="1"
+              /></label>
+              <label class="control"
+                ><span>Smoothness / 光滑度 <output data-output="trunk-smoothness"></output></span
+                ><input data-field="trunk-smoothness" type="number" min="0" max="1" step="0.01" value="0.15"
+              /></label>
+              <label class="control"
+                ><span>Metallic / 金属度 <output data-output="trunk-metallic"></output></span
+                ><input data-field="trunk-metallic" type="number" min="0" max="1" step="0.01" value="0"
+              /></label>
+              <label class="color-control"
+                ><span>Gradient bottom color / 渐变底部色</span
+                ><input data-field="trunk-gradient-bottom-color" type="color" value="#ffffff"
+              /></label>
+              <label class="control"
+                ><span
+                  >Bottom color strength / 底部颜色强度
+                  <output data-output="trunk-gradient-bottom-strength"></output></span
+                ><input
+                  data-field="trunk-gradient-bottom-strength"
+                  type="number"
+                  min="0"
+                  max="8"
+                  step="0.01"
+                  value="0"
+                /></label>
+              <label class="color-control"
+                ><span>Gradient top color / 渐变顶部色</span
+                ><input data-field="trunk-gradient-top-color" type="color" value="#000000"
+              /></label>
+              <label class="control"
+                ><span
+                  >Top color strength / 顶部颜色强度
+                  <output data-output="trunk-gradient-top-strength"></output></span
+                ><input
+                  data-field="trunk-gradient-top-strength"
+                  type="number"
+                  min="0"
+                  max="8"
+                  step="0.01"
+                  value="0"
+                /></label>
+              <div class="population-card">
+                <strong>BASE TEXTURE + NORMAL TEXTURE</strong>
+                <p data-procedural-trunk-material-metrics></p>
+              </div>
+            </div>
+            <div class="material-control-group leaf-material-mode">
+              <strong>LEAF ORIENTATION CHECK / 叶片朝向校验</strong>
+              <div class="segmented" role="group" aria-label="Tree leaf display mode">
+                <button data-leaf-display-mode="material" data-active="true">LEAF MATERIAL / 材质</button>
+                <button data-leaf-display-mode="raw-cards" data-active="false">RAW CARDS / 纯方片</button>
+                <button data-leaf-display-mode="vertex-normals" data-active="false">
+                  VERTEX NORMALS / 顶点法线
+                </button>
+              </div>
+              <p data-leaf-material-status>Textured Alpha-Test leaf material is visible.</p>
+            </div>
+            <div class="material-control-group">
+              <strong>MOBILE CANOPY OCCLUSION / 移动端树冠遮蔽</strong>
+              <label class="check-control"
+                ><input
+                  data-field="canopy-occlusion-enabled"
+                  aria-label="Tree canopy occlusion enabled"
+                  type="checkbox"
+                  checked
+                /><span>Generator optical depth / 生成器光学厚度</span></label
+              >
+              <label class="control"
+                ><span>Occlusion coefficient k / 遮蔽系数 k <output data-output="canopy-occlusion-density"></output></span
+                ><input
+                  data-field="canopy-occlusion-density"
+                  aria-label="Tree canopy occlusion density"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value="0.23"
+              /></label>
+              <label class="color-control"
+                ><span>Occlusion tint / 遮蔽颜色 <output data-output="canopy-occlusion-color">#ffffff</output></span
+                ><input
+                  data-field="canopy-occlusion-color"
+                  aria-label="Tree canopy occlusion color"
+                  type="color"
+                  value="#ffffff"
+              /></label>
+              <div class="population-card">
+                <strong>NO LEAF SHADOWCASTER · SHARED PER BASE TREE</strong>
+                <p>Ambient visibility / 环境可见度 = exp(-k · optical depth τ)</p>
+                <p data-procedural-canopy-occlusion-metrics></p>
+              </div>
+            </div>
+            <div class="material-control-group tree-distribution-controls">
+              <div class="distribution-heading">
+                <strong>TREE RANDOM DISTRIBUTION / 树形随机分布</strong>
+                <button type="button" data-action="reset-tree-distribution">RESET</button>
+              </div>
+              <label class="control"
+                ><span>Geometry seed / 树形种子</span
+                ><span class="seed-input-row"
+                  ><input
+                    data-field="tree-geometry-seed"
+                    aria-label="Procedural tree geometry seed"
+                    type="number"
+                    min="0"
+                    max="4294967295"
+                    step="1"
+                  /><button type="button" data-action="new-tree-geometry-seed">NEW</button></span
+                ></label
+              >
+              <p class="field-error" data-tree-distribution-error hidden></p>
+              <p class="distribution-help">修改后同步重建普通树与七棵随机树的共享基树；不会改变场景种群位置。</p>
+
+              <details class="distribution-section" open>
+                <summary>TRUNK / 树干</summary>
+                <div class="distribution-grid">
+                  <label class="control"
+                    ><span>Trunk stems / 主干数</span
+                    ><input data-field="tree-trunk-count" type="number" min="1" max="8" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Height variation %</span
+                    ><input data-field="tree-height-variation" type="number" min="0" max="100" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Trunk clear height / tree height % / 裸干高度</span
+                    ><input data-field="tree-trunk-clear-height" type="number" min="0" max="95" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Trunk radius / height % / 树干粗度</span
+                    ><input data-field="tree-trunk-radius" type="number" min="0.02" max="100" step="0.01" />
+                  </label>
+                  <label class="control"
+                    ><span>Radius random variation % / 半径随机波动</span
+                    ><input data-field="tree-trunk-radius-variation" type="number" min="0" max="100" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Curve variation °</span
+                    ><input data-field="tree-trunk-curve-variation" type="number" min="0" max="360" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Split angle °</span
+                    ><input data-field="tree-trunk-split-angle" type="number" min="0" max="180" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Split variation °</span
+                    ><input data-field="tree-trunk-split-variation" type="number" min="0" max="180" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Azimuth step °</span
+                    ><input data-field="tree-trunk-rotate" type="number" min="-360" max="360" step="0.5"
+                  /></label>
+                  <label class="control"
+                    ><span>Azimuth variation °</span
+                    ><input data-field="tree-trunk-rotate-variation" type="number" min="0" max="180" step="1"
+                  /></label>
+                </div>
+              </details>
+
+              <details class="distribution-section" open>
+                <summary>PRIMARY BRANCHES / 主枝</summary>
+                <div class="distribution-grid">
+                  <label class="control"
+                    ><span>Branch budget / 数量</span
+                    ><input data-field="tree-branch-count" type="number" min="1" max="512" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Mean length / 父枝长度 %</span
+                    ><input data-field="tree-branch-length" type="number" min="1" max="200" step="0.5"
+                  /></label>
+                  <label class="control"
+                    ><span>Maximum / 树高 %</span
+                    ><input data-field="tree-branch-maximum-length" type="number" min="1" max="200" step="0.5"
+                  /></label>
+                  <label class="control"
+                    ><span>Length variation %</span
+                    ><input data-field="tree-branch-length-variation" type="number" min="0" max="100" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Curve variation °</span
+                    ><input data-field="tree-branch-curve-variation" type="number" min="0" max="360" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Upward attraction / 向上趋性</span
+                    ><input data-field="tree-branch-attraction-up" type="number" min="-5" max="5" step="0.05"
+                  /></label>
+                  <label class="control"
+                    ><span>Azimuth step °</span
+                    ><input data-field="tree-branch-rotate" type="number" min="-360" max="360" step="0.5"
+                  /></label>
+                  <label class="control"
+                    ><span>Azimuth variation °</span
+                    ><input data-field="tree-branch-rotate-variation" type="number" min="0" max="180" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Down angle °</span
+                    ><input data-field="tree-branch-down-angle" type="number" min="-180" max="180" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Down variation °</span
+                    ><input data-field="tree-branch-down-variation" type="number" min="-180" max="180" step="1"
+                  /></label>
+                </div>
+              </details>
+
+              <details class="distribution-section">
+                <summary>TWIGS / 细枝</summary>
+                <div class="distribution-grid">
+                  <label class="control"
+                    ><span>Twig budget / 数量</span
+                    ><input data-field="tree-twig-count" type="number" min="0" max="512" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Mean length / 父枝长度 %</span
+                    ><input data-field="tree-twig-length" type="number" min="1" max="200" step="0.5"
+                  /></label>
+                  <label class="control"
+                    ><span>Maximum / 树高 %</span
+                    ><input data-field="tree-twig-maximum-length" type="number" min="1" max="200" step="0.5"
+                  /></label>
+                  <label class="control"
+                    ><span>Length variation %</span
+                    ><input data-field="tree-twig-length-variation" type="number" min="0" max="100" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Curve variation °</span
+                    ><input data-field="tree-twig-curve-variation" type="number" min="0" max="360" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Upward attraction / 向上趋性</span
+                    ><input data-field="tree-twig-attraction-up" type="number" min="-5" max="5" step="0.05"
+                  /></label>
+                  <label class="control"
+                    ><span>Attachment end / 父枝末端 %</span
+                    ><input data-field="tree-twig-attachment-end" type="number" min="0" max="100" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Azimuth step °</span
+                    ><input data-field="tree-twig-rotate" type="number" min="-360" max="360" step="0.5"
+                  /></label>
+                  <label class="control"
+                    ><span>Azimuth variation °</span
+                    ><input data-field="tree-twig-rotate-variation" type="number" min="0" max="180" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Down angle °</span
+                    ><input data-field="tree-twig-down-angle" type="number" min="-180" max="180" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Down variation °</span
+                    ><input data-field="tree-twig-down-variation" type="number" min="-180" max="180" step="1"
+                  /></label>
+                </div>
+              </details>
+
+              <details class="distribution-section" open>
+                <summary>LEAVES / 树叶</summary>
+                <div class="distribution-grid">
+                  <label class="control distribution-wide"
+                    ><span>Crown distribution / 冠层分布</span
+                    ><select data-field="tree-leaf-distribution">
+                      <option value="0">0 · Conical</option>
+                      <option value="1">1 · Spherical</option>
+                      <option value="2">2 · Hemispherical</option>
+                      <option value="3">3 · Cylindrical</option>
+                      <option value="4">4 · Tapered cylindrical</option>
+                      <option value="5">5 · Flame</option>
+                      <option value="6">6 · Inverse conical</option>
+                      <option value="7">7 · Tend flame</option>
+                    </select></label
+                  >
+                  <label class="control"
+                    ><span>Down angle °</span
+                    ><input data-field="tree-leaf-down-angle" type="number" min="-180" max="180" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Down variation °</span
+                    ><input data-field="tree-leaf-down-variation" type="number" min="-180" max="180" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Phyllotaxis step °</span
+                    ><input data-field="tree-leaf-rotate" type="number" min="-360" max="360" step="0.5"
+                  /></label>
+                  <label class="control"
+                    ><span>Rotation variation °</span
+                    ><input data-field="tree-leaf-rotate-variation" type="number" min="0" max="180" step="1"
+                  /></label>
+                  <label class="control distribution-wide"
+                    ><span>Leaf spacing % / 叶片距离（0 = 原始聚簇，100 = 最大分离）</span
+                    ><input data-field="tree-leaf-spacing" type="number" min="0" max="100" step="1"
+                  /></label>
+                  <label class="control"
+                    ><span>Scale variation %</span
+                    ><input data-field="tree-leaf-scale-variation" type="number" min="0" max="100" step="1"
+                  /></label>
+                  <label class="control distribution-wide"
+                    ><span>Crown normal blend % / 树冠向外法线混合</span
+                    ><input data-field="tree-leaf-normal-crown-blend" type="number" min="0" max="100" step="1"
+                  /></label>
+                </div>
+              </details>
+
+              <details class="distribution-section tree-node-editor" open>
+                <summary>NODE PARAMETERS / 逐枝逐叶参数</summary>
+                <p class="distribution-help">
+                  严格按主干 → 一级枝 → 二级枝 → 每片叶子排列。这里编辑的是可存入 pt1
+                  的程序化节点参数，不是网格或烘焙数据。
+                </p>
+                <label class="control distribution-wide"
+                  ><span>Editable node / 可编辑节点</span
+                  ><select data-field="tree-node-id"></select
+                ></label>
+                <label class="control seed-control distribution-wide"
+                  ><span>Complete node parameters / 完整节点参数</span
+                  ><textarea data-field="tree-node-json" rows="14" spellcheck="false"></textarea>
+                </label>
+                <div class="panel-actions">
+                  <span data-tree-node-counts></span
+                  ><button type="button" data-action="apply-tree-node">APPLY NODE</button>
+                </div>
+                <p class="field-error" data-tree-node-error hidden></p>
+              </details>
+
+              <div class="face-count-card">
+                <strong>TRIANGLE FACES PER TREE / 单树三角面</strong>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>LOD</th>
+                      <th>TRUNK + BRANCH</th>
+                      <th>LEAF CARDS</th>
+                      <th>TOTAL</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <th>0</th>
+                      <td><output data-output="tree-faces-lod0-trunk"></output></td>
+                      <td><output data-output="tree-faces-lod0-leaf"></output></td>
+                      <td><output data-output="tree-faces-lod0-total"></output></td>
+                    </tr>
+                    <tr>
+                      <th>1</th>
+                      <td><output data-output="tree-faces-lod1-trunk"></output></td>
+                      <td><output data-output="tree-faces-lod1-leaf"></output></td>
+                      <td><output data-output="tree-faces-lod1-total"></output></td>
+                    </tr>
+                    <tr>
+                      <th>2</th>
+                      <td><output data-output="tree-faces-lod2-trunk"></output></td>
+                      <td><output data-output="tree-faces-lod2-leaf"></output></td>
+                      <td><output data-output="tree-faces-lod2-total"></output></td>
+                    </tr>
+                    <tr>
+                      <th>3</th>
+                      <td><output data-output="tree-faces-lod3-trunk"></output></td>
+                      <td><output data-output="tree-faces-lod3-leaf"></output></td>
+                      <td><output data-output="tree-faces-lod3-total"></output></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <label class="control"
+              ><span>Leaf length <output data-output="leaf-length"></output></span
+              ><input
+                data-field="leaf-length"
+                aria-label="Tree leaf length"
+                type="range"
+                min="25"
+                max="300"
+                step="5"
+                value="65"
+            /></label>
+            <label class="control"
+              ><span>Leaf width <output data-output="leaf-width"></output></span
+              ><input
+                data-field="leaf-width"
+                aria-label="Tree leaf width"
+                type="range"
+                min="25"
+                max="300"
+                step="5"
+                value="100"
+            /></label>
+            <label class="control"
+              ><span>Leaf fold / 折角调整 <output data-output="leaf-fold"></output></span
+              ><input data-field="leaf-fold" aria-label="树叶折角调整" type="range" min="-90" max="90" step="1" value="0"
+            /></label>
+            <p class="leaf-mask-status">0° 保留原有折角；正负值沿中脊向相反方向折叠。</p>
+            <button type="button" data-action="reset-leaf-fold">恢复原有折角</button>
+            <div class="material-control-group">
+              <strong>LEAF CARD POPULATION · EXACT PER TREE</strong>
+              <label class="control"
+                ><span>LOD0 cards</span
+                ><input
+                  data-field="leaf-count-lod0"
+                  aria-label="Tree leaf cards LOD0"
+                  type="number"
+                  step="1"
+                  value="250"
+              /></label>
+              <label class="control"
+                ><span>LOD1 cards</span
+                ><input
+                  data-field="leaf-count-lod1"
+                  aria-label="Tree leaf cards LOD1"
+                  type="number"
+                  step="1"
+                  value="180"
+              /></label>
+              <label class="control"
+                ><span>LOD2 cards</span
+                ><input
+                  data-field="leaf-count-lod2"
+                  aria-label="Tree leaf cards LOD2"
+                  type="number"
+                  step="1"
+                  value="48"
+              /></label>
+              <label class="control"
+                ><span>LOD3 cards</span
+                ><input
+                  data-field="leaf-count-lod3"
+                  aria-label="Tree leaf cards LOD3"
+                  type="number"
+                  step="1"
+                  value="32"
+              /></label>
+              <label class="check-control"
+                ><input data-field="leaf-cast-shadows" type="checkbox" /><span
+                  >Leaf cards cast shadows / 叶片投射阴影</span
+                ></label
+              >
+              <div class="population-card">
+                <strong>ONE MASK CAN CONTAIN MULTIPLE SILHOUETTES</strong>
+                <p>
+                  Card count controls geometry; the mask controls how many visible leaf shapes each card contributes.
+                </p>
+              </div>
+            </div>
+            <label class="control"
+              ><span>BillboardSize <output data-output="billboard-size"></output></span
+              ><input data-field="billboard-size" aria-label="Tree BillboardSize" type="number" step="0.1" value="4"
+            /></label>
+            <label class="control"
+              ><span>BillboardsScale <output data-output="billboards-scale"></output></span
+              ><input
+                data-field="billboards-scale"
+                aria-label="Tree BillboardsScale"
+                type="number"
+                step="0.1"
+                value="22"
+            /></label>
+            <label class="control"
+              ><span>Inflate <output data-output="inflate"></output></span
+              ><input data-field="inflate" aria-label="Tree Inflate" type="number" step="0.1" value="1"
+            /></label>
+            <div class="material-control-group">
+              <strong>PBR LEAF COLOR LAYERS · TRANSMISSION</strong>
+              <label class="color-control"
+                ><span>Base albedo / 主色</span><input data-field="leaf-base-color" type="color" value="#5fbb41"
+              /></label>
+              <label class="color-control"
+                ><span>Second albedo / 次色</span><input data-field="leaf-second-color" type="color" value="#c5ff5a"
+              /></label>
+                <label class="control"
+                  ><span>Second color level <output data-output="second-color-level"></output></span
+                  ><input data-field="second-color-level" type="number" step="0.1" value="0"
+                /></label>
+                <label class="control"
+                  ><span>Second color gradient <output data-output="second-color-gradient"></output></span
+                  ><input data-field="second-color-gradient" type="number" step="0.01" value="-5"
+                /></label>
+                <label class="control"
+                  ><span>Albedo brightness <output data-output="albedo-brightness"></output></span
+                  ><input data-field="albedo-brightness" type="number" min="0" max="5" step="0.05" value="1"
+                /></label>
+                <label class="control"
+                  ><span>Albedo desaturation <output data-output="albedo-desaturation"></output></span
+                  ><input data-field="albedo-desaturation" type="number" min="0" max="1" step="0.01" value="1"
+                /></label>
+                <label class="control"
+                  ><span>Texture overlay <output data-output="albedo-texture-blend"></output></span
+                  ><input data-field="albedo-texture-blend" type="number" min="0" max="1" step="0.01" value="1"
+                /></label>
+                <label class="control"
+                  ><span>Canopy occlusion <output data-output="base-ao-influence"></output></span
+                  ><input data-field="base-ao-influence" type="number" min="0" max="1" step="0.01" value="0.4"
+                /></label>
+                <label class="control"
+                  ><span>Glancing angle cut <output data-output="glancing-angle-cut"></output></span
+                  ><input data-field="glancing-angle-cut" type="number" min="0" max="1" step="0.01" value="0.8"
+                /></label>
+                <label class="check-control"
+                  ><input data-field="flip-backface-normals" type="checkbox" /><span
+                    >Flip backface normals / 背面法线翻转</span
+                  ></label
+                >
+                <label class="color-control"
+                  ><span>Transmission tint / 透光色</span
+                  ><input data-field="translucency-color" type="color" value="#eee291"
+                /></label>
+                <label class="control"
+                  ><span>Translucency intensity <output data-output="translucency-intensity"></output></span
+                  ><input data-field="translucency-intensity" type="number" min="0" max="50" step="0.1" value="15"
+                /></label>
+              <label class="control"
+                ><span>Transmission AO <output data-output="translucency-ao-influence"></output></span
+                ><input data-field="translucency-ao-influence" type="number" min="0" max="1" step="0.01" value="0.9"
+              /></label>
+              <label class="control"
+                ><span>Normal distortion <output data-output="normal-distortion"></output></span
+                ><input data-field="normal-distortion" type="number" min="0" max="1" step="0.01" value="0"
+              /></label>
+              <label class="control"
+                ><span>Scattering exponent <output data-output="scattering-exponent"></output></span
+                ><input data-field="scattering-exponent" type="number" min="1" max="50" step="0.1" value="10"
+              /></label>
+              <label class="control"
+                ><span>Direct strength <output data-output="direct-strength"></output></span
+                ><input data-field="direct-strength" type="number" min="0" max="1" step="0.01" value="0.2"
+              /></label>
+              <label class="control"
+                ><span>Ambient strength <output data-output="ambient-strength"></output></span
+                ><input data-field="ambient-strength" type="number" min="0" max="1" step="0.01" value="0.1"
+              /></label>
+              <label class="control"
+                ><span>Shadow response <output data-output="shadow-strength"></output></span
+                ><input data-field="shadow-strength" type="number" min="0" max="1" step="0.01" value="0.95"
+              /></label>
+              <div class="population-card">
+                <strong>OVERLAY ALBEDO · VIEW-ALIGNED SCATTERING · ZERO EMISSION</strong>
+                <p data-procedural-leaf-lighting-metrics></p>
+              </div>
+            </div>
+            <div class="population-card">
+              <strong>PROCEDURAL TREE · ALPHA-TEST LEAVES</strong>
+              <p data-procedural-tree-metrics></p>
+            </div>
+            <div class="lod-controls">
+              <label class="check-control"
+                ><input data-field="auto-lod" type="checkbox" checked /><span>Automatic distance</span></label
+              >
+              <label class="control"
+                ><span>Preview distance <output data-output="lod-distance"></output></span
+                ><input data-field="lod-distance" type="range" min="0" max="100" step="0.5" disabled
+              /></label>
+              <button data-action="step-lod">STEP DISTANCE</button>
+            </div>
+            <div class="asset-runtime-actions">
+              <button data-action="play-entrance" type="button">PLAY ENTRANCE</button>
+              <div class="segmented">
+                <button data-batch-count="1" data-active="true" type="button">STANDARD</button
+                ><button data-batch-count="1000" type="button">1,000 INSTANCES</button>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <details class="asset-panel" data-category="shrub" open>
+          <summary><span>SHRUB / 灌木</span><output data-summary></output></summary>
+          <div class="asset-panel__body">
+            <div class="material-control-group">
+              <strong>单体尺寸</strong>
+              <label class="control"
+                ><span>整体大小（%）<output data-output="size"></output></span
+                ><input data-field="size" aria-label="灌木单体尺寸（%）" type="number" step="1"
+              /></label>
+              <div class="panel-actions">
+                <button data-size-factor="0.5" type="button">缩小一半</button>
+                <button data-size-factor="2" type="button">放大一倍</button>
+                <button data-action="reset-size" type="button">恢复 100%</button>
+              </div>
+              <p class="leaf-mask-status">100% 为默认大小；200% 时每棵灌木的长、宽、高翻倍，修改后实时预览。</p>
+            </div>
+            <div class="panel-actions">
+              <span>POPULATION TOKEN</span><button data-action="new-seed">NEW SEED</button>
+            </div>
+            <label class="control seed-control"
+              ><span>Population token (pt1)</span><textarea data-field="token" rows="3"></textarea>
+            </label>
+            <p class="field-error" data-seed-error hidden></p>
+            <label class="color-control"><span>Color</span><input data-field="color" type="color" /></label>
+            <div class="material-control-group leaf-texture-control">
+              <strong>LEAF TEXTURE / 灌木贴图</strong>
+              <label class="control file-control"
+                ><span>上传贴图 · PNG / WebP</span
+                ><input data-field="leaf-mask-file" aria-label="上传灌木贴图" type="file"
+                  accept=".png,.webp,image/png,image/webp"
+              /></label>
+              <img class="leaf-texture-preview" data-leaf-texture-preview alt="当前自定义灌木贴图" hidden />
+              <p class="leaf-mask-status" data-leaf-mask-status aria-live="polite"></p>
+              <button data-action="reset-leaf-texture" type="button">恢复默认贴图</button>
+              <p class="leaf-mask-status">透明区域裁切叶片，颜色叠加现有材质。仅本次预览生效，刷新恢复默认。</p>
+              <p class="field-error" data-leaf-mask-error role="alert" hidden></p>
+            </div>
+            <div class="lod-controls">
+              <label class="check-control"
+                ><input data-field="auto-lod" type="checkbox" checked /><span>Automatic distance</span></label
+              >
+              <label class="control"
+                ><span>Preview distance <output data-output="lod-distance"></output></span
+                ><input data-field="lod-distance" type="range" min="0" max="70" step="0.5" disabled
+              /></label>
+              <button data-action="step-lod">STEP DISTANCE</button>
+            </div>
+            <div class="asset-runtime-actions">
+              <button data-action="play-entrance" type="button">PLAY ENTRANCE</button>
+              <div class="segmented">
+                <button data-batch-count="1" data-active="true" type="button">STANDARD</button
+                ><button data-batch-count="1000" type="button">1,000 INSTANCES</button>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <details class="asset-panel" data-category="grass">
+          <summary><span>GRASS</span><output data-summary></output></summary>
+          <div class="asset-panel__body">
+            <div class="panel-actions">
+              <span>POPULATION TOKEN</span><button data-action="new-seed">NEW SEED</button>
+            </div>
+            <label class="control seed-control"
+              ><span>Population token (pt1)</span><textarea data-field="token" rows="3"></textarea>
+            </label>
+            <p class="field-error" data-seed-error hidden></p>
+            <label class="control"
+              ><span>Size <output data-output="size"></output></span><input data-field="size" type="number" step="1"
+            /></label>
+            <label class="color-control"><span>Color</span><input data-field="color" type="color" /></label>
+            <div class="population-card">
+              <strong>POPULATION PREVIEW</strong>
+              <div data-lod-quantity-controls></div>
+              <p data-population-metrics></p>
+            </div>
+            <div class="lod-controls">
+              <label class="check-control"
+                ><input data-field="auto-lod" type="checkbox" checked /><span>Automatic distance</span></label
+              >
+              <label class="control"
+                ><span>Preview distance <output data-output="lod-distance"></output></span
+                ><input data-field="lod-distance" type="range" min="0" max="110" step="0.5" disabled
+              /></label>
+              <button data-action="step-lod">STEP DISTANCE</button>
+            </div>
+            <div class="asset-runtime-actions">
+              <button data-action="play-entrance" type="button">PLAY ENTRANCE</button>
+              <div class="segmented">
+                <button data-batch-count="1" data-active="true" type="button">STANDARD</button
+                ><button data-batch-count="1000" type="button">1,000 INSTANCES</button>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <details class="asset-panel" data-category="flower" hidden>
+          <summary><span>FLOWER</span><output data-summary></output></summary>
+          <div class="asset-panel__body">
+            <div class="panel-actions">
+              <span>POPULATION TOKEN</span><button data-action="new-seed">NEW SEED</button>
+            </div>
+            <label class="control seed-control"
+              ><span>Population token (pt1)</span><textarea data-field="token" rows="3"></textarea>
+            </label>
+            <p class="field-error" data-seed-error hidden></p>
+            <label class="control"
+              ><span>Size <output data-output="size"></output></span><input data-field="size" type="number" step="1"
+            /></label>
+            <label class="color-control"><span>Color</span><input data-field="color" type="color" /></label>
+            <div class="population-card">
+              <strong>POPULATION PREVIEW</strong>
+              <div data-lod-quantity-controls></div>
+              <p data-population-metrics></p>
+            </div>
+            <div class="lod-controls">
+              <label class="check-control"
+                ><input data-field="auto-lod" type="checkbox" checked /><span>Automatic distance</span></label
+              >
+              <label class="control"
+                ><span>Preview distance <output data-output="lod-distance"></output></span
+                ><input data-field="lod-distance" type="range" min="0" max="110" step="0.5" disabled
+              /></label>
+              <button data-action="step-lod">STEP DISTANCE</button>
+            </div>
+            <div class="asset-runtime-actions">
+              <button data-action="play-entrance" type="button">PLAY ENTRANCE</button>
+              <div class="segmented">
+                <button data-batch-count="1" data-active="true" type="button">STANDARD</button
+                ><button data-batch-count="1000" type="button">1,000 INSTANCES</button>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <details class="asset-panel" data-category="rock">
+          <summary><span>ROCK</span><output data-summary></output></summary>
+          <div class="asset-panel__body">
+            <div class="panel-actions">
+              <span>POPULATION TOKEN</span><button data-action="new-seed">NEW SEED</button>
+            </div>
+            <label class="control seed-control"
+              ><span>Population token (pt1)</span><textarea data-field="token" rows="3"></textarea>
+            </label>
+            <p class="field-error" data-seed-error hidden></p>
+            <label class="control"
+              ><span>Size <output data-output="size"></output></span><input data-field="size" type="number" step="1"
+            /></label>
+            <label class="color-control"><span>Color</span><input data-field="color" type="color" /></label>
+            <div class="population-card">
+              <strong>POPULATION PREVIEW</strong>
+              <div data-lod-quantity-controls></div>
+              <p data-population-metrics></p>
+            </div>
+            <div class="lod-controls">
+              <label class="check-control"
+                ><input data-field="auto-lod" type="checkbox" checked /><span>Automatic distance</span></label
+              >
+              <label class="control"
+                ><span>Preview distance <output data-output="lod-distance"></output></span
+                ><input data-field="lod-distance" type="range" min="0" max="60" step="0.5" disabled
+              /></label>
+              <button data-action="step-lod">STEP DISTANCE</button>
+            </div>
+            <div class="asset-runtime-actions">
+              <button data-action="play-entrance" type="button">PLAY ENTRANCE</button>
+              <div class="segmented">
+                <button data-batch-count="1" data-active="true" type="button">STANDARD</button
+                ><button data-batch-count="1000" type="button">1,000 INSTANCES</button>
+              </div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <details class="scene-panel">
+        <summary>SCENE</summary>
+        <div class="scene-panel__body">
+          <label class="control"
+            ><span>Time <output data-output="time"></output></span
+            ><input id="time" type="range" min="0" max="24" step="0.1" value="11"
+          /></label>
+          <label class="check-control"><input id="time-playing" type="checkbox" /><span>Play day / night</span></label>
+          <label class="check-control"><input id="shadows" type="checkbox" checked /><span>Shadows</span></label>
+          <label class="check-control"
+            ><input id="asset-distance-culling" type="checkbox" /><span>距离剔除（灌木、花草、岩石）</span></label
+          >
+        </div>
+      </details>
+
+      <details class="scene-panel">
+        <summary>POST-PROCESS / 后处理</summary>
+        <div class="scene-panel__body">
+          <label class="check-control"><input id="camera-hdr" type="checkbox" checked /><span>Camera HDR</span></label>
+          <label class="check-control"
+            ><input id="post-process-enabled" type="checkbox" checked /><span>Post process / 后处理</span></label
+          >
+          <label class="check-control"
+            ><input id="tonemapping-enabled" type="checkbox" checked /><span>Tonemapping / 色调映射</span></label
+          >
+          <label class="control"
+            ><span>Tonemapping mode / 色调映射模式</span
+            ><select id="tonemapping-mode">
+              <option value="aces">ACES / 电影</option>
+              <option value="neutral">Neutral / 中性</option>
+            </select></label
+          >
+          <label class="check-control"
+            ><input id="bloom-enabled" type="checkbox" checked /><span>Bloom / 泛光</span></label
+          >
+          <label class="control"
+            ><span>Bloom threshold / 泛光阈值 <output data-output="bloom-threshold"></output></span
+            ><input id="bloom-threshold" type="range" min="0" max="5" step="0.01"
+          /></label>
+          <label class="control"
+            ><span>Bloom intensity / 泛光强度 <output data-output="bloom-intensity"></output></span
+            ><input id="bloom-intensity" type="range" min="0" max="5" step="0.01"
+          /></label>
+          <label class="control"
+            ><span>Bloom scatter / 泛光扩散 <output data-output="bloom-scatter"></output></span
+            ><input id="bloom-scatter" type="range" min="0" max="1" step="0.01"
+          /></label>
+        </div>
+      </details>
+    </aside>
+
+    <div class="loading">
+      <span></span>
+      <p>Loading Cartoon production atoms</p>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

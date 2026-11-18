@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="data:," />
+    <title>建筑核心层 · GPU 铺设接入绘制</title>
+    <style>
+      body {
+        margin: 0;
+        background: #1d2428;
+        color: #e8ecea;
+        font:
+          14px/1.5 system-ui,
+          "PingFang SC",
+          sans-serif;
+      }
+      canvas {
+        width: 100vw;
+        height: 70vh;
+        display: block;
+      }
+      pre {
+        margin: 0;
+        padding: 12px 16px;
+        font:
+          12.5px/1.6 ui-monospace,
+          Menlo,
+          monospace;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas></canvas>
+    <pre id="out">运行中…</pre>
+    <script type="module" src="./draw.ts"></script>
+  </body>
+</html>

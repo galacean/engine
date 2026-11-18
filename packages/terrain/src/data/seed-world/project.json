@@ -1,0 +1,1550 @@
+{
+  "version": 1,
+  "scene": "Scene/SeedWorld.scene",
+  "files": [
+    {
+      "virtualPath": "Scene/SeedWorld.scene",
+      "path": "public/Scene/SeedWorld.scene",
+      "type": "Scene"
+    },
+    {
+      "virtualPath": "Material/Terrain/seed-world.mat",
+      "path": "public/Material/Terrain/seed-world.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "Material/Billboard/tree.mat",
+      "path": "public/Material/Billboard/tree.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "Material/Surface/birch-bark.mat",
+      "path": "public/Material/Surface/birch-bark.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "Material/Surface/broadleaf-bark.mat",
+      "path": "public/Material/Surface/broadleaf-bark.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "Material/Surface/small-stones.mat",
+      "path": "public/Material/Surface/small-stones.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "Material/Vegetation/birch-leaves.mat",
+      "path": "public/Material/Vegetation/birch-leaves.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "Material/Vegetation/broadleaf-branches.mat",
+      "path": "public/Material/Vegetation/broadleaf-branches.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "Material/Vegetation/broadleaf-leaves.mat",
+      "path": "public/Material/Vegetation/broadleaf-leaves.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "Material/Vegetation/bush.mat",
+      "path": "public/Material/Vegetation/bush.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "Material/Vegetation/flowers-1.mat",
+      "path": "public/Material/Vegetation/flowers-1.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "Material/Vegetation/flowers-2.mat",
+      "path": "public/Material/Vegetation/flowers-2.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "Material/Vegetation/grass-2.mat",
+      "path": "public/Material/Vegetation/grass-2.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "Material/Vegetation/grass-3.mat",
+      "path": "public/Material/Vegetation/grass-3.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "Material/Vegetation/grass.mat",
+      "path": "public/Material/Vegetation/grass.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "Models/1adfe9392d9a2aac.treewind",
+      "path": "public/Models/1adfe9392d9a2aac.treewind",
+      "type": "Buffer"
+    },
+    {
+      "virtualPath": "Models/8fcd8b5a84cbb2a1.treewind",
+      "path": "public/Models/8fcd8b5a84cbb2a1.treewind",
+      "type": "Buffer"
+    },
+    {
+      "virtualPath": "Models/90fa81dde0531841.treewind",
+      "path": "public/Models/90fa81dde0531841.treewind",
+      "type": "Buffer"
+    },
+    {
+      "virtualPath": "Models/d166cc5e0e841bb6.treewind",
+      "path": "public/Models/d166cc5e0e841bb6.treewind",
+      "type": "Buffer"
+    },
+    {
+      "virtualPath": "Models/grass-2-authored.glb",
+      "path": "public/Models/grass-2-authored.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "Prefab/Detail/detail-00.prefab",
+      "path": "public/Prefab/Detail/detail-00.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "Shader/Billboard.shaderc",
+      "path": "public/Shader/Billboard.shaderc",
+      "type": "Shader"
+    },
+    {
+      "virtualPath": "Shader/Surface.shaderc",
+      "path": "public/Shader/Surface.shaderc",
+      "type": "Shader"
+    },
+    {
+      "virtualPath": "Shader/Terrain.shaderc",
+      "path": "public/Shader/Terrain.shaderc",
+      "type": "Shader"
+    },
+    {
+      "virtualPath": "Shader/Grass.shaderc",
+      "path": "public/Shader/Grass.shaderc",
+      "type": "Shader"
+    },
+    {
+      "virtualPath": "Shader/Vegetation.shaderc",
+      "path": "public/Shader/Vegetation.shaderc",
+      "type": "Shader"
+    },
+    {
+      "virtualPath": "Shader/Water/lake-heightfield-high-hybrid-v2.shaderc",
+      "path": "public/Shader/Water/lake-heightfield-high-hybrid-v2.e63de9387dc822a1dd299a1af333b8023dc7e145fac9c0c55fe9e648f739b5c2.shaderc",
+      "type": "Shader"
+    },
+    {
+      "virtualPath": "Shader/Water/ocean-near-detailed.shaderc",
+      "path": "public/Shader/Water/ocean-near-detailed.87949b62cd4f35163ce49163557db7facc50256ad4cea575d8a16e86157ebc61.shaderc",
+      "type": "Shader"
+    },
+    {
+      "virtualPath": "Shader/Water/ocean-far-graded.shaderc",
+      "path": "public/Shader/Water/ocean-far-graded.912d9e549f2d285ed9822e378dd874eb7cf18ff0116e21f7d3caae3446f84e07.shaderc",
+      "type": "Shader"
+    },
+    {
+      "virtualPath": "Shader/Water/WaterAotManifest.json",
+      "path": "public/Shader/Water/WaterAotManifest.d33b89b71111f75070c7789d55183cb7cb4bfca463cea7cdc4d7959c26ee4bb5.json",
+      "type": "JSON"
+    },
+    {
+      "virtualPath": "Texture/140c55bd97c21b9b.ktx2",
+      "path": "public/Texture/140c55bd97c21b9b.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/16aebaa24d830251.ktx2",
+      "path": "public/Texture/16aebaa24d830251.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/49af75b3cd28134b.ktx2",
+      "path": "public/Texture/49af75b3cd28134b.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/4cb3a24c61098c5d.ktx2",
+      "path": "public/Texture/4cb3a24c61098c5d.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/4ca0ebd82cca607a.ktx2",
+      "path": "public/Texture/4ca0ebd82cca607a.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/4d38d602ec3ad9a6.ktx2",
+      "path": "public/Texture/4d38d602ec3ad9a6.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/5dcc6789bfb6b312.ktx2",
+      "path": "public/Texture/5dcc6789bfb6b312.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/63d73ef596a81ad8.ktx2",
+      "path": "public/Texture/63d73ef596a81ad8.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/791ebd8ec6ddef70.ktx2",
+      "path": "public/Texture/791ebd8ec6ddef70.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/809290efbe907696.ktx2",
+      "path": "public/Texture/809290efbe907696.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/836dc718fb98585b.ktx2",
+      "path": "public/Texture/836dc718fb98585b.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/989ee6ee7600c0e4.ktx2",
+      "path": "public/Texture/989ee6ee7600c0e4.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/99437d6e68062de5.ktx2",
+      "path": "public/Texture/99437d6e68062de5.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/9ac46b6e4e795289.ktx2",
+      "path": "public/Texture/9ac46b6e4e795289.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/a00617d5ec5b44ba.ktx2",
+      "path": "public/Texture/a00617d5ec5b44ba.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/b7e19431ffe7eca0.ktx2",
+      "path": "public/Texture/b7e19431ffe7eca0.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/b439ea33e8b410b7.ktx2",
+      "path": "public/Texture/b439ea33e8b410b7.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/c7dba986e975bc38.ktx2",
+      "path": "public/Texture/c7dba986e975bc38.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/c85fafa4b984fdd5.ktx2",
+      "path": "public/Texture/c85fafa4b984fdd5.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/d76e51d08af9ca9a.ktx2",
+      "path": "public/Texture/d76e51d08af9ca9a.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/de856599baa49d24.ktx2",
+      "path": "public/Texture/de856599baa49d24.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/e488e7b7f0fd2970.ktx2",
+      "path": "public/Texture/e488e7b7f0fd2970.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/e6a2b3127c928f2b.ktx2",
+      "path": "public/Texture/e6a2b3127c928f2b.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/ead4b76b302d6762.ktx2",
+      "path": "public/Texture/ead4b76b302d6762.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "Texture/eff92d4400a9dc43.ktx2",
+      "path": "public/Texture/eff92d4400a9dc43.ktx2",
+      "type": "KTX2"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Textures/mushroom-atlas.ktx2",
+      "path": "public/textures/mushroom-atlas.ktx2",
+      "type": "KTX2",
+      "params": {
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Textures/mushroom-normal.ktx2",
+      "path": "public/textures/mushroom-normal.ktx2",
+      "type": "KTX2",
+      "params": {
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Textures/terrain-grass-2.png",
+      "path": "public/textures/terrain-grass-2.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Textures/terrain-grass-2-normal.ktx2",
+      "path": "public/textures/terrain-grass-2-normal.ktx2",
+      "type": "KTX2",
+      "params": {
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Textures/terrain-mud-2.png",
+      "path": "public/textures/terrain-mud-2.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Textures/terrain-mud-2-normal.ktx2",
+      "path": "public/textures/terrain-mud-2-normal.ktx2",
+      "type": "KTX2",
+      "params": {
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Textures/procedural-leaf-mask-1.ktx2",
+      "path": "public/textures/procedural-leaf-mask-1.ktx2",
+      "type": "KTX2",
+      "params": {
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Textures/procedural-leaf-mask-2.ktx2",
+      "path": "public/textures/procedural-leaf-mask-2.ktx2",
+      "type": "KTX2",
+      "params": {
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Textures/procedural-leaf-mask-3.ktx2",
+      "path": "public/textures/procedural-leaf-mask-3.ktx2",
+      "type": "KTX2",
+      "params": {
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Textures/procedural-leaf-mask-4.ktx2",
+      "path": "public/textures/procedural-leaf-mask-4.ktx2",
+      "type": "KTX2",
+      "params": {
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Textures/procedural-leaf-mask-5.ktx2",
+      "path": "public/textures/procedural-leaf-mask-5.ktx2",
+      "type": "KTX2",
+      "params": {
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Textures/lotus-albedo.ktx2",
+      "path": "public/textures/lotus-albedo.ktx2",
+      "type": "KTX2",
+      "params": {
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Textures/lotus-normal.ktx2",
+      "path": "public/textures/lotus-normal.ktx2",
+      "type": "KTX2",
+      "params": {
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Textures/rock-clif-1-metallic.ktx2",
+      "path": "public/textures/rock-clif-1-metallic.ktx2",
+      "type": "KTX2",
+      "params": {
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Textures/rock-clif-1-occlusion.ktx2",
+      "path": "public/textures/rock-clif-1-occlusion.ktx2",
+      "type": "KTX2",
+      "params": {
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Materials/stylized-rock-grass.mat",
+      "path": "public/materials/stylized-rock-grass.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Materials/stylized-rock.mat",
+      "path": "public/materials/stylized-rock.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Materials/stylized-rock-mud.mat",
+      "path": "public/materials/stylized-rock-mud.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Materials/clif-1-grass.mat",
+      "path": "public/materials/clif-1-grass.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Materials/clif-1.mat",
+      "path": "public/materials/clif-1.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Materials/clif-1-mud.mat",
+      "path": "public/materials/clif-1-mud.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Materials/stylized-stone.mat",
+      "path": "public/materials/stylized-stone.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Materials/stylized-flower-1.mat",
+      "path": "public/materials/stylized-flower-1.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Materials/stylized-mushroom-1.mat",
+      "path": "public/materials/stylized-mushroom-1.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Materials/lotus-leaf.mat",
+      "path": "public/materials/lotus-leaf.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Materials/lotus-flower.mat",
+      "path": "public/materials/lotus-flower.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/bush-large-lod0.glb",
+      "path": "public/atoms/bush-large-lod0.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/bush-large-lod0.prefab",
+      "path": "public/prefabs/bush-large-lod0.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/bush-large-lod1.glb",
+      "path": "public/atoms/bush-large-lod1.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/bush-large-lod1.prefab",
+      "path": "public/prefabs/bush-large-lod1.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/grass.glb",
+      "path": "public/atoms/grass.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/grass.prefab",
+      "path": "public/prefabs/grass.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/grass-3.glb",
+      "path": "public/atoms/grass-3.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/grass-3.prefab",
+      "path": "public/prefabs/grass-3.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/grass-2.glb",
+      "path": "public/atoms/grass-2.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/grass-2.prefab",
+      "path": "public/prefabs/grass-2.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/grass-2-small.glb",
+      "path": "public/atoms/grass-2-small.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/grass-2-small.prefab",
+      "path": "public/prefabs/grass-2-small.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/flowers-1.glb",
+      "path": "public/atoms/flowers-1.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/flowers-1.prefab",
+      "path": "public/prefabs/flowers-1.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/flowers-2.glb",
+      "path": "public/atoms/flowers-2.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/flowers-2.prefab",
+      "path": "public/prefabs/flowers-2.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/small-stone-6-lod0.glb",
+      "path": "public/atoms/small-stone-6-lod0.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/small-stone-6-lod0.prefab",
+      "path": "public/prefabs/small-stone-6-lod0.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/small-stone-6-lod1.glb",
+      "path": "public/atoms/small-stone-6-lod1.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/small-stone-6-lod1.prefab",
+      "path": "public/prefabs/small-stone-6-lod1.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/rock-clif-1-lod0.glb",
+      "path": "public/atoms/rock-clif-1-lod0.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/rock-clif-1-grass-lod0.prefab",
+      "path": "public/prefabs/rock-clif-1-grass-lod0.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/rock-clif-1-mud-lod0.prefab",
+      "path": "public/prefabs/rock-clif-1-mud-lod0.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/rock-clif-1-plain-lod0.prefab",
+      "path": "public/prefabs/rock-clif-1-plain-lod0.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/rock-clif-1-lod1.glb",
+      "path": "public/atoms/rock-clif-1-lod1.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/rock-clif-1-grass-lod1.prefab",
+      "path": "public/prefabs/rock-clif-1-grass-lod1.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/rock-clif-1-mud-lod1.prefab",
+      "path": "public/prefabs/rock-clif-1-mud-lod1.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/rock-clif-1-plain-lod1.prefab",
+      "path": "public/prefabs/rock-clif-1-plain-lod1.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/rock-clif-1-lod2.glb",
+      "path": "public/atoms/rock-clif-1-lod2.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/rock-clif-1-grass-lod2.prefab",
+      "path": "public/prefabs/rock-clif-1-grass-lod2.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/rock-clif-1-mud-lod2.prefab",
+      "path": "public/prefabs/rock-clif-1-mud-lod2.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/rock-clif-1-plain-lod2.prefab",
+      "path": "public/prefabs/rock-clif-1-plain-lod2.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stone-1-lod0.glb",
+      "path": "public/atoms/stone-1-lod0.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/stone-1-lod0.prefab",
+      "path": "public/prefabs/stone-1-lod0.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stone-1-lod1.glb",
+      "path": "public/atoms/stone-1-lod1.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/stone-1-lod1.prefab",
+      "path": "public/prefabs/stone-1-lod1.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stone-2-lod0.glb",
+      "path": "public/atoms/stone-2-lod0.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/stone-2-lod0.prefab",
+      "path": "public/prefabs/stone-2-lod0.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stone-2-lod1.glb",
+      "path": "public/atoms/stone-2-lod1.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/stone-2-lod1.prefab",
+      "path": "public/prefabs/stone-2-lod1.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stone-3-lod0.glb",
+      "path": "public/atoms/stone-3-lod0.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/stone-3-lod0.prefab",
+      "path": "public/prefabs/stone-3-lod0.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stone-3-lod1.glb",
+      "path": "public/atoms/stone-3-lod1.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/stone-3-lod1.prefab",
+      "path": "public/prefabs/stone-3-lod1.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stone-4-lod0.glb",
+      "path": "public/atoms/stone-4-lod0.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/stone-4-lod0.prefab",
+      "path": "public/prefabs/stone-4-lod0.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stone-4-lod1.glb",
+      "path": "public/atoms/stone-4-lod1.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/stone-4-lod1.prefab",
+      "path": "public/prefabs/stone-4-lod1.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stones-lod0.glb",
+      "path": "public/atoms/stones-lod0.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/stones-lod0.prefab",
+      "path": "public/prefabs/stones-lod0.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stones-lod1.glb",
+      "path": "public/atoms/stones-lod1.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/stones-lod1.prefab",
+      "path": "public/prefabs/stones-lod1.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/flower-1-lod1.glb",
+      "path": "public/atoms/flower-1-lod1.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/flower-1-lod1.prefab",
+      "path": "public/prefabs/flower-1-lod1.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/mushroom-1-lod0.glb",
+      "path": "public/atoms/mushroom-1-lod0.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/mushroom-1-lod0.prefab",
+      "path": "public/prefabs/mushroom-1-lod0.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/mushroom-1-lod1.glb",
+      "path": "public/atoms/mushroom-1-lod1.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/mushroom-1-lod1.prefab",
+      "path": "public/prefabs/mushroom-1-lod1.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/lotus-lod0.glb",
+      "path": "public/atoms/lotus-lod0.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/lotus-lod0.prefab",
+      "path": "public/prefabs/lotus-lod0.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/lotus-lod1.glb",
+      "path": "public/atoms/lotus-lod1.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/lotus-lod1.prefab",
+      "path": "public/prefabs/lotus-lod1.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/lotus-group-1-lod0.glb",
+      "path": "public/atoms/lotus-group-1-lod0.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/lotus-group-1-lod0.prefab",
+      "path": "public/prefabs/lotus-group-1-lod0.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/lotus-group-1-lod1.glb",
+      "path": "public/atoms/lotus-group-1-lod1.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/lotus-group-1-lod1.prefab",
+      "path": "public/prefabs/lotus-group-1-lod1.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/lotus-group-2-lod0.glb",
+      "path": "public/atoms/lotus-group-2-lod0.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/lotus-group-2-lod0.prefab",
+      "path": "public/prefabs/lotus-group-2-lod0.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/lotus-group-2-lod1.glb",
+      "path": "public/atoms/lotus-group-2-lod1.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/lotus-group-2-lod1.prefab",
+      "path": "public/prefabs/lotus-group-2-lod1.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Models/atoms/cartoon-tree-impostor.glb",
+      "path": "public/atoms/cartoon-tree-impostor.glb",
+      "type": "GLTF",
+      "params": {
+        "keepMeshData": true
+      }
+    },
+    {
+      "virtualPath": "AssetAssembly/Cartoon/Prefabs/cartoon-tree-impostor.prefab",
+      "path": "public/prefabs/cartoon-tree-impostor.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "World/Vegetation/dead-tree/dead-tree-bark-albedo.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/dead-tree/dead-tree-bark-albedo.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/dead-tree/dead-tree-bark-normal.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/dead-tree/dead-tree-bark-normal.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": false,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/dead-tree/dead-tree-leaves.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/dead-tree/dead-tree-leaves.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/dead-tree/dead-tree-trunk.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-dead-tree__dead-tree-trunk.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/dead-tree/dead-tree-leaves.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-dead-tree__dead-tree-leaves.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/dead-tree.structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-dead-tree.structure.json",
+      "type": "TreeStructure"
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-coverplants_01_summer-part-03-packed-256.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-coverplants_01_summer-part-03-packed-256.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 0,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-coverplants_01_summer-part-07-packed-256.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-coverplants_01_summer-part-07-packed-256.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 0,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-coverplants_01_summer-part-06-256.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-coverplants_01_summer-part-06-256.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 0,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-flowers_01-part-02-256.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-flowers_01-part-02-256.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 0,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-flowers_02-part-01-256.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-flowers_02-part-01-256.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 0,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-flowers_01-part-01-256.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-flowers_01-part-01-256.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 0,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-flowers_02-part-05-256.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-flowers_02-part-05-256.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 0,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-flowers_03-part-01-256.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-flowers_03-part-01-256.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 0,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-flowers_03-part-02-256.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-flowers_03-part-02-256.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 0,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-grass_01_summer-part-01-256.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-grass_01_summer-part-01-256.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-grass_02_summer-part-01-256.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-grass_02_summer-part-01-256.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 0,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-grass_03_summer-part-01-256.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-grass_03_summer-part-01-256.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-leaves_birchtree_01_summer-part-02-256.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-leaves_birchtree_01_summer-part-02-256.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 0,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-leaves_oaktree_01_summer-part-02-256.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-leaves_oaktree_01_summer-part-02-256.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 0,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-mushroom-cap-packed-256.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-mushroom-cap-packed-256.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 0,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-plants_01_summer-part-02-256.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-plants_01_summer-part-02-256.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 0,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-plants_01_summer-part-01-256.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-plants_01_summer-part-01-256.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 0,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-birch-bark-256.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-birch-bark-256.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-birchtree_leaf_01_summer-part-01-256.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-birchtree_leaf_01_summer-part-01-256.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/material-ff2f518510a19b500445a3adf7f66694edddd4d58726ab457b5f3ffd1d7477fd.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-ff2f518510a19b500445a3adf7f66694edddd4d58726ab457b5f3ffd1d7477fd.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-ad99fd7015c598512007b7e335170523cb3c1a5a10ee54ff844b15ab1537a41e.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-ad99fd7015c598512007b7e335170523cb3c1a5a10ee54ff844b15ab1537a41e.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-e6cdb9fc63857d7f608a7a8a1bf4b0dd6b22e129373601da9cfdd4150350677d.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-e6cdb9fc63857d7f608a7a8a1bf4b0dd6b22e129373601da9cfdd4150350677d.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-088c14665f567d1172c7a6709cb2aff63bdce2f77dc91f286cd4318e33d38a93.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-088c14665f567d1172c7a6709cb2aff63bdce2f77dc91f286cd4318e33d38a93.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-ad28dfef0faadb171f7d0382c6ee193d5400b82d83306cd64167641513acf26d.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-ad28dfef0faadb171f7d0382c6ee193d5400b82d83306cd64167641513acf26d.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-cd3ea776295cfbd2882c296c69d90f72718794582d1e53b1086f5c862393f6e0.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-cd3ea776295cfbd2882c296c69d90f72718794582d1e53b1086f5c862393f6e0.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-b476b9ecbbed376baec6fc6059c66218df95e9b6624145a38eb95be64a683828.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-b476b9ecbbed376baec6fc6059c66218df95e9b6624145a38eb95be64a683828.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-765852221d071a6d1b363074fb9fad3f0fe263694211eba0d905ee42fa6efe65.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-765852221d071a6d1b363074fb9fad3f0fe263694211eba0d905ee42fa6efe65.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-d5fbebc4ee751f292f92eb6c3230399b6e77ce917b3caffa52681a33b259bf5b.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-d5fbebc4ee751f292f92eb6c3230399b6e77ce917b3caffa52681a33b259bf5b.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-9cedbdcdceb02c6c02e461bf995244de1e756f27c4b891d95d800cb172fcc7ce.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-9cedbdcdceb02c6c02e461bf995244de1e756f27c4b891d95d800cb172fcc7ce.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-b1be2e4a54f841e84a2a48b8f8e3a55cb3d5bfd5ab44ab80ce15ed90c4248c70.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-b1be2e4a54f841e84a2a48b8f8e3a55cb3d5bfd5ab44ab80ce15ed90c4248c70.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-e7e53fed9bb09e5453510332ba19724f3838b04f9aa76a89ac0832f70ea5faca.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-e7e53fed9bb09e5453510332ba19724f3838b04f9aa76a89ac0832f70ea5faca.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-9b28229e8c3d3b7cf61d49b3212594133efdfe8030a1d8db0329faa85a860bbe.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-9b28229e8c3d3b7cf61d49b3212594133efdfe8030a1d8db0329faa85a860bbe.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-cfb1cf8cebceecf7fe3436b289a912d1a0ae484c05bd952bdef0630fcc1ea28a.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-cfb1cf8cebceecf7fe3436b289a912d1a0ae484c05bd952bdef0630fcc1ea28a.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-dc4862fba476135e7fabbb845eb3f390b2ff4e1515fccf9dff297e650ed6096e.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-dc4862fba476135e7fabbb845eb3f390b2ff4e1515fccf9dff297e650ed6096e.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-e620f8f1f1fbb1df8ae80a8d6380dac9efea49a31165185e616742047362f05c.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-e620f8f1f1fbb1df8ae80a8d6380dac9efea49a31165185e616742047362f05c.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-0dd3c8b3365d106cc0fe114252c37502d5554a18988822d32c7c8f1ad4fe0935.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-0dd3c8b3365d106cc0fe114252c37502d5554a18988822d32c7c8f1ad4fe0935.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-786224f68a03c4d1b4edaf72ea1eeb4a2ad5cc845405d341b6ada5bcc0482bae.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-786224f68a03c4d1b4edaf72ea1eeb4a2ad5cc845405d341b6ada5bcc0482bae.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-339416d38428174e5ff12eea0038f145dd10dcae6c60ebc23abb3447bbf47eb8.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-339416d38428174e5ff12eea0038f145dd10dcae6c60ebc23abb3447bbf47eb8.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-fe1cf696cc52d80649dae11e03561c617ab3b8db5d7bfc9209b6675b41ec81f0.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-fe1cf696cc52d80649dae11e03561c617ab3b8db5d7bfc9209b6675b41ec81f0.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/material-6a46de9fa1b56aa1d856cc34f932adadb3749f45a290b75637103dff54d919df.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-material-6a46de9fa1b56aa1d856cc34f932adadb3749f45a290b75637103dff54d919df.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-groundcover-prototype-structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-groundcover-prototype-structure.json",
+      "type": "PlantStructure"
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-sm_flower_06_02-structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_flower_06_02-structure.json",
+      "type": "PlantStructure"
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-sm_flower_09_01-prototype-structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_flower_09_01-prototype-structure.json",
+      "type": "PlantStructure"
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-sm_flower_10_01-prototype-structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_flower_10_01-prototype-structure.json",
+      "type": "PlantStructure"
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-sm_grass_01_01-prototype-structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_grass_01_01-prototype-structure.json",
+      "type": "PlantStructure"
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-sm_grass_02_01-prototype-structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_grass_02_01-prototype-structure.json",
+      "type": "PlantStructure"
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-sm_grass_03_01-prototype-structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_grass_03_01-prototype-structure.json",
+      "type": "PlantStructure"
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-sm_leaves_birchtree_01-prototype-structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_leaves_birchtree_01-prototype-structure.json",
+      "type": "PlantStructure"
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-sm_leaves_oaktree_01-prototype-structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_leaves_oaktree_01-prototype-structure.json",
+      "type": "PlantStructure"
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-mushroom-prototype-structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-mushroom-prototype-structure.json",
+      "type": "PlantStructure"
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-sm_plant_01_01-prototype-structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_plant_01_01-prototype-structure.json",
+      "type": "PlantStructure"
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-sm_plant_02_01-prototype-structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_plant_02_01-prototype-structure.json",
+      "type": "PlantStructure"
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-sm_birchbush_03-structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchbush_03-structure.json",
+      "type": "PlantStructure"
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-sm_birchbush_04-structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchbush_04-structure.json",
+      "type": "PlantStructure"
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-sm_birchtree_01-structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchtree_01-structure.json",
+      "type": "PlantStructure"
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-sm_birchtree_02-structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchtree_02-structure.json",
+      "type": "PlantStructure"
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-sm_birchtree_07-structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchtree_07-structure.json",
+      "type": "PlantStructure"
+    },
+    {
+      "virtualPath": "World/Vegetation/highlands-fir-3-tree-structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/highlands-fir-3-tree-structure.json",
+      "type": "TreeStructure"
+    },
+    {
+      "virtualPath": "World/Vegetation/highlands-fir-3-bark-albedo.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/highlands-fir-3-bark-albedo.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 0,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/highlands-fir-3-bark-normal.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/highlands-fir-3-bark-normal.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 0,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/sources/data/seed-world/source/stylized-environment/textures/procedural-leaf-mask-fir.png",
+      "path": "source/stylized-environment/textures/procedural-leaf-mask-fir.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 0,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/highlands-fir-3-trunk.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-highlands-fir-3-trunk.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/highlands-fir-3-leaves.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-highlands-fir-3-leaves.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/highlands-bush-2-structure.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/highlands-bush-2-structure.json",
+      "type": "PlantShape"
+    },
+    {
+      "virtualPath": "World/Vegetation/highlands-bush-2-leaves.png",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/highlands-bush-2-leaves.png",
+      "type": "Texture",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "filterMode": 2,
+        "wrapModeU": 0,
+        "wrapModeV": 0,
+        "anisoLevel": 8
+      }
+    },
+    {
+      "virtualPath": "World/Vegetation/highlands-bush-2-leaves.mat",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-highlands-bush-2-leaves.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "World/Vegetation/plant-species.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-plant-species.json",
+      "type": "PlantSpecies"
+    },
+    {
+      "virtualPath": "World/Vegetation/meadow-plant-materials.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-meadow-plant-materials.json",
+      "type": "PlantAppearance"
+    },
+    {
+      "virtualPath": "World/Vegetation/production-catalog.json",
+      "path": "../../../../vegetation/src/asset-assembly/generated/procedural-trees/plant-project-production-catalog.json",
+      "type": "PlantProduction"
+    }
+  ]
+}

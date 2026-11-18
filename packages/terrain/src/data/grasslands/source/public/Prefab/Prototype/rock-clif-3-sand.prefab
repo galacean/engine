@@ -1,0 +1,219 @@
+{
+  "version": "2.0",
+  "refs": [
+    {
+      "url": "Models/fb89f2b8cc1f7dad.glb",
+      "key": "meshes[2][0]"
+    },
+    {
+      "url": "Material/Surface/clif-3-sand.mat"
+    },
+    {
+      "url": "Models/fb89f2b8cc1f7dad.glb",
+      "key": "meshes[0][0]"
+    },
+    {
+      "url": "Models/fb89f2b8cc1f7dad.glb",
+      "key": "meshes[1][0]"
+    },
+    {
+      "url": "/Script/TerrainPrototypeMetadata.ts"
+    }
+  ],
+  "entities": [
+    {
+      "name": "rock-clif-3-sand",
+      "children": [
+        1,
+        2,
+        3
+      ],
+      "components": [
+        3
+      ]
+    },
+    {
+      "name": "rock-clif-3-sand-lod0-Clif_3",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        0
+      ]
+    },
+    {
+      "name": "rock-clif-3-sand-lod1-Clif_3_LOD0",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        1
+      ]
+    },
+    {
+      "name": "rock-clif-3-sand-lod2-Clif_3_LOD1",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        2
+      ]
+    }
+  ],
+  "components": [
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 0
+        },
+        "castShadows": true,
+        "receiveShadows": true
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 2
+        },
+        "castShadows": true,
+        "receiveShadows": true
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 3
+        },
+        "castShadows": true,
+        "receiveShadows": true
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Script",
+      "script": 4,
+      "props": {
+        "geometry": {
+          "kind": "lod-group",
+          "lodGroup": {
+            "fadeMode": "CrossFade",
+            "animateCrossFading": true,
+            "localReferencePoint": [
+              -0.032139778,
+              3.0649228,
+              0.61784315
+            ],
+            "size": 26.669182,
+            "lods": [
+              {
+                "screenRelativeTransitionHeight": 0.3525427579879761,
+                "fadeTransitionWidth": 0,
+                "renderers": [
+                  {
+                    "entityPath": [
+                      0
+                    ],
+                    "componentIndex": 0
+                  }
+                ]
+              },
+              {
+                "screenRelativeTransitionHeight": 0.15257926285266876,
+                "fadeTransitionWidth": 0,
+                "renderers": [
+                  {
+                    "entityPath": [
+                      1
+                    ],
+                    "componentIndex": 0
+                  }
+                ]
+              },
+              {
+                "screenRelativeTransitionHeight": 0.031904276460409164,
+                "fadeTransitionWidth": 0,
+                "renderers": [
+                  {
+                    "entityPath": [
+                      2
+                    ],
+                    "componentIndex": 0
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "root": 0
+}

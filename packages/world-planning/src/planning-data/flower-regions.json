@@ -1,0 +1,7 @@
+{
+  "coverage": 0.3,
+  "densityPerM2": 0.2,
+  "patchSizeM": 32,
+  "maxSlopeDegrees": 25,
+  "sampleStepM": 12
+}

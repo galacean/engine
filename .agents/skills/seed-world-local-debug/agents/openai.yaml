@@ -1,0 +1,4 @@
+interface:
+  display_name: "Seed World 本地 LLM 联调"
+  short_description: "为同事准备 Engine 与指定分支的 ASAP 环境，启动并核验本地 LLM 调试链路"
+  default_prompt: "使用 $seed-world-local-debug 准备环境并启动 Seed World 与 ASAP 默认分支的本地 LLM 调试页面。"

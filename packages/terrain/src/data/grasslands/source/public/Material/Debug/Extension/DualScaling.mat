@@ -1,0 +1,9 @@
+{
+  "name": "Terrain dual scaling extension diagnostics Material",
+  "shader": "Terrain/Debug/Extension/DualScaling",
+  "shaderRef": { "url": "Shader/debug/Extension/DualScaling.shaderc" },
+  "shaderData": {
+    "material_DualScaling": { "type": "Vector2", "value": { "x": 0.25, "y": 1 } }
+  },
+  "macros": [{ "name": "MATERIAL_ENABLE_DUAL_SCALING" }]
+}

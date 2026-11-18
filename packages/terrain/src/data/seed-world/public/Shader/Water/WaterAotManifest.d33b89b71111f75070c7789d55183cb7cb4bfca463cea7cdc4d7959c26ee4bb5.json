@@ -1,0 +1,174 @@
+{
+  "schema": "seed-world-water-shader-aot-v1",
+  "profileCount": 3,
+  "platformTarget": 0,
+  "shaderLanguage": "GLSLES100",
+  "runtimeCapability": "webgl1-compatible-webgl2-upgrade",
+  "engine": {
+    "package": "@galacean/engine-core",
+    "version": "2.0.0-alpha.41",
+    "materializedBaseCommit": "bd34daa45612af8b402cd3be916ff181f21ae742",
+    "sourceIndexTree": "0c520387199f04e73dccb8abd656aa34bfeca240",
+    "overlaySha256": "2f334927d6ed76e5edc1008d5418895607b002638aaf4842eba9f66d673a605f",
+    "runtimeSha256": "da31fdfeaf362b6d9b05d2ab5ab870a209d50e2d464d3b3f142fc61ec36444ab"
+  },
+  "compiler": {
+    "package": "@galacean/engine-shader-compiler",
+    "version": "2.0.0-alpha.41",
+    "runtimeSha256": "91b7028cb5c56cd5919b4d2e5c3e36e374a5e67f0ce01fd3334e2ae552555285",
+    "bundlerSha256": "e9c9e75dfdf52220e2b1951fa42067f38a11bdd13b47b6db7044b2fe84b9a15d"
+  },
+  "shaderLibrary": {
+    "resolvedSource": "sources.main.js",
+    "sourceSha256": "b3757871f25ea4c7b318ffdd4c41cda46f678f2c2417128e1fed817809477efb"
+  },
+  "budgets": {
+    "maximumProfileArtifactBytes": 600000,
+    "maximumTotalArtifactBytes": 1200000,
+    "actualTotalArtifactBytes": 259672
+  },
+  "profiles": [
+    {
+      "profileId": "lake-heightfield-high-hybrid-v2",
+      "shaderName": "AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0",
+      "variantKey": "heightfield:appearanceVariantKey=surface-appearance-v2%3Aed93d4a81a01602d;depthSource=hybrid-optional-scene-depth;quality=high;surfaceAppearance=1;surfaceAppearanceVersion=2;waveSlotCount=0",
+      "sourcePath": "source/Shader/Water/LakeHeightfieldHighHybrid.shader",
+      "virtualPath": "Shader/Water/lake-heightfield-high-hybrid-v2.shaderc",
+      "path": "public/Shader/Water/lake-heightfield-high-hybrid-v2.e63de9387dc822a1dd299a1af333b8023dc7e145fac9c0c55fe9e648f739b5c2.shaderc",
+      "cacheKey": "e63de9387dc822a1dd299a1af333b8023dc7e145fac9c0c55fe9e648f739b5c2",
+      "materializedSourceSha256": "5a0110243e680f246075430fdffdc1bb2a6ecc2a7f4a4bc16b93ef1420974b01",
+      "artifactSha256": "e63de9387dc822a1dd299a1af333b8023dc7e145fac9c0c55fe9e648f739b5c2",
+      "artifactBytes": 111313,
+      "passTopology": [
+        [
+          {
+            "name": "Forward",
+            "isUsePass": false
+          },
+          {
+            "name": "ScreenSpaceReflectionSurface",
+            "isUsePass": false
+          }
+        ]
+      ],
+      "capability": {
+        "profileId": "lake-heightfield-high-hybrid-v2",
+        "shaderName": "AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0",
+        "variant": {
+          "backendId": "heightfield",
+          "key": "heightfield:appearanceVariantKey=surface-appearance-v2%3Aed93d4a81a01602d;depthSource=hybrid-optional-scene-depth;quality=high;surfaceAppearance=1;surfaceAppearanceVersion=2;waveSlotCount=0",
+          "features": {
+            "appearanceVariantKey": "surface-appearance-v2:ed93d4a81a01602d",
+            "depthSource": "hybrid-optional-scene-depth",
+            "quality": "high",
+            "surfaceAppearance": true,
+            "surfaceAppearanceVersion": 2,
+            "waveSlotCount": 0
+          }
+        },
+        "requiredBindings": [
+          "material_AppearanceV2Detail0Texture",
+          "material_AppearanceV2Detail1Texture",
+          "material_LocalMapTexture",
+          "material_SurfaceTexture"
+        ]
+      },
+      "compilerSha256": "df9413e216a230b9a0e60a52aeb6786b6c1b39cd161c04387f4722d1c1a1f958",
+      "postprocess": {
+        "operation": "upgrade-world-space-ssr-contract-v3",
+        "source": "world/scripts/generate-water-assets.mjs (Lake owner factory)",
+        "compilerPackage": "@galacean/engine-shader-compiler/precompile",
+        "compilerVersion": "2.0.0-alpha.55.local.ca07d71841e54da7",
+        "compilerSha256": "df9413e216a230b9a0e60a52aeb6786b6c1b39cd161c04387f4722d1c1a1f958",
+        "includeMapSha256": "24893a0adb70a073b4e311a1fc379aa2f73a8d636e122ce7abd08611b3a9930d"
+      }
+    },
+    {
+      "profileId": "ocean-near-detailed",
+      "shaderName": "AIWorld/Ocean",
+      "variantKey": "ocean:sharedClosure=water-surface-material-v1%3A429f59f95557570c;surface=detailed",
+      "sourcePath": "source/Shader/Water/OceanNearDetailed.shader",
+      "virtualPath": "Shader/Water/ocean-near-detailed.shaderc",
+      "path": "public/Shader/Water/ocean-near-detailed.87949b62cd4f35163ce49163557db7facc50256ad4cea575d8a16e86157ebc61.shaderc",
+      "cacheKey": "87949b62cd4f35163ce49163557db7facc50256ad4cea575d8a16e86157ebc61",
+      "materializedSourceSha256": "f30ec106fb77b7dd64dd28e7bebd3badb686bb2f700ba12df16b221f958e3714",
+      "artifactSha256": "87949b62cd4f35163ce49163557db7facc50256ad4cea575d8a16e86157ebc61",
+      "artifactBytes": 102680,
+      "passTopology": [
+        [
+          {
+            "name": "Forward",
+            "isUsePass": false
+          }
+        ]
+      ],
+      "capability": {
+        "profileId": "ocean-near-detailed",
+        "shaderName": "AIWorld/Ocean",
+        "variant": {
+          "backendId": "ocean",
+          "key": "ocean:sharedClosure=water-surface-material-v1%3A429f59f95557570c;surface=detailed",
+          "features": {
+            "sharedClosure": "water-surface-material-v1:429f59f95557570c",
+            "surface": "detailed"
+          }
+        },
+        "requiredBindings": [
+          "material_CausticsTexture",
+          "material_FoamTexture",
+          "material_IntersectionNoiseTexture",
+          "material_NearshoreTexture",
+          "material_RoughWavesTexture",
+          "material_SmoothWavesTexture"
+        ]
+      },
+      "postprocess": {
+        "operation": "remove-world-selection-v1",
+        "inputArtifactSha256": "05cb2bc00dad169ea828ad86b173406323e993f1f3d3a4af4104394571e33dfb",
+        "inputSourceGraphSha256": "a43c0a246c4780c229dd40c9c8c75861d43a89a59b04f043537c0963634fc152",
+        "preserved": "pass topology, render states, macro instructions and non-selection shader code"
+      }
+    },
+    {
+      "profileId": "ocean-far-graded",
+      "shaderName": "AIWorld/OceanFar",
+      "variantKey": "ocean-far:sharedClosure=water-surface-material-v1%3A7da1b19196761c07;surface=graded",
+      "sourcePath": "source/Shader/Water/OceanFarGraded.shader",
+      "virtualPath": "Shader/Water/ocean-far-graded.shaderc",
+      "path": "public/Shader/Water/ocean-far-graded.912d9e549f2d285ed9822e378dd874eb7cf18ff0116e21f7d3caae3446f84e07.shaderc",
+      "cacheKey": "912d9e549f2d285ed9822e378dd874eb7cf18ff0116e21f7d3caae3446f84e07",
+      "materializedSourceSha256": "30d63b37c6409cce0f44188020b9a519ca4092535f7f3f6f0761cbeb475f860f",
+      "artifactSha256": "912d9e549f2d285ed9822e378dd874eb7cf18ff0116e21f7d3caae3446f84e07",
+      "artifactBytes": 45679,
+      "passTopology": [
+        [
+          {
+            "name": "Forward",
+            "isUsePass": false
+          }
+        ]
+      ],
+      "capability": {
+        "profileId": "ocean-far-graded",
+        "shaderName": "AIWorld/OceanFar",
+        "variant": {
+          "backendId": "ocean-far",
+          "key": "ocean-far:sharedClosure=water-surface-material-v1%3A7da1b19196761c07;surface=graded",
+          "features": {
+            "sharedClosure": "water-surface-material-v1:7da1b19196761c07",
+            "surface": "graded"
+          }
+        },
+        "requiredBindings": [
+          "material_NearshoreTexture"
+        ]
+      },
+      "postprocess": {
+        "operation": "remove-world-selection-v1",
+        "inputArtifactSha256": "702ed3cfc721c19a60bf2ff4306b609ce6958edb9699582710c0dfb67206518a",
+        "inputSourceGraphSha256": "15e0c05b0ccdf7ffdec9e0cfa25ecf7e3851deba617dbfebddc589e1a058ba60",
+        "preserved": "pass topology, render states, macro instructions and non-selection shader code"
+      }
+    }
+  ]
+}

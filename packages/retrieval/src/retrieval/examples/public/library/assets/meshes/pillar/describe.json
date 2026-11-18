@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "assetType": "mesh",
+  "assetPaths": [
+    "assets/meshes/pillar/pillar.mesh"
+  ],
+  "overview": {
+    "name": "细立柱",
+    "description": "半米宽五米高的细长立柱网格，用于柱子和支撑结构。",
+    "tags": [
+      "方盒",
+      "网格"
+    ]
+  },
+  "usage": {
+    "description": "导入为 PrimitiveMesh，绑定到渲染器后使用。"
+  },
+  "technical": {
+    "width": 0.5,
+    "height": 5,
+    "depth": 0.5
+  }
+}

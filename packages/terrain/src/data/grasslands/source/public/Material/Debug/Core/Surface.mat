@@ -1,0 +1,9 @@
+{
+  "name": "Surface core diagnostics Material",
+  "shader": "Terrain/Debug/Core/Surface",
+  "shaderRef": { "url": "Shader/debug/Core/Surface.shaderc" },
+  "shaderData": {
+    "material_DebugView": { "type": "Float", "value": 0 }
+  },
+  "macros": []
+}

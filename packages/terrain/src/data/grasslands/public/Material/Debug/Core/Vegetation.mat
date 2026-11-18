@@ -1,0 +1,1 @@
+{"name":"Vegetation core diagnostics Material","shader":"Terrain/Debug/Core/Vegetation","shaderRef":{"url":"Shader/debug/Core/Vegetation.shaderc"},"shaderData":{"material_DebugView":{"type":"Float","value":0}},"macros":[]}

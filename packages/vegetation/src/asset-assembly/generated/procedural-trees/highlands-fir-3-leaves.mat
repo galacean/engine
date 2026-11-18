@@ -1,0 +1,161 @@
+{
+  "name": "Highlands Fir Needles",
+  "shader": "Terrain/Vegetation",
+  "shaderRef": {
+    "url": "Shader/Vegetation.shaderc"
+  },
+  "shaderData": {
+    "material_LodDitherTexture": { "type": "Texture", "value": { "url": "Texture/140c55bd97c21b9b.ktx2" } },
+    "material_LodDitherTextureInvSize": { "type": "Float", "value": 0.015625 },
+    "material_BaseColor": {
+      "type": "Color",
+      "value": {
+        "r": 0.11446146,
+        "g": 0.496,
+        "b": 0.05341538,
+        "a": 0
+      }
+    },
+    "material_SecondColor": {
+      "type": "Color",
+      "value": {
+        "r": 0.5568627,
+        "g": 1,
+        "b": 0.10196078,
+        "a": 0
+      }
+    },
+    "material_Tiling": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Smoothness": {
+      "type": "Float",
+      "value": 0.1
+    },
+    "material_BaseTexture": {
+      "type": "Texture",
+      "value": {
+        "url": "highlands-fir-3-leaves.png"
+      }
+    },
+    "material_AlphaCutoff": {
+      "type": "Float",
+      "value": 0.35
+    },
+    "material_SecondColorLevel": {
+      "type": "Float",
+      "value": -7.5
+    },
+    "material_SecondColorGradient": {
+      "type": "Float",
+      "value": -0.12
+    },
+    "material_TranslucencyColor": {
+      "type": "Color",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0
+      }
+    },
+    "material_TranslucencyIntensity": {
+      "type": "Float",
+      "value": 4
+    },
+    "material_TranslucencyShadowStrength": {
+      "type": "Float",
+      "value": 0.9
+    },
+    "material_WindForce": {
+      "type": "Float",
+      "value": 0.142
+    },
+    "material_WindWavesScale": {
+      "type": "Float",
+      "value": 0.346
+    },
+    "material_WindFlowDensity": {
+      "type": "Float",
+      "value": 0.508
+    },
+    "material_UVBaseLock": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_SnowResponse": {
+      "type": "Vector4",
+      "value": {
+        "x": 0.82,
+        "y": 8.5752415,
+        "z": 12.86286225,
+        "w": 1
+      }
+    },
+    "material_LeafAlbedoBrightness": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_LeafAlbedoDesaturation": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_LeafAlbedoTextureBlend": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_LeafBaseAOInfluence": {
+      "type": "Float",
+      "value": 0.5
+    },
+    "material_LeafGlancingAngleCut": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_LeafFlipBackfaceNormals": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_TranslucencyAOInfluence": {
+      "type": "Float",
+      "value": 0.8
+    },
+    "material_TranslucencyNormalDistortion": {
+      "type": "Float",
+      "value": 0.5
+    },
+    "material_TranslucencyScattering": {
+      "type": "Float",
+      "value": 2
+    },
+    "material_TranslucencyDirect": {
+      "type": "Float",
+      "value": 0.9
+    },
+    "material_TranslucencyAmbient": {
+      "type": "Float",
+      "value": 0.1
+    }
+  },
+  "macros": [
+    {
+      "name": "MATERIAL_ENABLE_SECOND_COLOR"
+    },
+    {
+      "name": "MATERIAL_ENABLE_WIND"
+    },
+    {
+      "name": "MATERIAL_ENABLE_TRANSLUCENCY"
+    },
+    {
+      "name": "MATERIAL_HAS_BASETEXTURE"
+    },
+    {
+      "name": "MATERIAL_SECOND_COLOR_LINEAR_OBJECT_GRADIENT"
+    },
+    {
+      "name": "MATERIAL_VEGETATION_CLIMATE_LEAF"
+    }
+  ]
+}

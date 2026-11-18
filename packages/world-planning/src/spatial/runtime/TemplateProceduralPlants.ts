@@ -1,0 +1,827 @@
+import {
+  AssetType,
+  BoundingBox,
+  Color,
+  Matrix,
+  MeshRenderer,
+  Quaternion,
+  RenderFace,
+  Texture2D,
+  TextureFilterMode,
+  TextureWrapMode,
+  Vector2,
+  Vector3,
+  Vector4,
+  type Engine,
+  type Entity,
+  type Material,
+  type ModelMesh,
+  type PBRMaterial
+} from "@galacean/engine";
+import { createSurfaceMaterial } from "@galacean/engine-terrain/surface/SurfaceMaterial";
+import { decodePlantParameters } from "@galacean/engine-vegetation/asset-assembly/PlantParameterEncoding";
+import { PLANT_SPECIES_CATALOG } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesCatalog";
+import bushStructureJson from "@galacean/engine-vegetation/asset-assembly/generated/procedural-trees/meadow-sm_birchbush_03-structure.json";
+import flowerStructureJson from "@galacean/engine-vegetation/asset-assembly/generated/procedural-trees/meadow-sm_flower_06_02-structure.json";
+import grassStructureJson from "@galacean/engine-vegetation/asset-assembly/generated/procedural-trees/meadow-sm_grass_02_01-prototype-structure.json";
+import plumeStructureJson from "@galacean/engine-vegetation/asset-assembly/generated/procedural-trees/meadow-sm_flower_09_01-prototype-structure.json";
+import type {
+  PlantGeometryInstance,
+  ProceduralPlantAsset
+} from "@galacean/engine-vegetation/asset-assembly/ProceduralPlantAsset";
+import {
+  buildProceduralPlantGeometry,
+  mergePlantGeometryByMaterial,
+  type PlantPartMesh,
+  type PlantPoint
+} from "@galacean/engine-vegetation/asset-assembly/ProceduralPlantGeometry";
+import { uploadProceduralPlantGeometry } from "@galacean/engine-vegetation/asset-assembly/ProceduralPlantMeshes";
+import {
+  configureProceduralLeafMaterial,
+  configureProceduralPlantWindMaterial,
+  expandProceduralTreeWindBounds
+} from "@galacean/engine-vegetation/asset-assembly/TreeAssemblyRuntime";
+import {
+  createDefaultProceduralTreeDistributionTuning,
+  createProceduralTreeFoliageGeometryTuning,
+  createProceduralTreeMeshesForLods,
+  type ProceduralTreeSource
+} from "@galacean/engine-vegetation/asset-assembly/ProceduralTreeGenerator";
+import {
+  createTreeAssemblyInstanceStorage,
+  createTreeAssemblyInstancedMesh,
+  uploadTreeAssemblyInstances
+} from "@galacean/engine-vegetation/asset-assembly/TreeAssemblyInstancedMesh";
+import { DEAD_TREE_ASSET_ID } from "@galacean/engine-vegetation/asset-assembly/TreeSpeciesCatalog";
+import { TREE_SPECIES_LOD_POLICIES } from "@galacean/engine-vegetation/asset-assembly/TreeSpeciesLodPolicy";
+import { TREE_SPECIES_MATERIAL_RESOURCES } from "@galacean/engine-vegetation/asset-assembly/TreeSpeciesMaterialResources";
+import { TREE_SPECIES_PARAMETERS } from "@galacean/engine-vegetation/asset-assembly/TreeSpeciesParameters";
+import { TREE_STRUCTURE as DEAD_TREE_STRUCTURE } from "@galacean/engine-vegetation/asset-assembly/TreeStructureDeadTree";
+import { settlementRandom } from "../../semantic-study/SettlementGeometry";
+import { templateLinearColor } from "../WorldTemplateCatalog";
+
+export type TemplateProceduralPlantKind =
+  | "dead-wood"
+  | "dry-grass"
+  | "plume-grass"
+  | "desert-shrub"
+  | "pastel-flower"
+  | "meadow-flower";
+
+export interface TemplateProceduralPlantInstance {
+  readonly id: string;
+  readonly kind: TemplateProceduralPlantKind;
+  readonly x: number;
+  readonly z: number;
+  readonly heightM: number;
+  readonly yawDegrees?: number;
+  readonly variant?: number;
+  /** Snap onto 3D sandstone rock ledge triangles when available instead of terrain floor. */
+  readonly onRock?: boolean;
+  readonly tiltXDegrees?: number;
+  readonly tiltZDegrees?: number;
+  readonly spreadScale?: number;
+}
+
+export interface TemplateProceduralPlantResources {
+  readonly bushAsset: ProceduralPlantAsset;
+  readonly flowerAsset: ProceduralPlantAsset;
+  readonly grassAsset: ProceduralPlantAsset;
+  readonly plumeAsset: ProceduralPlantAsset;
+  readonly textures: Readonly<Record<string, Texture2D>>;
+}
+
+type PlantColorways = readonly PlantPoint[];
+const hexPalette = (...hexes: readonly string[]): PlantColorways => hexes.map((h) => templateLinearColor(h));
+
+const PROCEDURAL_PALETTE: Record<TemplateProceduralPlantKind, Record<string, PlantColorways>> = {
+  "dead-wood": { bark: hexPalette("#bfa286", "#ae9176", "#9a7d64") },
+  "dry-grass": { foliage: hexPalette("#e4b86e", "#efca84", "#d6a45c", "#e9c27a") },
+  "plume-grass": {
+    foliage: hexPalette("#ddb066", "#cda058", "#e8be78"),
+    plume: hexPalette("#f7dfae", "#eed29a", "#fbeaC2")
+  },
+  "desert-shrub": {
+    bark: hexPalette("#c2b29c", "#cdc0aa", "#b5a58e"),
+    foliage: hexPalette("#b6c2a8", "#a8b69a", "#c2ccb6", "#9dac90")
+  },
+  "pastel-flower": {
+    foliage: hexPalette("#94a678", "#86986a", "#a2b286"),
+    petals: hexPalette("#d8b0fa", "#f4bae8", "#c8a0f4", "#ecd2fc"),
+    petalsAlt: hexPalette("#e4bcf8", "#f6c6ec", "#d2acf6", "#f0d8fc")
+  },
+  "meadow-flower": {
+    foliage: hexPalette("#4b8e20", "#5aa129", "#3f7d1b"),
+    petals: hexPalette("#ffffff", "#fffdf0", "#f8fbff", "#fff9e0"),
+    petalsAlt: hexPalette("#fffbe8", "#ffffff", "#fff6d6", "#f6faff")
+  }
+};
+
+const GENERATED_PLANT_DIR = "../../../../vegetation/src/asset-assembly/generated/procedural-trees/";
+const plantAssetUrl = (file: string) => new URL(`${GENERATED_PLANT_DIR}${file}`, import.meta.url).href;
+
+const SLOT_TEXTURES: Partial<
+  Record<
+    Exclude<TemplateProceduralPlantKind, "dead-wood">,
+    Readonly<Record<string, { textureKey: string; alphaCutoff: number; textureBlend: number; repeatU?: boolean }>>
+  >
+> = {
+  "desert-shrub": {
+    bark: { textureKey: "bark", alphaCutoff: 0, textureBlend: 0.35, repeatU: true },
+    foliage: { textureKey: "shrubLeaf", alphaCutoff: 0.28, textureBlend: 0.28 }
+  },
+  "pastel-flower": {
+    foliage: { textureKey: "grassBlade", alphaCutoff: 0.22, textureBlend: 0.2 },
+    petals: { textureKey: "flowerBlossom", alphaCutoff: 0.16, textureBlend: 0.32 },
+    petalsAlt: { textureKey: "flowerPetal", alphaCutoff: 0.16, textureBlend: 0.32 }
+  },
+  "meadow-flower": {
+    foliage: { textureKey: "grassBlade", alphaCutoff: 0.22, textureBlend: 0.18 },
+    petals: { textureKey: "flowerBlossom", alphaCutoff: 0.18, textureBlend: 0.16 },
+    petalsAlt: { textureKey: "flowerPetal", alphaCutoff: 0.18, textureBlend: 0.16 }
+  },
+  "dry-grass": {
+    foliage: { textureKey: "grassBlade", alphaCutoff: 0.24, textureBlend: 0.24 }
+  },
+  "plume-grass": {
+    foliage: { textureKey: "grassBlade", alphaCutoff: 0.24, textureBlend: 0.24 },
+    plume: { textureKey: "plumeSpray", alphaCutoff: 0.2, textureBlend: 0.26 }
+  }
+};
+
+const cachedResources = new WeakMap<Engine, Promise<TemplateProceduralPlantResources>>();
+let decodedAssets:
+  | Pick<TemplateProceduralPlantResources, "bushAsset" | "flowerAsset" | "grassAsset" | "plumeAsset">
+  | undefined;
+
+function getDecodedPlantAssets() {
+  decodedAssets ??= {
+    bushAsset: decodePlantParameters<ProceduralPlantAsset>(bushStructureJson),
+    flowerAsset: decodePlantParameters<ProceduralPlantAsset>(flowerStructureJson),
+    grassAsset: decodePlantParameters<ProceduralPlantAsset>(grassStructureJson),
+    plumeAsset: decodePlantParameters<ProceduralPlantAsset>(plumeStructureJson)
+  };
+  return decodedAssets;
+}
+
+/** Preloads reconstructed production plant structures and alpha-cutout textures once per Engine. */
+export function preloadTemplateProceduralPlantResources(engine: Engine): Promise<TemplateProceduralPlantResources> {
+  const existing = cachedResources.get(engine);
+  if (existing) return existing;
+  const loadTex = (file: string, repeatU = false) =>
+    engine.resourceManager.load<Texture2D>({
+      type: AssetType.Texture,
+      url: plantAssetUrl(file),
+      params: {
+        isSRGBColorSpace: true,
+        mipmap: true,
+        filterMode: TextureFilterMode.Trilinear,
+        wrapModeU: repeatU ? TextureWrapMode.Repeat : TextureWrapMode.Clamp,
+        wrapModeV: TextureWrapMode.Clamp,
+        anisoLevel: 8
+      }
+    });
+  const task = Promise.all([
+    loadTex("meadow-birch-bark-256.png", true),
+    loadTex("meadow-birchtree_leaf_01_summer-part-01-256.png"),
+    loadTex("meadow-flowers_01-part-01-256.png"),
+    loadTex("meadow-flowers_02-part-05-256.png"),
+    loadTex("meadow-grass_02_summer-part-01-256.png"),
+    loadTex("meadow-flowers_03-part-01-256.png")
+  ]).then(
+    ([bark, shrubLeaf, flowerBlossom, flowerPetal, grassBlade, plumeSpray]): TemplateProceduralPlantResources => ({
+      ...getDecodedPlantAssets(),
+      textures: { bark, shrubLeaf, flowerBlossom, flowerPetal, grassBlade, plumeSpray }
+    })
+  );
+  cachedResources.set(engine, task);
+  return task;
+}
+
+function transformRestParts(
+  parts: readonly PlantPartMesh[],
+  transformArray: readonly number[],
+  targetMaterialId: string,
+  suffix: string
+): PlantPartMesh[] {
+  const matrix = new Matrix().copyFromArray(transformArray);
+  const normalMatrix = matrix.clone().invert().transpose();
+  const flipWinding = matrix.determinant() < 0;
+  const pos = new Vector3();
+  const norm = new Vector3();
+  return parts.map((part) => {
+    const min: [number, number, number] = [Infinity, Infinity, Infinity];
+    const max: [number, number, number] = [-Infinity, -Infinity, -Infinity];
+    const positions = part.mesh.positions.map((p) => {
+      Vector3.transformCoordinate(pos.set(...p), matrix, pos);
+      min[0] = Math.min(min[0], pos.x);
+      min[1] = Math.min(min[1], pos.y);
+      min[2] = Math.min(min[2], pos.z);
+      max[0] = Math.max(max[0], pos.x);
+      max[1] = Math.max(max[1], pos.y);
+      max[2] = Math.max(max[2], pos.z);
+      return [pos.x, pos.y, pos.z] as const;
+    });
+    const normals = part.mesh.normals.map((n) => {
+      Vector3.transformNormal(norm.set(...n), normalMatrix, norm);
+      norm.normalize();
+      return [norm.x, norm.y, norm.z] as const;
+    });
+    const indices = flipWinding
+      ? part.mesh.indices.map((_, idx) => part.mesh.indices[idx - (idx % 3) + (idx % 3 === 0 ? 0 : 3 - (idx % 3))])
+      : part.mesh.indices;
+    return {
+      partId: `${part.partId}/${suffix}`,
+      materialId: targetMaterialId,
+      mesh: {
+        ...part.mesh,
+        positions,
+        normals,
+        indices,
+        bounds: [min, max] as const
+      }
+    };
+  });
+}
+
+function attachFlexibleWindFrames(parts: readonly PlantPartMesh[], windHeight: number): PlantPartMesh[] {
+  const safeHeight = Math.max(0.05, windHeight);
+  return parts.map((part) => ({
+    ...part,
+    mesh: {
+      ...part.mesh,
+      windFrames: part.mesh.positions.map((p) => [1, 0, 0, Math.min(1, Math.max(0, p[1]) / safeHeight)] as const)
+    }
+  }));
+}
+
+function catalogLod0Instances(speciesId: string): readonly PlantGeometryInstance[] {
+  const entry = PLANT_SPECIES_CATALOG.assets.find((item) => item.id === speciesId) as
+    | { geometryInstances?: readonly PlantGeometryInstance[] }
+    | undefined;
+  return (entry?.geometryInstances ?? []).filter((inst) => !inst.lods || inst.lods.includes(0));
+}
+
+function compileProductionGeometry(
+  kind: Exclude<TemplateProceduralPlantKind, "dead-wood">,
+  resources: TemplateProceduralPlantResources
+): {
+  geometry: readonly PlantPartMesh[];
+  floor: number;
+  sourceHeight: number;
+  windHeight: number;
+  leafSlots: Set<string>;
+} {
+  if (kind === "desert-shrub") {
+    const structure = resources.bushAsset.geometryLods[0];
+    const baseParts = buildProceduralPlantGeometry(structure, 0);
+    const rawFloor = Math.min(...baseParts.map(({ mesh }) => mesh.bounds[0][1]));
+    const rawMaxY = Math.max(...baseParts.map(({ mesh }) => mesh.bounds[1][1]));
+    const rawHeight = Math.max(0.05, rawMaxY - rawFloor);
+    const rawLeafId = "appearance-e832df91cc4eb1a2";
+    // Combine an upper crown and a ground-hugging lower sage skirt so desert bushes sit naturally on sand & rock ledges without leggy stilts.
+    const layers = [
+      [1, 0, 0, 0, 0, 0.92, 0, 0, 0, 0, 1, 0, 0, -0.14 * rawHeight, 0, 1],
+      [0, 0, -1.24, 0, 0, 0.62, 0, 0, 1.24, 0, 0, 0, 0, -0.22 * rawHeight, 0, 1]
+    ];
+    const assembled: PlantPartMesh[] = [];
+    layers.forEach((m, idx) => {
+      for (const part of baseParts) {
+        const slot = part.materialId === rawLeafId ? "foliage" : "bark";
+        assembled.push(...transformRestParts([part], m, slot, `b${idx}`));
+      }
+    });
+    const floor = Math.min(...assembled.map(({ mesh }) => mesh.bounds[0][1]));
+    const maxY = Math.max(...assembled.map(({ mesh }) => mesh.bounds[1][1]));
+    const windHeight = Math.max(0.05, maxY - floor);
+    return {
+      geometry: mergePlantGeometryByMaterial(attachFlexibleWindFrames(assembled, windHeight)),
+      floor: Math.max(floor, -0.02 * rawHeight),
+      sourceHeight: Math.max(0.01, maxY - Math.max(floor, -0.02 * rawHeight)),
+      windHeight,
+      leafSlots: new Set()
+    };
+  }
+
+  if (kind === "pastel-flower" || kind === "meadow-flower") {
+    const structure = resources.flowerAsset.geometryLods[0];
+    const baseParts = buildProceduralPlantGeometry(structure, 0);
+    const baseSpan = Math.max(
+      0.1,
+      ...baseParts.map(({ mesh }) =>
+        Math.max(mesh.bounds[1][0] - mesh.bounds[0][0], mesh.bounds[1][2] - mesh.bounds[0][2])
+      )
+    );
+    const baseMaxY = Math.max(0.05, ...baseParts.map(({ mesh }) => mesh.bounds[1][1]));
+    const rawPetalId = "appearance-e7bfcdb9301d4d83";
+    const headBoost = kind === "meadow-flower" ? 1.28 : 1.95;
+    // Enlarge each alpha-cutout blossom card slightly around its head center so petals stay lush from afar AND crisp up close!
+    const enlargedParts = baseParts.map((part) => {
+      if (part.materialId !== rawPetalId) return part;
+      const cx = (part.mesh.bounds[0][0] + part.mesh.bounds[1][0]) * 0.5;
+      const cy = (part.mesh.bounds[0][1] + part.mesh.bounds[1][1]) * 0.5;
+      const cz = (part.mesh.bounds[0][2] + part.mesh.bounds[1][2]) * 0.5;
+      const min: [number, number, number] = [Infinity, Infinity, Infinity];
+      const max: [number, number, number] = [-Infinity, -Infinity, -Infinity];
+      const positions = part.mesh.positions.map(([px, py, pz]) => {
+        const nx = cx + (px - cx) * headBoost;
+        const ny = cy + (py - cy) * headBoost;
+        const nz = cz + (pz - cz) * headBoost;
+        min[0] = Math.min(min[0], nx);
+        min[1] = Math.min(min[1], ny);
+        min[2] = Math.min(min[2], nz);
+        max[0] = Math.max(max[0], nx);
+        max[1] = Math.max(max[1], ny);
+        max[2] = Math.max(max[2], nz);
+        return [nx, ny, nz] as const;
+      });
+      return { ...part, mesh: { ...part.mesh, positions, bounds: [min, max] as const } };
+    });
+    // Compose airy wildflower sprigs (5 for meadow-flower, 9 dense cushions for pastel-flower) + basal grass blades.
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+    const assembled: PlantPartMesh[] = [];
+    const q = new Quaternion();
+    const mat = new Matrix();
+    const sprigCount = kind === "meadow-flower" ? 5 : 9;
+    const radiusScale = kind === "meadow-flower" ? 0.72 : 0.52;
+    for (let i = 0; i < sprigCount; i++) {
+      const r = (i === 0 ? 0 : 0.24 + Math.sqrt(i / Math.max(1, sprigCount - 1)) * radiusScale) * baseSpan;
+      const theta = i * goldenAngle;
+      const x = Math.cos(theta) * r;
+      const z = Math.sin(theta) * r;
+      const s = i === 0 ? 0.96 : 0.88 - (i % 3) * 0.08;
+      const outwardTilt = i === 0 ? 0 : 0.22 + (i % 3) * 0.08;
+      Quaternion.rotationYawPitchRoll(theta + i * 0.7, outwardTilt, 0, q);
+      Matrix.affineTransformation(new Vector3(s, s * 0.78, s), q, new Vector3(x, -0.04 * baseMaxY, z), mat);
+      const mArr = Array.from(mat.elements);
+      for (const part of enlargedParts) {
+        const slot = part.materialId === rawPetalId ? (i % 2 === 0 ? "petals" : "petalsAlt") : "foliage";
+        assembled.push(...transformRestParts([part], mArr, slot, `c${i}`));
+      }
+    }
+    const grassRest = buildProceduralPlantGeometry(resources.grassAsset.geometryLods[0], 0);
+    const grassInstances = catalogLod0Instances("SM_Grass_02_03").slice(0, 3);
+    const grassMaxY = Math.max(0.05, ...grassRest.map(({ mesh }) => mesh.bounds[1][1]));
+    const foliageScale = (baseMaxY * 0.55) / grassMaxY;
+    grassInstances.forEach((inst, idx) => {
+      const matching = grassRest.filter((part) => part.materialId === inst.materialId);
+      const scaledTransform = inst.transform.map((v, k) =>
+        k < 12 ? v * foliageScale : k === 15 ? 1 : v * foliageScale
+      );
+      assembled.push(...transformRestParts(matching, scaledTransform, "foliage", `fg${idx}`));
+    });
+    const floor = Math.min(...assembled.map(({ mesh }) => mesh.bounds[0][1]));
+    const maxY = Math.max(...assembled.map(({ mesh }) => mesh.bounds[1][1]));
+    const windHeight = Math.max(0.05, maxY);
+    return {
+      geometry: mergePlantGeometryByMaterial(attachFlexibleWindFrames(assembled, windHeight)),
+      floor,
+      sourceHeight: Math.max(0.01, maxY - floor),
+      windHeight,
+      leafSlots: new Set()
+    };
+  }
+
+  const grassRest = buildProceduralPlantGeometry(resources.grassAsset.geometryLods[0], 0);
+  const grassInstances = catalogLod0Instances("SM_Grass_02_03");
+  const grassAssembled: PlantPartMesh[] = [];
+  grassInstances.forEach((inst, idx) => {
+    const matching = grassRest.filter((part) => part.materialId === inst.materialId);
+    grassAssembled.push(...transformRestParts(matching, inst.transform, "foliage", `g${idx}`));
+  });
+
+  if (kind === "dry-grass") {
+    const floor = Math.min(...grassAssembled.map(({ mesh }) => mesh.bounds[0][1]));
+    const maxY = Math.max(...grassAssembled.map(({ mesh }) => mesh.bounds[1][1]));
+    const windHeight = Math.max(0.05, maxY);
+    return {
+      geometry: mergePlantGeometryByMaterial(attachFlexibleWindFrames(grassAssembled, windHeight)),
+      floor,
+      sourceHeight: Math.max(0.01, maxY - floor),
+      windHeight,
+      leafSlots: new Set()
+    };
+  }
+
+  // "plume-grass": radiating alpha-cutout sedge grass base + 3 graceful feathery branching seed panicles rising above.
+  const grassMaxY = Math.max(...grassAssembled.map(({ mesh }) => mesh.bounds[1][1]));
+  const plumeRest = buildProceduralPlantGeometry(resources.plumeAsset.geometryLods[0], 0);
+  const plumeBaseMaxY = Math.max(0.05, ...plumeRest.map(({ mesh }) => mesh.bounds[1][1]));
+  const plumeScale = (grassMaxY * 1.38) / plumeBaseMaxY;
+  const plumeAngles = [
+    { yaw: 0.3, tiltX: 0.12, tiltZ: -0.08, s: plumeScale },
+    { yaw: 2.4, tiltX: -0.1, tiltZ: 0.12, s: plumeScale * 0.92 },
+    { yaw: 4.5, tiltX: 0.08, tiltZ: 0.1, s: plumeScale * 0.86 }
+  ];
+  const combined: PlantPartMesh[] = [...grassAssembled];
+  const q = new Quaternion();
+  const mat = new Matrix();
+  plumeAngles.forEach(({ yaw, tiltX, tiltZ, s }, idx) => {
+    Quaternion.rotationYawPitchRoll(yaw, tiltX, tiltZ, q);
+    Matrix.affineTransformation(new Vector3(s, s, s), q, new Vector3(0, 0, 0), mat);
+    combined.push(...transformRestParts(plumeRest, Array.from(mat.elements), "plume", `p${idx}`));
+  });
+  const floor = Math.min(...combined.map(({ mesh }) => mesh.bounds[0][1]));
+  const maxY = Math.max(...combined.map(({ mesh }) => mesh.bounds[1][1]));
+  const windHeight = Math.max(0.05, maxY);
+  return {
+    geometry: mergePlantGeometryByMaterial(attachFlexibleWindFrames(combined, windHeight)),
+    floor,
+    sourceHeight: Math.max(0.01, maxY - floor),
+    windHeight,
+    leafSlots: new Set()
+  };
+}
+
+function createDeadTreeVariantMeshes(engine: Engine): readonly { mesh: ModelMesh; destroy: () => void }[] {
+  const deadParams = TREE_SPECIES_PARAMETERS["dead-tree"]!;
+  const lodPolicy = TREE_SPECIES_LOD_POLICIES["dead-tree"]!;
+  const foliageTuning = createProceduralTreeFoliageGeometryTuning();
+  const measuredSource: ProceduralTreeSource = {
+    id: DEAD_TREE_ASSET_ID,
+    label: "Desert Dead Tree Measured",
+    size: deadParams.size,
+    proceduralProfile: "white-birch",
+    proceduralGeometryIdentity: "dead-tree",
+    structureParameters: DEAD_TREE_STRUCTURE
+  };
+  const measuredLod = createProceduralTreeMeshesForLods(
+    engine,
+    measuredSource,
+    [0],
+    deadParams.leafCountTuning,
+    deadParams.distributionTuning,
+    foliageTuning,
+    lodPolicy.triangleBudget
+  )[0]!;
+
+  const saplingBase: ProceduralTreeSource = {
+    id: `${DEAD_TREE_ASSET_ID}:weeping-desert`,
+    label: "Desert Weeping Snag",
+    size: 10.5,
+    proceduralProfile: "white-birch",
+    proceduralGeometryIdentity: "desert-weeping-snag"
+  };
+  const weepingDistribution = {
+    ...createDefaultProceduralTreeDistributionTuning(saplingBase),
+    geometrySeed: 294817523,
+    trunkCount: 1,
+    trunkClearHeightPercentOfHeight: 28,
+    trunkRadiusPercentOfHeight: 1.55,
+    trunkCurveVariationDegrees: 18,
+    trunkSplitAngleDegrees: 16,
+    branchCount: 7,
+    branchLengthPercentOfParent: 42,
+    branchMaximumLengthPercentOfHeight: 56,
+    branchLengthVariationPercent: 22,
+    branchCurveVariationDegrees: 30,
+    branchAttractionUp: -0.14,
+    branchDownAngleDegrees: 46,
+    branchDownAngleVariationDegrees: 14,
+    twigCount: 24,
+    twigLengthPercentOfParent: 54,
+    twigMaximumLengthPercentOfHeight: 28,
+    twigLengthVariationPercent: 36,
+    twigCurveVariationDegrees: 44,
+    twigAttractionUp: -0.22,
+    twigDownAngleDegrees: 62,
+    twigDownAngleVariationDegrees: 16,
+    leafNormalCrownBlendPercent: 0
+  };
+  const weepingLod = createProceduralTreeMeshesForLods(
+    engine,
+    saplingBase,
+    [0],
+    { lod0Count: 0, lod1Count: 0, lod2Count: 0, lod3Count: 0 },
+    weepingDistribution,
+    foliageTuning,
+    lodPolicy.triangleBudget
+  )[0]!;
+
+  return [
+    {
+      mesh: measuredLod.trunk,
+      destroy: () => {
+        measuredLod.trunk.destroy();
+        measuredLod.crown.destroy();
+      }
+    },
+    {
+      mesh: weepingLod.trunk,
+      destroy: () => {
+        weepingLod.trunk.destroy();
+        weepingLod.crown.destroy();
+      }
+    }
+  ];
+}
+
+function bindDeadTreeBarkTextures(engine: Engine, material: PBRMaterial, isDisposed: () => boolean): void {
+  const resources = TREE_SPECIES_MATERIAL_RESOURCES["dead-tree"];
+  if (!resources) return;
+  const [uScale, vScale] = resources.trunkUvTilesPerMeter;
+  material.shaderData.setVector2("material_UvScale", new Vector2(uScale, vScale));
+  material.shaderData.enableMacro("MATERIAL_HAS_UV_SCALE");
+  void Promise.all([
+    engine.resourceManager.load<Texture2D>({ type: AssetType.Texture, url: resources.barkAlbedoUrl }),
+    engine.resourceManager.load<Texture2D>({ type: AssetType.Texture, url: resources.barkNormalUrl })
+  ])
+    .then(([albedo, normal]) => {
+      if (isDisposed() || material.destroyed) return;
+      if (albedo instanceof Texture2D) material.baseTexture = albedo;
+      if (normal instanceof Texture2D) material.normalTexture = normal;
+    })
+    .catch(() => {});
+}
+
+const PROCEDURAL_WIND_PARAMS: Record<
+  Exclude<TemplateProceduralPlantKind, "dead-wood">,
+  readonly [wholeLimit: number, wholeFreqHz: number, leafLimit: number, leafFreqHz: number]
+> = {
+  "dry-grass": [0.32, 0.65, 0, 1.15],
+  "plume-grass": [0.38, 0.68, 0, 1.2],
+  "desert-shrub": [0.16, 0.52, 0.14, 1.15],
+  "pastel-flower": [0.28, 0.68, 0, 1.25],
+  "meadow-flower": [0.24, 0.68, 0, 1.22]
+};
+
+function createProceduralWindMaterial(
+  engine: Engine,
+  vegetationTemplate: Material | undefined,
+  isLeaf: boolean,
+  windHeight: number,
+  windParams: readonly [number, number, number, number],
+  texture: Texture2D | undefined,
+  alphaCutoff: number,
+  textureBlend: number,
+  albedoBrightness: number,
+  desaturation: number
+): Material {
+  if (!vegetationTemplate || vegetationTemplate.shader.name !== "Terrain/Vegetation") {
+    const fallback = createSurfaceMaterial(engine, { baseColor: new Color(1, 1, 1, 1) });
+    fallback.renderFace = RenderFace.Double;
+    return fallback;
+  }
+  const material = vegetationTemplate.clone();
+  const data = material.shaderData;
+  for (const macro of data.getMacros()) {
+    if (
+      macro.name.startsWith("MATERIAL_WIND_") ||
+      macro.name.startsWith("MATERIAL_SECOND_COLOR_") ||
+      [
+        "MATERIAL_HAS_BASETEXTURE",
+        "MATERIAL_HAS_SMOOTHNESS_TEXTURE",
+        "MATERIAL_HAS_NORMALTEXTURE",
+        "MATERIAL_ENABLE_SECOND_COLOR",
+        "MATERIAL_PROCEDURAL_TREE_CANOPY_OCCLUSION",
+        "MATERIAL_PROCEDURAL_TREE_TRUNK_VERTICAL_GRADIENT"
+      ].includes(macro.name)
+    ) {
+      data.disableMacro(macro);
+    }
+  }
+  if (texture) {
+    configureProceduralLeafMaterial(material, texture);
+  } else {
+    data.setTexture("material_BaseTexture", null!);
+  }
+  configureProceduralPlantWindMaterial(material, isLeaf);
+  data.setFloat("material_ProceduralTreeHeight", windHeight);
+  data.setVector4("material_ProceduralTreeWindParams", new Vector4(...windParams));
+  data.setColor("material_BaseColor", new Color(1, 1, 1, 1));
+  data.setColor("material_TranslucencyColor", new Color(1, 0.96, 0.9, 1));
+  data.setFloat("material_TranslucencyIntensity", isLeaf ? 0.62 : 0.42);
+  data.setFloat("material_LeafAlbedoBrightness", albedoBrightness);
+  data.setFloat("material_LeafAlbedoDesaturation", desaturation);
+  data.setFloat("material_LeafAlbedoTextureBlend", texture ? textureBlend : 0);
+  data.setFloat("material_LeafFlipBackfaceNormals", 1);
+  data.setFloat("material_LightingFlatness", 0.58);
+  data.setFloat("material_Smoothness", 0.12);
+  data.setFloat("material_Tiling", 1);
+  data.setFloat("material_UVBaseLock", 0);
+  data.setFloat("material_AlphaCutoff", texture ? alphaCutoff : 0);
+  data.setFloat("material_GrassDistanceFadeEnable", 0);
+  return material;
+}
+
+/** Mounts native procedural desert trees/shrubs/flowers/grass declared on a template via GPU instancing. */
+export function mountTemplateProceduralPlants(
+  root: Entity,
+  anchor: { x: number; y: number; z: number },
+  ground: (x: number, z: number) => number | undefined,
+  plants: readonly TemplateProceduralPlantInstance[],
+  seed: number,
+  vegetationTemplate?: Material,
+  rockGround?: (x: number, z: number) => number | undefined,
+  plantResources?: TemplateProceduralPlantResources
+): () => void {
+  let disposed = false;
+  const disposals: Array<() => void> = [];
+  const grouped = new Map<TemplateProceduralPlantKind, TemplateProceduralPlantInstance[]>();
+  for (const item of plants) {
+    const list = grouped.get(item.kind) ?? [];
+    list.push(item);
+    grouped.set(item.kind, list);
+  }
+  const owner = root.createChild("Template procedural plants");
+  const rotQuat = new Quaternion();
+
+  for (const [kind, entries] of grouped) {
+    const positioned = entries
+      .map((entry) => {
+        const wx = anchor.x - entry.x;
+        const wz = anchor.z + entry.z;
+        const worldY = entry.onRock && rockGround ? rockGround(wx, wz) : ground(wx, wz);
+        if (worldY === undefined || !Number.isFinite(worldY)) return undefined;
+        return { entry, localX: -entry.x, localY: worldY - anchor.y, localZ: entry.z };
+      })
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+    if (!positioned.length) continue;
+
+    if (kind === "dead-wood") {
+      const material = createSurfaceMaterial(root.engine, { baseColor: new Color(1, 1, 1, 1), normalStrength: 0.75 });
+      material.renderFace = RenderFace.Double;
+      disposals.push(() => material.destroy());
+      bindDeadTreeBarkTextures(root.engine, material, () => disposed);
+
+      const variants = createDeadTreeVariantMeshes(root.engine);
+      for (const variant of variants) disposals.push(variant.destroy);
+      const colors = PROCEDURAL_PALETTE["dead-wood"].bark;
+
+      variants.forEach((variantMesh, variantIndex) => {
+        const subset = positioned.filter(({ entry }, idx) => ((entry.variant ?? idx) & 1) === variantIndex);
+        if (!subset.length) return;
+        const floor = variantMesh.mesh.bounds.min.y;
+        const sourceHeight = Math.max(0.01, variantMesh.mesh.bounds.max.y - floor);
+        const bounds = new BoundingBox(
+          new Vector3(Infinity, Infinity, Infinity),
+          new Vector3(-Infinity, -Infinity, -Infinity)
+        );
+        const storage = createTreeAssemblyInstanceStorage(root.engine, subset.length);
+        disposals.push(() => storage.instanceBuffer.destroy(true));
+
+        subset.forEach(({ entry, localX, localY, localZ }, idx) => {
+          const scale = entry.heightM / sourceHeight;
+          const base = localY - floor * scale - 0.14;
+          const yaw = ((entry.yawDegrees ?? 0) * Math.PI) / 180;
+          const pitch = ((entry.tiltXDegrees ?? 0) * Math.PI) / 180;
+          const roll = ((entry.tiltZDegrees ?? 0) * Math.PI) / 180;
+          Quaternion.rotationYawPitchRoll(yaw, pitch, roll, rotQuat);
+          const reach = entry.heightM * 0.9;
+          bounds.min.set(
+            Math.min(bounds.min.x, localX - reach),
+            Math.min(bounds.min.y, base - 0.5),
+            Math.min(bounds.min.z, localZ - reach)
+          );
+          bounds.max.set(
+            Math.max(bounds.max.x, localX + reach),
+            Math.max(bounds.max.y, base + entry.heightM * 1.25),
+            Math.max(bounds.max.z, localZ + reach)
+          );
+          const offset = idx * storage.recordFloats;
+          const rawVariant =
+            entry.variant ?? Math.floor(settlementRandom(seed, `template-plant:${entry.id}`) * colors.length);
+          const color = colors[Math.abs(Math.trunc(rawVariant)) % colors.length];
+          storage.staging.set(
+            [
+              localX,
+              base,
+              localZ,
+              1,
+              rotQuat.x,
+              rotQuat.y,
+              rotQuat.z,
+              rotQuat.w,
+              scale * (entry.spreadScale ?? 1),
+              scale,
+              scale * (entry.spreadScale ?? 1),
+              1
+            ],
+            offset
+          );
+          storage.staging.set([...color, 1], offset + 12);
+        });
+
+        const name = `dead-wood/variant-${variantIndex}`;
+        const view = createTreeAssemblyInstancedMesh(
+          root.engine,
+          variantMesh.mesh,
+          subset.length,
+          bounds,
+          name,
+          storage
+        );
+        disposals.push(() => view.mesh.destroy());
+        uploadTreeAssemblyInstances(view, subset.length);
+        const renderer = owner.createChild(name).addComponent(MeshRenderer);
+        renderer.mesh = view.mesh;
+        renderer.setMaterial(material);
+        renderer.castShadows = renderer.receiveShadows = true;
+        renderer.shaderData.enableMacro("RENDERER_ASSET_ASSEMBLY_INSTANCE");
+      });
+      continue;
+    }
+
+    if (!plantResources) continue;
+    const { geometry, floor, sourceHeight, windHeight, leafSlots } = compileProductionGeometry(kind, plantResources);
+    const windParams = PROCEDURAL_WIND_PARAMS[kind];
+    const meshes = uploadProceduralPlantGeometry(root.engine, geometry);
+    disposals.push(() => meshes.destroy());
+    for (const { mesh, materialId } of meshes.parts) {
+      const data = geometry.find((item) => item.materialId === materialId)!.mesh;
+      let radius = 0;
+      if (data.leafFrames) {
+        data.positions.forEach((p, idx) => {
+          radius = Math.max(radius, Math.hypot(...p.map((v, axis) => v - data.leafFrames![idx][axis])));
+        });
+      }
+      expandProceduralTreeWindBounds(mesh, radius);
+    }
+    const slotConfigs = SLOT_TEXTURES[kind] ?? {};
+    const materials = Object.fromEntries(
+      Object.keys(PROCEDURAL_PALETTE[kind]).map((slot) => {
+        const cfg = slotConfigs[slot];
+        const texture = cfg?.textureKey ? plantResources.textures[cfg.textureKey] : undefined;
+        const brightness =
+          kind === "meadow-flower" && (slot === "petals" || slot === "petalsAlt")
+            ? 1.75
+            : kind === "pastel-flower" && (slot === "petals" || slot === "petalsAlt")
+              ? 1.32
+              : kind === "desert-shrub"
+                ? 1.72
+                : 1.48;
+        const desaturation = kind === "desert-shrub" ? 0.32 : 0;
+        const material = createProceduralWindMaterial(
+          root.engine,
+          vegetationTemplate,
+          leafSlots.has(slot),
+          windHeight,
+          windParams,
+          texture,
+          cfg?.alphaCutoff ?? 0,
+          cfg?.textureBlend ?? 0,
+          brightness,
+          desaturation
+        );
+        disposals.push(() => material.destroy());
+        return [slot, material];
+      })
+    );
+    const bounds = new BoundingBox(
+      new Vector3(Infinity, Infinity, Infinity),
+      new Vector3(-Infinity, -Infinity, -Infinity)
+    );
+    const transforms = positioned.map(({ entry, localX, localY, localZ }) => {
+      const isFlowerCushion = kind === "pastel-flower" || kind === "meadow-flower";
+      const effectiveHeight = isFlowerCushion ? entry.heightM * 0.78 : entry.heightM;
+      const scaleY = effectiveHeight / sourceHeight;
+      const spread = isFlowerCushion ? 1 + ((entry.spreadScale ?? 1) - 1) * 0.55 : (entry.spreadScale ?? 1);
+      const scaleXZ = scaleY * spread;
+      const sink = entry.onRock ? Math.min(0.08, effectiveHeight * 0.08) : Math.min(0.035, effectiveHeight * 0.06);
+      const base = localY - floor * scaleY - sink;
+      const yaw = ((entry.yawDegrees ?? 0) * Math.PI) / 180;
+      const reach = effectiveHeight * 2.4 * spread;
+      bounds.min.set(
+        Math.min(bounds.min.x, localX - reach),
+        Math.min(bounds.min.y, base - effectiveHeight),
+        Math.min(bounds.min.z, localZ - reach)
+      );
+      bounds.max.set(
+        Math.max(bounds.max.x, localX + reach),
+        Math.max(bounds.max.y, base + effectiveHeight * 2.6),
+        Math.max(bounds.max.z, localZ + reach)
+      );
+      return [localX, base, localZ, 1, 0, Math.sin(yaw / 2), 0, Math.cos(yaw / 2), scaleXZ, scaleY, scaleXZ, 1];
+    });
+    const palette = PROCEDURAL_PALETTE[kind];
+    for (const part of meshes.parts) {
+      const name = `${kind}/${part.materialId}`;
+      const colors = palette[part.materialId];
+      if (!colors) continue;
+      const storage = createTreeAssemblyInstanceStorage(root.engine, positioned.length);
+      disposals.push(() => storage.instanceBuffer.destroy(true));
+      transforms.forEach((transform, index) => {
+        const offset = index * storage.recordFloats;
+        const rawVariant =
+          positioned[index].entry.variant ??
+          Math.floor(settlementRandom(seed, `template-plant:${positioned[index].entry.id}`) * colors.length);
+        const colorIndex = Math.abs(Math.trunc(rawVariant)) % colors.length;
+        const color = colors[colorIndex];
+        storage.staging.set(transform, offset);
+        storage.staging.set([...color, 1], offset + 12);
+      });
+      const view = createTreeAssemblyInstancedMesh(root.engine, part.mesh, positioned.length, bounds, name, storage);
+      disposals.push(() => view.mesh.destroy());
+      uploadTreeAssemblyInstances(view, positioned.length);
+      const renderer = owner.createChild(name).addComponent(MeshRenderer);
+      renderer.mesh = view.mesh;
+      renderer.setMaterial(materials[part.materialId]);
+      renderer.castShadows = renderer.receiveShadows = true;
+      renderer.shaderData.enableMacro("RENDERER_ASSET_ASSEMBLY_INSTANCE");
+    }
+  }
+  return () => {
+    disposed = true;
+    for (const destroy of disposals.reverse()) destroy();
+  };
+}

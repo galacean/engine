@@ -1,0 +1,6 @@
+#ifndef TERRAIN_PROJECT_SCENE_WIND_INCLUDED
+#define TERRAIN_PROJECT_SCENE_WIND_INCLUDED
+vec3 scene_WindVelocity;
+float scene_WindAnimationEnabled;
+vec4 scene_WindFieldParams;
+#endif

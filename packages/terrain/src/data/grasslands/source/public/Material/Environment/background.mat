@@ -1,0 +1,30 @@
+{
+  "name": "Background Environment",
+  "shader": "Sky/Skybox",
+  "shaderData": {
+    "material_TintColor": {
+      "type": "Color",
+      "value": {
+        "r": 0.21270569760486285,
+        "g": 0.7300829723040367,
+        "b": 1.11323196071596,
+        "a": 0.5
+      }
+    },
+    "material_Exposure": {
+      "type": "Float",
+      "value": 0.44999998807907104
+    },
+    "material_Rotation": {
+      "type": "Float",
+      "value": 64
+    },
+    "material_CubeTexture": {
+      "type": "Texture",
+      "value": {
+        "url": "Environment/background-cubemap.tex"
+      }
+    }
+  },
+  "macros": []
+}

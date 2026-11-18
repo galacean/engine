@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="data:," />
+    <title>建筑核心层 · GPU 铺设原型</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 16px;
+        background: #1d2428;
+        color: #e8ecea;
+        font:
+          14px/1.5 system-ui,
+          "PingFang SC",
+          sans-serif;
+      }
+      pre {
+        font:
+          12.5px/1.6 ui-monospace,
+          Menlo,
+          monospace;
+        white-space: pre-wrap;
+      }
+      canvas {
+        width: 4px;
+        height: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>GPU 铺设原型：surfaceGrid → 砖块记录</h1>
+    <canvas></canvas>
+    <pre id="out">运行中…</pre>
+    <script type="module" src="./gpu.ts"></script>
+  </body>
+</html>

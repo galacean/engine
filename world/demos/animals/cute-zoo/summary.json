@@ -1,0 +1,46 @@
+{
+  "sourcePackage": "Cute Zoo 3 v2.0.unitypackage",
+  "sourcePackageSha256": "b11cf52b217aa85da6420982f3a37ddcce3aae965f7fda16c512f43780541ae4",
+  "animalTypes": 14,
+  "animalAppearances": 21,
+  "animationSourceFBXs": 63,
+  "animationsPerModel": 9,
+  "props": 0,
+  "sharedTextures": 21,
+  "excluded": [
+    {
+      "category": "UI/lighting/demo",
+      "reason": "No independent prop model; UI images/materials, demo scenes, C# and lighting animation are not animal or prop content."
+    }
+  ],
+  "limitations": [
+    "Shared source animation retarget preserves model rest offsets and uses evaluated source local rotations. Browser pose/contact acceptance pending.",
+    "GLB skins export four highest vertex influences normalized; verify deformation in browser.",
+    "Walk/Move/Run are dynamic. Effective-window 121-sample absolute foot fit retains source root sway; nonzero fit residual remains.",
+    "Miniature source models preview at representative prefab scale multiplied by 10; ostrich remains at original scale. Local GLBs preserve FBX metre size.",
+    "A/B prefab scaling differences are recorded, not applied automatically during appearance changes.",
+    "All nine source clips retained; Eat and reviewed Rest are registered; Platypus Rest plus Jump/Attack/Damage/Die remain unclassified/manual preview."
+  ],
+  "sourceInventory": {
+    "assetFiles": 160,
+    "modelFBX": 14,
+    "animationFBX": 63,
+    "animalTextures": 21,
+    "allPNG": 25,
+    "prefabs": 21,
+    "independentPropModels": 0
+  },
+  "validation": {
+    "glbFiles": 21,
+    "errors": 0,
+    "warnings": 21,
+    "warning": "NODE_SKINNED_MESH_NON_ROOT (Blender exported mesh parent; real engine deformation must be checked)",
+    "sharedExternalTextures": 21
+  },
+  "weightExport": {
+    "verticesOverFourInfluences": 167,
+    "maxDiscardedNormalizedWeight": 0.025139131460669876
+  },
+  "semanticsAudit": "7 groups reviewed using native GLB skinned vertex pose sequences; gameplay grassland preference separate from source semantic evidence.",
+  "playbackCalibration": "Once clips range from first sampler key (1/24s) to last key, removing NLA leading hold without changing GLB; 121-sample absolute foot stance fit; root sway retained."
+}

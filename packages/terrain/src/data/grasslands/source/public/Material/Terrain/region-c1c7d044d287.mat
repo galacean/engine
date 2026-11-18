@@ -1,0 +1,9 @@
+{
+  "name": "Terrain region-c1c7d044d287",
+  "shader": "Terrain/Terrain",
+  "shaderRef": {
+    "url": "Shader/Terrain.shaderc"
+  },
+  "shaderData": {},
+  "macros": []
+}

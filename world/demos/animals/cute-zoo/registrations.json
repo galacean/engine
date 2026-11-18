@@ -1,0 +1,1420 @@
+{
+  "version": 1,
+  "species": {
+    "bull": {
+      "id": "bull",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 60,
+          "cycles": 6
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 4,
+          "cycles": 4
+        },
+        {
+          "activity": "idle",
+          "weight": 24
+        },
+        {
+          "activity": "eat",
+          "weight": 8
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk"
+      ],
+      "provenance": "临时玩法配置：可用进食动画、倾向草地；不是生物学推断。Eat/Rest经真实皮肤姿态序列离线审阅；Platypus Rest仍未知。Move仍使用源命名与实测动态脚部轨迹；全部动画Once，由行为树逐段续播。"
+    },
+    "chameleon": {
+      "id": "chameleon",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 60,
+          "cycles": 6
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 4,
+          "cycles": 4
+        },
+        {
+          "activity": "idle",
+          "weight": 24
+        },
+        {
+          "activity": "eat",
+          "weight": 8
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk"
+      ],
+      "provenance": "临时玩法配置：可用进食动画、倾向草地；不是生物学推断。Eat/Rest经真实皮肤姿态序列离线审阅；Platypus Rest仍未知。Move仍使用源命名与实测动态脚部轨迹；全部动画Once，由行为树逐段续播。"
+    },
+    "fox": {
+      "id": "fox",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 60,
+          "cycles": 6
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 4,
+          "cycles": 4
+        },
+        {
+          "activity": "idle",
+          "weight": 24
+        },
+        {
+          "activity": "eat",
+          "weight": 8
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk"
+      ],
+      "provenance": "临时玩法配置：可用进食动画、倾向草地；不是生物学推断。Eat/Rest经真实皮肤姿态序列离线审阅；Platypus Rest仍未知。Move仍使用源命名与实测动态脚部轨迹；全部动画Once，由行为树逐段续播。"
+    },
+    "koala": {
+      "id": "koala",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 60,
+          "cycles": 6
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 4,
+          "cycles": 4
+        },
+        {
+          "activity": "idle",
+          "weight": 24
+        },
+        {
+          "activity": "eat",
+          "weight": 8
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk"
+      ],
+      "provenance": "临时玩法配置：可用进食动画、倾向草地；不是生物学推断。Eat/Rest经真实皮肤姿态序列离线审阅；Platypus Rest仍未知。Move仍使用源命名与实测动态脚部轨迹；全部动画Once，由行为树逐段续播。"
+    },
+    "leopard": {
+      "id": "leopard",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 60,
+          "cycles": 6
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 4,
+          "cycles": 4
+        },
+        {
+          "activity": "idle",
+          "weight": 24
+        },
+        {
+          "activity": "eat",
+          "weight": 8
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk"
+      ],
+      "provenance": "临时玩法配置：可用进食动画、倾向草地；不是生物学推断。Eat/Rest经真实皮肤姿态序列离线审阅；Platypus Rest仍未知。Move仍使用源命名与实测动态脚部轨迹；全部动画Once，由行为树逐段续播。"
+    },
+    "meerkat": {
+      "id": "meerkat",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 60,
+          "cycles": 6
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 4,
+          "cycles": 4
+        },
+        {
+          "activity": "idle",
+          "weight": 24
+        },
+        {
+          "activity": "eat",
+          "weight": 8
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk"
+      ],
+      "provenance": "临时玩法配置：可用进食动画、倾向草地；不是生物学推断。Eat/Rest经真实皮肤姿态序列离线审阅；Platypus Rest仍未知。Move仍使用源命名与实测动态脚部轨迹；全部动画Once，由行为树逐段续播。"
+    },
+    "mule": {
+      "id": "mule",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 60,
+          "cycles": 6
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 4,
+          "cycles": 4
+        },
+        {
+          "activity": "idle",
+          "weight": 24
+        },
+        {
+          "activity": "eat",
+          "weight": 8
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk"
+      ],
+      "provenance": "临时玩法配置：可用进食动画、倾向草地；不是生物学推断。Eat/Rest经真实皮肤姿态序列离线审阅；Platypus Rest仍未知。Move仍使用源命名与实测动态脚部轨迹；全部动画Once，由行为树逐段续播。"
+    },
+    "ostrich": {
+      "id": "ostrich",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 60,
+          "cycles": 6
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 4,
+          "cycles": 4
+        },
+        {
+          "activity": "idle",
+          "weight": 24
+        },
+        {
+          "activity": "eat",
+          "weight": 8
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk"
+      ],
+      "provenance": "临时玩法配置：可用进食动画、倾向草地；不是生物学推断。Eat/Rest经真实皮肤姿态序列离线审阅；Platypus Rest仍未知。Move仍使用源命名与实测动态脚部轨迹；全部动画Once，由行为树逐段续播。"
+    },
+    "platypus": {
+      "id": "platypus",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 60,
+          "cycles": 6
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 4,
+          "cycles": 4
+        },
+        {
+          "activity": "idle",
+          "weight": 24
+        },
+        {
+          "activity": "eat",
+          "weight": 8
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk"
+      ],
+      "provenance": "临时玩法配置：可用进食动画、倾向草地；不是生物学推断。Eat/Rest经真实皮肤姿态序列离线审阅；Platypus Rest仍未知。Move仍使用源命名与实测动态脚部轨迹；全部动画Once，由行为树逐段续播。"
+    },
+    "porcupine": {
+      "id": "porcupine",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 60,
+          "cycles": 6
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 4,
+          "cycles": 4
+        },
+        {
+          "activity": "idle",
+          "weight": 24
+        },
+        {
+          "activity": "eat",
+          "weight": 8
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk"
+      ],
+      "provenance": "临时玩法配置：可用进食动画、倾向草地；不是生物学推断。Eat/Rest经真实皮肤姿态序列离线审阅；Platypus Rest仍未知。Move仍使用源命名与实测动态脚部轨迹；全部动画Once，由行为树逐段续播。"
+    },
+    "raccoon": {
+      "id": "raccoon",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 60,
+          "cycles": 6
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 4,
+          "cycles": 4
+        },
+        {
+          "activity": "idle",
+          "weight": 24
+        },
+        {
+          "activity": "eat",
+          "weight": 8
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk"
+      ],
+      "provenance": "临时玩法配置：可用进食动画、倾向草地；不是生物学推断。Eat/Rest经真实皮肤姿态序列离线审阅；Platypus Rest仍未知。Move仍使用源命名与实测动态脚部轨迹；全部动画Once，由行为树逐段续播。"
+    },
+    "skunk": {
+      "id": "skunk",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 60,
+          "cycles": 6
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 4,
+          "cycles": 4
+        },
+        {
+          "activity": "idle",
+          "weight": 24
+        },
+        {
+          "activity": "eat",
+          "weight": 8
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk"
+      ],
+      "provenance": "临时玩法配置：可用进食动画、倾向草地；不是生物学推断。Eat/Rest经真实皮肤姿态序列离线审阅；Platypus Rest仍未知。Move仍使用源命名与实测动态脚部轨迹；全部动画Once，由行为树逐段续播。"
+    },
+    "squirrel": {
+      "id": "squirrel",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 60,
+          "cycles": 6
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 4,
+          "cycles": 4
+        },
+        {
+          "activity": "idle",
+          "weight": 24
+        },
+        {
+          "activity": "eat",
+          "weight": 8
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk"
+      ],
+      "provenance": "临时玩法配置：可用进食动画、倾向草地；不是生物学推断。Eat/Rest经真实皮肤姿态序列离线审阅；Platypus Rest仍未知。Move仍使用源命名与实测动态脚部轨迹；全部动画Once，由行为树逐段续播。"
+    },
+    "wolf": {
+      "id": "wolf",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 1
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 60,
+          "cycles": 6
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 4,
+          "cycles": 4
+        },
+        {
+          "activity": "idle",
+          "weight": 24
+        },
+        {
+          "activity": "eat",
+          "weight": 8
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk"
+      ],
+      "provenance": "临时玩法配置：可用进食动画、倾向草地；不是生物学推断。Eat/Rest经真实皮肤姿态序列离线审阅；Platypus Rest仍未知。Move仍使用源命名与实测动态脚部轨迹；全部动画Once，由行为树逐段续播。"
+    }
+  },
+  "models": [
+    {
+      "assetId": "bull",
+      "species": "bull",
+      "spawnRadius": 1.5365000000000002,
+      "animations": {
+        "attack": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "damage": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "die": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "reviewed"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "rest": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "lying",
+          "evidence": "reviewed"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "chameleon",
+      "species": "chameleon",
+      "spawnRadius": 2.112,
+      "animations": {
+        "attack": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "damage": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "die": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "reviewed"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "rest": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "lying",
+          "evidence": "reviewed"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "fox",
+      "species": "fox",
+      "spawnRadius": 1.2775,
+      "animations": {
+        "attack": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "damage": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "die": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "reviewed"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "rest": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "lying",
+          "evidence": "reviewed"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "koala",
+      "species": "koala",
+      "spawnRadius": 0.7893,
+      "animations": {
+        "attack": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "damage": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "die": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "reviewed"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "rest": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "lying",
+          "evidence": "reviewed"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "leopard",
+      "species": "leopard",
+      "spawnRadius": 1.052,
+      "animations": {
+        "attack": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "damage": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "die": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "reviewed"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "rest": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "lying",
+          "evidence": "reviewed"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "meerkat",
+      "species": "meerkat",
+      "spawnRadius": 0.5085,
+      "animations": {
+        "attack": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "damage": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "die": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "reviewed"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "move": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        },
+        "rest": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "lying",
+          "evidence": "reviewed"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "mule",
+      "species": "mule",
+      "spawnRadius": 1.6037,
+      "animations": {
+        "attack": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "damage": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "die": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "reviewed"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "rest": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "lying",
+          "evidence": "reviewed"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "ostrich",
+      "species": "ostrich",
+      "spawnRadius": 0.3562,
+      "animations": {
+        "attack": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "damage": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "die": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "reviewed"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "rest": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "sitting",
+          "evidence": "reviewed"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "platypus",
+      "species": "platypus",
+      "spawnRadius": 1.033,
+      "animations": {
+        "attack": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "damage": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "die": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "reviewed"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "rest": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "porcupine",
+      "species": "porcupine",
+      "spawnRadius": 1.338,
+      "animations": {
+        "attack": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "damage": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "die": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "reviewed"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "rest": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "lying",
+          "evidence": "reviewed"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "raccoon",
+      "species": "raccoon",
+      "spawnRadius": 1.19,
+      "animations": {
+        "attack": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "damage": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "die": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "reviewed"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "rest": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "lying",
+          "evidence": "reviewed"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "skunk",
+      "species": "skunk",
+      "spawnRadius": 1.4165,
+      "animations": {
+        "attack": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "damage": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "die": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "reviewed"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "rest": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "lying",
+          "evidence": "reviewed"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "squirrel",
+      "species": "squirrel",
+      "spawnRadius": 0.7630000000000001,
+      "animations": {
+        "attack": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "damage": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "die": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "reviewed"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "move": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        },
+        "rest": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "lying",
+          "evidence": "reviewed"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "wolf",
+      "species": "wolf",
+      "spawnRadius": 1.694,
+      "animations": {
+        "attack": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "damage": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "die": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "reviewed"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "rest": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "lying",
+          "evidence": "reviewed"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "Terrain core diagnostics Material",
+  "shader": "Terrain/Debug/Core/Terrain",
+  "shaderRef": { "url": "Shader/debug/Core/Terrain.shaderc" },
+  "shaderData": {
+    "material_DebugView": { "type": "Float", "value": 0 },
+    "material_DebugHeightRange": { "type": "Vector2", "value": { "x": 0, "y": 16 } }
+  },
+  "macros": []
+}

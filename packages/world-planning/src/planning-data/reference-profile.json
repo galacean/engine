@@ -1,0 +1,205 @@
+{
+  "id": "experimental-layout-v1",
+  "version": 1,
+  "units": "metres",
+  "source": {
+    "kind": "experiment",
+    "unityProject": null
+  },
+  "actor": {
+    "heightM": 1.8,
+    "eyeHeightM": 1.6,
+    "radiusM": 0.5,
+    "walkMps": 2,
+    "runMps": 8
+  },
+  "world": {
+    "villageSizeM": 150,
+    "buildingBudget": 24,
+    "roadWidthM": 6,
+    "riverWidthM": 32,
+    "lakeSizeM": 90,
+    "mountainWidthM": 200,
+    "mountainHeightM": 90
+  },
+  "building": {
+    "maxBaseWidthM": 24,
+    "widthPerVillageSize": 0.16,
+    "widthFactor": {
+      "min": 0.65,
+      "span": 0.65
+    },
+    "depthPerWidth": {
+      "min": 0.65,
+      "span": 0.65
+    },
+    "heightM": {
+      "min": 6,
+      "span": 12
+    }
+  },
+  "village": {
+    "sizeFactor": {
+      "min": 0.72,
+      "span": 0.9
+    },
+    "density": {
+      "min": 0.25,
+      "span": 0.55
+    },
+    "internalRoadMinWidthM": 4,
+    "internalRoadPerRoadWidth": 1.8
+  },
+  "spacing": {
+    "buildingClearanceMinM": 3,
+    "buildingClearancePerVillageSize": 0.025,
+    "rockSetbackRoadWidths": 4
+  },
+  "courtyard": {
+    "marginMinM": 1,
+    "marginStepM": 0.5,
+    "desiredMarginM": {
+      "min": 3,
+      "span": 7
+    },
+    "depthPerMargin": {
+      "min": 0.7,
+      "span": 0.6
+    },
+    "boundaryClearanceM": 0.3,
+    "roadClearanceM": 0.4,
+    "gateWidthM": 3,
+    "pathWidthM": 2,
+    "fenceSegmentM": 3,
+    "fenceWidthM": 0.3,
+    "fenceHeightM": 1.2,
+    "fenceEmbedM": 0.1
+  },
+  "traversal": {
+    "maxSlope": 0.45,
+    "minWidth": 3,
+    "maxCrossingSpan": 160,
+    "landingLength": 6,
+    "maxCrossingGrade": 0.15,
+    "clearance": 2
+  },
+  "road": {
+    "crossingDetourRatio": 2
+  },
+  "lookout": {
+    "heightM": 72,
+    "widthM": 8,
+    "depthM": 8
+  },
+  "landform": {
+    "atomExposureSeconds": 12,
+    "referenceHeightM": 32,
+    "heightVariation": 0.24,
+    "canyonSeconds": [
+      40,
+      25,
+      55
+    ],
+    "cliffSeconds": 80,
+    "plateauSeconds": 65,
+    "peaksSeconds": 95,
+    "passSeconds": 60,
+    "maxAtoms": 160
+  },
+  "landformViews": {
+    "canyon": {
+      "distanceM": 100,
+      "topAngleDegrees": 18
+    },
+    "cliff": {
+      "distanceM": 100,
+      "topAngleDegrees": 20
+    },
+    "plateau": {
+      "distanceM": 120,
+      "topAngleDegrees": 15
+    },
+    "peaks": {
+      "distanceM": 150,
+      "topAngleDegrees": 18
+    },
+    "pass": {
+      "distanceM": 90,
+      "topAngleDegrees": 20
+    }
+  },
+  "rockShapes": {
+    "crown": {
+      "width": 32.0,
+      "depthRatio": 0.9,
+      "height": 32.0,
+      "topRatio": 0.45,
+      "peakX": 0.0,
+      "peakZ": 0.0
+    },
+    "spire": {
+      "width": 20.0,
+      "depthRatio": 0.8,
+      "height": 60.0,
+      "topRatio": 0.1,
+      "peakX": 0.0,
+      "peakZ": 0.0
+    },
+    "crown/spire": {
+      "width": 24.0,
+      "depthRatio": 0.8,
+      "height": 44.0,
+      "topRatio": 0.25,
+      "peakX": 0.0,
+      "peakZ": 0.0
+    },
+    "wall": {
+      "width": 52.0,
+      "depthRatio": 0.25,
+      "height": 28.0,
+      "topRatio": 0.8,
+      "peakX": 0.0,
+      "peakZ": 0.0
+    },
+    "buttress/shoulder": {
+      "width": 48.0,
+      "depthRatio": 0.75,
+      "height": 24.0,
+      "topRatio": 0.35,
+      "peakX": -0.45,
+      "peakZ": 0.0
+    },
+    "terrace/cap": {
+      "width": 48.0,
+      "depthRatio": 0.9,
+      "height": 16.0,
+      "topRatio": 0.8,
+      "peakX": 0.0,
+      "peakZ": 0.0
+    },
+    "skirt": {
+      "width": 56.0,
+      "depthRatio": 0.6,
+      "height": 6.0,
+      "topRatio": 0.3,
+      "peakX": -0.45,
+      "peakZ": 0.0
+    },
+    "mass": {
+      "width": 28.0,
+      "depthRatio": 0.85,
+      "height": 22.0,
+      "topRatio": 1.0,
+      "peakX": 0.0,
+      "peakZ": 0.0
+    },
+    "saddle/notch": {
+      "width": 24.0,
+      "depthRatio": 0.8,
+      "height": 40.0,
+      "topRatio": 0.25,
+      "peakX": 0.0,
+      "peakZ": 0.0
+    }
+  }
+}

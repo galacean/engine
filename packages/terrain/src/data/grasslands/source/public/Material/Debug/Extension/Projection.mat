@@ -1,0 +1,9 @@
+{
+  "name": "Terrain projection extension diagnostics Material",
+  "shader": "Terrain/Debug/Extension/Projection",
+  "shaderRef": { "url": "Shader/debug/Extension/Projection.shaderc" },
+  "shaderData": {
+    "material_ProjectionScale": { "type": "Float", "value": 1 }
+  },
+  "macros": [{ "name": "MATERIAL_ENABLE_PROJECTION" }]
+}

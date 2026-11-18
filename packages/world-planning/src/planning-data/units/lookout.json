@@ -1,0 +1,35 @@
+{
+  "unitId": "lookout",
+  "status": "data-only",
+  "label": "竖向地标体",
+  "footprintM": {
+    "width": {
+      "min": 6,
+      "max": 10
+    },
+    "depth": {
+      "min": 6,
+      "max": 10
+    }
+  },
+  "heightM": {
+    "min": 9,
+    "max": 17.5
+  },
+  "yawPolicy": "face-approach",
+  "components": [
+    "building",
+    "entrance"
+  ],
+  "note": "Distinct landmark building profile with 3–5 storeys. Height is composed from storeys; the broad height range is a budget, not an independently sampled dimension.",
+  "storeys": {
+    "count": {
+      "min": 3,
+      "max": 5
+    },
+    "heightM": {
+      "min": 3,
+      "max": 3.5
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "layers": [
+    {
+      "name": "Watering",
+      "weight": 1,
+      "blendingMode": 0,
+      "stateMachine": {
+        "states": [
+          {
+            "id": "watering",
+            "name": "Watering",
+            "speed": 1,
+            "wrapMode": 0,
+            "clipStartNormalizedTime": 0,
+            "clipEndNormalizedTime": 1,
+            "clip": {
+              "url": "Farming/Props/Watering/watering-can.glb",
+              "key": "animations[0]"
+            },
+            "transitions": [],
+            "scripts": []
+          }
+        ],
+        "transitions": [],
+        "entryTransitions": [],
+        "anyTransitions": []
+      }
+    }
+  ],
+  "parameters": []
+}

@@ -25,7 +25,8 @@ const pkgs = fs
       location: location,
       pkgJson: require(path.resolve(location, "package.json"))
     };
-  });
+  })
+  .filter(({ pkgJson }) => !pkgJson.private);
 
 const shaderParserPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine-shader-parser");
 

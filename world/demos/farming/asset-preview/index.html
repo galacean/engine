@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>程序化植物生长预览</title>
+  </head>
+  <body>
+    <main class="workbench">
+      <aside class="catalog-panel" aria-label="种植素材">
+        <h2>种植素材 <span id="count"></span></h2>
+        <input id="search" type="search" placeholder="搜索名称或 ID" aria-label="搜索名称或 ID" />
+        <div id="objects"></div>
+        <div id="issues" role="status"></div>
+      </aside>
+      <section class="preview-panel" aria-label="模型预览">
+        <div class="preview-heading">
+          <div>
+            <h2 id="asset-name">选择对象</h2>
+            <p id="asset-subtitle"></p>
+          </div>
+          <button id="reset">重置视角</button>
+        </div>
+        <div class="viewport">
+          <canvas id="canvas" aria-label="三维程序化植物"></canvas>
+          <div id="status" role="status">正在初始化预览…</div>
+          <div class="viewport-guide">拖动旋转 · 滚轮缩放 · 右键平移</div>
+        </div>
+        <section id="growth-controls" class="growth-controls" aria-label="程序化生长" hidden>
+          <div class="growth-heading">
+            <div>
+              <span class="eyebrow">GROWTH LAB</span>
+              <h3 id="growth-title">连续生长</h3>
+            </div>
+            <button id="growth-retry" hidden>重新生成</button>
+          </div>
+          <div class="growth-progress-label">
+            <label for="plant-growth">生长进度 <span id="growth-phase"></span></label>
+            <output id="plant-growth-value" for="plant-growth">0.0%</output>
+          </div>
+          <input id="plant-growth" type="range" min="0" max="1" step="0.001" value="0" disabled />
+          <div id="growth-anchors" class="growth-anchors" aria-label="生长参考点"></div>
+          <div class="growth-actions">
+            <button id="growth-play" disabled>播放生长</button>
+            <label><input id="growth-support" type="checkbox" /> 显示支架</label>
+            <label title="关闭地面可查看地下根部"><input id="growth-ground" type="checkbox" checked /> 显示地面</label>
+            <span id="growth-metrics">正在准备生长配方…</span>
+          </div>
+          <details class="growth-shape">
+            <summary>株型与配方调试</summary>
+            <label for="recipe-age">配方 age（调试采样）<output id="recipe-age-value">0</output></label>
+            <input id="recipe-age" type="range" min="0" max="1" step="0.001" value="0" />
+            <div class="growth-shape-fields">
+              <label for="growth-spread"
+                >叶片展开 <output id="growth-spread-value">1.00×</output>
+                <input
+                  id="growth-spread"
+                  data-growth-shape="leafSpread"
+                  type="range"
+                  min="0.5"
+                  max="1.5"
+                  step="0.01"
+                  value="1"
+              /></label>
+              <label for="growth-bend"
+                >茎干弯曲 <output id="growth-bend-value">1.00×</output>
+                <input id="growth-bend" data-growth-shape="stemBend" type="range" min="0" max="2" step="0.01" value="1"
+              /></label>
+              <label for="growth-fruit-size"
+                ><span id="growth-fruit-label">果实大小</span> <output id="growth-fruit-size-value">1.00×</output>
+                <input
+                  id="growth-fruit-size"
+                  data-growth-shape="fruitScale"
+                  type="range"
+                  min="0.5"
+                  max="1.5"
+                  step="0.01"
+                  value="1"
+              /></label>
+            </div>
+            <button id="growth-shape-reset">恢复参考株型</button>
+          </details>
+          <p id="growth-note" class="growth-note"></p>
+        </section>
+        <section id="growth-profile" class="growth-profile" aria-label="选中作物属性">
+          <div class="profile-empty">
+            <span class="eyebrow">GROWTH PROFILE</span>
+            <h2>选择植物查看属性</h2>
+          </div>
+        </section>
+      </section>
+      <aside class="info-panel" aria-label="素材信息">
+        <div id="info">
+          <h2>素材信息</h2>
+          <p>选择植物查看生长周期。</p>
+        </div>
+      </aside>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

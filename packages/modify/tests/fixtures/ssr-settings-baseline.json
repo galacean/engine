@@ -1,0 +1,2497 @@
+{
+  "defaults": {
+    "activationMode": 0,
+    "receiverPolicy": 0,
+    "reflectionContent": 0,
+    "resolutionScale": 1,
+    "upsamplingMode": 2,
+    "intensity": 1,
+    "maxRayDistance": 20,
+    "rayLengthFade": 1,
+    "maxRaySteps": 32,
+    "hitRefinementSteps": 3,
+    "thickness": 0.2,
+    "maxRoughness": 0.7,
+    "edgeFade": 0.1
+  },
+  "presets": [
+    {
+      "quality": 0,
+      "resolutionScale": 0.25,
+      "upsamplingMode": 0,
+      "maxRayDistance": 20,
+      "rayLengthFade": 1,
+      "maxRaySteps": 16,
+      "hitRefinementSteps": 2,
+      "thickness": 0.2,
+      "maxRoughness": 0.7,
+      "edgeFade": 0.1
+    },
+    {
+      "quality": 1,
+      "resolutionScale": 0.5,
+      "upsamplingMode": 0,
+      "maxRayDistance": 30,
+      "rayLengthFade": 1,
+      "maxRaySteps": 32,
+      "hitRefinementSteps": 3,
+      "thickness": 0.2,
+      "maxRoughness": 0.7,
+      "edgeFade": 0.1
+    },
+    {
+      "quality": 2,
+      "resolutionScale": 1,
+      "upsamplingMode": 2,
+      "maxRayDistance": 30,
+      "rayLengthFade": 1,
+      "maxRaySteps": 64,
+      "hitRefinementSteps": 5,
+      "thickness": 0.2,
+      "maxRoughness": 0.7,
+      "edgeFade": 0.1
+    },
+    {
+      "quality": 1,
+      "resolutionScale": 0.5,
+      "upsamplingMode": 0,
+      "maxRayDistance": 30,
+      "rayLengthFade": 1,
+      "maxRaySteps": 32,
+      "hitRefinementSteps": 3,
+      "thickness": 0.2,
+      "maxRoughness": 0.7,
+      "edgeFade": 0.1
+    },
+    {
+      "quality": 1,
+      "resolutionScale": 0.5,
+      "upsamplingMode": 0,
+      "maxRayDistance": 30,
+      "rayLengthFade": 1,
+      "maxRaySteps": 32,
+      "hitRefinementSteps": 3,
+      "thickness": 0.2,
+      "maxRoughness": 0.7,
+      "edgeFade": 0.1
+    }
+  ],
+  "rows": [
+    {
+      "key": "activationMode",
+      "index": 0,
+      "author": {},
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "activationMode",
+      "index": 1,
+      "author": {
+        "activationMode": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "activationMode",
+      "index": 2,
+      "author": {
+        "activationMode": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "activationMode",
+      "index": 3,
+      "author": {
+        "activationMode": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "activationMode",
+      "index": 4,
+      "author": {
+        "activationMode": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "activationMode",
+      "index": 5,
+      "author": {
+        "activationMode": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "activationMode",
+      "index": 6,
+      "author": {
+        "activationMode": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "activationMode",
+      "index": 7,
+      "author": {
+        "activationMode": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "activationMode",
+      "index": 8,
+      "author": {
+        "activationMode": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "activationMode",
+      "index": 9,
+      "author": {
+        "activationMode": 1
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "activationMode",
+      "index": 10,
+      "author": {
+        "activationMode": 2
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "activationMode",
+      "index": 11,
+      "author": {
+        "activationMode": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "activationMode",
+      "index": 12,
+      "author": {
+        "activationMode": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "activationMode",
+      "index": 13,
+      "author": {
+        "activationMode": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "activationMode",
+      "index": 14,
+      "author": {
+        "activationMode": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "activationMode",
+      "index": 15,
+      "author": {
+        "activationMode": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "receiverPolicy",
+      "index": 0,
+      "author": {},
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "receiverPolicy",
+      "index": 1,
+      "author": {
+        "receiverPolicy": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "receiverPolicy",
+      "index": 2,
+      "author": {
+        "receiverPolicy": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "receiverPolicy",
+      "index": 3,
+      "author": {
+        "receiverPolicy": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "receiverPolicy",
+      "index": 4,
+      "author": {
+        "receiverPolicy": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "receiverPolicy",
+      "index": 5,
+      "author": {
+        "receiverPolicy": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "receiverPolicy",
+      "index": 6,
+      "author": {
+        "receiverPolicy": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "receiverPolicy",
+      "index": 7,
+      "author": {
+        "receiverPolicy": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "receiverPolicy",
+      "index": 8,
+      "author": {
+        "receiverPolicy": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "receiverPolicy",
+      "index": 9,
+      "author": {
+        "receiverPolicy": 1
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "receiverPolicy",
+      "index": 10,
+      "author": {
+        "receiverPolicy": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "receiverPolicy",
+      "index": 11,
+      "author": {
+        "receiverPolicy": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "receiverPolicy",
+      "index": 12,
+      "author": {
+        "receiverPolicy": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "receiverPolicy",
+      "index": 13,
+      "author": {
+        "receiverPolicy": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "receiverPolicy",
+      "index": 14,
+      "author": {
+        "receiverPolicy": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "receiverPolicy",
+      "index": 15,
+      "author": {
+        "receiverPolicy": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "reflectionContent",
+      "index": 0,
+      "author": {},
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "reflectionContent",
+      "index": 1,
+      "author": {
+        "reflectionContent": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "reflectionContent",
+      "index": 2,
+      "author": {
+        "reflectionContent": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "reflectionContent",
+      "index": 3,
+      "author": {
+        "reflectionContent": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "reflectionContent",
+      "index": 4,
+      "author": {
+        "reflectionContent": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "reflectionContent",
+      "index": 5,
+      "author": {
+        "reflectionContent": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "reflectionContent",
+      "index": 6,
+      "author": {
+        "reflectionContent": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "reflectionContent",
+      "index": 7,
+      "author": {
+        "reflectionContent": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "reflectionContent",
+      "index": 8,
+      "author": {
+        "reflectionContent": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "reflectionContent",
+      "index": 9,
+      "author": {
+        "reflectionContent": 1
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "reflectionContent",
+      "index": 10,
+      "author": {
+        "reflectionContent": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "reflectionContent",
+      "index": 11,
+      "author": {
+        "reflectionContent": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "reflectionContent",
+      "index": 12,
+      "author": {
+        "reflectionContent": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "reflectionContent",
+      "index": 13,
+      "author": {
+        "reflectionContent": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "reflectionContent",
+      "index": 14,
+      "author": {
+        "reflectionContent": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "reflectionContent",
+      "index": 15,
+      "author": {
+        "reflectionContent": 0
+      },
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "resolutionScale",
+      "index": 0,
+      "author": {},
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "resolutionScale",
+      "index": 1,
+      "author": {
+        "resolutionScale": 1
+      },
+      "consumer": {
+        "resolutionScale": 1
+      },
+      "trace": {
+        "resolutionScale": 1
+      }
+    },
+    {
+      "key": "resolutionScale",
+      "index": 2,
+      "author": {
+        "resolutionScale": 1
+      },
+      "consumer": {
+        "resolutionScale": 1
+      },
+      "trace": {
+        "resolutionScale": 1
+      }
+    },
+    {
+      "key": "resolutionScale",
+      "index": 3,
+      "author": {
+        "resolutionScale": 1
+      },
+      "consumer": {
+        "resolutionScale": 1
+      },
+      "trace": {
+        "resolutionScale": 1
+      }
+    },
+    {
+      "key": "resolutionScale",
+      "index": 4,
+      "author": {
+        "resolutionScale": 0.25
+      },
+      "consumer": {
+        "resolutionScale": 0.25
+      },
+      "trace": {
+        "resolutionScale": 0.25
+      }
+    },
+    {
+      "key": "resolutionScale",
+      "index": 5,
+      "author": {
+        "resolutionScale": 0.25
+      },
+      "consumer": {
+        "resolutionScale": 0.25
+      },
+      "trace": {
+        "resolutionScale": 0.25
+      }
+    },
+    {
+      "key": "resolutionScale",
+      "index": 6,
+      "author": {
+        "resolutionScale": 0.25
+      },
+      "consumer": {
+        "resolutionScale": 0.25
+      },
+      "trace": {
+        "resolutionScale": 0.25
+      }
+    },
+    {
+      "key": "resolutionScale",
+      "index": 7,
+      "author": {
+        "resolutionScale": 0.25
+      },
+      "consumer": {
+        "resolutionScale": 0.25
+      },
+      "trace": {
+        "resolutionScale": 0.25
+      }
+    },
+    {
+      "key": "resolutionScale",
+      "index": 8,
+      "author": {
+        "resolutionScale": 0.5
+      },
+      "consumer": {
+        "resolutionScale": 0.5
+      },
+      "trace": {
+        "resolutionScale": 0.5
+      }
+    },
+    {
+      "key": "resolutionScale",
+      "index": 9,
+      "author": {
+        "resolutionScale": 1
+      },
+      "consumer": {
+        "resolutionScale": 1
+      },
+      "trace": {
+        "resolutionScale": 1
+      }
+    },
+    {
+      "key": "resolutionScale",
+      "index": 10,
+      "author": {
+        "resolutionScale": 1
+      },
+      "consumer": {
+        "resolutionScale": 1
+      },
+      "trace": {
+        "resolutionScale": 1
+      }
+    },
+    {
+      "key": "resolutionScale",
+      "index": 11,
+      "author": {
+        "resolutionScale": 1
+      },
+      "consumer": {
+        "resolutionScale": 1
+      },
+      "trace": {
+        "resolutionScale": 1
+      }
+    },
+    {
+      "key": "resolutionScale",
+      "index": 12,
+      "author": {
+        "resolutionScale": 1
+      },
+      "consumer": {
+        "resolutionScale": 1
+      },
+      "trace": {
+        "resolutionScale": 1
+      }
+    },
+    {
+      "key": "resolutionScale",
+      "index": 13,
+      "author": {
+        "resolutionScale": 1
+      },
+      "consumer": {
+        "resolutionScale": 1
+      },
+      "trace": {
+        "resolutionScale": 1
+      }
+    },
+    {
+      "key": "resolutionScale",
+      "index": 14,
+      "author": {
+        "resolutionScale": 1
+      },
+      "consumer": {
+        "resolutionScale": 1
+      },
+      "trace": {
+        "resolutionScale": 1
+      }
+    },
+    {
+      "key": "resolutionScale",
+      "index": 15,
+      "author": {
+        "resolutionScale": 1
+      },
+      "consumer": {
+        "resolutionScale": 1
+      },
+      "trace": {
+        "resolutionScale": 1
+      }
+    },
+    {
+      "key": "upsamplingMode",
+      "index": 0,
+      "author": {},
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "upsamplingMode",
+      "index": 1,
+      "author": {
+        "upsamplingMode": 2
+      },
+      "consumer": {
+        "upsamplingMode": 2
+      },
+      "trace": {
+        "upsamplingMode": 2
+      }
+    },
+    {
+      "key": "upsamplingMode",
+      "index": 2,
+      "author": {
+        "upsamplingMode": 2
+      },
+      "consumer": {
+        "upsamplingMode": 2
+      },
+      "trace": {
+        "upsamplingMode": 2
+      }
+    },
+    {
+      "key": "upsamplingMode",
+      "index": 3,
+      "author": {
+        "upsamplingMode": 2
+      },
+      "consumer": {
+        "upsamplingMode": 2
+      },
+      "trace": {
+        "upsamplingMode": 2
+      }
+    },
+    {
+      "key": "upsamplingMode",
+      "index": 4,
+      "author": {
+        "upsamplingMode": 2
+      },
+      "consumer": {
+        "upsamplingMode": 2
+      },
+      "trace": {
+        "upsamplingMode": 2
+      }
+    },
+    {
+      "key": "upsamplingMode",
+      "index": 5,
+      "author": {
+        "upsamplingMode": 0
+      },
+      "consumer": {
+        "upsamplingMode": 0
+      },
+      "trace": {
+        "upsamplingMode": 0
+      }
+    },
+    {
+      "key": "upsamplingMode",
+      "index": 6,
+      "author": {
+        "upsamplingMode": 2
+      },
+      "consumer": {
+        "upsamplingMode": 2
+      },
+      "trace": {
+        "upsamplingMode": 2
+      }
+    },
+    {
+      "key": "upsamplingMode",
+      "index": 7,
+      "author": {
+        "upsamplingMode": 2
+      },
+      "consumer": {
+        "upsamplingMode": 2
+      },
+      "trace": {
+        "upsamplingMode": 2
+      }
+    },
+    {
+      "key": "upsamplingMode",
+      "index": 8,
+      "author": {
+        "upsamplingMode": 2
+      },
+      "consumer": {
+        "upsamplingMode": 2
+      },
+      "trace": {
+        "upsamplingMode": 2
+      }
+    },
+    {
+      "key": "upsamplingMode",
+      "index": 9,
+      "author": {
+        "upsamplingMode": 1
+      },
+      "consumer": {
+        "upsamplingMode": 1
+      },
+      "trace": {
+        "upsamplingMode": 1
+      }
+    },
+    {
+      "key": "upsamplingMode",
+      "index": 10,
+      "author": {
+        "upsamplingMode": 2
+      },
+      "consumer": {
+        "upsamplingMode": 2
+      },
+      "trace": {
+        "upsamplingMode": 2
+      }
+    },
+    {
+      "key": "upsamplingMode",
+      "index": 11,
+      "author": {
+        "upsamplingMode": 2
+      },
+      "consumer": {
+        "upsamplingMode": 2
+      },
+      "trace": {
+        "upsamplingMode": 2
+      }
+    },
+    {
+      "key": "upsamplingMode",
+      "index": 12,
+      "author": {
+        "upsamplingMode": 2
+      },
+      "consumer": {
+        "upsamplingMode": 2
+      },
+      "trace": {
+        "upsamplingMode": 2
+      }
+    },
+    {
+      "key": "upsamplingMode",
+      "index": 13,
+      "author": {
+        "upsamplingMode": 2
+      },
+      "consumer": {
+        "upsamplingMode": 2
+      },
+      "trace": {
+        "upsamplingMode": 2
+      }
+    },
+    {
+      "key": "upsamplingMode",
+      "index": 14,
+      "author": {
+        "upsamplingMode": 2
+      },
+      "consumer": {
+        "upsamplingMode": 2
+      },
+      "trace": {
+        "upsamplingMode": 2
+      }
+    },
+    {
+      "key": "upsamplingMode",
+      "index": 15,
+      "author": {
+        "upsamplingMode": 2
+      },
+      "consumer": {
+        "upsamplingMode": 2
+      },
+      "trace": {
+        "upsamplingMode": 2
+      }
+    },
+    {
+      "key": "intensity",
+      "index": 0,
+      "author": {},
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "intensity",
+      "index": 1,
+      "author": {
+        "intensity": 1
+      },
+      "consumer": {
+        "intensity": 1
+      },
+      "trace": {}
+    },
+    {
+      "key": "intensity",
+      "index": 2,
+      "author": {
+        "intensity": 1
+      },
+      "consumer": {
+        "intensity": 1
+      },
+      "trace": {}
+    },
+    {
+      "key": "intensity",
+      "index": 3,
+      "author": {
+        "intensity": 1
+      },
+      "consumer": {
+        "intensity": 1
+      },
+      "trace": {}
+    },
+    {
+      "key": "intensity",
+      "index": 4,
+      "author": {
+        "intensity": 0
+      },
+      "consumer": {
+        "intensity": 0
+      },
+      "trace": {}
+    },
+    {
+      "key": "intensity",
+      "index": 5,
+      "author": {
+        "intensity": 0
+      },
+      "consumer": {
+        "intensity": 0
+      },
+      "trace": {}
+    },
+    {
+      "key": "intensity",
+      "index": 6,
+      "author": {
+        "intensity": 1e-05
+      },
+      "consumer": {
+        "intensity": 1e-05
+      },
+      "trace": {}
+    },
+    {
+      "key": "intensity",
+      "index": 7,
+      "author": {
+        "intensity": 0.25
+      },
+      "consumer": {
+        "intensity": 0.25
+      },
+      "trace": {}
+    },
+    {
+      "key": "intensity",
+      "index": 8,
+      "author": {
+        "intensity": 0.5
+      },
+      "consumer": {
+        "intensity": 0.5
+      },
+      "trace": {}
+    },
+    {
+      "key": "intensity",
+      "index": 9,
+      "author": {
+        "intensity": 1
+      },
+      "consumer": {
+        "intensity": 1
+      },
+      "trace": {}
+    },
+    {
+      "key": "intensity",
+      "index": 10,
+      "author": {
+        "intensity": 1
+      },
+      "consumer": {
+        "intensity": 1
+      },
+      "trace": {}
+    },
+    {
+      "key": "intensity",
+      "index": 11,
+      "author": {
+        "intensity": 1
+      },
+      "consumer": {
+        "intensity": 1
+      },
+      "trace": {}
+    },
+    {
+      "key": "intensity",
+      "index": 12,
+      "author": {
+        "intensity": 1
+      },
+      "consumer": {
+        "intensity": 1
+      },
+      "trace": {}
+    },
+    {
+      "key": "intensity",
+      "index": 13,
+      "author": {
+        "intensity": 1
+      },
+      "consumer": {
+        "intensity": 1
+      },
+      "trace": {}
+    },
+    {
+      "key": "intensity",
+      "index": 14,
+      "author": {
+        "intensity": 1
+      },
+      "consumer": {
+        "intensity": 1
+      },
+      "trace": {}
+    },
+    {
+      "key": "intensity",
+      "index": 15,
+      "author": {
+        "intensity": 1
+      },
+      "consumer": {
+        "intensity": 1
+      },
+      "trace": {}
+    },
+    {
+      "key": "maxRayDistance",
+      "index": 0,
+      "author": {},
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "maxRayDistance",
+      "index": 1,
+      "author": {
+        "maxRayDistance": 20
+      },
+      "consumer": {
+        "maxRayDistance": 20
+      },
+      "trace": {
+        "maxRayDistance": 20
+      }
+    },
+    {
+      "key": "maxRayDistance",
+      "index": 2,
+      "author": {
+        "maxRayDistance": 20
+      },
+      "consumer": {
+        "maxRayDistance": 20
+      },
+      "trace": {
+        "maxRayDistance": 20
+      }
+    },
+    {
+      "key": "maxRayDistance",
+      "index": 3,
+      "author": {
+        "maxRayDistance": 20
+      },
+      "consumer": {
+        "maxRayDistance": 20
+      },
+      "trace": {
+        "maxRayDistance": 20
+      }
+    },
+    {
+      "key": "maxRayDistance",
+      "index": 4,
+      "author": {
+        "maxRayDistance": 0.0001
+      },
+      "consumer": {
+        "maxRayDistance": 0.0001
+      },
+      "trace": {
+        "maxRayDistance": 0.0001
+      }
+    },
+    {
+      "key": "maxRayDistance",
+      "index": 5,
+      "author": {
+        "maxRayDistance": 0.0001
+      },
+      "consumer": {
+        "maxRayDistance": 0.0001
+      },
+      "trace": {
+        "maxRayDistance": 0.0001
+      }
+    },
+    {
+      "key": "maxRayDistance",
+      "index": 6,
+      "author": {
+        "maxRayDistance": 0.0001
+      },
+      "consumer": {
+        "maxRayDistance": 0.0001
+      },
+      "trace": {
+        "maxRayDistance": 0.0001
+      }
+    },
+    {
+      "key": "maxRayDistance",
+      "index": 7,
+      "author": {
+        "maxRayDistance": 0.25
+      },
+      "consumer": {
+        "maxRayDistance": 0.25
+      },
+      "trace": {
+        "maxRayDistance": 0.25
+      }
+    },
+    {
+      "key": "maxRayDistance",
+      "index": 8,
+      "author": {
+        "maxRayDistance": 0.5
+      },
+      "consumer": {
+        "maxRayDistance": 0.5
+      },
+      "trace": {
+        "maxRayDistance": 0.5
+      }
+    },
+    {
+      "key": "maxRayDistance",
+      "index": 9,
+      "author": {
+        "maxRayDistance": 1
+      },
+      "consumer": {
+        "maxRayDistance": 1
+      },
+      "trace": {
+        "maxRayDistance": 1
+      }
+    },
+    {
+      "key": "maxRayDistance",
+      "index": 10,
+      "author": {
+        "maxRayDistance": 2
+      },
+      "consumer": {
+        "maxRayDistance": 2
+      },
+      "trace": {
+        "maxRayDistance": 2
+      }
+    },
+    {
+      "key": "maxRayDistance",
+      "index": 11,
+      "author": {
+        "maxRayDistance": 3
+      },
+      "consumer": {
+        "maxRayDistance": 3
+      },
+      "trace": {
+        "maxRayDistance": 3
+      }
+    },
+    {
+      "key": "maxRayDistance",
+      "index": 12,
+      "author": {
+        "maxRayDistance": 5
+      },
+      "consumer": {
+        "maxRayDistance": 5
+      },
+      "trace": {
+        "maxRayDistance": 5
+      }
+    },
+    {
+      "key": "maxRayDistance",
+      "index": 13,
+      "author": {
+        "maxRayDistance": 32.5
+      },
+      "consumer": {
+        "maxRayDistance": 32.5
+      },
+      "trace": {
+        "maxRayDistance": 32.5
+      }
+    },
+    {
+      "key": "maxRayDistance",
+      "index": 14,
+      "author": {
+        "maxRayDistance": 64
+      },
+      "consumer": {
+        "maxRayDistance": 64
+      },
+      "trace": {
+        "maxRayDistance": 64
+      }
+    },
+    {
+      "key": "maxRayDistance",
+      "index": 15,
+      "author": {
+        "maxRayDistance": 100
+      },
+      "consumer": {
+        "maxRayDistance": 100
+      },
+      "trace": {
+        "maxRayDistance": 100
+      }
+    },
+    {
+      "key": "rayLengthFade",
+      "index": 0,
+      "author": {},
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "rayLengthFade",
+      "index": 1,
+      "author": {
+        "rayLengthFade": 1
+      },
+      "consumer": {
+        "rayLengthFade": 1
+      },
+      "trace": {
+        "rayLengthFade": 1
+      }
+    },
+    {
+      "key": "rayLengthFade",
+      "index": 2,
+      "author": {
+        "rayLengthFade": 1
+      },
+      "consumer": {
+        "rayLengthFade": 1
+      },
+      "trace": {
+        "rayLengthFade": 1
+      }
+    },
+    {
+      "key": "rayLengthFade",
+      "index": 3,
+      "author": {
+        "rayLengthFade": 1
+      },
+      "consumer": {
+        "rayLengthFade": 1
+      },
+      "trace": {
+        "rayLengthFade": 1
+      }
+    },
+    {
+      "key": "rayLengthFade",
+      "index": 4,
+      "author": {
+        "rayLengthFade": 0
+      },
+      "consumer": {
+        "rayLengthFade": 0
+      },
+      "trace": {
+        "rayLengthFade": 0
+      }
+    },
+    {
+      "key": "rayLengthFade",
+      "index": 5,
+      "author": {
+        "rayLengthFade": 0
+      },
+      "consumer": {
+        "rayLengthFade": 0
+      },
+      "trace": {
+        "rayLengthFade": 0
+      }
+    },
+    {
+      "key": "rayLengthFade",
+      "index": 6,
+      "author": {
+        "rayLengthFade": 1e-05
+      },
+      "consumer": {
+        "rayLengthFade": 1e-05
+      },
+      "trace": {
+        "rayLengthFade": 1e-05
+      }
+    },
+    {
+      "key": "rayLengthFade",
+      "index": 7,
+      "author": {
+        "rayLengthFade": 0.25
+      },
+      "consumer": {
+        "rayLengthFade": 0.25
+      },
+      "trace": {
+        "rayLengthFade": 0.25
+      }
+    },
+    {
+      "key": "rayLengthFade",
+      "index": 8,
+      "author": {
+        "rayLengthFade": 0.5
+      },
+      "consumer": {
+        "rayLengthFade": 0.5
+      },
+      "trace": {
+        "rayLengthFade": 0.5
+      }
+    },
+    {
+      "key": "rayLengthFade",
+      "index": 9,
+      "author": {
+        "rayLengthFade": 1
+      },
+      "consumer": {
+        "rayLengthFade": 1
+      },
+      "trace": {
+        "rayLengthFade": 1
+      }
+    },
+    {
+      "key": "rayLengthFade",
+      "index": 10,
+      "author": {
+        "rayLengthFade": 2
+      },
+      "consumer": {
+        "rayLengthFade": 2
+      },
+      "trace": {
+        "rayLengthFade": 2
+      }
+    },
+    {
+      "key": "rayLengthFade",
+      "index": 11,
+      "author": {
+        "rayLengthFade": 3
+      },
+      "consumer": {
+        "rayLengthFade": 3
+      },
+      "trace": {
+        "rayLengthFade": 3
+      }
+    },
+    {
+      "key": "rayLengthFade",
+      "index": 12,
+      "author": {
+        "rayLengthFade": 5
+      },
+      "consumer": {
+        "rayLengthFade": 5
+      },
+      "trace": {
+        "rayLengthFade": 5
+      }
+    },
+    {
+      "key": "rayLengthFade",
+      "index": 13,
+      "author": {
+        "rayLengthFade": 32.5
+      },
+      "consumer": {
+        "rayLengthFade": 32.5
+      },
+      "trace": {
+        "rayLengthFade": 32.5
+      }
+    },
+    {
+      "key": "rayLengthFade",
+      "index": 14,
+      "author": {
+        "rayLengthFade": 64
+      },
+      "consumer": {
+        "rayLengthFade": 64
+      },
+      "trace": {
+        "rayLengthFade": 64
+      }
+    },
+    {
+      "key": "rayLengthFade",
+      "index": 15,
+      "author": {
+        "rayLengthFade": 100
+      },
+      "consumer": {
+        "rayLengthFade": 100
+      },
+      "trace": {
+        "rayLengthFade": 100
+      }
+    },
+    {
+      "key": "maxRaySteps",
+      "index": 0,
+      "author": {},
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "maxRaySteps",
+      "index": 1,
+      "author": {
+        "maxRaySteps": 32
+      },
+      "consumer": {
+        "maxRaySteps": 32
+      },
+      "trace": {
+        "maxRaySteps": 32
+      }
+    },
+    {
+      "key": "maxRaySteps",
+      "index": 2,
+      "author": {
+        "maxRaySteps": 32
+      },
+      "consumer": {
+        "maxRaySteps": 32
+      },
+      "trace": {
+        "maxRaySteps": 32
+      }
+    },
+    {
+      "key": "maxRaySteps",
+      "index": 3,
+      "author": {
+        "maxRaySteps": 32
+      },
+      "consumer": {
+        "maxRaySteps": 32
+      },
+      "trace": {
+        "maxRaySteps": 32
+      }
+    },
+    {
+      "key": "maxRaySteps",
+      "index": 4,
+      "author": {
+        "maxRaySteps": 1
+      },
+      "consumer": {
+        "maxRaySteps": 1
+      },
+      "trace": {
+        "maxRaySteps": 1
+      }
+    },
+    {
+      "key": "maxRaySteps",
+      "index": 5,
+      "author": {
+        "maxRaySteps": 1
+      },
+      "consumer": {
+        "maxRaySteps": 1
+      },
+      "trace": {
+        "maxRaySteps": 1
+      }
+    },
+    {
+      "key": "maxRaySteps",
+      "index": 6,
+      "author": {
+        "maxRaySteps": 1
+      },
+      "consumer": {
+        "maxRaySteps": 1
+      },
+      "trace": {
+        "maxRaySteps": 1
+      }
+    },
+    {
+      "key": "maxRaySteps",
+      "index": 7,
+      "author": {
+        "maxRaySteps": 1
+      },
+      "consumer": {
+        "maxRaySteps": 1
+      },
+      "trace": {
+        "maxRaySteps": 1
+      }
+    },
+    {
+      "key": "maxRaySteps",
+      "index": 8,
+      "author": {
+        "maxRaySteps": 1
+      },
+      "consumer": {
+        "maxRaySteps": 1
+      },
+      "trace": {
+        "maxRaySteps": 1
+      }
+    },
+    {
+      "key": "maxRaySteps",
+      "index": 9,
+      "author": {
+        "maxRaySteps": 1
+      },
+      "consumer": {
+        "maxRaySteps": 1
+      },
+      "trace": {
+        "maxRaySteps": 1
+      }
+    },
+    {
+      "key": "maxRaySteps",
+      "index": 10,
+      "author": {
+        "maxRaySteps": 2
+      },
+      "consumer": {
+        "maxRaySteps": 2
+      },
+      "trace": {
+        "maxRaySteps": 2
+      }
+    },
+    {
+      "key": "maxRaySteps",
+      "index": 11,
+      "author": {
+        "maxRaySteps": 3
+      },
+      "consumer": {
+        "maxRaySteps": 3
+      },
+      "trace": {
+        "maxRaySteps": 3
+      }
+    },
+    {
+      "key": "maxRaySteps",
+      "index": 12,
+      "author": {
+        "maxRaySteps": 5
+      },
+      "consumer": {
+        "maxRaySteps": 5
+      },
+      "trace": {
+        "maxRaySteps": 5
+      }
+    },
+    {
+      "key": "maxRaySteps",
+      "index": 13,
+      "author": {
+        "maxRaySteps": 33
+      },
+      "consumer": {
+        "maxRaySteps": 33
+      },
+      "trace": {
+        "maxRaySteps": 33
+      }
+    },
+    {
+      "key": "maxRaySteps",
+      "index": 14,
+      "author": {
+        "maxRaySteps": 64
+      },
+      "consumer": {
+        "maxRaySteps": 64
+      },
+      "trace": {
+        "maxRaySteps": 64
+      }
+    },
+    {
+      "key": "maxRaySteps",
+      "index": 15,
+      "author": {
+        "maxRaySteps": 64
+      },
+      "consumer": {
+        "maxRaySteps": 64
+      },
+      "trace": {
+        "maxRaySteps": 64
+      }
+    },
+    {
+      "key": "hitRefinementSteps",
+      "index": 0,
+      "author": {},
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "hitRefinementSteps",
+      "index": 1,
+      "author": {
+        "hitRefinementSteps": 3
+      },
+      "consumer": {
+        "hitRefinementSteps": 3
+      },
+      "trace": {
+        "hitRefinementSteps": 3
+      }
+    },
+    {
+      "key": "hitRefinementSteps",
+      "index": 2,
+      "author": {
+        "hitRefinementSteps": 3
+      },
+      "consumer": {
+        "hitRefinementSteps": 3
+      },
+      "trace": {
+        "hitRefinementSteps": 3
+      }
+    },
+    {
+      "key": "hitRefinementSteps",
+      "index": 3,
+      "author": {
+        "hitRefinementSteps": 3
+      },
+      "consumer": {
+        "hitRefinementSteps": 3
+      },
+      "trace": {
+        "hitRefinementSteps": 3
+      }
+    },
+    {
+      "key": "hitRefinementSteps",
+      "index": 4,
+      "author": {
+        "hitRefinementSteps": 0
+      },
+      "consumer": {
+        "hitRefinementSteps": 0
+      },
+      "trace": {
+        "hitRefinementSteps": 0
+      }
+    },
+    {
+      "key": "hitRefinementSteps",
+      "index": 5,
+      "author": {
+        "hitRefinementSteps": 0
+      },
+      "consumer": {
+        "hitRefinementSteps": 0
+      },
+      "trace": {
+        "hitRefinementSteps": 0
+      }
+    },
+    {
+      "key": "hitRefinementSteps",
+      "index": 6,
+      "author": {
+        "hitRefinementSteps": 0
+      },
+      "consumer": {
+        "hitRefinementSteps": 0
+      },
+      "trace": {
+        "hitRefinementSteps": 0
+      }
+    },
+    {
+      "key": "hitRefinementSteps",
+      "index": 7,
+      "author": {
+        "hitRefinementSteps": 0
+      },
+      "consumer": {
+        "hitRefinementSteps": 0
+      },
+      "trace": {
+        "hitRefinementSteps": 0
+      }
+    },
+    {
+      "key": "hitRefinementSteps",
+      "index": 8,
+      "author": {
+        "hitRefinementSteps": 1
+      },
+      "consumer": {
+        "hitRefinementSteps": 1
+      },
+      "trace": {
+        "hitRefinementSteps": 1
+      }
+    },
+    {
+      "key": "hitRefinementSteps",
+      "index": 9,
+      "author": {
+        "hitRefinementSteps": 1
+      },
+      "consumer": {
+        "hitRefinementSteps": 1
+      },
+      "trace": {
+        "hitRefinementSteps": 1
+      }
+    },
+    {
+      "key": "hitRefinementSteps",
+      "index": 10,
+      "author": {
+        "hitRefinementSteps": 2
+      },
+      "consumer": {
+        "hitRefinementSteps": 2
+      },
+      "trace": {
+        "hitRefinementSteps": 2
+      }
+    },
+    {
+      "key": "hitRefinementSteps",
+      "index": 11,
+      "author": {
+        "hitRefinementSteps": 3
+      },
+      "consumer": {
+        "hitRefinementSteps": 3
+      },
+      "trace": {
+        "hitRefinementSteps": 3
+      }
+    },
+    {
+      "key": "hitRefinementSteps",
+      "index": 12,
+      "author": {
+        "hitRefinementSteps": 5
+      },
+      "consumer": {
+        "hitRefinementSteps": 5
+      },
+      "trace": {
+        "hitRefinementSteps": 5
+      }
+    },
+    {
+      "key": "hitRefinementSteps",
+      "index": 13,
+      "author": {
+        "hitRefinementSteps": 5
+      },
+      "consumer": {
+        "hitRefinementSteps": 5
+      },
+      "trace": {
+        "hitRefinementSteps": 5
+      }
+    },
+    {
+      "key": "hitRefinementSteps",
+      "index": 14,
+      "author": {
+        "hitRefinementSteps": 5
+      },
+      "consumer": {
+        "hitRefinementSteps": 5
+      },
+      "trace": {
+        "hitRefinementSteps": 5
+      }
+    },
+    {
+      "key": "hitRefinementSteps",
+      "index": 15,
+      "author": {
+        "hitRefinementSteps": 5
+      },
+      "consumer": {
+        "hitRefinementSteps": 5
+      },
+      "trace": {
+        "hitRefinementSteps": 5
+      }
+    },
+    {
+      "key": "thickness",
+      "index": 0,
+      "author": {},
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "thickness",
+      "index": 1,
+      "author": {
+        "thickness": 0.2
+      },
+      "consumer": {
+        "thickness": 0.2
+      },
+      "trace": {
+        "thickness": 0.2
+      }
+    },
+    {
+      "key": "thickness",
+      "index": 2,
+      "author": {
+        "thickness": 0.2
+      },
+      "consumer": {
+        "thickness": 0.2
+      },
+      "trace": {
+        "thickness": 0.2
+      }
+    },
+    {
+      "key": "thickness",
+      "index": 3,
+      "author": {
+        "thickness": 0.2
+      },
+      "consumer": {
+        "thickness": 0.2
+      },
+      "trace": {
+        "thickness": 0.2
+      }
+    },
+    {
+      "key": "thickness",
+      "index": 4,
+      "author": {
+        "thickness": 0.0001
+      },
+      "consumer": {
+        "thickness": 0.0001
+      },
+      "trace": {
+        "thickness": 0.0001
+      }
+    },
+    {
+      "key": "thickness",
+      "index": 5,
+      "author": {
+        "thickness": 0.0001
+      },
+      "consumer": {
+        "thickness": 0.0001
+      },
+      "trace": {
+        "thickness": 0.0001
+      }
+    },
+    {
+      "key": "thickness",
+      "index": 6,
+      "author": {
+        "thickness": 0.0001
+      },
+      "consumer": {
+        "thickness": 0.0001
+      },
+      "trace": {
+        "thickness": 0.0001
+      }
+    },
+    {
+      "key": "thickness",
+      "index": 7,
+      "author": {
+        "thickness": 0.25
+      },
+      "consumer": {
+        "thickness": 0.25
+      },
+      "trace": {
+        "thickness": 0.25
+      }
+    },
+    {
+      "key": "thickness",
+      "index": 8,
+      "author": {
+        "thickness": 0.5
+      },
+      "consumer": {
+        "thickness": 0.5
+      },
+      "trace": {
+        "thickness": 0.5
+      }
+    },
+    {
+      "key": "thickness",
+      "index": 9,
+      "author": {
+        "thickness": 1
+      },
+      "consumer": {
+        "thickness": 1
+      },
+      "trace": {
+        "thickness": 1
+      }
+    },
+    {
+      "key": "thickness",
+      "index": 10,
+      "author": {
+        "thickness": 2
+      },
+      "consumer": {
+        "thickness": 2
+      },
+      "trace": {
+        "thickness": 2
+      }
+    },
+    {
+      "key": "thickness",
+      "index": 11,
+      "author": {
+        "thickness": 3
+      },
+      "consumer": {
+        "thickness": 3
+      },
+      "trace": {
+        "thickness": 3
+      }
+    },
+    {
+      "key": "thickness",
+      "index": 12,
+      "author": {
+        "thickness": 5
+      },
+      "consumer": {
+        "thickness": 5
+      },
+      "trace": {
+        "thickness": 5
+      }
+    },
+    {
+      "key": "thickness",
+      "index": 13,
+      "author": {
+        "thickness": 32.5
+      },
+      "consumer": {
+        "thickness": 32.5
+      },
+      "trace": {
+        "thickness": 32.5
+      }
+    },
+    {
+      "key": "thickness",
+      "index": 14,
+      "author": {
+        "thickness": 64
+      },
+      "consumer": {
+        "thickness": 64
+      },
+      "trace": {
+        "thickness": 64
+      }
+    },
+    {
+      "key": "thickness",
+      "index": 15,
+      "author": {
+        "thickness": 100
+      },
+      "consumer": {
+        "thickness": 100
+      },
+      "trace": {
+        "thickness": 100
+      }
+    },
+    {
+      "key": "maxRoughness",
+      "index": 0,
+      "author": {},
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "maxRoughness",
+      "index": 1,
+      "author": {
+        "maxRoughness": 0.7
+      },
+      "consumer": {
+        "maxRoughness": 0.7
+      },
+      "trace": {
+        "maxRoughness": 0.7
+      }
+    },
+    {
+      "key": "maxRoughness",
+      "index": 2,
+      "author": {
+        "maxRoughness": 0.7
+      },
+      "consumer": {
+        "maxRoughness": 0.7
+      },
+      "trace": {
+        "maxRoughness": 0.7
+      }
+    },
+    {
+      "key": "maxRoughness",
+      "index": 3,
+      "author": {
+        "maxRoughness": 0.7
+      },
+      "consumer": {
+        "maxRoughness": 0.7
+      },
+      "trace": {
+        "maxRoughness": 0.7
+      }
+    },
+    {
+      "key": "maxRoughness",
+      "index": 4,
+      "author": {
+        "maxRoughness": 0
+      },
+      "consumer": {
+        "maxRoughness": 0
+      },
+      "trace": {
+        "maxRoughness": 0
+      }
+    },
+    {
+      "key": "maxRoughness",
+      "index": 5,
+      "author": {
+        "maxRoughness": 0
+      },
+      "consumer": {
+        "maxRoughness": 0
+      },
+      "trace": {
+        "maxRoughness": 0
+      }
+    },
+    {
+      "key": "maxRoughness",
+      "index": 6,
+      "author": {
+        "maxRoughness": 1e-05
+      },
+      "consumer": {
+        "maxRoughness": 1e-05
+      },
+      "trace": {
+        "maxRoughness": 1e-05
+      }
+    },
+    {
+      "key": "maxRoughness",
+      "index": 7,
+      "author": {
+        "maxRoughness": 0.25
+      },
+      "consumer": {
+        "maxRoughness": 0.25
+      },
+      "trace": {
+        "maxRoughness": 0.25
+      }
+    },
+    {
+      "key": "maxRoughness",
+      "index": 8,
+      "author": {
+        "maxRoughness": 0.5
+      },
+      "consumer": {
+        "maxRoughness": 0.5
+      },
+      "trace": {
+        "maxRoughness": 0.5
+      }
+    },
+    {
+      "key": "maxRoughness",
+      "index": 9,
+      "author": {
+        "maxRoughness": 1
+      },
+      "consumer": {
+        "maxRoughness": 1
+      },
+      "trace": {
+        "maxRoughness": 1
+      }
+    },
+    {
+      "key": "maxRoughness",
+      "index": 10,
+      "author": {
+        "maxRoughness": 1
+      },
+      "consumer": {
+        "maxRoughness": 1
+      },
+      "trace": {
+        "maxRoughness": 1
+      }
+    },
+    {
+      "key": "maxRoughness",
+      "index": 11,
+      "author": {
+        "maxRoughness": 1
+      },
+      "consumer": {
+        "maxRoughness": 1
+      },
+      "trace": {
+        "maxRoughness": 1
+      }
+    },
+    {
+      "key": "maxRoughness",
+      "index": 12,
+      "author": {
+        "maxRoughness": 1
+      },
+      "consumer": {
+        "maxRoughness": 1
+      },
+      "trace": {
+        "maxRoughness": 1
+      }
+    },
+    {
+      "key": "maxRoughness",
+      "index": 13,
+      "author": {
+        "maxRoughness": 1
+      },
+      "consumer": {
+        "maxRoughness": 1
+      },
+      "trace": {
+        "maxRoughness": 1
+      }
+    },
+    {
+      "key": "maxRoughness",
+      "index": 14,
+      "author": {
+        "maxRoughness": 1
+      },
+      "consumer": {
+        "maxRoughness": 1
+      },
+      "trace": {
+        "maxRoughness": 1
+      }
+    },
+    {
+      "key": "maxRoughness",
+      "index": 15,
+      "author": {
+        "maxRoughness": 1
+      },
+      "consumer": {
+        "maxRoughness": 1
+      },
+      "trace": {
+        "maxRoughness": 1
+      }
+    },
+    {
+      "key": "edgeFade",
+      "index": 0,
+      "author": {},
+      "consumer": {},
+      "trace": {}
+    },
+    {
+      "key": "edgeFade",
+      "index": 1,
+      "author": {
+        "edgeFade": 0.1
+      },
+      "consumer": {
+        "edgeFade": 0.1
+      },
+      "trace": {
+        "edgeFade": 0.1
+      }
+    },
+    {
+      "key": "edgeFade",
+      "index": 2,
+      "author": {
+        "edgeFade": 0.1
+      },
+      "consumer": {
+        "edgeFade": 0.1
+      },
+      "trace": {
+        "edgeFade": 0.1
+      }
+    },
+    {
+      "key": "edgeFade",
+      "index": 3,
+      "author": {
+        "edgeFade": 0.1
+      },
+      "consumer": {
+        "edgeFade": 0.1
+      },
+      "trace": {
+        "edgeFade": 0.1
+      }
+    },
+    {
+      "key": "edgeFade",
+      "index": 4,
+      "author": {
+        "edgeFade": 0
+      },
+      "consumer": {
+        "edgeFade": 0
+      },
+      "trace": {
+        "edgeFade": 0
+      }
+    },
+    {
+      "key": "edgeFade",
+      "index": 5,
+      "author": {
+        "edgeFade": 0
+      },
+      "consumer": {
+        "edgeFade": 0
+      },
+      "trace": {
+        "edgeFade": 0
+      }
+    },
+    {
+      "key": "edgeFade",
+      "index": 6,
+      "author": {
+        "edgeFade": 1e-05
+      },
+      "consumer": {
+        "edgeFade": 1e-05
+      },
+      "trace": {
+        "edgeFade": 1e-05
+      }
+    },
+    {
+      "key": "edgeFade",
+      "index": 7,
+      "author": {
+        "edgeFade": 0.25
+      },
+      "consumer": {
+        "edgeFade": 0.25
+      },
+      "trace": {
+        "edgeFade": 0.25
+      }
+    },
+    {
+      "key": "edgeFade",
+      "index": 8,
+      "author": {
+        "edgeFade": 0.5
+      },
+      "consumer": {
+        "edgeFade": 0.5
+      },
+      "trace": {
+        "edgeFade": 0.5
+      }
+    },
+    {
+      "key": "edgeFade",
+      "index": 9,
+      "author": {
+        "edgeFade": 0.5
+      },
+      "consumer": {
+        "edgeFade": 0.5
+      },
+      "trace": {
+        "edgeFade": 0.5
+      }
+    },
+    {
+      "key": "edgeFade",
+      "index": 10,
+      "author": {
+        "edgeFade": 0.5
+      },
+      "consumer": {
+        "edgeFade": 0.5
+      },
+      "trace": {
+        "edgeFade": 0.5
+      }
+    },
+    {
+      "key": "edgeFade",
+      "index": 11,
+      "author": {
+        "edgeFade": 0.5
+      },
+      "consumer": {
+        "edgeFade": 0.5
+      },
+      "trace": {
+        "edgeFade": 0.5
+      }
+    },
+    {
+      "key": "edgeFade",
+      "index": 12,
+      "author": {
+        "edgeFade": 0.5
+      },
+      "consumer": {
+        "edgeFade": 0.5
+      },
+      "trace": {
+        "edgeFade": 0.5
+      }
+    },
+    {
+      "key": "edgeFade",
+      "index": 13,
+      "author": {
+        "edgeFade": 0.5
+      },
+      "consumer": {
+        "edgeFade": 0.5
+      },
+      "trace": {
+        "edgeFade": 0.5
+      }
+    },
+    {
+      "key": "edgeFade",
+      "index": 14,
+      "author": {
+        "edgeFade": 0.5
+      },
+      "consumer": {
+        "edgeFade": 0.5
+      },
+      "trace": {
+        "edgeFade": 0.5
+      }
+    },
+    {
+      "key": "edgeFade",
+      "index": 15,
+      "author": {
+        "edgeFade": 0.5
+      },
+      "consumer": {
+        "edgeFade": 0.5
+      },
+      "trace": {
+        "edgeFade": 0.5
+      }
+    }
+  ]
+}

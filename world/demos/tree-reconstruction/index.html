@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Unity 树木程序化还原</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">REFERENCE GEOMETRY → PROCEDURAL DATA → ENGINE MESH</p>
+          <h1>Unity 树木程序化还原</h1>
+          <p class="subtitle">上传 Unity FBX，只反推有限的程序化参数；原生成器据此创建网格，随后独立执行 ≤10% 三视图验收。</p>
+        </div>
+        <div class="status-block">
+          <span id="statusBadge" class="status-badge">读取验收报告…</span>
+          <span class="status-note">同相机 · 不缩放 · 树根对齐</span>
+        </div>
+      </header>
+
+      <section class="workflow-card" aria-labelledby="workflowTitle">
+        <div class="workflow-heading">
+          <div>
+            <p class="section-kicker">RECONSTRUCTION WORKBENCH</p>
+            <h2 id="workflowTitle">新建还原任务</h2>
+            <p>Unity 几何只参与离线参数反推和最终校验，不会作为逐枝、逐叶数据进入运行时；无法拟合时会输出生成器功能缺口。</p>
+          </div>
+          <label class="case-picker">
+            <span>查看已有案例</span>
+            <select id="caseSelect" aria-label="选择树木还原案例"></select>
+          </label>
+        </div>
+        <form id="reconstructionForm" class="reconstruction-form">
+          <label class="file-drop" for="unityTreeFile">
+            <input id="unityTreeFile" type="file" accept=".fbx,application/octet-stream" required />
+            <span class="file-drop__icon">↑</span>
+            <strong id="fileName">选择 Unity 树木 FBX</strong>
+            <small id="fileHint">读取源 LOD0/LOD1/LOD2、树皮与叶片材质槽、叶卡 UV；程序化输出 LOD0–LOD3；最大 512 MB</small>
+          </label>
+          <div class="form-fields">
+            <label>
+              <span>案例名称</span>
+              <input id="treeLabel" type="text" maxlength="120" placeholder="例如：橡树 01" required />
+            </label>
+            <label>
+              <span>Asset ID</span>
+              <input id="treeAssetId" type="text" maxlength="63" pattern="[a-z0-9][a-z0-9-]{0,62}" placeholder="oak-01" required />
+            </label>
+            <label>
+              <span>参数基型</span>
+              <select id="treeProfile">
+                <option value="white-birch">高干乔木</option>
+                <option value="small-maple">阔冠乔木</option>
+              </select>
+            </label>
+            <label>
+              <span>面数上限</span>
+              <input type="text" value="LOD0 目标约 3,000 · 硬上限 4,000" readonly />
+            </label>
+          </div>
+          <div class="form-action">
+            <button id="startReconstruction" class="primary-action" type="submit" disabled>开始还原</button>
+            <div id="reconstructionProgress" class="reconstruction-progress" hidden role="status" aria-live="polite"></div>
+          </div>
+        </form>
+        <div class="pipeline-strip" aria-label="自动还原步骤">
+          <span>1 · 主干对比并冻结</span><i>→</i><span>2 · 树枝对比并冻结</span><i>→</i><span>3 · 树叶对比并冻结</span><i>→</i><span>4 · LOD0–LOD3 验收</span>
+        </div>
+      </section>
+
+      <section class="active-case-bar">
+        <div>
+          <span>当前案例</span>
+          <strong id="activeCaseTitle">读取中…</strong>
+          <small id="activeCaseSource"></small>
+        </div>
+        <div id="caseDownloads" class="case-downloads"></div>
+      </section>
+
+      <section id="summaryCards" class="summary-grid" aria-label="验收摘要"></section>
+
+      <section class="stage-gate-card" aria-labelledby="stageGateTitle">
+        <div>
+          <p class="section-kicker">ORDERED ACCEPTANCE GATE</p>
+          <h2 id="stageGateTitle">主干 → 树枝 → 树叶 → LOD0–LOD3</h2>
+        </div>
+        <div id="stageGateList" class="stage-gate-list"></div>
+      </section>
+
+      <section class="comparison-card">
+        <div class="toolbar">
+          <div>
+            <span class="toolbar-label">视角</span>
+            <div class="segmented" id="viewTabs">
+              <button type="button" data-value="front" class="active">正面</button>
+              <button type="button" data-value="side">侧面</button>
+              <button type="button" data-value="diagonal">斜视</button>
+            </div>
+          </div>
+          <div>
+            <span class="toolbar-label">几何层</span>
+            <div class="segmented" id="partTabs">
+              <button type="button" data-value="geometry" class="active">整体</button>
+              <button id="trunkPartTab" type="button" data-value="trunk" hidden>仅主干</button>
+              <button type="button" data-value="branches">仅枝干</button>
+              <button type="button" data-value="leaves">仅叶卡</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="side-by-side">
+          <figure>
+            <figcaption><span class="source-dot"></span><span id="sourceCaption">Unity 原始 LOD0</span></figcaption>
+            <img id="sourceImage" alt="Unity 原始无材质几何" />
+          </figure>
+          <figure>
+            <figcaption><span class="reconstruction-dot"></span><span id="reconstructionCaption">程序化还原 LOD0</span></figcaption>
+            <img id="reconstructionImage" alt="程序化还原无材质几何" />
+          </figure>
+        </div>
+
+        <div class="wipe-section">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">同位置叠加</p>
+              <h2>拖动分割线检查轮廓</h2>
+            </div>
+            <output id="wipeValue">50% 原始 / 50% 还原</output>
+          </div>
+          <div class="wipe" id="wipe">
+            <img id="wipeSource" class="wipe-base" alt="Unity 原始几何" />
+            <div id="wipeAfter" class="wipe-after">
+              <img id="wipeReconstruction" alt="程序化还原几何" />
+            </div>
+            <div id="wipeDivider" class="wipe-divider"><span></span></div>
+            <span class="wipe-label left">UNITY 原始</span>
+            <span class="wipe-label right">程序化还原</span>
+          </div>
+          <input id="wipeRange" class="wipe-range" type="range" min="0" max="100" value="50" aria-label="前后对比分割线" />
+        </div>
+
+        <div class="difference-row">
+          <div>
+            <p class="section-kicker">像素差异图</p>
+            <h2>红色=仅原始，蓝色=仅还原，白色=重合</h2>
+            <p id="activeViewMetric" class="difference-metric"></p>
+          </div>
+          <img id="overlayImage" alt="原始与还原轮廓差异叠加" />
+        </div>
+      </section>
+
+      <section class="data-grid">
+        <article class="data-card">
+          <p class="section-kicker">INFERRED RULES</p>
+          <h2>从 Unity FBX 推断的几何规则</h2>
+          <div id="ruleTable" class="rule-table"></div>
+        </article>
+        <article class="data-card">
+          <p class="section-kicker">DIRECT RUNTIME MESH</p>
+          <h2>程序化数据生成的运行时网格</h2>
+          <div id="meshTable" class="mesh-table"></div>
+        </article>
+        <article class="data-card">
+          <p class="section-kicker">FINITE PARAMETER RECIPE</p>
+          <h2>反推得到的程序化参数</h2>
+          <div id="recipeTable" class="rule-table"></div>
+        </article>
+        <article class="data-card">
+          <p class="section-kicker">GENERATOR CAPABILITY GAPS</p>
+          <h2>当前生成器无法表达的部分</h2>
+          <div id="featureGapList" class="gap-list"></div>
+        </article>
+      </section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

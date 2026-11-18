@@ -1,0 +1,51 @@
+.base-map-editor { grid-template-columns: 288px minmax(0,1fr); }
+.base-map-editor .ip-brand { padding:18px; }
+.base-domain { padding:12px 18px; color:#b8cdd8; border-bottom:1px solid #294252; }
+.base-domain small { color:#87a2b3; }
+.base-control-group { margin:10px 12px; border:1px solid #355060; border-radius:6px; }
+.base-control-group summary,.base-layers summary { padding:10px 12px; cursor:pointer; color:#d4e5ec; }
+.base-control-group .ip-parameter > span { font-size:12px; }
+.base-control-group .ip-parameter input { margin-top:10px; }
+.base-inspector { margin:12px 18px; padding-top:12px; border-top:1px solid #355060; }
+.base-inspector p { color:#9ab5c2; font-size:11px; }
+.base-layers { margin:10px 12px; border:1px solid #355060; border-radius:6px; }
+.base-layer-list { display:grid; grid-template-columns:1fr 1fr; padding:5px; gap:3px; }
+.base-layer-list button { font-size:11px; display:flex; align-items:center; gap:6px; padding:6px; text-align:left; }
+.base-layer-list button[aria-pressed="false"] { opacity:.4; }
+.base-layer-list i { width:18px; height:12px; border:2px solid; display:inline-block; }
+.base-actions { display:flex; gap:6px; padding:12px; }
+.base-actions button { flex:1; font-size:11px; }
+.base-map-page .ip-svg,.base-map-page .ip-viewport { background:#ade1f5; }
+.base-map-page .base-label { fill:#203c69; font:600 24px sans-serif; text-anchor:middle; pointer-events:none; }
+.base-map-page .base-group-label { fill:#8032b0; }
+.base-map-page .base-title { fill:#183d68; font:700 49px sans-serif; }
+.base-map-page .base-subtitle { fill:#183d68; font:22px sans-serif; }
+.base-map-page .base-height { fill:#344b60; font:17px sans-serif; text-anchor:middle; pointer-events:none; }
+.base-map-page .ip-feature.is-selected > .ip-feature-outline { stroke:#e06a24; filter:none; }
+@media(max-width:850px){.base-map-editor {grid-template-columns:240px minmax(0,1fr);}}
+
+.base-components {margin:10px 12px;border:1px solid #355060;border-radius:6px;padding:8px;}
+.base-components summary {padding:4px;cursor:pointer;}
+.base-components select {width:100%;margin:8px 0;}
+.base-components button {font-size:11px;margin:3px;}
+.base-components .ip-parameter {padding:8px 0;}
+
+.base-controls > h3,.base-controls > p{margin:12px 20px}.base-controls > p{font-size:12px;line-height:1.6;color:#a8bec9}.base-controls > select{margin:0 20px;width:calc(100% - 40px);padding:8px;background:#192d3c;color:#dbe7ec;border:1px solid #385062;border-radius:4px}
+
+.base-map-page [data-shape-owner] {cursor:pointer;}
+.base-map-page .ip-feature:hover > [data-shape-owner] {fill:#e06a24;fill-opacity:.08;}
+.base-map-page .ip-feature.is-selected > [data-shape-owner] {fill:#e06a24;fill-opacity:.2;stroke:#e06a24;stroke-width:2;stroke-dasharray:none;vector-effect:non-scaling-stroke;}
+
+.world-layout-editor .world-seed { margin-top:8px;font-size:11px;color:#91afbe; }
+.world-layout-editor .base-control-group .ip-parameter { padding:9px 12px; }
+.world-layout-editor .world-local-fields .ip-parameter { padding:9px 20px; }
+.world-layout-editor .world-local-fields [hidden] { display:none; }
+.world-layout-editor .world-notes { line-height:1.6; }
+.world-layout-editor .ip-map-footer .base-status { max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+
+/* Dense landscape glyphs are single SVG primitives, without nested image viewports. */
+.base-map-page .ip-landscape-symbol:hover { stroke:#eee7bd; stroke-width:1; vector-effect:non-scaling-stroke; }
+.base-map-page .ip-landscape-symbol.is-selected,
+.base-map-page .ip-landscape-symbol:focus-visible { stroke:#e06a24; stroke-width:1.75; vector-effect:non-scaling-stroke; }
+
+.base-map-page .ip-feature.is-selected > [data-poi-territory] { fill:#e9a45c; fill-opacity:.12; }

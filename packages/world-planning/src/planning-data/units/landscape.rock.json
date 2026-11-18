@@ -1,0 +1,19 @@
+{
+  "unitId": "landscape.rock",
+  "widthM": {
+    "min": 1,
+    "max": 2.4
+  },
+  "depthPerWidth": {
+    "min": 0.65,
+    "max": 0.95
+  },
+  "heightM": {
+    "min": 0.7,
+    "max": 1.8
+  },
+  "yawRadians": {
+    "min": 0,
+    "max": 6.283185307179586
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "spatial-layout",
+  "units": "metres",
+  "source": {
+    "kind": "module-design-profiles",
+    "note": "Module-owned dimensions and placement rules, in metres."
+  },
+  "world": {
+    "size": 1024,
+    "villageCount": 2,
+    "siteSpacing": 155,
+    "siteJitter": 12,
+    "activeMargin": 22,
+    "heightmapResolution": 1024,
+    "alphamapResolution": 1024
+  },
+  "moduleProfiles": {
+    "building": "units/building.json",
+    "village": "units/village.json",
+    "road": "units/road.json",
+    "landscape": "units/landscape.json",
+    "landscape.tree": "units/landscape.tree.json",
+    "landscape.rock": "units/landscape.rock.json"
+  }
+}

@@ -1,0 +1,203 @@
+{
+  "version": 1,
+  "encoding": {
+    "tool": "KTX-Software",
+    "version": "4.4.2",
+    "codec": "UASTC",
+    "quality": 4,
+    "zstd": 18,
+    "mipmaps": "full"
+  },
+  "textures": [
+    {
+      "name": "T_Farm_Basket_Watering_Can_C",
+      "source": "source/T_Farm_Basket_Watering_Can_C.png",
+      "sourceSha256": "81ad239f0bdcf78f4089a8e7294da153b1596f48f230c8362100dc346ed42b52",
+      "transferFunction": "srgb",
+      "format": "R8G8B8A8_SRGB",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "a7720f2e3ddd3472d858bfacd6cbeb8fc601a070ad35ad2a82eb09967514c13b"
+    },
+    {
+      "name": "T_Farm_Basket_Watering_Can_N",
+      "source": "source/T_Farm_Basket_Watering_Can_N.png",
+      "sourceSha256": "ce04c40e96fdf697f441d93a1ba4b747dfaeed4b2d881fcc4822f8d187cc2a34",
+      "transferFunction": "linear",
+      "format": "R8G8B8_UNORM",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "d634ac55f527e267b26f0641b3017969da600d4378d94d705c90ac8f039bf471"
+    },
+    {
+      "name": "T_Farm_Basket_Watering_Can_ORM",
+      "source": "source/T_Farm_Basket_Watering_Can_ORM.png",
+      "sourceSha256": "969fa683a226157568674d37b87d9bfc0fc0dd826f595bffb7d4aa5a6b3bb190",
+      "transferFunction": "linear",
+      "format": "R8G8B8_UNORM",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "cf7d417c21fd2abd9c65d71bfb012dc77752e858e13962430c495fdba0d71de8"
+    },
+    {
+      "name": "T_Farm_OutdoorsWoodKitbash_C",
+      "source": "source/T_Farm_OutdoorsWoodKitbash_C.png",
+      "sourceSha256": "523a5b277e4be0f4d769f754c68f1aa70b1ce9be7d319d1bcadfd710098daaf2",
+      "transferFunction": "srgb",
+      "format": "R8G8B8A8_SRGB",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "1e3ffe89c0304d7214945ca717db32ecc762f4b1095a63eb2ee62df916cb270e"
+    },
+    {
+      "name": "T_Farm_OutdoorsWoodKitbash_N",
+      "source": "source/T_Farm_OutdoorsWoodKitbash_N.png",
+      "sourceSha256": "3e9089890da852d6b1990a2e4045534352c1757812c41a8e77397dc7860d537e",
+      "transferFunction": "linear",
+      "format": "R8G8B8_UNORM",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "4bbead816b830460e17510ff5a81067ddbca5c9a8ea69629e957fd32c24629e7"
+    },
+    {
+      "name": "T_Farm_OutdoorsWoodKitbash_ORMH",
+      "source": "source/T_Farm_OutdoorsWoodKitbash_ORMH.png",
+      "sourceSha256": "beb3df6d1caaacc2a17f00101bbf7ff572e0467f24e80065f80e875dace58c4b",
+      "transferFunction": "linear",
+      "format": "R8G8B8_UNORM",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "28285aba4e6a8fb0bfb7f2ec7ceb92abea42150fc20a588ec14f34ba9f3bb910"
+    },
+    {
+      "name": "T_Farm_Tools_A_C",
+      "source": "source/T_Farm_Tools_A_C.png",
+      "sourceSha256": "ffe8be894d3014dec4551febdb0f453cb06f88d95a7483861e51900446d971cf",
+      "transferFunction": "srgb",
+      "format": "R8G8B8A8_SRGB",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "2a24647835ee71cad51c2443cc605746865e82bdd440c447f946ccb17cb2c605"
+    },
+    {
+      "name": "T_Farm_Tools_A_N",
+      "source": "source/T_Farm_Tools_A_N.png",
+      "sourceSha256": "bfb4e8b8be0d458c1b0833522fb22753e503280ea908a30fe48e203e6fded819",
+      "transferFunction": "linear",
+      "format": "R8G8B8_UNORM",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "0bf76abf91b4d036e83791d79685d81ca01c44f427b4ce17f3a0cbb94236c324"
+    },
+    {
+      "name": "T_Farm_Tools_A_ORM",
+      "source": "source/T_Farm_Tools_A_ORM.png",
+      "sourceSha256": "33e405c8543bb680505abcb5bd8412d0a86ab26671d673c49b662dc01b26c7a8",
+      "transferFunction": "linear",
+      "format": "R8G8B8_UNORM",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "b10b69f93190c0cf9444a491295cb5d918067be014350688ee4248297903e35c"
+    },
+    {
+      "name": "T_Farm_Tools_B_C",
+      "source": "source/T_Farm_Tools_B_C.png",
+      "sourceSha256": "1b79e5f191d5f6eb69d9852b11f460e94a442c6296e67f2fdc29daecc3e0d7a4",
+      "transferFunction": "srgb",
+      "format": "R8G8B8A8_SRGB",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "72104762986f8b2d44781407b8503c2ea9db47d5e69daf84c9032b6dddd7528d"
+    },
+    {
+      "name": "T_Farm_Tools_B_N",
+      "source": "source/T_Farm_Tools_B_N.png",
+      "sourceSha256": "51677d44b55407f4d51434693d8d9562cc2b5ca5177e4a82ee3f02c96e2583d7",
+      "transferFunction": "linear",
+      "format": "R8G8B8_UNORM",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "39b462578cf23c04190c66e93743f43205dff4619fdc741745e23df88b3b20ad"
+    },
+    {
+      "name": "T_Farm_Tools_B_ORM",
+      "source": "source/T_Farm_Tools_B_ORM.png",
+      "sourceSha256": "c077aeeb10035d5399041978bcfcbdb4192e3d3fa77fe9a850bde0a56a0ab4c3",
+      "transferFunction": "linear",
+      "format": "R8G8B8_UNORM",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "473c480569627de2d01b59905d2d1128a2035e8d429def017f9668f18eab33c2"
+    },
+    {
+      "name": "T_SeedSack_C",
+      "source": "source/T_SeedSack_C.png",
+      "sourceSha256": "e6648fbdd3709b8b82a65ae3ea201a87e77cdbbad8e8ad5bc02283246ece49a7",
+      "transferFunction": "srgb",
+      "format": "R8G8B8A8_SRGB",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "10f30279aceb1ce581e2698f37b335f7624a3b4168f29fa870aca13983257114"
+    },
+    {
+      "name": "T_SeedSack_Labels_C",
+      "source": "source/T_SeedSack_Labels_C.png",
+      "sourceSha256": "05da184b93ede8c5edea8735d83d185db7798348f91dafaf8b53db7351588188",
+      "transferFunction": "srgb",
+      "format": "R8G8B8A8_SRGB",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "aec4e2c7660146ef34e6047d86e97f2112debdec16f7e5a4b64d09d75737f655"
+    },
+    {
+      "name": "T_SeedSack_N",
+      "source": "source/T_SeedSack_N.png",
+      "sourceSha256": "f7755deff8ec399183a49299a29ca95320c77214d378f3049fd6e25d628e1821",
+      "transferFunction": "linear",
+      "format": "R8G8B8_UNORM",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "a9bb52f19dd64f1a1aa565941f1474254d08134bf52c9f90596affa55b16875a"
+    },
+    {
+      "name": "T_SeedSack_ORM",
+      "source": "source/T_SeedSack_ORM.png",
+      "sourceSha256": "758322434e97ba54c7a065a0334741e55e037a65041527e1173e4da6258c7e09",
+      "transferFunction": "linear",
+      "format": "R8G8B8_UNORM",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "7d0feebe07407434ff4e12348067ad5ea79991dbcd8882aa9d308af8cdf7e192"
+    }
+  ],
+  "models": [
+    {
+      "path": "harvest/basket.glb",
+      "contentSha256": "fda124fce6bd1aea8722ba6a1fb76584b27ac004b20c5b758433cf659cc3bcae"
+    },
+    {
+      "path": "storage/basket.glb",
+      "contentSha256": "b364bac521aeb7c30ee75bdbd5d29b56bb1b43bf4643d18496d6e00767040c74"
+    },
+    {
+      "path": "storage/cart.glb",
+      "contentSha256": "b7986b29da3ab6ea44ca28e513bdb89f835fc994329c1e4570b24b6f8841e9dc"
+    },
+    {
+      "path": "tilling/hoe.glb",
+      "contentSha256": "4a42288621116aae722e7bb28c188ef0d288fdc07d673d92b8639df08afeae8e"
+    },
+    {
+      "path": "tilling/rake.glb",
+      "contentSha256": "887c6bac93119b090b6c641707645e094aec70c81ace25cedd38aab9c1d90030"
+    },
+    {
+      "path": "watering/watering-can.glb",
+      "contentSha256": "5fbdbf8cde1c0754487069a22691d90d0661c969d383bec2def4308068716aba"
+    },
+    {
+      "path": "sowing/seed-sack.glb",
+      "contentSha256": "4b40a3748b7da4fbf9d9cfbbeadd08ee972fcf6837cf303f9048cfe8d2e4e4e0"
+    }
+  ]
+}

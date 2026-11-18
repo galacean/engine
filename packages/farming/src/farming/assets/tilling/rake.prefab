@@ -1,0 +1,60 @@
+{
+  "version": "2.0",
+  "refs": [
+    {
+      "url": "Farming/Props/Tilling/rake.glb"
+    },
+    {
+      "url": "Farming/Props/Tilling/rake.animCtrl"
+    }
+  ],
+  "entities": [
+    {
+      "instance": {
+        "asset": 0,
+        "overrides": {
+          "entityProps": [
+            {
+              "path": [],
+              "name": "FarmingRakeTool",
+              "isActive": false
+            }
+          ],
+          "componentProps": [
+            {
+              "path": [],
+              "selector": {
+                "type": "Animator",
+                "index": 0
+              },
+              "props": {
+                "animatorController": {
+                  "$ref": 1
+                },
+                "enabled": false,
+                "cullingMode": 0
+              }
+            },
+            {
+              "path": [
+                0,
+                0,
+                1
+              ],
+              "selector": {
+                "type": "MeshRenderer",
+                "index": 0
+              },
+              "props": {
+                "castShadows": true,
+                "receiveShadows": true
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "components": [],
+  "root": 0
+}
