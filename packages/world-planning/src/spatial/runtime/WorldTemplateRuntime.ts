@@ -26,6 +26,7 @@ import {
   PBRMaterial,
   PointLight,
   RenderFace,
+  Script,
   Shader,
   UnlitMaterial,
   PrimitiveMesh,
@@ -38,10 +39,12 @@ import {
   Vector4,
   VertexElement,
   VertexElementFormat,
+  type Camera,
   type Entity,
   type GLTFResource,
   type Material
 } from "@galacean/engine";
+import { TerrainScreenRelativeHeightRuntime } from "@galacean/engine-terrain/terrain/lod/TerrainScreenRelativeHeightRuntime";
 import { usesProjectPlantResources } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
 import {
   configureAssetAssemblyRendererInstance,
@@ -75,6 +78,42 @@ function modelBounds(entity: Entity): BoundingBox {
   for (const renderer of entity.getComponentsIncludeChildren(MeshRenderer, []))
     BoundingBox.merge(bounds, renderer.bounds, bounds);
   return bounds;
+}
+
+class TemplateModelLods extends Script {
+  private readonly groups: {
+    models: Entity[];
+    projection: TerrainScreenRelativeHeightRuntime;
+    thresholds: readonly [number, number];
+    active: number;
+  }[] = [];
+
+  track(models: Entity[], bounds: BoundingBox, camera: Camera, thresholds: readonly [number, number]): void {
+    const { min, max } = bounds;
+    const projection = new TerrainScreenRelativeHeightRuntime(
+      models[0],
+      camera,
+      [(min.x + max.x) / 2, (min.y + max.y) / 2, (min.z + max.z) / 2],
+      max.y - min.y
+    );
+    const group = { models, thresholds, projection, active: 0 };
+    for (let i = 1; i < models.length; i++) models[i].isActive = false;
+    this.groups.push(group);
+    this.select(group);
+  }
+
+  override onLateUpdate(): void {
+    for (const group of this.groups) this.select(group);
+  }
+
+  private select(group: (typeof this.groups)[number]): void {
+    const height = group.projection.resolve();
+    const next = height >= group.thresholds[0] ? 0 : height >= group.thresholds[1] ? 1 : 2;
+    if (next === group.active) return;
+    group.models[group.active].isActive = false;
+    group.models[next].isActive = true;
+    group.active = next;
+  }
 }
 
 /** Supplied models fill their authored envelopes; missing assets retain whiteboxes. */
@@ -113,17 +152,23 @@ export class WorldTemplateRuntime {
     ground: (x: number, z: number) => number | undefined,
     prepared = resolveWorldTemplateScene(plan, ground),
     signal?: AbortSignal,
-    formations?: readonly RockFormationMesh[]
+    formations?: readonly RockFormationMesh[],
+    camera?: Camera
   ): Promise<WorldTemplateRuntime | undefined> {
     const template = worldTemplate(plan.parameters.worldTemplate?.id);
     if (!template || !prepared) return undefined;
     signal?.throwIfAborted();
     const assets = new Map<string, GLTFResource>();
     const nodes = prepared.nodes;
-    const urls = new Set(nodes.flatMap(({ node }) => (node.assetUrl ? [node.assetUrl] : [])));
-    const leafModelUrls = new Set(
-      nodes.filter(({ node }) => node.assetLeafMaterials?.length && node.assetUrl).map(({ node }) => node.assetUrl!)
-    );
+    const urls = new Set<string>();
+    const leafModelUrls = new Set<string>();
+    for (const { node } of nodes) {
+      for (const url of [node.assetUrl, camera && node.assetLod?.url]) {
+        if (!url) continue;
+        urls.add(url);
+        if (node.assetLeafMaterials?.length) leafModelUrls.add(url);
+      }
+    }
     const art = WORLD_TEMPLATE_ART[template.id];
     const resolvedPlants = art.resolveProceduralPlants
       ? art.resolveProceduralPlants(plan.parameters.seed)
@@ -192,6 +237,7 @@ export class WorldTemplateRuntime {
     if (parent.destroyed) throw new Error("World template parent was destroyed while loading models");
     return new WorldTemplateRuntime(
       parent,
+      camera,
       plan,
       template,
       prepared,
@@ -206,6 +252,7 @@ export class WorldTemplateRuntime {
   }
   private constructor(
     parent: Entity,
+    camera: Camera | undefined,
     plan: IslandPlan,
     template: WorldTemplate,
     scene: ResolvedWorldTemplateScene,
@@ -229,6 +276,7 @@ export class WorldTemplateRuntime {
       this.root.transform.setPosition(x, y, z);
       const shareVertexColorMaterial = WORLD_TEMPLATE_ART[template.id].sharedVertexColorMaterial;
       let vertexColorMaterial: Material | null = null;
+      let modelLods: TemplateModelLods | undefined;
       for (const { node, position } of scene.nodes) {
         const entity = this.root.createChild(node.id);
         entity.transform.setPosition(position[0] - x, position[1] - y, position[2] - z);
@@ -253,7 +301,8 @@ export class WorldTemplateRuntime {
           light.distance = rangeM;
         }
         if (node.assetUrl) {
-          const model = assets.get(node.assetUrl)!.instantiateSceneRoot();
+          const source = assets.get(node.assetUrl)!;
+          const model = source.instantiateSceneRoot();
           if (shareVertexColorMaterial) {
             for (const renderer of model.getComponentsIncludeChildren(MeshRenderer, [])) {
               if (!renderer.enableVertexColor) continue;
@@ -267,12 +316,33 @@ export class WorldTemplateRuntime {
           // Measure the detached instance so imported node transforms are included,
           // before the template's placement, rotation and metre dimensions apply.
           const bounds = modelBounds(model);
-          model.transform.rotate(0, node.assetYawDegrees ?? 0, 0);
           const normalized = entity.createChild("Model fit");
           normalized.addChild(model);
+          const levels = [model];
+          if (camera && node.assetLod) {
+            const lods = assets.get(node.assetLod.url)!;
+            const sourceMaterials = new Map(source.materials?.map((material) => [material.name, material]));
+            for (let sceneIndex = 0; sceneIndex < node.assetLod.screenRelativeHeights.length; sceneIndex++) {
+              const level = lods.instantiateSceneRoot(sceneIndex);
+              normalized.addChild(level);
+              levels.push(level);
+              for (const renderer of level.getComponentsIncludeChildren(MeshRenderer, [])) {
+                renderer.getMaterials().forEach((slot, index) => {
+                  const original = slot && sourceMaterials.get(slot.name);
+                  if (!original) throw new Error(`Unknown LOD material on ${node.id}: ${slot?.name}`);
+                  renderer.setMaterial(index, original);
+                });
+              }
+            }
+          }
+          for (const level of levels) level.transform.rotate(0, node.assetYawDegrees ?? 0, 0);
           if (node.assetLeafMaterials?.length)
-            this.bindLeafMaterials(model, node.assetLeafMaterials, leafTemplate!, node);
-          if (node.assetMaterials) this.bindAssetMaterials(model, node.assetMaterials);
+            this.bindLeafMaterials(normalized, node.assetLeafMaterials, leafTemplate!, node);
+          if (node.assetMaterials) this.bindAssetMaterials(normalized, node.assetMaterials);
+          if (node.castShadows !== undefined) {
+            for (const renderer of normalized.getComponentsIncludeChildren(MeshRenderer, []))
+              renderer.castShadows = node.castShadows;
+          }
           const meshBounds = {
             min: [bounds.min.x, bounds.min.y, bounds.min.z] as [number, number, number],
             max: [bounds.max.x, bounds.max.y, bounds.max.z] as [number, number, number]
@@ -288,6 +358,10 @@ export class WorldTemplateRuntime {
             fit.offset[1] / node.scale[1],
             fit.offset[2] / node.scale[2]
           );
+          if (camera && node.assetLod) {
+            modelLods ??= this.root.addComponent(TemplateModelLods);
+            modelLods.track(levels, bounds, camera, node.assetLod.screenRelativeHeights);
+          }
           this.models.push({ id: node.id, url: node.assetUrl, entity });
           continue;
         }
@@ -299,7 +373,7 @@ export class WorldTemplateRuntime {
         const renderer = entity.addComponent(MeshRenderer);
         renderer.mesh = this.mesh;
         renderer.setMaterial(this.material);
-        renderer.castShadows = true;
+        renderer.castShadows = node.castShadows ?? true;
         renderer.receiveShadows = false;
       }
       const spores = WORLD_TEMPLATE_ART[template.id].spores;

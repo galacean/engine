@@ -324,6 +324,10 @@ const forestMushroom = (id: string, x: number, z: number, height: number, yaw = 
   ...model(id, [x, 0, z], [height, height, height], true, yaw),
   footprint: [height * 0.22, height * 0.22],
   assetUrl: new URL("../assets/forest-luminous-mushroom.glb", import.meta.url).href,
+  assetLod: {
+    url: new URL("../assets/forest-luminous-mushroom-lods.glb", import.meta.url).href,
+    screenRelativeHeights: [0.24, 0.1]
+  },
   assetMaterials: {
     // A forest-only material variant. The red source GLB and its local emission mask stay intact.
     Mushroom_Tree: {
@@ -357,6 +361,11 @@ const forestOak = (id: string, x: number, z: number, height: number, yaw: number
     (2 * forestOakRoot.halfDepth * height) / (forestOakRoot.topY - forestOakRoot.plantingY)
   ],
   assetUrl: new URL("../assets/forest-giant-oak.glb", import.meta.url).href,
+  assetLod: {
+    url: new URL("../assets/forest-giant-oak-lods.glb", import.meta.url).href,
+    // Even the skyline oaks span much of the view. Their small branches and leaf cards recede first.
+    screenRelativeHeights: [1, 0.8]
+  },
   assetLeafMaterials: ["Flower_Clusters_512", "Flowers_512"],
   assetLeafColor: "#74a45b"
 });
@@ -486,11 +495,11 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       forestOak("giant-oak-east-frame", 36, 21, 115, -35),
       forestOak("giant-oak-west-middle", -22, 62, 95, 85),
       forestOak("giant-oak-east-middle", 27, 78, 125, 140),
-      forestOak("giant-oak-distant-center", -2, 133, 130, -70),
+      { ...forestOak("giant-oak-distant-center", -2, 133, 130, -70), castShadows: false },
       forestOak("giant-oak-west-outer", -67, 65, 140, -25),
       forestOak("giant-oak-east-outer", 70, 95, 130, 65),
-      forestOak("giant-oak-west-distance", -43, 153, 115, 120),
-      forestOak("giant-oak-east-distance", 43, 185, 150, -100),
+      { ...forestOak("giant-oak-west-distance", -43, 153, 115, 120), castShadows: false },
+      { ...forestOak("giant-oak-east-distance", 43, 185, 150, -100), castShadows: false },
       forestFern("fern-west-foreground", -17, -16, 2.8, 20),
       forestFern("fern-east-foreground", 23, -18, 2.4, -40),
       forestFern("fern-west-bank", -19, 4, 3.8, 70),

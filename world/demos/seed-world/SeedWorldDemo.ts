@@ -1733,7 +1733,8 @@ export async function mountSeedWorldDemo(
               templateGround,
               templateScene,
               signal,
-              formationMeshes
+              formationMeshes,
+              camera
             );
             recordBootSpan("WorldTemplateRuntime.create", spanAt);
             if (heightTransition)

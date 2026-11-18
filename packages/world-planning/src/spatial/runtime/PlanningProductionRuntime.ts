@@ -43,8 +43,14 @@ export class PlanningProductionRuntime {
         terrainMaterial: terrain.productionMaterial,
         grassColorField: terrain.grassColorField
       });
-      runtime.template = await WorldTemplateRuntime.create(root, plan, (x, z) =>
-        planningHeightmap(plan).sample({ x, z })
+      runtime.template = await WorldTemplateRuntime.create(
+        root,
+        plan,
+        (x, z) => planningHeightmap(plan).sample({ x, z }),
+        undefined,
+        undefined,
+        undefined,
+        camera
       );
 
       if (PLANNING_RUNTIME_OPTIONS.precompileShaders) runtime.population.warmup();
