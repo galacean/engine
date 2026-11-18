@@ -70,22 +70,6 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 2
         };
-      case TextureFormat.Alpha8:
-        return {
-          internalFormat: gl.ALPHA,
-          baseFormat: gl.ALPHA,
-          dataType: gl.UNSIGNED_BYTE,
-          isCompressed: false,
-          alignment: 1
-        };
-      case TextureFormat.LuminanceAlpha:
-        return {
-          internalFormat: gl.LUMINANCE_ALPHA,
-          baseFormat: gl.LUMINANCE_ALPHA,
-          dataType: gl.UNSIGNED_BYTE,
-          isCompressed: false,
-          alignment: 2
-        };
       case TextureFormat.R16G16B16A16:
         return {
           internalFormat: gl.RGBA16F,
@@ -550,7 +534,7 @@ export class GLTexture implements IPlatformTexture {
 
     this._bind();
 
-    if (!(baseFormat === gl.LUMINANCE_ALPHA || baseFormat === gl.ALPHA) && usage !== TextureUsage.Dynamic) {
+    if (usage !== TextureUsage.Dynamic) {
       gl.texStorage2D(this._target, mipmapCount, internalFormat, width, height);
     } else {
       if (!isCube) {

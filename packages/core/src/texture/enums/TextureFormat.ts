@@ -3,87 +3,78 @@
  */
 export enum TextureFormat {
   /** RGB format, 8 bits per channel. */
-  R8G8B8 = 0,
+  R8G8B8,
   /** RGBA format, 8 bits per channel. */
-  R8G8B8A8 = 1,
+  R8G8B8A8,
   /** RGBA format, 4 bits per channel. */
-  R4G4B4A4 = 2,
+  R4G4B4A4,
   /** RGBA format, 5 bits in R channel, 5 bits in G channel, 5 bits in B channel, 1 bit in A channel. */
-  R5G5B5A1 = 3,
+  R5G5B5A1,
   /** RGB format, 5 bits in R channel, 6 bits in G channel, 5 bits in B channel. */
-  R5G6B5 = 4,
+  R5G6B5,
   /** RGBA format, 16 bits per channel. */
-  R16G16B16A16 = 7,
+  R16G16B16A16,
   /** RGBA format, 32 bits per channel. */
-  R32G32B32A32 = 8,
+  R32G32B32A32,
   /** RGBA unsigned integer format, 32 bits per channel. */
-  R32G32B32A32_UInt = 9,
+  R32G32B32A32_UInt,
   /** RGB unsigned float format, 11 bits in R channel, 11 bits in G channel, 10 bits in B channel. */
-  R11G11B10_UFloat = 35,
+  R11G11B10_UFloat,
   /** R float format, 8 bits. */
-  R8 = 36,
+  R8,
   /** RG float format, 8 bits per channel. */
-  R8G8 = 37,
+  R8G8,
   /** RGB compressed format, 4 bits per pixel. */
-  BC1 = 10,
+  BC1,
   /** RGBA compressed format, 8 bits per pixel. */
-  BC3 = 11,
+  BC3,
   /** RGB(A) compressed format, 128 bits per 4x4 pixel block. */
-  BC7 = 12,
+  BC7,
   /** RGB HDR compressed format, 8 bits per pixel. */
-  BC6H = 100,
+  BC6H,
   /** RGB compressed format, 4 bits per pixel. */
-  ETC1_RGB = 13,
+  ETC1_RGB,
   /** RGB compressed format, 4 bits per pixel. */
-  ETC2_RGB = 14,
+  ETC2_RGB,
   /** RGBA compressed format, 5 bits per pixel, 4 bit in RGB, 1 bit in A. */
-  ETC2_RGBA5 = 15,
+  ETC2_RGBA5,
   /** RGB compressed format, 8 bits per pixel. */
-  ETC2_RGBA8 = 16,
+  ETC2_RGBA8,
   /** RGB compressed format, 2 bits per pixel. */
-  PVRTC_RGB2 = 17,
+  PVRTC_RGB2,
   /** RGBA compressed format, 2 bits per pixel. */
-  PVRTC_RGBA2 = 18,
+  PVRTC_RGBA2,
   /** RGB compressed format, 4 bits per pixel. */
-  PVRTC_RGB4 = 19,
+  PVRTC_RGB4,
   /** RGBA compressed format, 4 bits per pixel. */
-  PVRTC_RGBA4 = 20,
+  PVRTC_RGBA4,
   /** RGB(A) compressed format, 128 bits per 4x4 pixel block. */
-  ASTC_4x4 = 21,
+  ASTC_4x4,
   /** RGB(A) compressed format, 128 bits per 5x5 pixel block. */
-  ASTC_5x5 = 22,
+  ASTC_5x5,
   /** RGB(A) compressed format, 128 bits per 6x6 pixel block. */
-  ASTC_6x6 = 23,
+  ASTC_6x6,
   /** RGB(A) compressed format, 128 bits per 8x8 pixel block. */
-  ASTC_8x8 = 24,
+  ASTC_8x8,
   /** RGB(A) compressed format, 128 bits per 10x10 pixel block. */
-  ASTC_10x10 = 25,
+  ASTC_10x10,
   /** RGB(A) compressed format, 128 bits per 12x12 pixel block. */
-  ASTC_12x12 = 26,
+  ASTC_12x12,
 
   /** Automatic depth format, engine will automatically select the supported precision. */
-  Depth = 27,
+  Depth,
   /** Render to stencil buffer. */
-  Stencil = 28,
+  Stencil,
   /** Automatic depth stencil format, engine will automatically select the supported precision. */
-  DepthStencil = 29,
+  DepthStencil,
   /** 16-bit depth format. */
-  Depth16 = 30,
+  Depth16,
   /** 24-bit depth format. */
-  Depth24 = 31,
+  Depth24,
   /** 32-bit depth format. */
-  Depth32 = 32,
+  Depth32,
   /** 16-bit depth + 8-bit stencil format. */
-  Depth24Stencil8 = 33,
+  Depth24Stencil8,
   /** 32-bit depth + 8-bit stencil format. */
-  Depth32Stencil8 = 34,
-
-  /** @deprecated Use 'TextureFormat.R8' instead. */
-  Alpha8 = 5,
-  /** @deprecated Use 'TextureFormat.R8G8' instead. */
-  LuminanceAlpha = 6,
-  /** @deprecated Use `TextureFormat.BC1` instead. */
-  DXT1 = 10,
-  /** @deprecated Use `TextureFormat.BC3` instead. */
-  DXT5 = 11
+  Depth32Stencil8
 }

@@ -151,8 +151,6 @@ export class GLCapability {
       case TextureFormat.R4G4B4A4:
       case TextureFormat.R5G5B5A1:
       case TextureFormat.R5G6B5:
-      case TextureFormat.Alpha8:
-      case TextureFormat.LuminanceAlpha:
       case TextureFormat.R16G16B16A16:
       case TextureFormat.R32G32B32A32:
       case TextureFormat.R32G32B32A32_UInt:
