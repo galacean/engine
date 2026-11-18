@@ -673,6 +673,7 @@ export class HeightfieldWaterBackend implements WaterBodyBackend {
       }
       const activation = await controller.replaceActiveIncremental(instanceId, resource, {
         ...runtimeContext.submission,
+        releaseMeshCpuData: runtimeContext.submission?.releaseMeshCpuData ?? true,
         planarTransform,
         shouldCancel: () => context.signal?.aborted === true
       });

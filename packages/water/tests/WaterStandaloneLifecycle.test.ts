@@ -12,6 +12,7 @@ import {
   JSONAsset,
   Material,
   MeshRenderer,
+  ModelMesh,
   ScreenSpaceReflection,
   ScreenSpaceReflectionActivationMode,
   ScreenSpaceReflectionReceiverMode,
@@ -148,6 +149,7 @@ it("synchronizes a staged lake material with SSR activation and recovery", async
     for (const root of f.scene.rootEntities) root.getComponentsIncludeChildren(MeshRenderer, renderers);
     const renderer = renderers.find((renderer) => f.system.resolveRenderOwner(renderer.entity) === body)!;
     expect(renderer).toBeDefined();
+    expect((renderer.mesh as ModelMesh).vertexBufferBindings[0]?.buffer.readable).toBe(false);
     const material = renderer.getMaterial()!;
     for (const active of [true, false, true]) {
       camera.screenSpaceReflection.activationMode = active

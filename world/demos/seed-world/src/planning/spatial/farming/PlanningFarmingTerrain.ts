@@ -16,15 +16,6 @@ export interface PlanningTerrainFootprint {
  * legacy clipmap fields retain their R16 bilinear contract. Slopes are never averaged across cells.
  */
 export function createPlanningFarmingTerrainQuery(fields: PlanningFarmingTerrain) {
-  fields = {
-    ...fields,
-    worldOrigin: fields.worldOrigin && [...fields.worldOrigin],
-    heightDecode: fields.heightDecode && { ...fields.heightDecode },
-    heightSamples: fields.heightSamples.slice(),
-    surfaceHeights: fields.surfaceHeights?.slice(),
-    rockySlopeWeight: fields.rockySlopeWeight.slice(),
-    materialWeights: fields.materialWeights.slice()
-  };
   const size = fields.sizeMetres,
     n = fields.heightResolution;
   const pitch = size / (n - 1),

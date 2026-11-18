@@ -1,7 +1,9 @@
 import { initialBuildingDrafts } from "@galacean/engine-world-planning/masonry/BuildingInitialDraft.ts";
 import { prepareBuildingCpu } from "@galacean/engine-building/building/parts/architecture/BuildingCpu.ts";
 import { constructionGeometry } from "../../../packages/building/tests/fixtures/constructionGeometry";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { acceptedPlanningFarmingGround } from "../../demos/seed-world/src/planning/spatial/farming/PlanningFarmingAcceptedGround";
+import { createPlanningFarmingTerrainQuery } from "../../demos/seed-world/src/planning/spatial/farming/PlanningFarmingTerrain";
 import {
   publishedPlanningFarmingGround,
   type PlanningBuildingOccupancyOwner,
@@ -215,4 +217,49 @@ it("clips translated triangles exactly, keeps broad-phase empty corners clear an
   detached[0].max[1] = 100;
   expect(query.bounds[0].max[1]).toBe(3);
   expect(query.intersectBounds([10.5, 0, 20.5], [11, 4, 21])).not.toBeNull();
+});
+
+it("queries published terrain arrays without slicing and passes terrain to accepted ground raycast", () => {
+  const sloped: PlanningFarmingTerrain = {
+    sizeMetres: 20,
+    worldOrigin: [0, 0],
+    heightDecode: { offset: 0, scale: 1 },
+    heightResolution: 2,
+    heightSamples: new Uint16Array(4),
+    surfaceHeights: new Float32Array([0, 4, 0, 4]),
+    surfaceResolution: 2,
+    rockySlopeWeight: new Uint8Array([255, 255, 255, 255]),
+    materialWeights: new Uint8Array(16)
+  };
+  const slices = [
+    vi.spyOn(sloped.heightSamples, "slice"),
+    vi.spyOn(sloped.surfaceHeights!, "slice"),
+    vi.spyOn(sloped.rockySlopeWeight, "slice"),
+    vi.spyOn(sloped.materialWeights, "slice")
+  ];
+  const terrain = createPlanningFarmingTerrainQuery(sloped);
+  expect(terrain.sample(10, 10)?.position[1]).toBeCloseTo(2, 5);
+  for (const spy of slices) expect(spy).not.toHaveBeenCalled();
+
+  const view = acceptedPlanningFarmingGround(
+    sloped,
+    1,
+    "ground",
+    {
+      grid: { originX: 0, originZ: 0, cellSize: 2, rows: 2, columns: 2 },
+      plots: [],
+      storage: { layout: { groundId: "ground", containers: [] }, containers: [] }
+    },
+    () => undefined,
+    () => {
+      throw new Error("physical ground should not be queried by raycast");
+    },
+    { containers: [], crops: {} }
+  );
+  for (const spy of slices) expect(spy).not.toHaveBeenCalled();
+  const hit = view.raycast({ origin: [10, 5, 10], direction: [0, -1, 0] }, 10);
+  expect(hit).not.toBeNull();
+  expect(hit!.surface).toBe("rock");
+  expect(hit!.position[1]).toBeCloseTo(2, 4);
+  expect(hit!.normal[0]).toBeLessThan(0);
 });

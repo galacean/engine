@@ -138,7 +138,7 @@ export class ProceduralPlant {
       for (const item of recipe.supports) {
         const entity = this.support.createChild(item.id);
         entity.transform.setPosition(...item.center);
-        const mesh = PrimitiveMesh.createCuboid(engine, ...item.size, false);
+        const mesh = PrimitiveMesh.createCuboid(engine, ...item.size, { keepMeshData: true });
         this.supportMeshes.push(mesh);
         mesh.setUVs(mesh.getPositions()!.map(() => new Vector2(...item.uv)));
         mesh.setColors(mesh.getPositions()!.map(() => new Color(1, 1, 1, 0)));

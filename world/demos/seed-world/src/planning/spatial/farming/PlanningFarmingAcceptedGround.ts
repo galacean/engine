@@ -110,6 +110,7 @@ export function acceptedPlanningFarmingGround(
         { x: 0, z: fields.sizeMetres }
       ]
     ],
+    terrain,
     height: (x, z) => terrain.sample(x, z)?.position[1] ?? null,
     underwater: () => false,
     blocked: () => false

@@ -165,6 +165,7 @@ export class PlanningWaterRuntime {
       options.environmentReflection,
       {
         initialize: (host) => {
+          host.setTerrainOcclusionProvider(this.terrainOcclusionProvider);
           host.registerAuthoring(registerLakeWaterLook);
           for (const factory of createFarmlandsWaterResourceFactories(options.engine))
             host.ensureRuntimeResource(factory);
