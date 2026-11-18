@@ -479,12 +479,10 @@ export class PlanningSeedRuntimeDebug {
       worldHorizonQueryEvaluationMilliseconds: horizon.queryEvaluationMilliseconds,
       prefabInstances:
         (world.stones?.placementCount ?? 0) +
-        (world.smallRocks?.placementCount ?? 0) +
         world.mushrooms.placementCount +
         world.lotus.placementCount,
       prefabLodGroups:
         (world.stones?.placementCount ?? 0) +
-        (world.smallRocks?.placementCount ?? 0) +
         world.mushrooms.placementCount +
         world.lotus.placementCount,
       exactSpatialMode: exact.mode,

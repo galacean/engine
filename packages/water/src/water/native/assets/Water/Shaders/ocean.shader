@@ -63,83 +63,91 @@ sampler2D material_Ocean_roughWaves;
 sampler2D material_Ocean_caustics;
 sampler2D material_Ocean_foam;
 sampler2D material_Ocean_intersectionNoise;
-Editor { Properties {
-Header("Normal maps") {
-material_Ocean_smoothWaves("Smooth waves", Texture2D);
-material_Ocean_roughWaves("Rough waves", Texture2D);
+Editor {
+  Properties {
+    Header("water.materialGroups.surface") {
+      [Color] material_AppearanceV2DepthShallowColor("water.materialFields.shallowColor", Vector4) = (0, 1, 0.98136926, 0.3764706);
+      [Color] material_AppearanceV2DepthDeepColor("water.materialFields.deepColor", Vector4) = (0, 0.16451614, 0.34, 0.98039216);
+      material_Water_optics_profile_roughness("water.materialFields.roughness", Range(0, 1, 0.01)) = 0;
+      material_AppearanceV2MacroNormalStrength("water.materialFields.macroNormalStrength", Range(0, 2, 0.001)) = 0.16;
+    }
+    Collapsible("water.materialGroups.textures") {
+      material_Ocean_smoothWaves("water.materialFields.smoothWaves", Texture2D);
+      material_Ocean_roughWaves("water.materialFields.roughWaves", Texture2D);
+    }
+    Collapsible("water.materialGroups.foam") {
+      material_Water_look_foam_enabled("water.materialFields.foamEnabled", Boolean) = true;
+      [ShowIf(material_Water_look_foam_enabled, true)] material_Water_look_foam_intensity("water.materialFields.foamIntensity", Range(0, 8, 0.01)) = 0.373;
+      [ShowIf(material_Water_look_foam_enabled, true)] [RGB] material_Water_look_foam_color("water.materialFields.foamColor", Color) = (1, 1, 1, 1);
+      [ShowIf(material_Water_look_foam_enabled, true)] material_Ocean_foam("water.materialFields.foamTexture", Texture2D);
+    }
+    Collapsible("water.materialGroups.caustics") {
+      material_Ocean_caustics("water.materialFields.causticsTexture", Texture2D);
+    }
+    Collapsible("water.materialGroups.shoreline") {
+      material_Ocean_intersectionNoise("water.materialFields.intersectionNoise", Texture2D);
+      material_Water_appearance_appearance_boundaryEffects_0_rangeMeters("water.materialFields.shorelineRange", Range(0.01, 20, 0.01)) = 3.04;
+    }
+    Collapsible("water.materialGroups.lighting") {
+      material_Water_optics_profile_reflectionIntensity("water.materialFields.reflectionIntensity", Range(0, 4, 0.01)) = 1;
+      material_Water_appearance_appearance_refraction_enabled("water.materialFields.surfaceRefraction", Boolean) = true;
+      [ShowIf(material_Water_appearance_appearance_refraction_enabled, true)] material_AppearanceV2RefractionUvScale("water.materialFields.refractionUvScale", Range(0, 8, 0.01)) = 0.172;
+    }
+    Collapsible("water.materialGroups.advanced") {
+      [Hide] material_Water_look_oceanResponse_timeScale("water.materialFields.timeScale", Range(0.1, 4, 0.01)) = 1;
+      [Hide] material_Water_optics_caustics("water.materialFields.causticsEnabled", Boolean) = true;
+      [Hide] material_Water_appearance_featureFlags_depthTint("water.materialFields.depthTint", Boolean) = true;
+      [Hide] material_Water_appearance_appearance_depthResponse_terms_0_coefficientPerMeter("water.materialFields.depthResponse0", Float) = 0.17;
+      [Hide] material_Water_appearance_appearance_depthResponse_terms_1_coefficientPerMeter("water.materialFields.depthResponse1", Float) = 4;
+      [Hide] [RGB] material_Water_optics_profile_absorptionCoefficient("water.materialFields.absorption", Vector3) = (0, 0, 0);
+      [Hide] [Color] material_Water_optics_profile_scatteringColor("water.materialFields.scatteringColor", Vector3) = (0, 0, 0);
+      [Hide] material_Water_optics_profile_scatteringCoefficient("water.materialFields.scattering", Float) = 0;
+      [Hide] material_Water_appearance_featureFlags_externalNormal("water.materialFields.externalNormal", Boolean) = true;
+      [Hide] material_Water_look_oceanResponse_microDetailResponse_0_speedMetresPerSecond("water.materialFields.detailSpeed0", Float) = 0;
+      [Hide] material_Water_look_oceanResponse_microDetailResponse_0_strengthRatio("water.materialFields.detailStrength0", Float) = 1;
+      [Hide] material_Water_look_oceanResponse_microDetailResponse_0_speedRatio("water.materialFields.detailSpeedRatio0", Float) = 1;
+      [Hide] material_Water_look_oceanResponse_microDetailResponse_1_speedMetresPerSecond("water.materialFields.detailSpeed1", Float) = 100;
+      [Hide] material_Water_look_oceanResponse_microDetailResponse_1_strengthRatio("water.materialFields.detailStrength1", Float) = 1;
+      [Hide] material_Water_look_oceanResponse_microDetailResponse_1_speedRatio("water.materialFields.detailSpeedRatio1", Float) = 1;
+      [Hide] material_Water_look_reflectionSampling_screenSpaceCompositeIntensity("water.materialFields.ssrStrength", Range(0, 1, 0.01)) = 1;
+      [Hide] material_Water_look_reflectionSampling_environmentFallbackIntensity("water.materialFields.environmentStrength", Range(0, 4, 0.01)) = 1;
+      [Hide] material_Water_look_reflectionSampling_distortionStrength("water.materialFields.reflectionDistortion", Range(0, 0.25, 0.001)) = 0.025;
+      [Hide] material_Water_appearance_featureFlags_directSpecular("water.materialFields.directSpecular", Boolean) = true;
+      [Hide] material_Water_appearance_appearance_directionalHighlight_strength("water.materialFields.highlightStrength", Range(0, 64, 0.1)) = 5;
+      [Hide] material_Water_appearance_appearance_directionalHighlight_exponent("water.materialFields.highlightExponent", Range(1, 8196, 1)) = 616.9759999999997;
+      [Hide] material_Water_appearance_appearance_directionalHighlight_distortion("water.materialFields.highlightDistortion", Range(0, 2, 0.01)) = 0.702;
+      [Hide] material_Water_appearance_appearance_directionalHighlight_sharp("water.materialFields.sharpHighlight", Boolean) = false;
+      [Hide] material_Water_optics_refractionEnabled("water.materialFields.opticalRefraction", Boolean) = true;
+      [Hide] material_Water_optics_profile_refractionStrength("water.materialFields.refractionStrength", Range(0, 8, 0.01)) = 0.172;
+      [Hide] material_Water_optics_profile_indexOfRefraction("water.materialFields.indexOfRefraction", Range(1, 4, 0.001)) = 1.333;
+      [Hide] material_Water_optics_profile_maximumViewDistance("water.materialFields.viewDistance", Float) = 500;
+      [Hide] material_Water_optics_profile_maximumSurfaceOpticalDistance("water.materialFields.opticalDistance", Float) = 500;
+      [Hide] material_Water_appearance_featureFlags_coastalAlpha("water.materialFields.coastalAlpha", Boolean) = true;
+      [Hide] material_Water_appearance_featureFlags_contactFoam("water.materialFields.contactFoam", Boolean) = false;
+      [Hide] material_Water_appearance_appearance_boundaryEffects_0_invert("water.materialFields.invertShoreline", Boolean) = true;
+      [Hide] material_Water_appearance_appearance_boundaryEffects_0_outputs_refractionSuppression("water.materialFields.shorelineRefraction", Range(0, 1, 0.01)) = 1;
+      [Hide] material_WaterProfile("water.materialFields.profile", Enum(water.materialOptions.lake:0, water.materialOptions.river:1, water.materialOptions.ocean:2)) = 2;
+      [Hide] material_Water_appearance_appearance_primaryColorClosure("water.materialFields.colorComposition", Enum(water.materialOptions.refracted-albedo-depth-ramp:1, water.materialOptions.stylized-depth-ramp:2, water.materialOptions.lit-scene-color-depth-ramp:3, water.materialOptions.scene-color-composite-depth-ramp:4)) = 4;
+      [Hide] material_Water_appearance_appearance_refraction_normalSource("water.materialFields.refractionNormal", Enum(water.materialOptions.view-space-delta:0, water.materialOptions.tangent-space:1)) = 0;
+      [Hide] material_Water_appearance_appearance_refraction_validation("water.materialFields.refractionValidation", Enum(water.materialOptions.full-scene-depth:0, water.materialOptions.shifted-scene-depth:1, water.materialOptions.local-only-safe:2)) = 0;
+      [Hide] material_Water_appearance_appearance_composition("water.materialFields.composition", Enum(water.materialOptions.alpha-blend:0, water.materialOptions.precomposed-replace:1)) = 1;
+      [Hide] material_Water_look_reflectionSampling_maximumDistortionPixels("water.materialFields.maximumDistortion", Range(0, 64, 1)) = 64;
+      [Hide] material_Water_look_reflectionSampling_edgeFadeTexels("water.materialFields.edgeFade", Range(1, 64, 0.1)) = 8;
+      [Hide] material_Water_look_reflectionSampling_minimumClipW("water.materialFields.minimumClipW", Range(1e-06, 1, 1e-06)) = 0.001;
+      [Hide] material_Water_look_reflectionSampling_roughnessFootprintTexels("water.materialFields.roughnessFootprint", Range(0.5, 8, 0.1)) = 3;
+      [Hide] material_Water_look_reflectionSampling_highFilterSampleCount("water.materialFields.filterSamples", Enum(1:1, 5:5)) = 1;
+      [Hide] material_Water_look_environmentResponse_surfaceNormalVarianceToRoughness("water.materialFields.normalRoughness", Float) = 0;
+      [Hide] material_Water_reflectionPolicy_policy_preferred("water.materialFields.reflectionPolicy", Enum(water.materialOptions.environment:0, water.materialOptions.ssr:1, water.materialOptions.analytic:2)) = 0;
+      [Hide] material_WaterReflectionFallback0("water.materialFields.reflectionFallback0", Enum(water.materialOptions.none:-1, water.materialOptions.environment:0, water.materialOptions.ssr:1, water.materialOptions.analytic:2)) = 2;
+      [Hide] material_WaterReflectionFallback1("water.materialFields.reflectionFallback1", Enum(water.materialOptions.none:-1, water.materialOptions.environment:0, water.materialOptions.ssr:1, water.materialOptions.analytic:2)) = -1;
+      [Hide] material_Water_renderState_depthWriteEnabled("water.materialFields.depthWrite", Boolean) = false;
+      [Hide] material_Water_renderState_queue("water.materialFields.renderQueue", Enum(water.materialOptions.opaque:0, water.materialOptions.alpha-test:1, water.materialOptions.transparent:2)) = 2;
+      [Hide] material_Water_renderState_priorityOffset("water.materialFields.priorityOffset", Float) = 0;
+      [Hide] material_Water_renderState_cullMode("water.materialFields.cullMode", Enum(water.materialOptions.off:0, water.materialOptions.front:1, water.materialOptions.back:2)) = 2;
+      [Hide] material_Water_renderState_blendMode("water.materialFields.blendMode", Enum(water.materialOptions.opaque:0, water.materialOptions.alpha:1, water.materialOptions.premultiplied-alpha:2, water.materialOptions.additive:3)) = 1;
+    }
+  }
 }
-Header("Caustics") {
-material_Ocean_caustics("Caustics", Texture2D);
-}
-Header("Foam") {
-material_Ocean_foam("Foam", Texture2D);
-}
-Header("Intersection") {
-material_Ocean_intersectionNoise("Intersection noise", Texture2D);
-}
-material_WaterProfile("material_WaterProfile", Enum(lake:0, river:1, ocean:2)) = 2;
-material_Water_look_reflectionSampling_screenSpaceCompositeIntensity("material_Water_look_reflectionSampling_screenSpaceCompositeIntensity", Float) = 1;
-material_Water_look_reflectionSampling_environmentFallbackIntensity("material_Water_look_reflectionSampling_environmentFallbackIntensity", Float) = 1;
-material_Water_look_reflectionSampling_distortionStrength("material_Water_look_reflectionSampling_distortionStrength", Float) = 0.025;
-material_Water_look_reflectionSampling_maximumDistortionPixels("material_Water_look_reflectionSampling_maximumDistortionPixels", Float) = 64;
-material_Water_look_reflectionSampling_edgeFadeTexels("material_Water_look_reflectionSampling_edgeFadeTexels", Float) = 8;
-material_Water_look_reflectionSampling_minimumClipW("material_Water_look_reflectionSampling_minimumClipW", Float) = 0.001;
-material_Water_look_reflectionSampling_roughnessFootprintTexels("material_Water_look_reflectionSampling_roughnessFootprintTexels", Float) = 3;
-material_Water_look_reflectionSampling_highFilterSampleCount("material_Water_look_reflectionSampling_highFilterSampleCount", Float) = 1;
-material_Water_look_environmentResponse_surfaceNormalVarianceToRoughness("material_Water_look_environmentResponse_surfaceNormalVarianceToRoughness", Float) = 0;
-material_Water_look_oceanResponse_timeScale("material_Water_look_oceanResponse_timeScale", Float) = 1;
-material_Water_look_oceanResponse_microDetailResponse_0_speedMetresPerSecond("material_Water_look_oceanResponse_microDetailResponse_0_speedMetresPerSecond", Float) = 0;
-material_Water_look_oceanResponse_microDetailResponse_0_strengthRatio("material_Water_look_oceanResponse_microDetailResponse_0_strengthRatio", Float) = 1;
-material_Water_look_oceanResponse_microDetailResponse_0_speedRatio("material_Water_look_oceanResponse_microDetailResponse_0_speedRatio", Float) = 1;
-material_Water_look_oceanResponse_microDetailResponse_1_speedMetresPerSecond("material_Water_look_oceanResponse_microDetailResponse_1_speedMetresPerSecond", Float) = 100;
-material_Water_look_oceanResponse_microDetailResponse_1_strengthRatio("material_Water_look_oceanResponse_microDetailResponse_1_strengthRatio", Float) = 1;
-material_Water_look_oceanResponse_microDetailResponse_1_speedRatio("material_Water_look_oceanResponse_microDetailResponse_1_speedRatio", Float) = 1;
-material_Water_look_foam_enabled("material_Water_look_foam_enabled", Boolean) = true;
-material_Water_look_foam_intensity("material_Water_look_foam_intensity", Float) = 0.373;
-material_Water_look_foam_color("material_Water_look_foam_color", Color) = (1, 1, 1, 1);
-material_Water_appearance_appearance_primaryColorClosure("material_Water_appearance_appearance_primaryColorClosure", Enum(physical-volume:0, refracted-albedo-depth-ramp:1, stylized-depth-ramp:2, lit-scene-color-depth-ramp:3, scene-color-composite-depth-ramp:4)) = 4;
-material_AppearanceV2MacroNormalStrength("material_AppearanceV2MacroNormalStrength", Float) = 0.16;
-material_Water_appearance_appearance_directionalHighlight_strength("material_Water_appearance_appearance_directionalHighlight_strength", Float) = 5;
-material_Water_appearance_appearance_directionalHighlight_exponent("material_Water_appearance_appearance_directionalHighlight_exponent", Float) = 616.9759999999997;
-material_Water_appearance_appearance_directionalHighlight_distortion("material_Water_appearance_appearance_directionalHighlight_distortion", Float) = 0.702;
-material_Water_appearance_appearance_directionalHighlight_sharp("material_Water_appearance_appearance_directionalHighlight_sharp", Boolean) = false;
-material_Water_appearance_appearance_depthResponse_terms_0_coefficientPerMeter("material_Water_appearance_appearance_depthResponse_terms_0_coefficientPerMeter", Float) = 0.17;
-material_Water_appearance_appearance_depthResponse_terms_1_coefficientPerMeter("material_Water_appearance_appearance_depthResponse_terms_1_coefficientPerMeter", Float) = 4;
-material_AppearanceV2DepthShallowColor("material_AppearanceV2DepthShallowColor", Vector4) = (0, 1, 0.98136926, 0.3764706);
-material_AppearanceV2DepthDeepColor("material_AppearanceV2DepthDeepColor", Vector4) = (0, 0.16451614, 0.34, 0.98039216);
-material_Water_appearance_appearance_boundaryEffects_0_rangeMeters("material_Water_appearance_appearance_boundaryEffects_0_rangeMeters", Float) = 3.04;
-material_Water_appearance_appearance_boundaryEffects_0_invert("material_Water_appearance_appearance_boundaryEffects_0_invert", Boolean) = true;
-material_Water_appearance_appearance_boundaryEffects_0_outputs_refractionSuppression("material_Water_appearance_appearance_boundaryEffects_0_outputs_refractionSuppression", Float) = 1;
-material_Water_appearance_appearance_refraction_enabled("material_Water_appearance_appearance_refraction_enabled", Boolean) = true;
-material_AppearanceV2RefractionUvScale("material_AppearanceV2RefractionUvScale", Float) = 0.172;
-material_Water_appearance_appearance_refraction_normalSource("material_Water_appearance_appearance_refraction_normalSource", Enum(view-space-delta:0, tangent-space:1, first-detail-layer:2)) = 0;
-material_Water_appearance_appearance_refraction_validation("material_Water_appearance_appearance_refraction_validation", Enum(full-scene-depth:0, shifted-scene-depth:1, local-only-safe:2)) = 0;
-material_Water_appearance_appearance_composition("material_Water_appearance_appearance_composition", Enum(alpha-blend:0, precomposed-replace:1)) = 1;
-material_Water_appearance_featureFlags_externalNormal("material_Water_appearance_featureFlags_externalNormal", Boolean) = true;
-material_Water_appearance_featureFlags_depthTint("material_Water_appearance_featureFlags_depthTint", Boolean) = true;
-material_Water_appearance_featureFlags_coastalAlpha("material_Water_appearance_featureFlags_coastalAlpha", Boolean) = true;
-material_Water_appearance_featureFlags_contactFoam("material_Water_appearance_featureFlags_contactFoam", Boolean) = false;
-material_Water_appearance_featureFlags_directSpecular("material_Water_appearance_featureFlags_directSpecular", Boolean) = true;
-material_Water_optics_profile_absorptionCoefficient("material_Water_optics_profile_absorptionCoefficient", Vector3) = (0, 0, 0);
-material_Water_optics_profile_scatteringColor("material_Water_optics_profile_scatteringColor", Vector3) = (0, 0, 0);
-material_Water_optics_profile_scatteringCoefficient("material_Water_optics_profile_scatteringCoefficient", Float) = 0;
-material_Water_optics_profile_maximumViewDistance("material_Water_optics_profile_maximumViewDistance", Float) = 500;
-material_Water_optics_profile_indexOfRefraction("material_Water_optics_profile_indexOfRefraction", Float) = 1.333;
-material_Water_optics_profile_maximumSurfaceOpticalDistance("material_Water_optics_profile_maximumSurfaceOpticalDistance", Float) = 500;
-material_Water_optics_profile_refractionStrength("material_Water_optics_profile_refractionStrength", Float) = 0.172;
-material_Water_optics_profile_roughness("material_Water_optics_profile_roughness", Float) = 0;
-material_Water_optics_profile_reflectionIntensity("material_Water_optics_profile_reflectionIntensity", Float) = 1;
-material_Water_optics_refractionEnabled("material_Water_optics_refractionEnabled", Boolean) = true;
-material_Water_optics_caustics("material_Water_optics_caustics", Boolean) = true;
-material_Water_reflectionPolicy_policy_preferred("material_Water_reflectionPolicy_policy_preferred", Enum(environment:0, ssr:1, analytic:2)) = 0;
-material_WaterReflectionFallback0("material_WaterReflectionFallback0", Enum(None:-1, environment:0, ssr:1, analytic:2)) = 2;
-material_WaterReflectionFallback1("material_WaterReflectionFallback1", Enum(None:-1, environment:0, ssr:1, analytic:2)) = -1;
-material_Water_renderState_depthWriteEnabled("material_Water_renderState_depthWriteEnabled", Boolean) = false;
-material_Water_renderState_queue("material_Water_renderState_queue", Enum(opaque:0, alpha-test:1, transparent:2)) = 2;
-material_Water_renderState_priorityOffset("material_Water_renderState_priorityOffset", Float) = 0;
-material_Water_renderState_cullMode("material_Water_renderState_cullMode", Enum(off:0, front:1, back:2)) = 2;
-material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enum(opaque:0, alpha:1, premultiplied-alpha:2, additive:3)) = 1;
-} }
 
   SubShader "Default" {
     Pass "Forward" {

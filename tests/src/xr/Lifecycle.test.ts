@@ -34,7 +34,8 @@ import { describe, expect, it, vi } from "vitest";
 function createXR() {
   let onExit: (() => void) | undefined;
   const target = document.createElement("canvas");
-  const rhi = { _mainFrameBuffer: null, _mainFrameWidth: 0, _mainFrameHeight: 0 };
+  const framebuffer = {} as WebGLFramebuffer;
+  const rhi = { _mainFrameBuffer: null as WebGLFramebuffer | null, _mainFrameWidth: 0, _mainFrameHeight: 0 };
   const engine = {
     _hardwareRenderer: rhi,
     isPaused: false,
@@ -44,7 +45,6 @@ function createXR() {
     inputManager: { _pointerManager: { _target: target } }
   };
   const session = {
-    framebuffer: {} as WebGLFramebuffer,
     framebufferWidth: 800,
     framebufferHeight: 600,
     frameRate: undefined,
@@ -52,9 +52,21 @@ function createXR() {
     frame: { updateInputs: vi.fn() },
     events: [] as IXRInputEvent[],
     resetEvents: vi.fn(() => (session.events.length = 0)),
+    onUpdate: vi.fn(() => {
+      rhi._mainFrameBuffer = framebuffer;
+      rhi._mainFrameWidth = 800;
+      rhi._mainFrameHeight = 600;
+    }),
     start: vi.fn(),
-    stop: vi.fn(),
-    end: vi.fn(async () => onExit?.()),
+    stop: vi.fn(() => {
+      rhi._mainFrameBuffer = null;
+      rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
+    }),
+    end: vi.fn(async () => {
+      rhi._mainFrameBuffer = null;
+      rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
+      onExit?.();
+    }),
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
     setSessionExitCallBack: vi.fn((callback: () => void) => (onExit = callback)),
@@ -82,7 +94,7 @@ function createXR() {
   };
   const xr = new XRManager();
   xr._initialize(engine as unknown as Engine, device);
-  return { xr, engine, rhi, session, device, target, platformFeature };
+  return { xr, engine, rhi, framebuffer, session, device, target, platformFeature };
 }
 
 function createCamera() {
@@ -100,7 +112,7 @@ function createCamera() {
 
 describe("XR session lifecycle", () => {
   it("switches rendering and animation callbacks when a session starts, stops and exits", async () => {
-    const { xr, engine, rhi, session } = createXR();
+    const { xr, engine, rhi, framebuffer, session } = createXR();
     const states: XRSessionState[] = [];
     xr.sessionManager.onStateChanged.on((state) => states.push(state));
     expect(() => xr.sessionManager.run()).toThrow("Without session");
@@ -126,7 +138,7 @@ describe("XR session lifecycle", () => {
     expect(() => (xr.origin = {} as Entity)).toThrow("Cannot set origin");
 
     xr._update();
-    expect(rhi).toMatchObject({ _mainFrameBuffer: session.framebuffer, _mainFrameWidth: 800, _mainFrameHeight: 600 });
+    expect(rhi).toMatchObject({ _mainFrameBuffer: framebuffer, _mainFrameWidth: 800, _mainFrameHeight: 600 });
     xr.sessionManager.stop();
     expect(rhi).toEqual({ _mainFrameBuffer: null, _mainFrameWidth: 0, _mainFrameHeight: 0 });
     expect(xr._getRequestAnimationFrame()).toBe(outsideRAF);

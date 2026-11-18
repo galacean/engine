@@ -19,13 +19,26 @@ import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/
 import { settlementRandom } from "@galacean/engine-world-planning/semantic-study/SettlementGeometry";
 import type { PlanningSeedWorldData } from "@galacean/engine-world-planning/spatial/runtime/PlanningSeedWorldData";
 import { territoryLookup } from "@galacean/engine-world-planning/spatial/ecology/PoiTerritories";
+import { createPlanningRingQuery } from "@galacean/engine-world-planning/semantic-study/WorldPlanningTerrain";
+import { templateLinearColor } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
 import type { PlanningSpawnView } from "./planning/spatial/runtime/PlanningSpawnView";
 
 type Placement = [x: number, y: number, z: number, height: number, yaw: number, level: number];
 const goldenAngle = Math.PI * (3 - Math.sqrt(5));
 // Each column is a whole-plant colorway, in linear albedo.
 type PlantColorways = readonly [PlantPoint, PlantPoint, PlantPoint];
+const colors = (a: string, b: string, c: string): PlantColorways =>
+  [templateLinearColor(a), templateLinearColor(b), templateLinearColor(c)];
 const palette = {
+  "oasis-tree": {
+    bark: colors("#694630", "#76543c", "#684a37"),
+    scarlet: colors("#e74728", "#db3921", "#ee5731"),
+    coral: colors("#f16f3f", "#f3743b", "#e96234"),
+    burgundy: colors("#a72c32", "#b33331", "#b4312f")
+  },
+  "dead-wood": { bark: colors("#69523d", "#74604b", "#624735") },
+  "dry-grass": { foliage: colors("#aa8c55", "#baa16a", "#8c7754") },
+  reeds: { foliage: colors("#6e854e", "#829365", "#556d43") },
   "flower-yellow": {
     foliage: [
       [0.21, 0.25, 0.055],
@@ -106,7 +119,65 @@ const palette = {
 } satisfies Record<string, Record<string, PlantColorways>>;
 type Species = keyof typeof palette;
 
+/** Tapered limbs carry smaller grain and foliage toward their outer twigs. */
+function oasisTreeRecipe(dead: boolean, level: number): ProceduralPlantStructure {
+  const leaf = createPlantGeometryExample("tree").shapes.leaf;
+  const shapes: Record<string, PlantShape> = { leaf };
+  const parts: PlantPart[] = [];
+  const random = (key: string) => settlementRandom(dead ? 79 : 135, key);
+  const add = (id: string, shapeId: string, materialId: string, changes: Partial<PlantPart> = {}) =>
+    parts.push({ id, shapeId, materialId, parentId: null, attachment: 0, offset: [0, 0, 0],
+      orientation: [0, 0, 0, 1], scale: 1, ...changes });
+  const limb = (id: string, sections: readonly PlantPoint[], radii: readonly number[]) => {
+    shapes[id] = { kind: "tube", capStart: true, capEnd: true, sections: sections.map((center, index) =>
+      ({ center, radius: radii[index], at: index / (sections.length - 1) })) };
+    add(id, id, "bark");
+  };
+  const mix = (a: PlantPoint, b: PlantPoint, t: number): PlantPoint =>
+    [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  limb("trunk", [[0, 0, 0], [-0.022, 0.18, 0.019], [0.01, 0.42, 0.012], [0.02, 0.63, 0], [-0.01, 0.83, 0.03]],
+    dead ? [0.038, 0.032, 0.022, 0.013, 0.003] : [0.084, 0.066, 0.048, 0.026, 0.004]);
+  const branches = dead ? 5 : 10;
+  const leafSlots = ["scarlet", "coral", "burgundy"];
+  for (let branch = 0; branch < branches; branch++) {
+    const id = `limb-${branch}`;
+    const angle = branch * goldenAngle + random(`${id}:angle`) * 0.42;
+    const c = Math.cos(angle), s = Math.sin(angle);
+    const start: PlantPoint = [0, 0.29 + 0.32 * branch / branches, 0.012];
+    const span = (dead ? 0.22 : 0.34) + random(`${id}:reach`) * 0.18;
+    const elbow: PlantPoint = [c * span * 0.48, start[1] + span * 0.33, s * span * 0.48];
+    const tip: PlantPoint = [c * span, start[1] + span * 0.65, s * span];
+    limb(id, [start, elbow, tip], [dead ? 0.021 : 0.039, dead ? 0.012 : 0.021, 0.003]);
+    for (let twig = 0; twig < (dead ? 2 : 5); twig++) {
+      const name = `${id}/twig-${twig}`;
+      const t = 0.29 + twig * (dead ? 0.4 : 0.16);
+      const base = mix(elbow, tip, t);
+      const bearing = angle + (twig % 2 ? -1 : 1) * (0.74 + random(`${name}:angle`));
+      const reach = 0.08 + random(`${name}:reach`) * 0.11;
+      const end: PlantPoint = [base[0] + Math.cos(bearing) * reach, base[1] + reach * 0.67, base[2] + Math.sin(bearing) * reach];
+      limb(name, [base, mix(base, end, 0.54), end], [0.013, 0.008, 0.0018]);
+      if (dead) continue;
+      for (let i = 0; i < [43, 25, 13][level]; i++) {
+        const leafId = `${name}/leaf-${i}`;
+        const root = mix(base, end, 0.45 + random(`${leafId}:along`) * 0.55);
+        const phi = i * goldenAngle;
+        const distance = Math.sqrt(random(`${leafId}:distance`)) * reach * 0.79;
+        const tilt = 0.37 + random(`${leafId}:tilt`) * 1.72;
+        add(leafId, "leaf", leafSlots[Math.floor(random(`${leafId}:pigment`) * leafSlots.length)], {
+          offset: [root[0] + Math.cos(phi) * distance, root[1] + (random(`${leafId}:lift`) - 0.37) * reach,
+            root[2] + Math.sin(phi) * distance],
+          orientation: [Math.sin(phi) * Math.sin(tilt / 2), 0, Math.cos(phi) * Math.sin(tilt / 2), Math.cos(tilt / 2)],
+          scale: 0.036 + random(`${leafId}:size`) * 0.047
+        });
+      }
+    }
+  }
+  return { version: 1, shapes, parts, lods: [{ partIds: parts.map(({ id }) => id),
+    resolution: { subdivisionsPerSpan: 1, widthSegments: 1, radialSegments: [9, 6, 4][level] } }] };
+}
+
 function recipe(species: Species, level: number): ProceduralPlantStructure {
+  if (species === "oasis-tree" || species === "dead-wood") return oasisTreeRecipe(species === "dead-wood", level);
   if (species.startsWith("flower-")) {
     const flower = createPlantGeometryExample("flower");
     return {
@@ -146,7 +217,17 @@ function recipe(species: Species, level: number): ProceduralPlantStructure {
   ];
   const blade = createPlantGeometryExample("grass").shapes.blade;
   const shapes: Record<string, PlantShape> = { blade };
-  if (species.includes("cactus")) {
+  if (species === "dry-grass" || species === "reeds") {
+    const grass = species === "dry-grass";
+    for (let i = 0; i < (grass ? [7, 5, 3] : [9, 6, 4])[level]; i++) {
+      const bearing = i * goldenAngle;
+      add(`blade-${i}`, "blade", "foliage", {
+        scale: 0.52 + (i % 4) * 0.17,
+        offset: [Math.sin(bearing) * 0.055, 0, Math.cos(bearing) * 0.055],
+        orientation: upright(bearing, 0.08 + (i % 5) * (grass ? 0.14 : 0.08))
+      });
+    }
+  } else if (species.includes("cactus")) {
     shapes.column = tube([
       [0, [0, 0, 0], 0.09],
       [0.25, [0, 0.25, 0], 0.095],
@@ -334,7 +415,7 @@ export function mountDesertVegetation(
     if (!cactusStand || score > cactusStand.score) cactusStand = { x, z, score };
   }
   const placements = new Map<Species, Placement[]>();
-  for (const species of Object.keys(speciesTuning) as Species[]) {
+  for (const species of Object.keys(speciesTuning) as (keyof typeof speciesTuning)[]) {
     const { spacing: step, height, near, regional, far } = speciesTuning[species];
     const plants: Placement[] = [];
     const place = (x: number, z: number, height: number, yaw: number) => {

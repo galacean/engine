@@ -1344,8 +1344,12 @@ namespace ASTNodes {
 
   @ASTNodeDecorator(NoneTerminal.postfix_expression)
   export class PostfixExpression extends ExpressionAstNode {
+    /** Exact struct declarations owning a resolved member access. @internal */
+    resolvedMemberOwners: readonly StructSpecifier[] = EMPTY_STRUCT_DECLARATIONS;
+
     override init(): void {
       super.init();
+      this.resolvedMemberOwners = EMPTY_STRUCT_DECLARATIONS;
       if (this.children.length === 1) {
         const child = this.children[0] as PrimaryExpression | FunctionCall;
         this.type = child.type;
@@ -1363,7 +1367,8 @@ namespace ASTNodes {
           if (reference) sa.shaderData.directMemberOwnerReferences.push(reference);
         }
         if (typeof base.type === "string") {
-          PostfixExpression._checkStructField(sa, base.type, children[2], this._branch);
+          this.resolvedMemberOwners =
+            PostfixExpression._checkStructField(sa, base.type, children[2], this._branch) ?? EMPTY_STRUCT_DECLARATIONS;
         }
       }
     }
@@ -1374,7 +1379,7 @@ namespace ASTNodes {
       structName: string,
       field: BaseToken,
       callsiteBranch: BranchSignature
-    ): void {
+    ): readonly StructSpecifier[] | undefined {
       const lookup = sa.lookupSymbol;
       lookup.set(structName, ESymbolType.STRUCT);
       const structs = sa.symbolTableStack.lookupAll(lookup, true, sa.structScratch, callsiteBranch);
@@ -1422,10 +1427,7 @@ namespace ASTNodes {
         );
         return;
       }
-      if (memberTypeDivergent) {
-        return;
-      }
-      if (firstProp) return;
+      if (memberTypeDivergent || firstProp) return structs.map((symbol) => (symbol as StructSymbol).astNode);
       sa.reportUndeclaredStructMember(field.location, structName, field.lexeme);
     }
 

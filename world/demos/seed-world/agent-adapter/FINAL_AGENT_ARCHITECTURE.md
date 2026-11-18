@@ -1,6 +1,6 @@
 # Seed World Agent 最终架构备忘
 
-> 2026-11-05：当前 Water 作者入口已改为 `water.author`。本文末尾的 Agent Trace 是旧版记录，不代表当前工具清单。
+> 2026-11-05：当前 Water 作者入口使用公共 `editor.component/entity/asset`。本文末尾的 Agent Trace 是旧版记录，不代表当前工具清单。
 本文记录当前实现必须长期保持的边界和不变量。它描述的是最终协议，不是迁移兼容层。
 
 ## 1. 调用链
@@ -64,7 +64,7 @@ contracts/generated/api/
 
 例如，模型通过 APISearch 加载 `world.query` 后，真实 import 闭包会带入 `QueriedAsset → Asset → Ref / Bounds / Relations`，不需要加载任何具体资产。
 查询返回 `type: "lake"` 后，模型再搜索 `LakeAsset` 与 `world.inspect`，不会把其他 24 种资产详情放入上下文。
-Water 作者能力由公共编辑器扩展 `water.author` 提供，声明与用法随扩展发布在 `editor/water/`。水体形状、原生资源引用和历史均落到 Source；不再生成旧的 `water.create/update` 声明。
+Water 作者能力由公共 `editor.component/entity/asset` 提供；`tools.water` 仅提供能力、采样、诊断和验证，声明由实际 Zod 合同生成。水体形状、原生资源引用和历史均落到 Source；不再生成旧的 `water.create/update` 声明。
 重复搜索同一符号是幂等的，当前任务的已加载模块集合只保留一个规范化模块 ID。
 
 ## 3. 世界资产模型
@@ -101,7 +101,7 @@ Water 作者能力由公共编辑器扩展 `water.author` 提供，声明与用�
 - time：get、update；
 - atmosphere：get、update；
 - terrain：patch、create、update；
-- water：公共编辑器扩展 `water.author`（Source 组件、材质与纹理操作）；
+- water：公共 Editor API 修改 Source 与材质，`tools.water` 只读查询；
 - vegetation：create、update。
 
 查询和删除不为每个领域复制 API。创建和更新使用领域 API，因为地貌、水系和植被拥有不同的不变量。只有 `spatial.teleport` 可以改变玩家 Pose；任何世界编辑都不得隐式改变玩家 X/Z 或朝向。

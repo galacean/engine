@@ -6,9 +6,8 @@ import {
   Vector2,
   Vector3,
   Vector4,
-  type Texture2D,
-  TextureFilterMode,
-  TextureWrapMode
+  PBRMaterial,
+  type Texture2D
 } from "@galacean/engine";
 import { buildGrassCoverage } from "@galacean/engine-terrain/rock-formation/GrassCoverage";
 import { buildRockGrassSurface } from "@galacean/engine-terrain/rock-formation/GrassSurface";
@@ -26,8 +25,6 @@ import catalog from "./RockVariantCatalog.json";
 interface RockVariantEntry {
   id: string;
   mesh: string;
-  base: string;
-  normal: string;
   /** Fraction of the fitted mesh height to sink below the placement base. */
   groundInset: number;
 }
@@ -41,10 +38,9 @@ const variantPools: Readonly<Record<keyof typeof catalog.pools, RockVariantPools
 
 const MAX_VARIANTS = 10;
 const meshTasks = new WeakMap<Engine, Map<string, Promise<RockVariantAsset>>>();
-type VariantTexturePair = [Texture2D, Texture2D];
-const textures = new WeakMap<
-  Engine,
-  Map<RockVariantAsset, { task: Promise<VariantTexturePair>; ready?: VariantTexturePair }>
+const variantSurfaces = new WeakMap<
+  RockVariantAsset,
+  { baseTexture: Texture2D; normalTexture: Texture2D; normalStrength: number }
 >();
 
 async function decodeVariant(engine: Engine, variant: RockVariantEntry): Promise<RockVariantAsset> {
@@ -66,6 +62,21 @@ async function decodeVariant(engine: Engine, variant: RockVariantEntry): Promise
   if (!vertices?.length || !sourceNormals || !sourceTangents || !sourceUVs || !sourceIndices?.length) {
     gltf.destroy();
     throw Error(`Rock GLB needs an indexed mesh with normals, tangents and UVs: ${variant.id}`);
+  }
+  const material = gltf.materials?.[0];
+  if (
+    gltf.materials?.length !== 1 ||
+    !(material instanceof PBRMaterial) ||
+    !material.baseTexture ||
+    !material.normalTexture
+  ) {
+    gltf.destroy();
+    throw Error(`Rock GLB needs one PBR material with base and normal textures: ${variant.id}`);
+  }
+  const { baseTexture, normalTexture, normalTextureIntensity: normalStrength } = material;
+  if ([baseTexture, normalTexture].some((texture) => texture.width > 512 || texture.height > 512)) {
+    gltf.destroy();
+    throw Error(`Rock texture exceeds 512 px: ${variant.id}`);
   }
   const positions = new Float32Array(vertices.length * 3),
     normals = new Float32Array(positions.length);
@@ -94,8 +105,9 @@ async function decodeVariant(engine: Engine, variant: RockVariantEntry): Promise
     const height = (positions[i * 3 + 1] - min[1]) / (max[1] - min[1]);
     coverage[i] *= smoothstep(0.55, 0.78, height);
   }
-  return {
-    ...variant,
+  const asset: RockVariantAsset = {
+    id: variant.id,
+    groundInset: variant.groundInset,
     positions,
     normals,
     tangents,
@@ -104,20 +116,27 @@ async function decodeVariant(engine: Engine, variant: RockVariantEntry): Promise
     bounds,
     coverage
   };
+  variantSurfaces.set(asset, { baseTexture, normalTexture, normalStrength });
+  return asset;
 }
 
-function loadVariant(engine: Engine, variant: RockVariantEntry): Promise<RockVariantAsset> {
+/** Loads the rock geometry and its authored PBR surface from the catalog GLB. */
+export async function prepareRockVariant(engine: Engine, variant: RockVariantEntry): Promise<RockVariantAsset> {
   let assets = meshTasks.get(engine);
   if (!assets) meshTasks.set(engine, (assets = new Map()));
   const key = JSON.stringify(variant);
-  let task = assets.get(key);
-  if (!task) {
-    task = decodeVariant(engine, variant).catch((error) => {
-      assets.delete(key);
-      throw error;
-    });
-    assets.set(key, task);
+  const cached = assets.get(key);
+  if (cached) {
+    const asset = await cached;
+    const { baseTexture, normalTexture } = rockVariantSurface(asset);
+    if (!baseTexture.destroyed && !normalTexture.destroyed) return asset;
+    if (assets.get(key) !== cached) return assets.get(key)!;
   }
+  const task = decodeVariant(engine, variant).catch((error) => {
+    assets.delete(key);
+    throw error;
+  });
+  assets.set(key, task);
   return task;
 }
 
@@ -133,11 +152,12 @@ function rankedPool(seed: number, role: string, entries: readonly RockVariantEnt
 /** Both placement systems draw from the same seed-specific palette. */
 export function rockVariantPools(plan: IslandPlan) {
   const seed = plan.parameters.seed;
-  const source = worldTemplate(plan.parameters.worldTemplate?.id)?.rockSource ?? "shared";
-  if (source === "authored") return undefined;
-  const pool = variantPools[source];
-  const mountains = rankedPool(seed, "mountains", pool.mountains);
-  const stones = rankedPool(seed, "stones", pool.stones);
+  const template = worldTemplate(plan.parameters.worldTemplate?.id);
+  const rockSource = template?.rockSource ?? "shared";
+  const stoneSource = template?.stoneSource ?? rockSource;
+  if (rockSource === "authored" && stoneSource === "authored") return undefined;
+  const mountains = rockSource === "authored" ? [] : rankedPool(seed, "mountains", variantPools[rockSource].mountains);
+  const stones = stoneSource === "authored" ? [] : rankedPool(seed, "stones", variantPools[stoneSource].stones);
   const mountainCount = Math.min(mountains.length, Math.max(MAX_VARIANTS / 2, MAX_VARIANTS - stones.length));
   mountains.length = mountainCount;
   stones.length = Math.min(stones.length, MAX_VARIANTS - mountainCount);
@@ -153,38 +173,45 @@ export function rockVariantGroundOffset(asset: RockVariantAsset, scale: number):
   return -asset.groundInset * (asset.bounds[1][1] - asset.bounds[0][1]) * scale;
 }
 
-export async function prepareRockVariant(engine: Engine, variant: RockVariantEntry): Promise<RockVariantAsset> {
-  const asset = await loadVariant(engine, variant);
-  await prepareVariantTextures(engine, asset);
-  return asset;
-}
-
 export function rockVariantFit(job: RockFormationJob, asset: RockVariantAsset): Float32Array {
   const guide = job.guides[0];
   const [min, max] = asset.bounds;
   const yaw = Math.atan2(guide.axes[0][2], guide.axes[0][0]);
   const flip = hashSeed(job.seed, "rock-facing") % 2 ? -1 : 1;
-  const scale = Math.min(...guide.size.map((length, axis) => length / (max[axis] - min[axis])));
+  const spanX = max[0] - min[0],
+    spanY = max[1] - min[1],
+    spanZ = max[2] - min[2];
+  const scales = [guide.size[0] / spanX, guide.size[1] / spanY, guide.size[2] / spanZ] as const;
+  const uniform = Math.min(...scales);
+  // Tall narrow rock guides represent standing monolith/pillar stones using the same shared meshes.
+  const isPillar = !job.surfaceGrass && guide.size[1] > Math.max(guide.size[0], guide.size[2]) * 1.5;
+  const xScale = isPillar ? scales[0] : uniform;
+  const zScale = isPillar ? scales[2] : uniform;
+  const yScale = isPillar
+    ? scales[1]
+    : job.surfaceGrass
+      ? Math.max(uniform, Math.min(scales[1], uniform * 1.65))
+      : uniform;
   const c = Math.cos(yaw) * flip,
     s = Math.sin(yaw) * flip;
-  const x = (-(min[0] + max[0]) * scale) / 2,
-    z = (-(min[2] + max[2]) * scale) / 2;
+  const x = (-(min[0] + max[0]) * xScale) / 2,
+    z = (-(min[2] + max[2]) * zScale) / 2;
   const y = guide.center[1] - guide.size[1] / 2;
   return new Float32Array([
-    c * scale,
+    c * xScale,
     0,
-    s * scale,
-    0,
-    0,
-    scale,
+    s * xScale,
     0,
     0,
-    -s * scale,
+    yScale,
     0,
-    c * scale,
+    0,
+    -s * zScale,
+    0,
+    c * zScale,
     0,
     guide.center[0] + c * x - s * z,
-    y - min[1] * scale + rockVariantGroundOffset(asset, scale),
+    y - min[1] * yScale + rockVariantGroundOffset(asset, yScale),
     guide.center[2] + s * x + c * z,
     1
   ]);
@@ -197,8 +224,11 @@ export function fitRockVariant(
   matrix: Float32Array,
   grass: boolean
 ): RockFormationMesh {
-  const c = matrix[0] / matrix[5],
-    s = matrix[2] / matrix[5];
+  const xScale = Math.hypot(matrix[0], matrix[2]) || 1,
+    zScale = Math.hypot(matrix[8], matrix[10]) || 1,
+    yScale = matrix[5] || 1,
+    c = matrix[0] / xScale,
+    s = matrix[2] / xScale;
   const positions = new Float32Array(asset.positions.length),
     normals = new Float32Array(positions.length);
   for (let i = 0; i < positions.length; i += 3) {
@@ -208,9 +238,9 @@ export function fitRockVariant(
     positions[i] = matrix[0] * px + matrix[8] * pz + matrix[12];
     positions[i + 1] = matrix[5] * py + matrix[13];
     positions[i + 2] = matrix[2] * px + matrix[10] * pz + matrix[14];
-    const nx = asset.normals[i],
-      ny = asset.normals[i + 1],
-      nz = asset.normals[i + 2];
+    const nx = asset.normals[i] / xScale,
+      ny = asset.normals[i + 1] / yScale,
+      nz = asset.normals[i + 2] / zScale;
     const length = Math.hypot(nx, ny, nz) || 1;
     normals[i] = (c * nx - s * nz) / length;
     normals[i + 1] = ny / length;
@@ -228,39 +258,11 @@ export function fitRockVariant(
   return result;
 }
 
-function prepareVariantTextures(engine: Engine, asset: RockVariantAsset) {
-  let entries = textures.get(engine);
-  if (!entries) textures.set(engine, (entries = new Map()));
-  let entry = entries.get(asset);
-  if (!entry || entry.ready?.some((texture) => texture.destroyed)) {
-    const load = (url: string) =>
-      engine.resourceManager.load<Texture2D>({ url, type: AssetType.KTX2 }).then((value) => {
-        if (value.width > 512 || value.height > 512) throw Error(`Rock texture exceeds 512 px: ${url}`);
-        value.wrapModeU = value.wrapModeV = TextureWrapMode.Repeat;
-        value.filterMode = TextureFilterMode.Trilinear;
-        return value;
-      });
-    const next: { task: Promise<VariantTexturePair>; ready?: VariantTexturePair } = {
-      task: Promise.all([load(asset.base), load(asset.normal)])
-        .then((pair) => {
-          next.ready = pair;
-          return pair;
-        })
-        .catch((error) => {
-          entries.delete(asset);
-          throw error;
-        })
-    };
-    entries.set(asset, (entry = next));
-  }
-  return entry.task;
-}
-
-/** Borrow the engine-owned pair after fitting has prepared it. */
-export function rockVariantTextures(engine: Engine, asset: RockVariantAsset): VariantTexturePair {
-  const pair = textures.get(engine)?.get(asset)?.ready;
-  if (!pair) throw Error(`Rock textures are not ready: ${asset.id}`);
-  return pair;
+/** Read the material inputs decoded by the GLB loader. */
+export function rockVariantSurface(asset: RockVariantAsset) {
+  const surface = variantSurfaces.get(asset);
+  if (!surface) throw Error(`Rock material is not loaded: ${asset.id}`);
+  return surface;
 }
 
 const variantMeshes = new WeakMap<Engine, Map<RockVariantAsset, { mesh: ModelMesh; users: number }>>();

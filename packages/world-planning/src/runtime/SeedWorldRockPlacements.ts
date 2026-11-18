@@ -3,8 +3,6 @@ import {
   type SeedWorldMushroomInstance,
   type SeedWorldRockSourceKind,
   type SeedWorldRockSurfaceKind,
-  type SeedWorldSmallRockSourceKind,
-  type SeedWorldSmallRockInstance,
   type SeedWorldStoneInstance
 } from "../world/SeedWorldDecorations.ts";
 import {
@@ -146,26 +144,6 @@ export interface SeedWorldAlignedRockPlacement extends SeedWorldRockPlacement {
   readonly contact: SeedWorldRockContactMetrics;
 }
 
-/** Final world-space placement for one exact shared small-stone instance. */
-export interface SeedWorldSmallRockPlacement {
-  /** Stable identity copied from the shared decoration compiler. */
-  readonly id: string;
-  /** Natural feature class which owns the small stone. */
-  readonly sourceKind: SeedWorldSmallRockSourceKind;
-  /** Stable source feature identity. */
-  readonly sourceFeatureId: string;
-  /** Asset Assembly prototype selected by the shared Producer. */
-  readonly prototypeFamily: "stones";
-  /** World-space authored Prefab-root position in metres. */
-  readonly position: readonly [x: number, y: number, z: number];
-  /** Terrain-normal-aligned rotation in `[x, y, z, w]` quaternion order. */
-  readonly rotationQuaternion: QuaternionTuple;
-  /** Exact shared scale copied without resampling. */
-  readonly scale: readonly [x: number, y: number, z: number];
-  /** Exact shared yaw copied without resampling. */
-  readonly yawRadians: number;
-}
-
 /** Final world-space placement for one exact shared mushroom instance. */
 export interface SeedWorldMushroomPlacement {
   /** Stable identity copied from the shared decoration compiler. */
@@ -225,44 +203,6 @@ export function compileSeedWorldRockPlacements(
           : {}),
         scale: decoration.scale,
         surfaceHeight: height
-      });
-    })
-  );
-}
-
-/**
- * Adds Hfinal Y and terrain-normal alignment to exact shared small-stone instances.
- * The authored four-pebble pivot is the terrain contact plane, so retaining the root at Hfinal
- * preserves its built-in below-pivot burial without introducing another runtime depth multiplier.
- * @param decorations Exact small-stone instances returned by the WorldFields Worker.
- * @param fields Final baked authority fields for the same world.
- * @returns Placements preserving every input id, XZ coordinate, scale, and yaw.
- * @throws {RangeError} When an instance is outside Hfinal or has non-finite, non-positive scale.
- */
-export function compileSeedWorldSmallRockPlacements(
-  decorations: readonly SeedWorldSmallRockInstance[],
-  fields: SeedWorldFields
-): readonly SeedWorldSmallRockPlacement[] {
-  return Object.freeze(
-    decorations.map((decoration) => {
-      if (decoration.scale.some((scale) => !Number.isFinite(scale) || scale <= 0)) {
-        throw new RangeError(`Seed World small rock "${decoration.id}" requires finite positive scale`);
-      }
-      const worldX = (decoration.normalizedPosition.x - 0.5) * fields.sizeMetres;
-      const worldZ = (decoration.normalizedPosition.y - 0.5) * fields.sizeMetres;
-      const height = sampleSeedWorldHeight(fields, worldX, worldZ);
-      if (height === undefined) {
-        throw new RangeError(`Seed World small rock "${decoration.id}" is outside Hfinal`);
-      }
-      return Object.freeze({
-        id: decoration.id,
-        sourceKind: decoration.sourceKind,
-        sourceFeatureId: decoration.sourceFeatureId,
-        prototypeFamily: decoration.prototypeFamily,
-        position: Object.freeze([worldX, height, worldZ] as const),
-        rotationQuaternion: surfaceAlignedRotation(fields, worldX, worldZ, decoration.yawRadians, [0, 0]),
-        scale: decoration.scale,
-        yawRadians: decoration.yawRadians
       });
     })
   );

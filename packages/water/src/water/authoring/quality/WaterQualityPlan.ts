@@ -10,8 +10,6 @@ import {
 
 export const WATER_QUALITY_PLAN_SCHEMA_VERSION = 2 as const;
 export const WATER_OCEAN_MAX_FINITE_PATCH_SEGMENTS = 192;
-export const WATER_OCEAN_MAX_RING_PATCH_SEGMENTS = 96;
-export const WATER_OCEAN_MAX_CENTRAL_PATCH_SEGMENTS = 192;
 export const WATER_OCEAN_MAX_NEARSHORE_FIXED_STEP_RATE_HZ = 30;
 export const WATER_OCEAN_MAX_NEARSHORE_SEEK_SECONDS = 600;
 export const WATER_OCEAN_MAX_WIND_RESPONSE_FIXED_STEP_RATE_HZ = 120;
@@ -35,9 +33,6 @@ export interface WaterSurfaceEffectQualityBudgetV2 {
 /** Backend-specific implementation limits. They may change cost, never source, layout, or Look semantics. */
 export interface WaterOceanBackendQualityBudgetV1 {
   readonly finitePatchSegments?: number;
-  readonly fixedLodRingPatchSegments?: number;
-  readonly fixedLodCentralPatchSegments?: number;
-  readonly fixedLodFirstRingPatchSegments?: number;
   readonly nearshoreFixedStepRateHz?: number;
   readonly nearshoreMaximumSeekSeconds?: number;
   readonly windResponseFixedStepRateHz?: number;
@@ -199,21 +194,6 @@ function freezeBackendBudgets(
         budgets.ocean.finitePatchSegments,
         "$.backendBudgets.ocean.finitePatchSegments",
         WATER_OCEAN_MAX_FINITE_PATCH_SEGMENTS
-      ),
-      fixedLodRingPatchSegments: positiveInteger(
-        budgets.ocean.fixedLodRingPatchSegments,
-        "$.backendBudgets.ocean.fixedLodRingPatchSegments",
-        WATER_OCEAN_MAX_RING_PATCH_SEGMENTS
-      ),
-      fixedLodCentralPatchSegments: positiveInteger(
-        budgets.ocean.fixedLodCentralPatchSegments,
-        "$.backendBudgets.ocean.fixedLodCentralPatchSegments",
-        WATER_OCEAN_MAX_CENTRAL_PATCH_SEGMENTS
-      ),
-      fixedLodFirstRingPatchSegments: positiveInteger(
-        budgets.ocean.fixedLodFirstRingPatchSegments,
-        "$.backendBudgets.ocean.fixedLodFirstRingPatchSegments",
-        WATER_OCEAN_MAX_RING_PATCH_SEGMENTS
       ),
       nearshoreFixedStepRateHz: positiveFinite(
         budgets.ocean.nearshoreFixedStepRateHz,

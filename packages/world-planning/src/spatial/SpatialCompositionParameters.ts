@@ -5,6 +5,7 @@ import type { PlanningSystemDeclaration } from "./PlanningSystemDeclaration";
 export const SPATIAL_COMPOSITION_DEFAULTS = {
   enabled: false,
   seed: 0,
+  varyWithWorldSeed: false,
   centerX: 512,
   centerZ: 512,
   headingDegrees: 0,
@@ -71,6 +72,7 @@ export function spatialCompositionParameters(
 const labels: Record<keyof SpatialCompositionParameters, string> = {
   enabled: "启用景观布局",
   seed: "布局随机种子",
+  varyWithWorldSeed: "布局随世界 Seed 变化",
   centerX: "布局中心 X",
   centerZ: "布局中心 Z",
   headingDegrees: "整体朝向",
@@ -203,6 +205,7 @@ export const SPATIAL_COMPOSITION_DECLARATION: PlanningSystemDeclaration = {
       domain: "composition",
       knowledge: [
         "landscapeComposition 控制通用的布局尺寸、轴线弯曲、步道路宽、两岸水系、阶梯岩台、树石间距与主体排列；不接收逐实例坐标或路径点表。",
+        "varyWithWorldSeed 启用后，世界 Seed 与布局 Seed 一起决定周边地形、植被和路水曲线。相同的参数与 Seed 可重建同一布局，主体仍由布局中心和朝向定位。",
         "宽度、纵深和间距决定实例数量；道路、水面、地形、植被及导航消费同一求解结果。0 可关闭路、水、树石或瀑布，不需要模板专用分支。",
         "新增或调整参数经现有 set/reset/base、保存和撤销事务求解。颜色、光照及已有植被密度继续由它们自己的组件负责。"
       ]

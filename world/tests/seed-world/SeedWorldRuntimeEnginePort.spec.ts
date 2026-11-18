@@ -526,7 +526,6 @@ describe("SeedWorldRuntimeEnginePort", () => {
         submittedCounts: { tree: 2, shrub: 0, flower: 0, grass: 0 }
       },
       stones: { placementCount: 1 },
-      smallRocks: { placementCount: 2 },
       mushrooms: { placementCount: 3 },
       lotus: { placementCount: 0 }
     });
@@ -535,7 +534,7 @@ describe("SeedWorldRuntimeEnginePort", () => {
     expect(state).toMatchObject({
       lighting: { timeHours: 20 },
       water: { colors: [{ bodyId: "lake-1", colorRgb: [80, 120, 160] }] },
-      decorations: { rocks: 1, smallRocks: 2, mushrooms: 3, lotus: 0 },
+      decorations: { rocks: 1, mushrooms: 3, lotus: 0 },
       environment: { windSpeed: 7, windDirectionDegrees: 90 }
     });
     expect(environmentUpdateOutputSchema.parse({ requested: { timeHours: 20 }, state }).state?.world)

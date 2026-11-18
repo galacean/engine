@@ -1,3 +1,4 @@
+import { rockLodScreenHeights } from "@galacean/engine-terrain/rock-formation/RockLodPolicy";
 import { Camera, type Engine, Entity } from "@galacean/engine";
 import type {
   AssetAssemblySourceLibrary,
@@ -398,8 +399,7 @@ function instantiateAcceptedRock(
       entity,
       camera,
       createAtomicRockLodGroup(source, placement.category),
-      // Avoid rock cross-fade flicker while preserving authored LOD selection.
-      0
+      crossFadeDurationSeconds
     );
     bindSeedWorldRockSurfaceMaterial(engine, entity);
     lod.snapToCurrentLod(0);
@@ -419,13 +419,14 @@ function createAtomicRockLodGroup(
     profile.screenRelativeTransitionHeights,
     category
   );
+  const rockLodHeights = rockLodScreenHeights(transitionHeights);
   return {
     fadeMode: "CrossFade",
     animateCrossFading: true,
     localReferencePoint: [...profile.localReferencePoint],
     size: profile.size,
     lods: source.lods.map((atom, lodIndex) => ({
-      screenRelativeTransitionHeight: transitionHeights[lodIndex],
+      screenRelativeTransitionHeight: rockLodHeights[lodIndex],
       fadeTransitionWidth: 0,
       renderers: [{ ...atom.renderer, entityPath: [lodIndex, ...atom.renderer.entityPath] }]
     }))

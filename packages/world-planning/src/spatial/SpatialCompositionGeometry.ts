@@ -33,7 +33,9 @@ export function compositionAxis(
 ): PlanPoint {
   const dz = end.z + q.frontDepthM,
     length = Math.hypot(end.x, dz);
-  const bend = q.roadBendM * Math.sin((2 * Math.PI * length * t) / q.roadWavelengthM) * Math.sin(Math.PI * t) ** 2;
+  const phase = q.varyWithWorldSeed ? 2 * Math.PI * settlementRandom(q.seed, "composition:axis:phase") : 0;
+  const bend =
+    q.roadBendM * Math.sin((2 * Math.PI * length * t) / q.roadWavelengthM + phase) * Math.sin(Math.PI * t) ** 2;
   return { x: end.x * t + (bend * dz) / length, z: -q.frontDepthM + dz * t - (bend * end.x) / length };
 }
 export function compositionLane(

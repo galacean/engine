@@ -94,7 +94,7 @@ Shader "Terrain/Terrain" {
       }
 
       void TerrainShadowFragment(TerrainShadowVaryings varyings) {
-        if (varyings.terrainValid < 0.999 || terrainProjectSolidAt(varyings.sourceXZ) < 0.5) discard;
+        if (varyings.terrainValid < 0.999) discard;
         #ifdef TERRAIN_PROJECT_ENTRANCE_WAVE
           if (
             terrainProjectEntranceWaveReveal(varyings.sourcePositionWS) <= 0.001 ||

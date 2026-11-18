@@ -26,7 +26,8 @@ export async function initialBuildingSource(
   terrain: ConstructionTerrainGrid,
   assets: BuildingUnitAssets,
   library: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  layoutKey?: string
 ) {
   const result: ReturnType<typeof buildingDraftSource> = { rootEntities: [], entities: [], components: [] };
   for (const group of initialBuildingDrafts(plan)) {
@@ -85,7 +86,7 @@ export async function initialBuildingSource(
       local.parts.push(...moved.parts);
     }
     const source = buildingDraftSource(local, {
-      id: "building-group:" + group.id,
+      id: "building-group:" + (layoutKey === undefined ? group.id : JSON.stringify([layoutKey, group.id])),
       name: "建筑组",
       position: group.position,
       groupTransforms,

@@ -118,7 +118,11 @@ add(
     'const q=await editor.component.query({scene,type:"PlanningProjectAuthoring"});const r=await editor.component.read({scene,id:q[0].id});return {id:r.id,type:r.type,bytes:JSON.stringify(r).length};'
 );
 add("history.query", "return await editor.history.query({limit:5});");
-add("water.author", 'const r=await tools.water.author({operation:"list"});return r;', "water.list");
+for (const name of ["capabilities", "diagnostics"])
+  add("water." + name, `return await tools.water.${name}({});`);
+add("water.verify", prefix + 'const waters=await editor.component.query({scene,type:"WaterBodyComponent"});if(!waters.length)throw Error("No Water fixture");return await tools.water.verify({target:{scene,id:waters[0].id}});');
+add("water.sample", 'return await tools.water.sample({x:0,z:0});');
+add("water.sampleDrops", 'return await tools.water.sampleDrops({x:0,y:0,z:0});');
 add(
   "editorComponents.FarmingSystem.query",
   farm + "return systems.map(({scene,entityId,id,type})=>({scene,entityId,id,type}));"

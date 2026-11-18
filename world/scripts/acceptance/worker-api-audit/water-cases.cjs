@@ -1,63 +1,59 @@
-// Current product omits tools.water from its global declaration. These runtime cases
-// use its shipped module declaration explicitly, without bypassing runtime checks.
-const prefix = "";
-const typed =
-  '(/** @type {{water:typeof import("/api/water/WaterAuthoring")}} */(/** @type {unknown} */(tools))).water.author(';
-const records =
-  'const records=/** @type {Array<{id:string;kind:string;material:{$ref:string};enabled:boolean}>} */(await water.author({operation:"list"}));';
+// Water authors use the same public Editor APIs as the native panel.
+// Query declarations are generated from the executable Water contracts.
+const scene = 'const scene="Scene/SeedWorld.scene";';
 const fixture =
-  'const waters=/** @type {Array<{id:string;kind:string}>} */(await water.author({operation:"list"}));const target=waters.find(x=>x.kind==="lake");if(!target)throw Error("No lake fixture");const id=target.id;';
+  scene +
+  'const waters=await editor.component.query({scene,type:"WaterBodyComponent"});if(!waters.length)throw Error("No Water fixture");const target={scene,id:waters[0].id};const record=await editor.component.read(target);const input=record.props?.authoring;if(!input||typeof input!=="object"||Array.isArray(input))throw Error("Missing authoring");';
 const cases = [];
-function add(id, body, verify) {
-  cases.push({
-    id: "water." + id,
-    tool: "water.author",
-    source: prefix + body.replaceAll("water.author(", typed),
-    typingWorkaround: "Missing tools.water declaration; use shipped WaterAuthoring module type",
-    ...(verify ? { verify: prefix + verify.replaceAll("water.author(", typed) } : {})
-  });
+function add(id, tool, source, verify) {
+  cases.push({ id: "water." + id, tool, source, ...(verify ? { verify } : {}) });
 }
-add("list", records + 'if(!records.length)throw Error("No waters");return records;');
-add("get", records + 'return await water.author({operation:"get",id:records[0].id});');
+add("list", "component.query", scene + 'return await editor.component.query({scene,type:"WaterBodyComponent"});');
+add("get", "component.read", fixture + "return record;");
 add(
   "update",
-  fixture + 'return await water.author({operation:"update",id,patch:{visible:false}});',
-  fixture + 'return await water.author({operation:"get",id});'
+  "component.update",
+  fixture + "return await editor.component.update({...target,props:{authoring:{...input,visible:false}}});",
+  fixture + "return record;"
 );
 add(
   "updateMany",
+  "component.update",
   fixture +
-    records +
-    'const peer=records.find(x=>x.id!==id);if(!peer)throw Error("No peer");return await water.author({operation:"updateMany",updates:[{id,patch:{visible:true}},{id:peer.id,patch:{priority:1}}]});'
+    'for(const water of waters){const value=await editor.component.read({scene,id:water.id});const authoring=value.props?.authoring;if(!authoring||typeof authoring!=="object"||Array.isArray(authoring))throw Error("Missing authoring");await editor.component.update({scene,id:water.id,props:{authoring:{...authoring,priority:0}}});}return {updated:waters.length};'
 );
 for (const enabled of [false, true])
   add(
     "setEnabled-" + enabled,
-    fixture + `return await water.author({operation:"setEnabled",id,enabled:${enabled}});`,
-    fixture +
-      records +
-      `if(records.find(x=>x.id===id)?.enabled!==${enabled})throw Error("Enable state mismatch");return {id};`
+    "component.update",
+    fixture + `return await editor.component.update({...target,props:{enabled:${enabled}}});`,
+    fixture + `if(record.props?.enabled!==${enabled})throw Error("Enable state mismatch");return target;`
   );
 for (const scope of ["instance", "shared"])
   add(
-    "color-" + scope,
-    fixture + `return await water.author({operation:"color",id,color:[60,130,160],scope:${JSON.stringify(scope)}});`
+    "material-" + scope,
+    scope === "shared" ? "asset.update" : "asset.create",
+    fixture +
+      'const ref=input.material;if(!ref||typeof ref!=="object"||Array.isArray(ref)||!("$ref" in ref)||typeof ref.$ref!=="string")throw Error("Missing Material");const path=ref.$ref;const file=await editor.asset.read({path});if(file.kind!=="structured")throw Error("Expected Material JSON");const content=JSON.stringify(file.data);' +
+      (scope === "shared"
+        ? "return await editor.asset.update({path,content});"
+        : 'const cloned=await editor.asset.create({path:"Water/Materials/audit-copy.mat",type:"Material",content});return await editor.component.update({...target,props:{authoring:{...input,material:{$ref:cloned.path}}}});')
   );
 add(
-  "texture",
-  records +
-    'const ocean=records.find(x=>x.kind==="ocean");if(!ocean)throw Error("No ocean");const textures=(await editor.asset.list({})).filter(x=>x.path==="Water/Textures/ocean-roughWaves.ktx2");if(!textures.length)throw Error("No existing wave texture");return await water.author({operation:"texture",id:ocean.id,path:textures[0].path,scope:"instance"});'
-);
-add(
   "create",
-  records +
-    'const existing=records.find(x=>x.kind==="lake");if(!existing)throw Error("No existing lake");const values=/** @type {Array<{authoring:Extract<Parameters<typeof import("/api/water/WaterAuthoring").author>[0],{operation:"create"}>["input"]}>} */(await water.author({operation:"get",id:existing.id}));await water.author({operation:"remove",id:existing.id});return await water.author({operation:"create",name:"Audit Water",input:values[0].authoring});',
-  fixture + 'return await water.author({operation:"get",id});'
+  "component.add",
+  fixture +
+    'const entity=await editor.entity.create({scene,name:"Audit Water"});return await editor.component.add({scene,entityId:entity.id,type:"WaterBodyComponent",props:{authoring:input}});'
 );
 add(
   "remove",
-  fixture + 'return await water.author({operation:"remove",id});',
-  'const q=await editor.entity.list({scene:"Scene/SeedWorld.scene",name:"Audit Water"});if(q.items.length){const c=await editor.component.query({scene:"Scene/SeedWorld.scene",entityId:q.items[0].id,type:"WaterBodyComponent"});if(c.length)throw Error("Water survived");}return {removed:true};'
+  "component.remove",
+  scene +
+    'const entities=await editor.entity.list({scene,name:"Audit Water"});if(!entities.items.length)throw Error("Missing Audit Water");const components=await editor.component.query({scene,entityId:entities.items[0].id,type:"WaterBodyComponent"});return await editor.component.remove({scene,id:components[0].id});'
 );
+for (const name of ["capabilities", "diagnostics", "verify"])
+  add(name, "water." + name, fixture + `return await tools.water.${name}({target});`);
+add("sample", "water.sample", "return await tools.water.sample({x:0,z:0});");
+add("sampleDrops", "water.sampleDrops", "return await tools.water.sampleDrops({x:0,y:0,z:0});");
 module.exports = cases;
 if (require.main === module) process.stdout.write(JSON.stringify(cases, null, 2));

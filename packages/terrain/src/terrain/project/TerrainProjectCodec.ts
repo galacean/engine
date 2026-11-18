@@ -1,4 +1,4 @@
-import { compareTerrainStableValues } from "../TerrainStableOrder";
+import { compareTerrainStableIds as compareTerrainStableValues } from "../clipmap/TerrainHeightAtlas";
 import { requireTerrainArtifactRelativePath } from "./TerrainArtifactPath";
 import {
   TERRAIN_DETAIL_TRANSFORM_FORMAT,

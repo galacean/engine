@@ -15,7 +15,7 @@ const SIDEREAL_ROTATIONS_PER_SOLAR_DAY = 1.002737909350795;
 
 /** Creates the subdivision sphere used by the default procedural sky. */
 export function createDayNightProceduralSkyMesh(engine: Engine): Mesh {
-  return PrimitiveMesh.createSubdivisionSurfaceSphere(engine, 0.5, 5);
+  return PrimitiveMesh.createSphere(engine, 0.5, { subdivisionLevel: 5 });
 }
 
 /**

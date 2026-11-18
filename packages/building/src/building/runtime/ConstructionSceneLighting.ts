@@ -35,7 +35,10 @@ export function constructionLightingHelpers(instructions: Instructions): Instruc
     if (instruction[0] !== 0) return instruction;
     const source = (instruction[1] as string)
       .replace(/uniform (?:vec3|float) masonryBridge\w+;\s*/g, "")
-      .replace(/out vec4 GS_glFragColor;\s*/g, "")
+      .replace(/\bout\s+(?:(?:lowp|mediump|highp)\s+)?vec4\s+\w+\s*;\s*/g, "")
+      // The native compiler now preserves the fragment entry as a helper.
+      // Remove both entry functions, retaining only the reusable lighting code.
+      .replace(/void\s+BridgeFragment\s*\(\s*\)\s*\{[^{}]*\}/g, "")
       .replace(/void main\(\)\s*\{[^{}]*\}/g, () => {
         entries++;
         return "";

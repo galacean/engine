@@ -132,6 +132,16 @@ export const ANIMAL_POPULATION_COMPONENT: PlanningComponentDefinition = {
     count("species.max", "最多物种数", 20, "种"),
     count("birdCount.min", "可飞行动物最少总数", 10, "只"),
     count("birdCount.max", "可飞行动物最多总数", 20, "只"),
+    {
+      key: "birdCount.species",
+      label: "指定飞行物种",
+      description: "可选；逗号分隔的飞行物种 ID（如 flamingo），留空则按 seed 从全部飞行物种随机选择。",
+      type: "string",
+      default: "",
+      combine: "override"
+    },
+    { key: "birdCount.centerX", label: "可飞行动物聚合中心 X", type: "number", default: -1, combine: "override" },
+    { key: "birdCount.centerZ", label: "可飞行动物聚合中心 Z", type: "number", default: -1, combine: "override" },
     number(
       "birdSpawnPointWeight",
       "可飞行动物出生点权重",
@@ -261,8 +271,16 @@ export function readAnimalPopulationConfig(document: PlanningDocument): AnimalPo
     Math.floor(sample(key) * (Number(values[`${prefix}.max`]) - Number(values[`${prefix}.min`]) + 1));
   const totalSpecies = integer("species", "count");
   const birdTotal = integer("birdCount", "bird-count");
+  const allowedBirds = new Set(
+    String(values["birdCount.species"] ?? "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean)
+  );
   const ranked = SEED_ANIMAL_SPECIES.filter((s) =>
-    s.canFly ? birdTotal > 0 : Number(values[`species.${s.speciesId}.max`]) > 0
+    s.canFly
+      ? birdTotal > 0 && (!allowedBirds.size || allowedBirds.has(s.speciesId))
+      : Number(values[`species.${s.speciesId}.max`]) > 0
   ).sort((a, b) => sample(a.speciesId) - sample(b.speciesId) || a.speciesId.localeCompare(b.speciesId));
   const flying = ranked.find((s) => s.flyingTypeIds.length);
   const selected = totalSpecies && flying ? [flying] : [];
@@ -313,6 +331,12 @@ export function readAnimalPopulationConfig(document: PlanningDocument): AnimalPo
   // Seed worlds are square. The authoritative accepted plan replaces these bounds at runtime,
   // so this authoring projection never supplies geometry from an unaccepted draft.
   const width = 1024; // Current SpatialWorld domain; runtime always uses the accepted plan bounds.
+  const centerX = Number(values["birdCount.centerX"]);
+  const centerZ = Number(values["birdCount.centerZ"]);
+  const birdCenter =
+    Number.isFinite(centerX) && Number.isFinite(centerZ) && centerX >= 0 && centerZ >= 0
+      ? { x: centerX, z: centerZ }
+      : undefined;
   return {
     version: 2,
     enabled: Boolean(values.enabled),
@@ -341,7 +365,13 @@ export function readAnimalPopulationConfig(document: PlanningDocument): AnimalPo
       typeId,
       densityGroup: speciesId,
       ...(canFly
-        ? { spawnPoint: { weight: Number(values.birdSpawnPointWeight), radius: Number(values.spawnPointRadius) } }
+        ? {
+            spawnPoint: {
+              weight: Number(values.birdSpawnPointWeight),
+              radius: Number(values.spawnPointRadius),
+              ...(birdCenter ? { center: birdCenter } : {})
+            }
+          }
         : {}),
       min: counts.get(typeId) ?? 0,
       max: counts.get(typeId) ?? 0

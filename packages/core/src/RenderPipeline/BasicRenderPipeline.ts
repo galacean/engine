@@ -1,6 +1,7 @@
 import { Vector2 } from "@galacean/engine-math";
 import { Background } from "../Background";
 import { Camera } from "../Camera";
+import { Engine } from "../Engine";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
@@ -57,12 +58,13 @@ export class BasicRenderPipeline {
   constructor(camera: Camera) {
     this._camera = camera;
     const { engine } = camera;
+    const shaders = Engine._builtinShaders;
     this._cullingResults = new CullingResults();
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
-    this._saoPass = new ScalableAmbientObscurancePass(engine);
+    this._saoPass = new ScalableAmbientObscurancePass(engine, shaders.scalableAmbientOcclusion);
     this._opaqueTexturePass = new OpaqueTexturePass(engine);
-    this._finalPass = new FinalPass(engine);
+    this._finalPass = new FinalPass(engine, shaders.finalSRGB, shaders.finalAntiAliasing);
   }
 
   /**
@@ -111,7 +113,10 @@ export class BasicRenderPipeline {
     const depthPassEnabled =
       (camera.depthTextureMode === DepthTextureMode.PrePass || ambientOcclusionEnabled) && supportDepthTexture;
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
-    const msaaSamples = renderTarget ? renderTarget.antiAliasing : camera.msaaSamples;
+    const msaaSamples = Math.min(
+      renderTarget ? renderTarget.antiAliasing : camera.msaaSamples,
+      rhi.capability.maxAntiAliasing
+    );
 
     // Check whether can use `blitFramebuffer` to blit internal render target, source maybe screen canvas or camera's render target
     // Our screen canvas's anti-aliasing is always disable, so blit source and dest is always same by below rules:
@@ -174,7 +179,7 @@ export class BasicRenderPipeline {
         depthFormat,
         false,
         false,
-        !camera.enableHDR,
+        !camera._isInternalFormatHDR(),
         msaaSamples,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear

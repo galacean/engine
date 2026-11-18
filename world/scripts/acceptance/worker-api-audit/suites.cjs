@@ -7,7 +7,7 @@ const path = require("node:path");
 const destination = process.argv[2];
 if (!destination) throw Error("Pass an external directory for generated case files");
 fs.mkdirSync(destination, { recursive: true });
-const reads = require("./cases.cjs").cases.filter((job) => job.tool !== "water.author");
+const reads = require("./cases.cjs").cases;
 const farming = require("./farming-cases.cjs");
 const suites = {
   reads: [

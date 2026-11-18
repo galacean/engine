@@ -384,7 +384,8 @@ VertexShader = vert; FragmentShader = frag;
         const program = evaluate(compiled, macrosFor(mask, 12));
         expect(program.vertex.match(/(?:varying|out)\s+vec4\s+tint\s*;/g) ?? []).toHaveLength(active ? 1 : 0);
         expect(program.fragment.match(/(?:varying|in)\s+vec4\s+tint\s*;/g) ?? []).toHaveLength(active ? 1 : 0);
-        expect(program.vertex + program.fragment).not.toMatch(/struct\s+Varyings/);
+        expect(program.vertex.match(/struct\s+Varyings/g) ?? []).toHaveLength(active ? 1 : 0);
+        expect(program.fragment.match(/struct\s+Varyings/g) ?? []).toHaveLength(active ? 1 : 0);
         expectDriverAcceptance(program, active ? 0.5 : 0.75);
       }
     }
@@ -518,7 +519,7 @@ VertexShader = vert; FragmentShader = frag;
           expectDriverAcceptance(program, mask ? 0.5 : 0.75);
           if (program.target === ShaderLanguage.GLSLES300) {
             expect(program.fragment.match(/\bout\s+vec4\s+\w+\s*;/g)).toHaveLength(1);
-            expect(program.fragment).not.toMatch(/GS_glFragColor|GS_glFragData/);
+            expect(program.fragment).not.toMatch(/\boutput_colors?(?:_\d+)?\b/);
           }
         }
       }

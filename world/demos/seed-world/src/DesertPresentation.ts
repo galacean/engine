@@ -8,6 +8,8 @@ import { templateLinearColor } from "@galacean/engine-world-planning/spatial/Wor
 
 const sandDark = templateLinearColor("#ad7f62");
 const sandLight = templateLinearColor("#ca9472");
+const oasisSandDark = templateLinearColor("#ac8061");
+const oasisSandLight = templateLinearColor("#cfa77f");
 
 /** Summer sun path for the desert template. Rotate north so the main dunes are lit from the side. */
 export const DESERT_SOLAR_POSITION = {
@@ -18,23 +20,24 @@ export const DESERT_SOLAR_POSITION = {
 } as const;
 
 /** Applies the accepted sand colors and distance tuning to a published desert template. */
-export function applyDesertTerrain(world: SeedWorldTerrainRuntime): void {
+export function applyDesertTerrain(world: SeedWorldTerrainRuntime, oasis = false): void {
   const tuning = world.getSurfaceColorTuning();
+  const lightSand = oasis ? oasisSandLight : sandLight;
   world.setSurfaceColorTuning({
     ...tuning,
-    roadColor: sandLight,
-    groundColor: sandLight,
+    roadColor: lightSand,
+    groundColor: lightSand,
     grass: {
       ...tuning.grass,
-      roadColorA: sandDark,
-      roadColorB: sandLight,
+      roadColorA: oasis ? oasisSandDark : sandDark,
+      roadColorB: lightSand,
       roadColorStrength: 1,
       vistaRepeatSizeMetres: 480,
-      vistaContrast: 1.65
+      vistaContrast: oasis ? 1.27 : 1.65
     }
   });
   const normals = world.getSandNormalTuning();
-  if (normals) world.setSandNormalTuning({ ...normals, rippleFadeDistanceMetres: 165 });
+  if (normals) world.setSandNormalTuning({ ...normals, rippleFadeDistanceMetres: oasis ? 92 : 165 });
 }
 
 /** Extends the far shadow cascade while keeping the near cascade's range. */
@@ -62,12 +65,20 @@ export function applyDesertSky(lighting: TerrainLightingRuntime): void {
 }
 
 /** Uses animated scattered volumetric clouds at the reference cloud-layer altitude. */
-export function configureDesertClouds(environment: WorldEnvironmentRuntime): void {
+export function configureDesertClouds(environment: WorldEnvironmentRuntime, oasisCoverage?: number): void {
   const { transitionDuration } = environment.getSnapshot();
   environment.setTransitionDuration(0);
   try {
-    environment.setCloud({ ...WeatherPresets.cloud.scattered, cloudCoverage: 0.19, cloudDensityMultiplier: 0.12 });
-    environment.setCloudScaleSettings({ baseAltitude: 950, thickness: 170 });
+    environment.setCloud(oasisCoverage !== undefined
+      ? { ...WeatherPresets.cloud.scattered, cloudCoverage: oasisCoverage, cloudDensityMultiplier: 0.95 }
+      : { ...WeatherPresets.cloud.scattered, cloudCoverage: 0.19, cloudDensityMultiplier: 0.12 });
+    environment.setCloudScaleSettings(oasisCoverage !== undefined
+      ? { baseAltitude: 670, thickness: 310 }
+      : { baseAltitude: 950, thickness: 170 });
+    if (oasisCoverage !== undefined) {
+      environment.setCloudQuality("high");
+      environment.setCloudShapeProfile({ envelopeScale: 0.47, topDensityMultiplier: 0.28, detailNoiseMultiplier: 1.12 });
+    }
   } finally {
     environment.setTransitionDuration(transitionDuration);
   }

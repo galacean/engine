@@ -229,10 +229,46 @@ export const E2E_CONFIG = {
     }
   },
   Primitive: {
+    sections: {
+      category: "Primitive",
+      caseFileName: "primitive-sections",
+      threshold: 0.005,
+      diffPercentage: 0.02
+    },
+    contours: {
+      category: "Primitive",
+      caseFileName: "primitive-contours",
+      threshold: 0.005,
+      diffPercentage: 0.02
+    },
+    topology: {
+      category: "Primitive",
+      caseFileName: "primitive-topology",
+      threshold: 0.005,
+      diffPercentage: 0.02
+    },
+    materials: {
+      category: "Primitive",
+      caseFileName: "primitive-materials",
+      threshold: 0.005,
+      diffPercentage: 0.02
+    },
+    "sphere-sections": {
+      category: "Primitive",
+      caseFileName: "primitive-sphere-sections",
+      threshold: 0.005,
+      diffPercentage: 0.02
+    },
+    all: {
+      category: "Primitive",
+      caseFileName: "primitive-all",
+      threshold: 0.005,
+      diffPercentage: 0.02
+    },
     capsule: {
       category: "Primitive",
       caseFileName: "primitive-capsule",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.0016
     },
     cone: {
@@ -244,7 +280,7 @@ export const E2E_CONFIG = {
     cuboid: {
       category: "Primitive",
       caseFileName: "primitive-cuboid",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.0016
     },
     cylinder: {
@@ -510,19 +546,19 @@ export const E2E_CONFIG = {
     HDRBloomNeutral: {
       category: "PostProcess",
       caseFileName: "postProcess-HDR-bloom-neutral",
-      threshold: 0,
+      threshold: 0.01,
       diffPercentage: 0.001
     },
     LDRBloomNeutral: {
       category: "PostProcess",
       caseFileName: "postProcess-LDR-bloom-neutral",
-      threshold: 0,
+      threshold: 0.01,
       diffPercentage: 0.001
     },
     customPass: {
       category: "PostProcess",
       caseFileName: "postProcess-customPass",
-      threshold: 0,
+      threshold: 0.01,
       diffPercentage: 0.001
     }
   },

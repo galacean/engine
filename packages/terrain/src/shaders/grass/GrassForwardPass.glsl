@@ -40,9 +40,10 @@ struct Attributes {
 #ifdef RENDERER_WORLD_PICK
   float renderer_WorldPickBase;
 #endif
-#if defined(TERRAIN_PROJECT_GROUND_MATERIAL_BINDING) || (defined(RENDERER_SEED_WORLD_DETAIL_COMPACT) && !defined(RENDERER_SURFACE_GRASS_ATTACHMENT))
+// Compact instance data describes geometry. An explicit mode can opt out of the legacy ground path.
+#if defined(TERRAIN_PROJECT_GROUND_MATERIAL_BINDING) || (defined(RENDERER_SEED_WORLD_DETAIL_COMPACT) && !defined(RENDERER_SURFACE_GRASS_ATTACHMENT) && (!defined(RENDERER_GRASS_MATCH_GROUND) || RENDERER_GRASS_MATCH_GROUND == 1))
   #define TERRAIN_PROJECT_GRASS_TERRAIN_SURFACE
-  #if !defined(MATERIAL_GRASS_GROUND_SURFACE) && (defined(RENDERER_TERRAIN_UNTEXTURED_SINGLE_MAP) || defined(RENDERER_TERRAIN_SINGLE_DIFFUSE_SINGLE_MAP))
+  #if !defined(RENDERER_GRASS_MATCH_GROUND) && !defined(MATERIAL_GRASS_GROUND_SURFACE) && (defined(RENDERER_TERRAIN_UNTEXTURED_SINGLE_MAP) || defined(RENDERER_TERRAIN_SINGLE_DIFFUSE_SINGLE_MAP))
     #define TERRAIN_PROJECT_GRASS_ROOT_VARYINGS
   #endif
 #endif
@@ -157,7 +158,13 @@ vec3 grassWindPosition(
   float unweightedAngle = terrainProjectGroundWindAngleAt(rootPositionWS.xz);
   travellingWave = terrainProjectGroundWindNormalized(unweightedAngle);
   carrierNormalWS = terrainProjectGroundWindCarrierNormal(rootPositionWS.xz, unweightedAngle);
-  vec3 bendAxis = normalize(vec3(direction.y, 0.0, -direction.x));
+  #ifdef RENDERER_GRASS_MATCH_GROUND
+    vec3 bendAxis = dot(direction, direction) > 0.00001
+      ? normalize(vec3(direction.y, 0.0, -direction.x))
+      : vec3(0.0, 0.0, 1.0);
+  #else
+    vec3 bendAxis = normalize(vec3(direction.y, 0.0, -direction.x));
+  #endif
   float bodyWeight = terrainProjectGroundWindBodyWeight(rootWeight);
   float bendAngle = unweightedAngle * bodyWeight;
   bendResponse = terrainProjectGroundWindHeightResponse(bendAngle, 0.9);
@@ -320,7 +327,9 @@ void GrassFragment(Varyings input) {
   #ifdef MATERIAL_FARM_GROUND_SURFACE
     vec3 surfaceColor;
   #else
-  #ifdef MATERIAL_GRASS_GROUND_SURFACE
+  #if defined(RENDERER_GRASS_MATCH_GROUND)
+    vec3 grassSurfaceColor = grassColorFromField(0.5);
+  #elif defined(MATERIAL_GRASS_GROUND_SURFACE)
     // Sample at the fragment's world position, never interpolate a whole plane's corner colours.
     vec3 grassSurfaceColor = evaluateGrassBaseColor(input.positionWS.xz);
   #else
@@ -363,7 +372,11 @@ void GrassFragment(Varyings input) {
       #endif
     } else {
     vec3 groundColor = terrainProjectGroundColor(ground, groundPositionWS);
-    surfaceColor = groundColor;
+    #if defined(RENDERER_GRASS_MATCH_GROUND) && RENDERER_GRASS_MATCH_GROUND == 1
+      surfaceColor = mix(groundColor, surfaceColor, bladeAppearanceWeight);
+    #else
+      surfaceColor = groundColor;
+    #endif
     #ifdef MATERIAL_FARM_GROUND_SURFACE
     // Identical to the river-bed mix, reusing the colour and coverage already sampled above.
     surfaceColor = mix(farmDirtColor, surfaceColor, 1.0 - farmGroundWeight);
@@ -391,6 +404,10 @@ void GrassFragment(Varyings input) {
     float surfaceReliefWeight = input.groundReliefNormalWeight.w;
     #else
     float surfaceReliefWeight = terrainProjectSurfaceReliefWeight(input.rootPositionWS);
+    #endif
+    #if defined(RENDERER_GRASS_MATCH_GROUND) && RENDERER_GRASS_MATCH_GROUND == 1
+      vec3 rootNormal = terrainProjectLayerNormalToWorld(ground.tangentNormal, input.terrainNormalWS);
+      shadingNormal = normalize(mix(rootNormal, shadingNormal, bladeShadeWeight));
     #endif
     if (surfaceReliefWeight > 0.0) {
       #ifdef TERRAIN_PROJECT_GRASS_ROOT_VARYINGS

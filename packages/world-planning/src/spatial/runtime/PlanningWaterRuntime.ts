@@ -5,7 +5,7 @@ import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
 } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
-import { hashStableValue } from "@galacean/engine-water/water/compiler/index";
+import { hashRiverStableValue, hashStableValue } from "@galacean/engine-water/water/compiler/index";
 import {
   createRiverWaterBodyInstance,
   createWaterBodyAsset,
@@ -23,7 +23,7 @@ import {
   type WaterBodyConfiguration
 } from "@galacean/engine-water/water/native/index";
 import { scopedLook } from "@galacean/engine-water/water/native/WaterResources";
-import { registerLakeWaterLook } from "@galacean/engine-water/water/presets/lake/index";
+import { LAKE_WATER_LOOK_PRESET_ID, registerLakeWaterLook } from "@galacean/engine-water/water/presets/lake/index";
 import { registerOceanAuthoring } from "@galacean/engine-water/water/presets/ocean/index";
 import {
   registerFarmlandsRiverLook,
@@ -32,7 +32,12 @@ import {
   riverQualityPlanIdForQuality
 } from "@galacean/engine-water/water/presets/river/index";
 import { createLakeNormalResourceFactory } from "@galacean/engine-water/water/resources/lake/index";
-import { readSeedWorldWaterColor } from "@galacean/engine-water/world/SeedWorldWaterColor";
+import {
+  readSeedWorldWaterColor,
+  withSeedWorldWaterColor,
+  type SeedWorldWaterColorRgb
+} from "@galacean/engine-water/world/SeedWorldWaterColor";
+import { WORLD_TEMPLATE_ART } from "../WorldTemplateArtDirection";
 import { planningLakeRequests } from "../../semantic-study/PlanningLakeSource";
 import { planningWaterDependency } from "../../semantic-study/PlanningWaterDependency";
 import { planningHeightmap, type PlanningHeightmap } from "../../semantic-study/PlanningHeightmap";
@@ -890,7 +895,52 @@ export class PlanningWaterRuntime {
         })
       });
     }
-    if (changed.size) requests.push(...planningLakeRequests(plan, this.host, engine, this.riversVisible, changed));
+    if (changed.size) {
+      const lakeRequests = planningLakeRequests(plan, this.host, engine, this.riversVisible, changed);
+      const templateId = plan.parameters.worldTemplate?.id;
+      const templateWaters = templateId ? WORLD_TEMPLATE_ART[templateId]?.water : undefined;
+      requests.push(
+        ...lakeRequests.map((lakeRequest) => {
+          const authoredColor = templateWaters?.find((pool) => lakeRequest.bodyId.endsWith(`:${pool.id}`))?.color as
+            | SeedWorldWaterColorRgb
+            | undefined;
+          if (!authoredColor) return lakeRequest;
+          const lookId = `${LAKE_WATER_LOOK_PRESET_ID}:${templateId}:${lakeRequest.bodyId}`;
+          const baseSnapshot = this.host.assets.getLookAuthoringSnapshot(LAKE_WATER_LOOK_PRESET_ID);
+          if (!baseSnapshot) return lakeRequest;
+          const tinted = withSeedWorldWaterColor(baseSnapshot, authoredColor);
+          const appearanceAsset = tinted.appearance.appearance;
+          const depthResponse =
+            appearanceAsset.depthResponse && "distanceMeters" in appearanceAsset.depthResponse
+              ? { ...appearanceAsset.depthResponse, distanceMeters: 1.0 }
+              : appearanceAsset.depthResponse;
+          const opticsProfile = {
+            ...tinted.optics.profile,
+            absorptionCoefficient: [1.15, 0.55, 0.82] as const,
+            scatteringCoefficient: 0.18,
+            maximumSurfaceOpticalDistance: 2.2,
+            refractionStrength: 0.03
+          };
+          const appearanceId = `${lookId}:appearance`;
+          const opticsId = `${lookId}:optics`;
+          this.host.registerAuthoringOnce(lookId, hashRiverStableValue(authoredColor), (registry) => {
+            registry.registerAppearancePreset({
+              ...tinted.appearance,
+              id: appearanceId,
+              appearance: { ...appearanceAsset, id: `${appearanceId}:asset`, depthResponse }
+            });
+            registry.registerOpticsPreset({ ...tinted.optics, id: opticsId, profile: opticsProfile });
+            registry.registerLookPreset({
+              ...tinted.look,
+              id: lookId,
+              appearanceAssetId: appearanceId,
+              opticalProfileId: opticsId
+            });
+          });
+          return { ...lakeRequest, instance: { ...lakeRequest.instance, lookPresetId: lookId } };
+        })
+      );
+    }
     for (const { id, asset } of changed.size ? planningLakeAssets(plan, changed) : []) {
       const authoring = this.host.registerAuthoring(registerSeedWorldAuthoredBasinAuthoringV1);
       requests.push({

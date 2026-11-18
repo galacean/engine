@@ -17,6 +17,7 @@ export {
   resolveWaterMaterialFileLook,
   updateWaterMaterialParameters,
   waterMaterialShaderSource,
+  waterMaterialProperties,
   type WaterMaterialFile,
   type WaterMaterialProfile
 } from "./WaterMaterialFile";

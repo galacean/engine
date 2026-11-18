@@ -320,7 +320,7 @@ describe("ParticleRenderer", () => {
   it("releases mesh geometry bindings when the mesh is removed", () => {
     const entity = scene.createRootEntity("MeshBindingCleanup");
     const renderer = entity.addComponent(ParticleRenderer);
-    const mesh = PrimitiveMesh.createCuboid(engine);
+    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
     renderer.renderMode = ParticleRenderMode.Mesh;
     renderer.mesh = mesh;
     expect(renderer.generator._primitive.vertexBufferBindings.length).to.be.greaterThan(0);
@@ -367,7 +367,7 @@ describe("ParticleRenderer", () => {
   it("clone with mesh render mode", () => {
     const entity = scene.createRootEntity("CloneSource");
     const renderer = entity.addComponent(ParticleRenderer);
-    const mesh = PrimitiveMesh.createCuboid(engine);
+    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
     renderer.renderMode = ParticleRenderMode.Mesh;
     renderer.mesh = mesh;
     expect(mesh.refCount).to.eq(1);
@@ -393,7 +393,7 @@ describe("ParticleRenderer", () => {
     // Mesh mode + noise triggers buffer reorganization mid-clone, before mesh is applied
     const entity = scene.createRootEntity("CloneMacroSource");
     const renderer = entity.addComponent(ParticleRenderer);
-    const mesh = PrimitiveMesh.createCuboid(engine);
+    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
     renderer.renderMode = ParticleRenderMode.Mesh;
     renderer.mesh = mesh;
     renderer.generator.noise.enabled = true;
@@ -444,7 +444,7 @@ describe("ParticleRenderer", () => {
     generator._resizeInstanceBuffer(256);
     expect(generator._primitive.vertexBufferBindings).to.have.length(0);
 
-    const mesh = PrimitiveMesh.createCuboid(engine);
+    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
     renderer.mesh = mesh;
     expect(generator._primitive.vertexBufferBindings).to.include(generator._instanceVertexBufferBinding);
 

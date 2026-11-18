@@ -68,14 +68,20 @@ type PlantingFootprint = {
   id: string;
   outline: readonly PlanPoint[];
   outer: readonly LandscapePoint[];
+  holes?: readonly (readonly LandscapePoint[])[];
   bounds: readonly [number, number, number, number];
 };
 type PlantingRoad = PlantingFootprint & { query?: LandscapeRingQuery };
-function plantingFootprint(id: string, outline: readonly PlanPoint[]): PlantingFootprint {
+function plantingFootprint(
+  id: string,
+  outline: readonly PlanPoint[],
+  holes?: readonly (readonly PlanPoint[])[]
+): PlantingFootprint {
   return {
     id,
     outline,
     outer: outline.map(point),
+    ...(holes?.length ? { holes: holes.map((hole) => hole.map(point)) } : {}),
     bounds: [
       Math.min(...outline.map((p) => p.x)),
       Math.max(...outline.map((p) => p.x)),
@@ -335,7 +341,7 @@ export class PlanningNaturalVegetation {
               )
           )
         ),
-      waters: plan.waters.map((water) => plantingFootprint(water.id, water.outline)),
+      waters: plan.waters.map((water) => plantingFootprint(water.id, water.outline, water.lake?.holes)),
       plazas: (plan.plazas ?? []).map((plaza) => plantingFootprint(plaza.id, plaza.outline))
     };
   }
@@ -403,7 +409,7 @@ export class PlanningNaturalVegetation {
           .filter((water) => footprintIntersects(water))
           .map((water) => ({
             id: water.id,
-            polygon: { outer: water.outer },
+            polygon: { outer: water.outer, ...(water.holes?.length ? { holes: water.holes } : {}) },
             clearance: 0
           })),
         ...this.footprints.plazas

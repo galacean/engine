@@ -1,5 +1,4 @@
 import { AssetType, Engine, JSONAsset, Scene, Shader, WebGLEngine } from "@galacean/engine";
-import "../compression/TerrainBrotliLoaders";
 import type { TerrainProjectFile } from "../project/TerrainProjectContract";
 
 /** Progress emitted while a Terrain project manifest or Scene is loading. */

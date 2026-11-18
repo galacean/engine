@@ -1,5 +1,7 @@
 import { expect, it } from "vitest";
 import { compileWaterShape, validateWaterShape, type WaterShapeAuthoring } from "../src/water/native/WaterAuthoring";
+import { createWaterRepresentationInstanceStateV1 } from "../src/water/authoring/body/WaterBodyInstance";
+import { createWaterQualitySettings } from "../src/water/native/WaterQualitySettings";
 const shape: Extract<WaterShapeAuthoring, { kind: "ocean" }> = {
   kind: "ocean",
   waterLevel: 0,
@@ -27,6 +29,30 @@ const terrain = {
 };
 const desc = (s: typeof shape) =>
   (compileWaterShape(s, terrain, "ocean").source as any).descriptor.config.nearshoreDescriptor;
+
+it("rejects unsupported Ocean layouts at both authoring and instance boundaries", () => {
+  const layout = { ...shape.layout, surfaceTopology: "fixed-lod" } as unknown as typeof shape.layout;
+  expect(() => validateWaterShape({ ...shape, layout })).toThrow("surfaceTopology must be 'finite'");
+  expect(() => createWaterRepresentationInstanceStateV1(layout)).toThrow("surfaceTopology must be 'finite'");
+  expect(createWaterRepresentationInstanceStateV1(shape.layout)).toEqual(shape.layout);
+  const { finitePatchGridSize: _grid, ...missingGrid } = shape.layout;
+  expect(() => createWaterRepresentationInstanceStateV1(missingGrid as typeof shape.layout)).toThrow(
+    "finitePatchGridSize is required"
+  );
+});
+
+it.each(["fixedLodRingPatchSegments", "fixedLodCentralPatchSegments", "fixedLodFirstRingPatchSegments"])(
+  "rejects removed Ocean quality budget %s before runtime preparation",
+  (field) => {
+    expect(() => createWaterQualitySettings("ocean", { backendBudgets: { ocean: { [field]: 16 } } })).toThrow(
+      `Unknown Water Quality property 'quality.backendBudgets.ocean.${field}'`
+    );
+    expect(
+      createWaterQualitySettings("ocean", { backendBudgets: { ocean: { finitePatchSegments: 16 } } }).backendBudgets
+        ?.ocean?.finitePatchSegments
+    ).toBe(16);
+  }
+);
 it("preserves legacy water-level behavior and real beds", () => {
   expect(desc(shape).wetSource.kind).toBe("water-level");
   const result = desc({ ...shape, boundaryConnected: true });

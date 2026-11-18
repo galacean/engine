@@ -1,4 +1,4 @@
-import { float32GridCell, interpolateGridTriangle } from "@galacean/engine-terrain/geometry/GridInterpolation";
+import { float32GridCell, interpolateGridTriangle } from "../../authoring/terrain/GridInterpolation";
 import { sampleWaterConnection, type WaterConnectionPort } from "../../authoring/connections/WaterConnection";
 import {
   resolveWaterTerrainGrid,

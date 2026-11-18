@@ -36,7 +36,7 @@ export function createPlanningResourcePort(base: SeedWorldEnginePort, session: P
   const mutate = async (mutations: readonly Readonly<SeedWorldResourceMutation>[], signal: AbortSignal, edit?: WaterEditOptions) => {
     signal.throwIfAborted();
     if (mutations.some(mutation => !["terrain-patch", "terrain-feature", "vegetation-brush", "object-removal", "tree-variation"].includes(mutation.resourceType)))
-      throw new Error("NOT_SUPPORTED: Water authoring uses Source components through water.author.");
+      throw new Error("NOT_SUPPORTED: Water authoring uses Source components through public editor.component/entity/asset APIs.");
     const durations = mutations.flatMap(mutation => mutation.resourceType === "terrain-feature" && mutation.action !== "delete"
       ? [resolveSeedWorldTerrainTransitionDurationSeconds(mutation.transitionDurationSeconds)] : []);
     const duration = durations.length ? Math.max(...durations) : undefined;

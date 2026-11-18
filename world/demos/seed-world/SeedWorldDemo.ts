@@ -50,8 +50,10 @@ import {
 } from "@galacean/engine-world-planning/spatial/PlanningSubjectView";
 import { applyPlanningWeather } from "@galacean/engine-world-planning/spatial/PlanningWeather";
 import { readPlantMaterialParameters } from "@galacean/engine-world-planning/spatial/PlantMaterialParameters";
+import { createSeedWorldKnowledge } from "./agent-adapter/SeedWorldKnowledge";
+import { WATER_QUERY_CONTRACTS } from "@galacean/engine-world-planning/spatial/runtime/WaterQueryContract";
 import { createNativeWaterAgentPackage } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterAgent";
-import { NativeWaterEditor } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
+import { mountNativeWaterPanel } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterPanel";
 import { NativeWaterHost } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterHost";
 import { PlanningLightingProfileRuntime } from "@galacean/engine-world-planning/spatial/runtime/PlanningLightingProfileRuntime";
 import { planningNaturalGroundPopulation } from "@galacean/engine-world-planning/spatial/runtime/PlanningNaturalVegetation";
@@ -93,6 +95,8 @@ import {
 } from "./src/planning/spatial/runtime/PlanningProjectSource.ts";
 import { PlanningProjectStorage } from "./src/planning/spatial/runtime/PlanningProjectStorage.ts";
 import { selectPlanningSpawnView, type PlanningSpawnView } from "./src/planning/spatial/runtime/PlanningSpawnView.ts";
+import { PROCEDURAL_SKY_SOLAR_POSITION } from "@galacean/engine-environment/lighting/ProceduralSkyLightingProfile";
+import { WORLD_TEMPLATE_ART } from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
 import { preparePlanningWaterSource } from "./src/planning/spatial/runtime/PlanningWaterInitialization.ts";
 import { SeedWorldInstantCamera } from "./src/SeedWorldInstantCamera.ts";
 import { SeedWorldLassoPanel } from "./src/SeedWorldLassoPanel.ts";
@@ -137,6 +141,7 @@ import { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/proj
 import { TerrainWindRuntime } from "@galacean/engine-terrain/terrain/project/TerrainWindRuntime";
 import { OrbitControl } from "@galacean/engine-toolkit-controls/dist/es/OrbitControl.js";
 import { SEED_WORLD_PRODUCTION_ASSET_CATALOG } from "@galacean/engine-vegetation/asset-assembly/SeedWorldProductionAssetCatalog";
+import { sampleTerrainSurfacePuddleMask } from "@galacean/engine-world-planning/integrations/terrain/environment/TerrainRainImpactSurface";
 import {
   TerrainWindGpuExposureProvider,
   registerTerrainWindGpuExposureShader
@@ -149,7 +154,11 @@ import { RockFormationClient } from "@galacean/engine-world-planning/integration
 import { RockNavigation } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Navigation";
 import { readRockFormationSettings } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Settings";
 import { PLANNING_REFERENCE } from "@galacean/engine-world-planning/planning-data/PlanningReference";
-import { sampleSeedWorldHeight } from "@galacean/engine-world-planning/runtime/SeedWorldFields";
+import {
+  sampleSeedWorldHeight,
+  seedWorldOriginX,
+  seedWorldOriginZ
+} from "@galacean/engine-world-planning/runtime/SeedWorldFields";
 import {
   SEED_WORLD_ROAD_COLOR_DEFAULT,
   SEED_WORLD_SURFACE_LOD_CROSS_FADE_DURATION_SECONDS,
@@ -165,7 +174,6 @@ import {
   restorePlanningPlayerBookmark,
   type PlanningPlayerCameraPose
 } from "@galacean/engine-world-planning/spatial/runtime/PlanningPlayerState";
-import { worldTemplateStreetPuddles } from "@galacean/engine-world-planning/spatial/WorldTemplateStreet";
 import { preparePlanningPopulationResources } from "@galacean/engine-world-planning/spatial/runtime/PlanningPopulationRuntime";
 import { PlanningSeedScenePublication } from "@galacean/engine-world-planning/spatial/runtime/PlanningSeedScenePublication";
 import { createPlanningSeedSolids } from "@galacean/engine-world-planning/spatial/runtime/PlanningSeedSolids";
@@ -181,7 +189,6 @@ import { WorldTemplateRuntime } from "@galacean/engine-world-planning/spatial/ru
 import {
   resolveWorldTemplateScene,
   resolveWorldTemplateSpawn,
-  resolveWorldTemplateStreetView,
   resolveWorldTemplateView
 } from "@galacean/engine-world-planning/spatial/WorldTemplateView";
 import { SeedWorldAudioRuntime } from "@galacean/engine-world-planning/world/SeedWorldAudioRuntime";
@@ -205,6 +212,12 @@ import {
   createPlanningWorldSource,
   type PlanningWorldHandoff
 } from "./src/planning/spatial/runtime/PlanningWorldSource.ts";
+
+function waterAgentKnowledge() {
+  const knowledge = createSeedWorldKnowledge(WATER_QUERY_CONTRACTS.map(item => item.name));
+  // The base World catalog already owns the shared tools namespace declaration.
+  return { ...knowledge, modules: knowledge.modules.filter(module => module.id !== "declare/world/common/AgentTools.d.ts") };
+}
 
 /** Original Seed scene/HUD/gameplay host. The spatial planner supplies data, never its preview camera. */
 export async function mountSeedWorldDemo(
@@ -281,7 +294,7 @@ export async function mountSeedWorldDemo(
   let nativeBuildingHost: NativeBuildingHost | undefined;
   let nativeBuildingPanel: ReturnType<typeof mountNativeBuildingPanel> | undefined;
   let nativeWaterHost: NativeWaterHost | undefined;
-  let nativeWaterEditor: NativeWaterEditor | undefined;
+  let nativeWaterPanel: ReturnType<typeof mountNativeWaterPanel> | undefined;
   let runtimeProject: RuntimeProjectSession | undefined;
   let unmountProjectSave: (() => void) | undefined;
   let nativeEditor: RuntimeNativeEditor | undefined;
@@ -417,6 +430,7 @@ export async function mountSeedWorldDemo(
         lodDebugPanel?.dispose();
         disconnectEditorAssets?.();
         tools?.dispose();
+        nativeWaterPanel?.destroy();
         nativeBuildingPanel?.destroy();
         nativeEditor?.dispose();
         retrieval?.dispose();
@@ -470,7 +484,7 @@ export async function mountSeedWorldDemo(
   const dispose = createSeedWorldProjectClose(
     async () => {
       tools?.dispose();
-      await nativeWaterEditor?.stop();
+      await nativeWaterPanel?.stop();
       editorLifetime.abort();
       nativeEditor?.editor.dispose();
       // Runtime errors are diagnostics. Accepted authoring must still be saved.
@@ -704,8 +718,14 @@ export async function mountSeedWorldDemo(
       restore?.();
     };
 
+    const startupTemplateId = source.session.recipe().parameters.worldTemplate?.id ?? "";
+    const startupTemplate = worldTemplate(startupTemplateId);
+    const startupArt = WORLD_TEMPLATE_ART[startupTemplateId];
+    const solarPosition = startupArt?.solarPosition
+      ? { ...PROCEDURAL_SKY_SOLAR_POSITION, ...startupArt.solarPosition }
+      : desert?.DESERT_SOLAR_POSITION;
     if (desert) sun.shadowType = ShadowType.SoftLow;
-    lighting = createIntegratedWorldLightingRuntime(sun.entity, scene!, sun, post, desert?.DESERT_SOLAR_POSITION);
+    lighting = createIntegratedWorldLightingRuntime(sun.entity, scene!, sun, post, solarPosition);
     lighting.setTuning({
       playing: false,
       timeHours: INTEGRATED_WORLD_DAYLIGHT_REFERENCE_TIME_HOURS
@@ -758,26 +778,66 @@ export async function mountSeedWorldDemo(
         if (publication?.current) farmingHost?.runtime?.refreshWater(publication.current);
       }
     });
-    const sampleHeight = (x: number, z: number) => {
+    const readTerrainFields = () => {
       const current = publication?.current;
-      return current && sampleSeedWorldHeight(current.heightTransition?.fields ?? current.data.fields, x, z);
+      return current?.heightTransition?.fields ?? current?.data.fields;
     };
+    const sampleHeight = (x: number, z: number) => {
+      const fields = readTerrainFields();
+      return fields && sampleSeedWorldHeight(fields, x, z);
+    };
+    const getPuddleHydrology = () => readWorld()?.clipmap.puddleHydrology;
     environment = await WorldEnvironmentRuntime.create(
       scene!,
       camera,
       {
         sampleHeightInterpolated: sampleHeight,
-        sampleRainImpact: () => false,
-        getPuddleHydrology: () => readWorld()?.clipmap.puddleHydrology
+        sampleRainImpact: (x, z, climate, contact) => {
+          const fields = readTerrainFields();
+          const hydrology = getPuddleHydrology();
+          if (!fields || !hydrology || !environment) return false;
+          const { puddleStorageBias, coverageMultiplier } = environment.getSurfaceWaterTuning();
+          // Match the rendered terrain's storage, including the template's initial puddles.
+          const puddleMask = Math.min(
+            1,
+            coverageMultiplier * sampleTerrainSurfacePuddleMask(
+              x, z, { puddleStorage: climate.puddleStorage + puddleStorageBias }, hydrology
+            )
+          );
+          if (puddleMask <= 0) return false;
+          const height = sampleSeedWorldHeight(fields, x, z);
+          if (height === undefined) return false;
+          const spacing = fields.sizeMetres / (fields.heightResolution - 1);
+          const originX = seedWorldOriginX(fields);
+          const originZ = seedWorldOriginZ(fields);
+          const left = Math.max(originX, x - spacing);
+          const right = Math.min(originX + fields.sizeMetres, x + spacing);
+          const back = Math.max(originZ, z - spacing);
+          const front = Math.min(originZ + fields.sizeMetres, z + spacing);
+          const slopeX =
+            (sampleSeedWorldHeight(fields, right, z)! - sampleSeedWorldHeight(fields, left, z)!) / (right - left);
+          const slopeZ =
+            (sampleSeedWorldHeight(fields, x, front)! - sampleSeedWorldHeight(fields, x, back)!) / (front - back);
+          const inverseLength = 1 / Math.hypot(slopeX, 1, slopeZ);
+          contact.height = height;
+          contact.normal[0] = -slopeX * inverseLength;
+          contact.normal[1] = inverseLength;
+          contact.normal[2] = -slopeZ * inverseLength;
+          contact.puddleMask = puddleMask;
+          return true;
+        },
+        getPuddleHydrology
       },
       lighting,
-      wind
+      wind,
+      undefined,
+      { surfaceWaterSsrRequiresRain: true }
     );
     const initialWeather = source.session
       .inspect("world")
       .components.find((component) => component.type === "weather")?.values;
     applyPlanningWeather(environment, initialWeather);
-    desert?.configureDesertClouds(environment);
+    if (startupTemplate?.rockSource !== "shared") desert?.configureDesertClouds(environment);
     audio = new SeedWorldAudioRuntime(camera, navigation, environment, wind);
     const windCenter = new Vector3();
     const driver = root.addComponent(SeedDemoFrame);
@@ -789,7 +849,10 @@ export async function mountSeedWorldDemo(
       if (current && water) visitPlanningWorldPickBatches(current, water, visitor);
     }
     driver.lateTick = () => {
-      publication?.current?.solids.bridgesView.updateLod(camera);
+      const current = publication?.current;
+      if (!current) return;
+      current.world.setSurfaceWaterSsrEnabled(environment!.surfaceWaterSsrRequested);
+      current.solids.bridgesView.updateLod(camera);
     };
     driver.tick = (dt) => {
       farmingHost?.runtime?.update(dt);
@@ -892,12 +955,13 @@ export async function mountSeedWorldDemo(
         },
         (error) => console.warn("[seed-world-planner] player state persistence failed", error)
       );
-    const spawnViews = new WeakMap<IslandPlan, { key: string; view: PlanningSpawnView }>();
+    type SpawnView = PlanningSpawnView | (Pick<PlanningSpawnView, "eye" | "target"> & { framing: "authored" });
+    const spawnViews = new WeakMap<IslandPlan, { key: string; view: SpawnView }>();
     const spawnView = (
       plan: IslandPlan,
       data: PlanningSeedWorldData,
       groundPopulation?: PlanningSeedWorldData["population"]
-    ) => {
+    ): SpawnView => {
       const options = {
         aspect: camera.aspectRatio,
         verticalFovDegrees: PLANNING_RUNTIME_OPTIONS.verticalFieldOfView,
@@ -1097,6 +1161,7 @@ export async function mountSeedWorldDemo(
                   let solids: Awaited<ReturnType<typeof createPlanningSeedSolids>> | undefined;
                   try {
                     solids = await createPlanningSeedSolids(engine!, stage, result.plan, {
+                      camera,
                       signal,
                       previous: previous.solids,
                       formations,
@@ -1299,9 +1364,8 @@ export async function mountSeedWorldDemo(
         };
       }
       farmingHost?.runtime?.inspectCandidate(result.plan, document.revision);
-      const fusionChanged = readGrassGroundFusion(document) !== readGrassGroundFusion(context.previousDocument);
       if (
-        (result.execution === "runtime" || (result.execution === "presentation" && fusionChanged)) &&
+        (result.execution === "runtime" || result.execution === "presentation") &&
         context.worldUnchanged &&
         !rockSupportChanged &&
         plannedGeometryUnchanged &&
@@ -1312,7 +1376,8 @@ export async function mountSeedWorldDemo(
         JSON.stringify(readRockFormationSettings(document)) ===
           JSON.stringify(readRockFormationSettings(context.previousDocument))
       ) {
-        // Reuse publication follow-up so mixed animal/lighting/grass edits all reach their consumers.
+        // Unchanged geometry retains its owners. Labels and presentation changes
+        // still reach their consumers through the normal publication follow-up.
         return {
           discard() {},
           commit() {},
@@ -1424,12 +1489,7 @@ export async function mountSeedWorldDemo(
             !preparedPlayer?.bookmark &&
             !readSubjectView(document).subjectId
           ) {
-            const view =
-              resolveWorldTemplateStreetView(
-                plan,
-                (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z),
-                navigation.eyeHeight
-              ) ?? spawnView(plan, candidateData, groundPopulation);
+            const view = spawnView(plan, candidateData, groundPopulation);
             const position = new Vector3(view.eye.x, view.eye.y, view.eye.z);
             const target = new Vector3(view.target.x, view.target.y, view.target.z);
             const matrix = new Matrix();
@@ -1489,11 +1549,11 @@ export async function mountSeedWorldDemo(
               signal,
               desert
                 ? desert.desertSurfaceOptions(plan, result.recipe.parameters.terrainSurface, result.recipe.edits)
-                : result.recipe.parameters.terrainSurface,
-              worldTemplateStreetPuddles(plan)
+                : result.recipe.parameters.terrainSurface
             );
             recordBootSpan("SeedWorldTerrainRuntime.create", spanAt);
             signal.throwIfAborted();
+            candidate.setSurfaceWaterSsrEnabled(environment!.surfaceWaterSsrRequested);
             const { reliefNearAmplitudeM = 0, reliefAmplitudeM = 0, reliefFarAmplitudeM = 0 } = plan.parameters;
             if (Math.max(reliefNearAmplitudeM, reliefAmplitudeM, reliefFarAmplitudeM) > 0)
               candidate.clipmap.setShadowsEnabled(true);
@@ -1587,6 +1647,7 @@ export async function mountSeedWorldDemo(
             }
             spanAt = performance.now();
             candidateSolids = await createPlanningSeedSolids(engine!, candidate.root, presented, {
+              camera,
               signal,
               previous: publication!.current?.solids,
               formations: formationMeshes,
@@ -1662,8 +1723,7 @@ export async function mountSeedWorldDemo(
               plan,
               templateGround,
               templateScene,
-              signal,
-              camera.entity
+              signal
             );
             recordBootSpan("WorldTemplateRuntime.create", spanAt);
             if (heightTransition)
@@ -1874,17 +1934,12 @@ export async function mountSeedWorldDemo(
     const synchronizeMojaveLayout = async (accepted: NonNullable<PlanningSeedScenePublication["current"]>) => {
       const isCurrent = () => publication!.current === accepted && !disposed;
       let next: Entity | undefined;
-      if (accepted.plan.parameters.worldTemplate?.id === "titan-wasteland") {
+      const templateId = accepted.plan.parameters.worldTemplate?.id;
+      if (templateId === "titan-wasteland" && worldTemplate(templateId)?.rockSource !== "shared") {
         try {
           const { createSeedWorldMojavePreview } = await import("./src/SeedWorldMojavePreview");
           if (!isCurrent()) return;
-          next = await createSeedWorldMojavePreview(
-            root,
-            accepted.plan,
-            isCurrent,
-            camera,
-            accepted.world.clipmap.material
-          );
+          next = await createSeedWorldMojavePreview(root, accepted.plan, isCurrent, camera, accepted.world.clipmap.material);
           if (isCurrent()) {
             const { mountDesertVegetation } = await import("./src/DesertVegetation");
             if (isCurrent()) {
@@ -1894,7 +1949,7 @@ export async function mountSeedWorldDemo(
           }
         } catch (error) {
           next?.destroy();
-          if (isCurrent()) console.warn("[seed-world] Mojave landscape setup failed", error);
+          if (isCurrent()) console.warn("[seed-world] desert landscape setup failed", error);
           return;
         }
       }
@@ -1904,7 +1959,9 @@ export async function mountSeedWorldDemo(
       }
       mojaveLayout?.destroy();
       mojaveLayout = next;
-      canvas.dataset.mojavePreview = String(next?.children.length ?? 0);
+      delete canvas.dataset.desertOasis;
+      if (next) canvas.dataset.mojavePreview = String(next.children.length);
+      else delete canvas.dataset.mojavePreview;
     };
     const publishContentEdit = async (projectTransaction = false) => {
       const accepted = publication!.current!;
@@ -1931,6 +1988,9 @@ export async function mountSeedWorldDemo(
         }
       });
       water?.update(0);
+      const templateId = plan.parameters.worldTemplate?.id ?? "";
+      const templateArt = WORLD_TEMPLATE_ART[templateId];
+      const hasTemplateWater = !!templateArt?.water?.length;
       if (isFarmingPlanned() !== boundFarmingEnabled) {
         await bindFarming().catch((error) => console.warn("[seed-world-planner] farming activation failed", error));
         if (publication!.current !== accepted || disposed) return;
@@ -1938,7 +1998,7 @@ export async function mountSeedWorldDemo(
       farmingHost?.runtime?.publish(accepted, source!.session.document.revision);
       accepted.template?.activate(canvas);
       if (!accepted.template) delete canvas.dataset.worldTemplate;
-      if (worldTemplate(plan.parameters.worldTemplate?.id)?.family === "desert") {
+      if (worldTemplate(templateId)?.family === "desert" && !hasTemplateWater) {
         try {
           const { createSeedSandstorm, loadSeedSandstormAtlas, placeSeedSandstorm } = await import(
             "./src/SeedWorldSandstorm"
@@ -1986,7 +2046,7 @@ export async function mountSeedWorldDemo(
         if (publication!.current !== accepted || disposed) return;
         debugSidebar?.synchronize(plan);
         await applyPresentation(source!.session, lightingProfile!, post, resetPostProcess);
-        desert?.applyDesertSky(lighting!);
+        if (desert && worldTemplate(templateId)?.rockSource !== "shared") desert.applyDesertSky(lighting!);
         if (desert) post.setBloomTint(1, 1, 1);
         applyPlanningWeather(
           environment!,
@@ -1998,7 +2058,13 @@ export async function mountSeedWorldDemo(
           groundFusion: readGrassGroundFusion(source!.session.document),
           grass: readGrassAppearance(source!.session.document)
         });
-        desert?.applyDesertTerrain(accepted.world);
+        if (templateArt?.sandRippleFadeM !== undefined) {
+          const normals = accepted.world.getSandNormalTuning();
+          if (normals)
+            accepted.world.setSandNormalTuning({ ...normals, rippleFadeDistanceMetres: templateArt.sandRippleFadeM });
+        } else {
+          desert?.applyDesertTerrain(accepted.world, false);
+        }
         await synchronizeMojaveLayout(accepted);
         if (publication!.current !== accepted || disposed) return;
         const surfaceTuning = accepted.world.getSurfaceColorTuning();
@@ -2072,7 +2138,7 @@ export async function mountSeedWorldDemo(
       scene!.shadowFadeBorder = 0.2;
       sun.shadowBias = 0.5;
       sun.shadowNormalBias = 0.5;
-      scene!.ambientOcclusion.enabled = false;
+      scene!.ambientOcclusion.enabled = !!startupArt?.water?.length;
       scene!.ambientOcclusion.intensity = 0.5;
       scene!.ambientOcclusion.radius = 0.5;
     }
@@ -2099,7 +2165,7 @@ export async function mountSeedWorldDemo(
     tools = new PlanningSeedWorldSession({
       nativeEditor,
       editorExtensions: [
-        createNativeWaterAgentPackage(),
+        createNativeWaterAgentPackage({ editor: nativeEditor, project: runtimeProject, system: () => water?.system, hostTerrain: true, oceanDatum: 0 }, waterAgentKnowledge()),
         createFarmingComponentExtension(nativeEditor.projection),
         ...(retrieval ? [retrieval.extension] : [])
       ],
@@ -2140,7 +2206,7 @@ export async function mountSeedWorldDemo(
         import("./src/SeedWorldLodDebugPanel.ts")
       ]);
       runtimeDebug = await PlanningSeedRuntimeDebug.create({
-        extraControls: desert
+        extraControls: desert && startupTemplate?.rockSource !== "shared"
           ? async (gui) => {
               const { mountMojaveLodControls } = await import("./src/SeedWorldMojavePreview");
               mountMojaveLodControls(gui, () => mojaveLayout);
@@ -2336,7 +2402,6 @@ export async function mountSeedWorldDemo(
     orb.suspend();
     ready = true;
     disconnectEditorAssets = tools.application.connectProject(runtimeProject);
-    nativeWaterEditor = new NativeWaterEditor(runtimeProject, nativeEditor.editor);
     const savedEditor = runtimeProject.projectPackage.contents[SEED_WORLD_EDITOR_PATH];
     if (typeof savedEditor === "string")
       await timed("restoreEditorDocument", () =>
@@ -2373,6 +2438,7 @@ export async function mountSeedWorldDemo(
         }
       };
       const buildingWaterSample = createWaterSurfaceSample();
+      nativeWaterPanel = mountNativeWaterPanel(runtimeProject, nativeEditor);
       nativeBuildingPanel = mountNativeBuildingPanel(
         runtimeProject,
         nativeEditor,

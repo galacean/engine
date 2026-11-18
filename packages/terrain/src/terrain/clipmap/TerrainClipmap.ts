@@ -26,11 +26,10 @@ import {
   type TerrainHeightAtlasPatch,
   type TerrainHeightAtlasFrame,
   type TerrainHeightGpuSamplingSource,
-  type TerrainMacroVariationOptions
+  type TerrainLayerDiffuseColorPatch
 } from "./TerrainClipmapMaterial";
 import type { TerrainLayerResidencyRegionSource } from "./TerrainLayerResidency";
-import type { TerrainLayerDiffuseColorPatch } from "./TerrainClipmapMaterial";
-import type { TerrainClipmapRegionSource } from "./TerrainClipmapSource";
+import type { TerrainClipmapRegionSource } from "./TerrainHeightAtlas";
 import type { TerrainPuddleHydrologyField, TerrainPuddleHydrologyOptions } from "./TerrainPuddleHydrology";
 
 const TILE = 0;
@@ -59,11 +58,8 @@ export interface TerrainClipmapDescriptor extends TerrainClipmapHeightGrid {
 
 interface Segment {
   readonly entity: Entity;
-  readonly wireEntity: Entity;
   readonly renderer: TerrainRenderer;
-  readonly wireRenderer: TerrainRenderer;
   readonly mesh: BufferMesh;
-  readonly wireMesh: BufferMesh;
   readonly lod: number;
   readonly group: number;
   readonly instance: number;
@@ -114,10 +110,7 @@ export class TerrainClipmap {
   private readonly _snapState: Float64Array;
   private readonly _snapChangedLods: Uint8Array;
   private _puddleHydrologyOptions: Readonly<TerrainPuddleHydrologyOptions>;
-  private _macroVariationOptions: Readonly<TerrainMacroVariationOptions> | undefined;
-  private _macroVariationEnabled: boolean;
   private readonly _farMaterialOptions: Readonly<TerrainFarMaterialOptions> | undefined;
-  private _layerDetilingMask = 0;
   private _materialBinding: TerrainClipmapRenderBinding;
   private _resourceOwner: TerrainClipmapResourceOwner;
   private _follower: TerrainClipmapFollower;
@@ -143,11 +136,6 @@ export class TerrainClipmap {
     const source = this._materialBinding.heightSamplingSource;
     if (!source) throw new Error("The active Terrain Clipmap binding does not expose GPU height sampling");
     return source;
-  }
-
-  /** @returns Derived holes-atlas dimensions for renderer diagnostics. */
-  get holesAtlasSize(): readonly [width: number, height: number] {
-    return this._materialBinding.holesAtlasSize;
   }
 
   /** @returns Resolved TerrainLayer count in this renderer instance's current residency set. */
@@ -187,7 +175,6 @@ export class TerrainClipmap {
    * @param meshLods Number of simultaneously active clipmap rings.
    * @param layerSources Optional resolved canonical alphamaps and layer Textures for this active set.
    * @param puddleHydrologyOptions Optional shallow-water drainage and coverage tuning.
-   * @param macroVariationOptions Optional renderer-only world-space colour variation.
    * @param farMaterialOptions Optional compile-time simplified Material for distant rings.
    * @throws If topology, Region sources, or GPU residency are invalid.
    */
@@ -201,7 +188,6 @@ export class TerrainClipmap {
     meshLods: number,
     layerSources?: readonly TerrainLayerResidencyRegionSource<Texture2D>[],
     puddleHydrologyOptions?: Readonly<TerrainPuddleHydrologyOptions>,
-    macroVariationOptions?: Readonly<TerrainMacroVariationOptions>,
     farMaterialOptions?: Readonly<TerrainFarMaterialOptions>
   );
 
@@ -236,7 +222,6 @@ export class TerrainClipmap {
     meshLods: number,
     layerSources?: readonly TerrainLayerResidencyRegionSource<Texture2D>[],
     puddleHydrologyOptions: Readonly<TerrainPuddleHydrologyOptions> = {},
-    macroVariationOptions?: Readonly<TerrainMacroVariationOptions>,
     farMaterialOptions?: Readonly<TerrainFarMaterialOptions>
   ) {
     const projectMaterial = materialOrBinding instanceof Material ? materialOrBinding : null;
@@ -249,8 +234,6 @@ export class TerrainClipmap {
     this._snapState = new Float64Array(meshLods * 4);
     this._snapChangedLods = new Uint8Array(meshLods);
     this._puddleHydrologyOptions = { ...puddleHydrologyOptions };
-    this._macroVariationOptions = macroVariationOptions;
-    this._macroVariationEnabled = macroVariationOptions !== undefined;
     this._farMaterialOptions = farMaterialOptions;
 
     const materialBinding: TerrainClipmapRenderBinding = projectMaterial
@@ -261,7 +244,6 @@ export class TerrainClipmap {
           layerSources,
           undefined,
           this._puddleHydrologyOptions,
-          this._macroVariationOptions,
           this._farMaterialOptions
         )
       : (materialOrBinding as TerrainClipmapRenderBinding);
@@ -281,45 +263,12 @@ export class TerrainClipmap {
           lod,
           TILE,
           lod === 0 ? meshes.standardTile : meshes.tile,
-          lod === 0 ? meshes.standardTileWire : meshes.tileWire,
           lod === 0 ? 16 : 12
         );
-        this._createGroup(
-          root,
-          lodMaterial,
-          lod,
-          EDGE_A,
-          lod === 0 ? meshes.standardEdgeA : meshes.edgeA,
-          lod === 0 ? meshes.standardEdgeAWire : meshes.edgeAWire,
-          2
-        );
-        this._createGroup(
-          root,
-          lodMaterial,
-          lod,
-          EDGE_B,
-          lod === 0 ? meshes.standardEdgeB : meshes.edgeB,
-          lod === 0 ? meshes.standardEdgeBWire : meshes.edgeBWire,
-          2
-        );
-        this._createGroup(
-          root,
-          lodMaterial,
-          lod,
-          FILL_A,
-          lod === 0 ? meshes.standardTrimA : meshes.fillA,
-          lod === 0 ? meshes.standardTrimAWire : meshes.fillAWire,
-          2
-        );
-        this._createGroup(
-          root,
-          lodMaterial,
-          lod,
-          FILL_B,
-          lod === 0 ? meshes.standardTrimB : meshes.fillB,
-          lod === 0 ? meshes.standardTrimBWire : meshes.fillBWire,
-          2
-        );
+        this._createGroup(root, lodMaterial, lod, EDGE_A, lod === 0 ? meshes.standardEdgeA : meshes.edgeA, 2);
+        this._createGroup(root, lodMaterial, lod, EDGE_B, lod === 0 ? meshes.standardEdgeB : meshes.edgeB, 2);
+        this._createGroup(root, lodMaterial, lod, FILL_A, lod === 0 ? meshes.standardTrimA : meshes.fillA, 2);
+        this._createGroup(root, lodMaterial, lod, FILL_B, lod === 0 ? meshes.standardTrimB : meshes.fillB, 2);
       }
       follower = root.addComponent(TerrainClipmapFollower);
       follower.initialize(this, camera);
@@ -336,7 +285,6 @@ export class TerrainClipmap {
       follower?.destroy();
       for (const segment of this._segments) {
         segment.entity.destroy();
-        segment.wireEntity.destroy();
       }
       this._segments.length = 0;
       materialBinding.destroy();
@@ -352,7 +300,6 @@ export class TerrainClipmap {
    * @param material Standard Project Material shared by the selected Region set.
    * @param layerSources Optional resolved canonical alphamaps and layer Textures for the selected Region set.
    * @param puddleHydrologyOptions Optional replacement shallow-water drainage and coverage tuning.
-   * @param macroVariationOptions Optional replacement world-space colour variation.
    * @returns Nothing after every renderer references the new derived Material and atlases.
    * @throws If the descriptor is incompatible or new GPU residency creation fails; the old residency remains active.
    */
@@ -360,8 +307,7 @@ export class TerrainClipmap {
     heightGrid: TerrainClipmapDescriptor,
     material: Material,
     layerSources?: readonly TerrainLayerResidencyRegionSource<Texture2D>[],
-    puddleHydrologyOptions: Readonly<TerrainPuddleHydrologyOptions> = this._puddleHydrologyOptions,
-    macroVariationOptions: Readonly<TerrainMacroVariationOptions> | undefined = this._macroVariationOptions
+    puddleHydrologyOptions: Readonly<TerrainPuddleHydrologyOptions> = this._puddleHydrologyOptions
   ): void {
     this._assertAlive();
     validateClipmapHeightGrid(heightGrid);
@@ -376,11 +322,8 @@ export class TerrainClipmap {
       layerSources,
       this._gridOrigin,
       puddleHydrologyOptions,
-      macroVariationOptions,
       this._farMaterialOptions
     );
-    nextBinding.setMacroVariationEnabled?.(this._macroVariationEnabled);
-    nextBinding.setLayerDetilingMask?.(this._layerDetilingMask);
     const previousBinding = this._materialBinding;
     const previousBounds = captureVerticalBounds(this._segments);
     const updatedRenderers: TerrainRenderer[] = [];
@@ -388,13 +331,11 @@ export class TerrainClipmap {
       for (const segment of this._segments) {
         segment.renderer.setMaterial(materialForClipmapLod(nextBinding, segment.lod));
         updatedRenderers.push(segment.renderer);
-        segment.wireRenderer.setMaterial(materialForClipmapLod(nextBinding, segment.lod));
-        updatedRenderers.push(segment.wireRenderer);
       }
       updateVerticalBounds(this._segments, heightGrid.minHeight, heightGrid.maxHeight);
     } catch (error) {
       for (let index = updatedRenderers.length - 1; index >= 0; index--) {
-        const segment = this._segments[Math.floor(index / 2)];
+        const segment = this._segments[index];
         updatedRenderers[index].setMaterial(materialForClipmapLod(previousBinding, segment.lod));
       }
       restoreVerticalBounds(previousBounds);
@@ -407,45 +348,8 @@ export class TerrainClipmap {
     this._heightFrameRegions.clear();
     this._regionHeightPyramids = buildRegionHeightPyramids(heightGrid.sources);
     this._puddleHydrologyOptions = { ...puddleHydrologyOptions };
-    this._macroVariationOptions = macroVariationOptions;
     this._resourceOwner.replace(nextBinding);
     this._updateAllSegmentVerticalBounds();
-  }
-
-  /** @returns Whether renderer-only macro variation currently participates in Terrain shading. */
-  get macroVariationEnabled(): boolean {
-    return this._macroVariationEnabled;
-  }
-
-  /**
-   * Enables or disables renderer-only macro variation without rebuilding Terrain residency.
-   * @param enabled Whether macro variation participates in Terrain shading.
-   * @returns Nothing.
-   */
-  setMacroVariationEnabled(enabled: boolean): void {
-    this._assertAlive();
-    this._macroVariationEnabled = enabled && this._macroVariationOptions !== undefined;
-    this._materialBinding.setMacroVariationEnabled?.(this._macroVariationEnabled);
-  }
-
-  /** @returns Logical Terrain-layer bit mask currently using one-sample detiling. */
-  get layerDetilingMask(): number {
-    return this._layerDetilingMask;
-  }
-
-  /**
-   * Selects logical Terrain layers that use one randomized rotated sample instead of four-neighbour blending.
-   * @param layerMask Bit `n` enables detiling for resolved logical layer `n`.
-   * @returns Nothing.
-   * @throws If the Clipmap is destroyed or the mask is outside the non-negative 31-bit range.
-   */
-  setLayerDetilingMask(layerMask: number): void {
-    this._assertAlive();
-    if (!Number.isInteger(layerMask) || layerMask < 0 || layerMask > 0x7fff_ffff) {
-      throw new RangeError("Terrain detiling layer mask must be a non-negative 31-bit integer");
-    }
-    this._layerDetilingMask = layerMask;
-    this._materialBinding.setLayerDetilingMask?.(layerMask);
   }
 
   /** Updates resident layer colours without replacing height, alpha, texture-array or material owners. */
@@ -585,7 +489,6 @@ export class TerrainClipmap {
     if (source.regionCount) updateVerticalBounds(this._segments, minimum, maximum);
     for (const segment of this._segments) {
       segment.renderer.clearVerticalBounds();
-      segment.wireRenderer.clearVerticalBounds();
     }
   }
 
@@ -715,8 +618,6 @@ export class TerrainClipmap {
       const worldZ = offsetZ * scale + snapZ;
       segment.entity.transform.setScale(scale, 1, scale);
       segment.entity.transform.setPosition(worldX, 0, worldZ);
-      segment.wireEntity.transform.setScale(scale, 1, scale);
-      segment.wireEntity.transform.setPosition(worldX, 0, worldZ);
       this._updateSegmentVerticalBounds(segment, worldX, worldZ);
     }
   }
@@ -742,7 +643,6 @@ export class TerrainClipmap {
   private _updateSegmentVerticalBounds(segment: Segment, worldX: number, worldZ: number): void {
     if (this._heightFrameBounds || this._regionHeightPyramids.length === 0) {
       segment.renderer.clearVerticalBounds();
-      segment.wireRenderer.clearVerticalBounds();
       return;
     }
     const scale = segment.scale;
@@ -762,7 +662,6 @@ export class TerrainClipmap {
       verticalMargin
     );
     segment.renderer.setVerticalBounds(minY, maxY);
-    segment.wireRenderer.setVerticalBounds(minY, maxY);
   }
 
   /**
@@ -781,17 +680,6 @@ export class TerrainClipmap {
         scale: segment.entity.transform.scale.x
       };
     });
-  }
-
-  /**
-   * Shows or hides line-topology companions that share each segment's production vertex path.
-   * @param enabled Whether to render the clipmap wire overlay.
-   * @returns Nothing.
-   * @throws If the Clipmap has been destroyed.
-   */
-  setWireframe(enabled: boolean): void {
-    this._assertAlive();
-    for (const segment of this._segments) segment.wireEntity.isActive = enabled;
   }
 
   /**
@@ -817,7 +705,6 @@ export class TerrainClipmap {
     this._follower.destroy();
     for (const segment of this._segments) {
       segment.entity.destroy();
-      segment.wireEntity.destroy();
     }
     this._segments.length = 0;
     this._resourceEntity.destroy();
@@ -829,7 +716,6 @@ export class TerrainClipmap {
     lod: number,
     group: number,
     mesh: BufferMesh,
-    wireMesh: BufferMesh,
     count: number
   ): void {
     for (let instance = 0; instance < count; instance++) {
@@ -841,24 +727,10 @@ export class TerrainClipmap {
       renderer.priority = -200;
       renderer.castShadows = false;
       renderer.receiveShadows = true;
-      renderer.setDebugWire(false);
-
-      const wireEntity = root.createChild(`lod-${lod}-${GROUP_NAMES[group]}-${instance}-wire`);
-      const wireRenderer = wireEntity.addComponent(TerrainRenderer);
-      wireRenderer.mesh = wireMesh;
-      wireRenderer.setMaterial(material);
-      wireRenderer.castShadows = false;
-      wireRenderer.setLod(lod, this._offsets.meshSize);
-      wireRenderer.setDebugWire(true);
-      wireRenderer.priority = 1;
-      wireEntity.isActive = false;
       this._segments.push({
         entity,
-        wireEntity,
         renderer,
-        wireRenderer,
         mesh,
-        wireMesh,
         lod,
         group,
         instance,
@@ -946,7 +818,6 @@ function updateVerticalBounds(segments: readonly Segment[], minHeight: number, m
   const meshes = new Set<BufferMesh>();
   for (const segment of segments) {
     meshes.add(segment.mesh);
-    meshes.add(segment.wireMesh);
   }
   for (const mesh of meshes) {
     mesh.bounds.min.y = minHeight;
@@ -958,7 +829,6 @@ function captureVerticalBounds(segments: readonly Segment[]): ReadonlyMap<Buffer
   const bounds = new Map<BufferMesh, readonly [number, number]>();
   for (const segment of segments) {
     bounds.set(segment.mesh, [segment.mesh.bounds.min.y, segment.mesh.bounds.max.y]);
-    bounds.set(segment.wireMesh, [segment.wireMesh.bounds.min.y, segment.wireMesh.bounds.max.y]);
   }
   return bounds;
 }
@@ -985,16 +855,6 @@ interface MeshTypes {
   standardTile: BufferMesh;
   standardEdgeA: BufferMesh;
   standardEdgeB: BufferMesh;
-  tileWire: BufferMesh;
-  edgeAWire: BufferMesh;
-  edgeBWire: BufferMesh;
-  fillAWire: BufferMesh;
-  fillBWire: BufferMesh;
-  standardTrimAWire: BufferMesh;
-  standardTrimBWire: BufferMesh;
-  standardTileWire: BufferMesh;
-  standardEdgeAWire: BufferMesh;
-  standardEdgeBWire: BufferMesh;
 }
 
 function createMeshTypes(engine: Engine, size: number, minHeight: number, maxHeight: number): MeshTypes {
@@ -1008,44 +868,7 @@ function createMeshTypes(engine: Engine, size: number, minHeight: number, maxHei
     standardTrimB: createGridMesh(engine, size * 4 + 2, 2, true, minHeight, maxHeight, "terrain-trim-b"),
     standardTile: createGridMesh(engine, size, size, true, minHeight, maxHeight, "terrain-standard-tile"),
     standardEdgeA: createGridMesh(engine, 2, size * 4 + 8, true, minHeight, maxHeight, "terrain-standard-edge-a"),
-    standardEdgeB: createGridMesh(engine, size * 4 + 4, 2, true, minHeight, maxHeight, "terrain-standard-edge-b"),
-    tileWire: createGridMesh(engine, size, size, false, minHeight, maxHeight, "terrain-tile-wire", true),
-    edgeAWire: createGridMesh(engine, 2, size * 4 + 8, false, minHeight, maxHeight, "terrain-edge-a-wire", true),
-    edgeBWire: createGridMesh(engine, size * 4 + 4, 2, false, minHeight, maxHeight, "terrain-edge-b-wire", true),
-    fillAWire: createGridMesh(engine, 4, size, false, minHeight, maxHeight, "terrain-fill-a-wire", true),
-    fillBWire: createGridMesh(engine, size, 4, false, minHeight, maxHeight, "terrain-fill-b-wire", true),
-    standardTrimAWire: createGridMesh(engine, 2, size * 4 + 2, true, minHeight, maxHeight, "terrain-trim-a-wire", true),
-    standardTrimBWire: createGridMesh(engine, size * 4 + 2, 2, true, minHeight, maxHeight, "terrain-trim-b-wire", true),
-    standardTileWire: createGridMesh(
-      engine,
-      size,
-      size,
-      true,
-      minHeight,
-      maxHeight,
-      "terrain-standard-tile-wire",
-      true
-    ),
-    standardEdgeAWire: createGridMesh(
-      engine,
-      2,
-      size * 4 + 8,
-      true,
-      minHeight,
-      maxHeight,
-      "terrain-standard-edge-a-wire",
-      true
-    ),
-    standardEdgeBWire: createGridMesh(
-      engine,
-      size * 4 + 4,
-      2,
-      true,
-      minHeight,
-      maxHeight,
-      "terrain-standard-edge-b-wire",
-      true
-    )
+    standardEdgeB: createGridMesh(engine, size * 4 + 4, 2, true, minHeight, maxHeight, "terrain-standard-edge-b")
   };
 }
 
@@ -1056,8 +879,7 @@ function createGridMesh(
   standardGrid: boolean,
   minHeight: number,
   maxHeight: number,
-  name: string,
-  wireframe = false
+  name: string
 ): BufferMesh {
   const positions = new Float32Array((width + 1) * (depth + 1) * 3);
   let vertexOffset = 0;
@@ -1069,7 +891,7 @@ function createGridMesh(
     }
   }
 
-  const triangleIndices = new Uint32Array(width * depth * 6);
+  const indices = new Uint32Array(width * depth * 6);
   let indexOffset = 0;
   for (let z = 0; z < depth; z++) {
     for (let x = 0; x < width; x++) {
@@ -1079,24 +901,22 @@ function createGridMesh(
       const topRight = topLeft + 1;
       // The imported mesh convention has the opposite front-face winding.
       if (((x + z) & 1) === 0 || standardGrid) {
-        triangleIndices[indexOffset++] = bottomLeft;
-        triangleIndices[indexOffset++] = topLeft;
-        triangleIndices[indexOffset++] = topRight;
-        triangleIndices[indexOffset++] = bottomLeft;
-        triangleIndices[indexOffset++] = topRight;
-        triangleIndices[indexOffset++] = bottomRight;
+        indices[indexOffset++] = bottomLeft;
+        indices[indexOffset++] = topLeft;
+        indices[indexOffset++] = topRight;
+        indices[indexOffset++] = bottomLeft;
+        indices[indexOffset++] = topRight;
+        indices[indexOffset++] = bottomRight;
       } else {
-        triangleIndices[indexOffset++] = bottomLeft;
-        triangleIndices[indexOffset++] = topLeft;
-        triangleIndices[indexOffset++] = bottomRight;
-        triangleIndices[indexOffset++] = topLeft;
-        triangleIndices[indexOffset++] = topRight;
-        triangleIndices[indexOffset++] = bottomRight;
+        indices[indexOffset++] = bottomLeft;
+        indices[indexOffset++] = topLeft;
+        indices[indexOffset++] = bottomRight;
+        indices[indexOffset++] = topLeft;
+        indices[indexOffset++] = topRight;
+        indices[indexOffset++] = bottomRight;
       }
     }
   }
-
-  const indices = wireframe ? createWireIndices(triangleIndices) : triangleIndices;
 
   const mesh = new BufferMesh(engine, name);
   mesh.setVertexBufferBinding(new Buffer(engine, BufferBindFlag.VertexBuffer, positions, BufferUsage.Static), 12);
@@ -1105,27 +925,10 @@ function createGridMesh(
     IndexFormat.UInt32
   );
   mesh.setVertexElements([new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0)]);
-  mesh.addSubMesh(0, indices.length, wireframe ? MeshTopology.Lines : MeshTopology.Triangles);
+  mesh.addSubMesh(0, indices.length, MeshTopology.Triangles);
   mesh.bounds.min.set(0, minHeight, 0);
   mesh.bounds.max.set(width, maxHeight, depth);
   return mesh;
-}
-
-function createWireIndices(triangleIndices: Uint32Array): Uint32Array {
-  const lineIndices = new Uint32Array((triangleIndices.length / 3) * 6);
-  let offset = 0;
-  for (let triangle = 0; triangle < triangleIndices.length; triangle += 3) {
-    const a = triangleIndices[triangle];
-    const b = triangleIndices[triangle + 1];
-    const c = triangleIndices[triangle + 2];
-    lineIndices[offset++] = a;
-    lineIndices[offset++] = b;
-    lineIndices[offset++] = b;
-    lineIndices[offset++] = c;
-    lineIndices[offset++] = c;
-    lineIndices[offset++] = a;
-  }
-  return lineIndices;
 }
 
 interface ClipmapOffsets {

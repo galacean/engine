@@ -4,7 +4,6 @@ import { BoundingBox, MeshRenderer, RendererUpdateFlags, ShaderProperty } from "
 export class TerrainRenderer extends MeshRenderer {
   private static readonly _lod = ShaderProperty.getByName("renderer_Lod");
   private static readonly _clipmapMeshSize = ShaderProperty.getByName("renderer_ClipmapMeshSize");
-  private static readonly _debugWire = ShaderProperty.getByName("renderer_DebugWire");
 
   private _localMinY: number | undefined;
   private _localMaxY: number | undefined;
@@ -56,13 +55,5 @@ export class TerrainRenderer extends MeshRenderer {
     }
     this.shaderData.setFloat(TerrainRenderer._lod, lod);
     this.shaderData.setFloat(TerrainRenderer._clipmapMeshSize, meshSize);
-  }
-
-  /**
-   * Marks a renderer as the line-topology companion of a clipmap segment.
-   * @param enabled Whether the production shader should emit the wireframe diagnostic color.
-   */
-  setDebugWire(enabled: boolean): void {
-    this.shaderData.setFloat(TerrainRenderer._debugWire, enabled ? 1 : 0);
   }
 }

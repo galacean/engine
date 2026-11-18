@@ -13,7 +13,6 @@ vi.mock("../../../packages/world-planning/src/runtime/SeedWorldRockRuntime.ts", 
     }
   }
 }));
-vi.mock("../../../packages/world-planning/src/runtime/SeedWorldSmallRockRuntime.ts", () => ({ SeedWorldSmallRockRuntime: class {} }));
 vi.mock("../../../packages/world-planning/src/world/SeedWorldMushroomRuntime.ts", () => ({ SeedWorldMushroomRuntime: class {} }));
 vi.mock("../../../packages/world-planning/src/world/SeedWorldLotusRuntime.ts", () => ({ SeedWorldLotusRuntime: class {} }));
 
@@ -96,22 +95,18 @@ describe("SeedWorldExactPrefabRuntimeProfile", () => {
     expect(events).toEqual(["destroy:first"]);
   });
 
-  it("omits unused authored rocks but rejects missing sources for published placements", async () => {
+  it("omits unused authored rock families", async () => {
     const { SeedWorldExactPrefabRuntimeRegistry, SEED_WORLD_EXACT_PREFAB_RUNTIME_PROFILES } = await import(
       "../../../packages/world-planning/src/world/SeedWorldExactPrefabRuntimeProfile.ts"
     );
     const profiles = SEED_WORLD_EXACT_PREFAB_RUNTIME_PROFILES.filter(({ key }) =>
-      key === "rock" || key === "stone" || key === "small-rock");
+      key === "rock" || key === "stone");
     const context = createContext() as unknown as { parent: { createChild: ReturnType<typeof vi.fn> } };
     context.parent.createChild = vi.fn();
     const registry = new SeedWorldExactPrefabRuntimeRegistry(context as never, profiles);
     expect(context.parent.createChild).not.toHaveBeenCalled();
     expect(registry.exactInstances).toEqual([]);
     expect(registry.get("stone")).toBeUndefined();
-    expect(registry.get("small-rock")).toBeUndefined();
-    expect(() => new SeedWorldExactPrefabRuntimeRegistry(
-      createContext({}, [{ id: "requested-debris", category: "small-rock" }]), profiles
-    )).toThrow("Small-rock Prefab runtime requires authored debris sources");
     registry.destroy();
   });
 

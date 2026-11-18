@@ -1,15 +1,26 @@
-import { Matrix, MeshRenderer, type PBRMaterial, type Engine, type Entity } from "@galacean/engine";
+import {
+  Matrix,
+  MeshRenderer,
+  Vector2,
+  type Camera,
+  type PBRMaterial,
+  type Engine,
+  type Entity
+} from "@galacean/engine";
 import { acquireRockVariantMesh } from "./Variants";
 import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
 } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+import { templateLinearColor, worldTemplate } from "../../../spatial/WorldTemplateCatalog";
+import { WORLD_TEMPLATE_ART } from "../../../spatial/WorldTemplateArtDirection";
 import type { IslandPlan } from "../../../semantic-study/IslandPlanModel.ts";
 import type { RockFormationMesh, RockVariantAsset } from "@galacean/engine-terrain/rock-formation/types";
 import { createRockCollider, disabledRockCollisionOwners } from "./Collider.ts";
 import { createRockVariantMaterial } from "./RockMaterial";
 import { rockFormationPlacements } from "./Placement.ts";
 import { readRockColorBlend, type RockColorBlend } from "./ColorPalette.ts";
+import { RockLodView } from "./RockLodView";
 import { setRockColorBlend } from "./ColorMaterial.ts";
 
 interface RockViewEntry {
@@ -31,6 +42,11 @@ export class RockFormationView {
   >();
   private disposed = false;
   private grassCoveragePreview = false;
+  private readonly grassTop: boolean;
+  private readonly shoreStoneColor?: readonly [number, number, number];
+  private readonly cliffBaseColor?: readonly [number, number, number];
+  private readonly lod?: RockLodView;
+  private readonly fadingPickBatches = new WeakMap<MeshRenderer, SeedWorldArrayPickBatch>();
 
   constructor(
     private readonly engine: Engine,
@@ -38,9 +54,19 @@ export class RockFormationView {
     plan: IslandPlan,
     formations: readonly RockFormationMesh[],
     private readonly registerGrassAppearance?: (material: PBRMaterial) => () => void,
-    private colorBlend: RockColorBlend = readRockColorBlend()
+    private colorBlend: RockColorBlend = readRockColorBlend(),
+    camera?: Camera
   ) {
+    const template = worldTemplate(plan.parameters.worldTemplate?.id);
+    const art = template ? WORLD_TEMPLATE_ART[template.id] : undefined;
+    this.grassTop = (template?.rockTopCover ?? (template?.vegetation ? "ground" : "grass")) === "grass";
+    this.shoreStoneColor = art?.shoreStone ? templateLinearColor(art.shoreStone) : undefined;
+    this.cliffBaseColor = art?.stone ? templateLinearColor(art.stone) : undefined;
     this.root = parent.createChild("Rock formations");
+    if (camera) {
+      this.lod = this.root.addComponent(RockLodView);
+      this.lod.camera = camera;
+    }
     try {
       this.prepareFormations(plan, formations).commit();
     } catch (error) {
@@ -63,6 +89,30 @@ export class RockFormationView {
     }
   }
 
+  private effectiveColorBlend(grass: boolean, settings: RockColorBlend): RockColorBlend {
+    if (grass) {
+      if (this.grassTop || !this.cliffBaseColor) return settings;
+      // Sandstone cliff formations on ground-covered templates brighten the dark shared rock albedo into sunlit terracotta.
+      const cliffBoost = 2.85;
+      return {
+        color: settings.color.map((channel) =>
+          Math.max(0, Math.min(4, channel * cliffBoost))
+        ) as RockColorBlend["color"]
+      };
+    }
+    if (!this.shoreStoneColor) return settings;
+    const base = this.cliffBaseColor;
+    // Scale pale travertine/limestone shore boulders evenly by user brightness ratio without cliff red-orange channel bias.
+    const luma = (rgb: readonly [number, number, number]) => 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+    const baseLuma = base ? luma(base) : 0;
+    const gain = baseLuma > 1e-4 ? Math.max(0.4, Math.min(3, luma(settings.color) / baseLuma)) : 1;
+    const boost = 3.6 * gain;
+    const color = this.shoreStoneColor.map((stone) =>
+      Math.max(0, Math.min(4, stone * boost))
+    ) as RockColorBlend["color"];
+    return { color };
+  }
+
   private uploadVariant(entry: RockViewEntry): void {
     const { asset, matrix } = entry.formation.variant!;
     const grass = !!entry.formation.grass;
@@ -70,8 +120,11 @@ export class RockFormationView {
     if (!roles) this.variantMaterials.set(asset, (roles = new Map()));
     let shared = roles.get(grass);
     if (!shared) {
-      const material = createRockVariantMaterial(this.engine, asset, this.colorBlend);
+      const material = createRockVariantMaterial(this.engine, asset, this.effectiveColorBlend(grass, this.colorBlend));
       try {
+        if (grass && this.grassTop) material.shaderData.enableMacro("MATERIAL_ROCK_TOP_GRASS");
+        if (grass && !this.grassTop && this.cliffBaseColor)
+          material.shaderData.setVector2("material_TerrainCoverageSlope", new Vector2(0.78, 0.18));
         const release = grass ? this.registerGrassAppearance?.(material) : undefined;
         material.shaderData.setFloat("material_SurfaceCoveragePreview", Number(this.grassCoveragePreview));
         roles.set(grass, (shared = { material, release, users: 0 }));
@@ -91,7 +144,9 @@ export class RockFormationView {
     };
     entry.releaseVariant = releaseMaterial;
     const geometry = acquireRockVariantMesh(this.engine, asset);
+    let unregisterLod: (() => void) | undefined;
     entry.releaseVariant = () => {
+      unregisterLod?.();
       geometry.release();
       releaseMaterial();
     };
@@ -103,6 +158,7 @@ export class RockFormationView {
     renderer.mesh = geometry.mesh;
     renderer.setMaterial(materialEntry.material);
     renderer.castShadows = renderer.receiveShadows = true;
+    unregisterLod = this.lod?.add(renderer, geometry.mesh, asset);
     entry.batch = new SeedWorldArrayPickBatch(renderer);
     entry.batch.id = entry.formation.owners[0];
     entry.batch.count = 1;
@@ -159,8 +215,10 @@ export class RockFormationView {
       plan,
       [...entries.values()].map((entry) => entry.formation)
     );
-    return () =>
+    return () => {
       placements.forEach(({ formation, origin }) => entries.get(formation.id)!.entity.transform.setPosition(...origin));
+      this.lod?.invalidate();
+    };
   }
   /** Resident formation entities for the optional research preview's replacement layer. */
   get groups(): ReadonlyMap<string, Entity> {
@@ -175,13 +233,26 @@ export class RockFormationView {
   setColorBlend(settings: RockColorBlend): void {
     this.colorBlend = settings;
     for (const roles of this.variantMaterials.values())
-      for (const { material } of roles.values()) setRockColorBlend(material, settings);
+      for (const [grass, { material }] of roles) setRockColorBlend(material, this.effectiveColorBlend(grass, settings));
   }
   prepare(plan: IslandPlan) {
     return { commit: this.placement(plan) };
   }
   visitPickBatches(visitor: SeedWorldPickVisitor): void {
-    for (const { batch } of this.entries.values()) if (batch?.renderer.entity.isActiveInHierarchy) visitor(batch);
+    for (const { batch } of this.entries.values()) {
+      if (!batch?.renderer.entity.isActiveInHierarchy) continue;
+      visitor(batch);
+      const fading = this.lod?.fadingRenderer(batch.renderer);
+      if (!fading) continue;
+      let fadingBatch = this.fadingPickBatches.get(fading);
+      if (!fadingBatch) {
+        fadingBatch = new SeedWorldArrayPickBatch(fading);
+        fadingBatch.id = batch.id;
+        fadingBatch.count = batch.count;
+        this.fadingPickBatches.set(fading, fadingBatch);
+      }
+      visitor(fadingBatch);
+    }
   }
   private release(entry: RockViewEntry): void {
     entry.collider?.dispose();

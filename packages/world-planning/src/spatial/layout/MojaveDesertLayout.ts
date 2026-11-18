@@ -3,13 +3,15 @@ import type { SemanticRecipe } from "../../semantic-study/WorldPlanningContract"
 
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
 import { territoryLookup } from "../ecology/PoiTerritories";
+import { worldTemplate } from "../WorldTemplateCatalog";
 
 export const MOJAVE_ROCK_GROUPS = Array.from({ length: 6 }, (_, i) => `mojave/A0${i + 1}`);
-export const MOJAVE_STONES = Array.from({ length: 6 }, (_, i) => `mojave/R0${i + 1}`);
 
 /** Bind the theme to canonical POI volumes and landscape slots; never generate positions or counts here. */
 export function applyMojaveDesertAppearance(plan: IslandPlan, recipe: SemanticRecipe): void {
   if (plan.parameters.worldTemplate?.id !== "titan-wasteland") return;
+  // Shared-rock templates feed plan.rocks and stones directly into native RockFormationView.
+  if (worldTemplate(plan.parameters.worldTemplate?.id)?.rockSource === "shared") return;
   const select = (ids: string[], id: string) =>
     ids[Math.floor(settlementRandom(plan.parameters.seed, `mojave:asset:${id}`) * ids.length)];
   const territoryAt = territoryLookup(plan);
@@ -28,9 +30,9 @@ export function applyMojaveDesertAppearance(plan: IslandPlan, recipe: SemanticRe
     return {
       ...item,
       poiId: owner,
-      assetId: item.kind === "tree" ? undefined : select(MOJAVE_STONES, item.id),
-      assetRenderMode: "prefab",
-      ...(item.kind === "rock" ? { materialVariant: variant(owner) } : {})
+      assetId: undefined,
+      assetRenderMode: item.kind === "tree" ? "prefab" : undefined,
+      ...(item.kind === "rock" ? { materialVariant: variant(owner), collision: false as const } : {})
     };
   });
 }

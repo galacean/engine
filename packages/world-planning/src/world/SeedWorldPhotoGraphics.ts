@@ -1,5 +1,5 @@
 import { SeedWorldLiquidGlassUiMaterial } from "@galacean/engine-modify/rendering/LiquidGlassPostProcessPass";
-import { destroyOwnedMesh } from "@galacean/engine-terrain/geometry/destroyOwnedMesh";
+import { destroyOwnedMesh } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
 import { destroyPhotoResources } from "./SeedWorldPhotoResources";
 import { warmupPhotoPresentation } from "./SeedWorldPhotoWarmup";
 import { warmupSeedWorldRendererVariants } from "./SeedWorldShaderWarmup";

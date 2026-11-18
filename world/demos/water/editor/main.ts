@@ -3,9 +3,8 @@ import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { registerNativeWater, WaterSystem } from "@galacean/engine-water/water/native/index";
 import { BUILTIN_WATER_PROJECT_URL } from "@galacean/engine-water/water/native/WaterBuiltinAssets";
 import { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
-import { RuntimeEditor } from "@galacean/engine-runtime-editor/runtime-editor/runtime-editor";
+import { RuntimeNativeEditor } from "@galacean/engine-runtime-editor/runtime-editor-agent/runtime-native-editor";
 import { NativeWaterHost } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterHost";
-import { NativeWaterEditor } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
 import { mountNativeWaterPanel } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterPanel";
 
 registerNativeWater();
@@ -22,7 +21,8 @@ const scene = await engine.resourceManager.load<Scene>({
   url: project.projectPackage.project.scene
 });
 engine.sceneManager.activeScene = scene;
-const editor = new RuntimeEditor(project, scene);
+const native = new RuntimeNativeEditor(project, scene),
+  editor = native.editor;
 const camera = scene.createRootEntity("Editor camera").addComponent(Camera);
 camera.entity.transform.setPosition(10, 10, 13);
 camera.entity.transform.lookAt(new Vector3(4, 0, 4));
@@ -31,14 +31,22 @@ camera.farClipPlane = 100;
 scene.createRootEntity("Sun").addComponent(DirectLight).entity.transform.setRotation(-60, 20, 0);
 const system = scene.createRootEntity("Water runtime owner").addComponent(WaterSystem);
 system.camera = camera;
-const host = new NativeWaterHost(project, editor, system),
-  water = new NativeWaterEditor(project, editor);
-const result = await water.execute(async () => {});
-if (result.runtimeError) throw new Error(result.runtimeError);
+const host = new NativeWaterHost(project, editor, system);
+const signal = new AbortController().signal;
+const initialEdit = native.beginEdit(crypto.randomUUID(), signal);
+try {
+  await initialEdit.prepare(signal);
+  await initialEdit.commit();
+  await initialEdit.activate(signal);
+} finally {
+  await initialEdit.complete?.();
+}
 let closeTask: Promise<void> | undefined;
 const close = () =>
   (closeTask ??= (async () => {
-    await water.close();
+    await panel.stop();
+    await host.flush().catch(() => {});
+    await project.flush();
     panel.destroy();
     host.dispose();
     await system.dispose();
@@ -53,16 +61,17 @@ const close = () =>
     document.body.append(message);
   })().catch((error) => {
     closeTask = undefined;
+    panel.resume(error);
     throw error;
   }));
-const panel = mountNativeWaterPanel(water, { close });
+const panel = mountNativeWaterPanel(project, native, { close });
 const resize = () => engine.canvas.setResolution(innerWidth, innerHeight);
 resize();
 addEventListener("resize", resize);
 engine.run();
 document.body.dataset.ready = "true";
 // Exposes the same facade for local tools and browser acceptance, with no second author model.
-Object.assign(window, { nativeWaterEditor: { water, host, system, engine, project, editor } });
+Object.assign(window, { nativeWaterEditor: { native, host, system, engine, project, editor } });
 addEventListener(
   "pagehide",
   () => {

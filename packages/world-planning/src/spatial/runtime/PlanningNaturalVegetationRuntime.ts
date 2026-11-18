@@ -1,3 +1,5 @@
+import { rockLodScreenHeights } from "@galacean/engine-terrain/rock-formation/RockLodPolicy";
+import { prepareRockLodMeshes, rockLodMeshes } from "../../integrations/terrain/rock-formation/RockLodMeshes";
 import type { PreparedTerrainUpdate } from "@galacean/engine-terrain/terrain/clipmap/TerrainPreparedUpdate";
 import type { SeedWorldAuthoringRuntimeBoundsV1 } from "../../world/SeedWorldAuthoringRuntimeDelta";
 import { createNaturalTreeSpeciesRegions } from "../../planning-data/NaturalVegetationProfile";
@@ -84,7 +86,10 @@ import {
 import { flowerAssetResourceIds } from "../../planning-data/FlowerAssetWeights";
 import type { LandscapeView, LandscapeFocus } from "@galacean/engine-vegetation/world/VegetationLandscapePlan";
 import type { RockFormationSettings } from "../../integrations/terrain/rock-formation/Settings";
-import { createRockVariantMaterial } from "../../integrations/terrain/rock-formation/RockMaterial";
+import {
+  createRockVariantMaterial,
+  prepareRockLodDither
+} from "../../integrations/terrain/rock-formation/RockMaterial";
 import {
   acquireRockVariantMesh,
   pickRockVariant,
@@ -101,9 +106,6 @@ import {
   SeedWorldExactInstanceCellRuntime,
   type SeedWorldExactInstanceSpatialEntry
 } from "../../world/SeedWorldExactInstanceCellRuntime";
-import { WORLD_TEMPLATE_ART } from "../WorldTemplateArtDirection";
-import { templateLinearColor } from "../WorldTemplateCatalog";
-import { buildOilPaintTree, oilPaintMaterial } from "./OilPaintMesh";
 
 type PlantSource = ReturnType<ProceduralPlantLibraryRuntime["getPlacementSources"]>[number];
 type Source = Pick<PlantSource, "bounds" | "rendererBindings"> & {
@@ -153,9 +155,6 @@ export class PlanningNaturalVegetationRuntime {
   private catalogSources?: PlantSpeciesSources;
   private materials?: Awaited<ReturnType<typeof loadProceduralPlantMaterialBindings>>;
   private sources: ReadonlyMap<string, Source>[] = [];
-  private readonly paintedTrees = new Map<string, Source>();
-  private readonly paintedTreeMeshes = new Set<ModelMesh>();
-  private paintedTreeMaterials?: { bark: Material; leaf: Material };
   private planner!: PlanningNaturalVegetation;
   private population!: SeedWorldPopulationPreview;
   plantAssets: readonly PlanningPlantAsset[] = [];
@@ -668,45 +667,7 @@ export class PlanningNaturalVegetationRuntime {
     );
   }
   private sourceForPlant(instance: LandscapePlantInstance, level: number): Source {
-    const source = this.rockSources?.forInstance(instance) ?? this.sources[level].get(instance.assetId)!;
-    const template = this.plan.parameters.worldTemplate?.id;
-    const art = template && WORLD_TEMPLATE_ART[template];
-    if (!art || !art.oilPaint || !art.grass || instance.layerId !== "乔木") return source;
-    const { bark: barkColor, foliage: leafColor } = art;
-    if (!barkColor || !leafColor) return source;
-    const id = `${instance.assetId}:${level}`;
-    const cached = this.paintedTrees.get(id);
-    if (cached) return cached;
-
-    const canonical = this.sources[0].get(instance.assetId)!;
-    const slots = PLANT_SPECIES_MATERIALS[instance.assetId];
-    const roles = ["bark", "leaf"] as const;
-    const bindings = roles.map((role) =>
-      canonical.rendererBindings.find(({ materialId }) => slots?.[materialId]?.role === role)
-    );
-    if (bindings.some((binding) => !binding)) return source;
-    const engine = this.owner.engine;
-    const materials = (this.paintedTreeMaterials ??= {
-      bark: oilPaintMaterial(engine, art.oilPaint.barkPigments, barkColor),
-      leaf: oilPaintMaterial(engine, art.oilPaint.canopyPigments, leafColor, art.oilPaint.leafTransmittance)
-    });
-    const meshes = buildOilPaintTree(engine, instance.assetId, canonical.bounds, level, art.oilPaint);
-    this.paintedTreeMeshes.add(meshes.bark);
-    this.paintedTreeMeshes.add(meshes.leaf);
-    const painted: Source = {
-      ...source,
-      rendererBindings: roles.map((role, index) => {
-        const renderer = this.resourceRoot.createChild(`${id} ${role}`).addComponent(MeshRenderer);
-        renderer.mesh = meshes[role];
-        renderer.setMaterial(materials[role]);
-        renderer.enableVertexColor = true;
-        const pigment = role === "bark" ? barkColor : leafColor;
-        renderer.shaderData.setVector4("renderer_AssetAssemblyColor", new Vector4(...templateLinearColor(pigment), 1));
-        return { renderer, materialId: bindings[index]!.materialId };
-      })
-    };
-    this.paintedTrees.set(id, painted);
-    return painted;
+    return this.rockSources?.forInstance(instance, level) ?? this.sources[level].get(instance.assetId)!;
   }
   private plant(
     owner: Entity,
@@ -845,7 +806,7 @@ export class PlanningNaturalVegetationRuntime {
         size,
         lods
       },
-      source.kind === "stone" ? 0 : SEED_WORLD_POPULATION_RUNTIME_PROFILE.tree.crossFadeSeconds
+      SEED_WORLD_POPULATION_RUNTIME_PROFILE.tree.crossFadeSeconds
     );
     lod.setAuthoringVisible(!this.groundExcluded(instance));
     return {
@@ -1547,11 +1508,6 @@ export class PlanningNaturalVegetationRuntime {
     this.materials?.destroy();
     this.rockSources?.dispose();
     this.resourceRoot.destroy();
-    for (const mesh of this.paintedTreeMeshes) mesh.destroy();
-    this.paintedTreeMeshes.clear();
-    this.paintedTrees.clear();
-    this.paintedTreeMaterials?.bark.destroy();
-    this.paintedTreeMaterials?.leaf.destroy();
   }
 }
 
@@ -1662,14 +1618,23 @@ async function createCompanionRockSources(
   const pools = rockVariantPools(plan);
   if (!pools || !placements.length) return undefined;
   const seed = plan.parameters.seed;
-  const assets = await Promise.all(pools.stones.map((entry) => prepareRockVariant(parent.engine, entry)));
+  const [assets] = await Promise.all([
+    Promise.all(
+      pools.stones.map(async (entry) => {
+        const asset = await prepareRockVariant(parent.engine, entry);
+        await prepareRockLodMeshes(parent.engine, asset);
+        return asset;
+      })
+    ),
+    prepareRockLodDither(parent.engine)
+  ]);
   signal.throwIfAborted();
   const root = parent.createChild("Companion rock sources");
   root.isActive = false;
   const materials: PBRMaterial[] = [];
   const releases: (() => void)[] = [];
   const sources = new Map<string, Source>();
-  const variants = new Map<string, Source[]>();
+  const variants = new Map<string, Source[][]>();
   const dispose = () => {
     root.destroy();
     for (const material of materials) material.destroy(true);
@@ -1680,7 +1645,8 @@ async function createCompanionRockSources(
       materials.push(createRockVariantMaterial(parent.engine, asset, settings.colorBlend));
       const lease = acquireRockVariantMesh(parent.engine, asset);
       releases.push(lease.release);
-      return lease.mesh;
+      const [middle, far] = rockLodMeshes(asset) ?? [];
+      return [lease.mesh, middle, far].filter((mesh) => mesh !== undefined);
     });
     for (const placement of placements) {
       const { id, bounds } = placement;
@@ -1720,17 +1686,23 @@ async function createCompanionRockSources(
           matrix.elements.set(fit);
           matrix.elements[12] += job.origin[0];
           matrix.elements[14] += job.origin[2];
-          const entity = root.createChild(asset.id);
-          entity.transform.localMatrix = matrix;
-          const renderer = entity.addComponent(MeshRenderer);
-          renderer.mesh = meshes[index];
-          renderer.setMaterial(materials[index]);
-          renderer.shaderData.setVector4("renderer_AssetAssemblyColor", new Vector4(1, 1, 1, 1));
-          return {
-            ...source,
-            transitionHeights: [placement.cullScreenHeight / SEED_WORLD_SURFACE_DETAIL_TERMINAL_DISTANCE_MULTIPLIER],
-            rendererBindings: [{ renderer, materialId: "surface" }]
-          };
+          const levels = meshes[index];
+          const cutoff = placement.cullScreenHeight / SEED_WORLD_SURFACE_DETAIL_TERMINAL_DISTANCE_MULTIPLIER;
+          const thresholds =
+            levels.length === 1 ? [cutoff] : rockLodScreenHeights([1, 0.5, cutoff].slice(3 - levels.length));
+          return levels.map((mesh) => {
+            const entity = root.createChild(asset.id);
+            entity.transform.localMatrix = matrix;
+            const renderer = entity.addComponent(MeshRenderer);
+            renderer.mesh = mesh;
+            renderer.setMaterial(materials[index]);
+            renderer.shaderData.setVector4("renderer_AssetAssemblyColor", new Vector4(1, 1, 1, 1));
+            return {
+              ...source,
+              transitionHeights: thresholds,
+              rendererBindings: [{ renderer, materialId: "surface" }]
+            };
+          });
         })
       );
     }
@@ -1738,8 +1710,8 @@ async function createCompanionRockSources(
       root,
       sources,
       specimenCount: assets.length,
-      forInstance(instance: Pick<LandscapePlantInstance, "id" | "assetId">) {
-        return pickRockVariant(variants.get(instance.assetId) ?? [], hashSeed(seed, instance.id));
+      forInstance(instance: Pick<LandscapePlantInstance, "id" | "assetId">, level = 0) {
+        return pickRockVariant(variants.get(instance.assetId) ?? [], hashSeed(seed, instance.id))?.[level];
       },
       setColorBlend(value: RockColorBlend) {
         for (const material of materials) setRockColorBlend(material, value);

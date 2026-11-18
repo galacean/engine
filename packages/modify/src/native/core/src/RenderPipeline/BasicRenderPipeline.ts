@@ -4,6 +4,7 @@ import { Vector2 } from "@galacean/engine-math";
 import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import type { RenderStateElementMap } from "../BasicResources";
 import { Background } from "../Background";
+import { Engine } from "../Engine";
 import { Camera } from "../Camera";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
@@ -123,10 +124,10 @@ export class BasicRenderPipeline {
     this._cullingResults = new CullingResults();
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
-    this._saoPass = new ScalableAmbientObscurancePass(engine);
+    this._saoPass = new ScalableAmbientObscurancePass(engine, Engine._builtinShaders.scalableAmbientOcclusion);
     this._screenSpaceReflectionPass = new ScreenSpaceReflectionPass(engine, camera);
     this._opaqueTexturePass = new OpaqueTexturePass(engine);
-    this._finalPass = new FinalPass(engine);
+    this._finalPass = new FinalPass(engine, Engine._builtinShaders.finalSRGB, Engine._builtinShaders.finalAntiAliasing);
   }
 
   /**
@@ -334,7 +335,7 @@ export class BasicRenderPipeline {
           depthFormat,
           needDepthTexture,
           false,
-          !camera.enableHDR,
+          !camera._isInternalFormatHDR(),
           msaaSamples,
           TextureWrapMode.Clamp,
           TextureFilterMode.Bilinear,

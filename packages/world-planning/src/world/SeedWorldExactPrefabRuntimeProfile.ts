@@ -6,7 +6,6 @@ import type {
   SeedWorldPresentationDecorationInstance,
   SeedWorldLotusInstance,
   SeedWorldMushroomInstance,
-  SeedWorldSmallRockInstance,
   SeedWorldStoneInstance
 } from "./SeedWorldDecorations";
 import type { SeedWorldExactInstance, SeedWorldExactInstanceSpatialEntry } from "./SeedWorldExactInstanceCellRuntime";
@@ -16,7 +15,6 @@ import type { SeedWorldRuntimeBounds } from "./SeedWorldRuntimeBounds";
 import { SeedWorldLotusRuntime } from "./SeedWorldLotusRuntime";
 import { SeedWorldMushroomRuntime } from "./SeedWorldMushroomRuntime";
 import { SeedWorldRockRuntime } from "../runtime/SeedWorldRockRuntime.ts";
-import { SeedWorldSmallRockRuntime } from "../runtime/SeedWorldSmallRockRuntime.ts";
 
 /** Runtime contract shared by every configured exact generated Prefab source. */
 export interface SeedWorldExactPrefabRuntime {
@@ -116,28 +114,6 @@ export const SEED_WORLD_EXACT_PREFAB_RUNTIME_PROFILES: readonly SeedWorldExactPr
         ),
         context.crossFadeDurationSeconds
       )
-  },
-  {
-    key: "small-rock",
-    enabled: (context) =>
-      Boolean(context.sourceLibrary.debrisSource) ||
-      context.decorations.some((decoration) => decoration.category === "small-rock"),
-    entityName: "Small Rocks",
-    create: (context, root) => {
-      if (!context.sourceLibrary.debrisSource)
-        throw new Error("Small-rock Prefab runtime requires authored debris sources");
-      return new SeedWorldSmallRockRuntime(
-        context.engine,
-        root,
-        context.camera,
-        context.sourceLibrary.debrisSource,
-        context.fields,
-        context.decorations.filter(
-          (decoration): decoration is SeedWorldSmallRockInstance => decoration.category === "small-rock"
-        ),
-        context.crossFadeDurationSeconds
-      );
-    }
   },
   {
     key: "mushroom",

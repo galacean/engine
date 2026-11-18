@@ -1,6 +1,6 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { RuntimeProjectEdit } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
-import { RUNTIME_PROJECT_SAVE_VERSION } from "@galacean/engine-project/runtime-editor/project/runtime-project";
+import { RUNTIME_PROJECT_SAVE_VERSION, type RuntimeProjectPackage } from "@galacean/engine-project/runtime-editor/project/runtime-project";
 import { RuntimeSceneEdit } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-scene-edit";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
@@ -23,7 +23,11 @@ import { createSpatialTerrainPlan } from "@galacean/engine-world-planning/spatia
 import { generateRiverRegions, RIVER_DEFAULTS } from "@galacean/engine-world-planning/spatial/hydrology/RiverRegions";
 import { generateLakeRegions, LAKE_DEFAULTS } from "@galacean/engine-world-planning/spatial/hydrology/LakeRegions";
 import { exportPlanningRecipe } from "@galacean/engine-world-planning/spatial/PlanningDocument";
+import { PlanningSession, type PlanningSessionOptions } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import { createPlanningGroundSampler } from "@galacean/engine-world-planning/semantic-study/WorldPlanningTerrain";
+import { PlanningProjectStorage } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningProjectStorage";
+import { createPlanningWorldSource } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource";
+import { COMPOSITION_OWNER } from "@galacean/engine-world-planning/spatial/SpatialComposition";
 import {
   exportPlanningScene,
   importPlanningScene
@@ -82,6 +86,212 @@ async function prepareRemoval(draft: RuntimeProjectEdit, before: ReturnType<Runt
     run: async (run) => run({ draft, edited() {} } as Parameters<typeof run>[0])
   } as Parameters<ReturnType<typeof preparePlanningWaterSource>>[0]);
 }
+
+it("installs water assets when a fresh planning project first applies a template with a lake", async () => {
+  const initial = fixture(1).draft.finish();
+  const materials = initial.project.files.filter(file => file.type === "Material");
+  const project = {
+    projectPackage: {
+      ...initial,
+      project: { ...initial.project, files: initial.project.files.filter(file => file.type !== "Material") },
+      contents: { [path]: JSON.stringify({ asset: { version: "2.0" }, scene: { rootEntities: [] }, entities: [], components: [] }) },
+      documents: {}
+    } as RuntimeProjectPackage,
+    async publish(pack: RuntimeProjectPackage) { this.projectPackage = pack; return []; }
+  };
+  const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => ({
+    ok: true,
+    json: async () => ({ files: materials }),
+    text: async () => initial.contents[materials.find(file => String(url).endsWith(file.path))!.virtualPath]
+  }) as Response);
+  try {
+    await new PlanningProjectStorage(project).save(createTemplatePlanningDocument(1, "low-poly"), "first-template", true);
+    expect(project.projectPackage.project.files.map(file => file.virtualPath)).toContain("Water/Materials/lake.mat");
+    expect(planningSourceDocument(project.projectPackage)!.entities["lake:authored:template:low-poly:water:valley-pond"])
+      .toBeDefined();
+  } finally { fetch.mockRestore(); }
+});
+
+it("replaces saved water with the selected template without changing unrelated Scene authoring", async () => {
+  const { draft, scene } = fixture(1);
+  const building = scene.create({ name: "Keep building", position: [50, 3, 60] });
+  const decoration = scene.create({ name: "Keep child", parentEntityId: building.id });
+  const oldWater = scene.queryComponents({ type: "WaterBodyComponent" })[0];
+  const waterChild = scene.create({ name: "Keep water decoration", parentEntityId: oldWater.entityId });
+  const beforeBuilding = scene.readEntity(building.id);
+  draft.writeDocument(waterInitializationPath(path), JSON.stringify({
+    version: 1, seeds: { "1": ["lake:0", "planning-ocean"] }, removed: { "1": ["lake:0", "planning-ocean"] }
+  }));
+  const project = {
+    projectPackage: draft.finish(),
+    async publish(pack: RuntimeProjectPackage) { this.projectPackage = pack; return []; }
+  };
+  const storage = new PlanningProjectStorage(project);
+  const target = createTemplatePlanningDocument(1, "low-poly");
+  // Exercise the same storage transaction as the planning template picker.
+  await storage.save(target, "template-water-reset", true);
+  expect(waterInitialization(project.projectPackage)).toEqual({ version: 1, seeds: {}, resetPending: expect.any(String) });
+  const saved = (await storage.load(1))!;
+  expect(saved.entities["lake:0"]).toBeUndefined();
+  expect(saved.entities["planning-ocean"]).toBeUndefined();
+  expect(Object.keys(saved.entities).sort()).toEqual(Object.keys(target.entities).sort());
+  expect(saved.entities.world).toEqual(target.entities.world);
+  const restoredScene = new RuntimeSceneEdit(new RuntimeProjectEdit(project.projectPackage, nativeAssetFormats(() => ({}))), path);
+  expect(restoredScene.readEntity(building.id)).toEqual(beforeBuilding);
+  expect(restoredScene.readEntity(decoration.id).name).toBe("Keep child");
+  expect(restoredScene.readEntity(waterChild.id).name).toBe("Keep water decoration");
+  const result = generatePlanningDocument(saved, undefined, [], undefined, { environment: false });
+  expect(result.accepted).toBe(true);
+  expect(result.plan.waters.filter(water => water.kind === "lake").map(water => water.id))
+    .toEqual(["lake:authored:template:low-poly:water:valley-pond"]);
+  const before = project.projectPackage;
+  project.publish = async () => { throw new Error("storage unavailable"); };
+  await expect(storage.save(createSeedPlanningDocument(1), "failed-reset", true)).rejects.toThrow("storage unavailable");
+  expect(project.projectPackage).toBe(before);
+}, 60000);
+
+it("rebuilds handed-off water over a target template's old shapes and deletion records, then preserves ordinary reloads", async () => {
+  const { draft, scene } = fixture(1);
+  const lake = scene.queryComponents({ type: "WaterBodyComponent" }).find(body =>
+    (scene.readComponent(body.id).props!.authoring as any).shape.kind === "lake")!;
+  scene.update(lake.entityId, { position: [20, 0, 30] });
+  draft.writeDocument(waterInitializationPath(path), JSON.stringify({
+    version: 1, seeds: { "1": ["lake:0", "planning-ocean"] }, removed: { "1": ["lake:0", "planning-ocean"] }
+  }));
+  const project = {
+    projectPackage: draft.finish(),
+    async publish(pack: RuntimeProjectPackage) { this.projectPackage = pack; return []; }
+  };
+  const storage = new PlanningProjectStorage(project);
+  const document = createSeedPlanningDocument(1);
+  const result = generatePlanningDocument(document, undefined, [], undefined, { environment: false });
+  expect(result.accepted).toBe(true);
+  const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, json: async () => ({ files: [] }) } as Response);
+  try {
+    const source = await createPlanningWorldSource("?seed=1", { document, result, waterResetRequest: "template-reset" }, storage);
+    const initialized = source.session.export();
+    source.dispose();
+    const generatedIds = result.plan.waters.filter(water => ["lake", "river"].includes(water.kind)).map(water => water.id);
+    expect(waterInitialization(project.projectPackage).removed).toBeUndefined();
+    expect(waterInitialization(project.projectPackage).seeds["1"].sort()).toEqual([...generatedIds, "planning-ocean"].sort());
+    expect(generatePlanningDocument(initialized, undefined, [], undefined, { environment: false }).accepted).toBe(true);
+    const current = new RuntimeSceneEdit(new RuntimeProjectEdit(project.projectPackage, nativeAssetFormats(() => ({}))), path);
+    expect(current.queryComponents({ type: "WaterBodyComponent" })).toHaveLength(generatedIds.length + 1);
+    expect(current.queryComponents({ type: "WaterBodyComponent" }).some(body => body.id === lake.id)).toBe(false);
+    const before = current.queryComponents({ type: "WaterBodyComponent" });
+    await storage.initialize(initialized, result);
+    const reloaded = new RuntimeSceneEdit(new RuntimeProjectEdit(project.projectPackage, nativeAssetFormats(() => ({}))), path);
+    expect(reloaded.queryComponents({ type: "WaterBodyComponent" })).toEqual(before);
+  } finally { fetch.mockRestore(); }
+}, 60000);
+
+it("consumes cross-project template resets once and preserves edits when an older planning page is reopened", async () => {
+  const makeProject = (pack: RuntimeProjectPackage) => ({
+    projectPackage: pack,
+    async publish(next: RuntimeProjectPackage) { this.projectPackage = next; return []; }
+  });
+  const source = makeProject(fixture(1).draft.finish()), target = makeProject(fixture(1).draft.finish());
+  const sourceStore = new PlanningProjectStorage(source), targetStore = new PlanningProjectStorage(target);
+  const document = createTemplatePlanningDocument(1, "low-poly");
+  const result = generatePlanningDocument(document, undefined, [], undefined, { environment: false });
+  expect(result.accepted).toBe(true);
+  const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, json: async () => ({ files: [] }) } as Response);
+  const lake = () => {
+    const draft = new RuntimeProjectEdit(target.projectPackage, nativeAssetFormats(() => ({})));
+    const scene = new RuntimeSceneEdit(draft, path);
+    const body = scene.queryComponents({ type: "WaterBodyComponent" }).find(body =>
+      (scene.readComponent(body.id).props!.authoring as any).shape.kind === "lake")!;
+    return { draft, scene, body, authoring: scene.readComponent(body.id).props!.authoring as any };
+  };
+  const customize = () => {
+    const current = lake();
+    current.scene.updateComponent(current.body.id, { authoring: {
+      ...current.authoring, material: { $ref: "Water/Materials/river.mat" }, priority: 7
+    } });
+    target.projectPackage = current.draft.finish();
+    return current.body.id;
+  };
+  try {
+    await sourceStore.save(document, "first-template-application", true);
+    const request = sourceStore.pendingWaterReset!;
+    await targetStore.initialize((await sourceStore.load(1))!, result, request);
+    const id = customize();
+    await targetStore.initialize((await sourceStore.load(1))!, result, request);
+    expect(lake().body.id).toBe(id);
+    expect(lake().authoring).toMatchObject({ material: { $ref: "Water/Materials/river.mat" }, priority: 7 });
+
+    await sourceStore.save(document, "second-template-application", true);
+    const nextRequest = sourceStore.pendingWaterReset!;
+    expect(nextRequest).not.toBe(request);
+    await targetStore.initialize((await sourceStore.load(1))!, result, nextRequest);
+    expect(lake().body.id).not.toBe(id);
+    expect(lake().authoring.material).toEqual({ $ref: "Water/Materials/lake.mat" });
+    const nextId = customize();
+    // An older source project can still hand off an earlier, already applied request.
+    await targetStore.initialize(document, result, request);
+    expect(lake().body.id).toBe(nextId);
+    expect(lake().authoring).toMatchObject({ material: { $ref: "Water/Materials/river.mat" }, priority: 7 });
+  } finally { fetch.mockRestore(); }
+}, 60000);
+
+it("gives legacy boolean resets a stable cross-project identity after reopening", async () => {
+  const source = fixture(1), target = fixture(1);
+  const sourceProject = {
+    id: "legacy-source", projectPackage: source.draft.finish(),
+    async publish(pack: RuntimeProjectPackage) { this.projectPackage = pack; return []; }
+  };
+  const targetProject = {
+    id: "legacy-target", projectPackage: target.draft.finish(),
+    async publish(pack: RuntimeProjectPackage) { this.projectPackage = pack; return []; }
+  };
+  const sourceStore = new PlanningProjectStorage(sourceProject), targetStore = new PlanningProjectStorage(targetProject);
+  await sourceStore.save(createTemplatePlanningDocument(1, "low-poly"), "legacy-template-application", true);
+  const legacy = new RuntimeProjectEdit(sourceProject.projectPackage, nativeAssetFormats(() => ({})));
+  legacy.writeDocument(waterInitializationPath(path), JSON.stringify({
+    ...waterInitialization(sourceProject.projectPackage), resetPending: true
+  }));
+  sourceProject.projectPackage = legacy.finish();
+  const request = sourceStore.pendingWaterReset!;
+  expect(typeof request).toBe("string");
+  expect(new PlanningProjectStorage(sourceProject).pendingWaterReset).toBe(request);
+  const document = (await sourceStore.load(1))!;
+  const result = generatePlanningDocument(document, undefined, [], undefined, { environment: false });
+  const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, json: async () => ({ files: [] }) } as Response);
+  try {
+    await targetStore.initialize(document, result, request);
+    const current = new RuntimeSceneEdit(new RuntimeProjectEdit(targetProject.projectPackage, nativeAssetFormats(() => ({}))), path);
+    const before = current.queryComponents({ type: "WaterBodyComponent" });
+    await new PlanningProjectStorage(targetProject).initialize(document, result,
+      new PlanningProjectStorage(sourceProject).pendingWaterReset);
+    const restored = new RuntimeSceneEdit(new RuntimeProjectEdit(targetProject.projectPackage, nativeAssetFormats(() => ({}))), path);
+    expect(restored.queryComponents({ type: "WaterBodyComponent" })).toEqual(before);
+    expect(waterInitialization(targetProject.projectPackage).appliedResets).toEqual([request]);
+  } finally { fetch.mockRestore(); }
+}, 60000);
+
+it("does not consume a water reset when target publication fails, and retries it once", async () => {
+  const { draft, document } = fixture(1);
+  const project = {
+    projectPackage: draft.finish(),
+    async publish(pack: RuntimeProjectPackage) { this.projectPackage = pack; return []; }
+  };
+  const storage = new PlanningProjectStorage(project);
+  const result = generatePlanningDocument(document, undefined, [], undefined, { environment: false });
+  const before = project.projectPackage;
+  const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, json: async () => ({ files: [] }) } as Response);
+  const publish = vi.spyOn(project, "publish").mockRejectedValueOnce(new Error("publication failed"));
+  try {
+    await expect(storage.initialize(document, result, "retry-reset")).rejects.toThrow("publication failed");
+    expect(project.projectPackage).toBe(before);
+    await storage.initialize(document, result, "retry-reset");
+    expect(waterInitialization(project.projectPackage).appliedResets).toEqual(["retry-reset"]);
+    const scene = new RuntimeSceneEdit(new RuntimeProjectEdit(project.projectPackage, nativeAssetFormats(() => ({}))), path);
+    const bodies = scene.queryComponents({ type: "WaterBodyComponent" });
+    await storage.initialize(document, result, "retry-reset");
+    const restored = new RuntimeSceneEdit(new RuntimeProjectEdit(project.projectPackage, nativeAssetFormats(() => ({}))), path);
+    expect(restored.queryComponents({ type: "WaterBodyComponent" })).toEqual(bodies);
+  } finally { fetch.mockRestore(); publish.mockRestore(); }
+}, 60000);
 
 it("initializes an Ocean on the handed-off identity in a fresh template project exactly once", () => {
   const source = fixture();
@@ -142,7 +352,7 @@ it("fits retained lakes to a lower template terrain without hiding their water",
   scene.update(body.entityId, { position: [508, 0, 508] });
   scene.updateComponent(body.id, { authoring: { ...authoring,
     shape: { ...authoring.shape, referenceLevel: 1000 } } });
-  const target = createTemplatePlanningDocument(20261110, "aurora-palace");
+  const target = createTemplatePlanningDocument(20261110, "emerald-forest");
   const retained = retainPlanningWaterSource(target, draft.preview());
   const lake = retained.entities["lake:0"].components.lakes.values;
   expect(lake.enabled).toBe(true);
@@ -171,6 +381,43 @@ it("does not recreate native water removed through the Scene transaction", async
   expect(planningSourceDocument(draft.finish())!.entities["lake:0"].components.lakes.values.enabled).toBe(false);
 });
 
+it("deletes a former Water Entity without re-solving its unchanged removal intent", async () => {
+  const { draft, scene } = fixture(1);
+  const body = scene.queryComponents({ type: "WaterBodyComponent" }).find(body =>
+    (scene.readComponent(body.id).props!.authoring as any).shape.kind === "lake")!;
+  const before = draft.preview();
+  scene.removeComponent(body.id);
+  await prepareRemoval(draft, before);
+  const removed = planningSourceDocument(draft.preview())!;
+  const execute = vi.fn(async (document, previous) => generatePlanningDocument(document, previous));
+  const preparePublication = vi.fn<NonNullable<PlanningSessionOptions["preparePublication"]>>(
+    async () => ({ commit() {}, discard() {} })
+  );
+  const session = new PlanningSession(exportPlanningRecipe(removed), execute, removed, { preparePublication });
+  await session.initialize();
+  const plan = session.result!.plan;
+  expect(plan.waters.some(water => water.id === "lake:0")).toBe(false);
+  execute.mockClear();
+  preparePublication.mockClear();
+  scene.delete(body.entityId);
+  const deleted = planningSourceDocument(draft.preview())!;
+  expect(deleted.entities["lake:0"].name).not.toBe(removed.entities["lake:0"].name);
+  expect(deleted.entities["lake:0"].components).toEqual(removed.entities["lake:0"].components);
+  expect(removed.entities["lake:0"].origin).toBe("generated");
+  expect(deleted.entities["lake:0"].origin).toBeUndefined();
+  const edit = session.beginProjectEdit();
+  expect((await edit.session.load(deleted)).status).toBe("accepted");
+  const signal = new AbortController().signal;
+  await edit.prepare(signal);
+  edit.commit();
+  await edit.activate(signal);
+  expect(execute).not.toHaveBeenCalled();
+  expect(session.result!.plan).toBe(plan);
+  expect(preparePublication.mock.calls[0][2]).toMatchObject({ worldUnchanged: true });
+  expect(scene.queryComponents({ entityId: body.entityId })).toHaveLength(0);
+  expect(waterInitialization(draft.preview()).removed?.["1"]).toContain("lake:0");
+}, 60000);
+
 it.each([false, true])("replans template water around its subject and preserves native looks and removal intent (%s)", async removed => {
   const { draft, document, scene } = fixture();
   const original = generatePlanningDocument(document, undefined, [], undefined, { environment: false });
@@ -187,8 +434,8 @@ it.each([false, true])("replans template water around its subject and preserves 
     scene.removeComponent(lake.id);
     await prepareRemoval(draft, before);
   }
-  const retained = retainPlanningWaterSource(createTemplatePlanningDocument(20261110, "aurora-palace"), draft.preview());
-  expect(retainPlanningWaterSource(createTemplatePlanningDocument(20261110, "aurora-palace"), draft.preview()))
+  const retained = retainPlanningWaterSource(createTemplatePlanningDocument(20261110, "sakura-pearl"), draft.preview());
+  expect(retainPlanningWaterSource(createTemplatePlanningDocument(20261110, "sakura-pearl"), draft.preview()))
     .toEqual(retained);
   const result = generatePlanningDocument(retained, undefined, [], undefined, { environment: false });
   expect(result.accepted).toBe(true);
@@ -203,7 +450,7 @@ it("replans stale river elevations when reapplying the same template and keeps t
   const { draft, document, scene } = fixture();
   const original = generatePlanningDocument(document, undefined, [], undefined, { environment: false });
   writePlanningProjectSource(draft, path, initializePlanningWater(draft, document, original.plan));
-  const target = createTemplatePlanningDocument(20261110, "aurora-palace");
+  const target = createTemplatePlanningDocument(20261110, "sakura-pearl");
   const initialized = retainPlanningWaterSource(target, draft.preview());
   writePlanningProjectSource(draft, path, initialized);
   const river = scene.queryComponents({ type: "WaterBodyComponent" }).find(body =>
@@ -282,6 +529,57 @@ it("solves replacement inputs with current Source water and its deletion intent"
   anotherSeed.entities.world.components.world.values.seed = 20261111;
   expect(retainPlanningWaterSource(anotherSeed, draft.preview())).toBe(anotherSeed);
 });
+
+it("scopes generated river Source to its composition on template switches and legacy reloads", () => {
+  const seed = 1;
+  const { draft, scene } = fixture(seed);
+  const independent = scene.queryComponents({ type: "WaterBodyComponent" });
+  const lake = independent.find((body) =>
+    (scene.readComponent(body.id).props!.authoring as { shape: { kind: string } }).shape.kind === "lake"
+  )!;
+  scene.updateComponent(lake.id, { enabled: false });
+  const authoredLakeId = `lake:authored:${COMPOSITION_OWNER}`;
+  const lakeIdentity = scene.queryComponents({ entityId: lake.entityId, type: "PlanningEntityAuthoring" })[0];
+  scene.updateComponent(lakeIdentity.id, { planningId: authoredLakeId, origin: "authored" });
+  const sakura = createTemplatePlanningDocument(seed, "sakura-pearl");
+  sakura.entities.world.components.landscapeComposition = {
+    values: { enabled: true, streamWidthM: 14, streamDepthM: 0.9 }
+  };
+  for (const component of ["rivers", "lakes"] as const) {
+    sakura.entities.world.components[component] = { values: { countMin: 0, countMax: 0 } };
+  }
+  const solve = (document: typeof sakura) =>
+    generatePlanningDocument(document, undefined, [], undefined, { environment: false });
+  const sakuraResult = solve(sakura);
+  expect(sakuraResult.accepted).toBe(true);
+  const riverIds = sakuraResult.plan.waters.filter((water) =>
+    water.id.startsWith(`river:authored:${COMPOSITION_OWNER}:`)
+  ).map((water) => water.id);
+  expect(riverIds.length).toBeGreaterThan(0);
+  writePlanningProjectSource(draft, path, initializePlanningWater(draft, sakura, sakuraResult.plan));
+  const saved = draft.preview();
+  const sameLayout = retainPlanningWaterSource(sakura, saved);
+  expect(riverIds.every((id) => sameLayout.entities[id]?.components.rivers.values.points)).toBe(true);
+
+  const forest = createTemplatePlanningDocument(seed, "emerald-forest");
+  const switched = retainPlanningWaterSource(forest, saved);
+  expect(riverIds.every((id) => !switched.entities[id])).toBe(true);
+  expect(switched.entities[authoredLakeId].components.lakes.values.enabled).toBe(false);
+  expect(solve(switched).accepted).toBe(true);
+  writePlanningProjectSource(draft, path, switched);
+  expect(scene.queryComponents({ type: "WaterBodyComponent" })).toEqual(independent);
+
+  const oldSource = new RuntimeProjectEdit(saved, nativeAssetFormats(() => ({})));
+  const mixed = structuredClone(switched);
+  for (const id of riverIds) mixed.entities[id] = sameLayout.entities[id];
+  expect(() => solve(mixed)).toThrow("Surface above terrain requires an explicit basin");
+  writePlanningProjectSource(oldSource, path, mixed);
+  const reopened = planningSourceDocument(oldSource.preview())!;
+  expect(riverIds.every((id) => !reopened.entities[id])).toBe(true);
+  expect(solve(reopened).accepted).toBe(true);
+  writePlanningProjectSource(oldSource, path, reopened);
+  expect(new RuntimeSceneEdit(oldSource, path).queryComponents({ type: "WaterBodyComponent" })).toEqual(independent);
+}, 60000);
 
 it("does not let landscape composition recreate a removed Source river", () => {
   const document = createSeedPlanningDocument(20261110);

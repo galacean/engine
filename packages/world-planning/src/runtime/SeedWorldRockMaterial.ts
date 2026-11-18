@@ -1,3 +1,4 @@
+import { bindRockLodDither } from "../integrations/terrain/rock-formation/RockMaterial";
 import { Color, MeshRenderer, type Engine, type Entity, type Material } from "@galacean/engine";
 import { createSurfaceMaterial, bindSurfaceTerrain } from "@galacean/engine-terrain/surface/SurfaceMaterial";
 const materials = new WeakMap<Engine, Material>();
@@ -12,6 +13,7 @@ export function bindSeedWorldRockSurfaceMaterial(engine: Engine, root: Entity): 
     material = createSurfaceMaterial(engine, { baseColor: new Color(0.45, 0.4, 0.3, 1) });
     materials.set(engine, material);
   }
+  bindRockLodDither(material);
   const renderers = root.getComponentsIncludeChildren(MeshRenderer, []);
   for (const renderer of renderers) renderer.setMaterial(material);
   return renderers.length;

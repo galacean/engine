@@ -19,16 +19,15 @@ import {
   TextureFormat,
   TextureWrapMode,
   Vector2,
-  Vector3,
   Vector4
 } from "@galacean/engine";
 import {
   packTerrainHeightAtlas,
   TERRAIN_CLIPMAP_MAX_ACTIVE_REGIONS,
+  type TerrainClipmapRegionSource,
   type TerrainHeightAtlasPacking,
   type TerrainHeightAtlasRegion
 } from "./TerrainHeightAtlas";
-import { packTerrainHolesAtlas } from "./TerrainHolesAtlas";
 import { resolveTerrainHeightFrameDecode } from "./TerrainHeightFrame";
 import { bakeTerrainNormalAtlas, packTerrainNormalAtlas } from "./TerrainNormalAtlas";
 import {
@@ -41,7 +40,6 @@ import {
   type TerrainLayerResidencyResources,
   type TerrainLayerTextureKind
 } from "./TerrainLayerResidency";
-import { resolveTerrainClipmapHolesSources, type TerrainClipmapRegionSource } from "./TerrainClipmapSource";
 import {
   TerrainPuddleHydrologyCompiler,
   type TerrainPuddleHydrologyField,
@@ -57,7 +55,6 @@ export interface TerrainClipmapRenderBinding {
   readonly farMaterialFirstLod?: number;
   readonly activeRegionCount: number;
   readonly heightAtlasSize: readonly [width: number, height: number];
-  readonly holesAtlasSize: readonly [width: number, height: number];
   readonly activeLayerCount: number;
   readonly activeAlphamapCount: number;
   /** Static cross-Region shallow-water drainage field shared with rain-contact VFX. */
@@ -66,20 +63,6 @@ export interface TerrainClipmapRenderBinding {
   readonly gridOrigin: readonly [x: number, z: number];
   /** Shared immutable GPU height residency consumed by terrain-aware environment passes. */
   readonly heightSamplingSource?: TerrainHeightGpuSamplingSource;
-
-  /**
-   * Enables or disables the bound renderer-only macro variation without rebuilding residency.
-   * @param enabled Whether the configured macro variation participates in Terrain shading.
-   * @returns Nothing.
-   */
-  setMacroVariationEnabled?(enabled: boolean): void;
-
-  /**
-   * Selects logical Terrain layers that use one-sample randomized UV rotation.
-   * @param layerMask Bit `n` enables detiling for resolved logical layer `n`.
-   * @returns Nothing.
-   */
-  setLayerDetilingMask?(layerMask: number): void;
 
   /** Overrides solid layer diffuse colours in the current residency. Omit colour to restore the source remap. */
   setLayerDiffuseColors?(patches: readonly TerrainLayerDiffuseColorPatch[]): void;
@@ -148,24 +131,6 @@ export interface TerrainClipmapMaterialBinding extends TerrainClipmapRenderBindi
   updateHeightRegions(patches: readonly TerrainHeightAtlasPatch[]): void;
 }
 
-/** Low-frequency world-space colour variation applied after Terrain layer blending. */
-export interface TerrainMacroVariationOptions {
-  /** Repeatable linear noise texture sampled in world XZ space. */
-  readonly texture: Texture2D;
-  /** Multiplicative colour reached by the first noise octave. */
-  readonly colorA: readonly [red: number, green: number, blue: number];
-  /** Multiplicative colour reached by the second noise octave. */
-  readonly colorB: readonly [red: number, green: number, blue: number];
-  /** First noise octave frequency in cycles per metre. */
-  readonly scaleA: number;
-  /** Second noise octave frequency in cycles per metre. */
-  readonly scaleB: number;
-  /** Rotation applied to the first octave in radians. */
-  readonly angleRadians: number;
-  /** UV offset applied to the first octave before rotation. */
-  readonly offset: readonly [u: number, v: number];
-}
-
 /** Optional compile-time Material split for far Clipmap rings. */
 export interface TerrainFarMaterialOptions {
   /** First zero-based Clipmap ring rendered by the simplified Material. */
@@ -219,7 +184,6 @@ export interface TerrainAlphamapAtlasPatch {
  * @param layerSources Optional canonical alphamaps with explicitly resolved layer textures.
  * @param retainedGridOrigin Existing runtime lattice origin retained across residency swaps.
  * @param puddleHydrologyOptions Optional shallow-water drainage and coverage tuning.
- * @param macroVariationOptions Optional renderer-only world-space colour variation.
  * @param farMaterialOptions Optional compile-time simplified Material for distant rings.
  * @returns Renderer-owned binding released with the Clipmap root.
  * @throws If WebGL2 or the active residency set exceeds the current renderer capability.
@@ -231,7 +195,6 @@ export function createTerrainClipmapMaterialBinding(
   layerSources?: readonly TerrainLayerResidencyRegionSource<Texture2D>[],
   retainedGridOrigin?: readonly [x: number, z: number],
   puddleHydrologyOptions: Readonly<TerrainPuddleHydrologyOptions> = {},
-  macroVariationOptions?: Readonly<TerrainMacroVariationOptions>,
   farMaterialOptions?: Readonly<TerrainFarMaterialOptions>
 ): TerrainClipmapMaterialBinding {
   const nativeCanvas = (engine.canvas as unknown as { _webCanvas: HTMLCanvasElement | OffscreenCanvas })._webCanvas;
@@ -247,8 +210,6 @@ export function createTerrainClipmapMaterialBinding(
   const gridOrigin = retainedGridOrigin
     ? ([...retainedGridOrigin] as const)
     : selectTerrainGridOrigin(heightPacking.regions);
-  const holesSources = resolveTerrainClipmapHolesSources(sources);
-  const holesPacking = holesSources ? packTerrainHolesAtlas(holesSources, maxTextureSize) : undefined;
   const layerPacking = layerSources
     ? packTerrainLayerResidency(
         layerSources,
@@ -269,28 +230,19 @@ export function createTerrainClipmapMaterialBinding(
 
   const worldBounds = new Float32Array(TERRAIN_CLIPMAP_MAX_ACTIVE_REGIONS * 4);
   const heightAtlasRects = new Float32Array(TERRAIN_CLIPMAP_MAX_ACTIVE_REGIONS * 4);
-  const holesAtlasRects = holesPacking ? new Float32Array(TERRAIN_CLIPMAP_MAX_ACTIVE_REGIONS * 4) : undefined;
-  const holesSolidValues = holesPacking ? new Float32Array(TERRAIN_CLIPMAP_MAX_ACTIVE_REGIONS) : undefined;
   const heightDecode = new Float32Array(TERRAIN_CLIPMAP_MAX_ACTIVE_REGIONS * 2);
   const heightAtlasInvSize = new Vector2(1 / heightPacking.width, 1 / heightPacking.height);
-  const holesById = holesPacking ? new Map(holesPacking.regions.map((region) => [region.id, region])) : undefined;
   heightPacking.regions.forEach((region, index) => {
     worldBounds.set(
       [region.worldPosition[0], region.worldPosition[2], region.worldSize[0], region.worldSize[2]],
       index * 4
     );
     heightAtlasRects.set([region.x, region.y, region.width, region.height], index * 4);
-    const holesRegion = holesById?.get(region.id);
-    if (holesRegion && holesAtlasRects && holesSolidValues) {
-      holesAtlasRects.set([holesRegion.x, holesRegion.y, holesRegion.width, holesRegion.height], index * 4);
-      holesSolidValues[index] = holesRegion.solidValue;
-    }
     heightDecode.set([region.heightDecodeOffset, region.heightDecodeScale], index * 2);
   });
 
   let heightAtlas: Texture2D | undefined;
   let normalAtlas: Texture2D | undefined;
-  let holesAtlas: Texture2D | undefined;
   let puddleAtlas: Texture2D | undefined;
   let layerResources: TerrainLayerResidencyResources<Texture> | undefined;
   let material: Material | undefined;
@@ -313,16 +265,6 @@ export function createTerrainClipmapMaterialBinding(
       normalPixels,
       TextureFilterMode.Bilinear
     );
-    if (holesPacking) {
-      holesAtlas = createAtlasTexture(
-        engine,
-        "Terrain holes residency atlas",
-        holesPacking.width,
-        holesPacking.height,
-        TextureFormat.R8,
-        holesPacking.pixels
-      );
-    }
     puddleAtlas = createAtlasTexture(
       engine,
       "Terrain puddle hydrology atlas",
@@ -347,18 +289,6 @@ export function createTerrainClipmapMaterialBinding(
     material.shaderData.setTexture("material_TerrainHeightAtlas", heightAtlas);
     material.shaderData.setVector2("material_TerrainHeightAtlasInvSize", heightAtlasInvSize);
     material.shaderData.setTexture("material_TerrainNormalAtlas", normalAtlas);
-    if (holesAtlas && holesPacking && holesAtlasRects && holesSolidValues) {
-      material.shaderData.setTexture("material_TerrainHolesAtlas", holesAtlas);
-      material.shaderData.setVector2(
-        "material_TerrainHolesAtlasInvSize",
-        new Vector2(1 / holesPacking.width, 1 / holesPacking.height)
-      );
-      material.shaderData.setFloatArray("material_TerrainRegionHolesRects", holesAtlasRects);
-      material.shaderData.setFloatArray("material_TerrainRegionHolesSolid", holesSolidValues);
-      material.shaderData.enableMacro("MATERIAL_TERRAIN_HOLES");
-    } else {
-      material.shaderData.disableMacro("MATERIAL_TERRAIN_HOLES");
-    }
     bindTerrainPuddleHydrology(material, puddleAtlas, puddleHydrology, heightPacking.regions);
     material.shaderData.setFloatArray("material_TerrainRegionWorldBounds", worldBounds);
     material.shaderData.setFloatArray("material_TerrainRegionAtlasRects", heightAtlasRects);
@@ -468,13 +398,9 @@ export function createTerrainClipmapMaterialBinding(
       material.shaderData.disableMacro("MATERIAL_TERRAIN_LAYER_NORMAL_TEXTURES");
       material.shaderData.disableMacro("MATERIAL_TERRAIN_LAYER_MASK_TEXTURES");
     }
-    bindTerrainMacroVariation(material, macroVariationOptions);
-    material.shaderData.setInt("material_TerrainDetilingLayerMask", 0);
     for (const macro of farMaterialOptions?.sharedMacros ?? []) material.shaderData.enableMacro(macro);
     farMaterialOptions?.configureMaterial?.(material);
-    if (!ScreenSpaceReflection.setMaterialReceiver(material, ScreenSpaceReflectionReceiverMode.OpaqueComposite, 1)) {
-      throw new Error("Terrain Shader does not expose the required puddle SSR receiver contract");
-    }
+    ScreenSpaceReflection.setMaterialReceiver(material, ScreenSpaceReflectionReceiverMode.OpaqueComposite, 1);
     if (farMaterialOptions) {
       if (farMaterialOptions.nearTransitionMacro) {
         material.shaderData.enableMacro(farMaterialOptions.nearTransitionMacro);
@@ -485,16 +411,13 @@ export function createTerrainClipmapMaterialBinding(
         farMaterial.shaderData.disableMacro(farMaterialOptions.nearTransitionMacro);
       }
       farMaterial.shaderData.enableMacro(farMaterialOptions.farMacro);
-      if (!ScreenSpaceReflection.setMaterialReceiver(farMaterial, ScreenSpaceReflectionReceiverMode.Disabled)) {
-        throw new Error("Terrain Shader does not expose the required SSR receiver contract");
-      }
+      ScreenSpaceReflection.setMaterialReceiver(farMaterial, ScreenSpaceReflectionReceiverMode.Disabled);
     }
   } catch (error) {
     farMaterial?.destroy();
     material?.destroy();
     layerResources?.destroy();
     puddleAtlas?.destroy();
-    holesAtlas?.destroy();
     normalAtlas?.destroy();
     heightAtlas?.destroy();
     throw error;
@@ -505,7 +428,6 @@ export function createTerrainClipmapMaterialBinding(
   const ownedFarMaterial = farMaterial;
   const ownedHeightAtlas = heightAtlas!;
   let ownedNormalAtlas = normalAtlas!;
-  const ownedHolesAtlas = holesAtlas;
   let ownedPuddleAtlas = puddleAtlas!;
   const ownedLayerResources = layerResources;
   let heightRevision = 0;
@@ -549,7 +471,6 @@ export function createTerrainClipmapMaterialBinding(
     farMaterialFirstLod: farMaterialOptions?.firstLod,
     activeRegionCount: heightPacking.regions.length,
     heightAtlasSize: [heightPacking.width, heightPacking.height],
-    holesAtlasSize: holesPacking ? [holesPacking.width, holesPacking.height] : [0, 0],
     activeLayerCount: layerPacking?.layers.length ?? 0,
     activeAlphamapCount: layerPacking?.alphamaps.length ?? 0,
     get puddleHydrology(): TerrainPuddleHydrologyField {
@@ -557,18 +478,6 @@ export function createTerrainClipmapMaterialBinding(
     },
     gridOrigin,
     heightSamplingSource,
-    setMacroVariationEnabled(enabled): void {
-      const value = enabled && macroVariationOptions ? 1 : 0;
-      ownedMaterial.shaderData.setInt("material_TerrainMacroVariationEnabled", value);
-      ownedFarMaterial?.shaderData.setInt("material_TerrainMacroVariationEnabled", value);
-    },
-    setLayerDetilingMask(layerMask): void {
-      if (!Number.isInteger(layerMask) || layerMask < 0 || layerMask > 0x7fff_ffff) {
-        throw new RangeError("Terrain detiling layer mask must be a non-negative 31-bit integer");
-      }
-      ownedMaterial.shaderData.setInt("material_TerrainDetilingLayerMask", layerMask);
-      ownedFarMaterial?.shaderData.setInt("material_TerrainDetilingLayerMask", layerMask);
-    },
     setLayerDiffuseColors(patches): void {
       if (destroyed) throw Error("Terrain binding is destroyed");
       if (!layerPacking || !ownedLayerResources) throw Error("Terrain has no layer residency");
@@ -739,19 +648,6 @@ export function createTerrainClipmapMaterialBinding(
       const epoch = patchEpoch,
         oldRevision = heightRevision;
       if (update.sources.length !== heightPacking.regions.length) throw Error("Terrain Region set changed");
-      const nextHoles = resolveTerrainClipmapHolesSources(update.sources);
-      const nextHolesPacking = nextHoles ? packTerrainHolesAtlas(nextHoles, maxTextureSize) : undefined;
-      if (
-        Boolean(nextHolesPacking) !== Boolean(holesPacking) ||
-        (nextHolesPacking &&
-          holesPacking &&
-          (JSON.stringify(nextHolesPacking.regions) !== JSON.stringify(holesPacking.regions) ||
-            nextHolesPacking.width !== holesPacking.width ||
-            nextHolesPacking.height !== holesPacking.height ||
-            nextHolesPacking.pixels.length !== holesPacking.pixels.length ||
-            nextHolesPacking.pixels.some((v, i) => v !== holesPacking.pixels[i])))
-      )
-        throw Error("Prepared Terrain updates cannot change holes residency");
       const nextPacking = packTerrainHeightAtlas(update.sources, maxTextureSize);
       if (nextPacking.width !== heightPacking.width || nextPacking.height !== heightPacking.height)
         throw Error("Terrain packing changed");
@@ -975,26 +871,10 @@ export function createTerrainClipmapMaterialBinding(
       ownedMaterial.destroy();
       ownedLayerResources?.destroy();
       ownedPuddleAtlas.destroy();
-      ownedHolesAtlas?.destroy();
       ownedNormalAtlas.destroy();
       ownedHeightAtlas.destroy();
     }
   };
-}
-
-function bindTerrainMacroVariation(
-  material: Material,
-  options: Readonly<TerrainMacroVariationOptions> | undefined
-): void {
-  material.shaderData.setInt("material_TerrainMacroVariationEnabled", options ? 1 : 0);
-  if (!options) return;
-  material.shaderData.setTexture("material_TerrainMacroVariationTexture", options.texture);
-  material.shaderData.setVector3("material_TerrainMacroColorA", new Vector3(...options.colorA));
-  material.shaderData.setVector3("material_TerrainMacroColorB", new Vector3(...options.colorB));
-  material.shaderData.setFloat("material_TerrainMacroScaleA", options.scaleA);
-  material.shaderData.setFloat("material_TerrainMacroScaleB", options.scaleB);
-  material.shaderData.setFloat("material_TerrainMacroAngle", options.angleRadians);
-  material.shaderData.setVector2("material_TerrainMacroOffset", new Vector2(...options.offset));
 }
 
 function validateFarMaterialOptions(options: Readonly<TerrainFarMaterialOptions> | undefined): void {

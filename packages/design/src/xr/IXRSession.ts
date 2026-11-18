@@ -27,11 +27,6 @@ export interface IXRSession {
   get supportedFrameRates(): Float32Array | undefined;
 
   /**
-   * Returns the device's default main framebuffer.
-   */
-  get framebuffer(): WebGLFramebuffer;
-
-  /**
    * Returns the width of the device's default main framebuffer.
    */
   get framebufferWidth(): number;
@@ -40,6 +35,11 @@ export interface IXRSession {
    * Returns the height of the device's default main framebuffer.
    */
   get framebufferHeight(): number;
+
+  /**
+   * Synchronize per-frame session state before updating inputs and cameras.
+   */
+  onUpdate(): void;
 
   /**
    * Set fixed foveation for camera.

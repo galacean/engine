@@ -446,7 +446,7 @@ export const farmingOperations = {
   placeItem: {
     effect: "command",
     description:
-      "将当前道具放到指定有效世界地面，expectedItemId 锁定携带身份；种子袋与篮子一样移动到该位置，保持原seedId。失败保持携带，篮子内容不变。地面避开耕地、水面、陡坡和设施。",
+      "将当前道具放到指定有效世界地面，expectedItemId 锁定携带身份；种子袋与篮子一样移动到该位置，保持原seedId。允许放在耕地上，包括有作物的地块，不改变耕地或作物。仍检查实际占地范围的地形支撑、坡度、水面、设施和其他道具间距；失败保持携带，篮子内容不变。",
     input: z.object({ ...scope, expectedItemId: id, groundId: id, position }).strict(),
     options: farmingWriteOptionsSchema
   },
@@ -467,7 +467,7 @@ export const farmingOperations = {
   verify: {
     effect: "read",
     description:
-      "读取当前版本和可选 commandId 的已提交回执；minimumRevision 是下限，允许时间继续推进。回执不存在或已过保留窗口明确失败，之后用查询检查业务断言。 输入 farmId 与可选 commandId/minimumRevision（非负整数）；只读，低于下限 VERSION_CONFLICT，缺少回执 NOT_FOUND。返回记录只说明提交事实，必须另查当前目标和库存断言。",
+      "读取当前版本和可选 commandId 的已提交回执；minimumRevision 是下限，允许时间继续推进。回执不存在或已过保留窗口明确失败，之后用查询检查业务断言。 输入 farmId 与可选 commandId/minimumRevision（非负整数）；只读，低于下限 VERSION_CONFLICT，缺少回执 NOT_FOUND。返回记录只说明操作已提交，不代表宿主后台保存完成；必须另查当前目标和库存断言。",
     input: z.object({ ...scope, commandId: id.optional(), minimumRevision: integer.optional() }).strict()
   }
 } as const satisfies Record<keyof FarmingOutputs, ApiOperation>;

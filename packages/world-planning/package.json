@@ -8,7 +8,25 @@
   "main": "./src/index.ts",
   "module": "./src/index.ts",
   "types": "./src/index.ts",
+  "typesVersions": {
+    "*": {
+      "terrain-authoring": [
+        "src/generation/terrain/TerrainAuthoring.d.mts"
+      ],
+      "terrain-rendering": [
+        "src/generation/terrain/TerrainRuntime.d.mts"
+      ]
+    }
+  },
   "exports": {
+    "./terrain-authoring": {
+      "types": "./src/generation/terrain/TerrainAuthoring.d.mts",
+      "default": "./dist/terrain-authoring.js"
+    },
+    "./terrain-rendering": {
+      "types": "./src/generation/terrain/TerrainRuntime.d.mts",
+      "default": "./dist/terrain-runtime.js"
+    },
     ".": "./src/index.ts",
     "./spatial/PlanningWeather": "./src/spatial/PlanningWeather.ts",
     "./spatial/WorldTemplateArtDirection": "./src/spatial/WorldTemplateArtDirection.ts",
@@ -28,6 +46,9 @@
     "./agent-adapter/ports/SeedWorldEnginePort": "./src/agent-adapter/ports/SeedWorldEnginePort.ts",
     "./assistant/SeedWorldViewCapture": "./src/assistant/SeedWorldViewCapture.ts",
     "./authoring/terrain/TerrainHeightfield": "./src/authoring/terrain/TerrainHeightfield.ts",
+    "./generation/terrain/CoastalSeabed": "./src/generation/terrain/CoastalSeabed.ts",
+    "./generation/terrain/StylizedTerrainMaterial": "./src/generation/terrain/StylizedTerrainMaterial.ts",
+    "./generation/terrain/TerrainIslandGenerator": "./src/generation/terrain/TerrainIslandGenerator.ts",
     "./generation/terrain/TerrainHydrology": "./src/generation/terrain/TerrainHydrology.ts",
     "./generation/noise/PromptNoiseHash": "./src/generation/noise/PromptNoiseHash.ts",
     "./generation/noise/PromptNoiseRiverFieldCompiler": "./src/generation/noise/PromptNoiseRiverFieldCompiler.ts",
@@ -148,7 +169,6 @@
     "./runtime/SeedWorldRockRuntime": "./src/runtime/SeedWorldRockRuntime.ts",
     "./runtime/SeedWorldRockSurfaceGrass": "./src/runtime/SeedWorldRockSurfaceGrass.ts",
     "./runtime/SeedWorldRockTerrainAnalysis": "./src/runtime/SeedWorldRockTerrainAnalysis.ts",
-    "./runtime/SeedWorldSmallRockRuntime": "./src/runtime/SeedWorldSmallRockRuntime.ts",
     "./runtime/SeedWorldSurfaceIntent": "./src/runtime/SeedWorldSurfaceIntent.ts",
     "./runtime/SeedWorldSurfaceRelief": "./src/runtime/SeedWorldSurfaceRelief.ts",
     "./runtime/SeedWorldSurfaceReliefRuntime": "./src/runtime/SeedWorldSurfaceReliefRuntime.ts",
@@ -455,7 +475,8 @@
     "./masonry/BuildingInitialSource": "./src/masonry/BuildingInitialSource.ts",
     "./runtime/SeedWorldRockMaterial": "./src/runtime/SeedWorldRockMaterial.ts",
     "./runtime/SeedWorldRockSurfaceStyle": "./src/runtime/SeedWorldRockSurfaceStyle.ts",
-    "./spatial/runtime/PlanningAnimalWorldChange": "./src/spatial/runtime/PlanningAnimalWorldChange.ts"
+    "./spatial/runtime/PlanningAnimalWorldChange": "./src/spatial/runtime/PlanningAnimalWorldChange.ts",
+    "./geometry/surfaceTransitionWeight": "./src/geometry/surfaceTransitionWeight.ts"
   },
   "scripts": {},
   "dependencies": {

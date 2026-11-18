@@ -146,10 +146,12 @@ void frag() { gl_FragColor = vec4(OWNER(owner).uv, 0.0, 1.0); }
         for (const variant of variants) {
           const vertex = ShaderMacroProcessor.evaluate(program.vertexShaderInstructions!, new Map(variant));
           const fragment = ShaderMacroProcessor.evaluate(program.fragmentShaderInstructions!, new Map(variant));
-          expect(vertex.match(/(?:varying|out)\s+vec2\s+uv\s*;/g)).toHaveLength(1);
-          expect(fragment.match(/(?:varying|in)\s+vec2\s+uv\s*;/g)).toHaveLength(1);
-          expect(fragment).toMatch(/vec4\s*\(\s*uv\s*,/);
-          expect(fragment).not.toMatch(/\bowner\s*\.\s*uv/);
+          const outputs = [...vertex.matchAll(/(?:varying|out)\s+vec2\s+(\w+)\s*;/g)];
+          const inputs = [...fragment.matchAll(/(?:varying|in)\s+vec2\s+(\w+)\s*;/g)];
+          expect(outputs).toHaveLength(1);
+          expect(inputs).toHaveLength(1);
+          expect(inputs[0][1]).toBe(outputs[0][1]);
+          expect(fragment).toMatch(/vec4\s*\(\s*\(?\s*owner\s*\)?\s*\.\s*uv\s*,/);
         }
       }
     }

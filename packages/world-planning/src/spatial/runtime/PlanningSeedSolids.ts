@@ -1,10 +1,19 @@
+import { prepareRockLodDither } from "../../integrations/terrain/rock-formation/RockMaterial";
 import type { PreparedTerrainUpdate } from "@galacean/engine-terrain/terrain/clipmap/TerrainPreparedUpdate";
 import bridgePickShader from "./PlanningBridgePick.shader?raw";
 import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
 } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
-import { CompareFunction, MeshRenderer, Shader, type Engine, type Entity, type Material } from "@galacean/engine";
+import {
+  CompareFunction,
+  MeshRenderer,
+  Shader,
+  type Camera,
+  type Engine,
+  type Entity,
+  type Material
+} from "@galacean/engine";
 import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
 import { RockFormationView } from "../../integrations/terrain/rock-formation/View.ts";
 import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
@@ -40,6 +49,7 @@ export async function createPlanningSeedSolids(
   parent: Entity,
   plan: IslandPlan,
   options: {
+    camera?: Camera;
     formations?: readonly RockFormationMesh[];
     sourcePlan?: IslandPlan;
     rockColorBlend?: RockColorBlend;
@@ -57,6 +67,7 @@ export async function createPlanningSeedSolids(
       options.previous?.bridgeKey === bridgeKey
         ? options.previous.bridgesView.retain()
         : await SuspensionBridgeView.create(engine, root, plan.bridges, options.signal, options.previous?.bridgesView);
+    if (options.camera && options.formations?.length) await prepareRockLodDither(engine);
     options.signal?.throwIfAborted();
     rocks = new RockFormationView(
       engine,
@@ -64,7 +75,8 @@ export async function createPlanningSeedSolids(
       plan,
       options.formations ?? [],
       options.registerGrassAppearance,
-      options.rockColorBlend
+      options.rockColorBlend,
+      options.camera
     );
   } catch (error) {
     rocks?.dispose();

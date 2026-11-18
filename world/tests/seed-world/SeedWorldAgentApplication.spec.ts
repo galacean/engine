@@ -1805,7 +1805,7 @@ function createState(): SeedWorldLiveState {
       residentAcceptedCounts: { tree: 2, shrub: 0, flower: 1, grass: 1 },
       submittedCounts: { tree: 2, shrub: 0, flower: 1, grass: 1 }
     },
-    decorations: { rocks: 0, smallRocks: 0, mushrooms: 0, lotus: 0 },
+    decorations: { rocks: 0, mushrooms: 0, lotus: 0 },
     water: { ready: true, visible: true, bodyCount: 3, chunkCount: 3, hostRevision: 3 },
     lighting: {
       timeHours: 10,

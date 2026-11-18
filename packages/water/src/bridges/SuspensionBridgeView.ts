@@ -1,8 +1,5 @@
-import { destroyOwnedMeshSet } from "@galacean/engine-terrain/geometry/destroyOwnedMesh";
-import {
-  MeshInteractionSurface,
-  registerMeshInteractionSurface
-} from "@galacean/engine-terrain/geometry/MeshInteractionSurface";
+import { destroyOwnedMeshSet } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
+import { MeshInteractionSurface, registerMeshInteractionSurface } from "./MeshInteractionSurface";
 import {
   AssetType,
   BoundingBox,

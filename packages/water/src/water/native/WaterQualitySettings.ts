@@ -83,9 +83,6 @@ export function createWaterQualitySettings(
         input.backendBudgets.ocean,
         [
           "finitePatchSegments",
-          "fixedLodRingPatchSegments",
-          "fixedLodCentralPatchSegments",
-          "fixedLodFirstRingPatchSegments",
           "nearshoreFixedStepRateHz",
           "nearshoreMaximumSeekSeconds",
           "windResponseFixedStepRateHz",

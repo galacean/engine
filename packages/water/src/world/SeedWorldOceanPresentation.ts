@@ -28,7 +28,6 @@ export function resolveSeedWorldOceanPresentationTopology(
     size: Math.max(SEED_WORLD_OCEAN_PRESENTATION_SIZE_METRES, worldSizeX, worldSizeZ),
     surfaceTopology: "finite" as const,
     finitePatchGridSize: 1,
-    fixedLodCentralPatchGridSize: undefined,
     shoreViewEnvelope: undefined
   });
 }

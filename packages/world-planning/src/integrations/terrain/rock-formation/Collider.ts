@@ -8,6 +8,8 @@ export function disabledRockCollisionOwners(plan: IslandPlan): ReadonlySet<strin
   const disabled = new Set<string>();
   for (const rock of plan.rocks)
     for (const box of rock.boxes ?? []) if (box.collision === false) disabled.add(rockObbId(rock.id, box.id));
+  for (const item of plan.landscapes ?? [])
+    if (item.kind === "rock" && item.collision === false) disabled.add(plan.poiDistribution ? item.id : item.ownerId);
   return disabled;
 }
 
@@ -46,6 +48,7 @@ export function createRockCollider(
   formation: RockFormationMesh,
   disabled: ReadonlySet<string>
 ) {
+  if (formation.owners.length && formation.owners.every((owner) => disabled.has(owner))) return undefined;
   const indices = rockCollisionIndices(formation, disabled);
   if (!indices.length) return undefined;
   const mesh = new ModelMesh(engine, `Rock collision · ${formation.id}`);
@@ -63,8 +66,9 @@ export function createRockCollider(
     const shape = new (MeshColliderShape as unknown as { new (): MeshColliderShape })();
     collider.addShape(shape);
     shape.isConvex = false;
-    shape.material.staticFriction = 0.15;
-    shape.material.dynamicFriction = 0.05;
+    const material = shape.getInstanceMaterial();
+    material.staticFriction = 0.15;
+    material.dynamicFriction = 0.05;
     shape.mesh = mesh;
     return {
       triangles: indices.length / 3,

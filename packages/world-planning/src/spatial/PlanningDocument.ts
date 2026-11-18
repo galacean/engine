@@ -423,6 +423,37 @@ export function exportPlanningRecipe(document: PlanningDocument): SemanticRecipe
   return recipe;
 }
 
+/** Refresh the former baked Sakura shrub defaults without changing edited material slots. */
+function upgradeSakuraShrubPalette(component: SpatialComponent | undefined): void {
+  if (!component || component.base) return;
+  const art = WORLD_TEMPLATE_ART["sakura-pearl"];
+  if (!art.grass || !art.plantPalette) return;
+  const palette = art.plantPalette;
+  const previous: Readonly<Record<string, { color: string; intensity: number }>> = {
+    foliage: { color: "#e48bb5", intensity: 1.2 },
+    leaves: { color: "#e18bbb", intensity: 1.15 }
+  };
+  const colors = normalizePlantMaterialFields(component.values);
+  const channels = ["r", "g", "b"] as const;
+  let changed = false;
+  for (const slot of PLANT_MATERIAL_SLOTS) {
+    const oldSwatch = previous[slot.part];
+    if (!slot.layers.includes("shrubs") || !oldSwatch) continue;
+    const newSwatch =
+      palette.slots?.[slot.assetId]?.[slot.materialId] ??
+      palette.species?.[slot.assetId]?.[slot.part] ??
+      palette.parts[slot.part];
+    if (!newSwatch) continue;
+    const fields = channels.map((channel) => plantMaterialField(slot.assetId, slot.materialId, channel));
+    const oldColor = templateLinearColor(oldSwatch.color);
+    if (!fields.every((field, i) => colors[field] === oldColor[i] * oldSwatch.intensity)) continue;
+    const newColor = templateLinearColor(newSwatch.color);
+    fields.forEach((field, i) => (colors[field] = newColor[i] * newSwatch.intensity));
+    changed = true;
+  }
+  if (changed) component.values = colors;
+}
+
 /** Remove retired authoring contracts once, while retaining registered extension components and current overrides. */
 export function upgradePlanningDocument(input: PlanningDocument): PlanningDocument {
   const document = exportPlanningAuthoring(input);
@@ -432,15 +463,17 @@ export function upgradePlanningDocument(input: PlanningDocument): PlanningDocume
     const id = typeof legacy?.id === "string" ? legacy.id : "";
     const preset = WORLD_TEMPLATE_ART[id]?.generation;
     if (!world || !preset) continue;
-    if (!world.landscapeComposition?.base && !Object.keys(world.landscapeComposition?.values ?? {}).length)
-      world.landscapeComposition = {
-        values: spatialCompositionParameters({
-          ...preset,
-          seed: templateBaseSeed(id),
-          ...(typeof legacy?.centerX === "number" ? { centerX: legacy.centerX } : {}),
-          ...(typeof legacy?.centerZ === "number" ? { centerZ: legacy.centerZ } : {})
-        })
-      };
+    if (!world.landscapeComposition?.base && !Object.keys(world.landscapeComposition?.values ?? {}).length) {
+      // Keep the saved Seed's layout and leave the variation policy unset for a new Seed scope.
+      const { varyWithWorldSeed: _legacySeedPolicy, ...values } = spatialCompositionParameters({
+        ...preset,
+        seed: templateBaseSeed(id),
+        ...(typeof legacy?.centerX === "number" ? { centerX: legacy.centerX } : {}),
+        ...(typeof legacy?.centerZ === "number" ? { centerZ: legacy.centerZ } : {})
+      });
+      world.landscapeComposition = { values };
+    }
+    if (id === "sakura-pearl") upgradeSakuraShrubPalette(world.plantMaterial);
     const composition = world.landscapeComposition;
     if (
       id === "sakura-pearl" &&

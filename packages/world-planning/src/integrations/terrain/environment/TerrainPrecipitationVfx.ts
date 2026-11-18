@@ -6,6 +6,7 @@ import {
   Camera,
   Color,
   ConeShape,
+  ContentRestorer,
   CurveKey,
   Entity,
   GradientAlphaKey,
@@ -25,6 +26,7 @@ import {
   Shader,
   Texture2D,
   TextureFilterMode,
+  TextureFormat,
   TextureWrapMode,
   Vector2,
   Vector3,
@@ -169,6 +171,7 @@ export class TerrainPrecipitationVfx {
   private readonly _splashRingMaterial: ParticleMaterial;
   private readonly _dropletMaterial: ParticleMaterial;
   private readonly _rainCarrierTexture: Texture2D;
+  private readonly _splashRingTexture: Texture2D;
   private readonly _rainSimulationSpeed: number;
   private readonly _rainMaxLifetimeSeconds: number;
   private readonly _snowParticlesPerSecond: number;
@@ -314,7 +317,8 @@ export class TerrainPrecipitationVfx {
       new Color(0.9, 0.96, 1, 0.6),
       "overlay"
     );
-    this._splashRingMaterial = createParticleMaterial(engine, this._rainCarrierTexture, new Color(0.86, 0.94, 1, 0.72));
+    this._splashRingTexture = createSplashRingTexture(engine);
+    this._splashRingMaterial = createParticleMaterial(engine, this._splashRingTexture, new Color(0.86, 0.94, 1, 0.72));
     this._dropletMaterial = createParticleMaterial(engine, this._rainCarrierTexture, new Color(0.55, 0.82, 1, 0.95));
 
     const rainShape = createRainVolumeShapeFromSnow(snowShape);
@@ -450,6 +454,7 @@ export class TerrainPrecipitationVfx {
       material.destroy(true);
     }
     this._rainCarrierTexture.destroy(true);
+    this._splashRingTexture.destroy(true);
   }
 
   private _createRainRenderer(rainShape: BoxShape): ParticleRenderer {
@@ -611,7 +616,6 @@ export class TerrainPrecipitationVfx {
       [0.62, 0.93],
       [1, 1]
     ]);
-    configureAtlas(generator.textureSheetAnimation, 2, 1);
     applyFade(generator.colorOverLifetime, new Color(0.9, 0.97, 1), 0.72, 0.1);
     generator.play(false);
     return renderer;
@@ -1105,6 +1109,35 @@ async function loadParticleAtlas(
   texture.wrapModeU = TextureWrapMode.Clamp;
   texture.wrapModeV = TextureWrapMode.Clamp;
   texture.anisoLevel = 1;
+  return texture;
+}
+
+function createSplashRingTexture(engine: Engine): Texture2D {
+  const resolution = 64;
+  const radius = 0.8;
+  const halfWidth = 0.065;
+  const pixels = new Uint8Array(resolution * resolution * 4);
+  pixels.fill(255);
+  for (let y = 0; y < resolution; y++) {
+    const v = (2 * (y + 0.5)) / resolution - 1;
+    for (let x = 0; x < resolution; x++) {
+      const u = (2 * (x + 0.5)) / resolution - 1;
+      const distance = Math.abs(Math.hypot(u, v) - radius);
+      pixels[(y * resolution + x) * 4 + 3] = Math.round(255 * clamp01(1 - distance / halfWidth));
+    }
+  }
+  const texture = new Texture2D(engine, resolution, resolution, TextureFormat.R8G8B8A8, true, false);
+  texture.name = "Rain splash ring";
+  texture.filterMode = TextureFilterMode.Trilinear;
+  texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Clamp;
+  const restorer = new (class extends ContentRestorer<Texture2D> {
+    restoreContent(): void {
+      this.resource.setPixelBuffer(pixels);
+      this.resource.generateMipmaps();
+    }
+  })(texture);
+  restorer.restoreContent();
+  engine.resourceManager.addContentRestorer(restorer);
   return texture;
 }
 

@@ -1,4 +1,4 @@
-import type { TerrainClipmapRegionSource } from "./TerrainClipmapSource";
+import type { TerrainClipmapRegionSource } from "./TerrainHeightAtlas";
 
 /** Detached final values on the existing sample lattice. The backend derives lossless dirty rectangles. */
 export interface TerrainRegionUpdate {

@@ -4,7 +4,6 @@ import { Engine } from "../Engine";
 import { Material } from "../material";
 import { Blitter } from "../RenderPipeline/Blitter";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
-import { Shader } from "../shader";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../texture";
 import { BloomDownScaleMode, BloomEffect, ColorAdjustmentsEffect, TonemappingEffect } from "./effects";
 import { PostProcessManager } from "./PostProcessManager";
@@ -25,11 +24,11 @@ export class PostProcessUberPass extends PostProcessPass {
     this.event = PostProcessPassEvent.AfterUber - 1;
 
     // Uber Material
-    const uberMaterial = new Material(engine, Shader.find(PostProcessUberPass.UBER_SHADER_NAME)!);
+    const uberMaterial = new Material(engine, Engine._builtinShaders.uber);
     this._uberMaterial = uberMaterial;
 
     // Bloom Material
-    const bloomMaterial = new Material(engine, Shader.find(BloomEffect.SHADER_NAME)!);
+    const bloomMaterial = new Material(engine, Engine._builtinShaders.bloom);
     this._bloomMaterial = bloomMaterial;
 
     // ShaderData initialization
@@ -165,6 +164,7 @@ export class PostProcessUberPass extends PostProcessPass {
 
     // Prefilter
     const internalColorTextureFormat = camera._getInternalColorTextureFormat();
+    const isSRGB = !camera._isInternalFormatHDR();
     let mipWidth = tw,
       mipHeight = th;
     for (let i = 0; i < mipCount; i++) {
@@ -177,7 +177,7 @@ export class PostProcessUberPass extends PostProcessPass {
         null,
         false,
         false,
-        !camera.enableHDR,
+        isSRGB,
         1,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear
@@ -191,7 +191,7 @@ export class PostProcessUberPass extends PostProcessPass {
         null,
         false,
         false,
-        !camera.enableHDR,
+        isSRGB,
         1,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear

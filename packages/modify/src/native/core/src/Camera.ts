@@ -11,7 +11,7 @@ import type { RenderViewCullingSource, RenderViewCullingSourceRegistration } fro
 import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { VirtualCamera } from "./VirtualCamera";
-import { GLCapabilityType, Logger } from "./base";
+import { Logger } from "./base";
 import { ignoreClone } from "./clone/CloneDecorators";
 import { AntiAliasing } from "./enums/AntiAliasing";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
@@ -34,6 +34,7 @@ import { ShaderTagKey } from "./shader/ShaderTagKey";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { TextureFormat } from "./texture";
 import { RenderTarget } from "./texture/RenderTarget";
+import { TextureUtils } from "./texture/TextureUtils";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 
 class MathTemp {
@@ -431,15 +432,7 @@ export class Camera extends Component {
   }
 
   set enableHDR(value: boolean) {
-    if (this.enableHDR !== value) {
-      const rhi = this.engine._hardwareRenderer;
-      const supportHDR = rhi.isWebGL2 || rhi.canIUse(GLCapabilityType.textureHalfFloat);
-      if (value && !supportHDR) {
-        Logger.warn("Can't enable HDR in this device.");
-        return;
-      }
-      this._enableHDR = value;
-    }
+    this._enableHDR = value;
   }
 
   /**
@@ -822,12 +815,13 @@ export class Camera extends Component {
     }
 
     const renderTarget = this._renderTarget;
+    const internalColorFormat = this._getInternalColorTextureFormat();
     // Need HDR and opaque texture
-    if (this.enableHDR || this.opaqueTextureEnabled) {
+    if (TextureUtils.isHDRFormat(internalColorFormat) || this.opaqueTextureEnabled) {
       if (renderTarget) {
         // If camera is HDR and format is same with renderTarget can reuse renderTarget if renderTarget is same HDR format
         // If camera is LDR and opaqueTextureEnabled is true, can reuse renderTarget if renderTarget is LDR format(Only R8G8B8A8)
-        return this._getInternalColorTextureFormat() !== renderTarget.getColorTexture(0)!.format;
+        return internalColorFormat !== renderTarget.getColorTexture(0)!.format;
       } else {
         return true;
       }
@@ -840,11 +834,23 @@ export class Camera extends Component {
    * @internal
    */
   _getInternalColorTextureFormat(): TextureFormat {
-    return this._enableHDR
-      ? this.engine._hardwareRenderer.isWebGL2 && !this.isAlphaOutputRequired
-        ? TextureFormat.R11G11B10_UFloat
-        : TextureFormat.R16G16B16A16
-      : TextureFormat.R8G8B8A8;
+    if (this._enableHDR) {
+      const rhi = this._engine._hardwareRenderer;
+      if (!this.isAlphaOutputRequired && rhi.supportsRenderTargetColorFormat(TextureFormat.R11G11B10_UFloat)) {
+        return TextureFormat.R11G11B10_UFloat;
+      }
+      if (rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16)) {
+        return TextureFormat.R16G16B16A16;
+      }
+    }
+    return TextureFormat.R8G8B8A8;
+  }
+
+  /**
+   * @internal
+   */
+  _isInternalFormatHDR(): boolean {
+    return TextureUtils.isHDRFormat(this._getInternalColorTextureFormat());
   }
 
   /**

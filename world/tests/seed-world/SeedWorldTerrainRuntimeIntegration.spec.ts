@@ -10,9 +10,6 @@ const runtimeState = vi.hoisted(() => ({
   rockCreates: [] as unknown[][],
   rockUpdateCount: 0,
   rockDestroyCount: 0,
-  smallRockCreates: [] as unknown[][],
-  smallRockUpdateCount: 0,
-  smallRockDestroyCount: 0,
   mushroomCreates: [] as unknown[][],
   mushroomUpdateCount: 0,
   mushroomDestroyCount: 0,
@@ -33,7 +30,7 @@ const runtimeState = vi.hoisted(() => ({
 }));
 
 vi.mock("@galacean/engine", () => ({
-  AssetType: { Buffer: "buffer", Material: "material", Texture: "texture" },
+  AssetType: { Buffer: "buffer", Material: "material", Texture: "texture", KTX2: "ktx2" },
   Camera: class Camera {},
   Color: class Color {
     constructor(
@@ -107,7 +104,7 @@ vi.mock("@galacean/engine-terrain/terrain/clipmap/TerrainClipmap", () => ({
           setVector2: vi.fn()
         }
       };
-      const farMaterialOptions = args[10] as { readonly configureMaterial?: (material: unknown) => void } | undefined;
+      const farMaterialOptions = args[9] as { readonly configureMaterial?: (material: unknown) => void } | undefined;
       farMaterialOptions?.configureMaterial?.(this.material);
       farMaterialOptions?.configureMaterial?.(farMaterial);
       runtimeState.clipmapFarMaterials.push(farMaterial);
@@ -116,11 +113,6 @@ vi.mock("@galacean/engine-terrain/terrain/clipmap/TerrainClipmap", () => ({
 
     destroy(): void {
       runtimeState.clipmapDestroyCount++;
-    }
-
-    setMacroVariationEnabled(enabled: boolean): void {
-      this.macroVariationEnabled = enabled;
-      runtimeState.macroVariationStates.push(enabled);
     }
     setLayerDiffuseColors(patches: unknown): void {
       runtimeState.layerDiffuseColors.push(patches);
@@ -146,25 +138,6 @@ vi.mock("@galacean/engine-world-planning/runtime/SeedWorldRockRuntime", () => ({
 
     destroy(): void {
       runtimeState.rockDestroyCount++;
-    }
-  }
-}));
-
-vi.mock("@galacean/engine-world-planning/runtime/SeedWorldSmallRockRuntime", () => ({
-  SeedWorldSmallRockRuntime: class SeedWorldSmallRockRuntime {
-    readonly placementCount = 1;
-    readonly exactInstances = [{ id: "small-rock", category: "small-rock", controller: { update: vi.fn() } }];
-
-    constructor(...args: unknown[]) {
-      runtimeState.smallRockCreates.push(args);
-    }
-
-    update(): void {
-      runtimeState.smallRockUpdateCount++;
-    }
-
-    destroy(): void {
-      runtimeState.smallRockDestroyCount++;
     }
   }
 }));
@@ -277,8 +250,6 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
     runtimeState.macroVariationStates.length = 0;
     runtimeState.rockUpdateCount = 0;
     runtimeState.rockDestroyCount = 0;
-    runtimeState.smallRockUpdateCount = 0;
-    runtimeState.smallRockDestroyCount = 0;
     runtimeState.mushroomUpdateCount = 0;
     runtimeState.mushroomDestroyCount = 0;
     runtimeState.exactCellUpdateCount = 0;
@@ -408,7 +379,6 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
     const plan = { rootSeed: 1_729 };
     const fields = createFields();
     const sourceLibrary = {
-      debrisSource: { id: "stones" },
       mushroom: { id: "mushroom-1" },
       rock: { id: "rock-clif-1" }
     };
@@ -454,6 +424,7 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
       resourceManager: {
         load: vi.fn().mockImplementation((descriptor: { type: string }) => {
           if (descriptor.type === "material") return Promise.resolve(terrainMaterial);
+          if (descriptor.type === "ktx2") return Promise.resolve({ width: 64 });
           throw new Error(`Unexpected resource load: ${descriptor.type}`);
         })
       }
@@ -507,7 +478,6 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
     );
     expect(runtimeState.populationCreates[0][10]).toEqual(SEED_WORLD_ROAD_COLOR_DEFAULT);
     expect(engineArg).toBeDefined();
-    expect(runtimeState.smallRockCreates[0][3]).toBe(sourceLibrary.debrisSource);
     expect(runtimeState.rockCreates).toHaveLength(1);
     expect(runtimeState.rockCreates[0][5]).toEqual([{ category: "rock", id: "large-rock" }]);
     expect(runtime.stones).toBeUndefined();
@@ -637,8 +607,7 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
     expect(engine.resourceManager.load).not.toHaveBeenCalledWith(
       expect.objectContaining({ url: expect.stringContaining("macro-variation-noise.png") })
     );
-    expect(runtimeState.clipmapCreates[0][9]).toBeUndefined();
-    expect(runtimeState.clipmapCreates[0][10]).toEqual(
+    expect(runtimeState.clipmapCreates[0][9]).toEqual(
       expect.objectContaining({
         firstLod: 2,
         nearTransitionMacro: "MATERIAL_TERRAIN_DETAIL_TRANSITION",
@@ -669,6 +638,7 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
       getFloatArray: () => [0, 0, fields.sizeMetres, fields.sizeMetres]
     });
     const sharedGrass = {
+      shader: { name: "Terrain/Vegetation" },
       shaderData: {
         setFloat: vi.fn(),
         setFloatArray: vi.fn(),
@@ -682,6 +652,7 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
     };
     const releaseSharedGrass = runtime.registerGrassAppearanceMaterial(sharedGrass as never);
     const groundCover = {
+      shader: { name: "Terrain/Vegetation" },
       shaderData: {
         setFloat: vi.fn(),
         setFloatArray: vi.fn(),
@@ -730,7 +701,6 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
       "material_GrassColorFieldTransform",
       expect.objectContaining({ x: 0 })
     );
-    expect(runtimeState.macroVariationStates).toEqual([]);
     expect(terrainMaterial.shaderData.setVector4).toHaveBeenCalledWith(
       "material_GrassColorFieldTransform",
       expect.objectContaining({ x: 0, y: 1 / 57.91867446899414, z: 0, w: 1 / 3_072 })
@@ -825,12 +795,10 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
       }))
     ).toEqual([
       { id: "large-rock", category: "rock" },
-      { id: "small-rock", category: "small-rock" },
       { id: "mushroom", category: "mushroom" }
     ]);
     expect(runtimeState.exactCellUpdateCount).toBe(1);
     expect(runtimeState.rockUpdateCount).toBe(0);
-    expect(runtimeState.smallRockUpdateCount).toBe(0);
     expect(runtimeState.mushroomUpdateCount).toBe(0);
 
     (runtime.decorations as unknown as FakeEntity).isActiveInHierarchy = false;
@@ -846,7 +814,6 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
     expect(runtimeState.reliefDisposeCount).toBe(1);
     expect(runtimeState.reliefBindCalls).toEqual([camera.shaderData]);
     expect(runtimeState.rockDestroyCount).toBe(1);
-    expect(runtimeState.smallRockDestroyCount).toBe(1);
     expect(runtimeState.mushroomDestroyCount).toBe(1);
     expect(runtimeState.clipmapDestroyCount).toBe(1);
     expect(runtimeState.textureDestroyCount).toBe(1);

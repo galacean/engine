@@ -3,9 +3,9 @@ import { RuntimeProjectEdit } from "@galacean/engine-project/runtime-editor/proj
 import type { RuntimeProjectPackage } from "@galacean/engine-project/runtime-editor/project/runtime-project";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
 import { RuntimeSceneEdit } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-scene-edit";
-import { exportPlanningScene, importPlanningScene, PLANNING_PROJECT_COMPONENT, type PlanningSceneAsset } from "../PlanningSceneAsset.ts";
+import { exportPlanningScene, importPlanningScene, PLANNING_ENTITY_COMPONENT, PLANNING_PROJECT_COMPONENT, type PlanningSceneAsset } from "../PlanningSceneAsset.ts";
 import { exportPlanningAuthoring, exportPlanningRecipe, upgradePlanningDocument, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
-import { applySpatialCommands } from "@galacean/engine-world-planning/spatial/SpatialDocument";
+import { applySpatialCommands, resolveComponent, type SpatialDocument } from "@galacean/engine-world-planning/spatial/SpatialDocument";
 import { planningRegistry } from "@galacean/engine-world-planning/spatial/PlanningComponents";
 import type { RuntimeEditPreparation } from "@galacean/engine-runtime-editor/runtime-editor/runtime-editor";
 import { DEFAULT_PLANT_PROJECT_RESOURCES, type PlantProjectResources } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
@@ -21,6 +21,11 @@ import type { LakeParameters } from "@galacean/engine-world-planning/spatial/hyd
 import { generatePlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningRuntime";
 import { compositionReliefGround } from "@galacean/engine-world-planning/spatial/SpatialCompositionGeometry";
 import type { RiverParameters } from "@galacean/engine-world-planning/spatial/hydrology/RiverRegions";
+import { COMPOSITION_OWNER } from "@galacean/engine-world-planning/spatial/SpatialComposition";
+import { spatialCompositionParameters, type SpatialCompositionParameters } from "@galacean/engine-world-planning/spatial/SpatialCompositionParameters";
+import { resolveWaterMaterialFileLook, updateWaterMaterialParameters, type WaterMaterialFile } from "@galacean/engine-water/water/native/WaterMaterial";
+import { withSeedWorldWaterColor } from "@galacean/engine-water/world/SeedWorldWaterColor";
+import { WORLD_TEMPLATE_ART } from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
 
 const ownedProperties = new Map<string, readonly string[]>([
   [WATER_COMPONENT, ["authoring", "enabled"]],
@@ -128,19 +133,49 @@ function readPlanningSourceDocument(pack: RuntimeProjectPackage): PlanningDocume
   return readPlanningProjectSource(new RuntimeProjectEdit(pack, nativeAssetFormats(() => ({}))), pack.project.scene);
 }
 
-/** Replacing planning inputs does not replace native Water authoring or deletion intent. */
+function compositionWaterKind(id: string | undefined, origin?: unknown): "lake" | "river" | "waterfall" | undefined {
+  if (origin === "authored") return;
+  if (id === `lake:authored:${COMPOSITION_OWNER}`) return "lake";
+  const rivers = `river:authored:${COMPOSITION_OWNER}:`;
+  if (id === `${rivers}drop`) return "waterfall";
+  if (id?.startsWith(rivers)) return "river";
+}
+
+function compositionWaterSlots(document: SpatialDocument) {
+  const values = document.entities.world?.components.landscapeComposition
+    ? resolveComponent(document, "world", "landscapeComposition", planningRegistry).values
+    : undefined;
+  const layout = spatialCompositionParameters(values as Partial<SpatialCompositionParameters> | undefined);
+  const river = layout.enabled && layout.streamWidthM > 0;
+  return {
+    river,
+    lake: layout.enabled && layout.basinRadiusM > 0,
+    waterfall: river && layout.waterfallWidthM > 0 && Math.max(layout.leftReliefM, layout.rightReliefM) > 0
+  };
+}
+
+function templateId(document: PlanningDocument): string {
+  return document.entities.world.components.worldTemplate
+    ? String(resolveComponent(document, "world", "worldTemplate", planningRegistry).values.id ?? "")
+    : "";
+}
+
+/** Composition water overrides belong to their layout. Independent native Water survives layout replacement. */
 export function retainPlanningWaterSource(document: PlanningDocument, pack: RuntimeProjectPackage): PlanningDocument {
   const source = planningSourceDocument(pack);
   if (!source || planningSeed(source) !== planningSeed(document)) return document;
   const next = structuredClone(document);
-  const template = next.entities.world.components.worldTemplate?.values.id;
-  let replan = template !== source.entities.world.components.worldTemplate?.values.id;
+  const template = templateId(next);
+  const templateChanged = template !== templateId(source);
+  const slots = templateChanged ? undefined : compositionWaterSlots(next);
+  let replan = templateChanged;
   // A saved template ID does not prove that its old river elevations still fit the terrain.
   if (!replan && template) {
     const terrain = createSpatialTerrainPlan(exportPlanningRecipe(next));
     const ground = compositionReliefGround(terrain.parameters.spatialComposition,
       createPlanningGroundSampler(terrain, { natural: true }));
     replan = Object.values(source.entities).some(entity => {
+      if (compositionWaterKind(entity.id, entity.origin)) return false;
       const river = entity.components.rivers?.values as Partial<RiverParameters> | undefined;
       return river?.enabled !== false && river?.points?.some(point =>
         point.elevation !== undefined && point.elevation > ground(point) + 1e-6);
@@ -148,8 +183,12 @@ export function retainPlanningWaterSource(document: PlanningDocument, pack: Runt
   }
   const waterIds = { lake: [] as string[], river: [] as string[] };
   for (const entity of Object.values(source.entities)) {
+    const compositionKind = compositionWaterKind(entity.id, entity.origin);
+    if (compositionKind && !slots?.[compositionKind]) continue;
     if (entity.id === "planning-ocean" || entity.id.startsWith("river:") || entity.id.startsWith("lake:")) {
       next.entities[entity.id] = structuredClone(entity);
+      // The composition generates its own water. Replan independent water using its native IDs.
+      if (compositionKind) continue;
       for (const kind of ["lake", "river"] as const) {
         const component = kind === "lake" ? "lakes" : "rivers";
         if (!replan || !entity.components[component] || entity.components[component].values.enabled === false) continue;
@@ -187,7 +226,7 @@ export function retainPlanningWaterSource(document: PlanningDocument, pack: Runt
     return initialized;
   }
   // A template replaces the terrain, so retained absolute lake levels need a new datum.
-  if (template || template !== source.entities.world.components.worldTemplate?.values.id) {
+  if (template || templateChanged) {
     const ground = createPlanningGroundSampler(createSpatialTerrainPlan(exportPlanningRecipe(next)), { natural: true });
     for (const entity of Object.values(next.entities)) {
       const lake = entity.components.lakes?.values as Partial<LakeParameters> | undefined;
@@ -241,14 +280,70 @@ export function readPlanningProjectSource(draft: RuntimeProjectEdit, path: strin
     return index;
   };
   append(projects[0].entityId);
-  // Retire legacy contracts before restoring tombstones for removed Source water.
-  return retainRemovedWater(upgradePlanningDocument(importPlanningScene(file)), draft.preview());
+  const document = retainRemovedWater(upgradePlanningDocument(importPlanningScene(file)), draft.preview());
+  // Older saves could attach a composition's native water to a layout without the corresponding water feature.
+  for (const { entities, edits } of [{ entities: document.entities, edits: document.passthrough.edits },
+    ...Object.values(document.layoutOverrides ?? {})]) {
+    const slots = compositionWaterSlots({ version: document.version, revision: document.revision, entities });
+    for (const id of new Set([...Object.keys(entities), ...Object.keys(edits)])) {
+      const kind = compositionWaterKind(id, entities[id]?.origin);
+      if (!kind || slots[kind]) continue;
+      delete entities[id];
+      delete edits[id];
+    }
+  }
+  return document;
 }
 
 /** Update owned records in the existing Scene. Unrelated objects and stable IDs survive. */
 export function writePlanningProjectSource(draft: RuntimeProjectEdit, path: string, document: PlanningDocument): void {
   const desired = exportPlanningScene(document), scene = new RuntimeSceneEdit(draft, path);
   const assets = new Set(draft.list().map(file => file.virtualPath));
+  const templateWaterMaterials = new Map<string, string>();
+  const activeTemplateId = templateId(document);
+  const lakeMaterial = "Water/Materials/lake.mat";
+  if (activeTemplateId === "titan-wasteland" && assets.has(lakeMaterial)) {
+    for (const pool of WORLD_TEMPLATE_ART[activeTemplateId]?.water ?? []) {
+      const entityId = `lake:authored:template:${activeTemplateId}:water:${pool.id}`;
+      if (!document.entities[entityId]?.components.lakes?.values.enabled) continue;
+      const target = `Water/Materials/template-${activeTemplateId}-${pool.id}.mat`;
+      if (!assets.has(target)) {
+        const file = JSON.parse(draft.read(lakeMaterial) as string) as WaterMaterialFile;
+        if (file.shaderData && Object.keys(file.shaderData).length > 0) {
+          const colored = withSeedWorldWaterColor(resolveWaterMaterialFileLook(file), pool.color);
+          const look = {
+            ...colored,
+            optics: {
+              ...colored.optics,
+              profile: {
+                ...colored.optics.profile,
+                absorptionCoefficient: [2.2, 0.08, 0.48] as const,
+                scatteringCoefficient: 1.35,
+                scatteringColor: [0.02, 0.72, 0.42] as const,
+                maximumSurfaceOpticalDistance: 1.2,
+                reflectionIntensity: 0.32
+              }
+            }
+          };
+          const content = updateWaterMaterialParameters(file, look);
+          content.shaderData.material_AppearanceV2DepthDistance = { type: "Float", value: 0.28 };
+          content.shaderData.material_AppearanceV2DepthExponent = { type: "Float", value: 0.45 };
+          content.shaderData.material_AppearanceV2DepthColor = {
+            type: "Vector4",
+            value: { x: 0.006, y: 0.48, z: 0.25, w: 1 }
+          };
+          content.shaderData.material_Water_appearance_appearance_boundaryEffects_0_rangeMeters = {
+            type: "Float",
+            value: 0.22
+          };
+          content.name = `${activeTemplateId} ${pool.id}`;
+          draft.create({ virtualPath: target, path: target, type: "Material" }, JSON.stringify(content));
+          assets.add(target);
+        }
+      }
+      if (assets.has(target)) templateWaterMaterials.set(entityId, target);
+    }
+  }
   // Existing external lighting is outside the vegetation conversion. Keep its explicit
   // URL adapter; do not turn it into an unresolved project reference or discard authoring.
   for (const component of desired.components) if (component.type === "PlanningLighting") {
@@ -272,11 +367,16 @@ export function writePlanningProjectSource(draft: RuntimeProjectEdit, path: stri
   }
   const existing = scene.queryComponents({ type: PLANNING_PROJECT_COMPONENT });
   if (existing.length > 1) throw new Error("Scene requires one planning authoring owner");
-  // Water objects own their Source independently of the planning snapshot. This
-  // also protects template-owned Prefab members without detaching their identities.
+  // Independent Water and Prefab members retain their native Source. Materialized
+  // composition water follows its layout and is removed when that layout is replaced.
   const parents = new Map(scene.list().flatMap(entity => (entity.children ?? []).map(child => [child, entity.id] as const)));
   const waterOwners = new Set<string>();
   for (const body of scene.queryComponents({ type: WATER_COMPONENT })) {
+    const id = planningWaterSourceId(scene, body.entityId);
+    if (compositionWaterKind(id)) {
+      const identity = scene.queryComponents({ entityId: body.entityId, type: PLANNING_ENTITY_COMPONENT })[0];
+      if (scene.readComponent(identity.id).props?.origin !== "authored") continue;
+    }
     for (let id: string | undefined = body.entityId; id && !waterOwners.has(id); id = parents.get(id)) waterOwners.add(id);
   }
   const references = (value: unknown): unknown => {
@@ -299,6 +399,14 @@ export function writePlanningProjectSource(draft: RuntimeProjectEdit, path: stri
     for (const componentIndex of node.components) {
       const component = desired.components[componentIndex], current = remaining.get(component.type);
       let props = references(component.props) as GalaceanSourceValueRecord;
+      const entityKey = key(index);
+      const templateMaterial =
+        component.type === WATER_COMPONENT && typeof entityKey === "string"
+          ? templateWaterMaterials.get(entityKey)
+          : undefined;
+      if (!current && templateMaterial && assets.has(templateMaterial)) {
+        props.authoring = { ...props.authoring as GalaceanSourceValueRecord, material: { $ref: templateMaterial } };
+      }
       if (current && component.type === "PlanningEntityAuthoring" && current.id.startsWith("@instance:"))
         props = { ...props, planningId: scene.readComponent(current.id).props!.planningId! };
       if (current && component.type === WATER_COMPONENT) {

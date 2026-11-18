@@ -34,6 +34,7 @@ import type { SpatialCommand } from "@galacean/engine-world-planning/spatial/Spa
 import "../../../../../../packages/world-planning/src/semantic-study/BaseMap.css";
 import "../semantic-study/WorldPlanning.css";
 import "./SpatialEditor.css";
+interface PlanningEditOptions { resetPlanning?: boolean; resetWater?: boolean }
 /** Editor shell projects one session. It neither generates geometry nor owns parameter definitions. */
 export async function mountSpatialEditor(
   host: HTMLElement,
@@ -103,6 +104,7 @@ export async function mountSpatialEditor(
   const client = new PlanningWorkerClient();
   client.onProgress=stage=>{ui("progress").hidden=false;ui("progress").textContent=stage+"…";};
   let initialDocument: PlanningDocument;
+  let replacePlanning = false;
   try {
     const template = initialPlanningTemplate(pageUrl.url.search, parameters.seed,
       saved ? exportPlanningRecipe(saved).parameters.worldTemplate?.id ?? "" : undefined);
@@ -110,7 +112,7 @@ export async function mountSpatialEditor(
     if (template !== undefined) initialDocument = storage.retainWater(initialDocument);
     removeDesertCamelPreset(initialDocument);
     if (template !== undefined) applyPlanningTemplateSurface(initialDocument);
-    if (!storageWarning) await storage.migrateToSource(initialDocument, template !== undefined && !!saved);
+    replacePlanning = template !== undefined && !!saved;
   } catch (error) {
     client.dispose();
     project.dispose();
@@ -137,7 +139,7 @@ export async function mountSpatialEditor(
     async (id, seed) => {
       const document = createWorldStylePlanningDocument(session.document, seed, id, session.recipe().parameters.population);
       applyPlanningTemplateSurface(document);
-      const receipt = await edit((draft) => draft.load(retainPlanningWaterSource(document, project.projectPackage)));
+      const receipt = await edit((draft) => draft.load(document), { resetWater: true });
       if (receipt?.status !== "accepted") throw new Error(receipt?.message ?? "规划未接受");
       if (storageWarning) throw new Error(storageWarning);
       status(session.document.populationInitialization?.diagnostics.join("；") ?? "");
@@ -441,16 +443,16 @@ export async function mountSpatialEditor(
     root.dataset.solveTimings = JSON.stringify(r.timings);
     root.dataset.renderMs = String(performance.now() - start);
   }
-  function edit(action: (draft: PlanningSession) => Promise<EditReceipt | undefined>, reset = false): Promise<EditReceipt | undefined> {
-    const pending = executeEdit(action, reset);
+  function edit(action: (draft: PlanningSession) => Promise<EditReceipt | undefined>, settings: PlanningEditOptions = {}): Promise<EditReceipt | undefined> {
+    const pending = executeEdit(action, settings);
     activeEdits.add(pending);
     return pending.finally(() => { activeEdits.delete(pending); });
   }
-  async function executeEdit(action: (draft: PlanningSession) => Promise<EditReceipt | undefined>, reset = false): Promise<EditReceipt | undefined> {
+  async function executeEdit(action: (draft: PlanningSession) => Promise<EditReceipt | undefined>, settings: PlanningEditOptions): Promise<EditReceipt | undefined> {
     if (disposed) throw new Error("空间规划已关闭");
     if (generating) throw new Error("3D 正在生成，请完成后再修改布局");
     if (clearingStorage) throw new Error("正在清理本地数据，请稍后再修改布局");
-    if (resettingPlanning && !reset) throw new Error("正在重置规划参数，请稍后再修改布局");
+    if (resettingPlanning && !settings.resetPlanning) throw new Error("正在重置规划参数，请稍后再修改布局");
     const started = performance.now();
     director.pause();
     root.dataset.pending = "true";
@@ -465,7 +467,7 @@ export async function mountSpatialEditor(
       if (disposed || receipt?.status === "superseded") return receipt;
       if (receipt?.status === "accepted") {
         await transaction.prepare(abort.signal);
-        await storage.save(transaction.session.export(), crypto.randomUUID());
+        await storage.save(transaction.session.export(), crypto.randomUUID(), settings.resetWater);
         transaction.commit();
         await view.publishPlan(session.result!.plan, abort.signal, () => {});
       }
@@ -546,7 +548,7 @@ export async function mountSpatialEditor(
     button("generate").textContent = "正在生成…";
     try {
       await project.save();
-      await options.onGenerate3D(plan, session);
+      await options.onGenerate3D(plan, session, storage.pendingWaterReset);
     } catch (error) {
       if (!disposed) status("生成 3D 未能完成：" + String(error));
     } finally {
@@ -599,7 +601,7 @@ export async function mountSpatialEditor(
         replacement.layoutOverrides = draft.document.layoutOverrides;
         applyPlanningTemplateSurface(replacement);
         return draft.load(retainPlanningWaterSource(replacement, project.projectPackage), abort.signal);
-      }, true);
+      }, { resetPlanning: true });
       if (disposed || receipt?.status !== "accepted") return;
       select(null);
       await changeProjection(false);
@@ -684,6 +686,7 @@ export async function mountSpatialEditor(
   root.inert = true;
   try {
     await session.initialize();
+    if (!storageWarning) await storage.migrateToSource(session.document, replacePlanning);
   } catch (error) {
     dispose();
     throw error;

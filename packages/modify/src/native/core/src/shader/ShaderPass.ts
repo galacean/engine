@@ -53,6 +53,8 @@ export class ShaderPass extends ShaderPart {
   /** @internal Transform feedback output varyings (WebGL2 only). */
   _feedbackVaryings?: string[];
 
+  private readonly _vertexOutputNames?: Readonly<Record<string, string>>;
+
   private static _variantObservers = new WeakMap<
     Engine,
     Set<(pass: ShaderPass, macros: readonly ShaderMacro[]) => void>
@@ -104,13 +106,15 @@ export class ShaderPass extends ShaderPart {
    * @param fragmentShaderInstructions - Precompiled fragment instruction array
    * @param platformTarget - Target shader language
    * @param tags - Tags
+   * @param vertexOutputNames - Source output names mapped to generated GLSL names
    */
   constructor(
     name: string,
     vertexShaderInstructions: ShaderInstruction[],
     fragmentShaderInstructions: ShaderInstruction[],
     platformTarget: ShaderLanguage,
-    tags?: Record<string, number | string | boolean>
+    tags?: Record<string, number | string | boolean>,
+    vertexOutputNames?: Readonly<Record<string, string>>
   ) {
     super();
     this._shaderPassId = ShaderPass._shaderPassCounter++;
@@ -119,6 +123,7 @@ export class ShaderPass extends ShaderPart {
     this._vertexShaderInstructions = vertexShaderInstructions;
     this._fragmentShaderInstructions = fragmentShaderInstructions;
     this._platformTarget = platformTarget;
+    this._vertexOutputNames = vertexOutputNames;
 
     const mergedTags = { pipelineStage: PipelineStage.Forward, ...tags };
     for (const key in mergedTags) {
@@ -194,6 +199,10 @@ export class ShaderPass extends ShaderPart {
     deferCompletion = false,
     cacheOnly = false
   ): ShaderProgram {
+    const names = this._vertexOutputNames;
+    const feedbackVaryings = names
+      ? this._feedbackVaryings?.map((name) => (Object.prototype.hasOwnProperty.call(names, name) ? names[name] : name))
+      : this._feedbackVaryings;
     const isGPUInstance = macroCollection.isEnable(InstanceBuffer.gpuInstanceMacro);
     const { vertexSource, fragmentSource, instanceLayout } = this._compileShaderSource(
       engine,
@@ -207,7 +216,7 @@ export class ShaderPass extends ShaderPart {
     const sourceKey = JSON.stringify([
       vertexSource,
       fragmentSource,
-      this._feedbackVaryings ?? [],
+      feedbackVaryings ?? [],
       instanceLayout && [
         instanceLayout.instanceMaxCount,
         instanceLayout.structSize,
@@ -223,7 +232,7 @@ export class ShaderPass extends ShaderPart {
     const cached = map.getBySource(sourceKey);
     if (cached) return cached;
     if (cacheOnly) throw new Error(`Shader pass '${this.name}' has a program missing from startup warmup`);
-    const program = new ShaderProgram(engine, vertexSource, fragmentSource, this._feedbackVaryings, deferCompletion);
+    const program = new ShaderProgram(engine, vertexSource, fragmentSource, feedbackVaryings, deferCompletion);
     program._instanceLayout = instanceLayout;
     map.cacheBySource(sourceKey, program);
     return program;
@@ -271,6 +280,10 @@ export class ShaderPass extends ShaderPart {
     if (isWebGL2 && this._platformTarget === ShaderLanguage.GLSLES100) {
       vertexSource = ShaderFactory.convertTo300(vertexSource);
       fragmentSource = ShaderFactory.convertTo300(fragmentSource, true);
+    } else if (isWebGL2) {
+      // The compiler preserves legacy texture calls inside shared library helpers.
+      vertexSource = ShaderFactory.convertTextureCallsTo300(vertexSource);
+      fragmentSource = ShaderFactory.convertTextureCallsTo300(fragmentSource);
     }
 
     const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";

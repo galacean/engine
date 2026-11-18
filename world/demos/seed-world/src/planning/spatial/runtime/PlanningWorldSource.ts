@@ -12,6 +12,7 @@ import { defaultPoiLayout } from "@galacean/engine-world-planning/semantic-study
 export interface PlanningWorldHandoff {
   document: PlanningDocument;
   result: SemanticResult;
+  waterResetRequest?: string;
 }
 
 /** Acquire authoring/storage/worker ownership without publishing. The native page
@@ -21,7 +22,7 @@ export interface PlanningWorldHandoff {
 export async function createPlanningWorldSource(search: string, handoff: PlanningWorldHandoff | undefined, storage: {
   load(seed: number): Promise<PlanningDocument | undefined>; save(document: PlanningDocument): Promise<void>;
   retainWater?(document: PlanningDocument): PlanningDocument;
-  initialize?(document: PlanningDocument, result: SemanticResult): Promise<PlanningDocument>;
+  initialize?(document: PlanningDocument, result: SemanticResult, waterResetRequest?: string): Promise<PlanningDocument>;
 }) {
   const query = new URLSearchParams(search);
   const raw = query.get("seed");
@@ -55,7 +56,7 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
       const recipe = exportPlanningRecipe(document);
       accepted ??= await client.run(recipe.parameters, recipe.edits, undefined, document);
       if (!accepted?.accepted) throw new Error("Water authoring initialization requires an accepted planning result");
-      document = await storage.initialize(document, accepted);
+      document = await storage.initialize(document, accepted, handoff?.waterResetRequest);
     } catch (error) { client.dispose(); throw error; }
   }
   // Source/project history owns undo; the runtime session is a derived consumer.

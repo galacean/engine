@@ -24,6 +24,7 @@ import { registerPlantProjectAssets } from "@galacean/engine-world-planning/inte
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
 import { registerNativeWater } from "@galacean/engine-water/water/native/index";
 import { migrateSeedWorldWaterTextures } from "./SeedWorldWaterTextureMigration";
+import type { AtomicLodManifest } from "@galacean/engine-vegetation/asset-assembly/AssetAssemblyCatalog";
 
 /** Author schemas and saved asset catalogs are intentionally incompatible across these save versions.
  * Opening a project deletes saves of any other version before loading, so it starts from the initial world. */
@@ -141,7 +142,8 @@ async function migrateVegetationAssets(project: RuntimeProjectSession, initial: 
   const marker = `${project.projectPackage.project.scene}.vegetation-assets.json`;
   const version = project.projectPackage.documents?.[marker] === undefined ? 0
     : JSON.parse(project.projectPackage.documents[marker]).version;
-  if (version === 2) return;
+  if (version === 3) return;
+  if (version === 2) return migrateVegetationPlacementMetadata(project, initial, baseUrl, marker);
   if (version !== 0 && version !== 1) throw new Error("Unsupported vegetation asset migration");
   const current = project.projectPackage;
   const contents: Record<string, string> = {}, retiredAliases = new Set<string>();
@@ -217,4 +219,46 @@ async function migrateVegetationAssets(project: RuntimeProjectSession, initial: 
       ? { ...file, params: initial.files.find(initial => initial.virtualPath === file.virtualPath)?.params } : file) },
     contents: { ...pack.contents, ...contents },
     documents: { ...pack.documents, [marker]: JSON.stringify({ version: 2 }) } }));
+  await migrateVegetationPlacementMetadata(project, initial, baseUrl, marker);
+}
+
+/** Add newly published placement metadata to saved catalogs without replacing authored assets. */
+async function migrateVegetationPlacementMetadata(
+  project: RuntimeProjectSession,
+  initial: RuntimeProjectManifest,
+  baseUrl: string,
+  marker: string
+): Promise<void> {
+  const provider = project.fileProvider();
+  const contents: Record<string, string> = {};
+  let defaults: Map<string, AtomicLodManifest> | undefined;
+  for (const file of project.projectPackage.project.files.filter(file => file.type === "PlantProduction")) {
+    await provider.prepare?.(file.virtualPath);
+    const text = provider.read(file.virtualPath);
+    if (typeof text !== "string") throw new Error(`Expected vegetation text asset: ${file.virtualPath}`);
+    const production = JSON.parse(text);
+    const stones = production.stoneVariants as readonly AtomicLodManifest[];
+    if (stones.every(stone => stone.geometryBounds !== undefined)) continue;
+    if (!defaults) {
+      const source = initial.files.find(file => file.virtualPath === PLANT_PROJECT_PRODUCTION);
+      if (!source) throw new Error("Missing production catalog for vegetation migration");
+      const response = await fetch(new URL(source.path, baseUrl));
+      if (!response.ok) throw new Error(`Vegetation migration read failed (${response.status})`);
+      const catalog = await response.json();
+      defaults = new Map((catalog.stoneVariants as readonly AtomicLodManifest[]).map(stone => [stone.id, stone]));
+    }
+    production.stoneVariants = stones.map(stone => {
+      if (stone.geometryBounds !== undefined) return stone;
+      const source = defaults!.get(stone.id);
+      if (!source?.geometryBounds || stone.lods.length !== source.lods.length ||
+        stone.lods.some((lod, index) => lod.prefabUrl !== source.lods[index].prefabUrl))
+        throw new Error(`Saved stone requires authored placement bounds: ${stone.id}`);
+      return { ...stone, geometryBounds: structuredClone(source.geometryBounds) };
+    });
+    contents[file.virtualPath] = JSON.stringify(production);
+  }
+  await project.update(pack => ({ ...pack,
+    contents: { ...pack.contents, ...contents },
+    documents: { ...pack.documents, [marker]: JSON.stringify({ version: 3 }) }
+  }));
 }

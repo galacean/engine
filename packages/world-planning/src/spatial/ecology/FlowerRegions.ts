@@ -88,6 +88,9 @@ export function planFlowerRegions(
     plan.poiDistribution.domains,
     config,
     boundaryBlendM,
+    (plan.authoredResources ?? []).filter(
+      (resource) => resource.resourceType === "vegetation-brush" && resource.properties.category === "flower"
+    ),
     Object.entries(edits)
       .filter(([, e]) => e.flowers || e.flowerInfluence)
       .map(([id, e]) => [id, e.flowers, e.flowerInfluence])
@@ -368,6 +371,39 @@ export function planFlowerRegions(
         { x: b.maxX, z: b.minZ },
         { x: b.maxX, z: b.maxZ },
         { x: b.minX, z: b.maxZ }
+      ]
+    });
+  }
+  for (const resource of plan.authoredResources ?? []) {
+    if (resource.resourceType !== "vegetation-brush" || resource.properties.category !== "flower") continue;
+    const owner = resource.resourceId;
+    if (scope && !scope.owners.has(owner)) continue;
+    const { x, z, radiusMetres, densityScale } = resource.properties;
+    const ring = Array.from({ length: 24 }, (_, i) => {
+      const a = (i * 2 * Math.PI) / 24;
+      return { x: x + Math.cos(a) * radiusMetres, z: z + Math.sin(a) * radiusMetres };
+    });
+    const areaM2 = ringArea(ring);
+    result.push({
+      id: "flowers:" + owner,
+      ownerId: owner,
+      label: "花刷区域",
+      config: {
+        coverage: Math.max(0.05, Math.min(1, densityScale)),
+        densityPerM2: Math.max(config?.densityPerM2 ?? FLOWER_DEFAULTS.densityPerM2, 2.5),
+        patchSizeM: config?.patchSizeM ?? FLOWER_DEFAULTS.patchSizeM,
+        maxSlopeDegrees: config?.maxSlopeDegrees ?? FLOWER_DEFAULTS.maxSlopeDegrees,
+        assetWeights: resolveGeneratedFlowerAssetWeights(plan.parameters.seed, owner, config?.assetWeights)
+      },
+      outlines: [ring],
+      patches: [ring],
+      areaM2,
+      eligibleAreaM2: areaM2,
+      outline: [
+        { x: x - radiusMetres, z: z - radiusMetres },
+        { x: x + radiusMetres, z: z - radiusMetres },
+        { x: x + radiusMetres, z: z + radiusMetres },
+        { x: x - radiusMetres, z: z + radiusMetres }
       ]
     });
   }
