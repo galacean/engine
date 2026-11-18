@@ -1,0 +1,41 @@
+world/demos/seed-world/agent-adapter/SeedWorldToolCatalog.ts
+  s_b4932ee6673859::t_ef3ebc2a94d51c 11,23
+world/demos/seed-world/agent-adapter/tools/water-tools.ts
+  s_b4932ee6673859::t_9620c2fed5cb51 1-31
+world/demos/seed-world/agent-adapter/knowledge/README.md
+  s_b4932ee6673859::t_ef3ebc2a94d51c 9-11
+world/demos/seed-world/agent-adapter/knowledge/water/README.md
+  s_b4932ee6673859::t_ef3ebc2a94d51c 5
+packages/world-planning/src/spatial/hydrology/RiverRegions.ts
+  s_b4932ee6673859::t_ef3ebc2a94d51c 18,128-147
+  s_b4932ee6673859::t_c1daf8d36809b1 148-150
+packages/world-planning/src/spatial/PlanningComponents.ts
+  s_b4932ee6673859::t_ef3ebc2a94d51c 116-125
+world/demos/seed-world/agent-adapter/SeedWorldAgentApplication.ts
+  s_b4932ee6673859::t_9620c2fed5cb51 913-977
+world/demos/seed-world/agent-adapter/SeedWorldPlanningService.ts
+  s_b4932ee6673859::t_9620c2fed5cb51 2-5,21-41
+  s_b4932ee6673859::t_c3bc7ba0ff7811 42
+world/demos/seed-world/agent-adapter/contracts/SeedWorldContractRegistry.ts
+  s_b4932ee6673859::t_ef3ebc2a94d51c 17,29
+world/demos/seed-world/agent-adapter/contracts/generated/SeedWorldApiSearchRegistry.ts
+  s_b4932ee6673859::t_7a578a73a28ba8 4,262-266,1004-1013
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/water.digRiver.d.ts
+  s_b4932ee6673859::t_7b75a038e030dc 1-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3d2a2daa77cc19d6f6a25c478d5fb9f48735a946",
+  "prompts": {},
+  "sessions": {
+    "s_b4932ee6673859": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ed5a-1ad6-72d1-bbb3-b76240cdaf12",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
