@@ -15,6 +15,7 @@ import { territoryLookup } from "../ecology/PoiTerritories";
 export interface RiverParameters {
   points?: WatercoursePoint[];
   sections?: WatercourseSection[];
+  levelMode?: "terrain" | "minimum";
   enabled?: boolean;
   count: number;
   lengthM: number;
@@ -124,8 +125,30 @@ export function generateRiverRegions(
       throw new Error("INVALID_ARGUMENT: 自定义河流缺少控制点");
     if (riverConfig.enabled === false) continue;
     if (riverConfig.points !== undefined) {
-      const course = resolveWatercourse({ id, points: riverConfig.points, sections: riverConfig.sections }, (x, z) =>
-        ground({ x, z })
+      let authorPoints = riverConfig.points;
+      const probeSpacing = 0.25;
+      const bankClearance = 0.05;
+      if (riverConfig.levelMode === "minimum" && authorPoints.length >= 2) {
+        // Probe between control points too so one uninterrupted reach stays below the original surface.
+        let minimumGround = ground(authorPoints[0]);
+        for (let i = 1; i < authorPoints.length; i++) {
+          const a = authorPoints[i - 1],
+            b = authorPoints[i];
+          const count = Math.max(1, Math.ceil(distance(a, b) / probeSpacing));
+          if (count > 16384) throw new Error("RESOURCE_LIMIT: Watercourse section exceeds the Terrain probe budget.");
+          for (let sample = 1; sample <= count; sample++) {
+            const t = sample / count;
+            minimumGround = Math.min(minimumGround, ground({ x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t }));
+          }
+        }
+        authorPoints = authorPoints.map((point) => ({
+          ...point,
+          elevation: point.elevation ?? minimumGround - bankClearance
+        }));
+      }
+      const course = resolveWatercourse(
+        { id, points: authorPoints, sections: riverConfig.sections, probeSpacing, bankClearance },
+        (x, z) => ground({ x, z })
       );
       const derived = watercourseGeometry(course);
       const points = derived.points.map((p) => ({ x: p.x, z: p.z })),

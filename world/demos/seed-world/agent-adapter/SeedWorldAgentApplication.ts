@@ -910,6 +910,71 @@ export class SeedWorldAgentApplication {
     });
   }
 
+  /** Stage a local river in front of the instruction's frozen player pose. */
+  async digRiver(input: Readonly<{
+    distanceMetres?: number;
+    lengthMetres?: number;
+    widthMetres?: number;
+    depthMetres?: number;
+  }>, signal: AbortSignal) {
+    signal.throwIfAborted();
+    if (!this.planning) throw new Error("Planning editor is not mounted");
+    const { position, forward } = this._viewerCamera();
+    const [fx, fz] = normalizeHorizontal(forward);
+    const distance = input.distanceMetres ?? SEED_WORLD_FRONT_RELATION_DISTANCE_METRES;
+    const length = input.lengthMetres ?? 32;
+    const width = input.widthMetres ?? 6;
+    const depth = input.depthMetres ?? 0.8;
+    const forwardDistances = input.distanceMetres === undefined ? [distance, 12, 28, 36, 48, 64, 80, 100, 120] : [distance];
+    const sidewaysDistances = input.distanceMetres === undefined ? [0, -10, 10, -20, 20, -32, 32, -48, 48, -64, 64] : [0];
+    const sites = forwardDistances.flatMap(along => sidewaysDistances
+      .filter(across => Math.abs(across) <= along)
+      .map(across => ({ along, across })))
+      .sort((a, b) => Math.hypot(a.along - distance, a.across) - Math.hypot(b.along - distance, b.across));
+    const point = (along: number, across: number) => ({
+      x: position[0] + fx * along - fz * across,
+      z: position[2] + fz * along + fx * across
+    });
+    const isDry = (positions: { x: number; z: number }[]) =>
+      this.checkSpatial({ positions, constraints: { water: false } }).items.every(({ matches }) => matches);
+    const fitsPlan = this.planning.riverPlacementTest(width);
+    let centerline: { x: number; z: number }[] | undefined;
+    for (const site of sites) {
+      signal.throwIfAborted();
+      const positions = Array.from({ length: 9 }, (_, index) => {
+        const t = index / 8;
+        return point(site.along + length * 0.1 * Math.sin(t * Math.PI), site.across + length * (t - 0.5));
+      });
+      // The existing river solver validates the final ribbon and banks. Check the proposed
+      // footprint here as well so the default placement steers around existing water.
+      if (!fitsPlan(positions) || !isDry(positions.flatMap(({ x, z }) => [
+        { x, z },
+        { x: x + fx * width * 0.5, z: z + fz * width * 0.5 },
+        { x: x - fx * width * 0.5, z: z - fz * width * 0.5 }
+      ]))) continue;
+      centerline = positions;
+      break;
+    }
+    if (!centerline) throw new AgentToolExecutionError({
+      code: "INVALID_ARGUMENT",
+      message: "玩家前方没有找到适合当前宽度与长度的陆地河道。",
+      executed: false
+    });
+    const id = `river:authored:${crypto.randomUUID()}`;
+    const receipt = await this.planning.createWater({
+      kind: "river",
+      id,
+      parameters: {
+        levelMode: "minimum",
+        bankWidthM: width * 0.5,
+        points: centerline.map((point, index) => ({ id: `p${index}`, ...point, width, depth }))
+      }
+    });
+    signal.throwIfAborted();
+    if (receipt.status !== "accepted") throw new Error(receipt.message ?? "River edit was rejected");
+    return { id, centerline };
+  }
+
   async applyTerrainPatch(
     input: Readonly<{
       operation: "raise" | "lower";

@@ -113,6 +113,16 @@ const riverFields: SpatialField[] = [
       { key: "stepCount", label: "台阶数", type: "number" }
     ]
   },
+  {
+    key: "levelMode",
+    label: "河面高程来源",
+    type: "string",
+    kinds: ["water"],
+    combine: "override",
+    options: ["terrain", "minimum"],
+    optionLabels: { terrain: "沿地形流动", minimum: "按完整路径最低地面生成平水面" },
+    default: "terrain"
+  },
   { key: "enabled", label: "生成此河流", type: "boolean", default: true, kinds: ["water"], combine: "override" },
   number("count", "河流数量", { unit: "个", min: 0, default: RIVER_DEFAULTS.count, kinds: ["world"] }),
   {

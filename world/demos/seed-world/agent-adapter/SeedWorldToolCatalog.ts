@@ -8,6 +8,7 @@ import { createSeedWorldCelestialTools } from "./tools/celestial-tools.ts";
 import { createSeedWorldLandscapeTools } from "./tools/landscape-tools.ts";
 import { createSeedWorldKernelTools, createSeedWorldSpatialTools } from "./tools/spatial-tools.ts";
 import { createSeedWorldTimeTools } from "./tools/time-tools.ts";
+import { createSeedWorldWaterTools } from "./tools/water-tools.ts";
 
 
 export function createSeedWorldTools(application: SeedWorldAgentApplication): readonly AgentTool[] {
@@ -19,6 +20,7 @@ export function createSeedWorldTools(application: SeedWorldAgentApplication): re
     ...createSeedWorldTimeTools(application),
     ...createSeedWorldCelestialTools(application),
     ...createSeedWorldLandscapeTools(application),
+    ...createSeedWorldWaterTools(application),
     ...createSeedWorldParameterTools(application, application.parameterReceipts),
     ...createSeedWorldAnimalTools(application.animals)
   ];
