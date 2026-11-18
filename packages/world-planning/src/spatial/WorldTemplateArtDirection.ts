@@ -569,7 +569,7 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     sandRippleFadeM: 150,
     initialPlanning: {
       landMode: "continuous",
-      relief: { reliefNearAmplitudeM: 0.1, reliefAmplitudeM: 0.7, reliefFarAmplitudeM: 95, reliefScaleM: 230 },
+      relief: { reliefNearAmplitudeM: 0.1, reliefAmplitudeM: 0.7, reliefFarAmplitudeM: 0, reliefScaleM: 230 },
       roadsEnabled: false,
       farmingEnabled: false,
       poiMemberMax: 0,

@@ -343,7 +343,7 @@ describe("authored world templates", () => {
     expect(recipe.parameters).toMatchObject({
       reliefNearAmplitudeM: 0.1,
       reliefAmplitudeM: 0.7,
-      reliefFarAmplitudeM: 95,
+      reliefFarAmplitudeM: 0,
       reliefScaleM: 230
     });
     expect(recipe.parameters.poiLayout?.network.enabled).toBe(false);
