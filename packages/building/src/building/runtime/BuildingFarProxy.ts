@@ -34,8 +34,13 @@ import { buildingGroupKey, buildingPartKey } from "./BuildingObjectIdentity";
 import type { SeedWorldPickBatch } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
 import { restoreBuffer } from "@galacean/engine-modify/rendering/RestorableResources";
 
-const FAR_PROXY_STRIDE_FLOATS = 16;
-const FAR_PROXY_STRIDE_BYTES = FAR_PROXY_STRIDE_FLOATS * Float32Array.BYTES_PER_ELEMENT;
+// 40-byte packed vertex layout: f32x3 pos (0) | i8x4 norm (12) | u16x4 color+emission (16) | f32x2 uv (24) | u16x4 surfaceTag (32)
+const FAR_PROXY_STRIDE_BYTES = 40;
+const FAR_PROXY_F32_STRIDE = FAR_PROXY_STRIDE_BYTES / Float32Array.BYTES_PER_ELEMENT;
+const FAR_PROXY_U16_STRIDE = FAR_PROXY_STRIDE_BYTES / Uint16Array.BYTES_PER_ELEMENT;
+const FAR_PROXY_RGB_SCALE = 2;
+const FAR_PROXY_EMISSION_SCALE = 8;
+const FAR_PROXY_WALL_LENGTH_SCALE = 256;
 const PLASTER_NORMAL_BIAS_METRES = 0.06;
 const STONE_PAVING_NORMAL_BIAS_METRES = 0.02;
 
@@ -49,12 +54,23 @@ const SURFACE_KIND_DECORATION_GLASS = 6;
 
 const FAR_PROXY_VERTEX_ELEMENTS: VertexElement[] = [
   new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
-  new VertexElement("NORMAL", 12, VertexElementFormat.Vector3, 0),
-  new VertexElement("COLOR_0", 24, VertexElementFormat.Vector4, 0),
-  new VertexElement("TEXCOORD_0", 40, VertexElementFormat.Vector2, 0),
-  new VertexElement("TANGENT", 48, VertexElementFormat.Vector4, 0),
+  new VertexElement("NORMAL", 12, VertexElementFormat.NormalizedByte4, 0),
+  new VertexElement("COLOR_0", 16, VertexElementFormat.NormalizedUShort4, 0),
+  new VertexElement("TEXCOORD_0", 24, VertexElementFormat.Vector2, 0),
+  new VertexElement("TANGENT", 32, VertexElementFormat.NormalizedUShort4, 0),
   new VertexElement("TEXCOORD_1", 0, VertexElementFormat.Float, 1)
 ];
+
+function packSignedByte(value: number): number {
+  const clamped = value < -1 ? -1 : value > 1 ? 1 : value;
+  return Math.round(clamped * 127);
+}
+
+function packU16Scaled(value: number, scale: number): number {
+  if (!(value > 0)) return 0;
+  const normalized = value / scale;
+  return normalized >= 1 ? 65535 : Math.round(normalized * 65535);
+}
 
 const SHARED_MATERIALS = new WeakMap<Engine, Material>();
 
@@ -160,15 +176,22 @@ function previewPartSurfaceKind(part: ConstructionPreviewPart): number {
   return SURFACE_KIND_WALL;
 }
 
+function writeFarProxyColorRgb(vertexU16: Uint16Array, vertexIndex: number, r: number, g: number, b: number): void {
+  const dst = vertexIndex * FAR_PROXY_U16_STRIDE + 8;
+  vertexU16[dst] = packU16Scaled(r, FAR_PROXY_RGB_SCALE);
+  vertexU16[dst + 1] = packU16Scaled(g, FAR_PROXY_RGB_SCALE);
+  vertexU16[dst + 2] = packU16Scaled(b, FAR_PROXY_RGB_SCALE);
+}
+
 function writeFarProxyColors(
   includedParts: readonly ConstructionPreviewPart[],
   includedDecorations: readonly ConstructionDecorationPart[],
   ownerById: ReadonlyMap<string, BuildingPaletteSlot>,
   appearance: ReturnType<typeof masonryAppearance>,
-  vertices: Float32Array
+  vertexU16: Uint16Array
 ): void {
   const defaultOwner: BuildingPaletteSlot = { seed: 0, wallColor: 0, roofColor: 0, woodColor: 0 };
-  let floatOffset = 0;
+  let vertexBase = 0;
   for (let pIdx = 0; pIdx < includedParts.length; pIdx++) {
     const p = includedParts[pIdx]!;
     const count = p.positions.length / 3;
@@ -176,12 +199,15 @@ function writeFarProxyColors(
     const [baseR, baseG, baseB] = partBaseLinearColor(p, owner, appearance);
     for (let i = 0; i < count; i++) {
       const xyz = i * 3;
-      const dst = floatOffset + i * FAR_PROXY_STRIDE_FLOATS;
-      vertices[dst + 6] = p.colors ? p.colors[xyz]! * baseR : baseR;
-      vertices[dst + 7] = p.colors ? p.colors[xyz + 1]! * baseG : baseG;
-      vertices[dst + 8] = p.colors ? p.colors[xyz + 2]! * baseB : baseB;
+      writeFarProxyColorRgb(
+        vertexU16,
+        vertexBase + i,
+        p.colors ? p.colors[xyz]! * baseR : baseR,
+        p.colors ? p.colors[xyz + 1]! * baseG : baseG,
+        p.colors ? p.colors[xyz + 2]! * baseB : baseB
+      );
     }
-    floatOffset += count * FAR_PROXY_STRIDE_FLOATS;
+    vertexBase += count;
   }
 
   for (let dIdx = 0; dIdx < includedDecorations.length; dIdx++) {
@@ -200,23 +226,18 @@ function writeFarProxyColors(
     }
     for (let i = 0; i < count; i++) {
       const xyz = i * 3;
-      const dst = floatOffset + i * FAR_PROXY_STRIDE_FLOATS;
       const r = dp.colors[xyz]!;
       const g = dp.colors[xyz + 1]!;
       const b = dp.colors[xyz + 2]!;
       if (tint && dp.tintMask?.[i] !== false) {
         const lum = r * 0.2126 + g * 0.7152 + b * 0.0722;
         const scale = maxTintLuminance > 0 ? lum / maxTintLuminance : lum;
-        vertices[dst + 6] = scale * tint[0];
-        vertices[dst + 7] = scale * tint[1];
-        vertices[dst + 8] = scale * tint[2];
+        writeFarProxyColorRgb(vertexU16, vertexBase + i, scale * tint[0], scale * tint[1], scale * tint[2]);
       } else {
-        vertices[dst + 6] = r;
-        vertices[dst + 7] = g;
-        vertices[dst + 8] = b;
+        writeFarProxyColorRgb(vertexU16, vertexBase + i, r, g, b);
       }
     }
-    floatOffset += count * FAR_PROXY_STRIDE_FLOATS;
+    vertexBase += count;
   }
 }
 
@@ -265,7 +286,10 @@ export function createBuildingFarProxy(
   if (totalVertices === 0 || totalIndices === 0) return undefined;
 
   const ownerById = new Map(colorOwners.map((owner) => [owner.id, owner] as const));
-  const vertices = new Float32Array(totalVertices * FAR_PROXY_STRIDE_FLOATS);
+  const vertexBytes = new Uint8Array(totalVertices * FAR_PROXY_STRIDE_BYTES);
+  const vertexF32 = new Float32Array(vertexBytes.buffer);
+  const vertexI8 = new Int8Array(vertexBytes.buffer);
+  const vertexU16 = new Uint16Array(vertexBytes.buffer);
   const vertexPickIds = new Float32Array(totalVertices);
   const pickIds: string[] = [];
   const pickIndexById = new Map<string, number>();
@@ -280,7 +304,6 @@ export function createBuildingFarProxy(
     maxZ = Number.NEGATIVE_INFINITY;
 
   let vertexBase = 0;
-  let vertexFloatOffset = 0;
   let indexOffset = 0;
 
   const appendGeometry = (
@@ -305,16 +328,19 @@ export function createBuildingFarProxy(
       sourceNormals?.length === positions.length ? sourceNormals : computeGeometricNormals(positions, partIndices);
     for (let i = 0; i < count; i++) {
       const xyz = i * 3;
-      const dst = vertexFloatOffset + i * FAR_PROXY_STRIDE_FLOATS;
+      const vIdx = vertexBase + i;
+      const fBase = vIdx * FAR_PROXY_F32_STRIDE;
+      const bBase = vIdx * FAR_PROXY_STRIDE_BYTES;
+      const uBase = vIdx * FAR_PROXY_U16_STRIDE;
       const nx = normals[xyz]!;
       const ny = normals[xyz + 1]!;
       const nz = normals[xyz + 2]!;
       const px = positions[xyz]! + nx * normalBias;
       const py = positions[xyz + 1]! + ny * normalBias;
       const pz = positions[xyz + 2]! + nz * normalBias;
-      vertices[dst] = px;
-      vertices[dst + 1] = py;
-      vertices[dst + 2] = pz;
+      vertexF32[fBase] = px;
+      vertexF32[fBase + 1] = py;
+      vertexF32[fBase + 2] = pz;
       if (px < minX) minX = px;
       if (py < minY) minY = py;
       if (pz < minZ) minZ = pz;
@@ -322,25 +348,25 @@ export function createBuildingFarProxy(
       if (py > maxY) maxY = py;
       if (pz > maxZ) maxZ = pz;
 
-      vertices[dst + 3] = nx;
-      vertices[dst + 4] = ny;
-      vertices[dst + 5] = nz;
-      vertices[dst + 9] = readEmission(i);
+      vertexI8[bBase + 12] = packSignedByte(nx);
+      vertexI8[bBase + 13] = packSignedByte(ny);
+      vertexI8[bBase + 14] = packSignedByte(nz);
+      vertexI8[bBase + 15] = 0;
+      vertexU16[uBase + 11] = packU16Scaled(readEmission(i), FAR_PROXY_EMISSION_SCALE);
       const uv = uvs?.[i];
-      vertices[dst + 10] = uv?.[0] ?? 0;
-      vertices[dst + 11] = uv?.[1] ?? 0;
+      vertexF32[fBase + 6] = uv?.[0] ?? 0;
+      vertexF32[fBase + 7] = uv?.[1] ?? 0;
       const [tagX, tagY, tagZ, tagW] = readSurfaceTag(i);
-      vertices[dst + 12] = tagX;
-      vertices[dst + 13] = tagY;
-      vertices[dst + 14] = tagZ;
-      vertices[dst + 15] = tagW;
+      vertexU16[uBase + 16] = Math.round(Math.max(0, Math.min(255, tagX))) * 257;
+      vertexU16[uBase + 17] = packU16Scaled(tagY, 1);
+      vertexU16[uBase + 18] = packU16Scaled(tagZ, FAR_PROXY_WALL_LENGTH_SCALE);
+      vertexU16[uBase + 19] = packU16Scaled(tagW, 1);
     }
 
     for (let k = 0; k < partIndices.length; k++) {
       indices[indexOffset + k] = vertexBase + partIndices[k]!;
     }
     vertexBase += count;
-    vertexFloatOffset += count * FAR_PROXY_STRIDE_FLOATS;
     indexOffset += partIndices.length;
   };
 
@@ -385,9 +411,9 @@ export function createBuildingFarProxy(
     );
   }
 
-  writeFarProxyColors(includedParts, includedDecorations, ownerById, appearance, vertices);
+  writeFarProxyColors(includedParts, includedDecorations, ownerById, appearance, vertexU16);
 
-  const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static);
+  const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertexBytes, BufferUsage.Static);
   const pickBuffer = restoreBuffer(
     new Buffer(engine, BufferBindFlag.VertexBuffer, vertexPickIds, BufferUsage.Static),
     vertexPickIds
@@ -419,8 +445,8 @@ export function createBuildingFarProxy(
     renderer,
     pickBatch: { renderer, count: pickIds.length, resolve: (index) => pickIds[index] },
     refreshColors() {
-      writeFarProxyColors(includedParts, includedDecorations, ownerById, appearance, vertices);
-      vertexBuffer.setData(vertices);
+      writeFarProxyColors(includedParts, includedDecorations, ownerById, appearance, vertexU16);
+      vertexBuffer.setData(vertexBytes);
     },
     setFade(fade: number) {
       renderer.shaderData.setFloat("renderer_MasonryLodFade", fade);

@@ -22,7 +22,7 @@ Shader "Masonry/FarProxy" {
        v.uv = vec2(0.0);
      #endif
      #ifdef RENDERER_HAS_TANGENT
-       v.surfaceTag = a.TANGENT;
+       v.surfaceTag = vec4(a.TANGENT.x * 255.0, a.TANGENT.y, a.TANGENT.z * 256.0, a.TANGENT.w);
      #else
        v.surfaceTag = vec4(0.0);
      #endif
@@ -84,7 +84,7 @@ Shader "Masonry/FarProxy" {
      v.positionWS = worldPos.xyz;
      v.normalWS = normalize(mat3(renderer_NormalMat) * a.NORMAL);
      #ifdef RENDERER_ENABLE_VERTEXCOLOR
-       v.color = a.COLOR_0;
+       v.color = vec4(a.COLOR_0.rgb * 2.0, a.COLOR_0.a * 8.0);
      #else
        v.color = vec4(1.0);
      #endif
@@ -94,7 +94,7 @@ Shader "Masonry/FarProxy" {
        v.uv = vec2(0.0);
      #endif
      #ifdef RENDERER_HAS_TANGENT
-       v.surfaceTag = a.TANGENT;
+       v.surfaceTag = vec4(a.TANGENT.x * 255.0, a.TANGENT.y, a.TANGENT.z * 256.0, a.TANGENT.w);
      #else
        v.surfaceTag = vec4(0.0);
      #endif
