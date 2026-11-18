@@ -22,12 +22,14 @@ import {
   extractSeedWorldBoundaryProfile,
   generatePanoramaVistaBuffers,
   hashVistaU,
+  PANORAMA_VISTA_DEFAULT_WIDTH,
   type SeedWorldVistaPlanSource
 } from "../vista/PanoramaVistaGenerator.ts";
 import { seedWorldOriginX, seedWorldOriginZ, type SeedWorldFields } from "./SeedWorldFields.ts";
 import { SEED_WORLD_ROAD_COLOR_DEFAULT } from "./SeedWorldTerrainRuntime.ts";
 
 const FAR_HORIZON_SHADER_NAME = "SeedWorld/PanoramaFarHorizon";
+const VISTA_NORMAL_MAP_MACRO = "MATERIAL_VISTA_NORMAL_MAP";
 
 const FAR_HORIZON_SHADER = `Shader "${FAR_HORIZON_SHADER_NAME}" {
   SubShader "Default" {
@@ -63,6 +65,9 @@ const FAR_HORIZON_SHADER = `Shader "${FAR_HORIZON_SHADER_NAME}" {
 
       sampler2D material_FarA;
       sampler2D material_FarB;
+      #ifdef ${VISTA_NORMAL_MAP_MACRO}
+        sampler2D material_VistaNormalMap;
+      #endif
       vec3 material_GroundColor;
       vec3 material_RockTint;
       vec4 scene_SurfaceSnowColor;
@@ -108,7 +113,12 @@ const FAR_HORIZON_SHADER = `Shader "${FAR_HORIZON_SHADER_NAME}" {
         if (geometry.a <= 0.004) discard;
 
         vec4 surface = texture2D(material_FarB, uv);
-        vec3 normalWS = normalize(geometry.xyz * 2.0 - 1.0);
+        #ifdef ${VISTA_NORMAL_MAP_MACRO}
+          vec3 bakedNormal = texture2D(material_VistaNormalMap, uv).rgb;
+        #else
+          vec3 bakedNormal = geometry.rgb;
+        #endif
+        vec3 normalWS = normalize(bakedNormal * 2.0 - 1.0);
         float distanceMetres = material_VistaDistance.x * exp(surface.x * material_VistaDistance.y);
         vec3 rayWS = normalize(input.positionWS - camera_Position);
 
@@ -224,14 +234,19 @@ export interface SeedWorldPanoramaVistaRuntimeOptions {
  * Camera and environment changes update the presentation of the generated vista.
  */
 export class SeedWorldPanoramaVistaRuntime {
+  static readonly heightRange = { minimum: 50, maximum: 100 } as const;
+  static readonly defaultHeightPercent = 85;
+  static readonly defaultNormalWidth = PANORAMA_VISTA_DEFAULT_WIDTH;
+
   readonly root: Entity;
-  readonly heightRange = { minimum: 50, maximum: 100 } as const;
+  readonly heightRange = SeedWorldPanoramaVistaRuntime.heightRange;
   private readonly _camera: Camera;
   private readonly _environment: WorldEnvironmentRuntime;
   private readonly _horizonMaterial: Material;
   private readonly _horizonMesh: ModelMesh;
   private readonly _farATex: Texture2D;
   private readonly _farBTex: Texture2D;
+  private _normalMap?: Texture2D;
   private _destroyed = false;
 
   private readonly _groundColor = new Vector3(...SEED_WORLD_ROAD_COLOR_DEFAULT);
@@ -283,7 +298,7 @@ export class SeedWorldPanoramaVistaRuntime {
     horizonRenderer.priority = -10;
     horizonRenderer.receiveShadows = false;
     horizonRenderer.castShadows = false;
-    this.heightPercent = 85;
+    this.heightPercent = SeedWorldPanoramaVistaRuntime.defaultHeightPercent;
     if (options.palette) this.setPalette(options.palette);
     this.update();
   }
@@ -306,6 +321,24 @@ export class SeedWorldPanoramaVistaRuntime {
     const { minimum, maximum } = this.heightRange;
     const scale = clampVista(value, minimum, maximum) / 100;
     this.root.transform.setScale(1, scale, 1);
+  }
+
+  /** Changes the sampling resolution of the baked normal map. */
+  setNormalWidth(width: number): void {
+    if (width === (this._normalMap ?? this._farATex).width) return;
+    const scale = this._farATex.width / width;
+    const height = this._farATex.height / scale;
+    if (!Number.isInteger(scale) || scale < 1 || !Number.isInteger(height) || height < 1) {
+      throw new RangeError("Normal width must evenly divide the baked panorama dimensions.");
+    }
+
+    const normalMap = scale === 1 ? undefined : this._createNormalMap(width, height, scale);
+    const shaderData = this._horizonMaterial.shaderData;
+    shaderData.setTexture("material_VistaNormalMap", normalMap ?? null);
+    if (normalMap) shaderData.enableMacro(VISTA_NORMAL_MAP_MACRO);
+    else shaderData.disableMacro(VISTA_NORMAL_MAP_MACRO);
+    this._normalMap?.destroy();
+    this._normalMap = normalMap;
   }
 
   /** Update the colors on the baked panorama. */
@@ -344,6 +377,37 @@ export class SeedWorldPanoramaVistaRuntime {
     this._horizonMaterial.destroy();
     this._farATex.destroy();
     this._farBTex.destroy();
+    this._normalMap?.destroy();
+  }
+
+  private _createNormalMap(width: number, height: number, scale: number): Texture2D {
+    const source = this._farATex;
+    const sourcePixels = new Uint8Array(source.width * source.height * 4);
+    source.getPixelBuffer(sourcePixels);
+    const pixels = new Uint8Array(width * height * 4);
+    const sampleCount = scale * scale;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        let red = 0;
+        let green = 0;
+        let blue = 0;
+        for (let row = 0; row < scale; row++) {
+          const start = ((y * scale + row) * source.width + x * scale) * 4;
+          for (let column = 0; column < scale; column++) {
+            const offset = start + column * 4;
+            red += sourcePixels[offset]!;
+            green += sourcePixels[offset + 1]!;
+            blue += sourcePixels[offset + 2]!;
+          }
+        }
+        const index = (y * width + x) * 4;
+        pixels[index] = Math.round(red / sampleCount);
+        pixels[index + 1] = Math.round(green / sampleCount);
+        pixels[index + 2] = Math.round(blue / sampleCount);
+        pixels[index + 3] = 255;
+      }
+    }
+    return this._createPanoramaTexture(source.engine, width, height, pixels);
   }
 
   private _createPanoramaTexture(engine: Engine, width: number, height: number, pixels: Uint8Array): Texture2D {

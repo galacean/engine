@@ -143,6 +143,7 @@ import { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/proj
 import { TerrainWindRuntime } from "@galacean/engine-terrain/terrain/project/TerrainWindRuntime";
 import { OrbitControl } from "@galacean/engine-toolkit-controls/dist/es/OrbitControl.js";
 import { SEED_WORLD_PRODUCTION_ASSET_CATALOG } from "@galacean/engine-vegetation/asset-assembly/SeedWorldProductionAssetCatalog";
+import type { TerrainVistaDebugControl } from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainRuntimeDebugInspector";
 import { sampleTerrainSurfacePuddleMask } from "@galacean/engine-world-planning/integrations/terrain/environment/TerrainRainImpactSurface";
 import {
   TerrainWindGpuExposureProvider,
@@ -2128,16 +2129,51 @@ export async function mountSeedWorldDemo(
         }
       };
     });
-    const initial = publication!.current!;
-    vista = new SeedWorldPanoramaVistaRuntime({
-      engine,
-      parent: root,
-      camera,
-      environment,
-      plan: initial.data.plan,
-      fields: initial.data.fields,
-      palette: readVistaPalette(source.session.document, initial.world)
-    });
+    const vistaScene = { engine, parent: root, camera, environment };
+    let vistaHeightPercent = SeedWorldPanoramaVistaRuntime.defaultHeightPercent;
+    let vistaNormalWidth = SeedWorldPanoramaVistaRuntime.defaultNormalWidth;
+    const vistaControls: TerrainVistaDebugControl = {
+      heightRange: SeedWorldPanoramaVistaRuntime.heightRange,
+      get visible() {
+        return vista?.visible ?? false;
+      },
+      set visible(enabled) {
+        // Use the most recent published terrain when enabling the panorama for the first time.
+        if (enabled && !vista) {
+          const accepted = publication!.current!;
+          const next = new SeedWorldPanoramaVistaRuntime({
+            ...vistaScene,
+            plan: accepted.data.plan,
+            fields: accepted.data.fields,
+            palette: readVistaPalette(source!.session.document, accepted.world)
+          });
+          try {
+            next.heightPercent = vistaHeightPercent;
+            next.setNormalWidth(vistaNormalWidth);
+          } catch (error) {
+            next.destroy();
+            throw error;
+          }
+          vista = next;
+        }
+        if (vista) vista.visible = enabled;
+      },
+      get heightPercent() {
+        return vista?.heightPercent ?? vistaHeightPercent;
+      },
+      set heightPercent(value) {
+        if (vista) vista.heightPercent = value;
+        vistaHeightPercent = value;
+      },
+      get normalWidth() {
+        return vistaNormalWidth;
+      },
+      set normalWidth(width) {
+        vista?.setNormalWidth(width);
+        vistaNormalWidth = width;
+      }
+    };
+    vistaControls.visible = publication!.current!.plan.parameters.worldTemplate?.id === "titan-wasteland";
     const initialBuildingDocument = source.session.export();
     nativeEditor.editor.registerPreparation(
       preparePlanningWaterSource(() => runtimeProject!.projectPackage),
@@ -2267,7 +2303,7 @@ export async function mountSeedWorldDemo(
         environment,
         water,
         audio: audio.audio,
-        vista,
+        vista: vistaControls,
         setGrassGroundFusion: (enabled) =>
           tools!.dispatchParameters([
             {

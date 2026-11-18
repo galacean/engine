@@ -15,6 +15,7 @@ import type { SeedWorldRuntimePlan } from "../world/SeedWorldRuntimePlan.ts";
 const PI = Math.PI;
 const TAU = Math.PI * 2;
 const DEFAULT_VISTA_SEED = 261111;
+export const PANORAMA_VISTA_DEFAULT_WIDTH = 2048;
 
 export const clampVista = (x: number, lo: number, hi: number): number => (x < lo ? lo : x > hi ? hi : x);
 export const satVista = (x: number): number => (x < 0 ? 0 : x > 1 ? 1 : x);
@@ -299,7 +300,7 @@ export interface PanoramaVistaBuffers {
  * geology seed and azimuthal boundary profile.
  */
 export function generatePanoramaVistaBuffers(options: PanoramaVistaOptions): PanoramaVistaBuffers {
-  const width = options.width ?? 2048;
+  const width = options.width ?? PANORAMA_VISTA_DEFAULT_WIDTH;
   const height = options.height ?? 256;
   const minDistanceKm = options.minDistanceKm ?? 20;
   const maxDistanceKm = options.maxDistanceKm ?? 160.0;

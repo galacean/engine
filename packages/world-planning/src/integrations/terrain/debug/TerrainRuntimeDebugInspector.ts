@@ -35,7 +35,6 @@ import {
   TERRAIN_SURFACE_SNOW_MELT_TIME_SCALE,
   terrainRainRateToMillimetresPerHour
 } from "@galacean/engine-environment/terrain/environment/SurfaceClimate";
-import type { SeedWorldPanoramaVistaRuntime } from "../../../runtime/SeedWorldPanoramaVistaRuntime.ts";
 
 type SkyLightingPresetId = keyof typeof WeatherPresets.skyLighting;
 type CloudPresetId = keyof typeof WeatherPresets.cloud;
@@ -230,7 +229,14 @@ export interface TerrainRuntimeDebugInspectorOptions {
   /** Optional page-owned exact-Prefab spatial scheduling A/B controls. */
   readonly exactInstanceSpatial?: TerrainExactInstanceSpatialDebugControl;
   /** Optional page-owned vista presentation controls. */
-  readonly vista?: Pick<SeedWorldPanoramaVistaRuntime, "visible" | "heightPercent" | "heightRange">;
+  readonly vista?: TerrainVistaDebugControl;
+}
+
+export interface TerrainVistaDebugControl {
+  visible: boolean;
+  heightPercent: number;
+  readonly heightRange: { readonly minimum: number; readonly maximum: number };
+  normalWidth: number;
 }
 
 /** Live renderer-only surface palette bridge exposed by the shared Debug inspector. */
@@ -472,6 +478,16 @@ export class TerrainRuntimeDebugInspector {
       const folder = category("Vista / 远景");
       folder.add(vista, "visible").name("Enabled / 启用");
       folder.add(vista, "heightPercent", minimum, maximum, 1).name("Height (%) / 高度");
+      folder
+        .add({ normalWidth: vista.normalWidth }, "normalWidth", {
+          "512 × 64": 512,
+          "1024 × 128": 1024,
+          "2048 × 256": 2048
+        })
+        .name("Normals / 法线分辨率")
+        .onChange((width: string) => {
+          vista.normalWidth = Number(width);
+        });
     }
     const debug = runtimeDebug ? category("Debug / 调试", false) : undefined;
     this.terrainFolderHost = createPanelHost(inspector, terrain);

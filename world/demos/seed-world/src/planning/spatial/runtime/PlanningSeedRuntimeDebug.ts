@@ -9,6 +9,7 @@ import type { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain
 import type { OrbitControl } from "@galacean/engine-toolkit-controls";
 import { SEED_WORLD_SURFACE_PALETTE_PRESETS } from "@galacean/engine-vegetation/world/SeedWorldGrassColorField";
 import { mountWaterDevTools } from "@galacean/engine-water/water/devtools/index";
+import type { TerrainVistaDebugControl } from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainRuntimeDebugInspector";
 import { createTerrainRuntimeDebugOwner } from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainRuntimeDebugOwnerFactory";
 import type { WorldEnvironmentRuntime } from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
 import type { TerrainLightingRuntime } from "@galacean/engine-world-planning/integrations/terrain/lighting/TerrainLightingRuntime";
@@ -21,7 +22,6 @@ import {
   type TerrainPerformanceSceneMetrics
 } from "@galacean/engine-world-planning/integrations/terrain/performance/TerrainPerformancePanel";
 import { RockFormationPanel } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Panel";
-import type { SeedWorldPanoramaVistaRuntime } from "@galacean/engine-world-planning/runtime/SeedWorldPanoramaVistaRuntime";
 import {
   decodeSeedWorldHeight,
   seedWorldOriginX,
@@ -59,7 +59,7 @@ export interface PlanningSeedRuntimeDebugOptions {
   readonly post: TerrainPostProcessRuntime;
   readonly environment: WorldEnvironmentRuntime;
   readonly audio?: EnvironmentAudioRuntime;
-  readonly vista: SeedWorldPanoramaVistaRuntime;
+  readonly vista: TerrainVistaDebugControl;
   readonly water: PlanningWaterRuntime;
   readonly setGrassGroundFusion?: (enabled: boolean) => Promise<unknown>;
   readonly readSolidsRoot: () => Entity | undefined;
