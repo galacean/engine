@@ -188,8 +188,8 @@ export class Texture2DArray extends Texture {
         elementIndex,
         0,
         0,
-        Math.max(1, this._width >> (<number>xOrMipLevelOrOut)),
-        Math.max(1, this._height >> (<number>xOrMipLevelOrOut)),
+        this._width >> (<number>xOrMipLevelOrOut),
+        this._height >> (<number>xOrMipLevelOrOut),
         <number>xOrMipLevelOrOut,
         <ArrayBufferView>yOrMipLevel
       );

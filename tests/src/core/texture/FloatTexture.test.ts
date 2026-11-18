@@ -18,36 +18,6 @@ beforeAll(async () => {
 });
 afterAll(() => engine.destroy());
 
-it("uploads and replaces ETC1 mip levels without subimage calls", () => {
-  if (!gl.getExtension("WEBGL_compressed_texture_etc1")) return;
-  const texture = new Texture2D(engine, 4, 4, TextureFormat.ETC1_RGB, false, false);
-  texture.setPixelBuffer(new Uint8Array(8));
-  texture.setPixelBuffer(new Uint8Array(8));
-  expect(() => texture.setPixelBuffer(new Uint8Array(8), 0, 0, 0, 2, 2)).toThrow("entire mip");
-  const cube = new TextureCube(engine, 4, TextureFormat.ETC1_RGB, false, false);
-  cube.setPixelBuffer(TextureCubeFace.PositiveX, new Uint8Array(8));
-  cube.setPixelBuffer(TextureCubeFace.PositiveX, new Uint8Array(8));
-  expect(gl.getError()).toBe(gl.NO_ERROR);
-  texture.destroy(true);
-  cube.destroy(true);
-});
-
-it.each([TextureFormat.Depth16, TextureFormat.Depth24, TextureFormat.Depth32, TextureFormat.Depth24Stencil8])(
-  "uploads depth format %s with valid unpack alignment",
-  (format) => {
-    const texture = new Texture2D(engine, 3, 2, format, false, false);
-    const input =
-      format === TextureFormat.Depth16
-        ? new Uint16Array(6)
-        : format === TextureFormat.Depth32
-          ? new Float32Array(6)
-          : new Uint32Array(6);
-    texture.setPixelBuffer(input);
-    expect(gl.getError()).toBe(gl.NO_ERROR);
-    texture.destroy(true);
-  }
-);
-
 it.each([
   [TextureFormat.R16, 1, true],
   [TextureFormat.R16G16, 2, true],

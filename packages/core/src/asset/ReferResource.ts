@@ -20,9 +20,9 @@ export abstract class ReferResource extends EngineObject implements IReferable {
     return this._refCount;
   }
 
-  protected constructor(engine: Engine, register = true) {
+  protected constructor(engine: Engine) {
     super(engine);
-    if (register) engine.resourceManager._addReferResource(this);
+    engine.resourceManager._addReferResource(this);
   }
 
   /**

@@ -12,9 +12,9 @@ export abstract class GraphicsResource extends ReferResource {
     return this._isContentLost;
   }
 
-  protected constructor(engine: Engine, register = true) {
-    super(engine, register);
-    if (register) engine.resourceManager._addGraphicResource(this);
+  protected constructor(engine: Engine) {
+    super(engine);
+    engine.resourceManager._addGraphicResource(this);
     this._isContentLost = engine._isDeviceLost;
   }
 

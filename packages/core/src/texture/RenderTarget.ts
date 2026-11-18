@@ -166,7 +166,7 @@ export class RenderTarget extends GraphicsResource {
     depth: Texture | null | TextureFormat | RenderBufferDepthFormat = TextureFormat.Depth,
     antiAliasing: number = 1
   ) {
-    super(engine, false);
+    super(engine);
 
     this._width = width;
     this._height = height;
@@ -182,6 +182,7 @@ export class RenderTarget extends GraphicsResource {
         if (colorTexture._isDepthTexture) {
           throw "Render texture can't use depth format.";
         }
+        colorTexture._addReferCount(1);
         if (antiAliasing > 1) {
           memorySize += TextureUtils.getMipLevelByteCount(colorTexture.format, width, height);
         }
@@ -196,6 +197,7 @@ export class RenderTarget extends GraphicsResource {
         throw "Depth texture must use depth format.";
       }
       this._depthTexture = depth;
+      this._depthTexture._addReferCount(1);
       this._depthFormat = depth.format;
       // MSAA depth RBO or non-MSAA cube depth RBO
       if (antiAliasing > 1 || depth instanceof TextureCube) {
@@ -212,13 +214,6 @@ export class RenderTarget extends GraphicsResource {
     }
 
     this._platformRenderTarget = engine._hardwareRenderer.createPlatformRenderTarget(this);
-    // Only track the target and retain its attachments after platform creation succeeds.
-    engine.resourceManager._addReferResource(this);
-    engine.resourceManager._addGraphicResource(this);
-    for (const texture of this._colorTextures) {
-      texture._addReferCount(1);
-    }
-    this._depthTexture?._addReferCount(1);
     this._memorySize = memorySize;
     if (!engine._isDeviceLost) {
       engine._renderingStatistics._textureMemory += memorySize;

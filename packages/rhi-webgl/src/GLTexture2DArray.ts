@@ -59,7 +59,7 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
     } else {
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
       gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
-      gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.alignment ?? 1);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.alignment!);
       gl.texSubImage3D(target, mipLevel, x, y, offsetIndex, width, height, length, baseFormat!, dataType!, colorBuffer);
     }
   }
