@@ -30,6 +30,7 @@ packages/animals/src/gameplay/animal/GroundAnimalCrowd.ts
   s_946a6ca5c23c75::t_c084a1d6829cea 23,612
   s_946a6ca5c23c75::t_6cb48e5f690767 618
   s_946a6ca5c23c75::t_dd5c083d3aebf3 619-620
+  s_946a6ca5c23c75::t_2e9caa7ec5bd97 853-857
 packages/animals/src/gameplay/animal/AnimalInteraction.ts
   s_946a6ca5c23c75::t_8268a354397990 18
 world/tests/seed-world/SeedWorldAnimalClickRouting.spec.ts
@@ -84,10 +85,12 @@ packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
   s_946a6ca5c23c75::t_78c3a75e07e635 1952-1954
   s_946a6ca5c23c75::t_227e059e367383 2105-2107
   s_946a6ca5c23c75::t_8964ed3e42c8c2 2109-2113
+  s_946a6ca5c23c75::t_2e9caa7ec5bd97 415-428,1295-1296,1421-1422,1475-1478,1614-1619,1850-1858,1921,1934-1941,1955,2103-2104,2124,2483
 packages/animals/src/gameplay/animal/GroundAnimalSteering.ts
   s_946a6ca5c23c75::t_6cb48e5f690767 21-22,59
   s_946a6ca5c23c75::t_58b9f611e92009 57-58,60-62
   s_946a6ca5c23c75::t_6c2c0cc08498a5 63-64
+  s_946a6ca5c23c75::t_2e9caa7ec5bd97 66,73
 world/tests/seed-world/AnimalLocalWorldChange.spec.ts
   s_946a6ca5c23c75::t_d60bbc041cff95 185-193
 world/demos/seed-world/src/planning/spatial/PlanningWaterSource.ts
@@ -113,6 +116,7 @@ packages/animals/src/gameplay/animal/AnimalTaskController.ts
   s_946a6ca5c23c75::t_4340a4064f377c 871
   s_946a6ca5c23c75::t_40f4914ed9b2d2 893
   s_946a6ca5c23c75::t_440afa71308d2d 912
+  s_946a6ca5c23c75::t_2e9caa7ec5bd97 706,713,744,765,917-939,959-960,1016,1034,1049
 world/tests/seed-world/AnimalAuthoring.spec.ts
   s_946a6ca5c23c75::t_ab76bd2d98da9c 62-73
 ---
