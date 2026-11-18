@@ -1,0 +1,57 @@
+tests/src/core/Entity.test.ts
+  s_43e2da275089c4::t_2d612d910d7e3e 803-808
+packages/runtime-editor/tests/runtime-incremental-projection.spec.ts
+  s_43e2da275089c4::t_be39e5301e1783 294-295,679-836,838
+  s_43e2da275089c4::t_12cd2e991ea547 9
+  s_43e2da275089c4::t_04f0d335704996 837
+packages/core/src/base/EngineObject.ts
+  s_43e2da275089c4::t_e0f555e55dc6da 19-34,37,76,82
+  s_43e2da275089c4::t_3dd8fef6ee6d96 35-36
+packages/core/src/Entity.ts
+  s_43e2da275089c4::t_2b79b4c19b45c6 61-64,448-449,604,637-642,674-675,751-770
+packages/core/src/Scene.ts
+  s_43e2da275089c4::t_2b79b4c19b45c6 384
+  s_43e2da275089c4::t_06573460996a90 383
+packages/core/src/asset/Loader.ts
+  s_43e2da275089c4::t_be39e5301e1783 15
+  s_43e2da275089c4::t_e0f555e55dc6da 40-45
+packages/modify/src/native/core/src/Scene.ts
+  s_43e2da275089c4::t_2b79b4c19b45c6 391
+  s_43e2da275089c4::t_12c366e995d057 390
+packages/runtime-editor/tests/runtime-preparation-context.spec.ts
+  s_43e2da275089c4::t_12cd2e991ea547 49,89-98
+  s_43e2da275089c4::t_f5a48b19bcdbd5 99-100
+packages/runtime-editor/src/runtime-editor/runtime-editor.ts
+  s_43e2da275089c4::t_3dd8fef6ee6d96 434
+packages/runtime-editor/src/runtime-editor/scene/runtime-scene-changes.ts
+  s_43e2da275089c4::t_3dd8fef6ee6d96 11-12,25-36
+packages/runtime-editor/src/runtime-editor/runtime-preparation-context.ts
+  s_43e2da275089c4::t_3dd8fef6ee6d96 218
+packages/runtime-editor/src/runtime-editor/scene/runtime-scene-projection.ts
+  s_43e2da275089c4::t_3240b5c3f442f0 68
+  s_43e2da275089c4::t_12cd2e991ea547 145,148
+  s_43e2da275089c4::t_55add877b3a8f0 583,585-600,602-603,632,668,677,697,783,799,807-809,820-822,824-839,857-858,860,862-866,876,879-880
+  s_43e2da275089c4::t_ce9fe935b768c1 127-134,146,153-157,611,816
+  s_43e2da275089c4::t_6266f484055877 91,100,135,386-387,859,861,881,885-887,902-956
+  s_43e2da275089c4::t_7acd94f5b25d36 17,60-61,73,86-90,92,113,123,137-144,147,149-152,158-163,342-352,356,358-360,393-395,516,572,580
+  s_43e2da275089c4::t_a8abc399af8236 136
+  s_43e2da275089c4::t_e94c1f75cc1222 957
+packages/modify/src/native/core/src/Entity.ts
+  s_43e2da275089c4::t_2b79b4c19b45c6 61-64,448-449,610,643-648,680-681,757-776
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e6142ac11b03f2ce76c93b64fc923ec01f164327",
+  "prompts": {},
+  "sessions": {
+    "s_43e2da275089c4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e33c-02ef-7632-b762-2829c92512e4",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
