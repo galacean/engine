@@ -1,5 +1,3 @@
-import { compareTerrainStableValues } from "../TerrainStableOrder";
-
 /** Renderer-facing lossless Region height source independent of Project serialization. */
 export interface TerrainClipmapHeightSource {
   readonly id: string;
@@ -11,7 +9,12 @@ export interface TerrainClipmapHeightSource {
   readonly heightSamples: Uint16Array;
   /** Canonical Float32 geometry; supplied by fixed-surface producers without changing the R16 material atlas. */
   readonly surfaceHeights?: Float32Array;
+  /** Optional Worker-baked RG8 normals aligned with `heightSampleSize`. */
+  readonly normalSamples?: Uint8Array;
 }
+
+/** Renderer-facing Region source shared by Height, Normal, and Puddle atlases. */
+export type TerrainClipmapRegionSource = TerrainClipmapHeightSource;
 
 /** Maximum Region count in one WebGL2 Geometry Clipmap residency set. */
 export const TERRAIN_CLIPMAP_MAX_ACTIVE_REGIONS = 32;
@@ -56,7 +59,7 @@ export class TerrainAtlasError extends Error {
  * @returns Negative, zero, or positive according to deterministic code-unit order.
  */
 export function compareTerrainStableIds(left: string, right: string): number {
-  return compareTerrainStableValues(left, right);
+  return left < right ? -1 : left > right ? 1 : 0;
 }
 
 /** Stable identity and dimensions of one rectangle submitted to Terrain atlas packing. */

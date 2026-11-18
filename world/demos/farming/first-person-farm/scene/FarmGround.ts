@@ -1,4 +1,4 @@
-import { gridSurfaceTriangles } from "@galacean/engine-terrain/geometry/SurfaceTriangles";
+import { gridSurfaceTriangles } from "@galacean/engine-farming/farming/geometry/SurfaceTriangles";
 import type {
   FarmingGroundProvider,
   FarmingGroundView,

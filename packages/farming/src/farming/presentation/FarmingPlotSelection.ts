@@ -13,12 +13,8 @@ import {
   Vector3,
   type Camera
 } from "@galacean/engine";
-import {
-  clipSurfaceTriangles,
-  type SurfaceRectangle,
-  type SurfaceTriangle
-} from "@galacean/engine-terrain/geometry/SurfaceTriangles";
-import { destroyOwnedMesh } from "@galacean/engine-terrain/geometry/destroyOwnedMesh";
+import { clipSurfaceTriangles, type SurfaceRectangle, type SurfaceTriangle } from "../geometry/SurfaceTriangles";
+import { destroyOwnedMesh } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
 import { restoreResource } from "@galacean/engine-modify/rendering/RestorableResources";
 import { drawFarmSelectionTexture, selectionNeedsOutline, type FarmSelectionAction } from "./FarmingSelectionTexture";
 

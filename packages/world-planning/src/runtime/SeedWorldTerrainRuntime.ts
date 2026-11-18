@@ -39,6 +39,8 @@ import {
   Entity,
   Material,
   type MeshRenderer,
+  ScreenSpaceReflection,
+  ScreenSpaceReflectionReceiverMode,
   ShaderProperty,
   Texture2D,
   Vector2,
@@ -56,7 +58,7 @@ import type {
   TerrainLayerResidencyRegionSource,
   TerrainLayerResolvedSource
 } from "@galacean/engine-terrain/terrain/clipmap/TerrainLayerResidency";
-import type { TerrainClipmapRegionSource } from "@galacean/engine-terrain/terrain/clipmap/TerrainClipmapSource";
+import type { TerrainClipmapRegionSource } from "@galacean/engine-terrain/terrain/clipmap/TerrainHeightAtlas";
 import type { TerrainLodRendererTuning } from "@galacean/engine-terrain/terrain/lod/TerrainLodGroupRendererRuntime";
 import type { SeedWorldPresentationDecorationInstance } from "../world/SeedWorldDecorations.ts";
 import {
@@ -278,6 +280,20 @@ export class SeedWorldTerrainRuntime {
   /** Stable centre point used when entering the generated terrain preview. */
   readonly observationAnchor: Readonly<{ x: number; y: number; z: number }>;
   private readonly _grassAppearanceMaterials = new Map<Material, number>();
+  private _surfaceWaterSsrMaterial?: Material;
+  private _surfaceWaterSsrEnabled = false;
+
+  /** Applies the current weather demand to the runtime-owned near material, including replacements. */
+  setSurfaceWaterSsrEnabled(enabled: boolean): void {
+    const material = this.clipmap.material;
+    if (material === this._surfaceWaterSsrMaterial && enabled === this._surfaceWaterSsrEnabled) return;
+    ScreenSpaceReflection.setMaterialReceiver(
+      material,
+      enabled ? ScreenSpaceReflectionReceiverMode.OpaqueComposite : ScreenSpaceReflectionReceiverMode.Disabled
+    );
+    this._surfaceWaterSsrMaterial = material;
+    this._surfaceWaterSsrEnabled = enabled;
+  }
 
   /** Borrow the current native field when creating an external surface material. */
   getGrassColorFieldBinding(): SeedWorldGrassColorFieldBinding {
@@ -576,7 +592,6 @@ export class SeedWorldTerrainRuntime {
         terrainSettings.clipmapLodCount,
         layers,
         authoredPuddles ? { maximumSpacingMetres: 1.25, authoredCoverage: authoredPuddles } : undefined,
-        undefined,
         {
           firstLod: farLod,
           nearTransitionMacro: "MATERIAL_TERRAIN_DETAIL_TRANSITION",

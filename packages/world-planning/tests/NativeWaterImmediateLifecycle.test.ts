@@ -4,7 +4,7 @@ import { WaterBodyComponent } from "@galacean/engine-water/water/native/index";
 import { BUILTIN_WATER_PROJECT_URL } from "@galacean/engine-water/water/native/WaterBuiltinAssets";
 import { openWaterEditorFixture } from "./WaterEditorFixture";
 import { createWaterCreationPreset } from "@galacean/engine-water/water/native/index";
-import { writeWaterTerrainAssets } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
+import { writeWaterTerrainAssets } from "../src/spatial/runtime/NativeWaterEditor";
 
 it.each(["lake", "river", "ocean"] as const)(
   "withdraws disabled and deleted %s synchronously before asynchronous cleanup",

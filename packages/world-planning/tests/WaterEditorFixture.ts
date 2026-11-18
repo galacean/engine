@@ -4,7 +4,7 @@ import { registerNativeWater, WaterSystem } from "@galacean/engine-water/water/n
 import { RuntimeNativeEditor } from "@galacean/engine-runtime-editor/runtime-editor-agent/runtime-native-editor";
 import { createWaterTestClient } from "./WaterTestClient";
 import { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
-import { NativeWaterHost } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterHost";
+import { NativeWaterHost } from "../src/spatial/runtime/NativeWaterHost";
 
 export async function openWaterEditorFixture(
   id: string,

@@ -161,8 +161,7 @@ TerrainProjectScreenSpaceReflectionOutput TerrainScreenSpaceReflectionFragment(V
   if (
     material_ScreenSpaceReflectionMode < 0.5 ||
     material_ScreenSpaceReflectionIntensity <= 0.0 ||
-    varyings.terrainValid < 0.999 ||
-    terrainProjectSolidAt(varyings.sourceXZ) < 0.5
+    varyings.terrainValid < 0.999
   ) {
     discard;
   }

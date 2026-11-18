@@ -834,7 +834,9 @@ export async function mountSeedWorldDemo(
         getPuddleHydrology
       },
       lighting,
-      wind
+      wind,
+      undefined,
+      { surfaceWaterSsrRequiresRain: true }
     );
     const initialWeather = source.session
       .inspect("world")
@@ -850,7 +852,10 @@ export async function mountSeedWorldDemo(
       if (current && water) visitPlanningWorldPickBatches(current, water, visitor);
     }
     driver.lateTick = () => {
-      publication?.current?.solids.bridgesView.updateLod(camera);
+      const current = publication?.current;
+      if (!current) return;
+      current.world.setSurfaceWaterSsrEnabled(environment!.surfaceWaterSsrRequested);
+      current.solids.bridgesView.updateLod(camera);
     };
     driver.tick = (dt) => {
       farmingHost?.runtime?.update(dt);
@@ -1556,6 +1561,7 @@ export async function mountSeedWorldDemo(
             );
             recordBootSpan("SeedWorldTerrainRuntime.create", spanAt);
             signal.throwIfAborted();
+            candidate.setSurfaceWaterSsrEnabled(environment!.surfaceWaterSsrRequested);
             const { reliefNearAmplitudeM = 0, reliefAmplitudeM = 0, reliefFarAmplitudeM = 0 } = plan.parameters;
             if (Math.max(reliefNearAmplitudeM, reliefAmplitudeM, reliefFarAmplitudeM) > 0)
               candidate.clipmap.setShadowsEnabled(true);

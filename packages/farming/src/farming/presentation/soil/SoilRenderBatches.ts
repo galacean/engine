@@ -18,7 +18,7 @@ import {
 } from "@galacean/engine";
 import type { PlotGrid } from "../../domain/FarmingGround";
 import type { SoilCell } from "./SoilBoundary";
-import type { SurfaceTriangle } from "@galacean/engine-terrain/geometry/SurfaceTriangles";
+import type { SurfaceTriangle } from "../../geometry/SurfaceTriangles";
 import { restoreResource, uploadRestorableModelMesh } from "@galacean/engine-modify/rendering/RestorableResources";
 import { disposeSoilMesh } from "./disposeSoilMesh";
 

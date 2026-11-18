@@ -140,69 +140,6 @@
     int material_TerrainLayerCount;
     #define GROUND_TerrainLayerCount material_TerrainLayerCount
     #endif
-  #ifdef TERRAIN_GROUND_RENDERER
-  sampler2D renderer_TerrainMacroVariationTexture;
-  #define GROUND_TerrainMacroVariationTexture renderer_TerrainMacroVariationTexture
-  #else
-  sampler2D material_TerrainMacroVariationTexture;
-  #define GROUND_TerrainMacroVariationTexture material_TerrainMacroVariationTexture
-  #endif
-  #ifdef TERRAIN_GROUND_RENDERER
-  int renderer_TerrainMacroVariationEnabled;
-  #define GROUND_TerrainMacroVariationEnabled renderer_TerrainMacroVariationEnabled
-  #else
-  int material_TerrainMacroVariationEnabled;
-  #define GROUND_TerrainMacroVariationEnabled material_TerrainMacroVariationEnabled
-  #endif
-  #ifdef TERRAIN_GROUND_RENDERER
-  vec3 renderer_TerrainMacroColorA;
-  #define GROUND_TerrainMacroColorA renderer_TerrainMacroColorA
-  #else
-  vec3 material_TerrainMacroColorA;
-  #define GROUND_TerrainMacroColorA material_TerrainMacroColorA
-  #endif
-  #ifdef TERRAIN_GROUND_RENDERER
-  vec3 renderer_TerrainMacroColorB;
-  #define GROUND_TerrainMacroColorB renderer_TerrainMacroColorB
-  #else
-  vec3 material_TerrainMacroColorB;
-  #define GROUND_TerrainMacroColorB material_TerrainMacroColorB
-  #endif
-  #ifdef TERRAIN_GROUND_RENDERER
-  float renderer_TerrainMacroScaleA;
-  #define GROUND_TerrainMacroScaleA renderer_TerrainMacroScaleA
-  #else
-  float material_TerrainMacroScaleA;
-  #define GROUND_TerrainMacroScaleA material_TerrainMacroScaleA
-  #endif
-  #ifdef TERRAIN_GROUND_RENDERER
-  float renderer_TerrainMacroScaleB;
-  #define GROUND_TerrainMacroScaleB renderer_TerrainMacroScaleB
-  #else
-  float material_TerrainMacroScaleB;
-  #define GROUND_TerrainMacroScaleB material_TerrainMacroScaleB
-  #endif
-  #ifdef TERRAIN_GROUND_RENDERER
-  float renderer_TerrainMacroAngle;
-  #define GROUND_TerrainMacroAngle renderer_TerrainMacroAngle
-  #else
-  float material_TerrainMacroAngle;
-  #define GROUND_TerrainMacroAngle material_TerrainMacroAngle
-  #endif
-  #ifdef TERRAIN_GROUND_RENDERER
-  vec2 renderer_TerrainMacroOffset;
-  #define GROUND_TerrainMacroOffset renderer_TerrainMacroOffset
-  #else
-  vec2 material_TerrainMacroOffset;
-  #define GROUND_TerrainMacroOffset material_TerrainMacroOffset
-  #endif
-    #ifdef TERRAIN_GROUND_RENDERER
-    int renderer_TerrainDetilingLayerMask;
-    #define GROUND_TerrainDetilingLayerMask renderer_TerrainDetilingLayerMask
-    #else
-    int material_TerrainDetilingLayerMask;
-    #define GROUND_TerrainDetilingLayerMask material_TerrainDetilingLayerMask
-    #endif
   #if defined(MATERIAL_TERRAIN_GRASS_SHADING) || defined(MATERIAL_TERRAIN_ROAD_PALETTE)
     #ifdef TERRAIN_GROUND_RENDERER
     vec4 renderer_TerrainRoadColor;
@@ -278,63 +215,6 @@
     );
   }
 
-  vec2 terrainProjectRotateUv(vec2 value, vec2 cosineSine) {
-    return vec2(
-      cosineSine.x * value.x + cosineSine.y * value.y,
-      cosineSine.x * value.y - cosineSine.y * value.x
-    );
-  }
-
-  float terrainProjectRandomCell(vec2 cell) {
-    vec3 value = fract(vec3(cell.xyx) * 0.1031);
-    value += dot(value, value.yzx + 33.33);
-    return fract((value.x + value.y) * value.z);
-  }
-
-  bool terrainProjectLayerUsesDetiling(int layerIndex) {
-    if (layerIndex < 0 || layerIndex >= 31) return false;
-    return (GROUND_TerrainDetilingLayerMask & (1 << layerIndex)) != 0;
-  }
-
-  void terrainProjectPrepareLayerUv(
-    int layerIndex,
-    vec2 baseUv,
-    out vec2 sampleUv,
-    out vec2 sampleDdx,
-    out vec2 sampleDdy,
-    out vec2 tangentCosineSine
-  ) {
-    sampleUv = baseUv;
-    sampleDdx = dFdx(baseUv);
-    sampleDdy = dFdy(baseUv);
-    tangentCosineSine = vec2(1.0, 0.0);
-    if (terrainProjectLayerUsesDetiling(layerIndex)) {
-      vec2 cell = floor(baseUv + vec2(0.5));
-      float angle = (terrainProjectRandomCell(cell) * 2.0 - 1.0) * 3.141592653589793;
-      vec2 cosineSine = vec2(cos(angle), sin(angle));
-      sampleUv = terrainProjectRotateUv(baseUv - cell, cosineSine) + cell;
-      sampleDdx = terrainProjectRotateUv(sampleDdx, cosineSine);
-      sampleDdy = terrainProjectRotateUv(sampleDdy, cosineSine);
-      tangentCosineSine = vec2(cosineSine.x, -cosineSine.y);
-    }
-  }
-
-  vec3 terrainProjectMacroVariationFromNoise(float noiseA, float noiseB) {
-    vec3 variation = mix(GROUND_TerrainMacroColorA, vec3(1.0), noiseA);
-    return variation * mix(GROUND_TerrainMacroColorB, vec3(1.0), noiseB);
-  }
-
-  vec3 terrainProjectMacroVariation(vec2 worldXZ) {
-    if (GROUND_TerrainMacroVariationEnabled == 0) return vec3(1.0);
-    vec2 cosineSine = vec2(cos(GROUND_TerrainMacroAngle), sin(GROUND_TerrainMacroAngle));
-    float noiseA = texture(
-      GROUND_TerrainMacroVariationTexture,
-      terrainProjectRotateUv(worldXZ * GROUND_TerrainMacroScaleA + GROUND_TerrainMacroOffset, cosineSine)
-    ).r;
-    float noiseB = texture(GROUND_TerrainMacroVariationTexture, worldXZ * GROUND_TerrainMacroScaleB).r;
-    return terrainProjectMacroVariationFromNoise(noiseA, noiseB);
-  }
-
   void terrainProjectAccumulateLayer(
     inout TerrainProjectLayerBlend blend,
     int layerIndex,
@@ -351,19 +231,9 @@
       #if defined(MATERIAL_TERRAIN_LAYER_DIFFUSE_TEXTURES) || \
         defined(TERRAIN_PROJECT_SAMPLE_LAYER_NORMALS) || defined(MATERIAL_TERRAIN_LAYER_MASK_TEXTURES)
       vec4 tiling = terrainProjectLayerMetadataAt(layerIndex, 0);
-      vec2 baseUv = (positionWS.xz + tiling.zw) / tiling.xy;
-      vec2 sampleUv;
-      vec2 sampleDdx;
-      vec2 sampleDdy;
-      vec2 tangentCosineSine;
-      terrainProjectPrepareLayerUv(
-        layerIndex,
-        baseUv,
-        sampleUv,
-        sampleDdx,
-        sampleDdy,
-        tangentCosineSine
-      );
+      vec2 sampleUv = (positionWS.xz + tiling.zw) / tiling.xy;
+      vec2 sampleDdx = dFdx(sampleUv);
+      vec2 sampleDdy = dFdy(sampleUv);
       #endif
 
       #ifdef MATERIAL_TERRAIN_LAYER_DIFFUSE_TEXTURES
@@ -402,7 +272,6 @@
             sampleDdy * normalUvScale
           ).xyz;
           tangentNormal = terrainProjectLayerNormalTangent(normalSample, normalScale);
-          tangentNormal.xy = terrainProjectRotateUv(tangentNormal.xy, tangentCosineSine);
         }
       #endif
 
@@ -603,8 +472,6 @@
       #else
       color = roadDetailColorFromField(terrainProjectGrassSurfaceField(positionWS), GROUND_TerrainRoadColor.rgb, vista);
       #endif
-    #else
-      color *= terrainProjectMacroVariation(positionWS.xz);
     #endif
     return color;
   }

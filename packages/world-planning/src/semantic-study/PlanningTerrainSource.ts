@@ -1,6 +1,6 @@
 import { isGlobalRoadSurface, roadSurfaces, roadSurfaceOwners } from "../spatial/layout/RoadTopology";
 import presentation from "../planning-data/whitebox-presentation.json";
-import type { TerrainClipmapRegionSource } from "@galacean/engine-terrain/terrain/clipmap/TerrainClipmapSource";
+import type { TerrainClipmapRegionSource } from "@galacean/engine-terrain/terrain/clipmap/TerrainHeightAtlas";
 import type { TerrainLayerResidencyRegionSource } from "@galacean/engine-terrain/terrain/clipmap/TerrainLayerResidency";
 import type { IslandPlan } from "./IslandPlanModel";
 import { planningHeightmap, type PlanningHeightmap } from "./PlanningHeightmap";

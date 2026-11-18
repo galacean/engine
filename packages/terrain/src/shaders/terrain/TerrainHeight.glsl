@@ -4,12 +4,6 @@
 
 #include "shared/TerrainHeightField.glsl"
 
-#ifdef MATERIAL_TERRAIN_HOLES
-  sampler2D material_TerrainHolesAtlas;
-  vec2 material_TerrainHolesAtlasInvSize;
-  vec4 material_TerrainRegionHolesRects[TERRAIN_PROJECT_MAX_ACTIVE_REGIONS];
-  float material_TerrainRegionHolesSolid[TERRAIN_PROJECT_MAX_ACTIVE_REGIONS];
-#endif
 float material_TerrainVertexSpacing;
 vec2 material_TerrainGridOrigin;
 float renderer_Lod;
@@ -70,29 +64,6 @@ TerrainProjectClipmapVertex terrainProjectClipmapVertexAt(vec3 positionOS) {
   vec2 renderedXZ = mix(result.sourceXZ, targetXZ, result.morph);
   result.positionWS = vec3(renderedXZ.x, mix(sourceHeight, targetHeight, result.morph), renderedXZ.y);
   return result;
-}
-
-float terrainProjectSolidAt(vec2 worldXZ) {
-  #ifndef MATERIAL_TERRAIN_HOLES
-    return 1.0;
-  #else
-  int regionIndex = terrainProjectRegionIndex(worldXZ);
-  if (regionIndex < 0) {
-    return 0.0;
-  }
-
-  vec4 bounds = GROUND_TerrainRegionWorldBounds[regionIndex];
-  vec4 atlasRect = material_TerrainRegionHolesRects[regionIndex];
-  vec2 local = clamp((worldXZ - bounds.xy) / bounds.zw, vec2(0.0), vec2(1.0));
-  vec2 cell = min(floor(local * atlasRect.zw), atlasRect.zw - vec2(1.0));
-  float authoredValue = floor(
-    texture2D(
-      material_TerrainHolesAtlas,
-      (atlasRect.xy + cell + vec2(0.5)) * material_TerrainHolesAtlasInvSize
-    ).r * 255.0 + 0.5
-  );
-  return authoredValue == material_TerrainRegionHolesSolid[regionIndex] ? 1.0 : 0.0;
-  #endif
 }
 
 vec3 terrainProjectClipmapGeometryNormal(TerrainProjectClipmapVertex center) {

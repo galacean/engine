@@ -1,5 +1,5 @@
 import { Color, Entity, MeshRenderer, ModelMesh, PBRMaterial, Vector3 } from "@galacean/engine";
-import { destroyOwnedMeshSet } from "@galacean/engine-terrain/geometry/destroyOwnedMesh";
+import { destroyOwnedMeshSet } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
 import small from "../../assets/sowing/small.json";
 import grain from "../../assets/sowing/grain.json";
 import pumpkin from "../../assets/sowing/pumpkin.json";

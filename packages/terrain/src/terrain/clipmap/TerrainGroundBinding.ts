@@ -15,13 +15,12 @@ export function bindTerrainGroundSurface(
     "LayerMetadata",
     "LayerDiffuseTextures",
     "LayerNormalTextures",
-    "LayerMaskTextures",
-    "MacroVariationTexture"
+    "LayerMaskTextures"
   ]) {
     const value = source.getTexture(`material_Terrain${name}`);
     target.setTexture(`${prefix}_Terrain${name}`, value ?? null!);
   }
-  for (const name of ["AlphamapCount", "LayerCount", "DetilingLayerMask", "RegionCount", "MacroVariationEnabled"]) {
+  for (const name of ["AlphamapCount", "LayerCount", "RegionCount"]) {
     const value = source.getInt(`material_Terrain${name}`);
     if (value !== undefined) target.setInt(`${prefix}_Terrain${name}`, value);
   }
@@ -29,13 +28,9 @@ export function bindTerrainGroundSurface(
     const value = source.getFloatArray(`material_Terrain${name}`);
     if (value !== undefined) target.setFloatArray(`${prefix}_Terrain${name}`, value);
   }
-  for (const name of ["AlphamapAtlasInvSize", "MacroOffset"]) {
+  for (const name of ["AlphamapAtlasInvSize"]) {
     const value = source.getVector2(`material_Terrain${name}`);
     if (value !== undefined) target.setVector2(`${prefix}_Terrain${name}`, value);
-  }
-  for (const name of ["MacroColorA", "MacroColorB"]) {
-    const value = source.getVector3(`material_Terrain${name}`);
-    if (value !== undefined) target.setVector3(`${prefix}_Terrain${name}`, value);
   }
   for (const name of [
     "FirstAlphamapRect",
@@ -51,10 +46,6 @@ export function bindTerrainGroundSurface(
   for (const name of ["RoadColor"]) {
     const value = source.getColor(`material_Terrain${name}`);
     if (value !== undefined) target.setColor(`${prefix}_Terrain${name}`, value);
-  }
-  for (const name of ["MacroAngle", "MacroScaleA", "MacroScaleB"]) {
-    const value = source.getFloat(`material_Terrain${name}`);
-    if (value !== undefined) target.setFloat(`${prefix}_Terrain${name}`, value);
   }
   const enabled = new Set(source.getMacros().map((macro) => macro.name));
   for (const name of [

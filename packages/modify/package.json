@@ -19,7 +19,8 @@
     "./rendering/V2ViewGeometry": "./src/rendering/V2ViewGeometry.ts",
     "./rendering/runtime-pick-source": "./src/rendering/runtime-pick-source.ts",
     "./vite": "./build/vite.mjs",
-    "./native-overrides.json": "./native-overrides.json"
+    "./native-overrides.json": "./native-overrides.json",
+    "./geometry/destroyOwnedMesh": "./src/geometry/destroyOwnedMesh.ts"
   },
   "scripts": {},
   "dependencies": {
