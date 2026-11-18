@@ -344,20 +344,24 @@ export class SeedWorldPicker {
   async prepareSnapshot(visit: SeedWorldPickSource, signal?: AbortSignal, budget?: ImageResourceBudget): Promise<void> {
     signal?.throwIfAborted();
     this.frameCapture ??= this.camera.entity.addComponent(SeedWorldFrameCapture);
-    await this.frameCapture.request(
-      (photo) => {
-        const frame = this.captureIdentity(
-          visit,
-          () => ({ entityId: 0, componentId: 0, componentType: "warmup" }),
-          photo,
-          budget
-        );
-        frame.identities.dispose();
-        photo.dispose();
-      },
-      signal,
-      budget
-    );
+    try {
+      await this.frameCapture.request(
+        (photo) => {
+          const frame = this.captureIdentity(
+            visit,
+            () => ({ entityId: 0, componentId: 0, componentType: "warmup" }),
+            photo,
+            budget
+          );
+          frame.identities.dispose();
+          photo.dispose();
+        },
+        signal,
+        budget
+      );
+    } finally {
+      this.releaseTarget();
+    }
   }
 
   /** Wait for the next normal camera frame; consume its color and draw IDs without advancing simulation. */

@@ -43,7 +43,6 @@ export class RigidDecorationRenderer extends MeshRenderer {
   private readonly inverse = new Matrix();
   private uploaded = false;
   private dirty = true;
-  private lastSyncFrame = -1;
   private selfFlag?: BoolUpdateFlag;
 
   configure(bindings: readonly RigidDecorationBinding[], resolve: (id: string) => Entity | undefined): void {
@@ -71,17 +70,12 @@ export class RigidDecorationRenderer extends MeshRenderer {
     this.shaderData.setTexture("renderer_DecorationMatrices", texture);
     this.uploaded = false;
     this.dirty = true;
-    this.lastSyncFrame = -1;
     this.sync();
   }
 
   override get bounds(): BoundingBox {
-    const frame = this.engine.time.frameCount;
-    // Culling and click-only picking can request bounds before the render update.
-    // Within a frame that already ran sync(), reuse the computed bounds in O(1).
-    if (!this.uploaded || this.dirty || this.selfFlag?.flag || this.lastSyncFrame !== frame) {
-      this.sync();
-    }
+    // The source can move, deactivate or be replaced between two reads in the same frame.
+    this.sync();
     return this.worldBounds;
   }
   override update(): void {
@@ -93,7 +87,6 @@ export class RigidDecorationRenderer extends MeshRenderer {
 
   private sync(): void {
     if (!this.texture || !this.resolve) return;
-    const frame = this.engine.time.frameCount;
     let needsRecompute = !this.uploaded || this.dirty || (this.selfFlag?.flag ?? true);
     for (let i = 0; i < this.slots.length; i++) {
       const slot = this.slots[i];
@@ -110,7 +103,6 @@ export class RigidDecorationRenderer extends MeshRenderer {
       }
     }
     if (!needsRecompute) {
-      this.lastSyncFrame = frame;
       return;
     }
 
@@ -152,7 +144,6 @@ export class RigidDecorationRenderer extends MeshRenderer {
       this.uploaded = true;
     }
     this.dirty = false;
-    this.lastSyncFrame = frame;
   }
 
   private write(offset: number, matrix: Matrix): boolean {

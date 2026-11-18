@@ -143,9 +143,20 @@ export async function createBuildingDistanceView(
   const materials = new Map<string, PBRMaterial>(),
     batches: SeedWorldArrayPickBatch[] = [],
     residencyProbes: MeshRenderer[] = [];
+  const lodAppearanceIds = new Map<ConstructionLodAppearance, number>();
   const lodTextures = new Map<ConstructionLodAppearance, ReturnType<typeof createConstructionLodTexture>>();
+  const lodMaterialBindings: Array<{
+    material: PBRMaterial;
+    appearance: ConstructionLodAppearance;
+    uvTransform: readonly [number, number, number, number];
+  }> = [];
   const ownerEntities = new Map<string, Entity[]>();
   let disposed = false;
+  let detailedInitialized = false;
+  let detailedReady: Promise<void> | undefined;
+  let lastEntranceStates: ReadonlyMap<string, ConstructionEntranceState> | undefined;
+  let lastFade = 1;
+  let lastLodDebugEnabled = false;
   let textureLease: ReturnType<typeof leasePlasterTextures> | undefined;
   const plasterMaterials: PBRMaterial[] = [];
   const stoneFloorMaterials: PBRMaterial[] = [];
@@ -176,14 +187,17 @@ export async function createBuildingDistanceView(
   };
   try {
     for (const p of geometry.parts) {
-      let appearanceTexture = p.lodAppearance && lodTextures.get(p.lodAppearance);
-      if (p.lodAppearance && !appearanceTexture) {
-        appearanceTexture = createConstructionLodTexture(engine, p.lodAppearance);
-        lodTextures.set(p.lodAppearance, appearanceTexture);
+      let lodAppearanceId: number | undefined;
+      if (p.lodAppearance) {
+        lodAppearanceId = lodAppearanceIds.get(p.lodAppearance);
+        if (lodAppearanceId === undefined) {
+          lodAppearanceId = lodAppearanceIds.size;
+          lodAppearanceIds.set(p.lodAppearance, lodAppearanceId);
+        }
       }
       const materialKey = JSON.stringify([
         p.placement,
-        appearanceTexture?.instanceId,
+        lodAppearanceId,
         p.plaster && [p.plaster.wear, p.plaster.wallLength, p.plaster.color],
         p.stonePaving,
         colorSeeds.get(p.owner),
@@ -212,10 +226,12 @@ export async function createBuildingDistanceView(
           p.plaster ? -2 : p.decoration ? -1 : p.material === "wooden_plank" ? 2 : p.material === "roof_tile" ? 1 : 0
         );
         material.shaderData.setFloat("material_MasonryUnit", p.placement === "unit" ? 1 : 0);
-        if (p.lodAppearance && appearanceTexture) {
-          material.shaderData.enableMacro("MASONRY_LAYOUT_APPEARANCE");
-          material.shaderData.setTexture("material_MasonryLayout", appearanceTexture);
-          material.shaderData.setVector4("material_MasonryLayoutUV", new Vector4(...p.lodAppearance.uvTransform));
+        if (p.lodAppearance) {
+          lodMaterialBindings.push({
+            material,
+            appearance: p.lodAppearance,
+            uvTransform: p.lodAppearance.uvTransform
+          });
         }
         material.shaderData.setVector4(
           "material_MasonryPlaster",
@@ -311,58 +327,79 @@ export async function createBuildingDistanceView(
       batch.id = p.pickId === undefined ? buildingGroupKey(p.owner) : buildingPartKey(p.pickId);
       batches.push(batch);
     }
-    stoneFloorLease = stoneFloorMaterials.length ? leaseStoneFloorTextures(engine, assets) : undefined;
-    textureLease = plasterMaterials.length ? leasePlasterTextures(engine, assets) : undefined;
-    decorationTextureLease = decorationMaterials.length ? leaseDecorationTextures(engine, assets) : undefined;
-    if (
+    const hasNativeDecorations = Boolean(
       geometry.decorationParts.length ||
-      geometry.retainedWallUnits?.length ||
-      geometry.stones.length ||
-      geometry.frames.length ||
-      geometry.woodArchFrames.length ||
-      geometry.woodArchPillars.length
-    ) {
-      nativeDecorationView = createDecorationNativeView(engine, visualRoot, geometry.stones, group.paletteSlots, {
-        assets,
-        retainedWallUnits: geometry.retainedWallUnits,
-        parts: geometry.decorationParts,
-        rigidDecorations: group.rigidDecorations,
-        frames: geometry.frames,
-        woodArchFrames: geometry.woodArchFrames,
-        woodArchPillars: geometry.woodArchPillars,
-        camera,
-        bounds: geometry.bounds
-      });
-    }
-    const ready = Promise.all([
-      stoneFloorLease?.ready.then((bind) => {
-        if (!disposed && bind) for (const m of stoneFloorMaterials) bind(m);
-      }),
-      textureLease?.ready.then((bind) => {
-        if (!disposed && bind) for (const m of plasterMaterials) bind(m);
-      }),
-      decorationTextureLease?.ready.then((bind) => {
-        if (!disposed && bind) for (const m of decorationMaterials) bind(m);
-      }),
-      nativeDecorationView?.ready.then(() => {
-        if (disposed) return;
-        nativeDecorationView?.visitRenderers((renderer, ownerId, draw) => {
-          const ids = draw.pickIds ?? [
-            draw.objectBinding?.id ??
-              (draw.pickId === undefined ? buildingGroupKey(ownerId) : buildingPartKey(draw.pickId))
-          ];
-          nativeDecorationPicks.push({
-            renderer,
-            count: ids.length,
-            resolve: (index) => ids[index],
-            prepare: () => {
-              if (draw.pickIds) renderer.shaderData.setFloat("renderer_MasonryPickObjects", 1);
-            },
-            restore: () => renderer.shaderData.setFloat("renderer_MasonryPickObjects", 0)
-          });
+        geometry.retainedWallUnits?.length ||
+        geometry.stones.length ||
+        geometry.frames.length ||
+        geometry.woodArchFrames.length ||
+        geometry.woodArchPillars.length
+    );
+    const ensureDetailedVisual = (): Promise<void> => {
+      if (detailedReady) return detailedReady;
+      detailedInitialized = true;
+      for (const binding of lodMaterialBindings) {
+        if (disposed) break;
+        let appearanceTexture = lodTextures.get(binding.appearance);
+        if (!appearanceTexture) {
+          appearanceTexture = createConstructionLodTexture(engine, binding.appearance);
+          lodTextures.set(binding.appearance, appearanceTexture);
+        }
+        binding.material.shaderData.enableMacro("MASONRY_LAYOUT_APPEARANCE");
+        binding.material.shaderData.setTexture("material_MasonryLayout", appearanceTexture);
+        binding.material.shaderData.setVector4("material_MasonryLayoutUV", new Vector4(...binding.uvTransform));
+      }
+      stoneFloorLease = stoneFloorMaterials.length ? leaseStoneFloorTextures(engine, assets) : undefined;
+      textureLease = plasterMaterials.length ? leasePlasterTextures(engine, assets) : undefined;
+      decorationTextureLease = decorationMaterials.length ? leaseDecorationTextures(engine, assets) : undefined;
+      if (hasNativeDecorations) {
+        nativeDecorationView = createDecorationNativeView(engine, visualRoot, geometry.stones, group.paletteSlots, {
+          assets,
+          retainedWallUnits: geometry.retainedWallUnits,
+          parts: geometry.decorationParts,
+          rigidDecorations: group.rigidDecorations,
+          frames: geometry.frames,
+          woodArchFrames: geometry.woodArchFrames,
+          woodArchPillars: geometry.woodArchPillars,
+          camera,
+          bounds: geometry.bounds
         });
-      })
-    ]).then(() => undefined);
+        if (lastEntranceStates) nativeDecorationView.setEntrance(lastEntranceStates);
+        for (const hiddenOwner of hiddenOwners) nativeDecorationView.setOwnerVisible(hiddenOwner, false);
+        if (lastFade !== 1) nativeDecorationView.setFade(lastFade);
+        if (lastLodDebugEnabled) nativeDecorationView.setLodDebugEnabled(true);
+      }
+      detailedReady = Promise.all([
+        stoneFloorLease?.ready.then((bind) => {
+          if (!disposed && bind) for (const m of stoneFloorMaterials) bind(m);
+        }),
+        textureLease?.ready.then((bind) => {
+          if (!disposed && bind) for (const m of plasterMaterials) bind(m);
+        }),
+        decorationTextureLease?.ready.then((bind) => {
+          if (!disposed && bind) for (const m of decorationMaterials) bind(m);
+        }),
+        nativeDecorationView?.ready.then(() => {
+          if (disposed) return;
+          nativeDecorationView?.visitRenderers((renderer, ownerId, draw) => {
+            const ids = draw.pickIds ?? [
+              draw.objectBinding?.id ??
+                (draw.pickId === undefined ? buildingGroupKey(ownerId) : buildingPartKey(draw.pickId))
+            ];
+            nativeDecorationPicks.push({
+              renderer,
+              count: ids.length,
+              resolve: (index) => ids[index],
+              prepare: () => {
+                if (draw.pickIds) renderer.shaderData.setFloat("renderer_MasonryPickObjects", 1);
+              },
+              restore: () => renderer.shaderData.setFloat("renderer_MasonryPickObjects", 0)
+            });
+          });
+        })
+      ]).then(() => undefined);
+      return detailedReady;
+    };
     const surfaceTriangles = geometry.parts.reduce((n, p) => n + p.indices.length / 3, 0);
     farProxy = createBuildingFarProxy(
       engine,
@@ -372,6 +409,7 @@ export async function createBuildingDistanceView(
       appearance,
       geometry.decorationParts
     );
+    const ready = farProxy ? Promise.resolve() : ensureDetailedVisual();
     if (farProxy) {
       let proxyPaletteInitialized = false;
       const proxyRef = farProxy;
@@ -385,19 +423,30 @@ export async function createBuildingDistanceView(
         })
       );
     }
-    let visualVisible = true;
-    let farProxyMode = false;
+    let visualVisible = false;
+    let farProxyMode = !!farProxy;
     let entranceSettled = true;
+    let detailedCheckQueued = false;
     const hiddenOwners = new Set<string>();
     const syncVisualRoots = () => {
       const useFar = visualVisible && farProxyMode && entranceSettled && hiddenOwners.size === 0 && !!farProxy;
       if (farProxy) farProxy.root.isActive = useFar;
       visualRoot.isActive = visualVisible && !useFar;
+      if (!detailedInitialized && visualVisible && !farProxyMode && !detailedCheckQueued) {
+        detailedCheckQueued = true;
+        queueMicrotask(() => {
+          detailedCheckQueued = false;
+          if (disposed || detailedInitialized) return;
+          if (visualVisible && !farProxyMode) void ensureDetailedVisual();
+        });
+      }
     };
+    syncVisualRoots();
     return {
       ready,
       entranceRanges,
       setEntrance(states: ReadonlyMap<string, ConstructionEntranceState>) {
+        lastEntranceStates = states;
         for (const binding of entranceBindings) binding.apply(states.get(binding.owner));
         nativeDecorationView?.setEntrance(states);
         let settled = true;
@@ -440,11 +489,13 @@ export async function createBuildingDistanceView(
         syncVisualRoots();
       },
       setFade(fade: number) {
+        lastFade = fade;
         for (const batch of batches) batch.renderer.shaderData.setFloat("renderer_MasonryLodFade", fade);
         nativeDecorationView?.setFade(fade);
         farProxy?.setFade(fade);
       },
       setLodDebugEnabled(enabled: boolean) {
+        lastLodDebugEnabled = enabled;
         const lod1Color = enabled ? new Vector4(0.95, 0.78, 0.08, 0.82) : new Vector4(0, 0, 0, 0);
         for (const batch of batches) batch.renderer.shaderData.setVector4("renderer_MasonryLodDebugColor", lod1Color);
         nativeDecorationView?.setLodDebugEnabled(enabled);

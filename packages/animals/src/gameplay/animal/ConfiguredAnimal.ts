@@ -376,7 +376,7 @@ export class ConfiguredAnimal implements AnimalAgent {
           recovery: this.groundRecovery,
           canTranslate: (proposed, from) => this.canTranslate(proposed, from)
         };
-        crowd.add(this.crowdBody);
+        crowd.add(this.crowdBody, true);
       }
       const planningRevision = () => this.planningRevision;
       this.behavior = new AnimalTaskController(
@@ -780,7 +780,10 @@ export class ConfiguredAnimal implements AnimalAgent {
     }
     this.changingMedium ||= this.movementMedium !== medium;
     this.movementMedium = medium;
-    if (this.crowdBody && medium === "air") this.crowdBody.layer = "air";
+    if (this.crowdBody && medium === "air") {
+      this.crowdBody.layer = "air";
+      this.crowd!.publishQueryState(this.crowdBody);
+    }
     this.locomotionSpeed = locomotionSpeed;
     if (!continuing) this.selectClip(index, true);
     else this.updateCrowdIntent();
@@ -861,16 +864,6 @@ export class ConfiguredAnimal implements AnimalAgent {
     if (this.activeState?.pose.finished) this.playback.elapsed = this.duration;
   }
 
-  private isAnimationCulled(): boolean {
-    if (!this.animator || this.animator.cullingMode !== AnimatorCullingMode.Complete || !this.renderers.length) {
-      return false;
-    }
-    for (let i = 0; i < this.renderers.length; i++) {
-      if (!this.renderers[i].isCulled) return false;
-    }
-    return true;
-  }
-
   private prepareAnimation(seconds: number, proposed: Readonly<GroundAnimalMotion>): number {
     this.surfaceBlocked = false;
     this.sampledAnimationSeconds = 0;
@@ -929,7 +922,7 @@ export class ConfiguredAnimal implements AnimalAgent {
       } else {
         const totalAnimatorDelta = this.pendingAnimatorSeconds + animatorDelta;
         this.pendingAnimatorSeconds = 0;
-        const culled = this.isAnimationCulled();
+        const culled = this.animator._isPoseCulled();
         // Sample before the crowd commits any translation. A requested clock interval is not
         // proof of motion: rejected transitions, finished clips and paused animators can hold a pose.
         if (!culled && fraction > 0) this.readPose(false);
@@ -1259,124 +1252,129 @@ export class ConfiguredAnimal implements AnimalAgent {
     const passRadius = Math.max(0.2, speed / Math.max(0.05, omega));
     const radius = this.baseRadius * this.scale;
     const physicalQuery = ground.staticRouteQuery(radius + 0.05, medium);
-    const makeQuery = (): AnimalRouteQuery => {
-      const traffic = this.crowdBody
-        ? this.crowd!.routeQuery(
+    let traffic: ReturnType<GroundAnimalCrowd["acquireRouteQuery"]> | undefined;
+    const refreshTraffic = () => {
+      traffic?.release();
+      traffic = this.crowdBody
+        ? this.crowd!.acquireRouteQuery(
             this.crowdBody,
             ground.heightAt(this.motion.x, this.motion.z, medium) ?? this.position.y,
-            medium,
-            true
+            medium
           )
         : undefined;
-      return {
-        canTraverse: (from, to, clearance) => {
-          if (dependency) includeAnimalRouteBounds(dependency, from, to, radius + 0.05 + (clearance ?? 0));
-          const supported =
-            clearance === undefined
-              ? physicalQuery.canTraverse(from, to)
-              : physicalQuery.canTraverse(from, to, clearance);
-          return supported && (!traffic || traffic.canTraverse(from, to));
-        },
-        obstruction: (from, to, clearance) => {
-          if (dependency) includeAnimalRouteBounds(dependency, from, to, radius + 0.05 + clearance);
-          return traffic && physicalQuery.canTraverse(from, to, clearance)
-            ? traffic.obstruction(from, to, clearance)
-            : physicalQuery.obstruction(from, to, clearance);
-        }
-      };
+    };
+    const query: AnimalRouteQuery = {
+      canTraverse: (from, to, clearance) => {
+        if (dependency) includeAnimalRouteBounds(dependency, from, to, radius + 0.05 + (clearance ?? 0));
+        const supported =
+          clearance === undefined
+            ? physicalQuery.canTraverse(from, to)
+            : physicalQuery.canTraverse(from, to, clearance);
+        return supported && (!traffic || traffic.canTraverse(from, to));
+      },
+      obstruction: (from, to, clearance) => {
+        if (dependency) includeAnimalRouteBounds(dependency, from, to, radius + 0.05 + clearance);
+        return traffic && physicalQuery.canTraverse(from, to, clearance)
+          ? traffic.obstruction(from, to, clearance)
+          : physicalQuery.obstruction(from, to, clearance);
+      }
     };
     let points: AnimalRoutePoint[] | undefined;
     let searchedFrom: AnimalRoutePoint = [this.motion.x, this.motion.z];
-    let query = makeQuery();
-    let queryTime = this.system.time;
-    while (!this.disposed) {
-      if (!points) {
-        searchedFrom = [this.motion.x, this.motion.z];
-        points = yield* createAnimalStaticRouteTask(searchedFrom, target, query, passRadius * 2 + speed);
-        this.system.synchronizeMotion?.(this);
+    try {
+      refreshTraffic();
+      let queryTime = this.system.time;
+      while (!this.disposed) {
         if (!points) {
-          // A failed search depends on position, not heading or residual velocity.
-          if (searchedFrom[0] === this.motion.x && searchedFrom[1] === this.motion.z) return false;
-          query = makeQuery();
-          queryTime = this.system.time;
-          continue;
+          searchedFrom = [this.motion.x, this.motion.z];
+          points = yield* createAnimalStaticRouteTask(searchedFrom, target, query, passRadius * 2 + speed);
+          this.system.synchronizeMotion?.(this);
+          if (!points) {
+            // A failed search depends on position, not heading or residual velocity.
+            if (searchedFrom[0] === this.motion.x && searchedFrom[1] === this.motion.z) return false;
+            refreshTraffic();
+            queryTime = this.system.time;
+            continue;
+          }
         }
-      }
-      // A* owns waypoints, not an initial pose. Bind the expensive motion preview
-      // only after search, and refresh decision-time traffic when it crossed a frame.
-      this.system.synchronizeMotion?.(this);
-      if (queryTime !== this.system.time) {
-        query = makeQuery();
-      }
-      const initial = { ...this.motion, y: this.position.y };
-      // Revalidating guidance already being followed is not admission of new
-      // guidance. Its full preview may finish while the owner advances along
-      // that same route, just as it would after a synchronous revalidation.
-      // Preserve the live cursor; never install an old start pose or rewind it.
-      const followed = this.route;
-      const continuing =
-        intent?.started &&
-        followed &&
-        followed.speed === nominalSpeed &&
-        followed.medium === medium &&
-        followed.arrivalMedium === arrivalMedium &&
-        followed.passRadius === passRadius &&
-        followed.scale === this.scale &&
-        followed.multiplier === this.speedMultiplier &&
-        points.length === followed.points.length - followed.cursor &&
-        points.every((point, index) => {
-          const live = followed.points[followed.cursor + index];
-          return point[0] === live[0] && point[1] === live[1];
-        });
-      const sameGuidance = () =>
-        continuing &&
-        this.movementIntent === intent &&
-        this.route === followed &&
-        !this.continuationTarget &&
-        this.velocity === nominalSpeed &&
-        this.movementMedium === medium &&
-        this.arrivalMedium === arrivalMedium;
-      const current = () =>
-        initial.x === this.motion.x &&
-        initial.z === this.motion.z &&
-        initial.heading === this.motion.heading &&
-        initial.speed === this.motion.speed &&
-        initial.angularSpeed === this.motion.angularSpeed &&
-        (medium !== "air" || initial.y === this.position.y);
-      const preview = this.validateRouteSteps(points, target, nominalSpeed, medium, arrivalMedium, query, initial);
-      let result: IteratorResult<void, boolean | NonNullable<ConfiguredAnimal["route"]>>;
-      try {
-        result = preview.next();
-        while (!result.done && (current() || sameGuidance())) {
-          yield;
-          if (!current() && !sameGuidance()) break;
+        // A* owns waypoints, not an initial pose. Bind the expensive motion preview
+        // only after search, and refresh decision-time traffic when it crossed a frame.
+        this.system.synchronizeMotion?.(this);
+        if (queryTime !== this.system.time) {
+          refreshTraffic();
+        }
+        const initial = { ...this.motion, y: this.position.y };
+        // Revalidating guidance already being followed is not admission of new
+        // guidance. Its full preview may finish while the owner advances along
+        // that same route, just as it would after a synchronous revalidation.
+        // Preserve the live cursor; never install an old start pose or rewind it.
+        const followed = this.route;
+        const continuing =
+          intent?.started &&
+          followed &&
+          followed.speed === nominalSpeed &&
+          followed.medium === medium &&
+          followed.arrivalMedium === arrivalMedium &&
+          followed.passRadius === passRadius &&
+          followed.scale === this.scale &&
+          followed.multiplier === this.speedMultiplier &&
+          points.length === followed.points.length - followed.cursor &&
+          points.every((point, index) => {
+            const live = followed.points[followed.cursor + index];
+            return point[0] === live[0] && point[1] === live[1];
+          });
+        const sameGuidance = () =>
+          continuing &&
+          this.movementIntent === intent &&
+          this.route === followed &&
+          !this.continuationTarget &&
+          this.velocity === nominalSpeed &&
+          this.movementMedium === medium &&
+          this.arrivalMedium === arrivalMedium;
+        const current = () =>
+          initial.x === this.motion.x &&
+          initial.z === this.motion.z &&
+          initial.heading === this.motion.heading &&
+          initial.speed === this.motion.speed &&
+          initial.angularSpeed === this.motion.angularSpeed &&
+          (medium !== "air" || initial.y === this.position.y);
+        const preview = this.validateRouteSteps(points, target, nominalSpeed, medium, arrivalMedium, query, initial);
+        let result: IteratorResult<void, boolean | NonNullable<ConfiguredAnimal["route"]>>;
+        try {
           result = preview.next();
+          while (!result.done && (current() || sameGuidance())) {
+            yield;
+            if (!current() && !sameGuidance()) break;
+            result = preview.next();
+          }
+        } finally {
+          preview.return(false);
         }
-      } finally {
-        preview.return(false);
-      }
-      this.system.synchronizeMotion?.(this);
-      if (result.done && sameGuidance()) {
-        if (!result.value) return false;
-        if (dependency && followed!.bounds) {
-          const bounds = followed!.bounds;
-          includeAnimalRouteBounds(dependency, [bounds.minX, bounds.minZ], [bounds.maxX, bounds.maxZ], 0);
+        this.system.synchronizeMotion?.(this);
+        if (result.done && sameGuidance()) {
+          if (!result.value) return false;
+          if (dependency && followed!.bounds) {
+            const bounds = followed!.bounds;
+            includeAnimalRouteBounds(dependency, [bounds.minX, bounds.minZ], [bounds.maxX, bounds.maxZ], 0);
+          }
+          return { ...followed!, invalidated: false };
         }
-        return { ...followed!, invalidated: false };
+        if (result.done && current()) {
+          if (result.value || (searchedFrom[0] === initial.x && searchedFrom[1] === initial.z)) return result.value;
+          // A candidate from an older start is only a hint. If its exact trajectory
+          // fails, run the original search from the new start before rejecting it.
+          points = undefined;
+        }
+        // A moving start invalidates only the preview. Retain the candidate and
+        // validate its entire trajectory again; no old support verdict is reused.
+        yield;
+        refreshTraffic();
+        queryTime = this.system.time;
       }
-      if (result.done && current()) {
-        if (result.value || (searchedFrom[0] === initial.x && searchedFrom[1] === initial.z)) return result.value;
-        // A candidate from an older start is only a hint. If its exact trajectory
-        // fails, run the original search from the new start before rejecting it.
-        points = undefined;
-      }
-      // A moving start invalidates only the preview. Retain the candidate and
-      // validate its entire trajectory again; no old support verdict is reused.
-      yield;
-      query = makeQuery();
-      queryTime = this.system.time;
+      return false;
+    } finally {
+      traffic?.release();
     }
-    return false;
   }
 
   private *validateRouteSteps(
@@ -1693,12 +1691,16 @@ export class ConfiguredAnimal implements AnimalAgent {
     }
     if (Math.abs(y - height) < 1e-5) {
       this.changingMedium = false;
-      if (this.crowdBody) this.crowdBody.layer = this.movementMedium;
+      if (this.crowdBody) {
+        this.crowdBody.layer = this.movementMedium;
+        this.crowd!.publishQueryState(this.crowdBody);
+      }
     }
     this.root.transform.setPosition(this.motion.x, y, this.motion.z);
     if (this.crowdBody) {
       this.crowdBody.elevation = y;
       this.crowdBody.height = (this.config.bounds.max[1] - this.config.bounds.min[1]) * this.scale;
+      this.crowd!.publishQueryState(this.crowdBody);
     }
   }
 
@@ -2005,6 +2007,7 @@ export class ConfiguredAnimal implements AnimalAgent {
         this.motion.heading += (this.proposedMotion.heading - this.motion.heading) * fraction;
         this.motion.speed = this.proposedMotion.speed;
         this.motion.angularSpeed = this.proposedMotion.angularSpeed;
+        if (this.crowdBody) this.crowd!.publishQueryState(this.crowdBody);
       }
       verticalElapsed += step;
       // Cruise elevation is sampled once per coarse update. Only the final descent
@@ -2031,7 +2034,10 @@ export class ConfiguredAnimal implements AnimalAgent {
       this.hasArrivedVertically()
     ) {
       this.completeMovement();
-      if (this.crowdBody) this.crowdBody.layer = this.movementMedium;
+      if (this.crowdBody) {
+        this.crowdBody.layer = this.movementMedium;
+        this.crowd!.publishQueryState(this.crowdBody);
+      }
     } else if (arrived && this.surfaceBlocked) {
       this.continueFlight();
     }
@@ -2081,6 +2087,7 @@ export class ConfiguredAnimal implements AnimalAgent {
     }
     if (this.crowdBody) {
       this.crowdBody.radius = this.baseRadius * scale;
+      this.crowd!.publishQueryState(this.crowdBody);
       this.crowdBody.bodyLength = Math.max(0.1, (this.config.bounds.max[2] - this.config.bounds.min[2]) * scale);
       this.updateCrowdIntent();
     }
@@ -2362,6 +2369,7 @@ export class ConfiguredAnimal implements AnimalAgent {
     this.groundSteering.turnSpeedRatio = this.urgentMovement ? 0.65 : 0.5;
     this.groundSteering.arrivalRadius =
       precision ?? groundAnimalArrivalRadius((this.config.bounds.max[2] - this.config.bounds.min[2]) * this.scale);
+    if (this.crowdBody?.steering === this.groundSteering) this.crowd!.publishQueryState(this.crowdBody);
     return this.groundSteering;
   }
 

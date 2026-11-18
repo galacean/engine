@@ -8,14 +8,14 @@ const CELL_KEY_STRIDE = 0x4000000;
 const BLADE_YIELD_STRIDE = 256;
 const CANDIDATE_YIELD_STRIDE = 512;
 export const GRASS_ROCK_APPEARANCE_STRIDE = 28;
-// Immutable CPU snapshot: corners/coverage (12), normals (9), tile size (1), AABB (6).
-// Float64 preserves the original JS-number world-coordinate calculations exactly.
-const FACE_STRIDE = 28;
+// Compact CPU snapshot: corners/coverage (12), normals (9), tile size (1).
+// Float32 cuts snapshot memory in half while preserving vertex normals and world AABBs.
+const FACE_STRIDE = 22;
 
 const packCellKey = (cx: number, cz: number): number =>
   (cx + CELL_KEY_OFFSET) * CELL_KEY_STRIDE + (cz + CELL_KEY_OFFSET);
 
-function pointTriangleDistanceSquared(px: number, py: number, pz: number, faces: Float64Array, f: number): number {
+function pointTriangleDistanceSquared(px: number, py: number, pz: number, faces: Float32Array, f: number): number {
   const ax = faces[f],
     ay = faces[f + 1],
     az = faces[f + 2];
@@ -93,10 +93,10 @@ function pointTriangleDistanceSquared(px: number, py: number, pz: number, faces:
 /** Optional appearance source for blades near a real rock face. Never changes grass geometry or density. */
 export class GrassRockAppearance {
   private readonly cells = new Map<number, Uint32Array>();
-  private readonly faces: Float64Array;
+  private readonly faces: Float32Array;
 
   constructor(placements: readonly RockGrassPlacement[]) {
-    this.faces = new Float64Array(
+    this.faces = new Float32Array(
       placements.reduce((n, p) => n + p.formation.mesh.indices.length / 3, 0) * FACE_STRIDE
     );
     const sizes = new Map<number, number>();
@@ -117,18 +117,6 @@ export class GrassRockAppearance {
           this.faces[k + c * 4 + 3] = coverage[v];
         }
 
-        for (let axis = 0; axis < 3; axis++) {
-          this.faces[k + 22 + axis] = Math.min(
-            this.faces[k + axis],
-            this.faces[k + 4 + axis],
-            this.faces[k + 8 + axis]
-          );
-          this.faces[k + 25 + axis] = Math.max(
-            this.faces[k + axis],
-            this.faces[k + 4 + axis],
-            this.faces[k + 8 + axis]
-          );
-        }
         this.visitCells(k, (key) => sizes.set(key, (sizes.get(key) ?? 0) + 1));
       }
     }
@@ -145,9 +133,13 @@ export class GrassRockAppearance {
   }
 
   private visitCells(k: number, visit: (key: number) => void): void {
-    for (let z = Math.floor(this.faces[k + 24] / CELL); z <= Math.floor(this.faces[k + 27] / CELL); z++)
-      for (let x = Math.floor(this.faces[k + 22] / CELL); x <= Math.floor(this.faces[k + 25] / CELL); x++)
-        visit(packCellKey(x, z));
+    const f = this.faces;
+    const minX = Math.min(f[k], f[k + 4], f[k + 8]);
+    const minZ = Math.min(f[k + 2], f[k + 6], f[k + 10]);
+    const maxX = Math.max(f[k], f[k + 4], f[k + 8]);
+    const maxZ = Math.max(f[k + 2], f[k + 6], f[k + 10]);
+    for (let z = Math.floor(minZ / CELL); z <= Math.floor(maxZ / CELL); z++)
+      for (let x = Math.floor(minX / CELL); x <= Math.floor(maxX / CELL); x++) visit(packCellKey(x, z));
   }
 
   /** Seven vec4 attributes per affected instance: three corners/coverage,
@@ -206,9 +198,15 @@ export class GrassRockAppearance {
             }
             // Distance to the enclosing box is a lower bound; preserve exact face selection and ties.
             const f = face * FACE_STRIDE;
-            const dx = Math.max(faces[f + 22] - x, 0, x - faces[f + 25]);
-            const dy = Math.max(faces[f + 23] - py, 0, py - faces[f + 26]);
-            const dz = Math.max(faces[f + 24] - z, 0, z - faces[f + 27]);
+            const minX = Math.min(faces[f], faces[f + 4], faces[f + 8]);
+            const maxX = Math.max(faces[f], faces[f + 4], faces[f + 8]);
+            const dx = Math.max(minX - x, 0, x - maxX);
+            const minY = Math.min(faces[f + 1], faces[f + 5], faces[f + 9]);
+            const maxY = Math.max(faces[f + 1], faces[f + 5], faces[f + 9]);
+            const dy = Math.max(minY - py, 0, py - maxY);
+            const minZ = Math.min(faces[f + 2], faces[f + 6], faces[f + 10]);
+            const maxZ = Math.max(faces[f + 2], faces[f + 6], faces[f + 10]);
+            const dz = Math.max(minZ - z, 0, z - maxZ);
             if (dx * dx + dy * dy + dz * dz >= best) continue;
             const d = pointTriangleDistanceSquared(x, py, z, faces, f);
             if (d < best) {

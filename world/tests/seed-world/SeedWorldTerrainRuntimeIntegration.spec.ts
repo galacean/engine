@@ -341,9 +341,11 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
       }
       const palette = runtime.getSurfaceColorTuning();
       runtime.setSurfaceColorTuning({ ...palette, groundFusion: false });
-      expect(runtimeState.layerDiffuseColors.at(-1)).toContainEqual(
-        { regionId: "seed-world", layerId: "layer-00", color: [0, 0.7, 0.9, 1] }
-      );
+      expect(runtimeState.layerDiffuseColors.at(-1)).toContainEqual({
+        regionId: "seed-world",
+        layerId: "layer-00",
+        color: [0, 0.7, 0.9, 1]
+      });
       for (const target of [material, runtimeState.clipmapFarMaterials[0]])
         expect(target.shaderData.disableMacro).toHaveBeenCalledWith("MATERIAL_TERRAIN_GRASS_SHADING");
       runtime.setSurfaceColorTuning({ ...palette, groundFusion: true });

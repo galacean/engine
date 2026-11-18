@@ -14,7 +14,6 @@ export class MountedDecorationRenderer extends MeshRenderer {
   private sourceEntity?: Entity;
   private sourceFlag?: BoolUpdateFlag;
   private sourceVisible = false;
-  private lastSyncFrame = -1;
   private dirty = true;
 
   configure(binding: RigidDecorationBinding, resolve: (id: string) => Entity | undefined): void {
@@ -27,14 +26,11 @@ export class MountedDecorationRenderer extends MeshRenderer {
     this.localBounds.min.set(...(binding.min as [number, number, number]));
     this.localBounds.max.set(...(binding.max as [number, number, number]));
     this.dirty = true;
-    this.lastSyncFrame = -1;
     this.sync();
   }
   override get bounds(): BoundingBox {
-    const frame = this.engine.time.frameCount;
-    if (this.dirty || this.lastSyncFrame !== frame) {
-      this.sync();
-    }
+    // The source can move, deactivate or be replaced between two reads in the same frame.
+    this.sync();
     return this.worldBounds;
   }
   override update(): void {
@@ -48,7 +44,6 @@ export class MountedDecorationRenderer extends MeshRenderer {
   }
 
   private sync(): boolean {
-    const frame = this.engine.time.frameCount;
     const source = this.binding && this.resolve?.(this.binding.id);
     if (source !== this.sourceEntity) {
       this.sourceFlag?.destroy();
@@ -58,11 +53,9 @@ export class MountedDecorationRenderer extends MeshRenderer {
     }
     const visible = !!source && !source.destroyed && source.isActiveInHierarchy;
     if (!this.dirty && visible === this.sourceVisible && (!visible || !this.sourceFlag?.flag)) {
-      this.lastSyncFrame = frame;
       return visible;
     }
     this.dirty = false;
-    this.lastSyncFrame = frame;
     this.sourceVisible = visible;
     if (this.sourceFlag) this.sourceFlag.flag = false;
     if (!visible) {

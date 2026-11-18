@@ -1,7 +1,45 @@
 import { describe, expect, it, vi } from "vitest";
 import { Vector3 } from "@galacean/engine";
 import { buildSimplifiedGrassLod1Indices } from "../../../packages/world-planning/src/runtime/SeedWorldDetailInstancedMesh.ts";
-import { syncGrassDensityLodUniform } from "../../../packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts";
+import {
+  SeedWorldPopulationRuntime,
+  syncGrassDensityLodUniform
+} from "../../../packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts";
+import type { ForwardGrassUpdateParams } from "../../../packages/world-planning/src/runtime/SeedWorldForwardGrass";
+
+it("reuses grass window samples only while both published coverage samplers are stable", () => {
+  const owner = Object.create(SeedWorldPopulationRuntime.prototype);
+  const invalidateMask = vi.fn();
+  let reuse: boolean | undefined;
+  owner._forwardGrass = {
+    invalidateMask,
+    update(params: ForwardGrassUpdateParams) {
+      reuse = params.samplerContext.reuseWindowSamples;
+    }
+  };
+  owner._populationLayout = { detailDensityFields: [], detailSpeciesProfiles: [] };
+  owner._detailCells = { cells: [] };
+  owner._grassLodDebugConfig = {};
+  const water = () => false;
+  const stableWater = Object.assign(() => false, { stableWorldSamples: true });
+  const coverage = () => 1;
+  owner.setGrassWaterCoverage(water);
+  owner._updateForwardGrass(true);
+  expect(reuse).toBe(false);
+  owner.setGrassWaterCoverage(stableWater);
+  owner._updateForwardGrass(true);
+  expect(reuse).toBe(true);
+  owner.setGrassSurfaceCoverageSampler(coverage);
+  owner._updateForwardGrass(true);
+  expect(reuse).toBe(false);
+  owner.setGrassSurfaceCoverageSampler(Object.assign(() => 1, { stableWorldSamples: true }));
+  owner._updateForwardGrass(true);
+  expect(reuse).toBe(true);
+  owner.setGrassWaterCoverage(water);
+  owner._updateForwardGrass(true);
+  expect(reuse).toBe(false);
+  expect(invalidateMask).toHaveBeenCalledTimes(5);
+});
 
 describe("SeedWorld grass density LOD uniform sync", () => {
   it("skips redundant shaderData uploads across unchanged frames and reuses one Vector4", () => {

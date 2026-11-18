@@ -1,3 +1,4 @@
+import * as dispatch from "./ComponentDispatch";
 import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { Renderer } from "./Renderer";
@@ -197,80 +198,31 @@ export class ComponentsManager {
   }
 
   callScriptOnUpdate(deltaTime: number): void {
-    this._onUpdateScripts.forEach(
-      (element: Script) => {
-        element._started && element.onUpdate(deltaTime);
-      },
-      (element: Script, index: number) => {
-        element._onUpdateIndex = index;
-      }
-    );
+    this._onUpdateScripts._forEachWithContext(deltaTime, dispatch.updateScript, dispatch.setUpdateIndex);
   }
 
   callScriptOnLateUpdate(deltaTime: number): void {
-    this._onLateUpdateScripts.forEach(
-      (element: Script) => {
-        element._started && element.onLateUpdate(deltaTime);
-      },
-      (element: Script, index: number) => {
-        element._onLateUpdateIndex = index;
-      }
-    );
+    this._onLateUpdateScripts._forEachWithContext(deltaTime, dispatch.lateUpdateScript, dispatch.setLateUpdateIndex);
   }
 
   callScriptOnPhysicsUpdate(): void {
-    this._onPhysicsUpdateScripts.forEach(
-      (element: Script) => {
-        element._started && element.onPhysicsUpdate();
-      },
-      (element: Script, index: number) => {
-        element._onPhysicsUpdateIndex = index;
-      }
-    );
+    this._onPhysicsUpdateScripts.forEach(dispatch.physicsUpdateScript, dispatch.setPhysicsUpdateIndex);
   }
 
   callAnimationUpdate(deltaTime: number): void {
-    this._onUpdateAnimations.forEach(
-      (element: Animator) => {
-        element.update(deltaTime);
-      },
-      (element: Animator, index: number) => {
-        element._onUpdateIndex = index;
-      }
-    );
+    this._onUpdateAnimations._forEachWithContext(deltaTime, dispatch.updateComponent, dispatch.setUpdateIndex);
   }
 
   callRendererOnUpdate(deltaTime: number): void {
-    this._onUpdateRenderers.forEach(
-      (element: Renderer) => {
-        element.update(deltaTime);
-      },
-      (element: Renderer, index: number) => {
-        element._onUpdateIndex = index;
-      }
-    );
+    this._onUpdateRenderers._forEachWithContext(deltaTime, dispatch.updateComponent, dispatch.setUpdateIndex);
   }
 
   callCameraOnBeginRender(camera: Camera): void {
-    camera.entity._scripts.forEach(
-      (element: Script) => {
-        element.onBeginRender(camera);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
+    camera.entity._scripts._forEachWithContext(camera, dispatch.beginRender, dispatch.setEntityScriptIndex);
   }
 
   callCameraOnEndRender(camera: Camera): void {
-    camera.entity._scripts.forEach(
-      (element: Script) => {
-        element.onEndRender(camera);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
+    camera.entity._scripts._forEachWithContext(camera, dispatch.endRender, dispatch.setEntityScriptIndex);
   }
 
   getActiveChangedTempList(): Component[] {

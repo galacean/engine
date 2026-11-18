@@ -417,9 +417,9 @@ describe("resumable route computation", () => {
     animal.crowdBody = {};
     animal.options.ground.heightAt = () => 0;
     animal.crowd = {
-      routeQuery: vi.fn(() => {
+      acquireRouteQuery: vi.fn(() => {
         const clear = !blocked;
-        return { canTraverse: () => clear, obstruction: () => undefined };
+        return { canTraverse: () => clear, obstruction: () => undefined, release() {} };
       })
     };
     const task = animal.createRouteTask([0, 6], 2, "ground");
@@ -428,7 +428,7 @@ describe("resumable route computation", () => {
     animal.system.time++;
     blocked = true;
     expect(finishAnimalPlanningTask(task)).toBe(false);
-    expect(animal.crowd.routeQuery.mock.calls.length).toBeGreaterThan(1);
+    expect(animal.crowd.acquireRouteQuery.mock.calls.length).toBeGreaterThan(1);
     expect(animal.preparedRoute).toBeUndefined();
   });
 

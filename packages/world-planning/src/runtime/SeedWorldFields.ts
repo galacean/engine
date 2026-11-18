@@ -1,4 +1,7 @@
-import { sampleFloat32GridTriangle as sampleTerrainGrid } from "@galacean/engine-water/water/authoring/terrain/GridInterpolation";
+import {
+  sampleFloat32GridRaster,
+  sampleFloat32GridRasterInto
+} from "@galacean/engine-water/water/authoring/terrain/GridInterpolation";
 import {
   sampleSeedWorldCoastSignedFieldMetres,
   sampleSeedWorldMountainUpliftMetres,
@@ -618,21 +621,61 @@ export function sampleSeedWorldHeight(
     z = (worldZ - seedWorldOriginZ(fields)) / fields.sizeMetres;
   const epsilon = Number.EPSILON * 8;
   if (x < -epsilon || x > 1 + epsilon || z < -epsilon || z > 1 + epsilon) return undefined;
-  if (fields.surfaceHeights)
-    return sampleTerrainGrid(
-      {
-        origin: [seedWorldOriginX(fields), seedWorldOriginZ(fields)],
-        spacing: fields.sizeMetres / (fields.heightResolution - 1),
-        spacingZ: fields.sizeMetres / (fields.heightResolution - 1),
-        columns: fields.heightResolution,
-        rows: fields.heightResolution
-      },
+  if (fields.surfaceHeights) {
+    const spacing = fields.sizeMetres / (fields.heightResolution - 1);
+    return sampleFloat32GridRaster(
+      fields.surfaceHeights,
+      fields.heightResolution,
+      fields.heightResolution,
+      seedWorldOriginX(fields),
+      seedWorldOriginZ(fields),
+      spacing,
+      spacing,
       worldX,
-      worldZ,
-      (ix, iz) => fields.surfaceHeights![iz * fields.heightResolution + ix]
+      worldZ
     );
+  }
   return decodeSeedWorldHeight(fields, samplePlanFloat(fields.heightSamples, fields.heightResolution, x, z));
 }
+/** Prepare a sampler for immutable field geometry. Call with retained [worldX, worldZ, height] storage. */
+export function createSeedWorldHeightSampler(fields: SeedWorldFields): (sample: Float64Array) => boolean {
+  const origin = [seedWorldOriginX(fields), seedWorldOriginZ(fields)] as const;
+  const resolution = fields.heightResolution,
+    size = fields.sizeMetres;
+  const grid = {
+    origin,
+    columns: resolution,
+    rows: resolution,
+    spacing: size / (resolution - 1),
+    spacingZ: size / (resolution - 1)
+  };
+  return (sample) => {
+    const nx = (sample[0]! - origin[0]) / size,
+      nz = (sample[1]! - origin[1]) / size,
+      epsilon = Number.EPSILON * 8;
+    if (nx < -epsilon || nx > 1 + epsilon || nz < -epsilon || nz > 1 + epsilon) return false;
+    if (fields.surfaceHeights) sampleFloat32GridRasterInto(grid, fields.surfaceHeights, sample);
+    else {
+      const x = clamp(nx, 0, 1) * (resolution - 1),
+        z = clamp(nz, 0, 1) * (resolution - 1);
+      const x0 = Math.floor(x),
+        z0 = Math.floor(z),
+        x1 = Math.min(resolution - 1, x0 + 1),
+        z1 = Math.min(resolution - 1, z0 + 1);
+      const data = fields.heightSamples,
+        tx = x - x0,
+        tz = z - z0;
+      const top = mix(data[z0 * resolution + x0]!, data[z0 * resolution + x1]!, tx);
+      const bottom = mix(data[z1 * resolution + x0]!, data[z1 * resolution + x1]!, tx);
+      sample[2] =
+        (fields.heightDecode?.offset ?? SEED_WORLD_HEIGHT_RANGE.minimum) +
+        (mix(top, bottom, tz) / 65535) *
+          (fields.heightDecode?.scale ?? SEED_WORLD_HEIGHT_RANGE.maximum - SEED_WORLD_HEIGHT_RANGE.minimum);
+    }
+    return true;
+  };
+}
+
 /** Samples into retained coordinates/height storage; outside the world leaves height unchanged. */
 export function sampleSeedWorldHeightInto(fields: SeedWorldFields, sample: SeedWorldHeightSample): boolean {
   const height = sampleSeedWorldHeight(fields, sample.x, sample.z);

@@ -1,5 +1,11 @@
 import type { BoundingBox } from "@galacean/engine";
-import { sampleSeedWorldHeight, type SeedWorldFields } from "./SeedWorldFields.ts";
+import {
+  decodeSeedWorldHeight,
+  sampleSeedWorldHeight,
+  seedWorldOriginX,
+  seedWorldOriginZ,
+  type SeedWorldFields
+} from "./SeedWorldFields.ts";
 
 const OCCLUSION_SECTOR_COUNT = 256;
 const OCCLUSION_BUILD_TARGET_MILLISECONDS = 0.3;
@@ -340,36 +346,83 @@ export class SeedWorldTerrainOcclusionCuller {
   }
 
   /**
-   * Conservative occlusion check tailored for water bodies, adding exact near-field
-   * heightfield line-of-sight tests inside `OCCLUSION_MINIMUM_TARGET_DISTANCE_METRES`
-   * so lakes/rivers tucked behind a nearby hill ridge still sleep SSR cleanly.
+   * Hide water only when a complete terrain cross-section blocks its bounding box.
+   * Every ray to the box crosses a common X or Z plane before reaching the box.
+   * The terrain's minimum over that entire interval must exceed the highest ray.
+   * Grid-vertex minima bound both triangle and bilinear height interpolation.
+   * Incomplete coverage or an exhausted work budget retains the water, at any distance.
    */
-  isWaterBoundsOccluded(candidateId: string, bounds: BoundingBox): boolean {
-    if (this.isBoundsOccluded(candidateId, bounds)) return true;
+  isWaterBoundsOccluded(_candidateId: string, bounds: BoundingBox): boolean {
     if (this._occlusionBypassedThisFrame) return false;
-    const cameraX = this._lastCameraX;
-    const cameraY = this._lastCameraY;
-    const cameraZ = this._lastCameraZ;
-    if (!Number.isFinite(cameraX) || !Number.isFinite(cameraY) || !Number.isFinite(cameraZ)) {
+    const cameraX = this._lastCameraX,
+      cameraY = this._lastCameraY,
+      cameraZ = this._lastCameraZ;
+    if (
+      ![cameraX, cameraY, cameraZ, bounds.min.x, bounds.min.z, bounds.max.x, bounds.max.y, bounds.max.z].every(
+        Number.isFinite
+      )
+    )
       return false;
-    }
     const nearestX = Math.max(bounds.min.x - cameraX, 0, cameraX - bounds.max.x);
     const nearestZ = Math.max(bounds.min.z - cameraZ, 0, cameraZ - bounds.max.z);
-    const nearestDistance = Math.hypot(nearestX, nearestZ);
-    // Skip when camera is right over / inside the horizontal footprint or outside near-field cutoff.
-    if (nearestDistance < 8 || nearestDistance >= OCCLUSION_MINIMUM_TARGET_DISTANCE_METRES) {
-      return false;
+    if (Math.hypot(nearestX, nearestZ) < 8) return false;
+    const alongX = nearestX > nearestZ;
+    const origin = alongX ? cameraX : cameraZ;
+    const minimum = alongX ? bounds.min.x : bounds.min.z;
+    const maximum = alongX ? bounds.max.x : bounds.max.z;
+    const direction = origin < minimum ? 1 : -1;
+    const near = alongX ? nearestX : nearestZ;
+    const far = Math.max(Math.abs(minimum - origin), Math.abs(maximum - origin));
+    const parallelOrigin = alongX ? cameraZ : cameraX;
+    const parallelMin = (alongX ? bounds.min.z : bounds.min.x) - parallelOrigin;
+    const parallelMax = (alongX ? bounds.max.z : bounds.max.x) - parallelOrigin;
+    const targetHeight = bounds.max.y + OCCLUSION_TARGET_CLEARANCE_METRES - cameraY;
+    const fields = this._fields;
+    const resolution = fields.heightResolution;
+    const originX = seedWorldOriginX(fields),
+      originZ = seedWorldOriginZ(fields);
+    const scale = (resolution - 1) / fields.sizeMetres;
+    if (!(scale > 0) || !Number.isFinite(scale) || resolution < 2) return false;
+    const slices = Math.min(24, Math.max(4, Math.ceil(near / 6)));
+    let remainingVertices = 2048;
+    slices: for (let step = 1; step < slices; step++) {
+      const distance = (near * step) / slices;
+      const tNear = distance / near,
+        tFar = distance / far;
+      const axis = origin + direction * distance;
+      const low =
+        parallelOrigin + Math.min(parallelMin * tNear, parallelMin * tFar, parallelMax * tNear, parallelMax * tFar);
+      const high =
+        parallelOrigin + Math.max(parallelMin * tNear, parallelMin * tFar, parallelMax * tNear, parallelMax * tFar);
+      const rayHeight = cameraY + targetHeight * (targetHeight >= 0 ? tNear : tFar);
+      const cutoff = rayHeight + OCCLUSION_TERRAIN_CLEARANCE_METRES;
+      const minX = alongX ? axis : low,
+        maxX = alongX ? axis : high;
+      const minZ = alongX ? low : axis,
+        maxZ = alongX ? high : axis;
+      if (minX < originX || minZ < originZ || maxX > originX + fields.sizeMetres || maxZ > originZ + fields.sizeMetres)
+        continue;
+      // Reject open slices cheaply before checking every supporting grid vertex.
+      const middle = this._sampleHeight((minX + maxX) * 0.5, (minZ + maxZ) * 0.5);
+      if (middle === undefined || !(middle > cutoff)) continue;
+      // Include neighbours for the geometric sampler's Float32 cell-edge adjustment.
+      const x0 = Math.max(0, Math.floor((minX - originX) * scale) - 1);
+      const x1 = Math.min(resolution - 1, Math.floor((maxX - originX) * scale) + 2);
+      const z0 = Math.max(0, Math.floor((minZ - originZ) * scale) - 1);
+      const z1 = Math.min(resolution - 1, Math.floor((maxZ - originZ) * scale) + 2);
+      for (let z = z0; z <= z1; z++) {
+        for (let x = x0; x <= x1; x++) {
+          if (--remainingVertices < 0) return false;
+          const index = z * resolution + x;
+          const height = fields.surfaceHeights
+            ? fields.surfaceHeights[index]
+            : decodeSeedWorldHeight(fields, fields.heightSamples[index]);
+          if (!(height > cutoff)) continue slices;
+        }
+      }
+      return true;
     }
-    const targetY = bounds.max.y + OCCLUSION_TARGET_CLEARANCE_METRES;
-    const centerX = (bounds.min.x + bounds.max.x) * 0.5;
-    const centerZ = (bounds.min.z + bounds.max.z) * 0.5;
-    return (
-      this._isPointBehindNearTerrain(centerX, targetY, centerZ, cameraX, cameraY, cameraZ) &&
-      this._isPointBehindNearTerrain(bounds.min.x, targetY, bounds.min.z, cameraX, cameraY, cameraZ) &&
-      this._isPointBehindNearTerrain(bounds.max.x, targetY, bounds.min.z, cameraX, cameraY, cameraZ) &&
-      this._isPointBehindNearTerrain(bounds.min.x, targetY, bounds.max.z, cameraX, cameraY, cameraZ) &&
-      this._isPointBehindNearTerrain(bounds.max.x, targetY, bounds.max.z, cameraX, cameraY, cameraZ)
-    );
+    return false;
   }
   /** Returns whether one child SubCell of a retained parent can be omitted from batch construction. */
   isSubCellOccluded(subCellId: string, bounds: BoundingBox, candidateRendererCount: number): boolean {
@@ -886,34 +939,6 @@ export class SeedWorldTerrainOcclusionCuller {
     }
     const targetSlope = (targetY - originY) / distance;
     return conservativeHorizonSlope > targetSlope;
-  }
-
-  private _isPointBehindNearTerrain(
-    targetX: number,
-    targetY: number,
-    targetZ: number,
-    originX: number,
-    originY: number,
-    originZ: number
-  ): boolean {
-    const dx = targetX - originX;
-    const dy = targetY - originY;
-    const dz = targetZ - originZ;
-    const horizontalDistance = Math.hypot(dx, dz);
-    if (horizontalDistance <= 8) return false;
-    const sampleCount = Math.min(24, Math.max(4, Math.ceil(horizontalDistance / 6)));
-    for (let step = 1; step < sampleCount; step++) {
-      const t = step / sampleCount;
-      const sx = originX + dx * t;
-      const sz = originZ + dz * t;
-      const groundHeight = this._sampleHeight(sx, sz);
-      if (groundHeight === undefined) continue;
-      const rayY = originY + dy * t;
-      if (groundHeight - OCCLUSION_TERRAIN_CLEARANCE_METRES > rayY) {
-        return true;
-      }
-    }
-    return false;
   }
 
   private _sampleHeight(worldX: number, worldZ: number): number | undefined {

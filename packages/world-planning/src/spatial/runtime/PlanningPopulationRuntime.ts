@@ -137,12 +137,16 @@ export class PlanningPopulationRuntime {
       if (options.terrainMaterial) population.setGrassTerrainSurface(options.terrainMaterial);
       const size = data.fields.sizeMetres,
         resolution = data.fields.surfaceResolution;
-      population.setGrassWaterCoverage((x, z) => {
+      const waterMask = data.fields.waterMask;
+      const sampleWaterContact = (x: number, z: number): boolean => {
         if (x < 0 || z < 0 || x > size || z > size) return true;
         const col = Math.min(resolution - 1, Math.round((x / size) * (resolution - 1)));
         const row = Math.min(resolution - 1, Math.round((z / size) * (resolution - 1)));
-        return data.fields.waterMask[row * resolution + col] !== 0;
-      });
+        return waterMask[row * resolution + col] !== 0;
+      };
+      // This mask belongs to a single published planning snapshot.
+      sampleWaterContact.stableWorldSamples = true;
+      population.setGrassWaterCoverage(sampleWaterContact);
       return new PlanningPopulationRuntime(root, population, plan, data.population, {
         seed: data.world.rootSeed,
         plannedTrees: data.population.treeInstances.length,

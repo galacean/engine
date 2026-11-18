@@ -13,6 +13,7 @@ import rules from "../planning-data/landscape-contexts.json";
 import { SETTLEMENT_PROFILE as profile } from "../planning-data/SettlementProfile";
 import type { IslandPlan, PlanLandscape, PlanPoint } from "./IslandPlanModel";
 import { envelope } from "./IslandPlanAtoms";
+import { hashSignatureValue } from "./SignatureHash";
 import { polygonBounds, boundsOverlap } from "./WorldPlanningGeometry";
 import { settlementRandom as random } from "./SettlementGeometry";
 import { createPlanningRingQuery } from "./WorldPlanningTerrain";
@@ -254,7 +255,8 @@ export function prepareLandscapeBasemap(
     q.maxAltitudeM,
     q.maxSlopeDegrees
   ];
-  const key = JSON.stringify([
+  const routesKey = JSON.stringify(plan.routes.map((r) => [r.id, r.outline]));
+  const digest = hashSignatureValue([
     step,
     scope,
     [config, ...locals.values()].map(generation),
@@ -274,7 +276,6 @@ export function prepareLandscapeBasemap(
     plan.islands,
     plan.waters,
     plan.rocks,
-    plan.routes.map((r) => [r.id, r.outline]),
     plan.buildings.map((b) => [b.id, b.outline]),
     plan.regions,
     plan.mountains,
@@ -286,6 +287,7 @@ export function prepareLandscapeBasemap(
     plan.poiDistribution?.sites,
     plan.landscapes?.filter((p) => p.role === "poi").map((p) => p.outline)
   ]);
+  const key = `${digest}|${routesKey}`;
   const cached = slotCache.get(key);
   if (cached) return cached;
   const slots = createSlots(
@@ -347,7 +349,7 @@ export function prepareLandscapeBasemap(
   }
   const base: LandscapeBasemap = { signature: key, slots, candidateSlots: slots, weights };
   slotCache.set(key, base);
-  if (slotCache.size > 4) slotCache.delete(slotCache.keys().next().value!);
+  if (slotCache.size > 1) slotCache.delete(slotCache.keys().next().value!);
   return base;
 }
 

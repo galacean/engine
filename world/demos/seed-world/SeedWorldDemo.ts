@@ -2399,7 +2399,8 @@ export async function mountSeedWorldDemo(
         readWorld()?.update(0);
       })
     );
-    orb.suspend();
+    orb.destroy();
+    orb = undefined;
     ready = true;
     disconnectEditorAssets = tools.application.connectProject(runtimeProject);
     const savedEditor = runtimeProject.projectPackage.contents[SEED_WORLD_EDITOR_PATH];

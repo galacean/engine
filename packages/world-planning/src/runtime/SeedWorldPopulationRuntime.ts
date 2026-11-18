@@ -1,10 +1,15 @@
+import { sampleSeedWorldTerrainNormal, sampleTerrestrialGrassSurfaceWeights } from "./SeedWorldGrassSampling";
 import {
   DETAIL_TRANSFORM_FLOATS,
   DETAIL_TRANSFORM_STRIDE_BYTES,
   createSeedWorldDetailInstancedMesh,
   type SeedWorldDetailInstancedMesh
 } from "./SeedWorldDetailInstancedMesh.ts";
-import { SeedWorldForwardGrass } from "./SeedWorldForwardGrass.ts";
+import {
+  SeedWorldForwardGrass,
+  type ForwardGrassUpdateParams,
+  type ForwardGrassSamplerContext
+} from "./SeedWorldForwardGrass.ts";
 import {
   GrassRockAppearance,
   GRASS_ROCK_APPEARANCE_STRIDE
@@ -199,7 +204,6 @@ import {
   seedWorldGrassCoverageScale,
   seedWorldTerrestrialGrassDensityMultiplier
 } from "./SeedWorldGrassAppearance.ts";
-import { resolveSeedWorldGrassSurfaceWeight } from "./SeedWorldSurfaceIntent.ts";
 import {
   resolveSeedWorldTreeTransitionHeights,
   SEED_WORLD_TREE_SOURCE_LOD_INDICES
@@ -845,6 +849,9 @@ export interface SeedWorldPopulationInspectionRange {
   readonly maximumZ: number;
 }
 
+type GrassWaterContactSampler = ((worldX: number, worldZ: number) => boolean) &
+  Pick<SeedWorldGrassCoverageSampler, "stableWorldSamples">;
+
 /**
  * Camera-resident Population Cell runtime backed exclusively by the shared Seed World Population Producer.
  * Cells control residency and coarse spatial queries; render owners choose their own GPU batch granularity.
@@ -873,13 +880,18 @@ export class SeedWorldPopulationRuntime {
     distanceMode: "edge"
   };
   private _forwardGrass?: SeedWorldForwardGrass;
+  private _forwardGrassParams?: {
+    -readonly [K in Exclude<keyof ForwardGrassUpdateParams, "samplerContext">]: ForwardGrassUpdateParams[K];
+  } & {
+    samplerContext: { -readonly [K in keyof ForwardGrassSamplerContext]: ForwardGrassSamplerContext[K] };
+  };
   private readonly _camera: Camera;
   private readonly _sourceLibrary: AssetAssemblySourceLibrary;
   private readonly _detailMaterials = new Map<Material, Material>();
   private _rockGroundSettings?: RockFormationSettings;
   private _grassTerrainMaterial: Material | undefined;
   private _grassSurfaceCoverage: SeedWorldGrassCoverageSampler | undefined;
-  private _grassContactIsWater: ((worldX: number, worldZ: number) => boolean) | undefined;
+  private _grassContactIsWater: GrassWaterContactSampler | undefined;
   private readonly _detailTransformPool = new DetailTransformBufferPool();
   private readonly _detailSurfaceWeightsScratch: [grass: number, road: number, remaining: number] = [1, 0, 0];
   private readonly _detailTerrainNormalScratch: [x: number, y: number, z: number] = [0, 1, 0];
@@ -1944,7 +1956,7 @@ export class SeedWorldPopulationRuntime {
   }
 
   /** Filters terrestrial grass using the same authoritative water winner as navigation. */
-  setGrassWaterCoverage(sampleContactIsWater: (worldX: number, worldZ: number) => boolean): void {
+  setGrassWaterCoverage(sampleContactIsWater: GrassWaterContactSampler): void {
     this._grassContactIsWater = sampleContactIsWater;
     this._invalidateAllDetailCells();
   }
@@ -2308,6 +2320,7 @@ export class SeedWorldPopulationRuntime {
       this._groundCoverBase = oldBase;
       this._grassSurfaceCoverage = oldCoverage;
       this._grassContactIsWater = oldWater;
+      this._forwardGrass?.invalidateMask();
       for (const c of staged)
         try {
           setVisible(c.cell, activity.get(c.cell) ?? false);
@@ -2337,6 +2350,7 @@ export class SeedWorldPopulationRuntime {
           this._groundCoverBase = baseLayout;
           this._grassSurfaceCoverage = coverage;
           this._grassContactIsWater = waterContact;
+          this._forwardGrass?.invalidateMask();
           for (const c of staged) {
             setVisible(c.cell, false);
             c.next.resource.detailsActive = c.cell.resource.detailsActive;
@@ -2608,7 +2622,7 @@ export class SeedWorldPopulationRuntime {
     const authoredScaleRange = getSeedWorldAssetPlacementProfile("grass").roleScale.field!;
     const minScale = this._grassScaleRange ? this._grassScaleRange.minimum : authoredScaleRange.minimum;
     const maxScale = this._grassScaleRange ? this._grassScaleRange.maximum : authoredScaleRange.maximum;
-    this._forwardGrass.update({
+    const params = (this._forwardGrassParams ??= {
       camera: this._camera,
       active,
       lod1DistanceMetres: config.lod1DistanceMetres,
@@ -2634,6 +2648,25 @@ export class SeedWorldPopulationRuntime {
         sampleContactIsWater: this._grassContactIsWater
       }
     });
+    params.camera = this._camera;
+    params.active = active;
+    params.lod1DistanceMetres = config.lod1DistanceMetres;
+    params.lod2DistanceMetres = config.lod2DistanceMetres;
+    params.maximumDistanceMetres = config.maximumDistanceMetres;
+    params.minimumDensityFraction = this._grassDensityLodEnabled ? config.minimumDensityFraction : 1;
+    params.minScale = minScale;
+    params.maxScale = maxScale;
+    params.useEcologicalHeight = !this._grassHeightOverride;
+    params.colorizeLod = config.colorizeLod;
+    params.samplerContext.reuseWindowSamples =
+      (!this._grassContactIsWater || this._grassContactIsWater.stableWorldSamples === true) &&
+      (!this._grassSurfaceCoverage || this._grassSurfaceCoverage.stableWorldSamples === true);
+    params.samplerContext.fields = this._fields;
+    params.samplerContext.densityFields = this._populationLayout.detailDensityFields;
+    params.samplerContext.speciesProfiles = this._populationLayout.detailSpeciesProfiles;
+    params.samplerContext.sampleGrassCoverage = this._grassSurfaceCoverage;
+    params.samplerContext.sampleContactIsWater = this._grassContactIsWater;
+    this._forwardGrass.update(params);
   }
 
   /**
@@ -7647,87 +7680,6 @@ function createRockSurfaceGrassDensity(
       return density;
     }
   });
-}
-
-function sampleTerrestrialGrassSurfaceWeights(
-  fields: SeedWorldFields,
-  worldX: number,
-  worldZ: number,
-  out: [grass: number, road: number, remaining: number]
-): void {
-  const resolution = fields.surfaceResolution;
-  // Match Terrain's endpoint-aligned alphamap grid for grass density and clump scale.
-  const x = clamp((worldX - seedWorldOriginX(fields)) / fields.sizeMetres, 0, 1) * (resolution - 1);
-  const z = clamp((worldZ - seedWorldOriginZ(fields)) / fields.sizeMetres, 0, 1) * (resolution - 1);
-  const x0 = clamp(Math.floor(x), 0, resolution - 1);
-  const z0 = clamp(Math.floor(z), 0, resolution - 1);
-  const x1 = Math.min(resolution - 1, x0 + 1);
-  const z1 = Math.min(resolution - 1, z0 + 1);
-  const fractionX = clamp(x - x0, 0, 1);
-  const fractionZ = clamp(z - z0, 0, 1);
-  const index00 = z0 * resolution + x0;
-  const index10 = z0 * resolution + x1;
-  const index01 = z1 * resolution + x0;
-  const index11 = z1 * resolution + x1;
-  const grass00 = resolveSeedWorldGrassSurfaceWeight(fields, index00);
-  const grass10 = resolveSeedWorldGrassSurfaceWeight(fields, index10);
-  const grass01 = resolveSeedWorldGrassSurfaceWeight(fields, index01);
-  const grass11 = resolveSeedWorldGrassSurfaceWeight(fields, index11);
-  const road00 = fields.materialWeights[index00 * 4 + 3]!;
-  const road10 = fields.materialWeights[index10 * 4 + 3]!;
-  const road01 = fields.materialWeights[index01 * 4 + 3]!;
-  const road11 = fields.materialWeights[index11 * 4 + 3]!;
-  out[0] = bilinearSurfaceWeight(grass00, grass10, grass01, grass11, fractionX, fractionZ);
-  out[1] = bilinearSurfaceWeight(road00, road10, road01, road11, fractionX, fractionZ);
-  out[2] = bilinearSurfaceWeight(
-    Math.max(0, 255 - grass00 - road00),
-    Math.max(0, 255 - grass10 - road10),
-    Math.max(0, 255 - grass01 - road01),
-    Math.max(0, 255 - grass11 - road11),
-    fractionX,
-    fractionZ
-  );
-}
-
-function bilinearSurfaceWeight(
-  value00: number,
-  value10: number,
-  value01: number,
-  value11: number,
-  fractionX: number,
-  fractionZ: number
-): number {
-  const near = value00 * (1 - fractionX) + value10 * fractionX;
-  const far = value01 * (1 - fractionX) + value11 * fractionX;
-  return (near * (1 - fractionZ) + far * fractionZ) / 255;
-}
-
-function sampleSeedWorldTerrainNormal(
-  fields: SeedWorldFields,
-  worldX: number,
-  worldZ: number,
-  out: [x: number, y: number, z: number]
-): void {
-  const originX = seedWorldOriginX(fields),
-    originZ = seedWorldOriginZ(fields);
-  const metresPerTexel = fields.sizeMetres / fields.heightResolution;
-  const left = sampleSeedWorldHeight(fields, Math.max(originX, worldX - metresPerTexel), worldZ);
-  const right = sampleSeedWorldHeight(fields, Math.min(originX + fields.sizeMetres, worldX + metresPerTexel), worldZ);
-  const down = sampleSeedWorldHeight(fields, worldX, Math.max(originZ, worldZ - metresPerTexel));
-  const up = sampleSeedWorldHeight(fields, worldX, Math.min(originZ + fields.sizeMetres, worldZ + metresPerTexel));
-  if (left === undefined || right === undefined || down === undefined || up === undefined) {
-    out[0] = 0;
-    out[1] = 1;
-    out[2] = 0;
-    return;
-  }
-  const normalX = left - right;
-  const normalY = metresPerTexel * 2;
-  const normalZ = down - up;
-  const inverseLength = 1 / Math.max(Math.hypot(normalX, normalY, normalZ), Number.EPSILON);
-  out[0] = normalX * inverseLength;
-  out[1] = normalY * inverseLength;
-  out[2] = normalZ * inverseLength;
 }
 
 function rescaleGrassDetailBatchHeight(

@@ -143,10 +143,11 @@ export class ShaderPass extends ShaderPart {
     const deferCompletion = typeof feedbackOrDefer === "boolean" ? feedbackOrDefer : false;
     if (Array.isArray(feedbackOrDefer)) {
       if (this._feedbackVaryings) {
-        if (
-          this._feedbackVaryings.length !== feedbackOrDefer.length ||
-          this._feedbackVaryings.some((name, index) => name !== feedbackOrDefer[index])
-        ) {
+        let mismatch = this._feedbackVaryings.length !== feedbackOrDefer.length;
+        for (let index = 0; !mismatch && index < feedbackOrDefer.length; index++) {
+          mismatch = this._feedbackVaryings[index] !== feedbackOrDefer[index];
+        }
+        if (mismatch) {
           throw new Error("Transform feedback outputs cannot change after the pass ABI is configured");
         }
       } else {

@@ -1,5 +1,9 @@
-import type { IPlatformTransformFeedbackPrimitive, VertexBufferBinding, VertexElement } from "@galacean/engine-core";
-import type { IPlatformShaderProgram } from "@galacean/engine-design";
+import type {
+  IPlatformShaderProgram,
+  IPlatformTransformFeedbackPrimitive,
+  VertexBufferBinding,
+  VertexElement
+} from "@galacean/engine-core";
 import type { GLBuffer } from "./GLBuffer";
 import type { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
@@ -49,7 +53,9 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
 
       const attribs = program.attributeLocation;
       this._vaoA = this._createVAO(attribs, bindingA, feedbackElements, inputBindings, inputElements);
-      this._vaoB = this._createVAO(attribs, bindingB, feedbackElements, inputBindings, inputElements);
+      if (bindingB !== bindingA) {
+        this._vaoB = this._createVAO(attribs, bindingB, feedbackElements, inputBindings, inputElements);
+      }
       this._lastProgramId = program.id;
       lastInputBindings.length = inputBindings.length;
       for (let i = 0, n = inputBindings.length; i < n; i++) {
@@ -59,14 +65,18 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
       this._rhi._bindVertexArray(null);
     }
     this._rhi._bindVertexArray(readIsA ? this._vaoA : this._vaoB);
+    // Reading or uploading a vertex buffer can leave it bound to ARRAY_BUFFER.
+    // WebGL forbids that binding while the same buffer is the feedback destination.
+    if (bindingA === bindingB) this._gl.bindBuffer(this._gl.ARRAY_BUFFER, null);
   }
 
   unbind(): void {
     this._rhi._bindVertexArray(null);
   }
 
-  draw(mode: number, first: number, count: number): void {
-    this._gl.drawArrays(mode, first, count);
+  draw(mode: number, first: number, count: number, instanceCount = 1): void {
+    if (instanceCount === 1) this._gl.drawArrays(mode, first, count);
+    else this._gl.drawArraysInstanced(mode, first, count, instanceCount);
   }
 
   invalidate(): void {
@@ -132,6 +142,7 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
       gl.enableVertexAttribArray(loc);
       if (info.integer) gl.vertexAttribIPointer(loc, info.size, info.type, stride, element.offset);
       else gl.vertexAttribPointer(loc, info.size, info.type, info.normalized, stride, element.offset);
+      gl.vertexAttribDivisor(loc, element.instanceStepRate);
     }
   }
 }

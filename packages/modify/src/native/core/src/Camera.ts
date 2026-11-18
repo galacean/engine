@@ -283,6 +283,7 @@ export class Camera extends Component {
   }
 
   set aspectRatio(value: number) {
+    if (this._customAspectRatio === value) return;
     this._customAspectRatio = value;
     this._projectionMatrixChange();
     this._dispatchModify(CameraModifyFlags.AspectRatio);
@@ -361,6 +362,11 @@ export class Camera extends Component {
       this._projectionMatrixChange();
       this._dispatchModify(CameraModifyFlags.OrthographicSize);
     }
+  }
+
+  /** Whether the camera uses an explicitly assigned view matrix. */
+  get usesCustomViewMatrix(): boolean {
+    return this._isCustomViewMatrix;
   }
 
   /**

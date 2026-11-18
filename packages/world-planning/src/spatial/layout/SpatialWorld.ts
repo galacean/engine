@@ -36,6 +36,7 @@ import {
   revealLandscapeBasemap,
   type LandscapeBasemap
 } from "../../semantic-study/ContextLandscape";
+import { hashSignatureValue } from "../../semantic-study/SignatureHash";
 import {
   updateSpatialEcology,
   updateSpatialGuidance,
@@ -1258,7 +1259,7 @@ function* spatialWorldStages(
   };
   if (p.farming?.enabled !== false) {
     const farmSearchStarted = performance.now();
-    const farmSignature = JSON.stringify([
+    const farmSignature = hashSignatureValue([
       worldSignature,
       terrainSignature,
       riverSignature,

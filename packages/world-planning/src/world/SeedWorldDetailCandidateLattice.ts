@@ -147,6 +147,18 @@ export function createSeedWorldDetailDensitySampler(
     sampleDetailDensity(samples, read, resolution, maximumDensityPerSquareMetre, worldSizeMetres, worldX, worldZ);
 }
 
+/** Retained [worldX, worldZ, density] storage avoids boxing a float result for every texel. */
+export function createSeedWorldDetailDensitySamplerInto(
+  field: SeedWorldDetailDensityField,
+  worldSizeMetres: number
+): (sample: Float64Array) => void {
+  const read = groundCoverDensityReader(field),
+    samples = read ? undefined : field.samples;
+  const { resolution, maximumDensityPerSquareMetre } = field;
+  return (sample) => {
+    sampleDetailDensity(samples, read, resolution, maximumDensityPerSquareMetre, worldSizeMetres, sample);
+  };
+}
 function sampleDetailDensity(
   samples: Uint8Array | undefined,
   read: ((x: number, z: number) => number) | undefined,
@@ -155,7 +167,26 @@ function sampleDetailDensity(
   worldSizeMetres: number,
   worldX: number,
   worldZ: number
-): number {
+): number;
+function sampleDetailDensity(
+  samples: Uint8Array | undefined,
+  read: ((x: number, z: number) => number) | undefined,
+  resolution: number,
+  maximumDensityPerSquareMetre: number,
+  worldSizeMetres: number,
+  worldX: Float64Array
+): void;
+function sampleDetailDensity(
+  samples: Uint8Array | undefined,
+  read: ((x: number, z: number) => number) | undefined,
+  resolution: number,
+  maximumDensityPerSquareMetre: number,
+  worldSizeMetres: number,
+  point: number | Float64Array,
+  zValue?: number
+): number | void {
+  const worldX = typeof point === "number" ? point : point[0]!;
+  const worldZ = typeof point === "number" ? zValue! : point[1]!;
   const x = clamp(worldX / worldSizeMetres + 0.5, 0, 1) * resolution - 0.5;
   const z = clamp(worldZ / worldSizeMetres + 0.5, 0, 1) * resolution - 0.5;
   const x0 = clamp(Math.floor(x), 0, resolution - 1);
@@ -174,7 +205,9 @@ function sampleDetailDensity(
   const far = read
     ? read(x0, z1) * (1 - fractionX) + read(x1, z1) * fractionX
     : samples![i01] * (1 - fractionX) + samples![i11] * fractionX;
-  return ((near * (1 - fractionZ) + far * fractionZ) / 255) * maximumDensityPerSquareMetre;
+  const density = ((near * (1 - fractionZ) + far * fractionZ) / 255) * maximumDensityPerSquareMetre;
+  if (typeof point === "number") return density;
+  point[2] = density;
 }
 
 /** Select a contributing density sample's owner, using the same pixel-centred footprint as generation. */
@@ -242,6 +275,35 @@ export function hashSeedWorldDetailCandidate(input: number): number {
   value = (value ^ (value >>> 15)) >>> 0;
   value = Math.imul(value, 0x846c_a68b) >>> 0;
   return (value ^ (value >>> 16)) >>> 0;
+}
+
+/** Retained [localX, localZ, minimumHeight, maximumHeight] access for a baked ecology field. */
+export function createSeedWorldDetailHeightSamplerInto(
+  field: SeedWorldDetailDensityField,
+  worldSizeMetres: number
+): ((sample: Float64Array) => void) | undefined {
+  const heights = field.heightRangeMetres;
+  if (!heights) return;
+  const n = field.resolution,
+    data = heights.samples;
+  return (sample) => {
+    const x = clamp(sample[0]! / worldSizeMetres, 0, 1) * (n - 1),
+      z = clamp(sample[1]! / worldSizeMetres, 0, 1) * (n - 1);
+    const x0 = Math.floor(x),
+      z0 = Math.floor(z),
+      x1 = Math.min(n - 1, x0 + 1),
+      z1 = Math.min(n - 1, z0 + 1),
+      fx = x - x0,
+      fz = z - z0;
+    const a = (z0 * n + x0) * 2,
+      b = (z0 * n + x1) * 2,
+      c = (z1 * n + x0) * 2,
+      d = (z1 * n + x1) * 2;
+    for (let channel = 0; channel < 2; channel++)
+      sample[2 + channel] =
+        (data[a + channel]! * (1 - fx) + data[b + channel]! * fx) * (1 - fz) +
+        (data[c + channel]! * (1 - fx) + data[d + channel]! * fx) * fz;
+  };
 }
 
 /** Endpoint-aligned ecology height field; position/width/density remain owned by their original parameters. */
