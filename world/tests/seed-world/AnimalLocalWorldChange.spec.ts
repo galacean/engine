@@ -182,6 +182,22 @@ function animal() {
 }
 
 describe("local animal dependencies", () => {
+  it("allows routes through a landscape rock only when its collision is disabled", () => {
+    const solid = plan();
+    solid.landscapes = [{ id: "stone", ownerId: "shore", kind: "rock", center: { x: 0, z: 0 }, width: 2, depth: 2, height: 1, yaw: 0 }];
+    const decorative = structuredClone(solid);
+    decorative.landscapes[0].collision = false;
+    const ground = () => 0;
+    const nav = { sampleHeightInterpolated: ground, sampleContactIsWater: () => false };
+    const range = { spawnRadius: 100, roamRadius: 100 };
+    for (const published of [solid, decorative]) {
+      const habitat = new PlanningAnimalHabitat(published, nav, range);
+      const route = habitat.staticRouteQuery(0.5, 1, "ground");
+      expect(route.canTraverse([-3, 0], [3, 0])).toBe(published === decorative);
+    }
+    expect(animalCollisionChanges(solid, decorative, ground, ground)).toEqual([{ minX: -1, maxX: 1, minZ: -1, maxZ: 1 }]);
+  });
+
   it.each(["ground", "water", "air"] as const)("keeps %s routes inside the individual birth disk", medium => {
     const canTraverse = vi.fn(() => true);
     const read = () => ({ staticRouteQuery: () => ({ canTraverse, obstruction: () => undefined }) });

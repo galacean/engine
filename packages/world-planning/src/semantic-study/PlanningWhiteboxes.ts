@@ -151,7 +151,7 @@ export function planningWhiteboxes(plan: IslandPlan, ground: (p: PlanPoint) => n
                 sizeY: p.height,
                 yaw: p.yaw,
                 elevation: p.baseHeight ?? ground(p.center),
-                collision: true,
+                collision: p.collision !== false,
                 occlusion: true
               }
             ]
