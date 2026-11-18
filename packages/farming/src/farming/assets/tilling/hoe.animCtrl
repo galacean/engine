@@ -14,8 +14,7 @@
             "clipStartNormalizedTime": 0,
             "clipEndNormalizedTime": 1,
             "clip": {
-              "url": "Farming/Props/Tilling/hoe.glb",
-              "key": "animations[0]"
+              "url": "Farming/Native/Tilling/hoe/Hoe_Till.ani"
             },
             "transitions": [],
             "scripts": []

@@ -1,7 +1,6 @@
 import { Loader } from "@galacean/engine-core";
 import { FarmingAreaComponent } from "./FarmingAreaComponent";
 import { FarmingSystem } from "./FarmingSystem";
-import { registerFarmingResourceLoader } from "./FarmingResources";
 export {
   FarmingAreaComponent,
   type FarmingAreaConfiguration,
@@ -15,6 +14,9 @@ export {
   FarmingCatalogResource,
   FarmingRulesResource,
   createFarmingResources,
+  farmingCatalog,
+  farmingRules,
+  farmingDefinitions,
   serializeFarmingResource,
   parseFarmingResource
 } from "./FarmingResources";
@@ -28,5 +30,4 @@ export { farmingSkill, farmingSkillDocuments } from "./FarmingSkill";
 export function registerNativeFarming(): void {
   Loader.registerClass("FarmingSystem", FarmingSystem);
   Loader.registerClass("FarmingAreaComponent", FarmingAreaComponent);
-  registerFarmingResourceLoader();
 }

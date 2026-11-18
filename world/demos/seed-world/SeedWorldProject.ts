@@ -25,6 +25,9 @@ import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runt
 import { registerNativeWater } from "@galacean/engine-water/water/native/index";
 import { migrateSeedWorldWaterTextures } from "./SeedWorldWaterTextureMigration";
 import type { AtomicLodManifest } from "@galacean/engine-vegetation/asset-assembly/AssetAssemblyCatalog";
+import { createPlanningFarmingAuthoringValidator } from "./src/planning/spatial/farming/PlanningFarmingAuthoring.ts";
+import { builtinFarmingPropFiles } from "@galacean/engine-farming/farming/presentation/props/FarmingPropResources";
+import { planningFarmingRecoveryNotice, quarantineUnsupportedPlanningFarm } from "./src/planning/spatial/farming/PlanningFarmingQuarantine.ts";
 
 /** Author schemas and saved asset catalogs are intentionally incompatible across these save versions.
  * Opening a project deletes saves of any other version before loading, so it starts from the initial world. */
@@ -68,7 +71,7 @@ export async function openSeedWorldProject(
     if (!response.ok) throw new Error(`Project manifest read failed (${response.status})`);
     initial = (await response.json()) as RuntimeProjectManifest;
   }
-  initial = { ...initial, files: [...initial.files, ...builtinBuildingAssetFiles, ...builtinBuildingPresetFiles] };
+  initial = { ...initial, files: [...initial.files, ...builtinBuildingAssetFiles, ...builtinBuildingPresetFiles, ...builtinFarmingPropFiles] };
   await deleteRetiredSeedWorldSaves(projectUrl);
   const project = await RuntimeProjectSession.open(seedWorldProjectStorageId(seed, projectUrl, template), initial, projectUrl, {
     scriptModules: seedWorldScriptModules
@@ -80,6 +83,9 @@ export async function openSeedWorldProject(
     registerBuildingAssetComponents();
     registerPlantProjectAssets();
     project.registerAssetFormats(seedWorldProjectFormats);
+    await quarantineUnsupportedPlanningFarm(project, (name) => Boolean(Loader.getClass(name)));
+    const farmingNotice = planningFarmingRecoveryNotice(project.projectPackage);
+    if (farmingNotice) console.warn(farmingNotice);
     await migrateBuildingAssetPaths(project, initial, projectUrl);
     await migrateSeedWorldWaterTextures(project);
     await project.prepareEditableHierarchies((name) => Boolean(Loader.getClass(name)));
@@ -87,6 +93,7 @@ export async function openSeedWorldProject(
     await migrateVegetationAssets(project, initial, projectUrl);
     await project.initializeDependencies();
     project.registerProjectValidator(validatePlanningProject);
+    project.registerProjectValidator(createPlanningFarmingAuthoringValidator());
     return project;
   } catch (error) {
     project.dispose();

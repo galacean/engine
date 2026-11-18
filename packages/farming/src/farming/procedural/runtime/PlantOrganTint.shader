@@ -2,7 +2,8 @@ Shader "Farming/PlantOrganTint" {
     SubShader "Default" {
       UsePass "Pipeline/ShadowCaster/Default/ShadowCaster"
       UsePass "Pipeline/DepthOnly/Default/DepthOnly"
-      UsePass "Pipeline/ScreenSpaceReflectionSurface/Default/ScreenSpaceReflectionSurface"
+      // Farm variants change vertex-mask, coverage and surface inputs in Forward.
+      // Keep SSR reception disabled until they provide a matching Surface pass.
 
       Pass "Forward Pass" {
         Tags { pipelineStage = "Forward"}

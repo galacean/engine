@@ -1,4 +1,5 @@
 import { Color, Entity, MeshRenderer, ModelMesh, PBRMaterial, Vector3 } from "@galacean/engine";
+import { destroyOwnedMeshSet } from "@galacean/engine-terrain/geometry/destroyOwnedMesh";
 import small from "../../assets/sowing/small.json";
 import grain from "../../assets/sowing/grain.json";
 import pumpkin from "../../assets/sowing/pumpkin.json";
@@ -13,8 +14,10 @@ const seedScales = { small: 0.5, grain: 0.45, pumpkin: 0.28 };
 export class SowingSeedLibrary {
   private readonly meshes = new Map<string, ModelMesh>();
   private readonly material: PBRMaterial;
+  private disposed = false;
   constructor(parent: Entity) {
     this.material = new PBRMaterial(parent.engine);
+    this.material._addReferCount(1);
     this.material.baseColor = new Color(1, 1, 1, 1);
     this.material.roughness = 0.86;
   }
@@ -53,6 +56,8 @@ export class SowingSeedLibrary {
         Vector3.max(mesh.bounds.max, p, mesh.bounds.max);
       }
       mesh.uploadData(false);
+      // The cache holds its own reference, including the primitive's vertex and index buffers.
+      mesh._addReferCount(1);
       this.meshes.set(key, mesh);
     }
     const entity = parent.createChild(`sowing-seed-${index}`),
@@ -64,17 +69,21 @@ export class SowingSeedLibrary {
     renderer.receiveShadows = true;
     return entity;
   }
+  detach(entity: Entity): void {
+    if (entity.destroyed) return;
+    const renderer = entity.getComponent(MeshRenderer);
+    if (!renderer || renderer.destroyed) return;
+    renderer.mesh = null!;
+    renderer.setMaterial(null);
+  }
+
   dispose(): void {
-    for (const mesh of this.meshes.values()) {
-      const buffers = mesh.vertexBufferBindings
-        .map((binding) => binding?.buffer)
-        .filter((value): value is NonNullable<typeof value> => value != null);
-      mesh.setIndices(null!);
-      mesh.uploadData(false);
-      mesh.destroy();
-      for (const buffer of buffers) buffer.destroy();
-    }
+    if (this.disposed) return;
+    this.disposed = true;
+    for (const mesh of this.meshes.values()) if (!mesh.destroyed) mesh._addReferCount(-1);
+    destroyOwnedMeshSet(this.meshes.values());
     this.meshes.clear();
+    this.material._addReferCount(-1);
     this.material.destroy();
   }
 }

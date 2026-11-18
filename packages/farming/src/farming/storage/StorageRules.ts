@@ -38,10 +38,9 @@ const fail = (code: FarmingErrorCode, message: string): StorageResult => ({ ok: 
 export function storageDefinitions(definitions: Pick<FarmingDefinitionSet, "storage">): FarmingStorageDefinitions {
   return definitions.storage ?? DEFAULT_STORAGE_DEFINITIONS;
 }
-export function validateStorageDefinitions(definitions: FarmingDefinitionSet): void {
-  const rules = storageDefinitions(definitions),
-    ids = new Set<string>();
-  if (!Array.isArray(rules.containers) || !rules.containers.length || !rules.crops)
+export function validateStorageRules(rules: FarmingStorageDefinitions): void {
+  const ids = new Set<string>();
+  if (!Array.isArray(rules.containers) || !rules.containers.length || !rules.crops || Array.isArray(rules.crops))
     throw new Error("Missing storage definitions");
   for (const type of rules.containers) {
     requireStableId(type.id, "container type");
@@ -60,11 +59,17 @@ export function validateStorageDefinitions(definitions: FarmingDefinitionSet): v
     if (type.width < footprint.width || type.depth < footprint.depth)
       throw new Error("Container footprint cannot be smaller than its rendered prop");
   }
-  for (const crop of definitions.catalog.crops) {
-    const rule = rules.crops[crop.id];
+  for (const [id, rule] of Object.entries(rules.crops)) {
     if (!rule || !ids.has(rule.containerTypeId) || !rule.unit?.trim())
-      throw new Error(`Missing crop storage definition: ${crop.id}`);
+      throw new Error(`Missing crop storage definition: ${id}`);
     requirePositiveInteger(rule.capacity, "Container capacity");
+  }
+}
+export function validateStorageDefinitions(definitions: FarmingDefinitionSet): void {
+  const rules = storageDefinitions(definitions);
+  validateStorageRules(rules);
+  for (const crop of definitions.catalog.crops) {
+    if (!Object.hasOwn(rules.crops, crop.id)) throw new Error(`Missing crop storage definition: ${crop.id}`);
   }
 }
 export function validateStorageLayout(layout: StorageLayout): void {

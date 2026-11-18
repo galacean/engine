@@ -4,6 +4,7 @@ import {
   Camera,
   Color,
   DirectLight,
+  type Engine,
   Entity,
   MeshRenderer,
   PBRMaterial,
@@ -11,8 +12,7 @@ import {
   PrimitiveMesh,
   Scene,
   Script,
-  Vector3,
-  WebGLEngine
+  Vector3
 } from "@galacean/engine";
 import {
   FarmingAPI,
@@ -24,8 +24,7 @@ import {
   registerNativeFarming,
   serializeFarmingResource,
   type FarmingAreaConfiguration,
-  type FarmingCatalogResource,
-  type FarmingRulesResource
+  farmingCatalog
 } from "@galacean/engine-farming/farming/native/index";
 import {
   ManualFarmClock,
@@ -103,16 +102,24 @@ export class NativePreviewHost {
   private releases: (() => void)[] = [];
   private urls: string[] = [];
   private fileId = 0;
-  constructor(readonly engine: WebGLEngine) {}
+  private readonly lifetime = new AbortController();
+  private ownedResources?: ReturnType<typeof createFarmingResources>;
+  private restoreTask?: Promise<void>;
+  private pendingSystem?: FarmingSystem;
+  private disposeTask?: Promise<void>;
+  constructor(readonly engine: Engine) {}
   async initialize(): Promise<void> {
+    this.lifetime.signal.throwIfAborted();
+    if (this.system) throw new Error("Native preview is already initialized");
     registerNativeFarming();
-    this.scene = this.engine.sceneManager.activeScene!;
+    this.scene = this.engine.sceneManager.activeScene ?? new Scene(this.engine);
+    this.engine.sceneManager.activeScene = this.scene;
     this.system = this.scene.createRootEntity("Farming System").addComponent(FarmingSystem);
     this.system.configureRuntime(() => ({
       groundProvider: previewGround,
       clock: this.clock
     }));
-    const resources = createFarmingResources(this.engine, definitions);
+    const resources = (this.ownedResources = createFarmingResources(this.engine, definitions));
     this.area = this.scene.createRootEntity("Native Farming Area").addComponent(FarmingAreaComponent);
     await this.area.configure({
       farmId: "native-preview",
@@ -125,8 +132,7 @@ export class NativePreviewHost {
         target: { groundId: "native-ground", cellX, cellZ: 0 }
       }))
     });
-    resources.catalog.destroy();
-    resources.rules.destroy();
+    this.lifetime.signal.throwIfAborted();
     this.api = new FarmingAPI(this.system);
     this.bindVisuals();
   }
@@ -156,8 +162,10 @@ export class NativePreviewHost {
       renderer.mesh = mesh;
       renderer.setMaterial(material);
     }
-    this.presenter = new PlantPresenter(this.engine, this.area.configuration!.catalog.catalog, (state) =>
-      mounts.get(this.area.service.getSnapshot().crops[state.instanceId]?.anchorPlotId ?? "")
+    this.presenter = new PlantPresenter(
+      this.engine,
+      farmingCatalog(this.area.configuration!.catalog).catalog,
+      (state) => mounts.get(this.area.service.getSnapshot().crops[state.instanceId]?.anchorPlotId ?? "")
     );
     this.items = new FarmItemPresentation(root, camera, this.area.service);
     this.area.coordinator.presentation = {
@@ -171,7 +179,9 @@ export class NativePreviewHost {
     };
     const sync = (snapshot: FarmSnapshot) => {
       this.presenter.sync(
-        Object.values(snapshot.crops).map((crop) => cropRenderState(this.area.configuration!.catalog.catalog, crop))
+        Object.values(snapshot.crops).map((crop) =>
+          cropRenderState(farmingCatalog(this.area.configuration!.catalog).catalog, crop)
+        )
       );
       this.onChange?.();
     };
@@ -219,7 +229,7 @@ export class NativePreviewHost {
     await this.area.service.checkpoint();
   }
   async sceneFile() {
-    const resources: (FarmingCatalogResource | FarmingRulesResource)[] = [];
+    const resources: import("@galacean/engine-core").JSONAsset[] = [];
     const component = await farmingAreaComponentData(this.area, (resource) => {
       let index = resources.indexOf(resource);
       if (index < 0) {
@@ -229,12 +239,12 @@ export class NativePreviewHost {
       return index;
     });
     const refs = resources.map((resource, i) => {
-      const virtualPath = `Farming/NativePreview/${this.fileId}/${i}.farming`;
+      const virtualPath = `Farming/NativePreview/${this.fileId}/${i}.json`;
       this.engine.resourceManager.registerVirtualResources([
         {
           virtualPath,
           path: this.blob(serializeFarmingResource(resource)),
-          type: "FarmingResource"
+          type: "JSON"
         }
       ]);
       return { url: virtualPath };
@@ -247,14 +257,14 @@ export class NativePreviewHost {
         { name: "Farming System", components: [0] },
         { name: "Native Farming Area", components: [1] }
       ],
-      components: [{ type: "FarmingSystem" }, component],
+      components: [{ type: "FarmingSystem", props: { cropGrowthMultiplier: this.system.cropGrowthMultiplier } }, component],
       scene: {
         rootEntities: [0, 1],
         background: { mode: 0, color: [0.16, 0.23, 0.2, 1] }
       }
     };
   }
-  async loadScene(file: Awaited<ReturnType<NativePreviewHost["sceneFile"]>>): Promise<{
+  private async loadScene(file: Awaited<ReturnType<NativePreviewHost["sceneFile"]>>): Promise<{
     scene: Scene;
     system: FarmingSystem;
     area: FarmingAreaComponent;
@@ -264,28 +274,66 @@ export class NativePreviewHost {
       type: AssetType.Scene,
       url: this.blob(JSON.stringify(file))
     });
-    const system = scene.getRootEntity(0)!.getComponent(FarmingSystem)!;
-    system.configureRuntime(() => ({
-      groundProvider: previewGround,
-      clock: this.clock
-    }));
-    const area = scene.getRootEntity(1)!.getComponent(FarmingAreaComponent)!;
-    area.start();
-    await area.ready;
-    return { scene, system, area, api: new FarmingAPI(system) };
+    const system = scene.getRootEntity(0)?.getComponent(FarmingSystem);
+    try {
+      this.lifetime.signal.throwIfAborted();
+      if (!system) throw new Error("Native preview Scene requires a FarmingSystem root");
+      this.pendingSystem = system;
+      system.configureRuntime(() => ({
+        groundProvider: previewGround,
+        clock: this.clock
+      }));
+      const area = scene.getRootEntity(1)?.getComponent(FarmingAreaComponent);
+      if (!area) throw new Error("Native preview Scene requires a FarmingAreaComponent root");
+      area.start();
+      await area.ready;
+      this.lifetime.signal.throwIfAborted();
+      return { scene, system, area, api: new FarmingAPI(system) };
+    } catch (error) {
+      try {
+        await system?.dispose();
+      } finally {
+        scene.destroy();
+      }
+      throw error;
+    } finally {
+      this.pendingSystem = undefined;
+    }
   }
   async restore(file: Awaited<ReturnType<NativePreviewHost["sceneFile"]>>): Promise<void> {
+    this.lifetime.signal.throwIfAborted();
+    if (this.restoreTask) throw new Error("Native preview restore already in progress");
+    const task = (this.restoreTask = this.restoreScene(file));
+    try {
+      await task;
+    } finally {
+      this.restoreTask = undefined;
+    }
+  }
+  private async restoreScene(file: Awaited<ReturnType<NativePreviewHost["sceneFile"]>>): Promise<void> {
     const loaded = await this.loadScene(file);
-    await this.system.dispose();
-    this.releaseVisuals();
-    const old = this.scene;
-    this.engine.sceneManager.activeScene = loaded.scene;
-    this.scene = loaded.scene;
-    this.system = loaded.system;
-    this.area = loaded.area;
-    this.api = loaded.api;
-    old.destroy();
-    this.bindVisuals();
+    try {
+      await this.system.dispose();
+      this.lifetime.signal.throwIfAborted();
+      this.releaseVisuals();
+      this.releaseOwnedResources();
+      const old = this.scene;
+      this.engine.sceneManager.activeScene = loaded.scene;
+      this.scene = loaded.scene;
+      this.system = loaded.system;
+      this.area = loaded.area;
+      this.api = loaded.api;
+      old.destroy();
+      this.bindVisuals();
+    } finally {
+      if (this.scene !== loaded.scene) {
+        try {
+          await loaded.system.dispose();
+        } finally {
+          loaded.scene.destroy();
+        }
+      }
+    }
   }
   async loadPrefab(file: Awaited<ReturnType<NativePreviewHost["sceneFile"]>>): Promise<PrefabResource> {
     return this.engine.resourceManager.load<PrefabResource>({
@@ -312,9 +360,30 @@ export class NativePreviewHost {
   private releaseVisuals(): void {
     for (const release of this.releases.splice(0)) release();
   }
-  async dispose(): Promise<void> {
-    await this.system.dispose();
-    this.releaseVisuals();
-    for (const url of this.urls.splice(0)) URL.revokeObjectURL(url);
+  private releaseOwnedResources(): void {
+    this.ownedResources?.catalog.destroy();
+    this.ownedResources?.rules.destroy();
+    this.ownedResources = undefined;
+  }
+  dispose(): Promise<void> {
+    if (this.disposeTask) return this.disposeTask;
+    this.lifetime.abort();
+    const runningSystem = this.system;
+    const loadingSystem = this.pendingSystem;
+    return (this.disposeTask = (async () => {
+      const [system, pending] = await Promise.allSettled([
+        Promise.resolve().then(() => runningSystem?.dispose()),
+        Promise.resolve().then(() => loadingSystem?.dispose()),
+        this.restoreTask
+      ]);
+      try {
+        this.releaseVisuals();
+      } finally {
+        this.releaseOwnedResources();
+        for (const url of this.urls.splice(0)) URL.revokeObjectURL(url);
+      }
+      if (system.status === "rejected") throw system.reason;
+      if (pending.status === "rejected") throw pending.reason;
+    })());
   }
 }

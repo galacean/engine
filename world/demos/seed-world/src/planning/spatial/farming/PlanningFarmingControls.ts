@@ -1,3 +1,4 @@
+import type { PlanningFarmingGrowthResult } from "./PlanningFarmingAuthoring.ts";
 import { containerBounds } from "@galacean/engine-farming/farming/storage/StoragePlacement";
 import { storageDefinitions } from "@galacean/engine-farming/farming/storage/StorageRules";
 import type { Camera } from "@galacean/engine";
@@ -30,7 +31,9 @@ export interface PlanningFarmingControlsOptions {
   beforeTravel?(): void;
   readEnabled?(): boolean;
   readSwitchError?(): string | undefined;
+  readRecoveryNotice?(): string | undefined;
   setEnabled?(enabled: boolean): Promise<void>;
+  setGrowthMultiplier?(value: number): Promise<PlanningFarmingGrowthResult>;
 }
 
 /** Debug-session state. Only the panel is replaced when the inspector rebinds a published World. */
@@ -356,6 +359,14 @@ export class PlanningFarmingControls {
     this.emit();
   }
   private async readDiagnostics(generation: number): Promise<void> {
+    const recoveryNotice = this.options.readRecoveryNotice?.();
+    if (recoveryNotice) {
+      this.status = "旧农场已隔离";
+      this.diagnostics = recoveryNotice;
+      delete this.options.canvas.dataset.farming;
+      this.emit();
+      return;
+    }
     if (this.switchError) {
       this.status = this.state.enabled ? "农场开启未完成" : "农场关闭未完成";
       this.diagnostics = `切换失败，不能确认完全卸载：${this.switchError}。请点击“重试农场切换”。`;
@@ -467,7 +478,7 @@ export class PlanningFarmingControls {
     void this.refresh(true);
   };
 
-  async setGrowthMultiplier(key: "cropGrowthMultiplier", value: number): Promise<void> {
+  async setGrowthMultiplier(value: number): Promise<void> {
     this.synchronize();
     const area = this.area;
     if (this.busy || this.disposed || !area) return;
@@ -475,10 +486,13 @@ export class PlanningFarmingControls {
     this.busy = true;
     this.emit();
     try {
-      await area.service.setGrowthMultipliers({ [key]: value });
+      if (!this.options.setGrowthMultiplier) throw new Error("Farming authoring is unavailable");
+      const result = await this.options.setGrowthMultiplier(value);
       if (this.disposed || generation !== this.generation) return;
-      this.message = `作物生长倍数已设为 ${value} 倍`;
-      this.activity.append("success", this.message);
+      this.message = result.activationError
+        ? `已提交；运行更新失败：${result.activationError}`
+        : `作物生长倍数已设为 ${value} 倍`;
+      this.activity.append(result.activationError ? "error" : "success", this.message);
     } catch (error) {
       if (this.disposed || generation !== this.generation) return;
       this.message = `生长参数修改失败：${String(error)}`;

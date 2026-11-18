@@ -1,3 +1,4 @@
+import { farmingCatalog } from "@galacean/engine-farming/farming/native/FarmingResources";
 import { WebGLEngine } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { NativePreviewHost } from "./NativePreviewHost.ts";
@@ -7,14 +8,36 @@ declare global {
   }
 }
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+const lifetime = new AbortController();
+let closePreview = async (): Promise<void> => {};
+window.addEventListener("pagehide", () => {
+  lifetime.abort();
+  void closePreview().catch((error) => console.error("Farming preview cleanup failed", error));
+}, { once: true });
 async function main() {
   const engine = await WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() });
+  if (lifetime.signal.aborted) {
+    engine.destroy();
+    return;
+  }
+  const host = new NativePreviewHost(engine);
   const resize = () => {
     engine.canvas.setResolution(window.innerWidth, window.innerHeight);
   };
+  let closing: Promise<void> | undefined;
+  closePreview = () => (closing ??= (async () => {
+    lifetime.abort();
+    window.removeEventListener("resize", resize);
+    window.farmingNativePreview = undefined;
+    try {
+      await host.dispose();
+    } finally {
+      engine.destroy();
+    }
+  })());
   resize();
-  const host = new NativePreviewHost(engine);
   await host.initialize();
+  if (lifetime.signal.aborted) return;
   window.farmingNativePreview = host;
   const plot = $<HTMLSelectElement>("plot"),
     seed = $<HTMLSelectElement>("seed"),
@@ -23,8 +46,8 @@ async function main() {
     .queryPlots()
     .map((p) => `<option value="${p.plotId}">${p.label}</option>`)
     .join("");
-  seed.innerHTML = host.area
-    .configuration!.catalog.data.seeds.map((s) => `<option value="${s.id}">${s.name}</option>`)
+  seed.innerHTML = farmingCatalog(host.area.configuration!.catalog)
+    .data.seeds.map((s) => `<option value="${s.id}">${s.name}</option>`)
     .join("");
   plot.onchange = () => {
     host.selectedPlotId = plot.value;
@@ -117,12 +140,16 @@ async function main() {
     });
   $("restore").onclick = () => void run(() => host.restore(saved!));
   window.addEventListener("resize", resize);
-  window.addEventListener("pagehide", () => void host.dispose().then(() => engine.destroy()), { once: true });
   error.textContent = "";
   render();
   engine.run();
 }
-void main().catch((error) => {
+void main().catch(async (error) => {
   $("error").textContent = String(error);
   console.error(error);
+  try {
+    await closePreview();
+  } catch (cleanup) {
+    console.error("Farming preview cleanup failed", cleanup);
+  }
 });

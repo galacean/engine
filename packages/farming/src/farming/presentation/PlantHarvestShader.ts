@@ -74,7 +74,6 @@ export const PLANT_HARVEST_SHADER = plantTint
   .replace('Shader "Farming/PlantOrganTint"', 'Shader "Farming/HarvestDissolve"')
   .replace('UsePass "Pipeline/ShadowCaster/Default/ShadowCaster"', depthPass(true))
   .replace('UsePass "Pipeline/DepthOnly/Default/DepthOnly"', depthPass(false))
-  .replace('UsePass "Pipeline/ScreenSpaceReflectionSurface/Default/ScreenSpaceReflectionSurface"', "")
   .replace("vec4 renderer_OrganTint;", `vec4 renderer_OrganTint; ${dissolve}`)
   .replace(
     "void PBRFragment(Varyings varyings) {",

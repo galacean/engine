@@ -7,13 +7,11 @@ import {
   type FarmingSimulationOverrides
 } from "@galacean/engine-farming/farming/config/FarmingSimulationConfig";
 import { FarmingInitializationError } from "@galacean/engine-farming/farming/application/FarmingInitializationError";
-import { FarmItemIdentityConflictError } from "@galacean/engine-farming/farming/domain/RetiredFarmItems";
 import { FarmSnapshotCompatibilityError } from "@galacean/engine-farming/farming/domain/FarmSnapshotCompatibilityError";
 
 /** Corruption may start this Seed afresh; incompatible resources and ambiguous ownership may not. */
 export function canRecoverPlanningFarmSave(error: unknown): boolean {
   return error instanceof FarmingInitializationError && error.code === "INVALID_SNAPSHOT" &&
-    !(error.cause instanceof FarmItemIdentityConflictError) &&
     !(error.cause instanceof FarmSnapshotCompatibilityError);
 }
 

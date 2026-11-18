@@ -937,7 +937,7 @@ export class FarmScene {
 
   private createPlantingPreview(): Entity {
     const preview = this.root.createChild("planting-preview");
-    const pointMesh = PrimitiveMesh.createSphere(this.engine, 0.055, 10);
+    const pointMesh = PrimitiveMesh.createSphere(this.engine, 0.055, { subdivisionLevel: 1 });
     const pointMaterial = createMaterial(this.engine, "valid-planting-preview", new Color(0.42, 0.72, 0.3, 1), 0.76);
     for (const [index, position] of [
       [0, 0.025, 0],

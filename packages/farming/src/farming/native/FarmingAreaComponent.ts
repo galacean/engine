@@ -1,9 +1,8 @@
-import { retainFarmingResource as retain } from "./FarmingResources";
 import { createDefaultFarmingLayout } from "../storage/StorageDefaults";
 import type { StorageContainerPresenter } from "../presentation/storage/StorageContainerPresenter";
 import type { SowingPresenter } from "../presentation/sowing/SowingPresenter";
 import { plotBounds } from "../domain/FarmingGround";
-import { Script, ignoreClone, type Scene } from "@galacean/engine-core";
+import { Script, ignoreClone, type Scene, JSONAsset } from "@galacean/engine-core";
 import type { Vector3 } from "@galacean/engine-math";
 import { FarmingService, type FarmingServiceOptions } from "../application/FarmingService";
 import { FarmingActionCoordinator, type FarmingPresentationPort } from "../application/FarmingActionCoordinator";
@@ -13,7 +12,7 @@ import type { PlotDefinition } from "../domain/FarmDefinitions";
 import type { PlotGrid, FarmingGroundProvider } from "../domain/FarmingGround";
 import type { FarmRepository } from "../persistence/FarmRepository";
 import type { FarmClock } from "../application/FarmClock";
-import { FarmingCatalogResource, FarmingRulesResource, farmingDefinitions } from "./FarmingResources";
+import { farmingCatalog, farmingRules, farmingDefinitions } from "./FarmingResources";
 import { freezePlantContent } from "../procedural/core/immutable";
 import { FarmingInitializationError } from "../application/FarmingInitializationError";
 import type { FarmingDiagnosticCheck } from "../domain/FarmingDiagnostics";
@@ -22,8 +21,8 @@ export interface FarmingAreaConfiguration {
   readonly farmId: string;
   readonly layoutId: string;
   readonly layoutVersion: number;
-  readonly catalog: FarmingCatalogResource;
-  readonly rules: FarmingRulesResource;
+  readonly catalog: JSONAsset;
+  readonly rules: JSONAsset;
   readonly grid?: PlotGrid;
   readonly plots?: readonly PlotDefinition[];
   readonly initialLayout?: FarmingServiceOptions["initialLayout"];
@@ -50,6 +49,8 @@ export interface FarmingAreaDependencies {
 }
 export interface NativeFarmingOwner {
   readonly presentationActive: boolean;
+  readonly cropGrowthMultiplier?: number | null;
+  synchronizeAreaAuthoring?(area: FarmingAreaComponent): Promise<void>;
   assertScene(): void;
   register(area: FarmingAreaComponent): void;
   dependencies(area: FarmingAreaComponent): FarmingAreaDependencies;
@@ -112,7 +113,6 @@ export class FarmingAreaComponent extends Script {
       this._configuration = undefined;
       throw error;
     }
-    for (const resource of [catalog, rules]) retain(resource, 1);
     if (this.enabled && this.entity.isActiveInHierarchy) this.start();
   }
   get farmId(): string {
@@ -242,7 +242,10 @@ export class FarmingAreaComponent extends Script {
         repository,
         definitions,
         ...config,
-        simulationConfig: config.rules.data.simulationConfig,
+        simulationConfig: {
+          ...farmingRules(config.rules).data.simulationConfig,
+          ...(owner.cropGrowthMultiplier == null ? {} : { cropGrowthMultiplier: owner.cropGrowthMultiplier })
+        },
         initialSnapshot: config.snapshot
       });
       this._service = service;
@@ -254,6 +257,14 @@ export class FarmingAreaComponent extends Script {
             await service.whenIdle();
             return;
           }
+          // The System skips initializing areas. Re-read its value if it changed while our queue settled.
+          let multiplier: number | null | undefined;
+          do {
+            multiplier = owner.cropGrowthMultiplier;
+            await owner.synchronizeAreaAuthoring?.(this);
+            if (this._disposed || !this.checkMembership()) return;
+          } while (multiplier !== owner.cropGrowthMultiplier);
+          this._error = undefined;
           this._coordinator = new FarmingActionCoordinator(service, deps.presentation);
           this._presentationRequested =
             (deps.sowingPresentation ?? deps.storagePresentation) !== false || deps.storagePresentation !== false;
@@ -395,12 +406,11 @@ export class FarmingAreaComponent extends Script {
   onDestroy(): void {
     void this.dispose();
   }
-  /** Clone acquires its own resource references; stable IDs still require unique Scene membership. */
+  /** Clones borrow the same JSON assets; stable IDs still require unique Scene membership. */
   _onClone(target: FarmingAreaComponent): void {
     if (!target._configuration) return;
     const { catalog, rules, ...settings } = target._configuration;
     target._configuration = Object.freeze({ ...freezePlantContent(settings), catalog, rules });
-    for (const resource of [catalog, rules]) retain(resource, 1);
   }
   dispose(): Promise<void> {
     if (this._disposeTask) return this._disposeTask;
@@ -416,8 +426,6 @@ export class FarmingAreaComponent extends Script {
       await this._coordinator?.dispose();
       await this._service?.whenIdle();
       if (this._ownsRepository) this._repository?.dispose();
-      if (this._configuration)
-        for (const resource of [this._configuration.catalog, this._configuration.rules]) retain(resource, -1);
     })();
     return this._disposeTask;
   }
@@ -432,11 +440,13 @@ export class FarmingAreaComponent extends Script {
     )
       throw new Error("INVALID_ARGUMENT: 无效种植区域配置");
     if (
-      !(config.catalog instanceof FarmingCatalogResource) ||
-      !(config.rules instanceof FarmingRulesResource) ||
+      !(config.catalog instanceof JSONAsset) ||
+      !(config.rules instanceof JSONAsset) ||
       [config.catalog, config.rules].some((r) => r.destroyed || r.engine !== this.engine)
     )
       throw new Error("INVALID_ARGUMENT: 资源必须属于当前 Engine 且仍然有效");
+    farmingCatalog(config.catalog);
+    farmingRules(config.rules);
   }
 }
 for (const key of [

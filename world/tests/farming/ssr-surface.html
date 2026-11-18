@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" />
+  <title>农场 SSR Surface 回归</title>
+  <style>
+    body {
+      font: 14px system-ui;
+      margin: 20px;
+      background: #18201b;
+      color: #edf5eb;
+    }
+    canvas {
+      max-width: 100%;
+    }
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+  </style>
+  <h1>农场 SSR Surface 回归</h1>
+  <p>50 个可见网格，分别检查显式注册、运行注册克隆和作者设置克隆。此夹具用于提交正确性，不代表完整农场性能。</p>
+  <canvas id="canvas" width="512" height="384"></canvas>
+  <pre id="results">检查中</pre>
+  <script type="module" src="./FarmingSSRSurfaceAcceptance.ts"></script>
+</html>

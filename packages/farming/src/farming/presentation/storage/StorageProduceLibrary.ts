@@ -12,6 +12,7 @@ export class StorageProduceLibrary {
   private readonly products = new Map<string, ProduceMesh>();
   constructor(private readonly engine: Engine) {
     this.material = new PBRMaterial(engine);
+    this.material.isGCIgnored = true;
     this.material.baseColor = new Color(1, 1, 1, 1);
     this.material.roughness = 0.8;
   }
@@ -33,6 +34,7 @@ export class StorageProduceLibrary {
     let product = this.products.get(cropId);
     if (!product) {
       product = createHarvestProduceMesh(this.engine, cropId, 1, true);
+      product.mesh.isGCIgnored = true;
       this.products.set(cropId, product);
     }
     return product;

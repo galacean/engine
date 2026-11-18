@@ -1,9 +1,125 @@
 {
   "version": "2.0",
-  "refs": [{ "url": "Farming/Props/Sowing/seed-sack.glb" }],
-  "entities": [
-    { "instance": { "asset": 0, "overrides": { "entityProps": [{ "path": [], "name": "FarmingSeedSack" }] } } }
+  "refs": [
+    {
+      "url": "Farming/Native/Sowing/seed-sack/mesh-0-0.mesh"
+    },
+    {
+      "url": "Farming/Native/Sowing/seed-sack/material-0.mat"
+    },
+    {
+      "url": "Farming/Native/Sowing/seed-sack/mesh-1-0.mesh"
+    },
+    {
+      "url": "Farming/Native/Sowing/seed-sack/material-1.mat"
+    }
   ],
-  "components": [],
+  "entities": [
+    {
+      "name": "FarmingSeedSack",
+      "children": [
+        2
+      ],
+      "components": []
+    },
+    {
+      "name": "SeedSackLabel",
+      "children": [],
+      "components": [
+        0,
+        1
+      ]
+    },
+    {
+      "name": "SeedSack",
+      "children": [
+        1
+      ],
+      "components": [
+        2,
+        3
+      ]
+    }
+  ],
+  "components": [
+    {
+      "type": "Transform",
+      "props": {
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuaternion": {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "w": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      }
+    },
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 0
+        }
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Transform",
+      "props": {
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuaternion": {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "w": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      }
+    },
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 2
+        }
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
   "root": 0
 }

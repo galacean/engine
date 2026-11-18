@@ -132,7 +132,11 @@ export class SowingPresenter {
     this.library.dispose();
   }
   private remove(id: string): void {
-    this.jobs.get(id)?.root.destroy();
+    const job = this.jobs.get(id);
+    if (!job) return;
+    // Entity destruction may be queued; unlink cache references before dropping the job.
+    for (const seed of job.seeds) this.library.detach(seed.entity);
+    job.root.destroy();
     this.jobs.delete(id);
   }
 }

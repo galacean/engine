@@ -14,8 +14,7 @@
             "clipStartNormalizedTime": 0,
             "clipEndNormalizedTime": 1,
             "clip": {
-              "url": "Farming/Props/Tilling/rake.glb",
-              "key": "animations[0]"
+              "url": "Farming/Native/Tilling/rake/Rake_Level.ani"
             },
             "transitions": [],
             "scripts": []

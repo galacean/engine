@@ -1,4 +1,6 @@
 import type { SeedWorldVisualQuery } from "@galacean/engine-world-planning/world/SeedWorldVisualQuery";
+import { RuntimeAssetChanges } from "@galacean/engine-runtime-editor/project/runtime-asset-changes";
+import { planningFarmingAssetsAffected } from "./PlanningFarmingAssets.ts";
 import { planningFarmInitialization } from "@galacean/engine-world-planning/spatial/farming/PlanningFarmInitialization";
 import { validatePlanningFarmingResources } from "./PlanningFarmingResourceValidation.ts";
 import { lazyPlanningFarmingGroundView } from "@galacean/engine-world-planning/spatial/farming/PlanningFarmingGround";
@@ -26,14 +28,8 @@ import { FarmingInitializationError } from "@galacean/engine-farming/farming/app
 import type { FarmSnapshot, FarmRepository } from "@galacean/engine-farming/farming/api/index";
 import { PLANNING_FARMING_DEFAULTS } from "@galacean/engine-world-planning/spatial/farming/PlanningFarmingComponent";
 import type { Camera, Entity } from "@galacean/engine";
-import {
-  FarmingSystem,
-  FarmingAreaComponent,
-  FarmingAPI,
-  FarmingCatalogResource,
-  FarmingRulesResource
-} from "@galacean/engine-farming/farming/native/index";
-import { farmingDefinitions } from "@galacean/engine-farming/farming/native/FarmingResources";
+import { FarmingSystem, FarmingAreaComponent, FarmingAPI } from "@galacean/engine-farming/farming/native/index";
+import { farmingDefinitions, farmingRules } from "@galacean/engine-farming/farming/native/FarmingResources";
 import { resolveSimulationConfig } from "@galacean/engine-farming/farming/config/FarmingSimulationConfig";
 import { FARM_CROP_SCALES } from "@galacean/engine-farming/farming/presentation/DefaultCropScales";
 import { FarmingWorldPresentation } from "@galacean/engine-farming/farming/presentation/FarmingWorldPresentation";
@@ -69,7 +65,9 @@ export class PlanningFarmingRuntime {
   readonly api: FarmingAPI;
   private readonly root: Entity;
   private readonly repository: PlanningFarmRepository;
-  private readonly resources: { catalog: FarmingCatalogResource; rules: FarmingRulesResource };
+  private readonly assetChanges = new RuntimeAssetChanges();
+  private readonly releaseAssetReads: () => void;
+  private readonly resources: { catalog: JSONAsset; rules: JSONAsset };
   private readonly definitions: ReturnType<typeof farmingDefinitions>;
   private readonly releaseDependencies: () => void;
   readonly statePath: string;
@@ -80,9 +78,12 @@ export class PlanningFarmingRuntime {
     this.stateResource = this.system.state;
     this.repository.synchronizeResource();
   }
-  usesAssets(system: FarmingSystem, statePath: string): boolean {
+  usesAssets(system: FarmingSystem, statePath: string, assetRoots: readonly string[]): boolean {
     return (
-      this.resources.catalog === system.catalog && this.resources.rules === system.rules && this.statePath === statePath
+      this.resources.catalog === system.catalog && this.resources.rules === system.rules && this.statePath === statePath &&
+      assetRoots.length === this.options.assetRoots.length &&
+      assetRoots.every((path, index) => path === this.options.assetRoots[index]) &&
+      !planningFarmingAssetsAffected(this.assetChanges, this.options.project.projectPackage, assetRoots)
     );
   }
   private validateStateResource(state: JSONAsset): void {
@@ -98,7 +99,7 @@ export class PlanningFarmingRuntime {
         farmId: farm.farmId,
         ...planningFarmInitialization(state.data, farm.farmId, this.options.readInitializationRequest?.())
       },
-      this.resources.rules.data.simulationConfig
+      farmingRules(this.resources.rules).data.simulationConfig
     );
   }
   private clock?: PlanningFarmClock;
@@ -142,6 +143,7 @@ export class PlanningFarmingRuntime {
       isInputEnabled?: () => boolean;
       system: FarmingSystem;
       statePath: string;
+      assetRoots: readonly string[];
       camera: Camera;
       project: RuntimeProjectSession;
       water: PlanningWaterRuntime;
@@ -163,7 +165,7 @@ export class PlanningFarmingRuntime {
     if (!this.statePath) throw new Error("Farming state must be a registered project asset");
     this.stateResource = state;
     // Resolve the same overrides as FarmingService before acquiring project resources.
-    const { fieldCapacity } = resolveSimulationConfig(this.definitions.soilProfile, rules.data.simulationConfig).water;
+    const { fieldCapacity } = resolveSimulationConfig(this.definitions.soilProfile, farmingRules(rules).data.simulationConfig).water;
     this.waterSupply = new PlanningFarmWaterSupply({
       fieldCapacityUnits: fieldCapacity,
       parameters: {
@@ -196,6 +198,8 @@ export class PlanningFarmingRuntime {
         };
       });
       this.api = new FarmingAPI(this.system);
+      this.assetChanges.accept(options.project.projectPackage);
+      this.releaseAssetReads = options.project.observeAssetReads((file, content) => this.assetChanges.recordRead(file, content));
     } catch (error) {
       // A failed constructor cannot be disposed by its caller.
       const failures = [error];
@@ -498,7 +502,7 @@ export class PlanningFarmingRuntime {
             farm.farmId,
             this.definitions,
             undefined,
-            this.resources.rules.data.simulationConfig
+            farmingRules(this.resources.rules).data.simulationConfig
           );
       } catch (error) {
         if (resume || !canRecoverPlanningFarmSave(error)) throw error;
@@ -840,6 +844,7 @@ export class PlanningFarmingRuntime {
       this.visualOcclusion = undefined;
       this.controller?.abort();
       this.cleanupPending = [
+        () => this.releaseAssetReads(),
         () => this.interaction?.dispose(),
         () => this.activity.dispose(),
         () => this.waterSupply.dispose(),

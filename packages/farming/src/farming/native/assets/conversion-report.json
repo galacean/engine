@@ -1,0 +1,48 @@
+[
+  {
+    "source": "assets/sowing/seed-sack.glb",
+    "sha256": "ce1ad85e26c715a88cef0c431fd33890038e197371d6f742fa851c5b27c009a3",
+    "vertices": 561,
+    "indices": 2856,
+    "clips": []
+  },
+  {
+    "source": "assets/storage/cart.glb",
+    "sha256": "ef2df4e458933ea2cdc71be94e445c8167483969bf8d304691f843df9f894453",
+    "vertices": 9725,
+    "indices": 15867,
+    "clips": []
+  },
+  {
+    "source": "assets/storage/basket.glb",
+    "sha256": "8f5b162fae662d93c110fc1b0b89ce11c8816f4280c8fa524afe225849e3dcc3",
+    "vertices": 220,
+    "indices": 600,
+    "clips": []
+  },
+  {
+    "source": "assets/harvest/basket.glb",
+    "sha256": "4a67721681f4efc9a8d72807ea319861565514aa4ae1113a6b223a8871930c4d",
+    "vertices": 1106,
+    "indices": 5400,
+    "clips": []
+  },
+  {
+    "source": "assets/tilling/hoe.glb",
+    "sha256": "077dcce80d361b19d0623590ce1a93fdd43330789aa2c9ca2cb4e577897d1a73",
+    "vertices": 476,
+    "indices": 1860,
+    "clips": [
+      "Farming/Native/Tilling/hoe/Hoe_Till.ani"
+    ]
+  },
+  {
+    "source": "assets/tilling/rake.glb",
+    "sha256": "85f1096db1910b507d92127ee9d1041459e318719667c48827e8b2a0b90e0ef3",
+    "vertices": 1530,
+    "indices": 4992,
+    "clips": [
+      "Farming/Native/Tilling/rake/Rake_Level.ani"
+    ]
+  }
+]

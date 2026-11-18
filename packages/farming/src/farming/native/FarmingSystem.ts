@@ -1,6 +1,7 @@
+import { validateFarmingGrowthMultiplier, resolveSimulationConfig } from "../config/FarmingSimulationConfig";
 import { inspectFarmingAgronomy } from "../application/FarmingAgronomy";
 import type { FarmingAgronomyReport } from "../domain/FarmingAgronomy";
-import { FarmingCatalogResource, FarmingRulesResource, retainFarmingResource } from "./FarmingResources";
+import { farmingCatalog, farmingRules } from "./FarmingResources";
 import { Script, ignoreClone, type Scene, type JSONAsset } from "@galacean/engine-core";
 import { FarmingDebugMode } from "../application/FarmingDebugMode";
 import {
@@ -19,29 +20,57 @@ import {
 /** Scene-local registry. Host dependencies never enter serialized Component props. */
 export class FarmingSystem extends Script implements NativeFarmingOwner {
   /** Optional for standalone hosts; project-backed systems author these as virtual-path asset references. */
-  private _catalog: FarmingCatalogResource | null = null;
-  private _rules: FarmingRulesResource | null = null;
+  private _catalog: JSONAsset | null = null;
+  private _rules: JSONAsset | null = null;
   get catalog() {
     return this._catalog;
   }
-  set catalog(value: FarmingCatalogResource | null) {
+  set catalog(value: JSONAsset | null) {
     if (value === this._catalog) return;
-    if (value && (!(value instanceof FarmingCatalogResource) || value.engine !== this.engine || value.destroyed))
+    if (value && (value.engine !== this.engine || value.destroyed))
       throw new Error("Invalid farming catalog reference");
-    retainFarmingResource(value, 1);
-    retainFarmingResource(this._catalog, -1);
+    if (value) farmingCatalog(value);
     this._catalog = value;
   }
   get rules() {
     return this._rules;
   }
-  set rules(value: FarmingRulesResource | null) {
+  set rules(value: JSONAsset | null) {
     if (value === this._rules) return;
-    if (value && (!(value instanceof FarmingRulesResource) || value.engine !== this.engine || value.destroyed))
-      throw new Error("Invalid farming rules reference");
-    retainFarmingResource(value, 1);
-    retainFarmingResource(this._rules, -1);
+    if (value && (value.engine !== this.engine || value.destroyed)) throw new Error("Invalid farming rules reference");
+    if (value) farmingRules(value);
     this._rules = value;
+  }
+  private _cropGrowthMultiplier: number | null = null;
+  /** null inherits the shared rules; 0 pauses crop growth only, with soil/water simulation unchanged. */
+  get cropGrowthMultiplier(): number | null {
+    return this._cropGrowthMultiplier;
+  }
+  set cropGrowthMultiplier(value: number | null) {
+    validateFarmingGrowthMultiplier(value);
+    if (value === this._cropGrowthMultiplier) return;
+    this._cropGrowthMultiplier = value;
+    void this.synchronizeAuthoring().catch((error) => console.error("Farming growth synchronization failed", error));
+  }
+  private readonly _authoringErrors = new Map<string, string>();
+  /** Also flushes direct component assignments; every service owns its serial queue. */
+  async synchronizeAuthoring(): Promise<void> {
+    await Promise.all(this.areas.filter((area) => area.initialized).map((area) => this.synchronizeAreaAuthoring(area)));
+  }
+
+  /** Queue only this area's author settings, including while it is initializing. */
+  async synchronizeAreaAuthoring(area: FarmingAreaComponent): Promise<void> {
+    try {
+      const rules = farmingRules(area.configuration!.rules).data;
+      const cropGrowthMultiplier =
+        this.cropGrowthMultiplier ??
+        resolveSimulationConfig(rules.soilProfile, rules.simulationConfig).cropGrowthMultiplier;
+      await area.service.setGrowthMultipliers({ cropGrowthMultiplier });
+      this._authoringErrors.delete(area.farmId);
+    } catch (error) {
+      this._authoringErrors.set(area.farmId, String(error));
+      throw error;
+    }
   }
   state: JSONAsset | null = null;
   readonly debug = new FarmingDebugMode();
@@ -69,6 +98,12 @@ export class FarmingSystem extends Script implements NativeFarmingOwner {
           ? combinePresentation(spatial.presentation, area.presentationDiagnostic)
           : area.presentationDiagnostic
       };
+      const authoringError = this._authoringErrors.get(area.farmId);
+      if (authoringError)
+        record.runtime = combinePresentation(record.runtime, {
+          state: "failed",
+          issues: [{ code: "GROWTH_SYNC_FAILED", message: authoringError, source: "farming", target: area.farmId }]
+        });
       // A retained inactive area must not turn a failed new spatial publication into a ready farm.
       if (spatial && (spatial.placement.state !== "ready" || spatial.access.state !== "ready")) continue;
       if (index < 0) records.push(record);
@@ -113,6 +148,8 @@ export class FarmingSystem extends Script implements NativeFarmingOwner {
   private _registrationError?: Error;
   private _ownerScene?: Scene;
   assertScene(): void {
+    // Inactive loaded Scenes can be configured before Script.onAwake runs.
+    this._ownerScene ??= this.entity.scene ?? undefined;
     if (this._ownerScene && this.entity.scene !== this._ownerScene) {
       this._registrationError ??= new Error("CONFLICT: FarmingSystem 不能迁移 Scene，请在目标 Scene 创建新系统");
       void this.dispose();
@@ -187,7 +224,11 @@ export class FarmingSystem extends Script implements NativeFarmingOwner {
     if (this._areas.get(area.farmId) === area) this._areas.delete(area.farmId);
   }
   onAwake(): void {
-    this._ownerScene = this.entity.scene!;
+    try {
+      this.assertScene();
+    } catch {
+      return;
+    }
     const existing = this.currentOwner();
     if (existing && existing !== this) {
       this._registrationError = new Error("CONFLICT: 每个 Scene 只允许一个 FarmingSystem");
@@ -222,6 +263,7 @@ export class FarmingSystem extends Script implements NativeFarmingOwner {
     this._disposed = true;
     this.debug.dispose();
     this.diagnostics.clear();
+    this._authoringErrors.clear();
     if (this._ownerScene && nativeFarmingOwners.get(this._ownerScene) === this)
       nativeFarmingOwners.delete(this._ownerScene);
     this._disposeTask = Promise.all(areas.map((a) => a.dispose())).then(() => {
@@ -262,6 +304,7 @@ for (const key of [
   "debug",
   "diagnostics",
   "_areas",
+  "_authoringErrors",
   "_resolve",
   "_disposed",
   "_disposeTask",

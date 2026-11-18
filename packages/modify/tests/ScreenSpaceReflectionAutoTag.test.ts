@@ -10,6 +10,7 @@ import {
   ScreenSpaceReflectionActivationMode as Activation,
   ScreenSpaceReflectionReceiverMode as Receiver,
   ScreenSpaceReflectionReceiverPolicy as Policy,
+  SubShader,
   WebGLEngine
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
@@ -26,16 +27,20 @@ it("inherits Auto only with the active PBR SubShader opt-in", async () => {
     scene.screenSpaceReflection.apply({ activationMode: Activation.ForceOn, receiverPolicy: Policy.StandardPbrAuto });
     const camera = scene.createRootEntity().addComponent(Camera);
     camera.entity.transform.setPosition(0, 0, 5);
-    const renamed = Shader.create("Review/RenamedPBR", [...Shader.find("PBR")!.subShaders])!;
+    const pbr = Shader.find("PBR")!;
+    const renamed = Shader.create("Review/RenamedPBR", [...pbr.subShaders])!;
+    const explicitOnly = Shader.create("Review/ExplicitOnlyPBR", [
+      new SubShader("ExplicitOnly", [...pbr.subShaders[0].passes])
+    ])!;
     const plant = Shader.create(plantSource)!;
     const mesh = PrimitiveMesh.createCuboid(engine, 0.5, 0.5, 0.5);
     const renderers: MeshRenderer[] = [];
-    const materials = [Shader.find("PBR")!, renamed, plant].map((shader, index) => {
+    const materials = [pbr, renamed, explicitOnly, plant].map((shader, index) => {
       const material = new PBRMaterial(engine);
       material.shader = shader;
       material.roughness = 0.1;
       const renderer = scene.createRootEntity().addComponent(MeshRenderer);
-      renderer.entity.transform.setPosition(index - 1, 0, 0);
+      renderer.entity.transform.setPosition(index - 1.5, 0, 0);
       renderer.mesh = mesh;
       renderer.setMaterial(material);
       renderers.push(renderer);
@@ -56,6 +61,8 @@ it("inherits Auto only with the active PBR SubShader opt-in", async () => {
     expect(initialized.shaderData.getFloat("material_ScreenSpaceReflectionMode")).toBe(Receiver.Auto);
     expect(SSR.supportsMaterialTransparentSampling(materials[1])).toBe(false);
     expect(SSR.setMaterialReceiver(materials[2], Receiver.OpaqueComposite)).toBe(true);
+    expect(SSR.getMaterialReceiverCapability(materials[3]).supported).toBe(false);
+    expect(SSR.setMaterialReceiver(materials[3], Receiver.OpaqueComposite)).toBe(false);
     engine.update();
     expect(camera.screenSpaceReflection.metrics.opaqueReceiverElementCount).toBe(3);
   } finally {

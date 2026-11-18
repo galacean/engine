@@ -108,7 +108,7 @@ export interface FarmingServiceOptions {
   readonly checkpointIntervalMs?: number;
 }
 
-export type FarmingServiceErrorOperation = "checkpoint" | "clock" | "refresh" | "listener";
+export type FarmingServiceErrorOperation = "checkpoint" | "clock" | "refresh" | "listener" | "growth";
 
 export interface FarmingServiceError {
   readonly operation: FarmingServiceErrorOperation;
@@ -292,7 +292,6 @@ export class FarmingService {
             changes: [...settled.changes, ...refreshed.changes]
           };
           const changed =
-            validated !== current ||
             settled.elapsedSystemTimeMs > 0 ||
             settled.changes.length > 0 ||
             refreshed.changes.length > 0 ||
@@ -748,6 +747,11 @@ export class FarmingService {
   setGrowthMultipliers(values: Partial<Pick<FarmingSimulationConfig, "cropGrowthMultiplier">>): Promise<void> {
     const requested = { ...values };
     const task = this.queue.then(async () => {
+      if (
+        requested.cropGrowthMultiplier === undefined ||
+        requested.cropGrowthMultiplier === this.simulationConfig.cropGrowthMultiplier
+      )
+        return;
       const next = Object.freeze({ ...this.simulationConfig, ...requested });
       validateSimulationConfig(next, this.grid.cellSize);
       await this.checkpointNow(this.clock.nowMs());
@@ -755,7 +759,7 @@ export class FarmingService {
       this.statusSnapshot = null;
       this.publish({ snapshot: this.getSnapshot(), changes: [], source: "local" });
     });
-    this.queue = task.catch(() => undefined);
+    this.queue = task.catch((error) => this.reportError("growth", error));
     return task;
   }
 

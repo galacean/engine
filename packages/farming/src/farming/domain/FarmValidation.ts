@@ -15,7 +15,6 @@ import type { FarmSnapshot } from "./FarmState";
 import { FARM_SNAPSHOT_SCHEMA_VERSION } from "./FarmState";
 import { FarmSnapshotCompatibilityError } from "./FarmSnapshotCompatibilityError";
 import { validateFarmItems } from "./rules/FarmItemRules";
-import { removeRetiredFarmItems } from "./RetiredFarmItems";
 import { validateStorage, validateStorageDefinitions } from "../storage/StorageRules";
 import { getCrop } from "./rules/CropGrowthRules";
 import {
@@ -42,6 +41,7 @@ export function validateFarmingRules(
   if (typeof definitions.actionPolicy?.allowIrrigateEmptyPlot !== "boolean")
     throw new Error("Invalid farming action policy.");
   const soil = definitions.soilProfile;
+  if ("initialFertilityUnits" in soil) throw new Error("Unsupported soil profile field: initialFertilityUnits");
   requireStableId(soil.id, "soil profile");
   requirePositiveInteger(soil.version, "Soil profile version");
   for (const [name, value, minimum] of [
@@ -337,7 +337,7 @@ export function validateReceipts(snapshot: FarmSnapshot): void {
         binding.command.commandId !== receipt.commandId ||
         commandSignature(binding.command) !== receipt.signature
       )
-        throw new Error(`Invalid command receipt binding: ${receipt.commandId}`);
+        throw new FarmSnapshotCompatibilityError(`Invalid command receipt binding: ${receipt.commandId}`);
     }
     for (const change of receipt.changes) {
       if (!isRecord(change) || typeof change.kind !== "string")
@@ -347,13 +347,12 @@ export function validateReceipts(snapshot: FarmSnapshot): void {
   }
 }
 
-/** Normalize and validate saved state once; callers persisting it must use the returned snapshot. */
+/** Validate saved state without modifying it. */
 export function validateConfiguredFarmSnapshot(
   snapshot: FarmSnapshot,
   expected: Parameters<typeof validateFarmSnapshot>[1],
   config: FarmingSimulationConfig
 ): FarmSnapshot {
-  snapshot = removeRetiredFarmItems(snapshot);
   // Check the resource signature before resource-dependent bounds can mistake a
   // configuration edit for corrupt soil/clock data. Old schemas retain recovery.
   if (

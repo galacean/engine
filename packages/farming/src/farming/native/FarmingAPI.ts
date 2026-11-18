@@ -17,7 +17,7 @@ import type { CoordinatedFarmingAction } from "../application/FarmingActionCoord
 import { cancellable, stableRequest } from "../application/FarmingActionCoordinator";
 import { boundAttempt, type FarmingWriteInput } from "../application/FarmingCommandBinding";
 import { FarmingInitializationError } from "../application/FarmingInitializationError";
-import { farmingDefinitions } from "./FarmingResources";
+import { farmingDefinitions, farmingCatalog, farmingRules } from "./FarmingResources";
 import type { FarmingAreaComponent } from "./FarmingAreaComponent";
 import type { FarmingSystem } from "./FarmingSystem";
 import {
@@ -411,7 +411,7 @@ function describe(area: FarmingAreaComponent): FarmingAreaInfo {
     groundRevision: area.initialized ? area.service.getGroundRevision() : null,
     plotCount: snapshot?.plots.length ?? config.plots?.length ?? 0,
     cropCount: Object.keys(snapshot?.crops ?? {}).length,
-    resources: { catalog: config.catalog.contentHash, rules: config.rules.contentHash },
+    resources: { catalog: farmingCatalog(config.catalog).contentHash, rules: farmingRules(config.rules).contentHash },
     error: area.lastError ?? null
   };
 }

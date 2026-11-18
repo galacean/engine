@@ -1,9 +1,9 @@
-import { Material, MeshRenderer, PBRMaterial, Shader } from "@galacean/engine";
+import { Material, MeshRenderer, Shader } from "@galacean/engine";
 import { Vector4 } from "@galacean/engine-math";
 import { FARM_ITEM_HIGHLIGHT_SHADER } from "./FarmItemHighlightShader";
 
 interface SharedHighlight {
-  material: PBRMaterial;
+  material: Material;
   users: number;
 }
 const shared = new WeakMap<Material, SharedHighlight>();
@@ -36,13 +36,14 @@ export class FarmItemHighlight {
       if (renderer.entity.name === "SeedSackLabel") continue;
       const original = [...renderer.getMaterials()];
       const highlighted = original.map((source) => {
-        if (!(source instanceof PBRMaterial)) return source;
+        if (!source || source.shader.name !== "PBR") return source;
         let entry = this.leases.get(source);
         if (!entry) {
           entry = shared.get(source);
           if (!entry) {
             const shader = Shader.find("Farming/ItemRimLight") ?? Shader.create(FARM_ITEM_HIGHLIGHT_SHADER);
             const material = source.clone();
+            material.isGCIgnored = true;
             material.shader = shader;
             entry = { material, users: 0 };
             shared.set(source, entry);

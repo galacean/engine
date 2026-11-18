@@ -11,15 +11,29 @@ interface PrimitiveGeometry {
   revealRange?: readonly [minimum: number, height: number];
 }
 let templates: ReadonlyMap<string, PrimitiveGeometry> | undefined;
+const PRODUCE_SPHERE_SUBDIVISION_LEVEL = 1;
+const PRODUCE_CONE_RADIAL_SEGMENTS = 6;
 
 /** CPU-only templates survive engine changes; no cached Entity, Material or GPU allocation. */
 function produceTemplates(engine: Engine): ReadonlyMap<string, PrimitiveGeometry> {
   if (templates) return templates;
   const meshes = new Map<string, ModelMesh>();
   try {
-    meshes.set("sphere", PrimitiveMesh.createSphere(engine, 0.5, 6, false));
-    meshes.set("cone", PrimitiveMesh.createCone(engine, 0.5, 1, 6, 1, false));
-    meshes.set("straw", PrimitiveMesh.createCuboid(engine, 1, 1, 1, false));
+    meshes.set(
+      "sphere",
+      PrimitiveMesh.createSphere(engine, 0.5, {
+        subdivisionLevel: PRODUCE_SPHERE_SUBDIVISION_LEVEL,
+        keepMeshData: true
+      })
+    );
+    meshes.set(
+      "cone",
+      PrimitiveMesh.createCone(engine, 0.5, 1, {
+        radialSegments: PRODUCE_CONE_RADIAL_SEGMENTS,
+        keepMeshData: true
+      })
+    );
+    meshes.set("straw", PrimitiveMesh.createCuboid(engine, 1, 1, 1, { keepMeshData: true }));
     const grain = new ModelMesh(engine, "Produce grain template");
     meshes.set("grain", grain);
     const points = [

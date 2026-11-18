@@ -3,6 +3,15 @@ export const FARMING_SIMULATION_RULES_VERSION = 6;
 
 export const MAX_GROWTH_MULTIPLIER = 100;
 
+/** Shared component and domain boundary; null means inherit the configured rules. */
+export function validateFarmingGrowthMultiplier(value: unknown): asserts value is number | null {
+  if (
+    value !== null &&
+    (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > MAX_GROWTH_MULTIPLIER)
+  )
+    throw new Error(`Growth multiplier must be null or between 0 and ${MAX_GROWTH_MULTIPLIER}`);
+}
+
 /** Engine-free gameplay defaults. Rates use simulation time, never render frame time. */
 export const FARMING_SIMULATION_CONFIG = Object.freeze({
   /** Positive whole seconds in ms. Larger steps reduce work but require slower diffusion. */
@@ -85,12 +94,8 @@ export function resolveSimulationConfig(
 /** Intrinsic rules can be validated before a farm grid exists. */
 export function validateSimulationParameters(config: FarmingSimulationConfig): void {
   validateSimulationKeys(config);
-  if (
-    !Number.isFinite(config.cropGrowthMultiplier) ||
-    config.cropGrowthMultiplier < 0 ||
-    config.cropGrowthMultiplier > MAX_GROWTH_MULTIPLIER
-  )
-    throw new Error(`Growth multipliers must be between 0 and ${MAX_GROWTH_MULTIPLIER}.`);
+  if (typeof config.cropGrowthMultiplier !== "number") throw new Error("Resolved growth multiplier must be a number");
+  validateFarmingGrowthMultiplier(config.cropGrowthMultiplier);
   const w = config.water;
   if (
     !Number.isSafeInteger(config.stepMs) ||
