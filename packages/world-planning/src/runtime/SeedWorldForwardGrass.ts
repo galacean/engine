@@ -27,6 +27,10 @@ import {
   Vector3,
   Vector4
 } from "@galacean/engine";
+import {
+  SeedWorldArrayPickBatch,
+  type SeedWorldPickVisitor
+} from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
 import { GRASS_AUTHORED_HEIGHT_METRES } from "../world/SeedWorldAssetPlacementProfile.ts";
 import {
   createSeedWorldDetailDensitySamplerInto,
@@ -398,6 +402,7 @@ interface ForwardGrassRingState {
   readonly config: ForwardGrassRingConfig;
   readonly entity: Entity;
   readonly renderer: MeshRenderer;
+  readonly pickBatch: SeedWorldArrayPickBatch;
   readonly ringMesh: SeedWorldForwardGrassRingMesh;
   readonly simulator: TransformFeedbackSimulator;
   readonly shaderData: ShaderData;
@@ -541,6 +546,9 @@ export class SeedWorldForwardGrass {
       renderer.setMaterial(material);
       configureRenderer(renderer);
       renderer.enabled = false;
+      const pickBatch = new SeedWorldArrayPickBatch(renderer);
+      pickBatch.count = 1;
+      pickBatch.interactionOccluder = false;
 
       const uniformValues = new Float32Array(32);
       const shaderData = new RendererShaderData(ShaderDataGroup.Renderer);
@@ -553,6 +561,7 @@ export class SeedWorldForwardGrass {
         config,
         entity,
         renderer,
+        pickBatch,
         ringMesh,
         simulator,
         shaderData,
@@ -575,6 +584,15 @@ export class SeedWorldForwardGrass {
 
   visitRenderers(visitor: (renderer: MeshRenderer) => void): void {
     for (const ring of this._rings) visitor(ring.renderer);
+  }
+
+  /** One grassland identity per submitted draw, using the same GPU instances as the color pass. */
+  visitPickBatches(visitor: SeedWorldPickVisitor, grasslandId?: string): void {
+    for (const { renderer, ringMesh, pickBatch } of this._rings) {
+      if (!renderer.enabled || !renderer.entity.isActiveInHierarchy || ringMesh.mesh.instanceCount === 0) continue;
+      pickBatch.id = grasslandId;
+      visitor(pickBatch);
+    }
   }
 
   invalidateMask(): void {

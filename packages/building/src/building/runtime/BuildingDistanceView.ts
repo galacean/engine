@@ -503,24 +503,14 @@ export async function createBuildingDistanceView(
         else farProxy?.setLodDebugColor(0, 0, 0, 0);
       },
       visitPickBatches(visitor: SeedWorldPickVisitor) {
-        if (visualVisible && resources.root.isActiveInHierarchy) {
-          const prevVisual = visualRoot.isActive;
-          const prevFar = farProxy?.root.isActive ?? false;
-          if (!prevVisual) {
-            visualRoot.isActive = true;
-            if (farProxy) farProxy.root.isActive = false;
-          }
-          try {
-            for (const b of batches) if (b.renderer.enabled && b.renderer.entity.isActiveInHierarchy) visitor(b);
-            for (const b of nativeDecorationPicks)
-              if (b.renderer.enabled && b.renderer.entity.isActiveInHierarchy) visitor(b);
-          } finally {
-            if (!prevVisual) {
-              visualRoot.isActive = prevVisual;
-              if (farProxy) farProxy.root.isActive = prevFar;
-            }
-          }
+        if (farProxy?.root.isActiveInHierarchy && farProxy.renderer.enabled) {
+          visitor(farProxy.pickBatch);
+          return;
         }
+        if (!visualRoot.isActiveInHierarchy) return;
+        for (const b of batches) if (b.renderer.enabled && b.renderer.entity.isActiveInHierarchy) visitor(b);
+        for (const b of nativeDecorationPicks)
+          if (b.renderer.enabled && b.renderer.entity.isActiveInHierarchy) visitor(b);
       },
       destroy: disposeView
     };

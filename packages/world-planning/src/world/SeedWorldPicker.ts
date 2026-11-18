@@ -414,6 +414,10 @@ export class SeedWorldPicker {
           const ranges = this.bindings.slice(0, this.bindingCount).map(({ base, batch }) => {
             const ref = { ...resolveRef(batch!) },
               instanced = !!batch!.instanced || batch!.count > 1;
+            if (!instanced) {
+              const key = batch!.resolve(0);
+              if (key !== undefined) ref.instanceKey = key;
+            }
             return {
               base,
               count: batch!.count,

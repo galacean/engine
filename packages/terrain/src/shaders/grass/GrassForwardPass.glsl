@@ -39,6 +39,7 @@ struct Attributes {
 
 #ifdef RENDERER_WORLD_PICK
   float renderer_WorldPickBase;
+  float renderer_WorldPickInstanced;
 #endif
 // Compact instance data describes geometry. An explicit mode can opt out of the legacy ground path.
 #if defined(TERRAIN_PROJECT_GROUND_MATERIAL_BINDING) || (defined(RENDERER_SEED_WORLD_DETAIL_COMPACT) && !defined(RENDERER_SURFACE_GRASS_ATTACHMENT) && (!defined(RENDERER_GRASS_MATCH_GROUND) || RENDERER_GRASS_MATCH_GROUND == 1))
@@ -176,7 +177,7 @@ vec3 grassWindPosition(
 Varyings GrassVertex(Attributes attributes) {
   Varyings output;
   #ifdef RENDERER_WORLD_PICK
-    output.worldPickId = renderer_WorldPickBase + float(gl_InstanceID);
+    output.worldPickId = renderer_WorldPickBase + float(gl_InstanceID) * renderer_WorldPickInstanced;
   #endif
   #ifdef MATERIAL_GRASS_GROUND_SURFACE
     // A ground surface shares the grass palette and lighting, but has no blade deformation or distance collapse.

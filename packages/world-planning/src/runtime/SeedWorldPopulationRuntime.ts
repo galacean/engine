@@ -1262,12 +1262,13 @@ export class SeedWorldPopulationRuntime {
     this._pickVisitor!(descriptor);
   }
   /** Borrow current camera descriptors synchronously; identities change when visibility is repacked. */
-  visitPickBatches(visitor: SeedWorldPickVisitor, detailIdentity?: DetailPickIdentity): void {
+  visitPickBatches(visitor: SeedWorldPickVisitor, detailIdentity?: DetailPickIdentity, grasslandId?: string): void {
     this._pickVisitor = visitor;
     this._detailIdentity = detailIdentity;
     try {
       this._treeRenderer.visitPickBatches(this._visitSparsePickBound);
       this._shrubRenderer.visitPickBatches(this._visitSparsePickBound);
+      this._forwardGrass?.visitPickBatches(visitor, grasslandId);
       const cells = this._detailCells.cells;
       for (let i = 0; i < cells.length; i++) cells[i]!.resource.detailBatches.forEach(this._visitDetailCategoryBound);
       for (let i = 0; i < this._rockSurfaceGrassBatches.length; i++)

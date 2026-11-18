@@ -823,20 +823,17 @@ export class FiniteOceanSurfaceGeometry {
     return true;
   }
 
-  /** True when at least one Ocean surface chunk intersects the current source-Camera frustum. */
+  /** Queries reflection demand without changing scene visibility for other cameras. */
   hasCameraVisibleChunk(provider: WaterCameraVisibilityProvider): boolean {
-    const chunks = this._chunks;
-    let anyVisible = false;
-    for (let index = 0; index < chunks.length; index++) {
-      const renderer = chunks[index]!.renderer;
-      if (!renderer.entity.isActiveInHierarchy) continue;
-      const visible = provider.isVisible(renderer.bounds, renderer.entity.layer);
-      renderer.enabled = visible;
-      if (visible) {
-        anyVisible = true;
-      }
+    for (const { renderer } of this._chunks) {
+      if (
+        renderer.enabled &&
+        renderer.entity.isActiveInHierarchy &&
+        provider.isVisible(renderer.bounds, renderer.entity.layer)
+      )
+        return true;
     }
-    return anyVisible;
+    return false;
   }
 
   /** Moves the complete immutable topology; neither the near nor far Mesh uploads again. */

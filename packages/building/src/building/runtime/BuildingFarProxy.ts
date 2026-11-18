@@ -4,6 +4,7 @@ import {
   BufferBindFlag,
   BufferMesh,
   BufferUsage,
+  CompareFunction,
   type Engine,
   type Entity,
   IndexBufferBinding,
@@ -29,6 +30,9 @@ import { DecorationMaterial } from "./ConstructionDecorationMaterial";
 import type { ConstructionDecorationPart } from "./ConstructionDecorations";
 import type { BuildingPaletteSlot } from "./BuildingGlobals";
 import { masonryAppearance, srgbToLinear } from "./MasonryAppearance";
+import { buildingGroupKey, buildingPartKey } from "./BuildingObjectIdentity";
+import type { SeedWorldPickBatch } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+import { restoreBuffer } from "@galacean/engine-modify/rendering/RestorableResources";
 
 const FAR_PROXY_STRIDE_FLOATS = 16;
 const FAR_PROXY_STRIDE_BYTES = FAR_PROXY_STRIDE_FLOATS * Float32Array.BYTES_PER_ELEMENT;
@@ -48,7 +52,8 @@ const FAR_PROXY_VERTEX_ELEMENTS: VertexElement[] = [
   new VertexElement("NORMAL", 12, VertexElementFormat.Vector3, 0),
   new VertexElement("COLOR_0", 24, VertexElementFormat.Vector4, 0),
   new VertexElement("TEXCOORD_0", 40, VertexElementFormat.Vector2, 0),
-  new VertexElement("TANGENT", 48, VertexElementFormat.Vector4, 0)
+  new VertexElement("TANGENT", 48, VertexElementFormat.Vector4, 0),
+  new VertexElement("TEXCOORD_1", 0, VertexElementFormat.Float, 1)
 ];
 
 const SHARED_MATERIALS = new WeakMap<Engine, Material>();
@@ -65,6 +70,7 @@ function getSharedFarProxyMaterial(engine: Engine): Material {
     }
     const shader = Shader.find("Masonry/FarProxy") ?? Shader.create(farProxyShaderSource, ShaderLanguage.GLSLES300);
     material = new Material(engine, shader);
+    material.shaderData.setFloat("material_WorldPickDepthCompare", CompareFunction.Less);
     SHARED_MATERIALS.set(engine, material);
   }
   return material;
@@ -217,6 +223,7 @@ function writeFarProxyColors(
 export interface BuildingFarProxyHandle {
   readonly root: Entity;
   readonly renderer: MeshRenderer;
+  readonly pickBatch: SeedWorldPickBatch;
   refreshColors(): void;
   setFade(fade: number): void;
   setLodDebugColor(r: number, g: number, b: number, a: number): void;
@@ -259,6 +266,9 @@ export function createBuildingFarProxy(
 
   const ownerById = new Map(colorOwners.map((owner) => [owner.id, owner] as const));
   const vertices = new Float32Array(totalVertices * FAR_PROXY_STRIDE_FLOATS);
+  const vertexPickIds = new Float32Array(totalVertices);
+  const pickIds: string[] = [];
+  const pickIndexById = new Map<string, number>();
   const useUInt32 = totalVertices > 0xffff;
   const indices = useUInt32 ? new Uint32Array(totalIndices) : new Uint16Array(totalIndices);
 
@@ -274,6 +284,7 @@ export function createBuildingFarProxy(
   let indexOffset = 0;
 
   const appendGeometry = (
+    pickId: string,
     positions: readonly number[],
     sourceNormals: readonly number[] | undefined,
     partIndices: readonly number[],
@@ -283,6 +294,13 @@ export function createBuildingFarProxy(
     readSurfaceTag: (index: number) => readonly [number, number, number, number]
   ) => {
     const count = positions.length / 3;
+    let pickIndex = pickIndexById.get(pickId);
+    if (pickIndex === undefined) {
+      pickIndex = pickIds.length;
+      pickIds.push(pickId);
+      pickIndexById.set(pickId, pickIndex);
+    }
+    vertexPickIds.fill(pickIndex, vertexBase, vertexBase + count);
     const normals =
       sourceNormals?.length === positions.length ? sourceNormals : computeGeometricNormals(positions, partIndices);
     for (let i = 0; i < count; i++) {
@@ -333,6 +351,7 @@ export function createBuildingFarProxy(
     const plaster = p.plaster;
     const isUnit = p.placement === "unit" ? 1 : 0;
     appendGeometry(
+      p.pickId === undefined ? buildingGroupKey(p.owner) : buildingPartKey(p.pickId),
       p.positions,
       p.normals,
       p.indices,
@@ -348,6 +367,7 @@ export function createBuildingFarProxy(
     const uvs = dp.uvs ?? dp.appearance?.materialUVs;
     const appKinds = dp.appearance?.kinds;
     appendGeometry(
+      dp.decorationId === undefined ? buildingGroupKey(dp.ownerId) : buildingPartKey(dp.decorationId),
       dp.positions,
       dp.normals,
       dp.indices,
@@ -368,9 +388,14 @@ export function createBuildingFarProxy(
   writeFarProxyColors(includedParts, includedDecorations, ownerById, appearance, vertices);
 
   const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static);
+  const pickBuffer = restoreBuffer(
+    new Buffer(engine, BufferBindFlag.VertexBuffer, vertexPickIds, BufferUsage.Static),
+    vertexPickIds
+  );
   const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, indices, BufferUsage.Static);
   const mesh = new BufferMesh(engine, "MasonryFarProxyMesh");
   mesh.setVertexBufferBinding(vertexBuffer, FAR_PROXY_STRIDE_BYTES, 0);
+  mesh.setVertexBufferBinding(pickBuffer, Float32Array.BYTES_PER_ELEMENT, 1);
   mesh.setVertexElements(FAR_PROXY_VERTEX_ELEMENTS);
   mesh.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, useUInt32 ? IndexFormat.UInt32 : IndexFormat.UInt16));
   mesh.addSubMesh(0, totalIndices, MeshTopology.Triangles);
@@ -392,6 +417,7 @@ export function createBuildingFarProxy(
   return {
     root,
     renderer,
+    pickBatch: { renderer, count: pickIds.length, resolve: (index) => pickIds[index] },
     refreshColors() {
       writeFarProxyColors(includedParts, includedDecorations, ownerById, appearance, vertices);
       vertexBuffer.setData(vertices);
@@ -407,6 +433,7 @@ export function createBuildingFarProxy(
       const release = () => {
         mesh.destroy();
         vertexBuffer.destroy(true);
+        pickBuffer.destroy(true);
         indexBuffer.destroy(true);
       };
       if (!root.destroyed) root.destroy();

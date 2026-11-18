@@ -176,7 +176,7 @@ class PlanningPickTraversal {
   visit(water: PlanningWaterRuntime, visitor: SeedWorldPickVisitor): void {
     this.visitor = visitor;
     try {
-      this.scene.world.visitPickBatches(visitor, resolveDetailIdentity);
+      this.scene.world.visitPickBatches(visitor, resolveDetailIdentity, PLANNING_GRASSLAND_ID);
       this.scene.vegetation?.visitPickBatches(visitor);
       this.scene.solids.visitPickBatches(visitor);
       this.scene.masonry?.visitPickBatches(visitor);

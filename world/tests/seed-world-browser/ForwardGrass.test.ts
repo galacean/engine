@@ -14,6 +14,7 @@ import {
   type ForwardGrassUpdateParams
 } from "../../../packages/world-planning/src/runtime/SeedWorldForwardGrass";
 import type { SeedWorldFields } from "../../../packages/world-planning/src/runtime/SeedWorldFields";
+import type { SeedWorldPickBatch } from "../../../packages/modify/src/rendering/SeedWorldPickBatch";
 
 it("preserves visible grass across pitch, visibility and orthographic size changes on the GPU", async () => {
   const canvas = document.createElement("canvas");
@@ -105,6 +106,13 @@ it("preserves visible grass across pitch, visibility and orthographic size chang
     };
     const initialOutputs = renderers.map((r) => (r.mesh as BufferMesh).vertexBufferBindings.at(-1)!);
     grass.update(params);
+    const pickBatches: SeedWorldPickBatch[] = [];
+    grass.visitPickBatches((batch) => pickBatches.push(batch), "test-grassland");
+    expect(pickBatches.map((batch) => batch.renderer)).toEqual(renderers.filter((renderer) => renderer.enabled));
+    expect(
+      pickBatches.every((batch) => batch.count === 1 && !batch.instanced && batch.interactionOccluder === false)
+    ).toBe(true);
+    expect(pickBatches.map((batch) => batch.resolve(0))).toEqual(pickBatches.map(() => "test-grassland"));
     // A coarse tile can contain rejected groups. Only submitted cells require feedback storage.
     for (let i = 0; i < renderers.length; i++) {
       const mesh = renderers[i]!.mesh as BufferMesh;
@@ -245,6 +253,9 @@ it("preserves visible grass across pitch, visibility and orthographic size chang
     grass.update({ ...narrow, active: false });
     grass.update(narrow);
     expect(renderers.map((r) => r.enabled)).toEqual([true, false, false]);
+    const visiblePicks: SeedWorldPickBatch[] = [];
+    grass.visitPickBatches((batch) => visiblePicks.push(batch), "test-grassland");
+    expect(visiblePicks).toEqual(pickBatches.slice(0, 1));
     expect(canvas.getContext("webgl2")!.getError()).toBe(0);
     const meshes = renderers.map((r) => r.mesh as BufferMesh);
     const previousOutputs = meshes.map((mesh) => mesh.vertexBufferBindings.at(-1)!.buffer);

@@ -9,6 +9,13 @@ const terrain = JSON.parse(
   )
 );
 const forward = terrain.subShaders[0].passes.find((pass) => pass.name === "Forward");
+const grass = JSON.parse(
+  fs.readFileSync(
+    new URL("../../../packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc", import.meta.url),
+    "utf8"
+  )
+);
+const grassForward = grass.subShaders[0].passes.find((pass) => pass.name === "Forward");
 
 describe("Terrain near/far production shader variants", () => {
   it("keeps per-pixel baked slopes on distant sand without sampling the micro normal", () => {
@@ -134,13 +141,6 @@ describe("Terrain near/far production shader variants", () => {
     expect(pick).not.toContain("sampleTerrainProjectGroundShadowMap");
     expect(pick).not.toContain("terrainProjectGroundShadowGradient");
 
-    const grass = JSON.parse(
-      fs.readFileSync(
-        new URL("../../../packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc", import.meta.url),
-        "utf8"
-      )
-    );
-    const grassForward = grass.subShaders[0].passes.find((pass) => pass.name === "Forward");
     const grassMacros = new Map([
       ["GRAPHICS_API_WEBGL2", ""],
       ["SCENE_DIRECT_LIGHT_COUNT", "1"],
@@ -159,5 +159,16 @@ describe("Terrain near/far production shader variants", () => {
     grassMacros.set("RENDERER_WORLD_PICK", "");
     const grassGroundPick = ShaderMacroProcessor.evaluate(grassForward.fragmentShaderInstructions, grassMacros);
     expect(grassGroundPick).not.toContain("sampleTerrainProjectGroundShadowMap");
+  });
+
+  it("keeps the precompiled grass pick ID controlled by the draw's instancing flag", () => {
+    const macros = new Map([
+      ["GRAPHICS_API_WEBGL2", ""],
+      ["RENDERER_SEED_WORLD_DETAIL_COMPACT", ""],
+      ["RENDERER_WORLD_PICK", ""]
+    ]);
+    const source = ShaderMacroProcessor.evaluate(grassForward.vertexShaderInstructions, macros);
+    expect(source).toContain("uniform float renderer_WorldPickInstanced;");
+    expect(source).toMatch(/gl_InstanceID\s*\)\s*\*\s*renderer_WorldPickInstanced/);
   });
 });

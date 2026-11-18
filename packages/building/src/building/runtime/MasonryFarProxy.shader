@@ -39,17 +39,25 @@ Shader "Masonry/FarProxy" {
   Pass "Forward" {
    Tags { pipelineStage = "Forward" }
    RasterState = { CullMode = CullMode.Off; }
+   CompareFunction material_WorldPickDepthCompare;
+   DepthState = { WriteEnabled = true; CompareFunction = material_WorldPickDepthCompare; }
    #include "ShaderLibrary/Common/Attributes.glsl"
    #include "Masonry/LodDither.glsl"
    #include "Masonry/Plaster.glsl"
    #include "Masonry/SceneLighting.glsl"
    vec4 renderer_MasonryLodDebugColor;
+   #ifdef RENDERER_WORLD_PICK
+     float renderer_WorldPickBase;
+   #endif
    struct MasonryFarProxyVaryings {
      vec3 positionWS;
      vec3 normalWS;
      vec4 color;
      vec2 uv;
      vec4 surfaceTag;
+     #ifdef RENDERER_WORLD_PICK
+       float worldPickOffset;
+     #endif
    };
    float masonryFarHash12(vec2 p) {
      vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -90,12 +98,23 @@ Shader "Masonry/FarProxy" {
      #else
        v.surfaceTag = vec4(0.0);
      #endif
+     #ifdef RENDERER_WORLD_PICK
+       v.worldPickOffset = a.TEXCOORD_1.x;
+     #endif
      gl_Position = camera_VPMat * worldPos;
      return v;
    }
    void MasonryFarProxyFragment(MasonryFarProxyVaryings v) {
      masonryLodDither();
      float kind = v.surfaceTag.x;
+     #ifdef RENDERER_WORLD_PICK
+       if (kind > 2.5 && kind < 3.5 && plasterSurface(v.uv, v.surfaceTag.y, v.surfaceTag.z, v.surfaceTag.w).x < 0.5) discard;
+       float id = floor(renderer_WorldPickBase + v.worldPickOffset + 0.5);
+       #ifdef RENDERER_WORLD_PICK_DEPTH
+         id = floor(gl_FragCoord.z * 16777215.0 + 0.5);
+       #endif
+       gl_FragColor = vec4(mod(id, 256.0), mod(floor(id / 256.0), 256.0), floor(id / 65536.0), 255.0) / 255.0;
+     #else
      vec3 albedo = v.color.rgb;
      float roughness = 0.9;
      if (kind > 2.5 && kind < 3.5) {
@@ -125,6 +144,7 @@ Shader "Masonry/FarProxy" {
        outRgb = mix(outRgb, renderer_MasonryLodDebugColor.rgb, renderer_MasonryLodDebugColor.a);
      }
      gl_FragColor = vec4(outRgb, 1.0);
+     #endif
    }
   }
  }

@@ -440,7 +440,6 @@ export class TerrainClipmap {
     this._patchRegionHeightPyramid(patch);
     this._heightFrameRegions.delete(patch.regionId);
     this._synchronizeHeightBounds();
-    if (!this._heightFrameBounds) this._updateAllSegmentVerticalBounds();
   }
 
   /**
@@ -467,7 +466,10 @@ export class TerrainClipmap {
   }
 
   private _synchronizeHeightBounds(): void {
-    if (!this._heightFrameBounds) return;
+    if (!this._heightFrameBounds) {
+      this._updateAllSegmentVerticalBounds();
+      return;
+    }
     if (!this._heightFrameRegions.size) {
       restoreVerticalBounds(this._heightFrameBounds);
       this._heightFrameBounds = undefined;
@@ -510,7 +512,6 @@ export class TerrainClipmap {
       this._heightFrameRegions.delete(patch.regionId);
     }
     this._synchronizeHeightBounds();
-    if (!this._heightFrameBounds) this._updateAllSegmentVerticalBounds();
   }
 
   /**
