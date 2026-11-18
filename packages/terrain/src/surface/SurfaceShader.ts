@@ -18,12 +18,23 @@ import lodDitherSource from "../shaders/shared/LodDither.glsl?raw";
 import lightingSource from "../shaders/shared/Lighting.glsl?raw";
 import shadowSource from "../shaders/shared/Shadow.glsl?raw";
 import entranceWaveSource from "../shaders/shared/EntranceWave.glsl?raw";
+import terrainSurfaceDataSource from "../shaders/shared/TerrainSurfaceData.glsl?raw";
+
+/** Registers the shared Terrain surface and lighting functions for runtime shaders. */
+export function registerTerrainLightingIncludes(): void {
+  registerIncludes({
+    "shared/Lighting.glsl": lightingSource,
+    "shared/Shadow.glsl": shadowSource,
+    "shared/TerrainSurfaceData.glsl": terrainSurfaceDataSource
+  });
+}
 
 /** Registers the common surface shader and its shared include dependencies.
  * @returns The engine-wide Surface shader definition.
  */
 export function registerSurfaceShader(): Shader {
-  const includes: Record<string, string> = {
+  registerTerrainLightingIncludes();
+  registerIncludes({
     "shared/AssetAssemblyAttributes.glsl": assetAssemblyAttributesSource,
     "shared/AssetAssemblyInstancing.glsl": assetAssemblyInstancingSource,
     "shared/Instancing.glsl": instancingSource,
@@ -39,12 +50,13 @@ export function registerSurfaceShader(): Shader {
     "shared/GrassColorField.glsl": grassColorFieldSource,
     "shared/GrassSurfaceField.glsl": grassSurfaceFieldSource,
     "shared/LodDither.glsl": lodDitherSource,
-    "shared/Lighting.glsl": lightingSource,
-    "shared/Shadow.glsl": shadowSource,
     "shared/EntranceWave.glsl": entranceWaveSource
-  };
+  });
+  return Shader.find("Terrain/Surface") ?? Shader.create(source);
+}
+
+function registerIncludes(includes: Record<string, string>): void {
   for (const [name, source] of Object.entries(includes)) {
     if (!ShaderFactory.includeMap[name]) ShaderFactory.registerInclude(name, source);
   }
-  return Shader.find("Terrain/Surface") ?? Shader.create(source);
 }

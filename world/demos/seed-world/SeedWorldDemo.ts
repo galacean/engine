@@ -38,6 +38,7 @@ import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemp
 import { readAnimalPopulationConfig } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
 import { planningFarmInitializationRequest } from "@galacean/engine-world-planning/spatial/farming/PlanningFarmInitialization";
 import { planningWaterQueryProjection } from "@galacean/engine-world-planning/spatial/hydrology/PlanningWaterEdits";
+import type { PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import {
   readGrassAppearance,
   readGrassGroundFusion,
@@ -142,6 +143,7 @@ import { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/proj
 import { TerrainWindRuntime } from "@galacean/engine-terrain/terrain/project/TerrainWindRuntime";
 import { OrbitControl } from "@galacean/engine-toolkit-controls/dist/es/OrbitControl.js";
 import { SEED_WORLD_PRODUCTION_ASSET_CATALOG } from "@galacean/engine-vegetation/asset-assembly/SeedWorldProductionAssetCatalog";
+import type { TerrainVistaDebugControl } from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainRuntimeDebugInspector";
 import { sampleTerrainSurfacePuddleMask } from "@galacean/engine-world-planning/integrations/terrain/environment/TerrainRainImpactSurface";
 import {
   TerrainWindGpuExposureProvider,
@@ -160,6 +162,7 @@ import {
   seedWorldOriginX,
   seedWorldOriginZ
 } from "@galacean/engine-world-planning/runtime/SeedWorldFields";
+import { SeedWorldPanoramaVistaRuntime } from "@galacean/engine-world-planning/runtime/SeedWorldPanoramaVistaRuntime";
 import {
   SEED_WORLD_ROAD_COLOR_DEFAULT,
   SEED_WORLD_SURFACE_LOD_CROSS_FADE_DURATION_SECONDS,
@@ -276,6 +279,7 @@ export async function mountSeedWorldDemo(
   let lighting: ReturnType<typeof createIntegratedWorldLightingRuntime> | undefined;
   let lightingProfile: PlanningLightingProfileRuntime | undefined;
   let environment: WorldEnvironmentRuntime | undefined;
+  let vista: SeedWorldPanoramaVistaRuntime | undefined;
   let tools: PlanningSeedWorldSession | undefined;
   let animals: PlanningAnimalHost | undefined;
   let detachAnimalLightning: (() => void) | undefined;
@@ -462,6 +466,7 @@ export async function mountSeedWorldDemo(
       }
     ],
     ["水运行", () => water?.destroy()],
+    ["远景环山", () => vista?.destroy()],
     ["沙雾", () => sandstorm?.destroy()],
     ["Mojave 景观", () => mojaveLayout?.destroy()],
     ["环境", () => environment?.destroy()],
@@ -863,6 +868,7 @@ export async function mountSeedWorldDemo(
       publication?.current?.vegetation?.update(dt);
       obbDebug?.update(dt);
       water?.update(dt);
+      vista?.update();
       animals?.advance?.(dt);
       // WorldEnvironmentRuntime owns the wind local-field centre and resamples it every frame
       audio?.update(dt, ready, tools?.listening ?? false);
@@ -2103,7 +2109,69 @@ export async function mountSeedWorldDemo(
     };
     camera.enabled = true;
     progress(0.2, "准备原 Seed 环境光照");
-    await source.initialize(preparePublication);
+    const readVistaPalette = (document: PlanningDocument, world: SeedWorldTerrainRuntime) => ({
+      groundColor: readSurfacePalette(document, world.defaultGroundColor),
+      rockTint: readRockFormationSettings(document).colorBlend.color
+    });
+    await source.initialize(async (document, result, context) => {
+      const prepared = await preparePublication(document, result, context);
+      return {
+        ...prepared,
+        afterCommit: () => {
+          const accepted = publication?.current;
+          if (!disposed && vista && accepted && source?.session.document.revision === document.revision) {
+            vista.setPalette(readVistaPalette(document, accepted.world));
+            vista.setTerrainBounds(accepted.data.fields);
+          }
+          return prepared.afterCommit?.();
+        }
+      };
+    });
+    const vistaScene = { engine, parent: root, camera, environment };
+    let vistaHeightPercent = SeedWorldPanoramaVistaRuntime.defaultHeightPercent;
+    let vistaNormalWidth = SeedWorldPanoramaVistaRuntime.defaultNormalWidth;
+    const vistaControls: TerrainVistaDebugControl = {
+      heightRange: SeedWorldPanoramaVistaRuntime.heightRange,
+      get visible() {
+        return vista?.visible ?? false;
+      },
+      set visible(enabled) {
+        // Use the most recent published terrain when enabling the panorama for the first time.
+        if (enabled && !vista) {
+          const accepted = publication!.current!;
+          const next = new SeedWorldPanoramaVistaRuntime({
+            ...vistaScene,
+            plan: accepted.data.plan,
+            fields: accepted.data.fields,
+            palette: readVistaPalette(source!.session.document, accepted.world)
+          });
+          try {
+            next.heightPercent = vistaHeightPercent;
+            next.setNormalWidth(vistaNormalWidth);
+          } catch (error) {
+            next.destroy();
+            throw error;
+          }
+          vista = next;
+        }
+        if (vista) vista.visible = enabled;
+      },
+      get heightPercent() {
+        return vista?.heightPercent ?? vistaHeightPercent;
+      },
+      set heightPercent(value) {
+        if (vista) vista.heightPercent = value;
+        vistaHeightPercent = value;
+      },
+      get normalWidth() {
+        return vistaNormalWidth;
+      },
+      set normalWidth(width) {
+        vista?.setNormalWidth(width);
+        vistaNormalWidth = width;
+      }
+    };
+    vistaControls.visible = publication!.current!.plan.parameters.worldTemplate?.id === "titan-wasteland";
     const initialBuildingDocument = source.session.export();
     nativeEditor.editor.registerPreparation(
       preparePlanningWaterSource(() => runtimeProject!.projectPackage),
@@ -2233,6 +2301,7 @@ export async function mountSeedWorldDemo(
         environment,
         water,
         audio: audio.audio,
+        vista: vistaControls,
         setGrassGroundFusion: (enabled) =>
           tools!.dispatchParameters([
             {

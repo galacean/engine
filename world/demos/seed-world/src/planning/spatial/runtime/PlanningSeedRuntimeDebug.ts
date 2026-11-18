@@ -9,6 +9,7 @@ import type { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain
 import type { OrbitControl } from "@galacean/engine-toolkit-controls";
 import { SEED_WORLD_SURFACE_PALETTE_PRESETS } from "@galacean/engine-vegetation/world/SeedWorldGrassColorField";
 import { mountWaterDevTools } from "@galacean/engine-water/water/devtools/index";
+import type { TerrainVistaDebugControl } from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainRuntimeDebugInspector";
 import { createTerrainRuntimeDebugOwner } from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainRuntimeDebugOwnerFactory";
 import type { WorldEnvironmentRuntime } from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
 import type { TerrainLightingRuntime } from "@galacean/engine-world-planning/integrations/terrain/lighting/TerrainLightingRuntime";
@@ -58,6 +59,7 @@ export interface PlanningSeedRuntimeDebugOptions {
   readonly post: TerrainPostProcessRuntime;
   readonly environment: WorldEnvironmentRuntime;
   readonly audio?: EnvironmentAudioRuntime;
+  readonly vista: TerrainVistaDebugControl;
   readonly water: PlanningWaterRuntime;
   readonly setGrassGroundFusion?: (enabled: boolean) => Promise<unknown>;
   readonly readSolidsRoot: () => Entity | undefined;
@@ -210,6 +212,7 @@ export class PlanningSeedRuntimeDebug {
         },
         inspector: {
           audio: options.audio,
+          vista: options.vista,
           postProcess: options.post,
           lighting: options.lighting,
           environment: options.environment,
