@@ -16,12 +16,13 @@ import type { RockSurfaceMode } from "@galacean/engine-world-planning/integratio
 
 /** Stable identity and only the remaining spatial adapter state. Visual fields live on sibling components. */
 export class PlanningEntityAuthoring extends Script implements PlanningEntityIdentity {
-  declare planningId: string;
-  declare origin?: SpatialEntity["origin"];
-  declare parentId?: string;
+  // Live Scene Apply validates properties on new components before assigning Source values.
+  planningId = "";
+  origin?: SpatialEntity["origin"] = undefined;
+  parentId?: string = undefined;
   spatialComponents: SpatialEntity["components"] = {};
   /** Import-only compatibility for Scene files written before native domain components. */
-  declare authoring?: SpatialEntity;
+  authoring?: SpatialEntity = undefined;
 }
 
 /** Base links preserve set/reset/base semantics without filling inherited/default fields. */
@@ -322,7 +323,7 @@ function synchronizeEntities(parent: Entity, entities: Record<string, SpatialEnt
   for (const child of [...parent.children]) {
     const identity = child.getComponent(PlanningEntityAuthoring);
     if (!identity) continue;
-    const id = identity.planningId ?? identity.authoring?.id;
+    const id = identity.planningId || identity.authoring?.id;
     const source = remaining.get(id);
     if (!source) child.destroy();
     else { synchronize(child, identity, source); remaining.delete(id); }
