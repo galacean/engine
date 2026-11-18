@@ -264,8 +264,6 @@ export interface PanoramaVistaOptions {
   readonly minElevationRadians?: number;
   /** Maximum elevation angle in radians at the top row of the panorama (default `0.16`). */
   readonly maxElevationRadians?: number;
-  /** Sun azimuth in radians used when baking the multi-step horizon self-shadow channel (default `2.45`). */
-  readonly sunAzimuthRadians?: number;
   /** Observer reference elevation in metres (default `85`). */
   readonly observerAltitudeMetres?: number;
   /** Optional azimuthal boundary profile extracted from the finite world. */
@@ -288,7 +286,7 @@ export interface PanoramaVistaBuffers {
   /**
    * `RGBA8` buffer (`width * height * 4`):
    * - `R`: normalized log-distance `log(r / minDistanceKm) / log(maxDistanceKm / minDistanceKm)` in `[0..255]`
-   * - `G`: sun-direction horizon self-shadow tangent `clamp((hzn + 0.1) / 1.1)` in `[0..255]`
+   * - `G`: reserved
    * - `B`: bare rock cliff mask `[0..255]`
    * - `A`: normalized peak elevation `[0..255]` for dynamic seasonal snowline evaluation
    */
@@ -311,7 +309,6 @@ export function generatePanoramaVistaBuffers(options: PanoramaVistaOptions): Pan
   const spanEl = maxEl - minEl;
   const minTangent = Math.tan(minEl);
   const nearFadeEndKm = Math.min(minDistanceKm * 1.5, maxDistanceKm);
-  const sunAz = options.sunAzimuthRadians ?? 2.45;
   const observerAlt = options.observerAltitudeMetres ?? 85;
   const profile = options.boundaryProfile;
 
@@ -376,9 +373,6 @@ export function generatePanoramaVistaBuffers(options: PanoramaVistaOptions): Pan
   const farA = new Uint8Array(width * height * 4);
   const farB = new Uint8Array(width * height * 4);
   const dist = new Float64Array(height);
-  const sdx = Math.sin(sunAz);
-  const sdz = -Math.cos(sunAz);
-  const HS = [0.6, 1.5, 3.2, 6.8];
 
   for (let c = 0; c < width; c++) {
     // Full 360° azimuth [-π, +π) mapped across [0, width)
@@ -434,16 +428,6 @@ export function generatePanoramaVistaBuffers(options: PanoramaVistaOptions): Pan
       const gz = (north - south) / (2 * e * 1000);
       const il = 1 / Math.hypot(gx, 1, gz);
 
-      let hzn = -0.1;
-      for (let s = 0; s < 4; s++) {
-        const stepKm = HS[s]!;
-        const sx = x + sdx * stepKm;
-        const sz = z + sdz * stepKm;
-        const sr = Math.hypot(sx, sz);
-        const q = (farHeightMetres(sx, sz, sr, azEnergy) - h0) / (stepKm * 1000);
-        if (q > hzn) hzn = q;
-      }
-
       const worldElev = h0 + observerAlt + 0.0786 * rr * rr;
       const rock = smoothVista(0.88, 0.68, il + (vn(x * 0.42 + 5, z * 0.42) - 0.5) * 0.16);
       const normElev = clampVista((worldElev - 80) / 2200, 0, 1);
@@ -455,7 +439,6 @@ export function generatePanoramaVistaBuffers(options: PanoramaVistaOptions): Pan
       farA[o + 3] = clampVista(Math.round(255 * (k === ks ? cov : 1)), 0, 255);
 
       farB[o] = clampVista(Math.round((255 * Math.log(rr / minDistanceKm)) / logRatio), 0, 255);
-      farB[o + 1] = clampVista(Math.round((255 * (hzn + 0.1)) / 1.1), 0, 255);
       farB[o + 2] = clampVista(Math.round(255 * rock), 0, 255);
       farB[o + 3] = clampVista(Math.round(255 * normElev), 0, 255);
     }
@@ -469,7 +452,6 @@ export function generatePanoramaVistaBuffers(options: PanoramaVistaOptions): Pan
         farA[o + 1] = farA[s + 1]!;
         farA[o + 2] = farA[s + 2]!;
         farB[o] = farB[s]!;
-        farB[o + 1] = farB[s + 1]!;
         farB[o + 2] = farB[s + 2]!;
         farB[o + 3] = farB[s + 3]!;
       }

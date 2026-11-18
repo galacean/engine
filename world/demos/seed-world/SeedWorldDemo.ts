@@ -2120,6 +2120,7 @@ export async function mountSeedWorldDemo(
           const accepted = publication?.current;
           if (!disposed && vista && accepted && source?.session.document.revision === document.revision) {
             vista.setPalette(readVistaPalette(document, accepted.world));
+            vista.setTerrainBounds(accepted.data.fields);
           }
           return prepared.afterCommit?.();
         }
@@ -2128,10 +2129,8 @@ export async function mountSeedWorldDemo(
     const initial = publication!.current!;
     vista = new SeedWorldPanoramaVistaRuntime({
       engine,
-      scene: scene!,
       parent: root,
       camera,
-      lighting,
       environment,
       plan: initial.data.plan,
       fields: initial.data.fields,

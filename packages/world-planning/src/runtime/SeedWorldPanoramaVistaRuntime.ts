@@ -7,28 +7,24 @@ import {
   MeshRenderer,
   MeshTopology,
   ModelMesh,
-  type Scene,
   Shader,
   Texture2D,
   TextureFilterMode,
   TextureFormat,
   TextureWrapMode,
   Vector2,
-  Vector3,
-  Vector4
+  Vector3
 } from "@galacean/engine";
+import { registerTerrainLightingIncludes } from "@galacean/engine-terrain/surface/SurfaceShader";
 import type { WorldEnvironmentRuntime } from "../integrations/terrain/environment/WorldEnvironmentRuntime.ts";
-import type { TerrainLightingRuntime } from "../integrations/terrain/lighting/TerrainLightingRuntime.ts";
 import {
   clampVista,
   extractSeedWorldBoundaryProfile,
   generatePanoramaVistaBuffers,
   hashVistaU,
-  lerpVista,
-  smoothVista,
   type SeedWorldVistaPlanSource
 } from "../vista/PanoramaVistaGenerator.ts";
-import type { SeedWorldFields } from "./SeedWorldFields.ts";
+import { seedWorldOriginX, seedWorldOriginZ, type SeedWorldFields } from "./SeedWorldFields.ts";
 import { SEED_WORLD_ROAD_COLOR_DEFAULT } from "./SeedWorldTerrainRuntime.ts";
 
 const FAR_HORIZON_SHADER_NAME = "SeedWorld/PanoramaFarHorizon";
@@ -58,23 +54,24 @@ const FAR_HORIZON_SHADER = `Shader "${FAR_HORIZON_SHADER_NAME}" {
       RasterState = rasterState;
       RenderQueueType = Transparent;
 
-      mat4 renderer_MVPMat;
+      #define TERRAIN_PROJECT_FORWARD_PASS
+      #define MATERIAL_DISABLE_PROBE_VOLUME
+      #include "ShaderLibrary/Common/Common.glsl"
+      #include "ShaderLibrary/Common/Transform.glsl"
+      #include "ShaderLibrary/Shadow/Shadow.glsl"
+      #include "ShaderLibrary/Common/Fog.glsl"
 
       sampler2D material_FarA;
       sampler2D material_FarB;
-
-      vec3 material_SunDir;
-      vec3 material_SunColor;
-      vec3 material_AmbSky;
-      vec3 material_AmbGnd;
-      vec3 material_HorizonColor;
-      vec3 material_SnowAlbedo;
       vec3 material_GroundColor;
       vec3 material_RockTint;
+      vec4 scene_SurfaceSnowColor;
       // x: minDistanceMetres, y: logMaxOverMin
       vec2 material_VistaDistance;
-      // x: winterWeight, y: surfaceSnowCover, z: aerialExtinctionScale, w: overallOpacity
-      vec4 material_VistaSeason;
+      // x: winterWeight, y: snowCover
+      vec2 material_VistaSnow;
+      // xz center of the finite terrain, followed by its half size
+      vec3 material_VistaTerrainBounds;
 
       struct Attributes {
         vec4 POSITION;
@@ -82,61 +79,67 @@ const FAR_HORIZON_SHADER = `Shader "${FAR_HORIZON_SHADER_NAME}" {
       };
 
       struct Varyings {
-        vec2 v_uv;
+        vec2 uv;
+        vec3 positionWS;
+        vec4 positionCS;
       };
+
+      #include "ShaderLibrary/PBR/BSDF.glsl"
+      #include "shared/TerrainSurfaceData.glsl"
+      #include "shared/Lighting.glsl"
 
       VertexShader = vert;
       FragmentShader = frag;
 
       Varyings vert(Attributes attributes) {
         Varyings output;
-        output.v_uv = attributes.TEXCOORD_0;
-        gl_Position = renderer_MVPMat * attributes.POSITION;
+        output.uv = attributes.TEXCOORD_0;
+        output.positionWS = (renderer_ModelMat * attributes.POSITION).xyz;
+        output.positionCS = renderer_MVPMat * attributes.POSITION;
+        gl_Position = output.positionCS;
         return output;
       }
 
       void frag(Varyings input) {
         // The mesh duplicates its seam vertices so texture filtering sees a continuous UV gradient.
-        vec2 uv = input.v_uv;
-        vec3 outColor = material_HorizonColor;
-        float outAlpha = 0.0;
+        vec2 uv = input.uv;
+        if (uv.y <= 0.002 || uv.y >= 0.998) discard;
+        vec4 geometry = texture2D(material_FarA, uv);
+        if (geometry.a <= 0.004) discard;
 
-        if (uv.y > 0.002 && uv.y < 0.998) {
-          vec4 A = texture2D(material_FarA, uv);
-          if (A.a > 0.004) {
-            vec4 B = texture2D(material_FarB, uv);
-            vec3 N = normalize(A.xyz * 2.0 - 1.0);
-            float dist = material_VistaDistance.x * exp(B.x * material_VistaDistance.y);
-            vec3 L = normalize(material_SunDir);
-            float tanE = L.y / max(length(L.xz), 1e-3);
-            float sh = smoothstep(-0.035, 0.055, tanE - (B.y * 1.1 - 0.1));
-            float ndl = dot(N, L);
+        vec4 surface = texture2D(material_FarB, uv);
+        vec3 normalWS = normalize(geometry.xyz * 2.0 - 1.0);
+        float distanceMetres = material_VistaDistance.x * exp(surface.x * material_VistaDistance.y);
+        vec3 rayWS = normalize(input.positionWS - camera_Position);
 
-            vec3 amb = material_AmbSky * (1.05 + 0.75 * N.y) + material_AmbGnd * (0.42 - 0.32 * N.y);
+        float rockMask = surface.z;
+        float snowThreshold = mix(0.38, 0.04, material_VistaSnow.x);
+        float snowCover = material_VistaSnow.y * smoothstep(
+          snowThreshold - 0.14, snowThreshold + 0.14, surface.w + (1.0 - rockMask) * 0.16);
+        vec3 albedo = mix(material_GroundColor, material_RockTint * 0.48, rockMask);
+        albedo = mix(albedo, scene_SurfaceSnowColor.rgb, snowCover * (1.0 - rockMask * 0.58));
 
-            float rockMask = B.z;
-            float normElev = B.w;
-            float winterWeight = material_VistaSeason.x;
-            float snowThreshold = mix(0.38, 0.04, winterWeight);
-            float snowCover = material_VistaSeason.y * smoothstep(
-              snowThreshold - 0.14, snowThreshold + 0.14, normElev + (1.0 - rockMask) * 0.16);
+        // Light the baked surface at its distant position, beyond the local light and probe volumes.
+        Varyings lightingVaryings = input;
+        lightingVaryings.positionWS = camera_Position + rayWS * distanceMetres;
+        SurfaceData surfaceData = terrainProjectBuildSurfaceData(lightingVaryings, albedo, normalWS, 0.0, 0.0, 1.0);
+        vec3 lit = terrainProjectFinalLighting(evaluateTerrainProjectLighting(lightingVaryings, surfaceData));
 
-            vec3 snowLit = material_SnowAlbedo * (material_SunColor * clamp((ndl + 0.18) / 1.18, 0.0, 1.0) * sh + amb);
-            float rockWeight = clamp(rockMask * 1.25 + normElev * 0.35, 0.0, 1.0);
-            vec3 rockAlbedo = mix(material_GroundColor * 0.88, material_RockTint * 0.48, rockWeight);
-            vec3 rockLit = rockAlbedo * (material_SunColor * clamp(ndl, 0.0, 1.0) * sh + amb);
-            vec3 mtnCol = mix(rockLit, snowLit, clamp(snowCover * (1.0 - rockMask * 0.58), 0.0, 1.0));
+        float bottomFeather = 1.0 - smoothstep(0.88, 1.0, uv.y);
+        float topFeather = smoothstep(0.015, 0.08, uv.y);
+        vec4 color = vec4(lit, geometry.a * bottomFeather * topFeather);
 
-            float transmittance = exp(-dist / material_VistaSeason.z);
-            outColor = mix(material_HorizonColor, mtnCol, transmittance);
+        #if SCENE_FOG_MODE != 0
+          // Sample the scene fog where this sightline leaves the playable terrain.
+          vec2 rayXZ = rayWS.xz;
+          vec2 edgeOffset = material_VistaTerrainBounds.xy - camera_Position.xz;
+          vec2 edgeDistance = (material_VistaTerrainBounds.z + edgeOffset * sign(rayXZ)) /
+            max(abs(rayXZ), vec2(0.0001));
+          float distanceToTerrainEdge = max(0.001, min(edgeDistance.x, edgeDistance.y));
+          color = fog(color, mat3(camera_ViewMat) * (rayWS * distanceToTerrainEdge));
+        #endif
 
-            float bottomFeather = 1.0 - smoothstep(0.88, 1.0, uv.y);
-            float topFeather = smoothstep(0.015, 0.08, uv.y);
-            outAlpha = A.a * bottomFeather * topFeather * material_VistaSeason.w;
-          }
-        }
-
-        gl_FragColor = vec4(outColor, clamp(outAlpha, 0.0, 1.0));
+        gl_FragColor = color;
       }
     }
   }
@@ -208,10 +211,8 @@ export interface SeedWorldVistaPalette {
 
 export interface SeedWorldPanoramaVistaRuntimeOptions {
   readonly engine: Engine;
-  readonly scene: Scene;
   readonly parent: Entity;
   readonly camera: Camera;
-  readonly lighting: TerrainLightingRuntime;
   readonly environment: WorldEnvironmentRuntime;
   readonly plan: SeedWorldVistaPlanSource;
   readonly fields: SeedWorldFields;
@@ -225,9 +226,7 @@ export interface SeedWorldPanoramaVistaRuntimeOptions {
 export class SeedWorldPanoramaVistaRuntime {
   readonly root: Entity;
   readonly heightRange = { minimum: 50, maximum: 100 } as const;
-  private readonly _scene: Scene;
   private readonly _camera: Camera;
-  private readonly _lighting: TerrainLightingRuntime;
   private readonly _environment: WorldEnvironmentRuntime;
   private readonly _horizonMaterial: Material;
   private readonly _horizonMesh: ModelMesh;
@@ -235,37 +234,25 @@ export class SeedWorldPanoramaVistaRuntime {
   private readonly _farBTex: Texture2D;
   private _destroyed = false;
 
-  // Cached uniform vectors
-  private readonly _sunDir = new Vector3(0.3, 0.4, -0.85);
-  private readonly _sunColor = new Vector3(1.8, 1.65, 1.45);
-  private readonly _ambSky = new Vector3(0.28, 0.36, 0.52);
-  private readonly _ambGnd = new Vector3(0.14, 0.15, 0.16);
-  private readonly _fogColor = new Vector3(0.58, 0.68, 0.78);
   private readonly _groundColor = new Vector3(...SEED_WORLD_ROAD_COLOR_DEFAULT);
   private readonly _rockTint = new Vector3(1, 1, 1);
-  private readonly _snowAlbedo = new Vector3(0.88, 0.93, 0.98);
-  private readonly _vistaDistance = new Vector2();
-  private readonly _vistaSeason = new Vector4(0, 0, 62000, 1.0);
+  private readonly _vistaSnow = new Vector2();
+  private readonly _terrainBounds = new Vector3();
 
   constructor(options: SeedWorldPanoramaVistaRuntimeOptions) {
     const { engine, plan, fields } = options;
-    this._scene = options.scene;
     this._camera = options.camera;
-    this._lighting = options.lighting;
     this._environment = options.environment;
 
     const geologySeed =
       "stageSeeds" in plan ? (plan.stageSeeds.geology ^ plan.rootSeed) >>> 0 : hashVistaU(plan.rootSeed ^ 0x9e3779b9);
     const profile = extractSeedWorldBoundaryProfile(plan, fields);
-    const sunDir = this._lighting.system.state.sunDirection;
-    const sunAzimuthRadians = Math.atan2(sunDir.x, -sunDir.z);
     const panorama = generatePanoramaVistaBuffers({
       seed: geologySeed,
-      sunAzimuthRadians,
       boundaryProfile: profile
     });
-    this._vistaDistance.set(panorama.minDistanceKm * 1000, Math.log(panorama.maxDistanceKm / panorama.minDistanceKm));
 
+    registerTerrainLightingIncludes();
     const horizonShader = Shader.find(FAR_HORIZON_SHADER_NAME) ?? Shader.create(FAR_HORIZON_SHADER);
     this._horizonMaterial = new Material(engine, horizonShader);
     this._farATex = this._createPanoramaTexture(engine, panorama.width, panorama.height, panorama.farA);
@@ -273,16 +260,15 @@ export class SeedWorldPanoramaVistaRuntime {
     const hData = this._horizonMaterial.shaderData;
     hData.setTexture("material_FarA", this._farATex);
     hData.setTexture("material_FarB", this._farBTex);
-    hData.setVector3("material_SunDir", this._sunDir);
-    hData.setVector3("material_SunColor", this._sunColor);
-    hData.setVector3("material_AmbSky", this._ambSky);
-    hData.setVector3("material_AmbGnd", this._ambGnd);
-    hData.setVector3("material_HorizonColor", this._fogColor);
-    hData.setVector3("material_SnowAlbedo", this._snowAlbedo);
     hData.setVector3("material_GroundColor", this._groundColor);
     hData.setVector3("material_RockTint", this._rockTint);
-    hData.setVector2("material_VistaDistance", this._vistaDistance);
-    hData.setVector4("material_VistaSeason", this._vistaSeason);
+    hData.setVector2(
+      "material_VistaDistance",
+      new Vector2(panorama.minDistanceKm * 1000, Math.log(panorama.maxDistanceKm / panorama.minDistanceKm))
+    );
+    hData.setVector2("material_VistaSnow", this._vistaSnow);
+    hData.setVector3("material_VistaTerrainBounds", this._terrainBounds);
+    this.setTerrainBounds(fields);
 
     this._horizonMesh = buildFarHorizonCylinderMesh(
       engine,
@@ -328,8 +314,14 @@ export class SeedWorldPanoramaVistaRuntime {
     this._rockTint.set(...palette.rockTint);
   }
 
+  /** Updates the fog reference after a terrain publication. */
+  setTerrainBounds(fields: Pick<SeedWorldFields, "sizeMetres" | "worldOrigin">): void {
+    const halfSize = fields.sizeMetres * 0.5;
+    this._terrainBounds.set(seedWorldOriginX(fields) + halfSize, seedWorldOriginZ(fields) + halfSize, halfSize);
+  }
+
   /**
-   * Updates camera-relative horizon alignment and live Day/Night, Season, and Weather uniforms.
+   * Updates the camera-relative panorama and its snow coverage.
    */
   update(): void {
     if (this._destroyed) return;
@@ -339,34 +331,9 @@ export class SeedWorldPanoramaVistaRuntime {
     const anchorY = 95 + (camPos.y - 95) * 0.72;
     this.root.transform.setWorldPosition(camPos.x, anchorY, camPos.z);
 
-    const sunDir = this._lighting.system.state.sunDirection;
-    const lightSnap = this._lighting.getSnapshot();
-    this._sunDir.set(sunDir.x, sunDir.y, sunDir.z);
-    this._sunColor.set(
-      lightSnap.sunLightColor[0] * 0.85,
-      lightSnap.sunLightColor[1] * 0.85,
-      lightSnap.sunLightColor[2] * 0.85
-    );
-
-    const fogCol = this._scene.fogColor;
-    this._fogColor.set(fogCol.r, fogCol.g, fogCol.b);
-    const sunElev = clampVista(lightSnap.sunElevation, -0.35, 1.2);
-    const dayFactor = smoothVista(-0.12, 0.25, sunElev);
-    this._ambSky.set(
-      lerpVista(0.04, Math.max(0.18, fogCol.r * 0.78), dayFactor),
-      lerpVista(0.06, Math.max(0.24, fogCol.g * 0.88), dayFactor),
-      lerpVista(0.11, Math.max(0.36, fogCol.b * 1.05), dayFactor)
-    );
-    this._ambGnd.set(this._ambSky.x * 0.45, this._ambSky.y * 0.44, this._ambSky.z * 0.42);
-
     const env = this._environment.getSnapshot();
     const snowCover = clampVista(env.surface.snowCover, 0, 1);
-    const winterWeight = Math.max(env.season.weights.winter, snowCover);
-
-    const fogEnabled = this._lighting.getVisibility().fog;
-    const baseFogDensity = fogEnabled ? Math.max(0.00009, this._scene.fogDensity * 0.32) : 0.00006;
-    const aerialScale = fogEnabled ? clampVista(0.75 / Math.max(1e-5, baseFogDensity), 42_000, 105_000) : 110_000;
-    this._vistaSeason.set(winterWeight, snowCover, aerialScale, 1.0);
+    this._vistaSnow.set(Math.max(env.season.weights.winter, snowCover), snowCover);
   }
 
   destroy(): void {
