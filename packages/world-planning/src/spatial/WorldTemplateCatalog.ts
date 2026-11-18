@@ -60,7 +60,8 @@ export const WORLD_TEMPLATES: readonly WorldTemplate[] = [
     vegetation: "desert",
     colors: ["#d89756", "#f4c781", "#207b5d", "#e34f3b"],
     subject: "红岩绿洲 · 绯树砾岸",
-    terrain: { ...gentleBaseTerrain, widthM: 270, count: 4, coverage: 0.85 }
+    // The oasis is a level floodplain. Its canyon walls and distant benches are separate authored landforms.
+    terrain: { ...gentleBaseTerrain, widthM: 270, count: 0, coverage: 0.85 }
   }
 ];
 export function worldTemplate(id: unknown): WorldTemplate | undefined {

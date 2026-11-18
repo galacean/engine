@@ -3,6 +3,7 @@ import { exportPlanningAuthoring, exportPlanningRecipe, type PlanningDocument } 
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
 import { planningSeed } from "@galacean/engine-world-planning/spatial/PlanningLayoutScope";
 import { parsePlanningDocument } from "../PlanningDocumentCodec.ts";
+import { exportPlanningScene } from "../PlanningSceneAsset.ts";
 import { RuntimeProjectEdit, type RuntimeAssetFormat } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
 import { planningSourceDocument, retainPlanningWaterSource, writePlanningProjectSource } from "./PlanningProjectSource.ts";
@@ -90,6 +91,16 @@ export class PlanningProjectStorage {
 
   /** Import the saved envelope before loading the Scene, or replace planning after an explicit template choice. */
   async migrateToSource(document: PlanningDocument, replacePlanning = false): Promise<void> {
+    const initialPack = this.project.projectPackage;
+    const initialMarker = `${initialPack.project.scene}.planning-source.json`;
+    const skipInitial =
+      initialPack.documents?.[initialMarker] !== undefined &&
+      JSON.parse(initialPack.documents[initialMarker]).version === 2 &&
+      !replacePlanning;
+    const candidateDoc = replacePlanning ? document : planningSourceDocument(initialPack) ?? document;
+    const defaults = !skipInitial && needsWaterDefaults(initialPack, candidateDoc)
+      ? await loadPlanningWaterDefaults()
+      : undefined;
     const build = (pack: RuntimeProjectSession["projectPackage"]) => {
       const marker = `${pack.project.scene}.planning-source.json`;
       if (pack.documents?.[marker] !== undefined) {
@@ -99,6 +110,7 @@ export class PlanningProjectStorage {
         if (!planningSourceDocument(pack)) throw new Error("Imported project requires a PlanningProjectAuthoring owner");
       }
       const draft = new RuntimeProjectEdit(pack, new Map([...nativeAssetFormats(() => ({})), ...this.formats]));
+      if (defaults) installPlanningWaterDefaults(draft, defaults);
       // Store planning authoring in the Scene before loading its native owners.
       writePlanningProjectSource(draft, pack.project.scene, replacePlanning ? document : planningSourceDocument(pack) ?? document);
       if (draft.list().some(file => file.virtualPath === PLANNING_PROJECT_PATH)) draft.delete(PLANNING_PROJECT_PATH);
@@ -110,9 +122,11 @@ export class PlanningProjectStorage {
   }
 
   async save(document: PlanningDocument, transactionId?: string, resetWater = false): Promise<void> {
-    const defaults = resetWater && ["lake", "river", "ocean"].some(kind =>
-      !this.project.projectPackage.project.files.some(file => file.virtualPath === `Water/Materials/${kind}.mat`))
-      ? await loadPlanningWaterDefaults() : undefined;
+    const pack = this.project.projectPackage;
+    const defaults =
+      (resetWater || Boolean(planningSourceDocument(pack))) && needsWaterDefaults(pack, document, resetWater)
+        ? await loadPlanningWaterDefaults()
+        : undefined;
     const authoring = JSON.stringify(exportPlanningAuthoring(document));
     const build = (pack: RuntimeProjectSession["projectPackage"]) => {
       if (resetWater || planningSourceDocument(pack)) {
@@ -155,4 +169,18 @@ export class PlanningProjectStorage {
     else if (this.project.update) await this.project.update(build);
     else await this.project.publish(build(this.project.projectPackage));
   }
+}
+
+function needsWaterDefaults(
+  pack: RuntimeProjectSession["projectPackage"],
+  document: PlanningDocument,
+  resetWater = false
+): boolean {
+  const existing = new Set(pack.project.files.map((file) => file.virtualPath));
+  if (resetWater && ["lake", "river", "ocean"].some((kind) => !existing.has(`Water/Materials/${kind}.mat`))) {
+    return true;
+  }
+  return exportPlanningScene(document).refs.some(
+    (ref) => /^Water\/Materials\/(lake|river|ocean)\.mat$/.test(ref.url) && !existing.has(ref.url)
+  );
 }

@@ -49,7 +49,12 @@ import { TREE_STRUCTURE as DEAD_TREE_STRUCTURE } from "@galacean/engine-vegetati
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
 import { templateLinearColor } from "../WorldTemplateCatalog";
 
-export type TemplateProceduralPlantKind = "dead-wood" | "dry-grass" | "desert-shrub" | "pastel-flower";
+export type TemplateProceduralPlantKind =
+  | "dead-wood"
+  | "dry-grass"
+  | "plume-grass"
+  | "desert-shrub"
+  | "pastel-flower";
 
 export interface TemplateProceduralPlantInstance {
   readonly id: string;
@@ -59,26 +64,31 @@ export interface TemplateProceduralPlantInstance {
   readonly heightM: number;
   readonly yawDegrees?: number;
   readonly variant?: number;
+  /** Snap onto 3D sandstone rock ledge triangles when available instead of terrain floor. */
+  readonly onRock?: boolean;
+  readonly tiltXDegrees?: number;
+  readonly tiltZDegrees?: number;
+  readonly spreadScale?: number;
 }
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
-type PlantColorways = readonly [PlantPoint, PlantPoint, PlantPoint];
-const hexPalette = (a: string, b: string, c: string): PlantColorways => [
-  templateLinearColor(a),
-  templateLinearColor(b),
-  templateLinearColor(c)
-];
+type PlantColorways = readonly PlantPoint[];
+const hexPalette = (...hexes: readonly string[]): PlantColorways => hexes.map((h) => templateLinearColor(h));
 
 const PROCEDURAL_PALETTE: Record<TemplateProceduralPlantKind, Record<string, PlantColorways>> = {
   "dead-wood": { bark: hexPalette("#cbb096", "#b89b80", "#a3866c") },
-  "dry-grass": { foliage: hexPalette("#d8b882", "#e2c694", "#c29e68") },
+  "dry-grass": { foliage: hexPalette("#ddb074", "#e8c28a", "#c8965e", "#d4a46a") },
+  "plume-grass": {
+    foliage: hexPalette("#d6a86a", "#c4965a", "#e0b67c"),
+    plume: hexPalette("#f2dcb2", "#ebd0a0", "#f6e5c4")
+  },
   "desert-shrub": {
     bark: hexPalette("#8a6d52", "#997a5d", "#785e46"),
-    foliage: hexPalette("#7e8a54", "#8e9a60", "#6c7846")
+    foliage: hexPalette("#84926c", "#768560", "#94a07c", "#6c7b58")
   },
   "pastel-flower": {
-    foliage: hexPalette("#8ea062", "#7f9256", "#9eaf6f"),
-    petals: hexPalette("#f8b8f4", "#f0a2f4", "#fcd0f8")
+    foliage: hexPalette("#7e9058", "#70824c", "#8c9d64"),
+    petals: hexPalette("#cca0f4", "#eba0dc", "#b88ee8", "#f2b2e6")
   }
 };
 
@@ -98,17 +108,18 @@ function uprightOrientation(angle: number, tilt: number): PlantPart["orientation
 function dryGrassRecipe(): ProceduralPlantStructure {
   const blade = createPlantGeometryExample("grass").shapes.blade;
   const parts: PlantPart[] = [];
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < 13; i++) {
     const bearing = i * GOLDEN_ANGLE;
+    const ring = 0.03 + (i % 4) * 0.025;
     parts.push({
       id: `blade-${i}`,
       shapeId: "blade",
       materialId: "foliage",
       parentId: null,
       attachment: 0,
-      offset: [Math.sin(bearing) * 0.055, 0, Math.cos(bearing) * 0.055],
-      orientation: uprightOrientation(bearing, 0.14 + (i % 5) * 0.14),
-      scale: 0.72 + (i % 4) * 0.22
+      offset: [Math.sin(bearing) * ring, 0, Math.cos(bearing) * ring],
+      orientation: uprightOrientation(bearing, 0.16 + (i % 5) * 0.16),
+      scale: 0.66 + (i % 4) * 0.24
     });
   }
   return {
@@ -124,39 +135,106 @@ function dryGrassRecipe(): ProceduralPlantStructure {
   };
 }
 
+function plumeGrassRecipe(): ProceduralPlantStructure {
+  const blade = createPlantGeometryExample("grass").shapes.blade;
+  const stem = tubeShape([
+    [0, [0, 0, 0], 0.01],
+    [0.45, [0.03, 0.36, 0.01], 0.007],
+    [0.82, [0.09, 0.66, 0.02], 0.0045],
+    [1, [0.14, 0.8, 0.03], 0.002]
+  ]);
+  const panicle = tubeShape([
+    [0, [0, 0, 0], 0.006],
+    [0.3, [0.01, 0.06, 0], 0.026],
+    [0.68, [0.02, 0.14, 0], 0.02],
+    [1, [0.03, 0.22, 0], 0.003]
+  ]);
+  const parts: PlantPart[] = [];
+  for (let i = 0; i < 16; i++) {
+    const bearing = i * GOLDEN_ANGLE;
+    const ring = 0.035 + (i % 4) * 0.026;
+    parts.push({
+      id: `blade-${i}`,
+      shapeId: "blade",
+      materialId: "foliage",
+      parentId: null,
+      attachment: 0,
+      offset: [Math.sin(bearing) * ring, 0, Math.cos(bearing) * ring],
+      orientation: uprightOrientation(bearing, 0.22 + (i % 5) * 0.15),
+      scale: 0.72 + (i % 4) * 0.22
+    });
+  }
+  for (let s = 0; s < 5; s++) {
+    const angle = s * GOLDEN_ANGLE + 0.4;
+    const stemId = `culm-${s}`;
+    parts.push({
+      id: stemId,
+      shapeId: "stem",
+      materialId: "foliage",
+      parentId: null,
+      attachment: 0,
+      offset: [Math.cos(angle) * 0.04, 0, Math.sin(angle) * 0.04],
+      orientation: uprightOrientation(angle, 0.14 + (s % 3) * 0.1),
+      scale: 0.88 + (s % 3) * 0.14
+    });
+    parts.push({
+      id: `${stemId}-plume`,
+      shapeId: "panicle",
+      materialId: "plume",
+      parentId: stemId,
+      attachment: 0.96,
+      offset: [0, 0, 0],
+      orientation: [0, 0, 0, 1],
+      scale: 1
+    });
+  }
+  return {
+    version: 1,
+    shapes: { blade, stem, panicle },
+    parts,
+    lods: [
+      {
+        partIds: parts.map(({ id }) => id),
+        resolution: { subdivisionsPerSpan: 2, widthSegments: 1, radialSegments: 5 }
+      }
+    ]
+  };
+}
+
 function desertShrubRecipe(): ProceduralPlantStructure {
   const leaf = createPlantGeometryExample("flower").shapes.leaf;
   const twig = tubeShape([
-    [0, [0, 0, 0], 0.022],
-    [0.28, [0.04, 0.16, 0.01], 0.016],
-    [0.58, [0.12, 0.34, 0.03], 0.011],
-    [0.82, [0.22, 0.46, 0.04], 0.006],
-    [1, [0.31, 0.51, 0.05], 0.002]
+    [0, [0, 0, 0], 0.024],
+    [0.28, [0.05, 0.16, 0.01], 0.017],
+    [0.58, [0.14, 0.34, 0.03], 0.011],
+    [0.82, [0.25, 0.46, 0.04], 0.006],
+    [1, [0.35, 0.51, 0.05], 0.002]
   ]);
   const parts: PlantPart[] = [];
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 20; i++) {
     const angle = i * GOLDEN_ANGLE;
     const twigId = `twig-${i}`;
+    const ring = 0.03 + (i % 4) * 0.035;
     parts.push({
       id: twigId,
       shapeId: "twig",
       materialId: "bark",
       parentId: null,
       attachment: 0,
-      offset: [Math.cos(angle) * 0.04, 0, Math.sin(angle) * 0.04],
-      orientation: uprightOrientation(angle, 0.22 + (i % 4) * 0.14),
-      scale: 0.72 + (i % 4) * 0.12
+      offset: [Math.cos(angle) * ring, 0, Math.sin(angle) * ring],
+      orientation: uprightOrientation(angle, 0.18 + (i % 5) * 0.15),
+      scale: 0.68 + (i % 4) * 0.14
     });
-    for (let j = 0; j < 4; j++) {
+    for (let j = 0; j < 6; j++) {
       parts.push({
         id: `${twigId}-leaf-${j}`,
         shapeId: "leaf",
         materialId: "foliage",
         parentId: twigId,
-        attachment: 0.32 + 0.18 * j,
+        attachment: 0.24 + 0.14 * j,
         offset: [0, 0, 0],
-        orientation: uprightOrientation(angle + j * GOLDEN_ANGLE, 0.68 + (j % 2) * 0.22),
-        scale: 0.34 + (j % 2) * 0.08
+        orientation: uprightOrientation(angle + j * GOLDEN_ANGLE, 0.62 + (j % 3) * 0.2),
+        scale: 0.38 + (j % 3) * 0.09
       });
     }
   }
@@ -181,9 +259,9 @@ function pastelFlowerRecipe(): ProceduralPlantStructure {
     petal: flowerExample.shapes.petal
   };
   const parts: PlantPart[] = [];
-  for (let b = 0; b < 9; b++) {
+  for (let b = 0; b < 16; b++) {
     const angle = b * GOLDEN_ANGLE;
-    const radial = 0.08 + (b % 4) * 0.19;
+    const radial = 0.08 + Math.sqrt(b / 16) * 0.82;
     const stemId = `bloom-stem-${b}`;
     parts.push({
       id: stemId,
@@ -192,8 +270,8 @@ function pastelFlowerRecipe(): ProceduralPlantStructure {
       parentId: null,
       attachment: 0,
       offset: [Math.cos(angle) * radial, 0, Math.sin(angle) * radial],
-      orientation: uprightOrientation(angle, 0.16 + (b % 4) * 0.15),
-      scale: 0.62 + (b % 3) * 0.18
+      orientation: uprightOrientation(angle, 0.14 + (b % 4) * 0.14),
+      scale: 0.54 + ((15 - b) % 4) * 0.14
     });
     for (let k = 0; k < 2; k++) {
       const leafAngle = angle + k * Math.PI * 0.7;
@@ -202,14 +280,14 @@ function pastelFlowerRecipe(): ProceduralPlantStructure {
         shapeId: "leaf",
         materialId: "foliage",
         parentId: stemId,
-        attachment: 0.25 + k * 0.25,
+        attachment: 0.22 + k * 0.26,
         offset: [0, 0, 0],
-        orientation: uprightOrientation(leafAngle, 0.72),
-        scale: 0.52
+        orientation: uprightOrientation(leafAngle, 0.76),
+        scale: 0.54
       });
     }
-    for (let p = 0; p < 5; p++) {
-      const pa = (p * 2 * Math.PI) / 5;
+    for (let p = 0; p < 6; p++) {
+      const pa = (p * 2 * Math.PI) / 6;
       const s = Math.sin(pa / 2),
         c = Math.cos(pa / 2),
         h = Math.SQRT1_2;
@@ -221,7 +299,7 @@ function pastelFlowerRecipe(): ProceduralPlantStructure {
         attachment: 1,
         offset: [0, 0, 0],
         orientation: [-h * c, h * s, h * s, h * c],
-        scale: 1.55
+        scale: 1.65
       });
     }
   }
@@ -240,6 +318,7 @@ function pastelFlowerRecipe(): ProceduralPlantStructure {
 
 function recipeFor(kind: Exclude<TemplateProceduralPlantKind, "dead-wood">): ProceduralPlantStructure {
   if (kind === "dry-grass") return dryGrassRecipe();
+  if (kind === "plume-grass") return plumeGrassRecipe();
   if (kind === "pastel-flower") return pastelFlowerRecipe();
   return desertShrubRecipe();
 }
@@ -347,6 +426,7 @@ function bindDeadTreeBarkTextures(engine: Engine, material: PBRMaterial, isDispo
 
 const PROCEDURAL_LEAF_SLOTS: Record<Exclude<TemplateProceduralPlantKind, "dead-wood">, ReadonlySet<string>> = {
   "dry-grass": new Set(["foliage"]),
+  "plume-grass": new Set(["plume"]),
   "desert-shrub": new Set(["foliage"]),
   "pastel-flower": new Set(["petals"])
 };
@@ -356,8 +436,9 @@ const PROCEDURAL_WIND_PARAMS: Record<
   readonly [wholeLimit: number, wholeFreqHz: number, leafLimit: number, leafFreqHz: number]
 > = {
   "dry-grass": [0.35, 0.65, 0.34, 1.18],
-  "desert-shrub": [0.95, 0.65, 0.28, 1.65],
-  "pastel-flower": [1.35, 0.78, 0.1, 1.55]
+  "plume-grass": [1.15, 0.72, 0.14, 1.25],
+  "desert-shrub": [0.78, 0.58, 0.22, 1.35],
+  "pastel-flower": [1.2, 0.72, 0.08, 1.4]
 };
 
 function createProceduralWindMaterial(
@@ -417,7 +498,8 @@ export function mountTemplateProceduralPlants(
   ground: (x: number, z: number) => number | undefined,
   plants: readonly TemplateProceduralPlantInstance[],
   seed: number,
-  vegetationTemplate?: Material
+  vegetationTemplate?: Material,
+  rockGround?: (x: number, z: number) => number | undefined
 ): () => void {
   let disposed = false;
   const disposals: Array<() => void> = [];
@@ -433,7 +515,9 @@ export function mountTemplateProceduralPlants(
   for (const [kind, entries] of grouped) {
     const positioned = entries
       .map((entry) => {
-        const worldY = ground(anchor.x - entry.x, anchor.z + entry.z);
+        const wx = anchor.x - entry.x;
+        const wz = anchor.z + entry.z;
+        const worldY = entry.onRock && rockGround ? rockGround(wx, wz) : ground(wx, wz);
         if (worldY === undefined || !Number.isFinite(worldY)) return undefined;
         return { entry, localX: -entry.x, localY: worldY - anchor.y, localZ: entry.z };
       })
@@ -464,11 +548,11 @@ export function mountTemplateProceduralPlants(
 
         subset.forEach(({ entry, localX, localY, localZ }, index) => {
           const scaleY = entry.heightM / sourceHeight;
-          const scaleXZ = scaleY * 1.12;
-          const base = localY - floor * scaleY - Math.min(0.08, entry.heightM * 0.02);
+          const scaleXZ = scaleY * (entry.spreadScale ?? 1.15);
+          const base = localY - floor * scaleY - Math.min(0.1, entry.heightM * 0.025);
           const yaw = entry.yawDegrees ?? 0;
-          const tiltX = (settlementRandom(seed, `dead-tilt-x:${entry.id}`) - 0.5) * 9;
-          const tiltZ = (settlementRandom(seed, `dead-tilt-z:${entry.id}`) - 0.5) * 9;
+          const tiltX = entry.tiltXDegrees ?? (settlementRandom(seed, `dead-tilt-x:${entry.id}`) - 0.5) * 9;
+          const tiltZ = entry.tiltZDegrees ?? (settlementRandom(seed, `dead-tilt-z:${entry.id}`) - 0.5) * 9;
           Quaternion.rotationYawPitchRoll(
             (yaw * Math.PI) / 180,
             (tiltX * Math.PI) / 180,
@@ -555,10 +639,12 @@ export function mountTemplateProceduralPlants(
       new Vector3(-Infinity, -Infinity, -Infinity)
     );
     const transforms = positioned.map(({ entry, localX, localY, localZ }) => {
-      const scale = entry.heightM / sourceHeight;
-      const base = localY - floor * scale - Math.min(0.03, entry.heightM * 0.06);
+      const scaleY = entry.heightM / sourceHeight;
+      const scaleXZ = scaleY * (entry.spreadScale ?? 1);
+      const sink = entry.onRock ? Math.min(0.08, entry.heightM * 0.08) : Math.min(0.035, entry.heightM * 0.06);
+      const base = localY - floor * scaleY - sink;
       const yaw = ((entry.yawDegrees ?? 0) * Math.PI) / 180;
-      const reach = entry.heightM * 1.6;
+      const reach = entry.heightM * 2.2 * (entry.spreadScale ?? 1);
       bounds.min.set(
         Math.min(bounds.min.x, localX - reach),
         Math.min(bounds.min.y, base - entry.heightM),
@@ -566,10 +652,10 @@ export function mountTemplateProceduralPlants(
       );
       bounds.max.set(
         Math.max(bounds.max.x, localX + reach),
-        Math.max(bounds.max.y, base + entry.heightM * 2.2),
+        Math.max(bounds.max.y, base + entry.heightM * 2.4),
         Math.max(bounds.max.z, localZ + reach)
       );
-      return [localX, base, localZ, 1, 0, Math.sin(yaw / 2), 0, Math.cos(yaw / 2), scale, scale, scale, 1];
+      return [localX, base, localZ, 1, 0, Math.sin(yaw / 2), 0, Math.cos(yaw / 2), scaleXZ, scaleY, scaleXZ, 1];
     });
     const palette = PROCEDURAL_PALETTE[kind];
     for (const part of meshes.parts) {

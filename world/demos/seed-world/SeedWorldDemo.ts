@@ -1720,10 +1720,11 @@ export async function mountSeedWorldDemo(
             spanAt = performance.now();
             candidateTemplate = await WorldTemplateRuntime.create(
               candidate.root,
-              plan,
+              presented,
               templateGround,
               templateScene,
-              signal
+              signal,
+              formationMeshes
             );
             recordBootSpan("WorldTemplateRuntime.create", spanAt);
             if (heightTransition)

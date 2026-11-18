@@ -46,6 +46,7 @@ import {
 } from "@galacean/engine-vegetation/asset-assembly/TreeAssemblyRuntime";
 import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
 import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
+import { rockFormationGround } from "../../integrations/terrain/rock-formation/Placement";
 import { compositionSubjectTerraceBox } from "../SpatialCompositionGeometry";
 import { spatialCompositionParameters } from "../SpatialCompositionParameters";
 import { templateBaseSeed, templateLinearColor, worldTemplate, type WorldTemplate } from "../WorldTemplateCatalog";
@@ -87,6 +88,7 @@ export class WorldTemplateRuntime {
   private petalMaterial?: ParticleMaterial;
   private readonly foliageWindDisposals: Array<() => void> = [];
   private disposeProceduralPlants?: () => void;
+  private readonly leafTemplate?: Material;
   private destroyed = false;
   private readonly anchor: { x: number; y: number; z: number };
   private focusBounds: ResolvedWorldTemplateScene["focusBounds"];
@@ -96,7 +98,8 @@ export class WorldTemplateRuntime {
     plan: IslandPlan,
     ground: (x: number, z: number) => number | undefined,
     prepared = resolveWorldTemplateScene(plan, ground),
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    formations?: readonly RockFormationMesh[]
   ): Promise<WorldTemplateRuntime | undefined> {
     const template = worldTemplate(plan.parameters.worldTemplate?.id);
     if (!template || !prepared) return undefined;
@@ -149,7 +152,17 @@ export class WorldTemplateRuntime {
     ]);
     signal?.throwIfAborted();
     if (parent.destroyed) throw new Error("World template parent was destroyed while loading models");
-    return new WorldTemplateRuntime(parent, plan, template, prepared, assets, ground, leafTemplate, petalTexture);
+    return new WorldTemplateRuntime(
+      parent,
+      plan,
+      template,
+      prepared,
+      assets,
+      ground,
+      leafTemplate,
+      petalTexture,
+      formations
+    );
   }
   private constructor(
     parent: Entity,
@@ -159,11 +172,13 @@ export class WorldTemplateRuntime {
     assets: ReadonlyMap<string, GLTFResource>,
     ground: (x: number, z: number) => number | undefined,
     leafTemplate?: Material,
-    petalTexture?: Texture2D
+    petalTexture?: Texture2D,
+    formations?: readonly RockFormationMesh[]
   ) {
     this.template = template;
     this.geometry = scene.geometry;
     this.focusBounds = scene.focusBounds;
+    this.leafTemplate = leafTemplate;
     this.root = parent.createChild(`World template: ${template.id}`);
     try {
       const [x, y, z] = scene.anchor;
@@ -253,13 +268,21 @@ export class WorldTemplateRuntime {
       }
       const proceduralPlants = WORLD_TEMPLATE_ART[template.id].proceduralPlants;
       if (proceduralPlants?.length) {
+        const rockSurface = formations?.length ? rockFormationGround(plan, formations) : undefined;
+        const rockGround = rockSurface
+          ? (wx: number, wz: number) => {
+              const floor = ground(wx, wz);
+              return floor === undefined ? undefined : rockSurface(wx, wz, floor);
+            }
+          : undefined;
         this.disposeProceduralPlants = mountTemplateProceduralPlants(
           this.root,
           this.anchor,
           ground,
           proceduralPlants,
           plan.parameters.seed,
-          leafTemplate
+          leafTemplate,
+          rockGround
         );
       }
     } catch (error) {
@@ -274,14 +297,40 @@ export class WorldTemplateRuntime {
     ground: (x: number, z: number) => number | undefined,
     formations: readonly RockFormationMesh[]
   ): (() => void) | undefined {
-    if (!compositionSubjectTerraceBox(spatialCompositionParameters(plan.parameters.spatialComposition))) return;
-    const scene = resolveWorldTemplateScene(plan, ground, formations)!;
+    const hasSubjectTerrace = Boolean(
+      compositionSubjectTerraceBox(spatialCompositionParameters(plan.parameters.spatialComposition))
+    );
+    const proceduralPlants = WORLD_TEMPLATE_ART[this.template.id].proceduralPlants;
+    const hasRockPlants = Boolean(proceduralPlants?.some((plant) => plant.onRock));
+    if (!hasSubjectTerrace && !hasRockPlants) return;
+    const scene = hasSubjectTerrace ? resolveWorldTemplateScene(plan, ground, formations) : undefined;
+    const rockSurface = hasRockPlants && formations.length ? rockFormationGround(plan, formations) : undefined;
     return () => {
-      for (const { node, position } of scene.nodes) {
-        const entity = this.groundedNodes.get(node.id);
-        if (entity) entity.transform.position.y = position[1] - this.anchor.y;
+      if (scene) {
+        for (const { node, position } of scene.nodes) {
+          const entity = this.groundedNodes.get(node.id);
+          if (entity) entity.transform.position.y = position[1] - this.anchor.y;
+        }
+        this.focusBounds = scene.focusBounds;
       }
-      this.focusBounds = scene.focusBounds;
+      if (hasRockPlants && proceduralPlants?.length && !this.destroyed) {
+        this.disposeProceduralPlants?.();
+        const rockGround = rockSurface
+          ? (wx: number, wz: number) => {
+              const floor = ground(wx, wz);
+              return floor === undefined ? undefined : rockSurface(wx, wz, floor);
+            }
+          : undefined;
+        this.disposeProceduralPlants = mountTemplateProceduralPlants(
+          this.root,
+          this.anchor,
+          ground,
+          proceduralPlants,
+          plan.parameters.seed,
+          this.leafTemplate,
+          rockGround
+        );
+      }
     };
   }
 
