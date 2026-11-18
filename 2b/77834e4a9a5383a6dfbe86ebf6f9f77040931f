@@ -1,0 +1,42 @@
+packages/modify/tests/vitest.config.mjs
+  s_a71f0ec6cb2ba3::t_a75a4e9affd897 12
+packages/modify/src/native/core/src/Engine.ts
+  s_a71f0ec6cb2ba3::t_6fcfdd93c6b9cd 639
+  s_a71f0ec6cb2ba3::t_f643d43689de9a 1-2
+packages/modify/src/native/core/src/shadow/CascadedShadowCasterPass.ts
+  s_a71f0ec6cb2ba3::t_a75a4e9affd897 158
+packages/modify/build/local-engine.mjs
+  s_a71f0ec6cb2ba3::t_6093f5a0b6ce22 18
+packages/modify/src/native/core/src/shader/ShaderProgram.ts
+  s_a71f0ec6cb2ba3::t_f643d43689de9a 1
+packages/modify/src/native/core/src/shader/state/RasterState.ts
+  s_a71f0ec6cb2ba3::t_f643d43689de9a 2
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  s_a71f0ec6cb2ba3::t_a75a4e9affd897 29
+packages/modify/src/native/rhi-webgl/src/GLTransformFeedbackPrimitive.ts
+  s_a71f0ec6cb2ba3::t_6fcfdd93c6b9cd 1
+  s_a71f0ec6cb2ba3::t_9ea19dc8fe43ee 2-6
+packages/modify/src/native/core/src/shader/state/DepthState.ts
+  s_a71f0ec6cb2ba3::t_f643d43689de9a 2
+packages/rhi-null/src/NullGraphicDevice.ts
+  s_a71f0ec6cb2ba3::t_a75a4e9affd897 22
+packages/modify/src/native/rhi-webgl/src/GLPrimitive.ts
+  s_a71f0ec6cb2ba3::t_6fcfdd93c6b9cd 1
+  s_a71f0ec6cb2ba3::t_159c93431e764f 2-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2b77834e4a9a5383a6dfbe86ebf6f9f77040931f",
+  "prompts": {},
+  "sessions": {
+    "s_a71f0ec6cb2ba3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ed14-9176-7b50-92c9-d23705d25bb5",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
