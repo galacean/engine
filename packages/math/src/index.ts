@@ -18,3 +18,13 @@ export { Color } from "./Color";
 export { Rect } from "./Rect";
 export { SphericalHarmonics3 } from "./SphericalHarmonics3";
 export { Rand } from "./Rand";
+export { createFbm2D, type Fbm2DOptions } from "./Fbm2D";
+export {
+  bakeTerrainHeightfield,
+  compileTerrainFbm,
+  type TerrainFbmBand,
+  type TerrainFbmSource,
+  type TerrainHeightfield,
+  type TerrainHeightfieldGrid,
+  type TerrainHeightSampler
+} from "./TerrainAuthoring";
