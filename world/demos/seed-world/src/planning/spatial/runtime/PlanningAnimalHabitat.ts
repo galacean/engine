@@ -7,6 +7,13 @@ import { planningWhiteboxes } from "@galacean/engine-world-planning/semantic-stu
 
 export type PlanningAnimalMedium = "ground" | "air" | "water";
 
+/** Horizontal range of a template resident, fixed at its individual birth position. */
+export interface AnimalHome extends PlanPoint { radius: number }
+
+export function insideAnimalHome(home: AnimalHome | undefined, x: number, z: number): boolean {
+  return !home || (x - home.x) ** 2 + (z - home.z) ** 2 <= home.radius ** 2;
+}
+
 /** Uniform area sampling around an authored site; the caller validates the complete body on the actual land or water. */
 export function sampleAnimalSpawnDisk(origin: PlanPoint, radius: number, random: () => number): PlanPoint {
   const angle = random() * Math.PI * 2, distance = radius * Math.sqrt(random());
@@ -28,7 +35,7 @@ export interface PlanningAnimalNavigation {
 /** Keep future queries of an unaffected suspended route on the current published habitat. */
 export function liveAnimalRouteQuery(
   read: () => Pick<PlanningAnimalHabitat, "staticRouteQuery">,
-  radius: number, height: number, medium: PlanningAnimalMedium
+  radius: number, height: number, medium: PlanningAnimalMedium, home?: AnimalHome
 ): AnimalRouteQuery {
   let habitat = read(), query = habitat.staticRouteQuery(radius, height, medium);
   const current = () => {
@@ -36,7 +43,8 @@ export function liveAnimalRouteQuery(
     if (habitat !== next) { habitat = next; query = habitat.staticRouteQuery(radius, height, medium); }
     return query;
   };
-  return { canTraverse: (a, b, clearance) => current().canTraverse(a, b, clearance),
+  return { canTraverse: (a, b, clearance) => insideAnimalHome(home, a[0], a[1]) &&
+    insideAnimalHome(home, b[0], b[1]) && current().canTraverse(a, b, clearance),
     obstruction: (a, b, clearance) => current().obstruction(a, b, clearance) };
 }
 

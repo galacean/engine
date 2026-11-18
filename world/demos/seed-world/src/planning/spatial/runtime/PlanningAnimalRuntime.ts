@@ -39,6 +39,8 @@ import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/
 import {
   PlanningAnimalHabitat,
   liveAnimalRouteQuery,
+  insideAnimalHome,
+  type AnimalHome,
   chooseAnimalBirthHabitat,
   sampleAnimalSpawnDisk,
   type PlanningAnimalNavigation,
@@ -76,6 +78,7 @@ interface FoodMemory {
 
 interface Actor {
   birth: AnimalPopulationInstance;
+  home?: AnimalHome;
   asset: ResolvedAnimalAsset;
   footprint: GroundAnimalBody;
   animal?: ConfiguredAnimal;
@@ -178,6 +181,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     }
     config = this.library.resolvePopulationConfig({
       ...config,
+      homeRadius: config.homeRadius ?? templateAnimalPopulation(plan.parameters.worldTemplate?.id)?.homeRadius,
       ...(config.distribution ? { distribution: { ...config.distribution,
         minX: 0, minZ: 0, maxX: plan.parameters.width, maxZ: plan.parameters.depth } } : {}),
       types: config.types.map((type) => ({
@@ -192,6 +196,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       current &&
       // The habitat owns a snapshot: even an in-place host spawn update invalidates birth positions.
       current.habitat.origin.x === plan.spawn.x && current.habitat.origin.z === plan.spawn.z &&
+      current.plan.parameters.worldTemplate?.id === plan.parameters.worldTemplate?.id &&
       ((current.plan === plan && current.navigation === navigation) ||
         (options.preservePopulation &&
           current.plan.parameters.seed === plan.parameters.seed &&
@@ -268,6 +273,8 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
               // Open another body's worth of area after a rejected candidate, up to the adjacent shore.
               const diameter = 2 * animalCollisionRadius(this.library.resolve({ typeId, appearanceId }).config);
               reach = Math.min(Math.max(reach, shoreReach), Math.hypot(reach, diameter * Math.sqrt(attempt)));
+            } else if (preference.medium === "ground" && attempt > 0) {
+              reach = Math.min(localSite.radius * 2, localSite.radius + Math.sqrt(attempt));
             }
             return sampleAnimalSpawnDisk(localSite.center, reach, random);
           }
@@ -278,13 +285,16 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
           }
           return habitat.spawnCandidate(position, preference.medium, preference.shore, random);
         },
-        samplePosition: ({ id, typeId, appearanceId, position: point }) => {
+        samplePosition: ({ id, typeId, appearanceId, position: point, attempt }) => {
           const asset = this.library.resolve({ typeId, appearanceId });
           const radius = animalCollisionRadius(asset.config);
           const height = (asset.config.bounds.max[1] - asset.config.bounds.min[1]) * asset.config.scale;
           const medium = birthHabitats.get(id)!.medium;
-          const position = habitat.samplePosition(point, radius, occupied, height, medium);
-          if (position) occupied.push({ ...position, radius });
+          // Leave turning room on both sides of the bank, including swimmers starting near shore.
+          // Late attempts still admit a physically supported birth in a narrow clearing.
+          const clearance = wildlife && medium !== "air" && attempt < 256 ? radius * 1.5 : radius;
+          const position = habitat.samplePosition(point, clearance, occupied, height, medium);
+          if (position) occupied.push({ ...position, radius: clearance });
           return position && { ...position, medium };
         }
       });
@@ -480,6 +490,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     };
     const actor: Actor = {
       birth,
+      home: p.config.homeRadius === undefined ? undefined : { x: birth.position.x, z: birth.position.z, radius: p.config.homeRadius },
       asset,
       footprint,
       state: "unloaded",
@@ -567,15 +578,14 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
   /** Pick a nearby visible envelope along a normalized world ray, rejecting occluded or distant hits. */
   shoo(ray: Readonly<{ origin: Readonly<{ x: number; y: number; z: number }>; direction: Readonly<{ x: number; y: number; z: number }> }>,
     occluded: (distance: number) => boolean = () => false): boolean {
-    const p = this.population, player = this.interactions.player?.();
-    if (!p || !player || this.interaction.clickDistance === 0) return false;
+    const p = this.population, reach = this.interaction.clickDistance;
+    if (!p || reach === 0) return false;
     let chosen: Actor | undefined, nearest = Infinity;
     for (const actor of p.active) {
       const animal = actor.animal;
-      if (!animal?.visible || Math.hypot(animal.position.x - player.x, animal.position.z - player.z,
-        animal.position.y - (player.y ?? animal.position.y)) > this.interaction.clickDistance) continue;
+      if (!animal?.visible) continue;
       const [min, max] = animal.bounds;
-      let near = 0, far = Infinity;
+      let near = 0, far = reach;
       for (let axis = 0; axis < 3; axis++) {
         const key = (["x", "y", "z"] as const)[axis], direction = ray.direction[key], origin = ray.origin[key];
         if (Math.abs(direction) < 1e-8) { if (origin < min[axis] || origin > max[axis]) far = -1; }
@@ -587,7 +597,8 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       if (near <= far && near < nearest) { nearest = near; chosen = actor; }
     }
     if (!chosen || occluded(Math.max(0, nearest - 0.05))) return false;
-    const accepted = chosen.animal!.behavior.notify({ id: `shoo:${++this.requestId}`, type: "shoo", source: [player.x, player.z] });
+    const source = this.interactions.player?.() ?? ray.origin;
+    const accepted = chosen.animal!.behavior.notify({ id: `shoo:${++this.requestId}`, type: "shoo", source: [source.x, source.z] });
     if (accepted) {
       chosen.nextApproach = p.system.time + this.interaction.approachCooldown;
       if (chosen.food) {
@@ -659,10 +670,14 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       const random = randomStream(actor.birth.seed ^ 0x51ed270b);
       const area = p.config.distribution;
       for (let attempt = 0; attempt < 256; attempt++) {
-        const angle = random() * Math.PI * 2, r = Math.sqrt(random()) * p.config.spawnRadius;
-        const candidate = area ? { x: area.minX + random() * (area.maxX - area.minX), z: area.minZ + random() * (area.maxZ - area.minZ) }
-          : { x: p.habitat.origin.x + Math.cos(angle) * r, z: p.habitat.origin.z + Math.sin(angle) * r };
-        const point = p.habitat.spawnCandidate(candidate, medium, false, random);
+        let point;
+        if (actor.home) point = sampleAnimalSpawnDisk(actor.home, actor.home.radius, random);
+        else {
+          const angle = random() * Math.PI * 2, r = Math.sqrt(random()) * p.config.spawnRadius;
+          const candidate = area ? { x: area.minX + random() * (area.maxX - area.minX), z: area.minZ + random() * (area.maxZ - area.minZ) }
+            : { x: p.habitat.origin.x + Math.cos(angle) * r, z: p.habitat.origin.z + Math.sin(angle) * r };
+          point = p.habitat.spawnCandidate(candidate, medium, false, random);
+        }
         const safe = point && p.habitat.samplePosition(point, radius, occupied, height, medium);
         if (!safe) continue;
         if (actor.animal) {
@@ -727,11 +742,12 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
         p.system,
         [actor.x, actor.z],
         actor.birth.medium ? { ...profile, preferredMedium: actor.birth.medium } : profile,
-        (query, event) => this.resolveTarget(p.habitat, animal, query, event, random, radius, height, food),
+        (query, event) => this.resolveTarget(p.habitat, animal, query, event, random, radius, height, food, actor.home),
         p.crowd,
         actor.birth.heading,
         {
           random: randomStream(actor.birth.seed),
+          tightTurns: !!actor.home,
           resolveMaterial: this.resolveMaterial,
           distantUpdateSeconds: DISTANT_ANIMAL_UPDATE_SECONDS,
           interactionArrivalRadius: () => food.approaching?.appearance === "cart" && food.cart?.entering ? 0.06 : undefined,
@@ -767,12 +783,12 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
             });
           },
           ground: {
-            flightBounds: p.habitat.flightBounds,
+            flightBounds: actor.home ?? p.habitat.flightBounds,
             heightAt: (x, z, medium) => p.habitat.heightAt(x, z, medium, height),
-            staticRouteQuery: (r, medium) => liveAnimalRouteQuery(() => p.habitat, r, height, medium),
-            canTraverseAir: (from, to, r, h) => p.habitat.canTraverseAir(from, to, r, h),
+            staticRouteQuery: (r, medium) => liveAnimalRouteQuery(() => p.habitat, r, height, medium, actor.home),
+            canTraverseAir: (from, to, r, h) => insideAnimalHome(actor.home, to.x, to.z) && p.habitat.canTraverseAir(from, to, r, h),
             canTraverse: (from, to, r, medium) => {
-              if (!p.habitat.canTraverse(from, to, r, height, medium)) return false;
+              if (!insideAnimalHome(actor.home, to.x, to.z) || !p.habitat.canTraverse(from, to, r, height, medium)) return false;
               if (medium === "air") return true;
               // Validate the existing support without cancelling the escape move before it starts.
               // Swept movement still rejects deeper penetration; feeding endpoints are checked separately.
@@ -803,15 +819,16 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     random: () => number,
     radius: number,
     height: number,
-    food: FoodMemory
+    food: FoodMemory,
+    home?: AnimalHome
   ): readonly [number, number] | null {
     if (!animal) return null;
     if (query.query !== AnimalQuery.Food && query.query !== AnimalQuery.FoodAtMouth) food.approaching = undefined;
     const from = animal.position;
     const medium = (query.params?.medium ?? animal.medium ?? "ground") as PlanningAnimalMedium;
     const arrivalMedium = query.params?.arrivalMedium as "ground" | "water" | undefined;
-    const canArrive = (x: number, z: number) => !arrivalMedium ||
-      (habitat.canTraverse({ x, z }, { x, z }, radius, height, arrivalMedium) && animal.canOccupy(x, z, arrivalMedium));
+    const canArrive = (x: number, z: number) => insideAnimalHome(home, x, z) && (!arrivalMedium ||
+      (habitat.canTraverse({ x, z }, { x, z }, radius, height, arrivalMedium) && animal.canOccupy(x, z, arrivalMedium)));
     if (!["ground", "air", "water"].includes(medium)) return null;
     if (query.query === AnimalQuery.MediumAvailable)
       return habitat.canTraverse(from, from, radius, height, medium) ? [from.x, from.z] : null;
@@ -829,7 +846,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     }
     if (query.query === AnimalQuery.Food || query.query === AnimalQuery.FoodAtMouth) {
       if (medium !== "ground") return null;
-      const farm = this.farmTarget(animal, food);
+      const farm = this.farmTarget(animal, food, home);
       if (!farm) return null;
       const inStance = this.inFoodStance(animal, food, farm);
       if (query.query === AnimalQuery.FoodAtMouth)
@@ -846,7 +863,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       // the executable departure arc and keeps probing ahead while the flight advances.
       const source = query.query === AnimalQuery.Flee ? event?.source : undefined;
       for (let attempt = 0; attempt < 32; attempt++) {
-        const candidate = habitat.flightCandidate(arrivalMedium, random);
+        const candidate = home ? sampleAnimalSpawnDisk(home, home.radius, random) : habitat.flightCandidate(arrivalMedium, random);
         if (!candidate || !canArrive(candidate.x, candidate.z)) continue;
         if (source && (candidate.x - from.x) * (from.x - source[0]) +
           (candidate.z - from.z) * (from.z - source[1]) < 0) continue;
@@ -863,19 +880,47 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     const habitats = query.params?.habitats;
     const preferences = Array.isArray(habitats) ? (habitats as { habitat: string; weight: number }[]) : [];
     const maximumWeight = preferences.reduce((max, entry) => Math.max(max, entry.weight), 0);
+    const fleeing = query.query === AnimalQuery.Flee && !!source;
+    const chooseAnotherRoute = fleeing && query.params?.headingSpread === Math.PI * 2;
+    const detour = fleeing && query.params?.escapeDetour === true;
+    const lateralSide = fleeing ? Math.sign(Math.sin(animal.direction - heading)) || 1 : 1;
+    // If the bank, neighbours or the home boundary close the outward sector, test
+    // short exit legs all around the animal. Start near its current forward heading.
+    const detourHeading = detour ? animal.direction + (random() - 0.5) * Math.PI / 2 : 0;
+    const localWander = home && query.query === AnimalQuery.Wander;
     for (let attempt = 0; attempt < 16; attempt++) {
-      const spread = typeof query.params?.headingSpread === "number" ? query.params.headingSpread :
+      let spread = typeof query.params?.headingSpread === "number" ? query.params.headingSpread :
         query.query === AnimalQuery.Flee ? Math.PI / 3 : Math.PI;
-      const angle = heading + (random() - 0.5) * (attempt < 8 ? spread : 2 * Math.PI);
+      if (fleeing) spread = attempt < 4 ? Math.min(Math.PI, spread) : Math.PI * 1.25;
+      else if (attempt >= 8) spread = 2 * Math.PI;
+      const alongBank = fleeing && attempt >= 4 && attempt < 12;
+      const sector = attempt % 8;
+      const angle = detour
+        ? detourHeading + lateralSide * (sector % 2 ? 1 : -1) * Math.ceil(sector / 2) * Math.PI / 4
+        : alongBank
+          ? heading + lateralSide * (attempt % 4 === 3 ? -1 : 1) * Math.PI * (0.43 + 0.08 * random())
+          : heading + (random() - 0.5) * spread;
       const configuredDistance = query.params?.distance;
-      const distance = (
+      let distance =
         typeof configuredDistance === "number" && Number.isFinite(configuredDistance) && configuredDistance > 0
           ? configuredDistance
-          : 3 + random() * 7) * (attempt >= 8 ? 0.3 : 1);
+          : 3 + random() * 7;
+      // Sample beyond occupied resting spots, then try a shorter safe leg along the shore.
+      if (detour) distance = Math.max(1.2, radius * (attempt < 8 ? 2 : 0.75));
+      else if (chooseAnotherRoute && attempt < 4)
+        distance = attempt % 2 ? distance * (0.5 + random() * 2) : Math.max(1.2, radius * 0.45);
+      else if (fleeing && attempt >= 4 && attempt < 12) distance *= 1 + random() * 1.5;
+      else if (fleeing && attempt >= 14) distance = Math.max(1.2, radius * 0.45);
+      else if (attempt >= 8) distance *= 0.3;
+      if (localWander) {
+        // A short alternative gives large bodies a reachable leg between neighbours.
+        // Vary length even when the first endpoint is clear but the route to it failed.
+        distance = Math.min(home.radius * 0.45, distance) * (0.6 + random() * 0.8);
+      }
       const x = from.x + Math.sin(angle) * distance,
         z = from.z + Math.cos(angle) * distance;
-      if (query.query === AnimalQuery.Flee && source &&
-          (x - from.x) * (from.x - source[0]) + (z - from.z) * (from.z - source[1]) <= 0) continue;
+      if (fleeing && !detour && (x - source[0]) ** 2 + (z - source[1]) ** 2 <=
+          (from.x - source[0]) ** 2 + (from.z - source[1]) ** 2) continue;
       if (!canArrive(x, z) || !animal.canOccupy(x, z, medium) || !habitat.canTraverse({ x, z }, { x, z }, radius, height, medium)) continue;
       const obstacles = this.interactions.food?.obstacles;
       if (medium !== "air" && obstacles?.length) {
@@ -895,12 +940,13 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     return fallback;
   }
 
-  private farmTarget(animal: ConfiguredAnimal, memory: FoodMemory): PlanningAnimalFoodTarget | null {
+  private farmTarget(animal: ConfiguredAnimal, memory: FoodMemory, home?: AnimalHome): PlanningAnimalFoodTarget | null {
     const source = this.interactions.food;
     if (!source || !planningAnimalCanEat(animal.behavior.profile) || memory.pending || !this.population || this.interaction.biteDistance === 0) return null;
     const height = (animal.config.bounds.max[1] - animal.config.bounds.min[1]) * animal.config.scale;
     const cartPlans = new Map<string, PlanningAnimalCartApproach>();
     const query = { minGrowth: this.interaction.minimumCropMaturity, accept: (target: PlanningAnimalFoodTarget) => {
+      if (!insideAnimalHome(home, target.x, target.z)) return false;
       if (target.appearance === "cart") {
         const approach = planningAnimalCartApproach(target, animal.position, animalCollisionRadius(animal.config),
           height * this.interaction.feedingReachHeightRatio,
@@ -1129,6 +1175,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       range: p
         ? {
             activationDistance: p.config.activationDistance,
+            homeRadius: p.config.homeRadius,
             simulationDistance: Math.max(p.config.activationDistance, ...actors.map(actor => actor.wakeDistance)),
             ...(p.config.distribution ? { worldWidth: p.config.distribution.maxX - p.config.distribution.minX }
               : { spawnRadius: p.config.spawnRadius, roamRadius: p.config.roamRadius })

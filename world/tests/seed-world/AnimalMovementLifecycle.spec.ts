@@ -142,8 +142,8 @@ function fixture(medium: "ground" | "air" = "ground", cadence = 0.1, millisecond
     block() {
       blocked = true;
     },
-    removeLiveSupport() {
-      liveBlocked = true;
+    removeLiveSupport(blocked = true) {
+      liveBlocked = blocked;
     },
     blockPlanning(blocked: boolean) {
       planningBlocked = blocked;
@@ -282,6 +282,21 @@ describe("movement intent and world revalidation", () => {
     f.advance(80);
     expect(check.completed).toBe(true);
     expect(f.animal.behavior.receipt("move")?.status).toBe("running");
+  });
+
+  it("resumes an interrupted distant flight and finishes the original landing", () => {
+    const f = fixture("air");
+    f.animal.execute(f.move("flight", 20));
+    f.advance(90);
+    expect(f.animal.position.y).toBeGreaterThan(0.5);
+    f.removeLiveSupport();
+    f.advance(30);
+    expect(f.animal.behavior.receipt("flight")?.status).toBe("running");
+    f.removeLiveSupport(false);
+    for (let i = 0; i < 1800 && f.animal.behavior.receipt("flight")?.status === "running"; i++) f.advance(1);
+    expect(f.animal.behavior.receipt("flight")?.status).toBe("completed");
+    expect(f.animal.position.z).toBeCloseTo(20, 0);
+    expect(f.animal.position.y).toBeCloseTo(0);
   });
 
   it("accepts a newly validated flight to the same goal after a failed world check", () => {

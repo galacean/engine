@@ -34,6 +34,7 @@ import {
 import { PLANNING_VISUAL_AUTHORING, visualAuthoringProperties } from "../PlanningVisualAuthoring.ts";
 import {
   WATER_COMPONENT,
+  activePlanningWaterBodies,
   planningWaterFrame,
   transformPlanningWater,
   planningWaterSourceId
@@ -511,7 +512,7 @@ export function writePlanningProjectSource(draft: RuntimeProjectEdit, path: stri
     scene.list().flatMap((entity) => (entity.children ?? []).map((child) => [child, entity.id] as const))
   );
   const waterOwners = new Set<string>();
-  for (const body of scene.queryComponents({ type: WATER_COMPONENT })) {
+  for (const body of activePlanningWaterBodies(scene)) {
     const id = planningWaterSourceId(scene, body.entityId);
     if (compositionWaterKind(id)) {
       const identity = scene.queryComponents({ entityId: body.entityId, type: PLANNING_ENTITY_COMPONENT })[0];
@@ -536,7 +537,7 @@ export function writePlanningProjectSource(draft: RuntimeProjectEdit, path: stri
         ? (archive.props.metadata as { seed: string }).seed
         : undefined;
   };
-  const synchronize = (index: number, id: string) => {
+  const synchronize = (index: number, id: string, archived = false) => {
     const node = desired.entities[index];
     if (scene.readEntity(id).name !== node.name) scene.update(id, { name: node.name });
     const remaining = new Map(
@@ -599,8 +600,8 @@ export function writePlanningProjectSource(draft: RuntimeProjectEdit, path: stri
       remaining.delete(component.type);
     }
     for (const record of remaining.values()) {
-      // Component removal belongs to the native Water edit transaction.
-      if (record.type === WATER_COMPONENT) continue;
+      // Active bodies belong to the native Water edit transaction. Archives keep parameter data only.
+      if (record.type === WATER_COMPONENT && !archived) continue;
       scene.removeComponent(record.id);
     }
     const children = new Map(
@@ -617,7 +618,8 @@ export function writePlanningProjectSource(draft: RuntimeProjectEdit, path: stri
     for (const child of node.children ?? []) {
       const identity = key(child),
         current = children.get(identity as string);
-      synchronize(child, current ?? scene.create({ name: desired.entities[child].name, parentEntityId: id }).id);
+      const inArchive = archived || desired.entities[child].components.some(i => desired.components[i].type === "PlanningSeedArchiveAuthoring");
+      synchronize(child, current ?? scene.create({ name: desired.entities[child].name, parentEntityId: id }).id, inArchive);
       children.delete(identity as string);
     }
     for (const [identity, child] of children)

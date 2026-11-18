@@ -59,6 +59,18 @@ function runtime(store: PlanningAnimalProjectAuthoring) {
 }
 
 describe("animal initialization ranges", () => {
+  it("inherits a template home radius and restores an authored override from saved values", () => {
+    const doc = document({});
+    doc.entities.world.components.worldTemplate = { values: { id: "titan-wasteland" } };
+    expect(readAnimalPopulationConfig(doc).homeRadius).toBe(32);
+    doc.entities.world.components.animals.values.homeRadius = 18;
+    expect(readAnimalPopulationConfig(JSON.parse(JSON.stringify(doc))).homeRadius).toBe(18);
+    doc.entities.world.components.animals.values.homeRadius = 0;
+    expect(readAnimalPopulationConfig(doc).homeRadius).toBe(32);
+    delete doc.entities.world.components.worldTemplate;
+    expect(readAnimalPopulationConfig(doc).homeRadius).toBeUndefined();
+  });
+
   it("allows no birds while retaining terrestrial population and unchanged defaults", () => {
     const config = readAnimalPopulationConfig(document({ "birdCount.min": 0, "birdCount.max": 0 }));
     const birds = new Set(SEED_ANIMAL_TYPES.filter(type => type.canFly).map(type => type.typeId));

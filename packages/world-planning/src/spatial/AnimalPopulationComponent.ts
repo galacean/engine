@@ -165,6 +165,7 @@ export const ANIMAL_POPULATION_COMPONENT: PlanningComponentDefinition = {
       96,
       "围绕发布的主角出生点，单位米；仅用于初始化偏好，不限制活动范围。附近候选耗尽后回退全图合法栖息地。"
     ),
+    number("homeRadius", "出生点活动半径", 0, "每只动物距自身出生点的最大水平距离。0 使用模板默认范围。"),
     number(
       "activationDistance",
       "显示距离",
@@ -403,6 +404,7 @@ export function readAnimalPopulationConfig(document: PlanningDocument): AnimalPo
     ),
     spawnRadius: width * Math.SQRT2,
     roamRadius: width * Math.SQRT2,
+    homeRadius: Number(values.homeRadius) || wildlife?.homeRadius,
     activationDistance: Number(values.activationDistance),
     distribution: {
       minX: 0,

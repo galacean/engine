@@ -18,6 +18,8 @@ export interface AnimalSteeringOptions {
   continuous?: boolean;
   /** Respond to a threat with a short acceleration ramp while retaining support and traffic limits. */
   urgent?: boolean;
+  /** Use short forward strides when turning within a confined habitat. */
+  tightTurns?: boolean;
 }
 
 /**
@@ -52,16 +54,23 @@ export function advanceGroundAnimalMotion(
   const desired = Math.atan2(dx, dz);
   const error = Math.atan2(Math.sin(desired - motion.heading), Math.cos(desired - motion.heading));
   // Body length sets curvature; the absolute cap and ramp prevent small/fast gaits from whipping around.
-  const nominalAngularSpeed = Math.min(steering?.maxAngularSpeed ?? 0.3, speed / Math.max(0.1, bodyLength * 1.25));
+  // A startled animal facing away from its escape can take short forward turning
+  // strides before accelerating. A full-speed turning circle may not fit at departure.
+  const tightTurn =
+    (steering?.urgent || steering?.tightTurns) && Math.abs(error) > Math.PI / 4 && motion.speed < speed * 0.6;
+  const nominalAngularSpeed = Math.min(
+    steering?.maxAngularSpeed ?? 0.3,
+    speed / Math.max(0.1, bodyLength * (tightTurn ? 0.4 : 1.25))
+  );
   const angularAcceleration = nominalAngularSpeed / (steering?.urgent ? 0.15 : 1);
-  const turnRadius = Math.max(0.1, bodyLength * 0.75);
+  const turnRadius = Math.max(0.1, bodyLength * (tightTurn ? 0.12 : 0.75));
   const alignment = Math.max(0, 1 - Math.abs(error) / (Math.PI / 6));
   const acceleration = Math.max(0.05, speed / (steering?.urgent ? 0.15 : 0.6));
   // Ordinary turns brake to a body-sized stepping arc; escape steering combines
   // a higher yaw limit with a faster moving arc. Neither translates sideways.
   const turningSpeed = Math.min(
     speed,
-    Math.max(speed * (steering?.turnSpeedRatio ?? 0), nominalAngularSpeed * turnRadius)
+    Math.max(tightTurn ? 0 : speed * (steering?.turnSpeedRatio ?? 0), nominalAngularSpeed * turnRadius)
   );
   const desiredSpeed = Math.min(
     speedLimit,

@@ -15,7 +15,7 @@ export const DEFAULT_ANIMAL_INTERACTION: Readonly<AnimalInteractionConfig> = Obj
   approachDistance: 3,
   approachSpeed: 1.8,
   approachCooldown: 5,
-  clickDistance: 5,
+  clickDistance: 160,
   biteDistance: 1.5,
   minimumCropMaturity: 0,
   feedingSeconds: 10,

@@ -190,7 +190,7 @@ export class PlanningRockFormation extends VisualParameterAuthoring {
   declare color?: AuthoredColor;
 }
 export class PlanningSeedArchiveAuthoring extends Script {
-  declare metadata: PlanningSeedArchiveMetadata;
+  metadata: PlanningSeedArchiveMetadata = { seed: "", edits: {} };
 }
 
 const nativeVisualClasses = {
@@ -204,7 +204,7 @@ const visualRegistrations = PLANNING_VISUAL_AUTHORING.map(descriptor => ({ descr
 
 export class PlanningProjectAuthoring extends Script {
   declare metadata: PlanningProjectMetadata;
-  declare hasSeedArchives?: boolean;
+  hasSeedArchives = false;
   private session?: PlanningSession;
   private publish?: () => Promise<void>;
   /** Hosts may await native resource readiness after bind; author values are available synchronously. */
@@ -296,10 +296,12 @@ function readEntities(parent: Entity): Record<string, SpatialEntity> {
   return entities;
 }
 function synchronizeEntities(parent: Entity, entities: Record<string, SpatialEntity>): void {
+  const archived = !!parent.getComponent(PlanningSeedArchiveAuthoring);
   const remaining = new Map(Object.entries(entities));
   const synchronize = (child: Entity, component: PlanningEntityAuthoring, authoring: SpatialEntity) => {
     child.getComponent(RetiredVisualAuthoring)?.destroy();
-    const { identity, visual } = splitPlanningEntity(authoring);
+    const { identity, visual } = splitPlanningEntity(authoring, archived);
+    if (archived) child.getComponent(WaterBodyComponent)?.destroy();
     component.authoring = undefined;
     component.planningId = identity.planningId;
     component.origin = identity.origin;

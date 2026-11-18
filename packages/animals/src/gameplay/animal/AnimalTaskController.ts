@@ -64,6 +64,8 @@ export interface AnimalTaskProfile {
 /** Host owns rendering, spatial queries and movement; all deadlines use the shared simulation clock. */
 export interface AnimalTaskHost {
   readonly time: number;
+  /** Live world position used to measure separation across successive escape legs. */
+  readonly position?: Readonly<{ x: number; z: number }>;
   /** Changes when a host publishes new support or obstacle geometry. */
   readonly planningRevision?: number;
   /** Commit pending execution to the shared time before replacing or cancelling its task. */
@@ -98,6 +100,8 @@ export interface AnimalTaskHost {
   cancelInteraction?(query: AnimalTargetQuery): void;
   /** Local traffic blockage: surface motion may wait; airborne motion must replan without losing its gait. */
   movementBlocked?(): boolean;
+  /** Select the steering limits used by both route prediction and movement. */
+  setMovementUrgency?(urgent: boolean): void;
   /** Optional shared CPU scheduler. Completion is separate from suspension and unreachable results. */
   plan?<T>(task: AnimalPlanningTask<T>, finish: (result: T) => void): () => void;
   planMoveTo?(
@@ -638,6 +642,7 @@ export class AnimalTaskController {
     let progressDeadlineArmed = false;
     let needsTarget = false;
     let nextTargetAttempt = 0;
+    let escapeRetryDelay = 0.25;
     let blockedReplanArmed = false;
     let status: BehaviorStatus = "running";
     let active = true;
@@ -651,6 +656,12 @@ export class AnimalTaskController {
     const arrivalMedium = params.arrivalMedium as "ground" | "water" | undefined;
     const flying = params.medium === "air";
     const targetQuery = this.query(params, owner)?.query;
+    const groundEscape = !flying && targetQuery === "flee" && params.urgent === true;
+    const threat = groundEscape && owner && "source" in owner ? owner.source : undefined;
+    const position = this.host.position;
+    const distanceFromThreat =
+      threat && position ? () => Math.hypot(position.x - threat[0], position.z - threat[1]) : undefined;
+    const escapeDistance = distanceFromThreat ? distanceFromThreat() + 3 : 0;
     const progressSeconds =
       !flying && (targetQuery === "wander" || targetQuery === "flee")
         ? Number(params.replanBlockedSeconds ?? params.blockedReplanSeconds ?? 0)
@@ -692,27 +703,45 @@ export class AnimalTaskController {
           const fixedPoint = query && ["point", "position"].includes(query.query);
           // Small forward heading changes keep an ordinary wander leg out of the
           // body-sized reversal gait. Widen only after bounded forward attempts fail.
+          const detour = threat && !fallback && (attempt >= 4 || (waitingForTraffic && attempt < 2));
           const spread =
             query?.params?.headingSpread ??
             (freeWander
               ? attempt < 4
                 ? Math.PI / 6
                 : Math.PI * 2
-              : attempt > 0 && !fixedPoint
+              : (attempt > 0 || detour) && !fixedPoint
                 ? Math.PI * 2
                 : undefined);
           const resolved = controller.resolve(
             query && spread !== undefined
-              ? { ...params, target: { ...query, params: { ...query.params, headingSpread: spread } } }
+              ? {
+                  ...params,
+                  target: {
+                    ...query,
+                    params: {
+                      ...query.params,
+                      headingSpread: spread,
+                      ...(detour ? { escapeDetour: true } : {})
+                    }
+                  }
+                }
               : params,
             owner
           );
           const candidate = resolved ? ([resolved[0], resolved[1]] as const) : null;
           if (!candidate) {
+            if (groundEscape && threat && attempt < 4 && !fallback) {
+              // Direct escape has no landing room. Try a sideways leg before
+              // returning the action to its bounded retry timer.
+              attempt = 3;
+              continue;
+            }
             if (!freeWander || query?.params?.headingSpread !== undefined || attempt >= 4)
               return requirePreferred ? null : fallback;
             continue;
           }
+          if (groundEscape && controller.host.isAtTarget?.(candidate)) continue;
           if (yield* canReach(candidate)) {
             if (arrivalMedium || params.arrivalTarget || controller.host.prefersMoveTo?.(candidate, speed) !== false)
               return candidate;
@@ -733,6 +762,7 @@ export class AnimalTaskController {
     ) => {
       if (planning || !active) return;
       planning = true;
+      this.host.setMovementUrgency?.(params.urgent === true);
       const task = (function* (controller: AnimalTaskController): AnimalPlanningTask<readonly [number, number] | null> {
         while (active) {
           const revision = controller.host.planningRevision;
@@ -798,7 +828,8 @@ export class AnimalTaskController {
           // congested fallback. Yield until the next autonomous choice instead.
           resolveMovementTarget((alternative) => {
             if (!alternative) {
-              finish(false);
+              if (groundEscape) retry();
+              else finish(false);
               return;
             }
             target = alternative;
@@ -834,6 +865,10 @@ export class AnimalTaskController {
     const retry = () => {
       needsTarget = true;
       cancelRetry();
+      if (groundEscape) {
+        nextTargetAttempt = Math.max(nextTargetAttempt, this.host.time + escapeRetryDelay);
+        escapeRetryDelay = Math.min(1.5, escapeRetryDelay * 2);
+      }
       cancelRetry = this.host.schedule(Math.max(0, nextTargetAttempt - this.host.time), wake);
     };
     const startMovement = () => {
@@ -853,7 +888,11 @@ export class AnimalTaskController {
             cancelMove();
             nextTargetAttempt = Math.max(nextTargetAttempt, this.host.time + 0.25);
             retry();
-          } else if (!success && flying) retry();
+          } else if (success && distanceFromThreat && distanceFromThreat() < escapeDistance) {
+            // A short leg can get around another animal or along a bank. Continue
+            // away from the original click until there is a visible separation.
+            retry();
+          } else if (!success && (flying || groundEscape)) retry();
           else finish(success);
         },
         arrivalMedium
@@ -867,10 +906,35 @@ export class AnimalTaskController {
       resolveMovementTarget((alternative) => {
         if (alternative) {
           target = alternative;
+          escapeRetryDelay = 0.25;
           needsTarget = false;
-          startMovement();
+          if (groundEscape && !movementStarted) nextCycle();
+          else startMovement();
         } else if (params.arrivalTarget && !flying) finish(false);
         else retry();
+      });
+    };
+    const replanSeconds = Number(params.replanBlockedSeconds ?? 0);
+    const armBlockedDeadline = () => {
+      const delay = replanSeconds || Number(params.blockedReplanSeconds ?? 0);
+      if (!active || !waitingForTraffic || blockedReplanArmed || !(delay > 0)) return;
+      blockedReplanArmed = true;
+      cancelBlocked = this.host.schedule(delay, () => {
+        blockedReplanArmed = false;
+        if (!active || !waitingForTraffic) return;
+        if (!replanSeconds) {
+          finish(!arrivalMedium && (!params.arrivalTarget || interactionReached()));
+          return;
+        }
+        // The idle clip can last many seconds. Keep one bounded retry while traffic
+        // blocks departure, including when an earlier planning job is still pending.
+        armBlockedDeadline();
+        resolveMovementTarget((alternative) => {
+          if (alternative) {
+            target = alternative;
+            startMovement();
+          }
+        });
       });
     };
     // A goal can outlive a clip. Each completed clip returns to the tree action for
@@ -892,28 +956,8 @@ export class AnimalTaskController {
         cancelProgress();
         progressDeadlineArmed = false;
       }
-      const replanSeconds = Number(params.replanBlockedSeconds ?? 0);
-      if (waitingForTraffic && !blockedReplanArmed && (replanSeconds > 0 || Number(params.blockedReplanSeconds) > 0)) {
-        blockedReplanArmed = true;
-        // Autonomous goals may yield a congested destination; semantic escape
-        // may replan within the same task. Exact-position commands retain their goal.
-        cancelBlocked = this.host.schedule(replanSeconds || Number(params.blockedReplanSeconds), () => {
-          if (!active) return;
-          if (!replanSeconds) {
-            finish(!arrivalMedium && (!params.arrivalTarget || interactionReached()));
-            return;
-          }
-          // Semantic escape retains its command/priority while choosing another
-          // reachable escape point. Exact-position commands never enable this policy.
-          resolveMovementTarget((alternative) => {
-            if (alternative) {
-              target = alternative;
-              startMovement();
-            }
-            blockedReplanArmed = false;
-          });
-        });
-      } else if (!waitingForTraffic) {
+      if (waitingForTraffic) armBlockedDeadline();
+      else {
         cancelBlocked();
         blockedReplanArmed = false;
       }
@@ -969,7 +1013,7 @@ export class AnimalTaskController {
         }
         resolveMovementTarget((resolved) => {
           initializing = false;
-          if (!resolved && !(flying && params.resumeLanding && this.medium === "air")) {
+          if (!resolved && !groundEscape && !(flying && params.resumeLanding && this.medium === "air")) {
             active = false;
             status = "failure";
             return;
@@ -987,7 +1031,7 @@ export class AnimalTaskController {
             this.paceChanged = updatePace;
             updatePace(false);
           }
-          nextCycle();
+          if (target || !groundEscape) nextCycle();
           // Flights and interaction approaches keep their bound goal until arrival or invalidation.
           const timeout = params.timeoutSeconds ?? (params.medium === "air" || params.arrivalTarget ? undefined : 60);
           if (active && timeout !== undefined) cancelTimeout = this.host.schedule(Number(timeout), () => finish(false));
@@ -1002,6 +1046,7 @@ export class AnimalTaskController {
         }
         if (active && (needsTarget || (flying && (this.host.movementNeedsReplan?.() || this.host.movementBlocked?.()))))
           replan();
+        if (groundEscape && needsTarget && !movementStarted) return status;
         if (active && params.guardTarget) {
           const currentTarget = this.resolve(params, owner);
           if (!currentTarget) finish(false);

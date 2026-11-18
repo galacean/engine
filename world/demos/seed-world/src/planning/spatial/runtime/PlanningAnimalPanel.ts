@@ -34,7 +34,7 @@ export interface PlanningAnimalPanelSnapshot {
   sharedResources: number;
   fireflies?: { visible: number; visibility: number; maximumCount: number };
   origin: { x: number; z: number } | null;
-  range: { spawnRadius?: number; roamRadius?: number; activationDistance: number; simulationDistance?: number; worldWidth?: number } | null;
+  range: { spawnRadius?: number; roamRadius?: number; homeRadius?: number; activationDistance: number; simulationDistance?: number; worldWidth?: number } | null;
   errors: readonly string[];
   animals: readonly PlanningAnimalPanelInstance[];
 }
@@ -107,7 +107,7 @@ export class PlanningAnimalPanel {
       settings,
       "范围规则"
     )(
-      "启用开关立即生效；下方数值修改后点击「应用分布参数」一起生效。\n在全图按噪声与水陆栖息地生成；动物可在全图合法区域活动。\n物种数先按 seed 抽取，每种数量再独立抽取；模型和外观变体不重复计为物种。所有动物统一在模拟圈内预加载和运动，显示圈外隐藏；模拟圈外已加载动物共用同一行为树和时钟，按需决策、粗步更新位置；不计算骨骼和动态避让，返回缓冲区提前恢复。未加载动物只保留分布信息。"
+      "启用开关立即生效；下方数值修改后点击「应用分布参数」一起生效。\n出生点活动半径按每只动物自己的出生点计算，填 0 使用模板默认范围。\n物种数先按 seed 抽取，每种数量再独立抽取；模型和外观变体不重复计为物种。所有动物统一在模拟圈内预加载和运动，显示圈外隐藏；模拟圈外已加载动物共用同一行为树和时钟，按需决策、粗步更新位置；不计算骨骼和动态避让，返回缓冲区提前恢复。未加载动物只保留分布信息。"
     );
     for (const field of ANIMAL_POPULATION_COMPONENT.fields.filter(
       (field) => field.key !== "enabled" && (!field.key.includes(".") || /^(species|birdCount)\.(min|max)$/.test(field.key))
@@ -167,7 +167,9 @@ export class PlanningAnimalPanel {
     );
     this.writeRange(
       snapshot.origin && snapshot.range
-        ? `出生与活动：全图 ${snapshot.range.worldWidth ?? "—"} 米\n显示距离 ${snapshot.range.activationDistance} 米 · 完整模拟 ${snapshot.range.simulationDistance ?? snapshot.range.activationDistance} 米`
+        ? (snapshot.range.homeRadius ? `每只动物距自身出生点最多 ${snapshot.range.homeRadius} 米` :
+            `出生与活动：全图 ${snapshot.range.worldWidth ?? "—"} 米`) +
+          `\n显示距离 ${snapshot.range.activationDistance} 米 · 完整模拟 ${snapshot.range.simulationDistance ?? snapshot.range.activationDistance} 米`
         : "动物范围尚未初始化"
     );
     this.writeErrors(snapshot.errors.join("\n") || "无异常");

@@ -50,6 +50,8 @@ export interface AnimalPopulationConfig {
   spawnRadius: number;
   /** Legacy circular movement radius; ignored when distribution supplies a whole-map domain. */
   roamRadius: number;
+  /** Optional horizontal movement limit around each individual birth position, in metres. */
+  homeRadius?: number;
   /** Loading/render distance from the current observer. Host simulation hysteresis may extend beyond it. */
   activationDistance: number;
   /** Counts are inclusive integer intervals. min=max=0 disables one type. */
@@ -163,6 +165,8 @@ export function validateAnimalPopulationConfig(config: AnimalPopulationConfig): 
   if (!config.distribution && config.spawnRadius > config.roamRadius) {
     throw new Error("spawnRadius 不得大于 roamRadius：动物出生位置必须在活动范围内");
   }
+  if (config.homeRadius !== undefined && (!Number.isFinite(config.homeRadius) || config.homeRadius <= 0))
+    throw new Error("homeRadius 必须为正的有限米数");
   const area = config.distribution;
   if (
     area &&

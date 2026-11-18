@@ -10,6 +10,13 @@ import { hashStableValue } from "@galacean/engine-water/water/compiler/shared/de
 
 export const WATER_COMPONENT = "WaterBodyComponent";
 
+/** Legacy archives can contain native bodies. Only the current layout owns live water. */
+export function activePlanningWaterBodies(scene: RuntimeSceneEdit) {
+  const archived = new Set(scene.queryComponents({ type: "PlanningSeedArchiveAuthoring" })
+    .flatMap(archive => scene.readEntity(archive.entityId).children ?? []));
+  return scene.queryComponents({ type: WATER_COMPONENT }).filter(body => !archived.has(body.entityId));
+}
+
 /** A template's planning label is scoped by the public Source component identity. */
 export function effectivePlanningWaterId(
   scene: string,

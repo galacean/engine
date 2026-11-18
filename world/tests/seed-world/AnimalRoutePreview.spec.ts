@@ -41,6 +41,22 @@ function expectEachPreviewSegmentOnce(canTraverse: ReturnType<typeof vi.fn>) {
 
 afterEach(() => vi.restoreAllMocks());
 
+it.each([-1, 1])("keeps recovery travel forward throughout a turn in direction %i", (direction) => {
+  const recovery = new GroundAnimalRecovery();
+  const motion = { x: 5, z: -3, heading: Math.PI - 0.15, speed: 1, angularSpeed: 0 };
+  const initialHeading = motion.heading;
+  const proposed = { ...motion, heading: motion.heading + direction * 0.01 };
+  for (let frame = 0; frame < 120; frame++) {
+    expect(recovery.advance(motion, proposed, 1, 1, 0.1, () => true)).toBe(true);
+    if (!recovery.recovering) break;
+    const dx = proposed.x - motion.x, dz = proposed.z - motion.z;
+    expect(dx * Math.sin(motion.heading) + dz * Math.cos(motion.heading)).toBeGreaterThan(0);
+    Object.assign(motion, proposed);
+  }
+  expect(recovery.recovering).toBe(false);
+  expect(motion.heading - initialHeading).toBeCloseTo(direction * Math.PI / 2);
+});
+
 describe("animal route preview support reuse", () => {
   it.each(["ground", "water", "air"])("checks each unchanged %s preview segment once", (medium) => {
     const { animal, prepare, canTraverse, ground } = fixture();
@@ -99,7 +115,7 @@ describe("animal route preview support reuse", () => {
     expect(canTraverse).toHaveBeenCalledTimes(4);
   });
 
-  it("retains real backward-arc recovery for a nearby goal behind the animal", () => {
+  it("can reach a nearby rearward goal with a forward turn", () => {
     const { animal, prepare } = fixture();
     const recovery = vi.spyOn(GroundAnimalRecovery.prototype, "advance");
     expect(prepare("ground", [0, -0.5])).toBe(true);
@@ -114,6 +130,52 @@ describe("animal route preview support reuse", () => {
     expect(prepare("air")).toBe(false);
     expect(ground.canTraverseAir).toHaveBeenCalledTimes(1);
     expect(animal.preparedRoute).toBeUndefined();
+  });
+
+  it("requires room for the whole bird at the landing and throughout the turn", () => {
+    const { animal, prepare, ground } = fixture();
+    const bounds = { x: 0, z: 0, radius: 2.4 };
+    Object.assign(ground, { flightBounds: bounds });
+    expect(prepare("air", [0, 2])).toBe(false);
+    expect(prepare("air", [0, 1])).toBe(true);
+    // Both centres fit; a bird facing outward cannot make this return turn.
+    animal.motion.z = 1.89;
+    expect(prepare("air", [0, -1])).toBe(false);
+  });
+
+  it("releases blocked air guidance and points recovery back into the birth disk", () => {
+    const { animal, ground } = fixture();
+    Object.assign(ground, { flightBounds: { x: 0, z: 0, radius: 32 } });
+    Object.assign(animal, {
+      movementMedium: "air", velocity: 6, destination: [0, 31], nextFlightProbe: 2,
+      route: { cursor: 0, points: [[0, 31]] }, updateCrowdIntent: vi.fn()
+    });
+    animal.motion.z = 29;
+    animal.continueFlight();
+    expect(animal.flightNeedsReplan).toBe(true);
+    expect(animal.movementTarget).toBe(animal.continuationTarget);
+    expect(animal.movementTarget[1]).toBeLessThan(animal.motion.z);
+    for (let i = 0; i < 150; i++) animal.turnBlockedFlight(1 / 60);
+    expect(Math.cos(animal.motion.heading)).toBeLessThan(0);
+    expect(animal.motion.z).toBe(29);
+  });
+
+  it("can recover by descending onto a supported unoccupied footprint with a clear vertical path", () => {
+    const { animal, ground } = fixture();
+    const canTraverse = vi.fn(() => true);
+    Object.assign(ground, { canTraverse });
+    Object.assign(animal, { flightNeedsReplan: true, movementMedium: "air", velocity: 6 });
+    Object.assign(animal.root.transform.position, { x: 0, y: 4, z: 0 });
+    expect(animal.checkFlightPath([0, 0], 6, "ground")).toBe(true);
+    expect(ground.canTraverseAir).toHaveBeenCalledWith({ x: 0, y: 4, z: 0 }, { x: 0, y: 0, z: 0 }, 0.5, 1);
+    ground.canTraverseAir.mockReturnValue(false);
+    expect(animal.checkFlightPath([0, 0], 6, "ground")).toBe(false);
+    ground.canTraverseAir.mockReturnValue(true);
+    canTraverse.mockReturnValue(false);
+    expect(animal.checkFlightPath([0, 0], 6, "water")).toBe(false);
+    canTraverse.mockReturnValue(true);
+    animal.canOccupy = () => false;
+    expect(animal.checkFlightPath([0, 0], 6, "ground")).toBe(false);
   });
 
   it("does not retain support results across world updates", () => {

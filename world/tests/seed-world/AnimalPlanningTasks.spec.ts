@@ -184,6 +184,26 @@ function preview(support: (from: readonly number[], to: readonly number[]) => bo
 }
 
 describe("resumable route computation", () => {
+  it("lets an escaping animal turn out of a braking margin with forward strides and no contact", () => {
+    const crowd = new GroundAnimalCrowd();
+    const actor = {
+      motion: { x: 0, z: 0, heading: 0, speed: 0, angularSpeed: 0 },
+      radius: 0.5, bodyLength: 1, desiredSpeed: 2, target: [-4, 1] as const,
+      arrived: false, blocked: false, steering: { urgent: true, maxAngularSpeed: 2.4, turnSpeedRatio: 0.65 }
+    };
+    const obstacle = { ...actor, motion: { ...actor.motion, x: 1.04, z: 0.25 }, desiredSpeed: 0 };
+    crowd.add(actor);
+    crowd.add(obstacle);
+    for (let i = 0; i < 120; i++) {
+      const { x, z } = actor.motion;
+      crowd.advance(1 / 60);
+      const dx = actor.motion.x - x, dz = actor.motion.z - z;
+      expect(dx * Math.sin(actor.motion.heading) + dz * Math.cos(actor.motion.heading)).toBeGreaterThanOrEqual(-1e-8);
+      expect(Math.hypot(actor.motion.x - obstacle.motion.x, actor.motion.z - obstacle.motion.z)).toBeGreaterThan(1);
+    }
+    expect(actor.motion.x).toBeLessThan(-1);
+  });
+
   it("captures traffic geometry for a suspended search while live movement sees current bodies", () => {
     const crowd = new GroundAnimalCrowd();
     const body = (x: number) => ({
@@ -445,6 +465,83 @@ describe("resumable route computation", () => {
 });
 
 describe("behavior awaiting planning", () => {
+  it("retries a blocked escape before a long idle clip ends, even after the first replan fails", () => {
+    const system = new AnimalSystem(), owner = agent(system);
+    const resolveTarget = vi.fn(() => system.time < 1 ? [0, 12] as const : system.time < 2 ? null : [4, 14] as const);
+    const moveTo = vi.fn((_point: readonly [number, number]) => () => {});
+    const controller = new AnimalTaskController({
+      defaultSkill: "rest",
+      skills: {
+        rest: { label: "Rest", tree: { type: "action", name: "animate", params: { slot: "idle" } } },
+        escape: { label: "Escape", tree: { type: "action", name: "move", params: {
+          slot: "run", urgent: true, replanBlockedSeconds: 1, target: { query: "flee" }
+        } } }
+      },
+      reactions: { shoo: { skillId: "escape" } },
+      animationSlots: { idle: [{ clip: "idle", weight: 1 }], run: [{ clip: "run", weight: 1 }] },
+      movementSpeeds: { run: 4 }
+    }, {
+      get time() { return system.time; }, wake() {}, schedule: (seconds, fn) => system.schedule(seconds, fn, owner),
+      movementBlocked: () => true, resolveTarget, moveTo, play: () => 12
+    });
+    controller.notify({ id: "click", type: "shoo", source: [0, 0] });
+    controller.tick();
+    for (let i = 0; i < 150; i++) { system.update(1 / 60); controller.tick(); }
+    expect(moveTo.mock.calls.map(([point]) => point)).toEqual([[0, 12], [4, 14]]);
+    controller.dispose();
+    system.dispose();
+  });
+
+  it("keeps a click's threat through a failed search and a later invalidated escape route", () => {
+    const system = new AnimalSystem(), owner = agent(system);
+    const event = { id: "click", type: "shoo", source: [0, 1] as const };
+    const position = { x: 0, z: 3 };
+    const resolveTarget = vi.fn()
+      .mockReturnValueOnce(null)
+      .mockReturnValueOnce(null)
+      .mockReturnValueOnce([0, 12])
+      .mockReturnValue([2, 16]);
+    const moveTo = vi.fn((_point: readonly number[], _speed: number, _finish: (success: boolean) => void) => () => {});
+    const controller = new AnimalTaskController({
+      defaultSkill: "rest",
+      skills: {
+        rest: { label: "Idle", tree: { type: "action", name: "animate", params: { slot: "idle" } } },
+        escape: { label: "Escape", tree: { type: "action", name: "move", params: { slot: "run", urgent: true, target: { query: "flee" } } } }
+      },
+      reactions: { shoo: { skillId: "escape" } },
+      animationSlots: { idle: [{ clip: "idle", weight: 1 }], run: [{ clip: "run", weight: 1 }] },
+      movementSpeeds: { run: 4 }
+    }, {
+      get time() { return system.time; }, wake() {}, schedule: (seconds, fn) => system.schedule(seconds, fn, owner),
+      position, resolveTarget, moveTo, play: () => 5
+    });
+    const advance = (frames: number) => {
+      for (let i = 0; i < frames; i++) { system.update(1 / 60); controller.tick(); }
+    };
+    expect(controller.notify(event)).toBe(true);
+    advance(10);
+    expect(resolveTarget).toHaveBeenCalledTimes(2);
+    expect(moveTo).not.toHaveBeenCalled();
+    advance(10);
+    expect(moveTo.mock.calls[0][0]).toEqual([0, 12]);
+    moveTo.mock.calls[0][2](false);
+    advance(20);
+    expect(moveTo.mock.calls[1][0]).toEqual([2, 16]);
+    expect(resolveTarget.mock.calls.every(([, threat]) => threat?.id === event.id)).toBe(true);
+    expect(controller.inspect().reaction).toBe("shoo");
+    position.z = 4;
+    moveTo.mock.calls[1][2](true);
+    advance(20);
+    expect(moveTo).toHaveBeenCalledTimes(3);
+    expect(controller.inspect().reaction).toBe("shoo");
+    position.z = 8;
+    moveTo.mock.calls[2][2](true);
+    advance(1);
+    expect(controller.inspect().reaction).toBeNull();
+    controller.dispose();
+    system.dispose();
+  });
+
   function fixture(repeated = false) {
     const system = new AnimalSystem(32, 1000, 1),
       owner = agent(system);

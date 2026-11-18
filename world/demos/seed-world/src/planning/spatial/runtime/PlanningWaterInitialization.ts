@@ -11,7 +11,7 @@ import { RIVER_DEFAULTS } from "@galacean/engine-world-planning/spatial/hydrolog
 import { RuntimeSceneEdit } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-scene-edit";
 import { planningOceanRepresentation } from "@galacean/engine-world-planning/semantic-study/PlanningOceanSource";
 import type { RuntimeEditPreparation } from "@galacean/engine-runtime-editor/runtime-editor/runtime-editor";
-import { planningWaterFrame, planningWaterSourceId, transformPlanningWater } from "../PlanningWaterSource.ts";
+import { activePlanningWaterBodies, planningWaterFrame, planningWaterSourceId, transformPlanningWater } from "../PlanningWaterSource.ts";
 import type { WaterSourceAuthoring } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
 
 export const waterInitializationPath = (scene: string) => `${scene}.water-authoring.json`;
@@ -59,9 +59,9 @@ export const preparePlanningWaterSource =
       if (!owner) return;
       const before = readBefore(),
         previousScene = new RuntimeSceneEdit(new RuntimeProjectEdit(before, nativeAssetFormats(() => ({}))), before.project.scene),
-        previousBodies = previousScene.queryComponents({ type: "WaterBodyComponent" }),
+        previousBodies = activePlanningWaterBodies(previousScene),
         previous = new Set(previousBodies.map(body => body.id));
-      const bodies = scene.queryComponents({ type: "WaterBodyComponent" });
+      const bodies = activePlanningWaterBodies(scene);
       const current = new Set(bodies.map(body => body.id));
       const removed = previousBodies.filter(body => !current.has(body.id)).flatMap(body => {
         const input = previousScene.readComponent(body.id).props?.authoring as unknown as WaterSourceAuthoring | undefined;

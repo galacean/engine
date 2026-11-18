@@ -88,6 +88,8 @@ export interface AnimalSpeciesRegistration {
   groundGaits: AnimalGait[];
   fleeGaits: AnimalGait[];
   preferredMedium?: AnimalMedium;
+  /** Try a direct flight route before a ground escape when shooed. */
+  flyFirstOnShoo?: boolean;
   fleeWeights?: { gait: AnimalGait; weight: number }[];
   /** Escape travel and gait pace relative to the same ordinary movement, default 1. */
   fleeSpeedMultiplier?: number;
@@ -139,6 +141,7 @@ export function readAnimalRegistrations(
       species?.id !== id ||
       !species.provenance ||
       (species.preferredMedium !== undefined && !enumValue(species.preferredMedium, AnimalMedium)) ||
+      (species.flyFirstOnShoo !== undefined && typeof species.flyFirstOnShoo !== "boolean") ||
       (species.fleeWeights !== undefined &&
         (!Array.isArray(species.fleeWeights) ||
           !species.fleeWeights.every((entry) => enumValue(entry.gait, AnimalGait) && positiveWeight(entry.weight)))) ||
@@ -410,6 +413,26 @@ export function compileAnimalRegistration(
         : [];
     })
   });
+  const fleeParams = (gait: AnimalGait) => ({
+    speedMultiplier: species.fleeSpeedMultiplier ?? 1,
+    preserveGait: true,
+    urgent: true,
+    replanBlockedSeconds: 1.5,
+    target: {
+      query: AnimalQuery.Flee,
+      // Several running strides, independent of mesh footprint. The world resolver
+      // still chooses a reachable destination inside its movement domain.
+      params:
+        slots[gait][0].medium === AnimalMedium.Air
+          ? { scope: "world" }
+          : { distance: Math.max(8, Math.min(24, speeds[gait] * 5)) }
+    },
+    ...(slots[gait][0].medium === AnimalMedium.Air ? {} : { timeoutSeconds: 60 })
+  });
+  const flyFirstOnShoo = species.flyFirstOnShoo && slots.fly && slots.run;
+  const fleeFlight = (speedMultiplier: number) =>
+    act("move", AnimalGait.Fly, { ...fleeParams(AnimalGait.Fly), speedMultiplier, arrivalMedium: landingMedium });
+  const fleeSpeed = species.fleeSpeedMultiplier ?? 1;
   const profile: AnimalTaskProfile = {
     defaultSkill: "idle",
     preferredMedium: preferredMedium === AnimalMedium.Air ? AnimalMedium.Ground : preferredMedium,
@@ -458,6 +481,25 @@ export function compileAnimalRegistration(
         label: "轻度威胁：慢行避让",
         tree: retreat()
       },
+      ...(flyFirstOnShoo
+        ? {
+            _shoo: {
+              label: "驱赶：优先飞离",
+              tree: {
+                type: "selector" as const,
+                children: [
+                  fleeFlight(fleeSpeed),
+                  // The normal cruise speed can fit a tighter takeoff turn inside the home range.
+                  ...(fleeSpeed > 1 ? [fleeFlight(1)] : []),
+                  sequence(
+                    { type: "condition", name: AnimalCondition.InMedium, params: { medium: AnimalMedium.Ground } },
+                    act("move", AnimalGait.Run, fleeParams(AnimalGait.Run))
+                  )
+                ]
+              }
+            }
+          }
+        : {}),
       startle: {
         label: "受惊：逃离后平复",
         tree: {
@@ -476,22 +518,7 @@ export function compileAnimalRegistration(
                       }
                     }
                   }),
-              node: travel(rule.gait, {
-                speedMultiplier: species.fleeSpeedMultiplier ?? 1,
-                preserveGait: true,
-                urgent: true,
-                replanBlockedSeconds: 1.5,
-                target: {
-                  query: AnimalQuery.Flee,
-                  // Several running strides, independent of mesh footprint. The world resolver
-                  // still chooses a reachable destination inside its movement domain.
-                  params:
-                    slots[rule.gait][0].medium === AnimalMedium.Air
-                      ? { scope: "world" }
-                      : { distance: Math.max(8, Math.min(24, speeds[rule.gait] * 5)) }
-                },
-                ...(slots[rule.gait][0].medium === AnimalMedium.Air ? {} : { timeoutSeconds: 60 })
-              })
+              node: travel(rule.gait, fleeParams(rule.gait))
             }))
         }
       }
@@ -504,7 +531,7 @@ export function compileAnimalRegistration(
     reactions: {
       thunder: { skillId: "startle", note: "受惊任务按注册步态执行；动画语义不等于事件意义。" },
       approach: { skillId: "_yield" },
-      shoo: { skillId: "startle", interruptTask: true }
+      shoo: { skillId: flyFirstOnShoo ? "_shoo" : "startle", interruptTask: true }
     }
   };
   validateAnimalTaskProfile(profile, new Set(asset.animations.map((a) => a.id)));

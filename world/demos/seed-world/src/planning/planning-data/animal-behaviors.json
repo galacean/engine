@@ -429,6 +429,7 @@
       ]
     },
     "low-poly-100:flamingo": {
+      "flyFirstOnShoo": true,
       "profile": "flying",
       "habitats": [
         {

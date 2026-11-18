@@ -182,6 +182,15 @@ function animal() {
 }
 
 describe("local animal dependencies", () => {
+  it.each(["ground", "water", "air"] as const)("keeps %s routes inside the individual birth disk", medium => {
+    const canTraverse = vi.fn(() => true);
+    const read = () => ({ staticRouteQuery: () => ({ canTraverse, obstruction: () => undefined }) });
+    const route = liveAnimalRouteQuery(read, 0.5, 1, medium, { x: 80, z: 90, radius: 32 });
+    expect(route.canTraverse([80, 90], [112, 90])).toBe(true);
+    expect(route.canTraverse([80, 90], [107, 117])).toBe(false);
+    expect(route.canTraverse([113, 90], [112, 90])).toBe(false);
+    expect(canTraverse).toHaveBeenCalledOnce();
+  });
   it("retains obstacle identities across unrelated index rebuilds for suspended searches", () => {
     const before = plan();
     before.rocks = [0, 20].map((x, i) => ({

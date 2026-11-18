@@ -3,7 +3,7 @@ import type { GroundAnimalMotion } from "./GroundAnimalSteering";
 type Traversable = (from: Readonly<GroundAnimalMotion>, to: Readonly<GroundAnimalMotion>) => boolean;
 
 /**
- * One supported backward arc gives a blocked animal room to resume forward travel.
+ * A supported forward turn lets a walking animal change course without reversing its gait.
  * Recovery never changes orientation without translation or refreshes its own retry budget.
  */
 export class GroundAnimalRecovery {
@@ -24,7 +24,7 @@ export class GroundAnimalRecovery {
   private readonly probe: GroundAnimalMotion = { x: 0, z: 0, heading: 0, speed: 0, angularSpeed: 0 };
   private readonly previous: GroundAnimalMotion = { x: 0, z: 0, heading: 0, speed: 0, angularSpeed: 0 };
 
-  /** Whether subsequent movement proposals must finish the accepted retreat arc. */
+  /** Whether subsequent movement proposals must finish the accepted turn. */
   get recovering(): boolean {
     return this.direction !== 0;
   }
@@ -36,7 +36,7 @@ export class GroundAnimalRecovery {
   }
 
   /**
-   * Replace a blocked movement proposal with a bounded, supported retreat.
+   * Replace a blocked movement proposal with a bounded forward turn.
    * Call only while forward travel is blocked or recovery remains active.
    * @param current Actual committed motion; rejected or partial proposals do not consume progress.
    * @param proposed Reused output; a rejected recovery leaves it at the current pose.
@@ -60,7 +60,7 @@ export class GroundAnimalRecovery {
     if (!(speed > 0 && seconds > 0)) return false;
     if (!this.direction) {
       const progressDistance = Math.max(0.25, bodyLength * 0.5);
-      // Returning to the same blocked edge after a complete retreat is not progress
+      // Returning to the same blocked edge after a complete turn is not progress
       // toward this goal; let the owner finish or replace the unsuccessful move.
       if (
         Number.isFinite(this.completedOriginX) &&
@@ -72,7 +72,7 @@ export class GroundAnimalRecovery {
         Math.hypot(current.x - this.anchorX, current.z - this.anchorZ) < progressDistance
       ) {
         // Failed segments can become clear when another animal leaves. Recheck only
-        // those witnesses; a completed retreat still requires new forward progress.
+        // those witnesses; a completed turn still requires new forward progress.
         let cleared = false;
         for (let i = 0; i < this.failedCount && !cleared; i++)
           cleared = canTraverse(this.failures[i].from, this.failures[i].to);
@@ -139,8 +139,9 @@ export class GroundAnimalRecovery {
   private step(from: Readonly<GroundAnimalMotion>, to: GroundAnimalMotion, turn: number): void {
     const heading = from.heading + turn,
       signedRadius = this.radius * Math.sign(turn);
-    to.x = from.x + signedRadius * (Math.cos(heading) - Math.cos(from.heading));
-    to.z = from.z - signedRadius * (Math.sin(heading) - Math.sin(from.heading));
+    // Integrate the forward tangent (sin(yaw), cos(yaw)) over the signed turn.
+    to.x = from.x + signedRadius * (Math.cos(from.heading) - Math.cos(heading));
+    to.z = from.z + signedRadius * (Math.sin(heading) - Math.sin(from.heading));
     to.heading = heading;
   }
 }

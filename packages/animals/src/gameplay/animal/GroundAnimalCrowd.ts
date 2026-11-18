@@ -20,7 +20,7 @@ export interface GroundAnimalBody {
   target: readonly [number, number];
   arrived: boolean;
   blocked: boolean;
-  /** No supported forward or retreat step is available. */
+  /** Neither straight travel nor a forward turning arc is supported. */
   surfaceBlocked?: boolean;
   /** Shared with coarse simulation when this body is streamed out. */
   recovery?: GroundAnimalRecovery;
@@ -609,13 +609,15 @@ export class GroundAnimalCrowd {
       const behind = goalX * Math.sin(m.heading) + goalZ * Math.cos(m.heading) < 0;
       const closeBehind = behind && Math.hypot(goalX, goalZ) < b.bodyLength * 1.5;
       // A new rearward waypoint cannot turn away while forward braking holds travel at zero.
-      const retreatFromTraffic = behind && limit < Math.min(0.12, b.desiredSpeed * 0.3);
+      const turnFromTraffic = behind && limit < Math.min(0.12, b.desiredSpeed * 0.3);
       let recovered = false;
       if (
         b.layer !== "air" &&
         b.desiredSpeed > 0 &&
         !b.arrived &&
-        ((!b.blocked && (!supported || closeBehind)) || s.recovery.recovering || retreatFromTraffic)
+        ((!b.blocked && (!supported || (closeBehind && !b.steering?.urgent && !b.steering?.tightTurns))) ||
+          s.recovery.recovering ||
+          turnFromTraffic)
       ) {
         Object.assign(s.forward, s.next);
         recovered = s.recovery.advance(
@@ -848,6 +850,11 @@ export class GroundAnimalCrowd {
           reactionSpeed
         )
       );
+    // A validated escape turn can clear a neighbour even when the straight-line
+    // braking margin covers the current pose. Allow a slow forward step on that
+    // curve; the swept contact test still clips it against bodies and reservations.
+    if (b.steering?.urgent && !b.blocked && b.layer !== "air")
+      return Math.max(speed, Math.min(0.6, b.desiredSpeed * 0.35));
     return speed;
   }
 

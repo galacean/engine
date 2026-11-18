@@ -28,7 +28,7 @@ export interface PlanningSceneAsset {
 }
 
 /** Identity and the remaining spatial adapter are separate from each native visual component. */
-export function splitPlanningEntity(entity: SpatialEntity): { identity: PlanningEntityIdentity; visual: PlanningSceneComponent[] } {
+export function splitPlanningEntity(entity: SpatialEntity, archived = false): { identity: PlanningEntityIdentity; visual: PlanningSceneComponent[] } {
   const spatialComponents = { ...entity.components };
   for (const retired of RETIRED_PLANNING_VISUAL_AUTHORING) delete spatialComponents[retired.component];
   const visual: PlanningSceneComponent[] = [];
@@ -38,11 +38,13 @@ export function splitPlanningEntity(entity: SpatialEntity): { identity: Planning
     visual.push({ type: descriptor.type, props: encodeVisualAuthoring(descriptor, source) });
     delete spatialComponents[descriptor.component];
   }
-  const water = planningWaterSource(entity);
+  // A saved layout keeps the water parameters until that Seed becomes active.
+  // Materializing an archived lake would register a second body in the live scene.
+  const water = archived ? undefined : planningWaterSource(entity);
   // A disabled suggestion can be removed before it has a native shape. Preserve
   // that explicit intent without inventing a WaterBodyComponent.
-  if (entity.id.startsWith("lake:") && (water || spatialComponents.lakes?.values.enabled !== false)) delete spatialComponents.lakes;
-  if (entity.id.startsWith("river:") && (water || spatialComponents.rivers?.values.enabled !== false)) delete spatialComponents.rivers;
+  if (!archived && entity.id.startsWith("lake:") && (water || spatialComponents.lakes?.values.enabled !== false)) delete spatialComponents.lakes;
+  if (!archived && entity.id.startsWith("river:") && (water || spatialComponents.rivers?.values.enabled !== false)) delete spatialComponents.rivers;
   if (water) {
     delete spatialComponents[water.shape.kind === "lake" ? "lakes" : "rivers"];
     const enabled = entity.components[water.shape.kind === "lake" ? "lakes" : "rivers"].values.enabled;
@@ -91,7 +93,7 @@ export function exportPlanningScene(document: PlanningDocument): PlanningSceneAs
   };
   const appendEntities = (records: Record<string, SpatialEntity>, parent: number) => {
     for (const entity of Object.values(records)) {
-      const { identity, visual } = splitPlanningEntity(entity);
+      const { identity, visual } = splitPlanningEntity(entity, parent !== 0);
       for (const record of visual) {
         if (record.type !== "PlanningLighting" || record.props.profileUrl === undefined) continue;
         const url = record.props.profileUrl;

@@ -87,6 +87,41 @@ async function prepareRemoval(draft: RuntimeProjectEdit, before: ReturnType<Runt
   } as Parameters<ReturnType<typeof preparePlanningWaterSource>>[0]);
 }
 
+it("preserves archived lake parameters without publishing another active water body", async () => {
+  const { draft, scene } = fixture(1);
+  const document = planningSourceDocument(draft.preview())!;
+  const archived = structuredClone(document.entities["lake:0"]);
+  archived.components.lakes.values.referenceLevel = -5;
+  document.layoutOverrides = { "7": { edits: {}, entities: { ...document.entities, "lake:0": archived } } };
+  const before = draft.preview();
+  writePlanningProjectSource(draft, path, document);
+  await prepareRemoval(draft, before);
+  expect(scene.queryComponents({ type: "WaterBodyComponent" })).toHaveLength(2); // Active lake and ocean.
+  const saved = planningSourceDocument(draft.preview())!;
+  expect(saved.entities["lake:0"].components.lakes.values.referenceLevel).toBe(2);
+  expect(saved.layoutOverrides!["7"].entities["lake:0"].components.lakes.values.referenceLevel).toBe(-5);
+  // The previous format stored a native body under the archive. Removing that
+  // copy on the next write must not record an explicit deletion in Seed 1.
+  const archive = scene.queryComponents({ type: "PlanningSeedArchiveAuthoring" })[0];
+  const children = new Set(scene.readEntity(archive.entityId).children);
+  const archivedLake = scene.queryComponents({ type: "PlanningEntityAuthoring" }).find(identity =>
+    children.has(identity.entityId) && scene.readComponent(identity.id).props?.planningId === "lake:0")!;
+  const body = scene.queryComponents({ type: "WaterBodyComponent" }).find(body =>
+    (scene.readComponent(body.id).props?.authoring as { shape: { kind: string } }).shape.kind === "lake")!;
+  scene.updateComponent(archivedLake.id, { spatialComponents: {} });
+  scene.addComponent(archivedLake.entityId, { type: body.type, props: scene.readComponent(body.id).props });
+  const legacy = draft.preview();
+  const migrated = planningSourceDocument(legacy)!;
+  writePlanningProjectSource(draft, path, migrated);
+  await prepareRemoval(draft, legacy);
+  expect(waterInitialization(draft.preview()).removed?.["1"]).toBeUndefined();
+  expect(scene.queryComponents({ type: "WaterBodyComponent" })).toHaveLength(2);
+  delete saved.layoutOverrides;
+  writePlanningProjectSource(draft, path, saved);
+  expect(scene.queryComponents({ type: "PlanningSeedArchiveAuthoring" })).toHaveLength(0);
+  expect(scene.queryComponents({ type: "WaterBodyComponent" })).toHaveLength(2);
+});
+
 it("installs water assets when a fresh planning project first applies a template with a lake", async () => {
   const initial = fixture(1).draft.finish();
   const materials = initial.project.files.filter(file => file.type === "Material");
