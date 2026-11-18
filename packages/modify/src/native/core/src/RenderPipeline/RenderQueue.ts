@@ -14,6 +14,14 @@ import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
 /**
  * @internal
  */
+export interface RenderElementSubsetCount {
+  total: number;
+  subset: number;
+}
+
+/**
+ * @internal
+ */
 export class RenderQueue {
   static compareForOpaque(a: RenderElement, b: RenderElement): number {
     return (
@@ -74,6 +82,42 @@ export class RenderQueue {
       }
     }
     return count;
+  }
+
+  /**
+   * Count stage-eligible elements accepted by `elementFilter`, and the subset also accepted by `subsetFilter`.
+   * @param out - Receives `total` and `subset` counts
+   */
+  countRenderElementSubset(
+    pipelineStageTagValue: string,
+    elementFilter: (material: Material, element: RenderElement) => boolean,
+    subsetFilter: (material: Material, element: RenderElement) => boolean,
+    out: RenderElementSubsetCount
+  ): void {
+    const batchedElements = this.batchedElements;
+    const pipelineStageKey = RenderContext.pipelineStageKey;
+    const renderQueueType = this.renderQueueType;
+    let total = 0;
+    let subset = 0;
+
+    for (let i = 0, n = batchedElements.length; i < n; i++) {
+      const element = batchedElements[i];
+      const material = element.material;
+      if (!elementFilter(material, element)) continue;
+      const passes = element.subShader.passes;
+      for (let j = 0, m = passes.length; j < m; j++) {
+        const pass = passes[j];
+        if (pass.getTagValue(pipelineStageKey) !== pipelineStageTagValue) continue;
+        const queueType = pass._renderState._getRenderQueueByShaderData(pass._renderStateDataMap, material.shaderData);
+        if (queueType === renderQueueType) {
+          total++;
+          if (subsetFilter(material, element)) subset++;
+          break;
+        }
+      }
+    }
+    out.total = total;
+    out.subset = subset;
   }
 
   render(

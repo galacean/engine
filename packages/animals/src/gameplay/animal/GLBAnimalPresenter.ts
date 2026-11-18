@@ -2,6 +2,8 @@ import {
   Animator,
   AnimatorController,
   AnimatorControllerLayer,
+  AnimatorCullingMode,
+  AnimatorState,
   Color,
   Camera,
   Entity,
@@ -41,6 +43,7 @@ export class GLBAnimalPresenter implements AnimalPresenter {
   private _landingProgress = 0;
   private _disposed = false;
   private _lod?: AnimalModelLod;
+  private readonly _states = new Map<AnimalAction, AnimatorState>();
 
   /**
    * Instantiate one animal from a host-owned, loaded GLB.
@@ -71,11 +74,17 @@ export class GLBAnimalPresenter implements AnimalPresenter {
       this._animator = animators[0];
       // Only the host's simulation clock advances this animator, including pause and time scaling.
       this._animator.enabled = false;
+      // State time keeps advancing while every renderer (all LODs, shadow views included) was culled last
+      // frame; only curve sampling is skipped. The Animator collects its renderers in onEnable, which has
+      // already run when the model joined an active hierarchy; otherwise the list stays empty and
+      // Complete would freeze the pose forever, so keep None in that case.
+      if (model.isActiveInHierarchy) this._animator.cullingMode = AnimatorCullingMode.Complete;
       const layer = new AnimatorControllerLayer("Animal motions");
       this._controller.addLayer(layer);
       for (const [action, name] of Object.entries(profile.clips)) {
         const state = layer.stateMachine.addState(action);
         state.clip = clips.find((clip) => clip.name === name)!;
+        this._states.set(action as AnimalAction, state);
         state.wrapMode = action === "takeOff" || action === "land" ? WrapMode.Once : WrapMode.Loop;
       }
       this._animator.animatorController = this._controller;
@@ -131,13 +140,13 @@ export class GLBAnimalPresenter implements AnimalPresenter {
     }
     this._lastActionTime = m.actionTime;
     // Take-off can outlast the authored opening gesture while the host is still climbing.
-    const takeOff = this._controller.layers[0].stateMachine.findStateByName("takeOff");
-    const clipState = m.action === "takeOff" && m.actionTime >= takeOff.clip!.length ? "fly" : m.action;
+    const clipState =
+      m.action === "takeOff" && m.actionTime >= this._states.get("takeOff")!.clip!.length ? "fly" : m.action;
     if (changed || clipState !== this._clipState) {
       this._clipState = clipState;
       this._animator.play(clipState, 0);
     }
-    const state = this._controller.layers[0].stateMachine.findStateByName(clipState);
+    const state = this._states.get(clipState)!;
     if (m.action === "land") {
       // Folding follows the actual descent, so a short authored clip cannot close the wings high in the air.
       const progress = Math.max(this._landingProgress, Math.min(1, 1 - m.y / this._landingHeight));

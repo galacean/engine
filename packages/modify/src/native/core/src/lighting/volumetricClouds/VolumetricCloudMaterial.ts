@@ -5,6 +5,8 @@ import type { RenderContext } from "../../RenderPipeline/RenderContext";
 import type { Scene } from "../../Scene";
 import { Material } from "../../material/Material";
 import { Shader } from "../../shader/Shader";
+import { ShaderMacro } from "../../shader/ShaderMacro";
+import { ShaderProperty } from "../../shader/ShaderProperty";
 import type { ShaderData } from "../../shader/ShaderData";
 import type {
   SkyProceduralVolumetricClouds,
@@ -42,8 +44,73 @@ import {
 import { VOLUMETRIC_CLOUD_DEFAULT_WIND_DIRECTION } from "./VolumetricCloudWind";
 
 const SHADER_NAME = "World/VolumetricClouds";
-const VOLUMETRIC_CLOUD_SHADOW_MACRO = "SCENE_VOLUMETRIC_CLOUD_SHADOW";
-const VOLUMETRIC_CLOUD_SHADOW_TEXTURE = "scene_VolumetricCloudShadowTexture";
+const VOLUMETRIC_CLOUD_SHADOW_MACRO = ShaderMacro.getByName("SCENE_VOLUMETRIC_CLOUD_SHADOW");
+const cacheHDRCompressionProperty = ShaderProperty.getByName("material_CacheHDRCompression");
+const cloudDensityProperty = ShaderProperty.getByName("material_CloudDensity");
+const cloudLightProperty = ShaderProperty.getByName("material_CloudLight");
+const cloudShadowProperty = ShaderProperty.getByName("material_CloudShadow");
+const cloudTypeProperty = ShaderProperty.getByName("material_CloudType");
+const coverageProperty = ShaderProperty.getByName("material_Coverage");
+const directionCacheReadyProperty = ShaderProperty.getByName("material_DirectionCacheReady");
+const horizonProperty = ShaderProperty.getByName("material_Horizon");
+const horizonFadeStartProperty = ShaderProperty.getByName("material_HorizonFadeStart");
+const horizonStepMultiplierProperty = ShaderProperty.getByName("material_HorizonStepMultiplier");
+const observerAltitudeProperty = ShaderProperty.getByName("material_ObserverAltitude");
+const stormProperty = ShaderProperty.getByName("material_Storm");
+const sunDirectionProperty = ShaderProperty.getByName("material_SunDirection");
+const timeProperty = ShaderProperty.getByName("material_Time");
+const volumetricCloudBaseAltitudeProperty = ShaderProperty.getByName("material_VolumetricCloudBaseAltitude");
+const volumetricCloudCacheAmbientWeightProperty = ShaderProperty.getByName(
+  "material_VolumetricCloudCacheAmbientWeight"
+);
+const volumetricCloudCacheCompressionProperty = ShaderProperty.getByName("material_VolumetricCloudCacheCompression");
+const volumetricCloudCacheEncodingGammaProperty = ShaderProperty.getByName(
+  "material_VolumetricCloudCacheEncodingGamma"
+);
+const volumetricCloudCacheExposureMaximumProperty = ShaderProperty.getByName(
+  "material_VolumetricCloudCacheExposureMaximum"
+);
+const volumetricCloudCacheExposureMinimumProperty = ShaderProperty.getByName(
+  "material_VolumetricCloudCacheExposureMinimum"
+);
+const volumetricCloudCacheExposureScaleProperty = ShaderProperty.getByName(
+  "material_VolumetricCloudCacheExposureScale"
+);
+const volumetricCloudCachePhaseIsotropyBlendProperty = ShaderProperty.getByName(
+  "material_VolumetricCloudCachePhaseIsotropyBlend"
+);
+const volumetricCloudCacheReadyProperty = ShaderProperty.getByName("material_VolumetricCloudCacheReady");
+const volumetricCloudDisplayMotionProperty = ShaderProperty.getByName("material_VolumetricCloudDisplayMotion");
+const volumetricCloudHistoryProperty = ShaderProperty.getByName("material_VolumetricCloudHistory");
+const volumetricCloudHistoryMetadataProperty = ShaderProperty.getByName("material_VolumetricCloudHistoryMetadata");
+const volumetricCloudHistoryTexelSizeProperty = ShaderProperty.getByName("material_VolumetricCloudHistoryTexelSize");
+const volumetricCloudHorizonProperty = ShaderProperty.getByName("material_VolumetricCloudHorizon");
+const volumetricCloudLightProperty = ShaderProperty.getByName("material_VolumetricCloudLight");
+const volumetricCloudObserverAltitudeProperty = ShaderProperty.getByName("material_VolumetricCloudObserverAltitude");
+const volumetricCloudPhaseBackwardAnisotropyProperty = ShaderProperty.getByName(
+  "material_VolumetricCloudPhaseBackwardAnisotropy"
+);
+const volumetricCloudPhaseBlendProperty = ShaderProperty.getByName("material_VolumetricCloudPhaseBlend");
+const volumetricCloudPhaseForwardAnisotropyProperty = ShaderProperty.getByName(
+  "material_VolumetricCloudPhaseForwardAnisotropy"
+);
+const volumetricCloudPlanetRadiusProperty = ShaderProperty.getByName("material_VolumetricCloudPlanetRadius");
+const volumetricCloudSunDirectionProperty = ShaderProperty.getByName("material_VolumetricCloudSunDirection");
+const volumetricCloudThicknessProperty = ShaderProperty.getByName("material_VolumetricCloudThickness");
+const volumetricCloudZenithProperty = ShaderProperty.getByName("material_VolumetricCloudZenith");
+const weatherDetailProperty = ShaderProperty.getByName("material_WeatherDetail");
+const windOffsetWSProperty = ShaderProperty.getByName("material_WindOffsetWS");
+const windVelocityWSProperty = ShaderProperty.getByName("material_WindVelocityWS");
+const zenithProperty = ShaderProperty.getByName("material_Zenith");
+const sceneVolumetricCloudShadowLayerProperty = ShaderProperty.getByName("scene_VolumetricCloudShadowLayer");
+const sceneVolumetricCloudShadowMotionProperty = ShaderProperty.getByName("scene_VolumetricCloudShadowMotion");
+const sceneVolumetricCloudShadowOriginProperty = ShaderProperty.getByName("scene_VolumetricCloudShadowOrigin");
+const sceneVolumetricCloudShadowReadyProperty = ShaderProperty.getByName("scene_VolumetricCloudShadowReady");
+const sceneVolumetricCloudShadowSunDirectionProperty = ShaderProperty.getByName(
+  "scene_VolumetricCloudShadowSunDirection"
+);
+const sceneVolumetricCloudShadowTexelSizeProperty = ShaderProperty.getByName("scene_VolumetricCloudShadowTexelSize");
+const VOLUMETRIC_CLOUD_SHADOW_TEXTURE = ShaderProperty.getByName("scene_VolumetricCloudShadowTexture");
 
 /** Resolves the precompiled cloud Shader without allocating textures, Materials, or render targets. */
 export function registerVolumetricCloudShader(): Shader {
@@ -65,7 +132,7 @@ function copyFiniteWindVector(
   }
   target.set(x, y, z);
 }
-const VOLUMETRIC_CLOUD_SHADOW_METADATA = "scene_VolumetricCloudShadowMetadata";
+const VOLUMETRIC_CLOUD_SHADOW_METADATA = ShaderProperty.getByName("scene_VolumetricCloudShadowMetadata");
 
 /** Quality levels supported by {@link VolumetricCloudMaterial}. */
 export type VolumetricCloudQuality = "economy" | "balanced" | "high";
@@ -460,9 +527,9 @@ export class VolumetricCloudMaterial extends Material implements SkyProceduralVo
     copyFiniteWindVector("Cloud wind offset", windOffsetWS, this._windOffsetWS);
     copyFiniteWindVector("Cloud wind velocity", windVelocityWS, this._windVelocityWS);
     this._frameTime = time;
-    this.shaderData.setFloat("material_Time", time);
-    this.shaderData.setVector3("material_WindOffsetWS", this._windOffsetWS);
-    this.shaderData.setVector3("material_WindVelocityWS", this._windVelocityWS);
+    this.shaderData.setFloat(timeProperty, time);
+    this.shaderData.setVector3(windOffsetWSProperty, this._windOffsetWS);
+    this.shaderData.setVector3(windVelocityWSProperty, this._windVelocityWS);
   }
 
   /** Current world-space wind displacement used by direction-cache reprojection. @internal */
@@ -489,9 +556,9 @@ export class VolumetricCloudMaterial extends Material implements SkyProceduralVo
   setWeatherValues(coverage: number, cloudType: number, detail: number): void {
     validateVolumetricCloudWeatherValues(coverage, cloudType, detail);
     const data = this.shaderData;
-    data.setFloat("material_Coverage", coverage);
-    data.setFloat("material_CloudType", cloudType);
-    data.setFloat("material_WeatherDetail", detail);
+    data.setFloat(coverageProperty, coverage);
+    data.setFloat(cloudTypeProperty, cloudType);
+    data.setFloat(weatherDetailProperty, detail);
   }
 
   /** Apply the coefficients that resolve the packed horizontal Weather Map basis. */
@@ -668,7 +735,7 @@ export class VolumetricCloudMaterial extends Material implements SkyProceduralVo
       this._scaleSettings.thickness * VOLUMETRIC_CLOUD_QUALITY_PRESETS[this._quality].observerHistoryInvalidationRatio;
     if (Math.abs(altitude - this._observerAltitude) >= invalidationDistance) this.invalidateHistory();
     this._observerAltitude = altitude;
-    this.shaderData.setFloat("material_ObserverAltitude", altitude);
+    this.shaderData.setFloat(observerAltitudeProperty, altitude);
   }
 
   /** Current observer altitude used to convert the absolute cloud layer into a view-relative shell. */
@@ -684,18 +751,18 @@ export class VolumetricCloudMaterial extends Material implements SkyProceduralVo
     this._horizon.set(palette.horizon[0], palette.horizon[1], palette.horizon[2]);
     this._cloudLight.set(palette.cloudLight[0], palette.cloudLight[1], palette.cloudLight[2]);
     this._cloudShadow.set(palette.cloudShadow[0], palette.cloudShadow[1], palette.cloudShadow[2]);
-    data.setVector3("material_SunDirection", this._sunDirection);
-    data.setVector3("material_Zenith", this._zenith);
-    data.setVector3("material_Horizon", this._horizon);
-    data.setVector3("material_CloudLight", this._cloudLight);
-    data.setVector3("material_CloudShadow", this._cloudShadow);
-    data.setFloat("material_Storm", palette.storm);
-    data.setFloat("material_CloudDensity", palette.density);
+    data.setVector3(sunDirectionProperty, this._sunDirection);
+    data.setVector3(zenithProperty, this._zenith);
+    data.setVector3(horizonProperty, this._horizon);
+    data.setVector3(cloudLightProperty, this._cloudLight);
+    data.setVector3(cloudShadowProperty, this._cloudShadow);
+    data.setFloat(stormProperty, palette.storm);
+    data.setFloat(cloudDensityProperty, palette.density);
   }
 
   /** Reject cached cloud history after a weather jump or semantic state switch. */
   invalidateHistory(): void {
-    this.shaderData.setFloat("material_DirectionCacheReady", 0);
+    this.shaderData.setFloat(directionCacheReadyProperty, 0);
     this._directionCacheRenderer.invalidateHistory();
   }
 
@@ -717,8 +784,8 @@ export class VolumetricCloudMaterial extends Material implements SkyProceduralVo
       this._directionCacheRenderer.borrowWorkingTarget(source._directionCacheRenderer);
     }
     const preset = VOLUMETRIC_CLOUD_QUALITY_PRESETS[this._quality];
-    this.shaderData.setFloat("material_HorizonStepMultiplier", preset.directionHorizonStepMultiplier);
-    this.shaderData.setFloat("material_HorizonFadeStart", preset.directionHorizonFadeStart);
+    this.shaderData.setFloat(horizonStepMultiplierProperty, preset.directionHorizonStepMultiplier);
+    this.shaderData.setFloat(horizonFadeStartProperty, preset.directionHorizonFadeStart);
     // Do not use the invalidation burst: preserve the regular per-frame GPU budget throughout preparation.
     const context = this._engine._renderContext;
     const previousCamera = context.camera;
@@ -754,7 +821,7 @@ export class VolumetricCloudMaterial extends Material implements SkyProceduralVo
     state.texture = renderer.texture;
     state.metadataTexture = renderer.metadataTexture;
     state.cacheReady = renderer.ready ? 1 : 0;
-    state.cacheCompression = this.shaderData.getFloat("material_CacheHDRCompression");
+    state.cacheCompression = this.shaderData.getFloat(cacheHDRCompressionProperty);
     state.planetRadius = scale.planetRadius;
     state.observerAltitude = this._observerAltitude;
     state.baseAltitude = scale.baseAltitude;
@@ -840,12 +907,12 @@ export class VolumetricCloudMaterial extends Material implements SkyProceduralVo
     const data = scene.shaderData;
     data.setTexture(VOLUMETRIC_CLOUD_SHADOW_TEXTURE, texture);
     data.setTexture(VOLUMETRIC_CLOUD_SHADOW_METADATA, metadata);
-    data.setVector3("scene_VolumetricCloudShadowOrigin", this._directionCacheOrigin);
-    data.setVector3("scene_VolumetricCloudShadowSunDirection", this._sunDirection);
-    data.setVector3("scene_VolumetricCloudShadowMotion", renderer.displayMotion);
-    data.setVector4("scene_VolumetricCloudShadowLayer", this._shadowLayer);
-    data.setVector4("scene_VolumetricCloudShadowTexelSize", renderer.texelSize);
-    data.setFloat("scene_VolumetricCloudShadowReady", renderer.ready ? 1 : 0);
+    data.setVector3(sceneVolumetricCloudShadowOriginProperty, this._directionCacheOrigin);
+    data.setVector3(sceneVolumetricCloudShadowSunDirectionProperty, this._sunDirection);
+    data.setVector3(sceneVolumetricCloudShadowMotionProperty, renderer.displayMotion);
+    data.setVector4(sceneVolumetricCloudShadowLayerProperty, this._shadowLayer);
+    data.setVector4(sceneVolumetricCloudShadowTexelSizeProperty, renderer.texelSize);
+    data.setFloat(sceneVolumetricCloudShadowReadyProperty, renderer.ready ? 1 : 0);
     data.enableMacro(VOLUMETRIC_CLOUD_SHADOW_MACRO);
   }
 
@@ -859,7 +926,7 @@ export class VolumetricCloudMaterial extends Material implements SkyProceduralVo
       data.disableMacro(VOLUMETRIC_CLOUD_SHADOW_MACRO);
       data.setTexture(VOLUMETRIC_CLOUD_SHADOW_TEXTURE, null);
       data.setTexture(VOLUMETRIC_CLOUD_SHADOW_METADATA, null);
-      data.setFloat("scene_VolumetricCloudShadowReady", 0);
+      data.setFloat(sceneVolumetricCloudShadowReadyProperty, 0);
     }
     this._boundShadowScene = null;
   }
@@ -917,35 +984,35 @@ export class VolumetricCloudMaterial extends Material implements SkyProceduralVo
 }
 
 function publishVolumetricCloudSkyComposition(target: ShaderData, state: VolumetricCloudSkyCompositionState): void {
-  target.setTexture("material_VolumetricCloudHistory", state.texture);
-  target.setTexture("material_VolumetricCloudHistoryMetadata", state.metadataTexture);
-  target.setVector3("material_VolumetricCloudDisplayMotion", state.displayMotion);
-  target.setVector4("material_VolumetricCloudHistoryTexelSize", state.texelSize);
-  target.setVector3("material_VolumetricCloudSunDirection", state.sunDirection);
-  target.setVector3("material_VolumetricCloudLight", state.cloudLight);
-  target.setVector3("material_VolumetricCloudZenith", state.zenith);
-  target.setVector3("material_VolumetricCloudHorizon", state.horizon);
-  target.setFloat("material_VolumetricCloudCacheReady", state.cacheReady);
-  target.setFloat("material_VolumetricCloudCacheCompression", state.cacheCompression);
-  target.setFloat("material_VolumetricCloudPlanetRadius", state.planetRadius);
-  target.setFloat("material_VolumetricCloudObserverAltitude", state.observerAltitude);
-  target.setFloat("material_VolumetricCloudBaseAltitude", state.baseAltitude);
-  target.setFloat("material_VolumetricCloudThickness", state.thickness);
-  target.setFloat("material_VolumetricCloudPhaseForwardAnisotropy", state.phaseForwardAnisotropy);
-  target.setFloat("material_VolumetricCloudPhaseBackwardAnisotropy", state.phaseBackwardAnisotropy);
-  target.setFloat("material_VolumetricCloudPhaseBlend", state.phaseBlend);
-  target.setFloat("material_VolumetricCloudCachePhaseIsotropyBlend", state.cachePhaseIsotropyBlend);
-  target.setFloat("material_VolumetricCloudCacheAmbientWeight", state.cacheAmbientWeight);
-  target.setFloat("material_VolumetricCloudCacheExposureScale", state.cacheExposureScale);
-  target.setFloat("material_VolumetricCloudCacheExposureMinimum", state.cacheExposureMinimum);
-  target.setFloat("material_VolumetricCloudCacheExposureMaximum", state.cacheExposureMaximum);
-  target.setFloat("material_VolumetricCloudCacheEncodingGamma", state.cacheEncodingGamma);
+  target.setTexture(volumetricCloudHistoryProperty, state.texture);
+  target.setTexture(volumetricCloudHistoryMetadataProperty, state.metadataTexture);
+  target.setVector3(volumetricCloudDisplayMotionProperty, state.displayMotion);
+  target.setVector4(volumetricCloudHistoryTexelSizeProperty, state.texelSize);
+  target.setVector3(volumetricCloudSunDirectionProperty, state.sunDirection);
+  target.setVector3(volumetricCloudLightProperty, state.cloudLight);
+  target.setVector3(volumetricCloudZenithProperty, state.zenith);
+  target.setVector3(volumetricCloudHorizonProperty, state.horizon);
+  target.setFloat(volumetricCloudCacheReadyProperty, state.cacheReady);
+  target.setFloat(volumetricCloudCacheCompressionProperty, state.cacheCompression);
+  target.setFloat(volumetricCloudPlanetRadiusProperty, state.planetRadius);
+  target.setFloat(volumetricCloudObserverAltitudeProperty, state.observerAltitude);
+  target.setFloat(volumetricCloudBaseAltitudeProperty, state.baseAltitude);
+  target.setFloat(volumetricCloudThicknessProperty, state.thickness);
+  target.setFloat(volumetricCloudPhaseForwardAnisotropyProperty, state.phaseForwardAnisotropy);
+  target.setFloat(volumetricCloudPhaseBackwardAnisotropyProperty, state.phaseBackwardAnisotropy);
+  target.setFloat(volumetricCloudPhaseBlendProperty, state.phaseBlend);
+  target.setFloat(volumetricCloudCachePhaseIsotropyBlendProperty, state.cachePhaseIsotropyBlend);
+  target.setFloat(volumetricCloudCacheAmbientWeightProperty, state.cacheAmbientWeight);
+  target.setFloat(volumetricCloudCacheExposureScaleProperty, state.cacheExposureScale);
+  target.setFloat(volumetricCloudCacheExposureMinimumProperty, state.cacheExposureMinimum);
+  target.setFloat(volumetricCloudCacheExposureMaximumProperty, state.cacheExposureMaximum);
+  target.setFloat(volumetricCloudCacheEncodingGammaProperty, state.cacheEncodingGamma);
 }
 
 function detachVolumetricCloudSkyComposition(target: ShaderData): void {
-  target.setTexture("material_VolumetricCloudHistory", null);
-  target.setTexture("material_VolumetricCloudHistoryMetadata", null);
-  target.setFloat("material_VolumetricCloudCacheReady", 0);
+  target.setTexture(volumetricCloudHistoryProperty, null);
+  target.setTexture(volumetricCloudHistoryMetadataProperty, null);
+  target.setFloat(volumetricCloudCacheReadyProperty, 0);
 }
 
 function validateScaleSettings(settings: Readonly<VolumetricCloudScaleSettings>): void {

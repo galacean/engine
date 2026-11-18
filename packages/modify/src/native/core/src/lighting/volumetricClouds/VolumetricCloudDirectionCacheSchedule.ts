@@ -62,6 +62,35 @@ export function createVolumetricCloudDirectionCacheSchedule(
   burstFramesRemaining: number,
   requestedBurstSliceCount = requestedSliceCount
 ): VolumetricCloudDirectionCacheSchedule {
+  return Object.freeze(
+    resolveVolumetricCloudDirectionCacheSchedule(
+      { checkerParity: 0, sliceIndex: 0, sliceCount: 1, publishAfterUpdate: false, burstRefreshActive: false },
+      frameIndex,
+      requestedSliceCount,
+      burstFramesRemaining,
+      requestedBurstSliceCount
+    )
+  );
+}
+
+/** Mutable schedule record reused by per-frame callers. @internal */
+export type MutableVolumetricCloudDirectionCacheSchedule = {
+  -readonly [K in keyof VolumetricCloudDirectionCacheSchedule]: VolumetricCloudDirectionCacheSchedule[K];
+};
+
+/**
+ * Allocation-free form of {@link createVolumetricCloudDirectionCacheSchedule}.
+ * @param out - Record receiving this frame's schedule
+ * @returns The same `out` record
+ * @internal
+ */
+export function resolveVolumetricCloudDirectionCacheSchedule(
+  out: MutableVolumetricCloudDirectionCacheSchedule,
+  frameIndex: number,
+  requestedSliceCount: number,
+  burstFramesRemaining: number,
+  requestedBurstSliceCount = requestedSliceCount
+): MutableVolumetricCloudDirectionCacheSchedule {
   const regularSliceCount = Math.max(1, Math.floor(requestedSliceCount));
   const burstRefreshActive = burstFramesRemaining > 0;
   const burstSliceCount = Math.max(1, Math.floor(requestedBurstSliceCount));
@@ -69,13 +98,12 @@ export function createVolumetricCloudDirectionCacheSchedule(
   const phase = positiveModulo(Math.floor(frameIndex), sliceCount * DIRECTION_CACHE_PARITY_COUNT);
   const checkerParity = phase < sliceCount ? 0 : 1;
   const sliceIndex = phase % sliceCount;
-  return Object.freeze({
-    checkerParity: checkerParity as 0 | 1,
-    sliceIndex,
-    sliceCount,
-    publishAfterUpdate: checkerParity === DIRECTION_CACHE_PARITY_COUNT - 1 && sliceIndex === sliceCount - 1,
-    burstRefreshActive
-  });
+  out.checkerParity = checkerParity;
+  out.sliceIndex = sliceIndex;
+  out.sliceCount = sliceCount;
+  out.publishAfterUpdate = checkerParity === DIRECTION_CACHE_PARITY_COUNT - 1 && sliceIndex === sliceCount - 1;
+  out.burstRefreshActive = burstRefreshActive;
+  return out;
 }
 
 function positiveModulo(value: number, divisor: number): number {

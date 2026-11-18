@@ -64,6 +64,14 @@ export class ConstructionDecorationLightPolicy {
   readonly fadeSeconds: number;
   /** Selection and slot fades have reached their target for the last inputs. */
   settled = false;
+  private readonly _byId = new Map<string, ConstructionDecorationLight>();
+  private readonly _resident = new Set<string>();
+  private readonly _want = new Set<string>();
+  private readonly _candidates: LightCandidate[] = [];
+  private readonly _activeCandidates: LightCandidate[] = [];
+  private readonly _compareCandidates = (a: LightCandidate, b: LightCandidate): number =>
+    a.d * (this._resident.has(a.l.id) ? 0.8 : 1) - b.d * (this._resident.has(b.l.id) ? 0.8 : 1) ||
+    a.l.id.localeCompare(b.l.id);
   constructor(budget = 4, enterDistance = 28, exitDistance = 34, fadeSeconds = 0.35) {
     this.budget = budget;
     this.enterDistance = enterDistance;
@@ -85,39 +93,49 @@ export class ConstructionDecorationLightPolicy {
   }
   update(
     lights: readonly ConstructionDecorationLight[],
-    camera: readonly number[],
+    camera: ArrayLike<number>,
     deltaSeconds: number
   ): readonly ConstructionLightSlot[] {
     if (
       camera.length < 3 ||
-      !camera.slice(0, 3).every(Number.isFinite) ||
+      !Number.isFinite(camera[0]) ||
+      !Number.isFinite(camera[1]) ||
+      !Number.isFinite(camera[2]) ||
       !Number.isFinite(deltaSeconds) ||
       deltaSeconds < 0
     )
       throw Error("Finite light camera/time required");
-    const byId = new Map<string, ConstructionDecorationLight>();
-    for (const l of lights) {
-      if (
-        !l.id ||
-        byId.has(l.id) ||
-        ![...l.position, ...l.color, l.intensity, l.range].every(Number.isFinite) ||
-        l.intensity < 0 ||
-        l.range <= 0 ||
-        l.color.some((c) => c < 0)
-      )
-        throw Error("Invalid/duplicate decoration emitter " + l.id);
+    // Per-call scratch collections are owned and cleared, keeping camera-driven selection allocation-free
+    const byId = this._byId;
+    byId.clear();
+    for (let i = 0, n = lights.length; i < n; i++) {
+      const l = lights[i];
+      if (!l.id || byId.has(l.id) || !isValidLight(l)) throw Error("Invalid/duplicate decoration emitter " + l.id);
       byId.set(l.id, l);
     }
-    const resident = new Set(this.slots.flatMap((s) => (s.descriptor ? [s.descriptor.id] : [])));
-    const candidates = lights
-      .map((l) => ({ l, d: Math.hypot(...l.position.map((v, i) => v - camera[i])) }))
-      .filter(({ l, d }) => l.intensity > 0 && d < (resident.has(l.id) ? this.exitDistance : this.enterDistance));
-    candidates.sort(
-      (a, b) =>
-        a.d * (resident.has(a.l.id) ? 0.8 : 1) - b.d * (resident.has(b.l.id) ? 0.8 : 1) || a.l.id.localeCompare(b.l.id)
-    );
-    const desired = candidates.slice(0, this.budget).map((c) => c.l),
-      want = new Set(desired.map((l) => l.id));
+    const resident = this._resident;
+    resident.clear();
+    for (const slot of this.slots) if (slot.descriptor) resident.add(slot.descriptor.id);
+    const candidates = this._candidates;
+    let count = 0;
+    for (let i = 0, n = lights.length; i < n; i++) {
+      const l = lights[i];
+      const d = Math.hypot(l.position[0] - camera[0], l.position[1] - camera[1], l.position[2] - camera[2]);
+      if (!(l.intensity > 0 && d < (resident.has(l.id) ? this.exitDistance : this.enterDistance))) continue;
+      const candidate = (candidates[count] ??= { l, d });
+      candidate.l = l;
+      candidate.d = d;
+      count++;
+    }
+    for (let i = count; i < candidates.length; i++) candidates[i].l = null!;
+    const active = this._activeCandidates;
+    active.length = count;
+    for (let i = 0; i < count; i++) active[i] = candidates[i];
+    active.sort(this._compareCandidates);
+    const desiredCount = Math.min(this.budget, count);
+    const want = this._want;
+    want.clear();
+    for (let i = 0; i < desiredCount; i++) want.add(active[i].l.id);
     const step = Math.min(1, deltaSeconds / this.fadeSeconds);
     for (const slot of this.slots) {
       if (!slot.descriptor) continue;
@@ -132,17 +150,44 @@ export class ConstructionDecorationLightPolicy {
       slot.weight = Math.max(0, Math.min(1, slot.weight + (want.has(latest.id) ? step : -step)));
       if (!slot.weight && !want.has(latest.id)) slot.descriptor = null;
     }
-    for (const light of desired) {
-      if (this.slots.some((s) => s.descriptor?.id === light.id)) continue;
-      const vacant = this.slots.find((s) => !s.descriptor);
+    for (let i = 0; i < desiredCount; i++) {
+      const light = active[i].l;
+      if (this._slotOf(light.id)) continue;
+      const vacant = this._vacantSlot();
       if (vacant) {
         vacant.descriptor = light;
         vacant.weight = step;
       }
     }
-    this.settled =
-      this.slots.every((s) => !s.descriptor || (want.has(s.descriptor.id) && s.weight === 1)) &&
-      desired.every((l) => this.slots.some((s) => s.descriptor?.id === l.id));
+    let settled = true;
+    for (const slot of this.slots) {
+      if (slot.descriptor && !(want.has(slot.descriptor.id) && slot.weight === 1)) settled = false;
+    }
+    for (let i = 0; settled && i < desiredCount; i++) if (!this._slotOf(active[i].l.id)) settled = false;
+    this.settled = settled;
+    active.length = 0;
     return this.slots;
   }
+
+  private _slotOf(id: string): ConstructionLightSlot | undefined {
+    for (const slot of this.slots) if (slot.descriptor?.id === id) return slot;
+    return undefined;
+  }
+
+  private _vacantSlot(): ConstructionLightSlot | undefined {
+    for (const slot of this.slots) if (!slot.descriptor) return slot;
+    return undefined;
+  }
+}
+
+interface LightCandidate {
+  l: ConstructionDecorationLight;
+  d: number;
+}
+
+function isValidLight(l: ConstructionDecorationLight): boolean {
+  for (let i = 0; i < 3; i++) {
+    if (!Number.isFinite(l.position[i]) || !Number.isFinite(l.color[i]) || l.color[i] < 0) return false;
+  }
+  return Number.isFinite(l.intensity) && Number.isFinite(l.range) && l.intensity >= 0 && l.range > 0;
 }

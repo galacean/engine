@@ -4,6 +4,7 @@ import {
   ModelMesh,
   Script,
   Shader,
+  ShaderProperty,
   Texture2D,
   TextureFilterMode,
   TextureFormat,
@@ -27,6 +28,11 @@ import { registerWaterContentRestorer } from "../resources/WaterContentRestorer"
 import { registerWaterMeshContentRestorer } from "../resources/WaterMeshContentRestorer";
 import { waterContactEffectActivation, type WaterContactEffectSource } from "./WaterContactEffectSource";
 import { createWaterContactSurfaceMask, WATER_CONTACT_MASK_SIZE } from "./WaterContactSurfaceMask";
+
+const effectTimeProperty = ShaderProperty.getByName("material_EffectTime");
+const effectActivationProperty = ShaderProperty.getByName("material_EffectActivation");
+const effectVelocityProperty = ShaderProperty.getByName("material_EffectVelocity");
+const effectNormalProperty = ShaderProperty.getByName("material_EffectNormal");
 
 /** Generic visual consumer of a published water provider. Never mutates water or terrain. */
 export class WaterContactEffects {
@@ -200,7 +206,8 @@ export class WaterContactEffects {
     for (const emitter of this.emitters) {
       const { source, entity, material } = emitter;
       const style = this.look?.[source.kind];
-      this.position.set(...source.samplePosition);
+      const samplePosition = source.samplePosition;
+      this.position.set(samplePosition[0], samplePosition[1], samplePosition[2]);
       const hit =
         this.visible &&
         !!style?.enabled &&
@@ -242,12 +249,12 @@ export class WaterContactEffects {
         emitter.maskDirty = false;
       }
       const data = material.shaderData;
-      data.setFloat("material_EffectTime", time);
-      data.setFloat("material_EffectActivation", activation);
+      data.setFloat(effectTimeProperty, time);
+      data.setFloat(effectActivationProperty, activation);
       emitter.velocity.copyFrom(this.sample.waterVelocity);
       emitter.normal.copyFrom(this.sample.surfaceNormal);
-      data.setVector3("material_EffectVelocity", emitter.velocity);
-      data.setVector3("material_EffectNormal", emitter.normal);
+      data.setVector3(effectVelocityProperty, emitter.velocity);
+      data.setVector3(effectNormalProperty, emitter.normal);
     }
   }
   destroy() {

@@ -369,11 +369,13 @@ export class RealtimeIBLBaker {
   requestBake(): number {
     this._assertAlive();
     if (this._transition) return this._latestRevision;
-    const snapshot = this._captureSnapshot();
-    if (snapshot.signature === this._latestSignature) {
+    // Compare the scalar signature first; snapshot vectors are cloned only for a new revision
+    const signature = this._captureSignature();
+    if (signature === this._latestSignature) {
       return this._latestRevision;
     }
 
+    const snapshot = this._captureSnapshot(signature);
     snapshot.revision = ++this._latestRevision;
     this._latestSignature = snapshot.signature;
     this._pendingSnapshot = snapshot;
@@ -404,7 +406,7 @@ export class RealtimeIBLBaker {
           const ready = transition.capture();
           if (ready === false) return;
           preparedDependency = ready === true;
-          const snapshot = this._captureSnapshot();
+          const snapshot = this._captureSnapshot(this._captureSignature());
           snapshot.revision = ++this._latestRevision;
           this._latestSignature = snapshot.signature;
           this._pendingSnapshot = snapshot;
@@ -552,7 +554,8 @@ export class RealtimeIBLBaker {
     this._firstBakeWaiters.length = 0;
   }
 
-  private _captureSnapshot(): SkySnapshot {
+  /** Validate the Scene sky and join every bake input into one comparable signature. */
+  private _captureSignature(): string {
     const sourceScene = this._sourceScene;
     const material = sourceScene.background.sky.material;
     const mesh = sourceScene.background.sky.mesh;
@@ -566,26 +569,20 @@ export class RealtimeIBLBaker {
         throw new Error("RealtimeIBLBaker requires the static skybox to have a TextureCube.");
       }
       const secondaryTexture = material.secondaryTexture;
-      return {
-        kind: "static",
-        revision: 0,
-        signature: [
-          "static",
-          material.instanceId,
-          mesh.instanceId,
-          texture.instanceId,
-          secondaryTexture?.instanceId ?? 0,
-          material.textureBlend,
-          material.rotation,
-          material.exposure,
-          material.tintColor.r,
-          material.tintColor.g,
-          material.tintColor.b,
-          material.tintColor.a
-        ].join("|"),
-        mesh,
-        material
-      };
+      return [
+        "static",
+        material.instanceId,
+        mesh.instanceId,
+        texture.instanceId,
+        secondaryTexture?.instanceId ?? 0,
+        material.textureBlend,
+        material.rotation,
+        material.exposure,
+        material.tintColor.r,
+        material.tintColor.g,
+        material.tintColor.b,
+        material.tintColor.a
+      ].join("|");
     }
 
     const sun = sourceScene.sun;
@@ -594,7 +591,7 @@ export class RealtimeIBLBaker {
     }
     const direction = sun.direction;
     const color = sun.color;
-    const signature = [
+    return [
       material.instanceId,
       mesh.instanceId,
       sun.enabled ? 1 : 0,
@@ -656,6 +653,19 @@ export class RealtimeIBLBaker {
       material.moonAngularRadius,
       material._volumetricCloudsSignature
     ].join("|");
+  }
+
+  /** Clone the validated sky inputs for a signature already produced by `_captureSignature`. */
+  private _captureSnapshot(signature: string): SkySnapshot {
+    const sourceScene = this._sourceScene;
+    const material = sourceScene.background.sky.material;
+    const mesh = sourceScene.background.sky.mesh!;
+    if (material instanceof SkyBoxMaterial) {
+      return { kind: "static", revision: 0, signature, mesh, material };
+    }
+    const procedural = material as SkyProceduralMaterial;
+    const sun = sourceScene.sun!;
+    const color = sun.color;
     return {
       kind: "procedural",
       revision: 0,
@@ -664,38 +674,38 @@ export class RealtimeIBLBaker {
       sunEnabled: sun.enabled,
       sunColor: color.clone(),
       sunWorldRotation: sun.entity.transform.worldRotationQuaternion.clone(),
-      sunDirection: material.sunDirection.clone(),
-      sunAtmosphereColor: material.sunAtmosphereColor.clone(),
-      atmosphereThickness: material.atmosphereThickness,
-      atmosphereHeight: material.atmosphereHeight,
-      observerHeight: material.observerHeight,
-      rayleighScattering: material.rayleighScattering,
-      rayleighScaleHeight: material.rayleighScaleHeight,
-      mieScattering: material.mieScattering,
-      mieScaleHeight: material.mieScaleHeight,
-      mieAnisotropy: material.mieAnisotropy,
-      scatteringIntensity: material.scatteringIntensity,
-      horizonHaze: material.horizonHaze,
-      atmosphereSampleCount: material.atmosphereSampleCount,
-      skyTint: material.skyTint.clone(),
-      groundTint: material.groundTint.clone(),
-      customSkyTintStrength: material.customSkyTintStrength,
-      customSkyZenithTint: material.customSkyZenithTint.clone(),
-      customSkyHorizonTint: material.customSkyHorizonTint.clone(),
-      exposure: material.exposure,
-      twilightIntensity: material.twilightIntensity,
-      starIntensity: material.starIntensity,
-      starSize: material.starSize,
-      starCount: material.starCount,
-      airglowIntensity: material.airglowIntensity,
-      starAxis: material.starAxis.clone(),
-      starRotation: material.starRotation,
-      moonDirection: material.moonDirection.clone(),
-      moonColor: material.moonColor.clone(),
-      moonDiskIntensity: material.moonDiskIntensity,
-      moonAtmosphereIntensity: material.moonAtmosphereIntensity,
-      moonAngularRadius: material.moonAngularRadius,
-      volumetricClouds: material.volumetricClouds
+      sunDirection: procedural.sunDirection.clone(),
+      sunAtmosphereColor: procedural.sunAtmosphereColor.clone(),
+      atmosphereThickness: procedural.atmosphereThickness,
+      atmosphereHeight: procedural.atmosphereHeight,
+      observerHeight: procedural.observerHeight,
+      rayleighScattering: procedural.rayleighScattering,
+      rayleighScaleHeight: procedural.rayleighScaleHeight,
+      mieScattering: procedural.mieScattering,
+      mieScaleHeight: procedural.mieScaleHeight,
+      mieAnisotropy: procedural.mieAnisotropy,
+      scatteringIntensity: procedural.scatteringIntensity,
+      horizonHaze: procedural.horizonHaze,
+      atmosphereSampleCount: procedural.atmosphereSampleCount,
+      skyTint: procedural.skyTint.clone(),
+      groundTint: procedural.groundTint.clone(),
+      customSkyTintStrength: procedural.customSkyTintStrength,
+      customSkyZenithTint: procedural.customSkyZenithTint.clone(),
+      customSkyHorizonTint: procedural.customSkyHorizonTint.clone(),
+      exposure: procedural.exposure,
+      twilightIntensity: procedural.twilightIntensity,
+      starIntensity: procedural.starIntensity,
+      starSize: procedural.starSize,
+      starCount: procedural.starCount,
+      airglowIntensity: procedural.airglowIntensity,
+      starAxis: procedural.starAxis.clone(),
+      starRotation: procedural.starRotation,
+      moonDirection: procedural.moonDirection.clone(),
+      moonColor: procedural.moonColor.clone(),
+      moonDiskIntensity: procedural.moonDiskIntensity,
+      moonAtmosphereIntensity: procedural.moonAtmosphereIntensity,
+      moonAngularRadius: procedural.moonAngularRadius,
+      volumetricClouds: procedural.volumetricClouds
     };
   }
 

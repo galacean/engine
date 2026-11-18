@@ -1651,6 +1651,9 @@ class VoiceHudLayout extends Script {
   private readonly _clipBounds = new Vector4();
   private _lineCount = 1;
   private _visibleLines = 1;
+  private _footerFirst = -1;
+  private _footerLast = -1;
+  private _footerLineCount = -1;
   private _lineHeight = 28;
 
 
@@ -1977,7 +1980,14 @@ class VoiceHudLayout extends Script {
     this.transcriptMaterial.shaderData.setVector4("material_SeedWorldTextClipBounds", this._clipBounds);
     if (this.transcriptFooter && this.canScroll) {
       const first = Math.floor(Math.max(0, Math.min(this._scroll.maximum, this._scroll.offset)) / this._lineHeight);
-      this.transcriptFooter.text = `${first + 1}–${Math.min(first + this._visibleLines, this._lineCount)} / ${this._lineCount} 行 · 上下滑动阅读 · 横向拖走`;
+      const last = Math.min(first + this._visibleLines, this._lineCount);
+      // Format only when the visible line range changes, not on every idle or scrolling frame
+      if (first !== this._footerFirst || last !== this._footerLast || this._lineCount !== this._footerLineCount) {
+        this._footerFirst = first;
+        this._footerLast = last;
+        this._footerLineCount = this._lineCount;
+        this.transcriptFooter.text = `${first + 1}–${last} / ${this._lineCount} 行 · 上下滑动阅读 · 横向拖走`;
+      }
     }
   }
 
@@ -2081,6 +2091,7 @@ class VoiceHudLayout extends Script {
     textTransform.size.y = this._expanded ? this._lineCount * this._lineHeight : this._singleLinePanelHeight - TRANSCRIPT_VERTICAL_PADDING * 2;
     transcript.verticalAlignment = this._expanded ? TextVerticalAlignment.Top : TextVerticalAlignment.Center;
     if (this.transcriptFooter) {
+      this._footerFirst = -1;
       this.transcriptFooter.entity.isActive = this._expanded && this._panelTargetOpacity > 0;
       this.transcriptFooter.text = this._lineCount > this._visibleLines
         ? "上下滑动阅读 · 横向拖走"

@@ -1,10 +1,24 @@
-import { Entity, PointLight, ShadowType, Script, type ShaderMacro, type Camera, type Scene } from "@galacean/engine";
+import {
+  Entity,
+  PointLight,
+  ShaderProperty,
+  ShadowType,
+  Script,
+  type ShaderMacro,
+  type Camera,
+  type Scene
+} from "@galacean/engine";
 import {
   ConstructionDecorationLightPolicy,
   type ConstructionDecorationLight
 } from "./ConstructionDecorationLightPolicy";
 export { constructionDecorationLights } from "./ConstructionDecorationLightPolicy";
 export type { ConstructionDecorationLight } from "./ConstructionDecorationLightPolicy";
+const positionRangeProperty = ShaderProperty.getByName("scene_MasonryLightPositionRange");
+const colorIntensityProperty = ShaderProperty.getByName("scene_MasonryLightColorIntensity");
+const pointMaskProperty = ShaderProperty.getByName("scene_MasonryPointMask");
+const legacyMaskProperty = ShaderProperty.getByName("scene_MasonryLegacyMask");
+const fallbackMaskProperty = ShaderProperty.getByName("scene_MasonryFallbackMask");
 class ConstructionLightSync extends Script {
   sync: (() => void) | undefined;
   onBeginRender() {
@@ -27,6 +41,7 @@ export class ConstructionDecorationLights {
   private cameraSync?: ConstructionLightSync;
   private readonly macros: ShaderMacro[] = [];
   private readonly cameraPosition = new Float64Array(3).fill(NaN);
+  private readonly policyCamera = new Float64Array(3);
   private inputLights: ConstructionDecorationLight[] = [];
   private sameLights(lights: readonly ConstructionDecorationLight[]): boolean {
     if (lights.length !== this.inputLights.length) return false;
@@ -75,7 +90,11 @@ export class ConstructionDecorationLights {
       ConstructionDecorationLights.publishers.get(this.root.scene!) === this
     )
       return;
-    const slots = this.policy.update(lights, [p.x, p.y, p.z], deltaSeconds);
+    const policyCamera = this.policyCamera;
+    policyCamera[0] = p.x;
+    policyCamera[1] = p.y;
+    policyCamera[2] = p.z;
+    const slots = this.policy.update(lights, policyCamera, deltaSeconds);
     this.cameraPosition[0] = p.x;
     this.cameraPosition[1] = p.y;
     this.cameraPosition[2] = p.z;
@@ -89,11 +108,22 @@ export class ConstructionDecorationLights {
         energy = (light?.intensity ?? 0) * slot.weight,
         emitter = this.emitters[i];
       if (light) {
-        emitter.entity.transform.setWorldPosition(...light.position);
+        const position = light.position,
+          x = position[0],
+          y = position[1],
+          z = position[2],
+          offset = i * 4;
+        emitter.entity.transform.setWorldPosition(x, y, z);
         emitter.distance = light.range;
         emitter.color.set(light.color[0] * energy, light.color[1] * energy, light.color[2] * energy, 1);
-        this.positions.set([...light.position, light.range], i * 4);
-        this.colors.set([...light.color, energy], i * 4);
+        this.positions[offset] = x;
+        this.positions[offset + 1] = y;
+        this.positions[offset + 2] = z;
+        this.positions[offset + 3] = light.range;
+        this.colors[offset] = light.color[0];
+        this.colors[offset + 1] = light.color[1];
+        this.colors[offset + 2] = light.color[2];
+        this.colors[offset + 3] = energy;
         if (energy > 0) this.metrics.active++;
       } else emitter.color.set(0, 0, 0, 1);
     }
@@ -104,8 +134,8 @@ export class ConstructionDecorationLights {
   }
   private publish() {
     const data = this.root.scene!.shaderData;
-    data.setFloatArray("scene_MasonryLightPositionRange", this.positions);
-    data.setFloatArray("scene_MasonryLightColorIntensity", this.colors);
+    data.setFloatArray(positionRangeProperty, this.positions);
+    data.setFloatArray(colorIntensityProperty, this.colors);
   }
   private publishIdentity() {
     // LightManager packs the scene before onBeginRender. Read the same public
@@ -113,9 +143,16 @@ export class ConstructionDecorationLights {
     // assume that removing another light preserves its unordered-array slot.
     const scene = this.root.scene!;
     if (ConstructionDecorationLights.publishers.get(scene) !== this) return;
-    this.macros.length = 0;
-    scene.shaderData.getMacros(this.macros);
-    const count = Number(this.macros.find((m) => m.name === "SCENE_POINT_LIGHT_COUNT")?.value ?? 0);
+    const macros = this.macros;
+    macros.length = 0;
+    scene.shaderData.getMacros(macros);
+    let count = 0;
+    for (let i = 0, n = macros.length; i < n; i++) {
+      if (macros[i].name === "SCENE_POINT_LIGHT_COUNT") {
+        count = Number(macros[i].value ?? 0);
+        break;
+      }
+    }
     let owned = 0,
       legacy = 0,
       fallback = 0;
@@ -130,9 +167,10 @@ export class ConstructionDecorationLights {
         } else if (local) fallback |= 1 << slot;
       }
     }
-    scene.shaderData.setInt("scene_MasonryPointMask", owned);
-    scene.shaderData.setInt("scene_MasonryLegacyMask", legacy);
-    scene.shaderData.setInt("scene_MasonryFallbackMask", fallback);
+    macros.length = 0;
+    scene.shaderData.setInt(pointMaskProperty, owned);
+    scene.shaderData.setInt(legacyMaskProperty, legacy);
+    scene.shaderData.setInt(fallbackMaskProperty, fallback);
   }
   dispose() {
     if (this.disposed) return;

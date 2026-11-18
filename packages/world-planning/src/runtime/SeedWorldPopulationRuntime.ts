@@ -958,6 +958,15 @@ export class SeedWorldPopulationRuntime {
   private _grassHeightOverride = true;
   private _grassDensityPerSquareMetre = SEED_WORLD_GRASS_DENSITY_PER_SQUARE_METRE;
   private _grassDensityMultiplier = 1;
+  private _grassHeightRangeCache?: {
+    readonly layout: unknown;
+    readonly scaleRange: unknown;
+    readonly override: boolean;
+    readonly value: Readonly<{ minimum: number; maximum: number }>;
+  };
+  // Synchronous update inputs; RockGrassPatches copies sampling before any resumable compile
+  private readonly _rockGrassCamera: [number, number, number] = [0, 0, 0];
+  private readonly _rockGrassSampling = { density: 0, minimumScale: 0, maximumScale: 0, rootRadius: 0 };
   private readonly _detailCategoryVisible = { grass: true, flower: true };
   private _destroyed = false;
 
@@ -1428,20 +1437,34 @@ export class SeedWorldPopulationRuntime {
 
   /** Current deterministic grass height range in world metres. */
   get grassHeightRangeMetres(): Readonly<{ minimum: number; maximum: number }> {
-    const heights = this._grassHeightOverride
-      ? []
-      : this._populationLayout.detailDensityFields
-          .filter((field) => field.category === "grass" && field.heightRangeMetres)
-          .map((field) => field.heightRangeMetres!);
-    if (heights.length)
-      return Object.freeze({
-        minimum: Math.min(...heights.map((field) => field.minimum)),
-        maximum: Math.max(...heights.map((field) => field.maximum))
-      });
-    return Object.freeze({
-      minimum: this._grassScaleRange.minimum * GRASS_AUTHORED_HEIGHT_METRES,
-      maximum: this._grassScaleRange.maximum * GRASS_AUTHORED_HEIGHT_METRES
-    });
+    // Inputs are replaced, never mutated, so identity is a complete cache key
+    const layout = this._populationLayout,
+      scaleRange = this._grassScaleRange,
+      override = this._grassHeightOverride,
+      cache = this._grassHeightRangeCache;
+    if (cache && cache.layout === layout && cache.scaleRange === scaleRange && cache.override === override)
+      return cache.value;
+    let minimum = Infinity,
+      maximum = -Infinity,
+      authored = false;
+    if (!override) {
+      const fields = layout.detailDensityFields;
+      for (let i = 0, n = fields.length; i < n; i++) {
+        const range = fields[i].category === "grass" ? fields[i].heightRangeMetres : undefined;
+        if (!range) continue;
+        authored = true;
+        minimum = Math.min(minimum, range.minimum);
+        maximum = Math.max(maximum, range.maximum);
+      }
+    }
+    const value = authored
+      ? Object.freeze({ minimum, maximum })
+      : Object.freeze({
+          minimum: scaleRange.minimum * GRASS_AUTHORED_HEIGHT_METRES,
+          maximum: scaleRange.maximum * GRASS_AUTHORED_HEIGHT_METRES
+        });
+    this._grassHeightRangeCache = { layout, scaleRange, override, value };
+    return value;
   }
 
   /** Full-coverage terrestrial density in clumps/m², before ecology and distance thinning. */
@@ -2689,16 +2712,20 @@ export class SeedWorldPopulationRuntime {
     }
     if (this._generatedRockGrass) {
       const height = this.grassHeightRangeMetres;
+      const camera = this._rockGrassCamera;
+      camera[0] = cameraPosition.x;
+      camera[1] = cameraPosition.y;
+      camera[2] = cameraPosition.z;
+      const sampling = this._rockGrassSampling;
+      sampling.density = this._grassDensityPerSquareMetre * this._grassDensityMultiplier;
+      sampling.minimumScale = height.minimum / GRASS_AUTHORED_HEIGHT_METRES;
+      sampling.maximumScale = height.maximum / GRASS_AUTHORED_HEIGHT_METRES;
+      sampling.rootRadius = readSeedWorldGrassRootRadius(this._rockSurfaceGrassSourceForRuntime());
       this._generatedRockGrass.update(
-        [cameraPosition.x, cameraPosition.y, cameraPosition.z],
+        camera,
         seedWorldPopulationDetailFadeTerminalDistance(),
         this.details.isActiveInHierarchy && this._detailCategoryVisible.grass,
-        {
-          density: this._grassDensityPerSquareMetre * this._grassDensityMultiplier,
-          minimumScale: height.minimum / GRASS_AUTHORED_HEIGHT_METRES,
-          maximumScale: height.maximum / GRASS_AUTHORED_HEIGHT_METRES,
-          rootRadius: readSeedWorldGrassRootRadius(this._rockSurfaceGrassSourceForRuntime())
-        }
+        sampling
       );
     }
     if (this.details.isActiveInHierarchy) {

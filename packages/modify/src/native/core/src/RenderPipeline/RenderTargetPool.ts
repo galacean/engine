@@ -6,6 +6,7 @@ import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapM
  */
 export class RenderTargetPool {
   private static readonly _maxIdleFrames = 10;
+  private static readonly _noAdditionalColorFormats: readonly TextureFormat[] = Object.freeze([]);
 
   private _freeRenderTargets: RenderTarget[] = [];
   private _freeTextures: Texture2D[] = [];
@@ -28,7 +29,7 @@ export class RenderTargetPool {
     wrapMode: TextureWrapMode,
     filterMode: TextureFilterMode,
     depthFilterMode: TextureFilterMode = filterMode,
-    additionalColorFormats: readonly TextureFormat[] = [],
+    additionalColorFormats: readonly TextureFormat[] = RenderTargetPool._noAdditionalColorFormats,
     depthMipmap: boolean = mipmap
   ): RenderTarget {
     const freeRenderTargets = this._freeRenderTargets;
@@ -218,13 +219,13 @@ export class RenderTargetPool {
       return false;
     }
 
-    const expectedColorFormats = colorFormat == null ? [] : [colorFormat, ...additionalColorFormats];
-    if (renderTarget.colorTextureCount !== expectedColorFormats.length) return false;
-    for (let i = 0, n = expectedColorFormats.length; i < n; i++) {
+    const colorCount = colorFormat == null ? 0 : 1 + additionalColorFormats.length;
+    if (renderTarget.colorTextureCount !== colorCount) return false;
+    for (let i = 0; i < colorCount; i++) {
       const colorTexture = renderTarget.getColorTexture(i) as Texture2D;
       if (
         !colorTexture ||
-        colorTexture.format !== expectedColorFormats[i] ||
+        colorTexture.format !== (i === 0 ? colorFormat : additionalColorFormats[i - 1]) ||
         colorTexture.mipmapCount > 1 !== mipmap ||
         colorTexture.isSRGBColorSpace !== isSRGBColorSpace
       ) {

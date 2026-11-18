@@ -398,13 +398,17 @@ export class BuildingRuntime extends Script {
         view.signature = "";
         this.invalidate();
       }
-    for (const [member, flag] of this.members)
-      if (flag.flag) {
-        member.entity.transform.worldMatrix;
-        flag.flag = false;
-        this.invalidate();
-      }
+    this.members.forEach(this.readMemberTransform);
   }
+  private readonly readMemberTransform = (
+    flag: ReturnType<Entity["transform"]["registerWorldChangeFlag"]>,
+    member: Component
+  ): void => {
+    if (!flag.flag) return;
+    member.entity.transform.worldMatrix;
+    flag.flag = false;
+    this.invalidate();
+  };
   onUpdate(deltaTime: number): void {
     this.readTransforms();
     this.validateBuild();
@@ -1135,7 +1139,9 @@ export class BuildingRuntime extends Script {
     return [...this.views.values()].flatMap((v) => v.diagnostics);
   }
   errors() {
-    return this.metrics().errors;
+    const errors = this.error ? [String(this.error)] : [];
+    for (const view of this.entries) if (view.error) errors.push(view.error);
+    return errors;
   }
   placementMetrics() {
     let profileUnits = 0,

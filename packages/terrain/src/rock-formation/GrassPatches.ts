@@ -34,8 +34,17 @@ export class RockGrassPatches<B> {
   private queue: Work<B>[] = [];
   private residents: Work<B>[] = [];
   private retired: B[] = [];
-  private cameraKey = "";
-  private samplingKey = "";
+  // Scalar residency/sampling keys keep the per-frame update allocation-free
+  private cameraCellX = NaN;
+  private cameraCellY = NaN;
+  private cameraCellZ = NaN;
+  private cameraDistance = NaN;
+  private cameraEnabled = false;
+  private hasSampling = false;
+  private samplingDensity?: number;
+  private samplingMinimumScale?: number;
+  private samplingMaximumScale?: number;
+  private samplingRootRadius?: number;
   private allowed: RockGrassSampling["allowed"] = () => true;
   private disposed = false;
   private lastEnabled = false;
@@ -160,19 +169,42 @@ export class RockGrassPatches<B> {
   ): void {
     if (this.disposed) return;
     this.lastEnabled = enabled;
-    const now = this.render.now ?? (() => performance.now()),
+    const now = this.render.now ?? performanceNow,
       started = now();
     for (let i = 0; i < 2 && this.retired.length; i++) this.render.destroy(this.retired.pop()!);
-    const samplingKey = `${sampling.density}/${sampling.minimumScale}/${sampling.maximumScale}/${sampling.rootRadius}`;
-    if (samplingKey !== this.samplingKey) {
-      if (this.samplingKey)
+    if (
+      !this.hasSampling ||
+      !sameKey(sampling.density, this.samplingDensity) ||
+      !sameKey(sampling.minimumScale, this.samplingMinimumScale) ||
+      !sameKey(sampling.maximumScale, this.samplingMaximumScale) ||
+      !sameKey(sampling.rootRadius, this.samplingRootRadius)
+    ) {
+      // The first sampling configuration has no compiled patches to release
+      if (this.hasSampling)
         for (const entry of this.entries.values()) for (const patch of entry.patches) this.release(patch);
-      this.samplingKey = samplingKey;
+      this.hasSampling = true;
+      this.samplingDensity = sampling.density;
+      this.samplingMinimumScale = sampling.minimumScale;
+      this.samplingMaximumScale = sampling.maximumScale;
+      this.samplingRootRadius = sampling.rootRadius;
       this.dirty = true;
     }
-    const key = `${camera.map((v) => Math.floor(v / ROCK_GRASS_PATCH_METRES)).join("/")}/${distance}/${enabled}`;
-    if (this.dirty || key !== this.cameraKey) {
-      this.cameraKey = key;
+    const cellX = Math.floor(camera[0] / ROCK_GRASS_PATCH_METRES),
+      cellY = Math.floor(camera[1] / ROCK_GRASS_PATCH_METRES),
+      cellZ = Math.floor(camera[2] / ROCK_GRASS_PATCH_METRES);
+    if (
+      this.dirty ||
+      !sameKey(cellX, this.cameraCellX) ||
+      !sameKey(cellY, this.cameraCellY) ||
+      !sameKey(cellZ, this.cameraCellZ) ||
+      distance !== this.cameraDistance ||
+      enabled !== this.cameraEnabled
+    ) {
+      this.cameraCellX = cellX;
+      this.cameraCellY = cellY;
+      this.cameraCellZ = cellZ;
+      this.cameraDistance = distance;
+      this.cameraEnabled = enabled;
       this.dirty = false;
       this.queue = [];
       this.residents = [];
@@ -294,21 +326,26 @@ export class RockGrassPatches<B> {
   }
 }
 
+function performanceNow(): number {
+  return performance.now();
+}
 function emptyMetrics(): RockGrassCompilationMetrics {
   return { candidates: 0, accepted: 0, unsupported: 0, excluded: 0 };
 }
 function patchDistanceSquared(placement: RockGrassPlacement, patch: RockGrassPatch, camera: V3): number {
-  const min = [
-    placement.origin[0] + patch.x * ROCK_GRASS_PATCH_METRES,
-    placement.origin[1] + patch.minimumY,
-    placement.origin[2] + patch.z * ROCK_GRASS_PATCH_METRES
-  ];
-  const max = [
-    min[0] + ROCK_GRASS_PATCH_METRES,
-    placement.origin[1] + patch.maximumY,
-    min[2] + ROCK_GRASS_PATCH_METRES
-  ];
-  let squared = 0;
-  for (let axis = 0; axis < 3; axis++) squared += Math.max(min[axis] - camera[axis], camera[axis] - max[axis], 0) ** 2;
-  return squared;
+  const minX = placement.origin[0] + patch.x * ROCK_GRASS_PATCH_METRES,
+    minY = placement.origin[1] + patch.minimumY,
+    minZ = placement.origin[2] + patch.z * ROCK_GRASS_PATCH_METRES;
+  return (
+    axisDistance(camera[0], minX, minX + ROCK_GRASS_PATCH_METRES) ** 2 +
+    axisDistance(camera[1], minY, placement.origin[1] + patch.maximumY) ** 2 +
+    axisDistance(camera[2], minZ, minZ + ROCK_GRASS_PATCH_METRES) ** 2
+  );
+}
+function axisDistance(value: number, min: number, max: number): number {
+  return Math.max(min - value, value - max, 0);
+}
+/** Key equality matching the previous string keys: NaN equals NaN and signed zeros are equal. */
+function sameKey(a: number | undefined, b: number | undefined): boolean {
+  return a === b || (a !== a && b !== b);
 }

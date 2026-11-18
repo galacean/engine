@@ -842,7 +842,6 @@ export async function mountSeedWorldDemo(
     applyPlanningWeather(environment, initialWeather);
     if (startupTemplate?.rockSource !== "shared") desert?.configureDesertClouds(environment);
     audio = new SeedWorldAudioRuntime(camera, navigation, environment, wind);
-    const windCenter = new Vector3();
     const driver = root.addComponent(SeedDemoFrame);
     let debugReadoutElapsed = 0;
     let lastDatasetPublication: unknown;
@@ -865,9 +864,7 @@ export async function mountSeedWorldDemo(
       obbDebug?.update(dt);
       water?.update(dt);
       animals?.advance?.(dt);
-      const position = camera.entity.transform.worldPosition;
-      windCenter.set(position.x, sampleHeight(position.x, position.z) ?? position.y, position.z);
-      wind.setLocalFieldCenter(windCenter);
+      // WorldEnvironmentRuntime owns the wind local-field centre and resamples it every frame
       audio?.update(dt, ready, tools?.listening ?? false);
       if (!restoreMasonryView) playerState?.observe();
       if ((debugReadoutElapsed += dt) >= 0.1) {
@@ -883,6 +880,7 @@ export async function mountSeedWorldDemo(
           if (current?.masonry) canvas.dataset.plannedMasonry = JSON.stringify(current.masonry.metrics);
         }
         if (current?.template && debugDatasetEnabled) {
+          const position = camera.entity.transform.worldPosition;
           const forward = camera.entity.transform.worldForward;
           canvas.dataset.templateCamera = JSON.stringify({
             eye: [position.x, position.y, position.z],

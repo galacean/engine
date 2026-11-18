@@ -209,7 +209,8 @@ interface MutableScreenSpaceReflectionMetrics {
   inactiveReason: string | null;
 }
 
-interface ScreenSpaceReflectionRenderStats {
+/** @internal */
+export interface ScreenSpaceReflectionRenderStats {
   contributionColorDrawCount: number;
   contributionDepthDrawCount: number;
   width: number;

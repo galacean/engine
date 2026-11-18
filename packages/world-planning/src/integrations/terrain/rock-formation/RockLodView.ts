@@ -1,4 +1,4 @@
-import { MeshRenderer, Script, Vector3, type Camera, type ModelMesh } from "@galacean/engine";
+import { MeshRenderer, Script, ShaderProperty, Vector3, type Camera, type ModelMesh } from "@galacean/engine";
 import { ROCK_LOD_SCREEN_HEIGHTS } from "@galacean/engine-terrain/rock-formation/RockLodPolicy";
 import type { RockVariantAsset } from "@galacean/engine-terrain/rock-formation/types";
 import {
@@ -10,6 +10,7 @@ import { TerrainScreenRelativeHeightRuntime } from "@galacean/engine-terrain/ter
 import { TREE_ASSEMBLY_LOD_CROSS_FADE_SECONDS } from "@galacean/engine-vegetation/asset-assembly/TreeAssemblyPlan";
 import { rockLodMeshes } from "./RockLodMeshes";
 
+const lodFadeProperty = ShaderProperty.getByName("renderer_LodFade");
 const heights = [...ROCK_LOD_SCREEN_HEIGHTS, Number.MIN_VALUE];
 const lodGroup = new TerrainLodGroupRuntime(
   {
@@ -27,10 +28,12 @@ interface RockLodEntry {
   readonly meshes: readonly ModelMesh[];
   readonly lod: TerrainLodGroupInstance;
   screenHeight: number;
+  /** Created on the first blend and then only toggled, so repeated LOD crossings do not churn components. */
   alternate?: MeshRenderer;
+  fading: boolean;
 }
 
-/** Uses the shared vegetation dither transition with one extra renderer only while blending. */
+/** Uses the shared vegetation dither transition with one extra renderer enabled only while blending. */
 export class RockLodView extends Script {
   camera!: Camera;
   private readonly entries = new Map<MeshRenderer, RockLodEntry>();
@@ -39,6 +42,13 @@ export class RockLodView extends Script {
   private readonly eye = new Vector3();
   private projectionSize = NaN;
   private readonly observation = { timeSeconds: 0, visible: true as const, screenRelativeHeight: 0 };
+  private readonly refreshEntry = (entry: RockLodEntry, renderer: MeshRenderer): void => {
+    entry.screenHeight = Math.max(Number.MIN_VALUE, entry.projection.resolve());
+    this.apply(renderer, entry);
+  };
+  private readonly advanceFade = (renderer: MeshRenderer): void => {
+    this.apply(renderer, this.entries.get(renderer)!);
+  };
 
   /**
    * Registers the render-only alternate meshes of a rock.
@@ -60,12 +70,13 @@ export class RockLodView extends Script {
     const alternates = new Set([middle, far]);
     for (const mesh of alternates) mesh?._addReferCount(1);
     renderer.shaderData.enableMacro("RENDERER_LOD_DITHER");
-    renderer.shaderData.setFloat("renderer_LodFade", 1);
+    renderer.shaderData.setFloat(lodFadeProperty, 1);
     const entry: RockLodEntry = {
       projection,
       meshes: [original, middle ?? original, far ?? middle ?? original],
       lod: lodGroup.createInstance(),
-      screenHeight: 0
+      screenHeight: 0,
+      fading: false
     };
     this.entries.set(renderer, entry);
     this.invalidate();
@@ -83,7 +94,8 @@ export class RockLodView extends Script {
    * @returns The active alternate renderer, if present.
    */
   fadingRenderer(renderer: MeshRenderer): MeshRenderer | undefined {
-    return this.entries.get(renderer)?.alternate;
+    const entry = this.entries.get(renderer);
+    return entry?.fading ? entry.alternate : undefined;
   }
 
   /** Marks projections stale after the planner moves a retained formation. */
@@ -102,38 +114,42 @@ export class RockLodView extends Script {
     if (refresh) {
       this.projectionSize = size;
       this.eye.copyFrom(position);
-      for (const [renderer, entry] of this.entries) {
-        entry.screenHeight = Math.max(Number.MIN_VALUE, entry.projection.resolve());
-        this.apply(renderer, entry);
-      }
-    } else {
-      for (const renderer of this.fading) this.apply(renderer, this.entries.get(renderer)!);
+      this.entries.forEach(this.refreshEntry);
+    } else if (this.fading.size) {
+      this.fading.forEach(this.advanceFade);
     }
   }
 
   private apply(renderer: MeshRenderer, entry: RockLodEntry): void {
     this.observation.screenRelativeHeight = entry.screenHeight;
-    const [first, second] = entry.lod.updateInto(this.observation, this.scratch);
-    const targetMesh = entry.meshes[second?.lodIndex ?? first.lodIndex];
+    const sets = entry.lod.updateInto(this.observation, this.scratch);
+    const first = sets[0];
+    const second = sets.length > 1 ? sets[1] : undefined;
     const sourceMesh = entry.meshes[first.lodIndex];
-    renderer.mesh = sourceMesh;
+    const targetMesh = second ? entry.meshes[second.lodIndex] : sourceMesh;
+    if (renderer.mesh !== sourceMesh) renderer.mesh = sourceMesh;
     if (second && sourceMesh !== targetMesh) {
       let alternate = entry.alternate;
       if (!alternate) {
         alternate = entry.alternate = renderer.entity.addComponent(MeshRenderer);
+        alternate.shaderData.enableMacro("RENDERER_LOD_DITHER");
+      }
+      if (!entry.fading) {
+        // Material and shadow flags may change between blends; refresh them once per blend
         alternate.setMaterial(renderer.getMaterial());
         alternate.castShadows = renderer.castShadows;
         alternate.receiveShadows = renderer.receiveShadows;
-        alternate.shaderData.enableMacro("RENDERER_LOD_DITHER");
+        alternate.enabled = true;
+        entry.fading = true;
+        this.fading.add(renderer);
       }
-      renderer.shaderData.setFloat("renderer_LodFade", first.signedFade);
-      alternate.mesh = targetMesh;
-      alternate.shaderData.setFloat("renderer_LodFade", second.signedFade);
-      this.fading.add(renderer);
-    } else {
-      renderer.shaderData.setFloat("renderer_LodFade", 1);
-      entry.alternate?.destroy();
-      entry.alternate = undefined;
+      renderer.shaderData.setFloat(lodFadeProperty, first.signedFade);
+      if (alternate.mesh !== targetMesh) alternate.mesh = targetMesh;
+      alternate.shaderData.setFloat(lodFadeProperty, second.signedFade);
+    } else if (entry.fading) {
+      renderer.shaderData.setFloat(lodFadeProperty, 1);
+      entry.alternate!.enabled = false;
+      entry.fading = false;
       this.fading.delete(renderer);
     }
   }

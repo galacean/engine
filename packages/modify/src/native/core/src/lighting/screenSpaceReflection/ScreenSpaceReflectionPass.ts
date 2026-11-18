@@ -12,7 +12,10 @@ import { Material } from "../../material";
 import { Shader, ShaderProperty } from "../../shader";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
 import { TextureUtils } from "../../texture/TextureUtils";
-import type { ScreenSpaceReflectionConsumerReceiverMode } from "./ScreenSpaceReflection";
+import type {
+  ScreenSpaceReflectionConsumerReceiverMode,
+  ScreenSpaceReflectionRenderStats
+} from "./ScreenSpaceReflection";
 import type { ScreenSpaceReflectionProfiler, ScreenSpaceReflectionStage } from "./ScreenSpaceReflectionProfiler";
 import { ScreenSpaceReflection } from "./ScreenSpaceReflection";
 import { ScreenSpaceReflectionUpsamplingMode } from "./enums/ScreenSpaceReflectionUpsamplingMode";
@@ -44,6 +47,8 @@ export class ScreenSpaceReflectionPass {
   private static readonly _clearColor = new Color(0, 0, 0, 0);
   private static readonly _horizontalFilterDirection = new Vector2(1, 0);
   private static readonly _verticalFilterDirection = new Vector2(0, 1);
+  private static readonly _noAdditionalColorFormats: readonly TextureFormat[] = Object.freeze([]);
+  private static readonly _responseColorFormats: readonly TextureFormat[] = Object.freeze([TextureFormat.R8G8B8A8]);
 
   private _material: Material | null = null;
   private _contributionTarget: RenderTarget | null = null;
@@ -84,6 +89,28 @@ export class ScreenSpaceReflectionPass {
   private _pipelineEstimatedTextureBytes = 0;
   private _pipelineEstimatedRenderBufferBytes = 0;
   private _destroyed = false;
+  // Copied field-by-field by the receiver, so one scratch record serves every frame
+  private readonly _renderStats: ScreenSpaceReflectionRenderStats = {
+    width: 0,
+    height: 0,
+    contributionColorDrawCount: 0,
+    contributionDepthDrawCount: 0,
+    opaqueSurfacePassDrawCount: 0,
+    transparentSurfacePassDrawCount: 0,
+    tracePassCount: 0,
+    compositePassCount: 0,
+    sceneCopyPassCount: 0,
+    filterPassCount: 0,
+    upsamplePassCount: 0,
+    fullscreenPassCount: 0,
+    renderTargetCount: 0,
+    renderTextureCount: 0,
+    renderBufferCount: 0,
+    retainedRenderTargetCount: 0,
+    estimatedTextureBytes: 0,
+    estimatedRenderBufferBytes: 0,
+    estimatedBytes: 0
+  };
 
   get hasOpaqueReceivers(): boolean {
     return this._opaqueReceiverElementCount > 0;
@@ -320,7 +347,7 @@ export class ScreenSpaceReflectionPass {
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear,
         TextureFilterMode.Point,
-        [],
+        ScreenSpaceReflectionPass._noAdditionalColorFormats,
         false
       );
       this._updateResourcePeaks();
@@ -541,27 +568,27 @@ export class ScreenSpaceReflectionPass {
   private _publishRenderStats(): void {
     const estimatedTextureBytes = this._peakEstimatedBytes + this._pipelineEstimatedTextureBytes;
     const estimatedRenderBufferBytes = this._pipelineEstimatedRenderBufferBytes;
-    this._camera.screenSpaceReflection._setRenderStats({
-      width: this._peakTraceWidth,
-      height: this._peakTraceHeight,
-      contributionColorDrawCount: this._contributionColorDrawCount,
-      contributionDepthDrawCount: this._contributionDepthDrawCount,
-      opaqueSurfacePassDrawCount: this._opaqueSurfacePassDrawCount,
-      transparentSurfacePassDrawCount: this._transparentSurfacePassDrawCount,
-      tracePassCount: this._tracePassCount,
-      compositePassCount: this._compositePassCount,
-      sceneCopyPassCount: this._sceneCopyPassCount,
-      filterPassCount: this._filterPassCount,
-      upsamplePassCount: this._upsamplePassCount,
-      fullscreenPassCount: this._fullscreenPassCount,
-      renderTargetCount: this._peakRenderTargetCount + this._pipelineRenderTargetCount,
-      renderTextureCount: this._peakRenderTextureCount + this._pipelineRenderTextureCount,
-      renderBufferCount: this._pipelineRenderBufferCount,
-      retainedRenderTargetCount: 0,
-      estimatedTextureBytes,
-      estimatedRenderBufferBytes,
-      estimatedBytes: estimatedTextureBytes + estimatedRenderBufferBytes
-    });
+    const stats = this._renderStats;
+    stats.width = this._peakTraceWidth;
+    stats.height = this._peakTraceHeight;
+    stats.contributionColorDrawCount = this._contributionColorDrawCount;
+    stats.contributionDepthDrawCount = this._contributionDepthDrawCount;
+    stats.opaqueSurfacePassDrawCount = this._opaqueSurfacePassDrawCount;
+    stats.transparentSurfacePassDrawCount = this._transparentSurfacePassDrawCount;
+    stats.tracePassCount = this._tracePassCount;
+    stats.compositePassCount = this._compositePassCount;
+    stats.sceneCopyPassCount = this._sceneCopyPassCount;
+    stats.filterPassCount = this._filterPassCount;
+    stats.upsamplePassCount = this._upsamplePassCount;
+    stats.fullscreenPassCount = this._fullscreenPassCount;
+    stats.renderTargetCount = this._peakRenderTargetCount + this._pipelineRenderTargetCount;
+    stats.renderTextureCount = this._peakRenderTextureCount + this._pipelineRenderTextureCount;
+    stats.renderBufferCount = this._pipelineRenderBufferCount;
+    stats.retainedRenderTargetCount = 0;
+    stats.estimatedTextureBytes = estimatedTextureBytes;
+    stats.estimatedRenderBufferBytes = estimatedRenderBufferBytes;
+    stats.estimatedBytes = estimatedTextureBytes + estimatedRenderBufferBytes;
+    this._camera.screenSpaceReflection._setRenderStats(stats);
   }
 
   release(): void {
@@ -684,7 +711,7 @@ export class ScreenSpaceReflectionPass {
       TextureWrapMode.Clamp,
       TextureFilterMode.Point,
       TextureFilterMode.Point,
-      this.hasOpaqueReceivers ? [TextureFormat.R8G8B8A8] : undefined
+      this.hasOpaqueReceivers ? ScreenSpaceReflectionPass._responseColorFormats : undefined
     );
     this._configurePhaseTraceTarget(firstReceiverMode);
     (this._surfaceTarget.depthTexture as Texture2D).filterMode = TextureFilterMode.Point;
@@ -779,7 +806,9 @@ export class ScreenSpaceReflectionPass {
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear,
         TextureFilterMode.Point,
-        storeOrigin ? [TextureFormat.R8G8B8A8] : []
+        storeOrigin
+          ? ScreenSpaceReflectionPass._responseColorFormats
+          : ScreenSpaceReflectionPass._noAdditionalColorFormats
       );
       if (storeOrigin) (this._traceTarget.getColorTexture(1) as Texture2D).filterMode = TextureFilterMode.Point;
     }

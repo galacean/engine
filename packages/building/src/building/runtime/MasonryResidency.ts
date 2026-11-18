@@ -5,7 +5,8 @@ import {
   getMasonryLodTuning,
   subscribeMasonryLodTuning,
   type MasonryLodProbe,
-  type MasonryLod
+  type MasonryLod,
+  type MasonryLodView
 } from "./MasonryLodPolicy";
 import type { MasonryLodTransition } from "./MasonryLodTransition";
 
@@ -110,43 +111,51 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
   private transitionWake = Infinity;
   // Own scalar snapshots: engine matrices and transition scratch arrays are mutable.
   private readonly cameraSnapshot = new Float64Array(40).fill(NaN);
+  private readonly lodView: MasonryLodView = {
+    view: [],
+    projection: [],
+    orthographic: false,
+    pixelHeight: 0,
+    near: 0,
+    far: 0
+  };
   private cameraChanged(): number {
     const c = this.camera,
       snapshot = this.cameraSnapshot;
     let changed = 0;
-    const capture = (index: number, value: number, flag: number) => {
-      if (snapshot[index] !== value) {
-        snapshot[index] = value;
-        changed |= flag;
-      }
-    };
     const view = c.viewMatrix.elements,
       projection = c.projectionMatrix.elements;
     for (let i = 0; i < 16; i++) {
-      capture(i, view[i], 1);
-      capture(i + 16, projection[i], 4);
+      if (snapshot[i] !== view[i]) {
+        snapshot[i] = view[i];
+        changed |= 1;
+      }
+      if (snapshot[i + 16] !== projection[i]) {
+        snapshot[i + 16] = projection[i];
+        changed |= 4;
+      }
     }
-    capture(32, this.engine.canvas.height * c.viewport.w, 4);
-    capture(33, Number(c.isOrthographic), 4);
-    capture(34, c.nearClipPlane, 4);
-    capture(35, c.farClipPlane, 4);
-    capture(36, this.engine.canvas.width * c.viewport.z, 4);
     const position = c.entity.transform.worldPosition;
-    capture(37, position.x, 2);
-    capture(38, position.y, 2);
-    capture(39, position.z, 2);
+    changed |= capture(snapshot, 32, this.engine.canvas.height * c.viewport.w, 4);
+    changed |= capture(snapshot, 33, Number(c.isOrthographic), 4);
+    changed |= capture(snapshot, 34, c.nearClipPlane, 4);
+    changed |= capture(snapshot, 35, c.farClipPlane, 4);
+    changed |= capture(snapshot, 36, this.engine.canvas.width * c.viewport.z, 4);
+    changed |= capture(snapshot, 37, position.x, 2);
+    changed |= capture(snapshot, 38, position.y, 2);
+    changed |= capture(snapshot, 39, position.z, 2);
     return changed;
   }
   private selectLod(changes: number) {
     const camera = this.camera;
-    const view = {
-      view: camera.viewMatrix.elements,
-      projection: camera.projectionMatrix.elements,
-      orthographic: camera.isOrthographic,
-      pixelHeight: this.engine.canvas.height * camera.viewport.w,
-      near: camera.nearClipPlane,
-      far: camera.farClipPlane
-    };
+    // Probes read this view synchronously, so one owned record is reused every selection
+    const view = this.lodView;
+    view.view = camera.viewMatrix.elements;
+    view.projection = camera.projectionMatrix.elements;
+    view.orthographic = camera.isOrthographic;
+    view.pixelHeight = this.engine.canvas.height * camera.viewport.w;
+    view.near = camera.nearClipPlane;
+    view.far = camera.farClipPlane;
     let demandChanged = this.selectionDirty;
     const flags = this.selectionDirty ? 7 : changes;
     this.selectionDirty = false;
@@ -394,4 +403,10 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
     }
     if (evicted) this.refreshMetrics();
   }
+}
+
+function capture(snapshot: Float64Array, index: number, value: number, flag: number): number {
+  if (snapshot[index] === value) return 0;
+  snapshot[index] = value;
+  return flag;
 }
