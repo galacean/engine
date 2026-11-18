@@ -1,11 +1,13 @@
 ---
 name: water
-description: 读取或修改湖泊、河流、海洋等 Source 水体组件时使用。
+description: 挖河、创建或编辑湖泊与河流，以及查询海洋、水面和水深时使用。
 ---
 
 # 水体
 
-与建筑相同，持久修改使用公共 `editor.entity`、`editor.component` 和 `editor.asset`。先读公共 Editor 声明，查询 `WaterBodyComponent` 并读取 `props.authoring`。world.query 的 Ref、运行时 waterId 都不是 Source 组件身份。
+在 Seed World 中，挖河或溪流（例如「在我面前挖一条河」）时，读取[挖河接口](declare/editor/world/tools/water.digRiver.d.ts)，调用一次 `tools.water.digRiver`。没有指定尺寸或距离时传 `{}`。它在同一事务中生成河床和原生流水面。外层提交且激活无错误后即可报告成功。需要验证水深时，在下一次 execute 将返回中心线的 `x/z` 传给 `tools.water.sample`。
+
+编辑已有水体组件和手动配置水体使用公共 `editor.entity`、`editor.component` 和 `editor.asset`。先读公共 Editor 声明，查询 `WaterBodyComponent` 并读取 `props.authoring`。world.query 的 Ref、运行时 waterId 都不是 Source 组件身份。
 
 ## 创建与修改
 

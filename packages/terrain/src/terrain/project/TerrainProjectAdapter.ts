@@ -10,8 +10,10 @@ import type {
   TerrainVec3
 } from "./TerrainProjectContract";
 import type { TerrainClipmapDescriptor } from "../clipmap/TerrainClipmap";
-import type { TerrainClipmapRegionSource } from "../clipmap/TerrainClipmapSource";
-import { compareTerrainStableValues } from "../TerrainStableOrder";
+import {
+  compareTerrainStableIds as compareTerrainStableValues,
+  type TerrainClipmapRegionSource
+} from "../clipmap/TerrainHeightAtlas";
 
 /** Lossless Region height source independent of renderer topology. */
 export interface TerrainProjectHeightSource extends TerrainClipmapRegionSource {

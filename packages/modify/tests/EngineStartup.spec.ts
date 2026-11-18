@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import type { IPhysics } from "@galacean/engine-design";
-import { BoxColliderShape, Engine, PhysicsMaterial, ResourceManager, Shader } from "@galacean/engine";
+import { BoxColliderShape, Engine, PhysicsMaterial, ResourceManager, SceneManager, Shader } from "@galacean/engine";
 import { BasicResources } from "../../core/src/BasicResources";
+import { NullGraphicDevice } from "../../rhi-null/src/NullGraphicDevice";
 
 describe("World engine bootstrap", () => {
   it("initializes the native built-in shader references and World extensions", () => {
@@ -26,12 +27,20 @@ describe("World engine bootstrap", () => {
       initialize: vi.fn(async () => undefined),
       createPhysicsMaterial: vi.fn(() => nativeMaterial),
       createPhysicsManager: vi.fn(() => ({})),
+      createPhysicsScene: vi.fn(() => ({ setContactEventEnabled: vi.fn() })),
       createBoxColliderShape: vi.fn(() => nativeShape)
     };
-    const createEngineShell = () =>
-      Object.assign(Object.create(Engine.prototype), {
-        _basicResources: { _initialize: async () => undefined }
-      }) as Engine;
+    const createEngineShell = () => {
+      const engine = Object.create(Engine.prototype) as Engine;
+      Object.assign(engine, {
+        _basicResources: { _initialize: async () => undefined },
+        _hardwareRenderer: new NullGraphicDevice(),
+        _renderingStatistics: { _bufferMemory: 0 },
+        _resourceManager: new ResourceManager(engine),
+        _sceneManager: new SceneManager(engine)
+      });
+      return engine;
+    };
     let shape: BoxColliderShape | undefined;
     try {
       Engine._nativePhysics = undefined!;
@@ -39,6 +48,8 @@ describe("World engine bootstrap", () => {
       ResourceManager._loaders = {};
       const engine = createEngineShell();
       await engine["_initialize"]({ physics: physics as unknown as IPhysics });
+      expect(engine.sceneManager.activeScene?.name).toBe("DefaultScene");
+      expect(physics.createPhysicsScene).toHaveBeenCalledExactlyOnceWith(engine._nativePhysicsManager);
       expect(BasicResources.physicsDefaultMaterial).toBeInstanceOf(PhysicsMaterial);
       expect(physics.createPhysicsMaterial).toHaveBeenCalledExactlyOnceWith(PhysicsMaterial._defaultProperties);
 

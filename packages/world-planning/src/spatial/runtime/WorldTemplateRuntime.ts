@@ -1,11 +1,17 @@
 import {
   AssetType,
+  BlendFactor,
   BlendMode,
   BoundingBox,
   BoxShape,
+  Buffer,
+  BufferBindFlag,
+  BufferMesh,
+  BufferUsage,
   Color,
   GradientAlphaKey,
   GradientColorKey,
+  type IndexBufferBinding,
   MeshShape,
   MeshRenderer,
   ModelMesh,
@@ -19,6 +25,7 @@ import {
   ParticleSimulationSpace,
   PBRMaterial,
   PointLight,
+  RenderFace,
   Shader,
   UnlitMaterial,
   PrimitiveMesh,
@@ -26,27 +33,39 @@ import {
   TextureFilterMode,
   TextureFormat,
   TextureWrapMode,
+  Vector2,
   Vector3,
+  Vector4,
+  VertexElement,
+  VertexElementFormat,
   type Entity,
   type GLTFResource,
   type Material
 } from "@galacean/engine";
 import { usesProjectPlantResources } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
-import type { IslandPlan, PlanPoint } from "../../semantic-study/IslandPlanModel";
+import {
+  configureAssetAssemblyRendererInstance,
+  configureProceduralPlantWindMaterial
+} from "@galacean/engine-vegetation/asset-assembly/TreeAssemblyRuntime";
+import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
 import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
+import { rockFormationGround } from "../../integrations/terrain/rock-formation/Placement";
 import { compositionSubjectTerraceBox } from "../SpatialCompositionGeometry";
 import { spatialCompositionParameters } from "../SpatialCompositionParameters";
 import { templateBaseSeed, templateLinearColor, worldTemplate, type WorldTemplate } from "../WorldTemplateCatalog";
 import { WORLD_TEMPLATE_ART, type WorldTemplateArtDirection } from "../WorldTemplateArtDirection";
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
-import { worldTemplateStreet } from "../WorldTemplateStreet";
 import { resolveWorldTemplateScene, type ResolvedWorldTemplateScene } from "../WorldTemplateView";
 import { fitTemplateAsset, stretchTemplateAsset, type TemplateNode } from "../WorldTemplateGeometry";
-import { mountOilPaintGround, oilPaintMaterial } from "./OilPaintMesh";
-import { StreetFacadeRuntime } from "./StreetFacadeRuntime";
+import {
+  mountTemplateProceduralPlants,
+  preloadTemplateProceduralPlantResources,
+  type TemplateProceduralPlantResources
+} from "./TemplateProceduralPlants";
 import translucentShader from "./TemplateTranslucent.shader?raw";
 import fireflyShader from "./TemplateFirefly.shader?raw";
 import petalShader from "./TemplatePetal.shader?raw";
+import butterflyShader from "./TemplateButterfly.shader?raw";
 
 function modelBounds(entity: Entity): BoundingBox {
   const bounds = new BoundingBox(
@@ -62,8 +81,7 @@ function modelBounds(entity: Entity): BoundingBox {
 export class WorldTemplateRuntime {
   readonly root: Entity;
   readonly template: WorldTemplate;
-  readonly geometry?: ResolvedWorldTemplateScene["geometry"];
-  private facades?: StreetFacadeRuntime;
+  readonly geometry: ResolvedWorldTemplateScene["geometry"];
   private mesh?: ModelMesh;
   private material?: UnlitMaterial;
   private readonly models: { id: string; url: string; entity: Entity }[] = [];
@@ -76,11 +94,17 @@ export class WorldTemplateRuntime {
   private sporeTexture?: Texture2D;
   private petalRenderer?: ParticleRenderer;
   private petalMaterial?: ParticleMaterial;
-  private groundPaintMaterial?: Material;
-  private groundPaintMeshes: ModelMesh[] = [];
+  private butterflyRenderer?: ParticleRenderer;
+  private butterflyMaterial?: ParticleMaterial;
+  private butterflyWingMesh?: ModelMesh;
+  private butterflyEmissionMesh?: ModelMesh;
+  private readonly foliageWindDisposals: Array<() => void> = [];
+  private disposeProceduralPlants?: () => void;
+  private readonly leafTemplate?: Material;
+  private readonly plantResources?: TemplateProceduralPlantResources;
   private destroyed = false;
   private readonly anchor: { x: number; y: number; z: number };
-  private focusBounds?: ResolvedWorldTemplateScene["focusBounds"];
+  private focusBounds: ResolvedWorldTemplateScene["focusBounds"];
 
   static async create(
     parent: Entity,
@@ -88,19 +112,19 @@ export class WorldTemplateRuntime {
     ground: (x: number, z: number) => number | undefined,
     prepared = resolveWorldTemplateScene(plan, ground),
     signal?: AbortSignal,
-    viewer?: Entity
+    formations?: readonly RockFormationMesh[]
   ): Promise<WorldTemplateRuntime | undefined> {
     const template = worldTemplate(plan.parameters.worldTemplate?.id);
-    if (!template) return undefined;
-    const signs = WORLD_TEMPLATE_ART[template.id].streetSigns;
-    const street = worldTemplateStreet(plan);
-    const spine = street?.construction?.spine;
-    if (!prepared && !spine?.length) return undefined;
+    if (!template || !prepared) return undefined;
     signal?.throwIfAborted();
     const assets = new Map<string, GLTFResource>();
-    const nodes = prepared?.nodes ?? [];
+    const nodes = prepared.nodes;
     const urls = new Set(nodes.flatMap(({ node }) => (node.assetUrl ? [node.assetUrl] : [])));
-    const needsLeafMaterial = nodes.some(({ node }) => node.assetLeafMaterials?.length);
+    const leafModelUrls = new Set(
+      nodes.filter(({ node }) => node.assetLeafMaterials?.length && node.assetUrl).map(({ node }) => node.assetUrl!)
+    );
+    const hasProceduralPlants = Boolean(WORLD_TEMPLATE_ART[template.id].proceduralPlants?.length);
+    const needsLeafMaterial = leafModelUrls.size > 0 || hasProceduralPlants;
     const leafTemplateTask = needsLeafMaterial
       ? parent.engine.resourceManager.load<Material>({
           type: AssetType.Material,
@@ -111,6 +135,9 @@ export class WorldTemplateRuntime {
                 import.meta.url
               ).href
         })
+      : Promise.resolve(undefined);
+    const plantResourcesTask = hasProceduralPlants
+      ? preloadTemplateProceduralPlantResources(parent.engine)
       : Promise.resolve(undefined);
     const petalTextureUrl = WORLD_TEMPLATE_ART[template.id].petals?.textureUrl;
     const petalTextureTask = petalTextureUrl
@@ -125,16 +152,35 @@ export class WorldTemplateRuntime {
           }
         })
       : Promise.resolve(undefined);
-    const atlasTask =
-      signs && spine?.length
-        ? parent.engine.resourceManager.load<Texture2D>({ type: AssetType.Texture, url: signs.atlasUrl })
-        : Promise.resolve(undefined);
-    const [leafTemplate, atlas, petalTexture] = await Promise.all([
+    const butterflyTextureUrl = WORLD_TEMPLATE_ART[template.id].butterflies?.textureUrl;
+    const butterflyTextureTask = butterflyTextureUrl
+      ? parent.engine.resourceManager.load<Texture2D>({
+          type: AssetType.Texture,
+          url: butterflyTextureUrl,
+          params: {
+            isSRGBColorSpace: true,
+            mipmap: true,
+            filterMode: TextureFilterMode.Trilinear,
+            wrapModeU: TextureWrapMode.Clamp,
+            wrapModeV: TextureWrapMode.Clamp,
+            anisoLevel: 4
+          }
+        })
+      : Promise.resolve(undefined);
+    const [leafTemplate, petalTexture, butterflyTexture, plantResources] = await Promise.all([
       leafTemplateTask,
-      atlasTask,
       petalTextureTask,
+      butterflyTextureTask,
+      plantResourcesTask,
       ...[...urls].map(async (url) => {
-        assets.set(url, await parent.engine.resourceManager.load<GLTFResource>({ type: AssetType.GLTF, url }));
+        assets.set(
+          url,
+          await parent.engine.resourceManager.load<GLTFResource>({
+            type: AssetType.GLTF,
+            url,
+            ...(leafModelUrls.has(url) ? { params: { keepMeshData: true } } : {})
+          })
+        );
       })
     ]);
     signal?.throwIfAborted();
@@ -148,51 +194,37 @@ export class WorldTemplateRuntime {
       ground,
       leafTemplate,
       petalTexture,
-      atlas,
-      spine,
-      viewer
+      butterflyTexture,
+      formations,
+      plantResources
     );
   }
   private constructor(
     parent: Entity,
     plan: IslandPlan,
     template: WorldTemplate,
-    scene: ResolvedWorldTemplateScene | undefined,
+    scene: ResolvedWorldTemplateScene,
     assets: ReadonlyMap<string, GLTFResource>,
     ground: (x: number, z: number) => number | undefined,
     leafTemplate?: Material,
     petalTexture?: Texture2D,
-    atlas?: Texture2D,
-    spine?: readonly PlanPoint[],
-    viewer?: Entity
+    butterflyTexture?: Texture2D,
+    formations?: readonly RockFormationMesh[],
+    plantResources?: TemplateProceduralPlantResources
   ) {
     this.template = template;
-    this.geometry = scene?.geometry;
-    this.focusBounds = scene?.focusBounds;
+    this.geometry = scene.geometry;
+    this.focusBounds = scene.focusBounds;
+    this.leafTemplate = leafTemplate;
+    this.plantResources = plantResources;
     this.root = parent.createChild(`World template: ${template.id}`);
     try {
-      const [x, y, z] = scene?.anchor ?? [0, 0, 0];
+      const [x, y, z] = scene.anchor;
       this.anchor = { x, y, z };
       this.root.transform.setPosition(x, y, z);
-      const oilPaint = WORLD_TEMPLATE_ART[template.id].oilPaint;
-      if (oilPaint && scene) {
-        this.groundPaintMaterial = oilPaintMaterial(parent.engine, [
-          ...oilPaint.groundPigments,
-          ...oilPaint.trailPigments,
-          ...oilPaint.growthPigments
-        ]);
-        this.groundPaintMeshes = mountOilPaintGround(
-          this.root,
-          plan,
-          scene.anchor,
-          ground,
-          oilPaint,
-          this.groundPaintMaterial
-        );
-      }
       const shareVertexColorMaterial = WORLD_TEMPLATE_ART[template.id].sharedVertexColorMaterial;
       let vertexColorMaterial: Material | null = null;
-      for (const { node, position } of scene?.nodes ?? []) {
+      for (const { node, position } of scene.nodes) {
         const entity = this.root.createChild(node.id);
         entity.transform.setPosition(position[0] - x, position[1] - y, position[2] - z);
         entity.transform.setScale(...node.scale);
@@ -272,9 +304,31 @@ export class WorldTemplateRuntime {
         if (!petalTexture) throw new Error("Missing template petal texture");
         this.createPetalParticles(petals, ground, petalTexture);
       }
-      const signs = WORLD_TEMPLATE_ART[template.id].streetSigns;
-      if (signs && atlas && spine)
-        this.facades = new StreetFacadeRuntime(this.root, atlas, signs, ground, spine, viewer);
+      const butterflies = WORLD_TEMPLATE_ART[template.id].butterflies;
+      if (butterflies) {
+        if (!butterflyTexture) throw new Error("Missing template butterfly texture");
+        this.createButterflyParticles(butterflies, ground, butterflyTexture);
+      }
+      const proceduralPlants = WORLD_TEMPLATE_ART[template.id].proceduralPlants;
+      if (proceduralPlants?.length) {
+        const rockSurface = formations?.length ? rockFormationGround(plan, formations) : undefined;
+        const rockGround = rockSurface
+          ? (wx: number, wz: number) => {
+              const floor = ground(wx, wz);
+              return floor === undefined ? undefined : rockSurface(wx, wz, floor);
+            }
+          : undefined;
+        this.disposeProceduralPlants = mountTemplateProceduralPlants(
+          this.root,
+          this.anchor,
+          ground,
+          proceduralPlants,
+          plan.parameters.seed,
+          leafTemplate,
+          rockGround,
+          plantResources
+        );
+      }
     } catch (error) {
       this.dispose();
       throw error;
@@ -287,14 +341,41 @@ export class WorldTemplateRuntime {
     ground: (x: number, z: number) => number | undefined,
     formations: readonly RockFormationMesh[]
   ): (() => void) | undefined {
-    if (!compositionSubjectTerraceBox(spatialCompositionParameters(plan.parameters.spatialComposition))) return;
-    const scene = resolveWorldTemplateScene(plan, ground, formations)!;
+    const hasSubjectTerrace = Boolean(
+      compositionSubjectTerraceBox(spatialCompositionParameters(plan.parameters.spatialComposition))
+    );
+    const proceduralPlants = WORLD_TEMPLATE_ART[this.template.id].proceduralPlants;
+    const hasRockPlants = Boolean(proceduralPlants?.some((plant) => plant.onRock));
+    if (!hasSubjectTerrace && !hasRockPlants) return;
+    const scene = hasSubjectTerrace ? resolveWorldTemplateScene(plan, ground, formations) : undefined;
+    const rockSurface = hasRockPlants && formations.length ? rockFormationGround(plan, formations) : undefined;
     return () => {
-      for (const { node, position } of scene.nodes) {
-        const entity = this.groundedNodes.get(node.id);
-        if (entity) entity.transform.position.y = position[1] - this.anchor.y;
+      if (scene) {
+        for (const { node, position } of scene.nodes) {
+          const entity = this.groundedNodes.get(node.id);
+          if (entity) entity.transform.position.y = position[1] - this.anchor.y;
+        }
+        this.focusBounds = scene.focusBounds;
       }
-      this.focusBounds = scene.focusBounds;
+      if (hasRockPlants && proceduralPlants?.length && !this.destroyed) {
+        this.disposeProceduralPlants?.();
+        const rockGround = rockSurface
+          ? (wx: number, wz: number) => {
+              const floor = ground(wx, wz);
+              return floor === undefined ? undefined : rockSurface(wx, wz, floor);
+            }
+          : undefined;
+        this.disposeProceduralPlants = mountTemplateProceduralPlants(
+          this.root,
+          this.anchor,
+          ground,
+          proceduralPlants,
+          plan.parameters.seed,
+          this.leafTemplate,
+          rockGround,
+          this.plantResources
+        );
+      }
     };
   }
 
@@ -396,6 +477,159 @@ export class WorldTemplateRuntime {
     );
     generator.play(false);
     generator.emit(Math.ceil(petals.count / 2));
+  }
+  private createButterflyParticles(
+    butterflies: NonNullable<WorldTemplateArtDirection["butterflies"]>,
+    ground: (x: number, z: number) => number | undefined,
+    texture: Texture2D
+  ): void {
+    const { engine } = this.root;
+    const { x, y, z } = this.anchor;
+    const seed = templateBaseSeed(this.template.id);
+    const sampleCount = Math.max(48, butterflies.count * 2);
+    const positions: Vector3[] = [];
+    for (let i = 0; i < sampleCount; i++) {
+      const sample = (field: string) => settlementRandom(seed, `butterfly:${i}:${field}`);
+      const isCanopy = sample("tier") < butterflies.canopyRatio;
+      const radialSpread = isCanopy ? 0.85 : 1.0;
+      const angle = sample("angle") * Math.PI * 2;
+      const radius = Math.sqrt(sample("radius")) * 0.5 * radialSpread;
+      const bx = butterflies.center[0] + Math.cos(angle) * butterflies.extent[0] * radius;
+      const bz = butterflies.center[2] + Math.sin(angle) * butterflies.extent[2] * radius;
+      const floor = ground(x - bx, z + bz);
+      if (floor === undefined) continue;
+      const heightOffset = isCanopy
+        ? butterflies.center[1] + butterflies.extent[1] * (0.34 + 0.66 * sample("height"))
+        : 0.68 + butterflies.center[1] * 1.35 * sample("height");
+      positions.push(new Vector3(-bx, floor - y + heightOffset, bz));
+    }
+    if (!positions.length) return;
+
+    const emissionMesh = (this.butterflyEmissionMesh = new ModelMesh(engine, "Oasis butterfly emission points"));
+    emissionMesh.setPositions(positions);
+    emissionMesh.setNormals(positions.map(() => new Vector3(0, 1, 0)));
+    BoundingBox.fromPoints(positions, emissionMesh.bounds);
+    emissionMesh.uploadData(false);
+    const shape = new MeshShape();
+    shape.mesh = emissionMesh;
+
+    // 6-quad hinged 2-wing butterfly plane in XZ (thorax along Z, left/right wings along +-X).
+    const wingMesh = (this.butterflyWingMesh = new ModelMesh(engine, "Butterfly wing mesh"));
+    const cols = [-0.5, -0.32, -0.14, 0.0, 0.14, 0.32, 0.5];
+    const rows = [-0.5, 0.5];
+    const meshPositions: Vector3[] = [];
+    const meshUVs: Vector2[] = [];
+    for (const rz of rows) {
+      for (const cx of cols) {
+        meshPositions.push(new Vector3(cx, 0, rz));
+        meshUVs.push(new Vector2(cx + 0.5, 0.5 - rz));
+      }
+    }
+    const indices = new Uint16Array((cols.length - 1) * 6);
+    let write = 0;
+    for (let c = 0; c < cols.length - 1; c++) {
+      const i0 = c;
+      const i1 = c + 1;
+      const i2 = cols.length + c;
+      const i3 = cols.length + c + 1;
+      indices[write++] = i0;
+      indices[write++] = i2;
+      indices[write++] = i1;
+      indices[write++] = i1;
+      indices[write++] = i2;
+      indices[write++] = i3;
+    }
+    wingMesh.setPositions(meshPositions);
+    wingMesh.setUVs(meshUVs);
+    wingMesh.setIndices(indices);
+    wingMesh.addSubMesh(0, indices.length);
+    wingMesh.bounds.min.set(-0.65, -0.65, -0.65);
+    wingMesh.bounds.max.set(0.65, 0.65, 0.65);
+    wingMesh.uploadData(false);
+
+    const shader = Shader.find("Planning/ButterflyParticle") ?? Shader.create(butterflyShader);
+    const material = (this.butterflyMaterial = new ParticleMaterial(engine, shader));
+    material.name = "Oasis ambient butterflies";
+    material.renderFace = RenderFace.Double;
+    material.blendMode = BlendMode.Normal;
+    material.shaderData.setInt("sourceColorBlendFactor", BlendFactor.One);
+    material.shaderData.setInt("destinationColorBlendFactor", BlendFactor.OneMinusSourceAlpha);
+    material.shaderData.setInt("depthTestEnabled", 1);
+    material.shaderData.setInt("depthWriteEnabled", 0);
+    material.shaderData.setFloat("material_FlapSpeed", butterflies.flapSpeed);
+    material.shaderData.setFloat("material_FlapAngleMin", -0.62);
+    material.shaderData.setFloat("material_FlapAngleMax", 1.12);
+    material.shaderData.setFloat("material_HdrIntensity", butterflies.emissionIntensity);
+    material.baseTexture = texture;
+    const [r, g, b] = templateLinearColor(butterflies.color);
+    material.baseColor = new Color(r * butterflies.intensity, g * butterflies.intensity, b * butterflies.intensity, 1);
+
+    const renderer = (this.butterflyRenderer = this.root
+      .createChild("Oasis butterflies")
+      .addComponent(ParticleRenderer));
+    renderer.renderMode = ParticleRenderMode.Mesh;
+    renderer.mesh = wingMesh;
+    renderer.setMaterial(material);
+    renderer.castShadows = renderer.receiveShadows = false;
+
+    const generator = renderer.generator;
+    const main = generator.main;
+    generator.randomSeed = seed ^ 0x5bf03635;
+    main.playOnEnabled = false;
+    main.isLoop = true;
+    main.duration = butterflies.lifetimeSeconds;
+    main.maxParticles = butterflies.count;
+    main.simulationSpace = ParticleSimulationSpace.World;
+    main.startSpeed = new ParticleCompositeCurve(0.18, 0.52);
+    main.startSize = new ParticleCompositeCurve(...butterflies.sizeM);
+    main.startLifetime = new ParticleCompositeCurve(
+      butterflies.lifetimeSeconds * 0.8,
+      butterflies.lifetimeSeconds * 1.2
+    );
+    main.gravityModifier.constant = 0;
+    main.startRotation3D = true;
+    main.startRotationX = new ParticleCompositeCurve(-26, 26);
+    main.startRotationY = new ParticleCompositeCurve(0, 360);
+    main.startRotationZ = new ParticleCompositeCurve(-16, 16);
+
+    generator.emission.shape = shape;
+    generator.emission.rateOverTime.constant = butterflies.count / butterflies.lifetimeSeconds;
+
+    generator.velocityOverLifetime.enabled = true;
+    generator.velocityOverLifetime.space = ParticleSimulationSpace.World;
+    generator.velocityOverLifetime.velocityX = new ParticleCompositeCurve(-0.42, 0.42);
+    generator.velocityOverLifetime.velocityY = new ParticleCompositeCurve(-0.16, 0.24);
+    generator.velocityOverLifetime.velocityZ = new ParticleCompositeCurve(-0.42, 0.42);
+
+    generator.noise.enabled = true;
+    generator.noise.strengthX.constant = butterflies.flutterMps;
+    generator.noise.frequency = 1 / butterflies.flutterWavelengthM;
+    generator.noise.scrollSpeed = butterflies.flutterMps / butterflies.flutterWavelengthM;
+
+    generator.rotationOverLifetime.enabled = true;
+    generator.rotationOverLifetime.separateAxes = true;
+    generator.rotationOverLifetime.rotationX = new ParticleCompositeCurve(-18, 18);
+    generator.rotationOverLifetime.rotationY = new ParticleCompositeCurve(
+      -butterflies.turnDegreesPerSecond,
+      butterflies.turnDegreesPerSecond
+    );
+    generator.rotationOverLifetime.rotationZ = new ParticleCompositeCurve(-18, 18);
+
+    generator.colorOverLifetime.enabled = true;
+    const white = new Color(1, 1, 1, 1);
+    generator.colorOverLifetime.color = new ParticleCompositeGradient(
+      new ParticleGradient(
+        [new GradientColorKey(0, white), new GradientColorKey(1, white)],
+        [
+          new GradientAlphaKey(0, 0),
+          new GradientAlphaKey(0.12, 1),
+          new GradientAlphaKey(0.86, 1),
+          new GradientAlphaKey(1, 0)
+        ]
+      )
+    );
+    generator.play(false);
+    generator.emit(Math.ceil(butterflies.count * 0.78));
   }
   private createSporeParticles(
     spores: NonNullable<WorldTemplateArtDirection["spores"]>,
@@ -563,6 +797,190 @@ export class WorldTemplateRuntime {
     for (const slot of Object.keys(overrides))
       if (!found.has(slot)) throw new Error(`Missing template material slot: ${slot}`);
   }
+  private attachFoliageBoughWindMesh(sourceMesh: ModelMesh, crownBounds: BoundingBox): BufferMesh | undefined {
+    if (sourceMesh.blendShapeCount !== 0 || sourceMesh.subMeshes.length === 0) return undefined;
+    const posElem = sourceMesh.vertexElements.find(
+      (elem) => elem.semantic === "POSITION" && elem.format === VertexElementFormat.Vector3
+    );
+    if (!posElem) return undefined;
+    const posBinding = sourceMesh.vertexBufferBindings[posElem.bindingIndex];
+    const vertexCount = sourceMesh.vertexCount;
+    if (!posBinding || vertexCount <= 0) return undefined;
+
+    const cachedCpuData =
+      (posBinding.buffer as unknown as { _data?: ArrayBufferView; data?: ArrayBufferView })._data ??
+      (posBinding.buffer as unknown as { data?: ArrayBufferView }).data;
+    let rawBytes: Uint8Array;
+    if (cachedCpuData) {
+      rawBytes = new Uint8Array(cachedCpuData.buffer, cachedCpuData.byteOffset, cachedCpuData.byteLength);
+    } else {
+      rawBytes = new Uint8Array(posBinding.buffer.byteLength);
+      posBinding.buffer.getData(rawBytes);
+    }
+    const view = new DataView(rawBytes.buffer, rawBytes.byteOffset, rawBytes.byteLength);
+    const stride = posBinding.stride;
+    const positions = new Float32Array(vertexCount * 3);
+    for (let i = 0; i < vertexCount; i++) {
+      const byteOffset = posElem.offset + i * stride;
+      positions[i * 3] = view.getFloat32(byteOffset, true);
+      positions[i * 3 + 1] = view.getFloat32(byteOffset + 4, true);
+      positions[i * 3 + 2] = view.getFloat32(byteOffset + 8, true);
+    }
+
+    const crownMin = crownBounds.min;
+    const crownMax = crownBounds.max;
+    const spanX = Math.max(1e-4, crownMax.x - crownMin.x);
+    const spanY = Math.max(1e-4, crownMax.y - crownMin.y);
+    const spanZ = Math.max(1e-4, crownMax.z - crownMin.z);
+    const maxSpan = Math.max(spanX, spanY, spanZ);
+
+    // Group vertices into connected leaf/flower cards so no triangle ever shears across bough cells.
+    const parent = Int32Array.from({ length: vertexCount }, (_, idx) => idx);
+    const find = (x: number): number => {
+      while (parent[x] !== x) {
+        parent[x] = parent[parent[x]];
+        x = parent[x];
+      }
+      return x;
+    };
+    const union = (a: number, b: number): void => {
+      const ra = find(a);
+      const rb = find(b);
+      if (ra !== rb) parent[ra] = rb;
+    };
+    let indices: Uint8Array | Uint16Array | Uint32Array | null = null;
+    try {
+      indices = sourceMesh.getIndices();
+    } catch {
+      indices = null;
+    }
+    const weldScale = 1 / Math.max(1e-6, maxSpan * (indices ? 1e-4 : 0.015));
+    const welded = new Map<string, number>();
+    for (let i = 0; i < vertexCount; i++) {
+      const key = `${Math.round(positions[i * 3] * weldScale)},${Math.round(positions[i * 3 + 1] * weldScale)},${Math.round(positions[i * 3 + 2] * weldScale)}`;
+      const prev = welded.get(key);
+      if (prev !== undefined) union(i, prev);
+      else welded.set(key, i);
+    }
+    if (indices) {
+      for (let t = 0; t + 2 < indices.length; t += 3) {
+        union(indices[t], indices[t + 1]);
+        union(indices[t + 1], indices[t + 2]);
+      }
+    }
+
+    const cardSums = new Map<number, [number, number, number, number]>();
+    for (let i = 0; i < vertexCount; i++) {
+      const root = find(i);
+      let acc = cardSums.get(root);
+      if (!acc) {
+        acc = [0, 0, 0, 0];
+        cardSums.set(root, acc);
+      }
+      acc[0] += positions[i * 3];
+      acc[1] += positions[i * 3 + 1];
+      acc[2] += positions[i * 3 + 2];
+      acc[3] += 1;
+    }
+
+    // Coarse 4x3x4 crown bough grid so all blossoms on one bough sway coherently together.
+    const GX = 4;
+    const GY = 3;
+    const GZ = 4;
+    const cellX = spanX / GX;
+    const cellY = spanY / GY;
+    const cellZ = spanZ / GZ;
+    const trunkX = (crownMin.x + crownMax.x) * 0.5;
+    const trunkZ = (crownMin.z + crownMax.z) * 0.5;
+    const radialSpan = Math.max(spanX, spanZ) * 0.5;
+
+    const cardBoughData = new Map<
+      number,
+      readonly [px: number, py: number, pz: number, hx: number, hy: number, hz: number, w: number]
+    >();
+    for (const [root, [sx, sy, sz, count]] of cardSums) {
+      const cx = sx / count;
+      const cy = sy / count;
+      const cz = sz / count;
+      const gx = Math.min(GX - 1, Math.max(0, Math.floor((cx - crownMin.x) / cellX)));
+      const gy = Math.min(GY - 1, Math.max(0, Math.floor((cy - crownMin.y) / cellY)));
+      const gz = Math.min(GZ - 1, Math.max(0, Math.floor((cz - crownMin.z) / cellZ)));
+      const lx = crownMin.x + (gx + 0.5) * cellX;
+      const lz = crownMin.z + (gz + 0.5) * cellZ;
+      const rx = lx - trunkX;
+      const rz = lz - trunkZ;
+      const rLen = Math.hypot(rx, rz);
+      const stepBack = rLen > 1e-5 ? Math.min(rLen, Math.hypot(cellX, cellZ) * 0.45) : 0;
+      const pivotX = rLen > 1e-5 ? lx - (rx / rLen) * stepBack : lx;
+      const pivotY = crownMin.y + (gy + 0.2) * cellY;
+      const pivotZ = rLen > 1e-5 ? lz - (rz / rLen) * stepBack : lz;
+      const hx = rLen > 1e-5 ? -rz / rLen : 1;
+      const hz = rLen > 1e-5 ? rx / rLen : 0;
+      const w = Math.min(1, rLen / Math.max(1e-4, radialSpan)) * 0.35;
+      cardBoughData.set(root, [pivotX, pivotY, pivotZ, hx, 0, hz, w]);
+    }
+
+    const FLOATS_PER_VERTEX = 15;
+    const windValues = new Float32Array(vertexCount * FLOATS_PER_VERTEX);
+    for (let i = 0; i < vertexCount; i++) {
+      const [px, py, pz, hx, hy, hz, w] = cardBoughData.get(find(i))!;
+      const offset = i * FLOATS_PER_VERTEX;
+      windValues[offset] = px;
+      windValues[offset + 1] = py;
+      windValues[offset + 2] = pz;
+      windValues[offset + 3] = px;
+      windValues[offset + 4] = py;
+      windValues[offset + 5] = pz;
+      windValues[offset + 6] = 1;
+      windValues[offset + 11] = hx;
+      windValues[offset + 12] = hy;
+      windValues[offset + 13] = hz;
+      windValues[offset + 14] = w;
+    }
+
+    const engine = sourceMesh.engine;
+    const windBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, windValues, BufferUsage.Static);
+    const windMesh = new BufferMesh(engine, `${sourceMesh.name} · foliage wind`);
+    try {
+      sourceMesh.vertexBufferBindings.forEach((binding, index) => {
+        if (binding) windMesh.setVertexBufferBinding(binding, index);
+      });
+      const windBindingIndex = sourceMesh.vertexBufferBindings.length;
+      windMesh.setVertexBufferBinding(windBuffer, FLOATS_PER_VERTEX * 4, windBindingIndex);
+      windMesh.setVertexElements([
+        ...sourceMesh.vertexElements,
+        new VertexElement("LEAF_PIVOT", 0, VertexElementFormat.Vector3, windBindingIndex),
+        new VertexElement("TREE_VARIATION_ROOT", 12, VertexElementFormat.Vector4, windBindingIndex),
+        new VertexElement("TREE_VARIATION_DATA", 28, VertexElementFormat.Vector4, windBindingIndex),
+        new VertexElement("PLANT_WIND", 44, VertexElementFormat.Vector4, windBindingIndex)
+      ]);
+      const sourceIndexBinding = (sourceMesh as unknown as { _primitive: { indexBufferBinding?: IndexBufferBinding } })
+        ._primitive.indexBufferBinding;
+      if (sourceIndexBinding) windMesh.setIndexBufferBinding(sourceIndexBinding);
+      for (const sub of sourceMesh.subMeshes) windMesh.addSubMesh(sub.start, sub.count, sub.topology);
+      const pad = maxSpan * 0.12;
+      windMesh.bounds.min.set(
+        sourceMesh.bounds.min.x - pad,
+        sourceMesh.bounds.min.y - pad,
+        sourceMesh.bounds.min.z - pad
+      );
+      windMesh.bounds.max.set(
+        sourceMesh.bounds.max.x + pad,
+        sourceMesh.bounds.max.y + pad,
+        sourceMesh.bounds.max.z + pad
+      );
+      this.foliageWindDisposals.push(() => {
+        windMesh.destroy();
+        windBuffer.destroy(true);
+      });
+      return windMesh;
+    } catch (error) {
+      windMesh.destroy();
+      windBuffer.destroy(true);
+      throw error;
+    }
+  }
+
   private bindLeafMaterials(model: Entity, slots: readonly string[], template: Material, node: TemplateNode): void {
     if (template.shader.name !== "Terrain/Vegetation") throw new Error("Template foliage requires Terrain/Vegetation");
     const intensity = node.assetLeafIntensity ?? 1;
@@ -577,7 +995,33 @@ export class WorldTemplateRuntime {
       throw new Error("Invalid template foliage pigment");
     const requested = new Set(slots);
     const found = new Set<string>();
-    for (const renderer of model.getComponentsIncludeChildren(MeshRenderer, [])) {
+    const foliageRenderers = model
+      .getComponentsIncludeChildren(MeshRenderer, [])
+      .filter((renderer) => renderer.getMaterials().some((mat) => mat && requested.has(mat.name)));
+    const crownBounds = new BoundingBox(
+      new Vector3(Infinity, Infinity, Infinity),
+      new Vector3(-Infinity, -Infinity, -Infinity)
+    );
+    for (const renderer of foliageRenderers) {
+      if (renderer.mesh) BoundingBox.merge(crownBounds, renderer.mesh.bounds, crownBounds);
+    }
+    const wrappedMeshes = new Map<ModelMesh, BufferMesh | undefined>();
+    const crownHeight = Number.isFinite(crownBounds.max.y) ? Math.max(0.1, crownBounds.max.y) : 1;
+
+    for (const renderer of foliageRenderers) {
+      let hasBoughWind = false;
+      if (renderer.mesh instanceof ModelMesh && Number.isFinite(crownBounds.min.x)) {
+        let wrapped = wrappedMeshes.get(renderer.mesh);
+        if (!wrappedMeshes.has(renderer.mesh)) {
+          wrapped = this.attachFoliageBoughWindMesh(renderer.mesh, crownBounds);
+          wrappedMeshes.set(renderer.mesh, wrapped);
+        }
+        if (wrapped) {
+          renderer.mesh = wrapped;
+          configureAssetAssemblyRendererInstance(renderer);
+          hasBoughWind = true;
+        }
+      }
       renderer.getMaterials().forEach((source, index) => {
         if (!source || !requested.has(source.name)) return;
         if (!(source instanceof PBRMaterial)) throw new Error(`Template foliage slot requires PBR: ${source.name}`);
@@ -585,14 +1029,22 @@ export class WorldTemplateRuntime {
         const color = node.assetLeafColor
           ? new Color(...templateLinearColor(node.assetLeafColor), source.baseColor.a)
           : source.baseColor;
-        const key = JSON.stringify([source.instanceId, color.r, color.g, color.b, color.a, intensity, textureBlend]);
+        const key = JSON.stringify([
+          source.instanceId,
+          color.r,
+          color.g,
+          color.b,
+          color.a,
+          intensity,
+          textureBlend,
+          hasBoughWind
+        ]);
         let material = this.leafMaterials.get(key);
         if (!material) {
           material = template.clone();
           this.leafMaterials.set(key, material);
           material.name = `${source.name} · shared foliage lighting`;
           const data = material.shaderData;
-          // The GLB carries static source geometry, without the generated tree's wind or canopy payload.
           for (const macro of data.getMacros()) {
             if (
               macro.name.startsWith("MATERIAL_WIND_") ||
@@ -607,6 +1059,13 @@ export class WorldTemplateRuntime {
             )
               data.disableMacro(macro);
           }
+          if (hasBoughWind) {
+            configureProceduralPlantWindMaterial(material, true);
+            data.setFloat("material_ProceduralTreeHeight", crownHeight);
+            // Smooth bough-coherent sway (0.36 Hz ~ 2.8s period) matching the procedural flowers/grass.
+            data.setVector4("material_ProceduralTreeWindParams", new Vector4(0.01, 0.26, 0.048, 0.36));
+          }
+          data.setFloat("material_GrassDistanceFadeEnable", 0);
           const texture = source.baseTexture;
           data.setTexture("material_BaseTexture", texture);
           if (texture) data.enableMacro("MATERIAL_HAS_BASETEXTURE");
@@ -643,11 +1102,6 @@ export class WorldTemplateRuntime {
       id: this.template.id,
       anchor: this.anchor,
       focusBounds: this.focusBounds,
-      oilPaint: this.groundPaintMaterial && {
-        shader: this.groundPaintMaterial.shader.name,
-        tiles: this.groundPaintMeshes.length,
-        triangles: this.groundPaintMeshes.reduce((count, mesh) => count + mesh.subMesh!.count / 3, 0)
-      },
       particles: this.sporeRenderer
         ? {
             renderer: "ParticleRenderer",
@@ -705,6 +1159,23 @@ export class WorldTemplateRuntime {
               .some((macro) => macro.name === "RENDERER_TRANSFORM_FEEDBACK")
           }
         : undefined,
+      butterflies: this.butterflyRenderer
+        ? {
+            renderer: "ParticleRenderer",
+            renderMode: "Mesh",
+            shader: this.butterflyMaterial!.shader.name,
+            capacity: this.butterflyRenderer.generator.main.maxParticles,
+            active: this.butterflyRenderer.generator.isAlive,
+            flapSpeed: this.butterflyMaterial!.shaderData.getFloat("material_FlapSpeed"),
+            sizeM: [
+              this.butterflyRenderer.generator.main.startSize.constantMin,
+              this.butterflyRenderer.generator.main.startSize.constantMax
+            ],
+            gpuSimulation: this.butterflyRenderer.shaderData
+              .getMacros()
+              .some((macro) => macro.name === "RENDERER_TRANSFORM_FEEDBACK")
+          }
+        : undefined,
       lights: this.root.getComponentsIncludeChildren(PointLight, []).map((light) => ({
         name: light.entity.name,
         color: [light.color.r, light.color.g, light.color.b],
@@ -744,7 +1215,7 @@ export class WorldTemplateRuntime {
               }
             : undefined
       })),
-      placeholders: (this.geometry?.nodes ?? []).filter((node) => !node.assetUrl).map((node) => node.id),
+      placeholders: this.geometry.nodes.filter((node) => !node.assetUrl).map((node) => node.id),
       models: this.models.map(({ id, url, entity }) => {
         const { min, max } = modelBounds(entity);
         const renderer = WORLD_TEMPLATE_ART[this.template.id].sharedVertexColorMaterial
@@ -762,7 +1233,6 @@ export class WorldTemplateRuntime {
   dispose(): void {
     if (this.destroyed) return;
     this.destroyed = true;
-    this.facades?.dispose();
     this.root.destroy();
     this.leafMaterials.forEach((material) => material.destroy());
     this.leafMaterials.clear();
@@ -771,9 +1241,13 @@ export class WorldTemplateRuntime {
     this.sporeMaterial?.destroy();
     this.sporeTexture?.destroy();
     this.sporeEmissionMesh?.destroy();
+    for (const destroy of this.foliageWindDisposals) destroy();
+    this.foliageWindDisposals.length = 0;
+    this.disposeProceduralPlants?.();
     this.petalMaterial?.destroy();
-    this.groundPaintMaterial?.destroy();
-    for (const mesh of this.groundPaintMeshes) mesh.destroy();
+    this.butterflyMaterial?.destroy();
+    this.butterflyWingMesh?.destroy();
+    this.butterflyEmissionMesh?.destroy();
     this.material?.destroy();
     this.mesh?.destroy();
   }

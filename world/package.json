@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "terrain:build": "node scripts/build-terrain.js",
+    "terrain:watch": "node scripts/build-terrain.js --watch",
     "dev": "vite --config vite.config.mjs",
     "build": "vite build --config vite.config.mjs",
     "typecheck": "node scripts/typecheck.mjs",

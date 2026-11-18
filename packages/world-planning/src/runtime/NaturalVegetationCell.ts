@@ -450,7 +450,10 @@ export function compileNaturalVegetationCell(
               }
             : {})
         };
-        if (occludes(instance)) {
+        if (
+          !(layer.id === "零星野花" && request.focalTargets.every((target) => target.kind === "world-template")) &&
+          occludes(instance)
+        ) {
           reject("visibility");
           return;
         }

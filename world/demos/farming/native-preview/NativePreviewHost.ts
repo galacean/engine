@@ -1,4 +1,4 @@
-import { planeSurfaceTriangles } from "@galacean/engine-terrain/geometry/SurfaceTriangles";
+import { planeSurfaceTriangles } from "@galacean/engine-farming/farming/geometry/SurfaceTriangles";
 import {
   AssetType,
   Camera,

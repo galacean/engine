@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs";
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization.ts";
+import { createTemplatePlanningDocument } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring.ts";
 import { generatePlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningRuntime.ts";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { planningSeedURL } from "../../demos/seed-world/src/planning/spatial/PlanningDocumentCodec";
 import { planningProjectFixture as fixture } from "./PlanningProjectFixture";
 import { importPlanningDocument, exportPlanningRecipe, exportPlanningAuthoring } from "@galacean/engine-world-planning/spatial/PlanningDocument.ts";
@@ -12,6 +14,56 @@ const recipe = () => ({
   parameters: { ...SEMANTIC_DEFAULTS, seed: 1, poiLayout: defaultPoiLayout() },
   edits: {}
 });
+it.each(["river", "lake"] as const)(
+  "reopens Source projects with removed authored %s records without recreating their shapes",
+  async (kind) => {
+    const { waterInitializationPath } = await import(
+      "../../demos/seed-world/src/planning/spatial/runtime/PlanningWaterInitialization"
+    );
+    const seed = 20261110;
+    const id = `${kind}:authored:removed-shape`;
+    const component = kind === "river" ? "rivers" : "lakes";
+    const document = importPlanningDocument({
+      ...recipe(),
+      parameters: {
+        ...recipe().parameters,
+        seed,
+        rivers: { countMin: 0, countMax: 0 },
+        lakes: { countMin: 0, countMax: 0 }
+      }
+    });
+    const { project, store } = fixture();
+    const scene = project.projectPackage.project.scene;
+    project.projectPackage.contents[scene] = JSON.stringify({
+      asset: { version: "2.0" },
+      scene: { rootEntities: [] },
+      entities: [],
+      components: []
+    });
+    project.projectPackage.documents = {
+      [waterInitializationPath(scene)]: JSON.stringify({ version: 1, seeds: { [seed]: [id] } })
+    };
+    await store.migrateToSource(document);
+    const saved = structuredClone(project.projectPackage);
+    const restored = (await store.load(seed))!;
+    expect(restored.entities[id].components[component].values).toEqual({ enabled: false });
+    expect(project.projectPackage).toEqual(saved);
+    const result = generatePlanningDocument(restored);
+    expect(result.accepted).toBe(true);
+    expect(result.plan.waters.some((water) => water.id === id)).toBe(false);
+    await store.save(restored);
+    const reopened = (await store.load(seed))!;
+    expect(reopened.entities[id].components[component].values).toEqual({ enabled: false });
+    expect(generatePlanningDocument(reopened).plan.waters.some((water) => water.id === id)).toBe(false);
+
+    // Missing geometry is still invalid when the record requests an active water body.
+    reopened.entities[id].components[component].values.enabled = true;
+    expect(() => generatePlanningDocument(reopened)).toThrow(
+      kind === "river" ? "自定义河流缺少控制点" : "自定义湖泊缺少岸线或参考高程"
+    );
+  },
+  60000
+);
 it("round-trips authored data and retains local parameters only for their Seed", async () => {
   const { store } = fixture();
   const doc = importPlanningDocument(recipe());
@@ -178,4 +230,26 @@ it("migrates scalar river depth in active and archived authoring without losing 
   setRaw(raw);
   await expect(store.load(1)).rejects.toThrow("本地工程格式无效");
   expect(getRaw()).toBe(raw);
+});
+
+it("installs builtin water defaults during SpatialEditor migrateToSource when a template authors lake water", async () => {
+  vi.stubGlobal("fetch", async (url: string | URL) => new Response(readFileSync(new URL(url))));
+  try {
+    const { project, store } = fixture();
+    const scene = project.projectPackage.project.scene;
+    project.projectPackage.contents[scene] = JSON.stringify({
+      asset: { version: "2.0" },
+      scene: { rootEntities: [] },
+      entities: [],
+      components: []
+    });
+    const document = createTemplatePlanningDocument(20261110, "titan-wasteland");
+    await store.migrateToSource(document);
+    const paths = project.projectPackage.project.files.map((file) => file.virtualPath);
+    expect(paths).toContain("Water/Materials/lake.mat");
+    expect(paths).toContain("Water/Materials/template-titan-wasteland-oasis-lagoon.mat");
+    expect(await store.load(20261110)).toBeDefined();
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

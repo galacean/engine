@@ -1,4 +1,4 @@
-import { sampleFloat32GridTriangle as sampleTerrainGrid } from "@galacean/engine-terrain/geometry/GridInterpolation";
+import { sampleFloat32GridTriangle as sampleTerrainGrid } from "@galacean/engine-water/water/authoring/terrain/GridInterpolation";
 import {
   sampleSeedWorldCoastSignedFieldMetres,
   sampleSeedWorldMountainUpliftMetres,

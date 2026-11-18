@@ -1092,7 +1092,18 @@ function createPlanningNaturalGroundSampler(
         if (!w.ring.within(p, w.lake ? (w.bankWidthM ?? bankShoulder) : w.bankReach)) continue;
         const shoulder = w.bankAt ? w.bankAt(p) : (w.bankWidthM ?? bankShoulder);
         if (!w.ring.within(p, w.lake ? shoulder : w.bankReach)) continue;
-        for (const hole of w.holes) if (hole.inside(p)) continue water;
+        const insideHole = w.holes.find((hole) => hole.inside(p));
+        if (insideHole) {
+          if (w.lake && w.bankWidthM !== undefined) {
+            const holeEdge = insideHole.nearest(p, shoreContact);
+            const shoreline = w.lake.referenceLevel;
+            const islandRamp = Math.max(shoulder, 5.5);
+            const crown = shoreline + Math.min(0.32, Math.max(0.12, (original - shoreline) * 0.16));
+            const t = bankBlend(Math.min(1, holeEdge / Math.max(0.01, islandRamp)));
+            height = Math.min(height, shoreline + (crown - shoreline) * t);
+          }
+          continue water;
+        }
         const inside = w.ring.inside(p);
         let edge = w.ring.nearest(p, shoreContact);
         for (const hole of w.holes) edge = Math.min(edge, hole.distance(p, Infinity));

@@ -46,6 +46,7 @@
         },
         {
           "id": "rock-17",
+          "hasDetachedPieces": true,
           "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*mXntSZBCXKMAAAAARMAAAAgAehQnAQ/rock-17.glb",
           "groundInset": 0.1
         },
@@ -56,6 +57,7 @@
         },
         {
           "id": "rock-20",
+          "hasDetachedPieces": true,
           "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*-AOFRq3twrAAAAAAQWAAAAgAehQnAQ/rock-20.glb",
           "groundInset": 0.12
         },

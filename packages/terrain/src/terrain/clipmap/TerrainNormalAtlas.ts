@@ -1,9 +1,9 @@
 import type {
   TerrainClipmapHeightSource,
+  TerrainClipmapRegionSource,
   TerrainHeightAtlasPacking,
   TerrainHeightAtlasRegion
 } from "./TerrainHeightAtlas";
-import type { TerrainClipmapRegionSource } from "./TerrainClipmapSource";
 
 const NORMAL_CHANNELS = 2;
 

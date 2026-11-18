@@ -4,6 +4,7 @@ import { FireflyPopulation } from "@galacean/engine-animals/gameplay/animal/Fire
 import { FireflyPresenter } from "@galacean/engine-animals/gameplay/animal/FireflyPresenter";
 import type { Camera } from "@galacean/engine";
 import { querySeedAnimalCatalog, seedAnimalSpeciesId } from "./PlanningAnimalCatalog.ts";
+import { templateAnimalPopulation } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
 import { PlanningAnimalSurfaceKind, type PlanningAnimalSurfaceData } from "./PlanningAnimalSurface.ts";
 import type { AnimalInstanceDocument } from "@galacean/engine-animals/gameplay/animal/AnimalInstanceDocument";
 import { PBRMaterial, type Entity, type Material } from "@galacean/engine";
@@ -39,6 +40,7 @@ import {
   PlanningAnimalHabitat,
   liveAnimalRouteQuery,
   chooseAnimalBirthHabitat,
+  sampleAnimalSpawnDisk,
   type PlanningAnimalNavigation,
   type PlanningAnimalMedium,
   type PlanningAnimalOccupant
@@ -241,6 +243,11 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       const spawnPoints = new Map(config.types.map(type => [type.typeId, type.spawnPoint]));
       const birthHabitats = new Map<string, ReturnType<typeof chooseAnimalBirthHabitat>>();
       const occupied: PlanningAnimalOccupant[] = [];
+      const wildlife = templateAnimalPopulation(plan.parameters.worldTemplate?.id);
+      // The sandbar and the adjoining resident clearing define the flock's full shoreline habitat.
+      const shoreReach = wildlife && wildlife.residentSite.radius + Math.hypot(
+        wildlife.flock.offsetX - wildlife.residentSite.offsetX, wildlife.flock.offsetZ - wildlife.residentSite.offsetZ
+      );
       const layout = planAnimalPopulation({
         seed: plan.parameters.seed,
         origin: habitat.origin,
@@ -250,11 +257,25 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
           let preference = birthHabitats.get(id);
           if (!preference) {
             preference = chooseAnimalBirthHabitat(this.library.resolve({ typeId, appearanceId }).profile, random, spawnPoints.get(typeId)?.weight);
+            if (wildlife?.flock.typeId === typeId && wildlife.flock.groundAtBirth) preference.medium = "ground";
             birthHabitats.set(id, preference);
           }
+          // Resident animals share the authored clearing. Land, water, slope and crowd checks still apply to each candidate.
+          const localSite = wildlife?.models.has(typeId) && spawnPoints.get(typeId);
+          if (localSite && localSite.center) {
+            let reach = localSite.radius;
+            if (shoreReach && typeId === wildlife?.flock.typeId && attempt > 0) {
+              // Open another body's worth of area after a rejected candidate, up to the adjacent shore.
+              const diameter = 2 * animalCollisionRadius(this.library.resolve({ typeId, appearanceId }).config);
+              reach = Math.min(Math.max(reach, shoreReach), Math.hypot(reach, diameter * Math.sqrt(attempt)));
+            }
+            return sampleAnimalSpawnDisk(localSite.center, reach, random);
+          }
           // Proximity is a soft preference: a bounded local budget cannot prevent valid global births.
-          if (preference.nearSpawn && attempt < 32)
-            return habitat.spawnPointCandidate(position, preference.medium, preference.shore, spawnPoints.get(typeId)!.radius, random);
+          if (preference.nearSpawn && attempt < 32) {
+            const sp = spawnPoints.get(typeId)!;
+            return habitat.spawnPointCandidate(position, preference.medium, preference.shore, sp.radius, random, sp.center);
+          }
           return habitat.spawnCandidate(position, preference.medium, preference.shore, random);
         },
         samplePosition: ({ id, typeId, appearanceId, position: point }) => {

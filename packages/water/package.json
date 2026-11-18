@@ -382,7 +382,9 @@
     "./water/native/WaterBuiltinShaderNames": "./src/water/native/WaterBuiltinShaderNames.ts",
     "./water/native/WaterBuiltinShaderSources": "./src/water/native/WaterBuiltinShaderSources.ts",
     "./water/native/WaterMaterialTextureSlots": "./src/water/native/WaterMaterialTextureSlots.ts",
-    "./water/native/WaterBuiltinMaterialTextures": "./src/water/native/WaterBuiltinMaterialTextures.ts"
+    "./water/native/WaterBuiltinMaterialTextures": "./src/water/native/WaterBuiltinMaterialTextures.ts",
+    "./bridges/MeshInteractionSurface": "./src/bridges/MeshInteractionSurface.ts",
+    "./water/authoring/terrain/GridInterpolation": "./src/water/authoring/terrain/GridInterpolation.ts"
   },
   "scripts": {
     "prepare:builtin-shaders": "node scripts/prepare-builtin-shaders.mjs"

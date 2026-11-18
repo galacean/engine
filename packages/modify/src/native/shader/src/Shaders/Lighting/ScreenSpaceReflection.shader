@@ -138,6 +138,11 @@ Shader "Lighting/ScreenSpaceReflection" {
           ),
           material_SSRSurfaceTexelSize.zw
         );
+        // A trace can be finer than the receiver input. Its cell may then contain no receiver pixel center.
+        if (any(greaterThan(material_SSRTraceTexelSize.zw, material_SSRSurfaceTexelSize.zw))) {
+          firstSurfacePixel = floor(traceUV * material_SSRSurfaceTexelSize.zw);
+          surfacePixelEnd = firstSurfacePixel + vec2(1.0);
+        }
         vec2 preferredSurfacePixel = clamp(
           floor(traceUV * material_SSRSurfaceTexelSize.zw),
           firstSurfacePixel,
@@ -640,6 +645,21 @@ Shader "Lighting/ScreenSpaceReflection" {
 
       void compositeScreenSpaceReflection(Varyings varyings) {
         gl_FragColor = evaluateScreenSpaceReflectionComposite(varyings);
+      }
+    }
+
+    Pass "DownsampleDepth" {
+      DepthState = { Enabled = true; WriteEnabled = true; CompareFunction = CompareFunction.Always; }
+      BlendState = { Enabled = false; ColorWriteMask = ColorWriteMask.None; }
+      VertexShader = vert;
+      FragmentShader = downsampleDepth;
+      #include "ShaderLibrary/Blit/BlitVertex.glsl"
+
+      highp sampler2D renderer_BlitTexture;
+
+      void downsampleDepth(Varyings varyings) {
+        gl_FragDepthEXT = texture2D(renderer_BlitTexture, varyings.v_uv).r;
+        gl_FragColor = vec4(0.0);
       }
     }
   }

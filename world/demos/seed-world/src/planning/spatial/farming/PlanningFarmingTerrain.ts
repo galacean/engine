@@ -1,8 +1,8 @@
-import { gridSurfaceTriangles } from "@galacean/engine-terrain/geometry/SurfaceTriangles";
+import { gridSurfaceTriangles } from "@galacean/engine-farming/farming/geometry/SurfaceTriangles";
 import type { GroundBounds, GroundSample, GroundSurface } from "@galacean/engine-farming/farming/api/index";
 import { decodeSeedWorldHeight, seedWorldOriginX, seedWorldOriginZ } from "@galacean/engine-world-planning/runtime/SeedWorldFields";
 import type { PlanningFarmingTerrain } from "./PlanningPublishedFarmingGround.ts";
-import { float32GridCell, interpolateGridTriangle, type Float32Grid } from "@galacean/engine-terrain/geometry/GridInterpolation";
+import { float32GridCell, interpolateGridTriangle, type Float32Grid } from "@galacean/engine-water/water/authoring/terrain/GridInterpolation";
 
 export interface PlanningTerrainFootprint {
   readonly covered: boolean;

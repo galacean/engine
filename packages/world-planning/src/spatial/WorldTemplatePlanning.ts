@@ -77,7 +77,10 @@ export function planWorldTemplateSite(
     ? Math.max(...local.flatMap((item) => item.outline.flatMap((p) => [Math.abs(p.x), Math.abs(p.z)])))
     : radius || 32;
   const land = createPlanningRingQuery(plan.land),
-    waters = plan.waters.map((w) => createPlanningRingQuery(w.outline));
+    waters = plan.waters.map((w) => ({
+      outline: createPlanningRingQuery(w.outline),
+      holes: (w.lake?.holes ?? []).map(createPlanningRingQuery)
+    }));
   const center = { x: plan.parameters.width / 2, z: plan.parameters.depth / 2 };
   const territories =
     art.plannedSubjects && plan.poiDistribution
@@ -153,7 +156,9 @@ export function planWorldTemplateSite(
         footprints.some(
           (item) =>
             !land.containsPolygon(item.outline) ||
-            (art.support !== "submerged" && waters.some((w) => w.overlapsPolygon(item.outline)))
+            waters.some(
+              (w) => w.outline.overlapsPolygon(item.outline) && !w.holes.some((h) => h.containsPolygon(item.outline))
+            )
         )
       )
         continue;
@@ -171,7 +176,13 @@ export function planWorldTemplateSite(
       ? local.flatMap((item) => {
           const outline = item.outline.map((p) => ({ x: authored.centerX! + p.x, z: authored.centerZ! + p.z }));
           return plan.waters
-            .filter((water) => createPlanningRingQuery(water.outline).overlapsPolygon(outline))
+            .filter((water) => {
+              const holes = (water.lake?.holes ?? []).map(createPlanningRingQuery);
+              return (
+                createPlanningRingQuery(water.outline).overlapsPolygon(outline) &&
+                !holes.some((hole) => hole.containsPolygon(outline))
+              );
+            })
             .map((water) => `${item.id} / ${water.id}`);
         })
       : [];
@@ -186,4 +197,91 @@ export function planWorldTemplateSite(
     ...(spawn?.poiId ? { spawnPoiId: spawn.poiId } : {}),
     centeredStart
   };
+}
+
+/** Append template-authored stones/monoliths and stepped cliff formations for RockFormationView. */
+export function publishTemplateStones(plan: IslandPlan, ground: (point: PlanPoint) => number): void {
+  const id = plan.parameters.worldTemplate?.id;
+  const art = id ? WORLD_TEMPLATE_ART[id] : undefined;
+  if (!art?.stones?.length) return;
+  const anchor = plan.worldTemplateSite?.center ?? {
+    x: plan.parameters.width / 2,
+    z: plan.parameters.depth / 2
+  };
+  const stonePrefix = `template:${id}:stone:`;
+  const cliffPrefix = `template:${id}:cliff:`;
+  const retainedLandscapes = (plan.landscapes ?? []).filter((item) => !item.id.startsWith(stonePrefix));
+  const retainedRocks = plan.rocks.filter((item) => !item.id.startsWith(cliffPrefix));
+  const authoredStones: NonNullable<IslandPlan["landscapes"]> = [];
+  const authoredCliffs: IslandPlan["rocks"] = [];
+  for (const stone of art.stones) {
+    const center = { x: anchor.x - stone.x, z: anchor.z + stone.z };
+    const yaw = ((stone.yawDegrees ?? 0) * Math.PI) / 180;
+    const c = Math.cos(yaw),
+      s = Math.sin(yaw);
+    const hw = stone.width / 2,
+      hd = stone.depth / 2;
+    const outline = (
+      [
+        [-hw, -hd],
+        [hw, -hd],
+        [hw, hd],
+        [-hw, hd]
+      ] as const
+    ).map(([lx, lz]) => ({ x: center.x + lx * c - lz * s, z: center.z + lx * s + lz * c }));
+    const baseHeight = ground(center) + (stone.y ?? 0);
+    if (stone.cliff) {
+      const rockId = `${cliffPrefix}${stone.id}`;
+      authoredCliffs.push({
+        id: rockId,
+        groupId: rockId,
+        role: "wall",
+        center,
+        width: stone.width,
+        depth: stone.depth,
+        height: stone.height,
+        yaw,
+        baseHeight,
+        outline,
+        obb: outline,
+        boxes: [
+          {
+            id: rockId,
+            label: stone.id,
+            center,
+            sizeX: stone.width,
+            sizeY: stone.height,
+            sizeZ: stone.depth,
+            elevation: baseHeight,
+            yaw,
+            collision: stone.collision !== false,
+            occlusion: true
+          }
+        ]
+      });
+    } else {
+      const itemId = `${stonePrefix}${stone.id}`;
+      authoredStones.push({
+        id: itemId,
+        ownerId: itemId,
+        sourceId: itemId,
+        kind: "rock" as const,
+        role: "poi" as const,
+        locked: true,
+        center,
+        width: stone.width,
+        depth: stone.depth,
+        height: stone.height,
+        yaw,
+        baseHeight,
+        outline,
+        collisionRadius: Math.hypot(hw, hd),
+        ...(stone.collision === false ? { collision: false as const } : {})
+      });
+    }
+  }
+  plan.landscapes = [...retainedLandscapes, ...authoredStones];
+  if (authoredCliffs.length || retainedRocks.length !== plan.rocks.length) {
+    plan.rocks = [...retainedRocks, ...authoredCliffs];
+  }
 }

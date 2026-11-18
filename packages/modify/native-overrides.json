@@ -176,10 +176,6 @@
     "replacement": "packages/modify/src/native/core/src/RenderPipeline/RenderViewCulling.ts"
   },
   {
-    "original": "packages/core/src/graphic/ElementRangeMapping.ts",
-    "replacement": "packages/modify/src/native/core/src/graphic/ElementRangeMapping.ts"
-  },
-  {
     "original": "packages/core/src/audio/AudioListener.ts",
     "replacement": "packages/modify/src/native/core/src/audio/AudioListener.ts"
   },
@@ -610,10 +606,6 @@
   {
     "original": "packages/core/src/particle/enums/ParticleRandomSubSeeds.ts",
     "replacement": "packages/modify/src/native/core/src/particle/enums/ParticleRandomSubSeeds.ts"
-  },
-  {
-    "original": "packages/core/src/particle/enums/ParticleSubEmitterType.ts",
-    "replacement": "packages/modify/src/native/core/src/particle/enums/ParticleSubEmitterType.ts"
   },
   {
     "original": "packages/core/src/particle/enums/attributes/ParticleFeedbackVertexAttribute.ts",

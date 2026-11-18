@@ -317,7 +317,8 @@ export class WorldEnvironmentRuntime {
     ground: TerrainRainImpactSurfaceProvider,
     lighting: TerrainLightingRuntime,
     wind: TerrainWindRuntime,
-    waterSurface?: TerrainWaterRainImpactSurfaceProvider
+    waterSurface?: TerrainWaterRainImpactSurfaceProvider,
+    options: { surfaceWaterSsrRequiresRain?: boolean } = {}
   ): Promise<WorldEnvironmentRuntime> {
     const root = scene.createRootEntity("Terrain World Environment");
     const [precipitationResult, cloudResult] = await Promise.allSettled([
@@ -355,7 +356,8 @@ export class WorldEnvironmentRuntime {
         precipitationResult.value,
         cloudResult.value,
         lightningVfx,
-        surfaceRainTextures
+        surfaceRainTextures,
+        options.surfaceWaterSsrRequiresRain ?? false
       );
     } catch (error) {
       if (surfaceRainTextures) {
@@ -380,7 +382,8 @@ export class WorldEnvironmentRuntime {
     precipitation: TerrainPrecipitationVfx,
     clouds: VolumetricCloudSkyRuntime,
     lightningVfx: TerrainLightningVfx,
-    surfaceRainTextures: TerrainSurfaceRainTextures
+    surfaceRainTextures: TerrainSurfaceRainTextures,
+    private readonly _surfaceWaterSsrRequiresRain: boolean
   ) {
     this._scene = scene;
     this._camera = camera;
@@ -553,6 +556,11 @@ export class WorldEnvironmentRuntime {
   getSurfaceWaterTuning(): TerrainSurfaceWaterTuning {
     this._assertAlive();
     return { ...this._surfaceWater };
+  }
+
+  /** Whether the terrain water film currently requests SSR on this camera. */
+  get surfaceWaterSsrRequested(): boolean {
+    return this._surfaceWaterSsrLease?.active === true;
   }
 
   /** Restores the authored Terrain rainwater parameter defaults without clearing accumulated water. */
@@ -1024,7 +1032,7 @@ export class WorldEnvironmentRuntime {
     if (this._surfaceWaterSsrLease && !this._surfaceWaterSsrLease.active) {
       this._surfaceWaterSsrLease = undefined;
     }
-    const activeLease = this._surfaceWaterSsrLease?.active === true;
+    const activeLease = this.surfaceWaterSsrRequested;
     const demandState = this._surfaceWaterSsrDemandState;
     demandState.rainRate = rainRate;
     demandState.puddles = this._surface.puddles;
@@ -1032,7 +1040,9 @@ export class WorldEnvironmentRuntime {
     demandState.coverageMultiplier = this._surfaceWater.coverageMultiplier;
     demandState.reflectionIntensity = this._surfaceWater.reflectionIntensity;
     demandState.ssrMix = this._surfaceWater.ssrMix;
-    const shouldRequest = terrainSurfaceWaterRequestsScreenSpaceReflection(demandState, activeLease);
+    const shouldRequest =
+      (!this._surfaceWaterSsrRequiresRain || rainRate > Number.EPSILON) &&
+      terrainSurfaceWaterRequestsScreenSpaceReflection(demandState, activeLease);
     if (shouldRequest === activeLease) return;
     if (!shouldRequest) {
       this._releaseSurfaceWaterScreenSpaceReflection();

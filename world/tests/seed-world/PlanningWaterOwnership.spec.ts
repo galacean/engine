@@ -23,9 +23,11 @@ import { createSpatialTerrainPlan } from "@galacean/engine-world-planning/spatia
 import { generateRiverRegions, RIVER_DEFAULTS } from "@galacean/engine-world-planning/spatial/hydrology/RiverRegions";
 import { generateLakeRegions, LAKE_DEFAULTS } from "@galacean/engine-world-planning/spatial/hydrology/LakeRegions";
 import { exportPlanningRecipe } from "@galacean/engine-world-planning/spatial/PlanningDocument";
+import { PlanningSession, type PlanningSessionOptions } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import { createPlanningGroundSampler } from "@galacean/engine-world-planning/semantic-study/WorldPlanningTerrain";
 import { PlanningProjectStorage } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningProjectStorage";
 import { createPlanningWorldSource } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource";
+import { COMPOSITION_OWNER } from "@galacean/engine-world-planning/spatial/SpatialComposition";
 import {
   exportPlanningScene,
   importPlanningScene
@@ -350,7 +352,7 @@ it("fits retained lakes to a lower template terrain without hiding their water",
   scene.update(body.entityId, { position: [508, 0, 508] });
   scene.updateComponent(body.id, { authoring: { ...authoring,
     shape: { ...authoring.shape, referenceLevel: 1000 } } });
-  const target = createTemplatePlanningDocument(20261110, "aurora-palace");
+  const target = createTemplatePlanningDocument(20261110, "emerald-forest");
   const retained = retainPlanningWaterSource(target, draft.preview());
   const lake = retained.entities["lake:0"].components.lakes.values;
   expect(lake.enabled).toBe(true);
@@ -379,6 +381,43 @@ it("does not recreate native water removed through the Scene transaction", async
   expect(planningSourceDocument(draft.finish())!.entities["lake:0"].components.lakes.values.enabled).toBe(false);
 });
 
+it("deletes a former Water Entity without re-solving its unchanged removal intent", async () => {
+  const { draft, scene } = fixture(1);
+  const body = scene.queryComponents({ type: "WaterBodyComponent" }).find(body =>
+    (scene.readComponent(body.id).props!.authoring as any).shape.kind === "lake")!;
+  const before = draft.preview();
+  scene.removeComponent(body.id);
+  await prepareRemoval(draft, before);
+  const removed = planningSourceDocument(draft.preview())!;
+  const execute = vi.fn(async (document, previous) => generatePlanningDocument(document, previous));
+  const preparePublication = vi.fn<NonNullable<PlanningSessionOptions["preparePublication"]>>(
+    async () => ({ commit() {}, discard() {} })
+  );
+  const session = new PlanningSession(exportPlanningRecipe(removed), execute, removed, { preparePublication });
+  await session.initialize();
+  const plan = session.result!.plan;
+  expect(plan.waters.some(water => water.id === "lake:0")).toBe(false);
+  execute.mockClear();
+  preparePublication.mockClear();
+  scene.delete(body.entityId);
+  const deleted = planningSourceDocument(draft.preview())!;
+  expect(deleted.entities["lake:0"].name).not.toBe(removed.entities["lake:0"].name);
+  expect(deleted.entities["lake:0"].components).toEqual(removed.entities["lake:0"].components);
+  expect(removed.entities["lake:0"].origin).toBe("generated");
+  expect(deleted.entities["lake:0"].origin).toBeUndefined();
+  const edit = session.beginProjectEdit();
+  expect((await edit.session.load(deleted)).status).toBe("accepted");
+  const signal = new AbortController().signal;
+  await edit.prepare(signal);
+  edit.commit();
+  await edit.activate(signal);
+  expect(execute).not.toHaveBeenCalled();
+  expect(session.result!.plan).toBe(plan);
+  expect(preparePublication.mock.calls[0][2]).toMatchObject({ worldUnchanged: true });
+  expect(scene.queryComponents({ entityId: body.entityId })).toHaveLength(0);
+  expect(waterInitialization(draft.preview()).removed?.["1"]).toContain("lake:0");
+}, 60000);
+
 it.each([false, true])("replans template water around its subject and preserves native looks and removal intent (%s)", async removed => {
   const { draft, document, scene } = fixture();
   const original = generatePlanningDocument(document, undefined, [], undefined, { environment: false });
@@ -395,8 +434,8 @@ it.each([false, true])("replans template water around its subject and preserves 
     scene.removeComponent(lake.id);
     await prepareRemoval(draft, before);
   }
-  const retained = retainPlanningWaterSource(createTemplatePlanningDocument(20261110, "aurora-palace"), draft.preview());
-  expect(retainPlanningWaterSource(createTemplatePlanningDocument(20261110, "aurora-palace"), draft.preview()))
+  const retained = retainPlanningWaterSource(createTemplatePlanningDocument(20261110, "sakura-pearl"), draft.preview());
+  expect(retainPlanningWaterSource(createTemplatePlanningDocument(20261110, "sakura-pearl"), draft.preview()))
     .toEqual(retained);
   const result = generatePlanningDocument(retained, undefined, [], undefined, { environment: false });
   expect(result.accepted).toBe(true);
@@ -411,7 +450,7 @@ it("replans stale river elevations when reapplying the same template and keeps t
   const { draft, document, scene } = fixture();
   const original = generatePlanningDocument(document, undefined, [], undefined, { environment: false });
   writePlanningProjectSource(draft, path, initializePlanningWater(draft, document, original.plan));
-  const target = createTemplatePlanningDocument(20261110, "aurora-palace");
+  const target = createTemplatePlanningDocument(20261110, "sakura-pearl");
   const initialized = retainPlanningWaterSource(target, draft.preview());
   writePlanningProjectSource(draft, path, initialized);
   const river = scene.queryComponents({ type: "WaterBodyComponent" }).find(body =>
@@ -490,6 +529,57 @@ it("solves replacement inputs with current Source water and its deletion intent"
   anotherSeed.entities.world.components.world.values.seed = 20261111;
   expect(retainPlanningWaterSource(anotherSeed, draft.preview())).toBe(anotherSeed);
 });
+
+it("scopes generated river Source to its composition on template switches and legacy reloads", () => {
+  const seed = 1;
+  const { draft, scene } = fixture(seed);
+  const independent = scene.queryComponents({ type: "WaterBodyComponent" });
+  const lake = independent.find((body) =>
+    (scene.readComponent(body.id).props!.authoring as { shape: { kind: string } }).shape.kind === "lake"
+  )!;
+  scene.updateComponent(lake.id, { enabled: false });
+  const authoredLakeId = `lake:authored:${COMPOSITION_OWNER}`;
+  const lakeIdentity = scene.queryComponents({ entityId: lake.entityId, type: "PlanningEntityAuthoring" })[0];
+  scene.updateComponent(lakeIdentity.id, { planningId: authoredLakeId, origin: "authored" });
+  const sakura = createTemplatePlanningDocument(seed, "sakura-pearl");
+  sakura.entities.world.components.landscapeComposition = {
+    values: { enabled: true, streamWidthM: 14, streamDepthM: 0.9 }
+  };
+  for (const component of ["rivers", "lakes"] as const) {
+    sakura.entities.world.components[component] = { values: { countMin: 0, countMax: 0 } };
+  }
+  const solve = (document: typeof sakura) =>
+    generatePlanningDocument(document, undefined, [], undefined, { environment: false });
+  const sakuraResult = solve(sakura);
+  expect(sakuraResult.accepted).toBe(true);
+  const riverIds = sakuraResult.plan.waters.filter((water) =>
+    water.id.startsWith(`river:authored:${COMPOSITION_OWNER}:`)
+  ).map((water) => water.id);
+  expect(riverIds.length).toBeGreaterThan(0);
+  writePlanningProjectSource(draft, path, initializePlanningWater(draft, sakura, sakuraResult.plan));
+  const saved = draft.preview();
+  const sameLayout = retainPlanningWaterSource(sakura, saved);
+  expect(riverIds.every((id) => sameLayout.entities[id]?.components.rivers.values.points)).toBe(true);
+
+  const forest = createTemplatePlanningDocument(seed, "emerald-forest");
+  const switched = retainPlanningWaterSource(forest, saved);
+  expect(riverIds.every((id) => !switched.entities[id])).toBe(true);
+  expect(switched.entities[authoredLakeId].components.lakes.values.enabled).toBe(false);
+  expect(solve(switched).accepted).toBe(true);
+  writePlanningProjectSource(draft, path, switched);
+  expect(scene.queryComponents({ type: "WaterBodyComponent" })).toEqual(independent);
+
+  const oldSource = new RuntimeProjectEdit(saved, nativeAssetFormats(() => ({})));
+  const mixed = structuredClone(switched);
+  for (const id of riverIds) mixed.entities[id] = sameLayout.entities[id];
+  expect(() => solve(mixed)).toThrow("Surface above terrain requires an explicit basin");
+  writePlanningProjectSource(oldSource, path, mixed);
+  const reopened = planningSourceDocument(oldSource.preview())!;
+  expect(riverIds.every((id) => !reopened.entities[id])).toBe(true);
+  expect(solve(reopened).accepted).toBe(true);
+  writePlanningProjectSource(oldSource, path, reopened);
+  expect(new RuntimeSceneEdit(oldSource, path).queryComponents({ type: "WaterBodyComponent" })).toEqual(independent);
+}, 60000);
 
 it("does not let landscape composition recreate a removed Source river", () => {
   const document = createSeedPlanningDocument(20261110);

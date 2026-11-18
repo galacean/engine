@@ -7,6 +7,15 @@ import { settlementRandom } from "../../semantic-study/SettlementGeometry";
 /** Planner world bounds and background raster, shared by the water-only host. */
 export function createSpatialWorldBase(recipe: SemanticResult["recipe"]): IslandPlan {
   const p = recipe.parameters;
+  const composition = p.spatialComposition;
+  // Mix Seed streams once for the whole published layout. Authoring keeps the
+  // original composition seed so export/import never mixes an already resolved seed.
+  const spatialComposition = composition?.varyWithWorldSeed
+    ? {
+        ...composition,
+        seed: Math.floor(settlementRandom(p.seed, `composition:seed:${composition.seed ?? 0}`) * 2 ** 32)
+      }
+    : composition;
   return {
     mode: "base-map",
     settlementLayout: { profileId: "spatial", activeBounds: [] },
@@ -21,7 +30,7 @@ export function createSpatialWorldBase(recipe: SemanticResult["recipe"]): Island
       reliefScaleM: p.reliefScaleM,
       landMode: p.landMode,
       worldTemplate: p.worldTemplate,
-      spatialComposition: p.spatialComposition,
+      spatialComposition,
       valleyWidth: 0,
       riverWidth: 0,
       mountainHeight: 0,

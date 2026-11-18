@@ -120,7 +120,7 @@ describe("production vegetation native asset closure", () => {
       const session = await openSeedWorldProject(new URL("http://localhost/?seed=1"), project);
       opened.push(session);
       await new PlanningProjectStorage(session, seedWorldProjectFormats).migrateToSource(createSeedPlanningDocument(2));
-      expect(JSON.parse(session.projectPackage.documents![marker])).toEqual({ version: 2 });
+      expect(JSON.parse(session.projectPackage.documents![marker])).toEqual({ version: 3 });
       expect(JSON.parse(session.projectPackage.documents![`${project.scene}.planning-source.json`])).toEqual({
         version: 2
       });
@@ -156,6 +156,74 @@ describe("production vegetation native asset closure", () => {
       expect(reopened.projectPackage.project.files.map((file) => file.virtualPath)).toEqual(
         session.projectPackage.project.files.map((file) => file.virtualPath)
       );
+    } finally {
+      for (const session of opened) session.dispose();
+      storage.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("upgrades saved placement metadata without replacing authored colors, bounds or deleted resources", async () => {
+    const marker = `${project.scene}.vegetation-assets.json`;
+    const path = "World/Vegetation/production-catalog.json";
+    const original = read(path);
+    const authored = structuredClone(original);
+    for (const stone of authored.stoneVariants) delete stone.geometryBounds;
+    authored.stoneVariants[0].defaultColorRgb = [13, 27, 39];
+    authored.stoneVariants[0].selectionWeight *= 2;
+    authored.stoneVariants.at(-1)!.geometryBounds = {
+      min: original.stoneVariants.at(-1)!.geometryBounds.min.map((value: number) => value - 1),
+      max: original.stoneVariants.at(-1)!.geometryBounds.max.map((value: number) => value + 1)
+    };
+    let saved: RuntimeProjectPackage = {
+      version: RUNTIME_PROJECT_SAVE_VERSION,
+      project: {
+        ...project,
+        files: project.files.map((file: { path: string }) => ({
+          ...file,
+          path: new URL(file.path, projectURL).href,
+          dependencies: []
+        }))
+      },
+      contents: { [path]: JSON.stringify(authored) },
+      documents: { [marker]: '{"version":2}', "Notes/author.txt": "Retain this project" }
+    };
+    const retired = "World/Vegetation/PreviouslyDeleted.json";
+    const initial = {
+      ...project,
+      files: [...project.files, { virtualPath: retired, path: "retired.json", type: "JSON" }]
+    };
+    const storage = vi.spyOn(RuntimeProjectStorage, "open").mockResolvedValue({
+      load: async () => structuredClone(saved),
+      save: async (_id: string, pack: RuntimeProjectPackage) => {
+        saved = structuredClone(pack);
+      },
+      close() {}
+    } as unknown as RuntimeProjectStorage);
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("location", new URL("http://localhost/world/demos/seed-world/index.html"));
+    vi.stubGlobal("fetch", async (url: string | URL) => new Response(readFileSync(new URL(url))));
+    const opened: { dispose(): void }[] = [];
+    try {
+      const { openSeedWorldProject } = await import("../../demos/seed-world/SeedWorldProject.ts");
+      const session = await openSeedWorldProject(new URL("http://localhost/?seed=1"), initial);
+      opened.push(session);
+      const migrated = JSON.parse(session.projectPackage.contents[path] as string);
+      expect(migrated).toEqual({
+        ...authored,
+        stoneVariants: authored.stoneVariants.map((stone: { geometryBounds?: unknown }, index: number) => ({
+          ...stone,
+          geometryBounds: stone.geometryBounds ?? original.stoneVariants[index].geometryBounds
+        }))
+      });
+      expect(session.projectPackage.project.files.some((file) => file.virtualPath === retired)).toBe(false);
+      expect(JSON.parse(session.projectPackage.documents![marker])).toEqual({ version: 3 });
+      expect(session.projectPackage.documents!["Notes/author.txt"]).toBe("Retain this project");
+      await session.save();
+      session.dispose();
+      const reopened = await openSeedWorldProject(new URL("http://localhost/?seed=1"), initial);
+      opened.push(reopened);
+      expect(reopened.projectPackage).toEqual(saved);
     } finally {
       for (const session of opened) session.dispose();
       storage.mockRestore();

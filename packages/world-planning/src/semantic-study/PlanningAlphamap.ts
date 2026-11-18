@@ -3,7 +3,7 @@ import type { IslandPlan, PlanPoint } from "./IslandPlanModel";
 import { ribbonOutline } from "./WorldRibbon";
 import { PLANNING_SURFACES } from "./PlanningSurfacePalette";
 import { PLANNING_RIVER_BED_BANK_EXTENSION_METRES } from "../spatial/runtime/PlanningRiverBedLayer";
-import { surfaceTransitionWeight } from "@galacean/engine-terrain/geometry/surfaceTransitionWeight";
+import { surfaceTransitionWeight } from "../geometry/surfaceTransitionWeight";
 export { PLANNING_SURFACES } from "./PlanningSurfacePalette";
 /** Vertex-centred, row-major RGBA bytes. Origin (0,0); rows increase along world +Z. */
 export interface PlanningAlphamap {

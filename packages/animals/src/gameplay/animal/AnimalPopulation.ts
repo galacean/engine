@@ -17,7 +17,7 @@ export interface AnimalPopulationType {
   /** Optional host birth preference around its fixed player spawn; competes with habitat weights.
    * Initialization only. Omission/zero weight retains whole-map habitat sampling.
    */
-  spawnPoint?: { weight: number; radius: number };
+  spawnPoint?: { weight: number; radius: number; center?: { x: number; z: number } };
   /** Optional legacy fixed appearance; mutually exclusive with appearances. */
   appearanceId?: string;
   /** Per-instance weighted choices. The asset library expands omission to all registered appearances at weight 1. */
@@ -185,7 +185,9 @@ export function validateAnimalPopulationConfig(config: AnimalPopulationConfig): 
       (!Number.isFinite(type.spawnPoint.weight) ||
         type.spawnPoint.weight < 0 ||
         !Number.isFinite(type.spawnPoint.radius) ||
-        type.spawnPoint.radius <= 0)
+        type.spawnPoint.radius <= 0 ||
+        (type.spawnPoint.center &&
+          (!Number.isFinite(type.spawnPoint.center.x) || !Number.isFinite(type.spawnPoint.center.z))))
     )
       throw new Error(`${type.typeId} 的出生点权重须为非负有限数，半径须为正的有限米数`);
     if (type.densityGroup !== undefined && (typeof type.densityGroup !== "string" || !type.densityGroup.trim()))

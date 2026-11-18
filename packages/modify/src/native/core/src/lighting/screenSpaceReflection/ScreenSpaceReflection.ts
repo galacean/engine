@@ -306,6 +306,8 @@ class ScreenSpaceReflectionLease implements ScreenSpaceReflectionConsumerLease {
  * restored when the final consumer releases its lease.
  */
 export class ScreenSpaceReflection {
+  /** Halve scene-color and receiver inputs on frames with only transparent receivers. Trace resolution is independent. */
+  useHalfResolutionInputs = false;
   /** Direct legacy parameter writes select Override; switching back retains those values. */
   private _settingsSource = ScreenSpaceReflectionSettingsSource.UseSceneSettings;
   /** @internal Whether dormant camera author settings have been initialized. */
@@ -351,6 +353,7 @@ export class ScreenSpaceReflection {
   /** Replace a complete author snapshot; omitted overrideSettings restores never-overridden state. */
   restoreSettings(value: {
     settingsSource: ScreenSpaceReflectionSettingsSource;
+    useHalfResolutionInputs?: boolean;
     overrideSettings?: Partial<ScreenSpaceReflectionSettingsData>;
   }): void {
     const base =
@@ -358,6 +361,7 @@ export class ScreenSpaceReflection {
     this._hasOverrideSettings = true;
     this.applySettings({ ...base, ...value.overrideSettings });
     this._hasOverrideSettings = value.overrideSettings !== undefined;
+    this.useHalfResolutionInputs = value.useHalfResolutionInputs === true;
     this.settingsSource = value.settingsSource;
     this._refreshState();
   }
@@ -1236,6 +1240,7 @@ export class ScreenSpaceReflection {
     this.applySettings(source.toJSON());
     this._enabled = source.enabled;
     this._quality = source.quality;
+    this.useHalfResolutionInputs = source.useHalfResolutionInputs;
     this.debugMode = source.debugMode;
     this.setReceiverTraceSettingsOverride(
       ScreenSpaceReflectionReceiverMode.OpaqueComposite,

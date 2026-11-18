@@ -120,7 +120,7 @@ function fixture(samples = 1, depthFormat = TextureFormat.Depth24) {
         surfaceFormats = pass._surfaceTarget.colorTextures.map((texture) => texture!.format);
         traceFormat = pass._traceTarget.getColorTexture(0).format;
         (pass._surfaceTarget.getColorTexture(0) as Texture2D).getPixelBuffer(0, 0, SIZE, SIZE, 0, geometry);
-        (pass._surfaceTarget.getColorTexture(1) as Texture2D).getPixelBuffer(0, 0, SIZE, SIZE, 0, response);
+        (pass._surfaceTarget.getColorTexture(1) as Texture2D | null)?.getPixelBuffer(0, 0, SIZE, SIZE, 0, response);
       }
       if (stage === "composite" && injectedTrace) {
         mockTrace.setPixelBuffer(new Uint8Array(injectedTrace));
@@ -396,7 +396,9 @@ it.each(features)(
       ] as const) {
         f.scene.screenSpaceReflection.apply({ resolutionScale: scale, upsamplingMode: mode });
         const on = f.render();
-        expect(on.surfaceFormats).toEqual([TextureFormat.R8G8B8A8, TextureFormat.R8G8B8A8]);
+        expect(on.surfaceFormats).toEqual(
+          feature === "transmission" ? [TextureFormat.R8G8B8A8] : [TextureFormat.R8G8B8A8, TextureFormat.R8G8B8A8]
+        );
         expect(on.metrics).toMatchObject({
           surfacePassDrawCount: 1,
           tracePassCount: 1,

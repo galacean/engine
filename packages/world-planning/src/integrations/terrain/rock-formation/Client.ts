@@ -1,6 +1,6 @@
 import { prepareRockLodMeshes } from "./RockLodMeshes";
 import type { Engine } from "@galacean/engine";
-import { fitRockVariant, pickRockVariant, prepareRockVariant, rockVariantFit, rockVariantPools } from "./Variants";
+import { fitRockVariant, pickFormationVariant, prepareRockVariant, rockVariantFit, rockVariantPools } from "./Variants";
 import { planningGroundSurface } from "../../../semantic-study/PlanningHeightmap.ts";
 import type { IslandPlan } from "../../../semantic-study/IslandPlanModel.ts";
 import { rockFormationJobs } from "./Jobs.ts";
@@ -36,7 +36,7 @@ export class RockFormationClient {
     const results = await Promise.all(
       jobs.map(async (job) => {
         const grass = job.surfaceGrass !== false;
-        const entry = pickRockVariant(grass ? pools.mountains : pools.stones, job.seed);
+        const entry = pickFormationVariant(grass ? pools.mountains : pools.stones, job);
         if (!entry) throw Error(`Missing rock variants for ${job.id}`);
         const key = JSON.stringify([job, entry]);
         const previous = live.get(job.id);

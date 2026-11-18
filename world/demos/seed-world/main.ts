@@ -1,5 +1,5 @@
 import type { PlanningWorldHandoff } from "./src/planning/spatial/runtime/PlanningWorldSource.ts";
-import { selectPlanningStartupTemplate } from "./src/planning/spatial/PlanningStartupTemplate.ts";
+import { planningStartupSeed, selectPlanningStartupTemplate } from "./src/planning/spatial/PlanningStartupTemplate.ts";
 import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
 import { planningPageUrl } from "./src/planning/spatial/PlanningPageUrl.ts";
 
@@ -35,6 +35,9 @@ async function enterSeedWorld(handoff?: PlanningWorldHandoff): Promise<void> {
 async function start(): Promise<void> {
   const page = planningPageUrl();
   const template = page.url.searchParams.get("template");
+  const seed = planningStartupSeed(page.url.searchParams);
+  let entrySeed = seed;
+  let updateUrl = page.url.searchParams.get("seed") !== String(seed);
   if (template !== "original" && !worldTemplate(template)) {
     document.body.dataset.mode = "template";
     const host = document.createElement("div");
@@ -45,13 +48,16 @@ async function start(): Promise<void> {
         resolve({ id, seed });
         queueMicrotask(() => { picker.dispose(); host.remove(); });
       }, undefined, true);
-      const seed = Number(page.url.searchParams.get("seed") ?? "1");
-      picker.update(undefined, Number.isSafeInteger(seed) && seed >= 0 && seed <= 0xffffffff ? seed : 1, false);
+      picker.update(undefined, seed, false);
       picker.open();
     });
     selectPlanningStartupTemplate(choice.id, choice.seed);
-    page.url.searchParams.set("seed", String(choice.seed));
+    entrySeed = choice.seed;
     page.url.searchParams.set("template", choice.id || "original");
+    updateUrl = true;
+  }
+  if (updateUrl) {
+    page.url.searchParams.set("seed", String(entrySeed));
     if (page.canReplaceHistory) history.replaceState(null, "", page.url);
     else {
       const source = document.querySelector<HTMLMetaElement>('meta[name="flash-app-html-url"]');

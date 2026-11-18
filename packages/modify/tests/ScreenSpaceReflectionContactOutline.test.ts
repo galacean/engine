@@ -38,8 +38,9 @@ function countAlteredOccluderPixels(
   resolutionScale = 1,
   upsamplingMode = Upsampling.Bilinear,
   depthFormat = TextureFormat.Depth24,
-  samples = 1
-): { altered: number; interior: number } {
+  samples = 1,
+  useHalfResolutionInputs = false
+): { altered: number; interior: number; reflected: number } {
   const scene = new Scene(engine);
   engine.sceneManager.activeScene = scene;
   scene.background.solidColor = new Color(0.6, 0.55, 0.65, 1);
@@ -52,6 +53,7 @@ function countAlteredOccluderPixels(
     thickness
   });
   const camera = scene.createRootEntity().addComponent(Camera);
+  camera.screenSpaceReflection.useHalfResolutionInputs = useHalfResolutionInputs;
   camera.entity.transform.setPosition(3, 2.5, 6);
   camera.entity.transform.lookAt(new Vector3(0, 0.5, 0));
   const output = new Texture2D(engine, SIZE, SIZE, TextureFormat.R8G8B8A8, false, false);
@@ -116,14 +118,16 @@ function countAlteredOccluderPixels(
       }
     } else if (delta > 20) reflected++;
   }
-  console.info(JSON.stringify({ resolutionScale, upsamplingMode, altered, reflected }));
+  console.info(
+    JSON.stringify({ resolutionScale, upsamplingMode, samples, useHalfResolutionInputs, altered, interior, reflected })
+  );
   expect(reflected).toBeGreaterThan(100);
   expect(
     (engine as unknown as { _hardwareRenderer: { gl: WebGL2RenderingContext } })._hardwareRenderer.gl.getError()
   ).toBe(0);
   expect(occluderPixels).toBeGreaterThan(1000);
   scene.destroy();
-  return { altered, interior };
+  return { altered, interior, reflected };
 }
 
 it("does not composite a hidden receiver's reflection onto an occluder that touches it", () => {
@@ -160,3 +164,21 @@ for (const depthFormat of [TextureFormat.Depth24, TextureFormat.Depth24Stencil8]
     expect(altered).toBeLessThan(MSAA_EDGE_BAND_LIMIT);
   });
 }
+
+it.each([1, 4])("preserves opaque mirror coverage when half inputs are requested with %i sample(s)", (samples) => {
+  const render = (halfInputs: boolean) =>
+    countAlteredOccluderPixels(
+      CUBE_SIZE / 2,
+      0.2,
+      0.5,
+      Upsampling.Bilinear,
+      TextureFormat.Depth24,
+      samples,
+      halfInputs
+    );
+  const full = render(false);
+  const requestedHalf = render(true);
+  expect(requestedHalf).toEqual(full);
+  expect(requestedHalf.interior).toBe(0);
+  expect(requestedHalf.altered).toBeLessThan(samples === 1 ? 30 : MSAA_EDGE_BAND_LIMIT);
+});

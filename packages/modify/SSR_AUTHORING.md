@@ -29,7 +29,7 @@ Auto 使用有效 consumer 请求的整组参数。ForceOn 使用作者的相机
 - 内置 PBR 支持单独启用 Clear Coat、Sheen、Anisotropy、Iridescence 或 Transmission。Clear Coat、Sheen、Iridescence 使用基础层世界空间法线；Anisotropy 复用 Forward 已计算的弯曲法线，使 Trace 与环境扣除方向一致，但仍只有单条射线和一个粗糙度，不提供完整各向异性反射模糊。所有特性使用贴图解析及法线抗锯齿后的基础层粗糙度。粗糙基础层即使覆盖光滑清漆，也不再获得清漆专属的 SSR 倒影。
 - SSR 只替换基础层环境反射。Surface 的基础层响应复用 Forward 的清漆衰减或 `bsdfData.sheenScaling`，衰减只应用一次。清漆环境反射、Sheen 光泽、直接光、漫反射和自发光仍由原有 Forward 计算。SSR 未命中或强度为零时保留 Forward 结果，LDR 场景复制可能产生原有的最多 1 LSB 量化差异。
 - Clear Coat 的强度贴图及独立法线仍影响原有光照和基础层衰减。清漆法线和清漆粗糙度不决定 SSR 射线或截止。清漆强度为零或强度贴图值为零时恢复普通 PBR。Sheen 颜色或颜色贴图为零时也恢复普通 PBR。Sheen 粗糙度影响基础层衰减，不决定 SSR 追踪粗糙度。完整 Charlie 环境照明及 Sheen 光泽层自身的 SSR 不在此范围。
-- 保持两个 RGBA8 Surface MRT、每接收阶段一次 Trace 和原有全屏 Composite。不增加材质 Resolve、附件或扩展特性专用 Surface / Trace 协议。已移除动态选层、选层置信度及其 RGBA16F 响应附件升级，因此 Clear Coat 不再要求 Half Float 响应附件。Trace 纹理仍按现有能力选择 Half Float 或 RGBA8，其格式策略不变。
+- 存在不透明接收者时使用两个 RGBA8 Surface 附件，仅有透明接收者时只使用一个 RGBA8 几何附件。每个接收阶段执行一次 Trace。不透明阶段沿用全屏 Composite，透明阶段将追踪结果交给 Forward 采样。不增加材质 Resolve、附件或扩展特性专用 Surface / Trace 协议。已移除动态选层、选层置信度及其 RGBA16F 响应附件升级，因此 Clear Coat 不再要求 Half Float 响应附件。Trace 纹理仍按现有能力选择 Half Float 或 RGBA8，其格式策略不变。
 - 保留普通 SSR 的命中可信度、边缘淡出、距离淡出和粗糙度衰减。Trace 在过滤前以命中可信度预乘 RGB / Alpha，三种重建模式沿用同一信号。没有额外的选层淡出，也没有反预乘放大小 Alpha 的过程。
 - Iridescence 复用 `initBSDFData()` 已解析的 `resolvedSpecularF0` 及能量补偿。强度、IOR、厚度及对应贴图影响现有彩色响应，不增加独立虹彩 SSR 协议。各向异性的直接高光和虹彩的原有材质光照继续由 Forward 计算。
 - `transmission > 0` 会强制进入 Transparent 队列，即使 `isTransparent = false` 或启用 Alpha Test。SSR 保留这一折射绘制顺序。未开启 Alpha 混合的独立 Transmission 使用透明 Surface / Trace / Publish，随后 Forward 仅替换基础层镜面环境辐射，保留原有透射、漫反射、直接光和自发光。不提供新的屏幕空间折射，不允许 Alpha 混合透明 PBR 自动接收。

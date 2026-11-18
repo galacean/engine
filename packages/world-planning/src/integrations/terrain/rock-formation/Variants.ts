@@ -25,6 +25,7 @@ import catalog from "./RockVariantCatalog.json";
 interface RockVariantEntry {
   id: string;
   mesh: string;
+  hasDetachedPieces?: boolean;
   /** Fraction of the fitted mesh height to sink below the placement base. */
   groundInset: number;
 }
@@ -168,6 +169,20 @@ export function pickRockVariant<T>(pool: readonly T[], seed: number): T | undefi
   return pool.length ? pool[hashSeed(seed, "rock-variant") % pool.length] : undefined;
 }
 
+function isPillarGuide(job: RockFormationJob): boolean {
+  const [width, height, depth] = job.guides[0].size;
+  return !job.surfaceGrass && height > Math.max(width, depth) * 1.5;
+}
+
+export function pickFormationVariant(pool: readonly RockVariantEntry[], job: RockFormationJob) {
+  const selected = pickRockVariant(pool, job.seed);
+  if (selected?.hasDetachedPieces && isPillarGuide(job)) {
+    const singlePieceStones = pool.filter((entry) => !entry.hasDetachedPieces);
+    return pickRockVariant(singlePieceStones, job.seed);
+  }
+  return selected;
+}
+
 /** Lower the fitted mesh by its authored inset, keeping the planned base as the reference. */
 export function rockVariantGroundOffset(asset: RockVariantAsset, scale: number): number {
   return -asset.groundInset * (asset.bounds[1][1] - asset.bounds[0][1]) * scale;
@@ -178,27 +193,40 @@ export function rockVariantFit(job: RockFormationJob, asset: RockVariantAsset): 
   const [min, max] = asset.bounds;
   const yaw = Math.atan2(guide.axes[0][2], guide.axes[0][0]);
   const flip = hashSeed(job.seed, "rock-facing") % 2 ? -1 : 1;
-  const scale = Math.min(...guide.size.map((length, axis) => length / (max[axis] - min[axis])));
+  const spanX = max[0] - min[0],
+    spanY = max[1] - min[1],
+    spanZ = max[2] - min[2];
+  const scales = [guide.size[0] / spanX, guide.size[1] / spanY, guide.size[2] / spanZ] as const;
+  const uniform = Math.min(...scales);
+  // Tall narrow rock guides represent standing monolith/pillar stones using the same shared meshes.
+  const isPillar = isPillarGuide(job);
+  const xScale = isPillar ? scales[0] : uniform;
+  const zScale = isPillar ? scales[2] : uniform;
+  const yScale = isPillar
+    ? scales[1]
+    : job.surfaceGrass
+      ? Math.max(uniform, Math.min(scales[1], uniform * 1.65))
+      : uniform;
   const c = Math.cos(yaw) * flip,
     s = Math.sin(yaw) * flip;
-  const x = (-(min[0] + max[0]) * scale) / 2,
-    z = (-(min[2] + max[2]) * scale) / 2;
+  const x = (-(min[0] + max[0]) * xScale) / 2,
+    z = (-(min[2] + max[2]) * zScale) / 2;
   const y = guide.center[1] - guide.size[1] / 2;
   return new Float32Array([
-    c * scale,
+    c * xScale,
     0,
-    s * scale,
-    0,
-    0,
-    scale,
+    s * xScale,
     0,
     0,
-    -s * scale,
+    yScale,
     0,
-    c * scale,
+    0,
+    -s * zScale,
+    0,
+    c * zScale,
     0,
     guide.center[0] + c * x - s * z,
-    y - min[1] * scale + rockVariantGroundOffset(asset, scale),
+    y - min[1] * yScale + rockVariantGroundOffset(asset, yScale),
     guide.center[2] + s * x + c * z,
     1
   ]);
@@ -211,8 +239,11 @@ export function fitRockVariant(
   matrix: Float32Array,
   grass: boolean
 ): RockFormationMesh {
-  const c = matrix[0] / matrix[5],
-    s = matrix[2] / matrix[5];
+  const xScale = Math.hypot(matrix[0], matrix[2]) || 1,
+    zScale = Math.hypot(matrix[8], matrix[10]) || 1,
+    yScale = matrix[5] || 1,
+    c = matrix[0] / xScale,
+    s = matrix[2] / xScale;
   const positions = new Float32Array(asset.positions.length),
     normals = new Float32Array(positions.length);
   for (let i = 0; i < positions.length; i += 3) {
@@ -222,9 +253,9 @@ export function fitRockVariant(
     positions[i] = matrix[0] * px + matrix[8] * pz + matrix[12];
     positions[i + 1] = matrix[5] * py + matrix[13];
     positions[i + 2] = matrix[2] * px + matrix[10] * pz + matrix[14];
-    const nx = asset.normals[i],
-      ny = asset.normals[i + 1],
-      nz = asset.normals[i + 2];
+    const nx = asset.normals[i] / xScale,
+      ny = asset.normals[i + 1] / yScale,
+      nz = asset.normals[i + 2] / zScale;
     const length = Math.hypot(nx, ny, nz) || 1;
     normals[i] = (c * nx - s * nz) / length;
     normals[i + 1] = ny / length;

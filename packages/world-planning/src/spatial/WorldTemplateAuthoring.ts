@@ -19,19 +19,38 @@ import type { PlanningResource } from "./PlanningResources";
 import type { SpatialEntity } from "./SpatialDocument";
 import { LAKE_DEFAULTS } from "./hydrology/LakeRegions";
 import profile from "../planning-data/settlement-profile.json";
-/** Clear the camel preset previously saved by the desert preview. */
-export function removeDesertCamelPreset(document: PlanningDocument): void {
+function templateAnimalValues(id: string, anchor: { x: number; z: number }): Record<string, unknown> {
+  const { animals } = WORLD_TEMPLATE_ART[id];
+  if (!animals) return { enabled: false };
+  const { "birdCount.offsetX": x, "birdCount.offsetZ": z, ...values } = structuredClone(animals);
+  if (typeof x === "number" && typeof z === "number") {
+    values["birdCount.centerX"] = anchor.x - x;
+    values["birdCount.centerZ"] = anchor.z + z;
+  }
+  return values;
+}
+
+/** Upgrade the retired desert preview populations when opening a saved seed in the editor or the world. */
+export function refreshDesertAnimalPreset(document: PlanningDocument): void {
   const components = document.entities.world.components;
-  const animals = components.animals;
-  if (components.worldTemplate?.values.id !== "titan-wasteland" || !animals || animals.base) return;
-  const { values } = animals;
-  if (
-    values["species.min"] === 1 &&
-    values["species.max"] === 1 &&
+  const template = worldTemplate(components.worldTemplate?.values.id);
+  if (template?.id !== "titan-wasteland" || components.animals?.base) return;
+  const values = components.animals?.values ?? {};
+  const previousFlock = values["birdCount.species"] === "flamingo";
+  const residentsOnly =
+    values["birdCount.species"] === "swan" && values["species.min"] === 11 && values["birdCount.max"] === 1;
+  const previousCamels =
     values["species.camel.min"] === 4 &&
-    values["species.camel.max"] === 4
-  )
-    animals.values = { enabled: false };
+    values["species.camel.max"] === 4 &&
+    values["species.min"] === 1 &&
+    values["species.max"] === 1;
+  const retired = !components.animals || (values.enabled === false && Object.keys(values).length === 1);
+  if (previousFlock || residentsOnly || previousCamels || retired) {
+    const next = { ...values, ...templateAnimalValues(template.id, templateCore(template).anchor) };
+    delete next["species.camel.min"];
+    delete next["species.camel.max"];
+    components.animals = { values: next };
+  }
 }
 
 /** World material fields shared by first creation and palette-only authoring edits. */
@@ -125,35 +144,55 @@ function templateCore(template: WorldTemplate) {
     x: base.parameters.width / 2,
     z: base.parameters.depth / 2
   };
-  const resources: PlanningResource[] = (art.terrain ?? []).map((feature) => ({
-    resourceId: `template:${id}:terrain:${feature.id}`,
-    resourceType: "terrain-feature" as const,
-    properties: {
-      kind: feature.kind,
-      x: anchor.x - feature.x,
-      z: anchor.z + feature.z,
-      headingDegrees: 0 - feature.heading,
-      lengthMetres: feature.length,
-      widthMetres: feature.width,
-      elevationDeltaMetres: feature.height,
-      sharpness: 0.6,
-      asymmetry: 0.5,
-      roughness: 0.15,
-      erosion: 0.25,
-      seed: templateBaseSeed(`${id}:${feature.id}`)
-    }
-  }));
+  const resources: PlanningResource[] = (art.terrain ?? []).map((feature) =>
+    feature.kind === "patch"
+      ? {
+          resourceId: `template:${id}:terrain:${feature.id}`,
+          resourceType: "terrain-patch" as const,
+          properties: {
+            x: anchor.x - feature.x,
+            z: anchor.z + feature.z,
+            radiusMetres: feature.radius ?? Math.max(feature.width ?? 24, feature.length ?? 24) / 2,
+            heightDeltaMetres: feature.height
+          }
+        }
+      : {
+          resourceId: `template:${id}:terrain:${feature.id}`,
+          resourceType: "terrain-feature" as const,
+          properties: {
+            kind: feature.kind,
+            x: anchor.x - feature.x,
+            z: anchor.z + feature.z,
+            headingDegrees: 0 - (feature.heading ?? 90),
+            lengthMetres: feature.length ?? 120,
+            widthMetres: feature.width ?? 80,
+            elevationDeltaMetres: feature.height,
+            sharpness: 0.6,
+            asymmetry: 0.5,
+            roughness: 0.15,
+            erosion: 0.25,
+            seed: templateBaseSeed(`${id}:${feature.id}`)
+          }
+        }
+  );
   const lakes: SpatialEntity[] = (art.water ?? []).map((pool) => {
     const lakeId = `lake:authored:template:${id}:water:${pool.id}`;
-    const shoreline = Array.from({ length: 96 }, (_, i) => {
-      const angle = (i * 2 * Math.PI) / 96;
-      return {
-        id: `${lakeId}:shore:${i}`,
-        ring: "shore",
-        x: anchor.x - pool.x + Math.cos(angle) * pool.radius,
-        z: anchor.z + pool.z + Math.sin(angle) * pool.radius
-      };
+    const toPoint = (px: number, pz: number, i: number, ring: string) => ({
+      id: `${lakeId}:${ring}:${i}`,
+      ring,
+      x: anchor.x - px,
+      z: anchor.z + pz
     });
+    const outer = pool.shoreline
+      ? pool.shoreline.map(([px, pz], i) => toPoint(px, pz, i, "shore"))
+      : Array.from({ length: 96 }, (_, i) => {
+          const angle = (i * 2 * Math.PI) / 96;
+          return toPoint(pool.x - Math.cos(angle) * pool.radius, pool.z + Math.sin(angle) * pool.radius, i, "shore");
+        });
+    const holes = (pool.holes ?? []).flatMap((ring, holeIndex) =>
+      ring.map(([px, pz], i) => toPoint(px, pz, i, `island-${holeIndex + 1}`))
+    );
+    const shoreline = [...outer, ...holes];
     return {
       id: lakeId,
       name: pool.id,
@@ -162,7 +201,15 @@ function templateCore(template: WorldTemplate) {
       components: {
         lakes: {
           base: { entity: "world", component: "lakes" },
-          values: { ...LAKE_DEFAULTS, count: 0, radiusM: pool.radius, depthM: pool.depth, shoreline, referenceLevel: 0 }
+          values: {
+            ...LAKE_DEFAULTS,
+            count: 0,
+            radiusM: pool.radius,
+            depthM: pool.depth,
+            ...(pool.bankWidthM === undefined ? {} : { bankWidthM: pool.bankWidthM }),
+            shoreline,
+            referenceLevel: 0
+          }
         }
       }
     };
@@ -300,14 +347,17 @@ export function createTemplatePlanningDocument(
     recipe.parameters.spatialComposition = spatialCompositionParameters({
       ...art.generation,
       seed: templateBaseSeed(id),
+      varyWithWorldSeed: true,
       centerX: anchor.x,
       centerZ: anchor.z
     });
   if (art.surfaceTextures) {
-    const { baseUrl, normalUrl, tileSizeM, strength } = art.surfaceTextures;
+    const { baseUrl, normalUrl, microNormalUrl, roadPattern, tileSizeM, strength } = art.surfaceTextures;
     recipe.parameters.terrainSurface = {
       baseTextureUrl: baseUrl,
       normalTextureUrl: normalUrl,
+      ...(microNormalUrl === undefined ? {} : { microNormalTextureUrl: microNormalUrl }),
+      ...(roadPattern === undefined ? {} : { roadPattern }),
       tileMetres: tileSizeM,
       normalScale: strength
     };
@@ -316,7 +366,6 @@ export function createTemplatePlanningDocument(
   document.samplingVersion = initial.samplingVersion;
   document.waterAuthoringVersion = 1;
   const components = document.entities.world.components;
-  if (art.layout) components.layout = { values: { ...art.layout } };
   if (art.initialPlanning?.wayfinding) components.wayfinding = { values: { ...art.initialPlanning.wayfinding } };
   if (art.initialPlanning?.roadsEnabled !== undefined)
     components.network.values.enabled = art.initialPlanning.roadsEnabled;
@@ -343,7 +392,7 @@ export function createTemplatePlanningDocument(
   Object.assign(components.landscape.values, art.landscape, art.initialLandscape);
   if (art.flowerCoverage !== undefined) components.flowers.values.coverage = art.flowerCoverage;
   Object.assign(components.flowers.values, art.initialFlowers);
-  components.animals = { values: { enabled: false } };
+  components.animals = { values: templateAnimalValues(id, anchor) };
   document.authoredResources = structuredClone(resources);
   // Template lakes enter the same native Source conversion as generated lakes.
   // Resolve their datum against this Seed's terrain before publishing the shape.
@@ -354,22 +403,31 @@ export function createTemplatePlanningDocument(
   for (const input of lakes) {
     const lake = structuredClone(input);
     const values = lake.components.lakes.values;
-    const shoreline = values.shoreline as { x: number; z: number }[];
+    const shoreline = values.shoreline as { ring: string; x: number; z: number }[];
+    const outer = shoreline.filter((p) => p.ring === "shore");
     const center = {
-      x: shoreline.reduce((sum, p) => sum + p.x, 0) / shoreline.length,
-      z: shoreline.reduce((sum, p) => sum + p.z, 0) / shoreline.length
+      x: outer.reduce((sum, p) => sum + p.x, 0) / outer.length,
+      z: outer.reduce((sum, p) => sum + p.z, 0) / outer.length
     };
-    values.radiusM = Math.max(...shoreline.map((p) => Math.hypot(p.x - center.x, p.z - center.z)));
+    values.radiusM = Math.max(...outer.map((p) => Math.hypot(p.x - center.x, p.z - center.z)));
     const spacing = terrainPlan.parameters.width / (profile.world.heightmapResolution - 1);
     const spacingZ = terrainPlan.parameters.depth / (profile.world.heightmapResolution - 1);
-    let level = Math.min(...shoreline.map((point) => ground(point)));
-    const x0 = (Math.floor(Math.min(...shoreline.map((p) => p.x)) / spacing) - 2) * spacing;
-    const z0 = (Math.floor(Math.min(...shoreline.map((p) => p.z)) / spacingZ) - 2) * spacingZ;
-    const x1 = Math.max(...shoreline.map((p) => p.x)) + spacing * 3;
-    const z1 = Math.max(...shoreline.map((p) => p.z)) + spacingZ * 3;
-    for (let z = z0; z <= z1; z += spacingZ)
-      for (let x = x0; x <= x1; x += spacing) level = Math.min(level, ground({ x, z }));
-    values.referenceLevel = Math.fround(level) - 0.001;
+    let level = Math.min(...outer.map((point) => ground(point)));
+    for (let i = 0; i < outer.length; i++) {
+      const a = outer[i],
+        b = outer[(i + 1) % outer.length];
+      const count = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / Math.min(spacing, spacingZ)));
+      for (let step = 0; step <= count; step++) {
+        const px = a.x + ((b.x - a.x) * step) / count;
+        const pz = a.z + ((b.z - a.z) * step) / count;
+        const gx0 = Math.floor(px / spacing) * spacing;
+        const gz0 = Math.floor(pz / spacingZ) * spacingZ;
+        for (const ox of [-spacing, 0, spacing, 2 * spacing])
+          for (const oz of [-spacingZ, 0, spacingZ, 2 * spacingZ])
+            level = Math.min(level, ground({ x: gx0 + ox, z: gz0 + oz }));
+      }
+    }
+    values.referenceLevel = Math.fround(level) - 0.02;
     document.entities[lake.id] = lake;
   }
   const initialized = initializePlanningPopulation(document, { ...art.initialPlanning?.population, ...options });
@@ -381,7 +439,7 @@ export function createTemplatePlanningDocument(
     const layout = (initialized.entities.world.components.layout ??= { values: {} });
     Object.assign(layout.values, art.initialPlanning.layout);
   }
-  if (id === "titan-wasteland") {
+  if (id === "titan-wasteland" && worldTemplate(id)?.rockSource !== "shared") {
     initialized.entities.world.components.regionalAppearance = { values: { rockMaterial: "yellow" } };
     for (const entity of Object.values(initialized.entities)) {
       if (entity.id === "world" || !entity.components.layout) continue;
@@ -437,8 +495,12 @@ export function createWorldStylePlanningDocument(
     retainComposition &&
     !WORLD_TEMPLATE_CONFIGS[id] &&
     source.entities.world.components.worldTemplate?.values.id === id
-  )
+  ) {
     retain("world", "landscapeComposition");
+    const composition = document.entities.world.components.landscapeComposition;
+    if (WORLD_TEMPLATE_ART[id]?.generation && composition && !composition.base)
+      composition.values.varyWithWorldSeed ??= true;
+  }
   if (id) {
     const art = WORLD_TEMPLATE_ART[id],
       components = document.entities.world.components;
