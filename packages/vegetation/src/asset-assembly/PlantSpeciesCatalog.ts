@@ -29,6 +29,11 @@ export interface PlantSpeciesEntry extends ProceduralPlantLibraryEntry {
     readonly seedWorld?: boolean;
     /** Measured LOD0 dimensions, refreshed by sync-plant-species.mjs. */
     readonly sourceDimensionsM?: readonly [number, number, number];
+    /** Measured LOD0 bounds in source-local metres, refreshed by sync-plant-species.mjs. */
+    readonly sourceBoundsM?: {
+      readonly min: readonly [number, number, number];
+      readonly max: readonly [number, number, number];
+    };
   };
 }
 

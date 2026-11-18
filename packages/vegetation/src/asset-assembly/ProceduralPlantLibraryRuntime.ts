@@ -104,114 +104,37 @@ type LibraryIndexDocument = {
   prototypes?: ProceduralPlantLibraryEntry[];
 };
 
-const cachedLibraryIndices = new Map<string, Promise<LibraryIndexDocument>>();
-const cachedDecodedParameters = new Map<string, Promise<ProceduralPlantAsset>>();
-const cachedCompiledSpecimens = new Map<string, ReturnType<typeof compileSpecimen>>();
-const cachedPlacementMetadata = new Map<
-  string,
-  { entry: ProceduralPlantLibraryEntry; bounds: AssetAssemblyStandBounds; lodCount: number }
->();
+/** Compiled rest-geometry cache keyed by decoded asset object identity; invalidated automatically when ResourceManager updates a virtual JSONAsset. */
+const cachedCompiledSpecimens = new WeakMap<ProceduralPlantAsset, Map<number, ReturnType<typeof compileSpecimen>>>();
 
 function resolveLibraryIndexUrl(indexUrl: string): string {
   return /^[.\/]/u.test(indexUrl) ? new URL(indexUrl, location.href).href : indexUrl;
 }
 
-function loadCachedLibraryIndex(engine: Engine, indexUrl: string): Promise<LibraryIndexDocument> {
-  const resolved = resolveLibraryIndexUrl(indexUrl);
-  let pending = cachedLibraryIndices.get(resolved);
-  if (!pending) {
-    pending = loadPlantJSON<LibraryIndexDocument>(engine, resolved);
-    cachedLibraryIndices.set(resolved, pending);
-  }
-  return pending;
-}
-
-function loadCachedPlantAsset(
+async function loadValidatedPlantAsset(
   engine: Engine,
   entry: ProceduralPlantLibraryEntry,
   resolvedIndexUrl: string
 ): Promise<ProceduralPlantAsset> {
   const paramUrl = resolvePlantResourceReference(entry.parameterFile!, resolvedIndexUrl);
-  let pending = cachedDecodedParameters.get(paramUrl);
-  if (!pending) {
-    pending = (async () => {
-      const asset = await loadPlantParameters<ProceduralPlantAsset>(engine, paramUrl, validateProceduralPlantAsset);
-      if (asset.id !== entry.id || asset.category !== entry.category)
-        throw new Error(`${entry.id}: plant library identity mismatch`);
-      return asset;
-    })();
-    cachedDecodedParameters.set(paramUrl, pending);
-  }
-  return pending;
+  const asset = await loadPlantParameters<ProceduralPlantAsset>(engine, paramUrl, validateProceduralPlantAsset);
+  if (asset.id !== entry.id || asset.category !== entry.category)
+    throw new Error(`${entry.id}: plant library identity mismatch`);
+  return asset;
 }
 
 function getCompiledSpecimenCached(asset: ProceduralPlantAsset, lod: number): ReturnType<typeof compileSpecimen> {
-  const key = `${asset.id}#lod${lod}`;
-  let compiled = cachedCompiledSpecimens.get(key);
+  let byLod = cachedCompiledSpecimens.get(asset);
+  if (!byLod) {
+    byLod = new Map();
+    cachedCompiledSpecimens.set(asset, byLod);
+  }
+  let compiled = byLod.get(lod);
   if (!compiled) {
     compiled = compileSpecimen(asset, lod);
-    cachedCompiledSpecimens.set(key, compiled);
+    byLod.set(lod, compiled);
   }
   return compiled;
-}
-
-/** Resolves exact CPU placement bounds for procedural plant species without uploading GPU meshes or textures. */
-export async function loadProceduralPlantPlacementMetadata(
-  engine: Engine,
-  indexUrl: string,
-  assetIds?: ReadonlySet<string>
-): Promise<readonly { entry: ProceduralPlantLibraryEntry; bounds: AssetAssemblyStandBounds; lodCount: number }[]> {
-  const resolvedIndexUrl = resolveLibraryIndexUrl(indexUrl);
-  const library = await loadCachedLibraryIndex(engine, resolvedIndexUrl);
-  const entries = library.assets.filter((entry) => (!assetIds || assetIds.has(entry.id)) && !entry.sourceAssetId);
-  const sources = [...entries, ...(library.prototypes ?? [])];
-  const available = entries.filter((entry) => entry.parameterFile);
-  if (!available.length) return [];
-
-  const uncached = available.filter((entry) => !cachedPlacementMetadata.has(`${resolvedIndexUrl}::${entry.id}`));
-  if (uncached.length > 0) {
-    const resolvedSources = uncached.map((entry) => {
-      const source = entry.prototypeId ? sources.find((item) => item.id === entry.prototypeId) : entry;
-      if (!source?.parameterFile || (source.prototypeId && source.prototypeId !== source.id))
-        throw new Error(`${entry.id}: invalid plant prototype`);
-      if (
-        entry.instanceScale &&
-        (entry.instanceScale.length !== 3 || !entry.instanceScale.every((v) => Number.isFinite(v) && v > 0))
-      )
-        throw new Error(`${entry.id}: invalid instance scale`);
-      return { entry, source };
-    });
-    const uniqueSources = [...new Map(resolvedSources.map(({ source }) => [source.id, source])).values()];
-    const loadedAssets = new Map(
-      await Promise.all(
-        uniqueSources.map(async (source) => [source.id, await loadCachedPlantAsset(engine, source, resolvedIndexUrl)] as const)
-      )
-    );
-    let sliceStartedAt = performance.now();
-    for (const { entry, source } of resolvedSources) {
-      const asset = loadedAssets.get(source.id)!;
-      validatePlantGeometryInstances(entry, asset);
-      validatePlantInstanceVariation(entry);
-      const base = getCompiledSpecimenCached(asset, 0);
-      const placement = instantiateSpecimen(base, entry);
-      if (placement.geometry.length > 0) {
-        cachedPlacementMetadata.set(`${resolvedIndexUrl}::${entry.id}`, {
-          entry: { ...entry, parameterFile: source.parameterFile },
-          bounds: translateBounds(placement.localBounds, 0, 0),
-          lodCount: asset.geometryLods.length
-        });
-      }
-      if (performance.now() - sliceStartedAt >= 8) {
-        await new Promise<void>((resolve) => setTimeout(resolve, 0));
-        sliceStartedAt = performance.now();
-      }
-    }
-  }
-
-  return available.flatMap((entry) => {
-    const meta = cachedPlacementMetadata.get(`${resolvedIndexUrl}::${entry.id}`);
-    return meta ? [meta] : [];
-  });
 }
 
 export class ProceduralPlantLibraryRuntime {
@@ -263,7 +186,7 @@ export class ProceduralPlantLibraryRuntime {
     );
     try {
       const indexUrl = resolveLibraryIndexUrl(options.indexUrl);
-      const library = await loadCachedLibraryIndex(options.owner.engine, indexUrl);
+      const library = await loadPlantJSON<LibraryIndexDocument>(options.owner.engine, indexUrl);
       const entries = library.assets.filter((entry) => !options.assetIds || options.assetIds.has(entry.id));
       const sources = [...entries, ...(library.prototypes ?? [])];
       runtime._camera = options.camera;
@@ -288,7 +211,7 @@ export class ProceduralPlantLibraryRuntime {
       const loadedAssets = new Map(
         await Promise.all(
           uniqueSources.map(
-            async (source) => [source.id, await loadCachedPlantAsset(options.owner.engine, source, indexUrl)] as const
+            async (source) => [source.id, await loadValidatedPlantAsset(options.owner.engine, source, indexUrl)] as const
           )
         )
       );

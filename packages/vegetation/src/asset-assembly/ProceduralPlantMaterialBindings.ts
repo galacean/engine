@@ -35,7 +35,7 @@ export interface PlantTexturePreview {
   readonly baseColors: readonly (readonly [number, number, number])[];
 }
 
-const cachedManifests = new Map<string, Promise<PlantMaterialManifest>>();
+const validatedManifests = new WeakSet<PlantMaterialManifest>();
 
 export async function loadProceduralPlantMaterialBindings(
   engine: Engine,
@@ -43,15 +43,11 @@ export async function loadProceduralPlantMaterialBindings(
   manifestUrl: string,
   assetIds?: ReadonlySet<string>
 ) {
-  let manifestTask = cachedManifests.get(manifestUrl);
-  if (!manifestTask) {
-    manifestTask = loadPlantJSON<PlantMaterialManifest>(engine, manifestUrl).then((m) => {
-      validatePlantMaterialManifest(m);
-      return m;
-    });
-    cachedManifests.set(manifestUrl, manifestTask);
+  const manifest = await loadPlantJSON<PlantMaterialManifest>(engine, manifestUrl);
+  if (!validatedManifests.has(manifest)) {
+    validatePlantMaterialManifest(manifest);
+    validatedManifests.add(manifest);
   }
-  const manifest = await manifestTask;
   // Load the alpha-card grass material explicitly: Seed World's grass source can
   // be replaced by terrain blades and does not own the imported plant contract.
   const grassMaterialTask = engine.resourceManager.load<Material>({

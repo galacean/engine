@@ -187,7 +187,10 @@ export class WorldTemplateRuntime {
         })
       : Promise.resolve(undefined);
     const plantResourcesTask = hasProceduralPlants
-      ? preloadTemplateProceduralPlantResources(parent.engine)
+      ? preloadTemplateProceduralPlantResources(
+          parent.engine,
+          new Set(resolvedPlants!.map((plant) => plant.kind))
+        )
       : Promise.resolve(undefined);
     const petalTextureUrl = WORLD_TEMPLATE_ART[template.id].petals?.textureUrl;
     const petalTextureTask = petalTextureUrl

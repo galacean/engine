@@ -48,10 +48,8 @@ import {
 } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesCatalog";
 import { VEGETATION_AUTHORING_REFERENCE_SCALE } from "@galacean/engine-vegetation/asset-assembly/AssetAssemblyRenderProfile";
 import { plantSpeciesResourceUrl } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
-import {
-  ProceduralPlantLibraryRuntime,
-  loadProceduralPlantPlacementMetadata
-} from "@galacean/engine-vegetation/asset-assembly/ProceduralPlantLibraryRuntime";
+import { ProceduralPlantLibraryRuntime } from "@galacean/engine-vegetation/asset-assembly/ProceduralPlantLibraryRuntime";
+import { loadPlantJSON } from "@galacean/engine-vegetation/asset-assembly/ProceduralPlantResources";
 import {
   loadProceduralPlantMaterialBindings,
   plantMaterialRole
@@ -60,10 +58,7 @@ import type { SeedWorldTerrainRuntime } from "../../runtime/SeedWorldTerrainRunt
 import { TerrainLodGroupRendererRuntime } from "@galacean/engine-terrain/terrain/lod/TerrainLodGroupRendererRuntime";
 import { SEED_WORLD_POPULATION_RUNTIME_PROFILE } from "../../runtime/SeedWorldPopulationRuntimeCell.ts";
 import { resolveSeedWorldTreeTransitionHeights } from "../../world/SeedWorldRuntimeLodProfile";
-import {
-  SEED_WORLD_NATURAL_VEGETATION_ASSET_IDS,
-  NATURAL_VEGETATION_COMPANION_PATCHES
-} from "../../runtime/NaturalVegetationLayers.ts";
+import { NATURAL_VEGETATION_COMPANION_PATCHES } from "../../runtime/NaturalVegetationLayers.ts";
 import { companionAnchorReach } from "@galacean/engine-vegetation/world/VegetationCompanionPatches";
 import type {
   LandscapePlantInstance,
@@ -86,10 +81,7 @@ import {
   validatePlantMaterialParameters,
   type PlantMaterialParameters
 } from "../PlantMaterialParameters";
-import {
-  flowerAssetResourceIds,
-  resolveGeneratedFlowerAssetWeights
-} from "../../planning-data/FlowerAssetWeights";
+import { resolveGeneratedFlowerAssetWeights } from "../../planning-data/FlowerAssetWeights";
 import type { LandscapeView, LandscapeFocus } from "@galacean/engine-vegetation/world/VegetationLandscapePlan";
 import type { RockFormationSettings } from "../../integrations/terrain/rock-formation/Settings";
 import {
@@ -438,13 +430,63 @@ export class PlanningNaturalVegetationRuntime {
     return material;
   }
 
+  private populateMetadataFromCatalog(liveCatalog: typeof PLANT_SPECIES_CATALOG): boolean {
+    const scale = VEGETATION_AUTHORING_REFERENCE_SCALE;
+    const baseById = new Map(PLANT_SPECIES.map((item) => [item.id, item]));
+    let changed = false;
+    const allLiveEntries = [
+      ...liveCatalog.assets,
+      ...liveCatalog.treeRecipes,
+      ...(liveCatalog.shrubRecipes ?? [])
+    ] as unknown as readonly (typeof PLANT_SPECIES)[number][];
+
+    for (const entry of allLiveEntries) {
+      const baseEntry = baseById.get(entry.id);
+      const rawBounds = entry.vegetation?.sourceBoundsM ?? baseEntry?.vegetation?.sourceBoundsM;
+      if (!rawBounds) continue;
+      const baseScale = baseEntry?.instanceScale ?? [1, 1, 1];
+      const liveScale = entry.instanceScale ?? [1, 1, 1];
+      const ratio = [
+        liveScale[0] / (baseScale[0] || 1),
+        liveScale[1] / (baseScale[1] || 1),
+        liveScale[2] / (baseScale[2] || 1)
+      ] as const;
+      const bounds = {
+        min: [
+          rawBounds.min[0] * scale * ratio[0],
+          rawBounds.min[1] * scale * ratio[1],
+          rawBounds.min[2] * scale * ratio[2]
+        ] as [number, number, number],
+        max: [
+          rawBounds.max[0] * scale * ratio[0],
+          rawBounds.max[1] * scale * ratio[1],
+          rawBounds.max[2] * scale * ratio[2]
+        ] as [number, number, number]
+      };
+      const lodCount =
+        "lodCount" in entry && typeof entry.lodCount === "number"
+          ? entry.lodCount
+          : "lodCount" in (baseEntry ?? {}) && typeof (baseEntry as { lodCount?: number }).lodCount === "number"
+            ? (baseEntry as { lodCount: number }).lodCount
+            : 1;
+      const prev = this.metadataSources.get(entry.id);
+      if (!prev || boundsDiffer(prev.bounds, bounds) || prev.lodCount !== lodCount) {
+        this.metadataSources.set(entry.id, { entry, bounds, lodCount });
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
   private async ensureGpuAssetsForWorld(
     plan: IslandPlan,
     planner: PlanningNaturalVegetation,
-    editablePlants: readonly LandscapePlantInstance[]
+    editablePlants: readonly LandscapePlantInstance[],
+    signal?: AbortSignal
   ): Promise<void> {
     const { assetIds, needsCompanionRocks } = this.collectRequiredGpuAssetIds(plan, planner, editablePlants);
     const indexUrl = plantSpeciesResourceUrl("plant-species.json", this.owner.engine);
+    let metadataChanged = false;
 
     const pendingProcedural = new Set(
       [...assetIds].filter(
@@ -492,6 +534,17 @@ export class PlanningNaturalVegetationRuntime {
           this.libraries.push(plants);
           for (const source of plants.getPlacementSources(true)) {
             this.sources[level].set(source.entry.id, source);
+            if (level === 0) {
+              const prevMeta = this.metadataSources.get(source.entry.id);
+              if (!prevMeta || boundsDiffer(prevMeta.bounds, source.bounds)) {
+                this.metadataSources.set(source.entry.id, {
+                  entry: source.entry,
+                  bounds: source.bounds,
+                  lodCount: prevMeta?.lodCount ?? 1
+                });
+                metadataChanged = true;
+              }
+            }
           }
         }
         if (level > 0) {
@@ -511,13 +564,12 @@ export class PlanningNaturalVegetationRuntime {
     } else {
       await this.catalogSources.ensureAssets(assetIds);
     }
-    let metadataChanged = false;
     for (let level = 0; level < 3; level++) {
       for (const [id, source] of this.catalogSources.levels[level]) {
         this.sources[level].set(id, source);
         if (level === 0) {
           const prevMeta = this.metadataSources.get(id);
-          if (!prevMeta || JSON.stringify(prevMeta.bounds) !== JSON.stringify(source.bounds)) {
+          if (!prevMeta || boundsDiffer(prevMeta.bounds, source.bounds)) {
             this.metadataSources.set(id, { entry: source.entry, bounds: source.bounds });
             metadataChanged = true;
           }
@@ -528,13 +580,14 @@ export class PlanningNaturalVegetationRuntime {
       this.plantAssets = this.buildPlantAssetsFromMetadata();
     }
 
-    if (needsCompanionRocks && !this.rockSources && this.rockSettings && this.rockSignal) {
+    const effectiveSignal = signal ?? this.rockSignal ?? new AbortController().signal;
+    if (needsCompanionRocks && !this.rockSources && this.rockSettings) {
       this.rockSources = await createCompanionRockSources(
         this.resourceRoot,
         this.library.stonePlacements,
         plan,
         this.rockSettings,
-        this.rockSignal
+        effectiveSignal
       );
       const stoneSources = this.rockSources?.sources;
       if (stoneSources) {
@@ -583,66 +636,9 @@ export class PlanningNaturalVegetationRuntime {
     runtime.rockGround = rockFormationGround(rocks.supportPlan ?? plan, rocks.formations ?? []);
     runtime.sources = [new Map(), new Map(), new Map()];
     try {
-      const candidateAssetIds = new Set([
-        ...SEED_WORLD_NATURAL_VEGETATION_ASSET_IDS,
-        ...flowerAssetResourceIds((plan.flowerRegions ?? []).map((region) => region.config))
-      ]);
       const indexUrl = plantSpeciesResourceUrl("plant-species.json", owner.engine);
-      const scale = VEGETATION_AUTHORING_REFERENCE_SCALE;
-      const proceduralMeta = await loadProceduralPlantPlacementMetadata(owner.engine, indexUrl, candidateAssetIds);
-      for (const meta of proceduralMeta) {
-        runtime.metadataSources.set(meta.entry.id, meta);
-      }
-
-      for (const shrubDesc of PLANT_SPECIES_CATALOG.shrubRecipes) {
-        if (!candidateAssetIds.has(shrubDesc.id)) continue;
-        const entry = PLANT_SPECIES.find((item) => item.id === shrubDesc.id)!;
-        const geom = library.shrub.id === shrubDesc.id ? library.shrub.geometryBounds : undefined;
-        const dims = entry.vegetation.sourceDimensionsM ?? [1, 1, 1];
-        const bounds = geom
-          ? {
-              min: geom.min.map((v) => v * scale) as [number, number, number],
-              max: geom.max.map((v) => v * scale) as [number, number, number]
-            }
-          : {
-              min: [(-dims[0] * scale) / 2, 0, (-dims[2] * scale) / 2] as [number, number, number],
-              max: [(dims[0] * scale) / 2, dims[1] * scale, (dims[2] * scale) / 2] as [number, number, number]
-            };
-        runtime.metadataSources.set(entry.id, { entry, bounds });
-      }
-
-      const hasNonPrefabTrees =
-        (plan.landscapes ?? []).some((p) => p.kind === "tree" && p.assetRenderMode !== "prefab") ||
-        (plan.authoredResources ?? []).some(
-          (r) =>
-            r.resourceType === "vegetation-brush" &&
-            r.properties.distributionKind === "single" &&
-            r.properties.category === "tree"
-        );
-      for (const treeDesc of PLANT_SPECIES_CATALOG.treeRecipes) {
-        if (!candidateAssetIds.has(treeDesc.id)) continue;
-        const entry = PLANT_SPECIES.find((item) => item.id === treeDesc.id)!;
-        const dims = entry.vegetation.sourceDimensionsM ?? [1, 1, 1];
-        runtime.metadataSources.set(entry.id, {
-          entry,
-          bounds: {
-            min: [(-dims[0] * scale) / 2, 0, (-dims[2] * scale) / 2],
-            max: [(dims[0] * scale) / 2, dims[1] * scale, (dims[2] * scale) / 2]
-          }
-        });
-      }
-      if (hasNonPrefabTrees) {
-        const treeCatalogIds = new Set(
-          PLANT_SPECIES_CATALOG.treeRecipes.map((entry) => entry.id).filter((id) => candidateAssetIds.has(id))
-        );
-        runtime.catalogSources = await PlantSpeciesSources.load(runtime.resourceRoot, [0, 2, 3], treeCatalogIds);
-        for (let level = 0; level < 3; level++) {
-          for (const [id, source] of runtime.catalogSources.levels[level]) {
-            runtime.sources[level].set(id, source);
-            if (level === 0) runtime.metadataSources.set(id, { entry: source.entry, bounds: source.bounds });
-          }
-        }
-      }
+      const liveCatalog = await loadPlantJSON<typeof PLANT_SPECIES_CATALOG>(owner.engine, indexUrl);
+      runtime.populateMetadataFromCatalog(liveCatalog);
 
       if (rockVariantPools(plan) && library.stonePlacements.length > 0) {
         for (const placement of library.stonePlacements) {
@@ -655,13 +651,24 @@ export class PlanningNaturalVegetationRuntime {
         }
       }
 
-      const assets = runtime.buildPlantAssetsFromMetadata();
-      runtime.planner = new PlanningNaturalVegetation(plan, height, fields, population, assets, presentation);
+      const initialAssets = runtime.buildPlantAssetsFromMetadata();
+      runtime.plantAssets = initialAssets;
       runtime.population = population;
       runtime.height = height;
-      runtime.plantAssets = assets;
-      const editablePlants = planningEditablePlants(plan, height, assets);
-      await runtime.ensureGpuAssetsForWorld(plan, runtime.planner, editablePlants);
+      runtime.planner = new PlanningNaturalVegetation(plan, height, fields, population, initialAssets, presentation);
+      let editablePlants = planningEditablePlants(plan, height, initialAssets);
+      await runtime.ensureGpuAssetsForWorld(plan, runtime.planner, editablePlants, rocks.signal);
+      if (runtime.plantAssets !== initialAssets) {
+        runtime.planner = new PlanningNaturalVegetation(
+          plan,
+          height,
+          fields,
+          population,
+          runtime.plantAssets,
+          presentation
+        );
+        editablePlants = planningEditablePlants(plan, height, runtime.plantAssets);
+      }
 
       // Pending placement candidates are not validated trees and need no entities.
       // Existing transaction staging creates newly revealed instances on demand.
@@ -706,6 +713,13 @@ export class PlanningNaturalVegetationRuntime {
   }> {
     if (this.disposed) throw new Error("Native vegetation is disposed");
     signal?.throwIfAborted();
+    const liveCatalog = await loadPlantJSON<typeof PLANT_SPECIES_CATALOG>(
+      this.owner.engine,
+      plantSpeciesResourceUrl("plant-species.json", this.owner.engine)
+    );
+    if (this.populateMetadataFromCatalog(liveCatalog)) {
+      this.plantAssets = this.buildPlantAssetsFromMetadata();
+    }
     let instances = planningEditablePlants(plan, this.height, this.plantAssets);
     let nextPlanner = new PlanningNaturalVegetation(
       plan,
@@ -716,7 +730,7 @@ export class PlanningNaturalVegetationRuntime {
       this.presentation
     );
     const prevAssets = this.plantAssets;
-    await this.ensureGpuAssetsForWorld(plan, nextPlanner, instances);
+    await this.ensureGpuAssetsForWorld(plan, nextPlanner, instances, signal);
     signal?.throwIfAborted();
     if (this.plantAssets !== prevAssets) {
       instances = planningEditablePlants(plan, this.height, this.plantAssets);
@@ -947,12 +961,24 @@ export class PlanningNaturalVegetationRuntime {
       (tree
         ? resolveSeedWorldTreeTransitionHeights(group.screenRelativeTransitionHeights)
         : group.screenRelativeTransitionHeights);
+    const size = Math.max(...b.max.map((v, axis) => v - b.min[axis]));
+    const appliedScale = source.variantStone ? uniformScale : (instance.scaleAxes ?? uniformScale);
+    const worldSize = size * Math.max(Math.abs(appliedScale[0]), Math.abs(appliedScale[1]), Math.abs(appliedScale[2]));
+    const tanHalfFov = Math.tan(((this.camera?.fieldOfView ?? 45) * Math.PI) / 360);
+    const shadowMaxDist = (this.owner?.scene?.shadowDistance ?? 150) + 30;
+    const treeLevelWithinShadowDistance = (level: number) => {
+      if (level === 0 || this.camera?.isOrthographic) return true;
+      const enterThreshold = thresholds[level - 1] ?? 0;
+      if (enterThreshold <= 0) return true;
+      const enterDistance = worldSize / Math.max(1e-6, 2 * enterThreshold * tanHalfFov);
+      return enterDistance <= shadowMaxDist;
+    };
     const worldHeight = (b.max[1] - b.min[1]) * (instance.scaleAxes?.[1] ?? instance.scale);
     const resolveSpecimenCastShadows = (specimen: Source, level: number) =>
       source.kind === "stone"
         ? specimen.rendererBindings.every((binding) => binding.renderer.castShadows) && level === 0 && worldHeight >= 1.5
         : tree
-          ? shadows.castShadows
+          ? shadows.castShadows && treeLevelWithinShadowDistance(level)
           : shadows.castShadows && level === 0;
     const collapsedLevels: { screenRelativeTransitionHeight: number; level: number; specimen: Source }[] = [];
     for (let level = 0; level < thresholds.length; level++) {
@@ -1028,7 +1054,7 @@ export class PlanningNaturalVegetationRuntime {
           source.kind === "stone"
             ? original.castShadows && level === 0 && worldHeight >= 1.5
             : tree
-              ? shadows.castShadows
+              ? shadows.castShadows && treeLevelWithinShadowDistance(level)
               : shadows.castShadows && level === 0;
         renderer.receiveShadows = source.kind === "stone" ? original.receiveShadows : shadows.receiveShadows;
         const pick = new SeedWorldArrayPickBatch(renderer);
@@ -1055,7 +1081,6 @@ export class PlanningNaturalVegetationRuntime {
       });
       return { screenRelativeTransitionHeight, fadeTransitionWidth: 0, renderers };
     });
-    const size = Math.max(...b.max.map((v, axis) => v - b.min[axis]));
     const lod = new TerrainLodGroupRendererRuntime(
       root,
       this.camera,
@@ -1546,6 +1571,13 @@ export class PlanningNaturalVegetationRuntime {
       cells: new Map(this.cells)
     };
     const rockSupport = rocks ? rockFormationGround(rocks.plan, rocks.formations) : this.rockGround;
+    const liveCatalog = await loadPlantJSON<typeof PLANT_SPECIES_CATALOG>(
+      this.owner.engine,
+      plantSpeciesResourceUrl("plant-species.json", this.owner.engine)
+    );
+    if (this.populateMetadataFromCatalog(liveCatalog)) {
+      this.plantAssets = this.buildPlantAssetsFromMetadata();
+    }
     let nextPlanner = new PlanningNaturalVegetation(
       plan,
       height,
@@ -1556,7 +1588,7 @@ export class PlanningNaturalVegetationRuntime {
     );
     let desired = planningEditablePlants(plan, height, this.plantAssets);
     const prevAssets = this.plantAssets;
-    await this.ensureGpuAssetsForWorld(plan, nextPlanner, desired);
+    await this.ensureGpuAssetsForWorld(plan, nextPlanner, desired, signal);
     signal.throwIfAborted();
     if (this.plantAssets !== prevAssets) {
       nextPlanner = new PlanningNaturalVegetation(
@@ -2158,6 +2190,16 @@ function commitPlantGrounding(plant: Plant): void {
 function visitPlantPickBatches(plant: Plant, visitor: SeedWorldPickVisitor): void {
   for (const batch of plant.pickBatches)
     if (batch.renderer.enabled && batch.renderer.entity.isActiveInHierarchy) visitor(batch);
+}
+function boundsDiffer(a: Source["bounds"], b: Source["bounds"]): boolean {
+  return (
+    Math.abs(a.min[0] - b.min[0]) > 1e-4 ||
+    Math.abs(a.min[1] - b.min[1]) > 1e-4 ||
+    Math.abs(a.min[2] - b.min[2]) > 1e-4 ||
+    Math.abs(a.max[0] - b.max[0]) > 1e-4 ||
+    Math.abs(a.max[1] - b.max[1]) > 1e-4 ||
+    Math.abs(a.max[2] - b.max[2]) > 1e-4
+  );
 }
 function destroyTree(root: Entity): void {
   for (let i = root.children.length - 1; i >= 0; i--) destroyTree(root.children[i]);

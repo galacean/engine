@@ -84,10 +84,10 @@ export interface TemplateProceduralPlantInstance {
 }
 
 export interface TemplateProceduralPlantResources {
-  readonly bushAsset: ProceduralPlantAsset;
-  readonly flowerAsset: ProceduralPlantAsset;
-  readonly grassAsset: ProceduralPlantAsset;
-  readonly plumeAsset: ProceduralPlantAsset;
+  readonly bushAsset?: ProceduralPlantAsset;
+  readonly flowerAsset?: ProceduralPlantAsset;
+  readonly grassAsset?: ProceduralPlantAsset;
+  readonly plumeAsset?: ProceduralPlantAsset;
   readonly textures: Readonly<Record<string, Texture2D>>;
   readonly deadBarkAlbedo?: Texture2D;
   readonly deadBarkNormal?: Texture2D;
@@ -151,74 +151,118 @@ const SLOT_TEXTURES: Partial<
   }
 };
 
-const cachedResources = new WeakMap<Engine, Promise<TemplateProceduralPlantResources>>();
-let decodedAssets:
-  | Pick<TemplateProceduralPlantResources, "bushAsset" | "flowerAsset" | "grassAsset" | "plumeAsset">
-  | undefined;
+type CachedEnginePlantState = {
+  textures: Map<string, Promise<Texture2D>>;
+  optionalTextures: Map<string, Promise<Texture2D | undefined>>;
+};
+const cachedEngineStates = new WeakMap<Engine, CachedEnginePlantState>();
+let decodedBushAsset: ProceduralPlantAsset | undefined;
+let decodedFlowerAsset: ProceduralPlantAsset | undefined;
+let decodedGrassAsset: ProceduralPlantAsset | undefined;
+let decodedPlumeAsset: ProceduralPlantAsset | undefined;
 
-function getDecodedPlantAssets() {
-  decodedAssets ??= {
-    bushAsset: decodePlantParameters<ProceduralPlantAsset>(bushStructureJson),
-    flowerAsset: decodePlantParameters<ProceduralPlantAsset>(flowerStructureJson),
-    grassAsset: decodePlantParameters<ProceduralPlantAsset>(grassStructureJson),
-    plumeAsset: decodePlantParameters<ProceduralPlantAsset>(plumeStructureJson)
+const ALL_TEMPLATE_PLANT_KINDS: readonly TemplateProceduralPlantKind[] = [
+  "dead-wood",
+  "dry-grass",
+  "plume-grass",
+  "desert-shrub",
+  "pastel-flower",
+  "meadow-flower"
+];
+
+const TEXTURE_FILES: Readonly<Record<string, { file: string; repeatU?: boolean }>> = {
+  bark: { file: "meadow-birch-bark-256.png", repeatU: true },
+  shrubLeaf: { file: "meadow-birchtree_leaf_01_summer-part-01-256.png" },
+  flowerBlossom: { file: "meadow-flowers_01-part-01-256.png" },
+  flowerPetal: { file: "meadow-flowers_02-part-05-256.png" },
+  grassBlade: { file: "meadow-grass_02_summer-part-01-256.png" },
+  plumeSpray: { file: "meadow-flowers_03-part-01-256.png" }
+};
+
+/** Preloads reconstructed production plant structures and alpha-cutout textures incrementally on demand per Engine. */
+export async function preloadTemplateProceduralPlantResources(
+  engine: Engine,
+  kinds?: Iterable<TemplateProceduralPlantKind>
+): Promise<TemplateProceduralPlantResources> {
+  let state = cachedEngineStates.get(engine);
+  if (!state) {
+    state = { textures: new Map(), optionalTextures: new Map() };
+    cachedEngineStates.set(engine, state);
+  }
+  const activeKinds = new Set(kinds ?? ALL_TEMPLATE_PLANT_KINDS);
+  const neededTextureKeys = new Set<string>();
+  for (const kind of activeKinds) {
+    if (kind === "dead-wood") continue;
+    for (const slot of Object.values(SLOT_TEXTURES[kind] ?? {})) {
+      neededTextureKeys.add(slot.textureKey);
+    }
+  }
+
+  const loadTex = (key: string) => {
+    let pending = state!.textures.get(key);
+    if (!pending) {
+      const desc = TEXTURE_FILES[key]!;
+      pending = engine.resourceManager.load<Texture2D>({
+        type: AssetType.Texture,
+        url: plantAssetUrl(desc.file),
+        params: {
+          isSRGBColorSpace: true,
+          mipmap: true,
+          filterMode: TextureFilterMode.Trilinear,
+          wrapModeU: desc.repeatU ? TextureWrapMode.Repeat : TextureWrapMode.Clamp,
+          wrapModeV: TextureWrapMode.Clamp,
+          anisoLevel: 8
+        }
+      });
+      state!.textures.set(key, pending);
+    }
+    return pending;
   };
-  return decodedAssets;
-}
 
-/** Preloads reconstructed production plant structures and alpha-cutout textures once per Engine. */
-export function preloadTemplateProceduralPlantResources(engine: Engine): Promise<TemplateProceduralPlantResources> {
-  const existing = cachedResources.get(engine);
-  if (existing) return existing;
-  const loadTex = (file: string, repeatU = false) =>
-    engine.resourceManager.load<Texture2D>({
-      type: AssetType.Texture,
-      url: plantAssetUrl(file),
-      params: {
-        isSRGBColorSpace: true,
-        mipmap: true,
-        filterMode: TextureFilterMode.Trilinear,
-        wrapModeU: repeatU ? TextureWrapMode.Repeat : TextureWrapMode.Clamp,
-        wrapModeV: TextureWrapMode.Clamp,
-        anisoLevel: 8
-      }
-    });
+  const loadOptionalTex = (key: string, url: string | undefined) => {
+    if (!url) return Promise.resolve(undefined);
+    let pending = state!.optionalTextures.get(key);
+    if (!pending) {
+      pending = engine.resourceManager
+        .load<Texture2D>({ type: AssetType.Texture, url })
+        .then((tex) => (tex instanceof Texture2D ? tex : undefined))
+        .catch(() => undefined);
+      state!.optionalTextures.set(key, pending);
+    }
+    return pending;
+  };
+
   const deadResources = TREE_SPECIES_MATERIAL_RESOURCES["dead-tree"];
-  const loadOptionalTex = (url: string | undefined) =>
-    url
-      ? engine.resourceManager
-          .load<Texture2D>({ type: AssetType.Texture, url })
-          .then((tex) => (tex instanceof Texture2D ? tex : undefined))
-          .catch(() => undefined)
-      : Promise.resolve(undefined);
-  const task = Promise.all([
-    loadTex("meadow-birch-bark-256.png", true),
-    loadTex("meadow-birchtree_leaf_01_summer-part-01-256.png"),
-    loadTex("meadow-flowers_01-part-01-256.png"),
-    loadTex("meadow-flowers_02-part-05-256.png"),
-    loadTex("meadow-grass_02_summer-part-01-256.png"),
-    loadTex("meadow-flowers_03-part-01-256.png"),
-    loadOptionalTex(deadResources?.barkAlbedoUrl),
-    loadOptionalTex(deadResources?.barkNormalUrl)
-  ]).then(
-    ([
-      bark,
-      shrubLeaf,
-      flowerBlossom,
-      flowerPetal,
-      grassBlade,
-      plumeSpray,
-      deadBarkAlbedo,
-      deadBarkNormal
-    ]): TemplateProceduralPlantResources => ({
-      ...getDecodedPlantAssets(),
-      textures: { bark, shrubLeaf, flowerBlossom, flowerPetal, grassBlade, plumeSpray },
-      deadBarkAlbedo,
-      deadBarkNormal
-    })
-  );
-  cachedResources.set(engine, task);
-  return task;
+  const needDeadWood = activeKinds.has("dead-wood");
+  const needBush = activeKinds.has("desert-shrub");
+  const needFlower = activeKinds.has("pastel-flower") || activeKinds.has("meadow-flower");
+  const needGrass =
+    needFlower || activeKinds.has("dry-grass") || activeKinds.has("plume-grass");
+  const needPlume = activeKinds.has("plume-grass");
+
+  if (needBush && !decodedBushAsset) decodedBushAsset = decodePlantParameters<ProceduralPlantAsset>(bushStructureJson);
+  if (needFlower && !decodedFlowerAsset)
+    decodedFlowerAsset = decodePlantParameters<ProceduralPlantAsset>(flowerStructureJson);
+  if (needGrass && !decodedGrassAsset)
+    decodedGrassAsset = decodePlantParameters<ProceduralPlantAsset>(grassStructureJson);
+  if (needPlume && !decodedPlumeAsset)
+    decodedPlumeAsset = decodePlantParameters<ProceduralPlantAsset>(plumeStructureJson);
+
+  const [loadedEntries, deadBarkAlbedo, deadBarkNormal] = await Promise.all([
+    Promise.all([...neededTextureKeys].map(async (key) => [key, await loadTex(key)] as const)),
+    needDeadWood ? loadOptionalTex("deadBarkAlbedo", deadResources?.barkAlbedoUrl) : Promise.resolve(undefined),
+    needDeadWood ? loadOptionalTex("deadBarkNormal", deadResources?.barkNormalUrl) : Promise.resolve(undefined)
+  ]);
+
+  return {
+    bushAsset: decodedBushAsset,
+    flowerAsset: decodedFlowerAsset,
+    grassAsset: decodedGrassAsset,
+    plumeAsset: decodedPlumeAsset,
+    textures: Object.fromEntries(loadedEntries),
+    deadBarkAlbedo,
+    deadBarkNormal
+  };
 }
 
 function transformRestParts(
@@ -296,7 +340,9 @@ function compileProductionGeometry(
   leafSlots: Set<string>;
 } {
   if (kind === "desert-shrub") {
-    const structure = resources.bushAsset.geometryLods[0];
+    const bushAsset =
+      resources.bushAsset ?? (decodedBushAsset ??= decodePlantParameters<ProceduralPlantAsset>(bushStructureJson));
+    const structure = bushAsset.geometryLods[0];
     const baseParts = buildProceduralPlantGeometry(structure, 0);
     const rawFloor = Math.min(...baseParts.map(({ mesh }) => mesh.bounds[0][1]));
     const rawMaxY = Math.max(...baseParts.map(({ mesh }) => mesh.bounds[1][1]));
@@ -327,7 +373,10 @@ function compileProductionGeometry(
   }
 
   if (kind === "pastel-flower" || kind === "meadow-flower") {
-    const structure = resources.flowerAsset.geometryLods[0];
+    const flowerAsset =
+      resources.flowerAsset ??
+      (decodedFlowerAsset ??= decodePlantParameters<ProceduralPlantAsset>(flowerStructureJson));
+    const structure = flowerAsset.geometryLods[0];
     const baseParts = buildProceduralPlantGeometry(structure, 0);
     const baseSpan = Math.max(
       0.1,
@@ -382,7 +431,9 @@ function compileProductionGeometry(
         assembled.push(...transformRestParts([part], mArr, slot, `c${i}`));
       }
     }
-    const grassRest = buildProceduralPlantGeometry(resources.grassAsset.geometryLods[0], 0);
+    const grassAsset =
+      resources.grassAsset ?? (decodedGrassAsset ??= decodePlantParameters<ProceduralPlantAsset>(grassStructureJson));
+    const grassRest = buildProceduralPlantGeometry(grassAsset.geometryLods[0], 0);
     const grassInstances = catalogLod0Instances("SM_Grass_02_03").slice(0, 3);
     const grassMaxY = Math.max(0.05, ...grassRest.map(({ mesh }) => mesh.bounds[1][1]));
     const foliageScale = (baseMaxY * 0.55) / grassMaxY;
@@ -405,7 +456,9 @@ function compileProductionGeometry(
     };
   }
 
-  const grassRest = buildProceduralPlantGeometry(resources.grassAsset.geometryLods[0], 0);
+  const grassAsset =
+    resources.grassAsset ?? (decodedGrassAsset ??= decodePlantParameters<ProceduralPlantAsset>(grassStructureJson));
+  const grassRest = buildProceduralPlantGeometry(grassAsset.geometryLods[0], 0);
   const grassInstances = catalogLod0Instances("SM_Grass_02_03");
   const grassAssembled: PlantPartMesh[] = [];
   grassInstances.forEach((inst, idx) => {
@@ -428,7 +481,9 @@ function compileProductionGeometry(
 
   // "plume-grass": radiating alpha-cutout sedge grass base + 3 graceful feathery branching seed panicles rising above.
   const grassMaxY = Math.max(...grassAssembled.map(({ mesh }) => mesh.bounds[1][1]));
-  const plumeRest = buildProceduralPlantGeometry(resources.plumeAsset.geometryLods[0], 0);
+  const plumeAsset =
+    resources.plumeAsset ?? (decodedPlumeAsset ??= decodePlantParameters<ProceduralPlantAsset>(plumeStructureJson));
+  const plumeRest = buildProceduralPlantGeometry(plumeAsset.geometryLods[0], 0);
   const plumeBaseMaxY = Math.max(0.05, ...plumeRest.map(({ mesh }) => mesh.bounds[1][1]));
   const plumeScale = (grassMaxY * 1.38) / plumeBaseMaxY;
   const plumeAngles = [
@@ -848,7 +903,10 @@ export function mountTemplateProceduralPlants(
       const renderer = owner.createChild(name).addComponent(MeshRenderer);
       renderer.mesh = view.mesh;
       renderer.setMaterial(materials[part.materialId]);
-      renderer.castShadows = renderer.receiveShadows = true;
+      // Ground underbrush, grass tufts, and flower cushions receive cliff/tree shadows
+      // without rasterizing 2.34M sub-pixel alpha-cutout triangles across directional shadow cascades.
+      renderer.castShadows = false;
+      renderer.receiveShadows = true;
       renderer.shaderData.enableMacro("RENDERER_ASSET_ASSEMBLY_INSTANCE");
     }
   }
