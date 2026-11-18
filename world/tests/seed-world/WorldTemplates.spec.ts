@@ -254,9 +254,8 @@ describe("authored world templates", () => {
     const components = source.entities.world.components;
     expect(components.lighting.values).toMatchObject({ timeHours: 14, fogDensity: 0.0024, fogExponent: 1.5 });
     expect(components.postProcess.values).toMatchObject({ contrast: 18, postExposure: 0.06, bloom: true });
-    expect(
-      source.authoredResources?.filter((resource) => resource.resourceType === "terrain-feature").length
-    ).toBeGreaterThanOrEqual(3);
+    const features = source.authoredResources?.filter((resource) => resource.resourceType === "terrain-feature");
+    expect(features?.map((resource) => resource.properties.kind)).toEqual(["plateau", "plateau", "ridge"]);
     expect(
       source.authoredResources?.filter((resource) => resource.resourceType === "terrain-patch").length
     ).toBeGreaterThanOrEqual(2);
@@ -268,7 +267,7 @@ describe("authored world templates", () => {
     expect(recipe.parameters).toMatchObject({
       reliefNearAmplitudeM: 0.1,
       reliefAmplitudeM: 0.7,
-      reliefFarAmplitudeM: 7,
+      reliefFarAmplitudeM: 95,
       reliefScaleM: 230
     });
     expect(recipe.parameters.poiLayout?.network.enabled).toBe(false);
