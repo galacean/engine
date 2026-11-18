@@ -4,7 +4,12 @@ import {
   getMasonryLodTuning,
   setMasonryLodTuning
 } from "@galacean/engine-building/building/runtime/MasonryLodPolicy";
-import type { SeedWorldPopulationRuntime, GrassLodDebugConfig } from "@galacean/engine-world-planning/runtime/SeedWorldPopulationRuntime";
+import {
+  GRASS_DETAIL_LOD1_DISTANCE_METRES,
+  GRASS_DETAIL_LOD2_DISTANCE_METRES,
+  type GrassLodDebugConfig,
+  type SeedWorldPopulationRuntime
+} from "@galacean/engine-world-planning/runtime/SeedWorldPopulationRuntime";
 
 export interface MasonryMetricsLike {
   readonly buildings: number;
@@ -187,8 +192,8 @@ export class SeedWorldLodDebugPanel {
   private lastPopulation?: SeedWorldPopulationRuntime;
   private grassState: GrassLodDebugConfig = {
     colorizeLod: false,
-    lod1DistanceMetres: 20,
-    lod2DistanceMetres: 34,
+    lod1DistanceMetres: GRASS_DETAIL_LOD1_DISTANCE_METRES,
+    lod2DistanceMetres: GRASS_DETAIL_LOD2_DISTANCE_METRES,
     maximumDistanceMetres: 60,
     minimumDensityFraction: 0.25,
     distanceMode: "edge"
@@ -241,7 +246,7 @@ export class SeedWorldLodDebugPanel {
             <label class="lod-toggle"><input type="checkbox" data-ctrl="grass-color">按 LOD 着色</label>
           </div>
           <div class="lod-row">
-            <span class="lod-row__label">测距基准 (32m Patch)</span>
+            <span class="lod-row__label">测距基准 (16m Patch)</span>
             <select class="lod-select" data-ctrl="grass-mode">
               <option value="edge">最近边 (默认)</option>
               <option value="center">分块中心</option>
@@ -249,13 +254,13 @@ export class SeedWorldLodDebugPanel {
           </div>
           <div class="lod-row">
             <span class="lod-row__label">LOD0 → LOD1 距离</span>
-            <span class="lod-row__val" data-val="grass-lod1">20 m</span>
-            <input type="range" min="0" max="60" step="1" value="20" data-ctrl="grass-lod1">
+            <span class="lod-row__val" data-val="grass-lod1">${GRASS_DETAIL_LOD1_DISTANCE_METRES} m</span>
+            <input type="range" min="0" max="60" step="1" value="${GRASS_DETAIL_LOD1_DISTANCE_METRES}" data-ctrl="grass-lod1">
           </div>
           <div class="lod-row">
             <span class="lod-row__label">LOD1 → LOD2 距离</span>
-            <span class="lod-row__val" data-val="grass-lod2">34 m</span>
-            <input type="range" min="0" max="80" step="1" value="34" data-ctrl="grass-lod2">
+            <span class="lod-row__val" data-val="grass-lod2">${GRASS_DETAIL_LOD2_DISTANCE_METRES} m</span>
+            <input type="range" min="0" max="80" step="1" value="${GRASS_DETAIL_LOD2_DISTANCE_METRES}" data-ctrl="grass-lod2">
           </div>
           <div class="lod-row">
             <span class="lod-row__label">最大绘制距离</span>
@@ -404,8 +409,8 @@ export class SeedWorldLodDebugPanel {
     root.querySelector('[data-action="reset"]')!.addEventListener("click", () => {
       this.grassColorCheck.checked = false;
       this.grassModeSelect.value = "edge";
-      this.grassLod1Slider.value = "20";
-      this.grassLod2Slider.value = "34";
+      this.grassLod1Slider.value = String(GRASS_DETAIL_LOD1_DISTANCE_METRES);
+      this.grassLod2Slider.value = String(GRASS_DETAIL_LOD2_DISTANCE_METRES);
       this.grassMaxSlider.value = "60";
       this.grassMinDensSlider.value = "25";
       applyGrass();

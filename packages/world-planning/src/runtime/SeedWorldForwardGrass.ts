@@ -376,14 +376,14 @@ const RING_CONFIGS: readonly ForwardGrassRingConfig[] = [
     lod: 0,
     stepMetres: 0.25,
     innerFeatherMetres: 0,
-    outerFeatherMetres: 5.0,
+    outerFeatherMetres: 4.0,
     widthBoost: 1.0,
     initialCapacity: 16384
   },
   {
     lod: 1,
     stepMetres: 0.25,
-    innerFeatherMetres: 5.0,
+    innerFeatherMetres: 4.0,
     outerFeatherMetres: 4.5,
     widthBoost: 1.0,
     initialCapacity: 24576

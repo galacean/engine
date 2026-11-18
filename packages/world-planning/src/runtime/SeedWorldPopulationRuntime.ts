@@ -543,8 +543,9 @@ export interface GrassDensityLodUniformTarget {
   grassDensityLodEnd?: number;
 }
 
-const GRASS_DETAIL_LOD1_DISTANCE_METRES = 20;
-const GRASS_DETAIL_LOD2_DISTANCE_METRES = 34;
+export const GRASS_DETAIL_LOD1_DISTANCE_METRES = 14;
+export const GRASS_DETAIL_LOD2_DISTANCE_METRES = 26;
+const GRASS_DETAIL_LOD_HYSTERESIS_METRES = 0.75;
 const GRASS_LOD_DEBUG_COLORS: Readonly<Record<0 | 1 | 2, Vector4>> = {
   0: new Vector4(0.12, 0.85, 0.25, 0.85),
   1: new Vector4(0.95, 0.78, 0.08, 0.85),
@@ -568,25 +569,44 @@ function grassBatchDistance(bounds: BoundingBox, point: Vector3, mode: "edge" | 
   return Math.hypot(cx - point.x, cy - point.y, cz - point.z);
 }
 
-/** Switches a grass batch sub-mesh between LOD0, LOD1, and LOD2 indices and updates optional debug tinting. */
-function syncGrassDetailGeometryLod(
+/** Switches a grass batch sub-mesh between LOD0, LOD1, and LOD2 indices with hysteresis and optional debug tinting. */
+export function syncGrassDetailGeometryLod(
   batch: DetailPopulationBatch,
   distance: number,
-  config: Readonly<GrassLodDebugConfig>
+  config: Readonly<GrassLodDebugConfig>,
+  lodTuning?: Readonly<TerrainLodRendererTuning>
 ): void {
   const { lod2Count, lod2Start, lod1Count, lod1Start, lod0Count, lod0Start, mesh } = batch.resources;
   const subMesh = mesh.subMeshes[0];
   let lod: 0 | 1 | 2 = 0;
   let nextStart = lod0Start;
   let nextCount = lod0Count;
-  if (lod2Count > 0 && distance >= config.lod2DistanceMetres) {
-    lod = 2;
-    nextStart = lod2Start;
-    nextCount = lod2Count;
-  } else if (lod1Count > 0 && distance >= config.lod1DistanceMetres) {
-    lod = 1;
-    nextStart = lod1Start;
-    nextCount = lod1Count;
+  if (!lodTuning || lodTuning.enabled) {
+    const scale =
+      lodTuning && Number.isFinite(lodTuning.distanceScale) && lodTuning.distanceScale > 0
+        ? lodTuning.distanceScale
+        : 1;
+    const prevLod = batch.grassLodLevel;
+    const hysteresis = prevLod === undefined ? 0 : GRASS_DETAIL_LOD_HYSTERESIS_METRES * scale;
+    const lod1Base = config.lod1DistanceMetres * scale;
+    const lod2Base = config.lod2DistanceMetres * scale;
+    const lod1Threshold =
+      lod1Base <= 0
+        ? 0
+        : prevLod !== undefined && prevLod >= 1
+          ? Math.max(0, lod1Base - hysteresis)
+          : lod1Base + hysteresis;
+    const lod2Threshold =
+      lod2Base <= 0 ? 0 : prevLod === 2 ? Math.max(0, lod2Base - hysteresis) : lod2Base + hysteresis;
+    if (lod2Count > 0 && distance >= lod2Threshold) {
+      lod = 2;
+      nextStart = lod2Start;
+      nextCount = lod2Count;
+    } else if (lod1Count > 0 && distance >= lod1Threshold) {
+      lod = 1;
+      nextStart = lod1Start;
+      nextCount = lod1Count;
+    }
   }
   if (subMesh && (subMesh.start !== nextStart || subMesh.count !== nextCount)) {
     subMesh.start = nextStart;
@@ -1392,6 +1412,12 @@ export class SeedWorldPopulationRuntime {
     }
     const position = this._camera.entity.transform.worldPosition;
     for (const cell of this._detailCells.cells) this._updateDetailBatchVisibility(cell, position);
+    this._generatedRockGrass?.visitBatches((batch) => {
+      if (batch.renderer.enabled && !batch.destroyed) {
+        const distance = grassBatchDistance(batch.bounds, position, this._grassLodDebugConfig.distanceMode);
+        syncGrassDetailGeometryLod(batch, distance, this._grassLodDebugConfig, this._lodTuning);
+      }
+    });
     this._updateRockSurfaceGrassVisibility(position);
     this._updateForwardGrass(this.details.isActiveInHierarchy && this._detailCategoryVisible.grass);
   }
@@ -1426,6 +1452,7 @@ export class SeedWorldPopulationRuntime {
         if (batches) for (const b of batches) accum(b);
       }
     }
+    this._generatedRockGrass?.visitBatches(accum);
     for (const b of this._rockSurfaceGrassBatches) accum(b);
     return stats;
   }
@@ -1763,14 +1790,23 @@ export class SeedWorldPopulationRuntime {
       },
       visible: (batch, visible) => {
         const camera = this._camera.entity.transform.worldPosition;
-        batch.renderer.enabled =
+        const enabled =
           visible &&
           !this._grassRockAppearancePending.has(batch) &&
           this.details.isActiveInHierarchy &&
           this._detailCategoryVisible.grass &&
           this._populationFrustum.intersectsBox(batch.bounds) &&
           (detailBoundsContainsCamera(batch.bounds, camera) ||
-            seedWorldPopulationDetailBoundsIsActive(batch.bounds, camera));
+            seedWorldPopulationDetailBoundsIsActive(
+              batch.bounds,
+              camera,
+              this._grassLodDebugConfig.maximumDistanceMetres
+            ));
+        if (enabled) {
+          const distance = grassBatchDistance(batch.bounds, camera, this._grassLodDebugConfig.distanceMode);
+          syncGrassDetailGeometryLod(batch, distance, this._grassLodDebugConfig, this._lodTuning);
+        }
+        batch.renderer.enabled = enabled;
       },
       destroy: (batch) => this._retireRockSurfaceGrassBatch(batch)
     });
@@ -2643,14 +2679,27 @@ export class SeedWorldPopulationRuntime {
   private _updateForwardGrass(active: boolean): void {
     if (!this._forwardGrass) return;
     const config = this._grassLodDebugConfig;
+    const lodTuning = this._lodTuning;
+    const lodEnabled = lodTuning ? lodTuning.enabled : true;
+    const lodScale = lodTuning ? lodTuning.distanceScale : 1;
+    const lod1DistanceMetres = !lodEnabled
+      ? config.maximumDistanceMetres + 100
+      : lodScale === 1
+        ? config.lod1DistanceMetres
+        : config.lod1DistanceMetres * lodScale;
+    const lod2DistanceMetres = !lodEnabled
+      ? config.maximumDistanceMetres + 200
+      : lodScale === 1
+        ? config.lod2DistanceMetres
+        : config.lod2DistanceMetres * lodScale;
     const authoredScaleRange = getSeedWorldAssetPlacementProfile("grass").roleScale.field!;
     const minScale = this._grassScaleRange ? this._grassScaleRange.minimum : authoredScaleRange.minimum;
     const maxScale = this._grassScaleRange ? this._grassScaleRange.maximum : authoredScaleRange.maximum;
     const params = (this._forwardGrassParams ??= {
       camera: this._camera,
       active,
-      lod1DistanceMetres: config.lod1DistanceMetres,
-      lod2DistanceMetres: config.lod2DistanceMetres,
+      lod1DistanceMetres,
+      lod2DistanceMetres,
       maximumDistanceMetres: config.maximumDistanceMetres,
       minimumDensityFraction: this._grassDensityLodEnabled ? config.minimumDensityFraction : 1,
       minScale,
@@ -2674,8 +2723,8 @@ export class SeedWorldPopulationRuntime {
     });
     params.camera = this._camera;
     params.active = active;
-    params.lod1DistanceMetres = config.lod1DistanceMetres;
-    params.lod2DistanceMetres = config.lod2DistanceMetres;
+    params.lod1DistanceMetres = lod1DistanceMetres;
+    params.lod2DistanceMetres = lod2DistanceMetres;
     params.maximumDistanceMetres = config.maximumDistanceMetres;
     params.minimumDensityFraction = this._grassDensityLodEnabled ? config.minimumDensityFraction : 1;
     params.minScale = minScale;
@@ -2723,7 +2772,7 @@ export class SeedWorldPopulationRuntime {
       sampling.rootRadius = readSeedWorldGrassRootRadius(this._rockSurfaceGrassSourceForRuntime());
       this._generatedRockGrass.update(
         camera,
-        seedWorldPopulationDetailFadeTerminalDistance(),
+        this._grassLodDebugConfig.maximumDistanceMetres,
         this.details.isActiveInHierarchy && this._detailCategoryVisible.grass,
         sampling
       );
@@ -2874,6 +2923,18 @@ export class SeedWorldPopulationRuntime {
     }
     this._lodTuning = { ...tuning };
     this._sparseRenderDirty = true;
+    const position = this._camera.entity.transform.worldPosition;
+    for (const cell of this._detailCells.cells) {
+      if (cell.resource.detailsActive) this._updateDetailBatchVisibility(cell, position);
+    }
+    this._generatedRockGrass?.visitBatches((batch) => {
+      if (batch.renderer.enabled && !batch.destroyed) {
+        const distance = grassBatchDistance(batch.bounds, position, this._grassLodDebugConfig.distanceMode);
+        syncGrassDetailGeometryLod(batch, distance, this._grassLodDebugConfig, this._lodTuning);
+      }
+    });
+    if (this._rockSurfaceGrassBatches.length > 0) this._updateRockSurfaceGrassVisibility(position);
+    this._updateForwardGrass(this.details.isActiveInHierarchy && this._detailCategoryVisible.grass);
   }
 
   /**
@@ -3330,7 +3391,7 @@ export class SeedWorldPopulationRuntime {
       batch.renderer.enabled = enabled;
       if (enabled) {
         const distance = grassBatchDistance(batch.bounds, cameraPosition, this._grassLodDebugConfig.distanceMode);
-        syncGrassDetailGeometryLod(batch, distance, this._grassLodDebugConfig);
+        syncGrassDetailGeometryLod(batch, distance, this._grassLodDebugConfig, this._lodTuning);
       }
     }
     this._rockSurfaceGrassVisibilityDirty = !windowReady;
@@ -4076,13 +4137,10 @@ export class SeedWorldPopulationRuntime {
     cell.resource.detailBatches.clear();
     if (publication.grassBatches.length > 0) cell.resource.detailBatches.set("grass", publication.grassBatches);
     if (publication.flowerBatches.length > 0) cell.resource.detailBatches.set("flower", publication.flowerBatches);
-    for (const batches of cell.resource.detailBatches.values()) {
-      for (const batch of batches) this._setDetailBatchEnabled(batch, cell.resource.detailsActive);
-    }
     cell.resource.detailsLoaded = true;
     cell.resource.compactionTask = undefined;
+    this._updateDetailBatchVisibility(cell, this._camera.entity.transform.worldPosition);
     if (task.entrance && !task.entrance.settled) {
-      this._updateDetailBatchVisibility(cell, this._camera.entity.transform.worldPosition);
       for (const batch of [...publication.grassBatches, ...publication.flowerBatches]) {
         if (!batch.entrance) continue;
         if (batch.renderer.enabled) batch.entrance.startedAtSeconds = this._elapsedSeconds;
@@ -4169,7 +4227,7 @@ export class SeedWorldPopulationRuntime {
               grassDensityLodFraction(distance, grassEnd, this._grassLodDebugConfig.minimumDensityFraction)
           )
         : batch.instanceCount;
-      syncGrassDetailGeometryLod(batch, distance, this._grassLodDebugConfig);
+      syncGrassDetailGeometryLod(batch, distance, this._grassLodDebugConfig, this._lodTuning);
       syncGrassDensityLodUniform(batch, this._grassDensityLodEnabled, grassEnd);
     }
   }

@@ -4,6 +4,7 @@ import {
   BufferBindFlag,
   BufferMesh,
   BufferUsage,
+  ContentRestorer,
   type Engine,
   IndexBufferBinding,
   IndexFormat,
@@ -37,14 +38,22 @@ interface GrassLodIndexLayout {
   readonly lod2Count: number;
 }
 
-/** Single-LOD instanced grass ring mesh sharing source geometry with an external Transform Feedback buffer. */
-export interface SeedWorldForwardGrassRingMesh {
-  readonly mesh: BufferMesh;
-  readonly instanceBinding: number;
-  readonly triangleCountPerInstance: number;
+const GRASS_LOD_INDEX_LAYOUTS = new WeakMap<ModelMesh, GrassLodIndexLayout>();
+
+/** Contiguous index range inside a shared detail LOD index buffer. */
+export interface SeedWorldDetailLodSlice {
+  readonly start: number;
+  readonly count: number;
 }
 
-const GRASS_LOD_INDEX_LAYOUTS = new WeakMap<ModelMesh, GrassLodIndexLayout>();
+/** Packed multi-LOD index table constructed from a multi-blade ribbon grass clump. */
+export interface GrassClumpLodIndexData {
+  readonly indices: Uint16Array;
+  readonly lod0Indices: Uint16Array;
+  readonly lod1Indices: Uint16Array;
+  readonly lod2Indices: Uint16Array;
+  readonly lodSlices: readonly [SeedWorldDetailLodSlice, SeedWorldDetailLodSlice, SeedWorldDetailLodSlice];
+}
 
 /** GPU mesh view that shares the authored vertex and index buffers. */
 export interface SeedWorldDetailInstancedMesh {
@@ -64,6 +73,168 @@ export interface SeedWorldForwardGrassRingMesh {
   readonly mesh: BufferMesh;
   readonly instanceBinding: number;
   readonly triangleCountPerInstance: number;
+}
+
+/**
+ * Builds progressive index-only LOD slices `[LOD0, LOD1, LOD2]` for a multi-blade ribbon grass clump
+ * without duplicating vertices or altering near-field `LOD0` geometry:
+ * - `LOD0`: exact authored multi-segment curved blades (e.g. 24 tris for 4× 8-vertex blades).
+ * - `LOD1`: halves blade triangle count while preserving the widest belly cross-section and 3D arch
+ *   (exact base-to-belly quad + belly-to-tip triangle on 4+ ring blades [12 tris, ~89% area], or
+ *   root-to-belly + belly-to-tip 2-triangle diamond on 3-ring blades).
+ * - `LOD2`: 2-triangle belly-anchored diamond on the tallest subset of blades (e.g. 6 tris on 3 of 4
+ *   blades for `grass.glb`, -75% triangles while keeping full belly width and multi-angle volume).
+ * Returns `undefined` when the mesh does not match a multi-segment ribbon clump (e.g. flowers).
+ */
+export function buildGrassClumpLodIndexData(
+  positions: readonly { readonly x: number; readonly y: number; readonly z: number }[],
+  indices: ArrayLike<number>
+): GrassClumpLodIndexData | undefined {
+  const vertexCount = positions.length;
+  const indexCount = indices.length;
+  if (vertexCount < 8 || vertexCount > 0xffff || indexCount < 12 || indexCount % 3 !== 0) {
+    return undefined;
+  }
+
+  const parent = Int32Array.from({ length: vertexCount }, (_, index) => index);
+  const find = (x: number): number => {
+    while (parent[x] !== x) {
+      parent[x] = parent[parent[x]!]!;
+      x = parent[x]!;
+    }
+    return x;
+  };
+  const union = (a: number, b: number): void => {
+    const ra = find(a);
+    const rb = find(b);
+    if (ra !== rb) parent[ra] = rb;
+  };
+
+  const triangles: (readonly [number, number, number])[] = [];
+  for (let i = 0; i < indexCount; i += 3) {
+    const a = indices[i]!;
+    const b = indices[i + 1]!;
+    const c = indices[i + 2]!;
+    if (a < 0 || b < 0 || c < 0 || a >= vertexCount || b >= vertexCount || c >= vertexCount) return undefined;
+    union(a, b);
+    union(b, c);
+    triangles.push([a, b, c]);
+  }
+
+  const componentTriangles = new Map<number, (readonly [number, number, number])[]>();
+  const componentVertices = new Map<number, Set<number>>();
+  for (const tri of triangles) {
+    const root = find(tri[0]);
+    let tris = componentTriangles.get(root);
+    if (!tris) componentTriangles.set(root, (tris = []));
+    tris.push(tri);
+    let verts = componentVertices.get(root);
+    if (!verts) componentVertices.set(root, (verts = new Set()));
+    verts.add(tri[0]);
+    verts.add(tri[1]);
+    verts.add(tri[2]);
+  }
+
+  if (componentTriangles.size < 2) return undefined;
+
+  const blades: {
+    readonly order: number;
+    readonly height: number;
+    readonly lod1: readonly (readonly [number, number, number])[];
+    readonly lod2: readonly (readonly [number, number, number])[];
+  }[] = [];
+
+  let order = 0;
+  for (const [root, bladeTris] of componentTriangles) {
+    const sortedVerts = [...componentVertices.get(root)!].sort((a, b) => {
+      const pa = positions[a]!;
+      const pb = positions[b]!;
+      return pa.y - pb.y || pa.x - pb.x || pa.z - pb.z;
+    });
+    if (sortedVerts.length < 6 || sortedVerts.length % 2 !== 0 || bladeTris.length !== sortedVerts.length - 2) {
+      return undefined;
+    }
+    const row0A = sortedVerts[0]!;
+    const row0B = sortedVerts[1]!;
+    const bellyA = sortedVerts[2]!;
+    const bellyB = sortedVerts[3]!;
+    const tip = sortedVerts[sortedVerts.length - 1]!;
+    const isBaseOrBelly = (v: number): boolean => v === row0A || v === row0B || v === bellyA || v === bellyB;
+    const isBelly = (v: number): boolean => v === bellyA || v === bellyB;
+
+    const baseTris = bladeTris.filter((t) => isBaseOrBelly(t[0]) && isBaseOrBelly(t[1]) && isBaseOrBelly(t[2]));
+    if (baseTris.length !== 2) return undefined;
+
+    const rootBellyCandidates = baseTris.filter(
+      (t) => Number(isBelly(t[0])) + Number(isBelly(t[1])) + Number(isBelly(t[2])) === 2
+    );
+    const upperBellyCandidates = bladeTris.filter(
+      (t) => !baseTris.includes(t) && Number(isBelly(t[0])) + Number(isBelly(t[1])) + Number(isBelly(t[2])) === 2
+    );
+    if (rootBellyCandidates.length !== 1 || upperBellyCandidates.length !== 1) return undefined;
+
+    const rootBellyTri = rootBellyCandidates[0]!;
+    const upperBellyTri = upperBellyCandidates[0]!;
+    const bellyTipTri: readonly [number, number, number] = [
+      isBelly(upperBellyTri[0]) ? upperBellyTri[0] : tip,
+      isBelly(upperBellyTri[1]) ? upperBellyTri[1] : tip,
+      isBelly(upperBellyTri[2]) ? upperBellyTri[2] : tip
+    ];
+    const diamond: readonly [readonly [number, number, number], readonly [number, number, number]] = [
+      rootBellyTri,
+      bellyTipTri
+    ];
+
+    blades.push({
+      order: order++,
+      height: positions[tip]!.y - positions[row0A]!.y,
+      lod1: sortedVerts.length >= 8 ? [...baseTris, bellyTipTri] : diamond,
+      lod2: diamond
+    });
+  }
+
+  const lod1Tris = blades.flatMap((blade) => blade.lod1);
+  const retainedLod2BladeCount = blades.length === 4 ? 3 : Math.max(1, Math.ceil(blades.length * 0.5));
+  const retainedOrders = new Set(
+    [...blades]
+      .sort((a, b) => b.height - a.height || a.order - b.order)
+      .slice(0, retainedLod2BladeCount)
+      .map((blade) => blade.order)
+  );
+  const lod2Tris = blades.filter((blade) => retainedOrders.has(blade.order)).flatMap((blade) => blade.lod2);
+
+  const lod0Count = indexCount;
+  const lod1Count = lod1Tris.length * 3;
+  const lod2Count = lod2Tris.length * 3;
+  if (lod1Count === 0 || lod1Count >= lod0Count || lod2Count === 0 || lod2Count >= lod0Count) {
+    return undefined;
+  }
+
+  const packed = new Uint16Array(lod0Count + lod1Count + lod2Count);
+  for (let i = 0; i < lod0Count; i++) packed[i] = indices[i]!;
+  let cursor = lod0Count;
+  for (const tri of lod1Tris) {
+    packed[cursor++] = tri[0];
+    packed[cursor++] = tri[1];
+    packed[cursor++] = tri[2];
+  }
+  const lod2Start = cursor;
+  for (const tri of lod2Tris) {
+    packed[cursor++] = tri[0];
+    packed[cursor++] = tri[1];
+    packed[cursor++] = tri[2];
+  }
+
+  const lod0Slice = Object.freeze({ start: 0, count: lod0Count });
+  const lod1Slice = Object.freeze({ start: lod0Count, count: lod1Count });
+  const lod2Slice = Object.freeze({ start: lod2Start, count: lod2Count });
+  return Object.freeze({
+    indices: packed,
+    lod0Indices: packed.subarray(0, lod0Count),
+    lod1Indices: packed.subarray(lod0Count, lod0Count + lod1Count),
+    lod2Indices: packed.subarray(lod2Start, lod2Start + lod2Count),
+    lodSlices: Object.freeze([lod0Slice, lod1Slice, lod2Slice] as const)
+  });
 }
 
 function edgeKey(a: number, b: number): string {
@@ -169,7 +340,7 @@ function buildSimplifiedGrassIndices(
     }
 
     const bladeIndex = componentIndex++;
-    // For LOD2, decimate every other blade after keeping at least the first blade.
+    // For non-ribbon multi-card tufts in LOD2, decimate every other card while keeping intact UVs on retained quads.
     if (tier === 2 && bladeIndex > 0 && bladeIndex % 2 === 1) {
       reduced = true;
       continue;
@@ -237,25 +408,43 @@ function buildSimplifiedGrassIndices(
 }
 
 /**
- * Derives a mid/far grass-cluster LOD1 index buffer by collapsing each blade strip's
- * interior height rings into a single quad (or triangle if pointed), keeping base/tip extents.
+ * Derives a mid-distance grass-cluster LOD1 index buffer by halving ribbon blade triangles
+ * while preserving the widest belly cross-section, root grounding, and 3D blade curvature.
  */
 export function buildSimplifiedGrassLod1Indices(
   positions: readonly Vector3[],
   indices: ArrayLike<number>
 ): Uint16Array | Uint32Array | null {
+  const ribbon = buildGrassClumpLodIndexData(positions, indices);
+  if (ribbon) return ribbon.lod1Indices.slice();
   return buildSimplifiedGrassIndices(positions, indices, 1);
 }
 
 /**
- * Derives an ultra-light LOD2 grass-cluster index buffer (1 triangle per retained blade,
- * decimating half the blades in multi-blade tufts).
+ * Derives a far-distance LOD2 grass-cluster index buffer using belly-anchored 2-triangle
+ * diamonds on the tallest blades (or card decimation on non-ribbon tufts).
  */
 export function buildSimplifiedGrassLod2Indices(
   positions: readonly Vector3[],
   indices: ArrayLike<number>
 ): Uint16Array | Uint32Array | null {
+  const ribbon = buildGrassClumpLodIndexData(positions, indices);
+  if (ribbon) return ribbon.lod2Indices.slice();
   return buildSimplifiedGrassIndices(positions, indices, 2);
+}
+
+function createStaticLodIndexBuffer(engine: Engine, combined: Uint16Array | Uint32Array): Buffer {
+  const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, combined, BufferUsage.Static);
+  indexBuffer.isGCIgnored = true;
+  class GrassLodIndexRestorer extends ContentRestorer<Buffer> {
+    override restoreContent(): void {
+      if (!indexBuffer.destroyed && !indexBuffer.pendingDestroy) {
+        indexBuffer.setData(combined);
+      }
+    }
+  }
+  engine.resourceManager.addContentRestorer(new GrassLodIndexRestorer(indexBuffer));
+  return indexBuffer;
 }
 
 function getGrassLodIndexLayout(
@@ -273,8 +462,27 @@ function getGrassLodIndexLayout(
   const rawIndices = typeof sourceMesh.getIndices === "function" ? sourceMesh.getIndices() : null;
   if (!positions || !rawIndices || rawIndices.length < subMesh.count) return undefined;
   const lod0Slice = rawIndices.length === subMesh.count ? rawIndices : rawIndices.subarray(0, subMesh.count);
-  const lod1Indices = buildSimplifiedGrassLod1Indices(positions, lod0Slice);
-  const lod2Indices = buildSimplifiedGrassLod2Indices(positions, lod0Slice);
+
+  const ribbon = buildGrassClumpLodIndexData(positions, lod0Slice);
+  if (ribbon && sourceIndexBinding.format !== IndexFormat.UInt32) {
+    const indexBuffer = createStaticLodIndexBuffer(engine, ribbon.indices);
+    const [s0, s1, s2] = ribbon.lodSlices;
+    const layout: GrassLodIndexLayout = {
+      engine,
+      indexBufferBinding: new IndexBufferBinding(indexBuffer, IndexFormat.UInt16),
+      lod0Start: s0.start,
+      lod0Count: s0.count,
+      lod1Start: s1.start,
+      lod1Count: s1.count,
+      lod2Start: s2.start,
+      lod2Count: s2.count
+    };
+    GRASS_LOD_INDEX_LAYOUTS.set(sourceMesh, layout);
+    return layout;
+  }
+
+  const lod1Indices = ribbon ? ribbon.lod1Indices : buildSimplifiedGrassIndices(positions, lod0Slice, 1);
+  const lod2Indices = ribbon ? ribbon.lod2Indices : buildSimplifiedGrassIndices(positions, lod0Slice, 2);
   if (!lod1Indices && !lod2Indices) return undefined;
 
   const lod1Len = lod1Indices ? lod1Indices.length : 0;
@@ -289,7 +497,7 @@ function getGrassLodIndexLayout(
   if (lod1Indices) combined.set(lod1Indices, subMesh.count);
   if (lod2Indices) combined.set(lod2Indices, subMesh.count + lod1Len);
 
-  const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, combined, BufferUsage.Static);
+  const indexBuffer = createStaticLodIndexBuffer(engine, combined);
   const layout: GrassLodIndexLayout = {
     engine,
     indexBufferBinding: new IndexBufferBinding(indexBuffer, useUInt32 ? IndexFormat.UInt32 : IndexFormat.UInt16),
