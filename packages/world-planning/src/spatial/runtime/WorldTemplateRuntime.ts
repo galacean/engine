@@ -54,7 +54,11 @@ import { WORLD_TEMPLATE_ART, type WorldTemplateArtDirection } from "../WorldTemp
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
 import { resolveWorldTemplateScene, type ResolvedWorldTemplateScene } from "../WorldTemplateView";
 import { fitTemplateAsset, stretchTemplateAsset, type TemplateNode } from "../WorldTemplateGeometry";
-import { mountTemplateProceduralPlants } from "./TemplateProceduralPlants";
+import {
+  mountTemplateProceduralPlants,
+  preloadTemplateProceduralPlantResources,
+  type TemplateProceduralPlantResources
+} from "./TemplateProceduralPlants";
 import translucentShader from "./TemplateTranslucent.shader?raw";
 import fireflyShader from "./TemplateFirefly.shader?raw";
 import petalShader from "./TemplatePetal.shader?raw";
@@ -89,6 +93,7 @@ export class WorldTemplateRuntime {
   private readonly foliageWindDisposals: Array<() => void> = [];
   private disposeProceduralPlants?: () => void;
   private readonly leafTemplate?: Material;
+  private readonly plantResources?: TemplateProceduralPlantResources;
   private destroyed = false;
   private readonly anchor: { x: number; y: number; z: number };
   private focusBounds: ResolvedWorldTemplateScene["focusBounds"];
@@ -110,8 +115,8 @@ export class WorldTemplateRuntime {
     const leafModelUrls = new Set(
       nodes.filter(({ node }) => node.assetLeafMaterials?.length && node.assetUrl).map(({ node }) => node.assetUrl!)
     );
-    const needsLeafMaterial =
-      leafModelUrls.size > 0 || Boolean(WORLD_TEMPLATE_ART[template.id].proceduralPlants?.length);
+    const hasProceduralPlants = Boolean(WORLD_TEMPLATE_ART[template.id].proceduralPlants?.length);
+    const needsLeafMaterial = leafModelUrls.size > 0 || hasProceduralPlants;
     const leafTemplateTask = needsLeafMaterial
       ? parent.engine.resourceManager.load<Material>({
           type: AssetType.Material,
@@ -122,6 +127,9 @@ export class WorldTemplateRuntime {
                 import.meta.url
               ).href
         })
+      : Promise.resolve(undefined);
+    const plantResourcesTask = hasProceduralPlants
+      ? preloadTemplateProceduralPlantResources(parent.engine)
       : Promise.resolve(undefined);
     const petalTextureUrl = WORLD_TEMPLATE_ART[template.id].petals?.textureUrl;
     const petalTextureTask = petalTextureUrl
@@ -136,9 +144,10 @@ export class WorldTemplateRuntime {
           }
         })
       : Promise.resolve(undefined);
-    const [leafTemplate, petalTexture] = await Promise.all([
+    const [leafTemplate, petalTexture, plantResources] = await Promise.all([
       leafTemplateTask,
       petalTextureTask,
+      plantResourcesTask,
       ...[...urls].map(async (url) => {
         assets.set(
           url,
@@ -161,7 +170,8 @@ export class WorldTemplateRuntime {
       ground,
       leafTemplate,
       petalTexture,
-      formations
+      formations,
+      plantResources
     );
   }
   private constructor(
@@ -173,12 +183,14 @@ export class WorldTemplateRuntime {
     ground: (x: number, z: number) => number | undefined,
     leafTemplate?: Material,
     petalTexture?: Texture2D,
-    formations?: readonly RockFormationMesh[]
+    formations?: readonly RockFormationMesh[],
+    plantResources?: TemplateProceduralPlantResources
   ) {
     this.template = template;
     this.geometry = scene.geometry;
     this.focusBounds = scene.focusBounds;
     this.leafTemplate = leafTemplate;
+    this.plantResources = plantResources;
     this.root = parent.createChild(`World template: ${template.id}`);
     try {
       const [x, y, z] = scene.anchor;
@@ -282,7 +294,8 @@ export class WorldTemplateRuntime {
           proceduralPlants,
           plan.parameters.seed,
           leafTemplate,
-          rockGround
+          rockGround,
+          plantResources
         );
       }
     } catch (error) {
@@ -328,7 +341,8 @@ export class WorldTemplateRuntime {
           proceduralPlants,
           plan.parameters.seed,
           this.leafTemplate,
-          rockGround
+          rockGround,
+          this.plantResources
         );
       }
     };

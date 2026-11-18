@@ -93,10 +93,10 @@ export class RockFormationView {
     if (grass) {
       if (this.grassTop || !this.cliffBaseColor) return settings;
       // Sandstone cliff formations on ground-covered templates brighten the dark shared rock albedo into sunlit terracotta.
-      const cliffBoost = 2.85;
+      const cliffBoost = 3.65;
       return {
         color: settings.color.map((channel) =>
-          Math.max(0, Math.min(4, channel * cliffBoost))
+          Math.max(0, Math.min(5.2, channel * cliffBoost))
         ) as RockColorBlend["color"]
       };
     }
@@ -106,9 +106,9 @@ export class RockFormationView {
     const luma = (rgb: readonly [number, number, number]) => 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
     const baseLuma = base ? luma(base) : 0;
     const gain = baseLuma > 1e-4 ? Math.max(0.4, Math.min(3, luma(settings.color) / baseLuma)) : 1;
-    const boost = 3.6 * gain;
+    const boost = 4.25 * gain;
     const color = this.shoreStoneColor.map((stone) =>
-      Math.max(0, Math.min(4, stone * boost))
+      Math.max(0, Math.min(5.4, stone * boost))
     ) as RockColorBlend["color"];
     return { color };
   }
@@ -124,7 +124,7 @@ export class RockFormationView {
       try {
         if (grass && this.grassTop) material.shaderData.enableMacro("MATERIAL_ROCK_TOP_GRASS");
         if (grass && !this.grassTop && this.cliffBaseColor)
-          material.shaderData.setVector2("material_TerrainCoverageSlope", new Vector2(0.78, 0.18));
+          material.shaderData.setVector2("material_TerrainCoverageSlope", new Vector2(0.7, 0.2));
         const release = grass ? this.registerGrassAppearance?.(material) : undefined;
         material.shaderData.setFloat("material_SurfaceCoveragePreview", Number(this.grassCoveragePreview));
         roles.set(grass, (shared = { material, release, users: 0 }));
