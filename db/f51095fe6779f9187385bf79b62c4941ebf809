@@ -1,0 +1,32 @@
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  s_400c2d1e050e6a::t_b17bf6ddfaa9a2 120-124,630-631,635,722,822
+world/demos/seed-world/src/SeedWorldPerformanceLan.ts
+  s_400c2d1e050e6a::t_d07c5cac9be7d6 1-32
+world/demos/seed-world/main.ts
+  s_400c2d1e050e6a::t_d07c5cac9be7d6 37-40
+world/demos/seed-world/styles.css
+  s_400c2d1e050e6a::t_9b7449d4847a41 1243-1272
+packages/world-planning/src/spatial/runtime/PlanningSeedSolids.ts
+  s_400c2d1e050e6a::t_9b7449d4847a41 126
+world/demos/seed-world/SeedWorldDemo.ts
+  s_400c2d1e050e6a::t_9b7449d4847a41 103,235-237,868,870,934,2383,2428-2435,2440-2447,2449-2464
+  s_400c2d1e050e6a::t_b17bf6ddfaa9a2 2436-2439,2448
+world/demos/seed-world/src/SeedWorldPerformancePanel.ts
+  s_400c2d1e050e6a::t_9b7449d4847a41 1-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "dbf51095fe6779f9187385bf79b62c4941ebf809",
+  "prompts": {},
+  "sessions": {
+    "s_400c2d1e050e6a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1eec7-99c5-78c0-a326-98cab4c67870",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

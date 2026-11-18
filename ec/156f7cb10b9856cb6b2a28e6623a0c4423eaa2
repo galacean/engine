@@ -1,0 +1,23 @@
+docs/en/core/engine.mdx
+  s_da48a1c3cefcb7::t_c27e6b321faee2 37
+docs/zh/core/engine.mdx
+  s_da48a1c3cefcb7::t_9a82cb9fdabc95 37
+packages/loader/src/ktx2/KTX2Loader.ts
+  s_da48a1c3cefcb7::t_045a52d3a5d3cc 47-48,51-52,55-56,59-60,63,66,68,170-172,221
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ec156f7cb10b9856cb6b2a28e6623a0c4423eaa2",
+  "prompts": {},
+  "sessions": {
+    "s_da48a1c3cefcb7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1524d-29ee-7280-8621-925d13a5c914",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

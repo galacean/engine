@@ -1,0 +1,19 @@
+packages/farming/src/farming/tools/convert-native-props.py
+  s_97a2bd932aa3f2::t_670c0e2bc69955 3,15-36,38,60-65,68,71,93-101,103,105-106,182,188-199,206-209
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1008fd745b2c63a2f403445e360f348241e6567e",
+  "prompts": {},
+  "sessions": {
+    "s_97a2bd932aa3f2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1af8d-d94c-7263-b9b5-ffc911b9f798",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

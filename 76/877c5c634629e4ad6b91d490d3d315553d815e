@@ -1,0 +1,121 @@
+packages/core/src/shader/Shader.ts
+  s_da48a1c3cefcb7::t_7e6631813f3e31 48,83,109
+packages/core/src/shader/enums/ShaderLanguage.ts
+  s_da48a1c3cefcb7::t_ca4b88b4952571 6
+packages/shader-analyzer/README.md
+  s_da48a1c3cefcb7::t_b8e2f9cfc38b75 28
+packages/shader-compiler/src/GLESBackend.ts
+  s_da48a1c3cefcb7::t_fe26a0ea2e3f0f 30
+packages/shader-compiler/src/ShaderPrecompiler.ts
+  s_da48a1c3cefcb7::t_20243541080d21 52
+tests/package-consumer/PublishedShaderPackages.test.ts
+  s_da48a1c3cefcb7::t_d57bce23f0c666 121,313,519,702,706
+tests/package-consumer/fixtures/DeferredOwnershipRoundTrip.js
+  s_da48a1c3cefcb7::t_f6c50972193932 68
+tests/src/core/BuiltinShaderIdentity.test.ts
+  s_da48a1c3cefcb7::t_4c53682e4bcf29 130-131
+tests/src/core/Camera.test.ts
+  s_da48a1c3cefcb7::t_b2e160ae7f6c5b 92
+tests/src/core/Shader.test.ts
+  s_da48a1c3cefcb7::t_4a8329e9ea68b6 27,177,182
+tests/src/core/ShaderIdentity.test.ts
+  s_da48a1c3cefcb7::t_96b6d8501bc346 51,54,91
+tests/src/core/resource/ResourceManager.test.ts
+  s_da48a1c3cefcb7::t_842ab6232807c8 181
+tests/src/loader/MaterialLoader.test.ts
+  s_da48a1c3cefcb7::t_8aa77a7a77df9f 17,31,78,181
+tests/src/shader-analyzer/LoopReturnCoverage.test.ts
+  s_da48a1c3cefcb7::t_67282b98273672 16
+tests/src/shader-analyzer/MacroBranchMatrix.test.ts
+  s_da48a1c3cefcb7::t_df46770de175c0 28
+tests/src/shader-analyzer/ReviewRegression.test.ts
+  s_da48a1c3cefcb7::t_22f3c1255c2930 78,573,587,601,691,721
+tests/src/shader-compiler/CollectiveInheritance.test.ts
+  s_da48a1c3cefcb7::t_eef57cb544492a 63,201,346
+tests/src/shader-compiler/ConditionCoverageFallback.test.ts
+  s_da48a1c3cefcb7::t_2efc306d203e68 62,230
+tests/src/shader-compiler/ConditionImplicationInheritance.test.ts
+  s_da48a1c3cefcb7::t_009c9c113f6a16 85,353
+tests/src/shader-compiler/ConditionalIOCoverage.test.ts
+  s_da48a1c3cefcb7::t_3ad6dc2ee7d110 130,197
+tests/src/shader-compiler/ConditionalInheritance.test.ts
+  s_da48a1c3cefcb7::t_4416e6b075bec3 19,306
+tests/src/shader-compiler/ConditionalOutputArguments.test.ts
+  s_da48a1c3cefcb7::t_9bdcc345d8e41d 53,110
+tests/src/shader-compiler/DeclarationIdentity.test.ts
+  s_da48a1c3cefcb7::t_c2e3890cb7ac2c 51
+tests/src/shader-compiler/DeferredStructOwnership.test.ts
+  s_da48a1c3cefcb7::t_7cd0b7ccdc8d70 12
+tests/src/shader-compiler/DiagnosticDriverConsistency.test.ts
+  s_da48a1c3cefcb7::t_35034c759cb4ce 862
+tests/src/shader-compiler/DiscardStageDiagnostic.test.ts
+  s_da48a1c3cefcb7::t_9286591752eec4 292
+tests/src/shader-compiler/ExternalConditionInheritance.test.ts
+  s_da48a1c3cefcb7::t_574995d3c5c4d4 132
+tests/src/shader-compiler/ExternalMacroPrecedence.test.ts
+  s_da48a1c3cefcb7::t_40066101833303 85
+tests/src/shader-compiler/ForwardFunctionDeclarations.test.ts
+  s_da48a1c3cefcb7::t_a19c90869720fb 135,232,274
+tests/src/shader-compiler/FunctionPrototypeLifetime.test.ts
+  s_da48a1c3cefcb7::t_25298ee28b3fe6 9
+tests/src/shader-compiler/HeadlessRegression.test.ts
+  s_da48a1c3cefcb7::t_b802eb230ef2c5 26
+tests/src/shader-compiler/InterfaceMRTConversion.test.ts
+  s_da48a1c3cefcb7::t_4dbc3c7e46af97 93,98
+tests/src/shader-compiler/InterfaceValueSemantics.test.ts
+  s_da48a1c3cefcb7::t_03555a21be46ad 413
+tests/src/shader-compiler/LayeredInheritanceCoverage.test.ts
+  s_da48a1c3cefcb7::t_53f32fd7c631e6 9
+tests/src/shader-compiler/MacroBodyWriteEffects.test.ts
+  s_da48a1c3cefcb7::t_818255bf84df82 67
+tests/src/shader-compiler/MacroBranchRuntime.test.ts
+  s_da48a1c3cefcb7::t_4fcbe5f6d515d1 36,51,92,112,131,152,169,185,200,215,232,545,580,586,657,728,793,851,887,917,976,1012,1042,1071,1104,1130,1157,1184,1219,1266,1322,1416,1480,1504,1555
+tests/src/shader-compiler/MacroTextExpansion.test.ts
+  s_da48a1c3cefcb7::t_58a14f69b972f7 129
+tests/src/shader-compiler/ParticleFeedbackReturn.test.ts
+  s_da48a1c3cefcb7::t_ac4737800b8a48 23
+tests/src/shader-compiler/Precompile.test.ts
+  s_da48a1c3cefcb7::t_3f0da86a4d54b3 47,85,113,139,185,895,918,939,943,948,969,980,987,1002,1018,1037,1052,1067-1069,1080,1128,1172,1195,1204,1216,1247,1260,1267,1276,1294,1316,1328,1340,1356,1380,1393,1405,1407,1418,1433,1439,1458
+tests/src/shader-compiler/PrecompileABTest.test.ts
+  s_da48a1c3cefcb7::t_d96df032841deb 143,154,165-166,192,203,245,249,254,259,264,269,273,277,281,288,296,301,306,311,316,321,325,329,340,346,362,364,379,381,399,437,441,445,450,455,459,471,483,510,536,571,601,626,646,658,678
+tests/src/shader-compiler/PrecompileBenchmark.test.ts
+  s_da48a1c3cefcb7::t_f41c8537a2c8ee 176,193,243,281,327
+tests/src/shader-compiler/PreprocessorCacheIdentity.test.ts
+  s_da48a1c3cefcb7::t_f002880e90b04b 80
+tests/src/shader-compiler/PreprocessorConditionConformance.test.ts
+  s_da48a1c3cefcb7::t_50f0eb2481c3f3 243,359,390,428,432,444,463,487,491,506,510,541,635,650,681,689,713,720
+tests/src/shader-compiler/PreprocessorReachability.test.ts
+  s_da48a1c3cefcb7::t_01c3383440b351 30,41,57,139
+tests/src/shader-compiler/ReturnStatementInvariant.test.ts
+  s_da48a1c3cefcb7::t_b422aa14fc090c 44
+tests/src/shader-compiler/ShaderCompiler.test.ts
+  s_da48a1c3cefcb7::t_a14cfde56451d8 60,80,119,168,499,515,532,551,573,594,620,667,782,815,839,868,891,914,977,1032,1071,1098,1120,1142,1161,1170,1353,1394
+tests/src/shader-compiler/ShaderNeutralIR.test.ts
+  s_da48a1c3cefcb7::t_aacbf48ba7b92d 134,154,165,171,184,201,216,233,257,279,317,347,361,390,411,436,465
+tests/src/shader-compiler/ShaderValidate.ts
+  s_da48a1c3cefcb7::t_f3b11385c34fe5 46
+tests/src/shader-compiler/StandaloneAnalyzer.test.ts
+  s_da48a1c3cefcb7::t_8b62fec08fa1dc 23,25,52,66,87,92,94
+tests/src/shader-compiler/StateIsolation.test.ts
+  s_da48a1c3cefcb7::t_ec2ecd3766fbb8 51,173
+tests/src/shader-compiler/TransformFeedbackNames.test.ts
+  s_da48a1c3cefcb7::t_762de3a9b13b95 44,92,118
+tests/src/shader-compiler/TypeDependencies.test.ts
+  s_da48a1c3cefcb7::t_2d6e94aaa2d543 109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "76877c5c634629e4ad6b91d490d3d315553d815e",
+  "prompts": {},
+  "sessions": {
+    "s_da48a1c3cefcb7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1524d-29ee-7280-8621-925d13a5c914",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

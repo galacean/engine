@@ -1,0 +1,28 @@
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  s_a71f0ec6cb2ba3::t_aa16a8a00e8ecb 275-278,671,848,851-852
+  s_a71f0ec6cb2ba3::t_75ce58cea44e3b 853-855
+packages/modify/tests/ScreenSpaceReflectionContribution.test.ts
+  s_a71f0ec6cb2ba3::t_9aa02154661afd 312-321,338-340
+  s_a71f0ec6cb2ba3::t_44defa6fa72f48 28,183-184,188-189
+  s_a71f0ec6cb2ba3::t_685928f600ca97 332,358,376
+  s_a71f0ec6cb2ba3::t_53aac6beab51e9 185-187
+  s_a71f0ec6cb2ba3::t_fee0d55724ae27 5,16-17,190-195,304-311,322-331,333-337,341-357,359-375,377-392,549
+packages/modify/tests/ScreenSpaceReflectionWorldNormal.test.ts
+  s_a71f0ec6cb2ba3::t_8e1edd91246d9f 67,112-115,264
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "120d1139a0c6f6051e1cba1dce4f676047576b24",
+  "prompts": {},
+  "sessions": {
+    "s_a71f0ec6cb2ba3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ed14-9176-7b50-92c9-d23705d25bb5",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
