@@ -1,0 +1,579 @@
+packages/loader/src/ImageDecoder.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1,6-8,12,14-16,19-31,33,37,42-48,75
+packages/world-planning/src/semantic-study/PlanningAlphamap.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 6
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 13,107,113,115,689
+packages/modify/src/native/rhi-webgl/src/GLTransformFeedbackPrimitive.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-6
+packages/water/src/water/authoring/terrain/GridInterpolation.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-47
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 670
+packages/terrain/src/shaders/Terrain.shader
+  s_118fe0ba8b7262::t_753a99baf57bab 97
+packages/core/src/BasicResources.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 225-228
+packages/shader-compiler/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 116-119,182
+packages/water/src/skills/water/SKILL.md
+  s_118fe0ba8b7262::t_753a99baf57bab 3,8-10
+packages/world-planning/src/spatial/world-templates/OasisFloodplain.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-156
+packages/core/src/texture/Texture.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 13,42,49,56,63,70,105,112-113,135-136,156-157,170-179,204,231-232,243,248
+packages/terrain/src/shaders/terrain/TerrainForwardPass.glsl
+  s_118fe0ba8b7262::t_753a99baf57bab 99
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/water.digRiver.d.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-34
+packages/world-planning/src/masonry/BuildingInitialSource.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 29-30,89
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectStorage.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 6,94-103,113,125-129,173-185
+  s_118fe0ba8b7262::t_f4c5c7d14c3ebe 186
+packages/water/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 385-387
+packages/modify/tests/ScreenSpaceReflectionAuthoring.test.ts
+  s_118fe0ba8b7262::t_dc50f370e67631 288,295,302-303,316-318,326,329
+packages/core/src/2d/text/TextUtils.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 46
+packages/shader/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetation.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 71,75-79,84,344,412
+world/demos/seed-world/SeedWorldProject.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 27,145-146,222-263
+packages/farming/src/farming/domain/FarmingGround.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/modify/src/native/core/src/shader/ShaderProgram.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/xr-webxr/src/WebXRSession.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1,78-83,111-117,122,127,163,170-173
+  s_118fe0ba8b7262::t_8baa73646ad437 174-175
+packages/xr/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+packages/modify/tests/ScreenSpaceReflectionPbrExtensions.test.ts
+  s_118fe0ba8b7262::t_1313856533a380 123
+  s_118fe0ba8b7262::t_27d1596266c465 399-401
+packages/terrain/src/terrain/clipmap/TerrainPuddleHydrology.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-5
+world/demos/seed-world/SeedWorldDemo.ts
+  s_118fe0ba8b7262::t_dc50f370e67631 115,709-710
+  s_118fe0ba8b7262::t_196be2aee5cd54 2117
+  s_118fe0ba8b7262::t_753a99baf57bab 98-99,145,158-162,722-727,729,782,784-788,790,796-830,833-835,841,851-854,955-956,961,1365,1376-1377,1489,1549,1553,1720,1724,1935-1936,1940,1950,1960-1962,1982-1984,1992,2040,2052-2058,2188
+packages/world-planning/src/integrations/terrain/environment/TerrainPrecipitationVfx.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 9,29,174,320-321,457,1115-1140
+  s_118fe0ba8b7262::t_a7344b5cbc52c5 1141-1143
+world/demos/farming/native-preview/NativePreviewHost.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/rhi-webgl/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+packages/farming/src/farming/presentation/harvest/HarvestProduceMesh.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2
+world/tests/seed-world/TerrainPreparedUpdate.spec.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 4-7
+tests/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 4,23
+packages/world-planning/src/spatial/WorldTemplateEcology.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 6,10,12
+packages/core/src/renderingHardwareInterface/IPlatformPrimitive.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-7
+packages/shader-parser/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+world/demos/seed-world/scripts/generate-low-poly-assets.py
+  s_118fe0ba8b7262::t_753a99baf57bab 117,133-140,142-143,145,150-155,157-171,173-177,179,181-184,190-193,195-214,216-222,228,231-235,237-238,240,242-244,251-255,257-262,265,269-273,275-276,280-319,323-341,344-345
+packages/core/src/shader/state/RasterState.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2
+world/demos/seed-world/main.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2,38-40,51,55,57-60
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  s_118fe0ba8b7262::t_dc50f370e67631 312-313,331,400,466-467,469,489-511,647-650,661-662,676-677,691
+  s_118fe0ba8b7262::t_753a99baf57bab 275-278,687,864,867-871
+examples/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 9,11,13-14,23,95,109,111-112,115-116,347-354,428,430,577-578
+packages/world-planning/src/spatial/runtime/TemplateButterfly.shader
+  s_118fe0ba8b7262::t_753a99baf57bab 1-120
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  s_118fe0ba8b7262::t_dc50f370e67631 309-310,356,364
+  s_118fe0ba8b7262::t_8935719f86f3b4 1243
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 4,259,600,648,776-778,1205,1259
+packages/world-planning/src/spatial/PlanningDocument.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 426-456,466-476
+packages/design/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+packages/farming/src/farming/presentation/storage/StorageProduceLibrary.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+packages/rhi-webgl/src/GLPrimitive.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-8
+packages/rhi-null/src/HeadlessCanvas.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-22
+world/demos/seed-world/agent-adapter/SeedWorldPlanningService.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2-4,20-36
+  s_118fe0ba8b7262::t_424af3c749e7cf 37
+packages/modify/src/native/core/src/shader/state/DepthState.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2
+world/demos/seed-world/agent-adapter/contracts/generated/SeedWorldApiSearchRegistry.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 4,232-236,936,945-952,954
+  s_118fe0ba8b7262::t_aef49fdb1f0eea 953
+packages/farming/src/farming/geometry/GridInterpolation.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-47
+packages/core/src/postProcess/PostProcessManager.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 273
+packages/world-planning/src/spatial/WorldTemplateGeometry.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 161-162,165,168-169
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmLandCoverage.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+packages/building/src/skills/building/SKILL.md
+  s_118fe0ba8b7262::t_753a99baf57bab 16
+world/tests/seed-world/SeedWorldScreenSpaceReflection.spec.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-181
+world/tests/seed-world/SeedWorldTerrainRuntimeIntegration.spec.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 107,610
+packages/terrain/src/terrain/clipmap/TerrainHeightAtlas.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 12-13,16-18,62
+packages/core/src/shader/ShaderProgram.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1,18
+packages/modify/src/geometry/destroyOwnedMesh.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-29
+packages/world-planning/tests/NativeWaterPrefab.test.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 5
+packages/terrain/src/terrain/clipmap/TerrainClipmap.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 28,31,263-266,305,333,800,811,823,833-838,840-845,857
+world/demos/seed-world/agent-adapter/SeedWorldRiverShape.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-39
+packages/core/src/shader/state/DepthState.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2
+world/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 7-8
+packages/world-planning/src/spatial/WorldTemplateCatalog.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 8,11-12,55-56,61-64
+packages/modify/tests/ScreenSpaceReflectionWorldNormal.test.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 67,112-115,264
+packages/world-planning/src/integrations/terrain/rock-formation/Variants.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 28,172-185,196-209,212-213,216,218,221,224,226,229,242-246,256-258
+packages/design/src/xr/IXRSession.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 39-42
+  s_118fe0ba8b7262::t_75d24b24237bcb 43
+packages/world-planning/src/spatial/hydrology/LakeRegions.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 68
+packages/modify/src/native/rhi-webgl/src/GLPrimitive.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-8
+packages/core/src/Camera.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 13,29,155,383,390,428,435,624,747,749,753,766-782,805
+packages/water/src/bridges/MeshInteractionSurface.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-123
+packages/terrain/src/terrain/clipmap/TerrainNormalAtlas.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+tests/src/core/Camera.test.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 10-11,15,128-141
+world/tests/seed-world/PlanningWaterOwnership.spec.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 26,30,355,384-420,437-438,453,533-582
+  s_118fe0ba8b7262::t_e202b5311d9de5 583
+packages/core/src/SystemInfo.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2,4,24,99,120,125
+packages/design/src/xr/IXRDevice.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 29,33
+packages/terrain/src/terrain/project/TerrainProjectCodec.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/world-planning/src/spatial/ecology/FlowerRegions.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 91-93,377-406,408
+  s_118fe0ba8b7262::t_fce9ac08b38b47 407,409
+packages/spine-core-3.8/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+packages/loader/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+packages/rhi-null/src/NullGraphicDevice.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-106
+packages/core/src/Polyfill.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 9-13,20,34
+packages/rhi-null/src/HeadlessEngine.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-32
+packages/core/src/postProcess/PostProcessUberPass.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 140,153,167
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 381
+packages/world-planning/src/spatial/PlanningWeather.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 16,18-22,64-76,78-81,83,87,89-139,143-165
+packages/world-planning/src/spatial/WorldTemplatePlanning.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 80-83,159-161,179-185,201-286
+  s_118fe0ba8b7262::t_47886dc5f4f2de 287
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/building.generate.d.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 12-13
+packages/world-planning/src/spatial/layout/EnvironmentStages.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 217
+world/demos/seed-world/agent-adapter/tools/water-tools.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-31
+world/demos/seed-world/masonry/BuildingSceneInitialization.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 14-20,22-23,25-26,33-39,48,50,53-86,89,102,108-111,118
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-827
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 10-15,333,336,338
+packages/farming/tests/fixtures/fixtures.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/world-planning/src/world/SeedWorldPhotoGraphics.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2
+packages/world-planning/src/spatial/PlanningSession.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 950-952,954-982,984-995
+packages/modify/SSR_AUTHORING.md
+  s_118fe0ba8b7262::t_1313856533a380 32
+packages/rhi-webgl/src/GLTexture.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 481,485,542
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/core/src/asset/request.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 18-21,42-56,58,62-87,91-92,94,96-97,152,164-201,208,237-238,250,252-256
+packages/rhi-webgl/src/GLTransformFeedbackPrimitive.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-6
+packages/rhi-null/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 1-29
+packages/world-planning/src/spatial/world-templates/LowPolyValley.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 4-16,25-26,36-37,50,55,71-99,101-110,112,114,119-129,131-139,141-142,144-153,155-163,165-168,170,172-180,183,185,194-198,200-204,215,231,345-392,394-408,416,423-440,442-489
+packages/core/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+packages/modify/src/native/core/src/RenderPipeline/OpaqueTexturePass.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 41
+packages/water/src/water/compiler/lake/LakeTerrainBoundary.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/world-planning/src/generation/terrain/StylizedTerrainPreset.d.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-22
+packages/world-planning/src/semantic-study/PlanningTerrainSource.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+packages/world-planning/src/semantic-study/WorldPlanningTerrain.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1095-1106
+packages/world-planning/tests/WaterEditor.test.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 12
+packages/world-planning/src/spatial/layout/SpatialEditInputs.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 15-16,53
+packages/ui/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+packages/spine/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2,6,8-13,33-34,78-79,118-134,147,149-153,167-168,170-182,184-204,210-213,215,217-226,362-364,375-376,537-539,541-547,551,554-566,571-586,589-603,606-627,629-636,639-651,653-904,906-913,915-923,925-934,936-948,950-1299,1301-1304,1306-1327,1329-1346,1351-1354,1356-1357,1360-1365,1367,1369,1372,1375,1379,1382-1386,1388-1400
+  s_118fe0ba8b7262::t_196be2aee5cd54 550,637
+packages/world-planning/src/spatial/WorldTemplateView.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1,5
+packages/rhi-null/src/NullBuffer.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-55
+tests/src/xr/Lifecycle.test.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 37-38,55-59,61-69,97,115,141
+packages/core/src/graphic/Primitive.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 3,149
+packages/farming/src/farming/procedural/runtime/ProceduralPlant.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2
+packages/core/src/renderingHardwareInterface/index.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1,3,5
+world/demos/farming/first-person-farm/scene/FarmGround.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/rhi-null/tsconfig.json
+  s_118fe0ba8b7262::t_753a99baf57bab 1-18
+packages/world-planning/src/generation/terrain/TerrainIslandTypes.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-74
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 3,51
+tests/src/loader/ImageDecoder.test.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-10,181-243
+packages/modify/tests/ScreenSpaceReflectionContribution.test.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 5,17-18,29,184-196,305-307,309-318,320-340,343-386,408,410-416,500-501,660
+  s_118fe0ba8b7262::t_dc50f370e67631 15,308,319,341-342,387-407,409,417-499,558-560,570-571,662-665,697-698
+  s_118fe0ba8b7262::t_6dacdc5d94a056 502
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingTerrain.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1,5
+packages/core/src/texture/TextureUtils.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 20,36-41
+  s_118fe0ba8b7262::t_45bcaac657bc98 42-43
+packages/terrain/src/shaders/terrain/TerrainScreenSpaceReflectionPass.glsl
+  s_118fe0ba8b7262::t_753a99baf57bab 164
+packages/world-planning/src/spatial/SpatialCompositionParameters.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 8,75,208
+packages/water/src/water/authoring/terrain/WaterTerrainSnapshot.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2
+packages/water/src/water/runtime/spatial/WaterWetNearShoreSearch.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+world/tests/seed-world/PlanningStorage.spec.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1,3,5,17-66,234-254
+  s_118fe0ba8b7262::t_cc3b1fb0a274d2 255
+packages/modify/src/native/core/src/shader/state/RasterState.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2
+packages/farming/src/farming/geometry/SurfaceTriangles.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-100
+packages/modify/src/native/core/src/postProcess/PostProcessUberPass.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 167,180,194
+packages/xr-webxr/src/WebXRFrame.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2
+packages/farming/src/farming/presentation/soil/SoilWorkPresenter.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/farming/src/farming/presentation/soil/SoilRenderBatches.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 21
+packages/rhi-null/src/index.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-4
+packages/core/src/renderingHardwareInterface/IPlatformShaderProgram.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-4
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 8,26,35-40,867-913
+  s_118fe0ba8b7262::t_3abcaafb251b2c 914
+tests/src/core/AssetPromise.test.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-2,192-288
+  s_118fe0ba8b7262::t_f704a7f01178f8 289
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 146
+packages/modify/tests/vitest.config.mjs
+  s_118fe0ba8b7262::t_1313856533a380 11-12,16-17
+packages/modify/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 22-23
+tests/package-consumer/HeadlessEngine.test.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-690
+packages/rhi-webgl/src/GLTexture2DArray.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 10-12
+packages/shader-analyzer/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+packages/world-planning/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 11-20,22-29,478-479
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingAcceptedGround.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/modify/src/native/core/src/Camera.ts
+  s_118fe0ba8b7262::t_dc50f370e67631 77,82,90
+  s_118fe0ba8b7262::t_753a99baf57bab 14,37,438,821,823,827,840-856
+packages/xr/src/session/XRSessionManager.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2,93,130,147,184
+packages/farming/src/farming/presentation/soil/FarmingPlotSurface.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/world-planning/src/spatial/SpatialCompositionGeometry.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 36-38
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 3,7-10,14,28,36,38-40,46-50,52,60-64,68,84,97-104,107,115,118,121,123-127,139-141,155-170,173-174,176-183,197-199,206,211-213,216-219,222,227,307-331,344-351,353-377,481-633,800-983,998-1024,1032-1041,1062-1068,1162-1178,1218,1244-1246,1248-1250
+packages/rhi-webgl/src/GLCapability.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1,18,22-25,148-189
+  s_118fe0ba8b7262::t_28f8d042d1dfd6 190
+packages/rhi-webgl/src/GLRenderTarget.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 29,38,51,86,245,293-294
+world/demos/seed-world/agent-adapter/SeedWorldToolCatalog.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 11,21
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/world-planning/src/integrations/terrain/environment/WorldEnvironmentRuntime.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 320-321,359-360,385-386,561-565,1035,1043-1045
+packages/modify/src/native/core/src/Engine.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-2,639
+  s_118fe0ba8b7262::t_1313856533a380 681-684
+packages/terrain/src/terrain/clipmap/TerrainPreparedUpdate.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/world-planning/src/planning-data/template-wildlife.json
+  s_118fe0ba8b7262::t_753a99baf57bab 1-13
+packages/world-planning/src/integrations/terrain/rock-formation/RockVariantCatalog.json
+  s_118fe0ba8b7262::t_753a99baf57bab 49,60
+world/tests/seed-world/BuildingInitialSource.spec.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 18-23,65-110
+packages/core/src/input/InputManager.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 158
+packages/world-planning/src/runtime/NaturalVegetationCell.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 453-456
+packages/world-planning/src/spatial/AnimalPopulationComponent.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 7,20-28,145-154,284-317,347-348,350,369-390,415,418-422
+world/tests/seed-world/PlanningMetadataEdits.spec.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-67
+packages/world-planning/src/generation/terrain/TerrainRuntime.d.mts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-135
+world/demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2,8-18,35-37,44-45,53-75,78-84,88-93,96-154
+packages/world-planning/src/runtime/SeedWorldTerrainRuntime.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 42-43,60,281-294,371,485,539,1142
+packages/spine-core-4.2/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+tests/src/rhi-webgl/HeadlessEngine.test.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-66
+packages/rhi-webgl/src/WebGLEngine.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1,20
+packages/math/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+packages/core/src/texture/Texture2DArray.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 176,186,196,206
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-97
+packages/world-planning/src/generation/terrain/TerrainRuntime.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-26
+packages/modify/src/native/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader
+  s_118fe0ba8b7262::t_dc50f370e67631 141-145,650-662
+  s_118fe0ba8b7262::t_77a78027aa8244 663-664
+packages/modify/tests/EngineStartup.spec.ts
+  s_118fe0ba8b7262::t_1313856533a380 3,5,30,33-43,51-52
+e2e/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 4
+world/tests/seed-world/PoiTemplatePopulation.spec.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2-3,32-33,40-42,44,46-51
+packages/water/src/water/runtime/resources/destroyWaterOwnedMesh.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 4
+world/demos/seed-world/src/SeedWorldInstantCamera.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/core/src/Engine.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1,33,130,142-143,150,206,219-220,300-303,314-315,318,574-575,636,676-686
+packages/world-planning/src/semantic-study/PlanningHeightmap.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 10,119
+world/tests/seed-world/GentleTerrainDefaults.spec.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 51
+world/tests/seed-world/PlantProjectAssets.spec.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 123,166-226
+  s_118fe0ba8b7262::t_f43d0ae76f63a1 227-233
+packages/farming/src/farming/presentation/harvest/BasketContentsMesh.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 5
+packages/terrain/src/terrain/project/TerrainProjectAdapter.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 13-16
+packages/core/src/renderingHardwareInterface/IPlatformTransformFeedbackPrimitive.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+world/demos/seed-world/src/DesertVegetation.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 22-23,30-31,33-41,122-178,180,220-230,418
+packages/farming/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 185-187
+packages/world-planning/src/spatial/farming/PlanningFarmingGround.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/core/src/shader/ShaderUniform.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/xr-webxr/src/WebXRDevice.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-2,48-51,90
+packages/terrain/src/terrain/clipmap/TerrainGroundBinding.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 18,23,31
+packages/loader/src/gltf/parser/GLTFTextureParser.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 12,67-83,85-86,88-89,91,93
+world/demos/seed-world/agent-adapter/SeedWorldAgentApplication.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 59,73,1161-1214
+  s_118fe0ba8b7262::t_cecacdebb01da4 1215-1216
+packages/water/src/bridges/SuspensionBridgeView.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-2
+world/tests/seed-world/AgentSkillsVfs.spec.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 124-126,158
+packages/rhi-null/README.md
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/world-planning/src/generation/terrain/TerrainIslandGenerator.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 9-25
+packages/modify/src/native/core/src/shadow/CascadedShadowCasterPass.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 158
+packages/world-planning/src/geometry/surfaceTransitionWeight.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-5
+world/demos/seed-world/README.md
+  s_118fe0ba8b7262::t_753a99baf57bab 7,9,11,13,15,17,21-22
+packages/core/src/shader/state/BlendState.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2,67,72
+packages/water/src/water/runtime/optics/CameraWaterFeatureBroker.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 7,81-82,92,102,139,161,181,331-338
+  s_118fe0ba8b7262::t_45699733647b43 339
+world/scripts/build-terrain.js
+  s_118fe0ba8b7262::t_753a99baf57bab 1-79
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-7,9-14,30-37,45-48,51-55,84-87,92,110,117,121-133,135-216,233,237,240-243,246-248,252,255-256,259-261,263,268-269,271,279,282-285,288-294,297-298,300-302,305-311,313-321,329-352,450-708,832-833,838,844-847,981-1032,1034,1044,1049,1063-1075,1077-1129,1132-1134,1141-1145,1177-1178
+  s_118fe0ba8b7262::t_196be2aee5cd54 257-258,270
+packages/world-planning/src/integrations/terrain/rock-formation/View.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-9,15-16,46-47,61,63-64,92-115,123,126-127,236
+packages/xr-webxr/src/feature/WebXRPlaneTracking.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2
+packages/animals/src/gameplay/animal/AnimalPopulation.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 20,188-190
+packages/farming/src/farming/presentation/FarmItemPresentation.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 30
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 6-23,26-33,35-40,50-61,65-74,79-82,87-94,99-104,120-131,136-143,146,156-157,161,164-169,174-178,181,185-189,203-241,244,249-252,256-261,263-266,271-272,275-276,288-294,298,300,302-308,316-319,325,330-335,351-357,361,369-370,376-377,379-388,391-394,400-414,419-479,482-488,493-497,500-501,508-512,515-521,530-537,542-547,549-550,552-559,564-580,582-594,606-616,618-619,623-624,630-634,639-640,642-646,652-655
+packages/farming/src/farming/presentation/harvest/HarvestProduce.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2
+packages/rhi-null/src/NullTexture.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-40
+packages/world-planning/src/integrations/grasslands/GrasslandsWaterPcg.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-8,65
+world/demos/seed-world/agent-adapter/SeedWorldKnowledge.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 74
+packages/galacean/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+tests/src/core/texture/RenderTarget.test.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 113-115
+packages/building/src/skills/building/references/planning.md
+  s_118fe0ba8b7262::t_753a99baf57bab 33,37-43,52,60-61
+packages/world-planning/src/integrations/terrain/rock-formation/Client.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 3,39
+packages/world-planning/src/runtime/SeedWorldFields.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/world-planning/tests/NativeWaterImmediateLifecycle.test.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 7
+packages/physics-physx/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+packages/world-planning/tests/WaterEditorFixture.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 7
+packages/world-planning/src/spatial/WorldTemplateAuthoring.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 22-34,36-42,44-53,147-177,180-184,186-195,204-212,350,355,359-360,395,406-407,409-410,412,415-430,442,498,500-503
+packages/xr-webxr/package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 3,38,40-42
+packages/terrain/src/terrain/project/TerrainProjectRegionDependencies.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1
+packages/world-planning/src/generation/terrain/TerrainAuthoring.d.mts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-59
+world/demos/seed-world/agent-adapter/contracts/SeedWorldContractRegistry.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 16,27
+world/tests/seed-world/PlanningStartupTemplate.spec.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 5-19,43-104
+packages/world-planning/src/spatial/layout/SpatialTerrain.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 10-18,33
+tests/src/xr/TrackingLoss.test.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-3,112-121,136-153
+  s_118fe0ba8b7262::t_59bf226f7b8595 154-155
+packages/core/src/RenderPipeline/OpaqueTexturePass.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 41
+world/demos/seed-world/src/DesertPresentation.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 11-12,23,25,28-29,32-33,36,40,68,72-81
+packages/farming/src/farming/presentation/FarmingPlotSelection.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 16-17
+packages/core/src/shader/state/StencilState.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2
+packages/loader/src/gltf/GLTFUtils.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 13,368
+packages/terrain/src/shaders/shared/TerrainLayerEvaluation.glsl
+  s_118fe0ba8b7262::t_753a99baf57bab 234-236
+packages/terrain/src/terrain/clipmap/TerrainClipmapMaterial.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 27
+world/demos/seed-world/src/planning/spatial/WorldTemplatePicker.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 4,28,33,98
+packages/world-planning/src/spatial/layout/MojaveDesertLayout.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 6,13-14
+tests/vitest.config.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 15
+world/demos/seed-world/agent-adapter/tools/building-tools.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 15,17
+package.json
+  s_118fe0ba8b7262::t_753a99baf57bab 3
+packages/core/src/mesh/SkinnedMeshRenderer.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 102,107-110
+packages/modify/tests/ScreenSpaceReflectionContactOutline.test.ts
+  s_118fe0ba8b7262::t_dc50f370e67631 41-43,56,121-123,130,167-184
+packages/loader/src/GLTFContentRestorer.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 16,65-70
+packages/world-planning/src/generation/terrain/TerrainAuthoring.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 1-12
+packages/farming/src/farming/presentation/soil/disposeSoilMesh.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 2
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  s_118fe0ba8b7262::t_753a99baf57bab 7,43,246-250,260,263-273,275-278
+pnpm-lock.yaml
+  s_118fe0ba8b7262::t_ff1f59f8a9e322 432-437,720-722,750-752
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d777d1096ec6fcce4f75f923d09e768d1c81453b",
+  "prompts": {},
+  "sessions": {
+    "s_118fe0ba8b7262": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e8ac-b98d-7923-b6aa-6dc126e18469",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
