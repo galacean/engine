@@ -1,0 +1,32 @@
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  h_79b10db07e6052 75-87
+packages/world-planning/src/spatial/WorldTemplateAuthoring.ts
+  h_79b10db07e6052 114-159,224,352-353
+packages/world-planning/src/spatial/WorldTemplateGeometry.ts
+  h_79b10db07e6052 119,124,131,137,164
+packages/world-planning/src/spatial/WorldTemplateView.ts
+  h_79b10db07e6052 34,118,199,209,211,215,217-218,230,265-266,279
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  h_79b10db07e6052 127-131,317-320,355-358
+packages/world-planning/src/spatial/world-templates/LowPolyValley.ts
+  h_79b10db07e6052 1-2,5,44-933,938,940,942,944,949,964-970
+world/demos/seed-world/SeedWorldDemo.ts
+  h_79b10db07e6052 1635-1636,1640
+world/demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts
+  h_79b10db07e6052 48,51,155-184
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource.ts
+  h_79b10db07e6052 32,34,60
+world/tests/seed-world/WorldTemplates.spec.ts
+  h_79b10db07e6052 157-159,182-256,1265-1266
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "98651066244b38f79323390b804873fab1076f0c",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}
