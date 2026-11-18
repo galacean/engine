@@ -31,3 +31,21 @@ it.each([
   }
   expect(gl.getError()).toBe(gl.NO_ERROR);
 });
+
+it("loads a 5x3 crop of the Grasslands Uint16 heightmap without losing bits", async () => {
+  const supported = !!gl.getExtension("EXT_texture_norm16");
+  const url = new URL("./fixtures/float-ktx2/editor-R16_UNORM.ktx2", import.meta.url).href;
+  const loading = engine.resourceManager.load<Texture2D>({ url, type: AssetType.KTX2 });
+  if (!supported) {
+    await expect(loading).rejects.toThrow();
+    return;
+  }
+  const texture = await loading;
+  expect(texture.format).toBe(TextureFormat.R16_UNORM);
+  const pixels = new Uint16Array(5 * 3 * 4);
+  texture.getPixelBuffer(pixels);
+  expect(Array.from(pixels.filter((_, i) => i % 4 === 0))).toEqual([
+    9388, 9344, 9302, 9258, 9214, 9396, 9352, 9310, 9266, 9222, 9406, 9362, 9318, 9274, 9230
+  ]);
+  expect(gl.getError()).toBe(gl.NO_ERROR);
+});

@@ -22,7 +22,8 @@ import { KTX2TargetFormat } from "./KTX2TargetFormat";
 import { TranscodeResult } from "./transcoder/AbstractTranscoder";
 import { BinomialLLCTranscoder } from "./transcoder/BinomialLLCTranscoder";
 
-const nativeFloatFormats = {
+const nativeFormats = {
+  70: { format: TextureFormat.R16_UNORM, channels: 1, typeSize: 2 },
   76: { format: TextureFormat.R16, channels: 1, typeSize: 2 },
   83: { format: TextureFormat.R16G16, channels: 2, typeSize: 2 },
   100: { format: TextureFormat.R32, channels: 1, typeSize: 4 },
@@ -160,11 +161,11 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   ): Promise<Texture2D | TextureCube> {
     const bytes = new Uint8Array(buffer);
     const container = new KTX2Container(bytes);
-    if (nativeFloatFormats[container.vkFormat]) {
+    if (nativeFormats[container.vkFormat]) {
       if (restoredTexture && !(restoredTexture instanceof Texture2D)) {
-        throw new Error("Cannot restore a KTX2 native float image into a cube texture");
+        throw new Error("Cannot restore a KTX2 native image into a cube texture");
       }
-      return this._uploadNativeFloat(container, engine, restoredTexture);
+      return this._uploadNativeTexture(container, engine, restoredTexture);
     }
     const parsed = await this._parseBuffer(bytes, engine, params, container);
     return this._createTextureByBuffer(
@@ -177,9 +178,13 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     );
   }
 
-  private static _uploadNativeFloat(container: KTX2Container, engine: Engine, restoredTexture?: Texture2D): Texture2D {
+  private static _uploadNativeTexture(
+    container: KTX2Container,
+    engine: Engine,
+    restoredTexture?: Texture2D
+  ): Texture2D {
     const { pixelWidth: width, pixelHeight: height, levels } = container;
-    const { format, channels, typeSize } = nativeFloatFormats[container.vkFormat];
+    const { format, channels, typeSize } = nativeFormats[container.vkFormat];
     if (
       !width ||
       !height ||
@@ -190,12 +195,12 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       container.isSRGB ||
       container.supercompressionScheme !== SupercompressionScheme.None
     ) {
-      throw new Error("KTX2 native float requires an unsupercompressed, linear 2D texture");
+      throw new Error("KTX2 native requires an unsupercompressed, linear 2D texture");
     }
     const fullMipCount = Math.floor(Math.log2(Math.max(width, height))) + 1;
     // Texture2D allocates either the base level or the complete mip chain.
     if (container.generateMipmaps || (levels.length !== 1 && levels.length !== fullMipCount)) {
-      throw new Error("KTX2 native float requires one explicit level or a complete mip chain");
+      throw new Error("KTX2 native requires one explicit level or a complete mip chain");
     }
     const mipData = levels.map(({ levelData, uncompressedByteLength }, level) => {
       const texelCount = Math.max(1, Math.floor(width / 2 ** level)) * Math.max(1, Math.floor(height / 2 ** level));
@@ -204,7 +209,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         levelData.byteLength !== texelCount * channels * typeSize ||
         levelData.byteLength !== uncompressedByteLength
       ) {
-        throw new Error(`Invalid KTX2 native float data at mip level ${level}`);
+        throw new Error(`Invalid KTX2 native data at mip level ${level}`);
       }
       const ArrayType = typeSize === 2 ? Uint16Array : Float32Array;
       return new ArrayType(levelData.buffer, levelData.byteOffset, texelCount * channels);
@@ -216,7 +221,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         restoredTexture.height !== height ||
         restoredTexture.mipmapCount !== levels.length)
     ) {
-      throw new Error("KTX2 native float image does not match the texture being restored");
+      throw new Error("KTX2 native image does not match the texture being restored");
     }
     const texture = restoredTexture ?? new Texture2D(engine, width, height, format, levels.length > 1, false);
     for (let level = 0; level < mipData.length; level++) {

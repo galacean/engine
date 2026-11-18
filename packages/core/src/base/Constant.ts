@@ -98,6 +98,7 @@ export enum GLCapabilityType {
   instancedArrays = "ANGLE_instanced_arrays",
   multipleSample = "multipleSampleOnlySupportedInWebGL2",
   textureFloat = "OES_texture_float",
+  textureNorm16 = "EXT_texture_norm16",
   textureFloatLinear = "OES_texture_float_linear",
   textureHalfFloat = "OES_texture_half_float",
   textureHalfFloatLinear = "OES_texture_half_float_linear",

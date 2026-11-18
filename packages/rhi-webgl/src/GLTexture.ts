@@ -114,6 +114,15 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 4
         };
+      case TextureFormat.R16_UNORM:
+        return {
+          internalFormat: 0x822a, // EXT_texture_norm16.R16_EXT
+          baseFormat: gl.RED,
+          readFormat: gl.RGBA,
+          dataType: gl.UNSIGNED_SHORT,
+          isCompressed: false,
+          alignment: 2
+        };
       case TextureFormat.R16:
       case TextureFormat.R16G16:
         return {

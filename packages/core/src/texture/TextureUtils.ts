@@ -104,6 +104,7 @@ export class TextureUtils {
       case TextureFormat.Alpha8:
         return width * height;
       case TextureFormat.R8G8:
+      case TextureFormat.R16_UNORM:
       case TextureFormat.R16:
       case TextureFormat.LuminanceAlpha:
         return width * height * 2;

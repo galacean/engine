@@ -36,6 +36,8 @@ export enum TextureFormat {
   R16G16 = 39,
   /** Two-channel 32-bit floating-point format (WebGL2). Upload with Float32Array. */
   R32G32 = 41,
+  /** Single-channel unsigned normalized 16-bit format. WebGL2 requires EXT_texture_norm16. */
+  R16_UNORM = 42,
   /** RGB compressed format, 4 bits per pixel. */
   BC1 = 10,
   /** RGBA compressed format, 8 bits per pixel. */

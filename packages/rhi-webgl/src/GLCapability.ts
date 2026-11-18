@@ -150,6 +150,8 @@ export class GLCapability {
    */
   supportsTextureFormat(format: TextureFormat): boolean {
     switch (format) {
+      case TextureFormat.R16_UNORM:
+        return this.canIUse(GLCapabilityType.textureNorm16);
       case TextureFormat.R16G16B16A16:
         return this.canIUse(GLCapabilityType.textureHalfFloat);
       case TextureFormat.R32G32B32A32:
@@ -255,6 +257,7 @@ export class GLCapability {
     cap.set(blendMinMax, isWebGL2 || !!requireExtension(blendMinMax));
     cap.set(textureFloat, isWebGL2 || !!requireExtension(textureFloat));
     cap.set(textureHalfFloat, isWebGL2 || !!requireExtension(textureHalfFloat));
+    cap.set(GLCapabilityType.textureNorm16, isWebGL2 && !!requireExtension(GLCapabilityType.textureNorm16));
     cap.set(textureFloatLinear, !!requireExtension(textureFloatLinear));
     cap.set(textureHalfFloatLinear, isWebGL2 || !!requireExtension(textureHalfFloatLinear));
     cap.set(
