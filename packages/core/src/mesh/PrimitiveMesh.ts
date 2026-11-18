@@ -1,6 +1,5 @@
 import { MathUtil, Vector2, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
-import { GLCapabilityType } from "../base/Constant";
 import { BufferBindFlag, BufferUsage, VertexElement, VertexElementFormat } from "../graphic";
 import { Buffer } from "../graphic/Buffer";
 import { ModelMesh } from "./ModelMesh";
@@ -2042,9 +2041,6 @@ export class PrimitiveMesh {
     }
     const data = generate(...args);
     data.trim();
-    if (data.vertexCount > 65535 && !engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
-      throw new Error("The vertex count is over limit.");
-    }
     const mesh = new ModelMesh(engine);
     const vertices = data.vertices;
     const indices = data.indices;

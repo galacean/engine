@@ -185,13 +185,11 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     // Normal
     #ifdef RENDERER_HAS_NORMAL
         vec3 normal = normalize(v.normalWS);
-    #elif defined(HAS_DERIVATIVES)
+    #else
         vec3 pos_dx = dFdx(v.positionWS);
         vec3 pos_dy = dFdy(v.positionWS);
         vec3 normal = normalize( cross(pos_dx, pos_dy) );
         normal *= camera_ProjectionParams.x;
-    #else
-        vec3 normal = vec3(0, 0, 1);
     #endif
     
     normal *= float( isFrontFacing ) * 2.0 - 1.0;

@@ -183,25 +183,22 @@ export class BasicResources {
       true
     );
 
-    const isWebGL2 = engine._hardwareRenderer.isWebGL2;
-    if (isWebGL2) {
-      this.whiteTexture2DArray = this._create1x1Texture(
-        engine,
-        TextureType.Texture2DArray,
-        TextureFormat.R8G8B8A8,
-        whitePixel,
-        true
-      );
+    this.whiteTexture2DArray = this._create1x1Texture(
+      engine,
+      TextureType.Texture2DArray,
+      TextureFormat.R8G8B8A8,
+      whitePixel,
+      true
+    );
 
-      const whitePixel32 = new Uint32Array([255, 255, 255, 255]);
-      this.uintWhiteTexture2D = this._create1x1Texture(
-        engine,
-        TextureType.Texture2D,
-        TextureFormat.R32G32B32A32_UInt,
-        whitePixel32,
-        false
-      );
-    }
+    const whitePixel32 = new Uint32Array([255, 255, 255, 255]);
+    this.uintWhiteTexture2D = this._create1x1Texture(
+      engine,
+      TextureType.Texture2D,
+      TextureFormat.R32G32B32A32_UInt,
+      whitePixel32,
+      false
+    );
 
     this.spriteDefaultMaterial = this._create2DMaterial(engine, shaders.sprite);
     this.textDefaultMaterial = this._create2DMaterial(engine, shaders.text);

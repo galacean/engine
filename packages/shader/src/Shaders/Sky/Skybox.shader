@@ -62,9 +62,6 @@ Shader "Sky/Skybox" {
 
       void SkyboxFragment(Varyings varyings) {
         vec4 textureColor = textureCube(material_CubeTexture, varyings.v_cubeUV);
-        #ifdef ENGINE_NO_SRGB
-          textureColor = sRGBToLinear(textureColor);
-        #endif
         textureColor.rgb *= material_Exposure * material_TintColor.rgb;
         gl_FragColor = textureColor;
       }

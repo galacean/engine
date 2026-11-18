@@ -1,6 +1,5 @@
 /**
- * Words that ShaderLab accepts as identifiers but GLSL ES 1.00 or 3.00 reserves. GLES100 output also runs as
- * GLSL ES 3.00 on WebGL2, so both versions apply to every target.
+ * Words that ShaderLab accepts as identifiers but GLSL ES 3.00 reserves.
  */
 const reservedWords = new Set(
   (

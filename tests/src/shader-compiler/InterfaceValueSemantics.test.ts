@@ -181,14 +181,14 @@ const cases: {
     pixel: [64, 0, 0, 255]
   },
   {
-    name: "unused array fields do not invalidate GLES100 interface returns",
+    name: "unused array fields do not invalidate GLES300 interface returns",
     source: valueShader("Varyings v; v.a = 0.25; return v;")
       .replace("struct Varyings", "const int count = 2; struct Varyings")
       .replace("float a;", "float a; float unused[count];"),
     pixel: [64, 0, 0, 255]
   },
   {
-    name: "unused nested array fields do not invalidate GLES100 interface returns",
+    name: "unused nested array fields do not invalidate GLES300 interface returns",
     source: valueShader("Varyings v; v.a = 0.25; return v;")
       .replace("struct Varyings", "struct Detail { float unused[2]; }; struct Varyings")
       .replace("float a;", "float a; Detail detail;"),
@@ -410,7 +410,7 @@ function compile(
 }
 
 describe.runIf(typeof document !== "undefined")("interface value semantics on WebGL", () => {
-  for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+  for (const target of [ShaderLanguage.GLSLES300]) {
     for (const path of ["runtime", "analyzed", "precompiled"] as const) {
       it.each(
         cases.filter(
@@ -420,7 +420,7 @@ describe.runIf(typeof document !== "undefined")("interface value semantics on We
       )(`${path}, target ${target}: $name`, ({ source, pixel: expected, macros = new Map(), uniforms, outputName }) => {
         const canvas = document.createElement("canvas");
         canvas.width = canvas.height = 1;
-        const gl = canvas.getContext(target === ShaderLanguage.GLSLES300 ? "webgl2" : "webgl", {
+        const gl = canvas.getContext("webgl2", {
           antialias: false
         }) as WebGLRenderingContext | WebGL2RenderingContext;
         expect(gl).not.toBeNull();
@@ -439,7 +439,7 @@ describe.runIf(typeof document !== "undefined")("interface value semantics on We
           ] as const) {
             const shader = gl.createShader(kind)!;
             shaders.push(shader);
-            const version = target === ShaderLanguage.GLSLES300 ? "#version 300 es\n" : "";
+            const version = "#version 300 es\n";
             const generated = ShaderMacroProcessor.evaluate(instructions, macros);
             gl.shaderSource(shader, `${version}precision highp float;\n${generated}`);
             gl.compileShader(shader);

@@ -1,5 +1,3 @@
-import { MathUtil } from "@galacean/engine-math";
-import { Engine } from "../Engine";
 import { TextureFormat } from "./enums/TextureFormat";
 
 /**
@@ -10,14 +8,10 @@ export class TextureUtils {
    * Check if the texture config supports auto mipmap generation with real correction for mipmap and isSRGBColorSpace.
    */
   static supportGenerateMipmapsWithCorrection(
-    engine: Engine,
-    width: number,
-    height: number,
     format: TextureFormat,
     mipmap: boolean,
     isSRGBColorSpace: boolean
   ): boolean {
-    const isWebGL2 = engine._hardwareRenderer.isWebGL2;
     if (!mipmap) {
       return false;
     }
@@ -26,11 +20,7 @@ export class TextureUtils {
       isSRGBColorSpace = false;
     }
 
-    if (!TextureUtils.supportMipmaps(width, height, isWebGL2)) {
-      mipmap = false;
-    }
-
-    return TextureUtils.supportGenerateMipmaps(format, mipmap, isSRGBColorSpace, isWebGL2);
+    return TextureUtils.supportGenerateMipmaps(format, mipmap, isSRGBColorSpace);
   }
 
   static isHDRFormat(format: TextureFormat): boolean {
@@ -63,18 +53,9 @@ export class TextureUtils {
     }
   }
 
-  static supportMipmaps(width: number, height, isWebGL2: boolean): boolean {
-    return isWebGL2 || (MathUtil.isPowerOf2(width) && MathUtil.isPowerOf2(height));
-  }
-
-  static supportGenerateMipmaps(
-    format: TextureFormat,
-    mipmap: boolean,
-    isSRGBColorSpace: boolean,
-    isWebGL2: boolean
-  ): boolean {
+  static supportGenerateMipmaps(format: TextureFormat, mipmap: boolean, isSRGBColorSpace: boolean): boolean {
     // Auto generating mipmaps for sRGB textures is only supported in [WebGL2 + RGBA]
-    if (mipmap && isSRGBColorSpace && !(isWebGL2 && format === TextureFormat.R8G8B8A8)) {
+    if (mipmap && isSRGBColorSpace && format !== TextureFormat.R8G8B8A8) {
       return false;
     }
 
@@ -101,10 +82,8 @@ export class TextureUtils {
     switch (format) {
       // Uncompressed formats
       case TextureFormat.R8:
-      case TextureFormat.Alpha8:
         return width * height;
       case TextureFormat.R8G8:
-      case TextureFormat.LuminanceAlpha:
         return width * height * 2;
       case TextureFormat.R8G8B8:
         return width * height * 3;

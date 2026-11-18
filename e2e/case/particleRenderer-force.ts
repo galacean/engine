@@ -21,8 +21,7 @@ import {
   Scene,
   Texture2D,
   Vector3,
-  WebGLEngine,
-  WebGLMode
+  WebGLEngine
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 

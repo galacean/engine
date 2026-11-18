@@ -170,7 +170,7 @@ void frag() { gl_FragColor = vec4(1.0); }`,
     const pass = analysis.passes[0];
     const cacheGet = vi.spyOn(getParsedShaderPassPayload(pass).data.preprocessorExpressions, "get");
 
-    const generated = new ShaderCompiler().generate(pass, ShaderLanguage.GLSLES100);
+    const generated = new ShaderCompiler().generate(pass, ShaderLanguage.GLSLES300);
 
     expect(generated).toBeDefined();
     expect(cacheGet).toHaveBeenCalledWith("FOO + 1 > 1");

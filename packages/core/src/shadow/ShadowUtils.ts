@@ -15,7 +15,6 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer } from "../Renderer";
 import { Utils } from "../Utils";
 import { DirectLight, Light } from "../lighting";
-import { TextureFormat } from "../texture";
 import { ShadowSliceData } from "./ShadowSliceData";
 import { ShadowResolution } from "./enum/ShadowResolution";
 import { ShadowType } from "./enum/ShadowType";
@@ -145,14 +144,6 @@ export class ShadowUtils {
         return 2048;
       case ShadowResolution.VeryHigh:
         return 4096;
-    }
-  }
-
-  static shadowDepthFormat(value: ShadowResolution, supportDepthTexture: boolean): TextureFormat {
-    if (supportDepthTexture) {
-      return TextureFormat.Depth16;
-    } else {
-      return TextureFormat.R8G8B8A8;
     }
   }
 

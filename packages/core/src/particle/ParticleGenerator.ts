@@ -641,13 +641,13 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
    */
   _setTransformFeedback(): void {
     const { engine } = this._renderer;
-    const isWebGL2 = engine._hardwareRenderer.isWebGL2;
+    const supportsRendering = engine._hardwareRenderer.supportsRendering;
     const useTrajectory =
-      isWebGL2 &&
+      supportsRendering &&
       (this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death, false) ||
         this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth, false));
     const useFeedback =
-      isWebGL2 &&
+      supportsRendering &&
       (useTrajectory ||
         this.limitVelocityOverLifetime.enabled ||
         this.noise.enabled ||

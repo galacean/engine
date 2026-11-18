@@ -1,5 +1,5 @@
 import { GLCapabilityType } from "@galacean/engine-core";
-import { WebGLEngine, WebGLMode } from "@galacean/engine";
+import { WebGLEngine } from "@galacean/engine";
 import { describe, expect, it, vi } from "vitest";
 
 describe("ASTC capabilities", () => {
@@ -10,7 +10,7 @@ describe("ASTC capabilities", () => {
     { name: "HDR profile", extension: { getSupportedProfiles: () => ["ldr", "hdr"] }, astc: true, hdr: true }
   ])("initializes with $name", async ({ extension, astc, hdr }) => {
     const canvas = document.createElement("canvas");
-    const gl = canvas.getContext("webgl");
+    const gl = canvas.getContext("webgl2");
     const getExtension = gl.getExtension.bind(gl);
     const spy = vi.spyOn(gl, "getExtension").mockImplementation((name) => {
       if (name === GLCapabilityType.astc) return extension;
@@ -19,7 +19,7 @@ describe("ASTC capabilities", () => {
     });
     let engine: WebGLEngine;
     try {
-      engine = await WebGLEngine.create({ canvas, graphicDeviceOptions: { webGLMode: WebGLMode.WebGL1 } });
+      engine = await WebGLEngine.create({ canvas });
       // @ts-ignore
       const rhi = engine._hardwareRenderer;
       expect(rhi.canIUse(GLCapabilityType.astc)).toBe(astc);

@@ -1,3 +1,4 @@
+import { ShaderLanguage } from "@galacean/engine-core";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { describe, expect, it } from "vitest";
 
@@ -40,7 +41,7 @@ describe("ReturnStatementInvariant", () => {
         passSource.contents,
         passSource.vertexEntry,
         passSource.fragmentEntry,
-        0 /* GLSLES100 */
+        ShaderLanguage.GLSLES300
       );
     }).to.not.throw();
 
@@ -51,12 +52,12 @@ describe("ReturnStatementInvariant", () => {
     // (a plain `return;`). It must NOT be rewritten as a `gl_FragColor = <expr>;` assignment —
     // there's no expression to assign, so the rewrite would emit a malformed statement.
     expect(fragment).to.match(/\breturn\s*;/);
-    expect(fragment).to.not.match(/gl_FragColor\s*=\s*;/);
-    expect(fragment).to.not.match(/gl_FragColor\s*=\s*[)\]}]/); // no orphan closer / garbage RHS
+    expect(fragment).to.not.match(/output_color\s*=\s*;/);
+    expect(fragment).to.not.match(/output_color\s*=\s*[)\]}]/); // no orphan closer / garbage RHS
     expect(fragment).to.not.include("undefined");
 
     // Sanity: the legitimate `gl_FragColor = vec4(...);` assignment still made it through.
-    expect(fragment).to.match(/gl_FragColor\s*=\s*vec4/);
+    expect(fragment).to.match(/output_color\s*=\s*vec4/);
 
     // Sanity: vertex was also emitted (compilation didn't half-fail).
     expect(vertex).to.be.a("string").and.not.empty;

@@ -1,4 +1,14 @@
-import { WebGLEngine, MeshRenderer, PrimitiveMesh, Vector2, Vector3, PBRMaterial, Engine } from "@galacean/engine";
+import {
+  BlendShape,
+  ModelMesh,
+  WebGLEngine,
+  MeshRenderer,
+  PrimitiveMesh,
+  Vector2,
+  Vector3,
+  PBRMaterial,
+  Engine
+} from "@galacean/engine";
 import { HeadlessEngine } from "@galacean/engine-rhi-null";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -59,6 +69,26 @@ describe("WebGL and headless share engine semantics", () => {
       expect(values[1]).toEqual(values[0]);
     }
   );
+
+  it("stores all nine position blend shapes in headless buffers", () => {
+    const mesh = new ModelMesh(headless);
+    try {
+      mesh.setPositions([new Vector3()]);
+      for (let i = 1; i <= 9; i++) {
+        const shape = new BlendShape(String(i));
+        shape.addFrame(1, [new Vector3(i, 0, 0)]);
+        mesh.addBlendShape(shape);
+      }
+      mesh.uploadData(false);
+      const manager = mesh._blendShapeManager;
+      expect(manager._vertexTexture).toBeUndefined();
+      const data = new Float32Array(3);
+      manager._vertexBuffers[0].getData(data, 8 * 3 * Float32Array.BYTES_PER_ELEMENT);
+      expect(Array.from(data)).toEqual([9, 0, 0]);
+    } finally {
+      mesh.destroy();
+    }
+  });
 
   it("shares built-in shaders across WebGL and headless engines", () => {
     expect(new PBRMaterial(browser).shader).toBe(new PBRMaterial(headless).shader);

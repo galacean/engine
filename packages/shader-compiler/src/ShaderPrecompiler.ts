@@ -49,7 +49,7 @@ export class ShaderPrecompiler {
    * @returns Serializable precompiled shader.
    * @throws Error when structural parsing, pass validation, or backend generation fails.
    */
-  precompile(sourceCode: string, platformTarget: ShaderLanguage, sourceFile?: string): IPrecompiledShader {
+  precompile(sourceCode: string, platformTarget = ShaderLanguage.GLSLES300, sourceFile?: string): IPrecompiledShader {
     this._chunkOutputCache.clear();
     const shaderSource = requireValidShaderSource(
       ShaderSourceParser.parseStrict(sourceCode, this._sourceParserObjectPool)

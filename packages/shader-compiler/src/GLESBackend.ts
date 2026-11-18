@@ -6,7 +6,7 @@ import {
   type ShaderClueIR,
   type ShaderCoreInfo
 } from "@galacean/engine-shader-parser/internal";
-import { GLES100Visitor, GLES300Visitor } from "./codeGen";
+import { GLES300Visitor } from "./codeGen";
 import type { GLESVisitor } from "./codeGen/GLESVisitor";
 
 /**
@@ -14,7 +14,6 @@ import type { GLESVisitor } from "./codeGen/GLESVisitor";
  * @internal
  */
 export class GLESBackend {
-  private static readonly _gles100VisitorPool = new ReturnableObjectPool(GLES100Visitor);
   private static readonly _gles300VisitorPool = new ReturnableObjectPool(GLES300Visitor);
 
   private constructor() {}
@@ -28,6 +27,10 @@ export class GLESBackend {
    * @internal
    */
   static generate(ir: ShaderClueIR, coreInfo: ShaderCoreInfo, target: ShaderLanguage): IShaderInfo | undefined {
+    if (target !== ShaderLanguage.GLSLES300) {
+      Logger.error("Unsupported shader language target.");
+      return undefined;
+    }
     const glesInfo = new GLESShaderInfo(ir, coreInfo);
     if (glesInfo.mrtOutputIssues.length || glesInfo.invalidMrtReturnLocations.length) {
       Logger.error(
@@ -44,9 +47,7 @@ export class GLESBackend {
       return undefined;
     }
 
-    return target === ShaderLanguage.GLSLES100
-      ? GLESBackend._generateWithPool(GLESBackend._gles100VisitorPool, ir, coreInfo)
-      : GLESBackend._generateWithPool(GLESBackend._gles300VisitorPool, ir, coreInfo);
+    return GLESBackend._generateWithPool(GLESBackend._gles300VisitorPool, ir, coreInfo);
   }
 
   private static _generateWithPool<T extends GLESVisitor>(

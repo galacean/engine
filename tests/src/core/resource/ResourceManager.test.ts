@@ -1,4 +1,4 @@
-import { AssetPromise, AssetType, ResourceManager, Shader, Texture2D } from "@galacean/engine";
+import { AssetPromise, AssetType, ResourceManager, Shader, ShaderLanguage, Texture2D } from "@galacean/engine";
 import "@galacean/engine-loader";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -177,7 +177,9 @@ describe("ResourceManager", () => {
       const requestSpy = vi
         .spyOn(resourceManager, "_requestByRemoteUrl")
         .mockReturnValue(
-          AssetPromise.resolve(JSON.stringify({ name: "custom", platformTarget: 0, subShaders: [] })) as any
+          AssetPromise.resolve(
+            JSON.stringify({ name: "custom", platformTarget: ShaderLanguage.GLSLES300, subShaders: [] })
+          ) as any
         );
       // @ts-ignore
       const createSpy = vi.spyOn(Shader, "_createFromPrecompiled").mockReturnValue({ name: "custom" } as Shader);

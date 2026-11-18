@@ -30,11 +30,11 @@ interface DriverOutcome {
 
 function driveWebGL(vs: string, fs: string): DriverOutcome | "no-webgl" {
   const canvas = document.createElement("canvas");
-  const gl = canvas.getContext("webgl");
+  const gl = canvas.getContext("webgl2");
   if (!gl) return "no-webgl";
   const compileOne = (src: string, type: number): { ok: boolean; log: string } => {
     const sh = gl.createShader(type)!;
-    gl.shaderSource(sh, src);
+    gl.shaderSource(sh, `#version 300 es\nprecision mediump float;\n${src}`);
     gl.compileShader(sh);
     const ok = gl.getShaderParameter(sh, gl.COMPILE_STATUS) as boolean;
     const log = gl.getShaderInfoLog(sh) || "";
@@ -435,10 +435,8 @@ const cases: Case[] = [
     severity: "error",
     passBody: `
       struct Attributes { vec3 POSITION; };
-      float u_a;
-      float u_a;
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
-      void frag() { gl_FragColor = vec4(u_a); }
+      void frag() { float u_a = 1.0; float u_a = 2.0; gl_FragColor = vec4(u_a); }
     `,
     vertEntry: "vert",
     fragEntry: "frag",
@@ -861,7 +859,7 @@ describe("analyzer/codegen/driver consistency", () => {
       // 2) Codegen view — feed the same body through the compiler independently of diagnostics.
       const compiler = new ShaderCompiler();
       const compiled = captureLoggerDiagnostics(() =>
-        compiler._parseShaderPass(c.passBody, c.vertEntry, c.fragEntry, ShaderLanguage.GLSLES100, "")
+        compiler._parseShaderPass(c.passBody, c.vertEntry, c.fragEntry, ShaderLanguage.GLSLES300, "")
       );
 
       if (c.compilerExpects === "reject") {

@@ -68,9 +68,9 @@ export class WebXRDevice implements IXRDevice {
           gl.makeXRCompatible().then(() => {
             const scaleFactor = XRWebGLLayer.getNativeFramebufferScaleFactor(session);
             let layer: XRWebGLLayer;
-            if (session.renderState.layers === undefined || !rhi.isWebGL2) {
+            if (session.renderState.layers === undefined) {
               const layerInit = {
-                antialias: session.renderState.layers === undefined ? attributes.antialias : true,
+                antialias: attributes.antialias,
                 alpha: true,
                 depth: attributes.depth,
                 stencil: attributes.stencil,
