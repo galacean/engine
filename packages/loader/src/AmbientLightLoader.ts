@@ -35,20 +35,12 @@ class AmbientLightLoader extends Loader<AmbientLight> {
   ): Promise<TextureCube> {
     if (KTX2Container.checkMagic(buffer, textureOffset)) {
       const ktx2Data = new Uint8Array(buffer, textureOffset, textureLength);
-      return KTX2Loader._parseBuffer(ktx2Data, engine).then(
-        ({ ktx2Container, engine, result, targetFormat, params }) => {
-          const tex = KTX2Loader._createTextureByBuffer(
-            engine,
-            ktx2Container.isSRGB,
-            result,
-            targetFormat,
-            params,
-            texture
-          ) as TextureCube;
-          tex.filterMode = TextureFilterMode.Trilinear;
-          return tex;
-        }
-      );
+      return KTX2Loader._parseBuffer(ktx2Data, engine).then((parsed) => {
+        if (parsed.faces.length !== 6) throw new Error("Ambient light requires a KTX2 cube texture");
+        const tex = KTX2Loader._createTextureByBuffer(engine, parsed, texture) as TextureCube;
+        tex.filterMode = TextureFilterMode.Trilinear;
+        return tex;
+      });
     } else {
       const size = new Uint16Array(buffer, textureOffset, 1)[0];
       texture ||= new TextureCube(engine, size, TextureFormat.R16G16B16A16, true, false);

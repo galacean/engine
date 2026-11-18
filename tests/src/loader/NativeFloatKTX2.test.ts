@@ -49,3 +49,19 @@ it("loads a 5x3 crop of the Grasslands Uint16 heightmap without losing bits", as
   ]);
   expect(gl.getError()).toBe(gl.NO_ERROR);
 });
+
+it("restores native R32F pixels into the existing texture", async () => {
+  const url = new URL("./fixtures/float-ktx2/editor-R32F.ktx2", import.meta.url).href;
+  const texture = await engine.resourceManager.load<Texture2D>({ url, type: AssetType.KTX2 });
+  const original = new Float32Array(60);
+  texture.getPixelBuffer(original);
+  texture.setPixelBuffer(new Float32Array(15));
+  const pixels = new Float32Array(60);
+  texture.getPixelBuffer(pixels);
+  expect(pixels[0]).toBe(0);
+  const restorer = engine.resourceManager["_contentRestorerPool"][texture.instanceId];
+  expect(await restorer.restoreContent()).toBe(texture);
+  texture.getPixelBuffer(pixels);
+  expect(pixels).toEqual(original);
+  expect(gl.getError()).toBe(gl.NO_ERROR);
+});

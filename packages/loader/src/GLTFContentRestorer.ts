@@ -54,8 +54,7 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
               const bufferData = new Uint8Array(buffer, bufferView.byteOffset ?? 0, bufferView.byteLength);
               const texture = textureRestoreInfo.texture;
               if (textureRestoreInfo.mimeType === "image/ktx2") {
-                return KTX2Loader._parseBuffer(bufferData, texture.engine).then(({ result }) => {
-                  const { faces } = result;
+                return KTX2Loader._parseBuffer(bufferData, texture.engine).then(({ faces }) => {
                   const mipmaps = faces[0];
                   for (let i = 0; i < mipmaps.length; i++) {
                     texture.setPixelBuffer(mipmaps[i].data, i);

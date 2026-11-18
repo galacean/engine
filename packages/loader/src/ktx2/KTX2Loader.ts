@@ -17,18 +17,18 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 import { MathUtil } from "@galacean/engine-math";
-import { ColorModel, DFDTransferFunction, KTX2Container, SupercompressionScheme } from "./KTX2Container";
+import { ColorModel, DFDTransferFunction, KTX2Container } from "./KTX2Container";
 import { KTX2TargetFormat } from "./KTX2TargetFormat";
+import { readNativeKTX2 } from "./readNativeKTX2";
 import { TranscodeResult } from "./transcoder/AbstractTranscoder";
 import { BinomialLLCTranscoder } from "./transcoder/BinomialLLCTranscoder";
 
-const nativeFormats = {
-  70: { format: TextureFormat.R16_UNORM, channels: 1, typeSize: 2 },
-  76: { format: TextureFormat.R16, channels: 1, typeSize: 2 },
-  83: { format: TextureFormat.R16G16, channels: 2, typeSize: 2 },
-  100: { format: TextureFormat.R32, channels: 1, typeSize: 4 },
-  103: { format: TextureFormat.R32G32, channels: 2, typeSize: 4 }
-};
+interface KTX2Image {
+  width: number;
+  height: number;
+  format: TextureFormat;
+  faces: { data: ArrayBufferView }[][];
+}
 
 @resourceLoader(AssetType.KTX2, ["ktx2"])
 export class KTX2Loader extends Loader<Texture2D | TextureCube> {
@@ -89,155 +89,70 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   }
 
   /** @internal */
-  static _parseBuffer(
+  static async _parseBuffer(buffer: Uint8Array, engine: Engine, params?: KTX2Params) {
+    const container = new KTX2Container(buffer);
+    const image = readNativeKTX2(container) ?? (await this._transcodeBasis(buffer, container, engine, params));
+    return { ...image, isSRGB: container.isSRGB, params: container.keyValue["GalaceanTextureParams"] as Uint8Array };
+  }
+
+  private static async _transcodeBasis(
     buffer: Uint8Array,
+    container: KTX2Container,
     engine: Engine,
-    params?: KTX2Params,
-    ktx2Container = new KTX2Container(buffer)
-  ) {
-    const defaultFormats = KTX2Loader._priorityFormats[ktx2Container.colorModel];
+    params?: KTX2Params
+  ): Promise<KTX2Image> {
+    const defaultFormats = this._priorityFormats[container.colorModel];
     if (!defaultFormats) {
-      throw new Error(
-        `Unsupported KTX2 format (vkFormat=${ktx2Container.vkFormat}, DFD model=${ktx2Container.colorModel})`
-      );
+      throw new Error(`Unsupported KTX2 format (vkFormat=${container.vkFormat}, DFD model=${container.colorModel})`);
     }
-    const formatPriorities = params?.priorityFormats ?? defaultFormats;
-    const targetFormat = KTX2Loader._decideTargetFormat(engine, ktx2Container, formatPriorities);
-    const binomialLLCWorker = KTX2Loader._getBinomialLLCTranscoder();
-    return binomialLLCWorker
-      .init()
-      .then(() => binomialLLCWorker.transcode(buffer, targetFormat))
-      .then((result) => {
-        return {
-          ktx2Container,
-          engine,
-          result,
-          targetFormat,
-          params: ktx2Container.keyValue["GalaceanTextureParams"] as Uint8Array
-        };
-      });
+    const target = this._decideTargetFormat(engine, container, params?.priorityFormats ?? defaultFormats);
+    const transcoder = this._getBinomialLLCTranscoder();
+    await transcoder.init();
+    const result = await transcoder.transcode(buffer, target);
+    const { width, height, faces } = result;
+    const format = this._getEngineTextureFormat(target, result) ?? TextureFormat.R8G8B8A8;
+    return { width, height, faces, format };
   }
 
   /** @internal */
   static _createTextureByBuffer(
     engine: Engine,
-    isSRGB: boolean,
-    transcodeResult: TranscodeResult,
-    targetFormat: KTX2TargetFormat,
-    params?: Uint8Array,
-    restoredTexture?: Texture2D | TextureCube
+    { width, height, faces, format, isSRGB, params }: KTX2Image & { isSRGB: boolean; params?: Uint8Array },
+    texture?: Texture2D | TextureCube
   ): Texture2D | TextureCube {
-    const { width, height, faces } = transcodeResult;
-    const faceCount = faces.length;
-    const mipmaps = faces[0];
-    const mipmap = mipmaps.length > 1;
-    const engineFormat = this._getEngineTextureFormat(targetFormat, transcodeResult);
-    let texture: Texture2D | TextureCube;
-    if (faceCount !== 6) {
-      texture = restoredTexture || new Texture2D(engine, width, height, engineFormat, mipmap, isSRGB);
-      for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
-        const { data } = mipmaps[mipLevel];
-        (<Texture2D>texture).setPixelBuffer(data, mipLevel);
-      }
-    } else {
-      texture = restoredTexture || new TextureCube(engine, height, engineFormat, mipmap, isSRGB);
-      for (let i = 0; i < faces.length; i++) {
-        const faceData = faces[i];
-        for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
-          (<TextureCube>texture).setPixelBuffer(TextureCubeFace.PositiveX + i, faceData[mipLevel].data, mipLevel);
+    const cube = faces.length === 6;
+    const mipmap = faces[0].length > 1;
+    if (
+      texture &&
+      (texture instanceof TextureCube !== cube ||
+        texture.width !== width ||
+        texture.height !== height ||
+        texture.format !== format ||
+        texture.mipmapCount > 1 !== mipmap)
+    ) {
+      throw new Error("KTX2 image does not match the texture being restored");
+    }
+    texture ??= cube
+      ? new TextureCube(engine, height, format, mipmap, isSRGB)
+      : new Texture2D(engine, width, height, format, mipmap, isSRGB);
+    for (let face = 0; face < faces.length; face++) {
+      const levels = faces[face];
+      for (let level = 0; level < levels.length; level++) {
+        const { data } = levels[level];
+        if (texture instanceof TextureCube) {
+          texture.setPixelBuffer(TextureCubeFace.PositiveX + face, data, level);
+        } else {
+          texture.setPixelBuffer(data, level);
         }
       }
     }
-    this._applyTextureParams(texture, params);
-    return texture as Texture2D | TextureCube;
-  }
-
-  /** @internal */
-  static async _loadTextureFromBuffer(
-    buffer: ArrayBuffer,
-    engine: Engine,
-    params?: KTX2Params,
-    restoredTexture?: Texture2D | TextureCube
-  ): Promise<Texture2D | TextureCube> {
-    const bytes = new Uint8Array(buffer);
-    const container = new KTX2Container(bytes);
-    if (nativeFormats[container.vkFormat]) {
-      if (restoredTexture && !(restoredTexture instanceof Texture2D)) {
-        throw new Error("Cannot restore a KTX2 native image into a cube texture");
-      }
-      return this._uploadNativeTexture(container, engine, restoredTexture);
-    }
-    const parsed = await this._parseBuffer(bytes, engine, params, container);
-    return this._createTextureByBuffer(
-      engine,
-      container.isSRGB,
-      parsed.result,
-      parsed.targetFormat,
-      parsed.params,
-      restoredTexture
-    );
-  }
-
-  private static _uploadNativeTexture(
-    container: KTX2Container,
-    engine: Engine,
-    restoredTexture?: Texture2D
-  ): Texture2D {
-    const { pixelWidth: width, pixelHeight: height, levels } = container;
-    const { format, channels, typeSize } = nativeFormats[container.vkFormat];
-    if (
-      !width ||
-      !height ||
-      container.pixelDepth !== 0 ||
-      container.layerCount !== 0 ||
-      container.faceCount !== 1 ||
-      container.typeSize !== typeSize ||
-      container.isSRGB ||
-      container.supercompressionScheme !== SupercompressionScheme.None
-    ) {
-      throw new Error("KTX2 native requires an unsupercompressed, linear 2D texture");
-    }
-    const fullMipCount = Math.floor(Math.log2(Math.max(width, height))) + 1;
-    // Texture2D allocates either the base level or the complete mip chain.
-    if (container.generateMipmaps || (levels.length !== 1 && levels.length !== fullMipCount)) {
-      throw new Error("KTX2 native requires one explicit level or a complete mip chain");
-    }
-    const mipData = levels.map(({ levelData, uncompressedByteLength }, level) => {
-      const texelCount = Math.max(1, Math.floor(width / 2 ** level)) * Math.max(1, Math.floor(height / 2 ** level));
-      if (
-        levelData.byteOffset % typeSize ||
-        levelData.byteLength !== texelCount * channels * typeSize ||
-        levelData.byteLength !== uncompressedByteLength
-      ) {
-        throw new Error(`Invalid KTX2 native data at mip level ${level}`);
-      }
-      const ArrayType = typeSize === 2 ? Uint16Array : Float32Array;
-      return new ArrayType(levelData.buffer, levelData.byteOffset, texelCount * channels);
-    });
-    if (
-      restoredTexture &&
-      (restoredTexture.format !== format ||
-        restoredTexture.width !== width ||
-        restoredTexture.height !== height ||
-        restoredTexture.mipmapCount !== levels.length)
-    ) {
-      throw new Error("KTX2 native image does not match the texture being restored");
-    }
-    const texture = restoredTexture ?? new Texture2D(engine, width, height, format, levels.length > 1, false);
-    for (let level = 0; level < mipData.length; level++) {
-      texture.setPixelBuffer(mipData[level], level);
-    }
-    this._applyTextureParams(texture, container.keyValue["GalaceanTextureParams"] as Uint8Array);
-    return texture;
-  }
-
-  private static _applyTextureParams(texture: Texture2D | TextureCube, params?: Uint8Array): void {
     if (params) {
       texture.wrapModeU = params[0];
       texture.wrapModeV = params[1];
       texture.filterMode = params[2];
       texture.anisoLevel = params[3];
     }
+    return texture;
   }
 
   private static _decideTargetFormat(
@@ -351,8 +266,9 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       resourceManager
         ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
-        .then((buffer) => KTX2Loader._loadTextureFromBuffer(buffer, resourceManager.engine, item.params))
-        .then((texture) => {
+        .then((buffer) => KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params))
+        .then((parsed) => {
+          const texture = KTX2Loader._createTextureByBuffer(resourceManager.engine, parsed);
           resourceManager.addContentRestorer(new KTX2ContentRestorer(texture, remoteUrl, requestConfig));
           resolve(texture);
         })
@@ -376,8 +292,8 @@ class KTX2ContentRestorer extends ContentRestorer<Texture2D | TextureCube> {
     return new AssetPromise((resolve, reject) => {
       engine.resourceManager
         ._requestByRemoteUrl<ArrayBuffer>(this.remoteUrl, requestConfig)
-        .then((buffer) => KTX2Loader._loadTextureFromBuffer(buffer, engine, requestConfig.params, resource))
-        .then(resolve)
+        .then((buffer) => KTX2Loader._parseBuffer(new Uint8Array(buffer), engine, requestConfig.params))
+        .then((parsed) => resolve(KTX2Loader._createTextureByBuffer(engine, parsed, resource)))
         .catch(reject);
     });
   }
