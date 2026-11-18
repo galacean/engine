@@ -70,7 +70,7 @@ export class WebXRDevice implements IXRDevice {
             let layer: XRWebGLLayer;
             if (session.renderState.layers === undefined) {
               const layerInit = {
-                antialias: session.renderState.layers === undefined ? attributes.antialias : true,
+                antialias: attributes.antialias,
                 alpha: true,
                 depth: attributes.depth,
                 stencil: attributes.stencil,
