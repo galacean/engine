@@ -56,6 +56,7 @@ import {
   SeedWorldAssetManager,
   type SeedWorldAssetCandidate
 } from "@galacean/engine-world-planning/agent-adapter/SeedWorldAssetManager";
+import { ribbonOutline } from "@galacean/engine-world-planning/semantic-study/WorldRibbon";
 import { planningPickAssets } from "@galacean/engine-world-planning/spatial/runtime/PlanningWorldPicking";
 import { getSeedWorldAssetPlacementProfile } from "@galacean/engine-world-planning/world/SeedWorldAssetPlacementProfile";
 import { resolveSeedWorldHillAtom } from "@galacean/engine-world-planning/world/SeedWorldHillAtom";
@@ -69,6 +70,7 @@ import { PLANNING_PROJECT_PATH } from "../src/planning/spatial/runtime/PlanningP
 import type { SeedWorldAnimalService } from "./ports/SeedWorldAnimalService.ts";
 import { createSeedWorldEngineDraft } from "./SeedWorldEngineDraft.ts";
 import type { SeedWorldPlanningService } from "./SeedWorldPlanningService.ts";
+import { seedWorldRiverCenterlines } from "./SeedWorldRiverShape.ts";
 import { SEED_WORLD_FRONT_RELATION_DISTANCE_METRES } from "./SeedWorldSpatialSemantics.ts";
 import { createSeedWorldTools } from "./SeedWorldToolCatalog.ts";
 import type { SeedWorldParameterAuthoring, SeedWorldParameterReceipts } from "./tools/parameter-tools.ts";
@@ -1177,29 +1179,20 @@ export class SeedWorldAgentApplication {
       .filter(across => Math.abs(across) <= along)
       .map(across => ({ along, across })))
       .sort((a, b) => Math.hypot(a.along - distance, a.across) - Math.hypot(b.along - distance, b.across));
-    const point = (along: number, across: number) => ({
-      x: position[0] + fx * along - fz * across,
-      z: position[2] + fz * along + fx * across
-    });
     const isDry = (positions: { x: number; z: number }[]) =>
       this.checkSpatial({ positions, constraints: { water: false } }).items.every(({ matches }) => matches);
-    const fitsPlan = this.planning.riverPlacementTest(width);
+    const fitsPlan = this.planning.riverPlacementTest();
+    const seed = this._requireState().world.rootSeed;
     let centerline: { x: number; z: number }[] | undefined;
-    for (const site of sites) {
+    placement: for (const { along, across } of sites) {
       signal.throwIfAborted();
-      const positions = Array.from({ length: 9 }, (_, index) => {
-        const t = index / 8;
-        return point(site.along + length * 0.1 * Math.sin(t * Math.PI), site.across + length * (t - 0.5));
-      });
-      // The existing river solver validates the final ribbon and banks. Check the proposed
-      // footprint here as well so the default placement steers around existing water.
-      if (!fitsPlan(positions) || !isDry(positions.flatMap(({ x, z }) => [
-        { x, z },
-        { x: x + fx * width * 0.5, z: z + fz * width * 0.5 },
-        { x: x - fx * width * 0.5, z: z - fz * width * 0.5 }
-      ]))) continue;
-      centerline = positions;
-      break;
+      const center = { x: position[0] + fx * along - fz * across, z: position[2] + fz * along + fx * across };
+      for (const positions of seedWorldRiverCenterlines(seed, center, [fx, fz], length)) {
+        const outline = ribbonOutline(positions, positions.map(() => width), undefined, true);
+        if (!fitsPlan(outline) || !isDry(positions) || !isDry(outline)) continue;
+        centerline = positions;
+        break placement;
+      }
     }
     if (!centerline) throw new AgentToolExecutionError({
       code: "INVALID_ARGUMENT",
