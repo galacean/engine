@@ -31,10 +31,6 @@ export function hashVistaU(n: number): number {
   return (n ^ (n >>> 16)) >>> 0;
 }
 
-export function hashVista2U(x: number, y: number): number {
-  return hashVistaU(Math.imul(x | 0, 0x9e3779b1) ^ Math.imul(y | 0, 0x85ebca77));
-}
-
 export function createVistaKeyedNoise(seed: number) {
   const normalized = Math.floor(Math.abs(seed)) || DEFAULT_VISTA_SEED;
   const key = hashVistaU(normalized) ^ hashVistaU(DEFAULT_VISTA_SEED);
@@ -64,68 +60,6 @@ export function createVistaKeyedNoise(seed: number) {
 }
 
 /**
- * 3D folded rock strata coordinate shared between CPU mesh bench carving and GPU fragment shader.
- */
-export function evaluateVistaStrata(x: number, y: number, z: number, bedThickness = 64, foldStrength = 1.0): number {
-  const bed = Math.max(16, bedThickness);
-  const k = TAU / 1024;
-  const u =
-    y / bed +
-    foldStrength *
-      (0.84 * Math.sin(k * (x + z) + 1.1 * Math.sin(k * (x - z) + 0.7)) +
-        0.32 * Math.sin(2 * k * x + 1.7 * Math.sin(k * z)) +
-        0.2 * Math.sin(3 * k * z + 1.3 * Math.sin(k * x) + 1.1) +
-        0.09 * Math.sin(4 * k * (x - z) + 2.0 * Math.sin(k * (x + z))));
-  const ph = 2.1 * Math.sin(k * (x - z) + 0.4) + 1.3 * Math.sin(2 * k * z + 1.1 * Math.sin(k * x));
-  return u + 0.22 * Math.sin(1.9634954 * u + 1.7 + ph) + 0.035 * Math.sin(5.1050881 * u + 0.6 - 0.8 * ph);
-}
-
-/**
- * Cold Smoke's jittered-grid slope-perpendicular cosine wave (`gullies()`).
- * Writes `[value (-1..1), d/dx, d/dz]` into `out`.
- */
-function sampleVistaGullyWave(
-  px: number,
-  pz: number,
-  dx: number,
-  dz: number,
-  seed: number,
-  key: number,
-  out: [number, number, number]
-): void {
-  const ix = Math.floor(px);
-  const iz = Math.floor(pz);
-  const fx = px - ix - 0.5;
-  const fz = pz - iz - 0.5;
-  let v = 0;
-  let gx = 0;
-  let gz = 0;
-  let wt = 0;
-  for (let j = -1; j <= 1; j++) {
-    for (let i = -1; i <= 1; i++) {
-      let n = Math.imul(ix + i, 374761393) ^ Math.imul(iz + j, 668265263) ^ seed ^ key;
-      n = Math.imul(n ^ (n >>> 13), 1274126177);
-      n ^= n >>> 16;
-      const qx = fx - i - ((n & 0xffff) / 65536 - 0.5) * 0.5;
-      const qz = fz - j - ((n >>> 16) / 65536 - 0.5) * 0.5;
-      const d = 1 - (qx * qx + qz * qz) / 1.5625;
-      if (d <= 0) continue;
-      const wgt = d * d * d;
-      const ph = (qx * dx + qz * dz) * TAU;
-      const sn = Math.sin(ph);
-      v += Math.cos(ph) * wgt;
-      gx -= sn * dx * wgt;
-      gz -= sn * dz * wgt;
-      wt += wgt;
-    }
-  }
-  const invW = wt > 1e-8 ? 1 / wt : 0;
-  out[0] = v * invW;
-  out[1] = gx * invW;
-  out[2] = gz * invW;
-}
-
-/**
  * 360° azimuthal boundary profile extracted from a finite world (such as SeedWorld's 3,072 m × 3,072 m domain).
  * Azimuth `az = atan2(x - worldCenterX, -(z - worldCenterZ))` spans `[-π, +π)` across `bins` uniformly spaced samples.
  */
@@ -134,8 +68,6 @@ export interface PanoramaVistaBoundaryProfile {
   readonly worldHalfSizeMetres: number;
   readonly worldCenterX: number;
   readonly worldCenterZ: number;
-  /** Terrain elevation (in metres) at the square perimeter along each azimuth bin. */
-  readonly edgeHeightMetres: Float32Array;
   /** Directional mountain prominence `[0..1.5]` derived from perimeter elevation, mountain brushes, and summits. */
   readonly mountainEnergy: Float32Array;
   /** Smoothed land mask `[0..1]` along each azimuth (`1` = inland/continental, `0` = open ocean coast). */
@@ -170,7 +102,7 @@ export function projectDirectionToSquarePerimeter(dx: number, dz: number, halfSi
 export type SeedWorldVistaPlanSource = SeedWorldPlan | SeedWorldRuntimePlan;
 
 /**
- * Samples terrain around the world boundary to guide the transition skirt and distant panorama.
+ * Samples terrain around the world boundary to guide the distant panorama.
  */
 export function extractSeedWorldBoundaryProfile(
   plan: SeedWorldVistaPlanSource,
@@ -188,7 +120,6 @@ export function extractSeedWorldBoundaryProfile(
   const worldCenterX = originX + halfSize;
   const worldCenterZ = originZ + halfSize;
 
-  const edgeHeightMetres = new Float32Array(bins);
   const rawEnergy = new Float32Array(bins);
   const rawLand = new Float32Array(bins);
   const rawForest = new Float32Array(bins);
@@ -242,7 +173,6 @@ export function extractSeedWorldBoundaryProfile(
         ? (sampleSeedWorldHeight(fields, worldCenterX + bx, worldCenterZ + bz) ?? SEED_WORLD_SEA_LEVEL_METRES)
         : planOuter.heightNorm * SEED_WORLD_MAXIMUM_MOUNTAIN_UPLIFT_METRES;
 
-    edgeHeightMetres[i] = edgeH;
     rawLand[i] = 0.65 * planOuter.land + 0.35 * planInner.land;
     rawForest[i] =
       (planOuter.cover === SeedWorldLandCover.Forest ? 0.65 : 0.25) +
@@ -311,7 +241,6 @@ export function extractSeedWorldBoundaryProfile(
     worldHalfSizeMetres: halfSize,
     worldCenterX,
     worldCenterZ,
-    edgeHeightMetres,
     mountainEnergy: smoothCircular(rawEnergy, Math.max(3, Math.round(bins * 0.045))),
     landMask: smoothCircular(rawLand, Math.max(3, Math.round(bins * 0.04))),
     forestAffinity: smoothCircular(rawForest, Math.max(3, Math.round(bins * 0.04)))
@@ -556,356 +485,5 @@ export function generatePanoramaVistaBuffers(options: PanoramaVistaOptions): Pan
     maxElevationRadians: maxEl,
     farA,
     farB
-  };
-}
-
-export interface VistaTransitionSkirtOptions {
-  readonly seed: number;
-  readonly boundaryProfile: PanoramaVistaBoundaryProfile;
-  /** Optional exact boundary height sampler `(worldX, worldZ) => heightMetres` so the inner ring matches the terrain clipmap. */
-  readonly sampleInnerBoundaryHeight?: (worldX: number, worldZ: number) => number | undefined;
-  /** Outer radius of the transition skirt in metres from the world center (default `6800`). */
-  readonly outerRadiusMetres?: number;
-  /** Segments along each of the 4 square perimeter sides (default `48`, yielding `192` angular columns). */
-  readonly segmentsPerSide?: number;
-  /** Number of radial rings from the inner square edge to the outer circular horizon (default `28`). */
-  readonly radialRings?: number;
-  /** Sun azimuth in radians for baking vertex horizon self-shadow tangent (default `2.45`). */
-  readonly sunAzimuthRadians?: number;
-}
-
-export interface VistaTransitionSkirtMeshData {
-  readonly angularColumns: number;
-  readonly radialRings: number;
-  readonly positions: Float32Array;
-  readonly normals: Float32Array;
-  /** Packed `[mountainWeight, concavity, cavityAO, sunHorizonTangent]` per vertex. */
-  readonly channels: Float32Array;
-  /** Packed `[slopeX, slopeZ]` per vertex. */
-  readonly slopes: Float32Array;
-  readonly indices: Uint32Array;
-}
-
-/**
- * Generates a seamless 3D transition skirt mesh bridging the square perimeter of a finite terrain clipmap
- * (`max(|x - centerX|, |z - centerZ|) = worldHalfSizeMetres`) out to a circular outer foothills & neighboring mountain ring (`outerRadiusMetres`).
- * Evaluates Cold Smoke's 3-octave ridged multifractal relief, 4-octave fall-line tributary gullies, and 3D folded rock strata.
- */
-export function generateVistaTransitionSkirt(options: VistaTransitionSkirtOptions): VistaTransitionSkirtMeshData {
-  const profile = options.boundaryProfile;
-  const halfSize = profile.worldHalfSizeMetres;
-  const centerX = profile.worldCenterX;
-  const centerZ = profile.worldCenterZ;
-  const outerRadius = Math.max(halfSize * 1.8, options.outerRadiusMetres ?? 6_800);
-  const segPerSide = Math.max(8, options.segmentsPerSide ?? 48);
-  const angularColumns = segPerSide * 4;
-  // Ring 0 is a vertical drop lip tucked beneath the clipmap edge; Ring 1 is the exact seam; Rings 2..radialRings-1 march outward
-  const radialRings = Math.max(8, options.radialRings ?? 28);
-  const noise = createVistaKeyedNoise(options.seed);
-  const gullyScratch: [number, number, number] = [0, 0, 0];
-
-  // Build perimeter offsets `(bx, bz)` around the 4 sides of the square `[-halfSize, +halfSize]` in clockwise azimuth order
-  const innerXZ: [number, number][] = new Array(angularColumns);
-  const innerAz: number[] = new Array(angularColumns);
-  const innerHeight: number[] = new Array(angularColumns);
-
-  for (let col = 0; col < angularColumns; col++) {
-    const side = Math.floor(col / segPerSide);
-    const t = (col % segPerSide) / segPerSide;
-    const u = (t - 0.5) * 2 * halfSize;
-    let bx: number;
-    let bz: number;
-    if (side === 0) {
-      // North edge (z = -halfSize, x from -halfSize to +halfSize)
-      bx = u;
-      bz = -halfSize;
-    } else if (side === 1) {
-      // East edge (x = +halfSize, z from -halfSize to +halfSize)
-      bx = halfSize;
-      bz = u;
-    } else if (side === 2) {
-      // South edge (z = +halfSize, x from +halfSize to -halfSize)
-      bx = -u;
-      bz = halfSize;
-    } else {
-      // West edge (x = -halfSize, z from +halfSize to -halfSize)
-      bx = -halfSize;
-      bz = -u;
-    }
-    const az = Math.atan2(bx, -bz);
-    innerXZ[col] = [bx, bz];
-    innerAz[col] = az;
-    const sampled = options.sampleInnerBoundaryHeight?.(
-      centerX + clampVista(bx, -halfSize, halfSize),
-      centerZ + clampVista(bz, -halfSize, halfSize)
-    );
-    innerHeight[col] = sampled ?? sampleAzimuthArray(profile.edgeHeightMetres, az);
-  }
-
-  // Evaluate neighboring mountain height at any relative (x, z) outside the inner square
-  const sampleFoothillRelief = (x: number, z: number): number => {
-    const wx = x + 310 * noise.vnoise2(x / 1700 + 1.3, z / 1700 + 4.7, 60);
-    const wz = z + 310 * noise.vnoise2(x / 1700 + 8.2, z / 1700 + 2.1, 61);
-    const r0 = 1 - Math.abs(noise.vnoise2(wx / 1450, wz / 1450, 70));
-    const r1 = 1 - Math.abs(noise.vnoise2(wx / 620 + 5.2, wz / 620 + 1.9, 71));
-    const r2 = 1 - Math.abs(noise.vnoise2(wx / 260 + 9.4, wz / 260 + 3.1, 72));
-    const peak = r0 * r0 * 0.55 + r0 * r1 * r1 * 0.32 + r0 * r1 * r2 * r2 * 0.13;
-    return peak * peak * (2.2 - 1.2 * peak);
-  };
-
-  const evaluateSkirtHeightAndWeight = (
-    relX: number,
-    relZ: number,
-    sNormalized: number,
-    seamHeight: number,
-    az: number
-  ): { y: number; mountainWeight: number } => {
-    const effectiveSeamHeight = seamHeight < SEED_WORLD_SEA_LEVEL_METRES ? SEED_WORLD_SEA_LEVEL_METRES : seamHeight;
-    if (sNormalized <= 0) {
-      return {
-        y: effectiveSeamHeight,
-        mountainWeight: clampVista((effectiveSeamHeight - 16) / 140, 0, 1)
-      };
-    }
-
-    const azEnergy = sampleAzimuthArray(profile.mountainEnergy, az);
-    // Natural meandering fjord/bay shoreline outside the island: submerged seabed shelf from s = 0..coastStart,
-    // staying below the Y=0 ocean surface before rising into surrounding neighboring mountains.
-    const coastWarp =
-      0.11 * noise.vnoise2(relX / 1350 + 2.1, relZ / 1350 - 3.4, 51) +
-      0.05 * noise.vnoise2(relX / 540 - 7.3, relZ / 540 + 1.8, 52);
-    const inlandBridge = smoothVista(18.0, 65.0, effectiveSeamHeight);
-    const coastStart = lerpVista(clampVista(0.24 + coastWarp, 0.14, 0.36), 0.0, inlandBridge);
-    if (sNormalized <= coastStart) {
-      const shelfY = lerpVista(
-        effectiveSeamHeight,
-        SEED_WORLD_SEA_LEVEL_METRES,
-        smoothVista(0.0, Math.max(0.03, coastStart * 0.25), sNormalized)
-      );
-      return { y: shelfY, mountainWeight: 0 };
-    }
-
-    const landProgress = clampVista((sNormalized - coastStart) / Math.max(0.15, 1 - coastStart), 0, 1);
-    const radialBlend = smoothVista(0.0, 0.25, landProgress);
-    const farRiseEnvelope = smoothVista(0.02, 0.62, landProgress) * (1 - 0.22 * smoothVista(0.82, 1.0, landProgress));
-
-    // Pass/fjord valleys between major outer massifs
-    const passWave = Math.abs(noise.vnoise2(relX / 2400 + 9.2, relZ / 2400 - 4.1, 64));
-    const massifGate = 0.32 + 0.68 * smoothVista(0.08, 0.42, passWave);
-    const energy = (0.72 + 0.55 * azEnergy) * massifGate;
-
-    const macroRise =
-      energy *
-      farRiseEnvelope *
-      (210 + 580 * sampleFoothillRelief(relX, relZ) + 55 * noise.vnoise2(relX / 820, relZ / 820, 74));
-
-    const eps = 36;
-    const rPlusX = sampleFoothillRelief(relX + eps, relZ);
-    const rMinusX = sampleFoothillRelief(relX - eps, relZ);
-    const rPlusZ = sampleFoothillRelief(relX, relZ + eps);
-    const rMinusZ = sampleFoothillRelief(relX, relZ - eps);
-    const gx = ((rPlusX - rMinusX) / (2 * eps)) * 420 * energy + (relX / Math.max(400, Math.hypot(relX, relZ))) * 0.45;
-    const gz = ((rPlusZ - rMinusZ) / (2 * eps)) * 420 * energy + (relZ / Math.max(400, Math.hypot(relX, relZ))) * 0.45;
-    const sl = Math.hypot(gx, gz);
-    const K = 1.7 * Math.min(1, 1.4 / (sl + 1e-6));
-    const dx = gz * K;
-    const dz = -gx * K;
-
-    // 4-octave cascaded slope-perpendicular tributary gullies
-    sampleVistaGullyWave(relX / 720 + 3.9, relZ / 720 + 8.2, dx, dz, 1213, noise.key, gullyScratch);
-    const m = clampVista(farRiseEnvelope * energy * 1.25, 0, 1);
-    let g = 54 * m * (1.27 - 2 * Math.sqrt(Math.max(0, 0.5 - 0.5 * gullyScratch[0])));
-    let ex = gullyScratch[1] * 0.5;
-    let ez = gullyScratch[2] * 0.5;
-
-    sampleVistaGullyWave(relX / 270, relZ / 270, dx + ez * 1.4, dz - ex * 1.4, 911, noise.key, gullyScratch);
-    g += 22 * (1.27 - 2 * Math.sqrt(Math.max(0, 0.5 - 0.5 * gullyScratch[0])));
-    ex += gullyScratch[1];
-    ez += gullyScratch[2];
-
-    sampleVistaGullyWave(
-      relX / 128 + 17.3,
-      relZ / 128 - 5.1,
-      dx + ez * 1.4,
-      dz - ex * 1.4,
-      577,
-      noise.key,
-      gullyScratch
-    );
-    g += 10 * (1.27 - 2 * Math.sqrt(Math.max(0, 0.5 - 0.5 * gullyScratch[0])));
-
-    const gullyOffset = radialBlend * smoothVista(0.15, 0.65, sl) * (0.35 + 0.65 * m) * g;
-
-    const baseElevation = lerpVista(
-      SEED_WORLD_SEA_LEVEL_METRES,
-      lerpVista(effectiveSeamHeight, Math.max(18, effectiveSeamHeight * 0.65), smoothVista(0.0, 0.4, landProgress)),
-      inlandBridge
-    );
-    let h = baseElevation + macroRise + gullyOffset;
-
-    // 3D folded rock strata benches on elevated mountain walls
-    const mw = clampVista(lerpVista(clampVista((effectiveSeamHeight - 16) / 140, 0, 1), m, radialBlend), 0, 1);
-    if (mw > 0.04) {
-      const t = evaluateVistaStrata(relX, h, relZ, 64, 1.0);
-      const ft = Math.floor(t);
-      const fr = t - ft;
-      const kBench =
-        mw *
-        radialBlend *
-        (0.12 +
-          0.72 *
-            smoothVista(
-              -0.3,
-              0.3,
-              noise.vnoise2((relX + relZ) / 260 + ft * 3.31, (relX - relZ) / 700 + ft * 1.73, 79)
-            ));
-      h += (smoothVista(0.22, 0.78, fr) - fr) * 58 * kBench;
-    }
-
-    return { y: Math.max(SEED_WORLD_SEA_LEVEL_METRES, h), mountainWeight: mw };
-  };
-
-  const vertexCount = angularColumns * radialRings;
-  const positions = new Float32Array(vertexCount * 3);
-  const normals = new Float32Array(vertexCount * 3);
-  const channels = new Float32Array(vertexCount * 4);
-  const slopes = new Float32Array(vertexCount * 2);
-  const gridHeights = new Float32Array(vertexCount);
-  const gridWeights = new Float32Array(vertexCount);
-
-  for (let r = 0; r < radialRings; r++) {
-    // r === 0: vertical skirt lip below seam; r === 1: exact seam (s = 0); r > 1: s in (0..1]
-    const s = r <= 1 ? 0 : Math.pow((r - 1) / (radialRings - 2), 1.35);
-    const roundness = smoothVista(0.0, 0.65, s);
-
-    for (let c = 0; c < angularColumns; c++) {
-      const [bx, bz] = innerXZ[c]!;
-      const az = innerAz[c]!;
-      const seamH = innerHeight[c]!;
-      const innerR = Math.hypot(bx, bz);
-      const targetR = lerpVista(innerR, outerRadius, s);
-
-      // Morph smoothly from square perimeter direction to circular azimuth direction
-      const sqDirX = bx / innerR;
-      const sqDirZ = bz / innerR;
-      const cirDirX = Math.sin(az);
-      const cirDirZ = -Math.cos(az);
-      let dirX = lerpVista(sqDirX, cirDirX, roundness);
-      let dirZ = lerpVista(sqDirZ, cirDirZ, roundness);
-      const dirLen = Math.hypot(dirX, dirZ) || 1;
-      dirX /= dirLen;
-      dirZ /= dirLen;
-
-      const relX = r <= 1 ? bx : dirX * targetR;
-      const relZ = r <= 1 ? bz : dirZ * targetR;
-
-      const evalResult = evaluateSkirtHeightAndWeight(relX, relZ, s, seamH, az);
-      const effectiveSeamY = seamH < SEED_WORLD_SEA_LEVEL_METRES ? SEED_WORLD_SEA_LEVEL_METRES : seamH - 0.18;
-      const wy = r === 0 ? Math.min(seamH, effectiveSeamY) - 22 : r === 1 ? effectiveSeamY : evalResult.y;
-
-      const idx = r * angularColumns + c;
-      const p3 = idx * 3;
-      positions[p3] = centerX + relX;
-      positions[p3 + 1] = wy;
-      positions[p3 + 2] = centerZ + relZ;
-      gridHeights[idx] = wy;
-      gridWeights[idx] = evalResult.mountainWeight;
-    }
-  }
-
-  // Compute central-difference normals, slopes, Laplacian concavity, cavity AO, and horizon shadow tangent
-  const sunAz = options.sunAzimuthRadians ?? 2.45;
-  const sunDirX = Math.sin(sunAz);
-  const sunDirZ = -Math.cos(sunAz);
-
-  for (let r = 0; r < radialRings; r++) {
-    const rPrev = Math.max(1, r - 1);
-    const rNext = Math.min(radialRings - 1, r + 1);
-    for (let c = 0; c < angularColumns; c++) {
-      const cPrev = (c - 1 + angularColumns) % angularColumns;
-      const cNext = (c + 1) % angularColumns;
-      const idx = r * angularColumns + c;
-
-      const idxL = r * angularColumns + cPrev;
-      const idxR = r * angularColumns + cNext;
-      const idxD = rPrev * angularColumns + c;
-      const idxU = rNext * angularColumns + c;
-
-      const dAx = positions[idxR * 3]! - positions[idxL * 3]!;
-      const dAy = positions[idxR * 3 + 1]! - positions[idxL * 3 + 1]!;
-      const dAz = positions[idxR * 3 + 2]! - positions[idxL * 3 + 2]!;
-
-      const dRx = positions[idxU * 3]! - positions[idxD * 3]!;
-      const dRy = positions[idxU * 3 + 1]! - positions[idxD * 3 + 1]!;
-      const dRz = positions[idxU * 3 + 2]! - positions[idxD * 3 + 2]!;
-
-      // Cross product (radial × angular) pointing upward (+Y)
-      let nx = dRy * dAz - dRz * dAy;
-      let ny = dRz * dAx - dRx * dAz;
-      let nz = dRx * dAy - dRy * dAx;
-      if (ny < 0) {
-        nx = -nx;
-        ny = -ny;
-        nz = -nz;
-      }
-      const nLen = Math.hypot(nx, ny, nz) || 1;
-      nx /= nLen;
-      ny /= nLen;
-      nz /= nLen;
-
-      normals[idx * 3] = nx;
-      normals[idx * 3 + 1] = ny;
-      normals[idx * 3 + 2] = nz;
-
-      const invNy = 1 / Math.max(0.18, ny);
-      const sx = -nx * invNy;
-      const sz = -nz * invNy;
-      slopes[idx * 2] = sx;
-      slopes[idx * 2 + 1] = sz;
-
-      const hc = gridHeights[idx]!;
-      const hMean = 0.25 * (gridHeights[idxL]! + gridHeights[idxR]! + gridHeights[idxD]! + gridHeights[idxU]!);
-      const stepScale = Math.max(18, Math.hypot(dAx, dAz) * 0.5);
-      const conc = clampVista(((hMean - hc) / stepScale) * 9.5, -1.1, 1.3);
-      const mw = gridWeights[idx]!;
-      const ao = clampVista(1 - 0.44 * clampVista(conc, -0.4, 0.65) * Math.min(1, mw * 3.0), 0.35, 1.2);
-      const sunFacingSlope = sx * sunDirX + sz * sunDirZ;
-      const hz = clampVista(-sunFacingSlope * 0.45 + Math.max(0, conc) * 0.14, -0.25, 0.85);
-
-      const c4 = idx * 4;
-      channels[c4] = mw;
-      channels[c4 + 1] = conc;
-      channels[c4 + 2] = ao;
-      channels[c4 + 3] = hz;
-    }
-  }
-
-  const quadCount = angularColumns * (radialRings - 1);
-  const indices = new Uint32Array(quadCount * 6);
-  let ptr = 0;
-  for (let r = 0; r < radialRings - 1; r++) {
-    for (let c = 0; c < angularColumns; c++) {
-      const cNext = (c + 1) % angularColumns;
-      const i00 = r * angularColumns + c;
-      const i10 = r * angularColumns + cNext;
-      const i01 = (r + 1) * angularColumns + c;
-      const i11 = (r + 1) * angularColumns + cNext;
-      indices[ptr++] = i00;
-      indices[ptr++] = i01;
-      indices[ptr++] = i10;
-      indices[ptr++] = i10;
-      indices[ptr++] = i01;
-      indices[ptr++] = i11;
-    }
-  }
-
-  return {
-    angularColumns,
-    radialRings,
-    positions,
-    normals,
-    channels,
-    slopes,
-    indices
   };
 }

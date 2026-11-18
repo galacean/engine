@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   extractSeedWorldBoundaryProfile,
   generatePanoramaVistaBuffers,
-  generateVistaTransitionSkirt,
   sampleAzimuthArray
 } from "@galacean/engine-world-planning/vista/PanoramaVistaGenerator";
 import { SeedWorldPlanner } from "@galacean/engine-world-planning/world/SeedWorldPlanner";
@@ -82,48 +81,5 @@ describe("PanoramaVistaGenerator & SeedWorld integration", () => {
       if (farA[offset + 3] === 255 && farB[offset] === 0) opaqueCutoffTexels++;
     }
     expect(opaqueCutoffTexels).toBe(0);
-  });
-
-  it("builds a transition skirt mesh whose inner seam matches the boundary sampler and morphs outward", () => {
-    const plan = SeedWorldPlanner.generate({ rootSeed: 1_729 });
-    const baseProfile = extractSeedWorldBoundaryProfile(plan, undefined, 64);
-    // Test with non-zero worldCenterX/Z (matching [0, 3072] IslandPlan domain centered at [1536, 1536])
-    const profile = {
-      ...baseProfile,
-      worldCenterX: 1536,
-      worldCenterZ: 1536
-    };
-    const halfSize = profile.worldHalfSizeMetres;
-
-    const skirt = generateVistaTransitionSkirt({
-      seed: plan.stageSeeds.geology,
-      boundaryProfile: profile,
-      sampleInnerBoundaryHeight: (wx, wz) => 42 + (wx + wz) * 0.01,
-      outerRadiusMetres: 5_200,
-      segmentsPerSide: 12,
-      radialRings: 10
-    });
-
-    expect(skirt.angularColumns).toBe(48);
-    expect(skirt.radialRings).toBe(10);
-    expect(skirt.positions.length).toBe(48 * 10 * 3);
-    expect(skirt.indices.length).toBe(48 * 9 * 6);
-
-    // Ring 1 is the exact seam at max(|x - centerX|, |z - centerZ|) == halfSize
-    for (let c = 0; c < skirt.angularColumns; c++) {
-      const seamIdx = (1 * skirt.angularColumns + c) * 3;
-      const sx = skirt.positions[seamIdx]!;
-      const sy = skirt.positions[seamIdx + 1]!;
-      const sz = skirt.positions[seamIdx + 2]!;
-      expect(Math.max(Math.abs(sx - 1536), Math.abs(sz - 1536))).toBeCloseTo(halfSize, 3);
-      const expectedSeamY = 42 + (sx + sz) * 0.01 - 0.18;
-      expect(sy).toBeCloseTo(expectedSeamY, 2);
-
-      // Outer ring (r = radialRings - 1) sits on the circular outer radius (5,200 m) around (1536, 1536)
-      const outerIdx = ((skirt.radialRings - 1) * skirt.angularColumns + c) * 3;
-      const ox = skirt.positions[outerIdx]!;
-      const oz = skirt.positions[outerIdx + 2]!;
-      expect(Math.hypot(ox - 1536, oz - 1536)).toBeCloseTo(5_200, 1);
-    }
   });
 });
