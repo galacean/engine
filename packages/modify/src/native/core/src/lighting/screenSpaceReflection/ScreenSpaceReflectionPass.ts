@@ -309,8 +309,8 @@ export class ScreenSpaceReflectionPass {
     try {
       // Reflection color needs roughness mips; depth must remain a single nearest-sampled level.
       this._contributionTarget = this._engine._renderTargetPool.allocateRenderTarget(
-        this._fullWidth,
-        this._fullHeight,
+        this._sceneColorTarget!.width,
+        this._sceneColorTarget!.height,
         opaqueColor.format,
         colorTarget._depthFormat,
         true,
@@ -328,12 +328,7 @@ export class ScreenSpaceReflectionPass {
       this._sceneCopyPassCount++;
       profiler?.beginSample("contribution-depth-copy", null);
       try {
-        this._engine._hardwareRenderer.blitInternalRTByBlitFrameBuffer(
-          colorTarget,
-          this._contributionTarget,
-          CameraClearFlags.Color | CameraClearFlags.Stencil,
-          PipelineUtils.defaultViewport
-        );
+        this._copyOpaqueDepth(colorTarget, this._contributionTarget);
       } finally {
         profiler?.endSample();
       }
@@ -402,12 +397,7 @@ export class ScreenSpaceReflectionPass {
       this._surfaceProfiler = profiler;
       // Copy resolved opaque depth for both phases, never the transparent contribution depth.
       // Surface uses its own attachment so tracing/compositing cannot feed back into Forward depth.
-      this._engine._hardwareRenderer.blitInternalRTByBlitFrameBuffer(
-        opaqueTarget,
-        this._surfaceTarget!,
-        CameraClearFlags.Color | CameraClearFlags.Stencil,
-        PipelineUtils.defaultViewport
-      );
+      this._copyOpaqueDepth(opaqueTarget, this._surfaceTarget!);
       context.setRenderTarget(this._surfaceTarget, PipelineUtils.defaultViewport, 0);
       this._engine._hardwareRenderer.clearRenderTarget(
         this._engine,
@@ -473,9 +463,10 @@ export class ScreenSpaceReflectionPass {
   composite(colorTarget: RenderTarget): void {
     const shaderData = this._material!.shaderData;
     const hitColor = shaderData.getTexture(ScreenSpaceReflectionPass._sceneColorProperty);
-    shaderData.setTexture(ScreenSpaceReflectionPass._sceneColorProperty, this._sceneColorTarget!.getColorTexture(0));
+    const baseTexture = this._sceneColorTarget!.getColorTexture(0) as Texture2D;
+    shaderData.setTexture(ScreenSpaceReflectionPass._sceneColorProperty, baseTexture);
     try {
-      this._blit(this._sceneColorTarget!.getColorTexture(0) as Texture2D, colorTarget, "composite", 3);
+      this._blit(baseTexture, colorTarget, "composite", 3);
     } finally {
       shaderData.setTexture(ScreenSpaceReflectionPass._sceneColorProperty, hitColor);
     }
@@ -493,6 +484,29 @@ export class ScreenSpaceReflectionPass {
 
   private _getOutputTexture(): Texture2D {
     return (this._resolvedTraceTarget ?? this._traceTarget)!.getColorTexture(0) as Texture2D;
+  }
+
+  private _copyOpaqueDepth(source: RenderTarget, target: RenderTarget): void {
+    if (target.width === this._fullWidth && target.height === this._fullHeight) {
+      this._engine._hardwareRenderer.blitInternalRTByBlitFrameBuffer(
+        source,
+        target,
+        CameraClearFlags.ColorStencil,
+        PipelineUtils.defaultViewport
+      );
+    } else {
+      // The framebuffer copy uses the destination extent. Sample the entire Forward depth for reduced inputs.
+      Blitter.blitTexture(
+        this._engine,
+        source.depthTexture as Texture2D,
+        target,
+        0,
+        PipelineUtils.defaultViewport,
+        this._material!,
+        4
+      );
+      this._fullscreenPassCount++;
+    }
   }
 
   private _blit(source: Texture2D, target: RenderTarget, stage: ScreenSpaceReflectionStage, passIndex?: number): void {
@@ -630,6 +644,10 @@ export class ScreenSpaceReflectionPass {
     // than deriving a second, phase-shifted grid from camera.pixelViewport.
     const fullWidth = (this._fullWidth = Math.max(1, Math.floor(colorTarget.width)));
     const fullHeight = (this._fullHeight = Math.max(1, Math.floor(colorTarget.height)));
+    // Opaque Composite needs receiver coverage and depth on the same pixel grid as Forward.
+    const halfInputs = this._camera.screenSpaceReflection.useHalfResolutionInputs && !this.hasOpaqueReceivers;
+    const inputWidth = halfInputs ? Math.ceil(fullWidth / 2) : fullWidth;
+    const inputHeight = halfInputs ? Math.ceil(fullHeight / 2) : fullHeight;
     const firstReceiverMode = this.hasOpaqueReceivers
       ? ScreenSpaceReflectionReceiverMode.OpaqueComposite
       : ScreenSpaceReflectionReceiverMode.TransparentSampleOnly;
@@ -637,13 +655,11 @@ export class ScreenSpaceReflectionPass {
     const sceneFormat = sceneColor.format;
     this._traceFormat = this._resolveTraceFormat();
 
-    // Preserve full-resolution scene color and receiver coverage for compositing.
-    // Trace, optional blur and reconstruction follow the phase-local budget.
     this._sceneColorTarget = PipelineUtils.recreateRenderTargetIfNeeded(
       this._engine,
       this._sceneColorTarget,
-      fullWidth,
-      fullHeight,
+      inputWidth,
+      inputHeight,
       sceneFormat,
       null,
       false,
@@ -657,8 +673,8 @@ export class ScreenSpaceReflectionPass {
       this._engine._renderTargetPool.freeRenderTarget(this._surfaceTarget);
     }
     this._surfaceTarget = this._engine._renderTargetPool.allocateRenderTarget(
-      fullWidth,
-      fullHeight,
+      inputWidth,
+      inputHeight,
       TextureFormat.R8G8B8A8,
       colorTarget._depthFormat,
       true,
@@ -672,7 +688,7 @@ export class ScreenSpaceReflectionPass {
     );
     this._configurePhaseTraceTarget(firstReceiverMode);
     (this._surfaceTarget.depthTexture as Texture2D).filterMode = TextureFilterMode.Point;
-    this._surfaceTexelSize.set(1 / fullWidth, 1 / fullHeight, fullWidth, fullHeight);
+    this._surfaceTexelSize.set(1 / inputWidth, 1 / inputHeight, inputWidth, inputHeight);
     this._updateResourcePeaks();
   }
 

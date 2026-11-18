@@ -74,10 +74,12 @@ export class Camera extends Component {
   /** Atomic serialization boundary; independent of JSON property ordering. */
   get screenSpaceReflectionSettings(): {
     settingsSource: ScreenSpaceReflectionSettingsSource;
+    useHalfResolutionInputs: boolean;
     overrideSettings?: ScreenSpaceReflectionSettingsData;
   } {
     return {
       settingsSource: this.screenSpaceReflection.settingsSource,
+      useHalfResolutionInputs: this.screenSpaceReflection.useHalfResolutionInputs,
       overrideSettings: this.screenSpaceReflection._hasOverrideSettings
         ? this.screenSpaceReflection.toJSON()
         : undefined
@@ -85,6 +87,7 @@ export class Camera extends Component {
   }
   set screenSpaceReflectionSettings(value: {
     settingsSource: ScreenSpaceReflectionSettingsSource;
+    useHalfResolutionInputs?: boolean;
     overrideSettings?: Partial<ScreenSpaceReflectionSettingsData>;
   }) {
     this.screenSpaceReflection.restoreSettings(value);
