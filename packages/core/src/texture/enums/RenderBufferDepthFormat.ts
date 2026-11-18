@@ -1,3 +1,5 @@
+import { TextureFormat } from "./TextureFormat";
+
 /**
  * @deprecated Please use `TextureFormat` instead.
  *
@@ -5,20 +7,20 @@
  */
 export enum RenderBufferDepthFormat {
   /** Render to depth buffer,engine will automatically select the supported precision. */
-  Depth = 27,
+  Depth = TextureFormat.Depth,
   /** Render to stencil buffer. */
-  Stencil = 28,
+  Stencil = TextureFormat.Stencil,
   /** Render to depth stencil buffer, engine will automatically select the supported precision. */
-  DepthStencil = 29,
+  DepthStencil = TextureFormat.DepthStencil,
 
   /** Force 16-bit depth buffer. */
-  Depth16 = 30,
+  Depth16 = TextureFormat.Depth16,
   /** Force 24-bit depth buffer. */
-  Depth24 = 31,
+  Depth24 = TextureFormat.Depth24,
   /** Force 32-bit depth buffer. */
-  Depth32 = 32,
+  Depth32 = TextureFormat.Depth32,
   /** Force 16-bit depth + 8-bit stencil buffer. */
-  Depth24Stencil8 = 33,
+  Depth24Stencil8 = TextureFormat.Depth24Stencil8,
   /** Force 32-bit depth + 8-bit stencil buffer. */
-  Depth32Stencil8 = 34
+  Depth32Stencil8 = TextureFormat.Depth32Stencil8
 }
