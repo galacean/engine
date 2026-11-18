@@ -19,19 +19,38 @@ import type { PlanningResource } from "./PlanningResources";
 import type { SpatialEntity } from "./SpatialDocument";
 import { LAKE_DEFAULTS } from "./hydrology/LakeRegions";
 import profile from "../planning-data/settlement-profile.json";
-/** Clear the camel preset previously saved by the desert preview. */
-export function removeDesertCamelPreset(document: PlanningDocument): void {
+function templateAnimalValues(id: string, anchor: { x: number; z: number }): Record<string, unknown> {
+  const { animals } = WORLD_TEMPLATE_ART[id];
+  if (!animals) return { enabled: false };
+  const { "birdCount.offsetX": x, "birdCount.offsetZ": z, ...values } = structuredClone(animals);
+  if (typeof x === "number" && typeof z === "number") {
+    values["birdCount.centerX"] = anchor.x - x;
+    values["birdCount.centerZ"] = anchor.z + z;
+  }
+  return values;
+}
+
+/** Upgrade the retired desert preview populations when opening a saved seed in the editor or the world. */
+export function refreshDesertAnimalPreset(document: PlanningDocument): void {
   const components = document.entities.world.components;
-  const animals = components.animals;
-  if (components.worldTemplate?.values.id !== "titan-wasteland" || !animals || animals.base) return;
-  const { values } = animals;
-  if (
-    values["species.min"] === 1 &&
-    values["species.max"] === 1 &&
+  const template = worldTemplate(components.worldTemplate?.values.id);
+  if (template?.id !== "titan-wasteland" || components.animals?.base) return;
+  const values = components.animals?.values ?? {};
+  const previousFlock = values["birdCount.species"] === "flamingo";
+  const residentsOnly =
+    values["birdCount.species"] === "swan" && values["species.min"] === 11 && values["birdCount.max"] === 1;
+  const previousCamels =
     values["species.camel.min"] === 4 &&
-    values["species.camel.max"] === 4
-  )
-    animals.values = { enabled: false };
+    values["species.camel.max"] === 4 &&
+    values["species.min"] === 1 &&
+    values["species.max"] === 1;
+  const retired = !components.animals || (values.enabled === false && Object.keys(values).length === 1);
+  if (previousFlock || residentsOnly || previousCamels || retired) {
+    const next = { ...values, ...templateAnimalValues(template.id, templateCore(template).anchor) };
+    delete next["species.camel.min"];
+    delete next["species.camel.max"];
+    components.animals = { values: next };
+  }
 }
 
 /** World material fields shared by first creation and palette-only authoring edits. */
@@ -373,20 +392,7 @@ export function createTemplatePlanningDocument(
   Object.assign(components.landscape.values, art.landscape, art.initialLandscape);
   if (art.flowerCoverage !== undefined) components.flowers.values.coverage = art.flowerCoverage;
   Object.assign(components.flowers.values, art.initialFlowers);
-  if (art.animals) {
-    const animals = structuredClone(art.animals) as Record<string, unknown>;
-    const offsetX = animals["birdCount.offsetX"];
-    const offsetZ = animals["birdCount.offsetZ"];
-    delete animals["birdCount.offsetX"];
-    delete animals["birdCount.offsetZ"];
-    if (typeof offsetX === "number" && typeof offsetZ === "number") {
-      animals["birdCount.centerX"] = anchor.x - offsetX;
-      animals["birdCount.centerZ"] = anchor.z + offsetZ;
-    }
-    components.animals = { values: animals };
-  } else {
-    components.animals = { values: { enabled: false } };
-  }
+  components.animals = { values: templateAnimalValues(id, anchor) };
   document.authoredResources = structuredClone(resources);
   // Template lakes enter the same native Source conversion as generated lakes.
   // Resolve their datum against this Seed's terrain before publishing the shape.

@@ -4,6 +4,7 @@ import {
   Downsampling,
   ScreenSpaceReflectionQuality,
   ScreenSpaceReflectionReceiverMode,
+  ScreenSpaceReflectionUpsamplingMode,
   type ScreenSpaceReflection,
   type ScreenSpaceReflectionConsumerLease,
   type ScreenSpaceReflectionConsumerRequest
@@ -77,7 +78,8 @@ const WATER_SCREEN_SPACE_REFLECTION_REQUESTS: Readonly<
   low: Object.freeze({
     receiverMode: ScreenSpaceReflectionReceiverMode.TransparentSampleOnly,
     quality: ScreenSpaceReflectionQuality.Low,
-    resolutionScale: 0.5,
+    resolutionScale: 0.25,
+    upsamplingMode: ScreenSpaceReflectionUpsamplingMode.Bilinear,
     maxRayDistance: 32,
     thickness: 0.35,
     maxRoughness: 0.7,
@@ -87,6 +89,7 @@ const WATER_SCREEN_SPACE_REFLECTION_REQUESTS: Readonly<
     receiverMode: ScreenSpaceReflectionReceiverMode.TransparentSampleOnly,
     quality: ScreenSpaceReflectionQuality.Medium,
     resolutionScale: 0.5,
+    upsamplingMode: ScreenSpaceReflectionUpsamplingMode.Bilinear,
     maxRayDistance: 56,
     thickness: 0.5,
     maxRoughness: 0.7,
@@ -96,6 +99,7 @@ const WATER_SCREEN_SPACE_REFLECTION_REQUESTS: Readonly<
     receiverMode: ScreenSpaceReflectionReceiverMode.TransparentSampleOnly,
     quality: ScreenSpaceReflectionQuality.High,
     resolutionScale: 0.5,
+    upsamplingMode: ScreenSpaceReflectionUpsamplingMode.Bilinear,
     maxRayDistance: 80,
     thickness: 0.6,
     maxRoughness: 0.7,
@@ -132,6 +136,7 @@ function screenSpaceReflectionRequestsEqual(
     left.receiverMode === right.receiverMode &&
     left.quality === right.quality &&
     left.resolutionScale === right.resolutionScale &&
+    left.upsamplingMode === right.upsamplingMode &&
     left.intensity === right.intensity &&
     left.maxRayDistance === right.maxRayDistance &&
     left.thickness === right.thickness &&
@@ -153,6 +158,7 @@ function resolveScreenSpaceReflectionCandidate(
   }
   if (override.quality !== undefined) candidate.quality = override.quality;
   if (override.resolutionScale !== undefined) candidate.resolutionScale = override.resolutionScale;
+  if (override.upsamplingMode !== undefined) candidate.upsamplingMode = override.upsamplingMode;
   if (override.intensity !== undefined) candidate.intensity = override.intensity;
   if (override.maxRayDistance !== undefined) candidate.maxRayDistance = override.maxRayDistance;
   if (override.thickness !== undefined) candidate.thickness = override.thickness;
@@ -172,6 +178,7 @@ function screenSpaceReflectionRequestKey(request: Readonly<ScreenSpaceReflection
     request.receiverMode ?? null,
     request.quality ?? null,
     request.resolutionScale ?? null,
+    request.upsamplingMode ?? null,
     request.intensity ?? null,
     request.maxRayDistance ?? null,
     request.thickness ?? null,
@@ -320,6 +327,15 @@ export class CameraWaterFeatureBroker {
       screenSpaceReflectionQualityRank(screenSpaceReflection.quality) < 0
     ) {
       throw new RangeError("Water Camera SSR quality is invalid.");
+    }
+    const { upsamplingMode } = screenSpaceReflection;
+    if (
+      upsamplingMode !== undefined &&
+      upsamplingMode !== ScreenSpaceReflectionUpsamplingMode.Bilinear &&
+      upsamplingMode !== ScreenSpaceReflectionUpsamplingMode.Bilateral &&
+      upsamplingMode !== ScreenSpaceReflectionUpsamplingMode.GaussianBilateral
+    ) {
+      throw new RangeError("Water Camera SSR upsamplingMode is invalid.");
     }
     const finiteRanges = [
       ["resolutionScale", screenSpaceReflection.resolutionScale, 0.25, 1],

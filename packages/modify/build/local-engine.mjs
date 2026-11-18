@@ -15,6 +15,7 @@ const names = [
   "rhi-webgl",
   "shader",
   "shader-compiler",
+  "shader-parser",
   "ui"
 ];
 // Only this script-owned staging directory is replaced. Never build in the native checkout.

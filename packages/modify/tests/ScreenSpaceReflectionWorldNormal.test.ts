@@ -64,7 +64,7 @@ function transformNormal(normal: Vector3, matrix: Readonly<Matrix>): Vector3 {
   return result.normalize();
 }
 
-function fixture(material?: Material) {
+function fixture(material?: Material, expectedSurfaceColors = 2) {
   const scene = new Scene(engine);
   engine.sceneManager.activeScene = scene;
   scene.background.solidColor = new Color(0, 0, 0, 1);
@@ -109,7 +109,10 @@ function fixture(material?: Material) {
       if (stage === "trace") {
         const texture = pass._surfaceTarget.getColorTexture(0) as Texture2D;
         expect(texture.format).toBe(TextureFormat.R8G8B8A8);
-        expect(pass._surfaceTarget.getColorTexture(1)!.format).toBe(TextureFormat.R8G8B8A8);
+        expect(pass._surfaceTarget.colorTextureCount).toBe(expectedSurfaceColors);
+        if (expectedSurfaceColors === 2) {
+          expect(pass._surfaceTarget.getColorTexture(1)!.format).toBe(TextureFormat.R8G8B8A8);
+        }
         texture.getPixelBuffer(0, 0, SIZE, SIZE, 0, surface);
       } else if (stage === "composite" && readTrace) {
         trace = readTraceTarget(pass._traceTarget, SIZE);
@@ -258,7 +261,7 @@ it.each(["lake", "river"] as const)(
     ])
       material.shaderData.setFloat(name, 0);
     material.shaderData.setFloat("material_SurfaceTimeOverride", 0);
-    const context = fixture(material);
+    const context = fixture(material, 1);
     // River's mesh attributes carry width/depth/current independently of its material.
     for (let channel = 1; channel <= 5; channel++) {
       const value = channel === 3 ? new Vector2(100, 2) : new Vector2();

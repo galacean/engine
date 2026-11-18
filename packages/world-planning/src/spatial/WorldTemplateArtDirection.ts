@@ -3,8 +3,14 @@ import type { TemplateProceduralPlantInstance } from "./runtime/TemplateProcedur
 import type { SeedWorldCameraBookmark } from "../world/SeedWorldCameraBookmark";
 import type { SpatialCompositionParameters } from "./SpatialCompositionParameters";
 import { WORLD_TEMPLATE_CONFIGS } from "./WorldTemplateConfig";
+import templateWildlife from "../planning-data/template-wildlife.json";
 import { LOW_POLY_VALLEY } from "./world-templates/LowPolyValley";
-import { OASIS_BANK_PLANTS, OASIS_BANK_STONES, OASIS_SANDBARS, OASIS_SHORELINE } from "./world-templates/OasisFloodplain";
+import {
+  OASIS_BANK_PLANTS,
+  OASIS_BANK_STONES,
+  OASIS_SANDBARS,
+  OASIS_SHORELINE
+} from "./world-templates/OasisFloodplain";
 
 export interface WorldTemplatePalette {
   grass: [string, string];
@@ -109,6 +115,23 @@ export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
     intensity: number;
     emission?: { color: string; intensity: number };
   };
+  /** 3D wing-flapping ambient butterfly mesh particles around a focal tree and floral island. */
+  butterflies?: {
+    textureUrl: string;
+    count: number;
+    center: [number, number, number];
+    extent: [number, number, number];
+    canopyRatio: number;
+    sizeM: [number, number];
+    lifetimeSeconds: number;
+    flapSpeed: number;
+    flutterMps: number;
+    flutterWavelengthM: number;
+    turnDegreesPerSecond: number;
+    color: string;
+    intensity: number;
+    emissionIntensity: number;
+  };
   /** Scalar authoring only; roads, water, relief and populations are derived. */
   generation?: Partial<SpatialCompositionParameters>;
   lighting: Record<string, number | boolean>;
@@ -127,6 +150,7 @@ export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
     cloudEnvelopeScale?: number;
     cloudTopDensityMultiplier?: number;
     cloudDetailNoiseMultiplier?: number;
+    cloudAmbientFloor?: number;
     rainRate?: number;
     snowRate?: number;
     temperatureCelsius?: number;
@@ -336,7 +360,8 @@ const sakuraSubject = sakura.spawn?.subject;
 const templateAssets: Readonly<Record<string, string>> = {
   "pink-tree": new URL("../assets/pink-tree.glb", import.meta.url).href,
   "forest-giant-oak": new URL("../assets/forest-giant-oak.glb", import.meta.url).href,
-  "sakura-petal": new URL("../assets/sakura-petal.png", import.meta.url).href
+  "sakura-petal": new URL("../assets/sakura-petal.png", import.meta.url).href,
+  "oasis-butterflies": new URL("../assets/oasis-butterflies.png", import.meta.url).href
 };
 const sakuraPetals =
   sakura.petals &&
@@ -346,6 +371,8 @@ const sakuraPetals =
     if (!textureUrl) throw new Error(`未知花瓣粒子贴图：${texture}`);
     return { ...effect, textureUrl };
   })();
+
+const oasisWildlife = templateWildlife["titan-wasteland"];
 
 export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirection>> = {
   "low-poly": LOW_POLY_VALLEY,
@@ -559,6 +586,22 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       terrainRoughness: 0.25,
       replacePopulation: true
     },
+    butterflies: {
+      textureUrl: templateAssets["oasis-butterflies"],
+      count: 58,
+      center: [-14.0, 1.9, -1.6],
+      extent: [19.5, 10.2, 11.0],
+      canopyRatio: 0.44,
+      sizeM: [0.48, 0.78],
+      lifetimeSeconds: 6.5,
+      flapSpeed: 20,
+      flutterMps: 0.92,
+      flutterWavelengthM: 2.2,
+      turnDegreesPerSecond: 62,
+      color: "#ffffff",
+      intensity: 1.25,
+      emissionIntensity: 7.5
+    },
     models: [
       {
         id: "oasis-scarlet-tree",
@@ -585,15 +628,15 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     ],
     terrain: [
       { id: "overlook-dune", x: -2, z: -72, kind: "patch", radius: 34, height: 5.4 },
-      { id: "island-sandbar", x: -14, z: -1, kind: "patch", radius: 16.5, height: 0.15 },
-      { id: "east-dune-slope", x: 68, z: -18, kind: "patch", radius: 24, height: 1.8 },
-      { id: "west-canyon-bench", x: -56, z: 151, kind: "plateau", length: 106, width: 47, height: 3.5, heading: 83 },
-      { id: "east-canyon-bench", x: 70, z: 198, kind: "plateau", length: 124, width: 60, height: 5.0, heading: 102 },
-      { id: "far-canyon-bench", x: -35, z: 267, kind: "ridge", length: 154, width: 52, height: 3.5, heading: 71 },
-      { id: "gap-west-peak", x: -23, z: 295, kind: "mountain", length: 105, width: 58, height: 42, heading: 82 },
-      { id: "gap-east-peak", x: 6, z: 320, kind: "mountain", length: 112, width: 62, height: 34, heading: 96 },
-      { id: "west-skyline-peak", x: -145, z: 365, kind: "mountain", length: 185, width: 95, height: 54, heading: 76 },
-      { id: "center-skyline-peak", x: -10, z: 420, kind: "mountain", length: 175, width: 85, height: 34, heading: 94 },
+      { id: "causeway-sandbar", x: -16.4, z: -13.5, kind: "patch", radius: 10.8, height: 0.24 },
+      { id: "island-sandbar", x: -14.2, z: -0.6, kind: "patch", radius: 17.5, height: 0.26 },
+      { id: "right-shoal-sandbar", x: 16.0, z: -11.0, kind: "patch", radius: 9.0, height: 0.14 },
+      { id: "east-dune-slope", x: 68, z: -18, kind: "patch", radius: 24, height: 1.6 },
+      { id: "west-canyon-bench", x: -56, z: 151, kind: "plateau", length: 106, width: 47, height: 3.0, heading: 83 },
+      { id: "east-canyon-bench", x: 70, z: 198, kind: "plateau", length: 124, width: 60, height: 4.5, heading: 102 },
+      { id: "far-canyon-bench", x: -35, z: 267, kind: "ridge", length: 154, width: 52, height: 3.0, heading: 71 },
+      { id: "gap-east-peak", x: -5, z: 315, kind: "mountain", length: 138, width: 88, height: 42, heading: 94 },
+      { id: "west-skyline-peak", x: -148, z: 340, kind: "mountain", length: 125, width: 80, height: 74, heading: 82 },
       { id: "east-skyline-peak", x: 152, z: 395, kind: "mountain", length: 155, width: 82, height: 54, heading: 72 }
     ],
     water: [
@@ -685,10 +728,10 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
         ["right-ledge-3", 84, 35, -2, 34, 28, 18, 195],
         ["right-ledge-4", 88, 24, -2, 28, 24, 12, 58],
         ["right-ledge-5", 98, 29, -2, 34, 28, 15, 148],
-        // Left midground warm amber-ochre stepped canyon wall + pointed red spire framing the hero tree
-        ["left-cliff-apron-e", -28, 21, -2, 22, 19, 10, 18],
-        ["left-gap-spire", -25.5, 30, -2, 16, 15, 24, 28],
-        ["left-cliff-front-e", -34, 26, -2, 28, 24, 14, 35],
+        // Left midground warm amber-ochre stepped canyon wall + pointed red spire framing the left gap mountain
+        ["left-cliff-apron-e", -29, 21, -2, 20, 18, 10, 18],
+        ["left-gap-spire", -30.5, 30, -2, 16, 15, 24, 28],
+        ["left-cliff-front-e", -37, 26, -2, 26, 22, 14, 35],
         ["left-cliff-front-c", -45, 28, -2, 32, 27, 16, 125],
         ["left-cliff-front-top", -42, 33, -2, 30, 26, 20, 215],
         ["left-cliff-mid-w", -55, 29, -2, 32, 27, 18, 82],
@@ -702,7 +745,64 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
         ["left-cliff-rear-top", -94, 57, -2, 40, 36, 44, 200],
         // Distant far-east rocky skyline shoulder behind right slope
         ["far-east-crag-base", 115, 165, -2, 38, 32, 24, 42],
-        ["far-east-crag-peak", 113, 168, -2, 34, 30, 32, 132]
+        ["far-east-crag-peak", 113, 168, -2, 34, 30, 32, 132],
+        // Western desert canyon rim, stepped buttes & golden sandstone outcrops (x = -68..-176, z = -44..+18, safely west of x = -60 lagoon)
+        ["west-rim-buttress-1", -84, 14, -2, 32, 27, 19, 48],
+        ["west-rim-buttress-2", -98, 17, -2, 36, 30, 25, 136],
+        ["west-rim-mesa-1", -115, 19, -2, 40, 34, 30, 224],
+        ["west-rim-mesa-2", -134, 13, -2, 38, 32, 26, 72],
+        ["west-rim-mesa-3", -154, 6, -2, 36, 30, 21, 164],
+        ["west-rim-butte-far", -174, -4, -2, 34, 28, 18, 28],
+        ["west-plain-outcrop-1", -75, -5, -2, 22, 18, 10.5, 112],
+        ["west-plain-outcrop-2", -92, -8, -2, 28, 24, 14.5, 202],
+        ["west-plain-outcrop-3", -114, -12, -2, 32, 26, 17.5, 38],
+        ["west-plain-butte-sw1", -80, -25, -2, 22, 19, 9.2, 148],
+        ["west-plain-butte-sw2", -102, -29, -2, 28, 24, 13.0, 238],
+        ["west-plain-butte-sw3", -126, -32, -2, 32, 27, 16.0, 64],
+        ["west-plain-butte-sw4", -150, -24, -2, 30, 25, 14.0, 154],
+        ["west-plain-shelf-s1", -68, -36, -2, 18, 15, 6.4, 86],
+        ["west-plain-shelf-s2", -88, -42, -2, 24, 20, 8.8, 176],
+        ["west-plain-shelf-s3", -116, -44, -2, 28, 23, 11.2, 18],
+        // Eastern desert canyon rim, stepped mesas & golden sandstone outcrops (x = +72..+182, z = -42..+16, safely east of x = +58 lagoon)
+        ["east-rim-buttress-1", 74, 12, -2, 28, 24, 14, 34],
+        ["east-rim-buttress-2", 90, 10, -2, 34, 28, 19, 124],
+        ["east-rim-mesa-1", 108, 12, -2, 38, 32, 24, 214],
+        ["east-rim-mesa-2", 128, 8, -2, 40, 34, 27, 56],
+        ["east-rim-mesa-3", 148, 2, -2, 36, 30, 22, 146],
+        ["east-rim-butte-far", 168, -8, -2, 34, 28, 18, 236],
+        ["east-plain-outcrop-1", 73, -6, -2, 20, 17, 9.2, 92],
+        ["east-plain-outcrop-2", 89, -9, -2, 26, 22, 13.5, 182],
+        ["east-plain-outcrop-3", 110, -13, -2, 32, 26, 17.0, 24],
+        ["east-plain-outcrop-4", 134, -18, -2, 34, 28, 19.0, 114],
+        ["east-plain-butte-se1", 84, -25, -2, 22, 18, 8.6, 208],
+        ["east-plain-butte-se2", 104, -29, -2, 28, 24, 12.5, 42],
+        ["east-plain-butte-se3", 126, -33, -2, 32, 26, 15.0, 132],
+        ["east-plain-butte-se4", 150, -28, -2, 30, 25, 13.0, 222],
+        ["east-plain-shelf-s1", 92, -40, -2, 22, 18, 7.6, 68],
+        ["east-plain-shelf-s2", 116, -42, -2, 26, 22, 10.5, 158],
+        // North canyon river-bend sandy peninsula shelves & mid-to-far desert basin mesas (low enough to keep both gap peaks prominent!)
+        ["north-bend-shelf-w1", -24, 45, -2, 18, 15, 7.2, 32],
+        ["north-bend-shelf-c1", -15, 50, -2, 15, 13, 4.4, 122],
+        ["north-bend-shelf-w2", -22, 60, -2, 19, 16, 6.6, 212],
+        ["north-bend-shelf-c2", -11, 64, -2, 14, 12, 3.8, 54],
+        ["north-bend-shelf-w3", -26, 76, -2, 22, 18, 8.4, 144],
+        ["north-bend-shelf-c3", -15, 82, -2, 16, 14, 5.0, 234],
+        ["north-bend-shelf-w4", -24, 94, -2, 20, 17, 7.2, 68],
+        ["north-bend-east-1", 23, 66, -2, 22, 18, 8.5, 158],
+        ["north-bend-east-2", 26, 84, -2, 24, 20, 9.6, 248],
+        ["north-bend-east-3", 19, 102, -2, 20, 17, 7.2, 82],
+        ["canyon-basin-mesa-w1", -48, 124, -2, 30, 25, 12.8, 26],
+        ["canyon-basin-shelf-w2", -28, 128, -2, 24, 20, 8.6, 116],
+        ["canyon-basin-shelf-c1", -8, 132, -2, 22, 18, 6.2, 206],
+        ["canyon-basin-shelf-e1", 14, 126, -2, 25, 21, 9.2, 48],
+        ["canyon-basin-mesa-w3", -60, 156, -2, 34, 28, 15.5, 138],
+        ["canyon-basin-shelf-w4", -36, 162, -2, 28, 23, 10.2, 228],
+        ["canyon-basin-shelf-c2", -14, 168, -2, 24, 20, 7.2, 62],
+        ["canyon-basin-shelf-e2", 12, 160, -2, 26, 22, 9.6, 152],
+        ["canyon-basin-mesa-e3", 35, 154, -2, 30, 25, 13.2, 242],
+        ["canyon-basin-far-w", -46, 196, -2, 32, 26, 13.8, 84],
+        ["canyon-basin-far-c", -18, 202, -2, 26, 22, 8.5, 174],
+        ["canyon-basin-far-e", 10, 194, -2, 28, 23, 9.4, 14]
       ].map(([id, x, z, y, width, depth, height, yawDegrees]) => ({
         id: id as string,
         x: x as number,
@@ -717,40 +817,83 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       })),
       ...OASIS_BANK_STONES,
       ...[
-        // Prominent foreground center-right weathered limestone boulders & slabs bridging behind the orb to lower-right (x = -4..26, z = -18..-40)
-        [-3.8, -18.6, -0.22, 2.8, 2.3, 1.55, 28],
-        [-1.4, -21.2, -0.26, 3.6, 3.0, 1.95, 116],
-        [1.4, -23.8, -0.24, 3.2, 2.6, 1.75, 204],
-        [4.2, -26.4, -0.28, 4.0, 3.3, 2.15, 54],
-        [7.0, -28.8, -0.26, 3.5, 2.9, 1.88, 142],
-        [9.6, -30.6, -0.3, 4.2, 3.5, 2.2, 232],
-        [12.2, -32.2, -0.34, 4.8, 3.9, 2.45, 24],
-        [15.0, -33.6, -0.36, 5.1, 4.2, 2.55, 112],
-        [18.2, -35.2, -0.34, 4.9, 4.0, 2.45, 62],
-        [21.6, -36.8, -0.38, 5.3, 4.3, 2.6, 148],
-        [25.0, -38.2, -0.32, 4.5, 3.7, 2.25, 32],
-        // Scattered foreground cobbles & flat rock chips in front of the boulder bank
-        [-0.4, -24.8, -0.18, 1.6, 1.3, 0.88, 84],
-        [2.8, -28.2, -0.18, 1.7, 1.4, 0.92, 172],
-        [6.2, -31.2, -0.2, 1.9, 1.5, 1.02, 42],
-        [10.2, -33.8, -0.2, 2.1, 1.7, 1.1, 194],
-        [13.6, -35.8, -0.22, 2.3, 1.8, 1.18, 76],
-        [17.2, -37.8, -0.2, 1.9, 1.5, 0.98, 164],
-        [20.6, -39.4, -0.2, 2.1, 1.7, 1.05, 252],
-        [23.8, -40.8, -0.18, 1.6, 1.3, 0.82, 44],
-        [-21.8, -28.6, -0.18, 1.3, 1.1, 0.68, 88],
-        // Slabs exposed on the dry outer bank, behind the wading shoal.
-        [19, 12.8, -0.48, 3.8, 2.6, 1.45, 24],
-        [23, 12.5, -0.34, 2.3, 1.7, 1.0, 96],
-        [28, 12.2, -0.6, 4.6, 3.1, 1.8, 158],
-        [36, 10.5, -0.46, 3.2, 2.1, 1.3, 52],
-        // Foothill talus rocks scattered naturally at the base of the sandstone cliffs
-        [13.5, 22.0, -0.6, 3.4, 2.9, 2.1, 36],
-        [22.5, 24.5, -0.7, 3.8, 3.2, 2.3, 128],
-        [56.0, 19.5, -0.65, 3.6, 3.0, 2.2, 214],
-        [69.0, 17.5, -0.6, 3.2, 2.8, 2.0, 86],
-        [-26.5, 16.5, -0.55, 3.0, 2.6, 1.85, 54],
-        [-38.5, 18.0, -0.65, 3.5, 3.0, 2.15, 146]
+        // Cluster 1: Cove-head boulder group right above the rainbow orb (x = -8.2..-3.6, z = -13.6..-17.2; leaving x = -23..-9.5 open sandbar ridge!)
+        [-7.6, -14.2, -0.55, 3.8, 3.1, 2.35, 28],
+        [-5.2, -15.8, -0.45, 3.1, 2.5, 1.95, 118],
+        [-3.6, -17.0, -0.38, 2.3, 1.9, 1.48, 206],
+        [-8.8, -15.6, -0.28, 1.5, 1.2, 0.95, 74],
+        [-6.4, -17.4, -0.24, 1.25, 1.0, 0.8, 164],
+        // Open sandy gap (-3.0..+1.0) with two small shore cobbles
+        [-0.8, -18.8, -0.22, 1.1, 0.9, 0.68, 52],
+        [0.8, -19.8, -0.2, 0.95, 0.78, 0.58, 148],
+        // Cluster 2: Mid-shore boulder group to the upper-right of the orb (x = +1.8..+7.6, z = -20.0..-23.5) framing golden plume-grass!
+        [2.4, -20.4, -0.48, 3.4, 2.8, 2.1, 42],
+        [4.8, -21.6, -0.58, 4.1, 3.3, 2.48, 134],
+        [7.2, -22.8, -0.42, 2.9, 2.4, 1.82, 224],
+        [1.4, -22.2, -0.26, 1.45, 1.2, 0.9, 92],
+        [4.2, -23.8, -0.3, 1.75, 1.4, 1.08, 186],
+        [6.4, -24.6, -0.26, 1.4, 1.15, 0.88, 36],
+        // Cluster 3: Prominent lower-right weathered limestone slab boulders & blocks WELL IN FRAME (x = +9.8..+24.5, z = -23.6..-29.2, leaving dry rippled sand below at z = -30..-42!)
+        [10.2, -24.0, -0.62, 4.6, 3.7, 2.65, 22],
+        [13.0, -25.2, -0.78, 5.4, 4.4, 3.05, 108],
+        [16.2, -26.4, -0.88, 6.0, 4.8, 3.35, 18],
+        [14.2, -27.8, -0.58, 4.2, 3.4, 2.42, 196],
+        [19.4, -27.6, -0.82, 5.8, 4.6, 3.2, 64],
+        [22.6, -28.8, -0.72, 5.0, 4.0, 2.82, 152],
+        [11.4, -26.8, -0.45, 3.2, 2.6, 1.85, 244],
+        [17.8, -29.2, -0.52, 3.8, 3.0, 2.15, 86],
+        // Abundant scattered foreground cobbles, flat rock chips & pebbles across the dry golden sand below Cluster 3 (z = -28..-39, x = +5..+25)
+        [7.6, -26.8, -0.28, 1.65, 1.35, 0.98, 38],
+        [9.6, -28.4, -0.32, 1.95, 1.6, 1.15, 128],
+        [12.2, -29.8, -0.36, 2.2, 1.8, 1.28, 218],
+        [15.0, -31.0, -0.3, 1.8, 1.45, 1.06, 82],
+        [18.2, -31.8, -0.34, 2.1, 1.7, 1.22, 174],
+        [21.2, -32.6, -0.3, 1.85, 1.5, 1.08, 264],
+        [24.0, -33.4, -0.28, 1.65, 1.35, 0.96, 48],
+        [5.8, -29.4, -0.2, 1.1, 0.9, 0.65, 142],
+        [8.2, -31.2, -0.18, 0.95, 0.78, 0.56, 232],
+        [10.8, -32.8, -0.22, 1.25, 1.0, 0.74, 64],
+        [13.4, -34.2, -0.2, 1.08, 0.88, 0.64, 156],
+        [16.2, -35.2, -0.24, 1.35, 1.1, 0.78, 246],
+        [19.2, -36.2, -0.22, 1.2, 0.98, 0.7, 28],
+        [22.0, -37.0, -0.24, 1.3, 1.05, 0.76, 118],
+        [24.6, -37.8, -0.18, 0.98, 0.8, 0.58, 208],
+        [11.8, -36.8, -0.16, 0.85, 0.7, 0.5, 94],
+        [15.2, -38.0, -0.18, 0.92, 0.75, 0.54, 184],
+        [18.4, -39.0, -0.16, 0.82, 0.68, 0.48, 42],
+        // Tiny pebbles around the leaning left snag & right wading shoal
+        [-22.0, -28.6, -0.24, 1.15, 0.92, 0.68, 88],
+        [-24.2, -27.4, -0.2, 0.9, 0.74, 0.54, 176],
+        [20.8, -11.4, -0.24, 1.15, 0.95, 0.68, 54],
+        [22.6, -10.8, -0.2, 0.92, 0.76, 0.54, 144],
+        // Continuous pale weathered talus boulders woven along the entire right cliff base (x = 14..52, z = 11.5..18) & left cliff base
+        [14.5, 16.2, -0.65, 2.8, 2.3, 1.75, 36],
+        [18.8, 14.5, -0.5, 2.2, 1.8, 1.38, 128],
+        [22.6, 13.8, -0.72, 3.2, 2.6, 1.98, 24],
+        [26.5, 13.2, -0.45, 1.9, 1.6, 1.2, 96],
+        [30.8, 12.6, -0.78, 3.5, 2.8, 2.15, 158],
+        [35.2, 12.2, -0.55, 2.4, 2.0, 1.5, 52],
+        [39.8, 11.8, -0.68, 2.9, 2.4, 1.82, 142],
+        [44.2, 11.2, -0.5, 2.2, 1.8, 1.38, 232],
+        [50.5, 11.8, -0.7, 3.1, 2.5, 1.92, 74],
+        [-26.5, 16.5, -0.65, 2.8, 2.3, 1.75, 54],
+        [-34.5, 15.8, -0.55, 2.4, 2.0, 1.5, 146],
+        [-42.5, 15.0, -0.7, 3.0, 2.5, 1.88, 236],
+        [-51.5, 13.5, -0.52, 2.3, 1.9, 1.44, 18],
+        // Scattered weathered desert boulders along the west, east & north-bend sandstone outcrops
+        [-64.0, -8.5, -0.55, 3.4, 2.8, 2.05, 42],
+        [-67.5, -18.0, -0.48, 2.8, 2.3, 1.68, 132],
+        [-62.5, -30.5, -0.52, 3.1, 2.5, 1.82, 222],
+        [-78.0, -16.5, -0.62, 3.8, 3.1, 2.25, 68],
+        [63.5, -4.5, -0.55, 3.3, 2.7, 1.98, 154],
+        [66.0, -14.5, -0.48, 2.9, 2.4, 1.72, 244],
+        [76.0, -18.5, -0.58, 3.6, 2.9, 2.15, 86],
+        [78.5, -32.0, -0.52, 3.2, 2.6, 1.88, 176],
+        [-11.5, 38.5, -0.45, 2.6, 2.1, 1.55, 34],
+        [-18.5, 41.5, -0.52, 3.1, 2.5, 1.82, 124],
+        [-9.5, 55.0, -0.42, 2.4, 2.0, 1.45, 214],
+        [-8.0, 74.0, -0.48, 2.8, 2.3, 1.68, 56],
+        [-12.5, 89.5, -0.44, 2.5, 2.1, 1.52, 146]
       ].map(([x, z, y, width, depth, height, yawDegrees], i) => ({
         id: `shore-boulder-${i + 1}`,
         x,
@@ -763,14 +906,14 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
         collision: false
       }))
     ],
-    grass: ["#c89b68", "#dfc094"],
-    ground: "#d8aa80",
-    road: "#cd9c70",
-    foliage: "#6d784e",
+    grass: ["#e2b678", "#f2d6a2"],
+    ground: "#dfa166",
+    road: "#d5955a",
+    foliage: "#9eac8a",
     bark: "#6c4832",
-    flowers: "#f0a6f4",
-    stone: "#e87e4e",
-    shoreStone: "#ffdfb0",
+    flowers: "#eba8f6",
+    stone: "#f49c6e",
+    shoreStone: "#ffe5bd",
     surfaceTextures: {
       baseUrl:
         "https://mdn.alipayobjects.com/rms/afts/img/A*Ny-fSavfzw8AAAAAVWAAAAgAehQnAQ/original/SandSurfaceBase.ktx2",
@@ -876,10 +1019,17 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
         [-13.0, -1.0, 0.86, 298, 3, 1.58],
         [-9.8, -0.8, 0.82, 44, 0, 1.55],
         [-7.0, -0.4, 0.78, 116, 2, 1.5],
-        // Foreground sandbar tongue blossom accents (dry bank at z = -15.5..-18.5)
-        [-16.4, -16.8, 0.58, 74, 0, 1.28],
-        [-13.8, -15.8, 0.62, 146, 1, 1.32],
-        [-11.4, -15.4, 0.58, 218, 2, 1.28]
+        // Sandbar ridge floral drifts spilling southward along the golden sandbar ridge (z = -6.2..-13.8)
+        [-19.8, -6.6, 0.68, 74, 0, 1.4],
+        [-17.2, -6.8, 0.72, 146, 1, 1.44],
+        [-14.6, -6.6, 0.7, 218, 2, 1.42],
+        [-12.0, -6.4, 0.66, 290, 3, 1.38],
+        [-18.6, -8.4, 0.62, 52, 1, 1.34],
+        [-16.0, -8.6, 0.66, 124, 0, 1.38],
+        [-13.6, -8.2, 0.62, 196, 3, 1.34],
+        [-17.4, -10.6, 0.56, 268, 2, 1.28],
+        [-14.8, -10.8, 0.58, 34, 0, 1.3],
+        [-9.2, -13.4, 0.54, 108, 1, 1.24]
       ].map(([x, z, heightM, yawDegrees, variant, spreadScale], i) => ({
         id: `island-pastel-flower-${i + 1}`,
         kind: "pastel-flower" as const,
@@ -892,36 +1042,55 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       })),
       // Silvery-sage desert bushes perched directly ON TOP of stepped horizontal sandstone cliff ledges (`onRock: true`).
       ...[
-        // Right massif front buttress tops, mid shelves, upper crown & eastern shoulders
-        [20.5, 28.5, 1.68, 86, 2, 1.35],
-        [23.5, 31.0, 1.85, 24, 0, 1.42],
-        [26.5, 32.4, 1.62, 118, 1, 1.34],
-        [35.0, 33.2, 1.88, 204, 2, 1.42],
-        [39.0, 34.0, 1.58, 68, 3, 1.32],
-        [43.5, 39.2, 1.78, 158, 0, 1.38],
-        [49.0, 33.2, 1.68, 152, 0, 1.34],
-        [57.5, 34.5, 1.85, 242, 1, 1.4],
-        [61.5, 35.0, 1.55, 34, 2, 1.3],
-        [64.5, 26.8, 1.65, 126, 3, 1.32],
-        [74.5, 30.5, 1.75, 218, 0, 1.35],
-        [83.5, 34.5, 1.62, 88, 1, 1.32],
-        [28.5, 42.5, 1.72, 174, 2, 1.34],
-        [36.5, 45.0, 1.86, 264, 0, 1.4],
-        [44.5, 46.2, 1.66, 46, 3, 1.32],
-        [35.5, 51.5, 1.76, 138, 1, 1.36],
-        [39.2, 53.0, 1.56, 224, 2, 1.28],
+        // Right massif front buttress tops, mid shelves, upper crown & eastern shoulders (multi-crown ledge clusters!)
+        [20.5, 28.5, 1.85, 86, 2, 1.5],
+        [22.4, 29.8, 2.05, 18, 0, 1.58],
+        [24.6, 31.2, 1.75, 134, 1, 1.45],
+        [33.2, 32.8, 1.95, 204, 2, 1.55],
+        [35.6, 33.4, 1.68, 68, 3, 1.42],
+        [43.5, 39.2, 1.85, 158, 0, 1.48],
+        [48.5, 33.2, 1.92, 152, 1, 1.52],
+        [51.2, 33.8, 1.62, 248, 2, 1.4],
+        [57.5, 34.5, 1.85, 242, 0, 1.48],
+        [64.5, 26.8, 1.75, 126, 3, 1.44],
+        [74.5, 30.5, 1.82, 218, 0, 1.46],
+        [28.5, 42.5, 1.8, 174, 2, 1.45],
+        [36.5, 45.0, 1.95, 264, 0, 1.52],
+        [35.5, 51.5, 1.85, 138, 1, 1.48],
+        [39.2, 53.0, 1.65, 224, 2, 1.38],
         // Left massif front bluff tops, stepped shelves & upper ridge ledges
-        [-28.0, 20.8, 1.45, 52, 1, 1.28],
-        [-34.5, 25.2, 1.68, 144, 0, 1.34],
-        [-38.5, 26.4, 1.5, 236, 2, 1.28],
-        [-44.5, 27.5, 1.78, 18, 3, 1.38],
-        [-48.5, 28.2, 1.56, 108, 0, 1.3],
-        [-42.0, 32.8, 1.72, 196, 1, 1.35],
-        [-55.0, 28.5, 1.8, 284, 2, 1.38],
-        [-64.5, 22.8, 1.62, 74, 3, 1.32],
-        [-55.5, 41.2, 1.75, 164, 0, 1.35],
-        [-65.5, 44.5, 1.82, 252, 1, 1.38],
-        [-77.0, 48.2, 1.72, 38, 2, 1.34]
+        [-28.0, 20.8, 1.55, 52, 1, 1.38],
+        [-34.5, 25.2, 1.82, 144, 0, 1.48],
+        [-37.2, 26.0, 1.58, 236, 2, 1.38],
+        [-44.5, 27.5, 1.92, 18, 3, 1.52],
+        [-47.5, 28.0, 1.68, 108, 0, 1.42],
+        [-42.0, 32.8, 1.82, 196, 1, 1.46],
+        [-55.0, 28.5, 1.9, 284, 2, 1.5],
+        [-64.5, 22.8, 1.72, 74, 3, 1.42],
+        [-55.5, 41.2, 1.82, 164, 0, 1.45],
+        [-65.5, 44.5, 1.9, 252, 1, 1.48],
+        // Ledge sage bushes perched on top of the new West, East & North Canyon sandstone shelves/buttes (`onRock: true`)
+        [-84.5, 13.5, 1.82, 62, 0, 1.48],
+        [-98.5, 16.5, 1.95, 152, 1, 1.52],
+        [-115.0, 18.5, 2.05, 242, 2, 1.56],
+        [-91.5, -8.0, 1.65, 38, 3, 1.42],
+        [-113.5, -12.0, 1.78, 128, 0, 1.46],
+        [-101.5, -28.5, 1.62, 218, 1, 1.4],
+        [-125.5, -31.5, 1.75, 84, 2, 1.46],
+        [74.5, 11.5, 1.72, 114, 0, 1.44],
+        [90.5, 9.5, 1.85, 204, 1, 1.5],
+        [108.5, 11.5, 1.95, 34, 2, 1.54],
+        [89.5, -9.0, 1.68, 124, 3, 1.42],
+        [110.5, -13.0, 1.8, 214, 0, 1.48],
+        [104.5, -29.0, 1.65, 68, 1, 1.42],
+        [126.5, -33.0, 1.78, 158, 2, 1.46],
+        [-24.0, 45.0, 1.48, 46, 0, 1.38],
+        [-22.0, 60.0, 1.45, 136, 1, 1.36],
+        [-26.0, 76.0, 1.58, 226, 2, 1.42],
+        [23.0, 66.0, 1.55, 82, 3, 1.4],
+        [-48.0, 124.0, 1.72, 172, 0, 1.45],
+        [-28.0, 128.0, 1.55, 262, 1, 1.38],
+        [14.0, 126.0, 1.6, 54, 2, 1.4]
       ].map(([x, z, heightM, yawDegrees, variant, spreadScale], i) => ({
         id: `cliff-ledge-shrub-${i + 1}`,
         kind: "desert-shrub" as const,
@@ -933,19 +1102,135 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
         spreadScale,
         onRock: true
       })),
-      // Extra feathery golden plume-grass (`plume-grass`) in foreground boulder crevices behind the orb & around the snag.
+      // Hero silvery-sage desert scrub accents along the right cliff foot (especially the lush far-right bush!) & island edge.
       ...[
-        [-10.2, -15.6, 0.96, 28, 0, 1.18],
-        [-5.8, -16.8, 1.04, 118, 1, 1.22],
-        [-1.8, -20.2, 1.12, 208, 2, 1.25],
-        [2.6, -24.6, 1.22, 64, 0, 1.28],
-        [5.4, -27.2, 1.18, 154, 1, 1.26],
-        [8.6, -29.8, 1.15, 244, 2, 1.24],
-        [13.4, -33.2, 1.2, 38, 0, 1.26],
-        [17.8, -35.8, 1.24, 128, 1, 1.28],
-        [22.4, -38.2, 1.16, 218, 2, 1.24],
-        [-22.2, -27.6, 0.94, 84, 0, 1.15],
-        [-24.4, -28.8, 0.88, 174, 2, 1.12]
+        [15.2, 15.2, 1.45, 38, 0, 1.5],
+        [24.2, 13.5, 1.72, 128, 1, 1.58],
+        [28.5, 12.8, 1.52, 218, 2, 1.48],
+        [37.4, 12.0, 1.68, 84, 3, 1.55],
+        [45.8, 10.8, 2.25, 164, 0, 1.72],
+        [48.2, 11.4, 1.95, 254, 1, 1.62],
+        [51.0, 10.6, 1.75, 42, 2, 1.55],
+        [-35.2, 16.0, 1.95, 118, 0, 1.62],
+        [-46.5, 14.2, 1.78, 208, 1, 1.55],
+        [-20.8, -13.2, 0.72, 64, 2, 1.38],
+        // Rich desert sage scrub belts hugging the bases of ALL new West, East & North Canyon sandstone formations!
+        [-64.5, 4.5, 1.68, 48, 0, 1.5],
+        [-71.0, -11.5, 1.58, 138, 1, 1.45],
+        [-74.5, -28.0, 1.52, 228, 2, 1.42],
+        [-62.0, -34.0, 1.42, 318, 3, 1.38],
+        [-82.0, 1.5, 1.85, 76, 0, 1.56],
+        [-86.0, -16.5, 1.72, 166, 1, 1.5],
+        [-96.0, -21.0, 1.78, 256, 2, 1.52],
+        [-80.0, -36.5, 1.55, 34, 3, 1.44],
+        [-106.0, -39.0, 1.68, 124, 0, 1.48],
+        [-118.0, -23.0, 1.82, 214, 1, 1.54],
+        [-138.0, -16.0, 1.75, 62, 2, 1.5],
+        [63.5, 4.0, 1.72, 74, 0, 1.52],
+        [69.5, -10.5, 1.62, 164, 1, 1.48],
+        [78.5, -24.5, 1.55, 254, 2, 1.44],
+        [74.0, -16.0, 1.68, 42, 3, 1.48],
+        [84.0, 0.5, 1.85, 132, 0, 1.56],
+        [96.0, -19.5, 1.78, 222, 1, 1.52],
+        [86.0, -34.5, 1.52, 58, 2, 1.42],
+        [110.0, -38.0, 1.68, 148, 3, 1.48],
+        [120.0, -22.5, 1.82, 238, 0, 1.54],
+        [140.0, -10.0, 1.75, 86, 1, 1.5],
+        [-14.5, 42.5, 1.42, 36, 0, 1.38],
+        [-20.5, 40.0, 1.56, 118, 1, 1.44],
+        [-11.0, 49.0, 1.32, 208, 2, 1.34],
+        [-18.0, 56.5, 1.48, 126, 1, 1.42],
+        [-9.5, 61.5, 1.28, 298, 3, 1.32],
+        [-12.5, 70.5, 1.38, 216, 2, 1.36],
+        [-21.0, 70.0, 1.58, 64, 0, 1.44],
+        [-18.5, 86.5, 1.45, 58, 3, 1.4],
+        [-11.5, 84.5, 1.34, 154, 1, 1.36],
+        [-20.5, 98.0, 1.48, 244, 2, 1.4],
+        [17.5, 62.0, 1.52, 78, 0, 1.42],
+        [20.5, 80.0, 1.58, 168, 1, 1.45],
+        [15.5, 98.0, 1.46, 258, 2, 1.38],
+        [-38.0, 120.0, 1.72, 44, 3, 1.48],
+        [-20.0, 124.0, 1.58, 134, 0, 1.42],
+        [-4.0, 128.0, 1.45, 224, 1, 1.38],
+        [10.0, 122.0, 1.55, 68, 2, 1.42],
+        [-26.0, 158.0, 1.65, 158, 3, 1.45],
+        [-6.0, 162.0, 1.5, 248, 0, 1.4],
+        [16.0, 154.0, 1.62, 82, 1, 1.44]
+      ].map(([x, z, heightM, yawDegrees, variant, spreadScale], i) => ({
+        id: `hero-sage-shrub-${i + 1}`,
+        kind: "desert-shrub" as const,
+        x,
+        z,
+        heightM,
+        yawDegrees,
+        variant,
+        spreadScale
+      })),
+      // Picturesque weathered desert dead-wood snags framing the West, East & North Canyon rock outcrops
+      {
+        id: "west-outcrop-snag-1",
+        kind: "dead-wood",
+        x: -70.5,
+        z: -21.5,
+        heightM: 4.6,
+        yawDegrees: 118,
+        variant: 1,
+        tiltXDegrees: -6,
+        tiltZDegrees: 10
+      },
+      {
+        id: "east-outcrop-snag-1",
+        kind: "dead-wood",
+        x: 74.5,
+        z: -20.5,
+        heightM: 4.8,
+        yawDegrees: 242,
+        variant: 2,
+        tiltXDegrees: 5,
+        tiltZDegrees: -9
+      },
+      {
+        id: "north-bend-snag-1",
+        kind: "dead-wood",
+        x: -16.5,
+        z: 66.5,
+        heightM: 4.4,
+        yawDegrees: 64,
+        variant: 0,
+        tiltXDegrees: 6,
+        tiltZDegrees: 8
+      },
+      // Feathery golden plume-grass (`plume-grass`) sprouting out of the 3 foreground boulder clusters, snag & new rock outcrops.
+      ...[
+        [-8.0, -14.8, 0.98, 28, 0, 1.2],
+        [-4.8, -16.4, 1.08, 118, 1, 1.25],
+        [1.8, -21.2, 1.24, 208, 2, 1.32],
+        [3.8, -22.2, 1.34, 64, 0, 1.36],
+        [6.4, -23.4, 1.18, 154, 1, 1.28],
+        [9.6, -24.8, 1.28, 244, 2, 1.32],
+        [12.4, -26.2, 1.36, 38, 0, 1.36],
+        [15.6, -28.0, 1.24, 128, 1, 1.3],
+        [19.8, -29.2, 1.2, 218, 2, 1.28],
+        [23.2, -30.2, 1.16, 92, 0, 1.24],
+        [-22.2, -27.6, 1.04, 84, 0, 1.22],
+        [-24.0, -28.6, 0.96, 174, 2, 1.18],
+        [-31.5, -33.5, 1.08, 46, 1, 1.24],
+        // Plume-grass accents next to the new West, East & North Canyon boulders and rock shelves
+        [-63.5, -9.8, 1.22, 54, 0, 1.3],
+        [-68.0, -19.2, 1.18, 144, 1, 1.28],
+        [-63.0, -31.8, 1.15, 234, 2, 1.26],
+        [-77.0, -17.8, 1.28, 78, 0, 1.34],
+        [-89.0, -38.5, 1.2, 168, 1, 1.28],
+        [64.2, -5.8, 1.22, 112, 2, 1.3],
+        [66.8, -15.6, 1.18, 202, 0, 1.28],
+        [75.5, -19.8, 1.26, 38, 1, 1.32],
+        [79.2, -33.2, 1.18, 128, 2, 1.28],
+        [93.0, -36.5, 1.2, 218, 0, 1.3],
+        [-12.2, 39.2, 1.14, 62, 1, 1.26],
+        [-19.2, 42.4, 1.2, 152, 2, 1.3],
+        [-10.2, 55.8, 1.12, 242, 0, 1.24],
+        [-8.8, 74.8, 1.16, 84, 1, 1.28],
+        [-13.2, 90.2, 1.14, 174, 2, 1.26]
       ].map(([x, z, heightM, yawDegrees, variant, spreadScale], i) => ({
         id: `crevice-plume-grass-${i + 1}`,
         kind: "plume-grass" as const,
@@ -956,38 +1241,55 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
         variant,
         spreadScale
       })),
-      // Foreground wind-swept golden dry grass tufts across the dry overlook sand ripples (all strictly inland of nearBank!).
+      // Multi-scale golden desert grass tufts (`dry-grass`) across the sandbar ridge, right wading shoal & foreground sand ripples.
       ...[
-        [-24.5, -29.5, 0.68, 12, 0],
-        [-21.5, -31.2, 0.62, 85, 1],
-        [-19.0, -35.5, 0.72, 160, 2],
-        [-15.2, -22.5, 0.58, 42, 0],
-        [-12.4, -19.8, 0.62, 134, 1],
-        [-14.8, -39.5, 0.78, 218, 2],
-        [-11.2, -32.8, 0.68, 48, 0],
-        [-8.4, -42.5, 0.76, 225, 1],
-        [-5.2, -24.5, 0.6, 95, 2],
-        [-4.0, -38.0, 0.72, 310, 0],
-        [-1.2, -31.5, 0.64, 65, 1],
-        [2.8, -41.5, 0.78, 145, 2],
-        [5.6, -34.2, 0.68, 200, 0],
-        [9.4, -43.5, 0.76, 30, 1],
-        [12.8, -37.2, 0.66, 118, 2],
-        [16.8, -41.2, 0.74, 240, 0],
-        [21.4, -42.6, 0.7, 175, 1],
-        [25.8, -43.8, 0.76, 52, 2],
-        [-26.5, -35.5, 0.72, 285, 0],
-        [-14.2, -45.5, 0.74, 15, 1],
-        [1.2, -46.5, 0.68, 190, 2],
-        [15.6, -46.2, 0.72, 68, 1],
-        [-8.8, -28.4, 0.64, 134, 0],
-        [-2.8, -44.2, 0.74, 260, 2],
-        [7.2, -39.8, 0.68, 12, 1],
-        [19.8, -45.4, 0.72, 88, 0],
-        [-18.2, -43.5, 0.74, 175, 2],
-        [-23.8, -41.5, 0.7, 38, 1],
-        [-6.2, -47.5, 0.76, 152, 0],
-        [8.4, -48.2, 0.74, 244, 2]
+        // Left snag & far-left foreground golden grass clusters
+        [-32.8, -34.2, 0.78, 24, 0],
+        [-30.4, -35.6, 0.68, 114, 1],
+        [-28.2, -33.2, 0.62, 204, 2],
+        [-24.8, -29.2, 0.72, 12, 0],
+        [-22.6, -29.6, 0.66, 98, 1],
+        [-21.2, -27.2, 0.6, 186, 2],
+        // Sandbar ridge tufts guiding the eye toward the flower island
+        [-20.4, -14.8, 0.58, 42, 0],
+        [-18.6, -12.6, 0.64, 134, 1],
+        [-12.2, -12.4, 0.56, 224, 2],
+        [-10.8, -14.8, 0.62, 312, 0],
+        [-19.2, -18.5, 0.54, 76, 1],
+        [-14.6, -16.8, 0.48, 168, 2],
+        // Foreground sand ripple tufts (left-center & lower-right)
+        [-15.8, -33.8, 0.74, 160, 0],
+        [-14.2, -34.8, 0.62, 248, 1],
+        [-14.8, -41.2, 0.68, 218, 2],
+        [-11.2, -32.8, 0.58, 48, 0],
+        [-8.4, -42.5, 0.66, 225, 1],
+        [-4.2, -37.5, 0.62, 310, 0],
+        [2.8, -41.5, 0.68, 145, 2],
+        [6.4, -33.8, 0.64, 200, 0],
+        [9.4, -42.8, 0.68, 30, 1],
+        [13.4, -38.4, 0.66, 118, 2],
+        [17.6, -40.6, 0.72, 240, 0],
+        [21.8, -41.8, 0.68, 175, 1],
+        [25.8, -42.6, 0.74, 52, 2],
+        [-20.2, -42.5, 0.66, 175, 2],
+        [-6.2, -46.8, 0.7, 152, 0],
+        // Right wading shoal tufts (x = 11..21, z = -11..-13.5)
+        [11.8, -12.2, 0.56, 44, 0],
+        [15.4, -11.2, 0.62, 134, 1],
+        [19.2, -12.6, 0.58, 224, 2],
+        // Dry desert grass tufts scattered around the West, East & North Canyon outcrops
+        [-58.5, -28.0, 0.72, 42, 0],
+        [-66.5, -24.5, 0.68, 132, 1],
+        [-73.0, -34.5, 0.74, 222, 2],
+        [-84.0, -29.5, 0.7, 68, 0],
+        [60.5, -24.0, 0.72, 158, 1],
+        [68.5, -20.5, 0.68, 248, 2],
+        [75.0, -28.5, 0.74, 84, 0],
+        [85.0, -20.0, 0.7, 174, 1],
+        [-10.5, 35.5, 0.66, 52, 2],
+        [-16.0, 46.5, 0.7, 142, 0],
+        [-13.5, 62.5, 0.68, 232, 1],
+        [-10.0, 78.5, 0.66, 74, 2]
       ].map(([x, z, heightM, yawDegrees, variant], i) => ({
         id: `foreground-dry-grass-${i + 1}`,
         kind: "dry-grass" as const,
@@ -1000,9 +1302,9 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     ],
     lighting: {
       timeHours: 14.0,
-      sunIntensity: 2.35,
-      ambientIntensity: 0.88,
-      iblIntensity: 0.92,
+      sunIntensity: 2.38,
+      ambientIntensity: 0.96,
+      iblIntensity: 1.0,
       sunColorR: 1,
       sunColorG: 0.95,
       sunColorB: 0.86,
@@ -1013,24 +1315,24 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       skyTintB: 0.214,
       customSkyTintStrength: 0.86,
       customSkyZenithR: 0.14,
-      customSkyZenithG: 0.34,
-      customSkyZenithB: 0.96,
-      customSkyHorizonR: 0.44,
-      customSkyHorizonG: 0.68,
-      customSkyHorizonB: 1.04,
-      groundTintR: 0.28,
-      groundTintG: 0.21,
-      groundTintB: 0.16,
+      customSkyZenithG: 0.35,
+      customSkyZenithB: 0.98,
+      customSkyHorizonR: 0.46,
+      customSkyHorizonG: 0.69,
+      customSkyHorizonB: 1.05,
+      groundTintR: 0.34,
+      groundTintG: 0.22,
+      groundTintB: 0.14,
       fogDensity: 0.0024,
       fogExponent: 1.5,
-      fogTintR: 0.56,
-      fogTintG: 0.74,
-      fogTintB: 1.12,
+      fogTintR: 0.78,
+      fogTintG: 0.68,
+      fogTintB: 0.96,
       fog: true,
       direct: true,
       environment: true,
       shadows: true,
-      shadowStrength: 0.85
+      shadowStrength: 0.8
     },
     weather: {
       cloudCoverage: 0.32,
@@ -1053,7 +1355,10 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       temperature: 6,
       contrast: 18,
       saturation: 8,
-      bloom: false
+      bloom: true,
+      bloomThreshold: 2.2,
+      bloomIntensity: 0.52,
+      bloomScatter: 0.7
     },
     landscape: {
       grassRelativeHeight: 0.2,
@@ -1086,15 +1391,15 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     animals: {
       enabled: true,
       "fireflies.enabled": false,
-      "species.min": 1,
-      "species.max": 1,
-      "birdCount.min": 8,
-      "birdCount.max": 11,
-      "birdCount.species": "flamingo",
-      "birdCount.offsetX": 19,
-      "birdCount.offsetZ": -13,
-      birdSpawnPointWeight: 64,
-      spawnPointRadius: 7.5
+      "species.min": oasisWildlife.residents.length + 1,
+      "species.max": oasisWildlife.residents.length + 1,
+      "birdCount.min": oasisWildlife.flock.min + 1,
+      "birdCount.max": oasisWildlife.flock.max + 1,
+      "birdCount.species": "flamingo,swan",
+      "birdCount.offsetX": oasisWildlife.flock.offsetX,
+      "birdCount.offsetZ": oasisWildlife.flock.offsetZ,
+      minimumEatingAnimals: 0,
+      spawnPointRadius: oasisWildlife.flock.radius
     }
   }
 };

@@ -1,0 +1,13 @@
+{
+  "titan-wasteland": {
+    "residents": [
+      "ostrich", "hippopotamus-01", "elephant-01", "porcupine", "bison-01", "rhinoceros-01",
+      "chameleon", "bull", "crocodile-01", "swan-01", "platypus"
+    ],
+    "residentSite": { "offsetX": 0, "offsetZ": -18, "radius": 22 },
+    "flock": {
+      "typeId": "flamingo-01", "speciesId": "flamingo", "min": 10, "max": 13,
+      "offsetX": 16, "offsetZ": -11, "radius": 5.5, "groundAtBirth": true
+    }
+  }
+}

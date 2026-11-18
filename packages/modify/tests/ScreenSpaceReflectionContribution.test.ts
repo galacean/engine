@@ -2,6 +2,7 @@ import {
   AssetType,
   Camera,
   Color,
+  Layer,
   MeshRenderer,
   PBRMaterial,
   PrimitiveMesh,
@@ -12,6 +13,8 @@ import {
   ScreenSpaceReflection as SSR,
   type ScreenSpaceReflectionPass,
   ScreenSpaceReflectionContent as Content,
+  ScreenSpaceReflectionReceiverMode as Receiver,
+  ScreenSpaceReflectionUpsamplingMode as Upsampling,
   Texture2D,
   TextureFormat,
   Vector3,
@@ -22,6 +25,7 @@ import type { HeightfieldWaterDescriptorV1 } from "../../water/src/water/authori
 import { WaterQualityTier } from "../../water/src/water/authoring/wave/enums/WaterQualityTier";
 import { WaterWaveModel } from "../../water/src/water/authoring/wave/enums/WaterWaveModel";
 import PBRSource from "../src/native/shader/src/Shaders/PBR.shader?raw";
+import plantSource from "../../farming/src/farming/procedural/runtime/PlantOrganTint.shader?raw";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 let engine: WebGLEngine;
 beforeAll(async () => {
@@ -176,6 +180,19 @@ it("renders all receive/contribute combinations with correct alpha, opaque occlu
   const receiveOnly = render();
   expect(difference(receiveOnly, off)).toBeGreaterThan(100);
   expect(difference(both, receiveOnly)).toBeGreaterThan(100);
+  // Farming resolves the same two-output Surface pass that this transparent receiver draws into one attachment.
+  const plantShader = Shader.create(plantSource, ShaderLanguage.GLSLES300)!;
+  const surfacePass = red.shader.subShaders[0].passes.find(
+    (p) => p.getTagValue("pipelineStage") === "ScreenSpaceReflectionSurface"
+  );
+  expect(surfacePass).toBeDefined();
+  expect(plantShader.subShaders[0].passes).toContain(surfacePass);
+  mirror.screenSpaceReflection = { mode: "Off", intensity: 1 };
+  render();
+  expect(camera.screenSpaceReflection.metrics.opaqueSurfacePassDrawCount).toBe(0);
+  expect(camera.screenSpaceReflection.metrics.transparentSurfacePassDrawCount).toBeGreaterThan(0);
+  expect(engine._hardwareRenderer.gl.getError()).toBe(0);
+  mirror.screenSpaceReflection = { mode: "On", intensity: 1 };
   red.screenSpaceReflection = { mode: "Off", intensity: 0.7 };
   red.contributeScreenSpaceReflection = true;
   scene.screenSpaceReflection.reflectionContent = Content.OpaqueOnly;
@@ -283,6 +300,95 @@ it("renders all receive/contribute combinations with correct alpha, opaque occlu
   mirror.destroy();
   red.destroy();
 });
+
+/** Repeat the same Water draw with and without an opaque receiver, without advancing simulation time. */
+function verifySurfaceAttachments(camera: Camera, cube: MeshRenderer, output: Texture2D): void {
+  const ssr = camera.screenSpaceReflection;
+  const material = cube.getMaterial() as PBRMaterial;
+  const previousReceiver = material.screenSpaceReflection;
+  const previousRoughness = material.roughness;
+  const layer = cube.entity.layer;
+  const mask = camera.cullingMask;
+  const pass = (
+    camera as unknown as {
+      _renderPipeline: {
+        _screenSpaceReflectionPass: {
+          _surfaceTarget: RenderTarget;
+          _material: PBRMaterial;
+        };
+      };
+    }
+  )._renderPipeline._screenSpaceReflectionPass;
+  const opaque = ssr.getReceiverTraceSettingsOverride(Receiver.OpaqueComposite);
+  const transparent = ssr.getReceiverTraceSettingsOverride(Receiver.TransparentSampleOnly);
+  const gl = engine._hardwareRenderer.gl as WebGL2RenderingContext;
+  let surface: RenderTarget;
+  const previousProfiler = ssr.profiler;
+  try {
+    const trace = { resolutionScale: 0.5, upsamplingMode: Upsampling.Bilinear };
+    ssr.setReceiverTraceSettingsOverride(Receiver.OpaqueComposite, trace);
+    ssr.setReceiverTraceSettingsOverride(Receiver.TransparentSampleOnly, trace);
+    material.roughness = 1; // Composite leaves the cube's emissive color intact.
+    material.screenSpaceReflection = { mode: "Off", intensity: 1 };
+    cube.entity.layer = Layer.Layer15;
+    ssr.profiler = {
+      beginSample(stage) {
+        if (stage !== "trace") return;
+        surface = pass._surfaceTarget;
+        expect(pass._material.shaderData.getTexture("material_SSRResponseTexture") ?? null).toBe(
+          surface.colorTextures[1] ?? null
+        );
+        expect(gl.getParameter(gl.DRAW_BUFFER1)).toBe(surface.colorTextureCount === 2 ? gl.COLOR_ATTACHMENT1 : gl.NONE);
+      },
+      endSample() {}
+    };
+    const render = () => {
+      camera.render();
+      const pixels = new Uint8Array(output.width * output.height * 4);
+      output.getPixelBuffer(0, 0, output.width, output.height, 0, pixels);
+      expect(gl.getError()).toBe(gl.NO_ERROR);
+      return { surface: surface!, pixels, ...ssr.metrics };
+    };
+    const single = render();
+    expect(single.surface.colorTextureCount).toBe(1);
+    expect(single.surface.depthTexture).toBeTruthy();
+    expect(single.tracePassCount).toBe(1);
+    expect(single.compositePassCount).toBe(0);
+
+    material.screenSpaceReflection = { mode: "On", intensity: 1 };
+    const mixed = render();
+    expect(mixed.surface.colorTextureCount).toBe(2);
+    expect(mixed.surface.getColorTexture(1)!.format).toBe(TextureFormat.R8G8B8A8);
+    expect(mixed.tracePassCount).toBe(2);
+    expect(mixed.compositePassCount).toBe(1);
+    expect(mixed.renderTextureCount - single.renderTextureCount).toBe(1);
+    const responseBytes = output.width * output.height * 4;
+    expect(mixed.estimatedTextureBytes - single.estimatedTextureBytes).toBe(responseBytes);
+    expect(mixed.estimatedBytes - single.estimatedBytes).toBe(responseBytes);
+    expect(mixed.pixels.every((value, i) => Math.abs(value - single.pixels[i]) <= 1)).toBe(true);
+
+    camera.cullingMask = Layer.Layer15;
+    const opaqueOnly = render();
+    expect(opaqueOnly.surface).toBe(mixed.surface);
+    expect(opaqueOnly.tracePassCount).toBe(1);
+    expect(opaqueOnly.compositePassCount).toBe(1);
+    camera.cullingMask = mask;
+    material.screenSpaceReflection = { mode: "Off", intensity: 1 };
+    const again = render();
+    expect(again.surface).toBe(single.surface);
+    expect(again.renderTextureCount).toBe(single.renderTextureCount);
+    expect(again.estimatedBytes).toBe(single.estimatedBytes);
+    expect(again.pixels.every((value, i) => value === single.pixels[i])).toBe(true);
+  } finally {
+    ssr.profiler = previousProfiler;
+    ssr.setReceiverTraceSettingsOverride(Receiver.OpaqueComposite, opaque ?? undefined);
+    ssr.setReceiverTraceSettingsOverride(Receiver.TransparentSampleOnly, transparent ?? undefined);
+    material.screenSpaceReflection = previousReceiver;
+    material.roughness = previousRoughness;
+    cube.entity.layer = layer;
+    camera.cullingMask = mask;
+  }
+}
 
 it("verifies Heightfield and River Auto rendering, contribution and lifecycle", async () => {
   const { registerLakeWaterLook, createLakeSpatialFieldBudget, LAKE_WATER_LOOK_PRESET_ID } = await import(
@@ -440,6 +546,7 @@ it("verifies Heightfield and River Auto rendering, contribution and lifecycle", 
         expect(camera.screenSpaceReflection.metrics.requestedByConsumers).toBe(true);
         expect(camera.screenSpaceReflection.metrics.transparentSurfacePassDrawCount).toBeGreaterThan(0);
         if (backend instanceof HeightfieldWaterBackend) backend.setRuntimeSurfaceTimeOverride("water", 0);
+        verifySurfaceAttachments(camera, cube, output);
         const on = renderPixels();
         const preview = scene.createRootEntity("disabled-ssr-preview").addComponent(Camera);
         preview.entity.transform.setPosition(3, family === "river" ? 1.5 : 3, 6);

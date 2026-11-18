@@ -71,6 +71,7 @@ export function createSeedWorldKnowledge(
     const relative = path.slice("./skills/".length);
     const name = relative.split("/")[0];
     if (relative !== `${name}/SKILL.md`) continue;
+    if (name === "water" && !available.has("water.capabilities")) continue;
     const domains = SKILL_DOMAINS[name];
     const apis = SEED_WORLD_API_CONTRACTS.filter(api => domains.includes(api.domain) && available.has(api.name));
     const owned = systems.filter(system => system.skill === name);

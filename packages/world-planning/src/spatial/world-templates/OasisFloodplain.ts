@@ -5,98 +5,152 @@ import type { TemplateProceduralPlantInstance } from "../runtime/TemplateProcedu
 
 type Point = [number, number];
 
-// Looking downstream from the overlook. The convex tongue stays open on the way to the flowering island.
-const nearBank: Point[] = [
-  [-56, -26], [-49, -32], [-40, -35], [-31, -31], [-25, -25], [-21, -19],
-  [-16, -15], [-11, -13], [-6, -14], [-1, -18], [4, -24], [10, -29],
-  [18, -34], [28, -39], [41, -42], [53, -38], [59, -30]
-];
-
-// Both branches and the distant bend share a single level, bed and reflection surface.
+// Left cove shore -> open S-curved dry sandbar ridge leading directly onto the flower peninsula -> sheltered right cove -> right bank.
 export const OASIS_SHORELINE: Point[] = [
-  ...nearBank, [61, -17], [56, -4], [46, 5], [33, 9], [19, 11], [12, 14],
-  [7, 22], [5, 34], [8, 48], [13, 65], [14, 77], [9, 90], [0, 103], [-8, 114],
-  [-13, 116], [-12, 108], [-5, 96], [2, 82], [3, 70], [-1, 56], [-6, 42],
-  [-8, 28], [-13, 20], [-22, 15], [-37, 12], [-49, 8], [-57, 0], [-60, -13]
+  // Left cove outer & front rim (wrapping behind the foreground leaning snag at x = -23, z = -28)
+  [-56, -24],
+  [-48, -30],
+  [-38, -31],
+  [-29, -26],
+  // West edge of the dry sandbar ridge & flower peninsula (continuous golden sandbar ridge!)
+  [-23.5, -19.5],
+  [-22.8, -13.0],
+  [-26.8, -7.8],
+  [-30.6, -3.4],
+  [-30.2, 2.0],
+  // North/back shore of the flower peninsula (wide water channel behind the tree)
+  [-24.0, 5.6],
+  [-14.2, 6.4],
+  [-4.5, 5.2],
+  [1.2, 1.8],
+  // East tip of the flower peninsula & sheltered right cove indenting into the sandbar ridge
+  [0.8, -2.6],
+  [-4.8, -6.0],
+  [-9.8, -10.2],
+  [-9.4, -15.2],
+  // Right foreground bank stepping down-right while leaving wide dry golden sand in the lower-right foreground!
+  [-3.8, -17.6],
+  [3.0, -19.8],
+  [11.0, -22.2],
+  [21.0, -24.8],
+  [33.0, -26.8],
+  [46.0, -26.0],
+  [56.0, -20.0],
+  // Far-right & back-right sandy cliff-foot shore + distant canyon river bend through the central gap
+  [58.0, -10.0],
+  [50.0, 4.0],
+  [36.0, 9.5],
+  [21.0, 11.2],
+  [12.0, 14.0],
+  [7.0, 22.0],
+  [5.0, 34.0],
+  [8.0, 48.0],
+  [13.0, 65.0],
+  [14.0, 77.0],
+  [9.0, 90.0],
+  [0.0, 103.0],
+  [-8.0, 114.0],
+  [-13.0, 116.0],
+  [-12.0, 108.0],
+  [-5.0, 96.0],
+  [2.0, 82.0],
+  [3.0, 70.0],
+  [-1.0, 56.0],
+  [-6.0, 42.0],
+  [-8.0, 28.0],
+  [-13.0, 20.0],
+  [-23.0, 15.0],
+  [-37.0, 12.5],
+  [-49.0, 8.0],
+  [-57.0, 0.0],
+  [-60.0, -12.0]
 ];
 
-// A shallow ford separates the flowering island from the tongue. Birds wade around the second, lower shoal.
+// Shallow golden wading sandspit in the right bay (kept well inside the 16:9 viewport at x = 8..24, z = -13.5..-8 so flamingos stay in frame as the second focal point).
 export const OASIS_SANDBARS: Point[][] = [
-  [[-31, -3], [-27, -6], [-22, -7], [-17, -9], [-13, -10], [-9, -7], [-4, -5], [1, -1],
-    [0, 2], [-5, 5], [-13, 7], [-20, 6], [-26, 4], [-30, 1]],
-  [[10, -13], [13, -16], [20, -18], [27, -17], [34, -14], [32, -12], [25, -10], [18, -9], [12, -10]]
+  [
+    [8.0, -11.2],
+    [10.8, -13.4],
+    [16.2, -14.0],
+    [21.4, -13.2],
+    [23.8, -11.0],
+    [21.6, -8.8],
+    [16.2, -8.0],
+    [10.8, -8.8]
+  ]
 ];
 
-// Deposit radii and clast sizes are in metres. Finer grains collect at the outside of each fan.
-const fans = [
-  { x: -46, radius: 5, clast: 1.5 }, { x: -31, radius: 3, clast: 0.85 },
-  { x: -8, radius: 2.2, clast: 0.6 }, { x: 5, radius: 4, clast: 2.3 },
-  { x: 12, radius: 5, clast: 3.8 }, { x: 20, radius: 6, clast: 3.2 }, { x: 33, radius: 5, clast: 2.1 },
-  { x: 48, radius: 4, clast: 1.6 }
-];
 const seed = templateBaseSeed("titan-wasteland:oasis-alluvium");
-
-/** Interpolate the authored bank and step inland along its local normal. */
-function onBank(x: number, setback: number): Point {
-  const end = nearBank.findIndex((p) => p[0] >= x);
-  const [ax, az] = nearBank[end - 1], [bx, bz] = nearBank[end];
-  const dx = bx - ax, dz = bz - az, length = Math.hypot(dx, dz);
-  return [x + dz / length * setback, az + (x - ax) / dx * dz - dx / length * setback];
-}
 
 export const OASIS_BANK_STONES: NonNullable<WorldTemplateArtDirection["stones"]> = [];
 export const OASIS_BANK_PLANTS: TemplateProceduralPlantInstance[] = [];
-for (const fan of fans) {
-  // The exposed head of a fan has a few jointed blocks, followed by the sorted fragments below.
-  for (let i = 0; i < Math.floor(fan.clast); i++) {
-    const id = `alluvial-head-${fan.x}-${i}`;
-    const width = fan.clast * (0.95 + settlementRandom(seed, id) * 0.42);
-    const [x, z] = onBank(fan.x + (i - (Math.floor(fan.clast) - 1) / 2) * width * 0.76, width * 0.58);
-    OASIS_BANK_STONES.push({
-      id, x, z, width, depth: width * 0.82, height: width * 0.68, y: -width * 0.14,
-      yawDegrees: 360 * settlementRandom(seed, id + ":strike"), collision: false
-    });
-  }
+
+// Left outer cove bank cobbles (leaving the central sandbar ridge x = -24..-10 completely open!).
+const leftCoveFans = [
+  { x: -45, z: -31.5, radius: 4.2, clast: 1.4 },
+  { x: -33, z: -29.0, radius: 3.0, clast: 0.95 }
+];
+for (const fan of leftCoveFans) {
   const count = Math.ceil(2 * fan.radius);
   for (let i = 0; i < count; i++) {
-    const id = `alluvial-fan-${fan.x}-${i}`;
+    const id = `left-cove-fan-${fan.x}-${i}`;
     const sample = (field: string) => settlementRandom(seed, `${id}:${field}`);
     const radial = Math.sqrt(sample("radius"));
     const angle = 2 * Math.PI * sample("bearing");
-    const station = fan.x + fan.radius * radial * Math.cos(angle);
-    const inland = fan.radius * (1 + radial * Math.sin(angle)) / 2;
-    const [x, z] = onBank(station, inland);
-    const width = fan.clast * (1.15 - radial) * (0.85 + sample("size"));
-    const height = width * (0.36 + sample("fracture") * 0.29);
+    const x = fan.x + fan.radius * radial * Math.cos(angle);
+    const z = fan.z - fan.radius * 0.5 * (1 + radial * Math.abs(Math.sin(angle)));
+    const width = fan.clast * (1.1 - radial * 0.65) * (0.85 + sample("size") * 0.5);
+    const height = width * (0.42 + sample("fracture") * 0.25);
     OASIS_BANK_STONES.push({
-      id, x, z, width, height, depth: width * (0.61 + sample("depth") * 0.35),
-      y: -height * 0.22, yawDegrees: 360 * sample("strike"), collision: false
-    });
-    // Wind seeds settle in the lee of each fan, with taller seed heads at its moist toe.
-    const [px, pz] = onBank(station, inland + width);
-    OASIS_BANK_PLANTS.push({
-      id: `${id}-grass`, kind: inland < fan.radius / 3 ? "plume-grass" : "dry-grass",
-      x: px, z: pz, heightM: 0.22 + sample("grass") * 0.39, spreadScale: 1.5, yawDegrees: 360 * sample("yaw")
+      id,
+      x,
+      z,
+      width,
+      height,
+      depth: width * (0.68 + sample("depth") * 0.28),
+      y: -height * 0.3,
+      yawDegrees: 360 * sample("strike"),
+      collision: false
     });
   }
 }
 
-// Pockets of sage take root in the sandy aprons between the cliff toes and the back bank.
+// Continuous rich belt of silvery-sage bushes & pale talus rocks along BOTH left and right cliff bases (especially the right cliff toe!).
 const scrubShelves = [
-  { x: -68, z: 10, width: 14, depth: 7 }, { x: -43, z: 14, width: 13, depth: 5 },
-  { x: -31, z: 16, width: 8, depth: 4 }, { x: 22, z: 16, width: 10, depth: 5 },
-  { x: 48, z: 15, width: 16, depth: 7 }, { x: 74, z: 14, width: 18, depth: 8 }
+  { x: -64, z: 11.5, width: 14, depth: 5.5, density: 7 },
+  { x: -45, z: 14.5, width: 15, depth: 5.0, density: 9 },
+  { x: -30, z: 16.5, width: 10, depth: 4.2, density: 6 },
+  { x: 18, z: 14.2, width: 10, depth: 4.2, density: 8 },
+  { x: 31, z: 12.8, width: 14, depth: 4.5, density: 11 },
+  { x: 46, z: 11.5, width: 15, depth: 5.0, density: 12 }
 ];
 for (const shelf of scrubShelves) {
-  const count = Math.ceil(shelf.width * shelf.depth / 12);
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < shelf.density; i++) {
     const id = `canyon-scrub-${shelf.x}-${i}`;
     const sample = (field: string) => settlementRandom(seed, `${id}:${field}`);
-    const angle = 2 * Math.PI * sample("bearing"), radius = Math.sqrt(sample("radius"));
+    const angle = 2 * Math.PI * sample("bearing");
+    const radius = Math.sqrt(sample("radius"));
+    const x = shelf.x + (Math.cos(angle) * radius * shelf.width) / 2;
+    const z = shelf.z + (Math.sin(angle) * radius * shelf.depth) / 2;
     OASIS_BANK_PLANTS.push({
-      id, kind: "desert-shrub", x: shelf.x + Math.cos(angle) * radius * shelf.width / 2,
-      z: shelf.z + Math.sin(angle) * radius * shelf.depth / 2, heightM: 0.65 + sample("size") * 0.85,
-      spreadScale: 1.55 + sample("crown") * 0.55, yawDegrees: sample("yaw") * 360
+      id,
+      kind: "desert-shrub",
+      x,
+      z,
+      heightM: 0.95 + sample("size") * 1.15,
+      spreadScale: 1.45 + sample("crown") * 0.55,
+      yawDegrees: sample("yaw") * 360
     });
+    if (i % 2 === 0) {
+      OASIS_BANK_PLANTS.push({
+        id: `${id}-grass`,
+        kind: i % 4 === 0 ? "plume-grass" : "dry-grass",
+        x: x + (sample("gx") - 0.5) * 2.4,
+        z: z - 0.8 - sample("gz") * 1.8,
+        heightM: 0.45 + sample("gh") * 0.45,
+        spreadScale: 1.35,
+        yawDegrees: sample("gyaw") * 360
+      });
+    }
   }
 }

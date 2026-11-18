@@ -47,6 +47,18 @@ it("uses the launch choice when the saved theme is no longer registered", async 
   expect(initialPlanningTemplate("?template=original", 3, "retired-theme")).toBe("");
 });
 
+it("restores the sandbar flock when reopening a residents-only desert save", async () => {
+  const { createTemplatePlanningDocument, refreshDesertAnimalPreset } = await import("@galacean/engine-world-planning/spatial/WorldTemplateAuthoring");
+  const { readAnimalPopulationConfig } = await import("@galacean/engine-world-planning/spatial/AnimalPopulationComponent");
+  const document = createTemplatePlanningDocument(2361848456, "titan-wasteland");
+  const values = document.entities.world.components.animals.values;
+  Object.assign(values, { "species.min": 11, "species.max": 11, "birdCount.species": "swan", "birdCount.max": 1 });
+  refreshDesertAnimalPreset(document);
+  const animals = readAnimalPopulationConfig(document);
+  expect(animals.types.filter(type => type.min > 0)).toHaveLength(12);
+  expect(animals.types.find(type => type.typeId === "flamingo-01")?.min).toBeGreaterThanOrEqual(10);
+});
+
 it.each([0, 0xffffffff])("publishes a terrain-carved oasis with shared rocks on Seed %i", async (seed) => {
   const { createTemplatePlanningDocument } = await import("@galacean/engine-world-planning/spatial/WorldTemplateAuthoring");
   const { generatePlanningDocument } = await import("@galacean/engine-world-planning/spatial/PlanningRuntime");
@@ -59,8 +71,16 @@ it.each([0, 0xffffffff])("publishes a terrain-carved oasis with shared rocks on 
   expect(template.rockTopCover).toBe("ground");
   const animals = readAnimalPopulationConfig(document);
   expect(animals.enabled).toBe(true);
-  const flamingo = animals.types.find((type) => type.typeId === "flamingo-01");
-  expect(flamingo?.max).toBeGreaterThanOrEqual(6);
+  expect(animals.types.filter(type => type.min > 0).map(type => type.typeId).sort()).toEqual(
+    ["ostrich", "hippopotamus-01", "elephant-01", "porcupine", "bison-01", "rhinoceros-01",
+      "chameleon", "bull", "crocodile-01", "swan-01", "platypus", "flamingo-01"].sort()
+  );
+  const flock = animals.types.find(type => type.typeId === "flamingo-01")!;
+  const swan = animals.types.find(type => type.typeId === "swan-01")!;
+  expect(flock.min).toBeGreaterThanOrEqual(10);
+  expect(flock.max).toBeLessThanOrEqual(13);
+  expect(swan.min).toBe(1);
+  expect(swan.spawnPoint?.center).not.toEqual(flock.spawnPoint?.center);
   const { accepted, plan } = generatePlanningDocument(document);
   expect(accepted).toBe(true);
   expect(plan.rocks.some((rock) => rock.groupId.startsWith("template:titan-wasteland:cliff:") && !rock.assetId)).toBe(true);
@@ -72,8 +92,13 @@ it.each([0, 0xffffffff])("publishes a terrain-carved oasis with shared rocks on 
   const tree = plan.worldTemplateSite?.footprints.find((item) => item.id === "oasis-scarlet-tree");
   expect(tree).toBeDefined();
   const outer = createPlanningRingQuery(lake!.outline);
-  const island = createPlanningRingQuery(lake!.lake!.holes![0]);
-  expect(outer.inside(tree!.obb.center)).toBe(true);
-  expect(island.containsPolygon(tree!.outline)).toBe(true);
+  const shoal = createPlanningRingQuery(lake!.lake!.holes![0]);
+  expect(outer.inside(tree!.obb.center)).toBe(false);
+  expect(outer.overlapsPolygon(tree!.outline)).toBe(false);
+  expect(outer.inside({ x: tree!.obb.center.x, z: tree!.obb.center.z + 11 })).toBe(true);
+  expect(outer.inside({ x: tree!.obb.center.x - 18, z: tree!.obb.center.z })).toBe(true);
+  expect(outer.inside({ x: tree!.obb.center.x + 22, z: tree!.obb.center.z })).toBe(true);
+  expect(outer.containsPolygon(lake!.lake!.holes![0])).toBe(true);
+  expect(shoal.inside({ x: plan.worldTemplateSite!.center.x - 16, z: plan.worldTemplateSite!.center.z - 11 })).toBe(true);
   expect(outer.inside(plan.spawn)).toBe(false);
 }, 30_000);
