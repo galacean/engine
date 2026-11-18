@@ -323,7 +323,7 @@ function synchronizeEntities(parent: Entity, entities: Record<string, SpatialEnt
   for (const child of [...parent.children]) {
     const identity = child.getComponent(PlanningEntityAuthoring);
     if (!identity) continue;
-    const id = identity.planningId || identity.authoring?.id;
+    const id = identity.planningId || identity.authoring?.id || "";
     const source = remaining.get(id);
     if (!source) child.destroy();
     else { synchronize(child, identity, source); remaining.delete(id); }

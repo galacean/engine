@@ -7,7 +7,19 @@ Only the API links in the current indexes declare this host's callable capabilit
 In execute, these world APIs live under `tools`, for example `await tools.world.parameters.query(...)`. Component extensions use `await editor.component.query(...)` and the methods declared on the returned proxy. Read the linked declarations for exact input and output fields.
 
 - 玩家要求在面前挖河或溪流时，使用 `tools.water.digRiver` 同时生成河床和原生河流水面。没有指定尺寸或距离时传 `{}`。以外层 execute 提交回执确认成功，无运行错误即可回复。
-- 玩家要求在面前建房时，通过 `tools.spatial.resolve` 选取玩家前方的陆地。在同一次 Scene 编辑中创建场景根节点并挂载 `HouseComponent`。只取落点的 X/Z，实体的位置填 `[x, 0, z]`，由建筑系统计算贴地高度。
+- 玩家要求在面前建房时，从 `project.json` 读取当前场景路径，在同一次 execute 内解析落点、创建根节点并挂载 `HouseComponent`。组件自带默认房型和屋顶。使用落点的 X/Z，建筑系统会计算贴地高度。
+
+  ```js
+  const target = await tools.spatial.resolve({
+    anchor: { kind: "viewer" },
+    relation: { kind: "front" },
+    placement: { snapTo: "terrain", avoidWater: true }
+  });
+  const point = target.anchor;
+  if (point.kind !== "position") throw new Error("Expected a resolved world position");
+  const house = await editor.entity.create({ scene, name: "小房子", position: [point.x, 0, point.z] });
+  await editor.component.add({ scene, entityId: house.id, type: "HouseComponent" });
+  ```
 
 When the scene exposes component authoring, the relevant guides include system-owned component usage knowledge for the available components. Discover exact fields, units, scope and constraints through `world.parameters.describe`, then inspect the actual target before proposing edits. System guides explain how capabilities relate; they do not supply fixed mood presets or override the current schema, authorization or runtime checks.
 
