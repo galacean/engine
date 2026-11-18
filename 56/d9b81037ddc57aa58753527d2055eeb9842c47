@@ -1,0 +1,23 @@
+tests/src/shader-analyzer/ExistingSyntaxRegression.test.ts
+  s_30889def3c02cc::t_161bf3588a1545 1-76
+packages/shader-parser/src/parser/AST.ts
+  s_30889def3c02cc::t_5f635c751f52cf 1840
+packages/shader-parser/src/parser/builtin/functions.ts
+  s_30889def3c02cc::t_dee5fa19967dcd 277-278,312,339-348,437-438
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "56d9b81037ddc57aa58753527d2055eeb9842c47",
+  "prompts": {},
+  "sessions": {
+    "s_30889def3c02cc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e8d3-cd57-70b0-8843-ecc65484b8c6",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}
