@@ -34,7 +34,7 @@ Below is a description of the [configuration](/apis/galacean/#WebGLEngineConfigu
 | [graphicDeviceOptions](/apis/galacean/#WebGLGraphicDeviceOptions) | WebGL2 context options; see [getContext parameters](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext#parameters). |
 | [colorSpace](/apis/galacean/#ColorSpace)                     | Color space, `ColorSpace.Gamma` or `ColorSpace.Linear`.        |
 | gltf                                                         | GLTF Loader configuration, `workerCount` is used to configure the number of workers for meshOpt: `{ meshOpt: { workerCount: number } }`. |
-| ktx2Loader                                                   | KTX2 Loader configuration, `workerCount` is used to configure the number of workers for the ktx2 decoder: `{ priorityFormats: Array<KTX2TargetFormat>; transcoder: KTX2Transcoder; workerCount: number }`. If workerCount is greater than 0, worker threads will be created; if it equals 0, only the main thread will be used. |
+| ktx2Loader                                                   | Set `workerCount` to the number of KTX2 decoder workers. Set it to `0` to decode on the main thread. |
 
 For more related configuration information, please refer to [Physics System](/en/docs/physics/overall), [Interaction System](/en/docs/input/input/), [XR System](/en/docs/xr/overall).
 
