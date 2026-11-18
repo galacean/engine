@@ -25,6 +25,7 @@ import catalog from "./RockVariantCatalog.json";
 interface RockVariantEntry {
   id: string;
   mesh: string;
+  hasDetachedPieces?: boolean;
   /** Fraction of the fitted mesh height to sink below the placement base. */
   groundInset: number;
 }
@@ -168,6 +169,20 @@ export function pickRockVariant<T>(pool: readonly T[], seed: number): T | undefi
   return pool.length ? pool[hashSeed(seed, "rock-variant") % pool.length] : undefined;
 }
 
+function isPillarGuide(job: RockFormationJob): boolean {
+  const [width, height, depth] = job.guides[0].size;
+  return !job.surfaceGrass && height > Math.max(width, depth) * 1.5;
+}
+
+export function pickFormationVariant(pool: readonly RockVariantEntry[], job: RockFormationJob) {
+  const selected = pickRockVariant(pool, job.seed);
+  if (selected?.hasDetachedPieces && isPillarGuide(job)) {
+    const singlePieceStones = pool.filter((entry) => !entry.hasDetachedPieces);
+    return pickRockVariant(singlePieceStones, job.seed);
+  }
+  return selected;
+}
+
 /** Lower the fitted mesh by its authored inset, keeping the planned base as the reference. */
 export function rockVariantGroundOffset(asset: RockVariantAsset, scale: number): number {
   return -asset.groundInset * (asset.bounds[1][1] - asset.bounds[0][1]) * scale;
@@ -184,7 +199,7 @@ export function rockVariantFit(job: RockFormationJob, asset: RockVariantAsset): 
   const scales = [guide.size[0] / spanX, guide.size[1] / spanY, guide.size[2] / spanZ] as const;
   const uniform = Math.min(...scales);
   // Tall narrow rock guides represent standing monolith/pillar stones using the same shared meshes.
-  const isPillar = !job.surfaceGrass && guide.size[1] > Math.max(guide.size[0], guide.size[2]) * 1.5;
+  const isPillar = isPillarGuide(job);
   const xScale = isPillar ? scales[0] : uniform;
   const zScale = isPillar ? scales[2] : uniform;
   const yScale = isPillar

@@ -6,7 +6,11 @@ import {
 } from "@galacean/engine-world-planning/spatial/SpatialCompositionGeometry";
 import { spatialCompositionParameters } from "@galacean/engine-world-planning/spatial/SpatialCompositionParameters";
 import { describe, expect, it } from "vitest";
-import { rockVariantPools } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Variants";
+import {
+  pickFormationVariant,
+  pickRockVariant,
+  rockVariantPools
+} from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Variants";
 import { Quaternion, Vector3 } from "@galacean/engine-math";
 import {
   WORLD_TEMPLATES,
@@ -111,6 +115,22 @@ describe("authored world templates", () => {
     for (const id of ["sakura-pearl", "emerald-forest", "low-poly", "titan-wasteland"]) {
       const plan = { ...original, parameters: { ...original.parameters, worldTemplate: { id } } };
       expect(rockVariantPools(plan)).toEqual(id === "low-poly" ? undefined : shared);
+    }
+  });
+
+  it("replaces only detached stone variants when stretching oasis pillars", () => {
+    const { plan } = generatePlanningDocument(createTemplatePlanningDocument(20261112, "titan-wasteland"));
+    const { stones } = rockVariantPools(plan)!;
+    const pillars = rockFormationJobs(plan, planningHeightmap(plan)).filter((job) => job.id.includes("island-pillar-"));
+    expect(pillars).toHaveLength(4);
+    for (const job of pillars) {
+      const original = pickRockVariant(stones, job.seed)!;
+      const pillar = pickFormationVariant(stones, job);
+      expect(pillar).toBeDefined();
+      expect(["rock-17", "rock-20"]).not.toContain(pillar!.id);
+      if (!original.hasDetachedPieces) expect(pillar).toBe(original);
+      const guide = job.guides[0];
+      expect(pickFormationVariant(stones, { ...job, guides: [{ ...guide, size: [1, 1, 1] }] })).toBe(original);
     }
   });
 
