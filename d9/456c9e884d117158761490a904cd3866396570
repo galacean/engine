@@ -396,8 +396,11 @@ packages/modify/src/native/core/src/Camera.ts
   h_ddbf152d31b140 14,37,435,818,820,824,837-853
 packages/modify/src/native/core/src/Engine.ts
   h_ddbf152d31b140 34,50-52,286,664-671
+  h_a3c79ce84ffdc2 34,50-52,286
 packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
   h_ddbf152d31b140 7,127,130,338
+  s_2b4485b4d6f647::t_cbadd2fbaa7e26 338
+  h_a3c79ce84ffdc2 7,127,130
 packages/modify/src/native/core/src/RenderPipeline/OpaqueTexturePass.ts
   h_ddbf152d31b140 41
 packages/modify/src/native/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
@@ -583,7 +586,7 @@ packages/water/src/skills/water/SKILL.md
 packages/water/src/water/authoring/body/WaterBodyInstance.ts
   h_ddbf152d31b140 24-25,155-156,168-169
 packages/water/src/water/authoring/terrain/GridInterpolation.ts
-  h_ddbf152d31b140 1-7,9-15,17-26,28-47
+  h_ddbf152d31b140 1-7,9-15,17-26,18-19,22,23-24,26-43,28-47,46-47
 packages/water/src/water/authoring/terrain/WaterTerrainSnapshot.ts
   h_ddbf152d31b140 2
 packages/water/src/water/compiler/lake/LakeTerrainBoundary.ts
@@ -1036,10 +1039,21 @@ world/tests/seed-world/SeedWorldScreenSpaceReflection.spec.ts
   h_ddbf152d31b140 2-9,11-20,23-24,27-33,36-52,54-62,65-76,78-94,96-115,117-121
 world/tests/seed-world/SeedWorldTerrainRuntimeIntegration.spec.ts
   h_ddbf152d31b140 33,107,427,610,641,655
+  s_ae6fab0fbe1884::t_c59eeb04c99a98 33
 world/tests/seed-world/TerrainPreparedUpdate.spec.ts
   h_ddbf152d31b140 4-7
 world/tests/seed-world/WorldTemplates.spec.ts
   h_ddbf152d31b140 1-4,7,32,35,64,69,87,94,175,179,182-185,188,192,195-198,200,205,213,219,221-223,226-231,234-239,253-276,374-618,742-743,748,937,942,980-981,989
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  h_ddbf152d31b140 1296,1303,1364
+packages/world-planning/src/runtime/SeedWorldForwardGrass.ts
+  s_2b4485b4d6f647::t_fd25ec407a08db 783,787,843-844
+  s_2b4485b4d6f647::t_4baadd59a86322 820
+  s_2b4485b4d6f647::t_265bbefdb94760 782
+  s_2b4485b4d6f647::t_f7b3a77a51dcc6 845
+  h_ddbf152d31b140 819
+packages/building/src/building/runtime/BuildingDistanceView.ts
+  h_ddbf152d31b140 362
 ---
 {
   "schema_version": "authorship/3.0.0",
@@ -1049,6 +1063,24 @@ world/tests/seed-world/WorldTemplates.spec.ts
   "humans": {
     "h_ddbf152d31b140": {
       "author": "詹应威 <njktsmshh@163.com>"
+    }
+  },
+  "sessions": {
+    "s_2b4485b4d6f647": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e99f-d424-7301-8359-1c8d4fee0fa7",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": null
+    },
+    "s_ae6fab0fbe1884": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cde9-e5eb-7580-948b-3731733934fb",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
     }
   }
 }
