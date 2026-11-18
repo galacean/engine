@@ -66,6 +66,48 @@ describe("ShaderCompiler", async () => {
     glslValidate(engine, source, shaderCompilerRelease);
   });
 
+  it.each(["source", "precompiled"] as const)("links source-defined sampler aliases from %s", async (mode) => {
+    const source = `Shader "SamplerAliases${mode}" { SubShader "Default" { Pass "Forward" {
+      sampler2D image;
+      samplerCube environment;
+      #define SAMPLE_IMAGE texture2D
+      #if defined(USE_CUBE)
+        #define SAMPLE textureCube
+      #else
+        #define SAMPLE texture2D
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      vec4 frag() {
+        vec4 color = SAMPLE_IMAGE(image, vec2(0.5));
+        #if defined(USE_CUBE)
+          return color + SAMPLE(environment, vec3(1.0));
+        #else
+          return color + SAMPLE(image, vec2(0.5));
+        #endif
+      }
+      VertexShader = vert;
+      FragmentShader = frag;
+    } } }`;
+    const fixtureEngine = await WebGLEngine.create({
+      canvas: document.createElement("canvas"),
+      shaderCompiler: shaderCompilerRelease
+    });
+    let shader: Shader | undefined;
+    try {
+      shader =
+        mode === "source"
+          ? Shader.create(source)
+          : Shader._createFromPrecompiled(
+              JSON.parse(JSON.stringify(new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)))
+            );
+      expect(shader.compileVariant(fixtureEngine, [])).to.be.true;
+      expect(shader.compileVariant(fixtureEngine, ["USE_CUBE"])).to.be.true;
+    } finally {
+      shader?.destroy();
+      fixtureEngine.destroy();
+    }
+  });
+
   it("rejects an unknown shader target", () => {
     expect(
       shaderCompilerRelease._parseShaderPass(

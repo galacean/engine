@@ -1,5 +1,5 @@
 import { EShaderStage } from "@galacean/engine-shader-parser/internal";
-import { ASTNode } from "@galacean/engine-shader-parser/internal";
+import { ASTNode, BaseToken } from "@galacean/engine-shader-parser/internal";
 import { ShaderData } from "@galacean/engine-shader-parser/internal";
 import { ShaderBuiltinSemantic } from "@galacean/engine-shader-parser/internal";
 import { ParserUtils } from "@galacean/engine-shader-parser/internal";
@@ -83,31 +83,39 @@ export class GLES300Visitor extends GLESVisitor {
       // Preserve resolved user functions and struct type dependencies.
       return super.visitFunctionIdentifier(node);
     }
-    let ident = node.lexeme;
-    switch (node.ident) {
+    return this._textureBuiltinName(node.lexeme) ?? node.lexeme;
+  }
+
+  override visitMacroDefine(node: ASTNode.MacroDefine): string {
+    if (!node.isFunction && node.valueExpression) {
+      const alias = ParserUtils.unwrapBareIdentifier(node.valueExpression, { allowParens: false });
+      const token = alias?.children[0];
+      if (alias && token instanceof BaseToken && !alias.resolvedSymbols().length) {
+        const builtin = this._textureBuiltinName(token.lexeme);
+        if (builtin) return `\n#define ${node.macroName} ${builtin}\n`;
+      }
+    }
+    return super.visitMacroDefine(node);
+  }
+
+  private _textureBuiltinName(name: string): string | undefined {
+    switch (name) {
       case "texture2D":
       case "textureCube":
-        ident = "texture";
-        break;
+        return "texture";
       case "texture2DProj":
-        ident = "textureProj";
-        break;
+        return "textureProj";
       case "texture2DLodEXT":
       case "textureCubeLodEXT":
-        ident = "textureLod";
-        break;
+        return "textureLod";
       case "texture2DGradEXT":
       case "textureCubeGradEXT":
-        ident = "textureGrad";
-        break;
+        return "textureGrad";
       case "texture2DProjLodEXT":
-        ident = "textureProjLod";
-        break;
+        return "textureProjLod";
       case "texture2DProjGradEXT":
-        ident = "textureProjGrad";
-        break;
+        return "textureProjGrad";
     }
-    return ident;
   }
 
   override visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
