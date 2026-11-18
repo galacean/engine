@@ -335,7 +335,7 @@ export class BasicRenderPipeline {
           depthFormat,
           needDepthTexture,
           false,
-          !camera.enableHDR,
+          !camera._isInternalFormatHDR(),
           msaaSamples,
           TextureWrapMode.Clamp,
           TextureFilterMode.Bilinear,

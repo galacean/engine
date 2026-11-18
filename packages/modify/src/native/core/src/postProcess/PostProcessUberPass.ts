@@ -164,6 +164,7 @@ export class PostProcessUberPass extends PostProcessPass {
 
     // Prefilter
     const internalColorTextureFormat = camera._getInternalColorTextureFormat();
+    const isSRGB = !camera._isInternalFormatHDR();
     let mipWidth = tw,
       mipHeight = th;
     for (let i = 0; i < mipCount; i++) {
@@ -176,7 +177,7 @@ export class PostProcessUberPass extends PostProcessPass {
         null,
         false,
         false,
-        !camera.enableHDR,
+        isSRGB,
         1,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear
@@ -190,7 +191,7 @@ export class PostProcessUberPass extends PostProcessPass {
         null,
         false,
         false,
-        !camera.enableHDR,
+        isSRGB,
         1,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear
