@@ -31,6 +31,7 @@ export interface ResolvedTemplateNode {
 }
 export interface ResolvedWorldTemplateScene {
   id: string;
+  seed: number;
   anchor: Position;
   geometry: ReturnType<typeof buildWorldTemplateGeometry>;
   nodes: ResolvedTemplateNode[];
@@ -114,6 +115,7 @@ export function resolveWorldTemplateScene(
   };
   return {
     id: template.id,
+    seed: plan.parameters.seed,
     anchor,
     geometry,
     nodes,
@@ -194,6 +196,7 @@ export function resolveWorldTemplateView(
   ground: (x: number, z: number) => number | undefined
 ) {
   const art = WORLD_TEMPLATE_ART[scene.id],
+    viewOverrides = art.resolveView?.(scene.seed),
     bounds = scene.focusBounds;
   if (
     ![aspect, fovDegrees, eyeHeight].every(Number.isFinite) ||
@@ -203,14 +206,16 @@ export function resolveWorldTemplateView(
     fovDegrees >= 180
   )
     throw new Error("参考图取景的视口、视野角或眼高无效");
+  const lookAtOffset = viewOverrides?.lookAtOffset ?? art.lookAtOffset;
   const target = [0, 1, 2].map(
-    (axis) => (bounds.min[axis] + bounds.max[axis]) / 2 + (art.lookAtOffset?.[axis] ?? 0) * (axis === 0 ? -1 : 1)
+    (axis) => (bounds.min[axis] + bounds.max[axis]) / 2 + (lookAtOffset?.[axis] ?? 0) * (axis === 0 ? -1 : 1)
   ) as Position;
   // A wide composition can frame into the subject's planning envelope. Ease
   // back to full containment as the viewport approaches a square.
-  const frameFraction = Math.min(art.frameFraction, Math.max(1, aspect));
+  const frameFraction = Math.min(viewOverrides?.frameFraction ?? art.frameFraction, Math.max(1, aspect));
   const centered = scene.centeredStart;
-  const offset = art.spawnOffset;
+  const offset = viewOverrides?.spawnOffset ?? art.spawnOffset;
+  const azimuthDegrees = viewOverrides?.azimuthDegrees ?? art.azimuthDegrees;
   const spawn = offset && {
     x: scene.anchor[0] - offset[0],
     z: scene.anchor[2] + offset[1] / Math.min(1, aspect)
@@ -222,7 +227,7 @@ export function resolveWorldTemplateView(
       ? ([spawn.x, spawnHeight + eyeHeight, spawn.z] as Position)
       : centered
         ? ([centered[0], centered[1] + eyeHeight, centered[2]] as Position)
-        : findTemplateEye(scene, target, aspect, fovDegrees, eyeHeight, ground, frameFraction));
+        : findTemplateEye(scene, target, aspect, fovDegrees, eyeHeight, ground, frameFraction, azimuthDegrees));
   if (!eye) throw new Error("地形或体量遮挡参考图主景，无法在当前世界范围内完整取景");
   const pose: SubjectViewPose = scene.spawnView ?? {
     subjectId: `world-template:${scene.id}`,
@@ -257,7 +262,8 @@ function findTemplateEye(
   fovDegrees: number,
   eyeHeight: number,
   ground: (x: number, z: number) => number | undefined,
-  frameFraction: number
+  frameFraction: number,
+  azimuthDegrees = WORLD_TEMPLATE_ART[scene.id].azimuthDegrees
 ): Position | undefined {
   const art = WORLD_TEMPLATE_ART[scene.id];
   const bearings = art.plannedSubjects ? [0, -15, 15, -30, 30, -45, 45, -60, 60, -90, 90, -135, 135, 180] : [0];
@@ -270,7 +276,7 @@ function findTemplateEye(
       fovDegrees,
       eyeHeight,
       ground,
-      art.azimuthDegrees + offset,
+      azimuthDegrees + offset,
       frameFraction
     );
     if (!result) continue;

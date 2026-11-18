@@ -29,8 +29,9 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
   const seed = raw !== null && /^\d+$/.test(raw) && Number(raw) <= 0xffffffff ? Number(raw) : SEMANTIC_DEFAULTS.seed;
   let document = handoff?.document ?? await storage.load(seed);
   let replaceSavedTemplate = false;
+  let lowPolyWaterRefreshRequest: string | undefined;
   if (!handoff && document) {
-    refreshLowPolyPreview(document);
+    if (refreshLowPolyPreview(document)) lowPolyWaterRefreshRequest = `low-poly-pond-v60:${seed}`;
     resetPlanningFarmSaveChoice(document);
     if (import.meta.env.DEV && query.get("desertSkyLab") === "1") updateDesertPreviewRelief(document);
   }
@@ -56,7 +57,7 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
       const recipe = exportPlanningRecipe(document);
       accepted ??= await client.run(recipe.parameters, recipe.edits, undefined, document);
       if (!accepted?.accepted) throw new Error("Water authoring initialization requires an accepted planning result");
-      document = await storage.initialize(document, accepted, handoff?.waterResetRequest);
+      document = await storage.initialize(document, accepted, handoff?.waterResetRequest ?? lowPolyWaterRefreshRequest);
     } catch (error) { client.dispose(); throw error; }
   }
   // Source/project history owns undo; the runtime session is a derived consumer.

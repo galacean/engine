@@ -116,24 +116,25 @@ export function stretchTemplateAsset(
  * Effects have no substitute renderer until their corresponding assets exist. */
 export function buildWorldTemplateGeometry(
   template: WorldTemplate,
-  _seed: number,
+  seed: number,
   parameters?: Partial<SpatialCompositionParameters>
 ): TemplateGeometry {
   const art = WORLD_TEMPLATE_ART[template.id];
   if (!art) throw new Error("风格缺少对应的参考图配方：" + template.id);
+  const sourceModels = art.resolveModels ? art.resolveModels(seed) : art.models;
   // Reference layout uses screen-right +X and depth +Z. A native camera looking
   // into +Z has world-right -X; convert the layout frame once at this boundary.
   let nodes: TemplateNode[];
   if ((art.generation || parameters?.enabled) && art.modelLayout !== "authored") {
     const q = spatialCompositionParameters(parameters ?? art.generation),
       frame = { ...q, centerX: 0, centerZ: 0 };
-    const primary = art.models.filter((slot) => art.focus.includes(slot.id));
+    const primary = sourceModels.filter((slot) => art.focus.includes(slot.id));
     const axis = q.primaryPattern === "depth" ? 2 : 0;
     const extent = primary.reduce((sum, slot) => sum + slot.scale[axis], 0) + (primary.length - 1) * q.subjectSpacingM;
     let cursor = -extent / 2,
       secondary = 0;
     const primaryRadius = Math.max(...primary.map((slot) => Math.hypot(slot.scale[0], slot.scale[2]) / 2));
-    nodes = art.models.map((slot) => {
+    nodes = sourceModels.map((slot) => {
       let x = 0,
         z = 0;
       if (art.focus.includes(slot.id)) {
@@ -160,7 +161,7 @@ export function buildWorldTemplateGeometry(
   } else {
     const q = spatialCompositionParameters(parameters ?? art.generation),
       frame = { ...q, centerX: 0, centerZ: 0 };
-    nodes = art.models.map((node) => {
+    nodes = sourceModels.map((node) => {
       if (!("position" in node)) throw new Error("模板资产缺少布局生成参数：" + node.id);
       const p = compositionPoint(frame, node.position[0], node.position[2]);
       return {
