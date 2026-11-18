@@ -106,17 +106,37 @@ class Model:
             document["accessors"].append(result)
             return len(document["accessors"]) - 1
 
-        positions, normals, colors = [], [], []
+        def index_accessor(values):
+            view = len(document["bufferViews"])
+            use_u32 = max(values) > 65535
+            fmt, ctype = ("I", 5125) if use_u32 else ("H", 5123)
+            data = struct.pack(f"<{len(values)}{fmt}", *values)
+            document["bufferViews"].append(dict(buffer=0, byteOffset=len(binary), byteLength=len(data), target=34963))
+            binary.extend(data)
+            binary.extend(b"\0" * (-len(binary) % 4))
+            document["accessors"].append(dict(bufferView=view, componentType=ctype, count=len(values), type="SCALAR"))
+            return len(document["accessors"]) - 1
+
+        positions, normals, colors, indices = [], [], [], []
+        vertex_lookup = {}
         for color, (part_positions, part_normals) in self.parts.items():
             rgb = [int(color[i:i + 2], 16) / 255 for i in (0, 2, 4)]
             linear = tuple(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb)
-            positions.extend(part_positions)
-            normals.extend(part_normals)
-            colors.extend([linear] * len(part_positions))
+            for pos, nrm in zip(part_positions, part_normals):
+                key = struct.pack("<9f", *pos, *nrm, *linear)
+                idx = vertex_lookup.get(key)
+                if idx is None:
+                    idx = len(positions)
+                    vertex_lookup[key] = idx
+                    positions.append(pos)
+                    normals.append(nrm)
+                    colors.append(linear)
+                indices.append(idx)
         document["materials"].append(dict(name="Low Poly vertex colors", pbrMetallicRoughness=dict(
             metallicFactor=0, roughnessFactor=0.82)))
         document["meshes"][0]["primitives"].append(dict(
             attributes=dict(POSITION=accessor(positions, True), NORMAL=accessor(normals), COLOR_0=accessor(colors)),
+            indices=index_accessor(indices),
             material=0))
         document["buffers"] = [{"byteLength": len(binary)}]
         metadata = json.dumps(document, separators=(",", ":")).encode()

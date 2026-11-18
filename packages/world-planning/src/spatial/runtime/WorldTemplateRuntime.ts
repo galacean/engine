@@ -88,6 +88,7 @@ export class WorldTemplateRuntime {
   private readonly groundedNodes = new Map<string, Entity>();
   private readonly leafMaterials = new Map<string, Material>();
   private readonly assetMaterials = new Map<string, PBRMaterial | UnlitMaterial>();
+  private readonly boughWindMeshes = new Map<string, BufferMesh | undefined>();
   private sporeRenderer?: ParticleRenderer;
   private sporeEmissionMesh?: ModelMesh;
   private sporeMaterial?: ParticleMaterial;
@@ -1005,16 +1006,28 @@ export class WorldTemplateRuntime {
     for (const renderer of foliageRenderers) {
       if (renderer.mesh) BoundingBox.merge(crownBounds, renderer.mesh.bounds, crownBounds);
     }
-    const wrappedMeshes = new Map<ModelMesh, BufferMesh | undefined>();
     const crownHeight = Number.isFinite(crownBounds.max.y) ? Math.max(0.1, crownBounds.max.y) : 1;
+    const crownKey = Number.isFinite(crownBounds.min.x)
+      ? [
+          crownBounds.min.x,
+          crownBounds.min.y,
+          crownBounds.min.z,
+          crownBounds.max.x,
+          crownBounds.max.y,
+          crownBounds.max.z
+        ]
+          .map((v) => v.toFixed(5))
+          .join(",")
+      : "";
 
     for (const renderer of foliageRenderers) {
       let hasBoughWind = false;
-      if (renderer.mesh instanceof ModelMesh && Number.isFinite(crownBounds.min.x)) {
-        let wrapped = wrappedMeshes.get(renderer.mesh);
-        if (!wrappedMeshes.has(renderer.mesh)) {
+      if (renderer.mesh instanceof ModelMesh && crownKey) {
+        const cacheKey = `${renderer.mesh.instanceId}:${crownKey}`;
+        let wrapped = this.boughWindMeshes.get(cacheKey);
+        if (!this.boughWindMeshes.has(cacheKey)) {
           wrapped = this.attachFoliageBoughWindMesh(renderer.mesh, crownBounds);
-          wrappedMeshes.set(renderer.mesh, wrapped);
+          this.boughWindMeshes.set(cacheKey, wrapped);
         }
         if (wrapped) {
           renderer.mesh = wrapped;
@@ -1243,6 +1256,7 @@ export class WorldTemplateRuntime {
     this.sporeEmissionMesh?.destroy();
     for (const destroy of this.foliageWindDisposals) destroy();
     this.foliageWindDisposals.length = 0;
+    this.boughWindMeshes.clear();
     this.disposeProceduralPlants?.();
     this.petalMaterial?.destroy();
     this.butterflyMaterial?.destroy();
