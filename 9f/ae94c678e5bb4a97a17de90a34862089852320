@@ -1,0 +1,35 @@
+packages/rhi-webgl/src/GLTexture2D.ts
+  s_da48a1c3cefcb7::t_f3681126e94c3d 42
+packages/core/src/2d/atlas/FontAtlas.ts
+  s_da48a1c3cefcb7::t_f3681126e94c3d 23
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  s_da48a1c3cefcb7::t_f3681126e94c3d 111
+packages/core/src/RenderPipeline/DepthOnlyPass.ts
+  s_da48a1c3cefcb7::t_f3681126e94c3d 22
+packages/rhi-webgl/src/GLBuffer.ts
+  s_da48a1c3cefcb7::t_f3681126e94c3d 100
+packages/rhi-webgl/src/GLRenderTarget.ts
+  s_da48a1c3cefcb7::t_f3681126e94c3d 59
+packages/rhi-webgl/src/GLTextureCube.ts
+  s_da48a1c3cefcb7::t_f3681126e94c3d 33,49
+packages/core/src/particle/modules/InheritVelocityModule.ts
+  s_da48a1c3cefcb7::t_f3681126e94c3d 110
+packages/core/src/mesh/SkinnedMeshRenderer.ts
+  s_da48a1c3cefcb7::t_f3681126e94c3d 187
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9fae94c678e5bb4a97a17de90a34862089852320",
+  "prompts": {},
+  "sessions": {
+    "s_da48a1c3cefcb7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1524d-29ee-7280-8621-925d13a5c914",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

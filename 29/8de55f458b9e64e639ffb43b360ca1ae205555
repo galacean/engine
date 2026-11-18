@@ -1,0 +1,31 @@
+packages/core/src/base/Constant.ts
+  s_3ee6eea2868467::t_b4e03d16a1c69c 101
+packages/core/src/texture/TextureUtils.ts
+  s_3ee6eea2868467::t_ca59fbad0ffeb5 107
+packages/core/src/texture/enums/TextureFormat.ts
+  s_3ee6eea2868467::t_ea4e93f48a2a07 39-40
+packages/loader/src/ktx2/KTX2Loader.ts
+  s_3ee6eea2868467::t_f613adf33b8752 25-26,164,166,168,181-185,187,198,203,212,224
+packages/rhi-webgl/src/GLCapability.ts
+  s_3ee6eea2868467::t_455dc5d2be8eed 153-154,260
+packages/rhi-webgl/src/GLTexture.ts
+  s_3ee6eea2868467::t_65587b84618e86 117-125
+tests/src/loader/NativeFloatKTX2.test.ts
+  s_3ee6eea2868467::t_c11ffefc807887 34-51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "298de55f458b9e64e639ffb43b360ca1ae205555",
+  "prompts": {},
+  "sessions": {
+    "s_3ee6eea2868467": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e9f3-3257-7082-9101-0df93aec4a93",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
