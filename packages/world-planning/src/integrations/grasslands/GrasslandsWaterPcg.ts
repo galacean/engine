@@ -1,6 +1,5 @@
 import {
   Camera,
-  ScreenSpaceReflectionQuality,
   ScreenSpaceReflectionUpsamplingMode,
   type AmbientLight,
   type Engine,
@@ -43,7 +42,8 @@ import { hashStableValue } from "@galacean/engine-water/water/compiler/index";
 import {
   TERRAIN_SCREEN_SPACE_REFLECTION_MAX_RAY_DISTANCE_METRES,
   TERRAIN_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES,
-  TERRAIN_SCREEN_SPACE_REFLECTION_RESOLUTION_SCALE
+  TERRAIN_SCREEN_SPACE_REFLECTION_RAY_LENGTH_FADE_METRES,
+  TERRAIN_WATER_SCREEN_SPACE_REFLECTION_EDGE_FADE
 } from "@galacean/engine-environment/terrain/lighting/TerrainScreenSpaceReflectionTuning";
 import {
   createGrasslandsTerrainWaterDescriptor,
@@ -60,13 +60,12 @@ const TERRAIN_GRASSLANDS_ENVIRONMENT_PROVIDER_ID = "terrain-grasslands-scene-env
 
 const PRESENTATION_REVEAL_TILE_SIZE_METRES = 180;
 export const TERRAIN_WATER_SSR_CAMERA_SETTINGS = Object.freeze({
-  quality: ScreenSpaceReflectionQuality.High,
-  resolutionScale: TERRAIN_SCREEN_SPACE_REFLECTION_RESOLUTION_SCALE,
   upsamplingMode: ScreenSpaceReflectionUpsamplingMode.Bilinear,
   maxRayDistance: TERRAIN_SCREEN_SPACE_REFLECTION_MAX_RAY_DISTANCE_METRES,
+  rayLengthFade: TERRAIN_SCREEN_SPACE_REFLECTION_RAY_LENGTH_FADE_METRES,
   thickness: TERRAIN_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES,
   maxRoughness: 0.7,
-  edgeFade: 0.06
+  edgeFade: TERRAIN_WATER_SCREEN_SPACE_REFLECTION_EDGE_FADE
 });
 
 export interface GrasslandsTerrainWaterEnvironmentReflectionSource extends WaterEnvironmentReflectionSource {

@@ -10,7 +10,10 @@ export const TERRAIN_SCREEN_SPACE_REFLECTION_RAY_LENGTH_FADE_METRES =
   TERRAIN_SCREEN_SPACE_REFLECTION_MAX_RAY_DISTANCE_METRES * 0.1;
 
 /** Shared near-field floor before the trace expands thickness with linear depth. */
-export const TERRAIN_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES = 0.01;
+export const TERRAIN_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES = 0.2;
 
 /** Half linear resolution traces one quarter as many pixels while preserving full-resolution depth. */
 export const TERRAIN_SCREEN_SPACE_REFLECTION_RESOLUTION_SCALE = 0.5;
+
+/** Narrower viewport edge fade for horizontal water receivers so distant horizon hits stay visible. */
+export const TERRAIN_WATER_SCREEN_SPACE_REFLECTION_EDGE_FADE = 0.02;

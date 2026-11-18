@@ -3,12 +3,18 @@ import {
   type Material,
   RenderQueueType,
   ScreenSpaceReflection,
+  ScreenSpaceReflectionQuality as Quality,
   ScreenSpaceReflectionReceiverMode as ReceiverMode,
   ScreenSpaceReflectionUpsamplingMode as UpsamplingMode,
   Shader,
   ShaderData,
   ShaderDataGroup
 } from "@galacean/engine";
+import {
+  TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION,
+  applyAutomaticScreenSpaceReflectionConfiguration,
+  applyScreenSpaceReflectionConfiguration
+} from "@galacean/engine-terrain/terrain/debug/TerrainScreenSpaceReflectionPanel";
 import {
   CameraWaterFeatureBroker,
   type WaterCameraFeatureRequest
@@ -77,17 +83,51 @@ const waterRequest: WaterCameraFeatureRequest = {
 };
 
 it.each([
-  ["low", 0.25],
-  ["medium", 0.5],
-  ["high", 0.5]
-] as const)("forwards the %s water trace preset to the transparent phase", (quality, resolutionScale) => {
-  const { camera, reflection } = fixture();
-  new CameraWaterFeatureBroker(camera).setRequest("lake", { ...waterRequest, quality });
-  expect(reflection.metrics.transparentResolvedSettings).toMatchObject({
-    resolutionScale,
-    upsamplingMode: UpsamplingMode.Bilinear
-  });
-});
+  ["low", Quality.Low, 0.25, 16, 2],
+  ["medium", Quality.Medium, 0.5, 32, 3],
+  ["high", Quality.High, 0.5, 64, 5]
+] as const)(
+  "forwards the %s water trace preset and keeps quality tiers active under Seed World startup config",
+  (quality, expectedQuality, resolutionScale, maxRaySteps, hitRefinementSteps) => {
+    const { camera, reflection } = fixture();
+    applyAutomaticScreenSpaceReflectionConfiguration(camera, TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION);
+    expect(reflection.getReceiverTraceSettingsOverride(ReceiverMode.TransparentSampleOnly)).toBeNull();
+
+    const standaloneBroker = new CameraWaterFeatureBroker(camera);
+    standaloneBroker.setRequest("lake", { ...waterRequest, quality });
+    expect(reflection.metrics.transparentResolvedSettings).toMatchObject({
+      quality: expectedQuality,
+      resolutionScale,
+      upsamplingMode: UpsamplingMode.Bilinear,
+      thickness: 0.2
+    });
+    standaloneBroker.destroy();
+
+    new CameraWaterFeatureBroker(camera).setRequest("lake", {
+      ...waterRequest,
+      quality,
+      screenSpaceReflection: TERRAIN_WATER_SSR_CAMERA_SETTINGS
+    });
+    expect(reflection.metrics.transparentResolvedSettings).toMatchObject({
+      quality: expectedQuality,
+      resolutionScale,
+      upsamplingMode: UpsamplingMode.Bilinear,
+      maxRayDistance: 168,
+      rayLengthFade: 16.8,
+      maxRaySteps,
+      hitRefinementSteps,
+      thickness: 0.2,
+      maxRoughness: 0.7,
+      edgeFade: 0.02
+    });
+
+    applyScreenSpaceReflectionConfiguration(camera, { waterThickness: 0.45 });
+    expect(reflection.metrics.transparentResolvedSettings).toMatchObject({
+      thickness: 0.45,
+      upsamplingMode: UpsamplingMode.Bilinear
+    });
+  }
+);
 
 it("applies mode-only water updates and rejects an invalid mode without replacing the request", () => {
   const { camera, reflection } = fixture();

@@ -72,6 +72,8 @@ function qualityDownsampling(quality: WaterCameraFeatureQuality): Downsampling {
   return quality === "high" ? Downsampling.None : quality === "medium" ? Downsampling.TwoX : Downsampling.FourX;
 }
 
+const WATER_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES = 0.2;
+
 const WATER_SCREEN_SPACE_REFLECTION_REQUESTS: Readonly<
   Record<WaterCameraFeatureQuality, Readonly<ScreenSpaceReflectionConsumerRequest>>
 > = Object.freeze({
@@ -81,7 +83,7 @@ const WATER_SCREEN_SPACE_REFLECTION_REQUESTS: Readonly<
     resolutionScale: 0.25,
     upsamplingMode: ScreenSpaceReflectionUpsamplingMode.Bilinear,
     maxRayDistance: 32,
-    thickness: 0.35,
+    thickness: WATER_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES,
     maxRoughness: 0.7,
     edgeFade: 0.1
   }),
@@ -91,7 +93,7 @@ const WATER_SCREEN_SPACE_REFLECTION_REQUESTS: Readonly<
     resolutionScale: 0.5,
     upsamplingMode: ScreenSpaceReflectionUpsamplingMode.Bilinear,
     maxRayDistance: 56,
-    thickness: 0.5,
+    thickness: WATER_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES,
     maxRoughness: 0.7,
     edgeFade: 0.08
   }),
@@ -101,7 +103,7 @@ const WATER_SCREEN_SPACE_REFLECTION_REQUESTS: Readonly<
     resolutionScale: 0.5,
     upsamplingMode: ScreenSpaceReflectionUpsamplingMode.Bilinear,
     maxRayDistance: 80,
-    thickness: 0.6,
+    thickness: WATER_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES,
     maxRoughness: 0.7,
     edgeFade: 0.06
   })
@@ -139,6 +141,7 @@ function screenSpaceReflectionRequestsEqual(
     left.upsamplingMode === right.upsamplingMode &&
     left.intensity === right.intensity &&
     left.maxRayDistance === right.maxRayDistance &&
+    left.rayLengthFade === right.rayLengthFade &&
     left.thickness === right.thickness &&
     left.maxRoughness === right.maxRoughness &&
     left.edgeFade === right.edgeFade
@@ -161,6 +164,7 @@ function resolveScreenSpaceReflectionCandidate(
   if (override.upsamplingMode !== undefined) candidate.upsamplingMode = override.upsamplingMode;
   if (override.intensity !== undefined) candidate.intensity = override.intensity;
   if (override.maxRayDistance !== undefined) candidate.maxRayDistance = override.maxRayDistance;
+  if (override.rayLengthFade !== undefined) candidate.rayLengthFade = override.rayLengthFade;
   if (override.thickness !== undefined) candidate.thickness = override.thickness;
   if (override.maxRoughness !== undefined) candidate.maxRoughness = override.maxRoughness;
   if (override.edgeFade !== undefined) candidate.edgeFade = override.edgeFade;
@@ -181,6 +185,7 @@ function screenSpaceReflectionRequestKey(request: Readonly<ScreenSpaceReflection
     request.upsamplingMode ?? null,
     request.intensity ?? null,
     request.maxRayDistance ?? null,
+    request.rayLengthFade ?? null,
     request.thickness ?? null,
     request.maxRoughness ?? null,
     request.edgeFade ?? null
@@ -341,6 +346,7 @@ export class CameraWaterFeatureBroker {
       ["resolutionScale", screenSpaceReflection.resolutionScale, 0.25, 1],
       ["intensity", screenSpaceReflection.intensity, 0, 1],
       ["maxRayDistance", screenSpaceReflection.maxRayDistance, Number.EPSILON, Number.POSITIVE_INFINITY],
+      ["rayLengthFade", screenSpaceReflection.rayLengthFade, 0, Number.POSITIVE_INFINITY],
       ["thickness", screenSpaceReflection.thickness, Number.EPSILON, Number.POSITIVE_INFINITY],
       ["maxRoughness", screenSpaceReflection.maxRoughness, 0, 1],
       ["edgeFade", screenSpaceReflection.edgeFade, 0, 0.5]

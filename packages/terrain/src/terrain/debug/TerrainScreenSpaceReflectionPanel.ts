@@ -11,7 +11,8 @@ import {
   TERRAIN_SCREEN_SPACE_REFLECTION_MAX_RAY_DISTANCE_METRES,
   TERRAIN_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES,
   TERRAIN_SCREEN_SPACE_REFLECTION_RAY_LENGTH_FADE_METRES,
-  TERRAIN_SCREEN_SPACE_REFLECTION_RESOLUTION_SCALE
+  TERRAIN_SCREEN_SPACE_REFLECTION_RESOLUTION_SCALE,
+  TERRAIN_WATER_SCREEN_SPACE_REFLECTION_EDGE_FADE
 } from "@galacean/engine-environment/terrain/lighting/TerrainScreenSpaceReflectionTuning";
 
 /** Stable SSR trace-quality names exposed by the Terrain debug panel. */
@@ -71,7 +72,7 @@ export const TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION: TerrainScreenSpaceRe
     waterHitRefinementSteps: 5,
     waterThickness: TERRAIN_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES,
     waterMaxRoughness: 0.7,
-    waterEdgeFade: 0.02
+    waterEdgeFade: TERRAIN_WATER_SCREEN_SPACE_REFLECTION_EDGE_FADE
   });
 
 type TerrainScreenSpaceReflectionPanelResolvedSettings = Pick<
@@ -191,6 +192,9 @@ export function applyScreenSpaceReflectionConfiguration(
     configuration.waterMaxRoughness !== undefined ||
     configuration.waterEdgeFade !== undefined
   ) {
+    const existingOverride = target.getReceiverTraceSettingsOverride(
+      ScreenSpaceReflectionReceiverMode.TransparentSampleOnly
+    );
     const current = target.metrics.transparentResolvedSettings;
     const waterQuality =
       configuration.waterQuality !== undefined
@@ -203,6 +207,7 @@ export function applyScreenSpaceReflectionConfiguration(
         configuration.waterResolutionScale !== undefined
           ? requireScreenSpaceReflectionSetting(configuration.waterResolutionScale, "waterResolutionScale", 0.25, 1)
           : current.resolutionScale,
+      ...(existingOverride?.upsamplingMode !== undefined ? { upsamplingMode: existingOverride.upsamplingMode } : {}),
       maxRayDistance: sharedMaxRayDistance ?? current.maxRayDistance,
       rayLengthFade:
         configuration.waterRayLengthFade !== undefined
@@ -251,7 +256,9 @@ export function applyAutomaticScreenSpaceReflectionConfiguration(
   configuration: Partial<TerrainScreenSpaceReflectionAutomaticConfiguration>
 ): void {
   applyScreenSpaceReflectionConfiguration(camera, configuration);
-  cameraScreenSpaceReflection(camera).activationMode = ScreenSpaceReflectionActivationMode.Auto;
+  const target = cameraScreenSpaceReflection(camera);
+  target.setReceiverTraceSettingsOverride(ScreenSpaceReflectionReceiverMode.TransparentSampleOnly, undefined);
+  target.activationMode = ScreenSpaceReflectionActivationMode.Auto;
 }
 
 /**
