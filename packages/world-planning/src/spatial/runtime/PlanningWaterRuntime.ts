@@ -52,7 +52,8 @@ import {
   type PublishedWaterSceneBodySet,
   type WaterEnvironmentReflectionSource,
   type WaterSceneBodyRequest,
-  type WaterSurfaceSample
+  type WaterSurfaceSample,
+  type WaterTerrainOcclusionProvider
 } from "@galacean/engine-water/water/runtime/index";
 import { TERRAIN_WATER_SSR_CAMERA_SETTINGS } from "../../integrations/grasslands/GrasslandsWaterPcg";
 import waterPresentation from "../../planning-data/water-rendering.json";
@@ -123,6 +124,7 @@ export class PlanningWaterRuntime {
   private destroyPromise?: Promise<void>;
   private oceanVisible = true;
   private riversVisible = true;
+  private terrainOcclusionProvider?: WaterTerrainOcclusionProvider & { readonly revision?: number };
   private plan?: IslandPlan;
   private latestPlan?: IslandPlan;
   private runtimePlan?: IslandPlan;
@@ -538,9 +540,38 @@ export class PlanningWaterRuntime {
     );
   }
 
-  /** Advance the same finite Ocean controller used by Seed; River animation uses the engine shader clock. */
-  update(deltaSeconds: number): void {
-    // WaterSystem.onUpdate owns animation for all native components.
+  /** Connects active finite Water chunks to the active World's shared Terrain Horizon. */
+  setTerrainOcclusionProvider(provider?: WaterTerrainOcclusionProvider & { readonly revision?: number }): void {
+    if (provider === this.terrainOcclusionProvider) return;
+    this.terrainOcclusionProvider = provider;
+    if (!this.destroyed && this.system.activeRuntimeHost) {
+      this.host.setTerrainOcclusionProvider(provider);
+    }
+  }
+
+  /** Refreshes finite Water Terrain Horizon occlusion alongside WaterSystem frame animation. */
+  update(_deltaSeconds: number): void {
+    this.refreshTerrainOcclusion();
+  }
+
+  private refreshTerrainOcclusion(): void {
+    const provider = this.terrainOcclusionProvider;
+    if (!provider || this.destroyed || !this.system.runtimeState.effectiveEnabled || !this.system.activeRuntimeHost) {
+      return;
+    }
+    this.host.refreshTerrainOcclusion();
+  }
+
+  /** Summarizes active vs Horizon-occluded finite Water chunks for performance telemetry. */
+  getPerformanceSummary(): string {
+    if (this.destroyed || !this.system.runtimeState.effectiveEnabled || !this.system.activeRuntimeHost) {
+      return "Off";
+    }
+    const { finiteTotal, finiteVisible, finiteOccluded, oceanTotal, oceanVisible } = this.host.summarizeBodyRenderers();
+    const parts: string[] = [];
+    if (finiteTotal > 0) parts.push(`Lakes/Rivers ${finiteVisible}/${finiteTotal} vis (${finiteOccluded} horizon)`);
+    if (oceanTotal > 0) parts.push(`Ocean ${oceanVisible}/${oceanTotal}`);
+    return parts.length > 0 ? parts.join(" · ") : "None";
   }
 
   /** Visibility does not change layout, river profiles or the canonical terrain. */

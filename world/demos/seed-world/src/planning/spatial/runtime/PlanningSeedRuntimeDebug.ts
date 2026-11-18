@@ -506,7 +506,8 @@ export class PlanningSeedRuntimeDebug {
       screenSpaceReflectionOpaqueDraws: ssr.opaqueSurfacePassDrawCount,
       screenSpaceReflectionTransparentDraws: ssr.transparentSurfacePassDrawCount,
       screenSpaceReflectionEstimatedBytes: ssr.estimatedBytes,
-      shadowCascadeCount: root.scene!.shadowCascades
+      shadowCascadeCount: root.scene!.shadowCascades,
+      waterSummary: water.getPerformanceSummary()
     };
   }
 }

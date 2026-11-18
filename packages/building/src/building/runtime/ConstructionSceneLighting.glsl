@@ -126,6 +126,38 @@ vec3 masonrySceneLight(Varyings lightingVaryings, vec3 albedo, vec3 normalWS, ve
     #endif
     return masonrySceneLight(lightingVaryings,albedo,normalWS,positionWS,roughness);
   }
+vec3 masonryFarProxyLight(vec3 albedo, vec3 normalWS, vec3 positionWS) {
+    Varyings lightingVaryings;
+    lightingVaryings.positionWS = positionWS;
+    lightingVaryings.positionCS = camera_VPMat * vec4(positionWS, 1.0);
+    lightingVaryings.uv = vec2(0.0);
+    #ifdef RENDERER_HAS_NORMAL
+      lightingVaryings.normalWS = normalWS;
+    #endif
+    SurfaceData s;
+    s.albedoColor = albedo;
+    s.normal = normalWS;
+    BSDFData bsdf;
+    bsdf.diffuseColor = albedo;
+    bsdf.diffuseAO = 1.0;
+    float shadow = 1.0;
+    #if defined(SCENE_DIRECT_LIGHT_COUNT) && defined(NEED_CALCULATE_SHADOWS)
+      shadow = sampleShadowMap(positionWS, getShadowCoord(positionWS));
+    #endif
+    shadow *= sampleVolumetricCloudShadow(positionWS);
+    vec3 diffuse = vec3(0.0);
+    #ifdef SCENE_DIRECT_LIGHT_COUNT
+      for (int i = 0; i < SCENE_DIRECT_LIGHT_COUNT; i++) {
+        if (!isRendererCulledByLight(renderer_Layer.xy, scene_DirectLightCullingMask[i])) {
+          DirectLight light = getDirectLight(i);
+          float ndotl = max(dot(normalWS, -light.direction), 0.0);
+          diffuse += albedo * 0.318309886 * light.color * (ndotl * (i == 0 ? shadow : 1.0));
+        }
+      }
+    #endif
+    evaluateDiffuseIBL(lightingVaryings, s, bsdf, diffuse);
+    return diffuse;
+}
 vec3 masonrySceneFog(vec3 color, vec3 positionWS) {
     #if SCENE_FOG_MODE != 0
       return fog(vec4(color,1.0),(camera_ViewMat*vec4(positionWS,1.0)).xyz).rgb;

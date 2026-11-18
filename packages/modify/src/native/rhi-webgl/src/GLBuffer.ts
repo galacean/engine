@@ -6,10 +6,12 @@ export class GLBuffer implements IPlatformBuffer {
   /** @internal */
   _glBuffer: WebGLBuffer | null;
 
+  private _rhi: WebGLGraphicDevice;
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _glBindTarget: number;
   private _glBufferUsage: number;
   private _isWebGL2: boolean;
+  private _isIndexBuffer: boolean;
 
   constructor(
     rhi: WebGLGraphicDevice,
@@ -34,11 +36,13 @@ export class GLBuffer implements IPlatformBuffer {
         glBindTarget = (<WebGL2RenderingContext>gl).UNIFORM_BUFFER;
         break;
     }
+    this._rhi = rhi;
     this._gl = gl;
     this._glBuffer = glBuffer;
     this._glBufferUsage = glBufferUsage;
     this._glBindTarget = glBindTarget;
     this._isWebGL2 = rhi.isWebGL2;
+    this._isIndexBuffer = type === BufferBindFlag.IndexBuffer;
 
     try {
       this.bind();
@@ -53,6 +57,10 @@ export class GLBuffer implements IPlatformBuffer {
   }
 
   bind(): void {
+    // Binding an index buffer mutates the active VAO; unbind any cached VAO first.
+    if (this._isIndexBuffer) {
+      this._rhi._bindVertexArray(null);
+    }
     this._gl.bindBuffer(this._glBindTarget, this._glBuffer);
   }
 

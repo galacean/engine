@@ -6,6 +6,7 @@ import {
   AnimatorConditionMode,
   AnimatorController,
   AnimatorControllerLayer,
+  AnimatorCullingMode,
   AnimatorLayerBlendingMode,
   AnimatorLayerMask,
   AnimatorStateMachine,
@@ -13,6 +14,7 @@ import {
   Camera,
   Entity,
   Keyframe,
+  MeshRenderer,
   Script,
   StateMachineScript,
   Transform,
@@ -75,6 +77,30 @@ describe("Animator test", function () {
     target.engine.time._frameCount++;
     target.update(deltaTime);
   };
+
+  it("culls the pose of a manually updated animator only while its renderer is off screen", () => {
+    const { entity, animator: manualAnimator } = createLoopAnimator();
+    const renderer = entity.createChild().addComponent(MeshRenderer);
+    manualAnimator.enabled = false;
+    manualAnimator.cullingMode = AnimatorCullingMode.Complete;
+
+    try {
+      manualAnimator.play("loop", 0);
+      updateAnimator(manualAnimator, 0.25);
+      expect(entity.transform.position.x).toBeCloseTo(0.25);
+
+      // The renderer was absent from the preceding frame.
+      renderer._renderFrameCount = engine.time.frameCount - 1;
+      updateAnimator(manualAnimator, 0.25);
+      expect(entity.transform.position.x).toBeCloseTo(0.25);
+
+      renderer._renderFrameCount = engine.time.frameCount;
+      updateAnimator(manualAnimator, 0.25);
+      expect(entity.transform.position.x).toBeCloseTo(0.75);
+    } finally {
+      entity.destroy();
+    }
+  });
 
   beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: canvasDOM });

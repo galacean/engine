@@ -16,6 +16,25 @@ export class EngineObject {
   _pendingDestroy = false;
 
   protected _destroyed = false;
+  @ignoreClone
+  private _bindingListeners?: Set<(object: EngineObject) => void>;
+
+  /** @internal Observe structural binding changes, including deferred destruction. */
+  _addBindingListener(listener: (object: EngineObject) => void): void {
+    (this._bindingListeners ??= new Set()).add(listener);
+  }
+
+  /** @internal */
+  _removeBindingListener(listener: (object: EngineObject) => void): void {
+    this._bindingListeners?.delete(listener);
+    if (!this._bindingListeners?.size) this._bindingListeners = undefined;
+  }
+
+  /** @internal */
+  _notifyBindingChange(): void {
+    if (!this._bindingListeners) return;
+    for (const listener of this._bindingListeners) listener(this);
+  }
 
   /**
    * Get the engine which the object belongs.
@@ -54,11 +73,13 @@ export class EngineObject {
     if (engine?._frameInProcess && !engine._processingPendingDestroys) {
       if (!this._pendingDestroy) {
         this._pendingDestroy = true;
+        this._notifyBindingChange();
         engine._pendingDestroyObjects.push(this);
       }
     } else {
       this._pendingDestroy = false;
       this._destroyed = true;
+      this._notifyBindingChange();
       this._onDestroy();
     }
   }

@@ -13,7 +13,7 @@ import {
   OCEAN_RENDER_BUDGET,
   OCEAN_WAVE_DISPLACEMENT_ENVELOPE
 } from "../../authoring/ocean/presets/OceanLook";
-import type { WaterCameraVisibilityProvider } from "../body/WaterBackendRegistry";
+import type { WaterCameraVisibilityProvider, WaterTerrainOcclusionProvider } from "../body/WaterBackendRegistry";
 import type { WaterReflectionBinding } from "../optics/WaterReflectionService";
 import { FiniteOceanSurfaceGeometry } from "./FiniteOceanSurfaceGeometry";
 import {
@@ -120,6 +120,8 @@ export class OceanWaterRuntimeController {
   private _config: OceanWaterRuntimeConfig;
   private _externalCameraFeaturesAvailable = true;
   private _cameraFeaturesAvailable = true;
+  private _nearChunkVisibleInFrustum = true;
+  private _effectiveSceneFieldsRequired = true;
   private _cameraSceneFieldDemand: Readonly<OceanSceneFieldDemandResult>;
   private _cameraSceneFieldDemandListener?: (required: boolean) => void;
   private _cameraSceneFieldTransitionCount = 0;
@@ -205,7 +207,8 @@ export class OceanWaterRuntimeController {
         config.waterLevel,
         true
       );
-      this._cameraFeaturesAvailable = this._cameraSceneFieldDemand.required;
+      this._effectiveSceneFieldsRequired = this._cameraSceneFieldDemand.required;
+      this._cameraFeaturesAvailable = this._effectiveSceneFieldsRequired;
       const nearshoreBinding = {
         texture: nearshoreTexture,
         worldToUv: atlas.worldToUv,
@@ -349,7 +352,17 @@ export class OceanWaterRuntimeController {
   }
 
   /** True when at least one active Ocean surface chunk intersects the current source-Camera frustum. */
+  refreshTerrainOcclusion(provider?: WaterTerrainOcclusionProvider): void {
+    this._assertActive();
+    this._geometry.refreshTerrainOcclusion(provider);
+  }
+
   hasCameraVisibleSurfaceChunk(provider: WaterCameraVisibilityProvider): boolean {
+    const nearVisible = this._geometry.hasCameraVisibleNearChunk(provider);
+    if (nearVisible !== this._nearChunkVisibleInFrustum) {
+      this._nearChunkVisibleInFrustum = nearVisible;
+      this._syncEffectiveSceneFieldDemand();
+    }
     return this._geometry.hasCameraVisibleChunk(provider);
   }
 
@@ -423,7 +436,7 @@ export class OceanWaterRuntimeController {
   setCameraSceneFieldDemandListener(listener?: (required: boolean) => void): void {
     this._assertActive();
     if (this._cameraSceneFieldDemandListener === listener) return;
-    listener?.(this._cameraSceneFieldDemand.required);
+    listener?.(this._effectiveSceneFieldsRequired);
     this._cameraSceneFieldDemandListener = listener;
   }
 
@@ -495,17 +508,25 @@ export class OceanWaterRuntimeController {
       previousRequired
     );
     if (next.required !== previousRequired) {
-      this._cameraSceneFieldDemandListener?.(next.required);
       this._cameraSceneFieldTransitionCount++;
     }
     this._cameraSceneFieldDemand = next;
-    this._geometry.setPresentationPath(next.required ? "detailed" : "far-only");
-    this._applyCameraFeatureAvailability();
+    this._syncEffectiveSceneFieldDemand();
     return next.required !== previousRequired;
   }
 
+  private _syncEffectiveSceneFieldDemand(): void {
+    const effectiveRequired = this._cameraSceneFieldDemand.required && this._nearChunkVisibleInFrustum;
+    if (effectiveRequired !== this._effectiveSceneFieldsRequired) {
+      this._effectiveSceneFieldsRequired = effectiveRequired;
+      this._cameraSceneFieldDemandListener?.(effectiveRequired);
+    }
+    this._geometry.setPresentationPath(effectiveRequired ? "detailed" : "far-only");
+    this._applyCameraFeatureAvailability();
+  }
+
   private _applyCameraFeatureAvailability(): void {
-    const available = this._externalCameraFeaturesAvailable && this._cameraSceneFieldDemand.required;
+    const available = this._externalCameraFeaturesAvailable && this._effectiveSceneFieldsRequired;
     if (available === this._cameraFeaturesAvailable) return;
     this._cameraFeaturesAvailable = available;
     setOceanCameraFeaturesAvailable(this._materialState, available);

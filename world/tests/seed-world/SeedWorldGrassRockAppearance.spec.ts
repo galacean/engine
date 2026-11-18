@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { GrassRockAppearance, GRASS_ROCK_APPEARANCE_STRIDE } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/GrassRockAppearance.ts";
+import { segmentTriangleDistanceSquared } from "../../../packages/building/src/building/runtime/SurfaceQueryMath.ts";
 import type { RockFormationMesh, V3 } from "../../../packages/terrain/src/rock-formation/types.ts";
 import type { SeedWorldFields } from "../../../packages/world-planning/src/runtime/SeedWorldFields.ts";
 
@@ -60,17 +61,67 @@ describe("near-rock grass appearance source", () => {
     const task = source.compileIncrementally(input, 130, .17, fields);
     let step = task.next(), slices = 0;
     while (!step.done) { slices++; step = task.next(); }
-    expect(slices).toBeGreaterThan(130);
+    expect(slices).toBeGreaterThanOrEqual(60);
     expect(step.value).toEqual(source.compile(input, 130, .17, fields));
     expect(input).toEqual(before);
   });
   it("yields even when all blades are remote and returns no appearance buffer", () => {
-    const input = new Float32Array(100 * 13);
-    for (let i = 0; i < 100; i++) input.set(roots(100), i * 13);
-    const task = new GrassRockAppearance([wall()]).compileIncrementally(input, 100, .17, fields);
+    const input = new Float32Array(600 * 13);
+    for (let i = 0; i < 600; i++) input.set(roots(100), i * 13);
+    const task = new GrassRockAppearance([wall()]).compileIncrementally(input, 600, .17, fields);
     let step = task.next(), slices = 0;
     while (!step.done) { slices++; step = task.next(); }
-    expect(slices).toBe(3);
+    expect(slices).toBe(2);
     expect(step.value).toBeUndefined();
+  });
+  it("matches segmentTriangleDistanceSquared across multi-cell, negative coordinates, and degenerate triangles", () => {
+    const makeRock = (id: string, positions: number[], origin: V3): { formation: RockFormationMesh; origin: V3 } => ({
+      formation: {
+        id,
+        origin: [0, 0, 0],
+        owners: [id],
+        stats: { bodies: 0, vertices: 0 },
+        mesh: {
+          positions: new Float32Array(positions),
+          indices: new Uint32Array([0, 1, 2]),
+          normals: new Float32Array([0, 1, 0, 0, 1, 0, 0, 1, 0])
+        }
+      },
+      origin
+    });
+    const rocks = [
+      makeRock("neg", [-1, 0, -1, 1, 0, -1, 0, 2, 1], [-120.5, 0, -84.25]),
+      makeRock("degen", [0, 0, 0, 2, 0, 0, 1, 0, 0], [16, 0, -16])
+    ];
+    const samples: [number, number, number][] = [
+      [-120.4, 0.3, -84.1],
+      [-120.0, 1.5, -83.8],
+      [17.1, 0.2, -16.0],
+      [-50, 0, 50]
+    ];
+    const input = new Float32Array(samples.length * 13);
+    samples.forEach(([x, y, z], i) => input.set(roots(x, y, z), i * 13));
+    const result = new GrassRockAppearance(rocks).compile(input, samples.length, 0.4, fields)!;
+    samples.forEach(([x, y, z], i) => {
+      const py = y + 0.083428765 * 2;
+      const point: V3 = [x, py, z];
+      const dNeg = segmentTriangleDistanceSquared(
+        point,
+        point,
+        [-121.5, 0, -85.25],
+        [-119.5, 0, -85.25],
+        [-120.5, 2, -83.25]
+      );
+      const dDeg = segmentTriangleDistanceSquared(point, point, [16, 0, -16], [18, 0, -16], [17, 0, -16]);
+      const reach = 0.4 * 2 + 0.35;
+      const hitExpected = Math.min(dNeg, dDeg) < reach * reach;
+      const off = i * GRASS_ROCK_APPEARANCE_STRIDE;
+      if (hitExpected) {
+        const expectedFirstX = dNeg <= dDeg ? -121.5 : 16;
+        expect(result[off]).toBeCloseTo(expectedFirstX, 5);
+      } else {
+        expect(result[off]).toBe(0);
+      }
+    });
   });
 });

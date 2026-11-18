@@ -4,7 +4,7 @@ import {
   type WaterTerrainInput,
   type DecodedWaterTerrain
 } from "./WaterTerrainAssets";
-import { Script, Material, ignoreClone, type Scene } from "@galacean/engine-core";
+import { Script, Material, BoolUpdateFlag, ignoreClone, type Scene } from "@galacean/engine-core";
 import type {
   WaterInteractionRequestV1,
   WaterRepresentationInstanceStateV1
@@ -17,7 +17,12 @@ import {
   resolveWaterMaterialProfile,
   type WaterShapeAuthoring
 } from "./WaterAuthoring";
-import { waterMaterialKey, waterMaterialTextureKey } from "./WaterMaterial";
+import {
+  resolveCachedWaterMaterialTextureKey,
+  waterMaterialKey,
+  waterMaterialTextureKey,
+  type WaterMaterialTextureKeyCache
+} from "./WaterMaterial";
 import { hashStableValue } from "../compiler/shared/determinism";
 import { createWaterBodyInstance } from "../authoring/body/WaterBodyInstance";
 import { createImmutableWaterSnapshot } from "../authoring/identity/WaterImmutableSnapshot";
@@ -321,6 +326,8 @@ export class WaterBodyComponent extends Script {
   private _pending = new Set<Promise<void>>();
   private _disposeTask?: Promise<void>;
   private _materialTextureKey?: string;
+  private _materialTextureKeyCache?: WaterMaterialTextureKeyCache;
+  private _transformChangeFlag?: BoolUpdateFlag;
 
   get configuration(): Readonly<WaterBodyConfiguration> | undefined {
     return this._configuration;
@@ -514,8 +521,18 @@ export class WaterBodyComponent extends Script {
   override onUpdate(): void {
     if (this._pending.size || !this._configuration) return;
     try {
-      const textureKey = waterMaterialTextureKey(this._authoring?.material ?? this._configuration.material);
-      const transformKey = this.transformKey();
+      const textureCache = resolveCachedWaterMaterialTextureKey(
+        this._authoring?.material ?? this._configuration.material,
+        this._materialTextureKeyCache
+      );
+      this._materialTextureKeyCache = textureCache;
+      const textureKey = textureCache.key;
+      const transformFlag = (this._transformChangeFlag ??= this.entity.registerWorldChangeFlag());
+      let transformKey = this._transformKey;
+      if (transformFlag.flag) {
+        transformKey = this.transformKey();
+        transformFlag.flag = false;
+      }
       if (this._transformKey !== transformKey || this._materialTextureKey !== textureKey) {
         this._transformKey = transformKey;
         this._materialTextureKey = textureKey;
@@ -532,6 +549,9 @@ export class WaterBodyComponent extends Script {
   dispose(): Promise<void> {
     if (this._disposeTask) return this._disposeTask;
     this._disposed = true;
+    this._transformChangeFlag?.destroy();
+    this._transformChangeFlag = undefined;
+    this._materialTextureKeyCache = undefined;
     this._controller?.abort();
     this._owner?.withdraw?.(this);
     this._ready = this._disposeTask = Promise.allSettled([...this._pending, this._owner?.detach(this, true)]).then(
@@ -556,6 +576,8 @@ export class WaterBodyComponent extends Script {
   /** Engine clone hook also retains resources for inactive Prefab instances. */
   _onClone(target: WaterBodyComponent): void {
     target._authoringKeyCache = undefined;
+    target._materialTextureKeyCache = undefined;
+    target._transformChangeFlag = undefined;
     target._authoringAsset = undefined;
     target._authoringQuality = undefined;
     if (target._authoring) {
@@ -629,6 +651,8 @@ export class WaterBodyComponent extends Script {
 
 for (const key of [
   "_materialTextureKey",
+  "_materialTextureKeyCache",
+  "_transformChangeFlag",
   "_decodedTerrain",
   "_authoringAsset",
   "_authoringQuality",

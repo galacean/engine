@@ -20,9 +20,9 @@ export function restoreBuffer(buffer: Buffer, data: ArrayBuffer | ArrayBufferVie
   return restoreResource(buffer, () => buffer.setData(data));
 }
 
-/** Retain only packed geometry for an immutable published mesh. Advanced JS
- * vertex objects are released normally. No extra GPU upload on the normal path. */
-export function uploadRestorableModelMesh(mesh: ModelMesh): void {
+/** Release advanced vertex objects and return the packed bytes used for restoration.
+ * A producer that edits packed attributes must update these same bytes before uploading. */
+export function uploadRestorableModelMesh(mesh: ModelMesh): ReadonlyArray<{ buffer: Buffer; data: Uint8Array }> {
   const indices = mesh.getIndices();
   mesh.uploadData(false);
   const buffers = mesh.vertexBufferBindings
@@ -38,6 +38,7 @@ export function uploadRestorableModelMesh(mesh: ModelMesh): void {
     if (index && indices) index.setData(indices);
   });
   mesh.uploadData(true);
+  return buffers;
 }
 
 /** Published views own their generated buffers as well as the ModelMesh wrapper.

@@ -1,4 +1,4 @@
-import { BoundingBox, Entity, Matrix, MeshRenderer } from "@galacean/engine";
+import { BoolUpdateFlag, BoundingBox, Entity, Matrix, MeshRenderer } from "@galacean/engine";
 import type { RigidDecorationBinding } from "./RigidDecorationRenderer";
 
 /** Native frame draws already contain one attachment. Keep their original shader
@@ -11,16 +11,25 @@ export class MountedDecorationRenderer extends MeshRenderer {
   private readonly world = new Matrix();
   private readonly localBounds = new BoundingBox();
   private readonly worldBounds = new BoundingBox();
+  private sourceEntity?: Entity;
+  private sourceFlag?: BoolUpdateFlag;
+  private sourceVisible = false;
+  private dirty = true;
 
   configure(binding: RigidDecorationBinding, resolve: (id: string) => Entity | undefined): void {
+    this.sourceFlag?.destroy();
+    this.sourceFlag = undefined;
+    this.sourceEntity = undefined;
     this.binding = binding;
     this.resolve = resolve;
     this.inverseBind.copyFromArray(binding.inverseBind);
     this.localBounds.min.set(...(binding.min as [number, number, number]));
     this.localBounds.max.set(...(binding.max as [number, number, number]));
+    this.dirty = true;
     this.sync();
   }
   override get bounds(): BoundingBox {
+    // The source can move, deactivate or be replaced between two reads in the same frame.
     this.sync();
     return this.worldBounds;
   }
@@ -36,7 +45,20 @@ export class MountedDecorationRenderer extends MeshRenderer {
 
   private sync(): boolean {
     const source = this.binding && this.resolve?.(this.binding.id);
-    if (!source || source.destroyed || !source.isActiveInHierarchy) {
+    if (source !== this.sourceEntity) {
+      this.sourceFlag?.destroy();
+      this.sourceEntity = source;
+      this.sourceFlag = source && !source.destroyed ? source.registerWorldChangeFlag() : undefined;
+      this.dirty = true;
+    }
+    const visible = !!source && !source.destroyed && source.isActiveInHierarchy;
+    if (!this.dirty && visible === this.sourceVisible && (!visible || !this.sourceFlag?.flag)) {
+      return visible;
+    }
+    this.dirty = false;
+    this.sourceVisible = visible;
+    if (this.sourceFlag) this.sourceFlag.flag = false;
+    if (!visible) {
       this.worldBounds.min.copyFrom(this.worldBounds.max.set(0, 0, 0));
       return false;
     }
@@ -46,6 +68,9 @@ export class MountedDecorationRenderer extends MeshRenderer {
     return true;
   }
   protected override _onDestroy(): void {
+    this.sourceFlag?.destroy();
+    this.sourceFlag = undefined;
+    this.sourceEntity = undefined;
     this.binding = undefined;
     this.resolve = undefined;
     super._onDestroy();

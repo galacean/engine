@@ -19,9 +19,26 @@ import { RuntimeDependencyMaintenance, RuntimeProjectDependencies } from "./runt
 type AssetFile = RuntimeProjectManifest["files"][number];
 type Content = RuntimeProjectPackage["contents"][string];
 
+/** IDs touched by a structured Scene writer. Whole-source writes omit this hint. */
+export interface RuntimeSceneMutation {
+  entities?: readonly string[];
+  components?: readonly string[];
+  roots?: boolean;
+}
+/** The journal is valid only for these exact source versions. */
+export interface RuntimeSceneChangeSet {
+  before: string;
+  after: string;
+  entities: string[];
+  components: string[];
+  roots: boolean;
+}
+export interface RuntimeSceneUndoChanges extends RuntimeSceneMutation {
+  fromContent: string;
+}
 export type RuntimeProjectUndo = (
   | { directories: string[] | undefined }
-  | { path: string; file?: AssetFile; content?: Content; document?: never }
+  | { path: string; file?: AssetFile; content?: Content; document?: never; sceneChanges?: RuntimeSceneUndoChanges }
   | { document: string; content?: string }
 )[];
 export interface RuntimeProjectUndoParticipant {
@@ -55,7 +72,15 @@ export interface RuntimeAssetFormat {
 export class RuntimeProjectEdit {
   private readonly draft: RuntimeProjectPackage;
   private closed = false;
+  private viewRevision = 0;
+
+  /** Invalidates transaction-local read views, including hydration and derived metadata. */
+  get revision(): number {
+    this.assertOpen();
+    return this.viewRevision;
+  }
   private readonly changed = new Set<string>();
+  private readonly sceneEdits = new Map<string, RuntimeSceneChangeSet | null>();
   private readonly initialPaths: ReadonlySet<string>;
   private readonly dependencyIndex: RuntimeProjectDependencies;
 
@@ -158,13 +183,16 @@ export class RuntimeProjectEdit {
         !this.changed.has(file.virtualPath) &&
         this.draft.contents[file.virtualPath] === undefined &&
         contents[file.virtualPath] !== undefined
-      )
+      ) {
+        this.viewRevision++;
         this.draft.contents[file.virtualPath] = cloneRuntimeProjectContent(contents[file.virtualPath]);
+      }
     }
   }
 
   /** Check the full visible namespace, including generated sidecars and empty folders. */
   assertDestination(path: string): void {
+    this.viewRevision++;
     this.assertDestinations([path]);
   }
 
@@ -182,6 +210,7 @@ export class RuntimeProjectEdit {
     this.assertOpen();
     if (this.format(file).runtimeOwned)
       throw new Error(`Runtime-owned asset '${file.virtualPath}' must be changed through its domain API`);
+    this.viewRevision++;
     this.assertDestination(file.virtualPath);
     (this.format(file).validateCreate ?? this.format(file).validate)(content);
     file = { ...file, dependencies: undefined };
@@ -193,6 +222,7 @@ export class RuntimeProjectEdit {
       documents: this.describeDocuments(file.virtualPath, metadata, file.type)
     };
     validateRuntimeProject(candidate);
+    if (file.type === "Scene") this.sceneEdits.set(file.virtualPath, null);
     this.draft.project.files.push(structuredClone(file));
     this.dependencyIndex.set(file);
     this.draft.contents[file.virtualPath] = cloneRuntimeProjectContent(content);
@@ -207,6 +237,7 @@ export class RuntimeProjectEdit {
     directories: readonly string[] = []
   ): void {
     this.assertOpen();
+    this.viewRevision++;
     this.assertDestinations([
       ...entries.map((entry) => entry.file.virtualPath),
       ...Object.keys(documents),
@@ -259,6 +290,7 @@ export class RuntimeProjectEdit {
   describe(path: string, metadata: { summary: string; usage: string }): void {
     this.assertOpen();
     this.asset(path);
+    this.viewRevision++;
     const documents = this.describeDocuments(path, metadata);
     validateRuntimeProject({ ...this.draft, documents });
     this.draft.documents = documents;
@@ -274,6 +306,7 @@ export class RuntimeProjectEdit {
   /** Documents share project persistence but are not Engine assets. */
   writeDocument(path: string, content: string): void {
     this.assertOpen();
+    this.viewRevision++;
     if (!path.endsWith(".meta") && !Object.hasOwn(this.draft.documents ?? {}, path)) this.assertDestination(path);
     const candidate = { ...this.draft, documents: { ...this.draft.documents, [path]: content } };
     validateRuntimeProject(candidate);
@@ -284,6 +317,7 @@ export class RuntimeProjectEdit {
   /** Remove authored text and its sidecar. */
   deleteDocument(path: string): void {
     this.readDocument(path);
+    this.viewRevision++;
     const candidate = { ...this.draft, documents: { ...this.draft.documents } };
     delete candidate.documents[path];
     delete candidate.documents[`${path}.meta`];
@@ -303,11 +337,15 @@ export class RuntimeProjectEdit {
     return documents;
   }
 
-  update(path: string, content: Content): void {
+  /** sceneMutation is supplied only by structured writers that enumerate every touched ID.
+   * Raw VFS/asset writes invalidate the journal for the rest of this transaction. */
+  update(path: string, content: Content, sceneMutation?: RuntimeSceneMutation): void {
     const file = this.asset(path);
+    this.viewRevision++;
     if (this.format(file).runtimeOwned)
       throw new Error(`Runtime-owned asset '${file.virtualPath}' must be changed through its domain API`);
     this.format(file).validate(content);
+    this.recordSceneWrite(file.virtualPath, file.type, this.draft.contents[file.virtualPath], content, sceneMutation);
     // Never retain dependency metadata for a different content version.
     const dependencies = undefined;
     this.draft.contents[file.virtualPath] = cloneRuntimeProjectContent(content);
@@ -318,6 +356,7 @@ export class RuntimeProjectEdit {
 
   /** Reconcile newly imported/restored content and analyzed scripts before any reference query. */
   refreshDependencies(reanalyzedScripts = false): void {
+    this.viewRevision++;
     const analyzed = reanalyzedScripts
       ? Object.fromEntries(
           this.draft.project.files
@@ -344,6 +383,7 @@ export class RuntimeProjectEdit {
 
   delete(path: string): void {
     const file = this.asset(path);
+    this.viewRevision++;
     if (this.format(file).runtimeOwned)
       throw new Error(`Runtime-owned asset '${file.virtualPath}' must be changed through its domain API`);
     if ([this.draft.project.scene, ...(this.draft.project.scenes ?? [])].includes(file.virtualPath)) {
@@ -352,7 +392,9 @@ export class RuntimeProjectEdit {
     const references = this.references(path).filter((ref) => ref !== path);
     if (references.length) throw new Error(`Asset '${path}' is referenced by: ${references.join(", ")}`);
     this.draft.project.files = this.draft.project.files.filter((asset) => asset.virtualPath !== path);
+    if (file.type === "Scene") this.sceneEdits.set(file.virtualPath, null);
     this.dependencyIndex.remove(path);
+    this.changed.add(file.virtualPath);
     delete this.draft.contents[file.virtualPath];
     if (this.draft.documents) {
       delete this.draft.documents[`${file.virtualPath}.meta`];
@@ -363,6 +405,47 @@ export class RuntimeProjectEdit {
   deletedAssetPaths(): string[] {
     const remaining = new Set(this.draft.project.files.map((file) => file.virtualPath));
     return [...this.initialPaths].filter((path) => !remaining.has(path));
+  }
+
+  /** Includes structured edits, whole-asset writes, imports, removals and history restoration. */
+  changedAssetPaths(): readonly string[] {
+    this.assertOpen();
+    return [...this.changed];
+  }
+
+  sceneChangeSets(): Record<string, RuntimeSceneChangeSet> {
+    this.assertOpen();
+    return Object.fromEntries(
+      [...this.sceneEdits].flatMap(([path, changes]) => (changes ? [[path, structuredClone(changes)]] : []))
+    );
+  }
+
+  private recordSceneWrite(
+    path: string,
+    type: string,
+    before: Content | undefined,
+    after: Content | undefined,
+    mutation?: RuntimeSceneMutation
+  ): void {
+    if (type !== "Scene" || before === after) return;
+    const prior = this.sceneEdits.get(path);
+    if (
+      !mutation ||
+      prior === null ||
+      typeof before !== "string" ||
+      typeof after !== "string" ||
+      (prior && prior.after !== before)
+    ) {
+      this.sceneEdits.set(path, null);
+      return;
+    }
+    this.sceneEdits.set(path, {
+      before: prior?.before ?? before,
+      after,
+      entities: [...new Set([...(prior?.entities ?? []), ...(mutation.entities ?? [])])],
+      components: [...new Set([...(prior?.components ?? []), ...(mutation.components ?? [])])],
+      roots: (prior?.roots ?? false) || (mutation.roots ?? false)
+    });
   }
 
   finish(): RuntimeProjectPackage {
@@ -383,6 +466,7 @@ export class RuntimeProjectEdit {
   /** Restores host-owned history into this draft; normal finish validation still applies. */
   restore(patch: RuntimeProjectUndo): void {
     this.assertOpen();
+    this.viewRevision++;
     for (const entry of patch) {
       if ("directories" in entry) {
         if (entry.directories === undefined) delete this.draft.project.directories;
@@ -396,6 +480,14 @@ export class RuntimeProjectEdit {
         continue;
       }
       const current = this.draft.project.files.find((file) => file.virtualPath === entry.path);
+      const beforeContent = this.draft.contents[entry.path];
+      this.recordSceneWrite(
+        entry.path,
+        entry.file?.type ?? current?.type ?? "",
+        beforeContent,
+        entry.content,
+        entry.sceneChanges?.fromContent === beforeContent ? entry.sceneChanges : undefined
+      );
       this.dependencyIndex.remove(entry.path);
       if (current) delete this.draft.contents[current.virtualPath];
       this.draft.project.files = this.draft.project.files.filter((file) => file.virtualPath !== entry.path);
@@ -423,8 +515,20 @@ export class RuntimeProjectEdit {
       const content = old && before.contents[old.virtualPath];
       const after = next && this.draft.contents[next.virtualPath];
       const equal = sameRuntimeProjectContent(content, after);
+      const changes = this.sceneEdits.get(path);
+      const tracked = changes && changes.before === content && changes.after === after;
       if (JSON.stringify(old) !== JSON.stringify(next) || !equal)
         result.push({
+          ...(tracked
+            ? {
+                sceneChanges: {
+                  fromContent: changes.after,
+                  entities: changes.entities.slice(),
+                  components: changes.components.slice(),
+                  roots: changes.roots
+                }
+              }
+            : {}),
           path,
           file: old && structuredClone(old),
           content: content === undefined ? undefined : cloneRuntimeProjectContent(content)

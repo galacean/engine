@@ -5,7 +5,8 @@
 #include "ShaderLibrary/Lighting/VolumetricCloudShadow.glsl"
 
 #if defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_TYPE == 2 || SCENE_SHADOW_TYPE == 3) && \
-  (defined(TERRAIN_PROJECT_TERRAIN_FORWARD_PASS_INCLUDED) || defined(MATERIAL_FARM_GROUND_SURFACE))
+  ((defined(TERRAIN_PROJECT_TERRAIN_FORWARD_PASS_INCLUDED) && !defined(MATERIAL_TERRAIN_FAR) && !defined(RENDERER_WORLD_PICK)) || \
+   (defined(MATERIAL_FARM_GROUND_SURFACE) && !defined(RENDERER_WORLD_PICK)))
   #define TERRAIN_PROJECT_GROUND_SHADOW_PCF
 
   mat4 terrainProjectGroundShadowMatrix(vec3 positionWS) {

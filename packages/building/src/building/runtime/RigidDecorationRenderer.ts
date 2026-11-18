@@ -1,4 +1,5 @@
 import {
+  BoolUpdateFlag,
   BoundingBox,
   Entity,
   Matrix,
@@ -23,7 +24,14 @@ export interface RigidDecorationBinding {
  * Uses the same world * inverse-bind principle as Skin, without blend shapes or weights.
  * The existing resident pipeline owns the BufferMesh and material. */
 export class RigidDecorationRenderer extends MeshRenderer {
-  private slots: Array<{ binding: RigidDecorationBinding; inverse: Matrix; bounds: BoundingBox }> = [];
+  private slots: Array<{
+    binding: RigidDecorationBinding;
+    inverse: Matrix;
+    bounds: BoundingBox;
+    entity?: Entity;
+    flag?: BoolUpdateFlag;
+    active: boolean;
+  }> = [];
   private resolve?: (id: string) => Entity | undefined;
   private texture?: Texture2D;
   private words = new Float32Array(0);
@@ -34,14 +42,23 @@ export class RigidDecorationRenderer extends MeshRenderer {
   private readonly normal = new Matrix();
   private readonly inverse = new Matrix();
   private uploaded = false;
+  private dirty = true;
+  private selfFlag?: BoolUpdateFlag;
 
   configure(bindings: readonly RigidDecorationBinding[], resolve: (id: string) => Entity | undefined): void {
+    this.releaseFlags();
     this.releaseTexture();
     this.resolve = resolve;
+    this.selfFlag = this.entity.registerWorldChangeFlag();
     this.slots = bindings.map((binding) => {
       const inverse = new Matrix();
       inverse.copyFromArray(binding.inverseBind);
-      return { binding, inverse, bounds: new BoundingBox(new Vector3(...binding.min), new Vector3(...binding.max)) };
+      return {
+        binding,
+        inverse,
+        bounds: new BoundingBox(new Vector3(...binding.min), new Vector3(...binding.max)),
+        active: false
+      };
     });
     this.words = new Float32Array(bindings.length * 32);
     this.texture = new Texture2D(this.engine, 8, bindings.length, TextureFormat.R32G32B32A32, false, false);
@@ -52,11 +69,12 @@ export class RigidDecorationRenderer extends MeshRenderer {
     restoreResource(texture, () => texture.setPixelBuffer(words));
     this.shaderData.setTexture("renderer_DecorationMatrices", texture);
     this.uploaded = false;
+    this.dirty = true;
     this.sync();
   }
 
   override get bounds(): BoundingBox {
-    // Culling and click-only picking can request bounds before the render update.
+    // The source can move, deactivate or be replaced between two reads in the same frame.
     this.sync();
     return this.worldBounds;
   }
@@ -69,6 +87,26 @@ export class RigidDecorationRenderer extends MeshRenderer {
 
   private sync(): void {
     if (!this.texture || !this.resolve) return;
+    let needsRecompute = !this.uploaded || this.dirty || (this.selfFlag?.flag ?? true);
+    for (let i = 0; i < this.slots.length; i++) {
+      const slot = this.slots[i];
+      const entity = this.resolve(slot.binding.id);
+      const active = !!entity && !entity.destroyed && entity.isActiveInHierarchy;
+      if (entity !== slot.entity) {
+        slot.flag?.destroy();
+        slot.entity = entity;
+        slot.flag = entity && !entity.destroyed ? entity.registerWorldChangeFlag() : undefined;
+        needsRecompute = true;
+      }
+      if (active !== slot.active || (active && slot.flag?.flag)) {
+        needsRecompute = true;
+      }
+    }
+    if (!needsRecompute) {
+      return;
+    }
+
+    if (this.selfFlag) this.selfFlag.flag = false;
     Matrix.invert(this.entity.transform.worldMatrix, this.inverse);
     this.worldBounds.min.set(Infinity, Infinity, Infinity);
     this.worldBounds.max.set(-Infinity, -Infinity, -Infinity);
@@ -76,9 +114,12 @@ export class RigidDecorationRenderer extends MeshRenderer {
       visible = false;
     for (let i = 0; i < this.slots.length; i++) {
       const slot = this.slots[i],
-        entity = this.resolve(slot.binding.id),
+        entity = slot.entity,
         offset = i * 32;
-      if (!entity || entity.destroyed || !entity.isActiveInHierarchy) {
+      const active = !!entity && !entity.destroyed && entity.isActiveInHierarchy;
+      slot.active = active;
+      if (slot.flag) slot.flag.flag = false;
+      if (!active) {
         // Last normal-matrix element doubles as slot visibility, used by both color and pick passes.
         if (this.words[offset + 31] !== 0) {
           this.words[offset + 31] = 0;
@@ -102,6 +143,7 @@ export class RigidDecorationRenderer extends MeshRenderer {
       this.texture.setPixelBuffer(this.words);
       this.uploaded = true;
     }
+    this.dirty = false;
   }
 
   private write(offset: number, matrix: Matrix): boolean {
@@ -126,7 +168,18 @@ export class RigidDecorationRenderer extends MeshRenderer {
     this.texture = undefined;
   }
 
+  private releaseFlags(): void {
+    this.selfFlag?.destroy();
+    this.selfFlag = undefined;
+    for (let i = 0; i < this.slots.length; i++) {
+      this.slots[i].flag?.destroy();
+      this.slots[i].flag = undefined;
+      this.slots[i].entity = undefined;
+    }
+  }
+
   protected override _onDestroy(): void {
+    this.releaseFlags();
     this.releaseTexture();
     this.resolve = undefined;
     this.slots.length = 0;

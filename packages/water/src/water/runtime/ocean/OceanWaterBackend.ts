@@ -406,6 +406,9 @@ export class OceanWaterBackend implements WaterBodyBackend {
           );
           reflection!.setVisible(visible);
         },
+        refreshTerrainOcclusion: (provider) => {
+          controller!.refreshTerrainOcclusion(provider);
+        },
         refreshCameraVisibility: (provider) => {
           reflection!.observeCameraFrustumVisibility(controller!.hasCameraVisibleSurfaceChunk(provider));
         },

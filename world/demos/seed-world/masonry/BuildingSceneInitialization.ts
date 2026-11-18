@@ -21,7 +21,14 @@ interface BuildingLayouts {
 export function buildingScenePreparation(scenePath: string,
   inputs: (edit: AuthoringEdit, signal: AbortSignal) => Promise<Inputs>,
   startupPlan?: IslandPlan): RuntimeEditPreparation {
-  return async (edit, signal) => {
+  return async (edit, signal, context) => {
+    const shared = context?.after.scene(scenePath);
+    if (shared && !shared.hasInstances) {
+      const generators = shared.components(["BuildingGeneratorComponent"]);
+      if (generators.length > 1) throw Error("Scene has multiple building generators");
+      const generator = generators[0];
+      if (!generator || generator.props?.enabled === false || (!startupPlan && generator.props?.initialized === true)) return;
+    }
     const marker = `${scenePath}.building-layouts.json`;
     const selection = await edit.run(({ draft }) => {
       const scene = new RuntimeSceneEdit(draft, scenePath);

@@ -14,7 +14,7 @@ import { Vector2, Vector3 } from "@galacean/engine-math";
 import { OCEAN_LOOK, OCEAN_RENDER_BUDGET } from "../../authoring/ocean/presets/OceanLook";
 import type { OceanNearshoreDescriptorV1 } from "../../authoring/ocean/OceanNearshoreDescriptor";
 import { OceanNearshoreOutsidePolicy } from "../../authoring/ocean/OceanNearshoreTypes";
-import type { WaterCameraVisibilityProvider } from "../body/WaterBackendRegistry";
+import type { WaterCameraVisibilityProvider, WaterTerrainOcclusionProvider } from "../body/WaterBackendRegistry";
 import { applyWaterSurfaceRendererContract } from "../surface/WaterSurfaceRendererContract";
 
 export const FINITE_OCEAN_SURFACE_LAYER = Layer.Layer30;
@@ -613,6 +613,7 @@ export class FiniteOceanSurfaceGeometry {
   private readonly _nearFieldLayout: Readonly<FiniteOceanNearFieldLayout>;
   private readonly _cameraRelativeRoot: Entity;
   private readonly _chunks: OceanGeometryChunk[] = [];
+  private readonly _occludedChunkNames = new Set<string>();
   private _nearFieldCenterX: number;
   private _nearFieldCenterZ: number;
   private _presentationPath: FiniteOceanPresentationPath;
@@ -823,18 +824,47 @@ export class FiniteOceanSurfaceGeometry {
     return true;
   }
 
-  /** True when at least one Ocean surface chunk intersects the current source-Camera frustum. */
+  /** Updates per-chunk terrain-horizon occlusion without disabling the horizon ring. */
+  refreshTerrainOcclusion(provider?: WaterTerrainOcclusionProvider): void {
+    if (provider === undefined) {
+      this._occludedChunkNames.clear();
+      return;
+    }
+    for (const chunk of this._chunks) {
+      if (chunk.region !== "near") continue;
+      const chunkName = chunk.entity.name;
+      if (chunk.renderer.enabled && provider.isOccluded(`ocean:${chunkName}`, chunk.renderer.bounds)) {
+        this._occludedChunkNames.add(chunkName);
+      } else {
+        this._occludedChunkNames.delete(chunkName);
+      }
+    }
+  }
+
+  /** True when at least one unoccluded detailed near-field quadrant intersects the camera frustum. */
+  hasCameraVisibleNearChunk(provider: WaterCameraVisibilityProvider): boolean {
+    for (const chunk of this._chunks) {
+      if (chunk.region !== "near") continue;
+      if (
+        chunk.renderer.enabled &&
+        !this._occludedChunkNames.has(chunk.entity.name) &&
+        provider.isVisible(chunk.renderer.bounds, chunk.renderer.entity.layer)
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Queries reflection demand without changing scene visibility for other cameras. */
   hasCameraVisibleChunk(provider: WaterCameraVisibilityProvider): boolean {
-    const chunks = this._chunks;
-    for (let index = 0; index < chunks.length; index++) {
-      const renderer = chunks[index]!.renderer;
+    for (const { renderer } of this._chunks) {
       if (
         renderer.enabled &&
         renderer.entity.isActiveInHierarchy &&
         provider.isVisible(renderer.bounds, renderer.entity.layer)
-      ) {
+      )
         return true;
-      }
     }
     return false;
   }

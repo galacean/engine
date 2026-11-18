@@ -107,6 +107,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   _enableGlobalDepthBias: boolean = false;
   /** @internal */
   _currentBindShaderProgram: IPlatformShaderProgram | null;
+  /** @internal */
+  _currentBindVAO: WebGLVertexArrayObject | null = null;
 
   /** @internal */
   readonly _options: WebGLGraphicDeviceOptions;
@@ -284,7 +286,15 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   }
 
   createPlatformTransformFeedbackPrimitive(): IPlatformTransformFeedbackPrimitive {
-    return new GLTransformFeedbackPrimitive(<WebGL2RenderingContext>this._gl);
+    return new GLTransformFeedbackPrimitive(this);
+  }
+
+  /** @internal */
+  _bindVertexArray(vao: WebGLVertexArrayObject | null): void {
+    if (this._currentBindVAO !== vao) {
+      (<WebGL2RenderingContext>this._gl).bindVertexArray(vao);
+      this._currentBindVAO = vao;
+    }
   }
 
   bindUniformBufferBase(bindingPoint: number, buffer: IPlatformBuffer): void {
@@ -621,6 +631,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._readFrameBuffer = null;
     this._enableGlobalDepthBias = false;
     this._currentBindShaderProgram = null;
+    this._currentBindVAO = null;
 
     const activeTextures = this._activeTextures;
     for (let i = 0, n = activeTextures.length; i < n; i++) {

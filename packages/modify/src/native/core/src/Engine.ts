@@ -1,9 +1,8 @@
+import { renderCamera, setCameraIndex } from "./ComponentDispatch";
 import { IInputOptions, IPhysics, IPhysicsManager, IShaderCompiler, IXRDevice } from "@galacean/engine-design";
-import type { IHardwareRenderer } from "./renderingHardwareInterface";
 import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
-import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { EngineEventType } from "./EngineEventType";
 import { EngineSettings } from "./EngineSettings";
@@ -32,6 +31,7 @@ import { ShaderProgramMap } from "./shader/ShaderProgramMap";
 import { ShaderFactory } from "./shader/ShaderFactory";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureFormat } from "./texture";
+import type { IHardwareRenderer } from "./renderingHardwareInterface";
 import { UIUtils } from "./ui/UIUtils";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
@@ -587,31 +587,7 @@ export class Engine extends EventDispatcher {
       if (cameras.length === 0) {
         Logger.debug("No active camera in scene.");
       } else {
-        cameras.forEach(
-          (camera: Camera) => {
-            componentsManager.callCameraOnBeginRender(camera);
-
-            const { pixelViewport } = camera;
-            // `pixelViewport` width or height is `0` will cause internal render target create error and return can save performance
-            if (pixelViewport.width !== 0 && pixelViewport.height !== 0) {
-              // Update post process manager
-              scene.postProcessManager._update(camera);
-              camera.render();
-            } else {
-              Logger.warn("Camera pixelViewport width or height is 0.");
-            }
-
-            componentsManager.callCameraOnEndRender(camera);
-
-            // Temp solution for webgl implement bug
-            if (this._hardwareRenderer._options._forceFlush) {
-              this._hardwareRenderer.flush();
-            }
-          },
-          (camera: Camera, index: number) => {
-            camera._cameraIndex = index;
-          }
-        );
+        cameras._forEachWithContext(scene, renderCamera, setCameraIndex);
       }
 
       const uiCanvas = componentsManager._overlayCanvases;
@@ -678,7 +654,10 @@ export class Engine extends EventDispatcher {
     }
 
     initializePromises.push(this._basicResources._initialize());
-    return Promise.all(initializePromises).then(() => this);
+    return Promise.all(initializePromises).then(() => {
+      this.sceneManager.addScene(new Scene(this, "DefaultScene"));
+      return this;
+    });
   }
 
   private _onDeviceLost(): void {

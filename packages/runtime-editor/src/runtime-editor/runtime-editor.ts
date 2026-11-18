@@ -1,3 +1,13 @@
+import {
+  RuntimePreparationViews,
+  type RuntimePreparationContext,
+  type RuntimePreparationOptions
+} from "./runtime-preparation-context";
+export type {
+  RuntimePreparationContext,
+  RuntimePreparationOptions,
+  RuntimePreparationDependencies
+} from "./runtime-preparation-context";
 import { runtimeEditWork } from "./runtime-edit-work";
 import {
   RuntimeProjectInputs,
@@ -14,6 +24,7 @@ import { compileProjectResourcesAsync } from "@galacean/engine-project/runtime-e
 import {
   RuntimeProjectEdit,
   type RuntimeAssetFormat,
+  type RuntimeSceneChangeSet,
   type RuntimeProjectUndo,
   type RuntimeProjectUndoParticipant
 } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
@@ -22,7 +33,7 @@ import type {
   RuntimeProjectManifest,
   RuntimeProjectPackage
 } from "@galacean/engine-project/runtime-editor/project/runtime-project";
-import { RuntimeSceneProjection } from "./scene/runtime-scene-projection";
+import { RuntimeSceneProjection, type RuntimeScenePreparation } from "./scene/runtime-scene-projection";
 
 export interface RuntimeActivationHooks {
   /** Authoring is committed; prepare dependent runtime state before Scene projection. */
@@ -60,13 +71,17 @@ export interface RuntimeProjectContribution {
  * History replay bypasses extensions: saved authoring must be restored exactly. */
 export type RuntimeEditPreparation = (
   edit: Pick<RuntimeEditorEdit, "run" | "withAsset">,
-  signal: AbortSignal
+  signal: AbortSignal,
+  context?: RuntimePreparationContext
 ) => Promise<void>;
 
 /** The host owns persistence and activation; Worker tools only edit detached project data. */
 export class RuntimeEditor {
   readonly projection: RuntimeSceneProjection;
-  private readonly preparations = new Map<RuntimeEditPreparation, RuntimeProjectInputScope | undefined>();
+  private readonly preparations = new Map<
+    RuntimeEditPreparation,
+    RuntimeProjectInputScope | RuntimePreparationOptions | undefined
+  >();
   private readonly resources = new RuntimeResourceProjection();
   private readonly lifetime = new AbortController();
   private readonly unregisterTextAssets: () => void;
@@ -91,7 +106,10 @@ export class RuntimeEditor {
   /** A scoped preparation reacts to changes in its declared inputs. The host must
    * initialize the existing project before registration; final publication validation still runs.
    * Omit scope for extensions that must run on every authoring transaction. */
-  registerPreparation(prepare: RuntimeEditPreparation, scope?: RuntimeProjectInputScope): () => void {
+  registerPreparation(
+    prepare: RuntimeEditPreparation,
+    scope?: RuntimeProjectInputScope | RuntimePreparationOptions
+  ): () => void {
     this.lifetime.signal.throwIfAborted();
     this.preparations.set(prepare, scope && structuredClone(scope));
     return () => {
@@ -103,7 +121,11 @@ export class RuntimeEditor {
     return this.project.runtimeDiagnostics();
   }
 
-  private async activateWorkingProject(signal: AbortSignal, hooks?: RuntimeActivationHooks): Promise<void> {
+  private async activateWorkingProject(
+    signal: AbortSignal,
+    hooks?: RuntimeActivationHooks,
+    preparation?: RuntimeScenePreparation
+  ): Promise<void> {
     const runtimeErrors: string[] = [];
     const checkpoint = runtimeEditWork();
     try {
@@ -113,7 +135,7 @@ export class RuntimeEditor {
           await checkpoint(signal);
           await this.resources.apply(this.scene.engine.resourceManager, await this.project.resources(signal), signal);
           await checkpoint(signal);
-          await this.projection.apply(this.project.projectPackage, signal);
+          await this.projection.apply(this.project.projectPackage, signal, preparation);
           await hooks?.afterProjection?.(signal);
         },
         signal,
@@ -134,12 +156,15 @@ export class RuntimeEditor {
     const operationSignal = AbortSignal.any([signal, lifetime.signal, this.lifetime.signal]);
     let phase: "open" | "prepared" | "committing" | "committed" | "discarded" = "open";
     let draft: RuntimeProjectEdit | undefined;
+    let preparationViews: RuntimePreparationViews | undefined;
     const preparationInputs = new Map<RuntimeEditPreparation, RuntimeProjectInputs>();
     let changed = false;
     let historyMove: HistoryMove | undefined;
     let userEdits = false;
     let restoring = false;
     let candidate: RuntimeProjectPackage | undefined;
+    let scenePreparation: RuntimeScenePreparation | undefined;
+    let sceneChanges: Record<string, RuntimeSceneChangeSet> = {};
     let committedUndo: RuntimeProjectUndo = [];
     let baseRevision = this.project.publicationRevision;
     let dependencies: Record<string, string[]> = {};
@@ -171,7 +196,9 @@ export class RuntimeEditor {
       }
       baseRevision = this.project.publicationRevision;
       for (const [prepare, scope] of this.preparations)
-        if (scope) preparationInputs.set(prepare, new RuntimeProjectInputs(this.project.projectPackage, scope));
+        if (scope && !("dependencies" in scope))
+          preparationInputs.set(prepare, new RuntimeProjectInputs(this.project.projectPackage, scope));
+      if (this.preparations.size) preparationViews = new RuntimePreparationViews(this.project.projectPackage);
       draft = new RuntimeProjectEdit(
         this.project.projectPackage,
         new Map([...nativeAssetFormats(() => dependencies), ...this.hostFormats]),
@@ -302,12 +329,20 @@ export class RuntimeEditor {
         }
         if (changed && !historyMove && !restoring) {
           await checkpoint(preparationSignal);
-          for (const [prepare] of [...this.preparations]) {
+          for (const [prepare, registration] of [...this.preparations]) {
             preparationSignal.throwIfAborted();
             // Recheck after every extension: an earlier preparation may edit these inputs.
             const inputs = preparationInputs.get(prepare);
             if (inputs && draft!.matchesInputs(inputs)) continue;
-            await prepare(edit, preparationSignal);
+            const context = preparationViews?.current(draft!);
+            if (
+              registration &&
+              "dependencies" in registration &&
+              context &&
+              !context.affected(registration.dependencies)
+            )
+              continue;
+            await prepare(edit, preparationSignal, context);
             await checkpoint(preparationSignal);
             assertOpen();
           }
@@ -334,10 +369,17 @@ export class RuntimeEditor {
               }
             }
           }
-          this.projection.validate(preview);
+          sceneChanges = draft!.sceneChangeSets();
+          scenePreparation = this.projection.prepare(
+            preview,
+            draft!.changedAssetPaths(),
+            sceneChanges[preview.project.scene]
+          );
           await checkpoint(preparationSignal);
           prepareSignal.throwIfAborted();
           candidate = draft!.finish();
+          preparationViews = undefined;
+          preparationInputs.clear();
         }
         assertOpen();
         prepareSignal.throwIfAborted();
@@ -353,7 +395,8 @@ export class RuntimeEditor {
           if (candidate)
             committedUndo = await this.project.publish(candidate, baseRevision, draft?.deletedAssetPaths(), {
               transactionId: executionId,
-              move: historyMove
+              move: historyMove,
+              sceneChanges
             });
         } catch (error) {
           phase = "prepared";
@@ -366,7 +409,7 @@ export class RuntimeEditor {
         if (phase !== "committed") throw new Error(`Native edit is ${phase}`);
         const ids = historyMove?.transactionIds ?? [executionId];
         try {
-          await this.activateWorkingProject(activationSignal, hooks);
+          await this.activateWorkingProject(activationSignal, hooks, scenePreparation);
           this.project.history.activated(ids, []);
         } catch (error) {
           this.project.history.activated(ids, [error instanceof Error ? error.message : String(error)]);
@@ -374,6 +417,8 @@ export class RuntimeEditor {
         }
       },
       discard: () => {
+        preparationViews = undefined;
+        preparationInputs.clear();
         // Cleanup never reverts committed authoring, including failed runtime activation.
         if (["committed", "committing"].includes(phase)) return;
         phase = "discarded";
@@ -386,6 +431,7 @@ export class RuntimeEditor {
 
   dispose(): void {
     this.lifetime.abort();
+    this.projection.dispose();
     this.preparations.clear();
     this.unobserveAssetReads();
     this.unregisterTextAssets();
