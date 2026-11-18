@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cold Smoke Mountain · Neighboring Mountain &amp; Vista Lab</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header>
+      <div>
+        <span class="eyebrow">WORLD ENGINE / TERRAIN · COLD SMOKE PIPELINE</span>
+        <h1>Guided Neighboring Mountains, Fall-Line Gullies &amp; Panoramic Vista</h1>
+      </div>
+      <div class="header-actions">
+        <button id="view-overview" type="button">Overview · 全景</button>
+        <button id="view-valley" type="button">Valley Vista · 山谷远眺</button>
+        <button id="view-top" type="button">Top Plan · 俯视引导</button>
+        <button id="export-json" type="button">Export JSON</button>
+      </div>
+    </header>
+    <main>
+      <aside>
+        <!-- Section 01: Preset, Seed & Vista -->
+        <section class="panel-section">
+          <span class="eyebrow">01 / PRESET &amp; MOUNTAIN VISTA</span>
+          <label>
+            Scene preset · 场景预设
+            <select id="preset-select">
+              <option value="hanyan-valley" selected>寒烟山谷 · Mount Cold Smoke Valley</option>
+              <option value="twin-couloirs">双峰雪槽 · Twin Massifs &amp; Couloirs</option>
+              <option value="knife-ridge">高岭山脊 · Exposed Ridge &amp; Side Hollows</option>
+              <option value="cirque-basin">冰斗环谷 · Alpine Cirque Amphitheatre</option>
+            </select>
+          </label>
+          <div class="row-2">
+            <label>
+              Seed
+              <input id="seed-input" type="number" min="1" max="999999999" step="1" value="261111" />
+            </label>
+            <label>
+              Grid resolution
+              <select id="resolution-select">
+                <option value="129">129 × 129 (Fast)</option>
+                <option value="193" selected>193 × 193 (Balanced)</option>
+                <option value="257">257 × 257 (Fine)</option>
+              </select>
+            </label>
+          </div>
+          <div class="btn-row">
+            <button id="next-seed" type="button">Next Seed · 换种</button>
+            <button id="reset-preset" type="button">Reset Preset · 重置</button>
+          </div>
+
+          <div class="check-row">
+            <label><input id="show-guides" type="checkbox" checked /> Show Guide OBBs · 引导框</label>
+            <label><input id="show-features" type="checkbox" checked /> Show Gully Curves · 沟谷线</label>
+          </div>
+
+          <label>
+            Vista lighting · 远景与天光
+            <select id="vista-lighting">
+              <option value="day" selected>Day · 寒烟午后低阳</option>
+              <option value="golden">Golden Hour · 晚霞日落金山</option>
+              <option value="night">Night + Aurora · 月夜星云极光</option>
+              <option value="overcast">Overcast · 阴雪天幕</option>
+            </select>
+          </label>
+          <label class="slider-label">
+            <span>Sun Azimuth · 太阳方位角 <strong id="val-sun-az">-12°</strong></span>
+            <input id="sun-azimuth" type="range" min="-180" max="180" step="1" value="-12" />
+          </label>
+          <label class="slider-label">
+            <span>Sun Elevation · 太阳仰角 <strong id="val-sun-el">11.5°</strong></span>
+            <input id="sun-elevation" type="range" min="-12" max="55" step="0.5" value="11.5" />
+          </label>
+          <div class="check-row">
+            <label><input id="vista-far-ranges" type="checkbox" checked /> Far Ranges · 远山</label>
+            <label><input id="vista-cloud-sea" type="checkbox" checked /> Cloud Sea · 云海</label>
+            <label><input id="vista-city" type="checkbox" checked /> Far City · 远城</label>
+          </div>
+        </section>
+
+        <!-- Section 02: Guiding Shapes (OBBs & Valley Corridor) -->
+        <section class="panel-section">
+          <span class="eyebrow">02 / GUIDING SHAPES (OBB MASSIFS &amp; CORRIDOR)</span>
+          <p class="hint">
+            Select or place OBB guide volumes to shape neighboring mountain massifs, walls, ridges, or carved basins.
+          </p>
+          <label>
+            Active Guide OBB · 当前引导体
+            <select id="guide-select"></select>
+          </label>
+          <div class="btn-row">
+            <button id="place-guide-click" type="button" aria-pressed="false">+ Place OBB on 3D Click</button>
+            <button id="add-guide-massif" type="button">+ Add Massif</button>
+          </div>
+          <div class="btn-row">
+            <button id="add-guide-ridge" type="button">+ Add Ridge</button>
+            <button id="add-guide-basin" type="button">+ Add Basin</button>
+            <button id="remove-guide" type="button">Delete OBB</button>
+          </div>
+
+          <div id="guide-inspector" class="inspector-card">
+            <div class="row-2">
+              <label class="inline-check">
+                <input id="guide-enabled" type="checkbox" checked /> Enabled · 启用
+              </label>
+              <label>
+                Role · 职责
+                <select id="guide-role">
+                  <option value="massif">Massif · 主峰体</option>
+                  <option value="wall">Wall · 侧壁山肩</option>
+                  <option value="ridge">Ridge · 山脊体</option>
+                  <option value="basin">Basin · 盆地下切</option>
+                </select>
+              </label>
+            </div>
+            <div class="row-3">
+              <label>X (m)<input id="guide-cx" type="number" step="10" /></label>
+              <label>Base Y<input id="guide-cy" type="number" step="5" /></label>
+              <label>Z (m)<input id="guide-cz" type="number" step="10" /></label>
+            </div>
+            <div class="row-3">
+              <label>Width<input id="guide-sx" type="number" min="20" max="1200" step="10" /></label>
+              <label>Height<input id="guide-sy" type="number" min="10" max="700" step="10" /></label>
+              <label>Depth<input id="guide-sz" type="number" min="20" max="1200" step="10" /></label>
+            </div>
+            <label class="slider-label">
+              <span>Yaw Rotation · 旋转角 <strong id="val-guide-yaw">0°</strong></span>
+              <input id="guide-yaw" type="range" min="-90" max="90" step="1" value="0" />
+            </label>
+            <label class="slider-label">
+              <span>Slope Rate · 边坡陡度 <strong id="val-guide-slope">1.25</strong></span>
+              <input id="guide-slope" type="range" min="0.35" max="3.0" step="0.05" value="1.25" />
+            </label>
+            <label class="slider-label">
+              <span>Crown Shape · 冠部形态 (Bowl ↔ Peak) <strong id="val-guide-crown">0.60</strong></span>
+              <input id="guide-crown" type="range" min="-1.0" max="1.0" step="0.05" value="0.6" />
+            </label>
+            <label class="slider-label">
+              <span>Multifractal Relief Boost · 邻山起伏倍率 <strong id="val-guide-boost">1.20×</strong></span>
+              <input id="guide-boost" type="range" min="0.0" max="2.2" step="0.05" value="1.2" />
+            </label>
+          </div>
+
+          <details class="sub-details">
+            <summary>Central Valley Corridor · 中央山谷走廊参数</summary>
+            <div class="sub-body">
+              <label class="inline-check">
+                <input id="corridor-enabled" type="checkbox" checked /> Enable Valley Corridor · 启用山谷走廊
+              </label>
+              <label class="slider-label">
+                <span>Valley Half-Width · 谷底半宽 <strong id="val-corridor-hw">48 m</strong></span>
+                <input id="corridor-hw" type="range" min="15" max="160" step="2" value="48" />
+              </label>
+              <label class="slider-label">
+                <span>Open Apron · 缓坡林缘宽 <strong id="val-corridor-apron">36 m</strong></span>
+                <input id="corridor-apron" type="range" min="0" max="90" step="2" value="36" />
+              </label>
+              <label class="slider-label">
+                <span>Macro Wall Rise · 两侧谷壁高度 <strong id="val-corridor-wall">145 m</strong></span>
+                <input id="corridor-wall" type="range" min="0" max="320" step="5" value="145" />
+              </label>
+              <label class="slider-label">
+                <span>Valley Sinuosity · 蜿蜒度 <strong id="val-corridor-sin">1.00</strong></span>
+                <input id="corridor-sin" type="range" min="0" max="2.0" step="0.05" value="1.0" />
+              </label>
+            </div>
+          </details>
+        </section>
+
+        <!-- Section 03: Gullies, Valleys & Ridges -->
+        <section class="panel-section">
+          <span class="eyebrow">03 / GULLIES, VALLEYS &amp; RIDGES (AUTHORED + CLICK-TO-CARVE)</span>
+          <p class="hint">
+            Add or remove explicit gullies (couloirs), valleys, or ridges — or click any slope in 3D to automatically trace a fall-line gully!
+          </p>
+          <div class="btn-row">
+            <button id="carve-gully-click" type="button" aria-pressed="false">+ Carve Gully on 3D Click</button>
+            <button id="carve-valley-click" type="button" aria-pressed="false">+ Carve Valley on 3D Click</button>
+          </div>
+          <div class="btn-row">
+            <button id="sculpt-raise-btn" type="button" aria-pressed="false">Sculpt Raise · 抬升山峰</button>
+            <button id="sculpt-carve-btn" type="button" aria-pressed="false">Sculpt Carve · 切削雪槽</button>
+            <button id="clear-sculpt-btn" type="button">Clear Sculpt</button>
+          </div>
+          <label class="slider-label">
+            <span>3D Sculpt Brush Radius · 雕刻笔刷半径 <strong id="val-brush-rad">75 m</strong></span>
+            <input id="brush-radius" type="range" min="25" max="200" step="5" value="75" />
+          </label>
+          <label>
+            Active Gully / Valley / Ridge · 当前沟谷特征 (可直接在3D拖拽控制点)
+            <select id="feature-select"></select>
+          </label>
+          <div class="btn-row">
+            <button id="add-feature-gully" type="button">+ Gully · 雪槽</button>
+            <button id="add-feature-valley" type="button">+ Valley · 山谷</button>
+            <button id="add-feature-ridge" type="button">+ Ridge · 刃脊</button>
+            <button id="remove-feature" type="button">Remove · 删除</button>
+          </div>
+
+          <div id="feature-inspector" class="inspector-card">
+            <div class="row-2">
+              <label class="inline-check">
+                <input id="feature-enabled" type="checkbox" checked /> Enabled · 启用
+              </label>
+              <label>
+                Kind · 类型
+                <select id="feature-kind">
+                  <option value="gully">Gully · 陡壁雪槽</option>
+                  <option value="valley">Valley · 宽谷/U型谷</option>
+                  <option value="ridge">Ridge · 隆起刃脊</option>
+                </select>
+              </label>
+            </div>
+            <label class="slider-label">
+              <span>Incision Depth / Height · 深度/高度 <strong id="val-feat-depth">50 m</strong></span>
+              <input id="feature-depth" type="range" min="4" max="140" step="2" value="50" />
+            </label>
+            <label class="slider-label">
+              <span>Half-Width · 宽度半径 <strong id="val-feat-width">66 m</strong></span>
+              <input id="feature-width" type="range" min="16" max="240" step="2" value="66" />
+            </label>
+            <label class="slider-label">
+              <span>Profile Sharpness (U-Trough ↔ V-Chute) <strong id="val-feat-sharp">0.80</strong></span>
+              <input id="feature-sharpness" type="range" min="0" max="1" step="0.02" value="0.8" />
+            </label>
+            <label class="inline-check">
+              <input id="feature-tributaries" type="checkbox" checked /> Fishbone Tributary Chutes · 自动汇入侧支雪槽
+            </label>
+            <label class="slider-label">
+              <span>Tributary Strength · 支槽汇入深度 <strong id="val-feat-trib">0.58</strong></span>
+              <input id="feature-trib-strength" type="range" min="0" max="1" step="0.02" value="0.58" />
+            </label>
+            <fieldset class="curve-points">
+              <legend>Curve Points [X, Z] (m)</legend>
+              <div class="row-3">
+                <label>Start X<input id="feat-p0x" type="number" step="10" /></label>
+                <label>Bend X<input id="feat-p1x" type="number" step="10" /></label>
+                <label>End X<input id="feat-p2x" type="number" step="10" /></label>
+              </div>
+              <div class="row-3">
+                <label>Start Z<input id="feat-p0z" type="number" step="10" /></label>
+                <label>Bend Z<input id="feat-p1z" type="number" step="10" /></label>
+                <label>End Z<input id="feat-p2z" type="number" step="10" /></label>
+              </div>
+            </fieldset>
+          </div>
+        </section>
+
+        <!-- Section 04: Cold Smoke Procedural Mountain & Rock Strata Pipeline -->
+        <section class="panel-section">
+          <span class="eyebrow">04 / COLD SMOKE PROCEDURAL PIPELINE</span>
+          <label>
+            Surface &amp; Rock Mode · 岩壁与雪面渲染模式
+            <select id="rock-mode">
+              <option value="bands" selected>Banded Strata · 岩带与垂直节理 (Cold Smoke B)</option>
+              <option value="patches">Steep Patches · 陡坡裸岩斑块 (Cold Smoke A)</option>
+              <option value="heavy">Heavy Rock Wall · 多岩绝壁 (Cold Smoke C)</option>
+              <option value="concavity">Concavity &amp; Horizon Shadow · 凹凸雪槽与阴影热力图</option>
+              <option value="clay">Plain Sculpted Clay · 素模几何校验</option>
+            </select>
+          </label>
+
+          <label class="inline-check">
+            <input id="proc-gullies-enabled" type="checkbox" checked />
+            4-Octave Fall-Line Tributary Gullies (`gullies()`)
+          </label>
+          <div class="row-2">
+            <label>
+              Gully Octaves
+              <select id="proc-gully-octaves">
+                <option value="1">1 · Couloirs (700m)</option>
+                <option value="2">2 · + Main Gullies (260m)</option>
+                <option value="3">3 · + Chutes (124m)</option>
+                <option value="4" selected>4 · + Fine Runnels (59m)</option>
+              </select>
+            </label>
+            <label>
+              Wavelength Scale
+              <input id="proc-gully-scale" type="number" min="0.5" max="2.5" step="0.1" value="1.0" />
+            </label>
+          </div>
+          <label class="slider-label">
+            <span>Procedural Gully Depth · 顺坡雪槽强度 <strong id="val-proc-gully">1.00</strong></span>
+            <input id="proc-gully-strength" type="range" min="0" max="2.0" step="0.05" value="1.0" />
+          </label>
+          <label class="slider-label">
+            <span>Tributary Derivative Bend · 支槽汇流弯曲系数 <strong id="val-proc-bend">1.40</strong></span>
+            <input id="proc-gully-bend" type="range" min="0" max="2.5" step="0.05" value="1.4" />
+          </label>
+
+          <label class="inline-check">
+            <input id="relief-enabled" type="checkbox" checked />
+            3-Octave Ridged Multifractal Massifs (`relief()`)
+          </label>
+          <label class="slider-label">
+            <span>Ridged Relief Amplitude · 邻山分形起伏 <strong id="val-relief-amp">1.00</strong></span>
+            <input id="relief-amp" type="range" min="0" max="2.0" step="0.05" value="1.0" />
+          </label>
+
+          <label class="inline-check">
+            <input id="strata-enabled" type="checkbox" checked />
+            3D Folded Rock Strata Benches (`Course.strata`)
+          </label>
+          <label class="slider-label">
+            <span>Strata Bench Carving · 岩层台阶切削强度 <strong id="val-strata-carve">1.00</strong></span>
+            <input id="strata-carving" type="range" min="0" max="2.0" step="0.05" value="1.0" />
+          </label>
+          <label class="slider-label">
+            <span>Bed Thickness · 平均岩层厚度 <strong id="val-strata-bed">64 m</strong></span>
+            <input id="strata-thickness" type="range" min="24" max="128" step="4" value="64" />
+          </label>
+          <label class="slider-label">
+            <span>3D Fold Warp · 岩层褶皱倾角强度 <strong id="val-strata-fold">1.00</strong></span>
+            <input id="strata-fold" type="range" min="0" max="2.0" step="0.05" value="1.0" />
+          </label>
+
+          <label class="inline-check">
+            <input id="forest-enabled" type="checkbox" checked />
+            3D Snow-Laden Alpine Spruce Forest (`14_trees.js`)
+          </label>
+          <label class="slider-label">
+            <span>Forest Density · 雪松林密度 <strong id="val-forest-density">1.00×</strong></span>
+            <input id="forest-density" type="range" min="0.1" max="2.0" step="0.1" value="1.0" />
+          </label>
+          <label class="slider-label">
+            <span>Tree Line Elevation · 林线海拔上限 <strong id="val-forest-treeline">155 m</strong></span>
+            <input id="forest-treeline" type="range" min="60" max="260" step="5" value="155" />
+          </label>
+        </section>
+      </aside>
+
+      <section class="viewport">
+        <canvas id="canvas"></canvas>
+        <div class="hud-bar">
+          <span id="status">Initializing Cold Smoke Mountain Lab…</span>
+          <span id="pick-hint" class="pick-badge">Click a 3D Guide OBB to select, or use "+ Carve Gully on 3D Click"</span>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

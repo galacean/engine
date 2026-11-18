@@ -159,6 +159,7 @@ import {
   seedWorldOriginX,
   seedWorldOriginZ
 } from "@galacean/engine-world-planning/runtime/SeedWorldFields";
+import { SeedWorldPanoramaVistaRuntime } from "@galacean/engine-world-planning/runtime/SeedWorldPanoramaVistaRuntime";
 import {
   SEED_WORLD_ROAD_COLOR_DEFAULT,
   SEED_WORLD_SURFACE_LOD_CROSS_FADE_DURATION_SECONDS,
@@ -275,6 +276,7 @@ export async function mountSeedWorldDemo(
   let lighting: ReturnType<typeof createIntegratedWorldLightingRuntime> | undefined;
   let lightingProfile: PlanningLightingProfileRuntime | undefined;
   let environment: WorldEnvironmentRuntime | undefined;
+  let vista: SeedWorldPanoramaVistaRuntime | undefined;
   let tools: PlanningSeedWorldSession | undefined;
   let animals: PlanningAnimalHost | undefined;
   let detachAnimalLightning: (() => void) | undefined;
@@ -459,6 +461,7 @@ export async function mountSeedWorldDemo(
       }
     ],
     ["水运行", () => water?.destroy()],
+    ["远景环山", () => vista?.destroy()],
     ["沙雾", () => sandstorm?.destroy()],
     ["Mojave 景观", () => mojaveLayout?.destroy()],
     ["环境", () => environment?.destroy()],
@@ -836,6 +839,14 @@ export async function mountSeedWorldDemo(
       .components.find((component) => component.type === "weather")?.values;
     applyPlanningWeather(environment, initialWeather);
     if (startupTemplate?.rockSource !== "shared") desert?.configureDesertClouds(environment);
+    vista = new SeedWorldPanoramaVistaRuntime({
+      engine,
+      scene: scene!,
+      parent: root,
+      camera,
+      lighting,
+      environment
+    });
     audio = new SeedWorldAudioRuntime(camera, navigation, environment, wind);
     const windCenter = new Vector3();
     const driver = root.addComponent(SeedDemoFrame);
@@ -857,6 +868,7 @@ export async function mountSeedWorldDemo(
       publication?.current?.vegetation?.update(dt);
       obbDebug?.update(dt);
       water?.update(dt);
+      vista?.update();
       animals?.advance?.(dt);
       const position = camera.entity.transform.worldPosition;
       windCenter.set(position.x, sampleHeight(position.x, position.z) ?? position.y, position.z);
@@ -1962,6 +1974,7 @@ export async function mountSeedWorldDemo(
       const accepted = publication!.current!;
       await synchronizeMojaveLayout(accepted);
       if (publication!.current !== accepted || disposed) return;
+      vista?.synchronize(accepted.data.plan, accepted.data.fields, accepted.plan);
       animals!.synchronize(accepted.plan, readAnimalPopulationConfig(source!.session.document), accepted.navigation, {
         preservePopulation: true,
         change: accepted.animalChange,
@@ -2007,6 +2020,7 @@ export async function mountSeedWorldDemo(
       }
       canvas.dataset.sandstorm = sandstorm ? "active" : "off";
       if (publication!.current !== accepted || disposed) return;
+      vista?.synchronize(accepted.data.plan, accepted.data.fields, accepted.plan);
       animals!.synchronize(plan, readAnimalPopulationConfig(source!.session.document), accepted.navigation, {
         surface: accepted.data.surfaceIntent
       });

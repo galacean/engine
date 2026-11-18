@@ -24,6 +24,12 @@
     "owner": "world-planning / terrain"
   },
   {
+    "entry": "demos/cold-smoke-mountain/index.html",
+    "title": "Cold Smoke Mountain · 邻接山体与远景实验场",
+    "mode": "static",
+    "owner": "world-planning / terrain"
+  },
+  {
     "entry": "demos/day-night-system/index.html",
     "title": "Day / Night System",
     "mode": "static",
