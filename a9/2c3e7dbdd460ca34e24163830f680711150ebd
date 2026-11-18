@@ -1,0 +1,22 @@
+packages/shader/src/ShaderLibrary/PBR/BSDF.glsl
+  h_a3c79ce84ffdc2 218-223,226-234
+packages/shader/src/ShaderLibrary/PBR/FragmentPBR.glsl
+  h_a3c79ce84ffdc2 231,291
+packages/shader/src/ShaderLibrary/PBR/ReflectionLobe.glsl
+  h_a3c79ce84ffdc2 9-21,40-43
+packages/shader/src/ShaderLibrary/PBR/VertexPBR.glsl
+  h_a3c79ce84ffdc2 39,82-87
+tests/src/core/material/PBRAnisotropy.test.ts
+  h_a3c79ce84ffdc2 3,56-58,117,213,217-218,230-239,248-357,462-514
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a92c3e7dbdd460ca34e24163830f680711150ebd",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,1076 @@
+packages/world-planning/src/spatial/WorldTemplateAuthoring.ts
+  s_c3d96a07b92338::t_87335d0affe091 11-17,64-67,69-72
+  s_c3d96a07b92338::t_7aed66b67c5d5c 186-187,199-200
+  s_c3d96a07b92338::t_bcdd36eff4f43f 18-20,43,68,73-185,188-198,201-215,244
+  s_c3d96a07b92338::t_0a3482939b18d6 1-10,21-42,44-63,216-243,245-251
+.agents/skills/import-galacean-assets/SKILL.md
+  s_c3d96a07b92338::t_1108d08c42aec7 1-112
+.agents/skills/import-galacean-assets/agents/openai.yaml
+  s_c3d96a07b92338::t_1b23d91939e5c7 1-4
+.agents/skills/import-galacean-assets/references/intake.md
+  s_c3d96a07b92338::t_2d68f60c6b8788 1-166
+.agents/skills/import-galacean-assets/scripts/intake.py
+  s_c3d96a07b92338::t_3a35f412f6b030 1-242
+.agents/skills/import-galacean-assets/scripts/test_intake.py
+  s_c3d96a07b92338::t_7fb423b9a111e3 1-138
+.agents/skills/import-galacean-assets/scripts/validate-project.mjs
+  s_c3d96a07b92338::t_a61c250c49f144 1-55
+.agents/skills/seed-world-local-debug/SKILL.md
+  s_c3d96a07b92338::t_8039baef415e80 1-35
+.agents/skills/seed-world-local-debug/agents/openai.yaml
+  s_c3d96a07b92338::t_f95562fa66ae74 1-4
+.agents/skills/seed-world-local-debug/references/prepare.md
+  s_c3d96a07b92338::t_d172c30a3b504a 1-106
+.agents/skills/seed-world-local-debug/references/start.md
+  s_c3d96a07b92338::t_48acf8134b9e57 1-84
+.agents/skills/seed-world-local-debug/scripts/preview.py
+  s_c3d96a07b92338::t_6b14028886ad7d 1-92
+.agents/skills/sync-galacean-assets/SKILL.md
+  s_c3d96a07b92338::t_34b7527078bbd5 1-162
+.agents/skills/sync-galacean-assets/agents/openai.yaml
+  s_c3d96a07b92338::t_0db0803cb6c4f7 1-4
+.agents/skills/sync-galacean-assets/references/acceptance.md
+  s_c3d96a07b92338::t_ca658c218890fb 1-44
+.agents/skills/sync-galacean-assets/references/storage.md
+  s_c3d96a07b92338::t_b0737e82f8a05f 1-77
+.agents/skills/sync-galacean-assets/scripts/catalog.mjs
+  s_c3d96a07b92338::t_20571bd1d8b8c2 1-30
+.agents/skills/sync-galacean-assets/scripts/requirements.txt
+  s_c3d96a07b92338::t_ef1d0b2d38c2b7 1-2
+.agents/skills/sync-galacean-assets/scripts/sync_assets.py
+  s_c3d96a07b92338::t_20795e73fbc4ec 1-566
+.agents/skills/sync-galacean-assets/scripts/test_sync.py
+  s_c3d96a07b92338::t_a5f8b3483ff2b4 1-355
+packages/ai-chat/package.json
+  s_c3d96a07b92338::t_0309d9996f0ac8 62-64
+packages/ai-chat/src/ai-chat/README.md
+  s_c3d96a07b92338::t_363474ac01c2c1 17,69,71,75,79-92,101,110,116,118-124,126-136,140,150,177,183,190,194,371,630,632,634,636
+packages/ai-chat/src/ai-chat/agent-artifacts.ts
+  s_c3d96a07b92338::t_554bdca195a0c2 3-6,8-9,11-37,39-61,63,66-74
+packages/ai-chat/src/ai-chat/agent-extensions.ts
+  s_c3d96a07b92338::t_1560d9f58392f8 7,21-30,71,81
+packages/ai-chat/src/ai-chat/agent-failure.ts
+  s_c3d96a07b92338::t_fe2d913c71d78a 58-59,114,116-125
+packages/ai-chat/src/ai-chat/agent-file-read.ts
+  s_c3d96a07b92338::t_fa1761e6c7f328 31
+packages/ai-chat/src/ai-chat/agent-image-store.ts
+  s_c3d96a07b92338::t_41a9d999e65fed 2,4-5,8-9,16-17,20,22,26,37,40,43,46,53,56-70,72-88,90-93,95-96,98,100-102,104-105,108,110,117-121
+packages/ai-chat/src/ai-chat/agent-loop.ts
+  s_c3d96a07b92338::t_41a3f44207d85f 1-3,8,13,63,118,124,153-156,208-211,249,255,295,312,328,351,358,364,372,383,411-412,445-447,491-536,557-560,562-563,567,573-574,589-591,593,597-604,608-610,612,614-619,623-624,633-634,663,673,708,822-829,831,847-849,877-884,888,984-985,1005-1007,1028-1029,1067,1141-1146,1162,1174-1178,1359,1364-1373,1626
+packages/ai-chat/src/ai-chat/agent-message-state.ts
+  s_c3d96a07b92338::t_d3387e6965c3d7 1-8
+packages/ai-chat/src/ai-chat/agent-native-files.ts
+  s_c3d96a07b92338::t_0c9635ef74784a 39,54-60,62,134-139,145,152-153,155-157
+packages/ai-chat/src/ai-chat/agent-project-files.ts
+  s_c3d96a07b92338::t_6d98293f0ada41 6,16,18,22,24,40,42,46,49,54-55,59
+packages/ai-chat/src/ai-chat/agent-protocol.ts
+  s_c3d96a07b92338::t_160ebccfe17602 1-2,5-6,24,27-31,34-40,43-44,47-48,51-58,67,69,73,75,80-82,86-101,105,111-138,151-158,164-166,177-180,183-214,220-221,224-227,241-243,246,248-249
+packages/ai-chat/src/ai-chat/agent-skills.ts
+  s_c3d96a07b92338::t_ec3ec5985d6b30 1-40
+packages/ai-chat/src/ai-chat/agent-snapshots.ts
+  s_c3d96a07b92338::t_b0ef9368e43f1e 1-35
+packages/ai-chat/src/ai-chat/agent-types.ts
+  s_c3d96a07b92338::t_7b658c2326fe00 50,61,134-140,142-143,153-158,160,170,229,233,235,243-244,547,561,617,619-620
+packages/ai-chat/src/ai-chat/ai-chat-session.ts
+  s_c3d96a07b92338::t_da4ccf74ce881e 273
+packages/ai-chat/src/ai-chat/ai-chat.ts
+  s_c3d96a07b92338::t_29c705da446d1f 226,228-229
+packages/ai-chat/src/ai-chat/asap-chat.ts
+  s_c3d96a07b92338::t_a1b024127d40ef 27-28,501-503,506
+packages/ai-chat/src/ai-chat/context-compaction.ts
+  s_c3d96a07b92338::t_8fc7852d9cea1b 2,5,7,14,39,46,60,76-81,96,135,154-156,165-188,190-193,199,221
+packages/ai-chat/src/ai-chat/image-resources.ts
+  s_c3d96a07b92338::t_b4c5bee140797e 4-9,14-17,28-29,42-52,58-60,62-63
+packages/ai-chat/src/ai-chat/trajectory/trajectory-model.ts
+  s_c3d96a07b92338::t_04bb1d072a0a03 895,904-906,909-910,912-913,991-992,1574
+packages/ai-chat/src/ai-chat/vendor/deepseek-read/UPSTREAM.md
+  s_c3d96a07b92338::t_1c12badef7d7dc 17,19
+packages/ai-chat/src/ai-chat/vendor/deepseek-read/read-window.ts
+  s_c3d96a07b92338::t_948de87843680d 4,6,23,30-31,37,51,55-57,67-70,72-73,81-84,107
+packages/building/package.json
+  s_c3d96a07b92338::t_af5ff0bd2d6bf5 249-272
+packages/building/src/index.ts
+  s_c3d96a07b92338::t_c6c137fda2cbc3 1
+packages/building/src/tiny-glade/README.md
+  s_c3d96a07b92338::t_daa0ef269ea119 3-11
+packages/building/src/tiny-glade/assets/prefabs/circle-circle.prefab
+  s_c3d96a07b92338::t_a51ad3fa61e63b 41,70,77,79-109,111-112,114-127,132,134-154,156-157,159-173,178,180-230,235,237-267,269-270,272-285,290,292-312,314-315,317-348,353-354,356-367
+packages/building/src/tiny-glade/assets/prefabs/gable-junction.prefab
+  s_c3d96a07b92338::t_a5182863dcf0f9 41,70,77,79-109,111-112,114-127,132,134-154,156-157,159-173,178,180-230,235,237-270,272-273,275-288,293,295-315,317-318,320-351,356-357,359-370
+packages/building/src/tiny-glade/assets/prefabs/round-gothic.prefab
+  s_c3d96a07b92338::t_24ad63b6101622 41,70,77,79-109,111-112,114-127,132,134-154,156-157,159-173,178,180-230,235,237-270,272-273,275-288,293,295-315,317-318,320-351,356-357,359-370
+packages/building/src/tiny-glade/components/BuildingPlacement.ts
+  s_c3d96a07b92338::t_d122166da4120b 2-3,24-27,40,42-43,54-56,58,60-64
+packages/building/src/tiny-glade/components/BuildingPrefab.ts
+  s_c3d96a07b92338::t_f6d89bccce9860 2-8,12,61-100
+packages/building/src/tiny-glade/components/README.md
+  s_c3d96a07b92338::t_811027492a3dfa 1,3,5,7,9
+packages/building/src/tiny-glade/parts/BuildingAlgorithms.ts
+  s_c3d96a07b92338::t_fe34b5bc97d1d2 1-194
+packages/building/src/tiny-glade/parts/BuildingBatch.ts
+  s_c3d96a07b92338::t_bb75688ffce420 1-16,18-61,63-68,70-78,80,82-94,97-196
+packages/building/src/tiny-glade/parts/BuildingGeneratedOutput.ts
+  s_c3d96a07b92338::t_9113c65d82bba6 1-32
+packages/building/src/tiny-glade/parts/BuildingKnowledge.ts
+  s_c3d96a07b92338::t_35e80b44f34dc7 1-16
+packages/building/src/tiny-glade/parts/BuildingLayout.ts
+  s_c3d96a07b92338::t_e8820207b4e326 1-259
+packages/building/src/tiny-glade/parts/BuildingParts.ts
+  s_c3d96a07b92338::t_84d54f23a68bd7 1-192
+packages/building/src/tiny-glade/parts/README.md
+  s_c3d96a07b92338::t_c31709a987ff69 1-145
+packages/building/src/tiny-glade/parts/algorithms/AlongPath.ts
+  s_c3d96a07b92338::t_9978b9dd770768 1-17
+packages/building/src/tiny-glade/parts/algorithms/ArchMembers.ts
+  s_c3d96a07b92338::t_4803fd1d2bc6a4 1-35
+packages/building/src/tiny-glade/parts/algorithms/CottageDormerCourses.ts
+  s_c3d96a07b92338::t_fab84c15cd9304 1-30
+packages/building/src/tiny-glade/parts/algorithms/MountAttachment.ts
+  s_c3d96a07b92338::t_759a9844b8d527 1-41
+packages/building/src/tiny-glade/parts/algorithms/PlaceAtPoint.ts
+  s_c3d96a07b92338::t_d4cff013564c7c 1-5
+packages/building/src/tiny-glade/parts/algorithms/ProfiledDormerCourses.ts
+  s_c3d96a07b92338::t_a5ac5ac274a600 1-32
+packages/building/src/tiny-glade/parts/algorithms/RoofMerlons.ts
+  s_c3d96a07b92338::t_f9531ec08f615c 1-27
+packages/building/src/tiny-glade/parts/algorithms/RoofSpire.ts
+  s_c3d96a07b92338::t_ee634492218169 1-39
+packages/building/src/tiny-glade/parts/algorithms/SurfaceCourseCells.ts
+  s_c3d96a07b92338::t_095d5e716d55c2 1-139
+packages/building/src/tiny-glade/parts/algorithms/SurfaceCourses.ts
+  s_c3d96a07b92338::t_f007eb4ab15aee 1-74
+packages/building/src/tiny-glade/parts/algorithms/SurfaceGrid.ts
+  s_c3d96a07b92338::t_11da6eb8936b3f 1-9
+packages/building/src/tiny-glade/parts/algorithms/WallStitches.ts
+  s_c3d96a07b92338::t_dda6b34ff72666 1-28
+packages/building/src/tiny-glade/parts/architecture/BuildingAttachmentFrame.ts
+  s_c3d96a07b92338::t_eb131a89cc7f27 1-74
+packages/building/src/tiny-glade/parts/architecture/BuildingAuthorMarker.ts
+  s_c3d96a07b92338::t_7450263518a701 1-6
+packages/building/src/tiny-glade/parts/architecture/BuildingCpu.ts
+  s_c3d96a07b92338::t_2340e07242719c 1-14,16-41,43-47,49-53,55,57,61-75
+packages/building/src/tiny-glade/parts/architecture/BuildingCpuClient.ts
+  s_c3d96a07b92338::t_0208dbadd99995 1-10,12-13,15,17,20-25,28,30-32,34-35,39-40,50,54,67-76,80-82,84-85,87,89-100,102,105-110,115-116,120,122-127,132,139-145,156,158,160
+packages/building/src/tiny-glade/parts/architecture/BuildingDesign.ts
+  s_c3d96a07b92338::t_f5e8cce8cf6ce2 1-427
+packages/building/src/tiny-glade/parts/architecture/BuildingDesignIdentity.ts
+  s_c3d96a07b92338::t_452c4cd72697fc 1-86
+packages/building/src/tiny-glade/parts/architecture/BuildingDesignRules.ts
+  s_c3d96a07b92338::t_fc3acb11c5a20b 1-2,4-9,11-17,19-37,39-41,43-44,47-78,80-82,84-122,124-127
+packages/building/src/tiny-glade/parts/architecture/BuildingDetail.ts
+  s_c3d96a07b92338::t_0091bec72a31d4 1-10,13-14,16-17,19-26,29-33,36-38
+packages/building/src/tiny-glade/parts/architecture/BuildingDraft.ts
+  s_c3d96a07b92338::t_9e90fcead10f23 1-132
+packages/building/src/tiny-glade/parts/architecture/BuildingExecution.ts
+  s_c3d96a07b92338::t_c0a3bacd0de620 1-49
+packages/building/src/tiny-glade/parts/architecture/BuildingGenerators.ts
+  s_c3d96a07b92338::t_0a676c615daefd 1-131
+packages/building/src/tiny-glade/parts/architecture/BuildingGrounding.ts
+  s_c3d96a07b92338::t_e42e7aa6fffeba 1-76
+packages/building/src/tiny-glade/parts/architecture/BuildingGroupComponent.ts
+  s_c3d96a07b92338::t_ade647ab1e0ead 1-59
+packages/building/src/tiny-glade/parts/architecture/BuildingImplementation.ts
+  s_c3d96a07b92338::t_acd43bd786fe88 1,3-8,10-36,38-60,68-90,119,121-135,138-153,155-165,168-174,176-184,186-188,200-228,230-232,238-239,248
+packages/building/src/tiny-glade/parts/architecture/BuildingInstancePlacement.ts
+  s_c3d96a07b92338::t_8af288c87d110c 1-12
+packages/building/src/tiny-glade/parts/architecture/BuildingInstanceRender.ts
+  s_c3d96a07b92338::t_44f0c957cfce51 1-267
+packages/building/src/tiny-glade/parts/architecture/BuildingManager.ts
+  s_c3d96a07b92338::t_6db4015ed0c98f 1-315
+packages/building/src/tiny-glade/parts/architecture/BuildingPalette.ts
+  s_c3d96a07b92338::t_d5878245ed0eb9 1-16
+packages/building/src/tiny-glade/parts/architecture/BuildingPartCollection.ts
+  s_c3d96a07b92338::t_228d7414ddebfc 1-14,16-39,41-44,46,51-64,66-68,70,78-79,81-105,107-125,127-165,167-171,173-217
+packages/building/src/tiny-glade/parts/architecture/BuildingPartComponent.ts
+  s_c3d96a07b92338::t_3a2ce97b2ff85e 1-75
+packages/building/src/tiny-glade/parts/architecture/BuildingPipeline.ts
+  s_c3d96a07b92338::t_c1f7c5f822db24 1-113
+packages/building/src/tiny-glade/parts/architecture/BuildingProfileSupports.ts
+  s_c3d96a07b92338::t_7576ef74c053a7 1-127
+packages/building/src/tiny-glade/parts/architecture/BuildingProfileTerrain.ts
+  s_c3d96a07b92338::t_490fa8a81d57e7 1-18,20-22,24-27,30-31,38
+packages/building/src/tiny-glade/parts/architecture/BuildingPublication.ts
+  s_c3d96a07b92338::t_6dcb80e16ab1e9 1-360
+packages/building/src/tiny-glade/parts/architecture/BuildingRemoval.ts
+  s_c3d96a07b92338::t_d799b88b412d13 1-66
+packages/building/src/tiny-glade/parts/architecture/BuildingRender.ts
+  s_c3d96a07b92338::t_f572ebc40ab34c 1-47
+packages/building/src/tiny-glade/parts/architecture/BuildingRuntime.ts
+  s_c3d96a07b92338::t_3f063a681ef55c 1,5-7,10-13,15-37,41-48,50-70,72,74-81,83-106,108-116,121-124,126,129-130,136-137,140-176,179-182,184-191,194,199-206,213-214,223-245,250,271,296,298,305-311,315,337,342,345,352-354,358,386,445,460,467,479,491,499,502,506-509,516,551-552,603,605,607,619,621-622,638,640,642,650-651,666,668-671,673-674,677-732,737-739,744,748-749,751,756,762,764-765,771,774,805,836,838-839,845,860-861,900,925-926,930,932,942,954,985-988,1002-1003,1007,1011,1014-1019,1030-1047,1077-1079,1081-1089,1096,1098,1100,1106,1115,1119,1121,1125-1137,1141-1145,1159,1174-1188,1192-1193,1197,1207-1225
+packages/building/src/tiny-glade/parts/architecture/BuildingSource.ts
+  s_c3d96a07b92338::t_060ff1d02c45ce 2,4-18,20-58,62-81,83-92,94-99,101-128,131
+packages/building/src/tiny-glade/parts/architecture/BuildingTerrain.ts
+  s_c3d96a07b92338::t_aceb3655e29ace 1-7,9-23,25-26
+packages/building/src/tiny-glade/parts/architecture/BuildingWorker.ts
+  s_c3d96a07b92338::t_b881f259b97c61 1-23,26,28-43,45-47,50,52
+packages/building/src/tiny-glade/parts/architecture/BuildingWorkerProtocol.ts
+  s_c3d96a07b92338::t_870b12d5ee3bd3 1-23
+packages/building/src/tiny-glade/parts/architecture/European.ts
+  s_c3d96a07b92338::t_2c668275d23057 1-154
+packages/building/src/tiny-glade/parts/architecture/ProfilePlacementAlgorithms.ts
+  s_c3d96a07b92338::t_da1236c2583a6c 1-411
+packages/building/src/tiny-glade/parts/architecture/Steps.ts
+  s_c3d96a07b92338::t_17e720965317a2 1-66
+packages/building/src/tiny-glade/parts/architecture/index.ts
+  s_c3d96a07b92338::t_86cf1a8324acf6 1-23
+packages/building/src/tiny-glade/parts/geometry/BuildingMesh.ts
+  s_c3d96a07b92338::t_4413149e1dd812 1-65
+packages/building/src/tiny-glade/parts/geometry/Casement.ts
+  s_c3d96a07b92338::t_00ffcae18c944c 1-43
+packages/building/src/tiny-glade/parts/geometry/Facade.ts
+  s_c3d96a07b92338::t_2b406fcad95782 1-63
+packages/building/src/tiny-glade/parts/geometry/ProfileRoof.ts
+  s_c3d96a07b92338::t_0fae23964817a1 1-99
+packages/building/src/tiny-glade/parts/geometry/ShellGeometry.ts
+  s_c3d96a07b92338::t_945b2fb1e43011 1-75
+packages/building/src/tiny-glade/parts/geometry/WallGeometry.ts
+  s_c3d96a07b92338::t_4e364b48631d72 1-5,7-19,21-22,24-54,56-71,73-79,81-82,85-100,102-109,111
+packages/building/src/tiny-glade/parts/index.ts
+  s_c3d96a07b92338::t_147a717b8fec66 1-21
+packages/building/src/tiny-glade/parts/native/AssetInstanceBatch.ts
+  s_c3d96a07b92338::t_c27f0f39ca70d1 1-100
+packages/building/src/tiny-glade/parts/skill/SKILL.md
+  s_c3d96a07b92338::t_d84735579ab3df 1-29
+packages/building/src/tiny-glade/parts/skill/references/connections.md
+  s_c3d96a07b92338::t_6cdf6a2cdf3ca0 1-13
+packages/building/src/tiny-glade/parts/skill/references/existing-house.md
+  s_c3d96a07b92338::t_0b21215e1fe8db 1-7
+packages/building/src/tiny-glade/parts/skill/references/foundation.md
+  s_c3d96a07b92338::t_f979d4a475f004 1-31
+packages/building/src/tiny-glade/parts/skill/references/planning.md
+  s_c3d96a07b92338::t_29b83bb23e04da 1-38
+packages/building/src/tiny-glade/parts/skill/references/roof.md
+  s_c3d96a07b92338::t_e17849b86060fd 1,3,5-11
+packages/building/src/tiny-glade/parts/skill/references/structure.md
+  s_c3d96a07b92338::t_6c425637b1da4f 1-7
+packages/building/src/tiny-glade/parts/skill/references/wall.md
+  s_c3d96a07b92338::t_75b7283969a33b 1,3-11
+packages/building/src/tiny-glade/parts/supports/MeshSupport.ts
+  s_c3d96a07b92338::t_8db47f8ad0e8ff 1-14
+packages/building/src/tiny-glade/parts/supports/PathSupport.ts
+  s_c3d96a07b92338::t_fa38f172c867ad 1-9
+packages/building/src/tiny-glade/parts/supports/PointSupport.ts
+  s_c3d96a07b92338::t_4d5c652d5ba71d 1-9
+packages/building/src/tiny-glade/resources/PREFAB_AUTHORING.md
+  s_c3d96a07b92338::t_661c5f6b006df4 12,31,41,44,62,68,74-75
+packages/building/src/tiny-glade/runtime/BoundaryPlacement.ts
+  s_c3d96a07b92338::t_afcac0f93fe245 3,27,140,144-146,196,243
+packages/building/src/tiny-glade/runtime/BuildingDistanceView.ts
+  s_c3d96a07b92338::t_bfe8123eef52d8 1,65-66,68-70,74,77-78,142,145-147,208,220,222-223,332,346,371-373
+packages/building/src/tiny-glade/runtime/BuildingGlobals.ts
+  s_c3d96a07b92338::t_5c7c2de41fdf7f 4-8,10-12,17-19,21
+packages/building/src/tiny-glade/runtime/BuildingObjectIdentity.ts
+  s_c3d96a07b92338::t_28bbdf5b1631f1 1-7
+packages/building/src/tiny-glade/runtime/BuildingRenderPackage.ts
+  s_c3d96a07b92338::t_77efe17587f218 1,5-9,15-19,22-27,29-60,67-68,70-72,74,91,94,108,111,119,122-124,126-129,195-196,199-202,209,214-216,232,235-236
+packages/building/src/tiny-glade/runtime/BuildingUnitAssets.ts
+  s_c3d96a07b92338::t_6752a2899d2158 4-5
+packages/building/src/tiny-glade/runtime/ConstructionArchGroups.ts
+  s_c3d96a07b92338::t_3efc7c8d994279 1-5,9-10,12,18,24
+packages/building/src/tiny-glade/runtime/ConstructionArrangement.ts
+  s_c3d96a07b92338::t_b89345d77f459b 3-4,20,159-164,249-251
+packages/building/src/tiny-glade/runtime/ConstructionCornerDecorations.ts
+  s_c3d96a07b92338::t_15d84ae760b6ce 3-19,33,36,45,89,91-96,98,109,111-113,116-124,139-142,200-209
+packages/building/src/tiny-glade/runtime/ConstructionCottageRoofDecorations.ts
+  s_c3d96a07b92338::t_deb4e825b1e078 5-22,26-27,30,34-38,84-86,88-108,110-132
+packages/building/src/tiny-glade/runtime/ConstructionDecorationConfig.ts
+  s_c3d96a07b92338::t_9504994568b8f7 1-5,40
+packages/building/src/tiny-glade/runtime/ConstructionDecorationGeometry.ts
+  s_c3d96a07b92338::t_d9e99c0b7c57d8 1-5,20,26,83
+packages/building/src/tiny-glade/runtime/ConstructionDecorationRender.ts
+  s_c3d96a07b92338::t_d82b2777e7ead0 1-3,97,103,155
+packages/building/src/tiny-glade/runtime/ConstructionDecorations.ts
+  s_c3d96a07b92338::t_e8580de51d2bf9 1-5,9-15,23-24,112-115
+packages/building/src/tiny-glade/runtime/ConstructionEaveAttachment.ts
+  s_c3d96a07b92338::t_c0a4787b1bedf9 1-8,13,23,27,29
+packages/building/src/tiny-glade/runtime/ConstructionFlatRoof.ts
+  s_c3d96a07b92338::t_cd5ebe2c786ade 9-10,22,112-113,213
+packages/building/src/tiny-glade/runtime/ConstructionFloors.ts
+  s_c3d96a07b92338::t_f9dad70857250d 1-6,194-199,256-261
+packages/building/src/tiny-glade/runtime/ConstructionFoundation.ts
+  s_c3d96a07b92338::t_d2b755848be982 4-7,34,156-161,256-261
+packages/building/src/tiny-glade/runtime/ConstructionGothicRoofDecorations.ts
+  s_c3d96a07b92338::t_760d2f42535c75 3,11,14,16-17,19,21-24,26,30-34,60,66-67,76-93,101,111,124-125,139-156
+packages/building/src/tiny-glade/runtime/ConstructionHalfCottageDecorations.ts
+  s_c3d96a07b92338::t_feab0894db05ac 1-6,8-22,29,32-33,49,52,54,88,111,139-157,174,176-211,213-216,218-236
+packages/building/src/tiny-glade/runtime/ConstructionJunctionLayout.ts
+  s_c3d96a07b92338::t_ee940a098f6c42 1-5,24-26,31,64-65,71,90,94-110,122,154-160
+packages/building/src/tiny-glade/runtime/ConstructionLodAppearance.ts
+  s_c3d96a07b92338::t_262384a82986b9 12-13,50-51,131-138
+packages/building/src/tiny-glade/runtime/ConstructionPitchedDecorationContext.ts
+  s_c3d96a07b92338::t_243449bb4d98ca 1-5,23-24
+packages/building/src/tiny-glade/runtime/ConstructionPlasterRender.ts
+  s_c3d96a07b92338::t_19011425f389c6 4
+packages/building/src/tiny-glade/runtime/ConstructionRecords.ts
+  s_c3d96a07b92338::t_2e0c16ec261d46 1-10
+packages/building/src/tiny-glade/runtime/ConstructionRoof.ts
+  s_c3d96a07b92338::t_df22263ec86d58 20,86-87,119-121,219
+packages/building/src/tiny-glade/runtime/ConstructionRoofDecorations.ts
+  s_c3d96a07b92338::t_7c349a49037ee4 1-10,31-32,41,173-205,207,243
+packages/building/src/tiny-glade/runtime/ConstructionSettledRoof.ts
+  s_c3d96a07b92338::t_913f133e26b3dc 10,25-26,37-42
+packages/building/src/tiny-glade/runtime/ConstructionStoneArch.ts
+  s_c3d96a07b92338::t_c3339dcadaf3bc 26,39,65-97,100,103,119,123,135,143,161-167
+packages/building/src/tiny-glade/runtime/ConstructionStoneFloorRender.ts
+  s_c3d96a07b92338::t_d7396eefff33c7 1
+packages/building/src/tiny-glade/runtime/ConstructionStoneHalfDecorations.ts
+  s_c3d96a07b92338::t_26557990aa31f1 1-2,4-14,19-23,29-32,48,51,78,93,109,130-146,157,161-165,170-194
+packages/building/src/tiny-glade/runtime/ConstructionSupportRender.ts
+  s_c3d96a07b92338::t_e2ae6393ce15f9 1
+packages/building/src/tiny-glade/runtime/ConstructionSurfaceQuery.ts
+  s_c3d96a07b92338::t_0c60804eec2691 9,16
+packages/building/src/tiny-glade/runtime/ConstructionUnitRender.ts
+  s_c3d96a07b92338::t_60f8040fc216de 5
+packages/building/src/tiny-glade/runtime/ConstructionWallEnvelope.ts
+  s_c3d96a07b92338::t_3e948dff158d04 1-5,21-23,25-26
+packages/building/src/tiny-glade/runtime/ConstructionWallFrame.ts
+  s_c3d96a07b92338::t_06b96bf259785d 24-25,28,57-58,61
+packages/building/src/tiny-glade/runtime/ConstructionWallLod.ts
+  s_c3d96a07b92338::t_9abdce06f06a87 1,4,6-7,23,29-32,63-64,84
+packages/building/src/tiny-glade/runtime/ConstructionWallWindowCuts.ts
+  s_c3d96a07b92338::t_c960146b809280 1,10,15-16,29,34,37-38,45-46
+packages/building/src/tiny-glade/runtime/ConstructionWoodArch.ts
+  s_c3d96a07b92338::t_083c25af71a465 28,46-74,112-117
+packages/building/src/tiny-glade/runtime/ConstructionWoodPlacement.ts
+  s_c3d96a07b92338::t_981b6f650efaa5 11,33-35
+packages/building/src/tiny-glade/runtime/ConstructionWoodWall.ts
+  s_c3d96a07b92338::t_87c53c0551932d 2-8,24,59
+packages/building/src/tiny-glade/runtime/CottageDormerSupport.ts
+  s_c3d96a07b92338::t_15fa909fe145fa 1,8-10,12-29,37,48,53-62,65-93
+packages/building/src/tiny-glade/runtime/CottageHalfDormerSupport.ts
+  s_c3d96a07b92338::t_bb99122b394cb5 1,3-4,9-13,22,147-155
+packages/building/src/tiny-glade/runtime/DecorationAssemblyPlacement.ts
+  s_c3d96a07b92338::t_3f91fcf025a959 1-2,4-12,14-64,67-104,106-116,118
+packages/building/src/tiny-glade/runtime/DecorationMountGeometry.ts
+  s_c3d96a07b92338::t_4041513cd9b873 1-32
+packages/building/src/tiny-glade/runtime/DecorationNativeView.ts
+  s_c3d96a07b92338::t_41a16625dabc11 1,6,20,34,68,109,112,134,137
+packages/building/src/tiny-glade/runtime/DecorationParameters.ts
+  s_c3d96a07b92338::t_92484871256e07 1-85
+packages/building/src/tiny-glade/runtime/DecorationPlan.ts
+  s_c3d96a07b92338::t_9d50f511c243eb 1-3,5,7-82,84-87
+packages/building/src/tiny-glade/runtime/DecorationSurfaceOwner.ts
+  s_c3d96a07b92338::t_cc493e68fde538 1-14
+packages/building/src/tiny-glade/runtime/GothicRoofTiles.ts
+  s_c3d96a07b92338::t_b339e6e52169b3 154-171,182,198-224,227,232,242,320
+packages/building/src/tiny-glade/runtime/MasonryDistanceVertexData.ts
+  s_c3d96a07b92338::t_20f70c8be5d282 2
+packages/building/src/tiny-glade/runtime/MasonryResidency.ts
+  s_c3d96a07b92338::t_022b915bb1f151 2,8
+packages/building/src/tiny-glade/runtime/MasonrySurfaceInspection.ts
+  s_c3d96a07b92338::t_6807b1d711ba97 3
+packages/building/src/tiny-glade/runtime/MaterialPlacementDefaults.ts
+  s_c3d96a07b92338::t_d10fd039fa6f46 2
+packages/building/src/tiny-glade/runtime/PlacementSupport.ts
+  s_c3d96a07b92338::t_d4de1924104242 1,6-9
+packages/building/src/tiny-glade/runtime/ProfileContacts.ts
+  s_c3d96a07b92338::t_bb07202bcb3e6c 2-10,12-18,20,22-23,25,29-36
+packages/building/src/tiny-glade/runtime/ProfileDecorations.ts
+  s_c3d96a07b92338::t_0faa726cf2b82e 1-658
+packages/building/src/tiny-glade/runtime/ProfileGeometry.ts
+  s_c3d96a07b92338::t_d08d7696aadade 1-5,9-76,78-79,81-83,85,89,94,97-101,105,111-112
+packages/building/src/tiny-glade/runtime/ProfileParameters.ts
+  s_c3d96a07b92338::t_3454aa217e26da 2-4,8-30,32-33,36-40,44-46,49-54,58-75,77,80-91,93-134
+packages/building/src/tiny-glade/runtime/ProfilePlaster.ts
+  s_c3d96a07b92338::t_60768d89472bd0 2-5,7-13,26-27,32-33,35,43,61,111,114,116,124-125,145-146
+packages/building/src/tiny-glade/runtime/ProfilePreview.ts
+  s_c3d96a07b92338::t_6bfda877ce2765 1-5,19-20,24-25,31,33-34,37,43,45-48,54-55,79-80,162-213,215,220-224,290-291,304,312,334,336,338-339,352,362,412,485-487,496-497,500,502-506,551,553-557,567,580,593-595,645,647-649,663,681,686,697-704,733,746-751,760,776,778-779,786-787,789-791,819,823,831,853,868,891,954-959,968,971,975,1004,1110-1111,1198-1207,1211-1215
+packages/building/src/tiny-glade/runtime/ProfileRoofSpire.ts
+  s_c3d96a07b92338::t_9a29234cd3e1bc 2-4,75-78,106-113,115,121-122
+packages/building/src/tiny-glade/runtime/ProfileWallGeometry.ts
+  s_c3d96a07b92338::t_a31b7b25e6125d 1-19
+packages/building/src/tiny-glade/runtime/ProfiledDormerSupport.ts
+  s_c3d96a07b92338::t_03d24852a8e4fc 1-71
+packages/building/src/tiny-glade/runtime/RecoveredInterRoofMerlons.ts
+  s_c3d96a07b92338::t_b376db6229afcc 41-42,188-201,203-220,239,251,267,276,294,296,302,305,308-309,375-380,382-386
+packages/building/src/tiny-glade/runtime/RecoveredRoofContacts.ts
+  s_c3d96a07b92338::t_0f0ce499433c61 132-137
+packages/building/src/tiny-glade/runtime/RecoveredWallCorners.ts
+  s_c3d96a07b92338::t_145ca69db700d2 8,195
+packages/building/src/tiny-glade/runtime/RecoveredWallLayout.ts
+  s_c3d96a07b92338::t_adab60bb9f4679 303
+packages/building/src/tiny-glade/runtime/StoneHalfDormerSupport.ts
+  s_c3d96a07b92338::t_49706860c6dba0 3-9,11-12,22,82-87
+packages/building/src/tiny-glade/runtime/StonePavingPlacement.ts
+  s_c3d96a07b92338::t_e1e17a816ecc21 1
+packages/building/src/tiny-glade/runtime/StripPlacement.ts
+  s_c3d96a07b92338::t_0fccaca6bee225 2-4,6-27,32,40-44,53-54,58,61,67-68,70,106,108,128
+packages/building/src/tiny-glade/runtime/SurfacePlacement.ts
+  s_c3d96a07b92338::t_cd2696625d7b68 3,24,64-69
+packages/building/src/tiny-glade/runtime/TerrainField.ts
+  s_c3d96a07b92338::t_7dc1b95bd799cd 66,79-91,93-136
+packages/building/src/tiny-glade/runtime/UnitPlacement.ts
+  s_c3d96a07b92338::t_a6e42734661d11 2-3,6,9,38-83,114
+packages/building/src/tiny-glade/runtime/UnitPlacementStyle.ts
+  s_c3d96a07b92338::t_385518c46d9da2 1-22
+packages/building/src/tiny-glade/runtime/WallConnectionPipeline.ts
+  s_c3d96a07b92338::t_fb07a3536af2a7 25-27,101,161-165,168,182,189,195-224,232-243
+packages/building/src/tiny-glade/runtime/WallMountGeometry.ts
+  s_c3d96a07b92338::t_8dcb557dc8388b 1-3,5-7,10-11,16,25-49
+packages/building/src/tiny-glade/runtime/WallProfileAdapter.ts
+  s_c3d96a07b92338::t_e3692c14d80116 18-19,31,70-71,75,98-99
+packages/building/src/tiny-glade/runtime/WallTypes.ts
+  s_c3d96a07b92338::t_8ac6a844639e76 13-14,50
+packages/environment/src/terrain/lighting/SeedWorldLightingPreset.ts
+  s_c3d96a07b92338::t_8a9b77102e72d0 2
+packages/environment/src/terrain/lighting/SeedWorldLightingProfile.json
+  s_c3d96a07b92338::t_f62cafb24b9d94 7,58,109,160,211,262,313,364
+packages/farming/src/farming/application/FarmingAgronomy.ts
+  s_c3d96a07b92338::t_314c6a48d6a291 1-2,4-48
+packages/farming/src/farming/application/IrrigationEffectSummary.ts
+  s_c3d96a07b92338::t_1d553491617567 1-26
+packages/farming/src/farming/domain/FarmItemFootprint.ts
+  s_c3d96a07b92338::t_f744b9c8be5f8f 1-23
+packages/farming/src/farming/domain/FarmingAgronomy.ts
+  s_c3d96a07b92338::t_b79f9bd11b6159 1-29
+packages/farming/src/farming/domain/FarmingDiagnostics.ts
+  s_c3d96a07b92338::t_e8f20487ea0043 1,30,37,40-43,45-60,64-83,131-140
+packages/farming/src/farming/domain/rules/FarmItemRules.ts
+  s_c3d96a07b92338::t_454db28384e624 1-2
+packages/farming/src/farming/native/FarmingAPI.ts
+  s_c3d96a07b92338::t_d678550b59b57b 1,209-210,354-358,421,435-438
+packages/farming/src/farming/native/FarmingAPIContract.ts
+  s_c3d96a07b92338::t_33c4e47f5df44e 1,56-61,66-67,81-86,107-110,221,239,337
+packages/farming/src/farming/native/FarmingAPIDeclarations.ts
+  s_c3d96a07b92338::t_6310c4420d69f8 2-9
+packages/farming/src/farming/native/FarmingKnowledge.ts
+  s_c3d96a07b92338::t_7bfe74a6000127 4-6,9-11,14-16,19-21,24-201
+packages/farming/src/farming/native/FarmingSystem.ts
+  s_c3d96a07b92338::t_72d5a94774b557 1-2,6-11,77-96
+packages/farming/src/farming/native/knowledge/system-editor.md
+  s_c3d96a07b92338::t_55aea99d2c241a 3,87-90
+packages/farming/src/farming/scripts/generate-native-api.mjs
+  s_c3d96a07b92338::t_16340390b95313 2-3,113,117,130-152
+packages/farming/src/farming/storage/StoragePlacement.ts
+  s_c3d96a07b92338::t_efb798dcfd6f60 116-117,161-164
+packages/farming/src/farming/storage/StorageRules.ts
+  s_c3d96a07b92338::t_e38949f606cfc4 1-2,205-206,219-222,286-289,386-389
+packages/modify/README.md
+  s_c3d96a07b92338::t_02bc82385f4782 18-19
+packages/modify/SSR_AUTHORING.md
+  s_c3d96a07b92338::t_1c04e53d9ecc43 1-61
+packages/modify/build/local-engine.mjs
+  s_c3d96a07b92338::t_bd9826b7bb6e23 1-73
+packages/modify/native-overrides.json
+  s_c3d96a07b92338::t_430108e5b6c64f 729-744
+packages/modify/src/native/core/src/Camera.ts
+  s_c3d96a07b92338::t_05852dd4d18d53 22-26,71-89
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_c3d96a07b92338::t_fd16462de09cbd 12-16,585-605
+packages/modify/src/native/core/src/RenderPipeline/RenderTargetPool.ts
+  s_c3d96a07b92338::t_adb3f72690a244 31-32,48-49,87,214-215,239-243
+packages/modify/src/native/core/src/RenderPipeline/enums/PipelineStage.ts
+  s_c3d96a07b92338::t_7b79aba17f999a 11-14
+packages/modify/src/native/core/src/Scene.ts
+  s_c3d96a07b92338::t_911cf872d006a3 15,29
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  s_c3d96a07b92338::t_d9af9e66e75d87 1-6,125-127,185-187,209-210,304-379,429,448-483,513-515,517,519-528,536-545,548,551,577-579,600-604,610,613-631,637-648,661-664,670,678-681,687,690-693,699,702-705,711,714,720,723-726,732,735-738,744,747-750,756,759-762,768,771,777,780,786,954-963,971-976,981-989,996-999,1004-1009,1011-1048,1050,1061-1063,1073-1074,1093,1099,1117-1121,1156-1157,1187-1190,1200-1202,1234-1236,1239,1250,1253-1259,1266-1274,1276-1277,1288,1298-1302,1305-1306,1308-1313,1348,1360-1363,1367-1370,1380,1386-1389,1400-1402,1457-1460
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  s_c3d96a07b92338::t_f9b64194425db3 5,51-53,108-109,130,293-380,464-471,522-523,554-557,804,818-821,824
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionProfiler.ts
+  s_c3d96a07b92338::t_30ed3b496c2098 5-9
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionSettings.ts
+  s_c3d96a07b92338::t_9f9207db53d44d 1-183
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/index.ts
+  s_c3d96a07b92338::t_d6b01327a321e5 21-22
+packages/modify/src/native/core/src/material/Material.ts
+  s_c3d96a07b92338::t_46a45011acc203 4-5,23-67,146,148-153
+packages/modify/src/native/loader/src/MaterialLoader.ts
+  s_c3d96a07b92338::t_f0d5de685fd507 125-128
+packages/modify/src/native/loader/src/SceneLoader.ts
+  s_c3d96a07b92338::t_5162a6eae8ba25 1-206
+packages/modify/src/native/loader/src/index.ts
+  s_c3d96a07b92338::t_971b096380a884 4
+packages/modify/src/native/loader/src/schema/MaterialSchema.ts
+  s_c3d96a07b92338::t_1edcb4cec3cf66 1-29
+packages/modify/src/native/loader/src/schema/SceneSchema.ts
+  s_c3d96a07b92338::t_4bb4df9fdfe6f5 1-70
+packages/modify/src/native/shader/src/ShaderLibrary/PBR/ForwardPassPBR.glsl
+  s_c3d96a07b92338::t_b2accef458626b 103-106
+packages/modify/src/native/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader
+  s_c3d96a07b92338::t_a4f78d6375f55f 176-179
+packages/modify/src/native/shader/src/Shaders/PBR.shader
+  s_c3d96a07b92338::t_919298a2f49492 177-229
+packages/modify/tests/ScreenSpaceReflectionAuthoring.test.ts
+  s_c3d96a07b92338::t_223a0d97ff95cf 1-345
+packages/modify/tests/ScreenSpaceReflectionContactOutline.test.ts
+  s_c3d96a07b92338::t_653674223d6daa 1-102
+packages/modify/tests/ScreenSpaceReflectionContribution.test.ts
+  s_c3d96a07b92338::t_b2cb78f23f8168 1-18,20-28,30-68,70-147,149-415,417-442,444
+packages/modify/tests/ScreenSpaceReflectionReview.test.ts
+  s_c3d96a07b92338::t_1e9476ddd8a827 1-195
+packages/modify/tests/ScreenSpaceReflectionSecondReview.test.ts
+  s_c3d96a07b92338::t_092c72380cde90 1-195
+packages/modify/tests/vitest.config.mjs
+  s_c3d96a07b92338::t_5fc6aef9ea97fa 1-21
+packages/project/package.json
+  s_c3d96a07b92338::t_5d76ebde3bb84b 39-40
+packages/project/src/api-contract/scripts/component-query.mjs
+  s_c3d96a07b92338::t_f84ee31d57cbf6 1-36
+packages/project/src/api-contract/scripts/declarations.mjs
+  s_c3d96a07b92338::t_c957c4e8ca5c50 84
+packages/project/src/project-files/virtual-project-files.ts
+  s_c3d96a07b92338::t_bbf0b90da1ae48 10-11,43-45,82-84,89-90,173,219-227,261,280,291
+packages/project/src/runtime-editor/project/runtime-asset-read.ts
+  s_c3d96a07b92338::t_ecaf1d322906ca 1-136
+packages/project/src/runtime-editor/project/runtime-project-edit.ts
+  s_c3d96a07b92338::t_062e25b1a83cf6 1,34-35,111-133,160,240,257
+packages/project/src/runtime-editor/project/runtime-project.ts
+  s_c3d96a07b92338::t_881ed503185209 26,123,143,156-157,163,168,198
+packages/project/src/runtime-editor/scripts/runtime-script-inputs.ts
+  s_c3d96a07b92338::t_7f044300f644d3 8
+packages/retrieval/package.json
+  s_c3d96a07b92338::t_7437a957593341 1-32
+packages/retrieval/src/index.ts
+  s_c3d96a07b92338::t_27d84d5cfcd880 1
+packages/retrieval/src/retrieval/.gitignore
+  s_c3d96a07b92338::t_4b044c16dfb622 1-3
+packages/retrieval/src/retrieval/README.md
+  s_c3d96a07b92338::t_65a59472e9860a 1-115
+packages/retrieval/src/retrieval/UPSTREAM.md
+  s_c3d96a07b92338::t_976c32514e4c99 1-11
+packages/retrieval/src/retrieval/catalog.json
+  s_c3d96a07b92338::t_35b92a919de35f 1
+packages/retrieval/src/retrieval/examples/index.html
+  s_c3d96a07b92338::t_359c9e87288b9b 1-9
+packages/retrieval/src/retrieval/examples/main.ts
+  s_c3d96a07b92338::t_61b5ef3c23b728 1-42
+packages/retrieval/src/retrieval/examples/public/library/assets/meshes/box/README.md
+  s_c3d96a07b92338::t_e85cf1ae931074 1-5
+packages/retrieval/src/retrieval/examples/public/library/assets/meshes/box/box.mesh
+  s_c3d96a07b92338::t_b5e2d538c4788e 1-6
+packages/retrieval/src/retrieval/examples/public/library/assets/meshes/box/describe.json
+  s_c3d96a07b92338::t_7dc536ba70ce2d 1-23
+packages/retrieval/src/retrieval/examples/public/library/assets/meshes/pillar/README.md
+  s_c3d96a07b92338::t_9b2e0bb1909498 1-5
+packages/retrieval/src/retrieval/examples/public/library/assets/meshes/pillar/describe.json
+  s_c3d96a07b92338::t_ed49175156e6a9 1-23
+packages/retrieval/src/retrieval/examples/public/library/assets/meshes/pillar/pillar.mesh
+  s_c3d96a07b92338::t_aab039390f5a23 1-6
+packages/retrieval/src/retrieval/examples/public/library/assets/meshes/platform/README.md
+  s_c3d96a07b92338::t_fd7100ae5760ec 1-5
+packages/retrieval/src/retrieval/examples/public/library/assets/meshes/platform/describe.json
+  s_c3d96a07b92338::t_a56b4de65d5bff 1-23
+packages/retrieval/src/retrieval/examples/public/library/assets/meshes/platform/platform.mesh
+  s_c3d96a07b92338::t_8b759121394d45 1-6
+packages/retrieval/src/retrieval/examples/public/library/catalog/manifest.json
+  s_c3d96a07b92338::t_d27f363fd37d18 1
+packages/retrieval/src/retrieval/examples/public/library/catalog/summaries/8d28054a3a2d07c571a0002a0a33cb66d298858c5d1e9d708be26da71cfd006a.json
+  s_c3d96a07b92338::t_72fc13aa524c0f 1
+packages/retrieval/src/retrieval/examples/public/library/catalog/summaries/a74d15363cdefe66db36d9a34aedd73e561d227f06973101a752aeb7f9dd6c62.json
+  s_c3d96a07b92338::t_c1ab1642b64877 1
+packages/retrieval/src/retrieval/examples/public/library/catalog/summaries/b12d8f541adba00925483cf24143f5f7431ec9997ae6471954ee42d15e2d6463.json
+  s_c3d96a07b92338::t_5d89d92a58b2dc 1
+packages/retrieval/src/retrieval/examples/vite.config.mjs
+  s_c3d96a07b92338::t_a8405f8ef2da9e 1-9
+packages/retrieval/src/retrieval/index.ts
+  s_c3d96a07b92338::t_58efdb2cc2453a 1-13
+packages/retrieval/src/retrieval/scripts/build-examples.ts
+  s_c3d96a07b92338::t_c8b2f34e36af81 1-6,8-36,38-89,91-94
+packages/retrieval/src/retrieval/src/Retrieval.worker.ts
+  s_c3d96a07b92338::t_821c535368dbb5 1-2,4-35,37-40,42
+packages/retrieval/src/retrieval/src/build.ts
+  s_c3d96a07b92338::t_9db2c10bcacd8f 1-113
+packages/retrieval/src/retrieval/src/client.ts
+  s_c3d96a07b92338::t_e6d6716f9c4c80 1-2,4-5,7-11,13-16,18-19,21,24-25,27-39,41-111
+packages/retrieval/src/retrieval/src/contracts.ts
+  s_c3d96a07b92338::t_d40e674084379d 1-147
+packages/retrieval/src/retrieval/src/keyword-index.ts
+  s_c3d96a07b92338::t_d397b000d4acc5 1-108
+packages/retrieval/src/retrieval/src/library.ts
+  s_c3d96a07b92338::t_06978d17f88e4d 1-268
+packages/retrieval/src/retrieval/src/storage.ts
+  s_c3d96a07b92338::t_53a76dc25a5f40 1-65
+packages/retrieval/src/retrieval/src/worker-protocol.ts
+  s_c3d96a07b92338::t_bec022ce548d05 1-13
+packages/retrieval/src/retrieval/tests/retrieval.test.ts
+  s_c3d96a07b92338::t_cc784b0d1a00e6 1-229
+packages/retrieval/src/retrieval/tsconfig.json
+  s_c3d96a07b92338::t_61783c4ca1d0b4 1-25
+packages/retrieval/tsconfig.json
+  s_c3d96a07b92338::t_a0dd3d261a3445 1-10
+packages/runtime-editor/package.json
+  s_c3d96a07b92338::t_50cac828cf71cd 62-64,78-79
+packages/runtime-editor/src/farming/FarmingComponentEditor.ts
+  s_c3d96a07b92338::t_9c811ccb4465cb 60-64
+packages/runtime-editor/src/project/runtime-asset-import.ts
+  s_c3d96a07b92338::t_73e7e2ee27ea35 12-20,24,30-38,47,59-61,76
+packages/runtime-editor/src/project/runtime-native-formats.ts
+  s_c3d96a07b92338::t_ed7e53a237b7d6 1-6,268-272
+packages/runtime-editor/src/retrieval-agent/asset-source.ts
+  s_c3d96a07b92338::t_14690d91ea0c07 1-56
+packages/runtime-editor/src/retrieval-agent/index.ts
+  s_c3d96a07b92338::t_9f103acfcfc0f8 1-94
+packages/runtime-editor/src/runtime-editor-agent/README.md
+  s_c3d96a07b92338::t_933043e274c074 142,166,206-222
+packages/runtime-editor/src/runtime-editor-agent/assets-and-reuse.md
+  s_c3d96a07b92338::t_68e7da4bc16ea5 1-58
+packages/runtime-editor/src/runtime-editor-agent/engine-runtime-files.ts
+  s_c3d96a07b92338::t_65af1976f93421 1,10-16,19,41,45,47-49,53-55,73
+packages/runtime-editor/src/runtime-editor-agent/generate-scene-api.mjs
+  s_c3d96a07b92338::t_359cbf00cfd27c 4,12-13,15-16
+packages/runtime-editor/src/runtime-editor-agent/native-editor-skill.ts
+  s_c3d96a07b92338::t_84e50c916706b6 1-5
+packages/runtime-editor/src/runtime-editor-agent/primitive-mesh.md
+  s_c3d96a07b92338::t_95a25e26f01024 31
+packages/runtime-editor/src/runtime-editor-agent/runtime-native-editor.ts
+  s_c3d96a07b92338::t_35983748dda794 1,31,91-92,95
+packages/runtime-editor/src/runtime-editor-agent/runtime-native-knowledge.ts
+  s_c3d96a07b92338::t_75c07333d68de4 1-2,40,44-51,69-70,76,85,87,99,110,116,125-128,132-133
+packages/runtime-editor/src/runtime-editor-agent/runtime-native-tools.ts
+  s_c3d96a07b92338::t_e1f075fe63908d 1-2,24,48,61,83-91
+packages/runtime-editor/src/runtime-editor-agent/runtime-scene-api.generated.ts
+  s_c3d96a07b92338::t_1cd4c51471c68c 3
+packages/runtime-editor/src/runtime-editor/README.md
+  s_c3d96a07b92338::t_29ef4ff69ee7a2 26
+packages/runtime-editor/src/runtime-editor/generated/engine-runtime-files.json
+  s_c3d96a07b92338::t_56322219039646 1
+packages/runtime-editor/src/runtime-editor/generated/engine-runtime-index.json
+  s_c3d96a07b92338::t_c0d5920f5519b2 1
+packages/runtime-editor/src/runtime-editor/generated/host-runtime-files.json
+  s_c3d96a07b92338::t_7e0c6411426043 2-107
+packages/runtime-editor/src/runtime-editor/scripts/generate-host-declarations.mjs
+  s_c3d96a07b92338::t_f7ab1b8e4438e6 10
+packages/runtime-editor/src/runtime-editor/scripts/runtime-host-declarations.ts
+  s_c3d96a07b92338::t_3f6f7830f69ed6 8
+packages/runtime-editor/src/runtime-editor/scripts/runtime-script-compiler.ts
+  s_c3d96a07b92338::t_9654b928609661 27
+packages/runtime-editor/src/runtime-editor/scripts/runtime-script-environment.ts
+  s_c3d96a07b92338::t_dd75dbc3184f35 22
+packages/runtime-editor/src/runtime-inspection/README.md
+  s_c3d96a07b92338::t_4fad3ea947aba2 7,9,12,14,16,18-20,24-25
+packages/runtime-editor/src/runtime-inspection/runtime-inspection-contracts.ts
+  s_c3d96a07b92338::t_d3e98a867ffbe2 13-22,25-28,40-41,63-69,103-110
+packages/runtime-editor/src/runtime-inspection/runtime-scene-inspection.ts
+  s_c3d96a07b92338::t_eb4ea26e6b4526 8-11,22-23,33,36-37,43,145,160,166,172,220-229
+packages/runtime-editor/src/skills/galacean-editor.md
+  s_c3d96a07b92338::t_6d9a540e75d9a9 1-26
+packages/terrain/src/rock-formation/README.md
+  s_c3d96a07b92338::t_d77e5a6cee757b 74-75,84-86,92
+packages/terrain/src/rock-formation/assets/painted-rock.provenance.json
+  s_c3d96a07b92338::t_42d66db92db0e5 13
+packages/terrain/src/terrain/clipmap/TerrainClipmap.ts
+  s_c3d96a07b92338::t_38af4b13b3f16b 31,444-450
+packages/terrain/src/terrain/clipmap/TerrainClipmapMaterial.ts
+  s_c3d96a07b92338::t_5450fd22039432 84-86,125-130,562-628
+packages/terrain/src/terrain/project/TerrainWindRuntime.ts
+  s_c3d96a07b92338::t_ea77dcad741de2 78-79,259-263
+packages/water/src/water/native/assets/Water/Shaders/lake.shader
+  s_c3d96a07b92338::t_037bb37dd460da 178
+packages/water/src/water/native/assets/Water/Shaders/ocean.shader
+  s_c3d96a07b92338::t_da68c05bc71f7e 140
+packages/water/src/water/native/assets/Water/Shaders/river.shader
+  s_c3d96a07b92338::t_71e238f644588b 302
+packages/water/src/water/shaders/HeightfieldWater.shader
+  s_c3d96a07b92338::t_f3a1a83e6e1b5c 5,29-75
+packages/water/src/water/shaders/RiverWater.shader
+  s_c3d96a07b92338::t_140b7a7dc7e070 5,28-73
+packages/water/src/water/shaders/heightfield/ForwardPass.glsl
+  s_c3d96a07b92338::t_5d7034ad67413d 392-397
+packages/water/src/water/shaders/river/FinalOutput.glsl
+  s_c3d96a07b92338::t_6bf28ee6351d6c 115-120
+packages/world-planning/package.json
+  s_c3d96a07b92338::t_2afc8f635b4dcf 13-21,455-456
+packages/world-planning/src/agent-adapter/SeedWorldAssetManager.ts
+  s_c3d96a07b92338::t_5464a619bdca53 62-63,65-80
+packages/world-planning/src/agent-adapter/contracts/SeedWorldAssetContracts.ts
+  s_c3d96a07b92338::t_7e40a5c46bc7e1 8,81,87-89,120-124,127,373
+packages/world-planning/src/agent-adapter/ports/SeedWorldEnginePort.ts
+  s_c3d96a07b92338::t_269e0c3312957f 106-120
+packages/world-planning/src/integrations/terrain/debug/TerrainRuntimeDebugInspector.ts
+  s_c3d96a07b92338::t_75dd1461cdc5f9 579
+packages/world-planning/src/integrations/terrain/lighting/TerrainLightingRuntime.ts
+  s_c3d96a07b92338::t_a6bd6dba8c8907 124-125
+packages/world-planning/src/integrations/terrain/rock-formation/ColorControls.ts
+  s_c3d96a07b92338::t_e109c6a8aa3e95 14,32,35,38,55
+packages/world-planning/src/integrations/terrain/rock-formation/ColorPalette.ts
+  s_c3d96a07b92338::t_5fab66134fead4 9-10,32-35,43,49-51
+packages/world-planning/src/integrations/terrain/rock-formation/View.ts
+  s_c3d96a07b92338::t_b737345fe8e36b 33,38,149,172-177,180-181,184,186-187,189-190,192,222,226,228-233,235,280-283,286,290,317,319
+packages/world-planning/src/masonry/BuildingInitialDraft.ts
+  s_c3d96a07b92338::t_05cd621ae9a25c 1,5,7-21,24,26,30-31,33-38,47,49,55,59-61,85,93,97,101,130,181-211,218-219
+packages/world-planning/src/masonry/BuildingInitialSource.ts
+  s_c3d96a07b92338::t_f2dd8e6b4ef0ee 1-101
+packages/world-planning/src/masonry/MasonryPlacement.ts
+  s_c3d96a07b92338::t_f56bb1f0db2509 2
+packages/world-planning/src/masonry/NativeBuildingHost.ts
+  s_c3d96a07b92338::t_a32a64a478e573 5-6,15,27,60,95,102,154,157
+packages/world-planning/src/masonry/NativeBuildingPanel.ts
+  s_c3d96a07b92338::t_a2f57c46199ac9 1-4,12,15-18,53-58,75,170,188-190,218-246,270-271,273
+packages/world-planning/src/runtime/SeedWorldTerrainRuntime.ts
+  s_c3d96a07b92338::t_e3fc19129f9966 138,141-142,152,264-266,273,278,280-286,288-291,295,1030-1040,1064
+packages/world-planning/src/semantic-study/ContextLandscape.ts
+  s_c3d96a07b92338::t_e4b7ebd19b4c25 298,503,736
+packages/world-planning/src/semantic-study/GlobalRoadNetwork.ts
+  s_c3d96a07b92338::t_0bb5f09c13201a 95-98,139
+packages/world-planning/src/semantic-study/IslandPlanModel.ts
+  s_c3d96a07b92338::t_72a0b20b41ac00 143-144,157-159
+packages/world-planning/src/semantic-study/IslandPlanView.ts
+  s_c3d96a07b92338::t_8e4ea1441d4e47 2,274-289
+packages/world-planning/src/semantic-study/PlanningHeightmap.ts
+  s_c3d96a07b92338::t_bd30c7624f1731 448
+packages/world-planning/src/semantic-study/WorldPlanningContract.ts
+  s_c3d96a07b92338::t_bc4ce969f60e44 104-107
+packages/world-planning/src/semantic-study/WorldPlanningTerrain.ts
+  s_c3d96a07b92338::t_65d42fdd63b661 397,898
+packages/world-planning/src/spatial/PlanningComponents.ts
+  s_c3d96a07b92338::t_120ac4b148b4a1 14-15,24,440-465,475-476,655-663,671
+packages/world-planning/src/spatial/PlanningGrassAppearance.ts
+  s_c3d96a07b92338::t_669c451120a80a 50-56,62-93,110-113,120-125
+packages/world-planning/src/spatial/PlanningLayoutScope.ts
+  s_c3d96a07b92338::t_dcb23f39751b9f 4-5,38-41,46,49-53,56
+packages/world-planning/src/spatial/PlanningLightingParameters.ts
+  s_c3d96a07b92338::t_b7cd5a85178b00 188-223
+packages/world-planning/src/spatial/PlanningSubjectView.ts
+  s_c3d96a07b92338::t_bb6c17434d1f4c 100
+packages/world-planning/src/spatial/PlanningWeather.ts
+  s_c3d96a07b92338::t_310449053e192e 1-52
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_c3d96a07b92338::t_b7fdee4a211496 1-590
+packages/world-planning/src/spatial/WorldTemplateCatalog.ts
+  s_c3d96a07b92338::t_e469400ab07db6 1-181
+packages/world-planning/src/spatial/WorldTemplateEcology.ts
+  s_c3d96a07b92338::t_2c5875d39cc969 1-23
+packages/world-planning/src/spatial/WorldTemplateGeometry.ts
+  s_c3d96a07b92338::t_63860472b5c786 1-55
+packages/world-planning/src/spatial/WorldTemplatePlanning.ts
+  s_c3d96a07b92338::t_18f72914f49861 1-86
+packages/world-planning/src/spatial/WorldTemplateView.ts
+  s_c3d96a07b92338::t_3b2a3965dedb52 1-228
+packages/world-planning/src/spatial/ecology/FlowerRegions.ts
+  s_c3d96a07b92338::t_ecbf8c22ab0de0 87,146-147,164
+packages/world-planning/src/spatial/farming/PlanningFarmingLayout.ts
+  s_c3d96a07b92338::t_3131a32c7f5484 127-130
+packages/world-planning/src/spatial/guidance/VisualGuidance.ts
+  s_c3d96a07b92338::t_e79dee5017fa5a 200-201
+packages/world-planning/src/spatial/layout/EnvironmentStages.ts
+  s_c3d96a07b92338::t_67b3b39b0c14a4 2,79,205-208
+packages/world-planning/src/spatial/layout/RoadAttachments.ts
+  s_c3d96a07b92338::t_1b05b06bafcebf 155
+packages/world-planning/src/spatial/layout/RoadGeometry.ts
+  s_c3d96a07b92338::t_7463c383209737 7
+packages/world-planning/src/spatial/layout/RoadNetworkReduction.ts
+  s_c3d96a07b92338::t_a6fb99f49fcbe9 157
+packages/world-planning/src/spatial/layout/RoadTopology.ts
+  s_c3d96a07b92338::t_dc208e2847eb25 418,420,433
+packages/world-planning/src/spatial/layout/SpatialTerrain.ts
+  s_c3d96a07b92338::t_4b6d7d155147cf 16-17,50,56,58,72,76-78,81,83
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  s_c3d96a07b92338::t_9cecf9c7343f8f 2-3,222-225,274,291-292,312-328,451-461,463,669-671,842-845,997-998,1012
+packages/world-planning/src/spatial/runtime/PlanningLightingProfileRuntime.ts
+  s_c3d96a07b92338::t_5a58395d89f7cc 37
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  s_c3d96a07b92338::t_e5a2ca60bd21b8 88,1419
+packages/world-planning/src/spatial/runtime/PlanningProductionRuntime.ts
+  s_c3d96a07b92338::t_dc566ef601d299 10,15,46,85
+packages/world-planning/src/spatial/runtime/PlanningSeedScenePublication.ts
+  s_c3d96a07b92338::t_b9c2c0ae280288 28,512,744
+packages/world-planning/src/spatial/runtime/PlanningWorldPicking.ts
+  s_c3d96a07b92338::t_c8100d013555c1 12-15,26,31-38,47-60
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  s_c3d96a07b92338::t_7442361199cfe1 1-70
+packages/world-planning/src/world/FrozenViewIdentityTexture.ts
+  s_c3d96a07b92338::t_86b914fcd7f98c 1-2,14,25-26,33-38,41-44
+packages/world-planning/src/world/SeedWorldPicker.ts
+  s_c3d96a07b92338::t_aa1322e814c96f 1-3,19-23,26,31,43-44,102-109,132,139-150,154-155,158-160,162,164,180-247,253-258,284-286,292,300-305,311,397-401,409,420-421,428-429,438,440-444,447
+packages/world-planning/src/world/SeedWorldViewSnapshot.ts
+  s_c3d96a07b92338::t_a61f7d9a915bd9 1-6,9,17,40-41,43-46,49-50,57-58,65,160,173,175,182,187-199,202-207,211-216,232,237,239,244,246-302,312-313,315-330,350-357,392,423-424,428-430,441,470,533-534,536,554,557,563-564,569,573-575,577,584-593,600,607,609,611,620,631-635
+packages/world-planning/src/world/SnapshotSurfaceEncoding.ts
+  s_c3d96a07b92338::t_6c4b32a3eaad0b 1-56
+packages/world-planning/src/world/SnapshotSurfacePack.shader
+  s_c3d96a07b92338::t_afdd75e34196e6 1-33
+pnpm-lock.yaml
+  s_c3d96a07b92338::t_fc416aec77b533 416-428,465-467,786-788,4776-4780,9109-9115
+world/README.md
+  s_c3d96a07b92338::t_04142d2bc5237b 11,32,52-53
+world/demos.json
+  s_c3d96a07b92338::t_3983edbfc35cfc 27-28
+world/demos/building-components/fixture-declarations.json
+  s_c3d96a07b92338::t_b95c92014cd290 2-71,73-75,77-79,81,83-85,89,92-96,98-106,108,110-115,117-119,121-122,124
+world/demos/building-components/fixture-modules.ts
+  s_c3d96a07b92338::t_d82ff603c1920e 3,7
+world/demos/building-components/index.html
+  s_c3d96a07b92338::t_2f2a258d337480 1
+world/demos/building-components/parts-example.txt
+  s_c3d96a07b92338::t_44ad81c3904cb4 1-76
+world/demos/building-components/preset-script-browser-harness.ts
+  s_c3d96a07b92338::t_b8b9f75f88f9ff 10,15,22,67-68
+world/demos/building-components/recursive.html
+  s_c3d96a07b92338::t_f6ab824e4af39e 1
+world/demos/building-components/staged.ts
+  s_c3d96a07b92338::t_b4f4950aee6b7b 1-2,4-31,33-37,39-96,98-129,131-132,134-137,139-153,157-159,161,164-170,172-179,181-186,188,190,192-224,226-271,273,275-380
+world/demos/seed-world/HEIGHT_TARGET_COMPATIBILITY.md
+  s_c3d96a07b92338::t_da18546e3b5248 1-19
+world/demos/seed-world/README.md
+  s_c3d96a07b92338::t_0bb4e906da252d 7-18,22,108,110,114,118,120,122,124,126,128,131
+world/demos/seed-world/SeedWorldDemo.ts
+  s_c3d96a07b92338::t_2b4c227645d4e1 1-2,49-53,101-105,107-110,124,162-163,231-232,304,451,542-545,589-598,901-937,944-950,1013-1019,1022-1038,1076-1082,1091-1097,1169-1173,1199-1207,1262-1263,1449-1472,1474-1476,1478,1480-1491,1503
+world/demos/seed-world/SeedWorldProject.ts
+  s_c3d96a07b92338::t_009d51c790a9bb 1-2,26-32,34-37,44,47-49,57,79-83
+world/demos/seed-world/SeedWorldProjectFormats.ts
+  s_c3d96a07b92338::t_ab545da9142633 1,19,40,52
+world/demos/seed-world/V2_IMPLEMENTATION.md
+  s_c3d96a07b92338::t_bf97248737c569 12-30,13926-14065,14239-15092,15178-15469
+world/demos/seed-world/agent-adapter/SeedWorldAgentApplication.ts
+  s_c3d96a07b92338::t_40deb1e343add8 9,154-155,354,496-497,500-519,522-523,575-576,586-587,614-616,813-815,886-887,895-896,1507-1508,2054,2132
+world/demos/seed-world/agent-adapter/SeedWorldAgentDefinition.ts
+  s_c3d96a07b92338::t_f16e4b76eccb14 1,36-37
+world/demos/seed-world/agent-adapter/SeedWorldKnowledge.ts
+  s_c3d96a07b92338::t_c0e8ec41720a14 45,52,65-68
+world/demos/seed-world/agent-adapter/SeedWorldProjectEdit.ts
+  s_c3d96a07b92338::t_bd19a610fd0c71 70-77
+world/demos/seed-world/agent-adapter/SeedWorldSystemDeclarations.ts
+  s_c3d96a07b92338::t_b223ac1166e4b5 3,15
+world/demos/seed-world/agent-adapter/SeedWorldToolCatalog.ts
+  s_c3d96a07b92338::t_121e3c37804689 10,19,23
+world/demos/seed-world/agent-adapter/ViewerRelation.ts
+  s_c3d96a07b92338::t_0dccc644ea4499 1-59
+world/demos/seed-world/agent-adapter/contracts/SeedWorldContractRegistry.ts
+  s_c3d96a07b92338::t_c6d52190f94d0c 15,23
+world/demos/seed-world/agent-adapter/contracts/generate-agent-contracts.ts
+  s_c3d96a07b92338::t_6c4b08a0c2e58c 237-240,298-300,446-465,470,509,696-699,719-746
+world/demos/seed-world/agent-adapter/contracts/generated/SeedWorldApiSearchRegistry.ts
+  s_c3d96a07b92338::t_afa7a034e7d0b1 4,12-16,207-211,227-231,304,343,377,407,433-440,443,459,467,475,483,491,499,659,677,700,712,729,741,754,765,776,788,798,808,818,829,839,849,858-867,870,883,894,904-914,917,928,939,951,965,978,992,1006,1016,1026,1037,1047,1058,1068,1078,1088,1098,1108,1118,1128
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/BasinAsset.d.ts
+  s_c3d96a07b92338::t_b1681d31a4a84c 9,14
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/CanyonAsset.d.ts
+  s_c3d96a07b92338::t_aa7851b543b149 9,14
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/MountainAsset.d.ts
+  s_c3d96a07b92338::t_436a7032a4b49a 9,14
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/PlateauAsset.d.ts
+  s_c3d96a07b92338::t_d7366802ecf350 9,14
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/RidgeAsset.d.ts
+  s_c3d96a07b92338::t_fe597be0aeb506 9,14
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/SlopeAsset.d.ts
+  s_c3d96a07b92338::t_cde1319c5f5322 9,14
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/TerrainAsset.d.ts
+  s_c3d96a07b92338::t_d7743ead683d73 1-18
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/ValleyAsset.d.ts
+  s_c3d96a07b92338::t_1951c51d4ccaa1 9,14
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/AgentTools.d.ts
+  s_c3d96a07b92338::t_e5da79835ac890 15,24
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/Anchor.d.ts
+  s_c3d96a07b92338::t_22de971f164e4c 9
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/Asset.d.ts
+  s_c3d96a07b92338::t_b460a01caf172b 14,47-54,59
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/AssetKind.d.ts
+  s_c3d96a07b92338::t_3ca15a67050ba9 6
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/LiveWorldState.d.ts
+  s_c3d96a07b92338::t_7b701d13b2bece 50
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/Selector.d.ts
+  s_c3d96a07b92338::t_f71d9a8b86a38f 34,92
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/atmosphere.get.d.ts
+  s_c3d96a07b92338::t_b51351d594e95e 10,38
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/atmosphere.update.d.ts
+  s_c3d96a07b92338::t_5a5f7fb1856952 10,21
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/building.generate.d.ts
+  s_c3d96a07b92338::t_dbf1ca73dd829a 5,8,10-13,15-26,28
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/runtime.component.query.d.ts
+  s_c3d96a07b92338::t_1628655961d268 10,24-26,36-41
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/runtime.component.read.d.ts
+  s_c3d96a07b92338::t_81ef614219dd9c 11,17-22,24,30-32,42-47
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/runtime.entity.children.d.ts
+  s_c3d96a07b92338::t_ce71b2de63bac8 10,29-31,45-50
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/runtime.entity.inspect.d.ts
+  s_c3d96a07b92338::t_53955ad4896b21 10,16-19,21,27-29,43-48
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/spatial.check.d.ts
+  s_c3d96a07b92338::t_d584a69a045e5e 9,36,52,54,56,58,60-64
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/spatial.resolve.d.ts
+  s_c3d96a07b92338::t_509a959d33bf85 10
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/spatial.search.d.ts
+  s_c3d96a07b92338::t_e7ac99ff174da3 9,31,36,50-53,72,74,76,78,80-84
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/spatial.teleport.d.ts
+  s_c3d96a07b92338::t_29018e6837e301 12
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/spatial.viewer.d.ts
+  s_c3d96a07b92338::t_742f691d47e581 7,9-12,14-26
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.create.d.ts
+  s_c3d96a07b92338::t_f6fada095b5071 13
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.patch.d.ts
+  s_c3d96a07b92338::t_10965beb348967 11
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.update.d.ts
+  s_c3d96a07b92338::t_43812b8503a040 12
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/time.get.d.ts
+  s_c3d96a07b92338::t_198f7099c83166 10
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/time.update.d.ts
+  s_c3d96a07b92338::t_de9d0b12f978a0 11
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.create.d.ts
+  s_c3d96a07b92338::t_2b889eb0ba2b0a 13
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.update.d.ts
+  s_c3d96a07b92338::t_c2ad824727a656 13,15-16
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.animals.catalog.d.ts
+  s_c3d96a07b92338::t_826ee051e85239 10,13,16-17,26-34,43,48
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.animals.command.d.ts
+  s_c3d96a07b92338::t_54daae1e48b2b3 10
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.animals.describe.d.ts
+  s_c3d96a07b92338::t_cb4e677d3b9548 10
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.animals.query.d.ts
+  s_c3d96a07b92338::t_2d5048cbd94b0b 10-11,13,25-31,37-38,40,42,45-51
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.animals.receipt.d.ts
+  s_c3d96a07b92338::t_f66fb4a6c770e0 10
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.animals.spawn.d.ts
+  s_c3d96a07b92338::t_c6148d91b77353 10
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.delete.d.ts
+  s_c3d96a07b92338::t_3385964fbde876 12
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.inspect.d.ts
+  s_c3d96a07b92338::t_2a36c374d357f0 11
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.parameters.apply.d.ts
+  s_c3d96a07b92338::t_567223226a4e2d 10
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.parameters.describe.d.ts
+  s_c3d96a07b92338::t_d92129075d1035 5-113
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.parameters.inspect.d.ts
+  s_c3d96a07b92338::t_4a9f68e56b2e50 11
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.parameters.materials.apply.d.ts
+  s_c3d96a07b92338::t_cf586862591efe 10
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.parameters.materials.inspect.d.ts
+  s_c3d96a07b92338::t_bdfd80d99fbd65 10,25-28
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.parameters.query.d.ts
+  s_c3d96a07b92338::t_472b4734a086f3 10
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.parameters.receipt.d.ts
+  s_c3d96a07b92338::t_2644f443c2297e 11
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.query.d.ts
+  s_c3d96a07b92338::t_cd573097adde6b 16,43,101
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.selection.get.d.ts
+  s_c3d96a07b92338::t_a4ab7094705103 12
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.selection.save.d.ts
+  s_c3d96a07b92338::t_1a781126d5a1fb 11
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.tag.update.d.ts
+  s_c3d96a07b92338::t_925aea844a1fb2 11
+world/demos/seed-world/agent-adapter/contracts/run-agent-contracts.mjs
+  s_c3d96a07b92338::t_195817d242e7b8 10-11
+world/demos/seed-world/agent-adapter/knowledge/README.md
+  s_c3d96a07b92338::t_a377144827e0ce 7,11-19
+world/demos/seed-world/agent-adapter/knowledge/animals/README.md
+  s_c3d96a07b92338::t_c961c63416d186 5,7,11,13,17-22,28,30,32-34
+world/demos/seed-world/agent-adapter/knowledge/atmosphere/README.md
+  s_c3d96a07b92338::t_1f51bd6b74f159 12-13
+world/demos/seed-world/agent-adapter/knowledge/building/README.md
+  s_c3d96a07b92338::t_0c71aa6afe6ef9 1-11
+world/demos/seed-world/agent-adapter/knowledge/object-management/README.md
+  s_c3d96a07b92338::t_a386587077cc47 5,7-15
+world/demos/seed-world/agent-adapter/knowledge/runtime.md
+  s_c3d96a07b92338::t_1b730d4a9e9871 5-9,13
+world/demos/seed-world/agent-adapter/knowledge/spatial/README.md
+  s_c3d96a07b92338::t_6b05f701cb4617 5-38
+world/demos/seed-world/agent-adapter/knowledge/terrain/README.md
+  s_c3d96a07b92338::t_982a123dacc475 10-11
+world/demos/seed-world/agent-adapter/knowledge/vegetation/README.md
+  s_c3d96a07b92338::t_f4e29b5b4db934 5,7-11,13,15-16,18-22,24-32
+world/demos/seed-world/agent-adapter/ports/SeedWorldAnimalService.ts
+  s_c3d96a07b92338::t_49a4ab2c30d105 11,111
+world/demos/seed-world/agent-adapter/runtime/SeedWorldRuntimeEnginePort.ts
+  s_c3d96a07b92338::t_c2b8f4bc9bccc3 223-224,233,278,449,1492,1526-1534,1554-1555
+world/demos/seed-world/agent-adapter/tools/animal-tools.ts
+  s_c3d96a07b92338::t_e39cd497004e85 2,38,41,50-51,56,58-61,144,146,153,161-162,198,203,205-208,238-241
+world/demos/seed-world/agent-adapter/tools/building-tools.ts
+  s_c3d96a07b92338::t_b89c258fa8f62d 4-5,7-13,15,17-32,35-38,40-42,44-65
+world/demos/seed-world/agent-adapter/tools/celestial-tools.ts
+  s_c3d96a07b92338::t_221ac304ed5611 26
+world/demos/seed-world/agent-adapter/tools/landscape-tools.ts
+  s_c3d96a07b92338::t_1d8ea3e0300c90 530,532
+world/demos/seed-world/agent-adapter/tools/parameter-tools.ts
+  s_c3d96a07b92338::t_b28d9fd1086e5c 57,136
+world/demos/seed-world/agent-adapter/tools/plant-material-tools.ts
+  s_c3d96a07b92338::t_3c5dab17c85749 26-27,78
+world/demos/seed-world/agent-adapter/tools/runtime-tools.ts
+  s_c3d96a07b92338::t_2aa10bd0011296 15,28
+world/demos/seed-world/agent-adapter/tools/spatial-tool-input.ts
+  s_c3d96a07b92338::t_aa27d8ee8c2d10 6-7,9
+world/demos/seed-world/agent-adapter/tools/spatial-tools.ts
+  s_c3d96a07b92338::t_1aab627d295ec1 8,30,178,184,202-208,212-213,257-272,324,363-365
+world/demos/seed-world/agent-adapter/tools/tool-contract.ts
+  s_c3d96a07b92338::t_3d7e5ec7d9498b 2,7,160,221,279,313,343,394
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  s_c3d96a07b92338::t_63f53fe633d748 245,247
+world/demos/seed-world/assistant/SeedWorldSessionActivity.ts
+  s_c3d96a07b92338::t_647eab44ae6fb7 37-38,76,80
+world/demos/seed-world/assistant/SeedWorldTaskPresentation.ts
+  s_c3d96a07b92338::t_b46290f5a559f5 21-22,52
+world/demos/seed-world/masonry/BuildingSceneInitialization.ts
+  s_c3d96a07b92338::t_05e7a713238de0 5,9,40,42
+world/demos/seed-world/src/SeedWorldLassoPanel.ts
+  s_c3d96a07b92338::t_6190bd20ae94fd 34-37,115
+world/demos/seed-world/src/SeedWorldPhotoWorkspace.ts
+  s_c3d96a07b92338::t_b1c108daf50607 18,96,118,265,325,350,677-678,809-817,890-894,899,919
+world/demos/seed-world/src/planning/spatial/PlanningVisualAuthoring.ts
+  s_c3d96a07b92338::t_1c33bbca674499 40-42,45-46
+world/demos/seed-world/src/planning/spatial/SpatialEditor.css
+  s_c3d96a07b92338::t_7167d410257b21 4-31
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  s_c3d96a07b92338::t_61139906c38ebf 12-13,113-120,128,344,540
+world/demos/seed-world/src/planning/spatial/WorldTemplatePicker.ts
+  s_c3d96a07b92338::t_f65df0011e0f5a 1-105
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingAssets.ts
+  s_c3d96a07b92338::t_09c96fcc9f29bb 1,32,58
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalCatalog.ts
+  s_c3d96a07b92338::t_57afa43054569f 19-22,29-35
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  s_c3d96a07b92338::t_f50f1a839f40b5 4,871
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAuthoringComponents.ts
+  s_c3d96a07b92338::t_55b0758ce8f5a1 58-69
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectStorage.ts
+  s_c3d96a07b92338::t_21e8c2536397ea 79-82,85-87,89
+world/demos/seed-world/systems/runtime-declarations.json
+  s_c3d96a07b92338::t_c44e7adfcf470d 2-10,12-15,17-27,29-45,47-49,51-57,59-68,70-72,74-77,79-89,91-92,94-107,109-135,137-156,158-207,209-228,230-232,234-247,249-285,287-299,301,303-333,336-344,346,348-351,353-358,360-372,374-392
+world/demos/seed-world/systems/runtime.md
+  s_c3d96a07b92338::t_730a7411519ce3 5,9,34,36,38,40-50
+world/demos/seed-world/systems/runtime.ts
+  s_c3d96a07b92338::t_4d133f6383261b 9
+world/migration/files.json
+  s_c3d96a07b92338::t_8e9056df748bbf 2-11,4342-4505
+world/package.json
+  s_c3d96a07b92338::t_7b018587cb407b 61-62
+world/scripts/acceptance/README.md
+  s_c3d96a07b92338::t_8fd233006ff38e 3-10
+world/scripts/acceptance/compare-demos.mjs
+  s_c3d96a07b92338::t_ac64225ca87234 248
+world/scripts/acceptance/seed-world-fixes.config.mjs
+  s_c3d96a07b92338::t_e2f9d5bb9cf654 1-21
+world/scripts/check-boundaries.mjs
+  s_c3d96a07b92338::t_c064d103e6cd97 7
+world/tests/seed-world/BuildingGroupClone.spec.ts
+  s_c3d96a07b92338::t_c9b1f63bedd5cf 1-30
+world/tests/seed-world/PlanningLightingProfile.spec.ts
+  s_c3d96a07b92338::t_c2d5300add47bf 1-178
+world/tests/seed-world/PlanningSeedScenePublication.spec.ts
+  s_c3d96a07b92338::t_8354cb8113a9b4 1-80,82-93,95-100,102-218,220-249,251-368,370-371,374-403,405-682,684-747,749-817,819-884,886-1103,1105-1122,1124-1134,1137-1188,1190-1233,1235-1264,1266-1271,1273-1415,1417-1522,1524-1540,1542-1558,1560-1606,1608-1709
+world/tests/seed-world/PlantProjectAssets.spec.ts
+  s_c3d96a07b92338::t_6be9439d515ccc 1-21,23-130,132-222
+world/tests/seed-world/SeedWorldProjectClose.spec.ts
+  s_c3d96a07b92338::t_74a01b1aa59058 1-47
+world/tests/seed-world/SeedWorldProjectTestSetup.ts
+  s_c3d96a07b92338::t_fa71d07df1a795 1-10
+world/tests/seed-world/SeedWorldRockColorPalette.spec.ts
+  s_c3d96a07b92338::t_c5b5d224d14241 1-51
+world/tests/seed-world/SeedWorldRockFormationEdit.spec.ts
+  s_c3d96a07b92338::t_65b4da8eb9fd54 1-1151
+world/tests/seed-world/SeedWorldRockFormationView.spec.ts
+  s_c3d96a07b92338::t_852fd062b398a4 1-590
+world/tests/seed-world/SeedWorldRockSlopePanel.spec.ts
+  s_c3d96a07b92338::t_22875c3ea1d494 1-375
+world/tests/seed-world/SeedWorldTerrainRuntimeIntegration.spec.ts
+  s_c3d96a07b92338::t_b05683baa34042 1-899
+world/tests/seed-world/SpatialRoadAttachments.spec.ts
+  s_c3d96a07b92338::t_35fe760bcdc36a 1-310
+world/tests/seed-world/TerrainPreparedUpdate.spec.ts
+  s_c3d96a07b92338::t_b5f79205c84cf2 1-283
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_c3d96a07b92338::t_3f50ef86535241 1-405
+world/tests/seed-world/nativePlanningScene.ts
+  s_c3d96a07b92338::t_5b522997dc17af 1-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cc94ccd13087fdf91121b3dca89ca533f60a15c6",
+  "prompts": {},
+  "sessions": {
+    "s_c3d96a07b92338": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1aec1-d978-7fb0-a83b-ba458ac8a901",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": null
+    }
+  }
+}

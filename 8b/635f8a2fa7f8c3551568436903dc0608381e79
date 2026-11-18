@@ -1,0 +1,43 @@
+packages/core/src/mesh/PrimitiveMesh.ts
+  s_f1a7b8285f1df2::t_67d111aa089e9b 41,538,558
+  s_f1a7b8285f1df2::t_48fc6aa9a41f12 180-181,208-211,239,260,295,337,360-361,387,420,440,462-463,481-482,500-501,519-520,580,601,619,700
+  s_f1a7b8285f1df2::t_2083728e5d95aa 259,294,336,539,559,602,620,670
+docs/zh/graphics/background/sky.mdx
+  s_f1a7b8285f1df2::t_baee091cdeafab 48
+packages/core/src/mesh/ModelMesh.ts
+  s_f1a7b8285f1df2::t_67d111aa089e9b 674
+packages/loader/src/PrimitiveMeshAsset.ts
+  s_f1a7b8285f1df2::t_67d111aa089e9b 196-198,204-206,216-218,228-230,240-242
+packages/galacean/skills/engine-knowledge/SKILL.md
+  s_f1a7b8285f1df2::t_91c9f2144b3709 19
+packages/core/src/mesh/PrimitiveMeshOptions.ts
+  s_f1a7b8285f1df2::t_67d111aa089e9b 9
+packages/galacean/skills/engine-knowledge/references/mesh-geometry.md
+  s_f1a7b8285f1df2::t_7d463dfa717d7a 3,5,7,11-22,27,29,35-41
+  s_f1a7b8285f1df2::t_76d634d272e374 9,31
+  s_f1a7b8285f1df2::t_2b8b6ccb772220 23,25,33-34
+docs/zh/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_baee091cdeafab 39,41,93,137,154,160,166,185-189,278,312-313,362,364
+  s_f1a7b8285f1df2::t_9a114c282241e6 226-261
+docs/en/graphics/background/sky.mdx
+  s_f1a7b8285f1df2::t_baee091cdeafab 46,48
+docs/en/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_67d111aa089e9b 39,137,150,181-185,272,306-307,356,358
+  s_f1a7b8285f1df2::t_9a114c282241e6 220-255
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8b635f8a2fa7f8c3551568436903dc0608381e79",
+  "prompts": {},
+  "sessions": {
+    "s_f1a7b8285f1df2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d54e-3c87-7273-b01d-79d652eaed37",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

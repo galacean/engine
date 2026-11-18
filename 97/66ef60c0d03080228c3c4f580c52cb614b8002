@@ -1,0 +1,60 @@
+packages/core/src/Camera.ts
+  s_da48a1c3cefcb7::t_dfda46f7f2cd70 650,655-659
+packages/webgl1-polyfill/src/core/texture/TextureUtils.ts
+  s_da48a1c3cefcb7::t_cf65c7f7cb3798 1-23
+tests/package-consumer/HeadlessEngine.test.ts
+  s_da48a1c3cefcb7::t_376d9079fbe76e 318-330
+packages/rhi-webgl/src/GLTexture.ts
+  s_da48a1c3cefcb7::t_dfda46f7f2cd70 694,716-717
+  s_da48a1c3cefcb7::t_cf65c7f7cb3798 603-612
+  s_da48a1c3cefcb7::t_565e75ef4b4d9e 718,753-756,762
+  s_da48a1c3cefcb7::t_bd2e09679287e0 719
+packages/webgl1-polyfill/src/rhi-webgl/WebGLGraphicDevice.ts
+  s_da48a1c3cefcb7::t_565e75ef4b4d9e 1
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  s_da48a1c3cefcb7::t_565e75ef4b4d9e 32
+  s_da48a1c3cefcb7::t_651c45d5a54967 353
+  s_da48a1c3cefcb7::t_ba42c1af02b738 357,361-362
+packages/webgl1-polyfill/src/rhi-webgl/GLTexture.ts
+  s_da48a1c3cefcb7::t_dfda46f7f2cd70 17-23,35
+  s_da48a1c3cefcb7::t_565e75ef4b4d9e 1,3,24-34
+  s_da48a1c3cefcb7::t_9a666f230cf9c5 36
+packages/core/src/texture/Texture.ts
+  s_da48a1c3cefcb7::t_6c3788a8f9c2dc 204-209
+  s_da48a1c3cefcb7::t_651c45d5a54967 170-171,173-174,193
+  s_da48a1c3cefcb7::t_629fa75053f6d1 9,172
+packages/webgl1-polyfill/src/overrides.ts
+  s_da48a1c3cefcb7::t_dfda46f7f2cd70 3
+  s_da48a1c3cefcb7::t_cf65c7f7cb3798 22
+packages/webgl1-polyfill/src/core/texture/Texture.ts
+  s_da48a1c3cefcb7::t_6c3788a8f9c2dc 1-10,14-31,34-38
+  s_da48a1c3cefcb7::t_651c45d5a54967 32-33,39-41
+packages/webgl1-polyfill/tests/integration/index.test.ts
+  s_da48a1c3cefcb7::t_dfda46f7f2cd70 60-61
+packages/webgl1-polyfill/tests/integration/core/texture/Texture.test.ts
+  s_da48a1c3cefcb7::t_bf77d649d5b277 19-35
+packages/webgl1-polyfill/src/core/Camera.ts
+  s_da48a1c3cefcb7::t_dfda46f7f2cd70 1-14
+packages/core/src/texture/TextureUtils.ts
+  s_da48a1c3cefcb7::t_cf65c7f7cb3798 20
+packages/webgl1-polyfill/tests/integration/core/texture/TextureUtils.test.ts
+  s_da48a1c3cefcb7::t_bf77d649d5b277 1-35
+tests/src/rhi-webgl/GLCapability.test.ts
+  s_da48a1c3cefcb7::t_eb7e9597f56f99 65-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9766ef60c0d03080228c3c4f580c52cb614b8002",
+  "prompts": {},
+  "sessions": {
+    "s_da48a1c3cefcb7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1524d-29ee-7280-8621-925d13a5c914",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

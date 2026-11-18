@@ -1,0 +1,31 @@
+packages/core/src/texture/Texture.ts
+  s_f38d09363d9c91::t_82bdf9bfc7e8eb 219-220
+packages/rhi-webgl/src/GLTexture.ts
+  s_f38d09363d9c91::t_1fe87e0596c066 518,575
+tests/package-consumer/HeadlessEngine.test.ts
+  s_215c0b0d399b2f::t_4fcada07531fbd 138,140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "df01f3ec3091fae08a2d5841ef09be64b911ac9c",
+  "prompts": {},
+  "sessions": {
+    "s_215c0b0d399b2f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d8e-4ddf-7c00-89b3-270764b3b8b9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    },
+    "s_f38d09363d9c91": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e40d-0453-7410-8f52-6a045e69aba1",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

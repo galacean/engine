@@ -1,0 +1,80 @@
+packages/water/src/water/compiler/lake/LakeTerrainBoundary.ts
+  s_45bb612ddb9392::t_70379a27d64b26 1
+packages/water/package.json
+  s_30889def3c02cc::t_11132075b2a5d9 385-387
+packages/farming/package.json
+  s_30889def3c02cc::t_c07cc32e953dd6 185-187
+packages/world-planning/package.json
+  s_c5192f23876072::t_788659ed8f1181 13-18
+  s_30889def3c02cc::t_c5bc599eb04a60 478-479
+packages/water/src/bridges/SuspensionBridgeView.ts
+  s_45bb612ddb9392::t_4df63552074409 1-2
+packages/modify/package.json
+  s_30889def3c02cc::t_2bb3122e9353b5 22-23
+packages/world-planning/tests/WaterEditor.test.ts
+  s_821bd5c95307d1::t_35966dfbf6fa3f 12
+packages/water/src/water/runtime/spatial/WaterWetNearShoreSearch.ts
+  s_45bb612ddb9392::t_a8b92ec511a64f 1
+packages/farming/src/farming/domain/FarmingGround.ts
+  s_45bb612ddb9392::t_2f554176a495d6 1
+packages/farming/src/farming/presentation/FarmingPlotSelection.ts
+  s_45bb612ddb9392::t_64337d99dc286c 16-17
+packages/farming/src/farming/presentation/soil/FarmingPlotSurface.ts
+  s_45bb612ddb9392::t_3c7f05aa11953e 1
+packages/farming/src/farming/presentation/soil/SoilRenderBatches.ts
+  s_45bb612ddb9392::t_cb508a26a936a9 21
+packages/farming/src/farming/presentation/soil/SoilWorkPresenter.ts
+  s_45bb612ddb9392::t_312cca200dbcfb 1
+packages/farming/tests/fixtures/fixtures.ts
+  s_45bb612ddb9392::t_3cd8f0fa6b7808 1
+packages/water/src/water/authoring/terrain/WaterTerrainSnapshot.ts
+  s_45bb612ddb9392::t_b7b3c84822d7b1 2
+packages/world-planning/src/semantic-study/PlanningAlphamap.ts
+  s_45bb612ddb9392::t_a1d30a3f4a2322 6
+packages/world-planning/tests/NativeWaterImmediateLifecycle.test.ts
+  s_45bb612ddb9392::t_f9d0a7b15c7cec 7
+packages/world-planning/tests/NativeWaterPrefab.test.ts
+  s_45bb612ddb9392::t_72f7138744f1ac 5
+packages/world-planning/tests/WaterEditorFixture.ts
+  s_45bb612ddb9392::t_2df3c856a58e1f 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ffc3cd9cc2f64843ca1d0e6dbdab039747ea0c2f",
+  "prompts": {},
+  "sessions": {
+    "s_30889def3c02cc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e8d3-cd57-70b0-8843-ecc65484b8c6",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    },
+    "s_45bb612ddb9392": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e31e-2061-71e0-a047-8c2fc391eaae",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    },
+    "s_821bd5c95307d1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e4bd-1ddc-7323-99f3-afa41a65394a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    },
+    "s_c5192f23876072": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1be41-d252-7f01-875c-a0a08f6c1c55",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

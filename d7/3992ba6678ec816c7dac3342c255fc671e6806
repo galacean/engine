@@ -1,0 +1,65 @@
+packages/world-planning/src/spatial/WorldTemplateAuthoring.ts
+  s_a975bf164e8b11::t_948b0cf3c8dad5 22-34,36-42,44-53,395
+packages/world-planning/src/spatial/AnimalPopulationComponent.ts
+  s_a975bf164e8b11::t_948b0cf3c8dad5 7,20-28,284-304,311-317,347-348,350,375-390,415,418-422
+packages/world-planning/src/planning-data/template-wildlife.json
+  s_2f40e5c8e374c9::t_0fb2c0f63e338e 1-13
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_d0855e4575d176::t_61c7baa6b9abe7 6,118-134,363-364,375-376,589-604,1137-1139,1162-1165,1198-1206
+packages/world-planning/src/spatial/runtime/TemplateButterfly.shader
+  s_fa8f4df2e429fc::t_4df5a0046313d9 1-120
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  s_a975bf164e8b11::t_8fbb0368a1ca6d 3,28,36,68,97-100,155-170,173,197,211,307-311,481-633,1162-1178,1248-1250
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  s_a975bf164e8b11::t_c806faa72f12d9 13,113
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat.ts
+  s_a975bf164e8b11::t_7c2a85b0e354f8 10-15,338
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  s_2f40e5c8e374c9::t_ad723c5235934d 7,43,246-250,260,263-273
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource.ts
+  s_a975bf164e8b11::t_47b4f3d5a7d3c4 3,51
+world/tests/seed-world/PlanningStartupTemplate.spec.ts
+  s_a975bf164e8b11::t_31470eb16b4a4e 50-61,74-83
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_fa8f4df2e429fc::t_d4eacedb1b4b37 256
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d73992ba6678ec816c7dac3342c255fc671e6806",
+  "prompts": {},
+  "sessions": {
+    "s_2f40e5c8e374c9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1eee1-36fa-7af2-a3dd-6053d27116ab",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    },
+    "s_a975bf164e8b11": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e843-35ba-7e21-997a-bae227cd9412",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    },
+    "s_d0855e4575d176": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ed64-1b78-7210-8d93-3cc4ed5d350e",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    },
+    "s_fa8f4df2e429fc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e78f-73aa-7760-87eb-6d622300105c",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

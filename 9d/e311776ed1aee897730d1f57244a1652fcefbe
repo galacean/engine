@@ -1,0 +1,61 @@
+e2e/package.json
+  s_588d65e1ac7fe6::t_3e7169c7eab1c8 4
+examples/package.json
+  s_588d65e1ac7fe6::t_e29f14fa9e40a7 3
+package.json
+  s_588d65e1ac7fe6::t_1de914041fd2d2 3
+packages/core/package.json
+  s_588d65e1ac7fe6::t_4323f4be75b17b 3
+packages/design/package.json
+  s_588d65e1ac7fe6::t_495a12f41e0c9c 3
+packages/galacean/package.json
+  s_588d65e1ac7fe6::t_58cc1896dd1fef 3
+packages/loader/package.json
+  s_588d65e1ac7fe6::t_f4ca6d82ba5193 3
+packages/math/package.json
+  s_588d65e1ac7fe6::t_1dc19e3e7b9db2 3
+packages/physics-physx/package.json
+  s_588d65e1ac7fe6::t_ec9e95ac9c01ee 3
+packages/rhi-null/package.json
+  s_588d65e1ac7fe6::t_ff7387740610cc 3
+packages/rhi-webgl/package.json
+  s_588d65e1ac7fe6::t_29bf73ad6233b6 3
+packages/shader-analyzer/package.json
+  s_588d65e1ac7fe6::t_80cb6415ad1a91 3
+packages/shader-compiler/package.json
+  s_588d65e1ac7fe6::t_e92ccd68c2ad10 3
+packages/shader-parser/package.json
+  s_588d65e1ac7fe6::t_2ea9110c0e0bb6 3
+packages/shader/package.json
+  s_588d65e1ac7fe6::t_b12f183d38a19d 3
+packages/spine-core-3.8/package.json
+  s_588d65e1ac7fe6::t_a7a4d96adf8b0e 3
+packages/spine-core-4.2/package.json
+  s_588d65e1ac7fe6::t_2c0c4a23543396 3
+packages/spine/package.json
+  s_588d65e1ac7fe6::t_283723af76d649 3
+packages/ui/package.json
+  s_588d65e1ac7fe6::t_f55f50ca649276 3
+packages/xr-webxr/package.json
+  s_588d65e1ac7fe6::t_26c914de58d54f 3
+packages/xr/package.json
+  s_588d65e1ac7fe6::t_307b2b5486b43f 3
+tests/package.json
+  s_588d65e1ac7fe6::t_c130f75659a54e 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9de311776ed1aee897730d1f57244a1652fcefbe",
+  "prompts": {},
+  "sessions": {
+    "s_588d65e1ac7fe6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0cc66-d181-7972-bb5f-81ab021b0c29",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

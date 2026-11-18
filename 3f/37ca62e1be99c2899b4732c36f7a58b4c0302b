@@ -1,0 +1,49 @@
+docs/en/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_5b0ffeed020d91 221,230,258
+docs/zh/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_bab0ad6b2b1c6b 227,236,264
+e2e/case/primitive-materials.ts
+  s_f1a7b8285f1df2::t_8e543ed979210c 30
+e2e/case/primitive-topology.ts
+  s_f1a7b8285f1df2::t_75b625ac7dad9c 11
+e2e/primitive-mesh.md
+  s_f1a7b8285f1df2::t_9957bc2fb8e3e7 12
+packages/core/src/mesh/PrimitiveMesh.ts
+  s_f1a7b8285f1df2::t_2b74b92b4a3f68 1996,1998,2020-2021
+packages/core/src/mesh/PrimitiveMeshOptions.ts
+  s_f1a7b8285f1df2::t_780fd2d7db1d82 9,12
+packages/galacean/skills/engine-knowledge/references/mesh-geometry.md
+  s_f1a7b8285f1df2::t_e8dfdb484fd745 70,76
+tests/package-consumer/fixtures/PrimitiveMeshApi.ts
+  s_f1a7b8285f1df2::t_81487de5e951da 39,44,51,53,60,68,76,82,89,91,96,98-99,104,106,114,116,120,126
+tests/package-consumer/fixtures/PrimitiveMeshAsset.ts
+  s_f1a7b8285f1df2::t_f49e148f2f15fb 15
+tests/src/core/mesh/BlendShapeManager.test.ts
+  s_f1a7b8285f1df2::t_e880d11cf08e0d 221
+tests/src/core/mesh/PrimitiveMesh.test.ts
+  s_f1a7b8285f1df2::t_1c6efe9e1e12e5 24,40,64,92,116,138,159,183,196
+tests/src/core/mesh/ProceduralMesh.test.ts
+  s_f1a7b8285f1df2::t_22c62c904b5980 33,38,44,49,56,62,72,80,86,92-95,100,107,109,112,118,126,144,150,156,163,168,349,366,459,461-462,475,501,533,587,619,664,701,730-731,734,736,795,813,834,907,909,951,981,1008,1019,1031,1043,1055,1066,1077,1088,1114,1131,1152-1158,1198,1224,1305,1344,1379,1400-1404,1408-1409,1444-1445,1469,1483,1507,1538,1563,1613,1631-1632,1674,1696,1726,1779,1834,1859,1896,1927,1954,1982,2016,2041
+tests/src/core/physics/ColliderLayer.test.ts
+  s_f1a7b8285f1df2::t_a6a93a9d63baa0 105
+tests/src/core/physics/MeshColliderLayer.test.ts
+  s_f1a7b8285f1df2::t_50fcb6a4c6ad06 29
+tests/src/loader/PrimitiveMeshLoader.test.ts
+  s_f1a7b8285f1df2::t_6de393a9ecc727 62-63,619,685
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3f37ca62e1be99c2899b4732c36f7a58b4c0302b",
+  "prompts": {},
+  "sessions": {
+    "s_f1a7b8285f1df2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d54e-3c87-7273-b01d-79d652eaed37",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

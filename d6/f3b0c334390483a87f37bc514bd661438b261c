@@ -1,0 +1,80 @@
+packages/modify/src/native/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader
+  s_3671db68e81360::t_6ff5881d511d31 177-180
+  s_eae61974fbc82a::t_98e04a6817ed77 23,174,304-309
+packages/modify/tests/ScreenSpaceReflectionContactOutline.test.ts
+  s_3671db68e81360::t_2fa775ee7a41ed 1-10,12-30,39-44,47-53,55-89,91-92,94,102,108-121
+  s_eae61974fbc82a::t_6b3f2bbb7beacd 11,31-34,38,45-46,54,90,93,95-101,103-107,122-137
+  s_eae61974fbc82a::t_3a1c0374329c01 35-37
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_eae61974fbc82a::t_494d1377796b8d 153-155,167-169,237,239,241,391-393
+  s_eae61974fbc82a::t_b553e8ec70163f 4,57-62,66-82,647-648,659,661-662,669,671-672,736-742,750,752-753
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionConfig.ts
+  s_eae61974fbc82a::t_b6ad13f496e30e 149-152
+  s_eae61974fbc82a::t_b938c3ec730914 1-148,153-155
+packages/modify/native-overrides.json
+  s_eae61974fbc82a::t_0a2a56c9f1b39d 745-752
+packages/modify/src/native/core/src/RenderPipeline/RenderQueue.ts
+  s_eae61974fbc82a::t_658305a2e8c1e5 84-85,131
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  s_eae61974fbc82a::t_30f5935be93cae 1,8-10,389,411-413,454-456,480-487,847-871,901,904,925,931,958-959,1033-1034,1052-1059,1072,1088,1107,1111-1135,1148,1157,1222,1280,1353,1448,1472-1473,1475-1476
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  s_eae61974fbc82a::t_233d666d7972f7 26,170,274,316,385-386,401-408,412,486,518,556,562,634-635,649,661
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionSettings.ts
+  s_eae61974fbc82a::t_ff25ec91c85a12 1-2,35,39,69
+packages/modify/src/native/core/src/material/Material.ts
+  s_eae61974fbc82a::t_8edb3342123ec3 105-108
+packages/modify/src/native/core/src/shader/state/DepthState.ts
+  s_eae61974fbc82a::t_5f234610a0caed 1-116
+packages/modify/src/native/shader/src/Shaders/PBR.shader
+  s_eae61974fbc82a::t_5542c33b174c1f 138
+packages/modify/src/native/shader/src/Shaders/Pipeline/ScreenSpaceReflectionSurface.shader
+  s_eae61974fbc82a::t_4c81d5c00f9e31 65,83,89
+packages/modify/tests/ScreenSpaceReflectionAutoTag.test.ts
+  s_eae61974fbc82a::t_162df69ed4bedf 1-53
+packages/modify/tests/ScreenSpaceReflectionColorPrecision.test.ts
+  s_eae61974fbc82a::t_d6ee04222a50f4 1-74
+packages/modify/tests/ScreenSpaceReflectionContribution.test.ts
+  s_eae61974fbc82a::t_aa1721c3ffb0b5 205,208,218-223,303-492,495-496,498-499
+packages/modify/tests/ScreenSpaceReflectionProfile.test.ts
+  s_eae61974fbc82a::t_82599cc35d6d5c 1-189
+packages/modify/tests/ScreenSpaceReflectionReceiverCost.test.ts
+  s_eae61974fbc82a::t_c0b7e2ab065836 1-63
+packages/modify/tests/ScreenSpaceReflectionReceiverDepth.test.ts
+  s_eae61974fbc82a::t_36fdd19911f6b8 1-110
+packages/modify/tests/ScreenSpaceReflectionSettingsParity.test.ts
+  s_eae61974fbc82a::t_80d62a6678ef53 1-28
+packages/modify/tests/ScreenSpaceReflectionShaderTarget.test.ts
+  s_eae61974fbc82a::t_fbe2a98b781710 1-19
+packages/modify/tests/ScreenSpaceReflectionTerrainDepth.test.ts
+  s_eae61974fbc82a::t_e3cfcdebb8eb03 1-184
+packages/modify/tests/ScreenSpaceReflectionTraceCrossing.test.ts
+  s_eae61974fbc82a::t_3036b905df9cae 1-90
+packages/modify/tests/fixtures/ssr-settings-baseline.json
+  s_eae61974fbc82a::t_1519ff9e8e7438 1-2497
+packages/terrain/src/shaders/terrain/TerrainScreenSpaceReflectionPass.glsl
+  s_eae61974fbc82a::t_c08b02b19496ea 194,203
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d6f3b0c334390483a87f37bc514bd661438b261c",
+  "prompts": {},
+  "sessions": {
+    "s_3671db68e81360": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "s_3671db68e81360",
+        "model": "unknown"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    },
+    "s_eae61974fbc82a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b144-13db-74a1-9070-3ee4bc118cf6",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

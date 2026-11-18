@@ -1,0 +1,21 @@
+packages/core/src/Renderer.ts
+  s_f38d09363d9c91::t_f3a41851d1de2e 93-96
+packages/core/src/particle/ParticleSystemManager.ts
+  s_f38d09363d9c91::t_c92a190dcaf253 52,59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "fe7c4e9d71ed44db0860842acaf1232571f99a98",
+  "prompts": {},
+  "sessions": {
+    "s_f38d09363d9c91": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e40d-0453-7410-8f52-6a045e69aba1",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+packages/core/src/BasicResources.ts
+  s_89f62b485e437b::t_997844b7617e54 33
+packages/loader/src/PhysicsMaterialLoader.ts
+  s_89f62b485e437b::t_0b9d3c5ca2fed6 21
+packages/core/src/physics/shape/ColliderShape.ts
+  s_89f62b485e437b::t_313a4a79a00b51 88,160-162,164,208
+  s_89f62b485e437b::t_535753f62f4320 163
+  s_89f62b485e437b::t_1b876f3078f28b 206
+packages/core/src/physics/PhysicsMaterial.ts
+  s_89f62b485e437b::t_fd6a6628a02cba 52,124-125
+  s_89f62b485e437b::t_64a869dcd90f11 108
+packages/loader/src/prefab/PrefabResource.ts
+  s_89f62b485e437b::t_d1de1ca9fc6ead 35-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7bdcf82e8f5b0f440ba2d6ff2001f0fb3c0fc724",
+  "prompts": {},
+  "sessions": {
+    "s_89f62b485e437b": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1e26a-2627-7685-ab49-571422f416d8",
+        "model": "claude-haiku-5-5"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

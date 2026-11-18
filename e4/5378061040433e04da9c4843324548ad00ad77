@@ -1,0 +1,19 @@
+packages/galacean/tests/EntityLookupTypes.test.ts
+  s_2b5f1786de9b2d::t_18f4ed99e54383 36-39,46-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e45378061040433e04da9c4843324548ad00ad77",
+  "prompts": {},
+  "sessions": {
+    "s_2b5f1786de9b2d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d8e-054e-7eb1-8e0d-6833695079b0",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
