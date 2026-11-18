@@ -75,7 +75,7 @@ FragmentShader = frag;
         pass.contents,
         pass.vertexEntry,
         pass.fragmentEntry,
-        ShaderLanguage.GLSLES300,
+        ShaderLanguage.GLSLES,
         ""
       )
     ).to.be.undefined;
@@ -570,7 +570,7 @@ VertexShader = vert;
         "void vert() { gl_Position = vec4(0.0); } void frag() { gl_FragColor = vec4(1.0); }",
         "vert",
         "frag",
-        ShaderLanguage.GLSLES300,
+        ShaderLanguage.GLSLES,
         ""
       )
     ).to.not.be.undefined;
@@ -584,7 +584,7 @@ void frag() { gl_FragColor = vec4(1.0); }
 VertexShader = vert;
 FragmentShader = frag;
 } } }`;
-    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300, "")).to.throw(
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES, "")).to.throw(
       "Invalid render state property"
     );
   });
@@ -598,7 +598,7 @@ VertexShader = firstVert;
 VertexShader = secondVert;
 FragmentShader = frag;
 } } }`;
-    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300, "")).to.throw(
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES, "")).to.throw(
       "Reassignment of VertexShader entry"
     );
   });
@@ -688,7 +688,7 @@ FragmentShader = frag;
       pass.contents,
       pass.vertexEntry,
       pass.fragmentEntry,
-      ShaderLanguage.GLSLES300,
+      ShaderLanguage.GLSLES,
       ""
     );
     expect(generated!.fragment).to.include("input.x");
@@ -718,7 +718,7 @@ FragmentShader = frag;
       pass.contents,
       pass.vertexEntry,
       pass.fragmentEntry,
-      ShaderLanguage.GLSLES300,
+      ShaderLanguage.GLSLES,
       ""
     );
     expect(generated!.vertex).to.include("input.x");

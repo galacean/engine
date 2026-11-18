@@ -27,7 +27,7 @@ float deadValue = ;
 
     expect(analysis.diagnostics).toEqual([]);
     const compiler = new ShaderCompiler();
-    const generated = compiler.generate(analysis.passes[0], ShaderLanguage.GLSLES300);
+    const generated = compiler.generate(analysis.passes[0], ShaderLanguage.GLSLES);
     expect(generated).toBeDefined();
     expect(generated!.fragment).not.toContain("deadValue");
     expect(generated!.fragment).not.toContain("STRINGIFY");
@@ -38,7 +38,7 @@ void vert() { gl_Position = vec4(0.0); }
 void frag() { gl_FragColor = vec4(1.0); }`,
       "vert",
       "frag",
-      ShaderLanguage.GLSLES300
+      ShaderLanguage.GLSLES
     );
     expect(runtimeGenerated).toBeDefined();
   });
@@ -54,7 +54,7 @@ float deadElseValue = ;
 #endif`);
 
     expect(ShaderAnalyzer.analyze(source).diagnostics).toEqual([]);
-    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)).not.toThrow();
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES)).not.toThrow();
   });
 
   it("does not validate nested directives inside an unreachable parent", () => {
@@ -136,7 +136,7 @@ float deadValue = ;
     });
 
     expect(analysis.diagnostics).toEqual([]);
-    expect(new ShaderCompiler().generate(analysis.passes[0], ShaderLanguage.GLSLES300)).toBeDefined();
+    expect(new ShaderCompiler().generate(analysis.passes[0], ShaderLanguage.GLSLES)).toBeDefined();
   });
 
   it("uses an earlier source macro to prune a later include", () => {

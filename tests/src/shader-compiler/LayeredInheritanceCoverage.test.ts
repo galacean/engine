@@ -6,7 +6,7 @@ import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
 import { afterAll, describe, expect, it } from "vitest";
 
 type Coverage = "layered" | "same-scope" | "incomplete";
-const targets = [ShaderLanguage.GLSLES300];
+const targets = [ShaderLanguage.GLSLES];
 const contexts = new Map<ShaderLanguage, WebGLRenderingContext | WebGL2RenderingContext>();
 
 afterAll(() => {

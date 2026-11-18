@@ -289,7 +289,7 @@ describe.runIf(typeof document !== "undefined")("stage diagnostics and native GL
     for (const gl of contexts) gl.getExtension("WEBGL_lose_context")?.loseContext();
   });
 
-  it.each([ShaderLanguage.GLSLES300])(
+  it.each([ShaderLanguage.GLSLES])(
     "rejects vertex discard and wrong-stage builtins, accepts fragment discard for target %s",
     (target) => {
       const gl = document.createElement("canvas").getContext("webgl2") as

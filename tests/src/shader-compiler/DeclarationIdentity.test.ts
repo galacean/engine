@@ -48,7 +48,7 @@ const cases = [
 
 describe("conditional declaration identity", () => {
   for (const mode of ["runtime", "precompiled"] as const) {
-    for (const language of [ShaderLanguage.GLSLES300]) {
+    for (const language of [ShaderLanguage.GLSLES]) {
       it.each(cases)(`${mode} GLSLES${language}: $name`, async (testCase) => {
         const previousCompiler = Shader._shaderCompiler;
         const compiler = new ShaderCompiler();

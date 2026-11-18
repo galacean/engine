@@ -48,7 +48,7 @@ const conditionalShader = `Shader "ConditionReuse" {
 }`;
 
 function compile(c: ShaderCompiler, src: string) {
-  return c._parseShaderPass(src, "vert", "frag", ShaderLanguage.GLSLES300, "");
+  return c._parseShaderPass(src, "vert", "frag", ShaderLanguage.GLSLES, "");
 }
 
 describe("compiler state isolation (no cross-shader leak)", () => {
@@ -170,7 +170,7 @@ void frag() { gl_FragColor = vec4(1.0); }`,
     const pass = analysis.passes[0];
     const cacheGet = vi.spyOn(getParsedShaderPassPayload(pass).data.preprocessorExpressions, "get");
 
-    const generated = new ShaderCompiler().generate(pass, ShaderLanguage.GLSLES300);
+    const generated = new ShaderCompiler().generate(pass, ShaderLanguage.GLSLES);
 
     expect(generated).toBeDefined();
     expect(cacheGet).toHaveBeenCalledWith("FOO + 1 > 1");

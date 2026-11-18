@@ -20,7 +20,7 @@ describe("ParticleFeedback early return", () => {
 
   afterAll(() => engine?.destroy());
 
-  for (const target of [ShaderLanguage.GLSLES300]) {
+  for (const target of [ShaderLanguage.GLSLES]) {
     for (const entry of ["runtime", "precompiled"] as const) {
       it.each([false, true])(
         `${entry} ${ShaderLanguage[target]} preserves the zero-duration return (trajectory=%s)`,

@@ -240,7 +240,7 @@ describe("preprocessor condition conformance", () => {
         pass.contents,
         pass.vertexEntry,
         pass.fragmentEntry,
-        ShaderLanguage.GLSLES300,
+        ShaderLanguage.GLSLES,
         ""
       );
       expect(generated).to.not.be.undefined;
@@ -356,7 +356,7 @@ describe("preprocessor condition conformance", () => {
         pass.contents,
         pass.vertexEntry,
         pass.fragmentEntry,
-        ShaderLanguage.GLSLES300,
+        ShaderLanguage.GLSLES,
         ""
       );
       expect(generated).to.not.be.undefined;
@@ -387,7 +387,7 @@ describe("preprocessor condition conformance", () => {
           pass.contents,
           pass.vertexEntry,
           pass.fragmentEntry,
-          ShaderLanguage.GLSLES300,
+          ShaderLanguage.GLSLES,
           ""
         )
       ).to.be.undefined;
@@ -425,11 +425,11 @@ describe("preprocessor condition conformance", () => {
           pass.contents,
           pass.vertexEntry,
           pass.fragmentEntry,
-          ShaderLanguage.GLSLES300,
+          ShaderLanguage.GLSLES,
           ""
         )
       ).to.be.undefined;
-      expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)).to.throw();
+      expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES)).to.throw();
     }
   );
 
@@ -441,7 +441,7 @@ describe("preprocessor condition conformance", () => {
       expect(() => ShaderMacroProcessor.evaluate(instructions, new Map([["EXTERNAL", "1"]]))).to.throw();
       const source = shader(expression);
       expect(ShaderAnalyzer.analyze(source).diagnostics).to.be.empty;
-      expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)).not.to.throw();
+      expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES)).not.to.throw();
     }
   );
 
@@ -460,7 +460,7 @@ describe("preprocessor condition conformance", () => {
         pass.contents,
         pass.vertexEntry,
         pass.fragmentEntry,
-        ShaderLanguage.GLSLES300,
+        ShaderLanguage.GLSLES,
         ""
       )
     ).to.be.undefined;
@@ -484,11 +484,11 @@ describe("preprocessor condition conformance", () => {
         pass.contents,
         pass.vertexEntry,
         pass.fragmentEntry,
-        ShaderLanguage.GLSLES300,
+        ShaderLanguage.GLSLES,
         ""
       )
     ).to.be.undefined;
-    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)).to.throw(message);
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES)).to.throw(message);
   });
 
   it.each([
@@ -503,11 +503,11 @@ describe("preprocessor condition conformance", () => {
       pass.contents,
       pass.vertexEntry,
       pass.fragmentEntry,
-      ShaderLanguage.GLSLES300,
+      ShaderLanguage.GLSLES,
       ""
     );
     expect(program).not.to.be.undefined;
-    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)).not.to.throw();
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES)).not.to.throw();
     expect(() =>
       ShaderMacroProcessor.evaluate(program!.fragmentShaderInstructions!, new Map([["EXTERNAL", safeValue]]))
     ).not.to.throw();
@@ -538,7 +538,7 @@ describe("preprocessor condition conformance", () => {
         pass.contents,
         pass.vertexEntry,
         pass.fragmentEntry,
-        ShaderLanguage.GLSLES300,
+        ShaderLanguage.GLSLES,
         ""
       )
     ).to.be.undefined;
@@ -632,7 +632,7 @@ FragmentShader = frag;
       pass.contents,
       pass.vertexEntry,
       pass.fragmentEntry,
-      ShaderLanguage.GLSLES300,
+      ShaderLanguage.GLSLES,
       ""
     );
     expect(program).not.to.be.undefined;
@@ -647,7 +647,7 @@ FragmentShader = frag;
       "selectedValue = 0.0"
     );
 
-    const precompiled = new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300);
+    const precompiled = new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES);
     const precompiledPass = precompiled.subShaders[0].passes[0];
     expect(precompiledPass.isUsePass).to.be.false;
     if (!precompiledPass.isUsePass) {
@@ -678,7 +678,7 @@ FragmentShader = frag;
       pass.contents,
       pass.vertexEntry,
       pass.fragmentEntry,
-      ShaderLanguage.GLSLES300,
+      ShaderLanguage.GLSLES,
       ""
     );
     expect(program).not.to.be.undefined;
@@ -686,7 +686,7 @@ FragmentShader = frag;
       "selectedValue = 1.0"
     );
 
-    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)).not.to.throw();
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES)).not.to.throw();
   });
 
   it("does not expand macro names inside replacement-list comments", () => {
@@ -710,13 +710,13 @@ FragmentShader = frag;
       pass.contents,
       pass.vertexEntry,
       pass.fragmentEntry,
-      ShaderLanguage.GLSLES300,
+      ShaderLanguage.GLSLES,
       ""
     );
     expect(program).not.to.be.undefined;
     expect(ShaderMacroProcessor.evaluate(program!.fragmentShaderInstructions!, new Map())).to.contain(
       "selectedValue = 1.0"
     );
-    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)).not.to.throw();
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES)).not.to.throw();
   });
 });

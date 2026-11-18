@@ -82,7 +82,7 @@ function* programs(source: string, variants: Macros[], runtimeOnly = false): Gen
   const analysis = runtimeOnly ? undefined : ShaderAnalyzer.analyze(source);
   if (analysis) expect(analysis.diagnostics).toEqual([]);
   const pass = compiler._parseShaderSource(source).subShaders[0].passes[0];
-  for (const target of [ShaderLanguage.GLSLES300]) {
+  for (const target of [ShaderLanguage.GLSLES]) {
     const generated = [
       ...(analysis ? [["analyzer", compiler.generate(analysis.passes[0], target)] as const] : []),
       [
@@ -350,7 +350,7 @@ describe("semantic condition implication in ShaderLab inheritance", () => {
       unconditionalCall: true
     });
     expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).toContain("Redefinition");
-    for (const target of [ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES]) {
       expect(() => new ShaderPrecompiler().precompile(source, target)).toThrow("Redefinition");
     }
     for (const program of programs(source, [{ A: "0" }], true)) {

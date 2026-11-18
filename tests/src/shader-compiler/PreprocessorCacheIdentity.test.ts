@@ -77,7 +77,7 @@ VertexShader = vert; FragmentShader = frag;
 function* programs(source: string, includeMap: Record<string, string>, variants: readonly MacroValues[]) {
   const analysis = ShaderAnalyzer.analyze(source, { includeMap });
   expect(analysis.diagnostics).toEqual([]);
-  for (const target of [ShaderLanguage.GLSLES300]) {
+  for (const target of [ShaderLanguage.GLSLES]) {
     const compiler = new ShaderCompiler();
     compiler._setIncludeMap(includeMap);
     const precompiler = new ShaderPrecompiler();

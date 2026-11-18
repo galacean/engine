@@ -65,7 +65,7 @@ function finalSource(pass, target, macros) {
 const analysis = ShaderAnalyzer.analyze(source);
 assert.deepEqual(analysis.diagnostics, []);
 const results = [];
-for (const target of [ShaderLanguage.GLSLES300]) {
+for (const target of [ShaderLanguage.GLSLES]) {
   const generated = new ShaderCompiler().generate(analysis.passes[0], target);
   assert.ok(generated);
   assertSerializable(generated);

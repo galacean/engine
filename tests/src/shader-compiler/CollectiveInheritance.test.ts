@@ -60,7 +60,7 @@ function* programs(source: string, runtimeOnly = false): Generator<Program> {
   const analysis = runtimeOnly ? undefined : ShaderAnalyzer.analyze(source);
   if (analysis) expect(analysis.diagnostics).toEqual([]);
   const pass = compiler._parseShaderSource(source).subShaders[0].passes[0];
-  for (const target of [ShaderLanguage.GLSLES300]) {
+  for (const target of [ShaderLanguage.GLSLES]) {
     const generated = [
       ...(analysis ? [["analyzer", compiler.generate(analysis.passes[0], target)] as const] : []),
       [
@@ -198,7 +198,7 @@ void frag() { gl_FragColor = color(); }
 VertexShader = vert; FragmentShader = frag;
 } } }`;
     expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).toContain("Redefinition");
-    for (const target of [ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES]) {
       expect(() => new ShaderPrecompiler().precompile(source, target)).toThrow("Redefinition");
     }
     for (const program of programs(source, true)) {
@@ -343,7 +343,7 @@ VertexShader = vert; FragmentShader = frag;
     const pass = compiler._parseShaderSource(source).subShaders[0].passes[0];
     const errors = vi.spyOn(Logger, "error").mockImplementation(() => undefined);
     try {
-      for (const target of [ShaderLanguage.GLSLES300]) {
+      for (const target of [ShaderLanguage.GLSLES]) {
         expect(compiler.generate(analysis.passes[0], target)).toBeUndefined();
         expect(
           compiler._parseShaderPass(

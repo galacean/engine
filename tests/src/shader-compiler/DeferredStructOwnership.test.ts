@@ -9,7 +9,7 @@ const flags = Array.from({ length: 12 }, (_, index) => `defined(F${index})`);
 const inheritedGuard = `(${flags.map((flag, index) => `(${flag} << ${index})`).join(" + ")}) != 0`;
 const replacementGuard = flags.join(" || ");
 const point = "gl_Position = vec4(0.0, 0.0, 0.0, 1.0); gl_PointSize = 1.0;";
-const targets = [ShaderLanguage.GLSLES300];
+const targets = [ShaderLanguage.GLSLES];
 const variants = [{}, { F0: "0" }, { F11: "0" }];
 const contexts = new Map<ShaderLanguage, WebGLRenderingContext | WebGL2RenderingContext>();
 afterAll(() => {

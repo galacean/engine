@@ -20,9 +20,9 @@ FragmentShader = frag;
     const diagnostics = ShaderAnalyzer.analyze(source).diagnostics;
     expect(diagnostics.some((diagnostic) => diagnostic.code === "UndeclaredStructMember")).to.be.true;
 
-    const output = new ShaderCompiler()._parseShaderPass(passWithIssue, "vert", "frag", ShaderLanguage.GLSLES300, "");
+    const output = new ShaderCompiler()._parseShaderPass(passWithIssue, "vert", "frag", ShaderLanguage.GLSLES, "");
     expect(output, "runtime generation leaves final validation to the WebGL driver").to.not.be.undefined;
-    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)).to.throw(
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES)).to.throw(
       "no such field in 'Varyings'"
     );
   });
@@ -49,7 +49,7 @@ vec3 branchValue;
 #endif
 void vert() { gl_Position = vec4(0.0); }
 void frag() { gl_FragColor = vec4(1.0); }`;
-    const output = new ShaderCompiler()._parseShaderPass(pass, "vert", "frag", ShaderLanguage.GLSLES300, "");
+    const output = new ShaderCompiler()._parseShaderPass(pass, "vert", "frag", ShaderLanguage.GLSLES, "");
     expect(output).to.not.be.undefined;
     expect(output!.vertex).to.include("#if A + B > 1");
     expect(output!.fragment).to.include("#if A + B > 1");
@@ -63,7 +63,7 @@ void vert() {
   gl_Position = vec4(transposed[0][0]);
 }
 void frag() { gl_FragColor = vec4(1.0); }`;
-    const output = new ShaderCompiler()._parseShaderPass(pass, "vert", "frag", ShaderLanguage.GLSLES300, "");
+    const output = new ShaderCompiler()._parseShaderPass(pass, "vert", "frag", ShaderLanguage.GLSLES, "");
     expect(output).to.not.be.undefined;
     expect(output!.vertex).to.include("mat2x3 makeMatrix");
     expect(output!.vertex).to.include("mat3x2 transposed");
@@ -84,14 +84,14 @@ FragmentShader = frag;
         '#include "missing.glsl"\nvoid vert() { gl_Position = vec4(0.0); }\nvoid frag() { gl_FragColor = vec4(1.0); }',
         "vert",
         "frag",
-        ShaderLanguage.GLSLES300,
+        ShaderLanguage.GLSLES,
         ""
       );
       expect(output).to.be.undefined;
       expect(
-        compiler._parseShaderPass('#include "missing.glsl"', "vert", "frag", ShaderLanguage.GLSLES300, "")
+        compiler._parseShaderPass('#include "missing.glsl"', "vert", "frag", ShaderLanguage.GLSLES, "")
       ).to.be.undefined;
-      expect(compiler._parseShaderPass("", "vert", "frag", ShaderLanguage.GLSLES300, "")).to.be.undefined;
+      expect(compiler._parseShaderPass("", "vert", "frag", ShaderLanguage.GLSLES, "")).to.be.undefined;
       expect(errorSpy.mock.calls.flat().join("\n")).to.include('Shader include "missing.glsl" was not found.');
       expect(errorSpy.mock.calls.flat().join("\n")).to.include("Unexpected token /EOF");
     } finally {

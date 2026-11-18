@@ -90,12 +90,12 @@ describe("MRT interface backend conversion", () => {
         const compiler = new ShaderCompiler();
         const pass = compiler._parseShaderSource(shader).subShaders[0].passes[0];
         const compiled = precompiled
-          ? new ShaderPrecompiler().precompile(shader, ShaderLanguage.GLSLES300).subShaders[0].passes[0]
+          ? new ShaderPrecompiler().precompile(shader, ShaderLanguage.GLSLES).subShaders[0].passes[0]
           : compiler._parseShaderPass(
               pass.contents,
               pass.vertexEntry,
               pass.fragmentEntry,
-              ShaderLanguage.GLSLES300,
+              ShaderLanguage.GLSLES,
               undefined,
               pass.contentScopeStarts
             )!;

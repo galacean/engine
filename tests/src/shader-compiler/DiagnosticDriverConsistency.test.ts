@@ -859,7 +859,7 @@ describe("analyzer/codegen/driver consistency", () => {
       // 2) Codegen view — feed the same body through the compiler independently of diagnostics.
       const compiler = new ShaderCompiler();
       const compiled = captureLoggerDiagnostics(() =>
-        compiler._parseShaderPass(c.passBody, c.vertEntry, c.fragEntry, ShaderLanguage.GLSLES300, "")
+        compiler._parseShaderPass(c.passBody, c.vertEntry, c.fragEntry, ShaderLanguage.GLSLES, "")
       );
 
       if (c.compilerExpects === "reject") {

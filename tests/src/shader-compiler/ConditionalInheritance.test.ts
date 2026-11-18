@@ -16,7 +16,7 @@ function variants(source: string, includeMap: Record<string, string> = {}) {
   const precompiler = new ShaderPrecompiler();
   precompiler.setIncludeMap(includeMap);
   const results: { vertex: string; fragment: string; macros: Map<string, string> }[] = [];
-  for (const target of [ShaderLanguage.GLSLES300]) {
+  for (const target of [ShaderLanguage.GLSLES]) {
     const programs = [
       compiler.generate(analysis.passes[0], target),
       compiler._parseShaderPass(
@@ -303,7 +303,7 @@ VertexShader = vert; FragmentShader = frag;
 } } }`;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).toContain("Redefinition");
-    for (const target of [ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES]) {
       expect(new ShaderCompiler().generate(analysis.passes[0], target)).toBeUndefined();
       expect(() => new ShaderPrecompiler().precompile(source, target)).toThrow("Redefinition");
     }

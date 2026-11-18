@@ -41,7 +41,7 @@ describe("ReturnStatementInvariant", () => {
         passSource.contents,
         passSource.vertexEntry,
         passSource.fragmentEntry,
-        ShaderLanguage.GLSLES300
+        ShaderLanguage.GLSLES
       );
     }).to.not.throw();
 

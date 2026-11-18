@@ -24,7 +24,7 @@ shaderCompiler._includeMap = ShaderFactory.includeMap;
 // @ts-expect-error -- bind the internal compiler used by Shader.create
 Shader._shaderCompiler = shaderCompiler;
 
-const makePass = (name = "Default") => new ShaderPass(name, [], [], ShaderLanguage.GLSLES300);
+const makePass = (name = "Default") => new ShaderPass(name, [], [], ShaderLanguage.GLSLES);
 
 function shaderWithInclude(name: string, includePath: string): string {
   return `Shader "${name}" {
@@ -174,12 +174,12 @@ describe("Shader", () => {
       });
 
       // Test that shader created successfully, if use shaderCompiler.
-      let shader = Shader.create(testShaderCompilerCode, ShaderLanguage.GLSLES300);
+      let shader = Shader.create(testShaderCompilerCode, ShaderLanguage.GLSLES);
       expect(shader).to.be.an.instanceOf(Shader);
       expect(shader.subShaders.length).to.equal(1);
       expect(shader.subShaders[0].passes.length).to.equal(3);
       // @ts-ignore
-      expect(shader.subShaders[0].passes[1]._platformTarget).to.equal(ShaderLanguage.GLSLES300);
+      expect(shader.subShaders[0].passes[1]._platformTarget).to.equal(ShaderLanguage.GLSLES);
       expect(shader.subShaders[0].getTagValue("ReplacementTag")).to.equal("transparent");
 
       // Test that throw error, if shader was created with same name in shaderCompiler.

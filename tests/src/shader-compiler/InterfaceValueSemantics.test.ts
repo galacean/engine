@@ -410,7 +410,7 @@ function compile(
 }
 
 describe.runIf(typeof document !== "undefined")("interface value semantics on WebGL", () => {
-  for (const target of [ShaderLanguage.GLSLES300]) {
+  for (const target of [ShaderLanguage.GLSLES]) {
     for (const path of ["runtime", "analyzed", "precompiled"] as const) {
       it.each(
         cases.filter(

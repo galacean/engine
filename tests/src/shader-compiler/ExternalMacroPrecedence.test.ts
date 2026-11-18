@@ -82,7 +82,7 @@ VertexShader = vert; FragmentShader = frag;
     expect(analyzer.diagnostics).toEqual([]);
     const compiler = new ShaderCompiler();
     const pass = compiler._parseShaderSource(source).subShaders[0].passes[0];
-    for (const target of [ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES]) {
       const programs = [
         ["analyzer", compiler.generate(analyzer.passes[0], target)],
         ["live", compiler._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, target)],

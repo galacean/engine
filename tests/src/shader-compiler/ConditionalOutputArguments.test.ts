@@ -50,7 +50,7 @@ describe("conditional output argument obligations", () => {
     expect(getBranchReachability(issues[0].branch!)).toBe("reachable");
   });
 
-  for (const target of [ShaderLanguage.GLSLES300]) {
+  for (const target of [ShaderLanguage.GLSLES]) {
     for (const qualifier of ["out", "inout"]) {
       it.each(["", "#define WRITE 1"])(
         `rejects an invalid source configuration in handoff/offline (${target}, ${qualifier}, %s)`,
@@ -107,7 +107,7 @@ describe("conditional output argument obligations", () => {
 });
 
 describe.runIf(typeof document !== "undefined")("conditional output variants on WebGL", () => {
-  it.each([ShaderLanguage.GLSLES300])(
+  it.each([ShaderLanguage.GLSLES])(
     "rejects only the active non-modifiable output variant for target %s",
     (target) => {
       const gl = document.createElement("canvas").getContext("webgl2") as

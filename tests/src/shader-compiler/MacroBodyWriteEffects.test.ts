@@ -64,7 +64,7 @@ function programs(source: string, requireValid = true) {
   if (requireValid) expect(analyzer.diagnostics).toEqual([]);
   const compiler = new ShaderCompiler();
   const pass = compiler._parseShaderSource(source).subShaders[0].passes[0];
-  return [ShaderLanguage.GLSLES300].flatMap((target) => {
+  return [ShaderLanguage.GLSLES].flatMap((target) => {
     const paths = [
       ["analyzer", compiler.generate(analyzer.passes[0], target)],
       ["live", compiler._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, target)],

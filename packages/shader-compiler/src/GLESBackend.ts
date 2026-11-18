@@ -27,7 +27,7 @@ export class GLESBackend {
    * @internal
    */
   static generate(ir: ShaderClueIR, coreInfo: ShaderCoreInfo, target: ShaderLanguage): IShaderInfo | undefined {
-    if (target !== ShaderLanguage.GLSLES300) {
+    if (target !== ShaderLanguage.GLSLES) {
       Logger.error("Unsupported shader language target.");
       return undefined;
     }

@@ -59,7 +59,7 @@ function* compiledPrograms(source: string, runtimeOnly = false) {
   const analysis = runtimeOnly ? undefined : ShaderAnalyzer.analyze(source);
   if (analysis) expect(analysis.diagnostics).toEqual([]);
   const pass = compiler._parseShaderSource(source).subShaders[0].passes[0];
-  for (const target of [ShaderLanguage.GLSLES300]) {
+  for (const target of [ShaderLanguage.GLSLES]) {
     const generated = [
       ...(analysis ? [["analyzer", compiler.generate(analysis.passes[0], target)] as const] : []),
       [
@@ -227,7 +227,7 @@ describe("shader generation after condition coverage proof exhaustion", () => {
   it("preserves the authoring rejection and runtime exclusive variant of a provable coverage gap", () => {
     const source = shader("defined(A)", "defined(A) && defined(B)", { unconditionalCall: true });
     expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).toContain("Redefinition");
-    for (const target of [ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES]) {
       expect(() => new ShaderPrecompiler().precompile(source, target)).toThrow("Redefinition");
     }
     for (const compiled of compiledPrograms(source, true)) {

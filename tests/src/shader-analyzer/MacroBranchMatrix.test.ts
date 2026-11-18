@@ -25,7 +25,7 @@ function compile(source: string, includeMap?: IncludeMap) {
   const codes = result.diagnostics.map((diagnostic) => diagnostic.code);
   const parsedPass = result.passes[0];
   const compiler = new ShaderCompiler();
-  const generated = compiler.generate(parsedPass, ShaderLanguage.GLSLES300);
+  const generated = compiler.generate(parsedPass, ShaderLanguage.GLSLES);
 
   return {
     codes,

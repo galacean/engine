@@ -129,7 +129,7 @@ function* programs(
   if (analysis) expect(analysis.diagnostics).toEqual([]);
   compiler._setIncludeMap(includeMap);
   precompiler.setIncludeMap(includeMap);
-  for (const target of [ShaderLanguage.GLSLES300]) {
+  for (const target of [ShaderLanguage.GLSLES]) {
     const parsed = compiler._parseShaderSource(source);
     const offline = runtimeOnly ? undefined : precompiler.precompile(source, target);
     for (const [passIndex, pass] of parsed.subShaders[0].passes.entries()) {

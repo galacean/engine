@@ -89,7 +89,7 @@ describe("camera test", function () {
     expect(camera.orthographicSize).to.eq(expectedOrthographicSize);
     camera.orthographicSize = orthographicSize;
     const shader = Shader.create("TestReplaceShader", [
-      new SubShader("Default", [new ShaderPass("Default", [], [], ShaderLanguage.GLSLES300)])
+      new SubShader("Default", [new ShaderPass("Default", [], [], ShaderLanguage.GLSLES)])
     ]);
 
     // Test ReplacementShader

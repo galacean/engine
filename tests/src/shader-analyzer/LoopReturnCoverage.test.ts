@@ -13,7 +13,7 @@ VertexShader = vert; FragmentShader = frag;
 }
 
 describe("loop return coverage", () => {
-  it.each([ShaderLanguage.GLSLES300])("accepts returning loops that compile in GLES %i", async (target) => {
+  it.each([ShaderLanguage.GLSLES])("accepts returning loops that compile in GLES %i", async (target) => {
     const engine = await WebGLEngine.create({
       canvas: document.createElement("canvas"),
       shaderCompiler: new ShaderCompiler()

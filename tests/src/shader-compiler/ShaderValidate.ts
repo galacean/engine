@@ -43,7 +43,7 @@ export function glslValidate(
       subShaderSource.passes.forEach((passSource) => {
         if (passSource.isUsePass) return;
 
-        const platform = ShaderLanguage.GLSLES300;
+        const platform = ShaderLanguage.GLSLES;
 
         const shaderPassSource = shaderCompiler._parseShaderPass(
           passSource.contents,
