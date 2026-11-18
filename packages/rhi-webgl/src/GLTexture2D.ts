@@ -39,8 +39,7 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
     this._bind();
 
     if (formatDetail.isCompressed) {
-      const { internalFormat } = formatDetail;
-      gl.compressedTexSubImage2D(this._target, mipLevel, x, y, width, height, internalFormat, colorBuffer);
+      gl.compressedTexSubImage2D(this._target, mipLevel, x, y, width, height, formatDetail.internalFormat, colorBuffer);
     } else {
       const { baseFormat, dataType } = formatDetail;
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);

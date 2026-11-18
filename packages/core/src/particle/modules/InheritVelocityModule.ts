@@ -102,13 +102,12 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
    * @internal
    */
   _updateEmitterVelocity(elapsedTime: number): void {
-    const renderer = this._generator._renderer;
     if (this._generator.main.simulationSpace !== ParticleSimulationSpace.World) {
       this._resyncEmitterVelocity();
       return;
     }
 
-    const worldPosition = renderer.entity.transform.worldPosition;
+    const worldPosition = this._generator._renderer.entity.transform.worldPosition;
     if (this._hasPreviousWorldPosition && elapsedTime > MathUtil.zeroTolerance) {
       const previous = this._previousWorldPosition;
       this._emitterVelocity.set(

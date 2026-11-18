@@ -182,10 +182,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         );
 
         if (boneCount > remainUniformJointCount) {
-          const engine = this.engine;
           if (boneCountChange) {
             this._jointTexture?.destroy();
-            this._jointTexture = new Texture2D(engine, 4, boneCount, TextureFormat.R32G32B32A32, false, false);
+            this._jointTexture = new Texture2D(this.engine, 4, boneCount, TextureFormat.R32G32B32A32, false, false);
             this._jointTexture.filterMode = TextureFilterMode.Point;
             this._jointTexture.isGCIgnored = true;
           }

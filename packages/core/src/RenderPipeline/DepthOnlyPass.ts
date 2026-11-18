@@ -16,11 +16,10 @@ export class DepthOnlyPass extends PipelinePass {
   renderTarget: RenderTarget | null;
 
   onConfig(camera: Camera): void {
-    const engine = this.engine;
     const { width, height } = camera.pixelViewport;
 
     const renderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
-      engine,
+      this.engine,
       this.renderTarget,
       width,
       height,

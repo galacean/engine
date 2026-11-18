@@ -30,7 +30,7 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
   ): void {
     const gl = this._gl;
     const formatDetail = this._formatDetail;
-    const { internalFormat, baseFormat, dataType, isCompressed } = formatDetail;
+    const { baseFormat, dataType, isCompressed } = formatDetail;
     const mipSize = Math.max(1, this._texture.width >> mipLevel);
 
     width = width || mipSize - x;
@@ -46,7 +46,7 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
         y,
         width,
         height,
-        internalFormat,
+        formatDetail.internalFormat,
         colorBuffer
       );
     } else {

@@ -102,14 +102,13 @@ export class CascadedShadowCasterPass extends PipelinePass {
 
     // Prepare render target
     const { z: width, w: height } = this._shadowMapSize;
-    const format = this._shadowMapFormat;
     const renderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
       engine,
       this._renderTarget,
       width,
       height,
       null,
-      format,
+      this._shadowMapFormat,
       true,
       false,
       false,

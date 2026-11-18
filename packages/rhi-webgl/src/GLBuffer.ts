@@ -96,9 +96,8 @@ export class GLBuffer implements IPlatformBuffer {
   }
 
   getData(data: ArrayBufferView, bufferByteOffset?: number, dataOffset?: number, dataLength?: number): void {
-    const gl = this._gl;
     this.bind();
-    gl.getBufferSubData(this._glBindTarget, bufferByteOffset!, data, dataOffset, dataLength);
+    this._gl.getBufferSubData(this._glBindTarget, bufferByteOffset!, data, dataOffset, dataLength);
   }
 
   copyFromBuffer(srcBuffer: IPlatformBuffer, srcByteOffset: number, dstByteOffset: number, byteLength: number): void {
