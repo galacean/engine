@@ -159,6 +159,7 @@ import {
   seedWorldOriginX,
   seedWorldOriginZ
 } from "@galacean/engine-world-planning/runtime/SeedWorldFields";
+import { SeedWorldPanoramaVistaRuntime } from "@galacean/engine-world-planning/runtime/SeedWorldPanoramaVistaRuntime";
 import {
   SEED_WORLD_ROAD_COLOR_DEFAULT,
   SEED_WORLD_SURFACE_LOD_CROSS_FADE_DURATION_SECONDS,
@@ -275,6 +276,7 @@ export async function mountSeedWorldDemo(
   let lighting: ReturnType<typeof createIntegratedWorldLightingRuntime> | undefined;
   let lightingProfile: PlanningLightingProfileRuntime | undefined;
   let environment: WorldEnvironmentRuntime | undefined;
+  let vista: SeedWorldPanoramaVistaRuntime | undefined;
   let tools: PlanningSeedWorldSession | undefined;
   let animals: PlanningAnimalHost | undefined;
   let detachAnimalLightning: (() => void) | undefined;
@@ -459,6 +461,7 @@ export async function mountSeedWorldDemo(
       }
     ],
     ["水运行", () => water?.destroy()],
+    ["远景环山", () => vista?.destroy()],
     ["沙雾", () => sandstorm?.destroy()],
     ["Mojave 景观", () => mojaveLayout?.destroy()],
     ["环境", () => environment?.destroy()],
@@ -857,6 +860,7 @@ export async function mountSeedWorldDemo(
       publication?.current?.vegetation?.update(dt);
       obbDebug?.update(dt);
       water?.update(dt);
+      vista?.update();
       animals?.advance?.(dt);
       const position = camera.entity.transform.worldPosition;
       windCenter.set(position.x, sampleHeight(position.x, position.z) ?? position.y, position.z);
@@ -2088,6 +2092,17 @@ export async function mountSeedWorldDemo(
     camera.enabled = true;
     progress(0.2, "准备原 Seed 环境光照");
     await source.initialize(preparePublication);
+    const initialTerrain = publication!.current!.data;
+    vista = new SeedWorldPanoramaVistaRuntime({
+      engine,
+      scene: scene!,
+      parent: root,
+      camera,
+      lighting,
+      environment,
+      plan: initialTerrain.plan,
+      fields: initialTerrain.fields
+    });
     const initialBuildingDocument = source.session.export();
     nativeEditor.editor.registerPreparation(
       preparePlanningWaterSource(() => runtimeProject!.projectPackage),
