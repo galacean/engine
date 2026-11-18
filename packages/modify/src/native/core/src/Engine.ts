@@ -1,11 +1,5 @@
-import {
-  IHardwareRenderer,
-  IInputOptions,
-  IPhysics,
-  IPhysicsManager,
-  IShaderCompiler,
-  IXRDevice
-} from "@galacean/engine-design";
+import { IInputOptions, IPhysics, IPhysicsManager, IShaderCompiler, IXRDevice } from "@galacean/engine-design";
+import type { IHardwareRenderer } from "./renderingHardwareInterface";
 import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
@@ -642,7 +636,7 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
-  protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
+  protected _initialize(configuration: EngineConfiguration): Promise<this> {
     const { shaderCompiler, physics } = configuration;
 
     if (shaderCompiler && !Shader._shaderCompiler) {

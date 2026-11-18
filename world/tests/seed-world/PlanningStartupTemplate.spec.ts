@@ -72,8 +72,13 @@ it.each([0, 0xffffffff])("publishes a terrain-carved oasis with shared rocks on 
   const tree = plan.worldTemplateSite?.footprints.find((item) => item.id === "oasis-scarlet-tree");
   expect(tree).toBeDefined();
   const outer = createPlanningRingQuery(lake!.outline);
-  const island = createPlanningRingQuery(lake!.lake!.holes![0]);
-  expect(outer.inside(tree!.obb.center)).toBe(true);
-  expect(island.containsPolygon(tree!.outline)).toBe(true);
+  const shoal = createPlanningRingQuery(lake!.lake!.holes![0]);
+  expect(outer.inside(tree!.obb.center)).toBe(false);
+  expect(outer.overlapsPolygon(tree!.outline)).toBe(false);
+  expect(outer.inside({ x: tree!.obb.center.x, z: tree!.obb.center.z + 11 })).toBe(true);
+  expect(outer.inside({ x: tree!.obb.center.x - 18, z: tree!.obb.center.z })).toBe(true);
+  expect(outer.inside({ x: tree!.obb.center.x + 22, z: tree!.obb.center.z })).toBe(true);
+  expect(outer.containsPolygon(lake!.lake!.holes![0])).toBe(true);
+  expect(shoal.inside({ x: plan.worldTemplateSite!.center.x - 16, z: plan.worldTemplateSite!.center.z - 11 })).toBe(true);
   expect(outer.inside(plan.spawn)).toBe(false);
 }, 30_000);
