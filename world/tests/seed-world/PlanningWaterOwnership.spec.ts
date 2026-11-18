@@ -352,7 +352,7 @@ it("fits retained lakes to a lower template terrain without hiding their water",
   scene.update(body.entityId, { position: [508, 0, 508] });
   scene.updateComponent(body.id, { authoring: { ...authoring,
     shape: { ...authoring.shape, referenceLevel: 1000 } } });
-  const target = createTemplatePlanningDocument(20261110, "aurora-palace");
+  const target = createTemplatePlanningDocument(20261110, "emerald-forest");
   const retained = retainPlanningWaterSource(target, draft.preview());
   const lake = retained.entities["lake:0"].components.lakes.values;
   expect(lake.enabled).toBe(true);
@@ -434,8 +434,8 @@ it.each([false, true])("replans template water around its subject and preserves 
     scene.removeComponent(lake.id);
     await prepareRemoval(draft, before);
   }
-  const retained = retainPlanningWaterSource(createTemplatePlanningDocument(20261110, "aurora-palace"), draft.preview());
-  expect(retainPlanningWaterSource(createTemplatePlanningDocument(20261110, "aurora-palace"), draft.preview()))
+  const retained = retainPlanningWaterSource(createTemplatePlanningDocument(20261110, "sakura-pearl"), draft.preview());
+  expect(retainPlanningWaterSource(createTemplatePlanningDocument(20261110, "sakura-pearl"), draft.preview()))
     .toEqual(retained);
   const result = generatePlanningDocument(retained, undefined, [], undefined, { environment: false });
   expect(result.accepted).toBe(true);
@@ -450,7 +450,7 @@ it("replans stale river elevations when reapplying the same template and keeps t
   const { draft, document, scene } = fixture();
   const original = generatePlanningDocument(document, undefined, [], undefined, { environment: false });
   writePlanningProjectSource(draft, path, initializePlanningWater(draft, document, original.plan));
-  const target = createTemplatePlanningDocument(20261110, "aurora-palace");
+  const target = createTemplatePlanningDocument(20261110, "sakura-pearl");
   const initialized = retainPlanningWaterSource(target, draft.preview());
   writePlanningProjectSource(draft, path, initialized);
   const river = scene.queryComponents({ type: "WaterBodyComponent" }).find(body =>
@@ -561,8 +561,8 @@ it("scopes generated river Source to its composition on template switches and le
   const sameLayout = retainPlanningWaterSource(sakura, saved);
   expect(riverIds.every((id) => sameLayout.entities[id]?.components.rivers.values.points)).toBe(true);
 
-  const neon = createTemplatePlanningDocument(seed, "neon-alley");
-  const switched = retainPlanningWaterSource(neon, saved);
+  const forest = createTemplatePlanningDocument(seed, "emerald-forest");
+  const switched = retainPlanningWaterSource(forest, saved);
   expect(riverIds.every((id) => !switched.entities[id])).toBe(true);
   expect(switched.entities[authoredLakeId].components.lakes.values.enabled).toBe(false);
   expect(solve(switched).accepted).toBe(true);

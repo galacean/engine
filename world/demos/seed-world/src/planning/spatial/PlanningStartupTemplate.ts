@@ -31,7 +31,9 @@ export function selectPlanningStartupTemplate(id: string, seed: number): void {
  */
 export function initialPlanningTemplate(search: string, seed: number, savedTemplate?: string): string | undefined {
   const explicit = selection?.seed === seed ? selection.id : undefined;
-  if (savedTemplate !== undefined) return explicit !== undefined && explicit !== savedTemplate ? explicit : undefined;
+  if (savedTemplate === "" || worldTemplate(savedTemplate)) {
+    return explicit !== undefined && explicit !== savedTemplate ? explicit : undefined;
+  }
   const id = explicit ?? new URLSearchParams(search).get("template");
   if (id === "original" || !id) return "";
   if (!worldTemplate(id)) throw new Error("未知世界风格：" + id);

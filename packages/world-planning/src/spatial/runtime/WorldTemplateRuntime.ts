@@ -44,19 +44,16 @@ import {
   configureAssetAssemblyRendererInstance,
   configureProceduralPlantWindMaterial
 } from "@galacean/engine-vegetation/asset-assembly/TreeAssemblyRuntime";
-import type { IslandPlan, PlanPoint } from "../../semantic-study/IslandPlanModel";
+import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
 import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
 import { compositionSubjectTerraceBox } from "../SpatialCompositionGeometry";
 import { spatialCompositionParameters } from "../SpatialCompositionParameters";
 import { templateBaseSeed, templateLinearColor, worldTemplate, type WorldTemplate } from "../WorldTemplateCatalog";
 import { WORLD_TEMPLATE_ART, type WorldTemplateArtDirection } from "../WorldTemplateArtDirection";
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
-import { worldTemplateStreet } from "../WorldTemplateStreet";
 import { resolveWorldTemplateScene, type ResolvedWorldTemplateScene } from "../WorldTemplateView";
 import { fitTemplateAsset, stretchTemplateAsset, type TemplateNode } from "../WorldTemplateGeometry";
-import { mountOilPaintGround, oilPaintMaterial } from "./OilPaintMesh";
 import { mountTemplateProceduralPlants } from "./TemplateProceduralPlants";
-import { StreetFacadeRuntime } from "./StreetFacadeRuntime";
 import translucentShader from "./TemplateTranslucent.shader?raw";
 import fireflyShader from "./TemplateFirefly.shader?raw";
 import petalShader from "./TemplatePetal.shader?raw";
@@ -75,8 +72,7 @@ function modelBounds(entity: Entity): BoundingBox {
 export class WorldTemplateRuntime {
   readonly root: Entity;
   readonly template: WorldTemplate;
-  readonly geometry?: ResolvedWorldTemplateScene["geometry"];
-  private facades?: StreetFacadeRuntime;
+  readonly geometry: ResolvedWorldTemplateScene["geometry"];
   private mesh?: ModelMesh;
   private material?: UnlitMaterial;
   private readonly models: { id: string; url: string; entity: Entity }[] = [];
@@ -89,31 +85,24 @@ export class WorldTemplateRuntime {
   private sporeTexture?: Texture2D;
   private petalRenderer?: ParticleRenderer;
   private petalMaterial?: ParticleMaterial;
-  private groundPaintMaterial?: Material;
-  private groundPaintMeshes: ModelMesh[] = [];
   private readonly foliageWindDisposals: Array<() => void> = [];
   private disposeProceduralPlants?: () => void;
   private destroyed = false;
   private readonly anchor: { x: number; y: number; z: number };
-  private focusBounds?: ResolvedWorldTemplateScene["focusBounds"];
+  private focusBounds: ResolvedWorldTemplateScene["focusBounds"];
 
   static async create(
     parent: Entity,
     plan: IslandPlan,
     ground: (x: number, z: number) => number | undefined,
     prepared = resolveWorldTemplateScene(plan, ground),
-    signal?: AbortSignal,
-    viewer?: Entity
+    signal?: AbortSignal
   ): Promise<WorldTemplateRuntime | undefined> {
     const template = worldTemplate(plan.parameters.worldTemplate?.id);
-    if (!template) return undefined;
-    const signs = WORLD_TEMPLATE_ART[template.id].streetSigns;
-    const street = worldTemplateStreet(plan);
-    const spine = street?.construction?.spine;
-    if (!prepared && !spine?.length) return undefined;
+    if (!template || !prepared) return undefined;
     signal?.throwIfAborted();
     const assets = new Map<string, GLTFResource>();
-    const nodes = prepared?.nodes ?? [];
+    const nodes = prepared.nodes;
     const urls = new Set(nodes.flatMap(({ node }) => (node.assetUrl ? [node.assetUrl] : [])));
     const leafModelUrls = new Set(
       nodes.filter(({ node }) => node.assetLeafMaterials?.length && node.assetUrl).map(({ node }) => node.assetUrl!)
@@ -144,13 +133,8 @@ export class WorldTemplateRuntime {
           }
         })
       : Promise.resolve(undefined);
-    const atlasTask =
-      signs && spine?.length
-        ? parent.engine.resourceManager.load<Texture2D>({ type: AssetType.Texture, url: signs.atlasUrl })
-        : Promise.resolve(undefined);
-    const [leafTemplate, atlas, petalTexture] = await Promise.all([
+    const [leafTemplate, petalTexture] = await Promise.all([
       leafTemplateTask,
-      atlasTask,
       petalTextureTask,
       ...[...urls].map(async (url) => {
         assets.set(
@@ -165,60 +149,29 @@ export class WorldTemplateRuntime {
     ]);
     signal?.throwIfAborted();
     if (parent.destroyed) throw new Error("World template parent was destroyed while loading models");
-    return new WorldTemplateRuntime(
-      parent,
-      plan,
-      template,
-      prepared,
-      assets,
-      ground,
-      leafTemplate,
-      petalTexture,
-      atlas,
-      spine,
-      viewer
-    );
+    return new WorldTemplateRuntime(parent, plan, template, prepared, assets, ground, leafTemplate, petalTexture);
   }
   private constructor(
     parent: Entity,
     plan: IslandPlan,
     template: WorldTemplate,
-    scene: ResolvedWorldTemplateScene | undefined,
+    scene: ResolvedWorldTemplateScene,
     assets: ReadonlyMap<string, GLTFResource>,
     ground: (x: number, z: number) => number | undefined,
     leafTemplate?: Material,
-    petalTexture?: Texture2D,
-    atlas?: Texture2D,
-    spine?: readonly PlanPoint[],
-    viewer?: Entity
+    petalTexture?: Texture2D
   ) {
     this.template = template;
-    this.geometry = scene?.geometry;
-    this.focusBounds = scene?.focusBounds;
+    this.geometry = scene.geometry;
+    this.focusBounds = scene.focusBounds;
     this.root = parent.createChild(`World template: ${template.id}`);
     try {
-      const [x, y, z] = scene?.anchor ?? [0, 0, 0];
+      const [x, y, z] = scene.anchor;
       this.anchor = { x, y, z };
       this.root.transform.setPosition(x, y, z);
-      const oilPaint = WORLD_TEMPLATE_ART[template.id].oilPaint;
-      if (oilPaint && scene) {
-        this.groundPaintMaterial = oilPaintMaterial(parent.engine, [
-          ...oilPaint.groundPigments,
-          ...oilPaint.trailPigments,
-          ...oilPaint.growthPigments
-        ]);
-        this.groundPaintMeshes = mountOilPaintGround(
-          this.root,
-          plan,
-          scene.anchor,
-          ground,
-          oilPaint,
-          this.groundPaintMaterial
-        );
-      }
       const shareVertexColorMaterial = WORLD_TEMPLATE_ART[template.id].sharedVertexColorMaterial;
       let vertexColorMaterial: Material | null = null;
-      for (const { node, position } of scene?.nodes ?? []) {
+      for (const { node, position } of scene.nodes) {
         const entity = this.root.createChild(node.id);
         entity.transform.setPosition(position[0] - x, position[1] - y, position[2] - z);
         entity.transform.setScale(...node.scale);
@@ -309,9 +262,6 @@ export class WorldTemplateRuntime {
           leafTemplate
         );
       }
-      const signs = WORLD_TEMPLATE_ART[template.id].streetSigns;
-      if (signs && atlas && spine)
-        this.facades = new StreetFacadeRuntime(this.root, atlas, signs, ground, spine, viewer);
     } catch (error) {
       this.dispose();
       throw error;
@@ -905,11 +855,6 @@ export class WorldTemplateRuntime {
       id: this.template.id,
       anchor: this.anchor,
       focusBounds: this.focusBounds,
-      oilPaint: this.groundPaintMaterial && {
-        shader: this.groundPaintMaterial.shader.name,
-        tiles: this.groundPaintMeshes.length,
-        triangles: this.groundPaintMeshes.reduce((count, mesh) => count + mesh.subMesh!.count / 3, 0)
-      },
       particles: this.sporeRenderer
         ? {
             renderer: "ParticleRenderer",
@@ -1006,7 +951,7 @@ export class WorldTemplateRuntime {
               }
             : undefined
       })),
-      placeholders: (this.geometry?.nodes ?? []).filter((node) => !node.assetUrl).map((node) => node.id),
+      placeholders: this.geometry.nodes.filter((node) => !node.assetUrl).map((node) => node.id),
       models: this.models.map(({ id, url, entity }) => {
         const { min, max } = modelBounds(entity);
         const renderer = WORLD_TEMPLATE_ART[this.template.id].sharedVertexColorMaterial
@@ -1024,7 +969,6 @@ export class WorldTemplateRuntime {
   dispose(): void {
     if (this.destroyed) return;
     this.destroyed = true;
-    this.facades?.dispose();
     this.root.destroy();
     this.leafMaterials.forEach((material) => material.destroy());
     this.leafMaterials.clear();
@@ -1037,8 +981,6 @@ export class WorldTemplateRuntime {
     this.foliageWindDisposals.length = 0;
     this.disposeProceduralPlants?.();
     this.petalMaterial?.destroy();
-    this.groundPaintMaterial?.destroy();
-    for (const mesh of this.groundPaintMeshes) mesh.destroy();
     this.material?.destroy();
     this.mesh?.destroy();
   }

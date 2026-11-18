@@ -65,28 +65,8 @@ import { planningGroundSurface, planningHeightmap } from "@galacean/engine-world
 import { readAnimalPopulationConfig } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
 
 describe("authored world templates", () => {
-  it("preserves woodland's source palette without ACES or Bloom through native scene save and reload", () => {
-    const source = createTemplatePlanningDocument(1166341947, "oil-paint-woodland");
-    const restored = importPlanningScene(exportPlanningScene(source));
-    expect(restored.entities.world.components.postProcess.values).toMatchObject({
-      enabled: true,
-      colorAdjustments: true,
-      postExposure: 0,
-      contrast: 0,
-      saturation: 0,
-      temperature: 0,
-      tonemapping: false,
-      bloom: false
-    });
-    expect(restored.entities.world.components.lighting).toEqual(source.entities.world.components.lighting);
-    expect(restored.entities.world.components.lighting.values.northOffsetDegrees).toBe(155);
-    restored.entities.world.components.postProcess.values.colorAdjustments = false;
-    expect(importPlanningScene(exportPlanningScene(restored)).entities.world.components.postProcess.values.colorAdjustments)
-      .toBe(false);
-  });
-
   it("keeps composition trees when density is revealed incrementally and after scene reload", () => {
-    const document = createTemplatePlanningDocument(1166341947, "oil-paint-woodland");
+    const document = createTemplatePlanningDocument(1166341947, "emerald-forest");
     const original = generatePlanningDocument(document);
     const initialTrees = structuredClone(original.plan.landscapes);
     const reduced = structuredClone(document);
@@ -271,7 +251,7 @@ describe("authored world templates", () => {
   }, 60000);
 
   it("rotates authored models with the infrastructure frame while preserving their source proportions", () => {
-    for (const id of ["voxel-arcade", "emerald-forest"]) {
+    for (const id of ["low-poly", "emerald-forest"]) {
       const template = WORLD_TEMPLATES.find((entry) => entry.id === id)!;
       const art = WORLD_TEMPLATE_ART[id];
       const base = buildWorldTemplateGeometry(template, 8, { ...art.generation, headingDegrees: 0 });
@@ -759,13 +739,13 @@ describe("authored world templates", () => {
         expect(switched.plan.rocks).toHaveLength(0);
         expect(switched.plan.naturalVegetation?.world).toMatchObject({ trees: 0, shrubs: 0 });
       }
-      const ice = createWorldStylePlanningDocument(styled, 9, "aurora-glacier");
-      const restored = createWorldStylePlanningDocument(ice, 10, "sakura-pearl");
+      const forest = createWorldStylePlanningDocument(styled, 9, "emerald-forest");
+      const restored = createWorldStylePlanningDocument(forest, 10, "sakura-pearl");
       restored.entities.world.components.world.values.seed = 11;
       switchPlanningLayoutScope(restored, 10);
       restored.entities.world.components.world.values.seed = 10;
       switchPlanningLayoutScope(restored, 11);
-      for (const doc of [styled, ice, restored, importPlanningScene(exportPlanningScene(restored))]) {
+      for (const doc of [styled, forest, restored, importPlanningScene(exportPlanningScene(restored))]) {
         expect(doc.entities.world.components.landscapePopulation).toEqual(
           source.entities.world.components.landscapePopulation
         );
@@ -902,25 +882,6 @@ describe("authored world templates", () => {
     expect(precipitation).toHaveLength(2);
     expect(precipitation[1]).toMatchObject({ rainRate: 0 });
   });
-  it("restores native ripple normals from the old Neon Alley preset and preserves subsequent overrides", () => {
-    const document = createTemplatePlanningDocument(1, "neon-alley");
-    const { worldTemplate, weather } = document.entities.world.components;
-    expect(weather.values.surfaceRippleStrength).toBeUndefined();
-
-    delete worldTemplate.values.weatherPresetVersion;
-    weather.values.surfaceRippleStrength = 0;
-    const load = () => upgradePlanningDocument(importPlanningScene(exportPlanningScene(document)));
-    const migrated = load();
-    expect(migrated.entities.world.components.weather.values.surfaceRippleStrength).toBeUndefined();
-
-    weather.values.surfaceRippleStrength = 1.5;
-    expect(load().entities.world.components.weather.values.surfaceRippleStrength).toBe(1.5);
-    const edited = applySpatialCommands(migrated, [
-      { op: "set", entity: "world", component: "weather", values: { surfaceRippleStrength: 0 } }
-    ], planningRegistry) as typeof migrated;
-    const reloaded = upgradePlanningDocument(importPlanningScene(exportPlanningScene(edited)));
-    expect(reloaded.entities.world.components.weather.values.surfaceRippleStrength).toBe(0);
-  });
   for (const template of WORLD_TEMPLATES) {
     const art = WORLD_TEMPLATE_ART[template.id];
     const subjectTest = art.models.length ? it : it.skip;
@@ -973,15 +934,12 @@ describe("authored world templates", () => {
         expect(effective).toBe(authored);
         expect(density).toEqual(naturalVegetationDensity(authored.landscape.vegetation));
         expect(density.trees).toBeGreaterThan(0);
-      } else if (template.vegetation === "desert") {
+      } else {
         expect(density.trees).toBe(0);
         expect(density.grass).toBe(0);
         expect(density.shrubs).toBeGreaterThan(0);
         expect(density.shrubs).toBe(NATURAL_VEGETATION_CONTROLS.find((layer) => layer.key === "shrubs")!.density);
-      } else if (template.vegetation === "grass") {
-        expect(density.grass).toBeGreaterThan(0);
-        expect(Object.entries(density).every(([key, value]) => key === "grass" || value === 0)).toBe(true);
-      } else expect(Object.values(density).every((value) => value === 0)).toBe(true);
+      }
       expect(authored).toEqual(before);
       const fresh = createTemplatePlanningDocument(7, template.id);
       const art = WORLD_TEMPLATE_ART[template.id];
@@ -998,20 +956,6 @@ describe("authored world templates", () => {
     subjectTest(`${template.name}: reserves its subject before publishing buildings, rocks and roads`, () => {
       const result = generatePlanningDocument(createTemplatePlanningDocument(20261104, template.id));
       expect(result.accepted).toBe(true);
-      if (template.vegetation === "grass") {
-        expect(result.plan.buildings.length).toBeGreaterThan(0);
-        expect(result.plan.worldTemplateSite).toBeUndefined();
-        expect(result.plan.planning!.reservations.some((area) => area.ownerId === "world-template")).toBe(false);
-        expect(result.plan.farming).toBeUndefined();
-        expect(result.plan.rocks).toEqual([]);
-        expect(result.plan.landscapes?.some((plant) => plant.kind === "rock")).toBe(false);
-        expect(result.plan.naturalVegetation!.world.grass).toBeGreaterThan(0);
-        const populated = result.plan.spatialLayout!.groups.filter((group) => group.volumes.length > 0);
-        expect(populated).toHaveLength(1);
-        expect(populated[0].rule.branchShape).toBe("curve");
-        expect(populated[0].paths.length).toBeGreaterThan(0);
-        return;
-      }
       const site = result.plan.worldTemplateSite!;
       expect(site.templateId).toBe(template.id);
       const surface = planningGroundSurface(result.plan),
@@ -1042,11 +986,10 @@ describe("authored world templates", () => {
       } else if (!template.vegetation) {
         expect(vegetation.trees).toBeGreaterThan(0);
         expect(result.plan.landscapes!.some((plant) => plant.kind === "tree")).toBe(true);
-      } else if (template.vegetation === "desert") {
+      } else {
         const authored = WORLD_TEMPLATE_ART[template.id].initialLandscape?.["vegetation.shrubs"];
         expect(vegetation.shrubs).toBe(authored ?? NATURAL_VEGETATION_CONTROLS.find(layer => layer.key === "shrubs")!.density);
       }
-      else expect(Object.values(vegetation).every((value) => value === 0)).toBe(true);
       expect(result.plan.planning!.reservations.some((area) => area.ownerId === "world-template")).toBe(true);
       for (const object of [
         ...result.plan.buildings,

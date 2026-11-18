@@ -4,7 +4,6 @@ import { ribbonOutline } from "./WorldRibbon";
 import { PLANNING_SURFACES } from "./PlanningSurfacePalette";
 import { PLANNING_RIVER_BED_BANK_EXTENSION_METRES } from "../spatial/runtime/PlanningRiverBedLayer";
 import { surfaceTransitionWeight } from "../geometry/surfaceTransitionWeight";
-import { worldTemplateStreetPuddles } from "../spatial/WorldTemplateStreet";
 export { PLANNING_SURFACES } from "./PlanningSurfacePalette";
 /** Vertex-centred, row-major RGBA bytes. Origin (0,0); rows increase along world +Z. */
 export interface PlanningAlphamap {
@@ -160,8 +159,6 @@ export function planningAlphamap(plan: IslandPlan): PlanningAlphamap {
   for (const c of plan.courtyards ?? []) paint(c.outline, soil, true);
   for (const c of plan.courtyards ?? []) paint(c.path.outline ?? ribbonOutline(c.path.points, [c.path.width]), soil);
   for (const r of plan.routes) paint(r.outline ?? ribbonOutline(r.points, [r.width]), soil);
-  const street = worldTemplateStreetPuddles(plan);
-  if (street) paint(street.pavement, soil);
   for (const w of plan.waters) paint(w.outline, water, false, w.kind === "river" ? river : undefined);
   const weights = new Uint8Array(size * 4),
     riverBedCoverage = new Uint8Array(size),
@@ -212,7 +209,6 @@ function surfaceKey(plan: IslandPlan): string {
       ? plan.plazas?.map((p) => p.outline)
       : plan.regions.filter((r) => r.kind === "village").map((r) => r.navigationArea ?? r.outline),
     plan.routes.map((r) => r.outline ?? ribbonOutline(r.points, [r.width])),
-    worldTemplateStreetPuddles(plan)?.pavement,
     plan.waters.map((w) => [w.kind, w.outline]),
     plan.courtyards?.map((c) => [c.outline, c.path.outline])
   ]);

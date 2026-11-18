@@ -347,7 +347,6 @@ export function createTemplatePlanningDocument(
   document.samplingVersion = initial.samplingVersion;
   document.waterAuthoringVersion = 1;
   const components = document.entities.world.components;
-  if (art.layout) components.layout = { values: { ...art.layout } };
   if (art.initialPlanning?.wayfinding) components.wayfinding = { values: { ...art.initialPlanning.wayfinding } };
   if (art.initialPlanning?.roadsEnabled !== undefined)
     components.network.values.enabled = art.initialPlanning.roadsEnabled;

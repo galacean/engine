@@ -156,10 +156,9 @@ export function planWorldTemplateSite(
         footprints.some(
           (item) =>
             !land.containsPolygon(item.outline) ||
-            (art.support !== "submerged" &&
-              waters.some(
-                (w) => w.outline.overlapsPolygon(item.outline) && !w.holes.some((h) => h.containsPolygon(item.outline))
-              ))
+            waters.some(
+              (w) => w.outline.overlapsPolygon(item.outline) && !w.holes.some((h) => h.containsPolygon(item.outline))
+            )
         )
       )
         continue;

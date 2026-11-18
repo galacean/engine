@@ -41,6 +41,12 @@ it("rejects an unknown new template before any planning", async () => {
   expect(() => initialPlanningTemplate("?template=missing", 1)).toThrow("未知世界风格");
 });
 
+it("uses the launch choice when the saved theme is no longer registered", async () => {
+  const { initialPlanningTemplate } = await import("../../demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts");
+  expect(initialPlanningTemplate("?template=emerald-forest", 3, "retired-theme")).toBe("emerald-forest");
+  expect(initialPlanningTemplate("?template=original", 3, "retired-theme")).toBe("");
+});
+
 it.each([0, 0xffffffff])("publishes a terrain-carved oasis with shared rocks on Seed %i", async (seed) => {
   const { createTemplatePlanningDocument } = await import("@galacean/engine-world-planning/spatial/WorldTemplateAuthoring");
   const { generatePlanningDocument } = await import("@galacean/engine-world-planning/spatial/PlanningRuntime");

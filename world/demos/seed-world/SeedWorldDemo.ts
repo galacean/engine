@@ -174,7 +174,6 @@ import {
   restorePlanningPlayerBookmark,
   type PlanningPlayerCameraPose
 } from "@galacean/engine-world-planning/spatial/runtime/PlanningPlayerState";
-import { worldTemplateStreetPuddles } from "@galacean/engine-world-planning/spatial/WorldTemplateStreet";
 import { preparePlanningPopulationResources } from "@galacean/engine-world-planning/spatial/runtime/PlanningPopulationRuntime";
 import { PlanningSeedScenePublication } from "@galacean/engine-world-planning/spatial/runtime/PlanningSeedScenePublication";
 import { createPlanningSeedSolids } from "@galacean/engine-world-planning/spatial/runtime/PlanningSeedSolids";
@@ -190,7 +189,6 @@ import { WorldTemplateRuntime } from "@galacean/engine-world-planning/spatial/ru
 import {
   resolveWorldTemplateScene,
   resolveWorldTemplateSpawn,
-  resolveWorldTemplateStreetView,
   resolveWorldTemplateView
 } from "@galacean/engine-world-planning/spatial/WorldTemplateView";
 import { SeedWorldAudioRuntime } from "@galacean/engine-world-planning/world/SeedWorldAudioRuntime";
@@ -1485,12 +1483,7 @@ export async function mountSeedWorldDemo(
             !preparedPlayer?.bookmark &&
             !readSubjectView(document).subjectId
           ) {
-            const view =
-              resolveWorldTemplateStreetView(
-                plan,
-                (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z),
-                navigation.eyeHeight
-              ) ?? spawnView(plan, candidateData, groundPopulation);
+            const view = spawnView(plan, candidateData, groundPopulation);
             const position = new Vector3(view.eye.x, view.eye.y, view.eye.z);
             const target = new Vector3(view.target.x, view.target.y, view.target.z);
             const matrix = new Matrix();
@@ -1550,8 +1543,7 @@ export async function mountSeedWorldDemo(
               signal,
               desert
                 ? desert.desertSurfaceOptions(plan, result.recipe.parameters.terrainSurface, result.recipe.edits)
-                : result.recipe.parameters.terrainSurface,
-              worldTemplateStreetPuddles(plan)
+                : result.recipe.parameters.terrainSurface
             );
             recordBootSpan("SeedWorldTerrainRuntime.create", spanAt);
             signal.throwIfAborted();
@@ -1725,8 +1717,7 @@ export async function mountSeedWorldDemo(
               plan,
               templateGround,
               templateScene,
-              signal,
-              camera.entity
+              signal
             );
             recordBootSpan("WorldTemplateRuntime.create", spanAt);
             if (heightTransition)

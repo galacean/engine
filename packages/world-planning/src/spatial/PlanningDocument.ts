@@ -454,72 +454,6 @@ function upgradeSakuraShrubPalette(component: SpatialComponent | undefined): voi
   if (changed) component.values = colors;
 }
 
-function upgradeNeonAlleyPresentation(world: Record<string, SpatialComponent>): void {
-  const art = WORLD_TEMPLATE_ART["neon-alley"];
-  const template = world.worldTemplate.values;
-  if (template.weatherPresetVersion === undefined) {
-    const weather = world.weather;
-    // The former Neon preset explicitly disabled the water-film ripple normals.
-    // Migrate its stored default once so a later authored zero survives reload.
-    if (weather && !weather.base && weather.values.surfaceRippleStrength === 0)
-      delete weather.values.surfaceRippleStrength;
-    template.weatherPresetVersion = 1;
-  }
-  const defaults = [
-    [
-      world.lighting,
-      art.lighting,
-      {
-        ambientIntensity: 3.2,
-        skyExposure: 0.65,
-        fogDensity: 0.0008,
-        fogExponent: undefined,
-        customSkyZenithR: 1,
-        customSkyZenithG: 1,
-        customSkyZenithB: 1,
-        customSkyHorizonR: 1,
-        customSkyHorizonG: 1,
-        customSkyHorizonB: 1,
-        moonColorR: 1.6,
-        moonColorG: 1.1,
-        moonColorB: 1.4,
-        moonDiskIntensity: undefined,
-        starIntensity: undefined,
-        twilightIntensity: undefined,
-        fogTintR: 1.15,
-        fogTintG: 0.9,
-        fogTintB: 1.3
-      }
-    ],
-    [
-      world.weather,
-      art.weather!,
-      {
-        cloudCoverage: 0.65,
-        surfaceWaterCoverage: 0.56,
-        puddleStorageBias: 0.58,
-        surfaceReflectionIntensity: 2.25,
-        surfaceRoughness: 0.16,
-        standingWaterRoughness: 0.05,
-        surfaceNormalFlattening: 0.55
-      }
-    ],
-    [
-      world.terrain,
-      {
-        surfaceTileM: art.surfaceTextures!.tileSizeM,
-        surfaceNormalScale: art.surfaceTextures!.strength
-      },
-      { surfaceTileM: 4.8, surfaceNormalScale: 3.2 }
-    ]
-  ] as const;
-  for (const [component, next, previous] of defaults) {
-    if (!component || component.base) continue;
-    for (const [key, value] of Object.entries(previous))
-      if (component.values[key] === value) component.values[key] = (next as Record<string, unknown>)[key];
-  }
-}
-
 /** Remove retired authoring contracts once, while retaining registered extension components and current overrides. */
 export function upgradePlanningDocument(input: PlanningDocument): PlanningDocument {
   const document = exportPlanningAuthoring(input);
@@ -527,7 +461,6 @@ export function upgradePlanningDocument(input: PlanningDocument): PlanningDocume
     const world = scope.entities.world?.components;
     const legacy = world?.worldTemplate?.values;
     const id = typeof legacy?.id === "string" ? legacy.id : "";
-    if (world && id === "neon-alley") upgradeNeonAlleyPresentation(world);
     const preset = WORLD_TEMPLATE_ART[id]?.generation;
     if (!world || !preset) continue;
     if (!world.landscapeComposition?.base && !Object.keys(world.landscapeComposition?.values ?? {}).length) {

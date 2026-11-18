@@ -17,7 +17,6 @@ import {
 import { isFlatRoofHeight } from "@galacean/engine-building/building/runtime/RoofMode";
 import { roofHeight } from "@galacean/engine-building/building/runtime/RecoveredRoofMath";
 import { planningRemovedObjectIds } from "../spatial/PlanningResources";
-import { WORLD_TEMPLATE_ART, type WorldTemplateArtDirection } from "../spatial/WorldTemplateArtDirection";
 
 export interface InitialBuildingDraft {
   id: string;
@@ -39,41 +38,10 @@ function stableBuildingSeed(text: string) {
   return h >>> 0;
 }
 
-function styledFacade(b: InitialMember, style: NonNullable<WorldTemplateArtDirection["buildingStyle"]>) {
-  const base = planFacadeDecorations(b).map((part) => {
-    if (part.kind !== "window") return part;
-    return {
-      ...part,
-      type: "window-gothic",
-      frameMaterial: "wall" as const,
-      width: part.width * 1.2,
-      height: part.height * 1.25,
-      lightIntensity: style.windowLightIntensity
-    };
-  });
-  if (style.upperWindowSpacingM <= 0) return base;
-  const byFace = new Map<string, (typeof base)[number][]>();
-  for (const part of base) {
-    if (part.kind !== "window") continue;
-    const face = part.id.split("-")[1];
-    const row = byFace.get(face) ?? [];
-    row.push(part);
-    byFace.set(face, row);
-  }
-  for (const [face, windows] of byFace) {
-    const window = windows[Math.floor(windows.length / 2)];
-    const step = style.upperWindowSpacingM;
-    for (let y = window.bottom + step; y + window.height < b.height - window.height / 2; y += step)
-      base.push({ ...window, id: `upper-window-${face}-${Math.round(y / step)}`, bottom: y });
-  }
-  return base;
-}
-
 /** Consumes published metre/yaw intent once. No random relocation, no Cozy adapter. */
 export function initialBuildingDrafts(plan: IslandPlan): InitialBuildingDraft[] {
   const removed = planningRemovedObjectIds(plan.authoredResources ?? []),
     members: { owner: string; b: InitialMember; radius: number }[] = [];
-  const style = WORLD_TEMPLATE_ART[plan.parameters.worldTemplate?.id ?? ""]?.buildingStyle;
   for (const p of plan.buildings) {
     if (removed.has(p.id)) continue;
     const seed = stableBuildingSeed(plan.parameters.seed + ":" + p.id),
@@ -84,10 +52,10 @@ export function initialBuildingDrafts(plan: IslandPlan): InitialBuildingDraft[] 
       seed,
       height: p.height,
       wallStructure: "masonry",
-      wallColor: style ? style.wallColors[(seed >>> 4) % style.wallColors.length] : (seed >>> 4) % 3,
+      wallColor: (seed >>> 4) % 3,
       woodColor: (seed >>> 8) % 3,
       foundation: { height: 0, mode: "auto" },
-      plaster: { enabled: style?.plaster ?? true, wear: 0.15 + ((seed >>> 16) % 4) * 0.1, color: (seed >>> 20) % 8 },
+      plaster: { enabled: true, wear: 0.15 + ((seed >>> 16) % 4) * 0.1, color: (seed >>> 20) % 8 },
       floors: { enabled: true, interval: 3.5 },
       ...(round
         ? { circle: { center: [p.center.x, p.center.z], radius: Math.min(p.width, p.depth) * 0.46, phase: p.yaw } }
@@ -106,7 +74,7 @@ export function initialBuildingDrafts(plan: IslandPlan): InitialBuildingDraft[] 
         eave: !round && seed % 3 === 0 ? 0.2 : 0.3,
         ridge_direction: 0,
         flat_rim: 0,
-        color: style ? style.roofColors[(seed >>> 6) % style.roofColors.length] : (seed >>> 6) % 4
+        color: (seed >>> 6) % 4
       }
     };
     const r = profileRoofGeometry(profileShape(b as ProfileFootprint), b.roof, 0);
@@ -117,10 +85,7 @@ export function initialBuildingDrafts(plan: IslandPlan): InitialBuildingDraft[] 
         (b.foundation?.height ?? 0) +
         0.46
     );
-    b.attachments = normalizeDecorationPlan(
-      style ? styledFacade(b, style) : planFacadeDecorations(b),
-      isFlatRoofHeight(b.roof.height)
-    );
+    b.attachments = normalizeDecorationPlan(planFacadeDecorations(b), isFlatRoofHeight(b.roof.height));
     if (!isFlatRoofHeight(b.roof.height) && p.width > 6 && p.depth > 6 && seed % 5 === 0)
       // One Gothic dormer on the front of the roof, a little left of the middle and about a
       // third of the way up, at its own size. A design that cannot fit it lays nothing, and

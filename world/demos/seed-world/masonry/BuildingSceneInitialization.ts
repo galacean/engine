@@ -6,9 +6,7 @@ import type { ConstructionTerrainSource } from "@galacean/engine-building/buildi
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import { BUILTIN_BUILDING_ASSETS } from "@galacean/engine-building/building/resources/BuiltinBuildingAssets";
 import { buildingAssets } from "@galacean/engine-building/building/resources/BuildingAssetKit";
-import { initialBuildingDrafts } from "@galacean/engine-world-planning/masonry/BuildingInitialDraft";
 import { initialBuildingSource } from "@galacean/engine-world-planning/masonry/BuildingInitialSource";
-import { worldTemplateStreet } from "@galacean/engine-world-planning/spatial/WorldTemplateStreet";
 
 type AuthoringEdit = Pick<RuntimeEditorEdit, "run" | "withAsset">;
 type Inputs = { plan: IslandPlan; terrain: ConstructionTerrainSource };
@@ -75,18 +73,9 @@ export function buildingScenePreparation(scenePath: string,
       } else {
         const frames = (scene.readEntity(identity.entityId).children ?? [])
           .filter((id) => id.startsWith("building-group:["));
-        const street = worldTemplateStreet(plan);
-        // Legacy saves have no layout identity. Recognize an existing street by the
-        // original native frame IDs, which are stable even when the author moves a house.
-        const expected = street && new Set(initialBuildingDrafts(plan).map(({ id }) => "building-group:" + id));
-        const foreign = initialized && frames.length > 0 && expected && !frames.some((id) => expected.has(id));
-        if (foreign) {
-          const archive = createRoot("旧布局建筑", false);
-          for (const id of frames) scene.reparent(id, archive, false);
-        }
         const next = state.roots[key] = createRoot(label, true);
-        if (!foreign) for (const id of frames) scene.reparent(id, next, false);
-        needsBuildings = !initialized || !!foreign;
+        for (const id of frames) scene.reparent(id, next, false);
+        needsBuildings = !initialized;
       }
       state.active = key;
       draft.writeDocument(marker, JSON.stringify(state));
