@@ -218,12 +218,10 @@ export class HavokPhysics implements IPhysics {
    */
   destroy(): void {
     this._initGeneration++;
-    if (this._scenes.size > 0) {
-      for (let it = this._scenes.values(), cur = it.next(); !cur.done; cur = it.next()) {
-        cur.value.destroy();
-      }
-      this._scenes.clear();
+    for (let it = this._scenes.values(), cur = it.next(); !cur.done; cur = it.next()) {
+      cur.value.destroy();
     }
+    this._scenes.clear();
     if (this._hk) {
       if (this._scratchWorld) {
         this._hk.HP_QueryCollector_Release(this._scratchCollector!);
@@ -235,11 +233,9 @@ export class HavokPhysics implements IPhysics {
       }
       if (this._qTransformScratch !== 0) {
         this._hk._free(this._qTransformScratch);
-        this._qTransformScratch = 0;
       }
-    } else {
-      this._qTransformScratch = 0;
     }
+    this._qTransformScratch = 0;
     this._layerMasks.fill(0xffffffff);
     this._initializeState = InitializeState.Uninitialized;
     this._initializePromise = null;

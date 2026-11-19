@@ -3,7 +3,15 @@ import { IJoint } from "@galacean/engine-design";
 import { HavokCollider } from "../HavokCollider";
 import { HavokPhysics } from "../HavokPhysics";
 import type { HavokPhysicsScene } from "../HavokPhysicsScene";
-import { HKQuaternion, HKVector3, HP_ConstraintId } from "../HavokTypes";
+import {
+  HKQuaternion,
+  HKVector3,
+  HP_ConstraintId,
+  SCRATCH_VEC3_A,
+  SCRATCH_VEC3_B,
+  SCRATCH_VEC3_C,
+  writeVec3
+} from "../HavokTypes";
 
 // Half-ULP of Havok's internal hkHalf16 (7-bit mantissa) SIMD Jacobian storage:
 // prevents false breaking at exact force === breakForce boundaries on offset anchors.
@@ -18,9 +26,6 @@ export abstract class HavokJoint implements IJoint {
   protected static _tempVecC = new Vector3();
   protected static _tempQuatA = new Quaternion();
   protected static _tempQuatB = new Quaternion();
-  protected static _tempTupleA: HKVector3 = [0, 0, 0];
-  protected static _tempTupleB: HKVector3 = [0, 0, 0];
-  protected static _tempTupleC: HKVector3 = [0, 0, 0];
   protected static _tempQTransform: [HKVector3, HKQuaternion] = [
     [0, 0, 0],
     [0, 0, 0, 1]
@@ -46,6 +51,7 @@ export abstract class HavokJoint implements IJoint {
   protected _anchorsDirty = true;
   protected _configDirty = true;
   protected _needsRebuild = false;
+  protected _axesConfigured = false;
 
   private _boundParentBodyPtr = 0;
   private _boundChildBodyPtr = 0;
@@ -170,7 +176,7 @@ export abstract class HavokJoint implements IJoint {
     if (this._connectedCollider && this._connectedCollider !== this._collider) {
       this._connectedCollider._removeJoint(this);
     }
-    this._scene?._removeJoint(this);
+    this._scene?._joints.delete(this);
     this._scene = null;
     this._boundScene = null;
     const hk = this._havokPhysics._hk;
@@ -202,33 +208,21 @@ export abstract class HavokJoint implements IJoint {
     const ay = HavokJoint._tempVecB;
     this._getParentBasis(ax, ay);
 
-    const tP = HavokJoint._tempTupleA;
-    const tX = HavokJoint._tempTupleB;
-    const tY = HavokJoint._tempTupleC;
-
-    tP[0] = this._anchor.x;
-    tP[1] = this._anchor.y;
-    tP[2] = this._anchor.z;
-    tX[0] = ax.x;
-    tX[1] = ax.y;
-    tX[2] = ax.z;
-    tY[0] = ay.x;
-    tY[1] = ay.y;
-    tY[2] = ay.z;
-    hk.HP_Constraint_SetAnchorInParent(this._hkConstraint, tP, tX, tY);
+    hk.HP_Constraint_SetAnchorInParent(
+      this._hkConstraint,
+      writeVec3(this._anchor, SCRATCH_VEC3_A),
+      writeVec3(ax, SCRATCH_VEC3_B),
+      writeVec3(ay, SCRATCH_VEC3_C)
+    );
 
     Vector3.transformByQuat(ax, this._rotation, ax);
     Vector3.transformByQuat(ay, this._rotation, ay);
-    tP[0] = this._connectedAnchor.x;
-    tP[1] = this._connectedAnchor.y;
-    tP[2] = this._connectedAnchor.z;
-    tX[0] = ax.x;
-    tX[1] = ax.y;
-    tX[2] = ax.z;
-    tY[0] = ay.x;
-    tY[1] = ay.y;
-    tY[2] = ay.z;
-    hk.HP_Constraint_SetAnchorInChild(this._hkConstraint, tP, tX, tY);
+    hk.HP_Constraint_SetAnchorInChild(
+      this._hkConstraint,
+      writeVec3(this._connectedAnchor, SCRATCH_VEC3_A),
+      writeVec3(ax, SCRATCH_VEC3_B),
+      writeVec3(ay, SCRATCH_VEC3_C)
+    );
   }
 
   protected _attachToScene(scene: HavokPhysicsScene | null): void {
@@ -243,9 +237,9 @@ export abstract class HavokJoint implements IJoint {
     if (scene !== null && this._boundScene !== null && this._boundScene !== scene) {
       this._needsRebuild = true;
     }
-    this._scene?._removeJoint(this);
+    this._scene?._joints.delete(this);
     this._scene = scene;
-    this._scene?._addJoint(this);
+    this._scene?._joints.add(this);
     this._anchorsDirty = true;
     this._configDirty = true;
   }
@@ -284,6 +278,7 @@ export abstract class HavokJoint implements IJoint {
       this._needsRebuild = false;
       this._anchorsDirty = true;
       this._configDirty = true;
+      this._axesConfigured = false;
       this._boundParentBodyPtr = 0;
       this._boundChildBodyPtr = 0;
       this._boundScene = null;

@@ -12,6 +12,8 @@ import {
   HP_BodyId,
   HP_ShapeId,
   IDENTITY_QUAT,
+  SCRATCH_VEC3_A,
+  SCRATCH_VEC3_B,
   ZERO_VEC3
 } from "./HavokTypes";
 
@@ -66,9 +68,6 @@ export class HavokCharacterController implements ICharacterController, HavokMate
   private static _tempBlockN = new Vector3();
 
   private static _tempQTransform: [HKVector3, HKQuaternion] = [[0, 0, 0], IDENTITY_QUAT];
-  private static _tempExtents: HKVector3 = [0, 0, 0];
-  private static _tempPointA: HKVector3 = [0, 0, 0];
-  private static _tempPointB: HKVector3 = [0, 0, 0];
   private static _tempCastHit: CastHit = { fraction: 0, nx: 0, ny: 1, nz: 0 };
   private static _tempDownResult: DownMoveResult = {
     hit: false,
@@ -301,6 +300,7 @@ export class HavokCharacterController implements ICharacterController, HavokMate
 
     const doAutoStep =
       (this._wasGrounded || recoveredDown) && !isMovingUp && this._stepOffset > 0 && horizLen > minStep;
+    let runStandardPasses = true;
 
     if (doAutoStep) {
       const savedCenter = HavokCharacterController._tempSavedCenter;
@@ -308,20 +308,13 @@ export class HavokCharacterController implements ICharacterController, HavokMate
       const stepLift = this._stepOffset + this._contactOffset;
 
       // Pass 1 (UP): lift by stepOffset + contactOffset.
-      const upVec = HavokCharacterController._tempVec;
-      upVec.set(up.x * stepLift, up.y * stepLift, up.z * stepLift);
-      const upHit = this._castMove(center, upVec);
+      const upRes = this._moveUp(center, stepLift);
       let actualUpLift: number;
-      if (upHit) {
+      if (upRes >= 0) {
         flags |= CollisionFlags.Up;
-        actualUpLift = upHit.fraction * stepLift;
+        actualUpLift = upRes;
       } else {
         actualUpLift = stepLift;
-      }
-      if (actualUpLift > 0) {
-        center.x += up.x * actualUpLift;
-        center.y += up.y * actualUpLift;
-        center.z += up.z * actualUpLift;
       }
 
       // Pass 2 (SIDE): horizontal collide-and-slide at lifted height.
@@ -336,47 +329,30 @@ export class HavokCharacterController implements ICharacterController, HavokMate
         const downRes = this._moveDown(center, totalDown, probeExtra);
         if (downRes.hit) {
           if (actualUpLift > 0 && !downRes.walkable) {
-            // Auto-step landed on a non-walkable slope: revert and retry without stepping up.
+            // Auto-step landed on a non-walkable slope: revert and fall through to standard SIDE -> DOWN.
             center.copyFrom(savedCenter);
             flags = depenetrateFlags;
-            if (this._moveSide(center, horiz, minStep, true)) {
-              flags |= CollisionFlags.Sides;
-            }
-            if (downDist > MOVE_EPSILON) {
-              const fallbackDown = this._moveDown(center, downDist, 0);
-              if (fallbackDown.hit) {
-                flags |= CollisionFlags.Down;
-                this._applyForceSlide(center, fallbackDown);
-              }
-            }
           } else {
             flags |= CollisionFlags.Down;
             this._applyForceSlide(center, downRes);
+            runStandardPasses = false;
           }
-        }
-      }
-    } else {
-      // Plain 3-pass UP -> SIDE -> DOWN without auto-step lift.
-      if (isMovingUp) {
-        const upVec = HavokCharacterController._tempVec;
-        upVec.set(up.x * upProj, up.y * upProj, up.z * upProj);
-        const upHit = this._castMove(center, upVec);
-        if (upHit) {
-          flags |= CollisionFlags.Up;
-          center.x += upVec.x * upHit.fraction;
-          center.y += upVec.y * upHit.fraction;
-          center.z += upVec.z * upHit.fraction;
         } else {
-          center.add(upVec);
+          runStandardPasses = false;
         }
+      } else {
+        runStandardPasses = false;
       }
+    }
 
-      if (horizLen > minStep) {
-        if (this._moveSide(center, horiz, minStep, !isMovingUp)) {
-          flags |= CollisionFlags.Sides;
-        }
+    if (runStandardPasses) {
+      // Plain 3-pass UP -> SIDE -> DOWN (or auto-step fallback where isMovingUp is false and horizLen > minStep).
+      if (isMovingUp && this._moveUp(center, upProj) >= 0) {
+        flags |= CollisionFlags.Up;
       }
-
+      if (horizLen > minStep && this._moveSide(center, horiz, minStep, !isMovingUp)) {
+        flags |= CollisionFlags.Sides;
+      }
       if (downDist > MOVE_EPSILON) {
         const downRes = this._moveDown(center, downDist, 0);
         if (downRes.hit) {
@@ -458,7 +434,7 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     const hk = this._havokPhysics._hk;
     if (this._isBox) {
       const h = this._halfExtents;
-      const ext = HavokCharacterController._tempExtents;
+      const ext = SCRATCH_VEC3_A;
       ext[0] = (h.x + inflation) * 2;
       ext[1] = (h.y + inflation) * 2;
       ext[2] = (h.z + inflation) * 2;
@@ -466,8 +442,8 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     }
     const halfH = this._height * 0.5;
     const u = this._upDirection;
-    const pA = HavokCharacterController._tempPointA;
-    const pB = HavokCharacterController._tempPointB;
+    const pA = SCRATCH_VEC3_A;
+    const pB = SCRATCH_VEC3_B;
     pA[0] = -u.x * halfH;
     pA[1] = -u.y * halfH;
     pA[2] = -u.z * halfH;
@@ -507,7 +483,7 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     hk.HP_Body_SetShape(this._hkBody, newShape);
     hk.HP_World_AddBody(this._scene._hkWorld, this._hkBody, false);
     this._scene._removeColliderShape(this._id);
-    this._scene._addColliderShape(this._id);
+    this._scene._removedShapeIds.delete(this._id);
 
     this._hkShape = newShape;
     if (oldShape) {
@@ -546,16 +522,17 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     this._hkSweptShapePtr = Number(sweptShape[0]);
     this._hkBody = body;
     this._hkBodyPtr = Number(body[0]);
-    this._scene._registerControllerBody(this, this._hkBodyPtr);
+    this._scene._bodyToController.set(this._hkBodyPtr, this);
+    this._scene._dirtyBroadphaseControllers.delete(this);
     hk.HP_World_AddBody(this._scene._hkWorld, body, false);
-    this._scene._addColliderShape(this._id);
+    this._scene._removedShapeIds.delete(this._id);
   }
 
   private _destroyNative(): void {
     const hk = this._havokPhysics._hk;
     if (this._hkBody && this._scene) {
       this._scene._removeColliderShape(this._id);
-      this._scene._unregisterControllerBody(this._hkBodyPtr);
+      this._scene._bodyToController.delete(this._hkBodyPtr);
       if (hk) {
         hk.HP_World_RemoveBody(this._scene._hkWorld, this._hkBody);
         hk.HP_Body_Release(this._hkBody);
@@ -588,7 +565,22 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     // kinematic velocity across steps, whereas SetQTransform updates transforms without residual velocity
     // and fires trigger enter/exit cleanly on the next world step.
     this._havokPhysics._hk.HP_Body_SetQTransform(this._hkBody, qt);
-    this._scene?._markControllerBroadphaseDirty(this);
+    this._scene?._dirtyBroadphaseControllers.add(this);
+  }
+
+  /** Sweeps along +up by `dist`, advances `center`, and returns actual distance (>= 0) on hit or -1 if unobstructed. */
+  private _moveUp(center: Vector3, dist: number): number {
+    const up = this._upDirection;
+    const upVec = HavokCharacterController._tempVec;
+    upVec.set(up.x * dist, up.y * dist, up.z * dist);
+    const upHit = this._castMove(center, upVec);
+    const actual = upHit ? upHit.fraction * dist : dist;
+    if (actual > 0) {
+      center.x += up.x * actual;
+      center.y += up.y * actual;
+      center.z += up.z * actual;
+    }
+    return upHit ? actual : -1;
   }
 
   private _moveSide(center: Vector3, horizDisp: Vector3, minStep: number, preventNonWalkableClimb: boolean): boolean {
@@ -761,7 +753,7 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     // Iterative EPA refinement: for deep penetrations against large shapes (e.g., plane slabs),
     // stepping near the surface first avoids float32 EPA overshoot and converges to <1e-6 accuracy.
     for (let iter = 0; iter < 4; iter++) {
-      const count = scene._runShapeProximityMulti(
+      const count = scene._execShapeProx(
         this._hkSweptShape!,
         this._hkSweptShapePtr,
         center.x,

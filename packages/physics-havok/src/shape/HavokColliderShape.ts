@@ -125,7 +125,8 @@ export abstract class HavokColliderShape implements IColliderShape, HavokMateria
     if (this._layer === layer) return;
     this._layer = layer;
     this._syncLayerFilter();
-    this._collider?._invalidateShapePairs(this);
+    const collider = this._collider;
+    collider?._scene?._invalidateShapePairs(collider, this._id);
   }
 
   setIsTrigger(value: boolean): void {
@@ -133,7 +134,8 @@ export abstract class HavokColliderShape implements IColliderShape, HavokMateria
     this._isTrigger = value;
     if (this._hkShape) {
       this._havokPhysics._hk.HP_Shape_SetTrigger(this._hkShape, value);
-      this._collider?._invalidateShapePairs(this);
+      const collider = this._collider;
+      collider?._scene?._invalidateShapePairs(collider, this._id);
     }
   }
 

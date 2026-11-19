@@ -3,7 +3,6 @@ import { Quaternion, Vector3 } from "@galacean/engine";
 export type HKVector3 = [number, number, number];
 export type HKQuaternion = [number, number, number, number];
 type HKQTransform = [HKVector3, HKQuaternion];
-type HKQSTransform = [HKVector3, HKQuaternion, HKVector3];
 
 export type HP_BodyId = [bigint];
 export type HP_ShapeId = [bigint];
@@ -19,17 +18,7 @@ export interface HKEnumValue {
 export type HKMassProperties = [HKVector3, number, HKVector3, HKQuaternion];
 export type HKPhysicsMaterial = [number, number, number, HKEnumValue, HKEnumValue];
 export type HKFilterInfo = [number, number];
-
-type HKContactPoint = [HP_BodyId, HP_ShapeId, HKShapePathIterator, HKVector3, HKVector3, number];
-type HKRayCastInput = [HKVector3, HKVector3, HKFilterInfo, boolean, HP_BodyId];
-type HKRayCastResult = [number, HKContactPoint];
-type HKPointProximityInput = [HKVector3, number, HKFilterInfo, boolean, HP_BodyId];
-type HKPointProximityResult = [number, HKContactPoint];
-type HKShapeProximityInput = [HP_ShapeId, HKVector3, HKQuaternion, number, boolean, HP_BodyId];
-type HKShapeProximityResult = [number, HKContactPoint, HKContactPoint];
-type HKShapeCastInput = [HP_ShapeId, HKQuaternion, HKVector3, HKVector3, boolean, HP_BodyId];
-type HKShapeCastResult = [number, HKContactPoint, HKContactPoint];
-type HKCollisionEvent = [HKEnumValue, HKContactPoint, HKContactPoint, number];
+export type HKContactPoint = [HP_BodyId, HP_ShapeId, HKShapePathIterator, HKVector3, HKVector3, number];
 
 export const enum HavokEventBits {
   COLLISION_FINISHED = 4,
@@ -107,7 +96,11 @@ export interface HavokModule {
   HP_Shape_SetFilterInfo(shapeId: HP_ShapeId, filterInfo: HKFilterInfo): HKEnumValue;
   HP_Shape_SetMaterial(shapeId: HP_ShapeId, material: HKPhysicsMaterial): HKEnumValue;
   HP_Shape_CreateContainer(): [HKEnumValue, HP_ShapeId];
-  HP_Shape_AddChild(container: HP_ShapeId, newChild: HP_ShapeId, containerFromChild: HKQSTransform): HKEnumValue;
+  HP_Shape_AddChild(
+    container: HP_ShapeId,
+    newChild: HP_ShapeId,
+    containerFromChild: [HKVector3, HKQuaternion, HKVector3]
+  ): HKEnumValue;
   HP_Shape_Release(shape: HP_ShapeId): HKEnumValue;
   HP_Shape_BuildMassProperties(shape: HP_ShapeId): [HKEnumValue, HKMassProperties];
   HP_Shape_PathIterator_GetNext(curItem: HKShapePathIterator): [HKEnumValue, HKShapePathIterator, number];
@@ -167,40 +160,54 @@ export interface HavokModule {
   HP_World_SetGravity(world: HP_WorldId, gravity: HKVector3): HKEnumValue;
   HP_World_AddBody(world: HP_WorldId, body: HP_BodyId, startAsleep: boolean): HKEnumValue;
   HP_World_RemoveBody(world: HP_WorldId, body: HP_BodyId): HKEnumValue;
-  HP_World_CastRayWithCollector(world: HP_WorldId, collector: HP_CollectorId, query: HKRayCastInput): HKEnumValue;
+  HP_World_CastRayWithCollector(
+    world: HP_WorldId,
+    collector: HP_CollectorId,
+    query: [HKVector3, HKVector3, HKFilterInfo, boolean, HP_BodyId]
+  ): HKEnumValue;
   HP_World_PointProximityWithCollector(
     world: HP_WorldId,
     collector: HP_CollectorId,
-    query: HKPointProximityInput
+    query: [HKVector3, number, HKFilterInfo, boolean, HP_BodyId]
   ): HKEnumValue;
   HP_World_ShapeProximityWithCollector(
     world: HP_WorldId,
     collector: HP_CollectorId,
-    query: HKShapeProximityInput
+    query: [HP_ShapeId, HKVector3, HKQuaternion, number, boolean, HP_BodyId]
   ): HKEnumValue;
-  HP_World_ShapeCastWithCollector(world: HP_WorldId, collector: HP_CollectorId, query: HKShapeCastInput): HKEnumValue;
+  HP_World_ShapeCastWithCollector(
+    world: HP_WorldId,
+    collector: HP_CollectorId,
+    query: [HP_ShapeId, HKQuaternion, HKVector3, HKVector3, boolean, HP_BodyId]
+  ): HKEnumValue;
   HP_World_Step(world: HP_WorldId, timestep: number): HKEnumValue;
   HP_World_SetIdealStepTime(world: HP_WorldId, deltaTime: number): HKEnumValue;
   HP_World_SetSpeedLimit(world: HP_WorldId, maxLinearVelocity: number, maxAngularVelocity: number): HKEnumValue;
   HP_World_GetCollisionEvents(world: HP_WorldId): [HKEnumValue, number];
   HP_World_GetNextCollisionEvent(world: HP_WorldId, previousEvent: number): number;
-  HP_Event_AsCollision(eventId: number): [HKEnumValue, HKCollisionEvent];
+  HP_Event_AsCollision(eventId: number): [HKEnumValue, [HKEnumValue, HKContactPoint, HKContactPoint, number]];
   HP_World_GetTriggerEvents(world: HP_WorldId): [HKEnumValue, number];
   HP_World_GetNextTriggerEvent(world: HP_WorldId, previousEvent: number): number;
 
   HP_QueryCollector_Create(hitCapacity: number): [HKEnumValue, HP_CollectorId];
   HP_QueryCollector_Release(collector: HP_CollectorId): HKEnumValue;
   HP_QueryCollector_GetNumHits(collector: HP_CollectorId): [HKEnumValue, number];
-  HP_QueryCollector_GetCastRayResult(collector: HP_CollectorId, hitIndex: number): [HKEnumValue, HKRayCastResult];
+  HP_QueryCollector_GetCastRayResult(
+    collector: HP_CollectorId,
+    hitIndex: number
+  ): [HKEnumValue, [number, HKContactPoint]];
   HP_QueryCollector_GetPointProximityResult(
     collector: HP_CollectorId,
     hitIndex: number
-  ): [HKEnumValue, HKPointProximityResult];
+  ): [HKEnumValue, [number, HKContactPoint]];
   HP_QueryCollector_GetShapeProximityResult(
     collector: HP_CollectorId,
     hitIndex: number
-  ): [HKEnumValue, HKShapeProximityResult];
-  HP_QueryCollector_GetShapeCastResult(collector: HP_CollectorId, hitIndex: number): [HKEnumValue, HKShapeCastResult];
+  ): [HKEnumValue, [number, HKContactPoint, HKContactPoint]];
+  HP_QueryCollector_GetShapeCastResult(
+    collector: HP_CollectorId,
+    hitIndex: number
+  ): [HKEnumValue, [number, HKContactPoint, HKContactPoint]];
 }
 
 export interface HavokShapeIdentity {
@@ -211,11 +218,21 @@ export interface HavokShapeIdentity {
 
 export const ZERO_HANDLE: [bigint] = [BigInt(0)];
 export const ZERO_VEC3: HKVector3 = [0, 0, 0];
-export const ONE_VEC3: HKVector3 = [1, 1, 1];
 export const IDENTITY_QUAT: HKQuaternion = [0, 0, 0, 1];
-export const AXIS_X: HKVector3 = [1, 0, 0];
-export const AXIS_Y: HKVector3 = [0, 1, 0];
 export const ALL_FILTER: HKFilterInfo = [0xffffffff, 0xffffffff];
+
+/** Shared leaf-only scratch tuples for synchronous single `HP_*` calls (never held across nested helpers). */
+export const SCRATCH_VEC3_A: HKVector3 = [0, 0, 0];
+export const SCRATCH_VEC3_B: HKVector3 = [0, 0, 0];
+export const SCRATCH_VEC3_C: HKVector3 = [0, 0, 0];
+
+/** Write a `Vector3` into an `HKVector3` tuple and return `out`. */
+export function writeVec3(src: Vector3, out: HKVector3): HKVector3 {
+  out[0] = src.x;
+  out[1] = src.y;
+  out[2] = src.z;
+  return out;
+}
 
 /**
  * Normalize `src` into an `HKQuaternion` tuple, falling back to identity `[0, 0, 0, 1]` on zero quaternions.

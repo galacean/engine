@@ -8,7 +8,6 @@ import {
   HKVector3,
   HP_BodyId,
   HP_ShapeId,
-  ONE_VEC3,
   writeQTransform,
   ZERO_HANDLE
 } from "./HavokTypes";
@@ -29,7 +28,11 @@ export abstract class HavokCollider implements ICollider {
     [0, 0, 0],
     [0, 0, 0, 1]
   ];
-  private static _tempChildTransform: [HKVector3, HKQuaternion, HKVector3] = [[0, 0, 0], [0, 0, 0, 1], ONE_VEC3];
+  private static _tempChildTransform: [HKVector3, HKQuaternion, HKVector3] = [
+    [0, 0, 0],
+    [0, 0, 0, 1],
+    [1, 1, 1]
+  ];
 
   /** @internal */
   readonly _isDynamic: boolean = false;
@@ -79,7 +82,7 @@ export abstract class HavokCollider implements ICollider {
     shape._collider = this;
     this._shapes.push(shape);
     this._markShapeDirty();
-    this._scene?._addColliderShape(shape._id);
+    this._scene?._removedShapeIds.delete(shape._id);
     return true;
   }
 
@@ -105,7 +108,7 @@ export abstract class HavokCollider implements ICollider {
     if (scene) {
       // Same logical Collider id: trigger pairs survive if still overlapping next step
       scene._removeColliderShape(previousShape._id);
-      scene._addColliderShape(newShape._id);
+      scene._removedShapeIds.delete(newShape._id);
     }
     return true;
   }
@@ -114,7 +117,7 @@ export abstract class HavokCollider implements ICollider {
     const qt = HavokCollider._tempQTransform;
     writeQTransform(position, rotation, qt);
     this._havokPhysics._hk.HP_Body_SetQTransform(this._hkBody, qt);
-    this._scene?._markBroadphaseDirty(this);
+    this._scene?._dirtyBroadphaseColliders.add(this);
   }
 
   getWorldTransform(outPosition: Vector3, outRotation: Quaternion): void {
@@ -138,12 +141,7 @@ export abstract class HavokCollider implements ICollider {
   /** @internal */
   _markShapeDirty(): void {
     this._shapeDirty = true;
-    this._scene?._markDirtyCollider(this);
-  }
-
-  /** @internal */
-  _invalidateShapePairs(shape: HavokColliderShape): void {
-    this._scene?._invalidateShapePairs(this, shape._id);
+    this._scene?._dirtyShapeColliders.add(this);
   }
 
   /** @internal */

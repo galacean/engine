@@ -2,23 +2,17 @@ import { Quaternion, Vector3 } from "@galacean/engine";
 import { IFixedJoint } from "@galacean/engine-design";
 import type { HavokCollider } from "../HavokCollider";
 import type { HavokDynamicCollider } from "../HavokDynamicCollider";
-import { ZERO_VEC3 } from "../HavokTypes";
+import { SCRATCH_VEC3_A, SCRATCH_VEC3_B, ZERO_VEC3 } from "../HavokTypes";
 import { HavokJoint } from "./HavokJoint";
 
 /**
  * Fixed joint locking all 6 degrees of freedom in Havok.
  */
 export class HavokFixedJoint extends HavokJoint implements IFixedJoint {
-  private _axesConfigured = false;
-
   override _checkBreak(dt: number): void {
     super._checkBreak(dt);
     if (this._broken || this._destroyed || !this._enabled) return;
     this._projectToImmovableAnchor();
-  }
-
-  protected override _onConstraintRecreated(): void {
-    this._axesConfigured = false;
   }
 
   protected override _applyConstraintConfig(): void {
@@ -42,9 +36,8 @@ export class HavokFixedJoint extends HavokJoint implements IFixedJoint {
   private _projectToImmovableAnchor(): void {
     const parentCol = this._collider;
     const childCol = this._connectedCollider;
-    const parentDynamic = parentCol._isDynamic && !(parentCol as HavokDynamicCollider)._isKinematicBody();
-    const childDynamic =
-      childCol !== null && childCol._isDynamic && !(childCol as HavokDynamicCollider)._isKinematicBody();
+    const parentDynamic = parentCol._isDynamic && !(parentCol as HavokDynamicCollider)._isKinematic;
+    const childDynamic = childCol !== null && childCol._isDynamic && !(childCol as HavokDynamicCollider)._isKinematic;
 
     if (parentDynamic === childDynamic) {
       return;
@@ -132,18 +125,18 @@ export class HavokFixedJoint extends HavokJoint implements IFixedJoint {
       qt[1][2] = dynRot.z;
       qt[1][3] = dynRot.w;
       hk.HP_Body_SetQTransform(dynBody, qt);
-      this._scene?._markBroadphaseDirty(dynCol);
+      this._scene?._dirtyBroadphaseColliders.add(dynCol);
     }
 
     if (immMoving) {
       const rx = px - immPos.x;
       const ry = py - immPos.y;
       const rz = pz - immPos.z;
-      const lin = HavokJoint._tempTupleA;
+      const lin = SCRATCH_VEC3_A;
       lin[0] = vx + wy * rz - wz * ry;
       lin[1] = vy + wz * rx - wx * rz;
       lin[2] = vz + wx * ry - wy * rx;
-      const ang = HavokJoint._tempTupleB;
+      const ang = SCRATCH_VEC3_B;
       ang[0] = wx;
       ang[1] = wy;
       ang[2] = wz;

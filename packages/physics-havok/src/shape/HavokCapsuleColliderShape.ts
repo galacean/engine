@@ -2,7 +2,7 @@ import { Quaternion, Vector3, Vector4 } from "@galacean/engine";
 import { ICapsuleColliderShape } from "@galacean/engine-design";
 import { HavokPhysics } from "../HavokPhysics";
 import { HavokPhysicsMaterial } from "../HavokPhysicsMaterial";
-import { HKVector3, HP_ShapeId } from "../HavokTypes";
+import { HP_ShapeId, SCRATCH_VEC3_A, SCRATCH_VEC3_B } from "../HavokTypes";
 import { HavokColliderShape } from "./HavokColliderShape";
 
 const MIN_DIM = 1e-4;
@@ -17,9 +17,6 @@ const enum HavokCapsuleUpAxis {
  * Capsule collider shape for Havok.
  */
 export class HavokCapsuleColliderShape extends HavokColliderShape implements ICapsuleColliderShape {
-  private static _tempPointA: HKVector3 = [0, 0, 0];
-  private static _tempPointB: HKVector3 = [0, 0, 0];
-
   private _radius: number;
   private _height: number;
   private _upAxis: HavokCapsuleUpAxis = HavokCapsuleUpAxis.Y;
@@ -150,8 +147,8 @@ export class HavokCapsuleColliderShape extends HavokColliderShape implements ICa
   }
 
   private _createCapsuleShape(radius: number, halfH: number): HP_ShapeId {
-    const pA = HavokCapsuleColliderShape._tempPointA;
-    const pB = HavokCapsuleColliderShape._tempPointB;
+    const pA = SCRATCH_VEC3_A;
+    const pB = SCRATCH_VEC3_B;
     pA[0] = 0;
     pA[1] = 0;
     pA[2] = 0;

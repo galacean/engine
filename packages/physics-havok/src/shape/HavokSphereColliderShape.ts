@@ -26,21 +26,11 @@ export class HavokSphereColliderShape extends HavokColliderShape implements ISph
       return;
     }
     this._radius = radius;
-    const nextRadius = this._getScaledRadius();
-    if (nextRadius === this._effectiveRadius) {
-      return;
-    }
-    this._effectiveRadius = nextRadius;
-    this._replaceHKShape(this._createSphereShape(nextRadius));
+    this._rebuildIfEffectiveChanged();
   }
 
   protected override _onScaleChanged(): void {
-    const nextRadius = this._getScaledRadius();
-    if (nextRadius === this._effectiveRadius) {
-      return;
-    }
-    this._effectiveRadius = nextRadius;
-    this._replaceHKShape(this._createSphereShape(nextRadius));
+    this._rebuildIfEffectiveChanged();
   }
 
   override pointDistance(point: Vector3): Vector4 {
@@ -67,6 +57,15 @@ export class HavokSphereColliderShape extends HavokColliderShape implements ISph
       surfaceDist * surfaceDist
     );
     return out;
+  }
+
+  private _rebuildIfEffectiveChanged(): void {
+    const nextRadius = this._getScaledRadius();
+    if (nextRadius === this._effectiveRadius) {
+      return;
+    }
+    this._effectiveRadius = nextRadius;
+    this._replaceHKShape(this._createSphereShape(nextRadius));
   }
 
   private _getScaledRadius(): number {

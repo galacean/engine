@@ -27,7 +27,6 @@ export class HavokHingeJoint extends HavokJoint implements IHingeJoint {
   private _isSoftLimit = false;
   private _stiffness = 0;
   private _damping = 0;
-  private _axesConfigured = false;
   private _softLimitAppliedOnConstraint = false;
   private _motorSuppressed = false;
   private _lastMotorDt = 0;
@@ -226,7 +225,6 @@ export class HavokHingeJoint extends HavokJoint implements IHingeJoint {
   }
 
   protected override _onConstraintRecreated(): void {
-    this._axesConfigured = false;
     this._softLimitAppliedOnConstraint = false;
     this._motorSuppressed = false;
     this._lastMotorDt = 0;

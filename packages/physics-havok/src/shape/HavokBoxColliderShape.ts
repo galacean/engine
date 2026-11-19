@@ -2,7 +2,7 @@ import { Quaternion, Vector3, Vector4 } from "@galacean/engine";
 import { IBoxColliderShape } from "@galacean/engine-design";
 import { HavokPhysics } from "../HavokPhysics";
 import { HavokPhysicsMaterial } from "../HavokPhysicsMaterial";
-import { HKVector3, HP_ShapeId, IDENTITY_QUAT, ZERO_VEC3 } from "../HavokTypes";
+import { HP_ShapeId, IDENTITY_QUAT, SCRATCH_VEC3_A, ZERO_VEC3 } from "../HavokTypes";
 import { HavokColliderShape } from "./HavokColliderShape";
 
 const MIN_EXTENT = 1e-4;
@@ -11,8 +11,6 @@ const MIN_EXTENT = 1e-4;
  * Box collider shape for Havok.
  */
 export class HavokBoxColliderShape extends HavokColliderShape implements IBoxColliderShape {
-  private static _tempExtents: HKVector3 = [0, 0, 0];
-
   private _size = new Vector3();
 
   constructor(havokPhysics: HavokPhysics, uniqueID: number, size: Vector3, material: HavokPhysicsMaterial) {
@@ -68,7 +66,7 @@ export class HavokBoxColliderShape extends HavokColliderShape implements IBoxCol
   }
 
   private _createBoxShape(): HP_ShapeId {
-    const ext = HavokBoxColliderShape._tempExtents;
+    const ext = SCRATCH_VEC3_A;
     ext[0] = Math.max(Math.abs(this._size.x) * this._worldScale.x, MIN_EXTENT);
     ext[1] = Math.max(Math.abs(this._size.y) * this._worldScale.y, MIN_EXTENT);
     ext[2] = Math.max(Math.abs(this._size.z) * this._worldScale.z, MIN_EXTENT);

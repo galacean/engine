@@ -10,7 +10,6 @@ export class HavokSpringJoint extends HavokJoint implements ISpringJoint {
   private _tolerance = 0.25;
   private _stiffness = 0;
   private _damping = 0;
-  private _axesConfigured = false;
 
   setMinDistance(distance: number): void {
     const next = Math.max(0, distance);
@@ -45,10 +44,6 @@ export class HavokSpringJoint extends HavokJoint implements ISpringJoint {
     if (this._damping === next) return;
     this._damping = next;
     this._configDirty = true;
-  }
-
-  protected override _onConstraintRecreated(): void {
-    this._axesConfigured = false;
   }
 
   protected override _applyConstraintConfig(): void {

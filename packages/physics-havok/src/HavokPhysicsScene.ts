@@ -7,6 +7,7 @@ import { HavokPhysics } from "./HavokPhysics";
 import {
   HavokEventBits,
   HavokShapeIdentity,
+  HKContactPoint,
   HKFilterInfo,
   HKQuaternion,
   HKVector3,
@@ -15,7 +16,10 @@ import {
   HP_ShapeId,
   HP_WorldId,
   IDENTITY_QUAT,
+  SCRATCH_VEC3_A,
+  SCRATCH_VEC3_B,
   writeNormalizedQuat,
+  writeVec3,
   ZERO_HANDLE,
   ZERO_VEC3
 } from "./HavokTypes";
@@ -39,6 +43,12 @@ enum PhysicsEventState {
   Exit = 2
 }
 
+const enum QueryKind {
+  Ray = 0,
+  ShapeCast = 1,
+  ShapeProximity = 2
+}
+
 /**
  * Simulates colliders and executes scene queries through Havok WASM.
  */
@@ -48,12 +58,8 @@ export class HavokPhysicsScene implements IPhysicsScene {
   private static _tempQuatA = new Quaternion();
   private static _tempQuatB = new Quaternion();
 
-  private static _tempVec3: HKVector3 = [0, 0, 0];
   private static _tempQueryRot: HKQuaternion = [0, 0, 0, 1];
   private static _tempFilter: HKFilterInfo = [0xffffffff, 0xffffffff];
-  private static _tempBoxExtents: HKVector3 = [0, 0, 0];
-  private static _tempCapA: HKVector3 = [0, 0, 0];
-  private static _tempCapB: HKVector3 = [0, 0, 0];
   private static _tempRayInput: [HKVector3, HKVector3, HKFilterInfo, boolean, HP_BodyId] = [
     [0, 0, 0],
     [0, 0, 0],
@@ -97,19 +103,30 @@ export class HavokPhysicsScene implements IPhysicsScene {
   _worldAnchorBodyPtr: number;
   /** @internal */
   _contactEventsEnabled = false;
+  /** @internal */
+  _joints = new Set<HavokJoint>();
+  /** @internal */
+  _bodyToController = new Map<number, HavokCharacterController>();
+  /** @internal */
+  _pendingForceColliders = new Set<HavokDynamicCollider>();
+  /** @internal */
+  _pendingKinematicMoves = new Set<HavokDynamicCollider>();
+  /** @internal */
+  _dirtyShapeColliders = new Set<HavokCollider>();
+  /** @internal */
+  _dirtyBroadphaseColliders = new Set<HavokCollider>();
+  /** @internal */
+  _dirtyBroadphaseControllers = new Set<HavokCharacterController>();
+  /** @internal */
+  _removedShapeIds = new Set<number>();
 
   private _havokPhysics: HavokPhysics;
-  private _hkWorldId: bigint;
   private _destroyed = false;
   private _colliders = new Set<HavokCollider>();
   private _controllers = new Set<HavokCharacterController>();
-  private _joints = new Set<HavokJoint>();
   private _bodyToCollider = new Map<number, HavokCollider>();
-  private _bodyToController = new Map<number, HavokCharacterController>();
 
   // Sparse active sets replacing per-step O(N) dynamic body traversal
-  private _pendingForceColliders = new Set<HavokDynamicCollider>();
-  private _pendingKinematicMoves = new Set<HavokDynamicCollider>();
   private _kinematicResetColliders = new Set<HavokDynamicCollider>();
   private _clampedAngVelColliders = new Set<HavokDynamicCollider>();
   private _kinematicColliders = new Set<HavokDynamicCollider>();
@@ -118,25 +135,19 @@ export class HavokPhysicsScene implements IPhysicsScene {
   private _appliedWorldMaxAngVel = DEFAULT_MAX_ANG_VEL;
   private _lastStepTime = -1;
 
-  // Deferred shape/broadphase/filter flush queues
-  private _dirtyShapeColliders = new Set<HavokCollider>();
-  private _dirtyBroadphaseColliders = new Set<HavokCollider>();
-  private _dirtyBroadphaseControllers = new Set<HavokCharacterController>();
+  // Deferred filter flush queues
   private _dirtyFilterColliders = new Set<HavokCollider>();
   private _dirtyFilterControllers = new Set<HavokCharacterController>();
   private _filterChangedShapeIds = new Set<number>();
 
   // Query collectors & persistent 256B Tier 2 raw C-ABI scratch buffer (0 when Tier 2 unavailable)
   private _singleCollector: HP_CollectorId;
-  private _singleCollectorId: bigint;
   private _multiCollector: HP_CollectorId;
-  private _multiCollectorId: bigint;
   private _collectorCapacity = 256;
   private _queryScratchPtr = 0;
-  private _hasRawPathIter = false;
 
   // Zero-alloc collision & trigger tracking using 52-bit integer pair keys
-  private _activeContactPairs = new Map<number, boolean>();
+  private _activeContactPairs = new Set<number>();
   private _activeKinematicPairs = new Set<number>();
   private _activeKinematicShapeIds = new Set<number>();
   private _stepContactMap = new Map<number, ContactEvent>();
@@ -144,13 +155,16 @@ export class HavokPhysicsScene implements IPhysicsScene {
   private _contactEvents: ContactEvent[] = [];
   private _contactEventCount = 0;
 
-  private _removedShapeIds = new Set<number>();
   private _triggerPairMap = new Map<number, TriggerEvent>();
   private _activeTriggers: TriggerEvent[] = [];
   private _triggerEvents: TriggerEvent[] = [];
   private _triggerEventPool: TriggerEvent[] = [];
 
-  private _physicsEvents: IPhysicsEvents = { contactEvents: [], contactEventCount: 0, triggerEvents: [] };
+  private _physicsEvents: IPhysicsEvents = {
+    contactEvents: this._contactEvents,
+    contactEventCount: 0,
+    triggerEvents: this._triggerEvents
+  };
   private _overlapResultBuffer: number[] = [];
   private _overlapSeen = new Set<number>();
 
@@ -178,7 +192,6 @@ export class HavokPhysicsScene implements IPhysicsScene {
     const hk = havokPhysics._hk;
 
     this._hkWorld = hk.HP_World_Create()[1];
-    this._hkWorldId = this._hkWorld[0];
     hk.HP_World_SetGravity(this._hkWorld, [0, -9.81, 0]);
     hk.HP_World_SetSpeedLimit(this._hkWorld, UNLIMITED_SPEED, DEFAULT_MAX_ANG_VEL);
 
@@ -189,9 +202,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
     hk.HP_World_AddBody(this._hkWorld, this._worldAnchorBody, false);
 
     this._singleCollector = hk.HP_QueryCollector_Create(1)[1];
-    this._singleCollectorId = this._singleCollector[0];
     this._multiCollector = hk.HP_QueryCollector_Create(this._collectorCapacity)[1];
-    this._multiCollectorId = this._multiCollector[0];
 
     const useRawQuery =
       havokPhysics._useRawABI &&
@@ -206,41 +217,11 @@ export class HavokPhysicsScene implements IPhysicsScene {
       typeof hk._HP_QueryCollector_GetNumHits === "function" &&
       typeof hk._HP_QueryCollector_GetCastRayResult === "function" &&
       typeof hk._HP_QueryCollector_GetShapeCastResult === "function" &&
-      typeof hk._HP_QueryCollector_GetShapeProximityResult === "function";
+      typeof hk._HP_QueryCollector_GetShapeProximityResult === "function" &&
+      typeof hk._HP_ShapePathIterator_GetNext === "function";
     this._queryScratchPtr = useRawQuery ? hk._malloc(256) : 0;
-    this._hasRawPathIter = this._queryScratchPtr !== 0 && typeof hk._HP_ShapePathIterator_GetNext === "function";
 
     havokPhysics._registerScene(this);
-  }
-
-  /** @internal */
-  _markDirtyCollider(collider: HavokCollider): void {
-    this._dirtyShapeColliders.add(collider);
-  }
-
-  /** @internal */
-  _markBroadphaseDirty(collider: HavokCollider): void {
-    this._dirtyBroadphaseColliders.add(collider);
-  }
-
-  /** @internal */
-  _markControllerBroadphaseDirty(controller: HavokCharacterController): void {
-    this._dirtyBroadphaseControllers.add(controller);
-  }
-
-  /** @internal */
-  _markPendingForce(collider: HavokDynamicCollider): void {
-    this._pendingForceColliders.add(collider);
-  }
-
-  /** @internal */
-  _markPendingKinematicMove(collider: HavokDynamicCollider): void {
-    this._pendingKinematicMoves.add(collider);
-  }
-
-  /** @internal */
-  _cancelPendingKinematicMove(collider: HavokDynamicCollider): void {
-    this._pendingKinematicMoves.delete(collider);
   }
 
   /** @internal */
@@ -268,29 +249,21 @@ export class HavokPhysicsScene implements IPhysicsScene {
     const wasHigh = prevRad > DEFAULT_MAX_ANG_VEL + ANG_VEL_EPS;
     const isHigh = nextRad > DEFAULT_MAX_ANG_VEL + ANG_VEL_EPS;
 
-    if (wasHigh && !isHigh) {
+    if (wasHigh !== isHigh) {
       this._unregisterDynamicSpeedLimit(collider, prevRad);
+      if (isHigh) {
+        this._ensureUnlimitedWorldSpeed();
+        // Re-allocate this body's Havok motion properties so it picks up the raised 1e6 angular limit.
+        collider._refreshDynamicMotionProperties();
+      }
       this._registerDynamicSpeedLimit(collider);
-    } else if (!wasHigh && isHigh) {
-      this._clampedAngVelColliders.delete(collider);
-      this._highAngVelCount++;
-      this._ensureUnlimitedWorldSpeed();
-      // Re-allocate this body's Havok motion properties so it picks up the raised 1e6 angular limit.
-      collider._refreshDynamicMotionProperties();
-      if (nextRad < 1e5) {
-        this._clampedAngVelColliders.add(collider);
-      }
-    } else if (isHigh) {
-      if (nextRad < 1e5) {
-        this._clampedAngVelColliders.add(collider);
-      } else {
-        this._clampedAngVelColliders.delete(collider);
-      }
     } else {
-      const isDefault = Math.abs(nextRad - DEFAULT_MAX_ANG_VEL) <= ANG_VEL_EPS;
-      if (isDefault && this._worldMaxAngVel === DEFAULT_MAX_ANG_VEL) {
-        this._clampedAngVelColliders.delete(collider);
-      } else {
+      this._clampedAngVelColliders.delete(collider);
+      if (
+        isHigh
+          ? nextRad < 1e5
+          : Math.abs(nextRad - DEFAULT_MAX_ANG_VEL) > ANG_VEL_EPS || this._worldMaxAngVel > DEFAULT_MAX_ANG_VEL
+      ) {
         this._clampedAngVelColliders.add(collider);
       }
     }
@@ -313,7 +286,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
     }
 
     const hk = this._havokPhysics._hk;
-    const isDynamic = collider._isDynamic && !(collider as HavokDynamicCollider)._isKinematicBody();
+    const isDynamic = collider._isDynamic && !(collider as HavokDynamicCollider)._isKinematic;
     const wasAsleep =
       isDynamic && hk.HP_Body_GetActivationState(collider._hkBody)[1].value === hk.ActivationState.INACTIVE.value;
     const savedAngVel =
@@ -341,7 +314,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
   }
 
   /** @internal */
-  _flushDirtyColliders(excludeController?: HavokCharacterController): void {
+  _flushDirtyColliders(excludeController?: HavokCharacterController, clearBroadphaseOnly = false): void {
     if (this._dirtyShapeColliders.size > 0) {
       for (let it = this._dirtyShapeColliders.values(), cur = it.next(); !cur.done; cur = it.next()) {
         if (cur.value._shapeDirty) {
@@ -351,46 +324,29 @@ export class HavokPhysicsScene implements IPhysicsScene {
       this._dirtyShapeColliders.clear();
     }
     if (this._dirtyBroadphaseColliders.size > 0) {
-      for (let it = this._dirtyBroadphaseColliders.values(), cur = it.next(); !cur.done; cur = it.next()) {
-        this._reinsertBody(cur.value, false);
+      if (!clearBroadphaseOnly) {
+        for (let it = this._dirtyBroadphaseColliders.values(), cur = it.next(); !cur.done; cur = it.next()) {
+          this._reinsertBody(cur.value, false);
+        }
       }
       this._dirtyBroadphaseColliders.clear();
     }
     if (this._dirtyBroadphaseControllers.size > 0) {
-      const hk = this._havokPhysics._hk;
-      for (let it = this._dirtyBroadphaseControllers.values(), cur = it.next(); !cur.done; cur = it.next()) {
-        const ctrl = cur.value;
-        if (ctrl === excludeController) continue;
-        this._dirtyBroadphaseControllers.delete(ctrl);
-        if (!ctrl._hkBody) continue;
-        this._dirtyFilterControllers.delete(ctrl);
-        hk.HP_World_RemoveBody(this._hkWorld, ctrl._hkBody);
-        hk.HP_World_AddBody(this._hkWorld, ctrl._hkBody, false);
-        this._markShapeTriggersPendingExit(ctrl._id);
-        this._filterChangedShapeIds.add(ctrl._id);
+      if (clearBroadphaseOnly) {
+        this._dirtyBroadphaseControllers.clear();
+      } else {
+        for (let it = this._dirtyBroadphaseControllers.values(), cur = it.next(); !cur.done; cur = it.next()) {
+          const ctrl = cur.value;
+          if (ctrl === excludeController) continue;
+          this._dirtyBroadphaseControllers.delete(ctrl);
+          this._dirtyFilterControllers.delete(ctrl);
+          if (this._reinsertController(ctrl)) {
+            this._markShapeTriggersPendingExit(ctrl._id);
+            this._filterChangedShapeIds.add(ctrl._id);
+          }
+        }
       }
     }
-  }
-
-  /** @internal */
-  _addJoint(joint: HavokJoint): void {
-    this._joints.add(joint);
-  }
-
-  /** @internal */
-  _removeJoint(joint: HavokJoint): void {
-    this._joints.delete(joint);
-  }
-
-  /** @internal */
-  _registerControllerBody(controller: HavokCharacterController, bodyPtr: number): void {
-    this._bodyToController.set(bodyPtr, controller);
-    this._dirtyBroadphaseControllers.delete(controller);
-  }
-
-  /** @internal */
-  _unregisterControllerBody(bodyPtr: number): void {
-    this._bodyToController.delete(bodyPtr);
   }
 
   /** @internal */
@@ -440,12 +396,6 @@ export class HavokPhysicsScene implements IPhysicsScene {
   }
 
   /** @internal */
-  _addColliderShape(id: number): void {
-    // If re-added before the next step (reparent/static<->dynamic/replaceShape), keep trigger pairs alive
-    this._removedShapeIds.delete(id);
-  }
-
-  /** @internal */
   _removeColliderShape(id: number): void {
     // Mark active triggers as Exit; if re-added before next step, Havok re-detecting them restores Stay.
     // Otherwise _releaseRemovedShapes() drops them silently.
@@ -454,14 +404,12 @@ export class HavokPhysicsScene implements IPhysicsScene {
 
     // Collision pairs restart with onCollisionEnter when a collider moves actors
     if (this._activeContactPairs.size > 0) {
-      for (let it = this._activeContactPairs.entries(), cur = it.next(); !cur.done; cur = it.next()) {
-        const key = cur.value[0];
+      for (let it = this._activeContactPairs.values(), cur = it.next(); !cur.done; cur = it.next()) {
+        const key = cur.value;
         const id1 = key % PAIR_KEY_STRIDE;
         const id0 = (key - id1) / PAIR_KEY_STRIDE;
         if (id0 === id || id1 === id) {
-          if (cur.value[1]) {
-            this._activeKinematicPairs.delete(key);
-          }
+          this._activeKinematicPairs.delete(key);
           this._activeContactPairs.delete(key);
         }
       }
@@ -469,11 +417,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
   }
 
   setGravity(gravity: Vector3): void {
-    const g = HavokPhysicsScene._tempVec3;
-    g[0] = gravity.x;
-    g[1] = gravity.y;
-    g[2] = gravity.z;
-    this._havokPhysics._hk.HP_World_SetGravity(this._hkWorld, g);
+    this._havokPhysics._hk.HP_World_SetGravity(this._hkWorld, writeVec3(gravity, SCRATCH_VEC3_A));
   }
 
   addCollider(collider: HavokCollider): void {
@@ -487,10 +431,10 @@ export class HavokPhysicsScene implements IPhysicsScene {
     const hk = this._havokPhysics._hk;
     if (collider._isDynamic) {
       const dyn = collider as HavokDynamicCollider;
-      if (dyn._isKinematicBody()) {
+      if (dyn._isKinematic) {
         hk.HP_World_AddBody(this._hkWorld, collider._hkBody, false);
         this._kinematicColliders.add(dyn);
-        if (dyn._hasPendingKinematicMove()) {
+        if (dyn._hasPendingKinematicTarget) {
           this._pendingKinematicMoves.add(dyn);
         }
       } else {
@@ -522,7 +466,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
 
     const shapes = collider._shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      this._addColliderShape(shapes[i]._id);
+      this._removedShapeIds.delete(shapes[i]._id);
     }
   }
 
@@ -538,7 +482,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
       this._pendingKinematicMoves.delete(dyn);
       this._kinematicResetColliders.delete(dyn);
       this._kinematicColliders.delete(dyn);
-      if (!dyn._isKinematicBody()) {
+      if (!dyn._isKinematic) {
         this._unregisterDynamicSpeedLimit(dyn, dyn._maxAngularVelocityRad);
       }
     }
@@ -575,7 +519,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
 
     // 2. Flush deferred container rebuilds & broadphase filter invalidations
     //    (HP_World_Step natively updates broadphase for moved bodies, so clear _dirtyBroadphaseColliders here)
-    this._flushDirtyCollidersForStep();
+    this._flushDirtyColliders(undefined, true);
     this._flushDirtyFilters();
 
     // 3. Configure ideal step time BEFORE kinematic targets so HP_Body_SetTargetQTransform uses exact dt
@@ -688,9 +632,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
       }
     }
 
-    physicsEvents.contactEvents = this._contactEvents;
     physicsEvents.contactEventCount = this._contactEventCount;
-    physicsEvents.triggerEvents = triggerEvents;
     return physicsEvents;
   }
 
@@ -716,37 +658,17 @@ export class HavokPhysicsScene implements IPhysicsScene {
     const wantOut = outHitResult !== undefined;
 
     // Fast path: capacity=1 closest-hit collector (shrinks Havok BVH earlyOutFraction automatically).
-    const singleHits = this._execRayCast(
-      this._singleCollector,
-      this._singleCollectorId,
-      sx,
-      sy,
-      sz,
-      ex,
-      ey,
-      ez,
-      filterMask
-    );
+    const singleHits = this._execRayCast(false, sx, sy, sz, ex, ey, ez, filterMask);
     if (singleHits === 0) return false;
 
-    const hit0 = this._readRayHit(this._singleCollector, this._singleCollectorId, 0, wantOut);
-    if (hit0.frac > 0) {
-      const shape = this._resolveQueryContactShape(hit0.bodyPtr, hit0.shapePtr);
-      if (shape && shape._isSceneQuery) {
-        if (wantOut) {
-          const pos = HavokPhysicsScene._tempVecA;
-          const norm = HavokPhysicsScene._tempVecB;
-          pos.set(hit0.px, hit0.py, hit0.pz);
-          norm.set(hit0.nx, hit0.ny, hit0.nz);
-          outHitResult(shape._id, hit0.frac * clampedDist, pos, norm);
-        }
-        return true;
-      }
+    const hit0 = this._readQueryHit(QueryKind.Ray, this._singleCollector, 0, wantOut);
+    if (this._tryEmitSingleHit(hit0, clampedDist, outHitResult)) {
+      return true;
     }
 
     // Fallback to multi-collector when closest hit was frac <= 0 or excluded from scene queries.
-    const numHits = this._runRayQueryMulti(sx, sy, sz, ex, ey, ez, filterMask);
-    return this._resolveMultiClosestHit(true, numHits, clampedDist, outHitResult);
+    const numHits = this._execRayCast(true, sx, sy, sz, ex, ey, ez, filterMask);
+    return this._resolveMultiClosestHit(QueryKind.Ray, numHits, clampedDist, outHitResult);
   }
 
   raycastAll(
@@ -769,23 +691,17 @@ export class HavokPhysicsScene implements IPhysicsScene {
     const ey = sy + direction.y * clampedDist;
     const ez = sz + direction.z * clampedDist;
 
-    const numHits = this._runRayQueryMulti(sx, sy, sz, ex, ey, ez, filterMask);
+    const numHits = this._execRayCast(true, sx, sy, sz, ex, ey, ez, filterMask);
     if (numHits === 0) return;
-
-    const pos = HavokPhysicsScene._tempVecA;
-    const norm = HavokPhysicsScene._tempVecB;
 
     // Single-hit fast path: skip deduplication map entirely.
     if (numHits === 1) {
-      const h = this._readRayHit(this._multiCollector, this._multiCollectorId, 0, true);
-      if (h.frac <= 0) return;
-      const shape = this._resolveQueryContactShape(h.bodyPtr, h.shapePtr);
-      if (!shape || !shape._isSceneQuery) return;
-      pos.set(h.px, h.py, h.pz);
-      norm.set(h.nx, h.ny, h.nz);
-      onHit(shape._id, h.frac * clampedDist, pos, norm);
+      this._tryEmitSingleHit(this._readQueryHit(QueryKind.Ray, this._multiCollector, 0, true), clampedDist, onHit);
       return;
     }
+
+    const pos = HavokPhysicsScene._tempVecA;
+    const norm = HavokPhysicsScene._tempVecB;
 
     // Match PhysX default raycastAll (without eMESH_MULTIPLE): keep the closest hit per collider shape.
     const reentrant = this._inRaycastAll;
@@ -800,7 +716,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
       let recordCount = 0;
 
       for (let i = 0; i < numHits; i++) {
-        const h = this._readRayHit(this._multiCollector, this._multiCollectorId, i, true);
+        const h = this._readQueryHit(QueryKind.Ray, this._multiCollector, i, true);
         if (h.frac <= 0) continue;
         const shape = this._resolveQueryContactShape(h.bodyPtr, h.shapePtr);
         if (!shape || !shape._isSceneQuery) continue;
@@ -903,10 +819,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
 
   overlapBoxAll(center: Vector3, orientation: Quaternion, halfExtents: Vector3, layerMask: number): ArrayLike<number> {
     const mask = layerMask >>> 0;
-    if (mask === 0) {
-      this._overlapResultBuffer.length = 0;
-      return this._overlapResultBuffer;
-    }
+    if (mask === 0) return this._emptyOverlap();
     this._flushDirtyColliders();
     const sx = Math.max(Math.abs(halfExtents.x) * 2, MIN_QUERY_DIM);
     const sy = Math.max(Math.abs(halfExtents.y) * 2, MIN_QUERY_DIM);
@@ -917,10 +830,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
 
   overlapSphereAll(center: Vector3, radius: number, layerMask: number): ArrayLike<number> {
     const mask = layerMask >>> 0;
-    if (mask === 0) {
-      this._overlapResultBuffer.length = 0;
-      return this._overlapResultBuffer;
-    }
+    if (mask === 0) return this._emptyOverlap();
     this._flushDirtyColliders();
     const entry = this._getCachedSphereQueryShape(Math.max(Math.abs(radius), MIN_QUERY_DIM), mask);
     return this._overlapShapeAll(entry, center, null);
@@ -934,10 +844,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
     layerMask: number
   ): ArrayLike<number> {
     const mask = layerMask >>> 0;
-    if (mask === 0) {
-      this._overlapResultBuffer.length = 0;
-      return this._overlapResultBuffer;
-    }
+    if (mask === 0) return this._emptyOverlap();
     this._flushDirtyColliders();
     const halfH = Math.max(Math.abs(height) * 0.5, MIN_QUERY_DIM);
     const r = Math.max(Math.abs(radius), MIN_QUERY_DIM);
@@ -964,8 +871,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
     const ez = sz + dz;
 
     const singleHits = this._execShapeCast(
-      this._singleCollector,
-      this._singleCollectorId,
+      false,
       shape,
       shapePtr,
       IDENTITY_QUAT,
@@ -981,7 +887,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
     );
     if (singleHits === 0) return false;
 
-    const h0 = this._readShapeHit(true, this._singleCollector, this._singleCollectorId, 0, true);
+    const h0 = this._readQueryHit(QueryKind.ShapeCast, this._singleCollector, 0, true);
     if (h0.frac > 0 || (h0.frac === 0 && dx * h0.nx + dy * h0.ny + dz * h0.nz < -1e-6)) {
       outHit.fraction = h0.frac;
       outHit.nx = h0.nx;
@@ -990,7 +896,8 @@ export class HavokPhysicsScene implements IPhysicsScene {
       return true;
     }
 
-    const numHits = this._runShapeCastMulti(
+    const numHits = this._execShapeCast(
+      true,
       shape,
       shapePtr,
       IDENTITY_QUAT,
@@ -1009,7 +916,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
       bestNy = 1,
       bestNz = 0;
     for (let i = 0; i < numHits; i++) {
-      const h = this._readShapeHit(true, this._multiCollector, this._multiCollectorId, i, true);
+      const h = this._readQueryHit(QueryKind.ShapeCast, this._multiCollector, i, true);
       if (h.frac < 0 || h.frac >= bestFrac) continue;
       // Ignore grazing/backfacing hits at fraction == 0 when moving parallel to or away from the surface.
       if (h.frac === 0 && dx * h.nx + dy * h.ny + dz * h.nz >= -1e-6) continue;
@@ -1026,44 +933,9 @@ export class HavokPhysicsScene implements IPhysicsScene {
     return true;
   }
 
-  /** @internal Unified ShapeProximity multi-hit query with >256 hit collector growth. */
-  _runShapeProximityMulti(
-    shape: HP_ShapeId,
-    shapePtr: number,
-    px: number,
-    py: number,
-    pz: number,
-    rot: HKQuaternion,
-    maxDist: number,
-    hitTriggers: boolean,
-    ignoreBody: HP_BodyId,
-    ignoreBodyPtr: number
-  ): number {
-    while (true) {
-      const numHits = this._execShapeProx(
-        this._multiCollector,
-        this._multiCollectorId,
-        shape,
-        shapePtr,
-        px,
-        py,
-        pz,
-        rot,
-        maxDist,
-        hitTriggers,
-        ignoreBody,
-        ignoreBodyPtr
-      );
-      if (numHits < this._collectorCapacity || this._collectorCapacity >= MAX_COLLECTOR_CAPACITY) {
-        return numHits;
-      }
-      this._growCollector();
-    }
-  }
-
-  /** @internal Read distance and hit normal for index `i` of the last `_runShapeProximityMulti` call. */
+  /** @internal Read distance and hit normal for index `i` of the last `_execShapeProx` call. */
   _readShapeProximityHitDistAndNormal(hitIndex: number, outNormal: Vector3): number {
-    const h = this._readShapeHit(false, this._multiCollector, this._multiCollectorId, hitIndex, true);
+    const h = this._readQueryHit(QueryKind.ShapeProximity, this._multiCollector, hitIndex, true);
     outNormal.set(h.nx, h.ny, h.nz);
     return h.frac;
   }
@@ -1097,16 +969,14 @@ export class HavokPhysicsScene implements IPhysicsScene {
     if (hk) {
       if (this._queryScratchPtr !== 0) {
         hk._free(this._queryScratchPtr);
-        this._queryScratchPtr = 0;
       }
       hk.HP_QueryCollector_Release(this._singleCollector);
       hk.HP_QueryCollector_Release(this._multiCollector);
       hk.HP_World_RemoveBody(this._hkWorld, this._worldAnchorBody);
       hk.HP_Body_Release(this._worldAnchorBody);
       hk.HP_World_Release(this._hkWorld);
-    } else {
-      this._queryScratchPtr = 0;
     }
+    this._queryScratchPtr = 0;
     this._colliders.clear();
     this._controllers.clear();
     this._pendingForceColliders.clear();
@@ -1139,9 +1009,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
     this._overlapSeen.clear();
     this._raycastAllIndexMap.clear();
     this._raycastAllRecords.length = 0;
-    this._physicsEvents.contactEvents = this._contactEvents;
     this._physicsEvents.contactEventCount = 0;
-    this._physicsEvents.triggerEvents = this._triggerEvents;
   }
 
   private _ensureUnlimitedWorldSpeed(): void {
@@ -1153,7 +1021,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
       const c = cur.value;
       if (c._isDynamic) {
         const dyn = c as HavokDynamicCollider;
-        if (!dyn._isKinematicBody() && dyn._maxAngularVelocityRad < 1e5) {
+        if (!dyn._isKinematic && dyn._maxAngularVelocityRad < 1e5) {
           this._clampedAngVelColliders.add(dyn);
         }
       }
@@ -1227,25 +1095,15 @@ export class HavokPhysicsScene implements IPhysicsScene {
     removed.clear();
   }
 
-  private _flushDirtyCollidersForStep(): void {
-    if (this._dirtyShapeColliders.size > 0) {
-      for (let it = this._dirtyShapeColliders.values(), cur = it.next(); !cur.done; cur = it.next()) {
-        if (cur.value._shapeDirty) {
-          this._reinsertBody(cur.value, true);
-        }
-      }
-      this._dirtyShapeColliders.clear();
-    }
-    if (this._dirtyBroadphaseColliders.size > 0) {
-      this._dirtyBroadphaseColliders.clear();
-    }
-    if (this._dirtyBroadphaseControllers.size > 0) {
-      this._dirtyBroadphaseControllers.clear();
-    }
+  private _reinsertController(ctrl: HavokCharacterController): boolean {
+    if (!ctrl._hkBody) return false;
+    const hk = this._havokPhysics._hk;
+    hk.HP_World_RemoveBody(this._hkWorld, ctrl._hkBody);
+    hk.HP_World_AddBody(this._hkWorld, ctrl._hkBody, false);
+    return true;
   }
 
   private _flushDirtyFilters(): void {
-    const hk = this._havokPhysics._hk;
     if (this._dirtyFilterColliders.size > 0) {
       for (let it = this._dirtyFilterColliders.values(), cur = it.next(); !cur.done; cur = it.next()) {
         this._reinsertBody(cur.value, false);
@@ -1255,10 +1113,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
 
     if (this._dirtyFilterControllers.size > 0) {
       for (let it = this._dirtyFilterControllers.values(), cur = it.next(); !cur.done; cur = it.next()) {
-        const ctrl = cur.value;
-        if (!ctrl._hkBody) continue;
-        hk.HP_World_RemoveBody(this._hkWorld, ctrl._hkBody);
-        hk.HP_World_AddBody(this._hkWorld, ctrl._hkBody, false);
+        this._reinsertController(cur.value);
       }
       this._dirtyFilterControllers.clear();
     }
@@ -1269,7 +1124,6 @@ export class HavokPhysicsScene implements IPhysicsScene {
     hk.HP_QueryCollector_Release(this._multiCollector);
     this._collectorCapacity *= 2;
     this._multiCollector = hk.HP_QueryCollector_Create(this._collectorCapacity)[1];
-    this._multiCollectorId = this._multiCollector[0];
   }
 
   private _applyQueryShapeFilter(entry: CachedQueryShape, layerMask: number): CachedQueryShape {
@@ -1319,7 +1173,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
     let entry = cache.get(key);
     if (!entry) {
       this._evictOldestQueryShape(cache);
-      const ext = HavokPhysicsScene._tempBoxExtents;
+      const ext = SCRATCH_VEC3_A;
       ext[0] = sx;
       ext[1] = sy;
       ext[2] = sz;
@@ -1343,10 +1197,14 @@ export class HavokPhysicsScene implements IPhysicsScene {
     let entry = cache.get(key);
     if (!entry) {
       this._evictOldestQueryShape(cache);
-      const capA = HavokPhysicsScene._tempCapA;
-      const capB = HavokPhysicsScene._tempCapB;
+      const capA = SCRATCH_VEC3_A;
+      const capB = SCRATCH_VEC3_B;
       capA[0] = -halfH;
+      capA[1] = 0;
+      capA[2] = 0;
       capB[0] = halfH;
+      capB[1] = 0;
+      capB[2] = 0;
       const shape = this._havokPhysics._hk.HP_Shape_CreateCapsule(capA, capB, radius)[1];
       entry = { shape, shapePtr: Number(shape[0]), filterMask: 0xffffffff };
       cache.set(key, entry);
@@ -1357,22 +1215,20 @@ export class HavokPhysicsScene implements IPhysicsScene {
     return this._applyQueryShapeFilter(entry, layerMask);
   }
 
-  private _releaseQueryShapeCaches(): void {
+  private _clearQueryCache<K>(cache: Map<K, CachedQueryShape>): void {
     const hk = this._havokPhysics._hk;
     if (hk) {
-      for (let it = this._sphereQueryCache.values(), cur = it.next(); !cur.done; cur = it.next()) {
-        hk.HP_Shape_Release(cur.value.shape);
-      }
-      for (let it = this._boxQueryCache.values(), cur = it.next(); !cur.done; cur = it.next()) {
-        hk.HP_Shape_Release(cur.value.shape);
-      }
-      for (let it = this._capsuleQueryCache.values(), cur = it.next(); !cur.done; cur = it.next()) {
+      for (let it = cache.values(), cur = it.next(); !cur.done; cur = it.next()) {
         hk.HP_Shape_Release(cur.value.shape);
       }
     }
-    this._sphereQueryCache.clear();
-    this._boxQueryCache.clear();
-    this._capsuleQueryCache.clear();
+    cache.clear();
+  }
+
+  private _releaseQueryShapeCaches(): void {
+    this._clearQueryCache(this._sphereQueryCache);
+    this._clearQueryCache(this._boxQueryCache);
+    this._clearQueryCache(this._capsuleQueryCache);
     this._lastSphereEntry = null;
     this._lastSphereR = -1;
     this._lastBoxEntry = null;
@@ -1384,9 +1240,55 @@ export class HavokPhysicsScene implements IPhysicsScene {
     this._lastCapHalfH = -1;
   }
 
+  private _emptyOverlap(): ArrayLike<number> {
+    this._overlapResultBuffer.length = 0;
+    return this._overlapResultBuffer;
+  }
+
+  private _dispatchRawQuery(kind: QueryKind, useMulti: boolean, inPtr: number): number {
+    const hk = this._havokPhysics._hk;
+    const outPtr = inPtr + 64;
+    const outIdx = outPtr >>> 2;
+    const worldId = this._hkWorld[0];
+    while (true) {
+      const collectorId = (useMulti ? this._multiCollector : this._singleCollector)[0];
+      if (kind === QueryKind.Ray) {
+        hk._HP_World_CastRayWithCollector!(worldId, collectorId, inPtr);
+      } else if (kind === QueryKind.ShapeCast) {
+        hk._HP_World_ShapeCastWithCollector!(worldId, collectorId, inPtr);
+      } else {
+        hk._HP_World_ShapeProximityWithCollector!(worldId, collectorId, inPtr);
+      }
+      hk._HP_QueryCollector_GetNumHits!(collectorId, outPtr);
+      const numHits = hk.HEAPU32[outIdx];
+      if (!useMulti || numHits < this._collectorCapacity || this._collectorCapacity >= MAX_COLLECTOR_CAPACITY) {
+        return numHits;
+      }
+      this._growCollector();
+    }
+  }
+
+  private _dispatchEmbindQuery(kind: QueryKind, useMulti: boolean): number {
+    const hk = this._havokPhysics._hk;
+    while (true) {
+      const collector = useMulti ? this._multiCollector : this._singleCollector;
+      if (kind === QueryKind.Ray) {
+        hk.HP_World_CastRayWithCollector(this._hkWorld, collector, HavokPhysicsScene._tempRayInput);
+      } else if (kind === QueryKind.ShapeCast) {
+        hk.HP_World_ShapeCastWithCollector(this._hkWorld, collector, HavokPhysicsScene._tempShapeCastInput);
+      } else {
+        hk.HP_World_ShapeProximityWithCollector(this._hkWorld, collector, HavokPhysicsScene._tempShapeProxInput);
+      }
+      const numHits = hk.HP_QueryCollector_GetNumHits(collector)[1];
+      if (!useMulti || numHits < this._collectorCapacity || this._collectorCapacity >= MAX_COLLECTOR_CAPACITY) {
+        return numHits;
+      }
+      this._growCollector();
+    }
+  }
+
   private _execRayCast(
-    collector: HP_CollectorId,
-    collectorId: bigint,
+    useMulti: boolean,
     sx: number,
     sy: number,
     sz: number,
@@ -1395,9 +1297,9 @@ export class HavokPhysicsScene implements IPhysicsScene {
     ez: number,
     layerMask: number
   ): number {
-    const hk = this._havokPhysics._hk;
     const inPtr = this._queryScratchPtr;
     if (inPtr !== 0) {
+      const hk = this._havokPhysics._hk;
       const inBase = inPtr >>> 2;
       const f32 = hk.HEAPF32;
       const u32 = hk.HEAPU32;
@@ -1413,10 +1315,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
       u32[inBase + 9] = 0;
       u32[inBase + 10] = 0;
       u32[inBase + 11] = 0;
-      hk._HP_World_CastRayWithCollector!(this._hkWorldId, collectorId, inPtr);
-      const outPtr = inPtr + 64;
-      hk._HP_QueryCollector_GetNumHits!(collectorId, outPtr);
-      return hk.HEAPU32[outPtr >>> 2];
+      return this._dispatchRawQuery(QueryKind.Ray, useMulti, inPtr);
     }
     const input = HavokPhysicsScene._tempRayInput;
     input[0][0] = sx;
@@ -1426,86 +1325,11 @@ export class HavokPhysicsScene implements IPhysicsScene {
     input[1][1] = ey;
     input[1][2] = ez;
     input[2][1] = layerMask;
-    hk.HP_World_CastRayWithCollector(this._hkWorld, collector, input);
-    return hk.HP_QueryCollector_GetNumHits(collector)[1];
-  }
-
-  private _runRayQueryMulti(
-    sx: number,
-    sy: number,
-    sz: number,
-    ex: number,
-    ey: number,
-    ez: number,
-    layerMask: number
-  ): number {
-    while (true) {
-      const numHits = this._execRayCast(
-        this._multiCollector,
-        this._multiCollectorId,
-        sx,
-        sy,
-        sz,
-        ex,
-        ey,
-        ez,
-        layerMask
-      );
-      if (numHits < this._collectorCapacity || this._collectorCapacity >= MAX_COLLECTOR_CAPACITY) {
-        return numHits;
-      }
-      this._growCollector();
-    }
-  }
-
-  private _readRayHit(
-    collector: HP_CollectorId,
-    collectorId: bigint,
-    index: number,
-    readPosNorm: boolean
-  ): QueryHitScratch {
-    const hk = this._havokPhysics._hk;
-    const hit = HavokPhysicsScene._tempHit;
-    const ptr = this._queryScratchPtr;
-    if (ptr !== 0) {
-      const outPtr = ptr + 64;
-      const b = outPtr >>> 2;
-      hk._HP_QueryCollector_GetCastRayResult!(collectorId, index, outPtr);
-      const f32 = hk.HEAPF32;
-      const u32 = hk.HEAPU32;
-      hit.frac = f32[b];
-      hit.bodyPtr = u32[b + 2];
-      hit.shapePtr = u32[b + 4];
-      if (readPosNorm) {
-        hit.px = f32[b + 10];
-        hit.py = f32[b + 11];
-        hit.pz = f32[b + 12];
-        hit.nx = f32[b + 13];
-        hit.ny = f32[b + 14];
-        hit.nz = f32[b + 15];
-      }
-    } else {
-      const [frac, cp] = hk.HP_QueryCollector_GetCastRayResult(collector, index)[1];
-      hit.frac = frac;
-      hit.bodyPtr = Number(cp[0][0]);
-      hit.shapePtr = Number(cp[1][0]);
-      if (readPosNorm) {
-        const p = cp[3];
-        const n = cp[4];
-        hit.px = p[0];
-        hit.py = p[1];
-        hit.pz = p[2];
-        hit.nx = n[0];
-        hit.ny = n[1];
-        hit.nz = n[2];
-      }
-    }
-    return hit;
+    return this._dispatchEmbindQuery(QueryKind.Ray, useMulti);
   }
 
   private _execShapeCast(
-    collector: HP_CollectorId,
-    collectorId: bigint,
+    useMulti: boolean,
     shape: HP_ShapeId,
     shapePtr: number,
     rot: HKQuaternion,
@@ -1519,9 +1343,9 @@ export class HavokPhysicsScene implements IPhysicsScene {
     ignoreBody: HP_BodyId,
     ignoreBodyPtr: number
   ): number {
-    const hk = this._havokPhysics._hk;
     const inPtr = this._queryScratchPtr;
     if (inPtr !== 0) {
+      const hk = this._havokPhysics._hk;
       const inBase = inPtr >>> 2;
       const f32 = hk.HEAPF32;
       const u32 = hk.HEAPU32;
@@ -1541,10 +1365,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
       u32[inBase + 13] = 0;
       u32[inBase + 14] = ignoreBodyPtr;
       u32[inBase + 15] = 0;
-      hk._HP_World_ShapeCastWithCollector!(this._hkWorldId, collectorId, inPtr);
-      const outPtr = inPtr + 64;
-      hk._HP_QueryCollector_GetNumHits!(collectorId, outPtr);
-      return hk.HEAPU32[outPtr >>> 2];
+      return this._dispatchRawQuery(QueryKind.ShapeCast, useMulti, inPtr);
     }
     const input = HavokPhysicsScene._tempShapeCastInput;
     input[0] = shape;
@@ -1557,51 +1378,11 @@ export class HavokPhysicsScene implements IPhysicsScene {
     input[3][2] = ez;
     input[4] = hitTriggers;
     input[5] = ignoreBody;
-    hk.HP_World_ShapeCastWithCollector(this._hkWorld, collector, input);
-    return hk.HP_QueryCollector_GetNumHits(collector)[1];
+    return this._dispatchEmbindQuery(QueryKind.ShapeCast, useMulti);
   }
 
-  private _runShapeCastMulti(
-    shape: HP_ShapeId,
-    shapePtr: number,
-    rot: HKQuaternion,
-    sx: number,
-    sy: number,
-    sz: number,
-    ex: number,
-    ey: number,
-    ez: number,
-    hitTriggers: boolean,
-    ignoreBody: HP_BodyId,
-    ignoreBodyPtr: number
-  ): number {
-    while (true) {
-      const numHits = this._execShapeCast(
-        this._multiCollector,
-        this._multiCollectorId,
-        shape,
-        shapePtr,
-        rot,
-        sx,
-        sy,
-        sz,
-        ex,
-        ey,
-        ez,
-        hitTriggers,
-        ignoreBody,
-        ignoreBodyPtr
-      );
-      if (numHits < this._collectorCapacity || this._collectorCapacity >= MAX_COLLECTOR_CAPACITY) {
-        return numHits;
-      }
-      this._growCollector();
-    }
-  }
-
-  private _execShapeProx(
-    collector: HP_CollectorId,
-    collectorId: bigint,
+  /** @internal Unified ShapeProximity multi-hit query with >256 hit collector growth. */
+  _execShapeProx(
     shape: HP_ShapeId,
     shapePtr: number,
     px: number,
@@ -1613,9 +1394,9 @@ export class HavokPhysicsScene implements IPhysicsScene {
     ignoreBody: HP_BodyId,
     ignoreBodyPtr: number
   ): number {
-    const hk = this._havokPhysics._hk;
     const inPtr = this._queryScratchPtr;
     if (inPtr !== 0) {
+      const hk = this._havokPhysics._hk;
       const inBase = inPtr >>> 2;
       const f32 = hk.HEAPF32;
       const u32 = hk.HEAPU32;
@@ -1633,10 +1414,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
       u32[inBase + 11] = 0;
       u32[inBase + 12] = ignoreBodyPtr;
       u32[inBase + 13] = 0;
-      hk._HP_World_ShapeProximityWithCollector!(this._hkWorldId, collectorId, inPtr);
-      const outPtr = inPtr + 64;
-      hk._HP_QueryCollector_GetNumHits!(collectorId, outPtr);
-      return hk.HEAPU32[outPtr >>> 2];
+      return this._dispatchRawQuery(QueryKind.ShapeProximity, true, inPtr);
     }
     const input = HavokPhysicsScene._tempShapeProxInput;
     input[0] = shape;
@@ -1647,14 +1425,12 @@ export class HavokPhysicsScene implements IPhysicsScene {
     input[3] = maxDist;
     input[4] = hitTriggers;
     input[5] = ignoreBody;
-    hk.HP_World_ShapeProximityWithCollector(this._hkWorld, collector, input);
-    return hk.HP_QueryCollector_GetNumHits(collector)[1];
+    return this._dispatchEmbindQuery(QueryKind.ShapeProximity, true);
   }
 
-  private _readShapeHit(
-    isCast: boolean,
+  private _readQueryHit(
+    kind: QueryKind,
     collector: HP_CollectorId,
-    collectorId: bigint,
     index: number,
     readPosNorm: boolean
   ): QueryHitScratch {
@@ -1664,36 +1440,54 @@ export class HavokPhysicsScene implements IPhysicsScene {
     if (ptr !== 0) {
       const outPtr = ptr + 64;
       const b = outPtr >>> 2;
-      if (isCast) {
-        hk._HP_QueryCollector_GetShapeCastResult!(collectorId, index, outPtr);
+      const collectorId = collector[0];
+      let cpBase: number;
+      if (kind === QueryKind.Ray) {
+        hk._HP_QueryCollector_GetCastRayResult!(collectorId, index, outPtr);
+        cpBase = b + 2;
       } else {
-        hk._HP_QueryCollector_GetShapeProximityResult!(collectorId, index, outPtr);
+        if (kind === QueryKind.ShapeCast) {
+          hk._HP_QueryCollector_GetShapeCastResult!(collectorId, index, outPtr);
+        } else {
+          hk._HP_QueryCollector_GetShapeProximityResult!(collectorId, index, outPtr);
+        }
+        cpBase = b + 18;
       }
       const f32 = hk.HEAPF32;
       const u32 = hk.HEAPU32;
       hit.frac = f32[b];
-      hit.bodyPtr = u32[b + 18];
-      hit.shapePtr = u32[b + 20];
+      hit.bodyPtr = u32[cpBase];
+      hit.shapePtr = u32[cpBase + 2];
       if (readPosNorm) {
-        hit.px = f32[b + 26];
-        hit.py = f32[b + 27];
-        hit.pz = f32[b + 28];
-        hit.nx = f32[b + 29];
-        hit.ny = f32[b + 30];
-        hit.nz = f32[b + 31];
+        hit.px = f32[cpBase + 8];
+        hit.py = f32[cpBase + 9];
+        hit.pz = f32[cpBase + 10];
+        hit.nx = f32[cpBase + 11];
+        hit.ny = f32[cpBase + 12];
+        hit.nz = f32[cpBase + 13];
       }
     } else {
-      const [val, , hitData] = (
-        isCast
-          ? hk.HP_QueryCollector_GetShapeCastResult(collector, index)
-          : hk.HP_QueryCollector_GetShapeProximityResult(collector, index)
-      )[1];
-      hit.frac = val;
-      hit.bodyPtr = Number(hitData[0][0]);
-      hit.shapePtr = Number(hitData[1][0]);
+      let frac: number;
+      let cp: HKContactPoint;
+      if (kind === QueryKind.Ray) {
+        const res = hk.HP_QueryCollector_GetCastRayResult(collector, index)[1];
+        frac = res[0];
+        cp = res[1];
+      } else {
+        const res = (
+          kind === QueryKind.ShapeCast
+            ? hk.HP_QueryCollector_GetShapeCastResult(collector, index)
+            : hk.HP_QueryCollector_GetShapeProximityResult(collector, index)
+        )[1];
+        frac = res[0];
+        cp = res[2];
+      }
+      hit.frac = frac;
+      hit.bodyPtr = Number(cp[0][0]);
+      hit.shapePtr = Number(cp[1][0]);
       if (readPosNorm) {
-        const p = hitData[3];
-        const n = hitData[4];
+        const p = cp[3];
+        const n = cp[4];
         hit.px = p[0];
         hit.py = p[1];
         hit.pz = p[2];
@@ -1703,6 +1497,24 @@ export class HavokPhysicsScene implements IPhysicsScene {
       }
     }
     return hit;
+  }
+
+  private _tryEmitSingleHit(
+    hit: QueryHitScratch,
+    clampedDist: number,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    if (hit.frac <= 0) return false;
+    const shape = this._resolveQueryContactShape(hit.bodyPtr, hit.shapePtr);
+    if (!shape || !shape._isSceneQuery) return false;
+    if (outHitResult) {
+      const pos = HavokPhysicsScene._tempVecA;
+      const norm = HavokPhysicsScene._tempVecB;
+      pos.set(hit.px, hit.py, hit.pz);
+      norm.set(hit.nx, hit.ny, hit.nz);
+      outHitResult(shape._id, hit.frac * clampedDist, pos, norm);
+    }
+    return true;
   }
 
   private _shapeCastSingle(
@@ -1729,8 +1541,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
 
     const wantOut = outHitResult !== undefined;
     const singleHits = this._execShapeCast(
-      this._singleCollector,
-      this._singleCollectorId,
+      false,
       entry.shape,
       entry.shapePtr,
       rotTuple,
@@ -1746,22 +1557,13 @@ export class HavokPhysicsScene implements IPhysicsScene {
     );
     if (singleHits === 0) return false;
 
-    const hit0 = this._readShapeHit(true, this._singleCollector, this._singleCollectorId, 0, wantOut);
-    if (hit0.frac > 0) {
-      const shape = this._resolveQueryContactShape(hit0.bodyPtr, hit0.shapePtr);
-      if (shape && shape._isSceneQuery) {
-        if (wantOut) {
-          const pos = HavokPhysicsScene._tempVecA;
-          const norm = HavokPhysicsScene._tempVecB;
-          pos.set(hit0.px, hit0.py, hit0.pz);
-          norm.set(hit0.nx, hit0.ny, hit0.nz);
-          outHitResult(shape._id, hit0.frac * clampedDist, pos, norm);
-        }
-        return true;
-      }
+    const hit0 = this._readQueryHit(QueryKind.ShapeCast, this._singleCollector, 0, wantOut);
+    if (this._tryEmitSingleHit(hit0, clampedDist, outHitResult)) {
+      return true;
     }
 
-    const numHits = this._runShapeCastMulti(
+    const numHits = this._execShapeCast(
+      true,
       entry.shape,
       entry.shapePtr,
       rotTuple,
@@ -1775,11 +1577,11 @@ export class HavokPhysicsScene implements IPhysicsScene {
       ZERO_HANDLE,
       0
     );
-    return this._resolveMultiClosestHit(false, numHits, clampedDist, outHitResult);
+    return this._resolveMultiClosestHit(QueryKind.ShapeCast, numHits, clampedDist, outHitResult);
   }
 
   private _resolveMultiClosestHit(
-    isRay: boolean,
+    kind: QueryKind,
     numHits: number,
     clampedDist: number,
     outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
@@ -1795,9 +1597,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
       bestNz = 0;
 
     for (let i = 0; i < numHits; i++) {
-      const h = isRay
-        ? this._readRayHit(this._multiCollector, this._multiCollectorId, i, wantOut)
-        : this._readShapeHit(true, this._multiCollector, this._multiCollectorId, i, wantOut);
+      const h = this._readQueryHit(kind, this._multiCollector, i, wantOut);
       if (h.frac <= 0 || h.frac >= bestFrac) continue;
       const shape = this._resolveQueryContactShape(h.bodyPtr, h.shapePtr);
       if (!shape || !shape._isSceneQuery) continue;
@@ -1832,7 +1632,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
       writeNormalizedQuat(orientation, rotTuple);
     }
 
-    const numHits = this._runShapeProximityMulti(
+    const numHits = this._execShapeProx(
       entry.shape,
       entry.shapePtr,
       center.x,
@@ -1852,7 +1652,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
     seen.clear();
 
     for (let i = 0; i < numHits; i++) {
-      const h = this._readShapeHit(false, this._multiCollector, this._multiCollectorId, i, false);
+      const h = this._readQueryHit(QueryKind.ShapeProximity, this._multiCollector, i, false);
       const shape = this._resolveQueryContactShape(h.bodyPtr, h.shapePtr);
       if (!shape || !shape._isSceneQuery) continue;
       const prevSize = seen.size;
@@ -1885,7 +1685,11 @@ export class HavokPhysicsScene implements IPhysicsScene {
     return this._bodyToController.get(bodyPtr) ?? null;
   }
 
-  private _resolveCollisionShapeRaw(bodyPtr: number, iterPtr: number): HavokShapeIdentity | null {
+  private _resolveCollisionShape(
+    bodyPtr: number,
+    iterPtr: number,
+    shapePath: [HP_ShapeId, bigint] | null
+  ): HavokShapeIdentity | null {
     const collider = this._bodyToCollider.get(bodyPtr);
     if (collider) {
       const shapes = collider._shapes;
@@ -1893,43 +1697,19 @@ export class HavokPhysicsScene implements IPhysicsScene {
       if (len === 0) return null;
       if (len === 1) return shapes[0];
       const hk = this._havokPhysics._hk;
-      if (this._hasRawPathIter) {
+      let childIdx = -1;
+      if (shapePath === null) {
         const scratch = this._queryScratchPtr;
-        const res = hk._HP_ShapePathIterator_GetNext!(iterPtr, scratch, scratch + 16);
-        if (res === hk.Result.RESULT_OK.value) {
-          const childIdx = hk.HEAP32[(scratch + 16) >>> 2];
-          if (childIdx >= 0 && childIdx < len) {
-            return shapes[childIdx];
-          }
+        if (hk._HP_ShapePathIterator_GetNext!(iterPtr, scratch, scratch + 16) === hk.Result.RESULT_OK.value) {
+          childIdx = hk.HEAP32[(scratch + 16) >>> 2];
         }
       } else {
-        const u32 = hk.HEAPU32;
-        const b = iterPtr >>> 2;
-        const shapeId = (BigInt(u32[b + 1]) << BigInt(32)) | BigInt(u32[b]);
-        const pathData = (BigInt(u32[b + 3]) << BigInt(32)) | BigInt(u32[b + 2]);
-        const [res, , childIdx] = hk.HP_Shape_PathIterator_GetNext([[shapeId], pathData]);
-        if (res.value === hk.Result.RESULT_OK.value && childIdx >= 0 && childIdx < len) {
-          return shapes[childIdx];
+        const [res, , idx] = hk.HP_Shape_PathIterator_GetNext(shapePath);
+        if (res.value === hk.Result.RESULT_OK.value) {
+          childIdx = idx;
         }
       }
-      return shapes[0];
-    }
-    return this._bodyToController.get(bodyPtr) ?? null;
-  }
-
-  private _resolveCollisionShapeEmbind(bodyPtr: number, shapePath: [HP_ShapeId, bigint]): HavokShapeIdentity | null {
-    const collider = this._bodyToCollider.get(bodyPtr);
-    if (collider) {
-      const shapes = collider._shapes;
-      const len = shapes.length;
-      if (len === 0) return null;
-      if (len === 1) return shapes[0];
-      const hk = this._havokPhysics._hk;
-      const [res, , childIdx] = hk.HP_Shape_PathIterator_GetNext(shapePath);
-      if (res.value === hk.Result.RESULT_OK.value && childIdx >= 0 && childIdx < len) {
-        return shapes[childIdx];
-      }
-      return shapes[0];
+      return childIdx >= 0 && childIdx < len ? shapes[childIdx] : shapes[0];
     }
     return this._bodyToController.get(bodyPtr) ?? null;
   }
@@ -1952,8 +1732,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
   ): void {
     let event = this._stepContactMap.get(key);
     if (!event) {
-      const prevIsKin = this._activeContactPairs.get(key);
-      const wasActive = prevIsKin !== undefined;
+      const wasActive = this._activeContactPairs.has(key);
       const idx = this._contactEventCount++;
       event = this._contactEvents[idx] ||= new ContactEvent();
       event.shape0Id = id0;
@@ -1963,17 +1742,12 @@ export class HavokPhysicsScene implements IPhysicsScene {
       this._stepContactMap.set(key, event);
 
       if (!wasActive) {
-        this._activeContactPairs.set(key, isKinNonDyn);
-        if (isKinNonDyn) {
-          this._activeKinematicPairs.add(key);
-        }
-      } else if (prevIsKin !== isKinNonDyn) {
-        this._activeContactPairs.set(key, isKinNonDyn);
-        if (isKinNonDyn) {
-          this._activeKinematicPairs.add(key);
-        } else {
-          this._activeKinematicPairs.delete(key);
-        }
+        this._activeContactPairs.add(key);
+      }
+      if (isKinNonDyn) {
+        this._activeKinematicPairs.add(key);
+      } else if (wasActive && this._activeKinematicPairs.size > 0) {
+        this._activeKinematicPairs.delete(key);
       }
     }
 
@@ -2055,16 +1829,16 @@ export class HavokPhysicsScene implements IPhysicsScene {
         // Tier 2: read HP_CollisionEvent directly from WASM HEAPU32/HEAPF32 (0 Embind tuple allocations).
         eb = evAddr >>> 2;
         evType = heapU32![eb];
-        shapeA = this._resolveCollisionShapeRaw(heapU32![eb + 2], evAddr + 24);
-        shapeB = this._resolveCollisionShapeRaw(heapU32![eb + 18], evAddr + 88);
+        shapeA = this._resolveCollisionShape(heapU32![eb + 2], evAddr + 24, null);
+        shapeB = this._resolveCollisionShape(heapU32![eb + 18], evAddr + 88, null);
       } else {
         // Tier 1 Embind fallback
         const [res, ev] = hk.HP_Event_AsCollision(evAddr);
         if (res.value === hk.Result.RESULT_OK.value) {
           embindEv = ev;
           evType = ev[0].value;
-          shapeA = this._resolveCollisionShapeEmbind(Number(ev[1][0][0]), ev[1][2]);
-          shapeB = this._resolveCollisionShapeEmbind(Number(ev[2][0][0]), ev[2][2]);
+          shapeA = this._resolveCollisionShape(Number(ev[1][0][0]), 0, ev[1][2]);
+          shapeB = this._resolveCollisionShape(Number(ev[2][0][0]), 0, ev[2][2]);
         }
       }
 
@@ -2137,13 +1911,10 @@ export class HavokPhysicsScene implements IPhysicsScene {
     // Emit Exit for pairs that received COLLISION_FINISHED without any contact point in the same step.
     for (let i = 0, n = finishedKeys.length; i < n; i++) {
       const key = finishedKeys[i];
-      if (stepMap.has(key)) continue;
-      const wasKin = this._activeContactPairs.get(key);
-      if (wasKin === undefined) continue;
-      if (wasKin) {
+      if (stepMap.has(key) || !this._activeContactPairs.delete(key)) continue;
+      if (this._activeKinematicPairs.size > 0) {
         this._activeKinematicPairs.delete(key);
       }
-      this._activeContactPairs.delete(key);
       const id1 = key % PAIR_KEY_STRIDE;
       const id0 = (key - id1) / PAIR_KEY_STRIDE;
       this._pushExitContactEvent(id0, id1);
@@ -2153,16 +1924,12 @@ export class HavokPhysicsScene implements IPhysicsScene {
     // and active pairs whose filter/body changed in place without re-detecting contact this step.
     const filterChanged = this._filterChangedShapeIds;
     if (filterChanged.size > 0) {
-      for (let it = this._activeContactPairs.entries(), cur = it.next(); !cur.done; cur = it.next()) {
-        const key = cur.value[0];
+      for (let it = this._activeContactPairs.values(), cur = it.next(); !cur.done; cur = it.next()) {
+        const key = cur.value;
         if (stepMap.has(key)) continue;
-        const isKin = cur.value[1];
         const id1 = key % PAIR_KEY_STRIDE;
         const id0 = (key - id1) / PAIR_KEY_STRIDE;
-        if (isKin || filterChanged.has(id0) || filterChanged.has(id1)) {
-          if (isKin) {
-            this._activeKinematicPairs.delete(key);
-          }
+        if (this._activeKinematicPairs.delete(key) || filterChanged.has(id0) || filterChanged.has(id1)) {
           this._activeContactPairs.delete(key);
           this._pushExitContactEvent(id0, id1);
         }
@@ -2235,7 +2002,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
         rotTuple[2] = shapeRot.z;
         rotTuple[3] = shapeRot.w;
 
-        const numHits = this._runShapeProximityMulti(
+        const numHits = this._execShapeProx(
           s._hkShape,
           s._hkShapePtr,
           shapePos.x,
@@ -2249,13 +2016,13 @@ export class HavokPhysicsScene implements IPhysicsScene {
         );
 
         for (let h = 0; h < numHits; h++) {
-          const hit = this._readShapeHit(false, this._multiCollector, this._multiCollectorId, h, true);
+          const hit = this._readQueryHit(QueryKind.ShapeProximity, this._multiCollector, h, true);
           if (hit.frac > 0) continue;
 
           const otherCollider = this._bodyToCollider.get(hit.bodyPtr);
           if (!otherCollider) continue;
           // Dynamic targets already emit native Havok collision events
-          if (otherCollider._isDynamic && !(otherCollider as HavokDynamicCollider)._isKinematicBody()) continue;
+          if (otherCollider._isDynamic && !(otherCollider as HavokDynamicCollider)._isKinematic) continue;
 
           const otherShape = this._resolveColliderShapeByPtr(otherCollider, hit.shapePtr);
           if (!otherShape || otherShape._isTrigger || otherShape._id === s._id) continue;
