@@ -1,0 +1,52 @@
+packages/core/src/Camera.ts
+  h_bd4dd7d663e619 757-758
+packages/core/src/mesh/BlendShapeManager.ts
+  h_bd4dd7d663e619 342
+packages/core/src/mesh/SkinnedMeshRenderer.ts
+  h_bd4dd7d663e619 187-194
+packages/core/src/texture/Texture.ts
+  h_bd4dd7d663e619 114-116,125,275-283
+packages/core/src/texture/TextureUtils.ts
+  h_bd4dd7d663e619 28-29,88,94-95,101-102,104
+packages/core/src/texture/enums/TextureFormat.ts
+  h_bd4dd7d663e619 3-5,8,10,12,14,16,18-27,30,32,34,37-38,41-60
+packages/loader/src/AmbientLightLoader.ts
+  h_bd4dd7d663e619 54
+packages/loader/src/HDRDecoder.ts
+  h_bd4dd7d663e619 5,55,69
+packages/loader/src/TextureLoader.ts
+  h_bd4dd7d663e619 60,67
+packages/loader/src/ktx2/KTX2Loader.ts
+  h_bd4dd7d663e619 43-47,184,218-219
+packages/loader/src/ktx2/KTX2TargetFormat.ts
+  h_bd4dd7d663e619 25-26
+packages/loader/src/ktx2/transcoder/BinomialLLCWorkerCode.ts
+  h_bd4dd7d663e619 103,124,201
+packages/loader/src/resource-deserialize/resources/texture2D/Texture2DDecoder.ts
+  h_bd4dd7d663e619 29
+packages/loader/src/resource-deserialize/resources/textureCube/TextureCubeDecoder.ts
+  h_bd4dd7d663e619 29
+packages/rhi-webgl/src/GLCapability.ts
+  h_bd4dd7d663e619 125,156-157,160-163,184,186-190
+packages/rhi-webgl/src/GLTexture.ts
+  h_bd4dd7d663e619 73,81,89,98-99,101-102,109-118,546-559,659-661
+tests/src/core/Camera.test.ts
+  h_bd4dd7d663e619 131-132
+tests/src/core/texture/FloatTexture.test.ts
+  h_bd4dd7d663e619 1-12,23-27,29-32,34-39,41,45-54,56,66-70,72,75,77-80,88,90,93-94,103-149
+tests/src/core/texture/Texture2D.test.ts
+  h_bd4dd7d663e619 58
+tests/src/core/texture/TextureCubeMap.test.ts
+  h_bd4dd7d663e619 70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f4b5b91f356ed0663e90cc96f79bcf01d3a729d4",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

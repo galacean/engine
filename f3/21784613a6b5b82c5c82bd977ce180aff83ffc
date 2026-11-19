@@ -1,0 +1,22 @@
+e2e/fixtures/originImage/Advance_multi-camera-no-clear.jpg
+  h_79b10db07e6052 2-3
+e2e/fixtures/originImage/Advance_multi-scene-clear.jpg
+  h_79b10db07e6052 2-3
+e2e/fixtures/originImage/Advance_multi-scene-no-clear.jpg
+  h_79b10db07e6052 2-3
+e2e/fixtures/originImage/Camera_camera-fxaa.jpg
+  h_79b10db07e6052 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-limitVelocity.jpg
+  h_79b10db07e6052 2-3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f321784613a6b5b82c5c82bd977ce180aff83ffc",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}
