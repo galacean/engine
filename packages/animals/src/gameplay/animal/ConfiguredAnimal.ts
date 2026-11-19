@@ -456,7 +456,7 @@ export class ConfiguredAnimal implements AnimalAgent {
           get planningRevision() {
             return planningRevision();
           },
-          plan: (task, finish) => system.plan(this, task, finish),
+          plan: (task, finish, urgent) => system.plan(this, task, finish, urgent),
           planMoveTo: (target, speed, medium) => this.planBehaviorRoute(target, speed, medium),
           prefersMoveTo: (target, speed) => this.distant || this.checkGroundPath(target, speed),
           movementNeedsReplan: () => {
@@ -1446,6 +1446,12 @@ export class ConfiguredAnimal implements AnimalAgent {
         15
     );
     const bodyHeight = (this.config.bounds.max[1] - this.config.bounds.min[1]) * this.scale;
+    const baseDt = 1 / 15;
+    const acceleration = Math.max(0.05, speed / (steering.urgent ? 0.15 : 0.6));
+    const arrivalRadius = steering.arrivalRadius ?? groundAnimalArrivalRadius(length);
+    const stopDistance = (speed * speed) / (2 * acceleration) + arrivalRadius;
+    const baseStrideDistance = speed * baseDt;
+    const maxMergedSteps = baseStrideDistance > 1e-4 ? Math.max(1, Math.floor(1.5 / baseStrideDistance)) : 1;
     for (let i = 0; i < Math.min(6000, budget); i++) {
       yield;
       const nextCursor = advanceAnimalRouteTarget(motion, points, cursor, passRadius);
@@ -1454,13 +1460,45 @@ export class ConfiguredAnimal implements AnimalAgent {
       steering.continuous = cursor < points.length - 1;
       const from = [motion.x, motion.z] as const;
       const oldY = y;
-      Object.assign(proposed, motion);
-      const arrived = advanceGroundAnimalMotion(proposed, points[cursor], speed, length, 1 / 15, speed, steering);
       const dx = points[cursor][0] - motion.x,
         dz = points[cursor][1] - motion.z;
-      const proposedX = proposed.x,
+      let stepCount = 1;
+      // Only merge consecutive substeps on already-aligned straight cruise well outside
+      // braking/pass zones, and strictly for non-airborne motion.
+      if (
+        medium !== "air" &&
+        maxMergedSteps > 1 &&
+        !recovery.recovering &&
+        motion.speed >= speed * 0.99 &&
+        Math.abs(motion.angularSpeed) < 1e-4
+      ) {
+        const dist = Math.hypot(dx, dz);
+        const margin = (steering.continuous ? passRadius : stopDistance) + 0.5;
+        const safeStraight = dist - margin;
+        if (safeStraight >= baseStrideDistance * 2) {
+          const desired = Math.atan2(dx, dz);
+          const error = Math.atan2(Math.sin(desired - motion.heading), Math.cos(desired - motion.heading));
+          if (Math.abs(error) < 0.01) {
+            stepCount = Math.min(maxMergedSteps, Math.floor(safeStraight / baseStrideDistance));
+          }
+        }
+      }
+      const stepDt = stepCount * baseDt;
+      Object.assign(proposed, motion);
+      let arrived = advanceGroundAnimalMotion(proposed, points[cursor], speed, length, stepDt, speed, steering);
+      let proposedX = proposed.x,
         proposedZ = proposed.z;
-      const supported = query.canTraverse(from, [proposedX, proposedZ]);
+      let supported = query.canTraverse(from, [proposedX, proposedZ]);
+      if (stepCount > 1 && !supported) {
+        // If a merged straight stride hits an obstruction, step back to exact 1/15s resolution
+        // so forward approach and recovery start from the exact blocking edge.
+        stepCount = 1;
+        Object.assign(proposed, motion);
+        arrived = advanceGroundAnimalMotion(proposed, points[cursor], speed, length, baseDt, speed, steering);
+        proposedX = proposed.x;
+        proposedZ = proposed.z;
+        supported = query.canTraverse(from, [proposedX, proposedZ]);
+      }
       const closeBehind =
         Math.hypot(dx, dz) < length * 1.5 && dx * Math.sin(motion.heading) + dz * Math.cos(motion.heading) < 0;
       if (
@@ -1469,13 +1507,18 @@ export class ConfiguredAnimal implements AnimalAgent {
         (recovery.recovering || !supported || (closeBehind && !steering.urgent && !steering.tightTurns))
       ) {
         Object.assign(forward, proposed);
-        const recovered = recovery.advance(motion, proposed, speed, length, 1 / 15, (a, b) =>
+        const recovered = recovery.advance(motion, proposed, speed, length, baseDt, (a, b) =>
           query.canTraverse([a.x, a.z], [b.x, b.z])
         );
         if (!recovered) {
           if (!supported) return false;
           Object.assign(proposed, forward);
         }
+      }
+      if (stepCount > 1) {
+        i += stepCount - 1;
+        // Preserve per-substep cooperative budget accounting without repeating geometry queries.
+        for (let k = 1; k < stepCount; k++) yield;
       }
       Object.assign(motion, proposed);
       // A clear waypoint chord does not guarantee a clear slow-turning arc.

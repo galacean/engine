@@ -1,6 +1,6 @@
 import { prepareWaterTerrainSampling, sampleWaterTerrainHeight } from "../../authoring/terrain/WaterTerrainSnapshot";
 import { sampleWaterConnection, sampleWaterConnectionShore } from "../../authoring/connections/WaterConnection";
-import { sampleLakeSignedShoreDistance } from "../../compiler/lake/LakeBoundaryCompiler";
+import { sampleLakeBoundaryCoverage, sampleLakeSignedShoreDistance } from "../../compiler/lake/LakeBoundaryCompiler";
 /** Static base-surface queries; canonical bed indices are prepared before sampling. */
 import type {
   HeightfieldWaterCompiledData,
@@ -64,6 +64,91 @@ export class HeightfieldWaterBaseQueryService {
 
   get planarTransform(): Readonly<CompiledWaterPlanarTransformV1> {
     return this._planarTransform;
+  }
+
+  /**
+   * Surface-only fast path for callers that return false whenever `out.inside === false`
+   * (e.g. HeightfieldWaterSurfaceProvider). Checks O(1) grid bounds, wetMask, and bed depth
+   * before invoking the Lake boundary BVH, and skips exact shore SDF when waves are inactive.
+   */
+  sampleSurfaceLocalFast(
+    localX: number,
+    localZ: number,
+    needShoreDistance: boolean,
+    out: HeightfieldWaterBaseQueryResult
+  ): HeightfieldWaterBaseQueryResult {
+    out.inside = false;
+    out.componentIndex = OUTSIDE_COMPONENT_INDEX;
+    out.surfaceHeight = Number.NaN;
+    out.depth = 0;
+    if (!this._available || !Number.isFinite(localX) || !Number.isFinite(localZ)) return out;
+    const query = this._data.queryGrid;
+    if (!query) return out;
+    const grid = query.grid;
+    const gridX = (localX - grid.originXZ[0]) / grid.cellSizeXZ[0];
+    const gridZ = (localZ - grid.originXZ[1]) / grid.cellSizeXZ[1];
+    if (gridX < -0.5 || gridZ < -0.5 || gridX >= grid.width - 0.5 || gridZ >= grid.height - 0.5) {
+      return out;
+    }
+    const texelX = Math.floor(gridX + 0.5);
+    const texelZ = Math.floor(gridZ + 0.5);
+    const texelIndex = texelZ * grid.width + texelX;
+    if (this._wetMask[texelIndex] === 0) return out;
+    if (this._data.connections && !sampleWaterConnection(this._data.connections, localX, localZ).covered) return out;
+
+    const boundary = this._data.lakeBoundary;
+    const componentIndex = this._componentIndices[texelIndex];
+    const surfaceHeight = this._sampleScalar(query, this._surfaceHeights, gridX, gridZ, componentIndex);
+    const bedHeight = query.bedTerrain
+      ? (sampleWaterTerrainHeight(query.bedTerrain, localX, localZ) ?? Number.NaN)
+      : this._sampleScalar(query, this._bedHeights, gridX, gridZ, componentIndex);
+    if (
+      !Number.isFinite(surfaceHeight) ||
+      !Number.isFinite(bedHeight) ||
+      (boundary?.queryCoverage === "boundary" && bedHeight >= surfaceHeight)
+    ) {
+      return out;
+    }
+
+    let lakeShoreDistance: number | undefined;
+    if (boundary?.queryCoverage === "boundary") {
+      const tolerance = boundary.terrainShorelineTolerance ?? 0;
+      if (needShoreDistance) {
+        lakeShoreDistance = sampleLakeSignedShoreDistance(boundary.rings, localX, localZ);
+        if (lakeShoreDistance < -tolerance) return out;
+      } else if (!sampleLakeBoundaryCoverage(boundary.rings, localX, localZ, tolerance)) {
+        return out;
+      }
+    }
+
+    const flowX = this._sampleFlow(query, gridX, gridZ, componentIndex, 0);
+    const flowZ = this._sampleFlow(query, gridX, gridZ, componentIndex, 1);
+    const gradientX = this._surfaceGradient(query, texelX, texelZ, componentIndex, true);
+    const gradientZ = this._surfaceGradient(query, texelX, texelZ, componentIndex, false);
+    const normalLength = Math.hypot(gradientX, 1, gradientZ);
+
+    out.inside = true;
+    out.componentIndex = componentIndex;
+    out.surfaceHeight = surfaceHeight;
+    out.surfaceNormal[0] = -gradientX / normalLength;
+    out.surfaceNormal[1] = 1 / normalLength;
+    out.surfaceNormal[2] = -gradientZ / normalLength;
+    out.depth = Math.max(0, surfaceHeight - bedHeight);
+    if (needShoreDistance) {
+      out.signedShoreDistance = sampleWaterConnectionShore(
+        this._data.connections,
+        localX,
+        localZ,
+        boundary?.terrainShorelineTolerance !== undefined && lakeShoreDistance !== undefined
+          ? Math.abs(lakeShoreDistance)
+          : (lakeShoreDistance ?? this._sampleSourceShoreDistance(query, gridX, gridZ))
+      );
+    } else {
+      out.signedShoreDistance = 0;
+    }
+    out.flowVectorXZ[0] = flowX;
+    out.flowVectorXZ[1] = flowZ;
+    return out;
   }
 
   /** Asset-local sampling seam shared by surface and spatial providers. */

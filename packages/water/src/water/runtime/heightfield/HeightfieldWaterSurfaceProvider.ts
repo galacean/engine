@@ -86,16 +86,66 @@ export class HeightfieldWaterSurfaceProvider implements BatchWaterSurfaceProvide
       outStatus.capabilityFallback = WaterSurfaceQueryFallback.NonConverged;
       return false;
     }
-    const elapsedTime = this._surfaceTimeOverride ?? this._config.getElapsedTime();
     const transform = this._planarTransform;
     const deltaX = worldPosition.x - transform.source.position[0];
     const deltaZ = worldPosition.z - transform.source.position[2];
     const targetLocalX = deltaX * transform.cosine - deltaZ * transform.sine;
     const targetLocalZ = deltaX * transform.sine + deltaZ * transform.cosine;
+    const hasWaves = this._wavesEnabled && this._config.data.waveSet.activeWaveCount > 0;
+    if (!hasWaves) {
+      const base = this._config.queryService.sampleSurfaceLocalFast(
+        targetLocalX,
+        targetLocalZ,
+        false,
+        this._baseSample
+      );
+      if (!base.inside) {
+        outStatus.capabilityFallback = WaterSurfaceQueryFallback.OutsideFootprint;
+        return false;
+      }
+      let normalX = base.surfaceNormal[0];
+      let normalY = base.surfaceNormal[1];
+      let normalZ = base.surfaceNormal[2];
+      if (this._config.data.connections) {
+        const weight = sampleWaterConnection(this._config.data.connections, targetLocalX, targetLocalZ).motion;
+        normalX *= weight;
+        normalZ *= weight;
+        normalY = 1 + (normalY - 1) * weight;
+        const normalLength = Math.hypot(normalX, normalY, normalZ) || 1;
+        normalX /= normalLength;
+        normalY /= normalLength;
+        normalZ /= normalLength;
+      }
+      outStatus.iterations = 1;
+      outStatus.horizontalError = 0;
+      outStatus.hit = true;
+      outStatus.converged = true;
+      outSample.waterBodyId = this._config.waterBodyId;
+      outSample.surfacePosition.set(
+        worldPosition.x,
+        transform.source.position[1] + base.surfaceHeight,
+        worldPosition.z
+      );
+      outSample.surfaceNormal.set(
+        normalX * transform.cosine + normalZ * transform.sine,
+        normalY,
+        -normalX * transform.sine + normalZ * transform.cosine
+      );
+      const localVelocityX = base.flowVectorXZ[0];
+      const localVelocityZ = base.flowVectorXZ[1];
+      outSample.waterVelocity.set(
+        localVelocityX * transform.cosine + localVelocityZ * transform.sine,
+        0,
+        -localVelocityX * transform.sine + localVelocityZ * transform.cosine
+      );
+      outSample.waterDepth = Math.max(0, base.depth);
+      return true;
+    }
+    const elapsedTime = this._surfaceTimeOverride ?? this._config.getElapsedTime();
     let restX = targetLocalX;
     let restZ = targetLocalZ;
     for (let iteration = 0; iteration < INVERSE_ITERATION_LIMIT; iteration++) {
-      const base = this._config.queryService.sampleBaseSurfaceLocal(restX, restZ, this._baseSample);
+      const base = this._config.queryService.sampleSurfaceLocalFast(restX, restZ, true, this._baseSample);
       if (!base.inside) {
         outStatus.capabilityFallback = WaterSurfaceQueryFallback.OutsideFootprint;
         return false;

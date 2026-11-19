@@ -30,7 +30,12 @@ export interface PlanningAnimalNavigation {
   sampleWaterHeight?(x: number, z: number): number | undefined;
   /** Optional combined sample avoids querying the same real water/support twice per footprint point. */
   sampleAnimalSupport?(x: number, z: number, out: { height: number | undefined; waterHeight: number | undefined }): void;
+  /** Strictly conservative broad-phase: returns true only when every point in bounds is provably dry land with finite terrain. */
+  isBoundsDefinitelyDry?(minX: number, minZ: number, maxX: number, maxZ: number): boolean;
 }
+
+const OCTAGON_COS = new Float64Array([1, Math.SQRT1_2, 0, -Math.SQRT1_2, -1, -Math.SQRT1_2, 0, Math.SQRT1_2]);
+const OCTAGON_SIN = new Float64Array([0, Math.SQRT1_2, 1, Math.SQRT1_2, 0, -Math.SQRT1_2, -1, -Math.SQRT1_2]);
 
 /** Keep future queries of an unaffected suspended route on the current published habitat. */
 export function liveAnimalRouteQuery(
@@ -101,6 +106,8 @@ export class PlanningAnimalHabitat {
   private readonly banks: { a: PlanPoint; b: PlanPoint; end: number }[] = [];
   private bankLength = 0;
   private readonly support = { height: undefined as number | undefined, waterHeight: undefined as number | undefined };
+  private readonly queryRange: PlanningAnimalBounds = { minX: 0, maxX: 0, minZ: 0, maxZ: 0 };
+  private readonly solidHits: Solid[] = [];
 
   /** Compile collision geometry once; circular range checks require no spatial ownership lookup. */
   constructor(
@@ -386,83 +393,175 @@ export class PlanningAnimalHabitat {
   }
 
   private traverse(from: PlanPoint, to: PlanPoint, radius: number, height: number, rangeRadius: number, medium: PlanningAnimalMedium): boolean {
-    if (!validShape(radius, height) || ![from.x, from.z, to.x, to.z].every(Number.isFinite)) return false;
+    if (
+      !validShape(radius, height) ||
+      !Number.isFinite(from.x) ||
+      !Number.isFinite(from.z) ||
+      !Number.isFinite(to.x) ||
+      !Number.isFinite(to.z)
+    )
+      return false;
     // A disk is convex: keeping both swept-disk endpoints inside its reduced radius
     // guarantees the complete movement footprint remains inside the fixed roaming circle.
     const area = this.range.distribution;
-    if (area && [from, to].some(p => p.x - radius < area.minX || p.x + radius > area.maxX ||
-      p.z - radius < area.minZ || p.z + radius > area.maxZ)) return false;
+    if (
+      area &&
+      (from.x - radius < area.minX ||
+        from.x + radius > area.maxX ||
+        from.z - radius < area.minZ ||
+        from.z + radius > area.maxZ ||
+        to.x - radius < area.minX ||
+        to.x + radius > area.maxX ||
+        to.z - radius < area.minZ ||
+        to.z + radius > area.maxZ)
+    )
+      return false;
     const availableRadius = rangeRadius - radius;
     if (!area && availableRadius < 0) return false;
     const availableSquared = availableRadius * availableRadius;
-    if (!area && (
-      (from.x - this.origin.x) ** 2 + (from.z - this.origin.z) ** 2 > availableSquared + 1e-10 ||
-      (to.x - this.origin.x) ** 2 + (to.z - this.origin.z) ** 2 > availableSquared + 1e-10
-    ))
-      return false;
-    const range = {
-      minX: Math.min(from.x, to.x) - radius,
-      maxX: Math.max(from.x, to.x) + radius,
-      minZ: Math.min(from.z, to.z) - radius,
-      maxZ: Math.max(from.z, to.z) + radius
-    };
+    if (!area) {
+      const fdx = from.x - this.origin.x,
+        fdz = from.z - this.origin.z;
+      const tdx = to.x - this.origin.x,
+        tdz = to.z - this.origin.z;
+      if (fdx * fdx + fdz * fdz > availableSquared + 1e-10 || tdx * tdx + tdz * tdz > availableSquared + 1e-10)
+        return false;
+    }
+    const range = this.queryRange;
+    range.minX = (from.x < to.x ? from.x : to.x) - radius;
+    range.maxX = (from.x > to.x ? from.x : to.x) + radius;
+    range.minZ = (from.z < to.z ? from.z : to.z) - radius;
+    range.maxZ = (from.z > to.z ? from.z : to.z) + radius;
     const radiusSquared = radius * radius;
+    const steps = Math.max(0, Math.ceil(Math.hypot(to.x - from.x, to.z - from.z) / 0.5));
+
+    // Pre-collect 2D horizontal solid overlaps (zero water queries). Most corridors have 0 hits.
+    const solidHits = this.solidHits;
+    solidHits.length = 0;
+    if (this.solidCount > 0) {
+      this.solids.some(range, (box) => {
+        const ax = (from.x - box.x) * box.cos + (from.z - box.z) * box.sin;
+        const az = -(from.x - box.x) * box.sin + (from.z - box.z) * box.cos;
+        const bx = (to.x - box.x) * box.cos + (to.z - box.z) * box.sin;
+        const bz = -(to.x - box.x) * box.sin + (to.z - box.z) * box.cos;
+        if (
+          insideBox(ax, az, box) ||
+          insideBox(bx, bz, box) ||
+          Math.min(
+            segmentDistanceSquared(ax, az, bx, bz, -box.halfX, -box.halfZ, box.halfX, -box.halfZ),
+            segmentDistanceSquared(ax, az, bx, bz, box.halfX, -box.halfZ, box.halfX, box.halfZ),
+            segmentDistanceSquared(ax, az, bx, bz, box.halfX, box.halfZ, -box.halfX, box.halfZ),
+            segmentDistanceSquared(ax, az, bx, bz, -box.halfX, box.halfZ, -box.halfX, -box.halfZ)
+          ) <
+            radiusSquared + 1e-10
+        ) {
+          solidHits.push(box);
+        }
+        return false;
+      });
+    }
+
+    // For ground movement with 2D solid hits, compute exact centerline terrain height bounds first
+    // and reject vertically overlapping solids immediately before any water/perimeter queries.
+    if (medium === "ground" && solidHits.length > 0) {
+      let minG = Infinity,
+        maxG = -Infinity;
+      for (let step = 0; step <= steps; step++) {
+        const t = steps ? step / steps : 0;
+        const y = this.navigation.sampleHeightInterpolated(
+          from.x + (to.x - from.x) * t,
+          from.z + (to.z - from.z) * t
+        );
+        if (y === undefined || !Number.isFinite(y)) {
+          solidHits.length = 0;
+          return false;
+        }
+        if (y < minG) minG = y;
+        if (y > maxG) maxG = y;
+      }
+      for (let i = 0; i < solidHits.length; i++) {
+        const box = solidHits[i];
+        if (box.top > minG + 1e-4 && box.bottom < maxG + height - 1e-4) {
+          solidHits.length = 0;
+          return false;
+        }
+      }
+      // All 2D hits cleared vertically; no further solid check needed for this corridor.
+      solidHits.length = 0;
+    }
+
+    // Strictly conservative dry-tile fast path: when every 4m tile intersecting the swept disk
+    // is provably dry land with finite terrain, skip per-step water and 8-point perimeter sampling.
+    if (
+      medium === "ground" &&
+      this.navigation.isBoundsDefinitelyDry?.(range.minX, range.minZ, range.maxX, range.maxZ)
+    ) {
+      for (let step = 0; step <= steps; step++) {
+        const t = steps ? step / steps : 0;
+        const y = this.navigation.sampleHeightInterpolated(
+          from.x + (to.x - from.x) * t,
+          from.z + (to.z - from.z) * t
+        );
+        if (y === undefined || !Number.isFinite(y)) return false;
+      }
+      return true;
+    }
+
     // Contact sampling follows the published navigation surface, so a bridge deck remains dry above its river.
     // The half-metre interval is query resolution, not an authored slope or habitat restriction.
-    const steps = Math.max(0, Math.ceil(Math.hypot(to.x - from.x, to.z - from.z) / 0.5));
     let minimumGround = Infinity,
       maximumGround = -Infinity;
+    const expectWet = medium === "water";
+    const sampleSupport = this.navigation.sampleAnimalSupport;
     for (let step = 0; step <= steps; step++) {
       const t = steps ? step / steps : 0,
         x = from.x + (to.x - from.x) * t,
         z = from.z + (to.z - from.z) * t;
       let y: number | undefined, wet: boolean;
-      if (this.navigation.sampleAnimalSupport) {
-        this.navigation.sampleAnimalSupport(x, z, this.support);
+      if (sampleSupport) {
+        this.navigation.sampleAnimalSupport!(x, z, this.support);
         wet = this.support.waterHeight !== undefined;
-        y = medium === "water" ? this.support.waterHeight : this.support.height;
+        y = expectWet ? this.support.waterHeight : this.support.height;
         if (medium === "air" && y !== undefined) y = Math.max(y, this.support.waterHeight ?? y) + Math.max(4, height * 2);
       } else {
         y = this.heightAt(x, z, medium, height);
         wet = medium !== "air" && this.navigationWater(x, z);
       }
-      if (y === undefined || !Number.isFinite(y) || (medium !== "air" && wet !== (medium === "water"))) return false;
-      minimumGround = Math.min(minimumGround, y);
-      maximumGround = Math.max(maximumGround, y);
+      if (y === undefined || !Number.isFinite(y) || (medium !== "air" && wet !== expectWet)) {
+        solidHits.length = 0;
+        return false;
+      }
+      if (y < minimumGround) minimumGround = y;
+      if (y > maximumGround) maximumGround = y;
       // Air can cross ground/water boundaries; static solids still constrain its volume.
       if (medium === "air") continue;
       for (let side = 0; side < 8; side++) {
-        const angle = (side * Math.PI) / 4;
-        const px = x + Math.cos(angle) * radius,
-          pz = z + Math.sin(angle) * radius;
-        let support: number | undefined, wet: boolean;
-        if (this.navigation.sampleAnimalSupport) {
-          this.navigation.sampleAnimalSupport(px, pz, this.support);
-          support = this.support.height; wet = this.support.waterHeight !== undefined;
+        const px = x + OCTAGON_COS[side] * radius,
+          pz = z + OCTAGON_SIN[side] * radius;
+        let support: number | undefined, sideWet: boolean;
+        if (sampleSupport) {
+          this.navigation.sampleAnimalSupport!(px, pz, this.support);
+          support = this.support.height;
+          sideWet = this.support.waterHeight !== undefined;
         } else {
           support = this.navigation.sampleHeightInterpolated(px, pz);
-          wet = this.navigationWater(px, pz);
+          sideWet = this.navigationWater(px, pz);
         }
-        if (support === undefined || !Number.isFinite(support) || wet !== (medium === "water")) return false;
+        if (support === undefined || !Number.isFinite(support) || sideWet !== expectWet) {
+          solidHits.length = 0;
+          return false;
+        }
       }
     }
-    return !this.solids.some(range, (box) => {
-      if (box.top <= minimumGround + 1e-4 || box.bottom >= maximumGround + height - 1e-4) return false;
-      const ax = (from.x - box.x) * box.cos + (from.z - box.z) * box.sin;
-      const az = -(from.x - box.x) * box.sin + (from.z - box.z) * box.cos;
-      const bx = (to.x - box.x) * box.cos + (to.z - box.z) * box.sin;
-      const bz = -(to.x - box.x) * box.sin + (to.z - box.z) * box.cos;
-      if (insideBox(ax, az, box) || insideBox(bx, bz, box)) return true;
-      return (
-        Math.min(
-          segmentDistanceSquared(ax, az, bx, bz, -box.halfX, -box.halfZ, box.halfX, -box.halfZ),
-          segmentDistanceSquared(ax, az, bx, bz, box.halfX, -box.halfZ, box.halfX, box.halfZ),
-          segmentDistanceSquared(ax, az, bx, bz, box.halfX, box.halfZ, -box.halfX, box.halfZ),
-          segmentDistanceSquared(ax, az, bx, bz, -box.halfX, box.halfZ, -box.halfX, -box.halfZ)
-        ) <
-        radiusSquared + 1e-10
-      );
-    });
+    for (let i = 0; i < solidHits.length; i++) {
+      const box = solidHits[i];
+      if (box.top > minimumGround + 1e-4 && box.bottom < maximumGround + height - 1e-4) {
+        solidHits.length = 0;
+        return false;
+      }
+    }
+    solidHits.length = 0;
+    return true;
   }
 }
 

@@ -81,8 +81,7 @@ function distanceToSegment(x: number, z: number, a: LakePointXZ, b: LakePointXZ)
 
 const shoreIndices = new WeakMap<SampledLakeBoundary["rings"], LakeBoundaryQueryIndex>();
 
-/** Positive inside, negative outside; even/odd parity is independent of ring winding. */
-export function sampleLakeSignedShoreDistance(rings: SampledLakeBoundary["rings"], x: number, z: number): number {
+function getShoreIndex(rings: SampledLakeBoundary["rings"]): LakeBoundaryQueryIndex | undefined {
   let index = shoreIndices.get(rings);
   if (
     !index &&
@@ -92,6 +91,12 @@ export function sampleLakeSignedShoreDistance(rings: SampledLakeBoundary["rings"
     index = new LakeBoundaryQueryIndex(rings);
     shoreIndices.set(rings, index);
   }
+  return index;
+}
+
+/** Positive inside, negative outside; even/odd parity is independent of ring winding. */
+export function sampleLakeSignedShoreDistance(rings: SampledLakeBoundary["rings"], x: number, z: number): number {
+  const index = getShoreIndex(rings);
   if (index) return index.sample(x, z);
   let inside = false,
     distance = Infinity;
@@ -103,6 +108,18 @@ export function sampleLakeSignedShoreDistance(rings: SampledLakeBoundary["rings"
       if (a[1] > z !== b[1] > z && x < a[0] + ((z - a[1]) * (b[0] - a[0])) / (b[1] - a[1])) inside = !inside;
     }
   return distance < LAKE_BOUNDARY_EPSILON ? 0 : inside ? distance : -distance;
+}
+
+/** Exact boolean equivalent of `sampleLakeSignedShoreDistance(rings, x, z) >= -tolerance`. */
+export function sampleLakeBoundaryCoverage(
+  rings: SampledLakeBoundary["rings"],
+  x: number,
+  z: number,
+  tolerance = 0
+): boolean {
+  const index = getShoreIndex(rings);
+  if (index) return index.containsOrWithinTolerance(x, z, tolerance);
+  return sampleLakeSignedShoreDistance(rings, x, z) >= -(tolerance > 0 ? tolerance : 0);
 }
 
 export function sampleLakeBoundary(source: LakeBoundaryV1): SampledLakeBoundary {

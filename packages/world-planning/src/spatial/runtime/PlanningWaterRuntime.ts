@@ -111,7 +111,10 @@ export class PlanningWaterRuntime {
   private readonly components = new Map<string, WaterBodyComponent>();
   private readonly componentRoot: Entity;
   private readonly queryPosition = new Vector3();
+  private readonly queryBounds = { minX: 0, minZ: 0, maxX: 0, maxZ: 0 };
   private readonly contactSample = createWaterSurfaceSample();
+  /** Animal navigation consumes static base water surfaces and retains cross-frame water caches until publication changes. */
+  readonly staticNavigationWater = true;
 
   private pending?: AbortController;
   private readonly preparations = new Set<Promise<unknown>>();
@@ -601,6 +604,38 @@ export class PlanningWaterRuntime {
     return body && !body.destroyed && !body.pendingDestroy && config
       ? readSeedWorldWaterColor(scopedLook(config.look, config.material))
       : undefined;
+  }
+
+  /** Monotonic state key for navigation water caches; changes on water publication or runtime enable toggle. */
+  get navigationWaterRevision(): number {
+    return this.publishedRevision * 2 + (!this.destroyed && this.system.runtimeState.effectiveEnabled ? 1 : 0);
+  }
+
+  /**
+   * Mathematically conservative broad-phase test: returns false ONLY when every active queryable
+   * water body proves zero wet surface inside [minX, maxX] × [minZ, maxZ].
+   */
+  hasWaterInBounds(minX: number, minZ: number, maxX: number, maxZ: number): boolean {
+    if (this.destroyed || !this.system.runtimeState.effectiveEnabled) return false;
+    const activeHost = this.system.activeRuntimeHost;
+    if (!activeHost) return false;
+    const bodies = this.system.bodies;
+    if (!bodies.length) return false;
+    const queryBounds = this.queryBounds;
+    queryBounds.minX = minX;
+    queryBounds.minZ = minZ;
+    queryBounds.maxX = maxX;
+    queryBounds.maxZ = maxZ;
+    for (let i = 0; i < bodies.length; i++) {
+      const handle = activeHost.getBodyHandle(bodies[i].waterId);
+      if (!handle?.active || !handle.queryEnabled) continue;
+      const field = handle.runtimeInterfaces.spatialField;
+      if (!field?.maximumSurfaceHeightInBounds) return true;
+      const b = field.metadata.bounds;
+      if (maxX < b.minX || minX > b.maxX || maxZ < b.minZ || minZ > b.maxZ) continue;
+      if (field.maximumSurfaceHeightInBounds(queryBounds) !== null) return true;
+    }
+    return false;
   }
 
   /** Allocation-free query of the Host's actually published active body set. */

@@ -103,7 +103,7 @@ export interface AnimalTaskHost {
   /** Select the steering limits used by both route prediction and movement. */
   setMovementUrgency?(urgent: boolean): void;
   /** Optional shared CPU scheduler. Completion is separate from suspension and unreachable results. */
-  plan?<T>(task: AnimalPlanningTask<T>, finish: (result: T) => void): () => void;
+  plan?<T>(task: AnimalPlanningTask<T>, finish: (result: T) => void, urgent?: boolean): () => void;
   planMoveTo?(
     target: readonly [number, number],
     speed: number,
@@ -788,7 +788,9 @@ export class AnimalTaskController {
         complete(result);
         if (this.host.plan) wake();
       };
-      if (this.host.plan) cancelSearch = this.host.plan(task, done);
+      const highPriority =
+        (groundEscape && !movementStarted && escapeRetryDelay <= 0.25) || (flying && params.resumeLanding === true);
+      if (this.host.plan) cancelSearch = this.host.plan(task, done, highPriority);
       else done(finishAnimalPlanningTask(task));
     };
     const slowerSlot = params.preserveGait ? undefined : this.profile.movementFallbacks?.[requestedSlot];

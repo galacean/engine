@@ -921,7 +921,10 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
         z = from.z + Math.cos(angle) * distance;
       if (fleeing && !detour && (x - source[0]) ** 2 + (z - source[1]) ** 2 <=
           (from.x - source[0]) ** 2 + (from.z - source[1]) ** 2) continue;
-      if (!canArrive(x, z) || !animal.canOccupy(x, z, medium) || !habitat.canTraverse({ x, z }, { x, z }, radius, height, medium)) continue;
+      if (!insideAnimalHome(home, x, z) || !animal.canOccupy(x, z, medium)) continue;
+      if (arrivalMedium && arrivalMedium !== medium && (!animal.canOccupy(x, z, arrivalMedium) ||
+        !habitat.canTraverse({ x, z }, { x, z }, radius, height, arrivalMedium))) continue;
+      if (!habitat.canTraverse({ x, z }, { x, z }, radius, height, medium)) continue;
       const obstacles = this.interactions.food?.obstacles;
       if (medium !== "air" && obstacles?.length) {
         const y = habitat.heightAt(x, z, medium, height);
@@ -931,7 +934,8 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       fallback ??= [x, z];
       if (query.query === AnimalQuery.Flee || !maximumWeight) return [x, z];
       const surface = medium === "water" ? "river" :
-        [[4, 0], [-4, 0], [0, 4], [0, -4]].some(([dx, dz]) => habitat.navigationWater(x + dx, z + dz))
+        (habitat.navigationWater(x + 4, z) || habitat.navigationWater(x - 4, z) ||
+         habitat.navigationWater(x, z + 4) || habitat.navigationWater(x, z - 4))
           ? "waterside" : habitat.surface.at(x, z);
       const weight = preferences.find((entry) => entry.habitat === surface)?.weight ?? 0;
       // A preference does not trap an animal on a road or remove safe passage through it.

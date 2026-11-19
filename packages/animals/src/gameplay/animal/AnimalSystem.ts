@@ -44,6 +44,7 @@ export class AnimalSystem {
   private readonly _ownedDeadlines = new Map<AnimalAgent, Set<Deadline>>();
   private readonly _decisionQueue: AnimalAgent[] = [];
   private readonly _planning = new Set<PlanningWork>();
+  private readonly _urgentPlanning = new Set<PlanningWork>();
   private _lastPlanningSteps = 0;
   private _lastPlanningMilliseconds = 0;
   private _time = 0;
@@ -109,7 +110,7 @@ export class AnimalSystem {
     for (const deadlines of this._ownedDeadlines.values())
       for (const deadline of deadlines) if (deadline.remaining !== undefined) pausedDeadlines++;
     return {
-      planningTasks: this._planning.size,
+      planningTasks: this._planning.size + this._urgentPlanning.size,
       lastPlanningSteps: this._lastPlanningSteps,
       lastPlanningMilliseconds: this._lastPlanningMilliseconds,
       animals: this._animals.size,
@@ -214,58 +215,76 @@ export class AnimalSystem {
   }
 
   /** Schedule CPU work without advancing it inline. Disabled owners retain their continuation. */
-  plan<T>(owner: AnimalAgent, task: AnimalPlanningTask<T>, finish: (value: T) => void): () => void {
+  plan<T>(owner: AnimalAgent, task: AnimalPlanningTask<T>, finish: (value: T) => void, urgent = false): () => void {
     if (this._disposed || !this._animals.has(owner)) throw new Error("Planning requires a registered animal");
     const work: PlanningWork = { owner, task, finish: (value) => finish(value as T) };
-    this._planning.add(work);
-    return () => this._cancelPlanning(work);
+    const queue = urgent ? this._urgentPlanning : this._planning;
+    queue.add(work);
+    return () => this._cancelPlanning(work, queue);
   }
 
-  private _cancelPlanning(work: PlanningWork): void {
-    if (this._planning.delete(work) && !work.running) work.task.return(undefined);
+  private _cancelPlanning(work: PlanningWork, queue: Set<PlanningWork>): void {
+    if (queue.delete(work) && !work.running) work.task.return(undefined);
+  }
+
+  private _advancePlanningQueue(queue: Set<PlanningWork>, start: number, stepLimit: number, msLimit: number): void {
+    let skipped = 0;
+    const available = () => this._lastPlanningSteps < stepLimit && performance.now() - start < msLimit;
+    while (queue.size && available()) {
+      const work = queue.values().next().value!;
+      // Give one continuation the remaining frame slice. Rotating after every
+      // query spreads short pose-dependent validations over many moving frames.
+      // Rotate before running so an unfinished task yields to its peers next frame.
+      queue.delete(work);
+      queue.add(work);
+      if (this._inactive.has(work.owner)) {
+        if (++skipped >= queue.size) break;
+        continue;
+      }
+      skipped = 0;
+      do {
+        this._lastPlanningSteps++;
+        let result: IteratorResult<void, unknown>;
+        work.running = true;
+        try {
+          result = work.task.next();
+        } catch (error) {
+          queue.delete(work);
+          throw error;
+        } finally {
+          work.running = false;
+        }
+        if (!queue.has(work)) {
+          work.task.return(undefined);
+          break;
+        }
+        // A query may synchronously cancel its owner or replace the task.
+        if (result.done) {
+          queue.delete(work);
+          work.finish(result.value);
+          break;
+        }
+      } while (!this._inactive.has(work.owner) && available());
+    }
   }
 
   private _advancePlanning(): void {
     const start = performance.now();
-    let skipped = 0;
-    const available = () =>
-      this._lastPlanningSteps < this.maxPlanningSteps && performance.now() - start < this.maxPlanningMilliseconds;
     try {
-      while (this._planning.size && available()) {
-        const work = this._planning.values().next().value!;
-        // Give one continuation the remaining frame slice. Rotating after every
-        // query spreads short pose-dependent validations over many moving frames.
-        // Rotate before running so an unfinished task yields to its peers next frame.
-        this._planning.delete(work);
-        this._planning.add(work);
-        if (this._inactive.has(work.owner)) {
-          if (++skipped >= this._planning.size) break;
-          continue;
-        }
-        skipped = 0;
-        do {
-          this._lastPlanningSteps++;
-          let result: IteratorResult<void, unknown>;
-          work.running = true;
-          try {
-            result = work.task.next();
-          } catch (error) {
-            this._planning.delete(work);
-            throw error;
-          } finally {
-            work.running = false;
-          }
-          if (!this._planning.has(work)) {
-            work.task.return(undefined);
-            break;
-          }
-          // A query may synchronously cancel its owner or replace the task.
-          if (result.done) {
-            this._planning.delete(work);
-            work.finish(result.value);
-            break;
-          }
-        } while (!this._inactive.has(work.owner) && available());
+      if (this._urgentPlanning.size) {
+        // Anti-starvation cap: when normal tasks are waiting, urgent tasks consume at most 70%
+        // of the frame budget so background wandering and recovery always make forward progress.
+        const share = this._planning.size ? 0.7 : 1;
+        const urgentSteps = Math.max(1, Math.floor(this.maxPlanningSteps * share));
+        const urgentMs = this.maxPlanningMilliseconds * share;
+        this._advancePlanningQueue(this._urgentPlanning, start, urgentSteps, urgentMs);
+      }
+      if (this._planning.size) {
+        this._advancePlanningQueue(this._planning, start, this.maxPlanningSteps, this.maxPlanningMilliseconds);
+      }
+      // If normal tasks finished with budget left over, spend the remainder on urgent work.
+      if (this._urgentPlanning.size) {
+        this._advancePlanningQueue(this._urgentPlanning, start, this.maxPlanningSteps, this.maxPlanningMilliseconds);
       }
     } finally {
       this._lastPlanningMilliseconds = performance.now() - start;
@@ -438,9 +457,13 @@ export class AnimalSystem {
 
   /** @internal Removes queued decisions and motion; Animal cancels its task deadline. */
   remove(animal: AnimalAgent): void {
+    for (const work of this._urgentPlanning) {
+      if (work.owner !== animal) continue;
+      this._cancelPlanning(work, this._urgentPlanning);
+    }
     for (const work of this._planning) {
       if (work.owner !== animal) continue;
-      this._cancelPlanning(work);
+      this._cancelPlanning(work, this._planning);
     }
     this._animals.delete(animal);
     this._moving.delete(animal);
@@ -461,7 +484,9 @@ export class AnimalSystem {
     for (const deadlines of this._ownedDeadlines.values())
       for (const deadline of deadlines) deadline.remaining = undefined;
     this._ownedDeadlines.clear();
-    for (const work of this._planning) this._cancelPlanning(work);
+    for (const work of this._urgentPlanning) this._cancelPlanning(work, this._urgentPlanning);
+    this._urgentPlanning.clear();
+    for (const work of this._planning) this._cancelPlanning(work, this._planning);
     this._planning.clear();
     this._animals.clear();
     this._deadlines.length = 0;
