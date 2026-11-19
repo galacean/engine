@@ -1,0 +1,19 @@
+packages/core/src/texture/enums/TextureFormat.ts
+  s_2cb37b1ebe9df1::t_4379eea2c4c67b 4-6,9,13,15,17,19,21,23,25,27,29,31,33,35,37,39,42,44,46,48,50,52,54,56,66,68,70,72,74,76,79,81,83,91,93
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "27eba21b976facac11d8ecdbf7153fa41202c797",
+  "prompts": {},
+  "sessions": {
+    "s_2cb37b1ebe9df1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d0cd-fa44-7fc3-8a7d-c6641c0c0f1c",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
