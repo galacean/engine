@@ -156,7 +156,7 @@ export abstract class Texture extends GraphicsResource {
 
   /**
    * Comparison function used when sampling this texture as a shadow depth map.
-   * @remarks Kept on this property across backends, and takes effect only for depth formats sampled with comparison in WebGL2.
+   * @remarks Kept on this property across backends, and takes effect only for depth formats sampled with comparison.
    */
   get depthCompareFunction(): TextureDepthCompareFunction {
     return this._depthCompareFunction;

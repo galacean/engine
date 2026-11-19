@@ -607,7 +607,7 @@ export class Camera extends Component {
   /**
    * Manually call the rendering of the camera.
    * @param cubeFace - Cube rendering surface collection
-   * @param mipLevel - Set mip level the data want to write, only take effect in webgl2.0
+   * @param mipLevel - Set mip level the data want to write
    */
   render(cubeFace?: TextureCubeFace, mipLevel: number = 0): void {
     const engine = this._engine;

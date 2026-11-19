@@ -6,7 +6,7 @@
 mediump sampler2D renderer_BlitTexture;
 
 void frag(Varyings v) {
-	mediump vec4 color = texture2DSRGB(renderer_BlitTexture, v.v_uv);
+	mediump vec4 color = texture(renderer_BlitTexture, v.v_uv);
 
     // This is final output, maybe has alpha
     // If we use premultiplied color to convert to sRGB. Since we ignored the background color, the greater the transparency, the greater the final composite color

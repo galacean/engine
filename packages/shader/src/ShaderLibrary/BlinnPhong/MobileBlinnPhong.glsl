@@ -38,15 +38,15 @@ void initBlinnPhongMaterial(vec2 uv, out vec4 ambient, out vec4 emission, out ve
     specular = material_SpecularColor;
 
     #ifdef MATERIAL_HAS_EMISSIVETEXTURE
-        emission *= texture2DSRGB(material_EmissiveTexture, uv);
+        emission *= texture(material_EmissiveTexture, uv);
     #endif
 
     #ifdef MATERIAL_HAS_BASETEXTURE
-        diffuse *= texture2DSRGB(material_BaseTexture, uv);
+        diffuse *= texture(material_BaseTexture, uv);
     #endif
 
     #ifdef MATERIAL_HAS_SPECULAR_TEXTURE
-        specular *= texture2DSRGB(material_SpecularTexture, uv);
+        specular *= texture(material_SpecularTexture, uv);
     #endif
 
     ambient = vec4(scene_EnvMapLight.diffuse * scene_EnvMapLight.diffuseIntensity, 1.0) * diffuse;

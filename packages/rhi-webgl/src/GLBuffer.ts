@@ -28,7 +28,7 @@ export class GLBuffer implements IPlatformBuffer {
         glBindTarget = gl.ELEMENT_ARRAY_BUFFER;
         break;
       case BufferBindFlag.ConstantBuffer:
-        glBindTarget = (<WebGL2RenderingContext>gl).UNIFORM_BUFFER;
+        glBindTarget = gl.UNIFORM_BUFFER;
         break;
     }
     this._gl = gl;
@@ -82,11 +82,7 @@ export class GLBuffer implements IPlatformBuffer {
           dataByteLength / byteSize
         );
       } else {
-        const subData = new Uint8Array(
-          isArrayBufferView ? (<ArrayBufferView>data).buffer : <ArrayBuffer>data,
-          dataOffset! * byteSize,
-          dataByteLength
-        );
+        const subData = new Uint8Array(<ArrayBuffer>data, dataOffset! * byteSize, dataByteLength);
         gl.bufferSubData(glBindTarget, bufferByteOffset!, subData);
       }
     } else {
@@ -101,7 +97,7 @@ export class GLBuffer implements IPlatformBuffer {
   }
 
   copyFromBuffer(srcBuffer: IPlatformBuffer, srcByteOffset: number, dstByteOffset: number, byteLength: number): void {
-    const gl = <WebGL2RenderingContext>this._gl;
+    const gl = this._gl;
     gl.bindBuffer(gl.COPY_READ_BUFFER, (<GLBuffer>srcBuffer)._glBuffer);
     gl.bindBuffer(gl.COPY_WRITE_BUFFER, this._glBuffer);
     gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, srcByteOffset, dstByteOffset, byteLength);

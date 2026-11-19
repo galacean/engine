@@ -355,7 +355,7 @@ vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor) {
     }
 
     float prefilteredSheenDFG(float dotNV, float sheenRoughness) {
-            return texture2DLodEXT(scene_PrefilteredDFG, vec2(dotNV, sheenRoughness), 0.0).b;
+        return textureLod(scene_PrefilteredDFG, vec2(dotNV, sheenRoughness), 0.0).b;
     }
 #endif
 
@@ -395,7 +395,7 @@ vec3 envBRDFApprox(vec3 f0, float f90, float roughness, float dotNV ) {
         vec2 refractionCoords = (samplingPositionNDC.xy / samplingPositionNDC.w) * 0.5 + 0.5;
 
         // Sample the opaque texture to get the transmitted light
-        vec3 refractionTransmitted = texture2DSRGB(camera_OpaqueTexture, refractionCoords).rgb;
+        vec3 refractionTransmitted = texture(camera_OpaqueTexture, refractionCoords).rgb;
         
         refractionTransmitted *= bsdfData.diffuseColor;
          
@@ -421,7 +421,7 @@ vec3 envBRDFApprox(vec3 f0, float f90, float roughness, float dotNV ) {
         #ifdef MATERIAL_IS_TRANSPARENT
             return 1.0;
         #else
-            return texture2D(camera_AOTexture, uv).r;
+            return texture(camera_AOTexture, uv).r;
         #endif
     }
 #endif

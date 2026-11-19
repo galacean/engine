@@ -6,7 +6,6 @@ import {
   Loader,
   RequestConfig,
   ResourceManager,
-  SystemInfo,
   Texture,
   Texture2D,
   TextureFilterMode,
@@ -55,12 +54,8 @@ class TextureLoader extends Loader<Texture> {
   }
 
   private _decodeHDR(buffer: Uint8Array, item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
-    return new AssetPromise((resolve, reject) => {
+    return new AssetPromise((resolve) => {
       const engine = resourceManager.engine;
-      if (!SystemInfo.supportsTextureFormat(engine, TextureFormat.R16G16B16A16_SFloat)) {
-        reject(new Error("TextureLoader: HDR texture requires half float support."));
-        return;
-      }
       const { width, height, pixels } = HDRDecoder.decode(buffer);
       const { mipmap = true } = (item.params as Partial<TextureParams>) ?? {};
 

@@ -135,7 +135,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     vec3 emissiveRadiance = material_EmissiveColor;
 
     #ifdef MATERIAL_HAS_BASETEXTURE
-        baseColor *= texture2DSRGB(material_BaseTexture, uv);
+        baseColor *= texture(material_BaseTexture, uv);
     #endif
 
     #ifdef RENDERER_ENABLE_VERTEXCOLOR
@@ -150,13 +150,13 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     #endif
 
     #ifdef MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE
-        vec4 metalRoughMapColor = texture2D( material_RoughnessMetallicTexture, uv );
+        vec4 metalRoughMapColor = texture( material_RoughnessMetallicTexture, uv );
         roughness *= metalRoughMapColor.g;
         metallic *= metalRoughMapColor.b;
     #endif
 
     #ifdef MATERIAL_HAS_EMISSIVETEXTURE
-        emissiveRadiance *= texture2DSRGB(material_EmissiveTexture, uv).rgb;
+        emissiveRadiance *= texture(material_EmissiveTexture, uv).rgb;
     #endif
 
     surfaceData.albedoColor = baseColor.rgb;
@@ -218,11 +218,11 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     surfaceData.specularIntensity = material_SpecularIntensity;
     surfaceData.specularColor = material_SpecularColor;
     #ifdef MATERIAL_HAS_SPECULAR_TEXTURE
-        surfaceData.specularIntensity *= texture2D( material_SpecularIntensityTexture, uv ).a;
+        surfaceData.specularIntensity *= texture( material_SpecularIntensityTexture, uv ).a;
     #endif
 
     #ifdef MATERIAL_HAS_SPECULAR_COLOR_TEXTURE
-        surfaceData.specularColor *= texture2D( material_SpecularColorTexture, uv ).rgb;
+        surfaceData.specularColor *= texture( material_SpecularColorTexture, uv ).rgb;
     #endif
 
     // Clear Coat
@@ -238,11 +238,11 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         surfaceData.clearCoatRoughness = material_ClearCoatRoughness;
 
         #ifdef MATERIAL_HAS_CLEAR_COAT_TEXTURE
-            surfaceData.clearCoat *= (texture2D( material_ClearCoatTexture, uv )).r;
+            surfaceData.clearCoat *= (texture( material_ClearCoatTexture, uv )).r;
         #endif
 
         #ifdef MATERIAL_HAS_CLEAR_COAT_ROUGHNESS_TEXTURE
-            surfaceData.clearCoatRoughness *= (texture2D( material_ClearCoatRoughnessTexture, uv )).g;
+            surfaceData.clearCoatRoughness *= (texture( material_ClearCoatRoughnessTexture, uv )).g;
         #endif
 
         surfaceData.clearCoat = saturate( surfaceData.clearCoat );
@@ -253,7 +253,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         float anisotropy = material_AnisotropyInfo.z;
         vec3 anisotropicDirection = vec3(material_AnisotropyInfo.xy, 0.0);
         #ifdef MATERIAL_HAS_ANISOTROPY_TEXTURE
-            vec3 anisotropyTextureInfo = (texture2D( material_AnisotropyTexture, uv )).rgb;
+            vec3 anisotropyTextureInfo = (texture( material_AnisotropyTexture, uv )).rgb;
             anisotropy *= anisotropyTextureInfo.b;
             anisotropicDirection.xy *= anisotropyTextureInfo.rg * 2.0 - 1.0;
         #endif
@@ -270,48 +270,48 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         surfaceData.iridescenceIOR = material_IridescenceInfo.y;
 
         #ifdef MATERIAL_HAS_IRIDESCENCE_THICKNESS_TEXTURE
-           float iridescenceThicknessWeight = texture2D( material_IridescenceThicknessTexture, uv).g;
+           float iridescenceThicknessWeight = texture( material_IridescenceThicknessTexture, uv).g;
            surfaceData.iridescenceThickness = mix(material_IridescenceInfo.z, material_IridescenceInfo.w, iridescenceThicknessWeight);
         #else
            surfaceData.iridescenceThickness = material_IridescenceInfo.w;
         #endif
        
         #ifdef MATERIAL_HAS_IRIDESCENCE_TEXTURE
-           surfaceData.iridescenceFactor *= texture2D( material_IridescenceTexture, uv).r;
+           surfaceData.iridescenceFactor *= texture( material_IridescenceTexture, uv).r;
         #endif
     #endif
 
     #ifdef MATERIAL_ENABLE_SHEEN
         vec3 sheenColor = material_SheenColor;
         #ifdef MATERIAL_HAS_SHEEN_TEXTURE
-            sheenColor *= texture2DSRGB(material_SheenTexture, uv).rgb;
+            sheenColor *= texture(material_SheenTexture, uv).rgb;
         #endif
         surfaceData.sheenColor = sheenColor;
 
         surfaceData.sheenRoughness = material_SheenRoughness;
         #ifdef MATERIAL_HAS_SHEEN_ROUGHNESS_TEXTURE
-            surfaceData.sheenRoughness *= texture2D(material_SheenRoughnessTexture, uv).a;
+            surfaceData.sheenRoughness *= texture(material_SheenRoughnessTexture, uv).a;
         #endif
     #endif
 
     #ifdef MATERIAL_ENABLE_TRANSMISSION 
         surfaceData.transmission = material_Transmission;
         #ifdef MATERIAL_HAS_TRANSMISSION_TEXTURE
-            surfaceData.transmission *= texture2D(material_TransmissionTexture, uv).r;
+            surfaceData.transmission *= texture(material_TransmissionTexture, uv).r;
         #endif
 
         #ifdef MATERIAL_HAS_THICKNESS
                 surfaceData.absorptionCoefficient = -log(material_AttenuationColor + HALF_EPS) / max(HALF_EPS, material_AttenuationDistance);
                 surfaceData.thickness = max(material_Thickness, 0.0001);
                 #ifdef MATERIAL_HAS_THICKNESS_TEXTURE
-                    surfaceData.thickness *= texture2D( material_ThicknessTexture, uv).g;
+                    surfaceData.thickness *= texture( material_ThicknessTexture, uv).g;
                 #endif
         #endif    
     #endif
 
     // Ambient Occlusion
     #ifdef MATERIAL_HAS_OCCLUSION_TEXTURE
-        surfaceData.ambientOcclusion = ((texture2D(material_OcclusionTexture, aoUV)).r - 1.0) * material_OcclusionIntensity + 1.0;
+        surfaceData.ambientOcclusion = ((texture(material_OcclusionTexture, aoUV)).r - 1.0) * material_OcclusionIntensity + 1.0;
     #else
         surfaceData.ambientOcclusion = 1.0;
     #endif

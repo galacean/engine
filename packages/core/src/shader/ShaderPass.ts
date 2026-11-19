@@ -14,13 +14,8 @@ import { ShaderMacroProcessor } from "./ShaderMacroProcessor";
 import { RenderState } from "./state/RenderState";
 
 const precisionStr = `
-    #ifdef GL_FRAGMENT_PRECISION_HIGH
-      precision highp float;
-      precision highp int;
-    #else
-      precision mediump float;
-      precision mediump int;
-    #endif
+    precision highp float;
+    precision highp int;
     `;
 
 /**

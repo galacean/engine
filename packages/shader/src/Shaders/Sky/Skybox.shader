@@ -28,8 +28,6 @@ Shader "Sky/Skybox" {
       VertexShader = SkyboxVertex;
       FragmentShader = SkyboxFragment;
 
-      #include "ShaderLibrary/Common/Common.glsl"
-
       struct Attributes {
         vec3 POSITION;
       };
@@ -61,7 +59,7 @@ Shader "Sky/Skybox" {
       }
 
       void SkyboxFragment(Varyings varyings) {
-        vec4 textureColor = textureCube(material_CubeTexture, varyings.v_cubeUV);
+        vec4 textureColor = texture(material_CubeTexture, varyings.v_cubeUV);
         textureColor.rgb *= material_Exposure * material_TintColor.rgb;
         gl_FragColor = textureColor;
       }

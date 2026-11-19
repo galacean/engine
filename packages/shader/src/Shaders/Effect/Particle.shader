@@ -86,12 +86,12 @@ Shader "Effect/Particle" {
           #endif
 
           #ifdef MATERIAL_HAS_BASETEXTURE
-              color *= texture2DSRGB(material_BaseTexture, v.v_TextureCoordinate);
+              color *= texture(material_BaseTexture, v.v_TextureCoordinate);
           #endif
 
           vec3 emissiveRadiance = material_EmissiveColor;
           #ifdef MATERIAL_HAS_EMISSIVETEXTURE
-              emissiveRadiance *= texture2DSRGB(material_EmissiveTexture, v.v_TextureCoordinate).rgb;
+              emissiveRadiance *= texture(material_EmissiveTexture, v.v_TextureCoordinate).rgb;
           #endif
 
           color.rgb += emissiveRadiance;

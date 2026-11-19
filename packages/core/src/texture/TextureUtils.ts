@@ -54,7 +54,7 @@ export class TextureUtils {
   }
 
   static supportGenerateMipmaps(format: TextureFormat, mipmap: boolean, isSRGBColorSpace: boolean): boolean {
-    // Auto generating mipmaps for sRGB textures is only supported in [WebGL2 + RGBA]
+    // Auto generating mipmaps for sRGB textures is only supported for R8G8B8A8_UNorm
     if (mipmap && isSRGBColorSpace && format !== TextureFormat.R8G8B8A8_UNorm) {
       return false;
     }

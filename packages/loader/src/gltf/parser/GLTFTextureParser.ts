@@ -4,7 +4,6 @@ import {
   Texture,
   Texture2D,
   TextureFormat,
-  TextureUtils,
   TextureWrapMode,
   Utils
 } from "@galacean/engine-core";
@@ -70,11 +69,7 @@ export class GLTFTextureParser extends GLTFParser {
         return ImageDecoder._decode(imageBuffer, imageName || textureName || url, mimeType).then((image) => {
           const { width, height } = image;
           const format = TextureFormat.R8G8B8A8_UNorm;
-          const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
-            format,
-            samplerInfo?.mipmap ?? true,
-            isSRGBColorSpace!
-          );
+          const generateMipmap = samplerInfo?.mipmap ?? true;
           const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
           texture.setImageSource(image);
           texture.generateMipmaps();

@@ -10,7 +10,6 @@ Shader "Pipeline/ShadowCaster" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "ShaderLibrary/Common/Common.glsl"
       #include "ShaderLibrary/Common/Transform.glsl"
       #include "ShaderLibrary/Common/Attributes.glsl"
       #include "ShaderLibrary/Skin/Skin.glsl"
@@ -67,7 +66,7 @@ Shader "Pipeline/ShadowCaster" {
           position = skinMatrix * position;
 
           #ifdef RENDERER_HAS_NORMAL
-            mat3 skinNormalMatrix = INVERSE_MAT(mat3(skinMatrix));
+            mat3 skinNormalMatrix = inverse(mat3(skinMatrix));
             normal = normal * skinNormalMatrix;
           #endif
         #endif
@@ -98,7 +97,7 @@ Shader "Pipeline/ShadowCaster" {
         #if defined(MATERIAL_IS_ALPHA_CUTOFF) || (defined(SCENE_ENABLE_TRANSPARENT_SHADOW) && defined(MATERIAL_IS_TRANSPARENT))
           float alpha = material_BaseColor.a;
           #ifdef MATERIAL_HAS_BASETEXTURE
-            alpha *= texture2D(material_BaseTexture, v.v_uv).a;
+            alpha *= texture(material_BaseTexture, v.v_uv).a;
           #endif
           #ifdef MATERIAL_IS_ALPHA_CUTOFF
             if (alpha < material_AlphaCutoff) {

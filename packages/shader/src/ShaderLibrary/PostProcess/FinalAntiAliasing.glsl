@@ -4,7 +4,7 @@
 #define FXAA_PC 1
 #define FXAA_QUALITY_PRESET 12
 #define FXAA_GREEN_AS_LUMA 0
-    #define FXAA_GLSL_130 1
+#define FXAA_GLSL_130 1
 
 #include "ShaderLibrary/Common/Common.glsl"
 #include "ShaderLibrary/PostProcess/FXAA/FXAA3_11.glsl"
@@ -30,7 +30,7 @@ vec4 applyFXAA(vec4 color, vec2 positionNDC, vec4 sourceSize, sampler2D blitText
 }
 
 void frag(Varyings v) {
-	mediump vec4 color = texture2D(renderer_BlitTexture, v.v_uv);
+	mediump vec4 color = texture(renderer_BlitTexture, v.v_uv);
 
     color = applyFXAA(color, v.v_uv, renderer_texelSize, renderer_BlitTexture);
 
