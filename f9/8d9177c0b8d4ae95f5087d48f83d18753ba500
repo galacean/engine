@@ -1,0 +1,32 @@
+packages/farming/src/farming/shaders/FarmLand.shader
+  h_a3c79ce84ffdc2 11-17,23
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/shaders/grass/GrassForwardPass.glsl
+  h_a3c79ce84ffdc2 116-117,310-312,320-353
+packages/terrain/src/shaders/shared/FarmGroundBlend.glsl
+  h_a3c79ce84ffdc2 17,21,24,27,29-32,34-38
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmGrassOverlay.ts
+  h_a3c79ce84ffdc2 14-15,51-67,190,242
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmLandCoverage.ts
+  h_a3c79ce84ffdc2 2,9-10,16-18,70-125,137-177
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmLandLayer.ts
+  h_a3c79ce84ffdc2 14-15,22,62,71,83-86,115,134-138,143,165-172,188,190,218,233,241-243,245
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingRuntime.ts
+  h_a3c79ce84ffdc2 688
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingVegetation.ts
+  h_a3c79ce84ffdc2 26-32,69
+world/tests/seed-world/PlanningFarmLandCoverage.spec.ts
+  h_a3c79ce84ffdc2 1-164
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f98d9177c0b8d4ae95f5087d48f83d18753ba500",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
