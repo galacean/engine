@@ -8,6 +8,7 @@ import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { GLCapabilityType } from "../../base";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
 import { CameraType } from "../../enums/CameraType";
+import { Downsampling } from "../../enums/Downsampling";
 import { Material } from "../../material";
 import { Shader, ShaderProperty } from "../../shader";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
@@ -93,6 +94,28 @@ export class ScreenSpaceReflectionPass {
 
   get hasTransparentReceivers(): boolean {
     return this._transparentReceiverElementCount > 0;
+  }
+
+  /** Reuse the immutable opaque scene capture for `camera_OpaqueTexture` when its contract covers the request. */
+  getReusableOpaqueTexture(camera: Camera): Texture2D | null {
+    const sceneColorTarget = this._sceneColorTarget;
+    if (!sceneColorTarget) return null;
+    const colorTexture = sceneColorTarget.getColorTexture(0) as Texture2D | null;
+    if (!colorTexture) return null;
+    const downsampling = camera.opaqueTextureDownsampling;
+    const sizeScale = downsampling === Downsampling.None ? 1.0 : downsampling === Downsampling.TwoX ? 0.5 : 0.25;
+    const viewport = camera.pixelViewport;
+    const expectedWidth = Math.max(1, Math.floor(viewport.width * sizeScale));
+    const expectedHeight = Math.max(1, Math.floor(viewport.height * sizeScale));
+    if (
+      colorTexture.width !== expectedWidth ||
+      colorTexture.height !== expectedHeight ||
+      colorTexture.format !== camera._getInternalColorTextureFormat() ||
+      colorTexture.isSRGBColorSpace !== !camera._isInternalFormatHDR()
+    ) {
+      return null;
+    }
+    return colorTexture;
   }
 
   constructor(
