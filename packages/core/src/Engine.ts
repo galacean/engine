@@ -492,11 +492,14 @@ export class Engine extends EventDispatcher {
   private _processPendingDestroyObjects(): void {
     const pending = this._pendingDestroyObjects;
     this._processingPendingDestroys = true;
-    for (let i = 0, n = pending.length; i < n; i++) {
-      pending[i].destroy();
+    try {
+      for (let i = 0, n = pending.length; i < n; i++) {
+        pending[i].destroy();
+      }
+    } finally {
+      pending.length = 0;
+      this._processingPendingDestroys = false;
     }
-    pending.length = 0;
-    this._processingPendingDestroys = false;
   }
 
   private _destroy(): void {

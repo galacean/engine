@@ -22,6 +22,9 @@ class TriggerRecorder extends Script {
   onTriggerEnter = vi.fn();
   onTriggerStay = vi.fn();
   onTriggerExit = vi.fn();
+  onCollisionEnter = vi.fn();
+  onCollisionStay = vi.fn();
+  onCollisionExit = vi.fn();
 }
 
 describe("Collider layer initialization", () => {
@@ -238,12 +241,104 @@ describe("Collider layer validation", () => {
     trigger.addComponent(Rigidbody).isKinematic = true;
     const recorder = trigger.addComponent(TriggerRecorder);
     const box = root.createChild("box").addComponent(BoxCollider);
-    update(2);
-    expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
-    physics.setColliderLayerCollision(Layer.Layer0, Layer.Layer1, false);
-    box.collisionLayer = Layer.Layer1;
-    update(2);
-    expect(recorder.onTriggerExit).toHaveBeenCalledOnce();
-    expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
+    try {
+      update(2);
+      expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
+      physics.setColliderLayerCollision(Layer.Layer0, Layer.Layer1, false);
+      box.collisionLayer = Layer.Layer1;
+      update(2);
+      expect(recorder.onTriggerExit).toHaveBeenCalledOnce();
+      expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
+    } finally {
+      physics.setColliderLayerCollision(Layer.Layer0, Layer.Layer1, true);
+    }
+  });
+
+  it("refilters existing overlapping triggers and solid contacts when only setColliderLayerCollision flips", () => {
+    try {
+      physics.gravity.set(0, -9.81, 0);
+
+      // Pair 1 (Layer5 <-> Layer6): overlapping trigger pair
+      const triggerEntity = root.createChild("matrix-trigger");
+      triggerEntity.transform.setPosition(0, 5, 0);
+      const triggerBox = triggerEntity.addComponent(BoxCollider);
+      triggerBox.isTrigger = true;
+      triggerBox.collisionLayer = Layer.Layer5;
+      triggerEntity.addComponent(Rigidbody).isKinematic = true;
+      const triggerRecorder = triggerEntity.addComponent(TriggerRecorder);
+
+      const probeEntity = root.createChild("matrix-probe");
+      probeEntity.transform.setPosition(0, 5, 0);
+      const probeBox = probeEntity.addComponent(BoxCollider);
+      probeBox.collisionLayer = Layer.Layer6;
+
+      // Pair 2 (Layer7 <-> Layer8): unrelated overlapping trigger pair that must stay untouched
+      const otherTrigger = root.createChild("unrelated-trigger");
+      otherTrigger.transform.setPosition(20, 5, 0);
+      const otherTriggerBox = otherTrigger.addComponent(BoxCollider);
+      otherTriggerBox.isTrigger = true;
+      otherTriggerBox.collisionLayer = Layer.Layer7;
+      otherTrigger.addComponent(Rigidbody).isKinematic = true;
+      const otherRecorder = otherTrigger.addComponent(TriggerRecorder);
+
+      const otherProbe = root.createChild("unrelated-probe");
+      otherProbe.transform.setPosition(20, 5, 0);
+      otherProbe.addComponent(BoxCollider).collisionLayer = Layer.Layer8;
+
+      // Pair 3 (Layer5 <-> Layer6): dynamic solid crate resting on a static floor
+      const floor = root.createChild("matrix-floor");
+      floor.transform.setPosition(40, 0, 0);
+      const floorBox = floor.addComponent(BoxCollider);
+      floorBox.size = new Vector3(10, 1, 10);
+      floorBox.collisionLayer = Layer.Layer6;
+
+      const crate = root.createChild("matrix-crate");
+      crate.transform.setPosition(40, 1.0, 0);
+      const crateBox = crate.addComponent(BoxCollider);
+      crateBox.size = new Vector3(1, 1, 1);
+      crateBox.collisionLayer = Layer.Layer5;
+      const crateBody = crate.addComponent(Rigidbody);
+      const crateRecorder = crate.addComponent(TriggerRecorder);
+
+      // Settle initial overlaps and let the crate rest (asleep) on the floor
+      update(40);
+      expect(triggerRecorder.onTriggerEnter).toHaveBeenCalledOnce();
+      expect(otherRecorder.onTriggerEnter).toHaveBeenCalledOnce();
+      expect(crateRecorder.onCollisionEnter).toHaveBeenCalled();
+      expect(crate.transform.position.y).toBeCloseTo(1.0, 1);
+      crateBody.sleep();
+      expect(crateBody.isSleeping()).toBe(true);
+
+      // Flip ONLY the collision matrix entry for Layer5 <-> Layer6 (do NOT touch any collider's collisionLayer)
+      triggerRecorder.onTriggerStay.mockClear();
+      triggerRecorder.onTriggerExit.mockClear();
+      otherRecorder.onTriggerEnter.mockClear();
+      otherRecorder.onTriggerStay.mockClear();
+      otherRecorder.onTriggerExit.mockClear();
+      crateRecorder.onCollisionExit.mockClear();
+
+      physics.setColliderLayerCollision(Layer.Layer5, Layer.Layer6, false);
+      update(1);
+
+      // Trigger pair immediately fires Exit with 0 Stay; unrelated pair continues Stay with 0 Exit/Enter
+      expect(triggerRecorder.onTriggerExit).toHaveBeenCalledOnce();
+      expect(triggerRecorder.onTriggerStay).not.toHaveBeenCalled();
+      expect(otherRecorder.onTriggerExit).not.toHaveBeenCalled();
+      expect(otherRecorder.onTriggerEnter).not.toHaveBeenCalled();
+      expect(otherRecorder.onTriggerStay).toHaveBeenCalled();
+
+      // Sleeping solid crate wakes, fires onCollisionExit, and falls straight through the floor
+      update(25);
+      expect(crateRecorder.onCollisionExit).toHaveBeenCalled();
+      expect(crate.transform.position.y).toBeLessThan(0.5);
+
+      // Re-enabling Layer5 <-> Layer6 fires onTriggerEnter again on the next step
+      triggerRecorder.onTriggerEnter.mockClear();
+      physics.setColliderLayerCollision(Layer.Layer5, Layer.Layer6, true);
+      update(1);
+      expect(triggerRecorder.onTriggerEnter).toHaveBeenCalledOnce();
+    } finally {
+      physics.setColliderLayerCollision(Layer.Layer5, Layer.Layer6, true);
+    }
   });
 });

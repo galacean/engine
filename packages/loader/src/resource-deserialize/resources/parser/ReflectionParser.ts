@@ -252,6 +252,20 @@ export class ReflectionParser {
     if (!entity) return null;
     const type = Loader.getClass(comp.type);
     if (!type) return null;
+    const snapshot = this._context.componentSnapshots?.get(entity);
+    if (snapshot) {
+      let matchIndex = 0;
+      for (let i = 0, n = snapshot.length; i < n; i++) {
+        const candidate = snapshot[i];
+        if (candidate instanceof type) {
+          if (matchIndex === comp.index) {
+            return candidate.destroyed ? null : candidate;
+          }
+          matchIndex++;
+        }
+      }
+      return null;
+    }
     const buffer = ReflectionParser._componentBuffer;
     buffer.length = 0;
     entity.getComponents(type, buffer);
@@ -262,10 +276,12 @@ export class ReflectionParser {
 
   private _resolveEntityRef(path: number[]): Entity | null {
     if (!path || path.length === 0) return null;
-    let entity = this._context.entityInstances[path[0]] ?? null;
+    let entity: Entity | null = this._context.entityInstances[path[0]] ?? null;
+    const childSnapshots = this._context.childSnapshots;
     for (let i = 1, n = path.length; entity && i < n; i++) {
-      entity = entity.children[path[i]] ?? null;
+      const children = childSnapshots?.get(entity) ?? entity.children;
+      entity = children[path[i]] ?? null;
     }
-    return entity;
+    return entity && !entity.destroyed ? entity : null;
   }
 }

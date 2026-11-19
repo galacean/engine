@@ -14,6 +14,10 @@ export class ParserContext {
   entityInstances: Entity[] = [];
   /** Components waiting for props/calls application (Stage 4). */
   pendingComponents: Array<{ instance: Component; config: ComponentSchema }> = [];
+  /** Pre-removal component lists (plus additions) for entities with removedComponents, preserving $component indices. */
+  componentSnapshots: Map<Entity, Component[]> | null = null;
+  /** Pre-removal children lists for parents with removedEntities, preserving $entity indices during Stage 5. */
+  childSnapshots: Map<Entity, Entity[]> | null = null;
 
   readonly resourceManager: ResourceManager;
 
@@ -31,6 +35,10 @@ export class ParserContext {
   clear() {
     this.entityInstances.length = 0;
     this.pendingComponents.length = 0;
+    this.componentSnapshots?.clear();
+    this.componentSnapshots = null;
+    this.childSnapshots?.clear();
+    this.childSnapshots = null;
   }
 
   /** @internal */

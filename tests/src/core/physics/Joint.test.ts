@@ -746,4 +746,39 @@ describe("Joint", function () {
       secondScene.destroy();
     }
   });
+
+  it("keeps Rigidbody alive when destroy is blocked by a Joint and cleans up on entity.destroy or deferred destroy", function () {
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const body = box.getComponent(Rigidbody)!;
+    const joint = box.addComponent(FixedJoint);
+
+    expect(() => body.destroy()).toThrow(/Joint/);
+    expect(body.destroyed).toBe(false);
+    expect(body.pendingDestroy).toBe(false);
+    expect(box.getComponent(Rigidbody)).toBe(body);
+
+    // Entity destruction tears down Joint before Rigidbody cleanly
+    expect(() => box.destroy()).not.toThrow();
+    expect(joint.destroyed).toBe(true);
+    expect(body.destroyed).toBe(true);
+
+    // Deferred destroy within a frame: destroying Joint then Rigidbody flushes cleanly at end of frame
+    const deferredBox = addBox(new Vector3(1, 1, 1), new Vector3(0, 6, 0));
+    const deferredBody = deferredBox.getComponent(Rigidbody)!;
+    const deferredJoint = deferredBox.addComponent(FixedJoint);
+    (engine as any)._frameInProcess = true;
+    try {
+      deferredJoint.destroy();
+      deferredBody.destroy();
+      expect(deferredJoint.pendingDestroy).toBe(true);
+      expect(deferredBody.pendingDestroy).toBe(true);
+      expect(deferredBody.destroyed).toBe(false);
+    } finally {
+      (engine as any)._frameInProcess = false;
+    }
+    (engine as any)._processPendingDestroyObjects();
+    expect(deferredJoint.destroyed).toBe(true);
+    expect(deferredBody.destroyed).toBe(true);
+    expect(deferredBox.getComponent(Rigidbody)).toBeNull();
+  });
 });

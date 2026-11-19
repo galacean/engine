@@ -59,12 +59,7 @@ export class EngineObject {
     } else {
       this._pendingDestroy = false;
       this._destroyed = true;
-      try {
-        this._onDestroy();
-      } catch (error) {
-        this._destroyed = false;
-        throw error;
-      }
+      this._onDestroy();
     }
   }
 

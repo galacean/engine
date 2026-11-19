@@ -398,5 +398,34 @@ describe("Script", () => {
       engine.update();
       expect(tag).to.equal("script2");
     });
+
+    it("keeps script destroyed and does not re-run onDestroy when onDestroy throws", async () => {
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+      try {
+        const scene = engine.sceneManager.activeScene;
+        const rootEntity = scene.createRootEntity("root");
+        const entity = rootEntity.createChild("entity");
+        let destroyCalls = 0;
+
+        class ThrowingScript extends Script {
+          override onDestroy(): void {
+            destroyCalls++;
+            throw new Error("boom in onDestroy");
+          }
+        }
+
+        const script = entity.addComponent(ThrowingScript);
+        expect(() => script.destroy()).to.throw("boom in onDestroy");
+        expect(script.destroyed).to.equal(true);
+        expect(entity.getComponent(ThrowingScript)).to.equal(null);
+        expect(destroyCalls).to.equal(1);
+
+        // A second destroy() must be a no-op and must not invoke onDestroy again
+        expect(() => script.destroy()).to.not.throw();
+        expect(destroyCalls).to.equal(1);
+      } finally {
+        engine.destroy();
+      }
+    });
   });
 });

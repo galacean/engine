@@ -1,7 +1,8 @@
 import { IReferable } from "./asset/IReferable";
 import { EngineObject } from "./base";
 import { CloneMode, ignoreClone, registerDefaultCloneMode } from "./clone/CloneDecorators";
-import { Entity } from "./Entity";
+import { ComponentsDependencies } from "./ComponentsDependencies";
+import { ComponentConstructor, Entity } from "./Entity";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { Scene } from "./Scene";
 
@@ -80,6 +81,22 @@ export class Component extends EngineObject {
   constructor(entity: Entity) {
     super(entity.engine);
     this._entity = entity;
+  }
+
+  /**
+   * Destroy self.
+   */
+  override destroy(): void {
+    if (this._destroyed) return;
+    const engine = this._engine;
+    if (!engine?._frameInProcess || engine._processingPendingDestroys) {
+      const entity = this._entity;
+      if (entity._components?.includes(this)) {
+        this._pendingDestroy = false;
+        ComponentsDependencies._removeCheck(entity, this.constructor as ComponentConstructor);
+      }
+    }
+    super.destroy();
   }
 
   /**

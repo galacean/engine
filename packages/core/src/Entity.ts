@@ -590,7 +590,6 @@ export class Entity extends EngineObject {
     // A replaced Transform is detached from the component slot immediately but
     // can still reach here later because object destruction may be deferred
     if (index < 0) return;
-    ComponentsDependencies._removeCheck(this, component.constructor as ComponentConstructor);
     components.splice(index, 1);
   }
 

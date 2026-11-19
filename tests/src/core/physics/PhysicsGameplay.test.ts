@@ -766,4 +766,95 @@ describe("Physics gameplay integration", () => {
       delete engine.resourceManager._objectPool["test://base-dyn-mesh.prefab"];
     }
   });
+
+  it("replaces inherited Rigidbody (and Joint) via removedComponents + addedComponents without duplicate-Rigidbody errors", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const basePrefabData: any = {
+        version: "2.0",
+        refs: [],
+        entities: [{ name: "Base", components: [0, 1, 2] }],
+        components: [
+          { type: "BoxCollider" },
+          { type: "Rigidbody", props: { mass: 1, isKinematic: false } },
+          { type: "FixedJoint", props: { breakForce: 10 } }
+        ],
+        root: 0
+      };
+      const basePrefab = await PrefabParser.parse(engine, "test://base-replace-rb.prefab", basePrefabData);
+      // @ts-ignore
+      engine.resourceManager._objectPool["test://base-replace-rb.prefab"] = basePrefab;
+
+      // Replace inherited Rigidbody + FixedJoint (listing Rigidbody first in removedComponents
+      // and HingeJoint first in addedComponents), attach an addedEntity with an addedComponent,
+      // and reference the replacement Rigidbody from a sibling entity's FixedJoint ($component index 1).
+      const outerPrefabData: any = {
+        version: "2.0",
+        refs: [{ url: "test://base-replace-rb.prefab", type: "Prefab" }],
+        entities: [
+          { name: "Root", children: [1, 2] },
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                removedComponents: [
+                  {
+                    path: [],
+                    selectors: [
+                      { type: "Rigidbody", index: 0 },
+                      { type: "FixedJoint", index: 0 }
+                    ]
+                  }
+                ],
+                addedEntities: [{ parent: [], entity: 3 }],
+                addedComponents: [
+                  { target: [], component: 0 },
+                  { target: [], component: 1 },
+                  { target: [0], component: 2 }
+                ]
+              }
+            }
+          },
+          { name: "Follower", components: [3, 4] },
+          { name: "AddedChild" }
+        ],
+        components: [
+          { type: "HingeJoint", props: { useMotor: false } },
+          { type: "Rigidbody", props: { mass: 9, isKinematic: true } },
+          { type: "SphereCollider", props: { radius: 0.75 } },
+          { type: "Rigidbody", props: { mass: 2 } },
+          {
+            type: "FixedJoint",
+            props: {
+              connectedBody: { $component: { entity: [1], type: "Rigidbody", index: 1 } }
+            }
+          }
+        ],
+        root: 0
+      };
+
+      const outerPrefab = await PrefabParser.parse(engine, "test://outer-replace-rb.prefab", outerPrefabData);
+      const inst = outerPrefab.instantiate();
+      try {
+        const replacedEntity = inst.children[0];
+        const follower = inst.children[1];
+        const bodies = replacedEntity.getComponents(Rigidbody, []);
+        expect(bodies).toHaveLength(1);
+        expect(bodies[0].mass).toBe(9);
+        expect(bodies[0].isKinematic).toBe(true);
+        expect(replacedEntity.getComponent(FixedJoint)).toBeNull();
+        expect(replacedEntity.getComponent(HingeJoint)).not.toBeNull();
+        expect(replacedEntity.children).toHaveLength(1);
+        expect(replacedEntity.children[0].name).toBe("AddedChild");
+        expect(replacedEntity.children[0].getComponent(SphereCollider)!.radius).toBe(0.75);
+        expect(follower.getComponent(FixedJoint)!.connectedBody).toBe(bodies[0]);
+        expect(errors).not.toHaveBeenCalled();
+      } finally {
+        inst.destroy();
+      }
+    } finally {
+      // @ts-ignore
+      delete engine.resourceManager._objectPool["test://base-replace-rb.prefab"];
+    }
+  });
 });
