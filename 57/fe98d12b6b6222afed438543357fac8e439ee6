@@ -1,0 +1,34 @@
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  h_171a11afaf879a 48
+packages/loader/src/TextureLoader.ts
+  h_171a11afaf879a 5,32-37,43-52,54,58-67,70-74,76,81-96,100,115-116,118
+packages/loader/src/gltf/parser/GLTFTextureParser.ts
+  h_171a11afaf879a 72-74
+packages/loader/src/resource-deserialize/resources/texture2D/Texture2DDecoder.ts
+  h_171a11afaf879a 14-23,25-30,32-37,42-43,45-46,48,50,52-59
+packages/loader/src/resource-deserialize/resources/textureCube/TextureCubeDecoder.ts
+  h_171a11afaf879a 14-22,24-30,32-37,42-43,45-48,50,52,54-60,62-63
+packages/rhi-null/src/NullGraphicDevice.ts
+  h_171a11afaf879a 47-50
+packages/rhi-webgl/src/GLCapability.ts
+  h_171a11afaf879a 184-194,205-231
+packages/rhi-webgl/src/GLTexture.ts
+  h_171a11afaf879a 393,495,497-499
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_171a11afaf879a 306-309
+tests/src/core/texture/FloatTexture.test.ts
+  h_171a11afaf879a 12,111-113,117,133,139-143,155,163-186
+tests/src/loader/TextureLoader.test.ts
+  h_171a11afaf879a 1,78-118
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "57fe98d12b6b6222afed438543357fac8e439ee6",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

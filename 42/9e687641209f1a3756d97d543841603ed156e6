@@ -1,0 +1,32 @@
+tests/src/core/physics/HingeJoint.test.ts
+  s_6e577c7c504f4f::t_721dd9479c3225 339-362,365-374,376,379-380,384-385
+  s_6e577c7c504f4f::t_224d00c8a7785a 363-364,375,377-378,381-383
+packages/core/src/physics/joint/Joint.ts
+  s_6e577c7c504f4f::t_b8dfa5cd61c892 211-217,300-301,303-306,308
+tests/src/core/physics/Rigidbody.test.ts
+  s_6e577c7c504f4f::t_d042ec667ba3bf 507-536
+packages/core/src/physics/joint/HingeJoint.ts
+  s_6e577c7c504f4f::t_df155ff3fde646 159-173,182-187,193
+packages/core/src/physics/Collider.ts
+  s_6e577c7c504f4f::t_ab39ac221d88ab 140
+tests/src/core/physics/Joint.test.ts
+  s_6e577c7c504f4f::t_56105dd339ef1b 183-206,401-429
+  s_6e577c7c504f4f::t_b491940a0fda1f 400
+  s_6e577c7c504f4f::t_84a1e33c96471c 430
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "429e687641209f1a3756d97d543841603ed156e6",
+  "prompts": {},
+  "sessions": {
+    "s_6e577c7c504f4f": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1f2ce-eaa2-74f4-bbbb-10c5421a34cc",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
