@@ -10,6 +10,7 @@ import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
+import { Downsampling } from "../enums/Downsampling";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
 import { ScalableAmbientObscurancePass } from "../lighting/ambientOcclusion/ScalableAmbientObscurancePass";
 import {
@@ -684,32 +685,35 @@ export class BasicRenderPipeline {
       // Resolve the actual Opaque Forward color and depth for SSR capture.
       colorTarget!._blitRenderTarget();
       forwardTargetResolved = true;
+      let hasTransparentContributors = false;
+      if (camera.screenSpaceReflection._includesTransparentContributors) {
+        // Reuse capability checks across count/color/depth within this capture only.
+        // Queue state and pass tags can change before the next camera render.
+        this._contributionCapabilities.clear();
+        hasTransparentContributors =
+          transparentQueue.countRenderElements(
+            PipelineStage.ScreenSpaceReflectionContributionColor,
+            this._contributesScreenSpaceReflection
+          ) > 0;
+      }
       try {
         screenSpaceReflectionCaptured = screenSpaceReflectionPass.captureScene(context, internalColorTarget);
-        if (screenSpaceReflectionCaptured && camera.screenSpaceReflection._includesTransparentContributors) {
-          // Reuse capability checks across count/color/depth within this capture only.
-          // Queue state and pass tags can change before the next camera render.
-          this._contributionCapabilities.clear();
-          if (
-            transparentQueue.countRenderElements(
-              PipelineStage.ScreenSpaceReflectionContributionColor,
-              this._contributesScreenSpaceReflection
-            ) > 0
-          ) {
-            this._contributionContext = context;
-            try {
-              screenSpaceReflectionPass.captureContributions(
-                context,
-                internalColorTarget,
-                this._drawScreenSpaceReflectionContributions
-              );
-            } finally {
-              this._contributionContext = null;
-            }
+        if (screenSpaceReflectionCaptured && hasTransparentContributors) {
+          this._contributionContext = context;
+          try {
+            screenSpaceReflectionPass.captureContributions(
+              context,
+              internalColorTarget,
+              this._drawScreenSpaceReflectionContributions
+            );
+          } finally {
+            this._contributionContext = null;
           }
-          this._contributionCapabilities.clear();
         }
       } finally {
+        if (camera.screenSpaceReflection._includesTransparentContributors) {
+          this._contributionCapabilities.clear();
+        }
         // MSAA resolve and SSR capture can leave the resolved/default or a private SSR FBO bound.
         // Always restore the Forward color/depth target, including fail-closed capture paths.
         context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);

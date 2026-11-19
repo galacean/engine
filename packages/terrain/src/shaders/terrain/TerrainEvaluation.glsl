@@ -154,6 +154,60 @@ void terrainProjectApplyTerrainClimate(
     );
     return surfaceData;
   }
+
+  #ifdef TERRAIN_PROJECT_WATER_LAYER
+    // Water-film SSR only consumes substrate normal, viewDir, AO, and snow mask; skip diffuse albedo/grass-color/moisture.
+    SurfaceData evaluateTerrainLayerWaterFilm(
+      Varyings varyings,
+      vec3 geometryNormal,
+      TerrainProjectLayerBlend layerBlend,
+      vec2 sandMicroSlope,
+      out TerrainProjectWaterFilm waterFilm
+    ) {
+      float grassCoverage = clamp(layerBlend.grassWeight, 0.0, 1.0);
+      vec3 tangentNormal = layerBlend.tangentNormal;
+      #ifndef MATERIAL_TERRAIN_FAR
+        float detailVisibility = 1.0;
+        #ifdef MATERIAL_TERRAIN_DETAIL_TRANSITION
+          detailVisibility = terrainProjectFarDetailVisibility(varyings);
+        #endif
+        #ifdef MATERIAL_TERRAIN_SAND_RIPPLE
+          float fadeEnd = material_TerrainSandRippleParams.z;
+          float rippleWeight = detailVisibility *
+            (1.0 - smoothstep(fadeEnd * (35.0 / 115.0), fadeEnd, distance(varyings.positionWS, camera_Position)));
+          tangentNormal = mix(vec3(0.0, 0.0, 1.0), tangentNormal, rippleWeight);
+        #endif
+        #ifdef MATERIAL_TERRAIN_MICRO_NORMAL
+          tangentNormal.xy += sandMicroSlope * tangentNormal.z;
+        #endif
+      #endif
+      vec3 shadingNormal = terrainProjectLayerNormalToWorld(tangentNormal, geometryNormal);
+      #if defined(MATERIAL_TERRAIN_GRASS_SHADING) && !defined(MATERIAL_TERRAIN_FAR)
+        float surfaceReliefWeight = terrainProjectSurfaceReliefWeight(varyings.positionWS);
+        #ifdef MATERIAL_TERRAIN_DETAIL_TRANSITION
+          surfaceReliefWeight *= terrainProjectFarDetailVisibility(varyings);
+        #endif
+        if (surfaceReliefWeight > 0.0) {
+          vec3 reliefNormal = terrainProjectSurfaceReliefNormal(varyings.positionWS, geometryNormal, grassCoverage);
+          shadingNormal = normalize(mix(shadingNormal, reliefNormal, surfaceReliefWeight));
+        }
+      #endif
+      SurfaceData surfaceData = terrainProjectBuildSurfaceData(
+        varyings,
+        vec3(0.0),
+        shadingNormal,
+        0.0,
+        0.0,
+        layerBlend.ambientOcclusion
+      );
+      float snow = terrainProjectTopSnowMask(surfaceData.position, geometryNormal, layerBlend.snowResponse);
+      waterFilm = terrainProjectEvaluateSurfaceWaterFilm(surfaceData, geometryNormal, 1.0, snow);
+      #ifdef MATERIAL_TERRAIN_DETAIL_TRANSITION
+        waterFilm.coverage *= terrainProjectFarDetailVisibility(varyings);
+      #endif
+      return surfaceData;
+    }
+  #endif
 #endif
 
 SurfaceData evaluateTerrainFallbackSurface(
@@ -178,5 +232,28 @@ SurfaceData evaluateTerrainFallbackSurface(
   );
   return surfaceData;
 }
+
+#ifdef TERRAIN_PROJECT_WATER_LAYER
+  SurfaceData evaluateTerrainFallbackWaterFilm(
+    Varyings varyings,
+    vec3 geometryNormal,
+    out TerrainProjectWaterFilm waterFilm
+  ) {
+    SurfaceData surfaceData = terrainProjectBuildSurfaceData(
+      varyings,
+      vec3(0.0),
+      geometryNormal,
+      0.0,
+      0.0,
+      1.0
+    );
+    float snow = terrainProjectTopSnowMask(surfaceData.position, geometryNormal, 1.0);
+    waterFilm = terrainProjectEvaluateSurfaceWaterFilm(surfaceData, geometryNormal, 1.0, snow);
+    #ifdef MATERIAL_TERRAIN_DETAIL_TRANSITION
+      waterFilm.coverage *= terrainProjectFarDetailVisibility(varyings);
+    #endif
+    return surfaceData;
+  }
+#endif
 
 #endif

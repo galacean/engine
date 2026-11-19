@@ -270,7 +270,6 @@ export class ScreenSpaceReflectionPass {
 
   /** Capture immutable Opaque Scene Color and bind the resolved Forward depth privately. */
   captureScene(context: RenderContext, colorTarget: RenderTarget): boolean {
-    const camera = this._camera;
     const material = this._getMaterial();
     if (!material) return false;
 
@@ -284,13 +283,9 @@ export class ScreenSpaceReflectionPass {
 
       this._blit(colorTarget.getColorTexture(0) as Texture2D, sceneColorTarget, "scene-copy");
       this._sceneCopyPassCount++;
-      const profiler = camera.screenSpaceReflection.profiler;
-      profiler?.beginSample("scene-mipmap", null);
-      try {
-        sceneColorTarget.generateMipmaps();
-      } finally {
-        profiler?.endSample();
-      }
+      // Always keep _sceneColorTarget mip-complete: it uses mipMap = true (LINEAR_MIPMAP_NEAREST)
+      // and is bound as camera_OpaqueTexture during captureContributions and opaque-texture reuse.
+      this._generateSceneColorMipmaps();
 
       const shaderData = material.shaderData;
       shaderData.setTexture(ScreenSpaceReflectionPass._sceneColorProperty, sceneColorTarget.getColorTexture(0));
@@ -313,6 +308,18 @@ export class ScreenSpaceReflectionPass {
     } catch {
       this.failClose("screen-space-reflection-render-target-unavailable");
       return false;
+    }
+  }
+
+  private _generateSceneColorMipmaps(): void {
+    const sceneColorTarget = this._sceneColorTarget;
+    if (!sceneColorTarget) return;
+    const profiler = this._camera.screenSpaceReflection.profiler;
+    profiler?.beginSample("scene-mipmap", null);
+    try {
+      sceneColorTarget.generateMipmaps();
+    } finally {
+      profiler?.endSample();
     }
   }
 
@@ -412,6 +419,14 @@ export class ScreenSpaceReflectionPass {
       this._receiverMode = receiverMode;
       this._configurePhaseTraceTarget(receiverMode);
       const shaderData = this._material!.shaderData;
+      // Full-resolution 1x Surface tests directly against an exact 1:1 copy of opaque depth with
+      // zero polygon offset, so occluded fragments are already rejected by hardware depth testing.
+      const verifyOpaqueDepth =
+        opaqueTarget.antiAliasing > 1 ||
+        this._surfaceTarget!.width !== this._fullWidth ||
+        this._surfaceTarget!.height !== this._fullHeight;
+      if (verifyOpaqueDepth) shaderData.enableMacro("SSR_VERIFY_OPAQUE_DEPTH");
+      else shaderData.disableMacro("SSR_VERIFY_OPAQUE_DEPTH");
       this._bindTraceTextures(
         shaderData,
         this._traceTarget!.getColorTexture(0) as Texture2D,
@@ -480,8 +495,16 @@ export class ScreenSpaceReflectionPass {
       this._bindTraceTextures(shaderData, filteredTraceTexture, this._traceTarget!.getColorTexture(1) as Texture2D);
       this._blit(filteredTraceTexture, this._resolvedTraceTarget, "upsample", 2);
       this._upsamplePassCount++;
+      this._bindTraceTextures(shaderData, this._getOutputTexture(), null);
+    } else if (
+      this._receiverMode === ScreenSpaceReflectionReceiverMode.OpaqueComposite &&
+      this._traceTarget!.colorTextureCount > 1
+    ) {
+      // OpaqueComposite fuses bilateral upsampling directly into Composite, avoiding a full-res RT and pass.
+      this._bindTraceTextures(shaderData, filteredTraceTexture, this._traceTarget!.getColorTexture(1) as Texture2D);
+    } else {
+      this._bindTraceTextures(shaderData, filteredTraceTexture, null);
     }
-    this._bindTraceTextures(shaderData, this._getOutputTexture(), null);
   }
 
   /** Composite the Opaque logical layer as a full-output BRDF-unit delta. */
@@ -740,16 +763,20 @@ export class ScreenSpaceReflectionPass {
     const height = Math.max(1, Math.ceil(this._fullHeight * settings.resolutionScale));
     const reduced = width < this._fullWidth || height < this._fullHeight;
     const reconstruct = reduced && settings.upsamplingMode !== ScreenSpaceReflectionUpsamplingMode.Bilinear;
+    const fusedCompositeUpsample = reconstruct && receiverMode === ScreenSpaceReflectionReceiverMode.OpaqueComposite;
+    const separateUpsample = reconstruct && !fusedCompositeUpsample;
     const shaderData = this._material!.shaderData;
     if (reconstruct) shaderData.enableMacro("SSR_STORE_TRACE_ORIGIN");
     else shaderData.disableMacro("SSR_STORE_TRACE_ORIGIN");
+    if (fusedCompositeUpsample) shaderData.enableMacro("SSR_COMPOSITE_BILATERAL_UPSAMPLE");
+    else shaderData.disableMacro("SSR_COMPOSITE_BILATERAL_UPSAMPLE");
     this._recreateTraceTarget(width, height, reconstruct);
     this._recreateFilterTargets(
       width,
       height,
       reduced && settings.upsamplingMode === ScreenSpaceReflectionUpsamplingMode.GaussianBilateral
     );
-    if (reconstruct) {
+    if (separateUpsample) {
       this._resolvedTraceTarget = PipelineUtils.recreateRenderTargetIfNeeded(
         this._engine,
         this._resolvedTraceTarget,

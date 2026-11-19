@@ -88,6 +88,20 @@ describe("Terrain near/far production shader variants", () => {
     expect(source).toMatch(/vec4 layerIndices\s*=\s*material_TerrainFirstLayerIndices\s*;/);
   });
 
+  it("skips diffuse ground color and moisture evaluation in Terrain ScreenSpaceReflectionSurface", () => {
+    const pass = terrain.subShaders[0].passes.find((entry) => entry.name === "ScreenSpaceReflectionSurface");
+    const macros = new Map([
+      ["GRAPHICS_API_WEBGL2", ""],
+      ["MATERIAL_TERRAIN_LAYERS", ""],
+      ["MATERIAL_TERRAIN_GRASS_SHADING", ""]
+    ]);
+    const source = ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions, macros);
+    expect(source).toContain("evaluateTerrainLayerWaterFilm");
+    expect(source).toContain("evaluateTerrainFallbackWaterFilm");
+    expect(source).not.toContain("evaluateTerrainLayerSurface");
+    expect(source).not.toContain("terrainProjectGroundColor");
+  });
+
   it.each(["untextured", "soil", "multiple-regions"])(
     "preserves layer data and removes distant detail samplers (%s)",
     (layout) => {

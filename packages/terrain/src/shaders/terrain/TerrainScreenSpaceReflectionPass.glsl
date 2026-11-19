@@ -107,7 +107,7 @@ TerrainProjectScreenSpaceReflectionSurface terrainProjectResolveScreenSpaceRefle
   vec3 geometryNormal
 ) {
   TerrainProjectScreenSpaceReflectionSurface resolved;
-  resolved.substrate = evaluateTerrainFallbackSurface(varyings, geometryNormal, resolved.waterFilm);
+  bool hasResolvedLayers = false;
   #ifdef MATERIAL_TERRAIN_LAYERS
     int regionIndex;
     int alphamapOffset;
@@ -133,7 +133,7 @@ TerrainProjectScreenSpaceReflectionSurface terrainProjectResolveScreenSpaceRefle
           float groupWeight = layerBlend.weight;
           if (groupWeight > 0.0 && (groupIndex == 0 || groupWeight > TERRAIN_PROJECT_MIN_ADDITIVE_GROUP_WEIGHT)) {
             TerrainProjectWaterFilm candidateWaterFilm;
-            SurfaceData candidate = evaluateTerrainLayerSurface(
+            SurfaceData candidate = evaluateTerrainLayerWaterFilm(
               varyings,
               geometryNormal,
               layerBlend,
@@ -153,9 +153,13 @@ TerrainProjectScreenSpaceReflectionSurface terrainProjectResolveScreenSpaceRefle
           resolved.substrate.viewDir,
           resolved.substrate.ambientOcclusion
         );
+        hasResolvedLayers = true;
       }
     }
   #endif
+  if (!hasResolvedLayers) {
+    resolved.substrate = evaluateTerrainFallbackWaterFilm(varyings, geometryNormal, resolved.waterFilm);
+  }
   return resolved;
 }
 

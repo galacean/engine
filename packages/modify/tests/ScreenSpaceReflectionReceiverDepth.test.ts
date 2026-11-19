@@ -77,7 +77,7 @@ function verifyReceiverSelection(): void {
   let origins = 0;
   camera.screenSpaceReflection.profiler = {
     beginSample(stage) {
-      if (stage !== "upsample") return;
+      if (stage !== "composite") return;
       const pass = (
         camera as unknown as {
           _renderPipeline: { _screenSpaceReflectionPass: { _traceTarget: RenderTarget } };
