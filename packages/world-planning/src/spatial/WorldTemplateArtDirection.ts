@@ -128,7 +128,7 @@ export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
     intensity: number;
     emission?: { color: string; intensity: number };
   };
-  /** 3D wing-flapping ambient butterfly mesh particles around a focal tree and floral island. */
+  /** 3D wing-flapping ambient butterfly mesh particles spiraling around a focal tree's upper canopy. */
   butterflies?: {
     textureUrl: string;
     count: number;
@@ -144,6 +144,20 @@ export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
     color: string;
     intensity: number;
     emissionIntensity: number;
+    spiral?: {
+      radiusRangeM: [number, number];
+      orbitalSpeedRadPerSec: [number, number];
+      riseSpeedMps: [number, number];
+      radialMps: [number, number];
+    };
+    trail?: {
+      ratePerSecond: number;
+      lifetimeSeconds: [number, number];
+      sizeM: [number, number];
+      color: string;
+      intensity: number;
+      minScreenFraction?: number;
+    };
   };
   /** Scalar authoring only; roads, water, relief and populations are derived. */
   generation?: Partial<SpatialCompositionParameters>;
@@ -612,19 +626,33 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     },
     butterflies: {
       textureUrl: templateAssets["oasis-butterflies"],
-      count: 58,
-      center: [-14.0, 1.9, -1.6],
-      extent: [19.5, 10.2, 11.0],
-      canopyRatio: 0.44,
-      sizeM: [0.48, 0.78],
-      lifetimeSeconds: 6.5,
-      flapSpeed: 20,
-      flutterMps: 0.92,
-      flutterWavelengthM: 2.2,
-      turnDegreesPerSecond: 62,
+      count: 12,
+      center: [-14.0, 9.8, -1.0],
+      extent: [17.0, 3.6, 15.0],
+      canopyRatio: 1.0,
+      sizeM: [0.58, 0.86],
+      lifetimeSeconds: 12.0,
+      flapSpeed: 18,
+      flutterMps: 0.38,
+      flutterWavelengthM: 2.8,
+      turnDegreesPerSecond: 48,
       color: "#ffffff",
-      intensity: 1.25,
-      emissionIntensity: 7.5
+      intensity: 1.0,
+      emissionIntensity: 7.6,
+      spiral: {
+        radiusRangeM: [5.6, 9.0],
+        orbitalSpeedRadPerSec: [0.36, 0.54],
+        riseSpeedMps: [0.42, 0.68],
+        radialMps: [-0.2, 0.06]
+      },
+      trail: {
+        ratePerSecond: 9,
+        lifetimeSeconds: [1.1, 1.8],
+        sizeM: [0.04, 0.095],
+        color: "#ffffff",
+        intensity: 10,
+        minScreenFraction: 0.0012
+      }
     },
     models: [
       {

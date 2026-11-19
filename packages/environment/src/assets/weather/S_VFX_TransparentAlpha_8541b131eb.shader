@@ -100,6 +100,7 @@ Shader "S_VFX_TransparentAlpha_8541b131eb" {
           float v_ScreenSizeFade;
       };
 
+      #define PARTICLE_NEED_FEEDBACK_VELOCITY
       #include "ShaderLibrary/Particle/ParticleVert.glsl"
 
       void computeSnowParticleStateWS(
@@ -132,12 +133,14 @@ Shader "S_VFX_TransparentAlpha_8541b131eb" {
                   }
               #endif
           #else
-              vec3 startVelocity = attr.a_DirectionTime.xyz * attr.a_StartSpeed;
-              vec3 gravityVelocity = renderer_Gravity * attr.a_Random0.x * age;
+              vec3 startVelocity = attr.a_DirectionTime.xyz * attr.a_StartSizeSpeed.w;
+              vec3 gravityVelocity = renderer_Gravity * attr.a_WorldPositionGravity.w * age;
               localVelocity = startVelocity;
               worldVelocity = gravityVelocity;
               particleCenterWS = computeParticlePosition(
                   attr,
+                  attr.a_ShapePositionStartLifeTime.xyz,
+                  attr.a_WorldPositionGravity.xyz,
                   startVelocity,
                   age,
                   normalizedAge,
@@ -161,12 +164,12 @@ Shader "S_VFX_TransparentAlpha_8541b131eb" {
           vec2 corner = attr.a_CornerTextureCoordinate.xy + renderer_PivotOffset.xy;
           vec3 sideVector = normalize(cross(camera_Forward, camera_Up));
           vec3 upVector = normalize(cross(sideVector, camera_Forward));
-          particleSize = computeParticleSizeBillboard(attr, attr.a_StartSize.xy, normalizedAge);
+          particleSize = computeParticleSizeBillboard(attr, attr.a_StartSizeSpeed.xy, normalizedAge);
           corner *= particleSize;
           if (renderer_ThreeDStartRotation) {
-              vec3 rotation = radians(attr.a_StartRotation0);
+              vec3 rotation = radians(attr.a_StartRotationRandom.xyz);
               #if defined(RENDERER_ROL_CONSTANT_MODE) || defined(RENDERER_ROL_CURVE_MODE)
-                  rotation.z = radians(computeParticleRotationFloat(attr, attr.a_StartRotation0.z, age, normalizedAge));
+                  rotation.z = radians(computeParticleRotationFloat(attr, attr.a_StartRotationRandom.z, age, normalizedAge));
               #endif
               return particleCenterWS
                   + renderer_SizeScale.xzy * rotationByEuler(corner.x * sideVector + corner.y * upVector, rotation);
@@ -174,9 +177,9 @@ Shader "S_VFX_TransparentAlpha_8541b131eb" {
 
           float rotationRadians;
           #if defined(RENDERER_ROL_CONSTANT_MODE) || defined(RENDERER_ROL_CURVE_MODE)
-              rotationRadians = radians(computeParticleRotationFloat(attr, attr.a_StartRotation0.x, age, normalizedAge));
+              rotationRadians = radians(computeParticleRotationFloat(attr, attr.a_StartRotationRandom.x, age, normalizedAge));
           #else
-              rotationRadians = radians(attr.a_StartRotation0.x);
+              rotationRadians = radians(attr.a_StartRotationRandom.x);
           #endif
           float c = cos(rotationRadians);
           float s = sin(rotationRadians);
@@ -189,7 +192,7 @@ Shader "S_VFX_TransparentAlpha_8541b131eb" {
           // every particle. This keeps streak population independent from Noise/Size module random slots.
           vec3 birthState = attr.a_ShapePositionStartLifeTime.xyz
               + attr.a_DirectionTime.xyz * vec3(0.73, 1.37, 1.91)
-              + vec3(attr.a_StartSize.x, attr.a_StartSpeed, attr.a_DirectionTime.w) * vec3(2.17, 0.61, 0.13);
+              + vec3(attr.a_StartSizeSpeed.x, attr.a_StartSizeSpeed.w, attr.a_DirectionTime.w) * vec3(2.17, 0.61, 0.13);
           birthState = fract(birthState * vec3(0.1031, 0.1030, 0.0973));
           birthState += dot(birthState, birthState.yzx + 33.33);
           return fract((birthState.x + birthState.y) * birthState.z);

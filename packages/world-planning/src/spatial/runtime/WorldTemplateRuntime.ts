@@ -9,6 +9,7 @@ import {
   BufferMesh,
   BufferUsage,
   Color,
+  CurveKey,
   GradientAlphaKey,
   GradientColorKey,
   type IndexBufferBinding,
@@ -17,17 +18,22 @@ import {
   ModelMesh,
   ParticleCompositeCurve,
   ParticleCompositeGradient,
+  ParticleCurve,
   ParticleCurveMode,
   ParticleGradient,
   ParticleMaterial,
   ParticleRenderer,
   ParticleRenderMode,
   ParticleSimulationSpace,
+  ParticleStopMode,
+  ParticleSubEmitterInheritProperty,
+  ParticleSubEmitterType,
   PBRMaterial,
   PointLight,
   RenderFace,
   Script,
   Shader,
+  SphereShape,
   UnlitMaterial,
   PrimitiveMesh,
   Texture2D,
@@ -205,6 +211,9 @@ export class WorldTemplateRuntime {
   private butterflyMaterial?: ParticleMaterial;
   private butterflyWingMesh?: ModelMesh;
   private butterflyEmissionMesh?: ModelMesh;
+  private butterflyTrailRenderer?: ParticleRenderer;
+  private butterflyTrailMaterial?: ParticleMaterial;
+  private butterflyTrailTexture?: Texture2D;
   private readonly foliageWindDisposals: Array<() => void> = [];
   private disposeProceduralPlants?: () => void;
   private readonly leafTemplate?: Material;
@@ -643,22 +652,35 @@ export class WorldTemplateRuntime {
     const { engine } = this.root;
     const { x, y, z } = this.anchor;
     const seed = templateBaseSeed(this.template.id);
-    const sampleCount = Math.max(48, butterflies.count * 2);
+    const spiral = butterflies.spiral;
+    const centerFloor = ground(x - butterflies.center[0], z + butterflies.center[2]);
+    if (spiral && centerFloor === undefined) return;
+
+    const sampleCount = Math.max(48, butterflies.count * 3);
     const positions: Vector3[] = [];
     for (let i = 0; i < sampleCount; i++) {
       const sample = (field: string) => settlementRandom(seed, `butterfly:${i}:${field}`);
-      const isCanopy = sample("tier") < butterflies.canopyRatio;
-      const radialSpread = isCanopy ? 0.85 : 1.0;
-      const angle = sample("angle") * Math.PI * 2;
-      const radius = Math.sqrt(sample("radius")) * 0.5 * radialSpread;
-      const bx = butterflies.center[0] + Math.cos(angle) * butterflies.extent[0] * radius;
-      const bz = butterflies.center[2] + Math.sin(angle) * butterflies.extent[2] * radius;
-      const floor = ground(x - bx, z + bz);
-      if (floor === undefined) continue;
-      const heightOffset = isCanopy
-        ? butterflies.center[1] + butterflies.extent[1] * (0.34 + 0.66 * sample("height"))
-        : 0.68 + butterflies.center[1] * 1.35 * sample("height");
-      positions.push(new Vector3(-bx, floor - y + heightOffset, bz));
+      if (spiral) {
+        // Local offsets around the focal tree's upper-half vertical axis so native orbitalY forms a clean helix.
+        const angle = ((i + sample("angle")) / sampleCount) * Math.PI * 2;
+        const radius =
+          spiral.radiusRangeM[0] + (spiral.radiusRangeM[1] - spiral.radiusRangeM[0]) * Math.sqrt(sample("radius"));
+        const heightOffset = (sample("height") - 0.18) * butterflies.extent[1];
+        positions.push(new Vector3(Math.cos(angle) * radius, heightOffset, Math.sin(angle) * radius));
+      } else {
+        const isCanopy = sample("tier") < butterflies.canopyRatio;
+        const radialSpread = isCanopy ? 0.85 : 1.0;
+        const angle = sample("angle") * Math.PI * 2;
+        const radius = Math.sqrt(sample("radius")) * 0.5 * radialSpread;
+        const bx = butterflies.center[0] + Math.cos(angle) * butterflies.extent[0] * radius;
+        const bz = butterflies.center[2] + Math.sin(angle) * butterflies.extent[2] * radius;
+        const floor = ground(x - bx, z + bz);
+        if (floor === undefined) continue;
+        const heightOffset = isCanopy
+          ? butterflies.center[1] + butterflies.extent[1] * (0.34 + 0.66 * sample("height"))
+          : 0.68 + butterflies.center[1] * 1.35 * sample("height");
+        positions.push(new Vector3(-bx, floor - y + heightOffset, bz));
+      }
     }
     if (!positions.length) return;
 
@@ -670,7 +692,7 @@ export class WorldTemplateRuntime {
     const shape = new MeshShape();
     shape.mesh = emissionMesh;
 
-    // 6-quad hinged 2-wing butterfly plane in XZ (thorax along Z, left/right wings along +-X).
+    // 6-quad hinged 2-wing butterfly plane in XZ (thorax along +Z head-first, left/right wings along +-X).
     const wingMesh = (this.butterflyWingMesh = new ModelMesh(engine, "Butterfly wing mesh"));
     const cols = [-0.5, -0.32, -0.14, 0.0, 0.14, 0.32, 0.5];
     const rows = [-0.5, 0.5];
@@ -714,16 +736,22 @@ export class WorldTemplateRuntime {
     material.shaderData.setInt("depthTestEnabled", 1);
     material.shaderData.setInt("depthWriteEnabled", 0);
     material.shaderData.setFloat("material_FlapSpeed", butterflies.flapSpeed);
-    material.shaderData.setFloat("material_FlapAngleMin", -0.62);
-    material.shaderData.setFloat("material_FlapAngleMax", 1.12);
+    material.shaderData.setFloat("material_FlapAngleMin", -0.24);
+    material.shaderData.setFloat("material_FlapAngleMax", 1.22);
     material.shaderData.setFloat("material_HdrIntensity", butterflies.emissionIntensity);
     material.baseTexture = texture;
     const [r, g, b] = templateLinearColor(butterflies.color);
     material.baseColor = new Color(r * butterflies.intensity, g * butterflies.intensity, b * butterflies.intensity, 1);
 
-    const renderer = (this.butterflyRenderer = this.root
-      .createChild("Oasis butterflies")
-      .addComponent(ParticleRenderer));
+    const butterflyEntity = this.root.createChild("Oasis butterflies");
+    if (spiral && centerFloor !== undefined) {
+      butterflyEntity.transform.setPosition(
+        -butterflies.center[0],
+        centerFloor - y + butterflies.center[1],
+        butterflies.center[2]
+      );
+    }
+    const renderer = (this.butterflyRenderer = butterflyEntity.addComponent(ParticleRenderer));
     renderer.renderMode = ParticleRenderMode.Mesh;
     renderer.mesh = wingMesh;
     renderer.setMaterial(material);
@@ -737,15 +765,15 @@ export class WorldTemplateRuntime {
     main.duration = butterflies.lifetimeSeconds;
     main.maxParticles = butterflies.count;
     main.simulationSpace = ParticleSimulationSpace.World;
-    main.startSpeed = new ParticleCompositeCurve(0.18, 0.52);
+    main.startSpeed = spiral ? new ParticleCompositeCurve(0.0, 0.08) : new ParticleCompositeCurve(0.18, 0.52);
     main.startSize = new ParticleCompositeCurve(...butterflies.sizeM);
     main.startLifetime = new ParticleCompositeCurve(
-      butterflies.lifetimeSeconds * 0.8,
-      butterflies.lifetimeSeconds * 1.2
+      butterflies.lifetimeSeconds * 0.85,
+      butterflies.lifetimeSeconds * 1.15
     );
     main.gravityModifier.constant = 0;
     main.startRotation3D = true;
-    main.startRotationX = new ParticleCompositeCurve(-26, 26);
+    main.startRotationX = new ParticleCompositeCurve(-22, 22);
     main.startRotationY = new ParticleCompositeCurve(0, 360);
     main.startRotationZ = new ParticleCompositeCurve(-16, 16);
 
@@ -753,10 +781,19 @@ export class WorldTemplateRuntime {
     generator.emission.rateOverTime.constant = butterflies.count / butterflies.lifetimeSeconds;
 
     generator.velocityOverLifetime.enabled = true;
-    generator.velocityOverLifetime.space = ParticleSimulationSpace.World;
-    generator.velocityOverLifetime.velocityX = new ParticleCompositeCurve(-0.42, 0.42);
-    generator.velocityOverLifetime.velocityY = new ParticleCompositeCurve(-0.16, 0.24);
-    generator.velocityOverLifetime.velocityZ = new ParticleCompositeCurve(-0.42, 0.42);
+    if (spiral) {
+      generator.velocityOverLifetime.space = ParticleSimulationSpace.Local;
+      generator.velocityOverLifetime.velocityX = new ParticleCompositeCurve(0);
+      generator.velocityOverLifetime.velocityY = new ParticleCompositeCurve(...spiral.riseSpeedMps);
+      generator.velocityOverLifetime.velocityZ = new ParticleCompositeCurve(0);
+      generator.velocityOverLifetime.orbitalY = new ParticleCompositeCurve(...spiral.orbitalSpeedRadPerSec);
+      generator.velocityOverLifetime.radial = new ParticleCompositeCurve(...spiral.radialMps);
+    } else {
+      generator.velocityOverLifetime.space = ParticleSimulationSpace.World;
+      generator.velocityOverLifetime.velocityX = new ParticleCompositeCurve(-0.42, 0.42);
+      generator.velocityOverLifetime.velocityY = new ParticleCompositeCurve(-0.16, 0.24);
+      generator.velocityOverLifetime.velocityZ = new ParticleCompositeCurve(-0.42, 0.42);
+    }
 
     generator.noise.enabled = true;
     generator.noise.strengthX.constant = butterflies.flutterMps;
@@ -773,20 +810,146 @@ export class WorldTemplateRuntime {
     generator.rotationOverLifetime.rotationZ = new ParticleCompositeCurve(-18, 18);
 
     generator.colorOverLifetime.enabled = true;
-    const white = new Color(1, 1, 1, 1);
     generator.colorOverLifetime.color = new ParticleCompositeGradient(
       new ParticleGradient(
-        [new GradientColorKey(0, white), new GradientColorKey(1, white)],
         [
-          new GradientAlphaKey(0, 0),
-          new GradientAlphaKey(0.12, 1),
-          new GradientAlphaKey(0.86, 1),
-          new GradientAlphaKey(1, 0)
+          new GradientColorKey(0.0, new Color(1.0, 0.16, 0.56, 1)),
+          new GradientColorKey(0.34, new Color(1.0, 0.34, 0.42, 1)),
+          new GradientColorKey(0.68, new Color(1.0, 0.68, 0.08, 1)),
+          new GradientColorKey(1.0, new Color(1.0, 0.46, 0.02, 1))
+        ],
+        [
+          new GradientAlphaKey(0.0, 0.0),
+          new GradientAlphaKey(0.1, 1.0),
+          new GradientAlphaKey(0.72, 1.0),
+          new GradientAlphaKey(1.0, 0.0)
         ]
       )
     );
+
+    if (butterflies.trail) {
+      this.createButterflyTrailSubEmitter(
+        generator,
+        butterflies.trail,
+        butterflies.count,
+        butterflies.lifetimeSeconds,
+        seed
+      );
+    }
+
     generator.play(false);
-    generator.emit(Math.ceil(butterflies.count * 0.78));
+    generator.emit(Math.ceil(butterflies.count * 0.55));
+  }
+  private createButterflyTrailSubEmitter(
+    parentGenerator: ParticleRenderer["generator"],
+    trail: NonNullable<NonNullable<WorldTemplateArtDirection["butterflies"]>["trail"]>,
+    parentCount: number,
+    parentLifetimeSeconds: number,
+    seed: number
+  ): void {
+    const { engine } = this.root;
+    const resolution = 32;
+    const pixels = new Uint8Array(resolution * resolution * 4);
+    for (let row = 0; row < resolution; row++) {
+      for (let column = 0; column < resolution; column++) {
+        const u = ((column + 0.5) / resolution) * 2 - 1;
+        const v = ((row + 0.5) / resolution) * 2 - 1;
+        const r2 = u * u + v * v;
+        const core = Math.exp(-r2 * 6.5);
+        const halo = Math.max(0, 1 - r2);
+        const alpha = Math.min(1, core * 0.85 + halo * halo * 0.45);
+        const index = (row * resolution + column) * 4;
+        pixels[index] = pixels[index + 1] = pixels[index + 2] = 255;
+        pixels[index + 3] = Math.round(255 * alpha);
+      }
+    }
+    const texture = (this.butterflyTrailTexture = new Texture2D(
+      engine,
+      resolution,
+      resolution,
+      TextureFormat.R8G8B8A8,
+      false,
+      false
+    ));
+    texture.setPixelBuffer(pixels);
+    texture.filterMode = TextureFilterMode.Bilinear;
+    texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Clamp;
+
+    const shader = Shader.find("Planning/FireflyParticle") ?? Shader.create(fireflyShader);
+    const material = (this.butterflyTrailMaterial = new ParticleMaterial(engine, shader));
+    material.name = "Oasis butterfly trail sparks";
+    material.baseTexture = texture;
+    const [tr, tg, tb] = templateLinearColor(trail.color);
+    material.baseColor = new Color(tr * trail.intensity, tg * trail.intensity, tb * trail.intensity, 1);
+    material.blendMode = BlendMode.Additive;
+    material.shaderData.setFloat("material_MinScreenFraction", trail.minScreenFraction ?? 0.0022);
+
+    // Keep as a sibling entity so parent.play(false) never triggers independent emission at origin.
+    const trailRenderer = (this.butterflyTrailRenderer = this.root
+      .createChild("Oasis butterfly trail")
+      .addComponent(ParticleRenderer));
+    trailRenderer.renderMode = ParticleRenderMode.Billboard;
+    trailRenderer.setMaterial(material);
+    trailRenderer.castShadows = trailRenderer.receiveShadows = false;
+
+    const trailGenerator = trailRenderer.generator;
+    trailGenerator.randomSeed = seed ^ 0x9e3779b9;
+    const trailMain = trailGenerator.main;
+    trailMain.playOnEnabled = false;
+    trailMain.isLoop = true;
+    trailMain.duration = Math.max(parentLifetimeSeconds, trail.lifetimeSeconds[1]);
+    trailMain.maxParticles = Math.max(
+      256,
+      Math.ceil(parentCount * trail.ratePerSecond * trail.lifetimeSeconds[1] * 1.5)
+    );
+    trailMain.simulationSpace = ParticleSimulationSpace.World;
+    trailMain.startSpeed = new ParticleCompositeCurve(0.18, 0.55);
+    trailMain.startSize = new ParticleCompositeCurve(...trail.sizeM);
+    trailMain.startLifetime = new ParticleCompositeCurve(...trail.lifetimeSeconds);
+    trailMain.gravityModifier.constant = 0.025;
+
+    const spreadShape = new SphereShape();
+    spreadShape.radius = 0.36;
+    trailGenerator.emission.enabled = true;
+    trailGenerator.emission.shape = spreadShape;
+    trailGenerator.emission.rateOverTime.constant = trail.ratePerSecond;
+
+    trailGenerator.sizeOverLifetime.enabled = true;
+    trailGenerator.sizeOverLifetime.size = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, 0.85), new CurveKey(0.18, 1.0), new CurveKey(0.6, 0.55), new CurveKey(1, 0.0))
+    );
+
+    trailGenerator.colorOverLifetime.enabled = true;
+    trailGenerator.colorOverLifetime.color = new ParticleCompositeGradient(
+      new ParticleGradient(
+        [
+          new GradientColorKey(0.0, new Color(1.0, 0.98, 0.94, 1)),
+          new GradientColorKey(0.45, new Color(1.0, 0.9, 0.72, 1)),
+          new GradientColorKey(1.0, new Color(1.0, 0.76, 0.36, 1))
+        ],
+        [
+          new GradientAlphaKey(0.0, 0.0),
+          new GradientAlphaKey(0.08, 1.0),
+          new GradientAlphaKey(0.55, 0.72),
+          new GradientAlphaKey(1.0, 0.0)
+        ]
+      )
+    );
+
+    trailGenerator.noise.enabled = true;
+    trailGenerator.noise.strengthX.constant = 0.32;
+    trailGenerator.noise.frequency = 0.55;
+    trailGenerator.noise.scrollSpeed = 0.38;
+
+    // Emit exclusively as a continuous Birth sub-emitter from live parent butterflies,
+    // inheriting the parent's instantaneous ColorOverLifetime hue (pink -> golden-yellow).
+    trailGenerator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parentGenerator.subEmitters.enabled = true;
+    parentGenerator.subEmitters.addSubEmitter(
+      trailRenderer,
+      ParticleSubEmitterType.Birth,
+      ParticleSubEmitterInheritProperty.Color
+    );
   }
   private createSporeParticles(
     spores: NonNullable<WorldTemplateArtDirection["spores"]>,
@@ -1342,7 +1505,15 @@ export class WorldTemplateRuntime {
             ],
             gpuSimulation: this.butterflyRenderer.shaderData
               .getMacros()
-              .some((macro) => macro.name === "RENDERER_TRANSFORM_FEEDBACK")
+              .some((macro) => macro.name === "RENDERER_TRANSFORM_FEEDBACK"),
+            trailSubEmitter: this.butterflyTrailRenderer
+              ? {
+                  renderer: "ParticleRenderer",
+                  capacity: this.butterflyTrailRenderer.generator.main.maxParticles,
+                  active: this.butterflyTrailRenderer.generator.isAlive,
+                  subEmitterCount: this.butterflyRenderer.generator.subEmitters.subEmitters.length
+                }
+              : undefined
           }
         : undefined,
       lights: this.root.getComponentsIncludeChildren(PointLight, []).map((light) => ({
@@ -1418,6 +1589,8 @@ export class WorldTemplateRuntime {
     this.butterflyMaterial?.destroy();
     this.butterflyWingMesh?.destroy();
     this.butterflyEmissionMesh?.destroy();
+    this.butterflyTrailMaterial?.destroy();
+    this.butterflyTrailTexture?.destroy();
     this.material?.destroy();
     this.mesh?.destroy();
   }

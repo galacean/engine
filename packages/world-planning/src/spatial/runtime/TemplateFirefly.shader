@@ -33,7 +33,7 @@ Shader "Planning/FireflyParticle" {
         if (normalizedAge >= 0.0 && normalizedAge < 1.0) {
           vec3 position = computeParticleCenter(attr, age, normalizedAge, v);
           gl_Position = camera_ProjMat * camera_ViewMat * vec4(position, 1.0);
-          vec2 size = abs(computeParticleSizeBillboard(attr, attr.a_StartSize.xy, normalizedAge) * renderer_SizeScale.xy);
+          vec2 size = abs(computeParticleSizeBillboard(attr, attr.a_StartSizeSpeed.xy, normalizedAge) * renderer_SizeScale.xy);
           // Projection: screen-height fraction = diameter * Pyy / (2 * clipW).
           // This preserves the small physical sprite nearby and an optical glow
           // footprint for distant, otherwise subpixel luminous points.

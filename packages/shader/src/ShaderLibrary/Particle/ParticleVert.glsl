@@ -75,7 +75,7 @@ struct Attributes {
 
     #ifdef RENDERER_TRANSFORM_FEEDBACK
         vec3 a_FeedbackPosition;
-        #ifdef RENDERER_MODE_STRETCHED_BILLBOARD
+        #if defined(RENDERER_MODE_STRETCHED_BILLBOARD) || defined(PARTICLE_NEED_FEEDBACK_VELOCITY)
             vec3 a_FeedbackVelocity;
         #endif
     #endif
@@ -116,6 +116,8 @@ struct Varyings {
 #include "ShaderLibrary/Particle/ParticleCommon.glsl"
 #if !defined(RENDERER_TRANSFORM_FEEDBACK) || defined(RENDERER_MODE_STRETCHED_BILLBOARD)
     #include "ShaderLibrary/Particle/Module/InheritVelocity.glsl"
+#endif
+#if !defined(RENDERER_TRANSFORM_FEEDBACK) || defined(RENDERER_MODE_STRETCHED_BILLBOARD) || defined(PARTICLE_NEED_FEEDBACK_VELOCITY)
     #include "ShaderLibrary/Particle/Module/VelocityOverLifetime.glsl"
 #endif
 #ifndef RENDERER_TRANSFORM_FEEDBACK

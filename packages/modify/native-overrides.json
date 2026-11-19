@@ -604,56 +604,8 @@
     "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Module/WindOverLifetime.glsl"
   },
   {
-    "original": "packages/core/src/particle/ParticleBufferUtils.ts",
-    "replacement": "packages/modify/src/native/core/src/particle/ParticleBufferUtils.ts"
-  },
-  {
     "original": "packages/core/src/particle/ParticleGenerator.ts",
     "replacement": "packages/modify/src/native/core/src/particle/ParticleGenerator.ts"
-  },
-  {
-    "original": "packages/core/src/particle/ParticleRenderer.ts",
-    "replacement": "packages/modify/src/native/core/src/particle/ParticleRenderer.ts"
-  },
-  {
-    "original": "packages/core/src/particle/ParticleTransformFeedbackSimulator.ts",
-    "replacement": "packages/modify/src/native/core/src/particle/ParticleTransformFeedbackSimulator.ts"
-  },
-  {
-    "original": "packages/core/src/particle/enums/ParticleRandomSubSeeds.ts",
-    "replacement": "packages/modify/src/native/core/src/particle/enums/ParticleRandomSubSeeds.ts"
-  },
-  {
-    "original": "packages/core/src/particle/enums/attributes/ParticleFeedbackVertexAttribute.ts",
-    "replacement": "packages/modify/src/native/core/src/particle/enums/attributes/ParticleFeedbackVertexAttribute.ts"
-  },
-  {
-    "original": "packages/core/src/particle/enums/attributes/ParticleInstanceVertexAttribute.ts",
-    "replacement": "packages/modify/src/native/core/src/particle/enums/attributes/ParticleInstanceVertexAttribute.ts"
-  },
-  {
-    "original": "packages/core/src/particle/modules/EmissionModule.ts",
-    "replacement": "packages/modify/src/native/core/src/particle/modules/EmissionModule.ts"
-  },
-  {
-    "original": "packages/core/src/particle/modules/MainModule.ts",
-    "replacement": "packages/modify/src/native/core/src/particle/modules/MainModule.ts"
-  },
-  {
-    "original": "packages/core/src/particle/modules/ParticleCompositeCurve.ts",
-    "replacement": "packages/modify/src/native/core/src/particle/modules/ParticleCompositeCurve.ts"
-  },
-  {
-    "original": "packages/core/src/particle/modules/SubEmitter.ts",
-    "replacement": "packages/modify/src/native/core/src/particle/modules/SubEmitter.ts"
-  },
-  {
-    "original": "packages/core/src/particle/modules/SubEmittersModule.ts",
-    "replacement": "packages/modify/src/native/core/src/particle/modules/SubEmittersModule.ts"
-  },
-  {
-    "original": "packages/core/src/particle/modules/VelocityOverLifetimeModule.ts",
-    "replacement": "packages/modify/src/native/core/src/particle/modules/VelocityOverLifetimeModule.ts"
   },
   {
     "original": "packages/core/src/shader/ShaderData.ts",
@@ -682,58 +634,6 @@
   {
     "original": "packages/core/src/ComponentsManager.ts",
     "replacement": "packages/modify/src/native/core/src/ComponentsManager.ts"
-  },
-  {
-    "original": "packages/shader/src/ShaderLibrary/Particle/ParticleMesh.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/ParticleMesh.glsl"
-  },
-  {
-    "original": "packages/shader/src/ShaderLibrary/Particle/ParticleCommon.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/ParticleCommon.glsl"
-  },
-  {
-    "original": "packages/shader/src/ShaderLibrary/Particle/ParticleVert.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/ParticleVert.glsl"
-  },
-  {
-    "original": "packages/shader/src/ShaderLibrary/Particle/Module/SizeOverLifetime.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Module/SizeOverLifetime.glsl"
-  },
-  {
-    "original": "packages/shader/src/ShaderLibrary/Particle/Module/RotationOverLifetime.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Module/RotationOverLifetime.glsl"
-  },
-  {
-    "original": "packages/shader/src/ShaderLibrary/Particle/Module/ForceOverLifetime.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Module/ForceOverLifetime.glsl"
-  },
-  {
-    "original": "packages/shader/src/ShaderLibrary/Particle/Module/VelocityOverLifetime.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Module/VelocityOverLifetime.glsl"
-  },
-  {
-    "original": "packages/shader/src/ShaderLibrary/Particle/Module/NoiseModule.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Module/NoiseModule.glsl"
-  },
-  {
-    "original": "packages/shader/src/ShaderLibrary/Particle/Module/ColorOverLifetime.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Module/ColorOverLifetime.glsl"
-  },
-  {
-    "original": "packages/shader/src/ShaderLibrary/Particle/Module/TextureSheetAnimation.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Module/TextureSheetAnimation.glsl"
-  },
-  {
-    "original": "packages/shader/src/ShaderLibrary/Particle/Billboard/SphereBillboard.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Billboard/SphereBillboard.glsl"
-  },
-  {
-    "original": "packages/shader/src/ShaderLibrary/Particle/Billboard/VerticalBillboard.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Billboard/VerticalBillboard.glsl"
-  },
-  {
-    "original": "packages/shader/src/ShaderLibrary/Particle/Billboard/HorizontalBillboard.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Billboard/HorizontalBillboard.glsl"
   },
   {
     "original": "packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionSettings.ts",
@@ -766,5 +666,9 @@
   {
     "original": "packages/core/src/shader/state/RasterState.ts",
     "replacement": "packages/modify/src/native/core/src/shader/state/RasterState.ts"
+  },
+  {
+    "original": "packages/core/src/particle/ParticleBounds.ts",
+    "replacement": "packages/modify/src/native/core/src/particle/ParticleBounds.ts"
   }
 ]

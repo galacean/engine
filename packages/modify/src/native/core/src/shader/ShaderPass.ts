@@ -141,29 +141,32 @@ export class ShaderPass extends ShaderPart {
     cacheOnly = false
   ): ShaderProgram {
     const deferCompletion = typeof feedbackOrDefer === "boolean" ? feedbackOrDefer : false;
-    if (Array.isArray(feedbackOrDefer)) {
-      if (this._feedbackVaryings) {
-        let mismatch = this._feedbackVaryings.length !== feedbackOrDefer.length;
-        for (let index = 0; !mismatch && index < feedbackOrDefer.length; index++) {
-          mismatch = this._feedbackVaryings[index] !== feedbackOrDefer[index];
-        }
-        if (mismatch) {
-          throw new Error("Transform feedback outputs cannot change after the pass ABI is configured");
-        }
-      } else {
-        if (this._shaderProgramMaps.length)
-          throw new Error("Configure feedback outputs before compiling the shader pass");
-        this._feedbackVaryings = feedbackOrDefer.slice();
-      }
-    }
+    const requestedFeedback = Array.isArray(feedbackOrDefer) ? feedbackOrDefer : this._feedbackVaryings;
     const shaderProgramMap = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
     let shaderProgram = shaderProgramMap.get(macroCollection);
     if (shaderProgram) {
+      if (Array.isArray(feedbackOrDefer)) {
+        const cachedFeedback = (shaderProgram as ShaderProgram & { _feedbackVaryings?: readonly string[] })
+          ._feedbackVaryings;
+        if (cachedFeedback) {
+          let mismatch = cachedFeedback.length !== feedbackOrDefer.length;
+          for (let index = 0; !mismatch && index < feedbackOrDefer.length; index++) {
+            mismatch = cachedFeedback[index] !== feedbackOrDefer[index];
+          }
+          if (mismatch) {
+            throw new Error("Transform feedback outputs cannot change after the pass ABI is configured");
+          }
+        }
+      }
       if (!deferCompletion) shaderProgram._ensureReady();
       return shaderProgram;
     }
 
-    shaderProgram = this._compileShaderProgram(engine, macroCollection, deferCompletion, cacheOnly);
+    shaderProgram = this._compileShaderProgram(engine, macroCollection, deferCompletion, cacheOnly, requestedFeedback);
+    if (requestedFeedback) {
+      (shaderProgram as ShaderProgram & { _feedbackVaryings?: readonly string[] })._feedbackVaryings =
+        requestedFeedback.slice();
+    }
 
     shaderProgramMap.cache(shaderProgram);
     if (!cacheOnly) {
@@ -198,12 +201,16 @@ export class ShaderPass extends ShaderPart {
     engine: Engine,
     macroCollection: ShaderMacroCollection,
     deferCompletion = false,
-    cacheOnly = false
+    cacheOnly = false,
+    requestedFeedback?: readonly string[]
   ): ShaderProgram {
     const names = this._vertexOutputNames;
+    const rawFeedback = requestedFeedback ?? this._feedbackVaryings;
     const feedbackVaryings = names
-      ? this._feedbackVaryings?.map((name) => (Object.prototype.hasOwnProperty.call(names, name) ? names[name] : name))
-      : this._feedbackVaryings;
+      ? rawFeedback?.map((name) => (Object.prototype.hasOwnProperty.call(names, name) ? names[name] : name))
+      : rawFeedback
+        ? [...rawFeedback]
+        : undefined;
     const isGPUInstance = macroCollection.isEnable(InstanceBuffer.gpuInstanceMacro);
     const { vertexSource, fragmentSource, instanceLayout } = this._compileShaderSource(
       engine,

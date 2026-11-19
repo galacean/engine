@@ -112,9 +112,6 @@ export class ShaderPool {
     const shaders = new Map(sources.map((source) => [source, Shader._createFromPrecompiled(source)] as const));
 
     // Keep feedback configuration on the same shader objects returned to Engine.
-    const feedbackPass = shaders.get(ParticleFeedbackSource)!.subShaders[0].passes[0];
-    feedbackPass._feedbackVaryings = ["v_FeedbackPosition", "v_FeedbackVelocity"];
-
     const projectSphericalHarmonicsPass = shaders.get(RealtimeIBLProjectSHSource)!.subShaders[0].passes[0];
     projectSphericalHarmonicsPass._feedbackVaryings = [
       "v_SH0",

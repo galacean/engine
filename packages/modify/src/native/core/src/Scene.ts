@@ -475,7 +475,9 @@ export class Scene extends EngineObject {
    * @internal
    */
   _updateRendering(deltaTime: number): void {
-    this._componentsManager.callRendererOnUpdate(deltaTime);
+    const componentsManager = this._componentsManager;
+    componentsManager._particleSystemManager.update(deltaTime);
+    componentsManager.callRendererOnUpdate(deltaTime);
     this._updateShaderData();
   }
 
