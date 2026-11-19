@@ -303,6 +303,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     return this.capability.supportsRenderTargetColorFormat(format);
   }
 
+  supportsGenerateMipmaps(format: TextureFormat, isSRGBColorSpace: boolean): boolean {
+    return this.capability.supportsGenerateMipmaps(format, isSRGBColorSpace);
+  }
+
   viewport(x: number, y: number, width: number, height: number): void {
     const { _gl: gl, _lastViewport: lastViewport } = this;
     if (x !== lastViewport.x || y !== lastViewport.y || width !== lastViewport.z || height !== lastViewport.w) {

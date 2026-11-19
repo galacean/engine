@@ -1,4 +1,4 @@
-import { AssetPromise, AssetType, Texture2D, WebGLEngine } from "@galacean/engine";
+import { AssetPromise, AssetType, GLCapabilityType, Texture2D, TextureFormat, WebGLEngine } from "@galacean/engine";
 import "@galacean/engine-loader";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -72,6 +72,47 @@ describe("TextureLoader", () => {
         `TextureLoader: failed to decode texture "${virtualPath}" (${invalidBytes.byteLength} bytes).`
       );
     } finally {
+      requestSpy.mockRestore();
+    }
+  });
+
+  it("disables mipmaps when loading an HDR texture on a device without half-float color-renderable support", async () => {
+    const header = new TextEncoder().encode("#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 2 +X 8\n");
+    const scanline = [2, 2, 0, 8, 136, 128, 136, 128, 136, 128, 136, 128];
+    const hdrBytes = new Uint8Array(header.length + scanline.length * 2);
+    hdrBytes.set(header, 0);
+    hdrBytes.set(scanline, header.length);
+    hdrBytes.set(scanline, header.length + scanline.length);
+
+    const resourceManager = engine.resourceManager;
+    const rhi = engine._hardwareRenderer;
+    const capabilityList: Map<GLCapabilityType, boolean> = (rhi as any).capability.capabilityList;
+    const origColorHalfFloat = capabilityList.get(GLCapabilityType.colorBufferHalfFloat)!;
+    const requestSpy = vi
+      .spyOn(resourceManager as any, "_requestByRemoteUrl")
+      .mockImplementation(() => AssetPromise.resolve(hdrBytes.buffer.slice(0)));
+    capabilityList.set(GLCapabilityType.colorBufferHalfFloat, false);
+
+    try {
+      const texture = await resourceManager.load<Texture2D>({
+        url: "textures/no-half-float-rt.hdr",
+        type: AssetType.Texture
+      });
+      expect(texture.format).toBe(TextureFormat.R16G16B16A16_SFloat);
+      expect(texture.mipmapCount).toBe(1);
+      texture.destroy(true);
+
+      capabilityList.set(GLCapabilityType.colorBufferHalfFloat, origColorHalfFloat);
+      if (rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16_SFloat)) {
+        const mipTexture = await resourceManager.load<Texture2D>({
+          url: "textures/with-half-float-rt.hdr",
+          type: AssetType.Texture
+        });
+        expect(mipTexture.mipmapCount).toBe(4);
+        mipTexture.destroy(true);
+      }
+    } finally {
+      capabilityList.set(GLCapabilityType.colorBufferHalfFloat, origColorHalfFloat);
       requestSpy.mockRestore();
     }
   });
