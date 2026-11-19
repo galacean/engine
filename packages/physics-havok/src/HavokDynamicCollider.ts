@@ -37,6 +37,8 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
   _maxAngularVelocityRad = 100;
   /** @internal */
   _hasPendingKinematicTarget = false;
+  /** @internal */
+  _sceneFlags = 0;
 
   private _mass = 1.0;
   private _linearDamping = 0;
@@ -92,9 +94,10 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
   }
 
   setLinearVelocity(value: Vector3): void {
+    if (this._isKinematic) return;
     const hk = this._havokPhysics._hk;
     hk.HP_Body_SetLinearVelocity(this._hkBody, writeVec3(value, SCRATCH_VEC3_A));
-    if (!this._isKinematic && value.lengthSquared() > 0) {
+    if (value.lengthSquared() > 0) {
       hk.HP_Body_SetActivationState(this._hkBody, hk.ActivationState.ACTIVE);
     }
   }
@@ -105,6 +108,7 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
   }
 
   setAngularVelocity(value: Vector3): void {
+    if (this._isKinematic) return;
     let rx = MathUtil.degreeToRadian(value.x);
     let ry = MathUtil.degreeToRadian(value.y);
     let rz = MathUtil.degreeToRadian(value.z);
@@ -124,7 +128,7 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
     v[1] = ry;
     v[2] = rz;
     hk.HP_Body_SetAngularVelocity(this._hkBody, v);
-    if (!this._isKinematic && magSq > 0) {
+    if (magSq > 0) {
       hk.HP_Body_SetActivationState(this._hkBody, hk.ActivationState.ACTIVE);
     }
   }
@@ -247,14 +251,17 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
     }
   }
 
+  setMaxDepenetrationVelocity(value: number): void;
   setMaxDepenetrationVelocity(): void {
     // Not exposed in Havok WASM API.
   }
 
+  setSleepThreshold(value: number): void;
   setSleepThreshold(): void {
     // Not exposed in Havok WASM API.
   }
 
+  setSolverIterations(value: number): void;
   setSolverIterations(): void {
     // Not exposed in Havok WASM API.
   }
@@ -265,6 +272,7 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
     this._havokPhysics._hk.HP_Body_SetGravityFactor(this._hkBody, value ? 1 : 0);
   }
 
+  setMotionState(isKinematic: boolean, collisionDetectionMode?: number): void;
   setMotionState(isKinematic: boolean): void {
     // Havok WASM does not expose per-body CCD mode toggling.
     if (this._isKinematic === isKinematic) return;
@@ -279,7 +287,9 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
     } else {
       hk.HP_Body_SetMotionType(this._hkBody, isKinematic ? hk.MotionType.KINEMATIC : hk.MotionType.DYNAMIC);
     }
-    if (!isKinematic) {
+    if (isKinematic) {
+      this._zeroVelocities();
+    } else {
       hk.HP_Body_SetGravityFactor(this._hkBody, this._useGravity ? 1 : 0);
       this._pushMassProperties();
     }
@@ -297,7 +307,7 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
     const accum = (this._accumForce ||= new Vector3());
     accum.add(force);
     this._hasPendingForce = true;
-    this._scene?._pendingForceColliders.add(this);
+    this._scene?._queuePendingForce(this);
     this.wakeUp();
   }
 
@@ -312,7 +322,7 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
     buf[offset + 4] = position.y;
     buf[offset + 5] = position.z;
     this._pendingPosForceLen = offset + 6;
-    this._scene?._pendingForceColliders.add(this);
+    this._scene?._queuePendingForce(this);
     this.wakeUp();
   }
 
@@ -321,7 +331,7 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
     const accum = (this._accumTorque ||= new Vector3());
     accum.add(torque);
     this._hasPendingTorque = true;
-    this._scene?._pendingForceColliders.add(this);
+    this._scene?._queuePendingForce(this);
     this.wakeUp();
   }
 
@@ -333,7 +343,7 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
       normalizeQuatOrIdentity(rotation, targetRot);
       this._hasPendingKinematicTarget = true;
       if (this._isKinematic) {
-        this._scene?._pendingKinematicMoves.add(this);
+        this._scene?._queuePendingKinematicMove(this);
       }
       return;
     }
@@ -352,7 +362,7 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
     }
     this._hasPendingKinematicTarget = true;
     if (this._isKinematic) {
-      this._scene?._pendingKinematicMoves.add(this);
+      this._scene?._queuePendingKinematicMove(this);
     }
   }
 
@@ -523,7 +533,7 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
   override setWorldTransform(position: Vector3, rotation: Quaternion): void {
     if (this._hasPendingKinematicTarget) {
       this._hasPendingKinematicTarget = false;
-      this._scene?._pendingKinematicMoves.delete(this);
+      this._scene?._cancelPendingKinematicMove(this);
     }
     super.setWorldTransform(position, rotation);
     if (this._constraintsFlags !== 0) {
@@ -533,11 +543,13 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
     }
   }
 
+  /** @internal */
   override _onAddedToScene(scene: HavokPhysicsScene): void {
     super._onAddedToScene(scene);
     this._syncDofConstraint();
   }
 
+  /** @internal */
   override _onRemovedFromScene(): void {
     this._hasPendingKinematicTarget = false;
     this._releaseDofConstraint();

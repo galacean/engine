@@ -32,14 +32,16 @@ export class HavokHingeJoint extends HavokJoint implements IHingeJoint {
   private _lastMotorDt = 0;
 
   setAxis(value: Vector3): void {
-    const lenSq = value.lengthSquared();
-    if (lenSq < 1e-12) {
+    if (!Number.isFinite(value.x) || !Number.isFinite(value.y) || !Number.isFinite(value.z)) {
       return;
     }
-    const invLen = 1 / Math.sqrt(lenSq);
-    const nx = value.x * invLen;
-    const ny = value.y * invLen;
-    const nz = value.z * invLen;
+    const len = Math.hypot(value.x, value.y, value.z);
+    if (!(len > 0 && Number.isFinite(len))) {
+      return;
+    }
+    const nx = value.x / len;
+    const ny = value.y / len;
+    const nz = value.z / len;
     const a = this._axis;
     if (a.x === nx && a.y === ny && a.z === nz) return;
     a.set(nx, ny, nz);
@@ -117,6 +119,7 @@ export class HavokHingeJoint extends HavokJoint implements IHingeJoint {
     return vel === 0 ? 0 : vel;
   }
 
+  setHardLimit(lowerLimit: number, upperLimit: number, contactDist?: number): void;
   setHardLimit(lowerLimit: number, upperLimit: number): void {
     const lower = MathUtil.degreeToRadian(lowerLimit);
     const upper = MathUtil.degreeToRadian(upperLimit);
@@ -189,6 +192,7 @@ export class HavokHingeJoint extends HavokJoint implements IHingeJoint {
     }
   }
 
+  /** @internal */
   override _preStep(dt: number): void {
     super._preStep(dt);
     if (this._broken || this._destroyed || !this._enabled || !this._driveEnabled) return;

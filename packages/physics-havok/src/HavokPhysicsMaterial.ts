@@ -2,6 +2,7 @@ import { IPhysicsMaterial, IPhysicsMaterialProperties } from "@galacean/engine-d
 import { HavokPhysics } from "./HavokPhysics";
 import { HKEnumValue, HKPhysicsMaterial } from "./HavokTypes";
 
+/** @internal */
 export interface HavokMaterialConsumer {
   _applyHKMaterial(mat: HKPhysicsMaterial): void;
 }

@@ -2,13 +2,13 @@ import { Quaternion, Vector3, Vector4 } from "@galacean/engine";
 import { IColliderShape } from "@galacean/engine-design";
 import type { HavokCollider } from "../HavokCollider";
 import { HavokPhysics } from "../HavokPhysics";
-import { HavokMaterialConsumer, HavokPhysicsMaterial } from "../HavokPhysicsMaterial";
-import { HavokShapeIdentity, HKPhysicsMaterial, HP_ShapeId, normalizeQuatOrIdentity } from "../HavokTypes";
+import { HavokPhysicsMaterial } from "../HavokPhysicsMaterial";
+import { HKPhysicsMaterial, HP_ShapeId, normalizeQuatOrIdentity } from "../HavokTypes";
 
 /**
  * Base class for Havok collider shapes.
  */
-export abstract class HavokColliderShape implements IColliderShape, HavokMaterialConsumer, HavokShapeIdentity {
+export abstract class HavokColliderShape implements IColliderShape {
   protected static _tempVector3 = new Vector3();
   protected static _tempWorldPos = new Vector3();
   protected static _tempQuat = new Quaternion();
@@ -35,6 +35,8 @@ export abstract class HavokColliderShape implements IColliderShape, HavokMateria
   _isSceneQuery = true;
   /** @internal */
   _layer = 0;
+  /** @internal */
+  _syncedFilterVersion = -1;
   /** @internal */
   _collider: HavokCollider | null = null;
 
@@ -65,6 +67,7 @@ export abstract class HavokColliderShape implements IColliderShape, HavokMateria
   _syncLayerFilter(): void {
     if (this._hkShape) {
       this._havokPhysics._hk.HP_Shape_SetFilterInfo(this._hkShape, this._havokPhysics._getLayerFilterInfo(this._layer));
+      this._syncedFilterVersion = this._havokPhysics._filterVersion;
     }
   }
 
@@ -109,6 +112,7 @@ export abstract class HavokColliderShape implements IColliderShape, HavokMateria
     this._onScaleChanged();
   }
 
+  setContactOffset(offset: number): void;
   setContactOffset(): void {
     // Havok WASM does not expose per-shape contact offset.
   }
@@ -162,6 +166,7 @@ export abstract class HavokColliderShape implements IColliderShape, HavokMateria
 
   protected _onScaleChanged(): void {}
 
+  /** @internal */
   protected _replaceHKShape(newShape: HP_ShapeId): void {
     const oldShape = this._hkShape;
     this._hkShape = newShape;
@@ -181,6 +186,7 @@ export abstract class HavokColliderShape implements IColliderShape, HavokMateria
       hk.HP_Shape_SetTrigger(this._hkShape, true);
     }
     hk.HP_Shape_SetFilterInfo(this._hkShape, this._havokPhysics._getLayerFilterInfo(this._layer));
+    this._syncedFilterVersion = this._havokPhysics._filterVersion;
   }
 
   protected _getWorldPose(outPos: Vector3, outRot: Quaternion): void {

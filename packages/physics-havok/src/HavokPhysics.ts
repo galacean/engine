@@ -62,7 +62,7 @@ try {
   // Environments without a resolvable module URL can pass explicit options.
 }
 
-let loadedJsUrl: string | null = null;
+const loadedFactories = new Map<string, HavokFactory>();
 let inFlightJsUrl: string | null = null;
 let inFlightFactoryPromise: Promise<HavokFactory> | null = null;
 let scriptLoadQueue: Promise<void> = Promise.resolve();
@@ -106,10 +106,12 @@ export class HavokPhysics implements IPhysics {
 
   /** @internal */
   _hk!: HavokModule;
-  /** @internal True only when initialized from the package's bundled HavokPhysics.wasm (gates Tier 2 C-ABI offsets). */
+  /** @internal True when runtime ABI probe confirms Tier 2 C-ABI exports and struct layout. */
   _useRawABI = false;
   /** @internal Persistent 32B WASM scratch buffer for Tier 2 `_HP_Body_GetQTransform`, or 0 when unavailable. */
   _qTransformScratch = 0;
+  /** @internal Monotonic version incremented on every layer matrix mutation for lazy shape filter sync. */
+  _filterVersion = 0;
 
   private _options: HavokRuntimeOptions;
   private _initializeState: InitializeState = InitializeState.Uninitialized;
@@ -118,6 +120,8 @@ export class HavokPhysics implements IPhysics {
 
   // Global 32x32 symmetric layer collision bitmasks (all layers collide by default)
   private _layerMasks = new Uint32Array(32);
+  // Bit k is 1 iff `_layerMasks[k] !== 0`; used as `collideWith` for zero-mask layers so queries still match them.
+  private _nonZeroLayersMask = 0xffffffff;
 
   private _scenes = new Set<HavokPhysicsScene>();
 
@@ -163,13 +167,7 @@ export class HavokPhysics implements IPhysics {
     }
 
     const globalObj = globalThis as HavokGlobal;
-    const hasPreloadedGlobal = typeof globalObj.HavokPhysics === "function" && loadedJsUrl === null;
-    const isBundledWasm =
-      !this._options.havokInstance &&
-      !this._options.havokFactory &&
-      !this._options.wasmUrl &&
-      !this._options.jsUrl &&
-      !hasPreloadedGlobal;
+    const hasPreloadedGlobal = typeof globalObj.HavokPhysics === "function" && loadedFactories.size === 0;
 
     let loadPromise: Promise<HavokModule>;
     if (this._options.havokInstance) {
@@ -187,15 +185,8 @@ export class HavokPhysics implements IPhysics {
           throw new Error("HavokPhysics was destroyed during initialization.");
         }
         this._hk = hk;
-        this._useRawABI = isBundledWasm;
-        this._qTransformScratch =
-          isBundledWasm &&
-          hk.HEAPF32 != null &&
-          typeof hk._HP_Body_GetQTransform === "function" &&
-          typeof hk._malloc === "function" &&
-          typeof hk._free === "function"
-            ? hk._malloc(32)
-            : 0;
+        this._qTransformScratch = this._probeRawABI(hk);
+        this._useRawABI = this._qTransformScratch !== 0;
         this._initializeState = InitializeState.Initialized;
         this._initializePromise = null;
         console.log("Havok loaded.");
@@ -237,6 +228,8 @@ export class HavokPhysics implements IPhysics {
     }
     this._qTransformScratch = 0;
     this._layerMasks.fill(0xffffffff);
+    this._nonZeroLayersMask = 0xffffffff;
+    this._filterVersion++;
     this._initializeState = InitializeState.Uninitialized;
     this._initializePromise = null;
     this._useRawABI = false;
@@ -365,7 +358,14 @@ export class HavokPhysics implements IPhysics {
    * {@inheritDoc IPhysics.getColliderLayerCollision }
    */
   getColliderLayerCollision(layer1: number, layer2: number): boolean {
-    if (layer1 < 0 || layer1 > 31 || layer2 < 0 || layer2 > 31) {
+    if (
+      !Number.isInteger(layer1) ||
+      !Number.isInteger(layer2) ||
+      layer1 < 0 ||
+      layer1 > 31 ||
+      layer2 < 0 ||
+      layer2 > 31
+    ) {
       return false;
     }
     return ((this._layerMasks[layer1] >>> layer2) & 1) === 1;
@@ -375,7 +375,14 @@ export class HavokPhysics implements IPhysics {
    * {@inheritDoc IPhysics.setColliderLayerCollision }
    */
   setColliderLayerCollision(layer1: number, layer2: number, isCollide: boolean): void {
-    if (layer1 < 0 || layer1 > 31 || layer2 < 0 || layer2 > 31) {
+    if (
+      !Number.isInteger(layer1) ||
+      !Number.isInteger(layer2) ||
+      layer1 < 0 ||
+      layer1 > 31 ||
+      layer2 < 0 ||
+      layer2 > 31
+    ) {
       return;
     }
     const prev1 = this._layerMasks[layer1];
@@ -384,13 +391,23 @@ export class HavokPhysics implements IPhysics {
     if (prev1 === next1) {
       return;
     }
-    this._layerMasks[layer1] = next1;
     const bit1 = (1 << layer1) >>> 0;
-    this._layerMasks[layer2] = isCollide
-      ? (this._layerMasks[layer2] | bit1) >>> 0
-      : (this._layerMasks[layer2] & ~bit1) >>> 0;
+    const next2 = isCollide ? (this._layerMasks[layer2] | bit1) >>> 0 : (this._layerMasks[layer2] & ~bit1) >>> 0;
+    this._layerMasks[layer1] = next1;
+    this._layerMasks[layer2] = next2;
+
+    const prevNonZero = this._nonZeroLayersMask;
+    let nextNonZero = next1 !== 0 ? (prevNonZero | bit1) >>> 0 : (prevNonZero & ~bit1) >>> 0;
+    nextNonZero = next2 !== 0 ? (nextNonZero | bit2) >>> 0 : (nextNonZero & ~bit2) >>> 0;
+    this._nonZeroLayersMask = nextNonZero;
+    this._filterVersion++;
+
+    let changedMask = (bit1 | bit2) >>> 0;
+    if (nextNonZero !== prevNonZero) {
+      changedMask = (changedMask | ~nextNonZero) >>> 0;
+    }
     for (let it = this._scenes.values(), cur = it.next(); !cur.done; cur = it.next()) {
-      cur.value._onLayerMatrixChanged(layer1, layer2);
+      cur.value._onLayerMatrixChanged(changedMask);
     }
   }
 
@@ -398,8 +415,11 @@ export class HavokPhysics implements IPhysics {
   _getLayerFilterInfo(layer: number): HKFilterInfo {
     const safeLayer = layer & 31;
     const out = HavokPhysics._tempFilterInfo;
+    const mask = this._layerMasks[safeLayer] >>> 0;
     out[0] = (1 << safeLayer) >>> 0;
-    out[1] = this._layerMasks[safeLayer] >>> 0;
+    // Zero-mask layers borrow `_nonZeroLayersMask` as `collideWith` so symmetric collision stays disabled
+    // against all layers while `[0xffffffff, queryMask]` scene queries still match this layer's membership bit.
+    out[1] = mask !== 0 ? mask : this._nonZeroLayersMask;
     return out;
   }
 
@@ -459,6 +479,78 @@ export class HavokPhysics implements IPhysics {
     return hit;
   }
 
+  /**
+   * Verify Tier 2 raw C-ABI exports and struct layout with a 1-body round-trip probe.
+   * Returns a persistent 32B scratch pointer on success, or 0 to fall back to Tier 1 Embind.
+   */
+  private _probeRawABI(hk: HavokModule): number {
+    if (
+      hk == null ||
+      hk.HEAPF32 == null ||
+      hk.HEAPU32 == null ||
+      hk.HEAP32 == null ||
+      typeof hk._malloc !== "function" ||
+      typeof hk._free !== "function" ||
+      typeof hk._HP_Body_GetQTransform !== "function" ||
+      typeof hk._HP_World_CastRayWithCollector !== "function" ||
+      typeof hk._HP_World_ShapeCastWithCollector !== "function" ||
+      typeof hk._HP_World_ShapeProximityWithCollector !== "function" ||
+      typeof hk._HP_QueryCollector_GetNumHits !== "function" ||
+      typeof hk._HP_QueryCollector_GetCastRayResult !== "function" ||
+      typeof hk._HP_QueryCollector_GetShapeCastResult !== "function" ||
+      typeof hk._HP_QueryCollector_GetShapeProximityResult !== "function" ||
+      typeof hk._HP_ShapePathIterator_GetNext !== "function"
+    ) {
+      return 0;
+    }
+
+    const ptr = hk._malloc(32);
+    if (ptr === 0) return 0;
+
+    let body: HP_BodyId | null = null;
+    let collector: HP_CollectorId | null = null;
+    try {
+      body = hk.HP_Body_Create()[1];
+      collector = hk.HP_QueryCollector_Create(1)[1];
+      const qt = HavokPhysics._tempQTransform;
+      qt[0][0] = 1.25;
+      qt[0][1] = -2.5;
+      qt[0][2] = 3.75;
+      qt[1][0] = 0;
+      qt[1][1] = 0;
+      qt[1][2] = 0;
+      qt[1][3] = 1;
+      hk.HP_Body_SetQTransform(body, qt);
+      hk._HP_Body_GetQTransform(body[0], ptr);
+      const b = ptr >>> 2;
+      const f32 = hk.HEAPF32;
+      const qtOk =
+        f32[b] === 1.25 &&
+        f32[b + 1] === -2.5 &&
+        f32[b + 2] === 3.75 &&
+        f32[b + 3] === 0 &&
+        f32[b + 4] === 0 &&
+        f32[b + 5] === 0 &&
+        f32[b + 6] === 1;
+      hk._HP_QueryCollector_GetNumHits(collector[0], ptr);
+      const hitsOk = hk.HEAPU32[b] === 0;
+      if (qtOk && hitsOk) {
+        return ptr;
+      }
+    } catch {
+      // Fall back to Tier 1 Embind when a custom WASM build diverges from expected raw ABI layout.
+    } finally {
+      if (collector) {
+        hk.HP_QueryCollector_Release(collector);
+      }
+      if (body) {
+        hk.HP_Body_Release(body);
+      }
+    }
+    hk._free(ptr);
+    return 0;
+  }
+
   private _loadUMDScript(moduleArg: Record<string, unknown>, hasPreloadedGlobal: boolean): Promise<HavokModule> {
     const globalObj = globalThis as HavokGlobal;
     const customJsUrl = this._options.jsUrl;
@@ -469,11 +561,11 @@ export class HavokPhysics implements IPhysics {
       moduleArg.locateFile = () => wasmUrl;
     }
 
-    const canReuseGlobal =
-      typeof globalObj.HavokPhysics === "function" &&
-      (customJsUrl ? customJsUrl === loadedJsUrl : loadedJsUrl === null || loadedJsUrl === defaultJsUrl);
-
-    if (canReuseGlobal) {
+    const cachedFactory = jsUrl ? loadedFactories.get(jsUrl) : undefined;
+    if (cachedFactory) {
+      return Promise.resolve().then(() => cachedFactory(moduleArg));
+    }
+    if (!customJsUrl && hasPreloadedGlobal) {
       const factory = globalObj.HavokPhysics!;
       return Promise.resolve().then(() => factory(moduleArg));
     }
@@ -503,11 +595,12 @@ export class HavokPhysics implements IPhysics {
     const factoryPromise = scriptLoadQueue.then(
       () =>
         new Promise<HavokFactory>((resolve, reject) => {
-          const globalObj = globalThis as HavokGlobal;
-          if (typeof globalObj.HavokPhysics === "function" && loadedJsUrl === jsUrl) {
-            resolve(globalObj.HavokPhysics);
+          const cached = loadedFactories.get(jsUrl);
+          if (cached) {
+            resolve(cached);
             return;
           }
+          const globalObj = globalThis as HavokGlobal;
           const previousFactory = globalObj.HavokPhysics;
           globalObj.HavokPhysics = undefined;
           const script = document.createElement("script");
@@ -522,7 +615,10 @@ export class HavokPhysics implements IPhysics {
               reject(new Error("HavokPhysics: loaded script did not expose global `HavokPhysics` factory."));
               return;
             }
-            loadedJsUrl = jsUrl;
+            loadedFactories.set(jsUrl, factory);
+            if (previousFactory !== undefined) {
+              globalObj.HavokPhysics = previousFactory;
+            }
             resolve(factory);
           };
           script.onerror = () => {

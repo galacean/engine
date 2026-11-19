@@ -2,7 +2,7 @@ import { Quaternion, Vector3, Vector4 } from "@galacean/engine";
 import { ICapsuleColliderShape } from "@galacean/engine-design";
 import { HavokPhysics } from "../HavokPhysics";
 import { HavokPhysicsMaterial } from "../HavokPhysicsMaterial";
-import { HP_ShapeId, SCRATCH_VEC3_A, SCRATCH_VEC3_B } from "../HavokTypes";
+import { HP_ShapeId, SCRATCH_VEC3_A, SCRATCH_VEC3_B, ZERO_HANDLE } from "../HavokTypes";
 import { HavokColliderShape } from "./HavokColliderShape";
 
 const MIN_DIM = 1e-4;
@@ -33,9 +33,14 @@ export class HavokCapsuleColliderShape extends HavokColliderShape implements ICa
     super(havokPhysics, uniqueID, material);
     this._radius = radius;
     this._height = height;
-    this._effectiveRadius = this._getScaledRadius();
-    this._effectiveHalfH = this._getScaledHalfHeight();
-    this._initShape(this._createCapsuleShape(this._effectiveRadius, this._effectiveHalfH));
+    const fR = this._getScaledRadius();
+    const fH = this._getScaledHalfHeight();
+    this._effectiveRadius = fR > 0 && Number.isFinite(fR) ? fR : MIN_DIM;
+    this._effectiveHalfH = fH > 0 && Number.isFinite(fH) ? fH : MIN_DIM;
+    const shape = this._createCapsuleShape(this._effectiveRadius, this._effectiveHalfH);
+    if (shape) {
+      this._initShape(shape);
+    }
   }
 
   setRadius(radius: number): void {
@@ -60,9 +65,7 @@ export class HavokCapsuleColliderShape extends HavokColliderShape implements ICa
       return;
     }
     this._upAxis = nextAxis;
-    this._effectiveRadius = this._getScaledRadius();
-    this._effectiveHalfH = this._getScaledHalfHeight();
-    this._replaceHKShape(this._createCapsuleShape(this._effectiveRadius, this._effectiveHalfH));
+    this._rebuildIfEffectiveChanged(true);
   }
 
   protected override _onScaleChanged(): void {
@@ -116,15 +119,21 @@ export class HavokCapsuleColliderShape extends HavokColliderShape implements ICa
     return out;
   }
 
-  private _rebuildIfEffectiveChanged(): void {
+  private _rebuildIfEffectiveChanged(force = false): void {
     const nextR = this._getScaledRadius();
     const nextH = this._getScaledHalfHeight();
-    if (nextR === this._effectiveRadius && nextH === this._effectiveHalfH) {
+    if (
+      !(nextR > 0 && Number.isFinite(nextR) && nextH > 0 && Number.isFinite(nextH)) ||
+      (!force && nextR === this._effectiveRadius && nextH === this._effectiveHalfH)
+    ) {
       return;
     }
-    this._effectiveRadius = nextR;
-    this._effectiveHalfH = nextH;
-    this._replaceHKShape(this._createCapsuleShape(nextR, nextH));
+    const shape = this._createCapsuleShape(nextR, nextH);
+    if (shape) {
+      this._effectiveRadius = nextR;
+      this._effectiveHalfH = nextH;
+      this._replaceHKShape(shape);
+    }
   }
 
   private _getScaledRadius(): number {
@@ -136,17 +145,18 @@ export class HavokCapsuleColliderShape extends HavokColliderShape implements ICa
         : axis === HavokCapsuleUpAxis.Z
           ? Math.max(s.x, s.y)
           : Math.max(s.x, s.z);
-    return Math.max(Math.abs(this._radius) * rScale, MIN_DIM);
+    return Math.fround(Math.abs(this._radius) * rScale);
   }
 
   private _getScaledHalfHeight(): number {
     const s = this._worldScale;
     const axis = this._upAxis;
     const hScale = axis === HavokCapsuleUpAxis.X ? s.x : axis === HavokCapsuleUpAxis.Z ? s.z : s.y;
-    return Math.max(Math.abs(this._height) * 0.5 * hScale, MIN_DIM);
+    return Math.fround(Math.abs(this._height) * 0.5 * hScale);
   }
 
-  private _createCapsuleShape(radius: number, halfH: number): HP_ShapeId {
+  private _createCapsuleShape(radius: number, halfH: number): HP_ShapeId | null {
+    const hk = this._havokPhysics._hk;
     const pA = SCRATCH_VEC3_A;
     const pB = SCRATCH_VEC3_B;
     pA[0] = 0;
@@ -157,6 +167,7 @@ export class HavokCapsuleColliderShape extends HavokColliderShape implements ICa
     pB[2] = 0;
     pA[this._upAxis] = -halfH;
     pB[this._upAxis] = halfH;
-    return this._havokPhysics._hk.HP_Shape_CreateCapsule(pA, pB, radius)[1];
+    const [res, shape] = hk.HP_Shape_CreateCapsule(pA, pB, radius);
+    return res.value === hk.Result.RESULT_OK.value && shape[0] !== ZERO_HANDLE[0] ? shape : null;
   }
 }

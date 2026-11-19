@@ -9,6 +9,7 @@ import { HavokJoint } from "./HavokJoint";
  * Fixed joint locking all 6 degrees of freedom in Havok.
  */
 export class HavokFixedJoint extends HavokJoint implements IFixedJoint {
+  /** @internal */
   override _checkBreak(dt: number): void {
     super._checkBreak(dt);
     if (this._broken || this._destroyed || !this._enabled) return;
@@ -125,7 +126,7 @@ export class HavokFixedJoint extends HavokJoint implements IFixedJoint {
       qt[1][2] = dynRot.z;
       qt[1][3] = dynRot.w;
       hk.HP_Body_SetQTransform(dynBody, qt);
-      this._scene?._dirtyBroadphaseColliders.add(dynCol);
+      this._scene?._queueBroadphaseDirtyCollider(dynCol);
     }
 
     if (immMoving) {

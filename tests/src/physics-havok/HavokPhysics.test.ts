@@ -491,23 +491,21 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
     it("evicts query shapes FIFO above 64 unique dimensions and releases caches on gc()", () => {
       const targetEntity = addBox(new Vector3(2, 2, 2), new Vector3(0, 0, 0));
       const targetCollider = targetEntity.getComponent(BoxCollider);
-      const nativeScene = (physics as unknown as { _nativePhysicsScene: Record<string, Map<unknown, unknown>> })
-        ._nativePhysicsScene;
+      const hk = (havokBackend as unknown as { _hk: { HP_Shape_Release: (...args: unknown[]) => unknown } })._hk;
+      const releaseSpy = vi.spyOn(hk, "HP_Shape_Release");
       const hit = new HitResult();
 
-      // Exceed MAX_QUERY_SHAPE_CACHE (64) across box, sphere, and capsule query caches
+      // Exceed MAX_QUERY_SHAPE_CACHE (64) across box, sphere, and capsule query caches -> 16 * 3 = 48 FIFO evictions
       for (let i = 0; i < 80; i++) {
         const d = 0.2 + i * 0.01;
         expect(physics.overlapBoxAll(new Vector3(0, 0, 0), new Vector3(d, d, d))).toContain(targetCollider);
         expect(physics.overlapSphereAll(new Vector3(0, 0, 0), d)).toContain(targetCollider);
         expect(physics.overlapCapsuleAll(new Vector3(0, 0, 0), d * 0.5, d)).toContain(targetCollider);
       }
+      expect(releaseSpy).toHaveBeenCalledTimes(48);
 
-      expect(nativeScene._boxQueryCache.size).toBe(64);
-      expect(nativeScene._sphereQueryCache.size).toBe(64);
-      expect(nativeScene._capsuleQueryCache.size).toBe(64);
-
-      // Re-querying the oldest evicted dimensions recreates shapes cleanly without exceeding cap
+      // Re-querying the oldest evicted dimensions recreates shapes and evicts 3 more cached shapes
+      releaseSpy.mockClear();
       expect(physics.boxCast(new Vector3(-5, 0, 0), new Vector3(0.2, 0.2, 0.2), new Vector3(1, 0, 0), 20, hit)).toBe(
         true
       );
@@ -516,15 +514,12 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
       expect(hit.collider).toBe(targetCollider);
       expect(physics.capsuleCast(new Vector3(-5, 0, 0), 0.1, 0.2, new Vector3(1, 0, 0), 20, hit)).toBe(true);
       expect(hit.collider).toBe(targetCollider);
-      expect(nativeScene._boxQueryCache.size).toBe(64);
-      expect(nativeScene._sphereQueryCache.size).toBe(64);
-      expect(nativeScene._capsuleQueryCache.size).toBe(64);
+      expect(releaseSpy).toHaveBeenCalledTimes(3);
 
-      // Engine GC must flush all cached query shapes, and subsequent queries must still succeed
+      // Engine GC must flush all 64 * 3 = 192 cached query shapes, and subsequent queries must still succeed
+      releaseSpy.mockClear();
       engine.resourceManager.gc();
-      expect(nativeScene._boxQueryCache.size).toBe(0);
-      expect(nativeScene._sphereQueryCache.size).toBe(0);
-      expect(nativeScene._capsuleQueryCache.size).toBe(0);
+      expect(releaseSpy).toHaveBeenCalledTimes(192);
 
       expect(physics.overlapBoxAll(new Vector3(0, 0, 0), new Vector3(0.5, 0.5, 0.5))).toContain(targetCollider);
       expect(physics.overlapSphereAll(new Vector3(0, 0, 0), 0.5)).toContain(targetCollider);
@@ -533,6 +528,7 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
         true
       );
       expect(hit.collider).toBe(targetCollider);
+      releaseSpy.mockRestore();
     });
 
     it("normalizes non-unit quaternions and handles zero quaternions safely without stale scratch leaks", () => {
@@ -1375,16 +1371,10 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
     it("produces identical query, transform, CCT, trigger, and compound-collision results on Tier 2 C-ABI and Tier 1 Embind fallback", async () => {
       const rawModule = (havokBackend as unknown as { _hk: Record<string, unknown> })._hk;
 
-      const runParitySuite = async (backend: HavokPhysics, expectRawAbi: boolean) => {
+      const runParitySuite = async (backend: HavokPhysics) => {
         await backend.initialize();
         try {
-          const internalBackend = backend as unknown as { _useRawABI: boolean; _qTransformScratch: number };
-          expect(internalBackend._useRawABI).toBe(expectRawAbi);
-          expect(internalBackend._qTransformScratch > 0).toBe(expectRawAbi);
-
           const scene = backend.createPhysicsScene();
-          const internalScene = scene as unknown as { _queryScratchPtr: number };
-          expect(internalScene._queryScratchPtr > 0).toBe(expectRawAbi);
 
           const mat = createDefaultMaterial(backend);
 
@@ -1610,35 +1600,68 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
         }
       };
 
-      // Bundled default HavokPhysics enables Tier 2 C-ABI; external havokInstance auto-falls back to Tier 1 Embind
-      const tier2 = await runParitySuite(new HavokPhysics(), true);
-      const tier1 = await runParitySuite(new HavokPhysics({ havokInstance: rawModule }), false);
+      // Verified ABI probe enables Tier 2 C-ABI for both default and compatible external havokInstance;
+      // removing raw C-ABI exports cleanly falls back to Tier 1 Embind.
+      const rawRaySpy = vi.spyOn(
+        rawModule as { _HP_World_CastRayWithCollector: (...args: unknown[]) => unknown },
+        "_HP_World_CastRayWithCollector"
+      );
+      const embindRaySpy = vi.spyOn(
+        rawModule as { HP_World_CastRayWithCollector: (...args: unknown[]) => unknown },
+        "HP_World_CastRayWithCollector"
+      );
 
-      expect(tier2).toEqual(tier1);
-      expect(tier2.rayHit).toBe(true);
-      expect(tier2.rayBool).toBe(true);
-      expect(tier2.rayMiss).toBe(false);
-      expect(tier2.rayId).toBe(201);
-      expect(tier2.rayDist).toBeCloseTo(3.5, 3);
-      expect(tier2.layer2RayId).toBe(203);
-      expect(tier2.layer3RayMiss).toBe(false);
-      expect(tier2.allHits.map((h) => h.id)).toEqual([201, 202]);
-      // Downward reentrant ray at x=-2 hits childTrigger (203), trigProbe (302), and childA (201)
-      expect(tier2.reentrantHits).toBeGreaterThanOrEqual(2);
-      expect(tier2.sphereCastId).toBe(201);
-      expect(tier2.boxCastId).toBe(201);
-      expect(tier2.capsuleCastId).toBe(201);
-      expect(tier2.overlapSphere).toEqual([201]);
-      expect(tier2.overlapBox).toEqual([202, 301]);
-      expect(tier2.overlapCapsule).toEqual([201]);
-      expect(tier2.overlapLayer2).toEqual([203]);
-      // CCT passes straight through trigger at y=1.4 and lands on solid childA top (y = 0.5 + 0.4 + 0.02 = 0.92)
-      expect(tier2.cctFlags & ControllerCollisionFlag.Down).toBe(ControllerCollisionFlag.Down);
-      expect(tier2.cctY).toBeCloseTo(0.92, 2);
-      expect(tier2.contactDetails).toHaveLength(1);
-      expect(tier2.contactDetails[0].ids).toEqual([202, 301, 0]);
-      expect(tier2.contactDetails[0].count).toBeGreaterThan(0);
-      expect(tier2.triggerDetails).toContainEqual([203, 302, 0]);
+      const embindOnlyModule = Object.create(rawModule) as Record<string, unknown>;
+      embindOnlyModule._HP_World_CastRayWithCollector = undefined;
+
+      try {
+        rawRaySpy.mockClear();
+        embindRaySpy.mockClear();
+        const tier2Default = await runParitySuite(new HavokPhysics());
+
+        rawRaySpy.mockClear();
+        embindRaySpy.mockClear();
+        const tier2Instance = await runParitySuite(new HavokPhysics({ havokInstance: rawModule }));
+        expect(rawRaySpy).toHaveBeenCalled();
+        expect(embindRaySpy).not.toHaveBeenCalled();
+
+        rawRaySpy.mockClear();
+        embindRaySpy.mockClear();
+        const tier1 = await runParitySuite(new HavokPhysics({ havokInstance: embindOnlyModule }));
+        expect(rawRaySpy).not.toHaveBeenCalled();
+        expect(embindRaySpy).toHaveBeenCalled();
+
+        expect(tier2Default).toEqual(tier1);
+        expect(tier2Instance).toEqual(tier1);
+        const tier2 = tier2Default;
+        expect(tier2.rayHit).toBe(true);
+        expect(tier2.rayBool).toBe(true);
+        expect(tier2.rayMiss).toBe(false);
+        expect(tier2.rayId).toBe(201);
+        expect(tier2.rayDist).toBeCloseTo(3.5, 3);
+        expect(tier2.layer2RayId).toBe(203);
+        expect(tier2.layer3RayMiss).toBe(false);
+        expect(tier2.allHits.map((h) => h.id)).toEqual([201, 202]);
+        // Downward reentrant ray at x=-2 hits childTrigger (203), trigProbe (302), and childA (201)
+        expect(tier2.reentrantHits).toBeGreaterThanOrEqual(2);
+        expect(tier2.sphereCastId).toBe(201);
+        expect(tier2.boxCastId).toBe(201);
+        expect(tier2.capsuleCastId).toBe(201);
+        expect(tier2.overlapSphere).toEqual([201]);
+        expect(tier2.overlapBox).toEqual([202, 301]);
+        expect(tier2.overlapCapsule).toEqual([201]);
+        expect(tier2.overlapLayer2).toEqual([203]);
+        // CCT passes straight through trigger at y=1.4 and lands on solid childA top (y = 0.5 + 0.4 + 0.02 = 0.92)
+        expect(tier2.cctFlags & ControllerCollisionFlag.Down).toBe(ControllerCollisionFlag.Down);
+        expect(tier2.cctY).toBeCloseTo(0.92, 2);
+        expect(tier2.contactDetails).toHaveLength(1);
+        expect(tier2.contactDetails[0].ids).toEqual([202, 301, 0]);
+        expect(tier2.contactDetails[0].count).toBeGreaterThan(0);
+        expect(tier2.triggerDetails).toContainEqual([203, 302, 0]);
+      } finally {
+        rawRaySpy.mockRestore();
+        embindRaySpy.mockRestore();
+      }
     });
 
     it("returns w = -1 from HavokPlaneColliderShape.pointDistance()", () => {
@@ -1653,8 +1676,17 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
       }
     });
 
-    it("releases raw vertex and index buffers in HavokMeshColliderShape.destroy()", () => {
+    it("releases native shapes and stops rebuilding after HavokMeshColliderShape.destroy()", () => {
       const mat = createDefaultMaterial(havokBackend);
+      const hk = (
+        havokBackend as unknown as {
+          _hk: {
+            HP_Shape_CreateConvexHull: (...args: unknown[]) => unknown;
+            HP_Shape_CreateMesh: (...args: unknown[]) => unknown;
+            HP_Shape_Release: (...args: unknown[]) => unknown;
+          };
+        }
+      )._hk;
       const verts = [
         new Vector3(-1, -1, -1),
         new Vector3(1, -1, -1),
@@ -1669,28 +1701,28 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
         0, 3, 2, 0, 2, 1, 4, 5, 6, 4, 6, 7, 0, 1, 5, 0, 5, 4, 3, 7, 6, 3, 6, 2, 0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5
       ]);
 
-      const convex = havokBackend.createMeshColliderShape(901, verts, null, true, mat, 0)! as unknown as {
-        _rawVertices: Float32Array | null;
-        _validIndices: Int32Array | null;
-        destroy(): void;
-      };
-      const tri = havokBackend.createMeshColliderShape(902, verts, indices, false, mat, 0)! as unknown as {
-        _rawVertices: Float32Array | null;
-        _validIndices: Int32Array | null;
-        destroy(): void;
-      };
+      const convex = havokBackend.createMeshColliderShape(901, verts, null, true, mat, 0)!;
+      const tri = havokBackend.createMeshColliderShape(902, verts, indices, false, mat, 0)!;
+      const releaseSpy = vi.spyOn(hk, "HP_Shape_Release");
+      const createConvexSpy = vi.spyOn(hk, "HP_Shape_CreateConvexHull");
+      const createMeshSpy = vi.spyOn(hk, "HP_Shape_CreateMesh");
       try {
-        expect(convex._rawVertices).toBeInstanceOf(Float32Array);
-        expect(tri._rawVertices).toBeInstanceOf(Float32Array);
-        expect(tri._validIndices).toBeInstanceOf(Int32Array);
+        expect(convex.pointDistance(new Vector3(3, 0, 0)).w).toBeGreaterThan(0);
 
         convex.destroy();
         tri.destroy();
-        expect(convex._rawVertices).toBeNull();
-        expect(convex._validIndices).toBeNull();
-        expect(tri._rawVertices).toBeNull();
-        expect(tri._validIndices).toBeNull();
+        expect(releaseSpy).toHaveBeenCalledTimes(2);
+        expect(convex.pointDistance(new Vector3(3, 0, 0)).w).toBe(-1);
+
+        // Scaling after destroy must NOT rebuild shapes from retained raw buffers
+        convex.setWorldScale(new Vector3(2, 2, 2));
+        tri.setWorldScale(new Vector3(2, 2, 2));
+        expect(createConvexSpy).not.toHaveBeenCalled();
+        expect(createMeshSpy).not.toHaveBeenCalled();
       } finally {
+        releaseSpy.mockRestore();
+        createConvexSpy.mockRestore();
+        createMeshSpy.mockRestore();
         mat.destroy();
       }
     });
@@ -1837,13 +1869,16 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
         addBox(new Vector3(2, 0.5, 2), new Vector3(0, -0.5, 0));
       }
 
-      const flags = cc.move(new Vector3(0, -0.1, 0), 0.0001, physics.fixedTimeStep);
-      expect(flags & ControllerCollisionFlag.Down).toBe(ControllerCollisionFlag.Down);
-      expect(role.transform.position.y).toBeGreaterThan(0.2);
-
-      const nativeScene = (physics as unknown as { _nativePhysicsScene: { _collectorCapacity: number } })
-        ._nativePhysicsScene;
-      expect(nativeScene._collectorCapacity).toBeGreaterThanOrEqual(512);
+      const hk = (havokBackend as unknown as { _hk: { HP_QueryCollector_Create: (cap: number) => unknown } })._hk;
+      const createCollectorSpy = vi.spyOn(hk, "HP_QueryCollector_Create");
+      try {
+        const flags = cc.move(new Vector3(0, -0.1, 0), 0.0001, physics.fixedTimeStep);
+        expect(flags & ControllerCollisionFlag.Down).toBe(ControllerCollisionFlag.Down);
+        expect(role.transform.position.y).toBeGreaterThan(0.2);
+        expect(createCollectorSpy).toHaveBeenCalledWith(512);
+      } finally {
+        createCollectorSpy.mockRestore();
+      }
     });
 
     it("inherits moving kinematic anchor velocity on FixedJoint before kinematic velocity reset", () => {
@@ -1889,27 +1924,185 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
       expect(Math.abs(Quaternion.dot(kin.transform.worldRotationQuaternion, rot90Y))).toBeCloseTo(1, 3);
     });
 
-    it("deduplicates concurrent initialize() calls sharing a custom jsUrl without clobbering globalThis.HavokPhysics", async () => {
+    it("deduplicates concurrent initialize() calls sharing a custom jsUrl without clobbering default loader reuse", async () => {
       const globalObj = globalThis as { HavokPhysics?: unknown };
       const origFactory = globalObj.HavokPhysics;
-      const blob = new Blob([`globalThis.HavokPhysics = async () => ({ __concurrentMock: true });`], {
-        type: "application/javascript"
-      });
+      let loadCalls = 0;
+      const blob = new Blob(
+        [
+          `globalThis.__customHavokLoads = (globalThis.__customHavokLoads || 0) + 1;
+           globalThis.HavokPhysics = async () => ({ __concurrentMock: true });`
+        ],
+        { type: "application/javascript" }
+      );
       const blobUrl = URL.createObjectURL(blob);
       const a = new HavokPhysics({ jsUrl: blobUrl });
       const b = new HavokPhysics({ jsUrl: blobUrl });
+      const c = new HavokPhysics();
       try {
+        (globalThis as unknown as { __customHavokLoads?: number }).__customHavokLoads = 0;
         await Promise.all([a.initialize(), b.initialize()]);
-        expect((a as unknown as { _hk: { __concurrentMock?: boolean } })._hk.__concurrentMock).toBe(true);
-        expect((b as unknown as { _hk: { __concurrentMock?: boolean } })._hk.__concurrentMock).toBe(true);
-        expect((a as unknown as { _useRawABI: boolean })._useRawABI).toBe(false);
+        loadCalls = (globalThis as unknown as { __customHavokLoads?: number }).__customHavokLoads ?? 0;
+        expect(loadCalls).toBe(1);
+        expect(globalObj.HavokPhysics).toBe(origFactory);
+        // Subsequent default HavokPhysics() must still initialize cleanly without interference
+        await c.initialize();
       } finally {
         a.destroy();
         b.destroy();
+        c.destroy();
         document.querySelector(`script[src="${blobUrl}"]`)?.remove();
         URL.revokeObjectURL(blobUrl);
+        delete (globalThis as unknown as { __customHavokLoads?: number }).__customHavokLoads;
         globalObj.HavokPhysics = origFactory;
       }
+    });
+
+    it("wakes sleeping dynamic bodies on shape resize without spurious collision/trigger Exit and drops them when shrunk", () => {
+      addBox(new Vector3(10, 1, 10), new Vector3(0, -0.5, 0));
+
+      const trigEntity = addBox(new Vector3(4, 4, 4), new Vector3(0, 1, 0));
+      trigEntity.getComponent(BoxCollider).isTrigger = true;
+
+      const crate = addBox(new Vector3(1, 1, 1), new Vector3(0, 0.5, 0), true, false);
+      const crateCol = crate.getComponent(BoxCollider);
+      const crateBody = crate.getComponent(Rigidbody);
+
+      let colExitCount = 0;
+      let trigExitCount = 0;
+      class EventCounter extends Script {
+        override onCollisionExit(): void {
+          colExitCount++;
+        }
+        override onTriggerExit(): void {
+          trigExitCount++;
+        }
+      }
+      crate.addComponent(EventCounter);
+
+      step(3);
+      crateBody.sleep();
+      expect(crateBody.isSleeping()).toBe(true);
+      colExitCount = 0;
+      trigExitCount = 0;
+
+      // Subtle resize while sleeping must stay in contact/trigger with zero spurious Exit events
+      crateCol.size = new Vector3(1.02, 1.02, 1.02);
+      step(3);
+      expect(colExitCount).toBe(0);
+      expect(trigExitCount).toBe(0);
+
+      // Shrinking while sleeping must wake the body so it drops onto the floor instead of floating
+      crateBody.sleep();
+      crateCol.size = new Vector3(0.2, 0.2, 0.2);
+      step(30);
+      expect(crate.transform.position.y).toBeLessThan(0.2);
+    });
+
+    it("refreshes collider layer filters when re-enabling a collider after layer matrix changes", () => {
+      const floor = addBox(new Vector3(10, 1, 10), new Vector3(0, -0.5, 0));
+      const floorCol = floor.getComponent(BoxCollider);
+      floorCol.collisionLayer = Layer.Layer0;
+
+      const crate = addBox(new Vector3(1, 1, 1), new Vector3(0, 1.2, 0), true, false);
+      crate.getComponent(BoxCollider).collisionLayer = Layer.Layer1;
+
+      try {
+        physics.setColliderLayerCollision(Layer.Layer0, Layer.Layer1, false);
+        floorCol.enabled = false;
+        physics.setColliderLayerCollision(Layer.Layer0, Layer.Layer1, true);
+        floorCol.enabled = true;
+
+        step(40);
+        // Must rest on the re-enabled floor instead of tunneling through with a stale filter mask
+        expect(crate.transform.position.y).toBeGreaterThan(0.35);
+      } finally {
+        physics.setColliderLayerCollision(Layer.Layer0, Layer.Layer1, true);
+      }
+    });
+
+    it("matches raycast, shapeCast, and overlap queries on a layer with all 32 collision pairs disabled", () => {
+      const target = addBox(new Vector3(2, 2, 2), new Vector3(0, 0, 0));
+      const targetCol = target.getComponent(BoxCollider);
+      targetCol.collisionLayer = Layer.Layer5;
+
+      const falling = addBox(new Vector3(1, 1, 1), new Vector3(0, 1.6, 0), true, false);
+      falling.getComponent(BoxCollider).collisionLayer = Layer.Layer0;
+
+      try {
+        for (let l = 0; l < 32; l++) {
+          physics.setColliderLayerCollision(Layer.Layer5, ((1 << l) >>> 0) as Layer, false);
+        }
+
+        const hit = new HitResult();
+        expect(physics.raycast(new Ray(new Vector3(-5, 0, 0), new Vector3(1, 0, 0)), 20, Layer.Layer5, hit)).toBe(true);
+        expect(hit.collider).toBe(targetCol);
+        expect(physics.sphereCast(new Vector3(-5, 0, 0), 0.3, new Vector3(1, 0, 0), 20, Layer.Layer5, hit)).toBe(true);
+        expect(hit.collider).toBe(targetCol);
+        expect(
+          physics.overlapBoxAll(new Vector3(0, 0, 0), new Vector3(1, 1, 1), new Quaternion(0, 0, 0, 1), Layer.Layer5)
+        ).toContain(targetCol);
+
+        // Physical collision with Layer0 remains disabled
+        step(40);
+        expect(falling.transform.position.y).toBeLessThan(0);
+      } finally {
+        for (let l = 0; l < 32; l++) {
+          physics.setColliderLayerCollision(Layer.Layer5, ((1 << l) >>> 0) as Layer, true);
+        }
+      }
+    });
+
+    it("zeroes residual velocity on dynamic-to-kinematic transition and ignores velocity writes while kinematic", () => {
+      physics.gravity = new Vector3(0, 0, 0);
+      const entity = addBox(new Vector3(1, 1, 1), new Vector3(0, 0, 0), true, false);
+      const body = entity.getComponent(Rigidbody);
+      body.linearVelocity = new Vector3(12, 0, 0);
+      body.angularVelocity = new Vector3(0, 180, 0);
+      step(2);
+
+      const xAtSwitch = entity.transform.position.x;
+      expect(xAtSwitch).toBeGreaterThan(0.2);
+
+      body.isKinematic = true;
+      step(10);
+      expect(entity.transform.position.x).toBeCloseTo(xAtSwitch, 4);
+
+      body.linearVelocity = new Vector3(25, 0, 0);
+      body.angularVelocity = new Vector3(0, 360, 0);
+      step(10);
+      expect(entity.transform.position.x).toBeCloseTo(xAtSwitch, 4);
+    });
+
+    it("rejects negative or non-finite CharacterController.move() arguments and preserves broadphase updates across update(0)", () => {
+      const role = root.createChild("cct-guards");
+      role.transform.setPosition(0, 2, 0);
+      const cc = role.addComponent(CharacterController);
+      cc.upDirection = new Vector3(1, 0, 0);
+      // Zero upDirection preserves previous direction; NaN is rejected by CharacterController
+      cc.upDirection = new Vector3(0, 0, 0);
+      expect(cc.upDirection.x).toBeCloseTo(1, 5);
+      expect(() => {
+        cc.upDirection = new Vector3(Number.NaN, 1, 0);
+      }).toThrow();
+      expect(cc.upDirection.x).toBeCloseTo(1, 5);
+
+      expect(cc.move(new Vector3(1, 0, 0), -0.1, physics.fixedTimeStep)).toBe(0);
+      expect(cc.move(new Vector3(1, 0, 0), 0.0001, -1)).toBe(0);
+      expect(cc.move(new Vector3(Number.NaN, 0, 0), 0.0001, physics.fixedTimeStep)).toBe(0);
+      expect(role.transform.position.x).toBe(0);
+      expect(role.transform.position.y).toBe(2);
+
+      // Static box moved and followed by update(0) must still be hit by immediate raycast
+      const wall = addBox(new Vector3(1, 2, 2), new Vector3(0, 0, 0));
+      step();
+      wall.transform.setPosition(6, 0, 0);
+      const nativeScene = (physics as unknown as { _nativePhysicsScene: { update(dt: number): void } })
+        ._nativePhysicsScene;
+      nativeScene.update(0);
+      const hit = new HitResult();
+      expect(physics.raycast(new Ray(new Vector3(6, 5, 0), new Vector3(0, -1, 0)), 10, hit)).toBe(true);
+      expect(hit.collider).toBe(wall.getComponent(BoxCollider));
     });
   });
 });

@@ -2,7 +2,7 @@ import { Quaternion, Vector3, Vector4 } from "@galacean/engine";
 import { IBoxColliderShape } from "@galacean/engine-design";
 import { HavokPhysics } from "../HavokPhysics";
 import { HavokPhysicsMaterial } from "../HavokPhysicsMaterial";
-import { HP_ShapeId, IDENTITY_QUAT, SCRATCH_VEC3_A, ZERO_VEC3 } from "../HavokTypes";
+import { HP_ShapeId, IDENTITY_QUAT, SCRATCH_VEC3_A, ZERO_HANDLE, ZERO_VEC3 } from "../HavokTypes";
 import { HavokColliderShape } from "./HavokColliderShape";
 
 const MIN_EXTENT = 1e-4;
@@ -12,11 +12,22 @@ const MIN_EXTENT = 1e-4;
  */
 export class HavokBoxColliderShape extends HavokColliderShape implements IBoxColliderShape {
   private _size = new Vector3();
+  private _effectiveSize = new Vector3();
 
   constructor(havokPhysics: HavokPhysics, uniqueID: number, size: Vector3, material: HavokPhysicsMaterial) {
     super(havokPhysics, uniqueID, material);
     this._size.copyFrom(size);
-    this._initShape(this._createBoxShape());
+    const fx = Math.fround(Math.abs(size.x) * this._worldScale.x);
+    const fy = Math.fround(Math.abs(size.y) * this._worldScale.y);
+    const fz = Math.fround(Math.abs(size.z) * this._worldScale.z);
+    const ex = fx > 0 && Number.isFinite(fx) ? fx : MIN_EXTENT;
+    const ey = fy > 0 && Number.isFinite(fy) ? fy : MIN_EXTENT;
+    const ez = fz > 0 && Number.isFinite(fz) ? fz : MIN_EXTENT;
+    this._effectiveSize.set(ex, ey, ez);
+    const shape = this._createBoxShape(ex, ey, ez);
+    if (shape) {
+      this._initShape(shape);
+    }
   }
 
   setSize(size: Vector3): void {
@@ -24,11 +35,11 @@ export class HavokBoxColliderShape extends HavokColliderShape implements IBoxCol
       return;
     }
     this._size.copyFrom(size);
-    this._replaceHKShape(this._createBoxShape());
+    this._rebuildIfEffectiveChanged();
   }
 
   protected override _onScaleChanged(): void {
-    this._replaceHKShape(this._createBoxShape());
+    this._rebuildIfEffectiveChanged();
   }
 
   override pointDistance(point: Vector3): Vector4 {
@@ -44,9 +55,9 @@ export class HavokBoxColliderShape extends HavokColliderShape implements IBoxCol
     Vector3.subtract(point, worldPos, localPt);
     Vector3.transformByQuat(localPt, invRot, localPt);
 
-    const hx = Math.abs(this._size.x) * this._worldScale.x * 0.5;
-    const hy = Math.abs(this._size.y) * this._worldScale.y * 0.5;
-    const hz = Math.abs(this._size.z) * this._worldScale.z * 0.5;
+    const hx = this._effectiveSize.x * 0.5;
+    const hy = this._effectiveSize.y * 0.5;
+    const hz = this._effectiveSize.z * 0.5;
 
     const cx = Math.max(-hx, Math.min(hx, localPt.x));
     const cy = Math.max(-hy, Math.min(hy, localPt.y));
@@ -65,11 +76,31 @@ export class HavokBoxColliderShape extends HavokColliderShape implements IBoxCol
     return out;
   }
 
-  private _createBoxShape(): HP_ShapeId {
+  private _rebuildIfEffectiveChanged(): void {
+    const fx = Math.fround(Math.abs(this._size.x) * this._worldScale.x);
+    const fy = Math.fround(Math.abs(this._size.y) * this._worldScale.y);
+    const fz = Math.fround(Math.abs(this._size.z) * this._worldScale.z);
+    if (!(fx > 0 && fy > 0 && fz > 0 && Number.isFinite(fx) && Number.isFinite(fy) && Number.isFinite(fz))) {
+      return;
+    }
+    const eff = this._effectiveSize;
+    if (eff.x === fx && eff.y === fy && eff.z === fz) {
+      return;
+    }
+    const shape = this._createBoxShape(fx, fy, fz);
+    if (shape) {
+      eff.set(fx, fy, fz);
+      this._replaceHKShape(shape);
+    }
+  }
+
+  private _createBoxShape(ex: number, ey: number, ez: number): HP_ShapeId | null {
+    const hk = this._havokPhysics._hk;
     const ext = SCRATCH_VEC3_A;
-    ext[0] = Math.max(Math.abs(this._size.x) * this._worldScale.x, MIN_EXTENT);
-    ext[1] = Math.max(Math.abs(this._size.y) * this._worldScale.y, MIN_EXTENT);
-    ext[2] = Math.max(Math.abs(this._size.z) * this._worldScale.z, MIN_EXTENT);
-    return this._havokPhysics._hk.HP_Shape_CreateBox(ZERO_VEC3, IDENTITY_QUAT, ext)[1];
+    ext[0] = ex;
+    ext[1] = ey;
+    ext[2] = ez;
+    const [res, shape] = hk.HP_Shape_CreateBox(ZERO_VEC3, IDENTITY_QUAT, ext);
+    return res.value === hk.Result.RESULT_OK.value && shape[0] !== ZERO_HANDLE[0] ? shape : null;
   }
 }

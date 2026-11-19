@@ -1,11 +1,10 @@
 import { MathUtil, Vector3 } from "@galacean/engine";
 import { ICharacterController } from "@galacean/engine-design";
 import { HavokPhysics } from "./HavokPhysics";
-import { HavokMaterialConsumer, HavokPhysicsMaterial } from "./HavokPhysicsMaterial";
+import { HavokPhysicsMaterial } from "./HavokPhysicsMaterial";
 import type { HavokPhysicsScene } from "./HavokPhysicsScene";
 import {
-  HavokEventBits,
-  HavokShapeIdentity,
+  HK_EVENT_ALL_TRIGGERS,
   HKPhysicsMaterial,
   HKQuaternion,
   HKVector3,
@@ -58,7 +57,7 @@ interface DownMoveResult {
  * - `_hkSweptShape`: collision-skin-inflated geometry (`+ contactOffset`) used by `move()` for overlap recovery and
  *   PhysX-compatible 3-pass (UP -> SIDE -> DOWN) collide-and-slide sweeps.
  */
-export class HavokCharacterController implements ICharacterController, HavokMaterialConsumer, HavokShapeIdentity {
+export class HavokCharacterController implements ICharacterController {
   private static _tempCenter = new Vector3();
   private static _tempSavedCenter = new Vector3();
   private static _tempHoriz = new Vector3();
@@ -95,6 +94,8 @@ export class HavokCharacterController implements ICharacterController, HavokMate
   _hkShape: HP_ShapeId | null = null;
   /** @internal */
   _collisionLayer = 0;
+  /** @internal */
+  _dirtyFlags = 0;
 
   private _havokPhysics: HavokPhysics;
   private _material: HavokPhysicsMaterial;
@@ -239,23 +240,20 @@ export class HavokCharacterController implements ICharacterController, HavokMate
   }
 
   setUpDirection(up: Vector3): void {
-    const prevX = this._upDirection.x;
-    const prevY = this._upDirection.y;
-    const prevZ = this._upDirection.z;
-    this._upDirection.copyFrom(up);
-    if (this._upDirection.lengthSquared() > 1e-12) {
-      this._upDirection.normalize();
-    } else {
-      this._upDirection.set(0, 1, 0);
-    }
-    if (
-      this._hkBody &&
-      this._upDirection.x === prevX &&
-      this._upDirection.y === prevY &&
-      this._upDirection.z === prevZ
-    ) {
+    if (!Number.isFinite(up.x) || !Number.isFinite(up.y) || !Number.isFinite(up.z)) {
       return;
     }
+    const len = Math.hypot(up.x, up.y, up.z);
+    if (!(len > 0 && Number.isFinite(len))) {
+      return;
+    }
+    const nx = up.x / len;
+    const ny = up.y / len;
+    const nz = up.z / len;
+    if (this._hkBody && this._upDirection.x === nx && this._upDirection.y === ny && this._upDirection.z === nz) {
+      return;
+    }
+    this._upDirection.set(nx, ny, nz);
     this._updateUpQuaternion();
     if (this._hkBody) {
       this._rebuildShapesInPlace();
@@ -266,9 +264,18 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     this._slopeLimitCos = Math.cos(MathUtil.degreeToRadian(slopeLimit));
   }
 
-  move(disp: Vector3, minDist: number, elapsedTime: number): number;
-  move(disp: Vector3, minDist: number): number {
-    if (!this._scene || !this._hkBody || !this._hkShape || !this._hkSweptShape) {
+  move(disp: Vector3, minDist: number, elapsedTime: number): number {
+    if (
+      !this._scene ||
+      !this._hkBody ||
+      !this._hkShape ||
+      !this._hkSweptShape ||
+      !(minDist >= 0 && Number.isFinite(minDist)) ||
+      !(elapsedTime >= 0 && Number.isFinite(elapsedTime)) ||
+      !Number.isFinite(disp.x) ||
+      !Number.isFinite(disp.y) ||
+      !Number.isFinite(disp.z)
+    ) {
       return CollisionFlags.None;
     }
 
@@ -384,10 +391,19 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     }
     if (this._isBox) {
       const h = this._halfExtents;
-      if (!(h.x > 0 && h.y > 0 && h.z > 0)) return false;
+      const fx = Math.fround((h.x + this._contactOffset) * 2);
+      const fy = Math.fround((h.y + this._contactOffset) * 2);
+      const fz = Math.fround((h.z + this._contactOffset) * 2);
+      if (!(h.x > 0 && h.y > 0 && h.z > 0 && Number.isFinite(fx) && Number.isFinite(fy) && Number.isFinite(fz))) {
+        return false;
+      }
       if (this._stepOffset > h.y * 2 + this._contactOffset) return false;
     } else {
-      if (!(this._radius > 0 && this._height > 0)) return false;
+      const fR = Math.fround(this._radius + this._contactOffset);
+      const fH = Math.fround(this._height * 0.5);
+      if (!(this._radius > 0 && this._height > 0 && Number.isFinite(fR) && Number.isFinite(fH))) {
+        return false;
+      }
       if (this._stepOffset > this._height + this._radius * 2 + this._contactOffset) return false;
     }
     return true;
@@ -510,7 +526,7 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     const body = hk.HP_Body_Create()[1];
     hk.HP_Body_SetMotionType(body, hk.MotionType.KINEMATIC);
     hk.HP_Body_SetShape(body, shape);
-    hk.HP_Body_SetEventMask(body, HavokEventBits.ALL_TRIGGERS);
+    hk.HP_Body_SetEventMask(body, HK_EVENT_ALL_TRIGGERS);
     const qt = HavokCharacterController._tempQTransform;
     qt[0][0] = this._worldPosition.x + this._center.x;
     qt[0][1] = this._worldPosition.y + this._center.y;
@@ -523,7 +539,7 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     this._hkBody = body;
     this._hkBodyPtr = Number(body[0]);
     this._scene._bodyToController.set(this._hkBodyPtr, this);
-    this._scene._dirtyBroadphaseControllers.delete(this);
+    this._scene._clearControllerDirty(this);
     hk.HP_World_AddBody(this._scene._hkWorld, body, false);
     this._scene._removedShapeIds.delete(this._id);
   }
@@ -533,6 +549,7 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     if (this._hkBody && this._scene) {
       this._scene._removeColliderShape(this._id);
       this._scene._bodyToController.delete(this._hkBodyPtr);
+      this._scene._clearControllerDirty(this);
       if (hk) {
         hk.HP_World_RemoveBody(this._scene._hkWorld, this._hkBody);
         hk.HP_Body_Release(this._hkBody);
@@ -565,7 +582,7 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     // kinematic velocity across steps, whereas SetQTransform updates transforms without residual velocity
     // and fires trigger enter/exit cleanly on the next world step.
     this._havokPhysics._hk.HP_Body_SetQTransform(this._hkBody, qt);
-    this._scene?._dirtyBroadphaseControllers.add(this);
+    this._scene?._queueBroadphaseDirtyController(this);
   }
 
   /** Sweeps along +up by `dist`, advances `center`, and returns actual distance (>= 0) on hit or -1 if unobstructed. */

@@ -5,8 +5,22 @@ import { HavokCollider } from "./HavokCollider";
 import { HavokDynamicCollider } from "./HavokDynamicCollider";
 import { HavokPhysics } from "./HavokPhysics";
 import {
-  HavokEventBits,
+  COL_DIRTY_BROADPHASE,
+  COL_DIRTY_FILTER,
+  COL_DIRTY_SHAPE,
+  COL_IN_BROADPHASE_QUEUE,
+  COL_IN_STEP_QUEUE,
+  CTRL_DIRTY_BROADPHASE,
+  CTRL_DIRTY_FILTER,
+  DYN_IN_CLAMPED_ANG_VEL,
+  DYN_IN_KIN_RESET,
+  DYN_IN_PENDING_FORCE,
+  DYN_IN_PENDING_KIN_MOVE,
+  DYN_PROBED_THIS_STEP,
   HavokShapeIdentity,
+  HK_EVENT_COLLISION_FINISHED,
+  HK_EVENT_TRIGGER_ENTERED,
+  HK_EVENT_TRIGGER_EXITED,
   HKContactPoint,
   HKFilterInfo,
   HKQuaternion,
@@ -18,6 +32,7 @@ import {
   IDENTITY_QUAT,
   SCRATCH_VEC3_A,
   SCRATCH_VEC3_B,
+  swapRemove,
   writeNormalizedQuat,
   writeVec3,
   ZERO_HANDLE,
@@ -104,19 +119,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
   /** @internal */
   _contactEventsEnabled = false;
   /** @internal */
-  _joints = new Set<HavokJoint>();
-  /** @internal */
   _bodyToController = new Map<number, HavokCharacterController>();
-  /** @internal */
-  _pendingForceColliders = new Set<HavokDynamicCollider>();
-  /** @internal */
-  _pendingKinematicMoves = new Set<HavokDynamicCollider>();
-  /** @internal */
-  _dirtyShapeColliders = new Set<HavokCollider>();
-  /** @internal */
-  _dirtyBroadphaseColliders = new Set<HavokCollider>();
-  /** @internal */
-  _dirtyBroadphaseControllers = new Set<HavokCharacterController>();
   /** @internal */
   _removedShapeIds = new Set<number>();
 
@@ -124,20 +127,25 @@ export class HavokPhysicsScene implements IPhysicsScene {
   private _destroyed = false;
   private _colliders = new Set<HavokCollider>();
   private _controllers = new Set<HavokCharacterController>();
+  private _joints: HavokJoint[] = [];
   private _bodyToCollider = new Map<number, HavokCollider>();
 
-  // Sparse active sets replacing per-step O(N) dynamic body traversal
-  private _kinematicResetColliders = new Set<HavokDynamicCollider>();
-  private _clampedAngVelColliders = new Set<HavokDynamicCollider>();
-  private _kinematicColliders = new Set<HavokDynamicCollider>();
+  // Dense per-step active queues (zero SetIterator allocations during update())
+  private _pendingForceList: HavokDynamicCollider[] = [];
+  private _pendingKinematicMoveList: HavokDynamicCollider[] = [];
+  private _kinematicResetList: HavokDynamicCollider[] = [];
+  private _clampedAngVelList: HavokDynamicCollider[] = [];
+  private _kinProbeQueue: HavokDynamicCollider[] = [];
   private _highAngVelCount = 0;
   private _worldMaxAngVel = DEFAULT_MAX_ANG_VEL;
   private _appliedWorldMaxAngVel = DEFAULT_MAX_ANG_VEL;
   private _lastStepTime = -1;
 
-  // Deferred filter flush queues
-  private _dirtyFilterColliders = new Set<HavokCollider>();
-  private _dirtyFilterControllers = new Set<HavokCharacterController>();
+  // Dense deferred shape/filter/broadphase flush queues (backed by `_dirtyFlags` bitmasks)
+  private _stepDirtyColliders: HavokCollider[] = [];
+  private _broadphaseDirtyColliders: HavokCollider[] = [];
+  private _broadphaseDirtyControllers: HavokCharacterController[] = [];
+  private _filterDirtyControllers: HavokCharacterController[] = [];
   private _filterChangedShapeIds = new Set<number>();
 
   // Query collectors & persistent 256B Tier 2 raw C-ABI scratch buffer (0 when Tier 2 unavailable)
@@ -148,8 +156,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
 
   // Zero-alloc collision & trigger tracking using 52-bit integer pair keys
   private _activeContactPairs = new Set<number>();
-  private _activeKinematicPairs = new Set<number>();
-  private _activeKinematicShapeIds = new Set<number>();
+  private _activeKinematicPairs = new Map<number, HavokDynamicCollider>();
   private _stepContactMap = new Map<number, ContactEvent>();
   private _stepFinishedKeys: number[] = [];
   private _contactEvents: ContactEvent[] = [];
@@ -173,7 +180,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
   private _raycastAllRecords: RaycastHitRecord[] = [];
   private _inRaycastAll = false;
 
-  // Bounded query-shape caches (names & 64 cap preserved for GC/eviction tests)
+  // Bounded query-shape caches (capped at MAX_QUERY_SHAPE_CACHE per geometry kind)
   private _sphereQueryCache = new Map<number, CachedQueryShape>();
   private _boxQueryCache = new Map<string, CachedQueryShape>();
   private _capsuleQueryCache = new Map<string, CachedQueryShape>();
@@ -203,39 +210,100 @@ export class HavokPhysicsScene implements IPhysicsScene {
 
     this._singleCollector = hk.HP_QueryCollector_Create(1)[1];
     this._multiCollector = hk.HP_QueryCollector_Create(this._collectorCapacity)[1];
-
-    const useRawQuery =
-      havokPhysics._useRawABI &&
-      hk.HEAPF32 != null &&
-      hk.HEAPU32 != null &&
-      hk.HEAP32 != null &&
-      typeof hk._malloc === "function" &&
-      typeof hk._free === "function" &&
-      typeof hk._HP_World_CastRayWithCollector === "function" &&
-      typeof hk._HP_World_ShapeCastWithCollector === "function" &&
-      typeof hk._HP_World_ShapeProximityWithCollector === "function" &&
-      typeof hk._HP_QueryCollector_GetNumHits === "function" &&
-      typeof hk._HP_QueryCollector_GetCastRayResult === "function" &&
-      typeof hk._HP_QueryCollector_GetShapeCastResult === "function" &&
-      typeof hk._HP_QueryCollector_GetShapeProximityResult === "function" &&
-      typeof hk._HP_ShapePathIterator_GetNext === "function";
-    this._queryScratchPtr = useRawQuery ? hk._malloc(256) : 0;
+    this._queryScratchPtr = havokPhysics._useRawABI ? hk._malloc(256) : 0;
 
     havokPhysics._registerScene(this);
+  }
+
+  /** @internal */
+  _addJoint(joint: HavokJoint): void {
+    if (this._joints.indexOf(joint) === -1) {
+      this._joints.push(joint);
+    }
+  }
+
+  /** @internal */
+  _removeJoint(joint: HavokJoint): void {
+    swapRemove(this._joints, joint);
+  }
+
+  /** @internal */
+  _queueStepDirtyCollider(collider: HavokCollider, flag: number): void {
+    collider._dirtyFlags |= flag;
+    if ((collider._dirtyFlags & COL_IN_STEP_QUEUE) === 0) {
+      collider._dirtyFlags |= COL_IN_STEP_QUEUE;
+      this._stepDirtyColliders.push(collider);
+    }
+  }
+
+  /** @internal */
+  _queueBroadphaseDirtyCollider(collider: HavokCollider): void {
+    collider._dirtyFlags |= COL_DIRTY_BROADPHASE;
+    if ((collider._dirtyFlags & COL_IN_BROADPHASE_QUEUE) === 0) {
+      collider._dirtyFlags |= COL_IN_BROADPHASE_QUEUE;
+      this._broadphaseDirtyColliders.push(collider);
+    }
+  }
+
+  /** @internal */
+  _queueBroadphaseDirtyController(ctrl: HavokCharacterController): void {
+    if ((ctrl._dirtyFlags & CTRL_DIRTY_BROADPHASE) === 0) {
+      ctrl._dirtyFlags |= CTRL_DIRTY_BROADPHASE;
+      this._broadphaseDirtyControllers.push(ctrl);
+    }
+  }
+
+  /** @internal */
+  _clearControllerDirty(ctrl: HavokCharacterController): void {
+    if ((ctrl._dirtyFlags & CTRL_DIRTY_BROADPHASE) !== 0) {
+      swapRemove(this._broadphaseDirtyControllers, ctrl);
+    }
+    if ((ctrl._dirtyFlags & CTRL_DIRTY_FILTER) !== 0) {
+      swapRemove(this._filterDirtyControllers, ctrl);
+    }
+    ctrl._dirtyFlags = 0;
+  }
+
+  /** @internal */
+  _queuePendingForce(collider: HavokDynamicCollider): void {
+    if ((collider._sceneFlags & DYN_IN_PENDING_FORCE) === 0) {
+      collider._sceneFlags |= DYN_IN_PENDING_FORCE;
+      this._pendingForceList.push(collider);
+    }
+  }
+
+  /** @internal */
+  _queuePendingKinematicMove(collider: HavokDynamicCollider): void {
+    if ((collider._sceneFlags & DYN_IN_PENDING_KIN_MOVE) === 0) {
+      collider._sceneFlags |= DYN_IN_PENDING_KIN_MOVE;
+      this._pendingKinematicMoveList.push(collider);
+    }
+  }
+
+  /** @internal */
+  _cancelPendingKinematicMove(collider: HavokDynamicCollider): void {
+    if ((collider._sceneFlags & DYN_IN_PENDING_KIN_MOVE) !== 0) {
+      collider._sceneFlags &= ~DYN_IN_PENDING_KIN_MOVE;
+      swapRemove(this._pendingKinematicMoveList, collider);
+    }
   }
 
   /** @internal */
   _onDynamicMotionStateChanged(collider: HavokDynamicCollider, isKinematic: boolean): void {
     const hk = this._havokPhysics._hk;
     if (isKinematic) {
-      this._pendingForceColliders.delete(collider);
+      if ((collider._sceneFlags & DYN_IN_PENDING_FORCE) !== 0) {
+        collider._sceneFlags &= ~DYN_IN_PENDING_FORCE;
+        swapRemove(this._pendingForceList, collider);
+      }
       this._unregisterDynamicSpeedLimit(collider, collider._maxAngularVelocityRad);
-      this._kinematicColliders.add(collider);
       hk.HP_Body_SetMotionType(collider._hkBody, hk.MotionType.KINEMATIC);
     } else {
-      this._kinematicColliders.delete(collider);
-      this._pendingKinematicMoves.delete(collider);
-      this._kinematicResetColliders.delete(collider);
+      this._cancelPendingKinematicMove(collider);
+      if ((collider._sceneFlags & DYN_IN_KIN_RESET) !== 0) {
+        collider._sceneFlags &= ~DYN_IN_KIN_RESET;
+        swapRemove(this._kinematicResetList, collider);
+      }
       if (collider._maxAngularVelocityRad > DEFAULT_MAX_ANG_VEL + ANG_VEL_EPS) {
         this._ensureUnlimitedWorldSpeed();
       }
@@ -258,25 +326,26 @@ export class HavokPhysicsScene implements IPhysicsScene {
       }
       this._registerDynamicSpeedLimit(collider);
     } else {
-      this._clampedAngVelColliders.delete(collider);
-      if (
-        isHigh
-          ? nextRad < 1e5
-          : Math.abs(nextRad - DEFAULT_MAX_ANG_VEL) > ANG_VEL_EPS || this._worldMaxAngVel > DEFAULT_MAX_ANG_VEL
-      ) {
-        this._clampedAngVelColliders.add(collider);
+      const shouldClamp = isHigh
+        ? nextRad < 1e5
+        : Math.abs(nextRad - DEFAULT_MAX_ANG_VEL) > ANG_VEL_EPS || this._worldMaxAngVel > DEFAULT_MAX_ANG_VEL;
+      if (shouldClamp) {
+        this._addClampedAngVel(collider);
+      } else {
+        this._removeClampedAngVel(collider);
       }
     }
   }
 
   /** @internal */
   _reinsertBody(collider: HavokCollider, rebuildShape: boolean): void {
-    this._dirtyShapeColliders.delete(collider);
-    this._dirtyFilterColliders.delete(collider);
-    this._dirtyBroadphaseColliders.delete(collider);
-    if (rebuildShape) {
-      collider._shapeDirty = false;
+    if ((collider._dirtyFlags & COL_IN_STEP_QUEUE) !== 0) {
+      swapRemove(this._stepDirtyColliders, collider);
     }
+    if ((collider._dirtyFlags & COL_IN_BROADPHASE_QUEUE) !== 0) {
+      swapRemove(this._broadphaseDirtyColliders, collider);
+    }
+    collider._dirtyFlags = 0;
 
     if (!this._colliders.has(collider)) {
       if (rebuildShape) {
@@ -287,12 +356,8 @@ export class HavokPhysicsScene implements IPhysicsScene {
 
     const hk = this._havokPhysics._hk;
     const isDynamic = collider._isDynamic && !(collider as HavokDynamicCollider)._isKinematic;
-    const wasAsleep =
-      isDynamic && hk.HP_Body_GetActivationState(collider._hkBody)[1].value === hk.ActivationState.INACTIVE.value;
     const savedAngVel =
-      isDynamic &&
-      !wasAsleep &&
-      (collider as HavokDynamicCollider)._maxAngularVelocityRad > DEFAULT_MAX_ANG_VEL + ANG_VEL_EPS
+      isDynamic && (collider as HavokDynamicCollider)._maxAngularVelocityRad > DEFAULT_MAX_ANG_VEL + ANG_VEL_EPS
         ? hk.HP_Body_GetAngularVelocity(collider._hkBody)[1]
         : undefined;
 
@@ -300,7 +365,9 @@ export class HavokPhysicsScene implements IPhysicsScene {
     if (rebuildShape) {
       collider._rebuildBodyShape();
     }
-    hk.HP_World_AddBody(this._hkWorld, collider._hkBody, wasAsleep);
+    // Always re-add awake (`startAsleep = false`) so Havok re-evaluates support/overlap pairs after
+    // shape, filter, or broadphase changes (preventing suspended sleeping bodies and spurious Exit events).
+    hk.HP_World_AddBody(this._hkWorld, collider._hkBody, false);
     if (savedAngVel && (savedAngVel[0] !== 0 || savedAngVel[1] !== 0 || savedAngVel[2] !== 0)) {
       hk.HP_Body_SetAngularVelocity(collider._hkBody, savedAngVel);
     }
@@ -315,36 +382,72 @@ export class HavokPhysicsScene implements IPhysicsScene {
 
   /** @internal */
   _flushDirtyColliders(excludeController?: HavokCharacterController, clearBroadphaseOnly = false): void {
-    if (this._dirtyShapeColliders.size > 0) {
-      for (let it = this._dirtyShapeColliders.values(), cur = it.next(); !cur.done; cur = it.next()) {
-        if (cur.value._shapeDirty) {
-          this._reinsertBody(cur.value, true);
-        }
+    const stepList = this._stepDirtyColliders;
+    while (stepList.length > 0) {
+      const col = stepList.pop()!;
+      const flags = col._dirtyFlags;
+      col._dirtyFlags &= ~(COL_DIRTY_SHAPE | COL_DIRTY_FILTER | COL_IN_STEP_QUEUE);
+      if ((flags & (COL_DIRTY_SHAPE | COL_DIRTY_FILTER)) !== 0) {
+        this._reinsertBody(col, (flags & COL_DIRTY_SHAPE) !== 0);
       }
-      this._dirtyShapeColliders.clear();
     }
-    if (this._dirtyBroadphaseColliders.size > 0) {
-      if (!clearBroadphaseOnly) {
-        for (let it = this._dirtyBroadphaseColliders.values(), cur = it.next(); !cur.done; cur = it.next()) {
-          this._reinsertBody(cur.value, false);
-        }
-      }
-      this._dirtyBroadphaseColliders.clear();
-    }
-    if (this._dirtyBroadphaseControllers.size > 0) {
+
+    const bpList = this._broadphaseDirtyColliders;
+    if (bpList.length > 0) {
       if (clearBroadphaseOnly) {
-        this._dirtyBroadphaseControllers.clear();
+        for (let i = 0, n = bpList.length; i < n; i++) {
+          bpList[i]._dirtyFlags &= ~(COL_DIRTY_BROADPHASE | COL_IN_BROADPHASE_QUEUE);
+        }
+        bpList.length = 0;
       } else {
-        for (let it = this._dirtyBroadphaseControllers.values(), cur = it.next(); !cur.done; cur = it.next()) {
-          const ctrl = cur.value;
+        while (bpList.length > 0) {
+          const col = bpList.pop()!;
+          const flags = col._dirtyFlags;
+          col._dirtyFlags &= ~(COL_DIRTY_BROADPHASE | COL_IN_BROADPHASE_QUEUE);
+          if ((flags & COL_DIRTY_BROADPHASE) !== 0) {
+            this._reinsertBody(col, false);
+          }
+        }
+      }
+    }
+
+    const ctrlBpList = this._broadphaseDirtyControllers;
+    if (ctrlBpList.length > 0) {
+      if (clearBroadphaseOnly) {
+        for (let i = 0, n = ctrlBpList.length; i < n; i++) {
+          ctrlBpList[i]._dirtyFlags &= ~CTRL_DIRTY_BROADPHASE;
+        }
+        ctrlBpList.length = 0;
+      } else {
+        for (let i = ctrlBpList.length - 1; i >= 0; i--) {
+          const ctrl = ctrlBpList[i];
           if (ctrl === excludeController) continue;
-          this._dirtyBroadphaseControllers.delete(ctrl);
-          this._dirtyFilterControllers.delete(ctrl);
+          const last = ctrlBpList.length - 1;
+          if (i !== last) ctrlBpList[i] = ctrlBpList[last];
+          ctrlBpList.length = last;
+          ctrl._dirtyFlags &= ~CTRL_DIRTY_BROADPHASE;
+          if ((ctrl._dirtyFlags & CTRL_DIRTY_FILTER) !== 0) {
+            ctrl._dirtyFlags &= ~CTRL_DIRTY_FILTER;
+            swapRemove(this._filterDirtyControllers, ctrl);
+          }
           if (this._reinsertController(ctrl)) {
             this._markShapeTriggersPendingExit(ctrl._id);
             this._filterChangedShapeIds.add(ctrl._id);
           }
         }
+      }
+    }
+
+    const ctrlFilterList = this._filterDirtyControllers;
+    if (ctrlFilterList.length > 0) {
+      for (let i = ctrlFilterList.length - 1; i >= 0; i--) {
+        const ctrl = ctrlFilterList[i];
+        if (ctrl === excludeController) continue;
+        const last = ctrlFilterList.length - 1;
+        if (i !== last) ctrlFilterList[i] = ctrlFilterList[last];
+        ctrlFilterList.length = last;
+        ctrl._dirtyFlags &= ~CTRL_DIRTY_FILTER;
+        this._reinsertController(ctrl);
       }
     }
   }
@@ -353,26 +456,28 @@ export class HavokPhysicsScene implements IPhysicsScene {
   _invalidateShapePairs(collider: HavokCollider, shapeId: number): void {
     this._markShapeTriggersPendingExit(shapeId);
     this._filterChangedShapeIds.add(shapeId);
-    this._dirtyFilterColliders.add(collider);
+    this._queueStepDirtyCollider(collider, COL_DIRTY_FILTER);
   }
 
   /** @internal */
   _onControllerFilterChanged(controller: HavokCharacterController): void {
     this._markShapeTriggersPendingExit(controller._id);
     this._filterChangedShapeIds.add(controller._id);
-    this._dirtyFilterControllers.add(controller);
+    if ((controller._dirtyFlags & CTRL_DIRTY_FILTER) === 0) {
+      controller._dirtyFlags |= CTRL_DIRTY_FILTER;
+      this._filterDirtyControllers.push(controller);
+    }
   }
 
   /** @internal */
-  _onLayerMatrixChanged(layer1: number, layer2: number): void {
+  _onLayerMatrixChanged(changedLayersMask: number): void {
     for (let it = this._colliders.values(), cur = it.next(); !cur.done; cur = it.next()) {
       const collider = cur.value;
       const shapes = collider._shapes;
       let affected = false;
       for (let i = 0, n = shapes.length; i < n; i++) {
         const s = shapes[i];
-        const safeLayer = s._layer & 31;
-        if (safeLayer === layer1 || safeLayer === layer2) {
+        if (((changedLayersMask >>> (s._layer & 31)) & 1) !== 0) {
           s._syncLayerFilter();
           this._markShapeTriggersPendingExit(s._id);
           this._filterChangedShapeIds.add(s._id);
@@ -380,17 +485,14 @@ export class HavokPhysicsScene implements IPhysicsScene {
         }
       }
       if (affected) {
-        this._dirtyFilterColliders.add(collider);
+        this._queueStepDirtyCollider(collider, COL_DIRTY_FILTER);
       }
     }
     for (let it = this._controllers.values(), cur = it.next(); !cur.done; cur = it.next()) {
       const ctrl = cur.value;
-      const safeLayer = ctrl._collisionLayer & 31;
-      if (safeLayer === layer1 || safeLayer === layer2) {
+      if (((changedLayersMask >>> (ctrl._collisionLayer & 31)) & 1) !== 0) {
         ctrl._syncLayerFilter();
-        this._markShapeTriggersPendingExit(ctrl._id);
-        this._filterChangedShapeIds.add(ctrl._id);
-        this._dirtyFilterControllers.add(ctrl);
+        this._onControllerFilterChanged(ctrl);
       }
     }
   }
@@ -426,6 +528,14 @@ export class HavokPhysicsScene implements IPhysicsScene {
     if (this._colliders.size === prevSize) return;
 
     this._bodyToCollider.set(collider._hkBodyPtr, collider);
+    const filterVer = this._havokPhysics._filterVersion;
+    const shapes = collider._shapes;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      const s = shapes[i];
+      if (s._syncedFilterVersion !== filterVer) {
+        s._syncLayerFilter();
+      }
+    }
     collider._flushShapeIfDirty();
 
     const hk = this._havokPhysics._hk;
@@ -433,9 +543,8 @@ export class HavokPhysicsScene implements IPhysicsScene {
       const dyn = collider as HavokDynamicCollider;
       if (dyn._isKinematic) {
         hk.HP_World_AddBody(this._hkWorld, collider._hkBody, false);
-        this._kinematicColliders.add(dyn);
         if (dyn._hasPendingKinematicTarget) {
-          this._pendingKinematicMoves.add(dyn);
+          this._queuePendingKinematicMove(dyn);
         }
       } else {
         const isHighAngVel = dyn._maxAngularVelocityRad > DEFAULT_MAX_ANG_VEL + ANG_VEL_EPS;
@@ -451,11 +560,11 @@ export class HavokPhysicsScene implements IPhysicsScene {
           hk.HP_Body_SetAngularVelocity(dyn._hkBody, savedAngVel);
         }
         this._registerDynamicSpeedLimit(dyn);
-        if (this._clampedAngVelColliders.has(dyn)) {
+        if ((dyn._sceneFlags & DYN_IN_CLAMPED_ANG_VEL) !== 0) {
           dyn._clampAngularVelocity();
         }
         if (dyn._hasPendingForces()) {
-          this._pendingForceColliders.add(dyn);
+          this._queuePendingForce(dyn);
         }
       }
     } else {
@@ -464,7 +573,6 @@ export class HavokPhysicsScene implements IPhysicsScene {
 
     collider._onAddedToScene(this);
 
-    const shapes = collider._shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
       this._removedShapeIds.delete(shapes[i]._id);
     }
@@ -472,19 +580,29 @@ export class HavokPhysicsScene implements IPhysicsScene {
 
   removeCollider(collider: HavokCollider): void {
     if (!this._colliders.delete(collider)) return;
-    this._dirtyShapeColliders.delete(collider);
-    this._dirtyBroadphaseColliders.delete(collider);
-    this._dirtyFilterColliders.delete(collider);
+    if ((collider._dirtyFlags & COL_IN_STEP_QUEUE) !== 0) {
+      swapRemove(this._stepDirtyColliders, collider);
+    }
+    if ((collider._dirtyFlags & COL_IN_BROADPHASE_QUEUE) !== 0) {
+      swapRemove(this._broadphaseDirtyColliders, collider);
+    }
+    collider._dirtyFlags &= COL_DIRTY_SHAPE;
     this._bodyToCollider.delete(collider._hkBodyPtr);
     if (collider._isDynamic) {
       const dyn = collider as HavokDynamicCollider;
-      this._pendingForceColliders.delete(dyn);
-      this._pendingKinematicMoves.delete(dyn);
-      this._kinematicResetColliders.delete(dyn);
-      this._kinematicColliders.delete(dyn);
+      if ((dyn._sceneFlags & DYN_IN_PENDING_FORCE) !== 0) {
+        swapRemove(this._pendingForceList, dyn);
+      }
+      if ((dyn._sceneFlags & DYN_IN_PENDING_KIN_MOVE) !== 0) {
+        swapRemove(this._pendingKinematicMoveList, dyn);
+      }
+      if ((dyn._sceneFlags & DYN_IN_KIN_RESET) !== 0) {
+        swapRemove(this._kinematicResetList, dyn);
+      }
       if (!dyn._isKinematic) {
         this._unregisterDynamicSpeedLimit(dyn, dyn._maxAngularVelocityRad);
       }
+      dyn._sceneFlags = 0;
     }
     const hk = this._havokPhysics._hk;
     if (hk) {
@@ -506,8 +624,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
 
   removeCharacterController(controller: HavokCharacterController): void {
     if (!this._controllers.delete(controller)) return;
-    this._dirtyBroadphaseControllers.delete(controller);
-    this._dirtyFilterControllers.delete(controller);
+    this._clearControllerDirty(controller);
     controller._removeFromScene();
   }
 
@@ -517,10 +634,9 @@ export class HavokPhysicsScene implements IPhysicsScene {
     // 1. Drop trigger pairs of shapes removed since last step and NOT re-added
     this._releaseRemovedShapes();
 
-    // 2. Flush deferred container rebuilds & broadphase filter invalidations
-    //    (HP_World_Step natively updates broadphase for moved bodies, so clear _dirtyBroadphaseColliders here)
-    this._flushDirtyColliders(undefined, true);
-    this._flushDirtyFilters();
+    // 2. Flush deferred container rebuilds & broadphase filter invalidations.
+    //    Only skip broadphase re-insert when `elapsedTime > 0`, since `HP_World_Step(0)` does not refresh broadphase.
+    this._flushDirtyColliders(undefined, elapsedTime > 0);
 
     // 3. Configure ideal step time BEFORE kinematic targets so HP_Body_SetTargetQTransform uses exact dt
     const hk = this._havokPhysics._hk;
@@ -529,29 +645,35 @@ export class HavokPhysicsScene implements IPhysicsScene {
       hk.HP_World_SetIdealStepTime(this._hkWorld, elapsedTime);
     }
 
-    // 4. Flush pending kinematic targets & accumulated forces/torques (sparse sets only)
-    if (elapsedTime > 0 && this._pendingKinematicMoves.size > 0) {
-      for (let it = this._pendingKinematicMoves.values(), cur = it.next(); !cur.done; cur = it.next()) {
-        if (
-          cur.value._applyKinematicMove(elapsedTime, this._hkWorld, this._worldMaxAngVel, this._appliedWorldMaxAngVel)
-        ) {
-          this._kinematicResetColliders.add(cur.value);
+    // 4. Flush pending kinematic targets & accumulated forces/torques (dense active queues, zero iterator alloc)
+    const kinMoves = this._pendingKinematicMoveList;
+    if (elapsedTime > 0 && kinMoves.length > 0) {
+      for (let i = 0, n = kinMoves.length; i < n; i++) {
+        const col = kinMoves[i];
+        col._sceneFlags &= ~DYN_IN_PENDING_KIN_MOVE;
+        if (col._applyKinematicMove(elapsedTime, this._hkWorld, this._worldMaxAngVel, this._appliedWorldMaxAngVel)) {
+          if ((col._sceneFlags & DYN_IN_KIN_RESET) === 0) {
+            col._sceneFlags |= DYN_IN_KIN_RESET;
+            this._kinematicResetList.push(col);
+          }
         }
       }
-      this._pendingKinematicMoves.clear();
+      kinMoves.length = 0;
     }
-    if (this._pendingForceColliders.size > 0) {
-      for (let it = this._pendingForceColliders.values(), cur = it.next(); !cur.done; cur = it.next()) {
-        cur.value._flushForces(elapsedTime);
+    const forceList = this._pendingForceList;
+    if (forceList.length > 0) {
+      for (let i = 0, n = forceList.length; i < n; i++) {
+        const col = forceList[i];
+        col._sceneFlags &= ~DYN_IN_PENDING_FORCE;
+        col._flushForces(elapsedTime);
       }
-      this._pendingForceColliders.clear();
+      forceList.length = 0;
     }
 
     // 5. Joint pre-step hooks (e.g., HingeJoint freeSpin)
-    if (this._joints.size > 0) {
-      for (let it = this._joints.values(), cur = it.next(); !cur.done; cur = it.next()) {
-        cur.value._preStep(elapsedTime);
-      }
+    const joints = this._joints;
+    for (let i = 0, n = joints.length; i < n; i++) {
+      joints[i]._preStep(elapsedTime);
     }
 
     // 6. Step Havok world (HP_World_Step with dt > 0 flushes any deferred HP_World_SetSpeedLimit to all bodies)
@@ -563,28 +685,27 @@ export class HavokPhysicsScene implements IPhysicsScene {
     // 7. Post-step custom dynamic angular-velocity clamps, breakable/projected joint checks
     //    (run BEFORE kinematic velocity resets so FixedJoint inherits moving kinematic anchor velocity),
     //    and kinematic velocity resets (Havok keeps kinematic target velocity unless cleared).
-    if (this._clampedAngVelColliders.size > 0) {
-      for (let it = this._clampedAngVelColliders.values(), cur = it.next(); !cur.done; cur = it.next()) {
-        cur.value._clampAngularVelocity();
-      }
+    const clampedList = this._clampedAngVelList;
+    for (let i = 0, n = clampedList.length; i < n; i++) {
+      clampedList[i]._clampAngularVelocity();
     }
-    if (this._joints.size > 0) {
-      for (let it = this._joints.values(), cur = it.next(); !cur.done; cur = it.next()) {
-        cur.value._checkBreak(elapsedTime);
-      }
+    for (let i = 0, n = joints.length; i < n; i++) {
+      joints[i]._checkBreak(elapsedTime);
     }
-    if (this._kinematicResetColliders.size > 0) {
-      for (let it = this._kinematicResetColliders.values(), cur = it.next(); !cur.done; cur = it.next()) {
-        cur.value._zeroVelocities();
-      }
+    const kinResetList = this._kinematicResetList;
+    for (let i = 0, n = kinResetList.length; i < n; i++) {
+      kinResetList[i]._zeroVelocities();
     }
 
     // 8. Harvest collision & trigger events immediately after step
     if (this._contactEventsEnabled) {
       this._collectCollisionEvents();
     }
-    if (this._kinematicResetColliders.size > 0) {
-      this._kinematicResetColliders.clear();
+    if (kinResetList.length > 0) {
+      for (let i = 0, n = kinResetList.length; i < n; i++) {
+        kinResetList[i]._sceneFlags &= ~DYN_IN_KIN_RESET;
+      }
+      kinResetList.length = 0;
     }
     this._collectTriggerEvents();
     if (this._filterChangedShapeIds.size > 0) {
@@ -955,10 +1076,9 @@ export class HavokPhysicsScene implements IPhysicsScene {
     this._destroyed = true;
     this._havokPhysics._unregisterScene(this);
     const hk = this._havokPhysics._hk;
-    for (let it = this._joints.values(), cur = it.next(); !cur.done; cur = it.next()) {
-      cur.value.destroy();
+    while (this._joints.length > 0) {
+      this._joints[this._joints.length - 1].destroy();
     }
-    this._joints.clear();
     for (let it = this._controllers.values(), cur = it.next(); !cur.done; cur = it.next()) {
       this.removeCharacterController(cur.value);
     }
@@ -979,23 +1099,21 @@ export class HavokPhysicsScene implements IPhysicsScene {
     this._queryScratchPtr = 0;
     this._colliders.clear();
     this._controllers.clear();
-    this._pendingForceColliders.clear();
-    this._pendingKinematicMoves.clear();
-    this._kinematicResetColliders.clear();
-    this._clampedAngVelColliders.clear();
-    this._kinematicColliders.clear();
+    this._pendingForceList.length = 0;
+    this._pendingKinematicMoveList.length = 0;
+    this._kinematicResetList.length = 0;
+    this._clampedAngVelList.length = 0;
+    this._kinProbeQueue.length = 0;
     this._highAngVelCount = 0;
-    this._dirtyShapeColliders.clear();
-    this._dirtyBroadphaseColliders.clear();
-    this._dirtyBroadphaseControllers.clear();
-    this._dirtyFilterColliders.clear();
-    this._dirtyFilterControllers.clear();
+    this._stepDirtyColliders.length = 0;
+    this._broadphaseDirtyColliders.length = 0;
+    this._broadphaseDirtyControllers.length = 0;
+    this._filterDirtyControllers.length = 0;
     this._filterChangedShapeIds.clear();
     this._bodyToCollider.clear();
     this._bodyToController.clear();
     this._activeContactPairs.clear();
     this._activeKinematicPairs.clear();
-    this._activeKinematicShapeIds.clear();
     this._stepContactMap.clear();
     this._stepFinishedKeys.length = 0;
     this._contactEvents.length = 0;
@@ -1012,6 +1130,20 @@ export class HavokPhysicsScene implements IPhysicsScene {
     this._physicsEvents.contactEventCount = 0;
   }
 
+  private _addClampedAngVel(dyn: HavokDynamicCollider): void {
+    if ((dyn._sceneFlags & DYN_IN_CLAMPED_ANG_VEL) === 0) {
+      dyn._sceneFlags |= DYN_IN_CLAMPED_ANG_VEL;
+      this._clampedAngVelList.push(dyn);
+    }
+  }
+
+  private _removeClampedAngVel(dyn: HavokDynamicCollider): void {
+    if ((dyn._sceneFlags & DYN_IN_CLAMPED_ANG_VEL) !== 0) {
+      dyn._sceneFlags &= ~DYN_IN_CLAMPED_ANG_VEL;
+      swapRemove(this._clampedAngVelList, dyn);
+    }
+  }
+
   private _ensureUnlimitedWorldSpeed(): void {
     if (this._worldMaxAngVel >= UNLIMITED_SPEED) return;
     this._worldMaxAngVel = UNLIMITED_SPEED;
@@ -1022,7 +1154,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
       if (c._isDynamic) {
         const dyn = c as HavokDynamicCollider;
         if (!dyn._isKinematic && dyn._maxAngularVelocityRad < 1e5) {
-          this._clampedAngVelColliders.add(dyn);
+          this._addClampedAngVel(dyn);
         }
       }
     }
@@ -1033,15 +1165,15 @@ export class HavokPhysicsScene implements IPhysicsScene {
     if (maxR > DEFAULT_MAX_ANG_VEL + ANG_VEL_EPS) {
       this._highAngVelCount++;
       if (maxR < 1e5) {
-        this._clampedAngVelColliders.add(dyn);
+        this._addClampedAngVel(dyn);
       }
     } else if (Math.abs(maxR - DEFAULT_MAX_ANG_VEL) > ANG_VEL_EPS || this._worldMaxAngVel > DEFAULT_MAX_ANG_VEL) {
-      this._clampedAngVelColliders.add(dyn);
+      this._addClampedAngVel(dyn);
     }
   }
 
   private _unregisterDynamicSpeedLimit(dyn: HavokDynamicCollider, rad: number): void {
-    this._clampedAngVelColliders.delete(dyn);
+    this._removeClampedAngVel(dyn);
     if (rad > DEFAULT_MAX_ANG_VEL + ANG_VEL_EPS) {
       this._highAngVelCount--;
       if (this._highAngVelCount === 0 && this._worldMaxAngVel > DEFAULT_MAX_ANG_VEL) {
@@ -1051,9 +1183,14 @@ export class HavokPhysicsScene implements IPhysicsScene {
           hk.HP_World_SetSpeedLimit(this._hkWorld, UNLIMITED_SPEED, DEFAULT_MAX_ANG_VEL);
         }
         // Any default-100 bodies added while world limit was 1e6 are now clamped natively at 100 by Havok.
-        for (let it = this._clampedAngVelColliders.values(), cur = it.next(); !cur.done; cur = it.next()) {
-          if (Math.abs(cur.value._maxAngularVelocityRad - DEFAULT_MAX_ANG_VEL) <= ANG_VEL_EPS) {
-            this._clampedAngVelColliders.delete(cur.value);
+        const list = this._clampedAngVelList;
+        for (let i = list.length - 1; i >= 0; i--) {
+          const item = list[i];
+          if (Math.abs(item._maxAngularVelocityRad - DEFAULT_MAX_ANG_VEL) <= ANG_VEL_EPS) {
+            item._sceneFlags &= ~DYN_IN_CLAMPED_ANG_VEL;
+            const last = list.length - 1;
+            if (i !== last) list[i] = list[last];
+            list.length = last;
           }
         }
       }
@@ -1101,22 +1238,6 @@ export class HavokPhysicsScene implements IPhysicsScene {
     hk.HP_World_RemoveBody(this._hkWorld, ctrl._hkBody);
     hk.HP_World_AddBody(this._hkWorld, ctrl._hkBody, false);
     return true;
-  }
-
-  private _flushDirtyFilters(): void {
-    if (this._dirtyFilterColliders.size > 0) {
-      for (let it = this._dirtyFilterColliders.values(), cur = it.next(); !cur.done; cur = it.next()) {
-        this._reinsertBody(cur.value, false);
-      }
-      this._dirtyFilterColliders.clear();
-    }
-
-    if (this._dirtyFilterControllers.size > 0) {
-      for (let it = this._dirtyFilterControllers.values(), cur = it.next(); !cur.done; cur = it.next()) {
-        this._reinsertController(cur.value);
-      }
-      this._dirtyFilterControllers.clear();
-    }
   }
 
   private _growCollector(): void {
@@ -1245,41 +1366,35 @@ export class HavokPhysicsScene implements IPhysicsScene {
     return this._overlapResultBuffer;
   }
 
-  private _dispatchRawQuery(kind: QueryKind, useMulti: boolean, inPtr: number): number {
+  private _dispatchQuery(kind: QueryKind, useMulti: boolean, inPtr: number): number {
     const hk = this._havokPhysics._hk;
     const outPtr = inPtr + 64;
     const outIdx = outPtr >>> 2;
     const worldId = this._hkWorld[0];
     while (true) {
-      const collectorId = (useMulti ? this._multiCollector : this._singleCollector)[0];
-      if (kind === QueryKind.Ray) {
-        hk._HP_World_CastRayWithCollector!(worldId, collectorId, inPtr);
-      } else if (kind === QueryKind.ShapeCast) {
-        hk._HP_World_ShapeCastWithCollector!(worldId, collectorId, inPtr);
-      } else {
-        hk._HP_World_ShapeProximityWithCollector!(worldId, collectorId, inPtr);
-      }
-      hk._HP_QueryCollector_GetNumHits!(collectorId, outPtr);
-      const numHits = hk.HEAPU32[outIdx];
-      if (!useMulti || numHits < this._collectorCapacity || this._collectorCapacity >= MAX_COLLECTOR_CAPACITY) {
-        return numHits;
-      }
-      this._growCollector();
-    }
-  }
-
-  private _dispatchEmbindQuery(kind: QueryKind, useMulti: boolean): number {
-    const hk = this._havokPhysics._hk;
-    while (true) {
       const collector = useMulti ? this._multiCollector : this._singleCollector;
-      if (kind === QueryKind.Ray) {
-        hk.HP_World_CastRayWithCollector(this._hkWorld, collector, HavokPhysicsScene._tempRayInput);
-      } else if (kind === QueryKind.ShapeCast) {
-        hk.HP_World_ShapeCastWithCollector(this._hkWorld, collector, HavokPhysicsScene._tempShapeCastInput);
+      let numHits: number;
+      if (inPtr !== 0) {
+        const collectorId = collector[0];
+        if (kind === QueryKind.Ray) {
+          hk._HP_World_CastRayWithCollector!(worldId, collectorId, inPtr);
+        } else if (kind === QueryKind.ShapeCast) {
+          hk._HP_World_ShapeCastWithCollector!(worldId, collectorId, inPtr);
+        } else {
+          hk._HP_World_ShapeProximityWithCollector!(worldId, collectorId, inPtr);
+        }
+        hk._HP_QueryCollector_GetNumHits!(collectorId, outPtr);
+        numHits = hk.HEAPU32[outIdx];
       } else {
-        hk.HP_World_ShapeProximityWithCollector(this._hkWorld, collector, HavokPhysicsScene._tempShapeProxInput);
+        if (kind === QueryKind.Ray) {
+          hk.HP_World_CastRayWithCollector(this._hkWorld, collector, HavokPhysicsScene._tempRayInput);
+        } else if (kind === QueryKind.ShapeCast) {
+          hk.HP_World_ShapeCastWithCollector(this._hkWorld, collector, HavokPhysicsScene._tempShapeCastInput);
+        } else {
+          hk.HP_World_ShapeProximityWithCollector(this._hkWorld, collector, HavokPhysicsScene._tempShapeProxInput);
+        }
+        numHits = hk.HP_QueryCollector_GetNumHits(collector)[1];
       }
-      const numHits = hk.HP_QueryCollector_GetNumHits(collector)[1];
       if (!useMulti || numHits < this._collectorCapacity || this._collectorCapacity >= MAX_COLLECTOR_CAPACITY) {
         return numHits;
       }
@@ -1315,7 +1430,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
       u32[inBase + 9] = 0;
       u32[inBase + 10] = 0;
       u32[inBase + 11] = 0;
-      return this._dispatchRawQuery(QueryKind.Ray, useMulti, inPtr);
+      return this._dispatchQuery(QueryKind.Ray, useMulti, inPtr);
     }
     const input = HavokPhysicsScene._tempRayInput;
     input[0][0] = sx;
@@ -1325,7 +1440,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
     input[1][1] = ey;
     input[1][2] = ez;
     input[2][1] = layerMask;
-    return this._dispatchEmbindQuery(QueryKind.Ray, useMulti);
+    return this._dispatchQuery(QueryKind.Ray, useMulti, 0);
   }
 
   private _execShapeCast(
@@ -1365,7 +1480,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
       u32[inBase + 13] = 0;
       u32[inBase + 14] = ignoreBodyPtr;
       u32[inBase + 15] = 0;
-      return this._dispatchRawQuery(QueryKind.ShapeCast, useMulti, inPtr);
+      return this._dispatchQuery(QueryKind.ShapeCast, useMulti, inPtr);
     }
     const input = HavokPhysicsScene._tempShapeCastInput;
     input[0] = shape;
@@ -1378,7 +1493,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
     input[3][2] = ez;
     input[4] = hitTriggers;
     input[5] = ignoreBody;
-    return this._dispatchEmbindQuery(QueryKind.ShapeCast, useMulti);
+    return this._dispatchQuery(QueryKind.ShapeCast, useMulti, 0);
   }
 
   /** @internal Unified ShapeProximity multi-hit query with >256 hit collector growth. */
@@ -1414,7 +1529,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
       u32[inBase + 11] = 0;
       u32[inBase + 12] = ignoreBodyPtr;
       u32[inBase + 13] = 0;
-      return this._dispatchRawQuery(QueryKind.ShapeProximity, true, inPtr);
+      return this._dispatchQuery(QueryKind.ShapeProximity, true, inPtr);
     }
     const input = HavokPhysicsScene._tempShapeProxInput;
     input[0] = shape;
@@ -1425,7 +1540,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
     input[3] = maxDist;
     input[4] = hitTriggers;
     input[5] = ignoreBody;
-    return this._dispatchEmbindQuery(QueryKind.ShapeProximity, true);
+    return this._dispatchQuery(QueryKind.ShapeProximity, true, 0);
   }
 
   private _readQueryHit(
@@ -1682,7 +1797,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
     if (collider) {
       return this._resolveColliderShapeByPtr(collider, shapePtr);
     }
-    return this._bodyToController.get(bodyPtr) ?? null;
+    return this._bodyToController.size > 0 ? (this._bodyToController.get(bodyPtr) ?? null) : null;
   }
 
   private _resolveCollisionShape(
@@ -1711,14 +1826,14 @@ export class HavokPhysicsScene implements IPhysicsScene {
       }
       return childIdx >= 0 && childIdx < len ? shapes[childIdx] : shapes[0];
     }
-    return this._bodyToController.get(bodyPtr) ?? null;
+    return this._bodyToController.size > 0 ? (this._bodyToController.get(bodyPtr) ?? null) : null;
   }
 
   private _addContactPoint(
     key: number,
     id0: number,
     id1: number,
-    isKinNonDyn: boolean,
+    kinProbeCollider: HavokDynamicCollider | null,
     px: number,
     py: number,
     pz: number,
@@ -1744,8 +1859,8 @@ export class HavokPhysicsScene implements IPhysicsScene {
       if (!wasActive) {
         this._activeContactPairs.add(key);
       }
-      if (isKinNonDyn) {
-        this._activeKinematicPairs.add(key);
+      if (kinProbeCollider) {
+        this._activeKinematicPairs.set(key, kinProbeCollider);
       } else if (wasActive && this._activeKinematicPairs.size > 0) {
         this._activeKinematicPairs.delete(key);
       }
@@ -1792,7 +1907,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
       key,
       id0,
       id1,
-      false,
+      null,
       p0x,
       p0y,
       p0z,
@@ -1848,7 +1963,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
         const id1 = aFirst ? shapeB._id : shapeA._id;
         const key = id0 * PAIR_KEY_STRIDE + id1;
 
-        if (evType === HavokEventBits.COLLISION_FINISHED) {
+        if (evType === HK_EVENT_COLLISION_FINISHED) {
           finishedKeys.push(key);
         } else if (useRaw) {
           const b0 = aFirst ? eb + 2 : eb + 18;
@@ -1904,7 +2019,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
 
     // Havok natively omits collision events for Kinematic vs Static and Kinematic vs Kinematic;
     // match PhysX's moved-kinematic contact reporting via ShapeProximity on kinematic bodies that moved or hold active pairs.
-    if (this._kinematicResetColliders.size > 0 || this._activeKinematicPairs.size > 0) {
+    if (this._kinematicResetList.length > 0 || this._activeKinematicPairs.size > 0) {
       this._collectKinematicNonDynamicContacts();
     }
 
@@ -1935,7 +2050,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
         }
       }
     } else if (this._activeKinematicPairs.size > 0) {
-      for (let it = this._activeKinematicPairs.values(), cur = it.next(); !cur.done; cur = it.next()) {
+      for (let it = this._activeKinematicPairs.keys(), cur = it.next(); !cur.done; cur = it.next()) {
         const key = cur.value;
         if (stepMap.has(key)) continue;
         this._activeKinematicPairs.delete(key);
@@ -1951,15 +2066,24 @@ export class HavokPhysicsScene implements IPhysicsScene {
   }
 
   private _collectKinematicNonDynamicContacts(): void {
-    const activeKinShapeIds = this._activeKinematicShapeIds;
-    activeKinShapeIds.clear();
+    const probeList = this._kinProbeQueue;
+    probeList.length = 0;
+
+    const resetList = this._kinematicResetList;
+    for (let i = 0, n = resetList.length; i < n; i++) {
+      const col = resetList[i];
+      if ((col._sceneFlags & DYN_PROBED_THIS_STEP) === 0) {
+        col._sceneFlags |= DYN_PROBED_THIS_STEP;
+        probeList.push(col);
+      }
+    }
     if (this._activeKinematicPairs.size > 0) {
       for (let it = this._activeKinematicPairs.values(), cur = it.next(); !cur.done; cur = it.next()) {
-        const key = cur.value;
-        const id1 = key % PAIR_KEY_STRIDE;
-        const id0 = (key - id1) / PAIR_KEY_STRIDE;
-        activeKinShapeIds.add(id0);
-        activeKinShapeIds.add(id1);
+        const col = cur.value;
+        if (col._isKinematic && col._scene === this && (col._sceneFlags & DYN_PROBED_THIS_STEP) === 0) {
+          col._sceneFlags |= DYN_PROBED_THIS_STEP;
+          probeList.push(col);
+        }
       }
     }
 
@@ -1969,33 +2093,27 @@ export class HavokPhysicsScene implements IPhysicsScene {
     const shapePos = HavokPhysicsScene._tempVecB;
     const shapeRot = HavokPhysicsScene._tempQuatB;
     const rotTuple = HavokPhysicsScene._tempQueryRot;
-    const probeSource = activeKinShapeIds.size > 0 ? this._kinematicColliders : this._kinematicResetColliders;
 
-    for (let it = probeSource.values(), cur = it.next(); !cur.done; cur = it.next()) {
-      const col = cur.value;
+    for (let p = 0, pn = probeList.length; p < pn; p++) {
+      const col = probeList[p];
+      col._sceneFlags &= ~DYN_PROBED_THIS_STEP;
       const shapes = col._shapes;
       if (shapes.length === 0) continue;
-
-      let shouldProbe = this._kinematicResetColliders.has(col);
-      if (!shouldProbe && activeKinShapeIds.size > 0) {
-        for (let i = 0, n = shapes.length; i < n; i++) {
-          if (activeKinShapeIds.has(shapes[i]._id)) {
-            shouldProbe = true;
-            break;
-          }
-        }
-      }
-      if (!shouldProbe) continue;
 
       col.getWorldTransform(bodyPos, bodyRot);
       for (let i = 0, n = shapes.length; i < n; i++) {
         const s = shapes[i];
         if (!s._hkShape || s._isTrigger) continue;
 
-        Vector3.transformByQuat(s._localPosition, bodyRot, shapePos);
-        shapePos.add(bodyPos);
-        Quaternion.multiply(bodyRot, s._localRotation, shapeRot);
-        shapeRot.normalize();
+        if (!s._hasNonIdentityLocalPose()) {
+          shapePos.copyFrom(bodyPos);
+          shapeRot.copyFrom(bodyRot);
+        } else {
+          Vector3.transformByQuat(s._localPosition, bodyRot, shapePos);
+          shapePos.add(bodyPos);
+          Quaternion.multiply(bodyRot, s._localRotation, shapeRot);
+          shapeRot.normalize();
+        }
 
         rotTuple[0] = shapeRot.x;
         rotTuple[1] = shapeRot.y;
@@ -2040,7 +2158,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
             key,
             id0,
             id1,
-            true,
+            col,
             hit.px,
             hit.py,
             hit.pz,
@@ -2055,6 +2173,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
         }
       }
     }
+    probeList.length = 0;
   }
 
   private _collectTriggerEvents(): void {
@@ -2079,7 +2198,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
           const id2 = shapeA._id < shapeB._id ? shapeB._id : shapeA._id;
           const key = id1 * PAIR_KEY_STRIDE + id2;
 
-          if (evType === HavokEventBits.TRIGGER_ENTERED) {
+          if (evType === HK_EVENT_TRIGGER_ENTERED) {
             const existing = pairMap.get(key);
             if (existing) {
               existing.overlapCount++;
@@ -2095,7 +2214,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
               pairMap.set(key, ev);
               activeTriggers.push(ev);
             }
-          } else if (evType === HavokEventBits.TRIGGER_EXITED) {
+          } else if (evType === HK_EVENT_TRIGGER_EXITED) {
             const ev = pairMap.get(key);
             if (ev) {
               if (ev.overlapCount <= 1) {

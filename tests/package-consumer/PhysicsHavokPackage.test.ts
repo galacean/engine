@@ -89,13 +89,53 @@ describe("@galacean/engine-physics-havok published package consumer", () => {
     const pkgTypesDir = join(consumerDirectory, "node_modules", "@galacean", "engine-physics-havok", "types");
     const indexDts = readFileSync(join(pkgTypesDir, "index.d.ts"), "utf8");
     const havokPhysicsDts = readFileSync(join(pkgTypesDir, "HavokPhysics.d.ts"), "utf8");
+    const havokTypesDts = readFileSync(join(pkgTypesDir, "HavokTypes.d.ts"), "utf8");
     expect(indexDts).not.toContain("__buildVersion");
     expect(indexDts).not.toContain("HavokModule");
     expect(havokPhysicsDts).not.toContain("HavokModule");
     expect(havokPhysicsDts).not.toContain("HavokTypes");
+    expect(havokTypesDts.trim()).toBe("export {};");
   });
 
   it("loads cleanly via CJS require and ESM import and steps HeadlessEngine in Node with havokFactory + wasmBinary", () => {
+    const sharedBody = `
+      if (typeof version !== "string" || version.length === 0 || version === "__buildVersion") {
+        throw new Error("Invalid version: " + String(version));
+      }
+      const pkgDir = dirname(resolvePkg("@galacean/engine-physics-havok/package.json"));
+      const rawHavokFactory = loadCjs(join(pkgDir, "libs", "HavokPhysics_umd.js"));
+      const wasmBinary = readFileSync(join(pkgDir, "libs", "HavokPhysics.wasm"));
+
+      const physics = new HavokPhysics({
+        havokFactory: (arg) => rawHavokFactory({ ...(arg || {}), wasmBinary })
+      });
+
+      const engine = await HeadlessEngine.create({ physics });
+      const scene = engine.sceneManager.activeScene;
+      const floor = scene.createRootEntity("floor");
+      floor.addComponent(BoxCollider).size = new Vector3(10, 1, 10);
+
+      const box = scene.createRootEntity("box");
+      box.transform.setPosition(0, 5, 0);
+      box.addComponent(BoxCollider).size = new Vector3(1, 1, 1);
+      box.addComponent(Rigidbody);
+
+      const hit = new HitResult();
+      if (!scene.physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), 20, hit)) {
+        throw new Error("Expected raycast hit in Node HeadlessEngine");
+      }
+
+      for (let i = 0; i < 120; i++) {
+        scene.physics._update(1 / 60);
+      }
+      const y = box.transform.position.y;
+      if (!(y < 2 && y > 0.5)) {
+        throw new Error("Unexpected settled box y=" + y);
+      }
+      engine.destroy();
+      physics.destroy();
+    `;
+
     for (const mode of ["require", "import"] as const) {
       const script =
         mode === "require"
@@ -105,43 +145,9 @@ describe("@galacean/engine-physics-havok published package consumer", () => {
             const { BoxCollider, HitResult, Ray, Rigidbody, Vector3 } = require("@galacean/engine");
             const { HeadlessEngine } = require("@galacean/engine-rhi-null");
             const { HavokPhysics, version } = require("@galacean/engine-physics-havok");
-
-            if (typeof version !== "string" || version.length === 0 || version === "__buildVersion") {
-              throw new Error("Invalid CJS version: " + String(version));
-            }
-            const pkgDir = dirname(require.resolve("@galacean/engine-physics-havok/package.json"));
-            const rawHavokFactory = require(join(pkgDir, "libs", "HavokPhysics_umd.js"));
-            const wasmBinary = readFileSync(join(pkgDir, "libs", "HavokPhysics.wasm"));
-
-            const physics = new HavokPhysics({
-              havokFactory: (arg) => rawHavokFactory({ ...(arg || {}), wasmBinary })
-            });
-
-            HeadlessEngine.create({ physics }).then((engine) => {
-              const scene = engine.sceneManager.activeScene;
-              const floor = scene.createRootEntity("floor");
-              floor.addComponent(BoxCollider).size = new Vector3(10, 1, 10);
-
-              const box = scene.createRootEntity("box");
-              box.transform.setPosition(0, 5, 0);
-              box.addComponent(BoxCollider).size = new Vector3(1, 1, 1);
-              box.addComponent(Rigidbody);
-
-              const hit = new HitResult();
-              if (!scene.physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), 20, hit)) {
-                throw new Error("Expected raycast hit in Node HeadlessEngine");
-              }
-
-              for (let i = 0; i < 120; i++) {
-                scene.physics._update(1 / 60);
-              }
-              const y = box.transform.position.y;
-              if (!(y < 2 && y > 0.5)) {
-                throw new Error("Unexpected settled box y=" + y);
-              }
-              engine.destroy();
-              physics.destroy();
-            }).catch((error) => {
+            const resolvePkg = require.resolve;
+            const loadCjs = require;
+            (async () => {${sharedBody}})().catch((error) => {
               console.error(error);
               process.exitCode = 1;
             });
@@ -153,43 +159,9 @@ describe("@galacean/engine-physics-havok published package consumer", () => {
             import { BoxCollider, HitResult, Ray, Rigidbody, Vector3 } from "@galacean/engine";
             import { HeadlessEngine } from "@galacean/engine-rhi-null";
             import { HavokPhysics, version } from "@galacean/engine-physics-havok";
-
-            if (typeof version !== "string" || version.length === 0 || version === "__buildVersion") {
-              throw new Error("Invalid ESM version: " + String(version));
-            }
-            const req = createRequire(import.meta.url);
-            const pkgDir = dirname(req.resolve("@galacean/engine-physics-havok/package.json"));
-            const rawHavokFactory = req(join(pkgDir, "libs", "HavokPhysics_umd.js"));
-            const wasmBinary = readFileSync(join(pkgDir, "libs", "HavokPhysics.wasm"));
-
-            const physics = new HavokPhysics({
-              havokFactory: (arg) => rawHavokFactory({ ...(arg || {}), wasmBinary })
-            });
-
-            const engine = await HeadlessEngine.create({ physics });
-            const scene = engine.sceneManager.activeScene;
-            const floor = scene.createRootEntity("floor");
-            floor.addComponent(BoxCollider).size = new Vector3(10, 1, 10);
-
-            const box = scene.createRootEntity("box");
-            box.transform.setPosition(0, 5, 0);
-            box.addComponent(BoxCollider).size = new Vector3(1, 1, 1);
-            box.addComponent(Rigidbody);
-
-            const hit = new HitResult();
-            if (!scene.physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), 20, hit)) {
-              throw new Error("Expected raycast hit in Node HeadlessEngine");
-            }
-
-            for (let i = 0; i < 120; i++) {
-              scene.physics._update(1 / 60);
-            }
-            const y = box.transform.position.y;
-            if (!(y < 2 && y > 0.5)) {
-              throw new Error("Unexpected settled box y=" + y);
-            }
-            engine.destroy();
-            physics.destroy();
+            const loadCjs = createRequire(import.meta.url);
+            const resolvePkg = loadCjs.resolve;
+            ${sharedBody}
           `;
 
       const probe = spawnSync(process.execPath, [...(mode === "import" ? ["--input-type=module"] : []), "-e", script], {
@@ -200,7 +172,7 @@ describe("@galacean/engine-physics-havok published package consumer", () => {
     }
   });
 
-  it("typechecks strictly under Node16, Bundler, and Node10 moduleResolution", () => {
+  it("typechecks strictly under Node16, Bundler, and Node10 moduleResolution and validates emitted .d.ts with skipLibCheck: false", () => {
     const source = join(consumerDirectory, "consumer.ts");
     writeFileSync(
       source,
@@ -235,6 +207,21 @@ describe("@galacean/engine-physics-havok published package consumer", () => {
       ].join("\n")
     );
 
+    const collectDts = (dir: string): string[] => {
+      const files: string[] = [];
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          files.push(...collectDts(full));
+        } else if (entry.name.endsWith(".d.ts")) {
+          files.push(full);
+        }
+      }
+      return files;
+    };
+    const pkgTypesDir = join(consumerDirectory, "node_modules", "@galacean", "engine-physics-havok", "types");
+    const pkgDtsFiles = collectDts(pkgTypesDir);
+
     for (const resolution of ["Node16", "Bundler", "Node10"] as const) {
       const config: ts.CompilerOptions = {
         noEmit: true,
@@ -250,5 +237,21 @@ describe("@galacean/engine-physics-havok published package consumer", () => {
         .map((error) => ts.flattenDiagnosticMessageText(error.messageText, "\n"));
       expect(diagnostics, `diagnostics for ${resolution}`).toEqual([]);
     }
+
+    // Verify all emitted physics-havok declarations compile cleanly with skipLibCheck: false
+    const dtsProgram = ts.createProgram([source, ...pkgDtsFiles], {
+      noEmit: true,
+      strict: true,
+      skipLibCheck: false,
+      types: [],
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.ESNext,
+      moduleResolution: ts.ModuleResolutionKind.Bundler
+    });
+    const havokDtsDiagnostics = ts
+      .getPreEmitDiagnostics(dtsProgram)
+      .filter((d) => !d.file || d.file.fileName.startsWith(pkgTypesDir) || d.file.fileName === source)
+      .map((d) => `${d.file?.fileName ?? "global"}: ${ts.flattenDiagnosticMessageText(d.messageText, "\n")}`);
+    expect(havokDtsDiagnostics).toEqual([]);
   });
 });

@@ -2,7 +2,7 @@ import { Vector3, Vector4 } from "@galacean/engine";
 import { ISphereColliderShape } from "@galacean/engine-design";
 import { HavokPhysics } from "../HavokPhysics";
 import { HavokPhysicsMaterial } from "../HavokPhysicsMaterial";
-import { HP_ShapeId, ZERO_VEC3 } from "../HavokTypes";
+import { HP_ShapeId, ZERO_HANDLE, ZERO_VEC3 } from "../HavokTypes";
 import { HavokColliderShape } from "./HavokColliderShape";
 
 const MIN_RADIUS = 1e-4;
@@ -17,8 +17,12 @@ export class HavokSphereColliderShape extends HavokColliderShape implements ISph
   constructor(havokPhysics: HavokPhysics, uniqueID: number, radius: number, material: HavokPhysicsMaterial) {
     super(havokPhysics, uniqueID, material);
     this._radius = radius;
-    this._effectiveRadius = this._getScaledRadius();
-    this._initShape(this._createSphereShape(this._effectiveRadius));
+    const fRadius = this._getScaledRadius();
+    this._effectiveRadius = fRadius > 0 && Number.isFinite(fRadius) ? fRadius : MIN_RADIUS;
+    const shape = this._createSphereShape(this._effectiveRadius);
+    if (shape) {
+      this._initShape(shape);
+    }
   }
 
   setRadius(radius: number): void {
@@ -61,19 +65,24 @@ export class HavokSphereColliderShape extends HavokColliderShape implements ISph
 
   private _rebuildIfEffectiveChanged(): void {
     const nextRadius = this._getScaledRadius();
-    if (nextRadius === this._effectiveRadius) {
+    if (!(nextRadius > 0 && Number.isFinite(nextRadius)) || nextRadius === this._effectiveRadius) {
       return;
     }
-    this._effectiveRadius = nextRadius;
-    this._replaceHKShape(this._createSphereShape(nextRadius));
+    const shape = this._createSphereShape(nextRadius);
+    if (shape) {
+      this._effectiveRadius = nextRadius;
+      this._replaceHKShape(shape);
+    }
   }
 
   private _getScaledRadius(): number {
     const maxScale = Math.max(this._worldScale.x, this._worldScale.y, this._worldScale.z);
-    return Math.max(Math.abs(this._radius) * maxScale, MIN_RADIUS);
+    return Math.fround(Math.abs(this._radius) * maxScale);
   }
 
-  private _createSphereShape(radius: number): HP_ShapeId {
-    return this._havokPhysics._hk.HP_Shape_CreateSphere(ZERO_VEC3, radius)[1];
+  private _createSphereShape(radius: number): HP_ShapeId | null {
+    const hk = this._havokPhysics._hk;
+    const [res, shape] = hk.HP_Shape_CreateSphere(ZERO_VEC3, radius);
+    return res.value === hk.Result.RESULT_OK.value && shape[0] !== ZERO_HANDLE[0] ? shape : null;
   }
 }

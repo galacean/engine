@@ -3,11 +3,14 @@ import { ICollider } from "@galacean/engine-design";
 import { HavokPhysics } from "./HavokPhysics";
 import type { HavokPhysicsScene } from "./HavokPhysicsScene";
 import {
-  HavokEventBits,
+  COL_DIRTY_SHAPE,
+  HK_EVENT_ALL_COLLISIONS,
+  HK_EVENT_ALL_TRIGGERS,
   HKQuaternion,
   HKVector3,
   HP_BodyId,
   HP_ShapeId,
+  swapRemove,
   writeQTransform,
   ZERO_HANDLE
 } from "./HavokTypes";
@@ -24,6 +27,7 @@ export abstract class HavokCollider implements ICollider {
   protected static _tempVec = new Vector3();
   protected static _tempRot = new Quaternion();
   protected static _tempInvRot = new Quaternion();
+  /** @internal */
   protected static _tempQTransform: [HKVector3, HKQuaternion] = [
     [0, 0, 0],
     [0, 0, 0, 1]
@@ -47,12 +51,12 @@ export abstract class HavokCollider implements ICollider {
   /** @internal */
   _containerShape: HP_ShapeId | null = null;
   /** @internal */
-  _shapeDirty = false;
+  _dirtyFlags = 0;
 
   protected _havokPhysics: HavokPhysics;
   protected _destroyed = false;
 
-  private _eventMask: number = HavokEventBits.ALL_TRIGGERS;
+  private _eventMask: number = HK_EVENT_ALL_TRIGGERS;
   private _joints: HavokJoint[] | null = null;
 
   constructor(havokPhysics: HavokPhysics, position: Vector3, rotation: Quaternion) {
@@ -64,12 +68,12 @@ export abstract class HavokCollider implements ICollider {
     writeQTransform(position, rotation, qt);
     hk.HP_Body_SetQTransform(this._hkBody, qt);
     // Trigger events always on; contact events toggled per-scene
-    hk.HP_Body_SetEventMask(this._hkBody, HavokEventBits.ALL_TRIGGERS);
+    hk.HP_Body_SetEventMask(this._hkBody, HK_EVENT_ALL_TRIGGERS);
   }
 
   /** @internal */
   _updateEventMask(contactEnabled: boolean): void {
-    const mask = (contactEnabled ? HavokEventBits.ALL_COLLISIONS : 0) | HavokEventBits.ALL_TRIGGERS;
+    const mask = (contactEnabled ? HK_EVENT_ALL_COLLISIONS : 0) | HK_EVENT_ALL_TRIGGERS;
     if (this._eventMask === mask) return;
     this._eventMask = mask;
     this._havokPhysics._hk.HP_Body_SetEventMask(this._hkBody, mask);
@@ -78,6 +82,9 @@ export abstract class HavokCollider implements ICollider {
   addShape(shape: HavokColliderShape): boolean {
     if (!shape._hkShape) {
       return false;
+    }
+    if (shape._syncedFilterVersion !== this._havokPhysics._filterVersion) {
+      shape._syncLayerFilter();
     }
     shape._collider = this;
     this._shapes.push(shape);
@@ -100,6 +107,9 @@ export abstract class HavokCollider implements ICollider {
     if (idx === -1 || !newShape._hkShape) {
       return false;
     }
+    if (newShape._syncedFilterVersion !== this._havokPhysics._filterVersion) {
+      newShape._syncLayerFilter();
+    }
     previousShape._collider = null;
     newShape._collider = this;
     this._shapes[idx] = newShape;
@@ -117,7 +127,7 @@ export abstract class HavokCollider implements ICollider {
     const qt = HavokCollider._tempQTransform;
     writeQTransform(position, rotation, qt);
     this._havokPhysics._hk.HP_Body_SetQTransform(this._hkBody, qt);
-    this._scene?._dirtyBroadphaseColliders.add(this);
+    this._scene?._queueBroadphaseDirtyCollider(this);
   }
 
   getWorldTransform(outPosition: Vector3, outRotation: Quaternion): void {
@@ -140,8 +150,8 @@ export abstract class HavokCollider implements ICollider {
 
   /** @internal */
   _markShapeDirty(): void {
-    this._shapeDirty = true;
-    this._scene?._dirtyShapeColliders.add(this);
+    this._dirtyFlags |= COL_DIRTY_SHAPE;
+    this._scene?._queueStepDirtyCollider(this, COL_DIRTY_SHAPE);
   }
 
   /** @internal */
@@ -157,26 +167,20 @@ export abstract class HavokCollider implements ICollider {
   /** @internal */
   _removeJoint(joint: HavokJoint): void {
     const joints = this._joints;
-    if (!joints) return;
-    const idx = joints.indexOf(joint);
-    if (idx !== -1) {
-      const last = joints.length - 1;
-      if (idx !== last) {
-        joints[idx] = joints[last];
-      }
-      joints.length = last;
+    if (joints) {
+      swapRemove(joints, joint);
     }
   }
 
   /** @internal */
   _flushShapeIfDirty(): void {
-    if (!this._shapeDirty) return;
+    if ((this._dirtyFlags & COL_DIRTY_SHAPE) === 0) return;
     if (this._scene) {
       // Detach from world around HP_Body_SetShape to prevent Havok's triangle-mesh trigger hang
       // and to refresh the broadphase AABB for immediate scene queries.
       this._scene._reinsertBody(this, true);
     } else {
-      this._shapeDirty = false;
+      this._dirtyFlags &= ~COL_DIRTY_SHAPE;
       this._rebuildBodyShape();
     }
   }
@@ -227,6 +231,7 @@ export abstract class HavokCollider implements ICollider {
 
   protected _onAfterShapeUpdated(): void {}
 
+  /** @internal */
   protected _createContainerShape(shapes: HavokColliderShape[]): HP_ShapeId {
     const hk = this._havokPhysics._hk;
     const container = hk.HP_Shape_CreateContainer()[1];

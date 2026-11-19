@@ -94,6 +94,8 @@ const engine = await WebGLEngine.create({
 | Static friction when `dynamicFriction === 0` | `staticFriction` still applies | Havok WASM disables friction completely when `dynamicFriction === 0`, regardless of `staticFriction` |
 | `CharacterController` | Native PhysX CCT | TypeScript implementation built on Havok shape casts and a kinematic proxy body |
 | `PlaneCollider` | Native infinite half-space | Approximated with a large slab (`10000 x 100 x 10000`) |
+| Scene queries when all 32 layers disable every collision pair | Still hit by layer mask | Queries work whenever at least 1 of the 32 layers has any enabled collision bit; if all 32 layers simultaneously have empty masks (`0`), Havok's 32-bit symmetric filter cannot match queries |
+| Trigger events on custom `havokInstance` | Native callback | Requires `HEAPU32` on the Havok WASM module (`@babylonjs/havok` 1.3.x `HP_Event_AsTrigger` does not expose trigger event type enums via Embind) |
 | WASM runtime distribution | Open-source (`PhysX.js`), SIMD + non-SIMD builds | Closed-source prebuilt WASM binary, SIMD-only |
 
 ## License & Attribution

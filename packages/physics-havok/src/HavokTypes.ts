@@ -1,33 +1,76 @@
 import { Quaternion, Vector3 } from "@galacean/engine";
 
+/** @internal */
 export type HKVector3 = [number, number, number];
+/** @internal */
 export type HKQuaternion = [number, number, number, number];
 type HKQTransform = [HKVector3, HKQuaternion];
 
+/** @internal */
 export type HP_BodyId = [bigint];
+/** @internal */
 export type HP_ShapeId = [bigint];
+/** @internal */
 export type HP_ConstraintId = [bigint];
+/** @internal */
 export type HP_WorldId = [bigint];
+/** @internal */
 export type HP_CollectorId = [bigint];
 type HKShapePathIterator = [HP_ShapeId, bigint];
 
+/** @internal */
 export interface HKEnumValue {
   value: number;
 }
 
+/** @internal */
 export type HKMassProperties = [HKVector3, number, HKVector3, HKQuaternion];
+/** @internal */
 export type HKPhysicsMaterial = [number, number, number, HKEnumValue, HKEnumValue];
+/** @internal */
 export type HKFilterInfo = [number, number];
+/** @internal */
 export type HKContactPoint = [HP_BodyId, HP_ShapeId, HKShapePathIterator, HKVector3, HKVector3, number];
 
-export const enum HavokEventBits {
-  COLLISION_FINISHED = 4,
-  TRIGGER_ENTERED = 8,
-  TRIGGER_EXITED = 16,
-  ALL_COLLISIONS = 7,
-  ALL_TRIGGERS = 24
-}
+/** @internal */
+export const HK_EVENT_COLLISION_FINISHED = 4;
+/** @internal */
+export const HK_EVENT_TRIGGER_ENTERED = 8;
+/** @internal */
+export const HK_EVENT_TRIGGER_EXITED = 16;
+/** @internal */
+export const HK_EVENT_ALL_COLLISIONS = 7;
+/** @internal */
+export const HK_EVENT_ALL_TRIGGERS = 24;
 
+/** @internal Dirty flags on `HavokCollider._dirtyFlags`. */
+export const COL_DIRTY_SHAPE = 1;
+/** @internal */
+export const COL_DIRTY_FILTER = 2;
+/** @internal */
+export const COL_DIRTY_BROADPHASE = 4;
+/** @internal */
+export const COL_IN_STEP_QUEUE = 8;
+/** @internal */
+export const COL_IN_BROADPHASE_QUEUE = 16;
+
+/** @internal Active-list membership flags on `HavokDynamicCollider._sceneFlags`. */
+export const DYN_IN_PENDING_FORCE = 1;
+/** @internal */
+export const DYN_IN_PENDING_KIN_MOVE = 2;
+/** @internal */
+export const DYN_IN_KIN_RESET = 4;
+/** @internal */
+export const DYN_IN_CLAMPED_ANG_VEL = 8;
+/** @internal */
+export const DYN_PROBED_THIS_STEP = 16;
+
+/** @internal Dirty flags on `HavokCharacterController._dirtyFlags`. */
+export const CTRL_DIRTY_BROADPHASE = 1;
+/** @internal */
+export const CTRL_DIRTY_FILTER = 2;
+
+/** @internal */
 export interface HavokModule {
   HEAP32: Int32Array;
   HEAPU32: Uint32Array;
@@ -210,23 +253,30 @@ export interface HavokModule {
   ): [HKEnumValue, [number, HKContactPoint, HKContactPoint]];
 }
 
+/** @internal */
 export interface HavokShapeIdentity {
   readonly _id: number;
   readonly _isTrigger: boolean;
   readonly _isSceneQuery: boolean;
 }
 
+/** @internal */
 export const ZERO_HANDLE: [bigint] = [BigInt(0)];
+/** @internal */
 export const ZERO_VEC3: HKVector3 = [0, 0, 0];
+/** @internal */
 export const IDENTITY_QUAT: HKQuaternion = [0, 0, 0, 1];
+/** @internal */
 export const ALL_FILTER: HKFilterInfo = [0xffffffff, 0xffffffff];
 
-/** Shared leaf-only scratch tuples for synchronous single `HP_*` calls (never held across nested helpers). */
+/** @internal Shared leaf-only scratch tuples for synchronous single `HP_*` calls (never held across nested helpers). */
 export const SCRATCH_VEC3_A: HKVector3 = [0, 0, 0];
+/** @internal */
 export const SCRATCH_VEC3_B: HKVector3 = [0, 0, 0];
+/** @internal */
 export const SCRATCH_VEC3_C: HKVector3 = [0, 0, 0];
 
-/** Write a `Vector3` into an `HKVector3` tuple and return `out`. */
+/** @internal Write a `Vector3` into an `HKVector3` tuple and return `out`. */
 export function writeVec3(src: Vector3, out: HKVector3): HKVector3 {
   out[0] = src.x;
   out[1] = src.y;
@@ -235,6 +285,7 @@ export function writeVec3(src: Vector3, out: HKVector3): HKVector3 {
 }
 
 /**
+ * @internal
  * Normalize `src` into an `HKQuaternion` tuple, falling back to identity `[0, 0, 0, 1]` on zero quaternions.
  */
 export function writeNormalizedQuat(src: Quaternion, out: HKQuaternion): void {
@@ -258,6 +309,7 @@ export function writeNormalizedQuat(src: Quaternion, out: HKQuaternion): void {
 }
 
 /**
+ * @internal
  * Write `pos` and normalized `rot` (falling back to identity on zero quaternion) into an `HKQTransform` tuple.
  */
 export function writeQTransform(pos: Vector3, rot: Quaternion, out: [HKVector3, HKQuaternion]): void {
@@ -269,6 +321,7 @@ export function writeQTransform(pos: Vector3, rot: Quaternion, out: [HKVector3, 
 }
 
 /**
+ * @internal
  * Normalize `src` into a `Quaternion`, falling back to identity `(0, 0, 0, 1)` on zero quaternions.
  */
 export function normalizeQuatOrIdentity(src: Quaternion, out: Quaternion): void {
@@ -283,4 +336,16 @@ export function normalizeQuatOrIdentity(src: Quaternion, out: Quaternion): void 
   } else {
     out.set(0, 0, 0, 1);
   }
+}
+
+/** @internal O(1) unordered removal of `item` from a dense array. */
+export function swapRemove<T>(arr: T[], item: T): boolean {
+  const idx = arr.indexOf(item);
+  if (idx === -1) return false;
+  const last = arr.length - 1;
+  if (idx !== last) {
+    arr[idx] = arr[last];
+  }
+  arr.length = last;
+  return true;
 }

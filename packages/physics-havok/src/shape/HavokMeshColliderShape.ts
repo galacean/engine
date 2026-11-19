@@ -5,7 +5,7 @@ import { HavokPhysicsMaterial } from "../HavokPhysicsMaterial";
 import { HP_ShapeId, ZERO_HANDLE } from "../HavokTypes";
 import { HavokColliderShape } from "./HavokColliderShape";
 
-const MIN_SCALE = 1e-4;
+const MIN_SCALE = Math.fround(1e-6);
 
 interface PreparedMeshData {
   vertices: Float32Array;
@@ -181,9 +181,12 @@ export class HavokMeshColliderShape extends HavokColliderShape implements IMeshC
   private _createHKShape(vertices: Float32Array, indices: Int32Array | null): HP_ShapeId | null {
     const hk = this._havokPhysics._hk;
     const numVerts = vertices.length / 3;
-    const sx = Math.max(this._worldScale.x, MIN_SCALE);
-    const sy = Math.max(this._worldScale.y, MIN_SCALE);
-    const sz = Math.max(this._worldScale.z, MIN_SCALE);
+    const sx = Math.fround(Math.max(this._worldScale.x, MIN_SCALE));
+    const sy = Math.fround(Math.max(this._worldScale.y, MIN_SCALE));
+    const sz = Math.fround(Math.max(this._worldScale.z, MIN_SCALE));
+    if (!(Number.isFinite(sx) && Number.isFinite(sy) && Number.isFinite(sz))) {
+      return null;
+    }
 
     let vertsPtr = 0;
     let trisPtr = 0;

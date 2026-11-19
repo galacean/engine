@@ -26,6 +26,7 @@ export abstract class HavokJoint implements IJoint {
   protected static _tempVecC = new Vector3();
   protected static _tempQuatA = new Quaternion();
   protected static _tempQuatB = new Quaternion();
+  /** @internal */
   protected static _tempQTransform: [HKVector3, HKQuaternion] = [
     [0, 0, 0],
     [0, 0, 0, 1]
@@ -145,18 +146,22 @@ export abstract class HavokJoint implements IJoint {
     this._anchorsDirty = true;
   }
 
+  setConnectedMassScale(scale: number): void;
   setConnectedMassScale(): void {
     // Not exposed in Havok WASM constraint API.
   }
 
+  setMassScale(scale: number): void;
   setMassScale(): void {
     // Not exposed in Havok WASM constraint API.
   }
 
+  setConnectedInertiaScale(scale: number): void;
   setConnectedInertiaScale(): void {
     // Not exposed in Havok WASM constraint API.
   }
 
+  setInertiaScale(scale: number): void;
   setInertiaScale(): void {
     // Not exposed in Havok WASM constraint API.
   }
@@ -176,7 +181,7 @@ export abstract class HavokJoint implements IJoint {
     if (this._connectedCollider && this._connectedCollider !== this._collider) {
       this._connectedCollider._removeJoint(this);
     }
-    this._scene?._joints.delete(this);
+    this._scene?._removeJoint(this);
     this._scene = null;
     this._boundScene = null;
     const hk = this._havokPhysics._hk;
@@ -237,9 +242,9 @@ export abstract class HavokJoint implements IJoint {
     if (scene !== null && this._boundScene !== null && this._boundScene !== scene) {
       this._needsRebuild = true;
     }
-    this._scene?._joints.delete(this);
+    this._scene?._removeJoint(this);
     this._scene = scene;
-    this._scene?._joints.add(this);
+    this._scene?._addJoint(this);
     this._anchorsDirty = true;
     this._configDirty = true;
   }
