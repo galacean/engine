@@ -219,12 +219,96 @@ Shader "PBR" {
         BlendState = { Enabled = false; ColorWriteMask = ColorWriteMask.None; }
         RasterState = { CullMode = rasterStateCullMode; }
         RenderQueueType = renderQueueType;
-        VertexShader = PBRVertex;
-        FragmentShader = contributionDepth;
-        #include "ShaderLibrary/PBR/ForwardPassPBR.glsl"
-        void contributionDepth(Varyings varyings) {
-          SurfaceData surface = getSurfaceData(varyings, varyings.uv, gl_FrontFacing);
-          if (surface.opacity <= 0.0001) discard;
+        VertexShader = contributionDepthVert;
+        FragmentShader = contributionDepthFrag;
+
+        #include "ShaderLibrary/Common/Common.glsl"
+        #include "ShaderLibrary/Common/Transform.glsl"
+        #include "ShaderLibrary/Common/Attributes.glsl"
+        #include "ShaderLibrary/Skin/Skin.glsl"
+        #include "ShaderLibrary/Skin/BlendShape.glsl"
+
+        vec4 material_BaseColor;
+        #ifdef MATERIAL_HAS_BASETEXTURE
+          vec4 material_TilingOffset;
+          sampler2D material_BaseTexture;
+        #endif
+        #ifdef MATERIAL_IS_ALPHA_CUTOFF
+          float material_AlphaCutoff;
+        #endif
+
+        struct ContributionDepthVaryings {
+          #ifdef MATERIAL_HAS_BASETEXTURE
+            vec2 uv;
+          #endif
+          #ifdef RENDERER_ENABLE_VERTEXCOLOR
+            vec4 vertexColor;
+          #endif
+          #if !defined(MATERIAL_HAS_BASETEXTURE) && !defined(RENDERER_ENABLE_VERTEXCOLOR)
+            float _unused;
+          #endif
+        };
+
+        ContributionDepthVaryings contributionDepthVert(Attributes attr) {
+          ContributionDepthVaryings varyings;
+          #ifdef MATERIAL_HAS_BASETEXTURE
+            vec2 uv0 = vec2(0.0);
+            #ifdef RENDERER_HAS_UV
+              uv0 = attr.TEXCOORD_0;
+            #endif
+            varyings.uv = uv0 * material_TilingOffset.xy + material_TilingOffset.zw;
+          #endif
+          #ifdef RENDERER_ENABLE_VERTEXCOLOR
+            varyings.vertexColor = attr.COLOR_0;
+          #endif
+          #if !defined(MATERIAL_HAS_BASETEXTURE) && !defined(RENDERER_ENABLE_VERTEXCOLOR)
+            varyings._unused = 0.0;
+          #endif
+
+          vec4 position = vec4(attr.POSITION, 1.0);
+          #ifdef RENDERER_HAS_BLENDSHAPE
+            #ifdef RENDERER_HAS_NORMAL
+              vec3 normal = vec3(attr.NORMAL);
+              #ifdef RENDERER_HAS_TANGENT
+                vec4 tangent = vec4(attr.TANGENT);
+              #endif
+            #endif
+            calculateBlendShape(attr, position
+              #ifdef RENDERER_HAS_NORMAL
+                , normal
+                #ifdef RENDERER_HAS_TANGENT
+                  , tangent
+                #endif
+              #endif
+            );
+          #endif
+          #ifdef RENDERER_HAS_SKIN
+            mat4 skinMatrix = getSkinMatrix(attr);
+            position = skinMatrix * position;
+          #endif
+
+          gl_Position = renderer_MVPMat * position;
+          return varyings;
+        }
+
+        void contributionDepthFrag(ContributionDepthVaryings varyings) {
+          float alpha = material_BaseColor.a;
+          #ifdef MATERIAL_HAS_BASETEXTURE
+            alpha *= texture2D(material_BaseTexture, varyings.uv).a;
+          #endif
+          #ifdef RENDERER_ENABLE_VERTEXCOLOR
+            alpha *= varyings.vertexColor.a;
+          #endif
+          #ifdef MATERIAL_IS_ALPHA_CUTOFF
+            if (alpha < material_AlphaCutoff) {
+              discard;
+            }
+          #endif
+          #ifdef MATERIAL_IS_TRANSPARENT
+            if (alpha <= 0.0001) {
+              discard;
+            }
+          #endif
         }
       }
 
