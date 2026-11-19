@@ -74,6 +74,8 @@ import fireflyShader from "./TemplateFirefly.shader?raw";
 import petalShader from "./TemplatePetal.shader?raw";
 import butterflyShader from "./TemplateButterfly.shader?raw";
 
+const MODEL_LOD_CHUNK_PREFIX = "Chunk_";
+
 function modelBounds(entity: Entity): BoundingBox {
   const bounds = new BoundingBox(
     new Vector3(Infinity, Infinity, Infinity),
@@ -82,6 +84,28 @@ function modelBounds(entity: Entity): BoundingBox {
   for (const renderer of entity.getComponentsIncludeChildren(MeshRenderer, []))
     BoundingBox.merge(bounds, renderer.bounds, bounds);
   return bounds;
+}
+
+function measureModelLodChunkBounds(model: Entity): Map<string, BoundingBox> | undefined {
+  const chunkChildren = model.children.filter((child) => child.name.startsWith(MODEL_LOD_CHUNK_PREFIX));
+  if (chunkChildren.length < 2) return undefined;
+  const boundsByName = new Map<string, BoundingBox>();
+  for (const child of chunkChildren) {
+    const childBounds = modelBounds(child);
+    if (!Number.isFinite(childBounds.min.x)) return undefined;
+    boundsByName.set(child.name, childBounds);
+  }
+  return boundsByName;
+}
+
+function chunkProjectionSize(bounds: BoundingBox): number {
+  const dx = Math.max(0, bounds.max.x - bounds.min.x);
+  const dy = Math.max(0, bounds.max.y - bounds.min.y);
+  const dz = Math.max(0, bounds.max.z - bounds.min.z);
+  const volumeSize = Math.cbrt(dx * dy * dz);
+  const axes = [dx, dy, dz].sort((a, b) => a - b);
+  const planarSize = Math.sqrt(axes[1] * axes[2]);
+  return Math.max(volumeSize, planarSize * 0.5);
 }
 
 class TemplateModelLods extends Script {
@@ -93,13 +117,41 @@ class TemplateModelLods extends Script {
     active: number;
   }[] = [];
 
-  track(models: Entity[], bounds: BoundingBox, camera: Camera, thresholds: readonly [number, number]): void {
+  track(
+    models: Entity[],
+    bounds: BoundingBox,
+    camera: Camera,
+    thresholds: readonly [number, number],
+    chunkBounds?: ReadonlyMap<string, BoundingBox>
+  ): void {
+    if (chunkBounds && chunkBounds.size >= 2) {
+      const levelMaps = models.map((model) => new Map(model.children.map((child) => [child.name, child])));
+      const allChunksMatched = [...chunkBounds.keys()].every((name) => levelMaps.every((map) => map.has(name)));
+      if (allChunksMatched) {
+        for (const [name, localBounds] of chunkBounds) {
+          const chunkLevels = levelMaps.map((map) => map.get(name)!);
+          this.trackGroup(models[0], chunkLevels, localBounds, chunkProjectionSize(localBounds), camera, thresholds);
+        }
+        return;
+      }
+    }
+    this.trackGroup(models[0], models, bounds, bounds.max.y - bounds.min.y, camera, thresholds);
+  }
+
+  private trackGroup(
+    referenceRoot: Entity,
+    models: Entity[],
+    bounds: BoundingBox,
+    size: number,
+    camera: Camera,
+    thresholds: readonly [number, number]
+  ): void {
     const { min, max } = bounds;
     const projection = new TerrainScreenRelativeHeightRuntime(
-      models[0],
+      referenceRoot,
       camera,
       [(min.x + max.x) / 2, (min.y + max.y) / 2, (min.z + max.z) / 2],
-      max.y - min.y
+      size
     );
     const levelRenderers = models.map((model) => model.getComponentsIncludeChildren(MeshRenderer, []));
     const lowestRenderers = levelRenderers[levelRenderers.length - 1];
@@ -333,6 +385,7 @@ export class WorldTemplateRuntime {
           // Measure the detached instance so imported node transforms are included,
           // before the template's placement, rotation and metre dimensions apply.
           const bounds = modelBounds(model);
+          const chunkBounds = camera && node.assetLod ? measureModelLodChunkBounds(model) : undefined;
           const normalized = entity.createChild("Model fit");
           normalized.addChild(model);
           const levels = [model];
@@ -377,7 +430,7 @@ export class WorldTemplateRuntime {
           );
           if (camera && node.assetLod) {
             modelLods ??= this.root.addComponent(TemplateModelLods);
-            modelLods.track(levels, bounds, camera, node.assetLod.screenRelativeHeights);
+            modelLods.track(levels, bounds, camera, node.assetLod.screenRelativeHeights, chunkBounds);
           }
           this.models.push({ id: node.id, url: node.assetUrl, entity });
           continue;

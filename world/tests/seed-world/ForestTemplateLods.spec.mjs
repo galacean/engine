@@ -72,6 +72,41 @@ describe("emerald forest model LODs", () => {
     }
   );
 
+  it("partitions forest-giant-oak into matching Chunk_* spatial sub-volumes with monotonic per-chunk LODs", () => {
+    const oak = forest.find((node) => node.assetUrl?.endsWith("forest-giant-oak.glb"));
+    expect(oak?.assetLod).toBeDefined();
+    const source = loadModel(oak.assetUrl);
+    const lods = loadModel(oak.assetLod.url);
+    const tangentSlots = new Set(
+      source.materials
+        .filter((material) => material.normalTexture && !oak.assetLeafMaterials?.includes(material.name))
+        .map((material) => material.name)
+    );
+    const chunkStats = (gltf, scene) => {
+      const map = new Map();
+      for (const nodeIndex of scene.nodes) {
+        const node = gltf.nodes[nodeIndex];
+        expect(node.name.startsWith("Chunk_")).toBe(true);
+        map.set(node.name, geometry(gltf, { nodes: [nodeIndex] }, tangentSlots));
+      }
+      return map;
+    };
+    const lod0Chunks = chunkStats(source, source.scenes[source.scene ?? 0]);
+    expect(lod0Chunks.size).toBeGreaterThanOrEqual(2);
+    const lodChunkMaps = lods.scenes.map((scene) => chunkStats(lods, scene));
+    for (const [chunkName, base] of lod0Chunks) {
+      let previous = base.triangles;
+      for (const lodMap of lodChunkMaps) {
+        const next = lodMap.get(chunkName);
+        expect(next).toBeDefined();
+        expect(next.slots).toEqual(base.slots);
+        expect(next.triangles).toBeGreaterThan(0);
+        expect(next.triangles).toBeLessThan(previous);
+        previous = next.triangles;
+      }
+    }
+  });
+
   it("excludes only the three skyline oaks from shadow casting", () => {
     expect(
       forest

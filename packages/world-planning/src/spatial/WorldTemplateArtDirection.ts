@@ -363,8 +363,9 @@ const forestOak = (id: string, x: number, z: number, height: number, yaw: number
   assetUrl: new URL("../assets/forest-giant-oak.glb", import.meta.url).href,
   assetLod: {
     url: new URL("../assets/forest-giant-oak-lods.glb", import.meta.url).href,
-    // Even the skyline oaks span much of the view. Their small branches and leaf cards recede first.
-    screenRelativeHeights: [1, 0.8]
+    // Each Chunk_* spatial sub-volume (trunk + 4 canopy clusters) is tracked independently by its own
+    // screen-relative projection, so foreground trunks/lower boughs stay LOD0 while distant/upper chunks step down.
+    screenRelativeHeights: [0.55, 0.35]
   },
   assetLeafMaterials: ["Flower_Clusters_512", "Flowers_512"],
   assetLeafColor: "#74a45b"
@@ -649,9 +650,9 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
         assetUrl: templateAssets["forest-giant-oak"],
         assetLod: {
           url: templateAssets["forest-giant-oak-lods"],
-          // Keep the central hero oasis tree at full LOD0 from spawn (~53m, height ~0.42),
-          // stepping down to LOD1 (~74m) and LOD2 (~160m) as the camera moves away.
-          screenRelativeHeights: [0.3, 0.14]
+          // Per-chunk thresholds (~0.38x whole-tree height) keep all 5 chunks of the central hero oasis tree
+          // at full LOD0 from spawn (~53m, chunk projections 0.12-0.17), stepping down to LOD1 (~75m) and LOD2 (~155m).
+          screenRelativeHeights: [0.11, 0.055]
         }
       }
     ],
