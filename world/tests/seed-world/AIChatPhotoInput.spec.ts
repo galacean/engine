@@ -4,6 +4,7 @@ import { requestAsapChat } from "@galacean/engine-ai-chat/ai-chat/asap-chat.ts";
 import { AIChatSession } from "@galacean/engine-ai-chat/ai-chat/ai-chat-session.ts";
 import { createTestAgentLoop } from "../../../packages/ai-chat/tests/AIChatTestRuntime";
 import { ConversationHistory } from "@galacean/engine-ai-chat/ai-chat/conversation-history.ts";
+import { readSystemInjection } from "@galacean/engine-ai-chat/ai-chat/agent-protocol.ts";
 import { SeedWorldViewSnapshots, type ViewAnnotation } from "@galacean/engine-world-planning/world/SeedWorldViewSnapshot.ts";
 
 const request = vi.mocked(requestAsapChat);
@@ -175,8 +176,9 @@ it.each([false, true])("reads a near-limit fractional stroke in the same or late
   await session.run("unrelated 3");
   expect(views.hasImage(imagePath)).toBe(false); expect(frame.image.dispose).toHaveBeenCalledOnce();
   await Promise.resolve(); expect(views.budget.stats.total).toBe(0);
-  const prefix = request.mock.lastCall![0].messages[5].content;
-  expect(prefix).not.toContain("annotations"); expect(prefix).toContain('"available":false');
+  const worldState = request.mock.lastCall![0].messages.at(-1)!.content;
+  expect(readSystemInjection(worldState)?.type).toBe("world_state");
+  expect(worldState).not.toContain("annotations"); expect(worldState).toContain('"available":false');
   session.dispose(); views.dispose();
 });
 
@@ -257,8 +259,8 @@ it("numbers reused images by each input's order, while rereading returns only im
   const imagePath = secondLease.references[0].imagePath;
   const second = session.submit("now only this one", {}, "next-step", prepared(secondLease));
   gate.resolve(final); await Promise.all([first.completion, second.completion]);
-  const refs = request.mock.calls[1][0].messages.filter(m => m.content.includes('"contextKind":"user_visual_reference"'))
-    .map(m => JSON.parse(m.content));
+  const refs = request.mock.calls[1][0].messages.filter(m => readSystemInjection(m.content)?.type === "user_visual_reference")
+    .map(m => JSON.parse(readSystemInjection(m.content)!.body));
   expect(refs.map(r => [r.inputId, r.photoNumber, r.photoCount])).toEqual([
     [first.id, 1, 2], [first.id, 2, 2], [second.id, 1, 1]
   ]);
@@ -266,7 +268,7 @@ it("numbers reused images by each input's order, while rereading returns only im
   expect(refs.every(r => !Object.hasOwn(r.metadata, "photoNumber"))).toBe(true);
   request.mockResolvedValueOnce(readImage(imagePath)).mockResolvedValueOnce(final);
   await session.run("read previous image");
-  const imageReply = request.mock.lastCall![0].messages.find(m => m.content.includes('"contextKind":"view_observation"') && "image" in m && m.image)!;
+  const imageReply = request.mock.lastCall![0].messages.find(m => readSystemInjection(m.content)?.type === "view_observation" && "image" in m && m.image)!;
   expect(imageReply).toBeDefined();
   expect(imageReply.content).not.toMatch(/photoNumber|photoCount/);
   session.dispose(); views.dispose();

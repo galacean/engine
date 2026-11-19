@@ -10,6 +10,8 @@ vi.mock("@galacean/engine-ai-chat/ai-chat/asap-chat.ts", () => ({
 
 import { AIChatSession } from "@galacean/engine-ai-chat/ai-chat/ai-chat-session.ts";
 import { requestAsapChat } from "@galacean/engine-ai-chat/ai-chat/asap-chat.ts";
+import { readSystemInjection } from "@galacean/engine-ai-chat/ai-chat/agent-protocol.ts";
+import { ConversationHistory } from "@galacean/engine-ai-chat/ai-chat/conversation-history.ts";
 import { defineTool } from "@galacean/engine-ai-chat/ai-chat/agent-types.ts";
 
 const mockedRequest = vi.mocked(requestAsapChat);
@@ -45,11 +47,14 @@ function promptAt(index: number): string {
 }
 
 function taskContextAt(index: number): Record<string, unknown> {
-  const message = mockedRequest.mock.calls[index][0].messages.find(m => m.content.includes('"contextKind":"agent_task"'));
+  const message = [...mockedRequest.mock.calls[index][0].messages]
+    .reverse()
+    .find(m => readSystemInjection(m.content)?.type === "task_context");
   if (!message) {
-    throw new Error(`Request ${index} does not contain an agent_task message`);
+    throw new Error(`Request ${index} does not contain a task_context message`);
   }
-  return JSON.parse(message.content) as Record<string, unknown>;
+  const parsed = readSystemInjection(message.content)!;
+  return { ...(JSON.parse(parsed.body) as Record<string, unknown>), instruction: parsed.trailing };
 }
 
 function testDefinition(toolNames: readonly string[]) {
@@ -130,7 +135,7 @@ describe("AIChatSession", () => {
     mockedRequest.mockResolvedValueOnce(final("Both photos received"));
     await session.run("compare these photos", { attachments: photos });
     const messages = mockedRequest.mock.calls[0][0].messages;
-    const references = messages.filter(message => message.content.includes('"contextKind":"user_visual_reference"')).map(message => JSON.parse(message.content));
+    const references = messages.filter(message => readSystemInjection(message.content)?.type === "user_visual_reference").map(message => JSON.parse(readSystemInjection(message.content)!.body));
     expect(references).toHaveLength(2);
     expect(JSON.stringify(references)).toContain("first-view");
     expect(JSON.stringify(references)).toContain("second-view");
@@ -146,8 +151,8 @@ describe("AIChatSession", () => {
     const session = new AIChatSession({ agent: createTestAgentLoop({ tools: [], definition }) });
     let imagePath = "";
     mockedRequest.mockImplementationOnce(async request => {
-      const reference = request.messages.find(message => message.content.includes('"contextKind":"user_visual_reference"'))!;
-      imagePath = JSON.parse(reference.content).imagePath;
+      const reference = request.messages.find(message => readSystemInjection(message.content)?.type === "user_visual_reference")!;
+      imagePath = JSON.parse(readSystemInjection(reference.content)!.body).imagePath;
       return toolCall("snapshot", {});
     });
     for (let i = 0; i < 3; i++) mockedRequest.mockResolvedValueOnce(toolCall("snapshot", {}));
@@ -207,12 +212,16 @@ describe("AIChatSession", () => {
     committed = false; // Observation becomes available again; no new edit request.
     mockedRequest.mockResolvedValueOnce(final("Already committed"));
     await (await session.continue()).completion;
-    expect(JSON.parse(mockedRequest.mock.calls[2][0].messages[4].content)).toMatchObject({ records: [{ result: {
-      status: "failed", executions: [{ status: "committed", transactionId: expect.any(String) }]
-    } }] });
+    const resumedMessages = mockedRequest.mock.calls[2][0].messages;
+    expect(resumedMessages.some(m => readSystemInjection(m.content)?.type === "task_continued")).toBe(true);
+    const toolReceipts = resumedMessages.filter(m => m.role === "tool" && m.content.startsWith("{")).map(m => JSON.parse(m.content));
+    expect(toolReceipts).toContainEqual(expect.objectContaining({
+      ok: true,
+      receipt: expect.objectContaining({ status: "committed", transactionId: expect.any(String) })
+    }));
   });
 
-  it("injects only the previous instruction and compact task result", async () => {
+  it("retains prior turn context in session transcript without leaking raw unreturned tool payloads", async () => {
     const tool = defineTool({
       name: "create_river",
       input: z.strictObject({}),
@@ -238,13 +247,11 @@ describe("AIChatSession", () => {
     await session.run("在它旁边种树", { model: "agent" });
 
     expect(session.historyRecordCount).toBe(2);
-    const taskContext = mockedRequest.mock.calls[3][0].messages[4].content;
-    expect(taskContext).toContain("生成一条河流");
-    expect(taskContext).toContain("第一条河流已生成");
-    expect(taskContext).toContain('"riverId":"river-1"');
-    expect(taskContext).not.toContain("large-render-payload");
-    expect(taskContext).not.toContain("toolCalls");
-    expect(taskContext).not.toContain("async function main");
+    const turn2Prompt = promptAt(3);
+    expect(turn2Prompt).toContain("生成一条河流");
+    expect(turn2Prompt).toContain("第一条河流已生成");
+    expect(turn2Prompt).toContain('"riverId":"river-1"');
+    expect(turn2Prompt).not.toContain("large-render-payload");
   });
 
   it("marks only the current instruction as voice input", async () => {
@@ -290,7 +297,9 @@ describe("AIChatSession", () => {
       output: z.strictObject({ createdId: z.string() }),
       execute: () => ({ createdId: "river-1" })
     });
+    const history = new ConversationHistory();
     const session = new AIChatSession({
+      history,
       agent: createTestAgentLoop({
         tools: [tool],
         definition: testDefinition([tool.name])
@@ -306,16 +315,19 @@ describe("AIChatSession", () => {
       .mockResolvedValueOnce(final("已读取失败结果"));
 
     await expect(session.run("生成后继续", { model: "agent" })).rejects.toThrow("HTTP 500");
-    await (await session.continue()).completion;
+    const failureHistory = JSON.stringify(history.snapshot());
+    expect(failureHistory).toContain('"status":"failed"');
+    expect(failureHistory).toContain("处理过程中遇到了问题");
+    expect(failureHistory).not.toContain("createdId");
 
-    const taskContext = mockedRequest.mock.calls[3][0].messages[4].content;
-    expect(taskContext).toContain('"status":"failed"');
-    expect(taskContext).toContain("处理过程中遇到了问题");
-    expect(taskContext).not.toContain("createdId");
+    await (await session.continue()).completion;
+    expect(promptAt(3)).toContain('<system_injection type="task_continued">');
   });
 
   it("records cancellation as a compact result", async () => {
+    const history = new ConversationHistory();
     const session = new AIChatSession({
+      history,
       agent: createTestAgentLoop({
         tools: [],
         definition: testDefinition([])
@@ -329,10 +341,11 @@ describe("AIChatSession", () => {
     await vi.waitFor(() => expect(mockedRequest).toHaveBeenCalledOnce());
     session.cancel();
     await expect(running).rejects.toThrow("Agent task cancelled");
+    expect(JSON.stringify(history.snapshot())).toContain('"status":"cancelled"');
 
     mockedRequest.mockResolvedValueOnce(final("新任务"));
     await (await session.continue()).completion;
-    expect(promptAt(1)).toContain('"status":"cancelled"');
+    expect(promptAt(1)).toContain('<system_injection type="task_continued">');
     expect(promptAt(1)).toContain("等待中的任务");
   });
 });
@@ -357,7 +370,7 @@ it("reuses message-history image order across turns, preserves edited versions, 
   mockedRequest.mockResolvedValueOnce(toolCall("read",{file_path:originalId})).mockResolvedValueOnce(final("上轮的图没改过"));
   await session.run("本轮也有图，但请看上一轮的第一张",{attachments:editedObservations}); edited.release();
   const request=mockedRequest.mock.lastCall![0];
-  const task=JSON.parse(request.messages.at(-1).content);
+  const task=JSON.parse(readSystemInjection(request.messages.at(-1)!.content)!.body);
   expect(JSON.stringify(task)).toContain(originalId);
   expect(await serializedImages(request.messages)).toContain("data:image/png;base64,AAAA");
   expect(await serializedImages(request.messages)).toContain("data:image/png;base64,BBBB");
@@ -432,9 +445,9 @@ it("submits two detailed photo annotations through the actual ChatPanel boundary
   expect(feedback).not.toHaveBeenCalled();
   expect(mockedRequest).toHaveBeenCalledOnce();
   const messages = mockedRequest.mock.calls[0][0].messages;
-  const references = messages.filter(message => message.content.includes('"contextKind":"user_visual_reference"'));
+  const references = messages.filter(message => readSystemInjection(message.content)?.type === "user_visual_reference");
   expect(references).toHaveLength(2);
-  expect(references.map(message => JSON.parse(message.content).metadata.annotations)).toEqual(photos.map(photo => photo.metadata.annotations));
+  expect(references.map(message => JSON.parse(readSystemInjection(message.content)!.body).metadata.annotations)).toEqual(photos.map(photo => photo.metadata.annotations));
   expect(JSON.stringify(taskContextAt(0).context)).not.toContain("annotations");
   expect(release).toHaveBeenCalledOnce();
   session.dispose();

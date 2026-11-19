@@ -17,6 +17,7 @@ import {
   getAgentTaskFailure
 } from "@galacean/engine-ai-chat/ai-chat/agent-loop.ts";
 import { requestAsapChat } from "@galacean/engine-ai-chat/ai-chat/asap-chat.ts";
+import { readSystemInjection } from "@galacean/engine-ai-chat/ai-chat/agent-protocol.ts";
 import { createSeedWorldAgentDefinition } from "../../../demos/seed-world/agent-adapter/SeedWorldAgentDefinition";
 import {
   AgentToolExecutionError,
@@ -118,9 +119,9 @@ it("sends runtime diagnostics once per task as historical evidence without extra
   await loop.run("检查错误",{});
   expect(mockedRequest).toHaveBeenCalledTimes(2);
   for (const [call] of mockedRequest.mock.calls) {
-    const records = call.messages.filter(message=>message.content.includes('"contextKind":"runtime_errors"'));
+    const records = call.messages.filter(message=>readSystemInjection(message.content)?.type === "runtime_errors");
     expect(records).toHaveLength(1);
-    expect(JSON.parse(records[0].content)).toMatchObject({historical:true,errors});
+    expect(JSON.parse(readSystemInjection(records[0].content)!.body)).toMatchObject({historical:true,errors});
   }
 });
 
@@ -138,13 +139,13 @@ it("observes only on demand, preserves retained images and redacts trace pixels"
   await loop.run("What do I see?", { debugMode: true });
   expect(captureSnapshot).toHaveBeenCalledTimes(3);
   expect(mockedRequest.mock.calls[0][0].messages.some(message => message.role === "user" && message.image)).toBe(false);
-  const observations = mockedRequest.mock.calls[3][0].messages.filter(message => message.role !== "system" && message.content.includes("view_observation"));
+  const observations = mockedRequest.mock.calls[3][0].messages.filter(message => message.role !== "system" && readSystemInjection(message.content)?.type === "view_observation");
   expect(observations).toHaveLength(3);
-  expect(observations.map(message => JSON.parse(message.content).metadata)).toEqual(
+  expect(observations.map(message => JSON.parse(readSystemInjection(message.content)!.body).metadata)).toEqual(
     [{ capturedAt: "now" }, { capturedAt: "now" }, { capturedAt: "now" }]
   );
   expect(toolResultsAt(3)).toEqual(observations.map(message => {
-    const { contextKind: _, metadata: _metadata, ...reference } = JSON.parse(message.content);
+    const { metadata: _metadata, ...reference } = JSON.parse(readSystemInjection(message.content)!.body);
     return { ok: true, result: reference };
   }));
   expect(observations.every(message => message.role === "user" && message.image)).toBe(true);
@@ -219,17 +220,17 @@ it("reading a guide is independent of registered execution capabilities", async 
 function contextAt(index: number, kind: string) {
   const messages = mockedRequest.mock.calls[index][0].messages;
   const message = messages.find(message => message.role === "user" &&
-    typeof message.content === "string" && message.content.startsWith("{") &&
-    JSON.parse(message.content).contextKind === kind);
+    typeof message.content === "string" &&
+    readSystemInjection(message.content)?.type === kind);
   expect(message, `Missing ${kind} context`).toBeDefined();
-  return JSON.parse(message!.content);
+  return JSON.parse(readSystemInjection(message!.content)!.body);
 }
 
 function transcriptAt(index: number) {
   const messages = mockedRequest.mock.calls[index][0].messages;
   const start = messages.findIndex(message => message.role === "assistant");
   const tail = start < 0 ? [] : messages.slice(start);
-  return tail.filter((message, i) => !(i === tail.length - 1 && message.content.includes('"contextKind":"world_state"')));
+  return tail.filter((message, i) => !(i === tail.length - 1 && readSystemInjection(message.content)?.type === "world_state"));
 }
 
 function toolResultsAt(index: number): Record<string, unknown>[] {
@@ -237,11 +238,15 @@ function toolResultsAt(index: number): Record<string, unknown>[] {
     .filter((message) => message.role === "tool")
     .map((message) => {
       if (message.content.startsWith("Error:")) return {ok:false,error:message.content.slice(7)};
-      if (message.content.startsWith("<path>")) return {ok:true,result:{
-        path:message.content.match(/<path>(.*?)<\/path>/)![1],
-        lines:[...message.content.matchAll(/^(\d+): (.*)$/gm)].map(m=>({number:Number(m[1]),text:m[2]})),
-        truncated:message.content.includes("truncated"), next:message.content.includes("Continue with") || message.content.includes("truncated")
-      }};
+      if (message.content.startsWith("<path>")) {
+        const primary = message.content.match(/<content>\n?([\s\S]*?)\n?<\/content>/)?.[1] ?? message.content;
+        return {ok:true,result:{
+          path:message.content.match(/<path>(.*?)<\/path>/)![1],
+          lines:[...primary.matchAll(/^(\d+): (.*)$/gm)].map(m=>({number:Number(m[1]),text:m[2]})),
+          dependencies:[...message.content.matchAll(/<dependency path="([^"]+)">/g)].map(m=>m[1]),
+          truncated:message.content.includes("truncated"), next:message.content.includes("Continue with") || message.content.includes("truncated")
+        }};
+      }
       return JSON.parse(message.content) as Record<string, unknown>;
     });
 }
@@ -626,7 +631,9 @@ describe("AgentLoop final AgentScriptCalling contract", () => {
     expect(toolResultsAt(1)[0]).toMatchObject({
       ok: true,
       result: {
-        path: "declare/editor/tools/inspect.d.ts", lines: definition.scriptApi.modules.find(module => module.id === "tools/inspect.d.ts")!.source.split("\n").map((text, index) => ({number: index + 1, text}))
+        path: "declare/editor/tools/inspect.d.ts",
+        dependencies: ["declare/editor/assets/TreeAsset.d.ts"],
+        lines: definition.scriptApi.modules.find(module => module.id === "tools/inspect.d.ts")!.source.split("\n").map((text, index) => ({number: index + 1, text}))
       }
     });
     expect(result.stageResults[1]).toMatchObject({ ok: true, output: { species: "birch" } });

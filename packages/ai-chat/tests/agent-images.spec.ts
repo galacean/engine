@@ -5,7 +5,7 @@ vi.mock("../src/ai-chat/asap-chat", () => ({ requestAsapChat: vi.fn() }));
 import { requestAsapChat, type AsapChatResult } from "../src/ai-chat/asap-chat";
 import { AgentImageStore, AgentImageStorageLimitError } from "../src/ai-chat/agent-image-store";
 import { AgentContextTranscript } from "../src/ai-chat/context-compaction";
-import { buildAgentToolDefinitions, parseAgentToolCall } from "../src/ai-chat/agent-protocol";
+import { buildAgentToolDefinitions, parseAgentToolCall, readSystemInjection } from "../src/ai-chat/agent-protocol";
 import type { AgentEvent, AgentMessage } from "../src/ai-chat/agent-types";
 import { createTestAgentLoop } from "./AIChatTestRuntime";
 
@@ -34,13 +34,14 @@ it("continues past four observations, compacts offloaded history, and rereads ex
   request.mockImplementation(async options => {
     const n = request.mock.calls.length;
     expect(imagesIn(options.messages).length).toBeLessThanOrEqual(4);
-    const task = JSON.parse(options.messages.at(-1).content);
-    expect(JSON.parse(options.messages[3].content).instruction).toBe("preserve constraints");
-    expect(options.contextCompaction).toEqual({ version: 2, protectedPrefixLength: n === 1 ? 6 : 5 });
+    const task = JSON.parse(readSystemInjection(options.messages.at(-1)!.content)!.body);
+    if (n <= 6) expect(readSystemInjection(options.messages[3].content)!.trailing).toBe("preserve constraints");
+    else expect(options.messages[3].content).toBe("first observation summarized");
+    expect(options.contextCompaction).toEqual({ version: 2, protectedPrefixLength: 3 });
     if (n === 2) firstId = task.images[0].imagePath;
     if (n === 6) {
-      expect(options.messages[7]).toMatchObject({ role: "user" });
-      expect(options.messages[7].content).toContain(firstId);
+      expect(options.messages[6]).toMatchObject({ role: "user" });
+      expect(options.messages[6].content).toContain(firstId);
       expect(imagesIn(options.messages).map(m => m.role === "user" && m.image!.width)).toEqual([2, 3, 4, 5]);
     }
     if (n >= 7) expect(task.images[0].imagePath).toBe(firstId);
@@ -52,7 +53,7 @@ it("continues past four observations, compacts offloaded history, and rereads ex
     const response = n <= 7 ? tool(`view-${n}`) : n === 8 ? tool("reread", "read", { file_path: firstId }) : final();
     return { ...response, telemetry: { modelName: "fixture", usage: { source: "provider", inputTokens: n * 100, outputTokens: 10 } },
       ...(n === 6 ? { contextCompaction: { version: 2, status: "compacted", strategy: "summary", beforeTokens: 1000,
-        afterTokens: 500, durationMs: 1, replacement: { prefixLength: 5, cutIndex: 3, summary: "first observation summarized" } } } : {}) } as AsapChatResult;
+        afterTokens: 500, durationMs: 1, replacement: { prefixLength: 3, cutIndex: 4, summary: "first observation summarized" } } } : {}) } as AsapChatResult;
   });
   const loop = createTestAgentLoop({ tools: [], definition: { ...definition, captureSnapshot } });
   loop.subscribe(e => events.push(e));
@@ -97,8 +98,8 @@ it("cancellation releases existing images immediately and ignores a late capture
   pairs(events, 6);
   request.mockResolvedValueOnce(final());
   await loop.run("next task", {});
-  expect(request.mock.lastCall![0].messages).toHaveLength(6);
-  expect(JSON.parse(request.mock.lastCall![0].messages[5].content).images).toBeUndefined();
+  expect(request.mock.lastCall![0].messages).toHaveLength(5);
+  expect(JSON.parse(readSystemInjection(request.mock.lastCall![0].messages[4].content)!.body).images).toBeUndefined();
 });
 
 it("releases images on model errors and preserves provider usage without a retry", async () => {

@@ -1,6 +1,7 @@
 import { AgentCancelledError, AgentLoop, getAgentTaskFailure } from "./agent-loop";
 import { SessionData, type AgentSessionSnapshot } from "./session-data";
 import { ConversationHistory } from "./conversation-history";
+import { AgentContextTranscript } from "./context-compaction";
 import type {
   AgentContinuation,
   AgentEvent,
@@ -40,10 +41,14 @@ type Machine =
   | { kind: "disposed" };
 type SuspendedTurn = { initial: PendingInput; continuation: AgentContinuation; blocked: boolean };
 
+export const DEFAULT_SESSION_COMPACTION_BUDGET = { triggerTokens: 48_000, targetTokens: 20_000 } as const;
+
 /** One driver owns the inbox and all turn transitions, including stop/continue. */
 export class AIChatSession {
   readonly #agent: AgentLoop;
   readonly #history: ConversationHistory;
+  readonly #transcript = new AgentContextTranscript();
+  #lastSettledFallbackMessage: string | undefined;
   readonly #listeners = new Set<AgentEventListener>();
   readonly #unsubscribe: () => void;
   readonly #inbox: PendingInput[] = [];
@@ -256,6 +261,8 @@ export class AIChatSession {
     if (this.state === "disposed") throw new Error("AIChatSession is disposed");
     for (const entry of [...this.#inbox]) this.removeInput(entry.input.id);
     this.#history.reset();
+    this.#transcript.clear();
+    this.#lastSettledFallbackMessage = undefined;
     this.#data.clear();
     this.#agent.resetKnowledge();
     this.#agent.resetConversationImages();
@@ -272,6 +279,8 @@ export class AIChatSession {
     this.#active?.preparation?.controller.abort();
     this.#agent.dispose();
     for (const entry of [...this.#inbox]) this.removeInput(entry.input.id);
+    this.#transcript.clear();
+    this.#lastSettledFallbackMessage = undefined;
     this.#unsubscribe();
     this.#listeners.clear();
     this.#stateListeners.clear();
@@ -339,14 +348,22 @@ export class AIChatSession {
         const modelRoute = normalizeModelRoute(initial.options.model);
         if (this.#modelRoute !== null && this.#modelRoute !== modelRoute) {
           this.#history.reset();
+          this.#transcript.clear();
+          this.#lastSettledFallbackMessage = undefined;
           this.#agent.resetKnowledge();
           this.#agent.resetConversationImages();
         }
         this.#modelRoute = modelRoute;
         if (!resume) this.#agent.beginConversationTurn(this.#history.beginTurn());
-        const result = await this.#agent.run(initial.input.text, initial.options, this.#history.snapshot(), {
+        const runOptions: AgentRunOptions = {
+          ...initial.options,
+          contextCompaction: initial.options.contextCompaction ?? DEFAULT_SESSION_COMPACTION_BUDGET
+        };
+        const result = await this.#agent.run(initial.input.text, runOptions, this.#history.snapshot(), {
           initialInputId: initial.input.id,
           continuation: resume?.turn.continuation,
+          sessionTranscript: this.#transcript,
+          previousTurnFallbackMessage: this.#lastSettledFallbackMessage,
           takeInputs: async () => {
             const batch: PendingInput[] = [];
             for (const item of this.#inbox.filter((item) => item.target === "next-step")) {
@@ -381,6 +398,7 @@ export class AIChatSession {
             continuation = value;
           }
         });
+        this.#lastSettledFallbackMessage = undefined;
         this.#history.commit(result);
         for (const waiter of active.waiters) waiter.resolve(result);
       } catch (error) {
@@ -388,6 +406,7 @@ export class AIChatSession {
         if (index >= 0) this.#inbox.splice(index, 1);
         const failure = getAgentTaskFailure(error);
         if (failure) this.#history.commitFailure(failure);
+        this.#lastSettledFallbackMessage = failure?.message ?? "上一轮任务已中止。";
         const suspended = continuation
           ? {
               initial: { ...initial, preparation: undefined, options: { ...initial.options, attachments: undefined } },

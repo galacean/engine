@@ -1,4 +1,5 @@
 import type { AgentTraceRecord, AgentTraceSnapshot } from "../agent-trace";
+import { readSystemInjection } from "../agent-protocol";
 import { normalizeModelTelemetry } from "../context-metrics";
 import { parseContextCompaction } from "../context-compaction";
 
@@ -666,11 +667,12 @@ function projectRecord(
 
   const pushContext = (message: unknown, key: string, step: number | null, at: number, taskId: unknown) => {
     if (!isRecord(message) || (message.role !== "user" && message.role !== "developer")) return;
-    const payload = typeof message.content === "string" ? parseJson(message.content) : undefined;
-    const contextKind = isRecord(payload) && typeof payload.contextKind === "string" ? payload.contextKind : undefined;
-    // Task envelopes, request-local corrections and screenshot inputs are not Context history.
+    const contextKind = extractMessageContextKind(message.content);
+    // Task envelopes, request-local corrections, compaction summaries and screenshot inputs are not Context history.
     if (
       contextKind === "agent_task" ||
+      contextKind === "task_context" ||
+      contextKind === "compaction_summary" ||
       contextKind === "view_observation" ||
       contextKind === "agent_protocol_correction"
     )
@@ -860,14 +862,9 @@ function projectRecord(
             typeof receipt.toolCallId !== "string"
           )
             continue;
-          const payload = parseJson(message.content);
+          const contextKind = extractMessageContextKind(message.content);
           const producingCall = receiptGroups.get(i - 1);
-          if (
-            !isRecord(payload) ||
-            payload.contextKind !== "view_observation" ||
-            !producingCall ||
-            observationInputs.has(producingCall.cell.id)
-          )
+          if (contextKind !== "view_observation" || !producingCall || observationInputs.has(producingCall.cell.id))
             continue;
           observationInputs.add(producingCall.cell.id);
           const inputGroup = getGroup(groups, `Step ${step}`);
@@ -2510,6 +2507,14 @@ function looksLikeToolPayload(value: string): boolean {
     isRecord(parsed.function) ||
     (typeof parsed.name === "string" && "arguments" in parsed)
   );
+}
+
+function extractMessageContextKind(content: unknown): string | undefined {
+  if (typeof content !== "string") return undefined;
+  const injected = readSystemInjection(content);
+  if (injected) return injected.type;
+  const payload = parseJson(content);
+  return isRecord(payload) && typeof payload.contextKind === "string" ? payload.contextKind : undefined;
 }
 
 function parseJson(value: string): unknown {

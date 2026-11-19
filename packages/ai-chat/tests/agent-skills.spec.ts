@@ -3,6 +3,7 @@ import { createTestAgentLoop } from "./AIChatTestRuntime";
 import { createAgentProjectFiles } from "../src/ai-chat/agent-project-files";
 import { composeAgentConfiguration } from "../src/ai-chat/agent-extensions";
 import { agentSkillFiles } from "../src/ai-chat/agent-skills";
+import { readSystemInjection } from "../src/ai-chat/agent-protocol";
 import type { AgentSkill } from "../src/ai-chat/agent-types";
 vi.mock("../src/ai-chat/asap-chat", () => ({requestAsapChat: vi.fn()}));
 import { requestAsapChat } from "../src/ai-chat/asap-chat";
@@ -14,11 +15,11 @@ beforeEach(()=>request.mockReset());
 
 it("sends only discovery metadata, then reads the skill and its reference through real file tools", async()=>{
   request.mockImplementationOnce(async input=>{
-    const task=JSON.parse(input.messages.find(m=>m.content.includes('"contextKind":"skills"'))!.content as string);
-    expect(task.skills).toEqual([{name:skill.name,description:skill.description,path:"skills/example-editor/SKILL.md"}]);
+    const skillsBlock=readSystemInjection(input.messages.find(m=>readSystemInjection(m.content as string)?.type==="skills")!.content as string)!;
+    expect(skillsBlock.body).toContain(`- ${skill.name} (skills/example-editor/SKILL.md): ${skill.description}`);
     expect(JSON.stringify(input.messages)).not.toContain(skill.content);
     expect(input.messages[0].content).not.toContain(skill.description);
-    return {content:"",finishReason:"tool_calls",toolCalls:[{id:"skill",type:"function",function:{name:"read",arguments:JSON.stringify({file_path:task.skills[0].path})}}]};
+    return {content:"",finishReason:"tool_calls",toolCalls:[{id:"skill",type:"function",function:{name:"read",arguments:JSON.stringify({file_path:"skills/example-editor/SKILL.md"})}}]};
   });
   request.mockImplementationOnce(async input=>{
     expect(input.messages).toContainEqual({role:"tool",toolCallId:"skill",content:expect.stringContaining("skills/fixture/knowledge/assets.md")});

@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { AgentNativeFiles, nativeFileTraceInput } from "../src/ai-chat/agent-native-files";
+import { AgentNativeFiles, collectActiveReadPaths, nativeFileTraceInput } from "../src/ai-chat/agent-native-files";
+import { createAgentProjectFiles } from "../src/ai-chat/agent-project-files";
 import { compileProjectGlob } from "@galacean/engine-project/project-files/project-glob.ts";
 import { VirtualProjectFiles } from "@galacean/engine-project/project-files/virtual-project-files.ts";
 import type { AgentEditTransaction } from "../src/ai-chat/agent-types";
@@ -239,4 +240,50 @@ it("cleans up a transaction that does not expose document tools", async () => {
   expect(await f.call("delete", {file_path: "notes.md"})).toMatchObject({result: {ok: false}});
   expect(f.discard).toHaveBeenCalledOnce();
   expect(complete).toHaveBeenCalledOnce();
+});
+
+it("auto-inlines transitive small declaration dependencies once across parallel and subsequent reads, and re-inlines after compaction", async () => {
+  const modules = [
+    { id: "declare/world/common/Ref.d.ts", source: "export type Ref = { id: string };", imports: [] },
+    { id: "declare/world/common/Anchor.d.ts", source: 'import type { Ref } from "./Ref";\nexport type Anchor = { ref: Ref };', imports: ["declare/world/common/Ref.d.ts"] },
+    { id: "declare/world/common/Target.d.ts", source: 'import type { Anchor } from "./Anchor";\nexport type Target = { anchor: Anchor };', imports: ["declare/world/common/Anchor.d.ts"] },
+    { id: "declare/world/tools/a.d.ts", source: 'import type { Target } from "../common/Target";\nexport function a(t: Target): void;', imports: ["declare/world/common/Target.d.ts"] },
+    { id: "declare/world/tools/b.d.ts", source: 'import type { Target } from "../common/Target";\nexport function b(t: Target): void;', imports: ["declare/world/common/Target.d.ts"] }
+  ];
+  const catalog = { entries: [], modules };
+  const projectFiles = createAgentProjectFiles(catalog);
+  let activeClaimed = new Set<string>();
+  const api = new AgentNativeFiles(
+    () => projectFiles,
+    () => ({ scriptApi: catalog, toolNames: [] }),
+    new Map(),
+    () => "unused",
+    60_000,
+    () => activeClaimed
+  );
+  const signal = new AbortController().signal;
+
+  // Parallel batch reading A and B that both depend on Target -> Anchor -> Ref:
+  const [readA, readB] = await Promise.all([
+    api.execute("read", { file_path: "declare/editor/world/tools/a.d.ts" }, "a", signal),
+    api.execute("read", { file_path: "declare/editor/world/tools/b.d.ts" }, "b", signal)
+  ]);
+  const combined = `${readA.content}\n${readB.content}`;
+  expect(combined.match(/<dependency path="declare\/editor\/world\/common\/Target\.d\.ts">/g)).toHaveLength(1);
+  expect(combined.match(/<dependency path="declare\/editor\/world\/common\/Anchor\.d\.ts">/g)).toHaveLength(1);
+  expect(combined.match(/<dependency path="declare\/editor\/world\/common\/Ref\.d\.ts">/g)).toHaveLength(1);
+
+  // Subsequent turn retains active transcript tool replies -> reading B again does not re-inline Target/Anchor/Ref:
+  activeClaimed = collectActiveReadPaths([
+    { role: "tool", toolCallId: "a", content: readA.content },
+    { role: "tool", toolCallId: "b", content: readB.content }
+  ]);
+  const readBAgain = await api.execute("read", { file_path: "declare/editor/world/tools/b.d.ts" }, "b2", signal);
+  expect(readBAgain.content).not.toContain("<dependency ");
+
+  // After compaction removes the old tool messages from active transcript -> dependencies are inlined fresh:
+  activeClaimed = collectActiveReadPaths([{ role: "user", content: "compacted summary" }]);
+  const readAfterCompaction = await api.execute("read", { file_path: "declare/editor/world/tools/b.d.ts" }, "b3", signal);
+  expect(readAfterCompaction.content).toContain('<dependency path="declare/editor/world/common/Target.d.ts">');
+  expect(readAfterCompaction.content).toContain('<dependency path="declare/editor/world/common/Ref.d.ts">');
 });

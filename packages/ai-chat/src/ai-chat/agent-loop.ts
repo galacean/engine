@@ -6,7 +6,12 @@ import { MODEL_ROUND_TIMEOUT_MS, type ModelRecoveryEvent } from "./model-recover
 import { createAgentEditorFacade } from "./agent-editor-facade";
 import { createAgentProjectFiles, projectDeclarationModules } from "./agent-project-files";
 import { AgentArtifacts } from "./agent-artifacts";
-import { AgentNativeFiles, isParallelFileTool, nativeFileTraceInput } from "./agent-native-files";
+import {
+  AgentNativeFiles,
+  collectActiveReadPaths,
+  isParallelFileTool,
+  nativeFileTraceInput
+} from "./agent-native-files";
 import { runToolBatch } from "./agent-tool-batch";
 import { fileToolStepResult, presentScriptOutput } from "./agent-output";
 import { AgentImageStore, AgentImageStorageLimitError } from "./agent-image-store";
@@ -15,6 +20,9 @@ import {
   buildAgentMessages,
   buildAgentSystemPrompt,
   buildAgentToolDefinitions,
+  formatAgentTaskMessage,
+  formatSystemInjection,
+  formatUserSupplementMessage,
   parseAgentFinalMessage,
   parseAgentToolCall
 } from "./agent-protocol";
@@ -232,7 +240,9 @@ export class AgentLoop {
     const inputs: AgentUserInput[] = structuredClone(control?.continuation?.inputs ?? []);
     const steps: AgentStepRecord[] = [];
     this.#refreshConfiguration();
-    const transcript = new AgentContextTranscript();
+    const sessionOwnedTranscript = Boolean(control?.sessionTranscript);
+    const transcript = control?.sessionTranscript ?? new AgentContextTranscript();
+    let batchClaimedDeclarations = new Set<string>();
     const historyReferences = [
       ...(control?.continuation?.visualReferences ?? []),
       ...inputs.flatMap((input) => input.visualReferences ?? []),
@@ -282,14 +292,16 @@ export class AgentLoop {
         recorded.push({ reference: saved.reference, image: saved.image });
         appendTranscript({
           role: "user",
-          content: JSON.stringify({
-            contextKind: "user_visual_reference",
-            ...saved.reference,
-            inputId,
-            photoNumber: index + 1,
-            photoCount: attachments.length,
-            metadata: saved.metadata
-          }),
+          content: formatSystemInjection(
+            "user_visual_reference",
+            JSON.stringify({
+              ...saved.reference,
+              inputId,
+              photoNumber: index + 1,
+              photoCount: attachments.length,
+              metadata: saved.metadata
+            })
+          ),
           image: saved.image
         });
         reportImages("captured", transcript.offloadImages(), saved.reference.imagePath);
@@ -300,7 +312,7 @@ export class AgentLoop {
     };
     const reportedRuntimeErrors = new Set<string>();
     const outputFiles = this.#outputFiles;
-    if (!control?.continuation) {
+    if (!control?.continuation && !sessionOwnedTranscript) {
       this.#fileObservations.clear();
     }
     let executeSource = "";
@@ -321,7 +333,9 @@ export class AgentLoop {
       () => makeProjectFiles(),
       () => this.#definition,
       this.#fileObservations,
-      (content) => outputFiles.save(`${taskId}:files:${++fileOutputOrdinal}`, content)
+      (content) => outputFiles.save(`${taskId}:files:${++fileOutputOrdinal}`, content),
+      undefined,
+      () => batchClaimedDeclarations
     );
     let consecutiveScriptFailures = 0;
     let toolFailureRounds = 0;
@@ -340,16 +354,35 @@ export class AgentLoop {
       context: control?.continuation?.inputs.at(-1)?.context ?? taskContext,
       continuedFrom: control?.continuation?.taskId
     });
-    appendTranscript(...(control?.continuation?.transcript ?? []));
-    if (control?.continuation)
+    if (control?.continuation) {
+      if (sessionOwnedTranscript) transcript.restoreActive(control.continuation.transcript);
+      else appendTranscript(...control.continuation.transcript);
       appendTranscript({
         role: "user",
-        content: JSON.stringify({
-          contextKind: "task_continued",
-          message:
-            "用户要求继续被中断的任务。已提交操作仍然有效；结合执行回执和当前状态完成剩余目标，不重复已提交的操作；未完成步骤可重新规划。历史图片引用仍保留；使用 read 按路径读取尚未过期的快照，过期时重新观察。"
+        content: formatSystemInjection(
+          "task_continued",
+          "用户要求继续被中断的任务。已提交操作仍然有效；结合执行回执和当前状态完成剩余目标，不重复已提交的操作；未完成步骤可重新规划。历史图片引用仍保留；使用 read 按路径读取尚未过期的快照，过期时重新观察。"
+        )
+      });
+    } else {
+      if (sessionOwnedTranscript) {
+        transcript.completeTurn(control?.previousTurnFallbackMessage);
+      } else if (conversationHistory.length > 0) {
+        appendTranscript({
+          role: "user",
+          content: formatSystemInjection("conversation_history", JSON.stringify({ records: conversationHistory }))
+        });
+      }
+      appendTranscript({
+        role: "user",
+        content: formatAgentTaskMessage({
+          taskId,
+          inputSource,
+          instruction: userInput,
+          context: taskContext
         })
       });
+    }
 
     try {
       if (!control?.continuation)
@@ -362,7 +395,7 @@ export class AgentLoop {
           if (attachments?.length) addition.visualReferences = appendAttachments(attachments, addition.id);
           if (attachments?.length) modelTools = buildAgentToolDefinitions(this.#definition);
           inputs.push(addition);
-          appendTranscript({ role: "user", content: JSON.stringify({ contextKind: "user_input", ...addition }) });
+          appendTranscript({ role: "user", content: formatUserSupplementMessage(addition) });
           this.#emit({ type: "input_consumed", taskId, input: structuredClone(addition) });
         }
         throwIfAborted(controller.signal);
@@ -370,10 +403,10 @@ export class AgentLoop {
           modelTools = buildAgentToolDefinitions(this.#definition);
           appendTranscript({
             role: "user",
-            content: JSON.stringify({
-              contextKind: "capabilities_changed",
-              message: "项目的可用接口已更新。之前读取的声明仅代表历史版本；请重新读取相关 Skill 和声明后继续。"
-            })
+            content: formatSystemInjection(
+              "capabilities_changed",
+              "项目的可用接口已更新。之前读取的声明仅代表历史版本；请重新读取相关 Skill 和声明后继续。"
+            )
           });
         }
         const worldThumbnail = await this.#provideWorldThumbnail();
@@ -389,7 +422,10 @@ export class AgentLoop {
         if (runtimeErrors.length) {
           appendTranscript({
             role: "user",
-            content: JSON.stringify({ contextKind: "runtime_errors", historical: true, errors: runtimeErrors })
+            content: formatSystemInjection(
+              "runtime_errors",
+              JSON.stringify({ historical: true, errors: runtimeErrors })
+            )
           });
           for (const error of runtimeErrors) reportedRuntimeErrors.add(error.id);
         }
@@ -650,11 +686,13 @@ export class AgentLoop {
             if (outcome.result.ok && saved) {
               appendCallMessages({
                 role: "user",
-                content: JSON.stringify({
-                  contextKind: "view_observation",
-                  ...saved.reference,
-                  metadata: saved.metadata
-                }),
+                content: formatSystemInjection(
+                  "view_observation",
+                  JSON.stringify({
+                    ...saved.reference,
+                    metadata: saved.metadata
+                  })
+                ),
                 image: saved.image
               });
               reportImages(capturing ? "captured" : "read", transcript.offloadImages(), saved.reference.imagePath);
@@ -695,6 +733,7 @@ export class AgentLoop {
             };
             // Terminal consumers seal their trace here; include resource cleanup first.
             releaseImages();
+            if (sessionOwnedTranscript) transcript.completeTurn();
             this.#emit({ type: "task_completed", taskId, result });
             return result;
           }
@@ -845,6 +884,19 @@ export class AgentLoop {
           }
         };
         const decisionResultOriginal = decisionResult;
+        batchClaimedDeclarations = collectActiveReadPaths(transcript.active);
+        for (const call of calls) {
+          if (
+            call.decision.type === "file" &&
+            call.decision.name === "read" &&
+            typeof call.decision.input.file_path === "string" &&
+            (call.decision.input.offset ?? 1) === 1 &&
+            (call.decision.input.column ?? 1) === 1 &&
+            call.decision.input.limit == null
+          ) {
+            batchClaimedDeclarations.add(call.decision.input.file_path);
+          }
+        }
         const batch = await runToolBatch(
           calls,
           (call) =>
@@ -933,22 +985,9 @@ export class AgentLoop {
       };
       if (control) {
         transcript.releaseImages();
-        const messages = transcript.active;
-        const pending = new Set<string>();
-        for (const message of messages) {
-          if (message.role === "assistant") for (const call of message.toolCalls ?? []) pending.add(call.id);
-          if (message.role === "tool") pending.delete(message.toolCallId);
-        }
-        for (const toolCallId of pending)
-          messages.push(
-            toolResultMessage(toolCallId, {
-              ok: false,
-              error: {
-                code: "INTERRUPTED",
-                message: "Execution was interrupted. Inspect retained host receipts before retrying any side effect."
-              }
-            })
-          );
+        const messages = transcript.closeInterruptedToolCalls(
+          "Execution was interrupted. Inspect retained host receipts before retrying any side effect."
+        );
         control.saveContinuation({
           taskId,
           visualReferences: structuredClone(visualReferences),
@@ -971,7 +1010,7 @@ export class AgentLoop {
     } finally {
       controller.signal.removeEventListener("abort", releaseImages);
       releaseImages();
-      transcript.clear();
+      if (!sessionOwnedTranscript) transcript.clear();
       this.#activeTaskId = null;
       this.#controller = null;
     }
@@ -1016,6 +1055,7 @@ export class AgentLoop {
         worldThumbnail: input.worldThumbnail,
         conversationHistory: input.conversationHistory,
         transcript: input.transcript.active,
+        taskInTranscript: true,
         images: input.images.references()
       });
       if (correction) messages.push(correction);
@@ -1490,17 +1530,19 @@ function buildModelResponseCorrection(
 ): AgentMessage {
   return {
     role: "system",
-    content: JSON.stringify({
-      contextKind: "agent_protocol_correction",
-      validationError: reason,
-      previousResponse: {
-        content: result.content,
-        finishReason: result.finishReason,
-        toolCalls: result.toolCalls
-      },
-      executionStatus: "no_tool_was_executed",
-      instruction: "修正上一份响应。只返回当前下一步的一个 Tool Call，或在任务已完成时返回最终文本。"
-    })
+    content: formatSystemInjection(
+      "agent_protocol_correction",
+      JSON.stringify({
+        validationError: reason,
+        previousResponse: {
+          content: result.content,
+          finishReason: result.finishReason,
+          toolCalls: result.toolCalls
+        },
+        executionStatus: "no_tool_was_executed",
+        instruction: "修正上一份响应。只返回当前下一步的一个 Tool Call，或在任务已完成时返回最终文本。"
+      })
+    )
   };
 }
 

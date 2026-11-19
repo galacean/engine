@@ -73,10 +73,16 @@ export function composeAgentConfiguration(
       editorComponents: components,
       projectFiles: definitions.flatMap((definition) => definition.projectFiles ?? []),
       scriptApi: {
-        hostNotes: definitions
-          .map((definition) => definition.scriptApi.hostNotes)
-          .filter(Boolean)
-          .join("\n\n"),
+        hostNotes: [
+          ...new Set(
+            definitions.flatMap((definition) =>
+              (definition.scriptApi.hostNotes ?? "")
+                .split("\n\n")
+                .map((block) => block.trim())
+                .filter(Boolean)
+            )
+          )
+        ].join("\n\n"),
         documents,
         skills,
         entries: definitions.flatMap((definition) => definition.scriptApi.entries),

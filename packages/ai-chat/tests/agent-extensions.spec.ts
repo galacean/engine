@@ -71,3 +71,12 @@ it("rejects duplicate symbols within one declaration module while permitting cro
   const configuration=composeAgentConfiguration(base(),[item]);
   expect(()=>createTestAgentLoop(configuration)).toThrow("Duplicate or empty Agent API entry");
 });
+
+it("deduplicates identical hostNotes paragraphs across base and extension definitions", () => {
+  const host = base();
+  host.definition.scriptApi.hostNotes = "Shared note A\n\nShared note B";
+  const first = extension("First");
+  first.definition.scriptApi.hostNotes = "Shared note A\n\nExtension note C";
+  const result = composeAgentConfiguration(host, [first]);
+  expect(result.definition.scriptApi.hostNotes).toBe("Shared note A\n\nShared note B\n\nExtension note C");
+});

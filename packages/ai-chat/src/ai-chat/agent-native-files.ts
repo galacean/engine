@@ -6,15 +6,36 @@ import {
   type VirtualProjectFiles
 } from "@galacean/engine-project/project-files/virtual-project-files";
 import { compileProjectGlob } from "@galacean/engine-project/project-files/project-glob";
-import { readAgentFile } from "./agent-file-read";
+import { MAX_READ_RESULT_BYTES, readAgentFile } from "./agent-file-read";
 import { toAgentValue } from "./agent-values";
 import type {
+  AgentApiDeclarationModule,
   AgentApplicationDefinition,
   AgentExecutionReceipt,
   AgentFileToolName,
+  AgentMessage,
   AgentModelToolDefinition,
   AgentToolResult
 } from "./agent-types";
+
+const MAX_SINGLE_DEPENDENCY_BYTES = 10 * 1024;
+const MAX_INLINE_DEPENDENCY_BYTES = 14 * 1024;
+const declarationPath = (id: string) => `declare/editor/${id.replace(/^declare\//, "")}`;
+
+export function collectActiveReadPaths(messages: readonly AgentMessage[]): Set<string> {
+  const paths = new Set<string>();
+  for (const message of messages) {
+    if (message.role !== "tool" || typeof message.content !== "string") continue;
+    if (!message.content.includes("(Continue with read offset=")) {
+      const primary = message.content.match(/^<path>([^<\n]+)<\/path>/);
+      if (primary) paths.add(primary[1]);
+    }
+    for (const match of message.content.matchAll(/<dependency path="([^"\n]+)">/g)) {
+      paths.add(match[1]);
+    }
+  }
+  return paths;
+}
 
 const filePath = z
   .string()
@@ -54,7 +75,7 @@ const descriptions: Record<AgentFileToolName, string> = {
   read: [
     "Read a virtual file. file_path is relative to the project root. Use host knowledge links directly, without a directory prefix.",
     "Text results include line numbers. offset defaults to 1 and uses 1-based numbering. limit defaults to 2000. Large results report the next line offset. Page boundaries keep rows intact. Long lines return a partial line and next={offset,column}; column is a 1-based UTF-16 position. Follow next unchanged to read the remainder without losing text.",
-    "Read an existing document before write/edit. Read it again if it changes. Declaration imports identify type dependencies. Read the dependencies needed for the chosen call together, when they are absent from the current context.",
+    'Read an existing document before write/edit. Read it again if it changes. Reading a declaration under declare/ automatically appends unread small imported declarations in <dependency path="..."> blocks; do not re-read declarations already present in context. Read any remaining unincluded dependencies needed for the chosen call together.',
     "Files under .ai/snapshots/ return the saved image and capture metadata. Pass null for offset, column and limit. User photos and snapshot results already include their images in context. Use read when you need to examine that image again. This returns the same image, without a new capture or more detail.",
     "Other binary files return descriptors."
   ].join("\n"),
@@ -106,12 +127,15 @@ export function nativeFileTraceInput(input: Record<string, unknown>) {
 
 /** Native tools adapt DSH's model contracts to the host-owned VFS and project transactions. */
 export class AgentNativeFiles {
+  readonly #defaultClaimed = new Set<string>();
+
   constructor(
     private readonly files: () => VirtualProjectFiles,
     private readonly definition: () => AgentApplicationDefinition,
     private readonly observed: Map<string, string>,
     private readonly save: (content: string) => string,
-    private readonly timeoutMs = 60_000
+    private readonly timeoutMs = 60_000,
+    private readonly claimedDeclarations?: () => Set<string>
   ) {}
 
   async execute(
@@ -155,10 +179,20 @@ export class AgentNativeFiles {
         const continuation = result.next
           ? `\n(Continue with read offset=${result.next.offset}${result.next.column === undefined ? "" : ` column=${result.next.column}`}.)`
           : "";
-        return this.success(
-          result,
-          `<path>${result.path}</path>\n<type>file</type>\n<content>\n${body}${continuation}\n</content>`
-        );
+        const primary = `<path>${result.path}</path>\n<type>file</type>\n<content>\n${body}${continuation}\n</content>`;
+        if (
+          (input.offset ?? 1) === 1 &&
+          (input.column ?? 1) === 1 &&
+          !result.next &&
+          result.path.startsWith("declare/") &&
+          result.path.endsWith(".d.ts")
+        ) {
+          const { blocks, paths } = this.collectInlineDependencies(files, result.path, primary);
+          if (paths.length) {
+            return this.success({ ...result, inlinedDependencies: paths }, `${primary}${blocks.join("")}`);
+          }
+        }
+        return this.success(result, primary);
       }
       if (name === "glob") {
         const root = input.path ?? "";
@@ -328,6 +362,80 @@ export class AgentNativeFiles {
     } catch (error) {
       return `\n(${paths.length - limit} paths omitted; could not save complete list: ${message(error)}. Narrow the pattern.)`;
     }
+  }
+
+  private collectInlineDependencies(
+    files: VirtualProjectFiles,
+    rootPath: string,
+    primaryContent: string
+  ): { blocks: string[]; paths: string[] } {
+    const modules = this.definition().scriptApi.modules;
+    if (!modules.length) return { blocks: [], paths: [] };
+    const byId = new Map<string, AgentApiDeclarationModule>();
+    const byPath = new Map<string, AgentApiDeclarationModule>();
+    const pathById = new Map<string, string>();
+    for (const module of modules) {
+      const candidate = declarationPath(module.id);
+      const resolvedPath =
+        files.kind(candidate) === "file" ? candidate : files.kind(module.id) === "file" ? module.id : candidate;
+      byId.set(module.id, module);
+      byPath.set(resolvedPath, module);
+      pathById.set(module.id, resolvedPath);
+    }
+    const rootModule = byPath.get(rootPath);
+    if (!rootModule?.imports.length) return { blocks: [], paths: [] };
+    const claimed = this.claimedDeclarations?.() ?? this.#defaultClaimed;
+    claimed.add(rootPath);
+    const encoder = new TextEncoder();
+    let totalResponseBytes = encoder.encode(primaryContent).byteLength;
+    let inlineBytes = 0;
+    const visitedIds = new Set<string>([rootModule.id, ...rootModule.imports]);
+    const queue = [...rootModule.imports];
+    const blocks: string[] = [];
+    const paths: string[] = [];
+    while (queue.length > 0) {
+      const depId = queue.shift()!;
+      const depModule = byId.get(depId);
+      const depPath = pathById.get(depId);
+      if (!depModule || !depPath) continue;
+      for (const childId of depModule.imports) {
+        if (!visitedIds.has(childId)) {
+          visitedIds.add(childId);
+          queue.push(childId);
+        }
+      }
+      if (claimed.has(depPath)) continue;
+      let depSource: string | undefined;
+      try {
+        const current = files.readContent(depPath);
+        if (typeof current === "string") depSource = current;
+      } catch {
+        /* Fall back to catalog module source. */
+      }
+      depSource ??= depModule.source;
+      const normalized = depSource.replace(/\r\n/g, "\n").replace(/\n$/, "");
+      const numbered = normalized
+        ? normalized
+            .split("\n")
+            .map((line, index) => `${index + 1}: ${line}`)
+            .join("\n")
+        : "";
+      const block = `\n<dependency path="${depPath}">\n${numbered}\n</dependency>`;
+      const blockBytes = encoder.encode(block).byteLength;
+      if (
+        blockBytes > MAX_SINGLE_DEPENDENCY_BYTES ||
+        inlineBytes + blockBytes > MAX_INLINE_DEPENDENCY_BYTES ||
+        totalResponseBytes + blockBytes > MAX_READ_RESULT_BYTES - 1024
+      ) {
+        continue;
+      }
+      claimed.add(depPath);
+      inlineBytes += blockBytes;
+      totalResponseBytes += blockBytes;
+      blocks.push(block);
+      paths.push(depPath);
+    }
+    return { blocks, paths };
   }
 }
 function message(error: unknown) {

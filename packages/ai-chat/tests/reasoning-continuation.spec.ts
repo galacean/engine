@@ -85,7 +85,7 @@ it("retains the matching native state through compaction and stop/continue, then
     if (requests.length === 1) return tool(0);
     if (requests.length === 2) return { ...tool(1), contextCompaction: {
       version: 2, status: "compacted", strategy: "summary", beforeTokens: 1000, afterTokens: 400, durationMs: 1,
-      replacement: { prefixLength: params.responseFormat.params.contextCompaction.protectedPrefixLength, cutIndex: 2, summary: "first tool completed" }
+      replacement: { prefixLength: params.responseFormat.params.contextCompaction.protectedPrefixLength, cutIndex: 3, summary: "first tool completed" }
     } };
     if (requests.length === 3) return new Promise((_resolve, reject) => {
       params.signal.addEventListener("abort", () => reject(new Error("aborted")), { once: true });

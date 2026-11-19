@@ -1,5 +1,6 @@
 import type { AgentMessage } from "./agent-types";
 import { withoutReasoningContent } from "./agent-message-state";
+import { readSystemInjection } from "./agent-protocol";
 
 export type ContextCompactionBudget = { triggerTokens?: number; targetTokens?: number };
 export type ContextCompactionRequest = ContextCompactionBudget & { version: 2; protectedPrefixLength: number };
@@ -146,6 +147,50 @@ export class AgentContextTranscript {
     this.#revision++;
   }
 
+  restoreActive(messages: readonly AgentMessage[]): void {
+    this.#active = structuredClone(messages) as AgentMessage[];
+    this.#revision++;
+  }
+
+  closeInterruptedToolCalls(errorMessage: string): AgentMessage[] {
+    const pending = new Set<string>();
+    for (const message of this.#active) {
+      if (message.role === "assistant") for (const call of message.toolCalls ?? []) pending.add(call.id);
+      if (message.role === "tool") pending.delete(message.toolCallId);
+    }
+    const closed: AgentMessage[] = [];
+    for (const toolCallId of pending) {
+      closed.push({
+        role: "tool",
+        toolCallId,
+        content: JSON.stringify({
+          ok: false,
+          error: { code: "INTERRUPTED", message: errorMessage }
+        })
+      });
+    }
+    if (closed.length) this.push(...closed);
+    return structuredClone(this.#active);
+  }
+
+  /** Strip completed-turn native reasoning state once so subsequent turns share an immutable prefix. */
+  completeTurn(fallbackAssistantMessage?: string): void {
+    if (!this.#active.length) return;
+    let changed = false;
+    this.#active = this.#active.map((message) => {
+      if (message.role === "assistant" && message.reasoningContent !== undefined) {
+        changed = true;
+        return withoutReasoningContent(message);
+      }
+      return message;
+    });
+    if (fallbackAssistantMessage && this.#active.at(-1)?.role !== "assistant") {
+      this.push({ role: "assistant", content: fallbackAssistantMessage });
+      return;
+    }
+    if (changed) this.#revision++;
+  }
+
   push(...messages: AgentMessage[]): void {
     // Image IDs and metadata remain in content; the task image store owns original pixels.
     this.#canonical.push(
@@ -165,23 +210,37 @@ export class AgentContextTranscript {
     if (messages[0]?.role !== "system") throw new ContextCompactionError("missing system rules");
     // Host snapshots are separate from append-only execution evidence. Determine
     // their boundary by kind, and bind every replacement to this request's boundary.
-    const kinds = new Set(["host_environment", "skills", "agent_task", "conversation_history", "world_state"]);
+    const kinds = new Set([
+      "host_environment",
+      "skills",
+      "agent_task",
+      "task_context",
+      "conversation_history",
+      "world_state"
+    ]);
     const seen = new Set<string>();
     let prefixLength = 1;
     for (const message of messages.slice(1)) {
       if (message.role !== "user" || message.image) break;
-      let kind: unknown;
-      try {
-        kind = JSON.parse(message.content).contextKind;
-      } catch {
-        break;
+      const injection = readSystemInjection(message.content);
+      let kind: unknown = injection?.type;
+      if (kind === undefined) {
+        try {
+          kind = JSON.parse(message.content).contextKind;
+        } catch {
+          break;
+        }
       }
       if (typeof kind !== "string" || !kinds.has(kind)) break;
+      // When task turns live inside #active, stop right at the start of #active.
+      if (kind === "task_context" && this.#active.length > 0 && message.content === this.#active[0]?.content) break;
       if (seen.has(kind)) throw new ContextCompactionError("duplicate context section");
       seen.add(kind);
       prefixLength++;
     }
-    if (!seen.has("agent_task")) throw new ContextCompactionError("missing agent_task prefix");
+    if (!seen.has("host_environment") && !seen.has("agent_task") && !seen.has("task_context")) {
+      throw new ContextCompactionError("missing agent_task prefix");
+    }
     if (
       JSON.stringify(messages.slice(prefixLength, prefixLength + this.#active.length)) !== JSON.stringify(this.#active)
     ) {

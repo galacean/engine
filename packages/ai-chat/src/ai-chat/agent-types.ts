@@ -459,6 +459,8 @@ export type AgentContinuation = {
 export type AgentRunControl = {
   initialInputId?: string;
   continuation?: AgentContinuation;
+  sessionTranscript?: import("./context-compaction").AgentContextTranscript;
+  previousTurnFallbackMessage?: string;
   takeInputs():
     | (AgentUserInput & { attachments?: readonly AgentViewObservation[] })[]
     | Promise<(AgentUserInput & { attachments?: readonly AgentViewObservation[] })[]>;

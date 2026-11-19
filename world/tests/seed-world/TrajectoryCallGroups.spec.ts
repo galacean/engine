@@ -7,6 +7,7 @@ import { AgentTraceStore } from "@galacean/engine-ai-chat/ai-chat/agent-trace.ts
 import { MemoryTraceAttachments } from "../../../packages/ai-chat/tests/MemoryTraceAttachments";
 import { tinyPng } from "./fixture";
 import { parseTrajectoryJson, projectTrajectory } from "@galacean/engine-ai-chat/ai-chat/trajectory/trajectory-model.ts";
+import { readSystemInjection } from "@galacean/engine-ai-chat/ai-chat/agent-protocol.ts";
 import { adaptTrace } from "../../demos/agent-trajectory/trace-adapter";
 vi.mock("@galacean/engine-ai-chat/ai-chat/asap-chat.ts", () => ({ requestAsapChat: vi.fn() }));
 import { requestAsapChat } from "@galacean/engine-ai-chat/ai-chat/asap-chat.ts";
@@ -32,7 +33,7 @@ async function capture(kind: "read_tool" | "snapshot", reuse: boolean, mode: "pl
     }], ...(index === 2 && mode === "compacted" ? { contextCompaction: {
       version: 2 as const, status: "compacted" as const, strategy: "summary" as const,
       beforeTokens: 1000, afterTokens: 400, durationMs: 3,
-      replacement: { prefixLength: 5 as const, cutIndex: 2, summary: "first exchange" }
+      replacement: { prefixLength: 3 as const, cutIndex: 3, summary: "first exchange" }
     } } : {}) });
   }
   request.mockResolvedValueOnce({ content: "done", finishReason: "stop", toolCalls: [] });
@@ -102,10 +103,10 @@ it.each([false, true])("retains screenshot outputs and Context with missing summ
     const view = adaptTrace(parseTrajectoryJson(JSON.stringify(omitSummaryIds(original, legacy))));
     const cells = view.turns.flatMap(turn => turn.groups.flatMap(group => group.cells));
     const tools = cells.filter(cell => cell.kind === "tool");
-    const contexts = cells.filter(cell => cell.kind === "context" && cell.inputDetail?.includes('"contextKind":"view_observation"'));
+    const contexts = cells.filter(cell => cell.kind === "context" && readSystemInjection(cell.inputDetail ?? "")?.type === "view_observation");
     expect(tools).toHaveLength(2);
     expect(contexts).toHaveLength(2);
-    expect(contexts.map(cell => JSON.parse(cell.inputDetail!).metadata.capture)).toEqual([1, 2]);
+    expect(contexts.map(cell => JSON.parse(readSystemInjection(cell.inputDetail!)!.body).metadata.capture)).toEqual([1, 2]);
     for (const cell of tools) expect(cell.outputBlocks?.some(block => block.attachment)).toBe(true);
     for (const cell of contexts) expect(cell.sourceBlocks?.some(block => block.attachment)).toBe(true);
   }
@@ -126,9 +127,9 @@ it("does not normalize a missing summary ID from a rejected retry", async () => 
 
 it.each([false, true])("keeps both actual screenshot inputs without duplicating replayed history (reuse=%s)", async reuse => {
   const document = projectTrajectory(await capture("snapshot", reuse));
-  const inputs = document.cells.filter(cell => cell.kind === "context" && cell.inputDetail?.includes('"contextKind":"view_observation"'));
+  const inputs = document.cells.filter(cell => cell.kind === "context" && readSystemInjection(cell.inputDetail ?? "")?.type === "view_observation");
   expect(inputs).toHaveLength(2);
-  expect(inputs.map(cell => JSON.parse(cell.inputDetail!).metadata.capture)).toEqual([1, 2]);
+  expect(inputs.map(cell => JSON.parse(readSystemInjection(cell.inputDetail!)!.body).metadata.capture)).toEqual([1, 2]);
   expect(new Set(inputs.map(cell => cell.id)).size).toBe(2);
   const rendered = adaptTrace(document).turns.flatMap(turn => turn.groups.flatMap(group => group.cells));
   expect(rendered.filter(cell => cell.kind === "context").every(cell => cell.sourceBlocks?.some(block => block.attachment))).toBe(true);
@@ -156,8 +157,8 @@ it.each(["compacted", "retry"] as const)("keeps group identities across %s in cu
         const contents = mode === "compacted" ? ["First file", "Second file", "First file"] : ["First file", "Second file"];
         expect(tools.map(cell => cell.outputDetail)).toEqual(contents.map(content => expect.stringContaining(content)));
       } else {
-        const inputs = document.cells.filter(cell => cell.kind === "context" && cell.inputDetail?.includes('"contextKind":"view_observation"'));
-        expect(inputs.map(cell => JSON.parse(cell.inputDetail!).metadata.capture)).toEqual(
+        const inputs = document.cells.filter(cell => cell.kind === "context" && readSystemInjection(cell.inputDetail ?? "")?.type === "view_observation");
+        expect(inputs.map(cell => JSON.parse(readSystemInjection(cell.inputDetail!)!.body).metadata.capture)).toEqual(
           mode === "compacted" ? [1, 2, 3] : [1, 2]);
         expect(inputs.map(cell => (cell.messageSource as { step: number }).step)).toEqual(
           mode === "compacted" ? [2, 3, 4] : [1, 2]);

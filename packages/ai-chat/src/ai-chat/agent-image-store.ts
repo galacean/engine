@@ -1,4 +1,5 @@
 import { toAgentValue } from "./agent-values";
+import { formatSystemInjection } from "./agent-protocol";
 import type { AgentValue, AgentViewImage, AgentViewObservation } from "./agent-types";
 import { ImageResourceBudget, validateImage, type ConversationImageResources } from "./image-resources";
 import { SNAPSHOT_DIRECTORY, isSnapshotPath, snapshotError, type SnapshotPickInput } from "./agent-snapshots";
@@ -13,8 +14,9 @@ export type AgentImageReference = {
 };
 export type SavedAgentImage = { reference: AgentImageReference; metadata: AgentValue; image: AgentViewImage };
 function imageMetadata(reference: AgentImageReference, metadata: AgentValue): AgentValue {
-  return (toAgentValue({ contextKind: "user_visual_reference", ...reference, metadata }) as { metadata: AgentValue })
-    .metadata;
+  const normalized = toAgentValue({ ...reference, metadata }) as { metadata: AgentValue };
+  toAgentValue(formatSystemInjection("user_visual_reference", JSON.stringify(normalized)));
+  return normalized.metadata;
 }
 export class AgentImageStorageLimitError extends Error {
   readonly code = "IMAGE_STORAGE_LIMIT";

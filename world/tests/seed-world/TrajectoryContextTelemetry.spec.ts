@@ -72,11 +72,11 @@ it.each(["none", "once", "repeated"])("keeps canonical Context across real loop 
   request.mockResolvedValueOnce({ ...tool("three"), ...(compact ? { contextCompaction: {
     version: 2 as const, status: "compacted" as const, strategy: "summary" as const,
     beforeTokens: 1000, afterTokens: 400, durationMs: 3,
-    replacement: { prefixLength: 5 as const, cutIndex: 4, summary: "server summary" }
+    replacement: { prefixLength: 3 as const, cutIndex: 5, summary: "server summary" }
   } } : {}) });
   if (mode === "repeated") request.mockResolvedValueOnce({ ...tool("four"), contextCompaction: {
     version: 2, status: "compacted", strategy: "summary", beforeTokens: 1000, afterTokens: 400, durationMs: 3,
-    replacement: { prefixLength: 5, cutIndex: 4, summary: "second summary" }
+    replacement: { prefixLength: 3, cutIndex: 4, summary: "second summary" }
   } });
   request.mockResolvedValueOnce({ content: "done", finishReason: "stop", toolCalls: [] });
   let diagnostic = 0;
@@ -95,8 +95,8 @@ it.each(["none", "once", "repeated"])("keeps canonical Context across real loop 
       const record = structuredClone(exported);
       if (legacy) record.agentEvents = record.agentEvents.filter(({ event }: any) => event.type !== "transcript_appended");
       const doc = projectTrajectory(record);
-      const contexts = doc.cells.filter(c => c.kind === "context" && c.inputDetail?.includes('"contextKind":"runtime_errors"'));
-      expect(contexts.map(c => JSON.parse(c.inputDetail!).errors[0].message)).toEqual(
+      const contexts = doc.cells.filter(c => c.kind === "context" && c.inputDetail?.includes('<system_injection type="runtime_errors">'));
+      expect(contexts.map(c => JSON.parse(c.inputDetail!.replace(/^<system_injection[^>]*>\n?|\n?<\/system_injection>$/g, "")).errors[0].message)).toEqual(
         Array.from({ length: mode === "repeated" ? 5 : 4 }, (_, i) => `ERROR_${i + 1}`));
       expect(doc.cells.filter(c => c.kind === "compacted").map(c => c.outputDetail)).toEqual(
         mode === "repeated" ? ["server summary", "second summary"] : compact ? ["server summary"] : []);

@@ -3,7 +3,8 @@ import * as z from "zod";
 vi.mock("../src/ai-chat/asap-chat", () => ({ requestAsapChat: vi.fn() }));
 import { requestAsapChat, type AsapChatResult } from "../src/ai-chat/asap-chat";
 import { AgentCancelledError } from "../src/ai-chat/agent-loop";
-import { AIChatSession } from "../src/ai-chat/ai-chat-session";
+import { AIChatSession, DEFAULT_SESSION_COMPACTION_BUDGET } from "../src/ai-chat/ai-chat-session";
+import { readSystemInjection } from "../src/ai-chat/agent-protocol";
 import { defineTool, type AgentEvent } from "../src/ai-chat/agent-types";
 import { createTestAgentLoop } from "./AIChatTestRuntime";
 
@@ -20,7 +21,27 @@ const execute = (code: string): AsapChatResult => ({
     }
   ]
 });
-const context = (index: number) => JSON.parse(request.mock.calls[index][0].messages[3].content);
+const context = (index: number) => {
+  const messages = request.mock.calls[index][0].messages;
+  let lastTaskIndex = -1;
+  let parsedTask: Record<string, any> | undefined;
+  for (let i = 0; i < messages.length; i++) {
+    const injected = readSystemInjection(messages[i].content);
+    if (injected?.type === "task_context") {
+      lastTaskIndex = i;
+      parsedTask = { ...JSON.parse(injected.body), instruction: injected.trailing };
+    }
+  }
+  if (!parsedTask) throw new Error(`Missing task_context in request ${index}`);
+  const supplements: Record<string, any>[] = [];
+  for (let i = lastTaskIndex + 1; i < messages.length; i++) {
+    const injected = readSystemInjection(messages[i].content);
+    if (injected?.type === "input_context") {
+      supplements.push({ ...JSON.parse(injected.body), text: injected.trailing });
+    }
+  }
+  return supplements.length ? { ...parsedTask, inputs: supplements } : parsedTask;
+};
 function setup(executeTool: () => unknown = () => ({ id: "tree-1" })) {
   const tool = defineTool({ name: "create", input: z.strictObject({}), output: z.unknown(), execute: executeTool });
   const session = new AIChatSession({
@@ -191,17 +212,25 @@ it("rejects a route change in next-step input but accepts it for next-turn", asy
   expect(request.mock.calls[1][0].model).toBe("two");
 });
 
-it("retains accepted supplements in the next task's compact history", async () => {
+it("retains accepted supplements and prior turn trajectory in the next turn's session transcript", async () => {
   const first = Promise.withResolvers<AsapChatResult>();
-  request.mockReturnValueOnce(first.promise).mockResolvedValueOnce(final()).mockResolvedValueOnce(final());
+  request.mockReturnValueOnce(first.promise).mockResolvedValueOnce(final("planted")).mockResolvedValueOnce(final());
   const { session } = setup();
   const running = session.run("trees");
   const addition = session.run("only along the shore", { context: { privateSnapshot: "camera" } });
   const later = session.run("what did I ask for?", {}, "next-turn");
   first.resolve(final());
   await Promise.all([running, addition, later]);
-  expect(JSON.parse(request.mock.calls[2][0].messages[4].content).records[0].inputs).toEqual([{ text: "only along the shore", inputSource: "text" }]);
-  expect(JSON.stringify(JSON.parse(request.mock.calls[2][0].messages[4].content).records)).not.toContain("privateSnapshot");
+  const turn2Messages = request.mock.calls[2][0].messages;
+  expect(request.mock.calls[2][0].contextCompaction).toEqual({
+    version: 2,
+    protectedPrefixLength: 3,
+    ...DEFAULT_SESSION_COMPACTION_BUDGET
+  });
+  expect(turn2Messages.some(m => readSystemInjection(m.content)?.trailing === "trees")).toBe(true);
+  expect(turn2Messages.some(m => readSystemInjection(m.content)?.trailing === "only along the shore")).toBe(true);
+  expect(turn2Messages.some(m => m.role === "assistant" && m.content === "planted")).toBe(true);
+  expect(context(2).instruction).toBe("what did I ask for?");
 });
 
 it("blocks continuation when publication has an unknown outcome", async () => {
@@ -293,7 +322,10 @@ it("waits for cancellation settlement, drops old steering, and preserves explici
   await Promise.all([rejected, removed, stopping, fresh, queued]);
   expect(events.filter(e => e.type === "task_started").map(e => e.input)).toEqual(["old task", "fresh task", "queued task"]);
   expect(events.filter(e => e.type === "input_consumed")).toHaveLength(0);
-  expect(JSON.parse(request.mock.calls[1][0].messages[4].content).records).toHaveLength(1);
+  const freshMessages = request.mock.calls[1][0].messages;
+  expect(freshMessages.some(m => readSystemInjection(m.content)?.trailing === "old task")).toBe(true);
+  expect(JSON.stringify(freshMessages)).not.toContain("old supplement");
+  expect(context(1).instruction).toBe("fresh task");
 });
 
 it("starts a new task when an idle session was stopped", async () => {
@@ -383,5 +415,65 @@ it("acknowledges continue before execution settles and preserves the original in
   later.reject(new Error("HTTP 500"));
   await expect(receipt.completion).rejects.toThrow("HTTP 500");
   expect(session.snapshot.current?.outcome).toMatchObject({ status: "failed", message: expect.stringContaining("处理过程中遇到了问题") });
+  session.dispose();
+});
+
+it("retains read declarations and unchanged file observations across session turns until reset", async () => {
+  const docs: Record<string, string> = { "notes.md": "speed = 1" };
+  const session = new AIChatSession({
+    agent: createTestAgentLoop({
+      tools: [],
+      definition: {
+        toolNames: [],
+        projectFiles: [{ paths: () => Object.keys(docs), read: path => docs[path] }],
+        beginEdit: () => ({
+          tools: [],
+          hasChanges: () => true,
+          documents: {
+            read: async path => docs[path],
+            write: async (path, text) => { docs[path] = text; },
+            delete: async path => { delete docs[path]; }
+          },
+          prepare() {},
+          commit: () => ({ transactionId: "tx-1" }),
+          discard() {}
+        }),
+        scriptApi: {
+          catalog: "test",
+          entries: [],
+          modules: [{ id: "declare/world/common/Target.d.ts", source: "export type Target = { x: number };", imports: [] }]
+        }
+      }
+    })
+  });
+  request
+    .mockResolvedValueOnce({
+      content: "",
+      finishReason: "tool_calls",
+      toolCalls: [
+        { id: "r1", type: "function", function: { name: "read", arguments: '{"file_path":"declare/editor/world/common/Target.d.ts"}' } },
+        { id: "r2", type: "function", function: { name: "read", arguments: '{"file_path":"notes.md"}' } }
+      ]
+    })
+    .mockResolvedValueOnce(final("turn 1 done"))
+    .mockResolvedValueOnce({
+      content: "",
+      finishReason: "tool_calls",
+      toolCalls: [
+        { id: "e1", type: "function", function: { name: "edit", arguments: '{"file_path":"notes.md","old_string":"speed = 1","new_string":"speed = 2"}' } }
+      ]
+    })
+    .mockResolvedValueOnce(final("turn 2 edited"))
+    .mockResolvedValueOnce(final("after reset"));
+
+  await session.run("inspect target and notes");
+  await session.run("double speed");
+  expect(docs["notes.md"]).toBe("speed = 2");
+  expect(JSON.stringify(request.mock.calls[2][0].messages)).toContain("export type Target = { x: number }");
+
+  await session.stop();
+  session.reset();
+  await session.run("fresh conversation");
+  expect(JSON.stringify(request.mock.calls[4][0].messages)).not.toContain("export type Target = { x: number }");
   session.dispose();
 });

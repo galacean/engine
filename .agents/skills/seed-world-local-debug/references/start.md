@@ -30,10 +30,11 @@ BROWSER=none pnpm --dir world dev --host 127.0.0.1 --port 4173 --strictPort
 ```bash
 ASAP_ROOT=/chosen/path/asap-debug
 cd "$ASAP_ROOT"
-.venv/bin/python web/app.py --port 8082
+ASAP_DISABLE_SLS_LOGGING=1 .venv/bin/python web/app.py --port 8082
 ```
 
 使用该 worktree 的解释器和当前目录；不要通过另一 checkout 的 app.py 启动。
+`ASAP_DISABLE_SLS_LOGGING=1` 用于禁用 dev 本地模式下向离线 SLS 的同步日志上报，避免外网/无内网 SLS 可达时请求被超时重试阻塞数秒至数十秒（本地 `logs/asap-service/*.log` 文件仍正常落盘）。
 等待 `Application startup complete` 和 `Uvicorn running`，仅出现“服务器启动于端口”不算完成。
 保留终端或受管理的执行会话，记录 PID、cwd、commit、启动时间。
 服务一般监听 `0.0.0.0`；这是开发服务，不配置公网隧道或对外暴露。
