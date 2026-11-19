@@ -2,11 +2,11 @@ import {
   AssetPromise,
   AssetType,
   ContentRestorer,
+  Engine,
   LoadItem,
   Loader,
   RequestConfig,
   ResourceManager,
-  SystemInfo,
   Texture,
   Texture2D,
   TextureFilterMode,
@@ -29,81 +29,13 @@ class TextureLoader extends Loader<Texture> {
       resourceManager
         ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
-        .then((buffer) => {
-          this._decode(buffer, item, resourceManager).then((texture) => {
-            resourceManager.addContentRestorer(new TextureContentRestorer(texture, url, remoteUrl, requestConfig));
-            resolve(texture);
-          }, reject);
+        .then((buffer) => decodeTexture(resourceManager.engine, buffer, url, item.params as Partial<TextureParams>))
+        .then((texture) => {
+          resourceManager.addContentRestorer(new TextureContentRestorer(texture, url, remoteUrl, requestConfig));
+          resolve(texture);
         })
         .catch(reject);
     });
-  }
-
-  private _decode(buffer: ArrayBuffer, item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture> {
-    if (FileHeader.checkMagic(buffer)) {
-      return decode<Texture>(buffer, resourceManager.engine);
-    }
-
-    const bufferView = new Uint8Array(buffer);
-    const isHDR = bufferView[0] === 0x23 && bufferView[1] === 0x3f;
-
-    if (isHDR) {
-      return this._decodeHDR(bufferView, item, resourceManager);
-    }
-    return this._decodeImage(buffer, item, resourceManager);
-  }
-
-  private _decodeHDR(buffer: Uint8Array, item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
-    return new AssetPromise((resolve, reject) => {
-      const engine = resourceManager.engine;
-      if (!SystemInfo.supportsTextureFormat(engine, TextureFormat.R16G16B16A16_SFloat)) {
-        reject(new Error("TextureLoader: HDR texture requires half float support."));
-        return;
-      }
-      const { width, height, pixels } = HDRDecoder.decode(buffer);
-      const { mipmap = true } = (item.params as Partial<TextureParams>) ?? {};
-      const generateMipmap =
-        mipmap && engine._hardwareRenderer.supportsGenerateMipmaps(TextureFormat.R16G16B16A16_SFloat, false);
-
-      const texture = new Texture2D(engine, width, height, TextureFormat.R16G16B16A16_SFloat, generateMipmap, false);
-      texture.setPixelBuffer(pixels);
-      texture.generateMipmaps();
-      this._applyParams(texture, item);
-      resolve(texture);
-    });
-  }
-
-  private _decodeImage(buffer: ArrayBuffer, item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
-    return ImageDecoder._decode(buffer, item.url!).then((img) => {
-      const {
-        format = TextureFormat.R8G8B8A8_UNorm,
-        isSRGBColorSpace = true,
-        mipmap = true
-      } = (item.params as Partial<TextureParams>) ?? {};
-
-      const engine = resourceManager.engine;
-      const { width, height } = img;
-      const generateMipmap = mipmap && engine._hardwareRenderer.supportsGenerateMipmaps(format, isSRGBColorSpace);
-
-      const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
-      texture.setImageSource(img);
-      texture.generateMipmaps();
-      this._applyParams(texture, item);
-      return texture;
-    });
-  }
-
-  private _applyParams(texture: Texture2D, item: LoadItem): void {
-    const { anisoLevel, wrapModeU, wrapModeV, filterMode } = (item.params as Partial<TextureParams>) ?? {};
-    texture.anisoLevel = anisoLevel ?? texture.anisoLevel;
-    texture.filterMode = filterMode ?? texture.filterMode;
-    texture.wrapModeU = wrapModeU ?? texture.wrapModeU;
-    texture.wrapModeV = wrapModeV ?? texture.wrapModeV;
-
-    const url = item.url!;
-    if (url.indexOf("data:") !== 0) {
-      texture.name = url.substring(url.lastIndexOf("/") + 1);
-    }
   }
 }
 
@@ -118,30 +50,59 @@ class TextureContentRestorer extends ContentRestorer<Texture> {
   }
 
   override restoreContent(): AssetPromise<Texture> {
-    return this.resource.engine.resourceManager
+    const engine = this.resource.engine;
+    return engine.resourceManager
       ._requestByRemoteUrl<ArrayBuffer>(this.remoteUrl, this.requestConfig)
-      .then((buffer) => {
-        if (FileHeader.checkMagic(buffer)) {
-          return decode<Texture>(buffer, this.resource.engine, this.resource);
-        }
-
-        const bufferView = new Uint8Array(buffer);
-        const texture = this.resource as Texture2D;
-
-        if (bufferView[0] === 0x23 && bufferView[1] === 0x3f) {
-          const { pixels } = HDRDecoder.decode(bufferView);
-          texture.setPixelBuffer(pixels);
-          texture.mipmapCount > 1 && texture.generateMipmaps();
-          return texture;
-        }
-
-        return ImageDecoder._decode(buffer, this.url).then((img) => {
-          texture.setImageSource(img);
-          texture.mipmapCount > 1 && texture.generateMipmaps();
-          return texture;
-        });
-      });
+      .then((buffer) => decodeTexture(engine, buffer, this.url, undefined, this.resource));
   }
+}
+
+function decodeTexture(
+  engine: Engine,
+  buffer: ArrayBuffer,
+  url: string,
+  params?: Partial<TextureParams>,
+  restoredTexture?: Texture
+): AssetPromise<Texture> {
+  if (FileHeader.checkMagic(buffer)) {
+    return decode<Texture>(buffer, engine, restoredTexture);
+  }
+
+  const getTexture = (width: number, height: number, format: TextureFormat, isSRGBColorSpace: boolean): Texture2D => {
+    if (restoredTexture) {
+      return restoredTexture as Texture2D;
+    }
+    const { mipmap = true, anisoLevel, wrapModeU, wrapModeV, filterMode } = params ?? {};
+    const generateMipmap = mipmap && engine._hardwareRenderer.supportsGenerateMipmaps(format, isSRGBColorSpace);
+    const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
+    if (anisoLevel !== undefined) texture.anisoLevel = anisoLevel;
+    if (filterMode !== undefined) texture.filterMode = filterMode;
+    if (wrapModeU !== undefined) texture.wrapModeU = wrapModeU;
+    if (wrapModeV !== undefined) texture.wrapModeV = wrapModeV;
+    if (url.indexOf("data:") !== 0) {
+      texture.name = url.substring(url.lastIndexOf("/") + 1);
+    }
+    return texture;
+  };
+
+  const bufferView = new Uint8Array(buffer);
+  if (bufferView[0] === 0x23 && bufferView[1] === 0x3f) {
+    return new AssetPromise((resolve) => {
+      const { width, height, pixels } = HDRDecoder.decode(bufferView);
+      const texture = getTexture(width, height, TextureFormat.R16G16B16A16_SFloat, false);
+      texture.setPixelBuffer(pixels);
+      texture.generateMipmaps();
+      resolve(texture);
+    });
+  }
+
+  return ImageDecoder._decode(buffer, url).then((img) => {
+    const { format = TextureFormat.R8G8B8A8_UNorm, isSRGBColorSpace = true } = params ?? {};
+    const texture = getTexture(img.width, img.height, format, isSRGBColorSpace);
+    texture.setImageSource(img);
+    texture.generateMipmaps();
+    return texture;
+  });
 }
 
 /**
