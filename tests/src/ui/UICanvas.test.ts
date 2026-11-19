@@ -116,6 +116,12 @@ describe("UICanvas", async () => {
     expect(childCanvas._isRootCanvas).to.eq(false);
 
     parentCanvas.destroy();
+    // @ts-ignore
+    expect(rootCanvas._isRootCanvas).to.eq(true);
+    // @ts-ignore
+    expect(childCanvas._isRootCanvas).to.eq(false);
+    // @ts-ignore
+    expect(childCanvas._getRootCanvas()).to.eq(rootCanvas);
     childCanvas.destroy();
     // @ts-ignore
     expect(rootCanvas._isRootCanvas).to.eq(true);
