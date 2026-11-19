@@ -12,16 +12,12 @@ void frag(Varyings v) {
     #ifdef BLOOM_HQ
       mediump vec3 lowMip = sampleTexture2DBicubic(renderer_BlitTexture, v.v_uv, renderer_texelSize).rgb;
     #else
-      // Pre-weight samples to avoid mediump (fp16) overflow
-      vec2 t = renderer_texelSize.xy;
-      mediump vec3 lowMip = texture2DSRGB(renderer_BlitTexture, v.v_uv + vec2(-t.x * 2.0, 0.0)).rgb * 0.08333333;
-      lowMip += texture2DSRGB(renderer_BlitTexture, v.v_uv + vec2( t.x * 2.0, 0.0)).rgb * 0.08333333;
-      lowMip += texture2DSRGB(renderer_BlitTexture, v.v_uv + vec2(0.0, -t.y * 2.0)).rgb * 0.08333333;
-      lowMip += texture2DSRGB(renderer_BlitTexture, v.v_uv + vec2(0.0,  t.y * 2.0)).rgb * 0.08333333;
-      lowMip += texture2DSRGB(renderer_BlitTexture, v.v_uv + vec2(-t.x, -t.y)).rgb * 0.16666667;
-      lowMip += texture2DSRGB(renderer_BlitTexture, v.v_uv + vec2( t.x, -t.y)).rgb * 0.16666667;
-      lowMip += texture2DSRGB(renderer_BlitTexture, v.v_uv + vec2(-t.x,  t.y)).rgb * 0.16666667;
-      lowMip += texture2DSRGB(renderer_BlitTexture, v.v_uv + vec2( t.x,  t.y)).rgb * 0.16666667;
+      // 4-tap bilinear 3x3 tent; pre-weight samples to avoid mediump (fp16) overflow
+      vec2 halfTexel = renderer_texelSize.xy * 0.5;
+      mediump vec3 lowMip = texture2DSRGB(renderer_BlitTexture, v.v_uv + vec2(-halfTexel.x, -halfTexel.y)).rgb * 0.25;
+      lowMip += texture2DSRGB(renderer_BlitTexture, v.v_uv + vec2( halfTexel.x, -halfTexel.y)).rgb * 0.25;
+      lowMip += texture2DSRGB(renderer_BlitTexture, v.v_uv + vec2(-halfTexel.x,  halfTexel.y)).rgb * 0.25;
+      lowMip += texture2DSRGB(renderer_BlitTexture, v.v_uv + vec2( halfTexel.x,  halfTexel.y)).rgb * 0.25;
     #endif
 
     // Alpha carries scatter for in-place BlendState with highMip (dst.a stays 0.0)

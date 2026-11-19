@@ -187,7 +187,7 @@ export class PostProcessUberPass extends PostProcessPass {
       );
     }
 
-    // Progressive in-place upsample (Dual-Kawase 8-tap by default, bicubic with HQ filtering)
+    // Progressive in-place upsample (4-tap 3x3 tent by default, bicubic with HQ filtering)
     for (let i = mipCount - 2; i >= 0; i--) {
       Blitter.blitTexture(
         engine,
