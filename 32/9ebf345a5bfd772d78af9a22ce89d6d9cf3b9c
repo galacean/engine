@@ -1,0 +1,29 @@
+packages/physics-havok/src/HavokDynamicCollider.ts
+  s_e048e6dd12a04c::t_bb77549746dddf 250
+packages/physics-havok/tsconfig.json
+  s_6e577c7c504f4f::t_837cafb36e62ef 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "329ebf345a5bfd772d78af9a22ce89d6d9cf3b9c",
+  "prompts": {},
+  "sessions": {
+    "s_6e577c7c504f4f": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1f2ce-eaa2-74f4-bbbb-10c5421a34cc",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_e048e6dd12a04c": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1f4c4-e23f-743e-9365-014ecb386ae4",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
