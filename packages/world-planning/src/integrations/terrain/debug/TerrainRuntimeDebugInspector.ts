@@ -697,6 +697,47 @@ export class TerrainRuntimeDebugInspector {
         .name("Bloom intensity / 泛光强度")
         .onChange(editPostProcess((intensity: number) => options.postProcess.setBloomIntensity(intensity)))
     );
+    const sunLensFlare = inspector.subfolder(postProcess, "Sun Lens Flare / 太阳炫光与鬼影", true);
+    sunLensFlare
+      .add(postProcessState.sunLensFlare, "enabled")
+      .name("Enabled / 启用")
+      .onChange(editPostProcess((enabled: boolean) => options.postProcess.setSunLensFlareEnabled(enabled)));
+    sunLensFlare
+      .add(postProcessState.sunLensFlare, "depthOcclusion")
+      .name("Depth occlusion / 深度遮挡")
+      .onChange(editPostProcess((enabled: boolean) => options.postProcess.setSunLensFlareDepthOcclusion(enabled)));
+    sunLensFlare
+      .add(postProcessState.sunLensFlare, "temporalSmoothing", 0, 0.5, 0.01)
+      .name("Occlusion smoothing / 遮挡平滑(s)")
+      .onChange(editPostProcess((seconds: number) => options.postProcess.setSunLensFlareTemporalSmoothing(seconds)));
+    bindNumericInput(
+      sunLensFlare
+        .add(postProcessState.sunLensFlare, "intensity", 0, 4, 0.01)
+        .name("Intensity / 总强度")
+        .onChange(editPostProcess((intensity: number) => options.postProcess.setSunLensFlareIntensity(intensity)))
+    );
+    bindNumericInput(
+      sunLensFlare
+        .add(postProcessState.sunLensFlare, "glareIntensity", 0, 4, 0.01)
+        .name("Glare intensity / 炫光强度")
+        .onChange(editPostProcess((intensity: number) => options.postProcess.setSunLensFlareGlareIntensity(intensity)))
+    );
+    bindNumericInput(
+      sunLensFlare
+        .add(postProcessState.sunLensFlare, "ghostIntensity", 0, 4, 0.01)
+        .name("Ghost intensity / 鬼影强度")
+        .onChange(editPostProcess((intensity: number) => options.postProcess.setSunLensFlareGhostIntensity(intensity)))
+    );
+    sunLensFlare
+      .add(postProcessState.sunLensFlare, "ghostSpread", 0.25, 2.5, 0.01)
+      .name("Ghost spread / 鬼影分布")
+      .onChange(editPostProcess((spread: number) => options.postProcess.setSunLensFlareGhostSpread(spread)));
+    sunLensFlare
+      .add(postProcessState.sunLensFlare, "ghostChromaticity", 0, 1, 0.01)
+      .name("Chromaticity / 色散饱和度")
+      .onChange(
+        editPostProcess((chromaticity: number) => options.postProcess.setSunLensFlareGhostChromaticity(chromaticity))
+      );
     const synchronizePostProcessControls = (): void => {
       const current = options.postProcess.getDebugSnapshot();
       Object.assign(postProcessState, {
@@ -706,9 +747,11 @@ export class TerrainRuntimeDebugInspector {
       });
       Object.assign(postProcessState.colorAdjustments, current.colorAdjustments);
       Object.assign(postProcessState.bloom, current.bloom);
+      Object.assign(postProcessState.sunLensFlare, current.sunLensFlare);
       const activeElement = document.activeElement;
       if (!colorAdjustments.domElement.contains(activeElement)) colorAdjustments.updateDisplay();
       if (!bloom.domElement.contains(activeElement)) bloom.updateDisplay();
+      if (!sunLensFlare.domElement.contains(activeElement)) sunLensFlare.updateDisplay();
     };
     this._lightingAuthoringControls = mountLightingAuthoringControls(
       inspector,

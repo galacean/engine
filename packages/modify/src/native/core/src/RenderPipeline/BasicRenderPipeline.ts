@@ -1,6 +1,6 @@
 import type { Renderer } from "../Renderer";
 import type { Plane } from "@galacean/engine-math";
-import { Vector2 } from "@galacean/engine-math";
+import { MathUtil, Vector2, Vector4 } from "@galacean/engine-math";
 import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import type { RenderStateElementMap } from "../BasicResources";
 import { Background } from "../Background";
@@ -21,6 +21,11 @@ import {
 import { ScreenSpaceReflectionConfig } from "../lighting/screenSpaceReflection/ScreenSpaceReflectionConfig";
 import type { Material } from "../material";
 import { FinalPass } from "../postProcess";
+import {
+  SunLensFlareCameraState,
+  SunLensFlareEffect,
+  type SunLensFlareScreenState
+} from "../postProcess/effects/SunLensFlareEffect";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import type { ShaderPass } from "../shader/ShaderPass";
@@ -33,6 +38,7 @@ import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowType } from "../shadow/enum/ShadowType";
 import {
   RenderTarget,
+  Texture,
   Texture2D,
   TextureCubeFace,
   TextureFilterMode,
@@ -123,6 +129,22 @@ export class BasicRenderPipeline {
   private _canUseBlitFrameBuffer = false;
   private _shouldCopyBackgroundColor = false;
   private _destroyed = false;
+  /** @internal */
+  _sunLensFlareDepthTexture: Texture | null = null;
+  /** @internal */
+  readonly _sunLensFlareDepthRect = new Vector4(1, 1, 0, 0);
+  /** @internal */
+  _sunLensFlareCameraState: SunLensFlareCameraState | null = null;
+
+  private _sunLensFlareDepthPatchRT: RenderTarget | null = null;
+  private readonly _sunLensFlareDepthViewport = new Vector4();
+  private readonly _sunLensFlareScreenState: SunLensFlareScreenState = {
+    visible: false,
+    sunU: 0.5,
+    sunV: 0.5,
+    effectiveIntensity: 0,
+    aspectRatio: 1
+  };
   // Bound once so per-frame SSR queue scans and draws allocate no closures
   private readonly _receiverCount: RenderElementSubsetCount = { total: 0, subset: 0 };
   private readonly _receiverMaterialFilter: RenderElementFilter = (material, _element, queueType) =>
@@ -204,8 +226,21 @@ export class BasicRenderPipeline {
       this._copyBackgroundTexture = null;
     }
 
+    if (this._sunLensFlareDepthPatchRT) {
+      pool.freeRenderTarget(this._sunLensFlareDepthPatchRT);
+      this._sunLensFlareDepthPatchRT = null;
+    }
+    this._sunLensFlareDepthTexture = null;
+    this._sunLensFlareCameraState?.destroy();
+    this._sunLensFlareCameraState = null;
+
     this._clearScreenSpaceReflectionReceiverCache();
     this._camera = null!;
+  }
+
+  /** @internal */
+  _getOrCreateSunLensFlareCameraState(): SunLensFlareCameraState {
+    return (this._sunLensFlareCameraState ??= new SunLensFlareCameraState());
   }
 
   /**
@@ -232,12 +267,32 @@ export class BasicRenderPipeline {
     const ambientOcclusionEnabled = scene.ambientOcclusion._isValid();
     const supportDepthTexture = depthOnlyPass.supportDepthTexture;
 
+    const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
+    const msaaSamples = renderTarget ? renderTarget.antiAliasing : camera.msaaSamples;
+
     const cameraDepthTextureRequested = camera.depthTextureMode === DepthTextureMode.PrePass && supportDepthTexture;
+    const sunLensFlareBlend = camera.enablePostProcess
+      ? scene.postProcessManager.getBlendEffect(SunLensFlareEffect)
+      : undefined;
+    const sunLensFlareNeedsOwnDepth =
+      Boolean(sunLensFlareBlend?.isValid() && sunLensFlareBlend.depthOcclusion.value) &&
+      !cameraDepthTextureRequested &&
+      !ambientOcclusionEnabled &&
+      rhi.isWebGL2 &&
+      supportDepthTexture &&
+      baseIndependentCanvasEnabled &&
+      cubeFace === undefined &&
+      (mipLevel ?? 0) === 0 &&
+      SunLensFlareEffect._resolveScreenState(camera, scene, sunLensFlareBlend!, this._sunLensFlareScreenState).visible;
+    // When SunLensFlare is the sole depth consumer on a non-MSAA target, blit only a 64x64 patch
+    // centered on the solar disk (~16 KB VRAM vs ~7.9 MB full-screen depth). MSAA targets fall back
+    // to the full MSAA resolve because WebGL2 requires identical bounds when resolving MSAA depth.
+    const sunLensFlareDepthPatchEnabled = sunLensFlareNeedsOwnDepth && msaaSamples === 1;
+    const sunLensFlareFullDepthResolveEnabled = sunLensFlareNeedsOwnDepth && msaaSamples > 1;
     // WebGL2 can publish the opaque Forward depth already produced for an existing internal color target.
     // AO still requires depth before Forward, and off-screen/cube subresources retain the established prepass.
     const forwardDepthResolveEnabled =
-      cameraDepthTextureRequested &&
-      camera._enableForwardDepthResolve &&
+      ((cameraDepthTextureRequested && camera._enableForwardDepthResolve) || sunLensFlareFullDepthResolveEnabled) &&
       !ambientOcclusionEnabled &&
       rhi.isWebGL2 &&
       baseIndependentCanvasEnabled &&
@@ -247,8 +302,8 @@ export class BasicRenderPipeline {
     const depthPassEnabled =
       (ambientOcclusionEnabled || (cameraDepthTextureRequested && !forwardDepthResolveEnabled)) && supportDepthTexture;
     camera._depthTextureSource = "none";
-    const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
-    const msaaSamples = renderTarget ? renderTarget.antiAliasing : camera.msaaSamples;
+    this._sunLensFlareDepthTexture = null;
+    this._sunLensFlareDepthRect.set(1, 1, 0, 0);
 
     // Check whether can use `blitFramebuffer` to blit internal render target, source maybe screen canvas or camera's render target
     // Our screen canvas's anti-aliasing is always disable, so blit source and dest is always same by below rules:
@@ -352,6 +407,7 @@ export class BasicRenderPipeline {
         this._internalColorTarget = this._allocateInternalColorTarget(
           baseDepthFormat,
           forwardDepthResolveEnabled,
+          sunLensFlareDepthPatchEnabled,
           msaaSamples,
           screenSpaceReflectionEnabled
         );
@@ -368,6 +424,7 @@ export class BasicRenderPipeline {
           this._internalColorTarget = this._allocateInternalColorTarget(
             baseDepthFormat,
             forwardDepthResolveEnabled,
+            sunLensFlareDepthPatchEnabled,
             msaaSamples,
             false
           );
@@ -419,7 +476,15 @@ export class BasicRenderPipeline {
       this._saoPass.release();
     }
 
-    this._drawRenderPass(context, camera, finalClearFlags, forwardDepthResolveEnabled, cubeFace, mipLevel);
+    this._drawRenderPass(
+      context,
+      camera,
+      finalClearFlags,
+      forwardDepthResolveEnabled,
+      sunLensFlareDepthPatchEnabled,
+      cubeFace,
+      mipLevel
+    );
     this._clearScreenSpaceReflectionReceiverCache();
 
     // Return the per-frame leases so the next camera with matching shape can reuse them
@@ -431,6 +496,12 @@ export class BasicRenderPipeline {
       pool.freeTexture(this._copyBackgroundTexture);
       this._copyBackgroundTexture = null;
     }
+
+    if (this._sunLensFlareDepthPatchRT) {
+      pool.freeRenderTarget(this._sunLensFlareDepthPatchRT);
+      this._sunLensFlareDepthPatchRT = null;
+    }
+    this._sunLensFlareDepthTexture = null;
   }
 
   /** Registers an optional pass without teaching the basic pipeline about its feature owner. @internal */
@@ -543,13 +614,14 @@ export class BasicRenderPipeline {
   private _allocateInternalColorTarget(
     baseDepthFormat: TextureFormat | null,
     forwardDepthResolveEnabled: boolean,
+    sunLensFlareDepthPatchEnabled: boolean,
     msaaSamples: number,
     forScreenSpaceReflection: boolean
   ): RenderTarget {
     const camera = this._camera;
     const viewport = camera.pixelViewport;
     let depthFormat = baseDepthFormat;
-    if (forScreenSpaceReflection || forwardDepthResolveEnabled) {
+    if (forScreenSpaceReflection || forwardDepthResolveEnabled || sunLensFlareDepthPatchEnabled) {
       if (depthFormat === null || depthFormat === TextureFormat.Stencil) {
         depthFormat = camera.engine._hardwareRenderer._options.stencil
           ? TextureFormat.Depth24Stencil8
@@ -586,6 +658,7 @@ export class BasicRenderPipeline {
     camera: Camera,
     finalClearFlags: CameraClearFlags,
     forwardDepthResolveEnabled: boolean,
+    sunLensFlareDepthPatchEnabled: boolean,
     cubeFace?: TextureCubeFace,
     mipLevel?: number
   ) {
@@ -787,6 +860,45 @@ export class BasicRenderPipeline {
       }
       camera._depthTextureSource = "forward-resolve";
       context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+    } else if (sunLensFlareDepthPatchEnabled && internalColorTarget && colorTarget) {
+      const depthFormat = colorTarget._depthFormat;
+      if (depthFormat !== null && depthFormat !== TextureFormat.Stencil) {
+        const srcW = colorTarget.width;
+        const srcH = colorTarget.height;
+        const patchW = Math.min(64, srcW);
+        const patchH = Math.min(64, srcH);
+        const sunState = this._sunLensFlareScreenState;
+        const centerX = Math.round(sunState.sunU * srcW);
+        const centerY = Math.round(sunState.sunV * srcH);
+        const srcX0 = MathUtil.clamp(centerX - (patchW >> 1), 0, srcW - patchW);
+        const srcY0 = MathUtil.clamp(centerY - (patchH >> 1), 0, srcH - patchH);
+
+        this._sunLensFlareDepthPatchRT = PipelineUtils.recreateRenderTargetIfNeeded(
+          engine,
+          this._sunLensFlareDepthPatchRT,
+          patchW,
+          patchH,
+          null,
+          depthFormat,
+          true,
+          false,
+          false,
+          1,
+          TextureWrapMode.Clamp,
+          TextureFilterMode.Point
+        );
+        // Offset by +0.25 px before division so WebGL ToInt32 truncation lands bit-exact on [srcX0, srcX0+patchW].
+        this._sunLensFlareDepthViewport.set((srcX0 + 0.25) / srcW, (srcH - patchH - srcY0 - 0.25) / srcH, 0, 0);
+        rhi.blitInternalRTByBlitFrameBuffer(
+          colorTarget,
+          this._sunLensFlareDepthPatchRT,
+          CameraClearFlags.ColorStencil,
+          this._sunLensFlareDepthViewport
+        );
+        this._sunLensFlareDepthTexture = this._sunLensFlareDepthPatchRT.depthTexture;
+        this._sunLensFlareDepthRect.set(srcW / patchW, srcH / patchH, -srcX0 / patchW, -srcY0 / patchH);
+        context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+      }
     }
 
     if (screenSpaceReflectionCaptured && screenSpaceReflectionPass.hasTransparentReceivers) {

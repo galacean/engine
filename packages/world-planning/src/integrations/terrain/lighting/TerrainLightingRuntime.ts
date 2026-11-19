@@ -1817,6 +1817,19 @@ export class TerrainLightingRuntime {
     const transform = this._directLight.entity.transform;
     Vector3.add(transform.worldPosition, lightDirection, this._directLightTarget);
     transform.lookAt(this._directLightTarget, TerrainLightingRuntime._directLightUp);
+    this._applySunLensFlareState();
+  }
+
+  private _applySunLensFlareState(): void {
+    const state = this.system.state;
+    const sunIntensityFactor = clamp01(state.sunIntensity / 0.25);
+    const weatherFactor = clamp01(this._sunCloudTransmittance) * clamp01(this._weatherDirectModifier);
+    const attenuation = clamp01(1 - state.nightFactor) * sunIntensityFactor * weatherFactor;
+    const r = state.sunColor.r * this._seasonDirectTint.r;
+    const g = state.sunColor.g * this._seasonDirectTint.g;
+    const b = state.sunColor.b * this._seasonDirectTint.b;
+    const peak = Math.max(r, g, b, 1e-4);
+    this._postProcess.setSunLensFlareSolarState(state.sunDirection, attenuation, r / peak, g / peak, b / peak);
   }
 
   private _applyVisibility(): void {

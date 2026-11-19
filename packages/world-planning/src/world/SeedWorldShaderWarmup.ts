@@ -77,6 +77,7 @@ export interface SeedWorldPostProcessWarmupState {
   readonly bloomHighQuality: boolean;
   readonly bloomDirt: boolean;
   readonly colorAdjustments: boolean;
+  readonly sunLensFlare?: boolean;
   readonly tonemappingMode?: number;
 }
 
@@ -481,13 +482,16 @@ export function collectSeedWorldRendererVariants(
   if (scene.background?.mode === BackgroundMode.Sky) auxiliary.push([scene.background.sky.material!, renderToTexture]);
   for (const material of options.additionalBackgroundMaterials ?? []) auxiliary.push([material, renderToTexture]);
   const runtimeEngine = engine as unknown as {
+    _hardwareRenderer?: { isWebGL2?: boolean };
     _basicResources?: { blitMaterial?: Material };
     _getActivePostProcessPasses?: () => readonly {
       isActive: boolean;
       _uberMaterial?: Material;
       _bloomMaterial?: Material;
+      _sunLensFlareMaterial?: Material | null;
     }[];
   };
+  const isWebGL2 = runtimeEngine._hardwareRenderer?.isWebGL2 !== false;
   const blit = runtimeEngine._basicResources?.blitMaterial;
   if (blit) auxiliary.push([blit, true], [blit, false]);
   const pipeline = camera as unknown as {
@@ -507,6 +511,23 @@ export function collectSeedWorldRendererVariants(
       if (!pass.isActive) continue;
       if (!options.postProcessState || options.postProcessState.bloom)
         auxiliary.push([pass._bloomMaterial, true, "bloom"]);
+      if (options.postProcessState?.sunLensFlare && pass._sunLensFlareMaterial) {
+        auxiliary.push([pass._sunLensFlareMaterial, true]);
+        if (isWebGL2) {
+          const visibilityShader = Shader.find("PostProcess/SunLensFlareVisibility");
+          if (visibilityShader && !visibilityShader.destroyed) {
+            appendShaderVariants(
+              visibilityShader,
+              new ShaderMacroCollection(),
+              variants,
+              false,
+              undefined,
+              undefined,
+              isWebGL2
+            );
+          }
+        }
+      }
       auxiliary.push([pass._uberMaterial, true, "uber"]);
     }
   for (const [material, target, kind] of auxiliary) {
@@ -528,6 +549,7 @@ export function collectSeedWorldRendererVariants(
               "BLOOM_DIRT",
               "ENABLE_EFFECT_BLOOM",
               "ENABLE_EFFECT_COLOR_ADJUSTMENTS",
+              "ENABLE_EFFECT_SUN_LENS_FLARE",
               "ENABLE_EFFECT_TONEMAPPING",
               "TONEMAPPING_MODE"
             ]
@@ -540,13 +562,14 @@ export function collectSeedWorldRendererVariants(
         if (state.bloom) macros.enable(ShaderMacro.getByName("ENABLE_EFFECT_BLOOM"));
         if (state.bloomDirt) macros.enable(ShaderMacro.getByName("BLOOM_DIRT"));
         if (state.colorAdjustments) macros.enable(ShaderMacro.getByName("ENABLE_EFFECT_COLOR_ADJUSTMENTS"));
+        if (state.sunLensFlare) macros.enable(ShaderMacro.getByName("ENABLE_EFFECT_SUN_LENS_FLARE"));
         if (state.tonemappingMode !== undefined) {
           macros.enable(ShaderMacro.getByName("ENABLE_EFFECT_TONEMAPPING"));
           macros.enable(ShaderMacro.getByName("TONEMAPPING_MODE", String(state.tonemappingMode)));
         }
       }
     }
-    appendShaderVariants(material.shader, macros, variants, false, target);
+    appendShaderVariants(material.shader, macros, variants, false, target, undefined, isWebGL2);
   }
   // Overlay UI uses a separate, empty camera macro set. Scene lighting, mesh
   // attributes and GPU instancing do not participate in this rendering path.
@@ -736,7 +759,8 @@ function appendShaderVariants(
   variants: SeedWorldShaderVariantEntry[],
   castShadows = true,
   renderToTexture?: boolean,
-  material?: Material
+  material?: Material,
+  isWebGL2 = true
 ): void {
   const macroElements: ShaderMacro[] = [];
   (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(macros, macroElements);
@@ -749,6 +773,7 @@ function appendShaderVariants(
       // Match shadow culling even while candidate roots are intentionally inactive.
       if (!castShadows && pass.getTagValue("pipelineStage") === "ShadowCaster") continue;
       const stage = pass.getTagValue("pipelineStage");
+      if (stage === "TransformFeedback" && !isWebGL2) continue;
       // Contribution capture only visits opted-in transparent materials. Merely having the pass in PBR
       // does not make it reachable (opaque objects already contribute through their Forward color).
       if (

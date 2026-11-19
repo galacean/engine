@@ -23,6 +23,8 @@ import {
   FinalSRGBSource,
   FinalAntiAliasingSource,
   BloomSource,
+  SunLensFlareSource,
+  SunLensFlareVisibilitySource,
   ProbeDepthCaptureSource,
   RealtimeIBLAccumulateSource,
   RealtimeIBLProjectSHSource,
@@ -87,6 +89,8 @@ export class ShaderPool {
       FinalSRGBSource,
       FinalAntiAliasingSource,
       BloomSource,
+      SunLensFlareSource,
+      SunLensFlareVisibilitySource,
       // Probe baking shader
       ProbeDepthCaptureSource,
       // Environment IBL baking shaders
@@ -125,6 +129,9 @@ export class ShaderPool {
     ];
     const blendSphericalHarmonicsPass = shaders.get(RealtimeIBLProjectSHSource)!.subShaders[0].passes[1];
     blendSphericalHarmonicsPass._feedbackVaryings = ["v_SH"];
+
+    const sunLensFlareVisibilityPass = shaders.get(SunLensFlareVisibilitySource)!.subShaders[0].passes[0];
+    sunLensFlareVisibilityPass._feedbackVaryings = ["v_NextVisibility"];
 
     return {
       blit: shaders.get(BlitSource)!,

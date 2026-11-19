@@ -1,6 +1,6 @@
 import type { Scene } from "../../Scene";
 import { FogMode } from "../../enums/FogMode";
-import type { BloomEffect, ColorAdjustmentsEffect } from "../../postProcess/effects";
+import type { BloomEffect, ColorAdjustmentsEffect, SunLensFlareEffect } from "../../postProcess/effects";
 import type { RealtimeIBLBaker } from "../environment/RealtimeIBLBaker";
 import type { DirectLight } from "../DirectLight";
 import { DayNightLightingAdapter } from "./DayNightAdapters";
@@ -17,6 +17,7 @@ export interface DayNightEnvironmentAdapterOptions {
   moon?: DayNightMoonLighting;
   colorAdjustments?: ColorAdjustmentsEffect;
   bloom?: BloomEffect;
+  sunLensFlare?: SunLensFlareEffect;
   realtimeIBL?: RealtimeIBLBaker;
   /** Fog mode retained across the cycle. Defaults to the current Scene mode. */
   fogMode?: FogMode;
@@ -40,6 +41,7 @@ export class DayNightEnvironmentAdapter implements DayNightStateConsumer {
   readonly moon?: DayNightMoonLighting;
   readonly colorAdjustments?: ColorAdjustmentsEffect;
   readonly bloom?: BloomEffect;
+  readonly sunLensFlare?: SunLensFlareEffect;
 
   fogMode: FogMode;
   applyAmbientLighting: boolean;
@@ -56,6 +58,7 @@ export class DayNightEnvironmentAdapter implements DayNightStateConsumer {
     this.moon = options.moon;
     this.colorAdjustments = options.colorAdjustments;
     this.bloom = options.bloom;
+    this.sunLensFlare = options.sunLensFlare;
     this.realtimeIBL = options.realtimeIBL;
     this.fogMode = options.fogMode ?? scene.fogMode;
     this.applyAmbientLighting = options.applyAmbientLighting ?? true;
@@ -82,6 +85,9 @@ export class DayNightEnvironmentAdapter implements DayNightStateConsumer {
     }
     if (this.bloom) {
       this.bloom.threshold.value = state.bloomThreshold;
+    }
+    if (this.sunLensFlare) {
+      this.sunLensFlare.sunDirectionOverride.value.copyFrom(state.sunDirection);
     }
 
     if (this.applyFog) {

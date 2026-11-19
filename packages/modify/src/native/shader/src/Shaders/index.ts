@@ -24,6 +24,8 @@ import Pipeline_ShadowCaster from "./Pipeline/ShadowCaster.shader";
 import PostProcess_Bloom from "./PostProcess/Bloom.shader";
 import PostProcess_FinalAntiAliasing from "./PostProcess/FinalAntiAliasing.shader";
 import PostProcess_FinalSRGB from "./PostProcess/FinalSRGB.shader";
+import PostProcess_SunLensFlare from "./PostProcess/SunLensFlare.shader";
+import PostProcess_SunLensFlareVisibility from "./PostProcess/SunLensFlareVisibility.shader";
 import PostProcess_Uber from "./PostProcess/Uber.shader";
 import Sky_BackgroundTexture from "./Sky/BackgroundTexture.shader";
 import Sky_SkyProcedural from "./Sky/SkyProcedural.shader";
@@ -65,6 +67,8 @@ export const shaders: IShaderSource[] = [
   { source: PostProcess_Bloom, path: "Shaders/PostProcess/Bloom.shader" },
   { source: PostProcess_FinalAntiAliasing, path: "Shaders/PostProcess/FinalAntiAliasing.shader" },
   { source: PostProcess_FinalSRGB, path: "Shaders/PostProcess/FinalSRGB.shader" },
+  { source: PostProcess_SunLensFlare, path: "Shaders/PostProcess/SunLensFlare.shader" },
+  { source: PostProcess_SunLensFlareVisibility, path: "Shaders/PostProcess/SunLensFlareVisibility.shader" },
   { source: PostProcess_Uber, path: "Shaders/PostProcess/Uber.shader" },
   { source: Sky_BackgroundTexture, path: "Shaders/Sky/BackgroundTexture.shader" },
   { source: Sky_SkyProcedural, path: "Shaders/Sky/SkyProcedural.shader" },

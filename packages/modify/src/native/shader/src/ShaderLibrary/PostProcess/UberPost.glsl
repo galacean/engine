@@ -22,6 +22,11 @@ vec4 renderer_texelSize;
 	vec4 material_ColorAdjustments; // x: contrast multiplier, y: saturation multiplier
 #endif
 
+#ifdef ENABLE_EFFECT_SUN_LENS_FLARE
+	mediump sampler2D material_SunLensFlareTexture;
+	float material_SunLensFlareCompositeIntensity;
+#endif
+
 vec3 linearToLMS(vec3 color) {
 	return vec3(
 		dot(color, vec3(0.390405, 0.549941, 0.00892632)),
@@ -61,6 +66,12 @@ void frag(Varyings v) {
 			// Additive bloom (artist friendly)
 			color += dirt * bloom;
 		#endif
+	#endif
+
+	#ifdef ENABLE_EFFECT_SUN_LENS_FLARE
+		if (material_SunLensFlareCompositeIntensity > 0.0) {
+			color.rgb += texture2DSRGB(material_SunLensFlareTexture, v.v_uv).rgb * material_SunLensFlareCompositeIntensity;
+		}
 	#endif
 
 	#ifdef ENABLE_EFFECT_COLOR_ADJUSTMENTS

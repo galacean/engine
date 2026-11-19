@@ -6,8 +6,10 @@ import {
   ColorAdjustmentsEffect,
   PostProcess,
   Script,
+  SunLensFlareEffect,
   TonemappingEffect,
-  TonemappingMode
+  TonemappingMode,
+  Vector3
 } from "@galacean/engine";
 
 /** Serializable post-processing profile used by the authored terrain Scene. */
@@ -81,6 +83,20 @@ export interface TerrainPostProcessDebugSnapshot {
     readonly tintG: number;
     readonly tintB: number;
   };
+  /** Mutable procedural sun lens flare and ghosting controls. */
+  readonly sunLensFlare: {
+    readonly enabled: boolean;
+    readonly depthOcclusion: boolean;
+    readonly temporalSmoothing: number;
+    readonly intensity: number;
+    readonly glareIntensity: number;
+    readonly ghostIntensity: number;
+    readonly ghostSpread: number;
+    readonly ghostChromaticity: number;
+    readonly tintR: number;
+    readonly tintG: number;
+    readonly tintB: number;
+  };
 }
 
 /** Detached state of this profile's native effects, independent of shared pass material caches. */
@@ -90,6 +106,7 @@ export interface TerrainPostProcessShaderWarmupState {
   readonly bloomHighQuality: boolean;
   readonly bloomDirt: boolean;
   readonly colorAdjustments: boolean;
+  readonly sunLensFlare: boolean;
   readonly tonemappingMode?: number;
 }
 
@@ -100,12 +117,25 @@ export class TerrainPostProcessRuntime extends Script {
   private _colorAdjustments: ColorAdjustmentsEffect | null = null;
   private _tonemapping: TonemappingEffect | null = null;
   private _bloom: BloomEffect | null = null;
+  private _sunLensFlare: SunLensFlareEffect | null = null;
   private _profileEnabled = true;
   private _colorAdjustmentsEnabled = true;
   private _tonemappingEnabled = true;
   private _tonemappingMode = TonemappingMode.ACES;
   private _bloomEnabled = true;
   private readonly _bloomTint = new Color(1, 1, 1, 1);
+  private _sunLensFlareEnabled = true;
+  private _sunLensFlareDepthOcclusion = true;
+  private _sunLensFlareTemporalSmoothing = 0.08;
+  private _sunLensFlareIntensity = 0.85;
+  private _sunLensFlareGlareIntensity = 0.75;
+  private _sunLensFlareGhostIntensity = 1.2;
+  private _sunLensFlareGhostSpread = 1;
+  private _sunLensFlareGhostChromaticity = 0.8;
+  private readonly _sunLensFlareTint = new Color(1, 0.94, 0.84, 1);
+  private readonly _sunLensFlareSolarDirection = new Vector3(0, 0, 0);
+  private _sunLensFlareSolarAttenuation = 1;
+  private readonly _sunLensFlareSolarColor = new Color(1, 1, 1, 1);
   private _manualOverrides: TerrainPostProcessManualOverrides = {};
 
   /** @returns Whether the authored effects currently contribute while the camera pipeline remains resident. */
@@ -188,10 +218,21 @@ export class TerrainPostProcessRuntime extends Script {
     bloom.scatter.value = config.bloomScatter;
     bloom.tint.value.copyFrom(this._bloomTint);
 
+    const sunLensFlare = postProcess.addEffect(SunLensFlareEffect)!;
+    sunLensFlare.intensity.value = this._sunLensFlareIntensity * this._sunLensFlareSolarAttenuation;
+    sunLensFlare.glareIntensity.value = this._sunLensFlareGlareIntensity;
+    sunLensFlare.ghostIntensity.value = this._sunLensFlareGhostIntensity;
+    sunLensFlare.ghostSpread.value = this._sunLensFlareGhostSpread;
+    sunLensFlare.ghostChromaticity.value = this._sunLensFlareGhostChromaticity;
+    sunLensFlare.depthOcclusion.value = this._sunLensFlareDepthOcclusion;
+    sunLensFlare.temporalSmoothing.value = this._sunLensFlareTemporalSmoothing;
+    sunLensFlare.sunDirectionOverride.value.copyFrom(this._sunLensFlareSolarDirection);
+
     this._postProcess = postProcess;
     this._colorAdjustments = colorAdjustments;
     this._tonemapping = tonemapping;
     this._bloom = bloom;
+    this._sunLensFlare = sunLensFlare;
     this._applyProfileEnabled();
   }
 
@@ -255,6 +296,103 @@ export class TerrainPostProcessRuntime extends Script {
     this._setBloomTint(red, green, blue);
     this._manualOverrides.bloomTint = [red, green, blue];
     this._applyBloom();
+  }
+
+  /** Enables or disables the procedural sun lens flare and ghosting effect. */
+  setSunLensFlareEnabled(enabled: boolean): void {
+    this._sunLensFlareEnabled = enabled;
+    this._applySunLensFlare();
+  }
+
+  /** Enables or disables camera-depth occlusion for the procedural sun lens flare. */
+  setSunLensFlareDepthOcclusion(enabled: boolean): void {
+    this._sunLensFlareDepthOcclusion = enabled;
+    this._applySunLensFlare();
+  }
+
+  /** Sets the GPU 1x1 temporal smoothing time constant in seconds for occlusion visibility. */
+  setSunLensFlareTemporalSmoothing(seconds: number): void {
+    if (!Number.isFinite(seconds) || seconds < 0 || seconds > 0.5) {
+      throw new RangeError("Terrain sun lens flare temporal smoothing must be finite and in [0, 0.5]");
+    }
+    this._sunLensFlareTemporalSmoothing = seconds;
+    this._applySunLensFlare();
+  }
+
+  /** Sets the base linear HDR intensity of the sun lens flare before weather/day-night attenuation. */
+  setSunLensFlareIntensity(intensity: number): void {
+    if (!Number.isFinite(intensity) || intensity < 0 || intensity > 4) {
+      throw new RangeError("Terrain sun lens flare intensity must be finite and in [0, 4]");
+    }
+    this._sunLensFlareIntensity = intensity;
+    this._applySunLensFlare();
+  }
+
+  /** Sets the sun core glow and starburst frills multiplier. */
+  setSunLensFlareGlareIntensity(intensity: number): void {
+    if (!Number.isFinite(intensity) || intensity < 0 || intensity > 4) {
+      throw new RangeError("Terrain sun lens flare glare intensity must be finite and in [0, 4]");
+    }
+    this._sunLensFlareGlareIntensity = intensity;
+    this._applySunLensFlare();
+  }
+
+  /** Sets the circular and hexagonal ghost chain multiplier. */
+  setSunLensFlareGhostIntensity(intensity: number): void {
+    if (!Number.isFinite(intensity) || intensity < 0 || intensity > 4) {
+      throw new RangeError("Terrain sun lens flare ghost intensity must be finite and in [0, 4]");
+    }
+    this._sunLensFlareGhostIntensity = intensity;
+    this._applySunLensFlare();
+  }
+
+  /** Sets the ghost spread scale along the optical axis. */
+  setSunLensFlareGhostSpread(spread: number): void {
+    if (!Number.isFinite(spread) || spread < 0.25 || spread > 2.5) {
+      throw new RangeError("Terrain sun lens flare ghost spread must be finite and in [0.25, 2.5]");
+    }
+    this._sunLensFlareGhostSpread = spread;
+    this._applySunLensFlare();
+  }
+
+  /** Sets the spectral rainbow dispersion saturation on ghosts. */
+  setSunLensFlareGhostChromaticity(chromaticity: number): void {
+    if (!Number.isFinite(chromaticity) || chromaticity < 0 || chromaticity > 1) {
+      throw new RangeError("Terrain sun lens flare ghost chromaticity must be finite and in [0, 1]");
+    }
+    this._sunLensFlareGhostChromaticity = chromaticity;
+    this._applySunLensFlare();
+  }
+
+  /** Sets the authored linear RGB tint of the sun lens flare. */
+  setSunLensFlareTint(red: number, green: number, blue: number): void {
+    for (const [name, value] of Object.entries({ red, green, blue })) {
+      if (!Number.isFinite(value) || value < 0 || value > 4) {
+        throw new RangeError(`Terrain sun lens flare tint ${name} must be finite and in [0, 4]`);
+      }
+    }
+    this._sunLensFlareTint.set(red, green, blue, 1);
+    this._applySunLensFlare();
+  }
+
+  /**
+   * Synchronizes the astronomical sun direction, day/weather attenuation, and atmospheric sun tint
+   * from the lighting runtime without overriding the artist-facing intensity controls.
+   */
+  setSunLensFlareSolarState(
+    sunDirection: Readonly<Vector3>,
+    attenuation: number,
+    colorR: number,
+    colorG: number,
+    colorB: number
+  ): void {
+    if (!Number.isFinite(attenuation) || attenuation < 0) {
+      throw new RangeError("Terrain sun lens flare solar attenuation must be finite and non-negative");
+    }
+    this._sunLensFlareSolarDirection.set(sunDirection.x, sunDirection.y, sunDirection.z);
+    this._sunLensFlareSolarAttenuation = Math.min(Math.max(attenuation, 0), 1);
+    this._sunLensFlareSolarColor.set(Math.max(0, colorR), Math.max(0, colorG), Math.max(0, colorB), 1);
+    this._applySunLensFlare();
   }
 
   /** Overrides weather-authored native Uber exposure compensation in EV stops. */
@@ -335,7 +473,9 @@ export class TerrainPostProcessRuntime extends Script {
 
   /** Returns detached values for dat.gui and browser assertions. */
   getShaderWarmupState(): TerrainPostProcessShaderWarmupState | undefined {
-    if (!this._postProcess || !this._bloom || !this._tonemapping || !this._colorAdjustments) return undefined;
+    if (!this._postProcess || !this._bloom || !this._tonemapping || !this._colorAdjustments || !this._sunLensFlare) {
+      return undefined;
+    }
     const enabled = this._profileEnabled && this._postProcess.enabled;
     const bloom = enabled && this._bloom.isValid();
     return Object.freeze({
@@ -344,6 +484,7 @@ export class TerrainPostProcessRuntime extends Script {
       bloomHighQuality: bloom && this._bloom.highQualityFiltering.value,
       bloomDirt: bloom && Boolean(this._bloom.dirtTexture.value),
       colorAdjustments: enabled && this._colorAdjustments.isValid(),
+      sunLensFlare: enabled && this._sunLensFlare.isValid(),
       tonemappingMode: enabled && this._tonemapping.isValid() ? this._tonemapping.mode.value : undefined
     });
   }
@@ -353,7 +494,7 @@ export class TerrainPostProcessRuntime extends Script {
     const initial = this.getDebugSnapshot();
     const overrides = { ...this._manualOverrides };
     return () => {
-      const { colorAdjustments: color, bloom } = initial;
+      const { colorAdjustments: color, bloom, sunLensFlare } = initial;
       this.setProfileEnabled(initial.enabled);
       this.setColorAdjustmentsEnabled(color.enabled);
       this.setPostExposure(color.postExposure);
@@ -368,6 +509,15 @@ export class TerrainPostProcessRuntime extends Script {
       this.setBloomThreshold(bloom.threshold);
       this.setBloomIntensity(bloom.intensity);
       this.setBloomScatter(bloom.scatter);
+      this.setSunLensFlareEnabled(sunLensFlare.enabled);
+      this.setSunLensFlareDepthOcclusion(sunLensFlare.depthOcclusion);
+      this.setSunLensFlareTemporalSmoothing(sunLensFlare.temporalSmoothing);
+      this.setSunLensFlareIntensity(sunLensFlare.intensity);
+      this.setSunLensFlareGlareIntensity(sunLensFlare.glareIntensity);
+      this.setSunLensFlareGhostIntensity(sunLensFlare.ghostIntensity);
+      this.setSunLensFlareGhostSpread(sunLensFlare.ghostSpread);
+      this.setSunLensFlareGhostChromaticity(sunLensFlare.ghostChromaticity);
+      this.setSunLensFlareTint(sunLensFlare.tintR, sunLensFlare.tintG, sunLensFlare.tintB);
       this._manualOverrides = { ...overrides };
     };
   }
@@ -394,6 +544,19 @@ export class TerrainPostProcessRuntime extends Script {
         tintR: this._bloomTint.r,
         tintG: this._bloomTint.g,
         tintB: this._bloomTint.b
+      },
+      sunLensFlare: {
+        enabled: this._sunLensFlareEnabled,
+        depthOcclusion: this._sunLensFlareDepthOcclusion,
+        temporalSmoothing: this._sunLensFlareTemporalSmoothing,
+        intensity: this._sunLensFlareIntensity,
+        glareIntensity: this._sunLensFlareGlareIntensity,
+        ghostIntensity: this._sunLensFlareGhostIntensity,
+        ghostSpread: this._sunLensFlareGhostSpread,
+        ghostChromaticity: this._sunLensFlareGhostChromaticity,
+        tintR: this._sunLensFlareTint.r,
+        tintG: this._sunLensFlareTint.g,
+        tintB: this._sunLensFlareTint.b
       }
     };
   }
@@ -415,12 +578,14 @@ export class TerrainPostProcessRuntime extends Script {
     this._colorAdjustments = null;
     this._tonemapping = null;
     this._bloom = null;
+    this._sunLensFlare = null;
   }
 
   private _applyProfileEnabled(): void {
     this._applyColorAdjustments();
     this._applyTonemapping();
     this._applyBloom();
+    this._applySunLensFlare();
   }
 
   private _setColorAdjustment(
@@ -490,6 +655,26 @@ export class TerrainPostProcessRuntime extends Script {
     bloom.intensity.value = config.bloomIntensity;
     bloom.scatter.value = config.bloomScatter;
     bloom.tint.value.copyFrom(this._bloomTint);
+  }
+
+  private _applySunLensFlare(): void {
+    const sunLensFlare = this._sunLensFlare;
+    if (!sunLensFlare) return;
+    sunLensFlare.enabled = this._profileEnabled && this._sunLensFlareEnabled;
+    sunLensFlare.intensity.value = this._sunLensFlareIntensity * this._sunLensFlareSolarAttenuation;
+    sunLensFlare.glareIntensity.value = this._sunLensFlareGlareIntensity;
+    sunLensFlare.ghostIntensity.value = this._sunLensFlareGhostIntensity;
+    sunLensFlare.ghostSpread.value = this._sunLensFlareGhostSpread;
+    sunLensFlare.ghostChromaticity.value = this._sunLensFlareGhostChromaticity;
+    sunLensFlare.depthOcclusion.value = this._sunLensFlareDepthOcclusion;
+    sunLensFlare.temporalSmoothing.value = this._sunLensFlareTemporalSmoothing;
+    sunLensFlare.sunDirectionOverride.value.copyFrom(this._sunLensFlareSolarDirection);
+    sunLensFlare.tint.value.set(
+      this._sunLensFlareTint.r * this._sunLensFlareSolarColor.r,
+      this._sunLensFlareTint.g * this._sunLensFlareSolarColor.g,
+      this._sunLensFlareTint.b * this._sunLensFlareSolarColor.b,
+      1
+    );
   }
 }
 
