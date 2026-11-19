@@ -6,7 +6,7 @@ description: 准备并启动 Seed World 与 ASAP 的本地 LLM 联调环境，�
 # Seed World 本地 LLM 联调
 
 把 Engine 与 ASAP checkout 接成：Seed World → 本地 Flash App Wrapper/CandyJar → 本地 ASAP → 远端模型服务。
-本地联调不等于离线模型，也不证明手机原生壳的 ASR 行为。
+本地联调不等于离线模型，也不证明手机原生壳的 ASR 行为。线上构建与发布灵光闪应用见 [seed-world-flash-publish](../seed-world-flash-publish/SKILL.md) 与 `world/demos/seed-world/FLASH_APP_PUBLISH.md`。
 
 ## 两阶段入口
 

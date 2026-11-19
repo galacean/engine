@@ -67,11 +67,15 @@ WORLD_DEMO=water pnpm --dir world dev
 WORLD_DEMO=animals/cute-zoo pnpm --dir world build
 pnpm --dir world build
 pnpm --dir world build:all
+pnpm --dir world build:seed-world-flash-app
+pnpm --dir world build:seed-world-flash-source
 pnpm --dir world check:boundaries
 pnpm --dir world typecheck
 ```
 
 `build` 默认构建 Seed World，输出 `world/dist/seed-world/`；`build:all` 输出 `world/dist/all/`。部署时保留整个输出目录，HTML 位于其 `world/demos/…` 子目录；项目清单与动态资源按原相对结构输出，不能只上传 HTML 或 JS。各 Demo 的辅助 HTML 入口也包含在统一构建中。
+
+发布 Seed World 为灵光闪应用时，使用 `build:seed-world-flash-app`（输出根部直接含 `index.html` 的 `world/dist/seed-world-flash-app/`）与 `build:seed-world-flash-source`（输出可重建源码快照 `world/dist/seed-world-flash-source/`）；完整发布、上架与验收步骤见 [Seed World 灵光闪应用构建与发布指南](demos/seed-world/FLASH_APP_PUBLISH.md)。
 
 首次启动必须执行 `prepare:engine`；修改 shader 替换文件后需要重跑。缓存仅含 shader 编译输入/输出，不生成 Engine 或 Gallery 的副本。所有新包目前是 `private` workspace 源码包，使用显式子路径导出；尚未建设 npm 分发产物。
 

@@ -452,7 +452,7 @@ Each `AsrClient.start()` returns an `AsrSession` with `ready`, `done`, `released
 
 `AsrClient.getDiagnostics()` returns the bounded runtime capability and lifecycle snapshot, while `subscribeDiagnostics()` publishes a new snapshot after every provider or session event. Diagnostic observers are isolated from microphone ownership: listener failures are swallowed and cannot change ASR state. A UI may therefore expose start, provider selection, ready, interim text, stop, end, terminal, and release events while recognition is still in progress instead of waiting for `done`.
 
-The application document that owns `AIChatSession` must be the direct application iframe managed by the Flash App Wrapper. Do not wrap a Gallery or router shell that embeds the application in another iframe, because CandyJar is not injected through arbitrary nested iframe boundaries. The Seed World Planner runbook in `demos/terrain/seed-world-planner/README.md` is the canonical end-to-end startup, smoke-test, troubleshooting, shutdown, build, and publication procedure.
+The application document that owns `AIChatSession` must be the direct application iframe managed by the Flash App Wrapper. Do not wrap a Gallery or router shell that embeds the application in another iframe, because CandyJar is not injected through arbitrary nested iframe boundaries. See `world/demos/seed-world/FLASH_APP_PUBLISH.md` for Flash App build and publication, and `.agents/skills/seed-world-local-debug/SKILL.md` for local Wrapper/ASAP debugging.
 
 ## Minimal integration
 

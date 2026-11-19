@@ -7,7 +7,7 @@ import type {
   PopulationTokenV1
 } from "@galacean/engine-terrain/terrain/seed/PopulationTokenCodec";
 import type { AssetAssemblySourceLibrary } from "./AssetAssemblySourceLibrary";
-import { PRODUCTION_ASSET_CATALOGS } from "./ProductionAssetCatalog";
+import { SEED_WORLD_PRODUCTION_ASSET_CATALOG } from "./SeedWorldProductionAssetCatalog";
 import {
   DEFAULT_TREE_LEAF_COUNT_TUNING,
   validateTreeLeafCountTuning,
@@ -16,7 +16,7 @@ import {
 
 export { DEFAULT_TREE_LEAF_COUNT_TUNING, type TreeLeafCountTuning } from "./ProceduralTreeLeafCount";
 
-const CATALOG_ID = PRODUCTION_ASSET_CATALOGS[0].tokenCatalogId;
+const CATALOG_ID = SEED_WORLD_PRODUCTION_ASSET_CATALOG.tokenCatalogId;
 const CARTOON_DETAIL_CELL_MICROMETERS = 992_063;
 
 /** Optional pt1 extension consumed by the procedural tree-card renderer. */

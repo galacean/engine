@@ -24,6 +24,7 @@
 | [空间框架](spatial/README.md)、[协作规则](AGENTS.md) | 数据契约、参数作用域、规则与素材接入 |
 | [配置目录](planning-data/README.md)、[框架审计](spatial/FRAMEWORK_AUDIT.md) | 配置入口、范围与未完成项 |
 | [场景视觉意图](../scene-visual-intent/README.md)、[心理地图](spatial/WAYFINDING_DESIGN.md) | 自然语言首次生成与导演测量；不代表完整美感/找路验收 |
+| [灵光闪应用发布指南](FLASH_APP_PUBLISH.md) | 闪应用产物与源码快照构建、PUGC 上传注册、正式上架与验收 |
 
 源码只修改 `world/gallery`；物化、构建见 [World 开发指南](../../../../README.md)。已有 Engine 构建时，从仓库根串行执行：
 

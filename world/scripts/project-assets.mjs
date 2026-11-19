@@ -1,52 +1,103 @@
 import fs from "node:fs";
 import path from "node:path";
 
+/** Physical extensions ignored by PUGC/Yuyan static hosting; rewritten with a transparent `.wasm` suffix in Flash App builds. */
+export const PUGC_UNSUPPORTED_ASSET_EXTENSIONS = new Set([
+  ".asset",
+  ".br",
+  ".f32le",
+  ".r8",
+  ".r16",
+  ".rgb8",
+  ".treewind"
+]);
+
+export function pugcCompatibleAssetPath(relativePath) {
+  const match = /^([^?#]*)(.*)$/u.exec(relativePath);
+  const pathname = match ? match[1] : relativePath;
+  const suffix = match ? match[2] : "";
+  const extension = path.extname(pathname).toLowerCase();
+  return PUGC_UNSUPPORTED_ASSET_EXTENSIONS.has(extension) ? `${pathname}.wasm${suffix}` : relativePath;
+}
+
 /** Keep resource manifests next to their resources. Hashed JSON URLs alone lose
  * dynamically fetched dependencies that Rollup cannot see in the module graph. */
-export function projectAssets(root) {
+export function projectAssets(root, options = {}) {
+  const pugcCompatible = options.pugcCompatible === true;
   const emitted = new Map();
+  const pending = new Set();
   let building = false;
   let workerBuild = false;
   function emit(context, file) {
     if (emitted.has(file)) return emitted.get(file);
+    if (pending.has(file)) return null;
     const relative = path.relative(root, file).split(path.sep).join("/");
     if (relative.startsWith("../") || path.isAbsolute(relative)) throw new Error(`Asset outside repository: ${file}`);
-    const reference = context.emitFile({ type: "asset", fileName: relative, source: fs.readFileSync(file) });
-    emitted.set(file, reference);
-    context.addWatchFile(file);
-    if (/\.(json|scene|prefab|mat|tex)$/.test(file)) {
-      let data;
-      try {
-        data = JSON.parse(fs.readFileSync(file, "utf8"));
-      } catch {
-        return reference;
+    pending.add(file);
+    try {
+      context.addWatchFile(file);
+      const rawBuffer = fs.readFileSync(file);
+      let source = rawBuffer;
+      if (/\.(json|scene|prefab|mat|tex)$/.test(file)) {
+        let data = null;
+        try {
+          data = JSON.parse(rawBuffer.toString("utf8"));
+        } catch {
+          data = null;
+        }
+        if (data && typeof data === "object") {
+          const base = path.dirname(file);
+          // This catalog is a virtual Project projection consumed with
+          // resourcesRegistered=true; its physical resources belong to project.json.
+          const virtualCatalog =
+            relative ===
+            "packages/vegetation/src/asset-assembly/generated/procedural-trees/plant-project-production-catalog.json";
+          for (const record of [
+            ...(Array.isArray(data.files) ? data.files : []),
+            ...(!virtualCatalog && Array.isArray(data.generatedResources) ? data.generatedResources : [])
+          ]) {
+            if (typeof record.path !== "string" || /^[a-z]+:/i.test(record.path)) continue;
+            const candidate = path.resolve(base, record.path);
+            if (!fs.existsSync(candidate)) throw new Error(`Missing resource ${record.path} in ${relative}`);
+            emit(context, candidate);
+          }
+          let rewritten = false;
+          const visit = (value, key) => {
+            if (typeof value === "string" && value.length < 1024 && !/^(?:[a-z]+:|\/|#)/i.test(value)) {
+              const candidate = path.resolve(base, value.split(/[?#]/)[0]);
+              if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+                emit(context, candidate);
+                if (pugcCompatible && key !== "virtualPath") {
+                  const updated = pugcCompatibleAssetPath(value);
+                  if (updated !== value) {
+                    rewritten = true;
+                    return updated;
+                  }
+                }
+              }
+            } else if (Array.isArray(value)) {
+              for (let index = 0; index < value.length; index += 1) {
+                value[index] = visit(value[index], key);
+              }
+            } else if (value && typeof value === "object") {
+              for (const [childKey, childValue] of Object.entries(value)) {
+                value[childKey] = visit(childValue, childKey);
+              }
+            }
+            return value;
+          };
+          visit(data, "");
+          if (rewritten) source = Buffer.from(JSON.stringify(data));
+        }
       }
-      const base = path.dirname(file);
-      const visit = (value) => {
-        if (typeof value === "string" && value.length < 1024 && !/^(?:[a-z]+:|\/|#)/i.test(value)) {
-          const candidate = path.resolve(base, value.split(/[?#]/)[0]);
-          if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) emit(context, candidate);
-        } else if (Array.isArray(value)) value.forEach(visit);
-        else if (value && typeof value === "object") Object.values(value).forEach(visit);
-      };
-      visit(data);
-      // This catalog is a virtual Project projection consumed with
-      // resourcesRegistered=true; its physical resources belong to project.json.
-      const virtualCatalog =
-        relative ===
-        "packages/vegetation/src/asset-assembly/generated/procedural-trees/plant-project-production-catalog.json";
-      for (const record of [
-        ...(Array.isArray(data.files) ? data.files : []),
-        ...(!virtualCatalog && Array.isArray(data.generatedResources) ? data.generatedResources : [])
-      ]) {
-        if (typeof record.path !== "string" || /^[a-z]+:/i.test(record.path)) continue;
-        const candidate = path.resolve(base, record.path);
-        if (!fs.existsSync(candidate)) throw new Error(`Missing resource ${record.path} in ${relative}`);
-        emit(context, candidate);
-      }
+      if (/physx\.release(?:\.simd)?\.js$/.test(file)) emit(context, file.replace(/\.js$/, ".wasm"));
+      const outputFileName = pugcCompatible ? pugcCompatibleAssetPath(relative) : relative;
+      const reference = context.emitFile({ type: "asset", fileName: outputFileName, source });
+      emitted.set(file, reference);
+      return reference;
+    } finally {
+      pending.delete(file);
     }
-    if (/physx\.release(?:\.simd)?\.js$/.test(file)) emit(context, file.replace(/\.js$/, ".wasm"));
-    return reference;
   }
   // Brotli files are decoded by the asset loader. HTTP decoding would consume
   // the compressed stream before the loader receives it.
