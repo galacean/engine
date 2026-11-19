@@ -500,11 +500,12 @@ describe("PostProcess", () => {
         activeUberPass._mipRT[0].getColorTexture(0)
       );
 
-      // Disabling bloom releases all mip RTs
+      // Disabling bloom releases all mip RTs and clears the uber bloom texture binding
       bloomEffect.enabled = false;
       bloomEngine.update();
       // @ts-ignore
       expect(activeUberPass._mipRT.length).to.equal(0);
+      expect(uberMaterial.shaderData.getTexture(BloomEffect._bloomTextureProp)).to.be.null;
     } finally {
       blitSpy.mockRestore();
       bloomEngine.destroy();

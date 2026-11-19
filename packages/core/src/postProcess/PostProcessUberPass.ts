@@ -64,6 +64,7 @@ export class PostProcessUberPass extends PostProcessPass {
       uberShaderData.enableMacro(BloomEffect._enableMacro);
     } else {
       uberShaderData.disableMacro(BloomEffect._enableMacro);
+      uberShaderData.setTexture(BloomEffect._bloomTextureProp, null);
       this._releaseBloomRenderTargets();
     }
 
