@@ -90,7 +90,8 @@ export class PlanningNavigationSurface {
   }
 
   private tileKey(tx: number, tz: number): number {
-    return ((tx + 32768) & 0xffff) * 65536 + ((tz + 32768) & 0xffff);
+    // Pack into a 30-bit unsigned Smi [0, 0x3fffffff] (±16384 tiles = ±65km) to avoid V8 HeapNumber boxing.
+    return ((tx & 0x7fff) << 15) | (tz & 0x7fff);
   }
 
   private invalidateDryTiles(regions: readonly AnimalWorldBounds[]): void {

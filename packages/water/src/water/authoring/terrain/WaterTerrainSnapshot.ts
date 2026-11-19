@@ -1,5 +1,5 @@
 import { waterTerrainContentHash } from "./WaterTerrainIdentity";
-import { interpolateGridTriangle, sampleFloat32GridTriangle } from "./GridInterpolation";
+import { interpolateGridTriangle, sampleFloat32GridRaster } from "./GridInterpolation";
 
 export type WaterTerrainHeights = readonly number[] | Float32Array | Float64Array;
 
@@ -313,11 +313,16 @@ export function sampleWaterTerrainHeight(terrain: WaterTerrainSnapshot, x: numbe
   if (grid.surface === "float32-triangles") {
     if (!Number.isFinite(u) || !Number.isFinite(v) || u < 0 || u > grid.columns - 1 || v < 0 || v > grid.rows - 1)
       return undefined;
-    return sampleFloat32GridTriangle(
-      { ...grid, spacingZ: grid.spacingZ ?? grid.spacing },
+    return sampleFloat32GridRaster(
+      grid.heights,
+      grid.columns,
+      grid.rows,
+      grid.origin[0],
+      grid.origin[1],
+      grid.spacing,
+      grid.spacingZ ?? grid.spacing,
       x,
-      z,
-      (ix, iz) => grid.heights[iz * grid.columns + ix]
+      z
     );
   }
   return sampleBilinearGridHeight(grid.heights, grid.columns, grid.rows, u, v, replacement);

@@ -55,7 +55,7 @@ export class GroundAnimalRecovery {
     canTraverse: Traversable
   ): boolean {
     const preferred = Math.sign(proposed.heading - current.heading) || 1;
-    Object.assign(proposed, current);
+    copyMotion(proposed, current);
     proposed.speed = proposed.angularSpeed = 0;
     if (!(speed > 0 && seconds > 0)) return false;
     if (!this.direction) {
@@ -83,11 +83,12 @@ export class GroundAnimalRecovery {
       this.anchorZ = current.z;
       this.radius = Math.max(0.1, bodyLength * 0.75);
       this.startHeading = current.heading;
-      for (const direction of [preferred, -preferred]) {
-        Object.assign(this.probe, current);
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const direction = attempt === 0 ? preferred : -preferred;
+        copyMotion(this.probe, current);
         let legal = true;
         for (let part = 0; part < 16; part++) {
-          Object.assign(this.previous, this.probe);
+          copyMotion(this.previous, this.probe);
           this.step(this.previous, this.probe, (direction * Math.PI) / 32);
           if (!canTraverse(this.previous, this.probe)) {
             this.rememberFailure(this.previous, this.probe);
@@ -118,7 +119,7 @@ export class GroundAnimalRecovery {
     proposed.angularSpeed = (this.direction * turn) / seconds;
     if (canTraverse(current, proposed)) return true;
     this.rememberFailure(current, proposed);
-    Object.assign(proposed, current);
+    copyMotion(proposed, current);
     proposed.speed = proposed.angularSpeed = 0;
     this.finish(current);
     return false;
@@ -132,8 +133,8 @@ export class GroundAnimalRecovery {
 
   private rememberFailure(from: Readonly<GroundAnimalMotion>, to: Readonly<GroundAnimalMotion>): void {
     const witness = this.failures[this.failedCount++];
-    Object.assign(witness.from, from);
-    Object.assign(witness.to, to);
+    copyMotion(witness.from, from);
+    copyMotion(witness.to, to);
   }
 
   private step(from: Readonly<GroundAnimalMotion>, to: GroundAnimalMotion, turn: number): void {
@@ -144,4 +145,12 @@ export class GroundAnimalRecovery {
     to.z = from.z + signedRadius * (Math.sin(heading) - Math.sin(from.heading));
     to.heading = heading;
   }
+}
+
+function copyMotion(to: GroundAnimalMotion, from: Readonly<GroundAnimalMotion>): void {
+  to.x = from.x;
+  to.z = from.z;
+  to.heading = from.heading;
+  to.speed = from.speed;
+  to.angularSpeed = from.angularSpeed;
 }

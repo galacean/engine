@@ -81,6 +81,65 @@ interface SeedWorldExactInstanceCell {
 
 const DEFAULT_CELL_SIZE_METRES = 64;
 
+/** Planar XZ distance constraint evaluated without per-instance closures. */
+export interface SeedWorldExactInstancePlanarRange {
+  readonly camera: Camera;
+  readonly x: number;
+  readonly z: number;
+  readonly maxDistance: number;
+}
+
+class ExactInstanceLodController implements SeedWorldExactInstanceSpatialController {
+  private readonly _camera: Camera | undefined;
+  private readonly _x: number;
+  private readonly _z: number;
+  private readonly _maxDistanceSq: number;
+  private readonly _isInRange: (() => boolean) | undefined;
+
+  constructor(
+    private readonly _lod: TerrainLodGroupRendererRuntime,
+    rangeOrCallback?: (() => boolean) | SeedWorldExactInstancePlanarRange
+  ) {
+    if (typeof rangeOrCallback === "function") {
+      this._isInRange = rangeOrCallback;
+      this._camera = undefined;
+      this._x = 0;
+      this._z = 0;
+      this._maxDistanceSq = 0;
+    } else if (rangeOrCallback !== undefined) {
+      this._isInRange = undefined;
+      this._camera = rangeOrCallback.camera;
+      this._x = rangeOrCallback.x;
+      this._z = rangeOrCallback.z;
+      this._maxDistanceSq = rangeOrCallback.maxDistance * rangeOrCallback.maxDistance;
+    } else {
+      this._isInRange = undefined;
+      this._camera = undefined;
+      this._x = 0;
+      this._z = 0;
+      this._maxDistanceSq = 0;
+    }
+  }
+
+  update(timeSeconds: number, cellVisible: boolean): boolean {
+    if (!cellVisible) return this._lod.updateRenderers(timeSeconds, false);
+    if (this._camera !== undefined) {
+      const camPos = this._camera.entity.transform.worldPosition;
+      const dx = this._x - camPos.x;
+      const dz = this._z - camPos.z;
+      return this._lod.updateRenderers(timeSeconds, dx * dx + dz * dz <= this._maxDistanceSq);
+    }
+    if (this._isInRange !== undefined) {
+      return this._lod.updateRenderers(timeSeconds, this._isInRange());
+    }
+    return this._lod.updateRenderers(timeSeconds, true);
+  }
+
+  setAuthoringVisible(visible: boolean): void {
+    this._lod.setAuthoringVisible(visible);
+  }
+}
+
 /**
  * Creates one category-independent exact-Prefab entry backed by an authored LOD controller.
  * @param id Stable generated instance identifier.
@@ -96,7 +155,7 @@ export function createSeedWorldExactInstanceLodEntry(
   category: SeedWorldExactInstanceCategory,
   entity: Entity,
   lod: TerrainLodGroupRendererRuntime,
-  isInRange?: () => boolean
+  isInRange?: (() => boolean) | SeedWorldExactInstancePlanarRange
 ): SeedWorldExactInstanceSpatialEntry {
   const renderers = entity.getComponentsIncludeChildren(MeshRenderer, []);
   if (renderers.length === 0) throw new Error(`Seed World exact instance "${id}" has no authored MeshRenderer`);
@@ -107,27 +166,24 @@ export function createSeedWorldExactInstanceLodEntry(
   const refreshBounds = (): void => {
     bounds.min.set(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
     bounds.max.set(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
-    for (const renderer of renderers) BoundingBox.merge(bounds, renderer.bounds, bounds);
+    for (let i = 0; i < renderers.length; i++) BoundingBox.merge(bounds, renderers[i]!.bounds, bounds);
     if (!boundingBoxIsFinite(bounds)) throw new Error(`Seed World exact instance "${id}" has invalid world bounds`);
   };
   refreshBounds();
-  const controller: SeedWorldExactInstanceSpatialController = {
-    update: (timeSeconds, cellVisible) => lod.updateRenderers(timeSeconds, cellVisible && (isInRange?.() ?? true)),
-    setAuthoringVisible: (visible) => lod.setAuthoringVisible(visible)
-  };
-  return Object.freeze({
+  const controller = new ExactInstanceLodController(lod, isInRange);
+  return {
     id,
     category,
     bounds,
-    controller: Object.freeze(controller),
+    controller,
     refreshBounds,
-    visitRenderers: function visitRenderers(visitor: (renderer: MeshRenderer) => void): void {
+    visitRenderers(visitor: (renderer: MeshRenderer) => void): void {
       for (let i = 0; i < renderers.length; i++) {
         const renderer = renderers[i]!;
         if (renderer.enabled && renderer.entity.isActiveInHierarchy) visitor(renderer);
       }
     }
-  });
+  };
 }
 
 /**
@@ -141,9 +197,12 @@ export class SeedWorldExactInstanceCellRuntime {
   private _cameraStateValid = false;
   private _cells: readonly SeedWorldExactInstanceCell[] = [];
   private readonly _frustumVisibleCells: SeedWorldExactInstanceCell[] = [];
+  private _frustumVisibleCellCount = 0;
   private _candidates: SeedWorldExactInstanceSpatialEntry[] = [];
+  private _candidateCount = 0;
   private _candidateScratch: SeedWorldExactInstanceSpatialEntry[] = [];
-  private readonly _candidateSet = new Set<SeedWorldExactInstanceSpatialEntry>();
+  private readonly _candidateEpochs = new Map<SeedWorldExactInstanceSpatialEntry, number>();
+  private _candidateEpoch = 0;
   private readonly _retiredCandidates: SeedWorldExactInstanceSpatialEntry[] = [];
   private _mode: SeedWorldExactInstanceSpatialMode = "cell";
   private _cellSizeMetres = DEFAULT_CELL_SIZE_METRES;
@@ -192,10 +251,11 @@ export class SeedWorldExactInstanceCellRuntime {
     if (mode === "cell" && this._frustumCulling) {
       // Linear mode marks every entry Cell-visible, so the next Cell query must retire
       // every entry that falls outside its candidate set, not only the old Cell candidates.
-      this._candidates.length = 0;
-      for (let entryIndex = 0; entryIndex < this._entries.length; entryIndex++) {
-        this._candidates.push(this._entries[entryIndex]!);
+      const entries = this._entries;
+      for (let entryIndex = 0; entryIndex < entries.length; entryIndex++) {
+        this._candidates[entryIndex] = entries[entryIndex]!;
       }
+      this._candidateCount = entries.length;
     }
     this._mode = mode;
     this.invalidate();
@@ -237,8 +297,19 @@ export class SeedWorldExactInstanceCellRuntime {
   replaceEntries(entries: readonly SeedWorldExactInstanceSpatialEntry[]): void {
     if (this._frustumCulling) {
       const live = new Set(entries);
-      this._candidates = this._candidates.filter((entry) => live.has(entry));
+      let write = 0;
+      for (let i = 0; i < this._candidateCount; i++) {
+        const entry = this._candidates[i]!;
+        if (live.has(entry)) this._candidates[write++] = entry;
+      }
+      for (let i = write; i < this._candidateCount; i++) this._candidates[i] = undefined!;
+      this._candidateCount = write;
       this._candidateScratch.length = 0;
+      this._retiredCandidates.length = 0;
+      this._frustumVisibleCellCount = 0;
+      this._frustumVisibleCells.length = 0;
+      this._candidateEpochs.clear();
+      this._candidateEpoch = 0;
     }
     this._entries = entries;
     this.rebuildSpatialIndex();
@@ -300,15 +371,14 @@ export class SeedWorldExactInstanceCellRuntime {
     if (this._frustumCulling && (cameraChanged || invalidated)) {
       this._cameraFrustum.calculateFromMatrix(this._cameraViewProjection);
       const visibleCells = this._frustumVisibleCells;
-      visibleCells.length = 0;
       testedCellCount = this._cells.length;
       visibleCellCount = 0;
       for (let cellIndex = 0; cellIndex < this._cells.length; cellIndex++) {
         const cell = this._cells[cellIndex]!;
         if (!this._cameraFrustum.intersectsBox(cell.bounds)) continue;
-        visibleCellCount++;
-        visibleCells.push(cell);
+        visibleCells[visibleCellCount++] = cell;
       }
+      this._frustumVisibleCellCount = visibleCellCount;
     }
 
     let terrainOcclusionTestedCellCount = snapshot.terrainOcclusionTestedCellCount;
@@ -316,6 +386,7 @@ export class SeedWorldExactInstanceCellRuntime {
     let terrainOcclusionTestedInstanceCount = snapshot.terrainOcclusionTestedInstanceCount;
     let terrainOccludedInstanceCount = snapshot.terrainOccludedInstanceCount;
     let candidates = this._candidates;
+    let candidateCount = this._candidateCount;
     const terrainOcclusionQueryable = terrainOcclusion?.horizonQueryableThisFrame === true;
     const confirmTerrainOcclusion = terrainOcclusionQueryable && this._terrainOcclusionConfirmationFrames > 0;
     const resolveCandidates =
@@ -323,12 +394,12 @@ export class SeedWorldExactInstanceCellRuntime {
       (cameraChanged || invalidated || terrainOcclusionVisibilityChanged || confirmTerrainOcclusion);
     if (resolveCandidates) {
       const nextCandidates = this._candidateScratch;
-      nextCandidates.length = 0;
+      let nextCount = 0;
       terrainOcclusionTestedCellCount = 0;
       terrainOccludedCellCount = 0;
       terrainOcclusionTestedInstanceCount = 0;
       terrainOccludedInstanceCount = 0;
-      for (let cellIndex = 0; cellIndex < this._frustumVisibleCells.length; cellIndex++) {
+      for (let cellIndex = 0; cellIndex < this._frustumVisibleCellCount; cellIndex++) {
         const cell = this._frustumVisibleCells[cellIndex]!;
         if (terrainOcclusionQueryable) {
           terrainOcclusionTestedCellCount++;
@@ -339,51 +410,59 @@ export class SeedWorldExactInstanceCellRuntime {
             continue;
           }
         }
-        for (let entryIndex = 0; entryIndex < cell.entries.length; entryIndex++) {
-          nextCandidates.push(cell.entries[entryIndex]!);
+        const cellEntries = cell.entries;
+        for (let entryIndex = 0; entryIndex < cellEntries.length; entryIndex++) {
+          nextCandidates[nextCount++] = cellEntries[entryIndex]!;
         }
       }
       candidates = nextCandidates;
+      candidateCount = nextCount;
       if (terrainOcclusionQueryable && this._terrainOcclusionConfirmationFrames > 0) {
         this._terrainOcclusionConfirmationFrames--;
       }
     }
-    const candidatesChanged = candidates !== this._candidates && !sameEntries(candidates, this._candidates);
+    const candidatesChanged =
+      candidates !== this._candidates &&
+      !sameEntriesCounted(candidates, candidateCount, this._candidates, this._candidateCount);
     if (candidatesChanged) {
-      const candidateSet = this._candidateSet;
-      candidateSet.clear();
-      for (let candidateIndex = 0; candidateIndex < candidates.length; candidateIndex++) {
-        candidateSet.add(candidates[candidateIndex]!);
+      const candidateEpochs = this._candidateEpochs;
+      let epoch = ++this._candidateEpoch;
+      if (epoch === 0x7fffffff) {
+        candidateEpochs.clear();
+        epoch = this._candidateEpoch = 1;
+      }
+      for (let candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++) {
+        candidateEpochs.set(candidates[candidateIndex]!, epoch);
       }
       const retiredCandidates = this._retiredCandidates;
-      retiredCandidates.length = 0;
-      for (let candidateIndex = 0; candidateIndex < this._candidates.length; candidateIndex++) {
+      let retiredCount = 0;
+      for (let candidateIndex = 0; candidateIndex < this._candidateCount; candidateIndex++) {
         const candidate = this._candidates[candidateIndex]!;
-        if (!candidateSet.has(candidate)) retiredCandidates.push(candidate);
+        if (candidateEpochs.get(candidate) !== epoch) retiredCandidates[retiredCount++] = candidate;
       }
-      if (retiredCandidates.length > 0) {
-        updateEntries(retiredCandidates, timeSeconds, false);
-        retiredInstanceUpdateCount = retiredCandidates.length;
+      if (retiredCount > 0) {
+        updateEntriesCounted(retiredCandidates, retiredCount, timeSeconds, false);
+        retiredInstanceUpdateCount = retiredCount;
       }
-      retiredCandidates.length = 0;
-      candidateSet.clear();
       const previousCandidates = this._candidates;
       this._candidates = candidates;
+      this._candidateCount = candidateCount;
       this._candidateScratch = previousCandidates;
     }
 
     const activeEntries = this._frustumCulling ? this._candidates : this._entries;
+    const activeCount = this._frustumCulling ? this._candidateCount : this._entries.length;
     const shouldUpdate = cameraChanged || invalidated || candidatesChanged || this._transitionActive;
     this._invalidated = false;
-    const instanceUpdateCount = (shouldUpdate ? activeEntries.length : 0) + retiredInstanceUpdateCount;
-    if (shouldUpdate) this._transitionActive = updateEntries(activeEntries, timeSeconds);
+    const instanceUpdateCount = (shouldUpdate ? activeCount : 0) + retiredInstanceUpdateCount;
+    if (shouldUpdate) this._transitionActive = updateEntriesCounted(activeEntries, activeCount, timeSeconds);
     snapshot.mode = this._mode;
     snapshot.cellSizeMetres = this._cellSizeMetres;
     snapshot.totalInstanceCount = this._entries.length;
     snapshot.occupiedCellCount = this._cells.length;
     snapshot.testedCellCount = testedCellCount;
     snapshot.visibleCellCount = visibleCellCount;
-    snapshot.candidateInstanceCount = activeEntries.length;
+    snapshot.candidateInstanceCount = activeCount;
     snapshot.terrainOcclusionTestedCellCount = terrainOcclusionTestedCellCount;
     snapshot.terrainOccludedCellCount = terrainOccludedCellCount;
     snapshot.terrainOcclusionTestedInstanceCount = terrainOcclusionTestedInstanceCount;
@@ -425,12 +504,14 @@ function buildCells(
   return Object.freeze([...cells.values()]);
 }
 
-function sameEntries(
+function sameEntriesCounted(
   left: readonly SeedWorldExactInstanceSpatialEntry[],
-  right: readonly SeedWorldExactInstanceSpatialEntry[]
+  leftCount: number,
+  right: readonly SeedWorldExactInstanceSpatialEntry[],
+  rightCount: number
 ): boolean {
-  if (left.length !== right.length) return false;
-  for (let index = 0; index < left.length; index++) {
+  if (leftCount !== rightCount) return false;
+  for (let index = 0; index < leftCount; index++) {
     if (left[index] !== right[index]) return false;
   }
   return true;
@@ -441,8 +522,17 @@ function updateEntries(
   timeSeconds: number,
   cellVisible = true
 ): boolean {
+  return updateEntriesCounted(entries, entries.length, timeSeconds, cellVisible);
+}
+
+function updateEntriesCounted(
+  entries: readonly SeedWorldExactInstanceSpatialEntry[],
+  count: number,
+  timeSeconds: number,
+  cellVisible = true
+): boolean {
   let transitionActive = false;
-  for (let entryIndex = 0; entryIndex < entries.length; entryIndex++) {
+  for (let entryIndex = 0; entryIndex < count; entryIndex++) {
     const entry = entries[entryIndex]!;
     if (entry.controller.update(timeSeconds, cellVisible)) transitionActive = true;
   }

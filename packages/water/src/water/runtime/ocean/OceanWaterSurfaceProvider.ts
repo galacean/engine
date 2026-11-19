@@ -147,6 +147,9 @@ export class OceanWaterSurfaceProvider implements WaterSurfaceProvider, WaterSpa
     this.active = false;
   }
 
+  private readonly _xs: number[] = [];
+  private readonly _zs: number[] = [];
+
   maximumSurfaceHeightInBounds(bounds: WaterBoundsXZ): number | null {
     assertWaterQueryBounds(bounds);
     const level = this.waterLevel();
@@ -157,21 +160,39 @@ export class OceanWaterSurfaceProvider implements WaterSurfaceProvider, WaterSpa
       maxZ = Math.min(bounds.maxZ, this.bounds.maxZ);
     if (minX > maxX || minZ > maxZ) return null;
     const g = this.descriptor.grid;
-    const partitions = (low: number, high: number, origin: number, pitch: number, count: number) => {
-      const values = [low];
-      const first = Math.max(0, Math.ceil((low - origin) / pitch)),
-        last = Math.min(count - 1, Math.floor((high - origin) / pitch));
-      for (let i = first; i <= last; i++) {
-        const v = origin + i * pitch;
-        if (v > low && v < high) values.push(v);
-      }
-      values.push(high);
-      return values;
-    };
-    const xs = partitions(minX, maxX, g.originXZ[0], g.cellSizeXZ[0], g.width);
-    const zs = partitions(minZ, maxZ, g.originXZ[1], g.cellSizeXZ[1], g.height);
-    for (let iz = 0; iz < zs.length - 1; iz++)
-      for (let ix = 0; ix < xs.length - 1; ix++) {
+    const originX = g.originXZ[0],
+      originZ = g.originXZ[1],
+      pitchX = g.cellSizeXZ[0],
+      pitchZ = g.cellSizeXZ[1],
+      width = g.width,
+      height = g.height;
+    const xs = this._xs;
+    let xCount = 0;
+    xs[xCount++] = minX;
+    const firstX = Math.max(0, Math.ceil((minX - originX) / pitchX));
+    const lastX = Math.min(width - 1, Math.floor((maxX - originX) / pitchX));
+    for (let i = firstX; i <= lastX; i++) {
+      const v = originX + i * pitchX;
+      if (v > minX && v < maxX) xs[xCount++] = v;
+    }
+    xs[xCount++] = maxX;
+
+    const zs = this._zs;
+    let zCount = 0;
+    zs[zCount++] = minZ;
+    const firstZ = Math.max(0, Math.ceil((minZ - originZ) / pitchZ));
+    const lastZ = Math.min(height - 1, Math.floor((maxZ - originZ) / pitchZ));
+    for (let i = firstZ; i <= lastZ; i++) {
+      const v = originZ + i * pitchZ;
+      if (v > minZ && v < maxZ) zs[zCount++] = v;
+    }
+    zs[zCount++] = maxZ;
+
+    const pixels = this.atlas.pixels;
+    const bedHeights = this.descriptor.bedHeights;
+    const minimumDepth = this.descriptor.wetSource.minimumDepth ?? 0;
+    for (let iz = 0; iz < zCount - 1; iz++)
+      for (let ix = 0; ix < xCount - 1; ix++) {
         const x0 = xs[ix],
           x1 = xs[ix + 1],
           z0 = zs[iz],
@@ -179,37 +200,40 @@ export class OceanWaterSurfaceProvider implements WaterSurfaceProvider, WaterSpa
         if (resolveFiniteOceanOutsideWetness(this.descriptor, (x0 + x1) / 2, (z0 + z1) / 2) === true) return level;
         let shoreMaximum = -Infinity,
           bedMinimum = Infinity;
-        for (const x of [x0, x1])
-          for (const z of [z0, z1]) {
+        for (let cx = 0; cx < 2; cx++) {
+          const x = cx === 0 ? x0 : x1;
+          for (let cz = 0; cz < 2; cz++) {
+            const z = cz === 0 ? z0 : z1;
             // Grid extrema cannot exclude a wet point in this bilinear cell. Outside corners use their own policy.
             const outside = resolveFiniteOceanOutsideWetness(this.descriptor, x, z);
             if (outside === true) return level;
             if (outside === false) continue;
-            const gx = Math.max(0, Math.min(g.width - 1, (x - g.originXZ[0]) / g.cellSizeXZ[0]));
-            const gz = Math.max(0, Math.min(g.height - 1, (z - g.originXZ[1]) / g.cellSizeXZ[1]));
+            const gx = Math.max(0, Math.min(width - 1, (x - originX) / pitchX));
+            const gz = Math.max(0, Math.min(height - 1, (z - originZ) / pitchZ));
             const ax = Math.floor(gx),
               az = Math.floor(gz),
-              bx = Math.min(g.width - 1, ax + 1),
-              bz = Math.min(g.height - 1, az + 1);
-            const indices = [az * g.width + ax, az * g.width + bx, bz * g.width + ax, bz * g.width + bx];
-            shoreMaximum = Math.max(
-              shoreMaximum,
-              bilinear(
-                ...(indices.map((i) => this.atlas.pixels.at(i * 4 + 3)!) as [number, number, number, number]),
-                gx - ax,
-                gz - az
-              )
+              bx = Math.min(width - 1, ax + 1),
+              bz = Math.min(height - 1, az + 1);
+            const tx = gx - ax,
+              tz = gz - az;
+            const i00 = az * width + ax,
+              i10 = az * width + bx,
+              i01 = bz * width + ax,
+              i11 = bz * width + bx;
+            const shore = bilinear(
+              pixels[i00 * 4 + 3],
+              pixels[i10 * 4 + 3],
+              pixels[i01 * 4 + 3],
+              pixels[i11 * 4 + 3],
+              tx,
+              tz
             );
-            bedMinimum = Math.min(
-              bedMinimum,
-              bilinear(
-                ...(indices.map((i) => this.descriptor.bedHeights[i]) as [number, number, number, number]),
-                gx - ax,
-                gz - az
-              )
-            );
+            if (shore > shoreMaximum) shoreMaximum = shore;
+            const bed = bilinear(bedHeights[i00], bedHeights[i10], bedHeights[i01], bedHeights[i11], tx, tz);
+            if (bed < bedMinimum) bedMinimum = bed;
           }
-        if (shoreMaximum >= 128 && level - bedMinimum > (this.descriptor.wetSource.minimumDepth ?? 0)) return level;
+        }
+        if (shoreMaximum >= 128 && level - bedMinimum > minimumDepth) return level;
       }
     return null;
   }

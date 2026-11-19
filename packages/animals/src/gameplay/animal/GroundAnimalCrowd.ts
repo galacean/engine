@@ -59,7 +59,9 @@ interface BodyState extends CrowdQueryState {
   forward: GroundAnimalMotion;
   contactProposed: GroundAnimalMotion;
   neighbours: BodyState[];
+  neighbourCount: number;
   reservedNeighbours: BodyState[];
+  reservedNeighbourCount: number;
   reservation?: { x: number; z: number; elevation?: number; layer?: string; cellKey: number };
   querySnapshot?: CrowdQueryState;
   bodyKey: string;
@@ -106,6 +108,14 @@ export class GroundAnimalCrowd {
   private milliseconds = 0;
   private maxMilliseconds = 0;
   private worstClearance = Infinity;
+  private _activeRecoveryBody: GroundAnimalBody | undefined;
+  private readonly _recoveryCanTraverse = (
+    from: Readonly<GroundAnimalMotion>,
+    to: Readonly<GroundAnimalMotion>
+  ): boolean => {
+    const b = this._activeRecoveryBody!;
+    return (b.canTranslate?.(to, from) ?? true) && this.canOccupy(b, to.x, to.z);
+  };
 
   /**
    * Register a footprint; unsafe spawns are rejected instead of moving other animals.
@@ -131,7 +141,9 @@ export class GroundAnimalCrowd {
       forward: { ...body.motion },
       contactProposed: { ...body.motion },
       neighbours: [],
+      neighbourCount: 0,
       reservedNeighbours: [],
+      reservedNeighbourCount: 0,
       bodyKey: `crowd:${this.nextId - 1}:body`,
       reservationKey: `crowd:${this.nextId - 1}:goal`,
       managedQueries,
@@ -176,7 +188,7 @@ export class GroundAnimalCrowd {
       this.activateState(state);
     } else {
       this.deactivateState(state);
-      state.neighbours.length = state.reservedNeighbours.length = 0;
+      clearBodyNeighbours(state);
       body.motion.speed = body.motion.angularSpeed = 0;
       if (this.activeList.length === 0) {
         this.neighbourChecks = 0;
@@ -299,7 +311,9 @@ export class GroundAnimalCrowd {
     const radius = restingRadius(body);
     if (
       !this.byBody.has(body) ||
-      ![x, z, elevation ?? 0].every(Number.isFinite) ||
+      !Number.isFinite(x) ||
+      !Number.isFinite(z) ||
+      (elevation !== undefined && !Number.isFinite(elevation)) ||
       !this.canOccupy(body, x, z, elevation, layer, radius)
     )
       return false;
@@ -539,9 +553,20 @@ export class GroundAnimalCrowd {
   /** Atomically relocate a footprint, including sleeping obstacles; reject occupied or invalid destinations. */
   relocate(body: GroundAnimalBody, x: number, z: number, heading: number): boolean {
     const state = this.states.find((s) => s.body === body);
-    if (!state || ![x, z, heading].every(Number.isFinite) || !this.canReserve(body, x, z)) return false;
+    if (
+      !state ||
+      !Number.isFinite(x) ||
+      !Number.isFinite(z) ||
+      !Number.isFinite(heading) ||
+      !this.canReserve(body, x, z)
+    )
+      return false;
     state.recovery.reset();
-    Object.assign(body.motion, { x, z, heading, speed: 0, angularSpeed: 0 });
+    body.motion.x = x;
+    body.motion.z = z;
+    body.motion.heading = heading;
+    body.motion.speed = 0;
+    body.motion.angularSpeed = 0;
     state.next.x = body.motion.x;
     state.next.z = body.motion.z;
     state.next.heading = body.motion.heading;
@@ -551,7 +576,7 @@ export class GroundAnimalCrowd {
     body.desiredSpeed = 0;
     body.arrived = body.blocked = false;
     this.release(body);
-    state.neighbours.length = state.reservedNeighbours.length = 0;
+    clearBodyNeighbours(state);
     this.updateGrid(state);
     return true;
   }
@@ -575,7 +600,10 @@ export class GroundAnimalCrowd {
         b = s.body,
         m = b.motion;
       this.publishIntent(b);
-      s.neighbours.length = s.reservedNeighbours.length = 0;
+      const prevNeighbourCount = s.neighbourCount;
+      const prevReservedNeighbourCount = s.reservedNeighbourCount;
+      let neighbourCount = 0;
+      let reservedNeighbourCount = 0;
       if (b.layer !== "air") {
         const speed = Math.max(b.desiredSpeed, m.speed);
         const acceleration = Math.max(0.05, b.desiredSpeed > 0 ? b.desiredSpeed / 0.6 : s.brakeAcceleration);
@@ -595,7 +623,8 @@ export class GroundAnimalCrowd {
                 )
                   continue;
                 this.neighbourChecks++;
-                if (Math.hypot(other.body.motion.x - m.x, other.body.motion.z - m.z) <= reach) s.neighbours.push(other);
+                if (Math.hypot(other.body.motion.x - m.x, other.body.motion.z - m.z) <= reach)
+                  s.neighbours[neighbourCount++] = other;
               }
             const reservationCell = this.reservations.get(key);
             if (reservationCell)
@@ -607,11 +636,15 @@ export class GroundAnimalCrowd {
                 const distance = Math.hypot(r.x - m.x, r.z - m.z);
                 // An actor already inside a newly reserved footprint may leave; never trap it there.
                 if (distance <= reach && distance >= b.radius + restingRadius(other.body) + 0.001)
-                  s.reservedNeighbours.push(other);
+                  s.reservedNeighbours[reservedNeighbourCount++] = other;
               }
           }
       }
-      this.localPairs += s.neighbours.length + s.reservedNeighbours.length;
+      for (let j = neighbourCount; j < prevNeighbourCount; j++) s.neighbours[j] = null!;
+      for (let j = reservedNeighbourCount; j < prevReservedNeighbourCount; j++) s.reservedNeighbours[j] = null!;
+      s.neighbourCount = neighbourCount;
+      s.reservedNeighbourCount = reservedNeighbourCount;
+      this.localPairs += neighbourCount + reservedNeighbourCount;
       copyMotion(s.next, m);
       // A held pose reduces current speed to zero, but does not create room to walk.
       // Resume against the intended speed and a wider threshold than the stop threshold;
@@ -661,14 +694,12 @@ export class GroundAnimalCrowd {
           turnFromTraffic)
       ) {
         copyMotion(s.forward, s.next);
-        recovered = s.recovery.advance(
-          m,
-          s.next,
-          b.desiredSpeed,
-          b.bodyLength,
-          seconds,
-          (from, to) => (b.canTranslate?.(to, from) ?? true) && this.canOccupy(b, to.x, to.z)
-        );
+        this._activeRecoveryBody = b;
+        try {
+          recovered = s.recovery.advance(m, s.next, b.desiredSpeed, b.bodyLength, seconds, this._recoveryCanTraverse);
+        } finally {
+          this._activeRecoveryBody = undefined;
+        }
         if (!recovered && supported) copyMotion(s.next, s.forward);
         b.surfaceBlocked = !supported && !recovered;
         if (recovered) b.blocked = false;
@@ -676,11 +707,11 @@ export class GroundAnimalCrowd {
       const rawDx = !b.surfaceBlocked ? s.next.x - m.x : 0;
       const rawDz = !b.surfaceBlocked ? s.next.z - m.z : 0;
       let fraction = 1;
-      for (let j = 0, jlen = s.neighbours.length; j < jlen; j++) {
+      for (let j = 0; j < neighbourCount; j++) {
         const n = s.neighbours[j];
         fraction = Math.min(fraction, this.contact(s, n.body.motion.x, n.body.motion.z, n.body.radius, rawDx, rawDz));
       }
-      for (let j = 0, jlen = s.reservedNeighbours.length; j < jlen; j++) {
+      for (let j = 0; j < reservedNeighbourCount; j++) {
         const n = s.reservedNeighbours[j];
         const r = n.reservation!;
         fraction = Math.min(fraction, this.contact(s, r.x, r.z, restingRadius(n.body), rawDx, rawDz));
@@ -726,7 +757,7 @@ export class GroundAnimalCrowd {
           m.speed < Math.min(0.12, b.desiredSpeed * 0.3) &&
           (fraction < 0.01 || limit < Math.min(0.12, b.desiredSpeed * 0.3));
       this.updateGrid(s);
-      for (let j = 0, jlen = s.neighbours.length; j < jlen; j++) {
+      for (let j = 0; j < neighbourCount; j++) {
         const n = s.neighbours[j];
         this.worstClearance = Math.min(
           this.worstClearance,
@@ -865,7 +896,8 @@ export class GroundAnimalCrowd {
   }
 
   private key(x: number, z: number): number {
-    return (x + 32768) * 65536 + z + 32768;
+    // 30-bit unsigned Smi [0, 0x3fffffff] (±16384 cells = ±65km at 4m/cell) to avoid V8 HeapNumber boxing.
+    return ((x & 0x7fff) << 15) | (z & 0x7fff);
   }
 
   private removeFromGrid(state: BodyState): void {
@@ -893,7 +925,7 @@ export class GroundAnimalCrowd {
     const fx = Math.sin(m.heading),
       fz = Math.cos(m.heading);
     const acceleration = Math.max(0.05, b.desiredSpeed / 0.6);
-    for (let i = 0, len = s.neighbours.length; i < len; i++) {
+    for (let i = 0, len = s.neighbourCount; i < len; i++) {
       const n = s.neighbours[i];
       speed = Math.min(
         speed,
@@ -908,7 +940,7 @@ export class GroundAnimalCrowd {
         )
       );
     }
-    for (let i = 0, len = s.reservedNeighbours.length; i < len; i++) {
+    for (let i = 0, len = s.reservedNeighbourCount; i < len; i++) {
       const n = s.reservedNeighbours[i];
       speed = Math.min(
         speed,
@@ -942,6 +974,13 @@ export class GroundAnimalCrowd {
     const t = (-bb - Math.sqrt(bb * bb - aa * cc)) / aa;
     return t >= 1 ? 1 : Math.max(0, t - 1e-6);
   }
+}
+
+function clearBodyNeighbours(state: BodyState): void {
+  for (let i = 0, n = state.neighbourCount; i < n; i++) state.neighbours[i] = null!;
+  state.neighbourCount = 0;
+  for (let i = 0, n = state.reservedNeighbourCount; i < n; i++) state.reservedNeighbours[i] = null!;
+  state.reservedNeighbourCount = 0;
 }
 
 function copyMotion(to: GroundAnimalMotion, from: Readonly<GroundAnimalMotion>): void {
@@ -1104,7 +1143,7 @@ class PooledCrowdSnapshot {
     const key = crowdCellKey(x, z);
     const heads = reserved ? this.reserveHeads : this.heads;
     const keys = reserved ? this.reserveKeys : this.keys;
-    let slot = Math.imul(key ^ Math.floor(key / 65536), 0x9e3779b1) & this.mask;
+    let slot = Math.imul(key ^ (key >>> 15), 0x9e3779b1) & this.mask;
     while (heads[slot] !== -1 && keys[slot] !== key) slot = (slot + 1) & this.mask;
     return heads[slot]!;
   }
@@ -1118,7 +1157,7 @@ class PooledCrowdSnapshot {
     const heads = reserved ? this.reserveHeads : this.heads;
     const keys = reserved ? this.reserveKeys : this.keys;
     const next = reserved ? this.reserveNext : this.next;
-    let slot = Math.imul(key ^ Math.floor(key / 65536), 0x9e3779b1) & this.mask;
+    let slot = Math.imul(key ^ (key >>> 15), 0x9e3779b1) & this.mask;
     while (heads[slot] !== -1 && keys[slot] !== key) slot = (slot + 1) & this.mask;
     keys[slot] = key;
     next[index] = heads[slot]!;
@@ -1167,7 +1206,7 @@ function crowdBodyChanged(body: GroundAnimalBody, previous: MutableCrowdBody): b
   );
 }
 function crowdCellKey(x: number, z: number): number {
-  return (x + 32768) * 65536 + z + 32768;
+  return ((x & 0x7fff) << 15) | (z & 0x7fff);
 }
 
 /**
@@ -1216,11 +1255,15 @@ export class GroundAnimalRouteQuery implements AnimalRouteQuery {
   }
 
   canTraverse(from: AnimalRoutePoint, to: AnimalRoutePoint, clearance = 0): boolean {
-    return !this.find(from, to, clearance);
+    return !this.findXY(from[0], from[1], to[0], to[1], clearance);
+  }
+
+  canTraverseXY(ax: number, az: number, bx: number, bz: number, clearance = 0): boolean {
+    return !this.findXY(ax, az, bx, bz, clearance);
   }
 
   obstruction(from: AnimalRoutePoint, to: AnimalRoutePoint, clearance: number) {
-    if (!this.find(from, to, clearance)) return;
+    if (!this.findXY(from[0], from[1], to[0], to[1], clearance)) return;
     const r = this.hitValues[3]! + 0.001;
     for (let i = 0; i < 4; i++) {
       this.corners[i]![0] = this.hitValues[1]! + (i < 2 ? -r : r);
@@ -1229,46 +1272,53 @@ export class GroundAnimalRouteQuery implements AnimalRouteQuery {
     return this.hit;
   }
 
-  private find(from: AnimalRoutePoint, to: AnimalRoutePoint, clearance: number): boolean {
+  private findXY(fromX: number, fromZ: number, toX: number, toZ: number, clearance: number): boolean {
     const snap = this.snapshot;
     if (!snap) throw new Error("Crowd query has been released");
     const padding = this.subject.values[2]! + Math.max(0, clearance) + 0.001;
     this.hitValues[4] = padding;
     const reach = padding + snap.maximumRadius[0]!;
-    const dx = to[0] - from[0],
-      dz = to[1] - from[1];
+    const dx = toX - fromX,
+      dz = toZ - fromZ;
     this.hitValues[0]! = Infinity;
     for (
-      let iz = Math.floor((Math.min(from[1], to[1]) - reach) / 4);
-      iz <= Math.floor((Math.max(from[1], to[1]) + reach) / 4);
+      let iz = Math.floor((Math.min(fromZ, toZ) - reach) / 4);
+      iz <= Math.floor((Math.max(fromZ, toZ) + reach) / 4);
       iz++
     ) {
       let t0 = 0,
         t1 = 1;
       if (dz) {
-        const a = (iz * 4 - reach - from[1]) / dz,
-          b = ((iz + 1) * 4 + reach - from[1]) / dz;
+        const a = (iz * 4 - reach - fromZ) / dz,
+          b = ((iz + 1) * 4 + reach - fromZ) / dz;
         t0 = Math.max(0, Math.min(a, b));
         t1 = Math.min(1, Math.max(a, b));
       }
       if (t0 > t1) continue;
-      const ax = from[0] + dx * t0,
-        bx = from[0] + dx * t1;
+      const ax = fromX + dx * t0,
+        bx = fromX + dx * t1;
       for (
         let ix = Math.floor((Math.min(ax, bx) - reach) / 4);
         ix <= Math.floor((Math.max(ax, bx) + reach) / 4);
         ix++
       ) {
         for (let i = snap.first(ix, iz, false); i !== -1; i = snap.following(i, false))
-          this.test(snap.records[i]!, false, from, to);
+          this.testXY(snap.records[i]!, false, fromX, fromZ, toX, toZ);
         for (let i = snap.first(ix, iz, true); i !== -1; i = snap.following(i, true))
-          this.test(snap.records[i]!, true, from, to);
+          this.testXY(snap.records[i]!, true, fromX, fromZ, toX, toZ);
       }
     }
     return this.hitValues[0]! !== Infinity;
   }
 
-  private test(state: MutableCrowdRecord, reserved: boolean, from: AnimalRoutePoint, to: AnimalRoutePoint): void {
+  private testXY(
+    state: MutableCrowdRecord,
+    reserved: boolean,
+    fromX: number,
+    fromZ: number,
+    toX: number,
+    toZ: number
+  ): void {
     if (state.id === this.subjectId) return;
     const own = this.subject.values,
       values = state.body.values;
@@ -1284,17 +1334,17 @@ export class GroundAnimalRouteQuery implements AnimalRouteQuery {
       z = values[reserved ? 8 : 1]!;
     const radius = this.hitValues[4]! + (values[2]! + (reserved ? values[5]! : 0));
     // Same circle-entry/overlap-escape rule as circleSegmentEntry, without float arguments or return boxing.
-    const px = from[0] - x,
-      pz = from[1] - z;
-    const dx = to[0] - from[0],
-      dz = to[1] - from[1];
+    const px = fromX - x,
+      pz = fromZ - z;
+    const dx = toX - fromX,
+      dz = toZ - fromZ;
     const lengthSquared = dx * dx + dz * dz,
       dot = px * dx + pz * dz;
     const c = px * px + pz * pz - radius * radius;
     let t = 0;
     if (c <= 0) {
-      const startX = from[0] - own[0]!,
-        startZ = from[1] - own[1]!;
+      const startX = fromX - own[0]!,
+        startZ = fromZ - own[1]!;
       const initialX = own[0]! - x,
         initialZ = own[1]! - z;
       const initialDistanceSquared = initialX * initialX + initialZ * initialZ;

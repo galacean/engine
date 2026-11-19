@@ -104,11 +104,13 @@ export class PlanningPlayerState {
     this.observe();
   }
   observe(): void {
-    for (const state of this.retired.splice(0))
-      void state
-        .flush()
-        .catch(this.onError)
-        .finally(() => state.dispose());
+    if (this.retired.length > 0) {
+      for (const state of this.retired.splice(0))
+        void state
+          .flush()
+          .catch(this.onError)
+          .finally(() => state.dispose());
+    }
     this.state?.observe(this.capture());
   }
   async dispose(): Promise<void> {

@@ -647,23 +647,27 @@ export function createPlanningRingQuery(ring: PlanPoint[]) {
   };
   // Compile repeated scanline projections once, without changing containment tolerance.
   let scanZ = NaN;
+  let scanCount = 0;
   const scanEdges: GroundEdge[] = [],
     scanCrossings: number[] = [];
   const inside = (p: PlanPoint) => {
     if (!within(p, 1e-7)) return false;
     if (p.z !== scanZ) {
       scanZ = p.z;
-      scanEdges.length = 0;
-      scanCrossings.length = 0;
-      for (const id of rows.get(Math.floor(p.z / rowSize)) ?? []) {
-        const e = edges[id];
-        if (p.z < e.z0 - 1e-7 || p.z > e.z1 + 1e-7) continue;
-        scanEdges.push(e);
-        scanCrossings.push(e.z > p.z !== e.z + e.dz > p.z ? e.x + (e.dx * (p.z - e.z)) / e.dz : -Infinity);
+      scanCount = 0;
+      const row = rows.get(Math.floor(p.z / rowSize));
+      if (row) {
+        for (let r = 0; r < row.length; r++) {
+          const e = edges[row[r]];
+          if (p.z < e.z0 - 1e-7 || p.z > e.z1 + 1e-7) continue;
+          scanEdges[scanCount] = e;
+          scanCrossings[scanCount] = e.z > p.z !== e.z + e.dz > p.z ? e.x + (e.dx * (p.z - e.z)) / e.dz : -Infinity;
+          scanCount++;
+        }
       }
     }
     let result = false;
-    for (let i = 0; i < scanEdges.length; i++) {
+    for (let i = 0; i < scanCount; i++) {
       const e = scanEdges[i];
       if (e.x1 < p.x - 1e-7) continue;
       if (p.x >= e.x0 - 1e-7 && p.x <= e.x1 + 1e-7 && distanceSquared(p, e) < 1e-14) return true;

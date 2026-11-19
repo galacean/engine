@@ -762,6 +762,11 @@ export class WorldEnvironmentRuntime {
     return this._seasonVector.y;
   }
 
+  /** Allocation-free winter seasonal weight for vista snow/fog blending. */
+  get winterWeight(): number {
+    return this._seasonVector.w;
+  }
+
   /** Current selected season for gameplay consumers. */
   get season(): TerrainSeason {
     this._assertAlive();

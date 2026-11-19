@@ -17,10 +17,25 @@ export function includeAnimalRouteBounds(
   to: AnimalRoutePoint,
   radius: number
 ): void {
-  bounds.minX = Math.min(bounds.minX, from[0] - radius, to[0] - radius);
-  bounds.minZ = Math.min(bounds.minZ, from[1] - radius, to[1] - radius);
-  bounds.maxX = Math.max(bounds.maxX, from[0] + radius, to[0] + radius);
-  bounds.maxZ = Math.max(bounds.maxZ, from[1] + radius, to[1] + radius);
+  includeAnimalRouteBoundsXY(bounds, from[0], from[1], to[0], to[1], radius);
+}
+
+export function includeAnimalRouteBoundsXY(
+  bounds: AnimalRouteBounds,
+  fromX: number,
+  fromZ: number,
+  toX: number,
+  toZ: number,
+  radius: number
+): void {
+  const minX = (fromX < toX ? fromX : toX) - radius;
+  const maxX = (fromX > toX ? fromX : toX) + radius;
+  const minZ = (fromZ < toZ ? fromZ : toZ) - radius;
+  const maxZ = (fromZ > toZ ? fromZ : toZ) + radius;
+  if (minX < bounds.minX) bounds.minX = minX;
+  if (minZ < bounds.minZ) bounds.minZ = minZ;
+  if (maxX > bounds.maxX) bounds.maxX = maxX;
+  if (maxZ > bounds.maxZ) bounds.maxZ = maxZ;
 }
 
 export function animalRouteBoundsOverlap(a: AnimalRouteBounds, b: AnimalRouteBounds): boolean {
@@ -43,6 +58,8 @@ export interface AnimalRouteQuery {
    * @returns Whether this connection is traversable.
    */
   canTraverse(from: AnimalRoutePoint, to: AnimalRoutePoint, clearance?: number): boolean;
+  /** Optional allocation-free scalar overload matching `canTraverse([ax, az], [bx, bz], clearance)`. */
+  canTraverseXY?(ax: number, az: number, bx: number, bz: number, clearance?: number): boolean;
   /**
    * Identify the first blocking solid and propose exterior bypass points.
    * @param from Segment start in metres.

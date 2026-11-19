@@ -283,7 +283,7 @@ export class BuildingRuntime extends Script {
     this.updateLights(0);
   }
   get publicationRevision(): number {
-    this.occupancyQueries();
+    this.syncOccupancyRevision();
     return this.surfaceRevision;
   }
 
@@ -640,17 +640,19 @@ export class BuildingRuntime extends Script {
     return this.host!.collect(frame, bodies, this.members.keys(), publishedTerrain);
   }
   private validateBuild(force = false): void {
-    for (const build of [this.build, this.detailBuild]) {
-      if (!build || build.controller.signal.aborted || (!force && build.checkedRevision === this.revision)) continue;
-      build.checkedRevision = this.revision;
-      try {
-        if (this.input(build.frame).signature === build.signature) continue;
-      } catch {
-        /* Report the invalid current input through the next publication. */
-      }
-      build.controller.abort();
-      this.invalidate();
+    this.validateSingleBuild(this.build, force);
+    this.validateSingleBuild(this.detailBuild, force);
+  }
+  private validateSingleBuild(build: Build | undefined, force: boolean): void {
+    if (!build || build.controller.signal.aborted || (!force && build.checkedRevision === this.revision)) return;
+    build.checkedRevision = this.revision;
+    try {
+      if (this.input(build.frame).signature === build.signature) return;
+    } catch {
+      /* Report the invalid current input through the next publication. */
     }
+    build.controller.abort();
+    this.invalidate();
   }
   private retire(view: View): void {
     if (view.kind === "profile") this.residency?.desired.delete(view);
@@ -860,7 +862,13 @@ export class BuildingRuntime extends Script {
         view.view.root.isActive = false;
         if (view.fine) view.fine.runtime.root.isActive = false;
       }
-    if (this.entries.some((entry) => entry.retryAt !== undefined && now >= entry.retryAt)) this.detailDirty = true;
+    for (let i = 0, n = this.entries.length; i < n; i++) {
+      const retryAt = this.entries[i].retryAt;
+      if (retryAt !== undefined && now >= retryAt) {
+        this.detailDirty = true;
+        break;
+      }
+    }
     if (
       !this.inputUpdates &&
       !this.terrainUpdate &&
@@ -977,31 +985,64 @@ export class BuildingRuntime extends Script {
     if (!this.lights && this.lightDescriptors.length) this.lights = new ConstructionDecorationLights(this.entity, 4);
     this.lights?.update(this.lightDescriptors, this.host.camera, deltaSeconds);
   }
+  private viewMatrixChanged(view: View, elements: Float32Array): boolean {
+    const cached = view.occupancyMatrix;
+    for (let i = 0; i < 16; i++) {
+      if (cached[i] !== elements[i]) return true;
+    }
+    return false;
+  }
+  private ensureViewOccupancy(view: View): BuildingOccupancyQuery {
+    const matrix = viewRoot(view).transform.worldMatrix,
+      elements = matrix.elements;
+    if (!view.worldOccupancy || this.viewMatrixChanged(view, elements)) {
+      view.worldOccupancy = BuildingOccupancyQuery.fromSnapshot(
+        view.occupancy
+          .transformed(matrix)
+          .snapshot()
+          .map((part) => ({ ...part, owner: buildingInstanceKey(view.frame, buildingGroupKey(part.owner)) }))
+      );
+      view.occupancyMatrix.set(elements);
+    }
+    return view.worldOccupancy;
+  }
+  private syncOccupancyRevision(): void {
+    if (!this.shown || !this.enabled || !this.entity.isActiveInHierarchy) return;
+    let changed = false;
+    for (const view of this.views.values()) {
+      const root = viewRoot(view);
+      const elements = root.transform.worldMatrix.elements;
+      if (!changed && this.viewMatrixChanged(view, elements)) {
+        this.surfaceRevision++;
+        changed = true;
+      }
+      if (root.isActiveInHierarchy && (!view.worldOccupancy || this.viewMatrixChanged(view, elements))) {
+        this.ensureViewOccupancy(view);
+      }
+    }
+  }
   private occupancyQueries(): BuildingOccupancyQuery[] {
     if (!this.shown || !this.enabled || !this.entity.isActiveInHierarchy) return [];
-    if (
-      [...this.views.values()].some(
-        (view) => !view.occupancyMatrix.every((value, i) => value === viewRoot(view).transform.worldMatrix.elements[i])
-      )
-    )
-      this.surfaceRevision++;
-    return this.queriesFor([...this.views.values()].filter((view) => viewRoot(view).isActiveInHierarchy));
+    let changed = false;
+    const queries: BuildingOccupancyQuery[] = [];
+    for (const view of this.views.values()) {
+      const root = viewRoot(view);
+      if (!changed && this.viewMatrixChanged(view, root.transform.worldMatrix.elements)) {
+        this.surfaceRevision++;
+        changed = true;
+      }
+      if (root.isActiveInHierarchy) {
+        queries.push(this.ensureViewOccupancy(view));
+      }
+    }
+    return queries;
   }
   private queriesFor(entries: readonly View[]): BuildingOccupancyQuery[] {
-    return entries.map((view) => {
-      const matrix = viewRoot(view).transform.worldMatrix,
-        elements = matrix.elements;
-      if (!view.worldOccupancy || !view.occupancyMatrix.every((value, index) => value === elements[index])) {
-        view.worldOccupancy = BuildingOccupancyQuery.fromSnapshot(
-          view.occupancy
-            .transformed(matrix)
-            .snapshot()
-            .map((part) => ({ ...part, owner: buildingInstanceKey(view.frame, buildingGroupKey(part.owner)) }))
-        );
-        view.occupancyMatrix.set(elements);
-      }
-      return view.worldOccupancy;
-    });
+    const queries: BuildingOccupancyQuery[] = new Array(entries.length);
+    for (let i = 0; i < entries.length; i++) {
+      queries[i] = this.ensureViewOccupancy(entries[i]);
+    }
+    return queries;
   }
   /** Occupied envelopes of the currently published component geometry.
    * Independent of GPU residency and entrance animation; no planning OBB approximation. */

@@ -184,6 +184,9 @@ export class FreeControl extends Script implements FreeControlPointerInputTarget
   private _lastTerrainNormalProvider: TerrainNormalProvider | null = null;
   private _lastTerrainPitchProvider: TerrainPitchProvider | null = null;
   private _touchSurface: HTMLCanvasElement | null = null;
+  private readonly _cachedInputBounds = { left: 0, top: 0, width: 0, height: 0 };
+  private _lastOrientationWidth = -1;
+  private _lastOrientationHeight = -1;
 
   constructor(entity: Entity) {
     super(entity);
@@ -339,9 +342,14 @@ export class FreeControl extends Script implements FreeControlPointerInputTarget
   }
 
   override onLateUpdate(deltaTime: number): void {
-    if (this.orientationTouchAreas) {
-      const bounds = this._getInputBounds();
-      if (bounds) this._updateTouchAreas(bounds.width, bounds.height);
+    if (this.orientationTouchAreas && this._touchSurface) {
+      const width = this._touchSurface.clientWidth || this.engine.canvas.width;
+      const height = this._touchSurface.clientHeight || this.engine.canvas.height;
+      if (width > 0 && height > 0 && (width !== this._lastOrientationWidth || height !== this._lastOrientationHeight)) {
+        this._lastOrientationWidth = width;
+        this._lastOrientationHeight = height;
+        this._updateTouchAreas(width, height);
+      }
     }
     if (!this._viewInitialized) this.synchronizeView();
     if (!this._inputEnabled) this._resetPointers();
@@ -680,7 +688,13 @@ export class FreeControl extends Script implements FreeControlPointerInputTarget
     const bounds = canvas.getBoundingClientRect();
     const width = bounds.width || canvas.clientWidth || this.engine.canvas.width;
     const height = bounds.height || canvas.clientHeight || this.engine.canvas.height;
-    return width > 0 && height > 0 ? { left: bounds.left, top: bounds.top, width, height } : null;
+    if (width <= 0 || height <= 0) return null;
+    const cached = this._cachedInputBounds;
+    cached.left = bounds.left;
+    cached.top = bounds.top;
+    cached.width = width;
+    cached.height = height;
+    return cached;
   }
 
   private _screenToClientPosition(screenX: number, screenY: number): Vector2 | null {
@@ -710,6 +724,8 @@ export class FreeControl extends Script implements FreeControlPointerInputTarget
       canvas.style.setProperty("-webkit-tap-highlight-color", "transparent");
     }
     this._touchSurface = canvas;
+    this._lastOrientationWidth = -1;
+    this._lastOrientationHeight = -1;
   }
 
   private _releaseTouchSurface(): void {
@@ -725,6 +741,8 @@ export class FreeControl extends Script implements FreeControlPointerInputTarget
       }
     }
     this._touchSurface = null;
+    this._lastOrientationWidth = -1;
+    this._lastOrientationHeight = -1;
   }
 
   private _contains(rect: Rect, x: number, y: number): boolean {

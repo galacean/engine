@@ -238,47 +238,70 @@ export class HeightfieldWaterSpatialFieldProvider implements WaterSpatialFieldPr
     this._active = false;
   }
 
+  private readonly _expandedBounds: WaterBoundsXZ = { minX: 0, maxX: 0, minZ: 0, maxZ: 0 };
+
   maximumSurfaceHeightInBounds(bounds: WaterBoundsXZ): number | null {
     assertWaterQueryBounds(bounds);
     if (!this._active || !this._data.queryGrid) throw new Error("Heightfield static bounds query is unavailable.");
     const t = this._planarTransform;
-    const points = [bounds.minX, bounds.maxX].flatMap((x) =>
-      [bounds.minZ, bounds.maxZ].map((z) => {
-        const dx = x - t.source.position[0],
-          dz = z - t.source.position[2];
-        return [dx * t.cosine - dz * t.sine, dx * t.sine + dz * t.cosine];
-      })
-    );
-    const local = {
-      minX: Math.max(this._localBounds.minX, Math.min(...points.map((p) => p[0]))),
-      maxX: Math.min(this._localBounds.maxX, Math.max(...points.map((p) => p[0]))),
-      minZ: Math.max(this._localBounds.minZ, Math.min(...points.map((p) => p[1]))),
-      maxZ: Math.min(this._localBounds.maxZ, Math.max(...points.map((p) => p[1])))
-    };
-    if (local.minX > local.maxX || local.minZ > local.maxZ) return null;
+    const ox = t.source.position[0],
+      oz = t.source.position[2],
+      cos = t.cosine,
+      sin = t.sine;
+    let rawMinX = Infinity,
+      rawMaxX = -Infinity,
+      rawMinZ = Infinity,
+      rawMaxZ = -Infinity;
+    for (let cx = 0; cx < 2; cx++) {
+      const dx = (cx === 0 ? bounds.minX : bounds.maxX) - ox;
+      for (let cz = 0; cz < 2; cz++) {
+        const dz = (cz === 0 ? bounds.minZ : bounds.maxZ) - oz;
+        const lx = dx * cos - dz * sin;
+        const lz = dx * sin + dz * cos;
+        if (lx < rawMinX) rawMinX = lx;
+        if (lx > rawMaxX) rawMaxX = lx;
+        if (lz < rawMinZ) rawMinZ = lz;
+        if (lz > rawMaxZ) rawMaxZ = lz;
+      }
+    }
+    const localMinX = Math.max(this._localBounds.minX, rawMinX);
+    const localMaxX = Math.min(this._localBounds.maxX, rawMaxX);
+    const localMinZ = Math.max(this._localBounds.minZ, rawMinZ);
+    const localMaxZ = Math.min(this._localBounds.maxZ, rawMaxZ);
+    if (localMinX > localMaxX || localMinZ > localMaxZ) return null;
     const boundary = this._data.lakeBoundary;
     if (boundary?.queryCoverage === "boundary") {
       const tolerance = boundary.terrainShorelineTolerance ?? 0;
-      const expanded = {
-        minX: local.minX - tolerance,
-        maxX: local.maxX + tolerance,
-        minZ: local.minZ - tolerance,
-        maxZ: local.maxZ + tolerance
-      };
-      if (!boundary.rings.some((ring) => polygonWaterBoundsOverlap(ring, expanded))) return null;
+      const expanded = this._expandedBounds;
+      expanded.minX = localMinX - tolerance;
+      expanded.maxX = localMaxX + tolerance;
+      expanded.minZ = localMinZ - tolerance;
+      expanded.maxZ = localMaxZ + tolerance;
+      const rings = boundary.rings;
+      let overlaps = false;
+      for (let r = 0, rlen = rings.length; r < rlen; r++) {
+        if (polygonWaterBoundsOverlap(rings[r], expanded)) {
+          overlaps = true;
+          break;
+        }
+      }
+      if (!overlaps) return null;
     }
     const q = this._data.queryGrid,
       g = q.grid;
-    const x0 = Math.max(0, Math.floor((local.minX - g.originXZ[0]) / g.cellSizeXZ[0] + 0.5));
-    const x1 = Math.min(g.width - 1, Math.floor((local.maxX - g.originXZ[0]) / g.cellSizeXZ[0] + 0.5));
-    const z0 = Math.max(0, Math.floor((local.minZ - g.originXZ[1]) / g.cellSizeXZ[1] + 0.5));
-    const z1 = Math.min(g.height - 1, Math.floor((local.maxZ - g.originXZ[1]) / g.cellSizeXZ[1] + 0.5));
+    const x0 = Math.max(0, Math.floor((localMinX - g.originXZ[0]) / g.cellSizeXZ[0] + 0.5));
+    const x1 = Math.min(g.width - 1, Math.floor((localMaxX - g.originXZ[0]) / g.cellSizeXZ[0] + 0.5));
+    const z0 = Math.max(0, Math.floor((localMinZ - g.originXZ[1]) / g.cellSizeXZ[1] + 0.5));
+    const z1 = Math.min(g.height - 1, Math.floor((localMaxZ - g.originXZ[1]) / g.cellSizeXZ[1] + 0.5));
+    const wetMask = q.wetMask;
+    const componentIndices = q.componentIndices;
+    const surfaceHeights = q.surfaceHeights;
     let maximum = -Infinity;
     for (let z = z0; z <= z1; z++)
       for (let x = x0; x <= x1; x++) {
         const i = z * g.width + x;
-        if (!q.wetMask.at(i)) continue;
-        const component = q.componentIndices.at(i);
+        if (!wetMask[i]) continue;
+        const component = componentIndices[i];
         // Component-normalized bilinear interpolation is a convex combination of matching neighbours.
         for (let dz = -1; dz <= 1; dz++)
           for (let dx = -1; dx <= 1; dx++) {
@@ -286,8 +309,10 @@ export class HeightfieldWaterSpatialFieldProvider implements WaterSpatialFieldPr
               nz = z + dz;
             if (nx < 0 || nz < 0 || nx >= g.width || nz >= g.height) continue;
             const neighbour = nz * g.width + nx;
-            if (q.wetMask.at(neighbour) && q.componentIndices.at(neighbour) === component)
-              maximum = Math.max(maximum, q.surfaceHeights.at(neighbour)!);
+            if (wetMask[neighbour] && componentIndices[neighbour] === component) {
+              const h = surfaceHeights[neighbour];
+              if (h > maximum) maximum = h;
+            }
           }
       }
     return maximum === -Infinity ? null : maximum + t.source.position[1];

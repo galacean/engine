@@ -39,6 +39,7 @@ import {
 import {
   createAnimalStaticRouteTask,
   includeAnimalRouteBounds,
+  includeAnimalRouteBoundsXY,
   animalRouteBoundsOverlap,
   type AnimalRouteBounds,
   advanceAnimalRouteTarget,
@@ -193,6 +194,13 @@ export class ConfiguredAnimal implements AnimalAgent {
   private locomotionSpeed = 0;
   private clipStartedFrame = -1;
   private readonly proposedMotion: GroundAnimalMotion = { x: 0, z: 0, heading: 0, speed: 0, angularSpeed: 0 };
+  private previewRecovery?: GroundAnimalRecovery;
+  private previewMotion?: GroundAnimalMotion;
+  private previewProposed?: GroundAnimalMotion;
+  private previewForward?: GroundAnimalMotion;
+  private scratchAirFrom?: { x: number; y: number; z: number };
+  private scratchAirTo?: { x: number; y: number; z: number };
+  private recoveryCanTranslate?: (from: Readonly<GroundAnimalMotion>, to: Readonly<GroundAnimalMotion>) => boolean;
   private clip = -1;
   private disposed = false;
   private planningRevision = 0;
@@ -697,7 +705,7 @@ export class ConfiguredAnimal implements AnimalAgent {
     // Completed clips hold until the scheduler selects the next action.
     this.wakeForTrafficChange();
     if (!this.crowdBody) {
-      Object.assign(this.proposedMotion, this.motion);
+      copyMotionState(this.proposedMotion, this.motion);
       let arrived = false;
       if (this.velocity > 0 && !this.manual)
         arrived = advanceGroundAnimalMotion(
@@ -1231,7 +1239,14 @@ export class ConfiguredAnimal implements AnimalAgent {
       const current = () =>
         owned() && revision === this.planningRevision && scale === this.scale && multiplier === this.speedMultiplier;
       const dependency: AnimalRouteBounds = { minX: Infinity, minZ: Infinity, maxX: -Infinity, maxZ: -Infinity };
-      includeAnimalRouteBounds(dependency, [this.motion.x, this.motion.z], target, this.baseRadius * this.scale + 0.05);
+      includeAnimalRouteBoundsXY(
+        dependency,
+        this.motion.x,
+        this.motion.z,
+        target[0],
+        target[1],
+        this.baseRadius * this.scale + 0.05
+      );
       (this.planningBounds ??= new Set()).add(dependency);
       const task = this.prepareRouteSteps(target, nominalSpeed, medium, arrivalMedium, reuseRoute, dependency, intent);
       try {
@@ -1315,20 +1330,40 @@ export class ConfiguredAnimal implements AnimalAgent {
           )
         : undefined;
     };
-    const query: AnimalRouteQuery = {
-      canTraverse: (from, to, clearance) => {
-        // Validate the flight footprint along every curved preview step.
-        if (flightBounds && !containsAnimalFlight(flightBounds, to[0], to[1], radius)) return false;
-        if (dependency) includeAnimalRouteBounds(dependency, from, to, radius + 0.05 + (clearance ?? 0));
-        const supported =
+    const canTraverseXY = (ax: number, az: number, bx: number, bz: number, clearance?: number): boolean => {
+      // Validate the flight footprint along every curved preview step.
+      if (flightBounds && !containsAnimalFlight(flightBounds, bx, bz, radius)) return false;
+      if (dependency) includeAnimalRouteBoundsXY(dependency, ax, az, bx, bz, radius + 0.05 + (clearance ?? 0));
+      let supported: boolean;
+      if (physicalQuery.canTraverseXY) {
+        supported =
           clearance === undefined
-            ? physicalQuery.canTraverse(from, to)
-            : physicalQuery.canTraverse(from, to, clearance);
-        return supported && (!traffic || traffic.canTraverse(from, to));
-      },
+            ? physicalQuery.canTraverseXY(ax, az, bx, bz)
+            : physicalQuery.canTraverseXY(ax, az, bx, bz, clearance);
+      } else {
+        const fromPt: AnimalRoutePoint = [ax, az];
+        const toPt: AnimalRoutePoint = [bx, bz];
+        supported =
+          clearance === undefined
+            ? physicalQuery.canTraverse(fromPt, toPt)
+            : physicalQuery.canTraverse(fromPt, toPt, clearance);
+      }
+      return (
+        supported &&
+        (!traffic ||
+          (traffic.canTraverseXY ? traffic.canTraverseXY(ax, az, bx, bz) : traffic.canTraverse([ax, az], [bx, bz])))
+      );
+    };
+    const query: AnimalRouteQuery = {
+      canTraverse: (from, to, clearance) => canTraverseXY(from[0], from[1], to[0], to[1], clearance),
+      canTraverseXY,
       obstruction: (from, to, clearance) => {
-        if (dependency) includeAnimalRouteBounds(dependency, from, to, radius + 0.05 + clearance);
-        return traffic && physicalQuery.canTraverse(from, to, clearance)
+        if (dependency)
+          includeAnimalRouteBoundsXY(dependency, from[0], from[1], to[0], to[1], radius + 0.05 + clearance);
+        const physicalClear = physicalQuery.canTraverseXY
+          ? physicalQuery.canTraverseXY(from[0], from[1], to[0], to[1], clearance)
+          : physicalQuery.canTraverse(from, to, clearance);
+        return traffic && physicalClear
           ? traffic.obstruction(from, to, clearance)
           : physicalQuery.obstruction(from, to, clearance);
       }
@@ -1409,7 +1444,7 @@ export class ConfiguredAnimal implements AnimalAgent {
           if (!result.value) return false;
           if (dependency && followed!.bounds) {
             const bounds = followed!.bounds;
-            includeAnimalRouteBounds(dependency, [bounds.minX, bounds.minZ], [bounds.maxX, bounds.maxZ], 0);
+            includeAnimalRouteBoundsXY(dependency, bounds.minX, bounds.minZ, bounds.maxX, bounds.maxZ, 0);
           }
           return { ...followed!, invalidated: false };
         }
@@ -1452,17 +1487,28 @@ export class ConfiguredAnimal implements AnimalAgent {
     const omega = Math.min(steering.maxAngularSpeed, speed / (length * 1.25));
     const passRadius = Math.max(0.2, speed / Math.max(0.05, omega));
     const radius = this.baseRadius * this.scale;
-    const motion = { ...initial },
-      proposed = { ...initial },
-      forward = { ...initial },
-      recovery = new GroundAnimalRecovery();
+    const motion = (this.previewMotion ??= { x: 0, z: 0, heading: 0, speed: 0, angularSpeed: 0 });
+    const proposed = (this.previewProposed ??= { x: 0, z: 0, heading: 0, speed: 0, angularSpeed: 0 });
+    const forward = (this.previewForward ??= { x: 0, z: 0, heading: 0, speed: 0, angularSpeed: 0 });
+    const recovery = (this.previewRecovery ??= new GroundAnimalRecovery());
+    copyMotionState(motion, initial);
+    copyMotionState(proposed, initial);
+    copyMotionState(forward, initial);
+    recovery.reset();
+    const canTraverseStep = (ax: number, az: number, bx: number, bz: number): boolean =>
+      query.canTraverseXY ? query.canTraverseXY(ax, az, bx, bz) : query.canTraverse([ax, az], [bx, bz]);
+    const canTraverseRecovery = (a: Readonly<GroundAnimalMotion>, b: Readonly<GroundAnimalMotion>): boolean =>
+      canTraverseStep(a.x, a.z, b.x, b.z);
     let cursor = 0,
       y = initial.y,
       totalDistance = 0,
-      previous = [motion.x, motion.z];
-    for (const point of points) {
-      totalDistance += Math.hypot(point[0] - previous[0], point[1] - previous[1]);
-      previous = [...point];
+      prevX = motion.x,
+      prevZ = motion.z;
+    for (let p = 0, plen = points.length; p < plen; p++) {
+      const point = points[p];
+      totalDistance += Math.hypot(point[0] - prevX, point[1] - prevZ);
+      prevX = point[0];
+      prevZ = point[1];
     }
     const budget = Math.ceil(
       (totalDistance / Math.max(0.1, speed * steering.turnSpeedRatio) +
@@ -1477,16 +1523,21 @@ export class ConfiguredAnimal implements AnimalAgent {
     const stopDistance = (speed * speed) / (2 * acceleration) + arrivalRadius;
     const baseStrideDistance = speed * baseDt;
     const maxMergedSteps = baseStrideDistance > 1e-4 ? Math.max(1, Math.floor(1.5 / baseStrideDistance)) : 1;
-    for (let i = 0; i < Math.min(6000, budget); i++) {
+    const airFrom = medium === "air" ? (this.scratchAirFrom ??= { x: 0, y: 0, z: 0 }) : undefined;
+    const airTo = medium === "air" ? (this.scratchAirTo ??= { x: 0, y: 0, z: 0 }) : undefined;
+    const maxIterations = Math.min(6000, budget);
+    for (let i = 0; i < maxIterations; i++) {
       yield;
       const nextCursor = advanceAnimalRouteTarget(motion, points, cursor, passRadius);
       if (cursor !== nextCursor) recovery.reset();
       cursor = nextCursor;
       steering.continuous = cursor < points.length - 1;
-      const from = [motion.x, motion.z] as const;
+      const fromX = motion.x;
+      const fromZ = motion.z;
       const oldY = y;
-      const dx = points[cursor][0] - motion.x,
-        dz = points[cursor][1] - motion.z;
+      const targetPoint = points[cursor];
+      const dx = targetPoint[0] - fromX,
+        dz = targetPoint[1] - fromZ;
       let stepCount = 1;
       // Only merge consecutive substeps on already-aligned straight cruise well outside
       // braking/pass zones, and strictly for non-airborne motion.
@@ -1509,20 +1560,20 @@ export class ConfiguredAnimal implements AnimalAgent {
         }
       }
       const stepDt = stepCount * baseDt;
-      Object.assign(proposed, motion);
-      let arrived = advanceGroundAnimalMotion(proposed, points[cursor], speed, length, stepDt, speed, steering);
+      copyMotionState(proposed, motion);
+      let arrived = advanceGroundAnimalMotion(proposed, targetPoint, speed, length, stepDt, speed, steering);
       let proposedX = proposed.x,
         proposedZ = proposed.z;
-      let supported = query.canTraverse(from, [proposedX, proposedZ]);
+      let supported = canTraverseStep(fromX, fromZ, proposedX, proposedZ);
       if (stepCount > 1 && !supported) {
         // If a merged straight stride hits an obstruction, step back to exact 1/15s resolution
         // so forward approach and recovery start from the exact blocking edge.
         stepCount = 1;
-        Object.assign(proposed, motion);
-        arrived = advanceGroundAnimalMotion(proposed, points[cursor], speed, length, baseDt, speed, steering);
+        copyMotionState(proposed, motion);
+        arrived = advanceGroundAnimalMotion(proposed, targetPoint, speed, length, baseDt, speed, steering);
         proposedX = proposed.x;
         proposedZ = proposed.z;
-        supported = query.canTraverse(from, [proposedX, proposedZ]);
+        supported = canTraverseStep(fromX, fromZ, proposedX, proposedZ);
       }
       const closeBehind =
         Math.hypot(dx, dz) < length * 1.5 && dx * Math.sin(motion.heading) + dz * Math.cos(motion.heading) < 0;
@@ -1531,13 +1582,11 @@ export class ConfiguredAnimal implements AnimalAgent {
         !arrived &&
         (recovery.recovering || !supported || (closeBehind && !steering.urgent && !steering.tightTurns))
       ) {
-        Object.assign(forward, proposed);
-        const recovered = recovery.advance(motion, proposed, speed, length, baseDt, (a, b) =>
-          query.canTraverse([a.x, a.z], [b.x, b.z])
-        );
+        copyMotionState(forward, proposed);
+        const recovered = recovery.advance(motion, proposed, speed, length, baseDt, canTraverseRecovery);
         if (!recovered) {
           if (!supported) return false;
-          Object.assign(proposed, forward);
+          copyMotionState(proposed, forward);
         }
       }
       if (stepCount > 1) {
@@ -1545,13 +1594,15 @@ export class ConfiguredAnimal implements AnimalAgent {
         // Preserve per-substep cooperative budget accounting without repeating geometry queries.
         for (let k = 1; k < stepCount; k++) yield;
       }
-      Object.assign(motion, proposed);
+      copyMotionState(motion, proposed);
       // A clear waypoint chord does not guarantee a clear slow-turning arc.
       // Validate the actual planned curve against the same decision-time footprints.
       // The initial support check already validated this segment. Only recovery
       // can replace its endpoint during this synchronous preview step.
       if (
-        !(motion.x === proposedX && motion.z === proposedZ ? supported : query.canTraverse(from, [motion.x, motion.z]))
+        !(motion.x === proposedX && motion.z === proposedZ
+          ? supported
+          : canTraverseStep(fromX, fromZ, motion.x, motion.z))
       )
         return false;
       if (medium === "air" && ground.canTraverseAir) {
@@ -1566,15 +1617,13 @@ export class ConfiguredAnimal implements AnimalAgent {
         }
         const maxStep = this.flightClimbSpeed / 15;
         y += Math.max(-maxStep, Math.min(maxStep, wanted - y));
-        if (
-          !ground.canTraverseAir(
-            { x: from[0], z: from[1], y: oldY },
-            { x: motion.x, z: motion.z, y },
-            radius,
-            bodyHeight
-          )
-        )
-          return false;
+        airFrom!.x = fromX;
+        airFrom!.y = oldY;
+        airFrom!.z = fromZ;
+        airTo!.x = motion.x;
+        airTo!.y = y;
+        airTo!.z = motion.z;
+        if (!ground.canTraverseAir(airFrom!, airTo!, radius, bodyHeight)) return false;
       }
       if (arrived && !steering.continuous) {
         return {
@@ -1599,8 +1648,8 @@ export class ConfiguredAnimal implements AnimalAgent {
     if (!ground || ground.staticRouteQuery || this.movementMedium === "air") return true;
     const motion = this.groundPrediction,
       previous = this.groundCheckpoint;
-    Object.assign(motion, this.motion);
-    Object.assign(previous, motion);
+    copyMotionState(motion, this.motion);
+    copyMotionState(previous, motion);
     const speed = nominalSpeed * this.scale * this.speedMultiplier;
     const length = Math.max(0.1, (this.config.bounds.max[2] - this.config.bounds.min[2]) * this.scale);
     const radius = this.baseRadius * this.scale;
@@ -1617,7 +1666,7 @@ export class ConfiguredAnimal implements AnimalAgent {
       )
     )
       return false;
-    Object.assign(previous, motion);
+    copyMotionState(previous, motion);
     for (let frame = 0; frame < 180; frame++) {
       const arrived = advanceGroundAnimalMotion(motion, target, speed, length, 1 / 60, speed, this.surfaceSteering);
       if (frame === 0 || frame % 30 === 29 || arrived) {
@@ -1630,7 +1679,7 @@ export class ConfiguredAnimal implements AnimalAgent {
           // stepping recovery; rejecting every goal here would immobilize it.
           return frame === 0;
         }
-        Object.assign(previous, motion);
+        copyMotionState(previous, motion);
       }
       if (arrived) return true;
     }
@@ -1643,10 +1692,12 @@ export class ConfiguredAnimal implements AnimalAgent {
     from: Readonly<GroundAnimalMotion> = this.motion
   ): boolean {
     if (this.route?.bounds)
-      includeAnimalRouteBounds(
+      includeAnimalRouteBoundsXY(
         this.route.bounds,
-        [from.x, from.z],
-        [proposed.x, proposed.z],
+        from.x,
+        from.z,
+        proposed.x,
+        proposed.z,
         this.baseRadius * this.scale + 0.05
       );
     const ground = this.options.ground;
@@ -1661,12 +1712,15 @@ export class ConfiguredAnimal implements AnimalAgent {
       return false;
     if (this.movementMedium === "air" && ground.canTraverseAir) {
       const height = (this.config.bounds.max[1] - this.config.bounds.min[1]) * this.scale;
-      return ground.canTraverseAir(
-        { x: from.x, z: from.z, y: this.position.y },
-        { x: proposed.x, z: proposed.z, y: this.position.y },
-        this.baseRadius * this.scale,
-        height
-      );
+      const airFrom = (this.scratchAirFrom ??= { x: 0, y: 0, z: 0 });
+      const airTo = (this.scratchAirTo ??= { x: 0, y: 0, z: 0 });
+      airFrom.x = from.x;
+      airFrom.y = this.position.y;
+      airFrom.z = from.z;
+      airTo.x = proposed.x;
+      airTo.y = this.position.y;
+      airTo.z = proposed.z;
+      return ground.canTraverseAir(airFrom, airTo, this.baseRadius * this.scale, height);
     }
     return true;
   }
@@ -1685,16 +1739,17 @@ export class ConfiguredAnimal implements AnimalAgent {
       (!closeBehind || this.urgentMovement || this.options.tightTurns)
     )
       return true;
-    Object.assign(this.groundCheckpoint, proposed);
+    copyMotionState(this.groundCheckpoint, proposed);
+    const canTraverseRecovery = (this.recoveryCanTranslate ??= (from, to) => this.canTranslate(to, from));
     const recovered = this.groundRecovery.advance(
       this.motion,
       proposed,
       this.velocity * this.scale * this.speedMultiplier,
       length,
       seconds,
-      (from, to) => this.canTranslate(to, from)
+      canTraverseRecovery
     );
-    if (!recovered && supported) Object.assign(proposed, this.groundCheckpoint);
+    if (!recovered && supported) copyMotionState(proposed, this.groundCheckpoint);
     return recovered || supported;
   }
 
@@ -1789,19 +1844,26 @@ export class ConfiguredAnimal implements AnimalAgent {
       y = current;
       if (this.arrivalHeight !== undefined) this.surfaceBlocked = true;
     }
-    if (
-      y !== current &&
-      this.movementMedium === "air" &&
-      this.options.ground?.canTraverseAir &&
-      !this.options.ground.canTraverseAir(
-        { x: this.motion.x, z: this.motion.z, y: current },
-        { x: this.motion.x, z: this.motion.z, y },
-        this.baseRadius * this.scale,
-        (this.config.bounds.max[1] - this.config.bounds.min[1]) * this.scale
-      )
-    ) {
-      y = current;
-      this.surfaceBlocked = true;
+    if (y !== current && this.movementMedium === "air" && this.options.ground?.canTraverseAir) {
+      const airFrom = (this.scratchAirFrom ??= { x: 0, y: 0, z: 0 });
+      const airTo = (this.scratchAirTo ??= { x: 0, y: 0, z: 0 });
+      airFrom.x = this.motion.x;
+      airFrom.y = current;
+      airFrom.z = this.motion.z;
+      airTo.x = this.motion.x;
+      airTo.y = y;
+      airTo.z = this.motion.z;
+      if (
+        !this.options.ground.canTraverseAir(
+          airFrom,
+          airTo,
+          this.baseRadius * this.scale,
+          (this.config.bounds.max[1] - this.config.bounds.min[1]) * this.scale
+        )
+      ) {
+        y = current;
+        this.surfaceBlocked = true;
+      }
     }
     if (Math.abs(y - height) < 1e-5) {
       this.changingMedium = false;
@@ -2157,7 +2219,7 @@ export class ConfiguredAnimal implements AnimalAgent {
       remaining -= step;
       this.probeMovementPath();
       speed = this.velocity * this.scale * this.speedMultiplier;
-      Object.assign(this.proposedMotion, this.motion);
+      copyMotionState(this.proposedMotion, this.motion);
       arrived = advanceGroundAnimalMotion(
         this.proposedMotion,
         this.movementTarget,
@@ -2176,7 +2238,7 @@ export class ConfiguredAnimal implements AnimalAgent {
         this.surfaceBlocked = true;
         this.continueFlight();
         this.motion.speed = this.motion.angularSpeed = 0;
-        Object.assign(this.proposedMotion, this.motion);
+        copyMotionState(this.proposedMotion, this.motion);
         arrived = false;
       } else {
         this.surfaceBlocked = false;
@@ -2801,4 +2863,12 @@ export class ConfiguredAnimal implements AnimalAgent {
       this.anchorReference.z - this.anchorPosition.z
     );
   }
+}
+
+function copyMotionState(to: GroundAnimalMotion, from: Readonly<GroundAnimalMotion>): void {
+  to.x = from.x;
+  to.z = from.z;
+  to.heading = from.heading;
+  to.speed = from.speed;
+  to.angularSpeed = from.angularSpeed;
 }

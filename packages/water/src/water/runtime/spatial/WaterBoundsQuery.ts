@@ -1,7 +1,14 @@
 import type { WaterBoundsXZ } from "../body/WaterBodyRuntime";
 
 export function assertWaterQueryBounds(b: WaterBoundsXZ): void {
-  if (![b.minX, b.minZ, b.maxX, b.maxZ].every(Number.isFinite) || b.minX > b.maxX || b.minZ > b.maxZ)
+  if (
+    !Number.isFinite(b.minX) ||
+    !Number.isFinite(b.minZ) ||
+    !Number.isFinite(b.maxX) ||
+    !Number.isFinite(b.maxZ) ||
+    b.minX > b.maxX ||
+    b.minZ > b.maxZ
+  )
     throw new Error("Invalid Water query bounds");
 }
 
@@ -13,36 +20,47 @@ export function segmentWaterBoundsDistance(
   bz: number,
   bounds: WaterBoundsXZ
 ): number {
+  const minX = bounds.minX,
+    maxX = bounds.maxX,
+    minZ = bounds.minZ,
+    maxZ = bounds.maxZ;
+  const dx = bx - ax,
+    dz = bz - az;
   let low = 0,
     high = 1;
-  for (const [start, delta, min, max] of [
-    [ax, bx - ax, bounds.minX, bounds.maxX],
-    [az, bz - az, bounds.minZ, bounds.maxZ]
-  ]) {
-    if (delta === 0) {
-      if (start < min || start > max) {
-        high = -1;
-        break;
-      }
+  if (dx === 0) {
+    if (ax < minX || ax > maxX) high = -1;
+  } else {
+    const a = (minX - ax) / dx,
+      b = (maxX - ax) / dx;
+    low = Math.max(low, Math.min(a, b));
+    high = Math.min(high, Math.max(a, b));
+  }
+  if (low <= high) {
+    if (dz === 0) {
+      if (az < minZ || az > maxZ) high = -1;
     } else {
-      const a = (min - start) / delta,
-        b = (max - start) / delta;
+      const a = (minZ - az) / dz,
+        b = (maxZ - az) / dz;
       low = Math.max(low, Math.min(a, b));
       high = Math.min(high, Math.max(a, b));
     }
   }
   if (low <= high) return 0;
-  const pointDistance = (x: number, z: number) =>
-    Math.hypot(Math.max(bounds.minX - x, 0, x - bounds.maxX), Math.max(bounds.minZ - z, 0, z - bounds.maxZ));
-  let distance = Math.min(pointDistance(ax, az), pointDistance(bx, bz));
-  const dx = bx - ax,
-    dz = bz - az,
-    length = dx * dx + dz * dz;
-  for (const x of [bounds.minX, bounds.maxX])
-    for (const z of [bounds.minZ, bounds.maxZ]) {
+  let distance = Math.min(
+    Math.hypot(Math.max(minX - ax, 0, ax - maxX), Math.max(minZ - az, 0, az - maxZ)),
+    Math.hypot(Math.max(minX - bx, 0, bx - maxX), Math.max(minZ - bz, 0, bz - maxZ))
+  );
+  const length = dx * dx + dz * dz;
+  for (let cx = 0; cx < 2; cx++) {
+    const x = cx === 0 ? minX : maxX;
+    for (let cz = 0; cz < 2; cz++) {
+      const z = cz === 0 ? minZ : maxZ;
       const t = length > 0 ? Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / length)) : 0;
-      distance = Math.min(distance, Math.hypot(x - ax - t * dx, z - az - t * dz));
+      const d = Math.hypot(x - ax - t * dx, z - az - t * dz);
+      if (d < distance) distance = d;
     }
+  }
   return distance;
 }
 

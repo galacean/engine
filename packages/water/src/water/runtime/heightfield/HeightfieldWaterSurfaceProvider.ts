@@ -1,4 +1,4 @@
-import { sampleWaterConnection } from "../../authoring/connections/WaterConnection";
+import { sampleWaterConnectionMotion } from "../../authoring/connections/WaterConnection";
 /** Final visible-surface provider over compiled heightfield water. */
 import { Vector3 } from "@galacean/engine-math";
 import type { HeightfieldWaterSurfaceMotionConfig } from "../../authoring/heightfield/HeightfieldWaterTypes";
@@ -107,7 +107,7 @@ export class HeightfieldWaterSurfaceProvider implements BatchWaterSurfaceProvide
       let normalY = base.surfaceNormal[1];
       let normalZ = base.surfaceNormal[2];
       if (this._config.data.connections) {
-        const weight = sampleWaterConnection(this._config.data.connections, targetLocalX, targetLocalZ).motion;
+        const weight = sampleWaterConnectionMotion(this._config.data.connections, targetLocalX, targetLocalZ);
         normalX *= weight;
         normalZ *= weight;
         normalY = 1 + (normalY - 1) * weight;
@@ -161,7 +161,7 @@ export class HeightfieldWaterSurfaceProvider implements BatchWaterSurfaceProvide
         this._waveSample
       );
       if (this._config.data.connections) {
-        const weight = sampleWaterConnection(this._config.data.connections, restX, restZ).motion;
+        const weight = sampleWaterConnectionMotion(this._config.data.connections, restX, restZ);
         wave.waveOffset *= weight;
         wave.displacedX = restX + (wave.displacedX - restX) * weight;
         wave.displacedZ = restZ + (wave.displacedZ - restZ) * weight;

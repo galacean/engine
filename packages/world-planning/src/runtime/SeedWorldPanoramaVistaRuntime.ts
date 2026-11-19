@@ -364,9 +364,8 @@ export class SeedWorldPanoramaVistaRuntime {
     const anchorY = 95 + (camPos.y - 95) * 0.72;
     this.root.transform.setWorldPosition(camPos.x, anchorY, camPos.z);
 
-    const env = this._environment.getSnapshot();
-    const snowCover = clampVista(env.surface.snowCover, 0, 1);
-    this._vistaSnow.set(Math.max(env.season.weights.winter, snowCover), snowCover);
+    const snowCover = clampVista(this._environment.surfaceClimate.snowCover, 0, 1);
+    this._vistaSnow.set(Math.max(this._environment.winterWeight, snowCover), snowCover);
   }
 
   destroy(): void {

@@ -902,6 +902,14 @@ export async function mountSeedWorldDemo(
     audio = new SeedWorldAudioRuntime(camera, navigation, environment, wind);
     const driver = root.addComponent(SeedDemoFrame);
     let debugReadoutElapsed = 0;
+    let lastObservedCamX = Number.NaN;
+    let lastObservedCamY = Number.NaN;
+    let lastObservedCamZ = Number.NaN;
+    let lastObservedFwdX = Number.NaN;
+    let lastObservedFwdY = Number.NaN;
+    let lastObservedFwdZ = Number.NaN;
+    let lastObservedMode = "";
+    let lastObservedOrbitDist = Number.NaN;
     let lastDatasetPublication: unknown;
     const debugDatasetEnabled = pageUrl.searchParams.get("debug") === "1";
     function visitCurrentPickBatches(visitor: SeedWorldPickVisitor): void {
@@ -925,7 +933,36 @@ export async function mountSeedWorldDemo(
       animals?.advance?.(dt);
       // WorldEnvironmentRuntime owns the wind local-field centre and resamples it every frame
       audio?.update(dt, ready, tools?.listening ?? false);
-      if (!restoreMasonryView) playerState?.observe();
+      if (!restoreMasonryView && playerState) {
+        const camPos = camera.entity.transform.worldPosition;
+        const camFwd = camera.entity.transform.worldForward;
+        const camMode = debugSidebar?.cameraMode ?? "roam";
+        const orbitDist =
+          camMode === "orbit"
+            ? Math.hypot(camPos.x - orbit.target.x, camPos.y - orbit.target.y, camPos.z - orbit.target.z)
+            : Number.NaN;
+        if (
+          Math.abs(camPos.x - lastObservedCamX) >= 5e-4 ||
+          Math.abs(camPos.y - lastObservedCamY) >= 5e-4 ||
+          Math.abs(camPos.z - lastObservedCamZ) >= 5e-4 ||
+          Math.abs(camFwd.x - lastObservedFwdX) >= 1e-5 ||
+          Math.abs(camFwd.y - lastObservedFwdY) >= 1e-5 ||
+          Math.abs(camFwd.z - lastObservedFwdZ) >= 1e-5 ||
+          camMode !== lastObservedMode ||
+          (camMode === "orbit" && Math.abs(orbitDist - lastObservedOrbitDist) >= 5e-4) ||
+          Number.isNaN(lastObservedCamX)
+        ) {
+          lastObservedCamX = camPos.x;
+          lastObservedCamY = camPos.y;
+          lastObservedCamZ = camPos.z;
+          lastObservedFwdX = camFwd.x;
+          lastObservedFwdY = camFwd.y;
+          lastObservedFwdZ = camFwd.z;
+          lastObservedMode = camMode;
+          lastObservedOrbitDist = orbitDist;
+          playerState.observe();
+        }
+      }
       if ((debugReadoutElapsed += dt) >= 0.1) {
         debugSidebar?.update();
         lodDebugPanel?.update();

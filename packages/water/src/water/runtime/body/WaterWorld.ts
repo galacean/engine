@@ -370,9 +370,10 @@ export class WaterWorld implements WaterSurfaceProvider {
       return this._spatialIndex.visitPoint(worldX, worldZ, visitor);
     }
     let visitedCount = 0;
-    for (const entry of this._entries) {
+    const entries = this._entries;
+    for (let i = 0, n = entries.length; i < n; i++) {
       visitedCount++;
-      if (!visitor(entry)) break;
+      if (!visitor(entries[i])) break;
     }
     return visitedCount;
   }
@@ -392,8 +393,9 @@ export class WaterWorld implements WaterSurfaceProvider {
   }
 
   private _isExcluded(body: WaterBodyRuntime, worldX: number, worldZ: number): boolean {
-    for (const bounds of body.exclusionBounds) {
-      if (containsWaterBounds(bounds, worldX, worldZ)) return true;
+    const exclusionBounds = body.exclusionBounds;
+    for (let i = 0, n = exclusionBounds.length; i < n; i++) {
+      if (containsWaterBounds(exclusionBounds[i], worldX, worldZ)) return true;
     }
     return false;
   }

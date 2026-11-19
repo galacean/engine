@@ -213,11 +213,12 @@ export class GrassRockAppearance {
   ): Generator<void, Float32Array | undefined> {
     if (this.cells.size === 0) return undefined;
     let result: Float32Array | undefined;
-    const visited = new Set<number>(),
-      packed = new Map<number, number[]>();
+    const packed = new Map<number, number[]>();
     const placements = this.placements,
       facePlacement = this.facePlacement,
       faceTri = this.faceTri;
+    const visitedStamp = new Uint32Array(faceTri.length);
+    let stamp = 0;
     const heightFields = { ...fields, surfaceHeights: undefined };
     let candidates = 0;
     for (let i = 0; i < count; i++) {
@@ -236,7 +237,13 @@ export class GrassRockAppearance {
         minCx = Math.floor((x - reach) / CELL),
         maxCx = Math.floor((x + reach) / CELL);
       const singleCell = minCx === maxCx && minCz === maxCz;
-      if (!singleCell) visited.clear();
+      if (!singleCell) {
+        stamp++;
+        if (stamp === 0xffffffff) {
+          visitedStamp.fill(0);
+          stamp = 1;
+        }
+      }
       for (let cz = minCz; cz <= maxCz; cz++)
         for (let cx = minCx; cx <= maxCx; cx++) {
           const cell = this.cells.get(packCellKey(cx, cz));
@@ -245,8 +252,8 @@ export class GrassRockAppearance {
             const face = cell[j];
             if (++candidates % CANDIDATE_YIELD_STRIDE === 0) yield;
             if (!singleCell) {
-              if (visited.has(face)) continue;
-              visited.add(face);
+              if (visitedStamp[face] === stamp) continue;
+              visitedStamp[face] = stamp;
             }
             // Distance to the enclosing box is a lower bound; preserve exact face selection and ties.
             const { positions, indices, ox, oy, oz } = placements[facePlacement[face]];

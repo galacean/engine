@@ -15,6 +15,13 @@ export function seedWorldPlayerStateKey(worldId: string): string {
 /** Private view state; never included in the shareable world snapshot. */
 export class SeedWorldPlayerState {
   private _latest = "";
+  private _lastX = Number.NaN;
+  private _lastY = Number.NaN;
+  private _lastZ = Number.NaN;
+  private _lastYaw = Number.NaN;
+  private _lastPitch = Number.NaN;
+  private _lastMode = "";
+  private _lastOrbit = Number.NaN;
   private readonly _key: string;
   private readonly _scheduler: SeedWorldSaveScheduler<string>;
 
@@ -53,6 +60,34 @@ export class SeedWorldPlayerState {
 
   /** Millimetre/0.001-degree precision ignores floating-point settling noise. */
   observe(bookmark: SeedWorldCameraBookmark): void {
+    const pos = bookmark.position;
+    const x = Math.round(pos[0] * 1000);
+    const y = Math.round(pos[1] * 1000);
+    const z = Math.round(pos[2] * 1000);
+    const yaw = Math.round((((bookmark.yawDegrees % 360) + 360) % 360) * 1000);
+    const pitch = Math.round(bookmark.pitchDegrees * 1000);
+    const orbit =
+      bookmark.mode === "orbit" && bookmark.orbitDistanceMetres !== undefined
+        ? Math.round(bookmark.orbitDistanceMetres * 1000)
+        : Number.NaN;
+    if (
+      x === this._lastX &&
+      y === this._lastY &&
+      z === this._lastZ &&
+      yaw === this._lastYaw &&
+      pitch === this._lastPitch &&
+      bookmark.mode === this._lastMode &&
+      (orbit === this._lastOrbit || (Number.isNaN(orbit) && Number.isNaN(this._lastOrbit)))
+    ) {
+      return;
+    }
+    this._lastX = x;
+    this._lastY = y;
+    this._lastZ = z;
+    this._lastYaw = yaw;
+    this._lastPitch = pitch;
+    this._lastMode = bookmark.mode;
+    this._lastOrbit = orbit;
     const camera = writeSeedWorldCameraBookmark(new URLSearchParams(), bookmark).toString();
     if (camera === this._latest) return;
     this._latest = camera;

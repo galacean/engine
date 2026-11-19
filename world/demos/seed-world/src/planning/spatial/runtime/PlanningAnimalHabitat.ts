@@ -48,9 +48,16 @@ export function liveAnimalRouteQuery(
     if (habitat !== next) { habitat = next; query = habitat.staticRouteQuery(radius, height, medium); }
     return query;
   };
-  return { canTraverse: (a, b, clearance) => insideAnimalHome(home, a[0], a[1]) &&
-    insideAnimalHome(home, b[0], b[1]) && current().canTraverse(a, b, clearance),
-    obstruction: (a, b, clearance) => current().obstruction(a, b, clearance) };
+  return {
+    canTraverse: (a, b, clearance) => insideAnimalHome(home, a[0], a[1]) &&
+      insideAnimalHome(home, b[0], b[1]) && current().canTraverse(a, b, clearance),
+    canTraverseXY: (ax, az, bx, bz, clearance) => {
+      if (!insideAnimalHome(home, ax, az) || !insideAnimalHome(home, bx, bz)) return false;
+      const q = current();
+      return q.canTraverseXY ? q.canTraverseXY(ax, az, bx, bz, clearance) : q.canTraverse([ax, az], [bx, bz], clearance);
+    },
+    obstruction: (a, b, clearance) => current().obstruction(a, b, clearance)
+  };
 }
 
 /** An occupied ground footprint during deterministic population placement. */
@@ -108,6 +115,63 @@ export class PlanningAnimalHabitat {
   private readonly support = { height: undefined as number | undefined, waterHeight: undefined as number | undefined };
   private readonly queryRange: PlanningAnimalBounds = { minX: 0, maxX: 0, minZ: 0, maxZ: 0 };
   private readonly solidHits: Solid[] = [];
+  private solidHitCount = 0;
+  private _tFromX = 0;
+  private _tFromZ = 0;
+  private _tToX = 0;
+  private _tToZ = 0;
+  private _tRadiusSq = 0;
+  private readonly _collectTraverseSolid = (box: Solid): boolean => {
+    const fx = this._tFromX - box.x;
+    const fz = this._tFromZ - box.z;
+    const tx = this._tToX - box.x;
+    const tz = this._tToZ - box.z;
+    const ax = fx * box.cos + fz * box.sin;
+    const az = -fx * box.sin + fz * box.cos;
+    const bx = tx * box.cos + tz * box.sin;
+    const bz = -tx * box.sin + tz * box.cos;
+    if (
+      insideBox(ax, az, box) ||
+      insideBox(bx, bz, box) ||
+      Math.min(
+        segmentDistanceSquared(ax, az, bx, bz, -box.halfX, -box.halfZ, box.halfX, -box.halfZ),
+        segmentDistanceSquared(ax, az, bx, bz, box.halfX, -box.halfZ, box.halfX, box.halfZ),
+        segmentDistanceSquared(ax, az, bx, bz, box.halfX, box.halfZ, -box.halfX, box.halfZ),
+        segmentDistanceSquared(ax, az, bx, bz, -box.halfX, box.halfZ, -box.halfX, -box.halfZ)
+      ) <
+        this._tRadiusSq + 1e-10
+    ) {
+      this.solidHits[this.solidHitCount++] = box;
+    }
+    return false;
+  };
+  private readonly _firstSolidBounds: PlanningAnimalBounds = { minX: 0, maxX: 0, minZ: 0, maxZ: 0 };
+  private _fsAx = 0;
+  private _fsAz = 0;
+  private _fsBx = 0;
+  private _fsBz = 0;
+  private _fsRadius = 0;
+  private _fsBottom = 0;
+  private _fsTop = 0;
+  private _fsFraction = Infinity;
+  private _fsNearest: Solid | undefined = undefined;
+  private readonly _visitFirstSolid = (box: Solid): boolean => {
+    if (box.top <= this._fsBottom + 1e-4 || box.bottom >= this._fsTop - 1e-4) return false;
+    const fax = this._fsAx - box.x;
+    const faz = this._fsAz - box.z;
+    const fbx = this._fsBx - box.x;
+    const fbz = this._fsBz - box.z;
+    const ax = fax * box.cos + faz * box.sin;
+    const az = -fax * box.sin + faz * box.cos;
+    const bx = fbx * box.cos + fbz * box.sin;
+    const bz = -fbx * box.sin + fbz * box.cos;
+    const entry = segmentBoxEntry(ax, az, bx, bz, box.halfX + this._fsRadius, box.halfZ + this._fsRadius);
+    if (entry < this._fsFraction) {
+      this._fsFraction = entry;
+      this._fsNearest = box;
+    }
+    return false;
+  };
 
   /** Compile collision geometry once; circular range checks require no spatial ownership lookup. */
   constructor(
@@ -212,7 +276,7 @@ export class PlanningAnimalHabitat {
     if (!validShape(radius, bodyHeightM)) return;
     for (const other of occupied)
       if ((other.x - point.x) ** 2 + (other.z - point.z) ** 2 < (other.radius + radius) ** 2) return;
-    if (!this.traverse(point, point, radius, bodyHeightM, this.range.spawnRadius, medium)) return;
+    if (!this.traverseXY(point.x, point.z, point.x, point.z, radius, bodyHeightM, this.range.spawnRadius, medium)) return;
     return { x: point.x, y: this.heightAt(point.x, point.z, medium, bodyHeightM)!, z: point.z };
   }
 
@@ -226,7 +290,19 @@ export class PlanningAnimalHabitat {
    * @returns Whether the movement satisfies the requested medium support and collision rules.
    */
   canTraverse(from: PlanPoint, to: PlanPoint, radius: number, bodyHeightM = radius * 2, medium: PlanningAnimalMedium = "ground"): boolean {
-    return this.traverse(from, to, radius, bodyHeightM, this.range.roamRadius, medium);
+    return this.traverseXY(from.x, from.z, to.x, to.z, radius, bodyHeightM, this.range.roamRadius, medium);
+  }
+
+  canTraverseXY(
+    fx: number,
+    fz: number,
+    tx: number,
+    tz: number,
+    radius: number,
+    bodyHeightM = radius * 2,
+    medium: PlanningAnimalMedium = "ground"
+  ): boolean {
+    return this.traverseXY(fx, fz, tx, tz, radius, bodyHeightM, this.range.roamRadius, medium);
   }
 
   /** Existing contact test keeps authored water and bridge decks authoritative for feeding. */
@@ -264,16 +340,18 @@ export class PlanningAnimalHabitat {
    */
   staticRouteQuery(radius: number, height: number, medium: PlanningAnimalMedium,
     bottom = -Infinity, top = Infinity): AnimalRouteQuery {
-    const valid = (a: AnimalRoutePoint, b: AnimalRoutePoint, clearance = 0) => medium === "air"
-      ? this.containsFlight(a, radius) && this.containsFlight(b, radius) && !this.firstSolid(a, b, radius + clearance, bottom, top)
-      : this.canTraverse({ x: a[0], z: a[1] }, { x: b[0], z: b[1] }, radius, height, medium) &&
-        (!clearance || !this.firstSolid(a, b, radius + clearance, -Infinity, Infinity));
+    const validXY = (ax: number, az: number, bx: number, bz: number, clearance = 0) => medium === "air"
+      ? this.containsFlightXY(ax, az, radius) && this.containsFlightXY(bx, bz, radius) &&
+        !this.firstSolidXY(ax, az, bx, bz, radius + clearance, bottom, top)
+      : this.canTraverseXY(ax, az, bx, bz, radius, height, medium) &&
+        (!clearance || !this.firstSolidXY(ax, az, bx, bz, radius + clearance, -Infinity, Infinity));
     return {
-      canTraverse: valid,
+      canTraverse: (a: AnimalRoutePoint, b: AnimalRoutePoint, clearance = 0) => validXY(a[0], a[1], b[0], b[1], clearance),
+      canTraverseXY: validXY,
       obstruction: (a, b, clearance): AnimalRouteObstacle | undefined => {
         // Ground routes follow varying terrain. A conservative solid set only
         // proposes candidates; every connection still checks actual support.
-        const box = this.firstSolid(a, b, radius + clearance, medium === "air" ? bottom : -Infinity, medium === "air" ? top : Infinity);
+        const box = this.firstSolidXY(a[0], a[1], b[0], b[1], radius + clearance, medium === "air" ? bottom : -Infinity, medium === "air" ? top : Infinity);
         if (!box) return;
         const x = box.halfX + radius + clearance + 0.05, z = box.halfZ + radius + clearance + 0.05;
         return { key: box.id, corners: [[-x, -z], [x, -z], [x, z], [-x, z]].map(([lx, lz]) =>
@@ -292,10 +370,17 @@ export class PlanningAnimalHabitat {
    */
   canTraverseAir(from: { x: number; y: number; z: number }, to: { x: number; y: number; z: number },
     radius: number, height: number): boolean {
-    if (!validShape(radius, height) || ![from.x, from.y, from.z, to.x, to.y, to.z].every(Number.isFinite)) return false;
-    const a: AnimalRoutePoint = [from.x, from.z], b: AnimalRoutePoint = [to.x, to.z];
-    if (!this.containsFlight(a, radius) || !this.containsFlight(b, radius) ||
-        this.firstSolid(a, b, radius, Math.min(from.y, to.y), Math.max(from.y, to.y) + height)) return false;
+    if (
+      !validShape(radius, height) ||
+      !Number.isFinite(from.x) ||
+      !Number.isFinite(from.y) ||
+      !Number.isFinite(from.z) ||
+      !Number.isFinite(to.x) ||
+      !Number.isFinite(to.y) ||
+      !Number.isFinite(to.z)
+    ) return false;
+    if (!this.containsFlightXY(from.x, from.z, radius) || !this.containsFlightXY(to.x, to.z, radius) ||
+        this.firstSolidXY(from.x, from.z, to.x, to.z, radius, Math.min(from.y, to.y), Math.max(from.y, to.y) + height)) return false;
     const steps = Math.max(1, Math.ceil(Math.hypot(to.x - from.x, to.z - from.z) / 0.5));
     for (let i = 0; i <= steps; i++) {
       const t = i / steps, x = from.x + (to.x - from.x) * t, z = from.z + (to.z - from.z) * t;
@@ -305,27 +390,35 @@ export class PlanningAnimalHabitat {
     return true;
   }
 
-  private containsFlight(point: AnimalRoutePoint, radius: number): boolean {
+  private containsFlightXY(x: number, z: number, radius: number): boolean {
     const area = this.range.distribution;
-    return area ? point[0] - radius >= area.minX && point[0] + radius <= area.maxX &&
-      point[1] - radius >= area.minZ && point[1] + radius <= area.maxZ :
-      Math.hypot(point[0] - this.origin.x, point[1] - this.origin.z) + radius <= this.range.roamRadius;
+    return area ? x - radius >= area.minX && x + radius <= area.maxX &&
+      z - radius >= area.minZ && z + radius <= area.maxZ :
+      Math.hypot(x - this.origin.x, z - this.origin.z) + radius <= this.range.roamRadius;
   }
 
   private firstSolid(a: AnimalRoutePoint, b: AnimalRoutePoint, radius: number, bottom: number, top: number): Solid | undefined {
-    const bounds = { minX: Math.min(a[0], b[0]) - radius, maxX: Math.max(a[0], b[0]) + radius,
-      minZ: Math.min(a[1], b[1]) - radius, maxZ: Math.max(a[1], b[1]) + radius };
-    let nearest: Solid | undefined, fraction = Infinity;
-    this.solids.some(bounds, box => {
-      if (box.top <= bottom + 1e-4 || box.bottom >= top - 1e-4) return false;
-      const ax = (a[0] - box.x) * box.cos + (a[1] - box.z) * box.sin;
-      const az = -(a[0] - box.x) * box.sin + (a[1] - box.z) * box.cos;
-      const bx = (b[0] - box.x) * box.cos + (b[1] - box.z) * box.sin;
-      const bz = -(b[0] - box.x) * box.sin + (b[1] - box.z) * box.cos;
-      const entry = segmentBoxEntry(ax, az, bx, bz, box.halfX + radius, box.halfZ + radius);
-      if (entry < fraction) { fraction = entry; nearest = box; }
-      return false;
-    });
+    return this.firstSolidXY(a[0], a[1], b[0], b[1], radius, bottom, top);
+  }
+
+  private firstSolidXY(ax: number, az: number, bx: number, bz: number, radius: number, bottom: number, top: number): Solid | undefined {
+    const bounds = this._firstSolidBounds;
+    bounds.minX = (ax < bx ? ax : bx) - radius;
+    bounds.maxX = (ax > bx ? ax : bx) + radius;
+    bounds.minZ = (az < bz ? az : bz) - radius;
+    bounds.maxZ = (az > bz ? az : bz) + radius;
+    this._fsAx = ax;
+    this._fsAz = az;
+    this._fsBx = bx;
+    this._fsBz = bz;
+    this._fsRadius = radius;
+    this._fsBottom = bottom;
+    this._fsTop = top;
+    this._fsFraction = Infinity;
+    this._fsNearest = undefined;
+    this.solids.some(bounds, this._visitFirstSolid);
+    const nearest = this._fsNearest;
+    this._fsNearest = undefined;
     return nearest;
   }
 
@@ -392,13 +485,22 @@ export class PlanningAnimalHabitat {
     return candidates.length ? candidates[Math.floor(random() * candidates.length)] : medium === "water" ? undefined : point;
   }
 
-  private traverse(from: PlanPoint, to: PlanPoint, radius: number, height: number, rangeRadius: number, medium: PlanningAnimalMedium): boolean {
+  private traverseXY(
+    fx: number,
+    fz: number,
+    tx: number,
+    tz: number,
+    radius: number,
+    height: number,
+    rangeRadius: number,
+    medium: PlanningAnimalMedium
+  ): boolean {
     if (
       !validShape(radius, height) ||
-      !Number.isFinite(from.x) ||
-      !Number.isFinite(from.z) ||
-      !Number.isFinite(to.x) ||
-      !Number.isFinite(to.z)
+      !Number.isFinite(fx) ||
+      !Number.isFinite(fz) ||
+      !Number.isFinite(tx) ||
+      !Number.isFinite(tz)
     )
       return false;
     // A disk is convex: keeping both swept-disk endpoints inside its reduced radius
@@ -406,88 +508,74 @@ export class PlanningAnimalHabitat {
     const area = this.range.distribution;
     if (
       area &&
-      (from.x - radius < area.minX ||
-        from.x + radius > area.maxX ||
-        from.z - radius < area.minZ ||
-        from.z + radius > area.maxZ ||
-        to.x - radius < area.minX ||
-        to.x + radius > area.maxX ||
-        to.z - radius < area.minZ ||
-        to.z + radius > area.maxZ)
+      (fx - radius < area.minX ||
+        fx + radius > area.maxX ||
+        fz - radius < area.minZ ||
+        fz + radius > area.maxZ ||
+        tx - radius < area.minX ||
+        tx + radius > area.maxX ||
+        tz - radius < area.minZ ||
+        tz + radius > area.maxZ)
     )
       return false;
     const availableRadius = rangeRadius - radius;
     if (!area && availableRadius < 0) return false;
     const availableSquared = availableRadius * availableRadius;
     if (!area) {
-      const fdx = from.x - this.origin.x,
-        fdz = from.z - this.origin.z;
-      const tdx = to.x - this.origin.x,
-        tdz = to.z - this.origin.z;
+      const fdx = fx - this.origin.x,
+        fdz = fz - this.origin.z;
+      const tdx = tx - this.origin.x,
+        tdz = tz - this.origin.z;
       if (fdx * fdx + fdz * fdz > availableSquared + 1e-10 || tdx * tdx + tdz * tdz > availableSquared + 1e-10)
         return false;
     }
     const range = this.queryRange;
-    range.minX = (from.x < to.x ? from.x : to.x) - radius;
-    range.maxX = (from.x > to.x ? from.x : to.x) + radius;
-    range.minZ = (from.z < to.z ? from.z : to.z) - radius;
-    range.maxZ = (from.z > to.z ? from.z : to.z) + radius;
+    range.minX = (fx < tx ? fx : tx) - radius;
+    range.maxX = (fx > tx ? fx : tx) + radius;
+    range.minZ = (fz < tz ? fz : tz) - radius;
+    range.maxZ = (fz > tz ? fz : tz) + radius;
     const radiusSquared = radius * radius;
-    const steps = Math.max(0, Math.ceil(Math.hypot(to.x - from.x, to.z - from.z) / 0.5));
+    const steps = Math.max(0, Math.ceil(Math.hypot(tx - fx, tz - fz) / 0.5));
 
     // Pre-collect 2D horizontal solid overlaps (zero water queries). Most corridors have 0 hits.
     const solidHits = this.solidHits;
-    solidHits.length = 0;
+    this.solidHitCount = 0;
     if (this.solidCount > 0) {
-      this.solids.some(range, (box) => {
-        const ax = (from.x - box.x) * box.cos + (from.z - box.z) * box.sin;
-        const az = -(from.x - box.x) * box.sin + (from.z - box.z) * box.cos;
-        const bx = (to.x - box.x) * box.cos + (to.z - box.z) * box.sin;
-        const bz = -(to.x - box.x) * box.sin + (to.z - box.z) * box.cos;
-        if (
-          insideBox(ax, az, box) ||
-          insideBox(bx, bz, box) ||
-          Math.min(
-            segmentDistanceSquared(ax, az, bx, bz, -box.halfX, -box.halfZ, box.halfX, -box.halfZ),
-            segmentDistanceSquared(ax, az, bx, bz, box.halfX, -box.halfZ, box.halfX, box.halfZ),
-            segmentDistanceSquared(ax, az, bx, bz, box.halfX, box.halfZ, -box.halfX, box.halfZ),
-            segmentDistanceSquared(ax, az, bx, bz, -box.halfX, box.halfZ, -box.halfX, -box.halfZ)
-          ) <
-            radiusSquared + 1e-10
-        ) {
-          solidHits.push(box);
-        }
-        return false;
-      });
+      this._tFromX = fx;
+      this._tFromZ = fz;
+      this._tToX = tx;
+      this._tToZ = tz;
+      this._tRadiusSq = radiusSquared;
+      this.solids.some(range, this._collectTraverseSolid);
     }
 
     // For ground movement with 2D solid hits, compute exact centerline terrain height bounds first
     // and reject vertically overlapping solids immediately before any water/perimeter queries.
-    if (medium === "ground" && solidHits.length > 0) {
+    if (medium === "ground" && this.solidHitCount > 0) {
       let minG = Infinity,
         maxG = -Infinity;
       for (let step = 0; step <= steps; step++) {
         const t = steps ? step / steps : 0;
         const y = this.navigation.sampleHeightInterpolated(
-          from.x + (to.x - from.x) * t,
-          from.z + (to.z - from.z) * t
+          fx + (tx - fx) * t,
+          fz + (tz - fz) * t
         );
         if (y === undefined || !Number.isFinite(y)) {
-          solidHits.length = 0;
+          this.solidHitCount = 0;
           return false;
         }
         if (y < minG) minG = y;
         if (y > maxG) maxG = y;
       }
-      for (let i = 0; i < solidHits.length; i++) {
+      for (let i = 0, n = this.solidHitCount; i < n; i++) {
         const box = solidHits[i];
         if (box.top > minG + 1e-4 && box.bottom < maxG + height - 1e-4) {
-          solidHits.length = 0;
+          this.solidHitCount = 0;
           return false;
         }
       }
       // All 2D hits cleared vertically; no further solid check needed for this corridor.
-      solidHits.length = 0;
+      this.solidHitCount = 0;
     }
 
     // Strictly conservative dry-tile fast path: when every 4m tile intersecting the swept disk
@@ -499,8 +587,8 @@ export class PlanningAnimalHabitat {
       for (let step = 0; step <= steps; step++) {
         const t = steps ? step / steps : 0;
         const y = this.navigation.sampleHeightInterpolated(
-          from.x + (to.x - from.x) * t,
-          from.z + (to.z - from.z) * t
+          fx + (tx - fx) * t,
+          fz + (tz - fz) * t
         );
         if (y === undefined || !Number.isFinite(y)) return false;
       }
@@ -515,8 +603,8 @@ export class PlanningAnimalHabitat {
     const sampleSupport = this.navigation.sampleAnimalSupport;
     for (let step = 0; step <= steps; step++) {
       const t = steps ? step / steps : 0,
-        x = from.x + (to.x - from.x) * t,
-        z = from.z + (to.z - from.z) * t;
+        x = fx + (tx - fx) * t,
+        z = fz + (tz - fz) * t;
       let y: number | undefined, wet: boolean;
       if (sampleSupport) {
         this.navigation.sampleAnimalSupport!(x, z, this.support);
@@ -528,7 +616,7 @@ export class PlanningAnimalHabitat {
         wet = medium !== "air" && this.navigationWater(x, z);
       }
       if (y === undefined || !Number.isFinite(y) || (medium !== "air" && wet !== expectWet)) {
-        solidHits.length = 0;
+        this.solidHitCount = 0;
         return false;
       }
       if (y < minimumGround) minimumGround = y;
@@ -548,19 +636,19 @@ export class PlanningAnimalHabitat {
           sideWet = this.navigationWater(px, pz);
         }
         if (support === undefined || !Number.isFinite(support) || sideWet !== expectWet) {
-          solidHits.length = 0;
+          this.solidHitCount = 0;
           return false;
         }
       }
     }
-    for (let i = 0; i < solidHits.length; i++) {
+    for (let i = 0, n = this.solidHitCount; i < n; i++) {
       const box = solidHits[i];
       if (box.top > minimumGround + 1e-4 && box.bottom < maximumGround + height - 1e-4) {
-        solidHits.length = 0;
+        this.solidHitCount = 0;
         return false;
       }
     }
-    solidHits.length = 0;
+    this.solidHitCount = 0;
     return true;
   }
 }
@@ -592,10 +680,12 @@ class SpatialBins<T extends PlanningAnimalBounds & { seen: number }> {
     const rows = (this.rows ??= this.occupiedRows());
     const stamp = ++this.stamp;
     // Keep the old x-then-z discovery order, including ties, while skipping empty cells.
-    for (let i = firstCoordinate(rows, minX, (row) => row.x); i < rows.length && rows[i].x <= maxX; i++) {
+    for (let i = firstRowX(rows, minX), rlen = rows.length; i < rlen && rows[i].x <= maxX; i++) {
       const cells = rows[i].cells;
-      for (let j = firstCoordinate(cells, minZ, (cell) => cell.z); j < cells.length && cells[j].z <= maxZ; j++) {
-        for (const item of cells[j].items) {
+      for (let j = firstCellZ(cells, minZ), clen = cells.length; j < clen && cells[j].z <= maxZ; j++) {
+        const items = cells[j].items;
+        for (let k = 0, klen = items.length; k < klen; k++) {
+          const item = items[k];
           if (item.seen === stamp) continue;
           item.seen = stamp;
           if (item.minX > bounds.maxX || item.maxX < bounds.minX || item.minZ > bounds.maxZ || item.maxZ < bounds.minZ)
@@ -619,12 +709,23 @@ class SpatialBins<T extends PlanningAnimalBounds & { seen: number }> {
   }
 }
 
-function firstCoordinate<T>(values: readonly T[], minimum: number, coordinate: (value: T) => number): number {
+function firstRowX<T>(values: readonly { x: number; cells: T }[], minimum: number): number {
   let low = 0,
     high = values.length;
   while (low < high) {
     const middle = (low + high) >>> 1;
-    if (coordinate(values[middle]) < minimum) low = middle + 1;
+    if (values[middle].x < minimum) low = middle + 1;
+    else high = middle;
+  }
+  return low;
+}
+
+function firstCellZ<T>(values: readonly { z: number; items: T }[], minimum: number): number {
+  let low = 0,
+    high = values.length;
+  while (low < high) {
+    const middle = (low + high) >>> 1;
+    if (values[middle].z < minimum) low = middle + 1;
     else high = middle;
   }
   return low;

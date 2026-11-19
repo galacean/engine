@@ -195,6 +195,7 @@ export class PlanningNaturalVegetationRuntime {
   private readonly plantLodEntries = new WeakMap<Plant, SeedWorldExactInstanceSpatialEntry>();
   private readonly lodCells: SeedWorldExactInstanceCellRuntime;
   private lodMembershipDirty = true;
+  private lastLodMembershipRebuildTime = -Infinity;
   private streamX = NaN;
   private streamZ = NaN;
   private pendingCells: { key: string; x: number; z: number; distance: number }[] = [];
@@ -1368,12 +1369,18 @@ export class PlanningNaturalVegetationRuntime {
       this.updateDetailStreaming();
       this.materializeNearbyCellRecords(this.blockingPresentationDrain ? Infinity : 2.0);
     }
-    if (this.lodMembershipDirty) {
+    if (
+      this.lodMembershipDirty &&
+      (this.blockingPresentationDrain ||
+        !this.materializePendingMore ||
+        this.time - this.lastLodMembershipRebuildTime >= 0.25)
+    ) {
       const entries = this.trees.map((tree) => this.plantLodEntry(tree, false));
       for (const cell of this.cells.values())
         for (const plant of cell.plants) entries.push(this.plantLodEntry(plant, true));
       this.lodCells?.replaceEntries(entries);
       this.lodMembershipDirty = false;
+      this.lastLodMembershipRebuildTime = this.time;
     }
     this.lodCells?.update(this.time);
   }
@@ -1388,10 +1395,11 @@ export class PlanningNaturalVegetationRuntime {
         plant.root,
         plant.lod,
         detail
-          ? () => {
-              const camera = this.camera.entity.transform.worldPosition;
-              const [x, , z] = plant.instance.position;
-              return Math.hypot(x - camera.x, z - camera.z) <= distance;
+          ? {
+              camera: this.camera,
+              x: plant.instance.position[0],
+              z: plant.instance.position[2],
+              maxDistance: distance
             }
           : undefined
       );
@@ -1403,7 +1411,9 @@ export class PlanningNaturalVegetationRuntime {
   private updateDetailStreaming(): void {
     this.pendingCells ??= [];
     const position = this.initialDrainPosition ?? this.camera.entity.transform.worldPosition;
-    if (this.streamX !== position.x || this.streamZ !== position.z) {
+    const dx = position.x - this.streamX;
+    const dz = position.z - this.streamZ;
+    if (Number.isNaN(this.streamX) || dx * dx + dz * dz >= 1.0) {
       this.streamX = position.x;
       this.streamZ = position.z;
       this.refreshDetailResidency(position);
@@ -1532,43 +1542,50 @@ export class PlanningNaturalVegetationRuntime {
     }
   }
 
-  private refreshDetailResidency(position: Vector3): void {
+  private refreshDetailResidency(position: { readonly x: number; readonly z: number }): void {
     const profile = SEED_WORLD_POPULATION_RUNTIME_PROFILE,
       cellSize = profile.cellMetres;
     const distance = profile.detail.materialFade.maximumDistanceMetres;
-    const retain = profile.detail.prefetchDistanceMetres;
-    const wanted: { key: string; x: number; z: number; distance: number }[] = [];
-    const minX = Math.max(0, Math.floor((position.x - distance) / cellSize));
-    const maxX = Math.min(
-      Math.ceil(this.plan.parameters.width / cellSize) - 1,
-      Math.floor((position.x + distance) / cellSize)
-    );
-    const minZ = Math.max(0, Math.floor((position.z - distance) / cellSize));
-    const maxZ = Math.min(
-      Math.ceil(this.plan.parameters.depth / cellSize) - 1,
-      Math.floor((position.z + distance) / cellSize)
-    );
-    const cellDistance = (x: number, z: number) =>
-      Math.hypot(
-        Math.max(x * cellSize - position.x, 0, position.x - (x + 1) * cellSize),
-        Math.max(z * cellSize - position.z, 0, position.z - (z + 1) * cellSize)
-      );
-    for (let z = minZ; z <= maxZ; z++)
+    const distanceSq = distance * distance;
+    const retainSq = profile.detail.prefetchDistanceMetres * profile.detail.prefetchDistanceMetres;
+    const px = position.x,
+      pz = position.z;
+    const minX = Math.max(0, Math.floor((px - distance) / cellSize));
+    const maxX = Math.min(Math.ceil(this.plan.parameters.width / cellSize) - 1, Math.floor((px + distance) / cellSize));
+    const minZ = Math.max(0, Math.floor((pz - distance) / cellSize));
+    const maxZ = Math.min(Math.ceil(this.plan.parameters.depth / cellSize) - 1, Math.floor((pz + distance) / cellSize));
+    const pending: { key: string; x: number; z: number; distance: number }[] = [];
+    for (let z = minZ; z <= maxZ; z++) {
+      const zMin = z * cellSize;
+      const dz = zMin > pz ? zMin - pz : pz > zMin + cellSize ? pz - (zMin + cellSize) : 0;
+      const dzSq = dz * dz;
       for (let x = minX; x <= maxX; x++) {
-        const d = cellDistance(x, z);
-        if (d <= distance) wanted.push({ key: `${x}/${z}`, x, z, distance: d });
+        const xMin = x * cellSize;
+        const dx = xMin > px ? xMin - px : px > xMin + cellSize ? px - (xMin + cellSize) : 0;
+        const dSq = dx * dx + dzSq;
+        if (dSq <= distanceSq) {
+          const key = `${x}/${z}`;
+          if (!this.cells.has(key)) pending.push({ key, x, z, distance: dSq });
+        }
       }
-    wanted.sort((a, b) => a.distance - b.distance);
+    }
+    if (pending.length > 1) pending.sort((a, b) => a.distance - b.distance);
     for (const [key, cell] of this.cells) {
-      const [x, z] = key.split("/").map(Number);
-      if (cellDistance(x, z) > retain) {
+      const slash = key.indexOf("/");
+      const x = Number(key.slice(0, slash));
+      const z = Number(key.slice(slash + 1));
+      const xMin = x * cellSize;
+      const zMin = z * cellSize;
+      const dx = xMin > px ? xMin - px : px > xMin + cellSize ? px - (xMin + cellSize) : 0;
+      const dz = zMin > pz ? zMin - pz : pz > zMin + cellSize ? pz - (zMin + cellSize) : 0;
+      if (dx * dx + dz * dz > retainSq) {
         destroyTree(cell.root);
         this.cells.delete(key);
         this.lodMembershipDirty = true;
         this.foliageColors = undefined;
       }
     }
-    this.pendingCells = wanted.filter((item) => !this.cells.has(item.key));
+    this.pendingCells = pending;
   }
 
   /** Detached replacements for changed woody plants and affected resident/visible understory cells. */

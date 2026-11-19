@@ -358,9 +358,14 @@ export class SeedWorldTerrainOcclusionCuller {
       cameraY = this._lastCameraY,
       cameraZ = this._lastCameraZ;
     if (
-      ![cameraX, cameraY, cameraZ, bounds.min.x, bounds.min.z, bounds.max.x, bounds.max.y, bounds.max.z].every(
-        Number.isFinite
-      )
+      !Number.isFinite(cameraX) ||
+      !Number.isFinite(cameraY) ||
+      !Number.isFinite(cameraZ) ||
+      !Number.isFinite(bounds.min.x) ||
+      !Number.isFinite(bounds.min.z) ||
+      !Number.isFinite(bounds.max.x) ||
+      !Number.isFinite(bounds.max.y) ||
+      !Number.isFinite(bounds.max.z)
     )
       return false;
     const nearestX = Math.max(bounds.min.x - cameraX, 0, cameraX - bounds.max.x);

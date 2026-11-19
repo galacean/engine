@@ -106,7 +106,8 @@ export function sampleWaterConnection(ports: readonly WaterConnectionPort[] | un
   let covered = true,
     motion = 1,
     reflection = 1;
-  for (const port of ports) {
+  for (let i = 0, n = ports.length; i < n; i++) {
+    const port = ports[i];
     const dx = x - port.center[0],
       dz = z - port.center[1];
     const along = dx * port.normal[0] + dz * port.normal[1];
@@ -130,6 +131,29 @@ export function sampleWaterConnection(ports: readonly WaterConnectionPort[] | un
   return { covered, motion, reflection };
 }
 
+/** Allocation-free scalar query matching `sampleWaterConnection(ports, x, z).motion`. */
+export function sampleWaterConnectionMotion(
+  ports: readonly WaterConnectionPort[] | undefined,
+  x: number,
+  z: number
+): number {
+  if (!ports || ports.length === 0) return 1;
+  let motion = 1;
+  for (let i = 0, n = ports.length; i < n; i++) {
+    const port = ports[i];
+    const dx = x - port.center[0],
+      dz = z - port.center[1];
+    const along = Math.abs(dx * port.normal[0] + dz * port.normal[1]);
+    if (along > port.length) continue;
+    const across = Math.abs(dx * port.normal[1] - dz * port.normal[0]);
+    if (across > port.halfWidth) continue;
+    const t = Math.min(1, along / port.length);
+    const weight = t * t * (3 - 2 * t);
+    if (weight < motion) motion = weight;
+  }
+  return motion;
+}
+
 /** Static ports are world-authored. Moving a connected body requires recompiling the group. */
 export function assertWaterConnectionTransform(
   ports: readonly WaterConnectionPort[] | undefined,
@@ -149,8 +173,10 @@ export function sampleWaterConnectionShore(
   z: number,
   original: number
 ): number {
+  if (!ports || ports.length === 0) return original;
   let result = original;
-  for (const port of ports ?? []) {
+  for (let i = 0, n = ports.length; i < n; i++) {
+    const port = ports[i];
     const field = port.shoreField,
       size = WATER_CONNECTION_SHORE_SIZE;
     const u = (x - field.origin[0]) / field.spacing,
