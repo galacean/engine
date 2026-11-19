@@ -1,0 +1,18 @@
+packages/ui/src/Utils.ts
+  h_ddbf152d31b140 30,32-40,45
+tests/src/ui/UICanvas.test.ts
+  h_ddbf152d31b140 119-124
+tests/src/ui/UICanvasEdge.test.ts
+  h_ddbf152d31b140 96-243
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5e6e6eae6b2eade7c8bd5270694540311ab2aad6",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
