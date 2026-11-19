@@ -1,0 +1,24 @@
+packages/animals/src/gameplay/animal/AnimalSystem.ts
+  h_bd4dd7d663e619 36,57-68,161-164,169,193-195,198-199,332-337,380-389,396-402,451-452,473,492-494
+packages/animals/src/gameplay/animal/GroundAnimalCrowd.ts
+  h_bd4dd7d663e619 53,85,124,147,158,162,171,174,176,179,186-202,209,211,279-283,286,291,306-310,315,320,495-506,560-562,566-567,571-573,584-609,613,661,670,684-685,687-689,709-710,715,719-720,734-735,738-739,748-752,754,760,763,768,876-877,890-892,905,927-941,943-946,948-953,956,958,963-964
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_bd4dd7d663e619 496-497,947-957,966-968,973-975,984-990,994-1035
+packages/terrain/src/rock-formation/GrassPatches.ts
+  h_bd4dd7d663e619 15,20,31-32,95-109,126-129,214-219,227-229,231-237,249-250,289-293,297-300,372-375
+packages/water/src/water/native/WaterSystem.ts
+  h_bd4dd7d663e619 449-453,490-491
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  h_bd4dd7d663e619 10,1620-1622,1656-1660,1982-1983,1985-2008
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4925e6d1a91f9ea2e868ab74b0734261347074cb",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
