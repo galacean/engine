@@ -10,7 +10,7 @@ import { PhysXJoint } from "./PhysXJoint";
 export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   protected static _xAxis = new Vector3(1, 0, 0);
 
-  private _axis: Vector3;
+  private _axis = new Vector3(1, 0, 0);
   private _axisRotationQuaternion = new Quaternion();
   private _connectedAxisRotationQuaternion = new Quaternion();
 
@@ -28,30 +28,34 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   }
 
   override setRotation(value: Quaternion): void {
-    const axis = this._axis;
     this._rotation.copyFrom(value);
-    axis && this.setAxis(axis);
+    this.setAxis(this._axis);
   }
 
   /**
    * {@inheritDoc IHingeJoint.setAxis }
    */
   setAxis(value: Vector3): void {
-    if (value.lengthSquared() === 0) {
+    if (!Number.isFinite(value.x) || !Number.isFinite(value.y) || !Number.isFinite(value.z)) {
       return;
     }
-    this._axis = value;
+    const len = Math.hypot(value.x, value.y, value.z);
+    if (!(len > 0 && Number.isFinite(len))) {
+      return;
+    }
+    const axis = this._axis;
+    axis.set(value.x / len, value.y / len, value.z / len);
     const xAxis = PhysXHingeJoint._xAxis;
     const axisRotationQuaternion = this._axisRotationQuaternion;
     xAxis.set(1, 0, 0);
-    const dot = MathUtil.clamp(Vector3.dot(xAxis, value), -1, 1);
+    const dot = MathUtil.clamp(Vector3.dot(xAxis, axis), -1, 1);
     if (dot > 1 - 1e-6) {
       axisRotationQuaternion.set(0, 0, 0, 1);
     } else if (dot < -1 + 1e-6) {
       axisRotationQuaternion.set(0, 1, 0, 0);
     } else {
       const angle = Math.acos(dot);
-      Vector3.cross(xAxis, value, xAxis);
+      Vector3.cross(xAxis, axis, xAxis);
       Quaternion.rotationAxisAngle(xAxis, angle, axisRotationQuaternion);
     }
     this._setLocalPose(0, this._anchor, axisRotationQuaternion);
@@ -88,14 +92,14 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   }
 
   /**
-   * {@inheritDoc IHingeJoint.setHardLimitCone }
+   * {@inheritDoc IHingeJoint.setHardLimit }
    */
   setHardLimit(lowerLimit: number, upperLimit: number, contactDist: number): void {
     this._pxJoint.setHardLimit(MathUtil.degreeToRadian(lowerLimit), MathUtil.degreeToRadian(upperLimit), contactDist);
   }
 
   /**
-   * {@inheritDoc IHingeJoint.setHardLimitCone }
+   * {@inheritDoc IHingeJoint.setSoftLimit }
    */
   setSoftLimit(lowerLimit: number, upperLimit: number, stiffness: number, damping: number): void {
     this._pxJoint.setSoftLimit(

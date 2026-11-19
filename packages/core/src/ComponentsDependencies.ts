@@ -87,6 +87,51 @@ export class ComponentsDependencies {
 
   /**
    * @internal
+   * Invoke `onRemove` for each index in `components`, removing any dependent component in `components`
+   * on the same entity before the dependencies it requires while preserving the original order otherwise.
+   */
+  static _forEachInRemoveOrder(components: readonly Component[], onRemove: (index: number) => void): void {
+    const n = components.length;
+    if (n === 0) return;
+    if (n === 1) {
+      onRemove(0);
+      return;
+    }
+
+    // 0 = unvisited, 1 = visiting (cycle guard), 2 = visited
+    const state = new Uint8Array(n);
+    const visit = (index: number): void => {
+      if (state[index] !== 0) return;
+      state[index] = 1;
+
+      const entity = components[index].entity;
+      let type = components[index].constructor as ComponentConstructor;
+      while (type && type !== Component) {
+        const invDeps = ComponentsDependencies._invDependenciesMap.get(type);
+        if (invDeps) {
+          for (let i = 0, len = invDeps.length; i < len; i++) {
+            const dependent = invDeps[i];
+            for (let j = 0; j < n; j++) {
+              if (state[j] === 0 && components[j].entity === entity && components[j] instanceof dependent) {
+                visit(j);
+              }
+            }
+          }
+        }
+        type = Object.getPrototypeOf(type);
+      }
+
+      state[index] = 2;
+      onRemove(index);
+    };
+
+    for (let i = 0; i < n; i++) {
+      visit(i);
+    }
+  }
+
+  /**
+   * @internal
    */
   static _hasDependencies(type: ComponentConstructor): boolean {
     while (type !== Component) {

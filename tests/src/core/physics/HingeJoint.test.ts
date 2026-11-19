@@ -1,5 +1,16 @@
 import { createPhysics } from "../../utils/physics";
-import { HingeJoint, JointLimits, JointMotor, Entity, Rigidbody, BoxCollider, Engine } from "@galacean/engine-core";
+import {
+  Component,
+  dependentComponents,
+  DependentMode,
+  HingeJoint,
+  JointLimits,
+  JointMotor,
+  Entity,
+  Rigidbody,
+  BoxCollider,
+  Engine
+} from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { MathUtil, Quaternion, Vector3 } from "@galacean/engine-math";
 import { describe, beforeAll, afterAll, beforeEach, expect, it } from "vitest";
@@ -494,5 +505,160 @@ describe("HingeJoint", function () {
       motor.targetVelocity = 5;
       limits.max = 30;
     }).not.toThrow();
+  });
+
+  it("disables active drive and limits immediately when motor or limits are cleared to null", function () {
+    engine.sceneManager.activeScene.physics.gravity.set(0, 0, 0);
+
+    const motorBox = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const motorBody = motorBox.getComponent(Rigidbody)!;
+    motorBody.angularDamping = 0;
+    const motorJoint = motorBox.addComponent(HingeJoint);
+    const motor = new JointMotor();
+    motor.targetVelocity = 6;
+    motor.forceLimit = 500;
+    motorJoint.motor = motor;
+    motorJoint.useMotor = true;
+
+    engine.sceneManager.activeScene.physics._update(0.2);
+    expect(motorJoint.velocity).toBeGreaterThan(3);
+
+    // Clearing motor to null while useMotor=true stops driving immediately
+    motorJoint.motor = null;
+    motorBody.angularVelocity.set(0, 0, 0);
+    engine.sceneManager.activeScene.physics._update(0.2);
+    expect(Math.abs(motorJoint.velocity)).toBeLessThan(0.05);
+
+    // Disable -> re-enable with useMotor=true and motor=null keeps drive disabled
+    motorJoint.enabled = false;
+    motorJoint.enabled = true;
+    engine.sceneManager.activeScene.physics._update(0.2);
+    expect(Math.abs(motorJoint.velocity)).toBeLessThan(0.05);
+
+    // Re-assigning a motor resumes driving
+    motorJoint.motor = motor;
+    engine.sceneManager.activeScene.physics._update(0.2);
+    expect(motorJoint.velocity).toBeGreaterThan(3);
+
+    const limitBox = addBox(new Vector3(1, 1, 1), new Vector3(4, 5, 0));
+    const limitBody = limitBox.getComponent(Rigidbody)!;
+    const limitJoint = limitBox.addComponent(HingeJoint);
+    const limits = new JointLimits();
+    limits.min = -10;
+    limits.max = 10;
+    limitJoint.limits = limits;
+    limitJoint.useLimits = true;
+    limitBody.applyTorque(new Vector3(50, 0, 0));
+    engine.sceneManager.activeScene.physics._update(0.5);
+    expect(Math.abs(limitJoint.angle)).toBeLessThanOrEqual(11);
+
+    // Clearing limits to null while useLimits=true lets the body spin past the former limit
+    limitJoint.limits = null;
+    limitBody.applyTorque(new Vector3(80, 0, 0));
+    engine.sceneManager.activeScene.physics._update(0.5);
+    expect(Math.abs(limitJoint.angle)).toBeGreaterThan(20);
+  });
+
+  it("wakes sleeping bodies when active HingeJoint constraint parameters change", function () {
+    engine.sceneManager.activeScene.physics.gravity.set(0, 0, 0);
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const body = box.getComponent(Rigidbody)!;
+    const joint = box.addComponent(HingeJoint);
+    const motor = new JointMotor();
+    motor.targetVelocity = 5;
+    motor.forceLimit = 500;
+    joint.motor = motor;
+
+    body.sleep();
+    expect(body.isSleeping()).toBe(true);
+
+    // Enabling useMotor on a sleeping body wakes it and spins it without manual wakeUp()
+    joint.useMotor = true;
+    expect(body.isSleeping()).toBe(false);
+    engine.sceneManager.activeScene.physics._update(0.2);
+    expect(joint.velocity).toBeGreaterThan(2);
+
+    joint.useMotor = false;
+    body.angularVelocity.set(0, 0, 0);
+    body.sleep();
+    expect(body.isSleeping()).toBe(true);
+
+    const limits = new JointLimits();
+    limits.min = 20;
+    limits.max = 40;
+    joint.limits = limits;
+    joint.useLimits = true;
+    expect(body.isSleeping()).toBe(false);
+
+    body.sleep();
+    limits.min = 25;
+    expect(body.isSleeping()).toBe(false);
+
+    body.sleep();
+    joint.useSpring = true;
+    expect(body.isSleeping()).toBe(false);
+
+    body.sleep();
+    joint.axis.set(0, 1, 0);
+    expect(body.isSleeping()).toBe(false);
+  });
+
+  it("keeps motor and limits listeners alive when HingeJoint destroy is rejected by a dependent component", function () {
+    @dependentComponents(HingeJoint, DependentMode.CheckOnly)
+    class HingeConsumer extends Component {}
+
+    engine.sceneManager.activeScene.physics.gravity.set(0, 0, 0);
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const joint = box.addComponent(HingeJoint);
+    const motor = new JointMotor();
+    motor.targetVelocity = 0;
+    motor.forceLimit = 500;
+    joint.motor = motor;
+    joint.useMotor = true;
+    const consumer = box.addComponent(HingeConsumer);
+
+    expect(() => joint.destroy()).toThrow();
+    expect(joint.destroyed).toBe(false);
+
+    // Motor listener must still work after rejected destroy
+    motor.targetVelocity = 6;
+    engine.sceneManager.activeScene.physics._update(0.2);
+    expect(joint.velocity).toBeGreaterThan(3);
+
+    consumer.destroy();
+    expect(() => joint.destroy()).not.toThrow();
+  });
+
+  it("validates HingeJoint.axis and keeps rotation sync working after pre-enable zero axis", function () {
+    engine.sceneManager.activeScene.physics.gravity.set(0, 0, 0);
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const joint = box.addComponent(HingeJoint);
+
+    for (const invalid of [new Vector3(NaN, 1, 0), new Vector3(Infinity, 0, 0), new Vector3(0, -Infinity, 0)]) {
+      expect(() => (joint.axis = invalid)).toThrow();
+    }
+    // Whole-vector zero assignment does not drift JS axis away from native
+    joint.axis = new Vector3(0, 1, 0);
+    joint.axis = new Vector3(0, 0, 0);
+    expect(joint.axis.y).toBeCloseTo(1, 5);
+
+    // In-place NaN throws and restores finite unit axis
+    expect(() => (joint.axis.x = NaN)).toThrow();
+    expect(Number.isFinite(joint.axis.x) && joint.axis.length()).toBeCloseTo(1, 5);
+
+    // Pre-enable transient zero axis must not break connected relative rotation sync on enable
+    const anchor = addBox(new Vector3(1, 1, 1), new Vector3(0, 8, 0));
+    anchor.transform.setRotation(0, 90, 0);
+    anchor.getComponent(Rigidbody)!.isKinematic = true;
+
+    const child = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    child.isActive = false;
+    const childJoint = child.addComponent(HingeJoint);
+    childJoint.axis.set(0, 0, 0);
+    childJoint.connectedBody = anchor.getComponent(Rigidbody)!;
+    child.isActive = true;
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    expect(Number.isFinite(childJoint.angle)).toBe(true);
+    expect(Math.abs(childJoint.angle)).toBeLessThan(1);
   });
 });

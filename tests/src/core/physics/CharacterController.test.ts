@@ -696,5 +696,63 @@ describe("CharacterController", () => {
       move(new Vector3(6, 0, 0));
       expect(role.transform.position.x).toBeCloseTo(6, 2);
     });
+
+    it("validates size, upDirection, float32 bounds, negative move args, and clean failed-creation recovery", () => {
+      for (const invalid of [new Vector3(NaN, 1, 1), new Vector3(1, Infinity, 1), new Vector3(1, 1, -Infinity)]) {
+        expect(() => (controller.size = invalid)).toThrow();
+        expect(() => (controller.upDirection = invalid)).toThrow();
+      }
+      expect(() => (controller.size.x = NaN)).toThrow();
+      expect(Number.isFinite(controller.size.x)).toBe(true);
+      expect(() => (controller.upDirection.y = NaN)).toThrow();
+      expect(controller.upDirection.y).toBeCloseTo(1, 5);
+
+      // Whole-vector zero upDirection is rejected without JS/native drift
+      controller.upDirection = new Vector3(0, 1, 0);
+      controller.upDirection = new Vector3(0, 0, 0);
+      expect(controller.upDirection.y).toBeCloseTo(1, 5);
+
+      // Float32 underflow / overflow detaches and recovers cleanly
+      controller.height = 1e-40;
+      expect(move(new Vector3(1, 0, 0))).toBe(0);
+      controller.height = 1e40;
+      expect(move(new Vector3(1, 0, 0))).toBe(0);
+      controller.height = 1;
+      controller.radius = 0.5;
+      role.transform.setPosition(0, 2, 0);
+
+      // Negative minDist / elapsedTime rejected cleanly by native guard
+      expect(controller.move(new Vector3(1, 0, 0), -0.1, physics.fixedTimeStep)).toBe(0);
+      expect(controller.move(new Vector3(1, 0, 0), 0.0001, -1)).toBe(0);
+
+      // Failed-creation recovery: unrelated setters do not spam errors and recovery uses updated position
+      const recoverEntity = root.createChild("recover-cct");
+      recoverEntity.transform.setPosition(0, 5, 0);
+      const recoverCC = recoverEntity.addComponent(CharacterController);
+      recoverCC.stepOffset = 10; // invalid (> total capsule height 2)
+
+      const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+      recoverCC.move(new Vector3(0, -0.1, 0), 0.0001, physics.fixedTimeStep);
+      expect(errors).toHaveBeenCalledTimes(1);
+
+      errors.mockClear();
+      recoverEntity.transform.setPosition(7, 4, -2);
+      recoverCC.collisionLayer = Layer.Layer3;
+      recoverCC.isSceneQuery = true;
+      recoverCC.nonWalkableMode = ControllerNonWalkableMode.ForceSliding;
+      recoverCC.upDirection = new Vector3(0, 1, 0);
+      expect(errors).not.toHaveBeenCalled();
+
+      recoverCC.stepOffset = 0.3;
+      recoverCC.move(new Vector3(0, 0, 0), 0.0001, physics.fixedTimeStep);
+      expect(errors).not.toHaveBeenCalled();
+      expect(recoverEntity.transform.position.x).toBeCloseTo(7, 4);
+      expect(recoverEntity.transform.position.y).toBeCloseTo(4, 4);
+      expect(recoverEntity.transform.position.z).toBeCloseTo(-2, 4);
+
+      const hit = new HitResult();
+      expect(physics.raycast(new Ray(new Vector3(7, 8, -2), new Vector3(0, -1, 0)), 10, Layer.Layer3, hit)).toBe(true);
+      expect(hit.collider).toBe(recoverCC);
+    });
   });
 });

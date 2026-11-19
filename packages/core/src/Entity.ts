@@ -488,6 +488,18 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
+  static _destroyComponents(components: readonly Component[]): void {
+    ComponentsDependencies._forEachInRemoveOrder(components, (i) => {
+      const component = components[i];
+      if (!component.destroyed) {
+        component.destroy();
+      }
+    });
+  }
+
+  /**
+   * @internal
+   */
   _markAsTemplate(templateResource: ReferResource): void {
     this._isTemplate = true;
     this._templateResource = templateResource;

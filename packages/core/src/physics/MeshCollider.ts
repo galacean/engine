@@ -21,6 +21,15 @@ export class MeshCollider extends Collider {
     return props.isTrigger === false ? ["isTrigger", "convex", "cookingFlags"] : ["convex", "cookingFlags"];
   }
 
+  /** @internal */
+  static _getDeserializePhase(props: Record<string, unknown>): number {
+    if (props.convex === false) return 1;
+    if (props.convex === true) return -1;
+    if (props.isTrigger === false) return -1;
+    if (props.isTrigger === true) return 1;
+    return 0;
+  }
+
   @ignoreClone
   private _mesh: ModelMesh | null = null;
   private _convex = false;
@@ -134,13 +143,11 @@ export class MeshCollider extends Collider {
 
   protected override _hasValidGeometry(scale: Vector3): boolean {
     const minScale = 1e-6;
+    const x = Math.fround(scale.x);
+    const y = Math.fround(scale.y);
+    const z = Math.fround(scale.z);
     return (
-      scale.x >= minScale &&
-      scale.y >= minScale &&
-      scale.z >= minScale &&
-      Number.isFinite(scale.x) &&
-      Number.isFinite(scale.y) &&
-      Number.isFinite(scale.z)
+      x >= minScale && y >= minScale && z >= minScale && Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z)
     );
   }
 

@@ -14,7 +14,7 @@ import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Layer } from "../Layer";
-import { Transform } from "../Transform";
+import { Transform, TransformModifyFlags } from "../Transform";
 import { PhysicsMaterial } from "./PhysicsMaterial";
 import { Rigidbody } from "./Rigidbody";
 
@@ -231,6 +231,15 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * @internal
+   * @returns Whether the value is a positive, normal, finite float32 extent safe for native physics geometry.
+   */
+  static _isValidPositiveFloat32(value: number): boolean {
+    const f = Math.fround(value);
+    return f >= 1.17549435e-38 && Number.isFinite(f);
+  }
+
+  /**
+   * @internal
    */
   constructor(entity: Entity) {
     super(entity);
@@ -238,7 +247,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
     Engine._physicalObjectsMap[this._id] = this;
 
     this._markDirty = this._markDirty.bind(this);
-    entity._updateFlagManager.addListener(this._markDirty);
+    this._onTransformChanged = this._onTransformChanged.bind(this);
+    entity._updateFlagManager.addListener(this._onTransformChanged);
     //@ts-ignore
     this._center._onValueChanged = this._markDirty;
     //@ts-ignore
@@ -538,7 +548,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this.entity._updateFlagManager.removeListener(this._markDirty);
+    this.entity._updateFlagManager.removeListener(this._onTransformChanged);
     this._native?.destroy();
     this._native = null;
     this._staticActor?.destroy();
@@ -546,6 +556,16 @@ export class Collider extends Component implements ICloneHook<Collider> {
     this._material && this._addResourceReferCount(this._material, -1);
     this._material = null;
     delete Engine._physicalObjectsMap[this._id];
+  }
+
+  @ignoreClone
+  private _onTransformChanged(type: TransformModifyFlags): void {
+    // A Collider attached to a Rigidbody on its own Entity shares that actor's world pose;
+    // only scale or hierarchy changes (both include WorldScale) can alter its local shape.
+    if (this._attachedBody?.entity === this.entity && !(type & TransformModifyFlags.WorldScale)) {
+      return;
+    }
+    this._markDirty();
   }
 
   private _transfer(body: Rigidbody | null, actor: ICollider): boolean {

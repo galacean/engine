@@ -17,6 +17,7 @@ import {
   ModelMesh,
   PhysicsScene,
   PlaneCollider,
+  PrimitiveMesh,
   Rigidbody,
   RigidbodyConstraints,
   Scene,
@@ -556,6 +557,213 @@ describe("Physics gameplay integration", () => {
     } finally {
       // @ts-ignore
       delete engine.resourceManager._objectPool["test://base-physics.prefab"];
+    }
+  });
+
+  it("applies Prefab physics overrides cleanly across removals, reverse-dependency teardown, and cross-component transitions", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const warns = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1, { keepMeshData: true });
+    // @ts-ignore
+    engine.resourceManager._objectPool["test://override-mesh.mesh"] = mesh;
+
+    try {
+      // Case A: Base prefab has kinematic Rigidbody + PlaneCollider + child entity with non-convex MeshCollider
+      //         + sibling entity [1] to verify pre-resolution before removedEntities shifts indices.
+      const baseRemoveData: any = {
+        version: "2.0",
+        refs: [{ url: "test://override-mesh.mesh", type: "ModelMesh" }],
+        entities: [
+          { name: "Root", components: [0, 1], children: [1, 2] },
+          { name: "MeshChild", components: [2] },
+          { name: "SurvivingChild", position: [0, 0, 0] }
+        ],
+        components: [
+          { type: "Rigidbody", props: { isKinematic: true } },
+          { type: "PlaneCollider" },
+          { type: "MeshCollider", props: { convex: false, mesh: { $ref: 0 } } }
+        ],
+        root: 0
+      };
+      const baseRemovePrefab = await PrefabParser.parse(engine, "test://base-remove.prefab", baseRemoveData);
+      // @ts-ignore
+      engine.resourceManager._objectPool["test://base-remove.prefab"] = baseRemovePrefab;
+
+      const overrideRemoveData: any = {
+        version: "2.0",
+        refs: [{ url: "test://base-remove.prefab", type: "Prefab" }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                // Remove PlaneCollider on root AND MeshChild [0], while overriding SurvivingChild [1] and setting isKinematic: false
+                entityProps: [{ path: [1], name: "RenamedSurvivor" }],
+                componentProps: [
+                  { path: [], selector: { type: "Rigidbody", index: 0 }, props: { isKinematic: false } }
+                ],
+                removedEntities: [[0]],
+                removedComponents: [{ path: [], selectors: [{ type: "PlaneCollider", index: 0 }] }]
+              }
+            }
+          }
+        ],
+        components: [],
+        root: 0
+      };
+      const overrideRemovePrefab = await PrefabParser.parse(engine, "test://ov-remove.prefab", overrideRemoveData);
+      const removeInst = overrideRemovePrefab.instantiate();
+      expect(removeInst.getComponent(PlaneCollider)).toBeNull();
+      expect(removeInst.children).toHaveLength(1);
+      expect(removeInst.children[0].name).toBe("RenamedSurvivor");
+      expect(removeInst.getComponent(Rigidbody)!.isKinematic).toBe(false);
+      expect(errors).not.toHaveBeenCalled();
+      removeInst.destroy();
+
+      // Case B: Removing [Rigidbody, FixedJoint] with Rigidbody listed BEFORE FixedJoint succeeds cleanly
+      const baseJointData: any = {
+        version: "2.0",
+        refs: [],
+        entities: [{ name: "JointRoot", components: [0, 1] }],
+        components: [{ type: "Rigidbody" }, { type: "FixedJoint" }],
+        root: 0
+      };
+      const baseJointPrefab = await PrefabParser.parse(engine, "test://base-joint.prefab", baseJointData);
+      // @ts-ignore
+      engine.resourceManager._objectPool["test://base-joint.prefab"] = baseJointPrefab;
+
+      const overrideJointData: any = {
+        version: "2.0",
+        refs: [{ url: "test://base-joint.prefab", type: "Prefab" }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                removedComponents: [
+                  {
+                    path: [],
+                    selectors: [
+                      { type: "Rigidbody", index: 0 },
+                      { type: "FixedJoint", index: 0 }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        components: [],
+        root: 0
+      };
+      const overrideJointPrefab = await PrefabParser.parse(engine, "test://ov-joint.prefab", overrideJointData);
+      const jointInst = overrideJointPrefab.instantiate();
+      expect(jointInst.getComponent(FixedJoint)).toBeNull();
+      expect(jointInst.getComponent(Rigidbody)).toBeNull();
+      expect(errors).not.toHaveBeenCalled();
+      jointInst.destroy();
+
+      // Case C1: Kinematic + non-convex MeshCollider -> override lists isKinematic: false BEFORE convex: true
+      const baseKinMeshData: any = {
+        version: "2.0",
+        refs: [{ url: "test://override-mesh.mesh", type: "ModelMesh" }],
+        entities: [{ name: "KinMesh", components: [0, 1] }],
+        components: [
+          { type: "Rigidbody", props: { isKinematic: true } },
+          { type: "MeshCollider", props: { convex: false, mesh: { $ref: 0 } } }
+        ],
+        root: 0
+      };
+      const baseKinMeshPrefab = await PrefabParser.parse(engine, "test://base-kin-mesh.prefab", baseKinMeshData);
+      // @ts-ignore
+      engine.resourceManager._objectPool["test://base-kin-mesh.prefab"] = baseKinMeshPrefab;
+
+      const ovToDynamicData: any = {
+        version: "2.0",
+        refs: [{ url: "test://base-kin-mesh.prefab", type: "Prefab" }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                componentProps: [
+                  { path: [], selector: { type: "Rigidbody", index: 0 }, props: { isKinematic: false } },
+                  { path: [], selector: { type: "MeshCollider", index: 0 }, props: { convex: true } }
+                ]
+              }
+            }
+          }
+        ],
+        components: [],
+        root: 0
+      };
+      const ovToDynamicPrefab = await PrefabParser.parse(engine, "test://ov-to-dynamic.prefab", ovToDynamicData);
+      const dynInst = ovToDynamicPrefab.instantiate();
+      expect(dynInst.getComponent(Rigidbody)!.isKinematic).toBe(false);
+      expect(dynInst.getComponent(MeshCollider)!.mesh).toBe(mesh);
+      expect(dynInst.getComponent(MeshCollider)!.convex).toBe(true);
+      expect(errors).not.toHaveBeenCalled();
+      expect(warns).not.toHaveBeenCalled();
+      dynInst.destroy();
+
+      // Case C2: Dynamic + convex trigger MeshCollider -> override lists MeshCollider { isTrigger: false, convex: false } BEFORE Rigidbody { isKinematic: true }
+      const baseDynMeshData: any = {
+        version: "2.0",
+        refs: [{ url: "test://override-mesh.mesh", type: "ModelMesh" }],
+        entities: [{ name: "DynMesh", components: [0, 1] }],
+        components: [
+          { type: "Rigidbody", props: { isKinematic: false } },
+          { type: "MeshCollider", props: { convex: true, isTrigger: true, mesh: { $ref: 0 } } }
+        ],
+        root: 0
+      };
+      const baseDynMeshPrefab = await PrefabParser.parse(engine, "test://base-dyn-mesh.prefab", baseDynMeshData);
+      // @ts-ignore
+      engine.resourceManager._objectPool["test://base-dyn-mesh.prefab"] = baseDynMeshPrefab;
+
+      const ovToKinematicData: any = {
+        version: "2.0",
+        refs: [{ url: "test://base-dyn-mesh.prefab", type: "Prefab" }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                componentProps: [
+                  {
+                    path: [],
+                    selector: { type: "MeshCollider", index: 0 },
+                    props: { convex: false, isTrigger: false }
+                  },
+                  { path: [], selector: { type: "Rigidbody", index: 0 }, props: { isKinematic: true } }
+                ]
+              }
+            }
+          }
+        ],
+        components: [],
+        root: 0
+      };
+      const ovToKinematicPrefab = await PrefabParser.parse(engine, "test://ov-to-kinematic.prefab", ovToKinematicData);
+      const kinInst = ovToKinematicPrefab.instantiate();
+      expect(kinInst.getComponent(Rigidbody)!.isKinematic).toBe(true);
+      expect(kinInst.getComponent(MeshCollider)!.mesh).toBe(mesh);
+      expect(kinInst.getComponent(MeshCollider)!.isTrigger).toBe(false);
+      expect(kinInst.getComponent(MeshCollider)!.convex).toBe(false);
+      expect(errors).not.toHaveBeenCalled();
+      expect(warns).not.toHaveBeenCalled();
+      kinInst.destroy();
+    } finally {
+      // @ts-ignore
+      delete engine.resourceManager._objectPool["test://override-mesh.mesh"];
+      // @ts-ignore
+      delete engine.resourceManager._objectPool["test://base-remove.prefab"];
+      // @ts-ignore
+      delete engine.resourceManager._objectPool["test://base-joint.prefab"];
+      // @ts-ignore
+      delete engine.resourceManager._objectPool["test://base-kin-mesh.prefab"];
+      // @ts-ignore
+      delete engine.resourceManager._objectPool["test://base-dyn-mesh.prefab"];
     }
   });
 });

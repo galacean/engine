@@ -21,6 +21,9 @@ export class BoxCollider extends Collider {
   }
 
   set size(value: Vector3) {
+    if (!Number.isFinite(value.x) || !Number.isFinite(value.y) || !Number.isFinite(value.z)) {
+      throw new Error("BoxCollider size must be finite.");
+    }
     if (this._size !== value) {
       this._size.copyFrom(value);
     }
@@ -37,10 +40,11 @@ export class BoxCollider extends Collider {
 
   protected override _hasValidGeometry(scale: Vector3): boolean {
     const size = this._size;
-    const x = size.x * scale.x;
-    const y = size.y * scale.y;
-    const z = size.z * scale.z;
-    return x > 0 && y > 0 && z > 0 && Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z);
+    return (
+      Collider._isValidPositiveFloat32(size.x * scale.x * 0.5) &&
+      Collider._isValidPositiveFloat32(size.y * scale.y * 0.5) &&
+      Collider._isValidPositiveFloat32(size.z * scale.z * 0.5)
+    );
   }
 
   protected override _syncGeometry(shape: IBoxColliderShape): void {
@@ -56,6 +60,25 @@ export class BoxCollider extends Collider {
   @ignoreClone
   private _onSizeChanged(): void {
     const size = this._size;
+    const xFinite = Number.isFinite(size.x);
+    const yFinite = Number.isFinite(size.y);
+    const zFinite = Number.isFinite(size.z);
+    if (!xFinite || !yFinite || !zFinite) {
+      //@ts-ignore
+      const listener = size._onValueChanged;
+      //@ts-ignore
+      size._onValueChanged = null;
+      size.set(
+        xFinite && size.x >= 0 ? size.x : 0,
+        yFinite && size.y >= 0 ? size.y : 0,
+        zFinite && size.z >= 0 ? size.z : 0
+      );
+      //@ts-ignore
+      size._onValueChanged = listener;
+      this._geometryDirty = true;
+      this._markDirty();
+      throw new Error("BoxCollider size must be finite.");
+    }
     if (size.x < 0 || size.y < 0 || size.z < 0) {
       //@ts-ignore
       const listener = size._onValueChanged;

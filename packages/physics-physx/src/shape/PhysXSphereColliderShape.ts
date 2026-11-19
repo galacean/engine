@@ -25,8 +25,7 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
    */
   setRadius(value: number): void {
     this._radius = value;
-    this._pxGeometry.radius = value * this._maxScale;
-    this._pxShape.setGeometry(this._pxGeometry);
+    this._updateGeometry();
   }
 
   /**
@@ -36,7 +35,14 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
     super.setWorldScale(scale);
 
     this._maxScale = Math.max(Math.abs(scale.x), Math.abs(scale.y), Math.abs(scale.z));
-    this._pxGeometry.radius = this._radius * this._maxScale;
-    this._pxShape.setGeometry(this._pxGeometry);
+    this._updateGeometry();
+  }
+
+  private _updateGeometry(): void {
+    const fRadius = Math.fround(this._radius * this._maxScale);
+    if (fRadius > 0 && Number.isFinite(fRadius)) {
+      this._pxGeometry.radius = fRadius;
+      this._pxShape.setGeometry(this._pxGeometry);
+    }
   }
 }

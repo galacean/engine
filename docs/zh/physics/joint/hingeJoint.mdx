@@ -114,7 +114,7 @@ hingeJoint.useLimits = true;
 hingeJoint.limits = new JointLimits();
 hingeJoint.limits.min = -45;         // 最小角度
 hingeJoint.limits.max = 45;          // 最大角度
-hingeJoint.limits.contactDistance = 5; // 接触距离
+hingeJoint.limits.contactDistance = 0.1; // 接触距离（弧度）
 
 // 启用弹性限制
 hingeJoint.useSpring = true;

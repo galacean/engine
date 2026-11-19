@@ -31,8 +31,7 @@ export class SphereCollider extends Collider {
   }
 
   protected override _hasValidGeometry(scale: Vector3): boolean {
-    const radius = this._radius * Math.max(scale.x, scale.y, scale.z);
-    return radius > 0 && Number.isFinite(radius);
+    return Collider._isValidPositiveFloat32(this._radius * Math.max(scale.x, scale.y, scale.z));
   }
 
   protected override _syncGeometry(shape: ISphereColliderShape): void {

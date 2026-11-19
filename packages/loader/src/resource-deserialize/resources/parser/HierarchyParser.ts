@@ -12,7 +12,7 @@ import {
   type InstanceOverrides,
   type PrefabInstanceEntitySchema
 } from "../../../schema/HierarchySchema";
-import type { RefItem } from "../../../schema/CommonSchema";
+import type { MutationBlock, RefItem } from "../../../schema/CommonSchema";
 import type { HierarchyFile } from "../../../schema/HierarchySchema";
 import { ParserContext, ParserType } from "./ParserContext";
 import { ReflectionParser } from "./ReflectionParser";
@@ -178,15 +178,12 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
   private _parseComponentsPropsAndCalls(): Promise<unknown> {
     const { pendingComponents } = this.context;
-    const reflectionParser = this._reflectionParser;
-    const promises: Promise<unknown>[] = [];
-
+    const items = new Array<{ target: Component; block: MutationBlock }>(pendingComponents.length);
     for (let i = 0, n = pendingComponents.length; i < n; i++) {
       const { instance, config } = pendingComponents[i];
-      promises.push(reflectionParser.parseMutationBlock(instance, config));
+      items[i] = { target: instance, block: config };
     }
-
-    return Promise.all(promises);
+    return this._applyMutationBlocks(items);
   }
 
   // ---------------------------------------------------------------------------
@@ -212,63 +209,145 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   }
 
   private _applyOverrides(rootEntity: Entity, overrides: InstanceOverrides, promises: Promise<unknown>[]): void {
-    const reflectionParser = this._reflectionParser;
-
-    // entityProps — entity-level property overrides
+    // Pre-resolve every override target against the intact prefab instance before any mutation or destroy shifts indices
+    const entityPropTargets: { entity: Entity; override: EntityPropOverride }[] = [];
     if (overrides.entityProps) {
       for (let j = 0, m = overrides.entityProps.length; j < m; j++) {
         const override = overrides.entityProps[j] as EntityPropOverride;
-        HierarchyParser._applyEntityProps(HierarchyParser._resolveEntity(rootEntity, override.path), override);
+        entityPropTargets.push({ entity: HierarchyParser._resolveEntity(rootEntity, override.path), override });
       }
     }
 
-    // componentProps — component-level property overrides
+    const componentPropTargets: { target: Component; block: ComponentOverride }[] = [];
     if (overrides.componentProps) {
       for (let j = 0, m = overrides.componentProps.length; j < m; j++) {
         const override = overrides.componentProps[j] as ComponentOverride;
         const entity = HierarchyParser._resolveEntity(rootEntity, override.path);
         const target = HierarchyParser._resolveComponent(entity, override.selector);
-        promises.push(reflectionParser.parseMutationBlock(target, override));
+        componentPropTargets.push({ target, block: override });
       }
     }
 
-    // addedEntities — attach already-created top-level entityInstances[index] as a child
+    const addedEntityTargets: { parent: Entity; child: Entity }[] = [];
     if (overrides.addedEntities) {
       const entityInstances = this.context.entityInstances;
       for (let j = 0, m = overrides.addedEntities.length; j < m; j++) {
         const added = overrides.addedEntities[j];
-        const parent = HierarchyParser._resolveEntity(rootEntity, added.parent);
-        parent.addChild(entityInstances[added.entity]);
+        addedEntityTargets.push({
+          parent: HierarchyParser._resolveEntity(rootEntity, added.parent),
+          child: entityInstances[added.entity]
+        });
       }
     }
 
-    // removedEntities — pre-resolve all targets then destroy (destroy shifts sibling indices)
+    const removedEntityTargets: Entity[] = [];
     if (overrides.removedEntities) {
       const removed = overrides.removedEntities;
-      const targets = new Array<Entity>(removed.length);
       for (let j = 0, m = removed.length; j < m; j++) {
-        targets[j] = HierarchyParser._resolveEntity(rootEntity, removed[j]);
-      }
-      for (let j = 0, m = targets.length; j < m; j++) {
-        targets[j].destroy();
+        removedEntityTargets.push(HierarchyParser._resolveEntity(rootEntity, removed[j]));
       }
     }
 
-    // removedComponents — pre-resolve all targets then destroy (destroy shifts component indices)
+    const removedComponentTargets: Component[] = [];
     if (overrides.removedComponents) {
-      const targets: Component[] = [];
       for (let j = 0, m = overrides.removedComponents.length; j < m; j++) {
         const override = overrides.removedComponents[j];
         const entity = HierarchyParser._resolveEntity(rootEntity, override.path);
         const selectors = override.selectors;
         for (let k = 0, p = selectors.length; k < p; k++) {
-          targets.push(HierarchyParser._resolveComponent(entity, selectors[k]));
+          removedComponentTargets.push(HierarchyParser._resolveComponent(entity, selectors[k]));
         }
       }
-      for (let j = 0, m = targets.length; j < m; j++) {
-        targets[j].destroy();
+    }
+
+    // Destroy removedComponents (dependents before dependencies) and removedEntities before componentProps
+    // so removing conflicting colliders (e.g. PlaneCollider / non-convex MeshCollider) unblocks constraint updates
+    if (removedComponentTargets.length > 0) {
+      Entity._destroyComponents(removedComponentTargets);
+    }
+    for (let j = 0, m = removedEntityTargets.length; j < m; j++) {
+      const entity = removedEntityTargets[j];
+      if (!entity.destroyed) {
+        entity.destroy();
       }
     }
+
+    // entityProps — entity-level property overrides
+    for (let j = 0, m = entityPropTargets.length; j < m; j++) {
+      const { entity, override } = entityPropTargets[j];
+      if (!entity.destroyed) {
+        HierarchyParser._applyEntityProps(entity, override);
+      }
+    }
+
+    // addedEntities — attach already-created top-level entityInstances[index] as a child
+    for (let j = 0, m = addedEntityTargets.length; j < m; j++) {
+      const { parent, child } = addedEntityTargets[j];
+      if (!parent.destroyed && !child.destroyed) {
+        parent.addChild(child);
+      }
+    }
+
+    // componentProps — apply surviving component overrides in constraint phase order (relax -> neutral -> restrict)
+    if (componentPropTargets.length > 0) {
+      const surviving: { target: Component; block: MutationBlock }[] = [];
+      for (let j = 0, m = componentPropTargets.length; j < m; j++) {
+        const item = componentPropTargets[j];
+        if (!item.target.destroyed) {
+          surviving.push(item);
+        }
+      }
+      if (surviving.length > 0) {
+        promises.push(this._applyMutationBlocks(surviving));
+      }
+    }
+  }
+
+  private _applyMutationBlocks(items: readonly { target: Component; block: MutationBlock }[]): Promise<unknown> {
+    const reflectionParser = this._reflectionParser;
+    let relax: { target: Component; block: MutationBlock }[] | null = null;
+    let neutral: { target: Component; block: MutationBlock }[] | null = null;
+    let restrict: { target: Component; block: MutationBlock }[] | null = null;
+
+    for (let i = 0, n = items.length; i < n; i++) {
+      const item = items[i];
+      const props = item.block.props;
+      const getPhase: ((props: Record<string, unknown>) => number) | undefined = (item.target.constructor as any)
+        ?._getDeserializePhase;
+      const phase = props && typeof getPhase === "function" ? getPhase(props) : 0;
+      if (phase < 0) {
+        (relax ||= []).push(item);
+      } else if (phase > 0) {
+        (restrict ||= []).push(item);
+      } else {
+        (neutral ||= []).push(item);
+      }
+    }
+
+    if (!relax && !restrict) {
+      return Promise.all(items.map(({ target, block }) => reflectionParser.parseMutationBlock(target, block)));
+    }
+
+    let chain: Promise<unknown> = Promise.resolve();
+    if (relax) {
+      const batch = relax;
+      chain = chain.then(() =>
+        Promise.all(batch.map(({ target, block }) => reflectionParser.parseMutationBlock(target, block)))
+      );
+    }
+    if (neutral) {
+      const batch = neutral;
+      chain = chain.then(() =>
+        Promise.all(batch.map(({ target, block }) => reflectionParser.parseMutationBlock(target, block)))
+      );
+    }
+    if (restrict) {
+      const batch = restrict;
+      chain = chain.then(() =>
+        Promise.all(batch.map(({ target, block }) => reflectionParser.parseMutationBlock(target, block)))
+      );
+    }
+    return chain;
   }
 
   // ---------------------------------------------------------------------------

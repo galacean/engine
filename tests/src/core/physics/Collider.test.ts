@@ -776,5 +776,105 @@ describe("Collider", () => {
       expect(physics.raycast(ray, hit)).toBe(true);
       expect(hit.collider).toBe(capsule);
     });
+
+    it("rejects non-finite BoxCollider.size and detaches float32 underflow/overflow extents cleanly", () => {
+      const ray = new Ray(new Vector3(-5, 5, 0), new Vector3(1, 0, 0));
+      const hit = new HitResult();
+
+      const boxEntity = root.createChild("f32-box");
+      boxEntity.transform.setPosition(0, 5, 0);
+      const box = boxEntity.addComponent(BoxCollider);
+      for (const invalid of [new Vector3(NaN, 1, 1), new Vector3(1, Infinity, 1), new Vector3(1, 1, -Infinity)]) {
+        expect(() => (box.size = invalid)).toThrow();
+      }
+      expect(() => (box.size.x = NaN)).toThrow();
+      expect(Number.isFinite(box.size.x)).toBe(true);
+
+      box.size.set(1, 1, 1);
+      expect(physics.raycast(ray, hit)).toBe(true);
+
+      box.size.set(1e-40, 1, 1);
+      expect(physics.raycast(ray, hit)).toBe(false);
+      box.size.set(1e40, 1, 1);
+      expect(physics.raycast(ray, hit)).toBe(false);
+      box.size.set(1, 1, 1);
+      expect(physics.raycast(ray, hit)).toBe(true);
+      boxEntity.destroy();
+
+      const sphereEntity = root.createChild("f32-sphere");
+      sphereEntity.transform.setPosition(0, 5, 0);
+      const sphere = sphereEntity.addComponent(SphereCollider);
+      sphere.radius = 1e-40;
+      expect(physics.raycast(ray, hit)).toBe(false);
+      sphere.radius = 1e40;
+      expect(physics.raycast(ray, hit)).toBe(false);
+      sphere.radius = 1;
+      expect(physics.raycast(ray, hit)).toBe(true);
+      sphereEntity.destroy();
+
+      const capsuleEntity = root.createChild("f32-capsule");
+      capsuleEntity.transform.setPosition(0, 5, 0);
+      const capsule = capsuleEntity.addComponent(CapsuleCollider);
+      capsule.height = 1e-40;
+      expect(physics.raycast(ray, hit)).toBe(false);
+      capsule.height = 1e40;
+      expect(physics.raycast(ray, hit)).toBe(false);
+      capsule.height = 2;
+      expect(physics.raycast(ray, hit)).toBe(true);
+    });
+
+    it("handles simultaneous CapsuleCollider scale and direction changes without degenerate intermediate geometry", () => {
+      const entity = root.createChild("sync-capsule");
+      entity.transform.setPosition(0, 5, 0);
+      const capsule = entity.addComponent(CapsuleCollider);
+      capsule.direction = ColliderShapeUpAxis.X;
+      const ray = new Ray(new Vector3(-5, 5, 0), new Vector3(1, 0, 0));
+      const hit = new HitResult();
+
+      expect(physics.raycast(ray, hit)).toBe(true);
+      const pxShape = (capsule._native as any)._pxShape;
+      const setGeometrySpy = vi.spyOn(pxShape, "setGeometry");
+
+      // Same-frame transition: (X, scale=(1,1,1)) -> (Y, scale=(0,1,1)) stays valid
+      entity.transform.setScale(0, 1, 1);
+      capsule.direction = ColliderShapeUpAxis.Y;
+      expect(physics.raycast(ray, hit)).toBe(true);
+      for (const [geom] of setGeometrySpy.mock.calls) {
+        expect(geom.radius).toBeGreaterThan(0);
+        expect(geom.halfHeight).toBeGreaterThan(0);
+      }
+
+      // Same-frame reverse transition: (Y, scale=(0,1,1)) -> (X, scale=(1,0,1)) stays valid
+      setGeometrySpy.mockClear();
+      entity.transform.setScale(1, 0, 1);
+      capsule.direction = ColliderShapeUpAxis.X;
+      expect(physics.raycast(ray, hit)).toBe(true);
+      for (const [geom] of setGeometrySpy.mock.calls) {
+        expect(geom.radius).toBeGreaterThan(0);
+        expect(geom.halfHeight).toBeGreaterThan(0);
+      }
+    });
+
+    it("avoids per-substep Collider._sync churn during Rigidbody._writeBack under uniform scale", () => {
+      const entity = root.createChild("falling-box");
+      entity.transform.setPosition(0, 20, 0);
+      const box = entity.addComponent(BoxCollider);
+      entity.addComponent(Rigidbody);
+
+      const syncSpy = vi.spyOn(box, "_sync");
+      physics.gravity.set(0, -9.81, 0);
+      update(1);
+      expect(syncSpy).toHaveBeenCalledTimes(1);
+
+      syncSpy.mockClear();
+      update(10);
+      expect(entity.transform.position.y).toBeLessThan(19.9);
+      expect(syncSpy).not.toHaveBeenCalled();
+
+      // Explicit scale edits still mark dirty and sync
+      entity.transform.setScale(2, 2, 2);
+      update(1);
+      expect(syncSpy).toHaveBeenCalledTimes(1);
+    });
   });
 });

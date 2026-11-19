@@ -39,7 +39,13 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
   private _updateGeometry(): void {
     const extents = PhysXBoxColliderShape._tempHalfExtents;
     Vector3.multiply(this._halfSize, this._worldScale, extents);
-    this._pxGeometry.halfExtents = extents;
-    this._pxShape.setGeometry(this._pxGeometry);
+    const fx = Math.fround(extents.x);
+    const fy = Math.fround(extents.y);
+    const fz = Math.fround(extents.z);
+    if (fx > 0 && fy > 0 && fz > 0 && Number.isFinite(fx) && Number.isFinite(fy) && Number.isFinite(fz)) {
+      extents.set(fx, fy, fz);
+      this._pxGeometry.halfExtents = extents;
+      this._pxShape.setGeometry(this._pxGeometry);
+    }
   }
 }

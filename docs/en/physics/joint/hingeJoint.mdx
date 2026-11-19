@@ -114,7 +114,7 @@ hingeJoint.useLimits = true;
 hingeJoint.limits = new JointLimits();
 hingeJoint.limits.min = -45;         // Minimum angle
 hingeJoint.limits.max = 45;          // Maximum angle
-hingeJoint.limits.contactDistance = 5; // Contact distance
+hingeJoint.limits.contactDistance = 0.1; // Contact distance (radians)
 
 // Enable elastic limits
 hingeJoint.useSpring = true;

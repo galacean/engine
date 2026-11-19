@@ -1,5 +1,5 @@
 import { IDynamicCollider } from "@galacean/engine-design";
-import { Quaternion, Vector3 } from "@galacean/engine-math";
+import { MathUtil, Quaternion, Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import type { ICloneHook } from "../clone/ICloneHook";
 import { Component } from "../Component";
@@ -23,6 +23,12 @@ import type { Joint } from "./joint/Joint";
 export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   /** @internal */
   static readonly _deserializePropOrder = ["isKinematic", "automaticCenterOfMass", "automaticInertiaTensor"];
+  /** @internal */
+  static _getDeserializePhase(props: Record<string, unknown>): number {
+    if (props.isKinematic === true) return -1;
+    if (props.isKinematic === false) return 1;
+    return 0;
+  }
 
   private static _tempPosition = new Vector3();
   private static _tempRotation = new Quaternion();
@@ -283,12 +289,18 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /**
    * The solverIterations determines how accurately joints and collision contacts are resolved.
+   * Clamped to an integer in `[1, 255]`.
+   * @throws When the value is not finite.
    */
   get solverIterations(): number {
     return this._solverIterations;
   }
 
   set solverIterations(value: number) {
+    if (!Number.isFinite(value)) {
+      throw new Error("Rigidbody solverIterations must be finite.");
+    }
+    value = MathUtil.clamp(Math.round(value), 1, 255);
     if (this._solverIterations !== value) {
       this._solverIterations = value;
       this._nativeActor?.setSolverIterations(value);
@@ -497,6 +509,16 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @internal
    */
   override _onEnableInScene(): void {
+    const joints = this._connectedJoints;
+    if (joints) {
+      const scene = this.scene;
+      for (let i = joints.length - 1; i >= 0; i--) {
+        const joint = joints[i];
+        if (joint.scene && joint.scene !== scene) {
+          joint._onConnectedBodyCrossScene();
+        }
+      }
+    }
     this.scene!.physics._addRigidbody(this);
     this._markCollidersDirty();
   }

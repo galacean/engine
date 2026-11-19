@@ -174,8 +174,15 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICharacterController.setUpDirection }
    */
   setUpDirection(up: Vector3): void {
-    this._upDirection.copyFrom(up);
-    this._applyToController((controller) => controller.setUpDirection(up));
+    if (!Number.isFinite(up.x) || !Number.isFinite(up.y) || !Number.isFinite(up.z)) {
+      return;
+    }
+    const len = Math.hypot(up.x, up.y, up.z);
+    if (!(len > 0 && Number.isFinite(len))) {
+      return;
+    }
+    this._upDirection.set(up.x / len, up.y / len, up.z / len);
+    this._applyToController((controller) => controller.setUpDirection(this._upDirection));
   }
 
   /**

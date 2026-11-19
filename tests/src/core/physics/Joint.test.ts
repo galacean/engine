@@ -675,4 +675,75 @@ describe("Joint", function () {
     engine.sceneManager.activeScene.physics._update(0.3);
     expect(box.transform.position.y).toBeLessThan(4.8);
   });
+
+  it("validates massScale and connectedMassScale and wakes sleeping bodies", function () {
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const body = box.getComponent(Rigidbody)!;
+    const joint = box.addComponent(FixedJoint);
+
+    for (const invalid of [0, -1, NaN, Infinity, -Infinity]) {
+      expect(() => (joint.massScale = invalid)).toThrow();
+      expect(() => (joint.connectedMassScale = invalid)).toThrow();
+    }
+
+    body.sleep();
+    expect(body.isSleeping()).toBe(true);
+    joint.massScale = 2;
+    expect(body.isSleeping()).toBe(false);
+
+    body.sleep();
+    joint.connectedMassScale = 2;
+    expect(body.isSleeping()).toBe(false);
+  });
+
+  it("detaches an active joint when connectedBody moves to another scene, but preserves it when both move together", function () {
+    const secondScene = new Scene(engine, "second-joint-scene");
+    const secondRoot = secondScene.createRootEntity("second-root");
+    try {
+      const anchor = addBox(new Vector3(1, 1, 1), new Vector3(0, 10, 0));
+      const anchorBody = anchor.getComponent(Rigidbody)!;
+      anchorBody.isKinematic = true;
+
+      const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+      const joint = box.addComponent(FixedJoint);
+      joint.connectedBody = anchorBody;
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+
+      // Moving only connectedBody to another scene detaches the joint before the actor joins secondScene
+      const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+      secondRoot.addChild(anchor);
+      expect(errors).toHaveBeenCalledWith("Joint: connectedBody belongs to another scene.");
+      expect(joint.connectedBody).toBeNull();
+
+      // Both scenes simulate cleanly with no cross-scene constraint
+      engine.sceneManager.activeScene.physics._update(0.2);
+      secondScene.physics._update(0.2);
+      expect(box.transform.position.y).toBeCloseTo(5, 3);
+      expect(Number.isFinite(anchor.transform.position.y)).toBe(true);
+
+      // Moving a parent group containing BOTH entities together preserves the joint
+      errors.mockClear();
+      const group = rootEntity.createChild("joint-group");
+      const pairAnchor = group.createChild("pair-anchor");
+      pairAnchor.transform.setPosition(0, 10, 0);
+      pairAnchor.addComponent(BoxCollider);
+      const pairAnchorBody = pairAnchor.addComponent(Rigidbody);
+      pairAnchorBody.isKinematic = true;
+
+      const pairBox = group.createChild("pair-box");
+      pairBox.transform.setPosition(0, 6, 0);
+      pairBox.addComponent(BoxCollider);
+      pairBox.addComponent(Rigidbody);
+      const pairJoint = pairBox.addComponent(FixedJoint);
+      pairJoint.connectedBody = pairAnchorBody;
+
+      secondRoot.addChild(group);
+      expect(errors).not.toHaveBeenCalled();
+      expect(pairJoint.connectedBody).toBe(pairAnchorBody);
+      secondScene.physics._update(0.2);
+      expect(pairBox.transform.position.y).toBeCloseTo(6, 3);
+    } finally {
+      secondScene.destroy();
+    }
+  });
 });

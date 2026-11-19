@@ -335,13 +335,27 @@ describe("Rigidbody", function () {
     const boxCollider = box.getComponent(Rigidbody);
     expect(boxCollider.solverIterations).eq(4);
 
+    // Non-finite values throw; out-of-range and fractional values clamp to integer [1, 255]
+    for (const invalid of [NaN, Infinity, -Infinity]) {
+      expect(() => (boxCollider.solverIterations = invalid)).toThrow();
+    }
     boxCollider.solverIterations = 0;
+    expect(boxCollider.solverIterations).eq(1);
+    boxCollider.solverIterations = -10;
+    expect(boxCollider.solverIterations).eq(1);
+    boxCollider.solverIterations = 300;
+    expect(boxCollider.solverIterations).eq(255);
+    boxCollider.solverIterations = 6.6;
+    expect(boxCollider.solverIterations).eq(7);
+
+    boxCollider.solverIterations = 1;
     boxCollider.applyForce(new Vector3(10, 0, 0));
 
     engine.sceneManager.activeScene.physics._update(1 / 60);
 
-    // The two boxes coincide and separate at depenetrationVelocity
-    expect(Math.abs(formatValue(boxCollider.linearVelocity.x))).greaterThan(40);
+    // With valid minimum solverIterations = 1, overlapping boxes resolve cleanly without Release-build UB
+    expect(Number.isFinite(boxCollider.linearVelocity.x)).toBe(true);
+    expect(Math.abs(formatValue(boxCollider.linearVelocity.x))).lessThan(10);
 
     box.isActive = false;
     const box2 = addBox(new Vector3(2, 2, 2), true, new Vector3(0, 0, 0));
@@ -349,6 +363,7 @@ describe("Rigidbody", function () {
     expect(boxCollider2.solverIterations).eq(4);
 
     boxCollider2.solverIterations = 10;
+    expect(boxCollider2.solverIterations).eq(10);
     boxCollider2.applyForce(new Vector3(10, 0, 0));
     engine.sceneManager.activeScene.physics._update(1 / 60);
 

@@ -2625,6 +2625,20 @@ describe("Physics Test", () => {
       expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, -1)).toEqual([]);
       expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, 0)).toEqual([]);
       expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, 1)).toHaveLength(1);
+
+      // Float32 underflow / overflow extents safely return false / []
+      expect(physicsScene.boxCast(origin, new Vector3(1e-40, 1, 1), dir, 20, hit)).toBe(false);
+      expect(physicsScene.boxCast(origin, new Vector3(1e40, 1, 1), dir, 20, hit)).toBe(false);
+      expect(physicsScene.sphereCast(origin, 1e-40, dir, 20, hit)).toBe(false);
+      expect(physicsScene.sphereCast(origin, 1e40, dir, 20, hit)).toBe(false);
+      expect(physicsScene.capsuleCast(origin, 1e-40, 1, dir, 20, hit)).toBe(false);
+      expect(physicsScene.capsuleCast(origin, 1, 1e40, dir, 20, hit)).toBe(false);
+      expect(physicsScene.overlapBoxAll(new Vector3(), new Vector3(1e-40, 1, 1))).toEqual([]);
+      expect(physicsScene.overlapBoxAll(new Vector3(), new Vector3(1e40, 1, 1))).toEqual([]);
+      expect(physicsScene.overlapSphereAll(new Vector3(), 1e-40)).toEqual([]);
+      expect(physicsScene.overlapSphereAll(new Vector3(), 1e40)).toEqual([]);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(), 1e-40, 1)).toEqual([]);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(), 1, 1e40)).toEqual([]);
     });
 
     afterEach(() => {

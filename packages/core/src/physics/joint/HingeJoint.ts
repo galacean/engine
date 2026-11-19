@@ -31,6 +31,14 @@ export class HingeJoint extends Joint {
   }
 
   set axis(value: Vector3) {
+    if (!Number.isFinite(value.x) || !Number.isFinite(value.y) || !Number.isFinite(value.z)) {
+      throw new Error("HingeJoint axis must be finite.");
+    }
+    const len = Math.hypot(value.x, value.y, value.z);
+    if (len === 0) {
+      console.warn("HingeJoint: axis cannot be a zero vector.");
+      return;
+    }
     const axis = this._axis;
     if (value !== axis) {
       axis.copyFrom(value);
@@ -69,7 +77,10 @@ export class HingeJoint extends Joint {
   set useLimits(value: boolean) {
     if (value !== this.useLimits) {
       value ? (this._hingeFlags |= HingeJointFlag.LimitEnabled) : (this._hingeFlags &= ~HingeJointFlag.LimitEnabled);
-      (<IHingeJoint>this._nativeJoint)?.setHingeJointFlag(HingeJointFlag.LimitEnabled, value);
+      this._syncLimitsEnabled();
+      if (this._nativeJoint) {
+        this._wakeBodies();
+      }
     }
   }
 
@@ -83,7 +94,10 @@ export class HingeJoint extends Joint {
   set useMotor(value: boolean) {
     if (value !== this.useMotor) {
       value ? (this._hingeFlags |= HingeJointFlag.DriveEnabled) : (this._hingeFlags &= ~HingeJointFlag.DriveEnabled);
-      (<IHingeJoint>this._nativeJoint)?.setHingeJointFlag(HingeJointFlag.DriveEnabled, value);
+      this._syncMotorEnabled();
+      if (this._nativeJoint) {
+        this._wakeBodies();
+      }
     }
   }
 
@@ -115,7 +129,11 @@ export class HingeJoint extends Joint {
       this._jointMotor = value;
       value?._updateFlagManager.addListener(this._onMotorChanged);
 
+      this._syncMotorEnabled();
       this._onMotorChanged();
+      if (!value && this._nativeJoint) {
+        this._wakeBodies();
+      }
     }
   }
 
@@ -133,7 +151,11 @@ export class HingeJoint extends Joint {
       this._limits = value;
       value?._updateFlagManager.addListener(this._onLimitsChanged);
 
+      this._syncLimitsEnabled();
       this._onLimitsChanged();
+      if (!value && this._nativeJoint) {
+        this._wakeBodies();
+      }
     }
   }
 
@@ -168,9 +190,9 @@ export class HingeJoint extends Joint {
   }
 
   protected override _onDestroy(): void {
+    super._onDestroy();
     this._jointMotor?._updateFlagManager.removeListener(this._onMotorChanged);
     this._limits?._updateFlagManager.removeListener(this._onLimitsChanged);
-    super._onDestroy();
   }
 
   protected _createJoint(): void {
@@ -183,10 +205,24 @@ export class HingeJoint extends Joint {
     super._syncNative();
     const nativeJoint = <IHingeJoint>this._nativeJoint;
     nativeJoint.setAxis(this._axis);
-    nativeJoint.setHingeJointFlag(HingeJointFlag.LimitEnabled, this.useLimits);
-    nativeJoint.setHingeJointFlag(HingeJointFlag.DriveEnabled, this.useMotor);
+    this._syncLimitsEnabled();
+    this._syncMotorEnabled();
     this._onMotorChanged();
     this._onLimitsChanged();
+  }
+
+  private _syncLimitsEnabled(): void {
+    (<IHingeJoint>this._nativeJoint)?.setHingeJointFlag(
+      HingeJointFlag.LimitEnabled,
+      this.useLimits && this._limits !== null
+    );
+  }
+
+  private _syncMotorEnabled(): void {
+    (<IHingeJoint>this._nativeJoint)?.setHingeJointFlag(
+      HingeJointFlag.DriveEnabled,
+      this.useMotor && this._jointMotor !== null
+    );
   }
 
   @ignoreClone
@@ -197,6 +233,7 @@ export class HingeJoint extends Joint {
       (<IHingeJoint>this._nativeJoint).setDriveForceLimit(motor.forceLimit);
       (<IHingeJoint>this._nativeJoint).setDriveGearRatio(motor.gearRatio);
       (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.DriveFreeSpin, motor.freeSpin);
+      this._wakeBodies();
     }
   }
 
@@ -209,16 +246,33 @@ export class HingeJoint extends Joint {
       } else {
         (<IHingeJoint>this._nativeJoint).setHardLimit(limits.min, limits.max, limits.contactDistance);
       }
+      this._wakeBodies();
     }
   }
 
   @ignoreClone
   private _onAxisChanged(): void {
+    const axis = this._axis;
+    if (!Number.isFinite(axis.x) || !Number.isFinite(axis.y) || !Number.isFinite(axis.z)) {
+      //@ts-ignore
+      axis._onValueChanged = null;
+      axis.set(1, 0, 0);
+      //@ts-ignore
+      axis._onValueChanged = this._onAxisChanged;
+      throw new Error("HingeJoint axis must be finite.");
+    }
+    const len = Math.hypot(axis.x, axis.y, axis.z);
+    if (len === 0) {
+      return;
+    }
     //@ts-ignore
-    this._axis._onValueChanged = null;
-    this._axis.normalize();
-    (<IHingeJoint>this._nativeJoint)?.setAxis(this._axis);
+    axis._onValueChanged = null;
+    axis.set(axis.x / len, axis.y / len, axis.z / len);
     //@ts-ignore
-    this._axis._onValueChanged = this._onAxisChanged;
+    axis._onValueChanged = this._onAxisChanged;
+    if (this._nativeJoint) {
+      (<IHingeJoint>this._nativeJoint).setAxis(axis);
+      this._wakeBodies();
+    }
   }
 }

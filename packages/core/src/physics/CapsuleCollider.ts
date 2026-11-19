@@ -87,7 +87,7 @@ export class CapsuleCollider extends Collider {
         worldHeight = this._height * scale.z;
         break;
     }
-    return worldRadius > 0 && Number.isFinite(worldRadius) && worldHeight > 0 && Number.isFinite(worldHeight);
+    return Collider._isValidPositiveFloat32(worldRadius) && Collider._isValidPositiveFloat32(worldHeight * 0.5);
   }
 
   protected override _syncGeometry(shape: ICapsuleColliderShape): void {

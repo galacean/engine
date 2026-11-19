@@ -32,7 +32,7 @@ export class PhysXJoint implements IJoint {
   }
 
   /**
-   * {@inheritDoc IJoint.setConnectedAnchor }
+   * {@inheritDoc IJoint.setAnchor }
    */
   setAnchor(value: Vector3): void {
     this._setLocalPose(0, value, PhysXJoint._defaultQuat);
@@ -56,14 +56,20 @@ export class PhysXJoint implements IJoint {
    * {@inheritDoc IJoint.setMassScale }
    */
   setMassScale(value: number): void {
-    this._pxJoint.setInvMassScale0(1 / value);
+    const inv = Math.fround(1 / value);
+    if (inv > 0 && Number.isFinite(inv)) {
+      this._pxJoint.setInvMassScale0(inv);
+    }
   }
 
   /**
    * {@inheritDoc IJoint.setConnectedMassScale }
    */
   setConnectedMassScale(value: number): void {
-    this._pxJoint.setInvMassScale1(1 / value);
+    const inv = Math.fround(1 / value);
+    if (inv > 0 && Number.isFinite(inv)) {
+      this._pxJoint.setInvMassScale1(inv);
+    }
   }
 
   /**

@@ -643,5 +643,11 @@ describe("MeshCollider", () => {
     collider.entity.transform.setScale(1, 1, 1);
     expect(physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), hit)).toBe(true);
     expect(hit.collider).toBe(collider);
+
+    // Float32 overflow scale detaches cleanly and recovers when scale returns to normal
+    collider.entity.transform.setScale(1e40, 1, 1);
+    expect(physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), hit)).toBe(false);
+    collider.entity.transform.setScale(1, 1, 1);
+    expect(physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), hit)).toBe(true);
   });
 });

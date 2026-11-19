@@ -77,22 +77,30 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
 
   private _updateGeometry(): void {
     const scale = this._worldScale;
-    const geometry = this._pxGeometry;
+    let radius: number;
+    let halfHeight: number;
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:
-        geometry.radius = this._radius * Math.max(scale.y, scale.z);
-        geometry.halfHeight = this._halfHeight * scale.x;
+        radius = this._radius * Math.max(scale.y, scale.z);
+        halfHeight = this._halfHeight * scale.x;
         break;
       case ColliderShapeUpAxis.Y:
-        geometry.radius = this._radius * Math.max(scale.x, scale.z);
-        geometry.halfHeight = this._halfHeight * scale.y;
+        radius = this._radius * Math.max(scale.x, scale.z);
+        halfHeight = this._halfHeight * scale.y;
         break;
       case ColliderShapeUpAxis.Z:
-        geometry.radius = this._radius * Math.max(scale.x, scale.y);
-        geometry.halfHeight = this._halfHeight * scale.z;
+        radius = this._radius * Math.max(scale.x, scale.y);
+        halfHeight = this._halfHeight * scale.z;
         break;
     }
-    this._pxShape.setGeometry(geometry);
+    const fRadius = Math.fround(radius);
+    const fHalfHeight = Math.fround(halfHeight);
+    if (fRadius > 0 && Number.isFinite(fRadius) && fHalfHeight > 0 && Number.isFinite(fHalfHeight)) {
+      const geometry = this._pxGeometry;
+      geometry.radius = fRadius;
+      geometry.halfHeight = fHalfHeight;
+      this._pxShape.setGeometry(geometry);
+    }
   }
 }
 

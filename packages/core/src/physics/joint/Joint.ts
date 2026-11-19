@@ -118,30 +118,44 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   }
 
   /**
-   *  The scale to apply to the mass of the connected body for resolving this constraint.
+   * The scale to apply to the mass of the connected body for resolving this constraint.
+   * @throws When the value is not positive and finite.
    */
   get connectedMassScale(): number {
     return this._connectedBodyInfo.massScale;
   }
 
   set connectedMassScale(value: number) {
+    if (!(value > 0 && Number.isFinite(value))) {
+      throw new Error("Joint connectedMassScale must be positive and finite.");
+    }
     if (value !== this._connectedBodyInfo.massScale) {
       this._connectedBodyInfo.massScale = value;
       this._nativeJoint?.setConnectedMassScale(value);
+      if (this._nativeJoint) {
+        this._wakeBodies();
+      }
     }
   }
 
   /**
    * The scale to apply to the mass of this body for resolving this constraint.
+   * @throws When the value is not positive and finite.
    */
   get massScale(): number {
     return this._bodyInfo.massScale;
   }
 
   set massScale(value: number) {
+    if (!(value > 0 && Number.isFinite(value))) {
+      throw new Error("Joint massScale must be positive and finite.");
+    }
     if (value !== this._bodyInfo.massScale) {
       this._bodyInfo.massScale = value;
       this._nativeJoint?.setMassScale(value);
+      if (this._nativeJoint) {
+        this._wakeBodies();
+      }
     }
   }
 
@@ -264,11 +278,27 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
    * Detach from a connected Rigidbody before its native actor is released.
    */
   _onConnectedBodyDestroyed(): void {
+    this._detachConnectedBody(false);
+  }
+
+  /**
+   * @internal
+   * Detach from a connected Rigidbody before its native actor enters a different scene.
+   */
+  _onConnectedBodyCrossScene(): void {
+    console.error("Joint: connectedBody belongs to another scene.");
+    this._detachConnectedBody(true);
+  }
+
+  private _detachConnectedBody(detachFromBody: boolean): void {
     const body = this._connectedBodyInfo.body;
     if (!body) {
       return;
     }
     body.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
+    if (detachFromBody) {
+      body._detachConnectedJoint(this);
+    }
     this._connectedBodyInfo.body = null;
     this._nativeJoint?.setConnectedCollider(null);
     this._updateRotation();

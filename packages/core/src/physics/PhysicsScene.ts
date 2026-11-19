@@ -515,7 +515,7 @@ export class PhysicsScene {
     const normalizedDirection = PhysicsScene._normalizeDirection(direction);
 
     let result = false;
-    if (distance > 0 && normalizedDirection && radius > 0 && Number.isFinite(radius)) {
+    if (distance > 0 && normalizedDirection && Collider._isValidPositiveFloat32(radius)) {
       this._syncColliders();
       result = this._nativePhysicsScene.sphereCast(
         center,
@@ -649,10 +649,8 @@ export class PhysicsScene {
     if (
       distance > 0 &&
       normalizedDirection &&
-      radius > 0 &&
-      Number.isFinite(radius) &&
-      height > 0 &&
-      Number.isFinite(height)
+      Collider._isValidPositiveFloat32(radius) &&
+      Collider._isValidPositiveFloat32(height * 0.5)
     ) {
       this._syncColliders();
       result = this._nativePhysicsScene.capsuleCast(
@@ -713,7 +711,7 @@ export class PhysicsScene {
     layerMask: Layer = Layer.Everything,
     colliders: Collider[] = []
   ): Collider[] {
-    if (!(radius > 0 && Number.isFinite(radius))) {
+    if (!Collider._isValidPositiveFloat32(radius)) {
       colliders.length = 0;
       return colliders;
     }
@@ -741,7 +739,7 @@ export class PhysicsScene {
     layerMask: Layer = Layer.Everything,
     colliders: Collider[] = []
   ): Collider[] {
-    if (!(radius > 0 && Number.isFinite(radius) && height > 0 && Number.isFinite(height))) {
+    if (!(Collider._isValidPositiveFloat32(radius) && Collider._isValidPositiveFloat32(height * 0.5))) {
       colliders.length = 0;
       return colliders;
     }
@@ -1021,12 +1019,9 @@ export class PhysicsScene {
 
   private static _isValidBoxExtents(halfExtents: Vector3): boolean {
     return (
-      halfExtents.x > 0 &&
-      halfExtents.y > 0 &&
-      halfExtents.z > 0 &&
-      Number.isFinite(halfExtents.x) &&
-      Number.isFinite(halfExtents.y) &&
-      Number.isFinite(halfExtents.z)
+      Collider._isValidPositiveFloat32(halfExtents.x) &&
+      Collider._isValidPositiveFloat32(halfExtents.y) &&
+      Collider._isValidPositiveFloat32(halfExtents.z)
     );
   }
 

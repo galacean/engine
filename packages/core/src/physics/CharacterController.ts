@@ -101,6 +101,9 @@ export class CharacterController extends Collider {
   }
 
   set size(value: Vector3) {
+    if (!Number.isFinite(value.x) || !Number.isFinite(value.y) || !Number.isFinite(value.z)) {
+      throw new Error("CharacterController size must be finite.");
+    }
     if (this._size !== value) {
       this._size.copyFrom(value);
     }
@@ -162,6 +165,14 @@ export class CharacterController extends Collider {
   }
 
   set upDirection(value: Vector3) {
+    if (!Number.isFinite(value.x) || !Number.isFinite(value.y) || !Number.isFinite(value.z)) {
+      throw new Error("CharacterController upDirection must be finite.");
+    }
+    const len = Math.hypot(value.x, value.y, value.z);
+    if (len === 0) {
+      console.warn("CharacterController: upDirection cannot be a zero vector.");
+      return;
+    }
     if (this._upDirection !== value) {
       this._upDirection.copyFrom(value);
     }
@@ -337,14 +348,16 @@ export class CharacterController extends Collider {
   protected override _hasValidGeometry(scale: Vector3): boolean {
     if (this._geometry === CharacterControllerGeometry.Box) {
       const size = this._size;
-      const x = size.x * scale.x;
-      const y = size.y * scale.y;
-      const z = size.z * scale.z;
-      return x > 0 && y > 0 && z > 0 && Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z);
+      return (
+        Collider._isValidPositiveFloat32(size.x * scale.x * 0.5) &&
+        Collider._isValidPositiveFloat32(size.y * scale.y * 0.5) &&
+        Collider._isValidPositiveFloat32(size.z * scale.z * 0.5)
+      );
     }
-    const radius = this._radius * Math.max(scale.x, scale.z);
-    const height = this._height * scale.y;
-    return radius > 0 && height > 0 && Number.isFinite(radius) && Number.isFinite(height);
+    return (
+      Collider._isValidPositiveFloat32(this._radius * Math.max(scale.x, scale.z)) &&
+      Collider._isValidPositiveFloat32(this._height * scale.y)
+    );
   }
 
   protected override _findRigidbody(): Rigidbody | null {
@@ -354,6 +367,24 @@ export class CharacterController extends Collider {
   @ignoreClone
   private _onSizeChanged(): void {
     const size = this._size;
+    const xFinite = Number.isFinite(size.x);
+    const yFinite = Number.isFinite(size.y);
+    const zFinite = Number.isFinite(size.z);
+    if (!xFinite || !yFinite || !zFinite) {
+      //@ts-ignore
+      const listener = size._onValueChanged;
+      //@ts-ignore
+      size._onValueChanged = null;
+      size.set(
+        xFinite && size.x >= 0 ? size.x : 0,
+        yFinite && size.y >= 0 ? size.y : 0,
+        zFinite && size.z >= 0 ? size.z : 0
+      );
+      //@ts-ignore
+      size._onValueChanged = listener;
+      this._setGeometryDirty();
+      throw new Error("CharacterController size must be finite.");
+    }
     if (size.x < 0 || size.y < 0 || size.z < 0) {
       //@ts-ignore
       const listener = size._onValueChanged;
@@ -375,14 +406,25 @@ export class CharacterController extends Collider {
   @ignoreClone
   private _setUpDirection(): void {
     const up = this._upDirection;
-    if (up.lengthSquared() === 0) {
+    if (!Number.isFinite(up.x) || !Number.isFinite(up.y) || !Number.isFinite(up.z)) {
+      //@ts-ignore
+      const listener = up._onValueChanged;
+      //@ts-ignore
+      up._onValueChanged = null;
+      up.set(0, 1, 0);
+      //@ts-ignore
+      up._onValueChanged = listener;
+      throw new Error("CharacterController upDirection must be finite.");
+    }
+    const len = Math.hypot(up.x, up.y, up.z);
+    if (len === 0) {
       return;
     }
     //@ts-ignore
     const listener = up._onValueChanged;
     //@ts-ignore
     up._onValueChanged = null;
-    up.normalize();
+    up.set(up.x / len, up.y / len, up.z / len);
     //@ts-ignore
     up._onValueChanged = listener;
     (<ICharacterController>this._native)?.setUpDirection(up);

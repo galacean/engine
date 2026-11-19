@@ -239,4 +239,49 @@ describe("SpringJoint", function () {
     springJoint.destroy();
     expect(box1.getComponent(SpringJoint)).toBeNull();
   });
+
+  it("wakes sleeping bodies automatically when active SpringJoint parameters change", function () {
+    engine.sceneManager.activeScene.physics.gravity = new Vector3(0, 0, 0);
+    const anchor = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    anchor.getComponent(Rigidbody)!.isKinematic = true;
+
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(2, 5, 0));
+    const body = box.getComponent(Rigidbody)!;
+    const joint = box.addComponent(SpringJoint);
+    joint.connectedBody = anchor.getComponent(Rigidbody)!;
+    joint.automaticConnectedAnchor = false;
+    joint.anchor = new Vector3(-0.5, 0, 0);
+    joint.connectedAnchor = new Vector3(0.5, 0, 0);
+    joint.stiffness = 10000;
+    joint.damping = 1000;
+    joint.minDistance = 1;
+    joint.maxDistance = 5;
+    joint.tolerance = 0;
+
+    engine.sceneManager.activeScene.physics._update(1);
+    body.sleep();
+    expect(body.isSleeping()).toBe(true);
+
+    // Changing minDistance on a sleeping body wakes it without calling body.wakeUp()
+    joint.minDistance = 2;
+    expect(body.isSleeping()).toBe(false);
+    engine.sceneManager.activeScene.physics._update(0.5);
+    expect(box.transform.position.x).toBeGreaterThan(2.5);
+
+    body.sleep();
+    joint.maxDistance = 2.1;
+    expect(body.isSleeping()).toBe(false);
+
+    body.sleep();
+    joint.stiffness = 5000;
+    expect(body.isSleeping()).toBe(false);
+
+    body.sleep();
+    joint.damping = 500;
+    expect(body.isSleeping()).toBe(false);
+
+    body.sleep();
+    joint.tolerance = 0.05;
+    expect(body.isSleeping()).toBe(false);
+  });
 });
