@@ -648,6 +648,8 @@ export class AnimalTaskController {
     let needsTarget = false;
     let nextTargetAttempt = 0;
     let escapeRetryDelay = 0.25;
+    let failedEscapeAttempts = 0;
+    let waitingForEscapeTarget = false;
     let blockedReplanArmed = false;
     let status: BehaviorStatus = "running";
     let active = true;
@@ -906,6 +908,18 @@ export class AnimalTaskController {
       );
       if (!active || needsTarget) cancelMove();
     };
+    const playWaitingIdle = () => {
+      const idle = this.choose("idle");
+      if (!idle) return;
+      waitingForEscapeTarget = true;
+      cancelCycle();
+      const duration = this.play(idle);
+      if (active) {
+        cancelCycle = this.animationEnd(duration, () => {
+          if (active && groundEscape && needsTarget && waitingForEscapeTarget) playWaitingIdle();
+        });
+      }
+    };
     const replan = () => {
       if (planning || this.host.time < nextTargetAttempt) return;
       nextTargetAttempt = this.host.time + 0.25;
@@ -914,10 +928,15 @@ export class AnimalTaskController {
         if (alternative) {
           target = alternative;
           escapeRetryDelay = 0.25;
+          failedEscapeAttempts = 0;
           needsTarget = false;
-          if (groundEscape && !movementStarted) nextCycle();
-          else startMovement();
+          if (groundEscape && (!movementStarted || waitingForEscapeTarget)) {
+            waitingForEscapeTarget = false;
+            cancelCycle();
+            nextCycle();
+          } else startMovement();
         } else if (params.arrivalTarget && !flying) finish(false);
+        else if (groundEscape && ++failedEscapeAttempts >= 6) finish(false);
         else retry();
       });
     };
@@ -951,6 +970,11 @@ export class AnimalTaskController {
         finish(true);
         return status;
       }
+      if (groundEscape && needsTarget) {
+        playWaitingIdle();
+        return status;
+      }
+      waitingForEscapeTarget = false;
       const movementSlot = String(params.slot);
       const gait = this.choose(movementSlot);
       if (!gait) {
@@ -1039,6 +1063,7 @@ export class AnimalTaskController {
             updatePace(false);
           }
           if (target || !groundEscape) nextCycle();
+          else playWaitingIdle();
           // Flights and interaction approaches keep their bound goal until arrival or invalidation.
           const timeout = params.timeoutSeconds ?? (params.medium === "air" || params.arrivalTarget ? undefined : 60);
           if (active && timeout !== undefined) cancelTimeout = this.host.schedule(Number(timeout), () => finish(false));

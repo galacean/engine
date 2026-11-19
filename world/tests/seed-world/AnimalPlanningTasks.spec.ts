@@ -542,6 +542,53 @@ describe("behavior awaiting planning", () => {
     system.dispose();
   });
 
+  it("loops idle instead of freezing when shooed with no reachable escape path and exits after bounded retries", () => {
+    const system = new AnimalSystem(), owner = agent(system);
+    const played: string[] = [];
+    let endCallback: (() => void) | undefined;
+    const moveTo = vi.fn(() => () => {});
+    const controller = new AnimalTaskController({
+      defaultSkill: "rest",
+      skills: {
+        rest: { label: "Idle", tree: { type: "action", name: "animate", params: { slot: "idle" } } },
+        escape: { label: "Escape", tree: { type: "action", name: "move", params: { slot: "run", urgent: true, target: { query: "flee" } } } }
+      },
+      reactions: { shoo: { skillId: "escape" } },
+      animationSlots: { idle: [{ clip: "idle", weight: 1 }], run: [{ clip: "run", weight: 1 }] },
+      movementSpeeds: { run: 4 }
+    }, {
+      get time() { return system.time; },
+      wake() {},
+      schedule: (seconds, fn) => system.schedule(seconds, fn, owner),
+      position: { x: 0, z: 3 },
+      resolveTarget: () => null,
+      moveTo,
+      play: (clip) => { played.push(clip); return 1; },
+      onAnimationEnd: (cb) => {
+        endCallback = cb;
+        return () => { if (endCallback === cb) endCallback = undefined; };
+      }
+    });
+    const advance = (frames: number) => {
+      for (let i = 0; i < frames; i++) { system.update(1 / 60); controller.tick(); }
+    };
+    expect(controller.notify({ id: "click", type: "shoo", source: [0, 1] })).toBe(true);
+    advance(2);
+    // Must immediately play idle with an active animation-end handler rather than holding a dead frame.
+    expect(played).toEqual(["idle"]);
+    expect(endCallback).toBeDefined();
+    expect(moveTo).not.toHaveBeenCalled();
+    // Completing the waiting idle clip must loop idle rather than freezing.
+    endCallback?.();
+    expect(played).toEqual(["idle", "idle"]);
+    // After bounded consecutive escape failures (~6.5s), recover cleanly back to autonomous behavior (not stuck 60s).
+    advance(500);
+    expect(controller.inspect().reaction).toBeNull();
+    expect(controller.inspect().branch).toBe("default:rest");
+    controller.dispose();
+    system.dispose();
+  });
+
   function fixture(repeated = false) {
     const system = new AnimalSystem(32, 1000, 1),
       owner = agent(system);
