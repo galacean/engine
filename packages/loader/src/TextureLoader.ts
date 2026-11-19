@@ -40,7 +40,9 @@ class TextureLoader extends Loader<Texture> {
     });
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   static _decode(
     engine: Engine,
     buffer: ArrayBuffer,
