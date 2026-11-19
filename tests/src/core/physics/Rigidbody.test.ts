@@ -504,6 +504,36 @@ describe("Rigidbody", function () {
     });
   });
 
+  it("recalculates automatic mass properties when solid colliders become triggers and back", () => {
+    const entity = rootEntity.createChild("compound body");
+    const body = entity.addComponent(Rigidbody);
+    body.mass = 6;
+    const left = entity.addComponent(BoxCollider);
+    left.size.set(2, 2, 2);
+    left.center.x = -2;
+    const right = entity.addComponent(BoxCollider);
+    right.size.set(2, 2, 2);
+    right.center.x = 2;
+
+    const expectMassProperties = (centerX: number, inertiaX: number, inertiaYZ: number) => {
+      expect(body.centerOfMass).deep.include({ x: centerX, y: 0, z: 0 });
+      const inertia = body.inertiaTensor;
+      expect(inertia.x).toBeCloseTo(inertiaX, 5);
+      expect(inertia.y).toBeCloseTo(inertiaYZ, 5);
+      expect(inertia.z).toBeCloseTo(inertiaYZ, 5);
+    };
+
+    expectMassProperties(0, 4, 28);
+    right.isTrigger = true;
+    expectMassProperties(-2, 4, 4);
+    left.isTrigger = true;
+    expectMassProperties(0, 1, 1);
+    right.isTrigger = false;
+    expectMassProperties(2, 4, 4);
+    left.isTrigger = false;
+    expectMassProperties(0, 4, 28);
+  });
+
   it("isKinematic", function () {
     const box = addBox(new Vector3(2, 2, 2), true, new Vector3(0, 1, 0));
     const boxCollider = box.getComponent(Rigidbody);

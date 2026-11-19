@@ -336,6 +336,53 @@ describe("HingeJoint", function () {
     expect(formatValue(newJoint.angle)).eq(6.58019);
   });
 
+  it("applies changes to a cloned motor independently of the original motor", () => {
+    const entity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const joint = entity.addComponent(HingeJoint);
+    joint.motor = new JointMotor();
+    joint.motor.targetVelocity = 2;
+    joint.useMotor = true;
+    const clone = entity.clone();
+    clone.transform.setPosition(3, 5, 0);
+    rootEntity.addChild(clone);
+    const cloneJoint = clone.getComponent(HingeJoint);
+    const physics = engine.sceneManager.activeScene.physics;
+    physics._update(1);
+    expect(Math.abs(cloneJoint.velocity)).toBeCloseTo(2, 4);
+
+    cloneJoint.motor.targetVelocity = 5;
+    physics._update(1);
+    expect(Math.abs(cloneJoint.velocity)).toBeCloseTo(5, 4);
+    expect(Math.abs(joint.velocity)).toBeCloseTo(2, 4);
+  });
+
+  it("applies inherited and edited rotation limits on a cloned hinge", () => {
+    const entity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const joint = entity.addComponent(HingeJoint);
+    joint.limits = new JointLimits();
+    joint.limits.min = -20;
+    joint.limits.max = 20;
+    joint.useLimits = true;
+    const clone = entity.clone();
+    clone.transform.setPosition(3, 5, 0);
+    rootEntity.addChild(clone);
+    const cloneJoint = clone.getComponent(HingeJoint);
+    const body = clone.getComponent(Rigidbody);
+    const physics = engine.sceneManager.activeScene.physics;
+    const torque = new Vector3(1000, 0, 0);
+    body.applyTorque(torque);
+    physics._update(1);
+    expect(Math.abs(cloneJoint.angle)).toBeCloseTo(20, 1);
+
+    cloneJoint.limits.min = -45;
+    cloneJoint.limits.max = 45;
+    body.applyTorque(torque);
+    physics._update(1);
+    expect(Math.abs(cloneJoint.angle)).toBeCloseTo(45, 1);
+    expect(joint.limits.min).toBe(-20);
+    expect(joint.limits.max).toBe(20);
+  });
+
   it("applies motor settings configured while inactive when the Entity enters simulation", function () {
     engine.sceneManager.activeScene.physics.gravity.set(0, 0, 0);
     const box1 = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));

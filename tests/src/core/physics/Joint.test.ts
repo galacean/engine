@@ -180,6 +180,30 @@ describe("Joint", function () {
     expect(formatValue(box2.transform.rotation.z)).eq(50);
   });
 
+  it.each(["entering the scene", "reconnecting to world space"])("preserves world rotation when %s", (transition) => {
+    const anchor = rootEntity.createChild("rotated anchor");
+    anchor.transform.setRotation(0, 0, 60);
+    const anchorBody = anchor.addComponent(Rigidbody);
+    anchorBody.isKinematic = true;
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    box.transform.setRotation(0, 30, 0);
+
+    if (transition === "entering the scene") {
+      rootEntity.createChild("other joint").addComponent(FixedJoint).connectedBody = anchorBody;
+      box.addComponent(FixedJoint);
+    } else {
+      const joint = box.addComponent(FixedJoint);
+      joint.connectedBody = anchorBody;
+      joint.connectedBody = null;
+    }
+
+    const physics = engine.sceneManager.activeScene.physics;
+    physics._update(physics.fixedTimeStep);
+    expect(box.transform.rotation.x).toBeCloseTo(0, 4);
+    expect(box.transform.rotation.y).toBeCloseTo(30, 4);
+    expect(box.transform.rotation.z).toBeCloseTo(0, 4);
+  });
+
   it("massScale", function () {
     engine.sceneManager.activeScene.physics.gravity = new Vector3(0, -1, 0);
     const box1 = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
@@ -371,6 +395,37 @@ describe("Joint", function () {
     box1.isActive = false;
     engine.sceneManager.activeScene.physics._update(1);
     expect(box2Collider.linearVelocity.y).eq(0);
+  });
+
+  it.each(["inside", "outside"])("updates a cloned joint when its connected body scales %s the clone", (location) => {
+    const group = rootEntity.createChild("assembly");
+    const anchorEntity = (location === "inside" ? group : rootEntity).createChild("anchor");
+    anchorEntity.transform.setPosition(0, 5, 0);
+    const anchor = anchorEntity.addComponent(Rigidbody);
+    anchor.isKinematic = true;
+    const host = group.createChild("host");
+    host.transform.setPosition(1, 5, 0);
+    host.addComponent(BoxCollider);
+    const joint = host.addComponent(FixedJoint);
+    joint.connectedBody = anchor;
+    joint.automaticConnectedAnchor = false;
+    joint.connectedAnchor.set(1, 0, 0);
+
+    const clone = group.clone();
+    group.isActive = false;
+    rootEntity.addChild(clone);
+    const cloneHost = clone.findByName("host");
+    const cloneJoint = cloneHost.getComponent(FixedJoint);
+    const cloneAnchor = location === "inside" ? clone.findByName("anchor").getComponent(Rigidbody) : anchor;
+    expect(cloneJoint.connectedBody).toBe(cloneAnchor);
+    const physics = engine.sceneManager.activeScene.physics;
+    physics._update(physics.fixedTimeStep);
+    expect(cloneHost.transform.worldPosition.x).toBeCloseTo(1, 5);
+
+    cloneAnchor.entity.transform.setScale(2, 1, 1);
+    physics._update(physics.fixedTimeStep);
+    expect(cloneHost.transform.worldPosition.x).toBeCloseTo(2, 5);
+    expect(cloneJoint.connectedAnchor.x).toBe(1);
   });
 
   it("applies joint settings configured while inactive when the Entity enters simulation", function () {

@@ -137,6 +137,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     if (this._isTrigger !== value) {
       this._isTrigger = value;
       (<IColliderShape>this._native)?.setIsTrigger(value);
+      this._attachedBody?._markMassDirty();
     }
   }
 

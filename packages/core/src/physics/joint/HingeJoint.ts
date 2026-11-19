@@ -156,6 +156,21 @@ export class HingeJoint extends Joint {
     super._onDisableInScene();
   }
 
+  /**
+   * @internal
+   */
+  override _onClone(target: HingeJoint): void {
+    super._onClone(target);
+    target._jointMotor?._updateFlagManager.addListener(target._onMotorChanged);
+    target._limits?._updateFlagManager.addListener(target._onLimitsChanged);
+  }
+
+  protected override _onDestroy(): void {
+    this._jointMotor?._updateFlagManager.removeListener(this._onMotorChanged);
+    this._limits?._updateFlagManager.removeListener(this._onLimitsChanged);
+    super._onDestroy();
+  }
+
   protected _createJoint(): void {
     const bodyInfo = this._bodyInfo;
     bodyInfo.body = this.entity.getComponent(Rigidbody);
@@ -164,22 +179,18 @@ export class HingeJoint extends Joint {
 
   protected override _syncNative(): void {
     super._syncNative();
-    const motor = this._jointMotor;
-    (<IHingeJoint>this._nativeJoint).setAxis(this._axis);
-    (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.LimitEnabled, this.useLimits);
-    (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.DriveEnabled, this.useMotor);
-    if (motor) {
-      (<IHingeJoint>this._nativeJoint).setDriveVelocity(motor.targetVelocity);
-      (<IHingeJoint>this._nativeJoint).setDriveForceLimit(motor.forceLimit);
-      (<IHingeJoint>this._nativeJoint).setDriveGearRatio(motor.gearRatio);
-      (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.DriveFreeSpin, motor.freeSpin);
-    }
+    const nativeJoint = <IHingeJoint>this._nativeJoint;
+    nativeJoint.setAxis(this._axis);
+    nativeJoint.setHingeJointFlag(HingeJointFlag.LimitEnabled, this.useLimits);
+    nativeJoint.setHingeJointFlag(HingeJointFlag.DriveEnabled, this.useMotor);
+    this._onMotorChanged();
+    this._onLimitsChanged();
   }
 
   @ignoreClone
   private _onMotorChanged() {
     const motor = this._jointMotor;
-    if (this._nativeJoint) {
+    if (motor && this._nativeJoint) {
       (<IHingeJoint>this._nativeJoint).setDriveVelocity(motor.targetVelocity);
       (<IHingeJoint>this._nativeJoint).setDriveForceLimit(motor.forceLimit);
       (<IHingeJoint>this._nativeJoint).setDriveGearRatio(motor.gearRatio);

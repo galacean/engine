@@ -208,6 +208,13 @@ export abstract class Joint extends Component {
     this._nativeJoint = null;
   }
 
+  /**
+   * @internal
+   */
+  _onClone(target: Joint): void {
+    target._connectedBodyInfo.body?.entity._updateFlagManager.addListener(target._onConnectedTransformChanged);
+  }
+
   protected override _onDestroy(): void {
     super._onDestroy();
     this.entity._updateFlagManager.removeListener(this._onSelfTransformChanged);
@@ -290,14 +297,15 @@ export abstract class Joint extends Component {
   }
 
   private _updateRotation(): void {
-    const quat = Joint._tempQuat;
-    const connectedBodyInfo = this._connectedBodyInfo;
-    const connectedBody = connectedBodyInfo.body;
+    let rotation = this.entity.transform.worldRotationQuaternion;
+    const connectedBody = this._connectedBodyInfo.body;
     if (connectedBody) {
-      Quaternion.invert(connectedBody.entity.transform.worldRotationQuaternion, quat);
+      const relativeRotation = Joint._tempQuat;
+      Quaternion.invert(connectedBody.entity.transform.worldRotationQuaternion, relativeRotation);
+      Quaternion.multiply(relativeRotation, rotation, relativeRotation);
+      rotation = relativeRotation;
     }
-    Quaternion.multiply(quat, this.entity.transform.worldRotationQuaternion, quat);
-    this._nativeJoint?.setRotation(quat);
+    this._nativeJoint?.setRotation(rotation);
   }
 
   private _updateActualAnchor(flag: AnchorOwner): void {
