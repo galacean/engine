@@ -1,0 +1,31 @@
+packages/core/src/2d/text/TextRenderer.ts
+  s_660762178d67bf::t_443202b167fa75 279,286-289,338,348
+  s_660762178d67bf::t_0b787e89be1a4d 336-337
+  s_660762178d67bf::t_8d6625178eae8d 346-347
+packages/modify/src/native/core/src/RenderPipeline/RendererSpatialIndex.ts
+  s_660762178d67bf::t_8eee310856d49f 1-1027
+packages/modify/src/native/core/src/shadow/CascadedShadowCasterPass.ts
+  s_660762178d67bf::t_b8e83860f6aa14 8,38,54-60,63,79-81,111-112,128,194,196-197,235,243-261,264-285,287-306,312-313,318-319,323,325,496,498-499
+packages/core/src/mesh/MeshRenderer.ts
+  s_660762178d67bf::t_2418888525fc86 102-116
+packages/core/src/shadow/ShadowUtils.ts
+  s_660762178d67bf::t_db374b6a430fc6 181-182,191-196
+packages/core/src/RenderPipeline/RendererSpatialIndex.ts
+  s_660762178d67bf::t_fe2f6a35f89b4e 1-1027
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c686cb71a3c7d2c22595d2537815883ed4511c0b",
+  "prompts": {},
+  "sessions": {
+    "s_660762178d67bf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f406-780b-7883-a6a1-e91d618f4219",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
