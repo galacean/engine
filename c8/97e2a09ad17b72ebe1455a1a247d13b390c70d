@@ -1,0 +1,96 @@
+docs/en/core/color.mdx
+  h_bd4dd7d663e619 76
+docs/zh/core/color.mdx
+  h_bd4dd7d663e619 77
+e2e/case/.primitiveMeshGallery.ts
+  h_bd4dd7d663e619 172
+e2e/case/canvas-transparency.ts
+  h_bd4dd7d663e619 104
+e2e/case/material-white-furnace.ts
+  h_bd4dd7d663e619 55
+e2e/case/primitive-all.ts
+  h_bd4dd7d663e619 225
+e2e/case/primitive-sphere-sections.ts
+  h_bd4dd7d663e619 51
+e2e/case/texture-R8G8.ts
+  h_bd4dd7d663e619 40
+e2e/case/ui-batch-order.ts
+  h_bd4dd7d663e619 82
+examples/src/ui-batch-massive.ts
+  h_bd4dd7d663e619 95,139
+packages/core/src/2d/atlas/FontAtlas.ts
+  h_bd4dd7d663e619 23
+packages/core/src/BasicResources.ts
+  h_bd4dd7d663e619 174,181,189
+packages/core/src/Camera.ts
+  h_bd4dd7d663e619 738,761,784
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_bd4dd7d663e619 183
+packages/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  h_bd4dd7d663e619 58
+packages/core/src/material/utils/PrefilteredDFG.ts
+  h_bd4dd7d663e619 17
+packages/core/src/postProcess/FinalPass.ts
+  h_bd4dd7d663e619 46
+packages/core/src/texture/Texture2D.ts
+  h_bd4dd7d663e619 19,28
+packages/core/src/texture/Texture2DArray.ts
+  h_bd4dd7d663e619 28,37
+packages/core/src/texture/TextureCube.ts
+  h_bd4dd7d663e619 18,22-28
+packages/core/src/texture/TextureUtils.ts
+  h_bd4dd7d663e619 36-37,58,84,86-87,90,92,97-99
+packages/core/src/texture/enums/TextureFormat.ts
+  h_bd4dd7d663e619 6,8,10,12,14,24,26,28
+packages/loader/src/RenderTargetLoader.ts
+  h_bd4dd7d663e619 32
+packages/loader/src/TextureLoader.ts
+  h_bd4dd7d663e619 78,150
+packages/loader/src/gltf/parser/GLTFTextureParser.ts
+  h_bd4dd7d663e619 72
+packages/loader/src/ktx2/KTX2Loader.ts
+  h_bd4dd7d663e619 157,162,179,181-182,212-213,291
+packages/loader/src/ktx2/KTX2TargetFormat.ts
+  h_bd4dd7d663e619 15-20
+packages/loader/src/ktx2/transcoder/BinomialLLCWorkerCode.ts
+  h_bd4dd7d663e619 98-100,114
+packages/rhi-webgl/src/GLCapability.ts
+  h_bd4dd7d663e619 125,151-155,164-165
+packages/rhi-webgl/src/GLRenderTarget.ts
+  h_bd4dd7d663e619 50-51
+packages/rhi-webgl/src/GLTexture.ts
+  h_bd4dd7d663e619 31,40,49,57,65,91,138,146,551
+tests/package-consumer/HeadlessEngine.test.ts
+  h_bd4dd7d663e619 67
+tests/src/core/Camera.test.ts
+  h_bd4dd7d663e619 136
+tests/src/core/RenderPipeline/RenderTargetPool.test.ts
+  h_bd4dd7d663e619 25,43
+tests/src/core/RenderingStatistics.test.ts
+  h_bd4dd7d663e619 24,35,46,57,88,102,116,129,145,176,218,226,258
+tests/src/core/Scene.test.ts
+  h_bd4dd7d663e619 14
+tests/src/core/SpriteRenderer.test.ts
+  h_bd4dd7d663e619 136,184,258,362
+tests/src/core/particle/SubEmitter.test.ts
+  h_bd4dd7d663e619 3198,3285,3389
+tests/src/core/texture/FloatTexture.test.ts
+  h_bd4dd7d663e619 93,95,98
+tests/src/core/texture/Texture2D.test.ts
+  h_bd4dd7d663e619 90,107,127
+tests/src/loader/KTX2Loader.test.ts
+  h_bd4dd7d663e619 86
+tests/src/loader/RenderTargetLoader.test.ts
+  h_bd4dd7d663e619 36,75,92,99,115,143
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c897e2a09ad17b72ebe1455a1a247d13b390c70d",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
