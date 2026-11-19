@@ -1,0 +1,48 @@
+packages/core/src/Transform.ts
+  h_171a11afaf879a 96,121,145,171-183,185-189,218-230,232-236,403-413,424-434,454-464,474-484,495-505,646-656,941-961,975,977-989,991-997
+packages/core/src/physics/DynamicCollider.ts
+  h_171a11afaf879a 81-82,84-86,104-105,107-109,163-164,166-168,204-205,207-209
+packages/math/src/Color.ts
+  h_171a11afaf879a 62,72,83,95,117-124,135-142,153-160,171-178,204-217,227,236,254,277,298-303,312-317
+packages/math/src/Matrix.ts
+  h_171a11afaf879a 1043,1047-1050,1053-1056,1059-1062,1065-1068,1071
+packages/math/src/Quaternion.ts
+  h_171a11afaf879a 23,42-47,56,95,131-136,157,161,164-166,171-174,179-182,187-190,192,205,218,220-223,225-228,231-237,248-261,264,277-282,295,309,322,335,350,365,380,390,412-419,430-437,448-455,476-483,509-522,531,544,549,560,596,606,716,739,767,776,778-780,782-791,793
+packages/math/src/Rect.ts
+  h_171a11afaf879a 25-28,39-42,53-56,67-70,96-109,127
+packages/math/src/Vector2.ts
+  h_171a11afaf879a 21,31,41,51,107,117,127,136,149,160,178-181,192-195,215-224,234,243,252,261,287,305,322,343
+packages/math/src/Vector3.ts
+  h_171a11afaf879a 24,34,44,54,131,141,151,160,187,205,218-222,234-239,261-265,285-289,309-312,323-326,337-340,363-374,384,393,402,411,437,455,524,546
+packages/math/src/Vector4.ts
+  h_171a11afaf879a 23,33,43,53,118,128-133,143-148,157,170,181,193-198,221-226,248-255,266-273,284-291,302-309,335-348,358,367,376,385,411,429,447,470
+tests/src/core/SpriteRenderer.test.ts
+  h_171a11afaf879a 1474-1476
+tests/src/core/Transform.test.ts
+  h_171a11afaf879a 515-596
+tests/src/core/physics/DynamicCollider.test.ts
+  h_171a11afaf879a 819-830
+tests/src/math/Color.test.ts
+  h_171a11afaf879a 118-141
+tests/src/math/Quaternion.test.ts
+  h_171a11afaf879a 288-332
+tests/src/math/Rect.test.ts
+  h_171a11afaf879a 32-52
+tests/src/math/Vector2.test.ts
+  h_171a11afaf879a 218-240
+tests/src/math/Vector3.test.ts
+  h_171a11afaf879a 281-304
+tests/src/math/Vector4.test.ts
+  h_171a11afaf879a 224-247
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "11c722df56e38639caa6c26701141b3d35dc664a",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
