@@ -1,6 +1,6 @@
 /** Authored Watering clip: 60 fps, 0..2 seconds. GLB uses metres and Y-up. */
 export const WATERING_CONFIG = Object.freeze({
-  splashUrl: new URL("../../assets/watering/splash-2x2.png", import.meta.url).href,
+  splashUrl: new URL("../../assets/watering/splash-2x2.ktx2", import.meta.url).href,
   duration: 2,
   waterOn: 0.5,
   waterOff: 1.5,

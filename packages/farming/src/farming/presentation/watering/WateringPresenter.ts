@@ -138,7 +138,7 @@ export class WateringPresenter extends Script {
       registerFarmingPropResources(this.engine);
       const [resource, splash] = await Promise.all([
         this.engine.resourceManager.load<PrefabResource>({ url: prop.prefabUrl, type: AssetType.Prefab }),
-        this.engine.resourceManager.load<Texture2D>({ url: config.splashUrl, type: AssetType.Texture })
+        this.engine.resourceManager.load<Texture2D>({ url: config.splashUrl, type: AssetType.KTX2 })
       ]);
       if (this.disposed) return;
       this.model = resource.instantiate();

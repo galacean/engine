@@ -393,7 +393,7 @@ void (async () => {
   harvest = new HarvestBasketPreview(new HarvestBasketPresenter(camera));
   player = propPlayer;
   root.addComponent(PreviewTick);
-  const splash = await engine.resourceManager.load<Texture2D>({ url: water.splashUrl, type: AssetType.Texture });
+  const splash = await engine.resourceManager.load<Texture2D>({ url: water.splashUrl, type: AssetType.KTX2 });
   if (disposed) return;
   particles = new WateringParticles(root, splash);
   on("animations", "click", (event) => {
