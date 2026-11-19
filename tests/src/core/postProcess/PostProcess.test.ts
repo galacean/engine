@@ -7,17 +7,21 @@ import {
   Camera,
   Engine,
   Entity,
+  MeshRenderer,
   PostProcess,
   PostProcessEffect,
   PostProcessEffectBoolParameter,
   PostProcessEffectFloatParameter,
   PostProcessPass,
+  PrimitiveMesh,
   RenderTarget,
   Scene,
   SphereColliderShape,
   StaticCollider,
   Texture2D,
-  TonemappingEffect
+  TextureFormat,
+  TonemappingEffect,
+  UnlitMaterial
 } from "@galacean/engine-core";
 import { MathUtil } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
@@ -503,6 +507,189 @@ describe("PostProcess", () => {
       expect(activeUberPass._mipRT.length).to.equal(0);
     } finally {
       blitSpy.mockRestore();
+      bloomEngine.destroy();
+    }
+  });
+
+  it("Bloom highQualityFiltering (BLOOM_HQ) bicubic in-place upsample renders cleanly", async () => {
+    const size = 128;
+    const htmlCanvas = document.createElement("canvas");
+    htmlCanvas.width = size;
+    htmlCanvas.height = size;
+    const bloomEngine = await WebGLEngine.create({ canvas: htmlCanvas });
+    const bloomScene = bloomEngine.sceneManager.scenes[0];
+    bloomScene.background.solidColor.set(0, 0, 0, 1);
+
+    const cameraEntity = bloomScene.createRootEntity("camera");
+    cameraEntity.transform.setPosition(0, 0, 10);
+    const bloomCamera = cameraEntity.addComponent(Camera);
+    bloomCamera.isOrthographic = true;
+    bloomCamera.orthographicSize = size / 2;
+    bloomCamera.enablePostProcess = true;
+    bloomCamera.enableHDR = true;
+
+    const destColorTexture = new Texture2D(bloomEngine, size, size, TextureFormat.R8G8B8A8, false, false);
+    const destTarget = new RenderTarget(bloomEngine, size, size, destColorTexture);
+    bloomCamera.renderTarget = destTarget;
+
+    // Centered 4x4 bright square in 1:1 pixel orthographic space
+    const dotEntity = bloomScene.createRootEntity("impulse");
+    const renderer = dotEntity.addComponent(MeshRenderer);
+    renderer.mesh = PrimitiveMesh.createCuboid(bloomEngine, 4, 4, 1);
+    const material = new UnlitMaterial(bloomEngine);
+    material.baseColor.set(4, 4, 4, 1);
+    renderer.setMaterial(material);
+
+    const pp = bloomScene.createRootEntity("post-process").addComponent(PostProcess);
+    const bloomEffect = pp.addEffect(BloomEffect);
+    bloomEffect.highQualityFiltering.value = true;
+    bloomEffect.downScale.value = BloomDownScaleMode.Half;
+    bloomEffect.maxIterations.value = 4;
+    bloomEffect.threshold.value = 0;
+    bloomEffect.scatter.value = 0.7;
+    bloomEffect.intensity.value = 1;
+
+    try {
+      const gl = (bloomEngine as any)._hardwareRenderer._gl as WebGL2RenderingContext;
+      const activeUberPass = bloomEngine.postProcessPasses[0];
+      // @ts-ignore
+      const bloomMaterial = activeUberPass._bloomMaterial;
+      // @ts-ignore
+      const uberMaterial = activeUberPass._uberMaterial;
+
+      const hasHQMacro = (shaderData: any) =>
+        shaderData.getMacros().some((m: { name: string }) => m.name === "BLOOM_HQ");
+
+      while (gl.getError() !== gl.NO_ERROR);
+      bloomEngine.update();
+      expect(gl.getError()).to.equal(gl.NO_ERROR);
+      expect(hasHQMacro(bloomMaterial.shaderData)).to.be.true;
+      expect(hasHQMacro(uberMaterial.shaderData)).to.be.true;
+      // @ts-ignore
+      expect(activeUberPass._mipRT.length).to.equal(4);
+
+      const outPixels = new Uint8Array(size * size * 4);
+      destColorTexture.getPixelBuffer(outPixels);
+      const readRed = (x: number, y: number) => outPixels[(y * size + x) * 4];
+      const center = readRed(64, 64);
+      const halo = readRed(70, 64);
+      const corner = readRed(0, 0);
+      expect(center).to.be.greaterThan(200);
+      expect(halo).to.be.greaterThan(0);
+      expect(center).to.be.greaterThan(halo);
+      expect(halo).to.be.greaterThan(corner);
+
+      // Disabling HQ filtering cleanly clears the BLOOM_HQ macro with no GL error
+      bloomEffect.highQualityFiltering.value = false;
+      while (gl.getError() !== gl.NO_ERROR);
+      bloomEngine.update();
+      expect(gl.getError()).to.equal(gl.NO_ERROR);
+      expect(hasHQMacro(bloomMaterial.shaderData)).to.be.false;
+      expect(hasHQMacro(uberMaterial.shaderData)).to.be.false;
+    } finally {
+      bloomCamera.renderTarget = null;
+      destTarget.destroy(true);
+      bloomEngine.destroy();
+    }
+  });
+
+  it("Bloom impulse response peaks at center and decays monotonically outward", async () => {
+    const size = 128;
+    const htmlCanvas = document.createElement("canvas");
+    htmlCanvas.width = size;
+    htmlCanvas.height = size;
+    const bloomEngine = await WebGLEngine.create({ canvas: htmlCanvas });
+    const bloomScene = bloomEngine.sceneManager.scenes[0];
+    bloomScene.background.solidColor.set(0, 0, 0, 1);
+
+    const cameraEntity = bloomScene.createRootEntity("camera");
+    cameraEntity.transform.setPosition(0, 0, 10);
+    const bloomCamera = cameraEntity.addComponent(Camera);
+    bloomCamera.isOrthographic = true;
+    bloomCamera.orthographicSize = size / 2;
+    bloomCamera.enablePostProcess = true;
+    // Use LDR RGBA8 mip chain so mipRT[0] can be read back directly for pure pyramid impulse checks
+    bloomCamera.enableHDR = false;
+
+    const destColorTexture = new Texture2D(bloomEngine, size, size, TextureFormat.R8G8B8A8, false, false);
+    const destTarget = new RenderTarget(bloomEngine, size, size, destColorTexture);
+    bloomCamera.renderTarget = destTarget;
+
+    // Centered 4x4 bright impulse -> symmetric 2x2 in mip0 (64x64) -> 1x1 texel in mip1 (32x32)
+    const dotEntity = bloomScene.createRootEntity("impulse");
+    const renderer = dotEntity.addComponent(MeshRenderer);
+    renderer.mesh = PrimitiveMesh.createCuboid(bloomEngine, 4, 4, 1);
+    const material = new UnlitMaterial(bloomEngine);
+    material.baseColor.set(1, 1, 1, 1);
+    renderer.setMaterial(material);
+
+    const pp = bloomScene.createRootEntity("post-process").addComponent(PostProcess);
+    const bloomEffect = pp.addEffect(BloomEffect);
+    bloomEffect.downScale.value = BloomDownScaleMode.Half;
+    bloomEffect.maxIterations.value = 3;
+    bloomEffect.threshold.value = 0;
+    // scatter = 1.0 isolates pure upsampled pyramid output (no unblurred highMip peak masking hollow rings)
+    bloomEffect.scatter.value = 1;
+    bloomEffect.intensity.value = 1;
+
+    try {
+      const gl = (bloomEngine as any)._hardwareRenderer._gl as WebGL2RenderingContext;
+      const activeUberPass = bloomEngine.postProcessPasses[0];
+
+      for (const highQuality of [false, true]) {
+        bloomEffect.highQualityFiltering.value = highQuality;
+        while (gl.getError() !== gl.NO_ERROR);
+        bloomEngine.update();
+        expect(gl.getError()).to.equal(gl.NO_ERROR);
+
+        // @ts-ignore
+        const mip0RT: RenderTarget = activeUberPass._mipRT[0];
+        const mip0Tex = mip0RT.getColorTexture(0) as Texture2D;
+        const mipW = mip0RT.width;
+        const mipH = mip0RT.height;
+        const mipPixels = new Uint8Array(mipW * mipH * 4);
+        mip0Tex.getPixelBuffer(mipPixels);
+
+        const readMipR = (x: number, y: number) => mipPixels[(y * mipW + x) * 4];
+        const readMipA = (x: number, y: number) => mipPixels[(y * mipW + x) * 4 + 3];
+
+        // Symmetric center of 64x64 mip0 for the centered 4x4 impulse is (31..32, 31..32)
+        const cx = mipW >> 1;
+        const cy = mipH >> 1;
+        const centerVal = readMipR(cx, cy);
+        expect(centerVal).to.be.greaterThan(20);
+        // Hardware BlendState must preserve dst.a = 0.0
+        expect(readMipA(cx, cy)).to.equal(0);
+
+        // Peak must be at center (no hollow-ring / ringing outer lobe brighter than center)
+        let globalMax = 0;
+        for (let i = 0; i < mipW * mipH; i++) {
+          if (mipPixels[i * 4] > globalMax) {
+            globalMax = mipPixels[i * 4];
+          }
+        }
+        expect(centerVal).to.equal(globalMax);
+
+        // Monotonically non-increasing outward along both +X axis and +X/+Y diagonal
+        let prevAxis = centerVal;
+        for (let r = 1; r <= 12; r++) {
+          const val = readMipR(cx + r, cy);
+          expect(val).to.be.at.most(prevAxis);
+          prevAxis = val;
+        }
+        expect(prevAxis).to.be.lessThan(centerVal);
+
+        let prevDiag = centerVal;
+        for (let r = 1; r <= 10; r++) {
+          const val = readMipR(cx + r, cy + r);
+          expect(val).to.be.at.most(prevDiag);
+          prevDiag = val;
+        }
+        expect(prevDiag).to.be.lessThan(centerVal);
+      }
+    } finally {
+      bloomCamera.renderTarget = null;
+      destTarget.destroy(true);
       bloomEngine.destroy();
     }
   });
