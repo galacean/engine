@@ -83,6 +83,22 @@ export class FarmingWorldPresentation {
   private readonly viewRay = new Ray();
   private readonly viewportCenter = new Vector2(0.5, 0.5);
   private readonly previousRay = new Float64Array(6).fill(NaN);
+  private rayInput?: { origin: [number, number, number]; direction: [number, number, number] };
+  private readonly readPlantVisibility = (id: string): number => {
+    const plotId = this.snapshot.crops[id]?.anchorPlotId;
+    return this.distanceHiddenPlots.has(plotId) ? PLANT_DISTANCE_CULLED : (this.plotPriorities.get(plotId) ?? -1);
+  };
+  private selectionSyncValid = false;
+  private selectionSyncState?: {
+    active: boolean;
+    plotId: string | null;
+    groundId: string | null;
+    cellX: number;
+    cellZ: number;
+    groundRevision: number;
+    actionHint: FarmSelectionAction | undefined;
+    snapshot: FarmSnapshot | null;
+  };
   private manualTarget = false;
   private lockedTarget: { plotId: string | null; ground: GroundTarget | null } | null = null;
   private targetGroundRevision = -1;
@@ -406,8 +422,7 @@ export class FarmingWorldPresentation {
     const distance = this.workRay.direction.length();
     if (distance < 0.001) return false;
     this.workRay.direction.scale(1 / distance);
-    const { origin: o, direction: d } = this.workRay;
-    const hit = ground.raycast({ origin: [o.x, o.y, o.z], direction: [d.x, d.y, d.z] }, distance);
+    const hit = ground.raycast(this.fillRayInput(this.workRay.origin, this.workRay.direction), distance);
     const blocked = Boolean(
       (hit && hit.distance < distance - 0.08) || this.playerOccluded?.(this.workRay, Math.max(0, distance - 0.08))
     );
@@ -606,19 +621,57 @@ export class FarmingWorldPresentation {
     this.previousRay[4] = d.y;
     this.previousRay[5] = d.z;
   }
+  private fillRayInput(
+    origin: Vector3,
+    direction: Vector3
+  ): {
+    origin: [number, number, number];
+    direction: [number, number, number];
+  } {
+    const rayInput = (this.rayInput ??= { origin: [0, 0, 0], direction: [0, 0, 0] });
+    rayInput.origin[0] = origin.x;
+    rayInput.origin[1] = origin.y;
+    rayInput.origin[2] = origin.z;
+    rayInput.direction[0] = direction.x;
+    rayInput.direction[1] = direction.y;
+    rayInput.direction[2] = direction.z;
+    return rayInput;
+  }
+  private needsSelectionRefresh(
+    plotId: string | null,
+    ground: GroundTarget | null,
+    actionHint: FarmSelectionAction | undefined
+  ): boolean {
+    const s = this.selectionSyncState;
+    if (!this.selectionSyncValid || !s) return true;
+    const groundRevision = this.ground.capture().revision;
+    return (
+      s.active !== this.active ||
+      s.plotId !== plotId ||
+      s.groundId !== (ground?.groundId ?? null) ||
+      (ground !== null && (s.cellX !== ground.cellX || s.cellZ !== ground.cellZ)) ||
+      s.groundRevision !== groundRevision ||
+      s.actionHint !== actionHint ||
+      s.snapshot !== this.snapshot
+    );
+  }
   private updateViewTarget(): void {
     if (this.actionHint) {
-      this.target = { plotId: this.actionHint.plotId, ground: this.actionHint.target };
-      this.refreshSelection();
+      const plotId = this.actionHint.plotId;
+      const ground = this.actionHint.target;
+      this.target = { plotId, ground };
+      if (this.needsSelectionRefresh(plotId, ground, this.actionHint.action)) this.refreshSelection();
       return;
     }
     // An active action owns its target; otherwise an explicit debug selection stays pinned.
     if (this.lockedTarget && !this.playerActionTarget) return;
     if (this.playerActionTarget || isNearbyFarmTool(carriedItem(this.snapshot.items)?.type)) {
       const selected = this.getPlayerWorkTarget();
-      this.target = { plotId: selected?.plotId ?? null, ground: selected?.ground ?? null };
+      const plotId = selected?.plotId ?? null;
+      const ground = selected?.ground ?? null;
+      this.target = { plotId, ground };
       this.manualTarget = false;
-      this.refreshSelection();
+      if (this.needsSelectionRefresh(plotId, ground, undefined)) this.refreshSelection();
       return;
     }
     this.playerTarget = null;
@@ -639,18 +692,25 @@ export class FarmingWorldPresentation {
     this.manualTarget = false;
     this.rememberRay();
     this.targetGroundRevision = view.revision;
-    const hit = view.raycast({ origin: [o.x, o.y, o.z], direction: [d.x, d.y, d.z] }, 8);
+    const hit = view.raycast(this.fillRayInput(o, d), 8);
     const ground = hit && targetAtPoint(this.snapshot.grid, hit.groundId, hit.position[0], hit.position[2]);
-    const plot =
-      ground &&
-      this.snapshot.plots.find(
-        (p) =>
+    let plotId: string | null = null;
+    if (ground) {
+      const plots = this.snapshot.plots;
+      for (let i = 0; i < plots.length; i++) {
+        const p = plots[i];
+        if (
           p.ground.availability === "available" &&
           p.groundId === ground.groundId &&
           p.cellX === ground.cellX &&
           p.cellZ === ground.cellZ
-      );
-    this.target = { plotId: plot?.plotId ?? null, ground };
+        ) {
+          plotId = p.plotId;
+          break;
+        }
+      }
+    }
+    this.target = { plotId, ground };
     this.refreshSelection();
   }
   /** UI-only cache; action execution still validates through the coordinator/service. */
@@ -686,6 +746,25 @@ export class FarmingWorldPresentation {
     return action;
   }
   private refreshSelection(): void {
+    const syncState = (this.selectionSyncState ??= {
+      active: false,
+      plotId: null,
+      groundId: null,
+      cellX: NaN,
+      cellZ: NaN,
+      groundRevision: -1,
+      actionHint: undefined,
+      snapshot: null
+    });
+    syncState.active = this.active;
+    syncState.plotId = this.target.plotId;
+    syncState.groundId = this.target.ground?.groundId ?? null;
+    syncState.cellX = this.target.ground?.cellX ?? NaN;
+    syncState.cellZ = this.target.ground?.cellZ ?? NaN;
+    syncState.groundRevision = this.ground.capture().revision;
+    syncState.actionHint = this.actionHint?.action;
+    syncState.snapshot = this.snapshot;
+    this.selectionSyncValid = true;
     if (!this.active) {
       this.selection.hide();
       return;
@@ -892,19 +971,22 @@ export class FarmingWorldPresentation {
     if (!document.hidden) {
       this.growthVisibility.update(this.camera);
       this.plotPriorities.clear();
-      for (const plot of this.snapshot.plots) {
+      const cameraPosition = this.camera.entity.transform.worldPosition;
+      const plots = this.snapshot.plots;
+      for (let i = 0; i < plots.length; i++) {
+        const plot = plots[i];
         const surface = this.surfaces.get(plot.plotId);
         if (!surface) continue;
+        const plotPos = surface.root.transform.worldPosition;
         if (
-          this.growthVisibility.withinDrawDistance(
-            surface.root.transform.worldPosition,
-            this.camera.entity.transform.worldPosition,
-            !this.distanceHiddenPlots.has(plot.plotId)
-          )
-        )
-          this.distanceHiddenPlots.delete(plot.plotId);
-        else this.distanceHiddenPlots.add(plot.plotId);
-        const crop = plot.occupantId && this.snapshot.crops[plot.occupantId];
+          !this.growthVisibility.withinDrawDistance(plotPos, cameraPosition, !this.distanceHiddenPlots.has(plot.plotId))
+        ) {
+          this.distanceHiddenPlots.add(plot.plotId);
+          continue;
+        }
+        this.distanceHiddenPlots.delete(plot.plotId);
+        if (!plot.occupantId) continue;
+        const crop = this.snapshot.crops[plot.occupantId];
         const matrix = surface.root.transform.worldMatrix.elements;
         const stretch = Math.max(
           Math.hypot(matrix[0], matrix[4], matrix[8]),
@@ -915,25 +997,12 @@ export class FarmingWorldPresentation {
           (Math.max(this.snapshot.grid.cellSize, crop ? (this.cropRadii.get(crop.cropId) ?? 0) : 0) + 0.06) * stretch;
         this.plotPriorities.set(
           plot.plotId,
-          this.growthVisibility.priority(
-            surface.root.transform.worldPosition,
-            radius,
-            this.camera.entity.transform.worldPosition,
-            plot.plotId === this.target.plotId
-          )
+          this.growthVisibility.priority(plotPos, radius, cameraPosition, plot.plotId === this.target.plotId)
         );
       }
     }
-    const priority = (id: string) => this.plotPriorities.get(id) ?? -1;
     const now = performance.now();
-    this.plants.update(
-      now,
-      (id) => {
-        const plotId = this.snapshot.crops[id]?.anchorPlotId;
-        return this.distanceHiddenPlots.has(plotId) ? PLANT_DISTANCE_CULLED : priority(plotId);
-      },
-      document.hidden
-    );
+    this.plants.update(now, this.readPlantVisibility, document.hidden);
   }
   /** The arc and movement interruption share this value; no independent UI timer. */
   private actionProgress(): number | null {

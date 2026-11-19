@@ -15,6 +15,10 @@ const phaseProgress: Record<string, number> = {
 /** Cancellable synchronous GPU/geometry work, admitted only during a visible render frame. */
 export class PlantWorkQueue {
   private readonly pending: { id: string; phase: string; run(): void; cancel(): void }[] = [];
+  private activePriority: ((id: string) => number) | null = null;
+  private readonly comparePending = (a: { id: string; phase: string }, b: { id: string; phase: string }): number =>
+    this.activePriority!(b.id) - this.activePriority!(a.id) ||
+    (phaseProgress[b.phase] ?? 0) - (phaseProgress[a.phase] ?? 0);
   readonly stats = {
     queued: 0,
     frameJobs: 0,
@@ -59,14 +63,19 @@ export class PlantWorkQueue {
     });
   }
   tick(priority: (id: string) => number, budgetMs: number, hidden = false): number {
-    const start = performance.now();
     this.stats.frameJobs = this.stats.frameMilliseconds = 0;
-    if (hidden) return 0;
+    if (hidden || this.pending.length === 0) return 0;
+    const start = performance.now();
     // Finish an admitted plant before preparing the whole batch. Host visibility/
     // selection still wins; stable sort preserves arrival order at equal progress.
-    this.pending.sort(
-      (a, b) => priority(b.id) - priority(a.id) || (phaseProgress[b.phase] ?? 0) - (phaseProgress[a.phase] ?? 0)
-    );
+    if (this.pending.length > 1) {
+      this.activePriority = priority;
+      try {
+        this.pending.sort(this.comparePending);
+      } finally {
+        this.activePriority = null;
+      }
+    }
     while (this.pending.length && priority(this.pending[0].id) >= 0) {
       if (this.stats.frameJobs && performance.now() - start >= budgetMs) break;
       const job = this.pending[0],

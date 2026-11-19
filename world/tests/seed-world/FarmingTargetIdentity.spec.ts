@@ -404,3 +404,43 @@ it("shares the default visual policy for empty crop anchors only", () => {
     f.interaction.dispose();
   }
 });
+
+it("skips redundant refreshSelection calls when nearby tool target and action are unchanged", () => {
+  const f = fixture();
+  try {
+    delete f.presentation.refreshSelection;
+    f.presentation.active = true;
+    f.presentation.selection = { hide: vi.fn(), show: vi.fn() };
+    f.presentation.service.getAvailableActions = () => [{ action: "hoe", enabled: true }];
+    const refreshSpy = vi.spyOn(f.presentation, "refreshSelection");
+
+    f.presentation.target = { plotId: null, ground: null };
+    f.presentation.updateViewTarget();
+    f.presentation.updateViewTarget();
+    f.presentation.updateViewTarget();
+    expect(refreshSpy).toHaveBeenCalledTimes(1);
+    expect(f.presentation.selection.show).toHaveBeenCalledTimes(1);
+
+    f.presentation.actionHint = {
+      plotId: null,
+      target: { groundId: "ground", cellX: 0, cellZ: 0 },
+      action: "cultivate"
+    };
+    f.presentation.updateViewTarget();
+    f.presentation.updateViewTarget();
+    expect(refreshSpy).toHaveBeenCalledTimes(2);
+    expect(f.presentation.selection.show).toHaveBeenCalledTimes(2);
+
+    // Consecutive frames with no reachable cell (ground === null) must also skip redundant refreshes.
+    f.presentation.actionHint = undefined;
+    f.presentation.service.inspectCultivation = () => ({ canCultivate: false });
+    f.presentation.playerTargetKey = "";
+    f.presentation.updateViewTarget();
+    f.presentation.updateViewTarget();
+    f.presentation.updateViewTarget();
+    expect(refreshSpy).toHaveBeenCalledTimes(3);
+    expect(f.presentation.selection.hide).toHaveBeenCalledTimes(1);
+  } finally {
+    f.interaction.dispose();
+  }
+});

@@ -129,11 +129,26 @@ export class FarmingPlotSelection {
     const dt = Math.max(0, seconds);
     if (this.camera) {
       const { worldPosition: p, worldForward: f } = this.camera.entity.transform;
-      const values = [p.x, p.y, p.z, f.x, f.y, f.z];
-      const moving = values.some(
-        (v, i) => !Number.isFinite(this.lastView[i]) || Math.abs(v - this.lastView[i]) > 0.001
-      );
-      this.lastView.set(values);
+      const lastView = this.lastView;
+      const moving =
+        !Number.isFinite(lastView[0]) ||
+        Math.abs(p.x - lastView[0]) > 0.001 ||
+        !Number.isFinite(lastView[1]) ||
+        Math.abs(p.y - lastView[1]) > 0.001 ||
+        !Number.isFinite(lastView[2]) ||
+        Math.abs(p.z - lastView[2]) > 0.001 ||
+        !Number.isFinite(lastView[3]) ||
+        Math.abs(f.x - lastView[3]) > 0.001 ||
+        !Number.isFinite(lastView[4]) ||
+        Math.abs(f.y - lastView[4]) > 0.001 ||
+        !Number.isFinite(lastView[5]) ||
+        Math.abs(f.z - lastView[5]) > 0.001;
+      lastView[0] = p.x;
+      lastView[1] = p.y;
+      lastView[2] = p.z;
+      lastView[3] = f.x;
+      lastView[4] = f.y;
+      lastView[5] = f.z;
       this.steadySeconds = moving ? 0 : this.steadySeconds + dt;
     } else this.steadySeconds += dt;
     const wasVisible = this.renderer.enabled;

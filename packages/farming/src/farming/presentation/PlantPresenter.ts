@@ -41,6 +41,7 @@ export interface PlantPresenterOptions {
 /** Reconciles externally confirmed plants. Instance identity never depends on stage or position. */
 export class PlantPresenter {
   private readonly entries = new Map<string, Entry>();
+  private readonly entryList: Entry[] = [];
   private readonly scheduler: CropGrowthScheduler;
   private readonly workQueue = new PlantWorkQueue();
   private readonly presentationJobs = new Set<string>();
@@ -49,6 +50,20 @@ export class PlantPresenter {
   private schedulingFrames = 0;
   private schedulingMilliseconds = 0;
   private readonly harvesting = new Map<PlantHarvestEffect, string>();
+  private readonly scratchRenderState = {
+    instanceId: "",
+    cropId: "",
+    cropRevision: 1,
+    cycleId: "",
+    cycleRevision: 1,
+    plantId: "",
+    plantRevision: 1,
+    recipeRevision: 1,
+    progress: 0,
+    shape: null as unknown as PlantRenderState["shape"]
+  };
+  private readonly readQueuePriority = (id: string): number =>
+    this.presentationJobs.has(id) ? 2 : (this.entries.get(id)?.visibility ?? -1);
   constructor(
     private readonly engine: Engine,
     private readonly catalog: PlantingCatalog,
@@ -78,6 +93,7 @@ export class PlantPresenter {
         entry = { state, timeline: new CropVisualTimeline(), controller: new AbortController(), visibility: -1 };
         entry.timeline.push(state.progress, now, 0, true);
         this.entries.set(state.instanceId, entry);
+        this.entryList.push(entry);
         void this.load(entry);
       } else {
         const changedShape = Object.keys(state.shape).some(
@@ -104,9 +120,11 @@ export class PlantPresenter {
   }
   update(now: number, visibility: (instanceId: string) => number, hidden = false): void {
     if (this.disposed) return;
+    const entryList = this.entryList;
     if (!hidden)
-      for (const [id, e] of this.entries) {
-        e.visibility = visibility(id);
+      for (let i = 0; i < entryList.length; i++) {
+        const e = entryList[i];
+        e.visibility = visibility(e.state.instanceId);
         if (e.visibility === PLANT_DISTANCE_CULLED) {
           e.distanceHidden = true;
           if (e.instance) e.instance.plant.root.isActive = false;
@@ -114,12 +132,11 @@ export class PlantPresenter {
         if (e.loadState === "loading" || e.loadState === "deferred")
           this.report(e, e.visibility < 0 ? "deferred" : "loading");
       }
-    const priority = (id: string) => (this.presentationJobs.has(id) ? 2 : (this.entries.get(id)?.visibility ?? -1));
-    const creationMs = this.workQueue.tick(priority, this.scheduler.options.budgetMs, hidden);
-    this.scheduler.tick(now, priority, hidden, Math.max(0, this.scheduler.options.budgetMs - creationMs));
+    const creationMs = this.workQueue.tick(this.readQueuePriority, this.scheduler.options.budgetMs, hidden);
+    this.scheduler.tick(now, this.readQueuePriority, hidden, Math.max(0, this.scheduler.options.budgetMs - creationMs));
     this.schedulingFrames++;
     this.schedulingMilliseconds += creationMs + this.scheduler.stats.frameMilliseconds;
-    if (!hidden) for (const entry of this.entries.values()) this.restoreDistanceVisibility(entry);
+    if (!hidden) for (let i = 0; i < entryList.length; i++) this.restoreDistanceVisibility(entryList[i]);
   }
   private restoreDistanceVisibility(entry: Entry): void {
     if (!entry.distanceHidden || !entry.instance) return;
@@ -135,11 +152,19 @@ export class PlantPresenter {
   query(id: string) {
     return this.entries.get(id)?.instance?.query();
   }
+  private deleteEntry(entry: Entry): void {
+    this.entries.delete(entry.state.instanceId);
+    const index = this.entryList.indexOf(entry);
+    if (index >= 0) {
+      const last = this.entryList.pop()!;
+      if (index < this.entryList.length) this.entryList[index] = last;
+    }
+  }
   remove(id: string): void {
     const entry = this.entries.get(id);
     if (!entry) return;
     this.cancelHarvestPreview(id);
-    this.entries.delete(id);
+    this.deleteEntry(entry);
     this.scheduler.remove(id);
     entry.controller.abort();
     entry.instance?.dispose();
@@ -153,7 +178,7 @@ export class PlantPresenter {
     if (entry.preview) {
       entry.preview.commitPreview();
       entry.preview = undefined;
-      this.entries.delete(id);
+      this.deleteEntry(entry);
       this.scheduler.remove(id);
       this.onLoadState(id, "empty");
       return;
@@ -162,7 +187,7 @@ export class PlantPresenter {
       this.remove(id);
       return;
     }
-    this.entries.delete(id);
+    this.deleteEntry(entry);
     this.scheduler.remove(id);
     this.onLoadState(id, "empty");
     try {
@@ -277,7 +302,19 @@ export class PlantPresenter {
   }
   private apply(entry: Entry, progress: number) {
     if (entry.preview) return;
-    entry.instance!.update({ ...entry.state, progress });
+    const scratch = this.scratchRenderState;
+    const state = entry.state;
+    scratch.instanceId = state.instanceId;
+    scratch.cropId = state.cropId;
+    scratch.cropRevision = state.cropRevision;
+    scratch.cycleId = state.cycleId;
+    scratch.cycleRevision = state.cycleRevision;
+    scratch.plantId = state.plantId;
+    scratch.plantRevision = state.plantRevision;
+    scratch.recipeRevision = state.recipeRevision;
+    scratch.progress = progress;
+    scratch.shape = state.shape;
+    entry.instance!.update(scratch);
     // Direct snap/shape updates must invalidate the same cache used by scheduled updates.
     if (entry.task) entry.task.lastProgress = progress;
     if (entry.distanceHidden) entry.instance!.plant.root.isActive = false;

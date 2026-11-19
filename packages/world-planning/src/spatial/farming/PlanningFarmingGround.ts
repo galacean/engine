@@ -28,6 +28,7 @@ export interface PlanningFarmingGroundOptions {
   readonly terrain?: {
     surfaceTriangles?(bounds: GroundBounds): readonly SurfaceTriangle[];
     sample(x: number, z: number): GroundSample | null;
+    sampleHeight?(x: number, z: number): number | null;
     inspectBounds(bounds: GroundBounds): {
       readonly covered: boolean;
       readonly maximumSlopeDegrees: number;
@@ -96,10 +97,49 @@ export function createPlanningFarmingGroundView(options: PlanningFarmingGroundOp
   const area = options.allowedArea && createPlanningRingQuery(options.allowedArea.map((p) => ({ ...p })));
   const step = options.sampleStepM ?? 0.5;
   if (!Number.isFinite(step) || step <= 0) throw new Error("Invalid farming ground sample step");
-  const sample = (groundId: string, x: number, z: number): GroundSample | null => {
-    const point = { x, z };
-    if (groundId !== options.groundId || !domains.some((d) => d.inside(point)) || (area && !area.inside(point)))
+  const scratchPoint = { x: 0, z: 0 };
+  const containsPoint = (groundId: string, x: number, z: number): boolean => {
+    if (groundId !== options.groundId) return false;
+    scratchPoint.x = x;
+    scratchPoint.z = z;
+    let inDomain = false;
+    for (let i = 0; i < domains.length; i++) {
+      if (domains[i].inside(scratchPoint)) {
+        inDomain = true;
+        break;
+      }
+    }
+    return inDomain && (!area || area.inside(scratchPoint));
+  };
+  const sampleHeightAt = (groundId: string, x: number, z: number): number | null => {
+    if (!containsPoint(groundId, x, z)) return null;
+    if (options.terrain) {
+      if (options.terrain.sampleHeight) return options.terrain.sampleHeight(x, z);
+      return options.terrain.sample(x, z)?.position[1] ?? null;
+    }
+    const y = options.height(x, z);
+    if (y === null || !Number.isFinite(y)) return null;
+    const delta = Math.min(0.25, step / 2);
+    const h0 = options.height(x - delta, z);
+    const h1 = options.height(x + delta, z);
+    const h2 = options.height(x, z - delta);
+    const h3 = options.height(x, z + delta);
+    if (
+      h0 === null ||
+      !Number.isFinite(h0) ||
+      h1 === null ||
+      !Number.isFinite(h1) ||
+      h2 === null ||
+      !Number.isFinite(h2) ||
+      h3 === null ||
+      !Number.isFinite(h3)
+    ) {
       return null;
+    }
+    return y;
+  };
+  const sample = (groundId: string, x: number, z: number): GroundSample | null => {
+    if (!containsPoint(groundId, x, z)) return null;
     if (options.terrain) return options.terrain.sample(x, z);
     const y = options.height(x, z);
     const delta = Math.min(0.25, step / 2);
@@ -170,33 +210,43 @@ export function createPlanningFarmingGroundView(options: PlanningFarmingGroundOp
       };
     },
     raycast(ray, maximumDistance) {
-      const length = Math.hypot(...ray.direction);
+      const ox = ray.origin[0],
+        oy = ray.origin[1],
+        oz = ray.origin[2];
+      const dx = ray.direction[0],
+        dy = ray.direction[1],
+        dz = ray.direction[2];
+      const length = Math.hypot(dx, dy, dz);
       if (!Number.isFinite(maximumDistance) || maximumDistance <= 0 || !Number.isFinite(length) || length === 0)
         return null;
-      const direction = ray.direction.map((v) => v / length);
-      const at = (distance: number) => ray.origin.map((v, i) => v + direction[i] * distance);
+      const ndx = dx / length,
+        ndy = dy / length,
+        ndz = dz / length;
       let previousDistance = 0;
       let previousAbove = false;
       const samples = Math.max(1, Math.ceil(maximumDistance / step));
       for (let i = 0; i <= samples; i++) {
-        const distance = (i * maximumDistance) / samples,
-          p = at(distance),
-          s = sample(options.groundId, p[0], p[2]);
-        if (s && p[1] <= s.position[1] && previousAbove) {
+        const distance = (i * maximumDistance) / samples;
+        const px = ox + ndx * distance;
+        const py = oy + ndy * distance;
+        const pz = oz + ndz * distance;
+        const gy = sampleHeightAt(options.groundId, px, pz);
+        if (gy !== null && Number.isFinite(gy) && py <= gy && previousAbove) {
           let low = previousDistance,
             high = distance;
           for (let j = 0; j < 16; j++) {
-            const middle = (low + high) / 2,
-              p = at(middle),
-              s = sample(options.groundId, p[0], p[2]);
-            if (s && p[1] <= s.position[1]) high = middle;
+            const middle = (low + high) / 2;
+            const mx = ox + ndx * middle;
+            const my = oy + ndy * middle;
+            const mz = oz + ndz * middle;
+            const mgy = sampleHeightAt(options.groundId, mx, mz);
+            if (mgy !== null && Number.isFinite(mgy) && my <= mgy) high = middle;
             else low = middle;
           }
-          const hit = at(high),
-            ground = sample(options.groundId, hit[0], hit[2]);
+          const ground = sample(options.groundId, ox + ndx * high, oz + ndz * high);
           return ground && { ...ground, groundId: options.groundId, distance: high };
         }
-        previousAbove = Boolean(s && p[1] > s.position[1]);
+        previousAbove = Boolean(gy !== null && Number.isFinite(gy) && py > gy);
         previousDistance = distance;
       }
       return null;

@@ -239,7 +239,15 @@ it("queries published terrain arrays without slicing and passes terrain to accep
   ];
   const terrain = createPlanningFarmingTerrainQuery(sloped);
   expect(terrain.sample(10, 10)?.position[1]).toBeCloseTo(2, 5);
+  expect(terrain.sampleHeight(10, 10)).toBeCloseTo(2, 5);
+  expect(terrain.sampleHeight(3.7, 12.4)).toBeCloseTo(terrain.sample(3.7, 12.4)!.position[1], 6);
+  expect(terrain.sampleHeight(-1, 5)).toBeNull();
   for (const spy of slices) expect(spy).not.toHaveBeenCalled();
+
+  const legacy = { ...sloped, surfaceHeights: undefined };
+  const legacyTerrain = createPlanningFarmingTerrainQuery(legacy);
+  expect(legacyTerrain.sampleHeight(3.7, 12.4)).toBeCloseTo(legacyTerrain.sample(3.7, 12.4)!.position[1], 6);
+  expect(legacyTerrain.sampleHeight(25, 5)).toBeNull();
 
   const view = acceptedPlanningFarmingGround(
     sloped,
@@ -262,4 +270,71 @@ it("queries published terrain arrays without slicing and passes terrain to accep
   expect(hit!.surface).toBe("rock");
   expect(hit!.position[1]).toBeCloseTo(2, 4);
   expect(hit!.normal[0]).toBeLessThan(0);
+});
+
+it("raycast steps through terrain.sampleHeight and only resolves full GroundSample on hit", async () => {
+  const { createPlanningFarmingGroundView } = await import(
+    "@galacean/engine-world-planning/spatial/farming/PlanningFarmingGround"
+  );
+  const sampleSpy = vi.fn((x: number, z: number) => ({
+    position: [x, 1, z] as const,
+    normal: [0, 1, 0] as const,
+    surface: "soil" as const
+  }));
+  const sampleHeightSpy = vi.fn((_x: number, _z: number) => 1);
+  const view = createPlanningFarmingGroundView({
+    revision: 1,
+    groundId: "ground",
+    domains: [[{ x: 0, z: 0 }, { x: 20, z: 0 }, { x: 20, z: 20 }, { x: 0, z: 20 }]],
+    height: () => 1,
+    underwater: () => false,
+    blocked: () => false,
+    terrain: {
+      sample: sampleSpy,
+      sampleHeight: sampleHeightSpy,
+      inspectBounds: () => ({
+        covered: true,
+        maximumSlopeDegrees: 0,
+        surfaces: ["soil"],
+        minimumHeight: 1,
+        maximumHeight: 1
+      })
+    }
+  });
+
+  const miss = view.raycast({ origin: [10, 5, 10], direction: [0, 1, 0] }, 8);
+  expect(miss).toBeNull();
+  expect(sampleHeightSpy).toHaveBeenCalled();
+  expect(sampleSpy).not.toHaveBeenCalled();
+
+  sampleHeightSpy.mockClear();
+  sampleSpy.mockClear();
+  const hit = view.raycast({ origin: [10, 5, 10], direction: [0, -1, 0] }, 8);
+  expect(hit).not.toBeNull();
+  expect(hit!.position[1]).toBe(1);
+  expect(sampleHeightSpy.mock.calls.length).toBeGreaterThan(5);
+  expect(sampleSpy).toHaveBeenCalledTimes(1);
+});
+
+it("height-only raycast keeps marching past boundary samples whose finite-difference neighbours are null", async () => {
+  const { createPlanningFarmingGroundView } = await import(
+    "@galacean/engine-world-planning/spatial/farming/PlanningFarmingGround"
+  );
+  // Valid height only when x >= 2; finite-difference neighbour check makes sample() null for x < 2.25.
+  const view = createPlanningFarmingGroundView({
+    revision: 1,
+    groundId: "ground",
+    domains: [[{ x: 0, z: 0 }, { x: 10, z: 0 }, { x: 10, z: 10 }, { x: 0, z: 10 }]],
+    sampleStepM: 0.5,
+    height: (x) => (x >= 2 ? 1 : null),
+    underwater: () => false,
+    blocked: () => false
+  });
+
+  // At x = 2.0, center height is 1 but (2.0 - 0.25) is null, so it must not falsely bracket a hit at x = 2.0
+  // and must continue marching to hit inside the valid finite-difference interior (x >= 2.25).
+  const hit = view.raycast({ origin: [1.5, 1.5, 5], direction: [1, -0.5, 0] }, 6);
+  expect(hit).not.toBeNull();
+  expect(hit!.position[0]).toBeGreaterThanOrEqual(2.25);
+  expect(hit!.position[1]).toBe(1);
 });

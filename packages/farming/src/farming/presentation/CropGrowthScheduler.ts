@@ -27,9 +27,14 @@ interface Candidate {
   score: number;
 }
 
+function compareGrowthCandidates(a: Candidate, b: Candidate): number {
+  return b.score - a.score || a.task.id.localeCompare(b.task.id);
+}
+
 /** One render-frame scheduler. Work is spread across frames, with waiting time preventing starvation. */
 export class CropGrowthScheduler {
   private readonly tasks = new Map<string, { task: CropGrowthTask; candidate: Candidate }>();
+  private readonly taskList: { task: CropGrowthTask; candidate: Candidate }[] = [];
   private readonly queue: Candidate[] = [];
   private lastFrame = -Infinity;
   private wasHidden = false;
@@ -44,13 +49,30 @@ export class CropGrowthScheduler {
       throw new Error("生长调度参数必须为正数");
   }
   add(task: CropGrowthTask): void {
-    this.tasks.set(task.id, { task, candidate: { task, interval: 0, progress: 0, score: 0 } });
+    const existing = this.tasks.get(task.id);
+    const entry = { task, candidate: { task, interval: 0, progress: 0, score: 0 } };
+    this.tasks.set(task.id, entry);
+    if (existing) {
+      const index = this.taskList.indexOf(existing);
+      if (index >= 0) this.taskList[index] = entry;
+      else this.taskList.push(entry);
+    } else {
+      this.taskList.push(entry);
+    }
   }
   remove(id: string): void {
+    const existing = this.tasks.get(id);
+    if (!existing) return;
     this.tasks.delete(id);
+    const index = this.taskList.indexOf(existing);
+    if (index >= 0) {
+      const last = this.taskList.pop()!;
+      if (index < this.taskList.length) this.taskList[index] = last;
+    }
   }
   clear(): void {
     this.tasks.clear();
+    this.taskList.length = 0;
     this.queue.length = 0;
   }
   /** Visibility priority: -1 invisible, 0 distant, 1 near, 2 selected. */
@@ -61,13 +83,15 @@ export class CropGrowthScheduler {
     const resume = this.wasHidden || now - this.lastFrame > 2000;
     this.lastFrame = now;
     this.wasHidden = hidden;
+    const taskList = this.taskList;
     if (hidden) {
-      for (const { task } of this.tasks.values()) task.visible = false;
+      for (let i = 0; i < taskList.length; i++) taskList[i].task.visible = false;
       this.stats.frameMilliseconds = 0;
       return;
     }
     this.queue.length = 0;
-    for (const { task, candidate } of this.tasks.values()) {
+    for (let i = 0; i < taskList.length; i++) {
+      const { task, candidate } = taskList[i];
       if (resume) task.timeline.snap();
       const level = priority(task.id);
       if (level < 0) {
@@ -95,7 +119,7 @@ export class CropGrowthScheduler {
       candidate.score = (now - task.lastUpdate) / interval + level * 2 + (entering ? 2 : 0);
       this.queue.push(candidate);
     }
-    this.queue.sort((a, b) => b.score - a.score || a.task.id.localeCompare(b.task.id));
+    if (this.queue.length > 1) this.queue.sort(compareGrowthCandidates);
     for (let i = 0; i < this.queue.length; i++) {
       if (this.stats.frameUpdates > 0 && this.clock() - start >= budgetMs) {
         this.stats.deferred = this.queue.length - i;

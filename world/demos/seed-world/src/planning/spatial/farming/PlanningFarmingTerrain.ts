@@ -2,7 +2,12 @@ import { gridSurfaceTriangles } from "@galacean/engine-farming/farming/geometry/
 import type { GroundBounds, GroundSample, GroundSurface } from "@galacean/engine-farming/farming/api/index";
 import { decodeSeedWorldHeight, seedWorldOriginX, seedWorldOriginZ } from "@galacean/engine-world-planning/runtime/SeedWorldFields";
 import type { PlanningFarmingTerrain } from "./PlanningPublishedFarmingGround.ts";
-import { float32GridCell, interpolateGridTriangle, type Float32Grid } from "@galacean/engine-water/water/authoring/terrain/GridInterpolation";
+import {
+  float32GridCell,
+  interpolateGridTriangle,
+  sampleFloat32GridRaster,
+  type Float32Grid
+} from "@galacean/engine-water/water/authoring/terrain/GridInterpolation";
 
 export interface PlanningTerrainFootprint {
   readonly covered: boolean;
@@ -94,15 +99,38 @@ export function createPlanningFarmingTerrainQuery(fields: PlanningFarmingTerrain
       )
     );
   const covered = (b: GroundBounds) =>
-    [b.minimumX, b.minimumZ, b.maximumX, b.maximumZ].every(Number.isFinite) &&
+    Number.isFinite(b.minimumX) &&
+    Number.isFinite(b.minimumZ) &&
+    Number.isFinite(b.maximumX) &&
+    Number.isFinite(b.maximumZ) &&
     b.minimumX <= b.maximumX &&
     b.minimumZ <= b.maximumZ &&
     b.minimumX >= ox &&
     b.maximumX <= ox + size &&
     b.minimumZ >= oz &&
     b.maximumZ <= oz + size;
+  const coveredPoint = (x: number, z: number) =>
+    Number.isFinite(x) &&
+    Number.isFinite(z) &&
+    x >= ox &&
+    x <= ox + size &&
+    z >= oz &&
+    z <= oz + size;
+  const sampleHeight = (x: number, z: number): number | null => {
+    if (!coveredPoint(x, z)) return null;
+    if (canonical) return sampleFloat32GridRaster(fields.surfaceHeights!, n, n, ox, oz, pitch, pitch, x, z);
+    const ix = Math.min(n - 2, Math.floor((x - ox) / pitch)),
+      iz = Math.min(n - 2, Math.floor((z - oz) / pitch));
+    const tx = Math.max(0, Math.min(1, (x - ox) / pitch - ix)),
+      tz = Math.max(0, Math.min(1, (z - oz) / pitch - iz));
+    const a = height(ix, iz),
+      b = height(ix + 1, iz),
+      c = height(ix, iz + 1),
+      d = height(ix + 1, iz + 1);
+    return (a * (1 - tx) + b * tx) * (1 - tz) + (c * (1 - tx) + d * tx) * tz;
+  };
   const sample = (x: number, z: number): GroundSample | null => {
-    if (!covered({ minimumX: x, maximumX: x, minimumZ: z, maximumZ: z })) return null;
+    if (!coveredPoint(x, z)) return null;
     const ix = Math.min(n - 2, Math.floor((x - ox) / pitch)),
       iz = Math.min(n - 2, Math.floor((z - oz) / pitch));
     const result = canonical ? canonicalSample(x, z) : cellSample(ix, iz, x, z);
@@ -185,6 +213,6 @@ export function createPlanningFarmingTerrainQuery(fields: PlanningFarmingTerrain
     return gridSurfaceTriangles(extended, bounds, (x, z) => background.vertex(
       Math.max(0, Math.min(n - 1, x + x0)), Math.max(0, Math.min(n - 1, z + z0))));
   };
-  return Object.freeze({ sample, inspectBounds, clampedSurfaceTriangles,
+  return Object.freeze({ sample, sampleHeight, inspectBounds, clampedSurfaceTriangles,
     surfaceTriangles: (bounds: GroundBounds) => gridSurfaceTriangles(background, bounds, background.vertex) });
 }
