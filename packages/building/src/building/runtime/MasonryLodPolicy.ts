@@ -25,7 +25,10 @@ export function getMasonryResidencyBudget() {
     retainMs: 10_000,
     cacheBytes: 12 * 1024 * 1024,
     detailBytes: 24 * 1024 * 1024,
-    fullTriangleBudget: MASONRY_RESIDENCY.fullTriangleBudget
+    fullTriangleBudget: MASONRY_RESIDENCY.fullTriangleBudget,
+    // Cap simultaneously active fine buildings so dense villages cannot flood LOD0/LOD1.
+    maxFullBuildings: 1,
+    maxDetailBuildings: 6
   };
 }
 
@@ -42,10 +45,10 @@ export interface MasonryLodTuning {
 export const DEFAULT_MASONRY_LOD_TUNING: Readonly<MasonryLodTuning> = {
   enterFullUnitPx: 20,
   leaveFullUnitPx: 16,
-  enterDetailSizePx: 144,
-  leaveDetailSizePx: 108,
-  enterDetailUnitPx: 3.6,
-  leaveDetailUnitPx: 2.7,
+  enterDetailSizePx: 288,
+  leaveDetailSizePx: 216,
+  enterDetailUnitPx: 7.2,
+  leaveDetailUnitPx: 5.4,
   colorizeLod: false
 };
 

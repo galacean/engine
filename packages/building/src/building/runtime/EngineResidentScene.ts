@@ -22,7 +22,7 @@ import {
 } from "./MasonryAppearance";
 import { restoreResource, restoreBuffer } from "@galacean/engine-modify/rendering/RestorableResources";
 
-import { adaptBrickSdfCamera } from "./ResidentSdfCamera";
+import { buildBeveledBrickGeometry } from "./BeveledBrickGeometry";
 import { WoodUnitLod, GableWoodUnitLod } from "./WoodUnitLod.js";
 import { MaterialUnitLod } from "./MaterialUnitLod.js";
 import { BrickUnitLod } from "./BrickUnitLod.js";
@@ -518,9 +518,7 @@ export class EngineResidentScene {
   }
   private async prepare(d: ResidentDraw, pack: ResidentPackage) {
     if (this.disposed) throw Error("Destroyed masonry scene");
-    const brickSdf = pack.brickSdf;
-    if (d.family === "brick" && !brickSdf) throw Error("Brick draw requires its package SDF assets");
-    const isBrick = d.family === "brick" && Object.hasOwn(brickSdf!.programs, d.program);
+    const isBrick = d.family === "brick" && !!d.resources.storage_0_1 && !!d.indirection;
     // Native ordinary/gable cullers share the affine screen metric but have
     // distinct record strides. Domain-roof deformation is a different consumer.
     const isWood =
@@ -869,26 +867,12 @@ export class EngineResidentScene {
     let unitLod: UnitDrawLod | undefined;
     let lowMaterial: Material | undefined;
     if (isBrick) {
-      const lowProgram = brickSdf!.programs[d.program];
-      const lowCamera = adaptBrickSdfCamera(lowProgram.vert.source, lowProgram.frag.source);
-      const lowClipped = injectConstructionRoofClip(lowCamera.vertex, lowCamera.fragment);
-      const lowJoint = injectWallRoofJoint(lowClipped.vertex, lowClipped.fragment, !!d.wallRoofJoint);
-      const lowLit = injectConstructionDecorationLighting(lowJoint.vertex, lowJoint.fragment);
-      const lowEntrance = injectConstructionEntrance(
-        engineShaderSource(
-          lowLit.vertex
-            .replace(/gl_Position = (.+) \* current_view\.world_to_sample;/g, "gl_Position = renderer_MVPMat * $1;")
-            .replace("gl_Position.z=gl_Position.z*2.0-gl_Position.w;", "")
-        ).source,
-        engineShaderSource(tintRole ? injectMasonryTint(lowLit.fragment, baseBindings) : lowLit.fragment).source,
-        d.family
-      );
-      let lowVertex =
-        "uniform mat4 renderer_MVPMat;\nin float masonryProxyVertex;\n" +
-        unitVertex(lowEntrance.vertex.replaceAll("gl_VertexID", "int(masonryProxyVertex)"));
-      const lowFragment = unitFragment(residentFragment(lowEntrance.fragment), true);
+      // B3: Use a shared 44-triangle chamfered solid brick mesh with CullMode.Back,
+      // no gl_FragDepth write (restoring full hardware Early-Z), and identical scene lighting
+      // so LOD0 <-> LOD1 transitions have zero brightness or color shift.
+      const lowFragment = unitFragment(fragment, true);
       lowMaterial = this.own(material.clone());
-      lowMaterial.shader = await residentShader(lowVertex, lowFragment);
+      lowMaterial.shader = await residentShader(vertex, lowFragment, CullMode.Back);
       bindTint(lowMaterial);
       lowMaterial.shaderData.setVector4("renderer_DormerGrid", dormerGrid);
       for (const [name, r] of Object.entries(d.resources)) {
@@ -898,39 +882,85 @@ export class EngineResidentScene {
         }
         lowMaterial.shaderData.setTexture(r.kind === "uniform" ? "uniform_" + name : name, resources.get(name)!);
       }
-      const sdfMaterial = d.nativeUnit?.sdfMaterial;
-      if (!sdfMaterial) throw Error("Brick unit requires its native SDF material");
-      for (const name of ["material_data_brick_sdf", "material_data_brick_sdf_normal"])
-        lowMaterial.shaderData.setTexture(name, sdfMaterial.shaderData.getTexture(name));
-      const lowMesh = this.own(new BufferMesh(this.engine));
-      const indexLease = leaseResidentResource(
-        this.engine,
-        "brick-sdf-proxy-indices:" + JSON.stringify(brickSdf!.proxyIndices),
-        async () => {
-          const data = new Uint32Array(brickSdf!.proxyIndices);
-          return restoreBuffer(
-            new Buffer(this.engine, BufferBindFlag.IndexBuffer, data, BufferUsage.Static, false),
-            data
-          );
+      const scale = d.geometryScale;
+      const scaleKey = scale && scale.some((v) => v !== 1) ? `:${scale[0]},${scale[1]},${scale[2]}` : "";
+      const brickLease = leaseResidentResource(this.engine, "brick-low-beveled-v1" + scaleKey, async () => {
+        const geom = buildBeveledBrickGeometry();
+        let positions = geom.positions;
+        let normals = geom.normals;
+        if (scale && scale.some((v) => v !== 1)) {
+          positions = new Float32Array(geom.positions.length);
+          normals = new Float32Array(geom.normals.length);
+          const sx = scale[0],
+            sy = scale[1],
+            sz = scale[2];
+          const nxScale = sy * sz,
+            nyScale = sx * sz,
+            nzScale = sx * sy;
+          for (let i = 0; i < geom.positions.length; i += 3) {
+            positions[i] = geom.positions[i] * sx;
+            positions[i + 1] = geom.positions[i + 1] * sy;
+            positions[i + 2] = geom.positions[i + 2] * sz;
+            const nx = geom.normals[i] * nxScale;
+            const ny = geom.normals[i + 1] * nyScale;
+            const nz = geom.normals[i + 2] * nzScale;
+            const len = Math.hypot(nx, ny, nz) || 1;
+            normals[i] = nx / len;
+            normals[i + 1] = ny / len;
+            normals[i + 2] = nz / len;
+          }
         }
-      );
-      this.resources.push(indexLease);
-      lowMesh.setIndexBufferBinding(await indexLease.value, IndexFormat.UInt32);
-      const vertexLease = leaseResidentResource(this.engine, "brick-sdf-proxy-vertices-v1", async () => {
-        const data = Float32Array.from({ length: 8 }, (_, i) => i);
-        return restoreBuffer(
-          new Buffer(this.engine, BufferBindFlag.VertexBuffer, data, BufferUsage.Static, false),
-          data
+        const posBuf = restoreBuffer(
+          new Buffer(this.engine, BufferBindFlag.VertexBuffer, positions, BufferUsage.Static, false),
+          positions
         );
+        const normBuf = restoreBuffer(
+          new Buffer(this.engine, BufferBindFlag.VertexBuffer, normals, BufferUsage.Static, false),
+          normals
+        );
+        const bevelBuf = restoreBuffer(
+          new Buffer(this.engine, BufferBindFlag.VertexBuffer, geom.isBevel, BufferUsage.Static, false),
+          geom.isBevel
+        );
+        const idxBuf = restoreBuffer(
+          new Buffer(this.engine, BufferBindFlag.IndexBuffer, geom.indices, BufferUsage.Static, false),
+          geom.indices
+        );
+        return {
+          posBuf,
+          normBuf,
+          bevelBuf,
+          idxBuf,
+          indexCount: geom.indexCount,
+          destroy() {
+            posBuf.destroy(true);
+            normBuf.destroy(true);
+            bevelBuf.destroy(true);
+            idxBuf.destroy(true);
+          }
+        };
       });
-      this.resources.push(vertexLease);
-      lowMesh.setVertexBufferBinding(await vertexLease.value, 4, 0);
-      lowMesh.setVertexBufferBinding(unitFades![1], 4, 1);
+      this.resources.push(brickLease);
+      const lowGeom = await brickLease.value;
+      const posAttr = declarations.get(0)?.name ?? "Vertex_Position";
+      const normAttr = declarations.get(1)?.name ?? "Vertex_Normal";
+      const bevelDecl = declarations.get(2)?.name ?? "is_bevel";
+      const bevelAttr =
+        elements.find((e) => e.attribute === "engine_" + bevelDecl || e.attribute === bevelDecl)?.attribute ??
+        "engine_" + bevelDecl;
+      const lowMesh = this.own(new BufferMesh(this.engine));
+      lowMesh.setVertexBufferBinding(lowGeom.posBuf, 12, 0);
+      lowMesh.setVertexBufferBinding(lowGeom.normBuf, 12, 1);
+      lowMesh.setVertexBufferBinding(lowGeom.bevelBuf, 4, 2);
+      lowMesh.setVertexBufferBinding(unitFades![1], 4, 3);
       lowMesh.setVertexElements([
-        new VertexElement("masonryProxyVertex", 0, VertexElementFormat.Float, 0),
-        new VertexElement("masonryUnitFade", 0, VertexElementFormat.Float, 1, 1)
+        new VertexElement(posAttr, 0, VertexElementFormat.Vector3, 0),
+        new VertexElement(normAttr, 0, VertexElementFormat.Vector3, 1),
+        new VertexElement(bevelAttr, 0, VertexElementFormat.Float, 2),
+        new VertexElement("masonryUnitFade", 0, VertexElementFormat.Float, 3, 1)
       ]);
-      lowMesh.addSubMesh(0, brickSdf!.proxyIndices.length);
+      lowMesh.setIndexBufferBinding(lowGeom.idxBuf, IndexFormat.UInt16);
+      lowMesh.addSubMesh(0, lowGeom.indexCount);
       lowMesh.bounds.copyFrom(mesh.bounds);
       lowMesh.instanceCount = d.count;
       meshes.push(lowMesh);
@@ -1060,7 +1090,8 @@ export class EngineResidentScene {
     for (const draw of this.draws.values()) {
       if (draw.unitLod) {
         const lod = draw.unitLod;
-        lod.forced = -1;
+        // Honor building-level LOD1 budgeting: only LOD0 buildings promote close units to 300-tri meshes.
+        lod.forced = this.metrics.fullCoverage ? -1 : 1;
         lod.active = draw.enabled && detail.length > 0;
         const fade = detail.length > 1 ? 1 : (detail[0]?.signedFade ?? 1);
         draw.renderer.mesh = draw.meshes[0];

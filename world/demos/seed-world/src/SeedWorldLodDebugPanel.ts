@@ -290,12 +290,12 @@ export class SeedWorldLodDebugPanel {
           <div class="lod-row">
             <span class="lod-row__label">LOD1 → LOD2 (建筑总像素)</span>
             <span class="lod-row__val" data-val="bldg-size">${DEFAULT_MASONRY_LOD_TUNING.enterDetailSizePx} px</span>
-            <input type="range" min="16" max="260" step="2" value="${DEFAULT_MASONRY_LOD_TUNING.enterDetailSizePx}" data-ctrl="bldg-size">
+            <input type="range" min="16" max="480" step="2" value="${DEFAULT_MASONRY_LOD_TUNING.enterDetailSizePx}" data-ctrl="bldg-size">
           </div>
           <div class="lod-row">
             <span class="lod-row__label">LOD1 → LOD2 (0.3m 砖像素)</span>
             <span class="lod-row__val" data-val="bldg-unit">${DEFAULT_MASONRY_LOD_TUNING.enterDetailUnitPx} px</span>
-            <input type="range" min="0.5" max="8.0" step="0.1" value="${DEFAULT_MASONRY_LOD_TUNING.enterDetailUnitPx}" data-ctrl="bldg-unit">
+            <input type="range" min="0.5" max="12.0" step="0.1" value="${DEFAULT_MASONRY_LOD_TUNING.enterDetailUnitPx}" data-ctrl="bldg-unit">
           </div>
           <div class="lod-actions">
             <button type="button" class="lod-btn lod-btn--secondary" data-preset="default">默认 (${DEFAULT_MASONRY_LOD_TUNING.enterDetailSizePx} / ${DEFAULT_MASONRY_LOD_TUNING.enterDetailUnitPx})</button>

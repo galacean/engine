@@ -161,6 +161,8 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
     const flags = this.selectionDirty ? 7 : changes;
     this.selectionDirty = false;
     const position = camera.entity.transform.worldPosition;
+    const detailCandidates: E[] = [];
+    const fullCandidates: E[] = [];
     for (const e of this.entries) {
       e.probe.update(view, position, flags, e.lod);
       // An unloaded request entering view changes queue order, not resident LOD
@@ -170,18 +172,44 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
       e.lod = e.probe.lod;
       e.visible = e.probe.visible;
       e.prefetch = e.probe.eligible;
+      if (e.lod < 2 && e.visible) {
+        detailCandidates.push(e);
+        if (e.lod === 0 && e.fine) fullCandidates.push(e);
+      }
+    }
+    const budget = getMasonryResidencyBudget();
+    let wantedSet: Set<E> | null = null;
+    if (detailCandidates.length > budget.maxDetailBuildings) {
+      for (const e of detailCandidates) e.priority = e.probe.priority();
+      detailCandidates.sort((a, b) => this.detailRankScore(b) - this.detailRankScore(a));
+      wantedSet = new Set(detailCandidates.slice(0, budget.maxDetailBuildings));
+    }
+    if (!demandChanged && flags & 6 && fullCandidates.length > budget.maxFullBuildings) {
+      for (const e of fullCandidates) e.priority = e.probe.priority();
+      fullCandidates.sort((a, b) => this.detailRankScore(b) - this.detailRankScore(a));
+      const fullCap = Math.min(budget.maxFullBuildings, budget.maxDetailBuildings);
+      for (let i = 0; i < fullCap; i++) {
+        const winner = fullCandidates[i]!;
+        if ((!wantedSet || wantedSet.has(winner)) && winner.budgetLod !== 0) {
+          this.residencyDirty = true;
+          break;
+        }
+      }
+    }
+    for (const e of this.entries) {
+      const wanted = e.lod < 2 && e.visible && (!wantedSet || wantedSet.has(e));
       // Coarse-only visibility changes need no residency sort, transition update
       // or metrics rebuild. Final per-renderer culling remains engine-owned.
       if (!e.fine) {
+        const useFarProxy = e.visible && (e.lod === 2 || !wanted);
         if (e.coarseVisible !== e.visible) {
-          e.view.setFarProxyActive?.(e.visible && e.lod === 2);
+          e.view.setFarProxyActive?.(useFarProxy);
           e.view.setVisualVisible(e.visible);
           e.coarseVisible = e.visible;
-        } else if (e.visible && e.lod === 2) {
-          e.view.setFarProxyActive?.(true);
+        } else if (e.visible) {
+          e.view.setFarProxyActive?.(useFarProxy);
         }
       }
-      const wanted = e.lod < 2 && e.visible;
       if (wanted !== this.desired.has(e)) {
         demandChanged = true;
         if (wanted) this.desired.add(e);
@@ -193,6 +221,16 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
       this.residencyDirty = true;
       this.onDemandChanged();
     }
+  }
+  private detailRankScore(e: E): number {
+    // Mild hysteresis keeps stationary / rotating views stable while letting closer buildings win on walk-up.
+    const bonus =
+      e.presentationVisible && e.budgetLod === 0
+        ? 1.15
+        : (e.presentationVisible && e.budgetLod === 1) || this.desired.has(e)
+          ? 1.1
+          : 1;
+    return e.priority * bonus;
   }
   refreshPriorities() {
     for (const e of this.entries) e.priority = e.probe.priority();
@@ -262,14 +300,14 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
     if (e.lod === 2) {
       e.view.releaseDetailedVisual?.();
     }
-    e.view.setFarProxyActive?.(e.visible && e.lod === 2);
+    e.view.setFarProxyActive?.(e.visible && (e.lod === 2 || !this.desired.has(e)));
     e.view.setVisualVisible(e.visible);
     e.view.setFade(1);
     this.metrics.evictions++;
   }
   /** Admit one asynchronous detail request using the same ranking as display.
-   * One load may exceed the cap; a later request must reclaim a lower-priority
-   * hidden resident before allocating again. Never evict a visible neighbour. */
+   * One load may exceed the cap; a later request must reclaim inactive cold or
+   * lower-priority cached residents before allocating again. Never evict an active resident. */
   admit(request: E): boolean {
     const budget = getMasonryResidencyBudget();
     this.refreshMetrics();
@@ -280,10 +318,7 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
       this.evict(cold);
     this.refreshMetrics();
     for (const lower of this.entries
-      .filter(
-        (entry) =>
-          entry.fine && !entry.visible && !entry.fine.runtime.root.isActive && this.compareResidency(entry, request) < 0
-      )
+      .filter((entry) => entry.fine && !entry.fine.runtime.root.isActive && this.compareResidency(entry, request) < 0)
       .sort((a, b) => this.compareResidency(a, b))) {
       if (this.metrics.residentBytes <= budget.detailBytes) break;
       this.evict(lower);
@@ -297,10 +332,9 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
     this.refreshPriorities();
     this.residencyDirty = false;
     this.residencyWake = this.transitionWake = Infinity;
-    // Keep current full-quality allocations first. Camera rotation may change
-    // visibility, but must not shuffle every resident building's quality budget.
-    // This is a group-quality scheduling budget, not an actual GPU triangle cap:
-    // material units retain their independent screen-space mesh selection.
+    // Rank visible fine residents with mild hysteresis (detailRankScore) so stationary /
+    // rotating views stay stable while closer buildings can claim the LOD0 / detail slots on walk-up.
+    // LOD1-budgeted buildings clamp unit-level LOD to 1 (via EngineResidentScene.setLodStates).
     const active = this.entries.filter((e) => e.fine && e.visible);
     // Reserve outgoing full meshes until their fade ends; do not spend that budget twice.
     let residentExtra = active.reduce(
@@ -312,22 +346,27 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
       0
     );
     let selectedExtra = 0;
-    active.sort(
-      (a, b) =>
-        Number(b.presentationVisible && b.budgetLod === 0) - Number(a.presentationVisible && a.budgetLod === 0) ||
-        b.priority - a.priority
-    );
+    let fullCount = 0;
+    let detailCount = 0;
+    active.sort((a, b) => this.detailRankScore(b) - this.detailRankScore(a));
     const budget = getMasonryResidencyBudget();
     for (const e of active) {
+      if (e.lod === 2 || detailCount >= budget.maxDetailBuildings) {
+        e.budgetLod = 2;
+        continue;
+      }
+      detailCount++;
       const runtime = e.fine!.runtime;
       const extra = runtime.metrics.fullTriangles - runtime.metrics.mediumTriangles;
-      const selected = e.lod === 0 && selectedExtra + extra <= budget.fullTriangleBudget;
+      const selected =
+        e.lod === 0 && fullCount < budget.maxFullBuildings && selectedExtra + extra <= budget.fullTriangleBudget;
       if (selected) selectedExtra += extra;
       const reserved = e.presentationVisible && runtime.metrics.fullCoverage;
       if (selected && (reserved || residentExtra + extra <= budget.fullTriangleBudget)) {
         e.budgetLod = 0;
+        fullCount++;
         if (!reserved) residentExtra += extra;
-      } else e.budgetLod = e.lod === 2 ? 2 : 1;
+      } else e.budgetLod = 1;
     }
     for (const e of this.entries) {
       if (e.fine && !e.visible) {
@@ -377,7 +416,9 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
         e.retained = retained;
       }
       e.view.root.isActive = true;
-      e.view.setFarProxyActive?.(coarseVisible && e.lod === 2 && !fineVisible);
+      e.view.setFarProxyActive?.(
+        coarseVisible && (e.lod === 2 || !this.desired.has(e) || (!!runtime && e.budgetLod === 2)) && !fineVisible
+      );
       if (runtime && fineVisible && !coarseVisible && states.length === 1) {
         e.view.releaseDetailedVisual?.();
       }
