@@ -113,7 +113,7 @@ export abstract class Texture extends GraphicsResource {
    * Sampling filter mode.
    * @remarks
    * Integer formats (`TextureFormat.R32G32B32A32_UInt`) only accept `TextureFilterMode.Point`; other modes log a warning and are ignored.
-   * 32-bit floating-point formats (`R32_SFloat`, `R32G32_SFloat`, `R32G32B32A32_SFloat`) fall back to `TextureFilterMode.Point` when `OES_texture_float_linear` is unavailable.
+   * 32-bit floating-point formats fall back to `TextureFilterMode.Point` when the device does not support linear float filtering.
    */
   get filterMode(): TextureFilterMode {
     return this._filterMode;

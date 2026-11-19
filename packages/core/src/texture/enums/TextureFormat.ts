@@ -3,7 +3,7 @@
  * @remarks Uncompressed formats without a suffix are unsigned normalized (`[0, 1]`); other encodings use `_SFloat`, `_UFloat`, or `_UInt`.
  */
 export enum TextureFormat {
-  /** RGB 8-bit unsigned normalized format (readback uses RGBA `Uint8Array`). */
+  /** RGB 8-bit unsigned normalized format. `getPixelBuffer` outputs RGBA `Uint8Array`. */
   R8G8B8 = 0,
   /** RGBA 8-bit unsigned normalized format. */
   R8G8B8A8 = 1,
@@ -13,27 +13,27 @@ export enum TextureFormat {
   R5G5B5A1 = 3,
   /** Packed RGB 5-6-5 unsigned normalized format. */
   R5G6B5 = 4,
-  /** RGBA 16-bit signed float format (`Uint16Array` half-float bits). */
+  /** RGBA 16-bit signed float format (half-float `Uint16Array`). */
   R16G16B16A16_SFloat = 7,
   /** RGBA 32-bit signed float format (`Float32Array`). */
   R32G32B32A32_SFloat = 8,
-  /** RGBA 32-bit unsigned int format (`Uint32Array`; `Point` filter only). */
+  /** RGBA 32-bit unsigned integer format (`Uint32Array`, `TextureFilterMode.Point` only). */
   R32G32B32A32_UInt = 9,
-  /** Packed RGB 11-11-10 unsigned float format (upload RGB, readback RGBA `Float32Array`). */
+  /** Packed RGB 11-11-10 unsigned float format (`Float32Array`). `getPixelBuffer` outputs RGBA `Float32Array`. */
   R11G11B10_UFloat = 35,
   /** R 8-bit unsigned normalized format. */
   R8 = 36,
   /** RG 8-bit unsigned normalized format. */
   R8G8 = 37,
-  /** R 16-bit unsigned normalized format (upload R, readback RGBA `Uint16Array`). */
+  /** R 16-bit unsigned normalized format (`Uint16Array`). `getPixelBuffer` outputs RGBA `Uint16Array`. */
   R16 = 38,
-  /** R 16-bit signed float format (upload `Uint16Array` half-float bits, readback RGBA `Float32Array`). */
+  /** R 16-bit signed float format (half-float `Uint16Array`). `getPixelBuffer` outputs RGBA `Float32Array`. */
   R16_SFloat = 39,
-  /** RG 16-bit signed float format (upload `Uint16Array` half-float bits, readback RGBA `Float32Array`). */
+  /** RG 16-bit signed float format (half-float `Uint16Array`). `getPixelBuffer` outputs RGBA `Float32Array`. */
   R16G16_SFloat = 40,
-  /** R 32-bit signed float format (upload R, readback RGBA `Float32Array`). */
+  /** R 32-bit signed float format (`Float32Array`). `getPixelBuffer` outputs RGBA `Float32Array`. */
   R32_SFloat = 41,
-  /** RG 32-bit signed float format (upload RG, readback RGBA `Float32Array`). */
+  /** RG 32-bit signed float format (`Float32Array`). `getPixelBuffer` outputs RGBA `Float32Array`. */
   R32G32_SFloat = 42,
 
   /** RGB S3TC/DXT1 compressed format, 4 bits per pixel. */
@@ -75,7 +75,7 @@ export enum TextureFormat {
 
   /** Default depth format (32-bit float depth). */
   Depth = 27,
-  /** 8-bit stencil format (`RenderTarget` renderbuffer only). */
+  /** 8-bit stencil format (for `RenderTarget` only). */
   Stencil = 28,
   /** Default depth-stencil format (32-bit float depth + 8-bit stencil). */
   DepthStencil = 29,
@@ -83,7 +83,7 @@ export enum TextureFormat {
   Depth16 = 30,
   /** 24-bit unsigned normalized depth format. */
   Depth24 = 31,
-  /** 32-bit floating-point depth format. */
+  /** 32-bit float depth format. */
   Depth32 = 32,
   /** 24-bit depth + 8-bit stencil format. */
   Depth24Stencil8 = 33,
