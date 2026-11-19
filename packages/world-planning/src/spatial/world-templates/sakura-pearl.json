@@ -344,8 +344,7 @@
       "groundingFootprint": [37, 32],
       "assetGroundY": 1.0934512615203857,
       "assetYawDegrees": -155,
-      "leaf": { "materials": ["Foliage_PBR_512"], "color": "#ff82a4", "intensity": 1.6, "textureBlend": 0 },
-      "bark": { "material": "Bark_PBR_512", "color": "#f2e9e1", "intensity": 1.1 }
+      "leaf": { "materials": ["Foliage_PBR_512"], "color": "#ff82a4", "intensity": 1.6, "textureBlend": 0 }
     }
   },
   "petals": {
