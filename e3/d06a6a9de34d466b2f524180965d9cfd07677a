@@ -1,0 +1,14 @@
+world/demos/seed-world/src/DesertPresentation.ts
+  h_79b10db07e6052 43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e3d06a6a9de34d466b2f524180965d9cfd07677a",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}
