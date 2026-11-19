@@ -11,7 +11,7 @@ import {
   PrimitiveMesh
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { Vector3 } from "@galacean/engine-math";
+import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { vi, describe, beforeAll, afterAll, beforeEach, afterEach, expect, it } from "vitest";
 
 describe("Rigidbody", function () {
@@ -800,5 +800,48 @@ describe("Rigidbody", function () {
     kinematicBody.destroy();
     expect(kinematicBody.destroyed).toBe(true);
     expect(() => kinematicBody.move(new Vector3(1, 2, 3))).not.toThrow();
+  });
+
+  it("preserves both position and rotation when move(pos) and move(rot) are called in the same step", function () {
+    const physics = engine.sceneManager.activeScene.physics;
+    const targetRot = new Quaternion();
+    Quaternion.rotationYawPitchRoll(Math.PI / 2, 0, 0, targetRot);
+
+    // Case 1: move(pos) then move(rot) with non-zero centerOfMass
+    const boxA = addBox(new Vector3(2, 2, 2), true, new Vector3(0, 0, 0));
+    const bodyA = boxA.getComponent(Rigidbody);
+    bodyA.isKinematic = true;
+    bodyA.centerOfMass = new Vector3(0.5, 0.25, -0.5);
+    bodyA.move(new Vector3(4, 2, -1));
+    bodyA.move(targetRot);
+    physics._update(physics.fixedTimeStep);
+    expect(boxA.transform.worldPosition.x).toBeCloseTo(4, 4);
+    expect(boxA.transform.worldPosition.y).toBeCloseTo(2, 4);
+    expect(boxA.transform.worldPosition.z).toBeCloseTo(-1, 4);
+    expect(Math.abs(Quaternion.dot(boxA.transform.worldRotationQuaternion, targetRot))).toBeCloseTo(1, 4);
+
+    // Case 2: move(rot) then move(pos) in the same step
+    const boxB = addBox(new Vector3(2, 2, 2), true, new Vector3(0, 5, 0));
+    const bodyB = boxB.getComponent(Rigidbody);
+    bodyB.isKinematic = true;
+    bodyB.move(targetRot);
+    bodyB.move(new Vector3(-3, 6, 2));
+    physics._update(physics.fixedTimeStep);
+    expect(boxB.transform.worldPosition.x).toBeCloseTo(-3, 4);
+    expect(boxB.transform.worldPosition.y).toBeCloseTo(6, 4);
+    expect(boxB.transform.worldPosition.z).toBeCloseTo(2, 4);
+    expect(Math.abs(Quaternion.dot(boxB.transform.worldRotationQuaternion, targetRot))).toBeCloseTo(1, 4);
+
+    // Case 3: direct transform teleport between move(pos) and move(rot) starts from the teleported position
+    bodyB.move(new Vector3(99, 99, 99));
+    boxB.transform.setPosition(10, 11, 12);
+    const rot2 = new Quaternion();
+    Quaternion.rotationYawPitchRoll(0, Math.PI / 4, 0, rot2);
+    bodyB.move(rot2);
+    physics._update(physics.fixedTimeStep);
+    expect(boxB.transform.worldPosition.x).toBeCloseTo(10, 4);
+    expect(boxB.transform.worldPosition.y).toBeCloseTo(11, 4);
+    expect(boxB.transform.worldPosition.z).toBeCloseTo(12, 4);
+    expect(Math.abs(Quaternion.dot(boxB.transform.worldRotationQuaternion, rot2))).toBeCloseTo(1, 4);
   });
 });

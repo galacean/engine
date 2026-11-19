@@ -185,7 +185,7 @@ export class PhysicsScene {
     const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
 
     let result = false;
-    if (normalizedDirection) {
+    if (distance > 0 && normalizedDirection) {
       this._syncColliders();
       result = this._nativePhysicsScene.raycast(
         ray.origin,
@@ -406,7 +406,7 @@ export class PhysicsScene {
     const normalizedDirection = PhysicsScene._normalizeDirection(direction);
 
     let result = false;
-    if (normalizedDirection) {
+    if (distance > 0 && normalizedDirection && PhysicsScene._isValidBoxExtents(halfExtents)) {
       this._syncColliders();
       result = this._nativePhysicsScene.boxCast(
         center,
@@ -515,7 +515,7 @@ export class PhysicsScene {
     const normalizedDirection = PhysicsScene._normalizeDirection(direction);
 
     let result = false;
-    if (normalizedDirection) {
+    if (distance > 0 && normalizedDirection && radius > 0 && Number.isFinite(radius)) {
       this._syncColliders();
       result = this._nativePhysicsScene.sphereCast(
         center,
@@ -646,7 +646,14 @@ export class PhysicsScene {
     const normalizedDirection = PhysicsScene._normalizeDirection(direction);
 
     let result = false;
-    if (normalizedDirection) {
+    if (
+      distance > 0 &&
+      normalizedDirection &&
+      radius > 0 &&
+      Number.isFinite(radius) &&
+      height > 0 &&
+      Number.isFinite(height)
+    ) {
       this._syncColliders();
       result = this._nativePhysicsScene.capsuleCast(
         center,
@@ -682,6 +689,10 @@ export class PhysicsScene {
     layerMask: Layer = Layer.Everything,
     colliders: Collider[] = []
   ): Collider[] {
+    if (!PhysicsScene._isValidBoxExtents(halfExtents)) {
+      colliders.length = 0;
+      return colliders;
+    }
     this._syncColliders();
     const ids = this._nativePhysicsScene.overlapBoxAll(center, orientation, halfExtents, layerMask);
 
@@ -702,6 +713,10 @@ export class PhysicsScene {
     layerMask: Layer = Layer.Everything,
     colliders: Collider[] = []
   ): Collider[] {
+    if (!(radius > 0 && Number.isFinite(radius))) {
+      colliders.length = 0;
+      return colliders;
+    }
     this._syncColliders();
     const ids = this._nativePhysicsScene.overlapSphereAll(center, radius, layerMask);
 
@@ -726,6 +741,10 @@ export class PhysicsScene {
     layerMask: Layer = Layer.Everything,
     colliders: Collider[] = []
   ): Collider[] {
+    if (!(radius > 0 && Number.isFinite(radius) && height > 0 && Number.isFinite(height))) {
+      colliders.length = 0;
+      return colliders;
+    }
     this._syncColliders();
     const ids = this._nativePhysicsScene.overlapCapsuleAll(center, radius, height, orientation, layerMask);
 
@@ -998,6 +1017,17 @@ export class PhysicsScene {
       out.push(physicalObjectsMap[ids[i]]);
     }
     return out;
+  }
+
+  private static _isValidBoxExtents(halfExtents: Vector3): boolean {
+    return (
+      halfExtents.x > 0 &&
+      halfExtents.y > 0 &&
+      halfExtents.z > 0 &&
+      Number.isFinite(halfExtents.x) &&
+      Number.isFinite(halfExtents.y) &&
+      Number.isFinite(halfExtents.z)
+    );
   }
 
   private static _normalizeDirection(direction: Vector3): Vector3 | null {

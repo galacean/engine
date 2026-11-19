@@ -1,4 +1,5 @@
 import { ICapsuleColliderShape } from "@galacean/engine-design";
+import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
 import { ColliderShapeUpAxis } from "./enums/ColliderShapeUpAxis";
@@ -12,40 +13,44 @@ export class CapsuleCollider extends Collider {
   private _direction = ColliderShapeUpAxis.Y;
 
   /**
-   * The radius of the capsule in the Entity's local space.
+   * The radius of the capsule in the Entity's local space. Finite negative values are clamped to 0.
    * @defaultValue 1
+   * @throws When the value is not finite.
    */
   get radius(): number {
     return this._radius;
   }
 
   set radius(value: number) {
+    if (!Number.isFinite(value)) {
+      throw new Error("CapsuleCollider radius must be finite.");
+    }
+    value = Math.max(0, value);
     if (this._radius !== value) {
       this._radius = value;
-      const shape = <ICapsuleColliderShape>this._native;
-      if (shape) {
-        shape.setRadius(value);
-        this._onGeometryChanged();
-      }
+      this._geometryDirty = true;
+      this._markDirty();
     }
   }
 
   /**
-   * The height of the cylindrical part, excluding both caps, in the Entity's local space.
+   * The height of the cylindrical part, excluding both caps, in the Entity's local space. Finite negative values are clamped to 0.
    * @defaultValue 2
+   * @throws When the value is not finite.
    */
   get height(): number {
     return this._height;
   }
 
   set height(value: number) {
+    if (!Number.isFinite(value)) {
+      throw new Error("CapsuleCollider height must be finite.");
+    }
+    value = Math.max(0, value);
     if (this._height !== value) {
       this._height = value;
-      const shape = <ICapsuleColliderShape>this._native;
-      if (shape) {
-        shape.setHeight(value);
-        this._onGeometryChanged();
-      }
+      this._geometryDirty = true;
+      this._markDirty();
     }
   }
 
@@ -60,12 +65,35 @@ export class CapsuleCollider extends Collider {
   set direction(value: ColliderShapeUpAxis) {
     if (this._direction !== value) {
       this._direction = value;
-      const shape = <ICapsuleColliderShape>this._native;
-      if (shape) {
-        shape.setUpAxis(value);
-        this._onGeometryChanged();
-      }
+      this._geometryDirty = true;
+      this._markDirty();
     }
+  }
+
+  protected override _hasValidGeometry(scale: Vector3): boolean {
+    let worldRadius: number;
+    let worldHeight: number;
+    switch (this._direction) {
+      case ColliderShapeUpAxis.X:
+        worldRadius = this._radius * Math.max(scale.y, scale.z);
+        worldHeight = this._height * scale.x;
+        break;
+      case ColliderShapeUpAxis.Y:
+        worldRadius = this._radius * Math.max(scale.x, scale.z);
+        worldHeight = this._height * scale.y;
+        break;
+      case ColliderShapeUpAxis.Z:
+        worldRadius = this._radius * Math.max(scale.x, scale.y);
+        worldHeight = this._height * scale.z;
+        break;
+    }
+    return worldRadius > 0 && Number.isFinite(worldRadius) && worldHeight > 0 && Number.isFinite(worldHeight);
+  }
+
+  protected override _syncGeometry(shape: ICapsuleColliderShape): void {
+    shape.setRadius(this._radius);
+    shape.setHeight(this._height);
+    shape.setUpAxis(this._direction);
   }
 
   protected override _createNative(): ICapsuleColliderShape {

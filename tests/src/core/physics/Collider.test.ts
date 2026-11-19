@@ -649,4 +649,132 @@ describe("Collider", () => {
       expect(recorder.onCollisionEnter).toHaveBeenCalledOnce();
     });
   });
+
+  describe("degenerate dimensions and zero world scale", () => {
+    it("clamps negative box size and detaches zero-sized or zero-scaled boxes without NaN or stale hitboxes", () => {
+      const entity = root.createChild("degenerate-box");
+      entity.transform.setPosition(0, 5, 0);
+      const box = entity.addComponent(BoxCollider);
+      const body = entity.addComponent(Rigidbody);
+      const ray = new Ray(new Vector3(-5, 5, 0), new Vector3(1, 0, 0));
+      const hit = new HitResult();
+
+      // Pre-scene negative size clamps to 0 and excludes from queries without crashing
+      box.size = new Vector3(-2, 2, 2);
+      expect(box.size.x).toBe(0);
+      expect(box.size.y).toBe(2);
+      expect(physics.raycast(ray, hit)).toBe(false);
+
+      // Setting positive size attaches cleanly with outward normal
+      box.size.set(2, 2, 2);
+      expect(physics.raycast(ray, hit)).toBe(true);
+      expect(hit.collider).toBe(box);
+      expect(hit.normal.x).toBeCloseTo(-1, 4);
+
+      // Zeroing an axis live detaches (no stale hitbox, no NaN inertia/pose)
+      box.size.x = 0;
+      expect(physics.raycast(ray, hit)).toBe(false);
+      expect(box.getClosestPoint(new Vector3(5, 5, 0), new Vector3())).toBe(-1);
+      physics.gravity.set(0, -9.81, 0);
+      update(5);
+      expect(Number.isFinite(entity.transform.worldPosition.y)).toBe(true);
+      expect(Number.isFinite(body.inertiaTensor.x)).toBe(true);
+
+      // Restoring positive size and zeroing world scale detaches and recovers cleanly
+      box.size.set(2, 2, 2);
+      entity.transform.setPosition(0, 5, 0);
+      expect(physics.raycast(ray, hit)).toBe(true);
+      entity.transform.setScale(0, 1, 1);
+      expect(physics.raycast(ray, hit)).toBe(false);
+      update(5);
+      expect(Number.isFinite(entity.transform.worldPosition.y)).toBe(true);
+      expect(Number.isFinite(body.inertiaTensor.x)).toBe(true);
+
+      entity.transform.setScale(1, 1, 1);
+      entity.transform.setPosition(0, 5, 0);
+      expect(physics.raycast(ray, hit)).toBe(true);
+      expect(hit.normal.x).toBeCloseTo(-1, 4);
+    });
+
+    it("clamps negative sphere radius, rejects non-finite values, and handles zero radius/scale without NaN", () => {
+      const entity = root.createChild("degenerate-sphere");
+      entity.transform.setPosition(0, 5, 0);
+      const sphere = entity.addComponent(SphereCollider);
+      const body = entity.addComponent(Rigidbody);
+      const ray = new Ray(new Vector3(-5, 5, 0), new Vector3(1, 0, 0));
+      const hit = new HitResult();
+
+      for (const invalid of [NaN, Infinity, -Infinity]) {
+        expect(() => (sphere.radius = invalid)).toThrow();
+      }
+      sphere.radius = -1;
+      expect(sphere.radius).toBe(0);
+      expect(physics.raycast(ray, hit)).toBe(false);
+      physics.gravity.set(0, -9.81, 0);
+      update(5);
+      expect(Number.isFinite(entity.transform.worldPosition.y)).toBe(true);
+      expect(Number.isFinite(body.inertiaTensor.x)).toBe(true);
+
+      sphere.radius = 1;
+      entity.transform.setPosition(0, 5, 0);
+      expect(physics.raycast(ray, hit)).toBe(true);
+      expect(hit.normal.x).toBeCloseTo(-1, 4);
+
+      entity.transform.setScale(0, 0, 0);
+      expect(physics.raycast(ray, hit)).toBe(false);
+      update(5);
+      expect(Number.isFinite(entity.transform.worldPosition.y)).toBe(true);
+      expect(Number.isFinite(body.inertiaTensor.x)).toBe(true);
+
+      entity.transform.setScale(2, 1, 1);
+      entity.transform.setPosition(0, 5, 0);
+      expect(physics.raycast(ray, hit)).toBe(true);
+      expect(hit.distance).toBeCloseTo(3, 4);
+    });
+
+    it("clamps capsule dimensions, requires positive radius and height, and detaches when degenerate", () => {
+      const entity = root.createChild("degenerate-capsule");
+      entity.transform.setPosition(0, 5, 0);
+      const capsule = entity.addComponent(CapsuleCollider);
+      const body = entity.addComponent(Rigidbody);
+      const ray = new Ray(new Vector3(-5, 5, 0), new Vector3(1, 0, 0));
+      const hit = new HitResult();
+
+      for (const invalid of [NaN, Infinity, -Infinity]) {
+        expect(() => (capsule.radius = invalid)).toThrow();
+        expect(() => (capsule.height = invalid)).toThrow();
+      }
+      capsule.radius = -2;
+      capsule.height = -3;
+      expect(capsule.radius).toBe(0);
+      expect(capsule.height).toBe(0);
+      expect(physics.raycast(ray, hit)).toBe(false);
+
+      // Height = 0 stays detached (consistent with PxCapsuleGeometry::isValid() and getClosestPoint)
+      capsule.radius = 1;
+      expect(physics.raycast(ray, hit)).toBe(false);
+      expect(capsule.getClosestPoint(new Vector3(-5, 5, 0), new Vector3())).toBe(-1);
+
+      // Positive radius and height attach cleanly with valid normal and getClosestPoint
+      capsule.height = 2;
+      expect(physics.raycast(ray, hit)).toBe(true);
+      expect(hit.normal.x).toBeCloseTo(-1, 4);
+      expect(hit.distance).toBeCloseTo(4, 4);
+      expect(capsule.getClosestPoint(new Vector3(-5, 5, 0), new Vector3())).toBeCloseTo(4, 4);
+
+      // Scale (0, 1, 1) makes X-direction worldHeight = 0 (detached), while Y-direction stays valid
+      entity.transform.setScale(0, 1, 1);
+      capsule.direction = ColliderShapeUpAxis.X;
+      expect(physics.raycast(ray, hit)).toBe(false);
+      physics.gravity.set(0, -9.81, 0);
+      update(5);
+      expect(Number.isFinite(entity.transform.worldPosition.y)).toBe(true);
+      expect(Number.isFinite(body.inertiaTensor.x)).toBe(true);
+
+      entity.transform.setPosition(0, 5, 0);
+      capsule.direction = ColliderShapeUpAxis.Y;
+      expect(physics.raycast(ray, hit)).toBe(true);
+      expect(hit.collider).toBe(capsule);
+    });
+  });
 });

@@ -16,8 +16,8 @@ export class HingeJoint extends Joint {
   private _axis = new Vector3(1, 0, 0);
   private _hingeFlags = HingeJointFlag.None;
   private _useSpring = false;
-  private _jointMotor: JointMotor;
-  private _limits: JointLimits;
+  private _jointMotor: JointMotor | null = null;
+  private _limits: JointLimits | null = null;
   @ignoreClone
   private _angle = 0;
   @ignoreClone
@@ -49,7 +49,7 @@ export class HingeJoint extends Joint {
   }
 
   /**
-   * The angular velocity of the joint in degrees per second.
+   * The angular velocity of the joint in radians per second.
    */
   get velocity(): Readonly<number> {
     const nativeJoint = <IHingeJoint>this._nativeJoint;
@@ -102,13 +102,13 @@ export class HingeJoint extends Joint {
   }
 
   /**
-   * The motor will apply a force up to a maximum force to achieve the target velocity in degrees per second.
+   * The motor will apply a force up to a maximum force to achieve the target velocity in radians per second.
    */
-  get motor(): JointMotor {
+  get motor(): JointMotor | null {
     return this._jointMotor;
   }
 
-  set motor(value: JointMotor) {
+  set motor(value: JointMotor | null) {
     if (this._jointMotor !== value) {
       this._jointMotor?._updateFlagManager.removeListener(this._onMotorChanged);
 
@@ -122,11 +122,11 @@ export class HingeJoint extends Joint {
   /**
    * Limit of angular rotation (in degrees) on the hinge joint.
    */
-  get limits(): JointLimits {
+  get limits(): JointLimits | null {
     return this._limits;
   }
 
-  set limits(value: JointLimits) {
+  set limits(value: JointLimits | null) {
     if (this._limits !== value) {
       this._limits?._updateFlagManager.removeListener(this._onLimitsChanged);
 

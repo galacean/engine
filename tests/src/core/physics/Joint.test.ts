@@ -607,4 +607,72 @@ describe("Joint", function () {
     expect((engine.sceneManager.activeScene.physics as any)._bodies.includes(body)).toBe(false);
     expect(() => engine.sceneManager.activeScene.physics._update(1 / 60)).not.toThrow();
   });
+
+  it("allows Joint before Rigidbody in Entity constructor and rejects duplicate Rigidbody", function () {
+    const entity = new Entity(engine, "joint-first", FixedJoint, Rigidbody);
+    rootEntity.addChild(entity);
+    expect(entity.getComponents(Rigidbody, [])).toHaveLength(1);
+    expect(entity.getComponents(FixedJoint, [])).toHaveLength(1);
+    expect(entity._components.indexOf(entity.getComponent(Rigidbody)!)).toBeLessThan(
+      entity._components.indexOf(entity.getComponent(FixedJoint)!)
+    );
+    expect(() => entity.destroy()).not.toThrow();
+
+    const multi = new Entity(engine, "multi-joint-first", FixedJoint, HingeJoint, Rigidbody);
+    expect(multi.getComponents(Rigidbody, [])).toHaveLength(1);
+    expect(multi.getComponent(FixedJoint)).not.toBeNull();
+    expect(multi.getComponent(HingeJoint)).not.toBeNull();
+    expect(() => multi.destroy()).not.toThrow();
+
+    expect(() => new Entity(engine, "dup-rb-1", Rigidbody, Rigidbody)).toThrow(/already has a Rigidbody/);
+    expect(() => new Entity(engine, "dup-rb-2", FixedJoint, Rigidbody, Rigidbody)).toThrow(/already has a Rigidbody/);
+  });
+
+  it("detaches an active joint immediately when connectedBody is destroyed without toggling enabled", function () {
+    const anchor = addBox(new Vector3(1, 1, 1), new Vector3(0, 10, 0));
+    const anchorBody = anchor.getComponent(Rigidbody)!;
+    anchorBody.isKinematic = true;
+
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const joint = box.addComponent(FixedJoint);
+    joint.connectedBody = anchorBody;
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+
+    // Destroy only the connected Rigidbody while the anchor entity stays alive
+    const removeListener = vi.spyOn((anchor as any)._updateFlagManager, "removeListener");
+    anchorBody.destroy();
+    expect(removeListener).toHaveBeenCalledWith((joint as any)._onConnectedTransformChanged);
+    expect(() => anchor.transform.setScale(2, 2, 2)).not.toThrow();
+    expect(joint.connectedBody).toBeNull();
+
+    // Without toggling enabled, the active joint is now cleanly pinned to world space at y = 5
+    engine.sceneManager.activeScene.physics._update(0.5);
+    expect(box.transform.position.y).toBeCloseTo(5, 3);
+
+    // And it can subsequently reconnect to a new Rigidbody
+    const newAnchor = addBox(new Vector3(1, 1, 1), new Vector3(0, 8, 0));
+    const newAnchorBody = newAnchor.getComponent(Rigidbody)!;
+    newAnchorBody.isKinematic = true;
+    joint.automaticConnectedAnchor = false;
+    joint.connectedBody = newAnchorBody;
+    joint.anchor.set(0, 0, 0);
+    joint.connectedAnchor.set(0, 0, 0);
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    expect(box.transform.position.y).toBeCloseTo(8, 3);
+  });
+
+  it("wakes sleeping bodies when an active joint is disabled or destroyed", function () {
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const body = box.getComponent(Rigidbody)!;
+    const joint = box.addComponent(FixedJoint);
+
+    engine.sceneManager.activeScene.physics._update(0.6);
+    expect(body.isSleeping()).toBe(true);
+    expect(box.transform.position.y).toBeCloseTo(5, 3);
+
+    joint.destroy();
+    expect(body.isSleeping()).toBe(false);
+    engine.sceneManager.activeScene.physics._update(0.3);
+    expect(box.transform.position.y).toBeLessThan(4.8);
+  });
 });

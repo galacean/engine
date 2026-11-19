@@ -60,6 +60,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /** Index of the single collision layer. */
   protected _collisionLayerIndex = 0;
+  @ignoreClone
+  protected _geometryDirty = false;
 
   @ignoreClone
   private _nativeActor: ICollider | null = null;
@@ -328,7 +330,26 @@ export class Collider extends Component implements ICloneHook<Collider> {
     // Reading the world matrix re-arms transform change notifications that are only sent from a clean state
     this._checkShear(transform.worldMatrix);
 
-    const shape = <IColliderShape>(this._native ||= this._createNative());
+    const lossyScale = transform.lossyWorldScale;
+    const scale = Collider._tempScale.set(Math.abs(lossyScale.x), Math.abs(lossyScale.y), Math.abs(lossyScale.z));
+    if (!this._hasValidGeometry(scale)) {
+      this._detach();
+      return;
+    }
+
+    let shape = <IColliderShape | null>this._native;
+    if (!shape) {
+      shape = <IColliderShape | null>(this._native = this._createNative());
+      this._geometryDirty = false;
+    } else if (this._geometryDirty) {
+      if (!Vector3.equals(scale, this._nativeScale)) {
+        this._nativeScale.copyFrom(scale);
+        shape.setWorldScale(scale);
+      }
+      this._geometryDirty = false;
+      this._syncGeometry(shape);
+      this._onGeometryChanged();
+    }
     if (!shape) {
       this._detach();
       return;
@@ -355,7 +376,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       }
       forcePose = true;
     }
-    this._syncPose(shape, body, forcePose);
+    this._syncPose(shape, body, scale, forcePose);
   }
 
   /**
@@ -406,6 +427,18 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   /**
+   * Whether the Collider produces valid native geometry under the given absolute world scale.
+   */
+  protected _hasValidGeometry(_scale: Vector3): boolean {
+    return true;
+  }
+
+  /**
+   * Push updated local geometry parameters to an existing native shape.
+   */
+  protected _syncGeometry(_shape: IColliderShape): void {}
+
+  /**
    * Create the native object from the current fields. The base class has no geometry.
    * @returns The native object, or null when the current fields cannot produce one
    */
@@ -432,12 +465,18 @@ export class Collider extends Component implements ICloneHook<Collider> {
     const actor = this._nativeActor;
     if (actor) {
       if (shape) {
-        if (!actor.replaceShape(previous, shape)) {
-          shape.destroy();
-          return false;
+        const lossyScale = this.entity.transform.lossyWorldScale;
+        const scale = Collider._tempScale.set(Math.abs(lossyScale.x), Math.abs(lossyScale.y), Math.abs(lossyScale.z));
+        if (!this._hasValidGeometry(scale)) {
+          this._detach();
+        } else {
+          if (!actor.replaceShape(previous, shape)) {
+            shape.destroy();
+            return false;
+          }
+          // Pose the new shape only after the replacement commits, so a failure keeps the caches of the old one
+          this._syncPose(shape, this._attachedBody, scale, true);
         }
-        // Pose the new shape only after the replacement commits, so a failure keeps the caches of the old one
-        this._syncPose(shape, this._attachedBody, true);
       } else {
         this._detach();
       }
@@ -554,12 +593,10 @@ export class Collider extends Component implements ICloneHook<Collider> {
     return actor;
   }
 
-  private _syncPose(shape: IColliderShape, body: Rigidbody | null, force: boolean): void {
+  private _syncPose(shape: IColliderShape, body: Rigidbody | null, scale: Vector3, force: boolean): void {
     const transform = this.entity.transform;
     const worldPosition = transform.worldPosition;
     const worldRotation = transform.worldRotationQuaternion;
-    const lossyScale = transform.lossyWorldScale;
-    const scale = Collider._tempScale.set(Math.abs(lossyScale.x), Math.abs(lossyScale.y), Math.abs(lossyScale.z));
     const position = Collider._tempPosition;
     const rotation = Collider._tempRotation;
     const localRotation = Collider._tempLocalRotation;

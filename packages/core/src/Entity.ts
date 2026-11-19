@@ -264,11 +264,13 @@ export class Entity extends EngineObject {
     this._transform = transform;
     transform._setActive(true, ActiveChangeFlag.All);
 
-    for (let i = 0; i < n; i++) {
-      const componentType = components[i];
-      if (!Entity._isTransformType(componentType)) {
-        this.addComponent(componentType);
-      }
+    if (n > 0) {
+      ComponentsDependencies._forEachInAddOrder(this, components, (i) => {
+        const componentType = components[i];
+        if (!Entity._isTransformType(componentType)) {
+          this.addComponent(componentType);
+        }
+      });
     }
     this._inverseWorldMatFlag = this.registerWorldChangeFlag();
   }
@@ -471,6 +473,16 @@ export class Entity extends EngineObject {
    */
   registerWorldChangeFlag(): BoolUpdateFlag {
     return this._updateFlagManager.createFlag(BoolUpdateFlag);
+  }
+
+  /**
+   * @internal
+   */
+  _addComponents(types: readonly ComponentConstructor[], onAdd?: (index: number, component: Component) => void): void {
+    ComponentsDependencies._forEachInAddOrder(this, types, (i) => {
+      const component = this.addComponent(types[i]);
+      onAdd?.(i, component);
+    });
   }
 
   /**

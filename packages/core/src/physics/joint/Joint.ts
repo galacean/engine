@@ -15,6 +15,9 @@ import { Rigidbody } from "../Rigidbody";
  */
 @dependentComponents(Rigidbody, DependentMode.AutoAdd)
 export abstract class Joint extends Component implements ICloneHook<Joint> {
+  /** @internal */
+  static readonly _deserializePropOrder = ["automaticConnectedAnchor"];
+
   private static _tempVector3 = new Vector3();
   private static _tempQuat = new Quaternion();
   private static _tempMatrix = new Matrix();
@@ -51,7 +54,9 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     const preBody = this._connectedBodyInfo.body;
     if (preBody !== value) {
       preBody?.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
+      preBody?._detachConnectedJoint(this);
       value?.entity._updateFlagManager.addListener(this._onConnectedTransformChanged);
+      value?._attachConnectedJoint(this);
       this._connectedBodyInfo.body = value;
       this._nativeJoint?.setConnectedCollider(Joint._getBodyActor(value));
       this._updateRotation();
@@ -59,6 +64,9 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
         this._calculateConnectedAnchor();
       } else {
         this._updateActualAnchor(AnchorOwner.Connected);
+      }
+      if (this._nativeJoint) {
+        Joint._wakeBody(preBody);
       }
     }
   }
@@ -138,7 +146,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   }
 
   /**
-   * The scale to apply to the inertia of the connected body for resolving this constraint.
+   * The scale to apply to the inverse inertia of the connected body for resolving this constraint.
    */
   get connectedInertiaScale(): number {
     return this._connectedBodyInfo.inertiaScale;
@@ -152,7 +160,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   }
 
   /**
-   * The scale to apply to the inertia of this body for resolving this constraint.
+   * The scale to apply to the inverse inertia of this body for resolving this constraint.
    */
   get inertiaScale(): number {
     return this._bodyInfo.inertiaScale;
@@ -221,8 +229,11 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
    * @internal
    */
   override _onDisableInScene(): void {
-    this._nativeJoint?.destroy();
-    this._nativeJoint = null;
+    if (this._nativeJoint) {
+      this._nativeJoint.destroy();
+      this._nativeJoint = null;
+      this._wakeBodies();
+    }
   }
 
   /**
@@ -245,13 +256,38 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
 
     const connectedBody = target._getConnectedBody();
     connectedBody?.entity._updateFlagManager.addListener(target._onConnectedTransformChanged);
+    connectedBody?._attachConnectedJoint(target);
+  }
+
+  /**
+   * @internal
+   * Detach from a connected Rigidbody before its native actor is released.
+   */
+  _onConnectedBodyDestroyed(): void {
+    const body = this._connectedBodyInfo.body;
+    if (!body) {
+      return;
+    }
+    body.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
+    this._connectedBodyInfo.body = null;
+    this._nativeJoint?.setConnectedCollider(null);
+    this._updateRotation();
+    if (this._automaticConnectedAnchor) {
+      this._calculateConnectedAnchor();
+    } else {
+      this._updateActualAnchor(AnchorOwner.Connected);
+    }
   }
 
   protected override _onDestroy(): void {
     super._onDestroy();
     this.entity._updateFlagManager.removeListener(this._onSelfTransformChanged);
-    this._connectedBodyInfo.body?.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
-    this._connectedBodyInfo.body = null;
+    const connectedBody = this._connectedBodyInfo.body;
+    if (connectedBody) {
+      connectedBody.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
+      connectedBody._detachConnectedJoint(this);
+      this._connectedBodyInfo.body = null;
+    }
   }
 
   protected abstract _createJoint(): void;
@@ -267,6 +303,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     const body = this._connectedBodyInfo.body;
     if (body && body.destroyed) {
       body.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
+      body._detachConnectedJoint(this);
       this._connectedBodyInfo.body = null;
       return null;
     }
@@ -279,6 +316,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
       if (connectedBody && connectedBody.scene && connectedBody.scene !== this.scene) {
         console.error("Joint: connectedBody belongs to another scene.");
         connectedBody.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
+        connectedBody._detachConnectedJoint(this);
         this._connectedBodyInfo.body = null;
         connectedBody = null;
       }
@@ -383,6 +421,20 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
         connectedBodyInfo.actualAnchor.copyFrom(connectedBodyInfo.anchor);
       }
       this._nativeJoint?.setConnectedAnchor(connectedBodyInfo.actualAnchor);
+    }
+    if (this._nativeJoint) {
+      this._wakeBodies();
+    }
+  }
+
+  protected _wakeBodies(): void {
+    Joint._wakeBody(this.entity.getComponent(Rigidbody));
+    Joint._wakeBody(this._connectedBodyInfo.body);
+  }
+
+  private static _wakeBody(body: Rigidbody | null | undefined): void {
+    if (body && !body.destroyed && body._index !== -1 && !body.isKinematic) {
+      body.wakeUp();
     }
   }
 }

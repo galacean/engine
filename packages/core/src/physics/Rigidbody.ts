@@ -8,6 +8,7 @@ import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Transform } from "../Transform";
 import { Collider } from "./Collider";
+import type { Joint } from "./joint/Joint";
 
 /**
  * A Rigidbody puts its Entity under physics control and owns the Colliders on its Entity and descendants, stopping at
@@ -20,6 +21,9 @@ import { Collider } from "./Collider";
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
 export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
+  /** @internal */
+  static readonly _deserializePropOrder = ["isKinematic", "automaticCenterOfMass", "automaticInertiaTensor"];
+
   private static _tempPosition = new Vector3();
   private static _tempRotation = new Quaternion();
   private static _tempColliders: Collider[] = [];
@@ -38,6 +42,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   private _nativeActor: IDynamicCollider | null = null;
   @ignoreClone
   private _attachedColliders: Collider[] = [];
+  @ignoreClone
+  private _connectedJoints: Joint[] | null = null;
   @ignoreClone
   private _nativePosition = new Vector3();
   @ignoreClone
@@ -558,6 +564,28 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /**
    * @internal
+   */
+  _attachConnectedJoint(joint: Joint): void {
+    const joints = (this._connectedJoints ||= []);
+    joints.push(joint);
+  }
+
+  /**
+   * @internal
+   */
+  _detachConnectedJoint(joint: Joint): void {
+    const joints = this._connectedJoints;
+    if (joints) {
+      const index = joints.indexOf(joint);
+      if (index !== -1) {
+        joints[index] = joints[joints.length - 1];
+        joints.length--;
+      }
+    }
+  }
+
+  /**
+   * @internal
    * Recompute automatic mass properties before the next simulation step or query.
    */
   _markMassDirty(): void {
@@ -634,6 +662,13 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   protected override _onDestroy(): void {
     super._onDestroy();
     this.entity._updateFlagManager.removeListener(this._onTransformChanged);
+    const joints = this._connectedJoints;
+    if (joints) {
+      this._connectedJoints = null;
+      for (let i = joints.length - 1; i >= 0; i--) {
+        joints[i]._onConnectedBodyDestroyed();
+      }
+    }
     const actor = this._nativeActor;
     if (actor) {
       const colliders = this._attachedColliders;

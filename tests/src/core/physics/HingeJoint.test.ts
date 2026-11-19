@@ -472,4 +472,27 @@ describe("HingeJoint", function () {
     expect(clonedJoint.velocity).toBe(0);
     clone.destroy();
   });
+
+  it("initializes motor and limits to null and allows clearing them back to null", function () {
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const joint = box.addComponent(HingeJoint);
+    expect(joint.motor).toBeNull();
+    expect(joint.limits).toBeNull();
+
+    const motor = new JointMotor();
+    const limits = new JointLimits();
+    joint.motor = motor;
+    joint.limits = limits;
+    expect(joint.motor).toBe(motor);
+    expect(joint.limits).toBe(limits);
+
+    joint.motor = null;
+    joint.limits = null;
+    expect(joint.motor).toBeNull();
+    expect(joint.limits).toBeNull();
+    expect(() => {
+      motor.targetVelocity = 5;
+      limits.max = 30;
+    }).not.toThrow();
+  });
 });

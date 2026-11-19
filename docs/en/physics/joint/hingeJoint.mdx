@@ -71,7 +71,7 @@ The connection target must be a [Rigidbody](/en/docs/physics/collider/rigidbody)
 
 | Property            | Description                                                                 |
 | --------------- | -------------------------------------------------------------------- |
-| **targetVelocity** | Target angular velocity (degrees/second)                                               |
+| **targetVelocity** | Target angular velocity (radians/second)                                               |
 | **forceLimit**  | Maximum torque limit                                                        |
 | **freeSpin**    | Whether to allow free spin                                                    |
 | **gearRatio**   | Gear ratio, used to adjust the actual output angular velocity                                    |
@@ -128,7 +128,7 @@ hingeJoint.limits.damping = 0.2;    // Damping coefficient
 // Enable motor
 hingeJoint.useMotor = true;
 hingeJoint.motor = new JointMotor();
-hingeJoint.motor.targetVelocity = 180;  // Target angular velocity (degrees/second)
+hingeJoint.motor.targetVelocity = Math.PI; // Target angular velocity (radians/second)
 hingeJoint.motor.forceLimit = 500;      // Maximum torque
 hingeJoint.motor.freeSpin = false;      // Free spin
 hingeJoint.motor.gearRatio = 1;         // Gear ratio

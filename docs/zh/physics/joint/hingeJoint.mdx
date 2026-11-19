@@ -71,7 +71,7 @@ label: Physics
 
 | 属性            | 描述                                                                 |
 | --------------- | -------------------------------------------------------------------- |
-| **targetVelocity** | 目标角速度（度/秒）                                               |
+| **targetVelocity** | 目标角速度（弧度/秒）                                               |
 | **forceLimit**  | 最大扭矩限制                                                        |
 | **freeSpin**    | 是否允许自由旋转                                                    |
 | **gearRatio**   | 齿轮比，用于调整实际输出的角速度                                    |
@@ -128,7 +128,7 @@ hingeJoint.limits.damping = 0.2;    // 阻尼系数
 // 启用马达
 hingeJoint.useMotor = true;
 hingeJoint.motor = new JointMotor();
-hingeJoint.motor.targetVelocity = 180;  // 目标角速度(度/秒)
+hingeJoint.motor.targetVelocity = Math.PI; // 目标角速度(弧度/秒)
 hingeJoint.motor.forceLimit = 500;      // 最大扭矩
 hingeJoint.motor.freeSpin = false;      // 自由旋转
 hingeJoint.motor.gearRatio = 1;         // 齿轮比

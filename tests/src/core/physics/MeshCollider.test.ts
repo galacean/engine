@@ -620,4 +620,28 @@ describe("MeshCollider", () => {
     collider.convex = false;
     expect(collider.convex).toBe(false);
   });
+
+  it("detaches cleanly on zero world scale without NaN inertia and recovers when scale becomes positive", () => {
+    const collider = addMesh(true);
+    collider.entity.transform.setPosition(0, 5, 0);
+    const body = collider.entity.addComponent(Rigidbody);
+    const hit = new HitResult();
+    expect(physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), hit)).toBe(true);
+
+    collider.entity.transform.setScale(0, 1, 1);
+    expect(physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), hit)).toBe(false);
+    update(5);
+    expect(Number.isFinite(collider.entity.transform.worldPosition.y)).toBe(true);
+    expect(Number.isFinite(body.inertiaTensor.x)).toBe(true);
+
+    // Replacing mesh/convex while zero-scaled keeps it safely detached until scale recovers
+    body.isKinematic = true;
+    collider.convex = false;
+    expect(physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), hit)).toBe(false);
+
+    collider.entity.transform.setPosition(0, 5, 0);
+    collider.entity.transform.setScale(1, 1, 1);
+    expect(physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), hit)).toBe(true);
+    expect(hit.collider).toBe(collider);
+  });
 });

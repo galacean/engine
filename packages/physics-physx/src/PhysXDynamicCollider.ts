@@ -216,6 +216,18 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
+   * {@inheritDoc IDynamicCollider.setWorldTransform }
+   */
+  override setWorldTransform(position: Vector3, rotation: Quaternion): void {
+    const transform = this._transform(position, rotation);
+    this._pxActor.setGlobalPose(transform, true);
+    // PhysX setGlobalPose does not clear a pending kinematic target; override it so the teleport is not undone on step
+    if (this._pxActor.getKinematicTarget()) {
+      this._pxActor.setKinematicTarget(transform.translation, transform.rotation);
+    }
+  }
+
+  /**
    * {@inheritDoc IDynamicCollider.move }
    */
   move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void {
@@ -228,7 +240,9 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     }
 
     const tempTranslation = PhysXDynamicCollider._tempTranslation;
-    this.getWorldTransform(tempTranslation, tempRotation);
+    const pose = this._pxActor.getKinematicTarget() ?? this._pxActor.getGlobalPose();
+    tempTranslation.set(pose.translation.x, pose.translation.y, pose.translation.z);
+    tempRotation.set(pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w);
     if (positionOrRotation instanceof Vector3) {
       this._pxActor.setKinematicTarget(positionOrRotation, tempRotation);
     } else {

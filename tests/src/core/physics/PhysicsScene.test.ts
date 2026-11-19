@@ -2584,6 +2584,49 @@ describe("Physics Test", () => {
       expect(mover.transform.rotationQuaternion.length()).toBeCloseTo(1, 4);
     });
 
+    it("rejects non-positive or non-finite query geometry and distances without hits or inverted normals", () => {
+      const root = enginePhysX.sceneManager.activeScene.createRootEntity("invalid-query-dims");
+      const target = root.createChild("target");
+      target.addComponent(BoxCollider).size = new Vector3(2, 2, 2);
+
+      const hit = new HitResult();
+      hit.distance = 99;
+      const origin = new Vector3(-5, 0, 0);
+      const dir = new Vector3(1, 0, 0);
+      const idQ = new Quaternion();
+
+      expect(physicsScene.raycast(new Ray(origin, dir), 0, hit)).toBe(false);
+      expect(hit.collider).toBeNull();
+      expect(physicsScene.raycast(new Ray(origin, dir), -5, hit)).toBe(false);
+      expect(physicsScene.raycast(new Ray(origin, dir), NaN, hit)).toBe(false);
+
+      expect(physicsScene.boxCast(origin, new Vector3(0, 1, 1), dir, 20, hit)).toBe(false);
+      expect(physicsScene.boxCast(origin, new Vector3(-1, 1, 1), dir, 20, hit)).toBe(false);
+      expect(physicsScene.boxCast(origin, new Vector3(1, 1, 1), dir, 0, hit)).toBe(false);
+      expect(physicsScene.sphereCast(origin, 0, dir, 20, hit)).toBe(false);
+      expect(physicsScene.sphereCast(origin, -1, dir, 20, hit)).toBe(false);
+      expect(physicsScene.sphereCast(origin, NaN, dir, 20, hit)).toBe(false);
+      expect(physicsScene.sphereCast(origin, 0.5, dir, -1, hit)).toBe(false);
+      expect(physicsScene.capsuleCast(origin, 0, 1, dir, 20, hit)).toBe(false);
+      expect(physicsScene.capsuleCast(origin, -0.5, 1, dir, 20, hit)).toBe(false);
+      expect(physicsScene.capsuleCast(origin, 0.5, -1, dir, 20, hit)).toBe(false);
+      expect(physicsScene.capsuleCast(origin, 0.5, 0, dir, 20, hit)).toBe(false);
+      expect(physicsScene.capsuleCast(origin, 0.5, 1, dir, 20, hit)).toBe(true);
+      expect(hit.normal.x).toBeCloseTo(-1, 4);
+
+      const existing = [target.getComponent(BoxCollider)!];
+      expect(physicsScene.overlapBoxAll(new Vector3(), new Vector3(0, 1, 1), idQ, Layer.Everything, existing)).toEqual(
+        []
+      );
+      expect(physicsScene.overlapBoxAll(new Vector3(), new Vector3(-1, 1, 1))).toEqual([]);
+      expect(physicsScene.overlapSphereAll(new Vector3(), 0)).toEqual([]);
+      expect(physicsScene.overlapSphereAll(new Vector3(), -1)).toEqual([]);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(), 0, 1)).toEqual([]);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, -1)).toEqual([]);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, 0)).toEqual([]);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, 1)).toHaveLength(1);
+    });
+
     afterEach(() => {
       vi.restoreAllMocks();
       for (const root of enginePhysX.sceneManager.activeScene.rootEntities.slice()) {

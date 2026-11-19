@@ -1,5 +1,5 @@
 import { ICharacterController } from "@galacean/engine-design";
-import { Vector3 } from "@galacean/engine";
+import { Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
 import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
@@ -11,6 +11,10 @@ import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
  */
 export class PhysXCharacterController implements ICharacterController {
   private static _tempVec = new Vector3();
+  private static _tempPose = {
+    translation: new Vector3(),
+    rotation: new Quaternion()
+  };
 
   /** @internal */
   _id: number;
@@ -109,7 +113,11 @@ export class PhysXCharacterController implements ICharacterController {
    */
   setCollisionLayer(layer: number): void {
     this._collisionLayer = layer;
-    this._applyToController((controller) => this._physXPhysics._physX.setGroup(controller.getActor(), layer));
+    this._applyToController((controller) => {
+      const actor = controller.getActor();
+      this._physXPhysics._physX.setGroup(actor, layer);
+      actor.delete();
+    });
   }
 
   /**
@@ -247,7 +255,9 @@ export class PhysXCharacterController implements ICharacterController {
     this._pxController = pxController;
     pxController.setUUID(this._id);
     pxController.setSceneQueryEnabled(this._isSceneQuery);
-    physX.setGroup(pxController.getActor(), this._collisionLayer);
+    const actor = pxController.getActor();
+    physX.setGroup(actor, this._collisionLayer);
+    actor.delete();
     scene._addColliderShape(this._id);
   }
 
@@ -263,7 +273,17 @@ export class PhysXCharacterController implements ICharacterController {
   private _updateNativePosition(): void {
     const position = PhysXCharacterController._tempVec;
     Vector3.add(this._worldPosition, this._center, position);
-    this._applyToController((controller) => controller.setPosition(position));
+    this._applyToController((controller) => {
+      controller.setPosition(position);
+      // setPosition schedules a kinematic target; sync the proxy actor pose so immediate scene queries match
+      const actor = controller.getActor();
+      const currentPose = actor.getGlobalPose();
+      const pose = PhysXCharacterController._tempPose;
+      pose.translation.copyFrom(position);
+      pose.rotation.set(currentPose.rotation.x, currentPose.rotation.y, currentPose.rotation.z, currentPose.rotation.w);
+      actor.setGlobalPose(pose, true);
+      actor.delete();
+    });
   }
 
   /**

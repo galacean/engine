@@ -16,7 +16,7 @@ export interface IHingeJoint extends IJoint {
   getAngle(): number;
 
   /**
-   * The angular velocity of the joint in degrees per second.
+   * The angular velocity of the joint in radians per second.
    */
   getVelocity(): Readonly<number>;
 

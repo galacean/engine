@@ -1,4 +1,4 @@
-import { Component, Engine, Entity, Loader, Scene } from "@galacean/engine-core";
+import { Component, ComponentConstructor, Engine, Entity, Loader, Scene } from "@galacean/engine-core";
 import { GLTFResource } from "../../../gltf";
 import { PrefabResource } from "../../../prefab/PrefabResource";
 import { resolveRefItem } from "../../../schema/refs";
@@ -135,24 +135,40 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       const entity = entityInstances[i];
       if (HierarchyParser._isPrefabInstanceEntity(entityConfig)) {
         const additions = entityConfig.instance.overrides?.addedComponents;
-        for (let j = 0, m = additions?.length ?? 0; j < m; j++) {
-          const added = additions![j];
+        const additionCount = additions?.length ?? 0;
+        if (additionCount === 1) {
+          const added = additions![0];
           const target = HierarchyParser._resolveEntity(entity, added.target);
           const config = allComponents[added.component];
-          const instance = HierarchyParser._addComponentFromConfig(target, config, refs);
-          pendingComponents.push({ instance, config });
+          HierarchyParser._addComponentsFromConfigs(target, [config], refs, pendingComponents);
+        } else if (additionCount > 1) {
+          const grouped = new Map<Entity, ComponentSchema[]>();
+          for (let j = 0; j < additionCount; j++) {
+            const added = additions![j];
+            const target = HierarchyParser._resolveEntity(entity, added.target);
+            const config = allComponents[added.component];
+            let list = grouped.get(target);
+            if (!list) {
+              list = [];
+              grouped.set(target, list);
+            }
+            list.push(config);
+          }
+          grouped.forEach((configs, target) => {
+            HierarchyParser._addComponentsFromConfigs(target, configs, refs, pendingComponents);
+          });
         }
         continue;
       }
 
       const componentIndices = entityConfig.components;
-      if (!componentIndices) continue;
+      if (!componentIndices?.length) continue;
 
+      const configs = new Array<ComponentSchema>(componentIndices.length);
       for (let j = 0, m = componentIndices.length; j < m; j++) {
-        const config = allComponents[componentIndices[j]];
-        const instance = HierarchyParser._addComponentFromConfig(entity, config, refs);
-        pendingComponents.push({ instance, config });
+        configs[j] = allComponents[componentIndices[j]];
       }
+      HierarchyParser._addComponentsFromConfigs(entity, configs, refs, pendingComponents);
     }
   }
 
@@ -309,15 +325,28 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     return result;
   }
 
-  /** Resolve component class from config and add to entity. Throws if class is not registered. */
-  private static _addComponentFromConfig(entity: Entity, config: ComponentSchema, refs: RefItem[]): Component {
-    const key =
-      config.script != null
-        ? resolveRefItem(refs, config.script, "HierarchyParser", "component.script").url
-        : config.type;
-    const Class = Loader.getClass(key);
-    if (!Class) throw new Error(`Loader.getClass: class "${key}" is not registered`);
-    return entity.addComponent(Class);
+  /** Resolve component classes from configs and add them to the entity in dependency order. */
+  private static _addComponentsFromConfigs(
+    entity: Entity,
+    configs: ComponentSchema[],
+    refs: RefItem[],
+    pendingComponents: { instance: Component; config: ComponentSchema }[]
+  ): void {
+    const n = configs.length;
+    const classes = new Array<ComponentConstructor>(n);
+    for (let i = 0; i < n; i++) {
+      const config = configs[i];
+      const key =
+        config.script != null
+          ? resolveRefItem(refs, config.script, "HierarchyParser", "component.script").url
+          : config.type;
+      const Class = Loader.getClass(key);
+      if (!Class) throw new Error(`Loader.getClass: class "${key}" is not registered`);
+      classes[i] = Class;
+    }
+    entity._addComponents(classes, (i, instance) => {
+      pendingComponents.push({ instance, config: configs[i] });
+    });
   }
 
   private static _isPrefabInstanceEntity(entityConfig: EntitySchema): entityConfig is PrefabInstanceEntitySchema {

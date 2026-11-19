@@ -16,6 +16,11 @@ type MeshData = {
  * @remarks A triangle mesh (`convex = false`) can only be static or belong to a kinematic {@link Rigidbody}.
  */
 export class MeshCollider extends Collider {
+  /** @internal */
+  static _deserializePropOrder(props: Record<string, unknown>): readonly string[] {
+    return props.isTrigger === false ? ["isTrigger", "convex", "cookingFlags"] : ["convex", "cookingFlags"];
+  }
+
   @ignoreClone
   private _mesh: ModelMesh | null = null;
   private _convex = false;
@@ -125,6 +130,18 @@ export class MeshCollider extends Collider {
    */
   override _supportsDynamicBody(): boolean {
     return this._convex;
+  }
+
+  protected override _hasValidGeometry(scale: Vector3): boolean {
+    const minScale = 1e-6;
+    return (
+      scale.x >= minScale &&
+      scale.y >= minScale &&
+      scale.z >= minScale &&
+      Number.isFinite(scale.x) &&
+      Number.isFinite(scale.y) &&
+      Number.isFinite(scale.z)
+    );
   }
 
   /**

@@ -31,8 +31,6 @@ export class CharacterController extends Collider {
   @ignoreClone
   private _inScene = false;
   @ignoreClone
-  private _geometryDirty = true;
-  @ignoreClone
   private _syncedScale = new Vector3();
   @ignoreClone
   private _syncedCenter = new Vector3();
@@ -55,14 +53,19 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * The capsule radius in the Entity's local space.
+   * The capsule radius in the Entity's local space. Finite negative values are clamped to 0.
    * @defaultValue 0.5
+   * @throws When the value is not finite.
    */
   get radius(): number {
     return this._radius;
   }
 
   set radius(value: number) {
+    if (!Number.isFinite(value)) {
+      throw new Error("CharacterController radius must be finite.");
+    }
+    value = Math.max(0, value);
     if (this._radius !== value) {
       this._radius = value;
       this._setGeometryDirty();
@@ -70,14 +73,19 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * The height of the capsule's cylindrical part, excluding both caps, in the Entity's local space.
+   * The height of the capsule's cylindrical part, excluding both caps, in the Entity's local space. Finite negative values are clamped to 0.
    * @defaultValue 1
+   * @throws When the value is not finite.
    */
   get height(): number {
     return this._height;
   }
 
   set height(value: number) {
+    if (!Number.isFinite(value)) {
+      throw new Error("CharacterController height must be finite.");
+    }
+    value = Math.max(0, value);
     if (this._height !== value) {
       this._height = value;
       this._setGeometryDirty();
@@ -85,7 +93,7 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * The box size in the Entity's local space.
+   * The box size in the Entity's local space. Negative components are clamped to 0.
    * @defaultValue `(1, 1, 1)`
    */
   get size(): Vector3 {
@@ -184,25 +192,32 @@ export class CharacterController extends Collider {
    */
   constructor(entity: Entity) {
     super(entity);
+    this._geometryDirty = true;
     //@ts-ignore
-    this._size._onValueChanged = this._setGeometryDirty.bind(this);
+    this._size._onValueChanged = this._onSizeChanged.bind(this);
     //@ts-ignore
     this._upDirection._onValueChanged = this._setUpDirection.bind(this);
   }
 
   /**
    * Moves the character using a "collide-and-slide" algorithm, then writes the result to the Entity's world position.
+   * @remarks `entity.transform.worldPosition` updates immediately. With PhysX, `move()` advances the controller's
+   * proxy kinematic actor on the next simulation step, so triggers and scene queries observe the moved pose after that
+   * step; teleporting via `entity.transform` updates scene queries immediately.
    * @param disp - Displacement vector
    * @param minDist - The minimum travelled distance to consider
    * @param elapsedTime - Time elapsed since last call
-   * @returns The ControllerCollisionFlag, or 0 when the controller is not in a scene
+   * @returns The ControllerCollisionFlag, or 0 when the controller is not active in a scene
    */
   move(disp: Vector3, minDist: number, elapsedTime: number): number {
     if (!this._phasedActiveInScene) {
       return 0;
     }
     this.scene!.physics._syncColliders();
-    const controller = <ICharacterController>this._native;
+    const controller = <ICharacterController | null>this._native;
+    if (!this._inScene || !controller) {
+      return 0;
+    }
     const flags = controller.move(disp, minDist, elapsedTime);
     const position = CharacterController._tempWorldPosition;
     controller.getWorldPosition(position);
@@ -236,13 +251,19 @@ export class CharacterController extends Collider {
     const transform = this.entity.transform;
     // Reading the world matrix re-arms transform change notifications that are only sent from a clean state
     transform.worldMatrix;
-    const controller = <ICharacterController>(this._native ||= this._createNative());
     const lossyScale = transform.lossyWorldScale;
     const scale = CharacterController._tempWorldScale.set(
       Math.abs(lossyScale.x),
       Math.abs(lossyScale.y),
       Math.abs(lossyScale.z)
     );
+    if (!this._hasValidGeometry(scale)) {
+      this._detach();
+      this._geometryDirty = true;
+      return;
+    }
+
+    const controller = <ICharacterController>(this._native ||= this._createNative());
     const force = !this._inScene;
 
     const center = CharacterController._tempExtents;
@@ -313,8 +334,36 @@ export class CharacterController extends Collider {
     this._setGeometryDirty();
   }
 
+  protected override _hasValidGeometry(scale: Vector3): boolean {
+    if (this._geometry === CharacterControllerGeometry.Box) {
+      const size = this._size;
+      const x = size.x * scale.x;
+      const y = size.y * scale.y;
+      const z = size.z * scale.z;
+      return x > 0 && y > 0 && z > 0 && Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z);
+    }
+    const radius = this._radius * Math.max(scale.x, scale.z);
+    const height = this._height * scale.y;
+    return radius > 0 && height > 0 && Number.isFinite(radius) && Number.isFinite(height);
+  }
+
   protected override _findRigidbody(): Rigidbody | null {
     return null;
+  }
+
+  @ignoreClone
+  private _onSizeChanged(): void {
+    const size = this._size;
+    if (size.x < 0 || size.y < 0 || size.z < 0) {
+      //@ts-ignore
+      const listener = size._onValueChanged;
+      //@ts-ignore
+      size._onValueChanged = null;
+      size.set(size.x < 0 ? 0 : size.x, size.y < 0 ? 0 : size.y, size.z < 0 ? 0 : size.z);
+      //@ts-ignore
+      size._onValueChanged = listener;
+    }
+    this._setGeometryDirty();
   }
 
   @ignoreClone

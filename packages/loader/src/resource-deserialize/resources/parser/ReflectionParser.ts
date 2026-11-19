@@ -17,14 +17,50 @@ export class ReflectionParser {
    * Each prop value is resolved recursively (handling $ref, $number, $type, $class, $entity, $component, $signal).
    */
   parseProps(instance: any, props?: Record<string, unknown>): Promise<any> {
-    const promises: Promise<any>[] = [];
-    if (props) {
-      for (const key in props) {
-        const promise = this._resolveValue(props[key], instance[key]).then((v) => {
-          instance[key] = v;
-        });
-        promises.push(promise);
+    if (!props) return Promise.resolve(instance);
+
+    const rawPropOrder: readonly string[] | ((props: Record<string, unknown>) => readonly string[]) | undefined =
+      instance?.constructor?._deserializePropOrder;
+    const propOrder = typeof rawPropOrder === "function" ? rawPropOrder(props) : rawPropOrder;
+    if (propOrder?.length) {
+      const orderedKeys: string[] = [];
+      for (let i = 0, n = propOrder.length; i < n; i++) {
+        const key = propOrder[i];
+        if (Object.prototype.hasOwnProperty.call(props, key)) {
+          orderedKeys.push(key);
+        }
       }
+      if (orderedKeys.length > 0) {
+        let chain = Promise.resolve();
+        for (let i = 0, n = orderedKeys.length; i < n; i++) {
+          const key = orderedKeys[i];
+          chain = chain.then(() =>
+            this._resolveValue(props[key], instance[key]).then((v) => {
+              instance[key] = v;
+            })
+          );
+        }
+        return chain.then(() => {
+          const promises: Promise<any>[] = [];
+          for (const key in props) {
+            if (orderedKeys.includes(key)) continue;
+            promises.push(
+              this._resolveValue(props[key], instance[key]).then((v) => {
+                instance[key] = v;
+              })
+            );
+          }
+          return Promise.all(promises).then(() => instance);
+        });
+      }
+    }
+
+    const promises: Promise<any>[] = [];
+    for (const key in props) {
+      const promise = this._resolveValue(props[key], instance[key]).then((v) => {
+        instance[key] = v;
+      });
+      promises.push(promise);
     }
     return Promise.all(promises).then(() => instance);
   }

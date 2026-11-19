@@ -35,6 +35,58 @@ export class ComponentsDependencies {
 
   /**
    * @internal
+   * Invoke `onAdd` for each index in `types`, adding any unsatisfied dependency that appears later in `types`
+   * before the component that requires it while preserving the original order otherwise.
+   */
+  static _forEachInAddOrder(
+    entity: Entity,
+    types: readonly ComponentConstructor[],
+    onAdd: (index: number) => void
+  ): void {
+    const n = types.length;
+    if (n === 0) return;
+    if (n === 1) {
+      onAdd(0);
+      return;
+    }
+
+    // 0 = unvisited, 1 = visiting (cycle guard), 2 = visited
+    const state = new Uint8Array(n);
+    const visit = (index: number): void => {
+      if (state[index] !== 0) return;
+      state[index] = 1;
+
+      let type: ComponentConstructor = types[index];
+      while (type && type !== Component) {
+        const dependentInfo = ComponentsDependencies._dependenciesMap.get(type);
+        if (dependentInfo) {
+          const { components } = dependentInfo;
+          for (let i = 0, len = components.length; i < len; i++) {
+            const dep = components[i];
+            if (!entity.getComponent(dep)) {
+              for (let j = 0; j < n; j++) {
+                if (state[j] === 0 && (types[j] === dep || types[j].prototype instanceof dep)) {
+                  visit(j);
+                  break;
+                }
+              }
+            }
+          }
+        }
+        type = Object.getPrototypeOf(type);
+      }
+
+      state[index] = 2;
+      onAdd(index);
+    };
+
+    for (let i = 0; i < n; i++) {
+      visit(i);
+    }
+  }
+
+  /**
+   * @internal
    */
   static _hasDependencies(type: ComponentConstructor): boolean {
     while (type !== Component) {

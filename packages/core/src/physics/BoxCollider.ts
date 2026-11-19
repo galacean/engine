@@ -12,8 +12,9 @@ export class BoxCollider extends Collider {
   private _size = new Vector3(1, 1, 1);
 
   /**
-   * The size of the box in the Entity's local space.
+   * The size of the box in the Entity's local space. Negative components are clamped to 0.
    * @defaultValue `(1, 1, 1)`
+   * @remarks A box with any non-positive effective world extent is excluded from simulation and queries until positive.
    */
   get size(): Vector3 {
     return this._size;
@@ -31,7 +32,19 @@ export class BoxCollider extends Collider {
   constructor(entity: Entity) {
     super(entity);
     //@ts-ignore
-    this._size._onValueChanged = this._setSize.bind(this);
+    this._size._onValueChanged = this._onSizeChanged.bind(this);
+  }
+
+  protected override _hasValidGeometry(scale: Vector3): boolean {
+    const size = this._size;
+    const x = size.x * scale.x;
+    const y = size.y * scale.y;
+    const z = size.z * scale.z;
+    return x > 0 && y > 0 && z > 0 && Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z);
+  }
+
+  protected override _syncGeometry(shape: IBoxColliderShape): void {
+    shape.setSize(this._size);
   }
 
   protected override _createNative(): IBoxColliderShape {
@@ -41,11 +54,18 @@ export class BoxCollider extends Collider {
   }
 
   @ignoreClone
-  private _setSize(): void {
-    const shape = <IBoxColliderShape>this._native;
-    if (shape) {
-      shape.setSize(this._size);
-      this._onGeometryChanged();
+  private _onSizeChanged(): void {
+    const size = this._size;
+    if (size.x < 0 || size.y < 0 || size.z < 0) {
+      //@ts-ignore
+      const listener = size._onValueChanged;
+      //@ts-ignore
+      size._onValueChanged = null;
+      size.set(size.x < 0 ? 0 : size.x, size.y < 0 ? 0 : size.y, size.z < 0 ? 0 : size.z);
+      //@ts-ignore
+      size._onValueChanged = listener;
     }
+    this._geometryDirty = true;
+    this._markDirty();
   }
 }

@@ -10,6 +10,7 @@ import {
   Layer,
   PhysicsScene,
   PlaneCollider,
+  Rigidbody,
   Script
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
@@ -515,5 +516,185 @@ describe("CharacterController", () => {
     controller.destroy();
     expect(controller.destroyed).toBe(true);
     expect(move(new Vector3(1, 0, 0))).toBe(0);
+  });
+
+  it("updates scene queries immediately when teleported via entity transform or center", () => {
+    role.transform.setPosition(0, 2, 0);
+    const hit = new HitResult();
+    expect(physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Everything, hit)).toBe(
+      true
+    );
+    expect(hit.collider).toBe(controller);
+
+    // Teleport without stepping simulation: queries must immediately reflect the new pose
+    role.transform.setPosition(12, 2, 0);
+    expect(physics.overlapSphereAll(new Vector3(12, 2, 0), 0.1)).toContain(controller);
+    expect(physics.overlapSphereAll(new Vector3(0, 2, 0), 0.1)).not.toContain(controller);
+
+    controller.center = new Vector3(0, 3, 0);
+    expect(physics.overlapSphereAll(new Vector3(12, 5, 0), 0.1)).toContain(controller);
+    expect(physics.overlapSphereAll(new Vector3(12, 2, 0), 0.1)).not.toContain(controller);
+  });
+
+  it("clamps negative dimensions, rejects non-finite scalars, and detaches cleanly on zero dimensions or scale", () => {
+    for (const invalid of [NaN, Infinity, -Infinity]) {
+      expect(() => (controller.radius = invalid)).toThrow();
+      expect(() => (controller.height = invalid)).toThrow();
+    }
+    controller.radius = -1;
+    controller.height = -2;
+    expect(controller.radius).toBe(0);
+    expect(controller.height).toBe(0);
+
+    controller.size = new Vector3(-1, 2, 1);
+    expect(controller.size.x).toBe(0);
+    expect(controller.size.y).toBe(2);
+
+    // Valid box first
+    controller.size = new Vector3(1, 1, 1);
+    role.transform.setPosition(0, 2, 0);
+    expect(physics.overlapSphereAll(new Vector3(0, 2, 0), 0.1)).toContain(controller);
+
+    // Zero scale detaches cleanly (no stale hitbox, move returns 0 without throwing)
+    role.transform.setScale(0, 1, 1);
+    expect(physics.overlapSphereAll(new Vector3(0, 2, 0), 0.1)).not.toContain(controller);
+    expect(move(new Vector3(2, 0, 0))).toBe(0);
+    expect(role.transform.position.x).toBe(0);
+
+    // Restoring positive scale re-attaches cleanly
+    role.transform.setScale(1, 1, 1);
+    expect(physics.overlapSphereAll(new Vector3(0, 2, 0), 0.1)).toContain(controller);
+    move(new Vector3(2, 0, 0));
+    expect(role.transform.position.x).toBeCloseTo(2, 4);
+
+    // Capsule with zero height detaches and recovers cleanly
+    controller.geometry = CharacterControllerGeometry.Capsule;
+    controller.radius = 0.5;
+    controller.height = 0;
+    expect(physics.overlapSphereAll(new Vector3(2, 2, 0), 0.1)).not.toContain(controller);
+    expect(move(new Vector3(2, 0, 0))).toBe(0);
+    controller.height = 1;
+    expect(physics.overlapSphereAll(new Vector3(2, 2, 0), 0.1)).toContain(controller);
+    move(new Vector3(1, 0, 0));
+    expect(role.transform.position.x).toBeCloseTo(3, 4);
+  });
+
+  describe("move() collision layer and matrix filtering", () => {
+    afterEach(() => {
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, true);
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer3, true);
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer4, true);
+    });
+
+    it("filters static and dynamic colliders and invalidates cached obstacles on matrix or layer change", () => {
+      controller.collisionLayer = Layer.Layer1;
+      role.transform.setPosition(0, 2, 0);
+
+      // Static wall on Layer2
+      const staticWall = addBox(new Vector3(1, 4, 4), new Vector3(2, 2, 0));
+      staticWall.collisionLayer = Layer.Layer2;
+      // Dynamic wall (kinematic body) on Layer3
+      const dynEntity = root.createChild("dyn-wall");
+      dynEntity.transform.setPosition(5, 2, 0);
+      const dynWall = dynEntity.addComponent(BoxCollider);
+      dynWall.size = new Vector3(1, 4, 4);
+      dynWall.collisionLayer = Layer.Layer3;
+      dynEntity.addComponent(Rigidbody).isKinematic = true;
+
+      // Initially blocked by static wall at x = 2 (stops near 2 - 0.5 - 0.5 - 0.02 = 0.98)
+      const hitStatic = move(new Vector3(4, 0, 0));
+      expect(Boolean(hitStatic & ControllerCollisionFlag.Sides)).toBe(true);
+      expect(role.transform.position.x).toBeCloseTo(0.98, 2);
+
+      // Disable Layer1 <-> Layer2: must pass through static wall and stop at dynamic wall (x = 5 -> ~3.98)
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, false);
+      const hitDyn = move(new Vector3(6, 0, 0));
+      expect(Boolean(hitDyn & ControllerCollisionFlag.Sides)).toBe(true);
+      expect(role.transform.position.x).toBeCloseTo(3.98, 2);
+
+      // Disable Layer1 <-> Layer3: must pass through dynamic wall as well
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer3, false);
+      move(new Vector3(4, 0, 0));
+      expect(role.transform.position.x).toBeCloseTo(7.98, 2);
+
+      // Re-enable Layer1 <-> Layer2 and move back: static wall must block again (cache invalidated)
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, true);
+      move(new Vector3(-10, 0, 0));
+      expect(role.transform.position.x).toBeCloseTo(3.02, 2);
+    });
+
+    it("filters compound Rigidbody child colliders independently by layer and never blocks on triggers", () => {
+      controller.collisionLayer = Layer.Layer1;
+      role.transform.setPosition(0, 2, 0);
+
+      // Trigger on an ENABLED layer must NOT block move()
+      const triggerWall = addBox(new Vector3(1, 4, 4), new Vector3(1.5, 2, 0));
+      triggerWall.collisionLayer = Layer.Layer1;
+      triggerWall.isTrigger = true;
+      class TriggerRecorder extends Script {
+        onTriggerEnter = vi.fn();
+      }
+      const triggerRecorder = triggerWall.entity.addComponent(TriggerRecorder);
+
+      // Compound kinematic Rigidbody with two child colliders on different layers
+      const compound = root.createChild("compound");
+      compound.addComponent(Rigidbody).isKinematic = true;
+      const firstChild = compound.createChild("passable");
+      firstChild.transform.setPosition(3, 2, 0);
+      const firstCol = firstChild.addComponent(BoxCollider);
+      firstCol.size = new Vector3(1, 4, 4);
+      firstCol.collisionLayer = Layer.Layer2;
+      const secondChild = compound.createChild("solid");
+      secondChild.transform.setPosition(6, 2, 0);
+      const secondCol = secondChild.addComponent(BoxCollider);
+      secondCol.size = new Vector3(1, 4, 4);
+      secondCol.collisionLayer = Layer.Layer3;
+      secondCol.isSceneQuery = false; // non-query solid must still block CCT
+
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, false);
+      const flags = move(new Vector3(10, 0, 0));
+      expect(Boolean(flags & ControllerCollisionFlag.Sides)).toBe(true);
+      // Passed through trigger at 1.5 and Layer2 child at 3, stopped at Layer3 child at 6 (~4.98)
+      expect(role.transform.position.x).toBeCloseTo(4.98, 2);
+
+      // Walk back into trigger to verify triggers still fire events
+      role.transform.setPosition(0, 2, 0);
+      move(new Vector3(1.5, 0, 0));
+      update(2);
+      expect(triggerRecorder.onTriggerEnter).toHaveBeenCalled();
+    });
+
+    it("filters controller-vs-controller collisions using collisionLayer and the layer matrix", () => {
+      controller.collisionLayer = Layer.Layer1;
+      role.transform.setPosition(0, 2, 0);
+
+      const otherEntity = root.createChild("other-cct");
+      otherEntity.transform.setPosition(3, 2, 0);
+      const otherCC = otherEntity.addComponent(CharacterController);
+      otherCC.geometry = CharacterControllerGeometry.Box;
+      otherCC.collisionLayer = Layer.Layer4;
+
+      // Sync both controllers into scene
+      otherCC.move(new Vector3(0, 0, 0), 0.0001, physics.fixedTimeStep);
+
+      // Enabled layer pair -> blocked before x = 3 (box half-width 0.5 + 0.5 + contactOffset 0.02 + 0.02)
+      const blockedFlags = move(new Vector3(5, 0, 0));
+      expect(Boolean(blockedFlags & ControllerCollisionFlag.Sides)).toBe(true);
+      expect(role.transform.position.x).toBeLessThan(2.1);
+
+      // Disable Layer1 <-> Layer4 -> passes straight through otherCC
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer4, false);
+      role.transform.setPosition(0, 2, 0);
+      move(new Vector3(6, 0, 0));
+      expect(role.transform.position.x).toBeCloseTo(6, 2);
+
+      // Re-enable and change otherCC layer to Layer2 with Layer1<->Layer2 disabled -> still passes through
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer4, true);
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, false);
+      otherCC.collisionLayer = Layer.Layer2;
+      role.transform.setPosition(0, 2, 0);
+      move(new Vector3(6, 0, 0));
+      expect(role.transform.position.x).toBeCloseTo(6, 2);
+    });
   });
 });
