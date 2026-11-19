@@ -26,6 +26,7 @@
     "@galacean/engine-shader-compiler": "workspace:*",
     "@galacean/engine-shader-analyzer": "workspace:*",
     "@galacean/engine-physics-physx": "workspace:*",
+    "@galacean/engine-physics-havok": "workspace:*",
     "@galacean/engine-ui": "workspace:*",
     "@galacean/engine-shader": "workspace:*",
     "@galacean/engine-spine": "workspace:*",

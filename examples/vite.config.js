@@ -64,6 +64,7 @@ module.exports = {
     exclude: [
       "@galacean/engine",
       "@galacean/engine-physics-physx",
+      "@galacean/engine-physics-havok",
       "@galacean/engine-draco",
       "@galacean/engine-lottie",
       "@galacean/engine-spine",

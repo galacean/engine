@@ -17,6 +17,8 @@ export default defineProject({
       "@galacean/engine-math",
       "@galacean/engine-core",
       "@galacean/engine-design",
+      "@galacean/engine-physics-havok",
+      "@galacean/engine-physics-physx",
       "@galacean/engine-shader",
       "@galacean/engine-shader-analyzer",
       "@galacean/engine-shader-compiler",

@@ -5,15 +5,18 @@ type: 物理
 label: Physics
 ---
 
-物理引擎是游戏运行时的核心组成部分。Galacean 通过统一的 [物理系统 API](https://github.com/galacean/engine/tree/main/packages/design/src/physics) 暴露物理能力，内置实现为基于 [PhysX.js](https://github.com/galacean/physX.js) 的 PhysX 后端。有关物理系统的详细设计说明，请参考 [设计文档](https://github.com/galacean/engine/wiki/Physical-system-design)。
+物理引擎是游戏运行时的核心组成部分。Galacean 通过统一的 [物理系统 API](https://github.com/galacean/engine/tree/main/packages/design/src/physics) 暴露物理能力，内置基于 [PhysX.js](https://github.com/galacean/physX.js) 的 PhysX 后端，同时提供可选的 Havok WebAssembly 后端。有关物理系统的详细设计说明，请参考 [设计文档](https://github.com/galacean/engine/wiki/Physical-system-design)。
 
 对于需要使用物理组件或 `InputManager` Raycast 拾取的场景，需要在使用前初始化物理后端：
 
 - [physics-physx](https://github.com/galacean/engine/tree/main/packages/physics-physx)
+- [physics-havok](https://github.com/galacean/engine/tree/main/packages/physics-havok)（可选，需要 WebAssembly SIMD）
 
-开发者可以在 [主菜单](/docs/interface/sidebar) 界面打开的 **项目设置** 面板中设置物理后端。
+在编辑器中，开发者可以在 [主菜单](/docs/interface/sidebar) 界面打开的 **项目设置** 面板中配置 PhysX 物理后端；Havok 后端目前通过脚本初始化使用。
 
 ## 脚本使用
+
+使用 PhysX 后端：
 
 ```typescript
 import { WebGLEngine } from "@galacean/engine";
@@ -25,16 +28,32 @@ const engine = await WebGLEngine.create({
 });
 ```
 
+使用 Havok 后端（可选）：
+
+```typescript
+import { WebGLEngine } from "@galacean/engine";
+import { HavokPhysics } from "@galacean/engine-physics-havok";
+
+const engine = await WebGLEngine.create({
+  canvas: htmlCanvas,
+  physics: new HavokPhysics()
+});
+```
+
 ## 后端说明
 
 PhysX 提供完整物理功能和高性能模拟。PhysX 依赖 WebAssembly；`Auto` 运行时模式只会在 SIMD 与非 SIMD WebAssembly 构建之间选择。使用 PhysX 后端会额外引入约 2.5 MB 的 wasm/js 运行时文件，可能影响包体积和初始化速度。
 
-| 功能           | physics-physx |
-| -------------- | ------------- |
-| 碰撞检测       | 支持          |
-| 物理效果及反馈 | 支持          |
-| 连续碰撞检测   | 支持          |
-| 关节系统       | 支持          |
+Havok（`@galacean/engine-physics-havok`）是可选的 WebAssembly 物理后端，体积更小（约 2.1 MB 的 wasm/js 运行时文件，总计约 693 KB gzip），不依赖 `SharedArrayBuffer` 或 `COOP` / `COEP` 响应头。它强制要求 WebAssembly SIMD（`v128`）且无非 SIMD 回退（需现代浏览器，包括 iOS 16.4+）。部分 PhysX 专属调优参数（如单形状 `contactOffset`、`sleepThreshold`、`solverIterations`、`maxDepenetrationVelocity`、单刚体 CCD 模式切换以及关节质量/惯量缩放）在 Havok WASM 中未暴露，详细能力差异与自定义加载选项请参考 [`@galacean/engine-physics-havok` README](https://github.com/galacean/engine/tree/main/packages/physics-havok)。
+
+| 功能             | physics-physx            | physics-havok                            |
+| ---------------- | ------------------------ | ---------------------------------------- |
+| 碰撞检测         | 支持                     | 支持                                     |
+| 物理效果及反馈   | 支持                     | 支持                                     |
+| 连续碰撞检测     | 支持                     | 引擎内部处理（无单刚体模式开关）         |
+| 关节系统         | 支持                     | 支持（无关节质量/惯量缩放）              |
+| WebAssembly 要求 | WebAssembly（SIMD 可选） | 强制 WebAssembly SIMD（如 iOS 16.4+）    |
+| 运行时体积       | 约 2.5–3.0 MB（wasm/js） | 约 2.1 MB（wasm/js，总计约 693 KB gzip） |
 
 ## 更多信息
 
