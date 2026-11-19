@@ -1,0 +1,63 @@
+packages/water/tests/WaterStandaloneLifecycle.test.ts
+  s_9baaf131602aed::t_32873d3761fdd7 12,170-208
+  s_9baaf131602aed::t_c6783f65f984ba 209-214
+packages/water/src/water/native/assets/Water/Shaders/builtin/lake.json
+  s_9baaf131602aed::t_f462a6f04b8a77 1
+packages/terrain/src/data/seed-world/source/Shader/Water/LakeHeightfieldHighHybrid.shader
+  s_9baaf131602aed::t_f462a6f04b8a77 1556-1557,2104
+world/tests/seed-world/WaterIncrementalIdentity.spec.ts
+  s_14df4946367faa::t_b4b87e754a8cb0 2-7,66-97
+packages/water/src/water/native/assets/conversion.json
+  s_9baaf131602aed::t_f462a6f04b8a77 275,277-278
+packages/terrain/src/data/seed-world/public/Shader/Water/lake-heightfield-high-hybrid-v2.d0c7aa288369a09d15f12e26b7d335e40489b59246bcd63d2aab74d35863a48d.shaderc
+  s_9baaf131602aed::t_f462a6f04b8a77 1
+packages/water/src/water/runtime/optics/CameraWaterFeatureBroker.ts
+  s_9baaf131602aed::t_9b9a4e9061c239 276-277,295,298,306-307
+packages/terrain/src/data/seed-world/public/Shader/Water/WaterAotManifest.d2c43441fb4b50b5b4953d859d839962041cc7ce0b1c4c0358d3d53159a60697.json
+  s_9baaf131602aed::t_f462a6f04b8a77 1-175
+packages/water/src/water/native/assets/Water/Shaders/lake.shader
+  s_9baaf131602aed::t_f462a6f04b8a77 1725-1726,2279
+packages/water/src/water/compiler/ocean/OceanNearshoreCompiler.ts
+  s_14df4946367faa::t_61d2890a70dc16 11,248-250,261
+packages/water/src/water/shaders/heightfield/ForwardPass.glsl
+  s_9baaf131602aed::t_9b9a4e9061c239 214-215,318
+packages/terrain/src/data/seed-world/project.json
+  s_9baaf131602aed::t_f462a6f04b8a77 140,155
+packages/water/src/water/native/assets/Water/Shaders/builtin/sources.json
+  s_9baaf131602aed::t_f462a6f04b8a77 2
+packages/water/tests/WaterBuiltinShaders.test.ts
+  s_9baaf131602aed::t_6945c835793adc 12,103,105,114-117,126
+  s_9baaf131602aed::t_976bc29b74e933 100-102,104,106-113,118-125,127-130
+packages/water/src/water/compiler/shared/determinism.ts
+  s_14df4946367faa::t_61d2890a70dc16 19-32,42-43,45,48,103-104,106,108-109
+packages/water/src/water/native/assets/Water/Shaders/lake-heightfield-high-hybrid-v2.shaderc
+  s_9baaf131602aed::t_f462a6f04b8a77 1
+packages/water/src/water/native/assets/Water/Presets/lake.prefab
+  s_9baaf131602aed::t_df5f192d54b6d6 65
+packages/water/tests/WaterQualityMaterial.test.ts
+  s_9baaf131602aed::t_cea832cdc27e5f 13-14,19-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "fdb9d139a6c4965757c0d43a9207cd157f85cd8f",
+  "prompts": {},
+  "sessions": {
+    "s_14df4946367faa": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1efd8-8cb2-7e83-9805-a6299152e4da",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    },
+    "s_9baaf131602aed": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1efc8-ec88-7413-b175-a5851195fb95",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
