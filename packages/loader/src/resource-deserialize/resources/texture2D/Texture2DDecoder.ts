@@ -26,7 +26,7 @@ class Texture2DDecoder {
       const imageData = bufferReader.nextImagesData(1)[0];
 
       const isHDR = imageData[0] === 0x23 && imageData[1] === 0x3f;
-      const textureFormat = isHDR ? TextureFormat.R16G16B16A16 : format;
+      const textureFormat = isHDR ? TextureFormat.R16G16B16A16_SFloat : format;
       const texture =
         restoredTexture ||
         new Texture2D(engine, width, height, textureFormat, mipmap, isHDR ? false : isSRGBColorSpace);

@@ -100,7 +100,7 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
     R8G8B8A8,
     BC6H,
     ASTC_HDR_4x4,
-    R16G16B16A16
+    R16G16B16A16_SFloat
   }
 
   function getTranscodeFormatFromTarget(target: TargetFormat, hasAlpha: boolean) {
@@ -121,7 +121,7 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
         return BasisFormat.BC6H;
       case TargetFormat.ASTC_HDR_4x4:
         return BasisFormat.ASTC_HDR_4x4;
-      case TargetFormat.R16G16B16A16:
+      case TargetFormat.R16G16B16A16_SFloat:
         return BasisFormat.RGBA_HALF;
     }
   }
@@ -198,7 +198,7 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
 
         const status = ktx2File.transcodeImage(dst, mip, layer, face, format, 0, -1, -1);
 
-        if (targetFormat === TargetFormat.R16G16B16A16) {
+        if (targetFormat === TargetFormat.R16G16B16A16_SFloat) {
           dst = new Uint16Array(dst.buffer, dst.byteOffset, dst.byteLength / Uint16Array.BYTES_PER_ELEMENT);
         }
 

@@ -67,7 +67,7 @@ describe("TextureCube", () => {
 
     it("浮点纹理写入数据", () => {
       expect(() => {
-        const texture = new TextureCube(engine, size, TextureFormat.R32G32B32A32);
+        const texture = new TextureCube(engine, size, TextureFormat.R32G32B32A32_SFloat);
         const buffer = new Float32Array(4);
 
         texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer, 0, 0, 0, 1, 1);

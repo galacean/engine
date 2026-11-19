@@ -754,8 +754,8 @@ export class Camera extends Component {
       if (!this.isAlphaOutputRequired && rhi.supportsRenderTargetColorFormat(TextureFormat.R11G11B10_UFloat)) {
         return TextureFormat.R11G11B10_UFloat;
       }
-      if (rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16)) {
-        return TextureFormat.R16G16B16A16;
+      if (rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16_SFloat)) {
+        return TextureFormat.R16G16B16A16_SFloat;
       }
     }
     return TextureFormat.R8G8B8A8;

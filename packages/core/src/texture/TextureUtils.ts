@@ -25,8 +25,8 @@ export class TextureUtils {
 
   static isHDRFormat(format: TextureFormat): boolean {
     return (
-      format === TextureFormat.R16G16B16A16 ||
-      format === TextureFormat.R32G32B32A32 ||
+      format === TextureFormat.R16G16B16A16_SFloat ||
+      format === TextureFormat.R32G32B32A32_SFloat ||
       format === TextureFormat.R11G11B10_UFloat
     );
   }
@@ -84,24 +84,24 @@ export class TextureUtils {
       case TextureFormat.R8:
         return width * height;
       case TextureFormat.R8G8:
-      case TextureFormat.R16_UNORM:
       case TextureFormat.R16:
+      case TextureFormat.R16_SFloat:
         return width * height * 2;
       case TextureFormat.R8G8B8:
         return width * height * 3;
       case TextureFormat.R8G8B8A8:
       case TextureFormat.R11G11B10_UFloat:
-      case TextureFormat.R32:
-      case TextureFormat.R16G16:
+      case TextureFormat.R16G16_SFloat:
+      case TextureFormat.R32_SFloat:
         return width * height * 4;
       case TextureFormat.R4G4B4A4:
       case TextureFormat.R5G5B5A1:
       case TextureFormat.R5G6B5:
         return width * height * 2;
-      case TextureFormat.R16G16B16A16:
-      case TextureFormat.R32G32:
+      case TextureFormat.R16G16B16A16_SFloat:
+      case TextureFormat.R32G32_SFloat:
         return width * height * 8;
-      case TextureFormat.R32G32B32A32:
+      case TextureFormat.R32G32B32A32_SFloat:
       case TextureFormat.R32G32B32A32_UInt:
         return width * height * 16;
 

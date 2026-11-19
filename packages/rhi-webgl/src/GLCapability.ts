@@ -122,7 +122,7 @@ export class GLCapability {
    */
   supportsTextureFormat(format: TextureFormat): boolean {
     switch (format) {
-      case TextureFormat.R16_UNORM:
+      case TextureFormat.R16:
         return this.canIUse(GLCapabilityType.textureNorm16);
       case TextureFormat.BC1:
       case TextureFormat.BC3:
@@ -153,14 +153,14 @@ export class GLCapability {
       case TextureFormat.R4G4B4A4:
       case TextureFormat.R5G5B5A1:
       case TextureFormat.R5G6B5:
-      case TextureFormat.R16G16B16A16:
-      case TextureFormat.R32G32B32A32:
+      case TextureFormat.R16G16B16A16_SFloat:
+      case TextureFormat.R32G32B32A32_SFloat:
       case TextureFormat.R32G32B32A32_UInt:
       case TextureFormat.R11G11B10_UFloat:
-      case TextureFormat.R16:
-      case TextureFormat.R16G16:
-      case TextureFormat.R32:
-      case TextureFormat.R32G32:
+      case TextureFormat.R16_SFloat:
+      case TextureFormat.R16G16_SFloat:
+      case TextureFormat.R32_SFloat:
+      case TextureFormat.R32G32_SFloat:
       case TextureFormat.R8:
       case TextureFormat.R8G8:
       case TextureFormat.Depth:
@@ -181,14 +181,13 @@ export class GLCapability {
    */
   supportsRenderTargetColorFormat(format: TextureFormat): boolean {
     switch (format) {
-      case TextureFormat.R16G16B16A16:
+      case TextureFormat.R16G16B16A16_SFloat:
         return this.canIUse(GLCapabilityType.colorBufferHalfFloat);
-      case TextureFormat.R16:
-      case TextureFormat.R16G16:
-      case TextureFormat.R32:
-      case TextureFormat.R32G32:
-      case TextureFormat.R32G32B32A32:
-        return this.canIUse(GLCapabilityType.colorBufferFloat);
+      case TextureFormat.R16_SFloat:
+      case TextureFormat.R16G16_SFloat:
+      case TextureFormat.R32_SFloat:
+      case TextureFormat.R32G32_SFloat:
+      case TextureFormat.R32G32B32A32_SFloat:
       case TextureFormat.R11G11B10_UFloat:
         return this.canIUse(GLCapabilityType.colorBufferFloat);
       default:

@@ -40,7 +40,11 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       KTX2TargetFormat.BC1_BC3,
       KTX2TargetFormat.PVRTC
     ],
-    [ColorModel.UASTC_HDR_4X4]: [KTX2TargetFormat.ASTC_HDR_4x4, KTX2TargetFormat.BC6H, KTX2TargetFormat.R16G16B16A16]
+    [ColorModel.UASTC_HDR_4X4]: [
+      KTX2TargetFormat.ASTC_HDR_4x4,
+      KTX2TargetFormat.BC6H,
+      KTX2TargetFormat.R16G16B16A16_SFloat
+    ]
   };
   private static _capabilityMap = {
     [KTX2TargetFormat.ASTC]: {
@@ -177,7 +181,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
           case KTX2TargetFormat.R8:
           case KTX2TargetFormat.R8G8:
             return format;
-          case KTX2TargetFormat.R16G16B16A16:
+          case KTX2TargetFormat.R16G16B16A16_SFloat:
             if (!isSRGB) return format;
         }
       }
@@ -211,8 +215,8 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         return TextureFormat.BC6H;
       case KTX2TargetFormat.ASTC_HDR_4x4:
         return TextureFormat.ASTC_4x4;
-      case KTX2TargetFormat.R16G16B16A16:
-        return TextureFormat.R16G16B16A16;
+      case KTX2TargetFormat.R16G16B16A16_SFloat:
+        return TextureFormat.R16G16B16A16_SFloat;
     }
   }
 

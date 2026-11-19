@@ -1,43 +1,63 @@
 /**
  * Texture format enumeration.
+ * @remarks
+ * Uncompressed color formats without a type suffix store unsigned normalized values mapped to `[0, 1]`.
+ * Other component encodings carry an explicit PascalCase suffix (`_SFloat`, `_UFloat`, `_UInt`).
  */
 export enum TextureFormat {
-  /** RGB format, 8 bits per channel. */
+  /** RGB unsigned normalized format, 8 bits per channel. */
   R8G8B8 = 0,
-  /** RGBA format, 8 bits per channel. */
+  /** RGBA unsigned normalized format, 8 bits per channel. */
   R8G8B8A8 = 1,
-  /** RGBA format, 4 bits per channel. */
+  /** RGBA unsigned normalized format, 4 bits per channel. */
   R4G4B4A4 = 2,
-  /** RGBA format, 5 bits in R channel, 5 bits in G channel, 5 bits in B channel, 1 bit in A channel. */
+  /** RGBA unsigned normalized format, 5 bits in R, G, and B channels, 1 bit in A channel. */
   R5G5B5A1 = 3,
-  /** RGB format, 5 bits in R channel, 6 bits in G channel, 5 bits in B channel. */
+  /** RGB unsigned normalized format, 5 bits in R channel, 6 bits in G channel, 5 bits in B channel. */
   R5G6B5 = 4,
-  /** RGBA format, 16 bits per channel. */
-  R16G16B16A16 = 7,
-  /** RGBA format, 32 bits per channel. */
-  R32G32B32A32 = 8,
+  /**
+   * RGBA 16-bit signed floating-point format.
+   * @remarks Upload half-float bits with `Uint16Array`. Color rendering and readback require `EXT_color_buffer_half_float` or `EXT_color_buffer_float`.
+   */
+  R16G16B16A16_SFloat = 7,
+  /**
+   * RGBA 32-bit signed floating-point format.
+   * @remarks Upload with `Float32Array`. Linear filtering requires `OES_texture_float_linear`; color rendering and readback require `EXT_color_buffer_float`.
+   */
+  R32G32B32A32_SFloat = 8,
   /** RGBA unsigned integer format, 32 bits per channel. */
   R32G32B32A32_UInt = 9,
-  /** RGB unsigned float format, 11 bits in R channel, 11 bits in G channel, 10 bits in B channel. */
+  /** RGB unsigned floating-point format, 11 bits in R and G channels, 10 bits in B channel. */
   R11G11B10_UFloat = 35,
-  /** R float format, 8 bits. */
+  /** Single-channel 8-bit unsigned normalized format. */
   R8 = 36,
-  /** RG float format, 8 bits per channel. */
+  /** Two-channel 8-bit unsigned normalized format. */
   R8G8 = 37,
   /**
-   * Single-channel 32-bit floating-point format (WebGL2).
-   * @remarks Upload with Float32Array. Linear filtering requires OES_texture_float_linear.
-   * Color rendering and RGBA float readback require EXT_color_buffer_float.
+   * Single-channel 16-bit unsigned normalized format.
+   * @remarks Requires `EXT_texture_norm16`. Upload with `Uint16Array` (1 channel per texel); `getPixelBuffer` reads RGBA `Uint16Array` (4 channels per texel).
    */
-  R32 = 40,
-  /** Single-channel 16-bit floating-point format (WebGL2). Upload half-float bits with Uint16Array. */
   R16 = 38,
-  /** Two-channel 16-bit floating-point format (WebGL2). Upload half-float bits with Uint16Array. */
-  R16G16 = 39,
-  /** Two-channel 32-bit floating-point format (WebGL2). Upload with Float32Array. */
-  R32G32 = 41,
-  /** Single-channel unsigned normalized 16-bit format. WebGL2 requires EXT_texture_norm16. */
-  R16_UNORM = 42,
+  /**
+   * Single-channel 16-bit signed floating-point format.
+   * @remarks Upload half-float bits with `Uint16Array` (1 channel per texel). Color rendering and `getPixelBuffer` (RGBA `Float32Array`) require `EXT_color_buffer_float`.
+   */
+  R16_SFloat = 39,
+  /**
+   * Two-channel 16-bit signed floating-point format.
+   * @remarks Upload half-float bits with `Uint16Array` (2 channels per texel). Color rendering and `getPixelBuffer` (RGBA `Float32Array`) require `EXT_color_buffer_float`.
+   */
+  R16G16_SFloat = 40,
+  /**
+   * Single-channel 32-bit signed floating-point format.
+   * @remarks Upload with `Float32Array` (1 channel per texel). Linear filtering requires `OES_texture_float_linear`; color rendering and `getPixelBuffer` (RGBA `Float32Array`) require `EXT_color_buffer_float`.
+   */
+  R32_SFloat = 41,
+  /**
+   * Two-channel 32-bit signed floating-point format.
+   * @remarks Upload with `Float32Array` (2 channels per texel). Linear filtering requires `OES_texture_float_linear`; color rendering and `getPixelBuffer` (RGBA `Float32Array`) require `EXT_color_buffer_float`.
+   */
+  R32G32_SFloat = 42,
   /** RGB compressed format, 4 bits per pixel. */
   BC1 = 10,
   /** RGBA compressed format, 8 bits per pixel. */

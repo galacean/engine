@@ -128,8 +128,8 @@ describe("camera test", function () {
 
     const spy = vi.spyOn(engine._hardwareRenderer, "supportsRenderTargetColorFormat");
     try {
-      spy.mockImplementation((format) => format === TextureFormat.R16G16B16A16);
-      expect(camera._getInternalColorTextureFormat()).to.eq(TextureFormat.R16G16B16A16);
+      spy.mockImplementation((format) => format === TextureFormat.R16G16B16A16_SFloat);
+      expect(camera._getInternalColorTextureFormat()).to.eq(TextureFormat.R16G16B16A16_SFloat);
       expect(camera._isInternalFormatHDR()).to.eq(true);
       spy.mockReturnValue(false);
       expect(camera.enableHDR).to.eq(true);

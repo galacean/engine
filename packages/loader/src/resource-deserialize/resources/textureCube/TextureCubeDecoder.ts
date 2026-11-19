@@ -26,7 +26,7 @@ class TextureCubeDecoder {
 
       // Detect format by first face's magic bytes
       const isHDR = facesData[0][0] === 0x23 && facesData[0][1] === 0x3f;
-      const textureFormat = isHDR ? TextureFormat.R16G16B16A16 : format;
+      const textureFormat = isHDR ? TextureFormat.R16G16B16A16_SFloat : format;
       const texture = restoredTexture || new TextureCube(engine, faceSize, textureFormat, mipmap, isSRGBColorSpace);
       texture.filterMode = filterMode;
       texture.anisoLevel = anisoLevel;

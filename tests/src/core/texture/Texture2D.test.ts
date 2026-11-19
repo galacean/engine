@@ -55,7 +55,7 @@ describe("Texture2D", () => {
 
     it("浮点纹理写入数据", () => {
       expect(() => {
-        const texture = new Texture2D(engine, width, height, TextureFormat.R32G32B32A32);
+        const texture = new Texture2D(engine, width, height, TextureFormat.R32G32B32A32_SFloat);
         const buffer = new Float32Array(4);
 
         texture.setPixelBuffer(buffer, 0, 0, 0, 1, 1);

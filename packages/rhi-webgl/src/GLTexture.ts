@@ -70,7 +70,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 2
         };
-      case TextureFormat.R16G16B16A16:
+      case TextureFormat.R16G16B16A16_SFloat:
         return {
           internalFormat: gl.RGBA16F,
           baseFormat: gl.RGBA,
@@ -78,7 +78,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 8
         };
-      case TextureFormat.R32G32B32A32:
+      case TextureFormat.R32G32B32A32_SFloat:
         return {
           internalFormat: gl.RGBA32F,
           baseFormat: gl.RGBA,
@@ -86,17 +86,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 8
         };
-      case TextureFormat.R32:
-      case TextureFormat.R32G32:
-        return {
-          internalFormat: format === TextureFormat.R32 ? gl.R32F : gl.RG32F,
-          baseFormat: format === TextureFormat.R32 ? gl.RED : gl.RG,
-          readFormat: gl.RGBA,
-          dataType: gl.FLOAT,
-          isCompressed: false,
-          alignment: 4
-        };
-      case TextureFormat.R16_UNORM:
+      case TextureFormat.R16:
         return {
           internalFormat: 0x822a, // EXT_texture_norm16.R16_EXT
           baseFormat: gl.RED,
@@ -105,16 +95,26 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 2
         };
-      case TextureFormat.R16:
-      case TextureFormat.R16G16:
+      case TextureFormat.R16_SFloat:
+      case TextureFormat.R16G16_SFloat:
         return {
-          internalFormat: format === TextureFormat.R16 ? gl.R16F : gl.RG16F,
-          baseFormat: format === TextureFormat.R16 ? gl.RED : gl.RG,
+          internalFormat: format === TextureFormat.R16_SFloat ? gl.R16F : gl.RG16F,
+          baseFormat: format === TextureFormat.R16_SFloat ? gl.RED : gl.RG,
           readFormat: gl.RGBA,
           readType: gl.FLOAT,
           dataType: gl.HALF_FLOAT,
           isCompressed: false,
           alignment: 2
+        };
+      case TextureFormat.R32_SFloat:
+      case TextureFormat.R32G32_SFloat:
+        return {
+          internalFormat: format === TextureFormat.R32_SFloat ? gl.R32F : gl.RG32F,
+          baseFormat: format === TextureFormat.R32_SFloat ? gl.RED : gl.RG,
+          readFormat: gl.RGBA,
+          dataType: gl.FLOAT,
+          isCompressed: false,
+          alignment: 4
         };
       case TextureFormat.R11G11B10_UFloat:
         return {
@@ -543,6 +543,20 @@ export class GLTexture implements IPlatformTexture {
       return;
     }
 
+    // WebGL2 generateMipmap requires the format to be both color-renderable and texture-filterable
+    if (
+      !this._rhi.supportsRenderTargetColorFormat(texture.format) ||
+      ((texture.format === TextureFormat.R32_SFloat ||
+        texture.format === TextureFormat.R32G32_SFloat ||
+        texture.format === TextureFormat.R32G32B32A32_SFloat) &&
+        !this._rhi.canIUse(GLCapabilityType.textureFloatLinear))
+    ) {
+      Logger.warn(
+        `Auto-generating mipmaps is not supported for TextureFormat.${TextureFormat[texture.format]} on this device.`
+      );
+      return;
+    }
+
     // @todo (1x1).generateMipmap() will flash back in uc.
     if (texture.width !== 1 || texture.height !== 1) {
       this._bind();
@@ -642,12 +656,9 @@ export class GLTexture implements IPlatformTexture {
   }
 
   protected _getReadFormat(): GLenum {
-    if (
-      this._texture.format >= TextureFormat.R16 &&
-      this._texture.format <= TextureFormat.R32G32 &&
-      !this._rhi.canIUse(GLCapabilityType.colorBufferFloat)
-    ) {
-      throw new Error("Float readback requires EXT_color_buffer_float");
+    const format = this._texture.format;
+    if (!this._rhi.supportsRenderTargetColorFormat(format)) {
+      throw new Error(`Reading pixels from TextureFormat.${TextureFormat[format]} requires color-renderable support`);
     }
     const { readFormat, baseFormat } = this._formatDetail;
     return readFormat ?? baseFormat!;
