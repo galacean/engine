@@ -60,10 +60,11 @@ const COARSE_GRID_SIZE = WINDOW_TEXELS / COARSE_TILE_METRES;
 const COARSE_GRID_MASK = COARSE_GRID_SIZE - 1;
 const MAX_BAKED_DENSITY_PER_SQM = 24;
 const MAX_BAKED_ECO_HEIGHT_METRES = 2;
-const FRUSTUM_RADIUS = 2.5;
-const FRUSTUM_CENTER_Y = 0.6;
+const FRUSTUM_HALF_XZ = 0.9;
+const FRUSTUM_BOTTOM_PAD = 0.2;
+const FRUSTUM_TOP_PAD = 0.25;
 // Radial translation allowance and normalized-plane expansion; reuse must satisfy both bounds.
-const CANDIDATE_REUSE_DISTANCE = 2;
+const CANDIDATE_REUSE_DISTANCE = 0.6;
 const CANDIDATE_GROUP_WIDTH = 8;
 const CANDIDATE_CELLS_PER_GROUP = CANDIDATE_GROUP_WIDTH * CANDIDATE_GROUP_WIDTH;
 // A 64×64 window addresses each tile in 12 bits. The high nibble stores its four quadrants.
@@ -139,13 +140,13 @@ void emitCulled() {
   v_TerrainNormal = vec3(0.0, 1.0, 0.0);
 }
 
-bool forwardGrassSphereInFrustum(vec3 center, float radius) {
-  if (dot(u_Frustum0.xyz, center) + u_Frustum0.w < -radius) return false;
-  if (dot(u_Frustum1.xyz, center) + u_Frustum1.w < -radius) return false;
-  if (dot(u_Frustum2.xyz, center) + u_Frustum2.w < -radius) return false;
-  if (dot(u_Frustum3.xyz, center) + u_Frustum3.w < -radius) return false;
-  if (dot(u_Frustum4.xyz, center) + u_Frustum4.w < -radius) return false;
-  if (dot(u_Frustum5.xyz, center) + u_Frustum5.w < -radius) return false;
+bool forwardGrassBoxInFrustum(vec3 center, vec3 halfExtents) {
+  if (dot(u_Frustum0.xyz, center) + u_Frustum0.w + dot(abs(u_Frustum0.xyz), halfExtents) < 0.0) return false;
+  if (dot(u_Frustum1.xyz, center) + u_Frustum1.w + dot(abs(u_Frustum1.xyz), halfExtents) < 0.0) return false;
+  if (dot(u_Frustum2.xyz, center) + u_Frustum2.w + dot(abs(u_Frustum2.xyz), halfExtents) < 0.0) return false;
+  if (dot(u_Frustum3.xyz, center) + u_Frustum3.w + dot(abs(u_Frustum3.xyz), halfExtents) < 0.0) return false;
+  if (dot(u_Frustum4.xyz, center) + u_Frustum4.w + dot(abs(u_Frustum4.xyz), halfExtents) < 0.0) return false;
+  if (dot(u_Frustum5.xyz, center) + u_Frustum5.w + dot(abs(u_Frustum5.xyz), halfExtents) < 0.0) return false;
   return true;
 }
 
@@ -262,7 +263,12 @@ void main() {
   vec4 t11 = texelFetch(u_TerrainTex, p1, 0);
   vec4 terrainSample = mix(mix(t00, t10, frac.x), mix(t01, t11, frac.x), frac.y);
 
-  if (!forwardGrassSphereInFrustum(vec3(worldXZ.x, terrainSample.r + ${FRUSTUM_CENTER_Y.toFixed(1)}, worldXZ.y), ${FRUSTUM_RADIUS.toFixed(1)})) {
+  float bladeMaxHeight = u_ScaleParams.z > 0.5
+    ? max(maskSample.b, maskSample.a) * ${MAX_BAKED_ECO_HEIGHT_METRES.toFixed(1)} + ${FRUSTUM_TOP_PAD.toFixed(2)}
+    : max(u_ScaleParams.x, u_ScaleParams.y) * u_ScaleParams.w + ${FRUSTUM_TOP_PAD.toFixed(2)};
+  float boxCenterY = terrainSample.r + 0.5 * (bladeMaxHeight - ${FRUSTUM_BOTTOM_PAD.toFixed(2)});
+  float boxHalfY = 0.5 * (bladeMaxHeight + ${FRUSTUM_BOTTOM_PAD.toFixed(2)});
+  if (!forwardGrassBoxInFrustum(vec3(worldXZ.x, boxCenterY, worldXZ.y), vec3(${FRUSTUM_HALF_XZ.toFixed(2)}, boxHalfY, ${FRUSTUM_HALF_XZ.toFixed(2)}))) {
     emitCulled();
     return;
   }
@@ -891,19 +897,17 @@ export class SeedWorldForwardGrass {
         const h = terrainData[idx]!;
         if (h < tileMinY) tileMinY = h;
         if (h > tileMaxY) tileMaxY = h;
-        const eco = (maskData[idx + 3]! / 255) * MAX_BAKED_ECO_HEIGHT_METRES;
-        if (eco > tileMaxEco) tileMaxEco = eco;
       }
     }
-    for (let dz = gzStart; dz <= zEnd && hasGrass === 0; dz++) {
+    for (let dz = gzStart; dz <= zEnd; dz++) {
       const pz = (worldZ0 + dz) & WINDOW_TEXEL_MASK;
       const row = pz * WINDOW_TEXELS;
       for (let dx = gxStart; dx <= xEnd; dx++) {
         const px = (worldX0 + dx) & WINDOW_TEXEL_MASK;
-        if (maskData[(row + px) * 4]! > 0) {
-          hasGrass = 1;
-          break;
-        }
+        const idx = (row + px) * 4;
+        if (maskData[idx]! > 0) hasGrass = 1;
+        const eco = (Math.max(maskData[idx + 2]!, maskData[idx + 3]!) / 255) * MAX_BAKED_ECO_HEIGHT_METRES;
+        if (eco > tileMaxEco) tileMaxEco = eco;
       }
     }
 
@@ -1196,7 +1200,7 @@ export class SeedWorldForwardGrass {
   }
 
   /**
-   * Prove that every current GPU-visible sphere centre remains in the cached expanded planes.
+   * Prove that every current GPU-visible clump AABB corner remains in the cached expanded planes.
    * Maximizing the difference of two affine plane equations over a bounding box also covers
    * rotation and numerical transform jitter; no angle threshold or stale GPU frustum is used.
    */
@@ -1206,9 +1210,14 @@ export class SeedWorldForwardGrass {
     let feather = 0;
     for (let i = 0; i < RING_CONFIGS.length; i++) feather = Math.max(feather, RING_CONFIGS[i]!.outerFeatherMetres);
     const radius =
-      Math.max(params.lod1DistanceMetres, params.lod2DistanceMetres, params.maximumDistanceMetres) + feather;
-    const minY = this._windowHeightRange[0]! + FRUSTUM_CENTER_Y;
-    const maxY = this._windowHeightRange[1]! + FRUSTUM_CENTER_Y;
+      Math.max(params.lod1DistanceMetres, params.lod2DistanceMetres, params.maximumDistanceMetres) +
+      feather +
+      FRUSTUM_HALF_XZ;
+    const maxBladeHeight = params.useEcologicalHeight
+      ? MAX_BAKED_ECO_HEIGHT_METRES + FRUSTUM_TOP_PAD
+      : Math.max(params.minScale, params.maxScale) * GRASS_AUTHORED_HEIGHT_METRES + FRUSTUM_TOP_PAD;
+    const minY = this._windowHeightRange[0]! - FRUSTUM_BOTTOM_PAD;
+    const maxY = this._windowHeightRange[1]! + maxBladeHeight;
     for (let i = 0; i < 24; i += 4) {
       const dx = this._planes[i]! - this._candidatePlanes[i]!;
       const dy = this._planes[i + 1]! - this._candidatePlanes[i + 1]!;
@@ -1265,10 +1274,8 @@ export class SeedWorldForwardGrass {
       Math.floor((camZ + extent - this._windowOriginZ + CANDIDATE_RADIAL_PADDING) / COARSE_TILE_METRES)
     );
     const outerSquared = (extent + CANDIDATE_RADIAL_PADDING) ** 2;
-    const bladeHeight = Math.max(
-      params.maxScale * GRASS_AUTHORED_HEIGHT_METRES + 0.25,
-      FRUSTUM_CENTER_Y + FRUSTUM_RADIUS
-    );
+    const fixedBladeHeight =
+      Math.max(params.minScale, params.maxScale) * GRASS_AUTHORED_HEIGHT_METRES + FRUSTUM_TOP_PAD;
     const tileOffsetX = Math.floor(this._windowOriginX / COARSE_TILE_METRES);
     const tileOffsetZ = Math.floor(this._windowOriginZ / COARSE_TILE_METRES);
     for (let tz = z0; tz <= z1; tz++) {
@@ -1281,12 +1288,10 @@ export class SeedWorldForwardGrass {
       // Each plane uses the row's maximum possible height/Z support, including blade padding.
       let rowX0 = x0,
         rowX1 = x1;
-      const rowMinY = this._rowMinY[physTz]! + FRUSTUM_CENTER_Y - FRUSTUM_RADIUS;
+      const rowMinY = this._rowMinY[physTz]! - FRUSTUM_BOTTOM_PAD;
       const rowMaxY =
         this._rowMaxY[physTz]! +
-        (params.useEcologicalHeight
-          ? Math.max(this._rowMaxEco[physTz]! + 0.25, FRUSTUM_CENTER_Y + FRUSTUM_RADIUS)
-          : bladeHeight);
+        (params.useEcologicalHeight ? this._rowMaxEco[physTz]! + FRUSTUM_TOP_PAD : fixedBladeHeight);
       for (let planeIndex = 0; planeIndex < 6; planeIndex++) {
         const offset = planeIndex * 4;
         const px = this._planes[offset]!,
@@ -1294,16 +1299,16 @@ export class SeedWorldForwardGrass {
           pz = this._planes[offset + 2]!,
           pw = this._planes[offset + 3]! + CANDIDATE_REUSE_DISTANCE;
         const support =
-          pw + py * (py >= 0 ? rowMaxY : rowMinY) + pz * (pz >= 0 ? maxZ + FRUSTUM_RADIUS : minZ - FRUSTUM_RADIUS);
+          pw + py * (py >= 0 ? rowMaxY : rowMinY) + pz * (pz >= 0 ? maxZ + FRUSTUM_HALF_XZ : minZ - FRUSTUM_HALF_XZ);
         if (px > 1e-8)
           rowX0 = Math.max(
             rowX0,
-            Math.ceil((-support / px - COARSE_TILE_METRES - FRUSTUM_RADIUS - this._windowOriginX) / COARSE_TILE_METRES)
+            Math.ceil((-support / px - COARSE_TILE_METRES - FRUSTUM_HALF_XZ - this._windowOriginX) / COARSE_TILE_METRES)
           );
         else if (px < -1e-8)
           rowX1 = Math.min(
             rowX1,
-            Math.floor((-support / px + FRUSTUM_RADIUS - this._windowOriginX) / COARSE_TILE_METRES)
+            Math.floor((-support / px + FRUSTUM_HALF_XZ - this._windowOriginX) / COARSE_TILE_METRES)
           );
         else if (support < 0) {
           rowX0 = rowX1 + 1;
@@ -1322,12 +1327,10 @@ export class SeedWorldForwardGrass {
         if (nearSquared > outerSquared) continue;
         const farX = Math.max(Math.abs(minX - camX), Math.abs(maxX - camX));
         const farSquared = farX * farX + farZ * farZ;
-        const minY = this._coarseMinY[physIndex]! + FRUSTUM_CENTER_Y - FRUSTUM_RADIUS;
+        const minY = this._coarseMinY[physIndex]! - FRUSTUM_BOTTOM_PAD;
         const maxY =
           this._coarseMaxY[physIndex]! +
-          (params.useEcologicalHeight
-            ? Math.max(this._coarseMaxEcoHeight[physIndex]! + 0.25, FRUSTUM_CENTER_Y + FRUSTUM_RADIUS)
-            : bladeHeight);
+          (params.useEcologicalHeight ? this._coarseMaxEcoHeight[physIndex]! + FRUSTUM_TOP_PAD : fixedBladeHeight);
         let visible = true;
         let clipPlanes = 0;
         for (let i = 0; i < 24; i += 4) {
@@ -1335,9 +1338,9 @@ export class SeedWorldForwardGrass {
             py = this._planes[i + 1]!,
             pz = this._planes[i + 2]!;
           if (
-            px * (px >= 0 ? maxX + FRUSTUM_RADIUS : minX - FRUSTUM_RADIUS) +
+            px * (px >= 0 ? maxX + FRUSTUM_HALF_XZ : minX - FRUSTUM_HALF_XZ) +
               py * (py >= 0 ? maxY : minY) +
-              pz * (pz >= 0 ? maxZ + FRUSTUM_RADIUS : minZ - FRUSTUM_RADIUS) +
+              pz * (pz >= 0 ? maxZ + FRUSTUM_HALF_XZ : minZ - FRUSTUM_HALF_XZ) +
               this._planes[i + 3]! +
               CANDIDATE_REUSE_DISTANCE <
             0
@@ -1346,9 +1349,9 @@ export class SeedWorldForwardGrass {
             break;
           }
           if (
-            px * (px >= 0 ? minX - FRUSTUM_RADIUS : maxX + FRUSTUM_RADIUS) +
+            px * (px >= 0 ? minX - FRUSTUM_HALF_XZ : maxX + FRUSTUM_HALF_XZ) +
               py * (py >= 0 ? minY : maxY) +
-              pz * (pz >= 0 ? minZ - FRUSTUM_RADIUS : maxZ + FRUSTUM_RADIUS) +
+              pz * (pz >= 0 ? minZ - FRUSTUM_HALF_XZ : maxZ + FRUSTUM_HALF_XZ) +
               this._planes[i + 3]! +
               CANDIDATE_REUSE_DISTANCE <
             0
@@ -1363,12 +1366,14 @@ export class SeedWorldForwardGrass {
           this._radialEpochs[index] = this._radialEpoch;
         }
         const groups =
-          radial & (clipPlanes ? this._tileFrustumGroups(physIndex, minX, minZ, clipPlanes) : ALL_GROUP_BITS);
+          radial & (clipPlanes ? this._tileFrustumGroups(minX, minZ, minY, maxY, clipPlanes) : ALL_GROUP_BITS);
+        if (!groups) continue;
         for (let r = 0; r < this._rings.length; r++) {
           if (nearSquared > this._ringOuterSquared[r]! || farSquared < this._ringInnerSquared[r]!) continue;
+          const groupMask = r === 2 ? groups >> 8 : (groups >> (r * 4)) & QUADRANT_MASK;
+          if (!groupMask) continue;
           const ring = this._rings[r]!;
           const offset = ring.tileCount++;
-          const groupMask = r === 2 ? groups >> 8 : (groups >> (r * 4)) & QUADRANT_MASK;
           const packed = (groupMask << TILE_INDEX_BITS) | index;
           if (ring.tileData[offset] !== packed) {
             ring.tileData[offset] = packed;
@@ -1422,10 +1427,8 @@ export class SeedWorldForwardGrass {
     return mask;
   }
 
-  private _tileFrustumGroups(tile: number, x: number, z: number, planes: number): number {
+  private _tileFrustumGroups(x: number, z: number, minY: number, maxY: number, planes: number): number {
     const half = COARSE_TILE_METRES / 2;
-    const minY = this._coarseMinY[tile]! + FRUSTUM_CENTER_Y,
-      maxY = this._coarseMaxY[tile]! + FRUSTUM_CENTER_Y;
     let quadrants = QUADRANT_MASK;
     while (planes) {
       const p = (31 - Math.clz32(planes & -planes)) * 4;
@@ -1433,18 +1436,17 @@ export class SeedWorldForwardGrass {
       const px = this._planes[p]!,
         py = this._planes[p + 1]!,
         pz = this._planes[p + 2]!,
-        pw = this._planes[p + 3]!;
+        pw = this._planes[p + 3]! + CANDIDATE_REUSE_DISTANCE + 0.0001;
       const supportY = py * (py >= 0 ? maxY : minY);
-      const x0 = px * (px >= 0 ? x + half : x) + supportY,
-        x1 = px * (px >= 0 ? x + COARSE_TILE_METRES : x + half) + supportY;
-      const z0 = pz * (pz >= 0 ? z + half : z),
-        z1 = pz * (pz >= 0 ? z + COARSE_TILE_METRES : z + half);
-      if ((px >= 0 ? x1 : x0) + (pz >= 0 ? z1 : z0) + pw + FRUSTUM_RADIUS + CANDIDATE_REUSE_DISTANCE + 0.0001 < 0)
-        return 0;
-      if (x0 + z0 + pw + FRUSTUM_RADIUS + CANDIDATE_REUSE_DISTANCE + 0.0001 < 0) quadrants &= ~1;
-      if (x1 + z0 + pw + FRUSTUM_RADIUS + CANDIDATE_REUSE_DISTANCE + 0.0001 < 0) quadrants &= ~2;
-      if (x0 + z1 + pw + FRUSTUM_RADIUS + CANDIDATE_REUSE_DISTANCE + 0.0001 < 0) quadrants &= ~4;
-      if (x1 + z1 + pw + FRUSTUM_RADIUS + CANDIDATE_REUSE_DISTANCE + 0.0001 < 0) quadrants &= ~8;
+      const x0 = px * (px >= 0 ? x + half + FRUSTUM_HALF_XZ : x - FRUSTUM_HALF_XZ) + supportY,
+        x1 = px * (px >= 0 ? x + COARSE_TILE_METRES + FRUSTUM_HALF_XZ : x + half - FRUSTUM_HALF_XZ) + supportY;
+      const z0 = pz * (pz >= 0 ? z + half + FRUSTUM_HALF_XZ : z - FRUSTUM_HALF_XZ),
+        z1 = pz * (pz >= 0 ? z + COARSE_TILE_METRES + FRUSTUM_HALF_XZ : z + half - FRUSTUM_HALF_XZ);
+      if ((px >= 0 ? x1 : x0) + (pz >= 0 ? z1 : z0) + pw < 0) return 0;
+      if (x0 + z0 + pw < 0) quadrants &= ~1;
+      if (x1 + z0 + pw < 0) quadrants &= ~2;
+      if (x0 + z1 + pw < 0) quadrants &= ~4;
+      if (x1 + z1 + pw < 0) quadrants &= ~8;
     }
     return FAR_GROUP_BIT | (quadrants << 4) | quadrants;
   }
@@ -1649,19 +1651,19 @@ export class SeedWorldForwardGrass {
       const revealChanged =
         bound[1] !== minY || bound[4] !== maxY || ring.revealRangeSetter !== params.revealRangeSetter;
       if (
-        bound[0] !== visMinX - FRUSTUM_RADIUS ||
+        bound[0] !== visMinX - FRUSTUM_HALF_XZ ||
         bound[1] !== minY ||
-        bound[2] !== visMinZ - FRUSTUM_RADIUS ||
-        bound[3] !== visMaxX + FRUSTUM_RADIUS ||
+        bound[2] !== visMinZ - FRUSTUM_HALF_XZ ||
+        bound[3] !== visMaxX + FRUSTUM_HALF_XZ ||
         bound[4] !== maxY ||
-        bound[5] !== visMaxZ + FRUSTUM_RADIUS
+        bound[5] !== visMaxZ + FRUSTUM_HALF_XZ
       ) {
-        bound[0] = visMinX - FRUSTUM_RADIUS;
+        bound[0] = visMinX - FRUSTUM_HALF_XZ;
         bound[1] = minY;
-        bound[2] = visMinZ - FRUSTUM_RADIUS;
-        bound[3] = visMaxX + FRUSTUM_RADIUS;
+        bound[2] = visMinZ - FRUSTUM_HALF_XZ;
+        bound[3] = visMaxX + FRUSTUM_HALF_XZ;
         bound[4] = maxY;
-        bound[5] = visMaxZ + FRUSTUM_RADIUS;
+        bound[5] = visMaxZ + FRUSTUM_HALF_XZ;
         ring.ringMesh.mesh.bounds.min.copyFromArray(bound);
         ring.ringMesh.mesh.bounds.max.copyFromArray(bound, 3);
       }
