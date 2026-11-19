@@ -1,5 +1,4 @@
 import { GraphicsResource } from "../asset/GraphicsResource";
-import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
 import { IPlatformTexture } from "../renderingHardwareInterface";
@@ -113,20 +112,13 @@ export abstract class Texture extends GraphicsResource {
    * Sampling filter mode.
    * @remarks
    * Integer formats (`TextureFormat.R32G32B32A32_UInt`) only accept `TextureFilterMode.Point`; other modes log a warning and are ignored.
-   * 32-bit floating-point formats fall back to `TextureFilterMode.Point` when the device does not support linear float filtering.
+   * For 32-bit float formats, linear modes are kept on this property and fall back to `TextureFilterMode.Point` when sampling if the device does not support linear float filtering.
    */
   get filterMode(): TextureFilterMode {
     return this._filterMode;
   }
 
   set filterMode(value: TextureFilterMode) {
-    if (
-      value !== TextureFilterMode.Point &&
-      this._isFloat32Format() &&
-      !this._engine._hardwareRenderer.canIUse(GLCapabilityType.textureFloatLinear)
-    ) {
-      value = TextureFilterMode.Point;
-    }
     if (value === this._filterMode) return;
 
     if (value !== TextureFilterMode.Point && this._isIntFormat()) {
@@ -271,14 +263,5 @@ export abstract class Texture extends GraphicsResource {
       return true;
     }
     return false;
-  }
-
-  protected _isFloat32Format(): boolean {
-    const format = this._format;
-    return (
-      format === TextureFormat.R32_SFloat ||
-      format === TextureFormat.R32G32_SFloat ||
-      format === TextureFormat.R32G32B32A32_SFloat
-    );
   }
 }

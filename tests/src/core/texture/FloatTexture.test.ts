@@ -101,7 +101,7 @@ it("round trips R16 unsigned normalized texels at an odd row width", () => {
   texture.destroy();
 });
 
-it("falls back to Point filtering for 32-bit float formats when OES_texture_float_linear is unavailable", () => {
+it("falls back to NEAREST GL filtering for 32-bit float formats when OES_texture_float_linear is unavailable", () => {
   const rhi = engine._hardwareRenderer;
   const origCanIUse = rhi.canIUse.bind(rhi);
   const spy = vi.spyOn(rhi, "canIUse").mockImplementation((cap) => {
@@ -112,9 +112,15 @@ it("falls back to Point filtering for 32-bit float formats when OES_texture_floa
   try {
     for (const format of [TextureFormat.R32_SFloat, TextureFormat.R32G32_SFloat, TextureFormat.R32G32B32A32_SFloat]) {
       const texture = new Texture2D(engine, 4, 4, format, true, false);
-      expect(texture.filterMode).toBe(TextureFilterMode.Point);
+      expect(texture.filterMode).toBe(TextureFilterMode.Bilinear);
+      expect(gl.getTexParameter(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER)).toBe(gl.NEAREST);
+      expect(gl.getTexParameter(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER)).toBe(gl.NEAREST_MIPMAP_NEAREST);
+
       texture.filterMode = TextureFilterMode.Trilinear;
-      expect(texture.filterMode).toBe(TextureFilterMode.Point);
+      expect(texture.filterMode).toBe(TextureFilterMode.Trilinear);
+      expect(gl.getTexParameter(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER)).toBe(gl.NEAREST);
+      expect(gl.getTexParameter(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER)).toBe(gl.NEAREST_MIPMAP_NEAREST);
+
       texture.generateMipmaps();
       expect(gl.getError()).toBe(gl.NO_ERROR);
       texture.destroy(true);

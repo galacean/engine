@@ -435,7 +435,15 @@ export class GLTexture implements IPlatformTexture {
   set filterMode(value: TextureFilterMode) {
     const gl = this._gl;
     const target = this._target;
-    const { _mipmap } = this._texture;
+    const { _mipmap, format } = this._texture;
+
+    if (
+      value !== TextureFilterMode.Point &&
+      this._isFloat32Format(format) &&
+      !this._rhi.canIUse(GLCapabilityType.textureFloatLinear)
+    ) {
+      value = TextureFilterMode.Point;
+    }
 
     this._bind();
     switch (value) {
@@ -546,10 +554,7 @@ export class GLTexture implements IPlatformTexture {
     // WebGL2 generateMipmap requires the format to be both color-renderable and texture-filterable
     if (
       !this._rhi.supportsRenderTargetColorFormat(texture.format) ||
-      ((texture.format === TextureFormat.R32_SFloat ||
-        texture.format === TextureFormat.R32G32_SFloat ||
-        texture.format === TextureFormat.R32G32B32A32_SFloat) &&
-        !this._rhi.canIUse(GLCapabilityType.textureFloatLinear))
+      (this._isFloat32Format(texture.format) && !this._rhi.canIUse(GLCapabilityType.textureFloatLinear))
     ) {
       Logger.warn(
         `Auto-generating mipmaps is not supported for TextureFormat.${TextureFormat[texture.format]} on this device.`
@@ -683,6 +688,14 @@ export class GLTexture implements IPlatformTexture {
       // @ts-ignore
       texture._isSRGBColorSpace = false;
     }
+  }
+
+  private _isFloat32Format(format: TextureFormat): boolean {
+    return (
+      format === TextureFormat.R32_SFloat ||
+      format === TextureFormat.R32G32_SFloat ||
+      format === TextureFormat.R32G32B32A32_SFloat
+    );
   }
 
   private _setWrapMode(value: TextureWrapMode, pname: GLenum): void {
