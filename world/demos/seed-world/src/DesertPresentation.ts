@@ -40,9 +40,8 @@ export function applyDesertTerrain(world: SeedWorldTerrainRuntime, oasis = false
   if (normals) world.setSandNormalTuning({ ...normals, rippleFadeDistanceMetres: oasis ? 92 : 165 });
 }
 
-/** Extends the far shadow cascade while keeping the near cascade's range. */
+/** Applies desert fog settings while inheriting the shared global shadow cascade configuration. */
 export function applyDesertShadows(lighting: TerrainLightingRuntime): void {
-  lighting.setShadowCascadeTuning({ distance: 300, distribution: 15, count: 4, splits: [1 / 15, 3 / 15, 7 / 15] });
   lighting.setFogAppearance({ cameraDepth: true });
 }
 
