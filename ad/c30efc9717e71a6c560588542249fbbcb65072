@@ -1,0 +1,64 @@
+.agents/skills/seed-world-local-debug/SKILL.md
+  h_ddbf152d31b140 24
+.agents/skills/seed-world-local-debug/references/start.md
+  h_ddbf152d31b140 33,37
+packages/ai-chat/src/ai-chat/agent-extensions.ts
+  h_ddbf152d31b140 76-85
+packages/ai-chat/src/ai-chat/agent-image-store.ts
+  h_ddbf152d31b140 2,17-19
+packages/ai-chat/src/ai-chat/agent-loop.ts
+  h_ddbf152d31b140 9-14,23-25,243-245,295-304,315,336-338,357-359,362-382,385,398,406-409,425-428,689-695,736,887-899,988-990,1013,1058,1533-1545
+packages/ai-chat/src/ai-chat/agent-native-files.ts
+  h_ddbf152d31b140 9,12,16,21-39,78,130-131,137-138,182-195,366-439
+packages/ai-chat/src/ai-chat/agent-protocol.ts
+  h_ddbf152d31b140 35-37,74-123,132,232,235-246,249-275,278-288
+packages/ai-chat/src/ai-chat/agent-types.ts
+  h_ddbf152d31b140 462-463
+packages/ai-chat/src/ai-chat/ai-chat-session.ts
+  h_ddbf152d31b140 4,44-45,50-51,264-265,282-283,351-352,358-362,365-366,401,409
+packages/ai-chat/src/ai-chat/context-compaction.ts
+  h_ddbf152d31b140 3,150-193,213-220,225-232,235-236,241-243
+packages/ai-chat/src/ai-chat/trajectory/trajectory-model.ts
+  h_ddbf152d31b140 2,670-671,674-675,865,867,2512-2519
+packages/ai-chat/tests/AIChatAgentProtocol.spec.ts
+  h_ddbf152d31b140 11,13-14,136-157,168-170
+packages/ai-chat/tests/AIChatInbox.spec.ts
+  h_ddbf152d31b140 6-7,24-44,215,217,224-233,325-328,420-479
+packages/ai-chat/tests/agent-context.spec.ts
+  h_ddbf152d31b140 2,5,11-18,20-21,30,36,39
+packages/ai-chat/tests/agent-extensions.spec.ts
+  h_ddbf152d31b140 74-82
+packages/ai-chat/tests/agent-images.spec.ts
+  h_ddbf152d31b140 8,37-40,43-44,56,101-102
+packages/ai-chat/tests/agent-native-files.spec.ts
+  h_ddbf152d31b140 2-3,244-289
+packages/ai-chat/tests/agent-skills.spec.ts
+  h_ddbf152d31b140 6,18-19,22
+packages/ai-chat/tests/context-compaction-loop.spec.ts
+  h_ddbf152d31b140 7,22,34,38-42,45-46,48,53,58,63,66-68,74,86,99,113,117-119,125,136
+packages/ai-chat/tests/reasoning-continuation.spec.ts
+  h_ddbf152d31b140 88
+world/tests/seed-world/AIChatPhotoInput.spec.ts
+  h_ddbf152d31b140 7,179-181,262-263,271
+world/tests/seed-world/AIChatSession.spec.ts
+  h_ddbf152d31b140 13-14,50-52,54,56-57,138,154-155,215-221,224,250-254,300,302,318-321,323-324,328,330,344,348,373,448,450
+world/tests/seed-world/AgentSkillsVfs.spec.ts
+  h_ddbf152d31b140 4,112-113,116,119-123,142,146,148
+world/tests/seed-world/TrajectoryCallGroups.spec.ts
+  h_ddbf152d31b140 10,36,106,109,130,132,160-161
+world/tests/seed-world/TrajectoryContextTelemetry.spec.ts
+  h_ddbf152d31b140 75,79,98-99
+world/tests/seed-world/runtime-editor/agent-loop.integration.spec.ts
+  h_ddbf152d31b140 20,122,124,142,144,148,223-224,226,233,241-249,634-636
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "adc30efc9717e71a6c560588542249fbbcb65072",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
