@@ -44,7 +44,7 @@ Shader "2D/Text" {
       }
 
       void TextFragment(v2f v) {
-        vec4 texColor = texture(renderElement_TextTexture, v.v_uv);
+        vec4 texColor = texture2D(renderElement_TextTexture, v.v_uv);
           float coverage = texColor.r;
         gl_FragColor = vec4(v.v_color.rgb, v.v_color.a * coverage);
       }

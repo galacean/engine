@@ -44,7 +44,7 @@ Shader "2D/Sprite" {
       }
 
       void SpriteFragment(v2f v) {
-        vec4 baseColor = texture(renderer_SpriteTexture, v.v_uv);
+        vec4 baseColor = texture2D(renderer_SpriteTexture, v.v_uv);
         gl_FragColor = baseColor * v.v_color;
       }
     }

@@ -395,7 +395,7 @@ vec3 envBRDFApprox(vec3 f0, float f90, float roughness, float dotNV ) {
         vec2 refractionCoords = (samplingPositionNDC.xy / samplingPositionNDC.w) * 0.5 + 0.5;
 
         // Sample the opaque texture to get the transmitted light
-        vec3 refractionTransmitted = texture(camera_OpaqueTexture, refractionCoords).rgb;
+        vec3 refractionTransmitted = texture2D(camera_OpaqueTexture, refractionCoords).rgb;
         
         refractionTransmitted *= bsdfData.diffuseColor;
          
@@ -421,7 +421,7 @@ vec3 envBRDFApprox(vec3 f0, float f90, float roughness, float dotNV ) {
         #ifdef MATERIAL_IS_TRANSPARENT
             return 1.0;
         #else
-            return texture(camera_AOTexture, uv).r;
+            return texture2D(camera_AOTexture, uv).r;
         #endif
     }
 #endif

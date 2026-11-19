@@ -30,14 +30,14 @@ highp float unpack(highp vec2 depth) {
 
 void tap(const sampler2D saoTexture,
       inout float sum, inout float totalWeight, float weight, float depth, vec2 position) {
-      vec4 data = texture(saoTexture, position);
+      vec4 data = texture2D(saoTexture, position);
       float bilateral = weight * bilateralWeight(depth, unpack(data.gb));
       sum += data.r * bilateral;
       totalWeight += bilateral;
 }
 
 void frag(Varyings v) {
-      mediump vec4 data = texture(renderer_BlitTexture, v.v_uv);
+      mediump vec4 data = texture2D(renderer_BlitTexture, v.v_uv);
       float depth = unpack(data.gb);
 
       float totalWeight = material_kernel[0];

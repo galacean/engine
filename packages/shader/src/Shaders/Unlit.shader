@@ -132,7 +132,7 @@ Shader "Unlit" {
           vec4 baseColor = material_BaseColor;
 
           #ifdef MATERIAL_HAS_BASETEXTURE
-              baseColor *= texture(material_BaseTexture, v.v_uv);
+              baseColor *= texture2D(material_BaseTexture, v.v_uv);
           #endif
 
           #ifdef MATERIAL_IS_ALPHA_CUTOFF

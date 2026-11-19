@@ -27,7 +27,7 @@ Shader "2D/SpriteMask" {
       }
 
       void SpriteMaskFragment(v2f v) {
-        vec4 color = texture(renderer_MaskTexture, v.v_uv);
+        vec4 color = texture2D(renderer_MaskTexture, v.v_uv);
         if (color.a < renderer_MaskAlphaCutoff) {
           discard;
         }

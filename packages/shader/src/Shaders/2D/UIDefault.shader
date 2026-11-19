@@ -50,7 +50,7 @@ Shader "2D/UIDefault" {
       }
 
       void frag(Varyings v) {
-          vec4 baseColor = texture(renderer_UITexture, v.v_uv);
+          vec4 baseColor = texture2D(renderer_UITexture, v.v_uv);
           vec4 finalColor = baseColor * v.v_color;
 
           #ifdef ENGINE_SHOULD_SRGB_CORRECT

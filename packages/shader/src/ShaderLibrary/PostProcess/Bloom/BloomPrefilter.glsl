@@ -10,19 +10,19 @@ vec4 renderer_texelSize;
 void frag(Varyings v) {
 	#ifdef BLOOM_HQ
       vec2 texelSize = renderer_texelSize.xy;
-      mediump vec4 A = texture(renderer_BlitTexture, v.v_uv + texelSize * vec2(-1.0, -1.0));
-      mediump vec4 B = texture(renderer_BlitTexture, v.v_uv + texelSize * vec2(0.0, -1.0));
-      mediump vec4 C = texture(renderer_BlitTexture, v.v_uv + texelSize * vec2(1.0, -1.0));
-      mediump vec4 D = texture(renderer_BlitTexture, v.v_uv + texelSize * vec2(-0.5, -0.5));
-      mediump vec4 E = texture(renderer_BlitTexture, v.v_uv + texelSize * vec2(0.5, -0.5));
-      mediump vec4 F = texture(renderer_BlitTexture, v.v_uv + texelSize * vec2(-1.0, 0.0));
-      mediump vec4 G = texture(renderer_BlitTexture, v.v_uv);
-      mediump vec4 H = texture(renderer_BlitTexture, v.v_uv + texelSize * vec2(1.0, 0.0));
-      mediump vec4 I = texture(renderer_BlitTexture, v.v_uv + texelSize * vec2(-0.5, 0.5));
-      mediump vec4 J = texture(renderer_BlitTexture, v.v_uv + texelSize * vec2(0.5, 0.5));
-      mediump vec4 K = texture(renderer_BlitTexture, v.v_uv + texelSize * vec2(-1.0, 1.0));
-      mediump vec4 L = texture(renderer_BlitTexture, v.v_uv + texelSize * vec2(0.0, 1.0));
-      mediump vec4 M = texture(renderer_BlitTexture, v.v_uv + texelSize * vec2(1.0, 1.0));
+      mediump vec4 A = texture2D(renderer_BlitTexture, v.v_uv + texelSize * vec2(-1.0, -1.0));
+      mediump vec4 B = texture2D(renderer_BlitTexture, v.v_uv + texelSize * vec2(0.0, -1.0));
+      mediump vec4 C = texture2D(renderer_BlitTexture, v.v_uv + texelSize * vec2(1.0, -1.0));
+      mediump vec4 D = texture2D(renderer_BlitTexture, v.v_uv + texelSize * vec2(-0.5, -0.5));
+      mediump vec4 E = texture2D(renderer_BlitTexture, v.v_uv + texelSize * vec2(0.5, -0.5));
+      mediump vec4 F = texture2D(renderer_BlitTexture, v.v_uv + texelSize * vec2(-1.0, 0.0));
+      mediump vec4 G = texture2D(renderer_BlitTexture, v.v_uv);
+      mediump vec4 H = texture2D(renderer_BlitTexture, v.v_uv + texelSize * vec2(1.0, 0.0));
+      mediump vec4 I = texture2D(renderer_BlitTexture, v.v_uv + texelSize * vec2(-0.5, 0.5));
+      mediump vec4 J = texture2D(renderer_BlitTexture, v.v_uv + texelSize * vec2(0.5, 0.5));
+      mediump vec4 K = texture2D(renderer_BlitTexture, v.v_uv + texelSize * vec2(-1.0, 1.0));
+      mediump vec4 L = texture2D(renderer_BlitTexture, v.v_uv + texelSize * vec2(0.0, 1.0));
+      mediump vec4 M = texture2D(renderer_BlitTexture, v.v_uv + texelSize * vec2(1.0, 1.0));
 
       mediump vec2 scale = vec2(0.5, 0.125);
       mediump vec2 div = (1.0 / 4.0) * scale;
@@ -33,7 +33,7 @@ void frag(Varyings v) {
       samplerColor += (F + G + L + K) * div.y;
       samplerColor += (G + H + M + L) * div.y;
     #else
-      mediump vec4 samplerColor = texture(renderer_BlitTexture, v.v_uv);
+      mediump vec4 samplerColor = texture2D(renderer_BlitTexture, v.v_uv);
     #endif
 
     mediump vec3 color = samplerColor.rgb;

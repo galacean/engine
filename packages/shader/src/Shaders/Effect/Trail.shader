@@ -133,13 +133,13 @@ Shader "Effect/Trail" {
         vec4 color = material_BaseColor * v.v_color;
 
         #ifdef MATERIAL_HAS_BASETEXTURE
-          color *= texture(material_BaseTexture, v.v_uv);
+          color *= texture2D(material_BaseTexture, v.v_uv);
         #endif
 
         vec3 emissiveRadiance = material_EmissiveColor;
 
         #ifdef MATERIAL_HAS_EMISSIVETEXTURE
-          emissiveRadiance *= texture(material_EmissiveTexture, v.v_uv).rgb;
+          emissiveRadiance *= texture2D(material_EmissiveTexture, v.v_uv).rgb;
         #endif
 
         color.rgb += emissiveRadiance;

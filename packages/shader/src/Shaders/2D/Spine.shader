@@ -60,7 +60,7 @@ Shader "2D/Spine" {
       }
 
       void SpineFragment(v2f v) {
-        vec4 texColor = texture(renderElement_SpineTexture, v.v_uv);
+        vec4 texColor = texture2D(renderElement_SpineTexture, v.v_uv);
         vec4 lightColor = sRGBToLinear(v.v_lightColor);
       #ifdef RENDERER_TINT_BLACK
         vec4 darkColor = sRGBToLinear(vec4(v.v_darkColor, 1.0));

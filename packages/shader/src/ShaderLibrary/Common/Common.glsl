@@ -46,7 +46,7 @@ vec4 linearToSRGB(vec4 value){
 }
 
 vec4 texture2DSRGB(sampler2D tex, vec2 uv) {
-	return texture(tex, uv);
+	return texture2D(tex, uv);
 }
 
 vec4 outputSRGBCorrection(vec4 linearIn){

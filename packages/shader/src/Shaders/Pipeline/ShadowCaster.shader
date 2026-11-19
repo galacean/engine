@@ -97,7 +97,7 @@ Shader "Pipeline/ShadowCaster" {
         #if defined(MATERIAL_IS_ALPHA_CUTOFF) || (defined(SCENE_ENABLE_TRANSPARENT_SHADOW) && defined(MATERIAL_IS_TRANSPARENT))
           float alpha = material_BaseColor.a;
           #ifdef MATERIAL_HAS_BASETEXTURE
-            alpha *= texture(material_BaseTexture, v.v_uv).a;
+            alpha *= texture2D(material_BaseTexture, v.v_uv).a;
           #endif
           #ifdef MATERIAL_IS_ALPHA_CUTOFF
             if (alpha < material_AlphaCutoff) {

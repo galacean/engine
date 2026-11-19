@@ -30,7 +30,7 @@ vec4 applyFXAA(vec4 color, vec2 positionNDC, vec4 sourceSize, sampler2D blitText
 }
 
 void frag(Varyings v) {
-	mediump vec4 color = texture(renderer_BlitTexture, v.v_uv);
+	mediump vec4 color = texture2D(renderer_BlitTexture, v.v_uv);
 
     color = applyFXAA(color, v.v_uv, renderer_texelSize, renderer_BlitTexture);
 

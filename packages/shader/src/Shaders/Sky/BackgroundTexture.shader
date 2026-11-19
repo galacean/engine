@@ -32,7 +32,7 @@ Shader "Sky/BackgroundTexture" {
       }
 
       void BackgroundTextureFragment(Varyings varyings) {
-        gl_FragColor = texture(material_BaseTexture, varyings.v_uv);
+        gl_FragColor = texture2D(material_BaseTexture, varyings.v_uv);
       }
     }
   }

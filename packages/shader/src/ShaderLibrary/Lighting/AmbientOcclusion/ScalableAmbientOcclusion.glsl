@@ -62,8 +62,8 @@ vec3 computeViewSpaceNormal(vec2 uv, highp sampler2D depthTexture, float depth, 
         vec2 uvdx = uv + vec2(texel.x, 0.0);
         vec2 uvdy = uv + vec2(0.0, texel.y);
 
-        float depthX = texture(depthTexture, uvdx).r;
-        float depthY = texture(depthTexture, uvdy).r;
+        float depthX = texture2D(depthTexture, uvdx).r;
+        float depthY = texture2D(depthTexture, uvdy).r;
 
         vec3 px = computeViewSpacePosition(uvdx, depthToViewZ(depthX), invProjScaleXY);
         vec3 py = computeViewSpacePosition(uvdy, depthToViewZ(depthY), invProjScaleXY);
@@ -78,10 +78,10 @@ vec3 computeViewSpaceNormal(vec2 uv, highp sampler2D depthTexture, float depth, 
         vec2 dy = vec2(0.0, texel.y);
 
         vec4 H;
-        H.x = texture(depthTexture, uv - dx).r;       // left
-        H.y = texture(depthTexture, uv + dx).r;       // right
-        H.z = texture(depthTexture, uv - dx * 2.0).r; // left2
-        H.w = texture(depthTexture, uv + dx * 2.0).r; // right2
+        H.x = texture2D(depthTexture, uv - dx).r;       // left
+        H.y = texture2D(depthTexture, uv + dx).r;       // right
+        H.z = texture2D(depthTexture, uv - dx * 2.0).r; // left2
+        H.w = texture2D(depthTexture, uv + dx * 2.0).r; // right2
 
         // Calculate horizontal edge weights
         vec2 horizontalEdgeWeights = abs((2.0 * H.xy - H.zw) - depth);
@@ -92,10 +92,10 @@ vec3 computeViewSpaceNormal(vec2 uv, highp sampler2D depthTexture, float depth, 
 
         // Sample depths for vertical edge detection
         vec4 V;
-        V.x = texture(depthTexture, uv - dy).r;       // down
-        V.y = texture(depthTexture, uv + dy).r;       // up
-        V.z = texture(depthTexture, uv - dy * 2.0).r; // down2
-        V.w = texture(depthTexture, uv + dy * 2.0).r; // up2
+        V.x = texture2D(depthTexture, uv - dy).r;       // down
+        V.y = texture2D(depthTexture, uv + dy).r;       // up
+        V.z = texture2D(depthTexture, uv - dy * 2.0).r; // down2
+        V.w = texture2D(depthTexture, uv + dy * 2.0).r; // up2
 
         // Calculate vertical edge weights
         vec2 verticalEdgeWeights = abs((2.0 * V.xy - V.zw) - depth);
@@ -138,7 +138,7 @@ void computeAmbientOcclusionSAO(inout float occlusion, float i, float ssDiskRadi
 
     vec2 uvSamplePos = uv + vec2(ssRadius * tap.xy) * renderer_texelSize.xy;
 
-    float occlusionDepth = texture(renderer_BlitTexture, uvSamplePos).r;
+    float occlusionDepth = texture2D(renderer_BlitTexture, uvSamplePos).r;
     float linearOcclusionDepth = depthToViewZ(occlusionDepth);
     // “p” is the position after spiral sampling
     vec3 p = computeViewSpacePosition(uvSamplePos, linearOcclusionDepth, material_invProjScaleXY);
@@ -192,7 +192,7 @@ vec2 pack(highp float normalizedDepth) {
 
 
 void frag(Varyings v) {
-    float depth = texture(renderer_BlitTexture, v.v_uv).r;
+    float depth = texture2D(renderer_BlitTexture, v.v_uv).r;
     float z = depthToViewZ(depth);
 
     // Reconstruct view space position from depth

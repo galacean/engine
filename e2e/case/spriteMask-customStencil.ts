@@ -98,7 +98,7 @@ const customStencilShaderSource = `Shader "CustomStencilSprite" {
       }
 
       vec4 frag(Varyings v) {
-        vec4 baseColor = texture(renderer_SpriteTexture, v.v_uv);
+        vec4 baseColor = texture2D(renderer_SpriteTexture, v.v_uv);
         return baseColor * v.v_color;
       }
     }
