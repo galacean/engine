@@ -57,6 +57,7 @@ interface BodyState extends CrowdQueryState {
   body: GroundAnimalBody;
   next: GroundAnimalMotion;
   forward: GroundAnimalMotion;
+  contactProposed: GroundAnimalMotion;
   neighbours: BodyState[];
   reservedNeighbours: BodyState[];
   reservation?: { x: number; z: number; elevation?: number; layer?: string; cellKey: number };
@@ -128,6 +129,7 @@ export class GroundAnimalCrowd {
       body,
       next: { ...body.motion },
       forward: { ...body.motion },
+      contactProposed: { ...body.motion },
       neighbours: [],
       reservedNeighbours: [],
       bodyKey: `crowd:${this.nextId - 1}:body`,
@@ -671,33 +673,51 @@ export class GroundAnimalCrowd {
         b.surfaceBlocked = !supported && !recovered;
         if (recovered) b.blocked = false;
       }
-      const pose = Math.max(0, Math.min(1, b.motionFraction?.(seconds, s.next) ?? 1));
+      const rawDx = !b.surfaceBlocked ? s.next.x - m.x : 0;
+      const rawDz = !b.surfaceBlocked ? s.next.z - m.z : 0;
+      let fraction = 1;
+      for (let j = 0, jlen = s.neighbours.length; j < jlen; j++) {
+        const n = s.neighbours[j];
+        fraction = Math.min(fraction, this.contact(s, n.body.motion.x, n.body.motion.z, n.body.radius, rawDx, rawDz));
+      }
+      for (let j = 0, jlen = s.reservedNeighbours.length; j < jlen; j++) {
+        const n = s.reservedNeighbours[j];
+        const r = n.reservation!;
+        fraction = Math.min(fraction, this.contact(s, r.x, r.z, restingRadius(n.body), rawDx, rawDz));
+      }
+      // Feed post-contact speeds into gait cadence so glancing or blocked contacts never
+      // advance animation at full unclamped speed while the body barely moves.
+      const cp = s.contactProposed;
+      if (!b.surfaceBlocked && fraction > 0) {
+        const contactTurn = rawDx !== 0 || rawDz !== 0 ? fraction : 0;
+        cp.x = m.x + rawDx * fraction;
+        cp.z = m.z + rawDz * fraction;
+        cp.heading = m.heading + (s.next.heading - m.heading) * contactTurn;
+        cp.speed = s.next.speed * fraction;
+        cp.angularSpeed = s.next.angularSpeed * contactTurn;
+      } else {
+        cp.x = m.x;
+        cp.z = m.z;
+        cp.heading = m.heading;
+        cp.speed = 0;
+        cp.angularSpeed = 0;
+      }
+      const pose = Math.max(0, Math.min(1, b.motionFraction?.(seconds, cp) ?? 1));
       const translationAllowed = pose > 0 && !b.surfaceBlocked;
-      const dx = translationAllowed ? (s.next.x - m.x) * pose : 0;
-      const dz = translationAllowed ? (s.next.z - m.z) * pose : 0;
       if (!translationAllowed) {
         s.next.speed = 0;
         s.next.angularSpeed = 0;
         s.next.heading = m.heading;
       }
-      let fraction = 1;
-      for (let j = 0, jlen = s.neighbours.length; j < jlen; j++) {
-        const n = s.neighbours[j];
-        fraction = Math.min(fraction, this.contact(s, n.body.motion.x, n.body.motion.z, n.body.radius, dx, dz));
-      }
-      for (let j = 0, jlen = s.reservedNeighbours.length; j < jlen; j++) {
-        const n = s.reservedNeighbours[j];
-        const r = n.reservation!;
-        fraction = Math.min(fraction, this.contact(s, r.x, r.z, restingRadius(n.body), dx, dz));
-      }
-      if (fraction < 1) this.constrainedSteps++;
-      m.x += dx * fraction;
-      m.z += dz * fraction;
-      const turningFraction = dx !== 0 || dz !== 0 ? pose * fraction : 0;
+      if (translationAllowed && fraction < 1) this.constrainedSteps++;
+      const appliedFraction = translationAllowed ? fraction * pose : 0;
+      m.x += rawDx * appliedFraction;
+      m.z += rawDz * appliedFraction;
+      const turningFraction = rawDx !== 0 || rawDz !== 0 ? appliedFraction : 0;
       m.heading += (s.next.heading - m.heading) * turningFraction;
       // A partial terminal animation sample limits displacement, not the endpoint momentum.
       m.angularSpeed = turningFraction > 0 ? s.next.angularSpeed * fraction : 0;
-      m.speed = pose > 0 ? s.next.speed * fraction : 0;
+      m.speed = translationAllowed ? s.next.speed * fraction : 0;
       b.arrived &&= translationAllowed && fraction === 1 && pose === 1;
       if (b.arrived) s.recovery.reset();
       if (pose === 1 && !b.blocked && !recovered)

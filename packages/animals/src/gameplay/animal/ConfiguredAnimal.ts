@@ -45,7 +45,7 @@ import {
   type AnimalRoutePoint,
   type AnimalRouteQuery
 } from "./AnimalStaticRoute";
-import { AnimalMotionPlayback } from "./AnimalMotionPlayback";
+import { AnimalMotionPlayback, groundAnimalEffectiveSpeed } from "./AnimalMotionPlayback";
 import { AnimalBlendClock } from "./AnimalBlendClock";
 import { animalAnimationClips } from "./AnimalAnimationBasis";
 import { animalCollisionRadius, type AnimalAssetConfig } from "./AnimalAssetCatalog";
@@ -713,6 +713,10 @@ export class ConfiguredAnimal implements AnimalAgent {
       const supported = arrived
         ? this.canTranslate(this.proposedMotion)
         : this.resolveGroundMotion(this.proposedMotion, seconds);
+      if (!supported) {
+        this.proposedMotion.speed = 0;
+        this.proposedMotion.angularSpeed = 0;
+      }
       const fraction = this.prepareAnimation(seconds, this.proposedMotion);
       this.surfaceBlocked = !supported;
       const translationAllowed = fraction > 0 && supported;
@@ -944,11 +948,13 @@ export class ConfiguredAnimal implements AnimalAgent {
       this.animator.speed > 0 &&
       !!state &&
       state.speed > 0;
+    const slopeScale = this.movementMedium === "ground" ? 1 / Math.max(0.78, Math.cos(this.slopePitch)) : 1;
     const fraction = this.playback.prepare(
       ready ? seconds * nativeRate : seconds,
       proposed,
       Math.max(0.1, (this.config.bounds.max[2] - this.config.bounds.min[2]) * this.scale),
-      ready
+      ready,
+      slopeScale
     );
     const animationSeconds = this.playback.advance();
     this.sampledAnimationSeconds = animationSeconds;
@@ -2121,14 +2127,13 @@ export class ConfiguredAnimal implements AnimalAgent {
   }
 
   private reportMovementEffort(): void {
+    const bodyLength = Math.max(0.1, (this.config.bounds.max[2] - this.config.bounds.min[2]) * this.scale);
+    const scaleFactor = this.scale * this.speedMultiplier;
+    const slopeScale = this.movementMedium === "ground" ? 1 / Math.max(0.78, Math.cos(this.slopePitch)) : 1;
+    const nominal = Math.max(this.locomotionSpeed, this.velocity) * scaleFactor;
     this.behavior.updateMovementEffort(
-      Math.hypot(
-        this.motion.speed,
-        this.motion.angularSpeed *
-          Math.max(0.1, (this.config.bounds.max[2] - this.config.bounds.min[2]) * this.scale) *
-          0.35
-      ) /
-        (this.scale * this.speedMultiplier)
+      groundAnimalEffectiveSpeed(this.motion.speed, this.motion.angularSpeed, bodyLength, nominal, slopeScale) /
+        scaleFactor
     );
   }
 
