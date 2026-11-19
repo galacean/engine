@@ -1,0 +1,14 @@
+tests/src/physics-havok/HavokPhysics.test.ts
+  h_dd004f51a3e5ec 1422,1909
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c0f62a0f2c17f9e97323f172dc34fa003dd025ee",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
