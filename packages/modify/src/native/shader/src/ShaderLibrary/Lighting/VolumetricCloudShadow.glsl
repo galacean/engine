@@ -13,8 +13,7 @@
 
   const float VOLUMETRIC_CLOUD_SHADOW_EPSILON = 0.00001;
 
-  vec2 encodeVolumetricCloudShadowDirection(vec3 direction) {
-    vec3 ray = normalize(direction);
+  vec2 encodeVolumetricCloudShadowUnitDirection(vec3 ray) {
     vec2 diamond = ray.xz / max(
       abs(ray.x) + max(ray.y, 0.0) + abs(ray.z),
       VOLUMETRIC_CLOUD_SHADOW_EPSILON
@@ -23,26 +22,26 @@
     return square * 0.5 + 0.5;
   }
 
+  vec2 encodeVolumetricCloudShadowDirection(vec3 direction) {
+    return encodeVolumetricCloudShadowUnitDirection(normalize(direction));
+  }
+
   vec2 volumetricCloudShadowLayerSegment(vec3 ray) {
     float planetRadius = scene_VolumetricCloudShadowLayer.x;
     float cloudBaseAltitude = scene_VolumetricCloudShadowLayer.y;
     float cloudThickness = scene_VolumetricCloudShadowLayer.z;
     float inversePlanetRadius = 1.0 / max(planetRadius, VOLUMETRIC_CLOUD_SHADOW_EPSILON);
-    vec3 offset = vec3(
-      0.0,
-      1.0 + scene_VolumetricCloudShadowOrigin.y * inversePlanetRadius,
-      0.0
-    );
-    float projection = dot(offset, ray);
+    float observerRadius = 1.0 + scene_VolumetricCloudShadowOrigin.y * inversePlanetRadius;
+    float projection = observerRadius * ray.y;
     float innerRadius = 1.0 + cloudBaseAltitude * inversePlanetRadius;
     float outerRadius = innerRadius + cloudThickness * inversePlanetRadius;
-    float observerRadius = length(offset);
+    float projSq = projection * projection;
     float innerRoot = sqrt(max(
-      projection * projection + (innerRadius - observerRadius) * (innerRadius + observerRadius),
+      projSq + (innerRadius - observerRadius) * (innerRadius + observerRadius),
       0.0
     ));
     float outerRoot = sqrt(max(
-      projection * projection + (outerRadius - observerRadius) * (outerRadius + observerRadius),
+      projSq + (outerRadius - observerRadius) * (outerRadius + observerRadius),
       0.0
     ));
     return vec2(max(0.0, -projection + innerRoot), -projection + outerRoot) * planetRadius;
@@ -93,7 +92,7 @@
 
     vec2 halfTexel = scene_VolumetricCloudShadowTexelSize.xy * 0.5;
     vec2 currentUv = clamp(
-      encodeVolumetricCloudShadowDirection(currentRay),
+      encodeVolumetricCloudShadowUnitDirection(currentRay),
       halfTexel,
       vec2(1.0) - halfTexel
     );
@@ -104,7 +103,7 @@
     vec3 historyRay = reprojectVolumetricCloudShadowDirection(currentRay, weightedCenter);
     if (historyRay.y <= 0.0) return 1.0;
     vec2 historyUv = clamp(
-      encodeVolumetricCloudShadowDirection(historyRay),
+      encodeVolumetricCloudShadowUnitDirection(historyRay),
       halfTexel,
       vec2(1.0) - halfTexel
     );

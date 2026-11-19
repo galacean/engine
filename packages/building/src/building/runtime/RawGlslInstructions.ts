@@ -8,7 +8,8 @@ const RAW_ALIAS_PREFIX = "BUILDING_RAW_";
 export const RAW_GLSL_MACROS = [
   "RENDERER_WORLD_PICK",
   "RENDERER_WORLD_PICK_DEPTH",
-  "RENDERER_MASONRY_ENTRANCE"
+  "RENDERER_MASONRY_ENTRANCE",
+  "RENDERER_MASONRY_DITHER"
 ] as const;
 
 const RAW_MACRO_PATTERN = new RegExp(`\\b(?:${RAW_GLSL_MACROS.join("|")})\\b`, "g");
@@ -18,6 +19,8 @@ const RAW_MACRO_PATTERN = new RegExp(`\\b(?:${RAW_GLSL_MACROS.join("|")})\\b`, "
  *
  * Text instructions are ordinary shader text: the engine expands every active macro name in them, so
  * `#ifdef NAME` would become `#ifdef `. Each gate tests the engine macro, and the text uses a private alias.
+ * Only macros referenced by `source` emit gates, so unused active macros never perturb generated GLSL or
+ * defeat `ShaderPass` source-level program deduplication.
  *
  * TEMPORARY: delete this with the old resident path.
  * @param gatedMacros - Macros to define for the GL driver when they are active.
@@ -30,10 +33,16 @@ export function rawGlslInstructions(
   source: string,
   offset = 0
 ): Instructions {
+  const referenced = new Set<string>();
+  const aliased = source.replace(RAW_MACRO_PATTERN, (macro) => {
+    referenced.add(macro);
+    return RAW_ALIAS_PREFIX + macro;
+  });
+  const activeGates = gatedMacros.filter((macro) => referenced.has(macro));
   const instructions: Instructions = [];
-  gatedMacros.forEach((macro, index) => {
+  activeGates.forEach((macro, index) => {
     instructions.push([1, macro, offset + 2 * (index + 1)], [0, `#define ${RAW_ALIAS_PREFIX}${macro}\n`]);
   });
-  instructions.push([0, source.replace(RAW_MACRO_PATTERN, (macro) => RAW_ALIAS_PREFIX + macro)]);
+  instructions.push([0, aliased]);
   return instructions;
 }

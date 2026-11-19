@@ -23,6 +23,7 @@ import {
 import {
   normalizeSeedWorldShaderVariants,
   withSeedWorldInstanceEntranceVariants,
+  withSeedWorldMasonryDitherVariants,
   seedWorldShaderVariantKey,
   type SeedWorldShaderVariantEntry,
   type SeedWorldShaderVariantMacro
@@ -31,6 +32,7 @@ import {
 export {
   withSeedWorldInstanceEntranceVariants,
   withSeedWorldIblBlendVariants,
+  withSeedWorldMasonryDitherVariants,
   expandSeedWorldShaderVariantManifest,
   findMissingSeedWorldShaderVariants,
   normalizeSeedWorldShaderVariants,
@@ -590,7 +592,7 @@ export function collectSeedWorldRendererVariants(
   // Resource preparation compiles the actual scene/material contract. A
   // speculative environment-blend macro is not valid for every shader and
   // must not be injected into an otherwise renderable candidate.
-  return withSeedWorldInstanceEntranceVariants(variants);
+  return withSeedWorldMasonryDitherVariants(withSeedWorldInstanceEntranceVariants(variants));
 }
 
 /** Predict LightManager registration after the atomic root swap without activating any entity. */

@@ -575,6 +575,7 @@ Shader "Sky/SkyProcedural" {
         vec3 sunDirection = getSkySunDirection();
         float sunElevation = asin(clamp(sunDirection.y, -1.0, 1.0)) * (180.0 / 3.14159265);
         float solarDepression = max(-sunElevation, 0.0);
+        if (solarDepression <= 0.0) return vec3(0.0);
         float afterSunset = smoothstep(0.0, 0.75, solarDepression);
         float civilTwilight = afterSunset * (1.0 - smoothstep(0.0, 6.0, solarDepression));
         float nauticalTwilight =
@@ -607,15 +608,20 @@ Shader "Sky/SkyProcedural" {
           astronomicalNight *
           material_AirglowIntensity;
         float starVisibility = smoothstep(4.0, 16.0, solarDepression) * skyMask;
-        vec3 stars =
-          getProceduralStars(viewDirection, starPixelFootprintVariance) * starVisibility * material_StarIntensity *
-          clamp(viewTransmittance, vec3(0.0), vec3(1.0));
+        vec3 stars = vec3(0.0);
+        if (starVisibility > 0.0 && material_StarIntensity > 0.0) {
+          stars =
+            getProceduralStars(viewDirection, starPixelFootprintVariance) * starVisibility * material_StarIntensity *
+            clamp(viewTransmittance, vec3(0.0), vec3(1.0));
+        }
         return (twilight * material_TwilightIntensity + airglow + stars) * skyMask;
       }
 
       vec3 getMoonAtmosphereRadiance(vec3 viewDirection) {
+        if (material_MoonAtmosphereIntensity <= 0.0) return vec3(0.0);
         vec3 moonDirection = getSkyMoonDirection();
         float moonAboveHorizon = smoothstep(-0.02, 0.08, moonDirection.y);
+        if (moonAboveHorizon <= 0.0) return vec3(0.0);
         float skyMask = smoothstep(-0.02, 0.03, viewDirection.y);
         float horizon = pow(1.0 - clamp(viewDirection.y, 0.0, 1.0), 2.0);
         float moonward = max(dot(viewDirection, moonDirection), 0.0);

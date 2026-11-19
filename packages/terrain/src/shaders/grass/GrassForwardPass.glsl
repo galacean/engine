@@ -68,14 +68,9 @@ struct Varyings {
   #endif
   #ifdef TERRAIN_PROJECT_GRASS_ROOT_VARYINGS
     vec4 rootGroundBase;
-    // Grass weight, bare-ground palette weight and total coverage share one root.
-    vec3 groundRootParameters;
     vec4 groundReliefNormalWeight;
   #endif
   float tipWeight;
-  float windRootWeight;
-  float windWave;
-  float windBend;
   vec3 windCarrierNormalWS;
   vec3 windBentNormalWS;
   vec4 positionCS;
@@ -145,21 +140,15 @@ vec3 grassWindPosition(
   vec3 rootPositionWS,
   vec3 positionWS,
   float tipWeight,
-  out float rootWeight,
-  out float travellingWave,
-  out float bendResponse,
   out vec3 carrierNormalWS,
   out vec3 bentNormalWS
 ) {
-  travellingWave = 0.5;
-  bendResponse = 0.0;
-  rootWeight = pow(
+  float rootWeight = pow(
     clamp(tipWeight, 0.0, 1.0),
     max(scene_GroundWindShape.x, 0.05)
   );
   vec2 direction = scene_GroundWindMotion.xy;
   float unweightedAngle = terrainProjectGroundWindAngleAt(rootPositionWS.xz);
-  travellingWave = terrainProjectGroundWindNormalized(unweightedAngle);
   carrierNormalWS = terrainProjectGroundWindCarrierNormal(rootPositionWS.xz, unweightedAngle);
   #ifdef RENDERER_GRASS_MATCH_GROUND
     vec3 bendAxis = dot(direction, direction) > 0.00001
@@ -170,7 +159,6 @@ vec3 grassWindPosition(
   #endif
   float bodyWeight = terrainProjectGroundWindBodyWeight(rootWeight);
   float bendAngle = unweightedAngle * bodyWeight;
-  bendResponse = terrainProjectGroundWindHeightResponse(bendAngle, 0.9);
   bentNormalWS = grassRotateAroundAxis(vec3(0.0, 1.0, 0.0), bendAxis, bendAngle);
   vec3 stem = positionWS - rootPositionWS;
   return rootPositionWS + grassRotateAroundAxis(stem, bendAxis, bendAngle);
@@ -178,6 +166,9 @@ vec3 grassWindPosition(
 
 Varyings GrassVertex(Attributes attributes) {
   Varyings output;
+  #ifdef TERRAIN_PROJECT_GRASS_TERRAIN_SURFACE
+    float farmWeight = 0.0;
+  #endif
   #ifdef RENDERER_WORLD_PICK
     output.worldPickId = renderer_WorldPickBase + float(gl_InstanceID) * renderer_WorldPickInstanced;
   #endif
@@ -193,9 +184,6 @@ Varyings GrassVertex(Attributes attributes) {
       output.surfaceWeights = vec3(1.0, 0.0, 0.0);
     #endif
     output.tipWeight = 0.0;
-    output.windRootWeight = 0.0;
-    output.windWave = 0.0;
-    output.windBend = 0.0;
     output.windCarrierNormalWS = vec3(0.0, 1.0, 0.0);
     output.windBentNormalWS = vec3(0.0, 1.0, 0.0);
   #else
@@ -211,6 +199,8 @@ Varyings GrassVertex(Attributes attributes) {
   output.rootPositionWS = rootPosition.xyz / rootPosition.w;
   #ifdef RENDERER_ROCK_GRASS_GROUND
     output.grassColor = terrainProjectGrassSurfaceColor(output.rootPositionWS);
+  #elif defined(TERRAIN_PROJECT_GRASS_ROOT_VARYINGS)
+    output.grassColor = vec3(0.0);
   #else
     output.grassColor = evaluateGrassBaseColor(output.rootPositionWS.xz);
   #endif
@@ -236,7 +226,7 @@ Varyings GrassVertex(Attributes attributes) {
   #endif
 
   #ifdef TERRAIN_PROJECT_GRASS_TERRAIN_SURFACE
-    float farmWeight = terrainProjectFarmGroundCoverage(output.rootPositionWS.xz);
+    farmWeight = terrainProjectFarmGroundCoverage(output.rootPositionWS.xz);
     positionOS = mix(rootOS, positionOS, terrainProjectFarmGrassScale(output.surfaceWeights.x, farmWeight));
   #endif
 
@@ -253,9 +243,6 @@ Varyings GrassVertex(Attributes attributes) {
     output.rootPositionWS,
     worldPosition.xyz,
     tipWeight,
-    output.windRootWeight,
-    output.windWave,
-    output.windBend,
     output.windCarrierNormalWS,
     output.windBentNormalWS
   );
@@ -287,8 +274,9 @@ Varyings GrassVertex(Attributes attributes) {
   // Keep root material evaluation after the existing position and lighting varyings.
   #ifdef TERRAIN_PROJECT_GRASS_ROOT_VARYINGS
     TerrainProjectLayerBlend root = terrainProjectSimpleGroundSurface(output.rootPositionWS, vec2(0.0), vec2(0.0));
-    output.rootGroundBase = vec4(root.albedo, root.snowResponse);
-    output.groundRootParameters = vec3(root.grassWeight, root.roadWeight, root.weight);
+    vec3 rootColor = terrainProjectGroundColor(root, output.rootPositionWS);
+    rootColor = terrainProjectBlendFarmGroundColor(rootColor, output.rootPositionWS.xz, farmWeight);
+    output.rootGroundBase = vec4(rootColor, root.snowResponse);
     float reliefWeight = terrainProjectSurfaceReliefWeight(output.rootPositionWS);
     vec3 reliefNormal = output.terrainNormalWS;
     if (reliefWeight > 0.0) {
@@ -380,24 +368,19 @@ void GrassFragment(Varyings input) {
   #ifdef TERRAIN_PROJECT_GRASS_TERRAIN_SURFACE
     // One root samples the shared ground field for the complete clump, including
     // bent tips. Wind changes geometry without making colours slide across blades.
-    vec3 groundPositionWS = input.rootPositionWS;
     #ifdef TERRAIN_PROJECT_GRASS_ROOT_VARYINGS
-    TerrainProjectLayerBlend ground;
-    ground.albedo = input.rootGroundBase.rgb;
-    ground.snowResponse = input.rootGroundBase.a;
-    ground.grassWeight = input.groundRootParameters.x;
-    ground.roadWeight = input.groundRootParameters.y;
-    ground.weight = input.groundRootParameters.z;
+      surfaceColor = input.rootGroundBase.rgb;
     #else
-    TerrainProjectLayerBlend ground = terrainProjectGroundSurface(groundPositionWS);
+      vec3 groundPositionWS = input.rootPositionWS;
+      TerrainProjectLayerBlend ground = terrainProjectGroundSurface(groundPositionWS);
+      vec3 groundColor = terrainProjectGroundColor(ground, groundPositionWS);
+      #if defined(RENDERER_GRASS_MATCH_GROUND) && RENDERER_GRASS_MATCH_GROUND == 1
+        surfaceColor = mix(groundColor, surfaceColor, bladeAppearanceWeight);
+      #else
+        surfaceColor = groundColor;
+      #endif
+      surfaceColor = terrainProjectBlendFarmGroundColor(surfaceColor, groundPositionWS.xz);
     #endif
-    vec3 groundColor = terrainProjectGroundColor(ground, groundPositionWS);
-    #if defined(RENDERER_GRASS_MATCH_GROUND) && RENDERER_GRASS_MATCH_GROUND == 1
-      surfaceColor = mix(groundColor, surfaceColor, bladeAppearanceWeight);
-    #else
-      surfaceColor = groundColor;
-    #endif
-    surfaceColor = terrainProjectBlendFarmGroundColor(surfaceColor, groundPositionWS.xz);
   #endif
   // Keep the root lighting normal on the Terrain path as well. The wind geometry and
   // travelling field stay untouched; only the visible root's surface ownership is gated.
@@ -433,24 +416,6 @@ void GrassFragment(Varyings input) {
       shadingNormal = normalize(mix(shadingNormal, reliefNormal, surfaceReliefWeight));
     }
   #endif
-  float groundWindColorContrast = max(scene_GroundWindAdvection.z, 0.001);
-  vec3 groundWindColorNormal = terrainProjectGroundWindColorNormal(
-    input.terrainNormalWS,
-    input.windCarrierNormalWS,
-    bladeShadeWeight,
-    groundWindColorContrast
-  );
-  float groundWindRawLightingSweep = terrainProjectGroundWindLightingSweep(
-    groundWindColorNormal
-  );
-  float groundWindBaseLightingSweep = terrainProjectGroundWindLightingSweep(
-    input.terrainNormalWS
-  );
-  float groundWindLightingSweep = terrainProjectGroundWindLightingBand(
-    groundWindRawLightingSweep,
-    groundWindBaseLightingSweep,
-    groundWindColorContrast
-  );
   float groundWindColorWeight =
     clamp(scene_GroundWindShape.z, 0.0, 1.0) * bladeShadeWeight;
   #ifdef TERRAIN_PROJECT_GRASS_TERRAIN_SURFACE
@@ -479,29 +444,35 @@ void GrassFragment(Varyings input) {
     groundSnowResponse = input.rockGroundNormal.w;
   #endif
   #ifdef TERRAIN_PROJECT_GRASS_TERRAIN_SURFACE
-    groundSnowResponse = ground.snowResponse;
+    #ifdef TERRAIN_PROJECT_GRASS_ROOT_VARYINGS
+      groundSnowResponse = input.rootGroundBase.a;
+    #else
+      groundSnowResponse = ground.snowResponse;
+    #endif
   #endif
   #ifdef RENDERER_GRASS_ROCK_APPEARANCE
     groundSnowResponse = mix(groundSnowResponse, input.rockAppearanceNormalSnow.w, input.rockAppearance.a);
   #endif
-  float snowResponse = mix(
-    groundSnowResponse,
-    material_GrassSurfaceSnowResponse.w,
-    bladeAppearanceWeight
-  );
-  vec3 climateNormal = normalize(mix(
-    input.terrainNormalWS,
-    windFieldNormal,
-    bladeAppearanceWeight
-  ));
-  // Rain and retained puddles keep porous wetness uniform over the blade. Terrain owns the
-  // horizontal standing-water interface; the shared root band retains the same substrate
-  // colour, roughness, normal and snow response as the Terrain below it.
-  terrainProjectApplySurfaceClimate(
-    surfaceData,
-    climateNormal,
-    vec3(1.0, 0.0, snowResponse)
-  );
+  if (dot(scene_SurfaceClimate, scene_SurfaceClimate) > 0.0) {
+    float snowResponse = mix(
+      groundSnowResponse,
+      material_GrassSurfaceSnowResponse.w,
+      bladeAppearanceWeight
+    );
+    vec3 climateNormal = normalize(mix(
+      input.terrainNormalWS,
+      windFieldNormal,
+      bladeAppearanceWeight
+    ));
+    // Rain and retained puddles keep porous wetness uniform over the blade. Terrain owns the
+    // horizontal standing-water interface; the shared root band retains the same substrate
+    // colour, roughness, normal and snow response as the Terrain below it.
+    terrainProjectApplySurfaceClimate(
+      surfaceData,
+      climateNormal,
+      vec3(1.0, 0.0, snowResponse)
+    );
+  }
   #ifdef TERRAIN_PROJECT_GROUND_SHADOW_PCF
     float shadowAttenuation = sampleTerrainProjectGroundShadow(input, shadowPositionDx, shadowPositionDy);
   #else
@@ -511,12 +482,32 @@ void GrassFragment(Varyings input) {
     terrainProjectFinalLighting(evaluateTerrainProjectLightingWithShadow(input, surfaceData, shadowAttenuation)),
     vec3(0.0)
   );
-  color = terrainProjectApplyGrassGroundWindColor(
-    color,
-    groundWindLightingSweep,
-    groundWindColorWeight,
-    groundWindColorContrast
-  );
+  if (groundWindColorWeight > 0.0) {
+    float groundWindColorContrast = max(scene_GroundWindAdvection.z, 0.001);
+    vec3 groundWindColorNormal = terrainProjectGroundWindColorNormal(
+      input.terrainNormalWS,
+      input.windCarrierNormalWS,
+      bladeShadeWeight,
+      groundWindColorContrast
+    );
+    float groundWindRawLightingSweep = terrainProjectGroundWindLightingSweep(
+      groundWindColorNormal
+    );
+    float groundWindBaseLightingSweep = terrainProjectGroundWindLightingSweep(
+      input.terrainNormalWS
+    );
+    float groundWindLightingSweep = terrainProjectGroundWindLightingBand(
+      groundWindRawLightingSweep,
+      groundWindBaseLightingSweep,
+      groundWindColorContrast
+    );
+    color = terrainProjectApplyGrassGroundWindColor(
+      color,
+      groundWindLightingSweep,
+      groundWindColorWeight,
+      groundWindColorContrast
+    );
+  }
   #if SCENE_FOG_MODE != 0
     color = fog(vec4(color, 1.0), input.positionVS).rgb;
   #endif

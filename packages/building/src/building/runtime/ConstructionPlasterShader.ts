@@ -48,17 +48,20 @@ vec2 plasterField(vec2 uv,float wear,float wallLength) {
 }
 // Returns surviving coverage, continuous mortar exposure, rim height field.
 vec3 plasterSurface(vec2 uv,float wear,float wallLength,float boundaryDistance) {
- vec2 field=plasterField(uv,wear,wallLength);
  float edge=clamp(boundaryDistance,0.0,1.0);
+ if(wear<=0.0) return vec3(step(.1,edge),0.0,0.0);
+ vec2 field=plasterField(uv,wear,wallLength);
  float edgeWeight=1.0-smoothstep(0.0,1.0,edge);
- float offset=plasterNativeOffset(wallLength);
- float erosionNoise=plasterNativeNoise(uv+23.4+offset,3);
- field.x+=edgeWeight*mix(.3,1.0,erosionNoise)*mix(1.0,5.0,edgeWeight);
+ if(edgeWeight>0.0) {
+  float offset=plasterNativeOffset(wallLength);
+  float erosionNoise=plasterNativeNoise(uv+23.4+offset,3);
+  field.x+=edgeWeight*mix(.3,1.0,erosionNoise)*mix(1.0,5.0,edgeWeight);
+ }
  float loss=field.x*mix(2.0,2.8,clamp(wear*2.0,0.0,1.0));
- float survives=wear<=0.0 ? step(.1,edge) : (wear>=1.0 ? 0.0 : step(loss,field.y*2.0)*step(.1,edge));
+ float survives=wear>=1.0 ? 0.0 : step(loss,field.y*2.0)*step(.1,edge);
  float a=min(field.y*1.5-.2,.9),b=a+.1;
- float mortar=wear<=0.0 ? 0.0 : smoothstep(a,b,field.x*2.0);
- float rim=wear<=0.0 ? 0.0 : clamp(smoothstep(a-.1,b,field.x*2.0)-mortar,0.0,1.0);
+ float mortar=smoothstep(a,b,field.x*2.0);
+ float rim=clamp(smoothstep(a-.1,b,field.x*2.0)-mortar,0.0,1.0);
  return vec3(survives,mortar,rim);
 }
 
@@ -86,11 +89,11 @@ vec3 plasterFinish(vec2 uv,vec4 params,vec3 color,vec3 detail,vec3 position,inou
  if(seam>0.0) paint=mix(paint,textureGrad(material_PlasterColors,
    vec3(vec2(params.y-uv.x,uv.y)*.1+offset,params.z),tx*vec2(-1,1),ty*vec2(-1,1)).rgb,seam);
  paint*=color/plasterPaletteLinear(params.z);
- vec3 mortar=plasterMortarColor(params.z)*1.1*texture(material_PlasterMortar,uv*.2).rgb;
  // Native planar normal map is constant, so it needs no sampler. Derive the UV
  // tangent frame from the actual deformed surface (including round walls).
  vec3 px=dFdx(position),py=dFdy(position);
  vec2 ux=dFdx(uv),uy=dFdy(uv);
+ vec3 mortar=detail.y>0.0 ? plasterMortarColor(params.z)*1.1*textureGrad(material_PlasterMortar,uv*.2,ux*.2,uy*.2).rgb : vec3(0.0);
  float det=ux.x*uy.y-ux.y*uy.x;
  float footprint=max(length(ux),length(uy));
  vec2 ed=vec2(dFdx(params.w),dFdy(params.w));

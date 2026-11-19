@@ -43,4 +43,13 @@ describe("recovered GLSL instructions", () => {
     expect(output).not.toContain("#define BUILDING_RAW_RENDERER_WORLD_PICK\n");
     expect(output).not.toContain("#define BUILDING_RAW_RENDERER_MASONRY_ENTRANCE\n");
   });
+
+  it("omits gates for macros not referenced by the shader source so source deduplication stays intact", () => {
+    const pickOnly = "#ifdef RENDERER_WORLD_PICK\nvoid pick();\n#endif\n";
+    const instructions = rawGlslInstructions(RAW_GLSL_MACROS, pickOnly);
+    const withUnusedActive = evaluate(instructions, ["RENDERER_MASONRY_DITHER"]);
+    const withNoneActive = evaluate(instructions, []);
+    expect(withUnusedActive).toBe(withNoneActive);
+    expect(withUnusedActive).not.toContain("#define BUILDING_RAW_RENDERER_MASONRY_DITHER");
+  });
 });

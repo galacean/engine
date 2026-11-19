@@ -69,9 +69,13 @@ class ConstructionCameraSync extends Script {
     this.sync?.(camera);
   }
 }
+function setRendererMacro(renderer: MeshRenderer, name: string, enabled: boolean) {
+  if (enabled) renderer.shaderData.enableMacro(name);
+  else renderer.shaderData.disableMacro(name);
+}
 const programs = new Map<string, Promise<Shader>>();
-function residentShader(vertex: string, fragment: string) {
-  const source = JSON.stringify([vertex, fragment, "GLES300/cullOff/depthLessEqual"]);
+function residentShader(vertex: string, fragment: string, cullMode: CullMode = CullMode.Off) {
+  const source = JSON.stringify([vertex, fragment, `GLES300/cull${cullMode}/depthLessEqual`]);
   let result = programs.get(source);
   if (!result) {
     result = (async () => {
@@ -95,7 +99,7 @@ function residentShader(vertex: string, fragment: string) {
           };
         }
       )._renderState;
-      state.rasterState.cullMode = CullMode.Off;
+      state.rasterState.cullMode = cullMode;
       // The click-only identity pass reuses the already rendered depth.
       state.depthState.compareFunction = CompareFunction.LessEqual;
       return Shader.create(name, [pass])!;
@@ -115,9 +119,14 @@ export function residentFragment(source: string) {
   const pickDepth = /\bgl_FragDepth\s*=/.test(source) ? "gl_FragDepth" : "gl_FragCoord.z";
   // The Engine flips projection when drawing into its internal color target.
   // Preserve the original top-down derivative convention across both targets.
+  const gatedLodDither =
+    "uniform float renderer_MasonryLodFade;\n" +
+    "#ifdef RENDERER_MASONRY_DITHER\n" +
+    lodDither.replace("float renderer_MasonryLodFade;", "") +
+    "\n#else\nvoid masonryLodDither(){}\n#endif\n";
   return (
     "uniform vec4 camera_ProjectionParams;\nuniform float renderer_WorldPickBase;\nuniform float renderer_MasonryPickObjects;\nuniform vec4 renderer_MasonryLodDebugColor;\n" +
-    lodDither.replace("float renderer_MasonryLodFade;", "uniform float renderer_MasonryLodFade;") +
+    gatedLodDither +
     source
       .replace(encoded, "residentColor=vec4(v,1.0);")
       .replace(/void main\(\)\s*\{/, "void main(){ masonryLodDither();")
@@ -150,9 +159,11 @@ function unitFragment(source: string, low: boolean) {
   const gate = `
 flat in float masonryUnitWeight;
 void masonryUnitCoverage(){
+#ifdef RENDERER_MASONRY_DITHER
  vec2 p=mod(floor(gl_FragCoord.xy),4.0),a=mod(p,2.0),b=floor(p/2.0);
  float t=(4.0*(2.0*a.x+3.0*a.y-4.0*a.x*a.y)+(2.0*b.x+3.0*b.y-4.0*b.x*b.y)+0.5)/16.0;
  if(${low ? "t <= masonryUnitWeight" : "t > masonryUnitWeight"}) discard;
+#endif
 }
 `;
   return gate + source.replace("masonryLodDither();", "masonryLodDither();masonryUnitCoverage();");
@@ -164,6 +175,7 @@ interface UnitDrawLod {
   fades: Buffer[];
   forced: number;
   active: boolean;
+  lodFade: number;
 }
 export interface ResidentResource {
   kind: "storage" | "uniform" | "texture";
@@ -383,6 +395,8 @@ export class EngineResidentScene {
             if (counts[i]) lod.fades[i].setData(fades[i], 0, 0, counts[i]);
             draw.meshes[i].instanceCount = counts[i];
           }
+          setRendererMacro(draw.renderer, "RENDERER_MASONRY_DITHER", lod.lodFade < 1 || lod.selector.hasHighFade);
+          setRendererMacro(draw.lodRenderer, "RENDERER_MASONRY_DITHER", lod.lodFade < 1 || lod.selector.hasLowFade);
         }
         draw.renderer.enabled = lod.active && lod.selector.highCount > 0;
         draw.lodRenderer.enabled = lod.active && lod.selector.lowCount > 0;
@@ -582,19 +596,20 @@ export class EngineResidentScene {
       clipped = injectConstructionRoofClip(original.vert.source, original.frag.source),
       jointClipped = injectWallRoofJoint(clipped.vertex, clipped.fragment, !!d.wallRoofJoint),
       lit = injectConstructionDecorationLighting(jointClipped.vertex, jointClipped.fragment),
-      v = engineShaderSource(lit.vertex),
+      // Engine owns the model/view/projection and depth convention. Replacing
+      // world_to_sample before uniform lowering allows dead-field pruning.
+      v = engineShaderSource(
+        lit.vertex
+          .replace(/gl_Position = (.+) \* current_view\.world_to_sample;/g, "gl_Position = renderer_MVPMat * $1;")
+          .replace("gl_Position.z=gl_Position.z*2.0-gl_Position.w;", "")
+      ),
       f = engineShaderSource(
         tintRole
           ? injectMasonryTint(lit.fragment, baseBindings)
           : restoreMasonryTextureSamples(lit.fragment, baseBindings)
       ),
       entrance = injectConstructionEntrance(v.source, f.source, d.family);
-    // Engine owns the model/view/projection and depth convention. The recovered
-    // shader still computes the same final deformed local position before this.
-    let vertex = entrance.vertex
-      .replace(/gl_Position = (.+) \* current_view\.world_to_sample;/g, "gl_Position = renderer_MVPMat * $1;")
-      .replace("gl_Position.z=gl_Position.z*2.0-gl_Position.w;", "");
-    vertex = "uniform mat4 renderer_MVPMat;\n" + vertex;
+    let vertex = "uniform mat4 renderer_MVPMat;\n" + entrance.vertex;
     const declarations = new Map<number, { type: string; name: string }>();
     for (const m of vertex.matchAll(/layout\(location\s*=\s*(\d+)\) in (\w+) (\w+);/g))
       declarations.set(Number(m[1]), { type: m[2], name: m[3] });
@@ -795,7 +810,10 @@ export class EngineResidentScene {
       ]);
       vertex = unitVertex(vertex);
     }
-    const shader = await residentShader(vertex, isUnit ? unitFragment(fragment, false) : fragment);
+    // Only closed outward-wound brick geometry can safely back-face cull; open shells
+    // (roof, wood, plaster, stone-floor, decorations) and Brick SDF proxy boxes stay CullMode.Off.
+    const highCullMode = d.family === "brick" ? CullMode.Back : CullMode.Off;
+    const shader = await residentShader(vertex, isUnit ? unitFragment(fragment, false) : fragment, highCullMode);
     const material = this.own(
       (d.nativeMaterial ?? d.nativeUnit?.material)?.clone() ?? new Material(this.engine, shader)
     );
@@ -857,16 +875,17 @@ export class EngineResidentScene {
       const lowJoint = injectWallRoofJoint(lowClipped.vertex, lowClipped.fragment, !!d.wallRoofJoint);
       const lowLit = injectConstructionDecorationLighting(lowJoint.vertex, lowJoint.fragment);
       const lowEntrance = injectConstructionEntrance(
-        engineShaderSource(lowLit.vertex).source,
+        engineShaderSource(
+          lowLit.vertex
+            .replace(/gl_Position = (.+) \* current_view\.world_to_sample;/g, "gl_Position = renderer_MVPMat * $1;")
+            .replace("gl_Position.z=gl_Position.z*2.0-gl_Position.w;", "")
+        ).source,
         engineShaderSource(tintRole ? injectMasonryTint(lowLit.fragment, baseBindings) : lowLit.fragment).source,
         d.family
       );
-      let lowVertex = lowEntrance.vertex
-        .replace(/gl_Position = (.+) \* current_view\.world_to_sample;/g, "gl_Position = renderer_MVPMat * $1;")
-        .replace("gl_Position.z=gl_Position.z*2.0-gl_Position.w;", "");
-      lowVertex =
+      let lowVertex =
         "uniform mat4 renderer_MVPMat;\nin float masonryProxyVertex;\n" +
-        unitVertex(lowVertex.replaceAll("gl_VertexID", "int(masonryProxyVertex)"));
+        unitVertex(lowEntrance.vertex.replaceAll("gl_VertexID", "int(masonryProxyVertex)"));
       const lowFragment = unitFragment(residentFragment(lowEntrance.fragment), true);
       lowMaterial = this.own(material.clone());
       lowMaterial.shader = await residentShader(lowVertex, lowFragment);
@@ -956,7 +975,8 @@ export class EngineResidentScene {
         words: [highWords, lowWords],
         fades: unitFades!,
         forced: -1,
-        active: renderer.enabled
+        active: renderer.enabled,
+        lodFade: 1
       };
       this.metrics.residentBytes += lowList.width * lowList.height * 16 + d.count * 8;
     }
@@ -1048,8 +1068,11 @@ export class EngineResidentScene {
         draw.lodRenderer.mesh = draw.meshes[1];
         draw.renderer.enabled = lod.active && lod.selector.highCount > 0;
         draw.lodRenderer.enabled = lod.active && lod.selector.lowCount > 0;
+        lod.lodFade = fade;
         draw.renderer.shaderData.setFloat("renderer_MasonryLodFade", fade);
         draw.lodRenderer.shaderData.setFloat("renderer_MasonryLodFade", fade);
+        setRendererMacro(draw.renderer, "RENDERER_MASONRY_DITHER", fade < 1 || lod.selector.hasHighFade);
+        setRendererMacro(draw.lodRenderer, "RENDERER_MASONRY_DITHER", fade < 1 || lod.selector.hasLowFade);
         continue;
       }
       // Draws without a reduced mesh need only one submission when both unit LODs cross-fade.
@@ -1062,7 +1085,9 @@ export class EngineResidentScene {
           const mesh = draw.meshes[Math.min(state.lodIndex, draw.meshes.length - 1)];
           if (renderer.mesh !== mesh) renderer.mesh = mesh;
           if (i === 0) draw.mesh = mesh;
-          renderer.shaderData.setFloat("renderer_MasonryLodFade", same ? 1 : state.signedFade);
+          const fade = same ? 1 : state.signedFade;
+          renderer.shaderData.setFloat("renderer_MasonryLodFade", fade);
+          setRendererMacro(renderer, "RENDERER_MASONRY_DITHER", fade < 1);
         }
       }
     }

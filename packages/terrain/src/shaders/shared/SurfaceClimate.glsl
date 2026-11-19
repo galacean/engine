@@ -300,6 +300,7 @@ void terrainProjectApplySurfaceMoisture(
   vec2 response
 ) {
   float wetness = terrainProjectSurfaceWetness(response.x);
+  if (wetness <= 0.0) return;
 
   // Porous wetting modifies the substrate itself. It is material dependent and spatially
   // continuous, so the procedural puddle boundary never appears as a dark albedo mask.
@@ -317,6 +318,7 @@ void terrainProjectApplySurfaceMoisture(
 
 float terrainProjectTopSnowMask(vec3 worldPosition, vec3 geometryNormal, float response) {
   float snowStorage = clamp(scene_SurfaceClimate.z * response, 0.0, 1.0);
+  if (snowStorage <= 0.0) return 0.0;
   float distribution = terrainProjectSurfaceClimateNoise(worldPosition.xz);
   float snowDistribution = smoothstep(0.06, 0.64, snowStorage + (distribution - 0.5) * 0.22);
   float upward = clamp(normalize(geometryNormal).y, 0.0, 1.0);
@@ -330,6 +332,7 @@ void terrainProjectApplyTopSnowLayer(
   float targetRoughness,
   float normalFlattening
 ) {
+  if (snow <= 0.0) return;
   surfaceData.albedoColor = mix(surfaceData.albedoColor, scene_SurfaceSnowColor.rgb, snow);
   surfaceData.metallic = mix(surfaceData.metallic, 0.0, snow);
   surfaceData.roughness = mix(surfaceData.roughness, targetRoughness, snow);
@@ -346,7 +349,17 @@ void terrainProjectApplyTopSnowLayer(
   ) {
     // Persistent wetness belongs to the porous substrate response. Only current rain seeds
     // the free-surface base film, while hydrology retains water independently.
+    float waterVisibility = scene_TerrainRippleParams.z * scene_TerrainWaterCoverageParams.x;
     float rainWetness = clamp(scene_SurfaceClimate.w * 0.48 * waterResponse, 0.0, 1.0);
+    if (waterVisibility <= 0.0 || (rainWetness <= 0.0 && terrainProjectSurfacePuddleStorage(waterResponse) <= 0.06)) {
+      TerrainProjectWaterFilm dryFilm;
+      dryFilm.normal = surfaceData.normal;
+      dryFilm.roughness = 0.1;
+      dryFilm.coverage = 0.0;
+      dryFilm.dotNV = surfaceData.dotNV;
+      dryFilm.ambientOcclusion = surfaceData.ambientOcclusion;
+      return dryFilm;
+    }
     vec2 hydrologyMasks = terrainProjectSurfaceHydrologyMasks(
       surfaceData.position,
       waterResponse

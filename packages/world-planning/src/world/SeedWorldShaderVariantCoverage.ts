@@ -171,3 +171,20 @@ export function withSeedWorldIblBlendVariants(
     )
   );
 }
+
+const MASONRY_RESIDENT_SHADER_PATTERN = /^Masonry\/[0-9a-f]{64}$/;
+
+/** Resident masonry shaders toggle `RENDERER_MASONRY_DITHER` between steady state and LOD/unit crossfades. */
+export function withSeedWorldMasonryDitherVariants(
+  entries: readonly SeedWorldShaderVariantEntry[]
+): readonly SeedWorldShaderVariantEntry[] {
+  return normalizeSeedWorldShaderVariants(
+    entries.flatMap((entry) => {
+      if (!MASONRY_RESIDENT_SHADER_PATTERN.test(entry.shader)) return [entry];
+      const hasDither = entry.macros.some((macro) => macro.n === "RENDERER_MASONRY_DITHER");
+      return hasDither
+        ? [entry, { ...entry, macros: entry.macros.filter((macro) => macro.n !== "RENDERER_MASONRY_DITHER") }]
+        : [entry, { ...entry, macros: [...entry.macros, { n: "RENDERER_MASONRY_DITHER" }] }];
+    })
+  );
+}

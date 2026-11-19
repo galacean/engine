@@ -16,6 +16,8 @@ export class MaterialUnitLod {
     this.lowFade = new Float32Array(count);
     this.highCount = 0;
     this.lowCount = 0;
+    this.hasHighFade = false;
+    this.hasLowFade = false;
     this.changed = true;
     this.viewCache = new Float64Array(4).fill(NaN);
     this.projectionCache = NaN;
@@ -45,6 +47,8 @@ export class MaterialUnitLod {
     if (!cameraChanged && !this.changed) return false;
     let hi = 0,
       lo = 0,
+      highFading = false,
+      lowFading = false,
       changed = this.changed;
     for (let k = 0; k < this.selection.length; k++) {
       const id = this.selection[k],
@@ -65,19 +69,24 @@ export class MaterialUnitLod {
       // Quantized ordered coverage: unchanged camera does not reupload instance lists.
       weight = Math.round(weight * 16) / 16;
       if (weight > 0) {
+        if (weight < 1) highFading = true;
         changed ||= this.high[hi] !== id || this.highFade[hi] !== weight;
         this.high[hi] = id;
         this.highFade[hi++] = weight;
       }
       if (weight < 1) {
+        if (weight > 0) lowFading = true;
         changed ||= this.low[lo] !== id || this.lowFade[lo] !== weight;
         this.low[lo] = id;
         this.lowFade[lo++] = weight;
       }
     }
-    changed ||= hi !== this.highCount || lo !== this.lowCount;
+    changed ||=
+      hi !== this.highCount || lo !== this.lowCount || highFading !== this.hasHighFade || lowFading !== this.hasLowFade;
     this.highCount = hi;
     this.lowCount = lo;
+    this.hasHighFade = highFading;
+    this.hasLowFade = lowFading;
     this.changed = false;
     return changed;
   }

@@ -60,13 +60,13 @@
   float sampleTerrainProjectGroundShadowMap(vec3 positionWS, vec3 positionDx, vec3 positionDy) {
     mat4 shadowMatrix = terrainProjectGroundShadowMatrix(positionWS);
     vec3 shadowCoord = (shadowMatrix * vec4(positionWS, 1.0)).xyz;
-    // Transform continuous world derivatives with this pixel's single cascade matrix.
-    // Differentiating atlas coordinates would mix different cascades at split boundaries.
-    vec3 shadowDx = (shadowMatrix * vec4(positionDx, 0.0)).xyz;
-    vec3 shadowDy = (shadowMatrix * vec4(positionDy, 0.0)).xyz;
-    vec2 gradient = terrainProjectGroundShadowGradient(shadowDx, shadowDy);
     float attenuation = 1.0;
     if (shadowCoord.z > 0.0 && shadowCoord.z < 1.0) {
+      // Transform continuous world derivatives with this pixel's single cascade matrix.
+      // Differentiating atlas coordinates would mix different cascades at split boundaries.
+      vec3 shadowDx = (shadowMatrix * vec4(positionDx, 0.0)).xyz;
+      vec3 shadowDy = (shadowMatrix * vec4(positionDy, 0.0)).xyz;
+      vec2 gradient = terrainProjectGroundShadowGradient(shadowDx, shadowDy);
       attenuation = 0.0;
       #if SCENE_SHADOW_TYPE == 3
         float weights[9];

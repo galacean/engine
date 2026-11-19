@@ -115,4 +115,32 @@ describe("renderer warmup scope", () => {
     );
     expect(collect([renderer(true)]).some((v) => v.macros.some((m) => m.n === "RENDERER_GPU_INSTANCE"))).toBe(true);
   });
+  it("expands RENDERER_MASONRY_DITHER symmetrically for resident masonry shaders only", () => {
+    const residentShaderName = "Masonry/" + "a".repeat(64);
+    const makeMat = (name: string) => ({
+      destroyed: false,
+      shader: {
+        name,
+        destroyed: false,
+        subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
+      },
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    });
+    const steadyResident = renderer(true, false, [makeMat(residentShaderName)]);
+    const fadingResident = renderer(true, false, [makeMat(residentShaderName)]);
+    fadingResident.shaderData._macroCollection.enable(ShaderMacro.getByName("RENDERER_MASONRY_DITHER"));
+    const proxy = renderer(true, false, [makeMat("Masonry/GlobalProxy")]);
+
+    const fromSteady = collect([steadyResident]).filter((v) => v.shader === residentShaderName);
+    expect(fromSteady.some((v) => v.macros.some((m) => m.n === "RENDERER_MASONRY_DITHER"))).toBe(true);
+    expect(fromSteady.some((v) => v.macros.every((m) => m.n !== "RENDERER_MASONRY_DITHER"))).toBe(true);
+
+    const fromFading = collect([fadingResident]).filter((v) => v.shader === residentShaderName);
+    expect(fromFading.some((v) => v.macros.some((m) => m.n === "RENDERER_MASONRY_DITHER"))).toBe(true);
+    expect(fromFading.some((v) => v.macros.every((m) => m.n !== "RENDERER_MASONRY_DITHER"))).toBe(true);
+
+    const fromProxy = collect([proxy]).filter((v) => v.shader === "Masonry/GlobalProxy");
+    expect(fromProxy.length).toBeGreaterThan(0);
+    expect(fromProxy.every((v) => v.macros.every((m) => m.n !== "RENDERER_MASONRY_DITHER"))).toBe(true);
+  });
 });

@@ -74,7 +74,15 @@ export function engineShaderSource(source: string) {
     layouts.set(type, result);
     return result;
   }
+  interface ParsedBlock {
+    name: string;
+    type: string;
+    sampler: string;
+    variable: string;
+    layout: Layout;
+  }
   const blocks: UniformTextureBlock[] = [],
+    parsedBlocks: ParsedBlock[] = [],
     readers: string[] = [],
     initializers: string[] = [];
   source = source.replace(/layout\(std140\) uniform (\w+)\s*\{([^}]+)\}\s*(\w+);/g, (_all, name, body, variable) => {
@@ -83,13 +91,41 @@ export function engineShaderSource(source: string) {
     const l = layout(type),
       sampler = "uniform_" + name;
     blocks.push({ name, sampler, byteLength: l.size });
-    const word = `word_${sampler}`;
+    parsedBlocks.push({ name, type, sampler, variable, layout: l });
+    return `struct ${type}{${body.replace(/layout\(row_major\)\s*/g, "")}};\n${type} ${variable};\nuniform highp usampler2D ${sampler};`;
+  });
+  if (source.includes("layout(std140)")) throw Error("Unconverted uniform block");
+  const start = source.indexOf("void original_main()");
+  if (start < 0) throw Error("Missing original shader entry");
+  // Scan shader code outside struct/global declarations so only referenced fields
+  // are unpacked and each uvec4 texel is fetched at most once per invocation.
+  let scanSource = source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, "").replace(/struct\s+\w+\s*\{[^}]*\}\s*;/g, "");
+  for (const b of parsedBlocks) {
+    scanSource = scanSource.replace(`${b.type} ${b.variable};`, "");
+  }
+  const laneNames = "xyzw";
+  for (const b of parsedBlocks) {
+    const { sampler, variable, layout: l } = b;
+    const fields = l.fields ?? [];
+    const refRegex = new RegExp(`\\b${variable}\\b(?:\\.(\\w+))?`, "g");
+    const referencedFields = new Set<string>();
+    let hasBareRef = false;
+    for (const m of scanSource.matchAll(refRegex)) {
+      if (m[1]) referencedFields.add(m[1]);
+      else hasBareRef = true;
+    }
+    const selectedFields = hasBareRef ? fields : fields.filter((f) => referencedFields.has(f.name));
+    if (selectedFields.length === 0) continue;
+    const texels = new Set<number>();
     function value(t: string, offset: number, rowMajor = false): string {
       const member = layout(t);
       if (member.fields)
         return `${t}(${member.fields.map((f) => value(f.type, offset + f.offset, f.rowMajor)).join(",")})`;
       const scalar = (i: number) => {
-        const s = `${word}(${offset / 4 + i})`;
+        const wordIndex = (offset >> 2) + i;
+        const texelIndex = wordIndex >> 2;
+        texels.add(texelIndex);
+        const s = `es_t${texelIndex}.${laneNames[wordIndex & 3]}`;
         return t === "uint" || t.startsWith("uvec")
           ? s
           : t === "int" || t.startsWith("ivec")
@@ -106,15 +142,15 @@ export function engineShaderSource(source: string) {
       const v = /^[uib]?vec([234])$/.exec(t);
       return v ? `${t}(${Array.from({ length: Number(v[1]) }, (_, i) => scalar(i)).join(",")})` : scalar(0);
     }
+    const assignments = selectedFields.map((f) => `${variable}.${f.name}=${value(f.type, f.offset, f.rowMajor)};`);
+    const fetches = [...texels]
+      .sort((a, c) => a - c)
+      .map((t) => `uvec4 es_t${t}=texelFetch(${sampler},ivec2(${t}%es_s.x,${t}/es_s.x),0);`);
     readers.push(
-      `uint ${word}(int p){ivec2 s=textureSize(${sampler},0);return texelFetch(${sampler},ivec2((p/4)%s.x,(p/4)/s.x),0)[p%4];}\n${type} read_${sampler}(){return ${value(type, 0)};}`
+      `void read_${sampler}(){\nivec2 es_s=textureSize(${sampler},0);\n${fetches.join("\n")}\n${assignments.join("\n")}\n}`
     );
-    initializers.push(`${variable}=read_${sampler}();`);
-    return `struct ${type}{${body.replace(/layout\(row_major\)\s*/g, "")}};\n${type} ${variable};\nuniform highp usampler2D ${sampler};`;
-  });
-  if (source.includes("layout(std140)")) throw Error("Unconverted uniform block");
-  const start = source.indexOf("void original_main()");
-  if (start < 0) throw Error("Missing original shader entry");
+    initializers.push(`read_${sampler}();`);
+  }
   source = source.slice(0, start) + readers.join("\n") + "\n" + source.slice(start);
   source = source.replace("void main(){", `void main(){${initializers.join("")}`);
   return { source: dormerUniform + source.replace(/^#version 300 es\s*/, ""), blocks };

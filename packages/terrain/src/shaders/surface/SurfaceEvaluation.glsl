@@ -118,16 +118,10 @@ SurfaceData evaluateSurfaceMaterial(Varyings varyings, bool isFrontFacing) {
     #endif
   #endif
   #if defined(MATERIAL_HAS_NORMALTEXTURE) && !defined(MATERIAL_WORLD_NORMAL)
-    baseTangentNormal = texture2D(material_NormalTexture, materialUv).xyz * 2.0 - 1.0;
-    baseTangentNormal.xy *= material_NormalScale;
-    baseTangentNormal.z = mix(1.0, baseTangentNormal.z, clamp(material_NormalScale, 0.0, 1.0));
-    shadingNormal = getNormalByNormalTexture(
-      tangentToWorld,
-      material_NormalTexture,
-      material_NormalScale,
-      materialUv,
-      isFrontFacing
-    );
+    vec3 rawNormal = texture2D(material_NormalTexture, materialUv).xyz * 2.0 - 1.0;
+    vec2 scaledNormalXY = rawNormal.xy * material_NormalScale;
+    baseTangentNormal = vec3(scaledNormalXY, mix(1.0, rawNormal.z, clamp(material_NormalScale, 0.0, 1.0)));
+    shadingNormal = normalize(tangentToWorld * vec3(scaledNormalXY, rawNormal.z)) * faceSign;
   #endif
   #if defined(MATERIAL_HAS_NORMALTEXTURE) && defined(MATERIAL_WORLD_NORMAL)
     shadingNormal = surfaceWorldNormal(material_NormalTexture, varyings.positionWS, geometryNormal, material_NormalScale);

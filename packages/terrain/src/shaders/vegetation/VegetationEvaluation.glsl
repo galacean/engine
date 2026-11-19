@@ -68,6 +68,7 @@ float terrainProjectVegetationLeafSnowMask(float sourcePositionY) {
 
 float terrainProjectVegetationShrubSnowMask(vec3 worldPosition, vec3 geometryNormal) {
   float snowStorage = clamp(scene_SurfaceClimate.z * material_SnowResponse.x, 0.0, 1.0);
+  if (snowStorage <= 0.0) return 0.0;
   float distribution = terrainProjectSurfaceClimateNoise(worldPosition.xz);
   float snowDistribution = smoothstep(0.34, 0.76, snowStorage + (distribution - 0.5) * 0.42);
   float upward = clamp(normalize(geometryNormal).y, 0.0, 1.0);
@@ -77,6 +78,7 @@ float terrainProjectVegetationShrubSnowMask(vec3 worldPosition, vec3 geometryNor
 
 float terrainProjectVegetationGrassSnowMask(vec3 worldPosition) {
   float snowStorage = clamp(scene_SurfaceClimate.z * material_SnowResponse.x, 0.0, 1.0);
+  if (snowStorage <= 0.0) return 0.0;
   float broadPatch = terrainProjectSurfaceClimateValueNoise(worldPosition.xz * 0.018 + vec2(7.3, 31.9));
   float localPatch = terrainProjectSurfaceClimateValueNoise(worldPosition.xz * 0.075 + vec2(53.1, 11.7));
   float distribution = mix(broadPatch, localPatch, 0.32);
@@ -87,6 +89,7 @@ float terrainProjectVegetationGrassSnowMask(vec3 worldPosition) {
 
 void terrainProjectApplyVegetationGrassClimate(inout SurfaceData surfaceData, vec3 geometryNormal) {
   float snow = terrainProjectVegetationGrassSnowMask(surfaceData.position);
+  if (snow <= 0.0) return;
   vec3 grassSnowColor = scene_SurfaceSnowColor.rgb * vec3(0.86, 0.93, 1.0);
   surfaceData.albedoColor = mix(surfaceData.albedoColor, grassSnowColor, snow);
   surfaceData.roughness = mix(surfaceData.roughness, 0.78, snow);
@@ -101,6 +104,7 @@ void terrainProjectApplyVegetationLeafClimate(
   float sourcePositionY
 ) {
   float snow = terrainProjectVegetationLeafSnowMask(sourcePositionY);
+  if (snow <= 0.0) return;
   vec3 leafSnowColor = scene_SurfaceSnowColor.rgb;
   surfaceData.albedoColor = mix(surfaceData.albedoColor, leafSnowColor, snow);
   surfaceData.roughness = mix(surfaceData.roughness, 0.74, snow);
@@ -111,6 +115,7 @@ void terrainProjectApplyVegetationLeafClimate(
 
 void terrainProjectApplyVegetationShrubClimate(inout SurfaceData surfaceData, vec3 geometryNormal) {
   float snow = terrainProjectVegetationShrubSnowMask(surfaceData.position, geometryNormal);
+  if (snow <= 0.0) return;
   vec3 leafSnowColor = scene_SurfaceSnowColor.rgb * vec3(0.78, 0.88, 1.0);
   surfaceData.albedoColor = mix(surfaceData.albedoColor, leafSnowColor, snow);
   surfaceData.roughness = mix(surfaceData.roughness, 0.74, snow);
