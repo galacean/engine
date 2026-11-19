@@ -104,8 +104,10 @@ export class PrimitiveChunk {
       this.updateVertexEnd = Number.MIN_SAFE_INTEGER;
     }
 
-    primitive.indexBufferBinding!.buffer.setData(this.indices, 0, 0, this.updateIndexLength, SetDataOptions.Discard);
-    this.updateIndexLength = 0;
+    if (this.updateIndexLength > 0) {
+      primitive.indexBufferBinding!.buffer.setData(this.indices, 0, 0, this.updateIndexLength, SetDataOptions.Discard);
+      this.updateIndexLength = 0;
+    }
   }
 
   destroy(): void {

@@ -1,4 +1,4 @@
-import { Camera, Engine, Entity, Renderer, Scene } from "@galacean/engine";
+import { Camera, Engine, Entity, Material, Renderer, Scene } from "@galacean/engine";
 import {
   collectSeedWorldRendererVariants,
   findMissingSeedWorldShaderVariants,
@@ -10,6 +10,13 @@ import {
   type SeedWorldShaderWarmupReport
 } from "@galacean/engine-world-planning/world/SeedWorldShaderWarmup";
 
+export interface SeedWorldMasonryShaderWarmupHandle {
+  readonly renderers?: readonly Renderer[];
+  readonly extraMaterials?: ReadonlyMap<Renderer, readonly Material[]>;
+  readonly decorationPointLightBudget?: number;
+  dispose(): void;
+}
+
 export interface SeedWorldStartupShaderWarmupDeps {
   readonly precompileShaders: boolean;
   readonly engine: Engine;
@@ -19,12 +26,17 @@ export interface SeedWorldStartupShaderWarmupDeps {
   readonly canvas: HTMLCanvasElement;
   readonly showAssistant: boolean;
   readonly isDisposed: () => boolean;
+  readonly lifetimeSignal?: AbortSignal;
   readonly progress: (value: number, stage: string) => void;
   readonly timed: <T>(name: string, work: () => T) => T;
   readonly prepareFarmingPresentation?: () => Promise<unknown> | unknown;
   readonly prepareAnimalPresentation?: () => Promise<unknown> | unknown;
   readonly prepareVegetationPresentation?: () => Promise<unknown> | unknown;
+  readonly prepareMasonryShaderWarmup?: (
+    signal: AbortSignal
+  ) => Promise<SeedWorldMasonryShaderWarmupHandle | undefined> | undefined;
   readonly prepareAssistantPresentation: () => { readonly root: Entity } | undefined;
+  readonly getIncludeInactiveRoots?: () => readonly Entity[];
   readonly getPostProcessWarmupState: () => SeedWorldRendererWarmupOptions["postProcessState"];
   readonly additionalBackgroundMaterials: SeedWorldRendererWarmupOptions["additionalBackgroundMaterials"];
   readonly onWarmupEvent?: (message: string, detail: string) => void;
@@ -81,79 +93,110 @@ export async function runSeedWorldStartupShaderWarmup(
   // Keep world draws disabled until reveal.
   deps.camera.enabled = false;
   deps.progress(0.96, "准备世界渲染资源");
-  await deps.timed("preparePresentation (farming + animals + vegetation)", () =>
-    Promise.all([
-      deps.prepareFarmingPresentation?.(),
-      deps.prepareAnimalPresentation?.(),
-      deps.prepareVegetationPresentation?.()
-    ])
-  );
-  if (deps.isDisposed()) {
-    throw new DOMException("Seed page disposed during shader preparation", "AbortError");
-  }
-  deps.progress(0.98, "预编译场景渲染变体");
-  const assistant = deps.showAssistant ? deps.prepareAssistantPresentation() : undefined;
-  const agentTraceEnabled = deps.pageUrl.searchParams.get("agentTrace") === "1";
-  const parallelCompile = ops.hasParallelShaderCompile(deps.engine);
-  const sharedWarmupOptions = {
-    strict: true,
-    includeInactiveEntities: false,
-    includeGpuInstancing: true,
-    onlySharedMeshGpuInstancing: true,
-    frameBudgetMilliseconds: 32,
-    maximumPendingPrograms: 16,
-    overlayRenderers: assistant?.root.getComponentsIncludeChildren(Renderer, []) ?? [],
-    postProcessState: deps.getPostProcessWarmupState(),
-    additionalBackgroundMaterials: deps.additionalBackgroundMaterials
-  } as const;
-  const deferSecondary = !parallelCompile && !agentTraceEnabled;
+  let masonryWarmup: SeedWorldMasonryShaderWarmupHandle | undefined;
+  const prepAbort = new AbortController();
+  const onLifetimeAbort = () => prepAbort.abort(deps.lifetimeSignal?.reason);
+  if (deps.lifetimeSignal?.aborted) prepAbort.abort(deps.lifetimeSignal.reason);
+  else deps.lifetimeSignal?.addEventListener("abort", onLifetimeAbort, { once: true });
+  let prepCleanedUp = false;
   let deferredShaderVariants: readonly SeedWorldShaderVariantEntry[] = [];
   let shaderWarmup: SeedWorldShaderWarmupReport;
-  if (deferSecondary) {
-    const primaryVariants = ops.collectSeedWorldRendererVariants(
-      deps.engine,
-      deps.scene,
-      deps.camera,
-      deps.scene.rootEntities,
-      {
-        ...sharedWarmupOptions,
-        onlyEnabledRenderers: true,
-        includeMasonryDither: false,
-        includeInstanceEntrance: false
-      }
+  const agentTraceEnabled = deps.pageUrl.searchParams.get("agentTrace") === "1";
+  try {
+    await deps.timed("preparePresentation (farming + animals + vegetation + masonry)", () =>
+      Promise.all([
+        deps.prepareFarmingPresentation?.(),
+        deps.prepareAnimalPresentation?.(),
+        deps.prepareVegetationPresentation?.(),
+        deps.prepareMasonryShaderWarmup?.(prepAbort.signal)?.then((prepared) => {
+          if (!prepared) return;
+          if (prepCleanedUp) prepared.dispose();
+          else masonryWarmup = prepared;
+        })
+      ])
     );
-    const orderedPrimary = [...primaryVariants].sort(
-      (a, b) => startupShaderVariantPriority(a) - startupShaderVariantPriority(b) || a.shader.localeCompare(b.shader)
-    );
-    const allVariants = ops.collectSeedWorldRendererVariants(
-      deps.engine,
-      deps.scene,
-      deps.camera,
-      deps.scene.rootEntities,
-      sharedWarmupOptions
-    );
-    const secondaryVariants = ops.findMissingSeedWorldShaderVariants(primaryVariants, allVariants);
-    shaderWarmup = await deps.timed("warmupSeedWorldRendererVariants", () =>
-      ops.warmupSeedWorldShaderVariants(deps.engine, orderedPrimary, {
-        strict: true,
-        preserveOrder: true,
-        frameBudgetMilliseconds: 32,
-        maximumPendingPrograms: 1,
-        maxElapsedMilliseconds: 6500
-      })
-    );
-    deferredShaderVariants = [...(shaderWarmup.deferred ?? []), ...secondaryVariants];
-  } else {
-    shaderWarmup = await deps.timed("warmupSeedWorldRendererVariants", () =>
-      ops.warmupSeedWorldRendererVariants(deps.engine, deps.scene, deps.camera, deps.scene.rootEntities, {
-        ...sharedWarmupOptions,
-        onVariants: agentTraceEnabled
-          ? (variants) => {
-              deps.canvas.dataset.buildingShaderWarmupVariants = JSON.stringify(variants);
-            }
-          : undefined
-      })
-    );
+    if (deps.isDisposed()) {
+      throw new DOMException("Seed page disposed during shader preparation", "AbortError");
+    }
+    deps.progress(0.98, "预编译场景渲染变体");
+    const assistant = deps.showAssistant ? deps.prepareAssistantPresentation() : undefined;
+    const parallelCompile = ops.hasParallelShaderCompile(deps.engine);
+    const includeInactiveRoots = deps.getIncludeInactiveRoots?.();
+    const baseWarmupOptions = {
+      strict: true,
+      includeInactiveEntities: false,
+      includeGpuInstancing: true,
+      onlySharedMeshGpuInstancing: true,
+      frameBudgetMilliseconds: 32,
+      maximumPendingPrograms: 16,
+      overlayRenderers: assistant?.root.getComponentsIncludeChildren(Renderer, []) ?? [],
+      postProcessState: deps.getPostProcessWarmupState(),
+      additionalBackgroundMaterials: deps.additionalBackgroundMaterials
+    } as const;
+    const fullWarmupOptions = {
+      ...baseWarmupOptions,
+      includeInactiveRoots,
+      additionalRenderers: masonryWarmup?.renderers,
+      additionalRendererMaterials: masonryWarmup?.extraMaterials,
+      additionalPointLightCounts: masonryWarmup?.decorationPointLightBudget
+        ? [masonryWarmup.decorationPointLightBudget]
+        : undefined
+    } as const;
+    const deferSecondary = !parallelCompile && !agentTraceEnabled;
+    if (deferSecondary) {
+      const primaryVariants = ops.collectSeedWorldRendererVariants(
+        deps.engine,
+        deps.scene,
+        deps.camera,
+        deps.scene.rootEntities,
+        {
+          ...baseWarmupOptions,
+          onlyEnabledRenderers: true,
+          includeMasonryDither: false,
+          includeMasonryEntrance: false,
+          includeInstanceEntrance: false,
+          includeLodDither: false
+        }
+      );
+      const orderedPrimary = [...primaryVariants].sort(
+        (a, b) => startupShaderVariantPriority(a) - startupShaderVariantPriority(b) || a.shader.localeCompare(b.shader)
+      );
+      const allVariants = ops.collectSeedWorldRendererVariants(
+        deps.engine,
+        deps.scene,
+        deps.camera,
+        deps.scene.rootEntities,
+        fullWarmupOptions
+      );
+      const secondaryVariants = ops.findMissingSeedWorldShaderVariants(primaryVariants, allVariants);
+      shaderWarmup = await deps.timed("warmupSeedWorldRendererVariants", () =>
+        ops.warmupSeedWorldShaderVariants(deps.engine, orderedPrimary, {
+          strict: true,
+          preserveOrder: true,
+          frameBudgetMilliseconds: 32,
+          maximumPendingPrograms: 1,
+          maxElapsedMilliseconds: 6500
+        })
+      );
+      deferredShaderVariants = [...(shaderWarmup.deferred ?? []), ...secondaryVariants];
+    } else {
+      shaderWarmup = await deps.timed("warmupSeedWorldRendererVariants", () =>
+        ops.warmupSeedWorldRendererVariants(deps.engine, deps.scene, deps.camera, deps.scene.rootEntities, {
+          ...fullWarmupOptions,
+          onVariants: agentTraceEnabled
+            ? (variants) => {
+                deps.canvas.dataset.buildingShaderWarmupVariants = JSON.stringify(variants);
+              }
+            : undefined
+        })
+      );
+    }
+  } finally {
+    prepCleanedUp = true;
+    prepAbort.abort();
+    deps.lifetimeSignal?.removeEventListener("abort", onLifetimeAbort);
+    masonryWarmup?.dispose();
+    masonryWarmup = undefined;
   }
   deps.onWarmupEvent?.(
     `compiled ${shaderWarmup.compiled}/${shaderWarmup.requested} variants${deferredShaderVariants.length ? ` (deferred ${deferredShaderVariants.length} to idle)` : ""} in ${Math.round(shaderWarmup.elapsedMilliseconds)}ms`,

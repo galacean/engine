@@ -1962,22 +1962,44 @@ export async function mountSeedWorldDemo(
             if (precompileShaders && ready) candidate!.warmupPopulationDetails();
             recordBootSpan("warmupPopulationDetails", spanAt);
             const warmupRoots = [candidate!.root, ...candidateWater!.shaderWarmupRoots];
-            const shaderWarmup = await warmupSeedWorldRendererVariants(engine!, scene!, camera, warmupRoots, {
-              // Startup publishes additional owners below; collect their final state together before reveal.
-              enabled: precompileShaders && ready,
-              includeGpuInstancing: true,
-              strict: true,
-              activatedLightRoots: warmupRoots,
-              retiredLightRoots: readWorld() ? [readWorld()!.root] : [],
-              postProcessState: post.getShaderWarmupState(),
-              additionalBackgroundMaterials: environment!.shaderWarmupBackgroundMaterials,
-              onVariants:
-                pageUrl.searchParams.get("agentTrace") === "1"
-                  ? (variants) => {
-                      canvas.dataset.buildingShaderWarmupVariants = JSON.stringify(variants);
-                    }
-                  : undefined
-            });
+            const includeInactiveRoots: Entity[] = [
+              ...(candidateVegetation?.shaderWarmupRoots ?? []),
+              ...(candidate?.population ? [candidate.population.trees, candidate.population.details] : []),
+              ...(candidateTemplate?.root ? [candidateTemplate.root] : [])
+            ];
+            let masonryWarmup:
+              | Awaited<ReturnType<NonNullable<typeof candidateMasonry>["prepareShaderWarmup"]>>
+              | undefined = undefined;
+            let shaderWarmup;
+            try {
+              if (precompileShaders && ready) {
+                masonryWarmup = await candidateMasonry?.prepareShaderWarmup(signal);
+              }
+              shaderWarmup = await warmupSeedWorldRendererVariants(engine!, scene!, camera, warmupRoots, {
+                // Startup publishes additional owners below; collect their final state together before reveal.
+                enabled: precompileShaders && ready,
+                includeInactiveRoots,
+                additionalRenderers: masonryWarmup?.renderers,
+                additionalRendererMaterials: masonryWarmup?.extraMaterials,
+                additionalPointLightCounts: masonryWarmup?.decorationPointLightBudget
+                  ? [masonryWarmup.decorationPointLightBudget]
+                  : undefined,
+                includeGpuInstancing: true,
+                strict: true,
+                activatedLightRoots: warmupRoots,
+                retiredLightRoots: readWorld() ? [readWorld()!.root] : [],
+                postProcessState: post.getShaderWarmupState(),
+                additionalBackgroundMaterials: environment!.shaderWarmupBackgroundMaterials,
+                onVariants:
+                  pageUrl.searchParams.get("agentTrace") === "1"
+                    ? (variants) => {
+                        canvas.dataset.buildingShaderWarmupVariants = JSON.stringify(variants);
+                      }
+                    : undefined
+              });
+            } finally {
+              masonryWarmup?.dispose();
+            }
             if (pageUrl.searchParams.get("agentTrace") === "1")
               canvas.dataset.buildingShaderWarmup = JSON.stringify(shaderWarmup);
             signal.throwIfAborted();
@@ -2632,12 +2654,21 @@ export async function mountSeedWorldDemo(
       canvas,
       showAssistant: options.showAssistant !== false,
       isDisposed: () => disposed,
+      lifetimeSignal: editorLifetime.signal,
       progress,
       timed,
       prepareFarmingPresentation: () => farmingHost?.runtime?.preparePresentation(),
       prepareAnimalPresentation: () => animals?.preparePresentation(),
       prepareVegetationPresentation: () => publication!.current?.vegetation?.preparePresentation(),
-      prepareAssistantPresentation: () => tools.preparePresentation(),
+      prepareMasonryShaderWarmup: (signal) => publication!.current?.masonry?.prepareShaderWarmup(signal),
+      prepareAssistantPresentation: () => tools?.preparePresentation(),
+      getIncludeInactiveRoots: () => [
+        ...(publication!.current?.vegetation?.shaderWarmupRoots ?? []),
+        ...(publication!.current?.world?.population
+          ? [publication!.current.world.population.trees, publication!.current.world.population.details]
+          : []),
+        ...(publication!.current?.template?.root ? [publication!.current.template.root] : [])
+      ],
       getPostProcessWarmupState: () => post.getShaderWarmupState(),
       additionalBackgroundMaterials: environment!.shaderWarmupBackgroundMaterials,
       onWarmupEvent: (message, detail) => seedWorldBootTrace.event("info", "shader-warmup", message, detail)

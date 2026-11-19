@@ -1148,6 +1148,7 @@ export async function createBuildingDistanceView(
         farProxyMode = active;
         syncVisualRoots();
       },
+      warmupDetailedVisual: ensureDetailedVisual,
       releaseDetailedVisual,
       setFade(fade: number) {
         lastFade = fade;

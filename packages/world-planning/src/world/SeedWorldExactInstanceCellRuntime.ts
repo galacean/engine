@@ -195,7 +195,13 @@ export class SeedWorldExactInstanceCellRuntime {
   private readonly _cameraFrustum = new BoundingFrustum();
   private readonly _cameraState = new Float32Array(16);
   private _cameraStateValid = false;
-  private _cells: readonly SeedWorldExactInstanceCell[] = [];
+  private _cells: SeedWorldExactInstanceCell[] = [];
+  private readonly _cellsById = new Map<string, SeedWorldExactInstanceCell>();
+  private readonly _entryCellMap = new WeakMap<SeedWorldExactInstanceSpatialEntry, SeedWorldExactInstanceCell>();
+  private readonly _entrySet = new Set<SeedWorldExactInstanceSpatialEntry>();
+  private readonly _centerScratch = new Vector3();
+  private readonly _pendingNewEntries: SeedWorldExactInstanceSpatialEntry[] = [];
+  private _entries: SeedWorldExactInstanceSpatialEntry[];
   private readonly _frustumVisibleCells: SeedWorldExactInstanceCell[] = [];
   private _frustumVisibleCellCount = 0;
   private _candidates: SeedWorldExactInstanceSpatialEntry[] = [];
@@ -215,20 +221,22 @@ export class SeedWorldExactInstanceCellRuntime {
   /**
    * Builds the shared Cell index for all supplied exact Prefab categories.
    * @param camera Camera driving Cell-frustum queries and optional authored LOD projection.
-   * @param _entries Exact Prefab instances whose bounds may be explicitly refreshed after Authoring transactions.
+   * @param entries Exact Prefab instances whose bounds may be explicitly refreshed after Authoring transactions.
    * @param _terrainOcclusion Optional terrain visibility query.
    * @param _frustumCulling Disable to retain engine-owned visibility, including offscreen shadow casters.
    * @param _occlusionKeyPrefix Namespace prefix for Terrain Horizon occlusion keys so separate cell runtimes do not collide.
    */
   constructor(
     private readonly _camera: Camera,
-    private _entries: readonly SeedWorldExactInstanceSpatialEntry[],
+    entries: readonly SeedWorldExactInstanceSpatialEntry[],
     private readonly _terrainOcclusion?: SeedWorldTerrainOcclusionReadPort,
     private readonly _frustumCulling = true,
     private readonly _occlusionKeyPrefix = "exact-prefab"
   ) {
-    if (_frustumCulling) this._cells = buildCells(_entries, this._cellSizeMetres, this._occlusionKeyPrefix);
-    this._snapshot = createSnapshotState(this._mode, this._cellSizeMetres, _entries.length, this._cells.length);
+    this._entries = [...entries];
+    for (let i = 0; i < this._entries.length; i++) this._entrySet.add(this._entries[i]!);
+    if (_frustumCulling) this._rebuildCellsFromEntries();
+    this._snapshot = createSnapshotState(this._mode, this._cellSizeMetres, this._entries.length, this._cells.length);
   }
 
   /** @returns Active exact-Prefab spatial A/B implementation. */
@@ -273,7 +281,7 @@ export class SeedWorldExactInstanceCellRuntime {
     }
     if (cellSizeMetres === this._cellSizeMetres) return;
     this._cellSizeMetres = cellSizeMetres;
-    if (this._frustumCulling) this._cells = buildCells(this._entries, cellSizeMetres, this._occlusionKeyPrefix);
+    if (this._frustumCulling) this._rebuildCellsFromEntries();
     this.invalidate();
   }
 
@@ -284,8 +292,9 @@ export class SeedWorldExactInstanceCellRuntime {
   rebuildSpatialIndex(): void {
     if (this._frustumCulling) {
       for (const entry of this._entries) entry.refreshBounds?.();
-      this._cells = buildCells(this._entries, this._cellSizeMetres, this._occlusionKeyPrefix);
+      this._rebuildCellsFromEntries();
     }
+    this._pendingNewEntries.length = 0;
     this._snapshot = createSnapshotState(this._mode, this._cellSizeMetres, this._entries.length, this._cells.length);
     this.invalidate();
   }
@@ -311,8 +320,166 @@ export class SeedWorldExactInstanceCellRuntime {
       this._candidateEpochs.clear();
       this._candidateEpoch = 0;
     }
-    this._entries = entries;
+    this._entries = [...entries];
+    this._entrySet.clear();
+    for (let i = 0; i < this._entries.length; i++) this._entrySet.add(this._entries[i]!);
     this.rebuildSpatialIndex();
+  }
+
+  /**
+   * Incrementally registers newly materialized instances without recomputing bounds or cells
+   * for already-resident instances.
+   */
+  addEntries(added: readonly SeedWorldExactInstanceSpatialEntry[]): void {
+    if (added.length === 0) return;
+    const cellSize = this._cellSizeMetres;
+    const center = this._centerScratch;
+    let frustumNeedsRefresh = !this._cameraStateValid;
+    let addedAny = false;
+    for (let i = 0; i < added.length; i++) {
+      const entry = added[i]!;
+      if (this._entrySet.has(entry)) continue;
+      addedAny = true;
+      this._entrySet.add(entry);
+      this._entries.push(entry);
+      if (this._frustumCulling) {
+        entry.bounds.getCenter(center);
+        const key = `${Math.floor(center.x / cellSize)}:${Math.floor(center.z / cellSize)}`;
+        let cell = this._cellsById.get(key);
+        if (cell) {
+          cell.entries.push(entry);
+          BoundingBox.merge(cell.bounds, entry.bounds, cell.bounds);
+          let isVisibleCell = false;
+          if (this._cameraStateValid) {
+            for (let vi = 0; vi < this._frustumVisibleCellCount; vi++) {
+              if (this._frustumVisibleCells[vi] === cell) {
+                isVisibleCell = true;
+                break;
+              }
+            }
+          }
+          if (isVisibleCell) {
+            if (this._terrainOcclusion) {
+              // Defer candidate admission to update() so terrain occlusion is evaluated authoritatively.
+              frustumNeedsRefresh = true;
+            } else {
+              this._candidates[this._candidateCount++] = entry;
+              this._pendingNewEntries.push(entry);
+            }
+          } else if (this._cameraStateValid && this._cameraFrustum.intersectsBox(cell.bounds)) {
+            frustumNeedsRefresh = true;
+          }
+        } else {
+          cell = {
+            id: key,
+            occlusionKey: `${this._occlusionKeyPrefix}:${key}`,
+            bounds: entry.bounds.clone(),
+            entries: [entry]
+          };
+          this._cellsById.set(key, cell);
+          this._cells.push(cell);
+          if (this._cameraStateValid && this._cameraFrustum.intersectsBox(cell.bounds)) {
+            frustumNeedsRefresh = true;
+          }
+        }
+        this._entryCellMap.set(entry, cell);
+      } else {
+        this._pendingNewEntries.push(entry);
+      }
+    }
+    if (!addedAny) return;
+    this._snapshot.totalInstanceCount = this._entries.length;
+    this._snapshot.occupiedCellCount = this._cells.length;
+    if (frustumNeedsRefresh) {
+      this._invalidated = true;
+    }
+  }
+
+  /**
+   * Incrementally unregisters evicted or dematerialized instances, updating only affected cells.
+   */
+  removeEntries(removed: ReadonlySet<SeedWorldExactInstanceSpatialEntry>): void {
+    if (removed.size === 0) return;
+    let write = 0;
+    for (let i = 0; i < this._entries.length; i++) {
+      const entry = this._entries[i]!;
+      if (!removed.has(entry)) this._entries[write++] = entry;
+      else this._entrySet.delete(entry);
+    }
+    if (write === this._entries.length) return;
+    this._entries.length = write;
+
+    if (this._pendingNewEntries.length > 0) {
+      let pw = 0;
+      for (let i = 0; i < this._pendingNewEntries.length; i++) {
+        const entry = this._pendingNewEntries[i]!;
+        if (!removed.has(entry)) this._pendingNewEntries[pw++] = entry;
+      }
+      this._pendingNewEntries.length = pw;
+    }
+
+    if (this._frustumCulling) {
+      let cw = 0;
+      for (let i = 0; i < this._candidateCount; i++) {
+        const entry = this._candidates[i]!;
+        if (!removed.has(entry)) this._candidates[cw++] = entry;
+      }
+      for (let i = cw; i < this._candidateCount; i++) this._candidates[i] = undefined!;
+      this._candidateCount = cw;
+
+      const affectedCells = new Set<SeedWorldExactInstanceCell>();
+      for (const entry of removed) {
+        this._candidateEpochs.delete(entry);
+        const cell = this._entryCellMap.get(entry);
+        if (cell) {
+          affectedCells.add(cell);
+          this._entryCellMap.delete(entry);
+        }
+      }
+      let removedAnyCell = false;
+      for (const cell of affectedCells) {
+        let ew = 0;
+        for (let i = 0; i < cell.entries.length; i++) {
+          const entry = cell.entries[i]!;
+          if (!removed.has(entry)) cell.entries[ew++] = entry;
+        }
+        cell.entries.length = ew;
+        if (ew === 0) {
+          this._cellsById.delete(cell.id);
+          removedAnyCell = true;
+        } else {
+          cell.bounds.copyFrom(cell.entries[0]!.bounds);
+          for (let i = 1; i < ew; i++) BoundingBox.merge(cell.bounds, cell.entries[i]!.bounds, cell.bounds);
+        }
+      }
+      if (removedAnyCell) {
+        this._cells = this._cells.filter((cell) => cell.entries.length > 0);
+        let vw = 0;
+        for (let i = 0; i < this._frustumVisibleCellCount; i++) {
+          const cell = this._frustumVisibleCells[i]!;
+          if (cell.entries.length > 0) this._frustumVisibleCells[vw++] = cell;
+        }
+        for (let i = vw; i < this._frustumVisibleCellCount; i++) this._frustumVisibleCells[i] = undefined!;
+        this._frustumVisibleCellCount = vw;
+      }
+    }
+    this._snapshot.totalInstanceCount = this._entries.length;
+    this._snapshot.occupiedCellCount = this._cells.length;
+  }
+
+  private _rebuildCellsFromEntries(): void {
+    this._cellsById.clear();
+    this._frustumVisibleCellCount = 0;
+    this._frustumVisibleCells.length = 0;
+    const cells = buildCells(this._entries, this._cellSizeMetres, this._occlusionKeyPrefix);
+    this._cells = [...cells];
+    for (let i = 0; i < this._cells.length; i++) {
+      const cell = this._cells[i]!;
+      this._cellsById.set(cell.id, cell);
+      for (let j = 0; j < cell.entries.length; j++) {
+        this._entryCellMap.set(cell.entries[j]!, cell);
+      }
+    }
   }
 
   /** Forces the next Cell frame to refresh its camera query and all visible instance states. */
@@ -454,8 +621,16 @@ export class SeedWorldExactInstanceCellRuntime {
     const activeCount = this._frustumCulling ? this._candidateCount : this._entries.length;
     const shouldUpdate = cameraChanged || invalidated || candidatesChanged || this._transitionActive;
     this._invalidated = false;
-    const instanceUpdateCount = (shouldUpdate ? activeCount : 0) + retiredInstanceUpdateCount;
-    if (shouldUpdate) this._transitionActive = updateEntriesCounted(activeEntries, activeCount, timeSeconds);
+    let instanceUpdateCount = retiredInstanceUpdateCount;
+    if (shouldUpdate) {
+      this._pendingNewEntries.length = 0;
+      instanceUpdateCount += activeCount;
+      this._transitionActive = updateEntriesCounted(activeEntries, activeCount, timeSeconds);
+    } else if (this._pendingNewEntries.length > 0) {
+      instanceUpdateCount += this._pendingNewEntries.length;
+      if (updateEntries(this._pendingNewEntries, timeSeconds)) this._transitionActive = true;
+      this._pendingNewEntries.length = 0;
+    }
     snapshot.mode = this._mode;
     snapshot.cellSizeMetres = this._cellSizeMetres;
     snapshot.totalInstanceCount = this._entries.length;

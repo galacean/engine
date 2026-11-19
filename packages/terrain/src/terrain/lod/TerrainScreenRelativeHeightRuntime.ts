@@ -4,7 +4,11 @@ import { Camera, Entity, Vector3 } from "@galacean/engine";
 export class TerrainScreenRelativeHeightRuntime {
   private readonly _localReferencePoint: Vector3;
   private readonly _worldReferencePoint = new Vector3();
-  private readonly _cameraOffset = new Vector3();
+  private readonly _cachedMatrix = new Float64Array(12);
+  private _matrixCached = false;
+  private _cachedWorldSize = 0;
+  private _cachedFov = NaN;
+  private _cachedTwoTanHalfFov = 1;
 
   constructor(
     private readonly _root: Entity,
@@ -17,15 +21,58 @@ export class TerrainScreenRelativeHeightRuntime {
 
   /** @returns Projected authored reference size divided by the camera's screen height. */
   resolve(): number {
-    Vector3.transformCoordinate(this._localReferencePoint, this._root.transform.worldMatrix, this._worldReferencePoint);
-    const scale = this._root.transform.lossyWorldScale;
-    const worldSize = this._size * Math.max(Math.abs(scale.x), Math.abs(scale.y), Math.abs(scale.z));
+    const worldMatrix = this._root.transform.worldMatrix;
+    const e = worldMatrix.elements;
+    const c = this._cachedMatrix;
+    if (
+      !this._matrixCached ||
+      c[0] !== e[0] ||
+      c[1] !== e[1] ||
+      c[2] !== e[2] ||
+      c[3] !== e[4] ||
+      c[4] !== e[5] ||
+      c[5] !== e[6] ||
+      c[6] !== e[8] ||
+      c[7] !== e[9] ||
+      c[8] !== e[10] ||
+      c[9] !== e[12] ||
+      c[10] !== e[13] ||
+      c[11] !== e[14]
+    ) {
+      c[0] = e[0];
+      c[1] = e[1];
+      c[2] = e[2];
+      c[3] = e[4];
+      c[4] = e[5];
+      c[5] = e[6];
+      c[6] = e[8];
+      c[7] = e[9];
+      c[8] = e[10];
+      c[9] = e[12];
+      c[10] = e[13];
+      c[11] = e[14];
+      this._matrixCached = true;
+      Vector3.transformCoordinate(this._localReferencePoint, worldMatrix, this._worldReferencePoint);
+      const sxSq = e[0] * e[0] + e[1] * e[1] + e[2] * e[2];
+      const sySq = e[4] * e[4] + e[5] * e[5] + e[6] * e[6];
+      const szSq = e[8] * e[8] + e[9] * e[9] + e[10] * e[10];
+      this._cachedWorldSize = this._size * Math.sqrt(Math.max(sxSq, sySq, szSq));
+    }
+
+    const worldSize = this._cachedWorldSize;
     if (this._camera.isOrthographic) return worldSize / (2 * this._camera.orthographicSize);
 
-    Vector3.subtract(this._worldReferencePoint, this._camera.entity.transform.worldPosition, this._cameraOffset);
-    const distance = this._cameraOffset.length();
-    if (distance <= Number.EPSILON) return Number.MAX_SAFE_INTEGER;
-    const halfVerticalFovRadians = (this._camera.fieldOfView * Math.PI) / 360;
-    return worldSize / (2 * distance * Math.tan(halfVerticalFovRadians));
+    const camPos = this._camera.entity.transform.worldPosition;
+    const dx = this._worldReferencePoint.x - camPos.x;
+    const dy = this._worldReferencePoint.y - camPos.y;
+    const dz = this._worldReferencePoint.z - camPos.z;
+    const distSq = dx * dx + dy * dy + dz * dz;
+    if (distSq <= Number.EPSILON * Number.EPSILON) return Number.MAX_SAFE_INTEGER;
+    const fov = this._camera.fieldOfView;
+    if (fov !== this._cachedFov) {
+      this._cachedFov = fov;
+      this._cachedTwoTanHalfFov = 2 * Math.tan((fov * Math.PI) / 360);
+    }
+    return worldSize / (Math.sqrt(distSq) * this._cachedTwoTanHalfFov);
   }
 }

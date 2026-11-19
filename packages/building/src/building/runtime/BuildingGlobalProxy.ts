@@ -1203,6 +1203,23 @@ export class BuildingGlobalProxy {
     }
   }
 
+  /** Returns shadow-only alternate materials bound at runtime when a bucket has no far-visible slots. */
+  getWarmupExtraMaterials(): Map<MeshRenderer, Material[]> {
+    this.flushIfDirty();
+    const map = new Map<MeshRenderer, Material[]>();
+    for (const bucket of this.buckets) {
+      if (bucket.boxMesh && bucket.boxHasShadowCasters) {
+        map.set(bucket.boxRenderer, [bucket.boxShadowOnlyMat]);
+      }
+      for (const c of bucket.structChunks) {
+        if (c.castsShadow) {
+          map.set(c.renderer, [bucket.structShadowOnlyMat]);
+        }
+      }
+    }
+    return map;
+  }
+
   destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;

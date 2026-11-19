@@ -23,7 +23,9 @@ import {
 import {
   normalizeSeedWorldShaderVariants,
   withSeedWorldInstanceEntranceVariants,
+  withSeedWorldLodDitherVariants,
   withSeedWorldMasonryDitherVariants,
+  withSeedWorldMasonryEntranceVariants,
   seedWorldShaderVariantKey,
   type SeedWorldShaderVariantEntry,
   type SeedWorldShaderVariantMacro
@@ -32,7 +34,9 @@ import {
 export {
   withSeedWorldInstanceEntranceVariants,
   withSeedWorldIblBlendVariants,
+  withSeedWorldLodDitherVariants,
   withSeedWorldMasonryDitherVariants,
+  withSeedWorldMasonryEntranceVariants,
   expandSeedWorldShaderVariantManifest,
   findMissingSeedWorldShaderVariants,
   normalizeSeedWorldShaderVariants,
@@ -96,6 +100,19 @@ export interface SeedWorldRendererWarmupOptions extends SeedWorldShaderWarmupOpt
   readonly overlayRenderers?: readonly Renderer[];
   /** False excludes inactive resource templates. Disabled Renderers on active LOD entities remain included. */
   readonly includeInactiveEntities?: boolean;
+  /** World placement roots whose inactive LOD/frustum-culled children should still be warmed when includeInactiveEntities is false. */
+  readonly includeInactiveRoots?: readonly Entity[];
+  /** Explicit offscreen warmup renderers (e.g. lazy building LOD1/LOD0) always included regardless of active state. */
+  readonly additionalRenderers?: readonly Renderer[];
+  /** Alternate materials swapped onto specific renderers at runtime (e.g. shadow-only proxy materials). */
+  readonly additionalRendererMaterials?: ReadonlyMap<Renderer, readonly Material[]>;
+  /**
+   * Signed `SCENE_POINT_LIGHT_COUNT` deltas to precompile on Forward passes relative to the
+   * scene's baseline point light count (e.g. `[4]` when a lazy 4-slot decoration light pool is
+   * inactive, or `[-4]` when it is already active in-village so lights-OFF variants stay warm),
+   * clamped to `[0, LightManager capacity]`.
+   */
+  readonly additionalPointLightCounts?: readonly number[];
   /** Exact production emitters whose wind module can be enabled by weather changes. */
   readonly particleWindRenderers?: readonly ParticleRenderer[];
   /** Renderer feature macros that are enabled only during the entrance frame. */
@@ -108,8 +125,12 @@ export interface SeedWorldRendererWarmupOptions extends SeedWorldShaderWarmupOpt
   readonly onlyEnabledRenderers?: boolean;
   /** Whether to expand resident masonry shaders with symmetric RENDERER_MASONRY_DITHER variants. Defaults to true. */
   readonly includeMasonryDither?: boolean;
+  /** Whether to expand masonry shaders with symmetric RENDERER_MASONRY_ENTRANCE variants. Defaults to true. */
+  readonly includeMasonryEntrance?: boolean;
   /** Whether to expand compact vegetation shaders with RENDERER_INSTANCE_GENERATION_REVEAL variants. Defaults to true. */
   readonly includeInstanceEntrance?: boolean;
+  /** Whether to expand vegetation shaders with symmetric RENDERER_LOD_DITHER variants. Defaults to true. */
+  readonly includeLodDither?: boolean;
   /** Roots that will activate at publication; their current inactive gate is ignored only for prediction. */
   readonly activatedLightRoots?: readonly Entity[];
   /** Accepted roots that will retire in that same publication. */
@@ -429,10 +450,27 @@ export function collectSeedWorldRendererVariants(
 
   const renderers: Renderer[] = [];
   const rootRenderers: Renderer[] = [];
+  const forcedRenderers = new Set<Renderer>(options.additionalRenderers ?? []);
   for (const root of roots) {
     // Entity replaces the supplied result array; retain previous roots explicitly.
     root.getComponentsIncludeChildren(Renderer, rootRenderers);
     renderers.push(...rootRenderers);
+  }
+  for (const root of options.includeInactiveRoots ?? []) {
+    root.getComponentsIncludeChildren(Renderer, rootRenderers);
+    for (const r of rootRenderers) {
+      renderers.push(r);
+      forcedRenderers.add(r);
+    }
+  }
+  if (options.additionalRenderers?.length) {
+    renderers.push(...options.additionalRenderers);
+  }
+  if (options.additionalRendererMaterials?.size) {
+    for (const renderer of options.additionalRendererMaterials.keys()) {
+      renderers.push(renderer);
+      forcedRenderers.add(renderer);
+    }
   }
   // Snow follows the camera, which is a separate scene root from the generated world.
   renderers.push(...(options.particleWindRenderers ?? []));
@@ -457,7 +495,20 @@ export function collectSeedWorldRendererVariants(
     : undefined;
   if (sharedMeshMaterialCounts) {
     for (const sourceRenderer of uniqueRenderers) {
-      if (options.includeInactiveEntities === false && !sourceRenderer.entity.isActiveInHierarchy) continue;
+      if (
+        !sourceRenderer ||
+        sourceRenderer.destroyed ||
+        !sourceRenderer.entity ||
+        sourceRenderer.entity.destroyed ||
+        !sourceRenderer.shaderData
+      )
+        continue;
+      if (
+        options.includeInactiveEntities === false &&
+        !sourceRenderer.entity.isActiveInHierarchy &&
+        !forcedRenderers.has(sourceRenderer)
+      )
+        continue;
       if (options.onlyEnabledRenderers && !sourceRenderer.enabled) continue;
       if (!(sourceRenderer instanceof MeshRenderer) || sourceRenderer instanceof SkinnedMeshRenderer) continue;
       const mesh = (sourceRenderer as unknown as RuntimeMeshRenderer).mesh;
@@ -467,7 +518,11 @@ export function collectSeedWorldRendererVariants(
         materialMap = new Map<object, number>();
         sharedMeshMaterialCounts.set(mesh, materialMap);
       }
-      for (const material of sourceRenderer.getMaterials()) {
+      const extraMaterials = options.additionalRendererMaterials?.get(sourceRenderer);
+      const materials = extraMaterials?.length
+        ? [...sourceRenderer.getMaterials(), ...extraMaterials]
+        : sourceRenderer.getMaterials();
+      for (const material of materials) {
         if (!material || material.destroyed || material.shader.destroyed) continue;
         materialMap.set(material, (materialMap.get(material) ?? 0) + 1);
       }
@@ -475,7 +530,20 @@ export function collectSeedWorldRendererVariants(
   }
 
   for (const sourceRenderer of uniqueRenderers) {
-    if (options.includeInactiveEntities === false && !sourceRenderer.entity.isActiveInHierarchy) continue;
+    if (
+      !sourceRenderer ||
+      sourceRenderer.destroyed ||
+      !sourceRenderer.entity ||
+      sourceRenderer.entity.destroyed ||
+      !sourceRenderer.shaderData
+    )
+      continue;
+    if (
+      options.includeInactiveEntities === false &&
+      !sourceRenderer.entity.isActiveInHierarchy &&
+      !forcedRenderers.has(sourceRenderer)
+    )
+      continue;
     if (options.onlyEnabledRenderers && !sourceRenderer.enabled) continue;
     const isMesh = sourceRenderer instanceof MeshRenderer;
     const isParticle = sourceRenderer instanceof ParticleRenderer;
@@ -524,13 +592,19 @@ export function collectSeedWorldRendererVariants(
         ? [[], [{ n: "RENDERER_WOL_MODULE_ENABLED" }, { n: "RENDERER_TRANSFORM_FEEDBACK" }]]
         : [[]];
 
-    for (const material of renderer.getMaterials()) {
+    const extraMaterials = options.additionalRendererMaterials?.get(sourceRenderer);
+    const materials = extraMaterials?.length
+      ? [...renderer.getMaterials(), ...extraMaterials]
+      : renderer.getMaterials();
+    for (const material of materials) {
       if (!material || material.destroyed || material.shader.destroyed) continue;
+      // Masonry shaders own their custom instance/packed vertex streams and never enter the generic UBO batcher.
       const useGpuInstancingForMaterial =
         canGpuInstanceRenderer &&
+        !material.shader.name.startsWith("Masonry/") &&
         (!sharedMeshMaterialCounts ||
           (renderer.mesh !== undefined && (sharedMeshMaterialCounts.get(renderer.mesh)?.get(material) ?? 0) >= 2));
-      const rendererMacroVariants = isParticle
+      const materialMacroVariants = isParticle
         ? particleMacroVariants
         : useGpuInstancingForMaterial
           ? gpuInstancedMacroVariants
@@ -546,7 +620,7 @@ export function collectSeedWorldRendererVariants(
             )
             .join(",")
         : "off";
-      for (const extraMacros of rendererMacroVariants) {
+      for (const extraMacros of materialMacroVariants) {
         const compileMacros = new ShaderMacroCollection();
         ShaderMacroCollection.unionCollection(
           rendererMacros,
@@ -559,21 +633,59 @@ export function collectSeedWorldRendererVariants(
             macro.v === undefined ? ShaderMacro.getByName(macro.n) : ShaderMacro.getByName(macro.n, macro.v)
           );
         }
-        const macroSetKey = `${material.shader.name}/${sourceRenderer.castShadows}/${contributionKey}?${shaderMacroCollectionKey(compileMacros)}`;
+        const passCastShadows = sourceRenderer.castShadows || material.shader.name === "Masonry/GlobalProxyShadowOnly";
+        const macroSetKey = `${material.shader.name}/${passCastShadows}/${contributionKey}?${shaderMacroCollectionKey(compileMacros)}`;
         if (collectedShaderMacroSets.has(macroSetKey)) continue;
         collectedShaderMacroSets.add(macroSetKey);
-        appendShaderVariants(
-          material.shader,
-          compileMacros,
-          variants,
-          sourceRenderer.castShadows,
-          renderToTexture,
-          material
-        );
+        appendShaderVariants(material.shader, compileMacros, variants, passCastShadows, renderToTexture, material);
+        const appendPointLightVariants = (targetShader: Shader): void => {
+          if (!options.additionalPointLightCounts?.length || !shaderConsumesPointLights(targetShader.name)) return;
+          const manager = (scene as unknown as { _lightManager?: { _pointData?: { color: Float32Array } } })
+            ._lightManager;
+          const rawCapacity = (manager?._pointData?.color.length ?? 0) / 3;
+          const pointLightCapacity = Number.isInteger(rawCapacity) && rawCapacity > 0 ? rawCapacity : Infinity;
+          const basePointMacros: ShaderMacro[] = [];
+          (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(compileMacros, basePointMacros);
+          let existingPointLightCount = 0;
+          for (const macro of basePointMacros) {
+            if (macro.name === "SCENE_POINT_LIGHT_COUNT") {
+              existingPointLightCount = Number(macro.value ?? 0) || 0;
+              break;
+            }
+          }
+          for (const delta of options.additionalPointLightCounts) {
+            if (!Number.isInteger(delta) || delta === 0) continue;
+            const targetPointLightCount = Math.max(0, Math.min(existingPointLightCount + delta, pointLightCapacity));
+            if (targetPointLightCount === existingPointLightCount) continue;
+            const pointLightMacros = new ShaderMacroCollection();
+            ShaderMacroCollection.unionCollection(compileMacros, compileMacros, pointLightMacros);
+            for (const macro of basePointMacros) {
+              if (macro.name === "SCENE_POINT_LIGHT_COUNT") pointLightMacros.disable(macro);
+            }
+            if (targetPointLightCount > 0) {
+              pointLightMacros.enable(ShaderMacro.getByName("SCENE_POINT_LIGHT_COUNT", String(targetPointLightCount)));
+            }
+            const pointKey = `${targetShader.name}/pl=${targetPointLightCount}/${contributionKey}?${shaderMacroCollectionKey(pointLightMacros)}`;
+            if (!collectedShaderMacroSets.has(pointKey)) {
+              collectedShaderMacroSets.add(pointKey);
+              appendShaderVariants(
+                targetShader,
+                pointLightMacros,
+                variants,
+                false,
+                renderToTexture,
+                material,
+                true,
+                true
+              );
+            }
+          }
+        };
+        appendPointLightVariants(material.shader);
         // BuildingGlobalProxy swaps between Masonry/GlobalProxy and Masonry/GlobalProxyShadowOnly
         // when cells transition between LOD2 and LOD1/LOD0; precompile both directions symmetrically.
         const companionShaderName =
-          material.shader.name === "Masonry/GlobalProxy" && sourceRenderer.castShadows
+          material.shader.name === "Masonry/GlobalProxy" && passCastShadows
             ? "Masonry/GlobalProxyShadowOnly"
             : material.shader.name === "Masonry/GlobalProxyShadowOnly"
               ? "Masonry/GlobalProxy"
@@ -581,18 +693,19 @@ export function collectSeedWorldRendererVariants(
         if (companionShaderName) {
           const companionShader = Shader.find(companionShaderName);
           if (companionShader && !companionShader.destroyed) {
-            const companionKey = `${companionShader.name}/${sourceRenderer.castShadows}/${contributionKey}?${shaderMacroCollectionKey(compileMacros)}`;
+            const companionKey = `${companionShader.name}/${passCastShadows}/${contributionKey}?${shaderMacroCollectionKey(compileMacros)}`;
             if (!collectedShaderMacroSets.has(companionKey)) {
               collectedShaderMacroSets.add(companionKey);
               appendShaderVariants(
                 companionShader,
                 compileMacros,
                 variants,
-                sourceRenderer.castShadows,
+                passCastShadows,
                 renderToTexture,
                 material
               );
             }
+            appendPointLightVariants(companionShader);
           }
         }
       }
@@ -715,6 +828,8 @@ export function collectSeedWorldRendererVariants(
   let collected: readonly SeedWorldShaderVariantEntry[] = variants;
   if (options.includeInstanceEntrance !== false) collected = withSeedWorldInstanceEntranceVariants(collected);
   if (options.includeMasonryDither !== false) collected = withSeedWorldMasonryDitherVariants(collected);
+  if (options.includeMasonryEntrance !== false) collected = withSeedWorldMasonryEntranceVariants(collected);
+  if (options.includeLodDither !== false) collected = withSeedWorldLodDitherVariants(collected);
   return normalizeSeedWorldShaderVariants(collected);
 }
 
@@ -878,6 +993,19 @@ function locateShaderPass(
   return undefined;
 }
 
+function shaderConsumesPointLights(shaderName: string): boolean {
+  if (shaderName === "PBR" || shaderName === "BlinnPhong") return true;
+  if (shaderName.startsWith("Terrain/") || shaderName.startsWith("Farming/")) return true;
+  if (
+    shaderName.startsWith("Masonry/") &&
+    shaderName !== "Masonry/GlobalProxyShadowOnly" &&
+    shaderName !== "Masonry/ShadowSurface"
+  ) {
+    return true;
+  }
+  return false;
+}
+
 function appendShaderVariants(
   shader: Shader,
   macros: ShaderMacroCollection,
@@ -885,7 +1013,8 @@ function appendShaderVariants(
   castShadows = true,
   renderToTexture?: boolean,
   material?: Material,
-  isWebGL2 = true
+  isWebGL2 = true,
+  forwardOnly = false
 ): void {
   const macroElements: ShaderMacro[] = [];
   (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(macros, macroElements);
@@ -895,9 +1024,10 @@ function appendShaderVariants(
   for (let si = 0; si < shader.subShaders.length; si++) {
     for (let pi = 0; pi < shader.subShaders[si].passes.length; pi++) {
       const pass = shader.subShaders[si].passes[pi];
-      // Match shadow culling even while candidate roots are intentionally inactive.
-      if (!castShadows && pass.getTagValue("pipelineStage") === "ShadowCaster") continue;
       const stage = pass.getTagValue("pipelineStage");
+      if (forwardOnly && stage !== "Forward") continue;
+      // Match shadow culling even while candidate roots are intentionally inactive.
+      if (!castShadows && stage === "ShadowCaster") continue;
       if (stage === "TransformFeedback" && !isWebGL2) continue;
       // Contribution capture only visits opted-in transparent materials. Merely having the pass in PBR
       // does not make it reachable (opaque objects already contribute through their Forward color).

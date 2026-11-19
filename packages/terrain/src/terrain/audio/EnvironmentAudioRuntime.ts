@@ -137,7 +137,9 @@ export class EnvironmentAudioRuntime extends Script {
         occlusionDue: Infinity
       });
     }
-    for (const name of ["pointerdown", "touchstart", "keydown"])
+    // Unlock on release/click/key rather than pointerdown/touchstart so constructing a cold
+    // AudioContext never stalls the first frame of a camera drag or joystick movement gesture.
+    for (const name of ["pointerup", "touchend", "click", "keydown"])
       document.addEventListener(name, this.onGesture, { capture: true, passive: true });
     document.addEventListener("visibilitychange", this.onVisibility);
     window.addEventListener("pageshow", this.onVisibility);
@@ -175,7 +177,7 @@ export class EnvironmentAudioRuntime extends Script {
     const entries = Object.entries(ENVIRONMENT_AUDIO_ASSETS) as [EnvironmentAudioClip, { url: string }][];
     let index = 0;
     await Promise.all(
-      Array.from({ length: 4 }, async () => {
+      Array.from({ length: 2 }, async () => {
         while (index < entries.length && !this.destroyed && !this.pendingDestroy) {
           const [id, asset] = entries[index++]!;
           try {
@@ -188,6 +190,7 @@ export class EnvironmentAudioRuntime extends Script {
           } catch (error) {
             if (!this.destroyed && !this.pendingDestroy) this.errors.set(id, String(error));
           }
+          await new Promise<void>((resolve) => setTimeout(resolve, 0));
         }
       })
     );
@@ -555,7 +558,7 @@ export class EnvironmentAudioRuntime extends Script {
   }
 
   override onDestroy(): void {
-    for (const name of ["pointerdown", "touchstart", "keydown"])
+    for (const name of ["pointerup", "touchend", "click", "keydown"])
       document.removeEventListener(name, this.onGesture, true);
     document.removeEventListener("visibilitychange", this.onVisibility);
     window.removeEventListener("pageshow", this.onVisibility);

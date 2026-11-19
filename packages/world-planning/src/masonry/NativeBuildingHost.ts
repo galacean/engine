@@ -162,6 +162,11 @@ export class NativeBuildingWorld {
   startEntrance() {
     this.system.startEntrance();
   }
+  prepareShaderWarmup(signal?: AbortSignal) {
+    return this.accepted || !this.prepared
+      ? this.system.prepareShaderWarmup(signal)
+      : this.prepared.prepareShaderWarmup(signal);
+  }
   async prepareTerrain(
     published: Pick<PublishedPlanningSeedScene, "data" | "revision">,
     signal?: AbortSignal,

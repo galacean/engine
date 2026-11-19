@@ -196,6 +196,8 @@ export class PlanningNaturalVegetationRuntime {
   private readonly lodCells: SeedWorldExactInstanceCellRuntime;
   private lodMembershipDirty = true;
   private lastLodMembershipRebuildTime = -Infinity;
+  private readonly pendingAddedLodEntries = new Set<SeedWorldExactInstanceSpatialEntry>();
+  private readonly pendingRemovedLodEntries = new Set<SeedWorldExactInstanceSpatialEntry>();
   private streamX = NaN;
   private streamZ = NaN;
   private pendingCells: { key: string; x: number; z: number; distance: number }[] = [];
@@ -1260,10 +1262,33 @@ export class PlanningNaturalVegetationRuntime {
     const detailMaxDist = SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade.maximumDistanceMetres;
     const deadline = Number.isFinite(budgetMs) ? performance.now() + budgetMs : Infinity;
 
+    const dematerializeDistSq = (detailMaxDist + 20) * (detailMaxDist + 20);
     for (const cell of this.cells.values()) {
       if (!cell.records) continue;
       for (const record of cell.records) {
-        if (record.plant) continue;
+        if (record.plant) {
+          const dx = record.instance.position[0] - camX;
+          const dz = record.instance.position[2] - camZ;
+          if (dx * dx + dz * dz > dematerializeDistSq) {
+            const retired = record.plant;
+            record.plant = undefined;
+            const plantIndex = cell.plants.indexOf(retired);
+            if (plantIndex >= 0) cell.plants.splice(plantIndex, 1);
+            this.foliageColors = undefined;
+            if (!this.lodMembershipDirty) {
+              const lodEntry = this.plantLodEntries.get(retired);
+              if (lodEntry && !this.pendingAddedLodEntries.delete(lodEntry)) {
+                this.pendingRemovedLodEntries.add(lodEntry);
+              }
+            }
+            destroyTree(retired.root);
+            if (performance.now() >= deadline) {
+              this.materializePendingMore = true;
+              return;
+            }
+          }
+          continue;
+        }
         if (
           this.isRecordWithinMaterializeRange(record, camX, camY, camZ, isOrtho, orthoSize, tanHalfFov, detailMaxDist)
         ) {
@@ -1276,7 +1301,11 @@ export class PlanningNaturalVegetationRuntime {
             record.groundHeight
           );
           cell.plants.push(record.plant);
-          this.lodMembershipDirty = true;
+          if (!this.lodMembershipDirty) {
+            const lodEntry = this.plantLodEntry(record.plant, true);
+            this.pendingRemovedLodEntries.delete(lodEntry);
+            this.pendingAddedLodEntries.add(lodEntry);
+          }
           if (performance.now() >= deadline) {
             this.materializePendingMore = true;
             return;
@@ -1362,6 +1391,11 @@ export class PlanningNaturalVegetationRuntime {
     }
   }
 
+  /** Placement and species template roots whose inactive LOD or unmaterialized-species children must still be warmed up. */
+  get shaderWarmupRoots(): readonly Entity[] {
+    return [this.treeRoot, this.detailRoot, this.resourceRoot];
+  }
+
   update(dt: number): void {
     if (this.disposed) return;
     this.time += dt;
@@ -1369,18 +1403,30 @@ export class PlanningNaturalVegetationRuntime {
       this.updateDetailStreaming();
       this.materializeNearbyCellRecords(this.blockingPresentationDrain ? Infinity : 2.0);
     }
-    if (
-      this.lodMembershipDirty &&
-      (this.blockingPresentationDrain ||
+    if (this.lodMembershipDirty) {
+      if (
+        this.blockingPresentationDrain ||
         !this.materializePendingMore ||
-        this.time - this.lastLodMembershipRebuildTime >= 0.25)
-    ) {
-      const entries = this.trees.map((tree) => this.plantLodEntry(tree, false));
-      for (const cell of this.cells.values())
-        for (const plant of cell.plants) entries.push(this.plantLodEntry(plant, true));
-      this.lodCells?.replaceEntries(entries);
-      this.lodMembershipDirty = false;
-      this.lastLodMembershipRebuildTime = this.time;
+        this.time - this.lastLodMembershipRebuildTime >= 0.25
+      ) {
+        this.pendingAddedLodEntries.clear();
+        this.pendingRemovedLodEntries.clear();
+        const entries = this.trees.map((tree) => this.plantLodEntry(tree, false));
+        for (const cell of this.cells.values())
+          for (const plant of cell.plants) entries.push(this.plantLodEntry(plant, true));
+        this.lodCells?.replaceEntries(entries);
+        this.lodMembershipDirty = false;
+        this.lastLodMembershipRebuildTime = this.time;
+      }
+    } else {
+      if (this.pendingRemovedLodEntries.size > 0) {
+        this.lodCells?.removeEntries(this.pendingRemovedLodEntries);
+        this.pendingRemovedLodEntries.clear();
+      }
+      if (this.pendingAddedLodEntries.size > 0) {
+        this.lodCells?.addEntries([...this.pendingAddedLodEntries]);
+        this.pendingAddedLodEntries.clear();
+      }
     }
     this.lodCells?.update(this.time);
   }
@@ -1516,7 +1562,13 @@ export class PlanningNaturalVegetationRuntime {
             visibilityRejected: result.diagnostics.rejected.visibility ?? 0
           });
           this.foliageColors = undefined;
-          this.lodMembershipDirty = true;
+          if (!this.lodMembershipDirty && plants.length > 0) {
+            for (const plant of plants) {
+              const lodEntry = this.plantLodEntry(plant, true);
+              this.pendingRemovedLodEntries.delete(lodEntry);
+              this.pendingAddedLodEntries.add(lodEntry);
+            }
+          }
           this.materializeCamX = NaN;
         } catch (error) {
           destroyTree(root);
@@ -1579,9 +1631,16 @@ export class PlanningNaturalVegetationRuntime {
       const dx = xMin > px ? xMin - px : px > xMin + cellSize ? px - (xMin + cellSize) : 0;
       const dz = zMin > pz ? zMin - pz : pz > zMin + cellSize ? pz - (zMin + cellSize) : 0;
       if (dx * dx + dz * dz > retainSq) {
+        if (!this.lodMembershipDirty) {
+          for (const plant of cell.plants) {
+            const entry = this.plantLodEntries.get(plant);
+            if (entry && !this.pendingAddedLodEntries.delete(entry)) {
+              this.pendingRemovedLodEntries.add(entry);
+            }
+          }
+        }
         destroyTree(cell.root);
         this.cells.delete(key);
-        this.lodMembershipDirty = true;
         this.foliageColors = undefined;
       }
     }

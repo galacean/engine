@@ -188,3 +188,37 @@ export function withSeedWorldMasonryDitherVariants(
     })
   );
 }
+
+/**
+ * Building renderers enable `RENDERER_MASONRY_ENTRANCE` during startup reveal and disable it
+ * once the entrance finishes; precompile the steady-state (macro-off) variant alongside it.
+ */
+export function withSeedWorldMasonryEntranceVariants(
+  entries: readonly SeedWorldShaderVariantEntry[]
+): readonly SeedWorldShaderVariantEntry[] {
+  return normalizeSeedWorldShaderVariants(
+    entries.flatMap((entry) =>
+      entry.macros.some((macro) => macro.n === "RENDERER_MASONRY_ENTRANCE")
+        ? [entry, { ...entry, macros: entry.macros.filter((macro) => macro.n !== "RENDERER_MASONRY_ENTRANCE") }]
+        : [entry]
+    )
+  );
+}
+
+/**
+ * Vegetation shaders toggle `RENDERER_LOD_DITHER` when plants/trees instantiate from resource templates
+ * or transition across LOD bands (changing the GPU-instancing UBO layout by adding `renderer_LodFade`).
+ */
+export function withSeedWorldLodDitherVariants(
+  entries: readonly SeedWorldShaderVariantEntry[]
+): readonly SeedWorldShaderVariantEntry[] {
+  return normalizeSeedWorldShaderVariants(
+    entries.flatMap((entry) => {
+      if (entry.shader !== "Terrain/Vegetation") return [entry];
+      const hasDither = entry.macros.some((macro) => macro.n === "RENDERER_LOD_DITHER");
+      return hasDither
+        ? [entry, { ...entry, macros: entry.macros.filter((macro) => macro.n !== "RENDERER_LOD_DITHER") }]
+        : [entry, { ...entry, macros: [...entry.macros, { n: "RENDERER_LOD_DITHER" }] }];
+    })
+  );
+}

@@ -3,19 +3,27 @@ import { describe, expect, it, vi } from "vitest";
 import { PlanningAnimalHost } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHost";
 import { runSeedWorldStartupShaderWarmup } from "../../demos/seed-world/src/SeedWorldStartupShaderWarmup";
 
-function deferred() {
-  let resolve!: () => void;
-  const promise = new Promise<void>((yes) => {
+function deferred<T = void>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((yes, no) => {
     resolve = yes;
+    reject = no;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 }
 
-function fixture(enabled = true, disposed = false, parallelCompile = true) {
+function fixture(
+  enabled = true,
+  disposed = false,
+  parallelCompile = true,
+  masonry?: { prepareShaderWarmup: (signal: AbortSignal) => Promise<any> }
+) {
   const farm = deferred(),
     animal = deferred(),
     roots: object[] = [],
     events: string[] = [];
+  const editorLifetime = new AbortController();
   const warmup = vi.fn(async (_engine, _scene, _camera, capturedRoots, _options) => {
     expect(capturedRoots).toContain(farm);
     expect(capturedRoots).toContain(animal);
@@ -58,6 +66,7 @@ function fixture(enabled = true, disposed = false, parallelCompile = true) {
       canvas: { dataset: {} } as any,
       showAssistant: true,
       isDisposed: () => disposed,
+      lifetimeSignal: editorLifetime.signal,
       progress: vi.fn(),
       timed: (_name, work) => work(),
       prepareFarmingPresentation: () =>
@@ -71,6 +80,7 @@ function fixture(enabled = true, disposed = false, parallelCompile = true) {
       prepareVegetationPresentation: async () => {
         events.push("lod");
       },
+      prepareMasonryShaderWarmup: masonry ? (signal) => masonry.prepareShaderWarmup(signal) : undefined,
       prepareAssistantPresentation: () => {
         events.push("hud");
         return { root: { getComponentsIncludeChildren: () => ["hidden-hud"] } as any };
@@ -90,7 +100,9 @@ function fixture(enabled = true, disposed = false, parallelCompile = true) {
     animal,
     warmup,
     warmupVariants,
+    collectVariants,
     events,
+    editorLifetime,
     run
   };
 }
@@ -113,7 +125,15 @@ describe("startup shader publication boundary", () => {
     expect(f.warmup.mock.calls[0][4].overlayRenderers).toEqual(["hidden-hud"]);
   });
   it("defers secondary variants when KHR_parallel_shader_compile is unavailable", async () => {
-    const f = fixture(true, false, false),
+    const dispose = vi.fn();
+    const fakeRenderer = { name: "lod1-warmup" };
+    const f = fixture(true, false, false, {
+      prepareShaderWarmup: async () => ({
+        renderers: [fakeRenderer],
+        decorationPointLightBudget: 4,
+        dispose
+      })
+    }),
       task = f.run();
     f.farm.resolve();
     f.animal.resolve();
@@ -121,6 +141,20 @@ describe("startup shader publication boundary", () => {
     expect(f.events).toEqual(["lod", "hud", "compile-deferred"]);
     expect(f.warmup).not.toHaveBeenCalled();
     expect(f.warmupVariants).toHaveBeenCalledOnce();
+    expect(f.collectVariants).toHaveBeenCalledTimes(2);
+    expect(f.collectVariants.mock.calls[0][4]).toMatchObject({
+      onlyEnabledRenderers: true,
+      includeMasonryDither: false,
+      includeMasonryEntrance: false,
+      includeInstanceEntrance: false,
+      includeLodDither: false
+    });
+    expect(f.collectVariants.mock.calls[0][4].additionalRenderers).toBeUndefined();
+    expect(f.collectVariants.mock.calls[1][4]).toMatchObject({
+      additionalRenderers: [fakeRenderer],
+      additionalPointLightCounts: [4]
+    });
+    expect(dispose).toHaveBeenCalledOnce();
     expect(result.deferredShaderVariants).toEqual([{ shader: "Masonry/Brick", ssi: 0, pi: 0, m: [] }]);
   });
   it("does not compile into a disposed scene after asynchronous preparation", async () => {
@@ -134,6 +168,27 @@ describe("startup shader publication boundary", () => {
   it("does not demand presentation resources when precompilation is disabled", async () => {
     const f = fixture(false);
     await f.run();
+    expect(f.warmup).not.toHaveBeenCalled();
+  });
+  it("aborts and disposes late-resolving masonry shader warmup if a sibling presentation rejects", async () => {
+    const masonryDeferred = deferred<{ dispose: () => void }>();
+    let capturedSignal: AbortSignal | undefined;
+    const dispose = vi.fn();
+    const f = fixture(true, false, true, {
+      prepareShaderWarmup: (signal) => {
+        capturedSignal = signal;
+        return masonryDeferred.promise;
+      }
+    });
+    const task = f.run();
+    f.farm.reject(new Error("farm failed"));
+    await expect(task).rejects.toThrow("farm failed");
+    expect(capturedSignal?.aborted).toBe(true);
+    expect(dispose).not.toHaveBeenCalled();
+    masonryDeferred.resolve({ dispose });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(dispose).toHaveBeenCalledOnce();
     expect(f.warmup).not.toHaveBeenCalled();
   });
 });

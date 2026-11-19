@@ -11,6 +11,7 @@ import {
   Vector3,
   type Entity,
   type Camera,
+  type Material,
   type PrefabResource
 } from "@galacean/engine";
 import { markGeneratedBuildingOutput } from "../BuildingGeneratedOutput";
@@ -590,6 +591,15 @@ export class BuildingRuntime extends Script {
         },
         bounds: queries.flatMap((query) => query.bounds),
         captureOccupancyQuery: () => this.captureQueries(queries),
+        prepareShaderWarmup: (warmupSignal?: AbortSignal) => {
+          check();
+          return this.prepareShaderWarmupForViews(
+            prepared.filter((view): view is ProfileView => view.kind === "profile"),
+            prepared,
+            warmupSignal,
+            next
+          );
+        },
         assertCurrent: check,
         commit: () => {
           check();
@@ -1191,6 +1201,154 @@ export class BuildingRuntime extends Script {
     for (const view of this.entries) if (view.error) errors.push(view.error);
     return errors;
   }
+  /**
+   * Prepares offscreen representative LOD1 (BuildingDistanceView) and LOD0 (EngineResidentScene
+   * + BrickPackKernel TransformFeedback) renderers so startup shader warmup compiles all building
+   * shader variants before the user ever walks near a village.
+   */
+  async prepareShaderWarmup(signal?: AbortSignal): Promise<{
+    renderers: MeshRenderer[];
+    extraMaterials: Map<MeshRenderer, Material[]>;
+    decorationPointLightBudget: number;
+    dispose(): void;
+  }> {
+    return this.prepareShaderWarmupForViews(this.entries, [...this.views.values()], signal, this.publishedTerrain);
+  }
+
+  private async prepareShaderWarmupForViews(
+    profileEntries: readonly ProfileView[],
+    allViews: readonly View[],
+    signal?: AbortSignal,
+    publishedTerrain = this.publishedTerrain
+  ): Promise<{
+    renderers: MeshRenderer[];
+    extraMaterials: Map<MeshRenderer, Material[]>;
+    decorationPointLightBudget: number;
+    dispose(): void;
+  }> {
+    const empty = {
+      renderers: [] as MeshRenderer[],
+      extraMaterials: new Map<MeshRenderer, Material[]>(),
+      decorationPointLightBudget: 0,
+      dispose() {}
+    };
+    if (this.closed || !this.host) return empty;
+    signal?.throwIfAborted();
+
+    // Report the signed complementary delta for the 4-slot lazy decoration point-light pool:
+    // - If the pool is currently active (e.g. rebuilding/switching templates while standing inside a village),
+    //   the scene baseline already counts those slots, so precompile `-activeSlots` (lights-OFF) instead of
+    //   double-counting to `existing + 4` — even when the target world has no buildings (`profileEntries.length === 0`).
+    // - If the pool is currently inactive and any target view has decoration lights, precompile `+4` (lights-ON).
+    const activeDecorationLights = this.lights?.root.isActiveInHierarchy ? this.lights.metrics.allocated : 0;
+    const decorationPointLightBudget =
+      activeDecorationLights > 0 ? -activeDecorationLights : allViews.some((view) => view.lights.length > 0) ? 4 : 0;
+
+    if (profileEntries.length === 0) return { ...empty, decorationPointLightBudget };
+
+    const extraMaterials =
+      BuildingGlobalProxy.existing(this.entity.scene!)?.getWarmupExtraMaterials() ??
+      new Map<MeshRenderer, Material[]>();
+
+    // Sort closest to camera first and choose a minimal representative subset (up to 3 buildings)
+    // covering distinct part/material features so LOD1/LOD0 shaders warm up without materializing
+    // distant buildings' LOD1 textures across the whole map.
+    const camPos = this.host.camera.entity.transform.worldPosition;
+    const ranked = profileEntries
+      .filter((entry) => viewValid(entry))
+      .map((entry) => {
+        const b = entry.view.bounds;
+        const cx = (b.min[0]! + b.max[0]!) * 0.5;
+        const cy = (b.min[1]! + b.max[1]!) * 0.5;
+        const cz = (b.min[2]! + b.max[2]!) * 0.5;
+        const wm = entry.frame.transform.worldMatrix.elements;
+        const wx = wm[0]! * cx + wm[4]! * cy + wm[8]! * cz + wm[12]!;
+        const wy = wm[1]! * cx + wm[5]! * cy + wm[9]! * cz + wm[13]!;
+        const wz = wm[2]! * cx + wm[6]! * cy + wm[10]! * cz + wm[14]!;
+        const dx = wx - camPos.x;
+        const dy = wy - camPos.y;
+        const dz = wz - camPos.z;
+        return { entry, distSq: dx * dx + dy * dy + dz * dz };
+      })
+      .sort((a, b) => a.distSq - b.distSq);
+
+    const selected: Array<{ entry: ProfileView; input: BuildingRuntimeInput }> = [];
+    const seenFeatures = new Set<string>();
+    for (const { entry } of ranked) {
+      let input: BuildingRuntimeInput;
+      try {
+        input = this.input(entry.frame, publishedTerrain);
+      } catch {
+        continue;
+      }
+      if (!input.assets) continue;
+      const features = new Set<string>();
+      for (const part of input.draft.parts) {
+        const alg = part.algorithm as { type?: string; "@shared"?: string } | undefined;
+        const unit = part.unit as { type?: string; "@shared"?: string; material?: string } | undefined;
+        features.add(
+          `${part.type}|${part.geometry?.generator ?? ""}|${alg?.type ?? alg?.["@shared"] ?? ""}|${unit?.type ?? unit?.["@shared"] ?? unit?.material ?? ""}`
+        );
+      }
+      for (const group of input.draft.groups) {
+        if (group.shared) {
+          for (const key of Object.keys(group.shared)) features.add(`shared:${key}`);
+        }
+      }
+      const addsFeature = [...features].some((f) => !seenFeatures.has(f));
+      if (selected.length === 0 || addsFeature) {
+        selected.push({ entry, input });
+        for (const f of features) seenFeatures.add(f);
+        if (selected.length >= 3) break;
+      }
+    }
+    if (selected.length === 0) return { renderers: [], extraMaterials, decorationPointLightBudget, dispose() {} };
+
+    const warmupRoot = this.entity.createChild("Masonry shader warmup");
+    warmupRoot.isActive = false;
+    markGeneratedBuildingOutput(warmupRoot);
+    const details: Candidate[] = [];
+    const renderers: MeshRenderer[] = [];
+    const controller = new AbortController();
+    const onAbort = () => controller.abort(signal?.reason);
+    signal?.addEventListener("abort", onAbort, { once: true });
+
+    try {
+      for (const { entry, input } of selected) {
+        signal?.throwIfAborted();
+        if (this.closed || !viewValid(entry)) break;
+        await entry.view.warmupDetailedVisual?.();
+        renderers.push(...entry.view.root.getComponentsIncludeChildren(MeshRenderer, []));
+
+        const detail = await prepareBuildingDetail(entry.cpu, {
+          assets: input.assets!,
+          parent: warmupRoot,
+          camera: this.host.camera,
+          signal: controller.signal,
+          rigidDecorations: rigidBindings(input.bindings)
+        });
+        details.push(detail);
+        renderers.push(...detail.runtime.root.getComponentsIncludeChildren(MeshRenderer, []));
+      }
+      return {
+        renderers,
+        extraMaterials,
+        decorationPointLightBudget,
+        dispose: () => {
+          for (const detail of details) detail.destroy();
+          details.length = 0;
+          if (!warmupRoot.destroyed) warmupRoot.destroy();
+        }
+      };
+    } catch (error) {
+      for (const detail of details) detail.destroy();
+      if (!warmupRoot.destroyed) warmupRoot.destroy();
+      throw error;
+    } finally {
+      signal?.removeEventListener("abort", onAbort);
+    }
+  }
+
   placementMetrics() {
     let profileUnits = 0,
       flatUnits = 0,

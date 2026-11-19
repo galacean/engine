@@ -67,3 +67,77 @@ it("accepted world reads the live system without retaining its prepared query sn
   expect(result.world.enabled).toBe(true);
   await result.world.destroy();
 });
+
+it("routes NativeBuildingWorld.prepareShaderWarmup to the uncommitted candidate before activation and to the live system after", async () => {
+  const signal = new AbortController().signal;
+  const candidateWarmup = vi.fn(async () => ({
+    renderers: [],
+    extraMaterials: new Map(),
+    decorationPointLightBudget: 4,
+    dispose() {}
+  }));
+  const systemWarmup = vi.fn(async () => ({
+    renderers: [],
+    extraMaterials: new Map(),
+    decorationPointLightBudget: 0,
+    dispose() {}
+  }));
+  const system = { visible: true, bounds: [], captureOccupancyQuery: liveQuery, prepareShaderWarmup: systemWarmup };
+  const candidate = {
+    assertCurrent() {},
+    commit() {},
+    finalize() {},
+    discard() {},
+    bounds: [],
+    captureOccupancyQuery: () => "prepared-query",
+    prepareShaderWarmup: candidateWarmup
+  };
+  const world = new NativeBuildingWorld(system as any, candidate as any, acceptWorld, isCurrentWorld);
+  const preCommit = await world.prepareShaderWarmup(signal);
+  expect(candidateWarmup).toHaveBeenCalledWith(signal);
+  expect(systemWarmup).not.toHaveBeenCalled();
+  expect(preCommit.decorationPointLightBudget).toBe(4);
+
+  world.commitPublication();
+  world.activate();
+  const postActivate = await world.prepareShaderWarmup(signal);
+  expect(systemWarmup).toHaveBeenCalledWith(signal);
+  expect(postActivate.decorationPointLightBudget).toBe(0);
+});
+
+it("prepareTerrain candidate prepareShaderWarmup emits negative point-light delta when decoration lights are already active even for a building-free target", async () => {
+  const system = {
+    closed: false,
+    publishedTerrain: terrain(2),
+    host: { validate: validatePartCollection },
+    entries: [],
+    members: new Map(),
+    views: new Map(),
+    revision: 0,
+    lights: { root: { isActiveInHierarchy: true }, metrics: { allocated: 4 } },
+    residency: { desired: new Set(), invalidate() {} },
+    async flush() {},
+    readTransforms() {},
+    frames: () => new Map(),
+    queriesFor: () => [],
+    updateResidency() {},
+    updateLights() {},
+    visible: true,
+    prepareShaderWarmupForViews: (BuildingManager.prototype as any).prepareShaderWarmupForViews
+  };
+  const candidate = await BuildingManager.prototype.prepareTerrain.call(
+    system as any,
+    terrain(4),
+    new AbortController().signal
+  );
+  const warmup = await candidate.prepareShaderWarmup();
+  expect(warmup.decorationPointLightBudget).toBe(-4);
+  warmup.dispose();
+
+  // When decoration lights are inactive and target has no buildings, delta is 0.
+  system.lights.root.isActiveInHierarchy = false;
+  const inactiveWarmup = await candidate.prepareShaderWarmup();
+  expect(inactiveWarmup.decorationPointLightBudget).toBe(0);
+  inactiveWarmup.dispose();
+  candidate.discard();
+});
