@@ -160,12 +160,16 @@ export class Component extends EngineObject {
    * @internal
    */
   protected override _onDestroy(): void {
-    super._onDestroy();
     const entity = this._entity;
     entity._removeComponent(this);
-    if (this._enabled) {
-      entity._isActiveInScene && this._onDisableInScene();
-      entity._isActiveInHierarchy && this._onDisable();
+    super._onDestroy();
+    if (this._phasedActiveInScene) {
+      this._phasedActiveInScene = false;
+      this._onDisableInScene();
+    }
+    if (this._phasedActive) {
+      this._phasedActive = false;
+      this._onDisable();
     }
   }
 }

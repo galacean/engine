@@ -909,8 +909,13 @@ export class PhysicsScene {
       collision._nativeCollision = event;
       const state = event.state;
       PhysicsScene._dispatchCollision(collision, state, collider0, collider1);
-      PhysicsScene._dispatchCollision(collision, state, collider1, collider0);
+      if (!collider0.destroyed && !collider1.destroyed) {
+        PhysicsScene._dispatchCollision(collision, state, collider1, collider0);
+      }
     }
+    collision._nativeCollision = null!;
+    collision.collider = null!;
+    collision.selfCollider = null!;
 
     for (let i = 0, n = triggerEvents.length; i < n; i++) {
       const event = triggerEvents[i];
@@ -919,7 +924,9 @@ export class PhysicsScene {
       if (!collider0 || !collider1) continue;
       const state = event.dispatchState;
       PhysicsScene._dispatchTrigger(state, collider0, collider1);
-      PhysicsScene._dispatchTrigger(state, collider1, collider0);
+      if (!collider0.destroyed && !collider1.destroyed) {
+        PhysicsScene._dispatchTrigger(state, collider1, collider0);
+      }
     }
   }
 
@@ -930,6 +937,7 @@ export class PhysicsScene {
     other: Collider
   ): void {
     self.entity._scripts.forEach((script: Script) => {
+      if (self.destroyed || other.destroyed) return;
       // A script may receive several events; set both sides before each call
       collision.collider = other;
       collision.selfCollider = self;
@@ -949,6 +957,7 @@ export class PhysicsScene {
 
   private static _dispatchTrigger(state: PhysicsEventState, self: Collider, other: Collider): void {
     self.entity._scripts.forEach((script: Script) => {
+      if (self.destroyed || other.destroyed) return;
       switch (state) {
         case PhysicsEventState.Enter:
           script.onTriggerEnter(other, self);

@@ -6,6 +6,7 @@ import { DependentMode, dependentComponents } from "../../ComponentsDependencies
 import { Entity } from "../../Entity";
 import { TransformModifyFlags } from "../../Transform";
 import { ignoreClone } from "../../clone/CloneDecorators";
+import type { ICloneHook } from "../../clone/ICloneHook";
 import { Rigidbody } from "../Rigidbody";
 
 /**
@@ -13,7 +14,7 @@ import { Rigidbody } from "../Rigidbody";
  * @decorator `@dependentComponents(Rigidbody, DependentMode.AutoAdd)`
  */
 @dependentComponents(Rigidbody, DependentMode.AutoAdd)
-export abstract class Joint extends Component {
+export abstract class Joint extends Component implements ICloneHook<Joint> {
   private static _tempVector3 = new Vector3();
   private static _tempQuat = new Quaternion();
   private static _tempMatrix = new Matrix();
@@ -30,10 +31,23 @@ export abstract class Joint extends Component {
    * The connected Rigidbody, or null to connect to a fixed point in world space.
    */
   get connectedBody(): Rigidbody | null {
-    return this._connectedBodyInfo.body;
+    return this._getConnectedBody();
   }
 
   set connectedBody(value: Rigidbody | null) {
+    if (value) {
+      if (value.destroyed) {
+        value = null;
+      } else if (value.engine !== this.engine) {
+        throw new Error("Joint: connectedBody belongs to another engine.");
+      } else if (value === this.entity.getComponent(Rigidbody)) {
+        console.error("Joint: cannot connect a Rigidbody to itself.");
+        return;
+      } else if (this._phasedActiveInScene && value.scene && value.scene !== this.scene) {
+        console.error("Joint: connectedBody belongs to another scene.");
+        return;
+      }
+    }
     const preBody = this._connectedBodyInfo.body;
     if (preBody !== value) {
       preBody?.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
@@ -60,8 +74,6 @@ export abstract class Joint extends Component {
     const anchor = this._bodyInfo.anchor;
     if (value !== anchor) {
       anchor.copyFrom(value);
-      this._updateActualAnchor(AnchorOwner.Self);
-      this._automaticConnectedAnchor && this._calculateConnectedAnchor();
     }
   }
 
@@ -75,6 +87,10 @@ export abstract class Joint extends Component {
   }
 
   set connectedAnchor(value: Vector3) {
+    if (this._automaticConnectedAnchor) {
+      this._handleConnectedAnchorChanged();
+      return;
+    }
     const connectedAnchor = this._connectedBodyInfo.anchor;
     if (value !== connectedAnchor) {
       connectedAnchor.copyFrom(value);
@@ -179,11 +195,12 @@ export abstract class Joint extends Component {
 
   constructor(entity: Entity) {
     super(entity);
+    this._onAnchorChanged = this._onAnchorChanged.bind(this);
     //@ts-ignore
-    this._bodyInfo.anchor._onValueChanged = this._updateActualAnchor.bind(this, AnchorOwner.Self);
+    this._bodyInfo.anchor._onValueChanged = this._onAnchorChanged;
     this._handleConnectedAnchorChanged = this._handleConnectedAnchorChanged.bind(this);
     //@ts-ignore
-    this._connectedBodyInfo.anchor._onValueChanged = this._handleConnectedAnchorChanged.bind(this);
+    this._connectedBodyInfo.anchor._onValueChanged = this._handleConnectedAnchorChanged;
 
     this._onSelfTransformChanged = this._onSelfTransformChanged.bind(this);
     this._onConnectedTransformChanged = this._onConnectedTransformChanged.bind(this);
@@ -212,7 +229,22 @@ export abstract class Joint extends Component {
    * @internal
    */
   _onClone(target: Joint): void {
-    target._connectedBodyInfo.body?.entity._updateFlagManager.addListener(target._onConnectedTransformChanged);
+    const targetAnchor = target._bodyInfo.anchor;
+    //@ts-ignore
+    targetAnchor._onValueChanged = null;
+    targetAnchor.copyFrom(this._bodyInfo.anchor);
+    //@ts-ignore
+    targetAnchor._onValueChanged = target._onAnchorChanged;
+
+    const targetConnectedAnchor = target._connectedBodyInfo.anchor;
+    //@ts-ignore
+    targetConnectedAnchor._onValueChanged = null;
+    targetConnectedAnchor.copyFrom(this._connectedBodyInfo.anchor);
+    //@ts-ignore
+    targetConnectedAnchor._onValueChanged = target._handleConnectedAnchorChanged;
+
+    const connectedBody = target._getConnectedBody();
+    connectedBody?.entity._updateFlagManager.addListener(target._onConnectedTransformChanged);
   }
 
   protected override _onDestroy(): void {
@@ -231,9 +263,26 @@ export abstract class Joint extends Component {
     return body && !body.destroyed ? body._getNativeActor() : null;
   }
 
+  private _getConnectedBody(): Rigidbody | null {
+    const body = this._connectedBodyInfo.body;
+    if (body && body.destroyed) {
+      body.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
+      this._connectedBodyInfo.body = null;
+      return null;
+    }
+    return body;
+  }
+
   protected _syncNative(): void {
     if (this._nativeJoint) {
-      this._nativeJoint.setConnectedCollider(Joint._getBodyActor(this._connectedBodyInfo.body));
+      let connectedBody = this._getConnectedBody();
+      if (connectedBody && connectedBody.scene && connectedBody.scene !== this.scene) {
+        console.error("Joint: connectedBody belongs to another scene.");
+        connectedBody.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
+        this._connectedBodyInfo.body = null;
+        connectedBody = null;
+      }
+      this._nativeJoint.setConnectedCollider(Joint._getBodyActor(connectedBody));
       this._updateActualAnchor(AnchorOwner.Self);
       if (this._automaticConnectedAnchor) {
         this._calculateConnectedAnchor();
@@ -254,7 +303,7 @@ export abstract class Joint extends Component {
     const connectedBodyInfo = this._connectedBodyInfo;
     const connectedAnchor = connectedBodyInfo.anchor;
     const connectedActualAnchor = connectedBodyInfo.actualAnchor;
-    const connectedBody = connectedBodyInfo.body;
+    const connectedBody = this._getConnectedBody();
 
     // @ts-ignore
     connectedAnchor._onValueChanged = null;
@@ -271,6 +320,12 @@ export abstract class Joint extends Component {
     // @ts-ignore
     connectedAnchor._onValueChanged = this._handleConnectedAnchorChanged;
     this._updateActualAnchor(AnchorOwner.Connected);
+  }
+
+  @ignoreClone
+  private _onAnchorChanged(): void {
+    this._updateActualAnchor(AnchorOwner.Self);
+    this._automaticConnectedAnchor && this._calculateConnectedAnchor();
   }
 
   @ignoreClone
@@ -291,6 +346,9 @@ export abstract class Joint extends Component {
 
   @ignoreClone
   private _onConnectedTransformChanged(type: TransformModifyFlags): void {
+    if (!this._getConnectedBody()) {
+      return;
+    }
     if (type & TransformModifyFlags.WorldScale) {
       this._updateActualAnchor(AnchorOwner.Connected);
     }
@@ -298,7 +356,7 @@ export abstract class Joint extends Component {
 
   private _updateRotation(): void {
     let rotation = this.entity.transform.worldRotationQuaternion;
-    const connectedBody = this._connectedBodyInfo.body;
+    const connectedBody = this._getConnectedBody();
     if (connectedBody) {
       const relativeRotation = Joint._tempQuat;
       Quaternion.invert(connectedBody.entity.transform.worldRotationQuaternion, relativeRotation);
@@ -317,7 +375,7 @@ export abstract class Joint extends Component {
     }
     if (flag & AnchorOwner.Connected) {
       const connectedBodyInfo = this._connectedBodyInfo;
-      const connectedBody = connectedBodyInfo.body;
+      const connectedBody = this._getConnectedBody();
       if (connectedBody) {
         const worldScale = connectedBody.entity.transform.lossyWorldScale;
         Vector3.multiply(connectedBodyInfo.anchor, worldScale, connectedBodyInfo.actualAnchor);
@@ -343,7 +401,9 @@ enum AnchorOwner {
  */
 class JointBodyInfo extends DataObject {
   body: Rigidbody | null = null;
+  @ignoreClone
   anchor = new Vector3();
+  @ignoreClone
   actualAnchor = new Vector3();
   massScale: number = 1;
   inertiaScale: number = 1;

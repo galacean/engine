@@ -1,3 +1,4 @@
+import { MathUtil } from "@galacean/engine-math";
 import { DataObject } from "../../base/DataObject";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 
@@ -54,7 +55,7 @@ export class JointLimits extends DataObject {
    */
   get contactDistance(): number {
     if (this._contactDistance === -1) {
-      return Math.min(0.1, 0.49 * (this._max - this._min));
+      return Math.min(0.1, 0.49 * MathUtil.degreeToRadian(this._max - this._min));
     }
     return this._contactDistance;
   }

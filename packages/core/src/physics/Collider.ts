@@ -134,11 +134,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   set isTrigger(value: boolean) {
-    if (this._isTrigger !== value) {
-      this._isTrigger = value;
-      (<IColliderShape>this._native)?.setIsTrigger(value);
-      this._attachedBody?._markMassDirty();
-    }
+    this._setIsTrigger(value);
   }
 
   /**
@@ -171,7 +167,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     value = this._validateContactOffset(value);
     if (this._contactOffset !== value) {
       this._contactOffset = value;
-      this._native?.setContactOffset(value);
+      this._onContactOffsetChanged(value);
     }
   }
 
@@ -289,6 +285,9 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
     const res = (<IColliderShape>this._native).pointDistance(point);
     const distance = res.w;
+    if (distance < 0) {
+      return -1;
+    }
     if (distance > 0) {
       outClosestPoint.set(res.x, res.y, res.z);
     } else {
@@ -467,6 +466,18 @@ export class Collider extends Component implements ICloneHook<Collider> {
       throw new Error("Collider contactOffset must be finite.");
     }
     return Math.max(0, value);
+  }
+
+  protected _onContactOffsetChanged(value: number): void {
+    this._native?.setContactOffset(value);
+  }
+
+  protected _setIsTrigger(value: boolean): void {
+    if (this._isTrigger !== value) {
+      this._isTrigger = value;
+      (<IColliderShape>this._native)?.setIsTrigger(value);
+      this._attachedBody?._markMassDirty();
+    }
   }
 
   protected _getNativeMaterial(): IPhysicsMaterial {

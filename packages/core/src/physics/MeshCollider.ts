@@ -47,7 +47,7 @@ export class MeshCollider extends Collider {
   /**
    * Whether to use a convex hull generated from the mesh vertices.
    * @defaultValue false
-   * @remarks Setting false is rejected while the Collider belongs to a non-kinematic Rigidbody.
+   * @remarks Setting false is rejected while the Collider is a trigger or belongs to a non-kinematic Rigidbody.
    */
   get convex(): boolean {
     return this._convex;
@@ -56,6 +56,10 @@ export class MeshCollider extends Collider {
   set convex(value: boolean) {
     if (this._convex !== value) {
       if (!value) {
+        if (this.isTrigger) {
+          console.error("MeshCollider: cannot set convex to false while isTrigger is true.");
+          return;
+        }
         const body = this.attachedRigidbody;
         if (body && !body.isKinematic) {
           console.error("MeshCollider: cannot set convex to false while it belongs to a non-kinematic Rigidbody.");
@@ -95,6 +99,28 @@ export class MeshCollider extends Collider {
   }
 
   /**
+   * Get the distance and the closest point on the Collider from a point.
+   * @remarks Only supported when {@link convex} is true.
+   */
+  override getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
+    if (this._mesh && !this._convex) {
+      console.error("MeshCollider: getClosestPoint is only supported when convex is true.");
+      return -1;
+    }
+    return super.getClosestPoint(point, outClosestPoint);
+  }
+
+  /**
+   * @internal
+   */
+  override _getVolumeDistance(point: Vector3, outClosestPoint: Vector3): number {
+    if (!this._convex) {
+      return -1;
+    }
+    return super._getVolumeDistance(point, outClosestPoint);
+  }
+
+  /**
    * @internal
    */
   override _supportsDynamicBody(): boolean {
@@ -109,6 +135,14 @@ export class MeshCollider extends Collider {
     super._onClone(target);
     // convex and cookingFlags are already copied, so the setter cooks the same shape
     target.mesh = this._mesh;
+  }
+
+  protected override _setIsTrigger(value: boolean): void {
+    if (value && !this._convex) {
+      console.error("MeshCollider: isTrigger is only supported when convex is true.");
+      return;
+    }
+    super._setIsTrigger(value);
   }
 
   protected override _onDestroy(): void {

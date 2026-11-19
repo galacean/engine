@@ -1,5 +1,5 @@
 import { ICharacterController } from "@galacean/engine-design";
-import { Vector3 } from "@galacean/engine-math";
+import { MathUtil, Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
@@ -121,10 +121,14 @@ export class CharacterController extends Collider {
   }
 
   set stepOffset(value: number) {
+    if (!Number.isFinite(value)) {
+      throw new Error("CharacterController stepOffset must be finite.");
+    }
     value = Math.max(0, value);
     if (this._stepOffset !== value) {
       this._stepOffset = value;
       (<ICharacterController>this._native)?.setStepOffset(value);
+      this._setGeometryDirty();
     }
   }
 
@@ -164,9 +168,14 @@ export class CharacterController extends Collider {
   }
 
   set slopeLimit(value: number) {
+    if (!Number.isFinite(value)) {
+      throw new Error("CharacterController slopeLimit must be finite.");
+    }
+    value = MathUtil.clamp(value, 0, 90);
     if (this._slopeLimit !== value) {
       this._slopeLimit = value;
       (<ICharacterController>this._native)?.setSlopeLimit(value);
+      this._setGeometryDirty();
     }
   }
 
@@ -236,17 +245,6 @@ export class CharacterController extends Collider {
     );
     const force = !this._inScene;
 
-    if (force || this._geometryDirty || !Vector3.equals(scale, this._syncedScale)) {
-      this._geometryDirty = false;
-      this._syncedScale.copyFrom(scale);
-      if (this._geometry === CharacterControllerGeometry.Box) {
-        const halfExtents = CharacterController._tempExtents;
-        Vector3.multiply(this._size, scale, halfExtents);
-        controller.setBox(halfExtents.scale(0.5));
-      } else {
-        controller.setCapsule(this._radius * Math.max(scale.x, scale.z), this._height * scale.y);
-      }
-    }
     const center = CharacterController._tempExtents;
     Vector3.multiply(this.center, scale, center);
     if (force || !Vector3.equals(center, this._syncedCenter)) {
@@ -257,6 +255,17 @@ export class CharacterController extends Collider {
     if (force || !Vector3.equals(position, this._syncedPosition)) {
       this._syncedPosition.copyFrom(position);
       controller.setWorldPosition(position);
+    }
+    if (force || this._geometryDirty || !Vector3.equals(scale, this._syncedScale)) {
+      this._geometryDirty = false;
+      this._syncedScale.copyFrom(scale);
+      if (this._geometry === CharacterControllerGeometry.Box) {
+        const halfExtents = CharacterController._tempExtents;
+        Vector3.multiply(this._size, scale, halfExtents);
+        controller.setBox(halfExtents.scale(0.5));
+      } else {
+        controller.setCapsule(this._radius * Math.max(scale.x, scale.z), this._height * scale.y);
+      }
     }
     if (force) {
       this.scene!.physics._nativePhysicsScene.addCharacterController(controller);
@@ -281,7 +290,9 @@ export class CharacterController extends Collider {
     controller.setIsSceneQuery(this.isSceneQuery);
     controller.setStepOffset(this._stepOffset);
     controller.setNonWalkableMode(this._nonWalkableMode);
-    controller.setUpDirection(this._upDirection);
+    if (this._upDirection.lengthSquared() > 0) {
+      controller.setUpDirection(this._upDirection);
+    }
     controller.setSlopeLimit(this._slopeLimit);
     return controller;
   }
@@ -297,6 +308,11 @@ export class CharacterController extends Collider {
     return value;
   }
 
+  protected override _onContactOffsetChanged(value: number): void {
+    super._onContactOffsetChanged(value);
+    this._setGeometryDirty();
+  }
+
   protected override _findRigidbody(): Rigidbody | null {
     return null;
   }
@@ -309,6 +325,17 @@ export class CharacterController extends Collider {
 
   @ignoreClone
   private _setUpDirection(): void {
-    (<ICharacterController>this._native)?.setUpDirection(this._upDirection);
+    const up = this._upDirection;
+    if (up.lengthSquared() === 0) {
+      return;
+    }
+    //@ts-ignore
+    const listener = up._onValueChanged;
+    //@ts-ignore
+    up._onValueChanged = null;
+    up.normalize();
+    //@ts-ignore
+    up._onValueChanged = listener;
+    (<ICharacterController>this._native)?.setUpDirection(up);
   }
 }

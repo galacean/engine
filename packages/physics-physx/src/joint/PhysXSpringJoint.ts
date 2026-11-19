@@ -2,7 +2,6 @@ import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXJoint } from "./PhysXJoint";
 import { ISpringJoint } from "@galacean/engine-design";
 import { PhysXCollider } from "../PhysXCollider";
-import { Vector3 } from "@galacean/engine";
 
 /**
  * a joint that maintains an upper or lower bound (or both) on the distance between two points on different objects
@@ -12,10 +11,10 @@ export class PhysXSpringJoint extends PhysXJoint implements ISpringJoint {
     super(physXPhysics);
     this._collider = collider;
     this._pxJoint = physXPhysics._pxPhysics.createDistanceJoint(
-      null,
+      collider._pxActor,
       PhysXJoint._defaultVec,
       PhysXJoint._defaultQuat,
-      collider._pxActor,
+      null,
       PhysXJoint._defaultVec,
       PhysXJoint._defaultQuat
     );

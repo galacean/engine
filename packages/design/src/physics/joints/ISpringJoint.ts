@@ -1,5 +1,4 @@
 import { IJoint } from "./IJoint";
-import { Vector3 } from "@galacean/engine-math";
 
 /**
  * a joint that maintains an upper or lower bound (or both) on the distance between two points on different objects

@@ -439,4 +439,81 @@ describe("CharacterController", () => {
       physics.setColliderLayerCollision(layer, Layer.Layer2, true);
     }
   });
+
+  it("recovers at the updated position after invalid geometry without unrelated setter error spam", () => {
+    const entity = root.createChild("recovering-controller");
+    entity.transform.setPosition(0, 5, 0);
+    const cc = entity.addComponent(CharacterController);
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    cc.stepOffset = 10;
+    physics._update(physics.fixedTimeStep);
+    const errorCountAfterInvalid = errors.mock.calls.length;
+    expect(errorCountAfterInvalid).toBeGreaterThan(0);
+
+    cc.collisionLayer = Layer.Layer3;
+    cc.isSceneQuery = true;
+    expect(errors.mock.calls.length).toBe(errorCountAfterInvalid);
+
+    entity.transform.setPosition(8, 2, 0);
+    cc.stepOffset = 0.5;
+
+    const hit = new HitResult();
+    expect(physics.raycast(new Ray(new Vector3(8, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Layer3, hit)).toBe(true);
+    expect(hit.collider === cc).toBe(true);
+    expect(hit.point.x).toBeCloseTo(8, 3);
+    expect(physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Layer3)).toBe(false);
+  });
+
+  it("normalizes non-unit upDirection and tolerates transient zero upDirection", () => {
+    controller.upDirection.set(0, 2, 0);
+    expect(controller.upDirection.x).toBeCloseTo(0, 5);
+    expect(controller.upDirection.y).toBeCloseTo(1, 5);
+    expect(controller.upDirection.z).toBeCloseTo(0, 5);
+
+    controller.upDirection.set(0, 0, 0);
+    controller.upDirection.y = 3;
+    expect(controller.upDirection.y).toBeCloseTo(1, 5);
+
+    role.transform.setPosition(0, 3, 0);
+    const flags = move(new Vector3(0, -5, 0));
+    expect(Boolean(flags & ControllerCollisionFlag.Down)).toBe(true);
+    expect(role.transform.position.y).toBeCloseTo(0.52, 2);
+  });
+
+  it("clamps slopeLimit to [0, 90] and rejects non-finite slopeLimit or stepOffset", () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    controller.slopeLimit = 120;
+    expect(controller.slopeLimit).toBe(90);
+    controller.slopeLimit = -10;
+    expect(controller.slopeLimit).toBe(0);
+    controller.slopeLimit = 90;
+
+    controller.enabled = false;
+    controller.enabled = true;
+    expect(errors).not.toHaveBeenCalled();
+
+    role.transform.setPosition(0, 2, 0);
+    const flags = move(new Vector3(0, -4, 0));
+    expect(Boolean(flags & ControllerCollisionFlag.Down)).toBe(true);
+
+    expect(() => {
+      controller.slopeLimit = NaN;
+    }).toThrow();
+    expect(() => {
+      controller.slopeLimit = Infinity;
+    }).toThrow();
+    expect(() => {
+      controller.stepOffset = NaN;
+    }).toThrow();
+    expect(() => {
+      controller.stepOffset = Infinity;
+    }).toThrow();
+  });
+
+  it("ignores move calls after destroy while the entity stays active", () => {
+    controller.destroy();
+    expect(controller.destroyed).toBe(true);
+    expect(move(new Vector3(1, 0, 0))).toBe(0);
+  });
 });

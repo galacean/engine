@@ -184,6 +184,10 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   set centerOfMass(value: Vector3) {
+    if (this._automaticCenterOfMass) {
+      this._handleCenterOfMassChanged();
+      return;
+    }
     if (this._centerOfMass !== value) {
       this._centerOfMass.copyFrom(value);
     }
@@ -220,6 +224,10 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   set inertiaTensor(value: Vector3) {
+    if (this._automaticInertiaTensor) {
+      this._handleInertiaTensorChanged();
+      return;
+    }
     if (this._inertiaTensor !== value) {
       this._inertiaTensor.copyFrom(value);
     }

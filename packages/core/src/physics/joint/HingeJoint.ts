@@ -18,7 +18,9 @@ export class HingeJoint extends Joint {
   private _useSpring = false;
   private _jointMotor: JointMotor;
   private _limits: JointLimits;
+  @ignoreClone
   private _angle = 0;
+  @ignoreClone
   private _velocity = 0;
 
   /**

@@ -25,10 +25,6 @@ export interface IPhysics {
   initialize(): Promise<void>;
 
   /**
-   * Create physics manager.
-   */
-
-  /**
    * Create physics scene.
    */
   createPhysicsScene(): IPhysicsScene;

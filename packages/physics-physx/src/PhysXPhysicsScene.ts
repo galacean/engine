@@ -256,7 +256,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
     const pose = PhysXPhysicsScene._tempPose;
     pose.translation.copyFrom(center);
-    pose.rotation.copyFrom(orientation);
+    pose.rotation.set(0, 0, 0, 1);
+    Quaternion.normalize(orientation, pose.rotation);
     return this._sweepSingle(this._boxGeometry, pose, direction, distance, layerMask, outHitResult);
   }
 
@@ -305,7 +306,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
     const pose = PhysXPhysicsScene._tempPose;
     pose.translation.copyFrom(center);
-    pose.rotation.copyFrom(orientation);
+    pose.rotation.set(0, 0, 0, 1);
+    Quaternion.normalize(orientation, pose.rotation);
     return this._sweepSingle(this._capsuleGeometry, pose, direction, distance, layerMask, outHitResult);
   }
 
@@ -321,7 +323,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
     const pose = PhysXPhysicsScene._tempPose;
     pose.translation.copyFrom(center);
-    pose.rotation.copyFrom(orientation);
+    pose.rotation.set(0, 0, 0, 1);
+    Quaternion.normalize(orientation, pose.rotation);
     return this._pxSceneQueries.overlap(this._boxGeometry, pose, layerMask);
   }
 
@@ -360,7 +363,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
     const pose = PhysXPhysicsScene._tempPose;
     pose.translation.copyFrom(center);
-    pose.rotation.copyFrom(orientation);
+    pose.rotation.set(0, 0, 0, 1);
+    Quaternion.normalize(orientation, pose.rotation);
     return this._pxSceneQueries.overlap(this._capsuleGeometry, pose, layerMask);
   }
 

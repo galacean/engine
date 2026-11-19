@@ -267,14 +267,13 @@ export class PhysXCharacterController implements ICharacterController {
   }
 
   /**
-   * Update the native controller, or retry a failed creation now that a field changed.
+   * Update the native controller when created; failed creation is retried by {@link setCapsule} / {@link setBox}
+   * during scene synchronization once transform, center, and geometry are all updated.
    */
   private _applyToController(apply: (controller: any) => void): void {
     const pxController = this._pxController;
     if (pxController) {
       apply(pxController);
-    } else {
-      this._rebuild();
     }
   }
 }

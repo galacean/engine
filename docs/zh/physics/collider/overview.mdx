@@ -56,7 +56,7 @@ label: Physics
 | 方法 | 描述 |
 | :-- | :-- |
 | [**getInstanceMaterial**](/apis/core/#Collider-getInstanceMaterial) | 返回该碰撞器独有的材质，见[物理材质](#物理材质) |
-| [**getClosestPoint**](/apis/core/#Collider-getClosestPoint) | 返回世界空间中某点到碰撞器的距离并写出最近点。碰撞器不在模拟中时返回 -1。PlaneCollider 和 CharacterController 不支持 |
+| [**getClosestPoint**](/apis/core/#Collider-getClosestPoint) | 返回世界空间中某点到碰撞器的距离并写出最近点。碰撞器不在模拟中时返回 -1。PlaneCollider、CharacterController 与非凸 MeshCollider 不支持 |
 
 ## 形状属性
 
@@ -89,7 +89,7 @@ PlaneCollider 没有形状属性。它是朝向实体局部 +Y 轴的无限平�
 | 属性 | 描述 | 默认值 |
 | :-- | :-- | :-- |
 | [**mesh**](/apis/core/#MeshCollider-mesh) | 用于碰撞的 [ModelMesh](/apis/core/#ModelMesh)。网格数据在上传后必须保持可访问，三角网格还需要索引；无效网格会被拒绝并输出警告，保留原来的网格 | null |
-| [**convex**](/apis/core/#MeshCollider-convex) | 是否使用由网格顶点生成的凸包。碰撞器属于非运动学刚体时，设置为 `false` 会被拒绝 | false |
+| [**convex**](/apis/core/#MeshCollider-convex) | 是否使用由网格顶点生成的凸包。碰撞器为触发器或属于非运动学刚体时，设置为 `false` 会被拒绝 | false |
 | [**cookingFlags**](/apis/core/#MeshCollider-cookingFlags) | 网格烘焙标志 | Cleaning \| VertexWelding |
 
 ## 物理材质

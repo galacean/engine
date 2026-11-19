@@ -2421,6 +2421,169 @@ describe("Physics Test", () => {
       expect(entity2.destroyed).eq(true);
     });
 
+    it("destroying a Collider on an active entity prevents resurrection and raycast crashes", () => {
+      const root = enginePhysX.sceneManager.activeScene.createRootEntity("destroyed-collider");
+      const collider = root.addComponent(BoxCollider);
+      collider.destroy();
+      expect(collider.destroyed).toBe(true);
+
+      collider.center = new Vector3(1, 0, 0);
+      collider.size = new Vector3(2, 2, 2);
+
+      const hit = new HitResult();
+      expect(physicsScene.raycast(new Ray(new Vector3(-5, 0, 0), new Vector3(1, 0, 0)), hit)).toBe(false);
+      expect(physicsScene.raycast(new Ray(new Vector3(1, 5, 0), new Vector3(0, -1, 0)), hit)).toBe(false);
+    });
+
+    it("stops dispatching trigger and collision events once a collider is synchronously destroyed", () => {
+      const root = enginePhysX.sceneManager.activeScene.createRootEntity("sync-destroy-dispatch");
+      physicsScene.gravity.set(0, 0, 0);
+
+      // Trigger pair
+      const triggerA = root.createChild("triggerA");
+      const colliderA = triggerA.addComponent(BoxCollider);
+      colliderA.isTrigger = true;
+      const triggerB = root.createChild("triggerB");
+      triggerB.addComponent(BoxCollider);
+      triggerB.addComponent(Rigidbody);
+
+      const triggerFirst = vi.fn((self: Collider) => self.destroy());
+      const triggerSecond = vi.fn();
+      for (const entity of [triggerA, triggerB]) {
+        entity.addComponent(
+          class extends Script {
+            onTriggerEnter(_other: Collider, self: Collider): void {
+              triggerFirst(self);
+            }
+          }
+        );
+        entity.addComponent(
+          class extends Script {
+            onTriggerEnter(): void {
+              triggerSecond();
+            }
+          }
+        );
+      }
+
+      physicsScene._update(physicsScene.fixedTimeStep);
+      expect(triggerFirst).toHaveBeenCalledTimes(1);
+      expect(triggerSecond).not.toHaveBeenCalled();
+
+      // Collision pair
+      const boxA = root.createChild("boxA");
+      boxA.transform.setPosition(-0.9, 5, 0);
+      boxA.addComponent(BoxCollider);
+      const bodyA = boxA.addComponent(Rigidbody);
+      bodyA.linearVelocity = new Vector3(20, 0, 0);
+
+      const boxB = root.createChild("boxB");
+      boxB.transform.setPosition(0.9, 5, 0);
+      boxB.addComponent(BoxCollider);
+      boxB.addComponent(Rigidbody);
+
+      const collisionFirst = vi.fn((collision: Collision) => collision.selfCollider.destroy());
+      const collisionSecond = vi.fn();
+      for (const entity of [boxA, boxB]) {
+        entity.addComponent(
+          class extends Script {
+            onCollisionEnter(collision: Collision): void {
+              collisionFirst(collision);
+            }
+          }
+        );
+        entity.addComponent(
+          class extends Script {
+            onCollisionEnter(): void {
+              collisionSecond();
+            }
+          }
+        );
+      }
+
+      for (let i = 0; i < 10 && collisionFirst.mock.calls.length === 0; i++) {
+        physicsScene._update(physicsScene.fixedTimeStep);
+      }
+      expect(collisionFirst).toHaveBeenCalledTimes(1);
+      expect(collisionSecond).not.toHaveBeenCalled();
+    });
+
+    it("keeps contact event consumer count balanced across dynamic callback assignment and destroyed script disable", () => {
+      const root = enginePhysX.sceneManager.activeScene.createRootEntity("contact-consumer-balance");
+      physicsScene.gravity.set(0, 0, 0);
+
+      class EmptyScript extends Script {}
+      const dynamicScript = root.addComponent(EmptyScript);
+      (dynamicScript as any).onCollisionEnter = vi.fn();
+      dynamicScript.destroy();
+      dynamicScript.enabled = false;
+
+      const protoScript = root.addComponent(CollisionConsumerScript);
+      protoScript.destroy();
+      protoScript.enabled = false;
+
+      expect((physicsScene as any)._contactEventConsumerCount).toBe(0);
+
+      const boxA = root.createChild("boxA");
+      boxA.transform.setPosition(-0.9, 0, 0);
+      boxA.addComponent(BoxCollider);
+      const bodyA = boxA.addComponent(Rigidbody);
+      bodyA.linearVelocity = new Vector3(20, 0, 0);
+
+      const boxB = root.createChild("boxB");
+      boxB.transform.setPosition(0.9, 0, 0);
+      boxB.addComponent(BoxCollider);
+      boxB.addComponent(Rigidbody);
+
+      const onCollisionEnter = vi.fn();
+      boxB.addComponent(
+        class extends Script {
+          onCollisionEnter(): void {
+            onCollisionEnter();
+          }
+        }
+      );
+
+      for (let i = 0; i < 10 && onCollisionEnter.mock.calls.length === 0; i++) {
+        physicsScene._update(physicsScene.fixedTimeStep);
+      }
+      expect(onCollisionEnter).toHaveBeenCalled();
+    });
+
+    it("normalizes non-unit query and kinematic move quaternions", () => {
+      const root = enginePhysX.sceneManager.activeScene.createRootEntity("non-unit-quat");
+      const target = root.createChild("target");
+      const targetCollider = target.addComponent(BoxCollider);
+
+      const nonUnitQuat = new Quaternion(0, 2, 0, 2);
+      const hit = new HitResult();
+      expect(
+        physicsScene.boxCast(
+          new Vector3(-5, 0, 0),
+          new Vector3(0.5, 0.5, 0.5),
+          new Vector3(1, 0, 0),
+          nonUnitQuat,
+          20,
+          Layer.Everything,
+          hit
+        )
+      ).toBe(true);
+      expect(hit.collider === targetCollider).toBe(true);
+      expect(physicsScene.overlapBoxAll(new Vector3(0, 0, 0), new Vector3(1, 1, 1), nonUnitQuat)).toContain(
+        targetCollider
+      );
+      expect(physicsScene.overlapCapsuleAll(new Vector3(0, 0, 0), 0.5, 1, nonUnitQuat)).toContain(targetCollider);
+
+      const mover = root.createChild("mover");
+      mover.transform.setPosition(0, 5, 0);
+      mover.addComponent(BoxCollider);
+      const body = mover.addComponent(Rigidbody);
+      body.isKinematic = true;
+      body.move(new Vector3(0, 5, 0), nonUnitQuat);
+      physicsScene._update(physicsScene.fixedTimeStep);
+      expect(mover.transform.rotationQuaternion.length()).toBeCloseTo(1, 4);
+    });
+
     afterEach(() => {
       vi.restoreAllMocks();
       for (const root of enginePhysX.sceneManager.activeScene.rootEntities.slice()) {

@@ -34,6 +34,9 @@ export class Script extends Component {
   @ignoreClone
   _entityScriptsIndex: number = -1;
 
+  @ignoreClone
+  private _contactEventRegistered: boolean = false;
+
   /**
    * Called when be enabled first time, only once.
    */
@@ -233,6 +236,7 @@ export class Script extends Component {
 
     this._entity._addScript(this);
     if (this._hasCollisionEventCallbacks()) {
+      this._contactEventRegistered = true;
       this.scene!.physics._addContactEventConsumer(1);
     }
   }
@@ -258,7 +262,8 @@ export class Script extends Component {
     }
 
     this._entity._removeScript(this);
-    if (this._hasCollisionEventCallbacks()) {
+    if (this._contactEventRegistered) {
+      this._contactEventRegistered = false;
       this.scene!.physics._addContactEventConsumer(-1);
     }
   }

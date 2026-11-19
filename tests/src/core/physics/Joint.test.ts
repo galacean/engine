@@ -1,5 +1,5 @@
 import { createPhysics } from "../../utils/physics";
-import { FixedJoint, HingeJoint, Entity, Rigidbody, BoxCollider, Engine } from "@galacean/engine-core";
+import { FixedJoint, HingeJoint, Entity, Rigidbody, BoxCollider, Engine, Scene } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
 import { vi, describe, beforeAll, afterAll, beforeEach, afterEach, expect, it } from "vitest";
@@ -482,5 +482,129 @@ describe("Joint", function () {
       (Engine as any)._nativePhysics = previousNativePhysics;
       noPhysicsEngine.destroy();
     }
+  });
+
+  it("clones joints without warnings in automatic and manual connectedAnchor modes", function () {
+    const autoBox = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const autoJoint = autoBox.addComponent(FixedJoint);
+    autoJoint.anchor = new Vector3(0, 0.5, 0);
+
+    const manualBox = addBox(new Vector3(1, 1, 1), new Vector3(2, 5, 0));
+    const manualJoint = manualBox.addComponent(FixedJoint);
+    manualJoint.automaticConnectedAnchor = false;
+    manualJoint.connectedAnchor = new Vector3(2, 6, 0);
+
+    const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const autoClone = autoBox.clone();
+    const manualClone = manualBox.clone();
+    rootEntity.addChild(autoClone);
+    rootEntity.addChild(manualClone);
+
+    expect(warnings).not.toHaveBeenCalled();
+    const clonedAutoJoint = autoClone.getComponent(FixedJoint);
+    const clonedManualJoint = manualClone.getComponent(FixedJoint);
+    expect(clonedAutoJoint.anchor.y).toBeCloseTo(0.5, 5);
+    expect(clonedManualJoint.automaticConnectedAnchor).toBe(false);
+    expect(clonedManualJoint.connectedAnchor).deep.include({ x: 2, y: 6, z: 0 });
+
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    expect(autoClone.transform.position.y).toBeCloseTo(5, 4);
+    expect(manualClone.transform.position.y).toBeCloseTo(6, 4);
+  });
+
+  it("updates automatic connectedAnchor on in-place anchor edits and does not mutate connectedAnchor when rejected", function () {
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(1, 2, 3));
+    const joint = box.addComponent(FixedJoint);
+    joint.anchor.set(0, 1, 0);
+    expect(joint.connectedAnchor.x).toBeCloseTo(1, 5);
+    expect(joint.connectedAnchor.y).toBeCloseTo(3, 5);
+    expect(joint.connectedAnchor.z).toBeCloseTo(3, 5);
+
+    const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
+    joint.connectedAnchor = new Vector3(9, 9, 9);
+    expect(warnings).toHaveBeenCalledOnce();
+    expect(joint.connectedAnchor.x).toBeCloseTo(1, 5);
+    expect(joint.connectedAnchor.y).toBeCloseTo(3, 5);
+    expect(joint.connectedAnchor.z).toBeCloseTo(3, 5);
+
+    joint.automaticConnectedAnchor = false;
+    expect(joint.connectedAnchor.x).toBeCloseTo(1, 5);
+    expect(joint.connectedAnchor.y).toBeCloseTo(3, 5);
+    expect(joint.connectedAnchor.z).toBeCloseTo(3, 5);
+  });
+
+  it("detaches a destroyed connectedBody cleanly on access and re-enable", function () {
+    const anchor = addBox(new Vector3(1, 1, 1), new Vector3(0, 10, 0));
+    const anchorBody = anchor.getComponent(Rigidbody);
+    anchorBody.isKinematic = true;
+
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const joint = box.addComponent(FixedJoint);
+    joint.connectedBody = anchorBody;
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+
+    anchor.destroy();
+    expect(joint.connectedBody).toBeNull();
+
+    joint.enabled = false;
+    joint.enabled = true;
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    expect(box.transform.position.y).toBeCloseTo(5, 4);
+  });
+
+  it("rejects self-connection, cross-scene connectedBody, and cross-engine connectedBody", async function () {
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const ownBody = box.getComponent(Rigidbody);
+    const joint = box.addComponent(FixedJoint);
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    joint.connectedBody = ownBody;
+    expect(joint.connectedBody).toBeNull();
+    expect(errors).toHaveBeenCalledTimes(1);
+
+    const otherScene = new Scene(engine);
+    engine.sceneManager.addScene(otherScene);
+    const otherBody = otherScene.createRootEntity("other").addComponent(Rigidbody);
+    try {
+      joint.connectedBody = otherBody;
+      expect(joint.connectedBody).toBeNull();
+      expect(errors).toHaveBeenCalledTimes(2);
+
+      const pendingEntity = new Entity(engine, "pending");
+      const pendingJoint = pendingEntity.addComponent(FixedJoint);
+      pendingJoint.connectedBody = otherBody;
+      rootEntity.addChild(pendingEntity);
+      expect(pendingJoint.connectedBody).toBeNull();
+      expect(errors).toHaveBeenCalledTimes(3);
+    } finally {
+      otherScene.destroy();
+    }
+
+    const otherEngine = await WebGLEngine.create({
+      canvas: document.createElement("canvas"),
+      physics: (Engine as any)._nativePhysics
+    });
+    try {
+      const foreignBody = otherEngine.sceneManager.activeScene.createRootEntity("foreign").addComponent(Rigidbody);
+      expect(() => {
+        joint.connectedBody = foreignBody;
+      }).toThrow();
+    } finally {
+      otherEngine.destroy();
+    }
+  });
+
+  it("keeps Rigidbody alive after a blocked destroy and cleans it up when the entity is destroyed", function () {
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const body = box.getComponent(Rigidbody);
+    box.addComponent(FixedJoint);
+
+    expect(() => body.destroy()).toThrow();
+    expect(body.destroyed).toBe(false);
+
+    expect(() => box.destroy()).not.toThrow();
+    expect(body.destroyed).toBe(true);
+    expect((engine.sceneManager.activeScene.physics as any)._bodies.includes(body)).toBe(false);
+    expect(() => engine.sceneManager.activeScene.physics._update(1 / 60)).not.toThrow();
   });
 });

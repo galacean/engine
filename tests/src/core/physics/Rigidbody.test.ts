@@ -764,4 +764,41 @@ describe("Rigidbody", function () {
     expect(() => entity.destroy()).not.toThrow();
     noPhysicsEngine.destroy();
   });
+
+  it("does not leak rejected centerOfMass or inertiaTensor writes into manual mode", function () {
+    const box = addBox(new Vector3(2, 2, 2), true, new Vector3(0, 0, 0));
+    const body = box.getComponent(Rigidbody);
+    body.automaticCenterOfMass = true;
+    body.automaticInertiaTensor = true;
+
+    const initialCenterOfMass = body.centerOfMass.clone();
+    const initialInertiaTensor = body.inertiaTensor.clone();
+    const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    body.centerOfMass = new Vector3(5, 6, 7);
+    body.inertiaTensor = new Vector3(8, 9, 10);
+    expect(warnings).toHaveBeenCalledTimes(2);
+
+    body.automaticCenterOfMass = false;
+    body.automaticInertiaTensor = false;
+    expect(Vector3.equals(body.centerOfMass, initialCenterOfMass)).toBe(true);
+    expect(Vector3.equals(body.inertiaTensor, initialInertiaTensor)).toBe(true);
+  });
+
+  it("ignores force, torque, and move calls after destroy while the entity stays active", function () {
+    const dynamicBox = addBox(new Vector3(2, 2, 2), true, new Vector3(0, 0, 0));
+    const dynamicBody = dynamicBox.getComponent(Rigidbody);
+    dynamicBody.destroy();
+    expect(dynamicBody.destroyed).toBe(true);
+    expect(() => dynamicBody.applyForce(new Vector3(10, 0, 0))).not.toThrow();
+    expect(() => dynamicBody.applyForceAtPosition(new Vector3(10, 0, 0), new Vector3(0, 1, 0))).not.toThrow();
+    expect(() => dynamicBody.applyTorque(new Vector3(0, 10, 0))).not.toThrow();
+
+    const kinematicBox = addBox(new Vector3(2, 2, 2), true, new Vector3(5, 0, 0));
+    const kinematicBody = kinematicBox.getComponent(Rigidbody);
+    kinematicBody.isKinematic = true;
+    kinematicBody.destroy();
+    expect(kinematicBody.destroyed).toBe(true);
+    expect(() => kinematicBody.move(new Vector3(1, 2, 3))).not.toThrow();
+  });
 });

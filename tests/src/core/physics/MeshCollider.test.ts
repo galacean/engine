@@ -583,4 +583,41 @@ describe("MeshCollider", () => {
     collider.destroy();
     expect(sourceMesh.refCount).toBe(0);
   });
+
+  it("rejects getClosestPoint on non-convex mesh colliders without mutating output", () => {
+    const collider = addMesh(false);
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const out = new Vector3(1, 2, 3);
+    expect(collider.getClosestPoint(new Vector3(5, 0, 0), out)).toBe(-1);
+    expect(errors).toHaveBeenCalledOnce();
+    expect(out.x).toBe(1);
+    expect(out.y).toBe(2);
+    expect(out.z).toBe(3);
+
+    collider.convex = true;
+    expect(collider.getClosestPoint(new Vector3(5, 0, 0), out)).toBeCloseTo(4, 4);
+    expect(out.x).toBeCloseTo(1, 4);
+  });
+
+  it("rejects trigger mode on non-convex meshes and switching a trigger mesh to non-convex", () => {
+    const collider = addMesh(false);
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    collider.isTrigger = true;
+    expect(collider.isTrigger).toBe(false);
+    expect(errors).toHaveBeenCalledTimes(1);
+
+    collider.convex = true;
+    collider.isTrigger = true;
+    expect(collider.isTrigger).toBe(true);
+
+    collider.convex = false;
+    expect(collider.convex).toBe(true);
+    expect(collider.isTrigger).toBe(true);
+    expect(errors).toHaveBeenCalledTimes(2);
+
+    collider.isTrigger = false;
+    collider.convex = false;
+    expect(collider.convex).toBe(false);
+  });
 });

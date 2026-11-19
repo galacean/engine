@@ -56,7 +56,7 @@ Shape sizes follow the Entity's world scale. A sheared world transform (a rotate
 | Method | Description |
 | :-- | :-- |
 | [**getInstanceMaterial**](/apis/core/#Collider-getInstanceMaterial) | Returns a material owned by this Collider, see [Physics Material](#physics-material) |
-| [**getClosestPoint**](/apis/core/#Collider-getClosestPoint) | Returns the distance from a world-space point to the Collider and writes the closest point. Returns -1 when the Collider is not in simulation. Not supported by PlaneCollider and CharacterController |
+| [**getClosestPoint**](/apis/core/#Collider-getClosestPoint) | Returns the distance from a world-space point to the Collider and writes the closest point. Returns -1 when the Collider is not in simulation. Not supported by PlaneCollider, CharacterController, and non-convex MeshCollider |
 
 ## Shape Properties
 
@@ -89,7 +89,7 @@ PlaneCollider has no shape properties. It is an infinite plane facing the Entity
 | Property | Description | Default |
 | :-- | :-- | :-- |
 | [**mesh**](/apis/core/#MeshCollider-mesh) | The [ModelMesh](/apis/core/#ModelMesh) used for collision. Its data must stay accessible after upload, and a triangle mesh also needs indices; an invalid mesh is rejected with a warning and the previous mesh is kept | null |
-| [**convex**](/apis/core/#MeshCollider-convex) | Whether to use a convex hull generated from the mesh vertices. Setting `false` is rejected while the Collider belongs to a non-kinematic Rigidbody | false |
+| [**convex**](/apis/core/#MeshCollider-convex) | Whether to use a convex hull generated from the mesh vertices. Setting `false` is rejected while the Collider is a trigger or belongs to a non-kinematic Rigidbody | false |
 | [**cookingFlags**](/apis/core/#MeshCollider-cookingFlags) | Mesh cooking flags | Cleaning \| VertexWelding |
 
 ## Physics Material

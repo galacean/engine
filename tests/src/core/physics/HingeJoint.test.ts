@@ -1,7 +1,7 @@
 import { createPhysics } from "../../utils/physics";
 import { HingeJoint, JointLimits, JointMotor, Entity, Rigidbody, BoxCollider, Engine } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { Vector3 } from "@galacean/engine-math";
+import { MathUtil, Quaternion, Vector3 } from "@galacean/engine-math";
 import { describe, beforeAll, afterAll, beforeEach, expect, it } from "vitest";
 
 describe("HingeJoint", function () {
@@ -406,5 +406,70 @@ describe("HingeJoint", function () {
     expect(box1.transform.position.y).toBeCloseTo(5, 5);
     hingeJoint.destroy();
     expect(box1.getComponent(HingeJoint)).toBeNull();
+  });
+
+  it("handles antiparallel -X axis and transient zero axis without corrupting orientation", function () {
+    engine.sceneManager.activeScene.physics.gravity.set(0, 0, 0);
+    // Prime internal Quaternion scratch vectors before constructing a -X axis hinge.
+    Quaternion.rotationAxisAngle(new Vector3(0, 0, 1), 0.5, new Quaternion());
+
+    const posBox = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const posJoint = posBox.addComponent(HingeJoint);
+    posJoint.axis = new Vector3(1, 0, 0);
+    posJoint.motor = new JointMotor();
+    posJoint.motor.targetVelocity = 4;
+    posJoint.useMotor = true;
+
+    const negBox = addBox(new Vector3(1, 1, 1), new Vector3(3, 5, 0));
+    const negJoint = negBox.addComponent(HingeJoint);
+    negJoint.axis = new Vector3(-1, 0, 0);
+    negJoint.motor = new JointMotor();
+    negJoint.motor.targetVelocity = 4;
+    negJoint.useMotor = true;
+
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    const posVelX = posBox.getComponent(Rigidbody).angularVelocity.x;
+    const negVelX = negBox.getComponent(Rigidbody).angularVelocity.x;
+    expect(posVelX * negVelX).toBeLessThan(0);
+    expect(Math.abs(negVelX)).toBeCloseTo(Math.abs(posVelX), 3);
+
+    negJoint.axis.x = 0;
+    negJoint.axis.z = 1;
+    expect(negJoint.axis.z).toBeCloseTo(1, 5);
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    expect(Number.isFinite(negBox.getComponent(Rigidbody).angularVelocity.z)).toBe(true);
+  });
+
+  it("computes default JointLimits contactDistance in radians for narrow degree ranges", function () {
+    const limits = new JointLimits();
+    limits.min = -4;
+    limits.max = 4;
+    expect(limits.contactDistance).toBeCloseTo(0.49 * MathUtil.degreeToRadian(8), 6);
+
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const joint = box.addComponent(HingeJoint);
+    joint.limits = limits;
+    joint.useLimits = true;
+    box.getComponent(Rigidbody).applyTorque(new Vector3(100, 0, 0));
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(Math.abs(joint.angle)).toBeLessThanOrEqual(4.5);
+  });
+
+  it("resets cached angle and velocity on a cloned HingeJoint before simulation", function () {
+    engine.sceneManager.activeScene.physics.gravity.set(0, 0, 0);
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const joint = box.addComponent(HingeJoint);
+    joint.motor = new JointMotor();
+    joint.motor.targetVelocity = 4;
+    joint.useMotor = true;
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    expect(Math.abs(joint.angle)).toBeGreaterThan(0);
+    expect(Math.abs(joint.velocity)).toBeGreaterThan(0);
+
+    const clone = box.clone();
+    const clonedJoint = clone.getComponent(HingeJoint);
+    expect(clonedJoint.angle).toBe(0);
+    expect(clonedJoint.velocity).toBe(0);
+    clone.destroy();
   });
 });
