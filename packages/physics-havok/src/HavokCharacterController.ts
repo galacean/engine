@@ -267,6 +267,7 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     this._slopeLimitCos = Math.cos(MathUtil.degreeToRadian(slopeLimit));
   }
 
+  move(disp: Vector3, minDist: number, elapsedTime: number): number;
   move(disp: Vector3, minDist: number): number {
     if (!this._scene || !this._hkBody || !this._hkShape || !this._hkSweptShape) {
       return CollisionFlags.None;

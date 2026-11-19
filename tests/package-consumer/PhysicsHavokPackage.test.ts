@@ -86,12 +86,13 @@ describe("@galacean/engine-physics-havok published package consumer", () => {
       expect(listing, `missing ${entry} in tarball`).toContain(entry);
     }
 
-    const indexDts = readFileSync(
-      join(consumerDirectory, "node_modules", "@galacean", "engine-physics-havok", "types", "index.d.ts"),
-      "utf8"
-    );
+    const pkgTypesDir = join(consumerDirectory, "node_modules", "@galacean", "engine-physics-havok", "types");
+    const indexDts = readFileSync(join(pkgTypesDir, "index.d.ts"), "utf8");
+    const havokPhysicsDts = readFileSync(join(pkgTypesDir, "HavokPhysics.d.ts"), "utf8");
     expect(indexDts).not.toContain("__buildVersion");
     expect(indexDts).not.toContain("HavokModule");
+    expect(havokPhysicsDts).not.toContain("HavokModule");
+    expect(havokPhysicsDts).not.toContain("HavokTypes");
   });
 
   it("loads cleanly via CJS require and ESM import and steps HeadlessEngine in Node with havokFactory + wasmBinary", () => {

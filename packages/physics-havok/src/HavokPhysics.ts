@@ -3,11 +3,13 @@ import {
   IBoxColliderShape,
   ICapsuleColliderShape,
   ICharacterController,
+  ICollider,
   IDynamicCollider,
   IFixedJoint,
   IHingeJoint,
   IMeshColliderShape,
   IPhysics,
+  IPhysicsMaterial,
   IPhysicsMaterialProperties,
   IPhysicsScene,
   IPlaneColliderShape,
@@ -43,8 +45,10 @@ import { HavokMeshColliderShape } from "./shape/HavokMeshColliderShape";
 import { HavokPlaneColliderShape } from "./shape/HavokPlaneColliderShape";
 import { HavokSphereColliderShape } from "./shape/HavokSphereColliderShape";
 
+type HavokFactory = (moduleArg?: Record<string, unknown>) => Promise<HavokModule>;
+
 type HavokGlobal = typeof globalThis & {
-  HavokPhysics?: (moduleArg?: Record<string, unknown>) => Promise<HavokModule>;
+  HavokPhysics?: HavokFactory;
 };
 
 // Resolve default asset URLs at module evaluation time so UMD bundles capture `document.currentScript.src`
@@ -59,6 +63,9 @@ try {
 }
 
 let loadedJsUrl: string | null = null;
+let inFlightJsUrl: string | null = null;
+let inFlightFactoryPromise: Promise<HavokFactory> | null = null;
+let scriptLoadQueue: Promise<void> = Promise.resolve();
 
 /**
  * Runtime initialization options for {@link HavokPhysics}.
@@ -99,6 +106,8 @@ export class HavokPhysics implements IPhysics {
 
   /** @internal */
   _hk!: HavokModule;
+  /** @internal True only when initialized from the package's bundled HavokPhysics.wasm (gates Tier 2 C-ABI offsets). */
+  _useRawABI = false;
   /** @internal Persistent 32B WASM scratch buffer for Tier 2 `_HP_Body_GetQTransform`, or 0 when unavailable. */
   _qTransformScratch = 0;
 
@@ -153,6 +162,15 @@ export class HavokPhysics implements IPhysics {
       moduleArg.locateFile = () => wasmUrl;
     }
 
+    const globalObj = globalThis as HavokGlobal;
+    const hasPreloadedGlobal = typeof globalObj.HavokPhysics === "function" && loadedJsUrl === null;
+    const isBundledWasm =
+      !this._options.havokInstance &&
+      !this._options.havokFactory &&
+      !this._options.wasmUrl &&
+      !this._options.jsUrl &&
+      !hasPreloadedGlobal;
+
     let loadPromise: Promise<HavokModule>;
     if (this._options.havokInstance) {
       loadPromise = Promise.resolve(this._options.havokInstance as HavokModule);
@@ -160,7 +178,7 @@ export class HavokPhysics implements IPhysics {
       const factory = this._options.havokFactory;
       loadPromise = Promise.resolve().then(() => factory(moduleArg) as Promise<HavokModule>);
     } else {
-      loadPromise = this._loadUMDScript(moduleArg);
+      loadPromise = this._loadUMDScript(moduleArg, hasPreloadedGlobal);
     }
 
     const initializePromise = loadPromise.then(
@@ -169,7 +187,9 @@ export class HavokPhysics implements IPhysics {
           throw new Error("HavokPhysics was destroyed during initialization.");
         }
         this._hk = hk;
+        this._useRawABI = isBundledWasm;
         this._qTransformScratch =
+          isBundledWasm &&
           hk.HEAPF32 != null &&
           typeof hk._HP_Body_GetQTransform === "function" &&
           typeof hk._malloc === "function" &&
@@ -223,6 +243,7 @@ export class HavokPhysics implements IPhysics {
     this._layerMasks.fill(0xffffffff);
     this._initializeState = InitializeState.Uninitialized;
     this._initializePromise = null;
+    this._useRawABI = false;
     this._hk = null!;
   }
 
@@ -250,36 +271,36 @@ export class HavokPhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.createCharacterController }
    */
-  createCharacterController(uniqueID: number, material: HavokPhysicsMaterial): ICharacterController {
-    return new HavokCharacterController(this, uniqueID, material);
+  createCharacterController(uniqueID: number, material: IPhysicsMaterial): ICharacterController {
+    return new HavokCharacterController(this, uniqueID, material as HavokPhysicsMaterial);
   }
 
   /**
    * {@inheritDoc IPhysics.createPhysicsMaterial }
    */
-  createPhysicsMaterial(properties: IPhysicsMaterialProperties): HavokPhysicsMaterial {
+  createPhysicsMaterial(properties: IPhysicsMaterialProperties): IPhysicsMaterial {
     return new HavokPhysicsMaterial(this, properties);
   }
 
   /**
    * {@inheritDoc IPhysics.createBoxColliderShape }
    */
-  createBoxColliderShape(uniqueID: number, size: Vector3, material: HavokPhysicsMaterial): IBoxColliderShape {
-    return new HavokBoxColliderShape(this, uniqueID, size, material);
+  createBoxColliderShape(uniqueID: number, size: Vector3, material: IPhysicsMaterial): IBoxColliderShape {
+    return new HavokBoxColliderShape(this, uniqueID, size, material as HavokPhysicsMaterial);
   }
 
   /**
    * {@inheritDoc IPhysics.createSphereColliderShape }
    */
-  createSphereColliderShape(uniqueID: number, radius: number, material: HavokPhysicsMaterial): ISphereColliderShape {
-    return new HavokSphereColliderShape(this, uniqueID, radius, material);
+  createSphereColliderShape(uniqueID: number, radius: number, material: IPhysicsMaterial): ISphereColliderShape {
+    return new HavokSphereColliderShape(this, uniqueID, radius, material as HavokPhysicsMaterial);
   }
 
   /**
    * {@inheritDoc IPhysics.createPlaneColliderShape }
    */
-  createPlaneColliderShape(uniqueID: number, material: HavokPhysicsMaterial): IPlaneColliderShape {
-    return new HavokPlaneColliderShape(this, uniqueID, material);
+  createPlaneColliderShape(uniqueID: number, material: IPhysicsMaterial): IPlaneColliderShape {
+    return new HavokPlaneColliderShape(this, uniqueID, material as HavokPhysicsMaterial);
   }
 
   /**
@@ -289,9 +310,9 @@ export class HavokPhysics implements IPhysics {
     uniqueID: number,
     radius: number,
     height: number,
-    material: HavokPhysicsMaterial
+    material: IPhysicsMaterial
   ): ICapsuleColliderShape {
-    return new HavokCapsuleColliderShape(this, uniqueID, radius, height, material);
+    return new HavokCapsuleColliderShape(this, uniqueID, radius, height, material as HavokPhysicsMaterial);
   }
 
   /**
@@ -302,31 +323,46 @@ export class HavokPhysics implements IPhysics {
     positions: Vector3[],
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
-    material: HavokPhysicsMaterial
+    material: IPhysicsMaterial,
+    cookingFlags?: number
+  ): IMeshColliderShape | null;
+  createMeshColliderShape(
+    uniqueID: number,
+    positions: Vector3[],
+    indices: Uint8Array | Uint16Array | Uint32Array | null,
+    isConvex: boolean,
+    material: IPhysicsMaterial
   ): IMeshColliderShape | null {
-    const shape = new HavokMeshColliderShape(this, uniqueID, positions, indices, isConvex, material);
+    const shape = new HavokMeshColliderShape(
+      this,
+      uniqueID,
+      positions,
+      indices,
+      isConvex,
+      material as HavokPhysicsMaterial
+    );
     return shape._hkShape ? shape : null;
   }
 
   /**
    * {@inheritDoc IPhysics.createFixedJoint }
    */
-  createFixedJoint(collider: HavokCollider): IFixedJoint {
-    return new HavokFixedJoint(this, collider);
+  createFixedJoint(collider: ICollider): IFixedJoint {
+    return new HavokFixedJoint(this, collider as HavokCollider);
   }
 
   /**
    * {@inheritDoc IPhysics.createHingeJoint }
    */
-  createHingeJoint(collider: HavokCollider): IHingeJoint {
-    return new HavokHingeJoint(this, collider);
+  createHingeJoint(collider: ICollider): IHingeJoint {
+    return new HavokHingeJoint(this, collider as HavokCollider);
   }
 
   /**
    * {@inheritDoc IPhysics.createSpringJoint }
    */
-  createSpringJoint(collider: HavokCollider): ISpringJoint {
-    return new HavokSpringJoint(this, collider);
+  createSpringJoint(collider: ICollider): ISpringJoint {
+    return new HavokSpringJoint(this, collider as HavokCollider);
   }
 
   /**
@@ -427,12 +463,11 @@ export class HavokPhysics implements IPhysics {
     return hit;
   }
 
-  private _loadUMDScript(moduleArg: Record<string, unknown>): Promise<HavokModule> {
+  private _loadUMDScript(moduleArg: Record<string, unknown>, hasPreloadedGlobal: boolean): Promise<HavokModule> {
     const globalObj = globalThis as HavokGlobal;
     const customJsUrl = this._options.jsUrl;
     const jsUrl = customJsUrl ?? defaultJsUrl;
 
-    const hasPreloadedGlobal = typeof globalObj.HavokPhysics === "function" && loadedJsUrl === null;
     if (!this._options.wasmUrl && !customJsUrl && defaultWasmUrl && !hasPreloadedGlobal) {
       const wasmUrl = defaultWasmUrl;
       moduleArg.locateFile = () => wasmUrl;
@@ -461,35 +496,60 @@ export class HavokPhysics implements IPhysics {
       );
     }
 
-    return new Promise<HavokModule>((resolve, reject) => {
-      const previousFactory = globalObj.HavokPhysics;
-      globalObj.HavokPhysics = undefined;
-      const script = document.createElement("script");
-      script.async = true;
-      script.onload = () => {
-        const factory = globalObj.HavokPhysics;
-        if (typeof factory !== "function") {
-          if (globalObj.HavokPhysics === undefined) {
-            globalObj.HavokPhysics = previousFactory;
+    return this._loadScriptFactory(jsUrl).then((factory) => factory(moduleArg));
+  }
+
+  private _loadScriptFactory(jsUrl: string): Promise<HavokFactory> {
+    if (inFlightFactoryPromise && inFlightJsUrl === jsUrl) {
+      return inFlightFactoryPromise;
+    }
+
+    const factoryPromise = scriptLoadQueue.then(
+      () =>
+        new Promise<HavokFactory>((resolve, reject) => {
+          const globalObj = globalThis as HavokGlobal;
+          if (typeof globalObj.HavokPhysics === "function" && loadedJsUrl === jsUrl) {
+            resolve(globalObj.HavokPhysics);
+            return;
           }
-          script.remove();
-          reject(new Error("HavokPhysics: loaded script did not expose global `HavokPhysics` factory."));
-          return;
-        }
-        loadedJsUrl = jsUrl;
-        Promise.resolve()
-          .then(() => factory(moduleArg))
-          .then(resolve, reject);
-      };
-      script.onerror = () => {
-        if (globalObj.HavokPhysics === undefined) {
-          globalObj.HavokPhysics = previousFactory;
-        }
-        script.remove();
-        reject(new Error(`HavokPhysics: failed to load script "${jsUrl}".`));
-      };
-      script.src = jsUrl;
-      (document.body ?? document.head).appendChild(script);
-    });
+          const previousFactory = globalObj.HavokPhysics;
+          globalObj.HavokPhysics = undefined;
+          const script = document.createElement("script");
+          script.async = true;
+          script.onload = () => {
+            const factory = globalObj.HavokPhysics;
+            if (typeof factory !== "function") {
+              if (globalObj.HavokPhysics === undefined) {
+                globalObj.HavokPhysics = previousFactory;
+              }
+              script.remove();
+              reject(new Error("HavokPhysics: loaded script did not expose global `HavokPhysics` factory."));
+              return;
+            }
+            loadedJsUrl = jsUrl;
+            resolve(factory);
+          };
+          script.onerror = () => {
+            if (globalObj.HavokPhysics === undefined) {
+              globalObj.HavokPhysics = previousFactory;
+            }
+            script.remove();
+            reject(new Error(`HavokPhysics: failed to load script "${jsUrl}".`));
+          };
+          script.src = jsUrl;
+          (document.body ?? document.head).appendChild(script);
+        })
+    );
+
+    inFlightJsUrl = jsUrl;
+    inFlightFactoryPromise = factoryPromise;
+    const clearInFlight = (): void => {
+      if (inFlightFactoryPromise === factoryPromise) {
+        inFlightFactoryPromise = null;
+        inFlightJsUrl = null;
+      }
+    };
+    scriptLoadQueue = factoryPromise.then(clearInFlight, clearInFlight);
+    return factoryPromise;
   }
 }

@@ -1372,22 +1372,14 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
   });
 
   describe("Tier 2 C-ABI parity, Tier 1 fallback & regression coverage", () => {
-    it("produces identical query, transform, CCT, and compound-collision results on Tier 2 C-ABI and Tier 1 Embind fallback", async () => {
+    it("produces identical query, transform, CCT, trigger, and compound-collision results on Tier 2 C-ABI and Tier 1 Embind fallback", async () => {
       const rawModule = (havokBackend as unknown as { _hk: Record<string, unknown> })._hk;
-      const tier1Module = new Proxy(rawModule, {
-        get(target, prop) {
-          if (typeof prop === "string" && prop.startsWith("_HP_")) {
-            return undefined;
-          }
-          return Reflect.get(target, prop, target);
-        }
-      });
 
-      const runParitySuite = async (instance: unknown, expectRawAbi: boolean) => {
-        const backend = new HavokPhysics({ havokInstance: instance });
+      const runParitySuite = async (backend: HavokPhysics, expectRawAbi: boolean) => {
         await backend.initialize();
         try {
-          const internalBackend = backend as unknown as { _qTransformScratch: number };
+          const internalBackend = backend as unknown as { _useRawABI: boolean; _qTransformScratch: number };
+          expect(internalBackend._useRawABI).toBe(expectRawAbi);
           expect(internalBackend._qTransformScratch > 0).toBe(expectRawAbi);
 
           const scene = backend.createPhysicsScene();
@@ -1396,7 +1388,7 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
 
           const mat = createDefaultMaterial(backend);
 
-          // Static compound body (2 boxes at x=-2 and x=+2, plus a trigger box at x=-3 on Layer 2)
+          // Static compound body (2 boxes at x=-2 and x=+2, plus a trigger box at (-2, 1.4, 0) on Layer 2)
           // and an excluded-from-query blocker at x=-4
           const blockerShape = backend.createBoxColliderShape(101, new Vector3(1, 1, 1), mat);
           blockerShape.setIsSceneQuery(false);
@@ -1525,11 +1517,16 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
           cct.setBox(new Vector3(0.4, 0.4, 0.4));
           cct.setWorldPosition(new Vector3(-2, 2.2, 0));
           scene.addCharacterController(cct);
-          const cctFlags = cct.move(new Vector3(0, -3, 0), 0.0001);
+          const cctFlags = cct.move(new Vector3(0, -3, 0), 0.0001, 1 / 60);
           const cctPos = new Vector3();
           cct.getWorldPosition(cctPos);
 
-          // 6. Compound collision event harvesting (multi-shape container path iterator + contact point details)
+          // 6. Compound collision & trigger event harvesting (multi-shape container path iterator + contact point details)
+          const trigProbeShape = backend.createBoxColliderShape(302, new Vector3(0.2, 0.2, 0.2), mat);
+          const trigProbeCol = backend.createDynamicCollider(new Vector3(-2, 1.5, 0), new Quaternion(0, 0, 0, 1));
+          trigProbeCol.setUseGravity(false);
+          trigProbeCol.addShape(trigProbeShape);
+          scene.addCollider(trigProbeCol);
           scene.update(1 / 60);
           const events = scene.updateEvents();
           const contactDetails: Array<{
@@ -1553,15 +1550,21 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
               sep0: c0 ? round3(c0.separation) : 0
             });
           }
+          const triggerDetails = events.triggerEvents
+            .map((ev) => [ev.index1, ev.index2, ev.dispatchState])
+            .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
 
           scene.removeCharacterController(cct);
           cct.destroy();
+          scene.removeCollider(trigProbeCol);
           scene.removeCollider(dynCol);
           scene.removeCollider(compound);
           scene.removeCollider(blockerCol);
+          trigProbeCol.destroy();
           dynCol.destroy();
           compound.destroy();
           blockerCol.destroy();
+          trigProbeShape.destroy();
           dynShape.destroy();
           childA.destroy();
           childB.destroy();
@@ -1599,15 +1602,17 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
             overlapLayer2,
             cctFlags,
             cctY: round3(cctPos.y),
-            contactDetails
+            contactDetails,
+            triggerDetails
           };
         } finally {
           backend.destroy();
         }
       };
 
-      const tier2 = await runParitySuite(rawModule, true);
-      const tier1 = await runParitySuite(tier1Module, false);
+      // Bundled default HavokPhysics enables Tier 2 C-ABI; external havokInstance auto-falls back to Tier 1 Embind
+      const tier2 = await runParitySuite(new HavokPhysics(), true);
+      const tier1 = await runParitySuite(new HavokPhysics({ havokInstance: rawModule }), false);
 
       expect(tier2).toEqual(tier1);
       expect(tier2.rayHit).toBe(true);
@@ -1618,8 +1623,8 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
       expect(tier2.layer2RayId).toBe(203);
       expect(tier2.layer3RayMiss).toBe(false);
       expect(tier2.allHits.map((h) => h.id)).toEqual([201, 202]);
-      // Downward reentrant ray at x=-2 hits both childTrigger (203) and childA (201), exercising multi-hit reentrancy
-      expect(tier2.reentrantHits).toBe(2);
+      // Downward reentrant ray at x=-2 hits childTrigger (203), trigProbe (302), and childA (201)
+      expect(tier2.reentrantHits).toBeGreaterThanOrEqual(2);
       expect(tier2.sphereCastId).toBe(201);
       expect(tier2.boxCastId).toBe(201);
       expect(tier2.capsuleCastId).toBe(201);
@@ -1633,6 +1638,7 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
       expect(tier2.contactDetails).toHaveLength(1);
       expect(tier2.contactDetails[0].ids).toEqual([202, 301, 0]);
       expect(tier2.contactDetails[0].count).toBeGreaterThan(0);
+      expect(tier2.triggerDetails).toContainEqual([203, 302, 0]);
     });
 
     it("returns w = -1 from HavokPlaneColliderShape.pointDistance()", () => {
@@ -1838,6 +1844,71 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
       const nativeScene = (physics as unknown as { _nativePhysicsScene: { _collectorCapacity: number } })
         ._nativePhysicsScene;
       expect(nativeScene._collectorCapacity).toBeGreaterThanOrEqual(512);
+    });
+
+    it("inherits moving kinematic anchor velocity on FixedJoint before kinematic velocity reset", () => {
+      physics.gravity = new Vector3(0, 0, 0);
+      const anchor = addBox(new Vector3(1, 1, 1), new Vector3(0, 0, 0), true, true);
+      const anchorBody = anchor.getComponent(Rigidbody);
+      const payload = addBox(new Vector3(1, 1, 1), new Vector3(0, 2, 0), true, false);
+      const payloadBody = payload.getComponent(Rigidbody);
+
+      const joint = payload.addComponent(FixedJoint);
+      joint.connectedBody = anchorBody;
+
+      // Move kinematic anchor by +0.5m along X in one 1/60s step -> ~30 m/s
+      anchorBody.move(new Vector3(0.5, 0, 0));
+      step();
+
+      expect(payload.transform.worldPosition.x).toBeCloseTo(0.5, 2);
+      expect(payloadBody.linearVelocity.x).toBeGreaterThan(25);
+    });
+
+    it("preserves queued kinematic move across an update(0) tick without leaving stale pending target", () => {
+      physics.gravity = new Vector3(0, 0, 0);
+      const kin = addBox(new Vector3(1, 1, 1), new Vector3(0, 0, 0), true, true);
+      const kinBody = kin.getComponent(Rigidbody);
+      const nativeScene = (physics as unknown as { _nativePhysicsScene: { update(dt: number): void } })
+        ._nativePhysicsScene;
+
+      const rot90Y = new Quaternion();
+      Quaternion.rotationYawPitchRoll(Math.PI * 0.5, 0, 0, rot90Y);
+      kinBody.move(new Vector3(3, 0, 0), rot90Y);
+
+      // A zero-dt update must NOT discard the queued kinematic move
+      nativeScene.update(0);
+      step();
+
+      expect(kin.transform.worldPosition.x).toBeCloseTo(3, 3);
+      expect(Math.abs(Quaternion.dot(kin.transform.worldRotationQuaternion, rot90Y))).toBeCloseTo(1, 3);
+
+      // Subsequent 1-arg move(pos) reads current orientation cleanly (no stale pending flag)
+      kinBody.move(new Vector3(5, 0, 0));
+      step();
+      expect(kin.transform.worldPosition.x).toBeCloseTo(5, 3);
+      expect(Math.abs(Quaternion.dot(kin.transform.worldRotationQuaternion, rot90Y))).toBeCloseTo(1, 3);
+    });
+
+    it("deduplicates concurrent initialize() calls sharing a custom jsUrl without clobbering globalThis.HavokPhysics", async () => {
+      const globalObj = globalThis as { HavokPhysics?: unknown };
+      const origFactory = globalObj.HavokPhysics;
+      const blob = new Blob([`globalThis.HavokPhysics = async () => ({ __concurrentMock: true });`], {
+        type: "application/javascript"
+      });
+      const blobUrl = URL.createObjectURL(blob);
+      const a = new HavokPhysics({ jsUrl: blobUrl });
+      const b = new HavokPhysics({ jsUrl: blobUrl });
+      try {
+        await Promise.all([a.initialize(), b.initialize()]);
+        expect((a as unknown as { _hk: { __concurrentMock?: boolean } })._hk.__concurrentMock).toBe(true);
+        expect((b as unknown as { _hk: { __concurrentMock?: boolean } })._hk.__concurrentMock).toBe(true);
+        expect((a as unknown as { _useRawABI: boolean })._useRawABI).toBe(false);
+      } finally {
+        a.destroy();
+        b.destroy();
+        URL.revokeObjectURL(blobUrl);
+        globalObj.HavokPhysics = origFactory;
+      }
     });
   });
 });

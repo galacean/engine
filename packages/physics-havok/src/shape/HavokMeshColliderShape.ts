@@ -189,6 +189,10 @@ export class HavokMeshColliderShape extends HavokColliderShape implements IMeshC
     let trisPtr = 0;
     try {
       vertsPtr = hk._malloc(vertices.length * 4);
+      if (vertsPtr === 0) {
+        this._logCookingError("Failed to allocate WASM vertex buffer.");
+        return null;
+      }
       const vertOffset = vertsPtr >>> 2;
       const heapF32 = hk.HEAPF32;
       if (sx === 1 && sy === 1 && sz === 1) {
@@ -208,6 +212,10 @@ export class HavokMeshColliderShape extends HavokColliderShape implements IMeshC
       } else {
         const idx = indices!;
         trisPtr = hk._malloc(idx.length * 4);
+        if (trisPtr === 0) {
+          this._logCookingError("Failed to allocate WASM index buffer.");
+          return null;
+        }
         hk.HEAP32.set(idx, trisPtr >>> 2);
         [res, shapeId] = hk.HP_Shape_CreateMesh(vertsPtr, numVerts, trisPtr, idx.length / 3);
       }

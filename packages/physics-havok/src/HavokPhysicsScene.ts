@@ -137,7 +137,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
 
   // Zero-alloc collision & trigger tracking using 52-bit integer pair keys
   private _activeContactPairs = new Map<number, boolean>();
-  private _activeKinematicContactCount = 0;
+  private _activeKinematicPairs = new Set<number>();
   private _activeKinematicShapeIds = new Set<number>();
   private _stepContactMap = new Map<number, ContactEvent>();
   private _stepFinishedKeys: number[] = [];
@@ -194,6 +194,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
     this._multiCollectorId = this._multiCollector[0];
 
     const useRawQuery =
+      havokPhysics._useRawABI &&
       hk.HEAPF32 != null &&
       hk.HEAPU32 != null &&
       hk.HEAP32 != null &&
@@ -459,7 +460,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
         const id0 = (key - id1) / PAIR_KEY_STRIDE;
         if (id0 === id || id1 === id) {
           if (cur.value[1]) {
-            this._activeKinematicContactCount--;
+            this._activeKinematicPairs.delete(key);
           }
           this._activeContactPairs.delete(key);
         }
@@ -585,7 +586,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
     }
 
     // 4. Flush pending kinematic targets & accumulated forces/torques (sparse sets only)
-    if (this._pendingKinematicMoves.size > 0) {
+    if (elapsedTime > 0 && this._pendingKinematicMoves.size > 0) {
       for (let it = this._pendingKinematicMoves.values(), cur = it.next(); !cur.done; cur = it.next()) {
         if (
           cur.value._applyKinematicMove(elapsedTime, this._hkWorld, this._worldMaxAngVel, this._appliedWorldMaxAngVel)
@@ -615,13 +616,9 @@ export class HavokPhysicsScene implements IPhysicsScene {
       this._appliedWorldMaxAngVel = this._worldMaxAngVel;
     }
 
-    // 7. Post-step kinematic velocity resets (Havok keeps kinematic target velocity unless cleared),
-    //    custom dynamic angular-velocity clamps & breakable joint checks
-    if (this._kinematicResetColliders.size > 0) {
-      for (let it = this._kinematicResetColliders.values(), cur = it.next(); !cur.done; cur = it.next()) {
-        cur.value._zeroVelocities();
-      }
-    }
+    // 7. Post-step custom dynamic angular-velocity clamps, breakable/projected joint checks
+    //    (run BEFORE kinematic velocity resets so FixedJoint inherits moving kinematic anchor velocity),
+    //    and kinematic velocity resets (Havok keeps kinematic target velocity unless cleared).
     if (this._clampedAngVelColliders.size > 0) {
       for (let it = this._clampedAngVelColliders.values(), cur = it.next(); !cur.done; cur = it.next()) {
         cur.value._clampAngularVelocity();
@@ -630,6 +627,11 @@ export class HavokPhysicsScene implements IPhysicsScene {
     if (this._joints.size > 0) {
       for (let it = this._joints.values(), cur = it.next(); !cur.done; cur = it.next()) {
         cur.value._checkBreak(elapsedTime);
+      }
+    }
+    if (this._kinematicResetColliders.size > 0) {
+      for (let it = this._kinematicResetColliders.values(), cur = it.next(); !cur.done; cur = it.next()) {
+        cur.value._zeroVelocities();
       }
     }
 
@@ -655,7 +657,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
     if (!enabled) {
       this._contactEventCount = 0;
       this._activeContactPairs.clear();
-      this._activeKinematicContactCount = 0;
+      this._activeKinematicPairs.clear();
     }
   }
 
@@ -1122,7 +1124,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
     this._bodyToCollider.clear();
     this._bodyToController.clear();
     this._activeContactPairs.clear();
-    this._activeKinematicContactCount = 0;
+    this._activeKinematicPairs.clear();
     this._activeKinematicShapeIds.clear();
     this._stepContactMap.clear();
     this._stepFinishedKeys.length = 0;
@@ -1281,14 +1283,13 @@ export class HavokPhysicsScene implements IPhysicsScene {
     return entry;
   }
 
-  private _evictOldestQueryShape<K>(cache: Map<K, CachedQueryShape>): CachedQueryShape | null {
-    if (cache.size < MAX_QUERY_SHAPE_CACHE) return null;
+  private _evictOldestQueryShape<K>(cache: Map<K, CachedQueryShape>): void {
+    if (cache.size < MAX_QUERY_SHAPE_CACHE) return;
     const oldest = cache.entries().next();
-    if (oldest.done) return null;
+    if (oldest.done) return;
     const [key, entry] = oldest.value;
     cache.delete(key);
     this._havokPhysics._hk.HP_Shape_Release(entry.shape);
-    return entry;
   }
 
   private _getCachedSphereQueryShape(radius: number, layerMask: number): CachedQueryShape {
@@ -1298,11 +1299,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
     const cache = this._sphereQueryCache;
     let entry = cache.get(radius);
     if (!entry) {
-      const evicted = this._evictOldestQueryShape(cache);
-      if (evicted === this._lastSphereEntry) {
-        this._lastSphereEntry = null;
-        this._lastSphereR = -1;
-      }
+      this._evictOldestQueryShape(cache);
       const shape = this._havokPhysics._hk.HP_Shape_CreateSphere(ZERO_VEC3, radius)[1];
       // HP_Shape_Create* defaults filterInfo to [0xffffffff, 0xffffffff].
       entry = { shape, shapePtr: Number(shape[0]), filterMask: 0xffffffff };
@@ -1321,11 +1318,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
     const cache = this._boxQueryCache;
     let entry = cache.get(key);
     if (!entry) {
-      const evicted = this._evictOldestQueryShape(cache);
-      if (evicted === this._lastBoxEntry) {
-        this._lastBoxEntry = null;
-        this._lastBoxX = -1;
-      }
+      this._evictOldestQueryShape(cache);
       const ext = HavokPhysicsScene._tempBoxExtents;
       ext[0] = sx;
       ext[1] = sy;
@@ -1349,11 +1342,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
     const cache = this._capsuleQueryCache;
     let entry = cache.get(key);
     if (!entry) {
-      const evicted = this._evictOldestQueryShape(cache);
-      if (evicted === this._lastCapEntry) {
-        this._lastCapEntry = null;
-        this._lastCapR = -1;
-      }
+      this._evictOldestQueryShape(cache);
       const capA = HavokPhysicsScene._tempCapA;
       const capB = HavokPhysicsScene._tempCapB;
       capA[0] = -halfH;
@@ -1976,11 +1965,15 @@ export class HavokPhysicsScene implements IPhysicsScene {
       if (!wasActive) {
         this._activeContactPairs.set(key, isKinNonDyn);
         if (isKinNonDyn) {
-          this._activeKinematicContactCount++;
+          this._activeKinematicPairs.add(key);
         }
       } else if (prevIsKin !== isKinNonDyn) {
         this._activeContactPairs.set(key, isKinNonDyn);
-        this._activeKinematicContactCount += isKinNonDyn ? 1 : -1;
+        if (isKinNonDyn) {
+          this._activeKinematicPairs.add(key);
+        } else {
+          this._activeKinematicPairs.delete(key);
+        }
       }
     }
 
@@ -2002,6 +1995,43 @@ export class HavokPhysicsScene implements IPhysicsScene {
     event._bufferedContacts.contactCount = 0;
   }
 
+  private _submitCollisionContact(
+    key: number,
+    id0: number,
+    id1: number,
+    p0x: number,
+    p0y: number,
+    p0z: number,
+    n0x: number,
+    n0y: number,
+    n0z: number,
+    p1x: number,
+    p1y: number,
+    p1z: number,
+    nx: number,
+    ny: number,
+    nz: number,
+    impulseScalar: number
+  ): void {
+    const sep = (p1x - p0x) * n0x + (p1y - p0y) * n0y + (p1z - p0z) * n0z;
+    this._addContactPoint(
+      key,
+      id0,
+      id1,
+      false,
+      p0x,
+      p0y,
+      p0z,
+      nx,
+      ny,
+      nz,
+      nx * impulseScalar,
+      ny * impulseScalar,
+      nz * impulseScalar,
+      sep
+    );
+  }
+
   private _collectCollisionEvents(): void {
     const hk = this._havokPhysics._hk;
     const stepMap = this._stepContactMap;
@@ -2010,119 +2040,97 @@ export class HavokPhysicsScene implements IPhysicsScene {
     finishedKeys.length = 0;
 
     let evAddr = hk.HP_World_GetCollisionEvents(this._hkWorld)[1];
-    if (this._queryScratchPtr !== 0 && evAddr !== 0) {
-      // Tier 2: read HP_CollisionEvent directly from WASM HEAPU32/HEAPF32 (0 Embind tuple allocations).
-      const heapU32 = hk.HEAPU32;
-      const heapF32 = hk.HEAPF32;
-      while (evAddr !== 0) {
-        const eb = evAddr >>> 2;
-        const evType = heapU32[eb];
-        const shapeA = this._resolveCollisionShapeRaw(heapU32[eb + 2], evAddr + 24);
-        const shapeB = this._resolveCollisionShapeRaw(heapU32[eb + 18], evAddr + 88);
+    const useRaw = this._queryScratchPtr !== 0;
+    const heapU32 = useRaw ? hk.HEAPU32 : null;
+    const heapF32 = useRaw ? hk.HEAPF32 : null;
 
-        if (shapeA && shapeB && !shapeA._isTrigger && !shapeB._isTrigger && shapeA._id !== shapeB._id) {
-          const aFirst = shapeA._id < shapeB._id;
-          const id0 = aFirst ? shapeA._id : shapeB._id;
-          const id1 = aFirst ? shapeB._id : shapeA._id;
-          const key = id0 * PAIR_KEY_STRIDE + id1;
+    while (evAddr !== 0) {
+      let evType = 0;
+      let shapeA: HavokShapeIdentity | null = null;
+      let shapeB: HavokShapeIdentity | null = null;
+      let eb = 0;
+      let embindEv: ReturnType<HavokPhysics["_hk"]["HP_Event_AsCollision"]>[1] | null = null;
 
-          if (evType === HavokEventBits.COLLISION_FINISHED) {
-            finishedKeys.push(key);
-          } else {
-            const b0 = aFirst ? eb + 2 : eb + 18;
-            const b1 = aFirst ? eb + 18 : eb + 2;
-            const p0x = heapF32[b0 + 8];
-            const p0y = heapF32[b0 + 9];
-            const p0z = heapF32[b0 + 10];
-            const n0x = heapF32[b0 + 11];
-            const n0y = heapF32[b0 + 12];
-            const n0z = heapF32[b0 + 13];
-            const p1x = heapF32[b1 + 8];
-            const p1y = heapF32[b1 + 9];
-            const p1z = heapF32[b1 + 10];
-            const nx = heapF32[b1 + 11];
-            const ny = heapF32[b1 + 12];
-            const nz = heapF32[b1 + 13];
-            const impulseScalar = heapF32[eb + 34];
-            const sep = (p1x - p0x) * n0x + (p1y - p0y) * n0y + (p1z - p0z) * n0z;
-            this._addContactPoint(
-              key,
-              id0,
-              id1,
-              false,
-              p0x,
-              p0y,
-              p0z,
-              nx,
-              ny,
-              nz,
-              nx * impulseScalar,
-              ny * impulseScalar,
-              nz * impulseScalar,
-              sep
-            );
-          }
-        }
-        evAddr = hk.HP_World_GetNextCollisionEvent(this._hkWorld, evAddr);
-      }
-    } else {
-      // Tier 1 Embind fallback
-      while (evAddr !== 0) {
+      if (useRaw) {
+        // Tier 2: read HP_CollisionEvent directly from WASM HEAPU32/HEAPF32 (0 Embind tuple allocations).
+        eb = evAddr >>> 2;
+        evType = heapU32![eb];
+        shapeA = this._resolveCollisionShapeRaw(heapU32![eb + 2], evAddr + 24);
+        shapeB = this._resolveCollisionShapeRaw(heapU32![eb + 18], evAddr + 88);
+      } else {
+        // Tier 1 Embind fallback
         const [res, ev] = hk.HP_Event_AsCollision(evAddr);
         if (res.value === hk.Result.RESULT_OK.value) {
-          const evType = ev[0].value;
-          const cpA = ev[1];
-          const cpB = ev[2];
-          const impulseScalar = ev[3];
-
-          const shapeA = this._resolveCollisionShapeEmbind(Number(cpA[0][0]), cpA[2]);
-          const shapeB = this._resolveCollisionShapeEmbind(Number(cpB[0][0]), cpB[2]);
-
-          if (shapeA && shapeB && !shapeA._isTrigger && !shapeB._isTrigger && shapeA._id !== shapeB._id) {
-            const aFirst = shapeA._id < shapeB._id;
-            const id0 = aFirst ? shapeA._id : shapeB._id;
-            const id1 = aFirst ? shapeB._id : shapeA._id;
-            const key = id0 * PAIR_KEY_STRIDE + id1;
-
-            if (evType === HavokEventBits.COLLISION_FINISHED) {
-              finishedKeys.push(key);
-            } else {
-              const c0 = aFirst ? cpA : cpB;
-              const c1 = aFirst ? cpB : cpA;
-              const p0 = c0[3];
-              const p1 = c1[3];
-              const n0 = c0[4];
-              const n1 = c1[4];
-              const nx = n1[0];
-              const ny = n1[1];
-              const nz = n1[2];
-              const sep = (p1[0] - p0[0]) * n0[0] + (p1[1] - p0[1]) * n0[1] + (p1[2] - p0[2]) * n0[2];
-              this._addContactPoint(
-                key,
-                id0,
-                id1,
-                false,
-                p0[0],
-                p0[1],
-                p0[2],
-                nx,
-                ny,
-                nz,
-                nx * impulseScalar,
-                ny * impulseScalar,
-                nz * impulseScalar,
-                sep
-              );
-            }
-          }
+          embindEv = ev;
+          evType = ev[0].value;
+          shapeA = this._resolveCollisionShapeEmbind(Number(ev[1][0][0]), ev[1][2]);
+          shapeB = this._resolveCollisionShapeEmbind(Number(ev[2][0][0]), ev[2][2]);
         }
-        evAddr = hk.HP_World_GetNextCollisionEvent(this._hkWorld, evAddr);
       }
+
+      if (shapeA && shapeB && !shapeA._isTrigger && !shapeB._isTrigger && shapeA._id !== shapeB._id) {
+        const aFirst = shapeA._id < shapeB._id;
+        const id0 = aFirst ? shapeA._id : shapeB._id;
+        const id1 = aFirst ? shapeB._id : shapeA._id;
+        const key = id0 * PAIR_KEY_STRIDE + id1;
+
+        if (evType === HavokEventBits.COLLISION_FINISHED) {
+          finishedKeys.push(key);
+        } else if (useRaw) {
+          const b0 = aFirst ? eb + 2 : eb + 18;
+          const b1 = aFirst ? eb + 18 : eb + 2;
+          const f32 = heapF32!;
+          this._submitCollisionContact(
+            key,
+            id0,
+            id1,
+            f32[b0 + 8],
+            f32[b0 + 9],
+            f32[b0 + 10],
+            f32[b0 + 11],
+            f32[b0 + 12],
+            f32[b0 + 13],
+            f32[b1 + 8],
+            f32[b1 + 9],
+            f32[b1 + 10],
+            f32[b1 + 11],
+            f32[b1 + 12],
+            f32[b1 + 13],
+            f32[eb + 34]
+          );
+        } else {
+          const c0 = aFirst ? embindEv![1] : embindEv![2];
+          const c1 = aFirst ? embindEv![2] : embindEv![1];
+          const p0 = c0[3];
+          const p1 = c1[3];
+          const n0 = c0[4];
+          const n1 = c1[4];
+          this._submitCollisionContact(
+            key,
+            id0,
+            id1,
+            p0[0],
+            p0[1],
+            p0[2],
+            n0[0],
+            n0[1],
+            n0[2],
+            p1[0],
+            p1[1],
+            p1[2],
+            n1[0],
+            n1[1],
+            n1[2],
+            embindEv![3]
+          );
+        }
+      }
+      evAddr = hk.HP_World_GetNextCollisionEvent(this._hkWorld, evAddr);
     }
 
     // Havok natively omits collision events for Kinematic vs Static and Kinematic vs Kinematic;
     // match PhysX's moved-kinematic contact reporting via ShapeProximity on kinematic bodies that moved or hold active pairs.
-    if (this._kinematicResetColliders.size > 0 || this._activeKinematicContactCount > 0) {
+    if (this._kinematicResetColliders.size > 0 || this._activeKinematicPairs.size > 0) {
       this._collectKinematicNonDynamicContacts();
     }
 
@@ -2133,7 +2141,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
       const wasKin = this._activeContactPairs.get(key);
       if (wasKin === undefined) continue;
       if (wasKin) {
-        this._activeKinematicContactCount--;
+        this._activeKinematicPairs.delete(key);
       }
       this._activeContactPairs.delete(key);
       const id1 = key % PAIR_KEY_STRIDE;
@@ -2143,22 +2151,31 @@ export class HavokPhysicsScene implements IPhysicsScene {
 
     // End active kinematic-vs-static/kinematic pairs no longer overlapping this step,
     // and active pairs whose filter/body changed in place without re-detecting contact this step.
-    if (this._activeKinematicContactCount > 0 || this._filterChangedShapeIds.size > 0) {
-      const filterChanged = this._filterChangedShapeIds;
-      const hasFilterChanges = filterChanged.size > 0;
+    const filterChanged = this._filterChangedShapeIds;
+    if (filterChanged.size > 0) {
       for (let it = this._activeContactPairs.entries(), cur = it.next(); !cur.done; cur = it.next()) {
         const key = cur.value[0];
         if (stepMap.has(key)) continue;
         const isKin = cur.value[1];
         const id1 = key % PAIR_KEY_STRIDE;
         const id0 = (key - id1) / PAIR_KEY_STRIDE;
-        if (isKin || (hasFilterChanges && (filterChanged.has(id0) || filterChanged.has(id1)))) {
+        if (isKin || filterChanged.has(id0) || filterChanged.has(id1)) {
           if (isKin) {
-            this._activeKinematicContactCount--;
+            this._activeKinematicPairs.delete(key);
           }
           this._activeContactPairs.delete(key);
           this._pushExitContactEvent(id0, id1);
         }
+      }
+    } else if (this._activeKinematicPairs.size > 0) {
+      for (let it = this._activeKinematicPairs.values(), cur = it.next(); !cur.done; cur = it.next()) {
+        const key = cur.value;
+        if (stepMap.has(key)) continue;
+        this._activeKinematicPairs.delete(key);
+        this._activeContactPairs.delete(key);
+        const id1 = key % PAIR_KEY_STRIDE;
+        const id0 = (key - id1) / PAIR_KEY_STRIDE;
+        this._pushExitContactEvent(id0, id1);
       }
     }
     if (stepMap.size > 0) {
@@ -2169,15 +2186,13 @@ export class HavokPhysicsScene implements IPhysicsScene {
   private _collectKinematicNonDynamicContacts(): void {
     const activeKinShapeIds = this._activeKinematicShapeIds;
     activeKinShapeIds.clear();
-    if (this._activeKinematicContactCount > 0) {
-      for (let it = this._activeContactPairs.entries(), cur = it.next(); !cur.done; cur = it.next()) {
-        if (cur.value[1]) {
-          const key = cur.value[0];
-          const id1 = key % PAIR_KEY_STRIDE;
-          const id0 = (key - id1) / PAIR_KEY_STRIDE;
-          activeKinShapeIds.add(id0);
-          activeKinShapeIds.add(id1);
-        }
+    if (this._activeKinematicPairs.size > 0) {
+      for (let it = this._activeKinematicPairs.values(), cur = it.next(); !cur.done; cur = it.next()) {
+        const key = cur.value;
+        const id1 = key % PAIR_KEY_STRIDE;
+        const id0 = (key - id1) / PAIR_KEY_STRIDE;
+        activeKinShapeIds.add(id0);
+        activeKinShapeIds.add(id1);
       }
     }
 
@@ -2278,7 +2293,7 @@ export class HavokPhysicsScene implements IPhysicsScene {
   private _collectTriggerEvents(): void {
     const hk = this._havokPhysics._hk;
     let evAddr = hk.HP_World_GetTriggerEvents(this._hkWorld)[1];
-    if (evAddr === 0) return;
+    if (evAddr === 0 || hk.HEAPU32 == null) return;
 
     const heapU32 = hk.HEAPU32;
     const pairMap = this._triggerPairMap;

@@ -247,6 +247,7 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
   }
 
   setMaxAngularVelocity(value: number): void {
+    if (Number.isNaN(value)) return;
     const nextRad = Math.max(0, MathUtil.degreeToRadian(value));
     if (this._maxAngularVelocityRad === nextRad) return;
     const prevRad = this._maxAngularVelocityRad;
