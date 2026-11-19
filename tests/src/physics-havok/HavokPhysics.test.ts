@@ -1419,7 +1419,7 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
           scene.setContactEventEnabled(true);
 
           const round3 = (v: number) => Math.round(v * 1000) / 1000;
-          const roundVec = (v: Vector3) => [round3(v.x), round3(v.y), round3(v.z)];
+          const roundVec = (v: { x: number; y: number; z: number }) => [round3(v.x), round3(v.y), round3(v.z)];
 
           // 1. getWorldTransform parity (position + non-identity quaternion)
           const pos = new Vector3();
@@ -1906,6 +1906,7 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
       } finally {
         a.destroy();
         b.destroy();
+        document.querySelector(`script[src="${blobUrl}"]`)?.remove();
         URL.revokeObjectURL(blobUrl);
         globalObj.HavokPhysics = origFactory;
       }
