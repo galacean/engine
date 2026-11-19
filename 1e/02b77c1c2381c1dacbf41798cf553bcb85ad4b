@@ -1,0 +1,19 @@
+world/demos/seed-world/SeedWorldDemo.ts
+  s_71496fc0a6b37a::t_1487cfee27fdea 2114
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1e02b77c1c2381c1dacbf41798cf553bcb85ad4b",
+  "prompts": {},
+  "sessions": {
+    "s_71496fc0a6b37a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1eda8-f97e-71c2-ba7b-88c49b29108e",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

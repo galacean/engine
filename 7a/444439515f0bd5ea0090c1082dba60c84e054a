@@ -1,0 +1,73 @@
+packages/world-planning/src/runtime/SeedWorldForwardGrass.ts
+  s_43e2da275089c4::t_3982ff884623f3 30-33,405,549-551,564,589-595
+  s_43e2da275089c4::t_806cb482d1a44f 596-597
+packages/building/src/building/runtime/BuildingFarProxy.ts
+  s_43e2da275089c4::t_2cfe0df4c4861c 35,55-56,73,226,269-271,287,297-303,354
+  s_43e2da275089c4::t_4f48def3985994 7,33-34
+packages/world-planning/src/spatial/runtime/PlanningWorldPicking.ts
+  s_43e2da275089c4::t_3982ff884623f3 179
+packages/terrain/src/terrain/clipmap/TerrainClipmap.ts
+  s_43e2da275089c4::t_131e69404b1c91 469-472
+packages/rhi-null/src/NullGraphicDevice.ts
+  s_43e2da275089c4::t_131e69404b1c91 22
+packages/water/src/water/runtime/ocean/FiniteOceanSurfaceGeometry.ts
+  s_43e2da275089c4::t_131e69404b1c91 826,828,834,836
+  s_8218ca53b52918::t_0f908f02219f20 829-833
+world/tests/seed-world-browser/PickingAndCulling.test.ts
+  s_43e2da275089c4::t_2cfe0df4c4861c 282-289,291
+  s_43e2da275089c4::t_f802aeee16d23e 1-11,14-16,23-24,29,31-40,68-86,93-114,116-121,127-162,186-208,212-239,264-267,271-281,290,292-299
+  s_43e2da275089c4::t_06893ac1fe750c 21,115
+  s_43e2da275089c4::t_6d4ff6ada04da4 25-28,30,163,170-177
+  s_43e2da275089c4::t_1e1fafbd79c441 12-13,22,41-67
+  s_8218ca53b52918::t_0f908f02219f20 17-20,87-92,122-126,164-169,178-185,209-211,240-263,268-270
+packages/world-planning/src/runtime/SeedWorldTerrainRuntime.ts
+  s_43e2da275089c4::t_3982ff884623f3 234-235,237
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  s_43e2da275089c4::t_28b06c56b34aef 1
+packages/modify/src/native/core/src/shadow/CascadedShadowCasterPass.ts
+  s_43e2da275089c4::t_131e69404b1c91 158
+packages/building/src/building/runtime/MasonryFarProxy.shader
+  s_43e2da275089c4::t_4f48def3985994 42-43,49-51,58-59,113-114
+  s_43e2da275089c4::t_2cfe0df4c4861c 101,110-112
+  s_43e2da275089c4::t_dd4adeea3eef99 60
+  s_43e2da275089c4::t_3bbeca7f98f903 102-103
+  s_43e2da275089c4::t_58c6cd37968b9b 115-117
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  s_43e2da275089c4::t_3982ff884623f3 1265,1271
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  s_43e2da275089c4::t_131e69404b1c91 29-30
+packages/terrain/src/shaders/grass/GrassForwardPass.glsl
+  s_43e2da275089c4::t_3982ff884623f3 42,180
+packages/world-planning/src/world/SeedWorldPicker.ts
+  s_43e2da275089c4::t_3982ff884623f3 417-420
+world/tests/seed-world/TerrainFarShader.spec.ts
+  s_43e2da275089c4::t_94392db30f4fd6 163-169,171-173
+  s_43e2da275089c4::t_ab6bee22852e27 12-18,170
+world/tests/seed-world-browser/ForwardGrass.test.ts
+  s_43e2da275089c4::t_42a1f00be604aa 17,109-115,256-257
+  s_43e2da275089c4::t_54f20469f64492 258
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7a444439515f0bd5ea0090c1082dba60c84e054a",
+  "prompts": {},
+  "sessions": {
+    "s_43e2da275089c4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e33c-02ef-7632-b762-2829c92512e4",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    },
+    "s_8218ca53b52918": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1edcf-a57b-7052-b000-27b770533941",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

@@ -1,0 +1,97 @@
+tests/package-consumer/ShaderDeclarations.test.ts
+  s_30889def3c02cc::t_82b804e0b4097f 1-6,8-9,11-13,15-26,72-110,114-120,123-124,137
+  s_30889def3c02cc::t_5707807659ef53 10,14,27-49
+  s_30889def3c02cc::t_609b47b94d3997 51-65
+  s_30889def3c02cc::t_312bdc7875ff0d 113,121-122
+  s_30889def3c02cc::t_cb9b55a342f527 125-129,133-136
+  s_30889def3c02cc::t_7bf9d3a7bb0b62 7,132
+  s_30889def3c02cc::t_6750bbb7d08643 130-131
+  s_30889def3c02cc::t_262f960c7aeda8 50,66-71
+  s_30889def3c02cc::t_f5a8ab42779510 111-112
+packages/shader-parser/src/parser/GrammarSymbol.ts
+  s_30889def3c02cc::t_bb9dfb5ac283c4 12
+tests/src/shader-analyzer/DiagnosticCoverage.test.ts
+  s_30889def3c02cc::t_6750bbb7d08643 19
+  s_30889def3c02cc::t_620b663cb53afb 20-24
+  s_30889def3c02cc::t_f29509cf381e3c 18
+examples/src/shader-playground/samples.ts
+  s_30889def3c02cc::t_6750bbb7d08643 645,993
+  s_30889def3c02cc::t_620b663cb53afb 646-652
+packages/shader-parser/src/lalr/CFG.ts
+  s_30889def3c02cc::t_bb9dfb5ac283c4 21,148,153
+  s_30889def3c02cc::t_c6690042a57c53 147,149-152
+  s_30889def3c02cc::t_297628f9ec99cf 161-168,178-193
+  s_30889def3c02cc::t_1500d71aeaa375 154-155
+tests/src/shader-compiler/GlobalDeclarations.test.ts
+  s_30889def3c02cc::t_cb9b55a342f527 1-11,13-20,22-36,38-39,43-49,51-56,58-59,63-74
+  s_30889def3c02cc::t_5707807659ef53 40-42,50,57
+  s_30889def3c02cc::t_574774acf62ba2 12,21,37
+  s_30889def3c02cc::t_f85aba578ba7ae 60-62
+packages/shader-analyzer/src/DiagnosticCategory.ts
+  s_30889def3c02cc::t_6750bbb7d08643 30
+packages/shader-parser/src/parser/ParserSemanticValidation.ts
+  s_30889def3c02cc::t_2b559a925f5f09 9,26-60,79-81
+  s_30889def3c02cc::t_297628f9ec99cf 459-461,463-484
+  s_30889def3c02cc::t_093e53222dec11 82
+packages/shader-compiler/src/codeGen/GLES100.ts
+  s_30889def3c02cc::t_ec91e8cc2e4b99 5
+packages/shader-analyzer/src/DiagnosticType.ts
+  s_30889def3c02cc::t_6750bbb7d08643 20
+packages/shader-parser/src/parser/TargetParser.y
+  s_30889def3c02cc::t_c6690042a57c53 206-208
+  s_30889def3c02cc::t_bb9dfb5ac283c4 176,205
+  s_30889def3c02cc::t_297628f9ec99cf 214,221-222
+  s_30889def3c02cc::t_ca5d25234a76c2 209
+packages/shader-parser/src/parser/AST.ts
+  s_30889def3c02cc::t_c025619230a07c 1886-1890
+  s_30889def3c02cc::t_2f3307d818480b 1871-1873
+  s_30889def3c02cc::t_18d424c971d7dd 486-490,823-829,840-851,1885,1891-1892
+  s_30889def3c02cc::t_2f13dd03e48721 516-520
+  s_30889def3c02cc::t_ec91e8cc2e4b99 500-508
+  s_30889def3c02cc::t_297628f9ec99cf 1877,1907,1942
+packages/shader-compiler/src/codeGen/GLESVisitor.ts
+  s_30889def3c02cc::t_c6690042a57c53 113
+  s_30889def3c02cc::t_a45f4388b7a310 152-157
+  s_30889def3c02cc::t_16cd3d43edb720 1201-1204
+  s_30889def3c02cc::t_093e53222dec11 4
+  s_30889def3c02cc::t_bb9dfb5ac283c4 111-112,116-117,121-125,127,134
+  s_30889def3c02cc::t_262f960c7aeda8 150-151,158,330-335
+  s_30889def3c02cc::t_2b559a925f5f09 7,118,140,167-173
+  s_30889def3c02cc::t_ec91e8cc2e4b99 39,120,126,136-139,141-149,159-166
+  s_30889def3c02cc::t_f5a8ab42779510 129-130
+  s_30889def3c02cc::t_4cb19717babb5b 114-115,119,128,131-133,135
+  s_45bb612ddb9392::t_3be0aeeb1e23fe 336
+packages/shader-compiler/src/codeGen/GLES300.ts
+  s_30889def3c02cc::t_bb9dfb5ac283c4 111
+  s_30889def3c02cc::t_4cb19717babb5b 2,112-122
+  s_30889def3c02cc::t_cf7c8a60903cbd 123-124
+packages/shader-parser/src/parser/ShaderInfo.ts
+  s_30889def3c02cc::t_bb9dfb5ac283c4 48-49
+packages/shader-parser/src/runtime.ts
+  s_30889def3c02cc::t_2b559a925f5f09 23
+  s_30889def3c02cc::t_4cb19717babb5b 40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b60cefa2fe576c3d17cd1ef48debe398ebb36f23",
+  "prompts": {},
+  "sessions": {
+    "s_30889def3c02cc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e8d3-cd57-70b0-8843-ecc65484b8c6",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    },
+    "s_45bb612ddb9392": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e31e-2061-71e0-a047-8c2fc391eaae",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}

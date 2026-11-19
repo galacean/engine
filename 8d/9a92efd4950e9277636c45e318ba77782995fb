@@ -1,0 +1,70 @@
+e2e/case/spriteMask-customStencil.ts
+  h_171a11afaf879a 101
+packages/galacean/skills/engine-knowledge/references/spine.md
+  h_171a11afaf879a 33
+packages/shader/src/ShaderLibrary/BlinnPhong/MobileBlinnPhong.glsl
+  h_171a11afaf879a 41,45,49
+packages/shader/src/ShaderLibrary/Common/Common.glsl
+  h_171a11afaf879a 49
+packages/shader/src/ShaderLibrary/Common/Normal.glsl
+  h_171a11afaf879a 6
+packages/shader/src/ShaderLibrary/Lighting/AmbientOcclusion/BilateralBlur.glsl
+  h_171a11afaf879a 33,40
+packages/shader/src/ShaderLibrary/Lighting/AmbientOcclusion/ScalableAmbientOcclusion.glsl
+  h_171a11afaf879a 65-66,81-84,95-98,141,195
+packages/shader/src/ShaderLibrary/PBR/BSDF.glsl
+  h_171a11afaf879a 398,424
+packages/shader/src/ShaderLibrary/PBR/FragmentPBR.glsl
+  h_171a11afaf879a 138,153,159,221,225,241,245,256,273,280,287,293,300,307,314
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomBlurH.glsl
+  h_171a11afaf879a 13-21
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomBlurV.glsl
+  h_171a11afaf879a 13-17
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl
+  h_171a11afaf879a 13-25,36
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomUpsample.glsl
+  h_171a11afaf879a 13,18
+packages/shader/src/ShaderLibrary/PostProcess/Filtering.glsl
+  h_171a11afaf879a 41-44
+packages/shader/src/ShaderLibrary/PostProcess/FinalAntiAliasing.glsl
+  h_171a11afaf879a 33
+packages/shader/src/ShaderLibrary/PostProcess/FinalSRGB.glsl
+  h_171a11afaf879a 9
+packages/shader/src/ShaderLibrary/PostProcess/UberPost.glsl
+  h_171a11afaf879a 20,26,33
+packages/shader/src/Shaders/2D/Spine.shader
+  h_171a11afaf879a 63
+packages/shader/src/Shaders/2D/Sprite.shader
+  h_171a11afaf879a 47
+packages/shader/src/Shaders/2D/SpriteMask.shader
+  h_171a11afaf879a 30
+packages/shader/src/Shaders/2D/Text.shader
+  h_171a11afaf879a 47
+packages/shader/src/Shaders/2D/UIDefault.shader
+  h_171a11afaf879a 53
+packages/shader/src/Shaders/Effect/Particle.shader
+  h_171a11afaf879a 89,94
+packages/shader/src/Shaders/Effect/Trail.shader
+  h_171a11afaf879a 136,142
+packages/shader/src/Shaders/Pipeline/ShadowCaster.shader
+  h_171a11afaf879a 100
+packages/shader/src/Shaders/Sky/BackgroundTexture.shader
+  h_171a11afaf879a 35
+packages/shader/src/Shaders/Sky/Skybox.shader
+  h_171a11afaf879a 62
+packages/shader/src/Shaders/Unlit.shader
+  h_171a11afaf879a 135
+packages/spine/README.md
+  h_171a11afaf879a 134
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8d9a92efd4950e9277636c45e318ba77782995fb",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

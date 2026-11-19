@@ -1,0 +1,31 @@
+packages/farming/src/farming/procedural/runtime/ProceduralPlant.ts
+  s_14df4946367faa::t_3c7bdc28f01d77 141
+packages/farming/tests/native/FarmingProduceMesh.spec.ts
+  s_14df4946367faa::t_5349808a15b0d9 1-62
+packages/water/src/water/runtime/heightfield/HeightfieldWaterBackend.ts
+  s_14df4946367faa::t_e5fd41d8a9b0af 676
+packages/water/tests/WaterStandaloneLifecycle.test.ts
+  s_14df4946367faa::t_c401e446163297 15,152
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  s_14df4946367faa::t_da630b7c489ee2 168
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingAcceptedGround.ts
+  s_14df4946367faa::t_1195b505d6de6e 113
+world/tests/seed-world/PlanningPublishedFarmingGround.spec.ts
+  s_14df4946367faa::t_3313924e9c1821 4-6,221-265
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a27955e1ba52e2f2a774d4ba87cd901851499a72",
+  "prompts": {},
+  "sessions": {
+    "s_14df4946367faa": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1efd8-8cb2-7e83-9805-a6299152e4da",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
