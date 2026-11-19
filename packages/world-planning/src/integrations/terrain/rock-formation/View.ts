@@ -22,6 +22,7 @@ import { rockFormationPlacements } from "./Placement.ts";
 import { readRockColorBlend, type RockColorBlend } from "./ColorPalette.ts";
 import { RockLodView } from "./RockLodView";
 import { setRockColorBlend } from "./ColorMaterial.ts";
+import type { SeedWorldTerrainOcclusionReadPort } from "../../../runtime/SeedWorldTerrainOcclusionCuller.ts";
 
 interface RockViewEntry {
   formation: RockFormationMesh;
@@ -55,7 +56,8 @@ export class RockFormationView {
     formations: readonly RockFormationMesh[],
     private readonly registerGrassAppearance?: (material: PBRMaterial) => () => void,
     private colorBlend: RockColorBlend = readRockColorBlend(),
-    camera?: Camera
+    camera?: Camera,
+    terrainOcclusion?: SeedWorldTerrainOcclusionReadPort
   ) {
     const template = worldTemplate(plan.parameters.worldTemplate?.id);
     const art = template ? WORLD_TEMPLATE_ART[template.id] : undefined;
@@ -66,6 +68,7 @@ export class RockFormationView {
     if (camera) {
       this.lod = this.root.addComponent(RockLodView);
       this.lod.camera = camera;
+      this.lod.terrainOcclusion = terrainOcclusion;
     }
     try {
       this.prepareFormations(plan, formations).commit();

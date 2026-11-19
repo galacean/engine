@@ -1222,6 +1222,7 @@ export async function mountSeedWorldDemo(
                   try {
                     solids = await createPlanningSeedSolids(engine!, stage, result.plan, {
                       camera,
+                      terrainOcclusion: previous.world.terrainOcclusion,
                       signal,
                       previous: previous.solids,
                       formations,
@@ -1740,6 +1741,7 @@ export async function mountSeedWorldDemo(
                 timed("createPlanningSeedSolids", () =>
                   createPlanningSeedSolids(engine!, candidate!.root, presented, {
                     camera,
+                    terrainOcclusion: candidate!.terrainOcclusion,
                     signal,
                     previous: publication!.current?.solids,
                     formations: formationMeshes,

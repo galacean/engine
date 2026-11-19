@@ -159,14 +159,16 @@ export class SeedWorldExactInstanceCellRuntime {
    * @param _entries Exact Prefab instances whose bounds may be explicitly refreshed after Authoring transactions.
    * @param _terrainOcclusion Optional terrain visibility query.
    * @param _frustumCulling Disable to retain engine-owned visibility, including offscreen shadow casters.
+   * @param _occlusionKeyPrefix Namespace prefix for Terrain Horizon occlusion keys so separate cell runtimes do not collide.
    */
   constructor(
     private readonly _camera: Camera,
     private _entries: readonly SeedWorldExactInstanceSpatialEntry[],
     private readonly _terrainOcclusion?: SeedWorldTerrainOcclusionReadPort,
-    private readonly _frustumCulling = true
+    private readonly _frustumCulling = true,
+    private readonly _occlusionKeyPrefix = "exact-prefab"
   ) {
-    if (_frustumCulling) this._cells = buildCells(_entries, this._cellSizeMetres);
+    if (_frustumCulling) this._cells = buildCells(_entries, this._cellSizeMetres, this._occlusionKeyPrefix);
     this._snapshot = createSnapshotState(this._mode, this._cellSizeMetres, _entries.length, this._cells.length);
   }
 
@@ -211,7 +213,7 @@ export class SeedWorldExactInstanceCellRuntime {
     }
     if (cellSizeMetres === this._cellSizeMetres) return;
     this._cellSizeMetres = cellSizeMetres;
-    if (this._frustumCulling) this._cells = buildCells(this._entries, cellSizeMetres);
+    if (this._frustumCulling) this._cells = buildCells(this._entries, cellSizeMetres, this._occlusionKeyPrefix);
     this.invalidate();
   }
 
@@ -222,7 +224,7 @@ export class SeedWorldExactInstanceCellRuntime {
   rebuildSpatialIndex(): void {
     if (this._frustumCulling) {
       for (const entry of this._entries) entry.refreshBounds?.();
-      this._cells = buildCells(this._entries, this._cellSizeMetres);
+      this._cells = buildCells(this._entries, this._cellSizeMetres, this._occlusionKeyPrefix);
     }
     this._snapshot = createSnapshotState(this._mode, this._cellSizeMetres, this._entries.length, this._cells.length);
     this.invalidate();
@@ -399,7 +401,8 @@ export class SeedWorldExactInstanceCellRuntime {
 
 function buildCells(
   entries: readonly SeedWorldExactInstanceSpatialEntry[],
-  cellSizeMetres: number
+  cellSizeMetres: number,
+  occlusionKeyPrefix: string
 ): readonly SeedWorldExactInstanceCell[] {
   const cells = new Map<string, SeedWorldExactInstanceCell>();
   const center = new Vector3();
@@ -411,7 +414,12 @@ function buildCells(
       existing.entries.push(entry);
       BoundingBox.merge(existing.bounds, entry.bounds, existing.bounds);
     } else {
-      cells.set(key, { id: key, occlusionKey: `exact-prefab:${key}`, bounds: entry.bounds.clone(), entries: [entry] });
+      cells.set(key, {
+        id: key,
+        occlusionKey: `${occlusionKeyPrefix}:${key}`,
+        bounds: entry.bounds.clone(),
+        entries: [entry]
+      });
     }
   }
   return Object.freeze([...cells.values()]);

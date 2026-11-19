@@ -18,6 +18,7 @@ import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
 import { RockFormationView } from "../../integrations/terrain/rock-formation/View.ts";
 import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
 import type { RockColorBlend } from "../../integrations/terrain/rock-formation/ColorPalette.ts";
+import type { SeedWorldTerrainOcclusionReadPort } from "../../runtime/SeedWorldTerrainOcclusionCuller.ts";
 import { SuspensionBridgeView } from "@galacean/engine-water/bridges/SuspensionBridgeView";
 
 /** Transfer a retained bridge between scene generations until publication accepts. */
@@ -50,6 +51,7 @@ export async function createPlanningSeedSolids(
   plan: IslandPlan,
   options: {
     camera?: Camera;
+    terrainOcclusion?: SeedWorldTerrainOcclusionReadPort;
     formations?: readonly RockFormationMesh[];
     sourcePlan?: IslandPlan;
     rockColorBlend?: RockColorBlend;
@@ -76,7 +78,8 @@ export async function createPlanningSeedSolids(
       options.formations ?? [],
       options.registerGrassAppearance,
       options.rockColorBlend,
-      options.camera
+      options.camera,
+      options.terrainOcclusion
     );
   } catch (error) {
     rocks?.dispose();

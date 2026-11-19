@@ -1,4 +1,12 @@
-import { MeshRenderer, Script, ShaderProperty, Vector3, type Camera, type ModelMesh } from "@galacean/engine";
+import {
+  BoundingBox,
+  MeshRenderer,
+  Script,
+  ShaderProperty,
+  Vector3,
+  type Camera,
+  type ModelMesh
+} from "@galacean/engine";
 import { ROCK_LOD_SCREEN_HEIGHTS } from "@galacean/engine-terrain/rock-formation/RockLodPolicy";
 import type { RockVariantAsset } from "@galacean/engine-terrain/rock-formation/types";
 import {
@@ -6,13 +14,19 @@ import {
   TerrainLodGroupRuntime,
   type TerrainLodGroupInstance
 } from "@galacean/engine-terrain/terrain/lod/TerrainLodGroupRuntime";
-import { TerrainScreenRelativeHeightRuntime } from "@galacean/engine-terrain/terrain/lod/TerrainScreenRelativeHeightRuntime";
 import { TREE_ASSEMBLY_LOD_CROSS_FADE_SECONDS } from "@galacean/engine-vegetation/asset-assembly/TreeAssemblyPlan";
 import {
   createFarShadowMeshProxy,
   setFarShadowCascadeProxy,
   type FarShadowCascadeProxy
 } from "@galacean/engine-modify/rendering/FarShadowCascadeProxy";
+import type { SeedWorldTerrainOcclusionReadPort } from "../../../runtime/SeedWorldTerrainOcclusionCuller.ts";
+import {
+  SeedWorldExactInstanceCellRuntime,
+  type SeedWorldExactInstanceSpatialEntry,
+  type SeedWorldExactInstanceSpatialMode,
+  type SeedWorldExactInstanceSpatialSnapshot
+} from "../../../world/SeedWorldExactInstanceCellRuntime.ts";
 import { rockLodMeshes } from "./RockLodMeshes";
 
 const lodFadeProperty = ShaderProperty.getByName("renderer_LodFade");
@@ -29,7 +43,12 @@ const lodGroup = new TerrainLodGroupRuntime(
 );
 
 interface RockLodEntry {
-  readonly projection: TerrainScreenRelativeHeightRuntime;
+  readonly spatialEntry: SeedWorldExactInstanceSpatialEntry;
+  readonly localBounds: BoundingBox;
+  readonly localReferencePoint: Vector3;
+  readonly localSize: number;
+  readonly worldReferencePoint: Vector3;
+  worldSize: number;
   readonly meshes: readonly ModelMesh[];
   readonly lod: TerrainLodGroupInstance;
   readonly farShadowProxy?: FarShadowCascadeProxy;
@@ -39,22 +58,28 @@ interface RockLodEntry {
   fading: boolean;
 }
 
-/** Uses the shared vegetation dither transition with one extra renderer enabled only while blending. */
+/**
+ * Schedules rock LOD transitions through the shared XZ Cell spatial runtime (`SeedWorldExactInstanceCellRuntime`).
+ * Uses the shared vegetation dither transition with one extra renderer enabled only while blending.
+ * Off-frustum / terrain-occluded rocks settle active cross-fades cleanly while keeping primary renderers enabled so
+ * offscreen shadow casters and picking remain intact.
+ */
 export class RockLodView extends Script {
   camera!: Camera;
+  terrainOcclusion?: SeedWorldTerrainOcclusionReadPort;
   private readonly entries = new Map<MeshRenderer, RockLodEntry>();
-  private readonly fading = new Set<MeshRenderer>();
   private readonly scratch = createTerrainLodRendererSetScratch();
-  private readonly eye = new Vector3();
-  private projectionSize = NaN;
-  private readonly observation = { timeSeconds: 0, visible: true as const, screenRelativeHeight: 0 };
-  private readonly refreshEntry = (entry: RockLodEntry, renderer: MeshRenderer): void => {
-    entry.screenHeight = Math.max(Number.MIN_VALUE, entry.projection.resolve());
-    this.apply(renderer, entry);
-  };
-  private readonly advanceFade = (renderer: MeshRenderer): void => {
-    this.apply(renderer, this.entries.get(renderer)!);
-  };
+  private readonly visibleObservation = { timeSeconds: 0, visible: true as const, screenRelativeHeight: 0 };
+  private readonly hiddenObservation = { timeSeconds: 0, visible: false as const };
+  private cells?: SeedWorldExactInstanceCellRuntime;
+  private nextEntryId = 0;
+  private membershipDirty = false;
+  private boundsDirty = false;
+  private cameraOrthographic = false;
+  private cameraEyeX = 0;
+  private cameraEyeY = 0;
+  private cameraEyeZ = 0;
+  private cameraInvProjectionHeight = 1;
 
   /**
    * Registers the render-only alternate meshes of a rock.
@@ -67,12 +92,9 @@ export class RockLodView extends Script {
     const [middle, far] = rockLodMeshes(asset) ?? [];
     if (!middle && !far) return () => {};
     const [min, max] = asset.bounds;
-    const projection = new TerrainScreenRelativeHeightRuntime(
-      renderer.entity,
-      this.camera,
-      [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2],
-      Math.max(max[0] - min[0], max[1] - min[1], max[2] - min[2])
-    );
+    const localBounds = new BoundingBox(new Vector3(min[0], min[1], min[2]), new Vector3(max[0], max[1], max[2]));
+    const localReferencePoint = new Vector3((min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2);
+    const localSize = Math.max(max[0] - min[0], max[1] - min[1], max[2] - min[2]);
     const alternates = new Set([middle, far]);
     for (const mesh of alternates) mesh?._addReferCount(1);
     renderer.shaderData.enableMacro("RENDERER_LOD_DITHER");
@@ -80,19 +102,52 @@ export class RockLodView extends Script {
     const lowestMesh = far ?? middle ?? original;
     const farShadowProxy = lowestMesh !== original ? createFarShadowMeshProxy(lowestMesh) : undefined;
     if (farShadowProxy) setFarShadowCascadeProxy(renderer, farShadowProxy);
+    const bounds = new BoundingBox();
     const entry: RockLodEntry = {
-      projection,
+      spatialEntry: undefined as unknown as SeedWorldExactInstanceSpatialEntry,
+      localBounds,
+      localReferencePoint,
+      localSize,
+      worldReferencePoint: new Vector3(),
+      worldSize: localSize,
       meshes: [original, middle ?? original, lowestMesh],
       lod: lodGroup.createInstance(),
       farShadowProxy,
       screenHeight: 0,
       fading: false
     };
+    const refreshBounds = (): void => {
+      const transform = renderer.entity.transform;
+      const worldMatrix = transform.worldMatrix;
+      BoundingBox.transform(localBounds, worldMatrix, bounds);
+      Vector3.transformCoordinate(localReferencePoint, worldMatrix, entry.worldReferencePoint);
+      const scale = transform.lossyWorldScale;
+      entry.worldSize = localSize * Math.max(Math.abs(scale.x), Math.abs(scale.y), Math.abs(scale.z));
+    };
+    const spatialEntry: SeedWorldExactInstanceSpatialEntry = Object.freeze({
+      id: `rock-lod-${this.nextEntryId++}`,
+      category: "rock-formation",
+      bounds,
+      refreshBounds,
+      controller: Object.freeze({
+        update: (timeSeconds: number, cellVisible: boolean): boolean => {
+          if (!cellVisible) {
+            this.retire(renderer, entry, timeSeconds);
+            return false;
+          }
+          entry.screenHeight = this.resolveScreenHeight(entry);
+          return this.apply(renderer, entry, timeSeconds);
+        },
+        // Authoring visibility is owned by RockFormationView via entity.isActive.
+        setAuthoringVisible: (): void => {}
+      })
+    });
+    (entry as { spatialEntry: SeedWorldExactInstanceSpatialEntry }).spatialEntry = spatialEntry;
     this.entries.set(renderer, entry);
-    this.invalidate();
+    this.membershipDirty = true;
     return () => {
       if (!this.entries.delete(renderer)) return;
-      this.fading.delete(renderer);
+      this.membershipDirty = true;
       setFarShadowCascadeProxy(renderer, undefined);
       if (entry.alternate) {
         setFarShadowCascadeProxy(entry.alternate, undefined);
@@ -112,31 +167,95 @@ export class RockLodView extends Script {
     return entry?.fading ? entry.alternate : undefined;
   }
 
-  /** Marks projections stale after the planner moves a retained formation. */
+  /** Marks cached world bounds and projections stale after the planner moves a retained formation. */
   invalidate(): void {
-    this.projectionSize = NaN;
+    this.boundsDirty = true;
+  }
+
+  /** Switches between linear and Cell broad-phase scheduling (primarily for A/B diagnostics and tests). */
+  setMode(mode: SeedWorldExactInstanceSpatialMode): void {
+    this.ensureCells().setMode(mode);
+  }
+
+  /** Updates the horizontal Cell edge length in metres. */
+  setCellSizeMetres(cellSizeMetres: number): void {
+    this.ensureCells().setCellSizeMetres(cellSizeMetres);
+  }
+
+  /** Returns the latest Cell scheduler snapshot for diagnostics. */
+  getSnapshot(): Readonly<SeedWorldExactInstanceSpatialSnapshot> | undefined {
+    return this.cells?.getSnapshot();
   }
 
   override onUpdate(): void {
+    if (!this.cells && this.entries.size === 0) return;
+    const cells = this.ensureCells();
+    if (this.membershipDirty) {
+      const nextEntries: SeedWorldExactInstanceSpatialEntry[] = [];
+      this.entries.forEach((entry) => nextEntries.push(entry.spatialEntry));
+      cells.replaceEntries(nextEntries);
+      this.membershipDirty = false;
+      this.boundsDirty = false;
+    } else if (this.boundsDirty) {
+      cells.rebuildSpatialIndex();
+      this.boundsDirty = false;
+    }
+
     const { camera } = this;
-    const position = camera.entity.transform.worldPosition;
-    const size = camera.isOrthographic ? -camera.orthographicSize : camera.fieldOfView;
-    const refresh =
-      size !== this.projectionSize ||
-      (!camera.isOrthographic && (position.x !== this.eye.x || position.y !== this.eye.y || position.z !== this.eye.z));
-    this.observation.timeSeconds = this.engine.time.elapsedTime;
-    if (refresh) {
-      this.projectionSize = size;
-      this.eye.copyFrom(position);
-      this.entries.forEach(this.refreshEntry);
-    } else if (this.fading.size) {
-      this.fading.forEach(this.advanceFade);
+    this.cameraOrthographic = camera.isOrthographic;
+    if (this.cameraOrthographic) {
+      this.cameraInvProjectionHeight = 1 / (2 * camera.orthographicSize);
+    } else {
+      const eye = camera.entity.transform.worldPosition;
+      this.cameraEyeX = eye.x;
+      this.cameraEyeY = eye.y;
+      this.cameraEyeZ = eye.z;
+      this.cameraInvProjectionHeight = 1 / (2 * Math.tan((camera.fieldOfView * Math.PI) / 360));
+    }
+
+    cells.update(this.engine.time.elapsedTime);
+  }
+
+  private ensureCells(): SeedWorldExactInstanceCellRuntime {
+    if (!this.cells) {
+      this.cells = new SeedWorldExactInstanceCellRuntime(
+        this.camera,
+        [],
+        this.terrainOcclusion,
+        true,
+        "rock-formation"
+      );
+    }
+    return this.cells;
+  }
+
+  private resolveScreenHeight(entry: RockLodEntry): number {
+    if (this.cameraOrthographic) {
+      return Math.max(Number.MIN_VALUE, entry.worldSize * this.cameraInvProjectionHeight);
+    }
+    const ref = entry.worldReferencePoint;
+    const dx = ref.x - this.cameraEyeX;
+    const dy = ref.y - this.cameraEyeY;
+    const dz = ref.z - this.cameraEyeZ;
+    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (distance <= Number.EPSILON) return Number.MAX_SAFE_INTEGER;
+    return Math.max(Number.MIN_VALUE, (entry.worldSize * this.cameraInvProjectionHeight) / distance);
+  }
+
+  private retire(renderer: MeshRenderer, entry: RockLodEntry, timeSeconds: number): void {
+    this.hiddenObservation.timeSeconds = timeSeconds;
+    entry.lod.updateInto(this.hiddenObservation, this.scratch);
+    if (entry.fading) {
+      renderer.shaderData.setFloat(lodFadeProperty, 1);
+      entry.alternate!.enabled = false;
+      entry.fading = false;
     }
   }
 
-  private apply(renderer: MeshRenderer, entry: RockLodEntry): void {
-    this.observation.screenRelativeHeight = entry.screenHeight;
-    const sets = entry.lod.updateInto(this.observation, this.scratch);
+  private apply(renderer: MeshRenderer, entry: RockLodEntry, timeSeconds: number): boolean {
+    this.visibleObservation.timeSeconds = timeSeconds;
+    this.visibleObservation.screenRelativeHeight = entry.screenHeight;
+    const sets = entry.lod.updateInto(this.visibleObservation, this.scratch);
     const first = sets[0];
     const second = sets.length > 1 ? sets[1] : undefined;
     const sourceMesh = entry.meshes[first.lodIndex];
@@ -156,16 +275,16 @@ export class RockLodView extends Script {
         alternate.receiveShadows = renderer.receiveShadows;
         alternate.enabled = true;
         entry.fading = true;
-        this.fading.add(renderer);
       }
       renderer.shaderData.setFloat(lodFadeProperty, first.signedFade);
       if (alternate.mesh !== targetMesh) alternate.mesh = targetMesh;
       alternate.shaderData.setFloat(lodFadeProperty, second.signedFade);
+      return true;
     } else if (entry.fading) {
       renderer.shaderData.setFloat(lodFadeProperty, 1);
       entry.alternate!.enabled = false;
       entry.fading = false;
-      this.fading.delete(renderer);
     }
+    return false;
   }
 }
