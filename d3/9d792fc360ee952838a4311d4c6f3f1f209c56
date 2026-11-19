@@ -1,0 +1,18 @@
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_79b10db07e6052 681,752,821-853
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  h_79b10db07e6052 11,99-120
+packages/modify/tests/ScreenSpaceReflectionOpaqueReuse.test.ts
+  h_79b10db07e6052 1-145
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d39d792fc360ee952838a4311d4c6f3f1f209c56",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}
