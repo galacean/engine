@@ -13,7 +13,7 @@ export enum TextureFormat {
   R5G5B5A1 = 3,
   /** Packed RGB 5-6-5 unsigned normalized format. */
   R5G6B5 = 4,
-  /** RGBA 16-bit signed float format (half-float `Uint16Array`). */
+  /** RGBA 16-bit signed float format (half-float `Uint16Array`). `getPixelBuffer` outputs RGBA `Float32Array`. */
   R16G16B16A16_SFloat = 7,
   /** RGBA 32-bit signed float format (`Float32Array`). */
   R32G32B32A32_SFloat = 8,

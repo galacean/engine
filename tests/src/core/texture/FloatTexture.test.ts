@@ -20,16 +20,21 @@ beforeAll(async () => {
 });
 afterAll(() => engine.destroy());
 
-const SAMPLE_VALUES = [-2.75, -1, -0.5, 0, 0.25, 0.5, 1, 1.5, 2, 3, 4, 6];
+const SAMPLE_VALUES = [
+  -2.75, -1, -0.5, 0, 0.25, 0.5, 1, 1.5, 2, 3, 4, 6, -4, -3, -2, -1.5, -0.25, 0.125, 0.75, 1.25, 2.5, 3.5, 5, 8
+];
 const SAMPLE_HALF_BITS = [
-  0xc180, 0xbc00, 0xb800, 0x0000, 0x3400, 0x3800, 0x3c00, 0x3e00, 0x4000, 0x4200, 0x4400, 0x4600
+  0xc180, 0xbc00, 0xb800, 0x0000, 0x3400, 0x3800, 0x3c00, 0x3e00, 0x4000, 0x4200, 0x4400, 0x4600, 0xc400, 0xc200,
+  0xc000, 0xbe00, 0xb400, 0x3000, 0x3a00, 0x3d00, 0x4100, 0x4300, 0x4500, 0x4800
 ];
 
 it.each([
   [TextureFormat.R16_SFloat, 1, true, 2],
   [TextureFormat.R16G16_SFloat, 2, true, 4],
+  [TextureFormat.R16G16B16A16_SFloat, 4, true, 8],
   [TextureFormat.R32_SFloat, 1, false, 4],
-  [TextureFormat.R32G32_SFloat, 2, false, 8]
+  [TextureFormat.R32G32_SFloat, 2, false, 8],
+  [TextureFormat.R32G32B32A32_SFloat, 4, false, 16]
 ] as const)(
   "round trips float format %s with odd-width uploads, memory size, and array/cube readbacks",
   (format, channels, half, bytesPerTexel) => {
@@ -139,6 +144,7 @@ it("throws on float readback and skips mipmap generation when color-renderable s
     for (const format of [
       TextureFormat.R16_SFloat,
       TextureFormat.R16G16_SFloat,
+      TextureFormat.R16G16B16A16_SFloat,
       TextureFormat.R32_SFloat,
       TextureFormat.R32G32_SFloat,
       TextureFormat.R32G32B32A32_SFloat

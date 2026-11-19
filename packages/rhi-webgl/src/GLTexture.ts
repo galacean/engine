@@ -74,6 +74,8 @@ export class GLTexture implements IPlatformTexture {
         return {
           internalFormat: gl.RGBA16F,
           baseFormat: gl.RGBA,
+          readFormat: gl.RGBA,
+          readType: gl.FLOAT,
           dataType: gl.HALF_FLOAT,
           isCompressed: false,
           alignment: 8
