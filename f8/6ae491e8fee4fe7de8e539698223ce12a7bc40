@@ -1,0 +1,78 @@
+docs/en/physics/joint/hingeJoint.mdx
+  h_dd004f51a3e5ec 74,131
+docs/zh/physics/joint/hingeJoint.mdx
+  h_dd004f51a3e5ec 74,131
+e2e/.dev/physx.release.js
+  h_dd004f51a3e5ec 1
+e2e/.dev/physx.release.simd.js
+  h_dd004f51a3e5ec 1
+packages/core/src/ComponentsDependencies.ts
+  h_dd004f51a3e5ec 36-87
+packages/core/src/Entity.ts
+  h_dd004f51a3e5ec 267-273,478-487
+packages/core/src/physics/BoxCollider.ts
+  h_dd004f51a3e5ec 15,17,35-47,57-66,68-69
+packages/core/src/physics/CapsuleCollider.ts
+  h_dd004f51a3e5ec 2,16,18,25-28,31-32,37,39,46-49,52-53,68-88,90-96
+packages/core/src/physics/CharacterController.ts
+  h_dd004f51a3e5ec 56,58,65-68,76,78,85-88,96,195,197,204-206,210,217-220,260-266,337-349,354-368
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 63-64,333-352,379,429-440,468-478,596
+packages/core/src/physics/MeshCollider.ts
+  h_dd004f51a3e5ec 19-23,135-146
+packages/core/src/physics/PhysicsScene.ts
+  h_dd004f51a3e5ec 188,409,518,649-656,692-695,716-719,744-747,1022-1032
+packages/core/src/physics/Rigidbody.ts
+  h_dd004f51a3e5ec 11,24-26,46-47,565-586,665-671
+packages/core/src/physics/SphereCollider.ts
+  h_dd004f51a3e5ec 2,13,15,22-25,28-29,33-41
+packages/core/src/physics/joint/HingeJoint.ts
+  h_dd004f51a3e5ec 19-20,52,105,107,111,125,129
+packages/core/src/physics/joint/Joint.ts
+  h_dd004f51a3e5ec 18-20,57,59,68-70,149,163,232-236,259-279,285-290,306,319,425-438
+packages/core/src/physics/joint/JointMotor.ts
+  h_dd004f51a3e5ec 17
+packages/design/src/physics/joints/IHingeJoint.ts
+  h_dd004f51a3e5ec 19
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  h_dd004f51a3e5ec 1,138-140,143-159,165,167,169,171,328-349
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  h_dd004f51a3e5ec 20-53,57-64
+packages/physics-physx/libs/physx.release.js
+  h_dd004f51a3e5ec 1
+packages/physics-physx/libs/physx.release.simd.js
+  h_dd004f51a3e5ec 1
+packages/physics-physx/src/PhysXCharacterController.ts
+  h_dd004f51a3e5ec 2,14-17,116-120,258-260,276-286
+packages/physics-physx/src/PhysXDynamicCollider.ts
+  h_dd004f51a3e5ec 218-229,243-245
+tests/src/core/CompomentDependencies.test.ts
+  h_dd004f51a3e5ec 31-65,72-74
+tests/src/core/physics/CharacterController.test.ts
+  h_dd004f51a3e5ec 13,520-699
+tests/src/core/physics/Collider.test.ts
+  h_dd004f51a3e5ec 652-779
+tests/src/core/physics/HingeJoint.test.ts
+  h_dd004f51a3e5ec 475-497
+tests/src/core/physics/Joint.test.ts
+  h_dd004f51a3e5ec 610-677
+tests/src/core/physics/MeshCollider.test.ts
+  h_dd004f51a3e5ec 623-646
+tests/src/core/physics/PhysicsGameplay.test.ts
+  h_dd004f51a3e5ec 1,4,7,10-18,20-22,24-37,39-70,72-82,84-140,142-246,249-337,339-351,353-560
+tests/src/core/physics/PhysicsScene.test.ts
+  h_dd004f51a3e5ec 2587-2629
+tests/src/core/physics/Rigidbody.test.ts
+  h_dd004f51a3e5ec 14,804-846
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f86ae491e8fee4fe7de8e539698223ce12a7bc40",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
