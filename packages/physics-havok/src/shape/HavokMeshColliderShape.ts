@@ -81,13 +81,16 @@ export class HavokMeshColliderShape extends HavokColliderShape implements IMeshC
     const worldRot = HavokColliderShape._tempWorldRot;
     this._getWorldPose(worldPos, worldRot);
 
-    const res = this._havokPhysics._querySingleShapePointDistance(this._hkShape, worldPos, worldRot, point);
-    if (!res || res.distance <= 0) {
+    if (!this._havokPhysics._querySingleShapePointDistance(this._hkShape, worldPos, worldRot, point, out)) {
       out.set(point.x, point.y, point.z, 0);
-      return out;
     }
-    out.set(res.x, res.y, res.z, res.distance * res.distance);
     return out;
+  }
+
+  override destroy(): void {
+    this._rawVertices = null;
+    this._validIndices = null;
+    super.destroy();
   }
 
   private _prepareMeshData(
@@ -126,7 +129,8 @@ export class HavokMeshColliderShape extends HavokColliderShape implements IMeshC
     }
 
     const rawTriCount = indices.length / 3;
-    const validIndices: number[] = [];
+    const validBuf = new Int32Array(indices.length);
+    let validCount = 0;
     for (let t = 0; t < rawTriCount; t++) {
       const i0 = indices[t * 3];
       const i1 = indices[t * 3 + 1];
@@ -157,16 +161,21 @@ export class HavokMeshColliderShape extends HavokColliderShape implements IMeshC
       const cy = abz * acx - abx * acz;
       const cz = abx * acy - aby * acx;
       if (cx * cx + cy * cy + cz * cz > refSq * 1e-12) {
-        validIndices.push(i0, i1, i2);
+        validBuf[validCount++] = i0;
+        validBuf[validCount++] = i1;
+        validBuf[validCount++] = i2;
       }
     }
 
-    if (validIndices.length === 0) {
+    if (validCount === 0) {
       this._logCookingError("The input geometry may be invalid.");
       return null;
     }
 
-    return { vertices, indices: new Int32Array(validIndices) };
+    return {
+      vertices,
+      indices: validCount === validBuf.length ? validBuf : validBuf.slice(0, validCount)
+    };
   }
 
   private _createHKShape(vertices: Float32Array, indices: Int32Array | null): HP_ShapeId | null {
@@ -180,18 +189,28 @@ export class HavokMeshColliderShape extends HavokColliderShape implements IMeshC
     let trisPtr = 0;
     try {
       vertsPtr = hk._malloc(vertices.length * 4);
-      const vertsView = new Float32Array(hk.HEAPF32.buffer, vertsPtr, vertices.length);
-      for (let o = 0; o < vertices.length; o += 3) {
-        vertsView[o] = vertices[o] * sx;
-        vertsView[o + 1] = vertices[o + 1] * sy;
-        vertsView[o + 2] = vertices[o + 2] * sz;
+      const vertOffset = vertsPtr >>> 2;
+      const heapF32 = hk.HEAPF32;
+      if (sx === 1 && sy === 1 && sz === 1) {
+        heapF32.set(vertices, vertOffset);
+      } else {
+        for (let o = 0, len = vertices.length; o < len; o += 3) {
+          heapF32[vertOffset + o] = vertices[o] * sx;
+          heapF32[vertOffset + o + 1] = vertices[o + 1] * sy;
+          heapF32[vertOffset + o + 2] = vertices[o + 2] * sz;
+        }
       }
 
-      const [res, shapeId] = this._isConvex
-        ? hk.HP_Shape_CreateConvexHull(vertsPtr, numVerts)
-        : ((trisPtr = hk._malloc(indices!.length * 4)),
-          new Int32Array(hk.HEAP32.buffer, trisPtr, indices!.length).set(indices!),
-          hk.HP_Shape_CreateMesh(vertsPtr, numVerts, trisPtr, indices!.length / 3));
+      let res: { value: number };
+      let shapeId: HP_ShapeId;
+      if (this._isConvex) {
+        [res, shapeId] = hk.HP_Shape_CreateConvexHull(vertsPtr, numVerts);
+      } else {
+        const idx = indices!;
+        trisPtr = hk._malloc(idx.length * 4);
+        hk.HEAP32.set(idx, trisPtr >>> 2);
+        [res, shapeId] = hk.HP_Shape_CreateMesh(vertsPtr, numVerts, trisPtr, idx.length / 3);
+      }
 
       if (res.value !== hk.Result.RESULT_OK.value || shapeId[0] === ZERO_HANDLE[0]) {
         this._logCookingError("The input geometry may be invalid.");

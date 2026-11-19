@@ -3,7 +3,7 @@ import { IJoint } from "@galacean/engine-design";
 import { HavokCollider } from "../HavokCollider";
 import { HavokPhysics } from "../HavokPhysics";
 import type { HavokPhysicsScene } from "../HavokPhysicsScene";
-import { HKVector3, HP_ConstraintId } from "../HavokTypes";
+import { HKQuaternion, HKVector3, HP_ConstraintId } from "../HavokTypes";
 
 // Half-ULP of Havok's internal hkHalf16 (7-bit mantissa) SIMD Jacobian storage:
 // prevents false breaking at exact force === breakForce boundaries on offset anchors.
@@ -13,8 +13,18 @@ const BREAK_IMPULSE_TOLERANCE = 1 + 1 / 256;
  * Base class for Havok constraints implementing Galacean IJoint.
  */
 export abstract class HavokJoint implements IJoint {
-  protected static _tempAxisX = new Vector3();
-  protected static _tempAxisY = new Vector3();
+  protected static _tempVecA = new Vector3();
+  protected static _tempVecB = new Vector3();
+  protected static _tempVecC = new Vector3();
+  protected static _tempQuatA = new Quaternion();
+  protected static _tempQuatB = new Quaternion();
+  protected static _tempTupleA: HKVector3 = [0, 0, 0];
+  protected static _tempTupleB: HKVector3 = [0, 0, 0];
+  protected static _tempTupleC: HKVector3 = [0, 0, 0];
+  protected static _tempQTransform: [HKVector3, HKQuaternion] = [
+    [0, 0, 0],
+    [0, 0, 0, 1]
+  ];
 
   /** @internal */
   _hkConstraint: HP_ConstraintId;
@@ -33,18 +43,18 @@ export abstract class HavokJoint implements IJoint {
   protected _destroyed = false;
   protected _enabled = false;
   protected _everEnabled = false;
-  protected _dirty = true;
+  protected _anchorsDirty = true;
+  protected _configDirty = true;
   protected _needsRebuild = false;
 
-  private _boundParentBodyId: bigint | null = null;
-  private _boundChildBodyId: bigint | null = null;
+  private _boundParentBodyPtr = 0;
+  private _boundChildBodyPtr = 0;
   private _boundScene: HavokPhysicsScene | null = null;
 
   constructor(havokPhysics: HavokPhysics, collider: HavokCollider) {
     this._havokPhysics = havokPhysics;
     this._collider = collider;
-    const hk = havokPhysics._hk;
-    this._hkConstraint = hk.HP_Constraint_Create()[1];
+    this._hkConstraint = havokPhysics._hk.HP_Constraint_Create()[1];
     collider._addJoint(this);
     this._attachToScene(collider._scene);
   }
@@ -82,7 +92,8 @@ export abstract class HavokJoint implements IJoint {
   /** @internal */
   _onColliderSceneChanged(): void {
     if (this._destroyed) return;
-    this._dirty = true;
+    this._anchorsDirty = true;
+    this._configDirty = true;
     const scene = this._collider._scene;
     if (scene && (!this._connectedCollider || this._connectedCollider._scene === scene)) {
       this._attachToScene(scene);
@@ -104,23 +115,28 @@ export abstract class HavokJoint implements IJoint {
       }
     }
     this._broken = false;
-    this._dirty = true;
     this._onColliderSceneChanged();
   }
 
   setAnchor(value: Vector3): void {
-    this._anchor.copyFrom(value);
-    this._dirty = true;
+    const a = this._anchor;
+    if (a.x === value.x && a.y === value.y && a.z === value.z) return;
+    a.copyFrom(value);
+    this._anchorsDirty = true;
   }
 
   setConnectedAnchor(value: Vector3): void {
-    this._connectedAnchor.copyFrom(value);
-    this._dirty = true;
+    const a = this._connectedAnchor;
+    if (a.x === value.x && a.y === value.y && a.z === value.z) return;
+    a.copyFrom(value);
+    this._anchorsDirty = true;
   }
 
   setRotation(value: Quaternion): void {
-    this._rotation.copyFrom(value);
-    this._dirty = true;
+    const r = this._rotation;
+    if (r.x === value.x && r.y === value.y && r.z === value.z && r.w === value.w) return;
+    r.copyFrom(value);
+    this._anchorsDirty = true;
   }
 
   setConnectedMassScale(): void {
@@ -182,24 +198,37 @@ export abstract class HavokJoint implements IJoint {
 
   protected _syncAnchors(): void {
     const hk = this._havokPhysics._hk;
-    const ax = HavokJoint._tempAxisX;
-    const ay = HavokJoint._tempAxisY;
+    const ax = HavokJoint._tempVecA;
+    const ay = HavokJoint._tempVecB;
     this._getParentBasis(ax, ay);
 
-    const pX: HKVector3 = [ax.x, ax.y, ax.z];
-    const pY: HKVector3 = [ay.x, ay.y, ay.z];
-    hk.HP_Constraint_SetAnchorInParent(this._hkConstraint, [this._anchor.x, this._anchor.y, this._anchor.z], pX, pY);
+    const tP = HavokJoint._tempTupleA;
+    const tX = HavokJoint._tempTupleB;
+    const tY = HavokJoint._tempTupleC;
+
+    tP[0] = this._anchor.x;
+    tP[1] = this._anchor.y;
+    tP[2] = this._anchor.z;
+    tX[0] = ax.x;
+    tX[1] = ax.y;
+    tX[2] = ax.z;
+    tY[0] = ay.x;
+    tY[1] = ay.y;
+    tY[2] = ay.z;
+    hk.HP_Constraint_SetAnchorInParent(this._hkConstraint, tP, tX, tY);
 
     Vector3.transformByQuat(ax, this._rotation, ax);
     Vector3.transformByQuat(ay, this._rotation, ay);
-    const cX: HKVector3 = [ax.x, ax.y, ax.z];
-    const cY: HKVector3 = [ay.x, ay.y, ay.z];
-    hk.HP_Constraint_SetAnchorInChild(
-      this._hkConstraint,
-      [this._connectedAnchor.x, this._connectedAnchor.y, this._connectedAnchor.z],
-      cX,
-      cY
-    );
+    tP[0] = this._connectedAnchor.x;
+    tP[1] = this._connectedAnchor.y;
+    tP[2] = this._connectedAnchor.z;
+    tX[0] = ax.x;
+    tX[1] = ax.y;
+    tX[2] = ax.z;
+    tY[0] = ay.x;
+    tY[1] = ay.y;
+    tY[2] = ay.z;
+    hk.HP_Constraint_SetAnchorInChild(this._hkConstraint, tP, tX, tY);
   }
 
   protected _attachToScene(scene: HavokPhysicsScene | null): void {
@@ -217,7 +246,8 @@ export abstract class HavokJoint implements IJoint {
     this._scene?._removeJoint(this);
     this._scene = scene;
     this._scene?._addJoint(this);
-    this._dirty = true;
+    this._anchorsDirty = true;
+    this._configDirty = true;
   }
 
   protected _syncConstraint(dt: number): void {
@@ -233,17 +263,15 @@ export abstract class HavokJoint implements IJoint {
       return;
     }
 
-    if (this._scene !== scene) {
-      this._attachToScene(scene);
-    }
-
     const parentBody = this._collider._hkBody;
+    const parentBodyPtr = this._collider._hkBodyPtr;
     const childBody = this._connectedCollider ? this._connectedCollider._hkBody : scene._worldAnchorBody;
+    const childBodyPtr = this._connectedCollider ? this._connectedCollider._hkBodyPtr : scene._worldAnchorBodyPtr;
 
     // Havok WASM bakes parent/child bodies into the solver constraint on first HP_Constraint_SetEnabled(1);
     // retargeting bodies or clearing soft-limit modifiers requires recreating the constraint handle.
     const bodiesChanged =
-      this._everEnabled && (this._boundParentBodyId !== parentBody[0] || this._boundChildBodyId !== childBody[0]);
+      this._everEnabled && (this._boundParentBodyPtr !== parentBodyPtr || this._boundChildBodyPtr !== childBodyPtr);
 
     if (this._needsRebuild || bodiesChanged) {
       if (this._enabled) {
@@ -254,24 +282,31 @@ export abstract class HavokJoint implements IJoint {
       this._hkConstraint = hk.HP_Constraint_Create()[1];
       this._everEnabled = false;
       this._needsRebuild = false;
-      this._dirty = true;
-      this._boundParentBodyId = null;
-      this._boundChildBodyId = null;
+      this._anchorsDirty = true;
+      this._configDirty = true;
+      this._boundParentBodyPtr = 0;
+      this._boundChildBodyPtr = 0;
       this._boundScene = null;
       this._onConstraintRecreated();
     }
 
-    if (this._dirty || !this._enabled) {
+    if (this._anchorsDirty || this._configDirty || !this._enabled) {
       if (!this._everEnabled) {
         hk.HP_Constraint_SetCollisionsEnabled(this._hkConstraint, 0);
         hk.HP_Constraint_SetParentBody(this._hkConstraint, parentBody);
         hk.HP_Constraint_SetChildBody(this._hkConstraint, childBody);
-        this._boundParentBodyId = parentBody[0];
-        this._boundChildBodyId = childBody[0];
+        this._boundParentBodyPtr = parentBodyPtr;
+        this._boundChildBodyPtr = childBodyPtr;
       }
 
-      this._syncAnchors();
-      this._applyConstraintConfig(dt);
+      if (this._anchorsDirty) {
+        this._syncAnchors();
+        this._anchorsDirty = false;
+      }
+      if (this._configDirty) {
+        this._applyConstraintConfig(dt);
+        this._configDirty = false;
+      }
 
       if (!this._enabled) {
         hk.HP_Constraint_SetEnabled(this._hkConstraint, 1);
@@ -279,7 +314,6 @@ export abstract class HavokJoint implements IJoint {
         this._everEnabled = true;
         this._boundScene = scene;
       }
-      this._dirty = false;
     }
   }
 }

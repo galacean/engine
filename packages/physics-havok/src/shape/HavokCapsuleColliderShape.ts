@@ -17,9 +17,14 @@ const enum HavokCapsuleUpAxis {
  * Capsule collider shape for Havok.
  */
 export class HavokCapsuleColliderShape extends HavokColliderShape implements ICapsuleColliderShape {
+  private static _tempPointA: HKVector3 = [0, 0, 0];
+  private static _tempPointB: HKVector3 = [0, 0, 0];
+
   private _radius: number;
   private _height: number;
   private _upAxis: HavokCapsuleUpAxis = HavokCapsuleUpAxis.Y;
+  private _effectiveRadius: number;
+  private _effectiveHalfH: number;
 
   constructor(
     havokPhysics: HavokPhysics,
@@ -31,7 +36,9 @@ export class HavokCapsuleColliderShape extends HavokColliderShape implements ICa
     super(havokPhysics, uniqueID, material);
     this._radius = radius;
     this._height = height;
-    this._initShape(this._createCapsuleShape());
+    this._effectiveRadius = this._getScaledRadius();
+    this._effectiveHalfH = this._getScaledHalfHeight();
+    this._initShape(this._createCapsuleShape(this._effectiveRadius, this._effectiveHalfH));
   }
 
   setRadius(radius: number): void {
@@ -39,7 +46,7 @@ export class HavokCapsuleColliderShape extends HavokColliderShape implements ICa
       return;
     }
     this._radius = radius;
-    this._replaceHKShape(this._createCapsuleShape());
+    this._rebuildIfEffectiveChanged();
   }
 
   setHeight(height: number): void {
@@ -47,19 +54,22 @@ export class HavokCapsuleColliderShape extends HavokColliderShape implements ICa
       return;
     }
     this._height = height;
-    this._replaceHKShape(this._createCapsuleShape());
+    this._rebuildIfEffectiveChanged();
   }
 
   setUpAxis(upAxis: number): void {
-    if (this._upAxis === upAxis) {
+    const nextAxis = upAxis === 0 || upAxis === 2 ? (upAxis as HavokCapsuleUpAxis) : HavokCapsuleUpAxis.Y;
+    if (this._upAxis === nextAxis) {
       return;
     }
-    this._upAxis = upAxis as HavokCapsuleUpAxis;
-    this._replaceHKShape(this._createCapsuleShape());
+    this._upAxis = nextAxis;
+    this._effectiveRadius = this._getScaledRadius();
+    this._effectiveHalfH = this._getScaledHalfHeight();
+    this._replaceHKShape(this._createCapsuleShape(this._effectiveRadius, this._effectiveHalfH));
   }
 
   protected override _onScaleChanged(): void {
-    this._replaceHKShape(this._createCapsuleShape());
+    this._rebuildIfEffectiveChanged();
   }
 
   override pointDistance(point: Vector3): Vector4 {
@@ -68,15 +78,15 @@ export class HavokCapsuleColliderShape extends HavokColliderShape implements ICa
     const worldRot = HavokColliderShape._tempWorldRot;
     this._getWorldPose(worldPos, worldRot);
 
-    const invRot = HavokColliderShape._tempQuatInv;
+    const invRot = HavokColliderShape._tempQuat;
     Quaternion.invert(worldRot, invRot);
 
     const localPt = HavokColliderShape._tempVector3;
     Vector3.subtract(point, worldPos, localPt);
     Vector3.transformByQuat(localPt, invRot, localPt);
 
-    const halfH = this._getScaledHalfHeight();
-    const radius = this._getScaledRadius();
+    const halfH = this._effectiveHalfH;
+    const radius = this._effectiveRadius;
 
     let sx = 0,
       sy = 0,
@@ -109,62 +119,47 @@ export class HavokCapsuleColliderShape extends HavokColliderShape implements ICa
     return out;
   }
 
+  private _rebuildIfEffectiveChanged(): void {
+    const nextR = this._getScaledRadius();
+    const nextH = this._getScaledHalfHeight();
+    if (nextR === this._effectiveRadius && nextH === this._effectiveHalfH) {
+      return;
+    }
+    this._effectiveRadius = nextR;
+    this._effectiveHalfH = nextH;
+    this._replaceHKShape(this._createCapsuleShape(nextR, nextH));
+  }
+
   private _getScaledRadius(): number {
     const s = this._worldScale;
-    let rScale: number;
-    switch (this._upAxis) {
-      case HavokCapsuleUpAxis.X:
-        rScale = Math.max(s.y, s.z);
-        break;
-      case HavokCapsuleUpAxis.Z:
-        rScale = Math.max(s.x, s.y);
-        break;
-      case HavokCapsuleUpAxis.Y:
-      default:
-        rScale = Math.max(s.x, s.z);
-        break;
-    }
+    const axis = this._upAxis;
+    const rScale =
+      axis === HavokCapsuleUpAxis.X
+        ? Math.max(s.y, s.z)
+        : axis === HavokCapsuleUpAxis.Z
+          ? Math.max(s.x, s.y)
+          : Math.max(s.x, s.z);
     return Math.max(Math.abs(this._radius) * rScale, MIN_DIM);
   }
 
   private _getScaledHalfHeight(): number {
     const s = this._worldScale;
-    let hScale: number;
-    switch (this._upAxis) {
-      case HavokCapsuleUpAxis.X:
-        hScale = s.x;
-        break;
-      case HavokCapsuleUpAxis.Z:
-        hScale = s.z;
-        break;
-      case HavokCapsuleUpAxis.Y:
-      default:
-        hScale = s.y;
-        break;
-    }
+    const axis = this._upAxis;
+    const hScale = axis === HavokCapsuleUpAxis.X ? s.x : axis === HavokCapsuleUpAxis.Z ? s.z : s.y;
     return Math.max(Math.abs(this._height) * 0.5 * hScale, MIN_DIM);
   }
 
-  private _createCapsuleShape(): HP_ShapeId {
-    const halfH = this._getScaledHalfHeight();
-    const radius = this._getScaledRadius();
-    let pointA: HKVector3;
-    let pointB: HKVector3;
-    switch (this._upAxis) {
-      case HavokCapsuleUpAxis.X:
-        pointA = [-halfH, 0, 0];
-        pointB = [halfH, 0, 0];
-        break;
-      case HavokCapsuleUpAxis.Z:
-        pointA = [0, 0, -halfH];
-        pointB = [0, 0, halfH];
-        break;
-      case HavokCapsuleUpAxis.Y:
-      default:
-        pointA = [0, -halfH, 0];
-        pointB = [0, halfH, 0];
-        break;
-    }
-    return this._havokPhysics._hk.HP_Shape_CreateCapsule(pointA, pointB, radius)[1];
+  private _createCapsuleShape(radius: number, halfH: number): HP_ShapeId {
+    const pA = HavokCapsuleColliderShape._tempPointA;
+    const pB = HavokCapsuleColliderShape._tempPointB;
+    pA[0] = 0;
+    pA[1] = 0;
+    pA[2] = 0;
+    pB[0] = 0;
+    pB[1] = 0;
+    pB[2] = 0;
+    pA[this._upAxis] = -halfH;
+    pB[this._upAxis] = halfH;
+    return this._havokPhysics._hk.HP_Shape_CreateCapsule(pA, pB, radius)[1];
   }
 }

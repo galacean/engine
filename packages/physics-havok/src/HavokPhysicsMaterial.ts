@@ -13,22 +13,18 @@ export interface HavokMaterialConsumer {
  */
 export class HavokPhysicsMaterial implements IPhysicsMaterial {
   private _havokPhysics: HavokPhysics;
-  private _staticFriction: number;
-  private _dynamicFriction: number;
-  private _bounciness: number;
-  private _frictionCombine: number;
-  private _bounceCombine: number;
   private _hkMaterial: HKPhysicsMaterial;
   private _consumers = new Set<HavokMaterialConsumer>();
 
   constructor(havokPhysics: HavokPhysics, properties: IPhysicsMaterialProperties) {
     this._havokPhysics = havokPhysics;
-    this._staticFriction = properties.staticFriction;
-    this._dynamicFriction = properties.dynamicFriction;
-    this._bounciness = properties.bounciness;
-    this._frictionCombine = properties.frictionCombine;
-    this._bounceCombine = properties.bounceCombine;
-    this._hkMaterial = this._buildHKMaterial();
+    this._hkMaterial = [
+      properties.staticFriction,
+      properties.dynamicFriction,
+      properties.bounciness,
+      this._mapCombineMode(properties.frictionCombine),
+      this._mapCombineMode(properties.bounceCombine)
+    ];
   }
 
   /** @internal */
@@ -47,27 +43,34 @@ export class HavokPhysicsMaterial implements IPhysicsMaterial {
   }
 
   setBounciness(value: number): void {
-    this._bounciness = value;
+    if (this._hkMaterial[2] === value) return;
+    this._hkMaterial[2] = value;
     this._syncConsumers();
   }
 
   setDynamicFriction(value: number): void {
-    this._dynamicFriction = value;
+    if (this._hkMaterial[1] === value) return;
+    this._hkMaterial[1] = value;
     this._syncConsumers();
   }
 
   setStaticFriction(value: number): void {
-    this._staticFriction = value;
+    if (this._hkMaterial[0] === value) return;
+    this._hkMaterial[0] = value;
     this._syncConsumers();
   }
 
   setBounceCombine(value: number): void {
-    this._bounceCombine = value;
+    const mapped = this._mapCombineMode(value);
+    if (this._hkMaterial[4] === mapped) return;
+    this._hkMaterial[4] = mapped;
     this._syncConsumers();
   }
 
   setFrictionCombine(value: number): void {
-    this._frictionCombine = value;
+    const mapped = this._mapCombineMode(value);
+    if (this._hkMaterial[3] === mapped) return;
+    this._hkMaterial[3] = mapped;
     this._syncConsumers();
   }
 
@@ -76,21 +79,10 @@ export class HavokPhysicsMaterial implements IPhysicsMaterial {
   }
 
   private _syncConsumers(): void {
-    this._hkMaterial = this._buildHKMaterial();
     const mat = this._hkMaterial;
-    this._consumers.forEach((consumer) => {
-      consumer._applyHKMaterial(mat);
-    });
-  }
-
-  private _buildHKMaterial(): HKPhysicsMaterial {
-    return [
-      this._staticFriction,
-      this._dynamicFriction,
-      this._bounciness,
-      this._mapCombineMode(this._frictionCombine),
-      this._mapCombineMode(this._bounceCombine)
-    ];
+    for (let it = this._consumers.values(), cur = it.next(); !cur.done; cur = it.next()) {
+      cur.value._applyHKMaterial(mat);
+    }
   }
 
   private _mapCombineMode(mode: number): HKEnumValue {

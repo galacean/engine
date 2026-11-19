@@ -2,7 +2,7 @@ import { Vector3, Vector4 } from "@galacean/engine";
 import { ISphereColliderShape } from "@galacean/engine-design";
 import { HavokPhysics } from "../HavokPhysics";
 import { HavokPhysicsMaterial } from "../HavokPhysicsMaterial";
-import { HP_ShapeId } from "../HavokTypes";
+import { HP_ShapeId, ZERO_VEC3 } from "../HavokTypes";
 import { HavokColliderShape } from "./HavokColliderShape";
 
 const MIN_RADIUS = 1e-4;
@@ -12,11 +12,13 @@ const MIN_RADIUS = 1e-4;
  */
 export class HavokSphereColliderShape extends HavokColliderShape implements ISphereColliderShape {
   private _radius: number;
+  private _effectiveRadius: number;
 
   constructor(havokPhysics: HavokPhysics, uniqueID: number, radius: number, material: HavokPhysicsMaterial) {
     super(havokPhysics, uniqueID, material);
     this._radius = radius;
-    this._initShape(this._createSphereShape());
+    this._effectiveRadius = this._getScaledRadius();
+    this._initShape(this._createSphereShape(this._effectiveRadius));
   }
 
   setRadius(radius: number): void {
@@ -24,23 +26,32 @@ export class HavokSphereColliderShape extends HavokColliderShape implements ISph
       return;
     }
     this._radius = radius;
-    this._replaceHKShape(this._createSphereShape());
+    const nextRadius = this._getScaledRadius();
+    if (nextRadius === this._effectiveRadius) {
+      return;
+    }
+    this._effectiveRadius = nextRadius;
+    this._replaceHKShape(this._createSphereShape(nextRadius));
   }
 
   protected override _onScaleChanged(): void {
-    this._replaceHKShape(this._createSphereShape());
+    const nextRadius = this._getScaledRadius();
+    if (nextRadius === this._effectiveRadius) {
+      return;
+    }
+    this._effectiveRadius = nextRadius;
+    this._replaceHKShape(this._createSphereShape(nextRadius));
   }
 
   override pointDistance(point: Vector3): Vector4 {
     const out = HavokColliderShape._tempVector4;
     const worldPos = HavokColliderShape._tempWorldPos;
-    const worldRot = HavokColliderShape._tempWorldRot;
-    this._getWorldPose(worldPos, worldRot);
+    this._getWorldPosition(worldPos);
 
     const diff = HavokColliderShape._tempVector3;
     Vector3.subtract(point, worldPos, diff);
     const dist = diff.length();
-    const scaledRadius = this._getScaledRadius();
+    const scaledRadius = this._effectiveRadius;
 
     if (dist <= scaledRadius) {
       out.set(point.x, point.y, point.z, 0);
@@ -63,7 +74,7 @@ export class HavokSphereColliderShape extends HavokColliderShape implements ISph
     return Math.max(Math.abs(this._radius) * maxScale, MIN_RADIUS);
   }
 
-  private _createSphereShape(): HP_ShapeId {
-    return this._havokPhysics._hk.HP_Shape_CreateSphere([0, 0, 0], this._getScaledRadius())[1];
+  private _createSphereShape(radius: number): HP_ShapeId {
+    return this._havokPhysics._hk.HP_Shape_CreateSphere(ZERO_VEC3, radius)[1];
   }
 }

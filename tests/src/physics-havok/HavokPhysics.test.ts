@@ -1370,4 +1370,474 @@ describe("HavokPhysics simulation, queries, character controller, events & joint
       expect(highDampSpeed).toBeLessThan(lowDampSpeed);
     });
   });
+
+  describe("Tier 2 C-ABI parity, Tier 1 fallback & regression coverage", () => {
+    it("produces identical query, transform, CCT, and compound-collision results on Tier 2 C-ABI and Tier 1 Embind fallback", async () => {
+      const rawModule = (havokBackend as unknown as { _hk: Record<string, unknown> })._hk;
+      const tier1Module = new Proxy(rawModule, {
+        get(target, prop) {
+          if (typeof prop === "string" && prop.startsWith("_HP_")) {
+            return undefined;
+          }
+          return Reflect.get(target, prop, target);
+        }
+      });
+
+      const runParitySuite = async (instance: unknown, expectRawAbi: boolean) => {
+        const backend = new HavokPhysics({ havokInstance: instance });
+        await backend.initialize();
+        try {
+          const internalBackend = backend as unknown as { _qTransformScratch: number };
+          expect(internalBackend._qTransformScratch > 0).toBe(expectRawAbi);
+
+          const scene = backend.createPhysicsScene();
+          const internalScene = scene as unknown as { _queryScratchPtr: number };
+          expect(internalScene._queryScratchPtr > 0).toBe(expectRawAbi);
+
+          const mat = createDefaultMaterial(backend);
+
+          // Static compound body (2 boxes at x=-2 and x=+2, plus a trigger box at x=-3 on Layer 2)
+          // and an excluded-from-query blocker at x=-4
+          const blockerShape = backend.createBoxColliderShape(101, new Vector3(1, 1, 1), mat);
+          blockerShape.setIsSceneQuery(false);
+          const blockerCol = backend.createStaticCollider(new Vector3(-4, 0, 0), new Quaternion(0, 0, 0, 1));
+          blockerCol.addShape(blockerShape);
+          scene.addCollider(blockerCol);
+
+          const childA = backend.createBoxColliderShape(201, new Vector3(1, 1, 1), mat);
+          childA.setLocalPose(new Vector3(-2, 0, 0), new Quaternion(0, 0, 0, 1));
+          const childB = backend.createBoxColliderShape(202, new Vector3(1, 1, 1), mat);
+          childB.setLocalPose(new Vector3(2, 0, 0), new Quaternion(0, 0, 0, 1));
+          const childTrigger = backend.createBoxColliderShape(203, new Vector3(0.5, 0.5, 0.5), mat);
+          childTrigger.setIsTrigger(true);
+          childTrigger.setCollisionLayer(2);
+          childTrigger.setLocalPose(new Vector3(-2, 1.4, 0), new Quaternion(0, 0, 0, 1));
+          const compound = backend.createStaticCollider(new Vector3(0, 0, 0), new Quaternion(0, 0, 0, 1));
+          compound.addShape(childA);
+          compound.addShape(childB);
+          compound.addShape(childTrigger);
+          scene.addCollider(compound);
+
+          // Dynamic falling box with non-identity rotation hitting compound childB at x=2
+          const dynRotIn = new Quaternion(0.258819, 0.482963, -0.12941, 0.826659).normalize();
+          const dynShape = backend.createBoxColliderShape(301, new Vector3(1, 1, 1), mat);
+          const dynCol = backend.createDynamicCollider(new Vector3(2, 0.9, 0), dynRotIn);
+          dynCol.addShape(dynShape);
+          scene.addCollider(dynCol);
+          scene.setContactEventEnabled(true);
+
+          const round3 = (v: number) => Math.round(v * 1000) / 1000;
+          const roundVec = (v: Vector3) => [round3(v.x), round3(v.y), round3(v.z)];
+
+          // 1. getWorldTransform parity (position + non-identity quaternion)
+          const pos = new Vector3();
+          const rot = new Quaternion();
+          dynCol.getWorldTransform(pos, rot);
+
+          // 2. Raycast fast path (capacity=1), fallback path (hits !isSceneQuery blocker first, then childA),
+          //    boolean check, and specific layerMask filtering (Layer 2 trigger only)
+          let rayId = -1;
+          let rayDist = -1;
+          let rayPt: number[] = [];
+          let rayNorm: number[] = [];
+          const rayHit = scene.raycast(new Vector3(-6, 0, 0), new Vector3(1, 0, 0), 20, 0xffffffff, (id, d, p, n) => {
+            rayId = id;
+            rayDist = d;
+            rayPt = roundVec(p);
+            rayNorm = roundVec(n);
+          });
+          const rayBool = scene.raycast(new Vector3(-6, 0, 0), new Vector3(1, 0, 0), 20, 0xffffffff);
+          const rayMiss = scene.raycast(new Vector3(0, 20, 0), new Vector3(1, 0, 0), 20, 0xffffffff);
+          let layer2RayId = -1;
+          scene.raycast(new Vector3(-6, 1.4, 0), new Vector3(1, 0, 0), 20, 1 << 2, (id) => {
+            layer2RayId = id;
+          });
+          const layer3RayMiss = scene.raycast(new Vector3(-6, 1.4, 0), new Vector3(1, 0, 0), 20, 1 << 3);
+
+          // 3. raycastAll (multi-hit + reentrant raycastAll inside callback)
+          const allHits: Array<{ id: number; dist: number; pt: number[]; norm: number[] }> = [];
+          let reentrantHits = 0;
+          scene.raycastAll(new Vector3(-6, 0, 0), new Vector3(1, 0, 0), 20, 0xffffffff, (id, d, p, n) => {
+            allHits.push({ id, dist: round3(d), pt: roundVec(p), norm: roundVec(n) });
+            if (allHits.length === 1) {
+              scene.raycastAll(new Vector3(-2, 5, 0), new Vector3(0, -1, 0), 10, 0xffffffff, () => {
+                reentrantHits++;
+              });
+            }
+          });
+          allHits.sort((a, b) => a.id - b.id);
+
+          // 4. sphereCast, boxCast, capsuleCast & overlap*All with non-identity query orientation
+          const queryRot = new Quaternion();
+          Quaternion.rotationYawPitchRoll(Math.PI / 6, 0.2, -0.1, queryRot);
+          let sphereCastId = -1;
+          let sphereCastDist = -1;
+          let sphereCastNorm: number[] = [];
+          scene.sphereCast(new Vector3(-6, 0, 0), 0.25, new Vector3(1, 0, 0), 20, 0xffffffff, (id, d, _p, n) => {
+            sphereCastId = id;
+            sphereCastDist = d;
+            sphereCastNorm = roundVec(n);
+          });
+          let boxCastId = -1;
+          let boxCastDist = -1;
+          let boxCastPt: number[] = [];
+          let boxCastNorm: number[] = [];
+          scene.boxCast(
+            new Vector3(-6, 0, 0),
+            queryRot,
+            new Vector3(0.2, 0.2, 0.2),
+            new Vector3(1, 0, 0),
+            20,
+            0xffffffff,
+            (id, d, p, n) => {
+              boxCastId = id;
+              boxCastDist = d;
+              boxCastPt = roundVec(p);
+              boxCastNorm = roundVec(n);
+            }
+          );
+          let capsuleCastId = -1;
+          let capsuleCastDist = -1;
+          scene.capsuleCast(
+            new Vector3(-6, 0, 0),
+            0.2,
+            0.4,
+            queryRot,
+            new Vector3(1, 0, 0),
+            20,
+            0xffffffff,
+            (id, d) => {
+              capsuleCastId = id;
+              capsuleCastDist = d;
+            }
+          );
+          const overlapSphere = Array.from(scene.overlapSphereAll(new Vector3(-2, 0, 0), 0.4, 0xffffffff));
+          const overlapBox = Array.from(
+            scene.overlapBoxAll(new Vector3(2, 0, 0), queryRot, new Vector3(0.4, 0.4, 0.4), 0xffffffff)
+          ).sort((a, b) => a - b);
+          const overlapCapsule = Array.from(
+            scene.overlapCapsuleAll(new Vector3(-2, 0, 0), 0.2, 0.4, queryRot, 0xffffffff)
+          );
+          const overlapLayer2 = Array.from(scene.overlapSphereAll(new Vector3(-2, 1.4, 0), 0.4, 1 << 2));
+
+          // 5. CharacterController depenetrate & castMove passing THROUGH childTrigger at y=1.4 to land on childA at y=0.5
+          const cct = backend.createCharacterController(401, mat);
+          cct.setBox(new Vector3(0.4, 0.4, 0.4));
+          cct.setWorldPosition(new Vector3(-2, 2.2, 0));
+          scene.addCharacterController(cct);
+          const cctFlags = cct.move(new Vector3(0, -3, 0), 0.0001);
+          const cctPos = new Vector3();
+          cct.getWorldPosition(cctPos);
+
+          // 6. Compound collision event harvesting (multi-shape container path iterator + contact point details)
+          scene.update(1 / 60);
+          const events = scene.updateEvents();
+          const contactDetails: Array<{
+            ids: [number, number, number];
+            count: number;
+            pt0: number[];
+            norm0: number[];
+            imp0: number[];
+            sep0: number;
+          }> = [];
+          for (let i = 0; i < events.contactEventCount; i++) {
+            const ev = events.contactEvents[i];
+            const contacts = ev.getContacts();
+            const c0 = contacts.size() > 0 ? contacts.get(0) : null;
+            contactDetails.push({
+              ids: [ev.shape0Id, ev.shape1Id, ev.state],
+              count: ev.contactCount,
+              pt0: c0 ? roundVec(c0.position) : [],
+              norm0: c0 ? roundVec(c0.normal) : [],
+              imp0: c0 ? roundVec(c0.impulse) : [],
+              sep0: c0 ? round3(c0.separation) : 0
+            });
+          }
+
+          scene.removeCharacterController(cct);
+          cct.destroy();
+          scene.removeCollider(dynCol);
+          scene.removeCollider(compound);
+          scene.removeCollider(blockerCol);
+          dynCol.destroy();
+          compound.destroy();
+          blockerCol.destroy();
+          dynShape.destroy();
+          childA.destroy();
+          childB.destroy();
+          childTrigger.destroy();
+          blockerShape.destroy();
+          mat.destroy();
+          scene.destroy();
+
+          return {
+            pos: roundVec(pos),
+            rot: [round3(rot.x), round3(rot.y), round3(rot.z), round3(rot.w)],
+            rayHit,
+            rayBool,
+            rayMiss,
+            rayId,
+            rayDist: round3(rayDist),
+            rayPt,
+            rayNorm,
+            layer2RayId,
+            layer3RayMiss,
+            allHits,
+            reentrantHits,
+            sphereCastId,
+            sphereCastDist: round3(sphereCastDist),
+            sphereCastNorm,
+            boxCastId,
+            boxCastDist: round3(boxCastDist),
+            boxCastPt,
+            boxCastNorm,
+            capsuleCastId,
+            capsuleCastDist: round3(capsuleCastDist),
+            overlapSphere,
+            overlapBox,
+            overlapCapsule,
+            overlapLayer2,
+            cctFlags,
+            cctY: round3(cctPos.y),
+            contactDetails
+          };
+        } finally {
+          backend.destroy();
+        }
+      };
+
+      const tier2 = await runParitySuite(rawModule, true);
+      const tier1 = await runParitySuite(tier1Module, false);
+
+      expect(tier2).toEqual(tier1);
+      expect(tier2.rayHit).toBe(true);
+      expect(tier2.rayBool).toBe(true);
+      expect(tier2.rayMiss).toBe(false);
+      expect(tier2.rayId).toBe(201);
+      expect(tier2.rayDist).toBeCloseTo(3.5, 3);
+      expect(tier2.layer2RayId).toBe(203);
+      expect(tier2.layer3RayMiss).toBe(false);
+      expect(tier2.allHits.map((h) => h.id)).toEqual([201, 202]);
+      // Downward reentrant ray at x=-2 hits both childTrigger (203) and childA (201), exercising multi-hit reentrancy
+      expect(tier2.reentrantHits).toBe(2);
+      expect(tier2.sphereCastId).toBe(201);
+      expect(tier2.boxCastId).toBe(201);
+      expect(tier2.capsuleCastId).toBe(201);
+      expect(tier2.overlapSphere).toEqual([201]);
+      expect(tier2.overlapBox).toEqual([202, 301]);
+      expect(tier2.overlapCapsule).toEqual([201]);
+      expect(tier2.overlapLayer2).toEqual([203]);
+      // CCT passes straight through trigger at y=1.4 and lands on solid childA top (y = 0.5 + 0.4 + 0.02 = 0.92)
+      expect(tier2.cctFlags & ControllerCollisionFlag.Down).toBe(ControllerCollisionFlag.Down);
+      expect(tier2.cctY).toBeCloseTo(0.92, 2);
+      expect(tier2.contactDetails).toHaveLength(1);
+      expect(tier2.contactDetails[0].ids).toEqual([202, 301, 0]);
+      expect(tier2.contactDetails[0].count).toBeGreaterThan(0);
+    });
+
+    it("returns w = -1 from HavokPlaneColliderShape.pointDistance()", () => {
+      const mat = createDefaultMaterial(havokBackend);
+      const planeShape = havokBackend.createPlaneColliderShape(999, mat);
+      try {
+        const res = planeShape.pointDistance(new Vector3(1, 2, 3));
+        expect(res.w).toBe(-1);
+      } finally {
+        planeShape.destroy();
+        mat.destroy();
+      }
+    });
+
+    it("releases raw vertex and index buffers in HavokMeshColliderShape.destroy()", () => {
+      const mat = createDefaultMaterial(havokBackend);
+      const verts = [
+        new Vector3(-1, -1, -1),
+        new Vector3(1, -1, -1),
+        new Vector3(1, 1, -1),
+        new Vector3(-1, 1, -1),
+        new Vector3(-1, -1, 1),
+        new Vector3(1, -1, 1),
+        new Vector3(1, 1, 1),
+        new Vector3(-1, 1, 1)
+      ];
+      const indices = new Uint16Array([
+        0, 3, 2, 0, 2, 1, 4, 5, 6, 4, 6, 7, 0, 1, 5, 0, 5, 4, 3, 7, 6, 3, 6, 2, 0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5
+      ]);
+
+      const convex = havokBackend.createMeshColliderShape(901, verts, null, true, mat, 0)! as unknown as {
+        _rawVertices: Float32Array | null;
+        _validIndices: Int32Array | null;
+        destroy(): void;
+      };
+      const tri = havokBackend.createMeshColliderShape(902, verts, indices, false, mat, 0)! as unknown as {
+        _rawVertices: Float32Array | null;
+        _validIndices: Int32Array | null;
+        destroy(): void;
+      };
+      try {
+        expect(convex._rawVertices).toBeInstanceOf(Float32Array);
+        expect(tri._rawVertices).toBeInstanceOf(Float32Array);
+        expect(tri._validIndices).toBeInstanceOf(Int32Array);
+
+        convex.destroy();
+        tri.destroy();
+        expect(convex._rawVertices).toBeNull();
+        expect(convex._validIndices).toBeNull();
+        expect(tri._rawVertices).toBeNull();
+        expect(tri._validIndices).toBeNull();
+      } finally {
+        mat.destroy();
+      }
+    });
+
+    it("rotates kinematic bodies > 100 rad/s in one step while clamping default, low, and high dynamic bodies accurately", () => {
+      physics.gravity = new Vector3(0, 0, 0);
+
+      // 150 degrees in 1/60s = 157.08 rad/s (> 100 rad/s default world speed limit)
+      const fastTargetRot = new Quaternion();
+      Quaternion.rotationYawPitchRoll((150 * Math.PI) / 180, 0, 0, fastTargetRot);
+
+      // Case A: Dynamic body toggled to kinematic after scene entry
+      const kinEntityA = addBox(new Vector3(1, 1, 1), new Vector3(0, 0, 0), true, false);
+      const kinBodyA = kinEntityA.getComponent(Rigidbody);
+      step();
+      kinBodyA.isKinematic = true;
+      // Also attach an extra collider to exercise _reinsertBody on kinematic bodies
+      const extraBox = kinEntityA.addComponent(BoxCollider);
+      extraBox.center = new Vector3(0.5, 0, 0);
+
+      // Case B: Normal dynamic body with default maxAngularVelocity (100 rad/s = ~5729.6 deg/s)
+      const dynDefault = addBox(new Vector3(1, 1, 1), new Vector3(10, 0, 0), true, false);
+      const dynDefaultBody = dynDefault.getComponent(Rigidbody);
+      dynDefaultBody.angularDamping = 0;
+
+      // Case C: Dynamic body with custom LOW maxAngularVelocity (200 deg/s)
+      const dynLow = addBox(new Vector3(1, 1, 1), new Vector3(20, 0, 0), true, false);
+      const dynLowBody = dynLow.getComponent(Rigidbody);
+      dynLowBody.angularDamping = 0;
+      dynLowBody.maxAngularVelocity = 200;
+
+      // Apply > 100 rad/s angular impulses/velocities & kinematic move simultaneously
+      kinBodyA.move(fastTargetRot);
+      dynDefaultBody.angularVelocity = new Vector3(0, 12000, 0);
+      dynLowBody.angularVelocity = new Vector3(0, 12000, 0);
+      step();
+
+      // Kinematic body must reach the exact 150-degree target in one step (not clamped to 100 rad/s)
+      expect(Math.abs(Quaternion.dot(kinEntityA.transform.worldRotationQuaternion, fastTargetRot))).toBeCloseTo(1, 3);
+      // Default dynamic body stays clamped at 100 rad/s (~5729.6 deg/s)
+      expect(dynDefaultBody.angularVelocity.y).toBeLessThanOrEqual(5735);
+      expect(dynDefaultBody.angularVelocity.y).toBeGreaterThan(5700);
+      // Low-limit dynamic body stays clamped at 200 deg/s
+      expect(dynLowBody.angularVelocity.y).toBeCloseTo(200, 1);
+
+      // Step 2+: Repeated fast kinematic rotation back to identity (> 100 rad/s after prior steps)
+      // must ALSO reach the exact target while default dynamic body remains clamped at 100 rad/s
+      const identityRot = new Quaternion(0, 0, 0, 1);
+      kinBodyA.move(identityRot);
+      dynDefaultBody.angularVelocity = new Vector3(0, 12000, 0);
+      step();
+      expect(Math.abs(Quaternion.dot(kinEntityA.transform.worldRotationQuaternion, identityRot))).toBeCloseTo(1, 3);
+      expect(dynDefaultBody.angularVelocity.y).toBeLessThanOrEqual(5735);
+      expect(dynDefaultBody.angularVelocity.y).toBeGreaterThan(5700);
+
+      // Case D: Dynamic body with custom HIGH maxAngularVelocity (10000 deg/s = 174.5 rad/s > 100 rad/s)
+      const dynHigh = addBox(new Vector3(1, 1, 1), new Vector3(30, 0, 0), true, false);
+      const dynHighBody = dynHigh.getComponent(Rigidbody);
+      dynHighBody.angularDamping = 0;
+      dynHighBody.maxAngularVelocity = 10000;
+      dynHighBody.angularVelocity = new Vector3(0, 15000, 0);
+      dynDefaultBody.angularVelocity = new Vector3(0, 15000, 0);
+      step();
+
+      expect(dynHighBody.angularVelocity.y).toBeCloseTo(10000, 0);
+      expect(dynDefaultBody.angularVelocity.y).toBeLessThanOrEqual(5735);
+      // Step 2 while dynHigh is still active: dynDefault must STILL be clamped to 100 rad/s even after world 1e6 flushes
+      dynDefaultBody.angularVelocity = new Vector3(0, 15000, 0);
+      step();
+      expect(dynDefaultBody.angularVelocity.y).toBeLessThanOrEqual(5735);
+
+      // Lowering high body back to default restores resting world speed limit cleanly even under direct torque
+      dynHigh.destroy();
+      dynDefaultBody.angularVelocity = new Vector3(0, 0, 0);
+      dynDefaultBody.applyTorque(new Vector3(0, 500000, 0));
+      step();
+      expect(dynDefaultBody.angularVelocity.y).toBeLessThanOrEqual(5735);
+      expect(dynDefaultBody.angularVelocity.y).toBeGreaterThan(5700);
+    });
+
+    it("rotates pre-existing and newly-added kinematic bodies > 100 rad/s across deferred speed-limit upgrades and downgrades", () => {
+      physics.gravity = new Vector3(0, 0, 0);
+
+      // 150 degrees in 1/60s = 157.08 rad/s (> 100 rad/s resting world speed limit)
+      const fastTargetRot = new Quaternion();
+      Quaternion.rotationYawPitchRoll((150 * Math.PI) / 180, 0, 0, fastTargetRot);
+
+      // Deferred upgrade: K exists at resting 100 rad/s limit; D_high raises pending limit to 1e6 before step()
+      const kinPre = addBox(new Vector3(1, 1, 1), new Vector3(0, 0, 0), true, true);
+      const kinPreBody = kinPre.getComponent(Rigidbody);
+      step(); // K is now settled at resting 100 rad/s
+
+      const dynHigh = addBox(new Vector3(1, 1, 1), new Vector3(10, 0, 0), true, false);
+      const dynHighBody = dynHigh.getComponent(Rigidbody);
+      dynHighBody.angularDamping = 0;
+      dynHighBody.maxAngularVelocity = 10000;
+      // Add another shape to exercise _reinsertBody preserving high angular velocity without clamping to 100
+      dynHighBody.angularVelocity = new Vector3(0, 9000, 0);
+      dynHigh.addComponent(BoxCollider).center = new Vector3(0, 1, 0);
+
+      // Same step BEFORE HP_World_Step flushes SetSpeedLimit(1e6): K must STILL reach exact 150 deg target
+      kinPreBody.move(fastTargetRot);
+      step();
+      expect(Math.abs(Quaternion.dot(kinPre.transform.worldRotationQuaternion, fastTargetRot))).toBeCloseTo(1, 3);
+      expect(dynHighBody.angularVelocity.y).toBeCloseTo(9000, 0);
+
+      // Deferred downgrade: destroy D_high (queues SetSpeedLimit(100)) and add a NEW kinematic body on the same step
+      dynHigh.destroy();
+      const kinPost = addBox(new Vector3(1, 1, 1), new Vector3(-10, 0, 0), true, true);
+      const kinPostBody = kinPost.getComponent(Rigidbody);
+      kinPostBody.move(fastTargetRot);
+      step();
+      expect(Math.abs(Quaternion.dot(kinPost.transform.worldRotationQuaternion, fastTargetRot))).toBeCloseTo(1, 3);
+    });
+
+    it("skips redundant HP_Body_SetQTransform writes on sleeping rotated FixedJoints despite float32 quaternion rounding", () => {
+      physics.gravity = new Vector3(0, 0, 0);
+      const rot = new Quaternion(0.258819, 0.482963, -0.12941, 0.826659).normalize();
+      const box = addBox(new Vector3(1, 1, 1), new Vector3(2, 3, 4), true, false);
+      box.transform.rotationQuaternion = rot;
+      const body = box.getComponent(Rigidbody);
+      const joint = box.addComponent(FixedJoint);
+      joint.automaticConnectedAnchor = false;
+      joint.connectedAnchor = new Vector3(2, 3, 4);
+
+      step(2);
+      body.sleep();
+
+      const hk = (havokBackend as unknown as { _hk: { HP_Body_SetQTransform: (...args: unknown[]) => unknown } })._hk;
+      const setQtSpy = vi.spyOn(hk, "HP_Body_SetQTransform");
+      step(5);
+      expect(setQtSpy).not.toHaveBeenCalled();
+    });
+
+    it("grows the multi-hit query collector past 256 simultaneous overlapping bodies in CharacterController.move()", () => {
+      const role = root.createChild("crowded-cct");
+      role.transform.setPosition(0, 0, 0);
+      const cc = role.addComponent(CharacterController);
+      cc.geometry = CharacterControllerGeometry.Box;
+      cc.size = new Vector3(1, 1, 1);
+
+      // Place 280 overlapping boxes directly around the controller (> initial 256 collector capacity)
+      for (let i = 0; i < 280; i++) {
+        addBox(new Vector3(2, 0.5, 2), new Vector3(0, -0.5, 0));
+      }
+
+      const flags = cc.move(new Vector3(0, -0.1, 0), 0.0001, physics.fixedTimeStep);
+      expect(flags & ControllerCollisionFlag.Down).toBe(ControllerCollisionFlag.Down);
+      expect(role.transform.position.y).toBeGreaterThan(0.2);
+
+      const nativeScene = (physics as unknown as { _nativePhysicsScene: { _collectorCapacity: number } })
+        ._nativePhysicsScene;
+      expect(nativeScene._collectorCapacity).toBeGreaterThanOrEqual(512);
+    });
+  });
 });

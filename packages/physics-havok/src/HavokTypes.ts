@@ -1,14 +1,16 @@
+import { Quaternion, Vector3 } from "@galacean/engine";
+
 export type HKVector3 = [number, number, number];
 export type HKQuaternion = [number, number, number, number];
-export type HKQTransform = [HKVector3, HKQuaternion];
-export type HKQSTransform = [HKVector3, HKQuaternion, HKVector3];
+type HKQTransform = [HKVector3, HKQuaternion];
+type HKQSTransform = [HKVector3, HKQuaternion, HKVector3];
 
 export type HP_BodyId = [bigint];
 export type HP_ShapeId = [bigint];
 export type HP_ConstraintId = [bigint];
 export type HP_WorldId = [bigint];
 export type HP_CollectorId = [bigint];
-export type HKShapePathIterator = [bigint, bigint];
+type HKShapePathIterator = [HP_ShapeId, bigint];
 
 export interface HKEnumValue {
   value: number;
@@ -18,16 +20,16 @@ export type HKMassProperties = [HKVector3, number, HKVector3, HKQuaternion];
 export type HKPhysicsMaterial = [number, number, number, HKEnumValue, HKEnumValue];
 export type HKFilterInfo = [number, number];
 
-export type HKContactPoint = [HP_BodyId, HP_ShapeId, HKShapePathIterator, HKVector3, HKVector3, number];
-export type HKRayCastInput = [HKVector3, HKVector3, HKFilterInfo, boolean, HP_BodyId];
-export type HKRayCastResult = [number, HKContactPoint];
-export type HKPointProximityInput = [HKVector3, number, HKFilterInfo, boolean, HP_BodyId];
-export type HKPointProximityResult = [number, HKContactPoint];
-export type HKShapeProximityInput = [HP_ShapeId, HKVector3, HKQuaternion, number, boolean, HP_BodyId];
-export type HKShapeProximityResult = [number, HKContactPoint, HKContactPoint];
-export type HKShapeCastInput = [HP_ShapeId, HKQuaternion, HKVector3, HKVector3, boolean, HP_BodyId];
-export type HKShapeCastResult = [number, HKContactPoint, HKContactPoint];
-export type HKCollisionEvent = [HKEnumValue, HKContactPoint, HKContactPoint, number];
+type HKContactPoint = [HP_BodyId, HP_ShapeId, HKShapePathIterator, HKVector3, HKVector3, number];
+type HKRayCastInput = [HKVector3, HKVector3, HKFilterInfo, boolean, HP_BodyId];
+type HKRayCastResult = [number, HKContactPoint];
+type HKPointProximityInput = [HKVector3, number, HKFilterInfo, boolean, HP_BodyId];
+type HKPointProximityResult = [number, HKContactPoint];
+type HKShapeProximityInput = [HP_ShapeId, HKVector3, HKQuaternion, number, boolean, HP_BodyId];
+type HKShapeProximityResult = [number, HKContactPoint, HKContactPoint];
+type HKShapeCastInput = [HP_ShapeId, HKQuaternion, HKVector3, HKVector3, boolean, HP_BodyId];
+type HKShapeCastResult = [number, HKContactPoint, HKContactPoint];
+type HKCollisionEvent = [HKEnumValue, HKContactPoint, HKContactPoint, number];
 
 export const enum HavokEventBits {
   COLLISION_FINISHED = 4,
@@ -43,6 +45,17 @@ export interface HavokModule {
   HEAPF32: Float32Array;
   _malloc(bytes: number): number;
   _free(ptr: number): void;
+
+  // Optional Tier 2 raw C-ABI entry points for zero-alloc hot paths (auto-detected at runtime)
+  _HP_Body_GetQTransform?(bodyId: bigint, outQTransformPtr: number): number;
+  _HP_World_CastRayWithCollector?(worldId: bigint, collectorId: bigint, inputPtr: number): number;
+  _HP_World_ShapeCastWithCollector?(worldId: bigint, collectorId: bigint, inputPtr: number): number;
+  _HP_World_ShapeProximityWithCollector?(worldId: bigint, collectorId: bigint, inputPtr: number): number;
+  _HP_QueryCollector_GetNumHits?(collectorId: bigint, outNumHitsPtr: number): number;
+  _HP_QueryCollector_GetCastRayResult?(collectorId: bigint, hitIndex: number, outResultPtr: number): number;
+  _HP_QueryCollector_GetShapeCastResult?(collectorId: bigint, hitIndex: number, outResultPtr: number): number;
+  _HP_QueryCollector_GetShapeProximityResult?(collectorId: bigint, hitIndex: number, outResultPtr: number): number;
+  _HP_ShapePathIterator_GetNext?(curIterPtr: number, outNextIterPtr: number, outChildIdxPtr: number): number;
 
   Result: {
     RESULT_OK: HKEnumValue;
@@ -104,7 +117,6 @@ export interface HavokModule {
   HP_Body_Release(bodyId: HP_BodyId): HKEnumValue;
   HP_Body_SetShape(bodyId: HP_BodyId, shapeId: HP_ShapeId): HKEnumValue;
   HP_Body_SetMotionType(bodyId: HP_BodyId, motionType: HKEnumValue): HKEnumValue;
-  HP_Body_GetMotionType(bodyId: HP_BodyId): [HKEnumValue, HKEnumValue];
   HP_Body_SetEventMask(bodyId: HP_BodyId, eventMask: number): HKEnumValue;
   HP_Body_SetMassProperties(bodyId: HP_BodyId, massProps: HKMassProperties): HKEnumValue;
   HP_Body_SetLinearDamping(bodyId: HP_BodyId, damping: number): HKEnumValue;
@@ -198,3 +210,60 @@ export interface HavokShapeIdentity {
 }
 
 export const ZERO_HANDLE: [bigint] = [BigInt(0)];
+export const ZERO_VEC3: HKVector3 = [0, 0, 0];
+export const ONE_VEC3: HKVector3 = [1, 1, 1];
+export const IDENTITY_QUAT: HKQuaternion = [0, 0, 0, 1];
+export const AXIS_X: HKVector3 = [1, 0, 0];
+export const AXIS_Y: HKVector3 = [0, 1, 0];
+export const ALL_FILTER: HKFilterInfo = [0xffffffff, 0xffffffff];
+
+/**
+ * Normalize `src` into an `HKQuaternion` tuple, falling back to identity `[0, 0, 0, 1]` on zero quaternions.
+ */
+export function writeNormalizedQuat(src: Quaternion, out: HKQuaternion): void {
+  const x = src.x;
+  const y = src.y;
+  const z = src.z;
+  const w = src.w;
+  const lenSq = x * x + y * y + z * z + w * w;
+  if (lenSq > 1e-12) {
+    const invLen = 1 / Math.sqrt(lenSq);
+    out[0] = x * invLen;
+    out[1] = y * invLen;
+    out[2] = z * invLen;
+    out[3] = w * invLen;
+  } else {
+    out[0] = 0;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 1;
+  }
+}
+
+/**
+ * Write `pos` and normalized `rot` (falling back to identity on zero quaternion) into an `HKQTransform` tuple.
+ */
+export function writeQTransform(pos: Vector3, rot: Quaternion, out: [HKVector3, HKQuaternion]): void {
+  const p = out[0];
+  p[0] = pos.x;
+  p[1] = pos.y;
+  p[2] = pos.z;
+  writeNormalizedQuat(rot, out[1]);
+}
+
+/**
+ * Normalize `src` into a `Quaternion`, falling back to identity `(0, 0, 0, 1)` on zero quaternions.
+ */
+export function normalizeQuatOrIdentity(src: Quaternion, out: Quaternion): void {
+  const x = src.x;
+  const y = src.y;
+  const z = src.z;
+  const w = src.w;
+  const lenSq = x * x + y * y + z * z + w * w;
+  if (lenSq > 1e-12) {
+    const invLen = 1 / Math.sqrt(lenSq);
+    out.set(x * invLen, y * invLen, z * invLen, w * invLen);
+  } else {
+    out.set(0, 0, 0, 1);
+  }
+}

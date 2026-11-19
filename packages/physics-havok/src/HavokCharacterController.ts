@@ -1,4 +1,4 @@
-import { Quaternion, Vector3 } from "@galacean/engine";
+import { MathUtil, Vector3 } from "@galacean/engine";
 import { ICharacterController } from "@galacean/engine-design";
 import { HavokPhysics } from "./HavokPhysics";
 import { HavokMaterialConsumer, HavokPhysicsMaterial } from "./HavokPhysicsMaterial";
@@ -10,7 +10,9 @@ import {
   HKQuaternion,
   HKVector3,
   HP_BodyId,
-  HP_ShapeId
+  HP_ShapeId,
+  IDENTITY_QUAT,
+  ZERO_VEC3
 } from "./HavokTypes";
 
 const enum CollisionFlags {
@@ -55,7 +57,6 @@ interface DownMoveResult {
  *   PhysX-compatible 3-pass (UP -> SIDE -> DOWN) collide-and-slide sweeps.
  */
 export class HavokCharacterController implements ICharacterController, HavokMaterialConsumer, HavokShapeIdentity {
-  private static _identityQuat: HKQuaternion = [0, 0, 0, 1];
   private static _tempCenter = new Vector3();
   private static _tempSavedCenter = new Vector3();
   private static _tempHoriz = new Vector3();
@@ -63,8 +64,21 @@ export class HavokCharacterController implements ICharacterController, HavokMate
   private static _tempRem = new Vector3();
   private static _tempPrevN = new Vector3();
   private static _tempBlockN = new Vector3();
-  private static _tempCrease = new Vector3();
-  private static _tempQuat = new Quaternion();
+
+  private static _tempQTransform: [HKVector3, HKQuaternion] = [[0, 0, 0], IDENTITY_QUAT];
+  private static _tempExtents: HKVector3 = [0, 0, 0];
+  private static _tempPointA: HKVector3 = [0, 0, 0];
+  private static _tempPointB: HKVector3 = [0, 0, 0];
+  private static _tempCastHit: CastHit = { fraction: 0, nx: 0, ny: 1, nz: 0 };
+  private static _tempDownResult: DownMoveResult = {
+    hit: false,
+    walkable: false,
+    remainDist: 0,
+    nx: 0,
+    ny: 0,
+    nz: 0,
+    nDotUp: 0
+  };
 
   /** @internal */
   readonly _id: number;
@@ -77,6 +91,8 @@ export class HavokCharacterController implements ICharacterController, HavokMate
   /** @internal */
   _hkBody: HP_BodyId | null = null;
   /** @internal */
+  _hkBodyPtr = 0;
+  /** @internal */
   _hkShape: HP_ShapeId | null = null;
   /** @internal */
   _collisionLayer = 0;
@@ -84,6 +100,7 @@ export class HavokCharacterController implements ICharacterController, HavokMate
   private _havokPhysics: HavokPhysics;
   private _material: HavokPhysicsMaterial;
   private _hkSweptShape: HP_ShapeId | null = null;
+  private _hkSweptShapePtr = 0;
   private _isBox = false;
   private _radius = 0.5;
   private _height = 1;
@@ -95,7 +112,7 @@ export class HavokCharacterController implements ICharacterController, HavokMate
   private _nonWalkableMode: number = NonWalkableMode.PreventClimbing;
   private _upDirection = new Vector3(0, 1, 0);
   private _upQuat: HKQuaternion = [0, 0, 0, 1];
-  private _slopeLimitCos = Math.cos((45 * Math.PI) / 180);
+  private _slopeLimitCos = Math.cos(MathUtil.degreeToRadian(45));
   private _wasGrounded = false;
   private _destroyed = false;
 
@@ -181,11 +198,10 @@ export class HavokCharacterController implements ICharacterController, HavokMate
   }
 
   setMaterial(material: HavokPhysicsMaterial): void {
-    if (this._material !== material) {
-      this._material._removeConsumer(this);
-      this._material = material;
-      this._material._addConsumer(this);
-    }
+    if (this._material === material) return;
+    this._material._removeConsumer(this);
+    this._material = material;
+    this._material._addConsumer(this);
     this._applyHKMaterial(material._getHKMaterial());
   }
 
@@ -248,7 +264,7 @@ export class HavokCharacterController implements ICharacterController, HavokMate
   }
 
   setSlopeLimit(slopeLimit: number): void {
-    this._slopeLimitCos = Math.cos((slopeLimit * Math.PI) / 180);
+    this._slopeLimitCos = Math.cos(MathUtil.degreeToRadian(slopeLimit));
   }
 
   move(disp: Vector3, minDist: number): number {
@@ -256,7 +272,8 @@ export class HavokCharacterController implements ICharacterController, HavokMate
       return CollisionFlags.None;
     }
 
-    this._scene._flushDirtyColliders();
+    // Skip flushing self broadphase since sweeps/depenetration explicitly ignore `this._hkBody`.
+    this._scene._flushDirtyColliders(this);
 
     const up = this._upDirection;
     const center = HavokCharacterController._tempCenter;
@@ -412,52 +429,56 @@ export class HavokCharacterController implements ICharacterController, HavokMate
 
   private _updateUpQuaternion(): void {
     const u = this._upDirection;
+    const out = this._upQuat;
     // Shortest-arc quaternion from +Y (0, 1, 0) to u.
     if (u.y > 1 - 1e-6) {
-      this._upQuat = [0, 0, 0, 1];
+      out[0] = 0;
+      out[1] = 0;
+      out[2] = 0;
+      out[3] = 1;
     } else if (u.y < -1 + 1e-6) {
       // 180-degree rotation around X axis.
-      this._upQuat = [1, 0, 0, 0];
+      out[0] = 1;
+      out[1] = 0;
+      out[2] = 0;
+      out[3] = 0;
     } else {
       // cross((0, 1, 0), u) = (u.z, 0, -u.x), w = 1 + u.y
-      const q = HavokCharacterController._tempQuat;
-      q.set(u.z, 0, -u.x, 1 + u.y).normalize();
-      this._upQuat = [q.x, q.y, q.z, q.w];
+      const w = 1 + u.y;
+      const invLen = 1 / Math.sqrt(u.z * u.z + u.x * u.x + w * w);
+      out[0] = u.z * invLen;
+      out[1] = 0;
+      out[2] = -u.x * invLen;
+      out[3] = w * invLen;
     }
   }
 
-  private _createProxyShape(): HP_ShapeId {
+  private _createShape(inflation: number): HP_ShapeId {
     const hk = this._havokPhysics._hk;
     if (this._isBox) {
       const h = this._halfExtents;
-      return hk.HP_Shape_CreateBox([0, 0, 0], this._upQuat, [h.x * 2, h.y * 2, h.z * 2])[1];
+      const ext = HavokCharacterController._tempExtents;
+      ext[0] = (h.x + inflation) * 2;
+      ext[1] = (h.y + inflation) * 2;
+      ext[2] = (h.z + inflation) * 2;
+      return hk.HP_Shape_CreateBox(ZERO_VEC3, this._upQuat, ext)[1];
     }
     const halfH = this._height * 0.5;
     const u = this._upDirection;
-    return hk.HP_Shape_CreateCapsule(
-      [-u.x * halfH, -u.y * halfH, -u.z * halfH],
-      [u.x * halfH, u.y * halfH, u.z * halfH],
-      this._radius
-    )[1];
+    const pA = HavokCharacterController._tempPointA;
+    const pB = HavokCharacterController._tempPointB;
+    pA[0] = -u.x * halfH;
+    pA[1] = -u.y * halfH;
+    pA[2] = -u.z * halfH;
+    pB[0] = u.x * halfH;
+    pB[1] = u.y * halfH;
+    pB[2] = u.z * halfH;
+    return hk.HP_Shape_CreateCapsule(pA, pB, this._radius + inflation)[1];
   }
 
   private _createSweptShape(): HP_ShapeId {
-    const hk = this._havokPhysics._hk;
-    const c = this._contactOffset;
-    let shape: HP_ShapeId;
-    if (this._isBox) {
-      const h = this._halfExtents;
-      shape = hk.HP_Shape_CreateBox([0, 0, 0], this._upQuat, [(h.x + c) * 2, (h.y + c) * 2, (h.z + c) * 2])[1];
-    } else {
-      const halfH = this._height * 0.5;
-      const u = this._upDirection;
-      shape = hk.HP_Shape_CreateCapsule(
-        [-u.x * halfH, -u.y * halfH, -u.z * halfH],
-        [u.x * halfH, u.y * halfH, u.z * halfH],
-        this._radius + c
-      )[1];
-    }
-    hk.HP_Shape_SetFilterInfo(shape, this._havokPhysics._getLayerFilterInfo(this._collisionLayer));
+    const shape = this._createShape(this._contactOffset);
+    this._havokPhysics._hk.HP_Shape_SetFilterInfo(shape, this._havokPhysics._getLayerFilterInfo(this._collisionLayer));
     return shape;
   }
 
@@ -466,7 +487,9 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     if (this._hkSweptShape) {
       hk.HP_Shape_Release(this._hkSweptShape);
     }
-    this._hkSweptShape = this._createSweptShape();
+    const swept = this._createSweptShape();
+    this._hkSweptShape = swept;
+    this._hkSweptShapePtr = Number(swept[0]);
   }
 
   private _rebuildShapesInPlace(): void {
@@ -474,7 +497,7 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     const hk = this._havokPhysics._hk;
     const oldShape = this._hkShape;
 
-    const newShape = this._createProxyShape();
+    const newShape = this._createShape(0);
     hk.HP_Shape_SetMaterial(newShape, this._material._getHKMaterial());
     hk.HP_Shape_SetFilterInfo(newShape, this._havokPhysics._getLayerFilterInfo(this._collisionLayer));
 
@@ -486,9 +509,7 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     this._scene._addColliderShape(this._id);
 
     this._hkShape = newShape;
-    this._havokPhysics._registerShapeHandle(newShape[0], this);
     if (oldShape) {
-      this._havokPhysics._unregisterShapeHandle(oldShape[0]);
       hk.HP_Shape_Release(oldShape);
     }
 
@@ -503,7 +524,7 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     }
 
     const hk = this._havokPhysics._hk;
-    const shape = this._createProxyShape();
+    const shape = this._createShape(0);
     hk.HP_Shape_SetMaterial(shape, this._material._getHKMaterial());
     hk.HP_Shape_SetFilterInfo(shape, this._havokPhysics._getLayerFilterInfo(this._collisionLayer));
 
@@ -513,16 +534,18 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     hk.HP_Body_SetMotionType(body, hk.MotionType.KINEMATIC);
     hk.HP_Body_SetShape(body, shape);
     hk.HP_Body_SetEventMask(body, HavokEventBits.ALL_TRIGGERS);
-    const cx = this._worldPosition.x + this._center.x;
-    const cy = this._worldPosition.y + this._center.y;
-    const cz = this._worldPosition.z + this._center.z;
-    hk.HP_Body_SetQTransform(body, [[cx, cy, cz], HavokCharacterController._identityQuat]);
+    const qt = HavokCharacterController._tempQTransform;
+    qt[0][0] = this._worldPosition.x + this._center.x;
+    qt[0][1] = this._worldPosition.y + this._center.y;
+    qt[0][2] = this._worldPosition.z + this._center.z;
+    hk.HP_Body_SetQTransform(body, qt);
 
     this._hkShape = shape;
     this._hkSweptShape = sweptShape;
+    this._hkSweptShapePtr = Number(sweptShape[0]);
     this._hkBody = body;
-    this._havokPhysics._registerShapeHandle(shape[0], this);
-    this._scene._registerControllerBody(this, body);
+    this._hkBodyPtr = Number(body[0]);
+    this._scene._registerControllerBody(this, this._hkBodyPtr);
     hk.HP_World_AddBody(this._scene._hkWorld, body, false);
     this._scene._addColliderShape(this._id);
   }
@@ -531,15 +554,15 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     const hk = this._havokPhysics._hk;
     if (this._hkBody && this._scene) {
       this._scene._removeColliderShape(this._id);
-      this._scene._unregisterControllerBody(this._hkBody);
+      this._scene._unregisterControllerBody(this._hkBodyPtr);
       if (hk) {
         hk.HP_World_RemoveBody(this._scene._hkWorld, this._hkBody);
         hk.HP_Body_Release(this._hkBody);
       }
       this._hkBody = null;
+      this._hkBodyPtr = 0;
     }
     if (this._hkShape) {
-      this._havokPhysics._unregisterShapeHandle(this._hkShape[0]);
       if (hk) {
         hk.HP_Shape_Release(this._hkShape);
       }
@@ -550,18 +573,20 @@ export class HavokCharacterController implements ICharacterController, HavokMate
         hk.HP_Shape_Release(this._hkSweptShape);
       }
       this._hkSweptShape = null;
+      this._hkSweptShapePtr = 0;
     }
   }
 
   private _syncProxyTransform(): void {
     if (!this._hkBody) return;
-    const cx = this._worldPosition.x + this._center.x;
-    const cy = this._worldPosition.y + this._center.y;
-    const cz = this._worldPosition.z + this._center.z;
+    const qt = HavokCharacterController._tempQTransform;
+    qt[0][0] = this._worldPosition.x + this._center.x;
+    qt[0][1] = this._worldPosition.y + this._center.y;
+    qt[0][2] = this._worldPosition.z + this._center.z;
     // Always use SetQTransform (not SetTargetQTransform): Havok's SetTargetQTransform leaves a persistent
     // kinematic velocity across steps, whereas SetQTransform updates transforms without residual velocity
     // and fires trigger enter/exit cleanly on the next world step.
-    this._havokPhysics._hk.HP_Body_SetQTransform(this._hkBody, [[cx, cy, cz], HavokCharacterController._identityQuat]);
+    this._havokPhysics._hk.HP_Body_SetQTransform(this._hkBody, qt);
     this._scene?._markControllerBroadphaseDirty(this);
   }
 
@@ -570,7 +595,6 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     const rem = HavokCharacterController._tempRem;
     const prevN = HavokCharacterController._tempPrevN;
     const blockN = HavokCharacterController._tempBlockN;
-    const crease = HavokCharacterController._tempCrease;
 
     rem.copyFrom(horizDisp);
     let hitAny = false;
@@ -622,11 +646,13 @@ export class HavokCharacterController implements ICharacterController, HavokMate
 
       if (hasPrev && Vector3.dot(rem, prevN) < -1e-6) {
         // Crease between two planes: project remaining displacement along their intersection line.
-        Vector3.cross(prevN, blockN, crease);
-        const creaseLenSq = crease.lengthSquared();
+        const cx = prevN.y * blockN.z - prevN.z * blockN.y;
+        const cy = prevN.z * blockN.x - prevN.x * blockN.z;
+        const cz = prevN.x * blockN.y - prevN.y * blockN.x;
+        const creaseLenSq = cx * cx + cy * cy + cz * cz;
         if (creaseLenSq > 1e-10) {
-          const proj = Vector3.dot(rem, crease) / creaseLenSq;
-          rem.set(crease.x * proj, crease.y * proj, crease.z * proj);
+          const proj = (rem.x * cx + rem.y * cy + rem.z * cz) / creaseLenSq;
+          rem.set(cx * proj, cy * proj, cz * proj);
         } else {
           break;
         }
@@ -645,12 +671,20 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     const vDisp = HavokCharacterController._tempVec;
     vDisp.set(-up.x * castDist, -up.y * castDist, -up.z * castDist);
 
+    const out = HavokCharacterController._tempDownResult;
     const hit = this._castMove(center, vDisp);
     if (!hit) {
       center.x -= up.x * downDist;
       center.y -= up.y * downDist;
       center.z -= up.z * downDist;
-      return { hit: false, walkable: false, remainDist: 0, nx: 0, ny: 0, nz: 0, nDotUp: 0 };
+      out.hit = false;
+      out.walkable = false;
+      out.remainDist = 0;
+      out.nx = 0;
+      out.ny = 0;
+      out.nz = 0;
+      out.nDotUp = 0;
+      return out;
     }
 
     const traveled = hit.fraction * castDist;
@@ -659,16 +693,14 @@ export class HavokCharacterController implements ICharacterController, HavokMate
     center.z -= up.z * traveled;
 
     const nDotUp = hit.nx * up.x + hit.ny * up.y + hit.nz * up.z;
-    const walkable = nDotUp > this._slopeLimitCos + SLOPE_EPSILON;
-    return {
-      hit: true,
-      walkable,
-      remainDist: Math.max(0, downDist - traveled),
-      nx: hit.nx,
-      ny: hit.ny,
-      nz: hit.nz,
-      nDotUp
-    };
+    out.hit = true;
+    out.walkable = nDotUp > this._slopeLimitCos + SLOPE_EPSILON;
+    out.remainDist = Math.max(0, downDist - traveled);
+    out.nx = hit.nx;
+    out.ny = hit.ny;
+    out.nz = hit.nz;
+    out.nDotUp = nDotUp;
+    return out;
   }
 
   private _applyForceSlide(center: Vector3, downRes: DownMoveResult): void {
@@ -720,34 +752,34 @@ export class HavokCharacterController implements ICharacterController, HavokMate
   }
 
   private _depenetrate(center: Vector3): number {
-    const hk = this._havokPhysics._hk;
     const scene = this._scene!;
-    const col = scene._getMultiCollector();
     const up = this._upDirection;
+    const norm = HavokCharacterController._tempVec;
     let flags = CollisionFlags.None;
 
     // Iterative EPA refinement: for deep penetrations against large shapes (e.g., plane slabs),
     // stepping near the surface first avoids float32 EPA overshoot and converges to <1e-6 accuracy.
     for (let iter = 0; iter < 4; iter++) {
-      const pos: HKVector3 = [center.x, center.y, center.z];
-      hk.HP_World_ShapeProximityWithCollector(scene._hkWorld, col, [
+      const count = scene._runShapeProximityMulti(
         this._hkSweptShape!,
-        pos,
-        HavokCharacterController._identityQuat,
+        this._hkSweptShapePtr,
+        center.x,
+        center.y,
+        center.z,
+        IDENTITY_QUAT,
         0,
         false,
-        this._hkBody!
-      ]);
-      const count = hk.HP_QueryCollector_GetNumHits(col)[1];
+        this._hkBody!,
+        this._hkBodyPtr
+      );
       let moved = false;
 
       for (let i = 0; i < count; i++) {
-        const [dist, , hitData] = hk.HP_QueryCollector_GetShapeProximityResult(col, i)[1];
+        const dist = scene._readShapeProximityHitDistAndNormal(i, norm);
         if (dist < -MOVE_EPSILON) {
-          const norm = hitData[4];
           const depth = -dist;
           const step = iter < 2 && depth > 0.01 ? depth - 0.005 : depth;
-          const nDotUp = norm[0] * up.x + norm[1] * up.y + norm[2] * up.z;
+          const nDotUp = norm.x * up.x + norm.y * up.y + norm.z * up.z;
           const walkableFloor = nDotUp > this._slopeLimitCos + SLOPE_EPSILON && nDotUp > 0.5;
           if (walkableFloor) {
             // Resolve walkable-slope overlap strictly along +up so float32 sweep precision does not
@@ -758,9 +790,9 @@ export class HavokCharacterController implements ICharacterController, HavokMate
             center.z += up.z * upStep;
             flags |= CollisionFlags.Down;
           } else {
-            center.x += norm[0] * step;
-            center.y += norm[1] * step;
-            center.z += norm[2] * step;
+            center.x += norm.x * step;
+            center.y += norm.y * step;
+            center.z += norm.z * step;
             if (nDotUp > 0.7) {
               flags |= CollisionFlags.Down;
             } else if (nDotUp < -0.7) {
@@ -784,42 +816,24 @@ export class HavokCharacterController implements ICharacterController, HavokMate
       return null;
     }
 
-    const hk = this._havokPhysics._hk;
-    const scene = this._scene!;
-    const col = scene._getMultiCollector();
-    const start: HKVector3 = [center.x, center.y, center.z];
-    const end: HKVector3 = [center.x + disp.x, center.y + disp.y, center.z + disp.z];
-
-    hk.HP_World_ShapeCastWithCollector(scene._hkWorld, col, [
-      this._hkSweptShape!,
-      HavokCharacterController._identityQuat,
-      start,
-      end,
-      false,
-      this._hkBody!
-    ]);
-
-    const numHits = hk.HP_QueryCollector_GetNumHits(col)[1];
-    let bestFrac = 2;
-    let bestNx = 0,
-      bestNy = 1,
-      bestNz = 0;
-
-    for (let i = 0; i < numHits; i++) {
-      const [frac, , hitData] = hk.HP_QueryCollector_GetShapeCastResult(col, i)[1];
-      if (frac < 0 || frac >= bestFrac) continue;
-      const n = hitData[4];
-      // Ignore grazing/backfacing hits at fraction == 0 when moving parallel to or away from the surface.
-      if (frac === 0 && disp.x * n[0] + disp.y * n[1] + disp.z * n[2] >= -1e-6) {
-        continue;
-      }
-      bestFrac = frac;
-      bestNx = n[0];
-      bestNy = n[1];
-      bestNz = n[2];
+    const out = HavokCharacterController._tempCastHit;
+    if (
+      this._scene!._castShapeForController(
+        this._hkSweptShape!,
+        this._hkSweptShapePtr,
+        center.x,
+        center.y,
+        center.z,
+        disp.x,
+        disp.y,
+        disp.z,
+        this._hkBody!,
+        this._hkBodyPtr,
+        out
+      )
+    ) {
+      return out;
     }
-
-    if (bestFrac > 1) return null;
-    return { fraction: bestFrac, nx: bestNx, ny: bestNy, nz: bestNz };
+    return null;
   }
 }

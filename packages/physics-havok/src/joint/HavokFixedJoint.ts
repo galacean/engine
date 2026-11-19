@@ -1,26 +1,15 @@
 import { Quaternion, Vector3 } from "@galacean/engine";
 import { IFixedJoint } from "@galacean/engine-design";
-import { HavokCollider } from "../HavokCollider";
-import { HavokPhysics } from "../HavokPhysics";
+import type { HavokCollider } from "../HavokCollider";
+import type { HavokDynamicCollider } from "../HavokDynamicCollider";
+import { ZERO_VEC3 } from "../HavokTypes";
 import { HavokJoint } from "./HavokJoint";
 
 /**
  * Fixed joint locking all 6 degrees of freedom in Havok.
  */
 export class HavokFixedJoint extends HavokJoint implements IFixedJoint {
-  private static _tempPosA = new Vector3();
-  private static _tempPosB = new Vector3();
-  private static _tempRotA = new Quaternion();
-  private static _tempRotB = new Quaternion();
-  private static _tempInvRel = new Quaternion();
-  private static _tempAnchorA = new Vector3();
-  private static _tempAnchorB = new Vector3();
-
   private _axesConfigured = false;
-
-  constructor(havokPhysics: HavokPhysics, collider: HavokCollider) {
-    super(havokPhysics, collider);
-  }
 
   override _checkBreak(dt: number): void {
     super._checkBreak(dt);
@@ -51,103 +40,118 @@ export class HavokFixedJoint extends HavokJoint implements IFixedJoint {
    * matching PhysX FixedJoint's single-step exact convergence despite Havok's hardcoded m_tau = 0.6.
    */
   private _projectToImmovableAnchor(): void {
-    const hk = this._havokPhysics._hk;
-    const dynamicType = hk.MotionType.DYNAMIC.value;
-    const parentBody = this._collider._hkBody;
-    const parentDynamic = hk.HP_Body_GetMotionType(parentBody)[1].value === dynamicType;
-    const childCollider = this._connectedCollider;
+    const parentCol = this._collider;
+    const childCol = this._connectedCollider;
+    const parentDynamic = parentCol._isDynamic && !(parentCol as HavokDynamicCollider)._isKinematicBody();
     const childDynamic =
-      childCollider !== null && hk.HP_Body_GetMotionType(childCollider._hkBody)[1].value === dynamicType;
+      childCol !== null && childCol._isDynamic && !(childCol as HavokDynamicCollider)._isKinematicBody();
 
     if (parentDynamic === childDynamic) {
       return;
     }
 
-    const posA = HavokFixedJoint._tempPosA;
-    const posB = HavokFixedJoint._tempPosB;
-    const rotA = HavokFixedJoint._tempRotA;
-    const rotB = HavokFixedJoint._tempRotB;
-    const ancA = HavokFixedJoint._tempAnchorA;
-    const ancB = HavokFixedJoint._tempAnchorB;
+    const dynCol = (parentDynamic ? parentCol : childCol!) as HavokDynamicCollider;
+    const immCol: HavokCollider | null = parentDynamic ? childCol : parentCol;
+    const dynAnchor = parentDynamic ? this._anchor : this._connectedAnchor;
+    const immAnchor = parentDynamic ? this._connectedAnchor : this._anchor;
 
-    if (parentDynamic) {
-      let vx = 0,
-        vy = 0,
-        vz = 0;
-      let wx = 0,
-        wy = 0,
-        wz = 0;
-      if (childCollider) {
-        childCollider.getWorldTransform(posB, rotB);
-        const [, linVel] = hk.HP_Body_GetLinearVelocity(childCollider._hkBody);
-        const [, angVel] = hk.HP_Body_GetAngularVelocity(childCollider._hkBody);
+    const hk = this._havokPhysics._hk;
+    const immPos = HavokJoint._tempVecA;
+    const immRot = HavokJoint._tempQuatA;
+    let vx = 0,
+      vy = 0,
+      vz = 0;
+    let wx = 0,
+      wy = 0,
+      wz = 0;
+
+    if (immCol) {
+      immCol.getWorldTransform(immPos, immRot);
+      // Only kinematic bodies (which have `_isDynamic === true`) can have non-zero velocity; static anchors are always 0.
+      if (immCol._isDynamic) {
+        const [, linVel] = hk.HP_Body_GetLinearVelocity(immCol._hkBody);
+        const [, angVel] = hk.HP_Body_GetAngularVelocity(immCol._hkBody);
         vx = linVel[0];
         vy = linVel[1];
         vz = linVel[2];
         wx = angVel[0];
         wy = angVel[1];
         wz = angVel[2];
-      } else {
-        posB.set(0, 0, 0);
-        rotB.set(0, 0, 0, 1);
       }
+    } else {
+      immPos.set(0, 0, 0);
+      immRot.set(0, 0, 0, 1);
+    }
 
-      Quaternion.multiply(rotB, this._rotation, rotA);
-      rotA.normalize();
-      Vector3.transformByQuat(this._connectedAnchor, rotB, ancB);
-      Vector3.transformByQuat(this._anchor, rotA, ancA);
-      const px = posB.x + ancB.x - ancA.x;
-      const py = posB.y + ancB.y - ancA.y;
-      const pz = posB.z + ancB.z - ancA.z;
+    const dynRot = HavokJoint._tempQuatB;
+    if (parentDynamic) {
+      Quaternion.multiply(immRot, this._rotation, dynRot);
+    } else {
+      Quaternion.invert(this._rotation, dynRot);
+      Quaternion.multiply(immRot, dynRot, dynRot);
+    }
+    dynRot.normalize();
 
-      hk.HP_Body_SetQTransform(parentBody, [
-        [px, py, pz],
-        [rotA.x, rotA.y, rotA.z, rotA.w]
-      ]);
-      this._scene?._markBroadphaseDirty(this._collider);
+    const ancImm = HavokJoint._tempVecB;
+    const ancDyn = HavokJoint._tempVecC;
+    Vector3.transformByQuat(immAnchor, immRot, ancImm);
+    Vector3.transformByQuat(dynAnchor, dynRot, ancDyn);
+    const px = immPos.x + ancImm.x - ancDyn.x;
+    const py = immPos.y + ancImm.y - ancDyn.y;
+    const pz = immPos.z + ancImm.z - ancDyn.z;
 
-      const rx = px - posB.x;
-      const ry = py - posB.y;
-      const rz = pz - posB.z;
-      hk.HP_Body_SetLinearVelocity(parentBody, [
-        vx + wy * rz - wz * ry,
-        vy + wz * rx - wx * rz,
-        vz + wx * ry - wy * rx
-      ]);
-      hk.HP_Body_SetAngularVelocity(parentBody, [wx, wy, wz]);
-    } else if (childCollider) {
-      const childBody = childCollider._hkBody;
-      this._collider.getWorldTransform(posA, rotA);
-      const [, linVel] = hk.HP_Body_GetLinearVelocity(parentBody);
-      const [, angVel] = hk.HP_Body_GetAngularVelocity(parentBody);
-      const vx = linVel[0],
-        vy = linVel[1],
-        vz = linVel[2];
-      const wx = angVel[0],
-        wy = angVel[1],
-        wz = angVel[2];
+    // Compare target pose against current dynamic pose (reuse ancImm/immRot after ancImm is consumed).
+    // Use sign-aligned squared component diff (> 1e-10) rather than `1 - |dot| > 1e-12` so float32
+    // normalization ULP (~1e-7) from WASM does not trigger spurious writes on settled rotated joints.
+    const curDynPos = HavokJoint._tempVecB;
+    const curDynRot = HavokJoint._tempQuatA;
+    dynCol.getWorldTransform(curDynPos, curDynRot);
+    const dx = px - curDynPos.x;
+    const dy = py - curDynPos.y;
+    const dz = pz - curDynPos.z;
+    const qs = Quaternion.dot(curDynRot, dynRot) < 0 ? -1 : 1;
+    const qdx = curDynRot.x - qs * dynRot.x;
+    const qdy = curDynRot.y - qs * dynRot.y;
+    const qdz = curDynRot.z - qs * dynRot.z;
+    const qdw = curDynRot.w - qs * dynRot.w;
+    const poseDirty = dx * dx + dy * dy + dz * dz > 1e-10 || qdx * qdx + qdy * qdy + qdz * qdz + qdw * qdw > 1e-10;
+    const immMoving = vx !== 0 || vy !== 0 || vz !== 0 || wx !== 0 || wy !== 0 || wz !== 0;
 
-      const invRel = HavokFixedJoint._tempInvRel;
-      Quaternion.invert(this._rotation, invRel);
-      Quaternion.multiply(rotA, invRel, rotB);
-      rotB.normalize();
-      Vector3.transformByQuat(this._anchor, rotA, ancA);
-      Vector3.transformByQuat(this._connectedAnchor, rotB, ancB);
-      const px = posA.x + ancA.x - ancB.x;
-      const py = posA.y + ancA.y - ancB.y;
-      const pz = posA.z + ancA.z - ancB.z;
+    if (!poseDirty && !immMoving && dynCol.isSleeping()) {
+      return;
+    }
 
-      hk.HP_Body_SetQTransform(childBody, [
-        [px, py, pz],
-        [rotB.x, rotB.y, rotB.z, rotB.w]
-      ]);
-      this._scene?._markBroadphaseDirty(childCollider);
+    const dynBody = dynCol._hkBody;
+    if (poseDirty) {
+      const qt = HavokJoint._tempQTransform;
+      qt[0][0] = px;
+      qt[0][1] = py;
+      qt[0][2] = pz;
+      qt[1][0] = dynRot.x;
+      qt[1][1] = dynRot.y;
+      qt[1][2] = dynRot.z;
+      qt[1][3] = dynRot.w;
+      hk.HP_Body_SetQTransform(dynBody, qt);
+      this._scene?._markBroadphaseDirty(dynCol);
+    }
 
-      const rx = px - posA.x;
-      const ry = py - posA.y;
-      const rz = pz - posA.z;
-      hk.HP_Body_SetLinearVelocity(childBody, [vx + wy * rz - wz * ry, vy + wz * rx - wx * rz, vz + wx * ry - wy * rx]);
-      hk.HP_Body_SetAngularVelocity(childBody, [wx, wy, wz]);
+    if (immMoving) {
+      const rx = px - immPos.x;
+      const ry = py - immPos.y;
+      const rz = pz - immPos.z;
+      const lin = HavokJoint._tempTupleA;
+      lin[0] = vx + wy * rz - wz * ry;
+      lin[1] = vy + wz * rx - wx * rz;
+      lin[2] = vz + wx * ry - wy * rx;
+      const ang = HavokJoint._tempTupleB;
+      ang[0] = wx;
+      ang[1] = wy;
+      ang[2] = wz;
+      hk.HP_Body_SetLinearVelocity(dynBody, lin);
+      hk.HP_Body_SetAngularVelocity(dynBody, ang);
+    } else {
+      hk.HP_Body_SetLinearVelocity(dynBody, ZERO_VEC3);
+      hk.HP_Body_SetAngularVelocity(dynBody, ZERO_VEC3);
     }
   }
 }

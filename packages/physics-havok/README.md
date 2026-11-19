@@ -76,7 +76,7 @@ const engine = await WebGLEngine.create({
 
 - **WebAssembly SIMD (`v128`) required**: `HavokPhysics.wasm` is compiled with WebAssembly SIMD instructions and has **no non-SIMD fallback**. `initialize()` rejects if WebAssembly or WebAssembly SIMD is unavailable (supported in modern browsers including Chrome >= 91, Firefox >= 89, and Safari / iOS >= 16.4).
 - **No `SharedArrayBuffer` / COOP / COEP required**: Simulation runs single-threaded on the main thread and does not require cross-origin isolation headers.
-- **Payload size**: ~2.1 MB uncompressed runtime files (`HavokPhysics.wasm` ~2.09 MB + `HavokPhysics_umd.js` ~68 KB), totaling **~693 KB gzip** including the JS adapter.
+- **Payload size**: ~2.1 MB uncompressed runtime files (`HavokPhysics.wasm` ~2.09 MB + `HavokPhysics_umd.js` ~68 KB), totaling **~700 KB gzip** including the JS adapter.
 
 ## Capability Differences vs PhysX
 

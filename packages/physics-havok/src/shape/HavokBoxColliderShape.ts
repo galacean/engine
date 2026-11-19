@@ -2,7 +2,7 @@ import { Quaternion, Vector3, Vector4 } from "@galacean/engine";
 import { IBoxColliderShape } from "@galacean/engine-design";
 import { HavokPhysics } from "../HavokPhysics";
 import { HavokPhysicsMaterial } from "../HavokPhysicsMaterial";
-import { HP_ShapeId } from "../HavokTypes";
+import { HKVector3, HP_ShapeId, IDENTITY_QUAT, ZERO_VEC3 } from "../HavokTypes";
 import { HavokColliderShape } from "./HavokColliderShape";
 
 const MIN_EXTENT = 1e-4;
@@ -11,6 +11,8 @@ const MIN_EXTENT = 1e-4;
  * Box collider shape for Havok.
  */
 export class HavokBoxColliderShape extends HavokColliderShape implements IBoxColliderShape {
+  private static _tempExtents: HKVector3 = [0, 0, 0];
+
   private _size = new Vector3();
 
   constructor(havokPhysics: HavokPhysics, uniqueID: number, size: Vector3, material: HavokPhysicsMaterial) {
@@ -37,7 +39,7 @@ export class HavokBoxColliderShape extends HavokColliderShape implements IBoxCol
     const worldRot = HavokColliderShape._tempWorldRot;
     this._getWorldPose(worldPos, worldRot);
 
-    const invRot = HavokColliderShape._tempQuatInv;
+    const invRot = HavokColliderShape._tempQuat;
     Quaternion.invert(worldRot, invRot);
 
     const localPt = HavokColliderShape._tempVector3;
@@ -66,9 +68,10 @@ export class HavokBoxColliderShape extends HavokColliderShape implements IBoxCol
   }
 
   private _createBoxShape(): HP_ShapeId {
-    const sx = Math.max(Math.abs(this._size.x) * this._worldScale.x, MIN_EXTENT);
-    const sy = Math.max(Math.abs(this._size.y) * this._worldScale.y, MIN_EXTENT);
-    const sz = Math.max(Math.abs(this._size.z) * this._worldScale.z, MIN_EXTENT);
-    return this._havokPhysics._hk.HP_Shape_CreateBox([0, 0, 0], [0, 0, 0, 1], [sx, sy, sz])[1];
+    const ext = HavokBoxColliderShape._tempExtents;
+    ext[0] = Math.max(Math.abs(this._size.x) * this._worldScale.x, MIN_EXTENT);
+    ext[1] = Math.max(Math.abs(this._size.y) * this._worldScale.y, MIN_EXTENT);
+    ext[2] = Math.max(Math.abs(this._size.z) * this._worldScale.z, MIN_EXTENT);
+    return this._havokPhysics._hk.HP_Shape_CreateBox(ZERO_VEC3, IDENTITY_QUAT, ext)[1];
   }
 }

@@ -1,6 +1,4 @@
 import { ISpringJoint } from "@galacean/engine-design";
-import { HavokCollider } from "../HavokCollider";
-import { HavokPhysics } from "../HavokPhysics";
 import { HavokJoint } from "./HavokJoint";
 
 /**
@@ -12,42 +10,56 @@ export class HavokSpringJoint extends HavokJoint implements ISpringJoint {
   private _tolerance = 0.25;
   private _stiffness = 0;
   private _damping = 0;
-
-  constructor(havokPhysics: HavokPhysics, collider: HavokCollider) {
-    super(havokPhysics, collider);
-  }
+  private _axesConfigured = false;
 
   setMinDistance(distance: number): void {
-    this._minDistance = Math.max(0, distance);
-    this._dirty = true;
+    const next = Math.max(0, distance);
+    if (this._minDistance === next) return;
+    this._minDistance = next;
+    this._configDirty = true;
   }
 
   setMaxDistance(distance: number): void {
-    this._maxDistance = Math.max(0, distance);
-    this._dirty = true;
+    const next = Math.max(0, distance);
+    if (this._maxDistance === next) return;
+    this._maxDistance = next;
+    this._configDirty = true;
   }
 
   setTolerance(tolerance: number): void {
-    this._tolerance = Math.max(0, tolerance);
-    this._dirty = true;
+    const next = Math.max(0, tolerance);
+    if (this._tolerance === next) return;
+    this._tolerance = next;
+    this._configDirty = true;
   }
 
   setStiffness(stiffness: number): void {
-    this._stiffness = Math.max(0, stiffness);
-    this._dirty = true;
+    const next = Math.max(0, stiffness);
+    if (this._stiffness === next) return;
+    this._stiffness = next;
+    this._configDirty = true;
   }
 
   setDamping(damping: number): void {
-    this._damping = Math.max(0, damping);
-    this._dirty = true;
+    const next = Math.max(0, damping);
+    if (this._damping === next) return;
+    this._damping = next;
+    this._configDirty = true;
+  }
+
+  protected override _onConstraintRecreated(): void {
+    this._axesConfigured = false;
   }
 
   protected override _applyConstraintConfig(): void {
     const hk = this._havokPhysics._hk;
     const axis = hk.ConstraintAxis.LINEAR_DISTANCE;
+    if (!this._axesConfigured) {
+      hk.HP_Constraint_SetAxisMode(this._hkConstraint, axis, hk.ConstraintAxisLimitMode.LIMITED);
+      this._axesConfigured = true;
+    }
     const minLim = Math.max(0, this._minDistance - this._tolerance);
     const maxLim = Math.max(minLim, this._maxDistance + this._tolerance);
-    hk.HP_Constraint_SetAxisMode(this._hkConstraint, axis, hk.ConstraintAxisLimitMode.LIMITED);
     hk.HP_Constraint_SetAxisMinLimit(this._hkConstraint, axis, minLim);
     hk.HP_Constraint_SetAxisMaxLimit(this._hkConstraint, axis, maxLim);
     hk.HP_Constraint_SetAxisStiffness(this._hkConstraint, axis, this._stiffness);

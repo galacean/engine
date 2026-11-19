@@ -3,61 +3,64 @@ import { IDynamicCollider } from "@galacean/engine-design";
 import { HavokCollider } from "./HavokCollider";
 import { HavokPhysics } from "./HavokPhysics";
 import type { HavokPhysicsScene } from "./HavokPhysicsScene";
-import { HKMassProperties, HP_ConstraintId, HP_ShapeId } from "./HavokTypes";
+import {
+  AXIS_X,
+  AXIS_Y,
+  HKMassProperties,
+  HKVector3,
+  HP_ConstraintId,
+  HP_ShapeId,
+  HP_WorldId,
+  normalizeQuatOrIdentity,
+  writeQTransform,
+  ZERO_VEC3
+} from "./HavokTypes";
 import type { HavokColliderShape } from "./shape/HavokColliderShape";
 import { HavokPlaneColliderShape } from "./shape/HavokPlaneColliderShape";
-
-interface PendingPosForce {
-  fx: number;
-  fy: number;
-  fz: number;
-  px: number;
-  py: number;
-  pz: number;
-}
 
 /**
  * Dynamic / Kinematic rigid body actor for Havok.
  */
 export class HavokDynamicCollider extends HavokCollider implements IDynamicCollider {
-  private static _dynTempPos = new Vector3();
-  private static _dynTempRot = new Quaternion();
-  private static _dynTempVec = new Vector3();
-  private static _dynTempInvRot = new Quaternion();
-  private static _dynTempAxisX = new Vector3();
-  private static _dynTempAxisY = new Vector3();
+  private static _tempSolidShapes: HavokColliderShape[] = [];
+  private static _tempVec3A: HKVector3 = [0, 0, 0];
+  private static _tempVec3B: HKVector3 = [0, 0, 0];
+  private static _tempMassProps: HKMassProperties = [[0, 0, 0], 1, [1, 1, 1], [0, 0, 0, 1]];
+
+  /** @internal */
+  override readonly _isDynamic = true;
+  /** @internal */
+  _maxAngularVelocityRad = 100;
 
   private _mass = 1.0;
+  private _linearDamping = 0;
+  private _angularDamping = 0.05;
   private _centerOfMass = new Vector3();
   private _inertiaTensor = new Vector3(1, 1, 1);
   private _inertiaOrientation = new Quaternion(0, 0, 0, 1);
   private _isKinematic = false;
   private _useGravity = true;
-  private _maxAngularVelocityRad = 100;
   private _constraintsFlags = 0;
   private _dofConstraint: HP_ConstraintId | null = null;
 
   private _hasPendingKinematicTarget = false;
-  private _kinematicTargetPos = new Vector3();
-  private _kinematicTargetRot = new Quaternion(0, 0, 0, 1);
-  private _needsKinematicVelocityZero = false;
-  private _movedKinematicThisStep = false;
+  private _kinematicTargetPos: Vector3 | null = null;
+  private _kinematicTargetRot: Quaternion | null = null;
 
-  private _accumForce = new Vector3();
+  private _accumForce: Vector3 | null = null;
   private _hasPendingForce = false;
-  private _accumTorque = new Vector3();
+  private _accumTorque: Vector3 | null = null;
   private _hasPendingTorque = false;
-  private _pendingPosForces: PendingPosForce[] = [];
-  private _pendingPosForceCount = 0;
+  private _pendingPosForces: number[] | null = null;
+  private _pendingPosForceLen = 0;
 
   constructor(havokPhysics: HavokPhysics, position: Vector3, rotation: Quaternion) {
     super(havokPhysics, position, rotation);
     const hk = havokPhysics._hk;
     hk.HP_Body_SetMotionType(this._hkBody, hk.MotionType.DYNAMIC);
-    hk.HP_Body_SetLinearDamping(this._hkBody, 0);
+    // Havok defaults: linearDamping=0, gravityFactor=1, massProps=([0,0,0], 1, [1,1,1], [0,0,0,1]);
+    // only angularDamping (Havok default 0.1 vs Galacean 0.05) needs an initial write.
     hk.HP_Body_SetAngularDamping(this._hkBody, 0.05);
-    hk.HP_Body_SetGravityFactor(this._hkBody, 1);
-    this._pushMassProperties();
   }
 
   /** @internal */
@@ -66,16 +69,27 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
   }
 
   /** @internal */
-  _didMoveKinematicThisStep(): boolean {
-    return this._movedKinematicThisStep;
+  _hasPendingForces(): boolean {
+    return this._hasPendingForce || this._hasPendingTorque || this._pendingPosForceLen > 0;
+  }
+
+  /** @internal */
+  _hasPendingKinematicMove(): boolean {
+    return this._hasPendingKinematicTarget;
   }
 
   setLinearDamping(value: number): void {
-    this._havokPhysics._hk.HP_Body_SetLinearDamping(this._hkBody, Math.max(0, value));
+    const v = Math.max(0, value);
+    if (this._linearDamping === v) return;
+    this._linearDamping = v;
+    this._havokPhysics._hk.HP_Body_SetLinearDamping(this._hkBody, v);
   }
 
   setAngularDamping(value: number): void {
-    this._havokPhysics._hk.HP_Body_SetAngularDamping(this._hkBody, Math.max(0, value));
+    const v = Math.max(0, value);
+    if (this._angularDamping === v) return;
+    this._angularDamping = v;
+    this._havokPhysics._hk.HP_Body_SetAngularDamping(this._hkBody, v);
   }
 
   getLinearVelocity(out: Vector3): Vector3 {
@@ -85,7 +99,11 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
 
   setLinearVelocity(value: Vector3): void {
     const hk = this._havokPhysics._hk;
-    hk.HP_Body_SetLinearVelocity(this._hkBody, [value.x, value.y, value.z]);
+    const v = HavokDynamicCollider._tempVec3A;
+    v[0] = value.x;
+    v[1] = value.y;
+    v[2] = value.z;
+    hk.HP_Body_SetLinearVelocity(this._hkBody, v);
     if (!this._isKinematic && value.lengthSquared() > 0) {
       hk.HP_Body_SetActivationState(this._hkBody, hk.ActivationState.ACTIVE);
     }
@@ -101,27 +119,37 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
     let ry = MathUtil.degreeToRadian(value.y);
     let rz = MathUtil.degreeToRadian(value.z);
     const magSq = rx * rx + ry * ry + rz * rz;
-    const maxR = this._maxAngularVelocityRad;
-    if (magSq > maxR * maxR && magSq > 0) {
-      const s = maxR / Math.sqrt(magSq);
-      rx *= s;
-      ry *= s;
-      rz *= s;
+    if (this._scene) {
+      const maxR = this._maxAngularVelocityRad;
+      if (magSq > maxR * maxR && magSq > 0) {
+        const s = maxR / Math.sqrt(magSq);
+        rx *= s;
+        ry *= s;
+        rz *= s;
+      }
     }
     const hk = this._havokPhysics._hk;
-    hk.HP_Body_SetAngularVelocity(this._hkBody, [rx, ry, rz]);
+    const v = HavokDynamicCollider._tempVec3A;
+    v[0] = rx;
+    v[1] = ry;
+    v[2] = rz;
+    hk.HP_Body_SetAngularVelocity(this._hkBody, v);
     if (!this._isKinematic && magSq > 0) {
       hk.HP_Body_SetActivationState(this._hkBody, hk.ActivationState.ACTIVE);
     }
   }
 
   setMass(value: number): void {
-    this._mass = Math.max(value, 1e-6);
+    const m = Math.max(value, 1e-6);
+    if (this._mass === m) return;
+    this._mass = m;
     this._pushMassProperties();
   }
 
   setCenterOfMass(value: Vector3): void {
-    this._centerOfMass.copyFrom(value);
+    const com = this._centerOfMass;
+    if (com.x === value.x && com.y === value.y && com.z === value.z) return;
+    com.copyFrom(value);
     this._pushMassProperties();
   }
 
@@ -130,8 +158,21 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
   }
 
   setInertiaTensor(value: Vector3): void {
-    this._inertiaTensor.copyFrom(value);
-    this._inertiaOrientation.set(0, 0, 0, 1);
+    const it = this._inertiaTensor;
+    const io = this._inertiaOrientation;
+    if (
+      it.x === value.x &&
+      it.y === value.y &&
+      it.z === value.z &&
+      io.x === 0 &&
+      io.y === 0 &&
+      io.z === 0 &&
+      io.w === 1
+    ) {
+      return;
+    }
+    it.copyFrom(value);
+    io.set(0, 0, 0, 1);
     this._pushMassProperties();
   }
 
@@ -145,46 +186,38 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
     this._mass = Math.max(mass, 1e-6);
 
     const shapes = this._shapes;
-    const solidShapes: HavokColliderShape[] = [];
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      const s = shapes[i];
-      if (s._hkShape && !s._isTrigger && !(s instanceof HavokPlaneColliderShape)) {
-        solidShapes.push(s);
-      }
-    }
-
-    // PhysX contract: when no solid volumetric shapes remain (all removed or triggers), reset CoM to (0,0,0) and inertia to (1,1,1)
-    if (solidShapes.length === 0) {
-      this._centerOfMass.set(0, 0, 0);
-      this._inertiaTensor.set(1, 1, 1);
-      this._inertiaOrientation.set(0, 0, 0, 1);
-      this._pushMassProperties();
-      return;
-    }
-
-    const hk = this._havokPhysics._hk;
-    let massShape: HP_ShapeId | null;
+    const solidShapes = HavokDynamicCollider._tempSolidShapes;
+    solidShapes.length = 0;
     let tempContainer: HP_ShapeId | null = null;
-    if (solidShapes.length === shapes.length && this._containerShape) {
-      massShape = this._containerShape;
-    } else if (solidShapes.length === 1 && !solidShapes[0]._hasNonIdentityLocalPose()) {
-      massShape = solidShapes[0]._hkShape;
-    } else {
-      tempContainer = hk.HP_Shape_CreateContainer()[1];
-      for (let i = 0, n = solidShapes.length; i < n; i++) {
-        const s = solidShapes[i];
-        const p = s._localPosition;
-        const q = s._localRotation;
-        hk.HP_Shape_AddChild(tempContainer, s._hkShape!, [
-          [p.x, p.y, p.z],
-          [q.x, q.y, q.z, q.w],
-          [1, 1, 1]
-        ]);
-      }
-      massShape = tempContainer;
-    }
+    const hk = this._havokPhysics._hk;
 
     try {
+      for (let i = 0, n = shapes.length; i < n; i++) {
+        const s = shapes[i];
+        if (s._hkShape && !s._isTrigger && !(s instanceof HavokPlaneColliderShape)) {
+          solidShapes.push(s);
+        }
+      }
+
+      // PhysX contract: when no solid volumetric shapes remain (all removed or triggers), reset CoM to (0,0,0) and inertia to (1,1,1)
+      if (solidShapes.length === 0) {
+        this._centerOfMass.set(0, 0, 0);
+        this._inertiaTensor.set(1, 1, 1);
+        this._inertiaOrientation.set(0, 0, 0, 1);
+        this._pushMassProperties();
+        return;
+      }
+
+      let massShape: HP_ShapeId | null;
+      if (solidShapes.length === shapes.length && this._containerShape) {
+        massShape = this._containerShape;
+      } else if (solidShapes.length === 1 && !solidShapes[0]._hasNonIdentityLocalPose()) {
+        massShape = solidShapes[0]._hkShape;
+      } else {
+        tempContainer = this._createContainerShape(solidShapes);
+        massShape = tempContainer;
+      }
+
       if (massShape) {
         const [res, mp] = hk.HP_Shape_BuildMassProperties(massShape);
         if (res.value === hk.Result.RESULT_OK.value) {
@@ -204,16 +237,23 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
           }
         }
       }
+      this._pushMassProperties();
     } finally {
+      solidShapes.length = 0;
       if (tempContainer) {
         hk.HP_Shape_Release(tempContainer);
       }
     }
-    this._pushMassProperties();
   }
 
   setMaxAngularVelocity(value: number): void {
-    this._maxAngularVelocityRad = Math.max(0, MathUtil.degreeToRadian(value));
+    const nextRad = Math.max(0, MathUtil.degreeToRadian(value));
+    if (this._maxAngularVelocityRad === nextRad) return;
+    const prevRad = this._maxAngularVelocityRad;
+    this._maxAngularVelocityRad = nextRad;
+    if (!this._isKinematic && this._scene) {
+      this._scene._onDynamicMaxAngularVelocityChanged(this, prevRad, nextRad);
+    }
   }
 
   setMaxDepenetrationVelocity(): void {
@@ -229,22 +269,25 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
   }
 
   setUseGravity(value: boolean): void {
+    if (this._useGravity === value) return;
     this._useGravity = value;
     this._havokPhysics._hk.HP_Body_SetGravityFactor(this._hkBody, value ? 1 : 0);
   }
 
   setMotionState(isKinematic: boolean): void {
     // Havok WASM does not expose per-body CCD mode toggling.
+    if (this._isKinematic === isKinematic) return;
     const hk = this._havokPhysics._hk;
-    if (this._isKinematic && !isKinematic && this._needsKinematicVelocityZero) {
-      this._needsKinematicVelocityZero = false;
-      hk.HP_Body_SetLinearVelocity(this._hkBody, [0, 0, 0]);
-      hk.HP_Body_SetAngularVelocity(this._hkBody, [0, 0, 0]);
+    if (isKinematic) {
+      this._clearForces();
     }
     this._hasPendingKinematicTarget = false;
-    this._movedKinematicThisStep = false;
     this._isKinematic = isKinematic;
-    hk.HP_Body_SetMotionType(this._hkBody, isKinematic ? hk.MotionType.KINEMATIC : hk.MotionType.DYNAMIC);
+    if (this._scene) {
+      this._scene._onDynamicMotionStateChanged(this, isKinematic);
+    } else {
+      hk.HP_Body_SetMotionType(this._hkBody, isKinematic ? hk.MotionType.KINEMATIC : hk.MotionType.DYNAMIC);
+    }
     if (!isKinematic) {
       hk.HP_Body_SetGravityFactor(this._hkBody, this._useGravity ? 1 : 0);
       this._pushMassProperties();
@@ -253,75 +296,78 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
   }
 
   setConstraints(flags: number): void {
+    if (this._constraintsFlags === flags) return;
     this._constraintsFlags = flags;
     this._syncDofConstraint();
   }
 
   addForce(force: Vector3): void {
     if (this._isKinematic) return;
-    this._accumForce.add(force);
+    const accum = (this._accumForce ||= new Vector3());
+    accum.add(force);
     this._hasPendingForce = true;
+    this._scene?._markPendingForce(this);
     this.wakeUp();
   }
 
   addForceAtPosition(force: Vector3, position: Vector3): void {
     if (this._isKinematic) return;
-    const idx = this._pendingPosForceCount++;
-    let item = this._pendingPosForces[idx];
-    if (!item) {
-      item = { fx: 0, fy: 0, fz: 0, px: 0, py: 0, pz: 0 };
-      this._pendingPosForces[idx] = item;
-    }
-    item.fx = force.x;
-    item.fy = force.y;
-    item.fz = force.z;
-    item.px = position.x;
-    item.py = position.y;
-    item.pz = position.z;
+    const buf = (this._pendingPosForces ||= []);
+    const offset = this._pendingPosForceLen;
+    buf[offset] = force.x;
+    buf[offset + 1] = force.y;
+    buf[offset + 2] = force.z;
+    buf[offset + 3] = position.x;
+    buf[offset + 4] = position.y;
+    buf[offset + 5] = position.z;
+    this._pendingPosForceLen = offset + 6;
+    this._scene?._markPendingForce(this);
     this.wakeUp();
   }
 
   addTorque(torque: Vector3): void {
     if (this._isKinematic) return;
-    this._accumTorque.add(torque);
+    const accum = (this._accumTorque ||= new Vector3());
+    accum.add(torque);
     this._hasPendingTorque = true;
+    this._scene?._markPendingForce(this);
     this.wakeUp();
   }
 
   move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void {
+    const targetPos = (this._kinematicTargetPos ||= new Vector3());
+    const targetRot = (this._kinematicTargetRot ||= new Quaternion());
     if (rotation) {
-      this._kinematicTargetPos.copyFrom(positionOrRotation as Vector3);
-      this._kinematicTargetRot.set(0, 0, 0, 1);
-      Quaternion.normalize(rotation, this._kinematicTargetRot);
+      targetPos.copyFrom(positionOrRotation as Vector3);
+      normalizeQuatOrIdentity(rotation, targetRot);
       this._hasPendingKinematicTarget = true;
+      if (this._isKinematic) {
+        this._scene?._markPendingKinematicMove(this);
+      }
       return;
     }
 
-    const curPos = HavokDynamicCollider._dynTempPos;
-    const curRot = HavokDynamicCollider._dynTempRot;
-    if (this._hasPendingKinematicTarget) {
-      curPos.copyFrom(this._kinematicTargetPos);
-      curRot.copyFrom(this._kinematicTargetRot);
-    } else {
-      this.getWorldTransform(curPos, curRot);
-    }
     if (positionOrRotation instanceof Vector3) {
-      this._kinematicTargetPos.copyFrom(positionOrRotation);
-      this._kinematicTargetRot.set(0, 0, 0, 1);
-      Quaternion.normalize(curRot, this._kinematicTargetRot);
+      if (!this._hasPendingKinematicTarget) {
+        this.getWorldTransform(HavokCollider._tempPos, targetRot);
+      }
+      targetPos.copyFrom(positionOrRotation);
     } else {
-      this._kinematicTargetPos.copyFrom(curPos);
-      this._kinematicTargetRot.set(0, 0, 0, 1);
-      Quaternion.normalize(curRot, this._kinematicTargetRot);
-      Quaternion.normalize(positionOrRotation, this._kinematicTargetRot);
+      if (!this._hasPendingKinematicTarget) {
+        this.getWorldTransform(targetPos, targetRot);
+      }
+      // 1-arg zero quaternion preserves current orientation (`Quaternion.normalize` leaves `targetRot` untouched on zero quat).
+      Quaternion.normalize(positionOrRotation, targetRot);
     }
     this._hasPendingKinematicTarget = true;
+    if (this._isKinematic) {
+      this._scene?._markPendingKinematicMove(this);
+    }
   }
 
   sleep(): void {
     const hk = this._havokPhysics._hk;
-    hk.HP_Body_SetLinearVelocity(this._hkBody, [0, 0, 0]);
-    hk.HP_Body_SetAngularVelocity(this._hkBody, [0, 0, 0]);
+    this._zeroVelocities();
     hk.HP_Body_SetActivationState(this._hkBody, hk.ActivationState.INACTIVE);
   }
 
@@ -336,67 +382,163 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
     hk.HP_Body_SetActivationState(this._hkBody, hk.ActivationState.ACTIVE);
   }
 
-  /** @internal */
-  _preStep(dt: number): void {
-    if (this._isKinematic) {
-      this._clearForces();
-      if (this._hasPendingKinematicTarget && dt > 0) {
-        this._hasPendingKinematicTarget = false;
-        const p = this._kinematicTargetPos;
-        const q = this._kinematicTargetRot;
-        // Applied after HP_World_SetIdealStepTime(dt) so Havok derives exact single-step velocity
-        this._havokPhysics._hk.HP_Body_SetTargetQTransform(this._hkBody, [
-          [p.x, p.y, p.z],
-          [q.x, q.y, q.z, q.w]
-        ]);
-        this._needsKinematicVelocityZero = true;
-        this._movedKinematicThisStep = true;
-      } else {
-        this._movedKinematicThisStep = false;
-      }
-      return;
+  /** @internal Re-allocate Havok motion properties after raising world angular speed limit. */
+  _refreshDynamicMotionProperties(): void {
+    if (this._isKinematic) return;
+    const hk = this._havokPhysics._hk;
+    const wasAsleep = hk.HP_Body_GetActivationState(this._hkBody)[1].value === hk.ActivationState.INACTIVE.value;
+    const [, linVel] = hk.HP_Body_GetLinearVelocity(this._hkBody);
+    const [, angVel] = hk.HP_Body_GetAngularVelocity(this._hkBody);
+    hk.HP_Body_SetMotionType(this._hkBody, hk.MotionType.STATIC);
+    hk.HP_Body_SetMotionType(this._hkBody, hk.MotionType.DYNAMIC);
+    hk.HP_Body_SetLinearDamping(this._hkBody, this._linearDamping);
+    hk.HP_Body_SetAngularDamping(this._hkBody, this._angularDamping);
+    hk.HP_Body_SetGravityFactor(this._hkBody, this._useGravity ? 1 : 0);
+    this._pushMassProperties();
+    hk.HP_Body_SetLinearVelocity(this._hkBody, linVel);
+    hk.HP_Body_SetAngularVelocity(this._hkBody, angVel);
+    if (wasAsleep) {
+      hk.HP_Body_SetActivationState(this._hkBody, hk.ActivationState.INACTIVE);
     }
-
-    this._movedKinematicThisStep = false;
-    this._flushForces(dt);
   }
 
   /** @internal */
-  _postStep(): void {
+  _applyKinematicMove(dt: number, hkWorld: HP_WorldId, worldMaxAngVel: number, appliedWorldMaxAngVel: number): boolean {
+    if (!this._isKinematic || !this._hasPendingKinematicTarget || dt <= 0) {
+      return false;
+    }
+    this._hasPendingKinematicTarget = false;
     const hk = this._havokPhysics._hk;
-    if (this._isKinematic) {
-      if (this._needsKinematicVelocityZero) {
-        // Havok keeps kinematic target velocity across subsequent steps unless cleared;
-        // PhysX setKinematicTarget stops at the target after one simulation step.
-        this._needsKinematicVelocityZero = false;
-        hk.HP_Body_SetLinearVelocity(this._hkBody, [0, 0, 0]);
-        hk.HP_Body_SetAngularVelocity(this._hkBody, [0, 0, 0]);
-      }
-      return;
+    const targetRot = this._kinematicTargetRot!;
+    const qt = HavokCollider._tempQTransform;
+    writeQTransform(this._kinematicTargetPos!, targetRot, qt);
+
+    // Bracket fast single-step kinematic rotations (> ~99 rad/s) whenever either the flushed world limit or
+    // the pending limit (for newly added bodies) is < 1e6, so Havok derives uncapped velocity for this body
+    // without un-clamping dynamic bodies.
+    const effectiveLimit = worldMaxAngVel < appliedWorldMaxAngVel ? worldMaxAngVel : appliedWorldMaxAngVel;
+    const halfLimitRad = effectiveLimit * dt * 0.495;
+    let needsFastRotBracket = false;
+    if (effectiveLimit < 1e6 && halfLimitRad < Math.PI * 0.5) {
+      this.getWorldTransform(HavokCollider._tempPos, HavokCollider._tempRot);
+      const curRot = HavokCollider._tempRot;
+      const dot = Math.abs(
+        curRot.x * targetRot.x + curRot.y * targetRot.y + curRot.z * targetRot.z + curRot.w * targetRot.w
+      );
+      needsFastRotBracket = dot < Math.cos(halfLimitRad);
     }
 
-    const maxR = this._maxAngularVelocityRad;
-    if (maxR < 1e5) {
-      const [, vel] = hk.HP_Body_GetAngularVelocity(this._hkBody);
-      const magSq = vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2];
-      if (magSq > maxR * maxR && magSq > 0) {
-        const s = maxR / Math.sqrt(magSq);
-        hk.HP_Body_SetAngularVelocity(this._hkBody, [vel[0] * s, vel[1] * s, vel[2] * s]);
+    // Applied after HP_World_SetIdealStepTime(dt) so Havok derives exact single-step velocity
+    if (needsFastRotBracket) {
+      if (worldMaxAngVel < 1e6) {
+        hk.HP_World_SetSpeedLimit(hkWorld, 1e6, 1e6);
       }
+      hk.HP_Body_SetMotionType(this._hkBody, hk.MotionType.STATIC);
+      hk.HP_Body_SetMotionType(this._hkBody, hk.MotionType.KINEMATIC);
+      hk.HP_Body_SetTargetQTransform(this._hkBody, qt);
+      if (worldMaxAngVel < 1e6) {
+        hk.HP_World_SetSpeedLimit(hkWorld, 1e6, worldMaxAngVel);
+      }
+    } else {
+      hk.HP_Body_SetTargetQTransform(this._hkBody, qt);
+    }
+    return true;
+  }
+
+  /** @internal */
+  _zeroVelocities(): void {
+    const hk = this._havokPhysics._hk;
+    hk.HP_Body_SetLinearVelocity(this._hkBody, ZERO_VEC3);
+    hk.HP_Body_SetAngularVelocity(this._hkBody, ZERO_VEC3);
+  }
+
+  /** @internal */
+  _clampAngularVelocity(): void {
+    const maxR = this._maxAngularVelocityRad;
+    if (maxR >= 1e5) return;
+    const hk = this._havokPhysics._hk;
+    const [, vel] = hk.HP_Body_GetAngularVelocity(this._hkBody);
+    const magSq = vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2];
+    if (magSq > maxR * maxR && magSq > 0) {
+      const s = maxR / Math.sqrt(magSq);
+      const out = HavokDynamicCollider._tempVec3A;
+      out[0] = vel[0] * s;
+      out[1] = vel[1] * s;
+      out[2] = vel[2] * s;
+      hk.HP_Body_SetAngularVelocity(this._hkBody, out);
+    }
+  }
+
+  /** @internal */
+  _flushForces(dt: number): void {
+    if (dt <= 0) {
+      this._clearForces();
+      return;
+    }
+    const hk = this._havokPhysics._hk;
+    const loc = HavokDynamicCollider._tempVec3A;
+    const imp = HavokDynamicCollider._tempVec3B;
+
+    if (this._hasPendingForce) {
+      const pos = HavokCollider._tempPos;
+      const rot = HavokCollider._tempRot;
+      this.getWorldTransform(pos, rot);
+      const com = this._centerOfMass;
+      if (com.x !== 0 || com.y !== 0 || com.z !== 0) {
+        const worldCom = HavokCollider._tempVec;
+        Vector3.transformByQuat(com, rot, worldCom);
+        loc[0] = worldCom.x + pos.x;
+        loc[1] = worldCom.y + pos.y;
+        loc[2] = worldCom.z + pos.z;
+      } else {
+        loc[0] = pos.x;
+        loc[1] = pos.y;
+        loc[2] = pos.z;
+      }
+      const accum = this._accumForce!;
+      imp[0] = accum.x * dt;
+      imp[1] = accum.y * dt;
+      imp[2] = accum.z * dt;
+      hk.HP_Body_ApplyImpulse(this._hkBody, loc, imp);
+      accum.set(0, 0, 0);
+      this._hasPendingForce = false;
+    }
+
+    if (this._pendingPosForceLen > 0) {
+      const buf = this._pendingPosForces!;
+      for (let i = 0, n = this._pendingPosForceLen; i < n; i += 6) {
+        imp[0] = buf[i] * dt;
+        imp[1] = buf[i + 1] * dt;
+        imp[2] = buf[i + 2] * dt;
+        loc[0] = buf[i + 3];
+        loc[1] = buf[i + 4];
+        loc[2] = buf[i + 5];
+        hk.HP_Body_ApplyImpulse(this._hkBody, loc, imp);
+      }
+      this._pendingPosForceLen = 0;
+    }
+
+    if (this._hasPendingTorque) {
+      const accum = this._accumTorque!;
+      imp[0] = accum.x * dt;
+      imp[1] = accum.y * dt;
+      imp[2] = accum.z * dt;
+      hk.HP_Body_ApplyAngularImpulse(this._hkBody, imp);
+      accum.set(0, 0, 0);
+      this._hasPendingTorque = false;
     }
   }
 
   override setWorldTransform(position: Vector3, rotation: Quaternion): void {
-    this._hasPendingKinematicTarget = false;
-    if (this._isKinematic && this._needsKinematicVelocityZero) {
-      this._needsKinematicVelocityZero = false;
-      const hk = this._havokPhysics._hk;
-      hk.HP_Body_SetLinearVelocity(this._hkBody, [0, 0, 0]);
-      hk.HP_Body_SetAngularVelocity(this._hkBody, [0, 0, 0]);
+    if (this._hasPendingKinematicTarget) {
+      this._hasPendingKinematicTarget = false;
+      this._scene?._cancelPendingKinematicMove(this);
     }
     super.setWorldTransform(position, rotation);
     if (this._constraintsFlags !== 0) {
-      this._syncDofConstraint();
+      const q = HavokCollider._tempQTransform[1];
+      HavokCollider._tempRot.set(q[0], q[1], q[2], q[3]);
+      this._syncDofConstraint(position, HavokCollider._tempRot);
     }
   }
 
@@ -407,8 +549,6 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
 
   override _onRemovedFromScene(): void {
     this._hasPendingKinematicTarget = false;
-    this._needsKinematicVelocityZero = false;
-    this._movedKinematicThisStep = false;
     this._releaseDofConstraint();
     super._onRemovedFromScene();
   }
@@ -424,70 +564,41 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
     }
   }
 
-  private _flushForces(dt: number): void {
-    if (dt <= 0) {
-      this._clearForces();
-      return;
-    }
-    const hk = this._havokPhysics._hk;
-
-    if (this._hasPendingForce) {
-      const pos = HavokDynamicCollider._dynTempPos;
-      const rot = HavokDynamicCollider._dynTempRot;
-      const worldCom = HavokDynamicCollider._dynTempVec;
-      this.getWorldTransform(pos, rot);
-      Vector3.transformByQuat(this._centerOfMass, rot, worldCom);
-      worldCom.add(pos);
-      hk.HP_Body_ApplyImpulse(
-        this._hkBody,
-        [worldCom.x, worldCom.y, worldCom.z],
-        [this._accumForce.x * dt, this._accumForce.y * dt, this._accumForce.z * dt]
-      );
-      this._accumForce.set(0, 0, 0);
-      this._hasPendingForce = false;
-    }
-
-    if (this._pendingPosForceCount > 0) {
-      for (let i = 0; i < this._pendingPosForceCount; i++) {
-        const f = this._pendingPosForces[i];
-        hk.HP_Body_ApplyImpulse(this._hkBody, [f.px, f.py, f.pz], [f.fx * dt, f.fy * dt, f.fz * dt]);
-      }
-      this._pendingPosForceCount = 0;
-    }
-
-    if (this._hasPendingTorque) {
-      hk.HP_Body_ApplyAngularImpulse(this._hkBody, [
-        this._accumTorque.x * dt,
-        this._accumTorque.y * dt,
-        this._accumTorque.z * dt
-      ]);
-      this._accumTorque.set(0, 0, 0);
-      this._hasPendingTorque = false;
-    }
-  }
-
   private _clearForces(): void {
-    this._accumForce.set(0, 0, 0);
+    if (this._accumForce) {
+      this._accumForce.set(0, 0, 0);
+    }
     this._hasPendingForce = false;
-    this._accumTorque.set(0, 0, 0);
+    if (this._accumTorque) {
+      this._accumTorque.set(0, 0, 0);
+    }
     this._hasPendingTorque = false;
-    this._pendingPosForceCount = 0;
+    this._pendingPosForceLen = 0;
   }
 
   private _pushMassProperties(): void {
     const mass = Math.max(this._mass, 1e-6);
     const invMass = 1.0 / mass;
     // Havok expects unit-mass inertia (I / mass).
-    const mp: HKMassProperties = [
-      [this._centerOfMass.x, this._centerOfMass.y, this._centerOfMass.z],
-      mass,
-      [this._inertiaTensor.x * invMass, this._inertiaTensor.y * invMass, this._inertiaTensor.z * invMass],
-      [this._inertiaOrientation.x, this._inertiaOrientation.y, this._inertiaOrientation.z, this._inertiaOrientation.w]
-    ];
+    const mp = HavokDynamicCollider._tempMassProps;
+    const com = mp[0];
+    com[0] = this._centerOfMass.x;
+    com[1] = this._centerOfMass.y;
+    com[2] = this._centerOfMass.z;
+    mp[1] = mass;
+    const inertia = mp[2];
+    inertia[0] = this._inertiaTensor.x * invMass;
+    inertia[1] = this._inertiaTensor.y * invMass;
+    inertia[2] = this._inertiaTensor.z * invMass;
+    const orient = mp[3];
+    orient[0] = this._inertiaOrientation.x;
+    orient[1] = this._inertiaOrientation.y;
+    orient[2] = this._inertiaOrientation.z;
+    orient[3] = this._inertiaOrientation.w;
     this._havokPhysics._hk.HP_Body_SetMassProperties(this._hkBody, mp);
   }
 
-  private _syncDofConstraint(): void {
+  private _syncDofConstraint(knownPos?: Vector3, knownRot?: Quaternion): void {
     const flags = this._constraintsFlags;
     if (flags === 0 || this._isKinematic || !this._scene) {
       this._releaseDofConstraint();
@@ -502,32 +613,48 @@ export class HavokDynamicCollider extends HavokCollider implements IDynamicColli
       hk.HP_Constraint_SetCollisionsEnabled(this._dofConstraint, 0);
     }
 
-    const pos = HavokDynamicCollider._dynTempPos;
-    const rot = HavokDynamicCollider._dynTempRot;
-    this.getWorldTransform(pos, rot);
+    let pos: Vector3;
+    let rot: Quaternion;
+    if (knownPos && knownRot) {
+      pos = knownPos;
+      rot = knownRot;
+    } else {
+      pos = HavokCollider._tempPos;
+      rot = HavokCollider._tempRot;
+      this.getWorldTransform(pos, rot);
+    }
 
-    hk.HP_Constraint_SetAnchorInParent(this._dofConstraint, [pos.x, pos.y, pos.z], [1, 0, 0], [0, 1, 0]);
-    const invRot = HavokDynamicCollider._dynTempInvRot;
+    const pivot = HavokDynamicCollider._tempVec3A;
+    pivot[0] = pos.x;
+    pivot[1] = pos.y;
+    pivot[2] = pos.z;
+    hk.HP_Constraint_SetAnchorInParent(this._dofConstraint, pivot, AXIS_X, AXIS_Y);
+
+    const invRot = HavokCollider._tempInvRot;
     Quaternion.invert(rot, invRot);
-    const childAxisX = HavokDynamicCollider._dynTempAxisX.set(1, 0, 0);
-    const childAxisY = HavokDynamicCollider._dynTempAxisY.set(0, 1, 0);
-    Vector3.transformByQuat(childAxisX, invRot, childAxisX);
-    Vector3.transformByQuat(childAxisY, invRot, childAxisY);
-    hk.HP_Constraint_SetAnchorInChild(
-      this._dofConstraint,
-      [0, 0, 0],
-      [childAxisX.x, childAxisX.y, childAxisX.z],
-      [childAxisY.x, childAxisY.y, childAxisY.z]
-    );
+    const axis = HavokCollider._tempVec;
+    axis.set(1, 0, 0);
+    Vector3.transformByQuat(axis, invRot, axis);
+    const childAxisX = HavokDynamicCollider._tempVec3A;
+    childAxisX[0] = axis.x;
+    childAxisX[1] = axis.y;
+    childAxisX[2] = axis.z;
+    axis.set(0, 1, 0);
+    Vector3.transformByQuat(axis, invRot, axis);
+    const childAxisY = HavokDynamicCollider._tempVec3B;
+    childAxisY[0] = axis.x;
+    childAxisY[1] = axis.y;
+    childAxisY[2] = axis.z;
+    hk.HP_Constraint_SetAnchorInChild(this._dofConstraint, ZERO_VEC3, childAxisX, childAxisY);
 
     const { FREE, LOCKED } = hk.ConstraintAxisLimitMode;
-    const axis = hk.ConstraintAxis;
-    hk.HP_Constraint_SetAxisMode(this._dofConstraint, axis.LINEAR_X, flags & 1 ? LOCKED : FREE);
-    hk.HP_Constraint_SetAxisMode(this._dofConstraint, axis.LINEAR_Y, flags & 2 ? LOCKED : FREE);
-    hk.HP_Constraint_SetAxisMode(this._dofConstraint, axis.LINEAR_Z, flags & 4 ? LOCKED : FREE);
-    hk.HP_Constraint_SetAxisMode(this._dofConstraint, axis.ANGULAR_X, flags & 8 ? LOCKED : FREE);
-    hk.HP_Constraint_SetAxisMode(this._dofConstraint, axis.ANGULAR_Y, flags & 16 ? LOCKED : FREE);
-    hk.HP_Constraint_SetAxisMode(this._dofConstraint, axis.ANGULAR_Z, flags & 32 ? LOCKED : FREE);
+    const cAxis = hk.ConstraintAxis;
+    hk.HP_Constraint_SetAxisMode(this._dofConstraint, cAxis.LINEAR_X, flags & 1 ? LOCKED : FREE);
+    hk.HP_Constraint_SetAxisMode(this._dofConstraint, cAxis.LINEAR_Y, flags & 2 ? LOCKED : FREE);
+    hk.HP_Constraint_SetAxisMode(this._dofConstraint, cAxis.LINEAR_Z, flags & 4 ? LOCKED : FREE);
+    hk.HP_Constraint_SetAxisMode(this._dofConstraint, cAxis.ANGULAR_X, flags & 8 ? LOCKED : FREE);
+    hk.HP_Constraint_SetAxisMode(this._dofConstraint, cAxis.ANGULAR_Y, flags & 16 ? LOCKED : FREE);
+    hk.HP_Constraint_SetAxisMode(this._dofConstraint, cAxis.ANGULAR_Z, flags & 32 ? LOCKED : FREE);
     hk.HP_Constraint_SetEnabled(this._dofConstraint, 1);
   }
 

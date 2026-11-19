@@ -1,7 +1,5 @@
-import { MathUtil, Quaternion, Vector3 } from "@galacean/engine";
+import { MathUtil, Vector3 } from "@galacean/engine";
 import { IHingeJoint } from "@galacean/engine-design";
-import { HavokCollider } from "../HavokCollider";
-import { HavokPhysics } from "../HavokPhysics";
 import { HavokJoint } from "./HavokJoint";
 
 const enum HingeJointFlagBits {
@@ -16,16 +14,6 @@ const MAX_MOTOR_TORQUE = 1e12;
  * Hinge (revolute) joint for Havok.
  */
 export class HavokHingeJoint extends HavokJoint implements IHingeJoint {
-  private static _tempPos0 = new Vector3();
-  private static _tempPos1 = new Vector3();
-  private static _tempRot0 = new Quaternion();
-  private static _tempRot1 = new Quaternion();
-  private static _tempAxisW = new Vector3();
-  private static _tempRef0 = new Vector3();
-  private static _tempRef1 = new Vector3();
-  private static _tempCross = new Vector3();
-  private static _tempBasisRef = new Vector3();
-
   private _axis = new Vector3(1, 0, 0);
   private _perpAxis = new Vector3(0, 1, 0);
   private _limitEnabled = false;
@@ -44,32 +32,36 @@ export class HavokHingeJoint extends HavokJoint implements IHingeJoint {
   private _motorSuppressed = false;
   private _lastMotorDt = 0;
 
-  constructor(havokPhysics: HavokPhysics, collider: HavokCollider) {
-    super(havokPhysics, collider);
-  }
-
   setAxis(value: Vector3): void {
-    if (value.lengthSquared() < 1e-12) {
+    const lenSq = value.lengthSquared();
+    if (lenSq < 1e-12) {
       return;
     }
-    this._axis.copyFrom(value).normalize();
+    const invLen = 1 / Math.sqrt(lenSq);
+    const nx = value.x * invLen;
+    const ny = value.y * invLen;
+    const nz = value.z * invLen;
+    const a = this._axis;
+    if (a.x === nx && a.y === ny && a.z === nz) return;
+    a.set(nx, ny, nz);
     this._computePerpAxis();
-    this._dirty = true;
+    this._anchorsDirty = true;
   }
 
   getAngle(): number {
-    const rot0 = HavokHingeJoint._tempRot0;
-    const rot1 = HavokHingeJoint._tempRot1;
-    this._collider.getWorldTransform(HavokHingeJoint._tempPos0, rot0);
+    const rot0 = HavokJoint._tempQuatA;
+    const rot1 = HavokJoint._tempQuatB;
+    const scratchPos = HavokJoint._tempVecA;
+    this._collider.getWorldTransform(scratchPos, rot0);
     if (this._connectedCollider) {
-      this._connectedCollider.getWorldTransform(HavokHingeJoint._tempPos1, rot1);
+      this._connectedCollider.getWorldTransform(scratchPos, rot1);
     } else {
       rot1.set(0, 0, 0, 1);
     }
 
-    const axisW = HavokHingeJoint._tempAxisW;
-    const ref0 = HavokHingeJoint._tempRef0;
-    const ref1 = HavokHingeJoint._tempRef1;
+    const axisW = HavokJoint._tempVecA;
+    const ref0 = HavokJoint._tempVecB;
+    const ref1 = HavokJoint._tempVecC;
 
     Vector3.transformByQuat(this._axis, rot0, axisW);
     axisW.normalize();
@@ -89,9 +81,10 @@ export class HavokHingeJoint extends HavokJoint implements IHingeJoint {
     ref0.scale(1 / len0);
     ref1.scale(1 / len1);
 
-    const cross = HavokHingeJoint._tempCross;
-    Vector3.cross(ref0, ref1, cross);
-    const sinA = Vector3.dot(cross, axisW);
+    const cx = ref0.y * ref1.z - ref0.z * ref1.y;
+    const cy = ref0.z * ref1.x - ref0.x * ref1.z;
+    const cz = ref0.x * ref1.y - ref0.y * ref1.x;
+    const sinA = cx * axisW.x + cy * axisW.y + cz * axisW.z;
     const cosA = Vector3.dot(ref0, ref1);
     const deg = MathUtil.radianToDegree(Math.atan2(sinA, cosA));
     return deg === 0 ? 0 : deg;
@@ -99,18 +92,24 @@ export class HavokHingeJoint extends HavokJoint implements IHingeJoint {
 
   getVelocity(): Readonly<number> {
     const hk = this._havokPhysics._hk;
-    const rot0 = HavokHingeJoint._tempRot0;
-    this._collider.getWorldTransform(HavokHingeJoint._tempPos0, rot0);
-    const axisW = HavokHingeJoint._tempAxisW;
+    const rot0 = HavokJoint._tempQuatA;
+    const axisW = HavokJoint._tempVecA;
+    this._collider.getWorldTransform(axisW, rot0);
     Vector3.transformByQuat(this._axis, rot0, axisW);
     axisW.normalize();
 
-    const [, w0] = hk.HP_Body_GetAngularVelocity(this._collider._hkBody);
-    let rx = -w0[0];
-    let ry = -w0[1];
-    let rz = -w0[2];
-    if (this._connectedCollider) {
-      const [, w1] = hk.HP_Body_GetAngularVelocity(this._connectedCollider._hkBody);
+    let rx = 0,
+      ry = 0,
+      rz = 0;
+    if (this._collider._isDynamic) {
+      const [, w0] = hk.HP_Body_GetAngularVelocity(this._collider._hkBody);
+      rx -= w0[0];
+      ry -= w0[1];
+      rz -= w0[2];
+    }
+    const connected = this._connectedCollider;
+    if (connected && connected._isDynamic) {
+      const [, w1] = hk.HP_Body_GetAngularVelocity(connected._hkBody);
       rx += w1[0];
       ry += w1[1];
       rz += w1[2];
@@ -120,52 +119,74 @@ export class HavokHingeJoint extends HavokJoint implements IHingeJoint {
   }
 
   setHardLimit(lowerLimit: number, upperLimit: number): void {
-    this._lowerLimitRad = MathUtil.degreeToRadian(lowerLimit);
-    this._upperLimitRad = MathUtil.degreeToRadian(upperLimit);
+    const lower = MathUtil.degreeToRadian(lowerLimit);
+    const upper = MathUtil.degreeToRadian(upperLimit);
+    if (!this._isSoftLimit && this._lowerLimitRad === lower && this._upperLimitRad === upper) return;
+    this._lowerLimitRad = lower;
+    this._upperLimitRad = upper;
     if (this._isSoftLimit && this._softLimitAppliedOnConstraint) {
       // Havok has no API to clear soft-limit stiffness/damping back to rigid hard-limit mode.
       this._needsRebuild = true;
     }
     this._isSoftLimit = false;
-    this._dirty = true;
+    this._configDirty = true;
   }
 
   setSoftLimit(lowerLimit: number, upperLimit: number, stiffness: number, damping: number): void {
-    this._lowerLimitRad = MathUtil.degreeToRadian(lowerLimit);
-    this._upperLimitRad = MathUtil.degreeToRadian(upperLimit);
+    const lower = MathUtil.degreeToRadian(lowerLimit);
+    const upper = MathUtil.degreeToRadian(upperLimit);
+    if (
+      this._isSoftLimit &&
+      this._lowerLimitRad === lower &&
+      this._upperLimitRad === upper &&
+      this._stiffness === stiffness &&
+      this._damping === damping
+    ) {
+      return;
+    }
+    this._lowerLimitRad = lower;
+    this._upperLimitRad = upper;
     this._isSoftLimit = true;
     this._stiffness = stiffness;
     this._damping = damping;
-    this._dirty = true;
+    this._configDirty = true;
   }
 
   setDriveVelocity(velocity: number): void {
+    if (this._driveVelocity === velocity) return;
     this._driveVelocity = velocity;
-    this._dirty = true;
+    this._configDirty = true;
   }
 
   setDriveForceLimit(limit: number): void {
-    this._driveForceLimit = Number.isFinite(limit) ? Math.max(0, limit) : Infinity;
-    this._dirty = true;
+    const next = Number.isFinite(limit) ? Math.max(0, limit) : Infinity;
+    if (this._driveForceLimit === next) return;
+    this._driveForceLimit = next;
+    this._configDirty = true;
   }
 
   setDriveGearRatio(ratio: number): void {
     // Havok WASM has no asymmetric per-body gear ratio Jacobian; scaling target velocity
     // matches PhysX exactly when the parent body is static/kinematic (w0 = 0).
-    this._driveGearRatio = Number.isFinite(ratio) && ratio > 0 ? ratio : 1.0;
-    this._dirty = true;
+    const next = Number.isFinite(ratio) && ratio > 0 ? ratio : 1.0;
+    if (this._driveGearRatio === next) return;
+    this._driveGearRatio = next;
+    this._configDirty = true;
   }
 
   setHingeJointFlag(flag: number, value: boolean): void {
     if (flag === HingeJointFlagBits.LimitEnabled) {
+      if (this._limitEnabled === value) return;
       this._limitEnabled = value;
-      this._dirty = true;
+      this._configDirty = true;
     } else if (flag === HingeJointFlagBits.DriveEnabled) {
+      if (this._driveEnabled === value) return;
       this._driveEnabled = value;
-      this._dirty = true;
+      this._configDirty = true;
     } else if (flag === HingeJointFlagBits.DriveFreeSpin) {
+      if (this._freeSpin === value) return;
       this._freeSpin = value;
-      this._dirty = true;
+      this._configDirty = true;
     }
   }
 
@@ -173,33 +194,29 @@ export class HavokHingeJoint extends HavokJoint implements IHingeJoint {
     super._preStep(dt);
     if (this._broken || this._destroyed || !this._enabled || !this._driveEnabled) return;
 
-    const hk = this._havokPhysics._hk;
-    const axisX = hk.ConstraintAxis.ANGULAR_X;
-
     if (this._freeSpin) {
       const curVel = this.getVelocity();
-      const target = this._getEffectiveDriveVelocity();
+      const target = this._driveVelocity / this._driveGearRatio;
       const overspeed = target === 0 ? Math.abs(curVel) > 0 : target > 0 ? curVel >= target : curVel <= target;
       if (overspeed && !this._motorSuppressed) {
-        // Havok WASM ignores ConstraintMotorType.NONE once VELOCITY is active; zeroing max force disables torque.
-        hk.HP_Constraint_SetAxisMotorType(this._hkConstraint, axisX, hk.ConstraintMotorType.NONE);
-        hk.HP_Constraint_SetAxisMotorMaxForce(this._hkConstraint, axisX, 0);
+        this._setMotorEnabled(false, dt);
         this._motorSuppressed = true;
         return;
       } else if (!overspeed && this._motorSuppressed) {
-        const effectiveDt = dt > 0 ? dt : 1 / 60;
-        this._lastMotorDt = effectiveDt;
-        hk.HP_Constraint_SetAxisMotorType(this._hkConstraint, axisX, hk.ConstraintMotorType.VELOCITY);
-        hk.HP_Constraint_SetAxisMotorVelocityTarget(this._hkConstraint, axisX, target);
-        hk.HP_Constraint_SetAxisMotorMaxForce(this._hkConstraint, axisX, this._computeMotorMaxTorque(effectiveDt));
+        this._setMotorEnabled(true, dt);
         this._motorSuppressed = false;
         return;
       }
     }
 
-    if (!this._motorSuppressed && dt > 0 && dt !== this._lastMotorDt) {
+    if (!this._motorSuppressed && Number.isFinite(this._driveForceLimit) && dt > 0 && dt !== this._lastMotorDt) {
       this._lastMotorDt = dt;
-      hk.HP_Constraint_SetAxisMotorMaxForce(this._hkConstraint, axisX, this._computeMotorMaxTorque(dt));
+      const hk = this._havokPhysics._hk;
+      hk.HP_Constraint_SetAxisMotorMaxForce(
+        this._hkConstraint,
+        hk.ConstraintAxis.ANGULAR_X,
+        this._computeMotorMaxTorque(dt)
+      );
     }
   }
 
@@ -244,7 +261,13 @@ export class HavokHingeJoint extends HavokJoint implements IHingeJoint {
     }
 
     this._motorSuppressed = false;
-    if (!this._driveEnabled) {
+    this._setMotorEnabled(this._driveEnabled, dt);
+  }
+
+  private _setMotorEnabled(enabled: boolean, dt: number): void {
+    const hk = this._havokPhysics._hk;
+    const axisX = hk.ConstraintAxis.ANGULAR_X;
+    if (!enabled) {
       // Havok WASM ignores ConstraintMotorType.NONE once VELOCITY is active; zeroing max force disables torque.
       hk.HP_Constraint_SetAxisMotorType(this._hkConstraint, axisX, hk.ConstraintMotorType.NONE);
       hk.HP_Constraint_SetAxisMotorMaxForce(this._hkConstraint, axisX, 0);
@@ -252,13 +275,13 @@ export class HavokHingeJoint extends HavokJoint implements IHingeJoint {
       const effectiveDt = dt > 0 ? dt : 1 / 60;
       this._lastMotorDt = effectiveDt;
       hk.HP_Constraint_SetAxisMotorType(this._hkConstraint, axisX, hk.ConstraintMotorType.VELOCITY);
-      hk.HP_Constraint_SetAxisMotorVelocityTarget(this._hkConstraint, axisX, this._getEffectiveDriveVelocity());
+      hk.HP_Constraint_SetAxisMotorVelocityTarget(
+        this._hkConstraint,
+        axisX,
+        this._driveVelocity / this._driveGearRatio
+      );
       hk.HP_Constraint_SetAxisMotorMaxForce(this._hkConstraint, axisX, this._computeMotorMaxTorque(effectiveDt));
     }
-  }
-
-  private _getEffectiveDriveVelocity(): number {
-    return this._driveVelocity / this._driveGearRatio;
   }
 
   private _computeMotorMaxTorque(dt: number): number {
@@ -272,7 +295,7 @@ export class HavokHingeJoint extends HavokJoint implements IHingeJoint {
 
   private _computePerpAxis(): void {
     const a = this._axis;
-    const ref = HavokHingeJoint._tempBasisRef;
+    const ref = HavokJoint._tempVecA;
     if (Math.abs(a.x) < 0.9) {
       ref.set(1, 0, 0);
     } else {

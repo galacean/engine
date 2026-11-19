@@ -1,4 +1,4 @@
-import { Quaternion, SystemInfo, Vector3 } from "@galacean/engine";
+import { Quaternion, SystemInfo, Vector3, Vector4 } from "@galacean/engine";
 import {
   IBoxColliderShape,
   ICapsuleColliderShape,
@@ -22,13 +22,16 @@ import { HavokPhysicsMaterial } from "./HavokPhysicsMaterial";
 import { HavokPhysicsScene } from "./HavokPhysicsScene";
 import { HavokStaticCollider } from "./HavokStaticCollider";
 import {
+  ALL_FILTER,
   HavokModule,
-  HavokShapeIdentity,
   HKFilterInfo,
+  HKQuaternion,
+  HKVector3,
   HP_BodyId,
   HP_CollectorId,
   HP_ShapeId,
   HP_WorldId,
+  writeQTransform,
   ZERO_HANDLE
 } from "./HavokTypes";
 import { HavokFixedJoint } from "./joint/HavokFixedJoint";
@@ -81,8 +84,23 @@ enum InitializeState {
  * Havok Physics WASM backend.
  */
 export class HavokPhysics implements IPhysics {
+  private static _tempFilterInfo: HKFilterInfo = [0, 0];
+  private static _tempQTransform: [HKVector3, HKQuaternion] = [
+    [0, 0, 0],
+    [0, 0, 0, 1]
+  ];
+  private static _tempPointProxInput: [HKVector3, number, HKFilterInfo, boolean, HP_BodyId] = [
+    [0, 0, 0],
+    1e5,
+    ALL_FILTER,
+    true,
+    ZERO_HANDLE
+  ];
+
   /** @internal */
   _hk!: HavokModule;
+  /** @internal Persistent 32B WASM scratch buffer for Tier 2 `_HP_Body_GetQTransform`, or 0 when unavailable. */
+  _qTransformScratch = 0;
 
   private _options: HavokRuntimeOptions;
   private _initializeState: InitializeState = InitializeState.Uninitialized;
@@ -93,7 +111,6 @@ export class HavokPhysics implements IPhysics {
   private _layerMasks = new Uint32Array(32);
 
   private _scenes = new Set<HavokPhysicsScene>();
-  private _shapeByHandle = new Map<bigint, HavokShapeIdentity>();
 
   // Lazy scratch world for isolated MeshCollider.getClosestPoint()
   private _scratchWorld: HP_WorldId | null = null;
@@ -152,6 +169,13 @@ export class HavokPhysics implements IPhysics {
           throw new Error("HavokPhysics was destroyed during initialization.");
         }
         this._hk = hk;
+        this._qTransformScratch =
+          hk.HEAPF32 != null &&
+          typeof hk._HP_Body_GetQTransform === "function" &&
+          typeof hk._malloc === "function" &&
+          typeof hk._free === "function"
+            ? hk._malloc(32)
+            : 0;
         this._initializeState = InitializeState.Initialized;
         this._initializePromise = null;
         console.log("Havok loaded.");
@@ -175,21 +199,27 @@ export class HavokPhysics implements IPhysics {
   destroy(): void {
     this._initGeneration++;
     if (this._scenes.size > 0) {
-      const scenes = Array.from(this._scenes);
-      for (let i = 0, n = scenes.length; i < n; i++) {
-        scenes[i].destroy();
+      for (let it = this._scenes.values(), cur = it.next(); !cur.done; cur = it.next()) {
+        cur.value.destroy();
       }
       this._scenes.clear();
     }
-    if (this._hk && this._scratchWorld) {
-      this._hk.HP_QueryCollector_Release(this._scratchCollector!);
-      this._hk.HP_Body_Release(this._scratchBody!);
-      this._hk.HP_World_Release(this._scratchWorld);
-      this._scratchWorld = null;
-      this._scratchBody = null;
-      this._scratchCollector = null;
+    if (this._hk) {
+      if (this._scratchWorld) {
+        this._hk.HP_QueryCollector_Release(this._scratchCollector!);
+        this._hk.HP_Body_Release(this._scratchBody!);
+        this._hk.HP_World_Release(this._scratchWorld);
+        this._scratchWorld = null;
+        this._scratchBody = null;
+        this._scratchCollector = null;
+      }
+      if (this._qTransformScratch !== 0) {
+        this._hk._free(this._qTransformScratch);
+        this._qTransformScratch = 0;
+      }
+    } else {
+      this._qTransformScratch = 0;
     }
-    this._shapeByHandle.clear();
     this._layerMasks.fill(0xffffffff);
     this._initializeState = InitializeState.Uninitialized;
     this._initializePromise = null;
@@ -272,10 +302,8 @@ export class HavokPhysics implements IPhysics {
     positions: Vector3[],
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
-    material: HavokPhysicsMaterial,
-    cookingFlags: number
+    material: HavokPhysicsMaterial
   ): IMeshColliderShape | null {
-    void cookingFlags;
     const shape = new HavokMeshColliderShape(this, uniqueID, positions, indices, isConvex, material);
     return shape._hkShape ? shape : null;
   }
@@ -318,26 +346,29 @@ export class HavokPhysics implements IPhysics {
     if (layer1 < 0 || layer1 > 31 || layer2 < 0 || layer2 > 31) {
       return;
     }
+    const prev1 = this._layerMasks[layer1];
     const bit2 = (1 << layer2) >>> 0;
-    const bit1 = (1 << layer1) >>> 0;
-    if (isCollide) {
-      this._layerMasks[layer1] = (this._layerMasks[layer1] | bit2) >>> 0;
-      this._layerMasks[layer2] = (this._layerMasks[layer2] | bit1) >>> 0;
-    } else {
-      this._layerMasks[layer1] = (this._layerMasks[layer1] & ~bit2) >>> 0;
-      this._layerMasks[layer2] = (this._layerMasks[layer2] & ~bit1) >>> 0;
+    const next1 = isCollide ? (prev1 | bit2) >>> 0 : (prev1 & ~bit2) >>> 0;
+    if (prev1 === next1) {
+      return;
     }
-    this._scenes.forEach((scene) => {
-      scene._onLayerMatrixChanged();
-    });
+    this._layerMasks[layer1] = next1;
+    const bit1 = (1 << layer1) >>> 0;
+    this._layerMasks[layer2] = isCollide
+      ? (this._layerMasks[layer2] | bit1) >>> 0
+      : (this._layerMasks[layer2] & ~bit1) >>> 0;
+    for (let it = this._scenes.values(), cur = it.next(); !cur.done; cur = it.next()) {
+      cur.value._onLayerMatrixChanged(layer1, layer2);
+    }
   }
 
   /** @internal */
   _getLayerFilterInfo(layer: number): HKFilterInfo {
     const safeLayer = layer & 31;
-    const membership = (1 << safeLayer) >>> 0;
-    const collideMask = this._layerMasks[safeLayer] >>> 0;
-    return [membership, collideMask];
+    const out = HavokPhysics._tempFilterInfo;
+    out[0] = (1 << safeLayer) >>> 0;
+    out[1] = this._layerMasks[safeLayer] >>> 0;
+    return out;
   }
 
   /** @internal */
@@ -351,63 +382,49 @@ export class HavokPhysics implements IPhysics {
   }
 
   /** @internal */
-  _registerShapeHandle(handle: bigint, identity: HavokShapeIdentity): void {
-    this._shapeByHandle.set(handle, identity);
-  }
-
-  /** @internal */
-  _unregisterShapeHandle(handle: bigint): void {
-    this._shapeByHandle.delete(handle);
-  }
-
-  /** @internal */
-  _getShapeByHandle(handle: bigint): HavokShapeIdentity | null {
-    return this._shapeByHandle.get(handle) ?? null;
-  }
-
-  /** @internal */
   _querySingleShapePointDistance(
     shape: HP_ShapeId,
     worldPos: Vector3,
     worldRot: Quaternion,
-    point: Vector3
-  ): { x: number; y: number; z: number; distance: number } | null {
+    point: Vector3,
+    out: Vector4
+  ): boolean {
     const hk = this._hk;
     if (!this._scratchWorld) {
       this._scratchWorld = hk.HP_World_Create()[1];
       this._scratchBody = hk.HP_Body_Create()[1];
-      hk.HP_Body_SetMotionType(this._scratchBody, hk.MotionType.STATIC);
       this._scratchCollector = hk.HP_QueryCollector_Create(1)[1];
     }
 
     hk.HP_Body_SetShape(this._scratchBody!, shape);
-    hk.HP_Body_SetQTransform(this._scratchBody!, [
-      [worldPos.x, worldPos.y, worldPos.z],
-      [worldRot.x, worldRot.y, worldRot.z, worldRot.w]
-    ]);
+    const qt = HavokPhysics._tempQTransform;
+    writeQTransform(worldPos, worldRot, qt);
+    hk.HP_Body_SetQTransform(this._scratchBody!, qt);
     // Re-add/remove per query so Havok's lazy broadphase AABB always matches the current shape & pose
     hk.HP_World_AddBody(this._scratchWorld, this._scratchBody!, false);
-    let result: { x: number; y: number; z: number; distance: number } | null = null;
+    let hit = false;
     try {
-      hk.HP_World_PointProximityWithCollector(this._scratchWorld, this._scratchCollector!, [
-        [point.x, point.y, point.z],
-        1e5,
-        [0xffffffff, 0xffffffff],
-        true,
-        ZERO_HANDLE
-      ]);
+      const input = HavokPhysics._tempPointProxInput;
+      const pt = input[0];
+      pt[0] = point.x;
+      pt[1] = point.y;
+      pt[2] = point.z;
+      hk.HP_World_PointProximityWithCollector(this._scratchWorld, this._scratchCollector!, input);
 
       const numHits = hk.HP_QueryCollector_GetNumHits(this._scratchCollector!)[1];
       if (numHits > 0) {
         const [dist, cp] = hk.HP_QueryCollector_GetPointProximityResult(this._scratchCollector!, 0)[1];
-        const p = cp[3];
-        result = { x: p[0], y: p[1], z: p[2], distance: dist };
+        if (dist > 0) {
+          const p = cp[3];
+          out.set(p[0], p[1], p[2], dist * dist);
+          hit = true;
+        }
       }
     } finally {
       hk.HP_World_RemoveBody(this._scratchWorld, this._scratchBody!);
       hk.HP_Body_SetShape(this._scratchBody!, ZERO_HANDLE);
     }
-    return result;
+    return hit;
   }
 
   private _loadUMDScript(moduleArg: Record<string, unknown>): Promise<HavokModule> {
