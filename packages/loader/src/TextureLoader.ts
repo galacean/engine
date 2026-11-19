@@ -67,7 +67,7 @@ class TextureLoader extends Loader<Texture> {
 
       const texture = new Texture2D(engine, width, height, TextureFormat.R16G16B16A16_SFloat, generateMipmap, false);
       texture.setPixelBuffer(pixels);
-      generateMipmap && texture.generateMipmaps();
+      texture.generateMipmaps();
       this._applyParams(texture, item);
       resolve(texture);
     });
@@ -87,7 +87,7 @@ class TextureLoader extends Loader<Texture> {
 
       const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
       texture.setImageSource(img);
-      generateMipmap && texture.generateMipmaps();
+      texture.generateMipmaps();
       this._applyParams(texture, item);
       return texture;
     });
