@@ -1,0 +1,18 @@
+packages/farming/src/farming/presentation/watering/WateringConfig.ts
+  h_79b10db07e6052 3
+packages/farming/src/farming/presentation/watering/WateringPresenter.ts
+  h_79b10db07e6052 141
+world/demos/farming/animation-preview/main.ts
+  h_79b10db07e6052 396
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a679c771344e0ca59c48e0c931edc0a0426e7412",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}
