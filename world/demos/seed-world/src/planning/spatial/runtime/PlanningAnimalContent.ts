@@ -28,6 +28,12 @@ for (const [id, species] of Object.entries(seedAnimalRegistrations.species)) {
   Object.assign(species, {
     habitats: ecology.habitats,
     preferredMedium: ecology.preferredMedium,
+    slopeAlignment:
+      "slopeAlignment" in ecology
+        ? ecology.slopeAlignment
+        : ["groundBird", "flying", "waterBird", "hopping"].includes(profileId)
+          ? "biped"
+          : "quadruped",
     flyFirstOnShoo: "flyFirstOnShoo" in ecology && ecology.flyFirstOnShoo,
     fleeWeights: ecology.fleeWeights,
     fleeSpeedMultiplier: "fleeSpeedMultiplier" in ecology ? ecology.fleeSpeedMultiplier : 1,

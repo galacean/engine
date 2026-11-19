@@ -12,6 +12,7 @@ import {
   Matrix,
   MeshRenderer,
   PBRMaterial,
+  Quaternion,
   RenderFace,
   SkinnedMeshRenderer,
   StateMachineScript,
@@ -19,8 +20,7 @@ import {
   Vector3,
   WrapMode,
   type AnimationClip,
-  type GLTFResource,
-  type Quaternion
+  type GLTFResource
 } from "@galacean/engine";
 import {
   AnimalTaskController,
@@ -301,6 +301,22 @@ export class ConfiguredAnimal implements AnimalAgent {
   private flightPathChecks = 0;
   private lastFlightPlan: unknown;
   private readonly longestAirPause = { distance: 0, height: 0, landingHeight: 0, traffic: false, surface: false };
+  private readonly slopeQuat = new Quaternion();
+  private slopePitch = 0;
+  private slopeRoll = 0;
+  private slopeTargetPitch = 0;
+  private slopeTargetRoll = 0;
+  private slopeHeightOffset = 0;
+  private slopeTargetHeightOffset = 0;
+  private pendingSlopeSeconds = 0;
+  private slopeSampledX = NaN;
+  private slopeSampledZ = NaN;
+  private slopeSampledHeading = NaN;
+  private slopeSampledScale = NaN;
+  private slopeSampledMedium = "";
+  private calibrationBaseX = 0;
+  private calibrationBaseY = 0;
+  private calibrationBaseZ = 0;
 
   /**
    * Own one scene instance; borrow its GLB and use the host's shared simulation clock.
@@ -361,6 +377,7 @@ export class ConfiguredAnimal implements AnimalAgent {
     try {
       if (resource) this.attachResource(resource);
       this.selectClip(config.animations.findIndex((binding) => binding.id === config.initialAnimation));
+      this.applySlopeOrientation(Infinity, true, false);
       if (crowd) {
         this.crowdBody = {
           motion: this.motion,
@@ -618,6 +635,8 @@ export class ConfiguredAnimal implements AnimalAgent {
       return;
     }
     this.planningRevision++;
+    this.slopeSampledX = NaN;
+    if (this.rendered) this.applySlopeOrientation(Infinity, true, false);
     // Retained steering is not proof that the route is still valid in the edited world.
     if (this.route) this.route.invalidated = true;
     this.preparedRoute = undefined;
@@ -672,7 +691,7 @@ export class ConfiguredAnimal implements AnimalAgent {
     this.probeMovementPath();
     if (this.crowdBody) {
       this.surfaceBlocked = this.crowdBody.surfaceBlocked ?? false;
-      this.root.transform.setRotation(0, (this.motion.heading * 180) / Math.PI, 0);
+      this.applySlopeOrientation(seconds);
       this.placeOnGround(seconds);
     }
     // Completed clips hold until the scheduler selects the next action.
@@ -706,7 +725,7 @@ export class ConfiguredAnimal implements AnimalAgent {
       if (turningAllowed) this.motion.heading += (this.proposedMotion.heading - this.motion.heading) * fraction;
       this.motion.speed = translationAllowed ? this.proposedMotion.speed : 0;
       this.motion.angularSpeed = turningAllowed ? this.proposedMotion.angularSpeed : 0;
-      this.root.transform.setRotation(0, (this.motion.heading * 180) / Math.PI, 0);
+      this.applySlopeOrientation(seconds);
       this.placeOnGround(seconds);
       if (arrived && fraction === 1 && translationAllowed && this.hasArrivedVertically()) this.completeMovement();
     } else if (this.crowdBody.arrived && this.velocity > 0 && this.hasArrivedVertically()) this.completeMovement();
@@ -2037,6 +2056,7 @@ export class ConfiguredAnimal implements AnimalAgent {
       this.renderers.forEach((renderer, i) => {
         renderer.enabled = visible && this.rendererEnabled[i];
       });
+      if (visible) this.applySlopeOrientation(Infinity, true, false);
     }
     const coarse = !simulate && continueAutonomy && !this.manual;
     if (this.active === simulate && this.distant === coarse && this.suspended === !(simulate || coarse)) return;
@@ -2250,6 +2270,7 @@ export class ConfiguredAnimal implements AnimalAgent {
       this.updateCrowdIntent();
     }
     this.applyCalibration();
+    if (scale !== previousScale && this.rendered) this.applySlopeOrientation(Infinity, true, false);
   }
 
   /** Applying a clip's visual offset cannot resize collision or re-admit an ongoing route. */
@@ -2258,19 +2279,134 @@ export class ConfiguredAnimal implements AnimalAgent {
     this.calibration.transform.setScale(scale, scale, scale);
     this.calibration.transform.setRotation(0, this.config.yaw ?? 0, 0);
     const bounds = this.config.animations.find((binding) => binding.id === this.config.initialAnimation)!.bounds;
-    const center = new Vector3(
-      -(bounds.min[0] + bounds.max[0]) / 2,
-      // Animated envelopes include crouches and belly motion; they are not a support plane.
-      -this.config.bounds.min[1],
-      -(bounds.min[2] + bounds.max[2]) / 2
-    );
+    const centerX = -(bounds.min[0] + bounds.max[0]) / 2;
+    // Animated envelopes include crouches and belly motion; they are not a support plane.
+    const centerY = -this.config.bounds.min[1];
+    const centerZ = -(bounds.min[2] + bounds.max[2]) / 2;
     // Translation precedes the heading correction, keeping imported origins independent of actor placement.
     const radians = ((this.config.yaw ?? 0) * Math.PI) / 180;
+    const cos = Math.cos(radians);
+    const sin = Math.sin(radians);
+    this.calibrationBaseX = (centerX * cos + centerZ * sin) * scale;
+    this.calibrationBaseY = centerY * scale + (this.config.animations[this.clip]?.altitude ?? 0);
+    this.calibrationBaseZ = (-centerX * sin + centerZ * cos) * scale;
     this.calibration.transform.setPosition(
-      (center.x * Math.cos(radians) + center.z * Math.sin(radians)) * scale,
-      center.y * scale + (this.config.animations[this.clip]?.altitude ?? 0),
-      (-center.x * Math.sin(radians) + center.z * Math.cos(radians)) * scale
+      this.calibrationBaseX,
+      this.calibrationBaseY + this.slopeHeightOffset,
+      this.calibrationBaseZ
     );
+  }
+
+  /**
+   * Align visual pitch/roll and convex-ridge grounding offset to the terrain foot span
+   * without touching logical heading, physics raycasts, or collision footprints.
+   */
+  private applySlopeOrientation(seconds: number, instant = false, allowDefer = true): void {
+    const heading = this.motion.heading;
+    if (!instant && allowDefer) {
+      if (this.system.deferringPose) {
+        if (Number.isFinite(seconds) && seconds > 0) this.pendingSlopeSeconds += seconds;
+        return;
+      }
+      if (!this.rendered) {
+        this.pendingSlopeSeconds = 0;
+        this.root.transform.setRotation(0, (heading * 180) / Math.PI, 0);
+        return;
+      }
+    }
+    const dt = Number.isFinite(seconds) && seconds > 0 ? this.pendingSlopeSeconds + seconds : seconds;
+    this.pendingSlopeSeconds = 0;
+    const mode = this.profile.slopeAlignment ?? "quadruped";
+    const ground = this.options.ground;
+    if (mode === "none" || !ground || this.movementMedium !== "ground") {
+      this.slopeTargetPitch = 0;
+      this.slopeTargetRoll = 0;
+      this.slopeTargetHeightOffset = 0;
+      this.slopeSampledMedium = this.movementMedium;
+    } else if (
+      instant ||
+      this.motion.x !== this.slopeSampledX ||
+      this.motion.z !== this.slopeSampledZ ||
+      heading !== this.slopeSampledHeading ||
+      this.scale !== this.slopeSampledScale ||
+      this.slopeSampledMedium !== "ground"
+    ) {
+      const x = this.motion.x;
+      const z = this.motion.z;
+      const centerY = ground.heightAt(x, z, "ground");
+      if (centerY !== undefined && Number.isFinite(centerY)) {
+        const bodyL = Math.max(0.1, (this.config.bounds.max[2] - this.config.bounds.min[2]) * this.scale);
+        const bodyW = Math.max(0.1, (this.config.bounds.max[0] - this.config.bounds.min[0]) * this.scale);
+        const bodyH = Math.max(0.1, (this.config.bounds.max[1] - this.config.bounds.min[1]) * this.scale);
+        const isBiped = mode === "biped";
+        const halfL = isBiped ? Math.max(0.12, Math.min(0.35, bodyL * 0.25)) : Math.max(0.18, bodyL * 0.42);
+        const halfW = isBiped ? Math.max(0.12, Math.min(0.3, bodyW * 0.35)) : Math.max(0.14, bodyW * 0.42);
+        const pitchWeight = isBiped ? 0.35 : 1.0;
+        const rollWeight = isBiped ? 0.15 : 0.75;
+        const maxPitch = isBiped ? 0.26 : 0.56;
+        const maxRoll = isBiped ? 0.14 : 0.38;
+        // Animal local +Z is world (sin(h), cos(h)); right-handed local +X is world (cos(h), -sin(h)).
+        const fx = Math.sin(heading);
+        const fz = Math.cos(heading);
+        const lx = fz;
+        const lz = -fx;
+        const fSample = ground.heightAt(x + fx * halfL, z + fz * halfL, "ground");
+        const bSample = ground.heightAt(x - fx * halfL, z - fz * halfL, "ground");
+        const pSample = ground.heightAt(x + lx * halfW, z + lz * halfW, "ground");
+        const mSample = ground.heightAt(x - lx * halfW, z - lz * halfW, "ground");
+        const frontY = fSample !== undefined && Number.isFinite(fSample) ? fSample : centerY;
+        const backY = bSample !== undefined && Number.isFinite(bSample) ? bSample : centerY;
+        const plusXY = pSample !== undefined && Number.isFinite(pSample) ? pSample : centerY;
+        const minusXY = mSample !== undefined && Number.isFinite(mSample) ? mSample : centerY;
+        // Positive pitch around local +X tilts +Z nose down, so uphill (frontY > backY) is negative pitch.
+        const rawPitch = -Math.atan2(frontY - backY, 2 * halfL) * pitchWeight;
+        // Positive roll around local +Z lifts local +X side up.
+        const rawRoll = Math.atan2(plusXY - minusXY, 2 * halfW) * rollWeight;
+        this.slopeTargetPitch = Math.max(-maxPitch, Math.min(maxPitch, rawPitch));
+        this.slopeTargetRoll = Math.max(-maxRoll, Math.min(maxRoll, rawRoll));
+        if (!isBiped) {
+          const fbMid = (frontY + backY) * 0.5;
+          const lrMid = (plusXY + minusXY) * 0.5;
+          const minMid = fbMid < lrMid ? fbMid : lrMid;
+          // On convex ridges, settle down onto the foot-span chord; on concave valleys, lift slightly to halve clipping.
+          const rawOffset = minMid < centerY ? minMid - centerY : (fbMid - centerY) * 0.5;
+          this.slopeTargetHeightOffset = Math.max(-bodyH * 0.25, Math.min(bodyH * 0.12, rawOffset));
+        } else {
+          this.slopeTargetHeightOffset = 0;
+        }
+      }
+      this.slopeSampledX = x;
+      this.slopeSampledZ = z;
+      this.slopeSampledHeading = heading;
+      this.slopeSampledScale = this.scale;
+      this.slopeSampledMedium = "ground";
+    }
+    if (instant || !Number.isFinite(dt) || dt <= 0) {
+      this.slopePitch = this.slopeTargetPitch;
+      this.slopeRoll = this.slopeTargetRoll;
+      this.slopeHeightOffset = this.slopeTargetHeightOffset;
+    } else {
+      const alpha = 1 - Math.exp(-10 * dt);
+      const dPitch = this.slopeTargetPitch - this.slopePitch;
+      const dRoll = this.slopeTargetRoll - this.slopeRoll;
+      const dHeight = this.slopeTargetHeightOffset - this.slopeHeightOffset;
+      this.slopePitch = Math.abs(dPitch) < 1e-4 ? this.slopeTargetPitch : this.slopePitch + dPitch * alpha;
+      this.slopeRoll = Math.abs(dRoll) < 1e-4 ? this.slopeTargetRoll : this.slopeRoll + dRoll * alpha;
+      this.slopeHeightOffset =
+        Math.abs(dHeight) < 1e-4 ? this.slopeTargetHeightOffset : this.slopeHeightOffset + dHeight * alpha;
+    }
+    if (this.slopePitch === 0 && this.slopeRoll === 0) {
+      this.root.transform.setRotation(0, (heading * 180) / Math.PI, 0);
+    } else {
+      Quaternion.rotationYawPitchRoll(heading, this.slopePitch, this.slopeRoll, this.slopeQuat);
+      this.root.transform.setRotationQuaternion(this.slopeQuat.x, this.slopeQuat.y, this.slopeQuat.z, this.slopeQuat.w);
+    }
+    if (this.calibration) {
+      const targetCalY = this.calibrationBaseY + this.slopeHeightOffset;
+      if (this.calibration.transform.position.y !== targetCalY) {
+        this.calibration.transform.setPosition(this.calibrationBaseX, targetCalY, this.calibrationBaseZ);
+      }
+    }
   }
 
   /** Adjust nominal translation for visual foot-slip calibration; the gait remains coupled to actual motion. */
@@ -2393,7 +2529,8 @@ export class ConfiguredAnimal implements AnimalAgent {
       this.config.initialAnimation;
     this.play(this.config.animations.findIndex((clip) => clip.id === idle));
     this.seek(0);
-    this.root.transform.setRotation(0, (heading * 180) / Math.PI, 0);
+    this.slopeSampledX = NaN;
+    this.applySlopeOrientation(Infinity, true, false);
     this.placeOnGround();
     return true;
   }

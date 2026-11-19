@@ -1,5 +1,10 @@
 import type { BehaviorNode } from "../behavior/BehaviorTree";
-import { validateAnimalTaskProfile, type AnimalTaskProfile, type AnimalAnimationChoice } from "./AnimalTaskController";
+import {
+  validateAnimalTaskProfile,
+  type AnimalSlopeAlignment,
+  type AnimalTaskProfile,
+  type AnimalAnimationChoice
+} from "./AnimalTaskController";
 
 /** Authored animation meaning; source clip names never determine runtime decisions. */
 export enum AnimalActivity {
@@ -88,6 +93,7 @@ export interface AnimalSpeciesRegistration {
   groundGaits: AnimalGait[];
   fleeGaits: AnimalGait[];
   preferredMedium?: AnimalMedium;
+  slopeAlignment?: AnimalSlopeAlignment;
   /** Try a direct flight route before a ground escape when shooed. */
   flyFirstOnShoo?: boolean;
   fleeWeights?: { gait: AnimalGait; weight: number }[];
@@ -437,6 +443,7 @@ export function compileAnimalRegistration(
     defaultSkill: "idle",
     preferredMedium: preferredMedium === AnimalMedium.Air ? AnimalMedium.Ground : preferredMedium,
     ...(slots.fly ? { landingMedium } : {}),
+    ...(species.slopeAlignment ? { slopeAlignment: species.slopeAlignment } : {}),
     habitatPreferences: species.habitats,
     skills: {
       idle: { label: "闲置（自主闲逛）", background: true, repeat: true, tree: { type: "weightedRandom", children } },

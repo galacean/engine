@@ -175,6 +175,7 @@
         }
       ],
       "preferredMedium": "ground",
+      "slopeAlignment": "biped",
       "fleeWeights": [
         {
           "gait": "run",
@@ -276,6 +277,7 @@
         }
       ],
       "preferredMedium": "water",
+      "slopeAlignment": "biped",
       "fleeWeights": [
         {
           "gait": "fly",
@@ -438,6 +440,7 @@
         }
       ],
       "preferredMedium": "air",
+      "slopeAlignment": "biped",
       "fleeWeights": [
         {
           "gait": "fly",
@@ -843,6 +846,7 @@
         }
       ],
       "preferredMedium": "ground",
+      "slopeAlignment": "biped",
       "fleeWeights": [
         {
           "gait": "run",
@@ -1031,6 +1035,7 @@
         }
       ],
       "preferredMedium": "ground",
+      "slopeAlignment": "biped",
       "fleeWeights": [
         {
           "gait": "run",
@@ -1056,6 +1061,7 @@
         }
       ],
       "preferredMedium": "water",
+      "slopeAlignment": "biped",
       "fleeWeights": [
         {
           "gait": "swim",
@@ -1077,6 +1083,7 @@
         }
       ],
       "preferredMedium": "air",
+      "slopeAlignment": "biped",
       "fleeWeights": [
         {
           "gait": "fly",
@@ -1262,6 +1269,7 @@
         }
       ],
       "preferredMedium": "ground",
+      "slopeAlignment": "biped",
       "fleeWeights": [
         {
           "gait": "run",

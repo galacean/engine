@@ -44,12 +44,17 @@ export interface AnimalTaskSkill {
   requiresTarget?: boolean;
 }
 
+/** Terrain slope alignment posture: quadrupeds conform across their foot span; bipeds stay mostly upright. */
+export type AnimalSlopeAlignment = "quadruped" | "biped" | "none";
+
 /** Asset/application registration. Semantic slots and skill ids remain extensible strings. */
 export interface AnimalTaskProfile {
   defaultSkill: string;
   preferredMedium?: "ground" | "air" | "water";
   /** Supported resting surface after flight; used by recovery as well as authored recipes. */
   landingMedium?: "ground" | "water";
+  /** Terrain slope alignment style when walking or resting on ground. Defaults to quadruped. */
+  slopeAlignment?: AnimalSlopeAlignment;
   habitatPreferences?: readonly { habitat: string; weight: number }[];
   skills: Record<string, AnimalTaskSkill>;
   animationSlots: Record<string, AnimalAnimationChoice[]>;
