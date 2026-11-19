@@ -9,6 +9,7 @@ export enum NoneTerminal {
 
   // glsl
   global_declaration,
+  qualifier_declaration,
   variable_declaration,
   variable_declaration_list,
   variable_declaration_statement,

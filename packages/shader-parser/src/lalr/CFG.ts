@@ -18,6 +18,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     NoneTerminal.global_declaration,
     [
       [NoneTerminal.precision_specifier],
+      [NoneTerminal.qualifier_declaration],
       [NoneTerminal.variable_declaration_statement],
       [NoneTerminal.struct_specifier],
       [NoneTerminal.function_definition],
@@ -144,11 +145,24 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ),
 
   ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.qualifier_declaration,
+    [[NoneTerminal.type_qualifier, ETokenType.ID, ETokenType.SEMICOLON]],
+    ASTNode.QualifierDeclaration
+  ),
+
+  ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.variable_declaration,
     [
       [NoneTerminal.fully_specified_type, ETokenType.ID],
       [NoneTerminal.fully_specified_type, ETokenType.ID, NoneTerminal.array_specifier],
-      [NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer]
+      [NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer],
+      [
+        NoneTerminal.fully_specified_type,
+        ETokenType.ID,
+        NoneTerminal.array_specifier,
+        ETokenType.EQUAL,
+        NoneTerminal.initializer
+      ]
     ],
     ASTNode.VariableDeclaration
   ),
@@ -158,7 +172,22 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     [
       [NoneTerminal.variable_declaration],
       [NoneTerminal.variable_declaration_list, ETokenType.COMMA, ETokenType.ID],
-      [NoneTerminal.variable_declaration_list, ETokenType.COMMA, ETokenType.ID, NoneTerminal.array_specifier]
+      [NoneTerminal.variable_declaration_list, ETokenType.COMMA, ETokenType.ID, NoneTerminal.array_specifier],
+      [
+        NoneTerminal.variable_declaration_list,
+        ETokenType.COMMA,
+        ETokenType.ID,
+        ETokenType.EQUAL,
+        NoneTerminal.initializer
+      ],
+      [
+        NoneTerminal.variable_declaration_list,
+        ETokenType.COMMA,
+        ETokenType.ID,
+        NoneTerminal.array_specifier,
+        ETokenType.EQUAL,
+        NoneTerminal.initializer
+      ]
     ],
     ASTNode.VariableDeclarationList
   ),

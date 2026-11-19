@@ -378,6 +378,22 @@ export class ParserUtils {
     return false;
   }
 
+  /** Whether a `type_qualifier` consists solely of a single `invariant` token. */
+  static isInvariantOnlyQualifier(node: TreeNode): boolean {
+    let count = 0;
+    const visit = (current: TreeNode): boolean => {
+      for (const child of current.children) {
+        if (child instanceof Token) {
+          if (child.type !== Keyword.INVARIANT || ++count > 1) return false;
+        } else if (child instanceof TreeNode && !visit(child)) {
+          return false;
+        }
+      }
+      return true;
+    };
+    return visit(node) && count === 1;
+  }
+
   /**
    * Whether an expression is a compile-time constant per GLSL ES §4.3.3. Covers numeric literals,
    * bare identifiers whose symbol is `const`, `#define`d names, built-in function calls whose
