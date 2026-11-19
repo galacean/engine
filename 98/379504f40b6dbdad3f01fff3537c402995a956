@@ -1,0 +1,49 @@
+packages/physics-havok/README.md
+  s_eb7ebf3c3ff8b9::t_36dbb731ee85dc 1-102
+packages/physics-havok/libs/HavokPhysics_umd.js
+  s_cf656533c40977::t_3906d0fe2ccdf1 1-21
+packages/physics-havok/libs/LICENSE
+  s_cf656533c40977::t_ef2620281c3f1d 1-21
+packages/physics-havok/src/HavokPhysics.ts
+  s_eb7ebf3c3ff8b9::t_bc98ed6a7bf77c 1-478
+packages/physics-havok/src/HavokPhysicsScene.ts
+  s_eb7ebf3c3ff8b9::t_e1cd15ac40ccf2 1-1527
+packages/physics-havok/src/HavokTypes.ts
+  s_eb7ebf3c3ff8b9::t_734a629a27d44b 1-200
+packages/physics-havok/src/joint/HavokFixedJoint.ts
+  s_eb7ebf3c3ff8b9::t_fbb632c7917764 1-153
+packages/physics-havok/src/joint/HavokJoint.ts
+  s_eb7ebf3c3ff8b9::t_dec8c48f9a72db 1-285
+packages/physics-havok/src/shape/HavokCapsuleColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_18ca18e902838a 1-170
+packages/physics-havok/src/shape/HavokColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_58f2601231d737 1-206
+packages/physics-havok/src/shape/HavokMeshColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_ac1d2d4e819d14 1-281
+tests/src/physics-havok/HavokPhysics.test.ts
+  s_eb7ebf3c3ff8b9::t_618639ffd302dc 1-1373
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "98379504f40b6dbdad3f01fff3537c402995a956",
+  "prompts": {},
+  "sessions": {
+    "s_cf656533c40977": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f352-19a3-73a3-9214-ebd4efed7fb0",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_eb7ebf3c3ff8b9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ef5d-ae7e-7512-9057-6ffe80a3b716",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+packages/core/src/postProcess/PostProcessUberPass.ts
+  s_d0855e4575d176::t_083197f0d2e2cc 190
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomUpsample.glsl
+  s_d0855e4575d176::t_936bdd1717935b 15-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ef74274f54acc4eb88c7f4ff33f2e15036e7cf49",
+  "prompts": {},
+  "sessions": {
+    "s_d0855e4575d176": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ed64-1b78-7210-8d93-3cc4ed5d350e",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}
