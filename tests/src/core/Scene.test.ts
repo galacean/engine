@@ -277,6 +277,98 @@ describe("Scene", () => {
       expect(root2Script.destroyedFlag).toBe(true);
     });
 
+    it("still invokes Script.onDestroy when Script.onDisable throws during destroy", () => {
+      class ThrowingDisableScript extends Script {
+        onDestroyCalled = false;
+        override onDisable(): void {
+          throw new Error("script-disable-boom");
+        }
+        override onDestroy(): void {
+          this.onDestroyCalled = true;
+        }
+      }
+
+      const testScene = new Scene(engine);
+      engine.sceneManager.addScene(testScene);
+      try {
+        const entity = testScene.createRootEntity("script-disable-root");
+        const script = entity.addComponent(ThrowingDisableScript);
+        expect(() => script.destroy()).toThrow("script-disable-boom");
+        expect(script.destroyed).toBe(true);
+        expect(script.onDestroyCalled).toBe(true);
+      } finally {
+        testScene.destroy();
+      }
+    });
+
+    it("preserves firstError in Engine.update when both pending destroy and deferred Engine.destroy throw, and finishes Engine.destroy across remaining scenes", async () => {
+      class ThrowingPendingScript extends Script {
+        override onDestroy(): void {
+          throw new Error("first-pending-error");
+        }
+      }
+      class ThrowingScene1Script extends Script {
+        override onDestroy(): void {
+          throw new Error("scene1-destroy-error");
+        }
+      }
+      class TrackingScene2Script extends Script {
+        destroyedFlag = false;
+        override onDestroy(): void {
+          this.destroyedFlag = true;
+        }
+      }
+      class FrameDriverScript extends Script {
+        target!: Script;
+        triggered = false;
+        override onUpdate(): void {
+          if (this.triggered) return;
+          this.triggered = true;
+          this.target.destroy();
+          this.engine.destroy();
+        }
+      }
+
+      // Case A: Engine.update() pending destroy throws firstError AND deferred _destroy() also throws
+      const tempEngineA = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+      const sceneA1 = tempEngineA.sceneManager.scenes[0];
+      const sceneA2 = new Scene(tempEngineA);
+      tempEngineA.sceneManager.addScene(sceneA2);
+
+      const entityA1 = sceneA1.createRootEntity("a1");
+      const pendingThrow = entityA1.addComponent(ThrowingPendingScript);
+      entityA1.addComponent(ThrowingScene1Script);
+      const driver = entityA1.addComponent(FrameDriverScript);
+      driver.target = pendingThrow;
+
+      const entityA2 = sceneA2.createRootEntity("a2");
+      const trackA2 = entityA2.addComponent(TrackingScene2Script);
+
+      expect(() => tempEngineA.update()).toThrow("first-pending-error");
+      expect((tempEngineA as any)._frameInProcess).toBe(false);
+      expect(tempEngineA.destroyed).toBe(true);
+      expect(sceneA1.destroyed).toBe(true);
+      expect(sceneA2.destroyed).toBe(true);
+      expect(trackA2.destroyedFlag).toBe(true);
+      expect(tempEngineA.sceneManager._allCreatedScenes.length).toBe(0);
+
+      // Case B: Direct Engine.destroy() with 2 scenes where scene 1 throws -> scene 2 and engine still tear down cleanly
+      const tempEngineB = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+      const sceneB1 = tempEngineB.sceneManager.scenes[0];
+      const sceneB2 = new Scene(tempEngineB);
+      tempEngineB.sceneManager.addScene(sceneB2);
+
+      sceneB1.createRootEntity("b1").addComponent(ThrowingScene1Script);
+      const trackB2 = sceneB2.createRootEntity("b2").addComponent(TrackingScene2Script);
+
+      expect(() => tempEngineB.destroy()).toThrow("scene1-destroy-error");
+      expect(tempEngineB.destroyed).toBe(true);
+      expect(sceneB1.destroyed).toBe(true);
+      expect(sceneB2.destroyed).toBe(true);
+      expect(trackB2.destroyedFlag).toBe(true);
+      expect(tempEngineB.sceneManager._allCreatedScenes.length).toBe(0);
+    });
+
     it("all destroy", () => {
       scene.createRootEntity("root1");
       scene.createRootEntity("root2");

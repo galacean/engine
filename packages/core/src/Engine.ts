@@ -315,6 +315,14 @@ export class Engine extends EventDispatcher {
 
     const deltaTime = time.deltaTime;
     this._frameInProcess = true;
+    let firstError: unknown;
+    let hasError = false;
+    const recordError = (error: unknown): void => {
+      if (!hasError) {
+        firstError = error;
+        hasError = true;
+      }
+    };
     try {
       this._renderElementPool.clear();
       this._textRenderElementPool.clear();
@@ -376,17 +384,31 @@ export class Engine extends EventDispatcher {
 
       // Process pending destroys
       this._processPendingDestroyObjects();
+    } catch (error) {
+      recordError(error);
     } finally {
       this._frameInProcess = false;
 
       if (this._waitingDestroy) {
-        this._destroy();
+        try {
+          this._destroy();
+        } catch (error) {
+          recordError(error);
+        }
       }
 
       if (this._waitingGC) {
-        this._gc();
-        this._waitingGC = false;
+        try {
+          this._gc();
+        } catch (error) {
+          recordError(error);
+        } finally {
+          this._waitingGC = false;
+        }
       }
+    }
+    if (hasError) {
+      throw firstError;
     }
   }
 
@@ -506,25 +528,42 @@ export class Engine extends EventDispatcher {
     this._destroyed = true;
     this._waitingDestroy = false;
 
-    this._canvas._sizeUpdateFlagManager.removeListener(this._onCanvasResize);
-    this._canvas._destroy();
+    let firstError: unknown;
+    let hasError = false;
+    const runStep = (step: () => void): void => {
+      try {
+        step();
+      } catch (error) {
+        if (!hasError) {
+          firstError = error;
+          hasError = true;
+        }
+      }
+    };
 
-    this._sceneManager._destroyAllScene();
-    this._resourceManager._destroy();
+    runStep(() => this._canvas._sizeUpdateFlagManager.removeListener(this._onCanvasResize));
+    runStep(() => this._canvas._destroy());
 
-    this.inputManager._destroy();
-    this._batcherManager.destroy();
-    this._renderTargetPool.gc();
-    this.xrManager?._destroy();
-    this.dispatch(EngineEventType.Shutdown, this);
+    runStep(() => this._sceneManager._destroyAllScene());
+    runStep(() => this._resourceManager._destroy());
+
+    runStep(() => this.inputManager._destroy());
+    runStep(() => this._batcherManager.destroy());
+    runStep(() => this._renderTargetPool.gc());
+    runStep(() => this.xrManager?._destroy());
+    runStep(() => this.dispatch(EngineEventType.Shutdown, this));
 
     // Cancel animation
-    this.pause();
+    runStep(() => this.pause());
 
-    Shader._clear(this);
-    this._hardwareRenderer.destroy();
+    runStep(() => Shader._clear(this));
+    runStep(() => this._hardwareRenderer.destroy());
 
-    this.removeAllEventListeners();
+    runStep(() => this.removeAllEventListeners());
+
+    if (hasError) {
+      throw firstError;
+    }
   }
 
   /**

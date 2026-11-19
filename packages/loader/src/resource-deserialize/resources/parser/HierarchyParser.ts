@@ -50,8 +50,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     this._parseEntities()
       .then(() => this._organizeEntities())
       .then(() => this._parseComponents())
-      .then(() => this._parseComponentsPropsAndCalls())
-      .then(() => this._parsePrefabOverrides())
+      .then(() => this._parseComponentsPropsAndOverrides())
       .then(() => this._clearAndResolve())
       .then(this._resolve)
       .catch(this._reject);
@@ -291,29 +290,15 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   }
 
   // ---------------------------------------------------------------------------
-  // Stage 4: Apply props and execute calls on components
+  // Stage 4: Apply removedEntities, entityProps, and unified component props/calls/overrides
   // ---------------------------------------------------------------------------
 
-  private _parseComponentsPropsAndCalls(): Promise<unknown> {
-    const { pendingComponents } = this.context;
-    const items = new Array<{ target: Component; block: MutationBlock }>(pendingComponents.length);
-    for (let i = 0, n = pendingComponents.length; i < n; i++) {
-      const { instance, config } = pendingComponents[i];
-      items[i] = { target: instance, block: config };
-    }
-    return this._applyMutationBlocks(items);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Stage 5: Apply prefab instance overrides
-  // ---------------------------------------------------------------------------
-
-  private _parsePrefabOverrides(): Promise<unknown> {
+  private _parseComponentsPropsAndOverrides(): Promise<unknown> {
     const removedEntities = this._overrideRemovedEntities;
     const entityProps = this._overrideEntityProps;
     const componentProps = this._overrideComponentProps;
 
-    // Destroy removedEntities before componentProps (snapshotting parent children for Stage 5 $entity refs)
+    // Destroy removedEntities before resolving props/calls (snapshotting parent children for $entity refs)
     if (removedEntities.length > 0) {
       const childSnapshots = (this.context.childSnapshots ||= new Map());
       for (let i = 0, n = removedEntities.length; i < n; i++) {
@@ -340,20 +325,69 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     }
     entityProps.length = 0;
 
-    // componentProps — apply all surviving overrides across all instances in global constraint phase order
-    // (relax -> neutral -> restrict) so child relaxations run before parent restrictions.
-    if (componentProps.length === 0) {
-      return Promise.resolve();
+    // Merge base component blocks (pendingComponents) and prefab componentProps per target component
+    // so base+override props on the same component (e.g. base isTrigger=true + override convex=true)
+    // and cross-instance parent/child constraints execute together in one global phase-ordered pass.
+    const { pendingComponents } = this.context;
+    const items: Array<{ target: Component; block: MutationBlock }> = [];
+    const byTarget = componentProps.length > 0 ? new Map<Component, number>() : null;
+
+    for (let i = 0, n = pendingComponents.length; i < n; i++) {
+      const { instance, config } = pendingComponents[i];
+      if (instance.destroyed) continue;
+      if (byTarget) {
+        byTarget.set(instance, items.length);
+      }
+      items.push({ target: instance, block: config });
     }
-    const surviving: { target: Component; block: MutationBlock }[] = [];
+
     for (let i = 0, n = componentProps.length; i < n; i++) {
-      const item = componentProps[i];
-      if (!item.target.destroyed) {
-        surviving.push(item);
+      const { target, block } = componentProps[i];
+      if (target.destroyed) continue;
+      const existingIndex = byTarget!.get(target);
+      if (existingIndex !== undefined) {
+        items[existingIndex].block = HierarchyParser._mergeMutationBlocks(items[existingIndex].block, block);
+      } else {
+        byTarget!.set(target, items.length);
+        items.push({ target, block });
       }
     }
     componentProps.length = 0;
-    return surviving.length > 0 ? this._applyMutationBlocks(surviving) : Promise.resolve();
+
+    return items.length > 0 ? this._applyMutationBlocks(items) : Promise.resolve();
+  }
+
+  private static _mergeMutationBlocks(base: MutationBlock, override: MutationBlock): MutationBlock {
+    const props =
+      base.props && override.props
+        ? HierarchyParser._mergeProps(base.props, override.props)
+        : (override.props ?? base.props);
+    const calls = base.calls && override.calls ? base.calls.concat(override.calls) : (override.calls ?? base.calls);
+    return { props, calls };
+  }
+
+  private static _mergeProps(
+    base: Record<string, unknown>,
+    override: Record<string, unknown>
+  ): Record<string, unknown> {
+    const merged: Record<string, unknown> = { ...base };
+    for (const key in override) {
+      const baseVal = merged[key];
+      const overrideVal = override[key];
+      merged[key] =
+        HierarchyParser._isPlainPropsObject(baseVal) && HierarchyParser._isPlainPropsObject(overrideVal)
+          ? HierarchyParser._mergeProps(baseVal, overrideVal)
+          : overrideVal;
+    }
+    return merged;
+  }
+
+  private static _isPlainPropsObject(value: unknown): value is Record<string, unknown> {
+    if (value == null || typeof value !== "object" || Array.isArray(value)) return false;
+    for (const key in value as Record<string, unknown>) {
+      if (key.charCodeAt(0) === 36) return false;
+    }
+    return true;
   }
 
   private _applyMutationBlocks(items: readonly { target: Component; block: MutationBlock }[]): Promise<unknown> {

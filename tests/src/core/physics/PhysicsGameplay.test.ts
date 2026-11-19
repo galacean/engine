@@ -7,6 +7,8 @@ import {
   Collision,
   ControllerCollisionFlag,
   ControllerNonWalkableMode,
+  dependentComponents,
+  DependentMode,
   Entity,
   FixedJoint,
   HingeJoint,
@@ -1066,6 +1068,144 @@ describe("Physics gameplay integration", () => {
         expect(errors).not.toHaveBeenCalled();
       } finally {
         combinedInst.destroy();
+      }
+    } finally {
+      for (const key of poolKeys) {
+        // @ts-ignore
+        delete engine.resourceManager._objectPool[key];
+      }
+    }
+  });
+
+  it("preserves component order and deeper BoxCollider/0 indices on Rigidbody replacement, and merges base+override props on added MeshCollider", async () => {
+    @dependentComponents(HingeJoint, DependentMode.CheckOnly)
+    class HingeDependentScript extends Script {}
+    Loader.registerClass("HingeDependentScript", HingeDependentScript);
+
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1, { keepMeshData: true });
+    // @ts-ignore
+    engine.resourceManager._objectPool["test://merged-mesh.mesh"] = mesh;
+    const poolKeys: string[] = ["test://merged-mesh.mesh"];
+    try {
+      // Base prefab: [Rigidbody, HingeJoint, BoxCollider(size=1)]
+      const basePrefab = await PrefabParser.parse(engine, "test://r3-base.prefab", {
+        version: "2.0",
+        refs: [],
+        entities: [{ name: "Door", components: [0, 1, 2] }],
+        components: [
+          { type: "Rigidbody", props: { mass: 1, useGravity: false } },
+          { type: "HingeJoint" },
+          { type: "BoxCollider", props: { size: { x: 1, y: 1, z: 1 } } }
+        ],
+        root: 0
+      });
+      // @ts-ignore
+      engine.resourceManager._objectPool["test://r3-base.prefab"] = basePrefab;
+      poolKeys.push("test://r3-base.prefab");
+
+      // Mid prefab: replaces Rigidbody while keeping HingeJoint + BoxCollider/0, and adds HingeDependentScript + second BoxCollider(size=2)
+      const midPrefab = await PrefabParser.parse(engine, "test://r3-mid.prefab", {
+        version: "2.0",
+        refs: [{ url: "test://r3-base.prefab", type: "Prefab" }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                removedComponents: [{ path: [], selectors: [{ type: "Rigidbody", index: 0 }] }],
+                addedComponents: [
+                  { target: [], component: 0 },
+                  { target: [], component: 1 },
+                  { target: [], component: 2 }
+                ]
+              }
+            }
+          }
+        ],
+        components: [
+          { type: "Rigidbody", props: { mass: 5, useGravity: false } },
+          { type: "HingeDependentScript" },
+          { type: "BoxCollider", props: { size: { x: 2, y: 2, z: 2 } } }
+        ],
+        root: 0
+      });
+      // @ts-ignore
+      engine.resourceManager._objectPool["test://r3-mid.prefab"] = midPrefab;
+      poolKeys.push("test://r3-mid.prefab");
+
+      // Outer prefab: overrides BoxCollider/0 (must hit original size=1 BoxCollider, NOT added size=2 BoxCollider)
+      // AND adds a MeshCollider with base isTrigger=true + same-instance override convex=true!
+      const outerPrefab = await PrefabParser.parse(engine, "test://r3-outer.prefab", {
+        version: "2.0",
+        refs: [
+          { url: "test://r3-mid.prefab", type: "Prefab" },
+          { url: "test://merged-mesh.mesh", type: "ModelMesh" }
+        ],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                addedComponents: [{ target: [], component: 0 }],
+                componentProps: [
+                  {
+                    path: [],
+                    selector: { type: "BoxCollider", index: 0 },
+                    props: { size: { x: 7 } }
+                  },
+                  {
+                    path: [],
+                    selector: { type: "MeshCollider", index: 0 },
+                    props: { convex: true }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        components: [
+          {
+            type: "MeshCollider",
+            props: { isTrigger: true, mesh: { $ref: 1 } }
+          }
+        ],
+        root: 0
+      });
+
+      const inst = outerPrefab.instantiate();
+      root.addChild(inst);
+      try {
+        const rb = inst.getComponent(Rigidbody)!;
+        const hinge = inst.getComponent(HingeJoint)!;
+        const depScript = inst.getComponent(HingeDependentScript)!;
+        const boxes = inst.getComponents(BoxCollider, []);
+        const meshCol = inst.getComponent(MeshCollider)!;
+
+        // Topological component order: Rigidbody -> HingeJoint -> HingeDependentScript
+        const components = inst._components;
+        expect(components.indexOf(rb)).toBeLessThan(components.indexOf(hinge));
+        expect(components.indexOf(hinge)).toBeLessThan(components.indexOf(depScript));
+
+        // Deeper Prefab BoxCollider/0 hit original BoxCollider (1,1,1 -> 7,1,1), leaving added BoxCollider (2,2,2) untouched
+        expect(boxes).toHaveLength(2);
+        expect(boxes[0].size.x).toBe(7);
+        expect(boxes[0].size.y).toBe(1);
+        expect(boxes[1].size.x).toBe(2);
+        expect(boxes[1].size.y).toBe(2);
+
+        // Added MeshCollider with base isTrigger=true + override convex=true applied convex BEFORE isTrigger
+        expect(meshCol.convex).toBe(true);
+        expect(meshCol.isTrigger).toBe(true);
+        expect(errors).not.toHaveBeenCalled();
+
+        // Reverse-order entity destruction succeeds cleanly with zero dependency errors
+        expect(() => inst.destroy()).not.toThrow();
+        expect(depScript.destroyed).toBe(true);
+        expect(hinge.destroyed).toBe(true);
+        expect(rb.destroyed).toBe(true);
+      } finally {
+        if (!inst.destroyed) inst.destroy();
       }
     } finally {
       for (const key of poolKeys) {

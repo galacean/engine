@@ -1,5 +1,5 @@
 import { createPhysics } from "../../utils/physics";
-import { FixedJoint, HingeJoint, Entity, Rigidbody, BoxCollider, Engine, Scene } from "@galacean/engine-core";
+import { FixedJoint, HingeJoint, Entity, Rigidbody, BoxCollider, Engine, Scene, Script } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
 import { vi, describe, beforeAll, afterAll, beforeEach, afterEach, expect, it } from "vitest";
@@ -832,6 +832,110 @@ describe("Joint", function () {
       }
     } finally {
       secondScene.destroy();
+    }
+  });
+
+  it("handles re-entrant and throwing onDisable callbacks safely during SceneManager.mergeScenes", function () {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    // Case A: root1.onDisable() hijacks root0 into thirdScene while merging into an inactive destScene
+    const srcA = new Scene(engine, "merge-reentrant-src");
+    const dstA = new Scene(engine, "merge-reentrant-dst"); // intentionally inactive (not added to sceneManager)
+    const thirdScene = new Scene(engine, "merge-reentrant-third");
+    engine.sceneManager.addScene(srcA);
+    engine.sceneManager.addScene(thirdScene);
+    try {
+      const root0 = new Entity(engine, "root0");
+      root0.transform.setPosition(0, 10, 0);
+      root0.addComponent(BoxCollider);
+      const body0 = root0.addComponent(Rigidbody);
+      body0.isKinematic = true;
+
+      const root1 = new Entity(engine, "root1");
+      root1.transform.setPosition(0, 6, 0);
+      root1.addComponent(BoxCollider);
+      root1.addComponent(Rigidbody);
+      const joint1 = root1.addComponent(FixedJoint);
+      joint1.connectedBody = body0;
+
+      class HijackOnDisable extends Script {
+        override onDisable(): void {
+          thirdScene.addRootEntity(root0);
+        }
+      }
+      root1.addComponent(HijackOnDisable);
+
+      srcA.addRootEntity(root0);
+      srcA.addRootEntity(root1);
+
+      engine.sceneManager.mergeScenes(srcA, dstA);
+
+      expect(srcA.rootEntitiesCount).toBe(0);
+      expect(dstA.rootEntities).toEqual([root1]);
+      expect(thirdScene.rootEntities).toEqual([root0]);
+      expect(root0.scene).toBe(thirdScene);
+      expect(root1.scene).toBe(dstA);
+      expect(joint1.connectedBody).toBeNull();
+      expect(errors).toHaveBeenCalledWith("Joint: connectedBody belongs to another scene.");
+
+      // Destroying all scenes completes cleanly with no dual-scene hang or stale pointers
+      thirdScene.destroy();
+      dstA.destroy();
+      srcA.destroy();
+      expect(thirdScene.destroyed).toBe(true);
+      expect(dstA.destroyed).toBe(true);
+      expect(srcA.destroyed).toBe(true);
+    } finally {
+      if (!thirdScene.destroyed) thirdScene.destroy();
+      if (!dstA.destroyed) dstA.destroy();
+      if (!srcA.destroyed) srcA.destroy();
+    }
+
+    // Case B: root1.onDisable() throws midway -> no orphaned roots, no dual-scene membership, cross-scene joint detached
+    errors.mockClear();
+    const srcB = new Scene(engine, "merge-throw-src");
+    const dstB = new Scene(engine, "merge-throw-dst"); // intentionally inactive
+    engine.sceneManager.addScene(srcB);
+    try {
+      const root0 = new Entity(engine, "throw-root0");
+      root0.addComponent(BoxCollider);
+      const body0 = root0.addComponent(Rigidbody);
+      body0.isKinematic = true;
+
+      const root1 = new Entity(engine, "throw-root1");
+      class ThrowOnDisable extends Script {
+        override onDisable(): void {
+          throw new Error("merge-onDisable-boom");
+        }
+      }
+      root1.addComponent(ThrowOnDisable);
+
+      const root2 = new Entity(engine, "throw-root2");
+      root2.addComponent(BoxCollider);
+      root2.addComponent(Rigidbody);
+      const joint2 = root2.addComponent(FixedJoint);
+      joint2.connectedBody = body0;
+
+      srcB.addRootEntity(root0);
+      srcB.addRootEntity(root1);
+      srcB.addRootEntity(root2);
+
+      expect(() => engine.sceneManager.mergeScenes(srcB, dstB)).toThrow("merge-onDisable-boom");
+
+      expect(dstB.rootEntities).toEqual([root0, root1]);
+      expect(srcB.rootEntities).toEqual([root2]);
+      expect(root0.scene).toBe(dstB);
+      expect(root1.scene).toBe(dstB);
+      expect(root2.scene).toBe(srcB);
+      expect(joint2.connectedBody).toBeNull();
+
+      dstB.destroy();
+      srcB.destroy();
+      expect(dstB.destroyed).toBe(true);
+      expect(srcB.destroyed).toBe(true);
+    } finally {
+      if (!dstB.destroyed) dstB.destroy();
+      if (!srcB.destroyed) srcB.destroy();
     }
   });
 

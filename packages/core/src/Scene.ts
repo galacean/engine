@@ -73,6 +73,8 @@ export class Scene extends EngineObject {
   _sceneManager: SceneManager | null;
   /** @internal */
   _rootEntities: Entity[] = [];
+  /** @internal Destination scene while `SceneManager.mergeScenes` is transferring roots from this scene. */
+  _mergingInto: Scene | null = null;
 
   private _background: Background = new Background(this._engine);
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
@@ -358,14 +360,27 @@ export class Scene extends EngineObject {
     // Cross scene should inActive first and then active
     rootEntity._isActiveInScene && oldScene !== this && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
 
-    inActiveChangeFlag && rootEntity._processInActive(inActiveChangeFlag);
+    let inActiveError: unknown;
+    let hasInActiveError = false;
+    if (inActiveChangeFlag) {
+      try {
+        rootEntity._processInActive(inActiveChangeFlag);
+      } catch (error) {
+        inActiveError = error;
+        hasInActiveError = true;
+      }
+    }
 
-    if (oldScene !== this) {
+    if (oldScene !== this && rootEntity._scene === oldScene && rootEntity._isRoot && !rootEntity.destroyed) {
       Entity._traverseSetOwnerScene(rootEntity, this);
     }
 
+    if (hasInActiveError) {
+      throw inActiveError;
+    }
+
     let activeChangeFlag = ActiveChangeFlag.None;
-    if (rootEntity._isActive) {
+    if (rootEntity._isActive && rootEntity._isRoot && rootEntity._scene === this && !rootEntity.destroyed) {
       if (this._isActiveInEngine) {
         !rootEntity._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
       }
@@ -385,8 +400,13 @@ export class Scene extends EngineObject {
       let inActiveChangeFlag = ActiveChangeFlag.None;
       this._isActiveInEngine && entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
       entity._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-      inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
-      Entity._traverseSetOwnerScene(entity, null);
+      try {
+        inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
+      } finally {
+        if (entity._scene === this && !entity._isRoot) {
+          Entity._traverseSetOwnerScene(entity, null);
+        }
+      }
     }
   }
 

@@ -272,8 +272,25 @@ export class Script extends Component {
    * @internal
    */
   protected override _onDestroy(): void {
-    super._onDestroy();
-    this.onDestroy();
+    let firstError: unknown;
+    let hasError = false;
+    try {
+      super._onDestroy();
+    } catch (error) {
+      firstError = error;
+      hasError = true;
+    }
+    try {
+      this.onDestroy();
+    } catch (error) {
+      if (!hasError) {
+        firstError = error;
+        hasError = true;
+      }
+    }
+    if (hasError) {
+      throw firstError;
+    }
   }
 
   private _hasCollisionEventCallbacks(): boolean {

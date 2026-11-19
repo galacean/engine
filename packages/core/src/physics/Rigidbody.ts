@@ -514,7 +514,10 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (joints) {
       for (let i = joints.length - 1; i >= 0; i--) {
         const joint = joints[i];
-        if (joint.scene && joint.scene !== scene) {
+        const jointScene = joint.scene;
+        if (jointScene === scene) {
+          joint._syncNativeConnectedBody();
+        } else if (jointScene && jointScene._mergingInto !== scene && scene._mergingInto !== jointScene) {
           joint._onConnectedBodyCrossScene();
         }
       }
@@ -533,7 +536,18 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @internal
    */
   override _onDisableInScene(): void {
-    this.scene!.physics._removeRigidbody(this);
+    const scene = this.scene!;
+    if (scene._mergingInto) {
+      const joints = this._connectedJoints;
+      if (joints) {
+        for (let i = joints.length - 1; i >= 0; i--) {
+          if (joints[i].scene === scene) {
+            joints[i]._detachNativeConnectedBody();
+          }
+        }
+      }
+    }
+    scene.physics._removeRigidbody(this);
   }
 
   /**

@@ -61,10 +61,7 @@ export class Entity extends EngineObject {
     }
   }
 
-  /**
-   * @internal
-   */
-  static _assignOwnerScene(entity: Entity, scene: Scene | null | undefined): void {
+  private static _assignOwnerScene(entity: Entity, scene: Scene | null | undefined): void {
     entity._scene = scene;
     const children = entity._children;
     for (let i = children.length - 1; i >= 0; i--) {
@@ -517,7 +514,7 @@ export class Entity extends EngineObject {
     addedTypes: readonly ComponentConstructor[],
     onAdd?: (index: number, component: Component) => void
   ): void {
-    const replacedDependents: Component[] = [];
+    const replacedEntries: Array<{ dependency: ComponentConstructor; dependents: Component[] }> = [];
     const suspendedDependents: Component[] = [];
 
     if (removed.length > 0) {
@@ -525,18 +522,21 @@ export class Entity extends EngineObject {
         const component = removed[i];
         if (component.destroyed) return;
         if (addedTypes.length > 0) {
-          const prevLen = replacedDependents.length;
+          const prevLen = replacedEntries.length;
           const needsReplacement = ComponentsDependencies._removeCheck(
             this,
             component.constructor as ComponentConstructor,
             addedTypes,
-            replacedDependents
+            replacedEntries
           );
           if (needsReplacement) {
-            for (let j = prevLen, m = replacedDependents.length; j < m; j++) {
-              const dep = replacedDependents[j];
-              if (dep._deactivateInScene()) {
-                suspendedDependents.push(dep);
+            for (let j = prevLen, m = replacedEntries.length; j < m; j++) {
+              const dependents = replacedEntries[j].dependents;
+              for (let k = 0, p = dependents.length; k < p; k++) {
+                const dep = dependents[k];
+                if (dep._deactivateInScene()) {
+                  suspendedDependents.push(dep);
+                }
               }
             }
             this._removeComponent(component);
@@ -549,27 +549,71 @@ export class Entity extends EngineObject {
     }
 
     if (addedTypes.length > 0) {
-      let earliestDependentIndex = -1;
-      if (replacedDependents.length > 0) {
-        for (let i = 0, n = this._components.length; i < n; i++) {
-          if (replacedDependents.includes(this._components[i])) {
-            earliestDependentIndex = i;
-            break;
-          }
-        }
-      }
-
+      const addedComponents = replacedEntries.length > 0 ? new Array<Component>(addedTypes.length) : null;
       this._addComponents(addedTypes, (i, component) => {
-        if (earliestDependentIndex !== -1 && !Entity._isTransformType(addedTypes[i])) {
-          const lastIndex = this._components.length - 1;
-          if (this._components[lastIndex] === component && lastIndex > earliestDependentIndex) {
-            this._components.pop();
-            this._components.splice(earliestDependentIndex, 0, component);
-            earliestDependentIndex++;
-          }
+        if (addedComponents) {
+          addedComponents[i] = component;
         }
         onAdd?.(i, component);
       });
+
+      if (addedComponents) {
+        const addedSet = new Set<Component>(addedComponents);
+        const moveWithDependenciesBefore = (comp: Component, limitIndex: number): void => {
+          const components = this._components;
+          let type = comp.constructor as ComponentConstructor;
+          while (type && type !== Component) {
+            const depInfo = ComponentsDependencies._dependenciesMap.get(type);
+            if (depInfo) {
+              const deps = depInfo.components;
+              for (let j = 0, len = deps.length; j < len; j++) {
+                const depType = deps[j];
+                for (let k = 0, n = components.length; k < n; k++) {
+                  const candidate = components[k];
+                  if (candidate instanceof depType && addedSet.has(candidate)) {
+                    moveWithDependenciesBefore(candidate, limitIndex);
+                    break;
+                  }
+                }
+              }
+            }
+            type = Object.getPrototypeOf(type);
+          }
+
+          const currentIndex = components.indexOf(comp);
+          if (currentIndex > limitIndex && !Entity._isTransformType(comp.constructor as ComponentConstructor)) {
+            components.splice(currentIndex, 1);
+            components.splice(limitIndex, 0, comp);
+          }
+        };
+
+        for (let i = 0, n = replacedEntries.length; i < n; i++) {
+          const { dependency, dependents } = replacedEntries[i];
+          let earliestDependentIndex = this._components.length;
+          for (let j = 0, m = dependents.length; j < m; j++) {
+            const idx = this._components.indexOf(dependents[j]);
+            if (idx !== -1 && idx < earliestDependentIndex) {
+              earliestDependentIndex = idx;
+            }
+          }
+          if (earliestDependentIndex === this._components.length) continue;
+
+          for (let j = 0, m = addedComponents.length; j < m; j++) {
+            const addedComp = addedComponents[j];
+            if (addedComp instanceof dependency) {
+              moveWithDependenciesBefore(addedComp, earliestDependentIndex);
+              // Recompute earliest dependent index after moving replacement(s) ahead of it
+              earliestDependentIndex = this._components.length;
+              for (let k = 0, p = dependents.length; k < p; k++) {
+                const idx = this._components.indexOf(dependents[k]);
+                if (idx !== -1 && idx < earliestDependentIndex) {
+                  earliestDependentIndex = idx;
+                }
+              }
+            }
+          }
+        }
+      }
     }
 
     for (let i = 0, n = suspendedDependents.length; i < n; i++) {
@@ -821,15 +865,29 @@ export class Entity extends EngineObject {
         } else {
           this._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
         }
-        inActiveChangeFlag && this._processInActive(inActiveChangeFlag);
+        let inActiveError: unknown;
+        let hasInActiveError = false;
+        if (inActiveChangeFlag) {
+          try {
+            this._processInActive(inActiveChangeFlag);
+          } catch (error) {
+            inActiveError = error;
+            hasInActiveError = true;
+          }
+        }
 
-        if (oldScene !== parentScene) {
+        if (oldScene !== parentScene && this._parent === parent && this._scene === oldScene && !this.destroyed) {
           Entity._traverseSetOwnerScene(this, parentScene);
+        }
+
+        if (hasInActiveError) {
+          this._setParentChange();
+          throw inActiveError;
         }
 
         let activeChangeFlag = ActiveChangeFlag.None;
 
-        if (this._isActive) {
+        if (this._isActive && this._parent === parent && this._scene === parentScene && !this.destroyed) {
           if (parent._isActiveInHierarchy) {
             !this._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
           }
@@ -843,9 +901,12 @@ export class Entity extends EngineObject {
         let inActiveChangeFlag = ActiveChangeFlag.None;
         this._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
         this._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-        inActiveChangeFlag && this._processInActive(inActiveChangeFlag);
-        if (oldParent) {
-          Entity._traverseSetOwnerScene(this, null);
+        try {
+          inActiveChangeFlag && this._processInActive(inActiveChangeFlag);
+        } finally {
+          if (oldParent && !this._parent && !this._isRoot) {
+            Entity._traverseSetOwnerScene(this, null);
+          }
         }
       }
       this._setParentChange();
@@ -872,14 +933,34 @@ export class Entity extends EngineObject {
 
   private _setActiveComponents(isActive: boolean, activeChangeFlag: ActiveChangeFlag): void {
     const activeChangedComponents = this._activeChangedComponents!;
-    for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
-      const component = activeChangedComponents[i];
-      // Skip components whose scene was already cleared by an earlier callback's removeChild
-      if (!isActive && !component._entity._scene) continue;
-      component._setActive(isActive, activeChangeFlag);
+    let firstError: unknown;
+    let hasError = false;
+    try {
+      for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
+        const component = activeChangedComponents[i];
+        // Skip components whose scene was already cleared by an earlier callback's removeChild
+        if (!isActive && !component._entity._scene) continue;
+        try {
+          component._setActive(isActive, activeChangeFlag);
+        } catch (error) {
+          if (!hasError) {
+            firstError = error;
+            hasError = true;
+          }
+        }
+      }
+    } finally {
+      this._activeChangedComponents = null;
+      if (this._scene) {
+        this._scene._componentsManager.putActiveChangedTempList(activeChangedComponents);
+      } else if (!hasError) {
+        firstError = new Error("Cannot detach an entity from its scene while it is processing active state changes.");
+        hasError = true;
+      }
     }
-    this._scene!._componentsManager.putActiveChangedTempList(activeChangedComponents);
-    this._activeChangedComponents = null;
+    if (hasError) {
+      throw firstError;
+    }
   }
 
   private _setActiveInHierarchy(activeChangedComponents: Component[], activeChangeFlag: ActiveChangeFlag): void {

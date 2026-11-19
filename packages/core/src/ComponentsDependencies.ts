@@ -147,20 +147,20 @@ export class ComponentsDependencies {
    * @internal
    * Verify that removing `type` from `entity` does not leave any surviving component with an unsatisfied dependency.
    * When `replace` supplies a replacement type (or list of types) satisfying a dependency, returns `true` and appends
-   * the surviving dependent components to `replacedDependents` when provided.
+   * each satisfied `(dependency, dependents)` record to `replacedEntries` when provided.
    */
   static _removeCheck(
     entity: Entity,
     type: ComponentConstructor,
     replace?: ComponentConstructor | readonly ComponentConstructor[],
-    replacedDependents?: Component[]
+    replacedEntries?: Array<{ dependency: ComponentConstructor; dependents: Component[] }>
   ): boolean {
     const components = entity._components;
     const n = components.length;
     let usedReplacement = false;
     while (type !== Component) {
       if (
-        !replacedDependents &&
+        !replacedEntries &&
         typeof replace === "function" &&
         (replace === type || replace.prototype instanceof type)
       ) {
@@ -173,14 +173,18 @@ export class ComponentsDependencies {
       const invDependencies = ComponentsDependencies._invDependenciesMap.get(type);
       if (invDependencies) {
         let firstDependentType: ComponentConstructor | null = null;
+        let dependents: Component[] | null = null;
         for (let i = 0, len = invDependencies.length; i < len; i++) {
           const dependentType = invDependencies[i];
           for (let j = 0; j < n; j++) {
             const comp = components[j];
             if (comp instanceof dependentType) {
               firstDependentType ||= dependentType;
-              if (replacedDependents && !replacedDependents.includes(comp)) {
-                replacedDependents.push(comp);
+              if (replacedEntries) {
+                dependents ||= [];
+                if (!dependents.includes(comp)) {
+                  dependents.push(comp);
+                }
               }
             }
           }
@@ -192,6 +196,9 @@ export class ComponentsDependencies {
               : !!(replace && replace.some((r) => r === type || r.prototype instanceof type));
           if (!satisfied) {
             throw `Should remove ${firstDependentType.name} before remove ${type.name}`;
+          }
+          if (replacedEntries && dependents) {
+            replacedEntries.push({ dependency: type, dependents });
           }
           usedReplacement = true;
         }

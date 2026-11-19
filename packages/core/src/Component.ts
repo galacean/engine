@@ -198,13 +198,30 @@ export class Component extends EngineObject {
     const entity = this._entity;
     entity._removeComponent(this);
     super._onDestroy();
+    let firstError: unknown;
+    let hasError = false;
     if (this._phasedActiveInScene) {
       this._phasedActiveInScene = false;
-      this._onDisableInScene();
+      try {
+        this._onDisableInScene();
+      } catch (error) {
+        firstError = error;
+        hasError = true;
+      }
     }
     if (this._phasedActive) {
       this._phasedActive = false;
-      this._onDisable();
+      try {
+        this._onDisable();
+      } catch (error) {
+        if (!hasError) {
+          firstError = error;
+          hasError = true;
+        }
+      }
+    }
+    if (hasError) {
+      throw firstError;
     }
   }
 }
