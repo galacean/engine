@@ -1,0 +1,88 @@
+packages/building/src/building/parts/architecture/BuildingWorker.ts
+  h_ddbf152d31b140 5,38
+packages/building/src/building/resources/BuildingAssetKit.ts
+  h_ddbf152d31b140 590
+packages/building/src/building/resources/BuildingOccupancy.ts
+  h_ddbf152d31b140 51-52
+packages/building/src/building/runtime/BuildingDistanceView.ts
+  h_ddbf152d31b140 67-75,719-721
+packages/building/src/building/runtime/BuildingFarProxy.ts
+  h_ddbf152d31b140 28,708,750-751
+packages/building/src/building/runtime/BuildingGlobalProxy.ts
+  h_ddbf152d31b140 29,406-425,438-439,585,631-632,636-639,954-955
+packages/building/src/building/runtime/ConstructionDecorationGeometry.ts
+  h_ddbf152d31b140 49-50,58,63,69-70,87,89,97-99,112
+packages/building/src/building/runtime/ConstructionDecorationMeshes.ts
+  h_ddbf152d31b140 2-9,60,62-65,68-70
+packages/building/src/building/runtime/ConstructionDecorationRender.ts
+  h_ddbf152d31b140 14,56,60,110-114,116-128,133-147
+packages/building/src/building/runtime/ConstructionPlasterRender.ts
+  h_ddbf152d31b140 4,63-64,68-69,72,75-91
+packages/building/src/building/runtime/ConstructionPreview.ts
+  h_ddbf152d31b140 138-247
+packages/building/src/building/runtime/ConstructionStoneFloorRender.ts
+  h_ddbf152d31b140 1,57-59,61-69
+packages/building/src/building/runtime/ConstructionSupportRender.ts
+  h_ddbf152d31b140 8-10,12-36,38-47,50-55,61-64
+packages/building/src/building/runtime/MasonryAppearance.ts
+  h_ddbf152d31b140 211,214,217,226-252
+packages/building/src/building/runtime/MasonryDistanceVertexData.ts
+  h_ddbf152d31b140 2,12,20,28,41-42,45-46
+packages/modify/src/native/core/src/shader/ShaderProgramMap.ts
+  h_ddbf152d31b140 62,66,70-85,103,113
+packages/modify/src/rendering/V2ViewGeometry.ts
+  h_ddbf152d31b140 13,15-16,65-67,69,78-84
+packages/runtime-editor/src/project/runtime-project-session.ts
+  h_ddbf152d31b140 737-740,742,816-817,857
+packages/runtime-editor/src/runtime-editor/scripts/runtime-script-worker.ts
+  h_ddbf152d31b140 4-5,11-34,45,53,87
+packages/shader-compiler/src/ShaderCompiler.ts
+  h_ddbf152d31b140 27-47,68-73,95-110
+packages/vegetation/src/asset-assembly/ProceduralPlantGeometry.ts
+  h_ddbf152d31b140 193,292,306-310,322,701-719
+packages/vegetation/src/asset-assembly/ProceduralPlantLibraryRuntime.ts
+  h_ddbf152d31b140 9-18,89-91,95-97,137-142,145,155-160,182,186-187,189,209-210,239-240,244,266,269-270,274-275,279-281,308,313-315,324-327,366,420,486-487,490,499-501,503-511,609-611,613,673-678,683-688,748,1067-1068
+packages/vegetation/src/asset-assembly/ProceduralPlantMeshes.ts
+  h_ddbf152d31b140 27-35,42,179-184
+packages/vegetation/src/asset-assembly/ProceduralPlantResources.ts
+  h_ddbf152d31b140 11,14,18
+packages/water/src/water/authoring/identity/WaterImmutableSnapshot.ts
+  h_ddbf152d31b140 18-19,21,28-30,40-45,51-53,63-65
+packages/water/src/water/authoring/terrain/WaterTerrainSnapshot.ts
+  h_ddbf152d31b140 4-5,17,26,29-32,39-42,51,54-55,59,100,169-170,174,178-180,183-191,196-204,210-211,301
+packages/world-planning/src/integrations/terrain/rock-formation/GrassRockAppearance.ts
+  h_ddbf152d31b140 18-31,96-105,109-111,114-143,146-163,170-187,190,218-220,252-268,270,281-292,294-300,302
+packages/world-planning/src/semantic-study/ContextLandscape.ts
+  h_ddbf152d31b140 288-289,291
+packages/world-planning/src/semantic-study/PlanningAlphamap.ts
+  h_ddbf152d31b140 7,202-217
+packages/world-planning/src/semantic-study/PlanningHeightmap.ts
+  h_ddbf152d31b140 438-452,454-515
+packages/world-planning/src/semantic-study/PlanningOceanSource.ts
+  h_ddbf152d31b140 6,58,84,114,123
+packages/world-planning/src/spatial/hydrology/PlanningWaterOverlay.ts
+  h_ddbf152d31b140 3-7,63-65
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetation.ts
+  h_ddbf152d31b140 20,116-163,311-312,576-586,592,609-640,652,671,714,773,788
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  h_ddbf152d31b140 1,44,792-801,808-823,875-877
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  h_ddbf152d31b140 239,315-321,323-330,801
+world/demos/seed-world/SeedWorldProject.ts
+  h_ddbf152d31b140 133-140,220-237,276-283
+world/demos/seed-world/SeedWorldWaterTextureMigration.ts
+  h_ddbf152d31b140 34-47
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingScene.ts
+  h_ddbf152d31b140 105
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2f46b7a4f9ccb40daab7bee9b2879f9060263437",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
