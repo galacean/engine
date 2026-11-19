@@ -1,4 +1,4 @@
-import { AssetPromise, Engine, Texture2D, TextureFormat } from "@galacean/engine-core";
+import { AssetPromise, Engine, Texture2D, TextureFormat, TextureUtils } from "@galacean/engine-core";
 import { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
 import { HDRDecoder } from "../../../HDRDecoder";
@@ -27,9 +27,15 @@ class Texture2DDecoder {
 
       const isHDR = imageData[0] === 0x23 && imageData[1] === 0x3f;
       const textureFormat = isHDR ? TextureFormat.R16G16B16A16_SFloat : format;
+      const effectiveSRGB = isHDR ? false : isSRGBColorSpace;
+      const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
+        engine._hardwareRenderer,
+        textureFormat,
+        mipmap,
+        effectiveSRGB
+      );
       const texture =
-        restoredTexture ||
-        new Texture2D(engine, width, height, textureFormat, mipmap, isHDR ? false : isSRGBColorSpace);
+        restoredTexture || new Texture2D(engine, width, height, textureFormat, generateMipmap, effectiveSRGB);
       texture.filterMode = filterMode;
       texture.anisoLevel = anisoLevel;
       texture.wrapModeU = wrapModeU;
@@ -38,12 +44,12 @@ class Texture2DDecoder {
       if (isHDR) {
         const { pixels } = HDRDecoder.decode(imageData);
         texture.setPixelBuffer(pixels);
-        mipmap && texture.generateMipmaps();
+        texture.generateMipmaps();
         resolve(texture);
       } else {
         ImageDecoder._decode(imageData, url).then((img) => {
           texture.setImageSource(img);
-          mipmap && texture.generateMipmaps();
+          texture.generateMipmaps();
           resolve(texture);
         }, reject);
       }

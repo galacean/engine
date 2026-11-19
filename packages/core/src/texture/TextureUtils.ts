@@ -1,3 +1,5 @@
+import { GLCapabilityType } from "../base/Constant";
+import type { IHardwareRenderer } from "../renderingHardwareInterface";
 import { TextureFormat } from "./enums/TextureFormat";
 
 /**
@@ -8,6 +10,7 @@ export class TextureUtils {
    * Check if the texture config supports auto mipmap generation with real correction for mipmap and isSRGBColorSpace.
    */
   static supportGenerateMipmapsWithCorrection(
+    rhi: IHardwareRenderer,
     format: TextureFormat,
     mipmap: boolean,
     isSRGBColorSpace: boolean
@@ -20,7 +23,15 @@ export class TextureUtils {
       isSRGBColorSpace = false;
     }
 
-    return TextureUtils.supportGenerateMipmaps(format, mipmap, isSRGBColorSpace);
+    return TextureUtils.supportGenerateMipmaps(rhi, format, isSRGBColorSpace);
+  }
+
+  static isFloat32Format(format: TextureFormat): boolean {
+    return (
+      format === TextureFormat.R32_SFloat ||
+      format === TextureFormat.R32G32_SFloat ||
+      format === TextureFormat.R32G32B32A32_SFloat
+    );
   }
 
   static isHDRFormat(format: TextureFormat): boolean {
@@ -53,9 +64,23 @@ export class TextureUtils {
     }
   }
 
-  static supportGenerateMipmaps(format: TextureFormat, mipmap: boolean, isSRGBColorSpace: boolean): boolean {
-    // Auto generating mipmaps for sRGB textures is only supported in [WebGL2 + RGBA]
-    if (mipmap && isSRGBColorSpace && format !== TextureFormat.R8G8B8A8_UNorm) {
+  static supportGenerateMipmaps(rhi: IHardwareRenderer, format: TextureFormat, isSRGBColorSpace: boolean): boolean {
+    // Auto-generating mipmaps for sRGB textures is only supported for R8G8B8A8_UNorm in WebGL2
+    if (isSRGBColorSpace && format !== TextureFormat.R8G8B8A8_UNorm) {
+      return false;
+    }
+
+    // WebGL2 generateMipmap requires the format to be both color-renderable and texture-filterable
+    if (
+      !rhi.supportsRenderTargetColorFormat(format) ||
+      format === TextureFormat.R32G32B32A32_UInt ||
+      format === TextureFormat.BC6H ||
+      (format >= TextureFormat.BC1 && format <= TextureFormat.Depth32Stencil8)
+    ) {
+      return false;
+    }
+
+    if (TextureUtils.isFloat32Format(format) && !rhi.canIUse(GLCapabilityType.textureFloatLinear)) {
       return false;
     }
 
