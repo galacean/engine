@@ -1,0 +1,17 @@
+packages/math/src/Quaternion.ts
+  h_171a11afaf879a 269-272
+tests/src/math/Quaternion.test.ts
+  h_171a11afaf879a 288-298,300-305
+  h_171a11afaf879a 299
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "dea4734cb5f8ad95fd374f9efde92f99ea31134f",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
