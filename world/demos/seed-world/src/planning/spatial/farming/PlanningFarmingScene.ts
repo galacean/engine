@@ -102,5 +102,5 @@ export async function preparePlanningFarmingScene(
     }
     edit.writeDocument(marker, JSON.stringify({ version: 2, scene: path }));
     return edit.finish();
-  });
+  }, { recordHistory: false });
 }

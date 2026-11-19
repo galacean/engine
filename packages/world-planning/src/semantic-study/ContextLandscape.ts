@@ -285,9 +285,10 @@ export function prepareLandscapeBasemap(
     plan.planning?.ports.filter((p) => p.id.endsWith("-door")),
     plan.poiDistribution?.domains,
     plan.poiDistribution?.sites,
-    plan.landscapes?.filter((p) => p.role === "poi").map((p) => p.outline)
+    plan.landscapes?.filter((p) => p.role === "poi").map((p) => p.outline),
+    routesKey
   ]);
-  const key = `${digest}|${routesKey}`;
+  const key = digest;
   const cached = slotCache.get(key);
   if (cached) return cached;
   const slots = createSlots(

@@ -11,6 +11,7 @@ import { materialProgram } from "../resources/BuildingAssetKit";
 import type { ConstructionAssetLoader } from "./ConstructionBindings";
 import type { ResidentPackage } from "./EngineResidentScene";
 import type { ConstructionDecorationPart } from "./ConstructionDecorations";
+import { areUvsFinite, uvCount, uvU, uvV, type PackedUv2 } from "./ConstructionPreview";
 import { masonryTintGLSL, masonryTintRoles, masonrySourceColorAt, whiteMasonryVertexColors } from "./MasonryAppearance";
 
 export interface ConstructionRenderResult {
@@ -52,11 +53,11 @@ export function appendDecorationRenderPackage(
       if (!values.every(Number.isFinite)) throw Error("Nonfinite decoration geometry " + part.id);
     if (
       part.appearance &&
-      (part.appearance.materialUVs.length !== count ||
+      (uvCount(part.appearance.materialUVs as unknown as PackedUv2) !== count ||
         part.appearance.kinds.length !== count ||
         part.appearance.colorIds.length !== count ||
         part.appearance.centers.length !== count * 3 ||
-        !part.appearance.materialUVs.every((v) => v.length === 2 && v.every(Number.isFinite)) ||
+        !areUvsFinite(part.appearance.materialUVs as unknown as PackedUv2) ||
         !part.appearance.kinds.every((v, i) => validDecorationMaterial(v, part.appearance!.colorIds[i])) ||
         !part.appearance.centers.every(Number.isFinite))
     )
@@ -106,24 +107,44 @@ export function appendDecorationRenderPackage(
         vertexOffset + part.positions.length / 3
       );
       const colors = part.tintRole ? whiteMasonryVertexColors(part.colors, part.tintMask) : part.colors;
-      for (let i = 0; i < part.positions.length / 3; i++) {
+      const matUVs = part.appearance?.materialUVs as unknown as PackedUv2 | undefined;
+      const centers = part.appearance?.centers;
+      const vCount = part.positions.length / 3;
+      const tintRoleIdx = part.tintRole ? masonryTintRoles.indexOf(part.tintRole) : -1;
+      for (let i = 0; i < vCount; i++) {
         const offset = (vertexOffset + i) * vertexFloats;
-        vertices.set(part.positions.slice(i * 3, i * 3 + 3), offset);
-        vertices.set(part.normals.slice(i * 3, i * 3 + 3), offset + 3);
-        vertices.set(colors.slice(i * 3, i * 3 + 3), offset + 6);
-        vertices[offset + 9] = part.emission[i];
-        vertices.set(part.appearance?.materialUVs[i] ?? [0, 0], offset + 10);
+        const i3 = i * 3;
+        vertices[offset] = part.positions[i3]!;
+        vertices[offset + 1] = part.positions[i3 + 1]!;
+        vertices[offset + 2] = part.positions[i3 + 2]!;
+        vertices[offset + 3] = part.normals[i3]!;
+        vertices[offset + 4] = part.normals[i3 + 1]!;
+        vertices[offset + 5] = part.normals[i3 + 2]!;
+        vertices[offset + 6] = colors[i3]!;
+        vertices[offset + 7] = colors[i3 + 1]!;
+        vertices[offset + 8] = colors[i3 + 2]!;
+        vertices[offset + 9] = part.emission[i]!;
+        vertices[offset + 10] = uvU(matUVs, i, 0);
+        vertices[offset + 11] = uvV(matUVs, i, 0);
         vertices[offset + 12] = packDecorationMaterial(
           part.appearance?.kinds[i] ?? 0,
           part.appearance?.colorIds[i] ?? 0
         );
-        vertices.set(part.appearance?.centers.slice(i * 3, i * 3 + 3) ?? [0, 0, 0], offset + 13);
-        vertices[offset + 16] =
-          part.tintRole && part.tintMask?.[i] !== false ? masonryTintRoles.indexOf(part.tintRole) : -1;
-        vertices.set(
-          part.tintRole && part.tintMask?.[i] !== false ? masonrySourceColorAt(part.colors, colors, i) : [1, 1, 1],
-          offset + 17
-        );
+        vertices[offset + 13] = centers ? centers[i3]! : 0;
+        vertices[offset + 14] = centers ? centers[i3 + 1]! : 0;
+        vertices[offset + 15] = centers ? centers[i3 + 2]! : 0;
+        const tinted = tintRoleIdx >= 0 && part.tintMask?.[i] !== false;
+        vertices[offset + 16] = tinted ? tintRoleIdx : -1;
+        if (tinted) {
+          const gray = colors[i3]!;
+          vertices[offset + 17] = gray > 0 ? part.colors[i3]! / gray : 1;
+          vertices[offset + 18] = gray > 0 ? part.colors[i3 + 1]! / gray : 1;
+          vertices[offset + 19] = gray > 0 ? part.colors[i3 + 2]! / gray : 1;
+        } else {
+          vertices[offset + 17] = 1;
+          vertices[offset + 18] = 1;
+          vertices[offset + 19] = 1;
+        }
       }
       for (const i of part.indices) indices[indexOffset++] = vertexOffset + i;
       vertexOffset += part.positions.length / 3;

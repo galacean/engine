@@ -46,6 +46,8 @@ export function decorationAssemblyGeometry(
   });
   return assembly.parts.map(({ name, suffix, mesh, material, emissionOrigin }) => {
     const lightCenter = emissionOrigin ? transform(emissionOrigin) : frame.origin;
+    const vertexCount = mesh.positions.length / 3;
+    const hasUv = mesh.materialUVs.length >= vertexCount * 2;
     const part: ConstructionDecorationPart = {
       assetUnit: name,
       id: building.id + "/" + spec.id + "/" + suffix,
@@ -53,18 +55,19 @@ export function decorationAssemblyGeometry(
       decorationId: spec.id,
       kind,
       tintRole: material === M.frame || material === M.doorWood ? "wooden_plank" : undefined,
-      tintMask: material === M.doorWood ? mesh.metal.map((value) => value !== 1) : undefined,
+      tintMask: material === M.doorWood ? Array.from(mesh.metal, (value) => value !== 1) : undefined,
       positions: [],
       normals: [],
       colors: [],
       emission: [],
-      indices: mesh.indices.slice(),
+      indices: Array.from(mesh.indices),
       uvs: [],
       appearance: { materialUVs: [], kinds: [], colorIds: [], centers: [] }
     };
     if (material === M.lanternEmission && frame.lightPosition) part.lightPosition = [...frame.lightPosition];
     for (let i = 0; i < mesh.positions.length; i += 3) {
-      const source = mesh.positions.slice(i, i + 3),
+      const v = i / 3;
+      const source = [mesh.positions[i], mesh.positions[i + 1], mesh.positions[i + 2]],
         world = transform(source);
       for (const value of world) part.positions.push(value);
       const normal = [0, 1, 2].map(
@@ -81,9 +84,9 @@ export function decorationAssemblyGeometry(
       }
       for (const value of normal) part.normals.push(value / length);
       const surfaceKind =
-        material === M.lattice && mesh.glass[i / 3] === 1
+        material === M.lattice && mesh.glass[v] === 1
           ? M.glass
-          : material === M.doorWood && mesh.metal[i / 3] === 1
+          : material === M.doorWood && mesh.metal[v] === 1
             ? M.doorMetal
             : material;
       const lit =
@@ -91,7 +94,9 @@ export function decorationAssemblyGeometry(
         material === M.lattice ||
         material === M.texturedLattice ||
         material === M.texturedGlass;
-      part.appearance!.materialUVs.push(mesh.materialUVs[i / 3]?.slice() ?? [0, 0]);
+      (part.appearance!.materialUVs as number[][]).push(
+        hasUv ? [mesh.materialUVs[v * 2], mesh.materialUVs[v * 2 + 1]] : [0, 0]
+      );
       part.appearance!.kinds.push(surfaceKind);
       part.appearance!.colorIds.push(
         surfaceKind === M.frame || surfaceKind === M.doorWood
@@ -104,7 +109,7 @@ export function decorationAssemblyGeometry(
       for (const value of center) part.appearance!.centers.push(value);
       for (let axis = 0; axis < 3; axis++) part.colors.push(mesh.colors[i + axis]);
       part.emission.push(lit ? (spec.lightIntensity ?? (kind === "window" ? 0.12 : 1.4)) : 0);
-      part.uvs!.push(frame.editUV(source, world));
+      (part.uvs as number[][]).push(frame.editUV(source, world));
     }
     return part;
   });

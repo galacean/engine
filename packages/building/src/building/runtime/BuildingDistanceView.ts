@@ -64,7 +64,15 @@ import {
   type SeedWorldPickVisitor
 } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
 import { plasterPalette } from "./ConstructionPlasterPalette";
-import { type ConstructionPreview, constructionBrickLayer, woodPalette, wallPalette } from "./ConstructionPreview";
+import {
+  type ConstructionPreview,
+  type PackedUv2,
+  constructionBrickLayer,
+  uvU,
+  uvV,
+  woodPalette,
+  wallPalette
+} from "./ConstructionPreview";
 import type { BuildingPaletteSlot } from "./BuildingGlobals";
 import { createDecorationNativeView } from "./DecorationNativeView";
 import { collapsePositionsToBox, createBuildingFarProxy } from "./BuildingFarProxy";
@@ -708,9 +716,9 @@ export async function createBuildingDistanceView(
             f32[fOff] = x;
             f32[fOff + 1] = y;
             f32[fOff + 2] = z;
-            const uv = item.uvs?.[v];
-            f32[fOff + 6] = uv ? uv[0] : x / 16;
-            f32[fOff + 7] = uv ? uv[1] : z / 16;
+            const itemUvs = item.uvs as unknown as PackedUv2 | undefined;
+            f32[fOff + 6] = uvU(itemUvs, v, x / 16);
+            f32[fOff + 7] = uvV(itemUvs, v, z / 16);
 
             const nOff = gv * OPAQUE_I8_STRIDE + 12;
             i8[nOff] = packSignedByteDist(normals[v3]!);

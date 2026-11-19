@@ -746,9 +746,18 @@ export class RuntimeProjectSession {
   }
 
   /** Build against the latest committed project, so independent asset owners cannot overwrite each other. */
-  update(build: (current: RuntimeProjectPackage) => RuntimeProjectPackage): Promise<void> {
+  update(
+    build: (current: RuntimeProjectPackage) => RuntimeProjectPackage,
+    options?: { recordHistory?: boolean }
+  ): Promise<void> {
     return this.enqueuePublication(async () => {
-      await this.commitPackage(build(this.projectPackage));
+      await this.commitPackage(
+        build(this.projectPackage),
+        undefined,
+        undefined,
+        undefined,
+        options?.recordHistory !== false
+      );
     });
   }
 
@@ -831,7 +840,8 @@ export class RuntimeProjectSession {
     candidate: RuntimeProjectPackage,
     runtimeWrite?: string,
     history?: { transactionId: string; move?: HistoryMove; sceneChanges?: Record<string, RuntimeSceneChangeSet> },
-    explicitRuntimeEdit?: { path: string; finalizeContent?: () => string | Uint8Array }
+    explicitRuntimeEdit?: { path: string; finalizeContent?: () => string | Uint8Array },
+    recordHistory = true
   ): Promise<RuntimeProjectUndo> {
     this.lifetime.signal.throwIfAborted();
     const checkpoint = runtimeEditWork();
@@ -876,7 +886,7 @@ export class RuntimeProjectSession {
     }
     const transactionId = history?.transactionId ?? crypto.randomUUID();
     let undo: RuntimeProjectUndo = [];
-    if (!runtimeWrite) {
+    if (!runtimeWrite && recordHistory) {
       if (history?.move) this.history.patch(history.move);
       else this.history.assertNew(transactionId);
       const before = projectHistoryPatch(

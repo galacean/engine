@@ -1,5 +1,5 @@
 import { masonryVertexTintTag } from "./MasonryAppearance";
-import type { ConstructionPreviewPart } from "./ConstructionPreview";
+import { uvCount, uvU, uvV, type ConstructionPreviewPart, type PackedUv2 } from "./ConstructionPreview";
 import { packDecorationMaterial } from "./ConstructionDecorationMaterial";
 
 /** Immutable published attributes, in the same Float32 formats as ModelMesh's
@@ -9,7 +9,7 @@ import { packDecorationMaterial } from "./ConstructionDecorationMaterial";
 export function plannedMasonryVertexData(part: ConstructionPreviewPart) {
   const count = part.positions.length / 3,
     appearance = part.appearance,
-    uv = appearance?.materialUVs ?? part.uvs,
+    uv = (appearance?.materialUVs ?? part.uvs) as PackedUv2,
     stride = appearance ? 18 : 14;
   if (
     (part.plaster && part.plaster.edgeDistances.length !== count) ||
@@ -17,7 +17,7 @@ export function plannedMasonryVertexData(part: ConstructionPreviewPart) {
     part.normals?.length !== count * 3 ||
     part.colors?.length !== count * 3 ||
     part.emission?.length !== count ||
-    uv.length !== count ||
+    uvCount(uv) !== count ||
     (appearance &&
       (appearance.centers.length !== count * 3 ||
         appearance.kinds.length !== count ||
@@ -25,6 +25,7 @@ export function plannedMasonryVertexData(part: ConstructionPreviewPart) {
   )
     throw Error("Incomplete decoration vertex attributes");
   const data = new Float32Array(count * stride);
+  const neutralColors = part.neutralColors ?? part.colors;
   for (let i = 0, offset = 0; i < count; i++, offset += stride) {
     const xyz = i * 3;
     for (let k = 0; k < 3; k++) {
@@ -37,12 +38,12 @@ export function plannedMasonryVertexData(part: ConstructionPreviewPart) {
       : part.tintRoles
         ? masonryVertexTintTag(
             part.tintRoles[i] ?? -1,
-            part.colors.slice(xyz, xyz + 3),
-            (part.neutralColors ?? part.colors).slice(xyz, xyz + 3)
+            [part.colors[xyz], part.colors[xyz + 1], part.colors[xyz + 2]],
+            [neutralColors[xyz], neutralColors[xyz + 1], neutralColors[xyz + 2]]
           )
         : 1;
-    data[offset + 10] = uv[i][0];
-    data[offset + 11] = uv[i][1];
+    data[offset + 10] = uvU(uv, i);
+    data[offset + 11] = uvV(uv, i);
     data[offset + 13] = part.emission[i];
     if (appearance) {
       data[offset + 14] = appearance.centers[xyz];

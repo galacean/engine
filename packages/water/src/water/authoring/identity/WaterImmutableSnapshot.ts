@@ -15,14 +15,19 @@ const BUILTIN_VIEW_CONSTRUCTORS = [
   BigUint64Array
 ] as const;
 
+const immutableSnapshots = new WeakSet<object>();
+
 function cloneArrayBufferView<T extends ArrayBufferView>(value: T): T {
+  if (immutableSnapshots.has(value)) return value;
   const prototype = Object.getPrototypeOf(value);
   const Constructor = BUILTIN_VIEW_CONSTRUCTORS.find((Builtin) => Builtin.prototype === prototype);
   if (!Constructor) {
     throw new TypeError("Water snapshots must contain only same-realm built-in DataView and typed array views.");
   }
   const bytes = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
-  return new Constructor(bytes) as unknown as T;
+  const view = new Constructor(bytes) as unknown as T;
+  immutableSnapshots.add(view);
+  return view;
 }
 
 export function createImmutableWaterSnapshot<T>(value: T, ancestors = new Set<object>()): T {
@@ -32,13 +37,20 @@ export function createImmutableWaterSnapshot<T>(value: T, ancestors = new Set<ob
     }
     return value;
   }
-  if (value instanceof ArrayBuffer) return value.slice(0) as T;
+  if (immutableSnapshots.has(value)) return value;
+  if (value instanceof ArrayBuffer) {
+    const copy = value.slice(0) as T;
+    immutableSnapshots.add(copy as unknown as object);
+    return copy;
+  }
   if (ArrayBuffer.isView(value)) return cloneArrayBufferView(value) as T;
   if (ancestors.has(value)) throw new TypeError("Water snapshots cannot contain cyclic references.");
   ancestors.add(value);
   try {
     if (Array.isArray(value)) {
-      return Object.freeze(value.map((child) => createImmutableWaterSnapshot(child, ancestors))) as T;
+      const frozen = Object.freeze(value.map((child) => createImmutableWaterSnapshot(child, ancestors)));
+      immutableSnapshots.add(frozen);
+      return frozen as T;
     }
     const prototype = Object.getPrototypeOf(value);
     if (prototype !== Object.prototype && prototype !== null) {
@@ -48,7 +60,9 @@ export function createImmutableWaterSnapshot<T>(value: T, ancestors = new Set<ob
     for (const key of Object.keys(value)) {
       snapshot[key] = createImmutableWaterSnapshot((value as Record<string, unknown>)[key], ancestors);
     }
-    return Object.freeze(snapshot) as T;
+    const frozen = Object.freeze(snapshot);
+    immutableSnapshots.add(frozen);
+    return frozen as T;
   } finally {
     ancestors.delete(value);
   }

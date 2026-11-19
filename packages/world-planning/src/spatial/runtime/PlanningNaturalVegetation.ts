@@ -17,7 +17,7 @@ import {
 } from "@galacean/engine-vegetation/world/LandscapeRingQuery";
 import { createPlanningRingQuery } from "../../semantic-study/WorldPlanningTerrain";
 import type { IslandPlan, PlanPoint } from "../../semantic-study/IslandPlanModel";
-import type { PlanningHeightmap } from "../../semantic-study/PlanningHeightmap";
+import { hashCanonicalKey, type PlanningHeightmap } from "../../semantic-study/PlanningHeightmap";
 import type { SeedWorldFields } from "../../runtime/SeedWorldFields.ts";
 import type { SeedWorldPopulationPreview } from "../../runtime/SeedWorldPopulationPlan.ts";
 import {
@@ -113,54 +113,54 @@ export function planningNaturalTrees(
     return asset;
   });
   return candidates.map((tree) => {
-      const assetId =
-        tree.assetId ?? naturalTreeDimensions(plan.parameters.seed, tree.id, tree.height, tree.center).assetId;
-      const asset = palette.find((asset) => asset.id === assetId);
-      if (!asset) throw new Error(`Missing planned tree asset: ${assetId}`);
-      const spans = asset.bounds.max.map((v, axis) => v - asset.bounds.min[axis]);
-      const dimensions = [tree.width, tree.height, tree.depth];
-      if (![...spans, ...dimensions].every((v) => Number.isFinite(v) && v > 0))
-        throw new Error(`Invalid planned tree dimensions: ${tree.id}`);
-      const spread = tree.treeHorizontalScale ?? 1;
-      const scale = Math.min(tree.width / spans[0] / spread, tree.height / spans[1], tree.depth / spans[2] / spread);
-      const species = PLANT_TREE_SPECIES.find((species) => species.assetId === assetId)!;
-      const region = speciesAt([tree.center.x, tree.center.z], tree.id);
-      return {
-        id: tree.id,
-        assetId: asset.id,
-        layerId: "乔木",
-        clusterId: tree.id,
-        appearance: {
-          foliage: vegetationColorVariation(
-            plan.parameters.seed,
-            species.speciesGroup,
-            tree.id,
-            region,
-            PLANT_FOLIAGE_VARIATIONS.get(assetId)!,
-            "foliage"
-          ),
-          ...(PLANT_BARK_VARIATIONS.has(assetId)
-            ? {
-                bark: vegetationColorVariation(
-                  plan.parameters.seed,
-                  species.speciesGroup,
-                  tree.id,
-                  region,
-                  PLANT_BARK_VARIATIONS.get(assetId)!,
-                  "bark"
-                )
-              }
-            : {})
-        },
-        position: [tree.center.x, height.sample(tree.center), tree.center.z],
-        yaw: (tree.yaw * 180) / Math.PI,
-        scale,
-        ...(spread !== 1 ? { scaleAxes: [scale * spread, scale, scale * spread] as const } : {}),
-        height: spans[1] * scale,
-        radius: (Math.hypot(spans[0], spans[2]) * scale * spread) / 2,
-        ...(asset.groundingOffset !== undefined ? { groundingOffset: asset.groundingOffset * scale } : {})
-      };
-    });
+    const assetId =
+      tree.assetId ?? naturalTreeDimensions(plan.parameters.seed, tree.id, tree.height, tree.center).assetId;
+    const asset = palette.find((asset) => asset.id === assetId);
+    if (!asset) throw new Error(`Missing planned tree asset: ${assetId}`);
+    const spans = asset.bounds.max.map((v, axis) => v - asset.bounds.min[axis]);
+    const dimensions = [tree.width, tree.height, tree.depth];
+    if (![...spans, ...dimensions].every((v) => Number.isFinite(v) && v > 0))
+      throw new Error(`Invalid planned tree dimensions: ${tree.id}`);
+    const spread = tree.treeHorizontalScale ?? 1;
+    const scale = Math.min(tree.width / spans[0] / spread, tree.height / spans[1], tree.depth / spans[2] / spread);
+    const species = PLANT_TREE_SPECIES.find((species) => species.assetId === assetId)!;
+    const region = speciesAt([tree.center.x, tree.center.z], tree.id);
+    return {
+      id: tree.id,
+      assetId: asset.id,
+      layerId: "乔木",
+      clusterId: tree.id,
+      appearance: {
+        foliage: vegetationColorVariation(
+          plan.parameters.seed,
+          species.speciesGroup,
+          tree.id,
+          region,
+          PLANT_FOLIAGE_VARIATIONS.get(assetId)!,
+          "foliage"
+        ),
+        ...(PLANT_BARK_VARIATIONS.has(assetId)
+          ? {
+              bark: vegetationColorVariation(
+                plan.parameters.seed,
+                species.speciesGroup,
+                tree.id,
+                region,
+                PLANT_BARK_VARIATIONS.get(assetId)!,
+                "bark"
+              )
+            }
+          : {})
+      },
+      position: [tree.center.x, height.sample(tree.center), tree.center.z],
+      yaw: (tree.yaw * 180) / Math.PI,
+      scale,
+      ...(spread !== 1 ? { scaleAxes: [scale * spread, scale, scale * spread] as const } : {}),
+      height: spans[1] * scale,
+      radius: (Math.hypot(spans[0], spans[2]) * scale * spread) / 2,
+      ...(asset.groundingOffset !== undefined ? { groundingOffset: asset.groundingOffset * scale } : {})
+    };
+  });
 }
 
 /** Visible generated trees and independently authored single plants share the native
@@ -308,7 +308,8 @@ export class PlanningNaturalVegetation {
     const stoneDensity =
       plan.naturalVegetation?.settings.companionStoneDensity ?? NATURAL_VEGETATION_DEFAULTS.companionStoneDensity;
     const stones =
-      stoneDensity > 0 && (worldTemplate(plan.parameters.worldTemplate?.id)?.vegetation as string | undefined) !== "grass"
+      stoneDensity > 0 &&
+      (worldTemplate(plan.parameters.worldTemplate?.id)?.vegetation as string | undefined) !== "grass"
         ? createNaturalCompanionStoneLayer(assets.filter((asset) => asset.kind === "stone"))
         : undefined;
     this.layers = [
@@ -572,12 +573,23 @@ export class PlanningNaturalVegetation {
   }
 }
 
+type RoadEdgeEntry = Float64Array | WeakRef<Float64Array>;
+
+function readRoadEdgeEntry(entry: RoadEdgeEntry | undefined): Float64Array | undefined {
+  if (!entry) return undefined;
+  return entry instanceof Float64Array ? entry : entry.deref();
+}
+
+function wrapRoadEdgeEntry(edges: Float64Array): RoadEdgeEntry {
+  return typeof WeakRef !== "undefined" ? new WeakRef(edges) : edges;
+}
+
 interface GroundProjection {
   source: SeedWorldPopulationPreview;
   result: SeedWorldPopulationPreview;
   signature: string;
   flowers: string;
-  roadEdges: ReadonlyMap<number, Float64Array>;
+  roadEdges: ReadonlyMap<number, RoadEdgeEntry>;
 }
 // Accepted and candidate inputs only; history must not retain an extra dense projection per edit.
 const groundProjections = new Map<SeedWorldPopulationPreview, GroundProjection>();
@@ -594,36 +606,38 @@ function groundProjectionSignature(
   assets?: readonly PlanningPlantAsset[]
 ): string | undefined {
   if (!plan || !assets) return;
-  return JSON.stringify([
-    density,
-    plan.parameters.seed,
-    plan.parameters.width,
-    plan.parameters.depth,
-    plan.naturalVegetation ?? publishNaturalVegetation(plan),
-    assets,
-    plan.poiDistribution?.domains,
-    plan.poiDistribution?.sites.map((site) => [
-      site.id,
-      site.active,
-      site.center,
-      site.domainId,
-      site.sizeWeight ?? 1,
-      site.weightM2
-    ]),
-    plan.routes.map((route) => route.outline),
-    population.detailDensityFields.map((field) =>
-      field.category === "grass"
-        ? [
-            field.category,
-            field.prototypeFamily,
-            field.assetProfileKey,
-            field.resolution,
-            field.maximumDensityPerSquareMetre,
-            field.candidateSeed ?? field.hash
-          ]
-        : [field.category, field.resolution, field.samples.length]
-    )
-  ]);
+  return hashCanonicalKey(
+    JSON.stringify([
+      density,
+      plan.parameters.seed,
+      plan.parameters.width,
+      plan.parameters.depth,
+      plan.naturalVegetation ?? publishNaturalVegetation(plan),
+      assets,
+      plan.poiDistribution?.domains,
+      plan.poiDistribution?.sites.map((site) => [
+        site.id,
+        site.active,
+        site.center,
+        site.domainId,
+        site.sizeWeight ?? 1,
+        site.weightM2
+      ]),
+      plan.routes.map((route) => route.outline),
+      population.detailDensityFields.map((field) =>
+        field.category === "grass"
+          ? [
+              field.category,
+              field.prototypeFamily,
+              field.assetProfileKey,
+              field.resolution,
+              field.maximumDensityPerSquareMetre,
+              field.candidateSeed ?? field.hash
+            ]
+          : [field.category, field.resolution, field.samples.length]
+      )
+    ])
+  );
 }
 function groundFlowerSignature(plan?: IslandPlan): string {
   const regions = plan?.flowerRegions
@@ -635,7 +649,7 @@ function groundFlowerSignature(plan?: IslandPlan): string {
 function rememberGroundProjection(
   source: SeedWorldPopulationPreview,
   result: SeedWorldPopulationPreview,
-  roadEdges: ReadonlyMap<number, Float64Array>,
+  roadEdges: ReadonlyMap<number, RoadEdgeEntry>,
   signature?: string,
   plan?: IslandPlan
 ): SeedWorldPopulationPreview {
@@ -654,7 +668,7 @@ export function planningNaturalGroundPopulation(
   plan?: IslandPlan,
   assets?: readonly PlanningPlantAsset[]
 ): SeedWorldPopulationPreview {
-  const roadEdges = new Map<number, Float64Array>();
+  const roadEdges = new Map<number, RoadEdgeEntry>();
   const steps = planningNaturalGroundPopulationSteps(population, roadEdges, grassDensity, plan, assets);
   while (true) {
     const next = steps.next();
@@ -697,7 +711,7 @@ export async function preparePlanningNaturalGroundPopulation(
 
 function* planningNaturalGroundPopulationSteps(
   population: SeedWorldPopulationPreview,
-  roadEdges: Map<number, Float64Array>,
+  roadEdges: Map<number, RoadEdgeEntry>,
   grassDensity?: number,
   plan?: IslandPlan,
   assets?: readonly PlanningPlantAsset[],
@@ -756,7 +770,7 @@ function* planningNaturalGroundPopulationSteps(
     const resolution = Math.sqrt(field.samples.length);
     const oldSource = previous?.source.detailDensityFields.find((old) => old.prototypeFamily === field.prototypeFamily);
     const oldField = previous?.result.detailDensityFields.find((old) => old.prototypeFamily === field.prototypeFamily);
-    const cachedEdges = roadEdges.get(field.samples.length);
+    const cachedEdges = readRoadEdgeEntry(roadEdges.get(field.samples.length));
     const reusable =
       oldSource && oldField?.heightRangeMetres && cachedEdges && oldField.samples.length === field.samples.length
         ? oldField
@@ -771,7 +785,7 @@ function* planningNaturalGroundPopulationSteps(
     if (plan && heights) {
       // Float64 retains the exact JS distance/falloff result; this depends on roads/settings, not water.
       const edges = cachedEdges ?? new Float64Array(field.samples.length);
-      roadEdges.set(field.samples.length, edges);
+      if (!cachedEdges) roadEdges.set(field.samples.length, wrapRoadEdgeEntry(edges));
       const samples = reusable
         ? new Float32Array(reusable.heightRangeMetres!.samples)
         : new Float32Array(field.samples.length * 2);

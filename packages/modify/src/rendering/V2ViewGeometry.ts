@@ -10,10 +10,10 @@ import {
   type Material
 } from "@galacean/engine";
 interface V2Mesh {
-  uvs?: number[][];
+  uvs?: number[][] | Float32Array;
   pickIds?: number[];
-  positions: number[];
-  indices: number[];
+  positions: ArrayLike<number>;
+  indices: ArrayLike<number>;
 }
 
 /** GPU resources owned by one published view; destroy entities before their referenced resources. */
@@ -62,8 +62,11 @@ export function addV2Surface(
   const positions: Vector3[] = [];
   const normals: Vector3[] = [];
   const uvs: Vector2[] = [];
-  const indices = geometry.indices.slice();
+  const indices = Array.from(geometry.indices);
+  const flatUvs = geometry.uvs instanceof Float32Array ? geometry.uvs : undefined;
+  const tupleUvs = !flatUvs ? geometry.uvs : undefined;
   for (let i = 0; i < geometry.positions.length; i += 3) {
+    const v = i / 3;
     positions.push(
       new Vector3(
         geometry.positions[i]!,
@@ -72,14 +75,13 @@ export function addV2Surface(
       )
     );
     normals.push(new Vector3());
-    uvs.push(
-      new Vector2(
-        ...((geometry.uvs?.[i / 3] as [number, number]) ?? [
-          geometry.positions[i]! / 16,
-          geometry.positions[i + 2]! / 16
-        ])
-      )
-    );
+    if (flatUvs && v * 2 + 1 < flatUvs.length) {
+      uvs.push(new Vector2(flatUvs[v * 2]!, flatUvs[v * 2 + 1]!));
+    } else if (tupleUvs?.[v]) {
+      uvs.push(new Vector2(tupleUvs[v]![0]!, tupleUvs[v]![1]!));
+    } else {
+      uvs.push(new Vector2(geometry.positions[i]! / 16, geometry.positions[i + 2]! / 16));
+    }
   }
   for (let i = 0; i < indices.length; i += 3) {
     const a = positions[indices[i]!]!,

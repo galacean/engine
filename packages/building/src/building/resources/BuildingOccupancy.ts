@@ -48,8 +48,8 @@ function outside(hull: readonly Point[], p: Point): number {
  * `cover` member lies over what the prefab stands on, as a stone surround does. */
 export function meshOccupancy(
   path: string,
-  positions: readonly number[],
-  indices: readonly number[],
+  positions: ArrayLike<number>,
+  indices: ArrayLike<number>,
   cover = false
 ): OccupancySolid[] {
   let lo = Infinity,

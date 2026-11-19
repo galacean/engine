@@ -587,7 +587,7 @@ export function materialProgram(material: Material) {
 }
 
 function freezeGeometry<T>(value: T): T {
-  if (value && typeof value === "object") {
+  if (value && typeof value === "object" && !ArrayBuffer.isView(value)) {
     Object.values(value).forEach(freezeGeometry);
     Object.freeze(value);
   }

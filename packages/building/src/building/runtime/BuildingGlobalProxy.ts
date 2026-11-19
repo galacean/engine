@@ -26,7 +26,7 @@ import lodDither from "./MasonryLodDither.glsl?raw";
 import { registerConstructionSceneLighting } from "./ConstructionSceneLighting";
 import { constructionPlasterGLSL } from "./ConstructionPlasterShader";
 import type { BuildingPaletteSlot } from "./BuildingGlobals";
-import type { ConstructionPreviewPart } from "./ConstructionPreview";
+import { uvU, uvV, type ConstructionPreviewPart, type PackedUv2 } from "./ConstructionPreview";
 import type { ConstructionDecorationPart } from "./ConstructionDecorations";
 import { DecorationMaterial } from "./ConstructionDecorationMaterial";
 import { buildingGroupKey, buildingInstanceKey, buildingPartKey } from "./BuildingObjectIdentity";
@@ -403,6 +403,26 @@ export class BuildingGlobalProxy {
     let targetBucket = this.buckets.find((b) => b.slots.length < MAX_SLOTS_PER_BUCKET);
     if (!targetBucket) targetBucket = this.createBucket();
 
+    const compactParts: ConstructionPreviewPart[] = [];
+    for (const rawPart of input.parts) {
+      if (!rawPart.indices.length || !rawPart.positions.length) continue;
+      if (rawPart.plaster && rawPart.plaster.wear >= 1) continue;
+      compactParts.push(
+        rawPart.decoration && !rawPart.roofSpire && rawPart.indices.length > 72
+          ? collapsePreviewPartToBox(rawPart)
+          : rawPart
+      );
+    }
+    const compactDecorations: ConstructionDecorationPart[] = [];
+    for (const rawDp of input.decorationParts ?? []) {
+      if (!rawDp.indices.length || !rawDp.positions.length) continue;
+      if (rawDp.indices.length > 72) {
+        compactDecorations.push(...collapseDecorationToBoxes(rawDp));
+      } else {
+        compactDecorations.push(rawDp);
+      }
+    }
+
     const id = this.nextSlotId++;
     const localSlot = targetBucket.slots.length;
     const record: SlotRecord = {
@@ -415,8 +435,8 @@ export class BuildingGlobalProxy {
       shadowVisible: false,
       fade: 1,
       lodDebug: false,
-      parts: input.parts,
-      decorationParts: input.decorationParts ?? [],
+      parts: compactParts,
+      decorationParts: compactDecorations,
       colorOwners: input.colorOwners,
       appearance: input.appearance,
       hiddenOwners: input.hiddenOwners,
@@ -562,7 +582,7 @@ export class BuildingGlobalProxy {
       positions: ArrayLike<number>;
       normals: ArrayLike<number>;
       indices: ArrayLike<number>;
-      uvs?: ArrayLike<number>[] | Float32Array | number[][];
+      uvs?: PackedUv2;
       normalBias: number;
       kind: number;
       wear: number;
@@ -608,29 +628,15 @@ export class BuildingGlobalProxy {
       const decBoxes: Array<{ cx: number; cy: number; cz: number; sx: number; sy: number; sz: number } | undefined> =
         [];
 
-      for (const rawPart of slot.parts) {
-        if (!rawPart.indices.length || !rawPart.positions.length) continue;
-        if (slot.hiddenOwners.has(rawPart.owner)) continue;
-        if (rawPart.plaster && rawPart.plaster.wear >= 1) continue;
-        const p =
-          rawPart.decoration && !rawPart.roofSpire && rawPart.indices.length > 72
-            ? collapsePreviewPartToBox(rawPart)
-            : rawPart;
+      for (const p of slot.parts) {
+        if (slot.hiddenOwners.has(p.owner)) continue;
         incParts.push(p);
         partBoxes.push(p.plaster ? undefined : tryExtractLocalAxisBox(p.positions, p.indices));
       }
-      for (const rawDp of slot.decorationParts) {
-        if (!rawDp.indices.length || !rawDp.positions.length) continue;
-        if (slot.hiddenOwners.has(rawDp.ownerId)) continue;
-        if (rawDp.indices.length > 72) {
-          for (const bdp of collapseDecorationToBoxes(rawDp)) {
-            incDecs.push(bdp);
-            decBoxes.push(tryExtractLocalAxisBox(bdp.positions, bdp.indices));
-          }
-        } else {
-          incDecs.push(rawDp);
-          decBoxes.push(tryExtractLocalAxisBox(rawDp.positions, rawDp.indices));
-        }
+      for (const d of slot.decorationParts) {
+        if (slot.hiddenOwners.has(d.ownerId)) continue;
+        incDecs.push(d);
+        decBoxes.push(tryExtractLocalAxisBox(d.positions, d.indices));
       }
 
       if (!incParts.length && !incDecs.length) continue;
@@ -945,9 +951,8 @@ export class BuildingGlobalProxy {
             geomI8[bB + 14] = packSignedByte(wnz);
             geomI8[bB + 15] = metaByte;
 
-            const uv = sp.uvs?.[i];
-            geomF32[fB + 4] = uv?.[0] ?? 0;
-            geomF32[fB + 5] = uv?.[1] ?? 0;
+            geomF32[fB + 4] = uvU(sp.uvs, i, 0);
+            geomF32[fB + 5] = uvV(sp.uvs, i, 0);
 
             geomU16[uB + 12] = Math.round(Math.max(0, Math.min(255, sp.kind))) * 257;
             geomU16[uB + 13] = packU16Scaled(sp.wear, 1);

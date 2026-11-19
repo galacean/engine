@@ -1,7 +1,7 @@
 import { plasterLinearColor } from "./ConstructionPlasterPalette";
 import { masonryTintGLSL } from "./MasonryAppearance";
 import { constructionPlasterWarpGLSL } from "./ConstructionPlasterWarp";
-import type { ConstructionPreviewPart } from "./ConstructionPreview";
+import { uvCount, uvU, uvV, type ConstructionPreviewPart, type PackedUv2 } from "./ConstructionPreview";
 import type { ConstructionRenderResult } from "./ConstructionDecorationRender";
 import { constructionPlasterGLSL, constructionPlasterFinishGLSL } from "./ConstructionPlasterShader";
 const program = {
@@ -60,22 +60,35 @@ export function appendPlasterRenderPackage(
     draws = base.package.draws.slice();
   for (const [index, p] of parts.entries()) {
     if (!p.plaster || !p.indices.length) continue;
+    const count = p.positions.length / 3;
+    const pUvs = p.uvs as unknown as PackedUv2;
     if (
       !p.normals ||
       p.normals.length !== p.positions.length ||
-      p.uvs.length !== p.positions.length / 3 ||
-      p.plaster.edgeDistances.length !== p.uvs.length
+      uvCount(pUvs) !== count ||
+      p.plaster.edgeDistances.length !== count
     )
       throw Error("Incomplete plaster geometry");
-    const count = p.positions.length / 3,
-      data = new Float32Array(count * 15),
+    const data = new Float32Array(count * 15),
       color = plasterLinearColor(p.color!);
     for (let i = 0; i < count; i++) {
-      data.set(p.positions.slice(i * 3, i * 3 + 3), i * 15);
-      data.set(p.normals.slice(i * 3, i * 3 + 3), i * 15 + 3);
-      data.set(color, i * 15 + 6);
-      data.set(p.uvs[i], i * 15 + 9);
-      data.set([p.plaster.wear, p.plaster.wallLength, p.plaster.color, p.plaster.edgeDistances[i]], i * 15 + 11);
+      const i3 = i * 3;
+      const off = i * 15;
+      data[off] = p.positions[i3]!;
+      data[off + 1] = p.positions[i3 + 1]!;
+      data[off + 2] = p.positions[i3 + 2]!;
+      data[off + 3] = p.normals[i3]!;
+      data[off + 4] = p.normals[i3 + 1]!;
+      data[off + 5] = p.normals[i3 + 2]!;
+      data[off + 6] = color[0]!;
+      data[off + 7] = color[1]!;
+      data[off + 8] = color[2]!;
+      data[off + 9] = uvU(pUvs, i);
+      data[off + 10] = uvV(pUvs, i);
+      data[off + 11] = p.plaster.wear;
+      data[off + 12] = p.plaster.wallLength;
+      data[off + 13] = p.plaster.color;
+      data[off + 14] = p.plaster.edgeDistances[i]!;
     }
     const id = `plaster/${encodeURIComponent(p.owner)}/${index}`,
       vertexFile = `dynamic/${id}/vertices.bin`,

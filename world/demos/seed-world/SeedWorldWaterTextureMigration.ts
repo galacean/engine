@@ -31,15 +31,18 @@ export async function migrateSeedWorldWaterTextures(project: RuntimeProjectSessi
   if (!changes.size) return;
   // Update atomically only after every replacement is fetched and verified. The
   // legacy virtual .png key is an alias; its explicit KTX2 type selects the loader.
-  await project.update((pack) => ({
-    ...pack,
-    project: {
-      ...pack.project,
-      files: pack.project.files.map((file) => {
-        const change = changes.get(file.virtualPath);
-        return change ? { ...file, type: "KTX2", path: change.path } : file;
-      })
-    },
-    contents: { ...pack.contents, ...Object.fromEntries([...changes].map(([key, value]) => [key, value.bytes])) }
-  }));
+  await project.update(
+    (pack) => ({
+      ...pack,
+      project: {
+        ...pack.project,
+        files: pack.project.files.map((file) => {
+          const change = changes.get(file.virtualPath);
+          return change ? { ...file, type: "KTX2", path: change.path } : file;
+        })
+      },
+      contents: { ...pack.contents, ...Object.fromEntries([...changes].map(([key, value]) => [key, value.bytes])) }
+    }),
+    { recordHistory: false }
+  );
 }

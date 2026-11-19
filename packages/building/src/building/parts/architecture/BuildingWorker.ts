@@ -2,6 +2,7 @@ import { prepareBuildingCpu, compileBuildingCpu, type BuildingCpuPreparation } f
 import type { BuildingWorkerRequest, BuildingWorkerReply } from "./BuildingWorkerProtocol";
 import type { ConstructionTerrainGrid } from "../../runtime/TerrainField";
 import type { BuildingUnitAssets } from "../../runtime/BuildingUnitAssets";
+import { packConstructionPreview } from "../../runtime/ConstructionPreview";
 
 // Immutable asset/terrain snapshots are shared by independent preview handles.
 // A failed preparation retains its lease until the client's release arrives too.
@@ -34,6 +35,7 @@ async function handle(input: BuildingWorkerRequest) {
         terrain = terrains.get(input.terrainId);
       if (!units || !terrain) throw Error("Building Worker input snapshot is unavailable");
       const { prepared, ...result } = await prepareBuildingCpu(input.draft, terrain, units, input.options);
+      packConstructionPreview(result.preview);
       preparations.set(id, prepared);
       reply({ id, ok: true, result });
       if (input.workerSlim) {

@@ -1,4 +1,4 @@
-import type { ConstructionPreviewPart } from "./ConstructionPreview";
+import { uvCount, uvU, uvV, type ConstructionPreviewPart, type PackedUv2 } from "./ConstructionPreview";
 import type { ConstructionRenderResult } from "./ConstructionDecorationRender";
 import { stoneFloorTextureBindings } from "./ConstructionStoneFloorAssets";
 import { constructionStoneFloorGLSL } from "./ConstructionStoneFloorShader";
@@ -54,13 +54,19 @@ export function appendStoneFloorRenderPackage(
   for (const [index, part] of parts.entries()) {
     if (!part.stonePaving || !part.indices.length) continue;
     const count = part.positions.length / 3,
-      data = new Float32Array(count * 10);
-    if (part.uvs.length !== count) throw Error("Stone floor requires its original metric UV chart");
+      data = new Float32Array(count * 10),
+      partUvs = part.uvs as unknown as PackedUv2;
+    if (uvCount(partUvs) !== count) throw Error("Stone floor requires its original metric UV chart");
     for (let i = 0; i < count; i++) {
-      data.set(part.positions.slice(i * 3, i * 3 + 3), i * 10);
-      data.set(part.uvs[i], i * 10 + 3);
-      data.set(part.stonePaving.uvTransform, i * 10 + 5);
-      data[i * 10 + 9] = part.stonePaving.color;
+      const i3 = i * 3;
+      const off = i * 10;
+      data[off] = part.positions[i3]!;
+      data[off + 1] = part.positions[i3 + 1]!;
+      data[off + 2] = part.positions[i3 + 2]!;
+      data[off + 3] = uvU(partUvs, i);
+      data[off + 4] = uvV(partUvs, i);
+      data.set(part.stonePaving.uvTransform, off + 5);
+      data[off + 9] = part.stonePaving.color;
     }
     const id = `stone-floor/${encodeURIComponent(part.owner)}/${index}`,
       vertexFile = `dynamic/${id}/vertices.bin`,

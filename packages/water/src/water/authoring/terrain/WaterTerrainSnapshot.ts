@@ -1,6 +1,8 @@
 import { waterTerrainContentHash } from "./WaterTerrainIdentity";
 import { interpolateGridTriangle, sampleFloat32GridTriangle } from "./GridInterpolation";
 
+export type WaterTerrainHeights = readonly number[] | Float32Array | Float64Array;
+
 /** Read-only external bed data, in body-local metres (Y up). Water never edits its owner. */
 export interface WaterTerrainSnapshot {
   readonly id: string;
@@ -12,7 +14,7 @@ export interface WaterTerrainSnapshot {
   readonly columns: number;
   readonly rows: number;
   /** Owned row-major heights; rows advance along +Z. Background cells are bilinear. */
-  readonly heights: readonly number[];
+  readonly heights: WaterTerrainHeights;
   /** Non-overlapping Terrain replacement grids; sampled as fixed a--d diagonal triangles. */
   readonly refinements?: readonly WaterTerrainSnapshot[];
   /** Exact fixed GPU triangles; omitted retains the legacy bilinear background. */
@@ -21,8 +23,12 @@ export interface WaterTerrainSnapshot {
 
 export type WaterTerrainGridDefinition = Omit<WaterTerrainSnapshot, "heights" | "refinements">;
 
-// Only snapshots built and validated here can skip subsequent full-grid validation.
+// Only snapshots and owned typed-array buffers built and validated here can skip subsequent full-grid validation/copies.
 const validatedImmutableTerrains = new WeakSet<object>();
+
+function isWaterTerrainHeights(value: unknown): value is WaterTerrainHeights {
+  return Array.isArray(value) || value instanceof Float32Array || value instanceof Float64Array;
+}
 
 /** Capture a Terrain, mesh or analytic sampler before submitting Water compilation. */
 export function captureWaterTerrainSnapshot(
@@ -30,7 +36,10 @@ export function captureWaterTerrainSnapshot(
   sampleHeight: (x: number, z: number) => number | undefined
 ): WaterTerrainSnapshot {
   if (!isWaterTerrainGridDefinition(grid)) throw new Error("Invalid Water terrain grid or revision.");
-  const heights: number[] = [];
+  const count = grid.columns * grid.rows;
+  const useFloat32 = grid.surface === "float32-triangles";
+  const heights = useFloat32 ? new Float32Array(count) : new Array<number>(count);
+  let writeIndex = 0;
   for (let row = 0; row < grid.rows; row++) {
     for (let column = 0; column < grid.columns; column++) {
       const x = grid.origin[0] + column * grid.spacing;
@@ -39,13 +48,15 @@ export function captureWaterTerrainSnapshot(
       if (height === undefined || !Number.isFinite(height)) {
         throw new Error(`Water terrain '${grid.id}' has no finite bed height at (${x}, ${z}).`);
       }
-      heights.push(height);
+      heights[writeIndex++] = useFloat32 ? Math.fround(height) : height;
     }
   }
+  const ownedHeights: WaterTerrainHeights = useFloat32 ? heights : Object.freeze(heights as number[]);
+  if (useFloat32) validatedImmutableTerrains.add(ownedHeights);
   const snapshot = Object.freeze({
     ...grid,
     origin: Object.freeze([...grid.origin]) as readonly [number, number],
-    heights: Object.freeze(heights)
+    heights: ownedHeights
   });
   // GridDefinition excludes refinements; do not trust extra fields on external JS inputs.
   if (!("refinements" in snapshot)) validatedImmutableTerrains.add(snapshot);
@@ -86,7 +97,7 @@ export function isWaterTerrainSnapshot(value: unknown): value is WaterTerrainSna
   if (typeof value === "object" && value !== null && validatedImmutableTerrains.has(value)) return true;
   if (!isWaterTerrainGridDefinition(value)) return false;
   const heights = (value as WaterTerrainSnapshot).heights;
-  if (!Array.isArray(heights) || heights.length !== value.columns * value.rows) return false;
+  if (!isWaterTerrainHeights(heights) || heights.length !== value.columns * value.rows) return false;
   for (const height of heights) {
     if (!Number.isFinite(height)) return false;
   }
@@ -155,20 +166,39 @@ function terrainBounds(grid: WaterTerrainSnapshot): readonly [number, number, nu
 /** Own immutable copies across Worker/API boundaries; nested refinement trees are deliberately unsupported. */
 export function copyWaterTerrainSnapshot(terrain: WaterTerrainSnapshot): WaterTerrainSnapshot {
   if (!isWaterTerrainSnapshot(terrain)) throw new Error("Invalid Water terrain snapshot or refinements.");
+  const isOwnedImmutableHeights = (heights: WaterTerrainHeights): boolean =>
+    Array.isArray(heights) ? Object.isFrozen(heights) : validatedImmutableTerrains.has(heights);
   const immutable = (grid: WaterTerrainSnapshot): boolean =>
     Object.isFrozen(grid) &&
     Object.isFrozen(grid.origin) &&
-    Object.isFrozen(grid.heights) &&
+    isOwnedImmutableHeights(grid.heights) &&
     (!grid.refinements || (Object.isFrozen(grid.refinements) && grid.refinements.every(immutable)));
   if (immutable(terrain)) return terrain;
   // Structured clone preserves aliases but not frozen state. Own each borrowed array once.
-  const arrays = new Map<readonly number[], readonly number[]>();
-  const ownArray = (source: readonly number[]): readonly number[] => {
-    if (Object.isFrozen(source)) return source;
+  const arrays = new Map<WaterTerrainHeights, WaterTerrainHeights>();
+  const ownHeights = (source: WaterTerrainHeights): WaterTerrainHeights => {
+    if (isOwnedImmutableHeights(source)) return source;
     let owned = arrays.get(source);
     if (!owned) {
-      owned = Object.freeze([...source]);
+      if (source instanceof Float32Array) {
+        owned = new Float32Array(source);
+        validatedImmutableTerrains.add(owned);
+      } else if (source instanceof Float64Array) {
+        owned = new Float64Array(source);
+        validatedImmutableTerrains.add(owned);
+      } else {
+        owned = Object.freeze([...source]);
+      }
       arrays.set(source, owned);
+    }
+    return owned;
+  };
+  const ownTuple = (source: readonly [number, number]): readonly [number, number] => {
+    if (Object.isFrozen(source)) return source;
+    let owned = arrays.get(source as unknown as WaterTerrainHeights) as readonly [number, number] | undefined;
+    if (!owned) {
+      owned = Object.freeze([source[0], source[1]] as const);
+      arrays.set(source as unknown as WaterTerrainHeights, owned as unknown as WaterTerrainHeights);
     }
     return owned;
   };
@@ -177,8 +207,8 @@ export function copyWaterTerrainSnapshot(terrain: WaterTerrainSnapshot): WaterTe
       ? grid
       : Object.freeze({
           ...grid,
-          origin: ownArray(grid.origin) as readonly [number, number],
-          heights: ownArray(grid.heights),
+          origin: ownTuple(grid.origin),
+          heights: ownHeights(grid.heights),
           ...(grid.refinements ? { refinements: Object.freeze(grid.refinements.map(copy)) } : {})
         });
   return copy(terrain);
@@ -268,7 +298,7 @@ export function resolveWaterTerrainGrid(terrain: WaterTerrainSnapshot, x: number
 export function sampleWaterTerrainHeight(terrain: WaterTerrainSnapshot, x: number, z: number): number | undefined {
   if (
     !isWaterTerrainGridDefinition(terrain) ||
-    !Array.isArray(terrain.heights) ||
+    !isWaterTerrainHeights(terrain.heights) ||
     terrain.heights.length !== terrain.columns * terrain.rows
   )
     return undefined;

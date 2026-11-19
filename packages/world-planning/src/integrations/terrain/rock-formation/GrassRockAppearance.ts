@@ -15,17 +15,20 @@ const FACE_STRIDE = 22;
 const packCellKey = (cx: number, cz: number): number =>
   (cx + CELL_KEY_OFFSET) * CELL_KEY_STRIDE + (cz + CELL_KEY_OFFSET);
 
-function pointTriangleDistanceSquared(px: number, py: number, pz: number, faces: Float32Array, f: number): number {
-  const ax = faces[f],
-    ay = faces[f + 1],
-    az = faces[f + 2];
-  const bx = faces[f + 4],
-    by = faces[f + 5],
-    bz = faces[f + 6];
-  const cx = faces[f + 8],
-    cy = faces[f + 9],
-    cz = faces[f + 10];
-
+function pointTriangleDistanceSquared(
+  px: number,
+  py: number,
+  pz: number,
+  ax: number,
+  ay: number,
+  az: number,
+  bx: number,
+  by: number,
+  bz: number,
+  cx: number,
+  cy: number,
+  cz: number
+): number {
   const abx = bx - ax,
     aby = by - ay,
     abz = bz - az;
@@ -90,54 +93,101 @@ function pointTriangleDistanceSquared(px: number, py: number, pz: number, faces:
   return dx * dx + dy * dy + dz * dz;
 }
 
+interface PlacementMeshRef {
+  readonly positions: Float32Array;
+  readonly indices: Uint32Array;
+  readonly normals: Float32Array;
+  readonly coverage: Float32Array;
+  readonly ox: number;
+  readonly oy: number;
+  readonly oz: number;
+}
+
 /** Optional appearance source for blades near a real rock face. Never changes grass geometry or density. */
 export class GrassRockAppearance {
   private readonly cells = new Map<number, Uint32Array>();
-  private readonly faces: Float32Array;
+  private readonly placements: PlacementMeshRef[];
+  private readonly facePlacement: Uint16Array | Uint32Array;
+  private readonly faceTri: Uint32Array;
 
   constructor(placements: readonly RockGrassPlacement[]) {
-    this.faces = new Float32Array(
-      placements.reduce((n, p) => n + p.formation.mesh.indices.length / 3, 0) * FACE_STRIDE
-    );
+    const totalTris = placements.reduce((n, p) => n + p.formation.mesh.indices.length / 3, 0);
+    // Snapshot each unique indexed rock mesh once instead of expanding 88 B/tri, preserving
+    // constructor snapshot immutability while cutting memory ~4-5x.
+    const meshSnapshots = new Map<
+      RockGrassPlacement["formation"]["mesh"],
+      { positions: Float32Array; indices: Uint32Array; normals: Float32Array; coverage: Float32Array }
+    >();
+    this.placements = placements.map(({ formation, origin }) => {
+      let snap = meshSnapshots.get(formation.mesh);
+      if (!snap) {
+        snap = {
+          positions: formation.mesh.positions.slice(),
+          indices: formation.mesh.indices.slice(),
+          normals: formation.mesh.normals!.slice(),
+          coverage: sharedRockTransitionCoverage(formation).slice()
+        };
+        meshSnapshots.set(formation.mesh, snap);
+      }
+      return {
+        positions: snap.positions,
+        indices: snap.indices,
+        normals: snap.normals,
+        coverage: snap.coverage,
+        ox: origin[0],
+        oy: origin[1],
+        oz: origin[2]
+      };
+    });
+    this.facePlacement = new (placements.length <= 0xffff ? Uint16Array : Uint32Array)(totalTris);
+    this.faceTri = new Uint32Array(totalTris);
     const sizes = new Map<number, number>();
     let face = 0;
-    for (const { formation, origin } of placements) {
-      const { positions, indices, normals } = formation.mesh;
-      const coverage = sharedRockTransitionCoverage(formation);
-      for (let t = 0; t < indices.length / 3; t++) {
-        const k = face++ * FACE_STRIDE;
-        const data = normals!;
-        for (let c = 0; c < 3; c++) {
-          const v = indices[t * 3 + c],
-            n = v * 3;
-          for (let axis = 0; axis < 3; axis++) {
-            this.faces[k + c * 4 + axis] = positions[v * 3 + axis] + origin[axis];
-            this.faces[k + 12 + c * 3 + axis] = data[n + axis];
-          }
-          this.faces[k + c * 4 + 3] = coverage[v];
-        }
-
-        this.visitCells(k, (key) => sizes.set(key, (sizes.get(key) ?? 0) + 1));
+    for (let pIndex = 0; pIndex < this.placements.length; pIndex++) {
+      const { positions, indices, ox, oz } = this.placements[pIndex];
+      const triCount = indices.length / 3;
+      for (let t = 0; t < triCount; t++) {
+        const id = face++;
+        this.facePlacement[id] = pIndex;
+        this.faceTri[id] = t;
+        const ti = t * 3;
+        const a = indices[ti] * 3,
+          b = indices[ti + 1] * 3,
+          c = indices[ti + 2] * 3;
+        this.visitCells(
+          Math.min(positions[a], positions[b], positions[c]) + ox,
+          Math.min(positions[a + 2], positions[b + 2], positions[c + 2]) + oz,
+          Math.max(positions[a], positions[b], positions[c]) + ox,
+          Math.max(positions[a + 2], positions[b + 2], positions[c + 2]) + oz,
+          (key) => sizes.set(key, (sizes.get(key) ?? 0) + 1)
+        );
       }
     }
     for (const [key, size] of sizes) {
       this.cells.set(key, new Uint32Array(size));
       sizes.set(key, 0);
     }
-    for (let id = 0; id < face; id++)
-      this.visitCells(id * FACE_STRIDE, (key) => {
-        const cursor = sizes.get(key)!;
-        this.cells.get(key)![cursor] = id;
-        sizes.set(key, cursor + 1);
-      });
+    for (let id = 0; id < face; id++) {
+      const { positions, indices, ox, oz } = this.placements[this.facePlacement[id]];
+      const ti = this.faceTri[id] * 3;
+      const a = indices[ti] * 3,
+        b = indices[ti + 1] * 3,
+        c = indices[ti + 2] * 3;
+      this.visitCells(
+        Math.min(positions[a], positions[b], positions[c]) + ox,
+        Math.min(positions[a + 2], positions[b + 2], positions[c + 2]) + oz,
+        Math.max(positions[a], positions[b], positions[c]) + ox,
+        Math.max(positions[a + 2], positions[b + 2], positions[c + 2]) + oz,
+        (key) => {
+          const cursor = sizes.get(key)!;
+          this.cells.get(key)![cursor] = id;
+          sizes.set(key, cursor + 1);
+        }
+      );
+    }
   }
 
-  private visitCells(k: number, visit: (key: number) => void): void {
-    const f = this.faces;
-    const minX = Math.min(f[k], f[k + 4], f[k + 8]);
-    const minZ = Math.min(f[k + 2], f[k + 6], f[k + 10]);
-    const maxX = Math.max(f[k], f[k + 4], f[k + 8]);
-    const maxZ = Math.max(f[k + 2], f[k + 6], f[k + 10]);
+  private visitCells(minX: number, minZ: number, maxX: number, maxZ: number, visit: (key: number) => void): void {
     for (let z = Math.floor(minZ / CELL); z <= Math.floor(maxZ / CELL); z++)
       for (let x = Math.floor(minX / CELL); x <= Math.floor(maxX / CELL); x++) visit(packCellKey(x, z));
   }
@@ -165,7 +215,9 @@ export class GrassRockAppearance {
     let result: Float32Array | undefined;
     const visited = new Set<number>(),
       packed = new Map<number, number[]>();
-    const faces = this.faces;
+    const placements = this.placements,
+      facePlacement = this.facePlacement,
+      faceTri = this.faceTri;
     const heightFields = { ...fields, surfaceHeights: undefined };
     let candidates = 0;
     for (let i = 0; i < count; i++) {
@@ -197,18 +249,25 @@ export class GrassRockAppearance {
               visited.add(face);
             }
             // Distance to the enclosing box is a lower bound; preserve exact face selection and ties.
-            const f = face * FACE_STRIDE;
-            const minX = Math.min(faces[f], faces[f + 4], faces[f + 8]);
-            const maxX = Math.max(faces[f], faces[f + 4], faces[f + 8]);
-            const dx = Math.max(minX - x, 0, x - maxX);
-            const minY = Math.min(faces[f + 1], faces[f + 5], faces[f + 9]);
-            const maxY = Math.max(faces[f + 1], faces[f + 5], faces[f + 9]);
-            const dy = Math.max(minY - py, 0, py - maxY);
-            const minZ = Math.min(faces[f + 2], faces[f + 6], faces[f + 10]);
-            const maxZ = Math.max(faces[f + 2], faces[f + 6], faces[f + 10]);
-            const dz = Math.max(minZ - z, 0, z - maxZ);
+            const { positions, indices, ox, oy, oz } = placements[facePlacement[face]];
+            const ti = faceTri[face] * 3;
+            const i0 = indices[ti] * 3,
+              i1 = indices[ti + 1] * 3,
+              i2 = indices[ti + 2] * 3;
+            const ax = positions[i0] + ox,
+              ay = positions[i0 + 1] + oy,
+              az = positions[i0 + 2] + oz;
+            const bx = positions[i1] + ox,
+              by = positions[i1 + 1] + oy,
+              bz = positions[i1 + 2] + oz;
+            const cxv = positions[i2] + ox,
+              cyv = positions[i2 + 1] + oy,
+              czv = positions[i2 + 2] + oz;
+            const dx = Math.max(Math.min(ax, bx, cxv) - x, 0, x - Math.max(ax, bx, cxv));
+            const dy = Math.max(Math.min(ay, by, cyv) - py, 0, py - Math.max(ay, by, cyv));
+            const dz = Math.max(Math.min(az, bz, czv) - z, 0, z - Math.max(az, bz, czv));
             if (dx * dx + dy * dy + dz * dz >= best) continue;
-            const d = pointTriangleDistanceSquared(x, py, z, faces, f);
+            const d = pointTriangleDistanceSquared(x, py, z, ax, ay, az, bx, by, bz, cxv, cyv, czv);
             if (d < best) {
               best = d;
               chosen = face;
@@ -219,15 +278,28 @@ export class GrassRockAppearance {
       result ??= new Float32Array(count * GRASS_ROCK_APPEARANCE_STRIDE);
       let values = packed.get(chosen);
       if (!values) {
-        const f = chosen * FACE_STRIDE;
-        values = Array.from(faces.subarray(f, f + 12));
+        const { positions, indices, normals, coverage, ox, oy, oz } = placements[facePlacement[chosen]];
+        const ti = faceTri[chosen] * 3;
+        const v0 = indices[ti],
+          v1 = indices[ti + 1],
+          v2 = indices[ti + 2];
+        const verts = [v0, v1, v2];
+        values = [];
         for (let c = 0; c < 3; c++) {
-          const p = f + c * 4,
-            n = f + 12 + c * 3;
-          const h = sampleSeedWorldHeight(heightFields, faces[p], faces[p + 2]);
-          values.push(faces[n], faces[n + 1], faces[n + 2], h === undefined ? 10000 : faces[p + 1] - h);
+          const v = verts[c],
+            p = v * 3;
+          values.push(positions[p] + ox, positions[p + 1] + oy, positions[p + 2] + oz, coverage[v]);
         }
-        values.push(faces[f + 21], 1, 1, 0);
+        for (let c = 0; c < 3; c++) {
+          const v = verts[c],
+            p = v * 3;
+          const px = positions[p] + ox,
+            pz = positions[p + 2] + oz,
+            pY = positions[p + 1] + oy;
+          const h = sampleSeedWorldHeight(heightFields, px, pz);
+          values.push(normals[p], normals[p + 1], normals[p + 2], h === undefined ? 10000 : pY - h);
+        }
+        values.push(0, 1, 1, 0);
         packed.set(chosen, values);
       }
       result.set(values, i * GRASS_ROCK_APPEARANCE_STRIDE);

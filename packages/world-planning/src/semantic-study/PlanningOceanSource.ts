@@ -3,6 +3,7 @@ import {
   OceanNearshoreSchemaVersion,
   type WaterOceanRepresentationStateV1
 } from "@galacean/engine-water/water/index";
+import { createImmutableWaterSnapshot } from "@galacean/engine-water/water/authoring/identity/WaterImmutableSnapshot";
 import {
   OceanWaterCompiledResource,
   type OceanWaterBodyDescriptorV1,
@@ -54,7 +55,7 @@ export function planningOceanDescriptor(plan: IslandPlan): OceanWaterBodyDescrip
     if (!mask[i]) bedHeights[i] = 0;
   }
   const ocean = OceanNearshoreOutsidePolicy.DeepOcean;
-  const descriptor: OceanWaterBodyDescriptorV1 = {
+  const descriptor: OceanWaterBodyDescriptorV1 = createImmutableWaterSnapshot({
     schemaVersion: 2,
     id: "planning-ocean",
     config: {
@@ -80,7 +81,7 @@ export function planningOceanDescriptor(plan: IslandPlan): OceanWaterBodyDescrip
         outsidePolicy: { negativeX: ocean, positiveX: ocean, negativeZ: ocean, positiveZ: ocean }
       }
     }
-  };
+  });
   descriptors.set(height, descriptor);
   return descriptor;
 }
@@ -110,7 +111,7 @@ export function compilePlanningOcean(plan: IslandPlan): OceanWaterCompiledTransf
       nearshore.wetSource.kind === "mask" && numericContentIdentity(nearshore.wetSource.mask)
     ]);
     result = compiledByContent.get(key);
-    if (!result) result = OceanWaterCompiledResource.compileForTransfer(descriptor);
+    if (!result) result = createImmutableWaterSnapshot(OceanWaterCompiledResource.compileForTransfer(descriptor));
     retain(compiledByContent, key, result);
     cache.set(height, result);
   }
@@ -119,7 +120,7 @@ export function compilePlanningOcean(plan: IslandPlan): OceanWaterCompiledTransf
 /** Publish worker output under the same canonical terrain snapshot. */
 export function adoptPlanningOcean(plan: IslandPlan, data: OceanWaterCompiledTransferV1): void {
   const height = planningHeightmap(plan);
-  if (!cache.has(height)) cache.set(height, data);
+  if (!cache.has(height)) cache.set(height, createImmutableWaterSnapshot(data));
 }
 export function preparedPlanningOcean(plan: IslandPlan): OceanWaterCompiledTransferV1 {
   const data = cache.get(planningHeightmap(plan));

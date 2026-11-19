@@ -6,7 +6,16 @@ import {
   plantExhibitionVariants,
   sizeVariantEntry
 } from "./PlantExhibitionLayout";
-import { type Camera, type Engine, type Entity, type Material, Matrix, MeshRenderer, Vector3, Vector4 } from "@galacean/engine";
+import {
+  type Camera,
+  type Engine,
+  type Entity,
+  type Material,
+  Matrix,
+  MeshRenderer,
+  Vector3,
+  Vector4
+} from "@galacean/engine";
 import { AssetStageLabels, ASSET_STAGE_CLEARANCE } from "./AssetStageLabels";
 import { PlantDrawCallProfiler } from "./PlantDrawCallProfiler";
 import { TERRAIN_FLOWER_WIND_RESPONSE_PROFILE } from "@galacean/engine-terrain/terrain/project/TerrainWindResponseProfiles";
@@ -77,10 +86,15 @@ export interface PlantPlacementRenderer {
 
 interface Specimen {
   readonly entry: ProceduralPlantLibraryEntry;
-  readonly asset: ProceduralPlantAsset;
+  asset?: ProceduralPlantAsset;
+  readonly lodCount: number;
+  readonly materialSlots: Readonly<Record<string, string>>;
   readonly materials: ReadonlyMap<string, Material>;
   readonly colors: ReadonlyMap<string, PlantPoint>;
   geometry: readonly PlantRenderPart[];
+  partCount: number;
+  triangleCount: number;
+  canCompactStatic: boolean;
   position: PlantPoint;
   labelClearance: number;
   lod: number;
@@ -104,9 +118,6 @@ type LibraryIndexDocument = {
   prototypes?: ProceduralPlantLibraryEntry[];
 };
 
-/** Compiled rest-geometry cache keyed by decoded asset object identity; invalidated automatically when ResourceManager updates a virtual JSONAsset. */
-const cachedCompiledSpecimens = new WeakMap<ProceduralPlantAsset, Map<number, ReturnType<typeof compileSpecimen>>>();
-
 function resolveLibraryIndexUrl(indexUrl: string): string {
   return /^[.\/]/u.test(indexUrl) ? new URL(indexUrl, location.href).href : indexUrl;
 }
@@ -123,11 +134,15 @@ async function loadValidatedPlantAsset(
   return asset;
 }
 
-function getCompiledSpecimenCached(asset: ProceduralPlantAsset, lod: number): ReturnType<typeof compileSpecimen> {
-  let byLod = cachedCompiledSpecimens.get(asset);
+function getCompiledSpecimenCached(
+  cache: Map<ProceduralPlantAsset, Map<number, ReturnType<typeof compileSpecimen>>>,
+  asset: ProceduralPlantAsset,
+  lod: number
+): ReturnType<typeof compileSpecimen> {
+  let byLod = cache.get(asset);
   if (!byLod) {
     byLod = new Map();
-    cachedCompiledSpecimens.set(asset, byLod);
+    cache.set(asset, byLod);
   }
   let compiled = byLod.get(lod);
   if (!compiled) {
@@ -135,6 +150,12 @@ function getCompiledSpecimenCached(asset: ProceduralPlantAsset, lod: number): Re
     byLod.set(lod, compiled);
   }
   return compiled;
+}
+
+function canSpecimenCompactStatic(geometry: readonly PlantRenderPart[]): boolean {
+  return (
+    geometry.some((part) => part.instance) && geometry.every((part) => !part.mesh.leafFrames && !part.mesh.windFrames)
+  );
 }
 
 export class ProceduralPlantLibraryRuntime {
@@ -158,11 +179,14 @@ export class ProceduralPlantLibraryRuntime {
   private _batchRoot?: Entity;
   private _meshes?: ProceduralPlantMeshes;
   private _instanceEntities = new Map<string, Entity[]>();
+  private readonly _populationOnly: boolean;
 
   private constructor(
     private readonly _root: Entity,
-    private readonly _normalMapped: boolean
+    private readonly _normalMapped: boolean,
+    populationOnly: boolean
   ) {
+    this._populationOnly = populationOnly;
     _root.isActive = false;
   }
 
@@ -182,7 +206,8 @@ export class ProceduralPlantLibraryRuntime {
   }): Promise<ProceduralPlantLibraryRuntime> {
     const runtime = new ProceduralPlantLibraryRuntime(
       options.owner.createChild("Procedural plant library"),
-      options.normalMapped ?? false
+      options.normalMapped ?? false,
+      Boolean(options.populationOnly)
     );
     try {
       const indexUrl = resolveLibraryIndexUrl(options.indexUrl);
@@ -211,10 +236,12 @@ export class ProceduralPlantLibraryRuntime {
       const loadedAssets = new Map(
         await Promise.all(
           uniqueSources.map(
-            async (source) => [source.id, await loadValidatedPlantAsset(options.owner.engine, source, indexUrl)] as const
+            async (source) =>
+              [source.id, await loadValidatedPlantAsset(options.owner.engine, source, indexUrl)] as const
           )
         )
       );
+      const compiledCache = new Map<ProceduralPlantAsset, Map<number, ReturnType<typeof compileSpecimen>>>();
       let sliceStartedAt = performance.now();
       for (const { entry, source } of resolvedEntries) {
         const asset = loadedAssets.get(source.id)!;
@@ -236,16 +263,22 @@ export class ProceduralPlantLibraryRuntime {
         const colors = new Map(
           activeSlots.map(([id]) => [id, options.colorForSlot(appearanceAsset, entry.materialAliases?.[id] ?? id)])
         );
-        const base = getCompiledSpecimenCached(asset, 0);
+        const base = getCompiledSpecimenCached(compiledCache, asset, 0);
         const placement = instantiateSpecimen(base, entry);
         const lod = Math.min(options.lod ?? 0, asset.geometryLods.length - 1);
-        const geometry = lod === 0 ? placement : instantiateSpecimen(getCompiledSpecimenCached(asset, lod), entry);
+        const geometry =
+          lod === 0 ? placement : instantiateSpecimen(getCompiledSpecimenCached(compiledCache, asset, lod), entry);
         runtime._specimens.push({
           entry: { ...entry, parameterFile: source.parameterFile },
           asset,
+          lodCount: asset.geometryLods.length,
+          materialSlots: asset.materialSlots,
           materials,
           colors,
           ...geometry,
+          partCount: geometry.geometry.length,
+          triangleCount: geometry.geometry.reduce((sum, part) => sum + part.mesh.triangleCount, 0),
+          canCompactStatic: canSpecimenCompactStatic(geometry.geometry),
           position: [0, 0, 0],
           labelClearance: 0,
           lod,
@@ -272,11 +305,14 @@ export class ProceduralPlantLibraryRuntime {
             const base = group[0];
             for (const [index, variant] of plantExhibitionVariants(base.entry).entries()) {
               const entry = sizeVariantEntry(base.entry, variant, index + 1);
-              const geometry = instantiateSpecimen(getCompiledSpecimenCached(base.asset, 0), entry);
+              const geometry = instantiateSpecimen(getCompiledSpecimenCached(compiledCache, base.asset!, 0), entry);
               runtime._specimens.push({
                 ...base,
                 entry,
                 ...geometry,
+                partCount: geometry.geometry.length,
+                triangleCount: geometry.geometry.reduce((sum, part) => sum + part.mesh.triangleCount, 0),
+                canCompactStatic: canSpecimenCompactStatic(geometry.geometry),
                 bounds: geometry.localBounds,
                 placementBounds: geometry.localBounds
               });
@@ -285,6 +321,10 @@ export class ProceduralPlantLibraryRuntime {
       }
       if (options.populationOnly) {
         runtime._replaceBatches(runtime._specimens, "");
+        for (const item of runtime._specimens) {
+          item.asset = undefined;
+          if (!item.canCompactStatic) item.geometry = [];
+        }
         return runtime;
       }
       runtime._labels = new AssetStageLabels(
@@ -323,9 +363,7 @@ export class ProceduralPlantLibraryRuntime {
       .filter((item) => !item.entry.sourceAssetId)
       .map((item) => {
         const rendererBindings =
-          compactStaticParts &&
-          item.geometry.some((part) => part.instance) &&
-          item.geometry.every((part) => !part.mesh.leafFrames && !part.mesh.windFrames)
+          compactStaticParts && item.canCompactStatic
             ? this._populationSource(item)
             : this._owners
                 .filter((owner) => owner.assetId === item.entry.id)
@@ -379,6 +417,7 @@ export class ProceduralPlantLibraryRuntime {
         bindings.push({ renderer, materialId: item.entry.materialAliases?.[binding.materialId] ?? binding.materialId });
       }
       this._populationSources.set(item.entry.id, { root, meshes, bindings });
+      if (this._populationOnly) item.geometry = [];
       return bindings;
     } catch (error) {
       root.destroy();
@@ -444,10 +483,11 @@ export class ProceduralPlantLibraryRuntime {
 
   /** Keeps only the selected LOD on the GPU; the last authored level is retained for shorter LOD chains. */
   async setLod(lod: number): Promise<void> {
-    const count = Math.max(...this._specimens.map((item) => item.asset.geometryLods.length));
+    if (this._populationOnly) return;
+    const count = Math.max(...this._specimens.map((item) => item.lodCount));
     if (!Number.isInteger(lod) || lod < 0 || lod >= count) throw new RangeError("Unavailable plant LOD");
     if (this._changingLod) throw new Error("Plant LOD update is already in progress");
-    if (this._specimens.every((item) => item.lod === Math.min(lod, item.asset.geometryLods.length - 1))) return;
+    if (this._specimens.every((item) => item.lod === Math.min(lod, item.lodCount - 1))) return;
     this._changingLod = true;
     const previousExternalBounds = this._external.map((stand) => stand.getBounds());
     const previousRows = this._rows;
@@ -456,11 +496,19 @@ export class ProceduralPlantLibraryRuntime {
       const shared = new Map<ProceduralPlantAsset, ReturnType<typeof compileSpecimen>>();
       for (const item of next) {
         if (this._destroyed) return;
-        const nextLod = Math.min(lod, item.asset.geometryLods.length - 1);
+        const asset = item.asset;
+        if (!asset) continue;
+        const nextLod = Math.min(lod, item.lodCount - 1);
         if (item.lod === nextLod) continue;
-        let compiled = shared.get(item.asset);
-        if (!compiled) shared.set(item.asset, (compiled = compileSpecimen(item.asset, nextLod)));
-        Object.assign(item, instantiateSpecimen(compiled, item.entry), { lod: nextLod });
+        let compiled = shared.get(asset);
+        if (!compiled) shared.set(asset, (compiled = compileSpecimen(asset, nextLod)));
+        const instantiated = instantiateSpecimen(compiled, item.entry);
+        Object.assign(item, instantiated, {
+          lod: nextLod,
+          partCount: instantiated.geometry.length,
+          triangleCount: instantiated.geometry.reduce((sum, part) => sum + part.mesh.triangleCount, 0),
+          canCompactStatic: canSpecimenCompactStatic(instantiated.geometry)
+        });
         await new Promise<void>((resolve) => setTimeout(resolve, 0));
       }
       if (this._destroyed) return;
@@ -558,11 +606,11 @@ export class ProceduralPlantLibraryRuntime {
           geometryAccepted: item.entry.geometryAccepted,
           geometryEdited: item.entry.geometryEdited ?? false,
           lod: item.lod,
-          lodCount: item.asset.geometryLods.length,
-          materialSlots: item.asset.materialSlots,
-          rendererCount: included.includes(item) ? item.geometry.length : 0,
+          lodCount: item.lodCount,
+          materialSlots: item.materialSlots,
+          rendererCount: included.includes(item) ? item.partCount : 0,
           batchIds: this._batches.filter((batch) => batch.assetIds.includes(item.entry.id)).map((batch) => batch.id),
-          triangleCount: item.geometry.reduce((sum, part) => sum + part.mesh.triangleCount, 0),
+          triangleCount: item.triangleCount,
           bounds: item.bounds,
           visible: this._root.isActive && included.includes(item)
         })),
@@ -622,12 +670,22 @@ export class ProceduralPlantLibraryRuntime {
             ...part,
             mesh: {
               ...part.mesh,
-              bounds: plantRenderBounds(part.mesh, item.entry, part.instance, isFlowerSpecimen(item.asset))
+              bounds: plantRenderBounds(
+                part.mesh,
+                item.entry,
+                part.instance,
+                item.asset ? isFlowerSpecimen(item.asset) : false
+              )
             }
           });
         } else if (part.mesh.leafFrames || part.mesh.windFrames) {
           const current = geometry[meshIndex];
-          const bounds = plantRenderBounds(part.mesh, item.entry, part.instance, isFlowerSpecimen(item.asset));
+          const bounds = plantRenderBounds(
+            part.mesh,
+            item.entry,
+            part.instance,
+            item.asset ? isFlowerSpecimen(item.asset) : false
+          );
           geometry[meshIndex] = {
             ...current,
             mesh: {
@@ -687,7 +745,7 @@ export class ProceduralPlantLibraryRuntime {
           );
           renderer.shaderData.setVector4("renderer_ProceduralTreeBranchShape", new Vector4(0, 1, 1, 0));
           renderer.shaderData.setVector4("renderer_ProceduralTreeLeafColor", new Vector4(...color, 1));
-        } else if (variation && /^(bark|wood)([_.]\d+)?$/i.test(item.asset.materialSlots[part.materialId])) {
+        } else if (variation && /^(bark|wood)([_.]\d+)?$/i.test(item.materialSlots[part.materialId])) {
           color = color.map((v, axis) => v * variation.barkTint[axis]) as unknown as PlantPoint;
         }
         renderer.shaderData.setVector4("renderer_AssetAssemblyColor", new Vector4(...color, 1));
@@ -1006,7 +1064,8 @@ function plantRenderBounds(
   const flowerRadius = flower
     ? Math.max(
         ...mesh.positions.map((p, index) => {
-          const h = mesh.windFrames![index][1];
+          const h =
+            mesh.windFrames instanceof Float32Array ? mesh.windFrames[index * 4 + 1] : mesh.windFrames![index][1];
           return h + Math.hypot(p[0], p[1] - h, p[2]);
         })
       )

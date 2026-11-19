@@ -25,7 +25,7 @@ import lodDither from "./MasonryLodDither.glsl?raw";
 import { registerConstructionSceneLighting } from "./ConstructionSceneLighting";
 import { constructionPlasterGLSL } from "./ConstructionPlasterShader";
 import { plasterLinearColor } from "./ConstructionPlasterPalette";
-import { constructionBrickLayer, type ConstructionPreviewPart } from "./ConstructionPreview";
+import { constructionBrickLayer, uvU, uvV, type ConstructionPreviewPart, type PackedUv2 } from "./ConstructionPreview";
 import { DecorationMaterial } from "./ConstructionDecorationMaterial";
 import type { ConstructionDecorationPart } from "./ConstructionDecorations";
 import type { BuildingPaletteSlot } from "./BuildingGlobals";
@@ -705,7 +705,7 @@ export function createBuildingFarProxy(
     sourceNormals: readonly number[] | undefined,
     partIndices: readonly number[],
     normalBias: number,
-    uvs: readonly number[][] | undefined,
+    uvs: PackedUv2 | undefined,
     readEmission: (index: number) => number,
     readSurfaceTag: (index: number) => readonly [number, number, number, number]
   ) => {
@@ -747,9 +747,8 @@ export function createBuildingFarProxy(
       geomI8[bBase + 13] = packSignedByte(ny);
       geomI8[bBase + 14] = packSignedByte(nz);
       geomI8[bBase + 15] = pickByte;
-      const uv = uvs?.[i];
-      geomF32[fBase + 4] = uv?.[0] ?? 0;
-      geomF32[fBase + 5] = uv?.[1] ?? 0;
+      geomF32[fBase + 4] = uvU(uvs, i, 0);
+      geomF32[fBase + 5] = uvV(uvs, i, 0);
       const [tagX, tagY, tagZ, tagW] = readSurfaceTag(i);
       geomU16[uBase + 12] = Math.round(Math.max(0, Math.min(255, tagX))) * 257;
       geomU16[uBase + 13] = packU16Scaled(tagY, 1);

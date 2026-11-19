@@ -59,12 +59,28 @@ export class ShaderProgramMap {
 
   /** Source aliases do not change the pending macro-cache insertion point. */
   getBySource(key: string): ShaderProgram | undefined {
-    return this._programsBySource.get(key);
+    return this._programsBySource.get(ShaderProgramMap._hashSourceKey(key));
   }
 
   cacheBySource(key: string, program: ShaderProgram): void {
-    this._programsBySource.set(key, program);
+    this._programsBySource.set(ShaderProgramMap._hashSourceKey(key), program);
     this._ownedPrograms.add(program);
+  }
+
+  private static _hashSourceKey(key: string): string {
+    if (key.length <= 64) return key;
+    let h1 = 0x811c9dc5 | 0;
+    let h2 = 0x9e3779b9 | 0;
+    let h3 = 0x85ebca6b | 0;
+    let h4 = 0xc2b2ae35 | 0;
+    for (let i = 0; i < key.length; i++) {
+      const c = key.charCodeAt(i);
+      h1 = Math.imul(h1 ^ c, 0x01000193);
+      h2 = Math.imul(h2 ^ (c + i), 0x85ebca77);
+      h3 = Math.imul(h3 ^ (c ^ (h1 >>> 13)), 0xc2b2ae3d);
+      h4 = Math.imul(h4 + c + ((h2 << 5) | (h2 >>> 27)), 0x27d4eb2f);
+    }
+    return `${key.length.toString(36)}:${(h1 >>> 0).toString(36)}:${(h2 >>> 0).toString(36)}:${(h3 >>> 0).toString(36)}:${(h4 >>> 0).toString(36)}`;
   }
 
   destroy(): void {
@@ -84,7 +100,7 @@ export class ShaderProgramMap {
     increaseHierarchy: number
   ): void {
     if (hierarchy == currentHierarchy - 1) {
-      for (let k in cacheMap) {
+      for (const k in cacheMap) {
         const value = <ShaderProgram>cacheMap[k];
         let subCacheMap = cacheMap;
         for (let i = 0; i < increaseHierarchy; i++) {
@@ -94,7 +110,7 @@ export class ShaderProgramMap {
       }
     } else {
       hierarchy++;
-      for (let k in cacheMap) {
+      for (const k in cacheMap) {
         this._resizeCacheMapHierarchy(<Tree>cacheMap[k], hierarchy, currentHierarchy, increaseHierarchy);
       }
     }

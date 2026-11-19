@@ -135,3 +135,113 @@ export interface ConstructionPreview {
   woodArchPillars: ConstructionWoodArchPillar[];
   structuralParts?: ConstructionSurfacePart[];
 }
+
+export type PackedUv2 = readonly (readonly number[])[] | Float32Array;
+
+export function uvCount(uvs: PackedUv2 | undefined): number {
+  if (!uvs) return 0;
+  return uvs instanceof Float32Array ? uvs.length / 2 : uvs.length;
+}
+
+export function uvU(uvs: PackedUv2 | undefined, index: number, fallback = 0): number {
+  if (!uvs) return fallback;
+  if (uvs instanceof Float32Array) {
+    const off = index * 2;
+    return off < uvs.length ? uvs[off]! : fallback;
+  }
+  return uvs[index]?.[0] ?? fallback;
+}
+
+export function uvV(uvs: PackedUv2 | undefined, index: number, fallback = 0): number {
+  if (!uvs) return fallback;
+  if (uvs instanceof Float32Array) {
+    const off = index * 2 + 1;
+    return off < uvs.length ? uvs[off]! : fallback;
+  }
+  return uvs[index]?.[1] ?? fallback;
+}
+
+export function areUvsFinite(uvs: PackedUv2): boolean {
+  if (uvs instanceof Float32Array) {
+    for (let i = 0; i < uvs.length; i++) if (!Number.isFinite(uvs[i])) return false;
+    return true;
+  }
+  return uvs.every((v) => v.length === 2 && Number.isFinite(v[0]) && Number.isFinite(v[1]));
+}
+
+function toFloat32(values: ArrayLike<number>): Float32Array {
+  return values instanceof Float32Array ? values : Float32Array.from(values);
+}
+
+function toIndexArray(values: ArrayLike<number>, vertexCount: number): Uint16Array | Uint32Array {
+  if (values instanceof Uint16Array || values instanceof Uint32Array) return values;
+  return vertexCount <= 65535 ? Uint16Array.from(values) : Uint32Array.from(values);
+}
+
+function toFlatUv32(uvs: PackedUv2): Float32Array {
+  if (uvs instanceof Float32Array) return uvs;
+  const out = new Float32Array(uvs.length * 2);
+  for (let i = 0; i < uvs.length; i++) {
+    const pair = uvs[i];
+    if (pair) {
+      out[i * 2] = pair[0] ?? 0;
+      out[i * 2 + 1] = pair[1] ?? 0;
+    }
+  }
+  return out;
+}
+
+function packAppearance(
+  appearance: import("./ConstructionDecorations").ConstructionDecorationAppearance | undefined
+): void {
+  if (!appearance) return;
+  appearance.materialUVs = toFlatUv32(appearance.materialUVs as unknown as PackedUv2) as unknown as number[][];
+  appearance.kinds = (appearance.kinds instanceof Uint8Array
+    ? appearance.kinds
+    : Uint8Array.from(appearance.kinds)) as unknown as number[];
+  appearance.colorIds = (appearance.colorIds instanceof Int16Array
+    ? appearance.colorIds
+    : Int16Array.from(appearance.colorIds)) as unknown as number[];
+  appearance.centers = toFloat32(appearance.centers) as unknown as number[];
+}
+
+/** Convert boxed JS numeric/tuple arrays in a ConstructionPreview into compact TypedArrays
+ * before sending across Worker boundaries or retaining on the Main Thread. */
+export function packConstructionPreview(preview: ConstructionPreview): void {
+  for (const p of preview.parts) {
+    const vCount = p.positions.length / 3;
+    p.positions = toFloat32(p.positions) as unknown as number[];
+    p.indices = toIndexArray(p.indices, vCount) as unknown as number[];
+    if (p.normals) p.normals = toFloat32(p.normals) as unknown as number[];
+    if (p.colors) p.colors = toFloat32(p.colors) as unknown as number[];
+    if (p.neutralColors) p.neutralColors = toFloat32(p.neutralColors) as unknown as number[];
+    if (p.tintRoles) {
+      p.tintRoles = (p.tintRoles instanceof Int8Array
+        ? p.tintRoles
+        : Int8Array.from(p.tintRoles)) as unknown as number[];
+    }
+    if (p.emission) p.emission = toFloat32(p.emission) as unknown as number[];
+    if (p.uvs) p.uvs = toFlatUv32(p.uvs as unknown as PackedUv2) as unknown as number[][];
+    if (p.plaster?.edgeDistances) {
+      p.plaster.edgeDistances = toFloat32(p.plaster.edgeDistances) as unknown as number[];
+    }
+    packAppearance(p.appearance);
+  }
+  for (const d of preview.decorationParts) {
+    const vCount = d.positions.length / 3;
+    d.positions = toFloat32(d.positions) as unknown as number[];
+    d.normals = toFloat32(d.normals) as unknown as number[];
+    d.colors = toFloat32(d.colors) as unknown as number[];
+    d.emission = toFloat32(d.emission) as unknown as number[];
+    d.indices = toIndexArray(d.indices, vCount) as unknown as number[];
+    if (d.uvs) d.uvs = toFlatUv32(d.uvs as unknown as PackedUv2) as unknown as number[][];
+    packAppearance(d.appearance);
+  }
+  if (preview.structuralParts) {
+    for (const s of preview.structuralParts) {
+      const vCount = s.positions.length / 3;
+      s.positions = toFloat32(s.positions) as unknown as number[];
+      s.indices = toIndexArray(s.indices, vCount) as unknown as number[];
+    }
+  }
+}

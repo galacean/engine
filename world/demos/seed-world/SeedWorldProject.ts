@@ -130,11 +130,14 @@ async function migrateBuildingAssetPaths(
       assertRuntimeHierarchyEquivalent(original, JSON.parse(compileProjectResource(candidate, file.virtualPath) as string));
     }
   }
-  await project.update((pack) => ({
-    ...pack,
-    project: { ...pack.project, files: pack.project.files.map(relocate) },
-    contents: { ...contents, ...pack.contents }
-  }));
+  await project.update(
+    (pack) => ({
+      ...pack,
+      project: { ...pack.project, files: pack.project.files.map(relocate) },
+      contents: { ...contents, ...pack.contents }
+    }),
+    { recordHistory: false }
+  );
 }
 
 /** Versioned import preserves saved asset edits and intentionally deleted resources after migration. */
@@ -214,11 +217,24 @@ async function migrateVegetationAssets(project: RuntimeProjectSession, initial: 
   for (const alias of retiredAliases) if (files.some(file => !retiredAliases.has(file.virtualPath) &&
     (contents[file.virtualPath] === undefined ? file.dependencies ?? [] : formats.get(file.type)!.references(contents[file.virtualPath], file)).includes(alias)))
     retiredAliases.delete(alias);
-  await project.update(pack => ({ ...pack, project: { ...pack.project, files: [...pack.project.files, ...additions]
-    .filter(file => !retiredAliases.has(file.virtualPath)).map(file => file.type === "KTX2" && file.params === undefined
-      ? { ...file, params: initial.files.find(initial => initial.virtualPath === file.virtualPath)?.params } : file) },
-    contents: { ...pack.contents, ...contents },
-    documents: { ...pack.documents, [marker]: JSON.stringify({ version: 2 }) } }));
+  await project.update(
+    (pack) => ({
+      ...pack,
+      project: {
+        ...pack.project,
+        files: [...pack.project.files, ...additions]
+          .filter((file) => !retiredAliases.has(file.virtualPath))
+          .map((file) =>
+            file.type === "KTX2" && file.params === undefined
+              ? { ...file, params: initial.files.find((initial) => initial.virtualPath === file.virtualPath)?.params }
+              : file
+          )
+      },
+      contents: { ...pack.contents, ...contents },
+      documents: { ...pack.documents, [marker]: JSON.stringify({ version: 2 }) }
+    }),
+    { recordHistory: false }
+  );
   await migrateVegetationPlacementMetadata(project, initial, baseUrl, marker);
 }
 
@@ -257,8 +273,12 @@ async function migrateVegetationPlacementMetadata(
     });
     contents[file.virtualPath] = JSON.stringify(production);
   }
-  await project.update(pack => ({ ...pack,
-    contents: { ...pack.contents, ...contents },
-    documents: { ...pack.documents, [marker]: JSON.stringify({ version: 3 }) }
-  }));
+  await project.update(
+    (pack) => ({
+      ...pack,
+      contents: { ...pack.contents, ...contents },
+      documents: { ...pack.documents, [marker]: JSON.stringify({ version: 3 }) }
+    }),
+    { recordHistory: false }
+  );
 }

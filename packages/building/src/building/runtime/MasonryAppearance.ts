@@ -208,13 +208,13 @@ vec4 masonryGrad_${sampler}(${type} uv,vec2 dx,vec2 dy){return masonryRestore_${
   return fragment;
 }
 
-export function masonrySourceColorAt(colors: readonly number[], neutral: readonly number[], vertex: number): number[] {
+export function masonrySourceColorAt(colors: ArrayLike<number>, neutral: ArrayLike<number>, vertex: number): number[] {
   const i = vertex * 3,
     gray = neutral[i];
-  return gray > 0 ? colors.slice(i, i + 3).map((v) => v / gray) : [1, 1, 1];
+  return gray > 0 ? [colors[i] / gray, colors[i + 1] / gray, colors[i + 2] / gray] : [1, 1, 1];
 }
 /** Opaque proxy COLOR.a carries the role and a bounded white-point fraction. */
-export function masonryVertexTintTag(role: number, color: readonly number[], neutral: readonly number[]): number {
+export function masonryVertexTintTag(role: number, color: ArrayLike<number>, neutral: ArrayLike<number>): number {
   if (role < 0) return 0;
   const gray = neutral[0],
     white = gray > 0 ? luminance(color[0], color[1], color[2]) / gray : 0;
@@ -223,12 +223,31 @@ export function masonryVertexTintTag(role: number, color: readonly number[], neu
 
 /** Decoration mesh colors are already linear. Keep the original arrays intact
  * for source parity and leave glass/emission out of material tinting. */
-export function whiteMasonryVertexColors(colors: readonly number[], tintMask?: readonly boolean[]): number[] {
-  const values = Array.from({ length: colors.length / 3 }, (_, i) =>
-    luminance(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2])
-  );
-  const white = values.reduce((a, b, i) => (tintMask?.[i] === false ? a : Math.max(a, b)), 0);
-  return values.flatMap((v, i) =>
-    tintMask?.[i] === false ? colors.slice(i * 3, i * 3 + 3) : Array(3).fill(white > 0 ? v / white : v)
-  );
+export function whiteMasonryVertexColors(colors: ArrayLike<number>, tintMask?: readonly boolean[]): number[] {
+  const count = colors.length / 3;
+  const values = new Float32Array(count);
+  let white = 0;
+  for (let i = 0; i < count; i++) {
+    const lum = luminance(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
+    values[i] = lum;
+    if (tintMask?.[i] !== false && lum > white) white = lum;
+  }
+  const out =
+    colors instanceof Float32Array
+      ? (new Float32Array(colors.length) as unknown as number[])
+      : new Array<number>(colors.length);
+  for (let i = 0; i < count; i++) {
+    const i3 = i * 3;
+    if (tintMask?.[i] === false) {
+      out[i3] = colors[i3];
+      out[i3 + 1] = colors[i3 + 1];
+      out[i3 + 2] = colors[i3 + 2];
+    } else {
+      const v = white > 0 ? values[i] / white : values[i];
+      out[i3] = v;
+      out[i3 + 1] = v;
+      out[i3 + 2] = v;
+    }
+  }
+  return out;
 }

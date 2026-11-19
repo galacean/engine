@@ -239,8 +239,7 @@ export async function preloadTemplateProceduralPlantResources(
   const needDeadWood = activeKinds.has("dead-wood");
   const needBush = activeKinds.has("desert-shrub");
   const needFlower = activeKinds.has("pastel-flower") || activeKinds.has("meadow-flower");
-  const needGrass =
-    needFlower || activeKinds.has("dry-grass") || activeKinds.has("plume-grass");
+  const needGrass = needFlower || activeKinds.has("dry-grass") || activeKinds.has("plume-grass");
   const needPlume = activeKinds.has("plume-grass");
 
   if (needBush && !decodedBushAsset) decodedBushAsset = decodePlantParameters<ProceduralPlantAsset>(bushStructureJson);
@@ -316,13 +315,22 @@ function transformRestParts(
 
 function attachFlexibleWindFrames(parts: readonly PlantPartMesh[], windHeight: number): PlantPartMesh[] {
   const safeHeight = Math.max(0.05, windHeight);
-  return parts.map((part) => ({
-    ...part,
-    mesh: {
-      ...part.mesh,
-      windFrames: part.mesh.positions.map((p) => [1, 0, 0, Math.min(1, Math.max(0, p[1]) / safeHeight)] as const)
+  return parts.map((part) => {
+    const positions = part.mesh.positions;
+    const windFrames = new Float32Array(positions.length * 4);
+    for (let i = 0; i < positions.length; i++) {
+      const o = i * 4;
+      windFrames[o] = 1;
+      windFrames[o + 3] = Math.min(1, Math.max(0, positions[i][1]) / safeHeight);
     }
-  }));
+    return {
+      ...part,
+      mesh: {
+        ...part.mesh,
+        windFrames
+      }
+    };
+  });
 }
 
 function catalogLod0Instances(speciesId: string): readonly PlantGeometryInstance[] {
@@ -967,14 +975,7 @@ export function mountTemplateProceduralPlants(
         });
 
         const name = `dead-wood/variant-${variantIndex}`;
-        const view = createTreeAssemblyInstancedMesh(
-          root.engine,
-          variantMesh,
-          subset.length,
-          bounds,
-          name,
-          storage
-        );
+        const view = createTreeAssemblyInstancedMesh(root.engine, variantMesh, subset.length, bounds, name, storage);
         disposals.push(() => view.mesh.destroy());
         uploadTreeAssemblyInstances(view, subset.length);
         const renderer = owner.createChild(name).addComponent(MeshRenderer);

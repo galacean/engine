@@ -435,67 +435,84 @@ export function compilePlanningWaterHeightmap(
   }
 }
 
+export function hashCanonicalKey(serialized: string): string {
+  let h1 = 0x811c9dc5 | 0;
+  let h2 = 0x9e3779b9 | 0;
+  let h3 = 0x85ebca6b | 0;
+  let h4 = 0xc2b2ae35 | 0;
+  for (let i = 0; i < serialized.length; i++) {
+    const c = serialized.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193);
+    h2 = Math.imul(h2 ^ (c + i), 0x85ebca77);
+    h3 = Math.imul(h3 ^ (c ^ (h1 >>> 13)), 0xc2b2ae3d);
+    h4 = Math.imul(h4 + c + ((h2 << 5) | (h2 >>> 27)), 0x27d4eb2f);
+  }
+  return `${serialized.length.toString(36)}:${(h1 >>> 0).toString(36)}:${(h2 >>> 0).toString(36)}:${(h3 >>> 0).toString(36)}:${(h4 >>> 0).toString(36)}`;
+}
+
 function heightKey(plan: IslandPlan, resolution: number): string {
-  return JSON.stringify([
-    "canonical-float32-v1",
-    RIVER_BANK_PROFILE_VERSION,
-    plan.authoredWaterLayer,
-    resolution,
-    plan.roadApproaches?.map((a) => [a.approach?.grading, a.approach?.gradingWeights, a.approach?.landings]),
-    planningTerrainAuthoringInputs(plan.authoredResources),
-    plan.settlementLayout || plan.landformStudy || plan.canyonStudy
-      ? {
-          seed: plan.parameters.seed,
-          landformSeed: plan.parameters.landformSeed,
-          reliefNearAmplitudeM: plan.parameters.reliefNearAmplitudeM,
-          reliefAmplitudeM: plan.parameters.reliefAmplitudeM,
-          reliefFarAmplitudeM: plan.parameters.reliefFarAmplitudeM,
-          reliefScaleM: plan.parameters.reliefScaleM,
-          spatialComposition: plan.parameters.spatialComposition,
-          width: plan.parameters.width,
-          depth: plan.parameters.depth,
-          terrainPatches: plan.parameters.terrainPatches,
-          worldElevation: plan.parameters.worldElevation
-        }
-      : plan.parameters,
-    plan.regionFields?.elevation,
-    !plan.spatialLayout &&
-    (plan.parameters.terrainPatches?.length ||
-      plan.parameters.worldElevation?.riseM ||
-      plan.regionFields?.elevation?.cells.some((cell) => cell.value !== 0))
-      ? plan.buildings.map(({ center, width, depth, yaw }) => ({ center, width, depth, yaw }))
-      : null,
-    plan.villageStudy,
-    plan.landformStudy,
-    plan.canyonStudy,
-    plan.villageStudy
-      ? null
-      : plan.settlementLayout || plan.landformStudy || plan.canyonStudy
-        ? [
-            plan.land,
-            plan.islands,
-            plan.waters.map(({ id, outline, widths, bankWidthM, bankWidths, lake, course }) => ({
-              id,
-              outline,
-              widths,
-              bankWidthM,
-              bankWidths,
-              lake,
-              course
-            })),
-            plan.planning?.profiles.filter((profile) => profile.kind === "bed" || profile.kind === "water")
-          ]
-        : [
-            plan.land,
-            plan.islands,
-            plan.waters,
-            plan.planning?.profiles.filter((profile) => profile.kind === "bed" || profile.kind === "water"),
-            plan.mountains,
-            plan.rocks,
-            plan.ridges,
-            plan.structures
-          ]
-  ]);
+  return hashCanonicalKey(
+    JSON.stringify([
+      "canonical-float32-v1",
+      RIVER_BANK_PROFILE_VERSION,
+      plan.authoredWaterLayer,
+      resolution,
+      plan.roadApproaches?.map((a) => [a.approach?.grading, a.approach?.gradingWeights, a.approach?.landings]),
+      planningTerrainAuthoringInputs(plan.authoredResources),
+      plan.settlementLayout || plan.landformStudy || plan.canyonStudy
+        ? {
+            seed: plan.parameters.seed,
+            landformSeed: plan.parameters.landformSeed,
+            reliefNearAmplitudeM: plan.parameters.reliefNearAmplitudeM,
+            reliefAmplitudeM: plan.parameters.reliefAmplitudeM,
+            reliefFarAmplitudeM: plan.parameters.reliefFarAmplitudeM,
+            reliefScaleM: plan.parameters.reliefScaleM,
+            spatialComposition: plan.parameters.spatialComposition,
+            width: plan.parameters.width,
+            depth: plan.parameters.depth,
+            terrainPatches: plan.parameters.terrainPatches,
+            worldElevation: plan.parameters.worldElevation
+          }
+        : plan.parameters,
+      plan.regionFields?.elevation,
+      !plan.spatialLayout &&
+      (plan.parameters.terrainPatches?.length ||
+        plan.parameters.worldElevation?.riseM ||
+        plan.regionFields?.elevation?.cells.some((cell) => cell.value !== 0))
+        ? plan.buildings.map(({ center, width, depth, yaw }) => ({ center, width, depth, yaw }))
+        : null,
+      plan.villageStudy,
+      plan.landformStudy,
+      plan.canyonStudy,
+      plan.villageStudy
+        ? null
+        : plan.settlementLayout || plan.landformStudy || plan.canyonStudy
+          ? [
+              plan.land,
+              plan.islands,
+              plan.waters.map(({ id, outline, widths, bankWidthM, bankWidths, lake, course }) => ({
+                id,
+                outline,
+                widths,
+                bankWidthM,
+                bankWidths,
+                lake,
+                course
+              })),
+              plan.planning?.profiles.filter((profile) => profile.kind === "bed" || profile.kind === "water")
+            ]
+          : [
+              plan.land,
+              plan.islands,
+              plan.waters,
+              plan.planning?.profiles.filter((profile) => profile.kind === "bed" || profile.kind === "water"),
+              plan.mountains,
+              plan.rocks,
+              plan.ridges,
+              plan.structures
+            ]
+    ])
+  );
 }
 
 function heightSampler({

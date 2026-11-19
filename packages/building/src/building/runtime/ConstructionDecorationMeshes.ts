@@ -1,15 +1,13 @@
 export interface DecorationMesh {
-  positions: number[];
-  normals: number[];
-  colors: number[];
-  materialUVs: number[][];
-  tangents: number[][];
-  bitangents: number[][];
-  indices: number[];
-  glass: number[];
-  metal: number[];
+  positions: Float32Array;
+  normals: Float32Array;
+  colors: Float32Array;
+  /** Flat [u0, v0, u1, v1, ...] UV pairs (length vertexCount * 2, or 0 if absent). */
+  materialUVs: Float32Array;
+  indices: Uint32Array;
+  glass: Uint8Array;
+  metal: Uint8Array;
   bounds: { min: number[]; max: number[] };
-  attributes: Record<string, number[][]>;
   doubleSided: boolean;
 }
 /** Detached algorithm data derived from native Meshes; no file schema or decoder. */
@@ -59,23 +57,16 @@ export function createDecorationMesh(
   }
   if (indices.some((i) => !Number.isSafeInteger(i) || i < 0 || i >= vertexCount))
     throw Error("Invalid decoration index");
-  const attributes: Record<string, number[][]> = {};
-  for (const [key, { values, width }] of Object.entries(channels)) {
-    if (["Vertex_Position", "Vertex_Normal", "Vertex_Color", "is_glass", "is_metal_part"].includes(key)) continue;
-    attributes[key] = Array.from({ length: vertexCount }, (_, i) => values.slice(i * width, (i + 1) * width));
-  }
+  const uvChannel = channels.Vertex_UV;
   return {
-    positions: positions.values,
-    normals: normals.values,
-    colors: colors.values,
-    indices,
+    positions: Float32Array.from(positions.values),
+    normals: Float32Array.from(normals.values),
+    colors: Float32Array.from(colors.values),
+    indices: Uint32Array.from(indices),
     bounds,
     doubleSided,
-    materialUVs: attributes.Vertex_UV ?? [],
-    tangents: attributes.tangent ?? [],
-    bitangents: attributes.bitangent ?? [],
-    glass: channels.is_glass?.values ?? [],
-    metal: channels.is_metal_part?.values ?? [],
-    attributes
+    materialUVs: uvChannel && uvChannel.width === 2 ? Float32Array.from(uvChannel.values) : new Float32Array(0),
+    glass: channels.is_glass ? Uint8Array.from(channels.is_glass.values) : new Uint8Array(0),
+    metal: channels.is_metal_part ? Uint8Array.from(channels.is_metal_part.values) : new Uint8Array(0)
   };
 }

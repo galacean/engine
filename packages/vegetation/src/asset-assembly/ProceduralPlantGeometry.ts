@@ -190,7 +190,7 @@ export interface PlantMeshData {
   /** Geometric canopy optical depth, independent of material density and shadow maps. */
   readonly canopyOpticalDepths?: readonly number[];
   /** Tree hinge axis / flower beam section, plus canonical height. Rigid organs share an attachment. */
-  readonly windFrames?: readonly (readonly [number, number, number, number])[];
+  readonly windFrames?: Float32Array | readonly (readonly [number, number, number, number])[];
 }
 
 export interface PlantPartMesh {
@@ -288,8 +288,8 @@ export function mergePlantGeometryByMaterial(parts: readonly PlantPartMesh[]): r
     const hasLeafFrames = group.some(({ mesh }) => mesh.leafFrames);
     const canopyOpticalDepths: number[] = [];
     const hasCanopy = group.some(({ mesh }) => mesh.canopyOpticalDepths);
-    const windFrames: (readonly [number, number, number, number])[] = [];
     const hasWindFrames = group.some(({ mesh }) => mesh.windFrames);
+    const windNumbers: number[] | undefined = hasWindFrames ? [] : undefined;
     for (const { mesh } of group) {
       const offset = positions.length;
       for (const p of mesh.positions) positions.push(p);
@@ -303,7 +303,11 @@ export function mergePlantGeometryByMaterial(parts: readonly PlantPartMesh[]): r
         for (let i = 0; i < mesh.positions.length; i++) canopyOpticalDepths.push(mesh.canopyOpticalDepths?.[i] ?? 0);
       if (hasWindFrames) {
         if (!mesh.windFrames) throw new Error("Cannot merge incompatible plant wind contracts");
-        for (const frame of mesh.windFrames) windFrames.push(frame);
+        if (mesh.windFrames instanceof Float32Array) {
+          for (let i = 0; i < mesh.windFrames.length; i++) windNumbers!.push(mesh.windFrames[i]);
+        } else {
+          for (const frame of mesh.windFrames) windNumbers!.push(frame[0], frame[1], frame[2], frame[3]);
+        }
       }
     }
     return {
@@ -315,7 +319,7 @@ export function mergePlantGeometryByMaterial(parts: readonly PlantPartMesh[]): r
         uvs,
         ...(leafFrames.length ? { leafFrames } : {}),
         ...(hasCanopy ? { canopyOpticalDepths } : {}),
-        ...(windFrames.length ? { windFrames } : {}),
+        ...(windNumbers?.length ? { windFrames: new Float32Array(windNumbers) } : {}),
         indices: positions.length < 2 ** 16 ? new Uint16Array(indices) : new Uint32Array(indices),
         triangleCount: indices.length / 3,
         bounds: boundsOf(positions)
@@ -694,16 +698,25 @@ export function buildProceduralPlantGeometry(
         ...(windHeight === undefined
           ? {}
           : {
-              windFrames: positions.map((p) => {
-                // Rigid organs sample their authored attachment, independent of UVs and normals.
-                const height = Math.max(0, leaf ? pivot[1] : p[1]);
-                return [...(windKind === "flower" ? [0, height, 0] : hingeAxis), Math.min(1, height / windHeight)] as [
-                  number,
-                  number,
-                  number,
-                  number
-                ];
-              })
+              windFrames: (() => {
+                const frames = new Float32Array(positions.length * 4);
+                for (let i = 0; i < positions.length; i++) {
+                  // Rigid organs sample their authored attachment, independent of UVs and normals.
+                  const height = Math.max(0, leaf ? pivot[1] : positions[i][1]);
+                  const o = i * 4;
+                  if (windKind === "flower") {
+                    frames[o] = 0;
+                    frames[o + 1] = height;
+                    frames[o + 2] = 0;
+                  } else {
+                    frames[o] = hingeAxis[0];
+                    frames[o + 1] = hingeAxis[1];
+                    frames[o + 2] = hingeAxis[2];
+                  }
+                  frames[o + 3] = Math.min(1, height / windHeight);
+                }
+                return frames;
+              })()
             }),
         indices: part.reverseWinding
           ? mesh.indices.map((_, index) => mesh!.indices[index - (index % 3) + (index % 3 === 0 ? 0 : 3 - (index % 3))])

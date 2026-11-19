@@ -24,13 +24,22 @@ import {
  * Float32 conversion matches the GPU buffers exactly; it is not a geometry-fitting tolerance.
  * Include tangents because equal positions/UVs with different tangent frames cannot share a Mesh.
  */
+function windFrameTuples(
+  frames: NonNullable<PlantMeshData["windFrames"]>
+): readonly (readonly [number, number, number, number])[] {
+  if (!(frames instanceof Float32Array)) return frames;
+  const tuples: [number, number, number, number][] = [];
+  for (let i = 0; i < frames.length; i += 4) tuples.push([frames[i], frames[i + 1], frames[i + 2], frames[i + 3]]);
+  return tuples;
+}
+
 export function plantMeshGeometryKey(data: PlantMeshData, normalMapped: boolean): string {
   const attributes = [
     data.positions,
     data.normals,
     data.uvs,
     ...(data.leafFrames ? [data.leafFrames] : []),
-    ...(data.windFrames ? [data.windFrames] : []),
+    ...(data.windFrames ? [windFrameTuples(data.windFrames)] : []),
     ...(normalMapped ? [buildPlantMeshTangents(data)] : [])
   ];
   return JSON.stringify([
@@ -167,8 +176,12 @@ export function uploadProceduralPlantGeometry(
         );
       }
       if (data.windFrames) {
-        if (data.windFrames.length !== data.positions.length) throw new Error("Wind frames must cover every vertex");
-        const values = new Float32Array(data.windFrames.flat());
+        const flat = data.windFrames instanceof Float32Array;
+        const count = flat ? data.windFrames.length / 4 : data.windFrames.length;
+        if (count !== data.positions.length) throw new Error("Wind frames must cover every vertex");
+        const values = flat
+          ? (data.windFrames as Float32Array)
+          : new Float32Array((data.windFrames as readonly (readonly [number, number, number, number])[]).flat());
         const binding = mesh.vertexBufferBindings.length;
         mesh.setVertexBufferBinding(
           new Buffer(engine, BufferBindFlag.VertexBuffer, values, BufferUsage.Static),

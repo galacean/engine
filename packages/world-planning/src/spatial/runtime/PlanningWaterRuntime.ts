@@ -1,3 +1,4 @@
+import { createImmutableWaterSnapshot } from "@galacean/engine-water/water/authoring/identity/WaterImmutableSnapshot";
 import { createRiverWaterBodyAssetAsync } from "@galacean/engine-water/water/authoring/river/RiverWaterBodyAuthoring";
 import { createFarmlandsWaterResourceFactories } from "@galacean/engine-water/water/resources/river/FarmlandsWaterRuntimeResources";
 import { Layer, Vector3, type Camera, type Engine, type Entity, type MeshRenderer } from "@galacean/engine";
@@ -40,7 +41,7 @@ import {
 import { WORLD_TEMPLATE_ART } from "../WorldTemplateArtDirection";
 import { planningLakeRequests } from "../../semantic-study/PlanningLakeSource";
 import { planningWaterDependency } from "../../semantic-study/PlanningWaterDependency";
-import { planningHeightmap, type PlanningHeightmap } from "../../semantic-study/PlanningHeightmap";
+import { hashCanonicalKey, planningHeightmap, type PlanningHeightmap } from "../../semantic-study/PlanningHeightmap";
 import type { PlanningWaterUpdate } from "../hydrology/PlanningWaterEdits";
 
 import {
@@ -823,34 +824,38 @@ export class PlanningWaterRuntime {
     // exact source values plus the owned bed snapshot, not just plan identity.
     const inputs = {
       bed: planningHeightmap(plan),
-      source: JSON.stringify([
-        plan.parameters,
-        plan.waters,
-        plan.authoredResources,
-        plan.planning?.profiles,
-        plan.land,
-        plan.islands
-      ])
+      source: hashCanonicalKey(
+        JSON.stringify([
+          plan.parameters,
+          plan.waters,
+          plan.authoredResources,
+          plan.planning?.profiles,
+          plan.land,
+          plan.islands
+        ])
+      )
     };
     const unchangedPlan = this.requestInputs?.bed === inputs.bed && this.requestInputs.source === inputs.source;
     const oceanRequest = (): WaterSceneBodyRequest => {
       const prepared = compilePlanningOcean(plan);
       const descriptor = { schemaVersion: 2 as const, id: prepared.data.sourceId, config: prepared.data.config };
       const authoring = this.host.registerAuthoring((assets) => registerOceanAuthoring(assets, descriptor.config));
-      const asset = createWaterBodyAsset({
-        id: "planning-ocean-asset:" + prepared.sourceHash,
-        kind: "ocean",
-        representation: { domain: "world-space-ocean", macroSurface: "gerstner" },
-        representationData: prepared,
-        representationDataHash: prepared.compileKey,
-        sourceHash: prepared.sourceHash,
-        source: {
-          schemaVersion: WaterBodySourceSchemaVersion.V1,
-          kind: WaterBodySourceKind.OceanNearshore,
-          capabilities: { localBathymetry: true, shoreSdf: true, current: false },
-          descriptor
-        }
-      });
+      const asset = createImmutableWaterSnapshot(
+        createWaterBodyAsset({
+          id: "planning-ocean-asset:" + prepared.sourceHash,
+          kind: "ocean",
+          representation: { domain: "world-space-ocean", macroSurface: "gerstner" },
+          representationData: prepared,
+          representationDataHash: prepared.compileKey,
+          sourceHash: prepared.sourceHash,
+          source: {
+            schemaVersion: WaterBodySourceSchemaVersion.V1,
+            kind: WaterBodySourceKind.OceanNearshore,
+            capabilities: { localBathymetry: true, shoreSdf: true, current: false },
+            descriptor
+          }
+        })
+      );
       return {
         bodyId: "planning-ocean",
         asset,
@@ -902,7 +907,9 @@ export class PlanningWaterRuntime {
     );
     for (const id of changed) this.requestCache.delete(id);
     for (const river of changed.size ? planningRiverDescriptors(plan, changed) : []) {
-      const asset = await createRiverWaterBodyAssetAsync(river, "planning-river-asset:" + river.id, signal);
+      const asset = createImmutableWaterSnapshot(
+        await createRiverWaterBodyAssetAsync(river, "planning-river-asset:" + river.id, signal)
+      );
       const points = river.segments.flatMap((segment) => segment.curve.points);
       const reach = (point: (typeof points)[number]) => (point.width ?? river.defaults.shape.width) / 2;
       requests.push({

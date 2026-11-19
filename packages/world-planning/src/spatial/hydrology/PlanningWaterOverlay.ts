@@ -1,6 +1,10 @@
 import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
 import type { SemanticResult } from "../../semantic-study/WorldPlanningContract";
-import { inheritPlanningHeightmap, type PlanningHeightBounds } from "../../semantic-study/PlanningHeightmap";
+import {
+  hashCanonicalKey,
+  inheritPlanningHeightmap,
+  type PlanningHeightBounds
+} from "../../semantic-study/PlanningHeightmap";
 import { exportPlanningRecipe, type PlanningDocument } from "../PlanningDocument";
 import { generateSpatialWorld } from "../layout/SpatialWorld";
 
@@ -56,7 +60,9 @@ export function generateWaterOverlay(
   delete input.waterAuthoringVersion;
   delete input.placementState;
   delete input.layoutOverrides;
-  const signature = JSON.stringify([runtimeSignature, options.environment !== false, canonical(input)]);
+  const signature = hashCanonicalKey(
+    JSON.stringify([runtimeSignature, options.environment !== false, canonical(input)])
+  );
   let base = bases.get(signature);
   if (base) {
     bases.delete(signature);

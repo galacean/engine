@@ -4,6 +4,7 @@ import { ribbonOutline } from "./WorldRibbon";
 import { PLANNING_SURFACES } from "./PlanningSurfacePalette";
 import { PLANNING_RIVER_BED_BANK_EXTENSION_METRES } from "../spatial/runtime/PlanningRiverBedLayer";
 import { surfaceTransitionWeight } from "../geometry/surfaceTransitionWeight";
+import { hashCanonicalKey } from "./PlanningHeightmap";
 export { PLANNING_SURFACES } from "./PlanningSurfacePalette";
 /** Vertex-centred, row-major RGBA bytes. Origin (0,0); rows increase along world +Z. */
 export interface PlanningAlphamap {
@@ -198,20 +199,22 @@ export function planningSurfacePixels(map: PlanningAlphamap, layers: Record<stri
 }
 
 function surfaceKey(plan: IslandPlan): string {
-  return JSON.stringify([
-    profile.world.alphamapResolution,
-    plan.parameters.width,
-    plan.parameters.depth,
-    plan.land,
-    plan.islands,
-    plan.slopes.map((s) => [s.outer, s.inner]),
-    plan.settlementLayout
-      ? plan.plazas?.map((p) => p.outline)
-      : plan.regions.filter((r) => r.kind === "village").map((r) => r.navigationArea ?? r.outline),
-    plan.routes.map((r) => r.outline ?? ribbonOutline(r.points, [r.width])),
-    plan.waters.map((w) => [w.kind, w.outline]),
-    plan.courtyards?.map((c) => [c.outline, c.path.outline])
-  ]);
+  return hashCanonicalKey(
+    JSON.stringify([
+      profile.world.alphamapResolution,
+      plan.parameters.width,
+      plan.parameters.depth,
+      plan.land,
+      plan.islands,
+      plan.slopes.map((s) => [s.outer, s.inner]),
+      plan.settlementLayout
+        ? plan.plazas?.map((p) => p.outline)
+        : plan.regions.filter((r) => r.kind === "village").map((r) => r.navigationArea ?? r.outline),
+      plan.routes.map((r) => r.outline ?? ribbonOutline(r.points, [r.width])),
+      plan.waters.map((w) => [w.kind, w.outline]),
+      plan.courtyards?.map((c) => [c.outline, c.path.outline])
+    ])
+  );
 }
 
 /** Adopt immutable worker raster data without repainting polygons on the UI thread. */

@@ -24,9 +24,27 @@ import { generateParsedShaderPassData, requireValidShaderSource } from "./Shader
 export class ShaderCompiler {
   private _includeMap: IncludeMap = {};
   private readonly _chunkOutputCache: ChunkOutputCache = new Map();
-  private readonly _sourceParserObjectPool = new ParserObjectPool();
-  private readonly _parserObjectPool = new ParserObjectPool();
-  private readonly _runtimeParser = createRuntimeShaderTargetParser(this._parserObjectPool);
+  private _sourceParserObjectPool?: ParserObjectPool;
+  private _parserObjectPool?: ParserObjectPool;
+  private _runtimeParser?: ReturnType<typeof createRuntimeShaderTargetParser>;
+  private _idleClearTimer?: ReturnType<typeof setTimeout>;
+
+  private _scheduleIdleCleanup(): void {
+    if (this._idleClearTimer !== undefined) {
+      clearTimeout(this._idleClearTimer);
+    }
+    const timer = setTimeout(() => {
+      this._idleClearTimer = undefined;
+      this._sourceParserObjectPool = undefined;
+      this._parserObjectPool = undefined;
+      this._chunkOutputCache.clear();
+      this._runtimeParser = undefined;
+    }, 500);
+    if (typeof timer === "object" && timer !== null && "unref" in timer) {
+      (timer as { unref?: () => void }).unref?.();
+    }
+    this._idleClearTimer = timer;
+  }
 
   /**
    * Replaces the `#include` lookup table and clears the derived chunk cache.
@@ -47,7 +65,12 @@ export class ShaderCompiler {
    */
   _parseShaderSource(sourceCode: string): IShaderSource {
     this._chunkOutputCache.clear();
-    return requireValidShaderSource(ShaderSourceParser.parseStrict(sourceCode, this._sourceParserObjectPool));
+    try {
+      const sourcePool = (this._sourceParserObjectPool ??= new ParserObjectPool());
+      return requireValidShaderSource(ShaderSourceParser.parseStrict(sourceCode, sourcePool));
+    } finally {
+      this._scheduleIdleCleanup();
+    }
   }
 
   /**
@@ -69,16 +92,22 @@ export class ShaderCompiler {
     sourceFile?: string,
     sourceScopeStarts?: readonly number[]
   ): IShaderProgramSource | undefined {
-    const parsed = parseRuntimeShaderPass(
-      source,
-      this._includeMap,
-      this._chunkOutputCache,
-      sourceFile,
-      this._parserObjectPool,
-      this._runtimeParser,
-      sourceScopeStarts
-    );
-    return generateParsedShaderPassData(parsed, vertexEntry, fragmentEntry, backend);
+    try {
+      const parserPool = (this._parserObjectPool ??= new ParserObjectPool());
+      const runtimeParser = (this._runtimeParser ??= createRuntimeShaderTargetParser(parserPool));
+      const parsed = parseRuntimeShaderPass(
+        source,
+        this._includeMap,
+        this._chunkOutputCache,
+        sourceFile,
+        parserPool,
+        runtimeParser,
+        sourceScopeStarts
+      );
+      return generateParsedShaderPassData(parsed, vertexEntry, fragmentEntry, backend);
+    } finally {
+      this._scheduleIdleCleanup();
+    }
   }
 
   /**
