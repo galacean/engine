@@ -29,13 +29,73 @@ class TextureLoader extends Loader<Texture> {
       resourceManager
         ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
-        .then((buffer) => decodeTexture(resourceManager.engine, buffer, url, item.params as Partial<TextureParams>))
+        .then((buffer) =>
+          TextureLoader._decode(resourceManager.engine, buffer, url, item.params as Partial<TextureParams>)
+        )
         .then((texture) => {
           resourceManager.addContentRestorer(new TextureContentRestorer(texture, url, remoteUrl, requestConfig));
           resolve(texture);
         })
         .catch(reject);
     });
+  }
+
+  /** @internal */
+  static _decode(
+    engine: Engine,
+    buffer: ArrayBuffer,
+    url: string,
+    params?: Partial<TextureParams>,
+    restoredTexture?: Texture
+  ): AssetPromise<Texture> {
+    if (FileHeader.checkMagic(buffer)) {
+      return decode<Texture>(buffer, engine, restoredTexture);
+    }
+
+    const bufferView = new Uint8Array(buffer);
+    if (bufferView[0] === 0x23 && bufferView[1] === 0x3f) {
+      return new AssetPromise((resolve) => {
+        const { width, height, pixels } = HDRDecoder.decode(bufferView);
+        const texture =
+          (restoredTexture as Texture2D) ||
+          TextureLoader._createTexture(engine, width, height, TextureFormat.R16G16B16A16_SFloat, false, url, params);
+        texture.setPixelBuffer(pixels);
+        texture.generateMipmaps();
+        resolve(texture);
+      });
+    }
+
+    return ImageDecoder._decode(buffer, url).then((img) => {
+      const { format = TextureFormat.R8G8B8A8_UNorm, isSRGBColorSpace = true } = params ?? {};
+      const texture =
+        (restoredTexture as Texture2D) ||
+        TextureLoader._createTexture(engine, img.width, img.height, format, isSRGBColorSpace, url, params);
+      texture.setImageSource(img);
+      texture.generateMipmaps();
+      return texture;
+    });
+  }
+
+  private static _createTexture(
+    engine: Engine,
+    width: number,
+    height: number,
+    format: TextureFormat,
+    isSRGBColorSpace: boolean,
+    url: string,
+    params?: Partial<TextureParams>
+  ): Texture2D {
+    const { mipmap = true, anisoLevel, wrapModeU, wrapModeV, filterMode } = params ?? {};
+    const generateMipmap = mipmap && engine._hardwareRenderer.supportsGenerateMipmaps(format, isSRGBColorSpace);
+    const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
+    if (anisoLevel !== undefined) texture.anisoLevel = anisoLevel;
+    if (filterMode !== undefined) texture.filterMode = filterMode;
+    if (wrapModeU !== undefined) texture.wrapModeU = wrapModeU;
+    if (wrapModeV !== undefined) texture.wrapModeV = wrapModeV;
+    if (url.indexOf("data:") !== 0) {
+      texture.name = url.substring(url.lastIndexOf("/") + 1);
+    }
+    return texture;
   }
 }
 
@@ -53,56 +113,8 @@ class TextureContentRestorer extends ContentRestorer<Texture> {
     const engine = this.resource.engine;
     return engine.resourceManager
       ._requestByRemoteUrl<ArrayBuffer>(this.remoteUrl, this.requestConfig)
-      .then((buffer) => decodeTexture(engine, buffer, this.url, undefined, this.resource));
+      .then((buffer) => TextureLoader._decode(engine, buffer, this.url, undefined, this.resource));
   }
-}
-
-function decodeTexture(
-  engine: Engine,
-  buffer: ArrayBuffer,
-  url: string,
-  params?: Partial<TextureParams>,
-  restoredTexture?: Texture
-): AssetPromise<Texture> {
-  if (FileHeader.checkMagic(buffer)) {
-    return decode<Texture>(buffer, engine, restoredTexture);
-  }
-
-  const getTexture = (width: number, height: number, format: TextureFormat, isSRGBColorSpace: boolean): Texture2D => {
-    if (restoredTexture) {
-      return restoredTexture as Texture2D;
-    }
-    const { mipmap = true, anisoLevel, wrapModeU, wrapModeV, filterMode } = params ?? {};
-    const generateMipmap = mipmap && engine._hardwareRenderer.supportsGenerateMipmaps(format, isSRGBColorSpace);
-    const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
-    if (anisoLevel !== undefined) texture.anisoLevel = anisoLevel;
-    if (filterMode !== undefined) texture.filterMode = filterMode;
-    if (wrapModeU !== undefined) texture.wrapModeU = wrapModeU;
-    if (wrapModeV !== undefined) texture.wrapModeV = wrapModeV;
-    if (url.indexOf("data:") !== 0) {
-      texture.name = url.substring(url.lastIndexOf("/") + 1);
-    }
-    return texture;
-  };
-
-  const bufferView = new Uint8Array(buffer);
-  if (bufferView[0] === 0x23 && bufferView[1] === 0x3f) {
-    return new AssetPromise((resolve) => {
-      const { width, height, pixels } = HDRDecoder.decode(bufferView);
-      const texture = getTexture(width, height, TextureFormat.R16G16B16A16_SFloat, false);
-      texture.setPixelBuffer(pixels);
-      texture.generateMipmaps();
-      resolve(texture);
-    });
-  }
-
-  return ImageDecoder._decode(buffer, url).then((img) => {
-    const { format = TextureFormat.R8G8B8A8_UNorm, isSRGBColorSpace = true } = params ?? {};
-    const texture = getTexture(img.width, img.height, format, isSRGBColorSpace);
-    texture.setImageSource(img);
-    texture.generateMipmaps();
-    return texture;
-  });
 }
 
 /**
