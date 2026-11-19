@@ -28,7 +28,7 @@ export class GLTexture implements IPlatformTexture {
     gl: WebGL2RenderingContext
   ): TextureFormatDetail {
     switch (format) {
-      case TextureFormat.R8G8B8:
+      case TextureFormat.R8G8B8_UNorm:
         return {
           internalFormat: isSRGBColorSpace ? gl.SRGB8 : gl.RGB8,
           baseFormat: gl.RGB,
@@ -37,7 +37,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 1
         };
-      case TextureFormat.R8G8B8A8:
+      case TextureFormat.R8G8B8A8_UNorm:
         return {
           internalFormat: isSRGBColorSpace ? gl.SRGB8_ALPHA8 : gl.RGBA8,
           baseFormat: gl.RGBA,
@@ -46,7 +46,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 4
         };
-      case TextureFormat.R4G4B4A4:
+      case TextureFormat.R4G4B4A4_UNorm:
         return {
           internalFormat: gl.RGBA4,
           baseFormat: gl.RGBA,
@@ -54,7 +54,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 2
         };
-      case TextureFormat.R5G5B5A1:
+      case TextureFormat.R5G5B5A1_UNorm:
         return {
           internalFormat: gl.RGB5_A1,
           baseFormat: gl.RGBA,
@@ -62,7 +62,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 2
         };
-      case TextureFormat.R5G6B5:
+      case TextureFormat.R5G6B5_UNorm:
         return {
           internalFormat: gl.RGB565,
           baseFormat: gl.RGB,
@@ -70,21 +70,53 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 2
         };
-      case TextureFormat.R16G16B16A16:
+      case TextureFormat.R16G16B16A16_SFloat:
         return {
           internalFormat: gl.RGBA16F,
           baseFormat: gl.RGBA,
+          readFormat: gl.RGBA,
+          readType: gl.FLOAT,
           dataType: gl.HALF_FLOAT,
           isCompressed: false,
           alignment: 8
         };
-      case TextureFormat.R32G32B32A32:
+      case TextureFormat.R32G32B32A32_SFloat:
         return {
           internalFormat: gl.RGBA32F,
           baseFormat: gl.RGBA,
           dataType: gl.FLOAT,
           isCompressed: false,
           alignment: 8
+        };
+      case TextureFormat.R16_UNorm:
+        return {
+          internalFormat: 0x822a, // EXT_texture_norm16.R16_EXT
+          baseFormat: gl.RED,
+          readFormat: gl.RGBA,
+          dataType: gl.UNSIGNED_SHORT,
+          isCompressed: false,
+          alignment: 2
+        };
+      case TextureFormat.R16_SFloat:
+      case TextureFormat.R16G16_SFloat:
+        return {
+          internalFormat: format === TextureFormat.R16_SFloat ? gl.R16F : gl.RG16F,
+          baseFormat: format === TextureFormat.R16_SFloat ? gl.RED : gl.RG,
+          readFormat: gl.RGBA,
+          readType: gl.FLOAT,
+          dataType: gl.HALF_FLOAT,
+          isCompressed: false,
+          alignment: 2
+        };
+      case TextureFormat.R32_SFloat:
+      case TextureFormat.R32G32_SFloat:
+        return {
+          internalFormat: format === TextureFormat.R32_SFloat ? gl.R32F : gl.RG32F,
+          baseFormat: format === TextureFormat.R32_SFloat ? gl.RED : gl.RG,
+          readFormat: gl.RGBA,
+          dataType: gl.FLOAT,
+          isCompressed: false,
+          alignment: 4
         };
       case TextureFormat.R11G11B10_UFloat:
         return {
@@ -103,7 +135,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 8
         };
-      case TextureFormat.R8:
+      case TextureFormat.R8_UNorm:
         return {
           internalFormat: gl.R8,
           baseFormat: gl.RED,
@@ -111,7 +143,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 1
         };
-      case TextureFormat.R8G8:
+      case TextureFormat.R8G8_UNorm:
         return {
           internalFormat: gl.RG8,
           baseFormat: gl.RG,
@@ -405,7 +437,15 @@ export class GLTexture implements IPlatformTexture {
   set filterMode(value: TextureFilterMode) {
     const gl = this._gl;
     const target = this._target;
-    const { _mipmap } = this._texture;
+    const { _mipmap, format } = this._texture;
+
+    if (
+      value !== TextureFilterMode.Point &&
+      this._isFloat32Format(format) &&
+      !this._rhi.canIUse(GLCapabilityType.textureFloatLinear)
+    ) {
+      value = TextureFilterMode.Point;
+    }
 
     this._bind();
     switch (value) {
@@ -508,7 +548,18 @@ export class GLTexture implements IPlatformTexture {
 
     if (!TextureUtils.supportGenerateMipmaps(texture.format, mipmap, texture.isSRGBColorSpace)) {
       Logger.warn(
-        "Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + R8G8B8A8], you must generate mipmaps manually."
+        "Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + R8G8B8A8_UNorm], you must generate mipmaps manually."
+      );
+      return;
+    }
+
+    // WebGL2 generateMipmap requires the format to be both color-renderable and texture-filterable
+    if (
+      !this._rhi.supportsRenderTargetColorFormat(texture.format) ||
+      (this._isFloat32Format(texture.format) && !this._rhi.canIUse(GLCapabilityType.textureFloatLinear))
+    ) {
+      Logger.warn(
+        `Auto-generating mipmaps is not supported for TextureFormat.${TextureFormat[texture.format]} on this device.`
       );
       return;
     }
@@ -588,7 +639,8 @@ export class GLTexture implements IPlatformTexture {
     out: ArrayBufferView
   ): void {
     const gl = this._gl;
-    const { baseFormat, dataType, readFormat, alignment } = this._formatDetail;
+    const { dataType, readType, alignment } = this._formatDetail;
+    const readFormat = this._getReadFormat();
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
 
@@ -605,9 +657,18 @@ export class GLTexture implements IPlatformTexture {
     }
 
     gl.pixelStorei(gl.PACK_ALIGNMENT, alignment!);
-    gl.readPixels(x, y, width, height, readFormat ?? baseFormat!, dataType!, out);
+    gl.readPixels(x, y, width, height, readFormat, readType ?? dataType!, out);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  protected _getReadFormat(): GLenum {
+    const format = this._texture.format;
+    if (!this._rhi.supportsRenderTargetColorFormat(format)) {
+      throw new Error(`Reading pixels from TextureFormat.${TextureFormat[format]} requires color-renderable support`);
+    }
+    const { readFormat, baseFormat } = this._formatDetail;
+    return readFormat ?? baseFormat!;
   }
 
   protected _getReadFrameBuffer(): WebGLFramebuffer | null {
@@ -629,6 +690,14 @@ export class GLTexture implements IPlatformTexture {
       // @ts-ignore
       texture._isSRGBColorSpace = false;
     }
+  }
+
+  private _isFloat32Format(format: TextureFormat): boolean {
+    return (
+      format === TextureFormat.R32_SFloat ||
+      format === TextureFormat.R32G32_SFloat ||
+      format === TextureFormat.R32G32B32A32_SFloat
+    );
   }
 
   private _setWrapMode(value: TextureWrapMode, pname: GLenum): void {

@@ -69,7 +69,7 @@ export class GLTFTextureParser extends GLTFParser {
         const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset ?? 0, bufferView.byteLength);
         return ImageDecoder._decode(imageBuffer, imageName || textureName || url, mimeType).then((image) => {
           const { width, height } = image;
-          const format = TextureFormat.R8G8B8A8;
+          const format = TextureFormat.R8G8B8A8_UNorm;
           const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
             format,
             samplerInfo?.mipmap ?? true,

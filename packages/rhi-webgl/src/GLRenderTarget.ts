@@ -47,8 +47,8 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       if (!rhi.supportsRenderTargetColorFormat(format)) {
         throw new Error(`TextureFormat is not supported:${TextureFormat[format]} in RenderTarget`);
       }
-      if (isSRGBColorSpace && format === TextureFormat.R8G8B8) {
-        throw new Error(`If you want to use sRGB color space, only R8G8B8A8 format is supported in RenderTarget`);
+      if (isSRGBColorSpace && format === TextureFormat.R8G8B8_UNorm) {
+        throw new Error(`If you want to use sRGB color space, only R8G8B8A8_UNorm format is supported in RenderTarget`);
       }
     }
 

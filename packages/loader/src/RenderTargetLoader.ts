@@ -29,7 +29,7 @@ class RenderTargetLoader extends Loader<RenderTarget> {
         const colorTextures = colorFormats.map((format, i) => {
           const props = colorTextureProps?.[i];
           const mipmap = props?.mipmap ?? true;
-          const isSRGB = props?.isSRGBColorSpace ?? format === TextureFormat.R8G8B8A8;
+          const isSRGB = props?.isSRGBColorSpace ?? format === TextureFormat.R8G8B8A8_UNorm;
           const texture = new Texture2D(engine, width, height, format, mipmap, isSRGB);
           if (props) {
             if (props.filterMode != null) texture.filterMode = props.filterMode;

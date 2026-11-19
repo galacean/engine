@@ -57,14 +57,14 @@ class TextureLoader extends Loader<Texture> {
   private _decodeHDR(buffer: Uint8Array, item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
     return new AssetPromise((resolve, reject) => {
       const engine = resourceManager.engine;
-      if (!SystemInfo.supportsTextureFormat(engine, TextureFormat.R16G16B16A16)) {
+      if (!SystemInfo.supportsTextureFormat(engine, TextureFormat.R16G16B16A16_SFloat)) {
         reject(new Error("TextureLoader: HDR texture requires half float support."));
         return;
       }
       const { width, height, pixels } = HDRDecoder.decode(buffer);
       const { mipmap = true } = (item.params as Partial<TextureParams>) ?? {};
 
-      const texture = new Texture2D(engine, width, height, TextureFormat.R16G16B16A16, mipmap, false);
+      const texture = new Texture2D(engine, width, height, TextureFormat.R16G16B16A16_SFloat, mipmap, false);
       texture.setPixelBuffer(pixels);
       mipmap && texture.generateMipmaps();
       this._applyParams(texture, item);
@@ -75,7 +75,7 @@ class TextureLoader extends Loader<Texture> {
   private _decodeImage(buffer: ArrayBuffer, item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
     return ImageDecoder._decode(buffer, item.url!).then((img) => {
       const {
-        format = TextureFormat.R8G8B8A8,
+        format = TextureFormat.R8G8B8A8_UNorm,
         isSRGBColorSpace = true,
         mipmap = true
       } = (item.params as Partial<TextureParams>) ?? {};
@@ -147,7 +147,7 @@ class TextureContentRestorer extends ContentRestorer<Texture> {
  * Texture loader params interface.
  */
 export interface TextureParams {
-  /** Texture format. default `TextureFormat.R8G8B8A8` */
+  /** Texture format. default `TextureFormat.R8G8B8A8_UNorm` */
   format: TextureFormat;
   /** Whether to use multi-level texture, default is true. */
   mipmap: boolean;

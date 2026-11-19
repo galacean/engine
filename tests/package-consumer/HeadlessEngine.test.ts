@@ -64,7 +64,7 @@ describe("@galacean/engine-rhi-null in Node without browser globals", () => {
     expect(enginePackage.SystemInfo.devicePixelRatio).toBe(1);
     expect(await enginePackage.SystemInfo._checkWebpSupported()).toBe(false);
     const engine = await createEngine({ width: 640, height: 360 });
-    expect(enginePackage.SystemInfo.supportsTextureFormat(engine, enginePackage.TextureFormat.R8)).toBe(true);
+    expect(enginePackage.SystemInfo.supportsTextureFormat(engine, enginePackage.TextureFormat.R8_UNorm)).toBe(true);
     expect([engine.canvas.width, engine.canvas.height]).toEqual([640, 360]);
     expect(engine.isPaused).toBe(true);
     expect(engine.inputManager.pointers).toEqual([]);

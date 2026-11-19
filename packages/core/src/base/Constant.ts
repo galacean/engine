@@ -87,6 +87,7 @@ export enum DataType {
  * Optional GL capabilities.
  * */
 export enum GLCapabilityType {
+  textureNorm16 = "EXT_texture_norm16",
   textureFloatLinear = "OES_texture_float_linear",
   colorBufferFloat = "EXT_color_buffer_float",
   colorBufferHalfFloat = "EXT_color_buffer_half_float",
