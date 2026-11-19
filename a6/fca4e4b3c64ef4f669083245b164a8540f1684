@@ -1,0 +1,28 @@
+packages/core/src/shadow/ShadowUtils.ts
+  h_171a11afaf879a 172-173,182-187
+packages/core/src/ComponentsManager.ts
+  h_171a11afaf879a 22-23,74-76,83-99
+packages/core/src/Renderer.ts
+  h_171a11afaf879a 48-50,56-64,90,129-148,337-341,360,387-409,462-464,470,473-475,478-480,515-517
+  h_171a11afaf879a 91,95,149,342,361,363,410,465,471,476,481,510,518,520,532,572
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  h_171a11afaf879a 8,37,50-56,75-76,95,152,206-227,230-234,236
+  h_171a11afaf879a 57,60,77,96,112,151,154-155,171-175,198,228-229,235,237-276,279-283,285,445,447-448
+packages/core/src/mesh/MeshRenderer.ts
+  h_171a11afaf879a 102-116
+packages/core/src/RenderPipeline/RenderQueue.ts
+  h_171a11afaf879a 9,11,70,87,89-91,93-94,96-102
+tests/src/core/RenderPipeline/ShadowCullingOptimization.test.ts
+  h_171a11afaf879a 1-308
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a6fca4e4b3c64ef4f669083245b164a8540f1684",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
