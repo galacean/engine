@@ -1,0 +1,37 @@
+packages/physics-havok/src/HavokCollider.ts
+  s_6e577c7c504f4f::t_b58e5e893203bb 5-14,24-32,34-35,41-42,52-53,59-62,70-71,114-116,121-131,151-156,161-170,190-194,201-206,213,232-254,267
+packages/physics-havok/src/shape/HavokBoxColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_c9116e70ac0aee 5,14-15,42,71-75
+packages/physics-havok/src/shape/HavokColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_15a64f47cc09e0 3,6,23-24,52,67,82,117-120,145,156,166,178-180,190-194,204-220
+packages/physics-havok/src/shape/HavokMeshColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_2c0c5fe64a53a5 84,90-95,132-133,164-166,170,175-178,192-201,204-213
+packages/physics-havok/src/shape/HavokPlaneColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_0cf91df3b1568d 4,11-12,20
+packages/physics-havok/src/shape/HavokSphereColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_9cab93e25256fd 5,15,20-21,29-34,38-43,49,54,77-78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9219c866202e95bb5fd0224313930ccc411e9261",
+  "prompts": {},
+  "sessions": {
+    "s_6e577c7c504f4f": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1f2ce-eaa2-74f4-bbbb-10c5421a34cc",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_eb7ebf3c3ff8b9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ef5d-ae7e-7512-9057-6ffe80a3b716",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

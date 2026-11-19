@@ -1,0 +1,30 @@
+packages/farming/src/farming/presentation/CropGrowthScheduler.ts
+  h_a3c79ce84ffdc2 30-33,37,52-61,64-65,67-71,75,86,88,93-94,122
+packages/farming/src/farming/presentation/FarmingPlotSelection.ts
+  h_a3c79ce84ffdc2 132-151
+packages/farming/src/farming/presentation/FarmingWorldPresentation.ts
+  h_a3c79ce84ffdc2 86-101,425,624-657,660-663,670-672,674,695,697-702,707-713,749-767,974-977,980,982-989,1000,1005
+packages/farming/src/farming/presentation/PlantPresenter.ts
+  h_a3c79ce84ffdc2 44,53-66,96,123,125-127,135-136,139,155-162,167,181,190,305-317
+packages/farming/src/farming/presentation/PlantWorkQueue.ts
+  h_a3c79ce84ffdc2 18-21,67-68,71-78
+packages/world-planning/src/spatial/farming/PlanningFarmingGround.ts
+  h_a3c79ce84ffdc2 31,100-136,138-142,213-219,222-224,229-234,238-243,246,249
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingTerrain.ts
+  h_a3c79ce84ffdc2 5-10,102-105,112-131,133,216
+world/tests/seed-world/FarmingTargetIdentity.spec.ts
+  h_a3c79ce84ffdc2 407-446
+world/tests/seed-world/PlanningPublishedFarmingGround.spec.ts
+  h_a3c79ce84ffdc2 242-244,247-251,274-340
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "550fa4a45581a44e1741028789e15ca8a6d0af57",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
