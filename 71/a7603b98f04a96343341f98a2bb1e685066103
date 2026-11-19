@@ -1,0 +1,16 @@
+packages/loader/src/SceneLoader.ts
+  h_bd4dd7d663e619 17,56,60
+tests/src/loader/SceneFormatV2.test.ts
+  h_bd4dd7d663e619 21,490,744,1027,1030,1035-1039,1041,1044,1055,1065,1068-1101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "71a7603b98f04a96343341f98a2bb1e685066103",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
