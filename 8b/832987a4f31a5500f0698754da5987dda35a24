@@ -1,0 +1,87 @@
+docs/en/physics/joint/hingeJoint.mdx
+  s_eb7ebf3c3ff8b9::t_53ed85a1e6c841 117
+docs/zh/physics/joint/hingeJoint.mdx
+  s_eb7ebf3c3ff8b9::t_375612de36b52a 117
+packages/core/src/ComponentsDependencies.ts
+  s_eb7ebf3c3ff8b9::t_21183a99303da9 88-132
+packages/core/src/Entity.ts
+  s_eb7ebf3c3ff8b9::t_46b6ea913e563c 488-499
+packages/core/src/physics/BoxCollider.ts
+  s_eb7ebf3c3ff8b9::t_e86251a63aee5a 24-26,43-47,63-81
+packages/core/src/physics/CapsuleCollider.ts
+  s_eb7ebf3c3ff8b9::t_8893c2523159f2 90
+packages/core/src/physics/CharacterController.ts
+  s_eb7ebf3c3ff8b9::t_71674cdb571a78 104-106,168-175,351-355,357-360,370-387,409-420,427
+packages/core/src/physics/Collider.ts
+  s_eb7ebf3c3ff8b9::t_30f26b7e888e3c 17,232-240,250-251,551,561-570
+packages/core/src/physics/MeshCollider.ts
+  s_56bfab3c840f28::t_2f2e90c8677bbf 24-32,146-148,150
+packages/core/src/physics/PhysicsScene.ts
+  s_eb7ebf3c3ff8b9::t_a7758f5373f1e0 518,652-653,714,742,1022-1024
+packages/core/src/physics/Rigidbody.ts
+  s_eb7ebf3c3ff8b9::t_871008d5befb6b 2,26-31,292-293,300-303,512-521
+packages/core/src/physics/SphereCollider.ts
+  s_eb7ebf3c3ff8b9::t_3b0313bc478f34 34
+packages/core/src/physics/joint/HingeJoint.ts
+  s_eb7ebf3c3ff8b9::t_9a70b973d3f3fd 34-41,80-83,97-100,132,134-136,154,156-158,193,208-209,214-227,236,249,255-267,269-270,272-276
+packages/core/src/physics/joint/Joint.ts
+  s_eb7ebf3c3ff8b9::t_faf49cd914a3ba 121-122,129-131,135-137,143,150-152,156-158,281-293,299-301
+packages/core/src/physics/joint/SpringJoint.ts
+  s_eb7ebf3c3ff8b9::t_57e6001d6d842e 26-29,43-46,60-63,77-80,94-97
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  s_eb7ebf3c3ff8b9::t_c96897dbd6ea6f 15,181,184,186,212-213,217,221,227,231,236-239,243,247,251,258-297,300-301,306-352
+packages/physics-physx/src/PhysXCharacterController.ts
+  s_eb7ebf3c3ff8b9::t_f53d901485adaf 177-185
+packages/physics-physx/src/joint/PhysXHingeJoint.ts
+  s_eb7ebf3c3ff8b9::t_22da6d94e8fbe5 13,32,39-43,46-47,51,58,95,102
+packages/physics-physx/src/joint/PhysXJoint.ts
+  s_eb7ebf3c3ff8b9::t_0da67950084d04 35,59-62,69-72
+packages/physics-physx/src/shape/PhysXBoxColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_0971f606fd704d 42-49
+packages/physics-physx/src/shape/PhysXCapsuleColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_e040ec18d265e6 80-81,84-85,88-89,92-93,96-103
+packages/physics-physx/src/shape/PhysXSphereColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_f5e06a73769ffc 28,38-46
+tests/src/core/physics/Collider.test.ts
+  s_61c9c147c582de::t_ff007bab4f98ce 779-878
+tests/src/core/physics/HingeJoint.test.ts
+  s_61c9c147c582de::t_43c281d3b5b372 2-13,509-663
+tests/src/core/physics/Joint.test.ts
+  s_56bfab3c840f28::t_0238985b07aaa3 678-748
+tests/src/core/physics/MeshCollider.test.ts
+  s_61c9c147c582de::t_4b2000e198df47 646-651
+tests/src/core/physics/SpringJoint.test.ts
+  s_61c9c147c582de::t_d8d8f4272490e2 242-286
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8b832987a4f31a5500f0698754da5987dda35a24",
+  "prompts": {},
+  "sessions": {
+    "s_56bfab3c840f28": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1f454-567d-77b9-a44e-bd5124413cdd",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_61c9c147c582de": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1f454-911b-74d2-9c3d-6655dd8abd7a",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_eb7ebf3c3ff8b9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ef5d-ae7e-7512-9057-6ffe80a3b716",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
