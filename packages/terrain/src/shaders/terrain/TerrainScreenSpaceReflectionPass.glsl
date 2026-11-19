@@ -164,48 +164,56 @@ TerrainProjectScreenSpaceReflectionSurface terrainProjectResolveScreenSpaceRefle
 }
 
 TerrainProjectScreenSpaceReflectionOutput TerrainScreenSpaceReflectionFragment(Varyings varyings) {
-  if (
-    material_ScreenSpaceReflectionMode < 0.5 ||
-    material_ScreenSpaceReflectionIntensity <= 0.0 ||
-    varyings.terrainValid < 0.999
-  ) {
-    discard;
-  }
-  #ifdef TERRAIN_PROJECT_ENTRANCE_WAVE
+  TerrainProjectScreenSpaceReflectionOutput output;
+  output.geometry = vec4(0.0);
+  output.responseColor = vec4(0.0);
+  #ifdef MATERIAL_TERRAIN_FAR
+    // Keep discard syntactically conditional on a runtime varying so older ANGLE/Adreno
+    // translators cannot prune the trailing `return output;` from this non-void function.
+    if (!(varyings.terrainValid > 2.0)) {
+      discard;
+    }
+    return output;
+  #else
     if (
-      terrainProjectEntranceWaveReveal(varyings.positionWS) <= 0.001 ||
-      terrainProjectEntranceWaveHeightReveal(varyings.entranceSourceY) <= 0.001
+      material_ScreenSpaceReflectionMode < 0.5 ||
+      material_ScreenSpaceReflectionIntensity <= 0.0 ||
+      varyings.terrainValid < 0.999
     ) {
       discard;
     }
-  #endif
-  #ifdef MATERIAL_TERRAIN_FAR
-    discard;
-  #endif
+    #ifdef TERRAIN_PROJECT_ENTRANCE_WAVE
+      if (
+        terrainProjectEntranceWaveReveal(varyings.positionWS) <= 0.001 ||
+        terrainProjectEntranceWaveHeightReveal(varyings.entranceSourceY) <= 0.001
+      ) {
+        discard;
+      }
+    #endif
 
-  vec3 geometryNormal = terrainProjectShadingGeometryNormal(varyings.positionWS.xz, varyings.normalWS);
-  TerrainProjectScreenSpaceReflectionSurface resolved =
-    terrainProjectResolveScreenSpaceReflectionSurface(varyings, geometryNormal);
-  SurfaceData substrate = resolved.substrate;
-  TerrainProjectWaterFilm waterFilm = resolved.waterFilm;
-  float waterCoverage = waterFilm.coverage;
-  if (waterCoverage <= 0.005) discard;
+    vec3 geometryNormal = terrainProjectShadingGeometryNormal(varyings.positionWS.xz, varyings.normalWS);
+    TerrainProjectScreenSpaceReflectionSurface resolved =
+      terrainProjectResolveScreenSpaceReflectionSurface(varyings, geometryNormal);
+    SurfaceData substrate = resolved.substrate;
+    TerrainProjectWaterFilm waterFilm = resolved.waterFilm;
+    float waterCoverage = waterFilm.coverage;
+    if (waterCoverage <= 0.005) discard;
 
-  float fogVisibility = 1.0;
-  #if SCENE_FOG_MODE != 0
-    fogVisibility = terrainProjectScreenSpaceReflectionFogVisibility(varyings.positionVS);
+    float fogVisibility = 1.0;
+    #if SCENE_FOG_MODE != 0
+      fogVisibility = terrainProjectScreenSpaceReflectionFogVisibility(varyings.positionVS);
+    #endif
+    float waterRoughness;
+    vec3 reflectionResponse = saturate(
+      terrainProjectWaterScreenSpaceReflectionResponse(substrate, waterFilm, waterRoughness) *
+        material_ScreenSpaceReflectionIntensity *
+        fogVisibility
+    ) * scene_TerrainWaterCoverageParams.z;
+
+    output.geometry = packScreenSpaceReflectionSurface(waterFilm.normal, waterRoughness, waterCoverage);
+    output.responseColor = vec4(reflectionResponse, saturate(scene_TerrainWaterCoverageParams.w));
+    return output;
   #endif
-  float waterRoughness;
-  vec3 reflectionResponse = saturate(
-    terrainProjectWaterScreenSpaceReflectionResponse(substrate, waterFilm, waterRoughness) *
-      material_ScreenSpaceReflectionIntensity *
-      fogVisibility
-  ) * scene_TerrainWaterCoverageParams.z;
-
-  TerrainProjectScreenSpaceReflectionOutput output;
-  output.geometry = packScreenSpaceReflectionSurface(waterFilm.normal, waterRoughness, waterCoverage);
-  output.responseColor = vec4(reflectionResponse, saturate(scene_TerrainWaterCoverageParams.w));
-  return output;
 }
 
 #endif

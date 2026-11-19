@@ -306,6 +306,12 @@
       "size": 1138116,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/1e9501893f46e37f-ead4b76b302d6762.ktx2"
     },
+    "21529479a3549bb1c6af128efb24664f5b84bd32a5b05ae51ac9cecd7fdcf7b1": {
+      "examplePath": "assets/seed-world-project-text-bundle-21529479.json",
+      "ext": ".json",
+      "size": 1128526,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/21529479a3549bb1-seed-world-project-text-bundle-21529479.json"
+    },
     "224c0475ba6b209be6fac9ca0314e80b7c2d57b7e5cf6f8d5f57e5b06ba5176a": {
       "examplePath": "packages/farming/src/farming/assets/plant-textures/sunflower-farmlands.ktx2",
       "ext": ".ktx2",
@@ -1614,6 +1620,12 @@
       "size": 68900,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/a9f7a0dd18040437-decoration-trap_door_gothic.mesh"
     },
+    "aa235cf172b1ea8e60d06651a47e8176b158994c82ebf10d67cecb9ed2a1ba36": {
+      "examplePath": "assets/seed-world-project-text-bundle-aa235cf1.json",
+      "ext": ".json",
+      "size": 1128601,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/aa235cf172b1ea8e-seed-world-project-text-bundle-aa235cf1.json"
+    },
     "aac261d4bcdcfe6450dbe82ae1b875e35113ecabfd4bdbccbe241f1a3a0fe378": {
       "examplePath": "packages/water/src/water/native/assets/Water/Shaders/river.shader",
       "ext": ".shader",
@@ -2357,6 +2369,12 @@
       "ext": ".glb",
       "size": 2534216,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/f043b5851af4224d-polaroid-camera-f043b585.glb"
+    },
+    "f0c8b9be35c2f143e20c87769f104e9112dc1333241656cab7912d16b39fb10b": {
+      "examplePath": "packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc",
+      "ext": ".shaderc",
+      "size": 431465,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/f0c8b9be35c2f143-Terrain.shaderc"
     },
     "f1cbcd5185518acedab0b69ce19c21c7ce0eb55fc23a171eec2b7be871d8bf1c": {
       "examplePath": "packages/terrain/src/data/seed-world/public/Texture/791ebd8ec6ddef70.ktx2",

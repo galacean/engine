@@ -291,8 +291,15 @@ export async function warmupSeedWorldShaderVariants(
       try {
         if (program._pollReady()) {
           state.settled = true;
-          if (!program.isValid)
-            state.failure = { reason: "invalid-program", message: "Shader program compiled to an invalid program." };
+          if (!program.isValid) {
+            const detail = (program as unknown as { _errorLog?: string | null })._errorLog;
+            state.failure = {
+              reason: "invalid-program",
+              message: detail
+                ? `Shader program compiled to an invalid program (${detail}).`
+                : "Shader program compiled to an invalid program."
+            };
+          }
         }
       } catch (error) {
         state.settled = true;
@@ -326,9 +333,11 @@ export async function warmupSeedWorldShaderVariants(
   });
   if (options.strict && issues.length > 0) {
     console.error("[Seed World Shader coverage]", JSON.stringify(issues));
-    throw new Error(
-      `Seed World Shader warmup failed for ${issues.length}/${entries.length} variants: ${issues[0].message}`
-    );
+    const details = issues
+      .slice(0, 4)
+      .map((issue) => `[${issue.key}] ${issue.message}`)
+      .join(" | ");
+    throw new Error(`Seed World Shader warmup failed for ${issues.length}/${entries.length} variants: ${details}`);
   }
   return report;
 }

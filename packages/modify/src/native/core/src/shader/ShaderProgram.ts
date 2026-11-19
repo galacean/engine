@@ -56,6 +56,8 @@ export class ShaderProgram {
 
   /** @internal */
   _instanceLayout: InstanceBufferLayout | null = null;
+  /** @internal */
+  _errorLog: string | null = null;
 
   attributeLocation: Record<string, GLint> = Object.create(null);
   uniformBlockIds: number[] = [];
@@ -115,8 +117,14 @@ export class ShaderProgram {
     this._pendingCompilation = false;
     const gl = this._gl;
     if (gl.isContextLost() || !gl.getProgramParameter(this._glProgram!, gl.LINK_STATUS)) {
-      if (!gl.isContextLost() && Logger.isEnabled) {
-        Logger.error(`Could not link WebGL program: ${gl.getProgramInfoLog(this._glProgram!)}`);
+      if (!gl.isContextLost()) {
+        const log = this._collectProgramErrorLog(this._glProgram!);
+        this._errorLog = log;
+        if (Logger.isEnabled) {
+          Logger.error(`Could not link WebGL program: ${log}`);
+        }
+      } else {
+        this._errorLog = "context lost";
       }
       this.destroy();
       return;
@@ -333,17 +341,37 @@ export class ShaderProgram {
     gl.deleteShader(fragmentShader);
 
     if (!this._pendingCompilation && !gl.getProgramParameter(program, gl.LINK_STATUS) && !gl.isContextLost()) {
-      Logger.error(
-        `Could not link WebGL program\n\n` +
-          `Shader error: ${gl.getError()}\n\n` +
-          `Validate status: ${gl.getProgramParameter(program, gl.VALIDATE_STATUS)}\n\n` +
-          `Program information log: ${gl.getProgramInfoLog(program)}`
-      );
+      const log = this._collectProgramErrorLog(program);
+      this._errorLog = log;
+      if (Logger.isEnabled) {
+        Logger.error(
+          `Could not link WebGL program\n\n` +
+            `Shader error: ${gl.getError()}\n\n` +
+            `Validate status: ${gl.getProgramParameter(program, gl.VALIDATE_STATUS)}\n\n` +
+            `Program information log: ${log}`
+        );
+      }
       gl.deleteProgram(program);
       return null;
     }
 
     return program;
+  }
+
+  private _collectProgramErrorLog(program: WebGLProgram): string {
+    const gl = this._gl;
+    const parts: string[] = [];
+    const programLog = gl.getProgramInfoLog(program)?.trim();
+    if (programLog) parts.push(`link: ${programLog}`);
+    const attached = gl.getAttachedShaders(program) ?? [];
+    for (const shader of attached) {
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        const stage = gl.getShaderParameter(shader, gl.SHADER_TYPE) === gl.VERTEX_SHADER ? "vs" : "fs";
+        const shaderLog = gl.getShaderInfoLog(shader)?.trim();
+        parts.push(`${stage}: ${shaderLog || "compile failed"}`);
+      }
+    }
+    return parts.join(" | ") || `glError=${gl.getError()}`;
   }
 
   private _createShader(shaderType: number, shaderSource: string): WebGLShader | null {
@@ -357,18 +385,18 @@ export class ShaderProgram {
     gl.shaderSource(shader, shaderSource);
     gl.compileShader(shader);
 
-    if (
-      !this._pendingCompilation &&
-      Logger.isEnabled &&
-      !gl.getShaderParameter(shader, gl.COMPILE_STATUS) &&
-      !gl.isContextLost()
-    ) {
-      console.warn(
-        `Could not compile WebGL shader\n\n` +
-          `Shader type: ${shaderType == gl.VERTEX_SHADER ? "vertex" : "fragment"}\n\n` +
-          `Shader information log:\n${gl.getShaderInfoLog(shader)}\n` +
-          `Shader source:\n${ShaderProgram._addLineNum(shaderSource)}`
-      );
+    if (!this._pendingCompilation && !gl.getShaderParameter(shader, gl.COMPILE_STATUS) && !gl.isContextLost()) {
+      const stage = shaderType == gl.VERTEX_SHADER ? "vs" : "fs";
+      const shaderLog = gl.getShaderInfoLog(shader)?.trim() || "compile failed";
+      this._errorLog = `${stage}: ${shaderLog}`;
+      if (Logger.isEnabled) {
+        console.warn(
+          `Could not compile WebGL shader\n\n` +
+            `Shader type: ${shaderType == gl.VERTEX_SHADER ? "vertex" : "fragment"}\n\n` +
+            `Shader information log:\n${shaderLog}\n` +
+            `Shader source:\n${ShaderProgram._addLineNum(shaderSource)}`
+        );
+      }
       gl.deleteShader(shader);
       return null;
     }

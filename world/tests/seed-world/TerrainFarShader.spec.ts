@@ -102,6 +102,24 @@ describe("Terrain near/far production shader variants", () => {
     expect(source).not.toContain("terrainProjectGroundColor");
   });
 
+  it("keeps far-terrain ScreenSpaceReflectionSurface discard conditional so ANGLE/Adreno retains the struct return", () => {
+    const pass = terrain.subShaders[0].passes.find((entry) => entry.name === "ScreenSpaceReflectionSurface");
+    const macros = new Map([
+      ["GRAPHICS_API_WEBGL2", ""],
+      ["MATERIAL_TERRAIN_LAYERS", ""],
+      ["MATERIAL_TERRAIN_FAR", ""]
+    ]);
+    const source = ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions, macros);
+    const fnMatch = source.match(
+      /TerrainProjectScreenSpaceReflectionOutput\s+TerrainScreenSpaceReflectionFragment\s*\([\s\S]*?\)\s*\{([\s\S]*)\}/
+    );
+    expect(fnMatch).not.toBeNull();
+    const body = fnMatch![1];
+    expect(body).toMatch(/if\s*\(\s*!\s*\(\s*varyings\.terrainValid\s*>\s*2\.0\s*\)\s*\)\s*\{\s*discard\s*;\s*\}/);
+    expect(body).toMatch(/return\s+output_\s*;/);
+    expect(body).not.toContain("evaluateTerrainLayerWaterFilm");
+  });
+
   it.each(["untextured", "soil", "multiple-regions"])(
     "preserves layer data and removes distant detail samplers (%s)",
     (layout) => {

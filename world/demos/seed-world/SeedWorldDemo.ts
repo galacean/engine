@@ -587,6 +587,21 @@ export async function mountSeedWorldDemo(
         graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 }
       })
     );
+    {
+      const rhi = (engine as unknown as { _hardwareRenderer?: { gl?: WebGLRenderingContext; isWebGL2?: boolean } })
+        ._hardwareRenderer;
+      const gl = rhi?.gl;
+      if (gl) {
+        const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+        const renderer = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) ?? "") : String(gl.getParameter(gl.RENDERER) ?? "");
+        seedWorldBootTrace.event(
+          "info",
+          "webgl",
+          `${rhi?.isWebGL2 ? "WebGL2" : "WebGL1"} ${renderer || "unknown"}`,
+          `texUnits=${gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)} vsTex=${gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS)} combTex=${gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS)} vsUni=${gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS)} fsUni=${gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS)} vary=${gl.getParameter(gl.MAX_VARYING_VECTORS)} attr=${gl.getParameter(gl.MAX_VERTEX_ATTRIBS)} parallel=${Boolean(gl.getExtension("KHR_parallel_shader_compile"))}`
+        );
+      }
+    }
     pickPreparation = new RuntimePickPreparation(engine);
     engine.sceneManager.activeScene!?.destroy();
     const resize = () => {
