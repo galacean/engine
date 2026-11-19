@@ -71,6 +71,13 @@ LEAF_EXTENSIONS = {
 PUGC_RENAMED_WASM_RE = re.compile(r"\.(asset|br|f32le|r8|r16|rgb8|treewind)\.wasm$", re.IGNORECASE)
 PHYSX_WASM_RE = re.compile(r"(?:^|/)physx\.release(?:\.simd)?(?:\.[a-f0-9]+)?\.wasm$", re.IGNORECASE)
 TEXT_BUNDLE_RE = re.compile(r"^assets/seed-world-project-text-bundle-[a-f0-9]+\.json$", re.IGNORECASE)
+LARGE_JSON_MIN_BYTES = 128 * 1024
+LARGE_JSON_EXCLUDED_BASENAMES = {
+    "project.json",
+    "production-catalog.json",
+    "plant-project-production-catalog.json",
+    "plant-species.json",
+}
 SAFE_NAME_RE = re.compile(r"[^A-Za-z0-9._-]+")
 
 
@@ -100,7 +107,7 @@ def atomic_write_json(path: Path, data: dict) -> None:
 
 def safe_alias(namespace: str, sha: str, rel_path: str) -> str:
     name = Path(rel_path).name
-    if PUGC_RENAMED_WASM_RE.search(name):
+    if name.lower().endswith(".wasm"):
         name = re.sub(r"\.wasm$", ".bin", name, flags=re.IGNORECASE)
     base_name = SAFE_NAME_RE.sub("-", name).strip("-") or "asset.bin"
     if len(base_name) > 80:
@@ -236,12 +243,16 @@ def scan_candidates(dist_dir: Path, include_text_bundle: bool) -> dict[str, tupl
         rel = file_path.relative_to(dist_dir).as_posix()
         ext = file_path.suffix.lower()
         is_bundle = include_text_bundle and bool(TEXT_BUNDLE_RE.match(rel))
-        if not is_bundle:
+        is_large_json = (
+            rel.startswith("packages/")
+            and ext == ".json"
+            and file_path.name not in LARGE_JSON_EXCLUDED_BASENAMES
+            and file_path.stat().st_size > LARGE_JSON_MIN_BYTES
+        )
+        if not is_bundle and not is_large_json:
             if ext not in LEAF_EXTENSIONS:
                 continue
-            # Keep real WebAssembly binaries (esbuild, physx) local for application/wasm streaming.
-            if ext == ".wasm" and not PUGC_RENAMED_WASM_RE.search(rel):
-                continue
+            # Keep PhysX WASM local: Emscripten locateFile resolves it relative to physx.release*.js.
             if PHYSX_WASM_RE.search(rel):
                 continue
         sha, size = sha256_file(file_path)

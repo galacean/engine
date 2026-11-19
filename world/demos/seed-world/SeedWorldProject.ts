@@ -27,6 +27,7 @@ import { builtinWaterDefaultFiles } from "@galacean/engine-water/water/native/Wa
 import { migrateSeedWorldWaterTextures } from "./SeedWorldWaterTextureMigration";
 import type { AtomicLodManifest } from "@galacean/engine-vegetation/asset-assembly/AssetAssemblyCatalog";
 import { seedWorldBootTrace } from "./src/SeedWorldBootTrace.ts";
+import { parsePreloadedJson } from "./src/SeedWorldProjectTextBundle.ts";
 
 /** Author schemas and saved asset catalogs are intentionally incompatible across these save versions.
  * Opening a project deletes saves of any other version before loading, so it starts from the initial world. */
@@ -67,9 +68,9 @@ export async function openSeedWorldProject(
   const seed = raw !== null && /^\d+$/.test(raw) && Number(raw) <= 0xffffffff ? Number(raw) : SEMANTIC_DEFAULTS.seed;
   const template = worldTemplate(pageUrl.searchParams.get("template"))?.id ?? "original";
   if (!initial) {
-    const preloaded = prefetchedTextAssets?.get(projectUrl);
-    if (preloaded !== undefined) {
-      initial = JSON.parse(preloaded) as RuntimeProjectManifest;
+    const parsedPreloaded = parsePreloadedJson<RuntimeProjectManifest>(prefetchedTextAssets?.get(projectUrl));
+    if (parsedPreloaded !== undefined) {
+      initial = parsedPreloaded;
     } else {
       const response = await fetch(projectUrl);
       if (!response.ok) throw new Error(`Project manifest read failed (${response.status})`);

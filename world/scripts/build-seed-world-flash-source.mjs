@@ -68,7 +68,7 @@ const nativeEnginePackages = [
 
 const excludedDirectoryNames = new Set([".acceptance", ".cache", "dist", "e2e", "node_modules", "tests"]);
 
-// Keep derived runtime KTX2 textures and provenance manifests; retain authoring PNGs only in the authoring repo.
+// Keep derived runtime KTX2 textures and provenance manifests; retain authoring PNGs and internal CDN upload helpers only in the authoring repo.
 const excludedFiles = new Set([
   "packages/water/src/water/resources/lake/assets/grasslands-water-normal-1024.png",
   "packages/water/src/water/resources/river/assets/farmlands-caustics.png",
@@ -77,7 +77,9 @@ const excludedFiles = new Set([
   "packages/water/src/water/resources/ocean/textures/Normals/RoughWaves.png",
   "packages/water/src/water/resources/ocean/textures/Caustics/Caustics_1.png",
   "packages/water/src/water/resources/ocean/textures/Foam/Foam1.png",
-  "packages/water/src/water/resources/ocean/textures/IntersectionNoise.png"
+  "packages/water/src/water/resources/ocean/textures/IntersectionNoise.png",
+  "world/scripts/set-flash-app-cdn-secret.sh",
+  "world/scripts/sync-flash-app-cdn-assets.py"
 ]);
 
 const requiredWaterResources = [

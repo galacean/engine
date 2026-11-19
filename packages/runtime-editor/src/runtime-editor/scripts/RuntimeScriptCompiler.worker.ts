@@ -11,6 +11,20 @@ import domIterable from "typescript/lib/lib.dom.iterable.d.ts?raw";
 
 const libraries = { ...agentTypecheckLibraries, "/lib.dom.d.ts": dom, "/lib.dom.iterable.d.ts": domIterable };
 let initialized: Promise<void> | undefined;
+
+async function initializeEsbuild(): Promise<void> {
+  const response = await fetch(wasmURL);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch esbuild wasm (${response.status}): ${wasmURL}`);
+  }
+  const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+  const wasmModule =
+    typeof WebAssembly.compileStreaming === "function" && contentType.includes("application/wasm")
+      ? await WebAssembly.compileStreaming(response)
+      : await WebAssembly.compile(await response.arrayBuffer());
+  await esbuild.initialize({ wasmModule, worker: false });
+}
+
 globalThis.onmessage = async ({
   data
 }: MessageEvent<{
@@ -39,7 +53,7 @@ globalThis.onmessage = async ({
     let result;
     try {
       if (Object.keys(checked.sources).length)
-        await (initialized ??= esbuild.initialize({ wasmURL, worker: false }).catch((error) => {
+        await (initialized ??= initializeEsbuild().catch((error) => {
           initialized = undefined;
           throw error;
         }));

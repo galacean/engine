@@ -6,6 +6,12 @@
       "size": 161229,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/00577844dcefe721-stone_floor--stone_floor_seed.ktx2"
     },
+    "0109483a5b8d601b6468a004b92544895affd3b8b7175442e0586f3b5db521b7": {
+      "examplePath": "assets/seed-world-project-text-bundle-0109483a.json",
+      "ext": ".json",
+      "size": 1128721,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/0109483a5b8d601b-seed-world-project-text-bundle-0109483a.json"
+    },
     "01d31f6ac4435795a82f462705494df81baae8bd82b3911848ea045bec56e8d2": {
       "examplePath": "packages/world-planning/src/assets/low-poly/greens.glb",
       "ext": ".glb",
@@ -54,6 +60,12 @@
       "size": 72888,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/0525f4e56ee14b84-decoration-window_gothic_3x1_hat_full.mesh"
     },
+    "057aea70cbf935a9c2465ab56a60cbe81b712d3fa8a7661448777efbe0d51103": {
+      "examplePath": "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchbush_04-structure.json",
+      "ext": ".json",
+      "size": 461396,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/057aea70cbf935a9-meadow-sm_birchbush_04-structure.json"
+    },
     "05ab6df449dda08e97c62190d4b387f7307037c74fbfb12b40f5f2535852e647": {
       "examplePath": "assets/forest-giant-oak-05ab6df4.glb",
       "ext": ".glb",
@@ -71,6 +83,12 @@
       "ext": ".mesh",
       "size": 82972,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/079987035690af7d-decoration-balcony_door_gothic_rank1_hat.mesh"
+    },
+    "07af858bfa6391a5f0127a0530aba16042e11565a440d4ed98ff3d40f4f3ef79": {
+      "examplePath": "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchtree_01-structure.json",
+      "ext": ".json",
+      "size": 1168929,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/07af858bfa6391a5-meadow-sm_birchtree_01-structure.json"
     },
     "07fadcbee4275fd3105de9defc8fc7539d0e834dc532de3cc94d5c06d35a209e": {
       "examplePath": "packages/terrain/src/data/seed-world/public/atoms/stone-2-lod1.glb",
@@ -191,6 +209,12 @@
       "ext": ".mesh",
       "size": 787960,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/13d1d2506d48e609-plaster.mesh"
+    },
+    "1423f4d8622b8173ac3778d73fa815fcd5280bf09a3ec0f8cc4b26177ff2c5fd": {
+      "examplePath": "packages/vegetation/src/asset-assembly/generated/procedural-trees/plant-project-plant-species.json",
+      "ext": ".json",
+      "size": 276609,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/1423f4d8622b8173-plant-project-plant-species.json"
     },
     "14807b622021371605e23596d870a09b0d29762e60eee247b748ac747bd7344a": {
       "examplePath": "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-grass_03_summer-part-01-256.png",
@@ -612,6 +636,12 @@
       "size": 41995,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/3f517792bc4c3ecb-meadow-birch-bark-256-3f517792.png"
     },
+    "3f5acefdc91cc70f43ece3eddbaea5c2bf303b6e2cd3ae04d3789fd8e7f3686c": {
+      "examplePath": "assets/esbuild-3f5acefd.wasm",
+      "ext": ".wasm",
+      "size": 12211550,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/3f5acefdc91cc70f-esbuild-3f5acefd.bin"
+    },
     "3f81131b8a56b1572778257194eed32021b3054dab4eb49f8586568967788b55": {
       "examplePath": "packages/water/src/water/native/assets/Water/Shaders/lake.shader",
       "ext": ".shader",
@@ -1032,6 +1062,12 @@
       "size": 33832,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/67c3adb8f69d1a48-window_gothic_1x1_hat_full.mesh"
     },
+    "68dab0e7f2dcc0e2ac07aaa445c3a79d2690d9dd60e3cb10e8491995482b662e": {
+      "examplePath": "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchtree_07-structure.json",
+      "ext": ".json",
+      "size": 1708710,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/68dab0e7f2dcc0e2-meadow-sm_birchtree_07-structure.json"
+    },
     "6912018987a62869a00e8f3c5ef876fb324f0383553c5e9416daae65eeff95d4": {
       "examplePath": "packages/world-planning/src/assets/low-poly/pine.glb",
       "ext": ".glb",
@@ -1398,6 +1434,12 @@
       "size": 15289,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/8bd963a36ddf9aa6-menu--feedback--aww.ktx2"
     },
+    "8c4cea7bb114b9a3cf9208052804183f672b6dd879d59763fc5740a10cb34639": {
+      "examplePath": "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchtree_02-structure.json",
+      "ext": ".json",
+      "size": 1102059,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/8c4cea7bb114b9a3-meadow-sm_birchtree_02-structure.json"
+    },
     "8ce33f4c411a6ed9c9e031ee521a7d6c597d0bbf300c7152fc8571b16d4d04bc": {
       "examplePath": "packages/world-planning/src/integrations/terrain/rock-formation/lod-meshes/rock-05/lod1.glb",
       "ext": ".glb",
@@ -1523,6 +1565,12 @@
       "ext": ".glb",
       "size": 9988,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/9bb40b312b9d1052-lod2.glb"
+    },
+    "9cb8fe16ab0e90f185f49dcdad2de2cacd40e9aa8d530dcf1d3bd98ea4ebe96f": {
+      "examplePath": "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchbush_03-structure.json",
+      "ext": ".json",
+      "size": 445669,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/9cb8fe16ab0e90f1-meadow-sm_birchbush_03-structure.json"
     },
     "9e62fba59f0266bf765dc79be3e5746f22197a30f5a8478698fff6575b909e1e": {
       "examplePath": "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-flowers_03-part-02-256.png",

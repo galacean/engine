@@ -77,7 +77,8 @@ import type { SeedWorldPickVisitor } from "@galacean/engine-modify/rendering/See
 import { bindWorldClickInput } from "./src/SeedWorldClickInput.ts";
 import { waitForSnapshotWarmup } from "./src/SeedWorldSnapshotWarmup.ts";
 import { openSeedWorldProject } from "./SeedWorldProject.ts";
-import { loadSeedWorldProjectTextBundle } from "./src/SeedWorldProjectTextBundle.ts";
+import { loadSeedWorldProjectTextBundle, parsePreloadedJson } from "./src/SeedWorldProjectTextBundle.ts";
+import { runSeedWorldStartupShaderWarmup } from "./src/SeedWorldStartupShaderWarmup.ts";
 import { createSeedWorldProjectClose } from "./SeedWorldProjectClose.ts";
 import { SEED_WORLD_EDITOR_PATH, seedWorldProjectFormats } from "./SeedWorldProjectFormats.ts";
 import { PlanningFarmingHost } from "./src/planning/spatial/farming/PlanningFarmingHost.ts";
@@ -203,10 +204,7 @@ import {
   resolveSeedWorldCameraForward
 } from "@galacean/engine-world-planning/world/SeedWorldCameraBookmark";
 import {
-  collectSeedWorldRendererVariants,
   createSeedWorldShaderVariantSnapshotter,
-  findMissingSeedWorldShaderVariants,
-  hasParallelShaderCompile,
   warmupSeedWorldRendererVariants,
   warmupSeedWorldShaderVariants,
   type SeedWorldShaderVariantEntry
@@ -624,10 +622,9 @@ export async function mountSeedWorldDemo(
     const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, location.href).href;
     const prefetchedTextAssets = await timed("loadProjectTextBundle", () => loadSeedWorldProjectTextBundle());
     const preloadedProjectText = prefetchedTextAssets?.get(projectUrl);
-    const preloadedProject =
-      preloadedProjectText !== undefined
-        ? (JSON.parse(preloadedProjectText) as Parameters<typeof registerTerrainProjectResources>[2])
-        : undefined;
+    const preloadedProject = parsePreloadedJson<Parameters<typeof registerTerrainProjectResources>[2]>(
+      preloadedProjectText
+    );
     const initialProject = await timed("registerTerrainProjectResources", () =>
       registerTerrainProjectResources(engine!, projectUrl, preloadedProject)
     );
@@ -2626,101 +2623,25 @@ export async function mountSeedWorldDemo(
     // Dense visible details belong to the world presentation, including photo captures.
     timed("warmupPopulationDetails (startup)", () => publication!.current?.world.warmupPopulationDetails());
 
-    let deferredShaderVariants: readonly SeedWorldShaderVariantEntry[] = [];
-    if (precompileShaders) {
-      // Keep world draws disabled until reveal.
-      camera.enabled = false;
-      progress(0.96, "准备世界渲染资源");
-      await timed("preparePresentation (farming + animals + vegetation)", () =>
-        Promise.all([
-          farmingHost?.runtime?.preparePresentation(),
-          animals?.preparePresentation(),
-          publication!.current?.vegetation?.preparePresentation()
-        ])
-      );
-      if (disposed) throw new DOMException("Seed page disposed during shader preparation", "AbortError");
-      progress(0.98, "预编译场景渲染变体");
-      const assistant = options.showAssistant !== false ? tools.preparePresentation() : undefined;
-      const agentTraceEnabled = pageUrl.searchParams.get("agentTrace") === "1";
-      const parallelCompile = hasParallelShaderCompile(engine!);
-      const sharedWarmupOptions = {
-        strict: true,
-        includeInactiveEntities: false,
-        includeGpuInstancing: true,
-        onlySharedMeshGpuInstancing: true,
-        frameBudgetMilliseconds: 32,
-        maximumPendingPrograms: 16,
-        overlayRenderers: assistant?.root.getComponentsIncludeChildren(Renderer, []) ?? [],
-        postProcessState: post.getShaderWarmupState(),
-        additionalBackgroundMaterials: environment!.shaderWarmupBackgroundMaterials
-      } as const;
-      const deferSecondary = !parallelCompile && !agentTraceEnabled;
-      let shaderWarmup;
-      if (deferSecondary) {
-        const primaryVariants = collectSeedWorldRendererVariants(engine!, scene!, camera, scene!.rootEntities, {
-          ...sharedWarmupOptions,
-          onlyEnabledRenderers: true,
-          includeMasonryDither: false,
-          includeInstanceEntrance: false
-        });
-        const variantPriority = (entry: SeedWorldShaderVariantEntry): number => {
-          const s = entry.shader;
-          if (
-            s.startsWith("Sky/") ||
-            s === "World/VolumetricClouds" ||
-            s.startsWith("PostProcess/") ||
-            s.startsWith("Blit/") ||
-            s.startsWith("2D/") ||
-            s.startsWith("SeedWorld/")
-          )
-            return 0;
-          if (s === "Terrain/Terrain" || s === "Terrain/Grass" || s.startsWith("Water/")) return entry.pi === 0 ? 1 : 3;
-          if (s === "Terrain/Vegetation" || s === "Terrain/Surface") return entry.pi === 0 ? 2 : 4;
-          if (s.startsWith("Masonry/")) return entry.pi === 0 ? 3 : 5;
-          return entry.pi === 0 ? 4 : 6;
-        };
-        const orderedPrimary = [...primaryVariants].sort(
-          (a, b) => variantPriority(a) - variantPriority(b) || a.shader.localeCompare(b.shader)
-        );
-        const allVariants = collectSeedWorldRendererVariants(
-          engine!,
-          scene!,
-          camera,
-          scene!.rootEntities,
-          sharedWarmupOptions
-        );
-        const secondaryVariants = findMissingSeedWorldShaderVariants(primaryVariants, allVariants);
-        shaderWarmup = await timed("warmupSeedWorldRendererVariants", () =>
-          warmupSeedWorldShaderVariants(engine!, orderedPrimary, {
-            strict: true,
-            preserveOrder: true,
-            frameBudgetMilliseconds: 32,
-            maximumPendingPrograms: 1,
-            maxElapsedMilliseconds: 6500
-          })
-        );
-        deferredShaderVariants = [...(shaderWarmup.deferred ?? []), ...secondaryVariants];
-      } else {
-        shaderWarmup = await timed("warmupSeedWorldRendererVariants", () =>
-          warmupSeedWorldRendererVariants(engine!, scene!, camera, scene!.rootEntities, {
-            ...sharedWarmupOptions,
-            onVariants: agentTraceEnabled
-              ? (variants) => {
-                  canvas.dataset.buildingShaderWarmupVariants = JSON.stringify(variants);
-                }
-              : undefined
-          })
-        );
-      }
-      seedWorldBootTrace.event(
-        "info",
-        "shader-warmup",
-        `compiled ${shaderWarmup.compiled}/${shaderWarmup.requested} variants${deferredShaderVariants.length ? ` (deferred ${deferredShaderVariants.length} to idle)` : ""} in ${Math.round(shaderWarmup.elapsedMilliseconds)}ms`,
-        `longest=${Math.round(shaderWarmup.longestVariantMilliseconds)}ms parallelCompile=${Boolean(shaderWarmup.parallelCompileSupported)}`
-      );
-      if (agentTraceEnabled)
-        canvas.dataset.buildingShaderWarmup = JSON.stringify(shaderWarmup);
-    }
+    let { deferredShaderVariants } = await runSeedWorldStartupShaderWarmup({
+      precompileShaders,
+      engine: engine!,
+      scene: scene!,
+      camera,
+      pageUrl,
+      canvas,
+      showAssistant: options.showAssistant !== false,
+      isDisposed: () => disposed,
+      progress,
+      timed,
+      prepareFarmingPresentation: () => farmingHost?.runtime?.preparePresentation(),
+      prepareAnimalPresentation: () => animals?.preparePresentation(),
+      prepareVegetationPresentation: () => publication!.current?.vegetation?.preparePresentation(),
+      prepareAssistantPresentation: () => tools.preparePresentation(),
+      getPostProcessWarmupState: () => post.getShaderWarmupState(),
+      additionalBackgroundMaterials: environment!.shaderWarmupBackgroundMaterials,
+      onWarmupEvent: (message, detail) => seedWorldBootTrace.event("info", "shader-warmup", message, detail)
+    });
 
     camera.enabled = true;
     progress(1, "Seed World 已就绪");

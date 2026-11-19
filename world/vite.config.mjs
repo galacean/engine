@@ -116,6 +116,21 @@ const FLASH_APP_CDN_LEAF_EXTENSIONS = new Set([
 const FLASH_APP_TEXT_BUNDLE_EXTENSIONS = new Set([".prefab", ".mat", ".tex", ".scene", ".json"]);
 const FLASH_APP_CDN_JSON_URL_KEYS = new Set(["path", "url"]);
 const FLASH_APP_TEXT_BUNDLE_MAX_BYTES = 128 * 1024;
+const FLASH_APP_CDN_LARGE_JSON_EXCLUDED_BASENAMES = new Set([
+  "project.json",
+  "production-catalog.json",
+  "plant-project-production-catalog.json",
+  "plant-species.json"
+]);
+
+function isFlashAppCdnLargeJson(fileName, size) {
+  return (
+    fileName.startsWith("packages/") &&
+    path.extname(fileName).toLowerCase() === ".json" &&
+    size > FLASH_APP_TEXT_BUNDLE_MAX_BYTES &&
+    !FLASH_APP_CDN_LARGE_JSON_EXCLUDED_BASENAMES.has(path.posix.basename(fileName))
+  );
+}
 
 function loadFlashAppCdnManifest() {
   if (!fs.existsSync(FLASH_APP_CDN_MANIFEST_PATH)) return {};
@@ -146,14 +161,17 @@ function flashAppCdnAndTextBundle() {
       const cdnBySha256 = loadFlashAppCdnManifest();
       const cdnUrlByFileName = new Map();
 
-      // 1. Identify emitted leaf binary assets whose exact sha256 + size exist on mdn.alipayobjects.com.
+      // 1. Identify emitted leaf binary assets and large (> 128 KiB) leaf package JSONs
+      // whose exact sha256 + size exist on mdn.alipayobjects.com.
       for (const [fileName, item] of Object.entries(bundle)) {
         if (item.type !== "asset") continue;
         const ext = path.extname(fileName).toLowerCase();
-        if (!FLASH_APP_CDN_LEAF_EXTENSIONS.has(ext)) continue;
         // Skip physx JS/WASM sidecars resolved via Emscripten locateFile relative to physx.release*.js.
         if (/(?:^|\/)physx\.release(?:\.simd)?(?:\.[a-f0-9]+)?\.wasm$/i.test(fileName)) continue;
+        const isLeafBinary = FLASH_APP_CDN_LEAF_EXTENSIONS.has(ext);
+        if (!isLeafBinary && !(fileName.startsWith("packages/") && ext === ".json")) continue;
         const { sha256, size } = sha256Buffer(item.source);
+        if (!isLeafBinary && !isFlashAppCdnLargeJson(fileName, size)) continue;
         const entry = cdnBySha256[sha256];
         if (entry && typeof entry.url === "string" && entry.url.startsWith("https://") && entry.size === size) {
           cdnUrlByFileName.set(fileName, entry.url);

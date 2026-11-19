@@ -33,7 +33,16 @@ world/dist/seed-world-flash-app
 - **根入口与相对路径**：目录根部直接包含 `index.html`，Vite `base` 为 `./`，所有资源均以相对路径引用（不出现 `/assets/` 或 `../`），可部署到 `render.lingguangcontent.com` 任意嵌套路径，并兼容主页面与静态资源分属 `lingguangcontent.com` / `lingguangobjects.com` 的场景。
 - **Worker 跨源与移动 WebView 兼容**：`worker.format` 为 classic IIFE，且闪应用构建插件会把所有 emitted Worker 统一改写为同源 classic Blob `importScripts(...)` 引导（并注入 `self.__FLASH_APP_WORKER_BASE_URL__` 供 Worker 内相对资源解析）。这既避免 `about:srcdoc` / 跨域 CDN 下的 `SecurityError`，也兼容钉钉 UWS 等不支持 `{ type: "module" }` Worker 的移动 WebView。脚本会通过 `vm.Script` 逐个核验所有 Worker 均为合法 classic JavaScript，且不存在残留的 `{ type: "module" }` Worker 构造调用。
 - **PUGC 物理扩展名兼容**：语燕 / PUGC 会忽略 `.asset`、`.br`、`.f32le`、`.r8`、`.r16`、`.rgb8`、`.treewind` 等物理后缀。构建时保留原始字节与 `virtualPath`，仅为物理发布路径追加 `.wasm` 后缀并同步重写 `project.json` / `production-catalog.json` 中的 `path` 字段。
-- **独立运行时闭包**：排除无关的 Grasslands 预计算数据，校验 Seed World `project.json`、`production-catalog.json` 及程序化植被清单引用的全部文件存在且非空。
+- **独立运行时闭包**：排除无关的 Grasslands 预计算数据，校验 Seed World `project.json`、`production-catalog.json` 及程序化植被清单引用的全部文件存在且非空（已迁移至 `mdn.alipayobjects.com` 的大体积清单与资源在 `project.json` 中改写为 `https://` URL）。
+- **MDN CDN 资产分流与合并文本包**：构建插件会按 `world/demos/seed-world/flash-app-cdn-manifest.json` 的内容 SHA-256，将二进制资源、`esbuild.wasm`（上传为 `.bin` 别名）、`> 128 KiB` 植被结构 JSON 与合并后的小型项目文本包（`seed-world-project-text-bundle-*.json`）改写为 `mdn.alipayobjects.com` 不可变直链并从本地产物剔除，减少语燕托管体积并加速首屏拉取。若本次改动修改了着色器（如 `Terrain.shaderc`）、纹理、模型或项目清单，请在构建后执行增量 CDN 同步检查并重编直至 `pending upload: 0`：
+  ```bash
+  # 干跑检查待上传资产数量；非 0 时改用 --apply 上传并重新执行 build:seed-world-flash-app
+  "$ASAP_SERVICE_DIR/.venv/bin/python" world/scripts/sync-flash-app-cdn-assets.py
+  # 如需上传（密钥位于 ~/.config/galacean-flash-app/afts.env，可用 world/scripts/set-flash-app-cdn-secret.sh 初始化）
+  "$ASAP_SERVICE_DIR/.venv/bin/python" world/scripts/sync-flash-app-cdn-assets.py --apply
+  pnpm --dir world build:seed-world-flash-app
+  ```
+  > 若 `project.json` 的 CDN URL 发生变化，合并文本包 `seed-world-project-text-bundle-*.json` 的哈希会更新，再执行一次 `--apply` 与 `build:seed-world-flash-app` 即可收敛至 `pending upload: 0`。
 - **`about:srcdoc` 地址兼容**：正式闪应用容器通过 sandbox iframe 的 `srcdoc` 运行入口，此时 `location.href` 为 `about:srcdoc`。页面已通过 `SeedWorldDocumentUrl` 读取宿主注入的 `meta[name="flash-app-html-url"]`，不会直接对 `about:srcdoc` 调用 `history.replaceState`。
 
 > 不要把仓库根目录、`world/dist/seed-world`（普通多 Demo 目录结构，入口在 `world/demos/seed-world/index.html`）或 `node_modules` 当作闪应用产物目录发布。

@@ -28,12 +28,15 @@ description: 将 Seed World 构建为灵光闪应用产物与可重建源码快�
    pnpm b:module
    pnpm --dir world prepare:engine
    ```
-2. 构建并校验闪应用产物与可重建源码快照：
+2. 构建并校验闪应用产物、MDN CDN 清单同步状态与可重建源码快照：
    ```bash
    pnpm --dir world build:seed-world-flash-app
+   # 核对新增/改动资产与合并文本包均已同步至 mdn.alipayobjects.com（pending upload: 0）
+   "$ASAP_SERVICE_DIR/.venv/bin/python" world/scripts/sync-flash-app-cdn-assets.py
+   # 若存在待上传资产，执行 --apply 并重新构建直至 pending upload: 0（且提交更新后的 flash-app-cdn-manifest.json）
    pnpm --dir world build:seed-world-flash-source
    ```
-   - 唯一允许作为 `--project-dir` 的目录是 `world/dist/seed-world-flash-app`（根目录直接含 `index.html`、`base: "./"`、所有 Worker 经 classic Blob `importScripts(...)` 引导、PUGC 不支持扩展名已转为 `.wasm` 物理后缀）。
+   - 唯一允许作为 `--project-dir` 的目录是 `world/dist/seed-world-flash-app`（根目录直接含 `index.html`、`base: "./"`、所有 Worker 经 classic Blob `importScripts(...)` 引导、PUGC 不支持扩展名已转为 `.wasm` 物理后缀、大资产与文本包已走 `mdn.alipayobjects.com`）。
    - 唯一允许作为 `--source-dir` 的目录是 `world/dist/seed-world-flash-source`（已通过未压缩构建逐文件 SHA-256 一致性校验与 `< 100 MiB` 压缩体积门禁；旁边的 `.tar.gz` 仅作体积证据，不传给发布器）。
    - 若两份产物刚刚基于当前完全一致的工作树构建完成且用户确认复用，可跳过重复构建，但须核对产物存在且无新源码改动。
 

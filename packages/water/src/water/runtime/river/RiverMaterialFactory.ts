@@ -75,6 +75,9 @@ const surfaceNormalTextures = new WeakMap<Engine, Texture2D>();
 
 const foamTextures = new WeakMap<Engine, Texture2D>();
 
+const uploadedRiverTextures = new WeakSet<Texture2D>();
+const pendingRiverTextureUploads = new WeakSet<Texture2D>();
+
 let loadedRiverNormalPixels: string | undefined;
 let loadedRiverFoamPixels: string | undefined;
 let loadingRiverDefaultTextures: Promise<void> | undefined;
@@ -104,6 +107,37 @@ function uploadBase64RiverTexture(texture: Texture2D, data: string): void {
   const pixels = Uint8Array.from(decoded, (value) => value.charCodeAt(0));
   texture.setPixelBuffer(pixels);
   texture.generateMipmaps();
+  uploadedRiverTextures.add(texture);
+}
+
+function fillNeutralRiverTexture(texture: Texture2D, kind: "normals" | "foam"): void {
+  const pixels = new Uint8Array(texture.width * texture.height * 4);
+  if (kind === "normals") {
+    // Both .rg (regular flow) and .ba (slope flow) unpack around 0.5 -> neutral (0, 0, 1).
+    pixels.fill(128);
+  }
+  texture.setPixelBuffer(pixels);
+  texture.generateMipmaps();
+}
+
+function scheduleBase64RiverTextureUpload(texture: Texture2D, readData: () => string | undefined): void {
+  if (uploadedRiverTextures.has(texture) || pendingRiverTextureUploads.has(texture)) return;
+  pendingRiverTextureUploads.add(texture);
+  void preloadRiverDefaultTextures()
+    .then(
+      () => {
+        const data = readData();
+        if (!texture.destroyed && data !== undefined) {
+          uploadBase64RiverTexture(texture, data);
+        }
+      },
+      () => {
+        // Keep neutral placeholder pixels intact and allow retry on a subsequent access/restore.
+      }
+    )
+    .finally(() => {
+      pendingRiverTextureUploads.delete(texture);
+    });
 }
 
 function getRiverTexture(
@@ -112,36 +146,36 @@ function getRiverTexture(
   kind: "normals" | "foam",
   name: string
 ): Texture2D {
+  const readData = () => (kind === "normals" ? loadedRiverNormalPixels : loadedRiverFoamPixels);
   const existing = cache.get(engine);
-  if (existing && !existing.destroyed) return existing;
+  if (existing && !existing.destroyed) {
+    if (!uploadedRiverTextures.has(existing)) {
+      const data = readData();
+      if (data !== undefined) uploadBase64RiverTexture(existing, data);
+      else scheduleBase64RiverTextureUpload(existing, readData);
+    }
+    return existing;
+  }
   const texture = new Texture2D(engine, 512, 512, undefined, true, false);
   texture.name = name;
   texture.isGCIgnored = true;
   texture.filterMode = TextureFilterMode.Trilinear;
   texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Repeat;
-  const readData = () => (kind === "normals" ? loadedRiverNormalPixels : loadedRiverFoamPixels);
   const initialData = readData();
   if (initialData !== undefined) {
     uploadBase64RiverTexture(texture, initialData);
   } else {
-    void preloadRiverDefaultTextures().then(() => {
-      const data = readData();
-      if (!texture.destroyed && data !== undefined) {
-        uploadBase64RiverTexture(texture, data);
-      }
-    });
+    fillNeutralRiverTexture(texture, kind);
+    scheduleBase64RiverTextureUpload(texture, readData);
   }
   registerWaterContentRestorer(engine, texture, () => {
+    uploadedRiverTextures.delete(texture);
     const data = readData();
     if (data !== undefined) {
       uploadBase64RiverTexture(texture, data);
     } else {
-      void preloadRiverDefaultTextures().then(() => {
-        const delayed = readData();
-        if (!texture.destroyed && delayed !== undefined) {
-          uploadBase64RiverTexture(texture, delayed);
-        }
-      });
+      fillNeutralRiverTexture(texture, kind);
+      scheduleBase64RiverTextureUpload(texture, readData);
     }
   });
   cache.set(engine, texture);

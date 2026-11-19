@@ -155,6 +155,9 @@ class SeedWorldBootTraceController {
   private resourceObserver: PerformanceObserver | undefined;
 
   configure(options: { url: string; verbose?: boolean; autoOpenOverlay?: boolean }): void {
+    if (this.status !== "loading") {
+      this.reset();
+    }
     this.url = options.url;
     this.verbose = Boolean(options.verbose);
     this.autoOpenOverlay = Boolean(options.autoOpenOverlay);
@@ -325,11 +328,26 @@ class SeedWorldBootTraceController {
     this.renderOverlay();
   }
 
+  reset(): void {
+    this.dispose(false);
+    this.nextSpanId = 1;
+    this.status = "loading";
+    this.currentPhase = "entry";
+    this.progressValue = 0;
+    this.errorMessage = undefined;
+    this.active.clear();
+    this.spans.length = 0;
+    this.phases.length = 0;
+    this.events.length = 0;
+    this.overlayOpen = false;
+  }
+
   dispose(preserveOnError = false): void {
     this.stopTimers();
     this.resourceObserver?.disconnect();
     this.resourceObserver = undefined;
     if (preserveOnError && this.status === "error") return;
+    this.canvas = undefined;
     this.overlayRoot?.remove();
     this.overlayRoot = undefined;
     this.overlayToggle = undefined;

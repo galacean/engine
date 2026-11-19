@@ -25,4 +25,4 @@ EOF
 chmod 600 "${CONFIG_FILE}"
 
 echo "已安全写入 ${CONFIG_FILE}（权限 600，位于仓库外部）。"
-echo "接下来直接告诉我「写好了」，即可执行 CDN 上传。"
+echo "接下来可执行: python3 world/scripts/sync-flash-app-cdn-assets.py --apply（需安装 httpx，或使用已安装 httpx 的 Python 解释器）。"

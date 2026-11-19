@@ -20,7 +20,10 @@ export function loadSeedWorldProjectTextBundle(): Promise<ReadonlyMap<string, st
         // Resolve each key relative to the dist root (one directory above assets/).
         const distRootUrl = new URL("../", import.meta.url).href;
         const response = await fetch(bundleUrl);
-        if (!response.ok) return undefined;
+        if (!response.ok) {
+          cachedBundlePromise = undefined;
+          return undefined;
+        }
         const entries = (await response.json()) as Record<string, string>;
         const map = new Map<string, string>();
         for (const [relativePath, content] of Object.entries(entries)) {
@@ -30,9 +33,20 @@ export function loadSeedWorldProjectTextBundle(): Promise<ReadonlyMap<string, st
         }
         return map;
       } catch {
+        cachedBundlePromise = undefined;
         return undefined;
       }
     })();
   }
   return cachedBundlePromise;
+}
+
+/** Parses preloaded JSON text safely so corrupt entries fall back transparently to network fetch. */
+export function parsePreloadedJson<T>(text: string | undefined): T | undefined {
+  if (text === undefined) return undefined;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return undefined;
+  }
 }

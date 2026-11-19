@@ -1,29 +1,8 @@
 import { readFileSync } from "node:fs";
-import ts from "typescript";
 import { describe, expect, it, vi } from "vitest";
 import { PlanningAnimalHost } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHost";
+import { runSeedWorldStartupShaderWarmup } from "../../demos/seed-world/src/SeedWorldStartupShaderWarmup";
 
-const source = ts.createSourceFile(
-  "SeedWorldDemo.ts",
-  readFileSync(new URL("../../demos/seed-world/SeedWorldDemo.ts", import.meta.url), "utf8"),
-  ts.ScriptTarget.Latest,
-  true
-);
-let startup: ts.IfStatement | undefined;
-function visit(node: ts.Node) {
-  if (
-    ts.isIfStatement(node) &&
-    node.expression.getText(source) === "precompileShaders" &&
-    node.thenStatement.getText(source).includes("preparePresentation")
-  )
-    startup = node;
-  ts.forEachChild(node, visit);
-}
-visit(source);
-if (!startup) throw new Error("Startup must prepare published presentation before collecting shaders");
-const code = ts.transpileModule(`return async () => { ${startup.getText(source)} };`, {
-  compilerOptions: { target: ts.ScriptTarget.ES2022 }
-}).outputText;
 function deferred() {
   let resolve!: () => void;
   const promise = new Promise<void>((yes) => {
@@ -31,7 +10,8 @@ function deferred() {
   });
   return { promise, resolve };
 }
-function fixture(enabled = true, disposed = false) {
+
+function fixture(enabled = true, disposed = false, parallelCompile = true) {
   const farm = deferred(),
     animal = deferred(),
     roots: object[] = [],
@@ -40,62 +20,86 @@ function fixture(enabled = true, disposed = false) {
     expect(capturedRoots).toContain(farm);
     expect(capturedRoots).toContain(animal);
     events.push("compile");
-    return { requested: 1 };
+    return {
+      requested: 1,
+      compiled: 1,
+      parallelCompileSupported: parallelCompile,
+      issues: [],
+      elapsedMilliseconds: 5,
+      longestVariantMilliseconds: 5
+    };
   });
-  const state = {
-    precompileShaders: enabled,
-    disposed,
-    progress: vi.fn(),
-    farmingHost: {
-      runtime: {
-        preparePresentation: () =>
-          farm.promise.then(() => {
-            roots.push(farm);
-          })
-      }
-    },
-    animals: {
-      preparePresentation: () =>
+  const warmupVariants = vi.fn(async (_engine, ordered, _options) => {
+    events.push("compile-deferred");
+    return {
+      requested: ordered.length,
+      compiled: ordered.length,
+      parallelCompileSupported: false,
+      issues: [],
+      elapsedMilliseconds: 5,
+      longestVariantMilliseconds: 5
+    };
+  });
+  const collectVariants = vi.fn((_engine, _scene, _camera, _roots, opts) =>
+    opts?.onlyEnabledRenderers
+      ? [{ shader: "Terrain/Terrain", ssi: 0, pi: 0, m: [] }]
+      : [
+          { shader: "Terrain/Terrain", ssi: 0, pi: 0, m: [] },
+          { shader: "Masonry/Brick", ssi: 0, pi: 0, m: [] }
+        ]
+  );
+  const run = () =>
+    runSeedWorldStartupShaderWarmup({
+      precompileShaders: enabled,
+      engine: {} as any,
+      scene: { rootEntities: roots } as any,
+      camera: { enabled: true } as any,
+      pageUrl: new URL("http://localhost/"),
+      canvas: { dataset: {} } as any,
+      showAssistant: true,
+      isDisposed: () => disposed,
+      progress: vi.fn(),
+      timed: (_name, work) => work(),
+      prepareFarmingPresentation: () =>
+        farm.promise.then(() => {
+          roots.push(farm);
+        }),
+      prepareAnimalPresentation: () =>
         animal.promise.then(() => {
           roots.push(animal);
-        })
-    },
-    publication: {
-      current: {
-        vegetation: {
-          preparePresentation: async () => {
-            events.push("lod");
-          }
-        }
-      }
-    },
-    warmupSeedWorldRendererVariants: warmup,
-    engine: {},
-    tools: {
-      preparePresentation: () => {
+        }),
+      prepareVegetationPresentation: async () => {
+        events.push("lod");
+      },
+      prepareAssistantPresentation: () => {
         events.push("hud");
-        return { root: { getComponentsIncludeChildren: () => ["hidden-hud"] } };
+        return { root: { getComponentsIncludeChildren: () => ["hidden-hud"] } as any };
+      },
+      getPostProcessWarmupState: () => ({ enabled: true }) as any,
+      additionalBackgroundMaterials: [],
+      warmupOperations: {
+        hasParallelShaderCompile: () => parallelCompile,
+        collectSeedWorldRendererVariants: collectVariants as any,
+        findMissingSeedWorldShaderVariants: (_primary, all) => all.slice(1),
+        warmupSeedWorldRendererVariants: warmup as any,
+        warmupSeedWorldShaderVariants: warmupVariants as any
       }
-    },
-    options: {},
-    Renderer: class {},
-    scene: { rootEntities: roots },
-    camera: {},
-    post: { getShaderWarmupState: () => ({ enabled: true }) },
-    environment: { shaderWarmupBackgroundMaterials: [] },
-    pageUrl: new URL("http://localhost/"),
-    canvas: { dataset: {} }
-  };
+    });
   return {
     farm,
     animal,
     warmup,
+    warmupVariants,
     events,
-    run: new Function(...Object.keys(state), code)(...Object.values(state)) as () => Promise<void>
+    run
   };
 }
 
 describe("startup shader publication boundary", () => {
+  it("SeedWorldDemo delegates startup precompilation to runSeedWorldStartupShaderWarmup", () => {
+    const demoSource = readFileSync(new URL("../../demos/seed-world/SeedWorldDemo.ts", import.meta.url), "utf8");
+    expect(demoSource).toContain("runSeedWorldStartupShaderWarmup({");
+  });
   it("collects after both published owners finish and LOD state is applied", async () => {
     const f = fixture(),
       task = f.run();
@@ -107,6 +111,17 @@ describe("startup shader publication boundary", () => {
     expect(f.events).toEqual(["lod", "hud", "compile"]);
     expect(f.warmup).toHaveBeenCalledOnce();
     expect(f.warmup.mock.calls[0][4].overlayRenderers).toEqual(["hidden-hud"]);
+  });
+  it("defers secondary variants when KHR_parallel_shader_compile is unavailable", async () => {
+    const f = fixture(true, false, false),
+      task = f.run();
+    f.farm.resolve();
+    f.animal.resolve();
+    const result = await task;
+    expect(f.events).toEqual(["lod", "hud", "compile-deferred"]);
+    expect(f.warmup).not.toHaveBeenCalled();
+    expect(f.warmupVariants).toHaveBeenCalledOnce();
+    expect(result.deferredShaderVariants).toEqual([{ shader: "Masonry/Brick", ssi: 0, pi: 0, m: [] }]);
   });
   it("does not compile into a disposed scene after asynchronous preparation", async () => {
     const f = fixture(true, true),

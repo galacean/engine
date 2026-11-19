@@ -113,7 +113,14 @@ function inspectFlashAppBuild(outputRoot) {
     "production asset catalog"
   );
 
-  for (const requiredRelative of [plantSpeciesRelative, plantCatalogRelative]) {
+  for (const { relative: requiredRelative, virtualPath } of [
+    { relative: plantSpeciesRelative, virtualPath: "World/Vegetation/plant-species.json" },
+    { relative: plantCatalogRelative, virtualPath: "World/Vegetation/production-catalog.json" }
+  ]) {
+    const mappedEntry = emittedProject.files.find((entry) => entry?.virtualPath === virtualPath);
+    if (mappedEntry && typeof mappedEntry.path === "string" && /^https:\/\//i.test(mappedEntry.path)) {
+      continue;
+    }
     const target = resolve(outputRoot, requiredRelative);
     if (!existsSync(target) || !statSync(target).isFile() || statSync(target).size === 0) {
       throw new Error(`Flash App build is missing procedural plant manifest: ${requiredRelative}`);
@@ -122,14 +129,28 @@ function inspectFlashAppBuild(outputRoot) {
 
   let fileCount = 0;
   let totalBytes = 0;
+  const unoffloadedCdnWarnings = [];
   walkFiles(outputRoot, (filePath) => {
     const extension = extname(filePath).toLowerCase();
     if (PUGC_UNSUPPORTED_ASSET_EXTENSIONS.has(extension)) {
       throw new Error(`Flash App build contains an asset extension that PUGC will not publish: ${filePath}`);
     }
+    const rel = filePath.slice(outputRoot.length + 1).split(sep).join("/");
+    if (
+      /^assets\/seed-world-project-text-bundle-[a-f0-9]+\.json$/u.test(rel) ||
+      /^assets\/esbuild-[a-f0-9]+\.wasm$/u.test(rel)
+    ) {
+      unoffloadedCdnWarnings.push(rel);
+    }
     fileCount += 1;
     totalBytes += statSync(filePath).size;
   });
+  if (unoffloadedCdnWarnings.length > 0) {
+    console.warn(
+      `[seed-world-flash-app] Local CDN-eligible asset(s) not yet in flash-app-cdn-manifest.json: ` +
+        `${unoffloadedCdnWarnings.join(", ")}. Run \`sync-flash-app-cdn-assets.py --apply\` and rebuild to serve them from mdn.alipayobjects.com.`
+    );
+  }
   return { fileCount, totalBytes };
 }
 
