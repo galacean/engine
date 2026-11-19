@@ -128,7 +128,7 @@ export class VolumetricCloudDirectionCacheRenderer {
     };
   }
 
-  render(material: VolumetricCloudMaterial, preset: VolumetricCloudQualityPreset): void {
+  render(material: VolumetricCloudMaterial, preset: VolumetricCloudQualityPreset, allowMultiplePerFrame = false): void {
     if (this._snapshotLeaseCount > 0 || this._endpointBorrower) {
       this._lastEngineFrame = this._engine.time.frameCount;
       this._publish(material);
@@ -138,7 +138,7 @@ export class VolumetricCloudDirectionCacheRenderer {
     const targetsChanged = this._ensureTargets(preset.directionCacheSize, format);
     const resetRequired = targetsChanged || this._invalidated;
     const engineFrame = this._engine.time.frameCount;
-    if (this._lastEngineFrame === engineFrame) {
+    if (!allowMultiplePerFrame && this._lastEngineFrame === engineFrame) {
       if (resetRequired) {
         this._resetAndClearTargets(Math.min(preset.directionInvalidationBurstSlices, preset.directionCacheSlices));
         this._invalidated = false;

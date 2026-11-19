@@ -31,14 +31,15 @@ export class PlanningProjectStorage {
     return pending === true ? `legacy:${this.project.id ?? this.project.projectPackage.project.scene}` : pending;
   }
 
+  /** True when lake/river/ocean default materials are already registered in the project manifest. */
+  get hasCoreWaterDefaults(): boolean {
+    const existingFiles = new Set(this.project.projectPackage.project.files.map((file) => file.virtualPath));
+    return ["lake", "river", "ocean"].every((kind) => existingFiles.has(`Water/Materials/${kind}.mat`));
+  }
+
   /** New Source authoring baseline is ready before the first Engine Scene load. */
   async initialize(document: PlanningDocument, result: SemanticResult, waterResetRequest?: string): Promise<PlanningDocument> {
-    const existingPack = this.project.projectPackage;
-    const existingFiles = new Set(existingPack.project.files.map((file) => file.virtualPath));
-    const hasCoreWaterDefaults = ["lake", "river", "ocean"].every((kind) =>
-      existingFiles.has(`Water/Materials/${kind}.mat`)
-    );
-    const defaults = hasCoreWaterDefaults ? undefined : await loadPlanningWaterDefaults();
+    const defaults = this.hasCoreWaterDefaults ? undefined : await loadPlanningWaterDefaults();
     const build = (pack: RuntimeProjectSession["projectPackage"]) => {
       const draft = new RuntimeProjectEdit(pack, new Map([...nativeAssetFormats(() => ({})), ...this.formats]));
       const request = waterResetRequest ?? this.pendingWaterReset;

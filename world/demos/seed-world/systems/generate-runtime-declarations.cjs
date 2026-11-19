@@ -70,5 +70,7 @@ for (const key of Object.keys(out))
   });
 out["index.d.ts"] = `export * from "./${runtimeKey}";\n`;
 const target = path.join(repo, "world/demos/seed-world/systems/runtime-declarations.json");
+const indexTarget = path.join(repo, "world/demos/seed-world/systems/runtime-declarations-index.json");
 fs.writeFileSync(target, JSON.stringify(out, null, 0));
+fs.writeFileSync(indexTarget, JSON.stringify(Object.keys(out), null, 0));
 console.log(Object.keys(out).length, "files");

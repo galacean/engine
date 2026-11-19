@@ -2,27 +2,44 @@ import type { PlanningWorldHandoff } from "./src/planning/spatial/runtime/Planni
 import { planningStartupSeed, selectPlanningStartupTemplate } from "./src/planning/spatial/PlanningStartupSeed.ts";
 import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
 import { planningPageUrl } from "./src/planning/spatial/PlanningPageUrl.ts";
+import { seedWorldBootTrace } from "./src/SeedWorldBootTrace.ts";
 
 /** The planning preview and native Seed page have independent renderer lifetimes. */
 async function enterSeedWorld(handoff?: PlanningWorldHandoff): Promise<void> {
   document.getElementById("planning-app")?.remove();
   document.body.classList.remove("island-plan-page", "base-map-page");
   document.body.dataset.mode = "world";
-  document.body.dataset.pageMode = planningPageUrl().url.searchParams.get("debug") === "1" ? "debug" : "runtime";
+  const pageUrl = planningPageUrl().url;
+  document.body.dataset.pageMode = pageUrl.searchParams.get("debug") === "1" ? "debug" : "runtime";
   document.title = "Seed World";
+  const bootTraceParam = pageUrl.searchParams.get("bootTrace") === "1";
+  const trace = pageUrl.searchParams.get("agentTrace") === "1" || bootTraceParam;
+  seedWorldBootTrace.configure({
+    url: pageUrl.href,
+    verbose: trace || pageUrl.searchParams.get("debug") === "1",
+    autoOpenOverlay: bootTraceParam
+  });
+  seedWorldBootTrace.phase("entry.enterSeedWorld", 0);
   const styles = document.createElement("link");
   styles.rel = "stylesheet";
   styles.href = new URL("./styles.css", import.meta.url).href;
+  const stylesSpan = seedWorldBootTrace.startSpan("entry.styles");
   const loaded = new Promise<void>((resolve, reject) => {
-    styles.onload = () => resolve();
-    styles.onerror = () => reject(new Error("Seed 样式加载失败"));
+    styles.onload = () => {
+      stylesSpan.end();
+      resolve();
+    };
+    styles.onerror = () => {
+      const err = new Error("Seed 样式加载失败");
+      stylesSpan.fail(err);
+      reject(err);
+    };
   });
   document.head.append(styles);
-  const trace = planningPageUrl().url.searchParams.get("agentTrace") === "1";
   const entryTiming = { timeOrigin: performance.timeOrigin, moduleImportStartMs: performance.now(), moduleImportEndMs: 0, stylesReadyMs: 0, mountStartMs: 0 };
   const reportEntry = () => { if (trace) document.body.dataset.seedWorldEntryTiming = JSON.stringify(entryTiming); };
   reportEntry();
-  const { mountSeedWorldDemo } = await import("./SeedWorldDemo.ts");
+  const { mountSeedWorldDemo } = await seedWorldBootTrace.span("entry.importSeedWorldDemo", () => import("./SeedWorldDemo.ts"));
   entryTiming.moduleImportEndMs = performance.now();
   reportEntry();
   await loaded;

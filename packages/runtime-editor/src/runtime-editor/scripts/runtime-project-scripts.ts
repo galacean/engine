@@ -73,6 +73,13 @@ export class RuntimeProjectScripts {
     const project = projectScriptInputs(pack);
     return { declarations: { ...this.host.declarations, ...project.declarations } };
   }
+  async resolveEnvironment(pack: RuntimeProjectPackage) {
+    const [hostDeclarations, project] = await Promise.all([
+      this.host.loadDeclarations(),
+      Promise.resolve(projectScriptInputs(pack))
+    ]);
+    return { declarations: { ...hostDeclarations, ...project.declarations } };
+  }
   private readonly compiler = new RuntimeScriptWorker();
   private modules?: RuntimeScriptModules;
   private built?: {
@@ -85,16 +92,21 @@ export class RuntimeProjectScripts {
     sources: Record<string, string>,
     signal?: AbortSignal,
     analyzeOnly = false,
-    environment: ReturnType<typeof projectScriptInputs> = { declarations: this.host.declarations }
+    environment?: ReturnType<typeof projectScriptInputs>
   ): Promise<CompiledRuntimeScripts> {
     signal?.throwIfAborted();
+    const hostDeclarations = await this.host.loadDeclarations();
+    signal?.throwIfAborted();
+    const resolvedDeclarations = environment
+      ? { ...hostDeclarations, ...environment.declarations }
+      : { ...hostDeclarations };
     if (
       this.built &&
       sameTextFiles(this.built.sources, sources) &&
-      sameTextFiles(this.built.declarations, environment.declarations)
+      sameTextFiles(this.built.declarations, resolvedDeclarations)
     )
       return this.built.result;
-    const inputs = { sources: { ...sources }, declarations: { ...environment.declarations } };
+    const inputs = { sources: { ...sources }, declarations: resolvedDeclarations };
     const result = await this.compiler.compile(
       inputs.sources,
       signal,
@@ -150,7 +162,7 @@ export class RuntimeProjectScripts {
       if (typeof source !== "string") throw new Error(`Missing script source '${file.virtualPath}'`);
       sources[file.virtualPath] = source;
     }
-    const environment = this.environment(pack);
+    const environment = await this.resolveEnvironment(pack);
     const sameExternals =
       this.preparedExternals &&
       Object.keys(externals).length === Object.keys(this.preparedExternals).length &&

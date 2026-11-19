@@ -219,7 +219,8 @@ export class RuntimeProjectSession {
     private readonly storage: RuntimeProjectStorage,
     modules: readonly RuntimeScriptModule[] = [],
     private needsInitialization = false,
-    persistenceOptions?: RuntimeProjectPersistenceOptions
+    persistenceOptions?: RuntimeProjectPersistenceOptions,
+    private readonly prefetchedTextAssets?: ReadonlyMap<string, string>
   ) {
     this.scripts = new RuntimeProjectScripts(modules);
     this.dependencyMaintenance = new RuntimeDependencyMaintenance(projectPackage, this.referenceFormats);
@@ -241,7 +242,11 @@ export class RuntimeProjectSession {
     id: string,
     initial: RuntimeProjectManifest,
     baseUrl: string,
-    options: { scriptModules?: readonly RuntimeScriptModule[]; persistence?: RuntimeProjectPersistenceOptions } = {}
+    options: {
+      scriptModules?: readonly RuntimeScriptModule[];
+      persistence?: RuntimeProjectPersistenceOptions;
+      prefetchedTextAssets?: ReadonlyMap<string, string>;
+    } = {}
   ): Promise<RuntimeProjectSession> {
     const storage = await RuntimeProjectStorage.open();
     try {
@@ -261,7 +266,8 @@ export class RuntimeProjectSession {
         storage,
         options.scriptModules,
         saved === undefined,
-        options.persistence
+        options.persistence,
+        options.prefetchedTextAssets
       );
     } catch (error) {
       storage.close();
@@ -413,6 +419,10 @@ export class RuntimeProjectSession {
     file: RuntimeProjectManifest["files"][number],
     signal = this.lifetime.signal
   ): Promise<string | Uint8Array> {
+    if (this.isTextAsset(file)) {
+      const preloaded = this.prefetchedTextAssets?.get(file.path);
+      if (preloaded !== undefined) return preloaded;
+    }
     const response = await fetch(file.path, { signal });
     if (!response.ok) throw new Error(`Asset read failed (${response.status}): '${file.virtualPath}'`);
     const text = this.isTextAsset(file);
@@ -522,15 +532,18 @@ export class RuntimeProjectSession {
     const affected = this.resourceChanges.affected(projection);
     // Native Material/Prefab loaders resolve references once. Reissue their URL
     // when a dependency changes, even when their own serialized text is unchanged.
-    for (const file of projection.project.files)
-      if (
+    const pendingDependentFiles = projection.project.files.filter(
+      (file) =>
         affected.has(file.virtualPath) &&
-        file.dependencies?.length &&
+        Boolean(file.dependencies?.length) &&
         projection.contents[file.virtualPath] === undefined
-      ) {
-        await provider.prepare!(file.virtualPath, signal);
+    );
+    if (pendingDependentFiles.length > 0) {
+      await this.prepareFilesParallel(pendingDependentFiles, signal);
+      for (const file of pendingDependentFiles) {
         projection.contents[file.virtualPath] = this.projectPackage.contents[file.virtualPath];
       }
+    }
     const compiled = compileProjectResources(
       projection,
       this.unavailableScripts.size ? (path) => this.unavailableScripts.has(path) : undefined

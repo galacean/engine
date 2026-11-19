@@ -4,6 +4,7 @@ import type { SemanticParameters, SemanticEdit, SemanticResult } from "@galacean
 import type { PlanningWorkerRequest, PlanningWorkerResponse } from "./WorldPlanning.worker.ts";
 import { adoptPlanningHeightmap, cachedPlanningHeightmap } from "@galacean/engine-world-planning/semantic-study/PlanningHeightmap";
 import type { PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
+import { seedWorldBootTrace } from "../../SeedWorldBootTrace.ts";
 let ownerSequence = 0;
 export class PlanningWorkerClient {
   private readonly owner = ++ownerSequence;
@@ -93,6 +94,7 @@ export class PlanningWorkerClient {
         worker.onmessage = ({ data }: MessageEvent<PlanningWorkerResponse>) => {
           if (this.worker !== worker) return;
           if (data.type === "progress") {
+            seedWorldBootTrace.event("info", "planning-worker", data.stage);
             if (this.active?.id === data.requestId) this.onProgress?.(data.stage);
             return;
           }
@@ -154,6 +156,7 @@ export class PlanningWorkerClient {
           }
         };
         worker.onerror = (event) => {
+          seedWorldBootTrace.event("error", "planning-worker", event.message || "后台规划线程未能完成请求");
           if (this.worker === worker) this.fail(new Error(event.message || "后台规划线程未能完成请求"));
         };
       }

@@ -23,8 +23,10 @@ import { validatePlanningProject } from "./src/planning/spatial/runtime/Planning
 import { registerPlantProjectAssets } from "@galacean/engine-world-planning/integrations/vegetation/PlantProjectFormats";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
 import { registerNativeWater } from "@galacean/engine-water/water/native/index";
+import { builtinWaterDefaultFiles } from "@galacean/engine-water/water/native/WaterBuiltinAssets";
 import { migrateSeedWorldWaterTextures } from "./SeedWorldWaterTextureMigration";
 import type { AtomicLodManifest } from "@galacean/engine-vegetation/asset-assembly/AssetAssemblyCatalog";
+import { seedWorldBootTrace } from "./src/SeedWorldBootTrace.ts";
 
 /** Author schemas and saved asset catalogs are intentionally incompatible across these save versions.
  * Opening a project deletes saves of any other version before loading, so it starts from the initial world. */
@@ -57,22 +59,40 @@ async function deleteRetiredSeedWorldSaves(projectUrl: string): Promise<void> {
 /** Open a project ready for authoring in both the runtime and the planning editor. */
 export async function openSeedWorldProject(
   pageUrl: URL,
-  initial?: RuntimeProjectManifest
+  initial?: RuntimeProjectManifest,
+  prefetchedTextAssets?: ReadonlyMap<string, string>
 ): Promise<RuntimeProjectSession> {
   const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, location.href).href;
   const raw = pageUrl.searchParams.get("seed");
   const seed = raw !== null && /^\d+$/.test(raw) && Number(raw) <= 0xffffffff ? Number(raw) : SEMANTIC_DEFAULTS.seed;
   const template = worldTemplate(pageUrl.searchParams.get("template"))?.id ?? "original";
   if (!initial) {
-    const response = await fetch(projectUrl);
-    if (!response.ok) throw new Error(`Project manifest read failed (${response.status})`);
-    initial = (await response.json()) as RuntimeProjectManifest;
+    const preloaded = prefetchedTextAssets?.get(projectUrl);
+    if (preloaded !== undefined) {
+      initial = JSON.parse(preloaded) as RuntimeProjectManifest;
+    } else {
+      const response = await fetch(projectUrl);
+      if (!response.ok) throw new Error(`Project manifest read failed (${response.status})`);
+      initial = (await response.json()) as RuntimeProjectManifest;
+    }
   }
-  initial = { ...initial, files: [...initial.files, ...builtinBuildingAssetFiles, ...builtinBuildingPresetFiles] };
+  const existingVirtualPaths = new Set(initial.files.map((file) => file.virtualPath));
+  initial = {
+    ...initial,
+    files: [
+      ...initial.files,
+      ...builtinBuildingAssetFiles,
+      ...builtinBuildingPresetFiles,
+      ...builtinWaterDefaultFiles.filter((file) => !existingVirtualPaths.has(file.virtualPath))
+    ]
+  };
   void deleteRetiredSeedWorldSaves(projectUrl);
-  const project = await RuntimeProjectSession.open(seedWorldProjectStorageId(seed, projectUrl, template), initial, projectUrl, {
-    scriptModules: seedWorldScriptModules
-  });
+  const project = await seedWorldBootTrace.span("openSeedWorldProject.sessionOpen", () =>
+    RuntimeProjectSession.open(seedWorldProjectStorageId(seed, projectUrl, template), initial, projectUrl, {
+      scriptModules: seedWorldScriptModules,
+      prefetchedTextAssets
+    })
+  );
   try {
     registerNativeFarming();
     registerNativeWater();
@@ -80,12 +100,24 @@ export async function openSeedWorldProject(
     registerBuildingAssetComponents();
     registerPlantProjectAssets();
     project.registerAssetFormats(seedWorldProjectFormats);
-    await migrateBuildingAssetPaths(project, initial, projectUrl);
-    await migrateSeedWorldWaterTextures(project);
-    await project.prepareEditableHierarchies((name) => Boolean(Loader.getClass(name)));
-    await project.initializeDependencies();
-    await migrateVegetationAssets(project, initial, projectUrl);
-    await project.initializeDependencies();
+    await seedWorldBootTrace.span("openSeedWorldProject.migrateBuildingAssetPaths", () =>
+      migrateBuildingAssetPaths(project, initial, projectUrl)
+    );
+    await seedWorldBootTrace.span("openSeedWorldProject.migrateWaterTextures", () =>
+      migrateSeedWorldWaterTextures(project)
+    );
+    await seedWorldBootTrace.span("openSeedWorldProject.prepareEditableHierarchies", () =>
+      project.prepareEditableHierarchies((name) => Boolean(Loader.getClass(name)))
+    );
+    await seedWorldBootTrace.span("openSeedWorldProject.initializeDependencies#1", () =>
+      project.initializeDependencies()
+    );
+    await seedWorldBootTrace.span("openSeedWorldProject.migrateVegetationAssets", () =>
+      migrateVegetationAssets(project, initial, projectUrl)
+    );
+    await seedWorldBootTrace.span("openSeedWorldProject.initializeDependencies#2", () =>
+      project.initializeDependencies()
+    );
     project.registerProjectValidator(validatePlanningProject);
     return project;
   } catch (error) {

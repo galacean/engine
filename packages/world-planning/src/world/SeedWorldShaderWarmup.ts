@@ -52,6 +52,9 @@ export interface SeedWorldShaderWarmupReport {
   readonly compiled: number;
   /** True when compilation and cache validation were deliberately bypassed. */
   readonly skipped?: boolean;
+  readonly parallelCompileSupported?: boolean;
+  /** Variants not yet submitted because maxElapsedMilliseconds was reached. */
+  readonly deferred?: readonly SeedWorldShaderVariantEntry[];
   readonly issues: readonly SeedWorldShaderWarmupIssue[];
   readonly elapsedMilliseconds: number;
   readonly longestVariantMilliseconds: number;
@@ -65,8 +68,12 @@ export interface SeedWorldShaderWarmupOptions {
   readonly cacheOnly?: boolean;
   /** Main-thread work allowed before yielding to the Loading Scene. */
   readonly frameBudgetMilliseconds?: number;
-  /** Maximum concurrent async-compiling WebGL shader programs in flight. */
+  /** Maximum concurrent async-compiling WebGL shader programs in flight when KHR_parallel_shader_compile is available. */
   readonly maximumPendingPrograms?: number;
+  /** Optional wall-clock cap for startup warmup; remaining unsubmitted entries are returned in `report.deferred`. */
+  readonly maxElapsedMilliseconds?: number;
+  /** Preserve caller-supplied priority order instead of lexicographical sorting. */
+  readonly preserveOrder?: boolean;
   readonly strict?: boolean;
   readonly onProgress?: (completed: number, total: number) => void;
   /** Diagnostic receipt of exact requested identities before compilation. */
@@ -95,6 +102,14 @@ export interface SeedWorldRendererWarmupOptions extends SeedWorldShaderWarmupOpt
   readonly additionalRendererMacroSets?: readonly (readonly SeedWorldShaderVariantMacro[])[];
   /** Also compile Galacean's automatic GPU batching variant for Renderer-owned geometry. */
   readonly includeGpuInstancing?: boolean;
+  /** Restrict automatic GPU batching variants to mesh+material pairs shared by >= 2 renderers. */
+  readonly onlySharedMeshGpuInstancing?: boolean;
+  /** Skip disabled Renderer components (e.g. inactive LOD transitions / disabled weather emitters) for fast first-frame warmup. */
+  readonly onlyEnabledRenderers?: boolean;
+  /** Whether to expand resident masonry shaders with symmetric RENDERER_MASONRY_DITHER variants. Defaults to true. */
+  readonly includeMasonryDither?: boolean;
+  /** Whether to expand compact vegetation shaders with RENDERER_INSTANCE_GENERATION_REVEAL variants. Defaults to true. */
+  readonly includeInstanceEntrance?: boolean;
   /** Roots that will activate at publication; their current inactive gate is ignored only for prediction. */
   readonly activatedLightRoots?: readonly Entity[];
   /** Accepted roots that will retire in that same publication. */
@@ -156,6 +171,11 @@ const DEFAULT_FRAME_BUDGET_MILLISECONDS = 6;
 const ASSET_ASSEMBLY_INSTANCE_MACRO = ShaderMacro.getByName("RENDERER_ASSET_ASSEMBLY_INSTANCE");
 const ASSET_ASSEMBLY_RENDERER_INSTANCE_MACRO = ShaderMacro.getByName("RENDERER_ASSET_ASSEMBLY_RENDERER_INSTANCE");
 
+export function hasParallelShaderCompile(engine: Engine): boolean {
+  const gl = (engine as unknown as { _hardwareRenderer?: { gl?: WebGLRenderingContext } })._hardwareRenderer?.gl;
+  return Boolean(gl?.getExtension?.("KHR_parallel_shader_compile"));
+}
+
 export async function warmupSeedWorldShaderVariants(
   engine: Engine,
   sourceEntries: readonly SeedWorldShaderVariantEntry[],
@@ -163,10 +183,16 @@ export async function warmupSeedWorldShaderVariants(
 ): Promise<SeedWorldShaderWarmupReport> {
   options.signal?.throwIfAborted();
   if (options.enabled === false) return skippedWarmupReport(sourceEntries.length);
-  const entries = normalizeSeedWorldShaderVariants(sourceEntries);
+  const entries = options.preserveOrder
+    ? deduplicateOrderedShaderVariants(sourceEntries)
+    : normalizeSeedWorldShaderVariants(sourceEntries);
   const issues: SeedWorldShaderWarmupIssue[] = [];
   const startedAt = performance.now();
   const frameBudgetMilliseconds = Math.max(0, options.frameBudgetMilliseconds ?? DEFAULT_FRAME_BUDGET_MILLISECONDS);
+  const maxElapsedMilliseconds =
+    options.maxElapsedMilliseconds !== undefined && Number.isFinite(options.maxElapsedMilliseconds)
+      ? Math.max(0, options.maxElapsedMilliseconds)
+      : undefined;
   let frameStartedAt = startedAt;
   let compiled = 0;
   let longestVariantMilliseconds = 0;
@@ -178,7 +204,8 @@ export async function warmupSeedWorldShaderVariants(
   const programs = new Map<RuntimeShaderProgram, ProgramState>();
   const pending = new Map<RuntimeShaderProgram, ProgramState>();
   // Slots belong to effective programs, not macro aliases. Refill as soon as any slot is freed.
-  const maximumPendingPrograms = Math.max(1, options.maximumPendingPrograms ?? 16);
+  const maximumPendingPrograms = Math.max(1, Math.floor(options.maximumPendingPrograms ?? 16));
+  const parallelCompileSupported = hasParallelShaderCompile(engine);
   let reportedCompleted = -1;
   const reportProgress = () => {
     const completed = compiled + issues.length;
@@ -244,9 +271,18 @@ export async function warmupSeedWorldShaderVariants(
   };
 
   let nextEntry = 0;
-  while (nextEntry < entries.length || pending.size > 0) {
+  let budgetExceeded = false;
+  while ((nextEntry < entries.length && !budgetExceeded) || pending.size > 0) {
     options.signal?.throwIfAborted();
-    while (nextEntry < entries.length && pending.size < maximumPendingPrograms) {
+    while (nextEntry < entries.length && !budgetExceeded && pending.size < maximumPendingPrograms) {
+      if (
+        maxElapsedMilliseconds !== undefined &&
+        nextEntry > 0 &&
+        performance.now() - startedAt >= maxElapsedMilliseconds
+      ) {
+        budgetExceeded = true;
+        break;
+      }
       submit(entries[nextEntry++]);
       if (performance.now() - frameStartedAt >= frameBudgetMilliseconds) await yieldFrame();
     }
@@ -271,16 +307,19 @@ export async function warmupSeedWorldShaderVariants(
       }
       if (performance.now() - frameStartedAt >= frameBudgetMilliseconds) await yieldFrame();
       // Do not wait for the slowest program in the old batch before submitting more work.
-      if (state.settled && nextEntry < entries.length) break;
+      if (state.settled && !budgetExceeded && nextEntry < entries.length) break;
     }
-    if (nextEntry < entries.length && pending.size < maximumPendingPrograms) continue;
+    if (!budgetExceeded && nextEntry < entries.length && pending.size < maximumPendingPrograms) continue;
     if (pending.size > 0) await yieldFrame();
   }
   reportProgress();
+  const deferred = nextEntry < entries.length ? Object.freeze(entries.slice(nextEntry)) : undefined;
 
   const report: SeedWorldShaderWarmupReport = Object.freeze({
     requested: entries.length,
     compiled,
+    parallelCompileSupported,
+    ...(deferred ? { deferred } : {}),
     issues: Object.freeze(issues),
     elapsedMilliseconds: performance.now() - startedAt,
     longestVariantMilliseconds
@@ -311,6 +350,21 @@ export async function warmupSeedWorldRendererVariants(
   const variants = collectSeedWorldRendererVariants(engine, scene, camera, roots, options);
   options.onVariants?.(variants);
   return warmupSeedWorldShaderVariants(engine, variants, options);
+}
+
+function deduplicateOrderedShaderVariants(
+  sourceEntries: readonly SeedWorldShaderVariantEntry[]
+): readonly SeedWorldShaderVariantEntry[] {
+  const seen = new Set<string>();
+  const ordered: SeedWorldShaderVariantEntry[] = [];
+  for (const entry of sourceEntries) {
+    const normalized = normalizeSeedWorldShaderVariants([entry])[0]!;
+    const key = seedWorldShaderVariantKey(normalized);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    ordered.push(normalized);
+  }
+  return Object.freeze(ordered);
 }
 
 function skippedWarmupReport(requested: number): SeedWorldShaderWarmupReport {
@@ -388,8 +442,32 @@ export function collectSeedWorldRendererVariants(
           ...authoredMacroVariants.map((set) => Object.freeze([...set, { n: "RENDERER_GPU_INSTANCE" }]))
         ]);
 
-  for (const sourceRenderer of new Set(renderers)) {
+  const uniqueRenderers = [...new Set(renderers)];
+  const sharedMeshMaterialCounts = options.onlySharedMeshGpuInstancing
+    ? new Map<object, Map<object, number>>()
+    : undefined;
+  if (sharedMeshMaterialCounts) {
+    for (const sourceRenderer of uniqueRenderers) {
+      if (options.includeInactiveEntities === false && !sourceRenderer.entity.isActiveInHierarchy) continue;
+      if (options.onlyEnabledRenderers && !sourceRenderer.enabled) continue;
+      if (!(sourceRenderer instanceof MeshRenderer) || sourceRenderer instanceof SkinnedMeshRenderer) continue;
+      const mesh = (sourceRenderer as unknown as RuntimeMeshRenderer).mesh;
+      if (!mesh) continue;
+      let materialMap = sharedMeshMaterialCounts.get(mesh);
+      if (!materialMap) {
+        materialMap = new Map<object, number>();
+        sharedMeshMaterialCounts.set(mesh, materialMap);
+      }
+      for (const material of sourceRenderer.getMaterials()) {
+        if (!material || material.destroyed || material.shader.destroyed) continue;
+        materialMap.set(material, (materialMap.get(material) ?? 0) + 1);
+      }
+    }
+  }
+
+  for (const sourceRenderer of uniqueRenderers) {
     if (options.includeInactiveEntities === false && !sourceRenderer.entity.isActiveInHierarchy) continue;
+    if (options.onlyEnabledRenderers && !sourceRenderer.enabled) continue;
     const isMesh = sourceRenderer instanceof MeshRenderer;
     const isParticle = sourceRenderer instanceof ParticleRenderer;
     if (!isMesh && !isParticle) continue;
@@ -430,16 +508,24 @@ export function collectSeedWorldRendererVariants(
       rendererMacros.isEnable(ASSET_ASSEMBLY_INSTANCE_MACRO) &&
       !rendererMacros.isEnable(ASSET_ASSEMBLY_RENDERER_INSTANCE_MACRO);
     // Particle instancing is generator-owned; mesh batching and asset entrance are not particle features.
-    const rendererMacroVariants = isParticle
-      ? options.particleWindRenderers?.includes(sourceRenderer as ParticleRenderer)
+    const canGpuInstanceRenderer =
+      !isParticle && !ownsInstanceGeometry && !(sourceRenderer instanceof SkinnedMeshRenderer);
+    const particleMacroVariants: readonly (readonly SeedWorldShaderVariantMacro[])[] =
+      options.particleWindRenderers?.includes(sourceRenderer as ParticleRenderer)
         ? [[], [{ n: "RENDERER_WOL_MODULE_ENABLED" }, { n: "RENDERER_TRANSFORM_FEEDBACK" }]]
-        : [[]]
-      : ownsInstanceGeometry || sourceRenderer instanceof SkinnedMeshRenderer
-        ? authoredMacroVariants
-        : gpuInstancedMacroVariants;
+        : [[]];
 
     for (const material of renderer.getMaterials()) {
       if (!material || material.destroyed || material.shader.destroyed) continue;
+      const useGpuInstancingForMaterial =
+        canGpuInstanceRenderer &&
+        (!sharedMeshMaterialCounts ||
+          (renderer.mesh !== undefined && (sharedMeshMaterialCounts.get(renderer.mesh)?.get(material) ?? 0) >= 2));
+      const rendererMacroVariants = isParticle
+        ? particleMacroVariants
+        : useGpuInstancingForMaterial
+          ? gpuInstancedMacroVariants
+          : authoredMacroVariants;
       // Material admission is not a shader macro: an opted-in contributor must not be deduplicated
       // against an otherwise identical non-contributor before its extra passes are collected.
       const contributionKey = material.contributeScreenSpaceReflection
@@ -617,7 +703,10 @@ export function collectSeedWorldRendererVariants(
   // Resource preparation compiles the actual scene/material contract. A
   // speculative environment-blend macro is not valid for every shader and
   // must not be injected into an otherwise renderable candidate.
-  return withSeedWorldMasonryDitherVariants(withSeedWorldInstanceEntranceVariants(variants));
+  let collected: readonly SeedWorldShaderVariantEntry[] = variants;
+  if (options.includeInstanceEntrance !== false) collected = withSeedWorldInstanceEntranceVariants(collected);
+  if (options.includeMasonryDither !== false) collected = withSeedWorldMasonryDitherVariants(collected);
+  return normalizeSeedWorldShaderVariants(collected);
 }
 
 /** Predict LightManager registration after the atomic root swap without activating any entity. */

@@ -23,8 +23,6 @@ import {
 import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import type { RiverMaterialConfig } from "../../authoring/river/RiverAuthoringTypes";
 import type { RiverCompiledSurfaceMotionData } from "../../compiler/river/types";
-import riverFoamPixels from "../../resources/river/assets/foam.rgba.base64?raw";
-import riverNormalPixels from "../../resources/river/assets/normals.rgba.base64?raw";
 import type { WaterReflectionBinding } from "../optics/WaterReflectionService";
 import {
   applyWaterSurfaceOpticsBinding,
@@ -77,22 +75,74 @@ const surfaceNormalTextures = new WeakMap<Engine, Texture2D>();
 
 const foamTextures = new WeakMap<Engine, Texture2D>();
 
-function getRiverTexture(engine: Engine, cache: WeakMap<Engine, Texture2D>, data: string, name: string): Texture2D {
-  const existing = cache.get(engine);
-  if (existing && !existing.destroyed) return existing;
+let loadedRiverNormalPixels: string | undefined;
+let loadedRiverFoamPixels: string | undefined;
+let loadingRiverDefaultTextures: Promise<void> | undefined;
+
+/** Loads legacy base64 fallback textures off the main startup bundle on demand. */
+export function preloadRiverDefaultTextures(): Promise<void> {
+  if (loadedRiverNormalPixels !== undefined && loadedRiverFoamPixels !== undefined) {
+    return Promise.resolve();
+  }
+  loadingRiverDefaultTextures ??= Promise.all([
+    import("../../resources/river/assets/normals.rgba.base64?raw"),
+    import("../../resources/river/assets/foam.rgba.base64?raw")
+  ])
+    .then(([normalModule, foamModule]) => {
+      loadedRiverNormalPixels = normalModule.default;
+      loadedRiverFoamPixels = foamModule.default;
+    })
+    .catch((error) => {
+      loadingRiverDefaultTextures = undefined;
+      throw error;
+    });
+  return loadingRiverDefaultTextures;
+}
+
+function uploadBase64RiverTexture(texture: Texture2D, data: string): void {
   const decoded = atob(data.trim());
   const pixels = Uint8Array.from(decoded, (value) => value.charCodeAt(0));
+  texture.setPixelBuffer(pixels);
+  texture.generateMipmaps();
+}
+
+function getRiverTexture(
+  engine: Engine,
+  cache: WeakMap<Engine, Texture2D>,
+  kind: "normals" | "foam",
+  name: string
+): Texture2D {
+  const existing = cache.get(engine);
+  if (existing && !existing.destroyed) return existing;
   const texture = new Texture2D(engine, 512, 512, undefined, true, false);
   texture.name = name;
   texture.isGCIgnored = true;
   texture.filterMode = TextureFilterMode.Trilinear;
   texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Repeat;
-  texture.setPixelBuffer(pixels);
-  texture.generateMipmaps();
+  const readData = () => (kind === "normals" ? loadedRiverNormalPixels : loadedRiverFoamPixels);
+  const initialData = readData();
+  if (initialData !== undefined) {
+    uploadBase64RiverTexture(texture, initialData);
+  } else {
+    void preloadRiverDefaultTextures().then(() => {
+      const data = readData();
+      if (!texture.destroyed && data !== undefined) {
+        uploadBase64RiverTexture(texture, data);
+      }
+    });
+  }
   registerWaterContentRestorer(engine, texture, () => {
-    const decoded = atob(data.trim());
-    texture.setPixelBuffer(Uint8Array.from(decoded, (value) => value.charCodeAt(0)));
-    texture.generateMipmaps();
+    const data = readData();
+    if (data !== undefined) {
+      uploadBase64RiverTexture(texture, data);
+    } else {
+      void preloadRiverDefaultTextures().then(() => {
+        const delayed = readData();
+        if (!texture.destroyed && delayed !== undefined) {
+          uploadBase64RiverTexture(texture, delayed);
+        }
+      });
+    }
   });
   cache.set(engine, texture);
   return texture;
@@ -112,11 +162,11 @@ function configureSurfaceMaterial(
   riverSurfaceAppearanceStates.set(material, Object.freeze({ useLocalMap }));
   material.shaderData.setTexture(
     RIVER_SHADER_PROPERTY.surfaceNormalTexture,
-    getRiverTexture(engine, surfaceNormalTextures, riverNormalPixels, "RiverNormals")
+    getRiverTexture(engine, surfaceNormalTextures, "normals", "RiverNormals")
   );
   material.shaderData.setTexture(
     "material_RiverFoamTexture",
-    getRiverTexture(engine, foamTextures, riverFoamPixels, "RiverFoam")
+    getRiverTexture(engine, foamTextures, "foam", "RiverFoam")
   );
   updateRiverMaterial(material, config, flowSpeedMultiplier);
   setRiverSurfaceDepthWriteEnabled(material, false);

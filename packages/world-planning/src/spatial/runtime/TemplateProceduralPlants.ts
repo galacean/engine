@@ -122,9 +122,6 @@ const PROCEDURAL_PALETTE: Record<TemplateProceduralPlantKind, Record<string, Pla
   }
 };
 
-const GENERATED_PLANT_DIR = "../../../../vegetation/src/asset-assembly/generated/procedural-trees/";
-const plantAssetUrl = (file: string) => new URL(`${GENERATED_PLANT_DIR}${file}`, import.meta.url).href;
-
 const SLOT_TEXTURES: Partial<
   Record<
     Exclude<TemplateProceduralPlantKind, "dead-wood">,
@@ -173,13 +170,45 @@ const ALL_TEMPLATE_PLANT_KINDS: readonly TemplateProceduralPlantKind[] = [
   "meadow-flower"
 ];
 
-const TEXTURE_FILES: Readonly<Record<string, { file: string; repeatU?: boolean }>> = {
-  bark: { file: "meadow-birch-bark-256.png", repeatU: true },
-  shrubLeaf: { file: "meadow-birchtree_leaf_01_summer-part-01-256.png" },
-  flowerBlossom: { file: "meadow-flowers_01-part-01-256.png" },
-  flowerPetal: { file: "meadow-flowers_02-part-05-256.png" },
-  grassBlade: { file: "meadow-grass_02_summer-part-01-256.png" },
-  plumeSpray: { file: "meadow-flowers_03-part-01-256.png" }
+// Use static literal URLs so Vite bundles and rewrites every texture for subpath/CDN deployments.
+const TEXTURE_FILES: Readonly<Record<string, { url: string; repeatU?: boolean }>> = {
+  bark: {
+    url: new URL(
+      "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-birch-bark-256.png",
+      import.meta.url
+    ).href,
+    repeatU: true
+  },
+  shrubLeaf: {
+    url: new URL(
+      "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-birchtree_leaf_01_summer-part-01-256.png",
+      import.meta.url
+    ).href
+  },
+  flowerBlossom: {
+    url: new URL(
+      "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-flowers_01-part-01-256.png",
+      import.meta.url
+    ).href
+  },
+  flowerPetal: {
+    url: new URL(
+      "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-flowers_02-part-05-256.png",
+      import.meta.url
+    ).href
+  },
+  grassBlade: {
+    url: new URL(
+      "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-grass_02_summer-part-01-256.png",
+      import.meta.url
+    ).href
+  },
+  plumeSpray: {
+    url: new URL(
+      "../../../../vegetation/src/asset-assembly/generated/procedural-trees/meadow-flowers_03-part-01-256.png",
+      import.meta.url
+    ).href
+  }
 };
 
 /** Preloads reconstructed production plant structures and alpha-cutout textures incrementally on demand per Engine. */
@@ -207,7 +236,7 @@ export async function preloadTemplateProceduralPlantResources(
       const desc = TEXTURE_FILES[key]!;
       pending = engine.resourceManager.load<Texture2D>({
         type: AssetType.Texture,
-        url: plantAssetUrl(desc.file),
+        url: desc.url,
         params: {
           isSRGBColorSpace: true,
           mipmap: true,
@@ -1095,7 +1124,14 @@ export function mountTemplateProceduralPlants(
           const name = `${kind}/lod${lod.lodIndex}/${part.materialId}`;
           const storage = createTreeAssemblyInstanceStorage(root.engine, positioned.length);
           disposals.push(() => storage.instanceBuffer.destroy(true));
-          const view = createTreeAssemblyInstancedMesh(root.engine, part.mesh, positioned.length, bounds, name, storage);
+          const view = createTreeAssemblyInstancedMesh(
+            root.engine,
+            part.mesh,
+            positioned.length,
+            bounds,
+            name,
+            storage
+          );
           disposals.push(() => view.mesh.destroy());
           const partEntity = owner.createChild(name);
           const renderer = partEntity.addComponent(MeshRenderer);

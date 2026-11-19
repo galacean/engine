@@ -709,6 +709,32 @@ export class VolumetricCloudMaterial extends Material implements SkyProceduralVo
     this._bindCloudShadow(context);
   }
 
+  /**
+   * Advances one direction-cache warmup slice during startup without requiring a full world camera render.
+   * Safe to invoke multiple times per frame while a loading overlay owns the screen.
+   * @internal
+   */
+  _advanceStartupComposition(camera: Camera, target: ShaderData): boolean {
+    const context = this._engine._renderContext;
+    const previousCamera = context.camera;
+    const previousFlip = context.flipProjection;
+    try {
+      context.camera = camera;
+      if (!this._directionCacheRenderer.ready) {
+        const preset = VOLUMETRIC_CLOUD_QUALITY_PRESETS[this._quality];
+        this.shaderData.setFloat("material_HorizonStepMultiplier", preset.directionHorizonStepMultiplier);
+        this.shaderData.setFloat("material_HorizonFadeStart", preset.directionHorizonFadeStart);
+        this._directionCacheRenderer.render(this, preset, true);
+      }
+      this._publishSkyComposition(target);
+      this._bindCloudShadow(context);
+      return this._directionCacheRenderer.ready;
+    } finally {
+      context.camera = previousCamera;
+      context.flipProjection = previousFlip;
+    }
+  }
+
   /** Prepare a frozen endpoint with one slice per engine frame and no scene/shadow publication.
    * The source must be ready and have no active IBL snapshot lease. Destroy this material to return its borrowed buffer.
    */

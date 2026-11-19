@@ -8,6 +8,7 @@ import { PlanningWorkerClient } from "../../semantic-study/PlanningWorkerClient.
 import { SEMANTIC_DEFAULTS, type SemanticResult } from "@galacean/engine-world-planning/semantic-study/WorldPlanningContract";
 import { defaultPoiLayout } from "@galacean/engine-world-planning/semantic-study/PoiDistribution";
 import { preloadPlanningWaterDefaults } from "./PlanningWaterInitialization.ts";
+import { seedWorldBootTrace } from "../../../SeedWorldBootTrace.ts";
 
 /** Accepted editor state passed directly to the original Seed scene. No URL-encoded geometry. */
 export interface PlanningWorldHandoff {
@@ -21,6 +22,7 @@ export interface PlanningWorldHandoff {
  * before the first document (including restored buildings) is accepted.
  */
 export async function createPlanningWorldSource(search: string, handoff: PlanningWorldHandoff | undefined, storage: {
+  readonly hasCoreWaterDefaults?: boolean;
   load(seed: number): Promise<PlanningDocument | undefined>; save(document: PlanningDocument): Promise<void>;
   retainWater?(document: PlanningDocument): PlanningDocument;
   initialize?(document: PlanningDocument, result: SemanticResult, waterResetRequest?: string): Promise<PlanningDocument>;
@@ -28,7 +30,7 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
   const query = new URLSearchParams(search);
   const raw = query.get("seed");
   const seed = raw !== null && /^\d+$/.test(raw) && Number(raw) <= 0xffffffff ? Number(raw) : SEMANTIC_DEFAULTS.seed;
-  let document = handoff?.document ?? await storage.load(seed);
+  let document = handoff?.document ?? await seedWorldBootTrace.span("planningSource.storage.load", () => storage.load(seed));
   let replaceSavedTemplate = false;
   let lowPolyWaterRefreshRequest: string | undefined;
   if (!handoff && document) {
@@ -43,7 +45,9 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
     if (template !== undefined) {
       replaceSavedTemplate = !!document;
       try {
-        document = await client.initialize(seed, undefined, template);
+        document = await seedWorldBootTrace.span("planningSource.worker.initialize", () =>
+          client.initialize(seed, undefined, template)
+        );
         document = storage.retainWater?.(document) ?? document;
         applyPlanningTemplateSurface(document);
       }
@@ -53,14 +57,18 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
   if (document) refreshDesertAnimalPreset(document);
   let accepted = handoff?.result;
   if (storage.initialize) {
-    // Overlap water default asset downloads with the background WorldPlanning worker.
-    preloadPlanningWaterDefaults();
+    // Only preload water default assets when the project does not already register them lazily.
+    if (!storage.hasCoreWaterDefaults) preloadPlanningWaterDefaults();
     try {
       document ??= createSeedPlanningDocument(seed);
       const recipe = exportPlanningRecipe(document);
-      accepted ??= await client.run(recipe.parameters, recipe.edits, undefined, document);
+      accepted ??= await seedWorldBootTrace.span("planningSource.worker.run", () =>
+        client.run(recipe.parameters, recipe.edits, undefined, document)
+      );
       if (!accepted?.accepted) throw new Error("Water authoring initialization requires an accepted planning result");
-      document = await storage.initialize(document, accepted, handoff?.waterResetRequest ?? lowPolyWaterRefreshRequest);
+      document = await seedWorldBootTrace.span("planningSource.storage.initialize", () =>
+        storage.initialize!(document!, accepted!, handoff?.waterResetRequest ?? lowPolyWaterRefreshRequest)
+      );
     } catch (error) { client.dispose(); throw error; }
   }
   const initialPlan = accepted?.plan;

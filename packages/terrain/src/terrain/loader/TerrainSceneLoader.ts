@@ -23,18 +23,21 @@ export interface TerrainSceneLoadOptions {
  */
 export async function registerTerrainProjectResources(
   engine: Engine,
-  projectUrl: URL | string
+  projectUrl: URL | string,
+  preloadedProject?: TerrainProjectFile
 ): Promise<TerrainProjectFile> {
   const resolvedProjectUrl = resolveProjectUrl(projectUrl);
-  const loadedProject = await engine.resourceManager.load<JSONAsset>({
-    type: AssetType.JSON,
-    url: resolvedProjectUrl.href
-  });
-  if (!(loadedProject instanceof JSONAsset)) {
-    throw new Error(`Terrain project ${resolvedProjectUrl.href} did not resolve to JSONAsset`);
+  let project = preloadedProject;
+  if (!project) {
+    const loadedProject = await engine.resourceManager.load<JSONAsset>({
+      type: AssetType.JSON,
+      url: resolvedProjectUrl.href
+    });
+    if (!(loadedProject instanceof JSONAsset)) {
+      throw new Error(`Terrain project ${resolvedProjectUrl.href} did not resolve to JSONAsset`);
+    }
+    project = loadedProject.data as TerrainProjectFile;
   }
-
-  const project = loadedProject.data as TerrainProjectFile;
   validateProject(project, resolvedProjectUrl.href);
   engine.resourceManager.registerVirtualResources(
     project.files.map((file) => ({

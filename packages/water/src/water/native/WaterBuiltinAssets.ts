@@ -4,9 +4,24 @@ import { Texture2D, type Engine } from "@galacean/engine-core";
 import type { WaterResourceAssetDescriptorV1 } from "../authoring/body/WaterBodyAuthoringTypes";
 import { digestSha256Hex } from "../resources/sha256";
 import type { WaterRuntimeResourceFactory } from "../runtime/resources/WaterRuntimeResourceRegistry";
+import builtinWaterProjectManifest from "./assets/project.json";
 
 /** Editable Source and native project assets. Camera and Terrain hosts remain application inputs. */
 export const BUILTIN_WATER_PROJECT_URL = new URL("./assets/project.json", import.meta.url).href;
+const builtinWaterAssetUrls = import.meta.glob("./assets/Water/{Materials,Textures,Shaders}/*", {
+  eager: true,
+  as: "url"
+});
+/** Lazy remote entries for core Water materials, textures, and shaders so projects do not eagerly fetch KTX2s at boot. */
+export const builtinWaterDefaultFiles = builtinWaterProjectManifest.files
+  .filter((file) => /^Water\/(Materials|Textures|Shaders)\//.test(file.virtualPath))
+  .map((file) => {
+    const resolved = builtinWaterAssetUrls[`./assets/${file.path}`];
+    return {
+      ...file,
+      path: resolved ? new URL(resolved, import.meta.url).href : new URL(file.path, BUILTIN_WATER_PROJECT_URL).href
+    };
+  });
 const conversionURL = new URL("./assets/conversion.json", import.meta.url).href;
 interface TextureAsset {
   target: string;
@@ -47,7 +62,10 @@ export async function loadBuiltinWaterTexture(engine: Engine, path: string, sign
   if (!asset || !["Texture", "KTX2"].includes(asset.type)) throw new Error(`Missing native Water texture '${path}'.`);
   if (asset.sha256 !== builtinWaterTextureDescriptor(path).contentHash)
     throw new Error(`Native Water texture '${path}' does not match the packaged conversion identity.`);
-  const url = resolvers.get(engine)?.(path) ?? new URL(path, BUILTIN_WATER_PROJECT_URL).href;
+  const staticAsset = builtinWaterAssetUrls[`./assets/${path}`];
+  const url =
+    resolvers.get(engine)?.(path) ??
+    (staticAsset ? new URL(staticAsset, import.meta.url).href : new URL(path, BUILTIN_WATER_PROJECT_URL).href);
   const response = await fetch(url, { signal });
   if (!response.ok) throw new Error(`Native Water texture '${path}' failed its source hash check.`);
   const bytes = await response.arrayBuffer();

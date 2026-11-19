@@ -1,4 +1,5 @@
 import { Color, Vector3 } from "@galacean/engine-math";
+import type { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import type { RenderContext } from "../RenderPipeline/RenderContext";
 import { Material } from "../material/Material";
@@ -40,6 +41,8 @@ export interface SkyProceduralVolumetricClouds extends SkyProceduralVolumetricCl
   readonly _skyCompositionSignature: string;
   /** Retains one immutable cache generation for a progressive environment capture. @internal */
   _acquireSkyCompositionSnapshot(): SkyProceduralVolumetricCloudSnapshot | null;
+  /** Advances startup direction-cache warmup without requiring a full world camera render. @internal */
+  _advanceStartupComposition?(camera: Camera, target: ShaderData): boolean;
 }
 
 /**
@@ -550,6 +553,11 @@ export class SkyProceduralMaterial extends Material {
   /** Updates optional material-owned sky prepasses before the visible target is bound. @internal */
   _prepareSkyRender(context: RenderContext): void {
     this._activeVolumetricCloudComposition?._prepareSkyComposition(context, this.shaderData);
+  }
+
+  /** Advances volumetric-cloud startup warmup directly without rendering the world camera. @internal */
+  _advanceVolumetricCloudStartup(camera: Camera): boolean {
+    return this._volumetricClouds?._advanceStartupComposition?.(camera, this.shaderData) ?? true;
   }
 
   /** Signature of the live cloud source sampled by a new IBL request. @internal */

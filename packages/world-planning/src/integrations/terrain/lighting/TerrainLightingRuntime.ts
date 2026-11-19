@@ -1,4 +1,5 @@
 import {
+  Camera,
   Color,
   DayNightClock,
   DayNightColorGradient,
@@ -1430,27 +1431,56 @@ export class TerrainLightingRuntime {
   async waitForEnvironmentIBLIdle(onProgress?: (snapshot: RealtimeIBLBakerSnapshot) => void): Promise<void> {
     this._assertAlive();
     const barrierRevision = captureTerrainIBLRevisionBarrier(this._iblBaker.getSnapshot());
+    const skyMaterial = this._proceduralSky.material as SkyProceduralMaterial & {
+      _advanceVolumetricCloudStartup?: (camera: Camera) => boolean;
+    };
+    const skyCamera = this._findStartupCamera();
+    const frameBudgetMs = 20;
+    const maxStepsPerFrame = 6;
     this._environmentIBLStartupDrainActive = true;
     try {
       while (true) {
         this._assertAlive();
-        const sliceStart = performance.now();
-        do {
+        const frameStart = performance.now();
+        let stepsThisFrame = 0;
+        while (stepsThisFrame < maxStepsPerFrame) {
+          this._assertAlive();
+          const cloudsReady =
+            skyCamera && typeof skyMaterial._advanceVolumetricCloudStartup === "function"
+              ? skyMaterial._advanceVolumetricCloudStartup(skyCamera)
+              : true;
           const snapshot = this._iblBaker.getSnapshot();
           onProgress?.(snapshot);
-          if (hasPublishedTerrainIBLRevision(snapshot, barrierRevision)) {
+          if (cloudsReady && hasPublishedTerrainIBLRevision(snapshot, barrierRevision)) {
             return;
           }
           if (!this._iblBakingEnabled) {
             throw new Error("Terrain environment IBL startup cannot finish while baking is disabled");
           }
-          this._advanceIBLBaker();
-        } while (performance.now() - sliceStart < 16);
+          if (cloudsReady) {
+            this._advanceIBLBaker();
+          }
+          stepsThisFrame++;
+          if (performance.now() - frameStart >= frameBudgetMs) {
+            break;
+          }
+        }
         await waitForAnimationFrame();
       }
     } finally {
       this._environmentIBLStartupDrainActive = false;
     }
+  }
+
+  private _findStartupCamera(): Camera | null {
+    const activeCameras = (this._scene as unknown as { _activeCameras?: readonly Camera[] })._activeCameras;
+    if (activeCameras && activeCameras.length > 0) return activeCameras[0];
+    const scratch: Camera[] = [];
+    for (const root of this._scene.rootEntities) {
+      root.getComponentsIncludeChildren(Camera, scratch);
+      if (scratch.length > 0) return scratch[0];
+    }
+    return null;
   }
 
   /**

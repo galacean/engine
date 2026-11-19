@@ -22,6 +22,8 @@ const runtimeModules = `# 运行时模块
 /** Runtime declarations are readable project files, not execute Worker permissions. */
 export function engineRuntimeFiles(environment?: {
   readonly declarations: Readonly<Record<string, string>>;
+  readonly declarationPaths?: readonly string[];
+  readonly loadDeclarations?: () => Promise<Readonly<Record<string, string>>>;
   readonly externals: Readonly<Record<string, unknown>>;
 }): ProjectFileProvider {
   const hostModules = environment ? Object.keys(environment.externals) : ["@galacean/editor-assets", "zod"];
@@ -29,14 +31,20 @@ export function engineRuntimeFiles(environment?: {
     ...runtimeHostDeclarations(hostModules),
     ...environment?.declarations
   };
-  const paths = new Set([...index.paths, ...Object.keys(hostFiles)]);
+  const lazyHostPaths = new Set(
+    (environment?.declarationPaths ?? []).filter((path) => !Object.hasOwn(hostFiles, path))
+  );
+  const paths = new Set([...index.paths, ...Object.keys(hostFiles), ...lazyHostPaths]);
   let contents: Record<string, string> | undefined;
   let loading: Promise<Record<string, string>> | undefined;
+  let lazyHostFiles: Readonly<Record<string, string>> | undefined;
+  let loadingLazyHost: Promise<Readonly<Record<string, string>>> | undefined;
+  const allHostDeclarationPaths = () => [...Object.keys(environment?.declarations ?? {}), ...lazyHostPaths];
   const readRuntimeModules = () =>
     runtimeModules +
     (environment
       ? "\n当前项目可用的宿主模块：\n" +
-        Object.keys(environment.declarations)
+        allHostDeclarationPaths()
           .filter((path) => /node_modules\/(?:@[^/]+\/)?[^/]+\/index\.d\.ts$/.test(path))
           .map((path) => `- [${path.slice("declare/engine/node_modules/".length, -"/index.d.ts".length)}](${path})`)
           .join("\n") +
@@ -53,6 +61,10 @@ export function engineRuntimeFiles(environment?: {
       if (path === "declare/engine/manifest.json")
         return JSON.stringify({ ...index, paths: [...paths], hostModules }, null, 2);
       if (Object.hasOwn(hostFiles, path)) return hostFiles[path];
+      if (lazyHostPaths.has(path)) {
+        if (!lazyHostFiles) throw new Error(`Prepare runtime declaration '${path}' before reading`);
+        return lazyHostFiles[path];
+      }
       if (!paths.has(path)) return undefined;
       if (!contents) throw new Error(`Prepare runtime declaration '${path}' before reading`);
       return contents[path];
@@ -60,6 +72,17 @@ export function engineRuntimeFiles(environment?: {
     async prepare(path, signal) {
       if (!paths.has(path) || Object.hasOwn(hostFiles, path)) return;
       signal?.throwIfAborted();
+      if (lazyHostPaths.has(path) && environment?.loadDeclarations) {
+        loadingLazyHost ??= environment.loadDeclarations();
+        try {
+          lazyHostFiles = await loadingLazyHost;
+        } catch (error) {
+          loadingLazyHost = undefined;
+          throw error;
+        }
+        signal?.throwIfAborted();
+        return;
+      }
       loading ??= import("../runtime-editor/generated/engine-runtime-files.json").then((module) => module.default);
       try {
         contents = await loading;

@@ -27,6 +27,7 @@ import { setRiverLocalMapRendererBinding, updateRiverSurfaceDomainOffsets } from
 import {
   createRiverLocalMapMaterial,
   createRiverMaterial,
+  preloadRiverDefaultTextures,
   setRiverScreenSpaceReflectionCompositeIntensity,
   setRiverScreenSpaceReflectionReceiver,
   setRiverSurfaceAppearanceBinding,
@@ -512,7 +513,8 @@ export class RiverRuntimeController {
           connectionBinding = createWaterConnectionBinding(this._engine, data.connections);
           if (connectionBinding) newConnections.add(connectionBinding);
         });
-      if (reusable.size < data.reaches.length)
+      if (reusable.size < data.reaches.length) {
+        await preloadRiverDefaultTextures();
         await submission.run(() => {
           const atlas = data.terrainInteraction.localMapAtlas;
           localMapTexture = atlas ? createRiverLocalMapTexture(this._engine, atlas) : undefined;
@@ -521,6 +523,7 @@ export class RiverRuntimeController {
             newTextures.add(localMapTexture);
           }
         });
+      }
       for (let index = 0; index < data.reaches.length; index++)
         await submission.run(() => {
           const reused = reusable.get(index);
