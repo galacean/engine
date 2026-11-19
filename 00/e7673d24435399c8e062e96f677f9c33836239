@@ -1,0 +1,16 @@
+packages/modify/src/native/core/src/ComponentsManager.ts
+  h_171a11afaf879a 73-75
+packages/modify/src/native/core/src/Renderer.ts
+  h_171a11afaf879a 52,94-96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "00e7673d24435399c8e062e96f677f9c33836239",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
