@@ -8,6 +8,7 @@ import { ProceduralPlant } from "./ProceduralPlant";
 import { preparePlantShaderPrograms } from "./preparePlantShaderPrograms";
 
 export type PlantCreationPhase =
+  | "recipe"
   | "texture"
   | "material"
   | "geometry"

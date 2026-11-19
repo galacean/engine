@@ -11,8 +11,10 @@ import type { FarmSnapshot, PlotState } from "../domain/FarmState";
 import type { FarmChange } from "../domain/FarmCommands";
 import type { FarmActionInput } from "../domain/FarmActions";
 import {
+  allocatePlotId,
+  plotAtTarget,
   plotBounds,
-  plotIdForTarget,
+  sameGroundCell,
   shapeSeedForId,
   targetAtPoint,
   type FarmingGroundProvider,
@@ -32,6 +34,7 @@ import { FarmingPropAnimationPlayer } from "./props/FarmingPropAnimationPlayer";
 import { FarmingPlotSelection } from "./FarmingPlotSelection";
 import { FarmingGrowthVisibility } from "./FarmingGrowthVisibility";
 import { plantGrowthRadius } from "../procedural/core/plantGrowthRadius";
+import recipeMetadata from "../procedural/plant-recipe-metadata.json";
 import { carriedItem } from "../domain/FarmItems";
 import { resolveCarriedAction } from "../domain/ResolveCarriedAction";
 import { FARM_WORK_REACH, farmWorkCandidates, isNearbyFarmTool } from "../application/FarmingWorkTarget";
@@ -153,8 +156,12 @@ export class FarmingWorldPresentation {
   ) {
     this.snapshot = service.getSnapshot();
     for (const crop of definitions.catalog.crops) {
-      const recipe = definitions.catalog.getPlant(crop.appearance.plantId).recipe;
-      this.cropRadii.set(crop.id, plantGrowthRadius(recipe) * Math.abs(cropScales[crop.id] ?? 1));
+      const plant = definitions.catalog.getPlant(crop.appearance.plantId);
+      const radius =
+        "recipe" in plant
+          ? plantGrowthRadius(plant.recipe)
+          : recipeMetadata[plant.id as keyof typeof recipeMetadata].radius;
+      this.cropRadii.set(crop.id, radius * Math.abs(cropScales[crop.id] ?? 1));
     }
     this.root = parent.createChild("Farming world presentation");
     this.selection = new FarmingPlotSelection(this.root, this.snapshot.grid.cellSize, camera, (point) =>
@@ -470,7 +477,8 @@ export class FarmingWorldPresentation {
   }
   /** The operated crop belongs to the target; it cannot occlude its own ground. Other crops remain occluders. */
   getGroundOcclusionRoot(target: GroundTarget | null | undefined): Entity | undefined {
-    const anchor = target ? this.surfaces.get(plotIdForTarget(target))?.cropAnchor : undefined;
+    const plot = target && plotAtTarget(this.snapshot.plots, target);
+    const anchor = plot ? this.surfaces.get(plot.plotId)?.cropAnchor : undefined;
     // Empty anchors contain no crop geometry and need no distinct rendering policy.
     return anchor && anchor.childCount !== 0 ? anchor : undefined;
   }
@@ -756,12 +764,50 @@ export class FarmingWorldPresentation {
     const previousPlots = new Map(this.snapshot.plots.map((plot) => [plot.plotId, plot]));
     this.snapshot = snapshot;
     const plots = snapshot.plots.filter((p) => p.ground.availability === "available");
+    const work = this.work;
+    if (work) {
+      const plot = plots.find((plot) => plot.plotId === work.plotId);
+      if (plot ? !sameGroundCell(work.view.placement, plot) : previousPlots.has(work.plotId)) {
+        this.actionMotion?.controller.abort();
+        this.finishWork();
+      }
+    }
+    const valid = new Set(plots.map((p) => p.plotId));
+    for (const [id, view] of this.surfaces)
+      if (!valid.has(id) && this.work?.view !== view) {
+        view.work.dispose();
+        view.root.destroy();
+        this.surfaces.delete(id);
+        this.distanceHiddenPlots.delete(id);
+      }
     for (const plot of plots) {
       let view = this.surfaces.get(plot.plotId);
-      const existing = Boolean(view);
+      const sameSurface = view && sameGroundCell(view.placement, plot);
       const moisture = normalizeSoilMoisture(this.definitions.soilProfile, plot.soil.moistureUnits);
-      if (!view) {
-        view = createFarmingPlotSurface(this.root, snapshot.grid, this.ground, plot, this.soils, moisture);
+      if (!view || !sameSurface) {
+        const previous = view;
+        if (previous) {
+          // A relocation must fit even when all atlas slots are already in use.
+          previous.work.dispose();
+          this.surfaces.delete(plot.plotId);
+        }
+        try {
+          view = createFarmingPlotSurface(
+            this.root,
+            snapshot.grid,
+            this.ground,
+            plot,
+            this.soils,
+            moisture,
+            previous?.cropAnchor
+          );
+        } catch (error) {
+          const occupant = previousPlots.get(plot.plotId)?.occupantId;
+          if (previous && occupant) this.plants.remove(occupant);
+          throw error;
+        } finally {
+          previous?.root.destroy();
+        }
         this.surfaces.set(plot.plotId, view);
       }
       const bounds = plotBounds(snapshot.grid, plot),
@@ -771,7 +817,7 @@ export class FarmingWorldPresentation {
       if (sample) view.root.transform.setWorldPosition(...sample.position);
       view.root.isActive = Boolean(sample);
       if (
-        existing &&
+        sameSurface &&
         this.work?.view !== view &&
         previousPlots.get(plot.plotId)?.soil.preparation !== plot.soil.preparation
       )
@@ -779,14 +825,6 @@ export class FarmingWorldPresentation {
       view.work.setMoisture(moisture);
     }
     this.boundaryPreview.refresh(plots, this.surfaces, this.work?.preview, groundChanged);
-    const valid = new Set(plots.map((p) => p.plotId));
-    for (const [id, view] of this.surfaces)
-      if (!valid.has(id) && this.work?.view !== view) {
-        view.work.dispose();
-        view.root.destroy();
-        this.surfaces.delete(id);
-        this.distanceHiddenPlots.delete(id);
-      }
     this.soils.setField(
       snapshot,
       new Map([...this.surfaces].map(([id, view]) => [id, view.renderer])),
@@ -910,13 +948,11 @@ export class FarmingWorldPresentation {
   }
 
   private async prepareWork(input: Extract<FarmActionInput, { type: "hoe" }>, signal: AbortSignal): Promise<boolean> {
-    const plot = this.snapshot.plots.find(
-      (p) => p.groundId === input.target.groundId && p.cellX === input.target.cellX && p.cellZ === input.target.cellZ
-    );
     const target = input.target;
     if (!target) return false;
     if (!(await this.tool.select(input.type)) || this.disposed || !this.active || signal.aborted) return false;
-    const id = plot?.plotId ?? plotIdForTarget(target);
+    const plot = plotAtTarget(this.snapshot.plots, target);
+    const id = plot?.plotId ?? allocatePlotId(this.snapshot.plots, target);
     const bounds = plotBounds(this.snapshot.grid, target),
       x = (bounds.minimumX + bounds.maximumX) / 2,
       z = (bounds.minimumZ + bounds.maximumZ) / 2;

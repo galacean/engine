@@ -329,6 +329,7 @@ export class SoilRenderBatches {
         // Entity destruction may wait until frame end; retire the renderer before unbinding its mesh.
         chunk.renderer.enabled = false;
         chunk.renderer.mesh = null!;
+        chunk.renderer.setMaterial(null!);
         disposeSoilMesh(chunk.mesh!);
         chunk.entity.destroy();
         this.chunks.delete(chunk.key);

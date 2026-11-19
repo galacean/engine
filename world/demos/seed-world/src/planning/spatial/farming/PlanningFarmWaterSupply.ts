@@ -1,4 +1,5 @@
 import type { FarmSnapshot, FarmingGroundView } from "@galacean/engine-farming/farming/api/index";
+import type { FarmingService } from "@galacean/engine-farming/farming/application/FarmingService";
 import type {
   FarmNearWaterEntry,
   FarmWaterSupplyInput,
@@ -37,6 +38,37 @@ export interface PlanningFarmWaterScheduler {
   schedule(callback: () => void): number;
   cancel(handle: number): void;
 }
+
+export function subscribePlanningFarmWaterLayout(
+  service: FarmingService,
+  supply: PlanningFarmWaterSupply,
+  readView: () => PlanningFarmWaterGroundView | undefined
+): () => void {
+  let previousPlots = service.getSnapshot().plots;
+  return service.subscribe(({ snapshot, changes, source }) => {
+    let layoutChanged = changes.some((change) => change.kind === "plot-created" || change.kind === "plot-deleted");
+    if (!layoutChanged && source !== "external") return;
+    const before = previousPlots;
+    previousPlots = snapshot.plots;
+    const view = readView();
+    if (!view) return;
+    for (const change of changes) if (change.kind === "plot-deleted") supply.removePlot(change.plotId);
+    if (source === "external" && before !== snapshot.plots) {
+      layoutChanged ||= before.length !== snapshot.plots.length;
+      const current = new Map(snapshot.plots.map((plot) => [plot.plotId, plot]));
+      for (const previous of before) {
+        const plot = current.get(previous.plotId);
+        if (!plot || plot.groundId !== previous.groundId ||
+            plot.cellX !== previous.cellX || plot.cellZ !== previous.cellZ) {
+          layoutChanged = true;
+          supply.removePlot(previous.plotId);
+        }
+      }
+    }
+    if (layoutChanged) supply.request(view, snapshot, true);
+  });
+}
+
 const browserScheduler: PlanningFarmWaterScheduler = {
   nowMs: () => performance.now(),
   schedule: (callback) => requestAnimationFrame(callback),

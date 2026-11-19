@@ -1,5 +1,7 @@
 export interface FarmClock {
   nowMs(): number;
+  /** Page-local clocks can adopt the time origin of an imported snapshot. */
+  rebase?(lastSystemTimeMs: number): void;
 }
 
 export class BrowserSystemClock implements FarmClock {

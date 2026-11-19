@@ -29,6 +29,8 @@ export interface FarmTimeAdvanceSummary {
 
 export interface SettleFarmTimeResult extends FarmTimeAdvanceSummary {
   readonly snapshot: FarmSnapshot;
+  /** State that affects gameplay, including fractional growth before a visible change. */
+  readonly stateChanged: boolean;
 }
 
 export function settleFarmTime(
@@ -66,7 +68,8 @@ export function settleFarmTime(
       elapsedSystemTimeMs: Math.max(0, rawElapsedMs),
       simulatedElapsedMs: 0,
       capped: false,
-      changes: cleared.changes
+      changes: cleared.changes,
+      stateChanged: cleared.changes.length > 0
     };
   }
   const capped = rawElapsedMs > maximumCatchUpMs;
@@ -190,6 +193,9 @@ export function settleFarmTime(
       });
     }
   }
+  const stateChanged =
+    changes.length > 0 ||
+    Object.keys(crops).some((id) => crops[id].growthRemainderPermille !== initialCrops[id].growthRemainderPermille);
   if (simulatedTimeMs !== previousSimulationTimeMs) {
     changes.push({
       kind: "simulation-advanced",
@@ -210,6 +216,7 @@ export function settleFarmTime(
     elapsedSystemTimeMs: rawElapsedMs,
     simulatedElapsedMs: simulatedTimeMs - previousSimulationTimeMs,
     capped,
+    stateChanged,
     changes: Object.freeze(changes)
   };
 }

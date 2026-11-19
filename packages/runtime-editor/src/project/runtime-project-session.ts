@@ -57,6 +57,17 @@ export interface RuntimeActivationParticipant {
   diagnostics?(): readonly { id: string; occurredAt: string; message: string }[];
 }
 
+type PrepareRuntimeAssetEdit = (
+  content: string | Uint8Array,
+  current: string | Uint8Array | undefined
+) => {
+  content: string | Uint8Array;
+  /** Finalize owner-validated runtime facts at acceptance. Asset references must stay fixed. */
+  finalizeContent?: () => string | Uint8Array;
+  accept: () => void;
+  finish?: () => void;
+};
+
 /** Owns project restoration and the lifetime of resource URLs in one game session. */
 export class RuntimeProjectSession {
   readonly history = new RuntimeProjectHistory();
@@ -68,6 +79,7 @@ export class RuntimeProjectSession {
   private readonly runtimeAssets = new Set<string>();
   private readonly textAssetTypes = new Map<string, number>();
   private readonly runtimeAssetOwners = new Set<string>();
+  private readonly runtimeAssetEditors = new Map<string, PrepareRuntimeAssetEdit>();
   private readonly projectValidators = new Set<
     (candidate: RuntimeProjectPackage, signal: AbortSignal) => void | Promise<void>
   >();
@@ -740,28 +752,35 @@ export class RuntimeProjectSession {
     });
   }
 
-  /** Detached editor drafts retain current domain writes. Project state stays protected after release;
-   * owner-scoped authoring can be removed once its live component has released it. */
-  ownRuntimeAsset(file: RuntimeProjectManifest["files"][number], retention: "project" | "owner") {
+  /** Detached editor drafts retain current domain writes. An owner can prepare
+   * explicit replacements through publishAsset and adopt them after commit. */
+  ownRuntimeAsset(
+    file: RuntimeProjectManifest["files"][number],
+    retention: "project" | "owner",
+    prepareExplicitEdit?: PrepareRuntimeAssetEdit
+  ) {
     const path = file.virtualPath;
     if (this.runtimeAssetOwners.has(path)) throw new Error(`Runtime asset already owned: ${path}`);
     this.runtimeAssetOwners.add(path);
     this.runtimeAssets.add(path);
+    if (prepareExplicitEdit) this.runtimeAssetEditors.set(path, prepareExplicitEdit);
     let released = false;
     return {
       update: <T>(
         change: (content: RuntimeProjectPackage["contents"][string] | undefined) => {
-          content: RuntimeProjectPackage["contents"][string];
+          /** Omit content to complete the transaction without publishing. */
+          content?: RuntimeProjectPackage["contents"][string];
           value: T;
         }
       ): Promise<T> =>
         this.enqueuePublication(async () => {
           if (released) throw new Error("Runtime asset owner disposed");
           const pack = this.projectPackage;
-          const result = change(pack.contents[path]);
           const existing = pack.project.files.find((entry) => entry.virtualPath === path);
           if (existing && (existing.virtualPath !== path || existing.type !== file.type))
             throw new Error(`Runtime asset identity conflict: ${path}`);
+          const result = change(pack.contents[path]);
+          if (result.content === undefined) return result.value;
           await this.commitPackage(
             {
               ...pack,
@@ -779,6 +798,7 @@ export class RuntimeProjectSession {
         if (released) return;
         released = true;
         this.runtimeAssetOwners.delete(path);
+        this.runtimeAssetEditors.delete(path);
         if (retention === "owner") this.runtimeAssets.delete(path);
       }
     };
@@ -810,14 +830,15 @@ export class RuntimeProjectSession {
   private async commitPackage(
     candidate: RuntimeProjectPackage,
     runtimeWrite?: string,
-    history?: { transactionId: string; move?: HistoryMove; sceneChanges?: Record<string, RuntimeSceneChangeSet> }
+    history?: { transactionId: string; move?: HistoryMove; sceneChanges?: Record<string, RuntimeSceneChangeSet> },
+    explicitRuntimeEdit?: { path: string; finalizeContent?: () => string | Uint8Array }
   ): Promise<RuntimeProjectUndo> {
     this.lifetime.signal.throwIfAborted();
     const checkpoint = runtimeEditWork();
     const contents = { ...candidate.contents },
       files = structuredClone(candidate.project.files);
     for (const path of this.runtimeAssets) {
-      if (path === runtimeWrite) continue;
+      if (path === runtimeWrite || path === explicitRuntimeEdit?.path) continue;
       const file = this.projectPackage.project.files.find((file) => file.virtualPath === path);
       if (!file) continue;
       const index = files.findIndex((entry) => entry.virtualPath === path);
@@ -836,6 +857,11 @@ export class RuntimeProjectSession {
     validateRuntimeProject(candidate);
     await checkpoint(this.lifetime.signal);
     this.lifetime.signal.throwIfAborted();
+    if (explicitRuntimeEdit?.finalizeContent)
+      candidate = {
+        ...candidate,
+        contents: { ...candidate.contents, [explicitRuntimeEdit.path]: explicitRuntimeEdit.finalizeContent() }
+      };
     // Invalidate only affected in-flight reads, including delete/recreate of the same path.
     // Persistence does not control visibility: an accepted edit invalidates the
     // old source even while its checkpoint is pending or has failed.
@@ -896,11 +922,22 @@ export class RuntimeProjectSession {
       const files = matches.length
         ? pack.project.files.map((f) => (f.virtualPath === asset.virtualPath ? asset : f))
         : [...pack.project.files, asset];
-      await this.commitPackage({
-        ...pack,
-        project: { ...pack.project, files },
-        contents: { ...pack.contents, [asset.virtualPath]: value }
-      });
+      const prepared = this.runtimeAssetEditors.get(asset.virtualPath)?.(value, pack.contents[asset.virtualPath]);
+      try {
+        await this.commitPackage(
+          {
+            ...pack,
+            project: { ...pack.project, files },
+            contents: { ...pack.contents, [asset.virtualPath]: prepared?.content ?? value }
+          },
+          undefined,
+          undefined,
+          prepared && { path: asset.virtualPath, finalizeContent: prepared.finalizeContent }
+        );
+        prepared?.accept();
+      } finally {
+        prepared?.finish?.();
+      }
     }, [asset.virtualPath]);
   }
 
@@ -913,6 +950,7 @@ export class RuntimeProjectSession {
     this.referenceFormats.clear();
     this.formatRegistrations.clear();
     this.runtimeAssetOwners.clear();
+    this.runtimeAssetEditors.clear();
     this.activationParticipants.clear();
     this.projectValidators.clear();
     this.scripts.dispose();

@@ -9,6 +9,7 @@ import type { JSONAsset } from "@galacean/engine-core";
 import {
   PLANNING_FARM_WATER_SUPPLY,
   PlanningFarmWaterSupply,
+  subscribePlanningFarmWaterLayout,
   type PlanningFarmWaterGroundView,
   type PlanningFarmWaterScheduler
 } from "./PlanningFarmWaterSupply.ts";
@@ -180,7 +181,8 @@ export class PlanningFarmingRuntime {
         options.project,
         FarmingInitializationError,
         this.statePath,
-        () => this.stateResource
+        () => this.stateResource,
+        (snapshot, farmId) => validatePlanningFarmSave(snapshot, farmId, this.definitions, undefined, rules.data.simulationConfig)
       );
       this.root = root = this.system.entity.createChild("Farming Runtime");
       this.releaseDependencies = releaseDependencies = this.system.configureRuntime((area) => {
@@ -678,12 +680,11 @@ export class PlanningFarmingRuntime {
     if (!this.area.initialized) throw new Error(this.area.lastError ?? "Farm region is not initialized");
     this.unsubscribeWaterLayout?.();
     if (this.groundedView) this.requestWaterSupply(this.groundedView);
-    this.unsubscribeWaterLayout = this.area.service.subscribe(({ snapshot, changes }) => {
-      const layoutChanged = changes.some((c) => c.kind === "plot-created" || c.kind === "plot-deleted");
-      if (!layoutChanged || !this.groundedView || this.disposed) return;
-      for (const change of changes) if (change.kind === "plot-deleted") this.waterSupply.removePlot(change.plotId);
-      this.waterSupply.request(this.groundedView, snapshot, true);
-    });
+    this.unsubscribeWaterLayout = subscribePlanningFarmWaterLayout(
+      this.area.service,
+      this.waterSupply,
+      () => this.disposed ? undefined : this.groundedView
+    );
     this.land = new PlanningFarmLandLayer(this.area.entity, current.data.fields, current.world);
     this.vegetation = new PlanningFarmingVegetation({
       service: this.area.service,

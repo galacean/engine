@@ -2,6 +2,10 @@
 export const DEFAULT_SOIL_VISUAL_CONFIG = Object.freeze({
   soil: Object.freeze({
     textures: Object.freeze({
+      diffuse: new URL("../../assets/soil/juliovii/basecolor.ktx2", import.meta.url).href,
+      normal: new URL("../../assets/soil/juliovii/normalogl.ktx2", import.meta.url).href
+    }),
+    originalTextures: Object.freeze({
       diffuse: new URL("../../assets/soil/juliovii/basecolor.jpg", import.meta.url).href,
       normal: new URL("../../assets/soil/juliovii/normalogl.jpg", import.meta.url).href
     }),
@@ -27,6 +31,10 @@ export const DEFAULT_SOIL_VISUAL_CONFIG = Object.freeze({
   }),
   perimeter: Object.freeze({
     textures: Object.freeze({
+      diffuse: new URL("../../assets/soil/grasslands/grass-mud-albedo-smoothness-1024.ktx2", import.meta.url).href,
+      normal: new URL("../../assets/soil/grasslands/grass-mud-normal-1024.ktx2", import.meta.url).href
+    }),
+    originalTextures: Object.freeze({
       diffuse: new URL("../../assets/soil/grasslands/grass-mud-albedo-smoothness-1024.png", import.meta.url).href,
       normal: new URL("../../assets/soil/grasslands/grass-mud-normal-1024.png", import.meta.url).href
     }),

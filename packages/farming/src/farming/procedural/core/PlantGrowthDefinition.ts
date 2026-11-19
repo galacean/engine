@@ -33,6 +33,12 @@ export interface PlantGrowthDefinition extends PlantGrowthMetadata {
   readonly recipe: PlantGrowthRecipe;
   readonly atlasUrl: string;
 }
+/** Reference to a bundled recipe, resolved only by the plant renderer. */
+export interface PlantGrowthReference extends PlantGrowthMetadata {
+  readonly recipeRevision: number;
+  readonly atlasUrl: string;
+}
+export type PlantGrowthEntry = PlantGrowthDefinition | PlantGrowthReference;
 const unit = z.number().finite().min(0).max(1);
 const label = z.string().min(1);
 const markers = z

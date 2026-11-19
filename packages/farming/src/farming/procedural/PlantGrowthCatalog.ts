@@ -1,22 +1,26 @@
-import { createPlantGrowthRegistry } from "./core/PlantGrowthRegistry";
-const metadata = import.meta.glob<string>("../catalog/plants/*/procedural/plant.json", { eager: true, as: "raw" });
-const recipes = import.meta.glob<string>("../catalog/plants/*/procedural/recipe.json", { eager: true, as: "raw" });
+import { parsePlantGrowthMetadata, type PlantGrowthReference } from "./core/PlantGrowthDefinition";
+import type { PlantGrowthIssue } from "./core/PlantGrowthRegistry";
+import recipeMetadata from "./plant-recipe-metadata.json";
 import textures from "../assets/plant-textures/manifest.json";
+
+const metadata = import.meta.glob<string>("../catalog/plants/*/procedural/plant.json", { eager: true, as: "raw" });
 const atlases = import.meta.glob<string>("../assets/plant-textures/*.ktx2", { eager: true, as: "url" });
 const atlasByPlant = new Map(
   textures.plants.map(({ id, texture }) => [id, atlases[`../assets/plant-textures/${texture}`]])
 );
-const registry = createPlantGrowthRegistry(
-  Object.entries(metadata).map(([path, value]) => {
-    const directory = path.slice(0, path.lastIndexOf("/") + 1);
-    return {
-      path,
-      metadata: value,
-      recipe: recipes[directory + "recipe.json"],
-      atlasUrl: atlasByPlant.get(path.split("/").at(-3)!) ?? ""
-    };
-  })
-);
-export const plantGrowthIssues = registry.issues;
-export const listPlantGrowthDefinitions = registry.list;
-export const getPlantGrowthDefinition = registry.get;
+const plants = new Map<string, PlantGrowthReference>();
+export const plantGrowthIssues: PlantGrowthIssue[] = [];
+for (const [path, value] of Object.entries(metadata)) {
+  try {
+    const plant = parsePlantGrowthMetadata(JSON.parse(value));
+    const recipe = recipeMetadata[plant.id as keyof typeof recipeMetadata];
+    const atlasUrl = atlasByPlant.get(plant.id);
+    if (!path.endsWith(`/${plant.id}/procedural/plant.json`) || !recipe || !atlasUrl || plants.has(plant.id))
+      throw new Error(`无效植物资源：${plant.id}`);
+    plants.set(plant.id, { ...plant, atlasUrl, recipeRevision: recipe.revision });
+  } catch (error) {
+    plantGrowthIssues.push({ path, message: error instanceof Error ? error.message : String(error) });
+  }
+}
+export const listPlantGrowthDefinitions = () => [...plants.values()];
+export const getPlantGrowthDefinition = (id: string) => plants.get(id);

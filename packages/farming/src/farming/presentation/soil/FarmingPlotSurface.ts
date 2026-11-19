@@ -14,7 +14,8 @@ export function createFarmingPlotSurface(
   ground: FarmingGroundProvider,
   plot: PlotState,
   visuals: SoilVisualProvider,
-  moisture: number
+  moisture: number,
+  existingCropAnchor?: Entity
 ) {
   if (!ground.capture().surfaceTriangles) throw new Error("Farming soil rendering requires host surface triangles");
   const root = parent.createChild(plot.plotId),
@@ -27,9 +28,7 @@ export function createFarmingPlotSurface(
   let renderer: SoilVisualTarget | undefined;
   try {
     renderer = visuals.createPlot(parent, soil, grid, plot, moisture);
-    const boundary = new SoilBoundary(grid.cellSize, x, z),
-      cropAnchor = root.createChild("crop-anchor");
-    cropAnchor.transform.setPosition(0, DEFAULT_SOIL_VISUAL_CONFIG.soil.edge.surfaceOffset, 0);
+    const boundary = new SoilBoundary(grid.cellSize, x, z);
     const work = new SoilWorkPresenter(renderer, visuals, moisture, {
       footprint: { size: grid.cellSize, square: true },
       triangles: () => {
@@ -51,7 +50,12 @@ export function createFarmingPlotSurface(
         DEFAULT_SOIL_VISUAL_CONFIG.soil.edge.surfaceOffset
     });
     work.setPreparation(plot.soil.preparation);
-    return { root, renderer, cropAnchor, work, boundary };
+    // Retain resident plants and the parent of any async plant load on relocation.
+    const cropAnchor = existingCropAnchor ?? root.createChild("crop-anchor");
+    cropAnchor.parent = root;
+    cropAnchor.transform.setPosition(0, DEFAULT_SOIL_VISUAL_CONFIG.soil.edge.surfaceOffset, 0);
+    const { groundId, cellX, cellZ } = plot;
+    return { root, renderer, cropAnchor, work, boundary, placement: { groundId, cellX, cellZ } };
   } catch (error) {
     if (renderer) visuals.release(renderer);
     root.destroy();

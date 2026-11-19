@@ -1,0 +1,72 @@
+{
+  "beetroot-farmlands": {
+    "revision": 1,
+    "radius": 2.065636671556057,
+    "requiresTintColors": false
+  },
+  "cabbage-farmlands": {
+    "revision": 1,
+    "radius": 1.2109407062767432,
+    "requiresTintColors": false
+  },
+  "canola-farmlands": {
+    "revision": 1,
+    "radius": 1.7937474316463844,
+    "requiresTintColors": true
+  },
+  "carrot-farmlands": {
+    "revision": 1,
+    "radius": 2.0709009431432794,
+    "requiresTintColors": false
+  },
+  "grapevine-farmlands": {
+    "revision": 1,
+    "radius": 2.05629120929696,
+    "requiresTintColors": true
+  },
+  "melon-farmlands": {
+    "revision": 1,
+    "radius": 1.7950083770400629,
+    "requiresTintColors": true
+  },
+  "potato-farmlands": {
+    "revision": 1,
+    "radius": 4.2529622063805,
+    "requiresTintColors": false
+  },
+  "pumpkin-farmlands": {
+    "revision": 1,
+    "radius": 2.293488790164278,
+    "requiresTintColors": true
+  },
+  "radish-farmlands": {
+    "revision": 1,
+    "radius": 2.0719800549186487,
+    "requiresTintColors": false
+  },
+  "rice-quaternius": {
+    "revision": 1,
+    "radius": 2.0503661638265234,
+    "requiresTintColors": false
+  },
+  "sunflower-farmlands": {
+    "revision": 1,
+    "radius": 3.5506417565490893,
+    "requiresTintColors": true
+  },
+  "tomato-farmlands": {
+    "revision": 1,
+    "radius": 3.6936817993262814,
+    "requiresTintColors": true
+  },
+  "watermelon-farmlands": {
+    "revision": 1,
+    "radius": 1.9011993987445353,
+    "requiresTintColors": false
+  },
+  "wheat-farmlands": {
+    "revision": 1,
+    "radius": 2.167490155053044,
+    "requiresTintColors": true
+  }
+}

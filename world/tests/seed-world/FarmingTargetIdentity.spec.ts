@@ -134,6 +134,30 @@ it("a native tap executes the displayed visible candidate when the better candid
   }
 });
 
+it("excludes the relocated crop from the physical-tool hint and pointer confirmation", async () => {
+  const f = fixture();
+  try {
+    const target = { groundId: "ground", cellX: 0, cellZ: 0 };
+    const anchor = { childCount: 1 };
+    f.snapshot.plots = [
+      { ...target, plotId: "old-ground/x10z0", occupantId: "crop", ground: { availability: "available" } }
+    ];
+    f.presentation.surfaces.set("old-ground/x10z0", { cropAnchor: anchor });
+    const hint = vi.fn(
+      (_ray: Ray, _distance: number, _target: string, ignoredRoot?: unknown) => ignoredRoot !== anchor
+    );
+    f.presentation.setPlayerOcclusionQuery(undefined, hint);
+    expect(f.presentation.getPlayerWorkTarget()).toMatchObject({ ground: target, plotId: "old-ground/x10z0" });
+    expect(hint.mock.lastCall?.[3]).toBe(anchor);
+    f.tap();
+    await vi.waitFor(() => expect(f.execute).toHaveBeenCalledOnce());
+    expect(f.prepare.mock.calls[0][1]).toBe(anchor);
+    expect(f.execute.mock.calls[0][0]).toMatchObject({ target, expectedCropInstanceId: "crop" });
+  } finally {
+    f.interaction.dispose();
+  }
+});
+
 it("a first tap with unknown hints confirms bounded candidates until a visible one is found", async () => {
   const f = fixture();
   try {
@@ -192,12 +216,12 @@ it.each(["seed-bag", "harvest-basket"])("uses the new hint endpoint and crop roo
       old = p.getPlayerWorkTarget();
     const target = { groundId: "ground", cellX: 0, cellZ: -3 };
     const point = new Vector3(0.625, 0, -3.125),
-      crop = {};
-    p.surfaces.set("ground/x0z-3", { cropAnchor: crop });
+      crop = { childCount: 1 };
+    p.surfaces.set("old-ground/x10z-3", { cropAnchor: crop });
     p.snapshot = {
       ...f.snapshot,
       revision: 2,
-      plots: [{ ...target, plotId: "ground/x0z-3", ground: { availability: "available" } }],
+      plots: [{ ...target, plotId: "old-ground/x10z-3", ground: { availability: "available" } }],
       items: { instances: [{ id: "next", type, groundId: "ground" }], carried: { itemId: "next" } }
     };
     f.ground.raycast.mockReturnValue({ groundId: "ground", position: [0.625, 0, -3.125] } as any);
@@ -372,6 +396,7 @@ it("shares the default visual policy for empty crop anchors only", () => {
     anchor = { childCount: 0 };
   try {
     f.presentation.surfaces.set("ground/x0z0", { cropAnchor: anchor });
+    f.snapshot.plots = [{ ...target, plotId: "ground/x0z0" }];
     expect(f.presentation.getGroundOcclusionRoot(target)).toBeUndefined();
     anchor.childCount = 1;
     expect(f.presentation.getGroundOcclusionRoot(target)).toBe(anchor);

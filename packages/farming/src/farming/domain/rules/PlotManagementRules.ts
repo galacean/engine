@@ -6,7 +6,8 @@ import {
   groundState,
   inspectGround,
   isGroundTarget,
-  plotIdForTarget,
+  allocatePlotId,
+  plotAtTarget,
   shapeSeedForId
 } from "../FarmingGround";
 import type { FarmSnapshot, PlotState } from "../FarmState";
@@ -23,13 +24,8 @@ export function applyPlotManagement(
   let plot: PlotState | undefined;
   if (command.type === "create-plot" || command.type === "hoe") {
     if (!isGroundTarget(command.target)) return rejectRule("INVALID_COMMAND", "土地目标无效");
-    plot = snapshot.plots.find(
-      (p) =>
-        p.groundId === command.target.groundId && p.cellX === command.target.cellX && p.cellZ === command.target.cellZ
-    );
+    plot = plotAtTarget(snapshot.plots, command.target);
     if (plot && command.type === "create-plot") return rejectRule("PLOT_EXISTS", "耕地已存在");
-    if (!plot && snapshot.plots.some((p) => p.plotId === plotIdForTarget(command.target)))
-      return rejectRule("PLOT_EXISTS", "耕地 ID 已用于其他土地，不能创建重复身份");
   } else {
     plot = snapshot.plots.find((p) => p.plotId === command.plotId);
     if (!plot) return rejectRule("PLOT_NOT_FOUND", "土地不存在");
@@ -89,7 +85,8 @@ export function applyPlotManagement(
     return rejectRule("GROUND_CHANGED", "作业期间地形已变化，请重试");
   if (patch.preparation !== undefined && storageBlocksCultivation(snapshot, definitions, target))
     return rejectRule("GROUND_BLOCKED", "仓储容器及通道不能开垦");
-  const inspection = inspectGround(context.groundView, snapshot.grid, target, plot?.plotId);
+  const plotId = plot?.plotId ?? allocatePlotId(snapshot.plots, target);
+  const inspection = inspectGround(context.groundView, snapshot.grid, target, plotId);
   if (patch.preparation !== undefined && inspection.reason)
     return rejectRule(inspection.reason, GROUND_REASON_MESSAGES[inspection.reason]);
   const removedCrop = command.type === "hoe" && plot?.occupantId ? snapshot.crops[plot.occupantId] : undefined;
@@ -111,9 +108,9 @@ export function applyPlotManagement(
         groundId: target.groundId,
         cellX: target.cellX,
         cellZ: target.cellZ,
-        plotId: plotIdForTarget(target),
+        plotId,
         label: patch.label?.trim() ?? `田 ${target.cellX},${target.cellZ}`,
-        shapeSeed: shapeSeedForId(plotIdForTarget(target)),
+        shapeSeed: shapeSeedForId(plotId),
         occupantId: null,
         ground: groundState(inspection, time),
         soil: {

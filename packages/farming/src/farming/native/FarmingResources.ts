@@ -9,7 +9,7 @@ import {
 } from "@galacean/engine-core";
 import { createPlantingCatalog, type PlantingCatalog } from "../content/PlantingCatalog";
 import type { CropDefinition, SeedDefinition, FarmingDefinitionSet } from "../domain/FarmDefinitions";
-import type { PlantGrowthDefinition } from "../procedural/core/PlantGrowthDefinition";
+import type { PlantGrowthDefinition, PlantGrowthReference } from "../procedural/core/PlantGrowthDefinition";
 import type { PlantGrowthRecipeDocument } from "../procedural/core/PlantLeafTemplate";
 import { parsePlantGrowthRecipe } from "../procedural/core/validation";
 import { freezePlantContent } from "../procedural/core/immutable";
@@ -23,7 +23,10 @@ import { validateDefinitions, validateFarmingRules, validateFarmingSeeds } from 
 export interface FarmingCatalogData {
   readonly version: number;
   readonly crops: readonly CropDefinition[];
-  readonly plants: readonly (Omit<PlantGrowthDefinition, "recipe"> & { readonly recipe: PlantGrowthRecipeDocument })[];
+  readonly plants: readonly (
+    | PlantGrowthReference
+    | (Omit<PlantGrowthDefinition, "recipe"> & { readonly recipe: PlantGrowthRecipeDocument })
+  )[];
   readonly seeds: readonly SeedDefinition[];
 }
 export interface FarmingRulesData {
@@ -81,7 +84,7 @@ export function farmingCatalogFromData(data: FarmingCatalogData): PlantingCatalo
     throw new TypeError("INVALID_ARGUMENT: 无效种植目录资源");
   const catalog = createPlantingCatalog(
     data.crops,
-    data.plants.map((plant) => ({ ...plant, recipe: parsePlantGrowthRecipe(plant.recipe) }))
+    data.plants.map((plant) => ("recipe" in plant ? { ...plant, recipe: parsePlantGrowthRecipe(plant.recipe) } : plant))
   );
   validateFarmingSeeds(catalog, data.seeds);
   return catalog;
@@ -121,10 +124,11 @@ export function farmingResourceData(definitions: FarmingDefinitionSet, simulatio
     catalog: {
       version: definitions.version,
       crops: definitions.catalog.crops,
-      plants: definitions.catalog.plants.map((plant) => ({
-        ...plant,
-        recipe: { ...plant.recipe, schemaVersion: 1 as const, leafTemplates: [] }
-      })),
+      plants: definitions.catalog.plants.map((plant) =>
+        "recipe" in plant
+          ? { ...plant, recipe: { ...plant.recipe, schemaVersion: 1 as const, leafTemplates: [] } }
+          : plant
+      ),
       seeds: definitions.seeds
     } satisfies FarmingCatalogData,
     rules: {

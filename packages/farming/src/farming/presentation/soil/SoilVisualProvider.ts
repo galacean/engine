@@ -40,15 +40,29 @@ interface SoilAppearance {
   samples: number[];
 }
 
+interface SoilTextureFailure {
+  readonly error: string;
+  retry?: ReturnType<typeof setTimeout>;
+}
+
+const FIRST_TEXTURE_RETRY_MS = 1000;
+const MAX_TEXTURE_RETRY_MS = 30000;
+
 /**
  * Shared farming soil appearance owner. Farming rules expose plot/crop state; this
  * provider alone decides which mesh, textures and material represent it.
  */
 export class SoilVisualProvider {
-  readonly mesh: ModelMesh;
-  readonly vertexCount: number;
+  private fallbackMesh?: ModelMesh;
+  readonly vertexCount = (SOIL_MESH_SEGMENTS + 1) ** 2;
+
+  get mesh(): ModelMesh {
+    if (this.disposed) throw new Error("Soil visual provider disposed");
+    return (this.fallbackMesh ??= createHandpaintedSoilMesh(this.engine, this.size));
+  }
 
   private readonly appearances = new Map<SoilVisualTarget, SoilAppearance>();
+  private readonly perimeterRenderers = new Set<MeshRenderer>();
   private diffuseTexture: Texture2D | null = null;
   private normalTexture: Texture2D | null = null;
   private transitionBlend = 0;
@@ -59,10 +73,8 @@ export class SoilVisualProvider {
   private dirty = new Set<SoilVisualTarget>();
   private moisturePreview?: { plotId: string; weight: number };
   private dependents = new Map<SoilVisualTarget, Set<SoilVisualTarget>>();
-  private readonly perimeterMaterial: PBRMaterial;
-  private readonly textures: Texture2D[] = [];
-  private textureLoadError: string | null = null;
-  private texturesReady = false;
+  private perimeterMaterial?: PBRMaterial;
+  private readonly textureStatus = new Map<string, "loading" | "ready" | SoilTextureFailure>();
   private disposed = false;
   private batches?: SoilRenderBatches;
 
@@ -70,16 +82,11 @@ export class SoilVisualProvider {
     private readonly engine: Engine,
     readonly size: number,
     private readonly shader?: Shader
-  ) {
-    const geometry = createHandpaintedSoilMesh(engine, size);
-    this.mesh = geometry.mesh;
-    this.vertexCount = geometry.vertexCount;
-    this.perimeterMaterial = createPerimeterMaterial(engine);
-    void this.loadTextures();
-  }
+  ) {}
 
   /** Only live farming surfaces use chunks; direct editing/animation previews keep their original renderer path. */
   createPlot(parent: Entity, entity: Entity, grid: PlotGrid, cell: SoilCell, moisture: number): SoilVisualTarget {
+    this.requestSoilTextures();
     const webgl2 = (this.engine as unknown as { _hardwareRenderer: { isWebGL2: boolean } })._hardwareRenderer.isWebGL2;
     if (!webgl2) {
       const renderer = entity.addComponent(MeshRenderer);
@@ -116,6 +123,9 @@ export class SoilVisualProvider {
   }
 
   release(renderer: SoilVisualTarget): void {
+    if (renderer instanceof MeshRenderer && this.perimeterRenderers.delete(renderer)) {
+      if (!renderer.destroyed && renderer.getMaterial() === this.perimeterMaterial) renderer.setMaterial(null!);
+    }
     const material = this.appearances.get(renderer)?.material;
     if (material) {
       if (!(renderer instanceof SoilBatchPlot) && !renderer.destroyed && renderer.getMaterial() === material)
@@ -139,20 +149,24 @@ export class SoilVisualProvider {
   }
 
   get ready(): boolean {
-    return this.texturesReady;
+    return !this.disposed && this.loadedTextureCount === this.textureStatus.size;
   }
 
   get loadedTextureCount(): number {
-    return this.textures.length;
+    let count = 0;
+    for (const status of this.textureStatus.values()) if (status === "ready") count++;
+    return count;
   }
 
   get loadError(): string | null {
-    return this.textureLoadError;
+    const errors = [];
+    for (const status of this.textureStatus.values()) if (typeof status === "object") errors.push(status.error);
+    return errors.join("；") || null;
   }
 
   /** Independent geometry follows host terrain; materials/textures remain provider-owned. */
   createEditableMesh(footprint?: { readonly size: number; readonly square: boolean }): ModelMesh {
-    return createHandpaintedSoilMesh(this.engine, footprint?.size ?? this.size, true, footprint?.square).mesh;
+    return createHandpaintedSoilMesh(this.engine, footprint?.size ?? this.size, true, footprint?.square);
   }
 
   setCoverageTexture(renderer: SoilVisualTarget, texture: Texture2D | null): void {
@@ -168,6 +182,7 @@ export class SoilVisualProvider {
     if (this.disposed || renderer.destroyed) return;
     const targetMoisture = Math.max(0, Math.min(1, moisture));
     if (renderer instanceof SoilBatchPlot) return;
+    this.requestSoilTextures();
     const mesh = this.mesh;
     if (renderer.mesh !== mesh) renderer.mesh = mesh;
     renderer.enableVertexColor = true;
@@ -317,29 +332,47 @@ export class SoilVisualProvider {
   }
 
   applyPerimeter(renderer: MeshRenderer): void {
-    renderer.setMaterial(this.perimeterMaterial);
+    if (this.disposed || renderer.destroyed) return;
+    if (!this.perimeterMaterial) {
+      this.perimeterMaterial = createPerimeterMaterial(this.engine);
+      this.perimeterMaterial.normalTextureIntensity = DEFAULT_SOIL_VISUAL_CONFIG.perimeter.normalIntensity;
+    }
+    const material = this.perimeterMaterial;
+    if (!material.baseTexture)
+      void this.loadTexture("perimeter", "diffuse", "grass-mud-albedo-smoothness", (texture) => {
+        material.baseTexture = texture;
+      });
+    if (!material.normalTexture)
+      void this.loadTexture("perimeter", "normal", "grass-mud-normal", (texture) => {
+        material.normalTexture = texture;
+      });
+    this.perimeterRenderers.add(renderer);
+    renderer.setMaterial(material);
   }
 
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
     this.batches?.dispose();
-    for (const [renderer, appearance] of this.appearances) {
-      if (!(renderer instanceof SoilBatchPlot) && !renderer.destroyed && renderer.mesh === this.mesh)
+    for (const renderer of this.appearances.keys()) {
+      if (!(renderer instanceof SoilBatchPlot) && !renderer.destroyed && renderer.mesh === this.fallbackMesh)
         renderer.mesh = null!;
-      appearance.material?.destroy(true);
+      this.release(renderer);
     }
-    this.appearances.clear();
     this.fieldRenderers.clear();
     this.stencils.clear();
     this.dependents.clear();
     this.displayValues.clear();
     this.dirty.clear();
-    this.perimeterMaterial.destroy(true);
-    disposeSoilMesh(this.mesh);
+    for (const renderer of this.perimeterRenderers) this.release(renderer);
+    this.perimeterMaterial?.destroy(true);
+    this.perimeterMaterial = undefined;
+    if (this.fallbackMesh) disposeSoilMesh(this.fallbackMesh);
+    this.fallbackMesh = undefined;
     // ResourceManager caches these borrowed textures across providers and Scenes.
     // Releasing our materials drops our references; the engine owns texture reclamation.
-    this.textures.length = 0;
+    for (const status of this.textureStatus.values()) if (typeof status === "object") clearTimeout(status.retry);
+    this.textureStatus.clear();
     this.diffuseTexture = this.normalTexture = null;
   }
 
@@ -364,82 +397,69 @@ export class SoilVisualProvider {
     }
   }
 
-  private async loadTextures(): Promise<void> {
-    const bindings = [
-      {
-        url: DEFAULT_SOIL_VISUAL_CONFIG.soil.textures.diffuse,
-        srgb: true,
-        name: "juliovii-handpainted-dirt",
-        apply: (texture: Texture2D) => {
-          this.diffuseTexture = texture;
-          for (const { material } of this.appearances.values()) if (material) material.baseTexture = texture;
-          if (this.batches && !this.batches.material.destroyed) this.batches.material.baseTexture = texture;
-        }
-      },
-      {
-        url: DEFAULT_SOIL_VISUAL_CONFIG.soil.textures.normal,
-        srgb: false,
-        name: "juliovii-handpainted-dirt-normal",
-        apply: (texture: Texture2D) => {
-          this.normalTexture = texture;
-          for (const { material } of this.appearances.values()) if (material) material.normalTexture = texture;
-          if (this.batches && !this.batches.material.destroyed) this.batches.material.normalTexture = texture;
-        }
-      },
-      {
-        url: DEFAULT_SOIL_VISUAL_CONFIG.perimeter.textures.diffuse,
-        srgb: true,
-        name: "grass-mud-albedo-smoothness",
-        apply: (texture: Texture2D) => {
-          this.perimeterMaterial.baseTexture = texture;
-        }
-      },
-      {
-        url: DEFAULT_SOIL_VISUAL_CONFIG.perimeter.textures.normal,
-        srgb: false,
-        name: "grass-mud-normal",
-        apply: (texture: Texture2D) => {
-          this.perimeterMaterial.normalTexture = texture;
-          this.perimeterMaterial.normalTextureIntensity = DEFAULT_SOIL_VISUAL_CONFIG.perimeter.normalIntensity;
-        }
-      }
-    ];
-    // Bind each successful map immediately; an unrelated failed or slow map must
-    // not prevent the other materials from receiving their textures.
-    const results = await Promise.allSettled(
-      bindings.map(async (binding) => {
-        const texture = await this.loadTexture(binding.url, binding.srgb, binding.name);
-        if (!this.disposed) binding.apply(texture);
-      })
-    );
-    if (this.disposed) return;
-    const errors = results.flatMap((result, index) =>
-      result.status === "rejected"
-        ? [`${bindings[index].name}: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`]
-        : []
-    );
-    this.texturesReady = errors.length === 0;
-    if (errors.length > 0) {
-      this.textureLoadError = errors.join("; ");
-      console.warn(`农场部分贴图加载失败，对应贴图使用基础材质：${this.textureLoadError}`);
-    }
+  private requestSoilTextures(): void {
+    if (!this.diffuseTexture)
+      void this.loadTexture("soil", "diffuse", "juliovii-handpainted-dirt", (texture) => {
+        this.diffuseTexture = texture;
+        for (const { material } of this.appearances.values()) if (material) material.baseTexture = texture;
+        if (this.batches && !this.batches.material.destroyed) this.batches.material.baseTexture = texture;
+      });
+    if (!this.normalTexture)
+      void this.loadTexture("soil", "normal", "juliovii-handpainted-dirt-normal", (texture) => {
+        this.normalTexture = texture;
+        for (const { material } of this.appearances.values()) if (material) material.normalTexture = texture;
+        if (this.batches && !this.batches.material.destroyed) this.batches.material.normalTexture = texture;
+      });
   }
 
-  private async loadTexture(url: string, srgb: boolean, name: string): Promise<Texture2D> {
-    const texture = await this.engine.resourceManager.load<Texture2D>({
-      type: AssetType.Texture,
-      url,
-      params: { isSRGBColorSpace: srgb, mipmap: true }
-    });
-    texture.name = name;
-    texture.filterMode = TextureFilterMode.Trilinear;
-    texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Repeat;
-    texture.anisoLevel = DEFAULT_SOIL_VISUAL_CONFIG.anisoLevel;
-    if (this.disposed) {
-      throw new Error("Soil visual provider was disposed while loading textures.");
+  private async loadTexture(
+    group: "soil" | "perimeter",
+    channel: "diffuse" | "normal",
+    name: string,
+    apply: (texture: Texture2D) => void,
+    retryDelay = FIRST_TEXTURE_RETRY_MS
+  ): Promise<void> {
+    const status = this.textureStatus.get(name);
+    if (this.disposed || this.engine.destroyed || status === "loading" || status === "ready") return;
+    if (status?.retry !== undefined) return;
+    this.textureStatus.set(name, "loading");
+    const { textures, originalTextures } = DEFAULT_SOIL_VISUAL_CONFIG[group];
+    try {
+      let texture: Texture2D;
+      try {
+        texture = await this.engine.resourceManager.load<Texture2D>({ type: AssetType.KTX2, url: textures[channel] });
+      } catch {
+        if (this.disposed || this.engine.destroyed) return;
+        texture = await this.engine.resourceManager.load<Texture2D>({
+          type: AssetType.Texture,
+          url: originalTextures[channel],
+          params: { isSRGBColorSpace: channel === "diffuse", mipmap: true }
+        });
+      }
+      if (this.disposed || this.engine.destroyed) return;
+      texture.name = name;
+      texture.filterMode = TextureFilterMode.Trilinear;
+      texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Repeat;
+      texture.anisoLevel = DEFAULT_SOIL_VISUAL_CONFIG.anisoLevel;
+      apply(texture);
+      this.textureStatus.set(name, "ready");
+    } catch (error) {
+      if (this.disposed || this.engine.destroyed) return;
+      const message = `${name}: ${error instanceof Error ? error.message : String(error)}`;
+      const failure: SoilTextureFailure = { error: message };
+      failure.retry = setTimeout(() => {
+        failure.retry = undefined;
+        // Once the last renderer is gone, the next use can request the map again.
+        const renderers = group === "soil" ? this.appearances.keys() : this.perimeterRenderers;
+        for (const renderer of renderers) {
+          if (renderer.destroyed || (renderer instanceof SoilBatchPlot && renderer.entity.destroyed)) continue;
+          void this.loadTexture(group, channel, name, apply, Math.min(retryDelay * 2, MAX_TEXTURE_RETRY_MS));
+          break;
+        }
+      }, retryDelay);
+      this.textureStatus.set(name, failure);
+      if (retryDelay === FIRST_TEXTURE_RETRY_MS) console.warn(`农场贴图加载失败，对应贴图使用基础材质：${message}`);
     }
-    this.textures.push(texture);
-    return texture;
   }
 }
 
@@ -481,12 +501,7 @@ function createPerimeterMaterial(engine: Engine): PBRMaterial {
 }
 
 /** Shared soft-edged beds. Planting never changes soil geometry. */
-function createHandpaintedSoilMesh(
-  engine: Engine,
-  size: number,
-  editable = false,
-  square = false
-): Readonly<{ mesh: ModelMesh; vertexCount: number }> {
+function createHandpaintedSoilMesh(engine: Engine, size: number, editable = false, square = false): ModelMesh {
   const segments = SOIL_MESH_SEGMENTS;
   const positions: Vector3[] = [];
   const normals: Vector3[] = [];
@@ -535,7 +550,7 @@ function createHandpaintedSoilMesh(
   mesh.calculateTangents();
   mesh.addSubMesh(0, indices.length, MeshTopology.Triangles);
   mesh.uploadData(!editable);
-  return Object.freeze({ mesh, vertexCount: positions.length });
+  return mesh;
 }
 
 function soilBoundaryScale(angle: number): number {

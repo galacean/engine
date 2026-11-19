@@ -11,6 +11,8 @@ import { sampleColorCurve } from "../core/curves";
 import { acquireMaturePlant, type MaturePlantLease } from "./MaturePlantResources";
 import { preparePlantShaderPrograms } from "./preparePlantShaderPrograms";
 import { ProceduralPlant } from "./ProceduralPlant";
+import type { PlantGrowthDefinition } from "../core/PlantGrowthDefinition";
+import { loadPlantGrowthDefinition } from "./loadPlantGrowthDefinition";
 
 /** Scene/host destruction is also a resource release boundary, including deferred frame teardown. */
 class PlantInstanceLifetime extends Script {
@@ -30,6 +32,7 @@ export interface PlantResourceState {
   readonly materialId?: number;
 }
 export interface PlantInstance {
+  readonly definition: PlantGrowthDefinition;
   readonly plant: ProceduralPlant;
   update(state: PlantRenderState): void;
   query(): Readonly<{
@@ -56,7 +59,6 @@ export async function createPlantInstance(
 ): Promise<PlantInstance> {
   let state = validatePlantRenderState(catalog, input);
   if (signal?.aborted || engine.destroyed || parent.destroyed) throw new Error("植物宿主已释放");
-  const definition = catalog.getPlant(state.plantId);
   const mapping = catalog.getMapping(state.cropId);
   const applyEmergence = (plant: ProceduralPlant, progress: number) => {
     const emergence = mapping.emergence(progress);
@@ -100,6 +102,10 @@ export async function createPlantInstance(
       }
     });
   };
+  const entry = catalog.getPlant(state.plantId);
+  const definition = "recipe" in entry ? entry : await admitted(() => loadPlantGrowthDefinition(entry), "recipe");
+  signal?.throwIfAborted();
+  if (engine.destroyed || parent.destroyed) throw new Error("植物宿主已释放");
   const lifetime = new AbortController();
   const abortLifetime = () => lifetime.abort();
   signal?.addEventListener("abort", abortLifetime, { once: true });
@@ -267,6 +273,7 @@ export async function createPlantInstance(
     })();
   };
   const instance: PlantInstance = {
+    definition,
     plant: plant!,
     update(input) {
       if (disposed) throw new Error("植物实例已释放");

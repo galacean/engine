@@ -57,7 +57,7 @@ let loadController = new AbortController();
 const events = new AbortController();
 const on = (element: HTMLElement, event: string, handler: EventListener) =>
   element.addEventListener(event, handler, { signal: events.signal });
-const growthDefinition = () => plantingCatalog.getPlant(crop.appearance.plantId);
+const growthMetadata = () => plantingCatalog.getPlant(crop.appearance.plantId);
 function renderObjects() {
   const query = $<HTMLInputElement>("search").value.toLowerCase().trim();
   const items = plantingCatalog.crops.filter((c) =>
@@ -89,10 +89,10 @@ function setProgress(value: number) {
   $("plant-growth-value").textContent = percent;
   $("growth-phase").textContent = result.stageName;
   $("plant-growth").setAttribute("aria-valuetext", `${percent}，${result.stageName}`);
-  const metrics = growthMetrics(growth.plant.geometry, growthDefinition());
+  const metrics = growthMetrics(growth.plant.geometry, growth.definition);
   $("growth-metrics").textContent = metrics;
   $("status").textContent = `连续生长 ${percent} · ${result.stageName} · ${metrics}`;
-  $("info").innerHTML = renderGrowthInfo(growthDefinition(), growth.plant.geometry, result.age);
+  $("info").innerHTML = renderGrowthInfo(growth.definition, growth.plant.geometry, result.age);
 }
 async function loadGrowth() {
   const token = ++generation;
@@ -117,6 +117,7 @@ async function loadGrowth() {
       return;
     }
     growth = instance;
+    configureGrowthControls(growth.definition);
     $<HTMLInputElement>("plant-growth").disabled = false;
     $<HTMLButtonElement>("growth-play").disabled = false;
     setProgress(growthProgress);
@@ -133,17 +134,17 @@ async function selectAsset(id: string) {
   stopGrowthPlayback();
   crop = next;
   growthShape = { ...DEFAULT_PLANT_SHAPE };
-  growthProgress = plantingCatalog.getMapping(crop.id).progressAtAge(growthDefinition().preview.initialAge);
+  growthProgress = plantingCatalog.getMapping(crop.id).progressAtAge(growthMetadata().preview.initialAge);
   $("asset-name").textContent = crop.name;
   $("asset-subtitle").textContent = `${crop.appearance.plantId} / 单次生长周期`;
-  configureGrowthControls(growthDefinition());
+  configureGrowthControls(undefined);
   $("growth-anchors").innerHTML = crop.cycle.stages
     .map(
       (s) =>
         `<button data-growth-progress="${s.minimumProgress}">${escape(s.name)} <span>${Math.round(s.minimumProgress * 100)}%</span></button>`
     )
     .join("");
-  $("growth-note").textContent = `${growthDefinition().preview.note} 滑块表示种植周期进度；播放仅用于预览。`;
+  $("growth-note").textContent = `${growthMetadata().preview.note} 滑块表示种植周期进度；播放仅用于预览。`;
   renderObjects();
   renderGrowthProfile();
   await loadGrowth();
@@ -316,6 +317,10 @@ async function main() {
     if (button) void selectAsset(button.dataset.asset!);
   });
   on($("reset"), "click", fit);
+  on($("growth-retry"), "click", () => {
+    stopGrowthPlayback();
+    void loadGrowth();
+  });
   on($("growth-controls"), "input", (event) => {
     const input = event.target as HTMLInputElement;
     if (input.id === "plant-growth") {
@@ -336,10 +341,7 @@ async function main() {
   on($("growth-controls"), "click", (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button");
     if (!button) return;
-    if (button.id === "growth-retry") {
-      stopGrowthPlayback();
-      void loadGrowth();
-    } else if (button.dataset.growthProgress !== undefined) {
+    if (button.dataset.growthProgress !== undefined) {
       stopGrowthPlayback();
       setProgress(Number(button.dataset.growthProgress));
     } else if (button.id === "growth-shape-reset") {
@@ -356,7 +358,7 @@ async function main() {
       let previous = performance.now();
       const advance = (now: number) => {
         setProgress(
-          growthProgress + Math.min(0.05, (now - previous) / 1000) / growthDefinition().preview.durationSeconds
+          growthProgress + Math.min(0.05, (now - previous) / 1000) / growthMetadata().preview.durationSeconds
         );
         previous = now;
         if (growthProgress >= 1 || disposed) stopGrowthPlayback();
@@ -373,7 +375,7 @@ async function main() {
       engine,
       growth: () => growth?.plant,
       instance: () => growth,
-      growthDefinition,
+      growthDefinition: () => growth?.definition,
       catalog: plantingCatalog,
       createPlantInstance,
       createPlantRenderState,

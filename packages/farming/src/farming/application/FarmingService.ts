@@ -25,13 +25,15 @@ import {
   type FarmingSimulationConfig,
   type FarmingSimulationOverrides
 } from "../config/FarmingSimulationConfig";
-import type { FieldValueResult } from "../domain/fields/SoilWaterField";
+import { refreshWaterLayout, type FieldValueResult } from "../domain/fields/SoilWaterField";
 import { isFarmCommand } from "../domain/FarmCommandValidation";
 import {
   DEFAULT_PLOT_GRID,
+  allocatePlotId,
   groundState,
   inspectGround,
   isGroundTarget,
+  plotAtTarget,
   GROUND_REASON_MESSAGES,
   type FarmingGroundProvider,
   type FarmingGroundChange,
@@ -170,6 +172,8 @@ export class FarmingService {
   private unsubscribeRepository: (() => void) | null = null;
   private tickTimer: number | null = null;
   private lastCheckpointSystemTimeMs = 0;
+  private clockGeneration = 0;
+  private replacementRevision = 0;
   private lastCatchUp: FarmTimeAdvanceSummary = Object.freeze({
     elapsedSystemTimeMs: 0,
     simulatedElapsedMs: 0,
@@ -291,19 +295,16 @@ export class FarmingService {
             }),
             changes: [...settled.changes, ...refreshed.changes]
           };
-          const changed =
-            validated !== current ||
-            settled.elapsedSystemTimeMs > 0 ||
-            settled.changes.length > 0 ||
-            refreshed.changes.length > 0 ||
-            advanced.snapshot.environment.airTemperatureTenths !== validated.environment.airTemperatureTenths ||
-            advanced.snapshot.environment.lightUnits !== validated.environment.lightUnits;
+          const changed = validated !== current || settled.stateChanged || refreshed.changes.length > 0;
           const snapshot = changed
             ? freezeSnapshot({ ...advanced.snapshot, revision: current.revision + 1 })
-            : validated;
+            : settled.snapshot === conservative
+              ? validated
+              : advanced.snapshot;
           this.validatedSnapshot(snapshot);
           return {
             snapshot,
+            clockOnly: changed ? undefined : "volatile",
             value: {
               snapshot,
               summary: Object.freeze({
@@ -326,12 +327,43 @@ export class FarmingService {
     if (this.disposed) return this.snapshot;
     this.lastCatchUp = initialized.summary;
     this.lastCheckpointSystemTimeMs = nowMs;
-    this.unsubscribeRepository ??= this.repository.subscribe(this.farmId, () => {
-      const task = this.queue.then(() => this.refreshFromRepository());
-      this.queue = task.catch((error) => this.reportError("refresh", error));
-    });
+    this.unsubscribeRepository ??= this.repository.subscribe(
+      this.farmId,
+      (external, replacementRevision) => {
+        const task = this.queue.then(() => this.refreshFromRepository(external, replacementRevision));
+        this.queue = task.catch((error) => this.reportError("refresh", error));
+      },
+      {
+        current: () => this.snapshot,
+        validate: (snapshot) => this.validatedSnapshot(snapshot),
+        refreshLayout: (snapshot, layout, { previous, rebaseTime, mergeSettlement }) => {
+          const savedTime = snapshot.simulation.lastSystemTimeMs;
+          const time = rebaseTime && this.clock.rebase ? savedTime : Math.max(savedTime, this.clock.nowMs());
+          if (mergeSettlement && time > previous.simulation.lastSystemTimeMs) {
+            // The candidate is still private. Settle the old topology and its water supply before switching.
+            const settled = settleFarmTime(previous, time, this.definitions, this.timeOptions()).snapshot;
+            snapshot = mergeSettlement(settled);
+          }
+          return refreshWaterLayout(
+            snapshot,
+            layout,
+            time,
+            this.groundProvider.capture(),
+            mergeSettlement !== undefined
+          );
+        },
+        committed: (snapshot, rebaseTime) => {
+          this.replacementRevision = snapshot.revision;
+          if (rebaseTime && this.clock.rebase) {
+            this.clock.rebase(snapshot.simulation.lastSystemTimeMs);
+            this.clockGeneration++;
+            this.lastCheckpointSystemTimeMs = this.clock.nowMs();
+          }
+        }
+      }
+    );
     this.unsubscribeGround ??= this.groundProvider.subscribe((change) => {
-      const time = this.clock.nowMs(),
+      const time = this.captureSettlementTime(),
         view = this.groundProvider.capture();
       const task = this.queue.then(() => this.refreshGroundNow(change, view, time));
       this.queue = task.catch((error) => this.reportError("checkpoint", error));
@@ -401,14 +433,13 @@ export class FarmingService {
 
   inspectCultivation(target: GroundTarget): CultivationInspection {
     if (!isGroundTarget(target)) throw new Error("Invalid ground target");
-    const existing = this.getSnapshot().plots.find(
-      (p) => p.groundId === target.groundId && p.cellX === target.cellX && p.cellZ === target.cellZ
-    );
+    const snapshot = this.getSnapshot();
+    const existing = plotAtTarget(snapshot.plots, target);
     const view = this.groundProvider.capture();
     const inspection = existing
       ? this.groundInspections.inspect(view, this.grid, existing, existing.plotId)
-      : inspectGround(view, this.grid, target);
-    return storageBlocksCultivation(this.getSnapshot(), this.definitions, target)
+      : inspectGround(view, this.grid, target, allocatePlotId(snapshot.plots, target));
+    return storageBlocksCultivation(snapshot, this.definitions, target)
       ? Object.freeze({ ...inspection, canCultivate: false, reason: "GROUND_BLOCKED" as const })
       : inspection;
   }
@@ -532,9 +563,7 @@ export class FarmingService {
     const plot =
       typeof target === "string"
         ? snapshot.plots.find((p) => p.plotId === target)
-        : snapshot.plots.find(
-            (p) => p.groundId === target.groundId && p.cellX === target.cellX && p.cellZ === target.cellZ
-          );
+        : plotAtTarget(snapshot.plots, target);
     if (plot) {
       const inspection = this.groundInspections.inspect(view, this.grid, plot, plot.plotId);
       // Availability needs current cultivation facts, not a water-connectivity refresh.
@@ -737,7 +766,8 @@ export class FarmingService {
   }
 
   checkpoint(targetSystemTimeMs = this.clock.nowMs()): Promise<FarmSnapshot> {
-    const task = this.queue.then(() => this.checkpointNow(targetSystemTimeMs));
+    const time = this.captureSettlementTime(targetSystemTimeMs);
+    const task = this.queue.then(() => this.checkpointNow(time, this.timeOptions(), "persist"));
     this.queue = task.catch((error) => {
       this.reportError("checkpoint", error);
     });
@@ -750,7 +780,7 @@ export class FarmingService {
     const task = this.queue.then(async () => {
       const next = Object.freeze({ ...this.simulationConfig, ...requested });
       validateSimulationConfig(next, this.grid.cellSize);
-      await this.checkpointNow(this.clock.nowMs());
+      await this.checkpointNow(this.captureSettlementTime());
       this._simulationConfig = next;
       this.statusSnapshot = null;
       this.publish({ snapshot: this.getSnapshot(), changes: [], source: "local" });
@@ -815,7 +845,7 @@ export class FarmingService {
         },
         this.lifetime.signal
       );
-      this.snapshot = result.snapshot;
+      this.adoptRepositorySnapshot(result.snapshot);
       if (result.changes.length || result.snapshot.revision !== previousRevision)
         this.publish({
           snapshot: result.snapshot,
@@ -866,6 +896,7 @@ export class FarmingService {
 
   private async tickNow(forceCheckpoint: boolean): Promise<void> {
     if (!this.snapshot || this.disposed) return;
+    if (this.repository.replacementPending || this.snapshot.revision < this.replacementRevision) return;
     const timeOptions = this.timeOptions();
     const nowMs = this.clock.nowMs();
     const observed = refreshPlotGround(
@@ -877,7 +908,7 @@ export class FarmingService {
       this.groundInspections
     );
     if (observed.changes.length) {
-      await this.checkpointNow(nowMs, timeOptions);
+      await this.checkpointNow(this.captureSettlementTime(nowMs), timeOptions);
       return;
     }
     const advanced = settleFarmTime(this.snapshot, nowMs, this.definitions, timeOptions);
@@ -887,17 +918,22 @@ export class FarmingService {
         this.publish({ snapshot: this.snapshot, changes: advanced.changes, source: "clock" });
     }
     if (forceCheckpoint || nowMs - this.lastCheckpointSystemTimeMs >= this.checkpointIntervalMs) {
-      await this.checkpointNow(nowMs, timeOptions);
+      await this.checkpointNow(this.captureSettlementTime(nowMs), timeOptions);
     }
   }
 
-  private async checkpointNow(targetSystemTimeMs: number, timeOptions = this.timeOptions()): Promise<FarmSnapshot> {
+  private async checkpointNow(
+    time: () => number,
+    timeOptions = this.timeOptions(),
+    clockOnly: "volatile" | "persist" = "volatile"
+  ): Promise<FarmSnapshot> {
     if (!this.snapshot || this.disposed) throw new Error("Farming service has not been initialized.");
     const observedRevision = this.snapshot.revision;
     const committed = await this.transact(
       this.farmId,
-      () => this.createInitial(targetSystemTimeMs),
+      () => this.createInitial(time()),
       (current) => {
+        const targetSystemTimeMs = time();
         const validated = this.validatedSnapshot(current);
         const refreshed = refreshPlotGround(
           validated,
@@ -909,13 +945,14 @@ export class FarmingService {
         );
         const settled = settleFarmTime(refreshed.snapshot, targetSystemTimeMs, this.definitions, timeOptions);
         const advanced = { ...settled, changes: [...refreshed.changes, ...settled.changes] };
-        const changed = advanced.snapshot !== validated;
+        const changed = validated !== current || refreshed.changes.length > 0 || settled.stateChanged;
         const snapshot = changed
           ? freezeSnapshot({ ...advanced.snapshot, revision: current.revision + 1 })
           : advanced.snapshot;
         this.validatedSnapshot(snapshot);
         return {
           snapshot,
+          clockOnly: changed ? undefined : clockOnly,
           value: {
             snapshot,
             changes: advanced.changes,
@@ -924,9 +961,10 @@ export class FarmingService {
         };
       }
     );
-    this.lastCheckpointSystemTimeMs = targetSystemTimeMs;
+    if (committed.snapshot.revision >= this.replacementRevision)
+      this.lastCheckpointSystemTimeMs = committed.snapshot.simulation.lastSystemTimeMs;
     const previous = this.snapshot;
-    this.snapshot = freezeSnapshot(committed.snapshot);
+    this.adoptRepositorySnapshot(freezeSnapshot(committed.snapshot));
     if (this.snapshot !== previous && (committed.changes.length || !committed.clockOnly)) {
       this.publish({
         snapshot: this.snapshot,
@@ -962,14 +1000,15 @@ export class FarmingService {
       };
     }
     const timeOptions = this.timeOptions();
-    const targetSystemTimeMs = command.type === "advance-time" ? command.targetSystemTimeMs : this.clock.nowMs();
+    const time = this.captureSettlementTime(command.type === "advance-time" ? command.targetSystemTimeMs : undefined);
     let committed: ApplyFarmCommandResult & { readonly persistedChange: boolean };
     try {
       committed = await this.transact(
         this.farmId,
-        () => this.createInitial(targetSystemTimeMs),
+        () => this.createInitial(time()),
         (current) => {
           signal?.throwIfAborted();
+          const targetSystemTimeMs = time();
           const validated = this.validatedSnapshot(current);
           // A different runtime may have committed since this service's local observation.
           // Resolve the same original request from the authoritative transaction receipt.
@@ -1058,7 +1097,7 @@ export class FarmingService {
       !committed.persistedChange &&
       committed.snapshot.revision === previousSnapshot.revision &&
       committed.snapshot.simulation.lastSystemTimeMs <= previousSnapshot.simulation.lastSystemTimeMs;
-    if (!preserveLocal) this.snapshot = freezeSnapshot(committed.snapshot);
+    if (!preserveLocal) this.adoptRepositorySnapshot(freezeSnapshot(committed.snapshot));
     if (committed.result.ok) this.pendingBindings.delete(command.commandId);
     if (!committed.result.replayed && committed.result.changes.length) {
       this.publish({ snapshot: this.snapshot, changes: committed.result.changes, source: "local" });
@@ -1070,14 +1109,22 @@ export class FarmingService {
     return committed.result;
   }
 
-  private async refreshFromRepository(): Promise<void> {
+  private adoptRepositorySnapshot(snapshot: FarmSnapshot): void {
+    this.snapshot = snapshot;
+    if (snapshot.revision >= this.replacementRevision) this.replacementRevision = 0;
+  }
+
+  private async refreshFromRepository(external = false, replacementRevision?: number): Promise<void> {
     if (!this.snapshot || this.disposed) return;
+    // A queued transaction or a newer notification can already have absorbed this replacement.
+    if (replacementRevision !== undefined && replacementRevision !== this.replacementRevision) return;
     try {
       const stored = await this.repository.read(this.farmId);
       if (!stored || this.disposed) return;
       const validated = this.validatedSnapshot(stored);
-      if (validated.revision <= this.snapshot.revision) return;
-      this.snapshot = freezeSnapshot(validated);
+      if (validated.revision < this.replacementRevision) return;
+      if (!external && validated.revision <= this.snapshot.revision) return;
+      this.adoptRepositorySnapshot(freezeSnapshot(validated));
       this.publish({ snapshot: this.snapshot, changes: [], source: "external" });
     } catch (error) {
       this.reportError("refresh", error);
@@ -1106,33 +1153,38 @@ export class FarmingService {
   private async refreshGroundNow(
     change: FarmingGroundChange,
     view: ReturnType<FarmingGroundProvider["capture"]>,
-    time: number
+    readTime: () => number
   ): Promise<void> {
     if (!this.snapshot || this.disposed) return;
     const previousRevision = this.snapshot.revision;
     const timeOptions = this.timeOptions();
     const result = await this.transact(
       this.farmId,
-      () => this.createInitial(time),
+      () => this.createInitial(readTime()),
       (current) => {
+        const time = readTime();
         const validated = this.validatedSnapshot(current);
         const settled = settleFarmTime(validated, time, this.definitions, timeOptions);
         const refreshed = refreshPlotGround(settled.snapshot, view, time, change, false, this.groundInspections);
         const regrounded = regroundFarmItems(refreshed.snapshot, this.definitions, view);
         const changed =
-          settled.snapshot !== validated || refreshed.snapshot !== settled.snapshot || regrounded.changes.length > 0;
+          validated !== current ||
+          settled.stateChanged ||
+          refreshed.changes.length > 0 ||
+          regrounded.changes.length > 0;
         const snapshot = changed
           ? freezeSnapshot({ ...refreshed.snapshot, items: regrounded.items, revision: validated.revision + 1 })
-          : validated;
+          : settled.snapshot;
         this.validatedSnapshot(snapshot);
         return {
           snapshot,
+          clockOnly: changed ? undefined : "volatile",
           value: { snapshot, changes: [...settled.changes, ...refreshed.changes, ...regrounded.changes] }
         };
       }
     );
     if (this.disposed) return;
-    this.snapshot = result.snapshot;
+    this.adoptRepositorySnapshot(result.snapshot);
     if (result.changes.length || result.snapshot.revision !== previousRevision)
       this.publish({
         snapshot: result.snapshot,
@@ -1147,18 +1199,7 @@ export class FarmingService {
     operation: (current: FarmSnapshot) => FarmRepositoryTransaction<T>,
     signal?: AbortSignal
   ): Promise<T> {
-    return this.repository.transact(
-      farmId,
-      createInitial,
-      (current) => {
-        const result = operation(current);
-        return {
-          snapshot: result.snapshot,
-          value: result.value
-        };
-      },
-      signal
-    );
+    return this.repository.transact(farmId, createInitial, operation, signal);
   }
 
   private createInitial(systemTimeMs: number): FarmSnapshot {
@@ -1237,6 +1278,12 @@ export class FarmingService {
       simulatedTimeMs: snapshot.simulation.simulatedTimeMs,
       settledEnvironment: snapshot.environment
     };
+  }
+
+  /** An operation queued before an import must settle on the accepted time origin. */
+  private captureSettlementTime(time = this.clock.nowMs()): () => number {
+    const generation = this.clockGeneration;
+    return () => (generation === this.clockGeneration ? time : this.clock.nowMs());
   }
 
   private timeOptions() {

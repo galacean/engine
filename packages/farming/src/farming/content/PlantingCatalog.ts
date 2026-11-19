@@ -2,7 +2,8 @@ import { z } from "zod";
 import type { CropDefinition } from "../domain/FarmDefinitions";
 import { validateCropGrowthFactors } from "../domain/GrowthFactors";
 import { CropGrowthMapping } from "../presentation/CropGrowthMapping";
-import { parsePlantGrowthMetadata, type PlantGrowthDefinition } from "../procedural/core/PlantGrowthDefinition";
+import { parsePlantGrowthMetadata, type PlantGrowthEntry } from "../procedural/core/PlantGrowthDefinition";
+import recipeMetadata from "../procedural/plant-recipe-metadata.json";
 import { parsePlantGrowthRecipe } from "../procedural/core/validation";
 import { freezePlantContent } from "../procedural/core/immutable";
 
@@ -55,9 +56,9 @@ const speciesSchema = z
 
 export interface PlantingCatalog {
   readonly crops: readonly CropDefinition[];
-  readonly plants: readonly PlantGrowthDefinition[];
+  readonly plants: readonly PlantGrowthEntry[];
   getCrop(id: string): CropDefinition;
-  getPlant(id: string): PlantGrowthDefinition;
+  getPlant(id: string): PlantGrowthEntry;
   getMapping(cropId: string): CropGrowthMapping;
 }
 const catalogs = new WeakSet<object>();
@@ -66,18 +67,29 @@ export function requirePlantingCatalog(value: PlantingCatalog): void {
 }
 
 /** No engine, Vite discovery, network or browser dependency. */
-export function createPlantingCatalog(
-  crops: readonly unknown[],
-  plants: readonly PlantGrowthDefinition[]
-): PlantingCatalog {
-  const byPlant = new Map<string, PlantGrowthDefinition>();
+export function createPlantingCatalog(crops: readonly unknown[], plants: readonly PlantGrowthEntry[]): PlantingCatalog {
+  const byPlant = new Map<string, PlantGrowthEntry>();
   for (const definition of plants) {
-    const { recipe: rawRecipe, atlasUrl, ...rawMetadata } = definition;
+    const {
+      recipe: rawRecipe,
+      recipeRevision,
+      atlasUrl,
+      ...rawMetadata
+    } = definition as PlantGrowthEntry & { recipe?: unknown; recipeRevision?: number };
     const metadata = parsePlantGrowthMetadata(rawMetadata);
-    const recipe = parsePlantGrowthRecipe(rawRecipe);
-    if (metadata.id !== recipe.id || !atlasUrl || /\.(?:glb|gltf)(?:$|[?#])/i.test(atlasUrl))
-      throw new Error(`无效程序化资源：${metadata.id}`);
+    if (!atlasUrl || /\.(?:glb|gltf)(?:$|[?#])/i.test(atlasUrl)) throw new Error(`无效程序化资源：${metadata.id}`);
     if (byPlant.has(metadata.id)) throw new Error(`重复植物 ID：${metadata.id}`);
+    if (recipeRevision !== undefined) {
+      const recipe = recipeMetadata[metadata.id as keyof typeof recipeMetadata];
+      if (rawRecipe !== undefined || !recipe || recipe.revision !== recipeRevision)
+        throw new Error(`无效程序化配方引用：${metadata.id}`);
+      if (recipe.requiresTintColors && !metadata.material.tintColors)
+        throw new Error(`着色器官缺少颜色曲线：${metadata.id}`);
+      byPlant.set(metadata.id, freezePlantContent({ ...metadata, recipeRevision, atlasUrl }));
+      continue;
+    }
+    const recipe = parsePlantGrowthRecipe(rawRecipe);
+    if (metadata.id !== recipe.id) throw new Error(`无效程序化资源：${metadata.id}`);
     if ((recipe.volumes.some((v) => v.tint) || recipe.meshes?.some((m) => m.tint)) && !metadata.material.tintColors)
       throw new Error(`着色器官缺少颜色曲线：${metadata.id}`);
     byPlant.set(metadata.id, freezePlantContent({ ...metadata, recipe, atlasUrl }));
@@ -105,7 +117,7 @@ export function createPlantingCatalog(
     if (
       !plant ||
       plant.revision !== crop.appearance.plantRevision ||
-      plant.recipe.revision !== crop.appearance.recipeRevision
+      ("recipe" in plant ? plant.recipe.revision : plant.recipeRevision) !== crop.appearance.recipeRevision
     )
       throw new Error(`物种引用缺失或修订不匹配：${crop.id}`);
     freezePlantContent(crop);

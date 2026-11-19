@@ -20,7 +20,10 @@
             <h2 id="asset-name">选择对象</h2>
             <p id="asset-subtitle"></p>
           </div>
-          <button id="reset">重置视角</button>
+          <div class="preview-actions">
+            <button id="growth-retry" hidden>重新生成</button>
+            <button id="reset">重置视角</button>
+          </div>
         </div>
         <div class="viewport">
           <canvas id="canvas" aria-label="三维程序化植物"></canvas>
@@ -33,7 +36,6 @@
               <span class="eyebrow">GROWTH LAB</span>
               <h3 id="growth-title">连续生长</h3>
             </div>
-            <button id="growth-retry" hidden>重新生成</button>
           </div>
           <div class="growth-progress-label">
             <label for="plant-growth">生长进度 <span id="growth-phase"></span></label>

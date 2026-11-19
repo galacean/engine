@@ -1,10 +1,15 @@
 import type { FarmingSimulationConfig } from "../../config/FarmingSimulationConfig";
-import type { FarmSnapshot } from "../FarmState";
+import type { FarmSnapshot, PlotState } from "../FarmState";
 import {
   boundsIntersect,
+  groundState,
+  inspectGround,
   plotBounds,
+  sameGroundCell,
   type FarmingGroundChange,
   type FarmingGroundView,
+  type GroundTarget,
+  type PlotGrid,
   type PlotGroundState
 } from "../FarmingGround";
 import type { FarmChange } from "../FarmCommands";
@@ -19,6 +24,152 @@ export const WATER_DIRECTIONS = [
 ] as const;
 const opposite = [1, 0, 3, 2];
 const key = (groundId: string, x: number, z: number) => `${groundId}:${x}:${z}`;
+
+function connectionBounds(grid: PlotGrid, a: GroundTarget, b: GroundTarget) {
+  const left = plotBounds(grid, a);
+  const right = plotBounds(grid, b);
+  return {
+    minimumX: Math.min(left.minimumX, right.minimumX),
+    maximumX: Math.max(left.maximumX, right.maximumX),
+    minimumZ: Math.min(left.minimumZ, right.minimumZ),
+    maximumZ: Math.max(left.maximumZ, right.maximumZ)
+  };
+}
+
+function permitsWater(inspection: ReturnType<FarmingGroundView["inspectBounds"]>): boolean {
+  return (
+    inspection.covered &&
+    !inspection.blocked &&
+    !inspection.underwater &&
+    inspection.surfaces.length > 0 &&
+    inspection.surfaces.every((surface) => surface === "soil" || surface === "grass")
+  );
+}
+
+export interface WaterLayoutChange {
+  readonly moved: ReadonlySet<string>;
+  readonly changedCells: readonly GroundTarget[];
+  readonly previousPlots: ReadonlyMap<string, PlotState>;
+}
+
+/** A replacement can change the plot layout while the terrain revision stays fixed. */
+export function diffWaterLayout(snapshot: FarmSnapshot, previous: FarmSnapshot): WaterLayoutChange | undefined {
+  if (
+    snapshot.plots.length === previous.plots.length &&
+    snapshot.plots.every((plot, i) => {
+      const old = previous.plots[i];
+      return plot.plotId === old.plotId && sameGroundCell(plot, old);
+    })
+  )
+    return;
+
+  const priorById = new Map(previous.plots.map((plot) => [plot.plotId, plot]));
+  const nextById = new Map(snapshot.plots.map((plot) => [plot.plotId, plot]));
+  const moved = new Set<string>();
+  const changedCells: GroundTarget[] = [];
+  for (const plot of snapshot.plots) {
+    const old = priorById.get(plot.plotId);
+    if (old && sameGroundCell(old, plot)) continue;
+    moved.add(plot.plotId);
+    changedCells.push(plot);
+  }
+  for (const plot of previous.plots) if (!nextById.has(plot.plotId) || moved.has(plot.plotId)) changedCells.push(plot);
+  if (changedCells.length) return { moved, changedCells, previousPlots: priorById };
+}
+
+function continuousWaterSince(
+  previousPlots: ReadonlyMap<string, PlotState>,
+  plot: PlotState,
+  neighbor: PlotState,
+  revision: number
+): number | undefined {
+  const oldPlot = previousPlots.get(plot.plotId);
+  const oldNeighbor = previousPlots.get(neighbor.plotId);
+  if (
+    !oldPlot ||
+    !oldNeighbor ||
+    oldPlot.groundId !== plot.groundId ||
+    oldNeighbor.groundId !== neighbor.groundId ||
+    oldPlot.ground.waterCheckedRevision !== revision ||
+    oldNeighbor.ground.waterCheckedRevision !== revision
+  )
+    return;
+  const direction = WATER_DIRECTIONS.findIndex(
+    ([dx, dz]) => oldPlot.cellX + dx === oldNeighbor.cellX && oldPlot.cellZ + dz === oldNeighbor.cellZ
+  );
+  if (
+    direction < 0 ||
+    !((oldPlot.ground.waterMask ?? 0) & (1 << direction)) ||
+    !((oldNeighbor.ground.waterMask ?? 0) & (1 << opposite[direction]))
+  )
+    return;
+  const a = oldPlot.ground.waterSinceMs?.[direction];
+  const b = oldNeighbor.ground.waterSinceMs?.[opposite[direction]];
+  if (a !== undefined && b !== undefined) return Math.max(a, b);
+}
+
+export function refreshWaterLayout(
+  snapshot: FarmSnapshot,
+  { moved, changedCells, previousPlots }: WaterLayoutChange,
+  time: number,
+  view?: FarmingGroundView,
+  sameTimeBasis = false
+): FarmSnapshot {
+  const byCell = new Map(snapshot.plots.map((plot) => [key(plot.groundId, plot.cellX, plot.cellZ), plot]));
+  const affected = new Set<string>(moved);
+  for (const plot of changedCells)
+    for (const [dx, dz] of WATER_DIRECTIONS) {
+      const neighbor = byCell.get(key(plot.groundId, plot.cellX + dx, plot.cellZ + dz));
+      if (neighbor) affected.add(neighbor.plotId);
+    }
+  const connections = new Map<string, number | null>();
+  const plots = snapshot.plots.map((plot) => {
+    if (!affected.has(plot.plotId)) return plot;
+    const relocated = moved.has(plot.plotId);
+    const ground =
+      relocated && view
+        ? groundState(inspectGround(view, snapshot.grid, plot, plot.plotId), time, plot.ground)
+        : plot.ground;
+    let mask = 0;
+    const since = WATER_DIRECTIONS.map(([dx, dz], direction) => {
+      const neighbor = byCell.get(key(plot.groundId, plot.cellX + dx, plot.cellZ + dz));
+      if (!neighbor) return 0;
+      if (!relocated && !moved.has(neighbor.plotId)) {
+        if (!((ground.waterMask ?? 0) & (1 << direction))) return 0;
+        mask |= 1 << direction;
+        return ground.waterSinceMs?.[direction] ?? time;
+      }
+      // Inactive farms have no ground view. Leave new connections unconfirmed
+      // so reopening cannot credit water across them retroactively.
+      if (!view) return 0;
+      const start = direction === 0 || direction === 2 ? plot : neighbor;
+      const edge = `${start.plotId}:${direction < 2 ? 0 : 2}`;
+      if (!connections.has(edge)) {
+        const connected = permitsWater(
+          view.inspectBounds(plot.groundId, connectionBounds(snapshot.grid, plot, neighbor))
+        );
+        const since =
+          connected && sameTimeBasis ? continuousWaterSince(previousPlots, plot, neighbor, view.revision) : undefined;
+        // Only a verified equivalent connection can span a fixed simulation step that crosses this edit.
+        connections.set(edge, connected ? (since ?? time) : null);
+      }
+      const since = connections.get(edge);
+      if (since == null) return 0;
+      mask |= 1 << direction;
+      return since;
+    });
+    return {
+      ...plot,
+      ground: {
+        ...ground,
+        waterMask: mask,
+        waterSinceMs: since,
+        waterCheckedRevision: relocated && view ? view.revision : (ground.waterCheckedRevision ?? ground.groundRevision)
+      }
+    };
+  });
+  return { ...snapshot, plots };
+}
 
 export function refreshWaterGround(
   snapshot: FarmSnapshot,
@@ -47,14 +198,7 @@ export function refreshWaterGround(
         n = byCell.get(key(p.groundId, p.cellX + dx, p.cellZ + dz));
       if (!n) continue;
       // Water connectivity and cultivation inspect the same complete cell footprints.
-      const a = plotBounds(snapshot.grid, p),
-        b = plotBounds(snapshot.grid, n);
-      const bounds = {
-        minimumX: Math.min(a.minimumX, b.minimumX),
-        maximumX: Math.max(a.maximumX, b.maximumX),
-        minimumZ: Math.min(a.minimumZ, b.minimumZ),
-        maximumZ: Math.max(a.maximumZ, b.maximumZ)
-      };
+      const bounds = connectionBounds(snapshot.grid, p, n);
       if (
         change &&
         ((change.groundId && change.groundId !== p.groundId) ||
@@ -66,15 +210,7 @@ export function refreshWaterGround(
         }
         continue;
       }
-      const inspection = view.inspectBounds(p.groundId, bounds);
-      if (
-        !inspection.covered ||
-        inspection.blocked ||
-        inspection.underwater ||
-        !inspection.surfaces.length ||
-        inspection.surfaces.some((s) => s !== "soil" && s !== "grass")
-      )
-        continue;
+      if (!permitsWater(view.inspectBounds(p.groundId, bounds))) continue;
       masks.set(p.plotId, masks.get(p.plotId)! | (1 << d));
       masks.set(n.plotId, masks.get(n.plotId)! | (1 << opposite[d]));
     }

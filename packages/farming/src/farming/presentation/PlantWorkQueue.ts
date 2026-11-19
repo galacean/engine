@@ -1,4 +1,5 @@
 const phaseProgress: Record<string, number> = {
+  recipe: -2,
   texture: -1,
   material: 0,
   geometry: 1,

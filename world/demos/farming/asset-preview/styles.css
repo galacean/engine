@@ -144,6 +144,12 @@ p {
   margin: 5px 0 0;
   font-size: 11px;
 }
+.preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
 .preview-heading button {
   font-size: 11px;
   white-space: nowrap;

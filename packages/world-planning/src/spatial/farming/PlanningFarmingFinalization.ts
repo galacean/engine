@@ -2,8 +2,7 @@ import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
 import { planningWhiteboxes } from "../../semantic-study/PlanningWhiteboxes";
 import { createPlanningGroundSampler, createPlanningRingQuery } from "../../semantic-study/WorldPlanningTerrain";
 import { RoadObstacleIndex } from "../layout/LayoutKernel";
-import { FARM_DEFINITIONS } from "@galacean/engine-farming/farming/content/DefaultFarmingDefinitions";
-import { storageDefinitions } from "@galacean/engine-farming/farming/storage/StorageRules";
+import { DEFAULT_STORAGE_DEFINITIONS } from "@galacean/engine-farming/farming/storage/StorageDefaults";
 import {
   createPlanningFarmingGroundView,
   farmingBoundsOutline,
@@ -52,7 +51,7 @@ export function finalizePlanningFarm(plan: IslandPlan): void {
     farm.farmId,
     farm.groundId,
     farm.placement,
-    storageDefinitions(FARM_DEFINITIONS),
+    DEFAULT_STORAGE_DEFINITIONS,
     raw
   );
   if (result.issues.length) {

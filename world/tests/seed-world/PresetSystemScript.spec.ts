@@ -44,6 +44,31 @@ it("typechecks Script imports and rejects invalid native method calls", () => {
   ).toThrow(/notAnOperation/);
 });
 
+it("requires a recipe guard for both live catalog entries and catalog resource data", () => {
+  const unguarded = `import { Script } from '@galacean/engine';
+import { FarmingSystem } from '@galacean/seed-world-systems';
+export default class InspectRecipe extends Script {
+  inspect() {
+    const resource = this.entity.getComponent(FarmingSystem)?.catalog;
+    if (!resource) return;
+    const entry = resource.catalog.getPlant('canola-farmlands');
+    const stored = resource.data.plants[0];
+    console.log(entry.recipe, stored.recipe);
+  }
+}`;
+  const check = (body: string) =>
+    checkRuntimeScripts(
+      { "InspectRecipe.ts": unguarded.replace("console.log(entry.recipe, stored.recipe);", body) },
+      files,
+      libraries
+    );
+  expect(() => check("console.log(entry.recipe);")).toThrow(/recipe/);
+  expect(() => check("console.log(stored.recipe);")).toThrow(/recipe/);
+  expect(() =>
+    check("if ('recipe' in entry) console.log(entry.recipe);\n    if ('recipe' in stored) console.log(stored.recipe);")
+  ).not.toThrow();
+});
+
 it("publishes a closed declaration graph through the same read/list mount", async () => {
   const provider = new AgentProjectFiles([engineRuntimeFiles(host)]);
   const readme = provider.read("skills/scripting/references/runtime-modules.md");

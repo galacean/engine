@@ -133,6 +133,21 @@ export function isGroundTarget(value: unknown): value is GroundTarget {
 export function plotIdForTarget(target: GroundTarget): string {
   return `${target.groundId}/x${target.cellX}z${target.cellZ}`;
 }
+export function sameGroundCell(a: GroundTarget, b: GroundTarget): boolean {
+  return a.groundId === b.groundId && a.cellX === b.cellX && a.cellZ === b.cellZ;
+}
+export function plotAtTarget<T extends GroundTarget>(plots: readonly T[], target: GroundTarget): T | undefined {
+  return plots.find((plot) => sameGroundCell(plot, target));
+}
+/** A relocated plot keeps its ID, even when its original cell is cultivated again. */
+export function allocatePlotId(plots: readonly { readonly plotId: string }[], target: GroundTarget): string {
+  const base = plotIdForTarget(target);
+  if (!plots.some((plot) => plot.plotId === base)) return base;
+  const ids = new Set(plots.map((plot) => plot.plotId));
+  let suffix = 2;
+  while (ids.has(`${base}-${suffix}`)) suffix++;
+  return `${base}-${suffix}`;
+}
 export function targetAtPoint(grid: PlotGrid, groundId: string, x: number, z: number): GroundTarget {
   return {
     groundId,
