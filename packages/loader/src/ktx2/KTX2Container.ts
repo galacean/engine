@@ -43,8 +43,6 @@ export class KTX2Container {
 
   supercompressionScheme: SupercompressionScheme = SupercompressionScheme.None;
 
-  generateMipmaps = false;
-
   levels: KTX2Level[] = [];
 
   dataFormatDescriptor: KTX2DataFormatDescriptorBasicFormat;
@@ -78,9 +76,7 @@ export class KTX2Container {
     this.layerCount = headerBufferReader.nextUint32();
     this.faceCount = headerBufferReader.nextUint32();
 
-    const declaredLevelCount = headerBufferReader.nextUint32();
-    this.generateMipmaps = declaredLevelCount === 0;
-    const levelCount = Math.max(1, declaredLevelCount);
+    const levelCount = Math.max(1, headerBufferReader.nextUint32());
     this.supercompressionScheme = headerBufferReader.nextUint32();
 
     const dfdByteOffset = headerBufferReader.nextUint32();

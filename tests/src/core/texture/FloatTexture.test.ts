@@ -47,3 +47,18 @@ it.each([
     cube.destroy(true);
   }
 );
+
+it("round trips R16_UNORM texels at an odd row width", () => {
+  if (!gl.getExtension("EXT_texture_norm16")) {
+    expect(() => new Texture2D(engine, 3, 2, TextureFormat.R16_UNORM, false, false)).toThrow();
+    return;
+  }
+  const texture = new Texture2D(engine, 3, 2, TextureFormat.R16_UNORM, false, false);
+  const heights = new Uint16Array([0, 1, 255, 256, 32768, 65535]);
+  texture.setPixelBuffer(heights);
+  const pixels = new Uint16Array(heights.length * 4);
+  texture.getPixelBuffer(pixels);
+  expect(pixels.filter((_, index) => index % 4 === 0)).toEqual(heights);
+  expect(gl.getError()).toBe(gl.NO_ERROR);
+  texture.destroy();
+});
