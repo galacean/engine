@@ -12,29 +12,13 @@ import {
   PointLight,
   PrimitiveMesh,
   Camera,
-  Script,
-  Collider,
   PBRMaterial,
   Entity,
   Layer
 } from "@galacean/engine";
 
-import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
+import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
-
-class CheckScript extends Script {
-  onTriggerEnter(other: Collider) {
-    console.log("onTriggerEnter", other);
-    // Change color to green when collision occurs
-    (this.entity.getComponent(MeshRenderer).getMaterial() as PBRMaterial).baseColor.set(0, 1, 0, 1);
-  }
-
-  onContactEnter(other: Collider) {
-    console.log("onContactEnter", other);
-    // Change color to green when collision occurs
-    (this.entity.getComponent(MeshRenderer).getMaterial() as PBRMaterial).baseColor.set(0, 1, 0, 1);
-  }
-}
 
 // Create a sphere with physics
 function createPhysicsSphere(
@@ -64,9 +48,6 @@ function createPhysicsSphere(
   physicsSphere.collisionLayer = collisionLayer;
 
   sphereEntity.addComponent(Rigidbody);
-  sphereEntity.addComponent(CheckScript);
-
-  return sphereEntity;
 }
 
 WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engine) => {
@@ -114,24 +95,10 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
   groundCollider.collisionLayer = Layer.Layer3;
 
   // 创建可以碰撞的红色球体
-  const sphere1 = createPhysicsSphere(
-    rootEntity,
-    "RedSphere",
-    new Vector3(-2, 5, 0),
-    0.5,
-    new Vector3(1, 0, 0),
-    Layer.Layer1
-  );
+  createPhysicsSphere(rootEntity, "RedSphere", new Vector3(-2, 5, 0), 0.5, new Vector3(1, 0, 0), Layer.Layer1);
 
   // 创建可以穿透的蓝色球体
-  const sphere2 = createPhysicsSphere(
-    rootEntity,
-    "BlueSphere",
-    new Vector3(2, 5, 0),
-    0.5,
-    new Vector3(0, 0, 1),
-    Layer.Layer2
-  );
+  createPhysicsSphere(rootEntity, "BlueSphere", new Vector3(2, 5, 0), 0.5, new Vector3(0, 0, 1), Layer.Layer2);
 
   scene.physics.setColliderLayerCollision(Layer.Layer2, Layer.Layer3, false);
 
