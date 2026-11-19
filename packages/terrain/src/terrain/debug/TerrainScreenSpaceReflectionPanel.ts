@@ -8,6 +8,7 @@ import {
 } from "@galacean/engine";
 import type { DebugInspectorPanelHost } from "./DebugInspector";
 import {
+  TERRAIN_RAIN_SCREEN_SPACE_REFLECTION_RESOLUTION_SCALE,
   TERRAIN_SCREEN_SPACE_REFLECTION_MAX_RAY_DISTANCE_METRES,
   TERRAIN_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES,
   TERRAIN_SCREEN_SPACE_REFLECTION_RAY_LENGTH_FADE_METRES,
@@ -51,17 +52,17 @@ export type TerrainScreenSpaceReflectionAutomaticConfiguration = Omit<
   "globalEnabled"
 >;
 
-/** Canonical consumer-driven Integrated World SSR configuration shared by every Terrain page. */
+/** Canonical consumer-driven Seed World SSR configuration (0.25x terrain rain film, 0.5x water). */
 export const TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION: TerrainScreenSpaceReflectionAutomaticConfiguration =
   Object.freeze({
     receiverPolicy: "explicit-only",
-    quality: "high",
-    resolutionScale: TERRAIN_SCREEN_SPACE_REFLECTION_RESOLUTION_SCALE,
+    quality: "low",
+    resolutionScale: TERRAIN_RAIN_SCREEN_SPACE_REFLECTION_RESOLUTION_SCALE,
     intensity: 1,
     maxRayDistance: TERRAIN_SCREEN_SPACE_REFLECTION_MAX_RAY_DISTANCE_METRES,
     rayLengthFade: TERRAIN_SCREEN_SPACE_REFLECTION_RAY_LENGTH_FADE_METRES,
-    maxRaySteps: 64,
-    hitRefinementSteps: 5,
+    maxRaySteps: 24,
+    hitRefinementSteps: 2,
     thickness: TERRAIN_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES,
     maxRoughness: 0.7,
     edgeFade: 0.06,

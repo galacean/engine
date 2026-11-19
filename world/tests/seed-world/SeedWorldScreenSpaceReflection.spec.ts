@@ -219,3 +219,51 @@ it("keeps the existing retained-puddle demand when rain is not required", () => 
   updateRain(0);
   expect(weather.surfaceWaterSsrRequested).toBe(true);
 });
+
+it("uses the downscaled terrain opaque SSR budget in rain without lowering water trace quality", () => {
+  const { camera, reflection, updateRain } = fixture();
+  applyAutomaticScreenSpaceReflectionConfiguration(camera, TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION);
+  new CameraWaterFeatureBroker(camera).setRequest("lake", {
+    ...waterRequest,
+    quality: "high",
+    screenSpaceReflection: TERRAIN_WATER_SSR_CAMERA_SETTINGS
+  });
+  updateRain(0.3);
+
+  expect(reflection.metrics.opaqueResolvedSettings).toMatchObject({
+    quality: Quality.Low,
+    resolutionScale: 0.25,
+    maxRayDistance: 168,
+    rayLengthFade: 16.8,
+    maxRaySteps: 24,
+    hitRefinementSteps: 2,
+    thickness: 0.2,
+    maxRoughness: 0.7,
+    edgeFade: 0.06
+  });
+  expect(reflection.metrics.transparentResolvedSettings).toMatchObject({
+    quality: Quality.High,
+    resolutionScale: 0.5,
+    upsamplingMode: UpsamplingMode.Bilinear,
+    maxRayDistance: 168,
+    rayLengthFade: 16.8,
+    maxRaySteps: 64,
+    hitRefinementSteps: 5,
+    thickness: 0.2,
+    maxRoughness: 0.7,
+    edgeFade: 0.02
+  });
+
+  applyScreenSpaceReflectionConfiguration(camera, {
+    quality: "high",
+    resolutionScale: 0.5,
+    maxRaySteps: 64,
+    hitRefinementSteps: 5
+  });
+  expect(reflection.metrics.opaqueResolvedSettings).toMatchObject({
+    quality: Quality.High,
+    resolutionScale: 0.5,
+    maxRaySteps: 64,
+    hitRefinementSteps: 5
+  });
+});
