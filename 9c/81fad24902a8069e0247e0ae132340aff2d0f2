@@ -1,0 +1,20 @@
+packages/animals/src/gameplay/animal/AnimalMotionPlayback.ts
+  h_171a11afaf879a 3-22,35,39,45-54,67,71-77,81-105
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  h_171a11afaf879a 48,716-719,951,956-957,2130-2133,2135-2136
+packages/animals/src/gameplay/animal/GroundAnimalCrowd.ts
+  h_171a11afaf879a 60,132,676-677,681,686-710,712-716,720
+world/tests/seed-world/AnimalMotionPlayback.spec.ts
+  h_171a11afaf879a 1-123
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9c81fad24902a8069e0247e0ae132340aff2d0f2",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
