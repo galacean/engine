@@ -1,6 +1,6 @@
 import { Engine, TextureCube, TextureCubeFace, TextureFormat } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { describe, beforeAll, beforeEach, expect, it } from "vitest";
+import { describe, beforeAll, expect, it } from "vitest";
 
 describe("TextureCube", () => {
   const width = 1024;
@@ -10,37 +10,20 @@ describe("TextureCube", () => {
   const canvas = document.createElement("canvas");
 
   let engine: Engine;
-  let rhi: any;
-  let isWebGL2: boolean;
   beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: canvas });
-    // @ts-ignore
-    rhi = engine._hardwareRenderer;
-    isWebGL2 = rhi.isWebGL2;
-  });
-
-  beforeEach(() => {
-    rhi._isWebGL2 = isWebGL2;
   });
 
   describe("格式测试", () => {
-    it("不支持浮点纹理", () => {
-      expect(() => {
-        rhi.canIUse.mockReturnValueOnce(false);
-        new TextureCube(engine, size, TextureFormat.R32G32B32A32);
-      }).to.throw;
-    });
     it("引擎不支持的格式", () => {
       expect(() => {
         new TextureCube(engine, size, 1234567 as any);
-      }).to.throw;
+      }).to.throw();
     });
   });
 
   describe("mipmap", () => {
     it("webgl2 支持非2次幂开启 mipmap ", () => {
-      rhi._isWebGL2 = true;
-
       const texture1 = new TextureCube(engine, 100);
       const texture2 = new TextureCube(engine, 100, undefined, true);
 
@@ -52,15 +35,6 @@ describe("TextureCube", () => {
 
       expect(texture.mipmapCount).to.eq(1);
     });
-    it("webgl1 开启 mipmap 失败自动降级 - 非2次幂图片", () => {
-      rhi._isWebGL2 = false;
-
-      const texture1 = new TextureCube(engine, 100);
-      const texture2 = new TextureCube(engine, 100, undefined, true);
-
-      expect(texture1.mipmapCount).to.eq(1);
-      expect(texture2.mipmapCount).to.eq(1);
-    });
   });
 
   // todo: dom test
@@ -71,15 +45,15 @@ describe("TextureCube", () => {
       const buffer = new Uint8Array(width * height * 4);
       expect(() => {
         texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer);
-      }).not.to.throw;
+      }).not.to.throw();
 
       expect(() => {
         texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer, 0);
-      }).not.to.throw;
+      }).not.to.throw();
 
       expect(() => {
         texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer, 0, 0, 0, width, height);
-      }).not.to.throw;
+      }).not.to.throw();
 
       expect(() => {
         texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer, 0, 0, 0, width, height);
@@ -88,17 +62,17 @@ describe("TextureCube", () => {
         texture.setPixelBuffer(TextureCubeFace.NegativeY, buffer, 0, 0, 0, width, height);
         texture.setPixelBuffer(TextureCubeFace.PositiveZ, buffer, 0, 0, 0, width, height);
         texture.setPixelBuffer(TextureCubeFace.NegativeZ, buffer, 0, 0, 0, width, height);
-      }).not.to.throw;
+      }).not.to.throw();
     });
 
     it("浮点纹理写入数据", () => {
       expect(() => {
-        const texture = new TextureCube(engine, size, TextureFormat.R32G32B32A32);
+        const texture = new TextureCube(engine, size, TextureFormat.R32G32B32A32_SFloat);
         const buffer = new Float32Array(4);
 
-        texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer);
+        texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer, 0, 0, 0, 1, 1);
         texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer, 1, 0, 0, 1, 1);
-      }).not.to.throw;
+      }).not.to.throw();
     });
   });
 
@@ -109,7 +83,7 @@ describe("TextureCube", () => {
         const buffer = new Uint8Array(4);
 
         texture.getPixelBuffer(TextureCubeFace.PositiveX, 0, 0, 1, 1, buffer);
-      }).to.throw;
+      }).to.throw();
     });
     it("读取成功", () => {
       const texture = new TextureCube(engine, size);

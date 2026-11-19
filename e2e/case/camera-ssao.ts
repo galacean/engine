@@ -16,8 +16,7 @@ import {
   PrimitiveMesh,
   SkyBoxMaterial,
   Vector3,
-  WebGLEngine,
-  WebGLMode
+  WebGLEngine
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
@@ -27,8 +26,7 @@ Logger.enable();
 // Create engine
 WebGLEngine.create({
   canvas: "canvas",
-  shaderCompiler: new ShaderCompiler(),
-  graphicDeviceOptions: { webGLMode: WebGLMode.WebGL1 }
+  shaderCompiler: new ShaderCompiler()
 }).then((engine) => {
   engine.canvas.setAutoResolution(2);
 

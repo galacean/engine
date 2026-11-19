@@ -60,7 +60,7 @@ function* programs(source: string, runtimeOnly = false): Generator<Program> {
   const analysis = runtimeOnly ? undefined : ShaderAnalyzer.analyze(source);
   if (analysis) expect(analysis.diagnostics).toEqual([]);
   const pass = compiler._parseShaderSource(source).subShaders[0].passes[0];
-  for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+  for (const target of [ShaderLanguage.GLSLES300]) {
     const generated = [
       ...(analysis ? [["analyzer", compiler.generate(analysis.passes[0], target)] as const] : []),
       [
@@ -104,7 +104,7 @@ function expectRenderedColor(
   if (!gl) {
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 1;
-    gl = canvas.getContext(program.target === ShaderLanguage.GLSLES300 ? "webgl2" : "webgl", {
+    gl = canvas.getContext("webgl2", {
       antialias: false,
       preserveDrawingBuffer: true
     }) as WebGLRenderingContext | WebGL2RenderingContext;
@@ -112,7 +112,7 @@ function expectRenderedColor(
     contexts.set(program.target, gl);
   }
   const label = `${program.path}, target ${program.target}, macros ${JSON.stringify(program.macros)}`;
-  const version = program.target === ShaderLanguage.GLSLES300 ? "#version 300 es\n" : "";
+  const version = "#version 300 es\n";
   const linked = gl.createProgram()!;
   const shaders: WebGLShader[] = [];
   try {
@@ -198,7 +198,7 @@ void frag() { gl_FragColor = color(); }
 VertexShader = vert; FragmentShader = frag;
 } } }`;
     expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).toContain("Redefinition");
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       expect(() => new ShaderPrecompiler().precompile(source, target)).toThrow("Redefinition");
     }
     for (const program of programs(source, true)) {
@@ -343,7 +343,7 @@ VertexShader = vert; FragmentShader = frag;
     const pass = compiler._parseShaderSource(source).subShaders[0].passes[0];
     const errors = vi.spyOn(Logger, "error").mockImplementation(() => undefined);
     try {
-      for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      for (const target of [ShaderLanguage.GLSLES300]) {
         expect(compiler.generate(analysis.passes[0], target)).toBeUndefined();
         expect(
           compiler._parseShaderPass(

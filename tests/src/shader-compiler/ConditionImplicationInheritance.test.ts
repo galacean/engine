@@ -82,7 +82,7 @@ function* programs(source: string, variants: Macros[], runtimeOnly = false): Gen
   const analysis = runtimeOnly ? undefined : ShaderAnalyzer.analyze(source);
   if (analysis) expect(analysis.diagnostics).toEqual([]);
   const pass = compiler._parseShaderSource(source).subShaders[0].passes[0];
-  for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+  for (const target of [ShaderLanguage.GLSLES300]) {
     const generated = [
       ...(analysis ? [["analyzer", compiler.generate(analysis.passes[0], target)] as const] : []),
       [
@@ -121,7 +121,7 @@ function expectDriverAcceptance(program: Program, renderedValue?: number): void 
   if (!gl) {
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 1;
-    gl = canvas.getContext(program.target === ShaderLanguage.GLSLES300 ? "webgl2" : "webgl", {
+    gl = canvas.getContext("webgl2", {
       antialias: false,
       preserveDrawingBuffer: true
     }) as WebGLRenderingContext | WebGL2RenderingContext;
@@ -129,7 +129,7 @@ function expectDriverAcceptance(program: Program, renderedValue?: number): void 
     contexts.set(program.target, gl);
   }
   const label = `${program.path}, target ${program.target}, macros ${JSON.stringify(program.macros)}`;
-  const version = program.target === ShaderLanguage.GLSLES300 ? "#version 300 es\n" : "";
+  const version = "#version 300 es\n";
   const linked = gl.createProgram()!;
   const shaders: WebGLShader[] = [];
   try {
@@ -199,7 +199,7 @@ function expectSumReplacement(source: string, rows: Macros[], truth?: readonly b
     }
     checkedVariants++;
   }
-  expect(checkedVariants).toBe(rows.length * 6);
+  expect(checkedVariants).toBe(rows.length * 3);
 }
 
 describe("semantic condition implication in ShaderLab inheritance", () => {
@@ -350,7 +350,7 @@ describe("semantic condition implication in ShaderLab inheritance", () => {
       unconditionalCall: true
     });
     expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).toContain("Redefinition");
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       expect(() => new ShaderPrecompiler().precompile(source, target)).toThrow("Redefinition");
     }
     for (const program of programs(source, [{ A: "0" }], true)) {

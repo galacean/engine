@@ -169,7 +169,7 @@ export class PrimitiveMeshGallery {
         pixels.set([...color, 255], offset);
       }
     }
-    const texture = new Texture2D(this.engine, size, size, TextureFormat.R8G8B8A8, true);
+    const texture = new Texture2D(this.engine, size, size, TextureFormat.R8G8B8A8_UNorm, true);
     texture.setPixelBuffer(pixels);
     texture.generateMipmaps();
     texture.filterMode = TextureFilterMode.Trilinear;

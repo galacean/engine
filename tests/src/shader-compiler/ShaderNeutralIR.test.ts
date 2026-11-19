@@ -162,7 +162,7 @@ void fragA() { gl_FragColor = vec4(0.25); }
       new Map()
     );
     expect(parsedB.errors).to.have.lengthOf(0);
-    GLESBackend.generate(parsedB.ir!, ShaderCoreInfo.create(parsedB.ir!, "vertB", "fragB"), ShaderLanguage.GLSLES100);
+    GLESBackend.generate(parsedB.ir!, ShaderCoreInfo.create(parsedB.ir!, "vertB", "fragB"), ShaderLanguage.GLSLES300);
 
     expect(inspectNeutralIR(parsedA.ir!, ShaderCoreInfo.create(parsedA.ir!, "vertA", "fragA"))).to.deep.equal(
       snapshotA
@@ -181,7 +181,7 @@ void frag() { gl_FragColor = vec4(1.0); }`;
     expect(parsed.errors).to.not.have.lengthOf(0);
     expect(parsed.blockingErrors).to.not.have.lengthOf(0);
 
-    const generated = new ShaderCompiler()._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES100);
+    const generated = new ShaderCompiler()._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES300);
     expect(generated).to.equal(undefined);
   });
 
@@ -198,7 +198,7 @@ FragmentShader = frag;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("PreprocessorError");
     expect(analysis.passes).to.have.lengthOf(1);
-    expect(new ShaderCompiler().generate(analysis.passes[0], ShaderLanguage.GLSLES100)).to.equal(undefined);
+    expect(new ShaderCompiler().generate(analysis.passes[0], ShaderLanguage.GLSLES300)).to.equal(undefined);
   });
 
   it("rejects analyzer pass handoff when parser semantics prove a redefinition", () => {
@@ -213,7 +213,7 @@ FragmentShader = frag;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("Redefinition");
     expect(analysis.passes).to.have.lengthOf(1);
-    expect(new ShaderCompiler().generate(analysis.passes[0], ShaderLanguage.GLSLES100)).to.equal(undefined);
+    expect(new ShaderCompiler().generate(analysis.passes[0], ShaderLanguage.GLSLES300)).to.equal(undefined);
   });
 
   it("preserves a missing include path in precompile failures", () => {
@@ -230,7 +230,7 @@ FragmentShader = frag;
 }`;
 
     expect(() =>
-      new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100, "shaders://root/Shaders/Root.shader")
+      new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300, "shaders://root/Shaders/Root.shader")
     ).to.throw(
       /Shaders\/Root\.shader: PreprocessorError: Shader include "Shaders\/chunks\/Missing\.glsl" was not found\.\n1 \| #include "\.\/chunks\/Missing\.glsl"\n  \| \^/
     );
@@ -254,7 +254,7 @@ FragmentShader = frag;
       "Shaders/shared/Value.glsl": "float brokenValue = ;"
     });
 
-    expect(() => compiler.precompile(source, ShaderLanguage.GLSLES100, "shaders://root/Shaders/Root.shader")).to.throw(
+    expect(() => compiler.precompile(source, ShaderLanguage.GLSLES300, "shaders://root/Shaders/Root.shader")).to.throw(
       /Shaders\/shared\/Value\.glsl: CompilationError: Unexpected token ;\n1 \| float brokenValue = ;\n  \| {21}\^/
     );
   });
@@ -276,7 +276,7 @@ FragmentShader = frag;
       "User Effects/Common Math.glsl": "float includedValue() { return 1.0; }"
     });
 
-    expect(() => compiler.precompile(source, ShaderLanguage.GLSLES100, "Shaders/Root.shader")).not.to.throw();
+    expect(() => compiler.precompile(source, ShaderLanguage.GLSLES300, "Shaders/Root.shader")).not.to.throw();
     expect(() =>
       compiler.setIncludeMap({
         "User/Common.glsl": "float firstValue;",
@@ -314,7 +314,7 @@ FragmentShader = frag;
 
     const compiler = new ShaderPrecompiler();
     compiler.setIncludeMap(includeMap);
-    expect(() => compiler.precompile(source, ShaderLanguage.GLSLES100, sourceFile)).to.throw(
+    expect(() => compiler.precompile(source, ShaderLanguage.GLSLES300, sourceFile)).to.throw(
       /Shaders\/shared\/Broken\.glsl: PreprocessorError: Unexpected token 'defined'.*\n2 \| #elif 123 defined\(USE_VALUE\)\n  \| {11}\^{7}/s
     );
   });
@@ -387,7 +387,7 @@ FragmentShader = frag;
 } } }`;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include(diagnosticCode);
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       expect(new ShaderCompiler().generate(analysis.passes[0], target)).to.equal(undefined);
       expect(() => new ShaderPrecompiler().precompile(source, target)).to.throw(message);
     }
@@ -408,7 +408,7 @@ FragmentShader = frag;
 } } }`;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).not.to.include("InvalidAssignmentTarget");
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       expect(new ShaderCompiler().generate(analysis.passes[0], target)).not.to.equal(undefined);
       expect(() => new ShaderPrecompiler().precompile(source, target)).not.to.throw();
     }
@@ -433,7 +433,7 @@ FragmentShader = frag;
     expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).to.include(
       "NonConstructibleReturnType"
     );
-    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw(
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)).to.throw(
       /structs containing samplers cannot be returned/
     );
   });
@@ -462,9 +462,9 @@ void frag(Varyings input) { gl_FragColor = vec4(input.uv, 0.0, 1.0); }
     const parsed = parseShaderPass(source, {}, new Map());
     expect(parsed.errors).to.have.lengthOf(0);
 
-    const generated = new ShaderCompiler()._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES100);
+    const generated = new ShaderCompiler()._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES300);
     expect(generated).to.not.equal(undefined);
-    expect(generated!.vertex.match(/attribute\s+vec3\s+position\s*;/g)).to.have.lengthOf(1);
-    expect(generated!.vertex.match(/varying\s+vec2\s+\w+\s*;/g)).to.have.lengthOf(1);
+    expect(generated!.vertex.match(/in\s+vec3\s+position\s*;/g)).to.have.lengthOf(1);
+    expect(generated!.vertex.match(/out\s+vec2\s+\w+\s*;/g)).to.have.lengthOf(1);
   });
 });

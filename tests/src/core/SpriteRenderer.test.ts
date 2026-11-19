@@ -133,7 +133,7 @@ describe("SpriteRenderer", async () => {
 
   it("get spriteRenderer bounds", () => {
     const rootEntity = scene.getRootEntity();
-    const texture2D = new Texture2D(engine, 200, 300, TextureFormat.R8G8B8A8, false);
+    const texture2D = new Texture2D(engine, 200, 300, TextureFormat.R8G8B8A8_UNorm, false);
     const sprite = new Sprite(engine, texture2D);
     const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
     expect(Vector3.equals(spriteRenderer.bounds.min, new Vector3(0, 0, 0))).to.eq(true);
@@ -181,7 +181,7 @@ describe("SpriteRenderer", async () => {
 
   it("draw Simple Sprite", () => {
     const rootEntity = scene.getRootEntity();
-    const texture2D = new Texture2D(engine, 200, 300, TextureFormat.R8G8B8A8, false);
+    const texture2D = new Texture2D(engine, 200, 300, TextureFormat.R8G8B8A8_UNorm, false);
     const sprite = new Sprite(engine, texture2D);
     const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
     spriteRenderer.sprite = sprite;
@@ -255,7 +255,7 @@ describe("SpriteRenderer", async () => {
 
   it("draw Sliced Sprite", () => {
     const rootEntity = scene.getRootEntity();
-    const texture2D = new Texture2D(engine, 200, 300, TextureFormat.R8G8B8A8, false);
+    const texture2D = new Texture2D(engine, 200, 300, TextureFormat.R8G8B8A8_UNorm, false);
     const sprite = new Sprite(engine, texture2D);
     const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
     spriteRenderer.sprite = sprite;
@@ -359,7 +359,7 @@ describe("SpriteRenderer", async () => {
 
   it("draw Tiled Sprite", () => {
     const rootEntity = scene.getRootEntity();
-    const texture2D = new Texture2D(engine, 200, 300, TextureFormat.R8G8B8A8, false);
+    const texture2D = new Texture2D(engine, 200, 300, TextureFormat.R8G8B8A8_UNorm, false);
     const sprite = new Sprite(engine, texture2D);
     const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
     spriteRenderer.sprite = sprite;

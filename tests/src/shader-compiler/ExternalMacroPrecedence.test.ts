@@ -27,14 +27,14 @@ function expectRenderedValue(target: ShaderLanguage, vertex: string, fragment: s
   if (!gl) {
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 1;
-    gl = canvas.getContext(target === ShaderLanguage.GLSLES300 ? "webgl2" : "webgl", {
+    gl = canvas.getContext("webgl2", {
       antialias: false,
       preserveDrawingBuffer: true
     }) as WebGLRenderingContext | WebGL2RenderingContext;
     expect(gl).not.toBeNull();
     contexts.set(target, gl);
   }
-  const version = target === ShaderLanguage.GLSLES300 ? "#version 300 es\n" : "";
+  const version = "#version 300 es\n";
   const program = gl.createProgram()!;
   const shaders: WebGLShader[] = [];
   try {
@@ -82,7 +82,7 @@ VertexShader = vert; FragmentShader = frag;
     expect(analyzer.diagnostics).toEqual([]);
     const compiler = new ShaderCompiler();
     const pass = compiler._parseShaderSource(source).subShaders[0].passes[0];
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       const programs = [
         ["analyzer", compiler.generate(analyzer.passes[0], target)],
         ["live", compiler._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, target)],

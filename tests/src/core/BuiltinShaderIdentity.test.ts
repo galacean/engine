@@ -9,6 +9,7 @@ import {
   ParticleMaterial,
   PBRMaterial,
   Shader,
+  ShaderLanguage,
   SkyBoxMaterial,
   SkyProceduralMaterial,
   TrailMaterial,
@@ -126,8 +127,8 @@ describe("Built-in shader identity", () => {
     "rejects a destroyed shared shader named %s while preserving a live namesake",
     async (name) => {
       const shaders = Engine._builtinShaders;
-      const builtin = Shader._createFromPrecompiled({ name, platformTarget: 0, subShaders: [] });
-      const custom = Shader._createFromPrecompiled({ name, platformTarget: 0, subShaders: [] });
+      const builtin = Shader._createFromPrecompiled({ name, platformTarget: ShaderLanguage.GLSLES300, subShaders: [] });
+      const custom = Shader._createFromPrecompiled({ name, platformTarget: ShaderLanguage.GLSLES300, subShaders: [] });
       let anotherEngine: WebGLEngine | undefined;
       try {
         Engine._builtinShaders = { ...shaders, pbr: builtin };

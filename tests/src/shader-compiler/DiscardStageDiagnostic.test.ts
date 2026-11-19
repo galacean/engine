@@ -289,12 +289,10 @@ describe.runIf(typeof document !== "undefined")("stage diagnostics and native GL
     for (const gl of contexts) gl.getExtension("WEBGL_lose_context")?.loseContext();
   });
 
-  it.each([ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300])(
+  it.each([ShaderLanguage.GLSLES300])(
     "rejects vertex discard and wrong-stage builtins, accepts fragment discard for target %s",
     (target) => {
-      const gl = document
-        .createElement("canvas")
-        .getContext(target === ShaderLanguage.GLSLES300 ? "webgl2" : "webgl") as
+      const gl = document.createElement("canvas").getContext("webgl2") as
         | WebGLRenderingContext
         | WebGL2RenderingContext;
       expect(gl).not.toBeNull();
@@ -314,7 +312,7 @@ describe.runIf(typeof document !== "undefined")("stage diagnostics and native GL
           ["fragment", gl.FRAGMENT_SHADER, program!.fragmentShaderInstructions!]
         ] as const) {
           const shaderObject = gl.createShader(type)!;
-          const version = target === ShaderLanguage.GLSLES300 ? "#version 300 es\n" : "";
+          const version = "#version 300 es\n";
           const generated = ShaderMacroProcessor.evaluate(instructions, new Map());
           gl.shaderSource(shaderObject, `${version}precision highp float;\n${generated}`);
           gl.compileShader(shaderObject);

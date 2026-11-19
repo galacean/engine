@@ -9,7 +9,6 @@ import "./JSONLoader";
 import "./KTXCubeLoader";
 import "./KTXLoader";
 import "./MaterialLoader";
-import "./MeshLoader";
 import "./PrimitiveMeshLoader";
 import "./ProjectLoader";
 import "./SourceFontLoader";

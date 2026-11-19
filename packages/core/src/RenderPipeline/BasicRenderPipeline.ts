@@ -48,7 +48,6 @@ export class BasicRenderPipeline {
   private _opaqueTexturePass: OpaqueTexturePass;
   private _finalPass: FinalPass;
   private _copyBackgroundTexture: Texture2D | null;
-  private _canUseBlitFrameBuffer = false;
   private _shouldCopyBackgroundColor = false;
 
   /**
@@ -107,30 +106,21 @@ export class BasicRenderPipeline {
     const sunlight = scene._lightManager._sunlight;
     const depthOnlyPass = this._depthOnlyPass;
     const ambientOcclusionEnabled = scene.ambientOcclusion._isValid();
-    const supportDepthTexture = depthOnlyPass.supportDepthTexture;
 
     // Ambient occlusion enable will force enable depth prepass
-    const depthPassEnabled =
-      (camera.depthTextureMode === DepthTextureMode.PrePass || ambientOcclusionEnabled) && supportDepthTexture;
+    const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass || ambientOcclusionEnabled;
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const msaaSamples = Math.min(
       renderTarget ? renderTarget.antiAliasing : camera.msaaSamples,
       rhi.capability.maxAntiAliasing
     );
 
-    // Check whether can use `blitFramebuffer` to blit internal render target, source maybe screen canvas or camera's render target
-    // Our screen canvas's anti-aliasing is always disable, so blit source and dest is always same by below rules:
-    // 1. Only support blitFramebuffer in webgl2 context
-    // 2. Can't blit normal FBO to MSAA FBO
-    // 3. Can't blit screen MSAA FBO to normal FBO in mac safari platform and mobile, but mac chrome and firfox is OK
-    this._canUseBlitFrameBuffer = rhi.isWebGL2 && msaaSamples === 1;
-
-    // Because internal render target is linear color space, so we should convert srgb background color to linear color space
+    // Copy the background when MSAA prevents a direct blit or sRGB needs conversion to linear.
     const isSRGBBackground = !renderTarget || renderTarget.getColorTexture(0)!.isSRGBColorSpace;
     this._shouldCopyBackgroundColor =
       independentCanvasEnabled &&
       !(finalClearFlags & CameraClearFlags.Color) &&
-      (!this._canUseBlitFrameBuffer || isSRGBBackground);
+      (msaaSamples !== 1 || isSRGBBackground);
 
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
       this._cascadedShadowCasterPass.onRender(context);
@@ -190,7 +180,7 @@ export class BasicRenderPipeline {
         this._copyBackgroundTexture = pool.allocateTexture(
           viewport.width,
           viewport.height,
-          colorTexture?.format ?? TextureFormat.R8G8B8A8,
+          colorTexture?.format ?? TextureFormat.R8G8B8A8_UNorm,
           false,
           colorTexture?.isSRGBColorSpace ?? false,
           TextureWrapMode.Clamp,
@@ -202,7 +192,7 @@ export class BasicRenderPipeline {
     // Scalable ambient obscurance pass
     // Before opaque pass so materials can sample ambient occlusion in BRDF
     const saoPass = this._saoPass;
-    if (ambientOcclusionEnabled && supportDepthTexture && saoPass.isSupported) {
+    if (ambientOcclusionEnabled) {
       saoPass.onConfig(camera, this._depthOnlyPass.renderTarget!);
       saoPass.onRender(context);
     } else {

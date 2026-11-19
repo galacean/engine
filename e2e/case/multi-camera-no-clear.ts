@@ -16,8 +16,7 @@ import {
   PrimitiveMesh,
   Scene,
   TonemappingEffect,
-  WebGLEngine,
-  WebGLMode
+  WebGLEngine
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
@@ -25,7 +24,6 @@ Logger.enable();
 WebGLEngine.create({
   canvas: "canvas",
   graphicDeviceOptions: {
-    webGLMode: WebGLMode.WebGL2,
     antialias: false
   }
 }).then((engine) => {

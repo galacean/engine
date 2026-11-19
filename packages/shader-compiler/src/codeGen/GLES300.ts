@@ -1,5 +1,5 @@
 import { EShaderStage } from "@galacean/engine-shader-parser/internal";
-import { ASTNode } from "@galacean/engine-shader-parser/internal";
+import { ASTNode, BaseToken } from "@galacean/engine-shader-parser/internal";
 import { ShaderData } from "@galacean/engine-shader-parser/internal";
 import { ShaderBuiltinSemantic } from "@galacean/engine-shader-parser/internal";
 import { ParserUtils } from "@galacean/engine-shader-parser/internal";
@@ -54,41 +54,68 @@ export class GLES300Visitor extends GLESVisitor {
   }
 
   override getMRTProp(prop: StructProp): string {
-    return `layout(location = ${prop.mrtIndex}) out vec4 ${this.interfaceName(prop, ShaderStructRole.Mrt)};`;
+    const index = prop.mrtIndex!;
+    if (!prop.isInMacroBranch) {
+      this._registerFragDataVariable(index);
+      return "";
+    }
+
+    // Parser declaration IDs are positive; each conditional output location owns one negative ID.
+    const id = -(index + 1);
+    const owner = { id, group: id, sourceScope: 0 };
+    this._registerFragDataVariable(index, owner);
+    // Activate the output at the member's source position, reachable only from its selected struct.
+    return (
+      ShaderInstructionEncoder.declaration("", owner) +
+      ShaderInstructionEncoder.reference(this.currentDeclarationOwner?.id ?? 0, id)
+    );
   }
 
   override visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
     const children = node.children;
     const typeSpecifier = children[0] as ASTNode.TypeSpecifier;
-    if (!node.isBuiltin || typeSpecifier.children.length !== 1 || typeSpecifier.structDependencies.length) {
-      // Struct constructors still need the shared type-dependency visitor.
+    const call = node.parent;
+    if (
+      (call instanceof ASTNode.FunctionCallGeneric && call.fnSymbol) ||
+      typeSpecifier.children.length !== 1 ||
+      typeSpecifier.structDependencies.length
+    ) {
+      // Preserve resolved user functions and struct type dependencies.
       return super.visitFunctionIdentifier(node);
     }
-    let ident = node.lexeme;
-    switch (node.ident) {
+    return this._textureBuiltinName(node.lexeme) ?? node.lexeme;
+  }
+
+  override visitMacroDefine(node: ASTNode.MacroDefine): string {
+    if (!node.isFunction && node.valueExpression) {
+      const alias = ParserUtils.unwrapBareIdentifier(node.valueExpression, { allowParens: false });
+      const token = alias?.children[0];
+      if (alias && token instanceof BaseToken && !alias.resolvedSymbols().length) {
+        const builtin = this._textureBuiltinName(token.lexeme);
+        if (builtin) return `\n#define ${node.macroName} ${builtin}\n`;
+      }
+    }
+    return super.visitMacroDefine(node);
+  }
+
+  private _textureBuiltinName(name: string): string | undefined {
+    switch (name) {
       case "texture2D":
       case "textureCube":
-        ident = "texture";
-        break;
+        return "texture";
       case "texture2DProj":
-        ident = "textureProj";
-        break;
+        return "textureProj";
       case "texture2DLodEXT":
       case "textureCubeLodEXT":
-        ident = "textureLod";
-        break;
+        return "textureLod";
       case "texture2DGradEXT":
       case "textureCubeGradEXT":
-        ident = "textureGrad";
-        break;
+        return "textureGrad";
       case "texture2DProjLodEXT":
-        ident = "textureProjLod";
-        break;
+        return "textureProjLod";
       case "texture2DProjGradEXT":
-        ident = "textureProjGrad";
-        break;
+        return "textureProjGrad";
     }
-    return ident;
   }
 
   override visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
@@ -121,7 +148,7 @@ export class GLES300Visitor extends GLESVisitor {
   }
 
   protected override mrtOutput(prop: StructProp): string {
-    return this.interfaceName(prop, ShaderStructRole.Mrt);
+    return this._fragmentDataVariableName(prop.mrtIndex!);
   }
 
   private _fragmentColorName(): string {
@@ -134,13 +161,12 @@ export class GLES300Visitor extends GLESVisitor {
 
   private _registerFragColorVariable(): void {
     const name = this._fragmentColorName();
-    this._registerOutput(name, `out vec4 ${name};`);
+    this._registerOutput(name, `layout(location = 0) out vec4 ${name};`);
   }
 
-  private _registerOutput(name: string, text: string): void {
+  private _registerOutput(name: string, text: string, owner = this.currentDeclarationOwner): void {
     let output = this._outputDeclarations.get(name);
     if (!output) this._outputDeclarations.set(name, (output = { text, owners: new Map(), unconditional: false }));
-    const owner = this.currentDeclarationOwner;
     if (owner) output.owners.set(owner.id, owner);
     else output.unconditional = true;
   }
@@ -194,9 +220,15 @@ export class GLES300Visitor extends GLESVisitor {
     this._registerOutput(name, `layout(location = 0) out vec4 ${name}[gl_MaxDrawBuffers];`);
   }
 
-  private _registerFragDataVariable(index: number): string {
-    const name = this.context.names.allocate(`fragment-output:${index}`, `output_color_${index}`);
-    this._registerOutput(name, `layout(location = ${index}) out vec4 ${name};`);
+  private _fragmentDataVariableName(index: number): string {
+    return index === 0
+      ? this._fragmentColorName()
+      : this.context.names.allocate(`fragment-output:${index}`, `output_color_${index}`);
+  }
+
+  private _registerFragDataVariable(index: number, owner = this.currentDeclarationOwner): string {
+    const name = this._fragmentDataVariableName(index);
+    this._registerOutput(name, `layout(location = ${index}) out vec4 ${name};`, owner);
     return name;
   }
 }

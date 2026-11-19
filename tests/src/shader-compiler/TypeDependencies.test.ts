@@ -1,4 +1,4 @@
-import { Logger, Shader, ShaderLanguage, WebGLEngine, WebGLMode } from "@galacean/engine";
+import { Logger, Shader, ShaderLanguage, WebGLEngine } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
 import { describe, expect, it } from "vitest";
@@ -106,16 +106,13 @@ const cases: { name: string; helper: string; fragment: string; materialType?: st
 
 describe("shader declaration type dependencies", () => {
   for (const mode of ["runtime", "precompiled"] as const) {
-    for (const language of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
-      it.each(cases)(`${mode} GLSLES${language}: $name retains transitive types and guards`, async (testCase) => {
+    for (const language of [ShaderLanguage.GLSLES300]) {
+      it.each(cases)(`${mode} GLSLES300${language}: $name retains transitive types and guards`, async (testCase) => {
         const previousCompiler = Shader._shaderCompiler;
         const compiler = new ShaderCompiler();
         const engine = await WebGLEngine.create({
           canvas: document.createElement("canvas"),
-          shaderCompiler: compiler,
-          graphicDeviceOptions: {
-            webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2
-          }
+          shaderCompiler: compiler
         });
         let shader: Shader | undefined;
         try {

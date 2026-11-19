@@ -14,7 +14,7 @@ label: Core
 
 ## 初始化
 
-为了方便用户直接创建 web 端 engine，我们提供了 [WebGLEngine](/apis/rhi-webgl/#WebGLEngine)，支持 WebGL1.0 和 WebGL2.0。
+为了方便用户直接创建 web 端 engine，我们提供了 [WebGLEngine](/apis/rhi-webgl/#WebGLEngine)，需要 WebGL2.0。
 
 ```typescript
 const engine = await WebGLEngine.create({
@@ -31,10 +31,10 @@ const engine = await WebGLEngine.create({
 | 配置                                                         | 解释                                                         |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | canvas                                                       | 可以是画布 ID（ `string`） 或画布对象（`HTMLCanvasElement |OffscreenCanvas`）。 |
-| [graphicDeviceOptions](/apis/galacean/#WebGLGraphicDeviceOptions) | 图形设备相关配置，比如 `webGLMode` 可以用 控制 WebGL1/2。除 `webGLMode` 外的属性将透传给上下文，详情可参考 [getContext 参数释义](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext#parameters)。 |
+| [graphicDeviceOptions](/apis/galacean/#WebGLGraphicDeviceOptions) | WebGL2 上下文配置，属性将透传给上下文，详情参见 [getContext 参数](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext#parameters)。 |
 | [colorSpace](/apis/galacean/#ColorSpace)                     | 颜色空间, `ColorSpace.Gamma` 或 `ColorSpace.Linear`。        |
 | gltf                                                         | gltf Loader 配置，`workerCount` 用来配置 meshOpt 的 worker 数量：`{ meshOpt: { workerCount: number } }` 。 |
-| ktx2Loader                                                   | KTX2 Loader 配置，`workerCount` 用来配置 ktx2 解码器的worker 数量：`{ priorityFormats: Array<KTX2TargetFormat>; transcoder: KTX2Transcoder; workerCount: number }`。如果 workCount 大于 0，将会创建 worker 线程，等于 0 则只用主线程。 |
+| ktx2Loader                                                   | `workerCount` 指定 KTX2 解码使用的 worker 数量。设为 `0` 时在主线程解码。 |
 
 
 

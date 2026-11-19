@@ -59,7 +59,7 @@ function* compiledPrograms(source: string, runtimeOnly = false) {
   const analysis = runtimeOnly ? undefined : ShaderAnalyzer.analyze(source);
   if (analysis) expect(analysis.diagnostics).toEqual([]);
   const pass = compiler._parseShaderSource(source).subShaders[0].passes[0];
-  for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+  for (const target of [ShaderLanguage.GLSLES300]) {
     const generated = [
       ...(analysis ? [["analyzer", compiler.generate(analysis.passes[0], target)] as const] : []),
       [
@@ -113,7 +113,7 @@ function expectDriverAcceptance(program: Program, renderedValue?: number, unifor
   if (!gl) {
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 1;
-    gl = canvas.getContext(program.target === ShaderLanguage.GLSLES300 ? "webgl2" : "webgl", {
+    gl = canvas.getContext("webgl2", {
       antialias: false,
       preserveDrawingBuffer: true
     }) as WebGLRenderingContext | WebGL2RenderingContext;
@@ -121,9 +121,7 @@ function expectDriverAcceptance(program: Program, renderedValue?: number, unifor
     contexts.set(program.target, gl);
   }
   const label = `${program.path}, target ${program.target}, macros ${JSON.stringify(program.macros)}`;
-  const version = program.target === ShaderLanguage.GLSLES300 ? "#version 300 es\n" : "";
-  const drawBuffers = program.target === ShaderLanguage.GLSLES100 && program.fragment.includes("gl_FragData");
-  if (drawBuffers) expect(gl.getExtension("WEBGL_draw_buffers"), label).not.toBeNull();
+  const version = "#version 300 es\n";
   const linked = gl.createProgram()!;
   const shaders: WebGLShader[] = [];
   try {
@@ -133,8 +131,7 @@ function expectDriverAcceptance(program: Program, renderedValue?: number, unifor
     ] as const) {
       const shader = gl.createShader(type)!;
       shaders.push(shader);
-      const extension = drawBuffers && type === gl.FRAGMENT_SHADER ? "#extension GL_EXT_draw_buffers : require\n" : "";
-      gl.shaderSource(shader, `${version}${extension}precision mediump float;\n${source}`);
+      gl.shaderSource(shader, `${version}precision mediump float;\n${source}`);
       gl.compileShader(shader);
       expect(gl.getShaderParameter(shader, gl.COMPILE_STATUS), `${label}: ${gl.getShaderInfoLog(shader)}`).toBe(true);
       gl.attachShader(linked, shader);
@@ -230,7 +227,7 @@ describe("shader generation after condition coverage proof exhaustion", () => {
   it("preserves the authoring rejection and runtime exclusive variant of a provable coverage gap", () => {
     const source = shader("defined(A)", "defined(A) && defined(B)", { unconditionalCall: true });
     expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).toContain("Redefinition");
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       expect(() => new ShaderPrecompiler().precompile(source, target)).toThrow("Redefinition");
     }
     for (const compiled of compiledPrograms(source, true)) {
@@ -423,7 +420,7 @@ VertexShader = vert; FragmentShader = frag;
           expect(program.fragment.match(/void\s+main\s*\(/g)).toHaveLength(1);
           expect(program.fragment).not.toContain("0.25");
           expectDriverAcceptance(program, mask ? 0.5 : 0.75);
-          if (program.target === ShaderLanguage.GLSLES300) {
+          {
             expect(program.fragment.match(/\bout\s+vec4\s+\w+\s*;/g)).toHaveLength(1);
           }
         }
@@ -517,9 +514,9 @@ VertexShader = vert; FragmentShader = frag;
           expect(program.fragment.match(/void\s+main\s*\(/g)).toHaveLength(1);
           expect(program.fragment).not.toMatch(/0\.25|0\.125/);
           expectDriverAcceptance(program, mask ? 0.5 : 0.75);
-          if (program.target === ShaderLanguage.GLSLES300) {
+          {
             expect(program.fragment.match(/\bout\s+vec4\s+\w+\s*;/g)).toHaveLength(1);
-            expect(program.fragment).not.toMatch(/\boutput_colors?(?:_\d+)?\b/);
+            expect(program.fragment.match(/layout\(location = 0\) out vec4/g)).toHaveLength(1);
           }
         }
       }

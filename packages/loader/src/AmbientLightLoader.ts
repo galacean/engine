@@ -51,7 +51,7 @@ class AmbientLightLoader extends Loader<AmbientLight> {
       );
     } else {
       const size = new Uint16Array(buffer, textureOffset, 1)[0];
-      texture ||= new TextureCube(engine, size, TextureFormat.R16G16B16A16, true, false);
+      texture ||= new TextureCube(engine, size, TextureFormat.R16G16B16A16_SFloat, true, false);
       texture.filterMode = TextureFilterMode.Trilinear;
       const mipmapCount = texture.mipmapCount;
       let offset = textureOffset + 2;

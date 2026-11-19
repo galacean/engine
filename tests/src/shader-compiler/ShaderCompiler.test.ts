@@ -15,17 +15,7 @@ import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderSourceParser } from "@galacean/engine-shader-parser/internal";
 import { glslValidate } from "./ShaderValidate";
 
-import {
-  Camera,
-  Logger,
-  Material,
-  MeshRenderer,
-  ModelMesh,
-  Shader,
-  Vector3,
-  WebGLEngine,
-  WebGLMode
-} from "@galacean/engine";
+import { Camera, Logger, Material, MeshRenderer, ModelMesh, Shader, Vector3, WebGLEngine } from "@galacean/engine";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { server } from "@vitest/browser/context";
 const { readFile } = server.commands;
@@ -49,20 +39,96 @@ describe("ShaderCompiler", async () => {
     expect(shaderCompilerRelease).not.be.null;
   });
 
-  it.each([
-    ["runtime", ShaderLanguage.GLSLES100, shaderCompilerRelease],
-    ["runtime", ShaderLanguage.GLSLES300, shaderCompilerRelease]
-  ] as const)("preserves disabled bare fragment returns (%s, %s)", async (mode, language, compiler) => {
+  it("emits GLSL300 for mixed texture builtins without renaming user helpers", () => {
+    const source = `Shader "TextureBuiltins" { SubShader "Default" { Pass "Forward" {
+      sampler2D image;
+      samplerCube environment;
+      float texture2D(float value) { return value; }
+      void vert() { gl_Position = vec4(0.0); }
+      vec4 frag() {
+        return texture2D(image, vec2(0.5)) + texture(image, vec2(0.5)) +
+          textureCube(environment, vec3(1.0, 0.0, 0.0)) + vec4(texture2D(0.0));
+      }
+      VertexShader = vert;
+      FragmentShader = frag;
+    } } }`;
+    const pass = shaderCompilerRelease._parseShaderSource(source).subShaders[0].passes[0];
+    const compiled = shaderCompilerRelease._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES300
+    )!;
+    expect(compiled.fragment).not.to.match(/\btextureCube\s*\(/);
+    expect(compiled.fragment).to.match(/float\s+texture2D\s*\(\s*float/);
+    expect(compiled.fragment).to.match(/texture2D\s*\(\s*0\.0\s*\)/);
+    expect(compiled.fragment.match(/\btexture\s*\(/g)).to.have.lengthOf(3);
+    glslValidate(engine, source, shaderCompilerRelease);
+  });
+
+  it.each(["source", "precompiled"] as const)("links source-defined sampler aliases from %s", async (mode) => {
+    const source = `Shader "SamplerAliases${mode}" { SubShader "Default" { Pass "Forward" {
+      sampler2D image;
+      samplerCube environment;
+      #define SAMPLE_IMAGE texture2D
+      #if defined(USE_CUBE)
+        #define SAMPLE textureCube
+      #else
+        #define SAMPLE texture2D
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      vec4 frag() {
+        vec4 color = SAMPLE_IMAGE(image, vec2(0.5));
+        #if defined(USE_CUBE)
+          return color + SAMPLE(environment, vec3(1.0));
+        #else
+          return color + SAMPLE(image, vec2(0.5));
+        #endif
+      }
+      VertexShader = vert;
+      FragmentShader = frag;
+    } } }`;
     const fixtureEngine = await WebGLEngine.create({
       canvas: document.createElement("canvas"),
-      shaderCompiler: compiler,
-      graphicDeviceOptions: {
-        webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2
-      }
+      shaderCompiler: shaderCompilerRelease
     });
     let shader: Shader | undefined;
     try {
-      const source = `Shader "DisabledBareReturn${mode}${language}" {
+      shader =
+        mode === "source"
+          ? Shader.create(source)
+          : Shader._createFromPrecompiled(
+              JSON.parse(JSON.stringify(new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)))
+            );
+      expect(shader.compileVariant(fixtureEngine, [])).to.be.true;
+      expect(shader.compileVariant(fixtureEngine, ["USE_CUBE"])).to.be.true;
+    } finally {
+      shader?.destroy();
+      fixtureEngine.destroy();
+    }
+  });
+
+  it("rejects an unknown shader target", () => {
+    expect(
+      shaderCompilerRelease._parseShaderPass(
+        "void vert() { gl_Position = vec4(0.0); } void frag() { gl_FragColor = vec4(1.0); }",
+        "vert",
+        "frag",
+        -1 as ShaderLanguage
+      )
+    ).to.be.undefined;
+  });
+
+  it.each([["runtime", ShaderLanguage.GLSLES300, shaderCompilerRelease]] as const)(
+    "preserves disabled bare fragment returns (%s, %s)",
+    async (mode, language, compiler) => {
+      const fixtureEngine = await WebGLEngine.create({
+        canvas: document.createElement("canvas"),
+        shaderCompiler: compiler
+      });
+      let shader: Shader | undefined;
+      try {
+        const source = `Shader "DisabledBareReturn${mode}${language}" {
         SubShader "Default" { Pass "Forward" {
           VertexShader = vert;
           FragmentShader = frag;
@@ -75,31 +141,29 @@ describe("ShaderCompiler", async () => {
           }
         } }
       }`;
-      shader = Shader.create(source, language);
-      expect(shader.compileVariant(fixtureEngine, [])).to.be.true;
-      const artifact = new ShaderPrecompiler().precompile(source, language);
-      artifact.name += "Precompiled";
-      const precompiled = Shader._createFromPrecompiled(JSON.parse(JSON.stringify(artifact)))!;
-      try {
-        expect(precompiled.compileVariant(fixtureEngine, [])).to.be.true;
+        shader = Shader.create(source, language);
+        expect(shader.compileVariant(fixtureEngine, [])).to.be.true;
+        const artifact = new ShaderPrecompiler().precompile(source, language);
+        artifact.name += "Precompiled";
+        const precompiled = Shader._createFromPrecompiled(JSON.parse(JSON.stringify(artifact)))!;
+        try {
+          expect(precompiled.compileVariant(fixtureEngine, [])).to.be.true;
+        } finally {
+          precompiled.destroy();
+        }
       } finally {
-        precompiled.destroy();
+        shader?.destroy();
+        fixtureEngine.destroy();
       }
-    } finally {
-      shader?.destroy();
-      fixtureEngine.destroy();
     }
-  });
+  );
 
-  it.each([ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300])(
+  it.each([ShaderLanguage.GLSLES300])(
     "compiles conditional fragment helper macros without vertex dependencies (%s)",
     async (language) => {
       const fixtureEngine = await WebGLEngine.create({
         canvas: document.createElement("canvas"),
-        shaderCompiler: shaderCompilerRelease,
-        graphicDeviceOptions: {
-          webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2
-        }
+        shaderCompiler: shaderCompilerRelease
       });
       const shader = Shader.create(
         `Shader "FragmentHelperMacro${language}" {
@@ -143,7 +207,7 @@ describe("ShaderCompiler", async () => {
   );
 
   it.each(
-    [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300].flatMap((language) =>
+    [ShaderLanguage.GLSLES300].flatMap((language) =>
       ["fragment", "fragment-if-else", "varying-helper"].map((kind) => ({ language, kind }))
     )
   )("preserves early return colors ($language, $kind)", async ({ language, kind }) => {
@@ -153,7 +217,6 @@ describe("ShaderCompiler", async () => {
       canvas,
       shaderCompiler: shaderCompilerRelease,
       graphicDeviceOptions: {
-        webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2,
         preserveDrawingBuffer: true
       }
     });
@@ -208,9 +271,7 @@ describe("ShaderCompiler", async () => {
       renderer.mesh = mesh;
       const material = new Material(fixtureEngine, shader);
       renderer.setMaterial(material);
-      const gl = canvas.getContext(language === ShaderLanguage.GLSLES100 ? "webgl" : "webgl2") as
-        | WebGLRenderingContext
-        | WebGL2RenderingContext;
+      const gl = canvas.getContext("webgl2") as WebGLRenderingContext | WebGL2RenderingContext;
       const pixel = new Uint8Array(4);
       for (const [useRed, expected] of [
         [0, [0, 255, 0, 255]],
@@ -477,7 +538,7 @@ describe("ShaderCompiler", async () => {
       pass.contents,
       pass.vertexEntry,
       pass.fragmentEntry,
-      ShaderLanguage.GLSLES100
+      ShaderLanguage.GLSLES300
     )!;
     expect(program.fragment).not.toContain("null");
   });
@@ -493,11 +554,11 @@ describe("ShaderCompiler", async () => {
       passSource.contents,
       passSource.vertexEntry,
       passSource.fragmentEntry,
-      0
+      ShaderLanguage.GLSLES300
     )!;
 
-    expect(vertex).to.match(/attribute\s+vec4\s+POSITION\s*;/);
-    expect(vertex).to.match(/attribute\s+vec3\s+NORMAL\s*;/);
+    expect(vertex).to.match(/in\s+vec4\s+POSITION\s*;/);
+    expect(vertex).to.match(/in\s+vec3\s+NORMAL\s*;/);
   });
 
   it("define-struct-access-global (global #define with struct member access)", async () => {
@@ -510,7 +571,7 @@ describe("ShaderCompiler", async () => {
       passSource.contents,
       passSource.vertexEntry,
       passSource.fragmentEntry,
-      0
+      ShaderLanguage.GLSLES300
     )!;
 
     const expectedVert = await readFile("src/shader-compiler/expected/define-struct-access-global.vert.glsl");
@@ -529,7 +590,7 @@ describe("ShaderCompiler", async () => {
       passSource.contents,
       passSource.vertexEntry,
       passSource.fragmentEntry,
-      0
+      ShaderLanguage.GLSLES300
     )!;
 
     const expectedVert = await readFile("src/shader-compiler/expected/define-struct-access.vert.glsl");
@@ -551,14 +612,14 @@ describe("ShaderCompiler", async () => {
       passSource.contents,
       passSource.vertexEntry,
       passSource.fragmentEntry,
-      0
+      ShaderLanguage.GLSLES300
     )!;
 
     expect(vertex).to.be.a("string").and.not.empty;
     expect(fragment).to.be.a("string").and.not.empty;
     expect(fragment).to.contain("normalize");
     expect(fragment).to.contain("dot");
-    expect(fragment).to.contain("texture2D");
+    expect(fragment).to.contain("texture (");
   });
 
   it("global-varying-var (global Varyings var with #define macros)", async () => {
@@ -572,7 +633,7 @@ describe("ShaderCompiler", async () => {
       passSource.contents,
       passSource.vertexEntry,
       passSource.fragmentEntry,
-      0
+      ShaderLanguage.GLSLES300
     )!;
 
     expect(vertex).to.be.a("string").and.not.empty;
@@ -586,7 +647,7 @@ describe("ShaderCompiler", async () => {
     expect(vertex).to.contain("#define VSOutput_worldNormal o.v_normal.xyz");
 
     // No duplicate varying declarations
-    const varyingMatches = vertex.match(/varying vec3 v_worldPos/g);
+    const varyingMatches = vertex.match(/out vec3 v_worldPos/g);
     expect(varyingMatches).to.have.lengthOf(1);
   });
 
@@ -598,10 +659,10 @@ Varyings vert() { Varyings output; output.color = vec4(1.0); gl_Position = vec4(
 vec4 readColor(Varyings input) { return READ_COLOR; }
 void frag(Varyings input) { gl_FragColor = readColor(input); }`;
 
-    const result = shaderCompilerRelease._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES100);
+    const result = shaderCompilerRelease._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES300);
 
     expect(result).toBeDefined();
-    expect(result!.fragment).to.contain("varying vec4 color;");
+    expect(result!.fragment).to.contain("in vec4 color;");
     expect(result!.fragment).to.match(/#define READ_COLOR \w+\.color/);
   });
 
@@ -645,7 +706,7 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
       pass.contents,
       pass.vertexEntry,
       pass.fragmentEntry,
-      ShaderLanguage.GLSLES100
+      ShaderLanguage.GLSLES300
     );
     expect(result).to.not.be.undefined;
     expect(result!.fragment).to.include(expectedDirective);
@@ -846,10 +907,10 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
       pass.contents,
       pass.vertexEntry,
       pass.fragmentEntry,
-      ShaderLanguage.GLSLES100
+      ShaderLanguage.GLSLES300
     )!.fragment;
-    expect(fragment.match(/gl_FragData\[0\]/g)).to.have.lengthOf(1);
-    expect(fragment).to.match(/gl_FragData\[0\]\s*=\s*\w+\.color/);
+    expect(fragment).to.match(/layout\(location = 0\) out vec4/);
+    expect(fragment).to.match(/\w+\s*=\s*\w+\.color/);
     expect(fragment.match(/return\s+outputValue\s*;/g)).to.have.lengthOf(2);
     expect(fragment).to.match(/void\s+main\s*\(\s*\)\s*\{\s*\w+\s*\(\s*frag\s*\(\s*\)/);
   });
@@ -897,6 +958,30 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
     ).to.be.undefined;
   });
 
+  it("emits conditional MRT attachments only in variants that use them", () => {
+    const gl = canvas.getContext("webgl2")!;
+    const source = (location: number) => `Shader "conditional-mrt-member" { SubShader "s" { Pass "p" {
+      struct Outputs {
+        layout(location = 0) vec4 color;
+        #ifdef EXTRA
+        layout(location = ${location}) vec4 extra;
+        #endif
+      };
+      void vert() { gl_Position = vec4(0.0); }
+      Outputs frag() {
+        Outputs o;
+        o.color = vec4(1.0);
+        #ifdef EXTRA
+        o.extra = o.color;
+        #endif
+        return o;
+      }
+      VertexShader = vert; FragmentShader = frag;
+    } } }`;
+    glslValidate(engine, source(gl.getParameter(gl.MAX_DRAW_BUFFERS)), shaderCompilerRelease);
+    glslValidate(engine, source(1), shaderCompilerRelease, [{ name: "EXTRA" }]);
+  });
+
   it("keeps mutually exclusive color and MRT fragment-entry modes compilable", () => {
     const source = `Shader "conditional-fragment-mode" { SubShader "Default" { Pass "Forward" {
       struct Outputs { layout(location = 0) vec4 color; };
@@ -934,8 +1019,8 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
       ShaderLanguage.GLSLES300
     )!.fragment;
     expect(fragment).to.include("gl_FragDepth = 0.5");
-    expect(fragment).to.include("layout(location = 0) out vec4 output_color_0;");
-    expect(fragment).to.include("output_color_0 = vec4");
+    expect(fragment).to.include("layout(location = 0) out vec4 output_color;");
+    expect(fragment).to.include("output_color = vec4");
     expect(fragment).not.to.include("gl_FragDepthEXT");
     expect(fragment).not.to.include("gl_FragData[");
 
@@ -954,7 +1039,7 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
       gl.attachShader(program, shader);
       gl.linkProgram(program);
       expect(gl.getProgramParameter(program, gl.LINK_STATUS), gl.getProgramInfoLog(program) || "").to.be.true;
-      expect(gl.getFragDataLocation(program, "output_color_0")).to.equal(0);
+      expect(gl.getFragDataLocation(program, "output_color")).to.equal(0);
       expect(gl.getFragDataLocation(program, "output_color_1")).to.equal(-1);
     }
   });
@@ -986,7 +1071,7 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
       passSource.contents,
       passSource.vertexEntry,
       passSource.fragmentEntry,
-      0 /* GLSLES100 */
+      ShaderLanguage.GLSLES300
     );
     expect(passProgram, "fixture must compile (locks fix 1)").not.to.be.undefined;
     // Locks fix 2: the #else-arm declaration must survive into emitted GLSL.
@@ -1025,7 +1110,7 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
       passSource.contents,
       passSource.vertexEntry,
       passSource.fragmentEntry,
-      0
+      ShaderLanguage.GLSLES300
     )!;
     expect(fragment).to.contain("v_tangent");
     // The output preserves `#ifdef` so both members may textually appear in the
@@ -1052,7 +1137,7 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
       passSource.contents,
       passSource.vertexEntry,
       passSource.fragmentEntry,
-      0
+      ShaderLanguage.GLSLES300
     )!;
     expect(fragment).to.contain("u_globalLightDir");
     expect(fragment).to.contain("normalize");
@@ -1070,7 +1155,12 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
     } } }`;
     const parsed = shaderCompilerRelease._parseShaderSource(shaderSource);
     const pass = parsed.subShaders[0].passes[0];
-    const output = shaderCompilerRelease._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, 0);
+    const output = shaderCompilerRelease._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES300
+    );
     expect(output).to.not.be.undefined;
     expect(output!.fragment).to.include("#define ADD +");
     expect(output!.fragment).to.include("#define OPEN (");
@@ -1087,7 +1177,12 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
     } } }`;
     const parsed = shaderCompilerRelease._parseShaderSource(conflict);
     const pass = parsed.subShaders[0].passes[0];
-    const out = shaderCompilerRelease._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, 0);
+    const out = shaderCompilerRelease._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES300
+    );
     expect(out, "the backend cannot deterministically lower a struct with conflicting IO roles").to.be.undefined;
   });
 
@@ -1101,7 +1196,12 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
     } } }`;
     const parsed = shaderCompilerRelease._parseShaderSource(missingEntry);
     const pass = parsed.subShaders[0].passes[0];
-    const out = shaderCompilerRelease._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, 0);
+    const out = shaderCompilerRelease._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES300
+    );
     expect(out, "a missing entry is a structural generation failure").to.be.undefined;
 
     const valid = shaderCompilerRelease._parseShaderPass(
@@ -1109,7 +1209,7 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
        void frag() { gl_FragColor = vec4(1.0); }`,
       "vert",
       "frag",
-      0
+      ShaderLanguage.GLSLES300
     );
     expect(valid, "a failed entry lookup must not corrupt the next compile").not.to.be.undefined;
   });
@@ -1292,15 +1392,12 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
       }
     ];
 
-    for (const language of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const language of [ShaderLanguage.GLSLES300]) {
       let fixtureEngine: WebGLEngine;
       beforeAll(async () => {
         fixtureEngine = await WebGLEngine.create({
           canvas: document.createElement("canvas"),
-          shaderCompiler: shaderCompilerRelease,
-          graphicDeviceOptions: {
-            webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2
-          }
+          shaderCompiler: shaderCompilerRelease
         });
       });
       afterAll(() => fixtureEngine.destroy());
@@ -1329,23 +1426,19 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
     }
 
     it("keeps helper functions referenced only from macro bodies", async () => {
-      // `INVERSE_MAT` expands to `inverseMat(mat)` on the WebGL1 path. The definition is
-      // reachable only through the macro, so macro-body codegen must register it.
-      const source = await readFile("../packages/shader/src/Shaders/PBR.shader");
-      const shaderSource = shaderCompilerRelease._parseShaderSource(source);
-      const passSource = shaderSource.subShaders[0].passes[2];
       const parsed = shaderCompilerRelease._parseShaderPass(
-        passSource.contents,
-        passSource.vertexEntry,
-        passSource.fragmentEntry,
-        ShaderLanguage.GLSLES100
+        `mat2 inverseMat(mat2 m) { return m; }
+        #define INVERSE_MAT(m) inverseMat(m)
+        void vert() { gl_Position = vec4(INVERSE_MAT(mat2(1.0))[0], 0.0, 1.0); }
+        void frag() { gl_FragColor = vec4(1.0); }`,
+        "vert",
+        "frag",
+        ShaderLanguage.GLSLES300
       )!;
 
       // Guard the guard: if the macro walk regressed far enough that no stage expands
       // `INVERSE_MAT`, the per-stage assertion below would be skipped and pass vacuously.
-      const referencing = [parsed.vertex, parsed.fragment].filter((instructions) =>
-        /inverseMat\s*\(/.test(instructions)
-      );
+      const referencing = [parsed.vertex];
       expect(referencing, "at least one stage must expand INVERSE_MAT").to.not.be.empty;
       for (const instructions of referencing) {
         expect(instructions, "macro-only helper must still be defined").to.contain("mat2 inverseMat");

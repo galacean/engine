@@ -37,7 +37,6 @@ label: Platform
 | Upload to CDN | 是否将资产上传至 CDN |
 | Texture Type | 详见[压缩纹理](/docs/graphics/texture/compression/)|
 | Tree shaking | 是否对导出的资产进行裁剪： <br/>  **None:** 不进行裁剪，导出所有资产 <br/> **Current Scene:** 只导出当前场景用到的资产 <br/> **All Scene:** 对所有场景 treeshaking，导出全量场景用到的资产 <Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*BJbwQrdlghwAAAAAAAAAAAAADjCHAQ/fmt.webp" style={{zoom: "50%"}} />|
-| WebGL Mode | 选择使用 WebGL 的版本：<br/> **Auto：** 优先使用 WebGL2.0, 如果运行环境不支持自动切到 WebGL1.0 <br/> **WebGL1.0：** 使用 WebGL1.0 <br/>  **WebGL2.0：**  使用 WebGL2.0 <Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*HszfTJChrdEAAAAAAAAAAAAADjCHAQ/fmt.webp" style={{zoom: "50%"}} />|
 | Alpha | 画布是否支持透明背景，如果希望画布下方的内容可以透出可以开启 |
 | Preserve Drawing Buffer | 用于控制在调用 gl.clear() 方法后，绘图缓冲区是否保留其内容 |
 | DPR Mode | [设备的像素比](/docs/core/canvas)，通过 `engine.canvas.setAutoResolution` 来控制画布的分辨率 <br/> **Auto：** 自动适配，即跟随显示尺寸并使用 devicePixelRatio <br/> **Fixed：** 开发者自行设置缩放参数 <Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*EQOxSI8I8awAAAAAAAAAAAAADjCHAQ/fmt.webp" style={{zoom: "50%"}} /> 选择 Fixed 后，开发者可以自行输入缩放倍率 <Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*-7YfTLegt_AAAAAAAAAAAAAADjCHAQ/fmt.webp" style={{zoom: "50%"}} />| 

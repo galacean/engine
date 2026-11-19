@@ -17,8 +17,7 @@ import {
   ShaderProperty,
   Vector3,
   Vector4,
-  WebGLEngine,
-  WebGLMode
+  WebGLEngine
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 
@@ -107,7 +106,7 @@ const customInstanceShaderSource = `Shader "CustomInstanceShader" {
 
 WebGLEngine.create({
   canvas: "canvas",
-  graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 },
+
   shaderCompiler
 }).then((engine) => {
   Shader.create(customInstanceShaderSource);

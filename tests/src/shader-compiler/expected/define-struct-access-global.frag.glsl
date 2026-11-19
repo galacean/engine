@@ -1,7 +1,8 @@
+layout(location = 0) out vec4 output_color;
 struct Varyings {
 vec2 v_uv;
 };
-varying vec2 v_uv;
+in vec2 v_uv;
 Varyings read_Varyings() { Varyings interface_value;
 interface_value.v_uv = v_uv;
 return interface_value; }
@@ -15,7 +16,7 @@ uniform sampler2D u_texture;
 
 #define FRAG_UV v.v_uv
 
-void frag ( Varyings v ) { gl_FragColor = texture2D ( u_texture , FRAG_UV ) ; }
+void frag ( Varyings v ) { output_color = texture ( u_texture , FRAG_UV ) ; }
 void main() {
 
 Varyings input_v = read_Varyings();

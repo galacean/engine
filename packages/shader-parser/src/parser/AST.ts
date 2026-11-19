@@ -449,9 +449,7 @@ namespace ASTNodes {
         );
         initializer = children[3] as Initializer;
       } else {
-        // Array-of-array is target-divergent (GLSL ES 3.00 / WGSL allow it, ES 1.00 doesn't) and the
-        // backend can always emit it, so it's left to codegen/driver — not flagged here. The nested
-        // array structure stays as the neutral clue.
+        // Preserve nested array structure for backend validation.
         const arraySpecifier = children[2] as ArraySpecifier;
         this.arraySpecifier = arraySpecifier;
         symbolType = new SymbolType(

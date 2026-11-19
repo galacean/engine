@@ -8,6 +8,7 @@ import {
   Shader,
   ShaderFactory,
   ShaderMacro,
+  ShaderMacroCollection,
   ShaderPass,
   ShaderLanguage,
   ShaderProperty,
@@ -24,7 +25,7 @@ shaderCompiler._includeMap = ShaderFactory.includeMap;
 // @ts-expect-error -- bind the internal compiler used by Shader.create
 Shader._shaderCompiler = shaderCompiler;
 
-const makePass = (name = "Default") => new ShaderPass(name, [], [], ShaderLanguage.GLSLES100);
+const makePass = (name = "Default") => new ShaderPass(name, [], [], ShaderLanguage.GLSLES300);
 
 function shaderWithInclude(name: string, includePath: string): string {
   return `Shader "${name}" {
@@ -178,8 +179,6 @@ describe("Shader", () => {
       expect(shader).to.be.an.instanceOf(Shader);
       expect(shader.subShaders.length).to.equal(1);
       expect(shader.subShaders[0].passes.length).to.equal(3);
-      // @ts-ignore
-      expect(shader.subShaders[0].passes[1]._platformTarget).to.equal(ShaderLanguage.GLSLES300);
       expect(shader.subShaders[0].getTagValue("ReplacementTag")).to.equal("transparent");
 
       // Test that throw error, if shader was created with same name in shaderCompiler.
@@ -321,145 +320,49 @@ describe("Shader", () => {
         shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
       }
     });
-  });
-
-  describe("GLSL Convert test", () => {
-    it("Shader api vertex replace test", async () => {
-      expect(
-        ShaderFactory.convertTo300(
-          `
-        attribute vec3 POSITION;
-        attribute vec2 TEXCOORD_0;
-        varying vec2 v_uv;
-        uniform sampler2D u_texture;
-        uniform samplerCube u_textureCube;
-
-        void main(){
-          gl_Position = vec4(POSITION, 1.0);
-          v_uv = TEXCOORD_0;
-          vec4 color1 = texture2D(u_texture, TEXCOORD_0);
-          vec4 color2 = textureCube(u_textureCube, POSITION);
-          vec4 color3 = texture2DProj(u_texture, POSITION);
+    it("evaluates GLSL ES 3.00 predefined macros in ShaderPass", async function () {
+      const engine = await WebGLEngine.create({
+        canvas: document.createElement("canvas"),
+        shaderCompiler
+      });
+      const shader = Shader.create(`
+        Shader "User/GLSLPredefinedMacros" {
+          SubShader "Default" {
+            Pass "Default" {
+              struct a2v { vec3 POSITION; };
+              void vert(a2v v) {
+                #if defined(GL_ES) && GL_ES == 1 && defined(GL_FRAGMENT_PRECISION_HIGH) && GL_FRAGMENT_PRECISION_HIGH == 1 && __VERSION__ == 300
+                  gl_Position = vec4(v.POSITION, 1.0);
+                #else
+                  gl_Position = vec4(0.0);
+                #endif
+              }
+              void frag() {
+                #ifdef GL_FRAGMENT_PRECISION_HIGH
+                  gl_FragColor = vec4(1.0, 0.5, 0.25, 1.0);
+                #else
+                  gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+                #endif
+              }
+              VertexShader = vert;
+              FragmentShader = frag;
+            }
+          }
         }
-    `
-        )
-      ).to.be.equal(`
-        in vec3 POSITION;
-        in vec2 TEXCOORD_0;
-        out vec2 v_uv;
-        uniform sampler2D u_texture;
-        uniform samplerCube u_textureCube;
-
-        void main(){
-          gl_Position = vec4(POSITION, 1.0);
-          v_uv = TEXCOORD_0;
-          vec4 color1 = texture(u_texture, TEXCOORD_0);
-          vec4 color2 = texture(u_textureCube, POSITION);
-          vec4 color3 = textureProj(u_texture, POSITION);
-        }
-    `);
-    });
-
-    it("Shader api fragment replace test", async () => {
-      expect(
-        ShaderFactory.convertTo300(
-          `
-        varying vec2 v_uv; 
-        uniform sampler2D u_texture;
-        uniform samplerCube u_textureCube;
-
-        void main(){
-          gl_FragColor = texture2D(u_texture, v_uv);
-          vec4 color1 = textureCube(u_textureCube, vec3(1));
-          vec4 color2 = texture2DProj(u_textureCube, vec3(1));
-          vec4 color3 = texture2DLodEXT(u_texture, v_uv, 1.0);
-          vec4 color4 = textureCubeLodEXT(u_textureCube, vec3(1), 1.0);
-          vec4 color5 = texture2DGradEXT(u_texture, v_uv, vec2(1), vec2(1));
-          vec4 color6 = textureCubeGradEXT(u_textureCube, v_uv, vec2(1), vec2(1));
-          vec4 color7 = texture2DProjGradEXT(u_texture, vec3(1), vec2(1), vec2(1));
-          vec4 color8 = texture2DProjLodEXT(u_texture, vec3(1), 1.0);
-          gl_FragDepthEXT = 0.5;
-        }
-    `,
-          true
-        )
-      ).to.be.equal(
-        `out vec4 glFragColor;\n
-        in vec2 v_uv; 
-        uniform sampler2D u_texture;
-        uniform samplerCube u_textureCube;\n
-        void main(){
-          glFragColor = texture(u_texture, v_uv);
-          vec4 color1 = texture(u_textureCube, vec3(1));
-          vec4 color2 = textureProj(u_textureCube, vec3(1));
-          vec4 color3 = textureLod(u_texture, v_uv, 1.0);
-          vec4 color4 = textureLod(u_textureCube, vec3(1), 1.0);
-          vec4 color5 = textureGrad(u_texture, v_uv, vec2(1), vec2(1));
-          vec4 color6 = textureGrad(u_textureCube, v_uv, vec2(1), vec2(1));
-          vec4 color7 = textureProjGrad(u_texture, vec3(1), vec2(1), vec2(1));
-          vec4 color8 = textureProjLod(u_texture, vec3(1), 1.0);
-          gl_FragDepth = 0.5;
-        }
-    `
-      );
-    });
-
-    it("Shader api fragment layout test", async () => {
-      // original shader has out
-      expect(
-        ShaderFactory.convertTo300(
-          `
-        varying vec2 v_uv; 
-        uniform sampler2D u_texture;
-
-        out vec4 color;
-        void main(){
-          color = texture2D(u_texture, v_uv);
-        }
-    `,
-          true
-        )
-      ).to.be.equal(
-        `
-        in vec2 v_uv; 
-        uniform sampler2D u_texture;
-
-        out vec4 color;
-        void main(){
-          color = texture(u_texture, v_uv);
-        }
-    `
-      );
-
-      // mrt
-      expect(
-        ShaderFactory.convertTo300(
-          `
-        varying vec2 v_uv; 
-        uniform sampler2D u_texture;
-
-        void main(){
-          gl_FragData[0] = texture2D(u_texture, v_uv);
-          gl_FragColor.rgb += vec3(0.1);
-          gl_FragData[1] = texture2D(u_texture, v_uv);
-          gl_FragData[2] = texture2D(u_texture, v_uv);
-        }
-    `,
-          true
-        )
-      ).to.be.equal(
-        `layout(location=0) out vec4 fragOutColor0;\nlayout(location=1) out vec4 fragOutColor1;\nlayout(location=2) out vec4 fragOutColor2;\n
-        in vec2 v_uv; 
-        uniform sampler2D u_texture;
-
-        void main(){
-          fragOutColor0 = texture(u_texture, v_uv);
-          fragOutColor0.rgb += vec3(0.1);
-          fragOutColor1 = texture(u_texture, v_uv);
-          fragOutColor2 = texture(u_texture, v_uv);
-        }
-    `
-      );
+      `);
+      try {
+        const pass = shader.subShaders[0].passes[0];
+        // @ts-expect-error -- verify generated source branches for GLSL ES 3.00 predefined macros
+        const compiled = pass._compileShaderSource(engine, new ShaderMacroCollection(), false);
+        expect(compiled.vertexSource).to.contain("vec4 ( v.POSITION , 1.0 )");
+        expect(compiled.vertexSource).to.not.contain("vec4 ( 0.0 )");
+        expect(compiled.fragmentSource).to.contain("vec4 ( 1.0 , 0.5 , 0.25 , 1.0 )");
+        expect(compiled.fragmentSource).to.not.contain("vec4 ( 0.0 , 0.0 , 0.0 , 1.0 )");
+        expect(shader.compileVariant(engine, [])).to.equal(true);
+      } finally {
+        shader.destroy(true);
+        engine.destroy();
+      }
     });
   });
 });
