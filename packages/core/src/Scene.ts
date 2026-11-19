@@ -501,22 +501,54 @@ export class Scene extends EngineObject {
   protected override _onDestroy(): void {
     super._onDestroy();
 
+    let firstError: unknown;
+    let hasError = false;
+    const runStep = (step: () => void): void => {
+      try {
+        step();
+      } catch (error) {
+        if (!hasError) {
+          firstError = error;
+          hasError = true;
+        }
+      }
+    };
+
     // Remove from sceneManager
     const sceneManager = this._engine.sceneManager;
-    sceneManager.removeScene(this);
+    runStep(() => sceneManager.removeScene(this));
 
     while (this.rootEntitiesCount > 0) {
-      this._rootEntities[0].destroy();
+      const root = this._rootEntities[0];
+      try {
+        root.destroy();
+      } catch (error) {
+        if (!hasError) {
+          firstError = error;
+          hasError = true;
+        }
+        if (this._rootEntities[0] === root) {
+          Entity._removeFromChildren(this._rootEntities, root);
+          root._isRoot = false;
+        }
+      }
     }
-    this.background.destroy();
-    this._ambientLight && this._ambientLight._removeFromScene(this);
-    this.shaderData._addReferCount(-1);
-    this._maskManager.destroy();
+    runStep(() => this.background.destroy());
+    runStep(() => this._ambientLight && this._ambientLight._removeFromScene(this));
+    runStep(() => this.shaderData._addReferCount(-1));
+    runStep(() => this._maskManager.destroy());
 
     const allCreatedScenes = sceneManager._allCreatedScenes;
-    allCreatedScenes.splice(allCreatedScenes.indexOf(this), 1);
+    const sceneIndex = allCreatedScenes.indexOf(this);
+    if (sceneIndex !== -1) {
+      allCreatedScenes.splice(sceneIndex, 1);
+    }
 
-    this.physics._destroy();
+    runStep(() => this.physics._destroy());
+
+    if (hasError) {
+      throw firstError;
+    }
   }
 
   private _computeLinearFogParams(fogStart: number, fogEnd: number): void {

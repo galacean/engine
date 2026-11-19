@@ -642,9 +642,25 @@ describe("HingeJoint", function () {
     joint.axis = new Vector3(0, 0, 0);
     expect(joint.axis.y).toBeCloseTo(1, 5);
 
-    // In-place NaN throws and restores finite unit axis
+    // In-place NaN throws and keeps JS axis and native PxRevoluteJoint synchronized on fallback (1, 0, 0)
+    const body = box.getComponent(Rigidbody)!;
+    const motor = new JointMotor();
+    motor.targetVelocity = 5;
+    motor.forceLimit = 500;
+    joint.motor = motor;
+    joint.useMotor = true;
     expect(() => (joint.axis.x = NaN)).toThrow();
-    expect(Number.isFinite(joint.axis.x) && joint.axis.length()).toBeCloseTo(1, 5);
+    expect(joint.axis.x).toBeCloseTo(1, 5);
+    expect(joint.axis.y).toBeCloseTo(0, 5);
+    expect(joint.axis.z).toBeCloseTo(0, 5);
+    engine.sceneManager.activeScene.physics._update(0.2);
+    expect(Math.abs(body.angularVelocity.x)).toBeGreaterThan(50);
+    expect(Math.abs(body.angularVelocity.y)).toBeLessThan(1);
+    expect(Math.abs(body.angularVelocity.z)).toBeLessThan(1);
+
+    // Overflow vector throws in setter without mutating existing axis
+    expect(() => (joint.axis = new Vector3(1.5e308, 1.5e308, 0))).toThrow();
+    expect(joint.axis.x).toBeCloseTo(1, 5);
 
     // Pre-enable transient zero axis must not break connected relative rotation sync on enable
     const anchor = addBox(new Vector3(1, 1, 1), new Vector3(0, 8, 0));

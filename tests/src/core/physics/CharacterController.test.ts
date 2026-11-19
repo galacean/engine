@@ -754,5 +754,40 @@ describe("CharacterController", () => {
       expect(physics.raycast(new Ray(new Vector3(7, 8, -2), new Vector3(0, -1, 0)), 10, Layer.Layer3, hit)).toBe(true);
       expect(hit.collider).toBe(recoverCC);
     });
+
+    it("updates proxy actor orientation immediately on live upDirection changes for asymmetric Box CCT", () => {
+      const boxEntity = root.createChild("asymmetric-box-cct");
+      boxEntity.transform.setPosition(0, 0, 0);
+      const boxCC = boxEntity.addComponent(CharacterController);
+      boxCC.geometry = CharacterControllerGeometry.Box;
+      // Local X = 2 (halfSide=1), Y = 4 (halfHeight=2), Z = 6 (halfForward=3)
+      boxCC.size.set(2, 4, 6);
+      boxCC.stepOffset = 0.2;
+      boxCC.upDirection = new Vector3(0, 1, 0);
+
+      const hit = new HitResult();
+      // With up = +Y: Y extent is [-2, 2], X extent is [-1, 1]
+      expect(physics.raycast(new Ray(new Vector3(0, 1.5, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(true);
+      expect(hit.collider).toBe(boxCC);
+      expect(physics.raycast(new Ray(new Vector3(1.5, 0, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(false);
+
+      // Live upDirection change to +X swaps halfHeight (2) onto world X and halfSide (1) onto world Y immediately
+      boxCC.upDirection = new Vector3(1, 0, 0);
+      expect(physics.raycast(new Ray(new Vector3(1.5, 0, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(true);
+      expect(hit.collider).toBe(boxCC);
+      expect(physics.raycast(new Ray(new Vector3(0, 1.5, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(false);
+
+      // Stepping physics preserves the updated orientation (kinematic target matches global pose)
+      physics._update(physics.fixedTimeStep);
+      expect(physics.raycast(new Ray(new Vector3(1.5, 0, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(true);
+      expect(hit.collider).toBe(boxCC);
+      expect(physics.raycast(new Ray(new Vector3(0, 1.5, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(false);
+
+      // In-place NaN throws and syncs fallback (0, 1, 0) back to native immediately
+      expect(() => (boxCC.upDirection.x = NaN)).toThrow();
+      expect(boxCC.upDirection.y).toBeCloseTo(1, 5);
+      expect(physics.raycast(new Ray(new Vector3(0, 1.5, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(true);
+      expect(physics.raycast(new Ray(new Vector3(1.5, 0, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(false);
+    });
   });
 });

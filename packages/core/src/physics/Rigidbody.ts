@@ -6,6 +6,7 @@ import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
+import { Scene } from "../Scene";
 import { Transform } from "../Transform";
 import { Collider } from "./Collider";
 import type { Joint } from "./joint/Joint";
@@ -508,10 +509,9 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   /**
    * @internal
    */
-  override _onEnableInScene(): void {
+  override _onSceneChanged(scene: Scene): void {
     const joints = this._connectedJoints;
     if (joints) {
-      const scene = this.scene;
       for (let i = joints.length - 1; i >= 0; i--) {
         const joint = joints[i];
         if (joint.scene && joint.scene !== scene) {
@@ -519,6 +519,12 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
         }
       }
     }
+  }
+
+  /**
+   * @internal
+   */
+  override _onEnableInScene(): void {
     this.scene!.physics._addRigidbody(this);
     this._markCollidersDirty();
   }

@@ -182,7 +182,14 @@ export class PhysXCharacterController implements ICharacterController {
       return;
     }
     this._upDirection.set(up.x / len, up.y / len, up.z / len);
-    this._applyToController((controller) => controller.setUpDirection(this._upDirection));
+    this._applyToController((controller) => {
+      controller.setUpDirection(this._upDirection);
+      // PhysX Controller::setUpDirectionInternal does not update mKineActor's pose;
+      // refresh the kinematic target via setPosition and sync globalPose so immediate scene queries match.
+      const currentPos = controller.getPosition();
+      const pos = PhysXCharacterController._tempVec.set(currentPos.x, currentPos.y, currentPos.z);
+      this._syncControllerPose(controller, pos);
+    });
   }
 
   /**
@@ -280,17 +287,20 @@ export class PhysXCharacterController implements ICharacterController {
   private _updateNativePosition(): void {
     const position = PhysXCharacterController._tempVec;
     Vector3.add(this._worldPosition, this._center, position);
-    this._applyToController((controller) => {
-      controller.setPosition(position);
-      // setPosition schedules a kinematic target; sync the proxy actor pose so immediate scene queries match
-      const actor = controller.getActor();
-      const currentPose = actor.getGlobalPose();
-      const pose = PhysXCharacterController._tempPose;
-      pose.translation.copyFrom(position);
-      pose.rotation.set(currentPose.rotation.x, currentPose.rotation.y, currentPose.rotation.z, currentPose.rotation.w);
-      actor.setGlobalPose(pose, true);
-      actor.delete();
-    });
+    this._applyToController((controller) => this._syncControllerPose(controller, position));
+  }
+
+  private _syncControllerPose(controller: any, position: Vector3): void {
+    controller.setPosition(position);
+    // setPosition schedules a kinematic target with mPosition and mUserParams.mQuatFromUp;
+    // copy that pose onto the proxy actor so immediate scene queries match without duplicating PhysX math.
+    const actor = controller.getActor();
+    const targetPose = actor.getKinematicTarget() ?? actor.getGlobalPose();
+    const pose = PhysXCharacterController._tempPose;
+    pose.translation.copyFrom(position);
+    pose.rotation.set(targetPose.rotation.x, targetPose.rotation.y, targetPose.rotation.z, targetPose.rotation.w);
+    actor.setGlobalPose(pose, true);
+    actor.delete();
   }
 
   /**

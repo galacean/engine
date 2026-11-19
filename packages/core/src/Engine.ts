@@ -315,77 +315,78 @@ export class Engine extends EventDispatcher {
 
     const deltaTime = time.deltaTime;
     this._frameInProcess = true;
+    try {
+      this._renderElementPool.clear();
+      this._textRenderElementPool.clear();
 
-    this._renderElementPool.clear();
-    this._textRenderElementPool.clear();
+      this.xrManager?._update();
+      const { inputManager, _physicsInitialized: physicsInitialized } = this;
+      inputManager._update();
 
-    this.xrManager?._update();
-    const { inputManager, _physicsInitialized: physicsInitialized } = this;
-    inputManager._update();
+      this._refreshActivePostProcessPasses();
+      const scenes = this._sceneManager._scenes.getLoopArray();
+      const sceneCount = scenes.length;
 
-    this._refreshActivePostProcessPasses();
-    const scenes = this._sceneManager._scenes.getLoopArray();
-    const sceneCount = scenes.length;
-
-    // Sort cameras and fire script `onStart`
-    for (let i = 0; i < sceneCount; i++) {
-      const scene = scenes[i];
-      if (!scene.isActive || scene.destroyed) continue;
-      const componentsManager = scene._componentsManager;
-      componentsManager.sortCameras();
-      componentsManager.callScriptOnStart();
-    }
-
-    // Update physics and fire `onPhysicsUpdate`
-    if (physicsInitialized) {
+      // Sort cameras and fire script `onStart`
       for (let i = 0; i < sceneCount; i++) {
         const scene = scenes[i];
         if (!scene.isActive || scene.destroyed) continue;
-        scene.physics._update(deltaTime);
+        const componentsManager = scene._componentsManager;
+        componentsManager.sortCameras();
+        componentsManager.callScriptOnStart();
       }
-    }
 
-    // Fire `onPointerXX`
-    inputManager._firePointerScript(scenes);
+      // Update physics and fire `onPhysicsUpdate`
+      if (physicsInitialized) {
+        for (let i = 0; i < sceneCount; i++) {
+          const scene = scenes[i];
+          if (!scene.isActive || scene.destroyed) continue;
+          scene.physics._update(deltaTime);
+        }
+      }
 
-    // Fire `onUpdate`
-    for (let i = 0; i < sceneCount; i++) {
-      const scene = scenes[i];
-      if (!scene.isActive || scene.destroyed) continue;
-      scene._componentsManager.callScriptOnUpdate(deltaTime);
-    }
+      // Fire `onPointerXX`
+      inputManager._firePointerScript(scenes);
 
-    // Update `Animator` logic
-    for (let i = 0; i < sceneCount; i++) {
-      const scene = scenes[i];
-      if (!scene.isActive || scene.destroyed) continue;
-      scene._componentsManager.callAnimationUpdate(deltaTime);
-    }
+      // Fire `onUpdate`
+      for (let i = 0; i < sceneCount; i++) {
+        const scene = scenes[i];
+        if (!scene.isActive || scene.destroyed) continue;
+        scene._componentsManager.callScriptOnUpdate(deltaTime);
+      }
 
-    // Fire `onLateUpdate`
-    for (let i = 0; i < sceneCount; i++) {
-      const scene = scenes[i];
-      if (!scene.isActive || scene.destroyed) continue;
-      scene._componentsManager.callScriptOnLateUpdate(deltaTime);
-    }
+      // Update `Animator` logic
+      for (let i = 0; i < sceneCount; i++) {
+        const scene = scenes[i];
+        if (!scene.isActive || scene.destroyed) continue;
+        scene._componentsManager.callAnimationUpdate(deltaTime);
+      }
 
-    // Render scene and fire `onBeginRender` and `onEndRender`
-    if (!this._hardwareRenderer.isContextLost()) {
-      this._render(scenes);
-    }
+      // Fire `onLateUpdate`
+      for (let i = 0; i < sceneCount; i++) {
+        const scene = scenes[i];
+        if (!scene.isActive || scene.destroyed) continue;
+        scene._componentsManager.callScriptOnLateUpdate(deltaTime);
+      }
 
-    // Process pending destroys
-    this._processPendingDestroyObjects();
+      // Render scene and fire `onBeginRender` and `onEndRender`
+      if (!this._hardwareRenderer.isContextLost()) {
+        this._render(scenes);
+      }
 
-    this._frameInProcess = false;
+      // Process pending destroys
+      this._processPendingDestroyObjects();
+    } finally {
+      this._frameInProcess = false;
 
-    if (this._waitingDestroy) {
-      this._destroy();
-    }
+      if (this._waitingDestroy) {
+        this._destroy();
+      }
 
-    if (this._waitingGC) {
-      this._gc();
-      this._waitingGC = false;
+      if (this._waitingGC) {
+        this._gc();
+        this._waitingGC = false;
+      }
     }
   }
 
@@ -479,13 +480,25 @@ export class Engine extends EventDispatcher {
   private _processPendingDestroyObjects(): void {
     const pending = this._pendingDestroyObjects;
     this._processingPendingDestroys = true;
+    let firstError: unknown;
+    let hasError = false;
     try {
-      for (let i = 0, n = pending.length; i < n; i++) {
-        pending[i].destroy();
+      for (let i = 0; i < pending.length; i++) {
+        try {
+          pending[i].destroy();
+        } catch (error) {
+          if (!hasError) {
+            firstError = error;
+            hasError = true;
+          }
+        }
       }
     } finally {
       pending.length = 0;
       this._processingPendingDestroys = false;
+    }
+    if (hasError) {
+      throw firstError;
     }
   }
 

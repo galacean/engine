@@ -142,13 +142,12 @@ export class MeshCollider extends Collider {
   }
 
   protected override _hasValidGeometry(scale: Vector3): boolean {
-    const minScale = 1e-6;
+    const minScale = Math.fround(1e-6);
+    const maxScale = 1e6;
     const x = Math.fround(scale.x);
     const y = Math.fround(scale.y);
     const z = Math.fround(scale.z);
-    return (
-      x >= minScale && y >= minScale && z >= minScale && Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z)
-    );
+    return x >= minScale && y >= minScale && z >= minScale && x <= maxScale && y <= maxScale && z <= maxScale;
   }
 
   /**

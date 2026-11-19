@@ -169,6 +169,9 @@ export class CharacterController extends Collider {
       throw new Error("CharacterController upDirection must be finite.");
     }
     const len = Math.hypot(value.x, value.y, value.z);
+    if (!Number.isFinite(len)) {
+      throw new Error("CharacterController upDirection must be finite.");
+    }
     if (len === 0) {
       console.warn("CharacterController: upDirection cannot be a zero vector.");
       return;
@@ -406,7 +409,8 @@ export class CharacterController extends Collider {
   @ignoreClone
   private _setUpDirection(): void {
     const up = this._upDirection;
-    if (!Number.isFinite(up.x) || !Number.isFinite(up.y) || !Number.isFinite(up.z)) {
+    const len = Math.hypot(up.x, up.y, up.z);
+    if (!Number.isFinite(up.x) || !Number.isFinite(up.y) || !Number.isFinite(up.z) || !Number.isFinite(len)) {
       //@ts-ignore
       const listener = up._onValueChanged;
       //@ts-ignore
@@ -414,9 +418,9 @@ export class CharacterController extends Collider {
       up.set(0, 1, 0);
       //@ts-ignore
       up._onValueChanged = listener;
+      (<ICharacterController>this._native)?.setUpDirection(up);
       throw new Error("CharacterController upDirection must be finite.");
     }
-    const len = Math.hypot(up.x, up.y, up.z);
     if (len === 0) {
       return;
     }

@@ -1,4 +1,4 @@
-import { BackgroundMode, Engine, Entity, Scene, TextureFormat, Texture2D } from "@galacean/engine-core";
+import { BackgroundMode, Engine, Entity, Scene, Script, TextureFormat, Texture2D } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
@@ -191,6 +191,92 @@ describe("Scene", () => {
   });
 
   describe("destroy", () => {
+    it("drains remaining pending destroys and resets frame state when an earlier queued destroy throws", () => {
+      class ThrowingDestroyScript extends Script {
+        override onDestroy(): void {
+          throw new Error("queued-destroy-boom");
+        }
+      }
+      class TrackingDestroyScript extends Script {
+        destroyedCount = 0;
+        override onDestroy(): void {
+          this.destroyedCount++;
+        }
+      }
+      class QueueDestroysScript extends Script {
+        targets: Script[] = [];
+        triggered = false;
+        override onUpdate(): void {
+          if (this.triggered) return;
+          this.triggered = true;
+          for (const target of this.targets) {
+            target.destroy();
+          }
+        }
+      }
+
+      const testScene = new Scene(engine);
+      engine.sceneManager.addScene(testScene);
+      try {
+        const root = testScene.createRootEntity("pending-destroy-root");
+        const throwing = root.addComponent(ThrowingDestroyScript);
+        const survivor = root.addComponent(TrackingDestroyScript);
+        const driver = root.addComponent(QueueDestroysScript);
+        driver.targets = [throwing, survivor];
+
+        expect(() => engine.update()).toThrow("queued-destroy-boom");
+        expect(throwing.destroyed).toBe(true);
+        expect(throwing.pendingDestroy).toBe(false);
+        expect(survivor.destroyed).toBe(true);
+        expect(survivor.pendingDestroy).toBe(false);
+        expect(survivor.destroyedCount).toBe(1);
+        expect((engine as any)._frameInProcess).toBe(false);
+
+        // Subsequent immediate destroy works cleanly (not stuck in deferred frame mode)
+        const followUp = testScene.createRootEntity("follow-up");
+        followUp.destroy();
+        expect(followUp.destroyed).toBe(true);
+      } finally {
+        testScene.destroy();
+      }
+    });
+
+    it("finishes tearing down remaining root entities and scene resources when a child Script.onDestroy throws", () => {
+      class ThrowingChildScript extends Script {
+        override onDestroy(): void {
+          throw new Error("child-script-boom");
+        }
+      }
+      class CleanScript extends Script {
+        destroyedFlag = false;
+        override onDestroy(): void {
+          this.destroyedFlag = true;
+        }
+      }
+
+      const testScene = new Scene(engine);
+      engine.sceneManager.addScene(testScene);
+      const root1 = testScene.createRootEntity("root1");
+      const badChild = root1.createChild("bad-child");
+      badChild.addComponent(ThrowingChildScript);
+      const goodSibling = root1.createChild("good-sibling");
+      const siblingScript = goodSibling.addComponent(CleanScript);
+
+      const root2 = testScene.createRootEntity("root2");
+      const root2Script = root2.addComponent(CleanScript);
+
+      expect(() => testScene.destroy()).toThrow("child-script-boom");
+      expect(testScene.destroyed).toBe(true);
+      expect(testScene.rootEntitiesCount).toBe(0);
+      expect(engine.sceneManager._allCreatedScenes.includes(testScene)).toBe(false);
+      expect(badChild.destroyed).toBe(true);
+      expect(goodSibling.destroyed).toBe(true);
+      expect(siblingScript.destroyedFlag).toBe(true);
+      expect(root1.destroyed).toBe(true);
+      expect(root2.destroyed).toBe(true);
+      expect(root2Script.destroyedFlag).toBe(true);
+    });
+
     it("all destroy", () => {
       scene.createRootEntity("root1");
       scene.createRootEntity("root2");

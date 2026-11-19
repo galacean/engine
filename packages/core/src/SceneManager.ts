@@ -1,7 +1,9 @@
 import { Engine } from "./Engine";
+import { Entity } from "./Entity";
 import { Scene } from "./Scene";
 import { AssetPromise } from "./asset/AssetPromise";
 import { AssetType } from "./asset/AssetType";
+import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { SafeLoopArray } from "./utils/SafeLoopArray";
 
 /**
@@ -112,9 +114,57 @@ export class SceneManager {
    * @param destScene - target scene
    */
   mergeScenes(sourceScene: Scene, destScene: Scene): void {
-    const oldRootEntities = sourceScene.rootEntities;
-    while (oldRootEntities.length > 0) {
-      destScene.addRootEntity(oldRootEntities[0]);
+    if (sourceScene === destScene) {
+      return;
+    }
+
+    const sourceRoots = sourceScene._rootEntities;
+    const movedRoots: Entity[] = [];
+    while (sourceRoots.length > 0) {
+      const root = sourceRoots[0];
+      Entity._removeFromChildren(sourceRoots, root);
+      root._isRoot = false;
+
+      let inActiveChangeFlag = ActiveChangeFlag.None;
+      if (root._isActiveInHierarchy && !destScene._isActiveInEngine) {
+        inActiveChangeFlag |= ActiveChangeFlag.Hierarchy;
+      }
+      if (root._isActiveInScene) {
+        inActiveChangeFlag |= ActiveChangeFlag.Scene;
+      }
+      inActiveChangeFlag && root._processInActive(inActiveChangeFlag);
+
+      if (!root.destroyed && !root.parent && !root._isRoot) {
+        movedRoots.push(root);
+      }
+    }
+
+    // Assign destination scene to every moved hierarchy before notifying components or activating,
+    // so cross-root references (e.g. Joint.connectedBody) between sourceScene roots stay valid.
+    for (let i = 0, n = movedRoots.length; i < n; i++) {
+      const root = movedRoots[i];
+      root._isRoot = true;
+      Entity._addToChildren(destScene._rootEntities, root);
+      Entity._assignOwnerScene(root, destScene);
+    }
+
+    for (let i = 0, n = movedRoots.length; i < n; i++) {
+      Entity._notifySceneChanged(movedRoots[i], destScene);
+    }
+
+    for (let i = 0, n = movedRoots.length; i < n; i++) {
+      const root = movedRoots[i];
+      if (root.destroyed || !root._isRoot || root._scene !== destScene) {
+        continue;
+      }
+      let activeChangeFlag = ActiveChangeFlag.None;
+      if (root._isActive) {
+        if (destScene._isActiveInEngine && !root._isActiveInHierarchy) {
+          activeChangeFlag |= ActiveChangeFlag.Hierarchy;
+        }
+        activeChangeFlag |= ActiveChangeFlag.Scene;
+      }
+      activeChangeFlag && root._processActive(activeChangeFlag);
     }
   }
 

@@ -35,6 +35,9 @@ export class HingeJoint extends Joint {
       throw new Error("HingeJoint axis must be finite.");
     }
     const len = Math.hypot(value.x, value.y, value.z);
+    if (!Number.isFinite(len)) {
+      throw new Error("HingeJoint axis must be finite.");
+    }
     if (len === 0) {
       console.warn("HingeJoint: axis cannot be a zero vector.");
       return;
@@ -253,15 +256,19 @@ export class HingeJoint extends Joint {
   @ignoreClone
   private _onAxisChanged(): void {
     const axis = this._axis;
-    if (!Number.isFinite(axis.x) || !Number.isFinite(axis.y) || !Number.isFinite(axis.z)) {
+    const len = Math.hypot(axis.x, axis.y, axis.z);
+    if (!Number.isFinite(axis.x) || !Number.isFinite(axis.y) || !Number.isFinite(axis.z) || !Number.isFinite(len)) {
       //@ts-ignore
       axis._onValueChanged = null;
       axis.set(1, 0, 0);
       //@ts-ignore
       axis._onValueChanged = this._onAxisChanged;
+      if (this._nativeJoint) {
+        (<IHingeJoint>this._nativeJoint).setAxis(axis);
+        this._wakeBodies();
+      }
       throw new Error("HingeJoint axis must be finite.");
     }
-    const len = Math.hypot(axis.x, axis.y, axis.z);
     if (len === 0) {
       return;
     }

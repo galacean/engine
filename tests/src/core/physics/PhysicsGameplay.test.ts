@@ -857,4 +857,221 @@ describe("Physics gameplay integration", () => {
       delete engine.resourceManager._objectPool["test://base-replace-rb.prefab"];
     }
   });
+
+  it("applies componentProps to addedComponents, replaces Rigidbody while keeping HingeJoint, and orders nested instance phases globally", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1, { keepMeshData: true });
+    // @ts-ignore
+    engine.resourceManager._objectPool["test://nested-phase.mesh"] = mesh;
+    const poolKeys: string[] = ["test://nested-phase.mesh"];
+    try {
+      // Failure A: componentProps targeting a component added by addedComponents in the same instance (BoxCollider/1)
+      const baseBoxPrefab = await PrefabParser.parse(engine, "test://base-box-ov.prefab", {
+        version: "2.0",
+        refs: [],
+        entities: [{ name: "BoxHost", components: [0] }],
+        components: [{ type: "BoxCollider", props: { size: { x: 1, y: 1, z: 1 } } }],
+        root: 0
+      });
+      // @ts-ignore
+      engine.resourceManager._objectPool["test://base-box-ov.prefab"] = baseBoxPrefab;
+      poolKeys.push("test://base-box-ov.prefab");
+
+      const outerBoxPrefab = await PrefabParser.parse(engine, "test://outer-box-ov.prefab", {
+        version: "2.0",
+        refs: [{ url: "test://base-box-ov.prefab", type: "Prefab" }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                addedComponents: [{ target: [], component: 0 }],
+                componentProps: [
+                  {
+                    path: [],
+                    selector: { type: "BoxCollider", index: 1 },
+                    props: { size: { x: 3, y: 2, z: 4 }, center: { x: 0, y: 1.5, z: 0 } }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        components: [{ type: "BoxCollider", props: { size: { x: 1, y: 1, z: 1 } } }],
+        root: 0
+      });
+      const boxInst = outerBoxPrefab.instantiate();
+      try {
+        const boxes = boxInst.getComponents(BoxCollider, []);
+        expect(boxes).toHaveLength(2);
+        expect(boxes[0].size.x).toBe(1);
+        expect(boxes[1].size.x).toBe(3);
+        expect(boxes[1].size.y).toBe(2);
+        expect(boxes[1].size.z).toBe(4);
+        expect(boxes[1].center.y).toBeCloseTo(1.5, 5);
+      } finally {
+        boxInst.destroy();
+      }
+
+      // Failure B: Replacing inherited Rigidbody while keeping inherited HingeJoint on the same entity
+      // (verified through both PrefabParser+instantiate and active SceneParser!)
+      const baseHingePrefab = await PrefabParser.parse(engine, "test://base-keep-hinge.prefab", {
+        version: "2.0",
+        refs: [],
+        entities: [{ name: "Door", components: [0, 1, 2] }],
+        components: [
+          { type: "BoxCollider" },
+          { type: "Rigidbody", props: { mass: 1, useGravity: false } },
+          { type: "HingeJoint", props: { axis: { x: 0, y: 1, z: 0 }, useMotor: true } }
+        ],
+        root: 0
+      });
+      // @ts-ignore
+      engine.resourceManager._objectPool["test://base-keep-hinge.prefab"] = baseHingePrefab;
+      poolKeys.push("test://base-keep-hinge.prefab");
+
+      const replaceRbOverrides = {
+        removedComponents: [{ path: [], selectors: [{ type: "Rigidbody", index: 0 }] }],
+        addedComponents: [{ target: [], component: 0 }]
+      };
+      const replaceRbPrefab = await PrefabParser.parse(engine, "test://outer-keep-hinge.prefab", {
+        version: "2.0",
+        refs: [{ url: "test://base-keep-hinge.prefab", type: "Prefab" }],
+        entities: [{ instance: { asset: 0, overrides: replaceRbOverrides } }],
+        components: [{ type: "Rigidbody", props: { mass: 6, useGravity: false } }],
+        root: 0
+      });
+      const doorInst = replaceRbPrefab.instantiate();
+      try {
+        root.addChild(doorInst);
+        const bodies = doorInst.getComponents(Rigidbody, []);
+        expect(bodies).toHaveLength(1);
+        expect(bodies[0].mass).toBe(6);
+        const hinge = doorInst.getComponent(HingeJoint)!;
+        expect(hinge).not.toBeNull();
+        expect(hinge.axis.y).toBeCloseTo(1, 5);
+        const motor = new JointMotor();
+        motor.targetVelocity = 5;
+        motor.forceLimit = 500;
+        hinge.motor = motor;
+        step(10);
+        expect(hinge.velocity).toBeGreaterThan(2);
+      } finally {
+        doorInst.destroy();
+      }
+
+      // Also verify Failure B inside SceneParser (where prefab instance enters the scene before Stage 3 overrides)
+      const parsedScene = new Scene(engine, "replace-rb-scene");
+      try {
+        const sceneContext = new ParserContext(engine, ParserType.Scene, parsedScene);
+        const sceneData: SceneFile = {
+          version: "2.0",
+          refs: [{ url: "test://base-keep-hinge.prefab", type: "Prefab" }],
+          entities: [{ instance: { asset: 0, overrides: replaceRbOverrides } }],
+          components: [{ type: "Rigidbody", props: { mass: 8, useGravity: false } }],
+          scene: { rootEntities: [0] }
+        };
+        const parser = new SceneParser(sceneData, sceneContext, parsedScene);
+        parser.start();
+        await parser.promise;
+        const doorEntity = parsedScene.rootEntities[0];
+        const body = doorEntity.getComponent(Rigidbody)!;
+        const hinge = doorEntity.getComponent(HingeJoint)!;
+        expect(body.mass).toBe(8);
+        expect(hinge).not.toBeNull();
+        const motor = new JointMotor();
+        motor.targetVelocity = 5;
+        motor.forceLimit = 500;
+        hinge.motor = motor;
+        for (let i = 0; i < 10; i++) {
+          parsedScene.physics._update(parsedScene.physics.fixedTimeStep);
+        }
+        expect(hinge.velocity).toBeGreaterThan(2);
+      } finally {
+        parsedScene.destroy();
+      }
+
+      // Failure C: Parent instance flips Rigidbody.isKinematic=false while nested child instance flips MeshCollider.convex=true
+      const parentRbPrefab = await PrefabParser.parse(engine, "test://parent-kin-rb.prefab", {
+        version: "2.0",
+        refs: [],
+        entities: [{ name: "ParentBody", components: [0] }],
+        components: [{ type: "Rigidbody", props: { isKinematic: true, useGravity: false } }],
+        root: 0
+      });
+      // @ts-ignore
+      engine.resourceManager._objectPool["test://parent-kin-rb.prefab"] = parentRbPrefab;
+      poolKeys.push("test://parent-kin-rb.prefab");
+
+      const childMeshPrefab = await PrefabParser.parse(engine, "test://child-nonconvex-mesh.prefab", {
+        version: "2.0",
+        refs: [{ url: "test://nested-phase.mesh", type: "ModelMesh" }],
+        entities: [{ name: "ChildMesh", components: [0] }],
+        components: [{ type: "MeshCollider", props: { convex: false, mesh: { $ref: 0 } } }],
+        root: 0
+      });
+      // @ts-ignore
+      engine.resourceManager._objectPool["test://child-nonconvex-mesh.prefab"] = childMeshPrefab;
+      poolKeys.push("test://child-nonconvex-mesh.prefab");
+
+      const combinedPrefab = await PrefabParser.parse(engine, "test://combined-phase.prefab", {
+        version: "2.0",
+        refs: [
+          { url: "test://parent-kin-rb.prefab", type: "Prefab" },
+          { url: "test://child-nonconvex-mesh.prefab", type: "Prefab" }
+        ],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                addedEntities: [{ parent: [], entity: 1 }],
+                componentProps: [
+                  {
+                    path: [],
+                    selector: { type: "Rigidbody", index: 0 },
+                    props: { isKinematic: false }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            instance: {
+              asset: 1,
+              overrides: {
+                componentProps: [
+                  {
+                    path: [],
+                    selector: { type: "MeshCollider", index: 0 },
+                    props: { convex: true }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        components: [],
+        root: 0
+      });
+      const combinedInst = combinedPrefab.instantiate();
+      try {
+        root.addChild(combinedInst);
+        const parentRb = combinedInst.getComponent(Rigidbody)!;
+        const childMesh = combinedInst.children[0].getComponent(MeshCollider)!;
+        expect(parentRb.isKinematic).toBe(false);
+        expect(childMesh.convex).toBe(true);
+        expect(errors).not.toHaveBeenCalled();
+        step(2);
+        expect(errors).not.toHaveBeenCalled();
+      } finally {
+        combinedInst.destroy();
+      }
+    } finally {
+      for (const key of poolKeys) {
+        // @ts-ignore
+        delete engine.resourceManager._objectPool[key];
+      }
+    }
+  });
 });

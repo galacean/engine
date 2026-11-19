@@ -127,6 +127,24 @@ export class Component extends EngineObject {
   /**
    * @internal
    */
+  _onSceneChanged(_scene: Scene): void {}
+
+  /**
+   * @internal
+   * Deactivate in scene while the owning Entity remains active (used during atomic component replacement).
+   */
+  _deactivateInScene(): boolean {
+    if (this._phasedActiveInScene) {
+      this._phasedActiveInScene = false;
+      this._onDisableInScene();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * @internal
+   */
   _setActive(value: boolean, activeChangeFlag: ActiveChangeFlag): void {
     const entity = this._entity;
 

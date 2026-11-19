@@ -4,6 +4,7 @@ import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Component } from "../../Component";
 import { DependentMode, dependentComponents } from "../../ComponentsDependencies";
 import { Entity } from "../../Entity";
+import { Scene } from "../../Scene";
 import { TransformModifyFlags } from "../../Transform";
 import { ignoreClone } from "../../clone/CloneDecorators";
 import type { ICloneHook } from "../../clone/ICloneHook";
@@ -46,7 +47,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
       } else if (value === this.entity.getComponent(Rigidbody)) {
         console.error("Joint: cannot connect a Rigidbody to itself.");
         return;
-      } else if (this._phasedActiveInScene && value.scene && value.scene !== this.scene) {
+      } else if (this.scene && value.scene && value.scene !== this.scene) {
         console.error("Joint: connectedBody belongs to another scene.");
         return;
       }
@@ -233,6 +234,16 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   /**
    * @internal
    */
+  override _onSceneChanged(scene: Scene): void {
+    const body = this._connectedBodyInfo.body;
+    if (body && !body.destroyed && body.scene && body.scene !== scene) {
+      this._onConnectedBodyCrossScene();
+    }
+  }
+
+  /**
+   * @internal
+   */
   override _onEnableInScene(): void {
     this._createJoint();
     this._syncNative();
@@ -246,6 +257,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     if (this._nativeJoint) {
       this._nativeJoint.destroy();
       this._nativeJoint = null;
+      this._bodyInfo.body = null;
       this._wakeBodies();
     }
   }
@@ -331,7 +343,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
 
   private _getConnectedBody(): Rigidbody | null {
     const body = this._connectedBodyInfo.body;
-    if (body && body.destroyed) {
+    if (body && (body.destroyed || (body.scene && this.scene && body.scene !== this.scene))) {
       body.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
       body._detachConnectedJoint(this);
       this._connectedBodyInfo.body = null;
@@ -342,14 +354,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
 
   protected _syncNative(): void {
     if (this._nativeJoint) {
-      let connectedBody = this._getConnectedBody();
-      if (connectedBody && connectedBody.scene && connectedBody.scene !== this.scene) {
-        console.error("Joint: connectedBody belongs to another scene.");
-        connectedBody.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
-        connectedBody._detachConnectedJoint(this);
-        this._connectedBodyInfo.body = null;
-        connectedBody = null;
-      }
+      const connectedBody = this._getConnectedBody();
       this._nativeJoint.setConnectedCollider(Joint._getBodyActor(connectedBody));
       this._updateActualAnchor(AnchorOwner.Self);
       if (this._automaticConnectedAnchor) {

@@ -747,6 +747,94 @@ describe("Joint", function () {
     }
   });
 
+  it("detaches disabled/inactive cross-scene connectedBody and preserves same-scene joints across SceneManager.mergeScenes", function () {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const secondScene = new Scene(engine, "merge-target-scene");
+    const inactiveParent = secondScene.createRootEntity("inactive-parent");
+    inactiveParent.isActive = false;
+
+    try {
+      // 1. Disabled connectedBody moved to another scene still detaches from active joint
+      const disabledAnchor = addBox(new Vector3(1, 1, 1), new Vector3(0, 10, 0));
+      const disabledAnchorBody = disabledAnchor.getComponent(Rigidbody)!;
+      disabledAnchorBody.enabled = false;
+      const box1 = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+      const joint1 = box1.addComponent(FixedJoint);
+      joint1.connectedBody = disabledAnchorBody;
+
+      secondScene.addRootEntity(disabledAnchor);
+      expect(joint1.connectedBody).toBeNull();
+      expect(errors).toHaveBeenCalledWith("Joint: connectedBody belongs to another scene.");
+
+      // 2. Active connectedBody moved under an inactive parent in another scene still detaches
+      errors.mockClear();
+      const inactiveAnchor = addBox(new Vector3(1, 1, 1), new Vector3(3, 10, 0));
+      const inactiveAnchorBody = inactiveAnchor.getComponent(Rigidbody)!;
+      const box2 = addBox(new Vector3(1, 1, 1), new Vector3(3, 5, 0));
+      const joint2 = box2.addComponent(FixedJoint);
+      joint2.connectedBody = inactiveAnchorBody;
+
+      inactiveParent.addChild(inactiveAnchor);
+      expect(joint2.connectedBody).toBeNull();
+      expect(errors).toHaveBeenCalledWith("Joint: connectedBody belongs to another scene.");
+
+      // 3. Disabled joint moved to another scene detaches from connectedBody in original scene
+      errors.mockClear();
+      const stayingAnchor = addBox(new Vector3(1, 1, 1), new Vector3(6, 10, 0));
+      const stayingAnchorBody = stayingAnchor.getComponent(Rigidbody)!;
+      const box3 = addBox(new Vector3(1, 1, 1), new Vector3(6, 5, 0));
+      const joint3 = box3.addComponent(FixedJoint);
+      joint3.connectedBody = stayingAnchorBody;
+      joint3.enabled = false;
+
+      inactiveParent.addChild(box3);
+      expect(joint3.connectedBody).toBeNull();
+      expect(errors).toHaveBeenCalledWith("Joint: connectedBody belongs to another scene.");
+
+      // 4. SceneManager.mergeScenes preserves same-scene joints in BOTH root orders (body-first & joint-first)
+      for (const bodyFirst of [true, false]) {
+        errors.mockClear();
+        const srcScene = new Scene(engine, `merge-src-${bodyFirst}`);
+        const dstScene = new Scene(engine, `merge-dst-${bodyFirst}`);
+        try {
+          const makeRootBox = (name: string, y: number, kinematic: boolean) => {
+            const e = new Entity(engine, name);
+            e.transform.setPosition(0, y, 0);
+            e.addComponent(BoxCollider);
+            const rb = e.addComponent(Rigidbody);
+            rb.isKinematic = kinematic;
+            return { entity: e, body: rb };
+          };
+          const anchor = makeRootBox("anchor", 10, true);
+          const follower = makeRootBox("follower", 6, false);
+          const mergeJoint = follower.entity.addComponent(FixedJoint);
+          mergeJoint.connectedBody = anchor.body;
+
+          if (bodyFirst) {
+            srcScene.addRootEntity(anchor.entity);
+            srcScene.addRootEntity(follower.entity);
+          } else {
+            srcScene.addRootEntity(follower.entity);
+            srcScene.addRootEntity(anchor.entity);
+          }
+
+          engine.sceneManager.mergeScenes(srcScene, dstScene);
+          expect(errors).not.toHaveBeenCalled();
+          expect(srcScene.rootEntitiesCount).toBe(0);
+          expect(dstScene.rootEntitiesCount).toBe(2);
+          expect(mergeJoint.connectedBody).toBe(anchor.body);
+          dstScene.physics._update(0.2);
+          expect(follower.entity.transform.position.y).toBeCloseTo(6, 3);
+        } finally {
+          srcScene.destroy();
+          dstScene.destroy();
+        }
+      }
+    } finally {
+      secondScene.destroy();
+    }
+  });
+
   it("keeps Rigidbody alive when destroy is blocked by a Joint and cleans up on entity.destroy or deferred destroy", function () {
     const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
     const body = box.getComponent(Rigidbody)!;

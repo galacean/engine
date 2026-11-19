@@ -145,29 +145,60 @@ export class ComponentsDependencies {
 
   /**
    * @internal
+   * Verify that removing `type` from `entity` does not leave any surviving component with an unsatisfied dependency.
+   * When `replace` supplies a replacement type (or list of types) satisfying a dependency, returns `true` and appends
+   * the surviving dependent components to `replacedDependents` when provided.
    */
-  static _removeCheck(entity: Entity, type: ComponentConstructor, replace?: ComponentConstructor): void {
+  static _removeCheck(
+    entity: Entity,
+    type: ComponentConstructor,
+    replace?: ComponentConstructor | readonly ComponentConstructor[],
+    replacedDependents?: Component[]
+  ): boolean {
     const components = entity._components;
     const n = components.length;
+    let usedReplacement = false;
     while (type !== Component) {
-      // The replacement still satisfies this type and all of its base types
-      if (replace && (replace === type || replace.prototype instanceof type)) {
-        return;
+      if (
+        !replacedDependents &&
+        typeof replace === "function" &&
+        (replace === type || replace.prototype instanceof type)
+      ) {
+        return true;
       }
       let count = 0;
       for (let i = 0; i < n; i++) {
-        if (components[i] instanceof type && ++count > 1) return;
+        if (components[i] instanceof type && ++count > 1) return usedReplacement;
       }
       const invDependencies = ComponentsDependencies._invDependenciesMap.get(type);
       if (invDependencies) {
+        let firstDependentType: ComponentConstructor | null = null;
         for (let i = 0, len = invDependencies.length; i < len; i++) {
-          if (entity.getComponent(invDependencies[i])) {
-            throw `Should remove ${invDependencies[i].name} before remove ${type.name}`;
+          const dependentType = invDependencies[i];
+          for (let j = 0; j < n; j++) {
+            const comp = components[j];
+            if (comp instanceof dependentType) {
+              firstDependentType ||= dependentType;
+              if (replacedDependents && !replacedDependents.includes(comp)) {
+                replacedDependents.push(comp);
+              }
+            }
           }
+        }
+        if (firstDependentType) {
+          const satisfied =
+            typeof replace === "function"
+              ? replace === type || replace.prototype instanceof type
+              : !!(replace && replace.some((r) => r === type || r.prototype instanceof type));
+          if (!satisfied) {
+            throw `Should remove ${firstDependentType.name} before remove ${type.name}`;
+          }
+          usedReplacement = true;
         }
       }
       type = Object.getPrototypeOf(type);
     }
+    return usedReplacement;
   }
 
   /**

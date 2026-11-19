@@ -20,9 +20,6 @@ import { DisorderedArray } from "./utils/DisorderedArray";
  * Entity, be used as components container.
  */
 export class Entity extends EngineObject {
-  /** @internal */
-  static _tempComponentConstructors: ComponentConstructor[] = [];
-
   private static _isTransformType(type: ComponentConstructor): boolean {
     return type === Transform || type.prototype instanceof Transform;
   }
@@ -58,10 +55,34 @@ export class Entity extends EngineObject {
    * @internal
    */
   static _traverseSetOwnerScene(entity: Entity, scene: Scene | null | undefined): void {
+    Entity._assignOwnerScene(entity, scene);
+    if (scene) {
+      Entity._notifySceneChanged(entity, scene);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  static _assignOwnerScene(entity: Entity, scene: Scene | null | undefined): void {
     entity._scene = scene;
     const children = entity._children;
     for (let i = children.length - 1; i >= 0; i--) {
-      this._traverseSetOwnerScene(children[i], scene);
+      Entity._assignOwnerScene(children[i], scene);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  static _notifySceneChanged(entity: Entity, scene: Scene): void {
+    const components = entity._components;
+    for (let i = components.length - 1; i >= 0; i--) {
+      components[i]._onSceneChanged(scene);
+    }
+    const children = entity._children;
+    for (let i = children.length - 1; i >= 0; i--) {
+      Entity._notifySceneChanged(children[i], scene);
     }
   }
 
@@ -487,14 +508,76 @@ export class Entity extends EngineObject {
 
   /**
    * @internal
+   * Remove `removed` components (in reverse dependency order) and add `addedTypes` (in dependency order) atomically.
+   * When a removed component is replaced by a type in `addedTypes`, surviving scene-active dependents are temporarily
+   * deactivated in the scene and re-activated against the replacement.
    */
-  static _destroyComponents(components: readonly Component[]): void {
-    ComponentsDependencies._forEachInRemoveOrder(components, (i) => {
-      const component = components[i];
-      if (!component.destroyed) {
+  _applyComponentChanges(
+    removed: readonly Component[],
+    addedTypes: readonly ComponentConstructor[],
+    onAdd?: (index: number, component: Component) => void
+  ): void {
+    const replacedDependents: Component[] = [];
+    const suspendedDependents: Component[] = [];
+
+    if (removed.length > 0) {
+      ComponentsDependencies._forEachInRemoveOrder(removed, (i) => {
+        const component = removed[i];
+        if (component.destroyed) return;
+        if (addedTypes.length > 0) {
+          const prevLen = replacedDependents.length;
+          const needsReplacement = ComponentsDependencies._removeCheck(
+            this,
+            component.constructor as ComponentConstructor,
+            addedTypes,
+            replacedDependents
+          );
+          if (needsReplacement) {
+            for (let j = prevLen, m = replacedDependents.length; j < m; j++) {
+              const dep = replacedDependents[j];
+              if (dep._deactivateInScene()) {
+                suspendedDependents.push(dep);
+              }
+            }
+            this._removeComponent(component);
+            component.destroy();
+            return;
+          }
+        }
         component.destroy();
+      });
+    }
+
+    if (addedTypes.length > 0) {
+      let earliestDependentIndex = -1;
+      if (replacedDependents.length > 0) {
+        for (let i = 0, n = this._components.length; i < n; i++) {
+          if (replacedDependents.includes(this._components[i])) {
+            earliestDependentIndex = i;
+            break;
+          }
+        }
       }
-    });
+
+      this._addComponents(addedTypes, (i, component) => {
+        if (earliestDependentIndex !== -1 && !Entity._isTransformType(addedTypes[i])) {
+          const lastIndex = this._components.length - 1;
+          if (this._components[lastIndex] === component && lastIndex > earliestDependentIndex) {
+            this._components.pop();
+            this._components.splice(earliestDependentIndex, 0, component);
+            earliestDependentIndex++;
+          }
+        }
+        onAdd?.(i, component);
+      });
+    }
+
+    for (let i = 0, n = suspendedDependents.length; i < n; i++) {
+      const dep = suspendedDependents[i];
+      if (!dep.destroyed) {
+        dep._setActive(true, ActiveChangeFlag.Scene);
+      }
+    }
   }
 
   /**
@@ -506,18 +589,19 @@ export class Entity extends EngineObject {
   }
 
   private _createCloneEntity(cloneMap: Map<object, object>): Entity {
-    const componentConstructors = Entity._tempComponentConstructors;
     const components = this._components;
-    componentConstructors.length = components.length;
-    for (let i = 0, n = components.length; i < n; i++) {
-      componentConstructors[i] = components[i].constructor as ComponentConstructor;
-    }
-    const cloneEntity = new Entity(this.engine, this.name, ...componentConstructors);
-    componentConstructors.length = 0;
+    const n = components.length;
+    const cloneEntity = new Entity(this.engine, this.name, components[0].constructor as ComponentConstructor);
     cloneMap.set(this, cloneEntity);
-    const targetComponents = cloneEntity._components;
-    for (let i = 0, n = components.length; i < n; i++) {
-      cloneMap.set(components[i], targetComponents[i]);
+    cloneMap.set(components[0], cloneEntity._components[0]);
+    if (n > 1) {
+      const types = new Array<ComponentConstructor>(n - 1);
+      for (let i = 1; i < n; i++) {
+        types[i - 1] = components[i].constructor as ComponentConstructor;
+      }
+      cloneEntity._addComponents(types, (i, comp) => {
+        cloneMap.set(components[i + 1], comp);
+      });
     }
     const templateResource = this._templateResource;
     if (templateResource) {
@@ -543,7 +627,7 @@ export class Entity extends EngineObject {
 
     const components = src._components;
     for (let i = 0, n = components.length; i < n; i++) {
-      ComponentCloner.cloneComponent(components[i], target._components[i], cloneMap);
+      ComponentCloner.cloneComponent(components[i], cloneMap.get(components[i]) as Component, cloneMap);
     }
   }
 
@@ -556,6 +640,15 @@ export class Entity extends EngineObject {
       return;
     }
 
+    let firstError: unknown;
+    let hasError = false;
+    const recordError = (error: unknown): void => {
+      if (!hasError) {
+        firstError = error;
+        hasError = true;
+      }
+    };
+
     if (this._templateResource) {
       this._isTemplate || this._templateResource._addReferCount(-1);
       this._templateResource = null!;
@@ -563,22 +656,44 @@ export class Entity extends EngineObject {
 
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
-      components[i].destroy();
+      const component = components[i];
+      if (!component) continue;
+      try {
+        component.destroy();
+      } catch (error) {
+        recordError(error);
+      }
     }
     this._components.length = 0;
 
     const children = this._children;
     while (children.length > 0) {
-      children[0].destroy();
+      const child = children[0];
+      try {
+        child.destroy();
+      } catch (error) {
+        recordError(error);
+        if (children[0] === child) {
+          child._removeFromParent();
+        }
+      }
     }
 
-    if (this._isRoot) {
-      this._scene!.removeRootEntity(this);
-    } else {
-      this._setParent(null);
+    try {
+      if (this._isRoot) {
+        this._scene!.removeRootEntity(this);
+      } else {
+        this._setParent(null);
+      }
+    } catch (error) {
+      recordError(error);
     }
 
     this.isActive = false;
+
+    if (hasError) {
+      throw firstError;
+    }
   }
 
   /**

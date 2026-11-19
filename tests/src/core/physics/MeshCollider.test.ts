@@ -650,4 +650,32 @@ describe("MeshCollider", () => {
     collider.entity.transform.setScale(1, 1, 1);
     expect(physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), hit)).toBe(true);
   });
+
+  it.each([false, true])(
+    "accepts PhysX minimum mesh scale 1e-6 and detaches out-of-range scales (convex=%s)",
+    (convex) => {
+      const mesh = createCubeMesh(engine, 2e6);
+      const entity = root.createChild("min-scale-mesh");
+      const collider = entity.addComponent(MeshCollider);
+      collider.convex = convex;
+      collider.mesh = mesh;
+
+      // Exact minimum PhysX scale (1e-6) rounds to 1e-6f in float32 and must remain valid for raycasts
+      entity.transform.setScale(1e-6, 1e-6, 1e-6);
+      const hit = new HitResult();
+      expect(physics.raycast(rayAt(0), hit)).toBe(true);
+      expect(hit.collider).toBe(collider);
+
+      // Below PX_MESH_SCALE_MIN (1e-6) or above PX_MESH_SCALE_MAX (1e6) detaches cleanly
+      entity.transform.setScale(1e-7, 1e-6, 1e-6);
+      expect(physics.raycast(rayAt(0), hit)).toBe(false);
+      entity.transform.setScale(1e7, 1, 1);
+      expect(physics.raycast(rayAt(0), hit)).toBe(false);
+
+      // Recovers cleanly when scale returns within [1e-6, 1e6]
+      entity.transform.setScale(1e-6, 1e-6, 1e-6);
+      expect(physics.raycast(rayAt(0), hit)).toBe(true);
+      expect(hit.collider).toBe(collider);
+    }
+  );
 });
