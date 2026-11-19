@@ -382,6 +382,7 @@ const sakuraSubject = sakura.spawn?.subject;
 const templateAssets: Readonly<Record<string, string>> = {
   "pink-tree": new URL("../assets/pink-tree.glb", import.meta.url).href,
   "forest-giant-oak": new URL("../assets/forest-giant-oak.glb", import.meta.url).href,
+  "forest-giant-oak-lods": new URL("../assets/forest-giant-oak-lods.glb", import.meta.url).href,
   "sakura-petal": new URL("../assets/sakura-petal.png", import.meta.url).href,
   "oasis-butterflies": new URL("../assets/oasis-butterflies.png", import.meta.url).href
 };
@@ -645,7 +646,13 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
         assetMaterials: {
           Bark_512: { color: "#d89c72", intensity: 2.35 }
         },
-        assetUrl: templateAssets["forest-giant-oak"]
+        assetUrl: templateAssets["forest-giant-oak"],
+        assetLod: {
+          url: templateAssets["forest-giant-oak-lods"],
+          // Keep the central hero oasis tree at full LOD0 from spawn (~53m, height ~0.42),
+          // stepping down to LOD1 (~74m) and LOD2 (~160m) as the camera moves away.
+          screenRelativeHeights: [0.3, 0.14]
+        }
       }
     ],
     terrain: [

@@ -6,12 +6,14 @@ import {
   MeshRenderer,
   Quaternion,
   RenderFace,
+  Script,
   Texture2D,
   TextureFilterMode,
   TextureWrapMode,
   Vector2,
   Vector3,
   Vector4,
+  type Camera,
   type Engine,
   type Entity,
   type Material,
@@ -50,7 +52,8 @@ import {
 import {
   createTreeAssemblyInstanceStorage,
   createTreeAssemblyInstancedMesh,
-  uploadTreeAssemblyInstances
+  uploadTreeAssemblyInstances,
+  type TreeAssemblyInstancedMesh
 } from "@galacean/engine-vegetation/asset-assembly/TreeAssemblyInstancedMesh";
 import { DEAD_TREE_ASSET_ID } from "@galacean/engine-vegetation/asset-assembly/TreeSpeciesCatalog";
 import { TREE_SPECIES_LOD_POLICIES } from "@galacean/engine-vegetation/asset-assembly/TreeSpeciesLodPolicy";
@@ -329,30 +332,48 @@ function catalogLod0Instances(speciesId: string): readonly PlantGeometryInstance
   return (entry?.geometryInstances ?? []).filter((inst) => !inst.lods || inst.lods.includes(0));
 }
 
-function compileProductionGeometry(
-  kind: Exclude<TemplateProceduralPlantKind, "dead-wood">,
-  resources: TemplateProceduralPlantResources
-): {
-  geometry: readonly PlantPartMesh[];
-  floor: number;
-  sourceHeight: number;
-  windHeight: number;
-  leafSlots: Set<string>;
-} {
-  if (kind === "desert-shrub") {
-    const bushAsset =
-      resources.bushAsset ?? (decodedBushAsset ??= decodePlantParameters<ProceduralPlantAsset>(bushStructureJson));
-    const structure = bushAsset.geometryLods[0];
-    const baseParts = buildProceduralPlantGeometry(structure, 0);
-    const rawFloor = Math.min(...baseParts.map(({ mesh }) => mesh.bounds[0][1]));
-    const rawMaxY = Math.max(...baseParts.map(({ mesh }) => mesh.bounds[1][1]));
-    const rawHeight = Math.max(0.05, rawMaxY - rawFloor);
-    const rawLeafId = "appearance-e832df91cc4eb1a2";
-    // Combine an upper crown and a ground-hugging lower sage skirt so desert bushes sit naturally on sand & rock ledges without leggy stilts.
-    const layers = [
-      [1, 0, 0, 0, 0, 0.92, 0, 0, 0, 0, 1, 0, 0, -0.14 * rawHeight, 0, 1],
-      [0, 0, -1.24, 0, 0, 0.62, 0, 0, 1.24, 0, 0, 0, 0, -0.22 * rawHeight, 0, 1]
-    ];
+/**
+ * Camera-distance thresholds (metres) for `desert-shrub` dynamic GPU-instanced LOD bucketing.
+ * - LOD0 (< 48m): full close-up foliage (643 parts).
+ * - LOD1 (48–88m): lush mid-ground cliff-foot bushes (445 parts, -31%).
+ * - LOD2 (88–135m): canyon ledges & outer flanks (238 parts, -63%).
+ * - LOD3 (>= 135m): far canyon rims (55 parts, -91.5%).
+ */
+export const DESERT_SHRUB_LOD_DISTANCES_M: readonly number[] = [48, 88, 135];
+const DESERT_SHRUB_LOD_HYSTERESIS_M = 4;
+const DESERT_SHRUB_CAMERA_MOVE_EPSILON_SQ = 4;
+
+interface CompiledProductionPlantGeometry {
+  readonly geometry: readonly PlantPartMesh[];
+  readonly floor: number;
+  readonly sourceHeight: number;
+  readonly windHeight: number;
+  readonly leafSlots: Set<string>;
+}
+
+export interface CompiledDesertShrubLod extends CompiledProductionPlantGeometry {
+  readonly lodIndex: number;
+}
+
+const cachedDesertShrubLods = new WeakMap<ProceduralPlantAsset, readonly CompiledDesertShrubLod[]>();
+
+/** Compiles all available LODs for `desert-shrub` anchored to LOD0's canonical height so LOD swaps never pop vertically. */
+export function compileDesertShrubLods(bushAsset: ProceduralPlantAsset): readonly CompiledDesertShrubLod[] {
+  const cached = cachedDesertShrubLods.get(bushAsset);
+  if (cached) return cached;
+  const rawLeafId = "appearance-e832df91cc4eb1a2";
+  const lodCount = Math.min(4, bushAsset.geometryLods.length);
+  const lod0Parts = buildProceduralPlantGeometry(bushAsset.geometryLods[0], 0);
+  const rawFloor = Math.min(...lod0Parts.map(({ mesh }) => mesh.bounds[0][1]));
+  const rawMaxY = Math.max(...lod0Parts.map(({ mesh }) => mesh.bounds[1][1]));
+  const rawHeight = Math.max(0.05, rawMaxY - rawFloor);
+  // Combine an upper crown and a ground-hugging lower sage skirt so desert bushes sit naturally on sand & rock ledges without leggy stilts.
+  const layers = [
+    [1, 0, 0, 0, 0, 0.92, 0, 0, 0, 0, 1, 0, 0, -0.14 * rawHeight, 0, 1],
+    [0, 0, -1.24, 0, 0, 0.62, 0, 0, 1.24, 0, 0, 0, 0, -0.22 * rawHeight, 0, 1]
+  ];
+
+  const assembleLayerParts = (baseParts: readonly PlantPartMesh[]): PlantPartMesh[] => {
     const assembled: PlantPartMesh[] = [];
     layers.forEach((m, idx) => {
       for (const part of baseParts) {
@@ -360,16 +381,171 @@ function compileProductionGeometry(
         assembled.push(...transformRestParts([part], m, slot, `b${idx}`));
       }
     });
-    const floor = Math.min(...assembled.map(({ mesh }) => mesh.bounds[0][1]));
-    const maxY = Math.max(...assembled.map(({ mesh }) => mesh.bounds[1][1]));
-    const windHeight = Math.max(0.05, maxY - floor);
-    return {
-      geometry: mergePlantGeometryByMaterial(attachFlexibleWindFrames(assembled, windHeight)),
-      floor: Math.max(floor, -0.02 * rawHeight),
-      sourceHeight: Math.max(0.01, maxY - Math.max(floor, -0.02 * rawHeight)),
+    return assembled;
+  };
+
+  const lod0Assembled = assembleLayerParts(lod0Parts);
+  const lod0Floor = Math.min(...lod0Assembled.map(({ mesh }) => mesh.bounds[0][1]));
+  const lod0MaxY = Math.max(...lod0Assembled.map(({ mesh }) => mesh.bounds[1][1]));
+  const windHeight = Math.max(0.05, lod0MaxY - lod0Floor);
+  const floor = Math.max(lod0Floor, -0.02 * rawHeight);
+  const sourceHeight = Math.max(0.01, lod0MaxY - floor);
+
+  const result: CompiledDesertShrubLod[] = [
+    {
+      lodIndex: 0,
+      geometry: mergePlantGeometryByMaterial(attachFlexibleWindFrames(lod0Assembled, windHeight)),
+      floor,
+      sourceHeight,
       windHeight,
       leafSlots: new Set()
-    };
+    }
+  ];
+
+  for (let lodIndex = 1; lodIndex < lodCount; lodIndex++) {
+    const baseParts = buildProceduralPlantGeometry(bushAsset.geometryLods[lodIndex], 0);
+    const assembled = assembleLayerParts(baseParts);
+    result.push({
+      lodIndex,
+      geometry: mergePlantGeometryByMaterial(attachFlexibleWindFrames(assembled, windHeight)),
+      floor,
+      sourceHeight,
+      windHeight,
+      leafSlots: new Set()
+    });
+  }
+
+  cachedDesertShrubLods.set(bushAsset, result);
+  return result;
+}
+
+function resolveDesertShrubLodTier(distanceM: number, currentTier: number, maxTier: number): number {
+  const thresholds = DESERT_SHRUB_LOD_DISTANCES_M;
+  if (currentTier < 0) {
+    let tier = 0;
+    while (tier < maxTier && tier < thresholds.length && distanceM >= thresholds[tier]) {
+      tier++;
+    }
+    return tier;
+  }
+  let tier = currentTier;
+  while (tier > 0 && distanceM < thresholds[tier - 1] - DESERT_SHRUB_LOD_HYSTERESIS_M) {
+    tier--;
+  }
+  while (tier < maxTier && tier < thresholds.length && distanceM > thresholds[tier] + DESERT_SHRUB_LOD_HYSTERESIS_M) {
+    tier++;
+  }
+  return tier;
+}
+
+interface ShrubLodInstanceRecord {
+  readonly worldX: number;
+  readonly worldY: number;
+  readonly worldZ: number;
+  readonly transform: readonly number[];
+  readonly explicitVariant?: number;
+  readonly variantRandom: number;
+}
+
+interface ShrubLodTierPart {
+  readonly entity: Entity;
+  readonly view: TreeAssemblyInstancedMesh;
+  readonly colors: PlantColorways;
+}
+
+class TemplateShrubLodController extends Script {
+  private camera?: Camera;
+  private instances: readonly ShrubLodInstanceRecord[] = [];
+  private tiers: readonly (readonly ShrubLodTierPart[])[] = [];
+  private assignedLod = new Int8Array(0);
+  private tierCounts = new Int32Array(0);
+  private lastCamX = Infinity;
+  private lastCamY = Infinity;
+  private lastCamZ = Infinity;
+
+  configure(
+    camera: Camera,
+    instances: readonly ShrubLodInstanceRecord[],
+    tiers: readonly (readonly ShrubLodTierPart[])[]
+  ): void {
+    this.camera = camera;
+    this.instances = instances;
+    this.tiers = tiers;
+    this.assignedLod = new Int8Array(instances.length).fill(-1);
+    this.tierCounts = new Int32Array(tiers.length);
+    this.lastCamX = Infinity;
+    this.lastCamY = Infinity;
+    this.lastCamZ = Infinity;
+    this.refresh(true);
+  }
+
+  override onLateUpdate(): void {
+    this.refresh(false);
+  }
+
+  refresh(force: boolean): void {
+    const camera = this.camera;
+    if (!camera || camera.destroyed || camera.entity.destroyed || this.tiers.length === 0) return;
+    const camPos = camera.entity.transform.worldPosition;
+    if (!force) {
+      const dx = camPos.x - this.lastCamX;
+      const dy = camPos.y - this.lastCamY;
+      const dz = camPos.z - this.lastCamZ;
+      if (dx * dx + dy * dy + dz * dz < DESERT_SHRUB_CAMERA_MOVE_EPSILON_SQ) return;
+    }
+    this.lastCamX = camPos.x;
+    this.lastCamY = camPos.y;
+    this.lastCamZ = camPos.z;
+
+    const maxTier = this.tiers.length - 1;
+    let changed = force;
+    for (let i = 0; i < this.instances.length; i++) {
+      const inst = this.instances[i];
+      const dist = Math.hypot(inst.worldX - camPos.x, inst.worldY - camPos.y, inst.worldZ - camPos.z);
+      const next = resolveDesertShrubLodTier(dist, this.assignedLod[i], maxTier);
+      if (next !== this.assignedLod[i]) {
+        this.assignedLod[i] = next;
+        changed = true;
+      }
+    }
+    if (!changed) return;
+
+    this.tierCounts.fill(0);
+    for (let i = 0; i < this.instances.length; i++) {
+      const tierIndex = this.assignedLod[i];
+      const slotIndex = this.tierCounts[tierIndex]++;
+      const inst = this.instances[i];
+      const tierParts = this.tiers[tierIndex];
+      for (let p = 0; p < tierParts.length; p++) {
+        const part = tierParts[p];
+        const offset = slotIndex * part.view.recordFloats;
+        const rawVariant = inst.explicitVariant ?? Math.floor(inst.variantRandom * part.colors.length);
+        const color = part.colors[Math.abs(Math.trunc(rawVariant)) % part.colors.length];
+        part.view.staging.set(inst.transform, offset);
+        part.view.staging.set([color[0], color[1], color[2], 1], offset + 12);
+      }
+    }
+
+    for (let t = 0; t < this.tiers.length; t++) {
+      const count = this.tierCounts[t];
+      const tierParts = this.tiers[t];
+      for (let p = 0; p < tierParts.length; p++) {
+        const part = tierParts[p];
+        uploadTreeAssemblyInstances(part.view, count);
+        part.entity.isActive = count > 0;
+      }
+    }
+  }
+}
+
+function compileProductionGeometry(
+  kind: Exclude<TemplateProceduralPlantKind, "dead-wood">,
+  resources: TemplateProceduralPlantResources
+): CompiledProductionPlantGeometry {
+  if (kind === "desert-shrub") {
+    const bushAsset =
+      resources.bushAsset ?? (decodedBushAsset ??= decodePlantParameters<ProceduralPlantAsset>(bushStructureJson));
+    return compileDesertShrubLods(bushAsset)[0]!;
   }
 
   if (kind === "pastel-flower" || kind === "meadow-flower") {
@@ -701,7 +877,8 @@ export function mountTemplateProceduralPlants(
   seed: number,
   vegetationTemplate?: Material,
   rockGround?: (x: number, z: number) => number | undefined,
-  plantResources?: TemplateProceduralPlantResources
+  plantResources?: TemplateProceduralPlantResources,
+  camera?: Camera
 ): () => void {
   let disposed = false;
   const disposals: Array<() => void> = [];
@@ -810,20 +987,16 @@ export function mountTemplateProceduralPlants(
     }
 
     if (!plantResources) continue;
-    const { geometry, floor, sourceHeight, windHeight, leafSlots } = compileProductionGeometry(kind, plantResources);
+    const desertShrubLods =
+      kind === "desert-shrub" && camera
+        ? compileDesertShrubLods(
+            plantResources.bushAsset ??
+              (decodedBushAsset ??= decodePlantParameters<ProceduralPlantAsset>(bushStructureJson))
+          )
+        : undefined;
+    const primary = desertShrubLods?.[0] ?? compileProductionGeometry(kind, plantResources);
+    const { floor, sourceHeight, windHeight, leafSlots } = primary;
     const windParams = PROCEDURAL_WIND_PARAMS[kind];
-    const meshes = uploadProceduralPlantGeometry(root.engine, geometry);
-    disposals.push(() => meshes.destroy());
-    for (const { mesh, materialId } of meshes.parts) {
-      const data = geometry.find((item) => item.materialId === materialId)!.mesh;
-      let radius = 0;
-      if (data.leafFrames) {
-        data.positions.forEach((p, idx) => {
-          radius = Math.max(radius, Math.hypot(...p.map((v, axis) => v - data.leafFrames![idx][axis])));
-        });
-      }
-      expandProceduralTreeWindBounds(mesh, radius);
-    }
     const slotConfigs = SLOT_TEXTURES[kind] ?? {};
     const materials = Object.fromEntries(
       Object.keys(PROCEDURAL_PALETTE[kind]).map((slot) => {
@@ -881,6 +1054,66 @@ export function mountTemplateProceduralPlants(
       return [localX, base, localZ, 1, 0, Math.sin(yaw / 2), 0, Math.cos(yaw / 2), scaleXZ, scaleY, scaleXZ, 1];
     });
     const palette = PROCEDURAL_PALETTE[kind];
+
+    const uploadWithWindBounds = (geometry: readonly PlantPartMesh[]) => {
+      const meshes = uploadProceduralPlantGeometry(root.engine, geometry);
+      disposals.push(() => meshes.destroy());
+      for (const { mesh, materialId } of meshes.parts) {
+        const data = geometry.find((item) => item.materialId === materialId)!.mesh;
+        let radius = 0;
+        if (data.leafFrames) {
+          data.positions.forEach((p, idx) => {
+            radius = Math.max(radius, Math.hypot(...p.map((v, axis) => v - data.leafFrames![idx][axis])));
+          });
+        }
+        expandProceduralTreeWindBounds(mesh, radius);
+      }
+      return meshes;
+    };
+
+    if (desertShrubLods && desertShrubLods.length > 1 && camera) {
+      const ownerWorldPos = owner.transform.worldPosition;
+      const originX = Number.isFinite(ownerWorldPos.x) ? ownerWorldPos.x : anchor.x;
+      const originY = Number.isFinite(ownerWorldPos.y) ? ownerWorldPos.y : anchor.y;
+      const originZ = Number.isFinite(ownerWorldPos.z) ? ownerWorldPos.z : anchor.z;
+      const records: ShrubLodInstanceRecord[] = positioned.map(({ entry, localX, localY, localZ }, index) => ({
+        worldX: originX + localX,
+        worldY: originY + localY,
+        worldZ: originZ + localZ,
+        transform: transforms[index],
+        explicitVariant: entry.variant,
+        variantRandom: entry.variant === undefined ? settlementRandom(seed, `template-plant:${entry.id}`) : 0
+      }));
+      const tiers: ShrubLodTierPart[][] = [];
+      for (const lod of desertShrubLods) {
+        const meshes = uploadWithWindBounds(lod.geometry);
+        const tierParts: ShrubLodTierPart[] = [];
+        for (const part of meshes.parts) {
+          const colors = palette[part.materialId];
+          if (!colors) continue;
+          const name = `${kind}/lod${lod.lodIndex}/${part.materialId}`;
+          const storage = createTreeAssemblyInstanceStorage(root.engine, positioned.length);
+          disposals.push(() => storage.instanceBuffer.destroy(true));
+          const view = createTreeAssemblyInstancedMesh(root.engine, part.mesh, positioned.length, bounds, name, storage);
+          disposals.push(() => view.mesh.destroy());
+          const partEntity = owner.createChild(name);
+          const renderer = partEntity.addComponent(MeshRenderer);
+          renderer.mesh = view.mesh;
+          renderer.setMaterial(materials[part.materialId]);
+          renderer.castShadows = false;
+          renderer.receiveShadows = true;
+          renderer.shaderData.enableMacro("RENDERER_ASSET_ASSEMBLY_INSTANCE");
+          partEntity.isActive = false;
+          tierParts.push({ entity: partEntity, view, colors });
+        }
+        tiers.push(tierParts);
+      }
+      const controller = owner.addComponent(TemplateShrubLodController);
+      controller.configure(camera, records, tiers);
+      continue;
+    }
+
+    const meshes = uploadWithWindBounds(primary.geometry);
     for (const part of meshes.parts) {
       const name = `${kind}/${part.materialId}`;
       const colors = palette[part.materialId];
@@ -910,6 +1143,9 @@ export function mountTemplateProceduralPlants(
       renderer.shaderData.enableMacro("RENDERER_ASSET_ASSEMBLY_INSTANCE");
     }
   }
+  disposals.push(() => {
+    if (!owner.destroyed) owner.destroy();
+  });
   return () => {
     disposed = true;
     for (const destroy of disposals.reverse()) destroy();

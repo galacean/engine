@@ -142,6 +142,7 @@ export class WorldTemplateRuntime {
   private disposeProceduralPlants?: () => void;
   private readonly leafTemplate?: Material;
   private readonly plantResources?: TemplateProceduralPlantResources;
+  private readonly camera?: Camera;
   private destroyed = false;
   private readonly anchor: { x: number; y: number; z: number };
   private focusBounds: ResolvedWorldTemplateScene["focusBounds"];
@@ -272,6 +273,7 @@ export class WorldTemplateRuntime {
     this.focusBounds = scene.focusBounds;
     this.leafTemplate = leafTemplate;
     this.plantResources = plantResources;
+    this.camera = camera;
     this.root = parent.createChild(`World template: ${template.id}`);
     try {
       const [x, y, z] = scene.anchor;
@@ -411,7 +413,8 @@ export class WorldTemplateRuntime {
           plan.parameters.seed,
           leafTemplate,
           rockGround,
-          plantResources
+          plantResources,
+          camera
         );
       }
     } catch (error) {
@@ -461,7 +464,8 @@ export class WorldTemplateRuntime {
           plan.parameters.seed,
           this.leafTemplate,
           rockGround,
-          this.plantResources
+          this.plantResources,
+          this.camera
         );
       }
     };
