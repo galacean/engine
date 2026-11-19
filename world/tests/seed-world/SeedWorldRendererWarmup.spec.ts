@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { MeshRenderer, Renderer, SkinnedMeshRenderer, ShaderMacro, ShaderMacroCollection } from "@galacean/engine";
+import { describe, expect, it, vi } from "vitest";
+import { MeshRenderer, Renderer, Shader, SkinnedMeshRenderer, ShaderMacro, ShaderMacroCollection } from "@galacean/engine";
 import { collectSeedWorldRendererVariants } from "@galacean/engine-world-planning/world/SeedWorldShaderWarmup";
 
 function renderer(active: boolean, skinned = false, materials?: object[]) {
@@ -142,5 +142,40 @@ describe("renderer warmup scope", () => {
     const fromProxy = collect([proxy]).filter((v) => v.shader === "Masonry/GlobalProxy");
     expect(fromProxy.length).toBeGreaterThan(0);
     expect(fromProxy.every((v) => v.macros.every((m) => m.n !== "RENDERER_MASONRY_DITHER"))).toBe(true);
+  });
+
+  it("precompiles Masonry/GlobalProxy and Masonry/GlobalProxyShadowOnly symmetrically for shadow casters", () => {
+    const fullShader = {
+      name: "Masonry/GlobalProxy",
+      destroyed: false,
+      subShaders: [{ passes: [{ getTagValue: () => "ShadowCaster" }, { getTagValue: () => "Forward" }] }]
+    };
+    const shadowOnlyShader = {
+      name: "Masonry/GlobalProxyShadowOnly",
+      destroyed: false,
+      subShaders: [{ passes: [{ getTagValue: () => "ShadowCaster" }] }]
+    };
+    const spy = vi.spyOn(Shader, "find").mockImplementation((name) => {
+      if (name === "Masonry/GlobalProxy") return fullShader as unknown as Shader;
+      if (name === "Masonry/GlobalProxyShadowOnly") return shadowOnlyShader as unknown as Shader;
+      return null!;
+    });
+    try {
+      const lod2Proxy = renderer(true, false, [
+        { destroyed: false, shader: fullShader, shaderData: { _macroCollection: new ShaderMacroCollection() } }
+      ]);
+      const fromLod2 = collect([lod2Proxy]);
+      expect(fromLod2.some((v) => v.shader === "Masonry/GlobalProxy")).toBe(true);
+      expect(fromLod2.some((v) => v.shader === "Masonry/GlobalProxyShadowOnly")).toBe(true);
+
+      const lod1ShadowOnly = renderer(true, false, [
+        { destroyed: false, shader: shadowOnlyShader, shaderData: { _macroCollection: new ShaderMacroCollection() } }
+      ]);
+      const fromLod1 = collect([lod1ShadowOnly]);
+      expect(fromLod1.some((v) => v.shader === "Masonry/GlobalProxyShadowOnly")).toBe(true);
+      expect(fromLod1.some((v) => v.shader === "Masonry/GlobalProxy")).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

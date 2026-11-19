@@ -475,6 +475,31 @@ export function collectSeedWorldRendererVariants(
           renderToTexture,
           material
         );
+        // BuildingGlobalProxy swaps between Masonry/GlobalProxy and Masonry/GlobalProxyShadowOnly
+        // when cells transition between LOD2 and LOD1/LOD0; precompile both directions symmetrically.
+        const companionShaderName =
+          material.shader.name === "Masonry/GlobalProxy" && sourceRenderer.castShadows
+            ? "Masonry/GlobalProxyShadowOnly"
+            : material.shader.name === "Masonry/GlobalProxyShadowOnly"
+              ? "Masonry/GlobalProxy"
+              : undefined;
+        if (companionShaderName) {
+          const companionShader = Shader.find(companionShaderName);
+          if (companionShader && !companionShader.destroyed) {
+            const companionKey = `${companionShader.name}/${sourceRenderer.castShadows}/${contributionKey}?${shaderMacroCollectionKey(compileMacros)}`;
+            if (!collectedShaderMacroSets.has(companionKey)) {
+              collectedShaderMacroSets.add(companionKey);
+              appendShaderVariants(
+                companionShader,
+                compileMacros,
+                variants,
+                sourceRenderer.castShadows,
+                renderToTexture,
+                material
+              );
+            }
+          }
+        }
       }
     }
   }

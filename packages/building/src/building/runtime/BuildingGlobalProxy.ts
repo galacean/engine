@@ -22,6 +22,8 @@ import {
   type Scene
 } from "@galacean/engine";
 import globalProxyShaderSource from "./MasonryGlobalProxy.shader?raw";
+import globalProxyShadowOnlyShaderSource from "./MasonryGlobalProxyShadowOnly.shader?raw";
+import globalProxyShadowCasterGlsl from "./MasonryGlobalProxyShadowCaster.glsl?raw";
 import lodDither from "./MasonryLodDither.glsl?raw";
 import { registerConstructionSceneLighting } from "./ConstructionSceneLighting";
 import { constructionPlasterGLSL } from "./ConstructionPlasterShader";
@@ -49,6 +51,7 @@ import {
 } from "./BuildingFarProxy";
 
 const MAX_SLOTS_PER_BUCKET = 64;
+const PROXY_CELL_SIZE_METRES = 64;
 const BOX_INST_STRIDE_BYTES = 76;
 const STRUCT_GEOM_STRIDE_BYTES = 32;
 const STRUCT_META_STRIDE_BYTES = 4;
@@ -178,15 +181,36 @@ const STRUCT_ELEMENTS: VertexElement[] = [
   new VertexElement("TEXCOORD_1", 0, VertexElementFormat.Float, 2)
 ];
 
-function getGlobalProxyShader(): Shader {
+function ensureGlobalProxyIncludes(): void {
   registerConstructionSceneLighting();
+  if (!ShaderFactory.includeMap["Masonry/GlobalProxyShadowCaster.glsl"]) {
+    ShaderFactory.registerInclude("Masonry/GlobalProxyShadowCaster.glsl", globalProxyShadowCasterGlsl);
+  }
   if (!ShaderFactory.includeMap["Masonry/LodDither.glsl"]) {
     ShaderFactory.registerInclude("Masonry/LodDither.glsl", lodDither);
   }
   if (!ShaderFactory.includeMap["Masonry/Plaster.glsl"]) {
     ShaderFactory.registerInclude("Masonry/Plaster.glsl", constructionPlasterGLSL);
   }
+}
+
+function getGlobalProxyShader(): Shader {
+  ensureGlobalProxyIncludes();
   return Shader.find("Masonry/GlobalProxy") ?? Shader.create(globalProxyShaderSource, ShaderLanguage.GLSLES300);
+}
+
+function getGlobalProxyShadowOnlyShader(): Shader {
+  ensureGlobalProxyIncludes();
+  return (
+    Shader.find("Masonry/GlobalProxyShadowOnly") ??
+    Shader.create(globalProxyShadowOnlyShaderSource, ShaderLanguage.GLSLES300)
+  );
+}
+
+function spatialCellKey(worldMatrixElements: ArrayLike<number>): string {
+  const cx = Math.floor((worldMatrixElements[12] ?? 0) / PROXY_CELL_SIZE_METRES);
+  const cz = Math.floor((worldMatrixElements[14] ?? 0) / PROXY_CELL_SIZE_METRES);
+  return `${cx}:${cz}`;
 }
 
 /** Check if a 24-vertex, 36-index local chunk is a strict axis-aligned box whose corners sit on [min, max]. */
@@ -269,7 +293,7 @@ interface StoredChunkMeta {
 
 interface SlotRecord {
   id: number;
-  bucketIndex: number;
+  bucket: BucketRenderState;
   localSlot: number;
   root: Entity;
   frame: Entity;
@@ -294,18 +318,24 @@ interface StructChunkRender {
   colorBuf: Buffer;
   metaBuf: Buffer;
   idxBuf: Buffer;
+  castsShadow: boolean;
   pickEntries: Array<{ frame: Entity; id: string }>;
 }
 
 interface BucketRenderState {
+  id: number;
+  cellKey: string;
   slots: SlotRecord[];
   statesUniform: Float32Array;
   boxMat: Material;
+  boxShadowOnlyMat: Material;
   structMat: Material;
+  structShadowOnlyMat: Material;
   boxEntity: Entity;
   boxRenderer: MeshRenderer;
   boxMesh?: BufferMesh;
   boxInstanceBuf?: Buffer;
+  boxHasShadowCasters: boolean;
   boxPickEntries: Array<{ frame: Entity; id: string }>;
   structChunks: StructChunkRender[];
   dirty: boolean;
@@ -338,10 +368,12 @@ export class BuildingGlobalProxy {
   readonly root: Entity;
   private readonly engine: Engine;
   private readonly shader: Shader;
+  private readonly shadowOnlyShader: Shader;
   private readonly unitBox: ReturnType<typeof createUnitBoxMeshGeometry>;
   private readonly buckets: BucketRenderState[] = [];
   private readonly slotsById = new Map<number, SlotRecord>();
   private nextSlotId = 1;
+  private nextBucketId = 0;
   private flushScheduled = false;
   destroyed = false;
 
@@ -351,20 +383,28 @@ export class BuildingGlobalProxy {
     const sync = this.root.addComponent(GlobalProxyFlushScript);
     sync.owner = this;
     this.shader = getGlobalProxyShader();
+    this.shadowOnlyShader = getGlobalProxyShadowOnlyShader();
     this.unitBox = createUnitBoxMeshGeometry(this.engine);
   }
 
-  private createBucket(): BucketRenderState {
-    const idx = this.buckets.length;
+  private createBucket(cellKey: string): BucketRenderState {
+    const idx = this.nextBucketId++;
     const statesUniform = new Float32Array(MAX_SLOTS_PER_BUCKET * 4);
     const boxMat = new Material(this.engine, this.shader);
     boxMat.shaderData.enableMacro("GLOBAL_PROXY_INSTANCED");
     boxMat.shaderData.setFloat("material_WorldPickDepthCompare", CompareFunction.Less);
     boxMat.shaderData.setFloatArray("material_ProxyState", statesUniform);
 
+    const boxShadowOnlyMat = new Material(this.engine, this.shadowOnlyShader);
+    boxShadowOnlyMat.shaderData.enableMacro("GLOBAL_PROXY_INSTANCED");
+    boxShadowOnlyMat.shaderData.setFloatArray("material_ProxyState", statesUniform);
+
     const structMat = new Material(this.engine, this.shader);
     structMat.shaderData.setFloat("material_WorldPickDepthCompare", CompareFunction.Less);
     structMat.shaderData.setFloatArray("material_ProxyState", statesUniform);
+
+    const structShadowOnlyMat = new Material(this.engine, this.shadowOnlyShader);
+    structShadowOnlyMat.shaderData.setFloatArray("material_ProxyState", statesUniform);
 
     const boxEntity = this.root.createChild(`GlobalProxyBoxes_${idx}`);
     boxEntity.isActive = false;
@@ -376,18 +416,40 @@ export class BuildingGlobalProxy {
     boxRenderer.receiveShadows = true;
 
     const bucket: BucketRenderState = {
+      id: idx,
+      cellKey,
       slots: [],
       statesUniform,
       boxMat,
+      boxShadowOnlyMat,
       structMat,
+      structShadowOnlyMat,
       boxEntity,
       boxRenderer,
+      boxHasShadowCasters: false,
       boxPickEntries: [],
       structChunks: [],
       dirty: true
     };
     this.buckets.push(bucket);
     return bucket;
+  }
+
+  private destroyBucket(bucket: BucketRenderState): void {
+    this.disposeBucketGeometry(bucket);
+    bucket.boxMat.destroy();
+    bucket.boxShadowOnlyMat.destroy();
+    bucket.structMat.destroy();
+    bucket.structShadowOnlyMat.destroy();
+    if (!bucket.boxEntity.destroyed) bucket.boxEntity.destroy();
+    const idx = this.buckets.indexOf(bucket);
+    if (idx !== -1) this.buckets.splice(idx, 1);
+  }
+
+  private findOrCreateBucket(cellKey: string): BucketRenderState {
+    let targetBucket = this.buckets.find((b) => b.cellKey === cellKey && b.slots.length < MAX_SLOTS_PER_BUCKET);
+    if (!targetBucket) targetBucket = this.createBucket(cellKey);
+    return targetBucket;
   }
 
   private scheduleFlush(): void {
@@ -400,8 +462,8 @@ export class BuildingGlobalProxy {
   }
 
   register(input: GlobalProxyRegistrationInput): GlobalProxySlotHandle {
-    let targetBucket = this.buckets.find((b) => b.slots.length < MAX_SLOTS_PER_BUCKET);
-    if (!targetBucket) targetBucket = this.createBucket();
+    const initialCellKey = spatialCellKey(input.frame.transform.worldMatrix.elements);
+    const targetBucket = this.findOrCreateBucket(initialCellKey);
 
     const compactParts: ConstructionPreviewPart[] = [];
     for (const rawPart of input.parts) {
@@ -427,7 +489,7 @@ export class BuildingGlobalProxy {
     const localSlot = targetBucket.slots.length;
     const record: SlotRecord = {
       id,
-      bucketIndex: this.buckets.indexOf(targetBucket),
+      bucket: targetBucket,
       localSlot,
       root: input.root,
       frame: input.frame,
@@ -449,38 +511,27 @@ export class BuildingGlobalProxy {
 
     return {
       updateState: (farVisible, shadowVisible, fade, lodDebug) => {
-        const b = this.buckets[record.bucketIndex];
-        if (!b || this.destroyed) return;
+        if (this.destroyed || !this.slotsById.has(id)) return;
         record.farVisible = farVisible;
         record.shadowVisible = shadowVisible;
         record.fade = fade;
         record.lodDebug = lodDebug;
-        this.syncSlotUniform(b, record);
-        // Check if world matrix moved
-        const wm = record.frame.transform.worldMatrix.elements;
-        let moved = false;
-        for (let k = 0; k < 16; k++) {
-          if (wm[k] !== record.lastWorldMatrix[k]) {
-            moved = true;
-            record.lastWorldMatrix[k] = wm[k]!;
-          }
-        }
-        if (moved) {
-          b.dirty = true;
+        this.syncSlotUniform(record.bucket, record);
+        if (this.reconcileSlotTransform(record)) {
           this.scheduleFlush();
+        } else {
+          this.syncBucketVisibility(record.bucket);
         }
       },
       refreshColors: () => {
-        const b = this.buckets[record.bucketIndex];
-        if (b && !this.destroyed) {
-          b.dirty = true;
+        if (!this.destroyed && this.slotsById.has(id)) {
+          record.bucket.dirty = true;
           this.scheduleFlush();
         }
       },
       markTopologyDirty: () => {
-        const b = this.buckets[record.bucketIndex];
-        if (b && !this.destroyed) {
-          b.dirty = true;
+        if (!this.destroyed && this.slotsById.has(id)) {
+          record.bucket.dirty = true;
           this.scheduleFlush();
         }
       },
@@ -490,26 +541,37 @@ export class BuildingGlobalProxy {
     };
   }
 
+  private removeSlotFromBucket(b: BucketRenderState, rec: SlotRecord): void {
+    const idx = b.slots.indexOf(rec);
+    if (idx === -1) return;
+    b.slots.splice(idx, 1);
+    if (b.slots.length === 0) {
+      this.destroyBucket(b);
+      return;
+    }
+    for (let i = 0; i < b.slots.length; i++) {
+      const s = b.slots[i]!;
+      s.localSlot = i;
+      this.syncSlotUniform(b, s);
+    }
+    const clearOff = b.slots.length * 4;
+    b.statesUniform[clearOff] = 0;
+    b.statesUniform[clearOff + 1] = 0;
+    b.statesUniform[clearOff + 2] = 0;
+    b.statesUniform[clearOff + 3] = 0;
+    this.syncBucketVisibility(b);
+    b.dirty = true;
+  }
+
   private unregister(id: number): void {
     const rec = this.slotsById.get(id);
     if (!rec) return;
     this.slotsById.delete(id);
-    const b = this.buckets[rec.bucketIndex];
-    if (!b) return;
-    const idx = b.slots.indexOf(rec);
-    if (idx !== -1) {
-      b.slots.splice(idx, 1);
-      // Re-index local slots
-      for (let i = 0; i < b.slots.length; i++) {
-        const s = b.slots[i]!;
-        s.localSlot = i;
-        this.syncSlotUniform(b, s);
-      }
-      b.dirty = true;
-      this.scheduleFlush();
-    }
+    this.removeSlotFromBucket(rec.bucket, rec);
     if (this.slotsById.size === 0 && !this.destroyed) {
       this.destroy();
+    } else if (!this.destroyed) {
+      this.scheduleFlush();
     }
   }
 
@@ -522,15 +584,82 @@ export class BuildingGlobalProxy {
     bucket.statesUniform[off + 3] = s.lodDebug ? 1 : 0;
   }
 
+  private syncBucketVisibility(bucket: BucketRenderState): void {
+    let anyFar = false;
+    let anyShadow = false;
+    for (let i = 0; i < bucket.slots.length; i++) {
+      const off = i * 4;
+      if (bucket.statesUniform[off]! > 0.5) anyFar = true;
+      if (bucket.statesUniform[off + 1]! > 0.5) anyShadow = true;
+    }
+
+    if (bucket.boxMesh) {
+      const needBox = anyFar || (anyShadow && bucket.boxHasShadowCasters);
+      bucket.boxRenderer.enabled = needBox;
+      bucket.boxRenderer.castShadows = anyShadow && bucket.boxHasShadowCasters;
+      const targetBoxMat = anyFar ? bucket.boxMat : bucket.boxShadowOnlyMat;
+      if (bucket.boxRenderer.getMaterial() !== targetBoxMat) {
+        bucket.boxRenderer.setMaterial(targetBoxMat);
+      }
+    }
+
+    for (let i = 0; i < bucket.structChunks.length; i++) {
+      const c = bucket.structChunks[i]!;
+      const needChunk = anyFar || (anyShadow && c.castsShadow);
+      c.renderer.enabled = needChunk;
+      c.renderer.castShadows = anyShadow && c.castsShadow;
+      const targetMat = anyFar ? bucket.structMat : bucket.structShadowOnlyMat;
+      if (c.renderer.getMaterial() !== targetMat) {
+        c.renderer.setMaterial(targetMat);
+      }
+    }
+  }
+
+  private reconcileSlotTransform(record: SlotRecord): boolean {
+    if (record.frame.destroyed) return false;
+    const wm = record.frame.transform.worldMatrix.elements;
+    let moved = false;
+    for (let k = 0; k < 16; k++) {
+      if (wm[k] !== record.lastWorldMatrix[k]) {
+        moved = true;
+        record.lastWorldMatrix[k] = wm[k]!;
+      }
+    }
+    const nextCellKey = spatialCellKey(wm);
+    const currentBucket = record.bucket;
+    if (nextCellKey !== currentBucket.cellKey) {
+      this.removeSlotFromBucket(currentBucket, record);
+      const nextBucket = this.findOrCreateBucket(nextCellKey);
+      record.bucket = nextBucket;
+      record.localSlot = nextBucket.slots.length;
+      nextBucket.slots.push(record);
+      this.syncSlotUniform(nextBucket, record);
+      this.syncBucketVisibility(nextBucket);
+      nextBucket.dirty = true;
+      return true;
+    }
+    if (moved) {
+      currentBucket.dirty = true;
+      return true;
+    }
+    return false;
+  }
+
   flushIfDirty(): void {
     if (this.destroyed) return;
+    // Reconcile spatial bucket membership before any rebuild so transform moves never lock a slot in a stale cell.
+    for (const slot of this.slotsById.values()) {
+      this.reconcileSlotTransform(slot);
+    }
     for (const bucket of this.buckets) {
       for (const s of bucket.slots) {
         this.syncSlotUniform(bucket, s);
       }
-      if (!bucket.dirty) continue;
-      bucket.dirty = false;
-      this.rebuildBucket(bucket);
+      if (bucket.dirty) {
+        bucket.dirty = false;
+        this.rebuildBucket(bucket);
+      }
+      this.syncBucketVisibility(bucket);
     }
   }
 
@@ -855,27 +984,44 @@ export class BuildingGlobalProxy {
       mesh.bounds = new BoundingBox(new Vector3(minX, minY, minZ), new Vector3(maxX, maxY, maxZ));
       bucket.boxInstanceBuf = instBuf;
       bucket.boxMesh = mesh;
+      bucket.boxHasShadowCasters = boxItems.some((it) => it.castShadow > 0);
+      bucket.boxRenderer.castShadows = bucket.boxHasShadowCasters;
       bucket.boxRenderer.mesh = mesh;
       bucket.boxEntity.isActive = true;
     } else {
+      bucket.boxHasShadowCasters = false;
       bucket.boxEntity.isActive = false;
     }
 
-    // 2. Build Merged Structural Meshes (chunked <= 65535 verts so indices remain 16-bit Uint16!)
+    // 2. Build Merged Structural Meshes split by shadow-casting vs non-shadow (plaster/decoration),
+    // chunked <= 65535 verts so indices remain 16-bit Uint16.
     if (totalStructVerts > 0 && totalStructIndices > 0) {
-      const partGroups: Array<{ parts: StructBuildPart[]; verts: number; indices: number }> = [];
-      let curGroup = { parts: [] as StructBuildPart[], verts: 0, indices: 0 };
+      const shadowParts: StructBuildPart[] = [];
+      const noShadowParts: StructBuildPart[] = [];
       for (const sp of structParts) {
-        const cnt = sp.positions.length / 3;
-        if (curGroup.parts.length > 0 && curGroup.verts + cnt > 0xffff) {
-          partGroups.push(curGroup);
-          curGroup = { parts: [], verts: 0, indices: 0 };
-        }
-        curGroup.parts.push(sp);
-        curGroup.verts += cnt;
-        curGroup.indices += sp.indices.length;
+        if (sp.castShadow > 0) shadowParts.push(sp);
+        else noShadowParts.push(sp);
       }
-      if (curGroup.parts.length > 0) partGroups.push(curGroup);
+
+      const partGroups: Array<{ parts: StructBuildPart[]; verts: number; indices: number; castsShadow: boolean }> = [];
+      for (const [partsList, castsShadow] of [
+        [shadowParts, true],
+        [noShadowParts, false]
+      ] as const) {
+        if (!partsList.length) continue;
+        let curGroup = { parts: [] as StructBuildPart[], verts: 0, indices: 0, castsShadow };
+        for (const sp of partsList) {
+          const cnt = sp.positions.length / 3;
+          if (curGroup.parts.length > 0 && curGroup.verts + cnt > 0xffff) {
+            partGroups.push(curGroup);
+            curGroup = { parts: [], verts: 0, indices: 0, castsShadow };
+          }
+          curGroup.parts.push(sp);
+          curGroup.verts += cnt;
+          curGroup.indices += sp.indices.length;
+        }
+        if (curGroup.parts.length > 0) partGroups.push(curGroup);
+      }
 
       for (let gIdx = 0; gIdx < partGroups.length; gIdx++) {
         const grp = partGroups[gIdx]!;
@@ -938,7 +1084,6 @@ export class BuildingGlobalProxy {
             geomF32[fB] = wx;
             geomF32[fB + 1] = wy;
             geomF32[fB + 2] = wz;
-            expandBoxPoint(wx, wy, wz);
             if (wx < cMinX) cMinX = wx;
             if (wy < cMinY) cMinY = wy;
             if (wz < cMinZ) cMinZ = wz;
@@ -985,12 +1130,12 @@ export class BuildingGlobalProxy {
         mesh.addSubMesh(0, grp.indices, MeshTopology.Triangles);
         mesh.bounds = new BoundingBox(new Vector3(cMinX, cMinY, cMinZ), new Vector3(cMaxX, cMaxY, cMaxZ));
 
-        const entity = this.root.createChild(`GlobalProxyStruct_${this.buckets.indexOf(bucket)}_${gIdx}`);
+        const entity = this.root.createChild(`GlobalProxyStruct_${bucket.id}_${gIdx}`);
         const renderer = entity.addComponent(MeshRenderer);
         renderer.setMaterial(bucket.structMat);
         renderer.enableVertexColor = true;
         renderer.priority = -100;
-        renderer.castShadows = true;
+        renderer.castShadows = grp.castsShadow;
         renderer.receiveShadows = true;
         renderer.mesh = mesh;
 
@@ -1002,15 +1147,10 @@ export class BuildingGlobalProxy {
           colorBuf,
           metaBuf,
           idxBuf,
+          castsShadow: grp.castsShadow,
           pickEntries
         });
       }
-    }
-
-    // Also update boxMesh bounds to cover full world AABB safely
-    if (bucket.boxMesh && Number.isFinite(minX)) {
-      bucket.boxMesh.bounds.min.set(minX, minY, minZ);
-      bucket.boxMesh.bounds.max.set(maxX, maxY, maxZ);
     }
   }
 
@@ -1020,7 +1160,12 @@ export class BuildingGlobalProxy {
   ): void {
     this.flushIfDirty();
     for (const bucket of this.buckets) {
-      if (bucket.boxEntity.isActiveInHierarchy && bucket.boxRenderer.enabled && bucket.boxPickEntries.length) {
+      if (
+        bucket.boxEntity.isActiveInHierarchy &&
+        bucket.boxRenderer.enabled &&
+        bucket.boxRenderer.getMaterial() === bucket.boxMat &&
+        bucket.boxPickEntries.length
+      ) {
         const entries = bucket.boxPickEntries;
         visitor({
           renderer: bucket.boxRenderer,
@@ -1035,7 +1180,12 @@ export class BuildingGlobalProxy {
         });
       }
       for (const c of bucket.structChunks) {
-        if (c.entity.isActiveInHierarchy && c.renderer.enabled && c.pickEntries.length) {
+        if (
+          c.entity.isActiveInHierarchy &&
+          c.renderer.enabled &&
+          c.renderer.getMaterial() === bucket.structMat &&
+          c.pickEntries.length
+        ) {
           const entries = c.pickEntries;
           visitor({
             renderer: c.renderer,
@@ -1060,7 +1210,9 @@ export class BuildingGlobalProxy {
     for (const b of this.buckets) {
       this.disposeBucketGeometry(b);
       b.boxMat.destroy();
+      b.boxShadowOnlyMat.destroy();
       b.structMat.destroy();
+      b.structShadowOnlyMat.destroy();
     }
     this.buckets.length = 0;
     this.unitBox.vb.destroy(true);
