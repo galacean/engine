@@ -9,7 +9,7 @@ import {
   TextureFormat,
   WebGLEngine
 } from "@galacean/engine";
-import { afterAll, beforeAll, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, expect, it } from "vitest";
 
 let engine: WebGLEngine;
 let gl: WebGL2RenderingContext;
@@ -108,11 +108,9 @@ it("round trips R16_UNorm texels at an odd row width", () => {
 
 it("falls back to NEAREST GL filtering for 32-bit float formats when OES_texture_float_linear is unavailable", () => {
   const rhi = engine._hardwareRenderer;
-  const origCanIUse = rhi.canIUse.bind(rhi);
-  const spy = vi.spyOn(rhi, "canIUse").mockImplementation((cap) => {
-    if (cap === GLCapabilityType.textureFloatLinear) return false;
-    return origCanIUse(cap);
-  });
+  const capabilityList: Map<GLCapabilityType, boolean> = (rhi as any).capability.capabilityList;
+  const origFloatLinear = capabilityList.get(GLCapabilityType.textureFloatLinear)!;
+  capabilityList.set(GLCapabilityType.textureFloatLinear, false);
 
   try {
     for (const format of [TextureFormat.R32_SFloat, TextureFormat.R32G32_SFloat, TextureFormat.R32G32B32A32_SFloat]) {
@@ -132,13 +130,17 @@ it("falls back to NEAREST GL filtering for 32-bit float formats when OES_texture
       texture.destroy(true);
     }
   } finally {
-    spy.mockRestore();
+    capabilityList.set(GLCapabilityType.textureFloatLinear, origFloatLinear);
   }
 });
 
 it("throws on float readback and skips mipmap generation when color-renderable support is unavailable", () => {
   const rhi = engine._hardwareRenderer;
-  const spy = vi.spyOn(rhi, "supportsRenderTargetColorFormat").mockReturnValue(false);
+  const capabilityList: Map<GLCapabilityType, boolean> = (rhi as any).capability.capabilityList;
+  const origColorFloat = capabilityList.get(GLCapabilityType.colorBufferFloat)!;
+  const origColorHalfFloat = capabilityList.get(GLCapabilityType.colorBufferHalfFloat)!;
+  capabilityList.set(GLCapabilityType.colorBufferFloat, false);
+  capabilityList.set(GLCapabilityType.colorBufferHalfFloat, false);
 
   try {
     const out = new Float32Array(16);
@@ -158,7 +160,8 @@ it("throws on float readback and skips mipmap generation when color-renderable s
       texture.destroy(true);
     }
   } finally {
-    spy.mockRestore();
+    capabilityList.set(GLCapabilityType.colorBufferFloat, origColorFloat);
+    capabilityList.set(GLCapabilityType.colorBufferHalfFloat, origColorHalfFloat);
   }
 });
 

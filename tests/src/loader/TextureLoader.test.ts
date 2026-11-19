@@ -1,4 +1,4 @@
-import { AssetPromise, AssetType, Texture2D, TextureFormat, WebGLEngine } from "@galacean/engine";
+import { AssetPromise, AssetType, GLCapabilityType, Texture2D, TextureFormat, WebGLEngine } from "@galacean/engine";
 import "@galacean/engine-loader";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -86,14 +86,12 @@ describe("TextureLoader", () => {
 
     const resourceManager = engine.resourceManager;
     const rhi = engine._hardwareRenderer;
+    const capabilityList: Map<GLCapabilityType, boolean> = (rhi as any).capability.capabilityList;
+    const origColorHalfFloat = capabilityList.get(GLCapabilityType.colorBufferHalfFloat)!;
     const requestSpy = vi
       .spyOn(resourceManager as any, "_requestByRemoteUrl")
       .mockImplementation(() => AssetPromise.resolve(hdrBytes.buffer.slice(0)));
-    const origSupportsColor = rhi.supportsRenderTargetColorFormat.bind(rhi);
-    const colorSpy = vi.spyOn(rhi, "supportsRenderTargetColorFormat").mockImplementation((format) => {
-      if (format === TextureFormat.R16G16B16A16_SFloat) return false;
-      return origSupportsColor(format);
-    });
+    capabilityList.set(GLCapabilityType.colorBufferHalfFloat, false);
 
     try {
       const texture = await resourceManager.load<Texture2D>({
@@ -104,7 +102,7 @@ describe("TextureLoader", () => {
       expect(texture.mipmapCount).toBe(1);
       texture.destroy(true);
 
-      colorSpy.mockRestore();
+      capabilityList.set(GLCapabilityType.colorBufferHalfFloat, origColorHalfFloat);
       if (rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16_SFloat)) {
         const mipTexture = await resourceManager.load<Texture2D>({
           url: "textures/with-half-float-rt.hdr",
@@ -114,7 +112,7 @@ describe("TextureLoader", () => {
         mipTexture.destroy(true);
       }
     } finally {
-      colorSpy.mockRestore();
+      capabilityList.set(GLCapabilityType.colorBufferHalfFloat, origColorHalfFloat);
       requestSpy.mockRestore();
     }
   });

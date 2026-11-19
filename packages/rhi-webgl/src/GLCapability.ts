@@ -191,16 +191,16 @@ export class GLCapability {
       case TextureFormat.R32G32B32A32_UInt:
         return true;
       case TextureFormat.R16_UNorm:
-        return this._rhi.canIUse(GLCapabilityType.textureNorm16);
+        return this.canIUse(GLCapabilityType.textureNorm16);
       case TextureFormat.R16G16B16A16_SFloat:
-        return this._rhi.canIUse(GLCapabilityType.colorBufferHalfFloat);
+        return this.canIUse(GLCapabilityType.colorBufferHalfFloat);
       case TextureFormat.R16_SFloat:
       case TextureFormat.R16G16_SFloat:
       case TextureFormat.R32_SFloat:
       case TextureFormat.R32G32_SFloat:
       case TextureFormat.R32G32B32A32_SFloat:
       case TextureFormat.R11G11B10_UFloat:
-        return this._rhi.canIUse(GLCapabilityType.colorBufferFloat);
+        return this.canIUse(GLCapabilityType.colorBufferFloat);
       default:
         return false;
     }
@@ -213,7 +213,7 @@ export class GLCapability {
     if (isSRGBColorSpace && format === TextureFormat.R8G8B8_UNorm) {
       return false;
     }
-    return this._rhi.supportsRenderTargetColorFormat(format) && this._supportsLinearFiltering(format);
+    return this.supportsRenderTargetColorFormat(format) && this._supportsLinearFiltering(format);
   }
 
   /**
@@ -224,7 +224,7 @@ export class GLCapability {
       case TextureFormat.R32_SFloat:
       case TextureFormat.R32G32_SFloat:
       case TextureFormat.R32G32B32A32_SFloat:
-        return this._rhi.canIUse(GLCapabilityType.textureFloatLinear);
+        return this.canIUse(GLCapabilityType.textureFloatLinear);
       case TextureFormat.R32G32B32A32_UInt:
         return false;
       default:
