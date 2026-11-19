@@ -59,6 +59,8 @@ export class BloomEffect extends PostProcessEffect {
   /**
    * Controls the maximum number of iterations in the bloom mip pyramid.
    * @remarks Higher values produce a wider bloom radius at the cost of additional render passes.
+   * Clamped to the integer range `1`–`8` (non-integer values are rounded when applied).
+   * @defaultValue `6`
    */
   maxIterations = new PostProcessEffectFloatParameter(6, 1, 8, false);
 
