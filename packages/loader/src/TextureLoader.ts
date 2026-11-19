@@ -11,7 +11,6 @@ import {
   Texture2D,
   TextureFilterMode,
   TextureFormat,
-  TextureUtils,
   TextureWrapMode,
   resourceLoader
 } from "@galacean/engine-core";
@@ -63,12 +62,8 @@ class TextureLoader extends Loader<Texture> {
       }
       const { width, height, pixels } = HDRDecoder.decode(buffer);
       const { mipmap = true } = (item.params as Partial<TextureParams>) ?? {};
-      const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
-        engine._hardwareRenderer,
-        TextureFormat.R16G16B16A16_SFloat,
-        mipmap,
-        false
-      );
+      const generateMipmap =
+        mipmap && engine._hardwareRenderer.supportsGenerateMipmaps(TextureFormat.R16G16B16A16_SFloat, false);
 
       const texture = new Texture2D(engine, width, height, TextureFormat.R16G16B16A16_SFloat, generateMipmap, false);
       texture.setPixelBuffer(pixels);
@@ -88,12 +83,7 @@ class TextureLoader extends Loader<Texture> {
 
       const engine = resourceManager.engine;
       const { width, height } = img;
-      const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
-        engine._hardwareRenderer,
-        format,
-        mipmap,
-        isSRGBColorSpace
-      );
+      const generateMipmap = mipmap && engine._hardwareRenderer.supportsGenerateMipmaps(format, isSRGBColorSpace);
 
       const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
       texture.setImageSource(img);

@@ -7,7 +7,6 @@ import {
   TextureCubeFace,
   TextureFilterMode,
   TextureFormat,
-  TextureUtils,
   WebGLEngine
 } from "@galacean/engine";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
@@ -117,7 +116,7 @@ it("falls back to NEAREST GL filtering for 32-bit float formats when OES_texture
 
   try {
     for (const format of [TextureFormat.R32_SFloat, TextureFormat.R32G32_SFloat, TextureFormat.R32G32B32A32_SFloat]) {
-      expect(TextureUtils.supportGenerateMipmapsWithCorrection(rhi, format, true, false)).toBe(false);
+      expect(rhi.supportsGenerateMipmaps(format, false)).toBe(false);
       const texture = new Texture2D(engine, 4, 4, format, true, false);
       expect(texture.filterMode).toBe(TextureFilterMode.Bilinear);
       expect(gl.getTexParameter(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER)).toBe(gl.NEAREST);
@@ -151,7 +150,7 @@ it("throws on float readback and skips mipmap generation when color-renderable s
       TextureFormat.R32G32_SFloat,
       TextureFormat.R32G32B32A32_SFloat
     ]) {
-      expect(TextureUtils.supportGenerateMipmapsWithCorrection(rhi, format, true, false)).toBe(false);
+      expect(rhi.supportsGenerateMipmaps(format, false)).toBe(false);
       const texture = new Texture2D(engine, 2, 2, format, true, false);
       expect(() => texture.getPixelBuffer(out)).toThrow(/color-renderable/);
       texture.generateMipmaps();
@@ -165,13 +164,19 @@ it("throws on float readback and skips mipmap generation when color-renderable s
 
 it("skips mipmap generation without GL errors on non-filterable or non-renderable formats", () => {
   const rhi = engine._hardwareRenderer;
-  expect(TextureUtils.supportGenerateMipmapsWithCorrection(rhi, TextureFormat.R8G8B8A8_UNorm, true, true)).toBe(true);
+  expect(rhi.supportsGenerateMipmaps(TextureFormat.R8G8B8A8_UNorm, true)).toBe(true);
+  expect(rhi.supportsRenderTargetColorFormat(TextureFormat.BC1)).toBe(false);
+  expect(rhi.supportsRenderTargetColorFormat(TextureFormat.BC6H)).toBe(false);
+  expect(rhi.supportsRenderTargetColorFormat(TextureFormat.Depth24)).toBe(false);
+  expect(rhi.supportsRenderTargetColorFormat(TextureFormat.Stencil)).toBe(false);
+  expect(rhi.supportsGenerateMipmaps(TextureFormat.BC1, false)).toBe(false);
+  expect(rhi.supportsGenerateMipmaps(TextureFormat.BC6H, false)).toBe(false);
   for (const [format, isSRGB] of [
     [TextureFormat.R32G32B32A32_UInt, false],
     [TextureFormat.Depth24, false],
     [TextureFormat.R8G8B8_UNorm, true]
   ] as const) {
-    expect(TextureUtils.supportGenerateMipmapsWithCorrection(rhi, format, true, isSRGB)).toBe(false);
+    expect(rhi.supportsGenerateMipmaps(format, isSRGB)).toBe(false);
     const texture = new Texture2D(engine, 4, 4, format, true, isSRGB);
     texture.generateMipmaps();
     expect(gl.getError()).toBe(gl.NO_ERROR);

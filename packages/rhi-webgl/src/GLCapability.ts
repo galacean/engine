@@ -181,17 +181,54 @@ export class GLCapability {
    */
   supportsRenderTargetColorFormat(format: TextureFormat): boolean {
     switch (format) {
+      case TextureFormat.R8_UNorm:
+      case TextureFormat.R8G8_UNorm:
+      case TextureFormat.R8G8B8_UNorm:
+      case TextureFormat.R8G8B8A8_UNorm:
+      case TextureFormat.R4G4B4A4_UNorm:
+      case TextureFormat.R5G5B5A1_UNorm:
+      case TextureFormat.R5G6B5_UNorm:
+      case TextureFormat.R32G32B32A32_UInt:
+        return true;
+      case TextureFormat.R16_UNorm:
+        return this._rhi.canIUse(GLCapabilityType.textureNorm16);
       case TextureFormat.R16G16B16A16_SFloat:
-        return this.canIUse(GLCapabilityType.colorBufferHalfFloat);
+        return this._rhi.canIUse(GLCapabilityType.colorBufferHalfFloat);
       case TextureFormat.R16_SFloat:
       case TextureFormat.R16G16_SFloat:
       case TextureFormat.R32_SFloat:
       case TextureFormat.R32G32_SFloat:
       case TextureFormat.R32G32B32A32_SFloat:
       case TextureFormat.R11G11B10_UFloat:
-        return this.canIUse(GLCapabilityType.colorBufferFloat);
+        return this._rhi.canIUse(GLCapabilityType.colorBufferFloat);
       default:
-        return this.supportsTextureFormat(format);
+        return false;
+    }
+  }
+
+  /**
+   * Check whether the given texture format supports automatic mipmap generation.
+   */
+  supportsGenerateMipmaps(format: TextureFormat, isSRGBColorSpace: boolean): boolean {
+    if (isSRGBColorSpace && format === TextureFormat.R8G8B8_UNorm) {
+      return false;
+    }
+    return this._rhi.supportsRenderTargetColorFormat(format) && this._supportsLinearFiltering(format);
+  }
+
+  /**
+   * @internal
+   */
+  _supportsLinearFiltering(format: TextureFormat): boolean {
+    switch (format) {
+      case TextureFormat.R32_SFloat:
+      case TextureFormat.R32G32_SFloat:
+      case TextureFormat.R32G32B32A32_SFloat:
+        return this._rhi.canIUse(GLCapabilityType.textureFloatLinear);
+      case TextureFormat.R32G32B32A32_UInt:
+        return false;
+      default:
+        return true;
     }
   }
 

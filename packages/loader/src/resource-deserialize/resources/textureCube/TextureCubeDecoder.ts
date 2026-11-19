@@ -1,4 +1,4 @@
-import { AssetPromise, Engine, TextureCube, TextureCubeFace, TextureFormat, TextureUtils } from "@galacean/engine-core";
+import { AssetPromise, Engine, TextureCube, TextureCubeFace, TextureFormat } from "@galacean/engine-core";
 import { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
 import { HDRDecoder } from "../../../HDRDecoder";
@@ -28,12 +28,7 @@ class TextureCubeDecoder {
       const isHDR = facesData[0][0] === 0x23 && facesData[0][1] === 0x3f;
       const textureFormat = isHDR ? TextureFormat.R16G16B16A16_SFloat : format;
       const effectiveSRGB = isHDR ? false : isSRGBColorSpace;
-      const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
-        engine._hardwareRenderer,
-        textureFormat,
-        mipmap,
-        effectiveSRGB
-      );
+      const generateMipmap = mipmap && engine._hardwareRenderer.supportsGenerateMipmaps(textureFormat, effectiveSRGB);
       const texture =
         restoredTexture || new TextureCube(engine, faceSize, textureFormat, generateMipmap, effectiveSRGB);
       texture.filterMode = filterMode;

@@ -439,11 +439,7 @@ export class GLTexture implements IPlatformTexture {
     const target = this._target;
     const { _mipmap, format } = this._texture;
 
-    if (
-      value !== TextureFilterMode.Point &&
-      TextureUtils.isFloat32Format(format) &&
-      !this._rhi.canIUse(GLCapabilityType.textureFloatLinear)
-    ) {
+    if (value !== TextureFilterMode.Point && !this._rhi.capability._supportsLinearFiltering(format)) {
       value = TextureFilterMode.Point;
     }
 
@@ -545,8 +541,8 @@ export class GLTexture implements IPlatformTexture {
   generateMipmaps(): void {
     const texture = this._texture;
 
-    if (!TextureUtils.supportGenerateMipmaps(this._rhi, texture.format, texture.isSRGBColorSpace)) {
-      if (texture.isSRGBColorSpace && texture.format !== TextureFormat.R8G8B8A8_UNorm) {
+    if (!this._rhi.supportsGenerateMipmaps(texture.format, texture.isSRGBColorSpace)) {
+      if (texture.isSRGBColorSpace && texture.format === TextureFormat.R8G8B8_UNorm) {
         Logger.warn(
           "Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + R8G8B8A8_UNorm], you must generate mipmaps manually."
         );

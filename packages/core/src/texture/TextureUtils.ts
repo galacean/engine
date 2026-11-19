@@ -1,39 +1,9 @@
-import { GLCapabilityType } from "../base/Constant";
-import type { IHardwareRenderer } from "../renderingHardwareInterface";
 import { TextureFormat } from "./enums/TextureFormat";
 
 /**
  * @internal
  */
 export class TextureUtils {
-  /**
-   * Check if the texture config supports auto mipmap generation with real correction for mipmap and isSRGBColorSpace.
-   */
-  static supportGenerateMipmapsWithCorrection(
-    rhi: IHardwareRenderer,
-    format: TextureFormat,
-    mipmap: boolean,
-    isSRGBColorSpace: boolean
-  ): boolean {
-    if (!mipmap) {
-      return false;
-    }
-
-    if (isSRGBColorSpace && !TextureUtils.supportSRGB(format)) {
-      isSRGBColorSpace = false;
-    }
-
-    return TextureUtils.supportGenerateMipmaps(rhi, format, isSRGBColorSpace);
-  }
-
-  static isFloat32Format(format: TextureFormat): boolean {
-    return (
-      format === TextureFormat.R32_SFloat ||
-      format === TextureFormat.R32G32_SFloat ||
-      format === TextureFormat.R32G32B32A32_SFloat
-    );
-  }
-
   static isHDRFormat(format: TextureFormat): boolean {
     return (
       format === TextureFormat.R16G16B16A16_SFloat ||
@@ -62,29 +32,6 @@ export class TextureUtils {
       default:
         return false;
     }
-  }
-
-  static supportGenerateMipmaps(rhi: IHardwareRenderer, format: TextureFormat, isSRGBColorSpace: boolean): boolean {
-    // Auto-generating mipmaps for sRGB textures is only supported for R8G8B8A8_UNorm in WebGL2
-    if (isSRGBColorSpace && format !== TextureFormat.R8G8B8A8_UNorm) {
-      return false;
-    }
-
-    // WebGL2 generateMipmap requires the format to be both color-renderable and texture-filterable
-    if (
-      !rhi.supportsRenderTargetColorFormat(format) ||
-      format === TextureFormat.R32G32B32A32_UInt ||
-      format === TextureFormat.BC6H ||
-      (format >= TextureFormat.BC1 && format <= TextureFormat.Depth32Stencil8)
-    ) {
-      return false;
-    }
-
-    if (TextureUtils.isFloat32Format(format) && !rhi.canIUse(GLCapabilityType.textureFloatLinear)) {
-      return false;
-    }
-
-    return true;
   }
 
   static getTextureByteCount(
