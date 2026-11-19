@@ -8,6 +8,7 @@ import {
   Shader,
   ShaderFactory,
   ShaderMacro,
+  ShaderMacroCollection,
   ShaderPass,
   ShaderLanguage,
   ShaderProperty,
@@ -317,6 +318,50 @@ describe("Shader", () => {
         ShaderFactory.unregisterInclude(includePath);
         // @ts-expect-error -- clear request-derived include cache after registry cleanup
         shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
+      }
+    });
+    it("evaluates GLSL ES 3.00 predefined macros in ShaderPass", async function () {
+      const engine = await WebGLEngine.create({
+        canvas: document.createElement("canvas"),
+        shaderCompiler
+      });
+      const shader = Shader.create(`
+        Shader "User/GLSLPredefinedMacros" {
+          SubShader "Default" {
+            Pass "Default" {
+              struct a2v { vec3 POSITION; };
+              void vert(a2v v) {
+                #if defined(GL_ES) && GL_ES == 1 && defined(GL_FRAGMENT_PRECISION_HIGH) && GL_FRAGMENT_PRECISION_HIGH == 1 && __VERSION__ == 300
+                  gl_Position = vec4(v.POSITION, 1.0);
+                #else
+                  gl_Position = vec4(0.0);
+                #endif
+              }
+              void frag() {
+                #ifdef GL_FRAGMENT_PRECISION_HIGH
+                  gl_FragColor = vec4(1.0, 0.5, 0.25, 1.0);
+                #else
+                  gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+                #endif
+              }
+              VertexShader = vert;
+              FragmentShader = frag;
+            }
+          }
+        }
+      `);
+      try {
+        const pass = shader.subShaders[0].passes[0];
+        // @ts-expect-error -- verify generated source branches for GLSL ES 3.00 predefined macros
+        const compiled = pass._compileShaderSource(engine, new ShaderMacroCollection(), false);
+        expect(compiled.vertexSource).to.contain("vec4 ( v.POSITION , 1.0 )");
+        expect(compiled.vertexSource).to.not.contain("vec4 ( 0.0 )");
+        expect(compiled.fragmentSource).to.contain("vec4 ( 1.0 , 0.5 , 0.25 , 1.0 )");
+        expect(compiled.fragmentSource).to.not.contain("vec4 ( 0.0 , 0.0 , 0.0 , 1.0 )");
+        expect(shader.compileVariant(engine, [])).to.equal(true);
+      } finally {
+        shader.destroy(true);
+        engine.destroy();
       }
     });
   });
