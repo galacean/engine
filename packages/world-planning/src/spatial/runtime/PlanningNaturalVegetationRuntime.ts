@@ -10,6 +10,10 @@ import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
 } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+import {
+  createFarShadowRenderersProxy,
+  setFarShadowCascadeProxy
+} from "@galacean/engine-modify/rendering/FarShadowCascadeProxy";
 import { resolvePlanningNaturalPlantPick } from "./PlanningWorldPicking";
 import {
   landscapeGrassPaletteArea,
@@ -1021,12 +1025,16 @@ export class PlanningNaturalVegetationRuntime {
     }
     const pickBatches: SeedWorldArrayPickBatch[] = [];
     const pickId = resolvePlanningNaturalPlantPick(instance, tree);
+    const levelRenderers: MeshRenderer[][] = [];
     const lods = collapsedLevels.map(({ screenRelativeTransitionHeight, level, specimen }) => {
+      const currentLevelRenderers: MeshRenderer[] = [];
+      levelRenderers.push(currentLevelRenderers);
       const renderers = specimen.rendererBindings.map((binding, index) => {
         const { renderer: original, materialId } = binding;
         const name = `LOD${level}-${index}`,
           child = root.createChild(name),
           renderer = child.addComponent(MeshRenderer);
+        currentLevelRenderers.push(renderer);
         const local = new Matrix();
         Matrix.multiply(origin, original.entity.transform.worldMatrix, local);
         child.transform.localMatrix = local;
@@ -1106,6 +1114,15 @@ export class PlanningNaturalVegetationRuntime {
       });
       return { screenRelativeTransitionHeight, fadeTransitionWidth: 0, renderers };
     });
+    if ((tree || source.kind === "stone") && levelRenderers.length > 1) {
+      const lowestRenderers = levelRenderers[levelRenderers.length - 1]!;
+      if (lowestRenderers.length > 0) {
+        const farShadowProxy = createFarShadowRenderersProxy(lowestRenderers);
+        for (const groupRenderers of levelRenderers) {
+          for (const renderer of groupRenderers) setFarShadowCascadeProxy(renderer, farShadowProxy);
+        }
+      }
+    }
     const lod = new TerrainLodGroupRendererRuntime(
       root,
       this.camera,

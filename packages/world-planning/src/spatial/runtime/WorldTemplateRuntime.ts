@@ -45,6 +45,10 @@ import {
   type Material
 } from "@galacean/engine";
 import { TerrainScreenRelativeHeightRuntime } from "@galacean/engine-terrain/terrain/lod/TerrainScreenRelativeHeightRuntime";
+import {
+  createFarShadowRenderersProxy,
+  setFarShadowCascadeProxy
+} from "@galacean/engine-modify/rendering/FarShadowCascadeProxy";
 import { usesProjectPlantResources } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
 import {
   configureAssetAssemblyRendererInstance,
@@ -83,6 +87,7 @@ function modelBounds(entity: Entity): BoundingBox {
 class TemplateModelLods extends Script {
   private readonly groups: {
     models: Entity[];
+    levelRenderers: MeshRenderer[][];
     projection: TerrainScreenRelativeHeightRuntime;
     thresholds: readonly [number, number];
     active: number;
@@ -96,8 +101,18 @@ class TemplateModelLods extends Script {
       [(min.x + max.x) / 2, (min.y + max.y) / 2, (min.z + max.z) / 2],
       max.y - min.y
     );
-    const group = { models, thresholds, projection, active: 0 };
-    for (let i = 1; i < models.length; i++) models[i].isActive = false;
+    const levelRenderers = models.map((model) => model.getComponentsIncludeChildren(MeshRenderer, []));
+    const lowestRenderers = levelRenderers[levelRenderers.length - 1];
+    if (levelRenderers.length > 1 && lowestRenderers && lowestRenderers.length > 0) {
+      const farShadowProxy = createFarShadowRenderersProxy(lowestRenderers);
+      for (const renderers of levelRenderers) {
+        for (const renderer of renderers) setFarShadowCascadeProxy(renderer, farShadowProxy);
+      }
+    }
+    const group = { models, levelRenderers, thresholds, projection, active: 0 };
+    for (let i = 1; i < levelRenderers.length; i++) {
+      for (const renderer of levelRenderers[i]) renderer.enabled = false;
+    }
     this.groups.push(group);
     this.select(group);
   }
@@ -110,8 +125,8 @@ class TemplateModelLods extends Script {
     const height = group.projection.resolve();
     const next = height >= group.thresholds[0] ? 0 : height >= group.thresholds[1] ? 1 : 2;
     if (next === group.active) return;
-    group.models[group.active].isActive = false;
-    group.models[next].isActive = true;
+    for (const renderer of group.levelRenderers[group.active]) renderer.enabled = false;
+    for (const renderer of group.levelRenderers[next]) renderer.enabled = true;
     group.active = next;
   }
 }
@@ -188,10 +203,7 @@ export class WorldTemplateRuntime {
         })
       : Promise.resolve(undefined);
     const plantResourcesTask = hasProceduralPlants
-      ? preloadTemplateProceduralPlantResources(
-          parent.engine,
-          new Set(resolvedPlants!.map((plant) => plant.kind))
-        )
+      ? preloadTemplateProceduralPlantResources(parent.engine, new Set(resolvedPlants!.map((plant) => plant.kind)))
       : Promise.resolve(undefined);
     const petalTextureUrl = WORLD_TEMPLATE_ART[template.id].petals?.textureUrl;
     const petalTextureTask = petalTextureUrl

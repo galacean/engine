@@ -13,6 +13,7 @@
     "./*": "./src/*",
     "./index": "./src/index.ts",
     "./rendering/CameraDepthTexturePrePass": "./src/rendering/CameraDepthTexturePrePass.ts",
+    "./rendering/FarShadowCascadeProxy": "./src/rendering/FarShadowCascadeProxy.ts",
     "./rendering/LiquidGlassPostProcessPass": "./src/rendering/LiquidGlassPostProcessPass.ts",
     "./rendering/RestorableResources": "./src/rendering/RestorableResources.ts",
     "./rendering/SeedWorldPickBatch": "./src/rendering/SeedWorldPickBatch.ts",

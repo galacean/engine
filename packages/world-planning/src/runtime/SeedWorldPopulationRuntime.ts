@@ -5080,6 +5080,41 @@ export class SeedWorldTreeLodRenderer implements RenderViewCullingSource {
     const bounds = this._worldBoundsScratch;
     const stateOffset = instanceIndex * POPULATION_LOD_STATE_CAPACITY;
     const stateCount = cell.resource.treeLodStateCounts[instanceIndex]!;
+    if (
+      context.viewType === RenderViewType.ShadowCascade &&
+      context.shadowCascadeIndex >= 1 &&
+      recipe.lods.length > 1
+    ) {
+      if (stateCount === 0) return;
+      const lowestLodIndex = recipe.lods.length - 1;
+      const lod = recipe.lods[lowestLodIndex];
+      if (!lod) throw new RangeError(`Seed World tree runtime LOD ${lowestLodIndex} is unavailable`);
+      let trunkVisible = fullyContained;
+      let crownVisible = fullyContained;
+      if (!fullyContained) {
+        const boundsOffset =
+          (instanceIndex * TREE_LOD_BOUNDS_RECORDS + lowestLodIndex * TREE_PART_COUNT) * POPULATION_WORLD_BOUNDS_FLOATS;
+        bounds.min.set(boundsData[boundsOffset]!, boundsData[boundsOffset + 1]!, boundsData[boundsOffset + 2]!);
+        bounds.max.set(boundsData[boundsOffset + 3]!, boundsData[boundsOffset + 4]!, boundsData[boundsOffset + 5]!);
+        trunkVisible = context.isVisible(bounds);
+        const crownOffset = boundsOffset + POPULATION_WORLD_BOUNDS_FLOATS;
+        bounds.min.set(boundsData[crownOffset]!, boundsData[crownOffset + 1]!, boundsData[crownOffset + 2]!);
+        bounds.max.set(boundsData[crownOffset + 3]!, boundsData[crownOffset + 4]!, boundsData[crownOffset + 5]!);
+        crownVisible = context.isVisible(bounds);
+      }
+      if (!trunkVisible && !crownVisible) return;
+      const batch = lod.views[viewIndex]!;
+      const recordIndex = batch.count++;
+      if (recordIndex >= batch.capacity) {
+        throw new RangeError("Seed World procedural-tree visible prefix exceeds its recipe capacity");
+      }
+      if (trunkVisible) batch.trunkCount++;
+      if (crownVisible) batch.crownCount++;
+      lod.visible.cells[recordIndex] = cell;
+      lod.visible.stateOffsets[recordIndex] = stateOffset;
+      lod.visible.partMasks[recordIndex] = (trunkVisible ? 1 : 0) | (crownVisible ? 2 : 0);
+      return;
+    }
     for (let stateIndex = 0; stateIndex < stateCount; stateIndex++) {
       const lodIndex = cell.resource.treeLodStateIndices[stateOffset + stateIndex]!;
       const lod = recipe.lods[lodIndex];
@@ -5115,7 +5150,8 @@ export class SeedWorldTreeLodRenderer implements RenderViewCullingSource {
     batch: ProceduralTreeViewBatch,
     visible: ProceduralTreeVisibleInstances,
     revealActive: boolean,
-    captureIdentities: boolean
+    captureIdentities: boolean,
+    forceSolidFade = false
   ): void {
     // Overlapping draw ranges share each record: [trunk-only][both][crown-only]
     batch.instanceIds.length = captureIdentities ? batch.count : 0;
@@ -5140,7 +5176,7 @@ export class SeedWorldTreeLodRenderer implements RenderViewCullingSource {
       for (let floatIndex = 0; floatIndex < TREE_ASSEMBLY_INSTANCE_FLOATS; floatIndex++) {
         let next = cell.resource.treeInstanceData[staticOffset + floatIndex]!;
         if (floatIndex === 3) {
-          next = cell.resource.treeLodStateFades[stateOffset]!;
+          next = forceSolidFade ? 1 : cell.resource.treeLodStateFades[stateOffset]!;
         } else if (floatIndex === 13) {
           next = playback?.progress ?? 1;
         }
@@ -5176,7 +5212,13 @@ export class SeedWorldTreeLodRenderer implements RenderViewCullingSource {
       for (let lodIndex = 0; lodIndex < recipe.lods.length; lodIndex++) {
         const lod = recipe.lods[lodIndex]!;
         const batch = lod.views[viewIndex]!;
-        this._packTreeViewBatch(batch, lod.visible, revealActive, viewIndex === POPULATION_CAMERA_VIEW_INDEX);
+        this._packTreeViewBatch(
+          batch,
+          lod.visible,
+          revealActive,
+          viewIndex === POPULATION_CAMERA_VIEW_INDEX,
+          viewIndex >= 2
+        );
         publishProceduralTreeViewBatch(batch);
         if (viewIndex === POPULATION_CAMERA_VIEW_INDEX) {
           this._lodCounts[recipe.sourceLodIndices[lodIndex]!] += batch.count;

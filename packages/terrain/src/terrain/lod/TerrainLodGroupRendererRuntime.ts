@@ -291,6 +291,7 @@ export class TerrainLodGroupRendererRuntime {
 
   private _setRendererVisible(renderer: MeshRenderer, visible: boolean): void {
     if (renderer.enabled !== visible) renderer.enabled = visible;
+    if (!visible) this._setRendererFade(renderer, 1);
     const castsShadows = visible && (this._initialShadowCasters.get(renderer) ?? true);
     if (renderer.castShadows !== castsShadows) renderer.castShadows = castsShadows;
   }

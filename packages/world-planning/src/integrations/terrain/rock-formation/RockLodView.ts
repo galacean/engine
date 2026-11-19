@@ -8,6 +8,11 @@ import {
 } from "@galacean/engine-terrain/terrain/lod/TerrainLodGroupRuntime";
 import { TerrainScreenRelativeHeightRuntime } from "@galacean/engine-terrain/terrain/lod/TerrainScreenRelativeHeightRuntime";
 import { TREE_ASSEMBLY_LOD_CROSS_FADE_SECONDS } from "@galacean/engine-vegetation/asset-assembly/TreeAssemblyPlan";
+import {
+  createFarShadowMeshProxy,
+  setFarShadowCascadeProxy,
+  type FarShadowCascadeProxy
+} from "@galacean/engine-modify/rendering/FarShadowCascadeProxy";
 import { rockLodMeshes } from "./RockLodMeshes";
 
 const lodFadeProperty = ShaderProperty.getByName("renderer_LodFade");
@@ -27,6 +32,7 @@ interface RockLodEntry {
   readonly projection: TerrainScreenRelativeHeightRuntime;
   readonly meshes: readonly ModelMesh[];
   readonly lod: TerrainLodGroupInstance;
+  readonly farShadowProxy?: FarShadowCascadeProxy;
   screenHeight: number;
   /** Created on the first blend and then only toggled, so repeated LOD crossings do not churn components. */
   alternate?: MeshRenderer;
@@ -71,10 +77,14 @@ export class RockLodView extends Script {
     for (const mesh of alternates) mesh?._addReferCount(1);
     renderer.shaderData.enableMacro("RENDERER_LOD_DITHER");
     renderer.shaderData.setFloat(lodFadeProperty, 1);
+    const lowestMesh = far ?? middle ?? original;
+    const farShadowProxy = lowestMesh !== original ? createFarShadowMeshProxy(lowestMesh) : undefined;
+    if (farShadowProxy) setFarShadowCascadeProxy(renderer, farShadowProxy);
     const entry: RockLodEntry = {
       projection,
-      meshes: [original, middle ?? original, far ?? middle ?? original],
+      meshes: [original, middle ?? original, lowestMesh],
       lod: lodGroup.createInstance(),
+      farShadowProxy,
       screenHeight: 0,
       fading: false
     };
@@ -83,7 +93,11 @@ export class RockLodView extends Script {
     return () => {
       if (!this.entries.delete(renderer)) return;
       this.fading.delete(renderer);
-      entry.alternate?.destroy();
+      setFarShadowCascadeProxy(renderer, undefined);
+      if (entry.alternate) {
+        setFarShadowCascadeProxy(entry.alternate, undefined);
+        entry.alternate.destroy();
+      }
       for (const mesh of alternates) mesh?._addReferCount(-1);
     };
   }
@@ -133,6 +147,7 @@ export class RockLodView extends Script {
       if (!alternate) {
         alternate = entry.alternate = renderer.entity.addComponent(MeshRenderer);
         alternate.shaderData.enableMacro("RENDERER_LOD_DITHER");
+        if (entry.farShadowProxy) setFarShadowCascadeProxy(alternate, entry.farShadowProxy);
       }
       if (!entry.fading) {
         // Material and shadow flags may change between blends; refresh them once per blend
