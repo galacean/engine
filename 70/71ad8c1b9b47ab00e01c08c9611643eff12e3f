@@ -1,0 +1,165 @@
+packages/farming/src/farming/presentation/FarmingWorldPresentation.ts
+  s_1dd49634d7a94f::t_fb582099103d97 37,159-164,770-773,787
+  s_1dd49634d7a94f::t_fb080e031f9156 767-768,774-781,788-790,792
+  s_1dd49634d7a94f::t_3c873fcb36582b 14-15,17,480,769,954
+  s_1dd49634d7a94f::t_2d9380adfd50f8 791,793-809
+  s_1dd49634d7a94f::t_5d1a5ee5102eb3 481
+  s_1dd49634d7a94f::t_4af58eeeeca62c 782
+  s_1dd49634d7a94f::t_62580739854fd2 810
+  s_1dd49634d7a94f::t_26d220e0e516fa 955
+world/tests/seed-world/PlanningFarmCheckpoint.spec.ts
+  s_1dd49634d7a94f::t_24b3e680cd9de6 86
+  s_1dd49634d7a94f::t_215065c266616b 744-745,804-807
+  s_1dd49634d7a94f::t_ba13eb3764727d 946
+  s_1dd49634d7a94f::t_b8b1ca07e977d1 963-964
+  s_1dd49634d7a94f::t_d20c7d9f6c1b11 11,13-15,17,72,101,138,144,213,220,226,232,270,411,425,465-467,548,556-557,665-668,935,937-945,960-962,965-968,981-982,984-987,990-1005,1009-1011,1015-1018,1021-1025,1029-1031,1034-1036,1041-1047,1054-1055,1081
+  s_1dd49634d7a94f::t_61fbb253507820 102-126,240-266,558-559
+  s_1dd49634d7a94f::t_95079aab59f4ea 983
+  s_1dd49634d7a94f::t_fbeb625337c376 483-485,527,560-561,574,1056-1060,1066-1080
+  s_1dd49634d7a94f::t_293232380765ee 1064
+  s_1dd49634d7a94f::t_73fe7c18acc4d4 3,19-24,26,129,142,219,221,410,412,468-479,507-523,578-664
+  s_1dd49634d7a94f::t_a29c0de5aac574 32-70,161,275-277,281-287,291-314,318-347,351-355,359-385,387-390,392-408,423,525,724-725,870-873
+  s_1dd49634d7a94f::t_bb377442dc253f 528-529,533-537,541-546,679-682,695,718,727-737,741-743,746-758,762-774,776-800,803,808-814,816-818,831-836
+  s_1dd49634d7a94f::t_f83837fedb92ec 700
+  s_1dd49634d7a94f::t_b59787d7f57787 215,224,272,427,551,670-677,683-685,687-694,697-698,701-706,708-717,878,932,934,1019-1020,1032-1033,1049,1083
+  s_1dd49634d7a94f::t_84bb17d229a14a 189
+  s_1dd49634d7a94f::t_90ba1166fc549a 16,956-959
+  s_1dd49634d7a94f::t_04cd6ca29e8a18 12,91,947-955
+  s_1dd49634d7a94f::t_8545a6bbdeb19a 707
+  s_1dd49634d7a94f::t_4fbcfa60860514 491,565-572
+  s_1dd49634d7a94f::t_e5600616232967 278-280,288-290,315-317,348-350,356-358
+  s_1dd49634d7a94f::t_895b67c5137ccc 156,178,223,225,228,430-463,482,493-498,506,530-532,538-540,547,562
+  s_1dd49634d7a94f::t_471f4e901b0aed 92,164,203,268,499-505,936,969-980,988-989,1006-1008,1012-1014,1026-1028,1037-1040,1063
+  s_1dd49634d7a94f::t_093c50c251a4f9 669,678,686,696,699
+  s_1dd49634d7a94f::t_05cd5c825d3ac2 386,391
+  s_1dd49634d7a94f::t_b26c38b9bd7fe7 137,158,227,879-931,933
+  s_1dd49634d7a94f::t_55d96de6a37f4e 214,216,271,273,426,428,550,552,555,575,719-723,726,738-740,759-761,775,801-802,815,819-830,837-869,874-877,1050,1053,1082,1084
+  s_1dd49634d7a94f::t_3dcf53833337b3 1-2,4-10,18,25,27-31,71,73-85,87-90,93-100,127-128,130-136,139-141,143,145-155,157,159-160,162-163,165-177,179-188,190-202,204-212,217-218,222,229-231,233-239,267,269,274,409,413-422,424,429,464,480-481,486-490,492,524,526,549,553-554,563-564,573,576-577,1048,1051-1052,1061-1062,1065
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingRuntime.ts
+  s_1dd49634d7a94f::t_1e83a4026b1130 184-185
+  s_1dd49634d7a94f::t_5e02c097d0d289 12,683-687
+packages/farming/src/farming/persistence/FarmRepository.ts
+  s_1dd49634d7a94f::t_8f90024b97a836 2,14-22
+  s_1dd49634d7a94f::t_f916f3e806480e 11-13,23-25,30-31
+  s_1dd49634d7a94f::t_8787daf2c75325 26-28
+  s_1dd49634d7a94f::t_bf69e649bf314d 7-8,39
+world/demos/farming/asset-preview/main.ts
+  s_1dd49634d7a94f::t_7e75f3d43a99fb 60,92,95,120,137,140,147,320-323,344,361,378
+packages/farming/src/farming/presentation/soil/SoilVisualConfig.ts
+  s_1dd49634d7a94f::t_013c7ca8c37ee6 5-8,34-37
+packages/farming/src/farming/assets/soil/README.md
+  s_1dd49634d7a94f::t_0432a22bd2a69b 44
+  s_1dd49634d7a94f::t_61fbb253507820 42-43
+packages/farming/src/farming/application/FarmClock.ts
+  s_1dd49634d7a94f::t_f916f3e806480e 3-4
+packages/farming/src/farming/presentation/soil/SoilVisualProvider.ts
+  s_1dd49634d7a94f::t_0432a22bd2a69b 374,452,461
+  s_1dd49634d7a94f::t_43619d487d586a 43-50,77,342,346,402,408,416-417,419-420,424,426,430,435-436,449-451,453-460,504
+  s_1dd49634d7a94f::t_013c7ca8c37ee6 56-62,65,76,85,89,126-128,152,156-158,162-164,169,185,335-341,343-345,347-350,357-358,360,367-371,375,400-401,403-407,409-412,415,418,421-423,425,427-429,431-434,437-448,553
+packages/farming/src/farming/presentation/soil/FarmingPlotSurface.ts
+  s_1dd49634d7a94f::t_14a9eca9dc1aa0 17-18,31,53-58
+world/demos/farming/asset-preview/styles.css
+  s_1dd49634d7a94f::t_7e75f3d43a99fb 147-152
+packages/farming/src/farming/domain/FarmingGround.ts
+  s_1dd49634d7a94f::t_85872c671f05f2 136-150
+packages/farming/src/farming/procedural/plant-recipe-metadata.json
+  s_1dd49634d7a94f::t_a406e9d5b59fdc 1-72
+packages/farming/tests/native/FarmingLazyAssets.spec.ts
+  s_1dd49634d7a94f::t_7e75f3d43a99fb 27-29
+  s_1dd49634d7a94f::t_f6d839f3812971 1-26,30-188
+packages/farming/src/farming/domain/rules/PlotManagementRules.ts
+  s_1dd49634d7a94f::t_c2f89f4858f607 9-10,27,88-89,111,113
+world/tests/seed-world/FarmingTargetIdentity.spec.ts
+  s_1dd49634d7a94f::t_b26c38b9bd7fe7 146-148
+  s_1dd49634d7a94f::t_aced477e94477e 399
+  s_1dd49634d7a94f::t_0d9c90536751f0 137-145,149-160,219-220,224
+packages/farming/src/farming/application/FarmingService.ts
+  s_1dd49634d7a94f::t_d79ef25cbd6914 337,340-344
+  s_1dd49634d7a94f::t_8b651376ca4ded 330-331,1112
+  s_1dd49634d7a94f::t_12635b4fea79a9 32,36
+  s_1dd49634d7a94f::t_417cfb32868074 28,338-339,346
+  s_1dd49634d7a94f::t_f916f3e806480e 175-176,334-336,347-355,358,926-929,934,936,948,955,964-965,967,1003
+  s_1dd49634d7a94f::t_bf69e649bf314d 332-333,356,921,1165
+  s_1dd49634d7a94f::t_c86af420df1368 345
+  s_1dd49634d7a94f::t_0432a22bd2a69b 1117
+  s_1dd49634d7a94f::t_f156c034ff53d7 1119
+  s_1dd49634d7a94f::t_70cd46321f1534 357
+  s_1dd49634d7a94f::t_e2afbc11cf431a 359-361
+  s_1dd49634d7a94f::t_607a900c75f88d 925
+  s_1dd49634d7a94f::t_fb258ec1d6cb01 1113-1116
+  s_1dd49634d7a94f::t_c507c68b130b68 1120
+world/tests/seed-world/PresetSystemScript.spec.ts
+  s_1dd49634d7a94f::t_fbe52c5cc1d7a5 59-69
+  s_1dd49634d7a94f::t_161db232282e05 47-58,70-71
+packages/runtime-editor/src/project/runtime-project-session.ts
+  s_1dd49634d7a94f::t_6f004926f9c8f9 926,937-940
+  s_1dd49634d7a94f::t_1e83a4026b1130 60-62,70,82,755-761,766,771-772,782-783,801,833,925,953
+  s_1dd49634d7a94f::t_98e15099776c89 63-69,834,841,860-864
+  s_1dd49634d7a94f::t_b26c38b9bd7fe7 927-936
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmRepository.ts
+  s_1dd49634d7a94f::t_471f4e901b0aed 43-44,57-59,65-72,80-83,176
+  s_1dd49634d7a94f::t_73fe7c18acc4d4 202,209,217-218,246
+  s_1dd49634d7a94f::t_e37d8c31a4e513 212-215
+  s_1dd49634d7a94f::t_61fbb253507820 18,125,141
+  s_1dd49634d7a94f::t_b26c38b9bd7fe7 158-161,164-167
+  s_1dd49634d7a94f::t_1e83a4026b1130 16,27-28,30,110-113,124,133-134,137-138,142-157,168-171,181-185,190,203-207,219,222-223,239-241,243,252-253,255-256,258,263-279,283,286-297,312,318,331-332,337,343,365,368-371,373-381,383-391,398-400,402-408,411-413,427-428
+  s_1dd49634d7a94f::t_dda9b5c04a5fef 32-42,45-56,60-64,73-75,77-79,84-86,175,177-180,201
+  s_1dd49634d7a94f::t_5a68b0dd04aa8e 29,76,87,116,172-174,221,249-251,313,322,410,414
+  s_1dd49634d7a94f::t_37775b6134c6de 210,216,220,224-225,228-230,233-238,244
+  s_1dd49634d7a94f::t_353ac1b7958b72 242
+  s_1dd49634d7a94f::t_ed6ea69d1a9f90 10-14,162-163,186-187,200,208,211,226-227,231-232
+  s_1dd49634d7a94f::t_039073a74764df 4-8,109,117-119,139-140,188-189,191-199,245,247-248,315,397,401,409
+  s_1dd49634d7a94f::t_a0dc1c8531f4e3 31
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmClock.ts
+  s_1dd49634d7a94f::t_f916f3e806480e 5,7,15-17
+  s_1dd49634d7a94f::t_f5ebb62e77dd65 18
+packages/farming/src/farming/domain/fields/SoilWaterField.ts
+  s_1dd49634d7a94f::t_a5ecf5645f8557 2,52,77,80-110,113,115-116,125,147-156,158
+  s_1dd49634d7a94f::t_32cab41e5970ff 5-6,8,11-12,28-48,55,57-62,65-75,79,118-124,126-128,133-146,157,159-172
+  s_1dd49634d7a94f::t_b26c38b9bd7fe7 63,76,129-132
+  s_1dd49634d7a94f::t_30f8c1971fc777 49-51,53-54,56,64,78,111-112,114,117
+  s_1dd49634d7a94f::t_77d2e3331471da 173,201,213
+packages/farming/src/farming/content/PlantingCatalog.ts
+  s_1dd49634d7a94f::t_7e75f3d43a99fb 5-6,59,61,70-71,73-78,80,82-90
+  s_1dd49634d7a94f::t_3778d8c36c7775 91-92
+world/demos/farming/asset-preview/index.html
+  s_1dd49634d7a94f::t_7e75f3d43a99fb 23-26
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmWaterSupply.ts
+  s_1dd49634d7a94f::t_5e02c097d0d289 2,41-46,53,55,69-71
+  s_1dd49634d7a94f::t_f3b0c15cc732bb 47-48,51-52,54,56-68
+  s_1dd49634d7a94f::t_73fe7c18acc4d4 49-50
+packages/farming/src/farming/domain/FarmSimulation.ts
+  s_14df4946367faa::t_a48afd8990ede0 32-33,71-72,196-198,219
+packages/farming/src/farming/procedural/PlantGrowthCatalog.ts
+  s_14df4946367faa::t_4286850c657a48 1-3,5-6,11-26
+packages/farming/src/farming/procedural/core/PlantGrowthDefinition.ts
+  s_14df4946367faa::t_6346b66ce58d31 36-41
+packages/farming/src/farming/procedural/runtime/loadPlantGrowthDefinition.ts
+  s_14df4946367faa::t_c855b979c9bdc9 1-26
+packages/world-planning/src/spatial/farming/PlanningFarmingFinalization.ts
+  s_14df4946367faa::t_6696a33c63b97d 5,54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7071ad8c1b9b47ab00e01c08c9611643eff12e3f",
+  "prompts": {},
+  "sessions": {
+    "s_14df4946367faa": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1efd8-8cb2-7e83-9805-a6299152e4da",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    },
+    "s_1dd49634d7a94f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1efdb-3534-7af0-bc5b-dca37a35cf28",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
