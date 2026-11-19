@@ -1,0 +1,32 @@
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_a3c79ce84ffdc2 13,688-698,701-710,714-716
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  h_a3c79ce84ffdc2 119-120,286-288,314-325,422-429,498-506,766-767,771-772,779
+packages/modify/src/native/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflection.glsl
+  h_a3c79ce84ffdc2 45-151
+packages/modify/src/native/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader
+  h_a3c79ce84ffdc2 131-142,489-501,533-537,574,579,581-603,605,607,610,612,614,616,618,621-622,624,628-629,632-633,635-657,666
+packages/modify/tests/ScreenSpaceReflectionPipelineOptimizations.test.ts
+  h_a3c79ce84ffdc2 1-476
+packages/modify/tests/ScreenSpaceReflectionReceiverDepth.test.ts
+  h_a3c79ce84ffdc2 80
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/shaders/terrain/TerrainEvaluation.glsl
+  h_a3c79ce84ffdc2 157-210,236-258
+packages/terrain/src/shaders/terrain/TerrainScreenSpaceReflectionPass.glsl
+  h_a3c79ce84ffdc2 110,136,156,160-162
+world/tests/seed-world/TerrainFarShader.spec.ts
+  h_a3c79ce84ffdc2 91-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0ea1330e891ede76b146095cfb7b16b6bf0f153f",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

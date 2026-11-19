@@ -1,0 +1,18 @@
+packages/core/src/texture/Texture.ts
+  h_bd4dd7d663e619 115
+packages/rhi-webgl/src/GLTexture.ts
+  h_bd4dd7d663e619 438-446,557,693-700
+tests/src/core/texture/FloatTexture.test.ts
+  h_bd4dd7d663e619 104,115-118,120-123
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "129ca855129df13fefba70e37a7a8f89d0ff1b95",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
