@@ -6,9 +6,6 @@
 mediump sampler2D renderer_BlitTexture;
 vec4 renderer_texelSize;
 
-// Single-pass 13-tap energy-preserving downsample filter
-// (Jorge Jimenez, SIGGRAPH 2014: "Next Generation Post Processing in Call of Duty: Advanced Warfare").
-// Weight HDR samples before accumulating to avoid mediump (fp16) overflow on bright highlights.
 void frag(Varyings v) {
     vec2 texelSize = renderer_texelSize.xy;
 
@@ -30,6 +27,7 @@ void frag(Varyings v) {
     mediump vec3 l = texture2DSRGB(renderer_BlitTexture, v.v_uv + texelSize * vec2( 0.0,  2.0)).rgb;
     mediump vec3 m = texture2DSRGB(renderer_BlitTexture, v.v_uv + texelSize * vec2( 2.0,  2.0)).rgb;
 
+    // Pre-weight samples to avoid mediump (fp16) overflow
     mediump vec3 color = d * 0.125 + e * 0.125 + i * 0.125 + j * 0.125;
     color += a * 0.03125 + c * 0.03125 + k * 0.03125 + m * 0.03125;
     color += b * 0.0625 + f * 0.0625 + h * 0.0625 + l * 0.0625;
