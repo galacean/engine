@@ -685,7 +685,7 @@ export class PlanningFarmingRuntime {
       this.waterSupply,
       () => this.disposed ? undefined : this.groundedView
     );
-    this.land = new PlanningFarmLandLayer(this.area.entity, current.data.fields, current.world);
+    this.land = new PlanningFarmLandLayer(this.area.entity, current.data.fields);
     this.vegetation = new PlanningFarmingVegetation({
       service: this.area.service,
       definitions: storageDefinitions(this.definitions),

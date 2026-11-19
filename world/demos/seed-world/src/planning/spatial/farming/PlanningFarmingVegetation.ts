@@ -23,7 +23,13 @@ export class PlanningFarmingVegetation {
     private readonly options: {
       service: FarmingService;
       definitions: FarmingStorageDefinitions;
-      land?: { setBounds(bounds: readonly GroundBounds[], grass: readonly GroundBounds[]): void };
+      land?: {
+        setBounds(
+          bounds: readonly GroundBounds[],
+          grass: readonly GroundBounds[],
+          opaquePlots?: readonly GroundBounds[]
+        ): void;
+      };
       groundCover: { setGroundCoverExclusions(owner: string, areas: readonly GroundBounds[]): Promise<void> };
       vegetation?: { setGroundExclusions(owner: string, outlines: readonly (readonly PlanPoint[])[]): void };
       isCurrent: () => boolean;
@@ -60,7 +66,7 @@ export class PlanningFarmingVegetation {
       try {
         // Keep the existing vegetation footprint: density masks already include interpolation support.
         // Expanding that mask again would create a new bare-grass halo outside the dirt layer.
-        this.options.land?.setBounds(footprint.plots, footprint.grass);
+        this.options.land?.setBounds(footprint.plots, footprint.grass, footprint.opaquePlots);
         await this.options.groundCover.setGroundCoverExclusions(this.owner, bounds);
         if (!current()) return;
         this.options.vegetation?.setGroundExclusions(this.owner, naturalBounds.map(farmingBoundsOutline));

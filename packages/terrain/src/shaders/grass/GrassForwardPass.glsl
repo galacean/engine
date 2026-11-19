@@ -113,6 +113,8 @@ vec4 renderer_GrassLodDebugColor;
   #endif
   #include "shared/GrassTerrainSurface.glsl"
   #undef TERRAIN_GROUND_RENDERER
+#endif
+#if defined(TERRAIN_PROJECT_GRASS_TERRAIN_SURFACE) || defined(MATERIAL_FARM_GROUND_SURFACE)
   #include "shared/FarmGroundBlend.glsl"
 #endif
 #include "shared/SurfaceRelief.glsl"
@@ -305,8 +307,9 @@ void GrassFragment(Varyings input) {
     vec3 shadowPositionDy = dFdy(input.positionWS);
   #endif
   #ifdef MATERIAL_FARM_GROUND_SURFACE
-    float farmGroundWeight = terrainProjectFarmGroundCoverage(input.positionWS.xz);
-    if (farmGroundWeight <= 0.0) discard;
+    vec2 farmGroundSample = terrainProjectFarmGroundSample(input.positionWS.xz);
+    float farmGroundWeight = farmGroundSample.x;
+    if (farmGroundWeight <= 0.0 || farmGroundSample.y >= 0.99) discard;
   #endif
   #if defined(RENDERER_WORLD_PICK) && !defined(MATERIAL_FARM_GROUND_SURFACE)
     float pickId = floor(input.worldPickId + 0.5);
@@ -314,6 +317,40 @@ void GrassFragment(Varyings input) {
       pickId = floor(gl_FragCoord.z * 16777215.0 + 0.5);
     #endif
     gl_FragColor = vec4(mod(pickId, 256.0), mod(floor(pickId / 256.0), 256.0), floor(pickId / 65536.0), 255.0) / 255.0;
+  #elif defined(MATERIAL_FARM_GROUND_SURFACE)
+    // Alpha-blended dirt overlay over the already-shaded Terrain surface.
+    // Avoids re-evaluating Terrain alphamaps, grass colour field, surface relief, and blade wind.
+    vec3 surfaceColor = terrainProjectBlendFarmGroundColor(vec3(0.0), input.positionWS.xz, 1.0);
+    vec3 shadingNormal = normalize(input.terrainNormalWS);
+    SurfaceData surfaceData = terrainProjectBuildSurfaceData(
+      input,
+      surfaceColor,
+      shadingNormal,
+      0.0,
+      0.0,
+      1.0
+    );
+    terrainProjectApplySurfaceClimate(
+      surfaceData,
+      shadingNormal,
+      vec3(1.0, 0.0, material_GrassSurfaceSnowResponse.x)
+    );
+    #ifdef TERRAIN_PROJECT_GROUND_SHADOW_PCF
+      float shadowAttenuation = sampleTerrainProjectGroundShadow(input, shadowPositionDx, shadowPositionDy);
+    #else
+      float shadowAttenuation = sampleTerrainProjectShadow(input);
+    #endif
+    vec3 color = max(
+      terrainProjectFinalLighting(evaluateTerrainProjectLightingWithShadow(input, surfaceData, shadowAttenuation)),
+      vec3(0.0)
+    );
+    #if SCENE_FOG_MODE != 0
+      color = fog(vec4(color, 1.0), input.positionVS).rgb;
+    #endif
+    if (renderer_GrassLodDebugColor.a > 0.0) {
+      color = mix(color, renderer_GrassLodDebugColor.rgb, renderer_GrassLodDebugColor.a);
+    }
+    gl_FragColor = vec4(color, farmGroundWeight);
   #else
   vec3 surfaceWeights = max(input.surfaceWeights, vec3(0.0));
   float surfaceWeight = dot(surfaceWeights, vec3(1.0));
@@ -325,9 +362,6 @@ void GrassFragment(Varyings input) {
   // so short road-edge grass keeps the road/ground colour instead of
   // revealing a detached green base.
   float bladeAppearanceWeight = terrainProjectGrassBladeAppearanceWeight(input.tipWeight);
-  #ifdef MATERIAL_FARM_GROUND_SURFACE
-    vec3 surfaceColor;
-  #else
   #if defined(RENDERER_GRASS_MATCH_GROUND)
     vec3 grassSurfaceColor = grassColorFromField(0.5);
   #elif defined(MATERIAL_GRASS_GROUND_SURFACE)
@@ -343,7 +377,6 @@ void GrassFragment(Varyings input) {
   #ifdef RENDERER_ROCK_GRASS_GROUND
     surfaceColor = mix(input.rockGround.rgb, input.grassColor, bladeAppearanceWeight);
   #endif
-  #endif
   #ifdef TERRAIN_PROJECT_GRASS_TERRAIN_SURFACE
     // One root samples the shared ground field for the complete clump, including
     // bent tips. Wind changes geometry without making colours slide across blades.
@@ -358,33 +391,13 @@ void GrassFragment(Varyings input) {
     #else
     TerrainProjectLayerBlend ground = terrainProjectGroundSurface(groundPositionWS);
     #endif
-    #ifdef MATERIAL_FARM_GROUND_SURFACE
-    // Opaque dirt needs no grass/vista, road or river-bed colour reads. Keep the shared
-    // alphamap above for relief normals and climate; the transition retains native shading.
-    // Sample dirt before the divergent branch so its implicit mip derivatives remain continuous.
-    vec3 farmDirtColor = terrainProjectBlendFarmGroundColor(vec3(0.0), groundPositionWS.xz, 1.0);
-    bool opaqueFarmGround = farmGroundWeight >= 1.0;
-    #else
-    bool opaqueFarmGround = false;
-    #endif
-    if (opaqueFarmGround) {
-      #ifdef MATERIAL_FARM_GROUND_SURFACE
-      surfaceColor = farmDirtColor;
-      #endif
-    } else {
     vec3 groundColor = terrainProjectGroundColor(ground, groundPositionWS);
     #if defined(RENDERER_GRASS_MATCH_GROUND) && RENDERER_GRASS_MATCH_GROUND == 1
       surfaceColor = mix(groundColor, surfaceColor, bladeAppearanceWeight);
     #else
       surfaceColor = groundColor;
     #endif
-    #ifdef MATERIAL_FARM_GROUND_SURFACE
-    // Identical to the river-bed mix, reusing the colour and coverage already sampled above.
-    surfaceColor = mix(farmDirtColor, surfaceColor, 1.0 - farmGroundWeight);
-    #else
     surfaceColor = terrainProjectBlendFarmGroundColor(surfaceColor, groundPositionWS.xz);
-    #endif
-    }
   #endif
   // Keep the root lighting normal on the Terrain path as well. The wind geometry and
   // travelling field stay untouched; only the visible root's surface ownership is gated.

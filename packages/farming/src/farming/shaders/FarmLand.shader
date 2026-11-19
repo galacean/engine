@@ -8,12 +8,19 @@ Shader "Farming/PlannerLandBlend" {
       Number landSlopeScaledDepthBias;
       RenderQueueType renderQueueType;
       RenderQueueType = renderQueueType;
+      BlendState = {
+        Enabled = true;
+        SourceColorBlendFactor = BlendFactor.SourceAlpha;
+        DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+        SourceAlphaBlendFactor = BlendFactor.One;
+        DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+      }
       DepthState = {
         CompareFunction = material_WorldPickDepthCompare;
         WriteEnabled = false;
       }
       RasterState = {
-        CullMode = CullMode.Off;
+        CullMode = CullMode.Back;
         DepthBias = landDepthBias;
         SlopeScaledDepthBias = landSlopeScaledDepthBias;
       }
@@ -23,8 +30,6 @@ Shader "Farming/PlannerLandBlend" {
 
       #define MATERIAL_GRASS_GROUND_SURFACE
       #define MATERIAL_FARM_GROUND_SURFACE
-      #define MATERIAL_GRASS_SHARED_COLOR_FIELD
-      #define TERRAIN_PROJECT_GROUND_MATERIAL_BINDING
       #include "grass/GrassForwardPass.glsl"
     }
   }

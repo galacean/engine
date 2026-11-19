@@ -11,13 +11,15 @@ import {
   Entity,
   MeshRenderer,
   MeshTopology,
-  PBRMaterial
+  PBRMaterial,
+  Vector4
 } from "@galacean/engine";
 import type { GroundBounds } from "@galacean/engine-farming/farming/api/index";
 import type { FarmingSoilWorkPresentation } from "@galacean/engine-farming/farming/presentation/soil/SoilWorkReveal";
 import { disposeSoilMesh } from "@galacean/engine-farming/farming/presentation/soil/disposeSoilMesh";
 import { DEFAULT_SOIL_VISUAL_CONFIG } from "@galacean/engine-farming/farming/presentation/soil/SoilVisualConfig";
 import { restoreResource } from "@galacean/engine-modify/rendering/RestorableResources";
+import { SEED_WORLD_GRASS_SNOW_RESPONSE } from "@galacean/engine-terrain/world/SeedWorldSurfaceSnow";
 import { getPlanningFarmLandShader } from "./PlanningFarmLandShader.ts";
 import {
   bakeFarmLandCoverage,
@@ -36,7 +38,6 @@ import {
   type FarmLandGrid
 } from "./PlanningFarmLandGeometry.ts";
 import type { PlanningFarmingTerrain } from "./PlanningPublishedFarmingGround.ts";
-import type { SeedWorldTerrainRuntime } from "@galacean/engine-world-planning/runtime/SeedWorldTerrainRuntime";
 
 import { PlanningFarmGrassOverlay, type FarmGrassTile } from "./PlanningFarmGrassOverlay.ts";
 
@@ -55,10 +56,10 @@ export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
   >();
   private readonly grassOverlay: PlanningFarmGrassOverlay;
   private readonly grassTiles = new Map<string, FarmGrassTile>();
-  private releaseAppearance: () => void;
   private grid: FarmLandGrid;
   private readonly heightScratch = new Float64Array(FARM_LAND_HEIGHT_SAMPLE_COUNT);
   private bounds: readonly GroundBounds[] = [];
+  private opaquePlots: readonly GroundBounds[] = [];
   private grass: readonly GroundBounds[] = [];
   private disposed = false;
   private ready = false;
@@ -67,13 +68,11 @@ export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
 
   constructor(
     parent: Entity,
-    private fields: PlanningFarmingTerrain,
-    private readonly world: Pick<SeedWorldTerrainRuntime, "registerGrassAppearanceMaterial">
+    private fields: PlanningFarmingTerrain
   ) {
     this.root = parent.createChild("Farm land transition");
     this.grid = farmLandGrid(fields);
     const material = (this.material = new PBRMaterial(parent.engine));
-    let releaseAppearance: (() => void) | undefined;
     try {
       material.name = "Farmlands flat dirt underlay";
       material.shader = getPlanningFarmLandShader();
@@ -81,16 +80,18 @@ export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
       // Keep the physical height and depth writes unchanged so worked beds remain above the land.
       material.shaderData.setFloat("landDepthBias", -4);
       material.shaderData.setFloat("landSlopeScaledDepthBias", -1);
+      material.shaderData.setVector4(
+        "material_GrassSurfaceSnowResponse",
+        new Vector4(SEED_WORLD_GRASS_SNOW_RESPONSE, 0, 0, 0)
+      );
       material.isGCIgnored = true;
       material.isTransparent = true;
       material.metallic = 0;
       material.baseColor = new Color(1, 1, 1, 1);
       material.roughness = 1;
       material.shaderData.setFloat("material_WorldPickDepthCompare", CompareFunction.LessEqual);
-      this.releaseAppearance = releaseAppearance = world.registerGrassAppearanceMaterial(material);
       this.grassOverlay = new PlanningFarmGrassOverlay(parent.scene!);
     } catch (error) {
-      releaseAppearance?.();
       material.destroy(true);
       this.root.destroy();
       throw error;
@@ -107,13 +108,11 @@ export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
     const grid = farmLandGrid(fields);
     if (grid.key !== this.grid.key) this.planChunks(this.bounds, grid, fields.sizeMetres);
     this.fields = fields;
-    this.releaseAppearance();
-    this.releaseAppearance = this.world.registerGrassAppearanceMaterial(this.material);
     if (grid.key !== this.grid.key) {
       this.clearChunks();
       this.grassOverlay.update([], grid.size);
       this.grid = grid;
-      this.setBounds(this.bounds, this.grass);
+      this.setBounds(this.bounds, this.grass, this.opaquePlots);
       return;
     }
     // Layout is unchanged: coverage and atlas remain untouched. A tiny per-chunk height snapshot
@@ -132,11 +131,16 @@ export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
     }
   }
 
-  setBounds(bounds: readonly GroundBounds[], grass: readonly GroundBounds[] = []): void {
+  setBounds(
+    bounds: readonly GroundBounds[],
+    grass: readonly GroundBounds[] = [],
+    opaquePlots: readonly GroundBounds[] = bounds
+  ): void {
     if (this.disposed) return;
     const displayed = this.preview ? [...bounds, this.preview] : bounds;
     const next = this.planChunks(displayed, this.grid, this.fields.sizeMetres);
     this.bounds = bounds;
+    this.opaquePlots = opaquePlots;
     this.grass = grass;
     const size = this.grid.size;
     const retained = new Set(next.map((chunk) => chunk.key));
@@ -158,6 +162,14 @@ export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
           b.maximumZ + FARM_LAND_CONTAINER_EDGE_M >= chunk.z &&
           b.minimumZ - FARM_LAND_CONTAINER_EDGE_M <= chunk.z + size
       );
+      // Never include this.preview in opaquePlots: only committed opaque soil beds may cut out the dirt underlay.
+      const localOpaque = opaquePlots.filter(
+        (b) =>
+          b.maximumX + this.margin >= chunk.x &&
+          b.minimumX - this.margin <= chunk.x + size &&
+          b.maximumZ + this.margin >= chunk.z &&
+          b.minimumZ - this.margin <= chunk.z + size
+      );
       const affected =
         this.preview &&
         this.preview.maximumX + this.margin >= chunk.x &&
@@ -173,9 +185,9 @@ export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
               b.minimumZ - this.margin <= chunk.z + size
           )
         : undefined;
-      const signature = `${chunk.signature}/${JSON.stringify(holes)}${before ? `/preview:${JSON.stringify(before)}` : ""}`;
+      const signature = `${chunk.signature}/${JSON.stringify(holes)}/opaque:${JSON.stringify(localOpaque)}${before ? `/preview:${JSON.stringify(before)}` : ""}`;
       if (previous?.signature === signature) continue;
-      const field = bakeFarmLandCoverage(chunk, size, holes);
+      const field = bakeFarmLandCoverage(chunk, size, holes, localOpaque);
       this.grassTiles.set(chunk.key, {
         x: chunk.x,
         z: chunk.z,
@@ -203,7 +215,7 @@ export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
     if (this.disposed) return;
     this.preview = bounds;
     try {
-      this.setBounds(this.bounds, this.grass);
+      this.setBounds(this.bounds, this.grass, this.opaquePlots);
     } catch (error) {
       this.preview = undefined;
       throw error;
@@ -218,7 +230,7 @@ export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
   end(committed: boolean): void {
     if (!this.preview || this.disposed) return;
     const preview = this.preview;
-    const bounds =
+    const added =
       committed &&
       !this.bounds.some(
         (b) =>
@@ -226,18 +238,17 @@ export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
           b.maximumX === preview.maximumX &&
           b.minimumZ === preview.minimumZ &&
           b.maximumZ === preview.maximumZ
-      )
-        ? [...this.bounds, this.preview]
-        : this.bounds;
+      );
+    const bounds = added ? [...this.bounds, preview] : this.bounds;
+    const opaquePlots = added ? [...this.opaquePlots, preview] : this.opaquePlots;
     this.preview = undefined;
-    this.setBounds(bounds, this.grass);
+    this.setBounds(bounds, this.grass, opaquePlots);
     this.grassOverlay.seek(1);
   }
 
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    this.releaseAppearance();
     this.grassOverlay.dispose();
     this.clearChunks();
     this.root.destroy();
@@ -296,7 +307,6 @@ export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
     try {
       const texture = await loadPlanningFarmDirtTexture(this.root.engine);
       if (this.disposed) return;
-      this.material.baseTexture = texture;
       this.grassOverlay.setColor(texture);
       this.ready = true;
     } catch (error) {

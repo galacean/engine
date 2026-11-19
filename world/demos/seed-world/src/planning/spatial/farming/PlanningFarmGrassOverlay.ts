@@ -11,6 +11,8 @@ export interface FarmGrassTile {
   readonly pixels: Uint8Array;
   /** Committed coverage while this tile previews a new plot; absent means both channels agree. */
   readonly beforePixels?: Uint8Array;
+  /** Conservative interior mask of committed opaque soil beds where FarmLand can discard before lighting. */
+  readonly cutoutPixels?: Uint8Array;
 }
 
 /** Sparse atlas of the exact ground masks. Empty space costs a page-table texel, not a high-resolution mask. */
@@ -44,6 +46,23 @@ export function packFarmGrassTiles(
     pages[offset + 1] = Math.floor((slot + 1) / 256);
   });
   return { resolution, columns, rows, x, z, width, height, pages };
+}
+
+/** Pack one mask tile into RGBA8: R=committed dirt, G=target dirt, B=committed soil cutout, A=255. */
+export function packFarmGrassTilePixels(
+  tile: Pick<FarmGrassTile, "pixels" | "beforePixels" | "cutoutPixels">
+): Uint8Array {
+  const pixels = new Uint8Array(tile.pixels.length * 4);
+  const before = tile.beforePixels;
+  const cutout = tile.cutoutPixels;
+  for (let i = 0; i < tile.pixels.length; i++) {
+    const offset = i * 4;
+    pixels[offset] = before ? before[i] : tile.pixels[i];
+    pixels[offset + 1] = tile.pixels[i];
+    pixels[offset + 2] = cutout ? cutout[i] : 0;
+    pixels[offset + 3] = 255;
+  }
+  return pixels;
 }
 
 /** Bound both dimensions before allocating. Two page-code bytes reserve zero for unmapped cells. */
@@ -168,7 +187,7 @@ export class PlanningFarmGrassOverlay {
     const { width: atlasWidth, height: atlasHeight, columns } = plan;
     let atlas: Texture2D | undefined, pages: Texture2D | undefined;
     try {
-      atlas = this.texture(this.atlas, atlasWidth, atlasHeight, TextureFormat.R8G8, TextureFilterMode.Bilinear);
+      atlas = this.texture(this.atlas, atlasWidth, atlasHeight, TextureFormat.R8G8B8A8, TextureFilterMode.Bilinear);
       pages = this.texture(this.pages, p.width, p.height, TextureFormat.R8G8B8A8, TextureFilterMode.Point);
       // Vertex-centred masks contain their own shared boundary samples, so bilinear reads never cross tile slots.
       this.uploadTiles(atlas, atlas === this.atlas ? dirty : residents, columns, resolution);
@@ -219,13 +238,8 @@ export class PlanningFarmGrassOverlay {
     resolution: number
   ): void {
     for (const { tile, slot } of residents) {
-      const pixels = new Uint8Array(tile.pixels.length * 2);
-      for (let i = 0; i < tile.pixels.length; i++) {
-        pixels[i * 2] = tile.beforePixels?.[i] ?? tile.pixels[i];
-        pixels[i * 2 + 1] = tile.pixels[i];
-      }
       texture.setPixelBuffer(
-        pixels,
+        packFarmGrassTilePixels(tile),
         0,
         (slot % columns) * resolution,
         Math.floor(slot / columns) * resolution,

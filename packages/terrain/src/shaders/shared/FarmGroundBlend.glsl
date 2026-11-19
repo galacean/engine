@@ -14,23 +14,28 @@ vec4 scene_FarmGroundPageSize;
 float scene_FarmWorkReveal;
 #endif
 
-float terrainProjectFarmGroundCoverage(vec2 worldXZ) {
+vec2 terrainProjectFarmGroundSample(vec2 worldXZ) {
   #ifdef SCENE_FARM_GROUND_APPEARANCE
     vec2 grid = (worldXZ - scene_FarmGroundDomain.xy) / scene_FarmGroundDomain.z;
     vec2 page = floor(grid);
-    if (any(lessThan(page, vec2(0.0))) || any(greaterThanEqual(page, scene_FarmGroundPageSize.xy))) return 0.0;
+    if (any(lessThan(page, vec2(0.0))) || any(greaterThanEqual(page, scene_FarmGroundPageSize.xy))) return vec2(0.0);
     vec2 code = floor(texture2D(scene_FarmGroundPages, (page + 0.5) / scene_FarmGroundPageSize.xy).rg * 255.0 + 0.5);
     float slot = code.x + code.y * 256.0 - 1.0;
-    if (slot < 0.0) return 0.0;
+    if (slot < 0.0) return vec2(0.0);
     vec2 tile = vec2(mod(slot, scene_FarmGroundAtlasSize.z), floor(slot / scene_FarmGroundAtlasSize.z));
     vec2 uv = (tile * scene_FarmGroundDomain.w + fract(grid) * (scene_FarmGroundDomain.w - 1.0) + 0.5) / scene_FarmGroundAtlasSize.xy;
-    vec2 coverage = texture2D(scene_FarmGroundCoverage, uv).rg;
+    vec3 coverage = texture2D(scene_FarmGroundCoverage, uv).rgb;
     // Existing ground stays unchanged; newly added mud fades in uniformly.
-    if (coverage.r == coverage.g) return coverage.g;
-    float reveal = clamp(scene_FarmWorkReveal, 0.0, 1.0);
-    return mix(coverage.r, coverage.g, reveal);
+    float dirt = coverage.r == coverage.g
+      ? coverage.g
+      : mix(coverage.r, coverage.g, clamp(scene_FarmWorkReveal, 0.0, 1.0));
+    return vec2(dirt, coverage.b);
   #endif
-  return 0.0;
+  return vec2(0.0);
+}
+
+float terrainProjectFarmGroundCoverage(vec2 worldXZ) {
+  return terrainProjectFarmGroundSample(worldXZ).x;
 }
 
 // Match seedWorldGrassCoverageScale, including already CPU-scaled river/road clumps.
