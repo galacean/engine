@@ -131,50 +131,75 @@ function createSurfaceRainRippleNormalAtlas(engine: Engine): Texture2D {
   return texture;
 }
 
+let cachedRippleAtlasPixels: Uint8Array | undefined;
+
 function buildRippleNormalAtlasPixels(): Uint8Array {
+  if (cachedRippleAtlasPixels) return cachedRippleAtlasPixels;
   const pixels = new Uint8Array(RIPPLE_ATLAS_SIZE * RIPPLE_ATLAS_SIZE * 4);
   const frameCount = RIPPLE_ATLAS_COLUMNS * RIPPLE_ATLAS_ROWS;
+  const dropCount = RIPPLE_DROPS.length;
+  const dropX = new Float64Array(dropCount);
+  const dropY = new Float64Array(dropCount);
+  const dropRadius = new Float64Array(dropCount);
+  const dropInvBand = new Float64Array(dropCount);
+  const dropCutoff = new Float64Array(dropCount);
+  const dropScale = new Float64Array(dropCount);
+  for (let d = 0; d < dropCount; d++) {
+    dropX[d] = RIPPLE_DROPS[d].x;
+    dropY[d] = RIPPLE_DROPS[d].y;
+  }
   for (let frame = 0; frame < frameCount; frame++) {
     const frameX = frame % RIPPLE_ATLAS_COLUMNS;
     const frameY = Math.floor(frame / RIPPLE_ATLAS_COLUMNS);
     const animationTime = frame / frameCount;
+    for (let d = 0; d < dropCount; d++) {
+      const drop = RIPPLE_DROPS[d];
+      const cycle = (animationTime + drop.phase) % 1;
+      const radius = (0.006 + cycle * drop.radius) * RIPPLE_RING_RADIUS_SCALE;
+      const bandWidth = (0.0045 + cycle * 0.004) * RIPPLE_RING_BAND_WIDTH_SCALE;
+      dropRadius[d] = radius;
+      dropInvBand[d] = 1 / bandWidth;
+      // exp(-u^2) < 1e-7 for |u| > 4.0, so contributions beyond 4 * bandWidth round to 0 in 8-bit channels.
+      dropCutoff[d] = bandWidth * 4;
+      dropScale[d] = Math.sin(cycle * Math.PI) ** 1.4 * drop.strength * RIPPLE_NORMAL_SLOPE_SCALE;
+    }
+    const baseRow = frameY * RIPPLE_TILE_SIZE;
+    const baseCol = frameX * RIPPLE_TILE_SIZE;
     for (let y = 0; y < RIPPLE_TILE_SIZE; y++) {
       const localY = (y + 0.5) / RIPPLE_TILE_SIZE;
+      const rowOffset = (baseRow + y) * RIPPLE_ATLAS_SIZE + baseCol;
       for (let x = 0; x < RIPPLE_TILE_SIZE; x++) {
         const localX = (x + 0.5) / RIPPLE_TILE_SIZE;
         let slopeX = 0;
         let slopeY = 0;
-        for (const drop of RIPPLE_DROPS) {
-          const cycle = (animationTime + drop.phase) % 1;
-          const deltaX = wrapUnitDelta(localX - drop.x);
-          const deltaY = wrapUnitDelta(localY - drop.y);
-          const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-          const radius = (0.006 + cycle * drop.radius) * RIPPLE_RING_RADIUS_SCALE;
-          const bandWidth = (0.0045 + cycle * 0.004) * RIPPLE_RING_BAND_WIDTH_SCALE;
+        for (let d = 0; d < dropCount; d++) {
+          let deltaX = localX - dropX[d];
+          deltaX -= Math.round(deltaX);
+          let deltaY = localY - dropY[d];
+          deltaY -= Math.round(deltaY);
+          const distSq = deltaX * deltaX + deltaY * deltaY;
+          const radius = dropRadius[d];
+          const cutoff = dropCutoff[d];
+          const maxR = radius + cutoff;
+          if (distSq > maxR * maxR) continue;
+          const minR = radius - cutoff;
+          if (minR > 0 && distSq < minR * minR) continue;
+          const distance = Math.sqrt(distSq);
           const distanceFromRing = distance - radius;
-          const band = Math.exp(-(distanceFromRing * distanceFromRing) / (bandWidth * bandWidth));
-          const signedBand = Math.sin((distanceFromRing / bandWidth) * Math.PI) * band;
-          const envelope = Math.sin(cycle * Math.PI) ** 1.4;
+          const u = distanceFromRing * dropInvBand[d];
+          const band = Math.exp(-(u * u));
+          const signedBand = Math.sin(u * Math.PI) * band;
           const inverseDistance = distance > 1e-5 ? 1 / distance : 0;
-          const strength = signedBand * envelope * drop.strength * RIPPLE_NORMAL_SLOPE_SCALE;
-          slopeX += deltaX * inverseDistance * strength;
-          slopeY += deltaY * inverseDistance * strength;
+          const strength = signedBand * dropScale[d] * inverseDistance;
+          slopeX += deltaX * strength;
+          slopeY += deltaY * strength;
         }
-        writeNormal(
-          pixels,
-          ((frameY * RIPPLE_TILE_SIZE + y) * RIPPLE_ATLAS_SIZE + frameX * RIPPLE_TILE_SIZE + x) * 4,
-          -slopeX,
-          -slopeY,
-          1
-        );
+        writeNormal(pixels, (rowOffset + x) * 4, -slopeX, -slopeY, 1);
       }
     }
   }
+  cachedRippleAtlasPixels = pixels;
   return pixels;
-}
-
-function wrapUnitDelta(delta: number): number {
-  return delta - Math.round(delta);
 }
 
 function writeNormal(pixels: Uint8Array, offset: number, x: number, y: number, z: number): void {

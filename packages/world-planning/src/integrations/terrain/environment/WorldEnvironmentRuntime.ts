@@ -48,7 +48,11 @@ import {
   type TerrainLightningStrike
 } from "@galacean/engine-environment/terrain/environment/TerrainLightningVfx";
 import { TerrainP3AtmosphericWind, type TerrainP3AtmosphericWindState } from "./TerrainP3AtmosphericWind.ts";
-import { TerrainPrecipitationVfx, type TerrainPrecipitationVfxSnapshot } from "./TerrainPrecipitationVfx.ts";
+import {
+  preloadTerrainPrecipitationShaders,
+  TerrainPrecipitationVfx,
+  type TerrainPrecipitationVfxSnapshot
+} from "./TerrainPrecipitationVfx.ts";
 import { TerrainSurfaceRainTextures } from "@galacean/engine-environment/terrain/environment/TerrainSurfaceRainTextures";
 import { terrainSurfaceWaterRequestsScreenSpaceReflection } from "@galacean/engine-environment/terrain/environment/TerrainSurfaceWaterSsrDemand";
 import {
@@ -233,6 +237,25 @@ export interface WorldEnvironmentRuntimeSnapshot {
   readonly lightning: Readonly<TerrainLightningVfxSnapshot>;
 }
 
+const ZERO_VEC3: readonly [number, number, number] = Object.freeze([0, 0, 0]);
+const IDLE_PRECIPITATION_SNAPSHOT: Readonly<TerrainPrecipitationVfxSnapshot> = Object.freeze({
+  rainRate: 0,
+  snowRate: 0,
+  rainParticlesPerSecond: 0,
+  splashParticlesPerSecond: 0,
+  rainImpactCount: 0,
+  waterSplashParticlesPerSecond: 0,
+  waterRainImpactCount: 0,
+  waterSurfaceQueryCount: 0,
+  snowParticlesPerSecond: 0,
+  rainWindActive: false,
+  snowWindActive: false,
+  rainTargetVelocityWS: ZERO_VEC3,
+  rainEmitterOffsetWS: ZERO_VEC3,
+  snowTargetVelocityWS: ZERO_VEC3,
+  snowEmitterOffsetWS: ZERO_VEC3
+});
+
 /**
  * Composes weather with the existing astronomical cycle, wind owner, precipitation presentation,
  * and persistent surface climate. It never creates a second Sun, clock, or direct Scene-wind writer.
@@ -246,7 +269,7 @@ export class WorldEnvironmentRuntime {
   }
 
   get shaderWarmupWindRenderers() {
-    return this._precipitation.shaderWarmupWindRenderers;
+    return this._precipitation ? this._precipitation.shaderWarmupWindRenderers : [];
   }
 
   /** Engine-owned independent weather channels consumed by the demo adapters. */
@@ -254,11 +277,13 @@ export class WorldEnvironmentRuntime {
   private readonly _scene: Scene;
   private readonly _camera: Camera;
   private readonly _ground: TerrainRainImpactSurfaceProvider;
+  private readonly _waterSurface?: TerrainWaterRainImpactSurfaceProvider;
   private readonly _lighting: TerrainLightingRuntime;
   private readonly _wind: TerrainWindRuntime;
   private readonly _root: Entity;
   private readonly _driver: WorldEnvironmentDriver;
-  private readonly _precipitation: TerrainPrecipitationVfx;
+  private _precipitation: TerrainPrecipitationVfx | null;
+  private _precipitationLoading: Promise<void> | null = null;
   private readonly _clouds: VolumetricCloudSkyRuntime;
   private readonly _atmosphericWind = new TerrainP3AtmosphericWind();
   private readonly _lightningVfx: TerrainLightningVfx;
@@ -318,26 +343,27 @@ export class WorldEnvironmentRuntime {
     lighting: TerrainLightingRuntime,
     wind: TerrainWindRuntime,
     waterSurface?: TerrainWaterRainImpactSurfaceProvider,
-    options: { surfaceWaterSsrRequiresRain?: boolean } = {}
+    options: { surfaceWaterSsrRequiresRain?: boolean; lazyPrecipitation?: boolean } = {}
   ): Promise<WorldEnvironmentRuntime> {
     const root = scene.createRootEntity("Terrain World Environment");
-    const [precipitationResult, cloudResult] = await Promise.allSettled([
-      TerrainPrecipitationVfx.create(scene.engine, root, camera, ground, waterSurface),
-      VolumetricCloudSkyRuntime.create(scene, camera, {
-        quality: TERRAIN_DEFAULT_WORLD_ENVIRONMENT_CONFIGURATION.cloudQuality,
-        scaleSettings: TERRAIN_CLEAR_VOLUMETRIC_CLOUD_SCALE_SETTINGS,
-        shapeProfile: TERRAIN_CLEAR_VOLUMETRIC_CLOUD_SHAPE_PROFILE,
-        lightingProfile: TERRAIN_CLEAR_VOLUMETRIC_CLOUD_LIGHTING_PROFILE,
-        materialName: "Integrated World Volumetric Cloud Sky"
-      })
-    ]);
+    const cloudTask = VolumetricCloudSkyRuntime.create(scene, camera, {
+      quality: TERRAIN_DEFAULT_WORLD_ENVIRONMENT_CONFIGURATION.cloudQuality,
+      scaleSettings: TERRAIN_CLEAR_VOLUMETRIC_CLOUD_SCALE_SETTINGS,
+      shapeProfile: TERRAIN_CLEAR_VOLUMETRIC_CLOUD_SHAPE_PROFILE,
+      lightingProfile: TERRAIN_CLEAR_VOLUMETRIC_CLOUD_LIGHTING_PROFILE,
+      materialName: "Integrated World Volumetric Cloud Sky"
+    });
+    const precipitationTask = options.lazyPrecipitation
+      ? Promise.resolve<TerrainPrecipitationVfx | null>(null)
+      : TerrainPrecipitationVfx.create(scene.engine, root, camera, ground, waterSurface);
+    const [precipitationResult, cloudResult] = await Promise.allSettled([precipitationTask, cloudTask]);
     if (precipitationResult.status === "rejected") {
       if (cloudResult.status === "fulfilled") cloudResult.value.destroy();
       root.destroy();
       throw precipitationResult.reason;
     }
     if (cloudResult.status === "rejected") {
-      precipitationResult.value.destroy();
+      precipitationResult.value?.destroy();
       root.destroy();
       throw cloudResult.reason;
     }
@@ -350,6 +376,7 @@ export class WorldEnvironmentRuntime {
         scene,
         camera,
         ground,
+        waterSurface,
         lighting,
         wind,
         root,
@@ -365,7 +392,7 @@ export class WorldEnvironmentRuntime {
       }
       surfaceRainTextures?.destroy();
       lightningVfx?.destroy();
-      precipitationResult.value.destroy();
+      precipitationResult.value?.destroy();
       cloudResult.value.destroy();
       root.destroy();
       throw error;
@@ -376,10 +403,11 @@ export class WorldEnvironmentRuntime {
     scene: Scene,
     camera: Camera,
     ground: TerrainRainImpactSurfaceProvider,
+    waterSurface: TerrainWaterRainImpactSurfaceProvider | undefined,
     lighting: TerrainLightingRuntime,
     wind: TerrainWindRuntime,
     root: Entity,
-    precipitation: TerrainPrecipitationVfx,
+    precipitation: TerrainPrecipitationVfx | null,
     clouds: VolumetricCloudSkyRuntime,
     lightningVfx: TerrainLightningVfx,
     surfaceRainTextures: TerrainSurfaceRainTextures,
@@ -388,6 +416,7 @@ export class WorldEnvironmentRuntime {
     this._scene = scene;
     this._camera = camera;
     this._ground = ground;
+    this._waterSurface = waterSurface;
     this._lighting = lighting;
     this._wind = wind;
     this._root = root;
@@ -769,7 +798,7 @@ export class WorldEnvironmentRuntime {
       atmosphericWind: this._atmosphericWind.getSnapshot(),
       clouds: this._clouds.getSnapshot(),
       cloudAdvectionSpeed: this._cloudAdvectionSpeed,
-      precipitation: this._precipitation.getSnapshot(),
+      precipitation: this._precipitation ? this._precipitation.getSnapshot() : IDLE_PRECIPITATION_SNAPSHOT,
       lightning: this._lightningVfx.getSnapshot()
     };
   }
@@ -823,11 +852,41 @@ export class WorldEnvironmentRuntime {
     this._scene.shaderData.setTexture(SURFACE_WATER_NORMAL, null!);
     this._surfaceRainTextures.destroy();
     this._atmosphericWind.reset();
-    this._precipitation.destroy();
+    this._precipitation?.destroy();
+    this._precipitation = null;
     this._lightningVfx.destroy();
     this._clouds.destroy();
     this._root.destroy();
     this._destroyed = true;
+  }
+
+  private _ensurePrecipitation(): void {
+    if (this._destroyed || this._precipitation || this._precipitationLoading) return;
+    this._precipitationLoading = preloadTerrainPrecipitationShaders(this._scene.engine)
+      .then(() => {
+        if (this._destroyed) return null;
+        return TerrainPrecipitationVfx.create(
+          this._scene.engine,
+          this._root,
+          this._camera,
+          this._ground,
+          this._waterSurface
+        );
+      })
+      .then((vfx) => {
+        if (!vfx) return;
+        if (this._destroyed) {
+          vfx.destroy();
+          return;
+        }
+        this._precipitation = vfx;
+      })
+      .catch((error) => {
+        console.warn("[world-environment] lazy precipitation VFX initialization failed", error);
+      })
+      .finally(() => {
+        this._precipitationLoading = null;
+      });
   }
 
   private _applyComposedState(deltaTime: number, applyWindForcing = true): void {
@@ -843,16 +902,20 @@ export class WorldEnvironmentRuntime {
       this._clouds.cloudBaseAltitude,
       deltaTime
     );
-    this._precipitation.update(
-      deltaTime,
-      weather.precipitation.rainRate,
-      weather.precipitation.snowRate,
-      this._surface.puddles,
-      atmosphericWind.rainAirVelocityWS,
-      atmosphericWind.snowWindVelocityWS,
-      atmosphericWind.rainTurbulence,
-      atmosphericWind.snowTurbulence
-    );
+    if (this._precipitation) {
+      this._precipitation.update(
+        deltaTime,
+        weather.precipitation.rainRate,
+        weather.precipitation.snowRate,
+        this._surface.puddles,
+        atmosphericWind.rainAirVelocityWS,
+        atmosphericWind.snowWindVelocityWS,
+        atmosphericWind.rainTurbulence,
+        atmosphericWind.snowTurbulence
+      );
+    } else if (weather.precipitation.rainRate > 0 || weather.precipitation.snowRate > 0) {
+      this._ensurePrecipitation();
+    }
     const cloudVelocity = atmosphericWind.cloudVelocityWS;
     const cloudVelocityX = cloudVelocity[0];
     const cloudVelocityY = cloudVelocity[1];

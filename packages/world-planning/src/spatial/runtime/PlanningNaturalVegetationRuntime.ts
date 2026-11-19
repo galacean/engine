@@ -172,6 +172,7 @@ export class PlanningNaturalVegetationRuntime {
   private rockSettings?: RockFormationSettings;
   private rockSignal?: AbortSignal;
   private blockingPresentationDrain = false;
+  private initialDrainPosition?: { x: number; z: number };
   private materializeCamX = NaN;
   private materializeCamY = NaN;
   private materializeCamZ = NaN;
@@ -496,7 +497,8 @@ export class PlanningNaturalVegetationRuntime {
           !PLANT_SPECIES_CATALOG.shrubRecipes.some((entry) => entry.id === id)
       )
     );
-    if (pendingProcedural.size > 0) {
+    const proceduralTask = (async () => {
+      if (pendingProcedural.size === 0) return;
       if (!this.materials) {
         this.materials = await loadProceduralPlantMaterialBindings(
           this.owner.engine,
@@ -509,28 +511,34 @@ export class PlanningNaturalVegetationRuntime {
       }
 
       const sourceLods = [0, 2, 3] as const;
-      for (let level = 0; level < sourceLods.length; level++) {
-        const lod = sourceLods[level];
-        const prevLod = level > 0 ? sourceLods[level - 1] : -1;
-        const distinctIds = new Set(
-          [...pendingProcedural].filter((id) => {
-            const lodCount = this.metadataSources.get(id)?.lodCount ?? 1;
-            return level === 0 || Math.min(lod, lodCount - 1) !== Math.min(prevLod, lodCount - 1);
-          })
-        );
-        if (distinctIds.size > 0) {
+      const levelLoads = await Promise.all(
+        sourceLods.map(async (lod, level) => {
+          const prevLod = level > 0 ? sourceLods[level - 1] : -1;
+          const distinctIds = new Set(
+            [...pendingProcedural].filter((id) => {
+              const lodCount = this.metadataSources.get(id)?.lodCount ?? 1;
+              return level === 0 || Math.min(lod, lodCount - 1) !== Math.min(prevLod, lodCount - 1);
+            })
+          );
+          if (distinctIds.size === 0) return undefined;
           const plants = await ProceduralPlantLibraryRuntime.load({
             owner: this.resourceRoot,
             camera: this.camera,
             indexUrl,
             materialForSlot: (slot, asset, id) => this.configureLibraryMaterial(slot, asset, id),
-            colorForSlot: this.materials.colorForSlot,
+            colorForSlot: this.materials!.colorForSlot,
             normalMapped: true,
             populationOnly: true,
             assetIds: distinctIds,
             lod
           });
           plants.setShadows(SEED_WORLD_POPULATION_RUNTIME_PROFILE.shadows.castShadows);
+          return plants;
+        })
+      );
+      for (let level = 0; level < sourceLods.length; level++) {
+        const plants = levelLoads[level];
+        if (plants) {
           this.libraries.push(plants);
           for (const source of plants.getPlacementSources(true)) {
             this.sources[level].set(source.entry.id, source);
@@ -557,15 +565,33 @@ export class PlanningNaturalVegetationRuntime {
         }
       }
       for (const id of pendingProcedural) this.loadedProceduralIds.add(id);
-    }
+    })();
 
-    if (!this.catalogSources) {
-      this.catalogSources = await PlantSpeciesSources.load(this.resourceRoot, [0, 2, 3], assetIds);
-    } else {
-      await this.catalogSources.ensureAssets(assetIds);
-    }
+    const catalogTask = (async () => {
+      if (!this.catalogSources) {
+        this.catalogSources = await PlantSpeciesSources.load(this.resourceRoot, [0, 2, 3], assetIds);
+      } else {
+        await this.catalogSources.ensureAssets(assetIds);
+      }
+    })();
+
+    const effectiveSignal = signal ?? this.rockSignal ?? new AbortController().signal;
+    const companionRockTask = (async () => {
+      if (needsCompanionRocks && !this.rockSources && this.rockSettings) {
+        this.rockSources = await createCompanionRockSources(
+          this.resourceRoot,
+          this.library.stonePlacements,
+          plan,
+          this.rockSettings,
+          effectiveSignal
+        );
+      }
+    })();
+
+    await Promise.all([proceduralTask, catalogTask, companionRockTask]);
+
     for (let level = 0; level < 3; level++) {
-      for (const [id, source] of this.catalogSources.levels[level]) {
+      for (const [id, source] of this.catalogSources!.levels[level]) {
         this.sources[level].set(id, source);
         if (level === 0) {
           const prevMeta = this.metadataSources.get(id);
@@ -580,20 +606,10 @@ export class PlanningNaturalVegetationRuntime {
       this.plantAssets = this.buildPlantAssetsFromMetadata();
     }
 
-    const effectiveSignal = signal ?? this.rockSignal ?? new AbortController().signal;
-    if (needsCompanionRocks && !this.rockSources && this.rockSettings) {
-      this.rockSources = await createCompanionRockSources(
-        this.resourceRoot,
-        this.library.stonePlacements,
-        plan,
-        this.rockSettings,
-        effectiveSignal
-      );
-      const stoneSources = this.rockSources?.sources;
-      if (stoneSources) {
-        for (let level = 0; level < 3; level++) {
-          for (const [id, source] of stoneSources) this.sources[level].set(id, source);
-        }
+    const stoneSources = this.rockSources?.sources;
+    if (stoneSources) {
+      for (let level = 0; level < 3; level++) {
+        for (const [id, source] of stoneSources) this.sources[level].set(id, source);
       }
     }
   }
@@ -617,7 +633,8 @@ export class PlanningNaturalVegetationRuntime {
     materialParameters: PlantMaterialParameters = {},
     terrain?: Pick<SeedWorldTerrainRuntime, "registerGrassAppearanceMaterial">,
     presentation?: { view: LandscapeView; focus: LandscapeFocus },
-    groundingFields: SeedWorldFields = fields
+    groundingFields: SeedWorldFields = fields,
+    createOptions?: { deferInitialDrain?: boolean; initialDrainPosition?: { x: number; z: number } }
   ) {
     const runtime = new PlanningNaturalVegetationRuntime(
       owner,
@@ -678,15 +695,21 @@ export class PlanningNaturalVegetationRuntime {
         runtime.treePool.set(instance.id, plant);
       }
       // Initial nearby cells are ready before publication; later cells retain the same deterministic identities.
-      runtime.blockingPresentationDrain = true;
-      try {
-        runtime.update(0);
-        while (runtime.detailTask && !runtime.error) {
-          await runtime.detailTask;
+      // During initial startup before the spawn camera pose is applied, callers can supply the spawn position
+      // directly (overlapping with parallel worker loads) or defer draining to preparePresentation().
+      if (!createOptions?.deferInitialDrain) {
+        runtime.initialDrainPosition = createOptions?.initialDrainPosition;
+        runtime.blockingPresentationDrain = true;
+        try {
           runtime.update(0);
+          while (runtime.detailTask && !runtime.error) {
+            await runtime.detailTask;
+            runtime.update(0);
+          }
+        } finally {
+          runtime.blockingPresentationDrain = false;
+          runtime.initialDrainPosition = undefined;
         }
-      } finally {
-        runtime.blockingPresentationDrain = false;
       }
       if (runtime.error) throw new Error(runtime.error);
       return runtime;
@@ -976,7 +999,9 @@ export class PlanningNaturalVegetationRuntime {
     const worldHeight = (b.max[1] - b.min[1]) * (instance.scaleAxes?.[1] ?? instance.scale);
     const resolveSpecimenCastShadows = (specimen: Source, level: number) =>
       source.kind === "stone"
-        ? specimen.rendererBindings.every((binding) => binding.renderer.castShadows) && level === 0 && worldHeight >= 1.5
+        ? specimen.rendererBindings.every((binding) => binding.renderer.castShadows) &&
+          level === 0 &&
+          worldHeight >= 1.5
         : tree
           ? shadows.castShadows && treeLevelWithinShadowDistance(level)
           : shadows.castShadows && level === 0;
@@ -1174,16 +1199,7 @@ export class PlanningNaturalVegetationRuntime {
       const detailMaxDist = SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade.maximumDistanceMetres;
       for (const record of records) {
         if (
-          this.isRecordWithinMaterializeRange(
-            record,
-            camX,
-            camY,
-            camZ,
-            isOrtho,
-            orthoSize,
-            tanHalfFov,
-            detailMaxDist
-          )
+          this.isRecordWithinMaterializeRange(record, camX, camY, camZ, isOrtho, orthoSize, tanHalfFov, detailMaxDist)
         ) {
           record.plant = this.plant(root, record.instance, false, fields, rockSupport, record.groundHeight);
           plants.push(record.plant);
@@ -1231,16 +1247,7 @@ export class PlanningNaturalVegetationRuntime {
       for (const record of cell.records) {
         if (record.plant) continue;
         if (
-          this.isRecordWithinMaterializeRange(
-            record,
-            camX,
-            camY,
-            camZ,
-            isOrtho,
-            orthoSize,
-            tanHalfFov,
-            detailMaxDist
-          )
+          this.isRecordWithinMaterializeRange(record, camX, camY, camZ, isOrtho, orthoSize, tanHalfFov, detailMaxDist)
         ) {
           record.plant = this.plant(
             cell.root,
@@ -1378,7 +1385,7 @@ export class PlanningNaturalVegetationRuntime {
 
   private updateDetailStreaming(): void {
     this.pendingCells ??= [];
-    const position = this.camera.entity.transform.worldPosition;
+    const position = this.initialDrainPosition ?? this.camera.entity.transform.worldPosition;
     if (this.streamX !== position.x || this.streamZ !== position.z) {
       this.streamX = position.x;
       this.streamZ = position.z;
@@ -1394,7 +1401,7 @@ export class PlanningNaturalVegetationRuntime {
       const planner = this.planner,
         rocks = this.rockSources;
       const isPresentationDrain = !!this.blockingPresentationDrain;
-      const sliceBudgetMs = isPresentationDrain ? 8 : 2;
+      const sliceBudgetMs = isPresentationDrain ? 24 : 2;
       const yieldSlice = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
       const load = async () => {
         let result: VegetationLandscapePlan;

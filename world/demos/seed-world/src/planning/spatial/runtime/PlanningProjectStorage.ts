@@ -33,13 +33,18 @@ export class PlanningProjectStorage {
 
   /** New Source authoring baseline is ready before the first Engine Scene load. */
   async initialize(document: PlanningDocument, result: SemanticResult, waterResetRequest?: string): Promise<PlanningDocument> {
-    const defaults = await loadPlanningWaterDefaults();
+    const existingPack = this.project.projectPackage;
+    const existingFiles = new Set(existingPack.project.files.map((file) => file.virtualPath));
+    const hasCoreWaterDefaults = ["lake", "river", "ocean"].every((kind) =>
+      existingFiles.has(`Water/Materials/${kind}.mat`)
+    );
+    const defaults = hasCoreWaterDefaults ? undefined : await loadPlanningWaterDefaults();
     const build = (pack: RuntimeProjectSession["projectPackage"]) => {
       const draft = new RuntimeProjectEdit(pack, new Map([...nativeAssetFormats(() => ({})), ...this.formats]));
       const request = waterResetRequest ?? this.pendingWaterReset;
       const applied = new Set(waterInitialization(pack).appliedResets ?? []);
       if (request && !applied.has(request)) clearPlanningWaterSource(draft);
-      installPlanningWaterDefaults(draft, defaults);
+      if (defaults) installPlanningWaterDefaults(draft, defaults);
       const next = initializePlanningWater(draft, document, result.plan);
       writePlanningProjectSource(draft, pack.project.scene, next);
       initializePlanningOcean(draft, result.plan);

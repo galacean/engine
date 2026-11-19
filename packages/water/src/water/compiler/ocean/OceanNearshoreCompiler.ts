@@ -58,11 +58,6 @@ function seedBoundaryDistance(
   }
 }
 
-function relax(distances: Float64Array, index: number, neighbor: number, weight: number): void {
-  const candidate = distances[neighbor]! + weight;
-  if (candidate < distances[index]!) distances[index] = candidate;
-}
-
 /** Anisotropic eight-neighbour chamfer transform, bounded O(texels). */
 function distanceToClass(
   wetMask: Uint8Array,
@@ -81,25 +76,53 @@ function distanceToClass(
   const stepZ = cellSizeXZ[1];
   const diagonal = Math.hypot(stepX, stepZ);
   for (let z = 0; z < height; z++) {
+    const row = z * width;
+    const prevRow = row - width;
     for (let x = 0; x < width; x++) {
-      const index = z * width + x;
-      if (x > 0) relax(distances, index, index - 1, stepX);
-      if (z > 0) {
-        relax(distances, index, index - width, stepZ);
-        if (x > 0) relax(distances, index, index - width - 1, diagonal);
-        if (x + 1 < width) relax(distances, index, index - width + 1, diagonal);
+      const index = row + x;
+      let d = distances[index];
+      if (x > 0) {
+        const c = distances[index - 1] + stepX;
+        if (c < d) d = c;
       }
+      if (z > 0) {
+        const c0 = distances[prevRow + x] + stepZ;
+        if (c0 < d) d = c0;
+        if (x > 0) {
+          const c1 = distances[prevRow + x - 1] + diagonal;
+          if (c1 < d) d = c1;
+        }
+        if (x + 1 < width) {
+          const c2 = distances[prevRow + x + 1] + diagonal;
+          if (c2 < d) d = c2;
+        }
+      }
+      distances[index] = d;
     }
   }
   for (let z = height - 1; z >= 0; z--) {
+    const row = z * width;
+    const nextRow = row + width;
     for (let x = width - 1; x >= 0; x--) {
-      const index = z * width + x;
-      if (x + 1 < width) relax(distances, index, index + 1, stepX);
-      if (z + 1 < height) {
-        relax(distances, index, index + width, stepZ);
-        if (x > 0) relax(distances, index, index + width - 1, diagonal);
-        if (x + 1 < width) relax(distances, index, index + width + 1, diagonal);
+      const index = row + x;
+      let d = distances[index];
+      if (x + 1 < width) {
+        const c = distances[index + 1] + stepX;
+        if (c < d) d = c;
       }
+      if (z + 1 < height) {
+        const c0 = distances[nextRow + x] + stepZ;
+        if (c0 < d) d = c0;
+        if (x > 0) {
+          const c1 = distances[nextRow + x - 1] + diagonal;
+          if (c1 < d) d = c1;
+        }
+        if (x + 1 < width) {
+          const c2 = distances[nextRow + x + 1] + diagonal;
+          if (c2 < d) d = c2;
+        }
+      }
+      distances[index] = d;
     }
   }
   return distances;

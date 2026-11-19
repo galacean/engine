@@ -174,7 +174,24 @@ export function hashStableValue(value: unknown): string {
   // serialized string and per-field string arrays for immutable terrain buffers.
   let low = 0x811c9dc5;
   let high = 0x9e3779b9;
-  writeStableValue(value, (chunk) => {
+  const feedAscii = (code: number): void => {
+    low = Math.imul(Math.imul(low ^ code, 0x01000193), 0x01000193) >>> 0;
+    high = Math.imul(high ^ code, 0x5bd1e995) >>> 0;
+    high ^= high >>> 15;
+    high = Math.imul(high, 0x5bd1e995) >>> 0;
+    high ^= high >>> 15;
+  };
+  const feedAsciiString = (chunk: string): void => {
+    for (let i = 0; i < chunk.length; i++) {
+      const code = chunk.charCodeAt(i);
+      low = Math.imul(Math.imul(low ^ code, 0x01000193), 0x01000193) >>> 0;
+      high = Math.imul(high ^ code, 0x5bd1e995) >>> 0;
+      high ^= high >>> 15;
+      high = Math.imul(high, 0x5bd1e995) >>> 0;
+      high ^= high >>> 15;
+    }
+  };
+  const feedString = (chunk: string): void => {
     for (let i = 0; i < chunk.length; i++) {
       const code = chunk.charCodeAt(i),
         lowByte = code & 0xff,
@@ -186,7 +203,183 @@ export function hashStableValue(value: unknown): string {
       high = Math.imul(high ^ highByte, 0x5bd1e995) >>> 0;
       high ^= high >>> 15;
     }
-  });
+  };
+  const hashValue = (v: unknown): void => {
+    if (v === null) {
+      feedAsciiString("null");
+      return;
+    }
+    const t = typeof v;
+    if (t === "number") {
+      if (v === 0) feedAscii(48);
+      else if (Number.isFinite(v as number)) feedAsciiString("" + (v as number));
+      else feedAsciiString("null");
+      return;
+    }
+    if (t === "boolean") {
+      feedAsciiString(v ? "true" : "false");
+      return;
+    }
+    if (t === "string") {
+      feedString(JSON.stringify(v));
+      return;
+    }
+    if (v instanceof StableNumericArray) {
+      const values = v.values;
+      feedAscii(91); // '['
+      let l = low;
+      let h = high;
+      if (values instanceof Uint8Array || values instanceof Uint8ClampedArray) {
+        const len = values.length;
+        for (let i = 0; i < len; i++) {
+          if (i) {
+            l = Math.imul(Math.imul(l ^ 44, 0x01000193), 0x01000193) >>> 0;
+            h = Math.imul(h ^ 44, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+            h = Math.imul(h, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+          }
+          const b = values[i];
+          if (b < 10) {
+            const c0 = 48 + b;
+            l = Math.imul(Math.imul(l ^ c0, 0x01000193), 0x01000193) >>> 0;
+            h = Math.imul(h ^ c0, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+            h = Math.imul(h, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+          } else if (b < 100) {
+            const tens = (b * 0.1) | 0;
+            const c0 = 48 + tens;
+            const c1 = 48 + b - tens * 10;
+            l = Math.imul(Math.imul(l ^ c0, 0x01000193), 0x01000193) >>> 0;
+            h = Math.imul(h ^ c0, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+            h = Math.imul(h, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+            l = Math.imul(Math.imul(l ^ c1, 0x01000193), 0x01000193) >>> 0;
+            h = Math.imul(h ^ c1, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+            h = Math.imul(h, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+          } else {
+            const hundreds = (b * 0.01) | 0;
+            const rem = b - hundreds * 100;
+            const tens = (rem * 0.1) | 0;
+            const c0 = 48 + hundreds;
+            const c1 = 48 + tens;
+            const c2 = 48 + rem - tens * 10;
+            l = Math.imul(Math.imul(l ^ c0, 0x01000193), 0x01000193) >>> 0;
+            h = Math.imul(h ^ c0, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+            h = Math.imul(h, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+            l = Math.imul(Math.imul(l ^ c1, 0x01000193), 0x01000193) >>> 0;
+            h = Math.imul(h ^ c1, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+            h = Math.imul(h, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+            l = Math.imul(Math.imul(l ^ c2, 0x01000193), 0x01000193) >>> 0;
+            h = Math.imul(h ^ c2, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+            h = Math.imul(h, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+          }
+        }
+      } else {
+        const len = values.length;
+        for (let i = 0; i < len; i++) {
+          if (i) {
+            l = Math.imul(Math.imul(l ^ 44, 0x01000193), 0x01000193) >>> 0;
+            h = Math.imul(h ^ 44, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+            h = Math.imul(h, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+          }
+          const n = values[i];
+          if (n === 0) {
+            l = Math.imul(Math.imul(l ^ 48, 0x01000193), 0x01000193) >>> 0;
+            h = Math.imul(h ^ 48, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+            h = Math.imul(h, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+          } else if (n === 1) {
+            l = Math.imul(Math.imul(l ^ 49, 0x01000193), 0x01000193) >>> 0;
+            h = Math.imul(h ^ 49, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+            h = Math.imul(h, 0x5bd1e995) >>> 0;
+            h ^= h >>> 15;
+          } else if (Number.isFinite(n)) {
+            const s = "" + n;
+            for (let j = 0; j < s.length; j++) {
+              const c = s.charCodeAt(j);
+              l = Math.imul(Math.imul(l ^ c, 0x01000193), 0x01000193) >>> 0;
+              h = Math.imul(h ^ c, 0x5bd1e995) >>> 0;
+              h ^= h >>> 15;
+              h = Math.imul(h, 0x5bd1e995) >>> 0;
+              h ^= h >>> 15;
+            }
+          } else {
+            const s = "null";
+            for (let j = 0; j < 4; j++) {
+              const c = s.charCodeAt(j);
+              l = Math.imul(Math.imul(l ^ c, 0x01000193), 0x01000193) >>> 0;
+              h = Math.imul(h ^ c, 0x5bd1e995) >>> 0;
+              h ^= h >>> 15;
+              h = Math.imul(h, 0x5bd1e995) >>> 0;
+              h ^= h >>> 15;
+            }
+          }
+        }
+      }
+      low = l;
+      high = h;
+      feedAscii(93); // ']'
+      return;
+    }
+    if (Array.isArray(v)) {
+      feedAscii(91); // '['
+      for (let i = 0; i < v.length; i++) {
+        if (i) feedAscii(44); // ','
+        if (i in v) hashObject(v[i]);
+      }
+      feedAscii(93); // ']'
+      return;
+    }
+    if (t === "object") {
+      writeStableValue(v, feedString);
+      return;
+    }
+    feedAsciiString("null");
+  };
+  // Specialize top-level plain objects so nested StableNumericArray fields hit the fast path.
+  const hashObject = (v: unknown): void => {
+    if (
+      v !== null &&
+      typeof v === "object" &&
+      !Array.isArray(v) &&
+      !(v instanceof StableNumericArray) &&
+      !ArrayBuffer.isView(v)
+    ) {
+      const record = v as Record<string, unknown>;
+      feedAscii(123); // '{'
+      let first = true;
+      const keys = Object.keys(record)
+        .filter((key) => record[key] !== undefined)
+        .sort();
+      for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        if (!first) feedAscii(44);
+        first = false;
+        feedString(JSON.stringify(key));
+        feedAscii(58); // ':'
+        hashObject(record[key]);
+      }
+      feedAscii(125); // '}'
+      return;
+    }
+    hashValue(v);
+  };
+  hashObject(value);
   return `${toHex(high)}${toHex(low)}`;
 }
 

@@ -17,7 +17,7 @@ import type {
 } from "../../compiler/ocean/OceanNearshoreCompiledTypes";
 
 import { WaterBufferOwnership } from "../../compiler/shared/WaterBufferOwnership";
-import { hashStableValue } from "../../compiler/shared/determinism";
+import { asStableHashArray, hashStableValue } from "../../compiler/shared/determinism";
 import { createWaterResourceMemoryMetrics, measureWaterOwnedCpuBytes } from "../resources/WaterResourceMetrics";
 import { OceanNearshoreFieldResource } from "./OceanNearshoreFieldResource";
 import type { OceanWaterSourceConfig } from "./OceanWaterRuntimeTypes";
@@ -141,14 +141,16 @@ function hashableDescriptor(descriptor: Readonly<OceanWaterBodyDescriptorV1>): o
         id: nearshore.id,
         waterLevel: nearshore.waterLevel,
         grid: nearshore.grid,
-        bedHeights: Array.from(nearshore.bedHeights),
-        signedShoreDistances: nearshore.signedShoreDistances ? Array.from(nearshore.signedShoreDistances) : undefined,
+        bedHeights: asStableHashArray(nearshore.bedHeights),
+        signedShoreDistances: nearshore.signedShoreDistances
+          ? asStableHashArray(nearshore.signedShoreDistances)
+          : undefined,
         wetSource:
           nearshore.wetSource.kind === "mask"
             ? {
                 kind: nearshore.wetSource.kind,
                 minimumDepth: nearshore.wetSource.minimumDepth,
-                mask: Array.from(nearshore.wetSource.mask)
+                mask: asStableHashArray(nearshore.wetSource.mask)
               }
             : nearshore.wetSource,
         outsidePolicy: nearshore.outsidePolicy,

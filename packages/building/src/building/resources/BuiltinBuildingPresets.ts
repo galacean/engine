@@ -23,5 +23,6 @@ export const builtinBuildingPresetFiles: RuntimeProjectManifest["files"] = built
   virtualPath: preset.path,
   path: preset.url,
   type: "Prefab",
-  dependencies: [BUILTIN_BUILDING_ASSETS]
+  dependencies: [BUILTIN_BUILDING_ASSETS],
+  params: { editableSource: true }
 }));

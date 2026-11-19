@@ -2,27 +2,13 @@ import { exportPlanningRecipe, type PlanningDocument } from "@galacean/engine-wo
 import { createTemplatePlanningDocument } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
 import { templateLinearColor, worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
 import { WORLD_TEMPLATE_ART } from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
-
-let selection: { id: string; seed: number } | undefined;
-
-export function randomPlanningSeed(): number {
-  return crypto.getRandomValues(new Uint32Array(1))[0];
-}
-
-/** A shared URL keeps its Seed. A new entry gets a Seed before the world is opened. */
-export function planningStartupSeed(query: URLSearchParams): number {
-  const raw = query.get("seed");
-  if (raw !== null && /^\d+$/.test(raw) && Number(raw) <= 0xffffffff) return Number(raw);
-  return randomPlanningSeed();
-}
-
-/** Remember an explicit launch selection for this page lifetime only.
- * @param id Registered theme, or empty for the original world.
- * @param seed Selected world identity.
- */
-export function selectPlanningStartupTemplate(id: string, seed: number): void {
-  selection = { id, seed };
-}
+import {
+  planningStartupSeed,
+  randomPlanningSeed,
+  selectPlanningStartupTemplate,
+  selectedPlanningStartupTemplate
+} from "./PlanningStartupSeed.ts";
+export { planningStartupSeed, randomPlanningSeed, selectPlanningStartupTemplate };
 
 /** Resolve new authoring without replacing a saved world's later edits on refresh.
  * @param search Current page query, carrying the initial template for a new world.
@@ -31,6 +17,7 @@ export function selectPlanningStartupTemplate(id: string, seed: number): void {
  * @returns Template to initialize, or undefined to restore the saved document.
  */
 export function initialPlanningTemplate(search: string, seed: number, savedTemplate?: string): string | undefined {
+  const selection = selectedPlanningStartupTemplate();
   const explicit = selection?.seed === seed ? selection.id : undefined;
   if (savedTemplate === "" || worldTemplate(savedTemplate)) {
     return explicit !== undefined && explicit !== savedTemplate ? explicit : undefined;

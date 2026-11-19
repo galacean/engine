@@ -10,7 +10,7 @@ import {
   type OceanWaterCompiledTransferV1
 } from "@galacean/engine-water/water/runtime/ocean/index";
 import { planningHeightmap, type PlanningHeightmap } from "./PlanningHeightmap";
-import { createPlanningRingQuery } from "./WorldPlanningTerrain";
+import { rasterizePolygonGrid } from "../geometry/V2Geometry";
 import type { IslandPlan } from "./IslandPlanModel";
 
 import { numericContentIdentity } from "@galacean/engine-water/water/compiler/index";
@@ -37,15 +37,10 @@ export function planningOceanDescriptor(plan: IslandPlan): OceanWaterBodyDescrip
   const domainKey = JSON.stringify([resolution, height.spacingX, height.spacingZ, plan.land, plan.islands]);
   let outside = domainMasks.get(domainKey);
   if (!outside) {
-    const domains = [plan.land, ...plan.islands].map(createPlanningRingQuery);
-    outside = new Uint8Array(bedHeights.length);
-    for (let z = 0; z < resolution; z++)
-      for (let x = 0; x < resolution; x++)
-        outside[z * resolution + x] = domains.some((domain) =>
-          domain.inside({ x: x * height.spacingX, z: z * height.spacingZ })
-        )
-          ? 0
-          : 1;
+    outside = new Uint8Array(bedHeights.length).fill(1);
+    for (const ring of [plan.land, ...plan.islands]) {
+      rasterizePolygonGrid(ring, resolution, height.spacingX, height.spacingZ, outside, 0);
+    }
     retain(domainMasks, domainKey, outside);
   }
   for (let i = 0; i < bedHeights.length; i++) {

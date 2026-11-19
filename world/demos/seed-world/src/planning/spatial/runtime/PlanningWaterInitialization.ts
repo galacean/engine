@@ -267,24 +267,38 @@ interface WaterDefaultAsset {
   file: RuntimeProjectPackage["project"]["files"][number];
   content: string | Uint8Array;
 }
-export async function loadPlanningWaterDefaults(): Promise<Map<string, WaterDefaultAsset>> {
-  const response = await fetch(BUILTIN_WATER_PROJECT_URL);
-  if (!response.ok) throw new Error(`Water manifest: HTTP ${response.status}`);
-  const manifest = (await response.json()) as { files: RuntimeProjectPackage["project"]["files"] };
-  const files = await Promise.all(
-    manifest.files
-      .filter((file) => /^Water\/(Materials|Textures|Shaders)\//.test(file.virtualPath))
-      .map(async (file) => {
-        const path = new URL(file.path, BUILTIN_WATER_PROJECT_URL).href;
-        const response = await fetch(path);
-        if (!response.ok) throw new Error(`${file.virtualPath}: HTTP ${response.status}`);
-        const content = ["KTX2", "Texture"].includes(file.type)
-          ? new Uint8Array(await response.arrayBuffer())
-          : await response.text();
-        return [file.virtualPath, { file: { ...file, path }, content }] as const;
-      })
-  );
-  return new Map(files);
+let waterDefaultsPromise: Promise<Map<string, WaterDefaultAsset>> | undefined;
+
+export function preloadPlanningWaterDefaults(): void {
+  void loadPlanningWaterDefaults().catch(() => {});
+}
+
+export function loadPlanningWaterDefaults(): Promise<Map<string, WaterDefaultAsset>> {
+  if (!waterDefaultsPromise) {
+    waterDefaultsPromise = (async () => {
+      const response = await fetch(BUILTIN_WATER_PROJECT_URL);
+      if (!response.ok) throw new Error(`Water manifest: HTTP ${response.status}`);
+      const manifest = (await response.json()) as { files: RuntimeProjectPackage["project"]["files"] };
+      const files = await Promise.all(
+        manifest.files
+          .filter((file) => /^Water\/(Materials|Textures|Shaders)\//.test(file.virtualPath))
+          .map(async (file) => {
+            const path = new URL(file.path, BUILTIN_WATER_PROJECT_URL).href;
+            const response = await fetch(path);
+            if (!response.ok) throw new Error(`${file.virtualPath}: HTTP ${response.status}`);
+            const content = ["KTX2", "Texture"].includes(file.type)
+              ? new Uint8Array(await response.arrayBuffer())
+              : await response.text();
+            return [file.virtualPath, { file: { ...file, path }, content }] as const;
+          })
+      );
+      return new Map(files);
+    })().catch((error) => {
+      waterDefaultsPromise = undefined;
+      throw error;
+    });
+  }
+  return waterDefaultsPromise;
 }
 
 export function installPlanningWaterDefaults(

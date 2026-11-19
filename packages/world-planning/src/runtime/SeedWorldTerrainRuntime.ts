@@ -521,24 +521,6 @@ export class SeedWorldTerrainRuntime {
     try {
       if (inspectionTile) validateInspectionTile(inspectionTile);
       const sources = buildTerrainSources(fields, terrainSettings, terrainNormalSamples);
-      const terrainMaterial = await engine.resourceManager.load<Material>({
-        type: AssetType.Material,
-        url: SEED_WORLD_TERRAIN_MATERIAL_URL
-      });
-      grassColorFieldTexture = await createSeedWorldSharedSurfaceTexture(engine);
-      signal?.throwIfAborted();
-      surfaceRelief = await SeedWorldSurfaceReliefRuntime.create(
-        engine,
-        fields,
-        surfaceIntent,
-        grassColorFieldTexture,
-        signal
-      );
-      signal?.throwIfAborted();
-      const soilTexture = surfaceIntent.soilCoverage
-        ? await loadPlanningFarmDirtTexture(engine, !!surfaceOptions.baseTextureUrl?.trim() || !!surfaceOptions.palette)
-        : undefined;
-      signal?.throwIfAborted();
       const loadSurfaceTexture = (url: string | undefined, isSRGBColorSpace: boolean) =>
         url?.trim()
           ? engine.resourceManager.load<Texture2D>({
@@ -547,12 +529,32 @@ export class SeedWorldTerrainRuntime {
               params: { isSRGBColorSpace, mipmap: true }
             })
           : undefined;
-      const [diffuse, normal, microNormal, paletteTextures] = await Promise.all([
-        loadSurfaceTexture(surfaceOptions.baseTextureUrl, true),
-        loadSurfaceTexture(surfaceOptions.normalTextureUrl, false),
-        loadSurfaceTexture(surfaceOptions.microNormalTextureUrl, false),
-        Promise.all((surfaceOptions.palette?.layers ?? []).map((l) => loadSurfaceTexture(l.textureUrl, true)!))
-      ]);
+      const activeDecorations = inspectionTile ? filterDecorationsToTile(decorations, inspectionTile) : decorations;
+      const needsRockDither = activeDecorations.some(({ category }) => category === "rock" || category === "stone");
+      const [terrainMaterial, surfacePair, soilTexture, diffuse, normal, microNormal, paletteTextures] =
+        await Promise.all([
+          engine.resourceManager.load<Material>({
+            type: AssetType.Material,
+            url: SEED_WORLD_TERRAIN_MATERIAL_URL
+          }),
+          createSeedWorldSharedSurfaceTexture(engine).then(async (tex) => {
+            grassColorFieldTexture = tex;
+            signal?.throwIfAborted();
+            const relief = await SeedWorldSurfaceReliefRuntime.create(engine, fields, surfaceIntent, tex, signal);
+            surfaceRelief = relief;
+            return { tex, relief };
+          }),
+          surfaceIntent.soilCoverage
+            ? loadPlanningFarmDirtTexture(engine, !!surfaceOptions.baseTextureUrl?.trim() || !!surfaceOptions.palette)
+            : undefined,
+          loadSurfaceTexture(surfaceOptions.baseTextureUrl, true),
+          loadSurfaceTexture(surfaceOptions.normalTextureUrl, false),
+          loadSurfaceTexture(surfaceOptions.microNormalTextureUrl, false),
+          Promise.all((surfaceOptions.palette?.layers ?? []).map((l) => loadSurfaceTexture(l.textureUrl, true)!)),
+          needsRockDither ? prepareRockLodDither(engine) : undefined
+        ]);
+      grassColorFieldTexture = surfacePair.tex;
+      surfaceRelief = surfacePair.relief;
       signal?.throwIfAborted();
       const surface =
         diffuse || normal || paletteTextures.length
@@ -623,15 +625,10 @@ export class SeedWorldTerrainRuntime {
         }
       );
       const decorationsRoot = root.createChild("Decorations");
-      const activeDecorations = inspectionTile ? filterDecorationsToTile(decorations, inspectionTile) : decorations;
       const terrainOcclusion = new SeedWorldTerrainOcclusionCuller(fields);
       let exactPrefabs: SeedWorldExactPrefabRuntimeRegistry | undefined;
       let population: SeedWorldPopulationRuntime | undefined;
       try {
-        if (activeDecorations.some(({ category }) => category === "rock" || category === "stone")) {
-          await prepareRockLodDither(engine);
-          signal?.throwIfAborted();
-        }
         exactPrefabs = new SeedWorldExactPrefabRuntimeRegistry({
           engine,
           parent: decorationsRoot,

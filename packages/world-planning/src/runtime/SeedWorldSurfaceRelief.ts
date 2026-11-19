@@ -85,11 +85,21 @@ export function bakeSeedWorldSurfaceReliefMask(
     );
   }
   if (tuning.maskCoverageStart === 0 && tuning.maskSoftnessMetres === 0) return grass;
-  const ramp = Float32Array.from(grass, (value) =>
-    Math.max(0, Math.min(1, (value / 255 - tuning.maskCoverageStart) / (1 - tuning.maskCoverageStart)))
-  );
+  const ramp = new Float32Array(count);
+  const start = tuning.maskCoverageStart;
+  const invSpan = 1 / (255 * (1 - start));
+  const startScaled = start / (1 - start);
+  for (let index = 0; index < count; index++) {
+    const v = grass[index] * invSpan - startScaled;
+    ramp[index] = v <= 0 ? 0 : v >= 1 ? 1 : v;
+  }
   const softened = softenCoverage(ramp, edge, (tuning.maskSoftnessMetres * (edge - 1)) / fields.sizeMetres);
-  return Uint8Array.from(softened, (value) => Math.round(Math.max(0, Math.min(1, value)) * 255));
+  const result = new Uint8Array(count);
+  for (let index = 0; index < count; index++) {
+    const v = softened[index];
+    result[index] = v <= 0 ? 0 : v >= 1 ? 255 : Math.round(v * 255);
+  }
+  return result;
 }
 
 /**
@@ -112,25 +122,47 @@ export function packSeedWorldSurfaceReliefMask(mask: Uint8Array, resolution: num
   // Match SurfaceRelief.glsl's world-space stencil. Encoding the difference (not
   // its slope) bounds both channels to [-1, 1] for every world size; 128 is exact zero.
   const offset = (0.36199188232421875 * (resolution - 1)) / sizeMetres;
-  const sample = (x: number, z: number): number => {
-    x = Math.max(0, Math.min(resolution - 1, x));
-    z = Math.max(0, Math.min(resolution - 1, z));
-    const x0 = Math.floor(x),
-      z0 = Math.floor(z);
-    const x1 = Math.min(x0 + 1, resolution - 1),
-      z1 = Math.min(z0 + 1, resolution - 1);
-    const a = mask[z0 * resolution + x0] * (1 - (x - x0)) + mask[z0 * resolution + x1] * (x - x0);
-    const b = mask[z1 * resolution + x0] * (1 - (x - x0)) + mask[z1 * resolution + x1] * (x - x0);
-    return (a * (1 - (z - z0)) + b * (z - z0)) / 255;
-  };
+  const last = resolution - 1;
+  const scale = 127 / 255;
+  // Precompute 1D interpolation indices/weights along each axis (axis-aligned stencil).
+  const p0 = new Int32Array(resolution);
+  const p1 = new Int32Array(resolution);
+  const pw = new Float64Array(resolution);
+  const m0 = new Int32Array(resolution);
+  const m1 = new Int32Array(resolution);
+  const mw = new Float64Array(resolution);
+  for (let i = 0; i < resolution; i++) {
+    const xp = Math.max(0, Math.min(last, i + offset));
+    const xp0 = Math.floor(xp);
+    p0[i] = xp0;
+    p1[i] = Math.min(xp0 + 1, last);
+    pw[i] = xp - xp0;
+    const xm = Math.max(0, Math.min(last, i - offset));
+    const xm0 = Math.floor(xm);
+    m0[i] = xm0;
+    m1[i] = Math.min(xm0 + 1, last);
+    mw[i] = xm - xm0;
+  }
   const pixels = new Uint8Array(mask.length * 3);
-  for (let z = 0; z < resolution; z++)
+  for (let z = 0; z < resolution; z++) {
+    const row = z * resolution;
+    const zp0Row = p0[z] * resolution;
+    const zp1Row = p1[z] * resolution;
+    const zpw = pw[z];
+    const zm0Row = m0[z] * resolution;
+    const zm1Row = m1[z] * resolution;
+    const zmw = mw[z];
     for (let x = 0; x < resolution; x++) {
-      const index = (z * resolution + x) * 3;
-      pixels[index] = mask[z * resolution + x];
-      pixels[index + 1] = Math.round(128 + 127 * (sample(x + offset, z) - sample(x - offset, z)));
-      pixels[index + 2] = Math.round(128 + 127 * (sample(x, z + offset) - sample(x, z - offset)));
+      const index = (row + x) * 3;
+      pixels[index] = mask[row + x];
+      const xpVal = mask[row + p0[x]] * (1 - pw[x]) + mask[row + p1[x]] * pw[x];
+      const xmVal = mask[row + m0[x]] * (1 - mw[x]) + mask[row + m1[x]] * mw[x];
+      const zpVal = mask[zp0Row + x] * (1 - zpw) + mask[zp1Row + x] * zpw;
+      const zmVal = mask[zm0Row + x] * (1 - zmw) + mask[zm1Row + x] * zmw;
+      pixels[index + 1] = Math.round(128 + scale * (xpVal - xmVal));
+      pixels[index + 2] = Math.round(128 + scale * (zpVal - zmVal));
     }
+  }
   return pixels;
 }
 

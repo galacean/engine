@@ -554,22 +554,27 @@ export class BuildingRuntime extends Script {
     signal?.addEventListener("abort", discard, { once: true });
     try {
       check();
-      for (const frame of this.frames().keys()) {
-        const input = this.input(frame, next),
-          old = this.views.get(frame);
-        const unchanged =
-          old &&
-          previous &&
-          old.signature === this.input(frame, previous).signature &&
-          input.execution !== "main" &&
-          !terrainAffectsRegion(buildingWorldRegion(input.draft, input.placement), previous.grid, next.grid);
-        const view = unchanged
-          ? old
-          : await this.prepareView(frame, input, check, signal ?? new AbortController().signal);
+      const frameList = [...this.frames().keys()];
+      const effectiveSignal = signal ?? new AbortController().signal;
+      const views = await Promise.all(
+        frameList.map(async (frame) => {
+          const input = this.input(frame, next),
+            old = this.views.get(frame);
+          const unchanged =
+            old &&
+            previous &&
+            old.signature === this.input(frame, previous).signature &&
+            input.execution !== "main" &&
+            !terrainAffectsRegion(buildingWorldRegion(input.draft, input.placement), previous.grid, next.grid);
+          const view = unchanged ? old : await this.prepareView(frame, input, check, effectiveSignal);
+          return { view, signature: input.signature };
+        })
+      );
+      for (const { view, signature } of views) {
         prepared.push(view);
-        preparedSignatures.set(view, input.signature);
-        check();
+        preparedSignatures.set(view, signature);
       }
+      check();
       // Capture immutable spatial facts before accepting, for navigation and
       // other world consumers. Hidden render state never leaks into live queries.
       const queries = this.queriesFor(prepared);

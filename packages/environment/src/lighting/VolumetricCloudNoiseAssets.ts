@@ -76,9 +76,14 @@ export function decodeTexture3DAsset(source: string): SerializedTexture3DData {
   if (dataMatch[1].length !== dataSize * 2) {
     throw new Error(`Cloud detail Texture3D payload has ${dataMatch[1].length / 2} bytes; expected ${dataSize}.`);
   }
+  const hex = dataMatch[1];
   const pixels = new Uint8Array(dataSize);
-  for (let index = 0; index < dataSize; index++) {
-    pixels[index] = Number.parseInt(dataMatch[1].slice(index * 2, index * 2 + 2), 16);
+  for (let index = 0, pos = 0; index < dataSize; index++, pos += 2) {
+    const hi = hex.charCodeAt(pos);
+    const lo = hex.charCodeAt(pos + 1);
+    const hiVal = hi <= 57 ? hi - 48 : (hi & ~32) - 55;
+    const loVal = lo <= 57 ? lo - 48 : (lo & ~32) - 55;
+    pixels[index] = (hiVal << 4) | loVal;
   }
   return Object.freeze({ width, height, depth, mipCount, pixels });
 }

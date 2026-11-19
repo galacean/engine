@@ -10,6 +10,7 @@ export const builtinBuildingAssetFiles: RuntimeProjectManifest["files"] = manife
     virtualPath: entry.virtualPath,
     path: new URL(path, import.meta.url).href,
     type: entry.type,
-    dependencies: entry.dependencies
+    dependencies: entry.dependencies,
+    ...(entry.type === "Prefab" ? { params: { editableSource: true } } : {})
   };
 });

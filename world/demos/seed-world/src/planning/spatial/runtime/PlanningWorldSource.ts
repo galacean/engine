@@ -7,6 +7,7 @@ import { exportPlanningRecipe, type PlanningDocument } from "@galacean/engine-wo
 import { PlanningWorkerClient } from "../../semantic-study/PlanningWorkerClient.ts";
 import { SEMANTIC_DEFAULTS, type SemanticResult } from "@galacean/engine-world-planning/semantic-study/WorldPlanningContract";
 import { defaultPoiLayout } from "@galacean/engine-world-planning/semantic-study/PoiDistribution";
+import { preloadPlanningWaterDefaults } from "./PlanningWaterInitialization.ts";
 
 /** Accepted editor state passed directly to the original Seed scene. No URL-encoded geometry. */
 export interface PlanningWorldHandoff {
@@ -52,6 +53,8 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
   if (document) refreshDesertAnimalPreset(document);
   let accepted = handoff?.result;
   if (storage.initialize) {
+    // Overlap water default asset downloads with the background WorldPlanning worker.
+    preloadPlanningWaterDefaults();
     try {
       document ??= createSeedPlanningDocument(seed);
       const recipe = exportPlanningRecipe(document);
@@ -60,6 +63,7 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
       document = await storage.initialize(document, accepted, handoff?.waterResetRequest ?? lowPolyWaterRefreshRequest);
     } catch (error) { client.dispose(); throw error; }
   }
+  const initialPlan = accepted?.plan;
   // Source/project history owns undo; the runtime session is a derived consumer.
   const options: PlanningSessionOptions = { history: false };
   let disposed = false, started = false;
@@ -80,6 +84,7 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
   return {
     session,
     replaceSavedTemplate,
+    initialPlan,
     async initialize(preparePublication?: PlanningSessionOptions["preparePublication"]) {
       if (disposed) throw new Error("Planning world source disposed");
       if (started) throw new Error("Planning world source initialization already started");

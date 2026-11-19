@@ -1,4 +1,4 @@
-import { prepareRockLodMeshes } from "./RockLodMeshes";
+import { loadRockLodMeshesById, prepareRockLodMeshes } from "./RockLodMeshes";
 import type { Engine } from "@galacean/engine";
 import { fitRockVariant, pickFormationVariant, prepareRockVariant, rockVariantFit, rockVariantPools } from "./Variants";
 import { planningGroundSurface } from "../../../semantic-study/PlanningHeightmap.ts";
@@ -43,7 +43,10 @@ export class RockFormationClient {
         if (previous && this.resultKeys.get(previous) === key) return previous;
         let task = tasks.get(entry.id);
         if (!task) {
+          // Download LOD1/LOD2 in parallel with LOD0 decode instead of waiting sequentially.
+          const lodPreload = loadRockLodMeshesById(engine, entry.id).catch(() => undefined);
           task = prepareRockVariant(engine, entry).then(async (asset) => {
+            await lodPreload;
             await prepareRockLodMeshes(engine, asset);
             return asset;
           });

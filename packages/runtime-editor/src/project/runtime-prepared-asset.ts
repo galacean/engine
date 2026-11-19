@@ -22,6 +22,44 @@ export async function prepareAssetInputs(
   signal: AbortSignal
 ): Promise<string[]> {
   const files = new Map(pack.project.files.map((file) => [file.virtualPath, file]));
+  const root = path;
+  // Pre-hydrate reachable reference-bearing files concurrently when manifest dependencies are already known.
+  const toHydrate: string[] = [];
+  const discovered = new Set<string>();
+  const queue: string[] = [root];
+  while (queue.length > 0) {
+    const currentPath = queue.shift()!;
+    if (discovered.has(currentPath)) continue;
+    discovered.add(currentPath);
+    const file = files.get(currentPath);
+    if (!file || file.type.toLowerCase() === "script") continue;
+    const format = formats.get(file.type);
+    if (pack.contents[currentPath] === undefined && (currentPath === root || format?.referenceTypes?.length !== 0)) {
+      toHydrate.push(currentPath);
+    }
+    if (file.dependencies) {
+      for (const dep of file.dependencies) {
+        if (!discovered.has(dep)) queue.push(dep);
+      }
+    }
+  }
+  if (toHydrate.length > 1) {
+    let cursor = 0;
+    const workerCount = Math.min(16, toHydrate.length);
+    await Promise.all(
+      Array.from({ length: workerCount }, async () => {
+        while (cursor < toHydrate.length) {
+          signal.throwIfAborted();
+          const targetPath = toHydrate[cursor++];
+          if (pack.contents[targetPath] !== undefined) continue;
+          const content = await hydrate(targetPath);
+          if (content !== undefined && pack.contents[targetPath] === undefined) {
+            pack.contents[targetPath] = content;
+          }
+        }
+      })
+    );
+  }
   const visited = new Set<string>(),
     visiting = new Set<string>(),
     order: string[] = [];
@@ -43,12 +81,36 @@ export async function prepareAssetInputs(
     const dependencies = extractAssetDependencies(file, pack.contents[path], format) ?? file.dependencies;
     if (!dependencies) throw new Error(`Asset dependencies are unavailable: '${path}'`);
     file.dependencies = dependencies;
+    // Hydrate any newly discovered dependencies in parallel before recursing in deterministic order.
+    const unhydratedDeps = dependencies.filter((dep) => {
+      if (visited.has(dep) || pack.contents[dep] !== undefined) return false;
+      const depFile = files.get(dep);
+      if (!depFile || depFile.type.toLowerCase() === "script") return false;
+      const depFormat = formats.get(depFile.type);
+      return depFormat?.referenceTypes?.length !== 0;
+    });
+    if (unhydratedDeps.length > 1) {
+      let depCursor = 0;
+      const depWorkers = Math.min(16, unhydratedDeps.length);
+      await Promise.all(
+        Array.from({ length: depWorkers }, async () => {
+          while (depCursor < unhydratedDeps.length) {
+            signal.throwIfAborted();
+            const depPath = unhydratedDeps[depCursor++];
+            if (pack.contents[depPath] !== undefined) continue;
+            const content = await hydrate(depPath);
+            if (content !== undefined && pack.contents[depPath] === undefined) {
+              pack.contents[depPath] = content;
+            }
+          }
+        })
+      );
+    }
     for (const dependency of dependencies) await visit(dependency);
     visiting.delete(path);
     visited.add(path);
     order.push(path);
   }
-  const root = path;
   await visit(path);
   return order;
 }
@@ -109,13 +171,33 @@ export async function withPreparedAsset<T extends EngineObject, R>(
   let resource: T | undefined;
   let resources: File[] = [];
   let unregister: (() => void) | undefined;
-  const resolve = (path: string) => {
-    if (!paths.has(path)) throw new Error(`Unprepared native asset reference: '${path}'`);
-    return prefix + path;
+  // Unmodified opaque leaf assets (e.g., .mesh, .ktx2) whose backing URL matches the live ResourceManager
+  // can share their live virtualPath so meshes and textures are not downloaded and decoded twice.
+  const fileByPath = new Map(pack.project.files.map((file) => [file.virtualPath, file]));
+  const liveVirtualMap = (
+    manager as unknown as { _virtualPathResourceMap?: Record<string, { path?: string; type?: string }> }
+  )._virtualPathResourceMap;
+  const sharedLiveLeaves = new Set<string>();
+  if (liveVirtualMap) {
+    for (const itemPath of order) {
+      if (itemPath === path || pack.contents[itemPath] !== undefined) continue;
+      const file = fileByPath.get(itemPath);
+      if (!file || file.dependencies?.length) continue;
+      const live = liveVirtualMap[itemPath];
+      if (live && live.path === file.path && live.type === file.type) {
+        sharedLiveLeaves.add(itemPath);
+      }
+    }
+  }
+  const resolve = (itemPath: string) => {
+    if (!paths.has(itemPath)) throw new Error(`Unprepared native asset reference: '${itemPath}'`);
+    return sharedLiveLeaves.has(itemPath) ? itemPath : prefix + itemPath;
   };
   try {
-    resources = order.map((path) => {
-      const file = pack.project.files.find((file) => file.virtualPath === path)!;
+    resources = [];
+    for (const itemPath of order) {
+      if (sharedLiveLeaves.has(itemPath)) continue;
+      const file = fileByPath.get(itemPath)!;
       const content = compilePreparedAsset(pack, file, resolve);
       let url = file.path;
       if (content !== undefined) {
@@ -125,8 +207,8 @@ export async function withPreparedAsset<T extends EngineObject, R>(
         );
         urls.push(url);
       }
-      return { ...file, virtualPath: resolve(path), path: url };
-    });
+      resources.push({ ...file, virtualPath: resolve(itemPath), path: url });
+    }
     unregister = manager.registerVirtualResources(resources);
     // Let native loaders resolve their dependencies, including non-cached resources.
     // Await a cancelled load as well, so a late result cannot escape cleanup.

@@ -1434,15 +1434,18 @@ export class TerrainLightingRuntime {
     try {
       while (true) {
         this._assertAlive();
-        const snapshot = this._iblBaker.getSnapshot();
-        onProgress?.(snapshot);
-        if (hasPublishedTerrainIBLRevision(snapshot, barrierRevision)) {
-          return;
-        }
-        if (!this._iblBakingEnabled) {
-          throw new Error("Terrain environment IBL startup cannot finish while baking is disabled");
-        }
-        this._advanceIBLBaker();
+        const sliceStart = performance.now();
+        do {
+          const snapshot = this._iblBaker.getSnapshot();
+          onProgress?.(snapshot);
+          if (hasPublishedTerrainIBLRevision(snapshot, barrierRevision)) {
+            return;
+          }
+          if (!this._iblBakingEnabled) {
+            throw new Error("Terrain environment IBL startup cannot finish while baking is disabled");
+          }
+          this._advanceIBLBaker();
+        } while (performance.now() - sliceStart < 16);
         await waitForAnimationFrame();
       }
     } finally {

@@ -509,3 +509,114 @@ export function terrainRange(
   }
   return { min, max };
 }
+
+/**
+ * Exact scanline rasterization of a simple polygon onto a regular [0..resolution-1] grid
+ * with coordinates (col * spacingX, row * spacingZ). Matches pointInPolygon bit-for-bit,
+ * including the 1e-7 edge-contact tolerance.
+ */
+export function rasterizePolygonGrid(
+  polygon: readonly V2Point[],
+  resolution: number,
+  spacingX: number,
+  spacingZ: number,
+  target: Uint8Array,
+  value = 1
+): void {
+  const count = polygon.length;
+  if (count < 3 || resolution <= 0) return;
+  const invSpacingX = 1 / spacingX;
+  const invSpacingZ = 1 / spacingZ;
+  interface ScanEdge {
+    ax: number;
+    az: number;
+    bx: number;
+    bz: number;
+    dx: number;
+    dz: number;
+    invDz: number;
+    firstRow: number;
+    lastRow: number;
+  }
+  const scanEdges: ScanEdge[] = [];
+  for (let i = 0, j = count - 1; i < count; j = i++) {
+    const a = polygon[i],
+      b = polygon[j];
+    const dx = b.x - a.x,
+      dz = b.z - a.z;
+    const endX = a.x + dx,
+      endZ = a.z + dz;
+    // Exact boundary contact pass (matches polygonEdgeCrossing < 0 tolerance).
+    const minBx = Math.min(a.x, endX) - 1e-7;
+    const maxBx = Math.max(a.x, endX) + 1e-7;
+    const minBz = Math.min(a.z, endZ) - 1e-7;
+    const maxBz = Math.max(a.z, endZ) + 1e-7;
+    const bRow0 = Math.max(0, Math.floor(minBz * invSpacingZ));
+    const bRow1 = Math.min(resolution - 1, Math.ceil(maxBz * invSpacingZ));
+    if (bRow0 <= bRow1) {
+      const bCol0 = Math.max(0, Math.floor(minBx * invSpacingX));
+      const bCol1 = Math.min(resolution - 1, Math.ceil(maxBx * invSpacingX));
+      if (bCol0 <= bCol1) {
+        const l = dx * dx + dz * dz;
+        for (let row = bRow0; row <= bRow1; row++) {
+          const z = row * spacingZ;
+          if (z < minBz || z > maxBz) continue;
+          const rowOff = row * resolution;
+          for (let col = bCol0; col <= bCol1; col++) {
+            const x = col * spacingX;
+            if (x < minBx || x > maxBx) continue;
+            const t = l > 0 ? clamp(((x - a.x) * dx + (z - a.z) * dz) / l, 0, 1) : 0;
+            const ex = x - (a.x + dx * t),
+              ez = z - (a.z + dz * t);
+            if (Math.abs(ex) < 1e-7 && Math.abs(ez) < 1e-7 && Math.hypot(ex, ez) < 1e-7) {
+              target[rowOff + col] = value;
+            }
+          }
+        }
+      }
+    }
+    if (a.z === b.z) continue;
+    const loZ = a.z < b.z ? a.z : b.z;
+    const hiZ = a.z < b.z ? b.z : a.z;
+    const firstRow = Math.max(0, Math.floor(loZ * invSpacingZ));
+    const lastRow = Math.min(resolution - 1, Math.ceil(hiZ * invSpacingZ));
+    if (firstRow <= lastRow) {
+      scanEdges.push({ ax: a.x, az: a.z, bx: b.x, bz: b.z, dx, dz, invDz: 1 / dz, firstRow, lastRow });
+    }
+  }
+  if (!scanEdges.length) return;
+  scanEdges.sort((u, v) => u.firstRow - v.firstRow);
+  const active: ScanEdge[] = [];
+  const xs: number[] = [];
+  let cursor = 0;
+  const maxLastRow = scanEdges.reduce((m, e) => (e.lastRow > m ? e.lastRow : m), -1);
+  for (let row = scanEdges[0].firstRow; row <= maxLastRow; row++) {
+    const z = row * spacingZ;
+    while (cursor < scanEdges.length && scanEdges[cursor].firstRow <= row) active.push(scanEdges[cursor++]);
+    let write = 0;
+    xs.length = 0;
+    for (let i = 0; i < active.length; i++) {
+      const edge = active[i];
+      if (edge.lastRow < row) continue;
+      active[write++] = edge;
+      if (edge.az > z !== edge.bz > z) {
+        xs.push(edge.dx * (z - edge.az) * edge.invDz + edge.ax);
+      }
+    }
+    active.length = write;
+    if (xs.length < 2) continue;
+    xs.sort((u, v) => u - v);
+    const rowOff = row * resolution;
+    for (let k = 0; k + 1 < xs.length; k += 2) {
+      const x0 = xs[k],
+        x1 = xs[k + 1];
+      let col0 = Math.max(0, Math.ceil(x0 * invSpacingX));
+      while (col0 > 0 && (col0 - 1) * spacingX >= x0) col0--;
+      while (col0 < resolution && col0 * spacingX < x0) col0++;
+      let col1 = Math.min(resolution - 1, Math.floor(x1 * invSpacingX));
+      while (col1 >= 0 && col1 * spacingX >= x1) col1--;
+      while (col1 + 1 < resolution && (col1 + 1) * spacingX < x1) col1++;
+      if (col0 <= col1) target.fill(value, rowOff + col0, rowOff + col1 + 1);
+    }
+  }
+}

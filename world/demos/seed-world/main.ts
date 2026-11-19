@@ -1,5 +1,5 @@
 import type { PlanningWorldHandoff } from "./src/planning/spatial/runtime/PlanningWorldSource.ts";
-import { planningStartupSeed, selectPlanningStartupTemplate } from "./src/planning/spatial/PlanningStartupTemplate.ts";
+import { planningStartupSeed, selectPlanningStartupTemplate } from "./src/planning/spatial/PlanningStartupSeed.ts";
 import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
 import { planningPageUrl } from "./src/planning/spatial/PlanningPageUrl.ts";
 

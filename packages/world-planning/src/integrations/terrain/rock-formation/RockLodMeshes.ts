@@ -16,22 +16,30 @@ export async function prepareRockLodMeshes(engine: Engine, asset: RockVariantAss
   if (resident && resident.every((mesh) => !mesh?.destroyed)) return;
   const pending = loads.get(asset);
   if (pending) return pending;
-  const load = async (level: number): Promise<ModelMesh | undefined> => {
-    const url = urls[`./lod-meshes/${asset.id}/lod${level}.glb`];
-    if (!url) return;
-    const gltf = await engine.resourceManager.load<GLTFResource>({ url, type: AssetType.GLTF });
-    const mesh = gltf.meshes?.[0]?.[0];
-    if (gltf.meshes?.length !== 1 || gltf.meshes[0].length !== 1 || !mesh || mesh.destroyed)
-      throw Error(`Rock LOD GLB must contain one valid primitive: ${asset.id}/lod${level}`);
-    return mesh;
-  };
-  const task = Promise.all([load(1), load(2)])
+  const task = loadRockLodMeshesById(engine, asset.id)
     .then(([middle, far]) => {
       lodMeshes.set(asset, [middle, far]);
     })
     .finally(() => loads.delete(asset));
   loads.set(asset, task);
   return task;
+}
+
+/** Pre-warms LOD1/LOD2 GLB loads by variant id so they download concurrently with LOD0. */
+export function loadRockLodMeshesById(
+  engine: Engine,
+  id: string
+): Promise<readonly [ModelMesh | undefined, ModelMesh | undefined]> {
+  const load = async (level: number): Promise<ModelMesh | undefined> => {
+    const url = urls[`./lod-meshes/${id}/lod${level}.glb`];
+    if (!url) return;
+    const gltf = await engine.resourceManager.load<GLTFResource>({ url, type: AssetType.GLTF });
+    const mesh = gltf.meshes?.[0]?.[0];
+    if (gltf.meshes?.length !== 1 || gltf.meshes[0].length !== 1 || !mesh || mesh.destroyed)
+      throw Error(`Rock LOD GLB must contain one valid primitive: ${id}/lod${level}`);
+    return mesh;
+  };
+  return Promise.all([load(1), load(2)]);
 }
 
 /**

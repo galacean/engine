@@ -63,6 +63,8 @@ export interface SeedWorldShaderWarmupOptions {
   readonly cacheOnly?: boolean;
   /** Main-thread work allowed before yielding to the Loading Scene. */
   readonly frameBudgetMilliseconds?: number;
+  /** Maximum concurrent async-compiling WebGL shader programs in flight. */
+  readonly maximumPendingPrograms?: number;
   readonly strict?: boolean;
   readonly onProgress?: (completed: number, total: number) => void;
   /** Diagnostic receipt of exact requested identities before compilation. */
@@ -173,7 +175,7 @@ export async function warmupSeedWorldShaderVariants(
   const programs = new Map<RuntimeShaderProgram, ProgramState>();
   const pending = new Map<RuntimeShaderProgram, ProgramState>();
   // Slots belong to effective programs, not macro aliases. Refill as soon as any slot is freed.
-  const maximumPendingPrograms = 8;
+  const maximumPendingPrograms = Math.max(1, options.maximumPendingPrograms ?? 16);
   let reportedCompleted = -1;
   const reportProgress = () => {
     const completed = compiled + issues.length;

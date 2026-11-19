@@ -46,9 +46,8 @@ function* selections(
 }
 
 function* populationSelections(groups: readonly LayoutGroup[], preferred: number): Generator<LayoutGroup[]> {
-  // Keep a fully validated empty fallback, then interleave smaller populations
-  // so an infeasible preferred count cannot consume the entire search budget.
-  yield [];
+  // Interleave smaller populations so an infeasible preferred count cannot consume the entire search budget.
+  // The empty fallback is evaluated last (and reserved inside the budget) only if needed.
   const levels = Array.from({ length: preferred }, (_, index) => selections(groups, preferred - index));
   while (levels.length) {
     for (let index = 0; index < levels.length; ) {
@@ -60,6 +59,7 @@ function* populationSelections(groups: readonly LayoutGroup[], preferred: number
       }
     }
   }
+  yield [];
 }
 
 /** Realize a one-time population request using ordinary POI profiles and member ranges.
@@ -110,7 +110,8 @@ export function preparePlanningPopulation(
     ? {
         candidates: fullProbe.plan.poiDistribution!.candidates,
         groups: fullProbe.plan.spatialLayout!.groups,
-        elementProfiles: fullProbe.plan.spatialLayout!.elementProfiles!
+        elementProfiles: fullProbe.plan.spatialLayout!.elementProfiles!,
+        baseline: undefined
       }
     : probeSpatialPlacement(probeDocument);
   const candidates = placement.candidates;
@@ -137,7 +138,7 @@ export function preparePlanningPopulation(
     ).length
   });
   type Result = ReturnType<typeof generatePlanningDocument>;
-  let previousAccepted = fullProbe?.accepted ? fullProbe : undefined;
+  let previousAccepted = fullProbe?.accepted ? fullProbe : placement.baseline;
   let evaluations = 1;
   const failures = new Set<string>();
   const solve = (draft: PlanningDocument) => {
@@ -162,8 +163,7 @@ export function preparePlanningPopulation(
   );
   // Capacity ranks candidates; placement checks decide whether a site is
   // publishable. Failed placement results are never incremental baselines.
-  for (const selected of populationSelections(eligible, target)) {
-    if (evaluations >= INITIALIZATION_EVALUATION_BUDGET) break;
+  const evaluateSelection = (selected: LayoutGroup[]) => {
     const initial = structuredClone(document);
     for (const group of selected) initial.entities[group.id].components.layout.values.elementProfile = "habitable";
     // Reserve one accepted candidate per selected village, then distribute the
@@ -205,8 +205,22 @@ export function preparePlanningPopulation(
       chosenIds = selected.map((group) => group.id);
       chosenLayoutRanges = layoutRanges;
     }
+  };
+  let evaluatedEmptyFallback = false;
+  for (const selected of populationSelections(eligible, target)) {
+    // Reserve the last evaluation slot for the empty fallback if no selection has succeeded yet.
+    if (selected.length > 0 && !chosen && evaluations >= INITIALIZATION_EVALUATION_BUDGET - 1) break;
+    if (evaluations >= INITIALIZATION_EVALUATION_BUDGET) break;
+    if (selected.length === 0) {
+      if (chosen) break;
+      evaluatedEmptyFallback = true;
+    }
+    evaluateSelection(selected);
     if (chosenCounts && chosenCounts.villages === target && chosenCounts.buildings >= Math.min(buildingMin, attainable))
       break;
+  }
+  if (!chosen && !evaluatedEmptyFallback && evaluations < INITIALIZATION_EVALUATION_BUDGET) {
+    evaluateSelection([]);
   }
   if (!chosen || !chosenCounts || !chosenResult)
     throw new Error(

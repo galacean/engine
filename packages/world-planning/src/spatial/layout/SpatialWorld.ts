@@ -283,6 +283,8 @@ export interface SpatialPlacementProbe {
   candidates: NonNullable<IslandPlan["poiDistribution"]>["candidates"];
   groups: LayoutGroup[];
   elementProfiles: Record<string, string>;
+  /** Partial terrain/hydrology/layout snapshot reusable as an incremental baseline during population search. */
+  baseline?: SemanticResult;
 }
 
 /** Compile material-independent spatial parameters and validate the complete publication.
@@ -781,7 +783,28 @@ function* spatialWorldStages(
     groups.push(composition);
     appearances[composition.id] = "rock";
   }
-  yield { candidates: plan.poiDistribution!.candidates, groups, elementProfiles };
+  const probeBaseline: SemanticResult = {
+    plan: {
+      ...plan,
+      spatialLayout: {
+        worldSignature,
+        terrainSignature,
+        riverSignature,
+        hydrologyInputSignature,
+        siteOrigins,
+        groups: [],
+        baselineGroups: [],
+        waterTerrainInfluences
+      }
+    },
+    recipe,
+    accepted: false,
+    checks: [...checks],
+    changedIds: [],
+    notes: [],
+    execution: "full"
+  };
+  yield { candidates: plan.poiDistribution!.candidates, groups, elementProfiles, baseline: probeBaseline };
   const oldVolumes = new Map(
     (saved?.baselineGroups ?? saved?.groups)?.flatMap((g) => g.volumes.map((v) => [v.id, v] as const))
   );

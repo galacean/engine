@@ -158,7 +158,7 @@ export class PlanningWaterRuntime {
         waterLayer: Layer.Layer30,
         cacheEntryLimit: 24,
         cacheBudgetBytes: 128 * 1024 * 1024,
-        maximumConcurrentBodyPreparations: 1,
+        maximumConcurrentBodyPreparations: 4,
         yieldBetweenBodyPreparationBatches: true,
         reflection: {
           cullingMask: options.camera.cullingMask,

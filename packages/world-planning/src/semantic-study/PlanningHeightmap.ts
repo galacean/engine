@@ -99,6 +99,7 @@ function groundSurface(plan: IslandPlan): GroundSurface {
     sparse = new Map<number, number | (() => number)>(),
     measured = { backgroundSamples: 0 };
   seedBridgeLandingVertices(plan, ground, sparse, resolution, spacingX, spacingZ, () => measured.backgroundSamples++);
+  const scratchPoint = { x: 0, z: 0 };
   const surface: GroundSurface = {
     spacingX,
     spacingZ,
@@ -113,12 +114,17 @@ function groundSurface(plan: IslandPlan): GroundSurface {
     vertex(x, z) {
       const index = z * resolution + x;
       if (surface.raster) return surface.raster[index];
-      let value = sparse.get(index);
+      let value = sparse.size > 0 ? sparse.get(index) : undefined;
       if (value === undefined) {
-        const point = { x: x * spacingX, z: z * spacingZ };
-        value = Math.fround(ground(point));
+        if (surface.materializing) {
+          scratchPoint.x = x * spacingX;
+          scratchPoint.z = z * spacingZ;
+          value = Math.fround(ground(scratchPoint));
+        } else {
+          value = Math.fround(ground({ x: x * spacingX, z: z * spacingZ }));
+          sparse.set(index, value);
+        }
         measured.backgroundSamples++;
-        if (!surface.materializing) sparse.set(index, value);
       } else if (typeof value === "function") {
         value = value();
         sparse.set(index, value);
@@ -315,14 +321,26 @@ export function planningHeightmap(plan: IslandPlan): PlanningHeightmap {
     timings: { prepare: stageStarted - started, background: 0, encoding: 0, total: 0 }
   };
   try {
-    for (let z = 0; z < resolution; z++)
-      for (let x = 0; x < resolution; x++) {
-        const wx = x * spacingX,
-          wz = z * spacingZ;
-        if (dirty && !dirty.some(([x0, z0, x1, z1]) => wx >= x0 && wx <= x1 && wz >= z0 && wz <= z1)) continue;
-        heights[z * resolution + x] = surface.vertex(x, z);
-        measured.backgroundSamples++;
+    if (dirty) {
+      for (let z = 0; z < resolution; z++) {
+        const row = z * resolution;
+        const wz = z * spacingZ;
+        for (let x = 0; x < resolution; x++) {
+          const wx = x * spacingX;
+          if (!dirty.some(([x0, z0, x1, z1]) => wx >= x0 && wx <= x1 && wz >= z0 && wz <= z1)) continue;
+          heights[row + x] = surface.vertex(x, z);
+          measured.backgroundSamples++;
+        }
       }
+    } else {
+      for (let z = 0; z < resolution; z++) {
+        const row = z * resolution;
+        for (let x = 0; x < resolution; x++) {
+          heights[row + x] = surface.vertex(x, z);
+        }
+      }
+      measured.backgroundSamples += resolution * resolution;
+    }
     surface.raster = heights;
     measured.timings.background = performance.now() - stageStarted;
     stageStarted = performance.now();

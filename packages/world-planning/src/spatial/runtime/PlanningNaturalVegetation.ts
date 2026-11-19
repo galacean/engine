@@ -785,64 +785,120 @@ function* planningNaturalGroundPopulationSteps(
     if (plan && heights) {
       // Float64 retains the exact JS distance/falloff result; this depends on roads/settings, not water.
       const edges = cachedEdges ?? new Float64Array(field.samples.length);
-      if (!cachedEdges) roadEdges.set(field.samples.length, wrapRoadEdgeEntry(edges));
+      const width = plan.parameters.width,
+        depth = plan.parameters.depth;
+      const invResMinus1 = 1 / (resolution - 1);
+      if (!cachedEdges) {
+        roadEdges.set(field.samples.length, wrapRoadEdgeEntry(edges));
+        const band = settings.roadsideBandM;
+        if (band > 0) {
+          // Initialize to full distance ratio (1.0) and only evaluate pixels inside each road's expanded AABB.
+          edges.fill(1);
+          const distances = new Float64Array(field.samples.length).fill(band);
+          const routeOutlines = plan.routes.filter((route) => route.outline?.length);
+          const pt = { x: 0, z: 0 };
+          for (let r = 0; r < roads.length; r++) {
+            const road = roads[r];
+            const outline = routeOutlines[r].outline!;
+            let minX = Infinity,
+              maxX = -Infinity,
+              minZ = Infinity,
+              maxZ = -Infinity;
+            for (const q of outline) {
+              if (q.x < minX) minX = q.x;
+              if (q.x > maxX) maxX = q.x;
+              if (q.z < minZ) minZ = q.z;
+              if (q.z > maxZ) maxZ = q.z;
+            }
+            const col0 = Math.max(0, Math.floor(((minX - band) / width) * (resolution - 1)));
+            const col1 = Math.min(resolution - 1, Math.ceil(((maxX + band) / width) * (resolution - 1)));
+            const row0 = Math.max(0, Math.floor(((minZ - band) / depth) * (resolution - 1)));
+            const row1 = Math.min(resolution - 1, Math.ceil(((maxZ + band) / depth) * (resolution - 1)));
+            for (let row = row0; row <= row1; row++) {
+              pt.z = row * invResMinus1 * depth;
+              const rowOff = row * resolution;
+              for (let col = col0; col <= col1; col++) {
+                pt.x = col * invResMinus1 * width;
+                const idx = rowOff + col;
+                const current = distances[idx];
+                if (current > 0 && road.within(pt, band)) {
+                  const d = road.distance(pt, current);
+                  if (d < current) distances[idx] = d;
+                }
+              }
+            }
+          }
+          const ratioBase = settings.roadsideGrassHeightRatio;
+          const ratioSpan = 1 - ratioBase;
+          const invBand = 1 / band;
+          for (let i = 0; i < distances.length; i++) {
+            const d = distances[i];
+            if (d < band) {
+              const t = d * invBand;
+              edges[i] = ratioBase + ratioSpan * t * t * (3 - 2 * t);
+            }
+          }
+        } else {
+          edges.fill(1);
+        }
+      }
       const samples = reusable
         ? new Float32Array(reusable.heightRangeMetres!.samples)
         : new Float32Array(field.samples.length * 2);
       let minimum = Infinity,
         maximum = 0;
-      for (let index = 0; index < field.samples.length; index++) {
-        if (index > 0 && index % (resolution * 4) === 0) yield;
+      const p = { x: 0, z: 0 };
+      const flowerSamples = flowerField?.samples;
+      const oldFlowerSamples = oldFlowers?.samples;
+      const oldSrcSamples = oldSource?.samples;
+      const srcSamples = field.samples;
+      const grassRelHeight = settings.grassRelativeHeight;
+      const lowerMult = 1 - settings.grassHeightVariation;
+      const shrubHeight = heights.shrubs;
+      const grassHeight = heights.grass;
+      for (let index = 0; index < srcSamples.length; index++) {
+        if (index > 0 && index % (resolution * 16) === 0) yield;
         if (
           reusable &&
-          oldSource!.samples[index] === field.samples[index] &&
-          Boolean(oldFlowers?.samples[index]) === Boolean(flowerField?.samples[index]) &&
-          (!flowerContextChanged || !flowerField?.samples[index])
+          oldSrcSamples![index] === srcSamples[index] &&
+          Boolean(oldFlowerSamples?.[index]) === Boolean(flowerSamples?.[index]) &&
+          (!flowerContextChanged || !flowerSamples?.[index])
         ) {
-          minimum = Math.min(minimum, samples[index * 2]);
-          maximum = Math.max(maximum, samples[index * 2 + 1]);
+          const lo = samples[index * 2],
+            hi = samples[index * 2 + 1];
+          if (lo < minimum) minimum = lo;
+          if (hi > maximum) maximum = hi;
           continue;
         }
-        const p = {
-          x: ((index % resolution) / (resolution - 1)) * plan.parameters.width,
-          z: (Math.floor(index / resolution) / (resolution - 1)) * plan.parameters.depth
-        };
+        p.x = (index % resolution) * invResMinus1 * width;
+        p.z = Math.floor(index / resolution) * invResMinus1 * depth;
         const density = densityAt!(p);
         // Both projections sample the same immutable ecology at this point; evaluate it once.
-        groundSamples[index] = groundDensity(index, density.grass!);
-        const flowerHeight =
-          density.flowers! > 0 && flowerField?.samples[index]
-            ? flowerHeights.reduce(
-                (height, region) =>
-                  region.height < height && region.rings.reduce((inside, ring) => inside !== ring.inside(p), false)
-                    ? region.height
-                    : height,
-                Infinity
-              )
-            : Infinity;
+        groundSamples[index] = Math.round(srcSamples[index] * density.grass!);
+        let flowerHeight = Infinity;
+        if (density.flowers! > 0 && flowerSamples?.[index]) {
+          for (let f = 0; f < flowerHeights.length; f++) {
+            const region = flowerHeights[f];
+            if (region.height < flowerHeight) {
+              let inside = false;
+              for (let k = 0; k < region.rings.length; k++) {
+                if (region.rings[k].inside(p)) inside = !inside;
+              }
+              if (inside) flowerHeight = region.height;
+            }
+          }
+        }
         // The active community's shortest accent plant sets the low-grass ceiling.
         // Empty grassland uses the authored grass species rather than an invented metre height.
-        const accent = Math.min(density.shrubs! > 0 ? heights.shrubs : Infinity, flowerHeight);
-        const reference = Number.isFinite(accent) ? accent : heights.grass;
-        let edgeRatio = edges[index];
-        if (!cachedEdges) {
-          const distance =
-            settings.roadsideBandM > 0
-              ? roads.reduce(
-                  (distance, road) =>
-                    road.within(p, settings.roadsideBandM) ? Math.min(distance, road.distance(p, distance)) : distance,
-                  settings.roadsideBandM
-                )
-              : 0;
-          const t = settings.roadsideBandM > 0 ? distance / settings.roadsideBandM : 1;
-          edgeRatio = settings.roadsideGrassHeightRatio + (1 - settings.roadsideGrassHeightRatio) * t * t * (3 - 2 * t);
-          edges[index] = edgeRatio;
-        }
-        const upper = reference * settings.grassRelativeHeight * edgeRatio;
-        samples[index * 2] = upper * (1 - settings.grassHeightVariation);
+        const accent = Math.min(density.shrubs! > 0 ? shrubHeight : Infinity, flowerHeight);
+        const reference = Number.isFinite(accent) ? accent : grassHeight;
+        const upper = reference * grassRelHeight * edges[index];
+        samples[index * 2] = upper * lowerMult;
         samples[index * 2 + 1] = upper;
-        minimum = Math.min(minimum, samples[index * 2]);
-        maximum = Math.max(maximum, samples[index * 2 + 1]);
+        const fLo = samples[index * 2];
+        const fHi = samples[index * 2 + 1];
+        if (fLo < minimum) minimum = fLo;
+        if (fHi > maximum) maximum = fHi;
       }
       heightRangeMetres = { samples, minimum, maximum };
     }
@@ -855,13 +911,19 @@ function* planningNaturalGroundPopulationSteps(
         hash = hashGroundProjectionBlock(bytes, i, hash);
       }
     }
-    if (densityAt && !heights)
-      for (let index = 0; index < field.samples.length; index++) {
-        if (index > 0 && index % (resolution * 4) === 0) yield;
-        const x = ((index % resolution) / (resolution - 1)) * plan!.parameters.width,
-          z = (Math.floor(index / resolution) / (resolution - 1)) * plan!.parameters.depth;
-        groundSamples[index] = groundDensity(index, densityAt({ x, z }).grass!);
+    if (densityAt && !heights) {
+      const p = { x: 0, z: 0 };
+      const width = plan!.parameters.width,
+        depth = plan!.parameters.depth,
+        invResMinus1 = 1 / (resolution - 1);
+      const srcSamples = field.samples;
+      for (let index = 0; index < srcSamples.length; index++) {
+        if (index > 0 && index % (resolution * 16) === 0) yield;
+        p.x = (index % resolution) * invResMinus1 * width;
+        p.z = Math.floor(index / resolution) * invResMinus1 * depth;
+        groundSamples[index] = Math.round(srcSamples[index] * densityAt(p).grass!);
       }
+    }
     detailDensityFields.push({
       ...field,
       ...(grassDensity === undefined ? {} : { maximumDensityPerSquareMetre: grassDensity }),

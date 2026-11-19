@@ -246,6 +246,11 @@ export class FarmingWorldPresentation {
     }
   }
 
+  /** Synchronously flush pending soil batch geometry so renderers have valid meshes before shader warmup. */
+  flushPendingVisuals(): void {
+    if (!this.disposed) this.soils.update(0);
+  }
+
   private async prepareAction(
     input: FarmActionInput,
     outerSignal: AbortSignal,

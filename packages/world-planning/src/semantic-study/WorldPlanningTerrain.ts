@@ -588,11 +588,14 @@ export function createPlanningRingQuery(ring: PlanPoint[]) {
     return dx * dx + dz * dz;
   };
   const distance = (p: PlanPoint, cap: number, out?: PlanPoint & { edge: number; t: number }) => {
-    let best = cap * cap,
+    if (!out && !within(p, cap)) return cap;
+    const cap2 = cap * cap;
+    let best = cap2,
       top = 1,
       bestEdge = -1;
     stack[0] = 0;
     boundsStack[0] = lower(p.x, p.z, 0);
+    if (boundsStack[0] >= best) return cap;
     while (top) {
       const slot = --top,
         id = stack[slot];
@@ -640,7 +643,7 @@ export function createPlanningRingQuery(ring: PlanPoint[]) {
       out.edge = bestEdge;
       out.t = t;
     }
-    return Math.sqrt(best);
+    return best === cap2 ? cap : Math.sqrt(best);
   };
   // Compile repeated scanline projections once, without changing containment tolerance.
   let scanZ = NaN;

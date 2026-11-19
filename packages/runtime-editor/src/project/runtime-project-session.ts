@@ -421,12 +421,79 @@ export class RuntimeProjectSession {
     return content;
   }
 
+  private async prepareFilesParallel(
+    files: readonly RuntimeProjectManifest["files"][number][],
+    signal?: AbortSignal,
+    concurrency = 16
+  ): Promise<void> {
+    this.lifetime.signal.throwIfAborted();
+    const operationSignal = signal ? AbortSignal.any([signal, this.lifetime.signal]) : this.lifetime.signal;
+    const targets: {
+      file: RuntimeProjectManifest["files"][number];
+      pending: { path: string; fileSignature: string; invalidated: boolean };
+    }[] = [];
+    const seen = new Set<string>();
+    for (const file of files) {
+      const virtualPath = file.virtualPath;
+      if (
+        seen.has(virtualPath) ||
+        this.projectPackage.contents[virtualPath] !== undefined ||
+        this.projectPackage.documents?.[virtualPath] !== undefined
+      )
+        continue;
+      seen.add(virtualPath);
+      const pending = { path: virtualPath, fileSignature: resourceSignature(file)!, invalidated: false };
+      this.pendingReads.add(pending);
+      targets.push({ file, pending });
+    }
+    if (!targets.length) return;
+    const fetched: {
+      file: RuntimeProjectManifest["files"][number];
+      pending: { path: string; fileSignature: string; invalidated: boolean };
+      content: string | Uint8Array;
+    }[] = new Array(targets.length);
+    let cursor = 0;
+    try {
+      const workerCount = Math.min(concurrency, targets.length);
+      await Promise.all(
+        Array.from({ length: workerCount }, async () => {
+          while (cursor < targets.length) {
+            const index = cursor++;
+            const target = targets[index];
+            const content = await this.fetchContent(target.file, operationSignal);
+            fetched[index] = { ...target, content };
+          }
+        })
+      );
+      await this.enqueuePublication(async () => {
+        operationSignal.throwIfAborted();
+        const fileByPath = new Map(this.projectPackage.project.files.map((entry) => [entry.virtualPath, entry]));
+        for (const item of fetched) {
+          const current = fileByPath.get(item.file.virtualPath);
+          if (item.pending.invalidated || resourceSignature(current) !== item.pending.fileSignature) {
+            throw new Error(`Asset changed while reading '${item.file.virtualPath}'; read it again`);
+          }
+          if (this.projectPackage.contents[item.file.virtualPath] === undefined) {
+            this.projectPackage.contents[item.file.virtualPath] = item.content;
+            this.resourceChanges.recordRead(current!, item.content);
+            for (const listener of this.assetReadListeners) listener(current!, item.content);
+          }
+        }
+      }, []);
+    } finally {
+      for (const target of targets) this.pendingReads.delete(target.pending);
+    }
+  }
+
   async prepareEditableHierarchies(isRegisteredComponent: (name: string) => boolean): Promise<void> {
-    const provider = this.fileProvider();
+    const hierarchyFiles = this.projectPackage.project.files.filter(
+      (file) =>
+        /^(Scene|Prefab)$/i.test(file.type) &&
+        !(file.params?.editableSource === true && this.projectPackage.contents[file.virtualPath] === undefined)
+    );
+    await this.prepareFilesParallel(hierarchyFiles);
     const converted: Record<string, string> = {};
-    for (const file of this.projectPackage.project.files) {
-      if (!/^(Scene|Prefab)$/i.test(file.type)) continue;
-      await provider.prepare!(file.virtualPath);
+    for (const file of hierarchyFiles) {
       const text = this.projectPackage.contents[file.virtualPath];
       if (typeof text !== "string") throw new Error(`Hierarchy '${file.virtualPath}' is not text`);
       const hierarchy = JSON.parse(text);
@@ -704,12 +771,11 @@ export class RuntimeProjectSession {
       validateProjectDependencies(this.projectPackage);
       return;
     }
-    const provider = this.fileProvider();
-    for (const file of this.projectPackage.project.files) {
+    const pendingFiles = this.projectPackage.project.files.filter((file) => {
       const format = this.referenceFormats.get(file.type);
-      if (file.dependencies === undefined && format && format.referenceTypes?.length !== 0)
-        await provider.prepare!(file.virtualPath);
-    }
+      return file.dependencies === undefined && format && format.referenceTypes?.length !== 0;
+    });
+    await this.prepareFilesParallel(pendingFiles);
     const candidate = await this.withDependencies(this.projectPackage);
     this.projectPackage.project = candidate.project;
     this.projectPackage.contents = candidate.contents;

@@ -69,7 +69,7 @@ export async function openSeedWorldProject(
     initial = (await response.json()) as RuntimeProjectManifest;
   }
   initial = { ...initial, files: [...initial.files, ...builtinBuildingAssetFiles, ...builtinBuildingPresetFiles] };
-  await deleteRetiredSeedWorldSaves(projectUrl);
+  void deleteRetiredSeedWorldSaves(projectUrl);
   const project = await RuntimeProjectSession.open(seedWorldProjectStorageId(seed, projectUrl, template), initial, projectUrl, {
     scriptModules: seedWorldScriptModules
   });

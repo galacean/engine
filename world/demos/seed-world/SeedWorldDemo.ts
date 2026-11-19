@@ -32,7 +32,7 @@ import {
   NativeBuildingHost,
   type NativeBuildingWorld
 } from "@galacean/engine-world-planning/masonry/NativeBuildingHost";
-import { mountNativeBuildingPanel } from "@galacean/engine-world-planning/masonry/NativeBuildingPanel";
+import type { mountNativeBuildingPanel } from "@galacean/engine-world-planning/masonry/NativeBuildingPanel";
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
 import { readAnimalPopulationConfig } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
@@ -54,7 +54,7 @@ import { readPlantMaterialParameters } from "@galacean/engine-world-planning/spa
 import { createSeedWorldKnowledge } from "./agent-adapter/SeedWorldKnowledge";
 import { WATER_QUERY_CONTRACTS } from "@galacean/engine-world-planning/spatial/runtime/WaterQueryContract";
 import { createNativeWaterAgentPackage } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterAgent";
-import { mountNativeWaterPanel } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterPanel";
+import type { mountNativeWaterPanel } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterPanel";
 import { NativeWaterHost } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterHost";
 import { PlanningLightingProfileRuntime } from "@galacean/engine-world-planning/spatial/runtime/PlanningLightingProfileRuntime";
 import { planningNaturalGroundPopulation } from "@galacean/engine-world-planning/spatial/runtime/PlanningNaturalVegetation";
@@ -72,6 +72,7 @@ import { SeedWorldPicker } from "@galacean/engine-world-planning/world/SeedWorld
 import { SeedWorldViewSnapshots } from "@galacean/engine-world-planning/world/SeedWorldViewSnapshot";
 import { buildingInitializationInputs } from "./masonry/BuildingInitializationInputs.ts";
 import { buildingScenePreparation, initializeBuildingScene } from "./masonry/BuildingSceneInitialization.ts";
+import { BUILTIN_BUILDING_ASSETS } from "@galacean/engine-building/building/resources/BuiltinBuildingAssets";
 import type { SeedWorldPickVisitor } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
 import { bindWorldClickInput } from "./src/SeedWorldClickInput.ts";
 import { waitForSnapshotWarmup } from "./src/SeedWorldSnapshotWarmup.ts";
@@ -99,8 +100,7 @@ import { selectPlanningSpawnView, type PlanningSpawnView } from "./src/planning/
 import { PROCEDURAL_SKY_SOLAR_POSITION } from "@galacean/engine-environment/lighting/ProceduralSkyLightingProfile";
 import { WORLD_TEMPLATE_ART } from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
 import { preparePlanningWaterSource } from "./src/planning/spatial/runtime/PlanningWaterInitialization.ts";
-import { SeedWorldInstantCamera } from "./src/SeedWorldInstantCamera.ts";
-import { SeedWorldLassoPanel } from "./src/SeedWorldLassoPanel.ts";
+import type { SeedWorldLassoPanel } from "./src/SeedWorldLassoPanel.ts";
 
 import {
   AssetType,
@@ -168,8 +168,9 @@ import {
   SEED_WORLD_SURFACE_LOD_CROSS_FADE_DURATION_SECONDS,
   SeedWorldTerrainRuntime
 } from "@galacean/engine-world-planning/runtime/SeedWorldTerrainRuntime";
-import { planningAlphamap } from "@galacean/engine-world-planning/semantic-study/PlanningAlphamap";
-import { planningHeightmap } from "@galacean/engine-world-planning/semantic-study/PlanningHeightmap";
+import { adoptPlanningAlphamap, planningAlphamap } from "@galacean/engine-world-planning/semantic-study/PlanningAlphamap";
+import { adoptPlanningHeightmap, planningHeightmap } from "@galacean/engine-world-planning/semantic-study/PlanningHeightmap";
+import { adoptPlanningOcean, preparedPlanningOcean } from "@galacean/engine-world-planning/semantic-study/PlanningOceanSource";
 import { PlanningRasterClient } from "@galacean/engine-world-planning/semantic-study/PlanningRasterClient";
 import type { PlanningSessionOptions } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import {
@@ -598,10 +599,72 @@ export async function mountSeedWorldDemo(
       createPlanningWorldSource(pageUrl.search, handoff, planningStorage)
     );
     void sourceTask.catch(() => {});
+    // Overlap startup shaders, building kit preload, farming scene setup, and (on fresh boot)
+    // population resources while WorldPlanning.worker.ts computes in the background.
+    const startupShadersTask = (async () => {
+      const startupShadersAt = performance.now();
+      // Startup registers Water's shared near profiles before scene loading; explicit material shaderRefs
+      // resolve independent authored Shaders even when their names match a startup profile.
+      // Loading the entire manifest again would re-create shaders already used by the planning preview.
+      registerWindGpuFieldShaders();
+      registerTerrainWindGpuExposureShader();
+      registerVolumetricCloudShader();
+      registerSeedWorldVoiceHudStartupShaders();
+      const { registerSeedWorldWaterStartupShaders } = await import(
+        "@galacean/engine-water/world/SeedWorldWaterStartupShaders"
+      );
+      registerSeedWorldWaterStartupShaders();
+      recordBootSpan("register startup shaders", startupShadersAt);
+      // Preload self-contained binary building leaf assets (Mesh/KTX2/Texture/Shader, all 0-dep runtime format)
+      // while WorldPlanning.worker.ts and PlanningRaster.worker.ts compute in background worker threads.
+      if (!disposed && runtimeProject) {
+        const leafTypes = new Set(["Mesh", "KTX2", "Texture", "Shader"]);
+        const buildingLeafFiles = runtimeProject.projectPackage.project.files.filter(
+          (file) =>
+            file.virtualPath.startsWith("Building/") &&
+            leafTypes.has(file.type) &&
+            !file.dependencies?.length &&
+            runtimeProject!.projectPackage.contents[file.virtualPath] === undefined
+        );
+        if (buildingLeafFiles.length > 0) {
+          engine!.resourceManager.registerVirtualResources(buildingLeafFiles);
+          let cursor = 0;
+          const concurrency = Math.min(12, buildingLeafFiles.length);
+          for (let w = 0; w < concurrency; w++) {
+            void (async () => {
+              while (!disposed && cursor < buildingLeafFiles.length) {
+                const file = buildingLeafFiles[cursor++];
+                try {
+                  await engine!.resourceManager.load({ url: file.virtualPath });
+                } catch {
+                  // Best-effort preload; authoritative loaders surface any real asset failure.
+                }
+              }
+            })();
+          }
+        }
+      }
+    })();
+    void startupShadersTask.catch(() => {});
+    useProjectPlantResources(engine!, planningVegetationReferences(runtimeProject!.projectPackage));
+    const prewarmedPopulationResources = preparePlanningPopulationResources(engine);
+    void prewarmedPopulationResources.catch(() => {});
     await timed("preparePlanningFarmingScene", () =>
       preparePlanningFarmingScene(runtimeProject!, { baseUrl: location.href })
     );
     source = await timed("await planning source", () => sourceTask!);
+    // Kick off background raster & rock preparation immediately while scene, lighting, and environment finish loading.
+    let prewarmedRasterPlan: IslandPlan | undefined = source.initialPlan;
+    let prewarmedRasterTask: ReturnType<PlanningRasterClient["run"]> | undefined;
+    let prewarmedRocksTask: ReturnType<RockFormationClient["prepare"]> | undefined;
+    if (prewarmedRasterPlan) {
+      prewarmedRasterTask = timed("raster.run", () => raster.run(prewarmedRasterPlan!, true, true));
+      prewarmedRocksTask = timed("rockFormations.prepare", () =>
+        rockFormations.prepare(prewarmedRasterPlan!, editorLifetime.signal)
+      );
+      void prewarmedRasterTask.catch(() => {});
+      void prewarmedRocksTask.catch(() => {});
+    }
     await timed("planningStorage.migrateToSource", () =>
       planningStorage.migrateToSource(source!.session.document, source!.replaceSavedTemplate)
     );
@@ -621,26 +684,17 @@ export async function mountSeedWorldDemo(
       engine!.resourceManager.registerVirtualResources(resources);
       useProjectPlantResources(engine!, planningVegetationReferences(runtimeProject!.projectPackage));
     });
-    await timed("runtimeProject.save (startup)", () => runtimeProject!.save());
-    const startupShadersAt = performance.now();
-    // Startup registers Water's shared near profiles before scene loading; explicit material shaderRefs
-    // resolve independent authored Shaders even when their names match a startup profile.
-    // Loading the entire manifest again would re-create shaders already used by the planning preview.
-    registerWindGpuFieldShaders();
-    registerTerrainWindGpuExposureShader();
-    registerVolumetricCloudShader();
-    registerSeedWorldVoiceHudStartupShaders();
-    const { registerSeedWorldWaterStartupShaders } = await import(
-      "@galacean/engine-water/world/SeedWorldWaterStartupShaders"
-    );
-    registerSeedWorldWaterStartupShaders();
-    recordBootSpan("register startup shaders", startupShadersAt);
-    const { preloadTerrainPrecipitationShaders } = await import(
-      "@galacean/engine-world-planning/integrations/terrain/environment/TerrainPrecipitationVfx"
-    );
-    await timed("preloadTerrainPrecipitationShaders", () => preloadTerrainPrecipitationShaders(engine!));
+    // On warm starts where building-kit.prefab is already compiled in project contents, start loading it
+    // immediately while raster.run and scene/environment setup continue in parallel.
+    if (!disposed && runtimeProject.projectPackage.contents[BUILTIN_BUILDING_ASSETS] !== undefined) {
+      void engine!.resourceManager.load({ type: AssetType.Prefab, url: BUILTIN_BUILDING_ASSETS }).catch(() => {});
+    }
+    // Persist initial project state asynchronously instead of blocking scene load on IndexedDB flush.
+    const startupSaveTask = timed("runtimeProject.save (startup)", () => runtimeProject!.save());
+    void startupSaveTask.catch(() => {});
+    await startupShadersTask;
     traceBootPhase("sceneAndPopulationResources");
-    const sourceResources = preparePlanningPopulationResources(engine);
+    const sourceResources = prewarmedPopulationResources ?? preparePlanningPopulationResources(engine);
     const sceneTask = engine.resourceManager.load<Scene>({
       type: AssetType.Scene,
       url: runtimeProject.projectPackage.project.scene
@@ -652,7 +706,6 @@ export async function mountSeedWorldDemo(
     let { library, profiles } = await sourceResources;
     if (disposed) throw new Error("Seed page disposed during startup");
     unmountProjectSave = mountProjectSaveControl(runtimeProject, scene!, canvas);
-    source = await sourceTask!;
     const desert =
       source.session.recipe().parameters.worldTemplate?.id === "titan-wasteland"
         ? await import("./src/DesertPresentation")
@@ -839,7 +892,7 @@ export async function mountSeedWorldDemo(
       lighting,
       wind,
       undefined,
-      { surfaceWaterSsrRequiresRain: true }
+      { surfaceWaterSsrRequiresRain: true, lazyPrecipitation: true }
     );
     const initialWeather = source.session
       .inspect("world")
@@ -1449,14 +1502,37 @@ export async function mountSeedWorldDemo(
           progress(0.25, "准备规划贴图");
           // Both workers consume the immutable plan. Join before creating GPU/scene
           // owners; publication aborts outstanding rock work if either task fails.
-          const [, formationMeshes] = await Promise.all([
-            timed("raster.run", () => raster.run(plan, true, true)),
-            timed("rockFormations.prepare", () => rockFormations.prepare(plan, signal))
-          ]);
+          // Note: PlanningSession.initialize() shallow-clones result.plan, so match initial startup by flag + seed.
+          const prewarmedSource =
+            initial &&
+            prewarmedRasterPlan !== undefined &&
+            prewarmedRasterTask !== undefined &&
+            prewarmedRocksTask !== undefined &&
+            prewarmedRasterPlan.parameters.seed === plan.parameters.seed &&
+            prewarmedRasterPlan.parameters.worldTemplate?.id === plan.parameters.worldTemplate?.id
+              ? prewarmedRasterPlan
+              : undefined;
+          const rasterPromise = prewarmedSource
+            ? prewarmedRasterTask!
+            : timed("raster.run", () => raster.run(plan, true, true));
+          const rocksPromise = prewarmedSource
+            ? prewarmedRocksTask!
+            : timed("rockFormations.prepare", () => rockFormations.prepare(plan, signal));
+          prewarmedRasterPlan = undefined;
+          prewarmedRasterTask = undefined;
+          prewarmedRocksTask = undefined;
+          const [, formationMeshes] = await Promise.all([rasterPromise, rocksPromise]);
           // Superseded raster calls resolve undefined; only the request revision decides acceptance.
           signal.throwIfAborted();
-          const nativeData = raster.takeNativeData(plan);
+          const nativeData = raster.takeNativeData(prewarmedSource ?? plan);
           if (!nativeData) throw new Error("Native terrain data was not prepared for this publication");
+          if (prewarmedSource && prewarmedSource !== plan) {
+            adoptPlanningHeightmap(plan, planningHeightmap(prewarmedSource));
+            adoptPlanningAlphamap(plan, planningAlphamap(prewarmedSource));
+            if (plan.parameters.landMode !== "continuous") {
+              adoptPlanningOcean(plan, preparedPlanningOcean(prewarmedSource));
+            }
+          }
           const candidateData = timed("preparePlanningSeedWorldData", () =>
             preparePlanningSeedWorldData(
               plan,
@@ -1537,237 +1613,258 @@ export async function mountSeedWorldDemo(
           let candidateWater: PreparedPlanningWater | undefined;
           let candidateExposure: TerrainWindGpuExposureProvider | undefined;
           try {
-            let spanAt = performance.now();
-            candidate = await SeedWorldTerrainRuntime.create(
-              engine!,
-              root,
-              camera,
-              library,
-              profiles,
-              candidateData.plan,
-              runtimeFields,
-              [],
-              groundPopulation,
-              candidateData.surfaceIntent,
-              candidateData.terrainSettings,
-              candidateData.terrainNormalSamples,
-              SEED_WORLD_SURFACE_LOD_CROSS_FADE_DURATION_SECONDS,
-              undefined,
-              signal,
-              desert
-                ? desert.desertSurfaceOptions(plan, result.recipe.parameters.terrainSurface, result.recipe.edits)
-                : result.recipe.parameters.terrainSurface
-            );
-            recordBootSpan("SeedWorldTerrainRuntime.create", spanAt);
-            signal.throwIfAborted();
-            candidate.setSurfaceWaterSsrEnabled(environment!.surfaceWaterSsrRequested);
-            const { reliefNearAmplitudeM = 0, reliefAmplitudeM = 0, reliefFarAmplitudeM = 0 } = plan.parameters;
-            if (Math.max(reliefNearAmplitudeM, reliefAmplitudeM, reliefFarAmplitudeM) > 0)
-              candidate.clipmap.setShadowsEnabled(true);
-            spanAt = performance.now();
-            heightTransition = preparePlanningTerrainPresentation(
-              candidate,
-              publication!.current?.heightTransition?.fields ?? publication!.current?.data.fields,
-              candidateData.fields,
-              runtimeFields,
-              plan.buildings.length || plan.fences?.length || plan.courtyards?.length
-                ? undefined
-                : context.terrainTransitionDurationSeconds,
-              {
-                prepare: async (fields, signal) => {
-                  signal.throwIfAborted();
-                  const presented = planningPresentedSolids(candidateSolids!.sourcePlan, fields, candidateData.fields);
-                  const solidFrame = await candidateSolids!.prepare(presented);
-                  const grassFrame = candidate!.population.prepareRockGrass(
-                    rockFormationPlacements(presented, candidateSolids!.formations),
-                    rockGrassExclusions(candidateSolids!.sourcePlan, fields, rockGrassWaterTest(water!))
-                  );
-                  try {
-                    const groundTemplate = candidateTemplate?.prepareRockGrounding(
-                      presented,
-                      (x, z) => sampleSeedWorldHeight(fields, x, z),
-                      candidateSolids!.formations
-                    );
-                    const vegetationFrame = candidateVegetation!.prepareGrounding(fields, signal, {
-                      plan: presented,
-                      formations: candidateSolids!.formations
-                    });
-                    return {
-                      commit: () => {
-                        solidFrame.commit();
-                        vegetationFrame.commit();
-                        grassFrame.commit();
-                        groundTemplate?.();
-                      },
-                      discard: () => {
-                        solidFrame.discard();
-                        vegetationFrame.discard();
-                        grassFrame.discard();
-                      }
-                    };
-                  } catch (error) {
-                    solidFrame.discard();
-                    grassFrame.discard();
-                    throw error;
-                  }
-                },
-                onError: (error) => {
-                  canvas.dataset.terrainPresentationError = String(error);
-                  console.error("[seed-world-planner] terrain/building presentation stopped", error);
-                }
-              }
-            );
-            recordBootSpan("preparePlanningTerrainPresentation", spanAt);
-            spanAt = performance.now();
-            applyPlanningTreeVariations(candidate.population, plan.authoredResources ?? []);
-            recordBootSpan("applyPlanningTreeVariations", spanAt);
-            spanAt = performance.now();
-            signal.throwIfAborted();
-            const presentedFields = heightTransition?.fields ?? candidateData.fields;
-            const presented = planningPresentedSolids(plan, presentedFields, candidateData.fields);
-            const templateGround = (x: number, z: number) => sampleSeedWorldHeight(candidateData.fields, x, z);
-            const templateScene = resolveWorldTemplateScene(plan, templateGround, formationMeshes);
-            const templateView =
-              templateScene &&
-              resolveWorldTemplateView(
-                templateScene,
-                camera.aspectRatio,
-                camera.fieldOfView,
-                navigation.eyeHeight,
-                templateGround
-              );
-            const seedChanged =
-              context.previousDocument.entities.world.components.world?.values.seed !== plan.parameters.seed;
-            if (
-              !presentationPose &&
-              templateView &&
-              (((initial || seedChanged) && !bookmark) ||
-                context.previousDocument.entities.world.components.worldTemplate?.values.id !==
-                  plan.parameters.worldTemplate?.id)
-            ) {
-              const position = new Vector3(...templateView.pose.eye),
-                target = new Vector3(...templateView.pose.target);
-              const matrix = new Matrix();
-              Matrix.lookAt(position, target, new Vector3(0, 1, 0), matrix);
-              matrix.invert();
-              const rotation = new Quaternion();
-              matrix.getRotation(rotation);
-              cameraPose = { position, rotation, orbitTarget: target };
-            }
-            spanAt = performance.now();
-            candidateSolids = await createPlanningSeedSolids(engine!, candidate.root, presented, {
-              camera,
-              signal,
-              previous: publication!.current?.solids,
-              formations: formationMeshes,
-              sourcePlan: plan,
-              rockColorBlend: readRockFormationSettings(document).colorBlend,
-              registerGrassAppearance: (material) => candidate!.registerGrassAppearanceMaterial(material)
-            });
-            recordBootSpan("createPlanningSeedSolids", spanAt);
-            canvas.dataset.rockFormations = JSON.stringify({
-              formations: formationMeshes.length,
-              triangles: formationMeshes.reduce((sum, f) => sum + f.mesh.indices.length / 3, 0),
-              bodies: formationMeshes.reduce((sum, f) => sum + f.stats.bodies, 0),
-              vertices: formationMeshes.reduce((sum, f) => sum + f.stats.vertices, 0)
-            });
-            spanAt = performance.now();
-            candidateVegetation = await PlanningNaturalVegetationRuntime.create(
-              candidate.root,
-              candidate.population.trees,
-              candidate.population.details,
-              camera,
-              library,
-              plan,
-              planningHeightmap(plan),
-              candidateData.fields,
-              candidateData.population,
-              {
-                settings: readRockFormationSettings(document),
-                signal,
-                formations: formationMeshes,
-                supportPlan: presented
-              },
-              readPlantMaterialParameters(document),
-              candidate,
-              presentationPose
-                ? subjectViewLandscape(
-                    presentationPose,
-                    plan,
-                    (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z),
-                    camera.aspectRatio
-                  )
-                : templateView?.landscape,
-              presentedFields
-            );
-            recordBootSpan("PlanningNaturalVegetationRuntime.create", spanAt);
-            signal.throwIfAborted();
-            spanAt = performance.now();
-            await candidate.population.applyAuthoringPopulationLayout(
-              planningNaturalGroundPopulation(
-                candidateData.population,
-                planningNaturalGrassDensity(library),
-                plan,
-                candidateVegetation.plantAssets
-              ),
-              {
-                minimumX: 0,
-                minimumZ: 0,
-                maximumX: plan.parameters.width,
-                maximumZ: plan.parameters.depth
-              }
-            );
-            recordBootSpan("applyAuthoringPopulationLayout", spanAt);
-            spanAt = performance.now();
-            candidate.setSurfaceColorTuning({
-              roadColor: readSurfacePalette(document, SEED_WORLD_ROAD_COLOR_DEFAULT, "road"),
-              groundColor: readSurfacePalette(document, candidate.defaultGroundColor),
-              groundFusion: readGrassGroundFusion(document),
-              grass: readGrassAppearance(document)
-            });
-            recordBootSpan("setSurfaceColorTuning", spanAt);
-            spanAt = performance.now();
-            candidateTemplate = await WorldTemplateRuntime.create(
-              candidate.root,
-              presented,
-              templateGround,
-              templateScene,
-              signal,
-              formationMeshes,
-              camera
-            );
-            recordBootSpan("WorldTemplateRuntime.create", spanAt);
-            if (heightTransition)
-              candidateTemplate?.prepareRockGrounding(
-                presented,
-                (x, z) => sampleSeedWorldHeight(presentedFields, x, z),
-                formationMeshes
-              )?.();
-            if (!ready) progress(0.6, `生成真实建筑（${plan.buildings.length} 栋）`);
-            progress(0.68, "生成全部房屋与围合构件");
             const buildingTerrain = masonryTerrainSource(
               { data: candidateData, revision: document.revision },
               formationMeshes
             );
-            // Startup has no outer project transaction. Later initialization is
-            // contributed during editor preparation, never from runtime publication.
-            if (!ready && !context.projectTransaction)
-              await initializeBuildingScene(runtimeProject!, nativeEditor!.editor, plan, buildingTerrain, signal);
+            // Run terrain+solids+vegetation+template, buildings, and water preparation in parallel.
+            const terrainAndContentTask = (async () => {
+              let spanAt = performance.now();
+              candidate = await SeedWorldTerrainRuntime.create(
+                engine!,
+                root,
+                camera,
+                library,
+                profiles,
+                candidateData.plan,
+                runtimeFields,
+                [],
+                groundPopulation,
+                candidateData.surfaceIntent,
+                candidateData.terrainSettings,
+                candidateData.terrainNormalSamples,
+                SEED_WORLD_SURFACE_LOD_CROSS_FADE_DURATION_SECONDS,
+                undefined,
+                signal,
+                desert
+                  ? desert.desertSurfaceOptions(plan, result.recipe.parameters.terrainSurface, result.recipe.edits)
+                  : result.recipe.parameters.terrainSurface
+              );
+              recordBootSpan("SeedWorldTerrainRuntime.create", spanAt);
+              signal.throwIfAborted();
+              candidate.setSurfaceWaterSsrEnabled(environment!.surfaceWaterSsrRequested);
+              const { reliefNearAmplitudeM = 0, reliefAmplitudeM = 0, reliefFarAmplitudeM = 0 } = plan.parameters;
+              if (Math.max(reliefNearAmplitudeM, reliefAmplitudeM, reliefFarAmplitudeM) > 0)
+                candidate.clipmap.setShadowsEnabled(true);
+              spanAt = performance.now();
+              heightTransition = preparePlanningTerrainPresentation(
+                candidate,
+                publication!.current?.heightTransition?.fields ?? publication!.current?.data.fields,
+                candidateData.fields,
+                runtimeFields,
+                plan.buildings.length || plan.fences?.length || plan.courtyards?.length
+                  ? undefined
+                  : context.terrainTransitionDurationSeconds,
+                {
+                  prepare: async (fields, signal) => {
+                    signal.throwIfAborted();
+                    const presented = planningPresentedSolids(candidateSolids!.sourcePlan, fields, candidateData.fields);
+                    const solidFrame = await candidateSolids!.prepare(presented);
+                    const grassFrame = candidate!.population.prepareRockGrass(
+                      rockFormationPlacements(presented, candidateSolids!.formations),
+                      rockGrassExclusions(candidateSolids!.sourcePlan, fields, rockGrassWaterTest(water!))
+                    );
+                    try {
+                      const groundTemplate = candidateTemplate?.prepareRockGrounding(
+                        presented,
+                        (x, z) => sampleSeedWorldHeight(fields, x, z),
+                        candidateSolids!.formations
+                      );
+                      const vegetationFrame = candidateVegetation!.prepareGrounding(fields, signal, {
+                        plan: presented,
+                        formations: candidateSolids!.formations
+                      });
+                      return {
+                        commit: () => {
+                          solidFrame.commit();
+                          vegetationFrame.commit();
+                          grassFrame.commit();
+                          groundTemplate?.();
+                        },
+                        discard: () => {
+                          solidFrame.discard();
+                          vegetationFrame.discard();
+                          grassFrame.discard();
+                        }
+                      };
+                    } catch (error) {
+                      solidFrame.discard();
+                      grassFrame.discard();
+                      throw error;
+                    }
+                  },
+                  onError: (error) => {
+                    canvas.dataset.terrainPresentationError = String(error);
+                    console.error("[seed-world-planner] terrain/building presentation stopped", error);
+                  }
+                }
+              );
+              recordBootSpan("preparePlanningTerrainPresentation", spanAt);
+              spanAt = performance.now();
+              applyPlanningTreeVariations(candidate.population, plan.authoredResources ?? []);
+              recordBootSpan("applyPlanningTreeVariations", spanAt);
+              signal.throwIfAborted();
+              const presentedFields = heightTransition?.fields ?? candidateData.fields;
+              const presented = planningPresentedSolids(plan, presentedFields, candidateData.fields);
+              const templateGround = (x: number, z: number) => sampleSeedWorldHeight(candidateData.fields, x, z);
+              const templateScene = resolveWorldTemplateScene(plan, templateGround, formationMeshes);
+              const templateView =
+                templateScene &&
+                resolveWorldTemplateView(
+                  templateScene,
+                  camera.aspectRatio,
+                  camera.fieldOfView,
+                  navigation.eyeHeight,
+                  templateGround
+                );
+              const seedChanged =
+                context.previousDocument.entities.world.components.world?.values.seed !== plan.parameters.seed;
+              if (
+                !presentationPose &&
+                templateView &&
+                (((initial || seedChanged) && !bookmark) ||
+                  context.previousDocument.entities.world.components.worldTemplate?.values.id !==
+                    plan.parameters.worldTemplate?.id)
+              ) {
+                const position = new Vector3(...templateView.pose.eye),
+                  target = new Vector3(...templateView.pose.target);
+                const matrix = new Matrix();
+                Matrix.lookAt(position, target, new Vector3(0, 1, 0), matrix);
+                matrix.invert();
+                const rotation = new Quaternion();
+                matrix.getRotation(rotation);
+                cameraPose = { position, rotation, orbitTarget: target };
+              }
+              // Solids, natural vegetation, and world template do not depend on each other; run concurrently.
+              const [solidsRes, vegRes, templateRes] = await Promise.all([
+                timed("createPlanningSeedSolids", () =>
+                  createPlanningSeedSolids(engine!, candidate!.root, presented, {
+                    camera,
+                    signal,
+                    previous: publication!.current?.solids,
+                    formations: formationMeshes,
+                    sourcePlan: plan,
+                    rockColorBlend: readRockFormationSettings(document).colorBlend,
+                    registerGrassAppearance: (material) => candidate!.registerGrassAppearanceMaterial(material)
+                  })
+                ).then((val) => (candidateSolids = val)),
+                timed("PlanningNaturalVegetationRuntime.create", () =>
+                  PlanningNaturalVegetationRuntime.create(
+                    candidate!.root,
+                    candidate!.population.trees,
+                    candidate!.population.details,
+                    camera,
+                    library,
+                    plan,
+                    planningHeightmap(plan),
+                    candidateData.fields,
+                    candidateData.population,
+                    {
+                      settings: readRockFormationSettings(document),
+                      signal,
+                      formations: formationMeshes,
+                      supportPlan: presented
+                    },
+                    readPlantMaterialParameters(document),
+                    candidate,
+                    presentationPose
+                      ? subjectViewLandscape(
+                          presentationPose,
+                          plan,
+                          (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z),
+                          camera.aspectRatio
+                        )
+                      : templateView?.landscape,
+                    presentedFields,
+                    // On initial boot cameraPose has not been applied yet; preparePresentation() drains at spawn.
+                    { deferInitialDrain: initial && precompileShaders }
+                  )
+                ).then((val) => (candidateVegetation = val)),
+                timed("WorldTemplateRuntime.create", () =>
+                  WorldTemplateRuntime.create(
+                    candidate!.root,
+                    presented,
+                    templateGround,
+                    templateScene,
+                    signal,
+                    formationMeshes,
+                    camera
+                  )
+                ).then((val) => (candidateTemplate = val))
+              ]);
+              void solidsRes;
+              void vegRes;
+              void templateRes;
+              canvas.dataset.rockFormations = JSON.stringify({
+                formations: formationMeshes.length,
+                triangles: formationMeshes.reduce((sum, f) => sum + f.mesh.indices.length / 3, 0),
+                bodies: formationMeshes.reduce((sum, f) => sum + f.stats.bodies, 0),
+                vertices: formationMeshes.reduce((sum, f) => sum + f.stats.vertices, 0)
+              });
+              signal.throwIfAborted();
+              spanAt = performance.now();
+              await candidate.population.applyAuthoringPopulationLayout(
+                planningNaturalGroundPopulation(
+                  candidateData.population,
+                  planningNaturalGrassDensity(library),
+                  plan,
+                  candidateVegetation!.plantAssets
+                ),
+                {
+                  minimumX: 0,
+                  minimumZ: 0,
+                  maximumX: plan.parameters.width,
+                  maximumZ: plan.parameters.depth
+                }
+              );
+              recordBootSpan("applyAuthoringPopulationLayout", spanAt);
+              spanAt = performance.now();
+              candidate.setSurfaceColorTuning({
+                roadColor: readSurfacePalette(document, SEED_WORLD_ROAD_COLOR_DEFAULT, "road"),
+                groundColor: readSurfacePalette(document, candidate.defaultGroundColor),
+                groundFusion: readGrassGroundFusion(document),
+                grass: readGrassAppearance(document)
+              });
+              recordBootSpan("setSurfaceColorTuning", spanAt);
+              if (heightTransition)
+                candidateTemplate?.prepareRockGrounding(
+                  presented,
+                  (x, z) => sampleSeedWorldHeight(presentedFields, x, z),
+                  formationMeshes
+                )?.();
+              return { presented };
+            })();
+
+            const buildingsTask = (async () => {
+              // Startup has no outer project transaction. Later initialization is
+              // contributed during editor preparation, never from runtime publication.
+              if (!ready && !context.projectTransaction)
+                await timed("initializeBuildingScene", () =>
+                  initializeBuildingScene(runtimeProject!, nativeEditor!.editor, plan, buildingTerrain, signal)
+                );
+              candidateMasonry = await timed("nativeBuildingHost.prepare", () =>
+                nativeBuildingHost!.prepare({
+                  terrain: buildingTerrain,
+                  signal
+                })
+              );
+            })();
+
+            const waterTask = (async () => {
+              canvas.dataset.waterPreparation = "preparing";
+              candidateWater = await timed("water.prepare", () => water!.prepare(plan, signal));
+              canvas.dataset.waterPreparation = "ready";
+            })();
+
+            const parallelResults = await Promise.allSettled([terrainAndContentTask, buildingsTask, waterTask]);
+            for (const item of parallelResults) {
+              if (item.status === "rejected") throw item.reason;
+            }
+            const { presented } = (parallelResults[0] as PromiseFulfilledResult<{ presented: IslandPlan }>).value;
             if (!ready) progress(0.7, "准备原生建筑与水体");
-            spanAt = performance.now();
-            candidateMasonry = await nativeBuildingHost!.prepare({
-              terrain: buildingTerrain,
-              signal
-            });
-            recordBootSpan("nativeBuildingHost.prepare", spanAt);
-            canvas.dataset.waterPreparation = "preparing";
-            spanAt = performance.now();
-            candidateWater = await water!.prepare(plan, signal);
-            recordBootSpan("water.prepare", spanAt);
-            canvas.dataset.waterPreparation = "ready";
-            spanAt = performance.now();
-            candidate.population.setRockGrassGround(readRockFormationSettings(document));
-            candidate.population
+            let spanAt = performance.now();
+            candidate!.population.setRockGrassGround(readRockFormationSettings(document));
+            candidate!.population
               .prepareRockGrass(
                 rockFormationPlacements(presented, formationMeshes),
                 rockGrassExclusions(plan, candidateData.fields, rockGrassWaterTest(water!))
@@ -1775,9 +1872,9 @@ export async function mountSeedWorldDemo(
               .commit();
             recordBootSpan("rock grass prepare + commit", spanAt);
             spanAt = performance.now();
-            if (precompileShaders && ready) candidate.warmupPopulationDetails();
+            if (precompileShaders && ready) candidate!.warmupPopulationDetails();
             recordBootSpan("warmupPopulationDetails", spanAt);
-            const warmupRoots = [candidate.root, ...candidateWater.shaderWarmupRoots];
+            const warmupRoots = [candidate!.root, ...candidateWater!.shaderWarmupRoots];
             const shaderWarmup = await warmupSeedWorldRendererVariants(engine!, scene!, camera, warmupRoots, {
               // Startup publishes additional owners below; collect their final state together before reveal.
               enabled: precompileShaders && ready,
@@ -1798,7 +1895,7 @@ export async function mountSeedWorldDemo(
               canvas.dataset.buildingShaderWarmup = JSON.stringify(shaderWarmup);
             signal.throwIfAborted();
             if (!exposure) {
-              const first = candidate;
+              const first = candidate!;
               candidateExposure = new TerrainWindGpuExposureProvider(
                 engine!,
                 () => (readWorld() ?? first).clipmap.heightSamplingSource,
@@ -1814,8 +1911,8 @@ export async function mountSeedWorldDemo(
               preparedWater: candidateWater,
               data: candidateData,
               heightTransition,
-              world: candidate,
-              solids: candidateSolids,
+              world: candidate!,
+              solids: candidateSolids!,
               cameraPose,
               windExposure: candidateExposure,
               playerState: preparedPlayer
@@ -2056,19 +2153,21 @@ export async function mountSeedWorldDemo(
         await runtimeDebug?.synchronize();
         if (publication!.current !== accepted || disposed) return;
         debugSidebar?.synchronize(plan);
-        await applyPresentation(source!.session, lightingProfile!, post, resetPostProcess);
+        if (ready) {
+          await applyPresentation(source!.session, lightingProfile!, post, resetPostProcess);
+          applyPlanningWeather(
+            environment!,
+            source!.session.inspect("world").components.find((c) => c.type === "weather")?.values
+          );
+          accepted.world.setSurfaceColorTuning({
+            roadColor: readSurfacePalette(source!.session.document, SEED_WORLD_ROAD_COLOR_DEFAULT, "road"),
+            groundColor: readSurfacePalette(source!.session.document, accepted.world.defaultGroundColor),
+            groundFusion: readGrassGroundFusion(source!.session.document),
+            grass: readGrassAppearance(source!.session.document)
+          });
+        }
         if (desert && worldTemplate(templateId)?.rockSource !== "shared") desert.applyDesertSky(lighting!);
         if (desert) post.setBloomTint(1, 1, 1);
-        applyPlanningWeather(
-          environment!,
-          source!.session.inspect("world").components.find((c) => c.type === "weather")?.values
-        );
-        accepted.world.setSurfaceColorTuning({
-          roadColor: readSurfacePalette(source!.session.document, SEED_WORLD_ROAD_COLOR_DEFAULT, "road"),
-          groundColor: readSurfacePalette(source!.session.document, accepted.world.defaultGroundColor),
-          groundFusion: readGrassGroundFusion(source!.session.document),
-          grass: readGrassAppearance(source!.session.document)
-        });
         if (templateArt?.sandRippleFadeM !== undefined) {
           const normals = accepted.world.getSandNormalTuning();
           if (normals)
@@ -2215,7 +2314,7 @@ export async function mountSeedWorldDemo(
       scene!.ambientOcclusion.intensity = 0.5;
       scene!.ambientOcclusion.radius = 0.5;
     }
-    await lighting.waitForEnvironmentIBLIdle();
+    await timed("waitForEnvironmentIBLIdle", () => lighting!.waitForEnvironmentIBLIdle());
     if (pageUrl.searchParams.get("debug") === "1") {
       const { PlanningSeedObbDebug } = await import("./src/planning/spatial/runtime/PlanningSeedObbDebug.ts");
       obbDebug = new PlanningSeedObbDebug({
@@ -2435,22 +2534,26 @@ export async function mountSeedWorldDemo(
       lodDebugPanel.update();
     }
     // Dense visible details belong to the world presentation, including photo captures.
-    publication.current?.world.warmupPopulationDetails();
+    timed("warmupPopulationDetails (startup)", () => publication!.current?.world.warmupPopulationDetails());
 
     if (precompileShaders) {
       // IBL generation above needs normal rendering; stop world draws only after it has settled.
       camera.enabled = false;
       progress(0.96, "准备世界渲染资源");
-      await Promise.all([farmingHost?.runtime?.preparePresentation(), animals?.preparePresentation()]);
-      if (disposed) throw new DOMException("Seed page disposed during shader preparation", "AbortError");
-      await publication.current?.vegetation?.preparePresentation();
+      await Promise.all([
+        farmingHost?.runtime?.preparePresentation(),
+        animals?.preparePresentation(),
+        publication!.current?.vegetation?.preparePresentation()
+      ]);
       if (disposed) throw new DOMException("Seed page disposed during shader preparation", "AbortError");
       progress(0.98, "预编译场景渲染变体");
       const assistant = options.showAssistant !== false ? tools.preparePresentation() : undefined;
-      const shaderWarmup = await warmupSeedWorldRendererVariants(engine, scene!, camera, scene!.rootEntities, {
+      const shaderWarmup = await warmupSeedWorldRendererVariants(engine!, scene!, camera, scene!.rootEntities, {
         strict: true,
         includeInactiveEntities: false,
         includeGpuInstancing: true,
+        frameBudgetMilliseconds: 32,
+        maximumPendingPrograms: 16,
         overlayRenderers: assistant?.root.getComponentsIncludeChildren(Renderer, []) ?? [],
         postProcessState: post.getShaderWarmupState(),
         additionalBackgroundMaterials: environment!.shaderWarmupBackgroundMaterials,
@@ -2513,6 +2616,10 @@ export async function mountSeedWorldDemo(
         }
       };
       const buildingWaterSample = createWaterSurfaceSample();
+      const [{ mountNativeWaterPanel }, { mountNativeBuildingPanel }] = await Promise.all([
+        import("@galacean/engine-world-planning/spatial/runtime/NativeWaterPanel"),
+        import("@galacean/engine-world-planning/masonry/NativeBuildingPanel")
+      ]);
       nativeWaterPanel = mountNativeWaterPanel(runtimeProject, nativeEditor);
       nativeBuildingPanel = mountNativeBuildingPanel(
         runtimeProject,
@@ -2593,25 +2700,6 @@ export async function mountSeedWorldDemo(
       }
     );
     tools!.application.viewSnapshots = viewSnapshots;
-    {
-      lassoPanel = new SeedWorldLassoPanel(
-        viewSnapshots,
-        (frozen) => {
-          lassoFrozen = frozen;
-          const enabled = ready && !disposed && assistantInputEnabled && !frozen;
-          if (restoreMasonryView) {
-            orbit.enabled = enabled;
-            navigation.enabled = false;
-            navigation.setInputEnabled(false);
-          } else if (debugSidebar) debugSidebar.setInputEnabled(enabled);
-          else {
-            navigation.enabled = enabled;
-            navigation.setInputEnabled(enabled);
-          }
-        },
-        new SeedWorldInstantCamera(engine, canvas, camera, viewSnapshots.budget)
-      );
-    }
     unbindWorldClick = bindWorldClickInput(canvas, navigation, function interactWithAnimal(x, y) {
       if (!ready || disposed || lassoFrozen || runtimeDebug?.farmingPicking) return;
       const ray = new Ray();
@@ -2621,6 +2709,7 @@ export async function mountSeedWorldDemo(
         (distance) => rockNavigation?.raycastWorld(ray, distance) ?? root.scene!.physics.raycast(ray, distance)
       );
     });
+    await startupSaveTask;
     if (options.showAssistant !== false) tools.show();
     loading.hidden = true;
     canvas.dataset.status = "ready";
@@ -2632,8 +2721,7 @@ export async function mountSeedWorldDemo(
     //    so it only gates the screenshot entry, which is mounted when it has finished.
     const photoPreparationStarted = performance.now();
     canvas.dataset.photoPreparation = "loading";
-    const preparingLasso = lassoPanel,
-      preparingPicker = worldPicker,
+    const preparingPicker = worldPicker,
       preparingPicks = pickPreparation,
       preparingViews = viewSnapshots;
     const preparingTools = tools;
@@ -2654,7 +2742,29 @@ export async function mountSeedWorldDemo(
       () => {}
     );
     void (async () => {
-      await capturePathWarmup;
+      const [, { SeedWorldLassoPanel }, { SeedWorldInstantCamera }] = await Promise.all([
+        capturePathWarmup,
+        import("./src/SeedWorldLassoPanel.ts"),
+        import("./src/SeedWorldInstantCamera.ts")
+      ]);
+      if (disposed) return;
+      const preparingLasso = (lassoPanel = new SeedWorldLassoPanel(
+        preparingViews,
+        (frozen) => {
+          lassoFrozen = frozen;
+          const enabled = ready && !disposed && assistantInputEnabled && !frozen;
+          if (restoreMasonryView) {
+            orbit.enabled = enabled;
+            navigation.enabled = false;
+            navigation.setInputEnabled(false);
+          } else if (debugSidebar) debugSidebar.setInputEnabled(enabled);
+          else {
+            navigation.enabled = enabled;
+            navigation.setInputEnabled(enabled);
+          }
+        },
+        new SeedWorldInstantCamera(engine!, canvas, camera, preparingViews.budget)
+      ));
       await timed("lassoPanel.prepare", () => preparingLasso.prepare());
       await timed("farmingInteraction.prepare", () => farmingHost?.runtime?.prepareInteraction());
       await timed("pickPreparation.flush #2", () => preparingPicks.flush(editorLifetime.signal));

@@ -2,7 +2,8 @@ import { createPlanningTreeEligibility } from "./PlanningTreeEligibility";
 import { sampleDensityOwner, hashDetailOwnership } from "../../world/SeedWorldDetailCandidateLattice";
 import { roadSurfaces } from "../layout/RoadTopology";
 import { planningRemovedObjectIds } from "../PlanningResources";
-import { createPlanningWaterQuery } from "./PlanningWaterQueries";
+import { rasterizePolygonGrid } from "../../geometry/V2Geometry";
+import { profileHeight } from "../../semantic-study/WorldPlanningTerrain";
 import type { IslandPlan, PlanLandscape } from "../../semantic-study/IslandPlanModel";
 import type { PlanningHeightmap } from "../../semantic-study/PlanningHeightmap";
 import type { PlanningAlphamap } from "../../semantic-study/PlanningAlphamap";
@@ -116,42 +117,129 @@ export function compilePlanningPopulation(
     size
   );
   // Natural and authored water share the same physical predicate, including before the first authored pond.
-  const queryWater = createPlanningWaterQuery(plan, height.sample);
-  for (let z = 0; z < resolution; z++)
+  // Scanline-rasterize land & water footprints to avoid >1M point-in-polygon queries per compilation.
+  const spacing = size / (resolution - 1);
+  const directHeight = height.resolution === resolution;
+  const directAlpha = alpha.resolution === resolution;
+  const directFlowers = coverage.resolution === resolution;
+  const samplePt = { x: 0, z: 0 };
+  const sampleGroundAt = (col: number, row: number, idx: number): number => {
+    if (directHeight) return height.heights[idx];
+    samplePt.x = col * spacing;
+    samplePt.z = row * spacing;
+    return height.sample(samplePt);
+  };
+  if (plan.parameters.landMode !== "continuous") {
+    const insideLand = new Uint8Array(n);
+    for (const ring of [plan.land, ...plan.islands]) {
+      rasterizePolygonGrid(ring, resolution, spacing, spacing, insideLand, 1);
+    }
+    for (let z = 0; z < resolution; z++) {
+      const rowOff = z * resolution;
+      for (let x = 0; x < resolution; x++) {
+        const idx = rowOff + x;
+        if (!insideLand[idx] && sampleGroundAt(x, z, idx) < 0) waterMask[idx] = 255;
+      }
+    }
+  }
+  const authoredWaters = plan.waters.flatMap((water) => {
+    const profile = plan.planning?.profiles.find((p) => p.ownerId === water.id && p.kind === "water");
+    return profile ? [{ water, profile }] : [];
+  });
+  if (authoredWaters.length) {
+    const bodyMask = new Uint8Array(n);
+    for (const { water, profile } of authoredWaters) {
+      let minX = Infinity,
+        maxX = -Infinity,
+        minZ = Infinity,
+        maxZ = -Infinity;
+      for (const p of water.outline) {
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.z < minZ) minZ = p.z;
+        if (p.z > maxZ) maxZ = p.z;
+      }
+      const z0 = Math.max(0, Math.floor((minZ - 1e-7) / spacing));
+      const z1 = Math.min(resolution - 1, Math.ceil((maxZ + 1e-7) / spacing));
+      const x0 = Math.max(0, Math.floor((minX - 1e-7) / spacing));
+      const x1 = Math.min(resolution - 1, Math.ceil((maxX + 1e-7) / spacing));
+      if (z0 > z1 || x0 > x1) continue;
+      for (let z = z0; z <= z1; z++) bodyMask.fill(0, z * resolution + x0, z * resolution + x1 + 1);
+      rasterizePolygonGrid(water.outline, resolution, spacing, spacing, bodyMask, 1);
+      for (const hole of water.lake?.holes ?? []) {
+        rasterizePolygonGrid(hole, resolution, spacing, spacing, bodyMask, 0);
+      }
+      for (let z = z0; z <= z1; z++) {
+        const rowOff = z * resolution;
+        samplePt.z = z * spacing;
+        for (let x = x0; x <= x1; x++) {
+          const idx = rowOff + x;
+          if (!bodyMask[idx] || waterMask[idx]) continue;
+          samplePt.x = x * spacing;
+          if (profileHeight(samplePt, profile) > sampleGroundAt(x, z, idx)) waterMask[idx] = 255;
+        }
+      }
+    }
+  }
+  const alphaCoverage = alpha.coverage;
+  const alphaWeights = alpha.weights;
+  const alphaRes = alpha.resolution;
+  const covFlowers = coverage.flowers;
+  const covOwners = coverage.ownership.samples;
+  const covRes = coverage.resolution;
+  const invResMinus1 = 1 / (resolution - 1);
+  for (let z = 0; z < resolution; z++) {
+    const v = z * invResMinus1;
+    const wz = v * size;
+    samplePt.z = wz;
+    const rowOff = z * resolution;
     for (let x = 0; x < resolution; x++) {
-      const i = z * resolution + x,
-        u = x / (resolution - 1),
-        v = z / (resolution - 1),
-        land = sample(alpha.coverage, alpha.resolution, u, v) / 255;
-      const water = sample(alpha.weights, alpha.resolution, u, v, 2, 4) / 255;
-      let g = Math.round(sample(alpha.weights, alpha.resolution, u, v, 0, 4) * land);
+      const i = rowOff + x;
+      const u = x * invResMinus1;
+      samplePt.x = u * size;
+      let land: number;
+      let water: number;
+      let alphaGrass: number;
+      if (directAlpha) {
+        const i4 = i * 4;
+        land = alphaCoverage[i] / 255;
+        water = alphaWeights[i4 + 2] / 255;
+        alphaGrass = alphaWeights[i4];
+      } else {
+        land = sample(alphaCoverage, alphaRes, u, v) / 255;
+        water = sample(alphaWeights, alphaRes, u, v, 2, 4) / 255;
+        alphaGrass = sample(alphaWeights, alphaRes, u, v, 0, 4);
+      }
+      let g = Math.round(alphaGrass * land);
       const wet = Math.round(255 * (1 - land + land * water));
-      g = Math.min(g, 255 - wet);
-      const roadWeight = Math.min(255 - g - wet, road[i]);
+      if (g > 255 - wet) g = 255 - wet;
+      const roadW = road[i];
+      const roadWeight = roadW < 255 - g - wet ? roadW : 255 - g - wet;
       // The grass layer owns both its substrate and its detail population.
       // Transfer absent grass coverage to the existing bare mineral channel;
       // retain base habitat samples for independently controlled plant layers.
-      const naturalGrass = grassAt({ x: u * size, z: v * size }).grass!;
+      const naturalGrass = grassAt(samplePt).grass!;
       const surfaceGrass = Math.round(g * naturalGrass);
-      materialWeights[i * 4] = surfaceGrass;
-      materialWeights[i * 4 + 1] = wet;
-      materialWeights[i * 4 + 2] = 255 - surfaceGrass - wet - roadWeight;
-      materialWeights[i * 4 + 3] = roadWeight;
-      waterMask[i] = queryWater(u * size, v * size).water ? 255 : 0;
-      const free = waterMask[i] ? 0 : (1 - road[i] / 255) * (1 - occupied[i] / 255);
+      const i4 = i * 4;
+      materialWeights[i4] = surfaceGrass;
+      materialWeights[i4 + 1] = wet;
+      materialWeights[i4 + 2] = 255 - surfaceGrass - wet - roadWeight;
+      materialWeights[i4 + 3] = roadWeight;
+      const isWater = waterMask[i] !== 0;
+      const free = isWater ? 0 : (1 - roadW / 255) * (1 - occupied[i] / 255);
       // Surface coverage controls size; ecology is applied once by the ground-population projection.
-      grass[i] = waterMask[i] ? 0 : Math.round(255 * land * (1 - water));
-      flowers[i] = Math.round(sample(coverage.flowers, coverage.resolution, u, v) * land * free);
-      if (flowers[i])
-        flowerOwners[i] = sampleDensityOwner(
-          coverage.flowers,
-          coverage.ownership.samples,
-          coverage.resolution,
-          u * (coverage.resolution - 1),
-          v * (coverage.resolution - 1)
-        );
-      habitat[i] = waterMask[i] ? SeedWorldLandCover.Wetland : SeedWorldLandCover.Grassland;
+      grass[i] = isWater ? 0 : Math.round(255 * land * (1 - water));
+      const flowerVal = directFlowers ? covFlowers[i] : sample(covFlowers, covRes, u, v);
+      const flowerByte = Math.round(flowerVal * land * free);
+      flowers[i] = flowerByte;
+      if (flowerByte) {
+        flowerOwners[i] = directFlowers
+          ? covOwners[i]
+          : sampleDensityOwner(covFlowers, covOwners, covRes, u * (covRes - 1), v * (covRes - 1));
+      }
+      habitat[i] = isWater ? SeedWorldLandCover.Wetland : SeedWorldLandCover.Grassland;
     }
+  }
   const species = SEED_WORLD_TREE_SPECIES_PROFILES.filter((s) => rules.treeSpecies.includes(s.key));
   if (!species.length) throw new Error("Planning vegetation requires at least one configured Seed tree species");
   const removed = planningRemovedObjectIds(plan.authoredResources ?? []);

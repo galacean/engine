@@ -124,17 +124,23 @@ export function planningAlphamap(plan: IslandPlan): PlanningAlphamap {
       }
       for (const edge of active) {
         if (!edge.boundary) continue;
-        const { a, dx, dz, l2 } = edge,
+        const { a, dx, dz, l2, minX, maxX, firstCol: eFirstCol, lastCol: eLastCol } = edge,
           zGap = Math.max(0, edge.minZ - z, z - edge.maxZ);
-        for (let col = edge.firstCol; col <= edge.lastCol; col++) {
+        const invL2 = l2 ? 1 / l2 : 0;
+        const azDiff = z - a.z;
+        for (let col = eFirstCol; col <= eLastCol; col++) {
           const x = worldX[col],
-            limit = Math.abs(scanline[col]);
+            current = scanline[col],
+            limit = current < 0 ? -current : current;
           // A box-axis distance is a conservative lower bound. Only discard an
           // edge that cannot improve the exact distance already held by this pixel.
-          if (zGap >= limit || edge.minX - x >= limit || x - edge.maxX >= limit) continue;
-          const t = l2 ? Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / l2)) : 0,
-            d = Math.hypot(x - a.x - t * dx, z - a.z - t * dz);
-          if (d < limit) scanline[col] = (scanline[col] < 0 ? -1 : 1) * d;
+          if (zGap >= limit || minX - x >= limit || x - maxX >= limit) continue;
+          const rawT = invL2 ? ((x - a.x) * dx + azDiff * dz) * invL2 : 0;
+          const t = rawT <= 0 ? 0 : rawT >= 1 ? 1 : rawT;
+          const ex = x - a.x - t * dx;
+          const ez = azDiff - t * dz;
+          const d2 = ex * ex + ez * ez;
+          if (d2 < limit * limit) scanline[col] = (current < 0 ? -1 : 1) * Math.sqrt(d2);
         }
       }
       const offset = row * resolution;

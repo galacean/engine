@@ -82,22 +82,31 @@ export function compilePlanningSeedWorldData(
   // Match Seed's slope ownership using the actual canonical height decode.
   const h = terrain.height,
     hs = h.resolution,
-    step = size / (hs - 1);
-  const at = (x: number, z: number) => h.heights[z * hs + x];
-  for (let z = 0; z < resolution; z++)
+    hHeights = h.heights,
+    step = size / (hs - 1),
+    sameRes = hs === resolution,
+    resRatio = (hs - 1) / (resolution - 1),
+    invHalfPi = 2 / Math.PI;
+  for (let z = 0; z < resolution; z++) {
+    const hz = sameRes ? z : Math.round(z * resRatio);
+    const z0 = hz > 0 ? hz - 1 : 0,
+      z1 = hz + 1 < hs ? hz + 1 : hs - 1;
+    const invDz = 1 / ((z1 - z0) * step);
+    const rowOff = z * resolution;
+    const hzOff = hz * hs,
+      z0Off = z0 * hs,
+      z1Off = z1 * hs;
     for (let x = 0; x < resolution; x++) {
-      const hx = Math.round((x * (hs - 1)) / (resolution - 1)),
-        hz = Math.round((z * (hs - 1)) / (resolution - 1));
-      const x0 = Math.max(0, hx - 1),
-        x1 = Math.min(hs - 1, hx + 1),
-        z0 = Math.max(0, hz - 1),
-        z1 = Math.min(hs - 1, hz + 1);
-      const dx = (at(x1, hz) - at(x0, hz)) / ((x1 - x0) * step),
-        dz = (at(hx, z1) - at(hx, z0)) / ((z1 - z0) * step);
-      rockySlopeWeight[z * resolution + x] = Math.round(
-        seedWorldRockySlopeWeight(Math.atan(Math.hypot(dx, dz)) / (Math.PI / 2)) * 255
+      const hx = sameRes ? x : Math.round(x * resRatio);
+      const x0 = hx > 0 ? hx - 1 : 0,
+        x1 = hx + 1 < hs ? hx + 1 : hs - 1;
+      const dx = (hHeights[hzOff + x1] - hHeights[hzOff + x0]) / ((x1 - x0) * step),
+        dz = (hHeights[z1Off + hx] - hHeights[z0Off + hx]) * invDz;
+      rockySlopeWeight[rowOff + x] = Math.round(
+        seedWorldRockySlopeWeight(Math.atan(Math.sqrt(dx * dx + dz * dz)) * invHalfPi) * 255
       );
     }
+  }
   const fields: SeedWorldFields = {
     ...compiled.fields,
     rockySlopeWeight,
@@ -205,28 +214,61 @@ export function compilePlanningSeedWorldData(
  * Pixel discretization has one-texel uncertainty; no water returns a finite world-diagonal distance.
  */
 function distanceToMask(mask: Uint8Array, resolution: number, spacing: number): Float32Array {
-  const out = Float32Array.from(mask, (value) => (value > 0 ? 0 : resolution * Math.SQRT2 * spacing));
+  const len = mask.length;
+  const maxDist = resolution * Math.SQRT2 * spacing;
+  const out = new Float32Array(len);
+  for (let i = 0; i < len; i++) out[i] = mask[i] > 0 ? 0 : maxDist;
   const diagonal = spacing * Math.SQRT2;
-  for (let z = 0; z < resolution; z++)
+  for (let z = 0; z < resolution; z++) {
+    const rowOff = z * resolution;
+    const prevOff = rowOff - resolution;
     for (let x = 0; x < resolution; x++) {
-      const i = z * resolution + x;
-      if (x > 0) out[i] = Math.min(out[i], out[i - 1] + spacing);
+      const i = rowOff + x;
+      let v = out[i];
+      if (x > 0) {
+        const c = out[i - 1] + spacing;
+        if (c < v) v = c;
+      }
       if (z > 0) {
-        out[i] = Math.min(out[i], out[i - resolution] + spacing);
-        if (x > 0) out[i] = Math.min(out[i], out[i - resolution - 1] + diagonal);
-        if (x + 1 < resolution) out[i] = Math.min(out[i], out[i - resolution + 1] + diagonal);
+        let c = out[prevOff + x] + spacing;
+        if (c < v) v = c;
+        if (x > 0) {
+          c = out[prevOff + x - 1] + diagonal;
+          if (c < v) v = c;
+        }
+        if (x + 1 < resolution) {
+          c = out[prevOff + x + 1] + diagonal;
+          if (c < v) v = c;
+        }
       }
+      out[i] = v;
     }
-  for (let z = resolution - 1; z >= 0; z--)
+  }
+  for (let z = resolution - 1; z >= 0; z--) {
+    const rowOff = z * resolution;
+    const nextOff = rowOff + resolution;
     for (let x = resolution - 1; x >= 0; x--) {
-      const i = z * resolution + x;
-      if (x + 1 < resolution) out[i] = Math.min(out[i], out[i + 1] + spacing);
-      if (z + 1 < resolution) {
-        out[i] = Math.min(out[i], out[i + resolution] + spacing);
-        if (x > 0) out[i] = Math.min(out[i], out[i + resolution - 1] + diagonal);
-        if (x + 1 < resolution) out[i] = Math.min(out[i], out[i + resolution + 1] + diagonal);
+      const i = rowOff + x;
+      let v = out[i];
+      if (x + 1 < resolution) {
+        const c = out[i + 1] + spacing;
+        if (c < v) v = c;
       }
+      if (z + 1 < resolution) {
+        let c = out[nextOff + x] + spacing;
+        if (c < v) v = c;
+        if (x > 0) {
+          c = out[nextOff + x - 1] + diagonal;
+          if (c < v) v = c;
+        }
+        if (x + 1 < resolution) {
+          c = out[nextOff + x + 1] + diagonal;
+          if (c < v) v = c;
+        }
+      }
+      out[i] = v;
     }
+  }
   return out;
 }
 function paintSegment(mask: Uint8Array, resolution: number, size: number, a: PlanPoint, b: PlanPoint): void {
@@ -272,6 +314,6 @@ function roadBridgeIntervals(road: PlanRoute, source: IslandPlan): { startArcMet
 }
 function hashBytes(bytes: Uint8Array, start = 2166136261): number {
   let hash = start;
-  for (const byte of bytes) hash = Math.imul(hash ^ byte, 16777619);
+  for (let i = 0, len = bytes.length; i < len; i++) hash = Math.imul(hash ^ bytes[i], 16777619);
   return hash >>> 0;
 }

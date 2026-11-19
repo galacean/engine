@@ -49,11 +49,37 @@ export async function loadBuiltinWaterTexture(engine: Engine, path: string, sign
     throw new Error(`Native Water texture '${path}' does not match the packaged conversion identity.`);
   const url = resolvers.get(engine)?.(path) ?? new URL(path, BUILTIN_WATER_PROJECT_URL).href;
   const response = await fetch(url, { signal });
-  if (!response.ok || (await digestSha256Hex(await response.arrayBuffer())) !== asset.sha256)
+  if (!response.ok) throw new Error(`Native Water texture '${path}' failed its source hash check.`);
+  const bytes = await response.arrayBuffer();
+  if ((await digestSha256Hex(bytes)) !== asset.sha256)
     throw new Error(`Native Water texture '${path}' failed its source hash check.`);
   signal?.throwIfAborted();
-  const texture = await engine.resourceManager.load<Texture2D>({ url, type: asset.type, params: asset.params });
+  // Avoid a second network request when loading from an HTTP URL; reuse the already-fetched bytes via a Blob URL.
+  const blobUrl = url.startsWith("blob:")
+    ? undefined
+    : URL.createObjectURL(new Blob([bytes], { type: "application/octet-stream" }));
+  let texture: Texture2D;
+  try {
+    texture = await engine.resourceManager.load<Texture2D>({
+      url: blobUrl ?? url,
+      type: asset.type,
+      params: asset.params
+    });
+  } catch (error) {
+    if (blobUrl) URL.revokeObjectURL(blobUrl);
+    throw error;
+  }
   texture._addReferCount(1);
+  if (blobUrl) {
+    const originalDestroy = texture.destroy.bind(texture);
+    texture.destroy = (force?: boolean) => {
+      try {
+        return originalDestroy(force);
+      } finally {
+        if (texture.destroyed) URL.revokeObjectURL(blobUrl);
+      }
+    };
+  }
   try {
     signal?.throwIfAborted();
     if (

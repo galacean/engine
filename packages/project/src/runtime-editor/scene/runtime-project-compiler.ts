@@ -288,6 +288,7 @@ export async function prepareProjectSources(
     const source = JSON.parse(content);
     if (!source?.asset) return;
     const pending: unknown[] = [source];
+    const prefabRefs: string[] = [];
     while (pending.length) {
       const value = pending.pop();
       if (!value || typeof value !== "object") continue;
@@ -300,19 +301,28 @@ export async function prepareProjectSources(
         if (matches.length !== 1) throw new Error(`Cannot resolve project asset '${ref}' unambiguously`);
         const dependency = matches[0];
         if (dependency.type.toLowerCase() === "prefab" && !visited.has(dependency.virtualPath)) {
-          await load(dependency.virtualPath);
-          await visit(dependency.virtualPath, true);
+          prefabRefs.push(dependency.virtualPath);
         }
       }
       pending.push(...Object.values(value));
     }
+    if (prefabRefs.length) {
+      const unique = [...new Set(prefabRefs)];
+      await Promise.all(
+        unique.map(async (virtualPath) => {
+          if (visited.has(virtualPath)) return;
+          await load(virtualPath);
+          await visit(virtualPath, true);
+        })
+      );
+    }
   }
-  for (const file of pack.project.files) {
-    if (!/^(Scene|Prefab)$/i.test(file.type)) continue;
+  const hierarchyFiles = pack.project.files.filter((file) => /^(Scene|Prefab)$/i.test(file.type));
+  for (const file of hierarchyFiles) {
     const path = file.virtualPath;
     inputs.files.set(path, compilationFileKey(pack.project.files.filter((entry) => entry.virtualPath === path)));
-    await visit(path);
   }
+  await Promise.all(hierarchyFiles.map((file) => visit(file.virtualPath)));
   if (complete) preparedSources = inputs;
 }
 

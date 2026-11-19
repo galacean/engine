@@ -72,15 +72,22 @@ async function acquireAssets(engine: Engine, signal?: AbortSignal) {
     assets.set(engine, entry);
     created.promise = (async () => {
       try {
-        // Sequential ownership also covers cancellation or a failure of the second load.
-        for (const url of [assetUrl, lod1AssetUrl])
-          created.resources.push(
-            await engine.resourceManager.load<GLTFResource>({
+        // Load LOD0 and LOD1 in parallel while retaining ownership cleanup if either fails.
+        const settled = await Promise.allSettled(
+          [assetUrl, lod1AssetUrl].map((url) =>
+            engine.resourceManager.load<GLTFResource>({
               url,
               type: AssetType.GLTF,
               params: { keepMeshData: true }
             })
-          );
+          )
+        );
+        for (const item of settled) {
+          if (item.status === "fulfilled") created.resources.push(item.value);
+        }
+        for (const item of settled) {
+          if (item.status === "rejected") throw item.reason;
+        }
         const [resource, lod1Resource] = created.resources;
         const wood = resource.materials?.find((m) => m.name === "Bridge:Wood"),
           rope = resource.materials?.find((m) => m.name === "Bridge:Rope");
