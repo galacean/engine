@@ -1,0 +1,26 @@
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_bd4dd7d663e619 56,127-131,287,289-290,295,297-298,303,305-306,731,739,818
+packages/modify/src/native/core/src/RenderPipeline/RenderQueue.ts
+  h_bd4dd7d663e619 14-19,65-69,72-74,80,85,93,98-100,102,109,139
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  h_bd4dd7d663e619 165-166,1152-1154
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  h_bd4dd7d663e619 15,546-566
+packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudDirectionCacheRenderer.ts
+  h_bd4dd7d663e619 9,68,254-259,341,345-346,356-361,363,366-373,387-389
+packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudDirectionCacheSchedule.ts
+  h_bd4dd7d663e619 3-7,58,64-65
+packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudMaterial.ts
+  h_bd4dd7d663e619 45-46,68,463-465,492-494,671,687-693,698,720-721,757,843-848,862,920-942,946-948
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7d8dbb8cb69543adeb8f633eb18382c825f63e84",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
