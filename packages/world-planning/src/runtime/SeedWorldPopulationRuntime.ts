@@ -543,8 +543,10 @@ export interface GrassDensityLodUniformTarget {
   grassDensityLodEnd?: number;
 }
 
-export const GRASS_DETAIL_LOD1_DISTANCE_METRES = 14;
-export const GRASS_DETAIL_LOD2_DISTANCE_METRES = 26;
+export const GRASS_DETAIL_LOD1_DISTANCE_METRES = 0;
+export const GRASS_DETAIL_LOD2_DISTANCE_METRES = 16;
+export const GRASS_DETAIL_MAXIMUM_DISTANCE_METRES = 90;
+export const GRASS_DETAIL_MINIMUM_DENSITY_FRACTION = 0.2;
 const GRASS_DETAIL_LOD_HYSTERESIS_METRES = 0.75;
 const GRASS_LOD_DEBUG_COLORS: Readonly<Record<0 | 1 | 2, Vector4>> = {
   0: new Vector4(0.12, 0.85, 0.25, 0.85),
@@ -895,8 +897,8 @@ export class SeedWorldPopulationRuntime {
     colorizeLod: false,
     lod1DistanceMetres: GRASS_DETAIL_LOD1_DISTANCE_METRES,
     lod2DistanceMetres: GRASS_DETAIL_LOD2_DISTANCE_METRES,
-    maximumDistanceMetres: seedWorldPopulationDetailFadeTerminalDistance(),
-    minimumDensityFraction: 0.25,
+    maximumDistanceMetres: GRASS_DETAIL_MAXIMUM_DISTANCE_METRES,
+    minimumDensityFraction: GRASS_DETAIL_MINIMUM_DENSITY_FRACTION,
     distanceMode: "edge"
   };
   private _forwardGrass?: SeedWorldForwardGrass;
@@ -2783,21 +2785,26 @@ export class SeedWorldPopulationRuntime {
         this._detailCells.update(cameraPosition.x, cameraPosition.z);
       }
       if (cameraChanged || !this._detailsWereActive || this._detailCells.size !== previousDetailCellCount) {
+        const detailActiveDistance = Math.max(
+          seedWorldPopulationDetailFadeTerminalDistance(),
+          this._grassLodDebugConfig.maximumDistanceMetres
+        );
+        const detailPrefetchDistance = detailActiveDistance + SEED_WORLD_POPULATION_CELL_METRES;
         const detailCells = this._detailCells.cells;
         for (let cellIndex = 0; cellIndex < detailCells.length; cellIndex++) {
           const cell = detailCells[cellIndex]!;
           const cellActive =
             this._populationFrustum.intersectsBox(cell.resource.detailBounds) &&
             (detailBoundsContainsCamera(cell.resource.detailBounds, cameraPosition) ||
-              seedWorldPopulationDetailBoundsIsActive(cell.resource.detailBounds, cameraPosition));
+              seedWorldPopulationDetailBoundsIsActive(
+                cell.resource.detailBounds,
+                cameraPosition,
+                detailActiveDistance
+              ));
           const cellPrefetch =
             cellActive ||
             detailBoundsContainsCamera(cell.resource.detailBounds, cameraPosition) ||
-            seedWorldPopulationDetailBoundsIsActive(
-              cell.resource.detailBounds,
-              cameraPosition,
-              SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.prefetchDistanceMetres
-            );
+            seedWorldPopulationDetailBoundsIsActive(cell.resource.detailBounds, cameraPosition, detailPrefetchDistance);
           this._setCellDetails(cell, cellActive, cellPrefetch);
           if (cellActive) this._updateDetailBatchVisibility(cell, cameraPosition);
         }
@@ -2899,11 +2906,15 @@ export class SeedWorldPopulationRuntime {
         );
       }
     }
+    const detailActiveDistance = Math.max(
+      seedWorldPopulationDetailFadeTerminalDistance(),
+      this._grassLodDebugConfig.maximumDistanceMetres
+    );
     for (const cell of this._detailCells.cells) {
       const active =
         this._populationFrustum.intersectsBox(cell.resource.detailBounds) &&
         (detailBoundsContainsCamera(cell.resource.detailBounds, position) ||
-          seedWorldPopulationDetailBoundsIsActive(cell.resource.detailBounds, position));
+          seedWorldPopulationDetailBoundsIsActive(cell.resource.detailBounds, position, detailActiveDistance));
       this._setCellDetails(cell, active, active);
       if (!active) continue;
       this._completeDetailCompaction(cell);
@@ -3227,7 +3238,7 @@ export class SeedWorldPopulationRuntime {
       compiler = this._createRockSurfaceGrassCompiler();
       this._rockSurfaceGrassCompiler = compiler;
     }
-    const terminalDistance = seedWorldPopulationDetailFadeTerminalDistance();
+    const terminalDistance = this._grassLodDebugConfig.maximumDistanceMetres;
     const patchX = Math.floor(cameraPosition.x / SEED_WORLD_ROCK_SURFACE_GRASS_PATCH_METRES);
     const patchZ = Math.floor(cameraPosition.z / SEED_WORLD_ROCK_SURFACE_GRASS_PATCH_METRES);
     const finiteWindow = Number.isFinite(terminalDistance);
@@ -3380,7 +3391,7 @@ export class SeedWorldPopulationRuntime {
       const patch = batch.rockSurfacePatch!;
       const enabled =
         hierarchyActive &&
-        rockSurfaceGrassPatchIsResident(patch, cameraPosition) &&
+        rockSurfaceGrassPatchIsResident(patch, cameraPosition, this._grassLodDebugConfig.maximumDistanceMetres) &&
         this._populationFrustum.intersectsBox(batch.bounds) &&
         (detailBoundsContainsCamera(batch.bounds, cameraPosition) ||
           seedWorldPopulationDetailBoundsIsActive(
@@ -4082,7 +4093,7 @@ export class SeedWorldPopulationRuntime {
           syncGrassDensityLodUniform(
             batch,
             this._grassDensityLodEnabled,
-            seedWorldPopulationDetailFadeTerminalDistance()
+            this._grassLodDebugConfig.maximumDistanceMetres
           );
         }
         if (category === "grass" && this._grassTerrainMaterial) {
@@ -7155,7 +7166,8 @@ function samePopulationInstanceIds(
 
 function rockSurfaceGrassPatchIsResident(
   patch: SeedWorldRockSurfaceGrassPatch,
-  cameraPosition: Readonly<{ x: number; y: number; z: number }>
+  cameraPosition: Readonly<{ x: number; y: number; z: number }>,
+  distance = seedWorldPopulationDetailFadeTerminalDistance()
 ): boolean {
   const minimumX = patch.patchX * SEED_WORLD_ROCK_SURFACE_GRASS_PATCH_METRES;
   const maximumX = minimumX + SEED_WORLD_ROCK_SURFACE_GRASS_PATCH_METRES;
@@ -7164,7 +7176,6 @@ function rockSurfaceGrassPatchIsResident(
   const offsetX = Math.max(minimumX - cameraPosition.x, 0, cameraPosition.x - maximumX);
   const offsetY = Math.max(patch.minimumY - cameraPosition.y, 0, cameraPosition.y - patch.maximumY);
   const offsetZ = Math.max(minimumZ - cameraPosition.z, 0, cameraPosition.z - maximumZ);
-  const distance = seedWorldPopulationDetailFadeTerminalDistance();
   return offsetX * offsetX + offsetY * offsetY + offsetZ * offsetZ <= distance * distance;
 }
 

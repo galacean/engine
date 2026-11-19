@@ -7,6 +7,8 @@ import {
 import {
   GRASS_DETAIL_LOD1_DISTANCE_METRES,
   GRASS_DETAIL_LOD2_DISTANCE_METRES,
+  GRASS_DETAIL_MAXIMUM_DISTANCE_METRES,
+  GRASS_DETAIL_MINIMUM_DENSITY_FRACTION,
   type GrassLodDebugConfig,
   type SeedWorldPopulationRuntime
 } from "@galacean/engine-world-planning/runtime/SeedWorldPopulationRuntime";
@@ -194,8 +196,8 @@ export class SeedWorldLodDebugPanel {
     colorizeLod: false,
     lod1DistanceMetres: GRASS_DETAIL_LOD1_DISTANCE_METRES,
     lod2DistanceMetres: GRASS_DETAIL_LOD2_DISTANCE_METRES,
-    maximumDistanceMetres: 60,
-    minimumDensityFraction: 0.25,
+    maximumDistanceMetres: GRASS_DETAIL_MAXIMUM_DISTANCE_METRES,
+    minimumDensityFraction: GRASS_DETAIL_MINIMUM_DENSITY_FRACTION,
     distanceMode: "edge"
   };
 
@@ -264,13 +266,13 @@ export class SeedWorldLodDebugPanel {
           </div>
           <div class="lod-row">
             <span class="lod-row__label">最大绘制距离</span>
-            <span class="lod-row__val" data-val="grass-max">60 m</span>
-            <input type="range" min="15" max="90" step="1" value="60" data-ctrl="grass-max">
+            <span class="lod-row__val" data-val="grass-max">${GRASS_DETAIL_MAXIMUM_DISTANCE_METRES} m</span>
+            <input type="range" min="15" max="90" step="1" value="${GRASS_DETAIL_MAXIMUM_DISTANCE_METRES}" data-ctrl="grass-max">
           </div>
           <div class="lod-row">
             <span class="lod-row__label">远距最低密度</span>
-            <span class="lod-row__val" data-val="grass-dens">25%</span>
-            <input type="range" min="0" max="100" step="5" value="25" data-ctrl="grass-dens">
+            <span class="lod-row__val" data-val="grass-dens">${Math.round(GRASS_DETAIL_MINIMUM_DENSITY_FRACTION * 100)}%</span>
+            <input type="range" min="0" max="100" step="5" value="${Math.round(GRASS_DETAIL_MINIMUM_DENSITY_FRACTION * 100)}" data-ctrl="grass-dens">
           </div>
           <div class="lod-stats" data-role="grass-stats">加载中...</div>
         </div>
@@ -411,8 +413,8 @@ export class SeedWorldLodDebugPanel {
       this.grassModeSelect.value = "edge";
       this.grassLod1Slider.value = String(GRASS_DETAIL_LOD1_DISTANCE_METRES);
       this.grassLod2Slider.value = String(GRASS_DETAIL_LOD2_DISTANCE_METRES);
-      this.grassMaxSlider.value = "60";
-      this.grassMinDensSlider.value = "25";
+      this.grassMaxSlider.value = String(GRASS_DETAIL_MAXIMUM_DISTANCE_METRES);
+      this.grassMinDensSlider.value = String(Math.round(GRASS_DETAIL_MINIMUM_DENSITY_FRACTION * 100));
       applyGrass();
 
       this.bldgColorCheck.checked = false;
