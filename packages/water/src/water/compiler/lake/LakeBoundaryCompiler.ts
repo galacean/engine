@@ -224,10 +224,17 @@ export function triangulateLakeBoundary(boundary: SampledLakeBoundary, maximumTr
   const edges = boundary.rings.flatMap((ring) => ring.map((a, i) => ({ a, b: ring[(i + 1) % ring.length] })));
   const rows = [...new Set(edges.map(({ a }) => a[1]))].sort((a, b) => a - b);
   const output: number[] = [];
+  const waterLevel = Math.fround(boundary.waterLevel);
   const emit = (a: LakePointXZ, b: LakePointXZ, c: LakePointXZ): void => {
-    if (Math.abs(signedDoubleAreaXZ(a, b, c)) <= LAKE_BOUNDARY_EPSILON) return;
+    const area64 = signedDoubleAreaXZ(a, b, c);
+    if (Math.abs(area64) <= LAKE_BOUNDARY_EPSILON) return;
+    const qa: LakePointXZ = [Math.fround(a[0]), Math.fround(a[1])];
+    const qb: LakePointXZ = [Math.fround(b[0]), Math.fround(b[1])];
+    const qc: LakePointXZ = [Math.fround(c[0]), Math.fround(c[1])];
+    const area32 = signedDoubleAreaXZ(qa, qb, qc);
+    if (Math.abs(area32) <= LAKE_BOUNDARY_EPSILON || area32 * area64 <= 0) return;
     if (output.length / 9 >= maximumTriangles) throw new RangeError("Lake triangulation exceeds triangle budget.");
-    for (const p of [a, c, b]) output.push(p[0], boundary.waterLevel, p[1]);
+    for (const p of [qa, qc, qb]) output.push(p[0], waterLevel, p[1]);
   };
   const intersectEdgeAtZ = (edge: (typeof edges)[number], z: number): number =>
     edge.a[0] + ((z - edge.a[1]) * (edge.b[0] - edge.a[0])) / (edge.b[1] - edge.a[1]);
@@ -244,8 +251,9 @@ export function triangulateLakeBoundary(boundary: SampledLakeBoundary, maximumTr
     const z0 = rows[row],
       z1 = rows[row + 1],
       midpoint = (z0 + z1) / 2;
-    // Symmetric curves can produce rows differing only by floating-decodeLakePointXZ noise.
-    if (z1 - z0 <= LAKE_BOUNDARY_EPSILON || midpoint <= z0 || midpoint >= z1) continue;
+    // Symmetric curves or contour crossings near a grid line can produce rows that collapse in Float32.
+    if (z1 - z0 <= LAKE_BOUNDARY_EPSILON || midpoint <= z0 || midpoint >= z1 || Math.fround(z0) === Math.fround(z1))
+      continue;
     const active = edges.filter(({ a, b }) => Math.min(a[1], b[1]) < midpoint && Math.max(a[1], b[1]) > midpoint);
     active.sort((a, b) => intersectEdgeAtZ(a, midpoint) - intersectEdgeAtZ(b, midpoint));
     if (active.length % 2) throw new Error("Lake triangulation encountered an open contour.");

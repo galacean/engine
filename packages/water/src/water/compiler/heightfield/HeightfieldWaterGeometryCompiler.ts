@@ -594,9 +594,9 @@ export function compileHeightfieldWaterRenderSurfaceChunks(
     const tangents = new Float32Array(chunkTriangleCount * 12);
     const uvs = new Float32Array(chunkTriangleCount * 6);
     const indices = new Uint16Array(chunkTriangleCount * 3);
+    let emittedTriangleCount = 0;
     for (let triangle = 0; triangle < chunkTriangleCount; triangle++) {
       const sourceOffset = firstValue + triangle * 9;
-      const positionOffset = triangle * 9;
       const ax = source[sourceOffset]!;
       const ay = source[sourceOffset + 1]!;
       const az = source[sourceOffset + 2]!;
@@ -615,13 +615,15 @@ export function compileHeightfieldWaterRenderSurfaceChunks(
       let normalX = aby * acz - abz * acy;
       let normalY = abz * acx - abx * acz;
       let normalZ = abx * acy - aby * acx;
-      const normalLength = Math.hypot(normalX, normalY, normalZ) || 1;
+      const normalLength = Math.hypot(normalX, normalY, normalZ);
+      if (normalLength <= 1e-12) continue;
       normalX /= normalLength;
       normalY /= normalLength;
       normalZ /= normalLength;
-      const tangentLength = Math.hypot(normalY, normalX) || 1;
-      const tangentX = normalY / tangentLength;
-      const tangentY = Math.fround(-normalX / tangentLength);
+      const tangentLength = Math.hypot(normalY, normalX);
+      const tangentX = tangentLength > 1e-6 ? normalY / tangentLength : 1;
+      const tangentY = tangentLength > 1e-6 ? Math.fround(-normalX / tangentLength) : 0;
+      const positionOffset = emittedTriangleCount * 9;
       for (let vertex = 0; vertex < 3; vertex++) {
         const inputOffset = sourceOffset + vertex * 3;
         const outputOffset = positionOffset + vertex * 3;
@@ -634,23 +636,27 @@ export function compileHeightfieldWaterRenderSurfaceChunks(
         normals[outputOffset] = normalX;
         normals[outputOffset + 1] = normalY;
         normals[outputOffset + 2] = normalZ;
-        const tangentOffset = triangle * 12 + vertex * 4;
+        const tangentOffset = emittedTriangleCount * 12 + vertex * 4;
         tangents[tangentOffset] = tangentX;
         tangents[tangentOffset + 1] = tangentY === 0 ? 0 : tangentY;
         tangents[tangentOffset + 2] = 0;
         tangents[tangentOffset + 3] = 1;
-        const uvOffset = triangle * 6 + vertex * 2;
+        const uvOffset = emittedTriangleCount * 6 + vertex * 2;
         uvs[uvOffset] = (worldX - gridMinX) * inverseWidth;
         uvs[uvOffset + 1] = (worldZ - gridMinZ) * inverseHeight;
-        indices[triangle * 3 + vertex] = triangle * 3 + vertex;
+        indices[emittedTriangleCount * 3 + vertex] = emittedTriangleCount * 3 + vertex;
       }
+      emittedTriangleCount++;
     }
-    let vertexCount = chunkTriangleCount * 3;
+    if (emittedTriangleCount === 0) {
+      firstTriangle += chunkTriangleCount;
+      continue;
+    }
+    let vertexCount = emittedTriangleCount * 3;
     if (prepared.descriptor.lakeBoundary) {
       const unique = new Map<string, number>();
-      for (let i = 0; i < chunkTriangleCount * 3; i++) {
-        const sourceOffset = firstValue + i * 3;
-        const key = `${source[sourceOffset]}:${source[sourceOffset + 1]}:${source[sourceOffset + 2]}`;
+      for (let i = 0; i < emittedTriangleCount * 3; i++) {
+        const key = `${positions[i * 3]}:${positions[i * 3 + 1]}:${positions[i * 3 + 2]}`;
         let index = unique.get(key);
         if (index === undefined) {
           index = unique.size;
@@ -687,9 +693,9 @@ export function compileHeightfieldWaterRenderSurfaceChunks(
           normals: new WaterReadonlyFloat32Buffer(normals.subarray(0, vertexCount * 3)),
           tangents: new WaterReadonlyFloat32Buffer(tangents.subarray(0, vertexCount * 4)),
           uvs: new WaterReadonlyFloat32Buffer(uvs.subarray(0, vertexCount * 2)),
-          indices: new WaterReadonlyUint16Buffer(indices),
+          indices: new WaterReadonlyUint16Buffer(indices.subarray(0, emittedTriangleCount * 3)),
           vertexCount,
-          indexCount: chunkTriangleCount * 3,
+          indexCount: emittedTriangleCount * 3,
           bounds: Object.freeze({
             min: vector3(-maxDisplacement, -maxDisplacement, -maxDisplacement),
             max: vector3(
