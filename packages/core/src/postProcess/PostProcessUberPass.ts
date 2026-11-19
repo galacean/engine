@@ -16,8 +16,7 @@ export class PostProcessUberPass extends PostProcessPass {
 
   // Bloom
   private _bloomMaterial: Material;
-  private _mipDownRT: RenderTarget[] = [];
-  private _mipUpRT: RenderTarget[] = [];
+  private _mipRT: RenderTarget[] = [];
 
   constructor(engine: Engine) {
     super(engine);
@@ -35,7 +34,6 @@ export class PostProcessUberPass extends PostProcessPass {
     const bloomShaderData = bloomMaterial.shaderData;
     const uberShaderData = uberMaterial.shaderData;
     bloomShaderData.setVector4(BloomEffect._bloomParams, new Vector4());
-    bloomShaderData.setVector4(BloomEffect._lowMipTexelSizeProp, new Vector4());
     uberShaderData.setVector4(BloomEffect._bloomIntensityParams, new Vector4());
     uberShaderData.setVector4(BloomEffect._dirtTilingOffsetProp, new Vector4());
     uberShaderData.setColor(BloomEffect._tintProp, new Color());
@@ -96,8 +94,17 @@ export class PostProcessUberPass extends PostProcessPass {
     const bloomShaderData = bloomMaterial.shaderData;
     const uberMaterial = this._uberMaterial;
     const uberShaderData = uberMaterial.shaderData;
-    const { downScale, threshold, scatter, intensity, tint, highQualityFiltering, dirtTexture, dirtIntensity } =
-      bloomBlend;
+    const {
+      downScale,
+      maxIterations,
+      threshold,
+      scatter,
+      intensity,
+      tint,
+      highQualityFiltering,
+      dirtTexture,
+      dirtIntensity
+    } = bloomBlend;
 
     // Update shaderData
     const thresholdLinear = threshold.value;
@@ -129,21 +136,23 @@ export class PostProcessUberPass extends PostProcessPass {
     // Determine the iteration count
     const downRes = downScale.value === BloomDownScaleMode.Half ? 1 : 2;
     const pixelViewport = camera.pixelViewport;
-    const tw = pixelViewport.width >> downRes;
-    const th = pixelViewport.height >> downRes;
+    const tw = Math.max(1, pixelViewport.width >> downRes);
+    const th = Math.max(1, pixelViewport.height >> downRes);
     const maxSize = Math.max(tw, th);
     const iterations = Math.floor(Math.log2(maxSize) - 1);
-    const mipCount = Math.min(Math.max(iterations, 1), BloomEffect._maxIterations);
+    const maxMipCount = Math.max(1, Math.round(maxIterations.value));
+    const mipCount = Math.min(Math.max(iterations, 1), maxMipCount);
 
-    // Prefilter
+    // Allocate mip pyramid (single RT per level; upsample blends in-place)
     const internalColorTextureFormat = camera._getInternalColorTextureFormat();
     const isSRGB = !camera._isInternalFormatHDR();
-    let mipWidth = tw,
-      mipHeight = th;
+    const mipRT = this._mipRT;
+    let mipWidth = tw;
+    let mipHeight = th;
     for (let i = 0; i < mipCount; i++) {
-      this._mipUpRT[i] = PipelineUtils.recreateRenderTargetIfNeeded(
+      mipRT[i] = PipelineUtils.recreateRenderTargetIfNeeded(
         engine,
-        this._mipUpRT[i],
+        mipRT[i],
         mipWidth,
         mipHeight,
         internalColorTextureFormat,
@@ -155,63 +164,40 @@ export class PostProcessUberPass extends PostProcessPass {
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear
       );
-      this._mipDownRT[i] = PipelineUtils.recreateRenderTargetIfNeeded(
-        engine,
-        this._mipDownRT[i],
-        mipWidth,
-        mipHeight,
-        internalColorTextureFormat,
-        null,
-        false,
-        false,
-        isSRGB,
-        1,
-        TextureWrapMode.Clamp,
-        TextureFilterMode.Bilinear
-      );
-      mipWidth = Math.max(1, Math.floor(mipWidth / 2));
-      mipHeight = Math.max(1, Math.floor(mipHeight / 2));
+      mipWidth = Math.max(1, mipWidth >> 1);
+      mipHeight = Math.max(1, mipHeight >> 1);
     }
-    Blitter.blitTexture(engine, srcTexture, this._mipDownRT[0], undefined, undefined, bloomMaterial, 0);
+    if (mipRT.length > mipCount) {
+      this._releaseBloomRenderTargets(mipCount);
+    }
 
-    // Down sample - gaussian pyramid
-    let lastDown = this._mipDownRT[0];
+    // Prefilter
+    Blitter.blitTexture(engine, srcTexture, mipRT[0], undefined, undefined, bloomMaterial, 0);
+
+    // Progressive single-pass 13-tap downsample pyramid (Jimenez, SIGGRAPH 2014)
     for (let i = 1; i < mipCount; i++) {
-      // Classic two pass gaussian blur - use mipUp as a temporary target
-      // First pass does 2x downsampling + 9-tap gaussian
-      // Second pass does 9-tap gaussian using a 5-tap filter + bilinear filtering
       Blitter.blitTexture(
         engine,
-        <Texture2D>lastDown.getColorTexture(0),
-        this._mipUpRT[i],
+        <Texture2D>mipRT[i - 1].getColorTexture(0),
+        mipRT[i],
         undefined,
         undefined,
         bloomMaterial,
         1
       );
+    }
+
+    // Progressive in-place upsample (tent filter by default, bicubic with HQ filtering)
+    for (let i = mipCount - 2; i >= 0; i--) {
       Blitter.blitTexture(
         engine,
-        <Texture2D>this._mipUpRT[i].getColorTexture(0),
-        this._mipDownRT[i],
+        <Texture2D>mipRT[i + 1].getColorTexture(0),
+        mipRT[i],
         undefined,
         undefined,
         bloomMaterial,
         2
       );
-      lastDown = this._mipDownRT[i];
-    }
-
-    // Up sample (bilinear by default, HQ filtering does bicubic instead
-    for (let i = mipCount - 2; i >= 0; i--) {
-      const lowMip = i == mipCount - 2 ? this._mipDownRT[i + 1] : this._mipUpRT[i + 1];
-      const highMip = this._mipDownRT[i];
-      const dst = this._mipUpRT[i];
-      bloomShaderData.setTexture(BloomEffect._lowMipTextureProp, lowMip.getColorTexture(0));
-      if (highQualityFiltering) {
-        const texelSizeLow = bloomShaderData.getVector4(BloomEffect._lowMipTexelSizeProp);
-        texelSizeLow.set(1 / lowMip.width, 1 / lowMip.height, lowMip.width, lowMip.height);
-      }
-      Blitter.blitTexture(engine, <Texture2D>highMip.getColorTexture(0), dst, undefined, undefined, bloomMaterial, 3);
     }
 
     // Setup bloom on uber
@@ -227,23 +213,18 @@ export class PostProcessUberPass extends PostProcessPass {
         dirtTilingOffset.set(1, 1, 0, 0);
       }
     }
-    uberShaderData.setTexture(BloomEffect._bloomTextureProp, this._mipUpRT[0].getColorTexture(0));
+    uberShaderData.setTexture(BloomEffect._bloomTextureProp, mipRT[0].getColorTexture(0));
   }
 
-  private _releaseBloomRenderTargets(): void {
+  private _releaseBloomRenderTargets(fromIndex = 0): void {
     const pool = this.engine._renderTargetPool;
-    const length = this._mipDownRT.length;
-    for (let i = 0; i < length; i++) {
-      const downRT = this._mipDownRT[i];
-      const upRT = this._mipUpRT[i];
-      if (downRT) {
-        pool.freeRenderTarget(downRT);
-      }
-      if (upRT) {
-        pool.freeRenderTarget(upRT);
+    const mipRT = this._mipRT;
+    for (let i = fromIndex, n = mipRT.length; i < n; i++) {
+      const rt = mipRT[i];
+      if (rt) {
+        pool.freeRenderTarget(rt);
       }
     }
-    this._mipDownRT.length = 0;
-    this._mipUpRT.length = 0;
+    mipRT.length = fromIndex;
   }
 }

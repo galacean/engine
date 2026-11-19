@@ -1,6 +1,7 @@
 import { createPhysics } from "../../utils/physics";
 import { Color } from "@galacean/engine";
 import {
+  Blitter,
   BloomDownScaleMode,
   BloomEffect,
   Camera,
@@ -20,7 +21,7 @@ import {
 } from "@galacean/engine-core";
 import { MathUtil } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 class CustomPass extends PostProcessPass {
   onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {}
@@ -158,12 +159,20 @@ describe("PostProcess", () => {
     // Test Bloom parameters
     expect(bloomEffect.highQualityFiltering.value).to.false;
     expect(bloomEffect.downScale.value).to.equal(BloomDownScaleMode.Half);
+    expect(bloomEffect.maxIterations.value).to.equal(6);
     expect(bloomEffect.dirtTexture.value).to.null;
     expect(bloomEffect.threshold.value).to.equal(0.8);
     expect(bloomEffect.scatter.value).to.equal(0.7);
     expect(bloomEffect.intensity.value).to.equal(0);
     expect(bloomEffect.dirtIntensity.value).to.equal(0);
     expect(bloomEffect.tint.value).to.include(new Color(1, 1, 1, 1));
+
+    // Clamp maxIterations
+    bloomEffect.maxIterations.value = 0;
+    expect(bloomEffect.maxIterations.value).to.equal(1);
+    bloomEffect.maxIterations.value = 16;
+    expect(bloomEffect.maxIterations.value).to.equal(8);
+    bloomEffect.maxIterations.value = 6;
 
     // Test remove effect
     const removedBloomEffect = pp.removeEffect(BloomEffect);
@@ -180,6 +189,7 @@ describe("PostProcess", () => {
 
     bloomEffect.intensity.value = 1.5;
     bloomEffect.threshold.value = 0.9;
+    bloomEffect.maxIterations.value = 4;
     bloomEffect.tint.value = new Color(0.5, 0.25, 0.1, 1);
     bloomEffect.highQualityFiltering.value = true;
     bloomEffect.dirtTexture.value = dirtTexture;
@@ -205,6 +215,7 @@ describe("PostProcess", () => {
     // Values are preserved.
     expect(cloneBloom.intensity.value).to.equal(1.5);
     expect(cloneBloom.threshold.value).to.equal(0.9);
+    expect(cloneBloom.maxIterations.value).to.equal(4);
     expect(cloneBloom.highQualityFiltering.value).to.true;
     expect(cloneBloom.enabled).to.false;
     expect(cloneBloom.tint.value).to.include(new Color(0.5, 0.25, 0.1, 1));
@@ -425,6 +436,74 @@ describe("PostProcess", () => {
       expect(bloomBlend.intensity.value).to.equal(MathUtil.lerp(intensity1, intensity2, 0));
 
       engine.destroy();
+    }
+  });
+
+  it("Bloom single-pass pyramid passes, mip RT lifecycle, and maxIterations", async () => {
+    const htmlCanvas = document.createElement("canvas");
+    htmlCanvas.width = 512;
+    htmlCanvas.height = 512;
+    const bloomEngine = await WebGLEngine.create({ canvas: htmlCanvas });
+    const bloomScene = bloomEngine.sceneManager.scenes[0];
+    const bloomCamera = bloomScene.createRootEntity("camera").addComponent(Camera);
+    bloomCamera.enablePostProcess = true;
+
+    const pp = bloomScene.createRootEntity("post-process").addComponent(PostProcess);
+    pp.addEffect(TonemappingEffect);
+    const bloomEffect = pp.addEffect(BloomEffect);
+    bloomEffect.intensity.value = 1;
+    bloomEffect.downScale.value = BloomDownScaleMode.Half;
+    bloomEffect.maxIterations.value = 6;
+
+    const activeUberPass = bloomEngine.postProcessPasses[0];
+    const blitSpy = vi.spyOn(Blitter, "blitTexture");
+    try {
+      // @ts-ignore
+      const bloomMaterial = activeUberPass._bloomMaterial;
+      // @ts-ignore
+      const uberMaterial = activeUberPass._uberMaterial;
+
+      const countBloomBlits = () => blitSpy.mock.calls.filter((args) => args[5] === bloomMaterial).length;
+
+      // 512x512 -> Half (256x256) -> 6 iterations -> 2*6 - 1 = 11 bloom passes, 6 mip RTs
+      blitSpy.mockClear();
+      bloomEngine.update();
+      expect(countBloomBlits()).to.equal(11);
+      // @ts-ignore
+      expect(activeUberPass._mipRT.length).to.equal(6);
+      expect(uberMaterial.shaderData.getTexture(BloomEffect._bloomTextureProp)).to.equal(
+        // @ts-ignore
+        activeUberPass._mipRT[0].getColorTexture(0)
+      );
+
+      // Shrinking maxIterations to 3 releases excess mip RTs and runs 2*3 - 1 = 5 bloom passes
+      bloomEffect.maxIterations.value = 3;
+      blitSpy.mockClear();
+      bloomEngine.update();
+      expect(countBloomBlits()).to.equal(5);
+      // @ts-ignore
+      expect(activeUberPass._mipRT.length).to.equal(3);
+
+      // Single iteration (mipCount = 1) runs only prefilter (1 pass) and binds mipRT[0]
+      bloomEffect.maxIterations.value = 1;
+      blitSpy.mockClear();
+      bloomEngine.update();
+      expect(countBloomBlits()).to.equal(1);
+      // @ts-ignore
+      expect(activeUberPass._mipRT.length).to.equal(1);
+      expect(uberMaterial.shaderData.getTexture(BloomEffect._bloomTextureProp)).to.equal(
+        // @ts-ignore
+        activeUberPass._mipRT[0].getColorTexture(0)
+      );
+
+      // Disabling bloom releases all mip RTs
+      bloomEffect.enabled = false;
+      bloomEngine.update();
+      // @ts-ignore
+      expect(activeUberPass._mipRT.length).to.equal(0);
+    } finally {
+      blitSpy.mockRestore();
+      bloomEngine.destroy();
     }
   });
 });

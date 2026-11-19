@@ -5,20 +5,25 @@
 #include "ShaderLibrary/PostProcess/Filtering.glsl"
 
 mediump sampler2D renderer_BlitTexture;
-mediump sampler2D material_lowMipTexture;
 vec4 material_BloomParams;
-vec4 material_lowMipTexelSize;
+vec4 renderer_texelSize;
 
+// Progressive upsample blended in-place with highMip via BlendState:
+// dst.rgb = lowMip.rgb * scatter + highMip.rgb * (1.0 - scatter), preserving dst.a = 0.0.
 void frag(Varyings v) {
-    mediump vec4 highMip = texture2DSRGB(renderer_BlitTexture, v.v_uv);
-
     #ifdef BLOOM_HQ
-      mediump vec4 lowMip = sampleTexture2DBicubic(material_lowMipTexture, v.v_uv, material_lowMipTexelSize);
+      mediump vec3 lowMip = sampleTexture2DBicubic(renderer_BlitTexture, v.v_uv, renderer_texelSize).rgb;
     #else
-      mediump vec4 lowMip = texture2DSRGB(material_lowMipTexture, v.v_uv);
+      // 4-tap bilinear 3x3 tent filter (equivalent to (1,2,1; 2,4,2; 1,2,1) / 16).
+      vec2 halfTexel = renderer_texelSize.xy * 0.5;
+      mediump vec3 lowMip = texture2DSRGB(renderer_BlitTexture, v.v_uv + vec2(-halfTexel.x, -halfTexel.y)).rgb;
+      lowMip += texture2DSRGB(renderer_BlitTexture, v.v_uv + vec2( halfTexel.x, -halfTexel.y)).rgb;
+      lowMip += texture2DSRGB(renderer_BlitTexture, v.v_uv + vec2(-halfTexel.x,  halfTexel.y)).rgb;
+      lowMip += texture2DSRGB(renderer_BlitTexture, v.v_uv + vec2( halfTexel.x,  halfTexel.y)).rgb;
+      lowMip *= 0.25;
     #endif
 
-    gl_FragColor = mix(highMip, lowMip, material_BloomParams.z);
+    gl_FragColor = vec4(lowMip, material_BloomParams.z);
 }
 
 #endif
