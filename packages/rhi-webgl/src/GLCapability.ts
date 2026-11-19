@@ -122,7 +122,7 @@ export class GLCapability {
    */
   supportsTextureFormat(format: TextureFormat): boolean {
     switch (format) {
-      case TextureFormat.R16:
+      case TextureFormat.R16_UNorm:
         return this.canIUse(GLCapabilityType.textureNorm16);
       case TextureFormat.BC1:
       case TextureFormat.BC3:
@@ -148,11 +148,11 @@ export class GLCapability {
       case TextureFormat.ASTC_10x10:
       case TextureFormat.ASTC_12x12:
         return this.canIUse(GLCapabilityType.astc);
-      case TextureFormat.R8G8B8:
-      case TextureFormat.R8G8B8A8:
-      case TextureFormat.R4G4B4A4:
-      case TextureFormat.R5G5B5A1:
-      case TextureFormat.R5G6B5:
+      case TextureFormat.R8G8B8_UNorm:
+      case TextureFormat.R8G8B8A8_UNorm:
+      case TextureFormat.R4G4B4A4_UNorm:
+      case TextureFormat.R5G5B5A1_UNorm:
+      case TextureFormat.R5G6B5_UNorm:
       case TextureFormat.R16G16B16A16_SFloat:
       case TextureFormat.R32G32B32A32_SFloat:
       case TextureFormat.R32G32B32A32_UInt:
@@ -161,8 +161,8 @@ export class GLCapability {
       case TextureFormat.R16G16_SFloat:
       case TextureFormat.R32_SFloat:
       case TextureFormat.R32G32_SFloat:
-      case TextureFormat.R8:
-      case TextureFormat.R8G8:
+      case TextureFormat.R8_UNorm:
+      case TextureFormat.R8G8_UNorm:
       case TextureFormat.Depth:
       case TextureFormat.DepthStencil:
       case TextureFormat.Depth16:

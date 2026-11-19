@@ -75,7 +75,7 @@ class TextureLoader extends Loader<Texture> {
   private _decodeImage(buffer: ArrayBuffer, item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
     return ImageDecoder._decode(buffer, item.url!).then((img) => {
       const {
-        format = TextureFormat.R8G8B8A8,
+        format = TextureFormat.R8G8B8A8_UNorm,
         isSRGBColorSpace = true,
         mipmap = true
       } = (item.params as Partial<TextureParams>) ?? {};
@@ -147,7 +147,7 @@ class TextureContentRestorer extends ContentRestorer<Texture> {
  * Texture loader params interface.
  */
 export interface TextureParams {
-  /** Texture format. default `TextureFormat.R8G8B8A8` */
+  /** Texture format. default `TextureFormat.R8G8B8A8_UNorm` */
   format: TextureFormat;
   /** Whether to use multi-level texture, default is true. */
   mipmap: boolean;

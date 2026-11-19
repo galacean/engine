@@ -28,7 +28,7 @@ export class GLTexture implements IPlatformTexture {
     gl: WebGL2RenderingContext
   ): TextureFormatDetail {
     switch (format) {
-      case TextureFormat.R8G8B8:
+      case TextureFormat.R8G8B8_UNorm:
         return {
           internalFormat: isSRGBColorSpace ? gl.SRGB8 : gl.RGB8,
           baseFormat: gl.RGB,
@@ -37,7 +37,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 1
         };
-      case TextureFormat.R8G8B8A8:
+      case TextureFormat.R8G8B8A8_UNorm:
         return {
           internalFormat: isSRGBColorSpace ? gl.SRGB8_ALPHA8 : gl.RGBA8,
           baseFormat: gl.RGBA,
@@ -46,7 +46,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 4
         };
-      case TextureFormat.R4G4B4A4:
+      case TextureFormat.R4G4B4A4_UNorm:
         return {
           internalFormat: gl.RGBA4,
           baseFormat: gl.RGBA,
@@ -54,7 +54,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 2
         };
-      case TextureFormat.R5G5B5A1:
+      case TextureFormat.R5G5B5A1_UNorm:
         return {
           internalFormat: gl.RGB5_A1,
           baseFormat: gl.RGBA,
@@ -62,7 +62,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 2
         };
-      case TextureFormat.R5G6B5:
+      case TextureFormat.R5G6B5_UNorm:
         return {
           internalFormat: gl.RGB565,
           baseFormat: gl.RGB,
@@ -88,7 +88,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 8
         };
-      case TextureFormat.R16:
+      case TextureFormat.R16_UNorm:
         return {
           internalFormat: 0x822a, // EXT_texture_norm16.R16_EXT
           baseFormat: gl.RED,
@@ -135,7 +135,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 8
         };
-      case TextureFormat.R8:
+      case TextureFormat.R8_UNorm:
         return {
           internalFormat: gl.R8,
           baseFormat: gl.RED,
@@ -143,7 +143,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 1
         };
-      case TextureFormat.R8G8:
+      case TextureFormat.R8G8_UNorm:
         return {
           internalFormat: gl.RG8,
           baseFormat: gl.RG,
@@ -548,7 +548,7 @@ export class GLTexture implements IPlatformTexture {
 
     if (!TextureUtils.supportGenerateMipmaps(texture.format, mipmap, texture.isSRGBColorSpace)) {
       Logger.warn(
-        "Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + R8G8B8A8], you must generate mipmaps manually."
+        "Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + R8G8B8A8_UNorm], you must generate mipmaps manually."
       );
       return;
     }

@@ -95,9 +95,9 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
     BC1_BC3,
     PVRTC,
     ETC,
-    R8,
-    R8G8,
-    R8G8B8A8,
+    R8_UNorm,
+    R8G8_UNorm,
+    R8G8B8A8_UNorm,
     BC6H,
     ASTC_HDR_4x4,
     R16G16B16A16_SFloat
@@ -111,7 +111,7 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
         return hasAlpha ? BasisFormat.ETC2 : BasisFormat.ETC1;
       case TargetFormat.PVRTC:
         return hasAlpha ? BasisFormat.PVRTC1_4_RGBA : BasisFormat.PVRTC1_4_RGB;
-      case TargetFormat.R8G8B8A8:
+      case TargetFormat.R8G8B8A8_UNorm:
         return BasisFormat.RGBA8;
       case TargetFormat.ASTC:
         return BasisFormat.ASTC_4x4;

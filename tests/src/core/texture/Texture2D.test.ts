@@ -87,7 +87,7 @@ describe("Texture2D", () => {
     });
 
     it("读取 R8G8 成功", () => {
-      const texture = new Texture2D(engine, width, height, TextureFormat.R8G8);
+      const texture = new Texture2D(engine, width, height, TextureFormat.R8G8_UNorm);
       const buffer = new Uint8Array(8);
 
       texture.setPixelBuffer(new Uint8Array([1, 2, 3, 4, 7, 4, 3, 3]), 0, 5, 0, 2, 2);
@@ -104,7 +104,7 @@ describe("Texture2D", () => {
     });
 
     it("读取 R8 成功", () => {
-      const texture = new Texture2D(engine, width, height, TextureFormat.R8);
+      const texture = new Texture2D(engine, width, height, TextureFormat.R8_UNorm);
       const buffer = new Uint8Array(4);
 
       texture.setPixelBuffer(new Uint8Array([1, 6, 8, 4]), 0, 5, 0, 2, 2);
@@ -124,7 +124,7 @@ describe("Texture2D", () => {
       expect(texture.isSRGBColorSpace).to.true;
       expect(texture.mipmapCount).not.to.eq(1);
 
-      const RGBTexture = new Texture2D(engine, width, height, TextureFormat.R8G8B8, true, true);
+      const RGBTexture = new Texture2D(engine, width, height, TextureFormat.R8G8B8_UNorm, true, true);
       expect(RGBTexture.isSRGBColorSpace).to.true;
 
       // no downgrade mipmap

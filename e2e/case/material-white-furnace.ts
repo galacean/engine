@@ -52,7 +52,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   // sRGB texture: hardware auto-converts sRGB->Linear on sampling
   const cubeSize = 64;
   const furnaceValue = sRGBByte;
-  const grayCube = new TextureCube(engine, cubeSize, TextureFormat.R8G8B8A8, true, true);
+  const grayCube = new TextureCube(engine, cubeSize, TextureFormat.R8G8B8A8_UNorm, true, true);
   const grayPixels = new Uint8Array(cubeSize * cubeSize * 4);
   for (let i = 0; i < grayPixels.length; i += 4) {
     grayPixels[i] = furnaceValue;

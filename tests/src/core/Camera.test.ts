@@ -133,7 +133,7 @@ describe("camera test", function () {
       expect(camera._isInternalFormatHDR()).to.eq(true);
       spy.mockReturnValue(false);
       expect(camera.enableHDR).to.eq(true);
-      expect(camera._getInternalColorTextureFormat()).to.eq(TextureFormat.R8G8B8A8);
+      expect(camera._getInternalColorTextureFormat()).to.eq(TextureFormat.R8G8B8A8_UNorm);
       expect(camera._isInternalFormatHDR()).to.eq(false);
     } finally {
       spy.mockRestore();

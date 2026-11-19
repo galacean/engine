@@ -90,12 +90,12 @@ it.each([
   }
 );
 
-it("round trips R16 unsigned normalized texels at an odd row width", () => {
+it("round trips R16_UNorm texels at an odd row width", () => {
   if (!gl.getExtension("EXT_texture_norm16")) {
-    expect(() => new Texture2D(engine, 3, 2, TextureFormat.R16, false, false)).toThrow();
+    expect(() => new Texture2D(engine, 3, 2, TextureFormat.R16_UNorm, false, false)).toThrow();
     return;
   }
-  const texture = new Texture2D(engine, 3, 2, TextureFormat.R16, false, false);
+  const texture = new Texture2D(engine, 3, 2, TextureFormat.R16_UNorm, false, false);
   expect(texture._memorySize).toBe(12);
   const heights = new Uint16Array([0, 1, 255, 256, 32768, 65535]);
   texture.setPixelBuffer(heights);

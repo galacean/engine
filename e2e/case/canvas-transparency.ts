@@ -101,7 +101,7 @@ function createMainScene(engine: Engine, transparencyTexture: Texture2D): Textur
   const cameraEntity = rootEntity.createChild("Scene Camera");
   cameraEntity.transform.position = new Vector3(0, 0, 3);
   const sceneCamera = cameraEntity.addComponent(Camera);
-  const renderColorTexture = new Texture2D(engine, 512, 512, TextureFormat.R8G8B8A8, false, false);
+  const renderColorTexture = new Texture2D(engine, 512, 512, TextureFormat.R8G8B8A8_UNorm, false, false);
   const renderTarget = new RenderTarget(engine, 512, 512, renderColorTexture);
   sceneCamera.renderTarget = renderTarget;
   sceneCamera.antiAliasing = AntiAliasing.FXAA;

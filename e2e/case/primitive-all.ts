@@ -222,7 +222,7 @@ class PrimitiveMeshGallery {
         pixels[offset + 3] = 255;
       }
     }
-    const texture = new Texture2D(engine, size, size, TextureFormat.R8G8B8A8, true);
+    const texture = new Texture2D(engine, size, size, TextureFormat.R8G8B8A8_UNorm, true);
     texture.setPixelBuffer(pixels);
     texture.generateMipmaps();
     texture.filterMode = TextureFilterMode.Trilinear;

@@ -1,18 +1,17 @@
 /**
  * Pixel storage format for textures and render targets.
- * @remarks Uncompressed formats without a suffix are unsigned normalized (`[0, 1]`); other encodings use `_SFloat`, `_UFloat`, or `_UInt`.
  */
 export enum TextureFormat {
   /** RGB 8-bit unsigned normalized format. `getPixelBuffer` outputs RGBA `Uint8Array`. */
-  R8G8B8 = 0,
+  R8G8B8_UNorm = 0,
   /** RGBA 8-bit unsigned normalized format. */
-  R8G8B8A8 = 1,
+  R8G8B8A8_UNorm = 1,
   /** Packed RGBA 4-4-4-4 unsigned normalized format. */
-  R4G4B4A4 = 2,
+  R4G4B4A4_UNorm = 2,
   /** Packed RGBA 5-5-5-1 unsigned normalized format. */
-  R5G5B5A1 = 3,
+  R5G5B5A1_UNorm = 3,
   /** Packed RGB 5-6-5 unsigned normalized format. */
-  R5G6B5 = 4,
+  R5G6B5_UNorm = 4,
   /** RGBA 16-bit signed float format (half-float `Uint16Array`). `getPixelBuffer` outputs RGBA `Float32Array`. */
   R16G16B16A16_SFloat = 7,
   /** RGBA 32-bit signed float format (`Float32Array`). */
@@ -22,11 +21,11 @@ export enum TextureFormat {
   /** Packed RGB 11-11-10 unsigned float format (`Float32Array`). `getPixelBuffer` outputs RGBA `Float32Array`. */
   R11G11B10_UFloat = 35,
   /** R 8-bit unsigned normalized format. */
-  R8 = 36,
+  R8_UNorm = 36,
   /** RG 8-bit unsigned normalized format. */
-  R8G8 = 37,
+  R8G8_UNorm = 37,
   /** R 16-bit unsigned normalized format (`Uint16Array`). `getPixelBuffer` outputs RGBA `Uint16Array`. */
-  R16 = 38,
+  R16_UNorm = 38,
   /** R 16-bit signed float format (half-float `Uint16Array`). `getPixelBuffer` outputs RGBA `Float32Array`. */
   R16_SFloat = 39,
   /** RG 16-bit signed float format (half-float `Uint16Array`). `getPixelBuffer` outputs RGBA `Float32Array`. */

@@ -22,7 +22,7 @@ function alloc(
   return pool.allocateRenderTarget(
     width,
     height,
-    opts.colorFormat ?? TextureFormat.R8G8B8A8,
+    opts.colorFormat ?? TextureFormat.R8G8B8A8_UNorm,
     opts.depthFormat === undefined ? TextureFormat.Depth24Stencil8 : opts.depthFormat,
     false,
     false,
@@ -40,7 +40,7 @@ function allocTex(pool: RenderTargetPool, width: number, height: number) {
   return pool.allocateTexture(
     width,
     height,
-    TextureFormat.R8G8B8A8,
+    TextureFormat.R8G8B8A8_UNorm,
     false,
     false,
     TextureWrapMode.Clamp,

@@ -154,12 +154,12 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       (!MathUtil.isPowerOf2(pixelWidth) || !MathUtil.isPowerOf2(pixelHeight) || pixelWidth !== pixelHeight)
     ) {
       Logger.warn("PVRTC image need power of 2 and width===height, downgrade to RGBA8");
-      return KTX2TargetFormat.R8G8B8A8;
+      return KTX2TargetFormat.R8G8B8A8_UNorm;
     }
 
     if (targetFormat === null) {
       Logger.warn("Can't support any compressed texture, downgrade to RGBA8");
-      return KTX2TargetFormat.R8G8B8A8;
+      return KTX2TargetFormat.R8G8B8A8_UNorm;
     }
     return targetFormat;
   }
@@ -176,10 +176,10 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         if (renderer.canIUse(capability)) return format;
       } else {
         switch (priorityFormats[i]) {
-          case KTX2TargetFormat.R8G8B8A8:
+          case KTX2TargetFormat.R8G8B8A8_UNorm:
             return format;
-          case KTX2TargetFormat.R8:
-          case KTX2TargetFormat.R8G8:
+          case KTX2TargetFormat.R8_UNorm:
+          case KTX2TargetFormat.R8G8_UNorm:
             return format;
           case KTX2TargetFormat.R16G16B16A16_SFloat:
             if (!isSRGB) return format;
@@ -209,8 +209,8 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         return hasAlpha ? TextureFormat.BC3 : TextureFormat.BC1;
       case KTX2TargetFormat.PVRTC:
         return hasAlpha ? TextureFormat.PVRTC_RGBA4 : TextureFormat.PVRTC_RGB4;
-      case KTX2TargetFormat.R8G8B8A8:
-        return TextureFormat.R8G8B8A8;
+      case KTX2TargetFormat.R8G8B8A8_UNorm:
+        return TextureFormat.R8G8B8A8_UNorm;
       case KTX2TargetFormat.BC6H:
         return TextureFormat.BC6H;
       case KTX2TargetFormat.ASTC_HDR_4x4:
@@ -288,7 +288,7 @@ class KTX2ContentRestorer extends ContentRestorer<Texture2D | TextureCube> {
  * KTX2 loader params interface.
  */
 export interface KTX2Params {
-  /** Priority transcoding format queue which is preferred options, default is BC7/ASTC/BC3_BC1/ETC/PVRTC/R8G8B8A8. */
+  /** Priority transcoding format queue which is preferred options, default is BC7/ASTC/BC3_BC1/ETC/PVRTC/R8G8B8A8_UNorm. */
   /** @deprecated */
   priorityFormats: KTX2TargetFormat[];
 }

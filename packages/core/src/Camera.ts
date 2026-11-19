@@ -735,7 +735,7 @@ export class Camera extends Component {
     if (TextureUtils.isHDRFormat(internalColorFormat) || this.opaqueTextureEnabled) {
       if (renderTarget) {
         // If camera is HDR and format is same with renderTarget can reuse renderTarget if renderTarget is same HDR format
-        // If camera is LDR and opaqueTextureEnabled is true, can reuse renderTarget if renderTarget is LDR format(Only R8G8B8A8)
+        // If camera is LDR and opaqueTextureEnabled is true, can reuse renderTarget if renderTarget is LDR format(Only R8G8B8A8_UNorm)
         return internalColorFormat !== renderTarget.getColorTexture(0)!.format;
       } else {
         return true;
@@ -758,7 +758,7 @@ export class Camera extends Component {
         return TextureFormat.R16G16B16A16_SFloat;
       }
     }
-    return TextureFormat.R8G8B8A8;
+    return TextureFormat.R8G8B8A8_UNorm;
   }
 
   /**
@@ -781,7 +781,7 @@ export class Camera extends Component {
    */
   _getTargetColorTextureFormat(): TextureFormat {
     const renderTarget = this._renderTarget;
-    return renderTarget ? renderTarget.getColorTexture(0)!.format : TextureFormat.R8G8B8A8;
+    return renderTarget ? renderTarget.getColorTexture(0)!.format : TextureFormat.R8G8B8A8_UNorm;
   }
 
   /**
