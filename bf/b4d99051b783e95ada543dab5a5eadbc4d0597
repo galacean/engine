@@ -1,0 +1,18 @@
+packages/environment/src/terrain/lighting/TerrainScreenSpaceReflectionTuning.ts
+  h_a3c79ce84ffdc2 3-5,16-19
+packages/terrain/src/terrain/debug/TerrainScreenSpaceReflectionPanel.ts
+  h_a3c79ce84ffdc2 11,55,59-60,64-65
+world/tests/seed-world/SeedWorldScreenSpaceReflection.spec.ts
+  h_a3c79ce84ffdc2 222-269
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "bfb4d99051b783e95ada543dab5a5eadbc4d0597",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
