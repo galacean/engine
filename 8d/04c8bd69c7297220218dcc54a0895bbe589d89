@@ -1,0 +1,16 @@
+packages/core/src/shader/ShaderPass.ts
+  h_171a11afaf879a 154-158
+tests/src/core/Shader.test.ts
+  h_171a11afaf879a 11,323-366
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8d04c8bd69c7297220218dcc54a0895bbe589d89",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
