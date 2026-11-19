@@ -1,0 +1,91 @@
+packages/physics-havok/src/shape/HavokMeshColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_ac1d2d4e819d14 1-281
+packages/physics-havok/src/shape/HavokCapsuleColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_18ca18e902838a 1-170
+packages/physics-havok/libs/HavokPhysics_umd.js
+  s_cf656533c40977::t_3906d0fe2ccdf1 1-21
+packages/physics-havok/src/HavokPhysics.ts
+  s_eb7ebf3c3ff8b9::t_bc98ed6a7bf77c 1-478
+packages/physics-havok/src/shape/HavokColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_58f2601231d737 1-206
+packages/physics-havok/src/HavokPhysicsScene.ts
+  s_eb7ebf3c3ff8b9::t_e1cd15ac40ccf2 1-1527
+packages/physics-havok/README.md
+  s_eb7ebf3c3ff8b9::t_36dbb731ee85dc 1-102
+packages/physics-havok/src/joint/HavokJoint.ts
+  s_eb7ebf3c3ff8b9::t_dec8c48f9a72db 1-285
+packages/physics-havok/src/joint/HavokFixedJoint.ts
+  s_eb7ebf3c3ff8b9::t_fbb632c7917764 1-153
+tests/src/physics-havok/HavokPhysics.test.ts
+  s_eb7ebf3c3ff8b9::t_618639ffd302dc 1-1373
+packages/physics-havok/libs/LICENSE
+  s_cf656533c40977::t_ef2620281c3f1d 1-21
+packages/physics-havok/src/HavokTypes.ts
+  s_eb7ebf3c3ff8b9::t_734a629a27d44b 1-200
+docs/en/physics/overall.mdx
+  s_eb7ebf3c3ff8b9::t_07631ff52d9414 8,10,13,15,19-20,31-42,47-56
+docs/zh/physics/overall.mdx
+  s_eb7ebf3c3ff8b9::t_526f3812bfcce8 8,13,15,19-20,31-42,47-56
+examples/vite.config.js
+  s_eb7ebf3c3ff8b9::t_061ca96b8d023e 67
+packages/physics-havok/package.json
+  s_eb7ebf3c3ff8b9::t_3e25a9c76b455b 1-39
+packages/physics-havok/src/HavokCharacterController.ts
+  s_eb7ebf3c3ff8b9::t_060d3ca8325563 1-825
+packages/physics-havok/src/HavokCollider.ts
+  s_eb7ebf3c3ff8b9::t_b67c3d106929fe 1-221
+packages/physics-havok/src/HavokDynamicCollider.ts
+  s_eb7ebf3c3ff8b9::t_101ae35f52b8e3 1-544
+packages/physics-havok/src/HavokPhysicsMaterial.ts
+  s_eb7ebf3c3ff8b9::t_598f118ae0471f 1-111
+packages/physics-havok/src/HavokStaticCollider.ts
+  s_eb7ebf3c3ff8b9::t_16024b7e357dd7 1-14
+packages/physics-havok/src/index.ts
+  s_eb7ebf3c3ff8b9::t_a8a0aba61cf226 1-9
+packages/physics-havok/src/joint/HavokHingeJoint.ts
+  s_eb7ebf3c3ff8b9::t_993105a99e5be1 1-284
+packages/physics-havok/src/joint/HavokSpringJoint.ts
+  s_eb7ebf3c3ff8b9::t_a9a4c66a5da6ba 1-56
+packages/physics-havok/src/shape/HavokBoxColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_6d8e42e051916f 1-74
+packages/physics-havok/src/shape/HavokPlaneColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_aeb78f8b5b55cf 1-24
+packages/physics-havok/src/shape/HavokSphereColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_8020d80a7a368c 1-69
+packages/physics-havok/tsconfig.json
+  s_eb7ebf3c3ff8b9::t_74a90f51e8005e 1-18
+pnpm-lock.yaml
+  s_eb7ebf3c3ff8b9::t_84a156bfee19b3 55,261-269,423-425,1219,1226,1233,1240,1247,1254,1356,1362,1368,1374,1380,1386,1392,1398,1404,1448,1455,1462,1469,5221
+tests/package-consumer/PhysicsHavokPackage.test.ts
+  s_eb7ebf3c3ff8b9::t_5e2ce16a1339f7 1-253
+tests/package.json
+  s_eb7ebf3c3ff8b9::t_103c0f349a4316 29
+tests/src/utils/physics.ts
+  s_eb7ebf3c3ff8b9::t_460aadb29c5c16 1-2,5-9
+tests/vitest.config.ts
+  s_eb7ebf3c3ff8b9::t_a77327f0eb3594 20-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ba6489679cbc3cdc3e7460dbc63b05eca563dbb4",
+  "prompts": {},
+  "sessions": {
+    "s_cf656533c40977": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f352-19a3-73a3-9214-ebd4efed7fb0",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_eb7ebf3c3ff8b9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ef5d-ae7e-7512-9057-6ffe80a3b716",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
