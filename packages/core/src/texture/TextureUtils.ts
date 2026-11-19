@@ -4,25 +4,6 @@ import { TextureFormat } from "./enums/TextureFormat";
  * @internal
  */
 export class TextureUtils {
-  /**
-   * Check if the texture config supports auto mipmap generation with real correction for mipmap and isSRGBColorSpace.
-   */
-  static supportGenerateMipmapsWithCorrection(
-    format: TextureFormat,
-    mipmap: boolean,
-    isSRGBColorSpace: boolean
-  ): boolean {
-    if (!mipmap) {
-      return false;
-    }
-
-    if (isSRGBColorSpace && !TextureUtils.supportSRGB(format)) {
-      isSRGBColorSpace = false;
-    }
-
-    return TextureUtils.supportGenerateMipmaps(format, mipmap, isSRGBColorSpace);
-  }
-
   static isHDRFormat(format: TextureFormat): boolean {
     return (
       format === TextureFormat.R16G16B16A16_SFloat ||
@@ -51,15 +32,6 @@ export class TextureUtils {
       default:
         return false;
     }
-  }
-
-  static supportGenerateMipmaps(format: TextureFormat, mipmap: boolean, isSRGBColorSpace: boolean): boolean {
-    // Auto generating mipmaps for sRGB textures is only supported for R8G8B8A8_UNorm
-    if (mipmap && isSRGBColorSpace && format !== TextureFormat.R8G8B8A8_UNorm) {
-      return false;
-    }
-
-    return true;
   }
 
   static getTextureByteCount(

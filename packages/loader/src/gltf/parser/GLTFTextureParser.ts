@@ -69,7 +69,9 @@ export class GLTFTextureParser extends GLTFParser {
         return ImageDecoder._decode(imageBuffer, imageName || textureName || url, mimeType).then((image) => {
           const { width, height } = image;
           const format = TextureFormat.R8G8B8A8_UNorm;
-          const generateMipmap = samplerInfo?.mipmap ?? true;
+          const generateMipmap =
+            (samplerInfo?.mipmap ?? true) &&
+            engine._hardwareRenderer.supportsGenerateMipmaps(format, isSRGBColorSpace!);
           const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
           texture.setImageSource(image);
           texture.generateMipmaps();

@@ -390,11 +390,7 @@ export class GLTexture implements IPlatformTexture {
     const target = this._target;
     const { _mipmap, format } = this._texture;
 
-    if (
-      value !== TextureFilterMode.Point &&
-      this._isFloat32Format(format) &&
-      !this._rhi.canIUse(GLCapabilityType.textureFloatLinear)
-    ) {
+    if (value !== TextureFilterMode.Point && !this._rhi.capability._supportsLinearFiltering(format)) {
       value = TextureFilterMode.Point;
     }
 
@@ -495,22 +491,12 @@ export class GLTexture implements IPlatformTexture {
    */
   generateMipmaps(): void {
     const texture = this._texture;
-    const mipmap = texture._mipmap;
 
-    if (!TextureUtils.supportGenerateMipmaps(texture.format, mipmap, texture.isSRGBColorSpace)) {
+    if (!this._rhi.supportsGenerateMipmaps(texture.format, texture.isSRGBColorSpace)) {
       Logger.warn(
-        "Auto-generating mipmaps for sRGB textures is only supported for R8G8B8A8_UNorm, you must generate mipmaps manually."
-      );
-      return;
-    }
-
-    // WebGL2 generateMipmap requires the format to be both color-renderable and texture-filterable
-    if (
-      !this._rhi.supportsRenderTargetColorFormat(texture.format) ||
-      (this._isFloat32Format(texture.format) && !this._rhi.canIUse(GLCapabilityType.textureFloatLinear))
-    ) {
-      Logger.warn(
-        `Auto-generating mipmaps is not supported for TextureFormat.${TextureFormat[texture.format]} on this device.`
+        `Auto-generating mipmaps is not supported for TextureFormat.${TextureFormat[texture.format]}${
+          texture.isSRGBColorSpace ? " (sRGB)" : ""
+        } on this device.`
       );
       return;
     }
@@ -641,14 +627,6 @@ export class GLTexture implements IPlatformTexture {
       // @ts-ignore
       texture._isSRGBColorSpace = false;
     }
-  }
-
-  private _isFloat32Format(format: TextureFormat): boolean {
-    return (
-      format === TextureFormat.R32_SFloat ||
-      format === TextureFormat.R32G32_SFloat ||
-      format === TextureFormat.R32G32B32A32_SFloat
-    );
   }
 
   private _setWrapMode(value: TextureWrapMode, pname: GLenum): void {
