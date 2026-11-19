@@ -1,0 +1,23 @@
+packages/core/src/texture/enums/TextureFormat.ts
+  s_2cb37b1ebe9df1::t_907673dbf34c03 16
+packages/rhi-webgl/src/GLTexture.ts
+  s_2cb37b1ebe9df1::t_c47d8c1bfd1e17 77-78
+tests/src/core/texture/FloatTexture.test.ts
+  s_2cb37b1ebe9df1::t_71c2657e30b2b7 23-25,27-28,34,36-37,147
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "684d526cf0818a89b23955c55fa1cf161518d490",
+  "prompts": {},
+  "sessions": {
+    "s_2cb37b1ebe9df1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d0cd-fa44-7fc3-8a7d-c6641c0c0f1c",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

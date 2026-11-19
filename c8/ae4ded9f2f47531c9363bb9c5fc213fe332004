@@ -1,0 +1,100 @@
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  h_ddbf152d31b140 557-573,575,577
+packages/building/src/building/resources/BuiltinBuildingAssets.ts
+  h_ddbf152d31b140 13-14
+packages/building/src/building/resources/BuiltinBuildingPresets.ts
+  h_ddbf152d31b140 26-27
+packages/environment/src/lighting/VolumetricCloudNoiseAssets.ts
+  h_ddbf152d31b140 79,81-86
+packages/environment/src/weather/SurfaceRainRippleNormalAtlas.ts
+  h_ddbf152d31b140 134-135,137,140-150,155-167,170,175-187,189-191,193-195,197,201
+packages/farming/src/farming/presentation/FarmingWorldPresentation.ts
+  h_ddbf152d31b140 249-253
+packages/project/src/runtime-editor/scene/runtime-project-compiler.ts
+  h_ddbf152d31b140 291,304,309-318,320-321,325
+packages/runtime-editor/src/project/runtime-prepared-asset.ts
+  h_ddbf152d31b140 25-62,84-108,174-194,197-200,210-211
+packages/runtime-editor/src/project/runtime-project-session.ts
+  h_ddbf152d31b140 424-487,489-494,496,774,776-778
+packages/terrain/src/data/seed-world/project.json
+  h_ddbf152d31b140 8-9,14-17,22-28,33-40,45-53,58-65,70-76,81-87,92-98,103-108,113-120,125-131,136-140,145-151,156-159,164-165,170-171,176-177,182-183,191-192,197-198,203-204,209-210,215-216,221-222,227-228,233-234,239-240,245-246,251-256,261-262,267-268,273-274,279-280,285-286,291-292,297-298,303-304,309-310,315-316,321-322,327-328,333-334,339-340,345-346,351-352,357-358,363-364,369-370,375-376,381-382,387-388,393-394,399-400,405-406,417-418,429-430,443-444,455-456,469-470,481-482,493-494,505-506,517-518,529-530,541-542,553-554,565-566,577-578,589-590,595-600,605-609,614-619,624-631,636-642,647-654,659-663,668-674,679-685,690-696,701-707,715-716,721-722,730-731,736-737,745-746,751-752,760-761,766-767,775-776,781-782,790-791,796-797,805-806,811-812,820-821,826-827,835-836,841-842,850-851,856-857,865-866,871-872,877-878,883-884,892-893,898-899,904-905,910-911,919-920,925-926,931-932,937-938,946-947,952-953,961-962,967-968,976-977,982-983,991-992,997-998,1006-1007,1012-1013,1021-1022,1027-1028,1036-1037,1042-1043,1051-1052,1057-1058,1066-1067,1072-1073,1081-1082,1087-1088,1096-1097,1102-1103,1111-1112,1117-1118,1126-1127,1132-1133,1141-1142,1147-1148,1156-1157,1162-1163,1171-1172,1177-1178,1186-1187,1192-1193,1201-1202,1207-1208,1216-1217,1222-1223,1231-1232,1237-1238,1251-1252,1265-1266,1279-1280,1285-1291,1296-1301,1306-1307,1320-1321,1334-1335,1348-1349,1362-1363,1376-1377,1390-1391,1404-1405,1418-1419,1432-1433,1446-1447,1460-1461,1474-1475,1488-1489,1502-1503,1516-1517,1530-1531,1544-1545,1558-1559,1572-1573,1578-1583,1588-1593,1598-1603,1608-1614,1619-1625,1630-1635,1640-1646,1651-1657,1662-1668,1673-1679,1684-1691,1696-1703,1708-1715,1720-1725,1730-1735,1740-1745,1750-1756,1761-1766,1771-1776,1781-1790,1795-1801,1806-1807,1812-1813,1818-1819,1824-1825,1830-1831,1836-1837,1842-1843,1848-1849,1854-1855,1860-1861,1866-1867,1872-1873,1878-1879,1884-1885,1890-1891,1896-1897,1902-1903,1908-1909,1922-1923,1936-1937,1950-1951,1956-1962,1967-1972,1977-1978,1991-1992,1997-2002,2007-2036,2041-2083,2088-2198
+packages/terrain/src/terrain/loading/WorldBubbleLoadingScene.ts
+  h_ddbf152d31b140 23-24
+packages/water/src/bridges/SuspensionBridgeView.ts
+  h_ddbf152d31b140 75-78,83-90
+packages/water/src/water/compiler/ocean/OceanNearshoreCompiler.ts
+  h_ddbf152d31b140 79-80,82-87,89-98,100,104-105,107-112,114-123,125
+packages/water/src/water/compiler/shared/determinism.ts
+  h_ddbf152d31b140 177-194,206-382
+packages/water/src/water/native/WaterBuiltinAssets.ts
+  h_ddbf152d31b140 52-54,57-71,73-82
+packages/water/src/water/runtime/ocean/OceanWaterCompiledResource.ts
+  h_ddbf152d31b140 20,144-147,153
+packages/world-planning/src/geometry/V2Geometry.ts
+  h_ddbf152d31b140 512-622
+packages/world-planning/src/integrations/terrain/environment/WorldEnvironmentRuntime.ts
+  h_ddbf152d31b140 51-55,240-258,272,280,285-286,346,349-359,366,379,395,406,410,419,801,855-856,863-891,905-918
+packages/world-planning/src/integrations/terrain/lighting/TerrainLightingRuntime.ts
+  h_ddbf152d31b140 1437-1448
+packages/world-planning/src/integrations/terrain/rock-formation/Client.ts
+  h_ddbf152d31b140 1,46-47,49
+packages/world-planning/src/integrations/terrain/rock-formation/RockLodMeshes.ts
+  h_ddbf152d31b140 19-32,34,39,42
+packages/world-planning/src/runtime/SeedWorldSurfaceRelief.ts
+  h_ddbf152d31b140 88-95,97-102,125-145,147-154,156-163,165
+packages/world-planning/src/runtime/SeedWorldTerrainRuntime.ts
+  h_ddbf152d31b140 532-557
+packages/world-planning/src/semantic-study/PlanningAlphamap.ts
+  h_ddbf152d31b140 126,128-130,132-133,136-142
+packages/world-planning/src/semantic-study/PlanningHeightmap.ts
+  h_ddbf152d31b140 102,117,119-126,324-340,342-343
+packages/world-planning/src/semantic-study/PlanningOceanSource.ts
+  h_ddbf152d31b140 12,39-42
+packages/world-planning/src/semantic-study/WorldPlanningTerrain.ts
+  h_ddbf152d31b140 591-593,598,646
+packages/world-planning/src/spatial/PlanningPopulationInitialization.ts
+  h_ddbf152d31b140 49-50,62,113-114,141,166,208-218,222-224
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  h_ddbf152d31b140 286-287,786-807
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetation.ts
+  h_ddbf152d31b140 116-163,311-312,776-831,837-847,850-852,854-857,860-861,864-877,880-883,885-888,901-911,913
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_ddbf152d31b140 175,500-501,514-523,529,536-541,568-591,594,609-612,636-637,698-703,705-711,1002-1004,1202,1250,1388,1404
+packages/world-planning/src/spatial/runtime/PlanningPopulationData.ts
+  h_ddbf152d31b140 5-6,120-195,197-213,215-217,221,223-229,231-240,242
+packages/world-planning/src/spatial/runtime/PlanningSeedWorldData.ts
+  h_ddbf152d31b140 85-98,100-106,109,217-220,222-224,226-231,233-242,244,246-249,251-256,258-267,269,271,317
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  h_ddbf152d31b140 157
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_ddbf152d31b140 66-67,178
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 35,57,75,103,171-173,602-651,656-667,687-695,697,895,1505-1524,1527,1529-1535,1616-1618,1620-1665,1667-1698,1702-1757,1759-1780,1782-1863,1865-1867,1875,1877,1898,1914-1915,2156-2168,2317,2537,2543-2547,2551,2555-2556,2619-2622,2712,2724,2745-2767
+world/demos/seed-world/SeedWorldProject.ts
+  h_ddbf152d31b140 72
+world/demos/seed-world/main.ts
+  h_ddbf152d31b140 2
+world/demos/seed-world/src/planning/spatial/PlanningStartupSeed.ts
+  h_ddbf152d31b140 1-24
+world/demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts
+  h_ddbf152d31b140 5-11,20
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingRuntime.ts
+  h_ddbf152d31b140 239
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectStorage.ts
+  h_ddbf152d31b140 36-41,47
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWaterInitialization.ts
+  h_ddbf152d31b140 270-301
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource.ts
+  h_ddbf152d31b140 10,56-57,66,87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c8ae4ded9f2f47531c9363bb9c5fc213fe332004",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
