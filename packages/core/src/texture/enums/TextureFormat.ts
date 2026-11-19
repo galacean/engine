@@ -1,9 +1,6 @@
 /**
  * Pixel storage format for textures and render targets.
- * @remarks
- * Uncompressed formats without a suffix are unsigned normalized (`[0, 1]`); other encodings use `_SFloat`, `_UFloat`, or `_UInt`.
- * Float color rendering and readback require `EXT_color_buffer_float` (or `EXT_color_buffer_half_float` for `R16G16B16A16_SFloat`);
- * 32-bit float linear filtering requires `OES_texture_float_linear`. Query device support via `SystemInfo.supportsTextureFormat`.
+ * @remarks Uncompressed formats without a suffix are unsigned normalized (`[0, 1]`); other encodings use `_SFloat`, `_UFloat`, or `_UInt`.
  */
 export enum TextureFormat {
   /** RGB 8-bit unsigned normalized format (readback uses RGBA `Uint8Array`). */
@@ -28,7 +25,7 @@ export enum TextureFormat {
   R8 = 36,
   /** RG 8-bit unsigned normalized format. */
   R8G8 = 37,
-  /** R 16-bit unsigned normalized format (`EXT_texture_norm16`; upload R, readback RGBA `Uint16Array`). */
+  /** R 16-bit unsigned normalized format (upload R, readback RGBA `Uint16Array`). */
   R16 = 38,
   /** R 16-bit signed float format (upload `Uint16Array` half-float bits, readback RGBA `Float32Array`). */
   R16_SFloat = 39,
@@ -76,11 +73,11 @@ export enum TextureFormat {
   /** RGB(A) ASTC compressed format, 128 bits per 12x12 block. */
   ASTC_12x12 = 26,
 
-  /** Default depth format (`DEPTH_COMPONENT32F`). */
+  /** Default depth format (32-bit float depth). */
   Depth = 27,
   /** 8-bit stencil format (`RenderTarget` renderbuffer only). */
   Stencil = 28,
-  /** Default depth-stencil format (`DEPTH32F_STENCIL8`). */
+  /** Default depth-stencil format (32-bit float depth + 8-bit stencil). */
   DepthStencil = 29,
   /** 16-bit unsigned normalized depth format. */
   Depth16 = 30,
