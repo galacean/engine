@@ -214,10 +214,6 @@ A. Or use FXAA_GREEN_AS_LUMA.
     #define FXAA_PC 0
 #endif
 /*--------------------------------------------------------------------------*/
-#ifndef FXAA_GLSL_120
-    #define FXAA_GLSL_120 0
-#endif
-/*--------------------------------------------------------------------------*/
 #ifndef FXAA_GLSL_130
     #define FXAA_GLSL_130 0
 #endif
@@ -269,43 +265,6 @@ A. Or use FXAA_GREEN_AS_LUMA.
     // 0 = Return unchanged color on pixels which don't need AA.
     //
     #define FXAA_DISCARD 0
-#endif
-/*--------------------------------------------------------------------------*/
-#ifndef FXAA_FAST_PIXEL_OFFSET
-    //
-    // Used for GLSL 120 only.
-    //
-    // 1 = GL API supports fast pixel offsets
-    // 0 = do not use fast pixel offsets
-    //
-    #ifdef GL_EXT_gpu_shader4
-        #define FXAA_FAST_PIXEL_OFFSET 1
-    #endif
-    #ifdef GL_NV_gpu_shader5
-        #define FXAA_FAST_PIXEL_OFFSET 1
-    #endif
-    #ifdef gpu_shader5
-        #define FXAA_FAST_PIXEL_OFFSET 1
-    #endif
-    #ifndef FXAA_FAST_PIXEL_OFFSET
-        #define FXAA_FAST_PIXEL_OFFSET 0
-    #endif
-#endif
-/*--------------------------------------------------------------------------*/
-#ifndef FXAA_GATHER4_ALPHA
-    //
-    // 1 = API supports gather4 on alpha channel.
-    // 0 = API does not support gather4 on alpha channel.
-    //
-    #ifdef gpu_shader5
-        #define FXAA_GATHER4_ALPHA 1
-    #endif
-    #ifdef GL_NV_gpu_shader5
-        #define FXAA_GATHER4_ALPHA 1
-    #endif
-    #ifndef FXAA_GATHER4_ALPHA
-        #define FXAA_GATHER4_ALPHA 0
-    #endif
 #endif
 
 /*============================================================================
@@ -546,7 +505,7 @@ NOTE the other tuning knobs are now in the shader function inputs!
                                 API PORTING
 
 ============================================================================*/
-#if (FXAA_GLSL_120 == 1) || (FXAA_GLSL_130 == 1)
+#if (FXAA_GLSL_130 == 1)
     #define FxaaBool bool
     #define FxaaDiscard discard
     #define FxaaFloat float
@@ -560,40 +519,9 @@ NOTE the other tuning knobs are now in the shader function inputs!
     #define FxaaInt2 ivec2
     #define FxaaSat(x) clamp(x, 0.0, 1.0)
     #define FxaaTex sampler2D
-#endif
-/*--------------------------------------------------------------------------*/
-#if (FXAA_GLSL_120 == 1)
-    // Requires,
-    //  #version 120
-    // And at least,
-    //  #extension GL_EXT_gpu_shader4 : enable
-    //  (or set FXAA_FAST_PIXEL_OFFSET 1 to work like DX9)
-    #define FxaaTexTop(t, p) texture2DLodEXT(t, p, 0.0)
-    #if (FXAA_FAST_PIXEL_OFFSET == 1)
-        #define FxaaTexOff(t, p, o, r) texture2DLodOffset(t, p, 0.0, o)
-    #else
-        #define FxaaTexOff(t, p, o, r) texture2DLodEXT(t, p + (o * r), 0.0)
-    #endif
-    #if (FXAA_GATHER4_ALPHA == 1)
-        // use #extension gpu_shader5 : enable
-        #define FxaaTexAlpha4(t, p) textureGather(t, p, 3)
-        #define FxaaTexOffAlpha4(t, p, o) textureGatherOffset(t, p, o, 3)
-        #define FxaaTexGreen4(t, p) textureGather(t, p, 1)
-        #define FxaaTexOffGreen4(t, p, o) textureGatherOffset(t, p, o, 1)
-    #endif
-#endif
-/*--------------------------------------------------------------------------*/
-#if (FXAA_GLSL_130 == 1)
     // Requires "#version 130" or better
     #define FxaaTexTop(t, p) textureLod(t, p, 0.0)
     #define FxaaTexOff(t, p, o, r) textureLodOffset(t, p, 0.0, o)
-    #if (FXAA_GATHER4_ALPHA == 1)
-        // use #extension gpu_shader5 : enable
-        #define FxaaTexAlpha4(t, p) textureGather(t, p, 3)
-        #define FxaaTexOffAlpha4(t, p, o) textureGatherOffset(t, p, o, 3)
-        #define FxaaTexGreen4(t, p) textureGather(t, p, 1)
-        #define FxaaTexOffGreen4(t, p, o) textureGatherOffset(t, p, o, 1)
-    #endif
 #endif
 /*--------------------------------------------------------------------------*/
 
@@ -678,33 +606,11 @@ FxaaFloat4 FxaaPixelShader(
     FxaaFloat2 posM;
     posM.x = pos.x;
     posM.y = pos.y;
-    #if (FXAA_GATHER4_ALPHA == 1)
-        #if (FXAA_DISCARD == 0)
-        FxaaFloat lumaM = FxaaLuma(rgbyM);
-        #endif
-        #if (FXAA_GREEN_AS_LUMA == 0)
-            FxaaFloat4 luma4A = FxaaTexAlpha4(tex, posM);
-            FxaaFloat4 luma4B = FxaaTexOffAlpha4(tex, posM, FxaaInt2(-1, -1));
-        #else
-            FxaaFloat4 luma4A = FxaaTexGreen4(tex, posM);
-            FxaaFloat4 luma4B = FxaaTexOffGreen4(tex, posM, FxaaInt2(-1, -1));
-        #endif
-        #if (FXAA_DISCARD == 1)
-            FxaaFloat lumaM = luma4A.w;
-        #endif
-        #define lumaE luma4A.z
-        #define lumaS luma4A.x
-        #define lumaSE luma4A.y
-        #define lumaNW luma4B.w
-        #define lumaN luma4B.z
-        #define lumaW luma4B.x
-    #else
-        FxaaFloat lumaM = FxaaLuma(rgbyM);
-        FxaaFloat lumaS = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 0, 1), fxaaQualityRcpFrame.xy));
-        FxaaFloat lumaE = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 1, 0), fxaaQualityRcpFrame.xy));
-        FxaaFloat lumaN = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 0,-1), fxaaQualityRcpFrame.xy));
-        FxaaFloat lumaW = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2(-1, 0), fxaaQualityRcpFrame.xy));
-    #endif
+    FxaaFloat lumaM = FxaaLuma(rgbyM);
+    FxaaFloat lumaS = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 0, 1), fxaaQualityRcpFrame.xy));
+    FxaaFloat lumaE = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 1, 0), fxaaQualityRcpFrame.xy));
+    FxaaFloat lumaN = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 0,-1), fxaaQualityRcpFrame.xy));
+    FxaaFloat lumaW = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2(-1, 0), fxaaQualityRcpFrame.xy));
 /*--------------------------------------------------------------------------*/
     FxaaFloat maxSM = max(lumaS, lumaM);
     FxaaFloat minSM = min(lumaS, lumaM);
@@ -726,15 +632,10 @@ FxaaFloat4 FxaaPixelShader(
             return rgbyM;
         #endif
 /*--------------------------------------------------------------------------*/
-    #if (FXAA_GATHER4_ALPHA == 0)
-        FxaaFloat lumaNW = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2(-1,-1), fxaaQualityRcpFrame.xy));
-        FxaaFloat lumaSE = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 1, 1), fxaaQualityRcpFrame.xy));
-        FxaaFloat lumaNE = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 1,-1), fxaaQualityRcpFrame.xy));
-        FxaaFloat lumaSW = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2(-1, 1), fxaaQualityRcpFrame.xy));
-    #else
-        FxaaFloat lumaNE = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2(1, -1), fxaaQualityRcpFrame.xy));
-        FxaaFloat lumaSW = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2(-1, 1), fxaaQualityRcpFrame.xy));
-    #endif
+    FxaaFloat lumaNW = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2(-1,-1), fxaaQualityRcpFrame.xy));
+    FxaaFloat lumaSE = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 1, 1), fxaaQualityRcpFrame.xy));
+    FxaaFloat lumaNE = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 1,-1), fxaaQualityRcpFrame.xy));
+    FxaaFloat lumaSW = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2(-1, 1), fxaaQualityRcpFrame.xy));
 /*--------------------------------------------------------------------------*/
     FxaaFloat lumaNS = lumaN + lumaS;
     FxaaFloat lumaWE = lumaW + lumaE;

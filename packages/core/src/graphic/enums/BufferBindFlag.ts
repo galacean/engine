@@ -6,6 +6,6 @@ export enum BufferBindFlag {
   VertexBuffer,
   /** Index buffer binding flag. */
   IndexBuffer,
-  /** Constant buffer binding flag (WebGL2 only). */
+  /** Constant buffer binding flag. */
   ConstantBuffer
 }

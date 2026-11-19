@@ -332,22 +332,6 @@ export class GLTexture implements IPlatformTexture {
    */
   static _getRenderBufferDepthFormatDetail(format: TextureFormat, gl: WebGL2RenderingContext): TextureFormatDetail {
     switch (format) {
-      case TextureFormat.Depth:
-        return {
-          internalFormat: gl.DEPTH_COMPONENT32F,
-          baseFormat: gl.DEPTH_COMPONENT,
-          dataType: gl.FLOAT,
-          isCompressed: false,
-          attachment: gl.DEPTH_ATTACHMENT
-        };
-      case TextureFormat.DepthStencil:
-        return {
-          internalFormat: gl.DEPTH32F_STENCIL8,
-          baseFormat: gl.DEPTH_STENCIL,
-          dataType: gl.FLOAT_32_UNSIGNED_INT_24_8_REV,
-          isCompressed: false,
-          attachment: gl.DEPTH_STENCIL_ATTACHMENT
-        };
       case TextureFormat.Stencil:
         return {
           internalFormat: gl.STENCIL_INDEX8,
@@ -356,47 +340,14 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.STENCIL_ATTACHMENT
         };
+      case TextureFormat.Depth:
+      case TextureFormat.DepthStencil:
       case TextureFormat.Depth16:
-        return {
-          internalFormat: gl.DEPTH_COMPONENT16,
-          baseFormat: gl.DEPTH_COMPONENT,
-          dataType: gl.UNSIGNED_SHORT,
-          isCompressed: false,
-          attachment: gl.DEPTH_ATTACHMENT
-        };
-      case TextureFormat.Depth24Stencil8:
-        return {
-          internalFormat: gl.DEPTH24_STENCIL8,
-          baseFormat: gl.DEPTH_STENCIL,
-          dataType: gl.UNSIGNED_INT_24_8,
-          isCompressed: false,
-          attachment: gl.DEPTH_STENCIL_ATTACHMENT
-        };
       case TextureFormat.Depth24:
-        return {
-          internalFormat: gl.DEPTH_COMPONENT24,
-          baseFormat: gl.DEPTH_COMPONENT,
-          dataType: gl.UNSIGNED_INT,
-          isCompressed: false,
-          attachment: gl.DEPTH_ATTACHMENT
-        };
       case TextureFormat.Depth32:
-        return {
-          internalFormat: gl.DEPTH_COMPONENT32F,
-          baseFormat: gl.DEPTH_COMPONENT,
-          dataType: gl.FLOAT,
-          isCompressed: false,
-          attachment: gl.DEPTH_ATTACHMENT
-        };
-
+      case TextureFormat.Depth24Stencil8:
       case TextureFormat.Depth32Stencil8:
-        return {
-          internalFormat: gl.DEPTH32F_STENCIL8,
-          baseFormat: gl.DEPTH_STENCIL,
-          dataType: gl.FLOAT_32_UNSIGNED_INT_24_8_REV,
-          isCompressed: false,
-          attachment: gl.DEPTH_STENCIL_ATTACHMENT
-        };
+        return GLTexture._getFormatDetail(format, false, gl);
       default:
         throw new Error(`this TextureFormat is not supported in Galacean Engine: ${format}`);
     }

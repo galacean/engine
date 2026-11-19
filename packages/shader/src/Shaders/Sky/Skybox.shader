@@ -28,8 +28,6 @@ Shader "Sky/Skybox" {
       VertexShader = SkyboxVertex;
       FragmentShader = SkyboxFragment;
 
-      #include "ShaderLibrary/Common/Common.glsl"
-
       struct Attributes {
         vec3 POSITION;
       };

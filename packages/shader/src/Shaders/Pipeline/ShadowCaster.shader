@@ -10,7 +10,6 @@ Shader "Pipeline/ShadowCaster" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "ShaderLibrary/Common/Common.glsl"
       #include "ShaderLibrary/Common/Transform.glsl"
       #include "ShaderLibrary/Common/Attributes.glsl"
       #include "ShaderLibrary/Skin/Skin.glsl"
@@ -67,7 +66,7 @@ Shader "Pipeline/ShadowCaster" {
           position = skinMatrix * position;
 
           #ifdef RENDERER_HAS_NORMAL
-            mat3 skinNormalMatrix = INVERSE_MAT(mat3(skinMatrix));
+            mat3 skinNormalMatrix = inverse(mat3(skinMatrix));
             normal = normal * skinNormalMatrix;
           #endif
         #endif

@@ -8,14 +8,12 @@
         float renderer_JointCount;
 
         mat4 getJointMatrix(sampler2D smp, float index){
-            float base = index / renderer_JointCount;
-            float hf = 0.5 / renderer_JointCount;
-            float v = base + hf;
+            int row = int(index);
 
-            vec4 m0 = texture2D(smp, vec2(0.125, v ));
-            vec4 m1 = texture2D(smp, vec2(0.375, v ));
-            vec4 m2 = texture2D(smp, vec2(0.625, v ));
-            vec4 m3 = texture2D(smp, vec2(0.875, v ));
+            vec4 m0 = texelFetch(smp, ivec2(0, row), 0);
+            vec4 m1 = texelFetch(smp, ivec2(1, row), 0);
+            vec4 m2 = texelFetch(smp, ivec2(2, row), 0);
+            vec4 m3 = texelFetch(smp, ivec2(3, row), 0);
 
             return mat4(m0, m1, m2, m3);
         }

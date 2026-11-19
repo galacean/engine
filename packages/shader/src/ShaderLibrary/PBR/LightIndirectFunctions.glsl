@@ -25,7 +25,7 @@ vec3 getLightProbeRadiance(SurfaceData surfaceData, vec3 normal, float roughness
 
         float specularMIPLevel = getSpecularMIPLevel(roughness, int(scene_EnvMapLight.mipMapLevel) );
 
-            vec4 envMapColor = textureCubeLodEXT( scene_EnvSpecularSampler, reflectVec, specularMIPLevel );
+        vec4 envMapColor = textureLod( scene_EnvSpecularSampler, reflectVec, specularMIPLevel );
 
         
         return envMapColor.rgb * scene_EnvMapLight.specularIntensity;

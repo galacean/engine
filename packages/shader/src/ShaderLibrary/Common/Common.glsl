@@ -46,8 +46,7 @@ vec4 linearToSRGB(vec4 value){
 }
 
 vec4 texture2DSRGB(sampler2D tex, vec2 uv) {
-	vec4 color = texture2D(tex, uv);
-	return color;
+	return texture2D(tex, uv);
 }
 
 vec4 outputSRGBCorrection(vec4 linearIn){
@@ -83,7 +82,7 @@ float interleavedGradientNoise(vec2 sampleCoord)
 	return fract(magic.z * fract(dot(sampleCoord, magic.xy)));
 }
 
-	#define INVERSE_MAT(mat) inverse(mat)
+#define INVERSE_MAT(mat) inverse(mat)
 
 vec3 safeNormalize(vec3 inVec)
 {
