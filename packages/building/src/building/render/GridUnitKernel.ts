@@ -58,6 +58,8 @@ export interface GridKernelInput {
   readonly gap: readonly [number, number, number, number];
   /** FNV state after "s" + element id + ":", continuing from the part and unit seeds. */
   readonly seedState: number;
+  /** Constant world ground Y elevation of a flat groundStrip (default 0). */
+  readonly groundY?: number;
 }
 
 interface GridData {
@@ -162,6 +164,7 @@ uniform vec3 uNominal;
 uniform vec3 uRangeMin;
 uniform vec3 uRangeMax;
 uniform vec4 uGap;
+uniform float uGroundY;
 layout(location=0) in uvec4 record0;
 layout(location=1) in uvec4 record1;
 layout(location=2) in uvec4 record2;
@@ -220,7 +223,7 @@ void main() {
   if (any(lessThan(stretch, uRangeMin - 1e-6)) || any(greaterThan(stretch, uRangeMax + 1e-6))) return;
   vec2 uv = vec2(rect.x + rect.z, rect.y + rect.w) * 0.5;
   float x = uv.x - uLength * 0.5;
-  vec3 origin = vec3(uStrip.x + uStrip.z * x, uv.y, uStrip.y + uStrip.w * x);
+  vec3 origin = vec3(uStrip.x + uStrip.z * x, uv.y + uGroundY, uStrip.y + uStrip.w * x);
   vec3 t = vec3(uStrip.z, 0.0, uStrip.w) * size.x;
   vec3 b = vec3(0.0, 1.0, 0.0) * size.y;
   vec3 n = vec3(-uStrip.w, 0.0, uStrip.z) * size.z;
@@ -277,6 +280,7 @@ export class GridUnitKernel {
     d.setVector3("uRangeMin", new Vector3(...p.rangeMin));
     d.setVector3("uRangeMax", new Vector3(...p.rangeMax));
     d.setVector4("uGap", new Vector4(...p.gap));
+    d.setFloat("uGroundY", p.groundY ?? 0);
     if (!this.simulator.beginUpdate(d, ELEMENTS, [], [])) throw Error("Grid unit kernel failed to compile");
     try {
       this.simulator.draw(MeshTopology.Points, 0, p.count);

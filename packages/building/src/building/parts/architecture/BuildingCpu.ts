@@ -118,10 +118,13 @@ export async function prepareBuildingCpu(
 }
 export type BuildingCpuPreparation = ReturnType<typeof prepareBuildingOnGround>;
 /** The resident detail of a prepared design: render input and ground contact. */
-export async function compileBuildingCpu(prepared: BuildingCpuPreparation["prepared"]) {
+export async function compileBuildingCpu(
+  prepared: BuildingCpuPreparation["prepared"],
+  options?: { feedbackGrid?: boolean }
+) {
   const { layout, preview, ground, assets } = prepared;
   return {
-    renderInput: await coreBuildingRenderInput(layout, preview, assets),
+    renderInput: await coreBuildingRenderInput(layout, preview, assets, options),
     grounding: coreBuildingGrounding(layout, preview, ground)
   };
 }

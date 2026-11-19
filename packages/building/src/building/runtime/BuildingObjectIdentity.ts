@@ -5,3 +5,7 @@ export function buildingPartKey(id: string): string {
 export function buildingGroupKey(id: string): string {
   return JSON.stringify(["group", id]);
 }
+/** Runtime handles never enter author data or material random seeds. */
+export function buildingInstanceKey(frame: { readonly instanceId: number }, localId: string): string {
+  return JSON.stringify([frame.instanceId, localId]);
+}

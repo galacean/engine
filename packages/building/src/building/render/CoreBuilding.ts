@@ -33,6 +33,8 @@ import type { BuildingPaletteSlot } from "../runtime/BuildingGlobals";
 import type { ConstructionGrounding } from "../runtime/TerrainField";
 import type { ConstructionUnitRole } from "../runtime/ConstructionUnitRender";
 import type { SupportCell } from "../runtime/PlacementSupport";
+import { gridKernelInput } from "./GridUnitKernel";
+import type { BrickFeedbackSource } from "../runtime/BrickPackKernel";
 import type { MaterialUnit } from "../runtime/UnitPlacementStyle";
 import {
   constructionBrickColor,
@@ -1833,17 +1835,90 @@ export function coreBuildingGrounding(
   return grounding;
 }
 
+const EMPTY_UNITS = {
+  brick: new Uint8Array(0),
+  wooden_plank: new Uint8Array(0),
+  roof_tile: new Uint8Array(0)
+};
+
+function packBrickFeedbackSource(binding: CoreBinding, draw: DrawPlan, slot: number): BrickFeedbackSource {
+  if (
+    binding.parts.length === 1 &&
+    draw.cells.length > 0 &&
+    binding.parts[0].units.length === draw.cells.length &&
+    !binding.parts[0].part.modifications.length &&
+    binding.parts[0].part.algorithm.type === "surfaceGrid"
+  ) {
+    const { part, units } = binding.parts[0];
+    const chart = chartOf(part);
+    const flat = !chart || chart.points.every((pt) => Math.abs(pt[1] - chart.minGround) < 1e-5);
+    if (flat && units.every((u) => !u.params?.deformation && !u.params?.flags && !u.params?.accent)) {
+      try {
+        const grid = gridKernelInput(part as Parameters<typeof gridKernelInput>[0], slot);
+        if (grid.count === units.length) {
+          return {
+            kind: "grid",
+            count: grid.count,
+            grid: { ...grid, groundY: chart?.minGround ?? 0 }
+          };
+        }
+      } catch {
+        // Fall through to TransformFeedback packer if surface is non-groundStrip.
+      }
+    }
+  }
+  const count = draw.cells.length;
+  const data = new Float32Array(count * 20);
+  const u = new Uint32Array(data.buffer, data.byteOffset, data.length);
+  for (let i = 0; i < count; i++) {
+    const c = draw.cells[i];
+    const o = i * 20;
+    const sx = c.size[0],
+      sy = c.size[1],
+      sz = c.size[2];
+    data[o] = c.tangent[0] * sx;
+    data[o + 1] = c.tangent[1] * sx;
+    data[o + 2] = c.tangent[2] * sx;
+    data[o + 3] = c.bitangent[0] * sy;
+    data[o + 4] = c.bitangent[1] * sy;
+    data[o + 5] = c.bitangent[2] * sy;
+    data[o + 6] = c.normal[0] * sz;
+    data[o + 7] = c.normal[1] * sz;
+    data[o + 8] = c.normal[2] * sz;
+    data[o + 9] = c.center[0];
+    data[o + 10] = c.center[1];
+    data[o + 11] = c.center[2];
+    if (c.brick_deformation) {
+      data[o + 12] = c.brick_deformation[0];
+      data[o + 13] = c.brick_deformation[1];
+      data[o + 14] = c.brick_deformation[2];
+      data[o + 15] = c.brick_deformation[3];
+    }
+    if (c.brick_span) {
+      data[o + 16] = c.brick_span[0];
+      data[o + 17] = c.brick_span[1];
+    }
+    const brickSeed = c.brick_seed ?? hashString(c.seed_id ?? c.logical_id ?? c.id) & 0x7fffffff;
+    u[o + 18] =
+      c.brick_accent === undefined ? brickSeed : c.brick_accent ? brickSeed % 10 : 10 + (brickSeed % 0x7ffffff0);
+    u[o + 19] = c.brick_flags === undefined ? 0 : c.brick_flags >>> 0;
+  }
+  return { kind: "pack", count, slot, data };
+}
+
 /** Resident detail of a laid design: draw groups, backing, palette and the placement
  * document that edits address. */
 export async function coreBuildingRenderInput(
   layout: CoreBuildingLayout,
   view: CoreBuildingView = coreBuildingView(layout),
-  assets?: BuildingUnitAssets
+  assets?: BuildingUnitAssets,
+  options?: { feedbackGrid?: boolean }
 ): Promise<BuildingRenderInput> {
   const groups: BuildingUnitDrawGroup[] = [];
   const plans: { binding_id: string; cells: SupportCell[]; dependencies: unknown[] }[] = [];
   const geometries: unknown[] = [],
     bindings: unknown[] = [];
+  const feedbackBrick = Boolean(options?.feedbackGrid);
   for (const owner of layout.owners)
     for (const binding of owner.bindings) {
       // Prefabs and finishes are drawn from the view, not as unit groups.
@@ -1855,26 +1930,44 @@ export async function coreBuildingRenderInput(
       )
         continue;
       const { draws, dependencies } = bindingDraws(binding, owner.slot, layout);
-      for (const draw of draws)
+      for (const draw of draws) {
+        const useBrickFeedback =
+          feedbackBrick &&
+          binding.material === "brick" &&
+          !draw.settled &&
+          !draw.design &&
+          !draw.roofApertures &&
+          draw.role !== "layout" &&
+          draw.role !== "connections" &&
+          draw.role !== "dormer_roof";
         groups.push({
           id: groups.length,
           binding_id: binding.id,
           ownerId: owner.group.id,
           role: draw.role,
           cells: draw.cells,
-          units: await packConstructionUnits({
-            cells: draw.cells,
-            slot: owner.slot,
-            role: draw.role,
-            ...(draw.design && { roofDesign: { schema: "roof-design-v1", records: draw.design.records } }),
-            ...(draw.settled && { source: { roof_tile: draw.settled } }),
-            ...(draw.roofApertures && { roofApertures: true })
-          }),
+          units: useBrickFeedback
+            ? EMPTY_UNITS
+            : await packConstructionUnits({
+                cells: draw.cells,
+                slot: owner.slot,
+                role: draw.role,
+                ...(draw.design && { roofDesign: { schema: "roof-design-v1", records: draw.design.records } }),
+                ...(draw.settled && { source: { roof_tile: draw.settled } }),
+                ...(draw.roofApertures && { roofApertures: true })
+              }),
+          ...(useBrickFeedback
+            ? {
+                materialUnits: ["brick" as const],
+                brickFeedback: packBrickFeedbackSource(binding, draw, owner.slot)
+              }
+            : {}),
           ...(draw.gravity && { gravity: draw.gravity }),
           ...(draw.wallRoofJoint && { wallRoofJoint: draw.wallRoofJoint }),
           ...(draw.decorationId && { decorationId: draw.decorationId }),
           ...(draw.roofApertures && { roofApertures: true })
         });
+      }
       plans.push({ binding_id: binding.id, cells: draws.flatMap((d) => d.cells), dependencies });
       geometries.push({ id: binding.id, source: { type: "core", parts: binding.parts.map((p) => p.part.key) } });
       const algorithm = binding.parts[0].part.algorithm;

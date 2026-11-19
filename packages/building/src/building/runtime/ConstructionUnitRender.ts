@@ -16,7 +16,11 @@ export type ConstructionUnitRole =
   | "wall_junction"
   | "roof_junction"
   | "wall_arch";
-export type ConstructionUnitDraw = Pick<ConstructionDrawInput, "template" | "instances" | "bindings">;
+export type ConstructionUnitDraw = {
+  template: ConstructionDrawInput["template"];
+  instances: Uint8Array;
+  bindings?: ConstructionDrawInput["bindings"];
+};
 
 /** Material is independent of placement role: a tile on a wall is not a main
  * roof tile. Both resident and retained units cross this same ABI boundary. */

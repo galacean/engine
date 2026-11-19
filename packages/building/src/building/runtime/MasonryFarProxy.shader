@@ -41,10 +41,19 @@ Shader "Masonry/FarProxy" {
    RasterState = { CullMode = CullMode.Off; }
    CompareFunction material_WorldPickDepthCompare;
    DepthState = { WriteEnabled = true; CompareFunction = material_WorldPickDepthCompare; }
-   #include "ShaderLibrary/Common/Attributes.glsl"
+   #include "ShaderLibrary/Common/Common.glsl"
+   #include "ShaderLibrary/Common/Transform.glsl"
    #include "Masonry/LodDither.glsl"
    #include "Masonry/Plaster.glsl"
    #include "Masonry/SceneLighting.glsl"
+   struct Attributes {
+    vec3 POSITION;
+    vec4 NORMAL;
+    vec4 COLOR_0;
+    vec2 TEXCOORD_0;
+    vec4 TANGENT;
+    float TEXCOORD_1;
+   };
    vec4 renderer_MasonryLodDebugColor;
    #ifdef RENDERER_WORLD_PICK
      float renderer_WorldPickBase;
@@ -82,7 +91,7 @@ Shader "Masonry/FarProxy" {
      MasonryFarProxyVaryings v;
      vec4 worldPos = renderer_ModelMat * vec4(a.POSITION, 1.0);
      v.positionWS = worldPos.xyz;
-     v.normalWS = normalize(mat3(renderer_NormalMat) * a.NORMAL);
+     v.normalWS = normalize(mat3(renderer_NormalMat) * a.NORMAL.xyz);
      #ifdef RENDERER_ENABLE_VERTEXCOLOR
        v.color = vec4(a.COLOR_0.rgb * 2.0, a.COLOR_0.a * 8.0);
      #else
@@ -99,7 +108,11 @@ Shader "Masonry/FarProxy" {
        v.surfaceTag = vec4(0.0);
      #endif
      #ifdef RENDERER_WORLD_PICK
-       v.worldPickOffset = a.TEXCOORD_1.x;
+       #ifdef FAR_PROXY_INLINE_PICK
+         v.worldPickOffset = max(0.0, floor(a.NORMAL.w * 127.0 + 0.5));
+       #else
+         v.worldPickOffset = a.TEXCOORD_1.x;
+       #endif
      #endif
      gl_Position = camera_VPMat * worldPos;
      return v;

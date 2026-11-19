@@ -26,6 +26,7 @@ import { adaptBrickSdfCamera } from "./ResidentSdfCamera";
 import { WoodUnitLod, GableWoodUnitLod } from "./WoodUnitLod.js";
 import { MaterialUnitLod } from "./MaterialUnitLod.js";
 import { BrickUnitLod } from "./BrickUnitLod.js";
+import { buildBrickStorageFromFeedback, type BrickFeedbackSource } from "./BrickPackKernel";
 
 import { injectConstructionDecorationLighting } from "./ConstructionDecorationLightShader";
 import { injectConstructionRoofClip } from "./ConstructionRoofClipShader";
@@ -169,6 +170,7 @@ export interface ResidentResource {
   file?: string;
   texture?: string;
   array?: boolean;
+  feedbackBrick?: BrickFeedbackSource;
 }
 export interface ResidentDraw {
   nativeUnit?: NativeBuildingUnit;
@@ -283,10 +285,19 @@ export class EngineResidentScene {
   constructor(
     private readonly engine: Engine,
     parent: Entity,
-    private readonly asset: (name: string) => Promise<ArrayBuffer>,
+    private asset?: (name: string) => Promise<ArrayBuffer>,
     private readonly bounds?: { min: number[]; max: number[] }
   ) {
     this.root = parent.createChild("Masonry");
+  }
+  releasePackageData(): void {
+    this.pack = null;
+    const keep = new Set<Texture2D>();
+    for (const d of this.draws.values()) for (const t of d.unitLod?.lists ?? []) keep.add(t);
+    for (const k of this.storageData.keys()) if (!keep.has(k)) this.storageData.delete(k);
+    this.storageCache.clear();
+    this.bufferCache.clear();
+    this.asset = undefined;
   }
   private own<T extends { destroy: () => void }>(r: T): T {
     this.resources.push(r);
@@ -297,7 +308,7 @@ export class EngineResidentScene {
     let p = this.bufferCache.get(key);
     if (!p) {
       const create = async () => {
-        const raw = await this.asset(name);
+        const raw = await this.asset!(name);
         this.metrics.uploadBytes += raw.byteLength;
         return restoreBuffer(new Buffer(this.engine, kind, new Uint8Array(raw), BufferUsage.Static, false), raw);
       };
@@ -318,7 +329,7 @@ export class EngineResidentScene {
     return promise;
   }
   private async createStorage(name: string) {
-    const raw = await this.asset(name),
+    const raw = await this.asset!(name),
       count = Math.max(1, Math.ceil(raw.byteLength / 16)),
       width = Math.min(1024, count),
       height = Math.ceil(count / width),
@@ -350,10 +361,11 @@ export class EngineResidentScene {
         Math.hypot(model[4], model[5], model[6]),
         Math.hypot(model[8], model[9], model[10])
       );
+      const minVpHeight = 540;
       const pixelScale =
         0.5 *
         Math.abs(camera.projectionMatrix.elements[5]) *
-        Math.max(1080, Math.min(2160, camera.pixelViewport.height));
+        Math.max(minVpHeight, Math.min(2160, camera.pixelViewport.height));
       const selectionStart = performance.now();
       for (const draw of this.draws.values()) {
         const lod = draw.unitLod;
@@ -436,6 +448,10 @@ export class EngineResidentScene {
             slice = performance.now();
           }
         }
+      this.asset = undefined;
+      this.bufferCache.clear();
+      this.storageCache.clear();
+      this.textureCache.clear();
     } catch (e) {
       this.destroy();
       if (interrupted)
@@ -597,7 +613,7 @@ export class EngineResidentScene {
             `layout(location=${a.location}) in float ${input};\n#define ${decl.name} ${decl.type}(${input})`
           );
           const createFlags = async () => {
-            const raw = await this.asset(a.file),
+            const raw = await this.asset!(a.file),
               view = new DataView(raw),
               count = Math.floor((raw.byteLength - a.offset - 4) / a.stride) + 1,
               data = new Float32Array(count);
@@ -678,7 +694,7 @@ export class EngineResidentScene {
       const binding = templateBindingCount;
       let buffer: Buffer;
       if (d.instance_buffer.feedback) {
-        const initial = await this.asset(d.instance_buffer.file);
+        const initial = await this.asset!(d.instance_buffer.file);
         const simulation = new EngineRoofFeedback(this.engine, initial);
         this.simulations.push(simulation);
         simulation.run(d.instance_buffer.feedback.steps);
@@ -716,8 +732,11 @@ export class EngineResidentScene {
       );
     }
     mesh.setVertexElements(elements);
-    if (!d.nativeUnit)
-      mesh.setIndexBufferBinding(await this.buffer(d.indices, BufferBindFlag.IndexBuffer), IndexFormat.UInt32);
+    if (!d.nativeUnit) {
+      const idxBuf = await this.buffer(d.indices, BufferBindFlag.IndexBuffer);
+      const idxFmt = idxBuf.byteLength === d.indexCount * 2 ? IndexFormat.UInt16 : IndexFormat.UInt32;
+      mesh.setIndexBufferBinding(idxBuf, idxFmt);
+    }
     mesh.instanceCount = d.count;
     mesh.addSubMesh(0, d.indexCount);
     // Instances are already in the authoring coordinate domain. Explicit bounds
@@ -740,8 +759,11 @@ export class EngineResidentScene {
         ...mediumElements,
         ...elements.slice(d.nativeUnit ? d.nativeUnit.mesh.vertexElements.length : d.attributes.length)
       ]);
-      if (!d.nativeUnit)
-        medium.setIndexBufferBinding(await this.buffer(d.lod.indices, BufferBindFlag.IndexBuffer), IndexFormat.UInt32);
+      if (!d.nativeUnit) {
+        const lodIdxBuf = await this.buffer(d.lod.indices, BufferBindFlag.IndexBuffer);
+        const lodIdxFmt = lodIdxBuf.byteLength === d.lod.indexCount * 2 ? IndexFormat.UInt16 : IndexFormat.UInt32;
+        medium.setIndexBufferBinding(lodIdxBuf, lodIdxFmt);
+      }
       medium.instanceCount = d.count;
       medium.addSubMesh(0, d.lod.indexCount);
       medium.bounds.copyFrom(mesh.bounds);
@@ -750,10 +772,12 @@ export class EngineResidentScene {
     if (restoreFeedback) restoreResource(mesh, restoreFeedback);
     const fragment = residentFragment(entrance.fragment);
     const unitSelector = isBrick
-      ? new BrickUnitLod(new Uint8Array(await this.asset(d.resources.storage_0_1.file!)))
+      ? d.resources.storage_0_1?.feedbackBrick
+        ? BrickUnitLod.fromFeedback(d.resources.storage_0_1.feedbackBrick)
+        : new BrickUnitLod(new Uint8Array(await this.asset!(d.resources.storage_0_1.file!)))
       : isWood
         ? new (d.family === "wood-gable" ? GableWoodUnitLod : WoodUnitLod)(
-            new Uint8Array(await this.asset(d.resources.storage_0_0.file!))
+            new Uint8Array(await this.asset!(d.resources.storage_0_0.file!))
           )
         : undefined;
     let unitFades: Buffer[] | undefined;
@@ -785,7 +809,16 @@ export class EngineResidentScene {
         await bindTexture(material, name, r);
         continue;
       }
-      const texture = await this.storage(r.file!);
+      let texture: Texture2D;
+      if (r.feedbackBrick) {
+        texture = this.own(buildBrickStorageFromFeedback(this.engine, r.feedbackBrick));
+        const byteLength = Math.max(1, r.feedbackBrick.count) * 64;
+        this.metrics.uploadBytes += byteLength;
+        this.metrics.residentBytes += byteLength;
+        delete r.feedbackBrick;
+      } else {
+        texture = await this.storage(r.file!);
+      }
       resources.set(name, texture);
       if (name === "ViewConstants_natural" && !this.viewData.has(texture)) {
         this.viewData.set(texture, this.storageData.get(texture)!);

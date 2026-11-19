@@ -20,6 +20,15 @@ export const MASONRY_RESIDENCY = {
   fullTriangleBudget: 2_000_000
 };
 
+export function getMasonryResidencyBudget() {
+  return {
+    retainMs: 10_000,
+    cacheBytes: 12 * 1024 * 1024,
+    detailBytes: 24 * 1024 * 1024,
+    fullTriangleBudget: MASONRY_RESIDENCY.fullTriangleBudget
+  };
+}
+
 export interface MasonryLodTuning {
   enterFullUnitPx: number;
   leaveFullUnitPx: number;

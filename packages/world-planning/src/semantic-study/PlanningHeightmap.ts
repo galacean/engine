@@ -534,14 +534,18 @@ export function adoptPlanningHeightmap(plan: IslandPlan, data: Omit<PlanningHeig
   return map;
 }
 
-const waterSnapshots = new WeakMap<PlanningHeightmap, WaterTerrainSnapshot>();
+const waterSnapshots = new WeakMap<PlanningHeightmap, WaterTerrainSnapshot | WeakRef<WaterTerrainSnapshot>>();
 
 /** Identity body transform: planning world XZ/Y are also River asset-local XZ/Y.
  * Copies the canonical Float32 vertices once; caller/worker Float32Arrays cannot mutate a published Water bed.
  */
 export function planningWaterTerrainSnapshot(plan: IslandPlan): WaterTerrainSnapshot {
   const map = planningHeightmap(plan);
-  const cached = waterSnapshots.get(map);
+  const entry = waterSnapshots.get(map);
+  const cached =
+    typeof WeakRef !== "undefined" && entry instanceof WeakRef
+      ? entry.deref()
+      : (entry as WaterTerrainSnapshot | undefined);
   if (cached) return cached;
   const grid = {
     origin: [0, 0] as const,
@@ -557,6 +561,6 @@ export function planningWaterTerrainSnapshot(plan: IslandPlan): WaterTerrainSnap
     { ...grid, id, revision: 0 },
     (x, z) => map.heights[Math.round(z / map.spacingZ) * map.resolution + Math.round(x / map.spacingX)]
   );
-  waterSnapshots.set(map, terrain);
+  waterSnapshots.set(map, typeof WeakRef !== "undefined" ? new WeakRef(terrain) : terrain);
   return terrain;
 }

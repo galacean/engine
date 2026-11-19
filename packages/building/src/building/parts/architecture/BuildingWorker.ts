@@ -17,7 +17,8 @@ function release(token: number) {
   if (![...leases.values()].some((v) => v.assetId === lease.assetId)) assets.delete(lease.assetId);
   if (![...leases.values()].some((v) => v.terrainId === lease.terrainId)) terrains.delete(lease.terrainId);
 }
-const reply = (result: BuildingWorkerReply) => self.postMessage(result);
+const reply = (result: BuildingWorkerReply, transfer?: Transferable[]) =>
+  transfer?.length ? self.postMessage(result, transfer) : self.postMessage(result);
 async function handle(input: BuildingWorkerRequest) {
   if (input.mode === "release") {
     release(input.token);
@@ -35,12 +36,42 @@ async function handle(input: BuildingWorkerRequest) {
       const { prepared, ...result } = await prepareBuildingCpu(input.draft, terrain, units, input.options);
       preparations.set(id, prepared);
       reply({ id, ok: true, result });
+      if (input.workerSlim) {
+        prepared.preview.decorationParts = [];
+        prepared.preview.retainedWallUnits = [];
+        prepared.preview.occupancyBounds = [];
+        prepared.preview.archGroups = [];
+        prepared.preview.stones = [];
+        prepared.preview.frames = [];
+        prepared.preview.woodArchFrames = [];
+        prepared.preview.woodArchPillars = [];
+        for (const p of prepared.preview.parts) {
+          p.lodAppearance = undefined;
+          if (
+            !p.plaster &&
+            !p.stonePaving &&
+            !p.roofSpire &&
+            (p.placement === "unit" || p.backing === false || p.decoration)
+          ) {
+            p.positions = [];
+            p.normals = undefined;
+            p.colors = undefined;
+            p.uvs = undefined;
+            p.emission = undefined;
+            p.indices = [];
+          }
+        }
+      }
     } else {
       const prepared = preparations.get(input.token);
       if (!prepared) throw Error("Building compilation snapshot is unavailable");
-      const result = await compileBuildingCpu(prepared);
+      const result = await compileBuildingCpu(prepared, { feedbackGrid: input.feedbackGrid });
+      const transfer: Transferable[] = [];
+      for (const g of result.renderInput.groups) {
+        if (g.brickFeedback?.kind === "pack") transfer.push(g.brickFeedback.data.buffer);
+      }
       // Cloning preserves buffers shared with the retained solved geometry.
-      reply({ id, ok: true, result });
+      reply({ id, ok: true, result }, transfer);
     }
   } catch (error) {
     if (input.mode === "preview") preparations.delete(id);

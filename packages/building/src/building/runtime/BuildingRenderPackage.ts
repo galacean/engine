@@ -24,6 +24,7 @@ import type { ConstructionPreviewPart } from "./ConstructionPreview";
 import type { encodeConstructionDormerBins } from "./DormerBins";
 import type { MaterialUnit } from "./UnitPlacementStyle";
 import type { SupportCell } from "./PlacementSupport";
+import type { BrickFeedbackSource } from "./BrickPackKernel";
 
 export interface BuildingUnitDrawGroup {
   id: number;
@@ -32,6 +33,7 @@ export interface BuildingUnitDrawGroup {
   role: ConstructionUnitRole;
   cells: SupportCell[];
   units: Record<MaterialUnit, Uint8Array>;
+  brickFeedback?: BrickFeedbackSource;
   materialUnits?: MaterialUnit[];
   decorationId?: string;
   woodDraw?: ConstructionUnitDraw;
@@ -59,7 +61,8 @@ export function buildBuildingRenderPackage(
   assets: BuildingAssets,
   globals: ConstructionBindings,
   rigidPoses?: ReadonlyMap<string, readonly number[]>,
-  stoneGeometry?: import("./ConstructionGeometryAssets").ConstructionStoneGeometry
+  stoneGeometry?: import("./ConstructionGeometryAssets").ConstructionStoneGeometry,
+  options?: { skipDocumentClone?: boolean }
 ) {
   const stones = input.decorations.flatMap((d) => d.stones);
   const frames = input.decorations.flatMap((d) => d.frames);
@@ -141,6 +144,18 @@ export function buildBuildingRenderPackage(
     if (!["layout", "connections", "dormer_roof"].includes(group.role) && !group.roofApertures) {
       for (const variant of ["brick", "wooden_plank", "roof_tile"] as const) {
         if (group.materialUnits && !group.materialUnits.includes(variant)) continue;
+        if (variant === "brick" && group.brickFeedback) {
+          builder.addDraw({
+            id: "enclosure-" + group.id + "-" + variant,
+            ownerId,
+            template: "brick",
+            feedbackBrick: group.brickFeedback,
+            wallRoofJoint,
+            variant,
+            group: group.id
+          });
+          continue;
+        }
         builder.addDraw({
           id: "enclosure-" + group.id + "-" + variant,
           ownerId,
@@ -194,15 +209,27 @@ export function buildBuildingRenderPackage(
   }
   result.package.colorOwners = input.colorOwners.map((o) => ({ ...o }));
   result.package.dormerGrid = [...input.dormerBins.grid];
-  result.package.document = structuredClone(input.placementDocument);
-  result.package.groups = input.groups.map(({ id, binding_id, role, cells, materialUnits }) => ({
-    id,
-    binding_id,
-    role,
-    cells: structuredClone(cells),
-    ...(materialUnits ? { materialUnits: [...materialUnits] } : {})
-  }));
-  result.package.plans = structuredClone(input.plans);
+  if (options?.skipDocumentClone) {
+    result.package.document = input.placementDocument;
+    result.package.groups = input.groups.map(({ id, binding_id, role, cells, materialUnits }) => ({
+      id,
+      binding_id,
+      role,
+      cells,
+      ...(materialUnits ? { materialUnits } : {})
+    }));
+    result.package.plans = input.plans;
+  } else {
+    result.package.document = structuredClone(input.placementDocument);
+    result.package.groups = input.groups.map(({ id, binding_id, role, cells, materialUnits }) => ({
+      id,
+      binding_id,
+      role,
+      cells: structuredClone(cells),
+      ...(materialUnits ? { materialUnits: [...materialUnits] } : {})
+    }));
+    result.package.plans = structuredClone(input.plans);
+  }
   const decorated = appendPlasterRenderPackage(
     appendDecorationRenderPackage(
       result,

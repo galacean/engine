@@ -14,6 +14,7 @@ export class PlanningWorkerClient {
   onProgress?: (stage: string) => void;
   private sequence = 0;
   private inFlight = false;
+  private idleReleaseTimer?: ReturnType<typeof setTimeout>;
   private known = new WeakMap<SemanticResult, number>();
   private base: SemanticResult | undefined;
   private queued: PlanningWorkerRequest | null = null;
@@ -25,6 +26,10 @@ export class PlanningWorkerClient {
     return this.active !== null;
   }
   invalidate(): void {
+    if (this.idleReleaseTimer !== undefined) {
+      clearTimeout(this.idleReleaseTimer);
+      this.idleReleaseTimer = undefined;
+    }
     this.sequence++;
     if (this.active?.type === "initialize") this.active.reject(new DOMException("规划初始化已取消", "AbortError"));
     else this.active?.resolve(undefined);
@@ -140,6 +145,13 @@ export class PlanningWorkerClient {
             }
           }
           this.dispatch();
+          if (!this.inFlight && !this.queued && !this.active) {
+            if (this.idleReleaseTimer !== undefined) clearTimeout(this.idleReleaseTimer);
+            this.idleReleaseTimer = setTimeout(() => {
+              this.idleReleaseTimer = undefined;
+              if (!this.inFlight && !this.queued && !this.active && this.worker) this.releaseWorker();
+            }, 400);
+          }
         };
         worker.onerror = (event) => {
           if (this.worker === worker) this.fail(new Error(event.message || "后台规划线程未能完成请求"));

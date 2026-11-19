@@ -33,6 +33,19 @@ export class PlanningRasterClient {
     return value;
   }
   private inFlight = false;
+  private idleReleaseTimer?: ReturnType<typeof setTimeout>;
+  private scheduleIdleRelease(): void {
+    if (this.idleReleaseTimer !== undefined) clearTimeout(this.idleReleaseTimer);
+    this.idleReleaseTimer = setTimeout(() => {
+      this.idleReleaseTimer = undefined;
+      if (!this.inFlight && !this.queued && !this.active && this.worker) {
+        this.worker.terminate();
+        this.worker = undefined;
+        this.rasters.clear();
+        this.baseId = undefined;
+      }
+    }, 400);
+  }
   private queued?: {
     id: number;
     plan: IslandPlan;
@@ -55,6 +68,10 @@ export class PlanningRasterClient {
     waterImpact = false,
     surfaceRelief?: SeedWorldSurfaceReliefMaskTuning
   ): Promise<number | undefined> {
+    if (this.idleReleaseTimer !== undefined) {
+      clearTimeout(this.idleReleaseTimer);
+      this.idleReleaseTimer = undefined;
+    }
     this.active?.resolve(undefined);
     this.nativeData.delete(plan);
     this.surfaceRelief.delete(plan);
@@ -92,6 +109,7 @@ export class PlanningRasterClient {
             }
           }
           this.dispatch();
+          if (!this.inFlight && !this.queued && !this.active) this.scheduleIdleRelease();
         };
         this.worker.onerror = (e) => this.fail(new Error(e.message || "地表编译线程失败"));
       }
@@ -125,6 +143,10 @@ export class PlanningRasterClient {
   }
   /** Release pending work and settle observers during view destruction. */
   dispose(): void {
+    if (this.idleReleaseTimer !== undefined) {
+      clearTimeout(this.idleReleaseTimer);
+      this.idleReleaseTimer = undefined;
+    }
     this.nativeData = new WeakMap();
     this.surfaceRelief = new WeakMap();
     this.active?.resolve(undefined);

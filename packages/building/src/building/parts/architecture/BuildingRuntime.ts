@@ -1,4 +1,5 @@
-import { buildingPartKey, buildingGroupKey } from "../../runtime/BuildingObjectIdentity";
+import { buildingPartKey, buildingGroupKey, buildingInstanceKey } from "../../runtime/BuildingObjectIdentity";
+export { buildingInstanceKey };
 import {
   Component,
   Script,
@@ -25,6 +26,7 @@ import type { ConstructionTerrainSource } from "../../runtime/TerrainField";
 import { BuildingOccupancyQuery } from "../../runtime/BuildingOccupancyQuery";
 import { ConstructionEntrance, type ConstructionEntranceState } from "../../runtime/ConstructionEntrance";
 import { createBuildingDistanceView } from "../../runtime/BuildingDistanceView";
+import { BuildingGlobalProxy } from "../../runtime/BuildingGlobalProxy";
 import {
   MasonryResidency,
   createMasonryResidencyMetrics,
@@ -41,10 +43,6 @@ import { buildingAssets, retainBuildingResource } from "../../resources/Building
 import { resolveDocument } from "../../runtime/PlacementDocument.js";
 import { inspectMasonrySurface } from "../../runtime/MasonrySurfaceInspection";
 import type { RuntimePickVisitor } from "@galacean/engine-modify/rendering/runtime-pick-source";
-/** Runtime handles never enter author data or material random seeds. */
-export function buildingInstanceKey(frame: Entity, localId: string): string {
-  return JSON.stringify([frame.instanceId, localId]);
-}
 type BoundFocus = { entity: Entity; position: Vector3; forward?: Vector3 };
 function bindFocus(
   poses: readonly BuildingFocusPose[],
@@ -727,7 +725,8 @@ export class BuildingRuntime extends Script {
         geometry,
         assets,
         this.host!.camera,
-        signal
+        signal,
+        { unifiedGlobalProxy: true }
       );
       markGeneratedBuildingOutput(distance.root);
       distance.root.isActive = false;
@@ -1070,8 +1069,10 @@ export class BuildingRuntime extends Script {
     if (object && this.members.has(object)) return object;
   }
   visitPickBatches(visitor: RuntimePickVisitor): void {
+    const activeScene = this.engine.sceneManager.activeScene;
+    if (activeScene) BuildingGlobalProxy.existing(activeScene)?.visitPickBatches(visitor);
     for (const view of this.views.values()) {
-      const scopedVisitor: RuntimePickVisitor = (batch) =>
+      const scopedVisitor: RuntimePickVisitor & { __fromRuntime?: boolean } = (batch) =>
         visitor({
           ...batch,
           resolve: (index, position) => {
@@ -1079,6 +1080,7 @@ export class BuildingRuntime extends Script {
             return id === undefined ? undefined : buildingInstanceKey(view.frame, id);
           }
         });
+      scopedVisitor.__fromRuntime = true;
       view.view.visitPickBatches(scopedVisitor);
       for (const draw of view.fine?.runtime.draws.values() ?? [])
         for (const renderer of [draw.renderer, draw.lodRenderer]) {

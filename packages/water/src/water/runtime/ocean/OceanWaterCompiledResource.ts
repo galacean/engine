@@ -185,6 +185,15 @@ function freezeSnapshot<T>(value: T): T {
 
 const EFFECTIVE_CACHE = new WeakMap<object, OceanWaterBodyDescriptorV1>();
 
+function cloneNearshoreDescriptorPreservingTypedArrays<T extends Record<string, any> | undefined>(descriptor: T): T {
+  if (!descriptor) return descriptor;
+  const copy: Record<string, any> = {};
+  for (const [k, v] of Object.entries(descriptor)) {
+    copy[k] = ArrayBuffer.isView(v) || v instanceof ArrayBuffer ? v : structuredClone(v);
+  }
+  return copy as T;
+}
+
 export function createEffectiveOceanWaterBodyDescriptor(value: unknown): OceanWaterBodyDescriptorV1 {
   assertOceanWaterBodyDescriptor(value);
   const cached = EFFECTIVE_CACHE.get(value);
@@ -195,7 +204,7 @@ export function createEffectiveOceanWaterBodyDescriptor(value: unknown): OceanWa
     config: {
       waterLevel: value.config.waterLevel,
       ...(value.config.connections ? { connections: decodeWaterConnectionPorts(value.config.connections) } : {}),
-      nearshoreDescriptor: structuredClone(value.config.nearshoreDescriptor)
+      nearshoreDescriptor: cloneNearshoreDescriptorPreservingTypedArrays(value.config.nearshoreDescriptor)
     }
   });
   assertOceanWaterBodyDescriptor(effective);

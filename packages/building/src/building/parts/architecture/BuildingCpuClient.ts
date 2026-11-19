@@ -105,6 +105,7 @@ export class BuildingCpuClient {
           mode: "preview",
           draft,
           options,
+          workerSlim: true,
           assetId: asset.lease.id,
           terrainId: ground.lease.id,
           ...(asset.first ? { units } : {}),
@@ -140,7 +141,15 @@ export class BuildingCpuClient {
           compile: async (signal) => {
             if (disposed) throw Error("Building compilation snapshot disposed");
             if (!valid()) throw new BuildingWorkerError("Building compilation snapshot expired after Worker failure");
-            const result = await this.send<BuildingCpuDetail>({ mode: "detail", token: id }, signal).result;
+            const result = await this.send<BuildingCpuDetail>(
+              {
+                mode: "detail",
+                token: id,
+                feedbackGrid: true,
+                workerSlim: true
+              },
+              signal
+            ).result;
             signal.throwIfAborted();
             if (!valid()) throw Error("Building compilation snapshot disposed or expired");
             return result;

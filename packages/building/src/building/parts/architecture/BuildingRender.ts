@@ -14,12 +14,14 @@ export async function renderBuilding(
     signal: AbortSignal;
     bounds?: { min: number[]; max: number[] };
     rigidDecorations?: { poses: ReadonlyMap<string, readonly number[]>; resolve(id: string): Entity | undefined };
+    releasePackageAfterApply?: boolean;
   }
 ) {
   const { parent, camera, assets, signal } = options;
   signal.throwIfAborted();
   retainBuildingResource(assets, 1);
   let runtime: EngineResidentScene | undefined;
+  const slim = Boolean(options.releasePackageAfterApply);
   try {
     const library = buildingAssets(assets);
     const built = buildBuildingRenderPackage(
@@ -27,7 +29,8 @@ export async function renderBuilding(
       library,
       buildingGlobals(input.paletteSlots, library.frame),
       options.rigidDecorations?.poses,
-      library.compilation.stoneGeometry
+      library.compilation.stoneGeometry,
+      slim ? { skipDocumentClone: true } : undefined
     );
     runtime = new EngineResidentScene(parent.engine, parent, built.asset, options.bounds);
     runtime.root.isActive = false;
@@ -35,8 +38,9 @@ export async function renderBuilding(
     if (options.rigidDecorations) runtime.bindRigidDecorations(options.rigidDecorations.resolve);
     signal.throwIfAborted();
     runtime.applyDocument(input.placementDocument);
+    if (slim) runtime.releasePackageData();
     runtime.bindCamera(camera);
-    return { runtime, package: built.package, destroy: () => runtime!.destroy() };
+    return { runtime, package: slim ? undefined : built.package, destroy: () => runtime!.destroy() };
   } catch (error) {
     runtime?.destroy();
     throw error;

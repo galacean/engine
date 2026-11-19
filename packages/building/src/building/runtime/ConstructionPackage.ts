@@ -3,6 +3,7 @@ import type { ResidentPackage, ResidentDraw, ResidentResource } from "./EngineRe
 import type { ConstructionAssetLoader, ConstructionResourceRole } from "./ConstructionBindings";
 import { type BuildingAssets, materialProgram } from "../resources/BuildingAssetKit";
 import { validateGravityStep } from "./RoofGravityKernel.js";
+import type { BrickFeedbackSource } from "./BrickPackKernel";
 export type ConstructionBindings = Partial<
   Record<Exclude<ConstructionResourceRole, "instances" | "indirection">, Uint8Array>
 >;
@@ -10,7 +11,8 @@ export interface ConstructionDrawInput {
   id: string;
   ownerId?: string;
   template: string;
-  instances: Uint8Array;
+  instances?: Uint8Array;
+  feedbackBrick?: BrickFeedbackSource;
   /** Resize an original template once, before GPU upload. Positions use location
    * 0 and normals 2; instance/world transforms remain owned by the producer. */
   geometryScale?: readonly [number, number, number];
@@ -35,9 +37,14 @@ export class ConstructionPackageBuilder {
     if (!input.id || this.ids.has(input.id)) throw Error("Duplicate/empty draw identity");
     const unit = this.assets.units[input.template];
     if (!unit) throw Error("Missing building unit Prefab: " + input.template);
-    if (!(input.instances instanceof Uint8Array) || input.instances.byteLength % unit.instanceStride)
-      throw Error("Whole instance records required");
-    const count = input.instances.byteLength / unit.instanceStride;
+    const feedbackBrick = input.feedbackBrick;
+    if (!feedbackBrick) {
+      if (!(input.instances instanceof Uint8Array) || input.instances.byteLength % unit.instanceStride)
+        throw Error("Whole instance records required");
+    } else if (unit.directInstances) {
+      throw Error("feedbackBrick only supports indirect storage_0_1 units");
+    }
+    const count = feedbackBrick ? feedbackBrick.count : input.instances!.byteLength / unit.instanceStride;
     if (count > 0x7fffffff) throw Error("Instance count exceeds engine signed draw domain");
     if (input.feedback) {
       if (!unit.directInstances) throw Error("Feedback requires a direct-instance unit");
@@ -51,10 +58,14 @@ export class ConstructionPackageBuilder {
     const resources: Record<string, ResidentResource> = {};
     const pending = new Map<string, Uint8Array>();
     const instanceFile = root + "instances.bin";
-    pending.set(instanceFile, input.instances);
+    if (!feedbackBrick && input.instances) pending.set(instanceFile, input.instances);
     const indices = new Uint8Array(Uint32Array.from({ length: count }, (_, i) => i).buffer);
     for (const [name, binding] of Object.entries(unit.bindings)) {
       const { role } = binding;
+      if (role === "instances" && feedbackBrick) {
+        resources[name] = { kind: binding.kind, feedbackBrick };
+        continue;
+      }
       const bytes = role === "instances" ? input.instances : role === "indirection" ? indices : bindings[role];
       if (!(bytes instanceof Uint8Array) || bytes.byteLength < (binding.minByteLength ?? 0) || bytes.byteLength % 4)
         throw Error(`Missing/invalid ${role} for ${input.id}/${name}`);

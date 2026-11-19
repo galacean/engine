@@ -90,7 +90,10 @@ export function appendDecorationRenderPackage(
     };
     const count = group.reduce((n, p) => n + p.positions.length / 3, 0),
       vertices = new Float32Array(count * vertexFloats),
-      indices = new Uint32Array(group.reduce((n, p) => n + p.indices.length, 0)),
+      useU16Indices = count <= 65535,
+      indices = useU16Indices
+        ? new Uint16Array(group.reduce((n, p) => n + p.indices.length, 0))
+        : new Uint32Array(group.reduce((n, p) => n + p.indices.length, 0)),
       pickIndices = new Float32Array(count),
       pickIds = [...new Set(group.map((part) => decorationBindingKey(part)))];
     const pickSlots = new Map(pickIds.map((id, index) => [id, index]));

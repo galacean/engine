@@ -1,7 +1,7 @@
 import type { Camera, Engine, Entity } from "@galacean/engine";
 import type { EngineResidentScene } from "./EngineResidentScene";
 import {
-  MASONRY_RESIDENCY,
+  getMasonryResidencyBudget,
   getMasonryLodTuning,
   subscribeMasonryLodTuning,
   type MasonryLodProbe,
@@ -18,6 +18,7 @@ export interface MasonryResidencyEntry {
     readonly recentlyRendered: boolean;
     setVisualVisible(visible: boolean): void;
     setFarProxyActive?(active: boolean): void;
+    releaseDetailedVisual?(): void;
     setLodDebugEnabled?(enabled: boolean): void;
     setFade(fade: number): void;
   };
@@ -180,7 +181,7 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
           e.view.setFarProxyActive?.(true);
         }
       }
-      const wanted = e.lod < 2 && e.prefetch;
+      const wanted = e.lod < 2 && e.visible;
       if (wanted !== this.desired.has(e)) {
         demandChanged = true;
         if (wanted) this.desired.add(e);
@@ -258,6 +259,10 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
     e.fine = undefined;
     e.transition.reset(this.elapsed);
     e.view.root.isActive = true;
+    if (e.lod === 2) {
+      e.view.releaseDetailedVisual?.();
+    }
+    e.view.setFarProxyActive?.(e.visible && e.lod === 2);
     e.view.setVisualVisible(e.visible);
     e.view.setFade(1);
     this.metrics.evictions++;
@@ -266,8 +271,9 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
    * One load may exceed the cap; a later request must reclaim a lower-priority
    * hidden resident before allocating again. Never evict a visible neighbour. */
   admit(request: E): boolean {
+    const budget = getMasonryResidencyBudget();
     this.refreshMetrics();
-    if (this.metrics.residentBytes <= MASONRY_RESIDENCY.detailBytes) return true;
+    if (this.metrics.residentBytes <= budget.detailBytes) return true;
     for (const cold of this.entries.filter(
       (entry) => entry.fine && !this.desired.has(entry) && !entry.fine.runtime.root.isActive
     ))
@@ -279,11 +285,11 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
           entry.fine && !entry.visible && !entry.fine.runtime.root.isActive && this.compareResidency(entry, request) < 0
       )
       .sort((a, b) => this.compareResidency(a, b))) {
-      if (this.metrics.residentBytes <= MASONRY_RESIDENCY.detailBytes) break;
+      if (this.metrics.residentBytes <= budget.detailBytes) break;
       this.evict(lower);
       this.refreshMetrics();
     }
-    return this.metrics.residentBytes <= MASONRY_RESIDENCY.detailBytes;
+    return this.metrics.residentBytes <= budget.detailBytes;
   }
   publishResidency(now = performance.now()) {
     // Budget release and asynchronous readiness are also ranking events. Use the
@@ -311,13 +317,14 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
         Number(b.presentationVisible && b.budgetLod === 0) - Number(a.presentationVisible && a.budgetLod === 0) ||
         b.priority - a.priority
     );
+    const budget = getMasonryResidencyBudget();
     for (const e of active) {
       const runtime = e.fine!.runtime;
       const extra = runtime.metrics.fullTriangles - runtime.metrics.mediumTriangles;
-      const selected = e.lod === 0 && selectedExtra + extra <= MASONRY_RESIDENCY.fullTriangleBudget;
+      const selected = e.lod === 0 && selectedExtra + extra <= budget.fullTriangleBudget;
       if (selected) selectedExtra += extra;
       const reserved = e.presentationVisible && runtime.metrics.fullCoverage;
-      if (selected && (reserved || residentExtra + extra <= MASONRY_RESIDENCY.fullTriangleBudget)) {
+      if (selected && (reserved || residentExtra + extra <= budget.fullTriangleBudget)) {
         e.budgetLod = 0;
         if (!reserved) residentExtra += extra;
       } else e.budgetLod = e.lod === 2 ? 2 : 1;
@@ -371,6 +378,9 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
       }
       e.view.root.isActive = true;
       e.view.setFarProxyActive?.(coarseVisible && e.lod === 2 && !fineVisible);
+      if (runtime && fineVisible && !coarseVisible && states.length === 1) {
+        e.view.releaseDetailedVisual?.();
+      }
       if (e.coarseVisible !== coarseVisible) {
         e.view.setVisualVisible(coarseVisible);
         e.coarseVisible = coarseVisible;
@@ -389,17 +399,13 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
       total = this.metrics.residentBytes;
     let evicted = false;
     for (const e of unused) {
-      if (
-        now - e.lastUsed >= MASONRY_RESIDENCY.retainMs ||
-        cached > MASONRY_RESIDENCY.cacheBytes ||
-        total > MASONRY_RESIDENCY.detailBytes
-      ) {
+      if (now - e.lastUsed >= budget.retainMs || cached > budget.cacheBytes || total > budget.detailBytes) {
         const bytes = e.fine!.runtime.metrics.residentBytes;
         this.evict(e);
         cached -= bytes;
         total -= bytes;
         evicted = true;
-      } else this.residencyWake = Math.min(this.residencyWake, e.lastUsed + MASONRY_RESIDENCY.retainMs);
+      } else this.residencyWake = Math.min(this.residencyWake, e.lastUsed + budget.retainMs);
     }
     if (evicted) this.refreshMetrics();
   }

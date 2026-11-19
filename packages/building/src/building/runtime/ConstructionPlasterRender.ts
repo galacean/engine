@@ -81,7 +81,7 @@ export function appendPlasterRenderPackage(
       vertexFile = `dynamic/${id}/vertices.bin`,
       indexFile = `dynamic/${id}/indices.bin`;
     files.set(vertexFile, data.buffer);
-    files.set(indexFile, new Uint32Array(p.indices).buffer);
+    files.set(indexFile, (count <= 65535 ? new Uint16Array(p.indices) : new Uint32Array(p.indices)).buffer);
     draws.push({
       id,
       ownerId: p.owner,
