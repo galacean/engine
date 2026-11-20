@@ -1188,8 +1188,9 @@ export function mountTemplateProceduralPlants(
           const renderer = partEntity.addComponent(MeshRenderer);
           renderer.mesh = view.mesh;
           renderer.setMaterial(materials[part.materialId]);
-          // Cast real self/contact shadows on near/midground LOD0-1 shrubs (<88m) while keeping far LOD2-3 shadow-free.
-          renderer.castShadows = lod.lodIndex <= 1;
+          // Ground underbrush receives cliff/tree shadows and gets its volume from 3D normals + canopy AO
+          // without rasterizing hundreds of thousands of alpha-cutout triangles across 4 directional shadow cascades.
+          renderer.castShadows = false;
           renderer.receiveShadows = true;
           renderer.shaderData.enableMacro("RENDERER_ASSET_ASSEMBLY_INSTANCE");
           if (lod.canopyOcclusionSlots?.has(part.materialId)) {
@@ -1230,7 +1231,7 @@ export function mountTemplateProceduralPlants(
       renderer.setMaterial(materials[part.materialId]);
       // Ground underbrush, grass tufts, and flower cushions receive cliff/tree shadows
       // without rasterizing 2.34M sub-pixel alpha-cutout triangles across directional shadow cascades.
-      renderer.castShadows = kind === "desert-shrub";
+      renderer.castShadows = false;
       renderer.receiveShadows = true;
       renderer.shaderData.enableMacro("RENDERER_ASSET_ASSEMBLY_INSTANCE");
       if (canopyOcclusionSlots?.has(part.materialId)) {
