@@ -11,6 +11,7 @@ vec4 renderer_texelSize;
 #ifdef ENABLE_EFFECT_BLOOM
 	mediump sampler2D material_BloomTexture;
 	mediump sampler2D material_BloomDirtTexture;
+	vec4 material_BloomTexelSize;
 	vec4 material_BloomTint;
 	vec4 material_BloomDirtTilingOffset;
 	vec4 material_BloomIntensityParams;
@@ -21,7 +22,7 @@ void frag(Varyings v) {
 
 	#ifdef ENABLE_EFFECT_BLOOM
     	#ifdef BLOOM_HQ
-    	  mediump vec4 bloom = sampleTexture2DBicubic(material_BloomTexture, v.v_uv, renderer_texelSize);
+    	  mediump vec4 bloom = sampleTexture2DBicubic(material_BloomTexture, v.v_uv, material_BloomTexelSize);
     	#else
     	  mediump vec4 bloom = texture2D(material_BloomTexture, v.v_uv);
     	#endif

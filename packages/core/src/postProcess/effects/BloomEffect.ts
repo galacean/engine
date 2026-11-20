@@ -29,13 +29,15 @@ export class BloomEffect extends PostProcessEffect {
   /** @internal */
   static _dirtMacro: ShaderMacro = ShaderMacro.getByName("BLOOM_DIRT");
   /** @internal */
-  static _bloomParams = ShaderProperty.getByName("material_BloomParams"); // x: threshold (linear), y: threshold knee, z: scatter
+  static _bloomParams = ShaderProperty.getByName("material_BloomParams"); // x: threshold (linear), y: threshold knee, z: scatter, w: prefilter step scale
 
   // Uber shader properties
   /** @internal */
   static _enableMacro: ShaderMacro = ShaderMacro.getByName("ENABLE_EFFECT_BLOOM");
   /** @internal */
   static _bloomTextureProp = ShaderProperty.getByName("material_BloomTexture");
+  /** @internal */
+  static _bloomTexelSizeProp = ShaderProperty.getByName("material_BloomTexelSize");
   /** @internal */
   static _dirtTextureProp = ShaderProperty.getByName("material_BloomDirtTexture");
   /** @internal */

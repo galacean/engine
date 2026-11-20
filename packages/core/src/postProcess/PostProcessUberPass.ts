@@ -34,6 +34,7 @@ export class PostProcessUberPass extends PostProcessPass {
     const bloomShaderData = bloomMaterial.shaderData;
     const uberShaderData = uberMaterial.shaderData;
     bloomShaderData.setVector4(BloomEffect._bloomParams, new Vector4());
+    uberShaderData.setVector4(BloomEffect._bloomTexelSizeProp, new Vector4());
     uberShaderData.setVector4(BloomEffect._bloomIntensityParams, new Vector4());
     uberShaderData.setVector4(BloomEffect._dirtTilingOffsetProp, new Vector4());
     uberShaderData.setColor(BloomEffect._tintProp, new Color());
@@ -108,13 +109,12 @@ export class PostProcessUberPass extends PostProcessPass {
     } = bloomBlend;
 
     // Update shaderData
+    const downRes = downScale.value === BloomDownScaleMode.Half ? 1 : 2;
     const thresholdLinear = threshold.value;
     const thresholdKnee = thresholdLinear * 0.5; // Hardcoded soft knee
     const bloomParams = bloomShaderData.getVector4(BloomEffect._bloomParams);
     const scatterLerp = MathUtil.lerp(0.05, 0.95, scatter.value);
-    bloomParams.x = thresholdLinear;
-    bloomParams.y = thresholdKnee;
-    bloomParams.z = scatterLerp;
+    bloomParams.set(thresholdLinear, thresholdKnee, scatterLerp, downRes);
     const bloomIntensityParams = uberShaderData.getVector4(BloomEffect._bloomIntensityParams);
     bloomIntensityParams.x = intensity.value;
     bloomIntensityParams.y = dirtIntensity.value;
@@ -135,7 +135,6 @@ export class PostProcessUberPass extends PostProcessPass {
     }
 
     // Determine the iteration count
-    const downRes = downScale.value === BloomDownScaleMode.Half ? 1 : 2;
     const pixelViewport = camera.pixelViewport;
     const tw = Math.max(1, pixelViewport.width >> downRes);
     const th = Math.max(1, pixelViewport.height >> downRes);
@@ -214,7 +213,13 @@ export class PostProcessUberPass extends PostProcessPass {
         dirtTilingOffset.set(1, 1, 0, 0);
       }
     }
-    uberShaderData.setTexture(BloomEffect._bloomTextureProp, mipRT[0].getColorTexture(0));
+    const mip0 = mipRT[0];
+    uberShaderData.setTexture(BloomEffect._bloomTextureProp, mip0.getColorTexture(0));
+    if (highQualityFiltering.value) {
+      uberShaderData
+        .getVector4(BloomEffect._bloomTexelSizeProp)
+        .set(1 / mip0.width, 1 / mip0.height, mip0.width, mip0.height);
+    }
   }
 
   private _releaseBloomRenderTargets(fromIndex = 0): void {

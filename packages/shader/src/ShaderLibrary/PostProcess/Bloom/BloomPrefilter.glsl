@@ -9,7 +9,8 @@ vec4 renderer_texelSize;
 
 void frag(Varyings v) {
     #ifdef BLOOM_HQ
-      vec2 t = renderer_texelSize.xy;
+      // material_BloomParams.w scales step to match Half (1.0) or Quarter (2.0) prefilter footprint
+      vec2 t = renderer_texelSize.xy * material_BloomParams.w;
       vec2 h = t * 0.5;
 
       // Pre-weight samples to avoid mediump (fp16) overflow
@@ -31,7 +32,17 @@ void frag(Varyings v) {
       color += texture2D(renderer_BlitTexture, v.v_uv + vec2( 0.0,  t.y)).rgb * 0.0625;
       color += texture2D(renderer_BlitTexture, v.v_uv + vec2( t.x,  t.y)).rgb * 0.03125;
     #else
-      mediump vec3 color = texture2D(renderer_BlitTexture, v.v_uv).rgb;
+      mediump vec3 color;
+      if (material_BloomParams.w > 1.5) {
+        // 4-tap box covers all 16 source pixels of a Quarter (4x) cell without blind spots
+        vec2 t = renderer_texelSize.xy;
+        color = texture2D(renderer_BlitTexture, v.v_uv + vec2(-t.x, -t.y)).rgb * 0.25;
+        color += texture2D(renderer_BlitTexture, v.v_uv + vec2( t.x, -t.y)).rgb * 0.25;
+        color += texture2D(renderer_BlitTexture, v.v_uv + vec2(-t.x,  t.y)).rgb * 0.25;
+        color += texture2D(renderer_BlitTexture, v.v_uv + vec2( t.x,  t.y)).rgb * 0.25;
+      } else {
+        color = texture2D(renderer_BlitTexture, v.v_uv).rgb;
+      }
     #endif
 
     // User controlled clamp to limit crazy high broken spec

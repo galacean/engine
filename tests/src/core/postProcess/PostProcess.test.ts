@@ -576,6 +576,11 @@ describe("PostProcess", () => {
       expect(hasHQMacro(uberMaterial.shaderData)).to.be.true;
       // @ts-ignore
       expect(activeUberPass._mipRT.length).to.equal(4);
+      const bloomTexelSize = uberMaterial.shaderData.getVector4(BloomEffect._bloomTexelSizeProp);
+      expect(bloomTexelSize.x).to.be.closeTo(1 / 64, 1e-6);
+      expect(bloomTexelSize.y).to.be.closeTo(1 / 64, 1e-6);
+      expect(bloomTexelSize.z).to.equal(64);
+      expect(bloomTexelSize.w).to.equal(64);
 
       const outPixels = new Uint8Array(size * size * 4);
       destColorTexture.getPixelBuffer(outPixels);
@@ -587,6 +592,16 @@ describe("PostProcess", () => {
       expect(halo).to.be.greaterThan(0);
       expect(center).to.be.greaterThan(halo);
       expect(halo).to.be.greaterThan(corner);
+
+      // Switching to Quarter updates material_BloomTexelSize to mip0 (32x32)
+      bloomEffect.downScale.value = BloomDownScaleMode.Quarter;
+      while (gl.getError() !== gl.NO_ERROR);
+      bloomEngine.update();
+      expect(gl.getError()).to.equal(gl.NO_ERROR);
+      expect(bloomTexelSize.x).to.be.closeTo(1 / 32, 1e-6);
+      expect(bloomTexelSize.y).to.be.closeTo(1 / 32, 1e-6);
+      expect(bloomTexelSize.z).to.equal(32);
+      expect(bloomTexelSize.w).to.equal(32);
 
       // Disabling HQ filtering cleanly clears the BLOOM_HQ macro with no GL error
       bloomEffect.highQualityFiltering.value = false;
@@ -696,6 +711,86 @@ describe("PostProcess", () => {
         }
         expect(prevDiag).to.be.lessThan(centerVal);
       }
+    } finally {
+      bloomCamera.renderTarget = null;
+      destTarget.destroy(true);
+      bloomEngine.destroy();
+    }
+  });
+
+  it("Bloom Quarter prefilter covers all 4x4 source pixels without blind spots", async () => {
+    const size = 128;
+    const htmlCanvas = document.createElement("canvas");
+    htmlCanvas.width = size;
+    htmlCanvas.height = size;
+    const bloomEngine = await WebGLEngine.create({ canvas: htmlCanvas });
+    const bloomScene = bloomEngine.sceneManager.scenes[0];
+    bloomScene.background.solidColor.set(0, 0, 0, 1);
+
+    const cameraEntity = bloomScene.createRootEntity("camera");
+    cameraEntity.transform.setPosition(0, 0, 10);
+    const bloomCamera = cameraEntity.addComponent(Camera);
+    bloomCamera.isOrthographic = true;
+    bloomCamera.orthographicSize = size / 2;
+    bloomCamera.enablePostProcess = true;
+    bloomCamera.enableHDR = false;
+
+    const destColorTexture = new Texture2D(bloomEngine, size, size, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const destTarget = new RenderTarget(bloomEngine, size, size, destColorTexture);
+    bloomCamera.renderTarget = destTarget;
+
+    // 1x1 bright pixel shifted across corner and inner positions of the same 4x4 Quarter cell
+    const dotEntity = bloomScene.createRootEntity("dot");
+    const renderer = dotEntity.addComponent(MeshRenderer);
+    renderer.mesh = PrimitiveMesh.createCuboid(bloomEngine, 1, 1, 1);
+    const material = new UnlitMaterial(bloomEngine);
+    material.baseColor.set(1, 1, 1, 1);
+    renderer.setMaterial(material);
+
+    const pp = bloomScene.createRootEntity("post-process").addComponent(PostProcess);
+    const bloomEffect = pp.addEffect(BloomEffect);
+    bloomEffect.downScale.value = BloomDownScaleMode.Quarter;
+    bloomEffect.maxIterations.value = 1;
+    bloomEffect.threshold.value = 0;
+    bloomEffect.intensity.value = 1;
+
+    try {
+      const gl = (bloomEngine as any)._hardwareRenderer._gl as WebGL2RenderingContext;
+      const activeUberPass = bloomEngine.postProcessPasses[0];
+
+      const readMaxMip0Red = () => {
+        while (gl.getError() !== gl.NO_ERROR);
+        bloomEngine.update();
+        expect(gl.getError()).to.equal(gl.NO_ERROR);
+        // @ts-ignore
+        const mip0RT: RenderTarget = activeUberPass._mipRT[0];
+        const mip0Tex = mip0RT.getColorTexture(0) as Texture2D;
+        const pixels = new Uint8Array(mip0RT.width * mip0RT.height * 4);
+        mip0Tex.getPixelBuffer(pixels);
+        let maxR = 0;
+        for (let i = 0; i < pixels.length; i += 4) {
+          if (pixels[i] > maxR) maxR = pixels[i];
+        }
+        return maxR;
+      };
+
+      // Default Quarter 4-tap box: corner (-3.5, -3.5) and inner (-2.5, -2.5) of the same 4x4 cell must both be captured equally
+      bloomEffect.highQualityFiltering.value = false;
+      dotEntity.transform.setPosition(-3.5, -3.5, 0);
+      const cornerVal = readMaxMip0Red();
+      dotEntity.transform.setPosition(-2.5, -2.5, 0);
+      const innerVal = readMaxMip0Red();
+      expect(cornerVal).to.be.greaterThan(0);
+      expect(cornerVal).to.equal(innerVal);
+
+      // HQ Quarter 13-tap (step * 2): corner and inner positions must both be captured cleanly
+      bloomEffect.highQualityFiltering.value = true;
+      dotEntity.transform.setPosition(-3.5, -3.5, 0);
+      const hqCornerVal = readMaxMip0Red();
+      dotEntity.transform.setPosition(-2.5, -2.5, 0);
+      const hqInnerVal = readMaxMip0Red();
+      expect(hqCornerVal).to.be.greaterThan(0);
+      expect(hqInnerVal).to.be.greaterThan(0);
     } finally {
       bloomCamera.renderTarget = null;
       destTarget.destroy(true);
