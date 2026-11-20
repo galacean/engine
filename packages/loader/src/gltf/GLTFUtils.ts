@@ -151,7 +151,6 @@ export class GLTFUtils {
       promise = context
         .get<Uint8Array>(GLTFParserType.BufferView, accessor.bufferView)
         .then((bufferViewData) => {
-          const bufferIndex = bufferView.buffer;
           const bufferByteOffset = bufferViewData.byteOffset ?? 0;
           const byteOffset = accessor.byteOffset ?? 0;
 
@@ -165,12 +164,13 @@ export class GLTFUtils {
             const accessorBufferCache = context.accessorBufferCache;
             bufferInfo = accessorBufferCache[bufferCacheKey];
             if (!bufferInfo) {
-              const offset = bufferByteOffset + bufferSlice * bufferStride;
+              const viewRelativeOffset = bufferSlice * bufferStride;
+              const offset = bufferByteOffset + viewRelativeOffset;
               const count = accessorCount * (bufferStride / dataElementBytes);
               const data = new TypedArray(bufferViewData.buffer, offset, count);
               accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
               bufferInfo.restoreInfo = new BufferDataRestoreInfo(
-                new RestoreDataAccessor(bufferIndex, TypedArray, offset, count)
+                new RestoreDataAccessor(bufferView, TypedArray, viewRelativeOffset, count)
               );
             }
           } else {
@@ -179,7 +179,7 @@ export class GLTFUtils {
             const data = new TypedArray(bufferViewData.buffer, offset, count);
             bufferInfo = new BufferInfo(data, false, elementStride);
             bufferInfo.restoreInfo = new BufferDataRestoreInfo(
-              new RestoreDataAccessor(bufferIndex, TypedArray, offset, count)
+              new RestoreDataAccessor(bufferView, TypedArray, byteOffset, count)
             );
           }
 
@@ -264,18 +264,18 @@ export class GLTFUtils {
         const indexLength = indicesByteLength / IndexTypeArray.BYTES_PER_ELEMENT;
         const indicesArray = new IndexTypeArray(indicesUint8Array.buffer, indicesByteOffset, indexLength);
         restoreInfo.sparseIndices = new RestoreDataAccessor(
-          indicesBufferView.buffer,
+          indicesBufferView,
           IndexTypeArray,
-          indicesByteOffset,
+          indices.byteOffset ?? 0,
           indexLength
         );
 
         const valueLength = valuesByteLength / TypedArray.BYTES_PER_ELEMENT;
         const valuesArray = new TypedArray(valuesUin8Array.buffer, valuesByteOffset, valueLength);
         restoreInfo.sparseValues = new RestoreDataAccessor(
-          valuesBufferView.buffer,
+          valuesBufferView,
           TypedArray,
-          valuesByteOffset,
+          values.byteOffset ?? 0,
           valueLength
         );
 

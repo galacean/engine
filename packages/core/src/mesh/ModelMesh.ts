@@ -795,16 +795,29 @@ export class ModelMesh extends Mesh {
 
     // If need recreate internal vertex buffer
     const needByteLength = bufferStride * vertexCount;
-    if (bufferCreatedInfo.x * bufferCreatedInfo.y !== needByteLength) {
-      // Destroy old internal vertex buffer
-      const createdInternalBufferIndex = bufferCreatedInfo.z;
+    const createdInternalBufferIndex = bufferCreatedInfo.z;
+    const existingBuffer =
+      createdInternalBufferIndex !== -1
+        ? this._primitive.vertexBufferBindings[createdInternalBufferIndex]?.buffer
+        : null;
+    const needRecreateForUnreadableOverwrite =
+      Boolean(existingBuffer && !existingBuffer.readable) &&
+      this._internalVertexElementsFlags !== 0 &&
+      (this._advancedDataUpdateFlag & this._internalVertexElementsFlags) === this._internalVertexElementsFlags;
+
+    if (
+      bufferCreatedInfo.x !== bufferStride ||
+      bufferCreatedInfo.y !== vertexCount ||
+      needRecreateForUnreadableOverwrite
+    ) {
+      // Unbind before destroying so the old buffer's refCount drops before release
       if (createdInternalBufferIndex !== -1) {
-        this._primitive.vertexBufferBindings[createdInternalBufferIndex]?.buffer.destroy();
         this._setVertexBufferBinding(createdInternalBufferIndex, null);
+        existingBuffer?.destroy();
       }
 
       const vertexBufferIndex = this._internalVertexBufferIndex;
-      const isCreate = bufferStride * this.vertexCount > 0;
+      const isCreate = needByteLength > 0;
       if (isCreate) {
         // No matter the internal buffer is stride change or vertex count change, we need set to internal buffer again
         this._advancedDataUpdateFlag |= this._internalVertexElementsFlags;
