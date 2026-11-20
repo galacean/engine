@@ -1,0 +1,22 @@
+packages/core/src/postProcess/PostProcessUberPass.ts
+  h_79b10db07e6052 43,67-74,82-89,93,118
+packages/core/src/postProcess/effects/ColorAdjustmentsEffect.ts
+  h_79b10db07e6052 27,32-43
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl
+  h_79b10db07e6052 39
+packages/shader/src/ShaderLibrary/PostProcess/UberPost.glsl
+  h_79b10db07e6052 21,46,48-51,53
+tests/src/core/postProcess/ColorAdjustmentsEffect.test.ts
+  h_79b10db07e6052 54,56-57,66,70-76,113,132,134,137-138,143,169-189,194,198-199,201-206,208-210,213-215,218-219,222-223
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "66b60b307e349b5c0526fc36bf44408d0f2ebac6",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}
