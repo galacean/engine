@@ -1,0 +1,14 @@
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  h_79b10db07e6052 1191-1193,1234
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "aadb21edccda8cbc8472c42f45a7c8b335a44e5c",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}
