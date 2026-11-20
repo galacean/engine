@@ -740,7 +740,10 @@ export class ModelMesh extends Mesh {
    */
   override _addReferCount(value: number): void {
     super._addReferCount(value);
-    this._blendShapeManager._vertexTexture?._addReferCount(value);
+    const vertexTexture = this._blendShapeManager._vertexTexture;
+    if (vertexTexture && !vertexTexture.destroyed) {
+      vertexTexture._addReferCount(value);
+    }
   }
 
   /**
@@ -753,7 +756,7 @@ export class ModelMesh extends Mesh {
     }
     super._onDestroy();
     this._releaseCache(true);
-    this._blendShapeManager._vertexTexture?.destroy();
+    this._blendShapeManager._destroyVertexTexture();
   }
 
   private _getVertexElementData<T extends VertexType>(

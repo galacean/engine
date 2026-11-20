@@ -95,6 +95,9 @@ export class BlendShapeManager {
       subDataDirtyFlags[i].destroy();
     }
     subDataDirtyFlags.length = 0;
+
+    this._destroyVertexTexture();
+    this._lastHostCreatedInfo.set(0, 0, 0, 0);
   }
 
   /**
@@ -129,6 +132,9 @@ export class BlendShapeManager {
         }
         shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
         shaderData.disableMacro("RENDERER_BLENDSHAPE_COUNT");
+        if (shaderData.getTexture(BlendShapeManager._blendShapeTextureProperty)) {
+          shaderData.setTexture(BlendShapeManager._blendShapeTextureProperty, null);
+        }
         this._uniformOccupiesCount = blendShapeCount;
       }
 
@@ -144,7 +150,11 @@ export class BlendShapeManager {
       }
     } else {
       shaderData.disableMacro(BlendShapeManager._blendShapeMacro);
+      shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
       shaderData.disableMacro("RENDERER_BLENDSHAPE_COUNT");
+      if (shaderData.getTexture(BlendShapeManager._blendShapeTextureProperty)) {
+        shaderData.setTexture(BlendShapeManager._blendShapeTextureProperty, null);
+      }
     }
   }
 
@@ -287,6 +297,8 @@ export class BlendShapeManager {
   }
 
   private _createVertexBuffers(vertexCount: number, noLongerAccessible: boolean): void {
+    this._destroyVertexTexture();
+
     const {
       _engine: engine,
       _modelMesh: modelMesh,
@@ -318,6 +330,23 @@ export class BlendShapeManager {
     }
   }
 
+  /**
+   * @internal
+   */
+  _destroyVertexTexture(): void {
+    const vertexTexture = this._vertexTexture;
+    if (vertexTexture) {
+      if (!vertexTexture.destroyed) {
+        const referCount = this._modelMesh._getReferCount();
+        if (referCount > 0) {
+          vertexTexture._addReferCount(-referCount);
+        }
+        vertexTexture.destroy();
+      }
+      this._vertexTexture = null!;
+    }
+  }
+
   private _createTextureArray(vertexCount: number): void {
     const maxTextureSize = this._engine._hardwareRenderer.capability.maxTextureSize;
     const vertexPixelStride = this._vertexElementCount;
@@ -329,18 +358,12 @@ export class BlendShapeManager {
       textureWidth = maxTextureSize;
     }
 
-    let blendShapeDataTexture = this._vertexTexture;
     const blendShapeCount = this._blendShapes.length;
     const referCount = this._modelMesh._getReferCount();
 
-    if (blendShapeDataTexture) {
-      if (referCount > 0) {
-        blendShapeDataTexture._addReferCount(-referCount);
-      }
-      blendShapeDataTexture.destroy();
-    }
+    this._destroyVertexTexture();
 
-    blendShapeDataTexture = new Texture2DArray(
+    const blendShapeDataTexture = new Texture2DArray(
       this._engine,
       textureWidth,
       textureHeight,

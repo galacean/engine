@@ -321,9 +321,14 @@ export class TrailRenderer extends Renderer {
 
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._primitive?._addReferCount(-1);
-    this._primitive?.destroy();
+    if (this._primitive && !this._primitive.destroyed) {
+      this._primitive._addReferCount(-1);
+      this._primitive.destroy();
+    }
     this._vertexBuffer?.destroy();
+    this._primitive = null!;
+    this._vertexBuffer = null!;
+    this._vertices = null!;
   }
 
   private _updateAndGetPlayTime(): number {
