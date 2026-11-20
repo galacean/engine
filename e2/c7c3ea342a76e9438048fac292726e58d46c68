@@ -1,0 +1,51 @@
+e2e/package.json
+  s_4a5fb3aca672c7::t_30801f255b25da 4
+examples/package.json
+  s_4a5fb3aca672c7::t_3ec5d0ea9eb53d 3
+package.json
+  s_4a5fb3aca672c7::t_102076b6d97361 3
+packages/core/package.json
+  s_4a5fb3aca672c7::t_03ad42b2f814f7 3
+packages/design/package.json
+  s_4a5fb3aca672c7::t_9b86a2ae9a232f 3
+packages/galacean/package.json
+  s_4a5fb3aca672c7::t_03f616a9dbf06f 3
+packages/loader/package.json
+  s_4a5fb3aca672c7::t_445f5e1a0a0f55 3
+packages/math/package.json
+  s_4a5fb3aca672c7::t_38c9ec260b79cf 3
+packages/physics-lite/package.json
+  s_4a5fb3aca672c7::t_9a5a3ddf5dc6c5 3
+packages/physics-physx/package.json
+  s_4a5fb3aca672c7::t_a46e4d6721c055 3
+packages/rhi-webgl/package.json
+  s_4a5fb3aca672c7::t_1b3597c7137c84 3
+packages/shader-lab/package.json
+  s_4a5fb3aca672c7::t_a45f93166b1a80 3
+packages/shader/package.json
+  s_4a5fb3aca672c7::t_2c416b2920f278 3
+packages/ui/package.json
+  s_4a5fb3aca672c7::t_a05bff2d414a04 3
+packages/xr-webxr/package.json
+  s_4a5fb3aca672c7::t_618268e1d0354f 3
+packages/xr/package.json
+  s_4a5fb3aca672c7::t_9634cd661b1e4b 3
+tests/package.json
+  s_4a5fb3aca672c7::t_2bdf8c03f2419d 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e2c7c3ea342a76e9438048fac292726e58d46c68",
+  "prompts": {},
+  "sessions": {
+    "s_4a5fb3aca672c7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f80b-e0ec-7562-92a2-089a6d568b36",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "阿霑 <zhanyingwei.zyw@antgroup.com>"
+    }
+  }
+}

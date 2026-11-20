@@ -1,0 +1,16 @@
+packages/building/src/building/partTypes/House.ts
+  h_ddbf152d31b140 1310-1313,1385
+packages/building/tests/core/CoreMasonry.spec.ts
+  h_ddbf152d31b140 193-213
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ad4b9078b9a9e453dd9477ca9de7e46cd1bde789",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
