@@ -190,6 +190,27 @@ describe("masonryCourses and corner stones", () => {
     expect(new Map(backward.map((u) => [u.key, u]))).toEqual(new Map(units(part).map((u) => [u.key, u])));
   });
 
+  it("keeps corner stones proud of the plaster finish face to avoid coplanar Z-fighting", () => {
+    const { walls, stones, units } = house({ id: "a", plaster: { enabled: true } });
+    const finishOuter = chartOf(walls[0]).finishOuter;
+    expect(stones.length).toBe(4);
+    for (const stack of stones) {
+      const laid = units(stack);
+      expect(laid.length).toBeGreaterThanOrEqual(2);
+      const cornerU = (stack.algorithm.params as { cornerU?: number }).cornerU ?? 0;
+      for (const stone of laid) {
+        const halfDepth = stone.size![2] / 2;
+        // At least 2 cm clearance outside the 0.3175 m plaster finish covers warp sagitta, bevels, and depth precision.
+        expect(halfDepth - finishOuter).toBeGreaterThanOrEqual(0.02);
+        // Alternating stone end overhang matches halfDepth so adjacent rows stay flush at the corner.
+        const [u0, u1] = stone.params!.wallU as [number, number];
+        const row = Number(stone.key.split("/")[0]);
+        const endOverhang = row % 2 === 0 ? cornerU - u0 : u1 - cornerU;
+        expect(endOverhang).toBeCloseTo(halfDepth, 6);
+      }
+    }
+  });
+
   it("renders a house whose walls and corner stones come from the core", async () => {
     const p = { id: "a" };
     const { registry, result, walls, stones, units } = house(p);

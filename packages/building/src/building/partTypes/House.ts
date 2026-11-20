@@ -1307,7 +1307,10 @@ function cornerStoneWidth(seed: number, row: number, rows: number, widthScale: n
   if (row === rows - 1) return 0.76 * widthScale;
   return (0.92 + (new Random(deriveSeed(seed, "width", row)).next() - 0.5) * 0.32) * widthScale;
 }
-const overhang = (depthScale: number) => (0.28 + 0.0385) * depthScale;
+// Corner stones sit centred on the wall line, proud of the 0.3175 m plaster finish by 2.25 cm so
+// bevels, masonryPlasterWarp interpolation, and mid/far depth precision never Z-fight with plaster.
+const CORNER_STONE_DEPTH = 0.68;
+const overhang = (depthScale: number) => (CORNER_STONE_DEPTH / 2) * depthScale;
 
 interface CornerStoneParams {
   seed: number;
@@ -1379,7 +1382,7 @@ export const cornerStones: LayingAlgorithm<CornerStoneParams, { pieces: CornerSt
       0,
       u1 - u0,
       [lo, lo, hi, hi],
-      0.637 * p.scale[2],
+      CORNER_STONE_DEPTH * p.scale[2],
       {
         anchor_uv: [0, (lo + hi) / 2 - p.bottom],
         flags: 4,
