@@ -209,6 +209,29 @@ const ASSET_ASSEMBLY_RENDERER_INSTANCE_MACRO = ShaderMacro.getByName("RENDERER_A
 const ASSET_ASSEMBLY_COMPACT_INSTANCE_MACRO = ShaderMacro.getByName("RENDERER_ASSET_ASSEMBLY_COMPACT_INSTANCE");
 const DETAIL_COMPACT_MACRO = ShaderMacro.getByName("RENDERER_SEED_WORLD_DETAIL_COMPACT");
 const MASONRY_ENTRANCE_MACRO = ShaderMacro.getByName("RENDERER_MASONRY_ENTRANCE");
+const PARTICLE_TRAJECTORY_FEEDBACK_MACRO = ShaderMacro.getByName("RENDERER_TRAJECTORY_FEEDBACK");
+const PARTICLE_FEEDBACK_STATE_VARYINGS = ["v_FeedbackPosition", "v_FeedbackVelocity"];
+const PARTICLE_FEEDBACK_TRAJECTORY_VARYINGS = [
+  ...PARTICLE_FEEDBACK_STATE_VARYINGS,
+  "v_FeedbackWorldPosition",
+  "v_FeedbackTrajectoryVelocity"
+];
+const PARTICLE_FEEDBACK_GATHER_VARYINGS = ["v_ParentSampleWorldPosition", "v_ParentTrajectoryVelocity"];
+
+function resolveTransformFeedbackVaryings(
+  shaderName: string,
+  pass: ShaderPass,
+  macros: ShaderMacroCollection
+): string[] | undefined {
+  if (shaderName !== "Effect/ParticleFeedback") return undefined;
+  if (pass.name === "SubEmitterTrajectoryGather") return PARTICLE_FEEDBACK_GATHER_VARYINGS;
+  if (pass.name === "TransformFeedback") {
+    return macros.isEnable(PARTICLE_TRAJECTORY_FEEDBACK_MACRO)
+      ? PARTICLE_FEEDBACK_TRAJECTORY_VARYINGS
+      : PARTICLE_FEEDBACK_STATE_VARYINGS;
+  }
+  return undefined;
+}
 
 export function hasParallelShaderCompile(engine: Engine): boolean {
   const gl = (engine as unknown as { _hardwareRenderer?: { gl?: WebGLRenderingContext } })._hardwareRenderer?.gl;
@@ -286,7 +309,8 @@ export async function warmupSeedWorldShaderVariants(
     }
     const variantStartedAt = performance.now();
     try {
-      const program = pass._getShaderProgram(engine, macros, true, options.cacheOnly);
+      const feedbackVaryings = resolveTransformFeedbackVaryings(entry.shader, pass, macros);
+      const program = pass._getShaderProgram(engine, macros, feedbackVaryings ?? true, options.cacheOnly);
       const elapsed = performance.now() - variantStartedAt;
       longestVariantMilliseconds = Math.max(longestVariantMilliseconds, elapsed);
       const existing = programs.get(program);
