@@ -1,0 +1,26 @@
+packages/core/src/Entity.ts
+  h_dd004f51a3e5ec 999-1001,1004-1024,1028-1031,1033,1091-1103
+packages/core/src/Scene.ts
+  h_dd004f51a3e5ec 84,378-379,382-401,405-408,467-477,558,560,563,565-574,576-593,595-606,608,612
+packages/core/src/physics/MeshCollider.ts
+  h_dd004f51a3e5ec 53,181-256
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  h_dd004f51a3e5ec 499,526,530,539-550,554-558,570-571,574-584,683
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  h_dd004f51a3e5ec 45-47,61-157,275,277
+tests/src/core/physics/PhysicsGameplay.test.ts
+  h_dd004f51a3e5ec 20,2500-2803
+tests/src/loader/PrefabResource.test.ts
+  h_dd004f51a3e5ec 1832-1973
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "07834ab79ddd6126da0adb39535a8061d04ac398",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+packages/world-planning/src/integrations/terrain/environment/WorldEnvironmentRuntime.ts
+  s_850e2ea2e2ee12::t_52a6a0a635d7b4 940-949
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7b2571ca57d6c5a565f78f4844511012c65dcf4c",
+  "prompts": {},
+  "sessions": {
+    "s_850e2ea2e2ee12": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f7b6-52b3-7ab0-b3d8-15b71f0919a7",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
