@@ -986,4 +986,104 @@ describe("Cross-prefab $component ref", () => {
       delete engine.resourceManager._objectPool["calls-boundary-base.prefab"];
     }
   });
+
+  it("should await cross-component async base calls before executing override calls and props", async () => {
+    class AsyncProviderScript extends Script {
+      ready = false;
+      initAsync(): Promise<void> {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            this.ready = true;
+            resolve();
+          }, 10);
+        });
+      }
+    }
+    class AsyncConsumerScript extends Script {
+      observedReady = false;
+      observe(provider: AsyncProviderScript): void {
+        this.observedReady = provider.ready;
+      }
+    }
+    class AsyncPropObserverScript extends Script {
+      provider: AsyncProviderScript | null = null;
+      observedReady = false;
+      set trigger(_v: boolean) {
+        this.observedReady = !!this.provider?.ready;
+      }
+    }
+    Loader.registerClass("AsyncProviderScript", AsyncProviderScript);
+    Loader.registerClass("AsyncConsumerScript", AsyncConsumerScript);
+    Loader.registerClass("AsyncPropObserverScript", AsyncPropObserverScript);
+
+    const basePrefab = await PrefabParser.parse(engine, "async-barrier-base.prefab", {
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "root", components: [0] }],
+      components: [{ type: "AsyncConsumerScript" }],
+      root: 0
+    });
+    // @ts-ignore
+    engine.resourceManager._objectPool["async-barrier-base.prefab"] = basePrefab;
+
+    try {
+      const outerPrefab = await PrefabParser.parse(engine, "async-barrier-outer.prefab", {
+        version: "2.0",
+        refs: [{ url: "async-barrier-base.prefab" }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                addedComponents: [
+                  { target: [], component: 0 },
+                  { target: [], component: 1 }
+                ],
+                componentProps: [
+                  {
+                    path: [],
+                    selector: { type: "AsyncConsumerScript", index: 0 },
+                    calls: [
+                      {
+                        method: "observe",
+                        args: [{ $component: { entity: [0], type: "AsyncProviderScript", index: 0 } }]
+                      }
+                    ]
+                  },
+                  {
+                    path: [],
+                    selector: { type: "AsyncPropObserverScript", index: 0 },
+                    props: { trigger: true }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        components: [
+          { type: "AsyncProviderScript", calls: [{ method: "initAsync" }] },
+          {
+            type: "AsyncPropObserverScript",
+            props: { provider: { $component: { entity: [0], type: "AsyncProviderScript", index: 0 } } }
+          }
+        ],
+        root: 0
+      });
+
+      const root = outerPrefab.instantiate();
+      try {
+        const provider = root.getComponent(AsyncProviderScript)!;
+        const consumer = root.getComponent(AsyncConsumerScript)!;
+        const propObserver = root.getComponent(AsyncPropObserverScript)!;
+        expect(provider.ready).toBe(true);
+        expect(consumer.observedReady).toBe(true);
+        expect(propObserver.observedReady).toBe(true);
+      } finally {
+        root.destroy();
+      }
+    } finally {
+      // @ts-ignore
+      delete engine.resourceManager._objectPool["async-barrier-base.prefab"];
+    }
+  });
 });

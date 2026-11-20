@@ -949,6 +949,83 @@ describe("Entity", async () => {
         if (!sceneB.destroyed) sceneB.destroy();
         if (!sceneC.destroyed) sceneC.destroy();
       }
+
+      // Cancelled addChild when onDisable destroys destination parent restores active state & updates in source parent
+      const cancelScene = new Scene(engine, "child-cancel-scene");
+      const cancelDstScene = new Scene(engine, "child-cancel-dst"); // inactive
+      engine.sceneManager.addScene(cancelScene);
+      try {
+        const srcParent = cancelScene.createRootEntity("srcParent");
+        const dstParent = cancelDstScene.createRootEntity("dstParent");
+        const child = srcParent.createChild("child");
+        let updates = 0;
+        child.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              if (!dstParent.destroyed) {
+                dstParent.destroy();
+              }
+            }
+            override onUpdate(): void {
+              updates++;
+            }
+          }
+        );
+
+        expect(() => dstParent.addChild(child)).not.toThrow();
+        expect(dstParent.destroyed).toBe(true);
+        expect(dstParent.children).toEqual([]);
+        expect(child.parent).toBe(srcParent);
+        expect(child.scene).toBe(cancelScene);
+        expect(child.isActiveInHierarchy).toBe(true);
+        engine.update();
+        expect(updates).toBe(1);
+
+        // Child re-entrant self-removal inside onDisable drains sibling scripts with zero leaked updates
+        const child2 = srcParent.createChild("child2");
+        let s1Disabled = 0;
+        let s2Disabled = 0;
+        let s1Updates = 0;
+        let s2Updates = 0;
+        child2.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              s1Disabled++;
+              srcParent.removeChild(child2);
+              child2.parent = null;
+            }
+            override onUpdate(): void {
+              s1Updates++;
+            }
+          }
+        );
+        child2.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              s2Disabled++;
+            }
+            override onUpdate(): void {
+              s2Updates++;
+            }
+          }
+        );
+
+        expect(() => srcParent.removeChild(child2)).not.toThrow();
+        expect(child2.parent).toBeNull();
+        expect(child2.scene).toBeNull();
+        expect(srcParent.children).toEqual([child]);
+        expect(s1Disabled).toBe(1);
+        expect(s2Disabled).toBe(1);
+        engine.update();
+        expect(s1Updates).toBe(0);
+        expect(s2Updates).toBe(0);
+
+        cancelScene.destroy();
+        cancelDstScene.destroy();
+      } finally {
+        if (!cancelScene.destroyed) cancelScene.destroy();
+        if (!cancelDstScene.destroyed) cancelDstScene.destroy();
+      }
     });
   });
 

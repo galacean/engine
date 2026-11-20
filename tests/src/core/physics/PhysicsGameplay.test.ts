@@ -1320,4 +1320,85 @@ describe("Physics gameplay integration", () => {
       delete engine.resourceManager._objectPool["test://r4-base-holder.prefab"];
     }
   });
+
+  it("schedules per-block deserialize phases so MeshCollider convex+calls runs before Rigidbody isKinematic=false and MeshCollider isTrigger=true", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1, { keepMeshData: true });
+    // @ts-ignore
+    engine.resourceManager._objectPool["test://r5-phase.mesh"] = mesh;
+    const poolKeys: string[] = ["test://r5-phase.mesh"];
+
+    try {
+      const basePrefab = await PrefabParser.parse(engine, "test://r5-phase-base.prefab", {
+        version: "2.0",
+        refs: [{ url: "test://r5-phase.mesh", type: "ModelMesh" }],
+        entities: [{ name: "Actor", components: [0, 1] }],
+        components: [
+          { type: "Rigidbody", props: { isKinematic: true, useGravity: false } },
+          { type: "MeshCollider", props: { convex: false, mesh: { $ref: 0 } } }
+        ],
+        root: 0
+      });
+      // @ts-ignore
+      engine.resourceManager._objectPool["test://r5-phase-base.prefab"] = basePrefab;
+      poolKeys.push("test://r5-phase-base.prefab");
+
+      // Override Rigidbody { isKinematic: false } (+1),
+      // MeshCollider block 1 { convex: true, calls: [entity.findByName] } (-1),
+      // MeshCollider block 2 { isTrigger: true } (+1).
+      const outerPrefab = await PrefabParser.parse(engine, "test://r5-phase-outer.prefab", {
+        version: "2.0",
+        refs: [{ url: "test://r5-phase-base.prefab", type: "Prefab" }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                componentProps: [
+                  {
+                    path: [],
+                    selector: { type: "Rigidbody", index: 0 },
+                    props: { isKinematic: false }
+                  },
+                  {
+                    path: [],
+                    selector: { type: "MeshCollider", index: 0 },
+                    props: { convex: true },
+                    calls: [{ target: ["entity"], method: "findByName", args: ["missing"] }]
+                  },
+                  {
+                    path: [],
+                    selector: { type: "MeshCollider", index: 0 },
+                    props: { isTrigger: true }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        components: [],
+        root: 0
+      });
+
+      const inst = outerPrefab.instantiate();
+      root.addChild(inst);
+      try {
+        const rb = inst.getComponent(Rigidbody)!;
+        const meshCol = inst.getComponent(MeshCollider)!;
+        expect(rb.isKinematic).toBe(false);
+        expect(meshCol.convex).toBe(true);
+        expect(meshCol.isTrigger).toBe(true);
+        expect(errors).not.toHaveBeenCalled();
+        step(2);
+        expect(errors).not.toHaveBeenCalled();
+      } finally {
+        inst.destroy();
+      }
+    } finally {
+      for (const key of poolKeys) {
+        // @ts-ignore
+        delete engine.resourceManager._objectPool[key];
+      }
+    }
+  });
 });

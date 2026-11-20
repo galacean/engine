@@ -324,6 +324,10 @@ export class Scene extends EngineObject {
   addRootEntity(index: number, entity: Entity): void;
 
   addRootEntity(indexOrChild: number | Entity, entity?: Entity): void {
+    if (this.destroyed) {
+      return;
+    }
+
     let index: number | undefined;
     if (typeof indexOrChild === "number") {
       index = indexOrChild;
@@ -336,7 +340,6 @@ export class Scene extends EngineObject {
     const oldScene = rootEntity._scene;
     const oldParent = rootEntity.parent;
     const wasRoot = rootEntity._isRoot;
-    const sceneWasDestroyed = this.destroyed;
 
     // Validate index bounds up front before any side effects
     if (index !== undefined && (oldScene !== this || !wasRoot)) {
@@ -368,7 +371,7 @@ export class Scene extends EngineObject {
 
     if (
       !rootEntity.destroyed &&
-      (!this.destroyed || sceneWasDestroyed) &&
+      !this.destroyed &&
       rootEntity._scene === oldScene &&
       rootEntity.parent === oldParent &&
       rootEntity._isRoot === wasRoot
@@ -399,20 +402,7 @@ export class Scene extends EngineObject {
       throw inActiveError;
     }
 
-    let activeChangeFlag = ActiveChangeFlag.None;
-    if (
-      rootEntity._isActive &&
-      rootEntity._isRoot &&
-      rootEntity._scene === this &&
-      !rootEntity.destroyed &&
-      !this.destroyed
-    ) {
-      if (this._isActiveInEngine) {
-        !rootEntity._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
-      }
-      (!rootEntity._isActiveInScene || oldScene !== this) && (activeChangeFlag |= ActiveChangeFlag.Scene);
-    }
-    activeChangeFlag && rootEntity._processActive(activeChangeFlag);
+    rootEntity._syncActiveStateWithOwner();
   }
 
   /**
@@ -421,15 +411,17 @@ export class Scene extends EngineObject {
    */
   removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene === this) {
+      // Structurally detach first so duplicate re-entrant removeRootEntity(entity) inside onDisable
+      // is an immediate no-op while entity._scene remains `this` until all callbacks drain.
+      Entity._removeFromChildren(this._rootEntities, entity);
+      entity._isRoot = false;
       let inActiveChangeFlag = ActiveChangeFlag.None;
       this._isActiveInEngine && entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
       entity._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
       try {
         inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
       } finally {
-        if (entity._isRoot && entity._scene === this) {
-          Entity._removeFromChildren(this._rootEntities, entity);
-          entity._isRoot = false;
+        if (!entity._isRoot && !entity.parent && entity._scene === this && !entity._activeChangedComponents) {
           Entity._traverseSetOwnerScene(entity, null);
         }
       }

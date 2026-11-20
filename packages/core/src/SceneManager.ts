@@ -113,7 +113,7 @@ export class SceneManager {
    * @param destScene - target scene
    */
   mergeScenes(sourceScene: Scene, destScene: Scene): void {
-    if (sourceScene === destScene) {
+    if (sourceScene === destScene || sourceScene.destroyed || destScene.destroyed) {
       return;
     }
 
@@ -121,15 +121,21 @@ export class SceneManager {
     sourceScene._mergingInto = destScene;
     try {
       const oldRootEntities = sourceScene._rootEntities;
-      while (oldRootEntities.length > 0) {
-        destScene.addRootEntity(oldRootEntities[0]);
+      while (oldRootEntities.length > 0 && !sourceScene.destroyed && !destScene.destroyed) {
+        const root = oldRootEntities[0];
+        destScene.addRootEntity(root);
+        if (oldRootEntities[0] === root) {
+          break;
+        }
       }
     } finally {
       sourceScene._mergingInto = prevMergingInto;
-      // If a callback aborted the merge partway, detach any joints left spanning sourceScene and destScene
-      const remainingRoots = sourceScene._rootEntities;
-      for (let i = 0, n = remainingRoots.length; i < n; i++) {
-        Entity._notifySceneChanged(remainingRoots[i], sourceScene);
+      if (!sourceScene.destroyed) {
+        // If a callback aborted the merge partway, detach any joints left spanning sourceScene and destScene
+        const remainingRoots = sourceScene._rootEntities;
+        for (let i = 0, n = remainingRoots.length; i < n; i++) {
+          Entity._notifySceneChanged(remainingRoots[i], sourceScene);
+        }
       }
     }
   }
