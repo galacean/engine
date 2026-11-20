@@ -1,0 +1,20 @@
+world/demos/seed-world/SeedWorldDemo.ts
+  h_171a11afaf879a 300-301,457,628,991,995,997,999,1001-1003,2868-2898
+world/demos/seed-world/main.ts
+  h_171a11afaf879a 107,112
+world/demos/seed-world/src/SeedWorldPerfPanel.ts
+  h_171a11afaf879a 1-548
+world/demos/seed-world/src/planning/spatial/PlanningDocumentCodec.ts
+  h_171a11afaf879a 27,33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "302c0d0aaabe1ec10921f24627689e6ed64dab3f",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
