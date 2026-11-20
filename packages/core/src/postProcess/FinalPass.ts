@@ -65,7 +65,7 @@ export class FinalPass extends PipelinePass {
     // Should convert to sRGB when FXAA is enabled or camera's render target is not set
     const sourceTexture = <Texture2D>this._inputRenderTarget!.getColorTexture();
     if (enableFXAA) {
-      Blitter.blitTexture(
+      Blitter._blitTexture(
         engine,
         sourceTexture,
         this._srgbRenderTarget,
@@ -77,7 +77,7 @@ export class FinalPass extends PipelinePass {
         RenderBufferLoadAction.DontCare
       );
       const sRGBTexture = <Texture2D>this._srgbRenderTarget!.getColorTexture();
-      Blitter.blitTexture(
+      Blitter._blitTexture(
         engine,
         sRGBTexture,
         renderTarget,
@@ -89,7 +89,7 @@ export class FinalPass extends PipelinePass {
         RenderBufferLoadAction.DontCare
       );
     } else {
-      Blitter.blitTexture(
+      Blitter._blitTexture(
         engine,
         sourceTexture,
         renderTarget,

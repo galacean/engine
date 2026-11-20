@@ -415,7 +415,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     renderTarget: RenderTarget | null,
     viewport: Vector4,
     isFlipProjection: boolean,
-    mipLevel?: number,
+    mipLevel: number = 0,
     faceIndex?: TextureCubeFace,
     colorLoadAction: RenderBufferLoadAction = RenderBufferLoadAction.Load,
     colorStoreAction: RenderBufferStoreAction = RenderBufferStoreAction.Store,
@@ -430,10 +430,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       renderTarget._isContentLost = false;
 
       const platformRenderTarget = renderTarget._platformRenderTarget as GLRenderTarget;
-      platformRenderTarget.activeRenderTarget(mipLevel!, faceIndex);
+      platformRenderTarget.activeRenderTarget(mipLevel, faceIndex);
 
-      bufferWidth = renderTarget.width >> mipLevel!;
-      bufferHeight = renderTarget.height >> mipLevel!;
+      bufferWidth = renderTarget.width >> mipLevel;
+      bufferHeight = renderTarget.height >> mipLevel;
     } else {
       const gl = this._gl;
       gl.bindFramebuffer(gl.FRAMEBUFFER, this._mainFrameBuffer);
@@ -649,11 +649,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     if (debugRenderInfo != null) {
       this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
     }
-    this._supportsInvalidateFramebuffer = !(
-      this._renderer &&
-      this._renderer.includes("Intel") &&
-      this._renderer.includes("Mesa")
-    );
+    this._supportsInvalidateFramebuffer =
+      typeof gl.invalidateFramebuffer === "function" &&
+      !(this._renderer && this._renderer.includes("Intel") && this._renderer.includes("Mesa"));
     this.maxUniformBlockSize = gl.getParameter(gl.MAX_UNIFORM_BLOCK_SIZE);
   }
 

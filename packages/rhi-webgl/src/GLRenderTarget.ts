@@ -142,7 +142,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           );
         }
       } else {
-        if (mipChanged) {
+        if (mipChanged && this._depthRenderBuffer) {
           // @ts-ignore
           const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl);
           gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthRenderBuffer);
@@ -183,13 +183,14 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     const mask = gl.COLOR_BUFFER_BIT | (resolveDepth ? gl.DEPTH_BUFFER_BIT : 0);
     const { colorTextureCount, width, height } = target;
 
+    // Discard transient MSAA depth/stencil while _MSAAFrameBuffer is still the bound DRAW_FRAMEBUFFER
+    // so TBDR GPUs skip flushing depth before DRAW_FRAMEBUFFER switches to the resolve target (matches Unity TextureReadbackGLES.cpp)
+    if (discardDepth && !resolveDepth) {
+      rhi._invalidateFrameBufferAttachments(gl.FRAMEBUFFER, target, false, true, true);
+    }
+
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this._MSAAFrameBuffer);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this._frameBuffer);
-
-    // Discard transient MSAA depth/stencil before resolving color so TBDR GPUs skip flushing depth
-    if (discardDepth && !resolveDepth) {
-      rhi._invalidateFrameBufferAttachments(gl.READ_FRAMEBUFFER, target, false, true, true);
-    }
 
     for (let textureIndex = 0; textureIndex < colorTextureCount; textureIndex++) {
       const attachment = gl.COLOR_ATTACHMENT0 + textureIndex;

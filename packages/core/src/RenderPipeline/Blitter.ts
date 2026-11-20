@@ -33,9 +33,24 @@ export class Blitter {
    * @param material - The material to use when blit
    * @param passIndex - Pass index to use of the provided material
    * @param sourceScaleOffset - Source scale and offset
-   * @param colorLoadAction - Color load action for the destination render target
    */
   static blitTexture(
+    engine: Engine,
+    source: Texture2D,
+    destination: RenderTarget | null,
+    mipLevel: number = 0,
+    viewport: Vector4 = PipelineUtils.defaultViewport,
+    material: Material | null = null,
+    passIndex = 0,
+    sourceScaleOffset?: Vector4
+  ): void {
+    Blitter._blitTexture(engine, source, destination, mipLevel, viewport, material, passIndex, sourceScaleOffset);
+  }
+
+  /**
+   * @internal
+   */
+  static _blitTexture(
     engine: Engine,
     source: Texture2D,
     destination: RenderTarget | null,

@@ -138,7 +138,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
 
     // Draw ambient occlusion texture
     const sourceTexture = <Texture2D>this._depthRenderTarget!.depthTexture;
-    Blitter.blitTexture(
+    Blitter._blitTexture(
       engine,
       sourceTexture,
       saoTarget,
@@ -153,7 +153,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     // Horizontal blur, saoRenderTarget -> blurRenderTarget
     const saoTexture = <Texture2D>saoTarget.getColorTexture();
     const offsetX = this._offsetX.set(1, 1, this._blurStepPixels / saoTexture.width, 0);
-    Blitter.blitTexture(
+    Blitter._blitTexture(
       engine,
       saoTexture,
       this._blurRenderTarget,
@@ -168,7 +168,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     // Vertical blur, blurRenderTarget -> saoRenderTarget
     const horizontalBlur = <Texture2D>this._blurRenderTarget!.getColorTexture();
     const offsetY = this._offsetY.set(1, 1, 0, this._blurStepPixels / saoTexture.height);
-    Blitter.blitTexture(
+    Blitter._blitTexture(
       engine,
       horizontalBlur,
       saoTarget,

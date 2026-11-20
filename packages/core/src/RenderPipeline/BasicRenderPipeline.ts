@@ -233,16 +233,14 @@ export class BasicRenderPipeline {
     const colorViewport = internalColorTarget ? PipelineUtils.defaultViewport : camera.viewport;
     const needFlipProjection = !!internalColorTarget || (camera.renderTarget && cubeFace == undefined);
     const keepColorFlag = !!internalColorTarget && (~finalClearFlags & CameraClearFlags.Color) !== 0;
-    const finalColorStoreAction =
-      internalColorTarget && internalColorTarget.antiAliasing > 1
-        ? RenderBufferStoreAction.Resolve
-        : RenderBufferStoreAction.Store;
+    const hasInternalMSAA = !!internalColorTarget && internalColorTarget.antiAliasing > 1;
+    const finalColorStoreAction = hasInternalMSAA ? RenderBufferStoreAction.Resolve : RenderBufferStoreAction.Store;
     const finalDepthStoreAction =
       internalColorTarget && !internalColorTarget.depthTexture && internalColorTarget._depthFormat !== null
         ? RenderBufferStoreAction.DontCare
         : RenderBufferStoreAction.Store;
     const opaqueColorStoreAction = camera.opaqueTextureEnabled
-      ? internalColorTarget && internalColorTarget.antiAliasing > 1
+      ? hasInternalMSAA
         ? RenderBufferStoreAction.StoreAndResolve
         : RenderBufferStoreAction.Store
       : finalColorStoreAction;
@@ -286,7 +284,7 @@ export class BasicRenderPipeline {
           // Copy RT's color buffer to grab texture
           rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._copyBackgroundTexture!, camera.viewport);
           // Then blit grab texture to internal RT's color buffer
-          Blitter.blitTexture(
+          Blitter._blitTexture(
             engine,
             this._copyBackgroundTexture!,
             internalColorTarget,
@@ -391,7 +389,7 @@ export class BasicRenderPipeline {
 
     // If output target is not camera's render target(only enable HDR or opaqueTexture), we should blit it to camera's render target
     if (outputTarget !== cameraRenderTarget) {
-      Blitter.blitTexture(
+      Blitter._blitTexture(
         engine,
         <Texture2D>outputTarget!.getColorTexture(0),
         cameraRenderTarget,

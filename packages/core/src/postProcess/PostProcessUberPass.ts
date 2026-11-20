@@ -77,7 +77,7 @@ export class PostProcessUberPass extends PostProcessPass {
       uberShaderData.disableMacro(TonemappingEffect._enableMacro);
     }
     const viewport = destTarget === camera.renderTarget ? camera.viewport : undefined;
-    Blitter.blitTexture(
+    Blitter._blitTexture(
       camera.engine,
       srcTexture,
       destTarget,
@@ -183,7 +183,7 @@ export class PostProcessUberPass extends PostProcessPass {
       mipWidth = Math.max(1, Math.floor(mipWidth / 2));
       mipHeight = Math.max(1, Math.floor(mipHeight / 2));
     }
-    Blitter.blitTexture(
+    Blitter._blitTexture(
       engine,
       srcTexture,
       this._mipDownRT[0],
@@ -201,7 +201,7 @@ export class PostProcessUberPass extends PostProcessPass {
       // Classic two pass gaussian blur - use mipUp as a temporary target
       // First pass does 2x downsampling + 9-tap gaussian
       // Second pass does 9-tap gaussian using a 5-tap filter + bilinear filtering
-      Blitter.blitTexture(
+      Blitter._blitTexture(
         engine,
         <Texture2D>lastDown.getColorTexture(0),
         this._mipUpRT[i],
@@ -212,7 +212,7 @@ export class PostProcessUberPass extends PostProcessPass {
         undefined,
         RenderBufferLoadAction.DontCare
       );
-      Blitter.blitTexture(
+      Blitter._blitTexture(
         engine,
         <Texture2D>this._mipUpRT[i].getColorTexture(0),
         this._mipDownRT[i],
@@ -236,7 +236,7 @@ export class PostProcessUberPass extends PostProcessPass {
         const texelSizeLow = bloomShaderData.getVector4(BloomEffect._lowMipTexelSizeProp);
         texelSizeLow.set(1 / lowMip.width, 1 / lowMip.height, lowMip.width, lowMip.height);
       }
-      Blitter.blitTexture(
+      Blitter._blitTexture(
         engine,
         <Texture2D>highMip.getColorTexture(0),
         dst,
