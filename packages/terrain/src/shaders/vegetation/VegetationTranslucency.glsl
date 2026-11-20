@@ -25,8 +25,10 @@ vec3 terrainProjectEvaluateVegetationTransmission(
   float shadowAttenuation,
   float ambientVisibility
 ) {
+  if (material_TranslucencyIntensity <= 0.0) return vec3(0.0);
   vec3 transmission = vec3(0.0);
   vec3 translucencyTint = material_TranslucencyColor.rgb;
+  #ifndef SCENE_SURFACE_CLIMATE_DRY
   #if defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
     float leafSnow = terrainProjectVegetationLeafSnowMask(sourcePositionY);
     vec3 snowTranslucency = scene_SurfaceSnowColor.rgb * vec3(0.24, 0.3, 0.38);
@@ -35,6 +37,7 @@ vec3 terrainProjectEvaluateVegetationTransmission(
     float shrubSnow = terrainProjectVegetationShrubSnowMask(worldPosition, geometryNormal);
     vec3 snowTranslucency = scene_SurfaceSnowColor.rgb * vec3(0.24, 0.3, 0.38);
     translucencyTint = mix(translucencyTint, snowTranslucency, shrubSnow);
+  #endif
   #endif
 
   #ifdef MATERIAL_VEGETATION_CLIMATE_LEAF
@@ -102,10 +105,11 @@ vec3 terrainProjectEvaluateVegetationTransmission(
           directionalLight.direction = scene_DirectLightDirection[0];
         #endif
         vec3 incidentDirection = normalize(-directionalLight.direction);
+        vec3 normalizedGeometryNormal = normalize(geometryNormal);
         float visibility = mix(1.0, shadowAttenuation, clamp(material_TranslucencyShadowStrength, 0.0, 1.0));
         float normalWrap = max(material_TranslucencyNormalWrap, 0.0);
         float wrappedBackLighting = clamp(
-          (-dot(normalize(geometryNormal), incidentDirection) + normalWrap) / (1.0 + normalWrap),
+          (-dot(normalizedGeometryNormal, incidentDirection) + normalWrap) / (1.0 + normalWrap),
           0.0,
           1.0
         );
@@ -125,7 +129,7 @@ vec3 terrainProjectEvaluateVegetationTransmission(
         // environment fallback behind this function. The Lambert factor keeps this
         // separate transmission lobe on the same irradiance scale as diffuse PBR.
         vec3 environmentIrradiance = terrainProjectVegetationDiffuseIrradiance(
-          -normalize(geometryNormal)
+          -normalizedGeometryNormal
         ) * scene_EnvMapLight.diffuseIntensity * RECIPROCAL_PI;
         vec3 environmentTransmission = environmentIrradiance * albedoColor *
           translucencyTint * transmissionStrength * clamp(ambientVisibility, 0.0, 1.0);

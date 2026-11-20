@@ -5,6 +5,7 @@ import {
   Scene,
   ScreenSpaceReflectionReceiverMode,
   Script,
+  ShaderMacro,
   ShaderProperty,
   Vector3,
   Vector4,
@@ -77,6 +78,7 @@ import {
 export type { TerrainSeason } from "@galacean/engine-environment/terrain/environment/SceneSeasonPalette";
 
 const SURFACE_CLIMATE = ShaderProperty.getByName("scene_SurfaceClimate");
+const SURFACE_CLIMATE_DRY = ShaderMacro.getByName("SCENE_SURFACE_CLIMATE_DRY");
 const WEATHER_STATE = ShaderProperty.getByName("scene_WeatherState");
 const WEATHER_TIME = ShaderProperty.getByName("scene_WeatherTime");
 const SURFACE_SNOW_COLOR = ShaderProperty.getByName("scene_SurfaceSnowColor");
@@ -863,6 +865,7 @@ export class WorldEnvironmentRuntime {
     this._scene.shaderData.setVector4(TERRAIN_WATER_OPTICS_PARAMS, this._terrainWaterOpticsParams);
     this._scene.shaderData.setVector4(TERRAIN_RIPPLE_PARAMS, this._terrainRippleParams);
     this._scene.shaderData.setFloat(WEATHER_TIME, 0);
+    this._scene.shaderData.disableMacro(SURFACE_CLIMATE_DRY);
     this._scene.shaderData.setTexture(SURFACE_WATER_NORMAL, null!);
     this._surfaceRainTextures.destroy();
     this._atmosphericWind.reset();
@@ -1098,7 +1101,22 @@ export class WorldEnvironmentRuntime {
     );
     this._terrainRippleParams.z = resolveTerrainRainSurfaceVisibility(precipitation.rainRate);
     this._scene.shaderData.setFloat(WEATHER_TIME, this._weatherTime);
+    this._synchronizeSurfaceClimateDryMacro(precipitation.rainRate);
     this._synchronizeSurfaceWaterScreenSpaceReflection(precipitation.rainRate);
+  }
+
+  private _synchronizeSurfaceClimateDryMacro(rainRate: number): void {
+    const isDry =
+      this._surface.wetness <= 0 &&
+      this._surface.puddles <= 0 &&
+      this._surface.snowCover <= 0 &&
+      rainRate <= 0 &&
+      this._surfaceWater.puddleStorageBias <= 0;
+    if (isDry) {
+      this._scene.shaderData.enableMacro(SURFACE_CLIMATE_DRY);
+    } else {
+      this._scene.shaderData.disableMacro(SURFACE_CLIMATE_DRY);
+    }
   }
 
   private _publishSurfaceWaterTuning(): void {
@@ -1118,6 +1136,7 @@ export class WorldEnvironmentRuntime {
     this._terrainWaterOpticsParams.set(water.rippleRoughnessMultiplier, water.ior, 0, 0);
     this._terrainRippleParams.x = water.rippleUvTiling;
     this._terrainRippleParams.y = water.rippleCount;
+    this._synchronizeSurfaceClimateDryMacro(this.weatherSystem.state.precipitation.rainRate);
   }
 
   private _synchronizeSurfaceWaterScreenSpaceReflection(rainRate: number): void {

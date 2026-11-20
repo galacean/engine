@@ -116,74 +116,70 @@ float terrainProjectSurfaceClimateNoise(vec2 worldXZ) {
     out vec3 puddleNormal,
     out float ringResponse
   ) {
-    // Tiling owns the physical size of every ring field. Count only enables additional
-    // independently rotated fields, so changing quantity never rescales existing rings.
-    float rippleUvTiling = clamp(scene_TerrainRippleParams.x, 0.05, 8.0);
-    float rippleCount = clamp(scene_TerrainRippleParams.y, 0.0, 4.0);
-    vec2 rippleUv = worldXZ * (0.68 * rippleUvTiling);
-    vec2 rotatedUvB = vec2(rippleUv.x * 0.8 - rippleUv.y * 0.6, rippleUv.x * 0.6 + rippleUv.y * 0.8);
-    vec2 rotatedUvC = vec2(rippleUv.x * -0.28 - rippleUv.y * 0.96, rippleUv.x * 0.96 - rippleUv.y * 0.28);
-    vec2 rotatedUvD = vec2(rippleUv.x * 0.54 - rippleUv.y * 0.84, rippleUv.x * 0.84 + rippleUv.y * 0.54);
-    vec4 rippleWeights = clamp(rippleCount - vec4(0.0, 1.0, 2.0, 3.0), 0.0, 1.0);
-    vec3 rippleA = terrainProjectRippleField(rippleUv, 0.0, rainStrength);
-    vec3 rippleB = terrainProjectRippleField(
-      rotatedUvB + vec2(0.37, 0.19),
-      23.0,
-      rainStrength
-    );
-    vec3 rippleC = terrainProjectRippleField(
-      rotatedUvC + vec2(0.71, 0.43),
-      41.0,
-      rainStrength
-    );
-    vec3 rippleD = terrainProjectRippleField(
-      rotatedUvD + vec2(0.13, 0.79),
-      57.0,
-      rainStrength
-    );
-
-    vec2 waterUv = worldXZ * 0.34;
-    vec3 waterA = terrainProjectDecodeSurfaceNormal(texture2D(
-      scene_SurfaceWaterNormal,
-      waterUv + scene_WeatherTime * vec2(0.021, -0.014)
-    ).xyz);
-    vec3 waterB = terrainProjectDecodeSurfaceNormal(texture2D(
-      scene_SurfaceWaterNormal,
-      vec2(-waterUv.y, waterUv.x) * 1.37 + scene_WeatherTime * vec2(-0.017, 0.012)
-    ).xyz);
-
     // Rain amount changes flipbook speed (event frequency). Once a drop exists, its ring keeps
     // a stable normal amplitude instead of fading into a flat surface in lighter rain.
     float rippleVisibility = smoothstep(0.015, 0.12, rainStrength);
+    vec2 waterUv = worldXZ * 0.34;
     vec3 tangentNormal = vec3(0.0, 0.0, 1.0);
+    vec3 sampleN = terrainProjectDecodeSurfaceNormal(texture2D(
+      scene_SurfaceWaterNormal,
+      waterUv + scene_WeatherTime * vec2(0.021, -0.014)
+    ).xyz);
     tangentNormal = terrainProjectBlendWhiteoutNormals(
       tangentNormal,
-      terrainProjectScaleTangentNormal(waterA, 0.025)
+      terrainProjectScaleTangentNormal(sampleN, 0.025)
     );
+    sampleN = terrainProjectDecodeSurfaceNormal(texture2D(
+      scene_SurfaceWaterNormal,
+      vec2(-waterUv.y, waterUv.x) * 1.37 + scene_WeatherTime * vec2(-0.017, 0.012)
+    ).xyz);
     tangentNormal = terrainProjectBlendWhiteoutNormals(
       tangentNormal,
-      terrainProjectScaleTangentNormal(waterB, 0.025)
+      terrainProjectScaleTangentNormal(sampleN, 0.025)
     );
-    tangentNormal = terrainProjectBlendWhiteoutNormals(
-      tangentNormal,
-      terrainProjectScaleTangentNormal(rippleA, 0.42 * rippleVisibility * rippleWeights.x)
-    );
-    tangentNormal = terrainProjectBlendWhiteoutNormals(
-      tangentNormal,
-      terrainProjectScaleTangentNormal(rippleB, 0.32 * rippleVisibility * rippleWeights.y)
-    );
-    tangentNormal = terrainProjectBlendWhiteoutNormals(
-      tangentNormal,
-      terrainProjectScaleTangentNormal(rippleC, 0.27 * rippleVisibility * rippleWeights.z)
-    );
-    tangentNormal = terrainProjectBlendWhiteoutNormals(
-      tangentNormal,
-      terrainProjectScaleTangentNormal(rippleD, 0.23 * rippleVisibility * rippleWeights.w)
-    );
-    float weightedRingResponse = max(
-      max(length(rippleA.xy) * rippleWeights.x, length(rippleB.xy) * rippleWeights.y),
-      max(length(rippleC.xy) * rippleWeights.z, length(rippleD.xy) * rippleWeights.w)
-    );
+
+    float weightedRingResponse = 0.0;
+    if (rippleVisibility > 0.0) {
+      float rippleUvTiling = clamp(scene_TerrainRippleParams.x, 0.05, 8.0);
+      float rippleCount = clamp(scene_TerrainRippleParams.y, 0.0, 4.0);
+      vec2 rippleUv = worldXZ * (0.68 * rippleUvTiling);
+      vec4 rippleWeights = clamp(rippleCount - vec4(0.0, 1.0, 2.0, 3.0), 0.0, 1.0);
+      if (rippleWeights.x > 0.0) {
+        sampleN = terrainProjectRippleField(rippleUv, 0.0, rainStrength);
+        tangentNormal = terrainProjectBlendWhiteoutNormals(
+          tangentNormal,
+          terrainProjectScaleTangentNormal(sampleN, 0.42 * rippleVisibility * rippleWeights.x)
+        );
+        weightedRingResponse = max(weightedRingResponse, length(sampleN.xy) * rippleWeights.x);
+      }
+      if (rippleWeights.y > 0.0) {
+        vec2 uv = vec2(rippleUv.x * 0.8 - rippleUv.y * 0.6, rippleUv.x * 0.6 + rippleUv.y * 0.8);
+        sampleN = terrainProjectRippleField(uv + vec2(0.37, 0.19), 23.0, rainStrength);
+        tangentNormal = terrainProjectBlendWhiteoutNormals(
+          tangentNormal,
+          terrainProjectScaleTangentNormal(sampleN, 0.32 * rippleVisibility * rippleWeights.y)
+        );
+        weightedRingResponse = max(weightedRingResponse, length(sampleN.xy) * rippleWeights.y);
+      }
+      if (rippleWeights.z > 0.0) {
+        vec2 uv = vec2(rippleUv.x * -0.28 - rippleUv.y * 0.96, rippleUv.x * 0.96 - rippleUv.y * 0.28);
+        sampleN = terrainProjectRippleField(uv + vec2(0.71, 0.43), 41.0, rainStrength);
+        tangentNormal = terrainProjectBlendWhiteoutNormals(
+          tangentNormal,
+          terrainProjectScaleTangentNormal(sampleN, 0.27 * rippleVisibility * rippleWeights.z)
+        );
+        weightedRingResponse = max(weightedRingResponse, length(sampleN.xy) * rippleWeights.z);
+      }
+      if (rippleWeights.w > 0.0) {
+        vec2 uv = vec2(rippleUv.x * 0.54 - rippleUv.y * 0.84, rippleUv.x * 0.84 + rippleUv.y * 0.54);
+        sampleN = terrainProjectRippleField(uv + vec2(0.13, 0.79), 57.0, rainStrength);
+        tangentNormal = terrainProjectBlendWhiteoutNormals(
+          tangentNormal,
+          terrainProjectScaleTangentNormal(sampleN, 0.23 * rippleVisibility * rippleWeights.w)
+        );
+        weightedRingResponse = max(weightedRingResponse, length(sampleN.xy) * rippleWeights.w);
+      }
+    }
     ringResponse = clamp(weightedRingResponse * 2.4, 0.0, 1.0) * rippleVisibility;
 
     vec3 basisNormal = normalize(waterSurfaceNormal);
@@ -209,6 +205,7 @@ float terrainProjectSurfaceWetness(float response) {
 
 vec2 terrainProjectSurfaceHydrologyMasks(vec3 worldPosition, float response) {
   float storage = terrainProjectSurfacePuddleStorage(response);
+  if (storage <= 0.06) return vec2(0.0);
   #ifdef TERRAIN_PROJECT_PUDDLE_HYDROLOGY
     int regionIndex = terrainProjectRegionIndex(worldPosition.xz);
     if (regionIndex < 0) return vec2(0.0);

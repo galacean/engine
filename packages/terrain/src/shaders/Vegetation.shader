@@ -105,7 +105,9 @@ Shader "Terrain/Vegetation" {
       };
 
       #include "ShaderLibrary/PBR/BSDF.glsl"
-      #include "vegetation/VegetationSecondColor.glsl"
+      #ifdef MATERIAL_ENABLE_SECOND_COLOR
+        #include "vegetation/VegetationSecondColor.glsl"
+      #endif
       #include "vegetation/VegetationEvaluation.glsl"
       #ifdef MATERIAL_VEGETATION_SHARED_GRASS_APPEARANCE
         vec4 renderer_GrassRootPositionHeight;
@@ -349,14 +351,16 @@ Shader "Terrain/Vegetation" {
         #endif
         float alphaCoverage = 1.0;
         #ifdef MATERIAL_VEGETATION_CLIMATE_LEAF
-          vec3 geometricFaceNormal = normalize(cross(dFdx(varyings.positionWS), dFdy(varyings.positionWS)));
-          vec3 coverageViewDirection = normalize(camera_Position - varyings.positionWS);
-          float grazingVisibility = abs(dot(geometricFaceNormal, coverageViewDirection));
-          alphaCoverage = mix(
-            1.0,
-            grazingVisibility,
-            clamp(material_LeafGlancingAngleCut, 0.0, 1.0)
-          );
+          if (material_LeafGlancingAngleCut > 0.001) {
+            vec3 geometricFaceNormal = normalize(cross(dFdx(varyings.positionWS), dFdy(varyings.positionWS)));
+            vec3 coverageViewDirection = normalize(camera_Position - varyings.positionWS);
+            float grazingVisibility = abs(dot(geometricFaceNormal, coverageViewDirection));
+            alphaCoverage = mix(
+              1.0,
+              grazingVisibility,
+              clamp(material_LeafGlancingAngleCut, 0.0, 1.0)
+            );
+          }
         #endif
         SurfaceData surfaceData = evaluateVegetationMaterial(varyings, gl_FrontFacing, alphaCoverage);
         #ifdef RENDERER_WORLD_PICK

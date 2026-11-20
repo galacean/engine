@@ -97,7 +97,6 @@ export class RockLodView extends Script {
     const localSize = Math.max(max[0] - min[0], max[1] - min[1], max[2] - min[2]);
     const alternates = new Set([middle, far]);
     for (const mesh of alternates) mesh?._addReferCount(1);
-    renderer.shaderData.enableMacro("RENDERER_LOD_DITHER");
     renderer.shaderData.setFloat(lodFadeProperty, 1);
     const lowestMesh = far ?? middle ?? original;
     const farShadowProxy = lowestMesh !== original ? createFarShadowMeshProxy(lowestMesh) : undefined;
@@ -246,6 +245,7 @@ export class RockLodView extends Script {
     this.hiddenObservation.timeSeconds = timeSeconds;
     entry.lod.updateInto(this.hiddenObservation, this.scratch);
     if (entry.fading) {
+      renderer.shaderData.disableMacro?.("RENDERER_LOD_DITHER");
       renderer.shaderData.setFloat(lodFadeProperty, 1);
       entry.alternate!.enabled = false;
       entry.fading = false;
@@ -270,6 +270,7 @@ export class RockLodView extends Script {
       }
       if (!entry.fading) {
         // Material and shadow flags may change between blends; refresh them once per blend
+        renderer.shaderData.enableMacro("RENDERER_LOD_DITHER");
         alternate.setMaterial(renderer.getMaterial());
         alternate.castShadows = renderer.castShadows;
         alternate.receiveShadows = renderer.receiveShadows;
@@ -281,6 +282,7 @@ export class RockLodView extends Script {
       alternate.shaderData.setFloat(lodFadeProperty, second.signedFade);
       return true;
     } else if (entry.fading) {
+      renderer.shaderData.disableMacro?.("RENDERER_LOD_DITHER");
       renderer.shaderData.setFloat(lodFadeProperty, 1);
       entry.alternate!.enabled = false;
       entry.fading = false;

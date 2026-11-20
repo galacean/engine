@@ -1,7 +1,7 @@
 #ifndef TERRAIN_PROJECT_TERRAIN_EVALUATION_INCLUDED
 #define TERRAIN_PROJECT_TERRAIN_EVALUATION_INCLUDED
 
-#ifndef MATERIAL_TERRAIN_FAR
+#if !defined(MATERIAL_TERRAIN_FAR) && !defined(SCENE_SURFACE_CLIMATE_DRY)
   #define TERRAIN_PROJECT_SURFACE_RAIN_NORMALS
 #endif
 #include "shared/SurfaceClimate.glsl"
@@ -47,6 +47,26 @@ void terrainProjectApplyTerrainClimate(
     , out TerrainProjectWaterFilm waterFilm
   #endif
 ) {
+  #ifdef SCENE_SURFACE_CLIMATE_DRY
+    #ifdef TERRAIN_PROJECT_WATER_LAYER
+      waterFilm.normal = surfaceData.normal;
+      waterFilm.roughness = 0.1;
+      waterFilm.coverage = 0.0;
+      waterFilm.dotNV = surfaceData.dotNV;
+      waterFilm.ambientOcclusion = surfaceData.ambientOcclusion;
+    #endif
+    return;
+  #else
+  if (dot(scene_SurfaceClimate, scene_SurfaceClimate) <= 0.0 && scene_TerrainWaterCoverageParams.y <= 0.0) {
+    #ifdef TERRAIN_PROJECT_WATER_LAYER
+      waterFilm.normal = surfaceData.normal;
+      waterFilm.roughness = 0.1;
+      waterFilm.coverage = 0.0;
+      waterFilm.dotNV = surfaceData.dotNV;
+      waterFilm.ambientOcclusion = surfaceData.ambientOcclusion;
+    #endif
+    return;
+  }
   terrainProjectApplySurfaceMoisture(surfaceData, geometryNormal, vec2(1.0));
   float snow = terrainProjectTopSnowMask(surfaceData.position, geometryNormal, snowResponse);
   #ifdef TERRAIN_PROJECT_WATER_LAYER
@@ -62,6 +82,7 @@ void terrainProjectApplyTerrainClimate(
   // Apply snow last so covered terrain retains the snow BRDF instead of wet sheen.
   terrainProjectApplyTopSnowLayer(surfaceData, geometryNormal, snow, 0.82, 0.28);
   surfaceData.dotNV = clamp(dot(surfaceData.normal, surfaceData.viewDir), 0.0, 1.0);
+  #endif
 }
 
 #ifdef MATERIAL_TERRAIN_LAYERS
@@ -91,6 +112,7 @@ void terrainProjectApplyTerrainClimate(
       detail.visibility = lodWeight * (1.0 - smoothstep(distanceLimit / 3.0, distanceLimit, distance(positionWS, camera_Position)));
       vec2 uv = positionWS.xz * material_TerrainSandMicroParams.y;
       vec2 dx = dFdx(uv), dy = dFdy(uv);
+      if (detail.visibility <= 0.001) return detail;
       vec2 texels = vec2(textureSize(material_TerrainMicroNormal, 0));
       float footprint = max(length(dx * texels), length(dy * texels));
       float weight = detail.visibility * (1.0 - smoothstep(1.25, 6.0, footprint)) * material_TerrainSandMicroParams.x;

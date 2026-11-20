@@ -335,11 +335,42 @@ export function createTerrainClipmapMaterialBinding(
         );
       const textured = layerPacking.layers.filter((layer) => layer.diffuseTextureIndex >= 0);
       const singleDiffuse = layerPacking.singleDiffuseTexture;
+      const sameVec4 = (a: readonly number[], b: readonly number[]) =>
+        a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3];
+      const sharedDiffuseLayer =
+        singleDiffuse !== undefined &&
+        textured.length > 0 &&
+        textured.every(
+          (layer) =>
+            layer.diffuse === textured[0].diffuse &&
+            layer.tileSize[0] === textured[0].tileSize[0] &&
+            layer.tileSize[1] === textured[0].tileSize[1] &&
+            layer.tileOffset[0] === textured[0].tileOffset[0] &&
+            layer.tileOffset[1] === textured[0].tileOffset[1] &&
+            sameVec4(layer.diffuseRemapMin, textured[0].diffuseRemapMin) &&
+            sameVec4(layer.diffuseRemapMax, textured[0].diffuseRemapMax)
+        )
+          ? textured[0]
+          : undefined;
+      const normalLayers = layerPacking.layers.filter((layer) => layer.normalTextureIndex >= 0);
+      const sharedNormalLayer =
+        normalLayers.length > 0 &&
+        normalLayers.every(
+          (layer) =>
+            layer.normal === normalLayers[0].normal &&
+            layer.tileSize[0] === normalLayers[0].tileSize[0] &&
+            layer.tileSize[1] === normalLayers[0].tileSize[1] &&
+            layer.tileOffset[0] === normalLayers[0].tileOffset[0] &&
+            layer.tileOffset[1] === normalLayers[0].tileOffset[1] &&
+            layer.normalScale === normalLayers[0].normalScale
+        )
+          ? normalLayers[0]
+          : undefined;
       const simple =
         layerPacking.alphamaps.length === 1 &&
-        !layerPacking.textureUsage.normal &&
+        (!layerPacking.textureUsage.normal || sharedNormalLayer !== undefined) &&
         !layerPacking.textureUsage.mask &&
-        (!layerPacking.textureUsage.diffuse || (singleDiffuse !== undefined && textured.length === 1));
+        (!layerPacking.textureUsage.diffuse || sharedDiffuseLayer !== undefined);
       setTerrainMaterialMacro(
         material,
         "MATERIAL_TERRAIN_UNTEXTURED_SINGLE_MAP",
@@ -348,25 +379,53 @@ export function createTerrainClipmapMaterialBinding(
       setTerrainMaterialMacro(
         material,
         "MATERIAL_TERRAIN_SINGLE_DIFFUSE_SINGLE_MAP",
-        simple && singleDiffuse !== undefined
+        simple && sharedDiffuseLayer !== undefined
       );
       setTerrainMaterialMacro(material, "MATERIAL_TERRAIN_LAYER_SINGLE_DIFFUSE", singleDiffuse !== undefined);
       material.shaderData.setTexture("material_TerrainLayerSingleDiffuse", singleDiffuse ?? null!);
-      if (simple && singleDiffuse !== undefined) {
-        const layer = textured[0],
-          channels = layerPacking.alphamaps[0].layerIndices.map((index) => (index === layer.index ? 1 : 0));
+      if (simple && sharedDiffuseLayer !== undefined) {
+        const texturedLayerIndices = new Set(textured.map((layer) => layer.index));
+        const channels = layerPacking.alphamaps[0].layerIndices.map((index) =>
+          texturedLayerIndices.has(index) ? 1 : 0
+        );
         material.shaderData.setVector4("material_TerrainSimpleTextureChannels", new Vector4(...channels));
         material.shaderData.setVector4(
           "material_TerrainSimpleTextureTransform",
           new Vector4(
-            1 / layer.tileSize[0],
-            1 / layer.tileSize[1],
-            layer.tileOffset[0] / layer.tileSize[0],
-            layer.tileOffset[1] / layer.tileSize[1]
+            1 / sharedDiffuseLayer.tileSize[0],
+            1 / sharedDiffuseLayer.tileSize[1],
+            sharedDiffuseLayer.tileOffset[0] / sharedDiffuseLayer.tileSize[0],
+            sharedDiffuseLayer.tileOffset[1] / sharedDiffuseLayer.tileSize[1]
           )
         );
-        material.shaderData.setVector4("material_TerrainSimpleTextureMin", new Vector4(...layer.diffuseRemapMin));
-        material.shaderData.setVector4("material_TerrainSimpleTextureMax", new Vector4(...layer.diffuseRemapMax));
+        material.shaderData.setVector4(
+          "material_TerrainSimpleTextureMin",
+          new Vector4(...sharedDiffuseLayer.diffuseRemapMin)
+        );
+        material.shaderData.setVector4(
+          "material_TerrainSimpleTextureMax",
+          new Vector4(...sharedDiffuseLayer.diffuseRemapMax)
+        );
+      }
+      if (simple && sharedNormalLayer !== undefined) {
+        const normalLayerIndices = new Set(normalLayers.map((layer) => layer.index));
+        const normalChannels = layerPacking.alphamaps[0].layerIndices.map((index) =>
+          normalLayerIndices.has(index) ? 1 : 0
+        );
+        material.shaderData.setVector4("material_TerrainSimpleNormalChannels", new Vector4(...normalChannels));
+        material.shaderData.setVector4(
+          "material_TerrainSimpleNormalTransform",
+          new Vector4(
+            1 / sharedNormalLayer.tileSize[0],
+            1 / sharedNormalLayer.tileSize[1],
+            sharedNormalLayer.tileOffset[0] / sharedNormalLayer.tileSize[0],
+            sharedNormalLayer.tileOffset[1] / sharedNormalLayer.tileSize[1]
+          )
+        );
+        material.shaderData.setVector4(
+          "material_TerrainSimpleNormalInfo",
+          new Vector4(sharedNormalLayer.normalTextureIndex, sharedNormalLayer.normalScale, 0, 0)
+        );
       }
       if (simple) {
         const indices = layerPacking.alphamaps[0].layerIndices;
@@ -542,7 +601,7 @@ export function createTerrainClipmapMaterialBinding(
             material.shaderData.setFloatArray("material_TerrainSimpleColors", colors);
             if (layerPacking.singleDiffuseTexture) {
               const textured = layerPacking.layers.filter((layer) => layer.diffuseTextureIndex >= 0);
-              if (textured.length === 1) {
+              if (textured.length > 0 && textured.every((layer) => layer.diffuse === textured[0].diffuse)) {
                 const offset = textured[0].index * layerPacking.layerMetadataWidth * 4;
                 material.shaderData.setVector4(
                   "material_TerrainSimpleTextureMin",
