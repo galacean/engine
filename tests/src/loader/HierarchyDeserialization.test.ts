@@ -6,6 +6,7 @@ import {
   PrefabResource,
   PrimitiveMesh,
   Scene,
+  Texture2D,
   WebGLEngine
 } from "@galacean/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -289,6 +290,26 @@ describe("Scene and prefab deserialization", () => {
         await expect(manager.load({ type: AssetType.Prefab, url: url + "?q=" + suffix })).rejects.toThrow(
           "Disallowed sub-asset path target"
         );
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 1;
+      const texBlob = await new Promise<Blob>((resolve) => canvas.toBlob((blob) => resolve(blob!)));
+      const texUrl = URL.createObjectURL(texBlob);
+      let texture: Texture2D | undefined;
+      try {
+        texture = await manager.load<Texture2D>({ type: AssetType.Texture2D, url: texUrl });
+        for (const suffix of [
+          "_platformTexture._gl.canvas.ownerDocument.defaultView",
+          "_platformTexture._rhi._webCanvas"
+        ]) {
+          await expect(manager.load({ type: AssetType.Texture2D, url: texUrl + "?q=" + suffix })).rejects.toThrow(
+            "Disallowed sub-asset path target"
+          );
+        }
+      } finally {
+        texture?.destroy(true);
+        URL.revokeObjectURL(texUrl);
       }
     } finally {
       URL.revokeObjectURL(url);

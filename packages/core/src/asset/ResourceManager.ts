@@ -530,7 +530,13 @@ export class ResourceManager {
       for (let i = 0, n = paths.length; i < n; i++) {
         if (subResource == null) return undefined;
         subResource = subResource[paths[i]];
-        if (typeof subResource === "function" || subResource instanceof Engine) {
+        if (
+          typeof subResource === "function" ||
+          subResource instanceof Engine ||
+          subResource === globalThis ||
+          subResource === Object.prototype ||
+          (typeof EventTarget !== "undefined" && subResource instanceof EventTarget)
+        ) {
           throw new Error("Disallowed sub-asset path target");
         }
       }
