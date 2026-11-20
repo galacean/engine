@@ -996,30 +996,42 @@ export class Entity extends EngineObject {
           }
         }
 
-        // Deactivate before mutating ownership lists so callbacks observe consistent ownership
-        let inActiveChangeFlag = ActiveChangeFlag.None;
-        if (!parent._isActiveInHierarchy) {
-          this._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
-        }
-        if (parent._isActiveInScene) {
-          // cross scene should inActive first and then active
-          this._isActiveInScene && oldScene !== parentScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-        } else {
-          this._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-        }
-
+        // Deactivate before mutating ownership lists so callbacks observe consistent ownership.
+        // Re-evaluate after each pass in case an onDisable callback moves `parent` to another scene
+        // or changes its active state while `this` is still owned by `oldScene`.
         let inActiveError: unknown;
         let hasInActiveError = false;
-        if (inActiveChangeFlag) {
+        let ownershipUnchanged = true;
+        while (
+          ownershipUnchanged &&
+          !this.destroyed &&
+          !this.pendingDestroy &&
+          (allowDestroyedParent || !parent._isInDyingHierarchy()) &&
+          !parent._isSelfOrDescendantOf(this)
+        ) {
+          let inActiveChangeFlag = ActiveChangeFlag.None;
+          if (!parent._isActiveInHierarchy) {
+            this._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
+          }
+          if (parent._isActiveInScene) {
+            // cross scene should inActive first and then active
+            this._isActiveInScene && oldScene !== parent._scene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+          } else {
+            this._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+          }
+          if (!inActiveChangeFlag) {
+            break;
+          }
           try {
             this._processInActive(inActiveChangeFlag);
           } catch (error) {
-            inActiveError = error;
-            hasInActiveError = true;
+            if (!hasInActiveError) {
+              inActiveError = error;
+              hasInActiveError = true;
+            }
           }
+          ownershipUnchanged = this._scene === oldScene && this._parent === oldParent && this._isRoot === wasRoot;
         }
-
-        const ownershipUnchanged = this._scene === oldScene && this._parent === oldParent && this._isRoot === wasRoot;
 
         if (ownershipUnchanged && parent._isSelfOrDescendantOf(this)) {
           if (!hasInActiveError) {
@@ -1076,6 +1088,19 @@ export class Entity extends EngineObject {
           throw inActiveError;
         }
       } else {
+        if (this._destroyed) {
+          // Components and children were already torn down in Entity.destroy(); detach the shell cleanly.
+          this._detachFromParent();
+          this._isActiveInHierarchy = false;
+          this._isActiveInScene = false;
+          if (oldScene) {
+            Entity._finalizeOrDeferSceneClear(this, oldScene);
+          }
+          oldParent!._dispatchModify(EntityModifyFlags.Child, oldParent);
+          this._setParentChange();
+          return;
+        }
+
         let inActiveChangeFlag = ActiveChangeFlag.None;
         this._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
         this._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);

@@ -42,6 +42,9 @@ export class ReflectionParser {
         deferCheck!.deferredValues[key] = value;
       } else {
         instance[key] = value;
+        if (predicate && instance[key] !== value) {
+          deferCheck!.deferredValues[key] = value;
+        }
       }
     };
 
@@ -55,9 +58,103 @@ export class ReflectionParser {
     };
 
     try {
-      const rawPropOrder: readonly string[] | ((props: Record<string, unknown>) => readonly string[]) | undefined =
-        instance?.constructor?._deserializePropOrder;
-      const propOrder = props ? (typeof rawPropOrder === "function" ? rawPropOrder(props) : rawPropOrder) : undefined;
+      const coupledKeys: readonly string[] | undefined = instance?.constructor?._deserializeCoupledProps;
+      if (coupledKeys?.length && typeof instance._applyDeserializeCoupledProps === "function") {
+        let coupledCount = 0;
+        for (let i = 0, n = coupledKeys.length; i < n; i++) {
+          const key = coupledKeys[i];
+          if (
+            (props && Object.prototype.hasOwnProperty.call(props, key)) ||
+            (hasPreResolved && Object.prototype.hasOwnProperty.call(preResolvedProps, key))
+          ) {
+            coupledCount++;
+          }
+        }
+        if (coupledCount >= 2) {
+          const coupledValues: Record<string, unknown> = {};
+          let coupledPromises: Promise<unknown>[] | null = null;
+          let otherPromises: Promise<unknown>[] | null = null;
+
+          const recordCoupled = (key: string, value: unknown): void => {
+            const predicate = deferCheck?.predicates[key];
+            if (predicate && predicate(value)) {
+              deferCheck!.deferredValues[key] = value;
+            } else {
+              coupledValues[key] = value;
+            }
+          };
+
+          for (let i = 0, n = coupledKeys.length; i < n; i++) {
+            const key = coupledKeys[i];
+            if (props && Object.prototype.hasOwnProperty.call(props, key)) {
+              const raw = props[key];
+              if (raw == null || typeof raw !== "object") {
+                recordCoupled(key, raw);
+              } else {
+                (coupledPromises ||= []).push(
+                  this._resolveValue(raw, instance[key]).then((v) => {
+                    recordCoupled(key, v);
+                  })
+                );
+              }
+            } else if (hasPreResolved && Object.prototype.hasOwnProperty.call(preResolvedProps, key)) {
+              coupledValues[key] = preResolvedProps![key];
+            }
+          }
+
+          const commitCoupled = (): void => {
+            if (instance.destroyed) return;
+            let hasCoupled = false;
+            for (const _ in coupledValues) {
+              hasCoupled = true;
+              break;
+            }
+            if (!hasCoupled) return;
+            instance._applyDeserializeCoupledProps(coupledValues);
+            if (deferCheck) {
+              for (const key in coupledValues) {
+                if (deferCheck.predicates[key] && instance[key] !== coupledValues[key]) {
+                  deferCheck.deferredValues[key] = coupledValues[key];
+                }
+              }
+            }
+          };
+
+          if (props) {
+            for (const key in props) {
+              if (coupledKeys.includes(key)) continue;
+              const raw = props[key];
+              if (raw == null || typeof raw !== "object") {
+                assignProp(key, raw);
+              } else {
+                (otherPromises ||= []).push(
+                  this._resolveValue(raw, instance[key]).then((v) => {
+                    assignProp(key, v);
+                  })
+                );
+              }
+            }
+          }
+          if (hasPreResolved) {
+            for (const key in preResolvedProps) {
+              if (!coupledKeys.includes(key) && (!props || !(key in props))) {
+                instance[key] = preResolvedProps![key];
+              }
+            }
+          }
+
+          if (coupledPromises) {
+            const coupledDone = Promise.all(coupledPromises).then(commitCoupled);
+            return otherPromises
+              ? Promise.all([coupledDone, ...otherPromises]).then(() => instance)
+              : coupledDone.then(() => instance);
+          }
+          commitCoupled();
+          return otherPromises ? Promise.all(otherPromises).then(() => instance) : Promise.resolve(instance);
+        }
+      }
+
+      const propOrder: readonly string[] | undefined = instance?.constructor?._deserializePropOrder;
       if (props && propOrder?.length) {
         const orderedKeys: string[] = [];
         for (let i = 0, n = propOrder.length; i < n; i++) {
@@ -175,9 +272,9 @@ export class ReflectionParser {
     deferCheck?: DeferredPropCheck,
     preResolvedProps?: Record<string, unknown>
   ): Promise<any> {
-    if (!block) return Promise.resolve(target);
+    if (!block || target?.destroyed) return Promise.resolve(target);
     return this.parseProps(target, block.props, deferCheck, preResolvedProps)
-      .then(() => this.parseCalls(target, block.calls))
+      .then(() => (target?.destroyed ? target : this.parseCalls(target, block.calls)))
       .then(() => target);
   }
 

@@ -81,6 +81,7 @@ export class Scene extends EngineObject {
   _activeProcessCount: number = 0;
 
   private _pendingPhysicsDestroy: boolean = false;
+  private _processingActive: boolean = false;
 
   private _background: Background = new Background(this._engine);
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
@@ -374,23 +375,37 @@ export class Scene extends EngineObject {
       }
     }
 
-    // Deactivate before mutating ownership lists so callbacks observe consistent ownership
-    let inActiveChangeFlag = ActiveChangeFlag.None;
-    if (rootEntity._isActiveInHierarchy) {
-      this._isActiveInEngine || (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
-    }
-
-    // Cross scene should inActive first and then active
-    rootEntity._isActiveInScene && oldScene !== this && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-
+    // Deactivate before mutating ownership lists so callbacks observe consistent ownership.
+    // Re-evaluate after each pass in case an onDisable callback deactivates `this` scene.
     let inActiveError: unknown;
     let hasInActiveError = false;
-    if (inActiveChangeFlag) {
+    while (
+      !rootEntity.destroyed &&
+      !rootEntity.pendingDestroy &&
+      !this.destroyed &&
+      !this.pendingDestroy &&
+      rootEntity._scene === oldScene &&
+      rootEntity.parent === oldParent &&
+      rootEntity._isRoot === wasRoot
+    ) {
+      let inActiveChangeFlag = ActiveChangeFlag.None;
+      if (rootEntity._isActiveInHierarchy && !this._isActiveInEngine) {
+        inActiveChangeFlag |= ActiveChangeFlag.Hierarchy;
+      }
+      // Cross scene should inActive first and then active
+      if (rootEntity._isActiveInScene && oldScene !== this) {
+        inActiveChangeFlag |= ActiveChangeFlag.Scene;
+      }
+      if (!inActiveChangeFlag) {
+        break;
+      }
       try {
         rootEntity._processInActive(inActiveChangeFlag);
       } catch (error) {
-        inActiveError = error;
-        hasInActiveError = true;
+        if (!hasInActiveError) {
+          inActiveError = error;
+          hasInActiveError = true;
+        }
       }
     }
 
@@ -449,6 +464,17 @@ export class Scene extends EngineObject {
    */
   removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene === this) {
+      if (entity.destroyed) {
+        // Components and children were already torn down in Entity.destroy(); detach the shell cleanly.
+        Entity._removeFromChildren(this._rootEntities, entity);
+        entity._isRoot = false;
+        entity._isActiveInHierarchy = false;
+        entity._isActiveInScene = false;
+        entity._hierarchyStamp = ++Entity._nextHierarchyStamp;
+        Entity._finalizeOrDeferSceneClear(entity, this);
+        return;
+      }
+
       let inActiveChangeFlag = ActiveChangeFlag.None;
       entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
       entity._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
@@ -529,41 +555,61 @@ export class Scene extends EngineObject {
    */
   _processActive(active: boolean): void {
     this._isActiveInEngine = active;
-    const rootEntities = this._rootEntities;
-    const count = rootEntities.length;
-    if (count === 0) return;
+    if (this._processingActive) return;
 
-    const snapshot = Scene._activeRootsPool.pop() ?? [];
-    for (let i = 0; i < count; i++) {
-      snapshot[i] = rootEntities[i];
-    }
-    snapshot.length = count;
-
+    this._processingActive = true;
     let firstError: unknown;
     let hasError = false;
+    let passes = 0;
     try {
-      for (let i = count - 1; i >= 0; i--) {
-        if (this._isActiveInEngine !== active) break;
-        const entity = snapshot[i];
-        if (entity._scene !== this || !entity._isRoot) continue;
-        if (entity._isActive && entity._isActiveInHierarchy !== active) {
-          try {
-            if (active) {
-              entity._processActive(ActiveChangeFlag.Hierarchy);
-            } else {
-              entity._processInActive(ActiveChangeFlag.Hierarchy);
-            }
-          } catch (error) {
-            if (!hasError) {
-              firstError = error;
-              hasError = true;
-            }
+      while (!this._destroyed) {
+        const targetActive = this._isActiveInEngine;
+        const rootEntities = this._rootEntities;
+        const count = rootEntities.length;
+        if (count > 0) {
+          const snapshot = Scene._activeRootsPool.pop() ?? [];
+          for (let i = 0; i < count; i++) {
+            snapshot[i] = rootEntities[i];
           }
+          snapshot.length = count;
+          try {
+            for (let i = count - 1; i >= 0; i--) {
+              if (this._destroyed || this._isActiveInEngine !== targetActive) break;
+              const entity = snapshot[i];
+              if (entity._scene !== this || !entity._isRoot) continue;
+              if (entity._isActive && entity._isActiveInHierarchy !== targetActive) {
+                try {
+                  if (targetActive) {
+                    entity._processActive(ActiveChangeFlag.Hierarchy);
+                  } else {
+                    entity._processInActive(ActiveChangeFlag.Hierarchy);
+                  }
+                } catch (error) {
+                  if (!hasError) {
+                    firstError = error;
+                    hasError = true;
+                  }
+                }
+              }
+            }
+          } finally {
+            snapshot.length = 0;
+            Scene._activeRootsPool.push(snapshot);
+          }
+        }
+        if (this._destroyed || this._isActiveInEngine === targetActive) {
+          break;
+        }
+        if (++passes >= 64) {
+          if (!hasError) {
+            firstError = new Error("Scene active state oscillated repeatedly during lifecycle callbacks.");
+            hasError = true;
+          }
+          break;
         }
       }
     } finally {
-      snapshot.length = 0;
-      Scene._activeRootsPool.push(snapshot);
+      this._processingActive = false;
     }
 
     if (hasError) {

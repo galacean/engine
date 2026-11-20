@@ -496,7 +496,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       tail: Promise<unknown> | null;
     };
 
-    const runPhasedGroup = (queues: PhasedQueue[]): Promise<unknown> => {
+    const runPhasedGroup = (groupKey: object, queues: PhasedQueue[]): Promise<unknown> => {
       const allDone: Promise<unknown>[] = [];
       const launchBlock = (
         q: PhasedQueue,
@@ -523,9 +523,11 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
       const runNextStep = (): Promise<unknown> => {
         let minPhase = 2;
+        let ownerHasRemaining = false;
         for (let i = 0, n = queues.length; i < n; i++) {
           const q = queues[i];
           if (q.cursor < q.blocks.length) {
+            if (q.target === groupKey) ownerHasRemaining = true;
             const p = q.phases[q.cursor];
             if (p < minPhase) minPhase = p;
           }
@@ -534,9 +536,26 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
           return Promise.all(allDone);
         }
 
+        // Once the owner (Rigidbody) has no remaining blocks, sibling owned components
+        // (MeshColliders) never conflict with each other and can run concurrently.
+        if (!ownerHasRemaining) {
+          for (let i = 0, n = queues.length; i < n; i++) {
+            const q = queues[i];
+            while (q.cursor < q.blocks.length) {
+              launchBlock(q, q.cursor++);
+            }
+          }
+          return Promise.all(allDone);
+        }
+
         const barrier: Promise<unknown>[] = [];
         let pickedUnblocking = false;
         if (minPhase > -1) {
+          // If the owner itself has an unblocking restrict->relax cycle at minPhase > 0, serialize
+          // ONLY the owner ahead of owned MeshColliders so paired constraints never collide;
+          // never serialize sibling MeshColliders against each other.
+          let ownerUnblocking: PhasedQueue | null = null;
+          const unblockingPeers: PhasedQueue[] = [];
           for (let i = 0, n = queues.length; i < n; i++) {
             const q = queues[i];
             if (q.cursor >= q.blocks.length || q.phases[q.cursor] !== minPhase) continue;
@@ -548,14 +567,21 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
               }
             }
             if (hasFutureRelax) {
-              pickedUnblocking = true;
-              const { blockDone } = launchBlock(q, q.cursor++);
-              barrier.push(blockDone);
-              // Serialize mutually-restricting physics blocks that immediately relax within the same
-              // (ownerRigidbody, owned MeshColliders) group so paired constraints never collide.
-              if (minPhase > 0) {
+              if (minPhase > 0 && q.target === groupKey) {
+                ownerUnblocking = q;
                 break;
               }
+              unblockingPeers.push(q);
+            }
+          }
+          if (ownerUnblocking) {
+            pickedUnblocking = true;
+            barrier.push(launchBlock(ownerUnblocking, ownerUnblocking.cursor++).blockDone);
+          } else if (unblockingPeers.length > 0) {
+            pickedUnblocking = true;
+            for (let i = 0, n = unblockingPeers.length; i < n; i++) {
+              const q = unblockingPeers[i];
+              barrier.push(launchBlock(q, q.cursor++).blockDone);
             }
           }
         }
@@ -654,7 +680,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
         }
       }
       if (hasOwner) {
-        tasks.push(runPhasedGroup(group));
+        tasks.push(runPhasedGroup(groupKey, group));
       } else {
         for (let i = 0, n = group.length; i < n; i++) {
           tasks.push(runItemChain(group[i]));

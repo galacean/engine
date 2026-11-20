@@ -17,6 +17,7 @@ import {
   JointMotor,
   Loader,
   MeshCollider,
+  MeshColliderShapeCookingFlag,
   MeshTopology,
   ModelMesh,
   PhysicsScene,
@@ -2490,6 +2491,310 @@ describe("Physics gameplay integration", () => {
       lineMesh.destroy();
       indexedMesh.destroy();
       inaccessibleMesh.destroy();
+      for (const key of poolKeys) {
+        // @ts-ignore
+        delete engine.resourceManager._objectPool[key];
+      }
+    }
+  });
+
+  it("handles target parent switching scene in onDisable, re-entrant scene active/destroy transitions, and atomic MeshCollider coupled deserialize commits", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const ray = new Ray(new Vector3(0, 5, 0), new Vector3(0, -1, 0));
+    const hitEntity = (targetScene: Scene, x = 0): Entity | null => {
+      const result = new HitResult();
+      return targetScene.physics.raycast(new Ray(new Vector3(x, 5, 0), new Vector3(0, -1, 0)), 10, result)
+        ? result.entity
+        : null;
+    };
+
+    // 1. Target parent switches Scene during mover's onDisable inside Entity._setParent
+    for (const moveDestination of [false, true]) {
+      const src = new Scene(engine, `r11-src-${moveDestination}`);
+      const dst = new Scene(engine, `r11-dst-${moveDestination}`);
+      engine.sceneManager.addScene(src);
+      engine.sceneManager.addScene(dst);
+      const mover = src.createRootEntity("mover");
+      const driver = src.createRootEntity("driver");
+      const target = src.createRootEntity("target");
+      const seen: string[] = [];
+      let moved = false;
+      mover.addComponent(BoxCollider);
+      mover.addComponent(
+        class extends Script {
+          override onDisable(): void {
+            if (!moved && moveDestination) {
+              moved = true;
+              dst.addRootEntity(target);
+            }
+          }
+          override onUpdate(): void {
+            seen.push(`update:${this.entity.isActiveInHierarchy}`);
+          }
+        }
+      );
+      driver.addComponent(
+        class extends Script {
+          override onDisable(): void {
+            target.addChild(mover);
+          }
+        }
+      );
+      try {
+        expect(hitEntity(src)).toBe(mover);
+        expect(hitEntity(dst)).toBeNull();
+        src.isActive = false;
+        engine.update();
+        expect(mover.parent).toBe(target);
+        expect(mover.scene).toBe(moveDestination ? dst : src);
+        expect(mover.isActiveInHierarchy).toBe(moveDestination);
+        expect(hitEntity(src)).toBe(moveDestination ? null : mover);
+        expect(hitEntity(dst)).toBe(moveDestination ? mover : null);
+        expect(seen).toEqual(moveDestination ? ["update:true"] : []);
+      } finally {
+        if (!src.destroyed) src.destroy();
+        if (!dst.destroyed) dst.destroy();
+      }
+    }
+
+    // 2. Re-entrant scene active/remove/destroy callbacks keep all roots coherent with zero spurious re-entry throws
+    for (const action of ["re-enable", "re-add", "disable", "remove", "destroy", "destroy-first"] as const) {
+      const testScene = new Scene(engine, `r11-reenter-${action}`);
+      engine.sceneManager.addScene(testScene);
+      const first = testScene.createRootEntity("first");
+      const second = testScene.createRootEntity("second");
+      second.transform.position.x = 2;
+      first.addComponent(BoxCollider);
+      second.addComponent(BoxCollider);
+      let armed = false;
+      const callbackTarget = action === "destroy-first" ? first : second;
+      callbackTarget.addComponent(
+        class extends Script {
+          override onEnable(): void {
+            if (!armed || (action !== "disable" && action !== "remove")) return;
+            armed = false;
+            if (action === "disable") testScene.isActive = false;
+            if (action === "remove") engine.sceneManager.removeScene(testScene);
+          }
+          override onDisable(): void {
+            if (!armed || action === "disable" || action === "remove") return;
+            armed = false;
+            if (action === "re-enable") testScene.isActive = true;
+            if (action === "re-add") engine.sceneManager.addScene(testScene);
+            if (action === "destroy" || action === "destroy-first") testScene.destroy();
+          }
+        }
+      );
+      const enableEntry = action === "disable" || action === "remove";
+      if (enableEntry) testScene.isActive = false;
+      expect(hitEntity(testScene, 2)).toBe(second);
+      armed = true;
+      try {
+        expect(() => {
+          if (action === "re-add") engine.sceneManager.removeScene(testScene);
+          else testScene.isActive = enableEntry;
+        }).not.toThrow();
+        const registered = engine.sceneManager.scenes.includes(testScene);
+        if (action === "destroy" || action === "destroy-first") {
+          expect(testScene.destroyed).toBe(true);
+          expect(first.destroyed).toBe(true);
+          expect(second.destroyed).toBe(true);
+        } else {
+          const expectedActive = testScene.isActive && registered;
+          expect(first.isActiveInHierarchy).toBe(expectedActive);
+          expect(second.isActiveInHierarchy).toBe(expectedActive);
+        }
+        expect(() => engine.update()).not.toThrow();
+      } finally {
+        if (!testScene.destroyed) testScene.destroy();
+      }
+    }
+
+    // 3. Atomic MeshCollider coupled deserialize commits: 3-vertex triangle replacement, released-CPU cookingFlags, degenerate-tris convex fallback
+    const indexedMesh = new ModelMesh(engine);
+    indexedMesh.setPositions([
+      new Vector3(0, 1, 0),
+      new Vector3(-1, 0, -1),
+      new Vector3(1, 0, -1),
+      new Vector3(0, 0, 1)
+    ]);
+    indexedMesh.setIndices(new Uint16Array([0, 1, 2, 0, 2, 3, 0, 3, 1, 1, 3, 2]));
+    indexedMesh.addSubMesh(0, 12, MeshTopology.Triangles);
+
+    const triangleMesh = new ModelMesh(engine);
+    triangleMesh.setPositions([new Vector3(2, 0, -1), new Vector3(3, 0, 1), new Vector3(4, 0, -1)]);
+    triangleMesh.setIndices(new Uint16Array([0, 1, 2]));
+    triangleMesh.addSubMesh(0, 3, MeshTopology.Triangles);
+
+    const degenerateMesh = new ModelMesh(engine);
+    degenerateMesh.setPositions([
+      new Vector3(0, 1, 0),
+      new Vector3(-1, 0, -1),
+      new Vector3(1, 0, -1),
+      new Vector3(0, 0, 1)
+    ]);
+    degenerateMesh.setIndices(new Uint16Array([0, 0, 0]));
+    degenerateMesh.addSubMesh(0, 3, MeshTopology.Triangles);
+
+    const releasableMesh = new ModelMesh(engine);
+    releasableMesh.setPositions([
+      new Vector3(0, 1, 0),
+      new Vector3(-1, 0, -1),
+      new Vector3(1, 0, -1),
+      new Vector3(0, 0, 1)
+    ]);
+
+    const poolKeys = [
+      "r11-indexed.mesh",
+      "r11-triangle.mesh",
+      "r11-degenerate.mesh",
+      "r11-releasable.mesh",
+      "r11-empty-base.prefab",
+      "r11-hull-base.prefab"
+    ];
+    // @ts-ignore
+    engine.resourceManager._objectPool["r11-indexed.mesh"] = indexedMesh;
+    // @ts-ignore
+    engine.resourceManager._objectPool["r11-triangle.mesh"] = triangleMesh;
+    // @ts-ignore
+    engine.resourceManager._objectPool["r11-degenerate.mesh"] = degenerateMesh;
+    // @ts-ignore
+    engine.resourceManager._objectPool["r11-releasable.mesh"] = releasableMesh;
+
+    const emptyBase = await PrefabParser.parse(engine, "r11-empty-base.prefab", {
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "root" }],
+      components: [],
+      root: 0
+    });
+    const hullBase = await PrefabParser.parse(engine, "r11-hull-base.prefab", {
+      version: "2.0",
+      refs: [{ url: "r11-indexed.mesh" }],
+      entities: [{ name: "root", components: [0] }],
+      components: [{ type: "MeshCollider", props: { convex: true, mesh: { $ref: 0 }, isTrigger: true } }],
+      root: 0
+    });
+    // @ts-ignore
+    engine.resourceManager._objectPool["r11-empty-base.prefab"] = emptyBase;
+    // @ts-ignore
+    engine.resourceManager._objectPool["r11-hull-base.prefab"] = hullBase;
+
+    try {
+      // 3a. Replace convex hull with 3-vertex coplanar triangle mesh + convex: false + isTrigger: false atomically
+      const triOuter = await PrefabParser.parse(engine, "r11-tri-outer.prefab", {
+        version: "2.0",
+        refs: [{ url: "r11-hull-base.prefab" }, { url: "r11-triangle.mesh" }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                componentProps: [
+                  {
+                    path: [],
+                    selector: { type: "MeshCollider", index: 0 },
+                    props: { isTrigger: false, mesh: { $ref: 1 }, convex: false }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        components: [],
+        root: 0
+      });
+      const triInst = triOuter.instantiate();
+      root.addChild(triInst);
+      try {
+        const mc = triInst.getComponent(MeshCollider)!;
+        expect(mc.mesh).toBe(triangleMesh);
+        expect(mc.convex).toBe(false);
+        expect(mc.isTrigger).toBe(false);
+        expect(hitEntity(scene, 3)).toBe(triInst);
+      } finally {
+        triInst.destroy();
+      }
+
+      // 3b. Replace old hull whose CPU data was released by base call while also changing cookingFlags and convex
+      const flags = MeshColliderShapeCookingFlag.Cleaning;
+      const flagsOuter = await PrefabParser.parse(engine, "r11-flags-outer.prefab", {
+        version: "2.0",
+        refs: [{ url: "r11-empty-base.prefab" }, { url: "r11-indexed.mesh" }, { url: "r11-releasable.mesh" }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                addedComponents: [{ target: [], component: 0 }],
+                componentProps: [
+                  {
+                    path: [],
+                    selector: { type: "MeshCollider", index: 0 },
+                    props: { mesh: { $ref: 1 }, convex: false, cookingFlags: flags }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        components: [
+          {
+            type: "MeshCollider",
+            props: { convex: true, mesh: { $ref: 2 } },
+            calls: [{ target: ["mesh"], method: "uploadData", args: [true] }]
+          }
+        ],
+        root: 0
+      });
+      const flagsInst = flagsOuter.instantiate();
+      root.addChild(flagsInst);
+      try {
+        const mc = flagsInst.getComponent(MeshCollider)!;
+        expect(releasableMesh.accessible).toBe(false);
+        expect(mc.mesh).toBe(indexedMesh);
+        expect(mc.convex).toBe(false);
+        expect(mc.cookingFlags).toBe(flags);
+        expect(scene.physics.raycast(ray, 10)).toBe(true);
+      } finally {
+        flagsInst.destroy();
+      }
+      expect(errors).not.toHaveBeenCalled();
+
+      // 3c. Degenerate triangle indices ([0, 0, 0]) rejected in Wave 0 recover cleanly when Wave 1 enables convex
+      const degOuter = await PrefabParser.parse(engine, "r11-degenerate-outer.prefab", {
+        version: "2.0",
+        refs: [{ url: "r11-empty-base.prefab" }, { url: "r11-degenerate.mesh" }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                addedComponents: [{ target: [], component: 0 }],
+                componentProps: [{ path: [], selector: { type: "MeshCollider", index: 0 }, props: { convex: true } }]
+              }
+            }
+          }
+        ],
+        components: [{ type: "MeshCollider", props: { mesh: { $ref: 1 } } }],
+        root: 0
+      });
+      const degInst = degOuter.instantiate();
+      root.addChild(degInst);
+      try {
+        const mc = degInst.getComponent(MeshCollider)!;
+        expect(mc.mesh).toBe(degenerateMesh);
+        expect(mc.convex).toBe(true);
+        expect(scene.physics.raycast(ray, 10)).toBe(true);
+      } finally {
+        degInst.destroy();
+      }
+    } finally {
+      errors.mockRestore();
+      indexedMesh.destroy();
+      triangleMesh.destroy();
+      degenerateMesh.destroy();
+      releasableMesh.destroy();
       for (const key of poolKeys) {
         // @ts-ignore
         delete engine.resourceManager._objectPool[key];

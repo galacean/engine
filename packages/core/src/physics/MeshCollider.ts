@@ -50,14 +50,7 @@ export class MeshCollider extends Collider {
   };
 
   /** @internal */
-  static _deserializePropOrder(props: Record<string, unknown>): readonly string[] {
-    if (props.convex === false) {
-      return props.mesh !== undefined
-        ? ["isTrigger", "cookingFlags", "mesh", "convex"]
-        : ["isTrigger", "convex", "cookingFlags"];
-    }
-    return props.isTrigger === false ? ["isTrigger", "convex", "cookingFlags"] : ["convex", "cookingFlags"];
-  }
+  static readonly _deserializeCoupledProps = ["mesh", "convex", "cookingFlags", "isTrigger"] as const;
 
   /** @internal */
   static _getDeserializePhase(props: Record<string, unknown>): number {
@@ -183,6 +176,82 @@ export class MeshCollider extends Collider {
       return -1;
     }
     return super._getVolumeDistance(point, outClosestPoint);
+  }
+
+  /**
+   * @internal
+   * Atomically validate and commit coupled deserialized properties (`mesh`, `convex`, `cookingFlags`, `isTrigger`)
+   * with a single native cook against the final resolved state.
+   */
+  _applyDeserializeCoupledProps(props: Record<string, unknown>): void {
+    const hasMesh = "mesh" in props;
+    const hasConvex = "convex" in props;
+    const hasFlags = "cookingFlags" in props;
+    const hasTrigger = "isTrigger" in props;
+
+    const nextMesh = hasMesh ? (props.mesh as ModelMesh | null) : this._mesh;
+    let nextConvex = hasConvex ? (props.convex as boolean) : this._convex;
+    const nextFlags = hasFlags ? (props.cookingFlags as MeshColliderShapeCookingFlag) : this._cookingFlags;
+    const prevTrigger = this.isTrigger;
+    let nextTrigger = hasTrigger ? (props.isTrigger as boolean) : prevTrigger;
+
+    if (!nextConvex && nextTrigger) {
+      if (hasTrigger) {
+        console.error("MeshCollider: isTrigger is only supported when convex is true.");
+        nextTrigger = prevTrigger;
+      }
+      if (nextTrigger) {
+        console.error("MeshCollider: cannot set convex to false while isTrigger is true.");
+        nextConvex = this._convex;
+      }
+    }
+    if (hasConvex && !nextConvex && this._convex) {
+      const body = this.attachedRigidbody;
+      if (body && !body.isKinematic) {
+        console.error("MeshCollider: cannot set convex to false while it belongs to a non-kinematic Rigidbody.");
+        nextConvex = this._convex;
+      }
+    }
+
+    // Disabling trigger is always valid and must precede non-convex native shape creation.
+    if (!nextTrigger && prevTrigger) {
+      this._setIsTrigger(false);
+    }
+
+    const meshChanged = nextMesh !== this._mesh;
+    const convexChanged = nextConvex !== this._convex;
+    const flagsChanged = nextFlags !== this._cookingFlags;
+    if (meshChanged || convexChanged || flagsChanged) {
+      if (nextMesh) {
+        const meshData = MeshCollider._getMeshData(nextMesh, nextConvex);
+        if (meshData && this._rebuildNative(meshData, nextConvex, nextFlags, convexChanged)) {
+          this._convex = nextConvex;
+          this._cookingFlags = nextFlags;
+          meshChanged && this._setMesh(nextMesh);
+        } else if (meshChanged) {
+          // Invalid replacement mesh was rejected; still apply valid convex/flags changes to existing mesh (if any).
+          if (!this._mesh) {
+            this._convex = nextConvex;
+            this._cookingFlags = nextFlags;
+          } else if (convexChanged || flagsChanged) {
+            const currentData = MeshCollider._getMeshData(this._mesh, nextConvex);
+            if (currentData && this._rebuildNative(currentData, nextConvex, nextFlags, convexChanged)) {
+              this._convex = nextConvex;
+              this._cookingFlags = nextFlags;
+            }
+          }
+        }
+      } else {
+        meshChanged && this._replaceNativeShape(null);
+        this._convex = nextConvex;
+        this._cookingFlags = nextFlags;
+        meshChanged && this._setMesh(null);
+      }
+    }
+
+    if (nextTrigger && !this.isTrigger) {
+      this._setIsTrigger(true);
+    }
   }
 
   /**

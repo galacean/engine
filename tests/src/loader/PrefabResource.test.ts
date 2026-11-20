@@ -1829,6 +1829,148 @@ describe("Cross-prefab $component ref", () => {
         }
       }
 
+      // 8. Two sibling MeshColliders under the same kinematic Rigidbody run concurrently even when owner has a phased block,
+      //    and targets destroyed during props skip calls uniformly in both phased and unphased paths
+      for (const withOwnerProp of [true, false]) {
+        let unblock!: () => void;
+        const gate = new Promise<void>((r) => (unblock = r));
+        const seen: string[] = [];
+        class SiblingMesh extends MeshCollider {
+          async wait(): Promise<void> {
+            seen.push(`wait:${this.convex}`);
+            await gate;
+            seen.push("done");
+          }
+          signal(): void {
+            seen.push(`signal:${this.convex}`);
+            unblock();
+          }
+        }
+        const meshType = `R11SiblingMesh_${withOwnerProp}`;
+        Loader.registerClass(meshType, SiblingMesh);
+        const baseKey = `r11-siblings-base-${withOwnerProp}.prefab`;
+        const sibBase = await PrefabParser.parse(engine, baseKey, {
+          version: "2.0",
+          refs: [],
+          entities: [
+            { name: "body", components: [0], children: [1, 2] },
+            { name: "m0", components: [1] },
+            { name: "m1", components: [1] }
+          ],
+          components: [
+            { type: "Rigidbody", props: { isKinematic: true } },
+            { type: meshType, props: { convex: true } }
+          ],
+          root: 0
+        });
+        // @ts-ignore
+        engine.resourceManager._objectPool[baseKey] = sibBase;
+        try {
+          const sibOuter = await PrefabParser.parse(engine, `r11-siblings-outer-${withOwnerProp}.prefab`, {
+            version: "2.0",
+            refs: [{ url: baseKey }],
+            entities: [
+              {
+                instance: {
+                  asset: 0,
+                  overrides: {
+                    componentProps: [
+                      ...(withOwnerProp
+                        ? [{ path: [], selector: { type: "Rigidbody", index: 0 }, props: { isKinematic: true } }]
+                        : []),
+                      {
+                        path: [0],
+                        selector: { type: meshType, index: 0 },
+                        props: { convex: false },
+                        calls: [{ method: "wait" }]
+                      },
+                      {
+                        path: [1],
+                        selector: { type: meshType, index: 0 },
+                        props: { convex: false },
+                        calls: [{ method: "signal" }]
+                      },
+                      { path: [0], selector: { type: meshType, index: 0 }, props: { convex: true } },
+                      { path: [1], selector: { type: meshType, index: 0 }, props: { convex: true } }
+                    ]
+                  }
+                }
+              }
+            ],
+            components: [],
+            root: 0
+          });
+          const inst = sibOuter.instantiate();
+          inst.destroy();
+          expect(seen).toEqual(["wait:false", "signal:false", "done"]);
+        } finally {
+          // @ts-ignore
+          delete engine.resourceManager._objectPool[baseKey];
+        }
+      }
+
+      for (const grouped of [true, false]) {
+        const observed: string[] = [];
+        class DisposeDuringPropsMesh extends MeshCollider {
+          set dispose(value: boolean) {
+            if (value) this.destroy();
+          }
+          capture(): void {
+            observed.push(`called:${this.destroyed}`);
+          }
+        }
+        const meshType = `R11DisposePropsMesh_${grouped}`;
+        Loader.registerClass(meshType, DisposeDuringPropsMesh);
+        const baseKey = `r11-dispose-base-${grouped}.prefab`;
+        const disposeBase = await PrefabParser.parse(engine, baseKey, {
+          version: "2.0",
+          refs: [],
+          entities: [
+            { name: "body", components: [0], children: [1] },
+            { name: "mesh", components: [1] }
+          ],
+          components: [{ type: "Rigidbody", props: { isKinematic: true } }, { type: meshType }],
+          root: 0
+        });
+        // @ts-ignore
+        engine.resourceManager._objectPool[baseKey] = disposeBase;
+        try {
+          const disposeOuter = await PrefabParser.parse(engine, `r11-dispose-outer-${grouped}.prefab`, {
+            version: "2.0",
+            refs: [{ url: baseKey }],
+            entities: [
+              {
+                instance: {
+                  asset: 0,
+                  overrides: {
+                    componentProps: [
+                      ...(grouped
+                        ? [{ path: [], selector: { type: "Rigidbody", index: 0 }, props: { isKinematic: true } }]
+                        : []),
+                      {
+                        path: [0],
+                        selector: { type: meshType, index: 0 },
+                        props: { convex: true, dispose: true },
+                        calls: [{ method: "capture" }]
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
+            components: [],
+            root: 0
+          });
+          const inst = disposeOuter.instantiate();
+          expect(inst.children[0].getComponent(MeshCollider)).toBeNull();
+          inst.destroy();
+          expect(observed).toEqual([]);
+        } finally {
+          // @ts-ignore
+          delete engine.resourceManager._objectPool[baseKey];
+        }
+      }
+
       expect(errors).not.toHaveBeenCalled();
     } finally {
       errors.mockRestore();
