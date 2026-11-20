@@ -60,6 +60,7 @@ import {
 import { createSeedWorldAgentDefinition } from "../agent-adapter/SeedWorldAgentDefinition.ts";
 import type { SeedWorldAgentApplication } from "../agent-adapter/SeedWorldAgentApplication.ts";
 import { createSeedWorldTools } from "../agent-adapter/SeedWorldToolCatalog.ts";
+import { createSeedWorldImageResources } from "./SeedWorldImageResources.ts";
 import { SEED_WORLD_MODEL } from "./SeedWorldModel.ts";
 import {
   createSeedWorldAgentDebug,
@@ -238,8 +239,10 @@ type AssistantState =
       tone: VoiceHudTextTone;
     };
 
-/** Mounts voice interaction without DOM layout, text, hit testing, or controls. */
-export function mountSeedWorldChatPanel(options: SeedWorldChatPanelOptions): SeedWorldChatPanel {
+/** Composes the Seed World Agent configuration without mounting HUD rendering resources. */
+export function createSeedWorldChatAgentConfiguration(
+  options: Pick<SeedWorldChatPanelOptions, "application" | "nativeEditor" | "projectFiles" | "editorExtensions">
+): ReturnType<typeof composeAgentConfiguration> {
   const baseDefinition = createSeedWorldAgentDefinition(options.application, options.nativeEditor);
   const baseTools = [...createSeedWorldTools(options.application), ...(options.nativeEditor?.tools ?? [])];
   baseDefinition.projectFiles = [...(baseDefinition.projectFiles ?? []), ...(options.projectFiles ?? [])];
@@ -247,8 +250,13 @@ export function mountSeedWorldChatPanel(options: SeedWorldChatPanelOptions): See
     signal.throwIfAborted();
     return options.application.requireViewSnapshots().snapshot(signal);
   };
-  baseDefinition.imageResources = options.application.viewSnapshots;
-  const configuration = composeAgentConfiguration({ definition: baseDefinition, tools: baseTools }, options.editorExtensions ?? []);
+  baseDefinition.imageResources = createSeedWorldImageResources(options.application);
+  return composeAgentConfiguration({ definition: baseDefinition, tools: baseTools }, options.editorExtensions ?? []);
+}
+
+/** Mounts voice interaction without DOM layout, text, hit testing, or controls. */
+export function mountSeedWorldChatPanel(options: SeedWorldChatPanelOptions): SeedWorldChatPanel {
+  const configuration = createSeedWorldChatAgentConfiguration(options);
   const session = new AIChatSession({
     agent: new AgentLoop({
       ...configuration,

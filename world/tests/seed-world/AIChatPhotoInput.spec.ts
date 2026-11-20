@@ -6,6 +6,7 @@ import { createTestAgentLoop } from "../../../packages/ai-chat/tests/AIChatTestR
 import { ConversationHistory } from "@galacean/engine-ai-chat/ai-chat/conversation-history.ts";
 import { readSystemInjection } from "@galacean/engine-ai-chat/ai-chat/agent-protocol.ts";
 import { SeedWorldViewSnapshots, type ViewAnnotation } from "@galacean/engine-world-planning/world/SeedWorldViewSnapshot.ts";
+import { SeedWorldAgentApplication } from "../../demos/seed-world/agent-adapter/SeedWorldAgentApplication.ts";
 
 const request = vi.mocked(requestAsapChat);
 const final = { content: "done", toolCalls: [], finishReason: "stop" as const };
@@ -294,4 +295,141 @@ it("publishes immutable state through preparation failure and disposal without a
   gate.resolve([]); await new Promise(resolve => setTimeout(resolve, 0));
   expect(session.state).toBe("disposed"); expect(states.at(-1)).toBe("disposed");
   expect(old.current?.input).toBe("export failure"); expect(request).not.toHaveBeenCalled();
+});
+
+it("exposes pick and forwards image resource accounting when viewSnapshots is assigned after AgentLoop creation", async () => {
+  vi.stubGlobal("window", {});
+  const { createSeedWorldChatAgentConfiguration } = await import("../../demos/seed-world/assistant/SeedWorldChatPanel");
+  const application = new SeedWorldAgentApplication({} as any);
+  vi.spyOn(application, "getWorldThumbnail").mockReturnValue({});
+
+  // Construct AgentLoop + AIChatSession through the real ChatPanel configuration builder while
+  // application.viewSnapshots is still undefined, mirroring startup shader warmup calling
+  // preparePresentation() before SeedWorldViewSnapshots exists.
+  const configuration = createSeedWorldChatAgentConfiguration({ application });
+  const imageResources = configuration.definition.imageResources!;
+  expect(imageResources).toBeDefined();
+
+  // Before viewSnapshots is attached (preparePresentation phase), read/turn helpers degrade safely
+  // while active snapshot/pick access reports unavailability consistently with captureSnapshot.
+  expect(imageResources.hasImage(".ai/snapshots/missing.jpg")).toBe(false);
+  expect([...(imageResources.paths?.() ?? [])]).toEqual([]);
+  expect(() => imageResources.beginTurn(0)).not.toThrow();
+  expect(() => imageResources.resetConversation()).not.toThrow();
+  expect(() => imageResources.pick!({ file_path: ".ai/snapshots/missing.jpg", points: [{ x: 0, y: 0 }] })).toThrow(
+    "View snapshots are unavailable"
+  );
+  expect(() => imageResources.acquireImage(".ai/snapshots/missing.jpg")).toThrow("View snapshots are unavailable");
+
+  const history = new ConversationHistory();
+  const agent = createTestAgentLoop(configuration);
+  const session = new AIChatSession({ history, agent });
+  const events: any[] = [];
+  agent.subscribe((event) => events.push(event));
+
+  // Later in startup (after preparePresentation), viewSnapshots is created and attached.
+  const frame = {
+    image: {
+      texture: {} as any,
+      width: 768,
+      height: 432,
+      dispose: vi.fn(),
+      export: vi.fn(async (marks: readonly ViewAnnotation[]) => ({
+        width: 768,
+        height: 432,
+        blob: new Blob([JSON.stringify(marks)], { type: "image/jpeg" })
+      }))
+    },
+    width: 2,
+    height: 2,
+    identities: {
+      identityBits: 14,
+      estimatedPosition: () => [12, 3, -4] as [number, number, number],
+      byteLength: 16,
+      read: (_x: number, _y: number, width: number, height: number) => {
+        const bytes = new Uint8Array(width * height * 4);
+        for (let i = 0; i < bytes.length; i += 4) bytes[i] = 1;
+        return bytes;
+      },
+      resolve: () => ({ entityId: 42, componentId: 43, componentType: "MeshRenderer" }),
+      dispose: vi.fn()
+    }
+  };
+  const views = new SeedWorldViewSnapshots(() => frame, () => "scene-v1");
+  application.viewSnapshots = views;
+
+  const shot = await views.capture();
+  views.setAttachment(shot.snapshotId, []);
+  const lease = views.acquireAttachments()!;
+  const imagePath = lease.references[0].imagePath;
+
+  request
+    .mockResolvedValueOnce({
+      content: "",
+      finishReason: "tool_calls" as const,
+      toolCalls: [
+        {
+          id: "pick-1",
+          type: "function" as const,
+          function: {
+            name: "pick",
+            arguments: JSON.stringify({
+              file_path: imagePath,
+              points: [{ x: 384, y: 216 }],
+              region: null,
+              offset: null,
+              limit: null
+            })
+          }
+        }
+      ]
+    })
+    .mockResolvedValueOnce(final);
+
+  await session.run("在这里种一棵树", { debugMode: true }, "next-step", prepared(lease));
+
+  const offeredTools = request.mock.calls[0][0].tools.map((tool) => tool.function.name);
+  expect(offeredTools).toEqual(expect.arrayContaining(["snapshot", "pick"]));
+
+  const pickReply = request.mock.calls[1][0].messages.find((m) => m.role === "tool" && m.toolCallId === "pick-1")!;
+  expect(JSON.parse(pickReply.content)).toMatchObject({
+    ok: true,
+    result: {
+      file_path: imagePath,
+      currentScene: true,
+      hits: [
+        {
+          status: "hit",
+          hit: {
+            ref: { entityId: 42, componentId: 43, componentType: "MeshRenderer" },
+            estimatedPosition: [12, 3, -4]
+          }
+        }
+      ]
+    }
+  });
+
+  const capturedResourceEvent = events.find((e) => e.type === "image_resources" && e.action === "captured");
+  expect(capturedResourceEvent?.resources).toMatchObject({
+    identity: 16,
+    turn: 1,
+    snapshots: [expect.objectContaining({ snapshotId: shot.snapshotId })]
+  });
+
+  // Verify beginTurn & resetConversation forward to the lazily bound viewSnapshots.
+  views.removeAttachment(shot.snapshotId);
+  await session.run("turn 2");
+  await session.run("turn 3");
+  expect(frame.identities.dispose).not.toHaveBeenCalled();
+  await session.run("turn 4");
+  expect(frame.identities.dispose).toHaveBeenCalledOnce();
+  expect(frame.image.dispose).toHaveBeenCalledOnce();
+
+  await vi.waitFor(() => expect(session.state).toBe("idle"));
+  const resetSpy = vi.spyOn(views, "resetConversation");
+  session.reset();
+  expect(resetSpy).toHaveBeenCalledOnce();
+
+  session.dispose();
+  views.dispose();
 });
