@@ -1,0 +1,28 @@
+packages/core/src/Entity.ts
+  h_dd004f51a3e5ec 26-28,963-1068,1091-1099,1102,1145,1150,1289
+packages/core/src/Scene.ts
+  h_dd004f51a3e5ec 85,363,403,408,510-511,513,519-520,522,533,556
+packages/core/src/physics/MeshCollider.ts
+  h_dd004f51a3e5ec 15-25,88-89,92-93,107-112,114,128-133,135,148-153,155,183-298,300-312,314
+packages/core/src/physics/Rigidbody.ts
+  h_dd004f51a3e5ec 540-553
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  h_dd004f51a3e5ec 496-498,501-533,536-578,581,584-585,589-594,597-600,602-605,611,614-649,654-669,671-672,719-721
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  h_dd004f51a3e5ec 62-66,117-126
+tests/src/core/physics/PhysicsGameplay.test.ts
+  h_dd004f51a3e5ec 2804-3068
+tests/src/loader/PrefabResource.test.ts
+  h_dd004f51a3e5ec 1974-2174
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e30264bac3f0d7d038611252bf3a80b466c9995b",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
