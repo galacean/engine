@@ -156,6 +156,10 @@
     "replacement": "packages/modify/src/native/core/src/postProcess/PostProcessUberPass.ts"
   },
   {
+    "original": "packages/core/src/postProcess/effects/BloomEffect.ts",
+    "replacement": "packages/modify/src/native/core/src/postProcess/effects/BloomEffect.ts"
+  },
+  {
     "original": "packages/core/src/postProcess/effects/index.ts",
     "replacement": "packages/modify/src/native/core/src/postProcess/effects/index.ts"
   },
@@ -516,8 +520,20 @@
     "replacement": "packages/modify/src/native/shader/src/Shaders/PostProcess/SunLensFlareVisibility.shader"
   },
   {
+    "original": "packages/shader/src/Shaders/PostProcess/Bloom.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/PostProcess/Bloom.shader"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomDownsample.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/Bloom/BloomDownsample.glsl"
+  },
+  {
     "original": "packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl",
     "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomUpsample.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/Bloom/BloomUpsample.glsl"
   },
   {
     "original": "packages/shader/src/ShaderLibrary/PBR/LightIndirectPBR.glsl",

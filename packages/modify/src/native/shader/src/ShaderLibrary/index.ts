@@ -45,8 +45,7 @@ import Particle_Module_WindOverLifetime from "./Particle/Module/WindOverLifetime
 import Particle_ParticleCommon from "./Particle/ParticleCommon.glsl";
 import Particle_ParticleMesh from "./Particle/ParticleMesh.glsl";
 import Particle_ParticleVert from "./Particle/ParticleVert.glsl";
-import PostProcess_Bloom_BloomBlurH from "./PostProcess/Bloom/BloomBlurH.glsl";
-import PostProcess_Bloom_BloomBlurV from "./PostProcess/Bloom/BloomBlurV.glsl";
+import PostProcess_Bloom_BloomDownsample from "./PostProcess/Bloom/BloomDownsample.glsl";
 import PostProcess_Bloom_BloomPrefilter from "./PostProcess/Bloom/BloomPrefilter.glsl";
 import PostProcess_Bloom_BloomUpsample from "./PostProcess/Bloom/BloomUpsample.glsl";
 import PostProcess_FXAA_FXAA3_11 from "./PostProcess/FXAA/FXAA3_11.glsl";
@@ -113,8 +112,7 @@ export const shaderLibrary: IShaderSource[] = [
   { source: Particle_ParticleCommon, path: "ShaderLibrary/Particle/ParticleCommon.glsl" },
   { source: Particle_ParticleMesh, path: "ShaderLibrary/Particle/ParticleMesh.glsl" },
   { source: Particle_ParticleVert, path: "ShaderLibrary/Particle/ParticleVert.glsl" },
-  { source: PostProcess_Bloom_BloomBlurH, path: "ShaderLibrary/PostProcess/Bloom/BloomBlurH.glsl" },
-  { source: PostProcess_Bloom_BloomBlurV, path: "ShaderLibrary/PostProcess/Bloom/BloomBlurV.glsl" },
+  { source: PostProcess_Bloom_BloomDownsample, path: "ShaderLibrary/PostProcess/Bloom/BloomDownsample.glsl" },
   { source: PostProcess_Bloom_BloomPrefilter, path: "ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl" },
   { source: PostProcess_Bloom_BloomUpsample, path: "ShaderLibrary/PostProcess/Bloom/BloomUpsample.glsl" },
   { source: PostProcess_FXAA_FXAA3_11, path: "ShaderLibrary/PostProcess/FXAA/FXAA3_11.glsl" },

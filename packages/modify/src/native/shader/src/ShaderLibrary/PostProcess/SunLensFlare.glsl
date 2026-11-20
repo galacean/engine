@@ -42,7 +42,7 @@ vec4 renderer_SunLensFlareVisibilityParams1;
 vec4 material_SunLensFlareParams0;
 // x: glareIntensity, y: ghostIntensity, z: ghostSpread, w: ghostChromaticity
 vec4 material_SunLensFlareParams1;
-// rgb: linear tint (pre-compensated when composited directly into Bloom _mipUpRT[0]), a: animation time (seconds)
+// rgb: linear tint (pre-compensated when composited directly into Bloom _mipRT[0]), a: animation time (seconds)
 vec4 material_SunLensFlareTint;
 // < 0.0: read a_SunVisibility from Transform Feedback VBO; >= 0.0: use this value directly (occlusion disabled / WebGL1)
 float material_SunLensFlareVisibilityOverride;
