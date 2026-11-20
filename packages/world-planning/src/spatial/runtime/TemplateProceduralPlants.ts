@@ -1,6 +1,8 @@
 import {
   AssetType,
   BoundingBox,
+  BoundingFrustum,
+  BoundingSphere,
   Color,
   Matrix,
   MeshRenderer,
@@ -363,23 +365,52 @@ function attachFlexibleWindFrames(parts: readonly PlantPartMesh[], windHeight: n
   });
 }
 
-function catalogLod0Instances(speciesId: string): readonly PlantGeometryInstance[] {
+function catalogLodInstances(speciesId: string, lodIndex: number): readonly PlantGeometryInstance[] {
   const entry = PLANT_SPECIES_CATALOG.assets.find((item) => item.id === speciesId) as
     | { geometryInstances?: readonly PlantGeometryInstance[] }
     | undefined;
-  return (entry?.geometryInstances ?? []).filter((inst) => !inst.lods || inst.lods.includes(0));
+  return (entry?.geometryInstances ?? []).filter((inst) => !inst.lods || inst.lods.includes(lodIndex));
+}
+
+function scaleTransformXZ(transform: readonly number[], xzScale: number): number[] {
+  const out = transform.slice();
+  out[0] *= xzScale;
+  out[1] *= xzScale;
+  out[2] *= xzScale;
+  out[8] *= xzScale;
+  out[9] *= xzScale;
+  out[10] *= xzScale;
+  out[12] *= xzScale;
+  out[14] *= xzScale;
+  return out;
 }
 
 /**
  * Camera-distance thresholds (metres) for `desert-shrub` dynamic GPU-instanced LOD bucketing.
- * - LOD0 (< 48m): full close-up foliage (643 parts).
- * - LOD1 (48–88m): lush mid-ground cliff-foot bushes (445 parts, -31%).
- * - LOD2 (88–135m): canyon ledges & outer flanks (238 parts, -63%).
- * - LOD3 (>= 135m): far canyon rims (55 parts, -91.5%).
+ * - LOD0 (< 24m): full two-layer close-up foliage (upper crown + lower sage skirt).
+ * - LOD1 (24–46m): broadened single-layer mid-ground bush (-67% triangles).
+ * - LOD2 (46–84m): broadened single-layer canyon ledge bush (-83% triangles).
+ * - LOD3 (84–190m): far canyon rim silhouette (-96% triangles).
  */
-export const DESERT_SHRUB_LOD_DISTANCES_M: readonly number[] = [48, 88, 135];
-const DESERT_SHRUB_LOD_HYSTERESIS_M = 4;
-const DESERT_SHRUB_CAMERA_MOVE_EPSILON_SQ = 4;
+export const DESERT_SHRUB_LOD_DISTANCES_M: readonly number[] = [24, 46, 84];
+const TEMPLATE_PLANT_CELL_SIZE_M = 32;
+const CAMERA_MATRIX_EPSILON = 1e-5;
+
+interface TemplatePlantLodPolicy {
+  readonly distancesM: readonly number[];
+  readonly maxDistanceM: number;
+  readonly hysteresisM: number;
+}
+
+export const TEMPLATE_PLANT_LOD_POLICIES: Readonly<
+  Record<Exclude<TemplateProceduralPlantKind, "dead-wood">, TemplatePlantLodPolicy>
+> = {
+  "desert-shrub": { distancesM: DESERT_SHRUB_LOD_DISTANCES_M, maxDistanceM: 190, hysteresisM: 4 },
+  "pastel-flower": { distancesM: [16, 34], maxDistanceM: 95, hysteresisM: 3 },
+  "meadow-flower": { distancesM: [16, 34], maxDistanceM: 95, hysteresisM: 3 },
+  "dry-grass": { distancesM: [22, 48], maxDistanceM: 130, hysteresisM: 4 },
+  "plume-grass": { distancesM: [22, 48], maxDistanceM: 130, hysteresisM: 4 }
+};
 
 interface CompiledProductionPlantGeometry {
   readonly geometry: readonly PlantPartMesh[];
@@ -390,11 +421,15 @@ interface CompiledProductionPlantGeometry {
   readonly canopyOcclusionSlots?: ReadonlySet<string>;
 }
 
-export interface CompiledDesertShrubLod extends CompiledProductionPlantGeometry {
+export interface CompiledTemplatePlantLod extends CompiledProductionPlantGeometry {
   readonly lodIndex: number;
 }
 
+export type CompiledDesertShrubLod = CompiledTemplatePlantLod;
+
 const cachedDesertShrubLods = new WeakMap<ProceduralPlantAsset, readonly CompiledDesertShrubLod[]>();
+const cachedFlowerLods = new WeakMap<ProceduralPlantAsset, Map<string, readonly CompiledTemplatePlantLod[]>>();
+const cachedGrassLods = new WeakMap<ProceduralPlantAsset, Map<string, readonly CompiledTemplatePlantLod[]>>();
 
 /** Compiles all available LODs for `desert-shrub` anchored to LOD0's canonical height so LOD swaps never pop vertically. */
 export function compileDesertShrubLods(bushAsset: ProceduralPlantAsset): readonly CompiledDesertShrubLod[] {
@@ -406,13 +441,18 @@ export function compileDesertShrubLods(bushAsset: ProceduralPlantAsset): readonl
   const rawFloor = Math.min(...lod0Parts.map(({ mesh }) => mesh.bounds[0][1]));
   const rawMaxY = Math.max(...lod0Parts.map(({ mesh }) => mesh.bounds[1][1]));
   const rawHeight = Math.max(0.05, rawMaxY - rawFloor);
-  // Combine an upper crown and a ground-hugging lower sage skirt so desert bushes sit naturally on sand & rock ledges without leggy stilts.
-  const layers = [
+  // Combine an upper crown and a ground-hugging lower sage skirt at close range (LOD0),
+  // and switch mid/far LODs to a single broadened crown so silhouette stays lush at half the triangle & overdraw cost.
+  const closeLayers = [
     [1, 0, 0, 0, 0, 0.92, 0, 0, 0, 0, 1, 0, 0, -0.14 * rawHeight, 0, 1],
     [0, 0, -1.24, 0, 0, 0.62, 0, 0, 1.24, 0, 0, 0, 0, -0.22 * rawHeight, 0, 1]
   ];
+  const distantLayers = [[1.16, 0, 0, 0, 0, 0.9, 0, 0, 0, 0, 1.16, 0, 0, -0.17 * rawHeight, 0, 1]];
 
-  const assembleLayerParts = (baseParts: readonly PlantPartMesh[]): PlantPartMesh[] => {
+  const assembleLayerParts = (
+    baseParts: readonly PlantPartMesh[],
+    layers: readonly (readonly number[])[]
+  ): PlantPartMesh[] => {
     const assembled: PlantPartMesh[] = [];
     layers.forEach((m, idx) => {
       for (const part of baseParts) {
@@ -423,7 +463,7 @@ export function compileDesertShrubLods(bushAsset: ProceduralPlantAsset): readonl
     return assembled;
   };
 
-  const lod0Assembled = assembleLayerParts(lod0Parts);
+  const lod0Assembled = assembleLayerParts(lod0Parts, closeLayers);
   const shrubCanopySlots = new Set<string>(["foliage"]);
   const lod0WithDepths = attachPlantCanopyOpticalDepth(lod0Assembled, shrubCanopySlots);
   const lod0Floor = Math.min(...lod0WithDepths.map(({ mesh }) => mesh.bounds[0][1]));
@@ -448,7 +488,11 @@ export function compileDesertShrubLods(bushAsset: ProceduralPlantAsset): readonl
 
   for (let lodIndex = 1; lodIndex < lodCount; lodIndex++) {
     const baseParts = buildProceduralPlantGeometry(bushAsset.geometryLods[lodIndex], 0);
-    const assembled = attachPlantCanopyOpticalDepth(assembleLayerParts(baseParts), shrubCanopySlots, lod0WithDepths);
+    const assembled = attachPlantCanopyOpticalDepth(
+      assembleLayerParts(baseParts, distantLayers),
+      shrubCanopySlots,
+      lod0WithDepths
+    );
     result.push({
       lodIndex,
       geometry: mergePlantGeometryByMaterial(attachFlexibleWindFrames(assembled, windHeight)),
@@ -464,151 +508,69 @@ export function compileDesertShrubLods(bushAsset: ProceduralPlantAsset): readonl
   return result;
 }
 
-function resolveDesertShrubLodTier(distanceM: number, currentTier: number, maxTier: number): number {
-  const thresholds = DESERT_SHRUB_LOD_DISTANCES_M;
-  if (currentTier < 0) {
-    let tier = 0;
-    while (tier < maxTier && tier < thresholds.length && distanceM >= thresholds[tier]) {
-      tier++;
+/** Compiles LOD0..LOD2 flower cushion meshes anchored to LOD0 height for `pastel-flower` and `meadow-flower`. */
+export function compileFlowerLods(
+  kind: "pastel-flower" | "meadow-flower",
+  flowerAsset: ProceduralPlantAsset,
+  grassAsset: ProceduralPlantAsset
+): readonly CompiledTemplatePlantLod[] {
+  let byKind = cachedFlowerLods.get(flowerAsset);
+  const existing = byKind?.get(kind);
+  if (existing) return existing;
+
+  const rawPetalId = "appearance-e7bfcdb9301d4d83";
+  const baseHeadBoost = kind === "meadow-flower" ? 1.28 : 1.95;
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+  const radiusScale = kind === "meadow-flower" ? 0.72 : 0.52;
+
+  const lod0BaseParts = buildProceduralPlantGeometry(flowerAsset.geometryLods[0], 0);
+  const baseSpan = Math.max(
+    0.1,
+    ...lod0BaseParts.map(({ mesh }) =>
+      Math.max(mesh.bounds[1][0] - mesh.bounds[0][0], mesh.bounds[1][2] - mesh.bounds[0][2])
+    )
+  );
+  const baseMaxY = Math.max(0.05, ...lod0BaseParts.map(({ mesh }) => mesh.bounds[1][1]));
+  const grassLod0Rest = buildProceduralPlantGeometry(grassAsset.geometryLods[0], 0);
+  const grassMaxY = Math.max(0.05, ...grassLod0Rest.map(({ mesh }) => mesh.bounds[1][1]));
+  const foliageScale = (baseMaxY * 0.55) / grassMaxY;
+  const grassCatalog = catalogLodInstances("SM_Grass_02_03", 0);
+
+  const tierSpecs = [
+    {
+      lodIndex: 0,
+      flowerLodIndex: 0,
+      grassLodIndex: 0,
+      sprigCount: kind === "meadow-flower" ? 5 : 9,
+      grassCount: 3,
+      headBoostMul: 1
+    },
+    {
+      lodIndex: 1,
+      flowerLodIndex: Math.min(1, flowerAsset.geometryLods.length - 1),
+      grassLodIndex: Math.min(1, grassAsset.geometryLods.length - 1),
+      sprigCount: kind === "meadow-flower" ? 3 : 4,
+      grassCount: 2,
+      headBoostMul: 1.18
+    },
+    {
+      lodIndex: 2,
+      flowerLodIndex: Math.min(2, flowerAsset.geometryLods.length - 1),
+      grassLodIndex: Math.min(2, grassAsset.geometryLods.length - 1),
+      sprigCount: 2,
+      grassCount: 1,
+      headBoostMul: 1.32
     }
-    return tier;
-  }
-  let tier = currentTier;
-  while (tier > 0 && distanceM < thresholds[tier - 1] - DESERT_SHRUB_LOD_HYSTERESIS_M) {
-    tier--;
-  }
-  while (tier < maxTier && tier < thresholds.length && distanceM > thresholds[tier] + DESERT_SHRUB_LOD_HYSTERESIS_M) {
-    tier++;
-  }
-  return tier;
-}
+  ] as const;
 
-interface ShrubLodInstanceRecord {
-  readonly worldX: number;
-  readonly worldY: number;
-  readonly worldZ: number;
-  readonly transform: readonly number[];
-  readonly explicitVariant?: number;
-  readonly variantRandom: number;
-}
-
-interface ShrubLodTierPart {
-  readonly entity: Entity;
-  readonly view: TreeAssemblyInstancedMesh;
-  readonly colors: PlantColorways;
-}
-
-class TemplateShrubLodController extends Script {
-  private camera?: Camera;
-  private instances: readonly ShrubLodInstanceRecord[] = [];
-  private tiers: readonly (readonly ShrubLodTierPart[])[] = [];
-  private assignedLod = new Int8Array(0);
-  private tierCounts = new Int32Array(0);
-  private lastCamX = Infinity;
-  private lastCamY = Infinity;
-  private lastCamZ = Infinity;
-
-  configure(
-    camera: Camera,
-    instances: readonly ShrubLodInstanceRecord[],
-    tiers: readonly (readonly ShrubLodTierPart[])[]
-  ): void {
-    this.camera = camera;
-    this.instances = instances;
-    this.tiers = tiers;
-    this.assignedLod = new Int8Array(instances.length).fill(-1);
-    this.tierCounts = new Int32Array(tiers.length);
-    this.lastCamX = Infinity;
-    this.lastCamY = Infinity;
-    this.lastCamZ = Infinity;
-    this.refresh(true);
-  }
-
-  override onLateUpdate(): void {
-    this.refresh(false);
-  }
-
-  refresh(force: boolean): void {
-    const camera = this.camera;
-    if (!camera || camera.destroyed || camera.entity.destroyed || this.tiers.length === 0) return;
-    const camPos = camera.entity.transform.worldPosition;
-    if (!force) {
-      const dx = camPos.x - this.lastCamX;
-      const dy = camPos.y - this.lastCamY;
-      const dz = camPos.z - this.lastCamZ;
-      if (dx * dx + dy * dy + dz * dz < DESERT_SHRUB_CAMERA_MOVE_EPSILON_SQ) return;
-    }
-    this.lastCamX = camPos.x;
-    this.lastCamY = camPos.y;
-    this.lastCamZ = camPos.z;
-
-    const maxTier = this.tiers.length - 1;
-    let changed = force;
-    for (let i = 0; i < this.instances.length; i++) {
-      const inst = this.instances[i];
-      const dist = Math.hypot(inst.worldX - camPos.x, inst.worldY - camPos.y, inst.worldZ - camPos.z);
-      const next = resolveDesertShrubLodTier(dist, this.assignedLod[i], maxTier);
-      if (next !== this.assignedLod[i]) {
-        this.assignedLod[i] = next;
-        changed = true;
-      }
-    }
-    if (!changed) return;
-
-    this.tierCounts.fill(0);
-    for (let i = 0; i < this.instances.length; i++) {
-      const tierIndex = this.assignedLod[i];
-      const slotIndex = this.tierCounts[tierIndex]++;
-      const inst = this.instances[i];
-      const tierParts = this.tiers[tierIndex];
-      for (let p = 0; p < tierParts.length; p++) {
-        const part = tierParts[p];
-        const offset = slotIndex * part.view.recordFloats;
-        const rawVariant = inst.explicitVariant ?? Math.floor(inst.variantRandom * part.colors.length);
-        const color = part.colors[Math.abs(Math.trunc(rawVariant)) % part.colors.length];
-        part.view.staging.set(inst.transform, offset);
-        part.view.staging.set([color[0], color[1], color[2], 1], offset + 12);
-      }
-    }
-
-    for (let t = 0; t < this.tiers.length; t++) {
-      const count = this.tierCounts[t];
-      const tierParts = this.tiers[t];
-      for (let p = 0; p < tierParts.length; p++) {
-        const part = tierParts[p];
-        uploadTreeAssemblyInstances(part.view, count);
-        part.entity.isActive = count > 0;
-      }
-    }
-  }
-}
-
-function compileProductionGeometry(
-  kind: Exclude<TemplateProceduralPlantKind, "dead-wood">,
-  resources: TemplateProceduralPlantResources
-): CompiledProductionPlantGeometry {
-  if (kind === "desert-shrub") {
-    const bushAsset =
-      resources.bushAsset ?? (decodedBushAsset ??= decodePlantParameters<ProceduralPlantAsset>(bushStructureJson));
-    return compileDesertShrubLods(bushAsset)[0]!;
-  }
-
-  if (kind === "pastel-flower" || kind === "meadow-flower") {
-    const flowerAsset =
-      resources.flowerAsset ??
-      (decodedFlowerAsset ??= decodePlantParameters<ProceduralPlantAsset>(flowerStructureJson));
-    const structure = flowerAsset.geometryLods[0];
-    const baseParts = buildProceduralPlantGeometry(structure, 0);
-    const baseSpan = Math.max(
-      0.1,
-      ...baseParts.map(({ mesh }) =>
-        Math.max(mesh.bounds[1][0] - mesh.bounds[0][0], mesh.bounds[1][2] - mesh.bounds[0][2])
-      )
-    );
-    const baseMaxY = Math.max(0.05, ...baseParts.map(({ mesh }) => mesh.bounds[1][1]));
-    const rawPetalId = "appearance-e7bfcdb9301d4d83";
-    const headBoost = kind === "meadow-flower" ? 1.28 : 1.95;
-    // Enlarge each alpha-cutout blossom card slightly around its head center so petals stay lush from afar AND crisp up close!
+  const q = new Quaternion();
+  const mat = new Matrix();
+  const buildTierParts = (spec: (typeof tierSpecs)[number]): PlantPartMesh[] => {
+    const baseParts =
+      spec.flowerLodIndex === 0
+        ? lod0BaseParts
+        : buildProceduralPlantGeometry(flowerAsset.geometryLods[spec.flowerLodIndex], 0);
+    const headBoost = baseHeadBoost * spec.headBoostMul;
     const enlargedParts = baseParts.map((part) => {
       if (part.materialId !== rawPetalId) return part;
       const cx = (part.mesh.bounds[0][0] + part.mesh.bounds[1][0]) * 0.5;
@@ -630,15 +592,10 @@ function compileProductionGeometry(
       });
       return { ...part, mesh: { ...part.mesh, positions, bounds: [min, max] as const } };
     });
-    // Compose airy wildflower sprigs (5 for meadow-flower, 9 dense cushions for pastel-flower) + basal grass blades.
-    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+
     const assembled: PlantPartMesh[] = [];
-    const q = new Quaternion();
-    const mat = new Matrix();
-    const sprigCount = kind === "meadow-flower" ? 5 : 9;
-    const radiusScale = kind === "meadow-flower" ? 0.72 : 0.52;
-    for (let i = 0; i < sprigCount; i++) {
-      const r = (i === 0 ? 0 : 0.24 + Math.sqrt(i / Math.max(1, sprigCount - 1)) * radiusScale) * baseSpan;
+    for (let i = 0; i < spec.sprigCount; i++) {
+      const r = (i === 0 ? 0 : 0.24 + Math.sqrt(i / Math.max(1, spec.sprigCount - 1)) * radiusScale) * baseSpan;
       const theta = i * goldenAngle;
       const x = Math.cos(theta) * r;
       const z = Math.sin(theta) * r;
@@ -652,84 +609,411 @@ function compileProductionGeometry(
         assembled.push(...transformRestParts([part], mArr, slot, `c${i}`));
       }
     }
-    const grassAsset =
-      resources.grassAsset ?? (decodedGrassAsset ??= decodePlantParameters<ProceduralPlantAsset>(grassStructureJson));
-    const grassRest = buildProceduralPlantGeometry(grassAsset.geometryLods[0], 0);
-    const grassInstances = catalogLod0Instances("SM_Grass_02_03").slice(0, 3);
-    const grassMaxY = Math.max(0.05, ...grassRest.map(({ mesh }) => mesh.bounds[1][1]));
-    const foliageScale = (baseMaxY * 0.55) / grassMaxY;
-    grassInstances.forEach((inst, idx) => {
+
+    const grassRest =
+      spec.grassLodIndex === 0
+        ? grassLod0Rest
+        : buildProceduralPlantGeometry(grassAsset.geometryLods[spec.grassLodIndex], 0);
+    grassCatalog.slice(0, spec.grassCount).forEach((inst, idx) => {
       const matching = grassRest.filter((part) => part.materialId === inst.materialId);
       const scaledTransform = inst.transform.map((v, k) =>
         k < 12 ? v * foliageScale : k === 15 ? 1 : v * foliageScale
       );
       assembled.push(...transformRestParts(matching, scaledTransform, "foliage", `fg${idx}`));
     });
-    const floor = Math.min(...assembled.map(({ mesh }) => mesh.bounds[0][1]));
-    const maxY = Math.max(...assembled.map(({ mesh }) => mesh.bounds[1][1]));
-    const windHeight = Math.max(0.05, maxY);
+    return assembled;
+  };
+
+  const lod0Assembled = buildTierParts(tierSpecs[0]);
+  const floor = Math.min(...lod0Assembled.map(({ mesh }) => mesh.bounds[0][1]));
+  const maxY = Math.max(...lod0Assembled.map(({ mesh }) => mesh.bounds[1][1]));
+  const windHeight = Math.max(0.05, maxY);
+  const sourceHeight = Math.max(0.01, maxY - floor);
+
+  const result: CompiledTemplatePlantLod[] = tierSpecs.map((spec, idx) => {
+    const assembled = idx === 0 ? lod0Assembled : buildTierParts(spec);
     return {
+      lodIndex: spec.lodIndex,
       geometry: mergePlantGeometryByMaterial(attachFlexibleWindFrames(assembled, windHeight)),
       floor,
-      sourceHeight: Math.max(0.01, maxY - floor),
+      sourceHeight,
       windHeight,
       leafSlots: new Set()
     };
-  }
-
-  const grassAsset =
-    resources.grassAsset ?? (decodedGrassAsset ??= decodePlantParameters<ProceduralPlantAsset>(grassStructureJson));
-  const grassRest = buildProceduralPlantGeometry(grassAsset.geometryLods[0], 0);
-  const grassInstances = catalogLod0Instances("SM_Grass_02_03");
-  const grassAssembled: PlantPartMesh[] = [];
-  grassInstances.forEach((inst, idx) => {
-    const matching = grassRest.filter((part) => part.materialId === inst.materialId);
-    grassAssembled.push(...transformRestParts(matching, inst.transform, "foliage", `g${idx}`));
   });
 
-  if (kind === "dry-grass") {
-    const floor = Math.min(...grassAssembled.map(({ mesh }) => mesh.bounds[0][1]));
-    const maxY = Math.max(...grassAssembled.map(({ mesh }) => mesh.bounds[1][1]));
-    const windHeight = Math.max(0.05, maxY);
-    return {
-      geometry: mergePlantGeometryByMaterial(attachFlexibleWindFrames(grassAssembled, windHeight)),
-      floor,
-      sourceHeight: Math.max(0.01, maxY - floor),
-      windHeight,
-      leafSlots: new Set()
-    };
+  if (!byKind) {
+    byKind = new Map();
+    cachedFlowerLods.set(flowerAsset, byKind);
   }
+  byKind.set(kind, result);
+  return result;
+}
 
-  // "plume-grass": radiating alpha-cutout sedge grass base + 3 graceful feathery branching seed panicles rising above.
-  const grassMaxY = Math.max(...grassAssembled.map(({ mesh }) => mesh.bounds[1][1]));
-  const plumeAsset =
-    resources.plumeAsset ?? (decodedPlumeAsset ??= decodePlantParameters<ProceduralPlantAsset>(plumeStructureJson));
-  const plumeRest = buildProceduralPlantGeometry(plumeAsset.geometryLods[0], 0);
-  const plumeBaseMaxY = Math.max(0.05, ...plumeRest.map(({ mesh }) => mesh.bounds[1][1]));
+/** Compiles LOD0..LOD2 grass/plume clump meshes anchored to LOD0 height for `dry-grass` and `plume-grass`. */
+export function compileGrassLods(
+  kind: "dry-grass" | "plume-grass",
+  grassAsset: ProceduralPlantAsset,
+  plumeAsset?: ProceduralPlantAsset
+): readonly CompiledTemplatePlantLod[] {
+  let byKind = cachedGrassLods.get(grassAsset);
+  const existing = byKind?.get(kind);
+  if (existing) return existing;
+
+  const grassLod0Rest = buildProceduralPlantGeometry(grassAsset.geometryLods[0], 0);
+  const grassLod0Instances = catalogLodInstances("SM_Grass_02_03", 0);
+  const grassLod3Instances = catalogLodInstances("SM_Grass_02_03", 3);
+
+  const assembleGrass = (lodIndex: number, maxCount: number, xzScale: number): PlantPartMesh[] => {
+    const clampedLod = Math.min(lodIndex, grassAsset.geometryLods.length - 1);
+    const grassRest =
+      clampedLod === 0 ? grassLod0Rest : buildProceduralPlantGeometry(grassAsset.geometryLods[clampedLod], 0);
+    const sourceInstances = lodIndex >= 2 && grassLod3Instances.length > 0 ? grassLod3Instances : grassLod0Instances;
+    const out: PlantPartMesh[] = [];
+    sourceInstances.slice(0, maxCount).forEach((inst, idx) => {
+      const matching = grassRest.filter((part) => part.materialId === inst.materialId);
+      const transform = xzScale === 1 ? inst.transform : scaleTransformXZ(inst.transform, xzScale);
+      out.push(...transformRestParts(matching, transform, "foliage", `g${idx}`));
+    });
+    return out;
+  };
+
+  const lod0Grass = assembleGrass(0, grassLod0Instances.length, 1);
+  const grassMaxY = Math.max(...lod0Grass.map(({ mesh }) => mesh.bounds[1][1]));
+
+  const plumeLod0Rest =
+    kind === "plume-grass" && plumeAsset ? buildProceduralPlantGeometry(plumeAsset.geometryLods[0], 0) : undefined;
+  const plumeBaseMaxY = plumeLod0Rest ? Math.max(0.05, ...plumeLod0Rest.map(({ mesh }) => mesh.bounds[1][1])) : 1;
   const plumeScale = (grassMaxY * 1.38) / plumeBaseMaxY;
-  const plumeAngles = [
+  const allPlumeAngles = [
     { yaw: 0.3, tiltX: 0.12, tiltZ: -0.08, s: plumeScale },
     { yaw: 2.4, tiltX: -0.1, tiltZ: 0.12, s: plumeScale * 0.92 },
     { yaw: 4.5, tiltX: 0.08, tiltZ: 0.1, s: plumeScale * 0.86 }
   ];
-  const combined: PlantPartMesh[] = [...grassAssembled];
+
   const q = new Quaternion();
   const mat = new Matrix();
-  plumeAngles.forEach(({ yaw, tiltX, tiltZ, s }, idx) => {
-    Quaternion.rotationYawPitchRoll(yaw, tiltX, tiltZ, q);
-    Matrix.affineTransformation(new Vector3(s, s, s), q, new Vector3(0, 0, 0), mat);
-    combined.push(...transformRestParts(plumeRest, Array.from(mat.elements), "plume", `p${idx}`));
-  });
-  const floor = Math.min(...combined.map(({ mesh }) => mesh.bounds[0][1]));
-  const maxY = Math.max(...combined.map(({ mesh }) => mesh.bounds[1][1]));
-  const windHeight = Math.max(0.05, maxY);
-  return {
-    geometry: mergePlantGeometryByMaterial(attachFlexibleWindFrames(combined, windHeight)),
-    floor,
-    sourceHeight: Math.max(0.01, maxY - floor),
-    windHeight,
-    leafSlots: new Set()
+  const buildTierParts = (
+    lodIndex: number,
+    grassCount: number,
+    grassXzScale: number,
+    plumeCount: number,
+    plumeBoost: number
+  ): PlantPartMesh[] => {
+    const combined = lodIndex === 0 ? [...lod0Grass] : assembleGrass(lodIndex, grassCount, grassXzScale);
+    if (kind === "plume-grass" && plumeAsset && plumeLod0Rest) {
+      const clampedPlumeLod = Math.min(lodIndex, plumeAsset.geometryLods.length - 1);
+      const plumeRest =
+        clampedPlumeLod === 0
+          ? plumeLod0Rest
+          : buildProceduralPlantGeometry(plumeAsset.geometryLods[clampedPlumeLod], 0);
+      allPlumeAngles.slice(0, plumeCount).forEach(({ yaw, tiltX, tiltZ, s }, idx) => {
+        const bs = s * plumeBoost;
+        Quaternion.rotationYawPitchRoll(yaw, tiltX, tiltZ, q);
+        Matrix.affineTransformation(new Vector3(bs, bs, bs), q, new Vector3(0, 0, 0), mat);
+        combined.push(...transformRestParts(plumeRest, Array.from(mat.elements), "plume", `p${idx}`));
+      });
+    }
+    return combined;
   };
+
+  const tierSpecs = [
+    { lodIndex: 0, grassCount: grassLod0Instances.length, grassXzScale: 1, plumeCount: 3, plumeBoost: 1 },
+    { lodIndex: 1, grassCount: 5, grassXzScale: 1.12, plumeCount: 2, plumeBoost: 1.08 },
+    { lodIndex: 2, grassCount: 3, grassXzScale: 1.24, plumeCount: 1, plumeBoost: 1.18 }
+  ] as const;
+
+  const lod0Parts = buildTierParts(0, tierSpecs[0].grassCount, 1, 3, 1);
+  const floor = Math.min(...lod0Parts.map(({ mesh }) => mesh.bounds[0][1]));
+  const maxY = Math.max(...lod0Parts.map(({ mesh }) => mesh.bounds[1][1]));
+  const windHeight = Math.max(0.05, maxY);
+  const sourceHeight = Math.max(0.01, maxY - floor);
+
+  const result: CompiledTemplatePlantLod[] = tierSpecs.map((spec, idx) => {
+    const parts =
+      idx === 0
+        ? lod0Parts
+        : buildTierParts(spec.lodIndex, spec.grassCount, spec.grassXzScale, spec.plumeCount, spec.plumeBoost);
+    return {
+      lodIndex: spec.lodIndex,
+      geometry: mergePlantGeometryByMaterial(attachFlexibleWindFrames(parts, windHeight)),
+      floor,
+      sourceHeight,
+      windHeight,
+      leafSlots: new Set()
+    };
+  });
+
+  if (!byKind) {
+    byKind = new Map();
+    cachedGrassLods.set(grassAsset, byKind);
+  }
+  byKind.set(kind, result);
+  return result;
+}
+
+function resolvePlantLodTier(
+  distanceM: number,
+  currentTier: number,
+  maxTier: number,
+  thresholds: readonly number[],
+  hysteresisM: number
+): number {
+  if (currentTier < 0) {
+    let tier = 0;
+    while (tier < maxTier && tier < thresholds.length && distanceM >= thresholds[tier]) {
+      tier++;
+    }
+    return tier;
+  }
+  let tier = currentTier;
+  while (tier > 0 && distanceM < thresholds[tier - 1] - hysteresisM) {
+    tier--;
+  }
+  while (tier < maxTier && tier < thresholds.length && distanceM > thresholds[tier] + hysteresisM) {
+    tier++;
+  }
+  return tier;
+}
+
+function distancePointToBoxSq(px: number, py: number, pz: number, box: BoundingBox): number {
+  const dx = px < box.min.x ? box.min.x - px : px > box.max.x ? px - box.max.x : 0;
+  const dy = py < box.min.y ? box.min.y - py : py > box.max.y ? py - box.max.y : 0;
+  const dz = pz < box.min.z ? box.min.z - pz : pz > box.max.z ? pz - box.max.z : 0;
+  return dx * dx + dy * dy + dz * dz;
+}
+
+interface PlantLodInstanceRecord {
+  readonly worldX: number;
+  readonly centerY: number;
+  readonly worldZ: number;
+  readonly radius: number;
+  readonly transform: Float32Array;
+  readonly explicitVariant?: number;
+  readonly variantRandom: number;
+}
+
+interface PlantSpatialCell {
+  readonly bounds: BoundingBox;
+  readonly instanceIndices: Int32Array;
+}
+
+interface PlantLodTierPart {
+  readonly entity: Entity;
+  readonly view: TreeAssemblyInstancedMesh;
+  readonly colors: PlantColorways;
+}
+
+function buildPlantSpatialCells(instances: readonly PlantLodInstanceRecord[]): PlantSpatialCell[] {
+  const buckets = new Map<string, number[]>();
+  for (let i = 0; i < instances.length; i++) {
+    const inst = instances[i];
+    const cx = Math.floor(inst.worldX / TEMPLATE_PLANT_CELL_SIZE_M);
+    const cz = Math.floor(inst.worldZ / TEMPLATE_PLANT_CELL_SIZE_M);
+    const key = `${cx},${cz}`;
+    let list = buckets.get(key);
+    if (!list) {
+      list = [];
+      buckets.set(key, list);
+    }
+    list.push(i);
+  }
+  const cells: PlantSpatialCell[] = [];
+  for (const indices of buckets.values()) {
+    const bounds = new BoundingBox(
+      new Vector3(Infinity, Infinity, Infinity),
+      new Vector3(-Infinity, -Infinity, -Infinity)
+    );
+    for (let k = 0; k < indices.length; k++) {
+      const inst = instances[indices[k]];
+      const r = inst.radius;
+      bounds.min.set(
+        Math.min(bounds.min.x, inst.worldX - r),
+        Math.min(bounds.min.y, inst.centerY - r),
+        Math.min(bounds.min.z, inst.worldZ - r)
+      );
+      bounds.max.set(
+        Math.max(bounds.max.x, inst.worldX + r),
+        Math.max(bounds.max.y, inst.centerY + r),
+        Math.max(bounds.max.z, inst.worldZ + r)
+      );
+    }
+    cells.push({ bounds, instanceIndices: Int32Array.from(indices) });
+  }
+  return cells;
+}
+
+/**
+ * Spatial Cell + Frustum + Distance-LOD controller shared across all procedural template plants.
+ * Partitioned into 32m XZ cells with zero per-frame allocations and VP-matrix change gating.
+ */
+class TemplatePlantCellLodController extends Script {
+  private camera?: Camera;
+  private instances: readonly PlantLodInstanceRecord[] = [];
+  private cells: readonly PlantSpatialCell[] = [];
+  private tiers: readonly (readonly PlantLodTierPart[])[] = [];
+  private policy: TemplatePlantLodPolicy = TEMPLATE_PLANT_LOD_POLICIES["desert-shrub"];
+  private assignedLod = new Int8Array(0);
+  private nextAssignedLod = new Int8Array(0);
+  private tierCounts = new Int32Array(0);
+  private readonly viewProjection = new Matrix();
+  private readonly lastViewProjection = new Float32Array(16);
+  private lastViewProjectionValid = false;
+  private readonly frustum = new BoundingFrustum();
+  private readonly scratchSphere = new BoundingSphere();
+
+  configure(
+    camera: Camera,
+    instances: readonly PlantLodInstanceRecord[],
+    tiers: readonly (readonly PlantLodTierPart[])[],
+    policy: TemplatePlantLodPolicy
+  ): void {
+    this.camera = camera;
+    this.instances = instances;
+    this.cells = buildPlantSpatialCells(instances);
+    this.tiers = tiers;
+    this.policy = policy;
+    this.assignedLod = new Int8Array(instances.length).fill(-2);
+    this.nextAssignedLod = new Int8Array(instances.length).fill(-1);
+    this.tierCounts = new Int32Array(tiers.length);
+    this.lastViewProjectionValid = false;
+    this.refresh(true);
+  }
+
+  override onLateUpdate(): void {
+    this.refresh(false);
+  }
+
+  refresh(force: boolean): void {
+    const camera = this.camera;
+    if (!camera || camera.destroyed || camera.entity.destroyed || this.tiers.length === 0) return;
+
+    Matrix.multiply(camera.projectionMatrix, camera.viewMatrix, this.viewProjection);
+    const vp = this.viewProjection.elements;
+    const frustumValid =
+      Number.isFinite(vp[0]) &&
+      Number.isFinite(vp[5]) &&
+      Number.isFinite(vp[15]) &&
+      (Math.abs(vp[0]) > 1e-6 || Math.abs(vp[5]) > 1e-6);
+
+    if (!force && frustumValid && this.lastViewProjectionValid) {
+      let cameraChanged = false;
+      for (let i = 0; i < 16; i++) {
+        if (Math.abs(vp[i] - this.lastViewProjection[i]) > CAMERA_MATRIX_EPSILON) {
+          cameraChanged = true;
+          break;
+        }
+      }
+      if (!cameraChanged) return;
+    }
+
+    if (frustumValid) {
+      this.lastViewProjection.set(vp);
+      this.lastViewProjectionValid = true;
+      this.frustum.calculateFromMatrix(this.viewProjection);
+    } else {
+      this.lastViewProjectionValid = false;
+    }
+
+    const camPos = camera.entity.transform.worldPosition;
+    const camX = camPos.x;
+    const camY = camPos.y;
+    const camZ = camPos.z;
+    const maxTier = this.tiers.length - 1;
+    const { distancesM, maxDistanceM, hysteresisM } = this.policy;
+    const maxCellCullDist = maxDistanceM + hysteresisM;
+    const maxCellCullDistSq = maxCellCullDist * maxCellCullDist;
+
+    this.nextAssignedLod.fill(-1);
+    for (let c = 0; c < this.cells.length; c++) {
+      const cell = this.cells[c];
+      if (distancePointToBoxSq(camX, camY, camZ, cell.bounds) > maxCellCullDistSq) continue;
+      if (frustumValid && !this.frustum.intersectsBox(cell.bounds)) continue;
+      const indices = cell.instanceIndices;
+      for (let k = 0; k < indices.length; k++) {
+        const idx = indices[k];
+        const inst = this.instances[idx];
+        const dx = inst.worldX - camX;
+        const dy = inst.centerY - camY;
+        const dz = inst.worldZ - camZ;
+        const prev = this.assignedLod[idx];
+        const cullLimit = prev >= 0 ? maxDistanceM + hysteresisM : maxDistanceM;
+        const distSq = dx * dx + dy * dy + dz * dz;
+        if (distSq > cullLimit * cullLimit) continue;
+        if (frustumValid) {
+          this.scratchSphere.center.set(inst.worldX, inst.centerY, inst.worldZ);
+          this.scratchSphere.radius = inst.radius;
+          if (!this.frustum.intersectsSphere(this.scratchSphere)) continue;
+        }
+        this.nextAssignedLod[idx] = resolvePlantLodTier(Math.sqrt(distSq), prev, maxTier, distancesM, hysteresisM);
+      }
+    }
+
+    let changed = force;
+    for (let i = 0; i < this.instances.length; i++) {
+      if (this.nextAssignedLod[i] !== this.assignedLod[i]) {
+        this.assignedLod[i] = this.nextAssignedLod[i];
+        changed = true;
+      }
+    }
+    if (!changed) return;
+
+    this.tierCounts.fill(0);
+    for (let i = 0; i < this.instances.length; i++) {
+      const tierIndex = this.assignedLod[i];
+      if (tierIndex < 0) continue;
+      const slotIndex = this.tierCounts[tierIndex]++;
+      const inst = this.instances[i];
+      const tierParts = this.tiers[tierIndex];
+      for (let p = 0; p < tierParts.length; p++) {
+        const part = tierParts[p];
+        const offset = slotIndex * part.view.recordFloats;
+        const rawVariant = inst.explicitVariant ?? Math.floor(inst.variantRandom * part.colors.length);
+        const color = part.colors[Math.abs(Math.trunc(rawVariant)) % part.colors.length];
+        const staging = part.view.staging;
+        staging.set(inst.transform, offset);
+        staging[offset + 12] = color[0];
+        staging[offset + 13] = color[1];
+        staging[offset + 14] = color[2];
+        staging[offset + 15] = 1;
+      }
+    }
+
+    for (let t = 0; t < this.tiers.length; t++) {
+      const count = this.tierCounts[t];
+      const tierParts = this.tiers[t];
+      for (let p = 0; p < tierParts.length; p++) {
+        const part = tierParts[p];
+        uploadTreeAssemblyInstances(part.view, count);
+        part.entity.isActive = count > 0;
+      }
+    }
+  }
+}
+
+function compileProductionGeometryLods(
+  kind: Exclude<TemplateProceduralPlantKind, "dead-wood">,
+  resources: TemplateProceduralPlantResources
+): readonly CompiledTemplatePlantLod[] {
+  if (kind === "desert-shrub") {
+    const bushAsset =
+      resources.bushAsset ?? (decodedBushAsset ??= decodePlantParameters<ProceduralPlantAsset>(bushStructureJson));
+    return compileDesertShrubLods(bushAsset);
+  }
+  const grassAsset =
+    resources.grassAsset ?? (decodedGrassAsset ??= decodePlantParameters<ProceduralPlantAsset>(grassStructureJson));
+  if (kind === "pastel-flower" || kind === "meadow-flower") {
+    const flowerAsset =
+      resources.flowerAsset ??
+      (decodedFlowerAsset ??= decodePlantParameters<ProceduralPlantAsset>(flowerStructureJson));
+    return compileFlowerLods(kind, flowerAsset, grassAsset);
+  }
+  const plumeAsset =
+    kind === "plume-grass"
+      ? (resources.plumeAsset ??
+        (decodedPlumeAsset ??= decodePlantParameters<ProceduralPlantAsset>(plumeStructureJson)))
+      : undefined;
+  return compileGrassLods(kind, grassAsset, plumeAsset);
 }
 
 const cachedDeadTreeMeshes = new WeakMap<Engine, readonly ModelMesh[]>();
@@ -1050,14 +1334,8 @@ export function mountTemplateProceduralPlants(
     }
 
     if (!plantResources) continue;
-    const desertShrubLods =
-      kind === "desert-shrub" && camera
-        ? compileDesertShrubLods(
-            plantResources.bushAsset ??
-              (decodedBushAsset ??= decodePlantParameters<ProceduralPlantAsset>(bushStructureJson))
-          )
-        : undefined;
-    const primary = desertShrubLods?.[0] ?? compileProductionGeometry(kind, plantResources);
+    const plantLods = compileProductionGeometryLods(kind, plantResources);
+    const primary = plantLods[0]!;
     const { floor, sourceHeight, windHeight, leafSlots, canopyOcclusionSlots } = primary;
     const windParams = PROCEDURAL_WIND_PARAMS[kind];
     const slotConfigs = SLOT_TEXTURES[kind] ?? {};
@@ -1112,7 +1390,7 @@ export function mountTemplateProceduralPlants(
       new Vector3(Infinity, Infinity, Infinity),
       new Vector3(-Infinity, -Infinity, -Infinity)
     );
-    const transforms = positioned.map(({ entry, localX, localY, localZ }) => {
+    const placements = positioned.map(({ entry, localX, localY, localZ }) => {
       const isFlowerCushion = kind === "pastel-flower" || kind === "meadow-flower";
       const effectiveHeight = isFlowerCushion ? entry.heightM * 0.78 : entry.heightM;
       const scaleY = effectiveHeight / sourceHeight;
@@ -1132,7 +1410,27 @@ export function mountTemplateProceduralPlants(
         Math.max(bounds.max.y, base + effectiveHeight * 2.6),
         Math.max(bounds.max.z, localZ + reach)
       );
-      return [localX, base, localZ, 1, 0, Math.sin(yaw / 2), 0, Math.cos(yaw / 2), scaleXZ, scaleY, scaleXZ, 1];
+      return {
+        localX,
+        base,
+        localZ,
+        effectiveHeight,
+        radius: Math.max(0.6, effectiveHeight * Math.max(1.25, spread * 1.45)),
+        transform: new Float32Array([
+          localX,
+          base,
+          localZ,
+          1,
+          0,
+          Math.sin(yaw / 2),
+          0,
+          Math.cos(yaw / 2),
+          scaleXZ,
+          scaleY,
+          scaleXZ,
+          1
+        ])
+      };
     });
     const palette = PROCEDURAL_PALETTE[kind];
 
@@ -1152,23 +1450,28 @@ export function mountTemplateProceduralPlants(
       return meshes;
     };
 
-    if (desertShrubLods && desertShrubLods.length > 1 && camera) {
+    if (camera) {
       const ownerWorldPos = owner.transform.worldPosition;
       const originX = Number.isFinite(ownerWorldPos.x) ? ownerWorldPos.x : anchor.x;
       const originY = Number.isFinite(ownerWorldPos.y) ? ownerWorldPos.y : anchor.y;
       const originZ = Number.isFinite(ownerWorldPos.z) ? ownerWorldPos.z : anchor.z;
-      const records: ShrubLodInstanceRecord[] = positioned.map(({ entry, localX, localY, localZ }, index) => ({
-        worldX: originX + localX,
-        worldY: originY + localY,
-        worldZ: originZ + localZ,
-        transform: transforms[index],
-        explicitVariant: entry.variant,
-        variantRandom: entry.variant === undefined ? settlementRandom(seed, `template-plant:${entry.id}`) : 0
-      }));
-      const tiers: ShrubLodTierPart[][] = [];
-      for (const lod of desertShrubLods) {
+      const records: PlantLodInstanceRecord[] = positioned.map(({ entry }, index) => {
+        const placement = placements[index];
+        return {
+          worldX: originX + placement.localX,
+          centerY: originY + placement.base + placement.effectiveHeight * 0.55,
+          worldZ: originZ + placement.localZ,
+          radius: placement.radius,
+          transform: placement.transform,
+          explicitVariant: entry.variant,
+          variantRandom: entry.variant === undefined ? settlementRandom(seed, `template-plant:${entry.id}`) : 0
+        };
+      });
+      const kindOwner = owner.createChild(kind);
+      const tiers: PlantLodTierPart[][] = [];
+      for (const lod of plantLods) {
         const meshes = uploadWithWindBounds(lod.geometry);
-        const tierParts: ShrubLodTierPart[] = [];
+        const tierParts: PlantLodTierPart[] = [];
         for (const part of meshes.parts) {
           const colors = palette[part.materialId];
           if (!colors) continue;
@@ -1184,12 +1487,12 @@ export function mountTemplateProceduralPlants(
             storage
           );
           disposals.push(() => view.mesh.destroy());
-          const partEntity = owner.createChild(name);
+          const partEntity = kindOwner.createChild(name);
           const renderer = partEntity.addComponent(MeshRenderer);
           renderer.mesh = view.mesh;
           renderer.setMaterial(materials[part.materialId]);
-          // Ground underbrush receives cliff/tree shadows and gets its volume from 3D normals + canopy AO
-          // without rasterizing hundreds of thousands of alpha-cutout triangles across 4 directional shadow cascades.
+          // Ground underbrush, grass tufts, and flower cushions receive cliff/tree shadows
+          // without rasterizing hundreds of thousands of alpha-cutout triangles across directional shadow cascades.
           renderer.castShadows = false;
           renderer.receiveShadows = true;
           renderer.shaderData.enableMacro("RENDERER_ASSET_ASSEMBLY_INSTANCE");
@@ -1201,8 +1504,8 @@ export function mountTemplateProceduralPlants(
         }
         tiers.push(tierParts);
       }
-      const controller = owner.addComponent(TemplateShrubLodController);
-      controller.configure(camera, records, tiers);
+      const controller = kindOwner.addComponent(TemplatePlantCellLodController);
+      controller.configure(camera, records, tiers, TEMPLATE_PLANT_LOD_POLICIES[kind]);
       continue;
     }
 
@@ -1213,7 +1516,7 @@ export function mountTemplateProceduralPlants(
       if (!colors) continue;
       const storage = createTreeAssemblyInstanceStorage(root.engine, positioned.length);
       disposals.push(() => storage.instanceBuffer.destroy(true));
-      transforms.forEach((transform, index) => {
+      placements.forEach(({ transform }, index) => {
         const offset = index * storage.recordFloats;
         const rawVariant =
           positioned[index].entry.variant ??
@@ -1221,7 +1524,10 @@ export function mountTemplateProceduralPlants(
         const colorIndex = Math.abs(Math.trunc(rawVariant)) % colors.length;
         const color = colors[colorIndex];
         storage.staging.set(transform, offset);
-        storage.staging.set([...color, 1], offset + 12);
+        storage.staging[offset + 12] = color[0];
+        storage.staging[offset + 13] = color[1];
+        storage.staging[offset + 14] = color[2];
+        storage.staging[offset + 15] = 1;
       });
       const view = createTreeAssemblyInstancedMesh(root.engine, part.mesh, positioned.length, bounds, name, storage);
       disposals.push(() => view.mesh.destroy());

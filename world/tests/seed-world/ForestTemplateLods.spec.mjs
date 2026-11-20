@@ -4,10 +4,16 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { decodePlantParameters } from "@galacean/engine-vegetation/asset-assembly/PlantParameterEncoding";
 import bushStructureJson from "@galacean/engine-vegetation/asset-assembly/generated/procedural-trees/meadow-sm_birchbush_03-structure.json";
+import flowerStructureJson from "@galacean/engine-vegetation/asset-assembly/generated/procedural-trees/meadow-sm_flower_06_02-structure.json";
+import grassStructureJson from "@galacean/engine-vegetation/asset-assembly/generated/procedural-trees/meadow-sm_grass_02_01-prototype-structure.json";
+import plumeStructureJson from "@galacean/engine-vegetation/asset-assembly/generated/procedural-trees/meadow-sm_flower_09_01-prototype-structure.json";
 import { WORLD_TEMPLATE_ART } from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
 import {
   compileDesertShrubLods,
-  DESERT_SHRUB_LOD_DISTANCES_M
+  compileFlowerLods,
+  compileGrassLods,
+  DESERT_SHRUB_LOD_DISTANCES_M,
+  TEMPLATE_PLANT_LOD_POLICIES
 } from "@galacean/engine-world-planning/spatial/runtime/TemplateProceduralPlants";
 import { parseGlb } from "../../../packages/vegetation/src/wind-vegetation/offline/generate-ground-vegetation-wind-weights.mjs";
 
@@ -155,6 +161,54 @@ describe("titan-wasteland giant tree and desert-shrub LODs", () => {
     for (const lod of lods) {
       const materialIds = lod.geometry.map((part) => part.materialId).sort();
       expect(materialIds).toEqual(["bark", "foliage"]);
+      expect(lod.floor).toBe(lods[0].floor);
+      expect(lod.sourceHeight).toBe(lods[0].sourceHeight);
+      expect(lod.windHeight).toBe(lods[0].windHeight);
+      const triangles = lod.geometry.reduce((sum, part) => sum + part.mesh.indices.length / 3, 0);
+      expect(triangles).toBeGreaterThan(0);
+      expect(triangles).toBeLessThan(previousTriangles);
+      previousTriangles = triangles;
+    }
+  });
+
+  it.each(["pastel-flower", "meadow-flower"])(
+    "compiles strictly decreasing %s LOD0..LOD2 meshes anchored to LOD0 height",
+    (kind) => {
+      const flowerAsset = decodePlantParameters(flowerStructureJson);
+      const grassAsset = decodePlantParameters(grassStructureJson);
+      const lods = compileFlowerLods(kind, flowerAsset, grassAsset);
+      expect(lods).toHaveLength(3);
+      expect(TEMPLATE_PLANT_LOD_POLICIES[kind].distancesM).toHaveLength(2);
+
+      let previousTriangles = Infinity;
+      for (const lod of lods) {
+        const materialIds = lod.geometry.map((part) => part.materialId).sort();
+        expect(materialIds).toEqual(["foliage", "petals", "petalsAlt"]);
+        expect(lod.floor).toBe(lods[0].floor);
+        expect(lod.sourceHeight).toBe(lods[0].sourceHeight);
+        expect(lod.windHeight).toBe(lods[0].windHeight);
+        const triangles = lod.geometry.reduce((sum, part) => sum + part.mesh.indices.length / 3, 0);
+        expect(triangles).toBeGreaterThan(0);
+        expect(triangles).toBeLessThan(previousTriangles);
+        previousTriangles = triangles;
+      }
+    }
+  );
+
+  it.each([
+    ["dry-grass", ["foliage"]],
+    ["plume-grass", ["foliage", "plume"]]
+  ])("compiles strictly decreasing %s LOD0..LOD2 meshes anchored to LOD0 height", (kind, expectedSlots) => {
+    const grassAsset = decodePlantParameters(grassStructureJson);
+    const plumeAsset = kind === "plume-grass" ? decodePlantParameters(plumeStructureJson) : undefined;
+    const lods = compileGrassLods(kind, grassAsset, plumeAsset);
+    expect(lods).toHaveLength(3);
+    expect(TEMPLATE_PLANT_LOD_POLICIES[kind].distancesM).toHaveLength(2);
+
+    let previousTriangles = Infinity;
+    for (const lod of lods) {
+      const materialIds = lod.geometry.map((part) => part.materialId).sort();
+      expect(materialIds).toEqual(expectedSlots);
       expect(lod.floor).toBe(lods[0].floor);
       expect(lod.sourceHeight).toBe(lods[0].sourceHeight);
       expect(lod.windHeight).toBe(lods[0].windHeight);
