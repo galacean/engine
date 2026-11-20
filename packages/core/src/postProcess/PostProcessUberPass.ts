@@ -1,11 +1,11 @@
-import { Color, MathUtil, Vector4 } from "@galacean/engine-math";
+import { Color, MathUtil, Matrix, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Material } from "../material";
 import { Blitter } from "../RenderPipeline/Blitter";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../texture";
-import { BloomDownScaleMode, BloomEffect, TonemappingEffect } from "./effects";
+import { BloomDownScaleMode, BloomEffect, ColorAdjustmentsEffect, TonemappingEffect } from "./effects";
 import { PostProcessManager } from "./PostProcessManager";
 import { PostProcessPass, PostProcessPassEvent } from "./PostProcessPass";
 
@@ -36,9 +36,13 @@ export class PostProcessUberPass extends PostProcessPass {
     const uberShaderData = uberMaterial.shaderData;
     bloomShaderData.setVector4(BloomEffect._bloomParams, new Vector4());
     bloomShaderData.setVector4(BloomEffect._lowMipTexelSizeProp, new Vector4());
+    bloomShaderData.setFloat(ColorAdjustmentsEffect._postExposureProperty, 1);
     uberShaderData.setVector4(BloomEffect._bloomIntensityParams, new Vector4());
     uberShaderData.setVector4(BloomEffect._dirtTilingOffsetProp, new Vector4());
     uberShaderData.setColor(BloomEffect._tintProp, new Color());
+    uberShaderData.setFloat(ColorAdjustmentsEffect._postExposureProperty, 1);
+    uberShaderData.setMatrix(ColorAdjustmentsEffect._whiteBalanceMatrixProperty, new Matrix());
+    uberShaderData.setVector4(ColorAdjustmentsEffect._adjustmentsProperty, new Vector4(1, 1, 0, 0));
   }
 
   /** @inheritdoc */
@@ -49,7 +53,8 @@ export class PostProcessUberPass extends PostProcessPass {
 
     const bloomBlend = postProcessManager.getBlendEffect(BloomEffect);
     const tonemappingBlend = postProcessManager.getBlendEffect(TonemappingEffect);
-    return bloomBlend?.isValid() || tonemappingBlend?.isValid();
+    const colorAdjustmentsBlend = postProcessManager.getBlendEffect(ColorAdjustmentsEffect);
+    return bloomBlend?.isValid() || tonemappingBlend?.isValid() || colorAdjustmentsBlend?.isValid();
   }
 
   /**
@@ -60,9 +65,30 @@ export class PostProcessUberPass extends PostProcessPass {
     const uberShaderData = this._uberMaterial.shaderData;
     const bloomBlend = postProcessManager.getBlendEffect(BloomEffect);
     const tonemappingBlend = postProcessManager.getBlendEffect(TonemappingEffect);
+    const colorAdjustmentsBlend = postProcessManager.getBlendEffect(ColorAdjustmentsEffect);
+    let exposureMultiplier = 1;
+
+    if (colorAdjustmentsBlend?.isValid()) {
+      exposureMultiplier = Math.pow(2, colorAdjustmentsBlend.postExposure.value);
+      uberShaderData.setFloat(ColorAdjustmentsEffect._postExposureProperty, exposureMultiplier);
+      ColorAdjustmentsEffect._computeWhiteBalanceMatrix(
+        colorAdjustmentsBlend.temperature.value,
+        colorAdjustmentsBlend.tint.value,
+        uberShaderData.getMatrix(ColorAdjustmentsEffect._whiteBalanceMatrixProperty)
+      );
+      const adjustments = uberShaderData.getVector4(ColorAdjustmentsEffect._adjustmentsProperty);
+      adjustments.x = colorAdjustmentsBlend.contrast.value / 100 + 1;
+      adjustments.y = colorAdjustmentsBlend.saturation.value / 100 + 1;
+      uberShaderData.enableMacro(ColorAdjustmentsEffect._enableMacro);
+    } else {
+      uberShaderData.setFloat(ColorAdjustmentsEffect._postExposureProperty, 1);
+      uberShaderData.getMatrix(ColorAdjustmentsEffect._whiteBalanceMatrixProperty).identity();
+      uberShaderData.getVector4(ColorAdjustmentsEffect._adjustmentsProperty).set(1, 1, 0, 0);
+      uberShaderData.disableMacro(ColorAdjustmentsEffect._enableMacro);
+    }
 
     if (bloomBlend?.isValid()) {
-      this._setupBloom(bloomBlend, camera, srcTexture);
+      this._setupBloom(bloomBlend, camera, srcTexture, exposureMultiplier);
       uberShaderData.enableMacro(BloomEffect._enableMacro);
     } else {
       uberShaderData.disableMacro(BloomEffect._enableMacro);
@@ -90,7 +116,7 @@ export class PostProcessUberPass extends PostProcessPass {
     this._bloomMaterial.destroy();
   }
 
-  private _setupBloom(bloomBlend: BloomEffect, camera: Camera, srcTexture: Texture2D) {
+  private _setupBloom(bloomBlend: BloomEffect, camera: Camera, srcTexture: Texture2D, exposureMultiplier: number) {
     const engine = camera.engine;
     const bloomMaterial = this._bloomMaterial;
     const bloomShaderData = bloomMaterial.shaderData;
@@ -100,6 +126,7 @@ export class PostProcessUberPass extends PostProcessPass {
       bloomBlend;
 
     // Update shaderData
+    bloomShaderData.setFloat(ColorAdjustmentsEffect._postExposureProperty, exposureMultiplier);
     const thresholdLinear = threshold.value;
     const thresholdKnee = thresholdLinear * 0.5; // Hardcoded soft knee
     const bloomParams = bloomShaderData.getVector4(BloomEffect._bloomParams);
