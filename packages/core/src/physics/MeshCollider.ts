@@ -23,7 +23,12 @@ export class MeshCollider extends Collider {
   private _cookingFlags = MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
 
   @ignoreClone
+  private _nativeMesh: ModelMesh | null = null;
+  @ignoreClone
   private _nativeConvex = false;
+  @ignoreClone
+  private _nativeCookingFlags: MeshColliderShapeCookingFlag =
+    MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
   @ignoreClone
   private _nativeTrigger = false;
   @ignoreClone
@@ -114,6 +119,13 @@ export class MeshCollider extends Collider {
     return this._convex || !this._mesh;
   }
 
+  /**
+   * @internal
+   */
+  override _nativeSupportsDynamicBody(): boolean {
+    return !this._native || this._nativeConvex;
+  }
+
   protected override _hasValidGeometry(scale: Vector3): boolean {
     const minScale = Math.fround(1e-6);
     const maxScale = 1e6;
@@ -154,6 +166,7 @@ export class MeshCollider extends Collider {
       this._geometryDirty = false;
       if (this._native) {
         this._replaceNativeShape(null);
+        this._nativeMesh = null;
       }
       return null;
     }
@@ -172,42 +185,48 @@ export class MeshCollider extends Collider {
       return null;
     }
 
-    if (!shape || this._geometryDirty || this._nativeConvex !== this._convex) {
+    this._geometryDirty = false;
+    if (
+      !shape ||
+      this._nativeMesh !== mesh ||
+      this._nativeConvex !== this._convex ||
+      this._nativeCookingFlags !== this._cookingFlags
+    ) {
       const meshData = MeshCollider._getMeshData(mesh, this._convex);
       if (!meshData) {
-        this._geometryDirty = false;
         this._cookFailed = true;
         if (shape) {
           this._replaceNativeShape(null);
+          this._nativeMesh = null;
         }
         return null;
       }
 
       if (shape && this._nativeConvex === this._convex) {
-        if (!Vector3.equals(scale, this._nativeScale)) {
-          this._nativeScale.copyFrom(scale);
-          shape.setWorldScale(scale);
-        }
+        this._syncNativeScale(shape, scale);
         if (!shape.setMeshData(meshData.positions, this._convex ? null : meshData.indices, this._cookingFlags)) {
-          this._geometryDirty = false;
           this._cookFailed = true;
           this._replaceNativeShape(null);
+          this._nativeMesh = null;
           return null;
         }
-        this._geometryDirty = false;
+        this._nativeMesh = mesh;
+        this._nativeCookingFlags = this._cookingFlags;
         this._cookFailed = false;
         this._onGeometryChanged();
       } else {
         const newShape = this._cook(meshData, this._convex, this._cookingFlags);
-        this._geometryDirty = false;
         if (!newShape || !this._replaceNativeShape(newShape)) {
           this._cookFailed = true;
           if (shape) {
             this._replaceNativeShape(null);
+            this._nativeMesh = null;
           }
           return null;
         }
+        this._nativeMesh = mesh;
         this._nativeConvex = this._convex;
+        this._nativeCookingFlags = this._cookingFlags;
         this._nativeTrigger = this._isTrigger;
         this._cookFailed = false;
         shape = newShape;
@@ -226,6 +245,7 @@ export class MeshCollider extends Collider {
   protected override _onDestroy(): void {
     super._onDestroy();
     this._setMesh(null);
+    this._nativeMesh = null;
   }
 
   private _cook(
@@ -258,12 +278,19 @@ export class MeshCollider extends Collider {
       console.warn("MeshCollider: mesh data is not accessible. Set 'keepMeshData' before uploading.");
       return null;
     }
-    const positions = mesh.getPositions();
+    let positions: Vector3[] | null;
+    let indices: Uint8Array | Uint16Array | Uint32Array | null;
+    try {
+      positions = mesh.getPositions();
+      indices = mesh.getIndices();
+    } catch (error) {
+      console.error(`MeshCollider: mesh data is not readable (${error}).`);
+      return null;
+    }
     if (!positions || positions.length === 0) {
       console.warn("MeshCollider: mesh has no position data.");
       return null;
     }
-    const indices = mesh.getIndices();
     if (!convex && !indices) {
       console.warn("MeshCollider: a non-convex mesh requires indices.");
       return null;

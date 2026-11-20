@@ -3,6 +3,8 @@ import {
   Engine,
   Entity,
   BoxCollider,
+  Collider,
+  HitResult,
   Rigidbody,
   RigidbodyConstraints,
   CollisionDetectionMode,
@@ -880,5 +882,68 @@ describe("Rigidbody", function () {
     expect(boxB.transform.worldPosition.y).toBeCloseTo(11, 4);
     expect(boxB.transform.worldPosition.z).toBeCloseTo(12, 4);
     expect(Math.abs(Quaternion.dot(boxB.transform.worldRotationQuaternion, rot2))).toBeCloseTo(1, 4);
+  });
+
+  it.each(["convex-then-dynamic", "dynamic-then-convex", "clear-then-dynamic"] as const)(
+    "switches a kinematic body with an active non-convex MeshCollider to dynamic (%s)",
+    function (order) {
+      const physics = engine.sceneManager.activeScene.physics;
+      const entity = rootEntity.createChild(`mesh-to-dynamic-${order}`);
+      entity.transform.setPosition(0, 5, 0);
+      const body = entity.addComponent(Rigidbody);
+      body.isKinematic = true;
+      const meshCollider = entity.addComponent(MeshCollider);
+      meshCollider.convex = false;
+      meshCollider.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2, { keepMeshData: true });
+
+      const ray = new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0));
+      const hit = new HitResult();
+      expect(physics.raycast(ray, hit)).toBe(true);
+      expect(hit.collider).toBe(meshCollider);
+
+      const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+      if (order === "convex-then-dynamic") {
+        meshCollider.convex = true;
+        body.isKinematic = false;
+      } else if (order === "dynamic-then-convex") {
+        body.isKinematic = false;
+        meshCollider.convex = true;
+      } else {
+        meshCollider.mesh = null;
+        body.isKinematic = false;
+      }
+
+      const queryHit = new HitResult();
+      expect(physics.raycast(ray, queryHit) && queryHit.collider === meshCollider).toBe(order !== "clear-then-dynamic");
+      body.wakeUp();
+      for (let i = 0; i < 18; i++) {
+        physics._update(physics.fixedTimeStep);
+      }
+      expect(errors).not.toHaveBeenCalled();
+      expect(entity.transform.position.y).toBeLessThan(4.8);
+      expect(body.linearVelocity.y).toBeLessThan(0);
+    }
+  );
+
+  it("skips subtree collider scans when toggling isKinematic on detached hierarchies", function () {
+    const tree = new Entity(engine, "detached-rigidbody-tree");
+    let node = tree;
+    const bodies: Rigidbody[] = [];
+    for (let i = 0; i < 16; i++) {
+      if (i > 0) node = node.createChild(`level-${i}`);
+      bodies.push(node.addComponent(Rigidbody));
+      node.addComponent(BoxCollider);
+    }
+    const spy = vi.spyOn(Entity.prototype as any, "_getComponentsInChildren");
+    try {
+      for (const body of bodies) {
+        body.isKinematic = true;
+      }
+      const colliderScans = spy.mock.calls.filter((args) => args[0] === Collider).length;
+      expect(colliderScans).toBe(0);
+    } finally {
+      spy.mockRestore();
+      tree.destroy();
+    }
   });
 });

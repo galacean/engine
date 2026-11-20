@@ -329,11 +329,11 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (this._isKinematic !== value) {
       this._isKinematic = value;
       if (!value) {
-        // Detach attached kinematic-only colliders before clearing eKINEMATIC on the native actor
+        // Detach attached native kinematic-only shapes before clearing eKINEMATIC on the actor
         const colliders = this._attachedColliders;
         for (let i = colliders.length - 1; i >= 0; i--) {
           const collider = colliders[i];
-          if (!collider._supportsDynamicBody()) {
+          if (!collider._nativeSupportsDynamicBody()) {
             collider._detach();
             collider._markDirty();
           }
@@ -341,7 +341,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       }
       this._nativeActor?.setMotionState(value, this._collisionDetectionMode);
       // Owned colliders re-sync to exclude unsupported geometries on dynamic bodies or re-attach on kinematic ones
-      this._markCollidersDirty();
+      this._phasedActiveInScene && this._markCollidersDirty();
     }
   }
 
@@ -691,7 +691,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     }
     const colliders = this._attachedColliders;
     for (let i = 0, n = colliders.length; i < n; i++) {
-      if (!colliders[i]._supportsDynamicBody()) {
+      if (!colliders[i]._nativeSupportsDynamicBody()) {
         return;
       }
     }
@@ -726,6 +726,9 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   private _markCollidersDirty(): void {
+    if (!this.entity._isActiveInScene) {
+      return;
+    }
     const colliders = this.entity.getComponentsIncludeChildren(Collider, Rigidbody._tempColliders);
     for (let i = 0, n = colliders.length; i < n; i++) {
       colliders[i]._markDirty();

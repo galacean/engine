@@ -1,6 +1,9 @@
 import { createPhysics } from "../../utils/physics";
 import {
   BoxCollider,
+  Buffer,
+  BufferBindFlag,
+  BufferUsage,
   Entity,
   HitResult,
   Layer,
@@ -11,7 +14,10 @@ import {
   PhysicsScene,
   Rigidbody,
   Script,
-  SphereCollider
+  SphereCollider,
+  VertexAttribute,
+  VertexElement,
+  VertexElementFormat
 } from "@galacean/engine-core";
 import { Ray, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
@@ -699,4 +705,102 @@ describe("MeshCollider", () => {
       expect(hit.collider).toBe(collider);
     }
   );
+
+  it.each([false, true])(
+    "excludes a mesh with an unreadable POSITION buffer without throwing out of sync and recovers (convex=%s)",
+    (convex) => {
+      const other = root.createChild("independent-dynamic");
+      other.transform.setPosition(10, 5, 0);
+      const otherBox = other.addComponent(BoxCollider);
+      const otherBody = other.addComponent(Rigidbody);
+
+      const collider = addMesh(convex);
+      const hit = new HitResult();
+      expect(physics.raycast(rayAt(0), hit) && hit.collider === collider).toBe(true);
+      expect(physics.raycast(rayAt(10, 10), hit) && hit.collider === otherBox).toBe(true);
+
+      const raw = new Float32Array([
+        -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1
+      ]);
+      const indices = new Uint16Array([
+        0, 3, 2, 0, 2, 1, 4, 5, 6, 4, 6, 7, 0, 1, 5, 0, 5, 4, 3, 7, 6, 3, 6, 2, 0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5
+      ]);
+      const createBufferMesh = (readable: boolean): ModelMesh => {
+        const mesh = new ModelMesh(engine);
+        mesh.setVertexElements([new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0)]);
+        const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, raw, BufferUsage.Static, readable);
+        mesh.setVertexBufferBinding(buffer, 12);
+        mesh.setIndices(indices);
+        return mesh;
+      };
+
+      const gpuOnly = createBufferMesh(false);
+      const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+      const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      collider.mesh = gpuOnly;
+      expect(collider.mesh).toBe(gpuOnly);
+      // Unrelated query and fixed step both succeed without throwing, and old geometry is removed
+      expect(() => physics.raycast(rayAt(10, 10), hit)).not.toThrow();
+      expect(hit.collider).toBe(otherBox);
+      expect(physics.raycast(rayAt(0))).toBe(false);
+      expect(errors).toHaveBeenCalled();
+
+      const initialY = other.transform.position.y;
+      expect(() => update(2)).not.toThrow();
+      expect(other.transform.position.y).toBeLessThan(initialY);
+      expect(otherBody.linearVelocity.y).toBeLessThan(0);
+
+      // Retrying the same unreadable resource remains excluded without throwing
+      collider.mesh = gpuOnly;
+      expect(physics.raycast(rayAt(0))).toBe(false);
+      expect(warnings.mock.calls.length + errors.mock.calls.length).toBeGreaterThanOrEqual(2);
+
+      // Replacing with a readable mesh recovers cleanly
+      collider.mesh = createBufferMesh(true);
+      expect(physics.raycast(rayAt(0), hit) && hit.collider === collider).toBe(true);
+    }
+  );
+
+  it.each(["mesh", "box"] as const)("applies small world-scale changes (1e-6 -> 1.5e-6) accurately (%s)", (kind) => {
+    const entity = root.createChild(`small-scale-${kind}`);
+    entity.transform.setScale(1e-6, 1e-6, 1e-6);
+    const collider = kind === "mesh" ? entity.addComponent(MeshCollider) : entity.addComponent(BoxCollider);
+    if (collider instanceof MeshCollider) {
+      collider.mesh = createModelMesh(
+        engine,
+        [-2e6, 0, -2e6, 2e6, 0, -2e6, -2e6, 0, 2e6, 2e6, 0, 2e6],
+        [0, 2, 1, 1, 2, 3]
+      );
+    } else {
+      collider.size.set(4e6, 2e6, 4e6);
+    }
+
+    const queryAt = (x: number): boolean => {
+      const hit = new HitResult();
+      return physics.raycast(new Ray(new Vector3(x, 8, 0.1), new Vector3(0, -1, 0)), hit) && hit.collider === collider;
+    };
+
+    const innerHits: boolean[] = [];
+    const outerHits: boolean[] = [];
+    for (const scale of [1e-6, 1.5e-6, 2.2e-6]) {
+      entity.transform.setScale(scale, 1e-6, 1e-6);
+      update();
+      innerHits.push(queryAt(1));
+      outerHits.push(queryAt(2.5));
+    }
+    expect(innerHits).toEqual([true, true, true]);
+    expect(outerHits).toEqual([false, true, true]);
+  });
+
+  it("skips native recooking when convex returns to its already-cooked value before sync", () => {
+    const collider = addMesh(false);
+    expect(physics.raycast(rayAt(0))).toBe(true);
+    const nativeShape = (collider as any)._native;
+    const cookSpy = vi.spyOn(nativeShape, "_cookMesh");
+    collider.convex = true;
+    collider.convex = false;
+    expect(physics.raycast(rayAt(0))).toBe(true);
+    expect(cookSpy).not.toHaveBeenCalled();
+  });
 });

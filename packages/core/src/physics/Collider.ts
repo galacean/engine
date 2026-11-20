@@ -82,7 +82,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
   @ignoreClone
   private _nativeRotation = new Quaternion();
   @ignoreClone
-  protected _nativeScale = new Vector3();
+  private _nativeScale = new Vector3();
   @ignoreClone
   private _nativeWorldPosition = new Vector3();
   @ignoreClone
@@ -441,10 +441,18 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * @internal
-   * Whether this Collider can belong to a non-kinematic Rigidbody.
+   * Whether this Collider's declared configuration can belong to a non-kinematic Rigidbody.
    */
   _supportsDynamicBody(): boolean {
     return true;
+  }
+
+  /**
+   * @internal
+   * Whether the currently attached native shape can belong to a non-kinematic Rigidbody.
+   */
+  _nativeSupportsDynamicBody(): boolean {
+    return this._supportsDynamicBody();
   }
 
   /**
@@ -515,15 +523,26 @@ export class Collider extends Component implements ICloneHook<Collider> {
       shape = <IColliderShape | null>(this._native = this._createNative());
       this._geometryDirty = false;
     } else if (this._geometryDirty) {
-      if (!Vector3.equals(scale, this._nativeScale)) {
-        this._nativeScale.copyFrom(scale);
-        shape.setWorldScale(scale);
-      }
+      this._syncNativeScale(shape, scale);
       this._geometryDirty = false;
       this._syncGeometry(shape);
       this._onGeometryChanged();
     }
     return shape;
+  }
+
+  /**
+   * Push the world scale to the native shape whenever any component differs from the last committed value.
+   * @returns Whether the native scale was updated
+   */
+  protected _syncNativeScale(shape: IColliderShape, scale: Vector3, force = false): boolean {
+    const nativeScale = this._nativeScale;
+    if (force || scale.x !== nativeScale.x || scale.y !== nativeScale.y || scale.z !== nativeScale.z) {
+      nativeScale.copyFrom(scale);
+      shape.setWorldScale(scale);
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -734,9 +753,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       }
     }
 
-    if (force || !Vector3.equals(scale, this._nativeScale)) {
-      this._nativeScale.copyFrom(scale);
-      shape.setWorldScale(scale);
+    if (this._syncNativeScale(shape, scale, force)) {
       body?._markMassDirty();
     }
     if (
