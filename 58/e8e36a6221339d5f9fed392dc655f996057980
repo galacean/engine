@@ -1,0 +1,16 @@
+packages/core/src/Scene.ts
+  h_dd004f51a3e5ec 339,371,403-409
+tests/src/core/Scene.test.ts
+  h_dd004f51a3e5ec 515-547
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "58e8e36a6221339d5f9fed392dc655f996057980",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

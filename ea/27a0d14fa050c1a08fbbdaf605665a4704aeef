@@ -1,0 +1,48 @@
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  h_ddbf152d31b140 29,1286,1288-1298,1300-1329,1335
+packages/building/src/building/runtime/ConstructionWallRoofJoint.ts
+  h_ddbf152d31b140 23-30,35-39
+packages/farming/src/farming/procedural/runtime/preparePlantShaderPrograms.ts
+  h_ddbf152d31b140 45-56,59
+packages/runtime-editor/src/runtime-inspection/runtime-pick-preparation.ts
+  h_ddbf152d31b140 8-44,53-55,78-92,99
+packages/runtime-editor/tests/runtime-pick-preparation.spec.ts
+  h_ddbf152d31b140 1-141
+packages/terrain/src/terrain/lod/TerrainLodGroupRendererRuntime.ts
+  h_ddbf152d31b140 97-101
+packages/water/src/water/runtime/river/RiverWaterBackend.ts
+  h_ddbf152d31b140 41,59-63,576-577,584-621
+packages/water/src/water/runtime/river/RiverWaterSpatialFieldProvider.ts
+  h_ddbf152d31b140 176,183-212
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  h_ddbf152d31b140 1940-1993
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_ddbf152d31b140 1394,1396-1496
+packages/world-planning/src/world/SeedWorldShaderVariantCoverage.ts
+  h_ddbf152d31b140 177-179,187-191
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_ddbf152d31b140 5,9,18-21,29,114-115,141,143-148,209-211,472-473,489-491,500-532,549-562,631-632,634-640,643-653,655-666,669,677,679-682,702,737-748,750-751,757,770,787,789,794-815,836-839,842,942-1006,1021-1030,1039-1040,1188-1201,1208-1246,1268-1269,1284-1303
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 320,427,572-575,609-621,1991-1996,2001-2002,2004-2007,2012-2013,2019-2021,2035-2036,2684-2685,2700-2701,2711,2716-2718,2731
+world/demos/seed-world/src/SeedWorldShaderAudit.ts
+  h_ddbf152d31b140 1-226
+world/demos/seed-world/src/SeedWorldStartupShaderWarmup.ts
+  h_ddbf152d31b140 17-21,37-38,44,68,75-76,100-101,106-138,143-146,151,157
+world/tests/seed-world/RiverSpatialFieldBoundsQuery.spec.ts
+  h_ddbf152d31b140 1-57
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  h_ddbf152d31b140 2-14,525-709
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  h_ddbf152d31b140 20-21,65-68,74,79,109-111,113-131,136-146,148-150
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ea27a0d14fa050c1a08fbbdaf605665a4704aeef",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

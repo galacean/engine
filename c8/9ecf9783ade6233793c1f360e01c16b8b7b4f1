@@ -1,0 +1,14 @@
+packages/core/src/postProcess/effects/BloomEffect.ts
+  h_79b10db07e6052 62-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c89ecf9783ade6233793c1f360e01c16b8b7b4f1",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

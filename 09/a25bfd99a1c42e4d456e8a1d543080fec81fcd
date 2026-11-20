@@ -1,0 +1,71 @@
+world/scripts/sync-flash-app-cdn-assets.py
+  h_ddbf152d31b140 1-348
+world/demos/seed-world/systems/generate-runtime-declarations.cjs
+  h_ddbf152d31b140 73,75
+world/demos/seed-world/flash-app-cdn-manifest.json
+  h_ddbf152d31b140 1-722,729-1111,1118-2149,2156-2471
+  h_ddbf152d31b140 723-728,1112-1117,2150-2155
+packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudMaterial.ts
+  h_ddbf152d31b140 712-737
+packages/world-planning/src/integrations/terrain/lighting/TerrainLightingRuntime.ts
+  h_ddbf152d31b140 2,1434-1439,1444-1451,1454,1460-1467,1475-1485
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 80,206,208-209,211,225,357-365,367-369,380,387-395,398-405,409,424,573-589,606,610-615,617-620,631-632,654-657,659-686,717-718,726-734,752-754,836,2248,2577,2579,2582-2588,2592-2594,2598,2603-2669,2684-2697,2792-2793,2827-2828,2832,2901
+world/demos/seed-world/src/SeedWorldBootTrace.ts
+  h_ddbf152d31b140 1-622
+packages/modify/src/native/core/src/sky/SkyProceduralMaterial.ts
+  h_ddbf152d31b140 2,44-45,558-562
+packages/water/src/water/runtime/river/RiverRuntimeController.ts
+  h_ddbf152d31b140 30,516-517,526
+packages/runtime-editor/src/runtime-editor-agent/engine-runtime-files.ts
+  h_ddbf152d31b140 25-26,34-37,40-42,47,64-67,75-85
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  h_ddbf152d31b140 173-211,239,1127-1134
+packages/water/src/water/runtime/river/RiverMaterialFactory.ts
+  h_ddbf152d31b140 78-102,105-116,122-133,135-145,165,169
+packages/water/src/water/native/WaterBuiltinAssets.ts
+  h_ddbf152d31b140 7,11-24,65-68
+world/vite.config.mjs
+  h_ddbf152d31b140 3,91-282,294
+world/scripts/set-flash-app-cdn-secret.sh
+  h_ddbf152d31b140 1-28
+world/demos/seed-world/systems/SeedWorldScriptModules.ts
+  h_ddbf152d31b140 3,10-11
+packages/runtime-editor/src/project/runtime-project-session.ts
+  h_ddbf152d31b140 222-223,245-249,269-270,422-425,535-536,538,540-543,546
+world/demos/seed-world/main.ts
+  h_ddbf152d31b140 5,12-13,15-22,26,28-36,42
+world/demos/seed-world/src/SeedWorldProjectTextBundle.ts
+  h_ddbf152d31b140 1-38
+packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudDirectionCacheRenderer.ts
+  h_ddbf152d31b140 131,141
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectStorage.ts
+  h_ddbf152d31b140 34-39,42
+world/demos/seed-world/systems/runtime-declarations-index.json
+  h_ddbf152d31b140 1
+packages/runtime-editor/src/runtime-editor/scripts/runtime-script-environment.ts
+  h_ddbf152d31b140 7-20,29-35,41-63,67-107
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource.ts
+  h_ddbf152d31b140 11,25,33,48-50,60-61,65-67,69-71
+world/demos/seed-world/SeedWorldProject.ts
+  h_ddbf152d31b140 26,29,62-63,70-77,79-88,90-95,103-120
+world/demos/seed-world/src/planning/semantic-study/PlanningWorkerClient.ts
+  h_ddbf152d31b140 7,97,159
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_ddbf152d31b140 55-57,71,73-76,105-112,174-178,186-188,192-195,207-208,274-275,277-285,310,312,316,321-322,355-369,445-468,470,511-514,516,520-528,706-709
+packages/runtime-editor/src/runtime-editor/scripts/runtime-project-scripts.ts
+  h_ddbf152d31b140 76-82,95,98-102,106,109,165
+packages/terrain/src/terrain/loader/TerrainSceneLoader.ts
+  h_ddbf152d31b140 26-27,30-39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "09a25bfd99a1c42e4d456e8a1d543080fec81fcd",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

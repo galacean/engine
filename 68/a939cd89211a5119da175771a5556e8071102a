@@ -1,0 +1,21 @@
+packages/modify/src/native/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader
+  s_eae61974fbc82a::t_ba62754a8919b4 306-307,309
+packages/modify/tests/ScreenSpaceReflectionRefinementBudget.test.ts
+  s_eae61974fbc82a::t_6c28c81f2f6751 1-185
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "68a939cd89211a5119da175771a5556e8071102a",
+  "prompts": {},
+  "sessions": {
+    "s_eae61974fbc82a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b144-13db-74a1-9070-3ee4bc118cf6",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

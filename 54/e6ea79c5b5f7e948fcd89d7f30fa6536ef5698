@@ -1,0 +1,14 @@
+packages/loader/src/TextureLoader.ts
+  h_bd4dd7d663e619 5,32-35,53-54,56-58,60-69,71-96,98-105
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "54e6ea79c5b5f7e948fcd89d7f30fa6536ef5698",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

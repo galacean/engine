@@ -1,0 +1,61 @@
+packages/terrain/src/shaders/shared/TerrainLayerEvaluation.glsl
+  s_71496fc0a6b37a::t_37e31594b2bf05 163-165,320-323,351-353,432-434,465-467,497-499,515-517,525-527
+world/demos/seed-world/src/planning/spatial/runtime/PlanningSeedRuntimeDebug.ts
+  s_71496fc0a6b37a::t_59ab1a266213da 311,313
+  s_71496fc0a6b37a::t_6bce118f46fb62 312
+  s_71496fc0a6b37a::t_ecdbee19da838b 295-301,303,317
+  s_71496fc0a6b37a::t_54c04075964bb2 310
+  s_71496fc0a6b37a::t_c6f96640a09eb5 302
+packages/terrain/src/shaders/terrain/TerrainScreenSpaceReflectionPass.glsl
+  s_71496fc0a6b37a::t_28344c2ba4ef87 123,140
+packages/terrain/src/shaders/terrain/TerrainEvaluation.glsl
+  s_71496fc0a6b37a::t_9a215e02f9d404 75,84-89,101,103,108
+  s_71496fc0a6b37a::t_28344c2ba4ef87 76-83,91,96-100,102
+  s_71496fc0a6b37a::t_c2b8f10c68b036 107,128
+world/tests/seed-world/TerrainFarShader.spec.ts
+  s_71496fc0a6b37a::t_ad18e75ca7175c 36-42,46-47,50-61
+  s_71496fc0a6b37a::t_d2ed715f5b5f9a 43-45,48-49
+  s_71496fc0a6b37a::t_8798c2fb0e6c7c 35
+packages/terrain/src/shaders/terrain/TerrainForwardPass.glsl
+  s_71496fc0a6b37a::t_c2b8f10c68b036 168
+  s_71496fc0a6b37a::t_37e31594b2bf05 9-10,53-55,100-103,141-142,144,180-182,186,199,202
+  s_71496fc0a6b37a::t_6bce118f46fb62 143,183-185
+  s_71496fc0a6b37a::t_28344c2ba4ef87 8,145,169,200
+  s_71496fc0a6b37a::t_2cb48797d57945 201
+packages/world-planning/src/runtime/SeedWorldTerrainRuntime.ts
+  s_71496fc0a6b37a::t_6bce118f46fb62 167-168,182-183,423,439,510-511,585,1335-1338,1352
+  s_71496fc0a6b37a::t_54c04075964bb2 163-164,178-179,417,430-431,437,450,508-509,583,1349-1351
+  s_71496fc0a6b37a::t_28344c2ba4ef87 448,586
+  s_71496fc0a6b37a::t_195a79f2dae165 449,1354-1361
+  s_71496fc0a6b37a::t_59ab1a266213da 165-166,180-181,422,438,512-513,584,1339-1342,1353
+  s_71496fc0a6b37a::t_89c87c35afe3b0 199,412,421,1345,1348
+packages/terrain/src/shaders/terrain/TerrainSandGlints.glsl
+  s_71496fc0a6b37a::t_e9e84ac2f65d3c 43
+  s_71496fc0a6b37a::t_e075ac64fca4e7 1,4,7,9-12,65
+  s_71496fc0a6b37a::t_59ab1a266213da 2,41,46-48,63-64
+  s_71496fc0a6b37a::t_28344c2ba4ef87 5-6,13,19-28,30-37,50,52-54,56-62
+  s_71496fc0a6b37a::t_2cb48797d57945 8,14-18,38,40
+  s_71496fc0a6b37a::t_6bce118f46fb62 3,39,42,44-45,49,51
+  s_71496fc0a6b37a::t_294ba951d737d2 29
+  s_71496fc0a6b37a::t_ba56d88e2a3bcb 55
+world/demos/seed-world/src/DesertPresentation.ts
+  s_71496fc0a6b37a::t_54c04075964bb2 89
+  s_71496fc0a6b37a::t_28344c2ba4ef87 93,96-97
+  s_71496fc0a6b37a::t_33dc7e23058d40 87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4b5ec7f6c67a425b893a65d882e8bf22b1fbf40d",
+  "prompts": {},
+  "sessions": {
+    "s_71496fc0a6b37a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1eda8-f97e-71c2-ba7b-88c49b29108e",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+packages/core/src/2d/text/TextRenderer.ts
+  h_171a11afaf879a 279,286-289,295-301
+packages/core/src/ComponentsManager.ts
+  h_171a11afaf879a 5,23-26,77-80,87-104
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_171a11afaf879a 5,52,127-129,470-483,485-491,494-495
+packages/core/src/RenderPipeline/RenderQueue.ts
+  h_171a11afaf879a 9,11,70,87,89-91,93-94,96-102
+packages/core/src/RenderPipeline/RendererSpatialIndex.ts
+  h_171a11afaf879a 1-1024
+packages/core/src/Renderer.ts
+  h_171a11afaf879a 48-56,62-70,96-97,101,135-156,180,185-191,352-357,375-376,378,402-425,477-480,485-486,488-491,493-496,525,530-533,535,547,587
+packages/core/src/mesh/MeshRenderer.ts
+  h_171a11afaf879a 102-116
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  h_171a11afaf879a 8,37,50-56,59,74-76,94-95,111,150,152-153,191,199-224,227-231,233,393,395-396
+packages/core/src/shadow/ShadowUtils.ts
+  h_171a11afaf879a 172-173,182-187
+tests/src/core/RenderPipeline/ShadowCullingAndSpatialIndex.test.ts
+  h_171a11afaf879a 1-328
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "55dea275e88ca7a71be1553071d5664d71c05ada",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

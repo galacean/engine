@@ -1,0 +1,44 @@
+packages/shader-compiler/src/codeGen/GLESVisitor.ts
+  s_94724eedbeb654::t_c39090fd8bc97c 506
+  s_94724eedbeb654::t_2f08cf9a3945d6 354,379,411-412,521,526,561
+tests/src/shader-compiler/ShaderCompiler.test.ts
+  s_94724eedbeb654::t_1c8378e41ac4ce 182
+packages/shader-compiler/src/codeGen/CodeGenVisitor.ts
+  s_94724eedbeb654::t_7207d709f05d50 3,40,84,171
+packages/shader-compiler/src/codeGen/GLES100.ts
+  s_94724eedbeb654::t_7c6d69a555adb0 12
+packages/shader-compiler/src/codeGen/GLES300.ts
+  s_94724eedbeb654::t_7d321fffff8dc3 52,56
+tests/src/shader-compiler/InterfaceValueSemantics.test.ts
+  s_94724eedbeb654::t_7fe36ce6d3863d 98,155-156,158,161-162,166-167,206
+tests/src/shader-compiler/MacroBranchRuntime.test.ts
+  s_94724eedbeb654::t_d30af9d6df05e8 643-644,646,708-709,711,769-770,772,833-834,836,867-868,870,957-958,960,993-994,996,1032-1033,1035,1061-1062,1064,1088-1089,1091,1120-1121,1123,1147-1148,1150,1174-1175,1177,1209-1210,1212,1312-1313,1315,1370-1371,1373,1377-1378,1380,1398,1400,1402,1405,1467-1468,1470,1545-1546,1548
+tests/src/shader-compiler/ShaderNeutralIR.test.ts
+  s_94724eedbeb654::t_422711576299a9 96-100,102,328-332,334,446-450,453-457,460
+tests/src/shader-compiler/TypeDependencies.test.ts
+  s_94724eedbeb654::t_2370fa88eafbab 144,146-147,149,153
+tests/src/shader-compiler/shaders/frag-return-vec4.shader
+  s_94724eedbeb654::t_e11210767328aa 18-19,34-35
+tests/src/shader-compiler/shaders/global-varying-var.shader
+  s_94724eedbeb654::t_368dec6b4dc34d 23,25,27,29
+tests/src/shader-compiler/shaders/helper-signature-struct.shader
+  s_94724eedbeb654::t_d464306a9e6fcb 18,20-21,24,27,30
+tests/src/shader-compiler/shaders/struct-based-attribute.shader
+  s_94724eedbeb654::t_b1b156ab6792c3 1-3,24-29,32-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a1798c3331e5608c19547a9c3e8ceadc1f7902cf",
+  "prompts": {},
+  "sessions": {
+    "s_94724eedbeb654": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a079fa-a13e-79b1-bf89-79e33fe3774e",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

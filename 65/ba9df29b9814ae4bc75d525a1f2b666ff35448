@@ -1,0 +1,30 @@
+packages/vegetation/src/asset-assembly/PlantSpeciesCatalog.ts
+  h_79b10db07e6052 32-36
+packages/vegetation/src/asset-assembly/ProceduralPlantLibraryRuntime.ts
+  h_79b10db07e6052 107-108,114,120-123,127-132,135,189,214
+packages/vegetation/src/asset-assembly/ProceduralPlantMaterialBindings.ts
+  h_79b10db07e6052 38,46-49
+packages/vegetation/src/asset-assembly/generated/procedural-trees/plant-project-plant-species.json
+  h_79b10db07e6052 1
+packages/vegetation/src/asset-assembly/generated/procedural-trees/plant-species.json
+  h_79b10db07e6052 138-150,258-270,378-390,498-510,618-630,738-750,779-791,820-832,861-873,902-914,943-955,984-996,1025-1037,1066-1078,1107-1119,1148-1160,1189-1201,1230-1242,1271-1283,1312-1324,1353-1365,1394-1406,1435-1447,1476-1488,1517-1529,1558-1570,1599-1611,1640-1652,1681-1693,1722-1734,1784-1796,1846-1858,1908-1920,1970-1982,2325-2337,3434-3446,5500-5512,5943-5955,6560-6572,7293-7305,7677-7689,8583-8595,10620-10632,11526-11538,13215-13227,14034-14046,15201-15213,15286-15298,15371-15383,15456-15468,15645-15657,15886-15898,16075-16087,16680-16692,16765-16777,16954-16966,17351-17363,17410-17422,17573-17585,17696-17708,17993-18005,18464-18476,18587-18599,18884-18896,19355-19367,19387-19399,19419-19431,19456-19468,19493-19505,19530-19542,19640-19652,19687-19699
+packages/vegetation/src/asset-assembly/offline/sync-plant-species.mjs
+  h_79b10db07e6052 3,12-13,16-17,19,22,26-39,41-48,51,57-60,62-88,90-98,100,102-107
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_79b10db07e6052 51-52,61,84,433-480,484-485,489,537-547,572,583-584,590,640-641,654-655,658-671,716-722,733,964-975,981,1057,1574-1580,1591,2194-2203
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  h_79b10db07e6052 87-90,154-232,236-265,343-345,376-379,434-436,459-461,484-486,906-909
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  h_79b10db07e6052 190-193
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "65ba9df29b9814ae4bc75d525a1f2b666ff35448",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

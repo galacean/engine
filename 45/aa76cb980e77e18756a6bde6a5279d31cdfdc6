@@ -1,0 +1,47 @@
+packages/water/tests/OceanExclusions.test.ts
+  s_7266c2cf3f450f::t_19be8273abf016 51-52
+  s_7266c2cf3f450f::t_48516c5a136112 3-4,32-50,53-55
+packages/water/src/water/native/WaterAPIDeclarations.ts
+  s_7266c2cf3f450f::t_19be8273abf016 3
+world/demos/seed-world/systems/runtime-declarations.json
+  s_7266c2cf3f450f::t_19be8273abf016 1
+packages/water/src/water/native/OceanMaterialPropertyUI.ts
+  s_7266c2cf3f450f::t_68e699be1154d7 2,4-74,83,88,93,98,103,108,113,118,123,128,133
+  s_7266c2cf3f450f::t_47437e50045a88 1
+  s_7266c2cf3f450f::t_11a6fb64b6b65f 3
+  s_7266c2cf3f450f::t_da3f0010fc2fb8 75-77,80-82
+  s_7266c2cf3f450f::t_df9d6d0afb0be3 84-87
+  s_7266c2cf3f450f::t_b6f77c26bf73a5 89-92
+  s_7266c2cf3f450f::t_97bd8a315b936a 94-97
+  s_7266c2cf3f450f::t_b6ae71aba83765 99-102
+  s_7266c2cf3f450f::t_3fca53c7b864dd 104-107
+  s_7266c2cf3f450f::t_824ea724f680ba 109-112
+  s_7266c2cf3f450f::t_849398e9201b97 114-117
+  s_7266c2cf3f450f::t_eec66a6304a8c2 119-122
+  s_7266c2cf3f450f::t_a2746b1fecdfbe 124-127
+  s_7266c2cf3f450f::t_5002f10f18cfda 129-132
+packages/water/src/water/authoring/body/WaterBodyInstance.ts
+  s_7266c2cf3f450f::t_9b98c02bdd35a3 24-25,155-156,168-169
+packages/water/src/water/native/assets/Water/Shaders/ocean.shader
+  s_7266c2cf3f450f::t_7ad438eeb1fef0 66-149
+packages/water/tests/OceanMaterialAuthoringUI.test.ts
+  s_7266c2cf3f450f::t_0eefd47111000d 1-70
+packages/world-planning/src/spatial/runtime/NativeWaterAgent.ts
+  s_7266c2cf3f450f::t_9e036367397a8a 26,30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "45aa76cb980e77e18756a6bde6a5279d31cdfdc6",
+  "prompts": {},
+  "sessions": {
+    "s_7266c2cf3f450f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d9b3-70ea-7402-a7dc-ae8b7c0d6ee6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

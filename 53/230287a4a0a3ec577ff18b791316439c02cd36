@@ -1,0 +1,14 @@
+packages/core/src/input/InputManager.ts
+  h_bd4dd7d663e619 156-158
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "53230287a4a0a3ec577ff18b791316439c02cd36",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

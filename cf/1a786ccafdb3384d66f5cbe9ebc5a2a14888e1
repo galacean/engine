@@ -1,0 +1,19 @@
+packages/loader/src/PrimitiveMeshAsset.ts
+  s_f1a7b8285f1df2::t_4ef4939466809f 210,219,228
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cf1a786ccafdb3384d66f5cbe9ebc5a2a14888e1",
+  "prompts": {},
+  "sessions": {
+    "s_f1a7b8285f1df2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d54e-3c87-7273-b01d-79d652eaed37",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

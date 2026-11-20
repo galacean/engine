@@ -1,0 +1,21 @@
+packages/core/src/2d/text/TextUtils.ts
+  s_d5a8b8f9cef6f5::t_89234bf9f0b9a8 44,48,50-51
+tests/package-consumer/HeadlessEngine.test.ts
+  s_d5a8b8f9cef6f5::t_7b745de2c3b6d3 466
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d6e10bec9505b8cc2ea354d96418313d7ffdd4ec",
+  "prompts": {},
+  "sessions": {
+    "s_d5a8b8f9cef6f5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c131-ec64-72d1-aae2-b9035e3ba176",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

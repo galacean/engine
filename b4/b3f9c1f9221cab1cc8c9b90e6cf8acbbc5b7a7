@@ -1,0 +1,61 @@
+packages/world-planning/src/spatial/hydrology/LakeRegions.ts
+  s_ef9e8906c8a2a9::t_a768d480b61244 63-68
+  s_ef9e8906c8a2a9::t_84fb90815dc677 134
+world/demos/seed-world/src/planning/spatial/PlanningSceneAsset.ts
+  s_ef9e8906c8a2a9::t_c9b3517170f5f0 42-45
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectStorage.ts
+  s_ef9e8906c8a2a9::t_d399486296e65a 8,23-25
+  s_ef9e8906c8a2a9::t_b7ae0676e75deb 26
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAuthoringComponents.ts
+  s_ef9e8906c8a2a9::t_eb7608f574de0f 2,337-341
+  s_ef9e8906c8a2a9::t_e35fb72fcbe846 19-22,25
+world/tests/seed-world/PlanningWaterOwnership.spec.ts
+  s_ef9e8906c8a2a9::t_dae475dfb28219 120,126-129,131,136-140,157,229,239-241,250-251
+  s_ef9e8906c8a2a9::t_412679aaefb81c 86-87
+  s_ef9e8906c8a2a9::t_9d0b1017b95e3f 188-193
+  s_ef9e8906c8a2a9::t_a768d480b61244 81,181,211-214,216-218,223-226
+  s_ef9e8906c8a2a9::t_c9b3517170f5f0 26-29,152
+  s_ef9e8906c8a2a9::t_ecf829e4dc9a8d 1-9,30-34,41,57-59,73-78,85,91-93,98-99,103-105,107,109,111-118,141-143,153-154,253
+  s_ef9e8906c8a2a9::t_f7b00d08d614ba 10-16,21,35,37-40,42-56,60-72,94-97,100-102,121-125,133-135,144-151,155-156,242-249,252
+  s_ef9e8906c8a2a9::t_dc065e8f184b63 88-90
+  s_ef9e8906c8a2a9::t_4a60e6ac44755c 17-20,22-25,36,79-80,82-84,106,108,110,119,130,132,158-180,182-187,194-210,215,228
+  s_ef9e8906c8a2a9::t_63178bf424cfe8 219-222,227
+  s_ef9e8906c8a2a9::t_b89aa84d9479b8 230-238
+  s_ef9e8906c8a2a9::t_cc537ed904cddd 254-256
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  s_ef9e8906c8a2a9::t_eb7608f574de0f 10,135,592
+  s_ef9e8906c8a2a9::t_d399486296e65a 106
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  s_ef9e8906c8a2a9::t_eb7608f574de0f 453-455
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource.ts
+  s_ef9e8906c8a2a9::t_d399486296e65a 22,38
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  s_ef9e8906c8a2a9::t_884a3d1861f21b 171-175,247
+  s_ef9e8906c8a2a9::t_eb7608f574de0f 16,88-99,169-170,232-233
+packages/world-planning/src/spatial/PlanningSession.ts
+  s_ef9e8906c8a2a9::t_dae475dfb28219 876-880
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWaterInitialization.ts
+  s_ef9e8906c8a2a9::t_b89aa84d9479b8 288-292
+  s_ef9e8906c8a2a9::t_a43b3b2abfa5d1 210-215
+  s_ef9e8906c8a2a9::t_412679aaefb81c 318
+  s_ef9e8906c8a2a9::t_84fb90815dc677 14,21-22,34-36,38-56,113-115,130-131,134-136,208,279
+packages/world-planning/src/spatial/hydrology/RiverRegions.ts
+  s_ef9e8906c8a2a9::t_a768d480b61244 126-131
+  s_ef9e8906c8a2a9::t_eb7608f574de0f 135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b4b3f9c1f9221cab1cc8c9b90e6cf8acbbc5b7a7",
+  "prompts": {},
+  "sessions": {
+    "s_ef9e8906c8a2a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ca64-d96f-7552-9428-48739c7d7b0f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

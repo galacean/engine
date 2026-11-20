@@ -1,0 +1,23 @@
+packages/world-planning/src/spatial/PlanningWeather.ts
+  s_fa8f4df2e429fc::t_897622aad3327b 22,118,125,128-133
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_fa8f4df2e429fc::t_e6bb86f5e78ff5 135
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  s_fa8f4df2e429fc::t_a9934f4a014aab 63-69,112-116,138-142,306,317,340,345-348,544-545,746-752,775-776,778
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "28611b2c61dc8da17e923f25f6ef1b595b3e8ac4",
+  "prompts": {},
+  "sessions": {
+    "s_fa8f4df2e429fc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e78f-73aa-7760-87eb-6d622300105c",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

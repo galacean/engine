@@ -1,0 +1,32 @@
+packages/core/src/Entity.ts
+  h_dd004f51a3e5ec 23-24,157-158,472-473,801,816-820,871,882-894,919-922,925-929,971,1025-1026,1053-1057,1080-1088,1091-1092,1119-1123,1128,1130-1131
+packages/core/src/Scene.ts
+  h_dd004f51a3e5ec 352-360,442,456-457,524-527,529
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 73-76,104-124,400-401,411-412,420-421,467,471-473,595-597
+packages/core/src/physics/MeshCollider.ts
+  h_dd004f51a3e5ec 33-42
+packages/core/src/physics/PhysicsScene.ts
+  h_dd004f51a3e5ec 817-831
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  h_dd004f51a3e5ec 304-306,343,349-352,356-382,385,443-451,453-459,461-470,473-474,476-498,500-502,506-512,514,526-532,539-547,551-563,566
+tests/src/core/Entity.test.ts
+  h_dd004f51a3e5ec 1094-1211
+tests/src/core/Scene.test.ts
+  h_dd004f51a3e5ec 824-915
+tests/src/core/physics/PhysicsGameplay.test.ts
+  h_dd004f51a3e5ec 1607,1610-1655,1657-1658,1661-1712
+tests/src/loader/PrefabResource.test.ts
+  h_dd004f51a3e5ec 1,3,1196-1436
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a4e53a8ff55b0d1139a95d4678c9fe4e3b43f041",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

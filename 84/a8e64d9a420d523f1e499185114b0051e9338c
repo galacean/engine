@@ -1,0 +1,20 @@
+packages/world-planning/src/spatial/runtime/NativeWaterHost.ts
+  s_43e2da275089c4::t_43e3abe4c7fbd6 53,62-63,66-67,73,87-91
+  s_43e2da275089c4::t_e51bcfb42c2a36 92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "84a8e64d9a420d523f1e499185114b0051e9338c",
+  "prompts": {},
+  "sessions": {
+    "s_43e2da275089c4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e33c-02ef-7632-b762-2829c92512e4",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

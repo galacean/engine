@@ -1,0 +1,19 @@
+packages/world-planning/src/spatial/PlanningWeather.ts
+  s_fa8f4df2e429fc::t_e6d5b7d8956be5 150-157
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8d5da9363efdc908447e5b2e68221f6b01d2fe18",
+  "prompts": {},
+  "sessions": {
+    "s_fa8f4df2e429fc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e78f-73aa-7760-87eb-6d622300105c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

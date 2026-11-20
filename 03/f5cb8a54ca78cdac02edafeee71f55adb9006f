@@ -1,0 +1,40 @@
+world/demos/seed-world/SeedWorldDemo.ts
+  s_0ad7efa77c17be::t_38e1fbf41599a6 708,902-903,1852-1858,1860,2014-2015
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_0ad7efa77c17be::t_38e1fbf41599a6 1032-1033,1038,1050,1071
+packages/world-planning/src/spatial/layout/MojaveDesertLayout.ts
+  s_0ad7efa77c17be::t_38e1fbf41599a6 31
+world/demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts
+  s_0ad7efa77c17be::t_38e1fbf41599a6 1,4-6,47,102-103,106-180
+  s_ae6fab0fbe1884::t_e36a0e3d2e70c5 181
+world/demos/seed-world/src/DesertPresentation.ts
+  s_0ad7efa77c17be::t_38e1fbf41599a6 17,54-57,69-70
+world/demos/seed-world/src/planning/spatial/runtime/PlanningSpawnView.ts
+  s_0ad7efa77c17be::t_38e1fbf41599a6 30,46,83-86,166-168,215-216,220-227,231-237,241-251,261-265,268-277,299,304
+world/demos/seed-world/src/DesertVegetation.ts
+  s_ae6fab0fbe1884::t_7acb9f435ea887 1-457
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "03f5cb8a54ca78cdac02edafeee71f55adb9006f",
+  "prompts": {},
+  "sessions": {
+    "s_0ad7efa77c17be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c9b0-c1c7-7c20-94e2-5d4a2cc750f7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    },
+    "s_ae6fab0fbe1884": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cde9-e5eb-7580-948b-3731733934fb",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

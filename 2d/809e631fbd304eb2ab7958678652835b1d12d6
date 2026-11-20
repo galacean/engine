@@ -1,0 +1,208 @@
+tests/src/core/mesh/BlendShapeManager.test.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 220,284,302,318,328,338
+e2e/case/primitive-topology.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 16,21,26,31,36,41-46,51,57,63,68,78,83,88,93,98,103,108,113,118,123,128,134,151-152,161-162
+docs/en/graphics/renderer/meshRenderer.mdx
+  s_f1a7b8285f1df2::t_d3465cfa4fccd2 26
+e2e/case/particleRenderer-emit-mesh-cone.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 82,100
+e2e/case/physx-deferred-contact.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 42
+e2e/case/camera-opaque-texture.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 156
+e2e/case/primitive-plane.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 58
+e2e/case/texture-hdr-ktx2.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 74
+tests/src/core/DeviceLost.test.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 44
+e2e/case/primitive-all.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 88,97,100,103,111,119,127,131,135,139,144,147-150,154,159,169
+docs/en/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_d3465cfa4fccd2 47,60,73,86,99,112,125,134,137-145,148,162,169-172,189-190,195-196,198,201,209,212-213,248-249,253,255,257-264,266,268-270,272,297-298,302
+e2e/case/particleRenderer-emit-mesh-no-shape-world.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 69,88
+e2e/case/primitive-sphere-sections.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 82
+docs/zh/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_51efe2331f4c7f 152,215
+  s_f1a7b8285f1df2::t_d3465cfa4fccd2 47,60,73,86,99,112,125,134,137-139,141-143,145-147,150,173-176,194-195,201-202,204,207,218-219,254-255,259,263-270,272,274-276,278,303-304,308
+tests/src/core/particle/ParticleRenderer.test.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 323,370,396,447
+docs/zh/graphics/renderer/meshRenderer.mdx
+  s_f1a7b8285f1df2::t_d3465cfa4fccd2 26
+e2e/case/particleRenderer-emit-mesh-cone-scale-rotation-world.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 70,90
+tests/package-consumer/fixtures/PrimitiveMeshApi.ts
+  s_f1a7b8285f1df2::t_eff6a52f60a872 53,91,98,100,111-116,125,127-154,157-158,161-166,169-170,173-185,189-268,270,272,274,276,282,284,286,288,290,292,294-301,303,309,311,329-331
+tests/package-consumer/fixtures/PrimitiveMeshAsset.ts
+  s_f1a7b8285f1df2::t_7ab10a94e64ed9 88-90,169-178
+  s_f1a7b8285f1df2::t_30d76cdc714198 14-15,20-21,25-27,43,47,49,53,55-62,66-67,72-74,81,83,94,96,100,102,106,108-121,124-130,133-139
+e2e/case/primitive-sections.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 19,25,31,36,41,46,50,55,61,66,71,76,82
+e2e/case/particleRenderer-emit-mesh-size-over-lifetime.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 58
+packages/core/src/mesh/PrimitiveMesh.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 181,185-186,205-207,218,230-231,235-236,248-249,253-254,277-279,290,313-314,318-319,332,337-338,350-351,355-356,379,383-384,397-398,408,421,425-426,438,442-443,455,459-460,472,476-477,508,518,550-551,554,572-573,593,595-596,610,624-627,639
+  s_f1a7b8285f1df2::t_7ab10a94e64ed9 182,208,211-217,232,250,280,283-289,315,333-334,352,380,399,402-407,422,439,456,473,490,509,512-517,531,561,571,597-599,602-609,628,631-638
+e2e/case/.initPostProcessEnv.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 50
+e2e/case/particleRenderer-emit-billboard-stretched.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 70
+examples/src/gpu-instancing-custom-data.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 131
+examples/src/shader-04-multi-pass.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 137
+e2e/case/physx-collision.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 39,90
+tests/src/core/particle/SubEmitter.test.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 3310
+tests/src/core/physics/ColliderLayer.test.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 104
+e2e/case/shadow-basic.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 39
+packages/galacean/skills/engine-knowledge/references/mesh-geometry.md
+  s_f1a7b8285f1df2::t_51efe2331f4c7f 5-7,9-15,20,26,28,52,54,56,58,64,76,80
+  s_f1a7b8285f1df2::t_d3465cfa4fccd2 62
+  s_f1a7b8285f1df2::t_9be15af9526702 8
+packages/loader/src/PrimitiveMeshAsset.ts
+  s_f1a7b8285f1df2::t_ba0d527ff690e3 36-37,45,53,57,61,69,73,81,85,93,97,101,109,113,121,125,133,137,145,153,157,165,173,181,189,203,216,221,225-226,234,238,242,246,254,258,262,266
+  s_f1a7b8285f1df2::t_55a686a4f012f4 218,227
+  s_f1a7b8285f1df2::t_7ab10a94e64ed9 42-44,50-52,54-56,58-60,66-68,70-72,78-80,82-84,90-92,94-96,98-100,106-108,110-112,118-120,122-124,130-132,134-136,142-144,150-152,154-156,162-164,170-172,178-180,186-188,200-202,213-215,222-224,231-233,235-237,239-241,243-245,251-253,255-257,259-261,263-265
+  s_f1a7b8285f1df2::t_992ed652262188 219-220
+e2e/case/shadow-transparent.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 45
+e2e/case/multi-scene-clear.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 44,76
+examples/src/gltf-loader.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 204
+e2e/case/primitive-cone.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 58
+tests/src/spine/SpineAlpha.test.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 124
+e2e/case/particleRenderer-emit-mesh-cone-scale-rotation.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 70,96
+examples/src/shader-03-ui-script.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 191
+packages/core/src/mesh/PrimitiveMeshOptions.ts
+  s_f1a7b8285f1df2::t_ba0d527ff690e3 1
+  s_f1a7b8285f1df2::t_30d76cdc714198 405
+tests/src/core/mesh/PrimitiveMesh.test.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 24,39,63,91,115,137,158,182,195
+examples/src/paricle-emit-mesh.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 35,55
+e2e/case/primitive-cuboid.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 58
+e2e/case/texture-R8G8.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 35
+e2e/case/physx-customUrl.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 38,95
+tests/src/core/particle/SubEmitterRendering.test.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 100
+examples/src/shader-01-basic-shader.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 83
+e2e/case/particleRenderer-emit-mesh-cone-scale-3d-rotation-life-seperate.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 70,90
+e2e/case/shader-mrt.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 100
+e2e/case/primitive-materials.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 22,26,34,40,46,52,66,72,82,102,109
+docs/en/graphics/background/sky.mdx
+  s_f1a7b8285f1df2::t_d3465cfa4fccd2 52
+tests/src/loader/PrimitiveMeshLoader.test.ts
+  s_f1a7b8285f1df2::t_35c4c4e6446493 611,636-639,641
+  s_f1a7b8285f1df2::t_30d76cdc714198 67-121,126-129,135-136,138-151,159,168,177-178,184,193,204-207,210,221-223,225,231-232,242,254-256,266,278-279,289,301-303,306,317-318,328,338-342,344,350-352,355,364-365,369-370,374-375,379-380,384-385,405,407,410,426,438,451,453,455,461,463,465,471,473,476,482,484,486,492,503,509-513,516,522-526,529,535-539,541,545-546,550-551,555-556,602-603
+e2e/case/particleRenderer-emit-mesh-cone-scale-3d-rotation.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 70,90
+tests/src/core/mesh/ProceduralMesh.test.ts
+  s_f1a7b8285f1df2::t_eff6a52f60a872 32,36,45,50,52,56,66,75,80,87-90,102,105,109,111,127-128,134,139,145,154-155,159,161,170-171,175-176,180-181,185-186,190,192,201-202,206-207,211-212,216-217,221-222,226-227,231-232,241-242,246-247,251-252,256-257,261-262,307-310,326-328,366,390,421,507,555,561-566,589,620,684,701,722,796-797,820,835,841,846,865,892,903,915,927,939,950,961,972,1015,1038,1076,1218,1250,1280-1281,1299,1316-1317,1340,1354,1378,1400,1409,1436-1437,1484,1503-1504,1507,1511,1543,1564,1644-1645,1700,1723,1755,1782,1816,1840-1841
+  s_f1a7b8285f1df2::t_35c4c4e6446493 1508,1512
+  s_f1a7b8285f1df2::t_55a686a4f012f4 306,1595
+  s_f1a7b8285f1df2::t_30d76cdc714198 1272-1275
+  s_f1a7b8285f1df2::t_09d8de92e61855 284-285
+tests/src/core/physics/MeshColliderLayer.test.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 28
+e2e/case/shader-renderState.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 105,116
+e2e/case/physx-mesh-collider.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 41
+e2e/case/primitive-contours.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 69,74,83,88,93,98,103,108,113
+tests/src/core/ShaderIdentity.test.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 103
+e2e/case/particleRenderer-emit-mesh-cone-scale-rotation-life-seperate.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 70,90
+e2e/case/camera-ssao.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 55,64,74,86
+e2e/case/gpu-instancing-custom-data.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 82
+e2e/case/primitive-sphere.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 58
+e2e/case/physx-collision-group.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 58,110
+tests/src/core/Light.test.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 247
+e2e/case/particleRenderer-emit-mesh-cone-scale-rotation-life.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 70,90
+tests/src/core/mesh/BlendShape.test.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 179
+examples/src/gpu-instancing-auto-batch.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 160
+tests/src/core/MeshRenderer.test.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 41,50
+README.md
+  s_f1a7b8285f1df2::t_d3465cfa4fccd2 66
+tests/package-consumer/PrimitiveMeshApi.test.ts
+  s_f1a7b8285f1df2::t_55a686a4f012f4 58-72,84-91
+e2e/case/primitive-cylinder.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 58
+e2e/case/texture-sRGB-KTX2.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 40
+e2e/case/multi-scene-no-clear.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 51,83
+e2e/case/material-LUT.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 59
+e2e/case/primitive-capsule.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 58
+e2e/case/canvas-transparency.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 85,114,127
+e2e/case/primitive-torus.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 58
+examples/src/shader-02-render-state.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 116
+e2e/case/material-white-furnace.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 98
+e2e/case/texture-hdr.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 40
+packages/loader/src/PrimitiveMeshLoader.ts
+  s_f1a7b8285f1df2::t_ba0d527ff690e3 28,38,62,71,80,82,84,86,94,97,100-102
+  s_f1a7b8285f1df2::t_7ab10a94e64ed9 30-36,40-45,47-53,55-60,64-69,73-78,105-112,114-121
+e2e/case/multi-camera-no-clear.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 57,86
+tests/src/core/particle/SizeOverLifetime.test.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 196
+e2e/case/particleRenderer-emit-mesh-no-shape.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 69,88
+docs/zh/graphics/background/sky.mdx
+  s_f1a7b8285f1df2::t_d3465cfa4fccd2 52
+packages/galacean/README.md
+  s_f1a7b8285f1df2::t_d3465cfa4fccd2 65
+tests/src/core/Shader.test.ts
+  s_f1a7b8285f1df2::t_30d76cdc714198 159,201
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2d809e631fbd304eb2ab7958678652835b1d12d6",
+  "prompts": {},
+  "sessions": {
+    "s_f1a7b8285f1df2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d54e-3c87-7273-b01d-79d652eaed37",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

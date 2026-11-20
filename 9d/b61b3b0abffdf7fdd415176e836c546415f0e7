@@ -1,0 +1,206 @@
+packages/core/src/renderingHardwareInterface/IPlatformPrimitive.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1-7
+packages/math/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 3
+packages/core/src/Engine.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1,33,130,142-143,150,206,219-220,300-303,314-315,318,574-575,636,676-686
+packages/core/src/postProcess/PostProcessUberPass.ts
+  s_3ee6eea2868467::t_313eac12a785d4 140,153,167
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_3ee6eea2868467::t_313eac12a785d4 116-119,182
+packages/core/src/SystemInfo.ts
+  s_3ee6eea2868467::t_313eac12a785d4 2,4,24,99,120,125
+packages/core/src/Polyfill.ts
+  s_3ee6eea2868467::t_313eac12a785d4 9-13,20,34
+packages/rhi-webgl/src/GLPrimitive.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1-8
+packages/xr/src/session/XRSessionManager.ts
+  s_3ee6eea2868467::t_313eac12a785d4 2,93,130,147,184
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  s_3ee6eea2868467::t_313eac12a785d4 146
+packages/core/src/shader/ShaderProgram.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1,18
+packages/core/src/shader/state/StencilState.ts
+  s_3ee6eea2868467::t_313eac12a785d4 2
+packages/rhi-webgl/src/GLTexture2DArray.ts
+  s_3ee6eea2868467::t_313eac12a785d4 10-12
+examples/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 3
+packages/core/src/texture/TextureUtils.ts
+  s_3ee6eea2868467::t_313eac12a785d4 20,36-41
+  s_3ee6eea2868467::t_2bcc01418faad6 42-43
+packages/rhi-webgl/src/GLTransformFeedbackPrimitive.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1-6
+packages/spine/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 3
+packages/core/src/shader/ShaderUniform.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1
+packages/spine-core-4.2/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 3
+packages/xr-webxr/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 3,38,40-42
+tests/src/xr/Lifecycle.test.ts
+  s_3ee6eea2868467::t_313eac12a785d4 37-38,55-59,61-69,97,115,141
+tests/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 4,23
+packages/design/src/xr/IXRSession.ts
+  s_3ee6eea2868467::t_313eac12a785d4 39-42
+  s_3ee6eea2868467::t_52eb78e74fec13 43
+tests/vitest.config.ts
+  s_3ee6eea2868467::t_313eac12a785d4 15
+packages/rhi-null/src/NullGraphicDevice.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1-105
+packages/core/src/renderingHardwareInterface/index.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1,3,5
+packages/rhi-null/README.md
+  s_3ee6eea2868467::t_313eac12a785d4 1
+tests/src/xr/TrackingLoss.test.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1-3,112-121,136-153
+  s_3ee6eea2868467::t_7d0b1d7bf43b6f 154-155
+packages/physics-physx/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 3
+packages/core/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 3
+tests/src/rhi-webgl/HeadlessEngine.test.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1-66
+packages/design/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 3
+packages/core/src/shader/state/BlendState.ts
+  s_3ee6eea2868467::t_313eac12a785d4 2,67,72
+packages/rhi-webgl/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 3
+packages/xr/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 3
+packages/core/src/shader/state/RasterState.ts
+  s_3ee6eea2868467::t_313eac12a785d4 2
+packages/rhi-webgl/src/GLTexture.ts
+  s_3ee6eea2868467::t_313eac12a785d4 503,507,564
+packages/rhi-null/src/HeadlessEngine.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1-32
+packages/rhi-webgl/src/GLCapability.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1,18,22-25,148-168,173-183,189-198
+  s_3ee6eea2868467::t_4aa2ea852f6fb0 169-172,184-188
+  s_30889def3c02cc::t_b60f9f9b9fbe60 199
+packages/loader/src/gltf/parser/GLTFTextureParser.ts
+  s_3ee6eea2868467::t_313eac12a785d4 12,67-83,85-86,88-89,91,93
+packages/rhi-null/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 1-29
+packages/core/src/Camera.ts
+  s_3ee6eea2868467::t_313eac12a785d4 11,27,146,374,381,419,426,615,738,740,744,757-773,796
+packages/spine-core-3.8/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 3
+packages/xr-webxr/src/WebXRFrame.ts
+  s_3ee6eea2868467::t_313eac12a785d4 2
+packages/core/src/graphic/Primitive.ts
+  s_3ee6eea2868467::t_313eac12a785d4 3,149
+packages/core/src/input/InputManager.ts
+  s_3ee6eea2868467::t_313eac12a785d4 158
+packages/core/src/renderingHardwareInterface/IPlatformShaderProgram.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1-4
+package.json
+  s_3ee6eea2868467::t_313eac12a785d4 3
+packages/core/src/2d/text/TextUtils.ts
+  s_3ee6eea2868467::t_313eac12a785d4 46
+packages/shader-parser/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 3
+packages/core/src/asset/request.ts
+  s_3ee6eea2868467::t_313eac12a785d4 18-21,42-56,58,62-87,91-92,94,96-97,152,164-201,208,237-238,250,252-256
+packages/galacean/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 3
+packages/xr-webxr/src/WebXRDevice.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1-2,48-51,90
+packages/loader/src/gltf/GLTFUtils.ts
+  s_3ee6eea2868467::t_313eac12a785d4 13,368
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  s_3ee6eea2868467::t_313eac12a785d4 9,11,13-14,23,95,109,111-112,115-116,347-354,428,430,577-578
+packages/core/src/postProcess/PostProcessManager.ts
+  s_3ee6eea2868467::t_313eac12a785d4 273
+packages/xr-webxr/src/WebXRSession.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1,78-83,111-117,122,127,163,170-173
+  s_3ee6eea2868467::t_0cc789e6071c7c 174-175
+packages/loader/src/GLTFContentRestorer.ts
+  s_3ee6eea2868467::t_313eac12a785d4 16,65-70
+tests/package-consumer/HeadlessEngine.test.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1-690
+packages/rhi-null/src/index.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1-4
+packages/rhi-null/tsconfig.json
+  s_3ee6eea2868467::t_313eac12a785d4 1-18
+packages/rhi-webgl/src/WebGLEngine.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1,20
+packages/xr-webxr/src/feature/WebXRPlaneTracking.ts
+  s_3ee6eea2868467::t_313eac12a785d4 2
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1-96
+tests/src/loader/ImageDecoder.test.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1-10,181-243
+packages/rhi-webgl/src/GLRenderTarget.ts
+  s_3ee6eea2868467::t_313eac12a785d4 29,38,51,86,245,293-294
+packages/shader-compiler/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 3
+packages/core/src/RenderPipeline/OpaqueTexturePass.ts
+  s_3ee6eea2868467::t_313eac12a785d4 41
+packages/core/src/shader/state/DepthState.ts
+  s_3ee6eea2868467::t_313eac12a785d4 2
+packages/loader/src/ImageDecoder.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1,6-8,12,14-16,19-31,33,37,42-48,75
+packages/rhi-null/src/NullTexture.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1-40
+packages/rhi-null/src/NullBuffer.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1-55
+packages/shader-analyzer/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 3
+packages/ui/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 3
+tests/src/core/AssetPromise.test.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1-2,192-288
+  s_3ee6eea2868467::t_f9eacfe076e5e8 289
+packages/core/src/mesh/SkinnedMeshRenderer.ts
+  s_3ee6eea2868467::t_313eac12a785d4 102,107-110
+packages/core/src/renderingHardwareInterface/IPlatformTransformFeedbackPrimitive.ts
+  s_3ee6eea2868467::t_313eac12a785d4 3
+packages/core/src/BasicResources.ts
+  s_3ee6eea2868467::t_313eac12a785d4 225-228
+tests/src/core/Camera.test.ts
+  s_3ee6eea2868467::t_313eac12a785d4 10-11,15,128-141
+packages/rhi-null/src/HeadlessCanvas.ts
+  s_3ee6eea2868467::t_313eac12a785d4 1-22
+packages/design/src/xr/IXRDevice.ts
+  s_3ee6eea2868467::t_313eac12a785d4 29,33
+packages/core/src/texture/Texture.ts
+  s_3ee6eea2868467::t_313eac12a785d4 14,43,50,57,64,71,106,113-114,143-144,164-165,178-187,212,239-240,251,256
+packages/loader/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 3
+tests/src/core/texture/RenderTarget.test.ts
+  s_3ee6eea2868467::t_313eac12a785d4 113-115
+e2e/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 4
+packages/shader/package.json
+  s_3ee6eea2868467::t_313eac12a785d4 3
+pnpm-lock.yaml
+  s_3ee6eea2868467::t_42afb70a88da9f 55,270-275,355-357,387-389,417-419,5190
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9db61b3b0abffdf7fdd415176e836c546415f0e7",
+  "prompts": {},
+  "sessions": {
+    "s_30889def3c02cc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e8d3-cd57-70b0-8843-ecc65484b8c6",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    },
+    "s_3ee6eea2868467": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e9f3-3257-7082-9101-0df93aec4a93",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

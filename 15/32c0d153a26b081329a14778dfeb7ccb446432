@@ -1,0 +1,1054 @@
+.agents/skills/seed-world-lod/SKILL.md
+  h_ddbf152d31b140 1-10
+.agents/skills/seed-world-lod/agents/openai.yaml
+  h_ddbf152d31b140 1-4
+docs/en/graphics/background/sky.mdx
+  h_ddbf152d31b140 46,48,52
+docs/en/graphics/mesh/primitiveMesh.mdx
+  h_ddbf152d31b140 15-19,23-27,31-35,39,47,60,73,86,99,112,125,131-361
+docs/en/graphics/model/glTF.mdx
+  h_ddbf152d31b140 53
+docs/en/physics/collider/colliderShape.mdx
+  h_ddbf152d31b140 31-37,100-117
+docs/zh/graphics/background/sky.mdx
+  h_ddbf152d31b140 48,52
+docs/zh/graphics/mesh/primitiveMesh.mdx
+  h_ddbf152d31b140 15-19,23-27,31-35,39,41,47,60,73,86,93,99,112,125,131-367
+docs/zh/graphics/model/glTF.mdx
+  h_ddbf152d31b140 53
+docs/zh/physics/collider/colliderShape.mdx
+  h_ddbf152d31b140 31-37,103-120
+e2e/case/.primitiveMeshGallery.ts
+  h_ddbf152d31b140 2-18,20-27,29-35,37-50,53-57,60-84,86-125,128-150,152-158,161-176,179-187
+e2e/case/camera-ssao.ts
+  h_ddbf152d31b140 64,74,86
+e2e/case/canvas-transparency.ts
+  h_ddbf152d31b140 114,127
+e2e/case/material-white-furnace.ts
+  h_ddbf152d31b140 98
+e2e/case/multi-camera-no-clear.ts
+  h_ddbf152d31b140 57,86
+e2e/case/particleRenderer-emit-billboard-stretched.ts
+  h_ddbf152d31b140 70
+e2e/case/particleRenderer-emit-mesh-cone-scale-3d-rotation-life-seperate.ts
+  h_ddbf152d31b140 70,90
+e2e/case/particleRenderer-emit-mesh-cone-scale-3d-rotation.ts
+  h_ddbf152d31b140 70,90
+e2e/case/particleRenderer-emit-mesh-cone-scale-rotation-life-seperate.ts
+  h_ddbf152d31b140 70,90
+e2e/case/particleRenderer-emit-mesh-cone-scale-rotation-life.ts
+  h_ddbf152d31b140 70,90
+e2e/case/particleRenderer-emit-mesh-cone-scale-rotation-world.ts
+  h_ddbf152d31b140 70,90
+e2e/case/particleRenderer-emit-mesh-cone-scale-rotation.ts
+  h_ddbf152d31b140 70,96
+e2e/case/particleRenderer-emit-mesh-cone.ts
+  h_ddbf152d31b140 82,100
+e2e/case/particleRenderer-emit-mesh-no-shape-world.ts
+  h_ddbf152d31b140 69,88
+e2e/case/particleRenderer-emit-mesh-no-shape.ts
+  h_ddbf152d31b140 69,88
+e2e/case/particleRenderer-emit-mesh-size-over-lifetime.ts
+  h_ddbf152d31b140 58
+e2e/case/physx-collision-group.ts
+  h_ddbf152d31b140 64
+e2e/case/physx-collision.ts
+  h_ddbf152d31b140 49-51,95-97
+e2e/case/physx-customUrl.ts
+  h_ddbf152d31b140 48-50,100-102
+e2e/case/physx-deferred-contact.ts
+  h_ddbf152d31b140 47-48
+e2e/case/primitive-all.ts
+  h_ddbf152d31b140 1-24,26-33,35-41,43-45,47-56,58-180,182-183,185-209,212-223,225-229,232-239,243-244
+e2e/case/primitive-capsule.ts
+  h_ddbf152d31b140 58
+e2e/case/primitive-cone.ts
+  h_ddbf152d31b140 58
+e2e/case/primitive-contours.ts
+  h_ddbf152d31b140 1-2,5,7-116,121
+e2e/case/primitive-cuboid.ts
+  h_ddbf152d31b140 58
+e2e/case/primitive-cylinder.ts
+  h_ddbf152d31b140 58
+e2e/case/primitive-materials.ts
+  h_ddbf152d31b140 1-2,4-121,123-126,129-133,136-137
+e2e/case/primitive-plane.ts
+  h_ddbf152d31b140 58
+e2e/case/primitive-sections.ts
+  h_ddbf152d31b140 1-101
+e2e/case/primitive-sphere-sections.ts
+  h_ddbf152d31b140 1-101
+e2e/case/primitive-sphere.ts
+  h_ddbf152d31b140 58
+e2e/case/primitive-topology.ts
+  h_ddbf152d31b140 1-178
+e2e/case/primitive-torus.ts
+  h_ddbf152d31b140 58
+e2e/case/shader-mrt.ts
+  h_ddbf152d31b140 100
+e2e/case/shader-renderState.ts
+  h_ddbf152d31b140 105,116
+e2e/case/texture-hdr-ktx2.ts
+  h_ddbf152d31b140 74
+e2e/case/texture-sRGB-KTX2.ts
+  h_ddbf152d31b140 40
+e2e/config.ts
+  h_ddbf152d31b140 232-267,271,283,549,555,561
+e2e/fixtures/originImage/Advance_multi-camera-no-clear.jpg
+  h_ddbf152d31b140 2-3
+e2e/fixtures/originImage/GPUInstancing_gpu-instancing-custom-data.jpg
+  h_ddbf152d31b140 2-3
+e2e/fixtures/originImage/Material_material-white-furnace.jpg
+  h_ddbf152d31b140 2-3
+e2e/fixtures/originImage/Material_shader-mrt.jpg
+  h_ddbf152d31b140 2-3
+e2e/fixtures/originImage/Material_shader-renderState.jpg
+  h_ddbf152d31b140 2-3
+e2e/fixtures/originImage/Physics_physx-collision-group.jpg
+  h_ddbf152d31b140 2-3
+e2e/fixtures/originImage/Physics_physx-collision.jpg
+  h_ddbf152d31b140 2-3
+e2e/fixtures/originImage/Physics_physx-customUrl.jpg
+  h_ddbf152d31b140 2-3
+e2e/fixtures/originImage/Primitive_primitive-all.jpg
+  h_ddbf152d31b140 1-3
+e2e/fixtures/originImage/Primitive_primitive-capsule.jpg
+  h_ddbf152d31b140 2-3
+e2e/fixtures/originImage/Primitive_primitive-contours.jpg
+  h_ddbf152d31b140 1-3
+e2e/fixtures/originImage/Primitive_primitive-materials.jpg
+  h_ddbf152d31b140 1-3
+e2e/fixtures/originImage/Primitive_primitive-sections.jpg
+  h_ddbf152d31b140 1-3
+e2e/fixtures/originImage/Primitive_primitive-sphere-sections.jpg
+  h_ddbf152d31b140 1-3
+e2e/fixtures/originImage/Primitive_primitive-topology.jpg
+  h_ddbf152d31b140 1-3
+e2e/package.json
+  h_ddbf152d31b140 4
+e2e/primitive-mesh.md
+  h_ddbf152d31b140 1-26
+examples/package.json
+  h_ddbf152d31b140 3
+examples/src/paricle-emit-mesh.ts
+  h_ddbf152d31b140 35,55
+examples/src/shader-03-ui-script.ts
+  h_ddbf152d31b140 191
+examples/src/shader-04-multi-pass.ts
+  h_ddbf152d31b140 137
+package.json
+  h_ddbf152d31b140 3
+packages/animals/src/gameplay/animal/AnimalPopulation.ts
+  h_ddbf152d31b140 20,188-190
+packages/building/src/building/runtime/ConstructionSceneLighting.ts
+  h_ddbf152d31b140 38-41
+packages/building/tests/ConstructionSceneLightingCompiler.spec.ts
+  h_ddbf152d31b140 2-4,6-9,11-39
+packages/core/package.json
+  h_ddbf152d31b140 3
+packages/core/src/2d/text/TextUtils.ts
+  h_ddbf152d31b140 46
+packages/core/src/Background.ts
+  h_ddbf152d31b140 107,165-166
+packages/core/src/BasicResources.ts
+  h_ddbf152d31b140 14,16,32,38-44,140-143,156,159,206-208,210-211,225-228,315-316
+packages/core/src/Camera.ts
+  h_ddbf152d31b140 13,29,155,383,390,428,435,624,747,749,753,766-782,805
+packages/core/src/Engine.ts
+  h_ddbf152d31b140 1,26,33,43-45,130,142-143,150,206,219-220,279,300-303,314-315,318,574-575,636,653-660,676-686
+packages/core/src/Polyfill.ts
+  h_ddbf152d31b140 9-13,20,34
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_ddbf152d31b140 4,61,65,67,116-119,182
+packages/core/src/RenderPipeline/OpaqueTexturePass.ts
+  h_ddbf152d31b140 41
+packages/core/src/SystemInfo.ts
+  h_ddbf152d31b140 2,4,24,99,120,125
+packages/core/src/asset/request.ts
+  h_ddbf152d31b140 18-21,42-56,58,62-87,91-92,94,96-97,152,164-201,208,237-238,250,252-256
+packages/core/src/audio/AudioSource.ts
+  h_ddbf152d31b140 71-73,253
+packages/core/src/graphic/Primitive.ts
+  h_ddbf152d31b140 3,149
+packages/core/src/input/InputManager.ts
+  h_ddbf152d31b140 158
+packages/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  h_ddbf152d31b140 46,49
+packages/core/src/material/BlinnPhongMaterial.ts
+  h_ddbf152d31b140 162
+packages/core/src/material/Material.ts
+  h_ddbf152d31b140 48,51-53
+packages/core/src/material/PBRMaterial.ts
+  h_ddbf152d31b140 769
+packages/core/src/material/UnlitMaterial.ts
+  h_ddbf152d31b140 59
+packages/core/src/mesh/MeshTangentUtils.ts
+  h_ddbf152d31b140 1-142
+packages/core/src/mesh/ModelMesh.ts
+  h_ddbf152d31b140 15,671-675,686,695,698-700,705-710,712-716,742-745,1271-1272
+packages/core/src/mesh/PrimitiveMesh.ts
+  h_ddbf152d31b140 1,7-28,30-34,37-41,51-176,178-204,207-217,219,221-224,226-235,237-253,258-265,267-288,293-301,303,305-308,310-332,334-354,359-366,368,370-372,374-381,386-392,394-414,416,418-434,439-445,447-546,548-549,551-558,560,562-579,584-589,591,593-594,596-600,605-612,614,616-642,644-698,703-712,714-1063,1065-1450,1452-1663,1665-1912,1916-1917,1921,1950,1962,1976,1978-1989,1996,2002,2006-2009,2012,2016-2018,2023,2028,2030,2033-2041,2043-2046,2048-2063,2065-2070,2072-2073,2076-2085,2088-2093,2095-2107,2109-2110,2112-2113,2116-2118,2120-2121,2123-2126,2128,2130,2133-2138,2140,2143-2145,2147-2150
+packages/core/src/mesh/PrimitiveMeshOptions.ts
+  h_ddbf152d31b140 1-2,4-12,15-29,32-53,56-59,61-62,64,66-67,69,71-74,76-79,82-95,98-127,130-159,162-191,194-212,215-240,243-256,259-277,280-289,292-306,309-328,331-339,342-377,380-401,404-417,420-434
+packages/core/src/mesh/SkinnedMeshRenderer.ts
+  h_ddbf152d31b140 102,107-110
+packages/core/src/mesh/enums/PrimitiveMeshCapMode.ts
+  h_ddbf152d31b140 2,4-20
+packages/core/src/mesh/index.ts
+  h_ddbf152d31b140 7-28,31
+packages/core/src/mesh/primitive/MeshPathUtils.ts
+  h_ddbf152d31b140 1,3-15,17-40,42-69,71-113,116-127,130-149
+packages/core/src/mesh/primitive/PolygonUtils.ts
+  h_ddbf152d31b140 1-23,25-35,37-45,47-63,65-92,94-98,101-107,109-118,120-130,132-141,143-145,147-149,151-183,185,187-188,190-215,217,219-222,224-299,301-304,306-315,317-320,322-325,327-346,348-350,352-363,365-372,374-438,440-447,449-456,458-462,464-471,473-491,494-511,513-540,542-620,622-632,634-648,650-653,655-668,670-709,712-738
+packages/core/src/mesh/primitive/PrimitiveMeshBuilder.ts
+  h_ddbf152d31b140 1,4,6-12,14-16,19-34,37-41,44-46,49-52,56-70,73-77,80-90,93-97,101-110
+packages/core/src/mesh/primitive/PrimitiveMeshRestorer.ts
+  h_ddbf152d31b140 1-5,7-13,15-24,26-33,35-43
+packages/core/src/mesh/primitive/SubdivisionUtils.ts
+  h_ddbf152d31b140 1-24,26-55,57-60,64-77,81-92,94
+packages/core/src/particle/ParticleGenerator.ts
+  h_ddbf152d31b140 2,643-644,665-670,1478,1480-1481
+packages/core/src/particle/ParticleMaterial.ts
+  h_ddbf152d31b140 14
+packages/core/src/particle/ParticleSubEmitterSpawnState.ts
+  h_ddbf152d31b140 12,49-50,52
+packages/core/src/particle/ParticleTransformFeedbackSimulator.ts
+  h_ddbf152d31b140 7,44,46-47,49
+packages/core/src/physics/CharacterController.ts
+  h_ddbf152d31b140 7,21,109,113-118
+packages/core/src/physics/Collider.ts
+  h_ddbf152d31b140 1,11,161-170,172-173,175-177,202-207,212-214
+packages/core/src/physics/PhysicsMaterial.ts
+  h_ddbf152d31b140 1,6,9-22,29,103-116
+packages/core/src/physics/shape/BoxColliderShape.ts
+  h_ddbf152d31b140 28
+packages/core/src/physics/shape/CapsuleColliderShape.ts
+  h_ddbf152d31b140 62
+packages/core/src/physics/shape/ColliderShape.ts
+  h_ddbf152d31b140 1,3,7,25-28,75-77,81,86-88,90,94,96,98,156-169,199-201,215-222,224-228,233-241
+packages/core/src/physics/shape/MeshColliderShape.ts
+  h_ddbf152d31b140 3,5,10-14,19-20,25,37-43,45,52,62-71,73-78,80-83,97-100,102-106,108-109,111-114,138,141-150,153,156,162-168,171-172,174-186,189,194-199,201,203,208-213,216-217,219-220,222-228
+packages/core/src/physics/shape/PlaneColliderShape.ts
+  h_ddbf152d31b140 11
+packages/core/src/physics/shape/SphereColliderShape.ts
+  h_ddbf152d31b140 30
+packages/core/src/postProcess/FinalPass.ts
+  h_ddbf152d31b140 22,26,31
+packages/core/src/postProcess/PostProcessManager.ts
+  h_ddbf152d31b140 273
+packages/core/src/postProcess/PostProcessUberPass.ts
+  h_ddbf152d31b140 27,31,140,153,167
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  h_ddbf152d31b140 1-19,21-23,25-45,47-95
+packages/core/src/renderingHardwareInterface/IPlatformPrimitive.ts
+  h_ddbf152d31b140 1-2,5
+packages/core/src/renderingHardwareInterface/IPlatformShaderProgram.ts
+  h_ddbf152d31b140 3
+packages/core/src/renderingHardwareInterface/IPlatformTransformFeedbackPrimitive.ts
+  h_ddbf152d31b140 3
+packages/core/src/renderingHardwareInterface/index.ts
+  h_ddbf152d31b140 1,3,5
+packages/core/src/shader/BuiltinShaders.ts
+  h_ddbf152d31b140 1-2,4,6-27
+packages/core/src/shader/Shader.ts
+  h_ddbf152d31b140 142-143,188-189
+packages/core/src/shader/ShaderFactory.ts
+  h_ddbf152d31b140 398
+packages/core/src/shader/ShaderPass.ts
+  h_ddbf152d31b140 54-55,63,70-71,80,129-134
+packages/core/src/shader/ShaderProgram.ts
+  h_ddbf152d31b140 1,18
+packages/core/src/shader/ShaderUniform.ts
+  h_ddbf152d31b140 1
+packages/core/src/shader/index.ts
+  h_ddbf152d31b140 2
+packages/core/src/shader/state/BlendState.ts
+  h_ddbf152d31b140 2,67,72
+packages/core/src/shader/state/DepthState.ts
+  h_ddbf152d31b140 2
+packages/core/src/shader/state/RasterState.ts
+  h_ddbf152d31b140 2
+packages/core/src/shader/state/StencilState.ts
+  h_ddbf152d31b140 2
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  h_ddbf152d31b140 146
+packages/core/src/sky/SkyBoxMaterial.ts
+  h_ddbf152d31b140 65
+packages/core/src/sky/SkyProceduralMaterial.ts
+  h_ddbf152d31b140 4,134
+packages/core/src/texture/Texture.ts
+  h_ddbf152d31b140 13,42,49,56,63,70,105,112-113,135-136,156-157,170-179,204,231-232,243,248
+packages/core/src/texture/Texture2DArray.ts
+  h_ddbf152d31b140 176,186,196,206
+packages/core/src/texture/TextureUtils.ts
+  h_ddbf152d31b140 20,36-43
+packages/core/src/trail/TrailMaterial.ts
+  h_ddbf152d31b140 13
+packages/design/package.json
+  h_ddbf152d31b140 3
+packages/design/src/physics/ICollider.ts
+  h_ddbf152d31b140 11-12,14
+packages/design/src/physics/IDynamicCollider.ts
+  h_ddbf152d31b140 3,9-18
+packages/design/src/physics/IPhysics.ts
+  h_ddbf152d31b140 6,60,62,109,117-118
+packages/design/src/physics/IPhysicsMaterial.ts
+  h_ddbf152d31b140 1-11
+packages/design/src/physics/IStaticCollider.ts
+  h_ddbf152d31b140 3,9-18
+packages/design/src/physics/index.ts
+  h_ddbf152d31b140 5
+packages/design/src/physics/shape/IMeshColliderShape.ts
+  h_ddbf152d31b140 9,11,13
+packages/design/src/shader-compiler/IPrecompiledShader.ts
+  h_ddbf152d31b140 1,15-16
+packages/design/src/shader-compiler/IShaderProgramSource.ts
+  h_ddbf152d31b140 9-10
+packages/design/src/xr/IXRDevice.ts
+  h_ddbf152d31b140 29,33
+packages/design/src/xr/IXRSession.ts
+  h_ddbf152d31b140 39-43
+packages/farming/package.json
+  h_ddbf152d31b140 185-187
+packages/farming/src/farming/domain/FarmingGround.ts
+  h_ddbf152d31b140 1
+packages/farming/src/farming/native/FarmingAPIContract.ts
+  h_ddbf152d31b140 449,470
+packages/farming/src/farming/native/FarmingAPIDeclarations.ts
+  h_ddbf152d31b140 3
+packages/farming/src/farming/native/FarmingMethodDocs.ts
+  h_ddbf152d31b140 161,176
+packages/farming/src/farming/presentation/FarmItemPresentation.ts
+  h_ddbf152d31b140 30
+packages/farming/src/farming/presentation/FarmingPlotSelection.ts
+  h_ddbf152d31b140 16-17
+packages/farming/src/farming/presentation/harvest/BasketContentsMesh.ts
+  h_ddbf152d31b140 5
+packages/farming/src/farming/presentation/harvest/HarvestProduce.ts
+  h_ddbf152d31b140 2
+packages/farming/src/farming/presentation/harvest/HarvestProduceMesh.ts
+  h_ddbf152d31b140 2
+packages/farming/src/farming/presentation/soil/FarmingPlotSurface.ts
+  h_ddbf152d31b140 1
+packages/farming/src/farming/presentation/soil/SoilRenderBatches.ts
+  h_ddbf152d31b140 21
+packages/farming/src/farming/presentation/soil/SoilWorkPresenter.ts
+  h_ddbf152d31b140 1
+packages/farming/src/farming/presentation/soil/disposeSoilMesh.ts
+  h_ddbf152d31b140 2
+packages/farming/src/farming/presentation/storage/StorageProduceLibrary.ts
+  h_ddbf152d31b140 3
+packages/farming/src/farming/procedural/runtime/ProceduralPlant.ts
+  h_ddbf152d31b140 2
+packages/farming/src/skills/farming/SKILL.md
+  h_ddbf152d31b140 46-48,72,75
+packages/farming/src/skills/farming/references/operations.md
+  h_ddbf152d31b140 130,145
+packages/farming/src/skills/farming/references/verification.md
+  h_ddbf152d31b140 3-5,32-34
+packages/farming/tests/fixtures/fixtures.ts
+  h_ddbf152d31b140 1
+packages/galacean/package.json
+  h_ddbf152d31b140 3
+packages/galacean/skills/engine-knowledge/SKILL.md
+  h_ddbf152d31b140 3,6,8,10-12,16,21
+packages/galacean/skills/engine-knowledge/references/mesh-geometry.md
+  h_ddbf152d31b140 3,5,7,9,11,13,15-39,41,43,45,47,50,52-62,65
+packages/galacean/src/ShaderPool.ts
+  h_ddbf152d31b140 1,40-43,45-67
+packages/galacean/src/index.ts
+  h_ddbf152d31b140 2,21-22,31
+packages/loader/package.json
+  h_ddbf152d31b140 3
+packages/loader/src/GLTFContentRestorer.ts
+  h_ddbf152d31b140 16,65-70
+packages/loader/src/ImageDecoder.ts
+  h_ddbf152d31b140 1-78
+packages/loader/src/PrimitiveMeshAsset.ts
+  h_ddbf152d31b140 1-22,25,27-29,31-35,37-285
+packages/loader/src/PrimitiveMeshLoader.ts
+  h_ddbf152d31b140 4,8,13-14,20-104,106-134,137-150,152-166
+packages/loader/src/TextureLoader.ts
+  h_ddbf152d31b140 21,76,144
+packages/loader/src/gltf/GLTFUtils.ts
+  h_ddbf152d31b140 13,368
+packages/loader/src/gltf/extensions/GLTFExtensionSchema.ts
+  h_ddbf152d31b140 37-43,200,217
+packages/loader/src/gltf/extensions/KHR_materials_emissive_strength.ts
+  h_ddbf152d31b140 1-5,7-13
+packages/loader/src/gltf/extensions/index.ts
+  h_ddbf152d31b140 3
+packages/loader/src/gltf/parser/GLTFTextureParser.ts
+  h_ddbf152d31b140 12,67-83,85-86,88-89,91,93
+packages/loader/src/index.ts
+  h_ddbf152d31b140 30
+packages/loader/src/resource-deserialize/resources/texture2D/Texture2DDecoder.ts
+  h_ddbf152d31b140 5,44,48
+packages/loader/src/resource-deserialize/resources/textureCube/TextureCubeDecoder.ts
+  h_ddbf152d31b140 5,46,52
+packages/math/package.json
+  h_ddbf152d31b140 3
+packages/modify/package.json
+  h_ddbf152d31b140 22-23
+packages/modify/src/native/core/src/Background.ts
+  h_ddbf152d31b140 114,172-173
+packages/modify/src/native/core/src/Camera.ts
+  h_ddbf152d31b140 14,37,435,818,820,824,837-853
+packages/modify/src/native/core/src/Engine.ts
+  h_ddbf152d31b140 34,50-52,286,664-671
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_ddbf152d31b140 7,127,130,338
+packages/modify/src/native/core/src/RenderPipeline/OpaqueTexturePass.ts
+  h_ddbf152d31b140 41
+packages/modify/src/native/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  h_ddbf152d31b140 49,52
+packages/modify/src/native/core/src/lighting/dayNight/DayNightProceduralSky.ts
+  h_ddbf152d31b140 18
+packages/modify/src/native/core/src/material/Material.ts
+  h_ddbf152d31b140 118,121-123
+packages/modify/src/native/core/src/particle/ParticleGenerator.ts
+  h_ddbf152d31b140 2,721-724
+packages/modify/src/native/core/src/particle/ParticleTransformFeedbackSimulator.ts
+  h_ddbf152d31b140 32-35,41
+packages/modify/src/native/core/src/postProcess/FinalPass.ts
+  h_ddbf152d31b140 23,27,32
+packages/modify/src/native/core/src/postProcess/PostProcessUberPass.ts
+  h_ddbf152d31b140 27,31,167,180,194
+packages/modify/src/native/core/src/shader/ShaderFactory.ts
+  h_ddbf152d31b140 197,220-230,417-418
+packages/modify/src/native/core/src/shader/ShaderPass.ts
+  h_ddbf152d31b140 56-57,109,116-117,126,202-205,219,235,283-286
+packages/modify/src/native/core/src/sky/SkyBoxMaterial.ts
+  h_ddbf152d31b140 92
+packages/modify/src/native/core/src/sky/SkyProceduralMaterial.ts
+  h_ddbf152d31b140 5,511
+packages/modify/src/native/galacean/src/ShaderPool.ts
+  h_ddbf152d31b140 1,59,108,110-111,114,126,128-151
+packages/modify/tests/BuiltinShaderIdentity.test.ts
+  h_ddbf152d31b140 1-57
+packages/modify/tests/EngineStartup.spec.ts
+  h_ddbf152d31b140 1-61
+packages/modify/tests/ShaderSourceCompatibility.spec.ts
+  h_ddbf152d31b140 1-57
+packages/modify/vitest.config.mjs
+  h_ddbf152d31b140 1,3-6
+packages/physics-physx/package.json
+  h_ddbf152d31b140 3
+packages/physics-physx/src/PhysXCharacterController.ts
+  h_ddbf152d31b140 91,100,162
+packages/physics-physx/src/PhysXCollider.ts
+  h_ddbf152d31b140 32,34,38,51-64
+packages/physics-physx/src/PhysXPhysics.ts
+  h_ddbf152d31b140 12,180-181,226-227,229-238,289-290,316,318
+packages/physics-physx/src/PhysXPhysicsMaterial.ts
+  h_ddbf152d31b140 1,11-12,43,50
+packages/physics-physx/src/shape/PhysXColliderShape.ts
+  h_ddbf152d31b140 34,110-116,126-129,192
+packages/physics-physx/src/shape/PhysXMeshColliderShape.ts
+  h_ddbf152d31b140 11,14,23-24,28,30-31,36-46,49-52,65-66,70-72,81,88,96,116,119,122,124,128-129,133,135,139,189,194,199-202,204-206
+packages/rhi-null/README.md
+  h_ddbf152d31b140 1
+packages/rhi-null/package.json
+  h_ddbf152d31b140 1-29
+packages/rhi-null/src/HeadlessCanvas.ts
+  h_ddbf152d31b140 1,3-13,15-16,18-19,21-22
+packages/rhi-null/src/HeadlessEngine.ts
+  h_ddbf152d31b140 1-32
+packages/rhi-null/src/NullBuffer.ts
+  h_ddbf152d31b140 1,3-5,7-54
+packages/rhi-null/src/NullGraphicDevice.ts
+  h_ddbf152d31b140 1-32,34,36-38,41-42,45-46,49-50,52-53,55-61,63-64,66-67,69-70,72-73,75-76,78-101,103-104
+packages/rhi-null/src/NullTexture.ts
+  h_ddbf152d31b140 1-9,11-17,19-25,27-29,32-34,37-40
+packages/rhi-null/src/index.ts
+  h_ddbf152d31b140 1-4
+packages/rhi-null/tsconfig.json
+  h_ddbf152d31b140 1-18
+packages/rhi-webgl/package.json
+  h_ddbf152d31b140 3
+packages/rhi-webgl/src/GLCapability.ts
+  h_ddbf152d31b140 1,18,22-25,148-190
+packages/rhi-webgl/src/GLPrimitive.ts
+  h_ddbf152d31b140 1-8
+packages/rhi-webgl/src/GLRenderTarget.ts
+  h_ddbf152d31b140 29,38,51,86,245,293-294
+packages/rhi-webgl/src/GLTexture.ts
+  h_ddbf152d31b140 481,485,542
+packages/rhi-webgl/src/GLTexture2DArray.ts
+  h_ddbf152d31b140 10-12
+packages/rhi-webgl/src/GLTransformFeedbackPrimitive.ts
+  h_ddbf152d31b140 1-6
+packages/rhi-webgl/src/WebGLEngine.ts
+  h_ddbf152d31b140 1,20
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_ddbf152d31b140 9,11,13-14,23,95,109,113-114,117-118,357-364,438,440,587-588
+packages/shader-analyzer/package.json
+  h_ddbf152d31b140 3
+packages/shader-compiler/package.json
+  h_ddbf152d31b140 3
+packages/shader-compiler/src/ShaderPrecompiler.ts
+  h_ddbf152d31b140 117
+packages/shader-compiler/src/codeGen/CodeGenVisitor.ts
+  h_ddbf152d31b140 40,51-63,89-90,97,143,174,199,201,209,213,221,233,237
+packages/shader-compiler/src/codeGen/GLES100.ts
+  h_ddbf152d31b140 1,5,11,18-19,22-23
+packages/shader-compiler/src/codeGen/GLES300.ts
+  h_ddbf152d31b140 9,53,57,63,98,105,118-121,123-132,136-137,193-194,198
+packages/shader-compiler/src/codeGen/GLESVisitor.ts
+  h_ddbf152d31b140 12,21,28,37-46,73-74,84-87,97-104,118-121,128-133,153-167,175-184,186-188,226-229,233,237-242,254,264-265,301-302,315-318,324-647,885,1072,1209-1214
+packages/shader-compiler/src/codeGen/NameAllocator.ts
+  h_ddbf152d31b140 2-3,5-21,24-26,29-30,34,37-39,41-46,49-57,60-76,79-82
+packages/shader-compiler/src/codeGen/VisitorContext.ts
+  h_ddbf152d31b140 7,11
+packages/shader-parser/package.json
+  h_ddbf152d31b140 3
+packages/shader-parser/src/parser/AST.ts
+  h_ddbf152d31b140 1347-1349,1352,1370-1371,1382,1430
+packages/shader/package.json
+  h_ddbf152d31b140 3
+packages/spine-core-3.8/package.json
+  h_ddbf152d31b140 3
+packages/spine-core-4.2/package.json
+  h_ddbf152d31b140 3
+packages/spine/package.json
+  h_ddbf152d31b140 3
+packages/spine/src/renderer/SpineMaterial.ts
+  h_ddbf152d31b140 9
+packages/terrain/package.json
+  h_ddbf152d31b140 17,22-23,66
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/index.ts
+  h_ddbf152d31b140 2
+packages/terrain/src/rock-formation/RockLodPolicy.ts
+  h_ddbf152d31b140 1-3,5-8,10-14
+packages/terrain/src/shaders/Terrain.shader
+  h_ddbf152d31b140 97
+packages/terrain/src/shaders/grass/GrassForwardPass.glsl
+  h_ddbf152d31b140 43-44,46,161-167,330-332,375-379,408-411
+packages/terrain/src/shaders/shared/TerrainLayerEvaluation.glsl
+  h_ddbf152d31b140 234-236
+packages/terrain/src/shaders/surface/SurfaceEvaluation.glsl
+  h_ddbf152d31b140 20-22,158-164
+packages/terrain/src/shaders/terrain/TerrainForwardPass.glsl
+  h_ddbf152d31b140 99
+packages/terrain/src/shaders/terrain/TerrainScreenSpaceReflectionPass.glsl
+  h_ddbf152d31b140 164
+packages/terrain/src/terrain/TerrainDetailPlacement.ts
+  h_ddbf152d31b140 1-51
+packages/terrain/src/terrain/TerrainMapComponent.ts
+  h_ddbf152d31b140 1-4,6-19,22-24,26-29,32-33,35-90,92-102,108-111,114,116-117,120-125,129-133,136-139
+packages/terrain/src/terrain/clipmap/TerrainClipmap.ts
+  h_ddbf152d31b140 29,32,268-271,310,338,871,882,894,904-909,911-916,928
+packages/terrain/src/terrain/clipmap/TerrainClipmapMaterial.ts
+  h_ddbf152d31b140 27,403,414
+packages/terrain/src/terrain/clipmap/TerrainGroundBinding.ts
+  h_ddbf152d31b140 18,23,31
+packages/terrain/src/terrain/clipmap/TerrainHeightAtlas.ts
+  h_ddbf152d31b140 12-13,16-18,62
+packages/terrain/src/terrain/clipmap/TerrainNormalAtlas.ts
+  h_ddbf152d31b140 3
+packages/terrain/src/terrain/clipmap/TerrainPreparedUpdate.ts
+  h_ddbf152d31b140 1
+packages/terrain/src/terrain/clipmap/TerrainPuddleHydrology.ts
+  h_ddbf152d31b140 1-5
+packages/terrain/src/terrain/project/TerrainProjectAdapter.ts
+  h_ddbf152d31b140 13-16
+packages/terrain/src/terrain/project/TerrainProjectCodec.ts
+  h_ddbf152d31b140 1
+packages/terrain/src/terrain/project/TerrainProjectRegionDependencies.ts
+  h_ddbf152d31b140 1
+packages/terrain/src/terrain/tools/ReadStylizedTerrainPreset.mjs
+  h_ddbf152d31b140 1-60
+packages/terrain/src/terrain/tools/StylizedTerrainAssets.ts
+  h_ddbf152d31b140 1-57
+packages/ui/package.json
+  h_ddbf152d31b140 3
+packages/ui/src/index.ts
+  h_ddbf152d31b140 1,15,17
+packages/water/EDITOR_CONSUMER_CONTRACT.md
+  h_ddbf152d31b140 14-31
+packages/water/package.json
+  h_ddbf152d31b140 385-387
+packages/water/src/bridges/SuspensionBridgeView.ts
+  h_ddbf152d31b140 1-2
+packages/water/src/skills/water/SKILL.md
+  h_ddbf152d31b140 8-25,29-31,35-39,43-47,49,51
+packages/water/src/water/authoring/body/WaterBodyInstance.ts
+  h_ddbf152d31b140 24-25,155-156,168-169
+packages/water/src/water/authoring/terrain/GridInterpolation.ts
+  h_ddbf152d31b140 1-7,9-15,17-26,28-47
+packages/water/src/water/authoring/terrain/WaterTerrainSnapshot.ts
+  h_ddbf152d31b140 2
+packages/water/src/water/compiler/lake/LakeTerrainBoundary.ts
+  h_ddbf152d31b140 1
+packages/water/src/water/native/OceanMaterialPropertyUI.ts
+  h_ddbf152d31b140 1-133
+packages/water/src/water/native/WaterAPIDeclarations.ts
+  h_ddbf152d31b140 3
+packages/water/src/water/native/WaterAuthoring.ts
+  h_ddbf152d31b140 1,275-279,295
+packages/water/src/water/native/WaterMaterial.ts
+  h_ddbf152d31b140 20
+packages/water/src/water/native/WaterMaterialFile.ts
+  h_ddbf152d31b140 1-6,351-395,400-405,407-415,429-437,439,448-449
+packages/water/src/water/native/assets/Water/Shaders/ocean.shader
+  h_ddbf152d31b140 66-149
+packages/water/src/water/runtime/resources/destroyWaterOwnedMesh.ts
+  h_ddbf152d31b140 4
+packages/water/src/water/runtime/spatial/WaterWetNearShoreSearch.ts
+  h_ddbf152d31b140 1
+packages/water/tests/OceanExclusions.test.ts
+  h_ddbf152d31b140 3-4,32-55
+packages/water/tests/OceanMaterialAuthoringUI.test.ts
+  h_ddbf152d31b140 1-45,47-70
+packages/world-planning/package.json
+  h_ddbf152d31b140 11-20,22-29,49-51,478-479
+packages/world-planning/src/generation/terrain/CoastalSeabed.ts
+  h_ddbf152d31b140 1-2,4-6,9-11,14-33,35,38-52,55-57
+packages/world-planning/src/generation/terrain/StylizedTerrainMaterial.ts
+  h_ddbf152d31b140 2-3,5,7-8,10-11,13-14,16-21,23-24,26-38,40-54,58-64,67,69-103,107-108,111-123
+packages/world-planning/src/generation/terrain/StylizedTerrainPreset.d.ts
+  h_ddbf152d31b140 1-22
+packages/world-planning/src/generation/terrain/TerrainAuthoring.d.mts
+  h_ddbf152d31b140 1-59
+packages/world-planning/src/generation/terrain/TerrainAuthoring.ts
+  h_ddbf152d31b140 1-12
+packages/world-planning/src/generation/terrain/TerrainIslandGenerator.ts
+  h_ddbf152d31b140 1-47,50-52,55-58,61-77,80-88,90-97,99-104,108-123,126,128-145,148-191,195-201,205-234,237-265,268-275,277-289,291-314,316-326
+packages/world-planning/src/generation/terrain/TerrainIslandTypes.ts
+  h_ddbf152d31b140 1-11,13-16,18-30,33-47,50-59,61-74
+packages/world-planning/src/generation/terrain/TerrainRuntime.d.mts
+  h_ddbf152d31b140 1,5,7-8,10-12,15-67,69-85,87-89,91,93,95,98,100-117,119-134
+packages/world-planning/src/generation/terrain/TerrainRuntime.ts
+  h_ddbf152d31b140 1-26
+packages/world-planning/src/integrations/terrain/environment/TerrainPrecipitationVfx.ts
+  h_ddbf152d31b140 9,29,174,320-321,457,1115-1143
+packages/world-planning/src/integrations/terrain/environment/WorldEnvironmentRuntime.ts
+  h_ddbf152d31b140 320-321,359-360,385-386,561-565,1035,1043-1045
+packages/world-planning/src/integrations/terrain/rock-formation/Client.ts
+  h_ddbf152d31b140 1,30-32,45-51
+packages/world-planning/src/integrations/terrain/rock-formation/Collider.ts
+  h_ddbf152d31b140 11-12,51,69-71
+packages/world-planning/src/integrations/terrain/rock-formation/Navigation.ts
+  h_ddbf152d31b140 82-83
+packages/world-planning/src/integrations/terrain/rock-formation/RockLodMeshes.ts
+  h_ddbf152d31b140 1-46
+packages/world-planning/src/integrations/terrain/rock-formation/RockLodView.ts
+  h_ddbf152d31b140 1-3,5-11,13-23,25-30,33-41,44-48,50-77,81-83,85-86,89-91,94-110,114-138
+packages/world-planning/src/integrations/terrain/rock-formation/RockMaterial.ts
+  h_ddbf152d31b140 1,6-33,41-42
+packages/world-planning/src/integrations/terrain/rock-formation/RockVariantCatalog.json
+  h_ddbf152d31b140 7,12,17,22,27,34,39,44,49,54,59,64
+packages/world-planning/src/integrations/terrain/rock-formation/Variants.ts
+  h_ddbf152d31b140 9-10,41-43,66-80,108-110,119-120,123-124,128-133,135-139,155-160,181-194,197-198,201,203,206,209,211,214,227-231,241-243,261-265
+packages/world-planning/src/integrations/terrain/rock-formation/View.ts
+  h_ddbf152d31b140 1-9,15-16,23,45-49,57-58,60-64,66-69,92-115,123,125-127,147,149,161,218,220-221,236,242-255
+packages/world-planning/src/masonry/BuildingInitialSource.ts
+  h_ddbf152d31b140 29-30,89
+packages/world-planning/src/runtime/NaturalVegetationCell.ts
+  h_ddbf152d31b140 453-456
+packages/world-planning/src/runtime/SeedWorldFields.ts
+  h_ddbf152d31b140 1
+packages/world-planning/src/runtime/SeedWorldRockMaterial.ts
+  h_ddbf152d31b140 1,16
+packages/world-planning/src/runtime/SeedWorldRockRuntime.ts
+  h_ddbf152d31b140 1,402,422,429
+packages/world-planning/src/runtime/SeedWorldTerrainRuntime.ts
+  h_ddbf152d31b140 1,42-43,60,281-294,371,485,539,602-605,1142
+packages/world-planning/src/semantic-study/IslandPlanModel.ts
+  h_ddbf152d31b140 331-332
+packages/world-planning/src/semantic-study/PlanningAlphamap.ts
+  h_ddbf152d31b140 6
+packages/world-planning/src/semantic-study/PlanningHeightmap.ts
+  h_ddbf152d31b140 10,119
+packages/world-planning/src/semantic-study/PlanningTerrainSource.ts
+  h_ddbf152d31b140 3
+packages/world-planning/src/semantic-study/WorldPlanningTerrain.ts
+  h_ddbf152d31b140 1095-1106
+packages/world-planning/src/spatial/AnimalPopulationComponent.ts
+  h_ddbf152d31b140 135-144,274-279,281-283,334-339,368-374
+packages/world-planning/src/spatial/PlanningDocument.ts
+  h_ddbf152d31b140 426-456,466-476
+packages/world-planning/src/spatial/PlanningSession.ts
+  h_ddbf152d31b140 950-952,954-982,984-995
+packages/world-planning/src/spatial/PlanningWeather.ts
+  h_ddbf152d31b140 16,18-21,63-75,77-80,82,86,88-137,141-163
+packages/world-planning/src/spatial/README.md
+  h_ddbf152d31b140 526
+packages/world-planning/src/spatial/SpatialCompositionGeometry.ts
+  h_ddbf152d31b140 36-38
+packages/world-planning/src/spatial/SpatialCompositionParameters.ts
+  h_ddbf152d31b140 8,75,208
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  h_ddbf152d31b140 2,26-27,71-72,123,125-128,142-143,145-155,157-177,183-186,188,190-199,335,507-509,511-517,520-521,524-536,541-556,560-581,583-589,591-628,630-811,813-820,822-830,832-841,843-910,912-963,965-968,970-991,993-1010,1015-1025,1028,1030,1033,1036,1040,1043-1047,1049-1061
+packages/world-planning/src/spatial/WorldTemplateAuthoring.ts
+  h_ddbf152d31b140 128-158,161-165,167-176,185-193,331,336,340-341,376-389,400-401,403-404,406,409-424,436,492,494-497
+packages/world-planning/src/spatial/WorldTemplateCatalog.ts
+  h_ddbf152d31b140 8,11-12,15-18,55-56,61-62
+packages/world-planning/src/spatial/WorldTemplateEcology.ts
+  h_ddbf152d31b140 6,10,12
+packages/world-planning/src/spatial/WorldTemplateGeometry.ts
+  h_ddbf152d31b140 161-162,165,168-169
+packages/world-planning/src/spatial/WorldTemplatePlanning.ts
+  h_ddbf152d31b140 80-83,159-161,179-185,201-287
+packages/world-planning/src/spatial/WorldTemplateView.ts
+  h_ddbf152d31b140 1,5
+packages/world-planning/src/spatial/ecology/FlowerRegions.ts
+  h_ddbf152d31b140 91-93,377-409
+packages/world-planning/src/spatial/farming/PlanningFarmingGround.ts
+  h_ddbf152d31b140 1
+packages/world-planning/src/spatial/hydrology/LakeRegions.ts
+  h_ddbf152d31b140 68
+packages/world-planning/src/spatial/layout/EnvironmentStages.ts
+  h_ddbf152d31b140 217
+packages/world-planning/src/spatial/layout/MojaveDesertLayout.ts
+  h_ddbf152d31b140 6,13-14,33-35
+packages/world-planning/src/spatial/layout/SpatialEditInputs.ts
+  h_ddbf152d31b140 15-16,53
+packages/world-planning/src/spatial/layout/SpatialTerrain.ts
+  h_ddbf152d31b140 10-18,33
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  h_ddbf152d31b140 4,259,600,648,776-778,1205,1259
+packages/world-planning/src/spatial/runtime/NativeWaterAgent.ts
+  h_ddbf152d31b140 1,4-14,17-24,26-153,155,157-158,160,162-163
+packages/world-planning/src/spatial/runtime/NativeWaterEditor.ts
+  h_ddbf152d31b140 5-6
+packages/world-planning/src/spatial/runtime/NativeWaterHost.ts
+  h_ddbf152d31b140 6-8,103-112
+packages/world-planning/src/spatial/runtime/NativeWaterPanel.ts
+  h_ddbf152d31b140 1-12,14-19,23,25,29-35,39-87,91,102,104-128,133,135-136,142-170,172,174-178,183,186-212,214-230,232-242,244-256,258,260-276,279-291,300-311
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetation.ts
+  h_ddbf152d31b140 71,75-79,84,344,412
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_ddbf152d31b140 1-2,89-92,670,809,1621-1630,1637,1648-1649,1689-1705,1713-1714
+packages/world-planning/src/spatial/runtime/PlanningSeedSolids.ts
+  h_ddbf152d31b140 1,8-16,52,70,78-79
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  h_ddbf152d31b140 8,26,35-40,898-943
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  h_ddbf152d31b140 2-3,6-7,13-16,18-28,31,33-50,52,54-61,64-70,72-81,83-92,94-111,114-125,127-160,162-209,211-225,228-238,241-244,246-345,348-363,365-368,370-373,375-391,393-409,413-428,430-431,433-441,443-516,519-551,553-588,590-597,600-602
+packages/world-planning/src/spatial/runtime/WaterQueryContract.ts
+  h_ddbf152d31b140 1-116
+packages/world-planning/src/spatial/runtime/WaterSourceConnections.ts
+  h_ddbf152d31b140 1-2,4-35,37
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  h_ddbf152d31b140 6-9,13,35-37,43-47,56,75,88-89,92,99,102,105,107-111,136,140-147,152,158,162,165-166,169,174,254-264,553-736,751-777,785-794,815-821,954,980-982
+packages/world-planning/src/world/SeedWorldPhotoGraphics.ts
+  h_ddbf152d31b140 2
+packages/world-planning/tests/CoastalSeabed.spec.ts
+  h_ddbf152d31b140 1-14
+packages/world-planning/tests/NativeWaterImmediateLifecycle.test.ts
+  h_ddbf152d31b140 7
+packages/world-planning/tests/NativeWaterPrefab.test.ts
+  h_ddbf152d31b140 5
+packages/world-planning/tests/WaterEditor.test.ts
+  h_ddbf152d31b140 12,15,122,163-169,185,366-367,406-407,409,434-436,449-450,455
+packages/world-planning/tests/WaterEditorClose.test.ts
+  h_ddbf152d31b140 1-3,5-77,79
+packages/world-planning/tests/WaterEditorFixture.ts
+  h_ddbf152d31b140 4-5,7,24-25,33,39,44
+packages/world-planning/tests/WaterMaterialMetadata.spec.ts
+  h_ddbf152d31b140 1-42
+packages/world-planning/tests/WaterPublicEditing.test.ts
+  h_ddbf152d31b140 1-18,20-41,43-71,73-76,79-116,118-150,152,154-157,159-178,180-238,241,243-278,280
+packages/world-planning/tests/WaterSourceConnections.spec.ts
+  h_ddbf152d31b140 1-112
+packages/world-planning/tests/WaterTestClient.ts
+  h_ddbf152d31b140 1-132
+packages/world-planning/tests/editor/seed-world-fixture.ts
+  h_ddbf152d31b140 8
+packages/xr-webxr/package.json
+  h_ddbf152d31b140 3,38,40-42
+packages/xr-webxr/src/WebXRDevice.ts
+  h_ddbf152d31b140 1-2,48-51,90
+packages/xr-webxr/src/WebXRFrame.ts
+  h_ddbf152d31b140 2
+packages/xr-webxr/src/WebXRSession.ts
+  h_ddbf152d31b140 1,78-83,111-117,122,127,163,170-175
+packages/xr-webxr/src/feature/WebXRPlaneTracking.ts
+  h_ddbf152d31b140 2
+packages/xr/package.json
+  h_ddbf152d31b140 3
+packages/xr/src/session/XRSessionManager.ts
+  h_ddbf152d31b140 2,93,130,147,184
+pnpm-lock.yaml
+  h_ddbf152d31b140 432-437,720-722,750-752
+tests/package-consumer/HeadlessEngine.test.ts
+  h_ddbf152d31b140 1-49,51-79,81-107,109-134,136-158,161-181,183-201,203-217,219-234,236-246,248-280,282-298,300-316,318-326,328-342,344-352,354-362,364-376,378-404,406-422,424-425,427-434,436,438-455,457-467,471-495,498,500-519,521,523-544,546-550,553-680,682-685,687-688,690
+tests/package-consumer/PrimitiveMeshApi.test.ts
+  h_ddbf152d31b140 1-3,5-23,25-40,42-57,59-109
+tests/package-consumer/fixtures/PrimitiveMeshApi.ts
+  h_ddbf152d31b140 1-345
+tests/package-consumer/fixtures/PrimitiveMeshAsset.ts
+  h_ddbf152d31b140 1-210
+tests/package.json
+  h_ddbf152d31b140 4,23
+tests/src/core/AssetPromise.test.ts
+  h_ddbf152d31b140 1-2,192-289
+tests/src/core/BuiltinShaderIdentity.test.ts
+  h_ddbf152d31b140 2-7,9,11-16,18-33,36-37,39-42,44-220
+tests/src/core/Camera.test.ts
+  h_ddbf152d31b140 10-11,15,128-141
+tests/src/core/ModelMesh.test.ts
+  h_ddbf152d31b140 10,16,348-442
+tests/src/core/Shader.test.ts
+  h_ddbf152d31b140 451,453-455
+tests/src/core/ShaderIdentity.test.ts
+  h_ddbf152d31b140 103
+tests/src/core/audio/AudioSourcePendingPlayback.test.ts
+  h_ddbf152d31b140 6,9,193-209
+tests/src/core/mesh/BlendShape.test.ts
+  h_ddbf152d31b140 179
+tests/src/core/mesh/BlendShapeManager.test.ts
+  h_ddbf152d31b140 220-225,302,318,328
+tests/src/core/mesh/PrimitiveMesh.test.ts
+  h_ddbf152d31b140 3-4,23-24,27,31,39-44,54-55,63-64,66-67,70,73-76,79,87,89,91-96,99,103,115-119,137-141,147,158-163,166,172,182-192,194-215
+tests/src/core/mesh/ProceduralMesh.test.ts
+  h_ddbf152d31b140 2-300,302-322,324-342,344-364,366-419,421-438,440-453,455-471,473-487,489-523,525-565,567,569-603,605-613,615-651,653-661,663-690,692-726,728,730-752,754-792,794-809,811-822,824-904,906-926,928-947,949-977,979-999,1001,1003-1110,1112-1126,1128-1149,1151-1179,1181-1192,1194-1201,1203-1212,1215-1219,1221,1223-1236,1238-1240,1242,1244-1292,1294-1295,1297,1299-1303,1305-1337,1339,1341-1361,1363-1372,1374-1396,1398-1399,1401-1415,1417,1419-1422,1424-1440,1442,1444-1454,1456-1474,1476-1478,1480,1482-1486,1488-1497,1499-1502,1504-1506,1508-1512,1514-1518,1520-1531,1533-1536,1538-1576,1578,1580-1584,1586-1603,1605,1607-1643,1646,1648-1666,1668,1670-1675,1677-1695,1697,1699-1709,1711-1712,1718-1725,1727-1732,1734-1748,1750,1752-1798,1800,1802-1813,1815-1816,1818-1830,1832-1839,1841-1857,1861-1874,1878-1885,1887,1889-1898,1900,1902-1915,1918-1936,1940-1952,1954,1956-1970,1972-1994,1996-2005,2008-2011
+tests/src/core/particle/ParticleRenderer.test.ts
+  h_ddbf152d31b140 323,370,396,447
+tests/src/core/particle/SizeOverLifetime.test.ts
+  h_ddbf152d31b140 196
+tests/src/core/particle/SubEmitter.test.ts
+  h_ddbf152d31b140 3310
+tests/src/core/particle/SubEmitterRendering.test.ts
+  h_ddbf152d31b140 100
+tests/src/core/physics/CharacterController.test.ts
+  h_ddbf152d31b140 15-16,45-46,133-144,208-291
+tests/src/core/physics/Collider.test.ts
+  h_ddbf152d31b140 72-73,108,312,327,341
+tests/src/core/physics/ColliderLayer.test.ts
+  h_ddbf152d31b140 104-109
+tests/src/core/physics/ColliderShape.test.ts
+  h_ddbf152d31b140 87-100
+tests/src/core/physics/Collision.test.ts
+  h_ddbf152d31b140 17-18
+tests/src/core/physics/DynamicCollider.test.ts
+  h_ddbf152d31b140 27-28,39-40
+tests/src/core/physics/HingeJoint.test.ts
+  h_ddbf152d31b140 26-27
+tests/src/core/physics/Joint.test.ts
+  h_ddbf152d31b140 16-17
+tests/src/core/physics/MeshColliderLayer.test.ts
+  h_ddbf152d31b140 28-33
+tests/src/core/physics/MeshColliderShape.test.ts
+  h_ddbf152d31b140 13-14,18-19,51-65,71-74,83-86,218-245,326-362,459-531,536,539,542-550,553,557-718,721-783,899-984,993,1090-1114,1131-1132,1138-1140,1146-1238,1240-1241,1243-1258,1260,1262-1279,1281-1285,1287-1289,1291-1306,1308,1310-1312,1324,1326,1329-1330,1336,1343-1364,1369-1370,1377-1378,1382-1386,1389,1435,1462-1552
+tests/src/core/physics/PhysicsMaterial.test.ts
+  h_ddbf152d31b140 9-13,15-17,20-25,27-91,93,96,104-106,117-118,130-131,137-152,155-465,478-479,487-592,600-601,612-614,627-629,642-644,658-660,680-681,704-705,725,727-728,735-736,753,755-756,767,769-770,787,789-790,805,807-808,825,827-828,839,841-842,859,861-862,877,879-880,897,899-900,915,917-918,935,937-938,953,955-956,973,975-976,991,993-994
+tests/src/core/physics/PhysicsMaterialLifetime.test.ts
+  h_ddbf152d31b140 1-121
+tests/src/core/physics/PhysicsScene.test.ts
+  h_ddbf152d31b140 930-936
+tests/src/core/physics/SpringJoint.test.ts
+  h_ddbf152d31b140 16-17
+tests/src/core/texture/RenderTarget.test.ts
+  h_ddbf152d31b140 113-115
+tests/src/loader/GLTFLoader.test.ts
+  h_ddbf152d31b140 43,655-694
+tests/src/loader/ImageDecoder.test.ts
+  h_ddbf152d31b140 2-13,15-26,30-32,34-67,69-71,73-111,113-119,121-143,145-150,153-158,160-161,164-173,175-180,182-210,212-244
+tests/src/loader/PrimitiveMeshLoader.test.ts
+  h_ddbf152d31b140 3-10,12-55,57-165,167-179,181-204,206-576,578-590,592-605,607-615,617,619-638,640,642-651,653-666,668-676,678-700,702-703,708-720
+tests/src/rhi-webgl/HeadlessEngine.test.ts
+  h_ddbf152d31b140 1-3,5-14,16-32,34-61,63-66
+tests/src/shader-compiler/ConditionCoverageFallback.test.ts
+  h_ddbf152d31b140 387-388,522
+tests/src/shader-compiler/ConditionalIOCoverage.test.ts
+  h_ddbf152d31b140 149-154
+tests/src/shader-compiler/DiagnosticDriverConsistency.test.ts
+  h_ddbf152d31b140 508-509
+tests/src/shader-compiler/ForwardFunctionDeclarations.test.ts
+  h_ddbf152d31b140 174,187-188
+tests/src/shader-compiler/HeadlessRegression.test.ts
+  h_ddbf152d31b140 166-167
+tests/src/shader-compiler/InterfaceMRTConversion.test.ts
+  h_ddbf152d31b140 1-5,7-17,19-81,83-134,136-137
+tests/src/shader-compiler/InterfaceValueSemantics.test.ts
+  h_ddbf152d31b140 1-9,11-26,28-30,32-34,36-46,48-164,167-205,207-313,315-338,340-365,367-370,372-376,378,380-410,412-434,436-447,449-455,457-505,508
+tests/src/shader-compiler/MacroBranchRuntime.test.ts
+  h_ddbf152d31b140 682-683,1239-1241,1575-1576
+tests/src/shader-compiler/NameAllocator.test.ts
+  h_ddbf152d31b140 1-2,4-12,14-36,38-63
+tests/src/shader-compiler/ParticleFeedbackReturn.test.ts
+  h_ddbf152d31b140 85
+tests/src/shader-compiler/Precompile.test.ts
+  h_ddbf152d31b140 1-8,1000,1007-1011,1212,1222,1235-1237
+tests/src/shader-compiler/PrecompileABTest.test.ts
+  h_ddbf152d31b140 19-20,624,631-634,656,663-666
+tests/src/shader-compiler/ShaderCompiler.test.ts
+  h_ddbf152d31b140 538,585-586,605,765-767,798-799,851-854,937-938,957-958,1347
+tests/src/shader-compiler/ShaderNeutralIR.test.ts
+  h_ddbf152d31b140 468
+tests/src/shader-compiler/TransformFeedbackNames.test.ts
+  h_ddbf152d31b140 1-7,9-24,26-52,54-55,57,59,63,66-69,71-72,74-75,79-120,122-140,143-153,155-166
+tests/src/shader-compiler/expected/define-struct-access-global.frag.glsl
+  h_ddbf152d31b140 1-3,5-7,16-19,21-22
+tests/src/shader-compiler/expected/define-struct-access-global.vert.glsl
+  h_ddbf152d31b140 2-5,8-14,16-18,20,23,28,30-35
+tests/src/shader-compiler/expected/define-struct-access.frag.glsl
+  h_ddbf152d31b140 1-4,7-10,13-14,17,20-24
+tests/src/shader-compiler/expected/define-struct-access.vert.glsl
+  h_ddbf152d31b140 2-5,8-15,18-22,24,27,30,33,35-39
+tests/src/utils/physics.ts
+  h_ddbf152d31b140 3,6-7,11
+tests/src/xr/Lifecycle.test.ts
+  h_ddbf152d31b140 37-38,55-59,61-69,97,115,141
+tests/src/xr/TrackingLoss.test.ts
+  h_ddbf152d31b140 1-3,112-121,136-155
+tests/vitest.config.ts
+  h_ddbf152d31b140 15
+world/demos/farming/first-person-farm/scene/FarmGround.ts
+  h_ddbf152d31b140 1
+world/demos/farming/native-preview/NativePreviewHost.ts
+  h_ddbf152d31b140 1
+world/demos/seed-world/README.md
+  h_ddbf152d31b140 7,9,11,13,15,17,21-22
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 53-54,56,98-99,144,157-161,216-221,297,433,487,721-726,728,781,783-787,789,795-829,832-834,840,852-855,958-959,964,1164,1368,1379-1380,1492,1552,1556,1650,1726,1937-1938,1942,1952,1962-1964,1991-1993,2001,2049,2061-2067,2141,2168,2209,2441
+world/demos/seed-world/SeedWorldProject.ts
+  h_ddbf152d31b140 27,145-146,222-263
+world/demos/seed-world/agent-adapter/FINAL_AGENT_ARCHITECTURE.md
+  h_ddbf152d31b140 3,67,104
+world/demos/seed-world/agent-adapter/SeedWorldPlanningResources.ts
+  h_ddbf152d31b140 39
+world/demos/seed-world/agent-adapter/SeedWorldProjectEdit.ts
+  h_ddbf152d31b140 41
+world/demos/seed-world/agent-adapter/contracts/SeedWorldContractRegistry.ts
+  h_ddbf152d31b140 18-19,26
+world/demos/seed-world/agent-adapter/contracts/generated/SeedWorldApiSearchRegistry.ts
+  h_ddbf152d31b140 4,232-256,368,940-989
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/AgentTools.d.ts
+  h_ddbf152d31b140 16,26
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/water.capabilities.d.ts
+  h_ddbf152d31b140 1-58,63
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/water.diagnostics.d.ts
+  h_ddbf152d31b140 1-47
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/water.sample.d.ts
+  h_ddbf152d31b140 1-51
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/water.sampleDrops.d.ts
+  h_ddbf152d31b140 1-2,4-29,33-34
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/water.verify.d.ts
+  h_ddbf152d31b140 1-2,4-34,38-39
+world/demos/seed-world/main.ts
+  h_ddbf152d31b140 2,38-40,51,55,57-60,82,84
+world/demos/seed-world/masonry/BuildingSceneInitialization.ts
+  h_ddbf152d31b140 14-20,22-23,30,32-33,40-46,55,57,60-93,96,109,115-118,125
+world/demos/seed-world/src/DesertPresentation.ts
+  h_ddbf152d31b140 11-12,23,25,28-29,32-33,36,40,68,72-81
+world/demos/seed-world/src/DesertVegetation.ts
+  h_ddbf152d31b140 22-23,30-31,33-41,122-178,180,220-230,418
+world/demos/seed-world/src/SeedWorldInstantCamera.ts
+  h_ddbf152d31b140 1
+world/demos/seed-world/src/SeedWorldMojavePreview.ts
+  h_ddbf152d31b140 1-2,40,47,49,68-76,81,89,137-143,314
+world/demos/seed-world/src/planning/semantic-study/PlanningLayerTree.ts
+  h_ddbf152d31b140 4,36
+world/demos/seed-world/src/planning/semantic-study/WorldLayoutEditor.ts
+  h_ddbf152d31b140 30
+world/demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts
+  h_ddbf152d31b140 1,7-17,34-36,43-44
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  h_ddbf152d31b140 37,107,115,142,446-447,451,455,470,551,604,689
+world/demos/seed-world/src/planning/spatial/WorldTemplatePicker.ts
+  h_ddbf152d31b140 4,28,33,98
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmLandCoverage.ts
+  h_ddbf152d31b140 3
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingAcceptedGround.ts
+  h_ddbf152d31b140 1
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingTerrain.ts
+  h_ddbf152d31b140 1,5
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat.ts
+  h_ddbf152d31b140 327,330,333
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  h_ddbf152d31b140 256-259
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  h_ddbf152d31b140 6,8,24-28,136-163,168-171,178,186-187,190-191,229,283-295,302-346,370-371,375-379,402-409
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectStorage.ts
+  h_ddbf152d31b140 9,19,27-32,34,38-40,45-48,112-115,118,120-121
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWaterInitialization.ts
+  h_ddbf152d31b140 23-49,140-143
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource.ts
+  h_ddbf152d31b140 15,25,59
+world/demos/seed-world/systems/runtime-declarations.json
+  h_ddbf152d31b140 1
+world/demos/water/editor/main.ts
+  h_ddbf152d31b140 6,24-25,34-43,47-49,64,67,74
+world/package.json
+  h_ddbf152d31b140 7-8
+world/scripts/acceptance/seed-world-lod/references/asset-lod.md
+  h_ddbf152d31b140 1-31
+world/scripts/acceptance/seed-world-lod/references/spawn-review.md
+  h_ddbf152d31b140 1-20
+world/scripts/acceptance/seed-world-lod/scripts/asset-view.html
+  h_ddbf152d31b140 1-6
+world/scripts/acceptance/seed-world-lod/scripts/asset-view.ts
+  h_ddbf152d31b140 2-8,10,12-17,20-30,32-78,80,82
+world/scripts/acceptance/seed-world-lod/scripts/build-lod.py
+  h_ddbf152d31b140 1-179
+world/scripts/acceptance/seed-world-lod/scripts/capture.cjs
+  h_ddbf152d31b140 1-4,6-32,34-37,40-49,52-86,88-105,107-115,117-118,120,122-123,125-144,146-170,172-175,178-204,207-210
+world/scripts/acceptance/seed-world-lod/scripts/report.py
+  h_ddbf152d31b140 1-196
+world/scripts/acceptance/seed-world-lod/scripts/seed-probe.js
+  h_ddbf152d31b140 1-15,17-20,23-37,40,42-118,120
+world/scripts/acceptance/worker-api-audit/cases.cjs
+  h_ddbf152d31b140 121-125
+world/scripts/acceptance/worker-api-audit/render-report.cjs
+  h_ddbf152d31b140 26
+world/scripts/acceptance/worker-api-audit/report.cjs
+  h_ddbf152d31b140 96,147
+world/scripts/acceptance/worker-api-audit/suites.cjs
+  h_ddbf152d31b140 10
+world/scripts/acceptance/worker-api-audit/water-cases.cjs
+  h_ddbf152d31b140 1-3,5-6,8-9,11-12,15-17,21,23,28-30,34-40,44-46,50-52,54-57
+world/scripts/build-terrain.js
+  h_ddbf152d31b140 1-79
+world/tests/seed-world/BuildingInitialSource.spec.ts
+  h_ddbf152d31b140 18-23,65-110
+world/tests/seed-world/GentleTerrainDefaults.spec.ts
+  h_ddbf152d31b140 51
+world/tests/seed-world/PlanningMetadataEdits.spec.ts
+  h_ddbf152d31b140 1-67
+world/tests/seed-world/PlanningStartupTemplate.spec.ts
+  h_ddbf152d31b140 5-19,43-79
+world/tests/seed-world/PlanningStorage.spec.ts
+  h_ddbf152d31b140 15-64
+world/tests/seed-world/PlanningWaterOwnership.spec.ts
+  h_ddbf152d31b140 1,3,26,28-30,90-295,355,384-420,437-438,453,533-583
+world/tests/seed-world/PlantProjectAssets.spec.ts
+  h_ddbf152d31b140 123,166-233
+world/tests/seed-world/PoiTemplatePopulation.spec.ts
+  h_ddbf152d31b140 2-3,32-33,40-42,44,46-51
+world/tests/seed-world/SeedWorldAgentApplication.spec.ts
+  h_ddbf152d31b140 1808
+world/tests/seed-world/SeedWorldExactPrefabRuntimeProfile.spec.ts
+  h_ddbf152d31b140 98,103
+world/tests/seed-world/SeedWorldRuntimeEnginePort.spec.ts
+  h_ddbf152d31b140 537
+world/tests/seed-world/SeedWorldScreenSpaceReflection.spec.ts
+  h_ddbf152d31b140 2-9,11-20,23-24,27-33,36-52,54-62,65-76,78-94,96-115,117-121
+world/tests/seed-world/SeedWorldTerrainRuntimeIntegration.spec.ts
+  h_ddbf152d31b140 33,107,427,610,641,655
+world/tests/seed-world/TerrainPreparedUpdate.spec.ts
+  h_ddbf152d31b140 4-7
+world/tests/seed-world/WorldTemplates.spec.ts
+  h_ddbf152d31b140 1-4,7,32,35,64,69,87,94,175,179,182-185,188,192,195-198,200,205,213,219,221-223,226-231,234-239,253-276,374-618,742-743,748,937,942,980-981,989
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1532c0d153a26b081329a14778dfeb7ccb446432",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

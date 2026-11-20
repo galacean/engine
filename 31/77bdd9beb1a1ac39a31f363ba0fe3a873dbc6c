@@ -1,0 +1,30 @@
+packages/modify/native-overrides.json
+  h_79b10db07e6052 158-161,522-529,534-537
+packages/modify/src/native/core/src/postProcess/PostProcessUberPass.ts
+  h_79b10db07e6052 67,198,356-357,361-362,376,428,586-596,629-630,633-634,637,640-642,644,646,658-659,661-666,668,672-673,679-682,685-686,707,710,712-716,719-722
+packages/modify/src/native/core/src/postProcess/effects/BloomEffect.ts
+  h_79b10db07e6052 1-102
+packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/Bloom/BloomDownsample.glsl
+  h_79b10db07e6052 1-39
+packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/Bloom/BloomUpsample.glsl
+  h_79b10db07e6052 1-27
+packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/SunLensFlare.glsl
+  h_79b10db07e6052 45
+packages/modify/src/native/shader/src/ShaderLibrary/index.ts
+  h_79b10db07e6052 48,115
+packages/modify/src/native/shader/src/Shaders/PostProcess/Bloom.shader
+  h_79b10db07e6052 1-52
+world/tests/seed-world-browser/BloomSinglePassPyramid.test.ts
+  h_79b10db07e6052 1-281
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3177bdd9beb1a1ac39a31f363ba0fe3a873dbc6c",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

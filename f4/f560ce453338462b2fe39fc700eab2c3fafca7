@@ -1,0 +1,19 @@
+packages/water/tests/LakeTriangulationFloat32Normals.test.ts
+  s_660762178d67bf::t_35de644b183255 1-125
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f4f560ce453338462b2fe39fc700eab2c3fafca7",
+  "prompts": {},
+  "sessions": {
+    "s_660762178d67bf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f406-780b-7883-a6a1-e91d618f4219",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

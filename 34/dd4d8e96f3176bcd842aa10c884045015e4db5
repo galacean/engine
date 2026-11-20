@@ -1,0 +1,22 @@
+packages/environment/src/terrain/lighting/TerrainScreenSpaceReflectionTuning.ts
+  h_a3c79ce84ffdc2 13,17-19
+packages/terrain/src/terrain/debug/TerrainScreenSpaceReflectionPanel.ts
+  h_a3c79ce84ffdc2 14-15,75,195-197,210,259-261
+packages/water/src/water/runtime/optics/CameraWaterFeatureBroker.ts
+  h_a3c79ce84ffdc2 75-76,86,96,106,144,167,188,349
+packages/world-planning/src/integrations/grasslands/GrasslandsWaterPcg.ts
+  h_a3c79ce84ffdc2 45-46,65,68
+world/tests/seed-world/SeedWorldScreenSpaceReflection.spec.ts
+  h_a3c79ce84ffdc2 6,13-17,86-130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "34dd4d8e96f3176bcd842aa10c884045015e4db5",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
