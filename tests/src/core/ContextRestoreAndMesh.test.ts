@@ -1,7 +1,11 @@
 import {
   AssetType,
+  Buffer,
+  BufferBindFlag,
+  BufferUsage,
   Camera,
   Color,
+  GLTFLoader,
   GLTFResource,
   MeshRenderer,
   ModelMesh,
@@ -75,8 +79,16 @@ describe("Context restore and ModelMesh re-upload regressions", () => {
     await loseAndRestoreDevice(engine);
 
     camera.render();
-    const after = readCenterPixel(canvas);
-    expect(Array.from(after)).toEqual(Array.from(before));
+    const afterFirstRestore = readCenterPixel(canvas);
+    expect(Array.from(afterFirstRestore)).toEqual(Array.from(before));
+
+    // Verify a second consecutive context loss/restore cycle after GLTFLoader.release() recreates Meshopt workers
+    GLTFLoader.release();
+    await loseAndRestoreDevice(engine);
+
+    camera.render();
+    const afterSecondRestore = readCenterPixel(canvas);
+    expect(Array.from(afterSecondRestore)).toEqual(Array.from(before));
   });
 
   it("does not trigger GL_INVALID_OPERATION by deleting stale ShaderPrograms on context restore", async () => {
@@ -161,8 +173,69 @@ describe("Context restore and ModelMesh re-upload regressions", () => {
       mesh.setNormals(null);
       mesh.uploadData(false);
       expect(mesh.vertexBufferBindings[0].stride).toBe(12);
+
+      // Verify old vertex & index GPU buffers are immediately destroyed (not leaked) when mesh.refCount > 0
+      const entity = engine.sceneManager.activeScene.createRootEntity("mesh-holder");
+      const renderer = entity.addComponent(MeshRenderer);
+      renderer.mesh = mesh;
+      expect(mesh.refCount).toBeGreaterThan(0);
+
+      mesh.setPositions([new Vector3(0, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 1, 0)]);
+      mesh.setIndices(new Uint16Array([0, 1, 2]));
+      mesh.uploadData(true);
+
+      const oldVertexBuffer = mesh.vertexBufferBindings[0].buffer;
+      const oldIndexBuffer = mesh._primitive.indexBufferBinding!._buffer;
+      expect(oldVertexBuffer.destroyed).toBe(false);
+      expect(oldIndexBuffer.destroyed).toBe(false);
+
+      // Re-upload same vertex count + resized indices while referenced
+      mesh.setPositions([new Vector3(0.5, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 1, 0)]);
+      mesh.setIndices(new Uint16Array([0, 1, 2, 2, 1, 0]));
+      mesh.uploadData(true);
+      expect(oldVertexBuffer.destroyed).toBe(true);
+      expect(oldIndexBuffer.destroyed).toBe(true);
+
+      const resizedIndexBuffer = mesh._primitive.indexBufferBinding!._buffer;
+      expect(resizedIndexBuffer.destroyed).toBe(false);
+
+      // Clear indices while referenced
+      mesh.setIndices(null);
+      mesh.uploadData(true);
+      expect(resizedIndexBuffer.destroyed).toBe(true);
+
+      renderer.mesh = null;
     } finally {
       mesh.destroy();
+    }
+  });
+
+  it("does not destroy a caller-owned unreadable vertex buffer when replacing internal slot 0", async () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 64;
+    canvas.height = 64;
+    engine = await WebGLEngine.create({ canvas });
+
+    const mesh = new ModelMesh(engine);
+    const userUnreadableBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, 36, BufferUsage.Static, false);
+    try {
+      mesh.setPositions([new Vector3(0, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 1, 0)]);
+      mesh.uploadData(true);
+
+      // Replace slot 0 with a caller-owned unreadable buffer
+      mesh.setVertexBufferBinding(userUnreadableBuffer, 12, 0);
+
+      // Re-uploading same vertex count must not destroy userUnreadableBuffer or bind to index -1
+      mesh.setPositions([new Vector3(0.25, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 1, 0)]);
+      expect(() => mesh.uploadData(true)).toThrow("Vertex buffer is not readable");
+
+      expect(userUnreadableBuffer.destroyed).toBe(false);
+      expect(mesh.vertexBufferBindings[0]?.buffer).toBe(userUnreadableBuffer);
+      expect(mesh.vertexBufferBindings.length).toBe(1);
+      expect("-1" in mesh.vertexBufferBindings).toBe(false);
+    } finally {
+      mesh.destroy();
+      userUnreadableBuffer.destroy();
     }
   });
 });

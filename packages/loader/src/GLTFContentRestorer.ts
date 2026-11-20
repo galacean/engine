@@ -23,25 +23,29 @@ import { KTX2Loader } from "./ktx2/KTX2Loader";
  */
 export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
   isGLB: boolean;
-  bufferRequests: BufferRequestInfo[] = [];
+  bufferRequests: (BufferRequestInfo | undefined)[] = [];
   glbBufferSlices: Vector2[] = [];
   bufferTextures: BufferTextureRestoreInfo[] = [];
   meshes: ModelMeshRestoreInfo[] = [];
 
   override restoreContent(): AssetPromise<GLTFResource> {
     return new AssetPromise((resolve, reject) => {
-      Promise.all(
-        this.bufferRequests.map((bufferRequestInfo) => {
-          return bufferRequestInfo
-            ? request<ArrayBuffer>(bufferRequestInfo.url, bufferRequestInfo.config)
-            : Promise.resolve(undefined as unknown as ArrayBuffer);
-        })
-      )
-        .then((buffers: ArrayBuffer[]) => {
+      const bufferRequests = this.bufferRequests;
+      const bufferRequestCount = bufferRequests.length;
+      const bufferPromises = new Array<Promise<ArrayBuffer> | undefined>(bufferRequestCount);
+      for (let i = 0; i < bufferRequestCount; i++) {
+        const bufferRequestInfo = bufferRequests[i];
+        bufferPromises[i] = bufferRequestInfo
+          ? request<ArrayBuffer>(bufferRequestInfo.url, bufferRequestInfo.config)
+          : undefined;
+      }
+
+      Promise.all(bufferPromises)
+        .then((buffers: (ArrayBuffer | undefined)[]) => {
           // Buffer parse
           if (this.isGLB) {
             const glbBufferSlice = this.glbBufferSlices;
-            const bigBuffer = buffers[0];
+            const bigBuffer = buffers[0]!;
             const bufferCount = glbBufferSlice.length;
             buffers.length = bufferCount;
             for (let i = 0; i < bufferCount; i++) {
@@ -133,16 +137,20 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
               )
             )
             .then(() => {
+              bufferViewCache.clear();
               resolve(this.resource);
             })
-            .catch(reject);
+            .catch((e) => {
+              bufferViewCache.clear();
+              reject(e);
+            });
         })
         .catch(reject);
     });
   }
 
   private _getBufferViewData(
-    buffers: ArrayBuffer[],
+    buffers: (ArrayBuffer | undefined)[],
     bufferView: IBufferView,
     cache: Map<IBufferView, Promise<Uint8Array>>
   ): Promise<Uint8Array> {
@@ -150,13 +158,13 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
     if (!promise) {
       const meshopt = bufferView.extensions?.EXT_meshopt_compression as IEXTMeshoptCompressionSchema | undefined;
       if (meshopt) {
-        const sourceBuffer = buffers[meshopt.buffer];
+        const sourceBuffer = buffers[meshopt.buffer]!;
         const sourceBytes = new Uint8Array(sourceBuffer, meshopt.byteOffset ?? 0, meshopt.byteLength);
         promise = getMeshoptDecoder().then((decoder) =>
           decoder.decodeGltfBuffer(meshopt.count, meshopt.byteStride, sourceBytes, meshopt.mode, meshopt.filter)
         );
       } else {
-        const buffer = buffers[bufferView.buffer];
+        const buffer = buffers[bufferView.buffer]!;
         promise = Promise.resolve(new Uint8Array(buffer, bufferView.byteOffset ?? 0, bufferView.byteLength));
       }
       cache.set(bufferView, promise);
@@ -165,9 +173,9 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
   }
 
   private async _getBufferData(
-    buffers: ArrayBuffer[],
+    buffers: (ArrayBuffer | undefined)[],
     restoreInfo: BufferDataRestoreInfo,
-    bufferViewCache: Map<IBufferView, Promise<Uint8Array>>
+    bufferViewCache: Map<IBufferView, Promise<Uint8Array>> = new Map()
   ): Promise<TypedArray> {
     const main = restoreInfo.main;
     let data: TypedArray;

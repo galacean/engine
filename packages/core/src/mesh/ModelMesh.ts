@@ -48,8 +48,9 @@ export class ModelMesh extends Mesh {
   private _advancedVertexDataVersions: number[] = new Array<number>(14); // Only have 14 vertex element can set advanced data
   private _advancedDataSyncToBuffer: boolean = false;
 
+  private _internalVertexBuffer: Buffer | null = null;
   private _internalVertexBufferStride: number = 0;
-  private _internalVertexBufferCreatedInfo: Vector3 = new Vector3(0, 0, -1); // x:vertexCount, y:vertexStride, z:bufferIndex
+  private _internalVertexBufferCreatedInfo: Vector3 = new Vector3(0, 0, -1); // x:vertexStride, y:vertexCount, z:bufferIndex
   private _internalVertexElementsOffset: number = 0;
   private _internalVertexElementsFlags: VertexElementFlags = VertexElementFlags.None;
 
@@ -477,9 +478,13 @@ export class ModelMesh extends Mesh {
     // Destroy internal vertex buffer immediately
     const internalVertexBufferIndex = this._internalVertexBufferCreatedInfo.z;
     if (internalVertexBufferIndex !== -1) {
-      this._primitive.vertexBufferBindings[internalVertexBufferIndex]?.buffer.destroy();
-      this._setVertexBufferBinding(internalVertexBufferIndex, null);
-      this._internalVertexBufferCreatedInfo.z = -1;
+      const boundBuffer = this._primitive.vertexBufferBindings[internalVertexBufferIndex]?.buffer;
+      if (boundBuffer === this._internalVertexBuffer) {
+        this._setVertexBufferBinding(internalVertexBufferIndex, null);
+        boundBuffer?.destroy();
+      }
+      this._internalVertexBuffer = null;
+      this._internalVertexBufferCreatedInfo.set(0, 0, -1);
     }
 
     this._internalVertexBufferStride = 0;
@@ -526,9 +531,13 @@ export class ModelMesh extends Mesh {
 
     this._setVertexBufferBinding(index, binding);
 
-    // Reset internal vertex buffer index if by custom buffer binding
-    if (index === this._internalVertexBufferIndex) {
+    // Reset internal vertex buffer state if overwritten by custom buffer binding
+    if (index === this._internalVertexBufferIndex || index === this._internalVertexBufferCreatedInfo.z) {
+      if (binding?.buffer !== this._internalVertexBuffer) {
+        this._internalVertexBuffer = null;
+      }
       this._internalVertexBufferIndex = -1;
+      this._internalVertexBufferCreatedInfo.set(0, 0, -1);
     }
     // Reset blend shape buffer binding offset if by custom buffer binding
     if (index === this._blendShapeManager._bufferBindingOffset) {
@@ -555,10 +564,15 @@ export class ModelMesh extends Mesh {
 
     for (let i = 0; i < count; i++) {
       const index = firstIndex + i;
-      this._setVertexBufferBinding(index, vertexBufferBindings[i]);
-      // Reset internal vertex buffer index if by custom buffer binding
-      if (index === this._internalVertexBufferIndex) {
+      const binding = vertexBufferBindings[i];
+      this._setVertexBufferBinding(index, binding);
+      // Reset internal vertex buffer state if overwritten by custom buffer binding
+      if (index === this._internalVertexBufferIndex || index === this._internalVertexBufferCreatedInfo.z) {
+        if (binding?.buffer !== this._internalVertexBuffer) {
+          this._internalVertexBuffer = null;
+        }
         this._internalVertexBufferIndex = -1;
+        this._internalVertexBufferCreatedInfo.set(0, 0, -1);
       }
       // Reset blend shape buffer binding offset if by custom buffer binding
       if (index === this._blendShapeManager._bufferBindingOffset) {
@@ -641,9 +655,9 @@ export class ModelMesh extends Mesh {
       const indexBuffer = this._primitive.indexBufferBinding?._buffer;
       if (indices) {
         if (!indexBuffer || indices.byteLength != indexBuffer.byteLength) {
-          indexBuffer?.destroy();
           const newIndexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, indices);
           this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat!));
+          indexBuffer?.destroy();
         } else {
           indexBuffer.setData(indices);
           if (this._primitive.indexBufferBinding!._format !== this._indicesFormat) {
@@ -651,8 +665,8 @@ export class ModelMesh extends Mesh {
           }
         }
       } else if (indexBuffer) {
-        indexBuffer.destroy();
         this._setIndexBufferBinding(null);
+        indexBuffer.destroy();
       }
 
       this._indicesChangeFlag = false;
@@ -743,6 +757,7 @@ export class ModelMesh extends Mesh {
     for (let i = 0; i < bindings.length; i++) {
       bindings[i]?.buffer._dataUpdateManager.removeListener(this._vertexBufferInfos[i].onBufferChanged);
     }
+    this._internalVertexBuffer = null;
     super._onDestroy();
     this._releaseCache(true);
   }
@@ -789,17 +804,23 @@ export class ModelMesh extends Mesh {
   }
 
   private _updateInternalVertexBuffer(releaseData: boolean): void {
+    const vertexBufferIndex = this._internalVertexBufferIndex;
+    const bufferCreatedInfo = this._internalVertexBufferCreatedInfo;
+    const createdInternalBufferIndex = bufferCreatedInfo.z;
+    if (vertexBufferIndex === -1 && createdInternalBufferIndex === -1) {
+      return;
+    }
+
     const bufferStride = this._internalVertexBufferStride;
     const vertexCount = this.vertexCount;
-    const bufferCreatedInfo = this._internalVertexBufferCreatedInfo;
 
     // If need recreate internal vertex buffer
     const needByteLength = bufferStride * vertexCount;
-    const createdInternalBufferIndex = bufferCreatedInfo.z;
-    const existingBuffer =
+    const boundBuffer =
       createdInternalBufferIndex !== -1
         ? this._primitive.vertexBufferBindings[createdInternalBufferIndex]?.buffer
         : null;
+    const existingBuffer = boundBuffer && boundBuffer === this._internalVertexBuffer ? boundBuffer : null;
     const needRecreateForUnreadableOverwrite =
       Boolean(existingBuffer && !existingBuffer.readable) &&
       this._internalVertexElementsFlags !== 0 &&
@@ -811,22 +832,23 @@ export class ModelMesh extends Mesh {
       needRecreateForUnreadableOverwrite
     ) {
       // Unbind before destroying so the old buffer's refCount drops before release
-      if (createdInternalBufferIndex !== -1) {
+      if (existingBuffer) {
         this._setVertexBufferBinding(createdInternalBufferIndex, null);
-        existingBuffer?.destroy();
+        existingBuffer.destroy();
+        this._internalVertexBuffer = null;
       }
 
-      const vertexBufferIndex = this._internalVertexBufferIndex;
-      const isCreate = needByteLength > 0;
+      const isCreate = needByteLength > 0 && vertexBufferIndex !== -1;
       if (isCreate) {
         // No matter the internal buffer is stride change or vertex count change, we need set to internal buffer again
         this._advancedDataUpdateFlag |= this._internalVertexElementsFlags;
 
         const bufferUsage = releaseData ? BufferUsage.Static : BufferUsage.Dynamic;
         const vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, needByteLength, bufferUsage, true);
+        this._internalVertexBuffer = vertexBuffer;
         this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride));
       }
-      bufferCreatedInfo.set(bufferStride, vertexCount, isCreate ? vertexBufferIndex : -1);
+      bufferCreatedInfo.set(isCreate ? bufferStride : 0, isCreate ? vertexCount : 0, isCreate ? vertexBufferIndex : -1);
     }
   }
 
@@ -1253,7 +1275,7 @@ export class ModelMesh extends Mesh {
     this._blendShapeManager._releaseMemoryCache();
 
     if (!isDestroy) {
-      this._primitive.vertexBufferBindings[this._internalVertexBufferIndex]?.buffer.markAsUnreadable();
+      this._internalVertexBuffer?.markAsUnreadable();
 
       // If release data, we need update buffer data version to ensure get data method can read buffer
       const dataVersion = this._dataVersionCounter++;

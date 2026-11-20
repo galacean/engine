@@ -57,6 +57,7 @@ export class ShaderProgramMap {
   destroy(skipGLDelete: boolean = false): void {
     this._recursiveForEach(0, this._cacheMap, skipGLDelete);
     this._cacheMap = Object.create(null);
+    this._lastQueryMap = null!;
     this._cacheHierarchyDepth = 1;
   }
 
