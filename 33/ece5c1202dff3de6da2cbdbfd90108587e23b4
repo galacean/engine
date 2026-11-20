@@ -1,0 +1,32 @@
+packages/core/src/Component.ts
+  h_dd004f51a3e5ec 4-5,86-101
+packages/core/src/Engine.ts
+  h_dd004f51a3e5ec 495-501
+packages/core/src/base/EngineObject.ts
+  h_dd004f51a3e5ec 62
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  h_dd004f51a3e5ec 28-32,142-144,160-165,206,210-212,220-221,224-227,230,238-318,321-333,336-338,447-448,462,465-467,469-473
+packages/loader/src/resource-deserialize/resources/parser/ParserContext.ts
+  h_dd004f51a3e5ec 17-20,38-41
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  h_dd004f51a3e5ec 255-268,279-280,282-283,285
+tests/src/core/Script.test.ts
+  h_dd004f51a3e5ec 401-429
+tests/src/core/physics/ColliderLayer.test.ts
+  h_dd004f51a3e5ec 25-27,244-342
+tests/src/core/physics/Joint.test.ts
+  h_dd004f51a3e5ec 749-783
+tests/src/core/physics/PhysicsGameplay.test.ts
+  h_dd004f51a3e5ec 769-859
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "33ece5c1202dff3de6da2cbdbfd90108587e23b4",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

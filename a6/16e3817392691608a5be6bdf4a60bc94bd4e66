@@ -1,0 +1,24 @@
+packages/core/src/env-probe/Probe.ts
+  h_171a11afaf879a 72-73,82,92,110-113,119-132
+packages/core/src/mesh/BlendShapeManager.ts
+  h_171a11afaf879a 334,336-341,353-355
+packages/core/src/mesh/ModelMesh.ts
+  h_171a11afaf879a 738-745,756
+packages/core/src/postProcess/PostProcessUberPass.ts
+  h_171a11afaf879a 28,33,91,93
+packages/core/src/trail/TrailRenderer.ts
+  h_171a11afaf879a 324,326,341,394,400
+tests/src/core/postProcess/PostProcessGC.test.ts
+  h_171a11afaf879a 1-151
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a616e3817392691608a5be6bdf4a60bc94bd4e66",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
