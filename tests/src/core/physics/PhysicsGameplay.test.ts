@@ -1604,69 +1604,112 @@ describe("Physics gameplay integration", () => {
     }
   });
 
-  it("removes BoxCollider from PhysX raycast on subtree detach during onDisable and rolls back pose & attachedRigidbody on native addShape failure", () => {
+  it("removes BoxCollider from PhysX raycast on subtree detach/clear/fail-fast transfer and keeps attachedRigidbody consistent on rollback", () => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    // 1. Subtree deactivation where child Script.onDisable detaches child must cleanly disable BoxCollider from PhysX
-    const parent = root.createChild("detach-parent");
-    const child = parent.createChild("detach-child");
-    child.addComponent(
-      class extends Script {
-        override onDisable(): void {
-          parent.removeChild(child);
-        }
-      }
-    );
-    child.addComponent(BoxCollider);
-
-    const ray = new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0));
-    expect(scene.physics.raycast(ray, 10)).toBe(true);
-    expect(() => {
-      parent.isActive = false;
-    }).not.toThrow();
-    expect(scene.physics.raycast(ray, 10)).toBe(false);
-    expect(child.isActiveInHierarchy).toBe(false);
-    expect(child.parent).toBeNull();
-    expect(child.scene).toBeNull();
-    parent.destroy();
-    child.destroy();
-
-    // 2. Native addShape rejection during reparenting rolls back registration, updates rolled-back static pose, and reflects true attachedRigidbody
-    const moving = root.createChild("reject-moving");
-    moving.transform.position.x = 4;
-    const collider = moving.addComponent(BoxCollider);
-    const bodyEntity = root.createChild("reject-body");
-    bodyEntity.transform.position.x = 4;
-    const body = bodyEntity.addComponent(Rigidbody);
-    body.isKinematic = true;
-
-    const oldRay = new Ray(new Vector3(4, 3, 0), new Vector3(0, -1, 0));
-    const newRay = new Ray(new Vector3(8, 3, 0), new Vector3(0, -1, 0));
-    expect(scene.physics.raycast(oldRay, 10)).toBe(true);
-
-    // Force native dynamic actor addShape to reject once
-    const nativeActor = body._getNativeActor();
-    const origAddShape = nativeActor.addShape.bind(nativeActor);
-    let rejectOnce = true;
-    nativeActor.addShape = (shape: any) => {
-      if (rejectOnce) {
-        rejectOnce = false;
-        return false;
-      }
-      return origAddShape(shape);
-    };
+    // 1. Subtree deactivation with removeChild, clearChildren, fail-fast cross-scene transfer, and direct transfer
+    const inactiveDst = new Scene(engine, "inactive-physics-dst");
     try {
-      bodyEntity.addChild(moving);
-      expect(scene.physics.raycast(oldRay, 10)).toBe(false);
-      expect(scene.physics.raycast(newRay, 10)).toBe(true);
-      expect(collider.attachedRigidbody).toBeNull();
-      expect(moving.transform.worldPosition.x).toBeCloseTo(8, 5);
-      expect(errors).toHaveBeenCalledWith(
-        "BoxCollider: failed to attach to the native actor, the previous registration is kept."
-      );
+      const modes = ["remove", "clear", "transfer", "direct transfer"] as const;
+      for (let i = 0; i < modes.length; i++) {
+        const mode = modes[i];
+        const x = i * 4;
+        const ray = new Ray(new Vector3(x, 3, 0), new Vector3(0, -1, 0));
+        const parent = root.createChild(`detach-parent-${mode}`);
+        const child = parent.createChild(`detach-child-${mode}`);
+        child.transform.position.x = x;
+        child.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              if (mode === "remove") parent.removeChild(child);
+              else if (mode === "clear") parent.clearChildren();
+              else if (mode === "transfer") inactiveDst.addRootEntity(child);
+            }
+          }
+        );
+        child.addComponent(BoxCollider);
+
+        expect(scene.physics.raycast(ray, 10)).toBe(true);
+        if (mode === "transfer") {
+          expect(() => {
+            parent.isActive = false;
+          }).toThrow();
+          expect(scene.physics.raycast(ray, 10)).toBe(false);
+          expect(inactiveDst.physics.raycast(ray, 10)).toBe(false);
+          expect(child.scene).toBe(scene);
+        } else if (mode === "direct transfer") {
+          expect(() => {
+            inactiveDst.addRootEntity(child);
+          }).not.toThrow();
+          expect(scene.physics.raycast(ray, 10)).toBe(false);
+          expect(inactiveDst.physics.raycast(ray, 10)).toBe(true);
+          expect(child.scene).toBe(inactiveDst);
+        } else {
+          expect(() => {
+            parent.isActive = false;
+          }).not.toThrow();
+          expect(scene.physics.raycast(ray, 10)).toBe(false);
+          expect(inactiveDst.physics.raycast(ray, 10)).toBe(false);
+          expect(child.isActiveInHierarchy).toBe(false);
+          expect(child.parent).toBeNull();
+          expect(child.scene).toBeNull();
+        }
+        parent.destroy();
+        if (!child.destroyed) child.destroy();
+      }
     } finally {
-      nativeActor.addShape = origAddShape;
-      bodyEntity.destroy();
+      if (!inactiveDst.destroyed) inactiveDst.destroy();
+    }
+
+    // 2. Collider.attachedRigidbody agrees across beforeQuery, afterQuery, and disabled in both normal and injected addShape rejection
+    for (const injected of [false, true]) {
+      errors.mockClear();
+      const moving = root.createChild(`reject-moving-${injected}`);
+      moving.transform.position.x = 4;
+      const collider = moving.addComponent(BoxCollider);
+      const bodyEntity = root.createChild(`reject-body-${injected}`);
+      bodyEntity.transform.position.x = 4;
+      const body = bodyEntity.addComponent(Rigidbody);
+      body.isKinematic = true;
+
+      const oldRay = new Ray(new Vector3(4, 3, 0), new Vector3(0, -1, 0));
+      const newRay = new Ray(new Vector3(8, 3, 0), new Vector3(0, -1, 0));
+      expect(scene.physics.raycast(oldRay, 10)).toBe(true);
+
+      const nativeActor = body._getNativeActor();
+      const origAddShape = nativeActor.addShape.bind(nativeActor);
+      let rejectOnce = injected;
+      nativeActor.addShape = (shape: any) => {
+        if (rejectOnce) {
+          rejectOnce = false;
+          return false;
+        }
+        return origAddShape(shape);
+      };
+      try {
+        bodyEntity.addChild(moving);
+        const beforeQuery = collider.attachedRigidbody === body;
+        expect(scene.physics.raycast(oldRay, 10)).toBe(false);
+        expect(scene.physics.raycast(newRay, 10)).toBe(true);
+        const afterQuery = collider.attachedRigidbody === body;
+        collider.enabled = false;
+        const disabled = collider.attachedRigidbody === body;
+
+        expect(beforeQuery).toBe(!injected);
+        expect(afterQuery).toBe(!injected);
+        expect(disabled).toBe(!injected);
+        expect(moving.transform.worldPosition.x).toBeCloseTo(8, 5);
+        if (injected) {
+          expect(errors).toHaveBeenCalledWith(
+            "BoxCollider: failed to attach to the native actor, the previous registration is kept."
+          );
+        } else {
+          expect(errors).not.toHaveBeenCalled();
+        }
+      } finally {
+        nativeActor.addShape = origAddShape;
+        bodyEntity.destroy();
+      }
     }
   });
 });

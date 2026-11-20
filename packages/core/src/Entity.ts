@@ -20,6 +20,8 @@ import { DisorderedArray } from "./utils/DisorderedArray";
  * Entity, be used as components container.
  */
 export class Entity extends EngineObject {
+  private static _deactivatingEntitiesPool: Entity[][] = [];
+
   private static _isTransformType(type: ComponentConstructor): boolean {
     return type === Transform || type.prototype instanceof Transform;
   }
@@ -152,6 +154,8 @@ export class Entity extends EngineObject {
 
   /** @internal */
   _activeChangedComponents: Component[] | null | undefined;
+  /** @internal Number of active `_setActiveComponents(false, ...)` batches currently draining this entity. */
+  _deactivatingCount: number = 0;
   private _transform: Transform;
   private _templateResource: ReferResource;
   private _parent: Entity | null = null;
@@ -465,18 +469,9 @@ export class Entity extends EngineObject {
    */
   clearChildren(): void {
     const children = this._children;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      child._parent = null;
-
-      let activeChangeFlag = ActiveChangeFlag.None;
-      child._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
-      child._isActiveInScene && (activeChangeFlag |= ActiveChangeFlag.Scene);
-      activeChangeFlag && child._processInActive(activeChangeFlag);
-
-      Entity._traverseSetOwnerScene(child, null); // Must after child._processInActive().
+    while (children.length > 0) {
+      children[children.length - 1]._setParent(null);
     }
-    children.length = 0;
   }
 
   /**
@@ -803,7 +798,7 @@ export class Entity extends EngineObject {
    * @internal
    */
   _processActive(activeChangeFlag: ActiveChangeFlag): void {
-    if (this._activeChangedComponents) {
+    if (this._activeChangedComponents || this._deactivatingCount > 0) {
       throw "Note: can't set the 'main inActive entity' active in hierarchy, if the operation is in main inActive entity or it's children script's onDisable Event.";
     }
     this._activeChangedComponents = this._scene!._componentsManager.getActiveChangedTempList();
@@ -818,9 +813,11 @@ export class Entity extends EngineObject {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main active entity' inActive in hierarchy, if the operation is in main active entity or it's children script's onEnable Event.";
     }
-    this._activeChangedComponents = this._scene!._componentsManager.getActiveChangedTempList();
-    this._setInActiveInHierarchy(this._activeChangedComponents!, activeChangeFlag);
-    this._setActiveComponents(false, activeChangeFlag);
+    const activeChangedComponents = (this._activeChangedComponents =
+      this._scene!._componentsManager.getActiveChangedTempList());
+    const deactivatingEntities = Entity._deactivatingEntitiesPool.pop() ?? [];
+    this._setInActiveInHierarchy(activeChangedComponents, deactivatingEntities, activeChangeFlag);
+    this._setActiveComponents(false, activeChangeFlag, deactivatingEntities);
   }
 
   /**
@@ -871,7 +868,7 @@ export class Entity extends EngineObject {
       }
     } else {
       const parent = this._parent;
-      if (!parent || parent.destroyed || parent.pendingDestroy) return;
+      if (!parent || parent._isInDyingHierarchy()) return;
       if (parent._isActiveInHierarchy && !this._isActiveInHierarchy) {
         activeChangeFlag |= ActiveChangeFlag.Hierarchy;
       }
@@ -880,6 +877,19 @@ export class Entity extends EngineObject {
       }
     }
     activeChangeFlag && this._processActive(activeChangeFlag);
+  }
+
+  private _isInDyingHierarchy(): boolean {
+    const scene = this._scene;
+    if (scene && (scene.destroyed || scene.pendingDestroy)) {
+      return true;
+    }
+    for (let current: Entity | null = this; current != null; current = current._parent) {
+      if (current.destroyed || current.pendingDestroy) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private _isSelfOrDescendantOf(ancestor: Entity): boolean {
@@ -906,18 +916,17 @@ export class Entity extends EngineObject {
         }
 
         const wasRoot = this._isRoot;
-        const parentWasDying = parent.destroyed || parent.pendingDestroy;
+        const allowDestroyedParent = !oldScene && !oldParent && !wasRoot && parent.destroyed && !parent.pendingDestroy;
+        if (this.destroyed || this.pendingDestroy || (!allowDestroyedParent && parent._isInDyingHierarchy())) {
+          return;
+        }
         const parentScene = parent._scene;
 
-        // Fail fast before mutating ownership lists if this entity is mid-active-processing and
-        // attaching here would trigger re-entrant _processActive or switch its scene mid-drain.
-        if (this._activeChangedComponents) {
-          if (
-            this._isActive &&
-            !this.destroyed &&
-            !this.pendingDestroy &&
-            (parent._isActiveInHierarchy || parent._isActiveInScene)
-          ) {
+        // Fail fast before mutating ownership lists if this entity is mid-active-processing (either as
+        // the batch root or as a deactivating descendant) and attaching here would trigger re-entrant
+        // activation or switch its scene mid-drain.
+        if (this._activeChangedComponents || this._deactivatingCount > 0) {
+          if (this._isActive && (parent._isActiveInHierarchy || parent._isActiveInScene)) {
             this._processActive(ActiveChangeFlag.Scene);
           }
           if (parentScene !== oldScene) {
@@ -959,7 +968,7 @@ export class Entity extends EngineObject {
           ownershipUnchanged &&
           !this.destroyed &&
           !this.pendingDestroy &&
-          ((!parent.destroyed && !parent.pendingDestroy) || parentWasDying)
+          (allowDestroyedParent || !parent._isInDyingHierarchy())
         ) {
           if (wasRoot) {
             oldScene && Entity._removeFromChildren(oldScene._rootEntities, this);
@@ -1013,12 +1022,8 @@ export class Entity extends EngineObject {
         try {
           inActiveChangeFlag && this._processInActive(inActiveChangeFlag);
         } finally {
-          if (!this._isRoot && !this._parent && this._scene === oldScene && oldScene) {
-            if (oldScene._deactivatingDepth > 0) {
-              oldScene._pendingDetachEntities.push(this);
-            } else {
-              Entity._traverseSetOwnerScene(this, null);
-            }
+          if (!this._isRoot && !this._parent && this._scene === oldScene && oldScene && this._deactivatingCount === 0) {
+            Entity._traverseSetOwnerScene(this, null);
           }
           oldParent!._dispatchModify(EntityModifyFlags.Child, oldParent);
           this._setParentChange();
@@ -1045,15 +1050,16 @@ export class Entity extends EngineObject {
     }
   }
 
-  private _setActiveComponents(isActive: boolean, activeChangeFlag: ActiveChangeFlag): void {
+  private _setActiveComponents(
+    isActive: boolean,
+    activeChangeFlag: ActiveChangeFlag,
+    deactivatingEntities?: Entity[]
+  ): void {
     const activeChangedComponents = this._activeChangedComponents!;
     const ownerScene = this._scene!;
     const componentsManager = ownerScene._componentsManager;
     let firstError: unknown;
     let hasError = false;
-    if (!isActive) {
-      ownerScene._deactivatingDepth++;
-    }
     try {
       for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
         const component = activeChangedComponents[i];
@@ -1071,18 +1077,19 @@ export class Entity extends EngineObject {
     } finally {
       this._activeChangedComponents = null;
       componentsManager.putActiveChangedTempList(activeChangedComponents);
-      if (!isActive) {
-        ownerScene._deactivatingDepth--;
-        if (ownerScene._deactivatingDepth === 0) {
-          const pending = ownerScene._pendingDetachEntities;
-          for (let i = 0, n = pending.length; i < n; i++) {
-            const detached = pending[i];
-            if (!detached._isRoot && !detached._parent && detached._scene === ownerScene) {
-              Entity._traverseSetOwnerScene(detached, null);
-            }
-          }
-          pending.length = 0;
+      if (deactivatingEntities) {
+        const count = deactivatingEntities.length;
+        for (let i = 0; i < count; i++) {
+          deactivatingEntities[i]._deactivatingCount--;
         }
+        for (let i = 0; i < count; i++) {
+          const entity = deactivatingEntities[i];
+          if (!entity._isRoot && !entity._parent && entity._scene === ownerScene && entity._deactivatingCount === 0) {
+            Entity._traverseSetOwnerScene(entity, null);
+          }
+        }
+        deactivatingEntities.length = 0;
+        Entity._deactivatingEntitiesPool.push(deactivatingEntities);
       }
       if (isActive && !this._scene && !hasError) {
         firstError = new Error("Cannot detach an entity from its scene while it is processing active state changes.");
@@ -1109,13 +1116,19 @@ export class Entity extends EngineObject {
     }
   }
 
-  private _setInActiveInHierarchy(activeChangedComponents: Component[], activeChangeFlag: ActiveChangeFlag): void {
+  private _setInActiveInHierarchy(
+    activeChangedComponents: Component[],
+    deactivatingEntities: Entity[],
+    activeChangeFlag: ActiveChangeFlag
+  ): void {
     // Children-first, reverse traversal for safe removeChild during callbacks
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
-      child.isActive && child._setInActiveInHierarchy(activeChangedComponents, activeChangeFlag);
+      child.isActive && child._setInActiveInHierarchy(activeChangedComponents, deactivatingEntities, activeChangeFlag);
     }
+    this._deactivatingCount++;
+    deactivatingEntities.push(this);
     activeChangeFlag & ActiveChangeFlag.Hierarchy && (this._isActiveInHierarchy = false);
     activeChangeFlag & ActiveChangeFlag.Scene && (this._isActiveInScene = false);
     const components = this._components;

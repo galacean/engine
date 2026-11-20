@@ -821,6 +821,98 @@ describe("Scene", () => {
           }
         }
       }
+
+      // Case H: Removing an unrelated root during Scene.isActive = false immediately deactivates and detaches it
+      const otherRootScene = new Scene(engine, "remove-other-root");
+      engine.sceneManager.addScene(otherRootScene);
+      try {
+        const victim = otherRootScene.createRootEntity("victim");
+        const initiator = otherRootScene.createRootEntity("initiator");
+        let disabled = 0;
+        let updates = 0;
+        victim.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              disabled++;
+            }
+            override onUpdate(): void {
+              updates++;
+            }
+          }
+        );
+        let detachedImmediately = false;
+        let inactiveImmediately = false;
+        initiator.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              otherRootScene.removeRootEntity(victim);
+              detachedImmediately = victim.scene === null;
+              inactiveImmediately = !victim.isActiveInHierarchy;
+            }
+          }
+        );
+
+        engine.update();
+        expect(updates).toBe(1);
+        expect(() => {
+          otherRootScene.isActive = false;
+        }).not.toThrow();
+        expect(detachedImmediately).toBe(true);
+        expect(inactiveImmediately).toBe(true);
+        expect(victim.isActiveInHierarchy).toBe(false);
+        expect(victim.scene).toBeNull();
+        expect(disabled).toBe(1);
+
+        otherRootScene.isActive = true;
+        engine.update();
+        expect(updates).toBe(1);
+        victim.destroy();
+      } finally {
+        if (!otherRootScene.destroyed) otherRootScene.destroy();
+      }
+
+      // Case I: Destroying origin scene during removeRootEntity still clears _scene on detached descendants
+      const destroyOriginScene = new Scene(engine, "destroy-origin-during-detach");
+      engine.sceneManager.addScene(destroyOriginScene);
+      let detachedRoot: Entity | null = null;
+      let detachedChild: Entity | null = null;
+      try {
+        detachedRoot = destroyOriginScene.createRootEntity("removing-root");
+        detachedChild = detachedRoot.createChild("detached-child");
+        let rootSecondDisable = 0;
+        detachedChild.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              detachedRoot!.removeChild(detachedChild!);
+            }
+          }
+        );
+        detachedRoot.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              destroyOriginScene.destroy();
+            }
+          }
+        );
+        detachedRoot.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              rootSecondDisable++;
+            }
+          }
+        );
+
+        expect(() => destroyOriginScene.removeRootEntity(detachedRoot!)).not.toThrow();
+        expect(destroyOriginScene.destroyed).toBe(true);
+        expect(detachedChild.parent).toBeNull();
+        expect(detachedChild.scene).toBeNull();
+        expect(detachedRoot.scene).toBeNull();
+        expect(rootSecondDisable).toBe(1);
+      } finally {
+        if (detachedChild && !detachedChild.destroyed) detachedChild.destroy();
+        if (detachedRoot && !detachedRoot.destroyed) detachedRoot.destroy();
+        if (!destroyOriginScene.destroyed) destroyOriginScene.destroy();
+      }
     });
 
     it("all destroy", () => {

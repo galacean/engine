@@ -70,6 +70,10 @@ export class Collider extends Component implements ICloneHook<Collider> {
   @ignoreClone
   private _rejectedBody: Rigidbody | null = null;
   @ignoreClone
+  private _failedTransferTarget: Rigidbody | null | undefined = undefined;
+  @ignoreClone
+  private _failedTransferFallback: Rigidbody | null = null;
+  @ignoreClone
   private _shearWarned = false;
   @ignoreClone
   private _nativePosition = new Vector3();
@@ -97,7 +101,27 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * @remarks Derived from the hierarchy. It does not change when either component is disabled.
    */
   get attachedRigidbody(): Rigidbody | null {
-    return this._nativeActor && this._dirtyIndex === -1 ? this._attachedBody : this._findRigidbody();
+    const hierarchyBody = this._findRigidbody();
+    const scene = this.scene;
+    if (
+      this._dirtyIndex !== -1 &&
+      this._phasedActiveInScene &&
+      !this.destroyed &&
+      scene &&
+      !scene.destroyed &&
+      this.engine._physicsInitialized &&
+      hierarchyBody !== this._attachedBody
+    ) {
+      scene.physics._syncCollider(this, hierarchyBody);
+    }
+    if (this._nativeActor) {
+      return this._attachedBody;
+    }
+    if (this._failedTransferTarget !== undefined && hierarchyBody === this._failedTransferTarget) {
+      const fallback = this._failedTransferFallback;
+      return fallback && !fallback.destroyed ? fallback : null;
+    }
+    return hierarchyBody;
   }
 
   /**
@@ -373,6 +397,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
           `${this.constructor.name}: this geometry cannot belong to a non-kinematic Rigidbody, it is excluded from simulation until the Rigidbody is kinematic.`
         );
       }
+      this._failedTransferTarget = undefined;
+      this._failedTransferFallback = null;
       this._detach();
       return;
     }
@@ -382,6 +408,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
     let forcePose = false;
     if (this._nativeActor !== actor) {
       if (!this._transfer(body, actor)) {
+        this._failedTransferTarget = body;
+        this._failedTransferFallback = this._attachedBody;
         if (this._nativeActor) {
           this._syncPose(shape, this._attachedBody, scale, true);
         }
@@ -389,6 +417,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
       }
       forcePose = true;
     }
+    this._failedTransferTarget = undefined;
+    this._failedTransferFallback = null;
     this._syncPose(shape, body, scale, forcePose);
   }
 
@@ -434,9 +464,13 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * the next sync makes it static.
    */
   _onBodyDestroyed(): void {
+    const body = this._attachedBody;
     this._nativeActor!.removeShape(<IColliderShape>this._native);
     this._nativeActor = null;
     this._attachedBody = null;
+    if (this._failedTransferFallback === body) {
+      this._failedTransferFallback = null;
+    }
   }
 
   /**
@@ -558,6 +592,9 @@ export class Collider extends Component implements ICloneHook<Collider> {
     this._staticActor = null;
     this._material && this._addResourceReferCount(this._material, -1);
     this._material = null;
+    this._rejectedBody = null;
+    this._failedTransferTarget = undefined;
+    this._failedTransferFallback = null;
     delete Engine._physicalObjectsMap[this._id];
   }
 

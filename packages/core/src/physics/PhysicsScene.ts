@@ -816,6 +816,21 @@ export class PhysicsScene {
 
   /**
    * @internal
+   * Flush a single dirty Collider (and its target Rigidbody if dirty) on demand without syncing unrelated Colliders.
+   */
+  _syncCollider(collider: Collider, body: Rigidbody | null): void {
+    if (body && body._dirtyIndex !== -1) {
+      PhysicsScene._removeDirty(this._dirtyBodies, body);
+      body._syncPose();
+    }
+    if (collider._dirtyIndex !== -1) {
+      PhysicsScene._removeDirty(this._dirtyColliders, collider);
+      collider._sync();
+    }
+  }
+
+  /**
+   * @internal
    */
   _removeCollider(collider: Collider): void {
     PhysicsScene._removeDirty(this._dirtyColliders, collider);

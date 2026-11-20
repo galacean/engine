@@ -1091,6 +1091,124 @@ describe("Entity", async () => {
       } finally {
         if (!subScene.destroyed) subScene.destroy();
       }
+
+      // Full destination dying-hierarchy check: scene, ancestor, and direct-parent pendingDestroy
+      // (both triggered inside onDisable and already pendingDestroy before addChild) must cancel transfer
+      for (const dying of ["scene", "ancestor", "direct-parent"] as const) {
+        for (const moveFrom of ["inside-onDisable", "after-destroy"] as const) {
+          const src = new Scene(engine, `dying-src-${dying}-${moveFrom}`);
+          const dst = new Scene(engine, `dying-dst-${dying}-${moveFrom}`);
+          engine.sceneManager.addScene(src);
+          try {
+            const ancestor = dst.createRootEntity("ancestor");
+            const target = dying === "direct-parent" ? ancestor : ancestor.createChild("target");
+            const source = src.createRootEntity("source");
+            const dyingOwner = dying === "scene" ? dst : ancestor;
+            let armed = true;
+            let pendingObserved = false;
+            let updates = 0;
+            let duringOwner = "";
+            let duringActive = false;
+            source.addComponent(
+              class extends Script {
+                override onDisable(): void {
+                  if (moveFrom === "inside-onDisable" && armed) {
+                    armed = false;
+                    dyingOwner.destroy();
+                    pendingObserved = dyingOwner.pendingDestroy;
+                  }
+                }
+                override onUpdate(): void {
+                  if (++updates === 1) {
+                    if (moveFrom === "after-destroy") {
+                      dyingOwner.destroy();
+                      pendingObserved = dyingOwner.pendingDestroy;
+                    }
+                    target.addChild(source);
+                    duringActive = source.isActiveInHierarchy;
+                    duringOwner = source.scene === src ? "source" : source.scene === dst ? "destination" : "none";
+                  }
+                }
+              }
+            );
+
+            expect(() => engine.update()).not.toThrow();
+            expect(pendingObserved).toBe(true);
+            expect(duringActive).toBe(true);
+            expect(duringOwner).toBe("source");
+            expect(source.destroyed).toBe(false);
+            expect(src.rootEntities).toContain(source);
+            expect(target.destroyed).toBe(true);
+
+            expect(() => engine.update()).not.toThrow();
+            expect(updates).toBe(2);
+          } finally {
+            if (!src.destroyed) src.destroy();
+            if (!dst.destroyed) dst.destroy();
+          }
+        }
+      }
+
+      // Batch-scoped deactivation: clearChildren, descendant cross-scene transfer fail-fast, and destroyOriginDuringDetach
+      for (const mode of ["clear", "child-transfer", "root-transfer", "destroy"] as const) {
+        const src = new Scene(engine, `batch-src-${mode}`);
+        const dst = new Scene(engine, `batch-dst-${mode}`);
+        engine.sceneManager.addScene(src);
+        try {
+          const target = dst.createRootEntity("target");
+          const parent = src.createRootEntity("parent");
+          const child = parent.createChild("child");
+          let secondDisable = 0;
+          let updates = 0;
+          child.addComponent(
+            class extends Script {
+              override onDisable(): void {
+                if (mode === "clear") parent.clearChildren();
+                else if (mode === "child-transfer") target.addChild(child);
+                else if (mode === "root-transfer") dst.addRootEntity(child);
+                else if (mode === "destroy") {
+                  parent.removeChild(child);
+                  src.destroy();
+                }
+              }
+            }
+          );
+          child.addComponent(
+            class extends Script {
+              override onDisable(): void {
+                secondDisable++;
+              }
+              override onUpdate(): void {
+                updates++;
+              }
+            }
+          );
+
+          engine.update();
+          const before = updates;
+          if (mode === "child-transfer" || mode === "root-transfer") {
+            expect(() => {
+              parent.isActive = false;
+            }).toThrow();
+            expect(child.scene).toBe(src);
+            expect(child.parent).toBe(parent);
+          } else {
+            expect(() => {
+              parent.isActive = false;
+            }).not.toThrow();
+            expect(child.scene).toBeNull();
+            expect(child.parent).toBeNull();
+          }
+          expect(secondDisable).toBe(1);
+          expect(child.isActiveInHierarchy).toBe(false);
+          expect(() => engine.update()).not.toThrow();
+          expect(updates - before).toBe(0);
+          expect(() => child.destroy()).not.toThrow();
+        } finally {
+          if (!src.destroyed) src.destroy();
+          if (!dst.destroyed) dst.destroy();
+        }
+      }
     });
   });
 

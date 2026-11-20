@@ -30,6 +30,16 @@ export class MeshCollider extends Collider {
     return 0;
   }
 
+  /** @internal */
+  static _getDeferredDeserializeProps(
+    baseProps: Record<string, unknown>,
+    overrideProps: Record<string, unknown>
+  ): readonly string[] | null {
+    return baseProps.isTrigger === true && baseProps.convex !== true && overrideProps.convex === true
+      ? ["isTrigger"]
+      : null;
+  }
+
   @ignoreClone
   private _mesh: ModelMesh | null = null;
   private _convex = false;
