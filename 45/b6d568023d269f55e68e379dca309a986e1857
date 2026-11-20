@@ -1,0 +1,44 @@
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  h_ddbf152d31b140 14,594-602,1204-1351
+packages/building/src/building/runtime/BuildingDistanceView.ts
+  h_ddbf152d31b140 1151
+packages/building/src/building/runtime/BuildingGlobalProxy.ts
+  h_ddbf152d31b140 1206-1222
+packages/core/src/RenderPipeline/PrimitiveChunk.ts
+  h_ddbf152d31b140 107-110
+packages/terrain/src/terrain/audio/EnvironmentAudioRuntime.ts
+  h_ddbf152d31b140 140-142,180,193,561
+packages/terrain/src/terrain/lod/TerrainScreenRelativeHeightRuntime.ts
+  h_ddbf152d31b140 7-11,24-62,65-76
+packages/world-planning/src/masonry/NativeBuildingHost.ts
+  h_ddbf152d31b140 165-169
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_ddbf152d31b140 199-200,1265,1269-1291,1304-1308,1394-1398,1421-1429,1565-1571,1634-1641
+packages/world-planning/src/world/SeedWorldExactInstanceCellRuntime.ts
+  h_ddbf152d31b140 198-204,224,231,236-239,284,295,297,323-325,329-351,362-365,367-422,424-426,429-431,433-457,459-461,464-471,473-484,624-626,629-633
+packages/world-planning/src/world/SeedWorldShaderVariantCoverage.ts
+  h_ddbf152d31b140 191-224
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_ddbf152d31b140 26,28,37,39,103-115,453,459-474,533-546,595-599,601,623,636-637,640-684,688,696,703,708,996-1008,1016-1017,1028-1030
+packages/world-planning/tests/NativeBuildingLifetime.spec.ts
+  h_ddbf152d31b140 70-143
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 1965-2002
+world/tests/seed-world/ExactInstanceStaticReuse.spec.ts
+  h_ddbf152d31b140 37-112
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  h_ddbf152d31b140 181-512
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  h_ddbf152d31b140 6-9,11,13,16-18,21,105,173-176,178-193
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "45b6d568023d269f55e68e379dca309a986e1857",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
