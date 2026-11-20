@@ -1610,10 +1610,10 @@ describe("Physics gameplay integration", () => {
   it("removes BoxCollider from PhysX raycast on subtree detach/clear/fail-fast transfer and keeps attachedRigidbody consistent on rollback", () => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    // 1. Subtree deactivation with removeChild, clearChildren, fail-fast cross-scene transfer, and direct transfer
+    // 1. Subtree deactivation with removeChild, clearChildren, and direct cross-scene transfer
     const inactiveDst = new Scene(engine, "inactive-physics-dst");
     try {
-      const modes = ["remove", "clear", "transfer", "direct transfer"] as const;
+      const modes = ["remove", "clear", "direct transfer"] as const;
       for (let i = 0; i < modes.length; i++) {
         const mode = modes[i];
         const x = i * 4;
@@ -1626,39 +1626,34 @@ describe("Physics gameplay integration", () => {
             override onDisable(): void {
               if (mode === "remove") parent.removeChild(child);
               else if (mode === "clear") parent.clearChildren();
-              else if (mode === "transfer") inactiveDst.addRootEntity(child);
             }
           }
         );
         child.addComponent(BoxCollider);
 
-        expect(scene.physics.raycast(ray, 10)).toBe(true);
-        if (mode === "transfer") {
-          expect(() => {
-            parent.isActive = false;
-          }).toThrow();
-          expect(scene.physics.raycast(ray, 10)).toBe(false);
-          expect(inactiveDst.physics.raycast(ray, 10)).toBe(false);
-          expect(child.scene).toBe(scene);
-        } else if (mode === "direct transfer") {
-          expect(() => {
-            inactiveDst.addRootEntity(child);
-          }).not.toThrow();
-          expect(scene.physics.raycast(ray, 10)).toBe(false);
-          expect(inactiveDst.physics.raycast(ray, 10)).toBe(true);
-          expect(child.scene).toBe(inactiveDst);
-        } else {
-          expect(() => {
-            parent.isActive = false;
-          }).not.toThrow();
-          expect(scene.physics.raycast(ray, 10)).toBe(false);
-          expect(inactiveDst.physics.raycast(ray, 10)).toBe(false);
-          expect(child.isActiveInHierarchy).toBe(false);
-          expect(child.parent).toBeNull();
-          expect(child.scene).toBeNull();
+        try {
+          expect(scene.physics.raycast(ray, 10)).toBe(true);
+          if (mode === "direct transfer") {
+            expect(() => {
+              inactiveDst.addRootEntity(child);
+            }).not.toThrow();
+            expect(scene.physics.raycast(ray, 10)).toBe(false);
+            expect(inactiveDst.physics.raycast(ray, 10)).toBe(true);
+            expect(child.scene).toBe(inactiveDst);
+          } else {
+            expect(() => {
+              parent.isActive = false;
+            }).not.toThrow();
+            expect(scene.physics.raycast(ray, 10)).toBe(false);
+            expect(inactiveDst.physics.raycast(ray, 10)).toBe(false);
+            expect(child.isActiveInHierarchy).toBe(false);
+            expect(child.parent).toBeNull();
+            expect(child.scene).toBeNull();
+          }
+        } finally {
+          if (!parent.destroyed) parent.destroy();
+          if (!child.destroyed) child.destroy();
         }
-        parent.destroy();
-        if (!child.destroyed) child.destroy();
       }
     } finally {
       if (!inactiveDst.destroyed) inactiveDst.destroy();
@@ -1715,37 +1710,30 @@ describe("Physics gameplay integration", () => {
       }
     }
 
-    // 3. Ancestor detach / cross-scene transfer while descendant subtree deactivates removes BoxCollider from PhysX cleanly
-    const ancDst = new Scene(engine, "ancestor-physics-dst");
-    try {
-      for (const mode of ["detach-root", "detach-child", "transfer-root"] as const) {
-        const outer = scene.createRootEntity(`anc-outer-${mode}`);
-        const group = outer.createChild("group");
-        const parent = group.createChild("parent");
-        const child = parent.createChild("child");
-        child.addComponent(
-          class extends Script {
-            override onDisable(): void {
-              if (mode === "detach-root") scene.removeRootEntity(outer);
-              else if (mode === "detach-child") outer.removeChild(group);
-              else if (mode === "transfer-root") ancDst.addRootEntity(outer);
-            }
+    // 3. Ancestor detach while descendant subtree deactivates removes BoxCollider from PhysX cleanly
+    for (const mode of ["detach-root", "detach-child"] as const) {
+      const outer = scene.createRootEntity(`anc-outer-${mode}`);
+      const group = outer.createChild("group");
+      const parent = group.createChild("parent");
+      const child = parent.createChild("child");
+      child.addComponent(
+        class extends Script {
+          override onDisable(): void {
+            if (mode === "detach-root") scene.removeRootEntity(outer);
+            else outer.removeChild(group);
           }
-        );
-        child.addComponent(BoxCollider);
-        const ray = new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0));
-        expect(scene.physics.raycast(ray, 10)).toBe(true);
-        expect(() => {
-          parent.isActive = false;
-        }).toThrow();
-        expect(scene.physics.raycast(ray, 10)).toBe(false);
-        expect(ancDst.physics.raycast(ray, 10)).toBe(false);
-        expect(child.scene).toBe(mode === "transfer-root" ? scene : null);
-        if (!outer.destroyed) outer.destroy();
-        if (!group.destroyed) group.destroy();
-      }
-    } finally {
-      if (!ancDst.destroyed) ancDst.destroy();
+        }
+      );
+      child.addComponent(BoxCollider);
+      const ray = new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0));
+      expect(scene.physics.raycast(ray, 10)).toBe(true);
+      expect(() => {
+        parent.isActive = false;
+      }).toThrow();
+      expect(scene.physics.raycast(ray, 10)).toBe(false);
+      expect(child.scene).toBeNull();
+      if (!outer.destroyed) outer.destroy();
+      if (!group.destroyed) group.destroy();
     }
 
     // 4. Cross-scene A -> B rollback cleanup: moving A to another scene never carries src's collider into dst or leaves cross-scene attachedRigidbody
@@ -1976,75 +1964,7 @@ describe("Physics gameplay integration", () => {
         }
       }
 
-      // 3. Dynamic ancestor deactivation weight conservation: reparenting a deactivating subtree onto a new ancestor
-      //    then detaching or cross-scene transferring that new ancestor cleanly removes BoxCollider from PhysX
-      const reparentCases: Array<{ action: "none" | "detach" | "transfer"; reparent: boolean }> = [
-        { action: "none", reparent: true },
-        { action: "detach", reparent: false },
-        { action: "transfer", reparent: false },
-        { action: "detach", reparent: true },
-        { action: "transfer", reparent: true }
-      ];
-      for (const { action, reparent } of reparentCases) {
-        const dstScene = new Scene(engine, `r9-reparent-dst-${action}-${reparent}`);
-        const oldAncestor = scene.createRootEntity(`r9-old-anc-${action}-${reparent}`);
-        const newAncestor = scene.createRootEntity(`r9-new-anc-${action}-${reparent}`);
-        const parent = oldAncestor.createChild("parent");
-        const child = parent.createChild("child");
-        let disables = 0;
-        let updatesAfterDisable = 0;
-        child.addComponent(
-          class extends Script {
-            override onDisable(): void {
-              disables++;
-              if (reparent) {
-                newAncestor.addChild(parent);
-              }
-              const targetAncestor = reparent ? newAncestor : oldAncestor;
-              if (action === "detach") {
-                scene.removeRootEntity(targetAncestor);
-              } else if (action === "transfer") {
-                dstScene.addRootEntity(targetAncestor);
-              }
-            }
-            override onUpdate(): void {
-              if (disables > 0) updatesAfterDisable++;
-            }
-          }
-        );
-        child.addComponent(BoxCollider);
-        const ray = new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0));
-        try {
-          expect(scene.physics.raycast(ray, 10)).toBe(true);
-          if (action === "transfer") {
-            expect(() => {
-              parent.isActive = false;
-            }).toThrow("Cannot transfer an entity to another scene while it is processing active state changes.");
-          } else if (action === "detach") {
-            expect(() => {
-              parent.isActive = false;
-            }).toThrow("Cannot detach an entity from its scene while it is processing active state changes.");
-          } else {
-            expect(() => {
-              parent.isActive = false;
-            }).not.toThrow();
-          }
-          expect(disables).toBe(1);
-          expect(scene.physics.raycast(ray, 10)).toBe(false);
-          expect(dstScene.physics.raycast(ray, 10)).toBe(false);
-          expect(child.scene).toBe(action === "detach" ? null : scene);
-          step(1);
-          expect(updatesAfterDisable).toBe(0);
-          expect(errors).not.toHaveBeenCalled();
-        } finally {
-          if (!oldAncestor.destroyed) oldAncestor.destroy();
-          if (!newAncestor.destroyed) newAncestor.destroy();
-          if (!parent.destroyed) parent.destroy();
-          if (!dstScene.destroyed) dstScene.destroy();
-        }
-      }
-
-      // 4. Collision-free rollback parent-chain invalidation: reparenting an ancestor across parents with different
+      // 3. Collision-free rollback parent-chain invalidation: reparenting an ancestor across parents with different
       //    prior attachment counts still invalidates the disabled collider's failed-transfer cache
       for (const extraParentAttachment of [false, true]) {
         errors.mockClear();
@@ -2183,73 +2103,7 @@ describe("Physics gameplay integration", () => {
       }
     }
 
-    // 2. Scene.isActive = false continues deactivating all remaining roots across callback errors and root reorders
-    for (const action of ["transfer-child", "remove-child", "throw-and-continue", "reorder-roots"] as const) {
-      const src = new Scene(engine, `r10-disable-src-${action}`);
-      const dst = new Scene(engine, `r10-disable-dst-${action}`);
-      engine.sceneManager.addScene(src);
-      const first = src.createRootEntity("first");
-      const second = src.createRootEntity("second");
-      const moving = second.createChild("moving");
-      const leaf = moving.createChild("leaf");
-      leaf.addComponent(BoxCollider);
-      let firstDisabled = 0;
-      let secondDisabled = 0;
-      first.addComponent(
-        class extends Script {
-          override onDisable(): void {
-            firstDisabled++;
-          }
-        }
-      );
-      moving.addComponent(
-        class extends Script {
-          override onDisable(): void {
-            if (action === "transfer-child") dst.addRootEntity(moving);
-            else if (action === "remove-child") second.removeChild(moving);
-            else if (action === "throw-and-continue") throw new Error("user onDisable error");
-            else if (action === "reorder-roots") second.siblingIndex = 0;
-          }
-        }
-      );
-      moving.addComponent(
-        class extends Script {
-          override onDisable(): void {
-            secondDisabled++;
-          }
-        }
-      );
-
-      try {
-        expect(src.physics.raycast(ray, 10)).toBe(true);
-        if (action === "transfer-child" || action === "throw-and-continue") {
-          expect(() => {
-            src.isActive = false;
-          }).toThrow();
-        } else {
-          expect(() => {
-            src.isActive = false;
-          }).not.toThrow();
-        }
-        expect(first.isActiveInHierarchy).toBe(false);
-        expect(firstDisabled).toBe(1);
-        expect(secondDisabled).toBe(1);
-        if (action === "remove-child") {
-          expect(moving.scene).toBeNull();
-          expect(src.physics.raycast(ray, 10)).toBe(false);
-        } else if (action === "transfer-child") {
-          expect(moving.scene).toBe(src);
-          expect(moving.parent).toBe(second);
-          expect(dst.physics.raycast(ray, 10)).toBe(false);
-        }
-      } finally {
-        if (!moving.destroyed) moving.destroy();
-        if (!src.destroyed) src.destroy();
-        if (!dst.destroyed) dst.destroy();
-      }
-    }
-
-    // 3. MeshCollider line-indexed mesh, inaccessible base replaced by override, innocuous base call, and same-block convex=false replacement
+    // 2. MeshCollider line-indexed mesh, inaccessible base replaced by override, base call visibility, and same-block convex=false replacement
     const verticesMesh = new ModelMesh(engine);
     verticesMesh.setPositions([
       new Vector3(0, 1, 0),
@@ -2416,7 +2270,7 @@ describe("Physics gameplay integration", () => {
         const callInst = callOuter.instantiate();
         root.addChild(callInst);
         try {
-          expect(observations).toEqual([`base:${kind === "indexed"}:false`, "override:true:true"]);
+          expect(observations).toEqual(["base:true:false", "override:true:true"]);
           expect(scene.physics.raycast(ray, 10)).toBe(true);
         } finally {
           callInst.destroy();
@@ -2498,7 +2352,7 @@ describe("Physics gameplay integration", () => {
     }
   });
 
-  it("handles target parent switching scene in onDisable, re-entrant scene active/destroy transitions, and atomic MeshCollider coupled deserialize commits", async () => {
+  it("handles MeshCollider prefab overrides, derived setter readback into PhysX trigger contacts, and normal scene.destroy() leaf teardown order", async () => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     const ray = new Ray(new Vector3(0, 5, 0), new Vector3(0, -1, 0));
     const hitEntity = (targetScene: Scene, x = 0): Entity | null => {
@@ -2508,109 +2362,40 @@ describe("Physics gameplay integration", () => {
         : null;
     };
 
-    // 1. Target parent switches Scene during mover's onDisable inside Entity._setParent
-    for (const moveDestination of [false, true]) {
-      const src = new Scene(engine, `r11-src-${moveDestination}`);
-      const dst = new Scene(engine, `r11-dst-${moveDestination}`);
-      engine.sceneManager.addScene(src);
-      engine.sceneManager.addScene(dst);
-      const mover = src.createRootEntity("mover");
-      const driver = src.createRootEntity("driver");
-      const target = src.createRootEntity("target");
-      const seen: string[] = [];
-      let moved = false;
-      mover.addComponent(BoxCollider);
-      mover.addComponent(
-        class extends Script {
-          override onDisable(): void {
-            if (!moved && moveDestination) {
-              moved = true;
-              dst.addRootEntity(target);
+    // 1. Normal scene.destroy() runs leaf onDisable before tearing down parent components
+    {
+      const destroyScene = new Scene(engine, "r13-destroy-outside");
+      engine.sceneManager.addScene(destroyScene);
+      try {
+        const parent = destroyScene.createRootEntity("parent");
+        const leaf = parent.createChild("leaf");
+        const events: string[] = [];
+        class ParentTool extends Script {
+          release(): void {
+            events.push("released");
+          }
+        }
+        parent.addComponent(ParentTool);
+        leaf.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              const tool = parent.getComponent(ParentTool);
+              expect(tool).not.toBeNull();
+              tool!.release();
             }
           }
-          override onUpdate(): void {
-            seen.push(`update:${this.entity.isActiveInHierarchy}`);
-          }
-        }
-      );
-      driver.addComponent(
-        class extends Script {
-          override onDisable(): void {
-            target.addChild(mover);
-          }
-        }
-      );
-      try {
-        expect(hitEntity(src)).toBe(mover);
-        expect(hitEntity(dst)).toBeNull();
-        src.isActive = false;
-        engine.update();
-        expect(mover.parent).toBe(target);
-        expect(mover.scene).toBe(moveDestination ? dst : src);
-        expect(mover.isActiveInHierarchy).toBe(moveDestination);
-        expect(hitEntity(src)).toBe(moveDestination ? null : mover);
-        expect(hitEntity(dst)).toBe(moveDestination ? mover : null);
-        expect(seen).toEqual(moveDestination ? ["update:true"] : []);
+        );
+        expect(() => destroyScene.destroy()).not.toThrow();
+        expect(parent.destroyed).toBe(true);
+        expect(leaf.destroyed).toBe(true);
+        expect(destroyScene.destroyed).toBe(true);
+        expect(events).toEqual(["released"]);
       } finally {
-        if (!src.destroyed) src.destroy();
-        if (!dst.destroyed) dst.destroy();
+        if (!destroyScene.destroyed) destroyScene.destroy();
       }
     }
 
-    // 2. Re-entrant scene active/remove/destroy callbacks keep all roots coherent with zero spurious re-entry throws
-    for (const action of ["re-enable", "re-add", "disable", "remove", "destroy", "destroy-first"] as const) {
-      const testScene = new Scene(engine, `r11-reenter-${action}`);
-      engine.sceneManager.addScene(testScene);
-      const first = testScene.createRootEntity("first");
-      const second = testScene.createRootEntity("second");
-      second.transform.position.x = 2;
-      first.addComponent(BoxCollider);
-      second.addComponent(BoxCollider);
-      let armed = false;
-      const callbackTarget = action === "destroy-first" ? first : second;
-      callbackTarget.addComponent(
-        class extends Script {
-          override onEnable(): void {
-            if (!armed || (action !== "disable" && action !== "remove")) return;
-            armed = false;
-            if (action === "disable") testScene.isActive = false;
-            if (action === "remove") engine.sceneManager.removeScene(testScene);
-          }
-          override onDisable(): void {
-            if (!armed || action === "disable" || action === "remove") return;
-            armed = false;
-            if (action === "re-enable") testScene.isActive = true;
-            if (action === "re-add") engine.sceneManager.addScene(testScene);
-            if (action === "destroy" || action === "destroy-first") testScene.destroy();
-          }
-        }
-      );
-      const enableEntry = action === "disable" || action === "remove";
-      if (enableEntry) testScene.isActive = false;
-      expect(hitEntity(testScene, 2)).toBe(second);
-      armed = true;
-      try {
-        expect(() => {
-          if (action === "re-add") engine.sceneManager.removeScene(testScene);
-          else testScene.isActive = enableEntry;
-        }).not.toThrow();
-        const registered = engine.sceneManager.scenes.includes(testScene);
-        if (action === "destroy" || action === "destroy-first") {
-          expect(testScene.destroyed).toBe(true);
-          expect(first.destroyed).toBe(true);
-          expect(second.destroyed).toBe(true);
-        } else {
-          const expectedActive = testScene.isActive && registered;
-          expect(first.isActiveInHierarchy).toBe(expectedActive);
-          expect(second.isActiveInHierarchy).toBe(expectedActive);
-        }
-        expect(() => engine.update()).not.toThrow();
-      } finally {
-        if (!testScene.destroyed) testScene.destroy();
-      }
-    }
-
-    // 3. Atomic MeshCollider coupled deserialize commits: 3-vertex triangle replacement, released-CPU cookingFlags, degenerate-tris convex fallback
+    // 2. MeshCollider prefab overrides: 3-vertex triangle replacement, released-CPU cookingFlags, degenerate-tris convex override
     const indexedMesh = new ModelMesh(engine);
     indexedMesh.setPositions([
       new Vector3(0, 1, 0),
@@ -2802,149 +2587,14 @@ describe("Physics gameplay integration", () => {
     }
   });
 
-  it("fails fast on same-scene inactive reparent in onEnable, handles Scene ABA toggles, and runs derived MeshCollider setters during coupled commits", async () => {
-    // 1. Same-scene reparent to inactive (or not-yet-active) parent during onEnable fails fast without hang
-    for (const targetInactive of [true, false]) {
-      const testScene = new Scene(engine, `r12-reparent-${targetInactive}`);
-      engine.sceneManager.addScene(testScene);
-      try {
-        testScene.isActive = false;
-        const target = testScene.createRootEntity("target");
-        target.isActive = !targetInactive;
-        const moving = testScene.createRootEntity("moving");
-        const caught: string[] = [];
-        moving.addComponent(
-          class extends Script {
-            override onEnable(): void {
-              try {
-                target.addChild(this.entity);
-              } catch (error) {
-                caught.push(String(error));
-              }
-            }
-          }
-        );
-        testScene.isActive = true;
-        expect(caught.length).toBe(1);
-        expect(caught[0]).toContain("main active entity");
-        expect(moving.parent).toBeNull();
-        expect(testScene.rootEntities).toContain(moving);
-        expect(moving.isActiveInHierarchy).toBe(true);
-      } finally {
-        if (!testScene.destroyed) testScene.destroy();
-      }
-    }
-
-    // 2. Scene ABA re-entrant isActive toggles converge for late-added roots in both directions
-    for (const activate of [true, false]) {
-      const abaScene = new Scene(engine, `r12-aba-${activate}`);
-      engine.sceneManager.addScene(abaScene);
-      try {
-        const trigger = abaScene.createRootEntity("trigger");
-        let late: Entity | undefined;
-        let armed = false;
-        const events: string[] = [];
-        const toggleABA = () => {
-          if (!armed) return;
-          armed = false;
-          abaScene.isActive = !activate;
-          late = abaScene.createRootEntity("late");
-          late.addComponent(
-            class extends Script {
-              override onEnable(): void {
-                events.push("late-enable");
-              }
-              override onDisable(): void {
-                events.push("late-disable");
-              }
-            }
-          );
-          abaScene.isActive = activate;
-        };
-        trigger.addComponent(
-          class extends Script {
-            override onEnable(): void {
-              if (activate) toggleABA();
-            }
-            override onDisable(): void {
-              if (!activate) toggleABA();
-            }
-          }
-        );
-        if (activate) abaScene.isActive = false;
-        armed = true;
-        abaScene.isActive = activate;
-
-        expect(abaScene.isActive).toBe(activate);
-        expect(trigger.isActiveInHierarchy).toBe(activate);
-        expect(late!.isActiveInHierarchy).toBe(activate);
-        expect(events).toEqual(activate ? ["late-enable"] : ["late-enable", "late-disable"]);
-      } finally {
-        if (!abaScene.destroyed) abaScene.destroy();
-      }
-    }
-
-    // 2b. Normal scene.destroy() runs leaf onDisable before tearing down parent components, and
-    //     destroying the entity or scene inside onEnable completes without a spurious detach error
-    for (const action of ["scene-outside", "entity", "scene"] as const) {
-      const destroyScene = new Scene(engine, `r12-destroy-${action}`);
-      engine.sceneManager.addScene(destroyScene);
-      try {
-        const parent = destroyScene.createRootEntity("parent");
-        const leaf = parent.createChild("leaf");
-        const events: string[] = [];
-        class ParentTool extends Script {
-          release(): void {
-            events.push("released");
-          }
-        }
-        parent.addComponent(ParentTool);
-        leaf.addComponent(
-          class extends Script {
-            override onDisable(): void {
-              if (action === "scene-outside") {
-                const tool = parent.getComponent(ParentTool);
-                expect(tool).not.toBeNull();
-                tool!.release();
-              }
-            }
-          }
-        );
-        let armed = false;
-        parent.addComponent(
-          class extends Script {
-            override onEnable(): void {
-              if (!armed) return;
-              armed = false;
-              if (action === "scene") destroyScene.destroy();
-              if (action === "entity") this.entity.destroy();
-            }
-          }
-        );
-        expect(() => {
-          if (action === "scene-outside") {
-            destroyScene.destroy();
-          } else {
-            destroyScene.isActive = false;
-            armed = true;
-            destroyScene.isActive = true;
-          }
-        }).not.toThrow();
-        expect(parent.destroyed).toBe(true);
-        expect(leaf.destroyed).toBe(true);
-        expect(destroyScene.destroyed).toBe(action !== "entity");
-        if (action === "scene-outside") {
-          expect(events).toEqual(["released"]);
-        }
-      } finally {
-        if (!destroyScene.destroyed) destroyScene.destroy();
-      }
-    }
-
-    // 3. Derived MeshCollider subclass setter runs for both uncoupled and coupled commits, and rejected
-    //    collinear triangle replacement retains the valid hull and raycast hit
+  it("preserves derived MeshCollider setter readback into PhysX trigger contacts and excludes rejected collinear meshes on sync", async () => {
     const tetraMesh = new ModelMesh(engine);
-    tetraMesh.setPositions([new Vector3(0, 1, 0), new Vector3(-1, 0, -1), new Vector3(1, 0, -1), new Vector3(0, 0, 1)]);
+    tetraMesh.setPositions([
+      new Vector3(0, 2, 0),
+      new Vector3(-2, -1, -2),
+      new Vector3(2, -1, -2),
+      new Vector3(0, -1, 2)
+    ]);
     tetraMesh.setIndices(new Uint16Array([0, 1, 2, 0, 2, 3, 0, 3, 1, 1, 3, 2]));
     tetraMesh.addSubMesh(0, 12, MeshTopology.Triangles);
 
@@ -2953,71 +2603,98 @@ describe("Physics gameplay integration", () => {
     collinearMesh.setIndices(new Uint16Array([0, 1, 2]));
     collinearMesh.addSubMesh(0, 3, MeshTopology.Triangles);
 
-    const poolKeys = ["r12-tetra.mesh", "r12-collinear.mesh", "r12-hull-base.prefab"];
+    const poolKeys = ["r13-tetra.mesh", "r13-collinear.mesh", "r13-hull-base.prefab"];
     // @ts-ignore
-    engine.resourceManager._objectPool["r12-tetra.mesh"] = tetraMesh;
+    engine.resourceManager._objectPool["r13-tetra.mesh"] = tetraMesh;
     // @ts-ignore
-    engine.resourceManager._objectPool["r12-collinear.mesh"] = collinearMesh;
+    engine.resourceManager._objectPool["r13-collinear.mesh"] = collinearMesh;
 
     const ray = new Ray(new Vector3(0, 4, 0), new Vector3(0, -1, 0));
     try {
-      for (const coupled of [false, true]) {
+      // 1. Derived MeshCollider setter reading back this.convex sets isTrigger and produces real PhysX trigger contacts
+      //    identically with and without repeated default cookingFlags
+      for (const withCookingFlags of [false, true]) {
         const seen: string[] = [];
-        class AuthoredMesh extends MeshCollider {
+        class TriggerFromConvex extends MeshCollider {
           override get convex(): boolean {
             return super.convex;
           }
           override set convex(value: boolean) {
-            seen.push(`convex:${value}`);
             super.convex = value;
+            seen.push(`convex:${this.convex}`);
+            this.isTrigger = this.convex;
             this.contactOffset = 0.19;
           }
         }
-        const typeName = `R12AuthoredMesh_${coupled}`;
-        Loader.registerClass(typeName, AuthoredMesh);
+        const typeName = `R13TriggerFromConvex_${withCookingFlags}`;
+        Loader.registerClass(typeName, TriggerFromConvex);
 
-        const resource = await PrefabParser.parse(engine, `r12-derived-${coupled}.prefab`, {
+        const resource = await PrefabParser.parse(engine, `r13-derived-${withCookingFlags}.prefab`, {
           version: "2.0",
-          refs: [{ url: "r12-tetra.mesh" }],
+          refs: [{ url: "r13-tetra.mesh" }],
           entities: [{ name: "root", components: [0] }],
           components: [
             {
               type: typeName,
-              props: { convex: true, ...(coupled ? { mesh: { $ref: 0 }, isTrigger: true } : {}) }
+              props: {
+                convex: true,
+                mesh: { $ref: 0 },
+                ...(withCookingFlags
+                  ? { cookingFlags: MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding }
+                  : {})
+              }
             }
           ],
           root: 0
         });
         expect(seen).toEqual(["convex:true"]);
         const inst = resource.instantiate();
-        root.addChild(inst);
+        const probe = root.createChild(`probe-${withCookingFlags}`);
+        const events: string[] = [];
         try {
-          const mc = inst.getComponent(AuthoredMesh)!;
+          root.addChild(inst);
+          const mc = inst.getComponent(TriggerFromConvex)!;
           expect(mc.convex).toBe(true);
+          expect(mc.isTrigger).toBe(true);
           expect(mc.contactOffset).toBeCloseTo(0.19);
-          expect(mc.isTrigger).toBe(coupled);
-          expect(scene.physics.raycast(ray, 10)).toBe(coupled);
+
+          probe.addComponent(Rigidbody).useGravity = false;
+          probe.addComponent(BoxCollider);
+          probe.addComponent(
+            class extends Script {
+              override onCollisionEnter(): void {
+                events.push("collision");
+              }
+              override onTriggerEnter(): void {
+                events.push("trigger");
+              }
+            }
+          );
+          step(3);
+          expect(events).toEqual(["trigger"]);
         } finally {
+          probe.destroy();
           inst.destroy();
         }
       }
 
-      const hullBase = await PrefabParser.parse(engine, "r12-hull-base.prefab", {
+      // 2. Rejected collinear triangle cook retains declared properties, excludes invalid mesh on sync, and recovers when replaced
+      const hullBase = await PrefabParser.parse(engine, "r13-hull-base.prefab", {
         version: "2.0",
-        refs: [{ url: "r12-tetra.mesh" }],
+        refs: [{ url: "r13-tetra.mesh" }],
         entities: [{ name: "root", components: [0] }],
         components: [{ type: "MeshCollider", props: { convex: true, isTrigger: true, mesh: { $ref: 0 } } }],
         root: 0
       });
       // @ts-ignore
-      engine.resourceManager._objectPool["r12-hull-base.prefab"] = hullBase;
+      engine.resourceManager._objectPool["r13-hull-base.prefab"] = hullBase;
 
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
       try {
-        const rejectedOuter = await PrefabParser.parse(engine, "r12-collinear-outer.prefab", {
+        const rejectedOuter = await PrefabParser.parse(engine, "r13-collinear-outer.prefab", {
           version: "2.0",
-          refs: [{ url: "r12-hull-base.prefab" }, { url: "r12-collinear.mesh" }],
+          refs: [{ url: "r13-hull-base.prefab" }, { url: "r13-collinear.mesh" }],
           entities: [
             {
               instance: {
@@ -3046,9 +2723,13 @@ describe("Physics gameplay integration", () => {
         root.addChild(inst);
         try {
           const mc = inst.getComponent(MeshCollider)!;
-          expect(mc.mesh).toBe(tetraMesh);
+          expect(mc.mesh).toBe(collinearMesh);
           expect(mc.isTrigger).toBe(false);
           expect(mc.cookingFlags).toBe(MeshColliderShapeCookingFlag.Cleaning);
+          expect(scene.physics.raycast(ray, 10)).toBe(false);
+          expect(errSpy).toHaveBeenCalled();
+
+          mc.mesh = tetraMesh;
           expect(scene.physics.raycast(ray, 10)).toBe(true);
         } finally {
           inst.destroy();

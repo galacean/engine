@@ -12,17 +12,10 @@ import {
   type InstanceOverrides,
   type PrefabInstanceEntitySchema
 } from "../../../schema/HierarchySchema";
-import type { MutationBlock, RefItem } from "../../../schema/CommonSchema";
+import type { RefItem } from "../../../schema/CommonSchema";
 import type { HierarchyFile } from "../../../schema/HierarchySchema";
 import { ParserContext, ParserType } from "./ParserContext";
-import { DeferredPropCheck, ReflectionParser } from "./ReflectionParser";
-
-type MutationWaveItem = {
-  target: Component;
-  blocks: MutationBlock[];
-  deferCheck?: DeferredPropCheck;
-  firstBlockPreResolved?: Record<string, unknown>;
-};
+import { ReflectionParser } from "./ReflectionParser";
 
 /** @Internal */
 export abstract class HierarchyParser<T extends Scene | PrefabResource, V extends ParserContext> {
@@ -129,7 +122,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   }
 
   // ---------------------------------------------------------------------------
-  // Stage 3: Add components to entities
+  // Stage 3: Add/remove components in dependency order and resolve override targets
   // ---------------------------------------------------------------------------
 
   private _parseComponents(): void {
@@ -241,7 +234,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       }
     }
 
-    // Pass 4: Apply removed + added component changes exactly once per entity.
+    // Pass 4: Apply removed + added component changes in dependency order once per entity.
     const snapshots = this.context.componentSnapshots;
     changesByEntity.forEach(({ removed, added }, entity) => {
       HierarchyParser._applyEntityComponentChanges(
@@ -271,13 +264,14 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   }
 
   // ---------------------------------------------------------------------------
-  // Stage 4: Apply removedEntities, entityProps, and unified component props/calls/overrides
+  // Stage 4: Apply removedEntities, entityProps, base components, then prefab overrides
   // ---------------------------------------------------------------------------
 
   private _parseComponentsPropsAndOverrides(): Promise<unknown> {
     const removedEntities = this._overrideRemovedEntities;
     const entityProps = this._overrideEntityProps;
     const componentProps = this._overrideComponentProps;
+    const reflectionParser = this._reflectionParser;
 
     // Destroy removedEntities before resolving props/calls (snapshotting parent children for $entity refs)
     if (removedEntities.length > 0) {
@@ -297,7 +291,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       removedEntities.length = 0;
     }
 
-    // entityProps — entity-level property overrides
+    // Apply entity-level overrides
     for (let i = 0, n = entityProps.length; i < n; i++) {
       const { entity, override } = entityProps[i];
       if (!entity.destroyed) {
@@ -306,456 +300,37 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     }
     entityProps.length = 0;
 
-    // Strict two-wave barrier: Wave 0 (base pendingComponents) -> Wave 1 (prefab componentProps overrides).
-    // Overrides never promote into Wave 0, so Wave 0 base calls/setters always see base state identically
-    // regardless of unrelated components' calls. Only base props explicitly flagged by a component's
-    // `_getDeferredDeserializeProps` (e.g. MeshCollider's `isTrigger` when Wave 1 sets `convex: true`)
-    // are extracted onto the first Wave 1 override so all other base props still execute on time in Wave 0.
+    // Wave 0: apply base pendingComponents props/calls concurrently
     const { pendingComponents } = this.context;
-    const wave0: MutationWaveItem[] = [];
-    const wave1: MutationWaveItem[] = [];
-    const wave0ByTarget = componentProps.length > 0 ? new Map<Component, number>() : null;
-    const wave1ByTarget = componentProps.length > 0 ? new Map<Component, number>() : null;
-
+    const basePromises: Promise<unknown>[] = [];
     for (let i = 0, n = pendingComponents.length; i < n; i++) {
       const { instance, config } = pendingComponents[i];
-      if (instance.destroyed) continue;
-      if (wave0ByTarget) {
-        wave0ByTarget.set(instance, wave0.length);
-      }
-      wave0.push({ target: instance, blocks: [config] });
-    }
-
-    for (let i = 0, n = componentProps.length; i < n; i++) {
-      const { target, block } = componentProps[i];
-      if (target.destroyed) continue;
-
-      const wave1Index = wave1ByTarget!.get(target);
-      if (wave1Index !== undefined) {
-        const blocks = wave1[wave1Index].blocks;
-        const prev = blocks[blocks.length - 1];
-        if (!prev.calls?.length) {
-          blocks[blocks.length - 1] = HierarchyParser._mergeMutationBlocks(prev, block);
-        } else {
-          blocks.push(block);
-        }
-      } else {
-        wave1ByTarget!.set(target, wave1.length);
-        wave1.push({ target, blocks: [block] });
-      }
-    }
-    componentProps.length = 0;
-
-    if (wave0ByTarget && wave1.length > 0) {
-      let hasEmptyBase = false;
-      for (let i = 0, n = wave1.length; i < n; i++) {
-        const wave1Item = wave1[i];
-        const { target, blocks } = wave1Item;
-        const wave0Index = wave0ByTarget.get(target);
-        if (wave0Index === undefined) continue;
-
-        const getDeferredRules:
-          | ((
-              baseProps: Record<string, unknown>,
-              overrideProps: Record<string, unknown>
-            ) => Record<string, true | ((value: unknown) => boolean)> | null)
-          | undefined = (target.constructor as any)?._getDeferredDeserializeProps;
-        if (typeof getDeferredRules !== "function") continue;
-
-        const baseBlock = wave0[wave0Index].blocks[0];
-        const firstOverride = blocks[0];
-        if (baseBlock.props && firstOverride.props) {
-          const rules = getDeferredRules(baseBlock.props, firstOverride.props);
-          if (rules) {
-            const baseProps = baseBlock.props;
-            let staticDeferred: Record<string, unknown> | null = null;
-            let predicates: Record<string, (value: unknown) => boolean> | null = null;
-            for (const key in rules) {
-              if (!(key in baseProps)) continue;
-              const rule = rules[key];
-              if (rule === true) {
-                (staticDeferred ||= {})[key] = baseProps[key];
-              } else {
-                (predicates ||= {})[key] = rule;
-              }
-            }
-            if (staticDeferred) {
-              const remainingProps: Record<string, unknown> = {};
-              let hasRemaining = false;
-              for (const key in baseProps) {
-                if (!(key in staticDeferred)) {
-                  remainingProps[key] = baseProps[key];
-                  hasRemaining = true;
-                }
-              }
-              blocks[0] = HierarchyParser._mergeMutationBlocks({ props: staticDeferred }, firstOverride);
-              if (hasRemaining || baseBlock.calls?.length) {
-                wave0[wave0Index].blocks[0] = {
-                  ...(hasRemaining ? { props: remainingProps } : {}),
-                  ...(baseBlock.calls?.length ? { calls: baseBlock.calls } : {})
-                };
-              } else {
-                wave0[wave0Index].blocks.length = 0;
-                hasEmptyBase = true;
-              }
-            }
-            if (predicates && wave0[wave0Index].blocks.length > 0) {
-              const deferredValues: Record<string, unknown> = {};
-              wave0[wave0Index].deferCheck = { predicates, deferredValues };
-              wave1Item.firstBlockPreResolved = deferredValues;
-            }
-          }
-        }
-      }
-      if (hasEmptyBase) {
-        let write = 0;
-        for (let i = 0, n = wave0.length; i < n; i++) {
-          if (wave0[i].blocks.length > 0) {
-            wave0[write++] = wave0[i];
-          }
-        }
-        wave0.length = write;
+      if (!instance.destroyed) {
+        basePromises.push(reflectionParser.parseMutationBlock(instance, config));
       }
     }
 
-    if (wave0.length === 0) {
-      return wave1.length > 0 ? this._applyMutationWave(wave1) : Promise.resolve();
-    }
-    if (wave1.length === 0) {
-      return this._applyMutationWave(wave0);
-    }
-    return this._applyMutationWave(wave0).then(() => this._applyMutationWave(wave1));
-  }
-
-  private static _mergeMutationBlocks(base: MutationBlock, override: MutationBlock): MutationBlock {
-    const props =
-      base.props && override.props
-        ? HierarchyParser._mergeProps(base.props, override.props)
-        : (override.props ?? base.props);
-    return { props, calls: override.calls };
-  }
-
-  private static _mergeProps(
-    base: Record<string, unknown>,
-    override: Record<string, unknown>
-  ): Record<string, unknown> {
-    const merged: Record<string, unknown> = { ...base };
-    for (const key in override) {
-      const baseVal = merged[key];
-      const overrideVal = override[key];
-      merged[key] =
-        HierarchyParser._isPlainPropsObject(baseVal) && HierarchyParser._isPlainPropsObject(overrideVal)
-          ? HierarchyParser._mergeProps(baseVal, overrideVal)
-          : overrideVal;
-    }
-    return merged;
-  }
-
-  private static _isPlainPropsObject(value: unknown): value is Record<string, unknown> {
-    if (value == null || typeof value !== "object" || Array.isArray(value)) return false;
-    for (const key in value as Record<string, unknown>) {
-      if (key.charCodeAt(0) === 36) return false;
-    }
-    return true;
-  }
-
-  private _applyMutationWave(items: readonly MutationWaveItem[]): Promise<unknown> {
-    const reflectionParser = this._reflectionParser;
-    const applyBlock = (
-      target: Component,
-      block: MutationBlock,
-      deferCheck?: DeferredPropCheck,
-      preResolvedProps?: Record<string, unknown>
-    ): Promise<unknown> =>
-      target.destroyed
-        ? Promise.resolve()
-        : reflectionParser.parseMutationBlock(target, block, deferCheck, preResolvedProps);
-    const runItemChain = ({
-      target,
-      blocks,
-      deferCheck,
-      firstBlockPreResolved
-    }: MutationWaveItem): Promise<unknown> => {
-      if (blocks.length === 1) {
-        return applyBlock(target, blocks[0], deferCheck, firstBlockPreResolved);
+    const applyOverrides = (): Promise<unknown> => {
+      if (componentProps.length === 0) return Promise.resolve();
+      const chains = new Map<Component, Promise<unknown>>();
+      for (let i = 0, n = componentProps.length; i < n; i++) {
+        const { target, block } = componentProps[i];
+        if (target.destroyed) continue;
+        const prev = chains.get(target);
+        const next = prev
+          ? prev.then(() => (target.destroyed ? undefined : reflectionParser.parseMutationBlock(target, block)))
+          : reflectionParser.parseMutationBlock(target, block);
+        chains.set(target, next);
       }
-      let chain: Promise<unknown> = Promise.resolve();
-      for (let i = 0, n = blocks.length; i < n; i++) {
-        const block = blocks[i];
-        const blockDefer = i === 0 ? deferCheck : undefined;
-        const blockPreResolved = i === 0 ? firstBlockPreResolved : undefined;
-        chain = chain.then(() => applyBlock(target, block, blockDefer, blockPreResolved));
-      }
-      return chain;
+      componentProps.length = 0;
+      return Promise.all(chains.values());
     };
 
-    const noop = (): void => {};
-    type PhasedQueue = MutationWaveItem & {
-      phases: number[];
-      cursor: number;
-      busy: boolean;
-      propsPending: boolean;
-      activePhase: number;
-    };
-
-    const hasFutureRelax = (q: PhasedQueue): boolean => {
-      for (let j = q.cursor + 1, m = q.phases.length; j < m; j++) {
-        if (q.phases[j] < 0) return true;
-      }
-      return false;
-    };
-
-    const runPhasedGroup = (groupKey: object, queues: PhasedQueue[]): Promise<unknown> =>
-      new Promise<unknown>((resolve, reject) => {
-        const allDone: Promise<unknown>[] = [];
-        let activeCount = 0;
-        let failed = false;
-        let settled = false;
-
-        const finish = (): void => {
-          if (settled) return;
-          settled = true;
-          Promise.all(allDone).then(resolve, reject);
-        };
-
-        const launchBlock = (q: PhasedQueue): void => {
-          const idx = q.cursor++;
-          const target = q.target;
-          const block = q.blocks[idx];
-          const deferCheck = idx === 0 ? q.deferCheck : undefined;
-          const preResolvedProps = idx === 0 ? q.firstBlockPreResolved : undefined;
-
-          q.busy = true;
-          q.propsPending = true;
-          q.activePhase = q.phases[idx];
-          activeCount++;
-
-          const propsDone = target.destroyed
-            ? Promise.resolve()
-            : reflectionParser.parseProps(target, block.props, deferCheck, preResolvedProps);
-          const hasCalls = !!block.calls?.length;
-          const blockDone = hasCalls
-            ? propsDone.then(() => (target.destroyed ? undefined : reflectionParser.parseCalls(target, block.calls)))
-            : propsDone;
-
-          // Mark handled so an early rejection never triggers an unhandled rejection before allDone settles.
-          blockDone.catch(noop);
-          allDone.push(blockDone);
-
-          if (hasCalls) {
-            propsDone.then(
-              () => {
-                q.propsPending = false;
-                pump();
-              },
-              () => {
-                q.propsPending = false;
-                failed = true;
-              }
-            );
-          }
-
-          const onBlockDone = (rejected: boolean): void => {
-            q.propsPending = false;
-            q.busy = false;
-            q.activePhase = 0;
-            activeCount--;
-            if (rejected) {
-              failed = true;
-            }
-            pump();
-          };
-          blockDone.then(
-            () => onBlockDone(false),
-            () => onBlockDone(true)
-          );
-        };
-
-        const pump = (): void => {
-          if (settled) return;
-          if (failed) {
-            if (activeCount === 0) finish();
-            return;
-          }
-
-          // Pass 1: Launch all idle non-restrict blocks (relax -1 and neutral 0) immediately.
-          for (let i = 0, n = queues.length; i < n; i++) {
-            const q = queues[i];
-            if (!q.busy && q.cursor < q.blocks.length && q.phases[q.cursor] <= 0) {
-              launchBlock(q);
-            }
-          }
-
-          // Pass 2: Launch eligible idle restrict blocks (phase > 0) whose opposite side is not
-          // mid-props or mid-restrict and whose live component constraint currently holds.
-          let ownerActiveOrProps = false;
-          let peerActiveOrProps = false;
-          let ownerHasRemainingRestrict = false;
-          let peerHasRemainingRestrict = false;
-          for (let i = 0, n = queues.length; i < n; i++) {
-            const q = queues[i];
-            const isOwner = q.target === groupKey;
-            if (q.propsPending || (q.busy && q.activePhase > 0)) {
-              if (isOwner) ownerActiveOrProps = true;
-              else peerActiveOrProps = true;
-            }
-            for (let j = q.cursor, m = q.phases.length; j < m; j++) {
-              if (q.phases[j] > 0) {
-                if (isOwner) ownerHasRemainingRestrict = true;
-                else peerHasRemainingRestrict = true;
-                break;
-              }
-            }
-          }
-
-          const eligible: PhasedQueue[] = [];
-          for (let i = 0, n = queues.length; i < n; i++) {
-            const q = queues[i];
-            if (q.busy || q.cursor >= q.blocks.length || q.phases[q.cursor] <= 0) continue;
-            const isOwner = q.target === groupKey;
-            if (isOwner ? peerActiveOrProps : ownerActiveOrProps) continue;
-            const canRestrict: (() => boolean) | undefined = (q.target as any)._canRunDeserializeRestrict;
-            if (typeof canRestrict === "function" && !canRestrict.call(q.target)) continue;
-            eligible.push(q);
-          }
-
-          if (eligible.length > 0) {
-            if (!ownerHasRemainingRestrict || !peerHasRemainingRestrict) {
-              for (let i = 0, n = eligible.length; i < n; i++) {
-                launchBlock(eligible[i]);
-              }
-            } else {
-              let chosen: PhasedQueue | null = null;
-              let chosenHasRelax = false;
-              for (let i = 0, n = eligible.length; i < n; i++) {
-                const q = eligible[i];
-                const relax = hasFutureRelax(q);
-                if (!chosen || (relax && !chosenHasRelax)) {
-                  chosen = q;
-                  chosenHasRelax = relax;
-                  if (chosenHasRelax) break;
-                }
-              }
-              if (chosen!.target === groupKey) {
-                launchBlock(chosen!);
-              } else {
-                // Peer side chosen: launch all matching eligible peers concurrently so sibling
-                // MeshColliders never serialize or deadlock against each other.
-                for (let i = 0, n = eligible.length; i < n; i++) {
-                  const q = eligible[i];
-                  if (q.target !== groupKey && (!chosenHasRelax || hasFutureRelax(q))) {
-                    launchBlock(q);
-                  }
-                }
-              }
-            }
-          }
-
-          // Pass 3: If idle with remaining blocks (unsatisfiable live constraint), launch them so
-          // loading always terminates and component setters report their normal diagnostics.
-          if (activeCount === 0) {
-            let launched = false;
-            for (let i = 0, n = queues.length; i < n; i++) {
-              const q = queues[i];
-              if (q.cursor < q.blocks.length) {
-                launchBlock(q);
-                launched = true;
-              }
-            }
-            if (!launched) {
-              finish();
-            }
-          }
-        };
-
-        pump();
-      });
-
-    // Scope physics phase ordering strictly to each (ownerRigidbody, owned MeshColliders) group.
-    // All neutral targets, standalone MeshColliders, independent Rigidbodies, and MeshCollider-only
-    // groups run their sequential chains concurrently with zero cross-group blocking.
-    let groups: Map<object, PhasedQueue[]> | null = null;
-    const independentItems: MutationWaveItem[] = [];
-
-    for (let i = 0, n = items.length; i < n; i++) {
-      const item = items[i];
-      const getPhase: ((props: Record<string, unknown>) => number) | undefined = (item.target.constructor as any)
-        ?._getDeserializePhase;
-      let hasNonZeroPhase = false;
-      let phases: number[] | null = null;
-      if (typeof getPhase === "function") {
-        const blocks = item.blocks;
-        phases = new Array<number>(blocks.length);
-        for (let j = 0, m = blocks.length; j < m; j++) {
-          const props = blocks[j].props;
-          if (props) {
-            const p = getPhase(props);
-            const normalized = p < 0 ? -1 : p > 0 ? 1 : 0;
-            phases[j] = normalized;
-            if (normalized !== 0) {
-              hasNonZeroPhase = true;
-            }
-          } else {
-            phases[j] = 0;
-          }
-        }
-      }
-      if (hasNonZeroPhase) {
-        const groupKey: object | null = (item.target as any)._getDeserializeGroup?.() ?? null;
-        if (groupKey) {
-          groups ||= new Map<object, PhasedQueue[]>();
-          let group = groups.get(groupKey);
-          if (!group) {
-            group = [];
-            groups.set(groupKey, group);
-          }
-          group.push({
-            target: item.target,
-            blocks: item.blocks,
-            deferCheck: item.deferCheck,
-            firstBlockPreResolved: item.firstBlockPreResolved,
-            phases: phases!,
-            cursor: 0,
-            busy: false,
-            propsPending: false,
-            activePhase: 0
-          });
-          continue;
-        }
-      }
-      independentItems.push(item);
+    if (basePromises.length === 0) {
+      return applyOverrides();
     }
-
-    if (!groups) {
-      return Promise.all(items.map(runItemChain));
-    }
-
-    const tasks: Promise<unknown>[] = [];
-    for (let i = 0, n = independentItems.length; i < n; i++) {
-      tasks.push(runItemChain(independentItems[i]));
-    }
-    groups.forEach((group, groupKey) => {
-      // Cross-component phase constraints exist only when a group contains BOTH the owner (Rigidbody)
-      // and at least one owned component (MeshCollider); otherwise each target runs independently.
-      let hasOwner = false;
-      if (group.length > 1) {
-        for (let i = 0, n = group.length; i < n; i++) {
-          if (group[i].target === groupKey) {
-            hasOwner = true;
-            break;
-          }
-        }
-      }
-      if (hasOwner) {
-        tasks.push(runPhasedGroup(groupKey, group));
-      } else {
-        for (let i = 0, n = group.length; i < n; i++) {
-          tasks.push(runItemChain(group[i]));
-        }
-      }
-    });
-
-    return Promise.all(tasks);
+    const baseDone = Promise.all(basePromises);
+    return componentProps.length > 0 ? baseDone.then(applyOverrides) : baseDone;
   }
 
   // ---------------------------------------------------------------------------
@@ -836,7 +411,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   ): void {
     const n = configs.length;
     const classes = new Array<ComponentConstructor>(n);
-    for (let i = 0; i < n; i++) {
+    for (let i = 0, len = n; i < len; i++) {
       const config = configs[i];
       const key =
         config.script != null

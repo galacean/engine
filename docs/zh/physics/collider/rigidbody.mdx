@@ -13,7 +13,7 @@ label: Physics
 - 碰撞器所在实体或其祖先中最近的刚体拥有该碰撞器。实体及其子实体上的多个碰撞器组成一个复合刚体。
 - 禁用刚体会让它及其拥有的所有碰撞器退出模拟和查询；这些碰撞器不会变成静态，各自的 `enabled` 值不变。
 - 移除（销毁）刚体后，它拥有的碰撞器变为静态。
-- [PlaneCollider](/apis/core/#PlaneCollider) 和 `convex = false` 的 [MeshCollider](/apis/core/#MeshCollider) 只能属于运动学刚体。刚体拥有这类碰撞器时，设置 `isKinematic = false` 会被拒绝并输出控制台错误。
+- [PlaneCollider](/apis/core/#PlaneCollider) 和 `convex = false` 的 [MeshCollider](/apis/core/#MeshCollider) 只能属于运动学刚体。当 `isKinematic` 为 `false` 时，这类碰撞器会输出控制台错误并移出模拟与查询，待刚体重新切回运动学后自动恢复。
 - [角色控制器](/docs/physics/collider/characterController)不会被任何刚体拥有。
 
 ## 使用方法

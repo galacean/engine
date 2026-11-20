@@ -7,7 +7,6 @@ import { MaskManager } from "./RenderPipeline/MaskManager";
 import { SceneManager } from "./SceneManager";
 import { EngineObject, Logger } from "./base";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
-import { EntityModifyFlags } from "./enums/EntityModifyFlags";
 import { FogMode } from "./enums/FogMode";
 import { AmbientOcclusion, DirectLight } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
@@ -28,7 +27,6 @@ export class Scene extends EngineObject {
   private static _fogColorProperty = ShaderProperty.getByName("scene_FogColor");
   private static _fogParamsProperty = ShaderProperty.getByName("scene_FogParams");
   private static _prefilterdDFGProperty = ShaderProperty.getByName("scene_PrefilteredDFG");
-  private static _activeRootsPool: Entity[][] = [];
 
   /** Scene name. */
   name: string;
@@ -81,8 +79,6 @@ export class Scene extends EngineObject {
   _activeProcessCount: number = 0;
 
   private _pendingPhysicsDestroy: boolean = false;
-  private _processingActive: boolean = false;
-  private _activeStateVersion: number = 0;
 
   private _background: Background = new Background(this._engine);
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
@@ -344,70 +340,61 @@ export class Scene extends EngineObject {
     }
 
     const rootEntity = entity!;
-    const oldScene = rootEntity._scene;
-    const oldParent = rootEntity.parent;
-    const wasRoot = rootEntity._isRoot;
+    if (rootEntity.destroyed || rootEntity.pendingDestroy) {
+      return;
+    }
 
-    // Validate index bounds up front before any side effects
-    if (index !== undefined && (oldScene !== this || !wasRoot)) {
+    const isRoot = rootEntity._isRoot;
+    const oldScene = rootEntity._scene;
+    if (index !== undefined && (oldScene !== this || !isRoot)) {
       const rootCount = this._rootEntities.length;
       if (index < 0 || index > rootCount) {
         throw `The index ${index} is out of child list bounds ${rootCount}`;
       }
     }
 
-    if (rootEntity.destroyed || rootEntity.pendingDestroy) {
-      return;
+    // Let rootEntity become root
+    if (!isRoot) {
+      rootEntity._isRoot = true;
+      rootEntity._removeFromParent();
+      rootEntity._setParentChange();
+    } else if (oldScene !== this) {
+      rootEntity._hierarchyStamp = ++Entity._nextHierarchyStamp;
     }
 
-    let inActiveError = rootEntity._drainInActiveBeforeTransfer(this, null, oldScene ?? null, oldParent, wasRoot);
-
-    if (
-      !rootEntity.destroyed &&
-      !rootEntity.pendingDestroy &&
-      !this.destroyed &&
-      !this.pendingDestroy &&
-      rootEntity._scene === oldScene &&
-      rootEntity.parent === oldParent &&
-      rootEntity._isRoot === wasRoot
-    ) {
-      if (oldScene !== this || !wasRoot) {
-        let detachedParent: Entity | null = null;
-        if (wasRoot) {
-          oldScene && Entity._removeFromChildren(oldScene._rootEntities, rootEntity);
-        } else {
-          detachedParent = rootEntity._detachFromParent();
-          rootEntity._isRoot = true;
-        }
-        const targetIndex = index !== undefined ? Math.min(index, this._rootEntities.length) : undefined;
-        Entity._addToChildren(this._rootEntities, rootEntity, targetIndex);
-        if (oldScene !== this) {
-          Entity._traverseSetOwnerScene(rootEntity, this);
-        }
-        if (detachedParent != null) {
-          detachedParent._dispatchModify(EntityModifyFlags.Child, detachedParent);
-        }
-        if (!wasRoot) {
-          rootEntity._setParentChange();
-        } else {
-          rootEntity._hierarchyStamp = ++Entity._nextHierarchyStamp;
-        }
+    // Add or remove from scene's rootEntities
+    if (oldScene !== this) {
+      if (oldScene && isRoot) {
+        Entity._removeFromChildren(oldScene._rootEntities, rootEntity);
       }
+      Entity._addToChildren(this._rootEntities, rootEntity, index);
+    } else if (!isRoot) {
+      Entity._addToChildren(this._rootEntities, rootEntity, index);
     }
 
-    // Always synchronize active state against the entity's actual current owner (even if onDisable threw
-    // after cancelling transfer by destroying the destination), preserving the primary inActiveError.
-    try {
-      rootEntity._syncActiveStateWithOwner();
-    } catch (error) {
-      if (inActiveError === Entity._noError) {
-        inActiveError = error;
+    // Process rootEntity active/inActive
+    let inActiveChangeFlag = ActiveChangeFlag.None;
+    if (rootEntity._isActiveInHierarchy) {
+      this._isActiveInEngine || (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
+    }
+
+    // Cross scene should inActive first and then active
+    rootEntity._isActiveInScene && oldScene !== this && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+
+    inActiveChangeFlag && rootEntity._processInActive(inActiveChangeFlag);
+
+    if (oldScene !== this) {
+      Entity._traverseSetOwnerScene(rootEntity, this);
+    }
+
+    let activeChangeFlag = ActiveChangeFlag.None;
+    if (rootEntity._isActive) {
+      if (this._isActiveInEngine) {
+        !rootEntity._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
       }
+      (!rootEntity._isActiveInScene || oldScene !== this) && (activeChangeFlag |= ActiveChangeFlag.Scene);
     }
-
-    if (inActiveError !== Entity._noError) {
-      throw inActiveError;
-    }
+    activeChangeFlag && rootEntity._processActive(activeChangeFlag);
   }
 
   /**
@@ -416,34 +403,16 @@ export class Scene extends EngineObject {
    */
   removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene === this) {
-      if (entity.destroyed) {
-        // Components and children were already torn down in Entity.destroy(); detach the shell cleanly.
-        Entity._removeFromChildren(this._rootEntities, entity);
-        entity._isRoot = false;
-        entity._isActiveInHierarchy = false;
-        entity._isActiveInScene = false;
-        entity._hierarchyStamp = ++Entity._nextHierarchyStamp;
-        Entity._finalizeOrDeferSceneClear(entity, this);
-        return;
-      }
-
-      let inActiveChangeFlag = ActiveChangeFlag.None;
-      entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
-      entity._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-      if (inActiveChangeFlag && entity._activeChangedComponents) {
-        // Fail fast before mutating rootEntities / _isRoot when re-entrant _processInActive will throw
-        entity._processInActive(inActiveChangeFlag);
-      }
-
-      // Structurally detach first so duplicate re-entrant removeRootEntity(entity) inside onDisable
-      // is an immediate no-op while entity._scene remains `this` until deactivation callbacks drain.
       Entity._removeFromChildren(this._rootEntities, entity);
       entity._isRoot = false;
       entity._hierarchyStamp = ++Entity._nextHierarchyStamp;
+      let inActiveChangeFlag = ActiveChangeFlag.None;
+      entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
+      entity._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
       try {
         inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
       } finally {
-        Entity._finalizeOrDeferSceneClear(entity, this);
+        Entity._traverseSetOwnerScene(entity, null);
       }
     }
   }
@@ -507,69 +476,17 @@ export class Scene extends EngineObject {
    */
   _processActive(active: boolean): void {
     this._isActiveInEngine = active;
-    this._activeStateVersion++;
-    if (this._processingActive || (active && this._destroyed)) return;
-
-    const enteredDestroyed = this._destroyed;
-    this._processingActive = true;
-    let firstError: unknown;
-    let hasError = false;
-    let passes = 0;
-    try {
-      while (true) {
-        const passVersion = this._activeStateVersion;
-        const targetActive = this._isActiveInEngine;
-        if (targetActive && this._destroyed) break;
-        const rootEntities = this._rootEntities;
-        const count = rootEntities.length;
-        if (count > 0) {
-          const snapshot = Scene._activeRootsPool.pop() ?? [];
-          for (let i = 0; i < count; i++) {
-            snapshot[i] = rootEntities[i];
-          }
-          snapshot.length = count;
-          try {
-            for (let i = count - 1; i >= 0; i--) {
-              if ((!enteredDestroyed && this._destroyed) || this._activeStateVersion !== passVersion) break;
-              const entity = snapshot[i];
-              if (entity._scene !== this || !entity._isRoot) continue;
-              if (entity._isActive && entity._isActiveInHierarchy !== targetActive) {
-                try {
-                  if (targetActive) {
-                    entity._processActive(ActiveChangeFlag.Hierarchy);
-                  } else {
-                    entity._processInActive(ActiveChangeFlag.Hierarchy);
-                  }
-                } catch (error) {
-                  if (!hasError) {
-                    firstError = error;
-                    hasError = true;
-                  }
-                }
-              }
-            }
-          } finally {
-            snapshot.length = 0;
-            Scene._activeRootsPool.push(snapshot);
-          }
-        }
-        if ((!enteredDestroyed && this._destroyed) || this._activeStateVersion === passVersion) {
-          break;
-        }
-        if (++passes >= 64) {
-          if (!hasError) {
-            firstError = new Error("Scene active state oscillated repeatedly during lifecycle callbacks.");
-            hasError = true;
-          }
-          break;
+    if (active && this._destroyed) return;
+    const rootEntities = this._rootEntities;
+    for (let i = rootEntities.length - 1; i >= 0; i--) {
+      const entity = rootEntities[i];
+      if (entity._isActive && entity._isActiveInHierarchy !== active) {
+        if (active) {
+          entity._processActive(ActiveChangeFlag.Hierarchy);
+        } else {
+          entity._processInActive(ActiveChangeFlag.Hierarchy);
         }
       }
-    } finally {
-      this._processingActive = false;
-    }
-
-    if (hasError) {
-      throw firstError;
     }
   }
 

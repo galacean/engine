@@ -340,27 +340,34 @@ describe("MeshCollider", () => {
     }
   );
 
-  it.each([false, true])("rejects invalid mesh data transactionally (live=%s)", (live) => {
-    const collider = addMesh();
-    const previous = collider.mesh;
-    if (live) expect(physics.raycast(rayAt(0))).toBe(true);
-    const inaccessible = createCubeMesh(engine, 2);
-    inaccessible.uploadData(true);
-    const noIndices = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0]);
-    const empty = new ModelMesh(engine);
-    const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
-    for (const mesh of [inaccessible, noIndices, empty]) {
-      collider.mesh = mesh;
+  it.each([false, true])(
+    "excludes invalid mesh data on sync while retaining declared mesh and recovers when replaced (live=%s)",
+    (live) => {
+      const collider = addMesh();
+      const previous = collider.mesh;
+      if (live) expect(physics.raycast(rayAt(0))).toBe(true);
+      const inaccessible = createCubeMesh(engine, 2);
+      inaccessible.uploadData(true);
+      const noIndices = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0]);
+      const empty = new ModelMesh(engine);
+      const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
+      for (const mesh of [inaccessible, noIndices, empty]) {
+        collider.mesh = mesh;
+        expect(collider.mesh).toBe(mesh);
+        expect(mesh.refCount).toBe(1);
+        expect(physics.raycast(rayAt(0))).toBe(false);
+      }
+      expect(warnings).toHaveBeenCalledTimes(3);
+
+      collider.mesh = previous;
       expect(collider.mesh).toBe(previous);
       expect(previous.refCount).toBe(1);
-      expect(mesh.refCount).toBe(0);
       const hit = new HitResult();
       expect(physics.raycast(rayAt(0), hit)).toBe(true);
       expect(hit.collider).toBe(collider);
       expect(hit.point.y).toBeCloseTo(1);
     }
-    expect(warnings).toHaveBeenCalledTimes(3);
-  });
+  );
 
   it("leaves an empty collider queryable only after a valid mesh is assigned", () => {
     const collider = root.addComponent(MeshCollider);
@@ -375,87 +382,98 @@ describe("MeshCollider", () => {
   });
 
   it.each([false, true])(
-    "keeps cooked geometry after released mesh data rejects convex and flag changes (convex=%s)",
+    "warns and excludes released mesh when convex or cookingFlags change, then recovers with an accessible mesh (convex=%s)",
     (convex) => {
       const collider = addMesh(convex);
       expect(physics.raycast(rayAt(0))).toBe(true);
-      const flags = collider.cookingFlags;
       collider.mesh.uploadData(true);
       const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
       collider.convex = !convex;
+      expect(collider.convex).toBe(!convex);
+      expect(physics.raycast(rayAt(0))).toBe(false);
       collider.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
-      expect(collider.convex).toBe(convex);
-      expect(collider.cookingFlags).toBe(flags);
+      expect(collider.cookingFlags).toBe(MeshColliderShapeCookingFlag.Cleaning);
+      expect(physics.raycast(rayAt(0))).toBe(false);
       expect(warnings).toHaveBeenCalledTimes(2);
+
+      collider.mesh = createCubeMesh(engine);
       const hit = new HitResult();
       expect(physics.raycast(rayAt(0), hit)).toBe(true);
       expect(hit.collider).toBe(collider);
     }
   );
 
-  it("keeps the convex hull when switching requires missing indices", () => {
+  it("excludes a non-convex mesh missing indices until switched back to convex", () => {
     const collider = addMesh(true, createModelMesh(engine, [0, 1, 0, -1, 0, -1, 1, 0, -1, 0, 0, 1]));
     expect(physics.raycast(rayAt(0))).toBe(true);
     const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
     collider.convex = false;
-    expect(collider.convex).toBe(true);
+    expect(collider.convex).toBe(false);
+    expect(physics.raycast(rayAt(0))).toBe(false);
     expect(warnings).toHaveBeenCalledOnce();
+
+    collider.convex = true;
     const hit = new HitResult();
     expect(physics.raycast(rayAt(0), hit)).toBe(true);
     expect(hit.collider).toBe(collider);
   });
 
   it.each([false, true])(
-    "keeps mesh and active trigger pairs when actual mesh cooking fails, then allows retry (convex=%s)",
+    "excludes geometry when native mesh cooking fails, then recovers when replaced (convex=%s)",
     (convex) => {
       const collider = addMesh(convex);
       const previous = collider.mesh;
       const recorder = addTriggerProbe();
+      recorder.entity.getComponent(SphereCollider).isSceneQuery = false;
       update();
       expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
       const invalid = createModelMesh(engine, [0, 0, 0], [0, 0, 0]);
       const errors = vi.spyOn(console, "error").mockImplementation(() => {});
       collider.mesh = invalid;
-      expect(errors).toHaveBeenCalled();
-      expect(collider.mesh).toBe(previous);
-      expect(previous.refCount).toBe(1);
-      expect(invalid.refCount).toBe(0);
+      expect(collider.mesh).toBe(invalid);
+      expect(previous.refCount).toBe(0);
+      expect(invalid.refCount).toBe(1);
       update(2);
-      expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
+      expect(errors).toHaveBeenCalled();
+      expect(recorder.onTriggerStay).not.toHaveBeenCalled();
       expect(recorder.onTriggerExit).not.toHaveBeenCalled();
-      expect(recorder.onTriggerStay).toHaveBeenCalledTimes(2);
+      expect(physics.raycast(rayAt(0))).toBe(false);
       const replacement = createCubeMesh(engine, 1.1);
       collider.mesh = replacement;
       expect(collider.mesh).toBe(replacement);
-      expect(previous.refCount).toBe(0);
+      expect(invalid.refCount).toBe(0);
       expect(replacement.refCount).toBe(1);
+      const recoveredHit = new HitResult();
+      expect(physics.raycast(rayAt(0), recoveredHit)).toBe(true);
+      expect(recoveredHit.collider).toBe(collider);
       update();
-      expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
-      expect(recorder.onTriggerExit).not.toHaveBeenCalled();
+      expect(recorder.onTriggerEnter).toHaveBeenCalledTimes(2);
     }
   );
 
-  it.each([false, true])("keeps cookingFlags when actual recooking fails, then allows retry (convex=%s)", (convex) => {
-    const collider = addMesh(convex);
-    const mesh = collider.mesh;
-    const positions = mesh.getPositions().map((point) => point.clone());
-    const indices = mesh.getIndices();
-    const flags = collider.cookingFlags;
-    expect(physics.raycast(rayAt(0))).toBe(true);
-    mesh.setPositions([new Vector3()]);
-    mesh.setIndices(new Uint16Array([0, 0, 0]));
-    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
-    collider.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
-    expect(errors).toHaveBeenCalled();
-    expect(collider.cookingFlags).toBe(flags);
-    expect(collider.mesh).toBe(mesh);
-    expect(physics.raycast(rayAt(0))).toBe(true);
-    mesh.setPositions(positions);
-    mesh.setIndices(indices);
-    collider.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
-    expect(collider.cookingFlags).toBe(MeshColliderShapeCookingFlag.Cleaning);
-    expect(physics.raycast(rayAt(0))).toBe(true);
-  });
+  it.each([false, true])(
+    "excludes geometry when recooking fails and allows retry once mesh data is fixed (convex=%s)",
+    (convex) => {
+      const collider = addMesh(convex);
+      const mesh = collider.mesh;
+      const positions = mesh.getPositions().map((point) => point.clone());
+      const indices = mesh.getIndices();
+      expect(physics.raycast(rayAt(0))).toBe(true);
+      mesh.setPositions([new Vector3()]);
+      mesh.setIndices(new Uint16Array([0, 0, 0]));
+      const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+      collider.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
+      expect(collider.cookingFlags).toBe(MeshColliderShapeCookingFlag.Cleaning);
+      expect(collider.mesh).toBe(mesh);
+      expect(physics.raycast(rayAt(0))).toBe(false);
+      expect(errors).toHaveBeenCalled();
+      mesh.setPositions(positions);
+      mesh.setIndices(indices);
+      collider.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
+      expect(collider.cookingFlags).toBe(MeshColliderShapeCookingFlag.Cleaning);
+      expect(physics.raycast(rayAt(0))).toBe(true);
+    }
+  );
 
   it.each([false, true])(
     "maintains trigger continuity across repeated convex replacements (meshFirst=%s)",
@@ -599,26 +617,29 @@ describe("MeshCollider", () => {
     expect(out.x).toBeCloseTo(1, 4);
   });
 
-  it("rejects trigger mode on non-convex meshes and switching a trigger mesh to non-convex", () => {
+  it("retains trigger/convex intent and excludes non-convex trigger on sync until resolved", () => {
     const collider = addMesh(false);
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
 
     collider.isTrigger = true;
-    expect(collider.isTrigger).toBe(false);
+    expect(collider.isTrigger).toBe(true);
+    expect(physics.raycast(rayAt(0))).toBe(false);
     expect(errors).toHaveBeenCalledTimes(1);
 
     collider.convex = true;
-    collider.isTrigger = true;
-    expect(collider.isTrigger).toBe(true);
-
-    collider.convex = false;
     expect(collider.convex).toBe(true);
     expect(collider.isTrigger).toBe(true);
+    expect(physics.raycast(rayAt(0))).toBe(true);
+
+    collider.convex = false;
+    expect(collider.convex).toBe(false);
+    expect(collider.isTrigger).toBe(true);
+    expect(physics.raycast(rayAt(0))).toBe(false);
     expect(errors).toHaveBeenCalledTimes(2);
 
     collider.isTrigger = false;
-    collider.convex = false;
-    expect(collider.convex).toBe(false);
+    expect(collider.isTrigger).toBe(false);
+    expect(physics.raycast(rayAt(0))).toBe(true);
   });
 
   it("detaches cleanly on zero world scale without NaN inertia and recovers when scale becomes positive", () => {

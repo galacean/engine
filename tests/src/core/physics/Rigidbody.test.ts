@@ -11,7 +11,7 @@ import {
   PrimitiveMesh
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { Quaternion, Vector3 } from "@galacean/engine-math";
+import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
 import { vi, describe, beforeAll, afterAll, beforeEach, afterEach, expect, it } from "vitest";
 
 describe("Rigidbody", function () {
@@ -581,6 +581,28 @@ describe("Rigidbody", function () {
       physics._update(physics.fixedTimeStep);
     }
     expect(bodyEntity.transform.position.y).below(-0.1);
+  });
+
+  it("excludes kinematic-only colliders when switching isKinematic to false and restores them when kinematic again", function () {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const physics = engine.sceneManager.activeScene.physics;
+    const entity = rootEntity.createChild("kinematic-mesh-body");
+    const body = entity.addComponent(Rigidbody);
+    body.isKinematic = true;
+    const mesh = entity.addComponent(MeshCollider);
+    mesh.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2, { keepMeshData: true });
+    const ray = new Ray(new Vector3(0, 5, 0), new Vector3(0, -1, 0));
+
+    expect(physics.raycast(ray, 10)).toBe(true);
+
+    body.isKinematic = false;
+    expect(body.isKinematic).toBe(false);
+    expect(physics.raycast(ray, 10)).toBe(false);
+    expect(errors).toHaveBeenCalledTimes(1);
+
+    body.isKinematic = true;
+    expect(body.isKinematic).toBe(true);
+    expect(physics.raycast(ray, 10)).toBe(true);
   });
 
   it("constraints", function () {

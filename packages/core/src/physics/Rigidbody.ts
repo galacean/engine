@@ -23,13 +23,7 @@ import type { Joint } from "./joint/Joint";
 @dependentComponents(Transform, DependentMode.CheckOnly)
 export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   /** @internal */
-  static readonly _deserializePropOrder = ["isKinematic", "automaticCenterOfMass", "automaticInertiaTensor"];
-  /** @internal */
-  static _getDeserializePhase(props: Record<string, unknown>): number {
-    if (props.isKinematic === true) return -1;
-    if (props.isKinematic === false) return 1;
-    return 0;
-  }
+  static readonly _deserializePropOrder = ["automaticCenterOfMass", "automaticInertiaTensor"];
 
   private static _tempPosition = new Vector3();
   private static _tempRotation = new Quaternion();
@@ -324,8 +318,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /**
    * Controls whether physics affects the Rigidbody.
-   * @remarks Setting false is rejected while the Rigidbody owns a Collider that only supports kinematic bodies, such
-   * as a non-convex {@link MeshCollider} or a {@link PlaneCollider}.
+   * @remarks Colliders that only support kinematic bodies, such as a non-convex {@link MeshCollider} or a
+   * {@link PlaneCollider}, are excluded while this is false and automatically re-attached when set to true.
    */
   get isKinematic(): boolean {
     return this._isKinematic;
@@ -333,22 +327,21 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   set isKinematic(value: boolean) {
     if (this._isKinematic !== value) {
+      this._isKinematic = value;
       if (!value) {
-        const colliders = this._getOwnedColliders();
-        const unsupported = colliders.find((collider) => !collider._supportsDynamicBody());
-        colliders.length = 0;
-        if (unsupported) {
-          console.error(
-            `Rigidbody: cannot set isKinematic to false while it owns a ${unsupported.constructor.name} that only supports kinematic bodies.`
-          );
-          return;
+        // Detach attached kinematic-only colliders before clearing eKINEMATIC on the native actor
+        const colliders = this._attachedColliders;
+        for (let i = colliders.length - 1; i >= 0; i--) {
+          const collider = colliders[i];
+          if (!collider._supportsDynamicBody()) {
+            collider._detach();
+            collider._markDirty();
+          }
         }
       }
-
-      this._isKinematic = value;
       this._nativeActor?.setMotionState(value, this._collisionDetectionMode);
-      // Colliders excluded from the dynamic body can join the kinematic one
-      value && this._markCollidersDirty();
+      // Owned colliders re-sync to exclude unsupported geometries on dynamic bodies or re-attach on kinematic ones
+      this._markCollidersDirty();
     }
   }
 
@@ -530,25 +523,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   override _onEnableInScene(): void {
     this.scene!.physics._addRigidbody(this);
     this._markCollidersDirty();
-  }
-
-  /** @internal */
-  _getDeserializeGroup(): object {
-    return this;
-  }
-
-  /** @internal */
-  _canRunDeserializeRestrict(): boolean {
-    const colliders = this._getOwnedColliders();
-    let supported = true;
-    for (let i = 0, n = colliders.length; i < n; i++) {
-      if (!colliders[i]._supportsDynamicBody()) {
-        supported = false;
-        break;
-      }
-    }
-    colliders.length = 0;
-    return supported;
   }
 
   /**
@@ -759,19 +733,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     colliders.length = 0;
   }
 
-  private _getOwnedColliders(): Collider[] {
-    const colliders = this.entity.getComponentsIncludeChildren(Collider, Rigidbody._tempColliders);
-    let count = 0;
-    for (let i = 0, n = colliders.length; i < n; i++) {
-      const collider = colliders[i];
-      if (collider.attachedRigidbody === this) {
-        colliders[count++] = collider;
-      }
-    }
-    colliders.length = count;
-    return colliders;
-  }
-
   /**
    * Read the computed center of mass into its field, applying pending changes first.
    */
@@ -812,7 +773,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   @ignoreClone
   private _onTransformChanged(): void {
-    this._phasedActiveInScene && this.scene!.physics._markBodyDirty(this);
+    this._phasedActiveInScene && this.scene?.physics._markBodyDirty(this);
   }
 
   @ignoreClone

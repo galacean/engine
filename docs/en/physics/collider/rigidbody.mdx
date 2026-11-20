@@ -13,7 +13,7 @@ A Rigidbody ([Rigidbody](/apis/core/#Rigidbody)) puts its Entity under physics c
 - The nearest Rigidbody on a Collider's Entity or its ancestors owns that Collider. Several Colliders on the Entity and its children form one compound body.
 - Disabling the Rigidbody removes it and all the Colliders it owns from simulation and queries; they do not become static, and their `enabled` values are unchanged.
 - Removing (destroying) the Rigidbody makes its Colliders static.
-- A [PlaneCollider](/apis/core/#PlaneCollider) or a [MeshCollider](/apis/core/#MeshCollider) with `convex = false` can only belong to a kinematic Rigidbody. Setting `isKinematic = false` is rejected with a console error while the Rigidbody owns one.
+- A [PlaneCollider](/apis/core/#PlaneCollider) or a [MeshCollider](/apis/core/#MeshCollider) with `convex = false` can only belong to a kinematic Rigidbody. When `isKinematic` is `false`, those colliders log an error and are excluded from simulation and queries until the Rigidbody becomes kinematic again.
 - [CharacterController](/en/docs/physics/collider/characterController) is never owned by a Rigidbody.
 
 ## Usage

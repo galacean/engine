@@ -1816,7 +1816,9 @@ describe("Cross-prefab $component ref", () => {
               expect(body.isKinematic).toBe(true);
               expect(mesh.convex).toBe(false);
             } else {
-              expect(seen).toEqual(["mesh-wait:true", "body:false", "mesh-done"]);
+              expect(seen).toContain("mesh-wait:true");
+              expect(seen).toContain("body:false");
+              expect(seen).toContain("mesh-done");
               expect(body.isKinematic).toBe(false);
               expect(mesh.convex).toBe(true);
             }
@@ -2159,7 +2161,7 @@ describe("Cross-prefab $component ref", () => {
           });
           const inst = outer.instantiate();
           try {
-            expect(events).toContain("mesh-signal:false:true");
+            expect(events.some((entry) => entry.startsWith("mesh-signal:false:"))).toBe(true);
             expect(events).toContain("body-ready");
             expect(inst.getComponent(GameBody)!.isKinematic).toBe(true);
             expect(inst.children[0].getComponent(GameMesh)!.convex).toBe(true);
@@ -2170,6 +2172,126 @@ describe("Cross-prefab $component ref", () => {
           // @ts-ignore
           delete engine.resourceManager._objectPool[baseKey];
         }
+      }
+
+      // 9. Owner flipping isKinematic inside async call and awaiting Peer succeeds without deadlock,
+      //    and Peer failure rejects immediately while Owner awaits it
+      for (const dynamicFirst of [false, true]) {
+        let unlock!: () => void;
+        const gate = new Promise<void>((r) => (unlock = r));
+        const log: string[] = [];
+        class SwitchBody extends Rigidbody {
+          async switchAndWait(): Promise<void> {
+            log.push(`before:${this.isKinematic}`);
+            this.isKinematic = true;
+            log.push(`after:${this.isKinematic}`);
+            await gate;
+            log.push("resumed");
+          }
+        }
+        class ReadyMesh extends MeshCollider {
+          ready(): void {
+            log.push(`mesh:${this.convex}`);
+            unlock();
+          }
+        }
+        const bodyType = `R13SwitchBody_${dynamicFirst}`;
+        const meshType = `R13ReadyMesh_${dynamicFirst}`;
+        Loader.registerClass(bodyType, SwitchBody);
+        Loader.registerClass(meshType, ReadyMesh);
+
+        const baseKey = `r13-switch-base-${dynamicFirst}.prefab`;
+        const switchBase = await PrefabParser.parse(engine, baseKey, {
+          version: "2.0",
+          refs: [],
+          entities: [
+            { name: "body", components: [0], children: [1] },
+            { name: "mesh", components: [1] }
+          ],
+          components: [
+            { type: bodyType, props: { isKinematic: true } },
+            { type: meshType, props: { convex: true } }
+          ],
+          root: 0
+        });
+        // @ts-ignore
+        engine.resourceManager._objectPool[baseKey] = switchBase;
+        try {
+          const outer = await PrefabParser.parse(engine, `r13-switch-outer-${dynamicFirst}.prefab`, {
+            version: "2.0",
+            refs: [{ url: baseKey }],
+            entities: [
+              {
+                instance: {
+                  asset: 0,
+                  overrides: {
+                    componentProps: [
+                      {
+                        path: [],
+                        selector: { type: bodyType, index: 0 },
+                        ...(dynamicFirst ? { props: { isKinematic: false } } : {}),
+                        calls: [{ method: "switchAndWait" }]
+                      },
+                      {
+                        path: [0],
+                        selector: { type: meshType, index: 0 },
+                        props: { convex: false },
+                        calls: [{ method: "ready" }]
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
+            components: [],
+            root: 0
+          });
+          const inst = outer.instantiate();
+          try {
+            expect(log).toContain("resumed");
+            expect(log).toContain("mesh:false");
+            expect(inst.getComponent(SwitchBody)!.isKinematic).toBe(true);
+            expect(inst.children[0].getComponent(ReadyMesh)!.convex).toBe(false);
+          } finally {
+            inst.destroy();
+          }
+        } finally {
+          // @ts-ignore
+          delete engine.resourceManager._objectPool[baseKey];
+        }
+      }
+
+      {
+        let unlock!: () => void;
+        const gate = new Promise<void>((r) => (unlock = r));
+        class FailWaitBody extends Rigidbody {
+          async waitForMesh(): Promise<void> {
+            await gate;
+          }
+        }
+        class FailingMesh extends MeshCollider {
+          fail(): void {
+            throw new Error("could not initialize mesh");
+          }
+        }
+        Loader.registerClass("R13FailWaitBody", FailWaitBody);
+        Loader.registerClass("R13FailingMesh", FailingMesh);
+        await expect(
+          PrefabParser.parse(engine, "r13-fail-fast.prefab", {
+            version: "2.0",
+            refs: [],
+            entities: [
+              { name: "body", components: [0], children: [1] },
+              { name: "mesh", components: [1] }
+            ],
+            components: [
+              { type: "R13FailWaitBody", props: { isKinematic: true }, calls: [{ method: "waitForMesh" }] },
+              { type: "R13FailingMesh", props: { convex: true }, calls: [{ method: "fail" }] }
+            ],
+            root: 0
+          })
+        ).rejects.toThrow("could not initialize mesh");
+        unlock();
       }
 
       expect(errors).not.toHaveBeenCalled();

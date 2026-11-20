@@ -88,8 +88,8 @@ PlaneCollider has no shape properties. It is an infinite plane facing the Entity
 
 | Property | Description | Default |
 | :-- | :-- | :-- |
-| [**mesh**](/apis/core/#MeshCollider-mesh) | The [ModelMesh](/apis/core/#ModelMesh) used for collision. Its data must stay accessible after upload, and a triangle mesh also needs indices; an invalid mesh is rejected with a warning and the previous mesh is kept | null |
-| [**convex**](/apis/core/#MeshCollider-convex) | Whether to use a convex hull generated from the mesh vertices. Setting `false` is rejected while the Collider is a trigger or belongs to a non-kinematic Rigidbody | false |
+| [**mesh**](/apis/core/#MeshCollider-mesh) | The [ModelMesh](/apis/core/#ModelMesh) used for collision. Its data must stay accessible after upload, and a triangle mesh also needs indices; invalid meshes are excluded from simulation and queries until replaced with a valid mesh | null |
+| [**convex**](/apis/core/#MeshCollider-convex) | Whether to use a convex hull generated from the mesh vertices. A non-convex mesh cannot be a trigger or belong to a non-kinematic Rigidbody; invalid combinations are excluded until resolved | false |
 | [**cookingFlags**](/apis/core/#MeshCollider-cookingFlags) | Mesh cooking flags | Cleaning \| VertexWelding |
 
 ## Physics Material

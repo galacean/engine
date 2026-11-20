@@ -1,8 +1,7 @@
-import { IMeshColliderShape } from "@galacean/engine-design";
+import { IColliderShape, IMeshColliderShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
-import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { Collider } from "./Collider";
 import { MeshColliderShapeCookingFlag } from "./enums/MeshColliderShapeCookingFlag";
@@ -12,127 +11,60 @@ type MeshData = {
   indices: Uint8Array | Uint16Array | Uint32Array | null;
 };
 
-type CoupledPropBatch = {
-  hasMesh: boolean;
-  mesh: ModelMesh | null;
-  hasConvex: boolean;
-  convex: boolean;
-  hasFlags: boolean;
-  cookingFlags: MeshColliderShapeCookingFlag;
-  hasTrigger: boolean;
-  isTrigger: boolean;
-};
-
-function requiresConvexMesh(value: unknown): boolean {
-  if (!(value instanceof ModelMesh)) return false;
-  if (!value.accessible) return true;
-  try {
-    const indices = value.getIndices();
-    if (!indices || indices.length < 3 || indices.length % 3 !== 0) {
-      return true;
-    }
-    const subMeshes = value.subMeshes;
-    if (subMeshes.length > 0) {
-      for (let i = 0, n = subMeshes.length; i < n; i++) {
-        if (subMeshes[i].topology === MeshTopology.Triangles) {
-          return false;
-        }
-      }
-      return true;
-    }
-    return false;
-  } catch {
-    return true;
-  }
-}
-
 /**
  * A collider based on mesh geometry, either as a convex hull or as the original triangle mesh.
- * @remarks A triangle mesh (`convex = false`) can only be static or belong to a kinematic {@link Rigidbody}.
+ * @remarks A triangle mesh (`convex = false`) can only be static or belong to a kinematic {@link Rigidbody}, and
+ * cannot be a trigger. Validation and native mesh cooking run when the Collider synchronizes with the physics scene.
  */
 export class MeshCollider extends Collider {
-  private static readonly _deferTrigger: Record<string, true | ((value: unknown) => boolean)> = { isTrigger: true };
-  private static readonly _deferMesh: Record<string, true | ((value: unknown) => boolean)> = {
-    mesh: requiresConvexMesh
-  };
-  private static readonly _deferMeshAndTrigger: Record<string, true | ((value: unknown) => boolean)> = {
-    isTrigger: true,
-    mesh: requiresConvexMesh
-  };
-
-  /** @internal */
-  static readonly _deserializeCoupledProps = ["mesh", "convex", "cookingFlags", "isTrigger"] as const;
-
-  /** @internal */
-  static _getDeserializePhase(props: Record<string, unknown>): number {
-    if (props.convex === false) return 1;
-    if (props.convex === true) return -1;
-    return 0;
-  }
-
-  /** @internal */
-  static _getDeferredDeserializeProps(
-    baseProps: Record<string, unknown>,
-    overrideProps: Record<string, unknown>
-  ): Record<string, true | ((value: unknown) => boolean)> | null {
-    if (baseProps.convex !== true && overrideProps.convex === true) {
-      const hasTrigger = baseProps.isTrigger === true;
-      const hasMesh = baseProps.mesh != null;
-      if (hasTrigger && hasMesh) return MeshCollider._deferMeshAndTrigger;
-      if (hasTrigger) return MeshCollider._deferTrigger;
-      if (hasMesh) return MeshCollider._deferMesh;
-    }
-    return null;
-  }
-
-  private static readonly _coupledBatchPool: CoupledPropBatch[] = [];
-
   @ignoreClone
   private _mesh: ModelMesh | null = null;
-  @ignoreClone
-  private _coupledBatch: CoupledPropBatch | null = null;
   private _convex = false;
   private _cookingFlags = MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
 
+  @ignoreClone
+  private _nativeConvex = false;
+  @ignoreClone
+  private _nativeTrigger = false;
+  @ignoreClone
+  private _cookFailed = false;
+  @ignoreClone
+  private _triggerRejected = false;
+
   /**
    * The mesh used for collision detection.
-   * @remarks The mesh must keep its data accessible (not released after upload). A non-convex collider also needs
-   * indices. Invalid meshes are rejected and the previous mesh is kept.
+   * @remarks The mesh must keep its data accessible (`keepMeshData` before upload). A non-convex collider also needs
+   * indices. Invalid meshes are excluded from simulation and queries until replaced with a valid mesh.
    */
   get mesh(): ModelMesh | null {
     return this._mesh;
   }
 
   set mesh(value: ModelMesh | null) {
-    const batch = this._coupledBatch;
-    if (batch) {
-      batch.hasMesh = true;
-      batch.mesh = value;
-      return;
-    }
-    if (this._mesh !== value) {
-      this._commitCoupledState(true, value, false, false, false, this._cookingFlags, false, false);
+    if (this._mesh !== value || this._cookFailed) {
+      this._setMesh(value);
+      this._cookFailed = false;
+      this._geometryDirty = true;
+      this._markDirty();
     }
   }
 
   /**
    * Whether to use a convex hull generated from the mesh vertices.
    * @defaultValue false
-   * @remarks Setting false is rejected while the Collider is a trigger or belongs to a non-kinematic Rigidbody.
+   * @remarks A non-convex mesh cannot be a trigger or belong to a non-kinematic {@link Rigidbody}; invalid
+   * combinations are excluded from simulation and queries until resolved.
    */
   get convex(): boolean {
     return this._convex;
   }
 
   set convex(value: boolean) {
-    const batch = this._coupledBatch;
-    if (batch) {
-      batch.hasConvex = true;
-      batch.convex = value;
-      return;
-    }
-    if (this._convex !== value) {
-      this._commitCoupledState(false, null, true, value, false, this._cookingFlags, false, false);
+    if (this._convex !== value || this._cookFailed) {
+      this._convex = value;
+      this._cookFailed = false;
+      this._geometryDirty = true;
+      this._markDirty();
     }
   }
 
@@ -145,14 +77,11 @@ export class MeshCollider extends Collider {
   }
 
   set cookingFlags(value: MeshColliderShapeCookingFlag) {
-    const batch = this._coupledBatch;
-    if (batch) {
-      batch.hasFlags = true;
-      batch.cookingFlags = value;
-      return;
-    }
-    if (this._cookingFlags !== value) {
-      this._commitCoupledState(false, null, false, false, true, value, false, false);
+    if (this._cookingFlags !== value || this._cookFailed) {
+      this._cookingFlags = value;
+      this._cookFailed = false;
+      this._geometryDirty = true;
+      this._markDirty();
     }
   }
 
@@ -180,79 +109,9 @@ export class MeshCollider extends Collider {
 
   /**
    * @internal
-   * Open a coupled-property staging transaction so normal setters (including derived subclass overrides)
-   * run while validation and native mesh cooking are deferred until `_endDeserializeCoupledProps`.
-   */
-  _beginDeserializeCoupledProps(): void {
-    const batch = MeshCollider._coupledBatchPool.pop() ?? {
-      hasMesh: false,
-      mesh: null,
-      hasConvex: false,
-      convex: false,
-      hasFlags: false,
-      cookingFlags: this._cookingFlags,
-      hasTrigger: false,
-      isTrigger: false
-    };
-    batch.hasMesh = false;
-    batch.mesh = null;
-    batch.hasConvex = false;
-    batch.convex = false;
-    batch.hasFlags = false;
-    batch.cookingFlags = this._cookingFlags;
-    batch.hasTrigger = false;
-    batch.isTrigger = false;
-    this._coupledBatch = batch;
-  }
-
-  /**
-   * @internal
-   * Close a coupled-property transaction and, when `commit` is true, validate and cook once against
-   * the final resolved state.
-   */
-  _endDeserializeCoupledProps(commit: boolean): void {
-    const batch = this._coupledBatch;
-    if (!batch) return;
-    this._coupledBatch = null;
-    try {
-      if (commit) {
-        this._commitCoupledState(
-          batch.hasMesh,
-          batch.mesh,
-          batch.hasConvex,
-          batch.convex,
-          batch.hasFlags,
-          batch.cookingFlags,
-          batch.hasTrigger,
-          batch.isTrigger
-        );
-      }
-    } finally {
-      batch.mesh = null;
-      MeshCollider._coupledBatchPool.push(batch);
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _getDeserializeGroup(): object | null {
-    return this._findRigidbody();
-  }
-
-  /**
-   * @internal
-   */
-  _canRunDeserializeRestrict(): boolean {
-    const body = this.attachedRigidbody;
-    return !body || body.isKinematic;
-  }
-
-  /**
-   * @internal
    */
   override _supportsDynamicBody(): boolean {
-    return this._convex;
+    return this._convex || !this._mesh;
   }
 
   protected override _hasValidGeometry(scale: Vector3): boolean {
@@ -270,129 +129,103 @@ export class MeshCollider extends Collider {
    */
   override _onClone(target: MeshCollider): void {
     super._onClone(target);
-    // convex and cookingFlags are already copied, so the setter cooks the same shape
+    // _mesh is @ignoreClone: assign it through the setter so the clone retains its own reference.
     target.mesh = this._mesh;
   }
 
   protected override _setIsTrigger(value: boolean): void {
-    const batch = this._coupledBatch;
-    if (batch) {
-      batch.hasTrigger = true;
-      batch.isTrigger = value;
-      return;
+    if (this._isTrigger !== value) {
+      this._isTrigger = value;
+      if (this._native && this._convex && this._nativeConvex) {
+        (<IColliderShape>this._native).setIsTrigger(value);
+        this._nativeTrigger = value;
+        this._attachedBody?._markMassDirty();
+      } else {
+        this._markDirty();
+      }
     }
-    if (value && !this._convex) {
-      console.error("MeshCollider: isTrigger is only supported when convex is true.");
-      return;
+  }
+
+  protected override _syncNativeShape(scale: Vector3): IColliderShape | null {
+    const mesh = this._mesh;
+    if (!mesh) {
+      this._triggerRejected = false;
+      this._cookFailed = false;
+      this._geometryDirty = false;
+      if (this._native) {
+        this._replaceNativeShape(null);
+      }
+      return null;
     }
-    super._setIsTrigger(value);
+
+    if (!this._convex && this._isTrigger) {
+      if (!this._triggerRejected) {
+        this._triggerRejected = true;
+        console.error("MeshCollider: isTrigger is only supported when convex is true.");
+      }
+      return null;
+    }
+    this._triggerRejected = false;
+
+    let shape = <IMeshColliderShape | null>this._native;
+    if (this._cookFailed && !this._geometryDirty) {
+      return null;
+    }
+
+    if (!shape || this._geometryDirty || this._nativeConvex !== this._convex) {
+      const meshData = MeshCollider._getMeshData(mesh, this._convex);
+      if (!meshData) {
+        this._geometryDirty = false;
+        this._cookFailed = true;
+        if (shape) {
+          this._replaceNativeShape(null);
+        }
+        return null;
+      }
+
+      if (shape && this._nativeConvex === this._convex) {
+        if (!Vector3.equals(scale, this._nativeScale)) {
+          this._nativeScale.copyFrom(scale);
+          shape.setWorldScale(scale);
+        }
+        if (!shape.setMeshData(meshData.positions, this._convex ? null : meshData.indices, this._cookingFlags)) {
+          this._geometryDirty = false;
+          this._cookFailed = true;
+          this._replaceNativeShape(null);
+          return null;
+        }
+        this._geometryDirty = false;
+        this._cookFailed = false;
+        this._onGeometryChanged();
+      } else {
+        const newShape = this._cook(meshData, this._convex, this._cookingFlags);
+        this._geometryDirty = false;
+        if (!newShape || !this._replaceNativeShape(newShape)) {
+          this._cookFailed = true;
+          if (shape) {
+            this._replaceNativeShape(null);
+          }
+          return null;
+        }
+        this._nativeConvex = this._convex;
+        this._nativeTrigger = this._isTrigger;
+        this._cookFailed = false;
+        shape = newShape;
+      }
+    }
+
+    if (this._nativeConvex && this._nativeTrigger !== this._isTrigger) {
+      shape.setIsTrigger(this._isTrigger);
+      this._nativeTrigger = this._isTrigger;
+      this._attachedBody?._markMassDirty();
+    }
+
+    return shape;
   }
 
   protected override _onDestroy(): void {
     super._onDestroy();
     this._setMesh(null);
-  }
-
-  /**
-   * Single validation and native-cook path shared by individual property setters and coupled
-   * deserialization transactions.
-   */
-  private _commitCoupledState(
-    hasMesh: boolean,
-    mesh: ModelMesh | null,
-    hasConvex: boolean,
-    convex: boolean,
-    hasFlags: boolean,
-    cookingFlags: MeshColliderShapeCookingFlag,
-    hasTrigger: boolean,
-    isTrigger: boolean
-  ): void {
-    const nextMesh = hasMesh ? mesh : this._mesh;
-    let nextConvex = hasConvex ? convex : this._convex;
-    const nextFlags = hasFlags ? cookingFlags : this._cookingFlags;
-    const prevTrigger = this.isTrigger;
-    let nextTrigger = hasTrigger ? isTrigger : prevTrigger;
-
-    if (!nextConvex && nextTrigger) {
-      if (hasTrigger) {
-        console.error("MeshCollider: isTrigger is only supported when convex is true.");
-        nextTrigger = prevTrigger;
-      }
-      if (nextTrigger) {
-        console.error("MeshCollider: cannot set convex to false while isTrigger is true.");
-        nextConvex = this._convex;
-      }
-    }
-    if (hasConvex && !nextConvex && this._convex) {
-      const body = this.attachedRigidbody;
-      if (body && !body.isKinematic) {
-        console.error("MeshCollider: cannot set convex to false while it belongs to a non-kinematic Rigidbody.");
-        nextConvex = this._convex;
-      }
-    }
-
-    // Disabling trigger is always valid and must precede non-convex native shape creation.
-    if (!nextTrigger && prevTrigger) {
-      this._setIsTrigger(false);
-    }
-
-    const meshChanged = nextMesh !== this._mesh;
-    const convexChanged = nextConvex !== this._convex;
-    const flagsChanged = nextFlags !== this._cookingFlags;
-    if (meshChanged || convexChanged || flagsChanged) {
-      if (nextMesh) {
-        const meshData = MeshCollider._getMeshData(nextMesh, nextConvex);
-        if (meshData && this._rebuildNative(meshData, nextConvex, nextFlags, convexChanged)) {
-          this._convex = nextConvex;
-          this._cookingFlags = nextFlags;
-          meshChanged && this._setMesh(nextMesh);
-        } else if (meshChanged) {
-          // Invalid replacement mesh was rejected; still apply valid convex/flags changes to existing mesh (if any).
-          if (!this._mesh) {
-            this._convex = nextConvex;
-            this._cookingFlags = nextFlags;
-          } else if (convexChanged || flagsChanged) {
-            const currentData = MeshCollider._getMeshData(this._mesh, nextConvex);
-            if (currentData && this._rebuildNative(currentData, nextConvex, nextFlags, convexChanged)) {
-              this._convex = nextConvex;
-              this._cookingFlags = nextFlags;
-            }
-          }
-        }
-      } else {
-        meshChanged && this._replaceNativeShape(null);
-        this._convex = nextConvex;
-        this._cookingFlags = nextFlags;
-        meshChanged && this._setMesh(null);
-      }
-    }
-
-    if (nextTrigger && !this.isTrigger) {
-      this._setIsTrigger(true);
-    }
-  }
-
-  /**
-   * Cook new mesh data into the native shape, keeping the previous shape on failure. Cooking in the setters is what
-   * validates the mesh, so it also runs before the Collider enters a scene.
-   * @param replace - Whether the geometry kind changes, which needs a new native shape
-   */
-  private _rebuildNative(
-    meshData: MeshData,
-    convex: boolean,
-    cookingFlags: MeshColliderShapeCookingFlag,
-    replace = false
-  ): boolean {
-    const shape = <IMeshColliderShape>this._native;
-    if (shape && !replace) {
-      if (!shape.setMeshData(meshData.positions, convex ? null : meshData.indices, cookingFlags)) {
-        return false;
-      }
-      this._onGeometryChanged();
-      return true;
-    }
-    const newShape = this._cook(meshData, convex, cookingFlags);
-    return !!newShape && this._replaceNativeShape(newShape);
   }
 
   private _cook(

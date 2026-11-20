@@ -88,8 +88,8 @@ PlaneCollider 没有形状属性。它是朝向实体局部 +Y 轴的无限平�
 
 | 属性 | 描述 | 默认值 |
 | :-- | :-- | :-- |
-| [**mesh**](/apis/core/#MeshCollider-mesh) | 用于碰撞的 [ModelMesh](/apis/core/#ModelMesh)。网格数据在上传后必须保持可访问，三角网格还需要索引；无效网格会被拒绝并输出警告，保留原来的网格 | null |
-| [**convex**](/apis/core/#MeshCollider-convex) | 是否使用由网格顶点生成的凸包。碰撞器为触发器或属于非运动学刚体时，设置为 `false` 会被拒绝 | false |
+| [**mesh**](/apis/core/#MeshCollider-mesh) | 用于碰撞的 [ModelMesh](/apis/core/#ModelMesh)。网格数据在上传后必须保持可访问，三角网格还需要索引；无效网格在同步时会移出模拟与查询，替换为有效网格后自动恢复 | null |
+| [**convex**](/apis/core/#MeshCollider-convex) | 是否使用由网格顶点生成的凸包。非凸网格不可作为触发器，也不可挂在非运动学刚体下；非法组合会在同步时移出模拟与查询，修正后自动恢复 | false |
 | [**cookingFlags**](/apis/core/#MeshCollider-cookingFlags) | 网格烘焙标志 | Cleaning \| VertexWelding |
 
 ## 物理材质
