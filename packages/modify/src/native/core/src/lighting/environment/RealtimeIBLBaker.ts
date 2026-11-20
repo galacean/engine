@@ -989,7 +989,10 @@ function createCubemap(
 }
 
 function createRenderTarget(engine: Engine, resolution: number, texture: TextureCube): RenderTarget {
-  const renderTarget = new RenderTarget(engine, resolution, resolution, texture);
+  // MERGE NOTE: Keep `depth = null` even after galacean/engine#3221 merges (#3221 fixes GLRenderTarget multi-mip
+  // color-only RTs, not this caller). Fullscreen IBL cubemap baking needs no depth buffer; omitting `null` forces
+  // Depth32Float renderbuffer reallocation on every mip switch.
+  const renderTarget = new RenderTarget(engine, resolution, resolution, texture, null);
   renderTarget.autoGenerateMipmaps = false;
   return renderTarget;
 }

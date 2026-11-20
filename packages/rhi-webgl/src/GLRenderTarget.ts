@@ -130,7 +130,10 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           mipLevel
         );
       }
-    } else {
+      // MERGE NOTE (galacean/engine#3221): Temporary guard for color-only multi-mip RenderTargets (e.g. RealtimeIBLBaker).
+      // Drop this 1-line guard and take PR #3221's full GLRenderTarget.ts fix (caches _depthRenderBufferInternalFormat
+      // and clamps Math.max(1, size >> mipLevel)) once #3221 is merged.
+    } else if (this._depthRenderBuffer) {
       if (mipChanged) {
         // @ts-ignore
         const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl, this._isWebGL2);
