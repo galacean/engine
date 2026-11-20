@@ -50,7 +50,9 @@ export class MeshCollider extends Collider {
   set mesh(value: ModelMesh | null) {
     if (this._mesh !== value || this._cookFailed) {
       this._setMesh(value);
-      this._meshReassigned = true;
+      if (!value) {
+        this._meshReassigned = true;
+      }
       this._cookFailed = false;
       this._geometryDirty = true;
       this._markDirty();

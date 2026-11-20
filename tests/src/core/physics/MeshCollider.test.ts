@@ -793,15 +793,22 @@ describe("MeshCollider", () => {
     expect(outerHits).toEqual([false, true, true]);
   });
 
-  it("skips native recooking when convex returns to its already-cooked value before sync", () => {
+  it("skips native recooking when convex or mesh returns to its already-cooked value before sync", () => {
     const collider = addMesh(false);
+    const meshA = collider.mesh;
+    const meshB = createCubeMesh(engine, 3);
     expect(physics.raycast(rayAt(0))).toBe(true);
     const nativeShape = (collider as any)._native;
     const cookSpy = vi.spyOn(nativeShape, "_cookMesh");
+    const setMeshDataSpy = vi.spyOn(nativeShape, "setMeshData");
     collider.convex = true;
     collider.convex = false;
+    collider.mesh = meshB;
+    collider.mesh = meshA;
     expect(physics.raycast(rayAt(0))).toBe(true);
+    expect(physics.raycast(rayAt(2.5))).toBe(false);
     expect(cookSpy).not.toHaveBeenCalled();
+    expect(setMeshDataSpy).not.toHaveBeenCalled();
   });
 
   it("does not resurrect stale CPU positions across shared colliders after replacing with an unreadable buffer", () => {
