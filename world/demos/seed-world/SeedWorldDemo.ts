@@ -298,6 +298,8 @@ export async function mountSeedWorldDemo(
   let runtimeDebug: PlanningSeedRuntimeDebug | undefined;
   let debugSidebar: PlanningSeedDebugSidebar | undefined;
   let lodDebugPanel: import("./src/SeedWorldLodDebugPanel.ts").SeedWorldLodDebugPanel | undefined;
+  let perfPanel: import("./src/SeedWorldPerfPanel.ts").SeedWorldPerfPanel | undefined;
+  let dprOverride: number | null = null;
   let exposure: TerrainWindGpuExposureProvider | undefined;
   let detachWindExposure: (() => void) | undefined;
   let resizeObserver: ResizeObserver | undefined;
@@ -453,6 +455,7 @@ export async function mountSeedWorldDemo(
         lightingProfile?.dispose();
         debugSidebar?.destroy();
         lodDebugPanel?.dispose();
+        perfPanel?.dispose();
         disconnectEditorAssets?.();
         tools?.dispose();
         nativeWaterPanel?.destroy();
@@ -623,7 +626,7 @@ export async function mountSeedWorldDemo(
     engine.sceneManager.activeScene!?.destroy();
     const resize = () => {
       if (!canvas.clientWidth || !canvas.clientHeight) return;
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = dprOverride ?? (window.devicePixelRatio || 1);
       engine!.canvas.setResolution(
         Math.max(1, Math.round(canvas.clientWidth * dpr)),
         Math.max(1, Math.round(canvas.clientHeight * dpr))
@@ -986,18 +989,19 @@ export async function mountSeedWorldDemo(
     driver.lateTick = () => {
       const current = publication?.current;
       if (!current) return;
-      current.world.setSurfaceWaterSsrEnabled(environment!.surfaceWaterSsrRequested);
+      current.world.setSurfaceWaterSsrEnabled(perfPanel?.isPaused("ssr") ? false : environment!.surfaceWaterSsrRequested);
       current.solids.bridgesView.updateLod(camera);
     };
     driver.tick = (dt) => {
-      farmingHost?.runtime?.update(dt);
+      if (!perfPanel?.isPaused("farming")) farmingHost?.runtime?.update(dt);
       if (!ready) return;
+      perfPanel?.tick();
       readWorld()?.update(dt);
-      publication?.current?.vegetation?.update(dt);
+      if (!perfPanel?.isPaused("vegetation")) publication?.current?.vegetation?.update(dt);
       obbDebug?.update(dt);
-      water?.update(dt);
-      vista?.update();
-      animals?.advance?.(dt);
+      if (!perfPanel?.isPaused("water")) water?.update(dt);
+      if (!perfPanel?.isPaused("vista")) vista?.update();
+      if (!perfPanel?.isPaused("animals")) animals?.advance?.(dt);
       // WorldEnvironmentRuntime owns the wind local-field centre and resamples it every frame
       audio?.update(dt, ready, tools?.listening ?? false);
       if (!restoreMasonryView && playerState) {
@@ -2876,6 +2880,37 @@ export async function mountSeedWorldDemo(
     });
     await timed("await startupSaveTask", () => startupSaveTask);
     if (options.showAssistant !== false) timed("tools.show", () => tools!.show());
+    if (pageUrl.searchParams.get("debug") === "1" && pageUrl.searchParams.get("panel") === "1" && !disposed) {
+      const { SeedWorldPerfPanel } = await import("./src/SeedWorldPerfPanel.ts");
+      if (!disposed) {
+        perfPanel = new SeedWorldPerfPanel({
+          engine: engine!,
+          scene: scene!,
+          canvas,
+          root,
+          camera,
+          sun,
+          post,
+          wind,
+          environment: environment!,
+          water,
+          readPublished: () => publication?.current,
+          setVistaVisible: (visible) => {
+            vistaControls.visible = visible;
+          },
+          getVistaVisible: () => vistaControls.visible,
+          setHudVisible: (visible) => {
+            if (visible) tools?.show();
+            else tools?.hide();
+          },
+          getBuildingEntity: () => nativeBuildingHost?.system.entity,
+          setDprOverride: (dpr) => {
+            dprOverride = dpr;
+            resize();
+          }
+        });
+      }
+    }
     loading.hidden = true;
     canvas.dataset.status = "ready";
     document.body.dataset.worldReady = "true";

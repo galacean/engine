@@ -104,10 +104,12 @@ async function start(): Promise<void> {
         styles.remove();
         const page = planningPageUrl();
         const url = page.url;
+        const panel = url.searchParams.get("panel") === "1";
         url.search = "";
         url.searchParams.set("seed", String(plan.parameters.seed));
         url.searchParams.set("debug", "1");
         url.searchParams.set("view", "3d");
+        if (panel) url.searchParams.set("panel", "1");
         url.searchParams.set("template", plan.parameters.worldTemplate?.id ?? "original");
         if (page.canReplaceHistory) history.replaceState(null, "", url);
         else {

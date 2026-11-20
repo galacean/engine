@@ -24,11 +24,13 @@ export function parsePlanningDocument(raw: string, seed: number): PlanningDocume
 export function planningSeedURL(href: string, seed: number): string {
   const url = new URL(href);
   const debug = url.searchParams.get("debug") === "1";
+  const panel = url.searchParams.get("panel") === "1";
   const template = url.searchParams.get("template");
   url.search = "";
   url.hash = "";
   url.searchParams.set("seed", String(seed));
   if (debug) url.searchParams.set("debug", "1");
+  if (debug && panel) url.searchParams.set("panel", "1");
   if (template !== null) url.searchParams.set("template", template);
   return url.href;
 }
