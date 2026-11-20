@@ -63,7 +63,7 @@ const MODULE_DEFS: readonly { readonly key: SeedWorldPerfModuleKey; readonly lab
   { key: "hud", label: "AI界面" }
 ];
 
-const DPR_STEPS: readonly (number | null)[] = [null, 2, 1.5, 1];
+const DPR_STEPS: readonly (number | null)[] = [null, 1.5, 1, Infinity];
 
 /**
  * Opt-in runtime performance HUD and live module toggle panel (?debug=1&panel=1).
@@ -518,8 +518,16 @@ export class SeedWorldPerfPanel {
     dprBtn.type = "button";
     const updateDprLabel = () => {
       const cur = DPR_STEPS[this.dprIdx];
-      const nativeDpr = (window.devicePixelRatio || 1).toFixed(1).replace(/\.0$/, "");
-      dprBtn.textContent = `渲染分辨率 DPR: ${cur === null ? `原生(${nativeDpr}x)` : `${cur}x`}`;
+      const rawNative = window.devicePixelRatio || 1;
+      const fmt = (v: number) => v.toFixed(1).replace(/\.0$/, "");
+      const effective = fmt(Math.min(rawNative, cur ?? 2));
+      const label =
+        cur === null
+          ? `≤2x(${effective}x)`
+          : cur === Infinity
+            ? `原生(${fmt(rawNative)}x)`
+            : `≤${cur}x(${effective}x)`;
+      dprBtn.textContent = `渲染分辨率 DPR: ${label}`;
     };
     dprBtn.style.cssText =
       "width:100%;margin-bottom:7px;background:#1d4ed8;color:#eff6ff;border:1px solid #60a5fa;border-radius:6px;padding:6px 8px;font:600 11px/1.2 sans-serif;cursor:pointer;";

@@ -639,7 +639,8 @@ export async function mountSeedWorldDemo(
     engine.sceneManager.activeScene!?.destroy();
     const resize = () => {
       if (!canvas.clientWidth || !canvas.clientHeight) return;
-      const dpr = dprOverride ?? (window.devicePixelRatio || 1);
+      const nativeDpr = window.devicePixelRatio || 1;
+      const dpr = Math.min(nativeDpr, dprOverride ?? 2);
       engine!.canvas.setResolution(
         Math.max(1, Math.round(canvas.clientWidth * dpr)),
         Math.max(1, Math.round(canvas.clientHeight * dpr))
