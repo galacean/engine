@@ -14,8 +14,6 @@ export class ColorAdjustmentsEffect extends PostProcessEffect {
   /** @internal */
   static _enableMacro: ShaderMacro = ShaderMacro.getByName("ENABLE_EFFECT_COLOR_ADJUSTMENTS");
   /** @internal */
-  static _postExposureProperty: ShaderProperty = ShaderProperty.getByName("material_PostExposure");
-  /** @internal */
   static _whiteBalanceMatrixProperty: ShaderProperty = ShaderProperty.getByName("material_WhiteBalanceMatrix");
   /** @internal */
   static _adjustmentsProperty: ShaderProperty = ShaderProperty.getByName("material_ColorAdjustments");
@@ -26,10 +24,22 @@ export class ColorAdjustmentsEffect extends PostProcessEffect {
   temperature = new PostProcessEffectFloatParameter(0, -100, 100);
   /** White-balance green/magenta tint in the artist-facing range [-100, 100]. */
   tint = new PostProcessEffectFloatParameter(0, -100, 100);
-  /** Contrast around linear middle gray in the artist-facing range [-100, 100]. */
+  /** Contrast in ARRI LogC space around middle gray in the artist-facing range [-100, 100]. */
   contrast = new PostProcessEffectFloatParameter(0, -100, 100);
   /** Luminance-preserving saturation in the artist-facing range [-100, 100]. */
   saturation = new PostProcessEffectFloatParameter(0, -100, 100);
+
+  /** @inheritdoc */
+  override isValid(): boolean {
+    return (
+      this.enabled &&
+      (this.postExposure.value !== 0 ||
+        this.temperature.value !== 0 ||
+        this.tint.value !== 0 ||
+        this.contrast.value !== 0 ||
+        this.saturation.value !== 0)
+    );
+  }
 
   /** @internal */
   static _computeWhiteBalance(temperature: number, tint: number, out: Vector3): Vector3 {

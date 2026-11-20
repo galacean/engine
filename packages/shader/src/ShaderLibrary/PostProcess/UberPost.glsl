@@ -17,17 +17,12 @@ vec4 renderer_texelSize;
 #endif
 
 #ifdef ENABLE_EFFECT_COLOR_ADJUSTMENTS
-	float material_PostExposure;
 	mat4 material_WhiteBalanceMatrix;
-	vec4 material_ColorAdjustments; // x: contrast multiplier, y: saturation multiplier
+	vec4 material_ColorAdjustments; // x: postExposure multiplier, y: contrast multiplier, z: saturation multiplier
 #endif
 
 void frag(Varyings v) {
 	mediump vec4 color = texture2D(renderer_BlitTexture, v.v_uv);
-
-	#ifdef ENABLE_EFFECT_COLOR_ADJUSTMENTS
-		color.rgb *= material_PostExposure;
-	#endif
 
 	#ifdef ENABLE_EFFECT_BLOOM
     	#ifdef BLOOM_HQ
@@ -48,10 +43,14 @@ void frag(Varyings v) {
 	#endif
 
 	#ifdef ENABLE_EFFECT_COLOR_ADJUSTMENTS
+		color.rgb *= material_ColorAdjustments.x;
 		color.rgb = max(mat3(material_WhiteBalanceMatrix) * color.rgb, vec3(0.0));
-		color.rgb = max((color.rgb - vec3(0.18)) * material_ColorAdjustments.x + vec3(0.18), vec3(0.0));
+		// Contrast in ARRI LogC space pivoted at 18% middle gray (log2(5.5555556 * 0.18 + 0.047996) = 0.06763344)
+		vec3 colorLog = log2(5.5555556 * color.rgb + 0.047996);
+		colorLog = (colorLog - 0.06763344) * material_ColorAdjustments.y + 0.06763344;
+		color.rgb = max((exp2(colorLog) - 0.047996) * 0.18, vec3(0.0));
 		float colorLuminance = dot(color.rgb, vec3(0.2126729, 0.7151522, 0.072175));
-		color.rgb = max(mix(vec3(colorLuminance), color.rgb, material_ColorAdjustments.y), vec3(0.0));
+		color.rgb = max(mix(vec3(colorLuminance), color.rgb, material_ColorAdjustments.z), vec3(0.0));
 	#endif
 
 	#ifdef ENABLE_EFFECT_TONEMAPPING

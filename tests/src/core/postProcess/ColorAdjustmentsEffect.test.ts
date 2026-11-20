@@ -51,9 +51,10 @@ describe("ColorAdjustmentsEffect", () => {
     engine.destroy();
   });
 
-  it("exposes expected parameter defaults, clamping, and white-balance matrix parity", () => {
+  it("exposes expected defaults, active-state gating, clamping, and white-balance matrix parity", () => {
     const effect = new ColorAdjustmentsEffect();
-    expect(effect.isValid()).toBe(true);
+    // All-zero defaults are a no-op so mobile skips extra post-process work
+    expect(effect.isValid()).toBe(false);
     expect(effect.postExposure.value).toBe(0);
     expect(effect.temperature.value).toBe(0);
     expect(effect.tint.value).toBe(0);
@@ -62,11 +63,17 @@ describe("ColorAdjustmentsEffect", () => {
 
     effect.postExposure.value = 20;
     expect(effect.postExposure.value).toBe(10);
-    effect.saturation.value = -200;
-    expect(effect.saturation.value).toBe(-100);
+    expect(effect.isValid()).toBe(true);
 
     effect.enabled = false;
     expect(effect.isValid()).toBe(false);
+    effect.enabled = true;
+    effect.postExposure.value = 0;
+    expect(effect.isValid()).toBe(false);
+
+    effect.saturation.value = -200;
+    expect(effect.saturation.value).toBe(-100);
+    expect(effect.isValid()).toBe(true);
 
     const neutral = ColorAdjustmentsEffect._computeWhiteBalance(0, 0, new Vector3());
     expect(neutral.x).toBeCloseTo(1, 3);
@@ -103,7 +110,7 @@ describe("ColorAdjustmentsEffect", () => {
     }
   });
 
-  it("applies postExposure, white balance, contrast, and saturation in the Uber pass", () => {
+  it("applies postExposure, white balance, LogC contrast, and saturation in the Uber pass", () => {
     const scene = new Scene(engine);
     engine.sceneManager.activeScene = scene;
     scene.background.solidColor = new Color(0.25, 0.15, 0.08, 1);
@@ -122,23 +129,18 @@ describe("ColorAdjustmentsEffect", () => {
     const grading = post.addEffect(ColorAdjustmentsEffect)!;
     const pixels = new Uint8Array(SIZE * SIZE * 4);
 
-    // Baseline neutral grading matches disabled grading
-    grading.enabled = false;
+    // Baseline with default (inactive) grading
     engine.update();
-    colorTex.getPixelBuffer(0, 0, SIZE, SIZE, 0, pixels);
-    const disabledBase = readCenterPixel(pixels);
-
-    grading.enabled = true;
-    engine.update();
+    expect((scene.postProcessManager as any)._isValid()).toBe(false);
     colorTex.getPixelBuffer(0, 0, SIZE, SIZE, 0, pixels);
     const base = readCenterPixel(pixels);
-    expect(Math.abs(base[0] - disabledBase[0])).toBeLessThanOrEqual(1);
-    expect(Math.abs(base[1] - disabledBase[1])).toBeLessThanOrEqual(1);
-    expect(Math.abs(base[2] - disabledBase[2])).toBeLessThanOrEqual(1);
+    expect(base[0]).toBeGreaterThan(base[1]);
+    expect(base[1]).toBeGreaterThan(base[2]);
 
     // +1 EV exposure increases luminance
     grading.postExposure.value = 1;
     engine.update();
+    expect((scene.postProcessManager as any)._isValid()).toBe(true);
     colorTex.getPixelBuffer(0, 0, SIZE, SIZE, 0, pixels);
     const exposed = readCenterPixel(pixels);
     expect(exposed[0]).toBeGreaterThan(base[0] + 20);
@@ -164,36 +166,61 @@ describe("ColorAdjustmentsEffect", () => {
     expect(warm[0] - warm[2]).toBeGreaterThan(cool[0] - cool[2] + 30);
     grading.temperature.value = 0;
 
-    // Contrast scales deviation around linear middle gray (0.18)
+    // LogC contrast preserves 18% middle gray while expanding highlights and preserving dark shadow detail
+    scene.background.solidColor = new Color(0.18, 0.18, 0.18, 1);
+    grading.contrast.value = 0;
+    engine.update();
+    colorTex.getPixelBuffer(0, 0, SIZE, SIZE, 0, pixels);
+    const midGrayBase = readCenterPixel(pixels)[0];
+    grading.contrast.value = 80;
+    engine.update();
+    colorTex.getPixelBuffer(0, 0, SIZE, SIZE, 0, pixels);
+    const midGrayHighContrast = readCenterPixel(pixels)[0];
+    expect(Math.abs(midGrayHighContrast - midGrayBase)).toBeLessThanOrEqual(1);
+
+    // Shadow value 0.04 at +50 contrast must NOT clip to dead black (linear contrast would crush < 0.06 to 0)
+    scene.background.solidColor = new Color(0.04, 0.04, 0.04, 1);
+    grading.contrast.value = 50;
+    engine.update();
+    colorTex.getPixelBuffer(0, 0, SIZE, SIZE, 0, pixels);
+    const shadowHighContrast = readCenterPixel(pixels)[0];
+    expect(shadowHighContrast).toBeGreaterThan(15);
+
+    // Highlight value 0.40 at +80 contrast brightens noticeably
     scene.background.solidColor = new Color(0.4, 0.4, 0.4, 1);
     grading.contrast.value = 0;
     engine.update();
     colorTex.getPixelBuffer(0, 0, SIZE, SIZE, 0, pixels);
-    const contrastZero = readCenterPixel(pixels)[0];
+    const highlightBase = readCenterPixel(pixels)[0];
     grading.contrast.value = 80;
     engine.update();
     colorTex.getPixelBuffer(0, 0, SIZE, SIZE, 0, pixels);
-    const contrastHigh = readCenterPixel(pixels)[0];
-    expect(contrastHigh).toBeGreaterThan(contrastZero + 10);
+    const highlightBoosted = readCenterPixel(pixels)[0];
+    expect(highlightBoosted).toBeGreaterThan(highlightBase + 10);
 
-    // Post-exposure feeds Bloom prefilter threshold
+    // Pure black stays pure black under positive contrast (no NaN from log2)
+    scene.background.solidColor = new Color(0, 0, 0, 1);
+    grading.contrast.value = 50;
+    engine.update();
+    colorTex.getPixelBuffer(0, 0, SIZE, SIZE, 0, pixels);
+    expect(readCenterPixel(pixels)).toEqual([0, 0, 0]);
     grading.contrast.value = 0;
-    scene.background.solidColor = new Color(0.6, 0.6, 0.6, 1);
+
+    // Post-exposure applies after Bloom composite in UberPost without coupling BloomPrefilter
+    scene.background.solidColor = new Color(0.4, 0.4, 0.4, 1);
     const bloom = post.addEffect(BloomEffect)!;
     bloom.downScale.value = BloomDownScaleMode.Quarter;
-    bloom.threshold.value = 1.0;
-    bloom.intensity.value = 1.0;
-
-    grading.postExposure.value = 0;
+    bloom.threshold.value = 0.2;
+    bloom.intensity.value = 0.5;
+    grading.postExposure.value = -1;
     engine.update();
     colorTex.getPixelBuffer(0, 0, SIZE, SIZE, 0, pixels);
-    const bloomBelowThreshold = readCenterPixel(pixels)[0];
-
-    grading.postExposure.value = 1.5;
+    const darkExposed = readCenterPixel(pixels)[0];
+    grading.postExposure.value = 1;
     engine.update();
     colorTex.getPixelBuffer(0, 0, SIZE, SIZE, 0, pixels);
-    const bloomAboveThreshold = readCenterPixel(pixels)[0];
-    expect(bloomAboveThreshold).toBeGreaterThan(bloomBelowThreshold + 30);
+    const brightExposed = readCenterPixel(pixels)[0];
+    expect(brightExposed).toBeGreaterThan(darkExposed + 50);
 
     const gl = (engine as any)._hardwareRenderer.gl as WebGL2RenderingContext;
     expect(gl.getError()).toBe(gl.NO_ERROR);
