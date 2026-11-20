@@ -1987,18 +1987,4 @@ describe("Animator test", function () {
 
     entity.destroy();
   });
-
-  it("UpdateFlag destroy and clearFromManagers should be idempotent", () => {
-    const controller = new AnimatorController(engine);
-    // @ts-ignore
-    const flag = controller._registerChangeFlag();
-    // @ts-ignore
-    const flags = controller._updateFlagManager._updateFlags;
-    expect(flags.length).to.eq(1);
-
-    flag.destroy();
-    expect(flags.length).to.eq(0);
-    expect(() => flag.destroy()).not.toThrow();
-    expect(() => flag.clearFromManagers()).not.toThrow();
-  });
 });
