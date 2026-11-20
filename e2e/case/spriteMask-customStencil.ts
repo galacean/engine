@@ -75,8 +75,6 @@ const customStencilShaderSource = `Shader "CustomStencilSprite" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "ShaderLibrary/Common/Common.glsl"
-
       struct Attributes {
         vec3 POSITION;
         vec2 TEXCOORD_0;
@@ -100,7 +98,7 @@ const customStencilShaderSource = `Shader "CustomStencilSprite" {
       }
 
       vec4 frag(Varyings v) {
-        vec4 baseColor = texture2DSRGB(renderer_SpriteTexture, v.v_uv);
+        vec4 baseColor = texture2D(renderer_SpriteTexture, v.v_uv);
         return baseColor * v.v_color;
       }
     }

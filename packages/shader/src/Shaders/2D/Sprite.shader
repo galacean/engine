@@ -21,8 +21,6 @@ Shader "2D/Sprite" {
       VertexShader = SpriteVertex;
       FragmentShader = SpriteFragment;
 
-      #include "ShaderLibrary/Common/Common.glsl"
-
       struct a2v {
         vec3 POSITION;
         vec2 TEXCOORD_0;
@@ -46,7 +44,7 @@ Shader "2D/Sprite" {
       }
 
       void SpriteFragment(v2f v) {
-        vec4 baseColor = texture2DSRGB(renderer_SpriteTexture, v.v_uv);
+        vec4 baseColor = texture2D(renderer_SpriteTexture, v.v_uv);
         gl_FragColor = baseColor * v.v_color;
       }
     }

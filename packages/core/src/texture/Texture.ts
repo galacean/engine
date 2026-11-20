@@ -110,7 +110,9 @@ export abstract class Texture extends GraphicsResource {
 
   /**
    * Sampling filter mode.
-   * @remarks Integer formats (`TextureFormat.R32G32B32A32_UInt`) only accept `TextureFilterMode.Point`; other modes log a warning and are ignored.
+   * @remarks
+   * Integer formats (`TextureFormat.R32G32B32A32_UInt`) only accept `TextureFilterMode.Point`; other modes log a warning and are ignored.
+   * For 32-bit float formats, linear modes are kept on this property and fall back to `TextureFilterMode.Point` when sampling if the device does not support linear float filtering.
    */
   get filterMode(): TextureFilterMode {
     return this._filterMode;
@@ -154,7 +156,7 @@ export abstract class Texture extends GraphicsResource {
 
   /**
    * Comparison function used when sampling this texture as a shadow depth map.
-   * @remarks Kept on this property across backends, and takes effect only for depth formats sampled with comparison in WebGL2.
+   * @remarks Kept on this property across backends, and takes effect only for depth formats sampled with comparison.
    */
   get depthCompareFunction(): TextureDepthCompareFunction {
     return this._depthCompareFunction;

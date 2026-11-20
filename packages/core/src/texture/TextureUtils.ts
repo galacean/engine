@@ -4,37 +4,18 @@ import { TextureFormat } from "./enums/TextureFormat";
  * @internal
  */
 export class TextureUtils {
-  /**
-   * Check if the texture config supports auto mipmap generation with real correction for mipmap and isSRGBColorSpace.
-   */
-  static supportGenerateMipmapsWithCorrection(
-    format: TextureFormat,
-    mipmap: boolean,
-    isSRGBColorSpace: boolean
-  ): boolean {
-    if (!mipmap) {
-      return false;
-    }
-
-    if (isSRGBColorSpace && !TextureUtils.supportSRGB(format)) {
-      isSRGBColorSpace = false;
-    }
-
-    return TextureUtils.supportGenerateMipmaps(format, mipmap, isSRGBColorSpace);
-  }
-
   static isHDRFormat(format: TextureFormat): boolean {
     return (
-      format === TextureFormat.R16G16B16A16 ||
-      format === TextureFormat.R32G32B32A32 ||
+      format === TextureFormat.R16G16B16A16_SFloat ||
+      format === TextureFormat.R32G32B32A32_SFloat ||
       format === TextureFormat.R11G11B10_UFloat
     );
   }
 
   static supportSRGB(format: TextureFormat) {
     switch (format) {
-      case TextureFormat.R8G8B8:
-      case TextureFormat.R8G8B8A8:
+      case TextureFormat.R8G8B8_UNorm:
+      case TextureFormat.R8G8B8A8_UNorm:
       case TextureFormat.BC1:
       case TextureFormat.BC3:
       case TextureFormat.BC7:
@@ -51,15 +32,6 @@ export class TextureUtils {
       default:
         return false;
     }
-  }
-
-  static supportGenerateMipmaps(format: TextureFormat, mipmap: boolean, isSRGBColorSpace: boolean): boolean {
-    // Auto generating mipmaps for sRGB textures is only supported in [WebGL2 + RGBA]
-    if (mipmap && isSRGBColorSpace && format !== TextureFormat.R8G8B8A8) {
-      return false;
-    }
-
-    return true;
   }
 
   static getTextureByteCount(
@@ -81,22 +53,27 @@ export class TextureUtils {
   static getMipLevelByteCount(format: TextureFormat, width: number, height: number): number {
     switch (format) {
       // Uncompressed formats
-      case TextureFormat.R8:
+      case TextureFormat.R8_UNorm:
         return width * height;
-      case TextureFormat.R8G8:
+      case TextureFormat.R8G8_UNorm:
+      case TextureFormat.R16_UNorm:
+      case TextureFormat.R16_SFloat:
         return width * height * 2;
-      case TextureFormat.R8G8B8:
+      case TextureFormat.R8G8B8_UNorm:
         return width * height * 3;
-      case TextureFormat.R8G8B8A8:
+      case TextureFormat.R8G8B8A8_UNorm:
       case TextureFormat.R11G11B10_UFloat:
+      case TextureFormat.R16G16_SFloat:
+      case TextureFormat.R32_SFloat:
         return width * height * 4;
-      case TextureFormat.R4G4B4A4:
-      case TextureFormat.R5G5B5A1:
-      case TextureFormat.R5G6B5:
+      case TextureFormat.R4G4B4A4_UNorm:
+      case TextureFormat.R5G5B5A1_UNorm:
+      case TextureFormat.R5G6B5_UNorm:
         return width * height * 2;
-      case TextureFormat.R16G16B16A16:
+      case TextureFormat.R16G16B16A16_SFloat:
+      case TextureFormat.R32G32_SFloat:
         return width * height * 8;
-      case TextureFormat.R32G32B32A32:
+      case TextureFormat.R32G32B32A32_SFloat:
       case TextureFormat.R32G32B32A32_UInt:
         return width * height * 16;
 

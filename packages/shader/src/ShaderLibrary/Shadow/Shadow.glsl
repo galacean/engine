@@ -48,12 +48,10 @@
     vec4 scene_ShadowInfo;
     vec4 scene_ShadowMapSize;
 
-        mediump sampler2DShadow scene_ShadowMap;
-        #define SAMPLE_TEXTURE2D_SHADOW(textureName, coord3) textureLod(textureName, coord3 , 0.0)
-        #define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2DShadow shadowMap
+    mediump sampler2DShadow scene_ShadowMap;
 
     #if SCENE_SHADOW_TYPE == 2
-        float sampleShadowMapFiltered4(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, vec4 shadowMapSize) {
+        float sampleShadowMapFiltered4(mediump sampler2DShadow shadowMap, vec3 shadowCoord, vec4 shadowMapSize) {
             float attenuation;
             vec4 attenuation4;
             vec2 offset=shadowMapSize.xy/2.0;
@@ -61,10 +59,10 @@
             vec3 shadowCoord1=shadowCoord + vec3(offset.x,-offset.y,0.0);
             vec3 shadowCoord2=shadowCoord + vec3(-offset.x,offset.y,0.0);
             vec3 shadowCoord3=shadowCoord + vec3(offset,0.0);
-            attenuation4.x = SAMPLE_TEXTURE2D_SHADOW(shadowMap, shadowCoord0);
-            attenuation4.y = SAMPLE_TEXTURE2D_SHADOW(shadowMap, shadowCoord1);
-            attenuation4.z = SAMPLE_TEXTURE2D_SHADOW(shadowMap, shadowCoord2);
-            attenuation4.w = SAMPLE_TEXTURE2D_SHADOW(shadowMap, shadowCoord3);
+            attenuation4.x = textureLod(shadowMap, shadowCoord0, 0.0);
+            attenuation4.y = textureLod(shadowMap, shadowCoord1, 0.0);
+            attenuation4.z = textureLod(shadowMap, shadowCoord2, 0.0);
+            attenuation4.w = textureLod(shadowMap, shadowCoord3, 0.0);
             attenuation = dot(attenuation4, vec4(0.25));
             return attenuation;
         }
@@ -73,20 +71,20 @@
     #if SCENE_SHADOW_TYPE == 3
         #include "ShaderLibrary/Shadow/ShadowSampleTent.glsl"
 
-        float sampleShadowMapFiltered9(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, vec4 shadowmapSize) {
+        float sampleShadowMapFiltered9(mediump sampler2DShadow shadowMap, vec3 shadowCoord, vec4 shadowmapSize) {
             float attenuation;
             float fetchesWeights[9];
             vec2 fetchesUV[9];
             sampleShadowComputeSamplesTent5x5(shadowmapSize, shadowCoord.xy, fetchesWeights, fetchesUV);
-            attenuation = fetchesWeights[0] * SAMPLE_TEXTURE2D_SHADOW(shadowMap, vec3(fetchesUV[0].xy, shadowCoord.z));
-            attenuation += fetchesWeights[1] * SAMPLE_TEXTURE2D_SHADOW(shadowMap, vec3(fetchesUV[1].xy, shadowCoord.z));
-            attenuation += fetchesWeights[2] * SAMPLE_TEXTURE2D_SHADOW(shadowMap, vec3(fetchesUV[2].xy, shadowCoord.z));
-            attenuation += fetchesWeights[3] * SAMPLE_TEXTURE2D_SHADOW(shadowMap, vec3(fetchesUV[3].xy, shadowCoord.z));
-            attenuation += fetchesWeights[4] * SAMPLE_TEXTURE2D_SHADOW(shadowMap, vec3(fetchesUV[4].xy, shadowCoord.z));
-            attenuation += fetchesWeights[5] * SAMPLE_TEXTURE2D_SHADOW(shadowMap, vec3(fetchesUV[5].xy, shadowCoord.z));
-            attenuation += fetchesWeights[6] * SAMPLE_TEXTURE2D_SHADOW(shadowMap, vec3(fetchesUV[6].xy, shadowCoord.z));
-            attenuation += fetchesWeights[7] * SAMPLE_TEXTURE2D_SHADOW(shadowMap, vec3(fetchesUV[7].xy, shadowCoord.z));
-            attenuation += fetchesWeights[8] * SAMPLE_TEXTURE2D_SHADOW(shadowMap, vec3(fetchesUV[8].xy, shadowCoord.z));
+            attenuation = fetchesWeights[0] * textureLod(shadowMap, vec3(fetchesUV[0].xy, shadowCoord.z), 0.0);
+            attenuation += fetchesWeights[1] * textureLod(shadowMap, vec3(fetchesUV[1].xy, shadowCoord.z), 0.0);
+            attenuation += fetchesWeights[2] * textureLod(shadowMap, vec3(fetchesUV[2].xy, shadowCoord.z), 0.0);
+            attenuation += fetchesWeights[3] * textureLod(shadowMap, vec3(fetchesUV[3].xy, shadowCoord.z), 0.0);
+            attenuation += fetchesWeights[4] * textureLod(shadowMap, vec3(fetchesUV[4].xy, shadowCoord.z), 0.0);
+            attenuation += fetchesWeights[5] * textureLod(shadowMap, vec3(fetchesUV[5].xy, shadowCoord.z), 0.0);
+            attenuation += fetchesWeights[6] * textureLod(shadowMap, vec3(fetchesUV[6].xy, shadowCoord.z), 0.0);
+            attenuation += fetchesWeights[7] * textureLod(shadowMap, vec3(fetchesUV[7].xy, shadowCoord.z), 0.0);
+            attenuation += fetchesWeights[8] * textureLod(shadowMap, vec3(fetchesUV[8].xy, shadowCoord.z), 0.0);
             return attenuation;
         }
     #endif
@@ -103,7 +101,7 @@
         float attenuation = 1.0;
         if(shadowCoord.z > 0.0 && shadowCoord.z < 1.0) {
         #if SCENE_SHADOW_TYPE == 1
-            attenuation = SAMPLE_TEXTURE2D_SHADOW(scene_ShadowMap, shadowCoord);
+            attenuation = textureLod(scene_ShadowMap, shadowCoord, 0.0);
         #endif
 
         #if SCENE_SHADOW_TYPE == 2

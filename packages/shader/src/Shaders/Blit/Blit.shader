@@ -11,8 +11,6 @@ Shader "Blit/Blit" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "ShaderLibrary/Common/Common.glsl"
-
       mediump sampler2D renderer_BlitTexture;
         float renderer_BlitMipLevel;
       vec4 renderer_SourceScaleOffset;

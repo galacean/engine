@@ -78,7 +78,7 @@ export class DepthState extends DataObject {
     lastState: DepthState,
     customStates?: RenderStateElementMap | null
   ): void {
-    const gl = <WebGL2RenderingContext>rhi.gl;
+    const gl = rhi.gl;
     let { enabled, compareFunction, writeEnabled } = this;
 
     if (customStates) {

@@ -1,4 +1,4 @@
-import { IPlatformTexture2DArray, Logger, Texture2DArray, TextureUtils } from "@galacean/engine-core";
+import { IPlatformTexture2DArray, Texture2DArray } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
@@ -112,23 +112,11 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
       throw new Error("Unable to read compressed texture");
     }
 
+    const readFormat = this._getReadFormat();
     gl.pixelStorei(gl.PACK_ALIGNMENT, formatDetail.alignment!);
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
     gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, this._glTexture, mipLevel, elementIndex);
-    gl.readPixels(x, y, width, height, formatDetail.baseFormat!, formatDetail.dataType!, out);
+    gl.readPixels(x, y, width, height, readFormat, formatDetail.readType ?? formatDetail.dataType!, out);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  }
-
-  protected override _validate(texture: Texture2DArray): void {
-    const { format } = texture;
-
-    // Validate sRGB format
-    // @ts-ignore
-    const isSRGBColorSpace = texture._isSRGBColorSpace;
-    if (isSRGBColorSpace && !TextureUtils.supportSRGB(format)) {
-      Logger.warn("Only support sRGB color space in RGB8 or RGBA8 or some compressed texture format");
-      // @ts-ignore
-      texture._isSRGBColorSpace = false;
-    }
   }
 }

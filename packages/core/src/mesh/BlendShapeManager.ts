@@ -339,7 +339,7 @@ export class BlendShapeManager {
       textureWidth,
       textureHeight,
       blendShapeCount,
-      TextureFormat.R32G32B32A32,
+      TextureFormat.R32G32B32A32_SFloat,
       false,
       false
     );

@@ -14,13 +14,8 @@ import { ShaderMacroProcessor } from "./ShaderMacroProcessor";
 import { RenderState } from "./state/RenderState";
 
 const precisionStr = `
-    #ifdef GL_FRAGMENT_PRECISION_HIGH
-      precision highp float;
-      precision highp int;
-    #else
-      precision mediump float;
-      precision mediump int;
-    #endif
+    precision highp float;
+    precision highp int;
     `;
 
 /**
@@ -156,6 +151,11 @@ export class ShaderPass extends ShaderPart {
       const macro = shaderMacroList[i];
       macroMap.set(macro.name, macro.value ?? "");
     }
+    // GLSL ES 3.00 predefined macros (§3.3) evaluated ahead of driver preprocessing
+    macroMap.set("GL_ES", "1");
+    macroMap.set("GL_FRAGMENT_PRECISION_HIGH", "1");
+    macroMap.set("__VERSION__", "300");
+
     let vertexSource = ShaderMacroProcessor.evaluate(this._vertexShaderInstructions, macroMap);
     let fragmentSource = ShaderMacroProcessor.evaluate(this._fragmentShaderInstructions, macroMap);
 

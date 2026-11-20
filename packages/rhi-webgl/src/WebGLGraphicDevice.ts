@@ -239,16 +239,16 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   }
 
   createPlatformTransformFeedbackPrimitive(): IPlatformTransformFeedbackPrimitive {
-    return new GLTransformFeedbackPrimitive(<WebGL2RenderingContext>this._gl);
+    return new GLTransformFeedbackPrimitive(this._gl);
   }
 
   bindUniformBufferBase(bindingPoint: number, buffer: IPlatformBuffer): void {
-    const gl = <WebGL2RenderingContext>this._gl;
+    const gl = this._gl;
     gl.bindBufferBase(gl.UNIFORM_BUFFER, bindingPoint, (<GLBuffer>buffer)._glBuffer);
   }
 
   bindUniformBlock(program: WebGLProgram, blockName: string, bindingPoint: number): number {
-    const gl = <WebGL2RenderingContext>this._gl;
+    const gl = this._gl;
     const blockIndex = gl.getUniformBlockIndex(program, blockName);
     if (blockIndex !== gl.INVALID_INDEX) {
       gl.uniformBlockBinding(program, blockIndex, bindingPoint);
@@ -257,7 +257,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   }
 
   /**
-   * Enable GL_RASTERIZER_DISCARD (WebGL2 only).
+   * Enable GL_RASTERIZER_DISCARD.
    */
   enableRasterizerDiscard(): void {
     const gl = this._gl;
@@ -265,7 +265,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   }
 
   /**
-   * Disable GL_RASTERIZER_DISCARD (WebGL2 only).
+   * Disable GL_RASTERIZER_DISCARD.
    */
   disableRasterizerDiscard(): void {
     const gl = this._gl;
@@ -301,6 +301,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   supportsRenderTargetColorFormat(format: TextureFormat): boolean {
     return this.capability.supportsRenderTargetColorFormat(format);
+  }
+
+  supportsGenerateMipmaps(format: TextureFormat, isSRGBColorSpace: boolean): boolean {
+    return this.capability.supportsGenerateMipmaps(format, isSRGBColorSpace);
   }
 
   viewport(x: number, y: number, width: number, height: number): void {

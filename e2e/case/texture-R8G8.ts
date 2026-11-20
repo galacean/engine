@@ -37,7 +37,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   const width = 1024;
   const height = 1024;
-  const r8Texture = new Texture2D(engine, width, height, TextureFormat.R8G8, false);
+  const r8Texture = new Texture2D(engine, width, height, TextureFormat.R8G8_UNorm, false);
   const pixels = new Uint8Array(width * height * 2); // 2 bytes per pixel (R and G)
   for (let i = 0; i < width * height; i++) {
     pixels[i * 2] = 200; // R

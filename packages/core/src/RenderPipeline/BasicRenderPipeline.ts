@@ -180,7 +180,7 @@ export class BasicRenderPipeline {
         this._copyBackgroundTexture = pool.allocateTexture(
           viewport.width,
           viewport.height,
-          colorTexture?.format ?? TextureFormat.R8G8B8A8,
+          colorTexture?.format ?? TextureFormat.R8G8B8A8_UNorm,
           false,
           colorTexture?.isSRGBColorSpace ?? false,
           TextureWrapMode.Clamp,

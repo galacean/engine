@@ -171,14 +171,14 @@ export class BasicResources {
     this.whiteTexture2D = this._create1x1Texture(
       engine,
       TextureType.Texture2D,
-      TextureFormat.R8G8B8A8,
+      TextureFormat.R8G8B8A8_UNorm,
       whitePixel,
       true
     );
     this.whiteTextureCube = this._create1x1Texture(
       engine,
       TextureType.TextureCube,
-      TextureFormat.R8G8B8A8,
+      TextureFormat.R8G8B8A8_UNorm,
       whitePixel,
       true
     );
@@ -186,7 +186,7 @@ export class BasicResources {
     this.whiteTexture2DArray = this._create1x1Texture(
       engine,
       TextureType.Texture2DArray,
-      TextureFormat.R8G8B8A8,
+      TextureFormat.R8G8B8A8_UNorm,
       whitePixel,
       true
     );

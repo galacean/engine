@@ -45,6 +45,7 @@ export interface IHardwareRenderer {
   canIUseCompressedTextureInternalFormat(format: number): boolean;
   supportsTextureFormat(format: TextureFormat): boolean;
   supportsRenderTargetColorFormat(format: TextureFormat): boolean;
+  supportsGenerateMipmaps(format: TextureFormat, isSRGBColorSpace: boolean): boolean;
   createPlatformPrimitive(primitive: Primitive): IPlatformPrimitive;
   createPlatformBuffer(
     type: BufferBindFlag,

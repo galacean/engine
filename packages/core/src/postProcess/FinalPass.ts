@@ -43,7 +43,7 @@ export class FinalPass extends PipelinePass {
         this._srgbRenderTarget,
         pixelViewport.width,
         pixelViewport.height,
-        TextureFormat.R8G8B8A8, // FXAA need color range [0, 1], so we use R8G8B8A8 and ignore camera target HDR format
+        TextureFormat.R8G8B8A8_UNorm, // FXAA need color range [0, 1], so we use R8G8B8A8_UNorm and ignore camera target HDR format
         null,
         false,
         false,

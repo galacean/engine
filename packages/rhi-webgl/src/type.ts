@@ -5,6 +5,7 @@ export interface TextureFormatDetail {
   isCompressed: boolean;
   attachment?: GLenum;
   readFormat?: GLenum; // Read format are different in readPixels at some cases
+  readType?: GLenum;
   alignment?: number; // Uncompressed texture data alignment
 }
 

@@ -154,7 +154,7 @@ export class StencilState extends DataObject {
     lastState: StencilState,
     customStates?: RenderStateElementMap | null
   ): void {
-    const gl = <WebGL2RenderingContext>rhi.gl;
+    const gl = rhi.gl;
     let {
       enabled,
       referenceValue,

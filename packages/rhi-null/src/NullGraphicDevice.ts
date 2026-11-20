@@ -44,6 +44,10 @@ export class NullGraphicDevice implements IHardwareRenderer {
   supportsRenderTargetColorFormat(): boolean {
     return true;
   }
+
+  supportsGenerateMipmaps(): boolean {
+    return true;
+  }
   createPlatformPrimitive() {
     return { draw() {}, destroy() {} };
   }

@@ -11,7 +11,7 @@ export class GLTransformFeedback implements IPlatformTransformFeedback {
   private _glTransformFeedback: WebGLTransformFeedback | null;
 
   constructor(rhi: WebGLGraphicDevice) {
-    const gl = <WebGL2RenderingContext>rhi.gl;
+    const gl = rhi.gl;
     this._gl = gl;
     this._glTransformFeedback = gl.createTransformFeedback();
   }

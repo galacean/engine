@@ -3195,7 +3195,7 @@ describe("SubEmitter rendering regressions", () => {
     camera = cameraEntity.addComponent(Camera);
     camera.isOrthographic = true;
     camera.orthographicSize = 4;
-    texture = new Texture2D(engine, resolution, resolution, TextureFormat.R8G8B8A8, false);
+    texture = new Texture2D(engine, resolution, resolution, TextureFormat.R8G8B8A8_UNorm, false);
     camera.renderTarget = new RenderTarget(engine, resolution, resolution, texture);
   });
 
@@ -3282,7 +3282,7 @@ describe("SubEmitter rendering regressions", () => {
         mesh.setColors(Array.from({ length: mesh.vertexCount }, () => new Color(1, 1, 1, 1)));
         mesh.uploadData(false);
       }
-      const white = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false);
+      const white = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false);
       white.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
       (child.getMaterial() as ParticleMaterial).baseTexture = white;
       generator.velocityOverLifetime.enabled = true;
@@ -3386,7 +3386,7 @@ describe("SubEmitter rendering regressions", () => {
   it.each([2, 7])("preserves birth-time atlas rows when the grid changes (columns=%s)", (columns) => {
     const { parent, child } = systems();
     child.generator.main.startSize.constant = 0.8;
-    const atlas = new Texture2D(engine, columns, 2, TextureFormat.R8G8B8A8, false);
+    const atlas = new Texture2D(engine, columns, 2, TextureFormat.R8G8B8A8_UNorm, false);
     atlas.filterMode = TextureFilterMode.Point;
     const pixels = new Uint8Array(columns * 2 * 4);
     // Select the first tile of the second row. All other tiles are black.
