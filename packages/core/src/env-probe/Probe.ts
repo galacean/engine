@@ -69,6 +69,8 @@ export abstract class Probe extends Script {
       this._activeRenderTarget.height !== this.height ||
       this._activeRenderTarget.antiAliasing !== this.antiAliasing
     ) {
+      this._destroyRenderTargets();
+
       this._renderTarget = new RenderTarget(
         this.engine,
         this.width,
@@ -77,6 +79,7 @@ export abstract class Probe extends Script {
         RenderBufferDepthFormat.Depth,
         this.antiAliasing
       );
+      this._renderTarget._addReferCount(1);
 
       this._renderTargetSwap = new RenderTarget(
         this.engine,
@@ -86,6 +89,7 @@ export abstract class Probe extends Script {
         RenderBufferDepthFormat.Depth,
         this.antiAliasing
       );
+      this._renderTargetSwap._addReferCount(1);
 
       this._activeRenderTarget = this._renderTarget;
     }
@@ -103,9 +107,27 @@ export abstract class Probe extends Script {
       this._activeRenderTarget === this._renderTarget ? this._renderTargetSwap : this._renderTarget;
   }
 
+  override onDestroy(): void {
+    this._destroyRenderTargets();
+  }
+
   protected _reset(): void {
     if (!this.enabled) return;
     this._camera.renderTarget = this._oriCameraRenderTarget;
     this._camera.cullingMask = this._oriCameraCullingMask;
+  }
+
+  private _destroyRenderTargets(): void {
+    if (this._renderTarget) {
+      this._renderTarget._addReferCount(-1);
+      this._renderTarget.destroy();
+      this._renderTarget = null!;
+    }
+    if (this._renderTargetSwap) {
+      this._renderTargetSwap._addReferCount(-1);
+      this._renderTargetSwap.destroy();
+      this._renderTargetSwap = null!;
+    }
+    this._activeRenderTarget = null!;
   }
 }

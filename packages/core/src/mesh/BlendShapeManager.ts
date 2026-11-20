@@ -331,8 +331,14 @@ export class BlendShapeManager {
 
     let blendShapeDataTexture = this._vertexTexture;
     const blendShapeCount = this._blendShapes.length;
+    const referCount = this._modelMesh._getReferCount();
 
-    blendShapeDataTexture && blendShapeDataTexture.destroy();
+    if (blendShapeDataTexture) {
+      if (referCount > 0) {
+        blendShapeDataTexture._addReferCount(-referCount);
+      }
+      blendShapeDataTexture.destroy();
+    }
 
     blendShapeDataTexture = new Texture2DArray(
       this._engine,
@@ -344,6 +350,9 @@ export class BlendShapeManager {
       false
     );
     blendShapeDataTexture.filterMode = TextureFilterMode.Point;
+    if (referCount > 0) {
+      blendShapeDataTexture._addReferCount(referCount);
+    }
 
     this._vertices = new Float32Array(blendShapeCount * textureWidth * textureHeight * 4);
     this._vertexTexture = blendShapeDataTexture;

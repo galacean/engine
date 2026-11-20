@@ -25,10 +25,12 @@ export class PostProcessUberPass extends PostProcessPass {
 
     // Uber Material
     const uberMaterial = new Material(engine, Engine._builtinShaders.uber);
+    uberMaterial._addReferCount(1);
     this._uberMaterial = uberMaterial;
 
     // Bloom Material
     const bloomMaterial = new Material(engine, Engine._builtinShaders.bloom);
+    bloomMaterial._addReferCount(1);
     this._bloomMaterial = bloomMaterial;
 
     // ShaderData initialization
@@ -86,7 +88,9 @@ export class PostProcessUberPass extends PostProcessPass {
   override _onDestroy() {
     super._onDestroy();
     this._releaseBloomRenderTargets();
+    this._uberMaterial._addReferCount(-1);
     this._uberMaterial.destroy();
+    this._bloomMaterial._addReferCount(-1);
     this._bloomMaterial.destroy();
   }
 
