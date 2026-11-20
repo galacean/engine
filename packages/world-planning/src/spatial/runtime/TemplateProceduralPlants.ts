@@ -32,6 +32,7 @@ import type {
   ProceduralPlantAsset
 } from "@galacean/engine-vegetation/asset-assembly/ProceduralPlantAsset";
 import {
+  attachPlantCanopyOpticalDepth,
   buildProceduralPlantGeometry,
   mergePlantGeometryByMaterial,
   type PlantPartMesh,
@@ -386,6 +387,7 @@ interface CompiledProductionPlantGeometry {
   readonly sourceHeight: number;
   readonly windHeight: number;
   readonly leafSlots: Set<string>;
+  readonly canopyOcclusionSlots?: ReadonlySet<string>;
 }
 
 export interface CompiledDesertShrubLod extends CompiledProductionPlantGeometry {
@@ -422,33 +424,39 @@ export function compileDesertShrubLods(bushAsset: ProceduralPlantAsset): readonl
   };
 
   const lod0Assembled = assembleLayerParts(lod0Parts);
-  const lod0Floor = Math.min(...lod0Assembled.map(({ mesh }) => mesh.bounds[0][1]));
-  const lod0MaxY = Math.max(...lod0Assembled.map(({ mesh }) => mesh.bounds[1][1]));
+  const shrubCanopySlots = new Set<string>(["foliage"]);
+  const lod0WithDepths = attachPlantCanopyOpticalDepth(lod0Assembled, shrubCanopySlots);
+  const lod0Floor = Math.min(...lod0WithDepths.map(({ mesh }) => mesh.bounds[0][1]));
+  const lod0MaxY = Math.max(...lod0WithDepths.map(({ mesh }) => mesh.bounds[1][1]));
   const windHeight = Math.max(0.05, lod0MaxY - lod0Floor);
   const floor = Math.max(lod0Floor, -0.02 * rawHeight);
   const sourceHeight = Math.max(0.01, lod0MaxY - floor);
 
+  // Keep leafSlots empty so desert shrubs stay on the flexible plant wind & original sage color path
+  // (no MATERIAL_VEGETATION_CLIMATE_LEAF leaf-pivot flutter or forest-leaf season recoloring).
   const result: CompiledDesertShrubLod[] = [
     {
       lodIndex: 0,
-      geometry: mergePlantGeometryByMaterial(attachFlexibleWindFrames(lod0Assembled, windHeight)),
+      geometry: mergePlantGeometryByMaterial(attachFlexibleWindFrames(lod0WithDepths, windHeight)),
       floor,
       sourceHeight,
       windHeight,
-      leafSlots: new Set()
+      leafSlots: new Set(),
+      canopyOcclusionSlots: shrubCanopySlots
     }
   ];
 
   for (let lodIndex = 1; lodIndex < lodCount; lodIndex++) {
     const baseParts = buildProceduralPlantGeometry(bushAsset.geometryLods[lodIndex], 0);
-    const assembled = assembleLayerParts(baseParts);
+    const assembled = attachPlantCanopyOpticalDepth(assembleLayerParts(baseParts), shrubCanopySlots, lod0WithDepths);
     result.push({
       lodIndex,
       geometry: mergePlantGeometryByMaterial(attachFlexibleWindFrames(assembled, windHeight)),
       floor,
       sourceHeight,
       windHeight,
-      leafSlots: new Set()
+      leafSlots: new Set(),
+      canopyOcclusionSlots: shrubCanopySlots
     });
   }
 
@@ -846,6 +854,18 @@ const PROCEDURAL_WIND_PARAMS: Record<
   "meadow-flower": [0.24, 0.68, 0, 1.22]
 };
 
+interface ProceduralShrubShadingOptions {
+  readonly lightingFlatness: number;
+  readonly translucencyIntensity: number;
+  readonly canopyOcclusionDensity?: number;
+  readonly verticalGradient?: {
+    readonly baseColor: Color;
+    readonly crownColor: Color;
+    readonly floor: number;
+    readonly height: number;
+  };
+}
+
 function createProceduralWindMaterial(
   engine: Engine,
   vegetationTemplate: Material | undefined,
@@ -856,7 +876,8 @@ function createProceduralWindMaterial(
   alphaCutoff: number,
   textureBlend: number,
   albedoBrightness: number,
-  desaturation: number
+  desaturation: number,
+  shading?: ProceduralShrubShadingOptions
 ): Material {
   if (!vegetationTemplate || vegetationTemplate.shader.name !== "Terrain/Vegetation") {
     const fallback = createSurfaceMaterial(engine, { baseColor: new Color(1, 1, 1, 1) });
@@ -889,19 +910,31 @@ function createProceduralWindMaterial(
   configureProceduralPlantWindMaterial(material, isLeaf);
   data.setFloat("material_ProceduralTreeHeight", windHeight);
   data.setVector4("material_ProceduralTreeWindParams", new Vector4(...windParams));
-  data.setColor("material_BaseColor", new Color(1, 1, 1, 1));
+  data.setColor("material_BaseColor", shading?.verticalGradient?.baseColor ?? new Color(1, 1, 1, 1));
   data.setColor("material_TranslucencyColor", new Color(1, 0.96, 0.9, 1));
-  data.setFloat("material_TranslucencyIntensity", isLeaf ? 0.62 : 0.42);
+  data.setFloat("material_TranslucencyIntensity", shading?.translucencyIntensity ?? (isLeaf ? 0.62 : 0.42));
   data.setFloat("material_LeafAlbedoBrightness", albedoBrightness);
   data.setFloat("material_LeafAlbedoDesaturation", desaturation);
   data.setFloat("material_LeafAlbedoTextureBlend", texture ? textureBlend : 0);
   data.setFloat("material_LeafFlipBackfaceNormals", 1);
-  data.setFloat("material_LightingFlatness", 0.58);
+  data.setFloat("material_LightingFlatness", shading?.lightingFlatness ?? 0.58);
   data.setFloat("material_Smoothness", 0.12);
   data.setFloat("material_Tiling", 1);
   data.setFloat("material_UVBaseLock", 0);
   data.setFloat("material_AlphaCutoff", texture ? alphaCutoff : 0);
   data.setFloat("material_GrassDistanceFadeEnable", 0);
+  if (shading?.canopyOcclusionDensity && shading.canopyOcclusionDensity > 0) {
+    data.enableMacro("MATERIAL_PROCEDURAL_TREE_CANOPY_OCCLUSION");
+    data.setFloat("material_ProceduralTreeCanopyOcclusionDensity", shading.canopyOcclusionDensity);
+    data.setColor("material_ProceduralTreeCanopyOcclusionColor", new Color(0.66, 0.71, 0.65, 1));
+  }
+  if (shading?.verticalGradient) {
+    data.enableMacro("MATERIAL_ENABLE_SECOND_COLOR");
+    data.enableMacro("MATERIAL_SECOND_COLOR_LINEAR_OBJECT_GRADIENT");
+    data.setColor("material_SecondColor", shading.verticalGradient.crownColor);
+    data.setFloat("material_SecondColorLevel", -shading.verticalGradient.floor);
+    data.setFloat("material_SecondColorGradient", 1 / Math.max(0.05, shading.verticalGradient.height * 0.88));
+  }
   return material;
 }
 
@@ -1025,22 +1058,39 @@ export function mountTemplateProceduralPlants(
           )
         : undefined;
     const primary = desertShrubLods?.[0] ?? compileProductionGeometry(kind, plantResources);
-    const { floor, sourceHeight, windHeight, leafSlots } = primary;
+    const { floor, sourceHeight, windHeight, leafSlots, canopyOcclusionSlots } = primary;
     const windParams = PROCEDURAL_WIND_PARAMS[kind];
     const slotConfigs = SLOT_TEXTURES[kind] ?? {};
     const materials = Object.fromEntries(
       Object.keys(PROCEDURAL_PALETTE[kind]).map((slot) => {
         const cfg = slotConfigs[slot];
         const texture = cfg?.textureKey ? plantResources.textures[cfg.textureKey] : undefined;
+        const isDesertShrub = kind === "desert-shrub";
+        const isShrubCanopy = isDesertShrub && Boolean(canopyOcclusionSlots?.has(slot));
         const brightness =
           kind === "meadow-flower" && (slot === "petals" || slot === "petalsAlt")
             ? 1.75
             : kind === "pastel-flower" && (slot === "petals" || slot === "petalsAlt")
               ? 1.32
-              : kind === "desert-shrub"
+              : isDesertShrub
                 ? 1.72
                 : 1.48;
-        const desaturation = kind === "desert-shrub" ? 0.32 : 0;
+        const desaturation = isDesertShrub ? 0.32 : 0;
+        const shading: ProceduralShrubShadingOptions | undefined = isDesertShrub
+          ? {
+              lightingFlatness: isShrubCanopy ? 0.05 : 0.0,
+              translucencyIntensity: isShrubCanopy ? 0.16 : 0.08,
+              canopyOcclusionDensity: isShrubCanopy ? 0.55 : undefined,
+              verticalGradient: isShrubCanopy
+                ? {
+                    baseColor: new Color(0.68, 0.72, 0.67, 1),
+                    crownColor: new Color(1.14, 1.13, 1.07, 1),
+                    floor,
+                    height: sourceHeight
+                  }
+                : undefined
+            }
+          : undefined;
         const material = createProceduralWindMaterial(
           root.engine,
           vegetationTemplate,
@@ -1051,7 +1101,8 @@ export function mountTemplateProceduralPlants(
           cfg?.alphaCutoff ?? 0,
           cfg?.textureBlend ?? 0,
           brightness,
-          desaturation
+          desaturation,
+          shading
         );
         disposals.push(() => material.destroy());
         return [slot, material];
@@ -1137,9 +1188,13 @@ export function mountTemplateProceduralPlants(
           const renderer = partEntity.addComponent(MeshRenderer);
           renderer.mesh = view.mesh;
           renderer.setMaterial(materials[part.materialId]);
-          renderer.castShadows = false;
+          // Cast real self/contact shadows on near/midground LOD0-1 shrubs (<88m) while keeping far LOD2-3 shadow-free.
+          renderer.castShadows = lod.lodIndex <= 1;
           renderer.receiveShadows = true;
           renderer.shaderData.enableMacro("RENDERER_ASSET_ASSEMBLY_INSTANCE");
+          if (lod.canopyOcclusionSlots?.has(part.materialId)) {
+            renderer.shaderData.enableMacro("RENDERER_PROCEDURAL_PLANT_CANOPY_OCCLUSION");
+          }
           partEntity.isActive = false;
           tierParts.push({ entity: partEntity, view, colors });
         }
@@ -1175,9 +1230,12 @@ export function mountTemplateProceduralPlants(
       renderer.setMaterial(materials[part.materialId]);
       // Ground underbrush, grass tufts, and flower cushions receive cliff/tree shadows
       // without rasterizing 2.34M sub-pixel alpha-cutout triangles across directional shadow cascades.
-      renderer.castShadows = false;
+      renderer.castShadows = kind === "desert-shrub";
       renderer.receiveShadows = true;
       renderer.shaderData.enableMacro("RENDERER_ASSET_ASSEMBLY_INSTANCE");
+      if (canopyOcclusionSlots?.has(part.materialId)) {
+        renderer.shaderData.enableMacro("RENDERER_PROCEDURAL_PLANT_CANOPY_OCCLUSION");
+      }
     }
   }
   disposals.push(() => {
