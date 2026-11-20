@@ -168,9 +168,12 @@ export class GLTFAnimationParser extends GLTFParser {
       case AnimationChannelTargetPath.SCALE: {
         const curve = new AnimationVector3Curve();
         const interpolation = (curve.interpolation = sampleData.interpolation);
+        const count = input.length;
+        const keys = curve.keys;
+        keys.length = count;
 
         let offset = 0;
-        for (let i = 0, n = input.length; i < n; i++) {
+        for (let i = 0; i < count; i++) {
           const keyframe = new Keyframe<Vector3>();
           keyframe.time = input[i];
           if (interpolation === InterpolationType.CubicSpine) {
@@ -180,16 +183,21 @@ export class GLTFAnimationParser extends GLTFParser {
           } else {
             keyframe.value = new Vector3(output[offset++], output[offset++], output[offset++]);
           }
-          curve.addKey(keyframe);
+          keys[i] = keyframe;
         }
+        // @ts-ignore
+        curve._addKeys(keys);
         return curve;
       }
       case AnimationChannelTargetPath.ROTATION: {
         const curve = new AnimationQuaternionCurve();
         const interpolation = (curve.interpolation = sampleData.interpolation);
+        const count = input.length;
+        const keys = curve.keys;
+        keys.length = count;
 
         let offset = 0;
-        for (let i = 0, n = input.length; i < n; i++) {
+        for (let i = 0; i < count; i++) {
           const keyframe = new Keyframe<Quaternion>();
           keyframe.time = input[i];
           if (interpolation === InterpolationType.CubicSpine) {
@@ -199,16 +207,21 @@ export class GLTFAnimationParser extends GLTFParser {
           } else {
             keyframe.value = new Quaternion(output[offset++], output[offset++], output[offset++], output[offset++]);
           }
-          curve.addKey(keyframe);
+          keys[i] = keyframe;
         }
+        // @ts-ignore
+        curve._addKeys(keys);
         return curve;
       }
       case AnimationChannelTargetPath.WEIGHTS: {
         const curve = new AnimationFloatArrayCurve();
         curve.interpolation = sampleData.interpolation;
+        const count = input.length;
+        const keys = curve.keys;
+        keys.length = count;
 
         let offset = 0;
-        for (let i = 0, n = input.length; i < n; i++) {
+        for (let i = 0; i < count; i++) {
           const keyframe = new Keyframe<Float32Array>();
           keyframe.time = input[i];
           if (curve.interpolation === InterpolationType.CubicSpine) {
@@ -222,8 +235,10 @@ export class GLTFAnimationParser extends GLTFParser {
             keyframe.value = output.slice(offset, offset + outputSize) as Float32Array;
             offset += outputSize;
           }
-          curve.addKey(keyframe);
+          keys[i] = keyframe;
         }
+        // @ts-ignore
+        curve._addKeys(keys);
         return curve;
       }
     }

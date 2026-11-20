@@ -18,7 +18,11 @@ export { Texture2DDecoder } from "./resources/texture2D/TextureDecoder";
 export function decode<T>(arrayBuffer: ArrayBuffer, engine: Engine, ...args: any[]): AssetPromise<T> {
   const header = FileHeader.decode(arrayBuffer);
   const bufferReader = new BufferReader(new Uint8Array(arrayBuffer), header.headerLength, header.dataLength);
-  return decoderMap[header.type].decode(engine, bufferReader, ...args).then((object) => {
+  const decoder = decoderMap[header.type];
+  if (!decoder) {
+    throw new Error(`Unsupported binary resource type: "${header.type}".`);
+  }
+  return decoder.decode(engine, bufferReader, ...args).then((object) => {
     object.name = header.name;
     return object;
   });

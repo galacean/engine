@@ -14,6 +14,14 @@ import {
 import { Color, Vector3 } from "@galacean/engine-math";
 
 const PI = Math.PI;
+const MIN_HDR_WIDTH = 8;
+const MAX_HDR_WIDTH = 0x7fff;
+const MAX_HDR_HEIGHT = 0x7fff;
+const MAX_HDR_PIXELS = 33_554_432; // 8192 x 4096 max equirectangular HDR (128 MiB RGBE)
+const MAX_HDR_CUBEMAP_BYTES = 128 * 1024 * 1024; // 6 faces x 2048 x 2048 x 4 = 96 MiB <= 128 MiB
+const MAX_HDR_HEADER_BYTES = 65_536;
+const MAX_HDR_LINE_LENGTH = 4096;
+const HDR_SIZE_REGEX = /^-Y (\d+) \+X (\d+)\r?$/;
 
 interface IHDRHeader {
   /**
@@ -92,9 +100,12 @@ class HDRLoader extends Loader<TextureCube> {
     const bufferArray = new Uint8Array(buffer);
     const { width, height, dataPosition } = HDRLoader._parseHeader(bufferArray);
     const cubeSize = height >> 1;
-    texture ||= new TextureCube(engine, cubeSize, undefined, undefined, false);
+    if (cubeSize < 1 || 6 * cubeSize * cubeSize * 4 > MAX_HDR_CUBEMAP_BYTES) {
+      throw "HDR Bad header format, cubemap size exceeds limit";
+    }
     const pixels = HDRLoader._readPixels(bufferArray.subarray(dataPosition), width, height);
     const cubeMapData = HDRLoader._convertToCubemap(pixels, width, height, cubeSize);
+    texture ||= new TextureCube(engine, cubeSize, undefined, undefined, false);
     for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
       texture.setPixelBuffer(TextureCubeFace.PositiveX + faceIndex, cubeMapData[faceIndex], 0);
     }
@@ -225,10 +236,10 @@ class HDRLoader extends Loader<TextureCube> {
 
   private static _readStringLine(uint8array: Uint8Array, startIndex: number): string {
     let line = "";
-    let character = "";
+    const limit = Math.min(uint8array.length, startIndex + MAX_HDR_LINE_LENGTH);
 
-    for (let i = startIndex; i < uint8array.length - startIndex; i++) {
-      character = String.fromCharCode(uint8array[i]);
+    for (let i = startIndex; i < limit; i++) {
+      const character = String.fromCharCode(uint8array[i]);
 
       if (character == "\n") {
         break;
@@ -252,9 +263,13 @@ class HDRLoader extends Loader<TextureCube> {
     let endOfHeader = false;
     let findFormat = false;
     let lineIndex: number = 0;
+    const headerLimit = Math.min(uint8array.length, MAX_HDR_HEADER_BYTES);
 
     do {
       lineIndex += line.length + 1;
+      if (lineIndex >= headerLimit) {
+        throw "HDR Bad header format, missing header terminator";
+      }
       line = this._readStringLine(uint8array, lineIndex);
 
       if (line == "FORMAT=32-bit_rle_rgbe") {
@@ -269,23 +284,40 @@ class HDRLoader extends Loader<TextureCube> {
     }
 
     lineIndex += line.length + 1;
+    if (lineIndex >= headerLimit) {
+      throw "HDR Bad header format, no size";
+    }
     line = this._readStringLine(uint8array, lineIndex);
 
-    const sizeRegexp = /^\-Y (.*) \+X (.*)$/g;
-    const match = sizeRegexp.exec(line);
+    const match = HDR_SIZE_REGEX.exec(line);
 
     // TODO. Support +Y and -X if needed.
     if (!match || match.length < 3) {
       throw "HDR Bad header format, no size";
     }
-    width = parseInt(match[2]);
-    height = parseInt(match[1]);
+    width = Number(match[2]);
+    height = Number(match[1]);
 
-    if (width < 8 || width > 0x7fff) {
+    if (
+      !Number.isSafeInteger(width) ||
+      !Number.isSafeInteger(height) ||
+      width < MIN_HDR_WIDTH ||
+      width > MAX_HDR_WIDTH ||
+      height < 2 ||
+      height > MAX_HDR_HEIGHT
+    ) {
       throw "HDR Bad header format, unsupported size";
     }
 
+    const pixelCount = width * height;
+    if (!Number.isSafeInteger(pixelCount) || pixelCount <= 0 || pixelCount > MAX_HDR_PIXELS) {
+      throw "HDR Bad header format, pixel count exceeds limit";
+    }
+
     lineIndex += line.length + 1;
+    if (lineIndex >= uint8array.length) {
+      throw "HDR Bad Format, missing pixel data";
+    }
 
     return {
       height: height,
@@ -297,8 +329,27 @@ class HDRLoader extends Loader<TextureCube> {
   private static _readPixels(buffer: Uint8Array, width: number, height: number): Uint8Array {
     const scanLineWidth = width;
     const byteLength = buffer.byteLength;
+    const expectedBytes = 4 * width * height;
 
-    const dataRGBA = new Uint8Array(4 * width * height);
+    if (byteLength < 4) {
+      throw "HDR Bad Format, truncated pixel data";
+    }
+
+    if (buffer[0] != 2 || buffer[1] != 2 || buffer[2] & 0x80 || width < MIN_HDR_WIDTH || width > MAX_HDR_WIDTH) {
+      // this file is not run length encoded
+      // read values sequentially
+      if (byteLength < expectedBytes) {
+        throw "HDR Bad Format, truncated uncompressed pixel data";
+      }
+      return buffer.subarray(0, expectedBytes);
+    }
+
+    const minRleScanlineBytes = 4 + 2 * Math.ceil((4 * width) / 127);
+    if (byteLength < height * minRleScanlineBytes) {
+      throw "HDR Bad Format, truncated RLE pixel data";
+    }
+
+    const dataRGBA = new Uint8Array(expectedBytes);
 
     let offset = 0,
       pos = 0;
@@ -306,19 +357,16 @@ class HDRLoader extends Loader<TextureCube> {
     const scanLineBuffer = new Uint8Array(ptrEnd);
     let numScanLines = height; // read in each successive scanLine
 
-    while (numScanLines > 0 && pos < byteLength) {
+    while (numScanLines > 0) {
+      if (pos + 4 > byteLength) {
+        throw "HDR Bad Format, truncated RLE scanline header";
+      }
       const a = buffer[pos++];
       const b = buffer[pos++];
       const c = buffer[pos++];
       const d = buffer[pos++];
 
-      if (a != 2 || b != 2 || c & 0x80 || width < 8 || width > 32767) {
-        // this file is not run length encoded
-        // read values sequentially
-        return buffer;
-      }
-
-      if (((c << 8) | d) != scanLineWidth) {
+      if (a != 2 || b != 2 || c & 0x80 || ((c << 8) | d) != scanLineWidth) {
         // eslint-disable-next-line no-throw-literal
         throw "HDR Bad header format, wrong scan line width";
       }
@@ -329,7 +377,10 @@ class HDRLoader extends Loader<TextureCube> {
       let ptr = 0,
         count;
 
-      while (ptr < ptrEnd && pos < byteLength) {
+      while (ptr < ptrEnd) {
+        if (pos >= byteLength) {
+          throw "HDR Bad Format, truncated scanline data";
+        }
         count = buffer[pos++];
         const isEncodedRun = count > 128;
         if (isEncodedRun) count -= 128;
@@ -339,6 +390,9 @@ class HDRLoader extends Loader<TextureCube> {
         }
 
         if (isEncodedRun) {
+          if (pos >= byteLength) {
+            throw "HDR Bad Format, truncated scanline run value";
+          }
           // a (encoded) run of the same value
           const byteValue = buffer[pos++];
 
@@ -346,6 +400,9 @@ class HDRLoader extends Loader<TextureCube> {
             scanLineBuffer[ptr++] = byteValue;
           } //ptr += count;
         } else {
+          if (pos + count > byteLength) {
+            throw "HDR Bad Format, truncated scanline literal run";
+          }
           // a literal-run
           scanLineBuffer.set(buffer.subarray(pos, pos + count), ptr);
           ptr += count;

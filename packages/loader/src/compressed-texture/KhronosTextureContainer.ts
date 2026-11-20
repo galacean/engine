@@ -15,26 +15,56 @@ const COMPRESSED_3D = 1; // uses a gl.compressedTexImage3D()
 const TEX_2D = 2; // uses a gl.texImage2D()
 const TEX_3D = 3; // uses a gl.texImage3D()
 
-function getMipmaps(ktxContainer: KTXContainer, loadMipmaps: boolean): Mipmap[] {
-  const mipmaps = [];
+function getMaxMipLevels(width: number, height: number): number {
+  return Math.floor(Math.log2(Math.max(width, height))) + 1;
+}
 
-  // initialize width & height for level 1
-  var dataOffset = HEADER_LEN + ktxContainer.bytesOfKeyValueData;
-  var width = ktxContainer.pixelWidth;
-  var height = ktxContainer.pixelHeight;
-  var mipmapCount = loadMipmaps ? ktxContainer.numberOfMipmapLevels : 1;
+function getMipmaps(ktxContainer: KTXContainer, loadMipmaps: boolean, littleEndian: boolean): Mipmap[] {
+  const buffer = ktxContainer.buffer;
+  const bufferByteLength = buffer.byteLength;
+  const dataView = new DataView(buffer);
+  let dataOffset = HEADER_LEN + ktxContainer.bytesOfKeyValueData;
+  let width = ktxContainer.pixelWidth;
+  let height = ktxContainer.pixelHeight;
+  const maxMipLevels = getMaxMipLevels(width, height);
+  const mipmapCount = loadMipmaps ? ktxContainer.numberOfMipmapLevels : 1;
 
-  for (var level = 0; level < mipmapCount; level++) {
-    var imageSize = new Int32Array(ktxContainer.buffer, dataOffset, 1)[0]; // size per face, since not supporting array cubemaps
-    dataOffset += 4; // size of the image + 4 for the imageSize field
+  if (mipmapCount <= 0 || mipmapCount > maxMipLevels) {
+    throw new Error(`khronosTextureContainerParser: invalid mipmap level count ${mipmapCount}`);
+  }
+  if (!Number.isSafeInteger(dataOffset) || dataOffset > bufferByteLength) {
+    throw new Error("khronosTextureContainerParser: KTX key-value data exceeds buffer bounds");
+  }
 
-    for (var face = 0; face < ktxContainer.numberOfFaces; face++) {
-      var byteArray = new Uint8Array(ktxContainer.buffer, dataOffset, imageSize);
+  const mipmaps = new Array<Mipmap>();
+  const numberOfFaces = ktxContainer.numberOfFaces;
 
+  for (let level = 0; level < mipmapCount; level++) {
+    if (dataOffset + 4 > bufferByteLength) {
+      throw new Error(`khronosTextureContainerParser: truncated mipmap header at level ${level}`);
+    }
+    const imageSize = dataView.getUint32(dataOffset, littleEndian);
+    dataOffset += 4;
+
+    if (imageSize === 0) {
+      throw new Error(`khronosTextureContainerParser: invalid mipmap image size 0 at level ${level}`);
+    }
+
+    const padding = 3 - ((imageSize + 3) % 4);
+    for (let face = 0; face < numberOfFaces; face++) {
+      if (imageSize > bufferByteLength - dataOffset) {
+        throw new Error(`khronosTextureContainerParser: mipmap data exceeds buffer bounds at level ${level}`);
+      }
+      const byteArray = new Uint8Array(buffer, dataOffset, imageSize);
       mipmaps.push({ data: byteArray, width: width, height: height });
 
       dataOffset += imageSize;
-      dataOffset += 3 - ((imageSize + 3) % 4); // add padding for odd sized image
+      if (face < numberOfFaces - 1 || level < mipmapCount - 1) {
+        if (padding > bufferByteLength - dataOffset) {
+          throw new Error(`khronosTextureContainerParser: mipmap padding exceeds buffer bounds at level ${level}`);
+        }
+        dataOffset += padding;
+      }
     }
     width = Math.max(1.0, width * 0.5);
     height = Math.max(1.0, height * 0.5);
@@ -139,11 +169,17 @@ export const khronosTextureContainerParser = {
     if (!isValid(buffer)) {
       throw new Error("khronosTextureContainerParser: invalid KTX file, texture missing KTX identifier");
     }
+    if (buffer.byteLength < HEADER_LEN) {
+      throw new Error("khronosTextureContainerParser: invalid KTX header length");
+    }
 
     // load the reset of the header in native 32 bit uint
     const dataSize = Uint32Array.BYTES_PER_ELEMENT;
     const headerDataView = new DataView(buffer, 12, 13 * dataSize);
     const endianness = headerDataView.getUint32(0, true);
+    if (endianness !== 0x04030201 && endianness !== 0x01020304) {
+      throw new Error("khronosTextureContainerParser: invalid KTX endianness");
+    }
     const littleEndian = endianness === 0x04030201;
 
     const parsedResult: KTXContainer = {
@@ -172,7 +208,7 @@ export const khronosTextureContainerParser = {
       parsedResult.numberOfMipmapLevels = Math.max(1, parsedResult.numberOfMipmapLevels);
     }
 
-    if (parsedResult.pixelHeight === 0 || parsedResult.pixelDepth !== 0) {
+    if (parsedResult.pixelWidth === 0 || parsedResult.pixelHeight === 0 || parsedResult.pixelDepth !== 0) {
       throw new Error("only 2D textures currently supported");
     }
 
@@ -184,8 +220,19 @@ export const khronosTextureContainerParser = {
       throw new Error("number of faces expected" + facesExpected + ", but found " + parsedResult.numberOfFaces);
     }
 
+    const maxMipLevels = getMaxMipLevels(parsedResult.pixelWidth, parsedResult.pixelHeight);
+    if (parsedResult.numberOfMipmapLevels <= 0 || parsedResult.numberOfMipmapLevels > maxMipLevels) {
+      throw new Error(
+        `khronosTextureContainerParser: numberOfMipmapLevels ${parsedResult.numberOfMipmapLevels} exceeds maximum ${maxMipLevels}`
+      );
+    }
+
+    if (HEADER_LEN + parsedResult.bytesOfKeyValueData > buffer.byteLength) {
+      throw new Error("khronosTextureContainerParser: KTX key-value data exceeds buffer bounds");
+    }
+
     if (withMipmaps) {
-      parsedResult.mipmaps = getMipmaps(parsedResult, true);
+      parsedResult.mipmaps = getMipmaps(parsedResult, true, littleEndian);
     }
 
     if (mapEngineFormat) {

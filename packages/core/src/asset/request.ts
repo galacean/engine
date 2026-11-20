@@ -1,6 +1,8 @@
 import { AssetPromise } from "./AssetPromise";
 
-const mimeType = {
+const hasOwn = Object.prototype.hasOwnProperty;
+
+const mimeType: Record<string, XMLHttpRequestResponseType | "image"> = Object.assign(Object.create(null), {
   json: "json",
   gltf: "json",
   mtl: "json",
@@ -10,11 +12,15 @@ const mimeType = {
   png: "image",
   webp: "image",
   jpg: "image"
-};
+});
 
 const defaultRetryCount = 1;
 const defaultTimeout = Infinity;
 const defaultInterval = 500;
+
+function getOwn<T extends object, K extends keyof T>(obj: T | undefined | null, key: K): T[K] | undefined {
+  return obj != null && hasOwn.call(obj, key) ? obj[key] : undefined;
+}
 
 /**
  * Configuration options for `request`.
@@ -37,12 +43,20 @@ export type RequestConfig = {
  */
 export function request<T>(url: string, config: RequestConfig = {}): AssetPromise<T> {
   return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
-    const retryCount = config.retryCount ?? defaultRetryCount;
-    const retryInterval = config.retryInterval ?? defaultInterval;
-    config.timeout = config.timeout ?? defaultTimeout;
-    config.type = config.type ?? getMimeTypeFromUrl(url);
+    const retryCount = getOwn(config, "retryCount") ?? defaultRetryCount;
+    const retryInterval = getOwn(config, "retryInterval") ?? defaultInterval;
+    const timeout = getOwn(config, "timeout") ?? defaultTimeout;
+    const type = getOwn(config, "type") ?? getMimeTypeFromUrl(url);
+    const requestConfig: RequestConfig = Object.assign(Object.create(null), {
+      timeout,
+      type,
+      method: getOwn(config, "method"),
+      credentials: getOwn(config, "credentials"),
+      headers: getOwn(config, "headers"),
+      body: getOwn(config, "body")
+    });
     const executor = new MultiExecutor(
-      () => requestRes<T>(url, config).onProgress(setTaskCompleteProgress, setTaskDetailProgress),
+      () => requestRes<T>(url, requestConfig).onProgress(setTaskCompleteProgress, setTaskDetailProgress),
       retryCount,
       retryInterval
     );
@@ -55,7 +69,7 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
     const xhr = new XMLHttpRequest();
     const isImg = config.type === "image";
     xhr.timeout = config.timeout;
-    config.method = config.method ?? "get";
+    const method = config.method ?? "get";
     xhr.withCredentials = config.credentials === "include";
     // @ts-ignore
     xhr.responseType = isImg ? "blob" : config.type;
@@ -110,12 +124,18 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
         setTaskDetailProgress(url, e.loaded, e.total);
       }
     };
-    xhr.open(config.method, url, true);
+    xhr.open(method, url, true);
     const headers = config.headers;
     if (headers) {
-      Object.keys(headers).forEach((name) => {
-        xhr.setRequestHeader(name, headers[name]);
-      });
+      if (typeof Headers !== "undefined" && headers instanceof Headers) {
+        headers.forEach((value, name) => {
+          xhr.setRequestHeader(name, value);
+        });
+      } else {
+        Object.keys(headers).forEach((name) => {
+          xhr.setRequestHeader(name, headers[name]);
+        });
+      }
     }
     // @ts-ignore
     xhr.send(config.body as XMLHttpRequestBodyInit);
