@@ -1,0 +1,22 @@
+packages/loader/src/MaterialLoader.ts
+  h_dd004f51a3e5ec 89,120-126,147
+packages/loader/src/SceneLoader.ts
+  h_dd004f51a3e5ec 171,173-174
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  h_dd004f51a3e5ec 61,70-71,104-105,109
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  h_dd004f51a3e5ec 137-144,288,322-327
+tests/src/loader/HierarchyDeserialization.test.ts
+  h_dd004f51a3e5ec 157,161-163
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "28415f2c85bad97ae6c02aa1c654ae06bb6ce91e",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
