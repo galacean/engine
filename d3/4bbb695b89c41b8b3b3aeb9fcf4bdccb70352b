@@ -1,0 +1,23 @@
+packages/core/src/physics/Collider.ts
+  s_377380b9d9a256::t_627c11bf953e56 85,444,450-457,526,534-547,756
+packages/core/src/physics/MeshCollider.ts
+  s_377380b9d9a256::t_3ec64b24d8351a 25-26,30-32,122-128,169,188-194,200,206,210,213-214,223,227,229,248,281-289
+packages/core/src/physics/Rigidbody.ts
+  s_377380b9d9a256::t_7b36323d1f054c 332,336,344,694,729-731
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d34bbb695b89c41b8b3b3aeb9fcf4bdccb70352b",
+  "prompts": {},
+  "sessions": {
+    "s_377380b9d9a256": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f7dd-8702-7241-99bf-b5e87945a0bd",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
