@@ -136,6 +136,7 @@ void BlinnPhongFragment(Varyings v) {
     // Apply vertex color
     #ifdef RENDERER_ENABLE_VERTEXCOLOR
         diffuse *= v.v_color;
+        ambient *= v.v_color;
     #endif
 
     // Normal

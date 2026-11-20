@@ -24,6 +24,9 @@ Shader "Pipeline/ShadowCaster" {
 
       struct Varyings {
         vec2 v_uv;
+        #ifdef RENDERER_ENABLE_VERTEXCOLOR
+          vec4 v_color;
+        #endif
       };
 
       vec3 applyShadowBias(vec3 positionWS) {
@@ -77,6 +80,10 @@ Shader "Pipeline/ShadowCaster" {
           v.v_uv = vec2(0.0, 0.0);
         #endif
 
+        #ifdef RENDERER_ENABLE_VERTEXCOLOR
+          v.v_color = attr.COLOR_0;
+        #endif
+
         vec4 positionWS = renderer_ModelMat * position;
 
         positionWS.xyz = applyShadowBias(positionWS.xyz);
@@ -98,6 +105,9 @@ Shader "Pipeline/ShadowCaster" {
           float alpha = material_BaseColor.a;
           #ifdef MATERIAL_HAS_BASETEXTURE
             alpha *= texture2D(material_BaseTexture, v.v_uv).a;
+          #endif
+          #ifdef RENDERER_ENABLE_VERTEXCOLOR
+            alpha *= v.v_color.a;
           #endif
           #ifdef MATERIAL_IS_ALPHA_CUTOFF
             if (alpha < material_AlphaCutoff) {
