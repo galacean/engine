@@ -73,7 +73,6 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       .then(this._resolve, this._reject);
   }
 
-  /** @internal */
   protected _applyEntityData(entity: Entity, entityConfig: IEntity = {}): Promise<Entity> {
     entity.isActive = entityConfig.isActive ?? entity.isActive;
     entity.name = entityConfig.name ?? entity.name;
@@ -95,9 +94,12 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
   private _parseEntities(): Promise<Entity[]> {
     const entitiesConfig = this.data.entities;
+    if (!Array.isArray(entitiesConfig)) {
+      throw new Error("Serialized entities must be an array");
+    }
     const entityConfigMap = this.context.entityConfigMap;
     const engine = this._engine;
-    const promises = entitiesConfig.map(async (entityConfig) => {
+    const promises = entitiesConfig.map((entityConfig) => {
       const id = (entityConfig as IStrippedEntity).strippedId ?? entityConfig.id;
       if (entityConfigMap.has(id)) throw new Error("Duplicate serialized entity ID: " + id);
       entityConfig.id = id;
@@ -242,7 +244,8 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
   private _parseEntity(entityConfig: IEntity, engine: Engine): Promise<Entity> {
     const transform = entityConfig.transform;
-    const entity = new Entity(engine, entityConfig.name, transform ? Loader.getClass(transform.class) : Transform);
+    const transformClass = transform ? ReflectionParser._resolveClass(transform.class, Transform) : Transform;
+    const entity = new Entity(engine, entityConfig.name, transformClass);
     this.context.entityMap.set(entityConfig.id, entity);
     if (!entityConfig.parent) this.context.rootIds.push(entityConfig.id);
 
@@ -318,6 +321,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   }
 
   private _addComponents(entity: Entity, components: IEntity["components"]): void {
+    if (!components?.length) return;
     const context = this.context;
     const componentMap = context.components;
     const componentConfigMap = context.componentConfigMap;
@@ -326,7 +330,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       const componentConfig = components[i];
       const key = !componentConfig.refId ? componentConfig.class : componentConfig.refId;
       const componentId = componentConfig.id;
-      const component = entity.addComponent(Loader.getClass(key));
+      const component = entity.addComponent(ReflectionParser._resolveClass(key, Component));
       componentMap.set(componentId, component);
       componentConfigMap.set(componentId, componentConfig);
       this._addComponentPlugin(componentId, component);

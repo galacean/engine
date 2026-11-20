@@ -56,13 +56,14 @@ export class ParserContext<T extends IHierarchyFile, I extends EngineObject> {
   /** @internal */
   _addDependentAsset(refID: string, promise: AssetPromise<any>): void {
     const tasks = this._tasks;
-    const trackProgress = !tasks.has(refID);
-    if (trackProgress) {
-      ++this._total;
-      tasks.add(refID);
+    if (tasks.has(refID)) {
+      promise.then(noop, noop);
+      return;
     }
+    ++this._total;
+    tasks.add(refID);
     const onSettled = () => {
-      if (trackProgress && !this._aborted) {
+      if (!this._aborted) {
         ++this._loaded;
         this._setTaskCompleteProgress?.(this._loaded, this._total);
       }
@@ -70,3 +71,5 @@ export class ParserContext<T extends IHierarchyFile, I extends EngineObject> {
     promise.then(onSettled, onSettled);
   }
 }
+
+const noop = () => {};

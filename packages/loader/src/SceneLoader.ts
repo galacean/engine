@@ -56,6 +56,7 @@ class SceneLoader extends Loader<Scene> {
                 promises.push(
                   // @ts-ignore
                   resourceManager.getResourceByRef<any>(ambient.customAmbientLight).then((ambientLight) => {
+                    if (scene.destroyed) return;
                     scene.ambientLight.specularTexture = ambientLight?.specularTexture;
                   })
                 );
@@ -65,6 +66,7 @@ class SceneLoader extends Loader<Scene> {
                 promises.push(
                   // @ts-ignore
                   resourceManager.getResourceByRef<any>(ambient.ambientLight).then((ambientLight) => {
+                    if (scene.destroyed) return;
                     if (!useCustomAmbient) {
                       scene.ambientLight.specularTexture = ambientLight?.specularTexture;
                     }
@@ -89,11 +91,13 @@ class SceneLoader extends Loader<Scene> {
                 if (background.skyMesh && background.skyMaterial) {
                   // @ts-ignore
                   const skyMeshPromise = resourceManager.getResourceByRef<Mesh>(background.skyMesh).then((mesh) => {
+                    if (scene.destroyed) return;
                     scene.background.sky.mesh = mesh;
                   });
                   // @ts-ignore
                   // prettier-ignore
                   const skyMaterialPromise = resourceManager.getResourceByRef<Material>(background.skyMaterial).then((material) => {
+                    if (scene.destroyed) return;
                     scene.background.sky.material = material;
                   });
                   promises.push(skyMeshPromise, skyMaterialPromise);
@@ -106,6 +110,7 @@ class SceneLoader extends Loader<Scene> {
                   // @ts-ignore
                   // prettier-ignore
                   const backgroundPromise = resourceManager.getResourceByRef<any>(background.texture).then((texture) => {
+                    if (scene.destroyed) return;
                     scene.background.texture = texture;
                   });
                   promises.push(backgroundPromise);
@@ -174,10 +179,10 @@ class SceneLoader extends Loader<Scene> {
 }
 
 ReflectionParser.registerCustomParseComponent("TextRenderer", async (instance: any, item: Omit<IClass, "class">) => {
-  const { props } = item;
-  if (!props.font) {
+  const props = item.props;
+  if (!props?.font) {
     // @ts-ignore
-    instance.font = Font.createFromOS(instance.engine, props.fontFamily || "Arial");
+    instance.font = Font.createFromOS(instance.engine, props?.fontFamily || "Arial");
   }
   return instance;
 });

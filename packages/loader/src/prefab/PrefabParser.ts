@@ -23,7 +23,6 @@ export class PrefabParser extends HierarchyParser<PrefabResource, ParserContext<
     super(data, context);
   }
 
-  /** @internal */
   protected override _applyEntityData(entity: Entity, entityConfig?: IEntity): Promise<Entity> {
     const parsedEntity = super._applyEntityData(entity, entityConfig);
     // @ts-ignore
