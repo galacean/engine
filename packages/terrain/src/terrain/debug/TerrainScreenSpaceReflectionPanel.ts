@@ -8,7 +8,6 @@ import {
 } from "@galacean/engine";
 import type { DebugInspectorPanelHost } from "./DebugInspector";
 import {
-  TERRAIN_MOBILE_WATER_SCREEN_SPACE_REFLECTION_RESOLUTION_SCALE,
   TERRAIN_RAIN_SCREEN_SPACE_REFLECTION_RESOLUTION_SCALE,
   TERRAIN_SCREEN_SPACE_REFLECTION_MAX_RAY_DISTANCE_METRES,
   TERRAIN_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES,
@@ -71,20 +70,7 @@ export const TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION: TerrainScreenSpaceRe
     waterResolutionScale: TERRAIN_SCREEN_SPACE_REFLECTION_RESOLUTION_SCALE,
     waterRayLengthFade: TERRAIN_SCREEN_SPACE_REFLECTION_RAY_LENGTH_FADE_METRES,
     waterMaxRaySteps: 64,
-    waterHitRefinementSteps: 5,
-    waterThickness: TERRAIN_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES,
-    waterMaxRoughness: 0.7,
-    waterEdgeFade: TERRAIN_WATER_SCREEN_SPACE_REFLECTION_EDGE_FADE
-  });
-
-/** Mobile Water SSR trace override: quarter-res trace and 24/2 steps keep silhouettes while reducing random depth reads. */
-export const TERRAIN_MOBILE_WATER_SCREEN_SPACE_REFLECTION_CONFIGURATION: Partial<TerrainScreenSpaceReflectionPanelConfiguration> =
-  Object.freeze({
-    waterQuality: "low",
-    waterResolutionScale: TERRAIN_MOBILE_WATER_SCREEN_SPACE_REFLECTION_RESOLUTION_SCALE,
-    waterRayLengthFade: TERRAIN_SCREEN_SPACE_REFLECTION_RAY_LENGTH_FADE_METRES,
-    waterMaxRaySteps: 24,
-    waterHitRefinementSteps: 2,
+    waterHitRefinementSteps: 3,
     waterThickness: TERRAIN_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES,
     waterMaxRoughness: 0.7,
     waterEdgeFade: TERRAIN_WATER_SCREEN_SPACE_REFLECTION_EDGE_FADE

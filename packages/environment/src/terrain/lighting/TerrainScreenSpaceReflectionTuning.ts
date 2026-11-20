@@ -16,9 +16,6 @@ export const TERRAIN_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES = 0.2;
 /** Quarter linear resolution used by Terrain rain-film SSR to reduce trace pixel cost. */
 export const TERRAIN_RAIN_SCREEN_SPACE_REFLECTION_RESOLUTION_SCALE = 0.25;
 
-/** Quarter linear resolution used by mobile transparent Water SSR to preserve reflection silhouettes at lower bandwidth. */
-export const TERRAIN_MOBILE_WATER_SCREEN_SPACE_REFLECTION_RESOLUTION_SCALE = 0.25;
-
 /** Half linear resolution traces one quarter as many pixels for transparent Water SSR while preserving full-resolution depth. */
 export const TERRAIN_SCREEN_SPACE_REFLECTION_RESOLUTION_SCALE = 0.5;
 

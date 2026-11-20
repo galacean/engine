@@ -135,7 +135,6 @@ import {
 import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import {
-  TERRAIN_MOBILE_WATER_SCREEN_SPACE_REFLECTION_CONFIGURATION,
   TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION,
   applyAutomaticScreenSpaceReflectionConfiguration,
   applyScreenSpaceReflectionConfiguration
@@ -228,17 +227,6 @@ function waterAgentKnowledge() {
   const knowledge = createSeedWorldKnowledge(WATER_QUERY_CONTRACTS.map(item => item.name));
   // The base World catalog already owns the shared tools namespace declaration.
   return { ...knowledge, modules: knowledge.modules.filter(module => module.id !== "declare/world/common/AgentTools.d.ts") };
-}
-
-function isSeedWorldMobileDevice(): boolean {
-  if (typeof navigator !== "undefined") {
-    const userAgent = navigator.userAgent;
-    if (/Android|iPhone|iPad|iPod|Mobile/i.test(userAgent)) return true;
-    if (navigator.maxTouchPoints > 1 && /Macintosh/i.test(userAgent)) return true;
-  }
-  return typeof window !== "undefined" && typeof window.matchMedia === "function"
-    ? window.matchMedia("(hover: none) and (pointer: coarse)").matches
-    : false;
 }
 
 /** Original Seed scene/HUD/gameplay host. The spatial planner supplies data, never its preview camera. */
@@ -854,14 +842,11 @@ export async function mountSeedWorldDemo(
     camera.fieldOfView = PLANNING_RUNTIME_OPTIONS.verticalFieldOfView;
     camera.farClipPlane = TERRAIN_DEFAULT_CAMERA_CONFIGURATION.farClipPlane;
     camera.enableHDR = TERRAIN_DEFAULT_CAMERA_CONFIGURATION.enableHDR;
-    const mobileSsr = isSeedWorldMobileDevice();
     applyAutomaticScreenSpaceReflectionConfiguration(camera, TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION);
+    applyScreenSpaceReflectionConfiguration(camera, TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION);
     camera.screenSpaceReflection.useHalfResolutionInputs = true;
-    camera.screenSpaceReflection.useSceneColorMipmaps = !mobileSsr;
+    camera.screenSpaceReflection.useSceneColorMipmaps = false;
     camera.screenSpaceReflection.upsamplingMode = ScreenSpaceReflectionUpsamplingMode.Bilinear;
-    if (mobileSsr) {
-      applyScreenSpaceReflectionConfiguration(camera, TERRAIN_MOBILE_WATER_SCREEN_SPACE_REFLECTION_CONFIGURATION);
-    }
     const orbit = camera.entity.addComponent(OrbitControl);
     orbit.enabled = false;
     orbit.enableDamping = false;
