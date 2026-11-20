@@ -73,7 +73,7 @@ export class SeedWorldPerfPanel {
   private readonly paused = new Set<SeedWorldPerfModuleKey>();
   private readonly liveState: Record<SeedWorldPerfModuleKey, boolean>;
   private readonly savedShadowType: ShadowType;
-  private readonly savedCloud: Readonly<WorldEnvironmentRuntime["weatherSystem"]["state"]["cloud"]>;
+  private savedVolumetricClouds: unknown = null;
   private readonly badge: HTMLDivElement;
   private readonly panelWrap: HTMLDivElement;
   private readonly btnMap = new Map<SeedWorldPerfModuleKey, HTMLButtonElement>();
@@ -95,8 +95,9 @@ export class SeedWorldPerfPanel {
   constructor(private readonly options: SeedWorldPerfPanelOptions) {
     const { sun, environment, post, camera } = options;
     this.savedShadowType = sun.shadowType !== ShadowType.None ? sun.shadowType : ShadowType.SoftLow;
+    const skyMat = options.scene.background.sky.material as { volumetricClouds?: unknown } | null;
+    this.savedVolumetricClouds = skyMat?.volumetricClouds ?? null;
     const cloud = environment.weatherSystem.state.cloud;
-    this.savedCloud = { ...cloud };
 
     const postSnap = post.getDebugSnapshot();
     this.liveState = {
@@ -106,7 +107,7 @@ export class SeedWorldPerfPanel {
       flare: postSnap.enabled && postSnap.sunLensFlare.enabled,
       shadow: sun.shadowType !== ShadowType.None,
       ssr: camera.screenSpaceReflection.enabled,
-      clouds: cloud.cloudCoverage > 0,
+      clouds: Boolean(this.savedVolumetricClouds) && cloud.cloudCoverage > 0,
       wind: options.wind.enabled,
       water: true,
       animals: true,
@@ -388,14 +389,19 @@ export class SeedWorldPerfPanel {
         camera.screenSpaceReflection.enabled = on;
         break;
       case "clouds": {
-        environment.setCloud(
-          on
-            ? this.savedCloud
-            : { ...this.savedCloud, cloudCoverage: 0, cloudType: 0, cloudDetail: 0, cloudDensityMultiplier: 0 }
-        );
-        environment.update(0);
+        const skyMat = scene.background.sky.material as { volumetricClouds?: unknown } | null;
+        if (skyMat && "volumetricClouds" in skyMat) {
+          if (!on && skyMat.volumetricClouds) {
+            this.savedVolumetricClouds = skyMat.volumetricClouds;
+          }
+          skyMat.volumetricClouds = on ? this.savedVolumetricClouds : null;
+        }
         const envDriver = (environment as unknown as { _driver?: { enabled: boolean } })._driver;
         if (envDriver) envDriver.enabled = on;
+        if (on) {
+          environment.invalidateCloudHistory();
+          environment.update(0);
+        }
         break;
       }
       case "wind":
