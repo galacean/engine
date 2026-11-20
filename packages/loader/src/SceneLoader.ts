@@ -168,11 +168,10 @@ class SceneLoader extends Loader<Scene> {
             });
           });
         })
-        .catch((error) => {
+        .then(resolve, (error) => {
           scene?.destroy();
-          throw error;
-        })
-        .then(resolve, reject);
+          reject(error);
+        });
     });
   }
 }

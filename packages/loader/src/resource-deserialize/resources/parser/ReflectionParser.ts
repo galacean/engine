@@ -133,19 +133,18 @@ export class ReflectionParser {
   }
 
   parseClassObject(item: IClass) {
-    let Class: { new (...args: any[]): any };
     try {
-      Class = ReflectionParser._resolveClass(item.class);
+      const Class = ReflectionParser._resolveClass(item.class);
+      const params = item.constructParams;
+      if (params !== undefined && !Array.isArray(params)) {
+        throw new Error("Serialized constructParams must be an array");
+      }
+      return Promise.all((params ?? []).map((param) => this.parseBasicType(param))).then((resultParams) => {
+        if (!this._context._aborted) return this.parsePropsAndMethods(new Class(...resultParams), item);
+      });
     } catch (error) {
       return Promise.reject(error);
     }
-    const params = item.constructParams;
-    if (params !== undefined && !Array.isArray(params)) {
-      return Promise.reject(new Error("Serialized constructParams must be an array"));
-    }
-    return Promise.all((params ?? []).map((param) => this.parseBasicType(param))).then((resultParams) => {
-      if (!this._context._aborted) return this.parsePropsAndMethods(new Class(...resultParams), item);
-    });
   }
 
   parsePropsAndMethods(instance: any, item: Omit<IClass, "class">) {
@@ -286,7 +285,7 @@ export class ReflectionParser {
       return Promise.reject(new Error("Reserved serialized property: " + key));
     }
     const originValue = instance[key];
-    if (ReflectionParser._isProtectedRuntimeObject(originValue)) {
+    if (typeof originValue === "function" || ReflectionParser._isProtectedRuntimeObject(originValue)) {
       return Promise.reject(new Error("Protected serialized property: " + key));
     }
     return this.parseBasicType(value, originValue).then((parsedValue) => {
@@ -320,17 +319,13 @@ export class ReflectionParser {
           })
       );
     } else {
-      const transform = entityConfig.transform;
-      let transformClass: { new (...args: any[]): any } = Transform;
-      if (transform) {
-        try {
-          transformClass = ReflectionParser._resolveClass(transform.class, Transform);
-        } catch (error) {
-          return Promise.reject(error);
-        }
+      try {
+        const transform = entityConfig.transform;
+        const transformClass = transform ? ReflectionParser._resolveClass(transform.class, Transform) : Transform;
+        return Promise.resolve(new Entity(engine, entityConfig.name, transformClass));
+      } catch (error) {
+        return Promise.reject(error);
       }
-      const entity = new Entity(engine, entityConfig.name, transformClass);
-      return Promise.resolve(entity);
     }
   }
 

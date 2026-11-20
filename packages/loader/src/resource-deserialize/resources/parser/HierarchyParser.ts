@@ -58,7 +58,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       .then(this._parsePrefabRemovedEntities)
       .then(this._parsePrefabRemovedComponents)
       .then(this._clearAndResolve)
-      .catch((error) => {
+      .then(this._resolve, (error) => {
         const context = this.context;
         context._aborted = true;
         for (const callbacks of this._prefabPromiseMap.values()) {
@@ -67,9 +67,8 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
         this._prefabPromiseMap.clear();
         for (const entity of context.entityMap.values()) entity.destroy();
         context.clear();
-        throw error;
-      })
-      .then(this._resolve, this._reject);
+        this._reject(error);
+      });
   }
 
   protected _applyEntityData(entity: Entity, entityConfig: IEntity = {}): Promise<Entity> {
@@ -102,15 +101,12 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       const count = entitiesConfig.length;
       for (let i = 0; i < count; i++) {
         const entityConfig = entitiesConfig[i];
-        const id = (entityConfig as IStrippedEntity).strippedId ?? entityConfig.id;
+        const strippedId = (entityConfig as IStrippedEntity).strippedId;
+        const id = strippedId ?? entityConfig.id;
         if (entityConfigMap.has(id)) throw new Error("Duplicate serialized entity ID: " + id);
         entityConfig.id = id;
         entityConfigMap.set(id, entityConfig);
-        if (
-          !(<IRefEntity>entityConfig).assetRefId &&
-          !(<IStrippedEntity>entityConfig).strippedId &&
-          entityConfig.transform
-        ) {
+        if (!strippedId && !(<IRefEntity>entityConfig).assetRefId && entityConfig.transform) {
           ReflectionParser._resolveClass(entityConfig.transform.class, Transform);
         }
       }

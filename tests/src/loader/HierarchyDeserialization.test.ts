@@ -154,8 +154,11 @@ describe("Scene and prefab deserialization", () => {
     );
   });
 
-  it("rejects overwriting protected runtime properties", async () => {
+  it("rejects overwriting protected runtime properties and methods", async () => {
     await expect(load(AssetType.Scene, component("PostProcess", { props: { _engine: 0 } }))).rejects.toThrow(
+      "Protected serialized property"
+    );
+    await expect(load(AssetType.Scene, component("PostProcess", { props: { destroy: 0 } }))).rejects.toThrow(
       "Protected serialized property"
     );
   });
