@@ -1,0 +1,30 @@
+packages/modify/native-overrides.json
+  h_ddbf152d31b140 506-509
+packages/modify/src/native/shader/src/ShaderLibrary/Shadow/Shadow.glsl
+  h_ddbf152d31b140 1-257
+packages/modify/tests/ShadowCascadeBlend.spec.ts
+  h_ddbf152d31b140 1-95
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/shaders/shared/Shadow.glsl
+  h_ddbf152d31b140 12,59-90,92-97,99-116,118-120
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 2485-2490
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d38d8d8ee4a64a61f98d6c701fb934678f517d18",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
