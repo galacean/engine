@@ -22,7 +22,7 @@ export abstract class Loader<T> {
    * @returns class object
    */
   public static getClass(className: string): { new (...args: any): any } {
-    return this._engineObjects[className];
+    return typeof className === "string" ? this._engineObjects[className] : undefined;
   }
 
   /**
@@ -34,7 +34,7 @@ export abstract class Loader<T> {
     return this._classNameMap.get(obj);
   }
 
-  private static _engineObjects: { [key: string]: any } = {};
+  private static _engineObjects: { [key: string]: any } = Object.create(null);
   private static _classNameMap: Map<Object, string> = new Map();
 
   constructor(public readonly useCache: boolean) {}

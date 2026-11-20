@@ -32,6 +32,7 @@ export class PrefabResource extends ReferResource {
    * @internal
    */
   _addDependenceAsset(resource: ReferResource) {
+    if (this.destroyed || this._dependenceAssets.has(resource)) return;
     this._dependenceAssets.add(resource);
     // @todo: The PhysicsMaterial does not inherit from ReferResource. Currently,
     // ReferResource requires the engine to be passed as a parameter, which prevents cross-engine reuse.
@@ -44,12 +45,14 @@ export class PrefabResource extends ReferResource {
 
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._root.destroy();
+    this._root?.destroy();
+    this._root = null;
     this._dependenceAssets.forEach((asset) => {
       if (asset instanceof ReferResource) {
         // @ts-ignore
         asset._disassociationSuperResource(this);
       }
     });
+    this._dependenceAssets.clear();
   }
 }

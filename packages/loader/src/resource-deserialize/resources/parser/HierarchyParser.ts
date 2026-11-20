@@ -58,48 +58,66 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       .then(this._parsePrefabRemovedEntities)
       .then(this._parsePrefabRemovedComponents)
       .then(this._clearAndResolve)
-      .then(this._resolve)
-      .catch(this._reject);
+      .then(this._resolve, (error) => {
+        const context = this.context;
+        context._aborted = true;
+        for (const callbacks of this._prefabPromiseMap.values()) {
+          for (let i = 0, n = callbacks.length; i < n; i++) callbacks[i].reject(error);
+        }
+        this._prefabPromiseMap.clear();
+        for (const entity of context.entityMap.values()) entity.destroy();
+        context.clear();
+        this._reject(error);
+      });
   }
 
-  protected _applyEntityData(entity: Entity, entityConfig: IEntity = {}): Entity {
+  protected _applyEntityData(entity: Entity, entityConfig: IEntity = {}): Promise<Entity> {
     entity.isActive = entityConfig.isActive ?? entity.isActive;
     entity.name = entityConfig.name ?? entity.name;
     const transform = entity.transform;
     const transformConfig = entityConfig.transform;
-    if (transformConfig) {
-      this._reflectionParser.parsePropsAndMethods(transform, transformConfig);
-    } else {
+    const transformPromise = transformConfig && this._reflectionParser.parsePropsAndMethods(transform, transformConfig);
+    if (!transformConfig) {
       const { position, rotation, scale } = entityConfig;
       if (position) transform.position.copyFrom(position);
       if (rotation) transform.rotation.copyFrom(rotation);
       if (scale) transform.scale.copyFrom(scale);
     }
     if (entityConfig.layer) entity.layer = entityConfig.layer;
-    return entity;
+    return transformPromise ? transformPromise.then(() => entity) : Promise.resolve(entity);
   }
 
   protected abstract _handleRootEntity(id: string): void;
   protected abstract _clearAndResolve(): Scene | PrefabResource;
 
   private _parseEntities(): Promise<Entity[]> {
-    const entitiesConfig = this.data.entities;
-    const entityConfigMap = this.context.entityConfigMap;
-    const entityMap = this.context.entityMap;
-    const engine = this._engine;
-    const promises = entitiesConfig.map((entityConfig) => {
-      const id = (entityConfig as IStrippedEntity).strippedId ?? entityConfig.id;
-      entityConfig.id = id;
-      entityConfigMap.set(id, entityConfig);
-      return this._getEntityByConfig(entityConfig, engine);
-    });
-    return Promise.all(promises).then((entities) => {
-      for (let i = 0, l = entities.length; i < l; i++) {
-        entityMap.set(entitiesConfig[i].id, entities[i]);
+    try {
+      const entitiesConfig = this.data.entities;
+      if (!Array.isArray(entitiesConfig)) {
+        throw new Error("Serialized entities must be an array");
       }
-
-      return entities;
-    });
+      const entityConfigMap = this.context.entityConfigMap;
+      const engine = this._engine;
+      const count = entitiesConfig.length;
+      for (let i = 0; i < count; i++) {
+        const entityConfig = entitiesConfig[i];
+        const strippedId = (entityConfig as IStrippedEntity).strippedId;
+        const id = strippedId ?? entityConfig.id;
+        if (entityConfigMap.has(id)) throw new Error("Duplicate serialized entity ID: " + id);
+        entityConfig.id = id;
+        entityConfigMap.set(id, entityConfig);
+        if (!strippedId && !(<IRefEntity>entityConfig).assetRefId && entityConfig.transform) {
+          ReflectionParser._resolveClass(entityConfig.transform.class, Transform);
+        }
+      }
+      const promises = new Array<Promise<Entity>>(count);
+      for (let i = 0; i < count; i++) {
+        promises[i] = this._getEntityByConfig(entitiesConfig[i], engine);
+      }
+      return Promise.all(promises);
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
 
   private _parseComponents(): void {
@@ -140,7 +158,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
                 methods
               });
             } else if (targetEntity) {
-              return Promise.resolve(this._applyEntityData(targetEntity, props));
+              return this._applyEntityData(targetEntity, props);
             }
           })
         );
@@ -231,13 +249,15 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       entityPromise = this._parseEntity(entityConfig, engine);
     }
     return entityPromise.then((entity) => {
-      return this._applyEntityData(entity, entityConfig);
+      return this.context._aborted ? entity : this._applyEntityData(entity, entityConfig);
     });
   }
 
   private _parseEntity(entityConfig: IEntity, engine: Engine): Promise<Entity> {
     const transform = entityConfig.transform;
-    const entity = new Entity(engine, entityConfig.name, transform ? Loader.getClass(transform.class) : Transform);
+    const transformClass = transform ? ReflectionParser._resolveClass(transform.class, Transform) : Transform;
+    const entity = new Entity(engine, entityConfig.name, transformClass);
+    this.context.entityMap.set(entityConfig.id, entity);
     if (!entityConfig.parent) this.context.rootIds.push(entityConfig.id);
 
     this._addEntityPlugin(entityConfig.id, entity);
@@ -254,18 +274,23 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
           refId: assetRefId
         })
         .then((prefabResource: PrefabResource | GLTFResource) => {
+          const context = this.context;
+          if (context._aborted) return null;
           const entity =
             prefabResource instanceof PrefabResource
               ? prefabResource.instantiate()
               : prefabResource.instantiateSceneRoot();
+          if (!entity) throw new Error("Serialized prefab has no root entity");
+          context.entityMap.set(entityConfig.id, entity);
           const instanceContext = new ParserContext<IHierarchyFile, Entity>(engine, ParserType.Prefab, null);
-          if (!entityConfig.parent) this.context.rootIds.push(entityConfig.id);
+          if (!entityConfig.parent) context.rootIds.push(entityConfig.id);
 
           this._generateInstanceContext(entity, instanceContext, "");
 
           this._prefabContextMap.set(entity, instanceContext);
           const cbArray = this._prefabPromiseMap.get(entityConfig.id);
           if (cbArray) {
+            this._prefabPromiseMap.delete(entityConfig.id);
             for (let i = 0, n = cbArray.length; i < n; i++) {
               cbArray[i].resolve(instanceContext);
             }
@@ -282,10 +307,13 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       const cbArray = this._prefabPromiseMap.get((<IStrippedEntity>entityConfig).prefabInstanceId) ?? [];
       cbArray.push({ resolve, reject });
       this._prefabPromiseMap.set((<IStrippedEntity>entityConfig).prefabInstanceId, cbArray);
-    }).then((context) => {
-      const { entityId } = entityConfig.prefabSource;
-
-      return context.entityMap.get(entityId);
+    }).then((instanceContext) => {
+      const context = this.context;
+      if (context._aborted) return null;
+      const entity = instanceContext.entityMap.get(entityConfig.prefabSource.entityId);
+      if (!entity) throw new Error("Serialized prefab entity was not found");
+      context.entityMap.set(entityConfig.id, entity);
+      return entity;
     });
   }
 
@@ -304,6 +332,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   }
 
   private _addComponents(entity: Entity, components: IEntity["components"]): void {
+    if (!components?.length) return;
     const context = this.context;
     const componentMap = context.components;
     const componentConfigMap = context.componentConfigMap;
@@ -312,7 +341,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       const componentConfig = components[i];
       const key = !componentConfig.refId ? componentConfig.class : componentConfig.refId;
       const componentId = componentConfig.id;
-      const component = entity.addComponent(Loader.getClass(key));
+      const component = entity.addComponent(ReflectionParser._resolveClass(key, Component));
       componentMap.set(componentId, component);
       componentConfigMap.set(componentId, componentConfig);
       this._addComponentPlugin(componentId, component);

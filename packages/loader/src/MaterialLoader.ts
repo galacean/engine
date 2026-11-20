@@ -21,10 +21,21 @@ import {
   type IVector4
 } from "./resource-deserialize";
 
+const hasOwn = Object.prototype.hasOwnProperty;
+
 function parseProperty(object: Object, key: string, value: any) {
-  if (typeof value === "object") {
-    for (let subKey in value) {
-      parseProperty(object[key], subKey, value[subKey]);
+  if (key === "constructor" || key === "prototype" || key === "__proto__") {
+    throw new Error("Reserved material property: " + key);
+  }
+  if (value !== null && typeof value === "object") {
+    const target = object[key];
+    if (target === null || typeof target !== "object" || target === Object.prototype) {
+      throw new Error("Material property target must be an object: " + key);
+    }
+    for (const subKey in value) {
+      if (hasOwn.call(value, subKey)) {
+        parseProperty(target, subKey, value[subKey]);
+      }
     }
   } else {
     object[key] = value;
@@ -66,6 +77,15 @@ class MaterialLoader extends Loader<Material> {
     const material = new Material(engine, shader);
     material.name = name;
 
+    if (renderState) {
+      try {
+        parseProperty(material, "renderState", renderState);
+      } catch (error) {
+        material.destroy();
+        throw error;
+      }
+    }
+
     const texturePromises = new Array<Promise<Texture2D>>();
     const materialShaderData = material.shaderData;
     for (let key in shaderData) {
@@ -100,6 +120,7 @@ class MaterialLoader extends Loader<Material> {
           texturePromises.push(
             // @ts-ignore
             engine.resourceManager.getResourceByRef<Texture2D>(<IAssetRef>value).then((texture) => {
+              if (material.destroyed) return;
               materialShaderData.setTexture(key, texture);
             })
           );
@@ -122,10 +143,12 @@ class MaterialLoader extends Loader<Material> {
       }
     }
 
-    parseProperty(material, "renderState", renderState);
-
-    return Promise.all(texturePromises).then(() => {
-      return material;
-    });
+    return Promise.all(texturePromises).then(
+      () => material,
+      (error) => {
+        material.destroy();
+        throw error;
+      }
+    );
   }
 }
