@@ -55,7 +55,7 @@ describe("Context restore and ModelMesh re-upload regressions", () => {
       graphicDeviceOptions: { preserveDrawingBuffer: true }
     });
 
-    const scene = engine.sceneManager.activeScene;
+    const scene = engine.sceneManager.activeScene!;
     scene.background.solidColor = new Color(0, 0, 0, 1);
 
     const root = scene.createRootEntity("root");
@@ -100,7 +100,7 @@ describe("Context restore and ModelMesh re-upload regressions", () => {
       graphicDeviceOptions: { preserveDrawingBuffer: true }
     });
 
-    const scene = engine.sceneManager.activeScene;
+    const scene = engine.sceneManager.activeScene!;
     const cameraEntity = scene.createRootEntity("camera");
     const camera = cameraEntity.addComponent(Camera);
     cameraEntity.transform.setPosition(0, 0, 3);
@@ -158,7 +158,7 @@ describe("Context restore and ModelMesh re-upload regressions", () => {
       mesh.setPositions([new Vector3(0, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 1, 0), new Vector3(1, 1, 0)]);
       mesh.setNormals([new Vector3(0, 0, 1), new Vector3(0, 0, 1), new Vector3(0, 0, 1), new Vector3(0, 0, 1)]);
       mesh.uploadData(false);
-      expect(mesh.vertexBufferBindings[0].stride).toBe(24);
+      expect(mesh.vertexBufferBindings[0]!.stride).toBe(24);
 
       mesh.setPositions([
         new Vector3(0, 0, 0),
@@ -172,10 +172,10 @@ describe("Context restore and ModelMesh re-upload regressions", () => {
       ]);
       mesh.setNormals(null);
       mesh.uploadData(false);
-      expect(mesh.vertexBufferBindings[0].stride).toBe(12);
+      expect(mesh.vertexBufferBindings[0]!.stride).toBe(12);
 
       // Verify old vertex & index GPU buffers are immediately destroyed (not leaked) when mesh.refCount > 0
-      const entity = engine.sceneManager.activeScene.createRootEntity("mesh-holder");
+      const entity = engine.sceneManager.activeScene!.createRootEntity("mesh-holder");
       const renderer = entity.addComponent(MeshRenderer);
       renderer.mesh = mesh;
       expect(mesh.refCount).toBeGreaterThan(0);
@@ -184,7 +184,7 @@ describe("Context restore and ModelMesh re-upload regressions", () => {
       mesh.setIndices(new Uint16Array([0, 1, 2]));
       mesh.uploadData(true);
 
-      const oldVertexBuffer = mesh.vertexBufferBindings[0].buffer;
+      const oldVertexBuffer = mesh.vertexBufferBindings[0]!.buffer;
       const oldIndexBuffer = mesh._primitive.indexBufferBinding!._buffer;
       expect(oldVertexBuffer.destroyed).toBe(false);
       expect(oldIndexBuffer.destroyed).toBe(false);
@@ -200,11 +200,11 @@ describe("Context restore and ModelMesh re-upload regressions", () => {
       expect(resizedIndexBuffer.destroyed).toBe(false);
 
       // Clear indices while referenced
-      mesh.setIndices(null);
+      mesh.setIndices(null as unknown as Uint16Array);
       mesh.uploadData(true);
       expect(resizedIndexBuffer.destroyed).toBe(true);
 
-      renderer.mesh = null;
+      renderer.mesh = null!;
     } finally {
       mesh.destroy();
     }
@@ -236,6 +236,37 @@ describe("Context restore and ModelMesh re-upload regressions", () => {
     } finally {
       mesh.destroy();
       userUnreadableBuffer.destroy();
+    }
+  });
+
+  it("preserves internal buffer metadata on idempotent same-buffer re-bind", async () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 64;
+    canvas.height = 64;
+    engine = await WebGLEngine.create({ canvas });
+
+    const mesh = new ModelMesh(engine);
+    try {
+      mesh.setPositions([new Vector3(0, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 1, 0)]);
+      mesh.uploadData(true);
+
+      // Single setter: re-bind the exact same internal buffer and stride
+      const binding0 = mesh.vertexBufferBindings[0]!;
+      mesh.setVertexBufferBinding(binding0.buffer, binding0.stride, 0);
+      expect(() => {
+        mesh.setPositions([new Vector3(0.25, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 1, 0)]);
+        mesh.uploadData(true);
+      }).not.toThrow();
+
+      // Batch setter: re-bind the exact same internal binding array
+      const binding1 = mesh.vertexBufferBindings[0]!;
+      mesh.setVertexBufferBindings([binding1], 0);
+      expect(() => {
+        mesh.setPositions([new Vector3(0.5, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 1, 0)]);
+        mesh.uploadData(true);
+      }).not.toThrow();
+    } finally {
+      mesh.destroy();
     }
   });
 });

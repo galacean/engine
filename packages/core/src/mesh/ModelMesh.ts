@@ -532,10 +532,15 @@ export class ModelMesh extends Mesh {
     this._setVertexBufferBinding(index, binding);
 
     // Reset internal vertex buffer state if overwritten by custom buffer binding
-    if (index === this._internalVertexBufferIndex || index === this._internalVertexBufferCreatedInfo.z) {
-      if (binding?.buffer !== this._internalVertexBuffer) {
-        this._internalVertexBuffer = null;
-      }
+    if (
+      (index === this._internalVertexBufferIndex || index === this._internalVertexBufferCreatedInfo.z) &&
+      !(
+        this._internalVertexBuffer &&
+        binding?.buffer === this._internalVertexBuffer &&
+        binding.stride === this._internalVertexBufferCreatedInfo.x
+      )
+    ) {
+      this._internalVertexBuffer = null;
       this._internalVertexBufferIndex = -1;
       this._internalVertexBufferCreatedInfo.set(0, 0, -1);
     }
@@ -567,10 +572,15 @@ export class ModelMesh extends Mesh {
       const binding = vertexBufferBindings[i];
       this._setVertexBufferBinding(index, binding);
       // Reset internal vertex buffer state if overwritten by custom buffer binding
-      if (index === this._internalVertexBufferIndex || index === this._internalVertexBufferCreatedInfo.z) {
-        if (binding?.buffer !== this._internalVertexBuffer) {
-          this._internalVertexBuffer = null;
-        }
+      if (
+        (index === this._internalVertexBufferIndex || index === this._internalVertexBufferCreatedInfo.z) &&
+        !(
+          this._internalVertexBuffer &&
+          binding?.buffer === this._internalVertexBuffer &&
+          binding.stride === this._internalVertexBufferCreatedInfo.x
+        )
+      ) {
+        this._internalVertexBuffer = null;
         this._internalVertexBufferIndex = -1;
         this._internalVertexBufferCreatedInfo.set(0, 0, -1);
       }

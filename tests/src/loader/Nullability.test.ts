@@ -1,7 +1,8 @@
 import { PBRMaterial } from "@galacean/engine-core";
-import { GLTFExtensionMode, GLTFParser, GLTFParserContext, GLTFResource } from "@galacean/engine-loader";
+import { GLTFExtensionMode, GLTFParser, GLTFParserContext } from "@galacean/engine-loader";
 import { Color } from "@galacean/engine-math";
 import { describe, expect, it } from "vitest";
+import type { GLTFResource } from "../../../packages/loader/src/gltf/GLTFResource";
 import {
   BufferDataRestoreInfo,
   GLTFContentRestorer,
