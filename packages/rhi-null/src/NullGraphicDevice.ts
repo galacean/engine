@@ -79,6 +79,7 @@ export class NullGraphicDevice implements IHardwareRenderer {
   }
   activeRenderTarget(): void {}
   clearRenderTarget(): void {}
+  invalidateRenderTarget(): void {}
   drawPrimitive(): void {}
   blitInternalRTByBlitFrameBuffer(): void {}
   copyRenderTargetToSubTexture(): never {

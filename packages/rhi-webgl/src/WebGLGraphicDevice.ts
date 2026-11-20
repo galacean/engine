@@ -109,6 +109,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   private _lastScissor: Vector4 = new Vector4(null!, null!, null!, null!);
   private _lastClearColor: Color = new Color(null!, null!, null!, null!);
   private _scissorEnable: boolean = false;
+  private _defaultColorAttachment: GLenum[];
+  private _fboColor0Attachment: GLenum[];
+  private _invalidateAttachments: GLenum[] = [];
 
   private _onDeviceLost: () => void;
   private _onDeviceRestored: () => void;
@@ -380,6 +383,59 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     gl.clear(clearFlag);
   }
 
+  invalidateRenderTarget(renderTarget: RenderTarget | null, flags: CameraClearFlags): void {
+    if (flags === CameraClearFlags.None) {
+      return;
+    }
+
+    const gl = this._gl;
+    const isDefaultFrameBuffer = !renderTarget && !this._mainFrameBuffer;
+    if (isDefaultFrameBuffer) {
+      if (flags === CameraClearFlags.Color) {
+        gl.invalidateFramebuffer(gl.FRAMEBUFFER, this._defaultColorAttachment);
+        return;
+      }
+
+      const attachments = this._invalidateAttachments;
+      attachments.length = 0;
+      if (flags & CameraClearFlags.Color) {
+        attachments.push(gl.COLOR);
+      }
+      if (flags & CameraClearFlags.Depth) {
+        attachments.push(gl.DEPTH);
+      }
+      if (flags & CameraClearFlags.Stencil) {
+        attachments.push(gl.STENCIL);
+      }
+      if (attachments.length > 0) {
+        gl.invalidateFramebuffer(gl.FRAMEBUFFER, attachments);
+      }
+    } else {
+      const colorCount = renderTarget ? renderTarget.colorTextureCount : 1;
+      if (flags === CameraClearFlags.Color && colorCount === 1) {
+        gl.invalidateFramebuffer(gl.FRAMEBUFFER, this._fboColor0Attachment);
+        return;
+      }
+
+      const attachments = this._invalidateAttachments;
+      attachments.length = 0;
+      if (flags & CameraClearFlags.Color) {
+        for (let i = 0; i < colorCount; i++) {
+          attachments.push(gl.COLOR_ATTACHMENT0 + i);
+        }
+      }
+      if (flags & CameraClearFlags.Depth) {
+        attachments.push(gl.DEPTH_ATTACHMENT);
+      }
+      if (flags & CameraClearFlags.Stencil) {
+        attachments.push(gl.STENCIL_ATTACHMENT);
+      }
+      if (attachments.length > 0) {
+        gl.invalidateFramebuffer(gl.FRAMEBUFFER, attachments);
+      }
+    }
+  }
+
   drawPrimitive(primitive: Primitive, subPrimitive: SubPrimitive | null, shaderProgram: IPlatformShaderProgram): void {
     // todo: VAO not support morph animation
     if (primitive && subPrimitive) {
@@ -588,6 +644,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   protected _initGLState(gl: WebGL2RenderingContext): void {
     this._activeTextureID = gl.TEXTURE0;
+    this._defaultColorAttachment = [gl.COLOR];
+    this._fboColor0Attachment = [gl.COLOR_ATTACHMENT0];
     this._renderStates = new GLRenderStates(gl);
     this._extensions = new GLExtensions(this);
     this._capability = new GLCapability(this);
