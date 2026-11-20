@@ -899,4 +899,91 @@ describe("Cross-prefab $component ref", () => {
     // @ts-ignore
     delete engine.resourceManager._objectPool["deep-comp-nested.prefab"];
   });
+
+  it("should preserve base.calls state boundary when merging same-target component overrides", async () => {
+    class StateCaptureScript extends Script {
+      value = 0;
+      captured: number[] = [];
+      capture(): void {
+        this.captured.push(this.value);
+      }
+    }
+    Loader.registerClass("StateCaptureScript", StateCaptureScript);
+
+    const basePrefab = await PrefabParser.parse(engine, "calls-boundary-base.prefab", {
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "root" }],
+      components: [],
+      root: 0
+    });
+    // @ts-ignore
+    engine.resourceManager._objectPool["calls-boundary-base.prefab"] = basePrefab;
+
+    try {
+      // Case A: base { props: { value: 1 }, calls: [capture] } + override { props: { value: 2 }, calls: [capture] } => [1, 2]
+      // Case B: base { props: { value: 10 }, calls: [capture] } + override { props: { value: 20 } } => [10], value === 20
+      // Case C: base { props: { value: 100 } } + override { props: { value: 200 }, calls: [capture] } => [200], value === 200
+      const outerPrefab = await PrefabParser.parse(engine, "calls-boundary-outer.prefab", {
+        version: "2.0",
+        refs: [{ url: "calls-boundary-base.prefab" }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                addedComponents: [
+                  { target: [], component: 0 },
+                  { target: [], component: 1 },
+                  { target: [], component: 2 }
+                ],
+                componentProps: [
+                  {
+                    path: [],
+                    selector: { type: "StateCaptureScript", index: 0 },
+                    props: { value: 2 },
+                    calls: [{ method: "capture" }]
+                  },
+                  {
+                    path: [],
+                    selector: { type: "StateCaptureScript", index: 1 },
+                    props: { value: 20 }
+                  },
+                  {
+                    path: [],
+                    selector: { type: "StateCaptureScript", index: 2 },
+                    props: { value: 200 },
+                    calls: [{ method: "capture" }]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        components: [
+          { type: "StateCaptureScript", props: { value: 1 }, calls: [{ method: "capture" }] },
+          { type: "StateCaptureScript", props: { value: 10 }, calls: [{ method: "capture" }] },
+          { type: "StateCaptureScript", props: { value: 100 } }
+        ],
+        root: 0
+      });
+
+      const root = outerPrefab.instantiate();
+      try {
+        const scripts = root.getComponents(StateCaptureScript, []);
+        expect(scripts).toHaveLength(3);
+        expect(scripts[0].captured).toEqual([1, 2]);
+        expect(scripts[0].value).toBe(2);
+        expect(scripts[1].captured).toEqual([10]);
+        expect(scripts[1].value).toBe(20);
+        expect(scripts[2].captured).toEqual([200]);
+        expect(scripts[2].value).toBe(200);
+      } finally {
+        root.destroy();
+      }
+    } finally {
+      // @ts-ignore
+      delete engine.resourceManager._objectPool["calls-boundary-base.prefab"];
+    }
+  });
 });

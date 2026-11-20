@@ -381,12 +381,16 @@ export class Engine extends EventDispatcher {
       if (!this._hardwareRenderer.isContextLost()) {
         this._render(scenes);
       }
-
-      // Process pending destroys
-      this._processPendingDestroyObjects();
     } catch (error) {
       recordError(error);
     } finally {
+      // Always drain pending destroys queued during this frame even if an earlier phase threw
+      try {
+        this._processPendingDestroyObjects();
+      } catch (error) {
+        recordError(error);
+      }
+
       this._frameInProcess = false;
 
       if (this._waitingDestroy) {

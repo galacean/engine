@@ -369,6 +369,151 @@ describe("Scene", () => {
       expect(tempEngineB.sceneManager._allCreatedScenes.length).toBe(0);
     });
 
+    it("drains pending destroys in Engine.update finally when onUpdate throws", () => {
+      class TrackingDestroyScript extends Script {
+        onDestroyCount = 0;
+        override onDestroy(): void {
+          this.onDestroyCount++;
+        }
+      }
+      class ThrowingDestroyScript extends Script {
+        override onDestroy(): void {
+          throw new Error("secondary-destroy-error");
+        }
+      }
+      class ThrowAfterQueueScript extends Script {
+        targets: Script[] = [];
+        triggered = false;
+        override onUpdate(): void {
+          if (this.triggered) return;
+          this.triggered = true;
+          for (const target of this.targets) {
+            target.destroy();
+          }
+          throw new Error("update-boom");
+        }
+      }
+
+      const testScene = new Scene(engine);
+      engine.sceneManager.addScene(testScene);
+      try {
+        const root = testScene.createRootEntity("update-throw-root");
+        const throwingDestroy = root.addComponent(ThrowingDestroyScript);
+        const survivor = root.addComponent(TrackingDestroyScript);
+        const driver = root.addComponent(ThrowAfterQueueScript);
+        driver.targets = [throwingDestroy, survivor];
+
+        // Primary onUpdate error is preserved while pending destroys still drain before update returns
+        expect(() => engine.update()).toThrow("update-boom");
+        expect(throwingDestroy.destroyed).toBe(true);
+        expect(throwingDestroy.pendingDestroy).toBe(false);
+        expect(survivor.destroyed).toBe(true);
+        expect(survivor.pendingDestroy).toBe(false);
+        expect(survivor.onDestroyCount).toBe(1);
+        expect((engine as any)._pendingDestroyObjects.length).toBe(0);
+        expect((engine as any)._frameInProcess).toBe(false);
+      } finally {
+        testScene.destroy();
+      }
+    });
+
+    it("preserves list-vs-scene ownership invariant when onDisable relocates or reparents during addRootEntity/removeRootEntity", () => {
+      // Case A: Moving [r1, r2] from active Scene A -> inactive Scene B where r1.onDisable calls sceneC.addRootEntity(r1)
+      const sceneA = new Scene(engine, "sceneA");
+      const sceneB = new Scene(engine, "sceneB"); // inactive
+      const sceneC = new Scene(engine, "sceneC");
+      engine.sceneManager.addScene(sceneA);
+      engine.sceneManager.addScene(sceneC);
+
+      try {
+        const r1 = sceneA.createRootEntity("r1");
+        const r2 = sceneA.createRootEntity("r2");
+        r1.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              sceneC.addRootEntity(r1);
+            }
+          }
+        );
+
+        // Fail-fast index bounds validation before onDisable runs
+        expect(() => sceneB.addRootEntity(5, r1)).toThrow(/out of child list bounds/);
+        expect(sceneA.rootEntities).toEqual([r1, r2]);
+        expect(r1.scene).toBe(sceneA);
+        expect(sceneB.rootEntities).toEqual([]);
+        expect(sceneC.rootEntities).toEqual([]);
+
+        // Relocating r1 inside onDisable must not evict innocent sibling r2 or leave r1 in both B and C
+        expect(() => sceneB.addRootEntity(r1)).toThrow();
+        expect(sceneC.rootEntities).toEqual([r1]);
+        expect(r1.scene).toBe(sceneC);
+        expect(r1.siblingIndex).toBe(0);
+        expect(sceneA.rootEntities).toEqual([r2]);
+        expect(r2.scene).toBe(sceneA);
+        expect(r2.siblingIndex).toBe(0);
+        expect(sceneB.rootEntities).toEqual([]);
+
+        sceneA.destroy();
+        sceneB.destroy();
+        sceneC.destroy();
+        expect(sceneA.destroyed).toBe(true);
+        expect(sceneB.destroyed).toBe(true);
+        expect(sceneC.destroyed).toBe(true);
+      } finally {
+        if (!sceneA.destroyed) sceneA.destroy();
+        if (!sceneB.destroyed) sceneB.destroy();
+        if (!sceneC.destroyed) sceneC.destroy();
+      }
+
+      // Case B: removeRootEntity when onDisable relocates root to another scene or reparents it within the same scene
+      const sceneD = new Scene(engine, "sceneD");
+      const sceneE = new Scene(engine, "sceneE");
+      engine.sceneManager.addScene(sceneD);
+      engine.sceneManager.addScene(sceneE);
+      try {
+        const d1 = sceneD.createRootEntity("d1");
+        const d2 = sceneD.createRootEntity("d2");
+        d1.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              sceneE.addRootEntity(d1);
+            }
+          }
+        );
+        expect(() => sceneD.removeRootEntity(d1)).toThrow();
+        expect(sceneE.rootEntities).toEqual([d1]);
+        expect(d1.scene).toBe(sceneE);
+        expect(sceneD.rootEntities).toEqual([d2]);
+        expect(d2.scene).toBe(sceneD);
+        expect(d2.siblingIndex).toBe(0);
+
+        const d3 = sceneD.createRootEntity("d3");
+        const inactiveHolder = sceneD.createRootEntity("inactiveHolder");
+        inactiveHolder.isActive = false;
+        d3.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              inactiveHolder.addChild(d3);
+            }
+          }
+        );
+        // Reparenting d3 within sceneD during removeRootEntity must NOT wipe d3.scene to null
+        expect(() => sceneD.removeRootEntity(d3)).not.toThrow();
+        expect(d3.parent).toBe(inactiveHolder);
+        expect(inactiveHolder.children).toEqual([d3]);
+        expect(d3.scene).toBe(sceneD);
+        expect(sceneD.rootEntities).toEqual([d2, inactiveHolder]);
+
+        sceneD.destroy();
+        sceneE.destroy();
+        expect(sceneD.destroyed).toBe(true);
+        expect(sceneE.destroyed).toBe(true);
+      } finally {
+        if (!sceneD.destroyed) sceneD.destroy();
+        if (!sceneE.destroyed) sceneE.destroy();
+      }
+    });
+
     it("all destroy", () => {
       scene.createRootEntity("root1");
       scene.createRootEntity("root2");

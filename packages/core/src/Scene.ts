@@ -7,6 +7,7 @@ import { MaskManager } from "./RenderPipeline/MaskManager";
 import { SceneManager } from "./SceneManager";
 import { EngineObject, Logger } from "./base";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
+import { EntityModifyFlags } from "./enums/EntityModifyFlags";
 import { FogMode } from "./enums/FogMode";
 import { AmbientOcclusion, DirectLight } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
@@ -332,26 +333,19 @@ export class Scene extends EngineObject {
     }
 
     const rootEntity = entity!;
-    const isRoot = rootEntity._isRoot;
-    // Let rootEntity become root
-    if (!isRoot) {
-      rootEntity._isRoot = true;
-      rootEntity._removeFromParent();
-      rootEntity._setParentChange();
-    }
-
-    // Add or remove from scene's rootEntities
     const oldScene = rootEntity._scene;
-    if (oldScene !== this) {
-      if (oldScene && isRoot) {
-        Entity._removeFromChildren(oldScene._rootEntities, rootEntity);
+    const oldParent = rootEntity.parent;
+    const wasRoot = rootEntity._isRoot;
+
+    // Validate index bounds up front before any side effects
+    if (index !== undefined && (oldScene !== this || !wasRoot)) {
+      const rootCount = this._rootEntities.length;
+      if (index < 0 || index > rootCount) {
+        throw `The index ${index} is out of child list bounds ${rootCount}`;
       }
-      Entity._addToChildren(this._rootEntities, rootEntity, index);
-    } else if (!isRoot) {
-      Entity._addToChildren(this._rootEntities, rootEntity, index);
     }
 
-    // Process rootEntity active/inActive
+    // Deactivate before mutating ownership lists so callbacks observe consistent ownership
     let inActiveChangeFlag = ActiveChangeFlag.None;
     if (rootEntity._isActiveInHierarchy) {
       this._isActiveInEngine || (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
@@ -371,8 +365,32 @@ export class Scene extends EngineObject {
       }
     }
 
-    if (oldScene !== this && rootEntity._scene === oldScene && rootEntity._isRoot && !rootEntity.destroyed) {
-      Entity._traverseSetOwnerScene(rootEntity, this);
+    if (
+      !rootEntity.destroyed &&
+      rootEntity._scene === oldScene &&
+      rootEntity.parent === oldParent &&
+      rootEntity._isRoot === wasRoot
+    ) {
+      if (oldScene !== this || !wasRoot) {
+        let detachedParent: Entity | null = null;
+        if (wasRoot) {
+          oldScene && Entity._removeFromChildren(oldScene._rootEntities, rootEntity);
+        } else {
+          detachedParent = rootEntity._detachFromParent();
+          rootEntity._isRoot = true;
+        }
+        const targetIndex = index !== undefined ? Math.min(index, this._rootEntities.length) : undefined;
+        Entity._addToChildren(this._rootEntities, rootEntity, targetIndex);
+        if (oldScene !== this) {
+          Entity._traverseSetOwnerScene(rootEntity, this);
+        }
+        if (detachedParent != null) {
+          detachedParent._dispatchModify(EntityModifyFlags.Child, detachedParent);
+        }
+        if (!wasRoot) {
+          rootEntity._setParentChange();
+        }
+      }
     }
 
     if (hasInActiveError) {
@@ -394,16 +412,16 @@ export class Scene extends EngineObject {
    * @param entity - The root entity to remove
    */
   removeRootEntity(entity: Entity): void {
-    if (entity._isRoot && entity._scene == this) {
-      Entity._removeFromChildren(this._rootEntities, entity);
-      entity._isRoot = false;
+    if (entity._isRoot && entity._scene === this) {
       let inActiveChangeFlag = ActiveChangeFlag.None;
       this._isActiveInEngine && entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
       entity._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
       try {
         inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
       } finally {
-        if (entity._scene === this && !entity._isRoot) {
+        if (entity._isRoot && entity._scene === this) {
+          Entity._removeFromChildren(this._rootEntities, entity);
+          entity._isRoot = false;
           Entity._traverseSetOwnerScene(entity, null);
         }
       }
@@ -550,6 +568,7 @@ export class Scene extends EngineObject {
         if (this._rootEntities[0] === root) {
           Entity._removeFromChildren(this._rootEntities, root);
           root._isRoot = false;
+          Entity._traverseSetOwnerScene(root, null);
         }
       }
     }

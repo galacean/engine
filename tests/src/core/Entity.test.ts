@@ -882,6 +882,74 @@ describe("Entity", async () => {
       // Children-first + reverse: C, B, then A
       expect(order).toEqual(["C", "B", "A"]);
     });
+
+    it("preserves list-vs-scene ownership invariant when onDisable relocates or reparents during addChild/removeChild", () => {
+      const sceneA = new Scene(engine, "child-sceneA");
+      const sceneB = new Scene(engine, "child-sceneB"); // inactive
+      const sceneC = new Scene(engine, "child-sceneC");
+      engine.sceneManager.addScene(sceneA);
+      engine.sceneManager.addScene(sceneC);
+
+      try {
+        const parentA = sceneA.createRootEntity("parentA");
+        const parentB = sceneB.createRootEntity("parentB");
+        const c1 = parentA.createChild("c1");
+        const c2 = parentA.createChild("c2");
+        c1.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              sceneC.addRootEntity(c1);
+            }
+          }
+        );
+
+        // Fail-fast siblingIndex validation before onDisable or detachment
+        expect(() => parentB.addChild(5, c1)).toThrow(/out of child list bounds/);
+        expect(parentA.children).toEqual([c1, c2]);
+        expect(c1.parent).toBe(parentA);
+        expect(c1.scene).toBe(sceneA);
+        expect(parentB.children).toEqual([]);
+        expect(sceneC.rootEntities).toEqual([]);
+
+        // Relocating c1 into sceneC inside onDisable must leave c2 intact under parentA and parentB empty
+        expect(() => parentB.addChild(c1)).toThrow();
+        expect(sceneC.rootEntities).toEqual([c1]);
+        expect(c1.scene).toBe(sceneC);
+        expect(c1.parent).toBeNull();
+        expect(c1.siblingIndex).toBe(0);
+        expect(parentA.children).toEqual([c2]);
+        expect(c2.scene).toBe(sceneA);
+        expect(c2.siblingIndex).toBe(0);
+        expect(parentB.children).toEqual([]);
+
+        // removeChild when onDisable reparents c2 under another inactive parent in sceneA preserves c2.scene
+        const inactiveParent = sceneA.createRootEntity("inactiveParent");
+        inactiveParent.isActive = false;
+        c2.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              inactiveParent.addChild(c2);
+            }
+          }
+        );
+        expect(() => parentA.removeChild(c2)).not.toThrow();
+        expect(parentA.children).toEqual([]);
+        expect(inactiveParent.children).toEqual([c2]);
+        expect(c2.parent).toBe(inactiveParent);
+        expect(c2.scene).toBe(sceneA);
+
+        sceneA.destroy();
+        sceneB.destroy();
+        sceneC.destroy();
+        expect(sceneA.destroyed).toBe(true);
+        expect(sceneB.destroyed).toBe(true);
+        expect(sceneC.destroyed).toBe(true);
+      } finally {
+        if (!sceneA.destroyed) sceneA.destroy();
+        if (!sceneB.destroyed) sceneB.destroy();
+        if (!sceneC.destroyed) sceneC.destroy();
+      }
+    });
   });
 
   describe("getComponentsIncludeChildren", () => {

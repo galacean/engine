@@ -1214,4 +1214,110 @@ describe("Physics gameplay integration", () => {
       }
     }
   });
+
+  it("applies normal entity components and prefab addedComponents in one pass regardless of entities[] order", async () => {
+    const basePrefab = await PrefabParser.parse(engine, "test://r4-base-holder.prefab", {
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "Holder" }],
+      components: [],
+      root: 0
+    });
+    // @ts-ignore
+    engine.resourceManager._objectPool["test://r4-base-holder.prefab"] = basePrefab;
+
+    try {
+      const cases = [
+        // PrefabInstance before addedChild; child owns Rigidbody, override adds HingeJoint
+        {
+          name: "prefab-before-child",
+          entities: [
+            {
+              instance: {
+                asset: 0,
+                overrides: {
+                  addedEntities: [{ parent: [], entity: 1 }],
+                  addedComponents: [{ target: [0], component: 2 }]
+                }
+              }
+            },
+            { name: "DoorChild", components: [0, 1] }
+          ],
+          rootIndex: 0
+        },
+        // addedChild before PrefabInstance; child owns Rigidbody, override adds HingeJoint
+        {
+          name: "child-before-prefab",
+          entities: [
+            { name: "DoorChild", components: [0, 1] },
+            {
+              instance: {
+                asset: 0,
+                overrides: {
+                  addedEntities: [{ parent: [], entity: 0 }],
+                  addedComponents: [{ target: [0], component: 2 }]
+                }
+              }
+            }
+          ],
+          rootIndex: 1
+        },
+        // PrefabInstance before addedChild; child owns HingeJoint, override adds Rigidbody (reverse dependency split)
+        {
+          name: "child-joint-override-rb",
+          entities: [
+            {
+              instance: {
+                asset: 0,
+                overrides: {
+                  addedEntities: [{ parent: [], entity: 1 }],
+                  addedComponents: [{ target: [0], component: 1 }]
+                }
+              }
+            },
+            { name: "DoorChild", components: [0, 2] }
+          ],
+          rootIndex: 0
+        }
+      ];
+
+      for (const c of cases) {
+        const prefab = await PrefabParser.parse(engine, `test://r4-${c.name}.prefab`, {
+          version: "2.0",
+          refs: [{ url: "test://r4-base-holder.prefab", type: "Prefab" }],
+          entities: c.entities as any,
+          components: [
+            { type: "BoxCollider" },
+            { type: "Rigidbody", props: { mass: 5, useGravity: false } },
+            { type: "HingeJoint", props: { axis: { x: 0, y: 1, z: 0 }, useMotor: true } }
+          ],
+          root: c.rootIndex
+        });
+
+        const inst = prefab.instantiate();
+        root.addChild(inst);
+        try {
+          const child = inst.children[0];
+          const bodies = child.getComponents(Rigidbody, []);
+          const hinge = child.getComponent(HingeJoint)!;
+          expect(bodies).toHaveLength(1);
+          expect(bodies[0].mass).toBe(5);
+          expect(hinge).not.toBeNull();
+          expect(hinge.axis.y).toBeCloseTo(1, 5);
+
+          const motor = new JointMotor();
+          motor.targetVelocity = 5;
+          motor.forceLimit = 500;
+          hinge.motor = motor;
+          step(10);
+          expect(hinge.velocity).toBeGreaterThan(2);
+        } finally {
+          inst.destroy();
+        }
+      }
+    } finally {
+      // @ts-ignore
+      delete engine.resourceManager._objectPool["test://r4-base-holder.prefab"];
+    }
+  });
 });
