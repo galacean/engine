@@ -47,8 +47,7 @@ function ensureStyle(): void {
       font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       border: 1px solid rgba(195, 218, 210, 0.25);
       border-radius: 10px;
-      background: rgba(13, 18, 17, 0.78);
-      backdrop-filter: blur(8px);
+      background: rgba(13, 18, 17, 0.88);
       box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
       overflow: hidden;
     }

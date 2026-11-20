@@ -511,7 +511,7 @@ export class SeedWorldPerfPanel {
       for (const { key } of MODULE_DEFS) this.applyToggle(key, key !== "bloom");
     });
     makePreset("全关裸地", () => {
-      for (const { key } of MODULE_DEFS) this.applyToggle(key, key === "solids" || key === "template");
+      for (const { key } of MODULE_DEFS) this.applyToggle(key, false);
     });
 
     const dprBtn = document.createElement("button");

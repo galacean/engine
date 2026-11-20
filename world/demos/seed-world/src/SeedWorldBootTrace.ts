@@ -502,7 +502,7 @@ class SeedWorldBootTraceController {
     toggle.textContent = "加载 Trace";
     toggle.hidden = !this.autoOpenOverlay && !this.verbose;
     toggle.style.cssText =
-      "pointer-events:auto;cursor:pointer;background:rgba(10,18,24,0.82);color:#d9f3ec;border:1px solid rgba(255,255,255,0.22);border-radius:999px;padding:5px 12px;font:12px/1.2 -apple-system,BlinkMacSystemFont,sans-serif;backdrop-filter:blur(8px);";
+      "pointer-events:auto;cursor:pointer;background:rgba(10,18,24,0.88);color:#d9f3ec;border:1px solid rgba(255,255,255,0.22);border-radius:999px;padding:5px 12px;font:12px/1.2 -apple-system,BlinkMacSystemFont,sans-serif;";
     toggle.onclick = () => {
       this.overlayOpen = !this.overlayOpen;
       panel.hidden = !this.overlayOpen;
