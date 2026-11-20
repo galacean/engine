@@ -20,6 +20,9 @@ export abstract class UpdateFlag {
    * Clear.
    */
   clearFromManagers(): void {
+    if (!this._flagManagers) {
+      return;
+    }
     this._removeFromManagers();
     this._flagManagers.length = 0;
   }
@@ -28,6 +31,9 @@ export abstract class UpdateFlag {
    * Destroy.
    */
   destroy(): void {
+    if (!this._flagManagers) {
+      return;
+    }
     this._removeFromManagers();
     this._flagManagers = null!;
   }

@@ -1940,4 +1940,65 @@ describe("Animator test", function () {
     expect(collection.get(0)).to.eq(t2);
     expect(collection.get(1)).to.eq(t1);
   });
+
+  it("clearing and reassigning animatorController should not crash on destroyed update flag", () => {
+    const entity = new Entity(engine);
+    const localAnimator = entity.addComponent(Animator);
+    const firstController = new AnimatorController(engine);
+    const secondController = new AnimatorController(engine);
+    const layer = new AnimatorControllerLayer("Base Layer");
+    const state = layer.stateMachine.addState("idle");
+    state.clip = new AnimationClip("idle-clip");
+    secondController.addLayer(layer);
+
+    // @ts-ignore
+    const firstFlags = firstController._updateFlagManager._updateFlags;
+    // @ts-ignore
+    const secondFlags = secondController._updateFlagManager._updateFlags;
+
+    localAnimator.animatorController = firstController;
+    expect(firstFlags.length).to.eq(1);
+
+    // Clear controller: old update flag must be destroyed and cleared
+    localAnimator.animatorController = null;
+    expect(firstFlags.length).to.eq(0);
+    // @ts-ignore
+    expect(localAnimator._controllerUpdateFlag).to.eq(null);
+
+    // Reassigning a new controller must succeed and register a fresh update flag
+    expect(() => {
+      localAnimator.animatorController = secondController;
+    }).not.toThrow();
+    expect(localAnimator.animatorController).to.eq(secondController);
+    expect(secondFlags.length).to.eq(1);
+
+    // Controller mutations must still trigger animator reset through the new flag
+    localAnimator.play("idle");
+    secondController.addLayer(new AnimatorControllerLayer("Overlay"));
+    // @ts-ignore
+    expect(localAnimator._controllerUpdateFlag.flag).to.eq(true);
+
+    // Destroying animator must clean up and null out its flag and controller references
+    localAnimator.destroy();
+    expect(secondFlags.length).to.eq(0);
+    // @ts-ignore
+    expect(localAnimator._controllerUpdateFlag).to.eq(null);
+    expect(localAnimator.animatorController).to.eq(null);
+
+    entity.destroy();
+  });
+
+  it("UpdateFlag destroy and clearFromManagers should be idempotent", () => {
+    const controller = new AnimatorController(engine);
+    // @ts-ignore
+    const flag = controller._registerChangeFlag();
+    // @ts-ignore
+    const flags = controller._updateFlagManager._updateFlags;
+    expect(flags.length).to.eq(1);
+
+    flag.destroy();
+    expect(flags.length).to.eq(0);
+    expect(() => flag.destroy()).not.toThrow();
+    expect(() => flag.clearFromManagers()).not.toThrow();
+  });
 });
