@@ -719,6 +719,11 @@ export class Camera extends Component {
    * Whether independent canvas is enabled.
    */
   _isIndependentCanvasEnabled(): boolean {
+    const renderTarget = this._renderTarget;
+    if (renderTarget && renderTarget.colorTextureCount === 0) {
+      return false;
+    }
+
     // Uber pass need internal RT
     if (this.enablePostProcess && this.scene!.postProcessManager._isValid()) {
       return true;
@@ -729,7 +734,6 @@ export class Camera extends Component {
       return true;
     }
 
-    const renderTarget = this._renderTarget;
     const internalColorFormat = this._getInternalColorTextureFormat();
     // Need HDR and opaque texture
     if (TextureUtils.isHDRFormat(internalColorFormat) || this.opaqueTextureEnabled) {
@@ -772,6 +776,9 @@ export class Camera extends Component {
    * @internal
    */
   _needFinalPass(): boolean {
+    if (this._renderTarget && this._renderTarget.colorTextureCount === 0) {
+      return false;
+    }
     // FXAA or sRGB conversion when camera render to screen
     return this.antiAliasing === AntiAliasing.FXAA || !this._renderTarget;
   }
@@ -780,8 +787,8 @@ export class Camera extends Component {
    * @internal
    */
   _getTargetColorTextureFormat(): TextureFormat {
-    const renderTarget = this._renderTarget;
-    return renderTarget ? renderTarget.getColorTexture(0)!.format : TextureFormat.R8G8B8A8_UNorm;
+    const colorTexture = this._renderTarget?.getColorTexture(0);
+    return colorTexture ? colorTexture.format : TextureFormat.R8G8B8A8_UNorm;
   }
 
   /**

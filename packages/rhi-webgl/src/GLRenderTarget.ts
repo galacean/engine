@@ -118,13 +118,16 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           mipLevel
         );
       }
-    } else {
-      if (mipChanged) {
-        // @ts-ignore
-        const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl);
-        gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthRenderBuffer);
-        gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, target.width >> mipLevel, target.height >> mipLevel);
-      }
+    } else if (mipChanged && this._depthRenderBuffer && target._depth != null) {
+      // @ts-ignore
+      const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl);
+      gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthRenderBuffer);
+      gl.renderbufferStorage(
+        gl.RENDERBUFFER,
+        internalFormat,
+        Math.max(1, target.width >> mipLevel),
+        Math.max(1, target.height >> mipLevel)
+      );
     }
 
     this._curMipLevel = mipLevel;
@@ -142,22 +145,26 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     if (!this._MSAAFrameBuffer) return;
 
     const gl = this._gl;
-    const mask = gl.COLOR_BUFFER_BIT | (this._target.depthTexture ? gl.DEPTH_BUFFER_BIT : 0);
-    const { colorTextureCount, width, height } = this._target;
+    const { colorTextureCount, depthTexture, width, height } = this._target;
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this._MSAAFrameBuffer);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this._frameBuffer);
 
-    for (let textureIndex = 0; textureIndex < colorTextureCount; textureIndex++) {
-      const attachment = gl.COLOR_ATTACHMENT0 + textureIndex;
+    if (colorTextureCount > 0) {
+      const mask = gl.COLOR_BUFFER_BIT | (depthTexture ? gl.DEPTH_BUFFER_BIT : 0);
+      for (let textureIndex = 0; textureIndex < colorTextureCount; textureIndex++) {
+        const attachment = gl.COLOR_ATTACHMENT0 + textureIndex;
 
-      this._blitDrawBuffers![textureIndex] = attachment;
+        this._blitDrawBuffers![textureIndex] = attachment;
 
-      gl.readBuffer(attachment);
-      gl.drawBuffers(this._blitDrawBuffers!);
-      gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, mask, gl.NEAREST);
+        gl.readBuffer(attachment);
+        gl.drawBuffers(this._blitDrawBuffers!);
+        gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, mask, gl.NEAREST);
 
-      this._blitDrawBuffers![textureIndex] = gl.NONE;
+        this._blitDrawBuffers![textureIndex] = gl.NONE;
+      }
+    } else if (depthTexture) {
+      gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, gl.DEPTH_BUFFER_BIT, gl.NEAREST);
     }
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -211,7 +218,10 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       }
     }
 
-    if (colorTextureCount > 1) {
+    if (colorTextureCount === 0) {
+      gl.drawBuffers([gl.NONE]);
+      gl.readBuffer(gl.NONE);
+    } else if (colorTextureCount > 1) {
       gl.drawBuffers(drawBuffers);
     }
     this._oriDrawBuffers = drawBuffers;
@@ -257,7 +267,12 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
       this._MSAAColorRenderBuffers[i] = this._createRenderBuffer(internalFormat, gl.COLOR_ATTACHMENT0 + i);
     }
-    gl.drawBuffers(this._oriDrawBuffers);
+    if (colorTextureCount === 0) {
+      gl.drawBuffers([gl.NONE]);
+      gl.readBuffer(gl.NONE);
+    } else {
+      gl.drawBuffers(this._oriDrawBuffers);
+    }
 
     // prepare MSAA depth RBO
     if (_depth !== null) {

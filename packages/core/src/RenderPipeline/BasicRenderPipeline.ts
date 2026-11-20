@@ -116,7 +116,8 @@ export class BasicRenderPipeline {
     );
 
     // Copy the background when MSAA prevents a direct blit or sRGB needs conversion to linear.
-    const isSRGBBackground = !renderTarget || renderTarget.getColorTexture(0)!.isSRGBColorSpace;
+    const colorTexture = renderTarget?.getColorTexture(0);
+    const isSRGBBackground = !renderTarget || Boolean(colorTexture?.isSRGBColorSpace);
     this._shouldCopyBackgroundColor =
       independentCanvasEnabled &&
       !(finalClearFlags & CameraClearFlags.Color) &&
@@ -227,6 +228,7 @@ export class BasicRenderPipeline {
     const { background } = scene;
 
     const rhi = engine._hardwareRenderer;
+    const isDepthOnlyTarget = Boolean(cameraRenderTarget && cameraRenderTarget.colorTextureCount === 0);
     const internalColorTarget = this._internalColorTarget;
     const colorTarget = internalColorTarget || camera.renderTarget;
     const colorViewport = internalColorTarget ? PipelineUtils.defaultViewport : camera.viewport;
@@ -240,13 +242,14 @@ export class BasicRenderPipeline {
 
     context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
 
-    // Clear color
-    if (finalClearFlags !== CameraClearFlags.None) {
+    // Clear color/depth/stencil (mask off Color when rendering to a depth-only RenderTarget)
+    const passClearFlags = isDepthOnlyTarget ? finalClearFlags & ~CameraClearFlags.Color : finalClearFlags;
+    if (passClearFlags !== CameraClearFlags.None) {
       const premultiplyColor = Background._premultiplySolidColor;
       const { solidColor } = background;
       const { a } = solidColor;
       premultiplyColor.set(solidColor.r * a, solidColor.g * a, solidColor.b * a, a);
-      rhi.clearRenderTarget(engine, finalClearFlags, premultiplyColor);
+      rhi.clearRenderTarget(engine, passClearFlags, premultiplyColor);
     }
 
     if (internalColorTarget) {
@@ -286,7 +289,7 @@ export class BasicRenderPipeline {
 
     opaqueQueue.render(context, PipelineStage.Forward);
     alphaTestQueue.render(context, PipelineStage.Forward);
-    if (finalClearFlags & CameraClearFlags.Color) {
+    if (!isDepthOnlyTarget && finalClearFlags & CameraClearFlags.Color) {
       if (background.mode === BackgroundMode.Sky) {
         background.sky._render(context);
       } else if (background.mode === BackgroundMode.Texture && background.texture) {
@@ -295,7 +298,7 @@ export class BasicRenderPipeline {
     }
 
     // Copy opaque texture
-    if (camera.opaqueTextureEnabled) {
+    if (!isDepthOnlyTarget && camera.opaqueTextureEnabled) {
       // Should blit to resolve the MSAA
       colorTarget!._blitRenderTarget();
 
@@ -319,7 +322,7 @@ export class BasicRenderPipeline {
     // Post process
     const needFinalPass = camera._needFinalPass();
     const { postProcessManager } = scene;
-    if (camera.enablePostProcess && postProcessManager._isValid()) {
+    if (!isDepthOnlyTarget && camera.enablePostProcess && postProcessManager._isValid()) {
       outputTarget = needFinalPass ? postProcessManager._getOutputRenderTarget(camera) : camera.renderTarget;
       postProcessManager._render(camera, internalColorTarget!, outputTarget);
     } else {
@@ -343,7 +346,7 @@ export class BasicRenderPipeline {
     }
 
     // If output target is not camera's render target(only enable HDR or opaqueTexture), we should blit it to camera's render target
-    if (outputTarget !== cameraRenderTarget) {
+    if (!isDepthOnlyTarget && outputTarget !== cameraRenderTarget) {
       Blitter.blitTexture(engine, <Texture2D>outputTarget!.getColorTexture(0), cameraRenderTarget, 0, camera.viewport);
     }
 
