@@ -1,0 +1,18 @@
+packages/terrain/src/terrain/debug/TerrainScreenSpaceReflectionPanel.ts
+  h_a3c79ce84ffdc2 73
+world/demos/seed-world/SeedWorldDemo.ts
+  h_a3c79ce84ffdc2 845,847
+world/tests/seed-world/SeedWorldScreenSpaceReflection.spec.ts
+  h_a3c79ce84ffdc2 223,226,234,253
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a687f1979b753a93c78c853705b4bf29ee97a23b",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
