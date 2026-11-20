@@ -32,14 +32,6 @@ export class BufferReader {
     return this._position + this._baseOffset;
   }
 
-  get byteLength(): number {
-    return this._dataView.byteLength;
-  }
-
-  get remaining(): number {
-    return this._dataView.byteLength - this._position;
-  }
-
   nextUint8() {
     const value = this._dataView.getUint8(this._position);
     this._position += 1;
@@ -65,7 +57,6 @@ export class BufferReader {
   }
 
   nextInt32Array(len: number) {
-    this._ensureReadable(4 * len);
     const value = new Int32Array(this.data.buffer, this._position + this._dataView.byteOffset, len);
     this._position += 4 * len;
     return value;
@@ -78,21 +69,18 @@ export class BufferReader {
   }
 
   nextFloat32Array(len: number) {
-    this._ensureReadable(4 * len);
     const value = new Float32Array(this.data.buffer, this._position + this._dataView.byteOffset, len);
     this._position += 4 * len;
     return value;
   }
 
   nextUint32Array(len: number) {
-    this._ensureReadable(4 * len);
     const value = new Uint32Array(this.data.buffer, this._position + this._dataView.byteOffset, len);
     this._position += 4 * len;
     return value;
   }
 
   nextUint8Array(len: number) {
-    this._ensureReadable(len);
     const value = new Uint8Array(this.data.buffer, this._position + this._dataView.byteOffset, len);
     this._position += len;
     return value;
@@ -108,7 +96,6 @@ export class BufferReader {
 
   nextStr(): string {
     const strByteLength = this.nextUint16();
-    this._ensureReadable(strByteLength);
     const uint8Array = new Uint8Array(this.data.buffer, this._position + this._dataView.byteOffset, strByteLength);
     this._position += strByteLength;
     return Utils.decodeText(uint8Array);
@@ -156,11 +143,5 @@ export class BufferReader {
     if (byteLength < maxByteLength) this._position++;
 
     return new Uint8Array(this._dataView.buffer, this._dataView.byteOffset + byteOffset, byteLength);
-  }
-
-  private _ensureReadable(byteLength: number): void {
-    if (byteLength < 0 || this._position + byteLength > this._dataView.byteLength) {
-      throw new RangeError("Offset is outside the bounds of the DataView");
-    }
   }
 }

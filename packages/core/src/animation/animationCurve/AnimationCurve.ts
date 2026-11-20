@@ -3,10 +3,6 @@ import { IEvaluateData } from "../internal/animationCurveOwner/AnimationCurveOwn
 import { Keyframe, KeyframeValueType } from "../Keyframe";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
-function compareKeyframeTime(a: Keyframe<KeyframeValueType>, b: Keyframe<KeyframeValueType>): number {
-  return a.time - b.time;
-}
-
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
@@ -55,75 +51,16 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
    */
   addKey(key: Keyframe<V>): void {
     const { time } = key;
-    if (!Number.isFinite(time)) {
-      throw new Error("Keyframe time must be a finite number.");
-    }
     const { keys } = this;
 
     if (time >= this._length) {
       keys.push(key);
       this._length = time;
     } else {
-      let low = 0;
-      let high = keys.length;
-      while (low < high) {
-        const mid = (low + high) >>> 1;
-        if (keys[mid].time <= time) {
-          low = mid + 1;
-        } else {
-          high = mid;
-        }
-      }
-      keys.splice(low, 0, key);
+      let index = keys.length;
+      while (--index >= 0 && time < keys[index].time);
+      keys.splice(index + 1, 0, key);
     }
-  }
-
-  /**
-   * @internal
-   */
-  _addKeys(keys: Keyframe<V>[]): void {
-    const count = keys.length;
-    if (count === 0) return;
-
-    const existing = this.keys;
-    const isSameArray = existing === keys;
-    const existingCount = isSameArray ? 0 : existing.length;
-    let isSorted = true;
-    let prevTime = existingCount > 0 ? existing[existingCount - 1].time : -Infinity;
-    let maxTime = this._length;
-
-    if (!isSameArray && existingCount > 0) {
-      existing.length = existingCount + count;
-    }
-
-    for (let i = 0; i < count; i++) {
-      const key = keys[i];
-      const time = key.time;
-      if (!Number.isFinite(time)) {
-        if (isSameArray) {
-          existing.length = 0;
-        } else if (existingCount > 0) {
-          existing.length = existingCount;
-        }
-        throw new Error("Keyframe time must be a finite number.");
-      }
-      if (time < prevTime) {
-        isSorted = false;
-      }
-      prevTime = time;
-      if (time > maxTime) {
-        maxTime = time;
-      }
-      if (!isSameArray && existingCount > 0) {
-        existing[existingCount + i] = key;
-      }
-    }
-
-    const target = !isSameArray && existingCount === 0 ? (this.keys = keys) : existing;
-    if (!isSorted) {
-      target.sort(compareKeyframeTime);
-    }
-    this._length = maxTime;
   }
 
   /**

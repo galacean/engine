@@ -1,11 +1,3 @@
-const MIN_HDR_WIDTH = 8;
-const MAX_HDR_WIDTH = 0x7fff;
-const MAX_HDR_HEIGHT = 0x7fff;
-const MAX_HDR_PIXELS = 33_554_432; // 8192 x 4096 max HDR (128 MiB RGBE / 256 MiB half-float)
-const MAX_HDR_HEADER_BYTES = 65_536;
-const MAX_HDR_LINE_LENGTH = 4096;
-const HDR_SIZE_REGEX = /^-Y (\d+) \+X (\d+)\r?$/;
-
 /**
  * HDR (Radiance RGBE) image decoder.
  *
@@ -30,13 +22,9 @@ export class HDRDecoder {
     let endOfHeader = false;
     let findFormat = false;
     let lineIndex = 0;
-    const headerLimit = Math.min(uint8array.length, MAX_HDR_HEADER_BYTES);
 
     do {
       lineIndex += line.length + 1;
-      if (lineIndex >= headerLimit) {
-        throw "HDRDecoder: missing header terminator";
-      }
       line = this._readStringLine(uint8array, lineIndex);
       if (line === "FORMAT=32-bit_rle_rgbe") findFormat = true;
       else if (line.length === 0) endOfHeader = true;
@@ -47,40 +35,20 @@ export class HDRDecoder {
     }
 
     lineIndex += line.length + 1;
-    if (lineIndex >= headerLimit) {
-      throw "HDRDecoder: missing image size, only -Y +X layout is supported";
-    }
     line = this._readStringLine(uint8array, lineIndex);
 
-    const match = HDR_SIZE_REGEX.exec(line);
+    const match = /^\-Y (.*) \+X (.*)$/g.exec(line);
     if (!match || match.length < 3) {
       throw "HDRDecoder: missing image size, only -Y +X layout is supported";
     }
-    const width = Number(match[2]);
-    const height = Number(match[1]);
+    const width = parseInt(match[2]);
+    const height = parseInt(match[1]);
 
-    if (
-      !Number.isSafeInteger(width) ||
-      !Number.isSafeInteger(height) ||
-      width < MIN_HDR_WIDTH ||
-      width > MAX_HDR_WIDTH ||
-      height < 1 ||
-      height > MAX_HDR_HEIGHT
-    ) {
-      throw "HDRDecoder: unsupported image dimensions";
+    if (width < 8 || width > 0x7fff) {
+      throw "HDRDecoder: unsupported image width, must be between 8 and 32767";
     }
 
-    const pixelCount = width * height;
-    if (!Number.isSafeInteger(pixelCount) || pixelCount <= 0 || pixelCount > MAX_HDR_PIXELS) {
-      throw "HDRDecoder: image pixel count exceeds limit";
-    }
-
-    const dataPosition = lineIndex + line.length + 1;
-    if (dataPosition >= uint8array.length) {
-      throw "HDRDecoder: missing pixel data";
-    }
-
-    return { height, width, dataPosition };
+    return { height, width, dataPosition: lineIndex + line.length + 1 };
   }
 
   /**
@@ -101,16 +69,6 @@ export class HDRDecoder {
    * Convert RGBE pixel data to R16G16B16A16_SFloat half-float.
    */
   static _rgbeToHalfFloat(rgbe: Uint8Array, width: number, height: number): Uint16Array {
-    if (
-      !Number.isSafeInteger(width) ||
-      !Number.isSafeInteger(height) ||
-      width <= 0 ||
-      height <= 0 ||
-      width * height > MAX_HDR_PIXELS ||
-      rgbe.byteLength < width * height * 4
-    ) {
-      throw "HDRDecoder: invalid RGBE pixel buffer dimensions";
-    }
     const floatView = this._floatView;
     const uint32View = this._uint32View;
     const { baseTable, shiftTable } = this._float2HalfTables;
@@ -139,57 +97,26 @@ export class HDRDecoder {
    * Decode RLE-compressed RGBE scanlines into raw RGBE pixel data.
    */
   static _readPixels(buffer: Uint8Array, width: number, height: number): Uint8Array {
-    if (
-      !Number.isSafeInteger(width) ||
-      !Number.isSafeInteger(height) ||
-      width < MIN_HDR_WIDTH ||
-      width > MAX_HDR_WIDTH ||
-      height < 1 ||
-      height > MAX_HDR_HEIGHT ||
-      width * height > MAX_HDR_PIXELS
-    ) {
-      throw "HDRDecoder: unsupported image dimensions";
-    }
-
     const byteLength = buffer.byteLength;
-    const expectedBytes = 4 * width * height;
-    if (byteLength < 4) {
-      throw "HDRDecoder: truncated pixel data";
-    }
-
-    if (buffer[0] !== 2 || buffer[1] !== 2 || buffer[2] & 0x80) {
-      if (byteLength < expectedBytes) {
-        throw "HDRDecoder: truncated uncompressed pixel data";
-      }
-      return buffer.subarray(0, expectedBytes);
-    }
-
-    const minRleScanlineBytes = 4 + 2 * Math.ceil((4 * width) / 127);
-    if (byteLength < height * minRleScanlineBytes) {
-      throw "HDRDecoder: truncated RLE pixel data";
-    }
-
-    const dataRGBA = new Uint8Array(expectedBytes);
+    const dataRGBA = new Uint8Array(4 * width * height);
     let offset = 0;
     let pos = 0;
     const ptrEnd = 4 * width;
     const scanLineBuffer = new Uint8Array(ptrEnd);
     let numScanLines = height;
 
-    while (numScanLines > 0) {
-      if (pos + 4 > byteLength) throw "HDRDecoder: truncated scanline header";
+    while (numScanLines > 0 && pos < byteLength) {
       const a = buffer[pos++];
       const b = buffer[pos++];
       const c = buffer[pos++];
       const d = buffer[pos++];
 
-      if (a !== 2 || b !== 2 || c & 0x80 || ((c << 8) | d) !== width) {
-        throw "HDRDecoder: wrong scanline width";
-      }
+      if (a !== 2 || b !== 2 || c & 0x80 || width < 8 || width > 32767) return buffer;
+
+      if (((c << 8) | d) !== width) throw "HDRDecoder: wrong scanline width";
 
       let ptr = 0;
-      while (ptr < ptrEnd) {
-        if (pos >= byteLength) throw "HDRDecoder: truncated scanline data";
+      while (ptr < ptrEnd && pos < byteLength) {
         let count = buffer[pos++];
         const isEncodedRun = count > 128;
         if (isEncodedRun) count -= 128;
@@ -197,11 +124,9 @@ export class HDRDecoder {
         if (count === 0 || ptr + count > ptrEnd) throw "HDRDecoder: bad scanline data";
 
         if (isEncodedRun) {
-          if (pos >= byteLength) throw "HDRDecoder: truncated scanline run value";
           const byteValue = buffer[pos++];
           for (let i = 0; i < count; i++) scanLineBuffer[ptr++] = byteValue;
         } else {
-          if (pos + count > byteLength) throw "HDRDecoder: truncated scanline literal run";
           scanLineBuffer.set(buffer.subarray(pos, pos + count), ptr);
           ptr += count;
           pos += count;
@@ -256,8 +181,7 @@ export class HDRDecoder {
 
   private static _readStringLine(uint8array: Uint8Array, startIndex: number): string {
     let line = "";
-    const limit = Math.min(uint8array.length, startIndex + MAX_HDR_LINE_LENGTH);
-    for (let i = startIndex; i < limit; i++) {
+    for (let i = startIndex, n = uint8array.length; i < n; i++) {
       const character = String.fromCharCode(uint8array[i]);
       if (character === "\n") break;
       line += character;

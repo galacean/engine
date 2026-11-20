@@ -19,26 +19,6 @@ export enum SupercompressionScheme {
   ZLib
 }
 
-const KTX2_IDENTIFIER = [0xab, 0x4b, 0x54, 0x58, 0x20, 0x32, 0x30, 0xbb, 0x0d, 0x0a, 0x1a, 0x0a];
-const KTX2_HEADER_BYTE_LENGTH = 80;
-const KTX2_LEVEL_INDEX_ENTRY_BYTES = 24;
-const KTX2_DFD_HEADER_BYTES = 24;
-const KTX2_SGD_HEADER_BYTES = 20;
-const KTX2_SGD_IMAGE_DESC_BYTES = 20;
-
-function ensureRange(offset: number, length: number, totalByteLength: number, label: string): void {
-  if (
-    !Number.isSafeInteger(offset) ||
-    !Number.isSafeInteger(length) ||
-    offset < 0 ||
-    length < 0 ||
-    offset > totalByteLength ||
-    length > totalByteLength - offset
-  ) {
-    throw new Error(`KTX2Container: ${label} exceeds buffer bounds.`);
-  }
-}
-
 /** @internal */
 export class KTX2Container {
   static checkMagic(buffer: ArrayBuffer, offset: number = 0): boolean {
@@ -67,7 +47,7 @@ export class KTX2Container {
 
   dataFormatDescriptor: KTX2DataFormatDescriptorBasicFormat;
 
-  keyValue: { [key: string]: string | Uint8Array } = Object.create(null);
+  keyValue: { [key: string]: string | Uint8Array } = {};
 
   globalData: KTX2GlobalDataBasisLZ | null = null;
 
@@ -84,19 +64,9 @@ export class KTX2Container {
   }
 
   private parse(data: Uint8Array) {
-    const dataByteLength = data.byteLength;
-    if (dataByteLength < KTX2_HEADER_BYTE_LENGTH) {
-      throw new Error("KTX2Container: buffer shorter than KTX2 header.");
-    }
-    for (let i = 0; i < KTX2_IDENTIFIER.length; i++) {
-      if (data[i] !== KTX2_IDENTIFIER[i]) {
-        throw new Error("KTX2Container: invalid KTX2 file identifier.");
-      }
-    }
-
     const buffer = data.buffer;
     const byteOffset = data.byteOffset;
-    const headerBufferReader = new BufferReader(data, 12, KTX2_HEADER_BYTE_LENGTH - 12);
+    const headerBufferReader = new BufferReader(data, 12);
     this.vkFormat = headerBufferReader.nextUint32();
     this.typeSize = headerBufferReader.nextUint32();
     this.pixelWidth = headerBufferReader.nextUint32();
@@ -118,38 +88,19 @@ export class KTX2Container {
     const sgdByteOffset = headerBufferReader.nextUint64();
     const sgdByteLength = headerBufferReader.nextUint64();
 
-    if (this.pixelWidth === 0 || this.faceCount === 0) {
-      throw new Error("KTX2Container: invalid texture dimensions or faceCount.");
-    }
-    const maxDimension = Math.max(this.pixelWidth, this.pixelHeight, this.pixelDepth);
-    const maxLevelCount = Math.floor(Math.log2(maxDimension)) + 1;
-    if (levelCount <= 0 || levelCount > maxLevelCount) {
-      throw new Error(`KTX2Container: levelCount ${levelCount} exceeds maximum ${maxLevelCount}.`);
-    }
-
     // level index
-    const levelByteLength = levelCount * KTX2_LEVEL_INDEX_ENTRY_BYTES;
-    ensureRange(headerBufferReader.offset, levelByteLength, dataByteLength, "level index");
-    const levelReader = new BufferReader(data, headerBufferReader.offset, levelByteLength);
     const ktxLevels = new Array<KTX2Level>(levelCount);
+    const levelByteLength = levelCount * 3 * 8;
+    const levelReader = new BufferReader(data, headerBufferReader.offset, levelByteLength);
     this.levels = ktxLevels;
 
     for (let i = 0; i < levelCount; i++) {
-      const levelOffset = levelReader.nextUint64();
-      const levelLength = levelReader.nextUint64();
-      const uncompressedByteLength = levelReader.nextUint64();
-      ensureRange(levelOffset, levelLength, dataByteLength, `level[${i}]`);
       ktxLevels[i] = {
-        levelData: new Uint8Array(buffer, byteOffset + levelOffset, levelLength),
-        uncompressedByteLength
+        levelData: new Uint8Array(buffer, byteOffset + levelReader.nextUint64(), levelReader.nextUint64()),
+        uncompressedByteLength: levelReader.nextUint64()
       };
     }
-
     // Data Format Descriptor (DFD).
-    ensureRange(dfdByteOffset, dfdByteLength, dataByteLength, "DFD");
-    if (dfdByteLength < KTX2_DFD_HEADER_BYTES) {
-      throw new Error("KTX2Container: DFD shorter than basic header.");
-    }
     const dfdReader = new BufferReader(data, dfdByteOffset, dfdByteLength);
 
     const dfd: KTX2DataFormatDescriptorBasicFormat = {
@@ -180,9 +131,6 @@ export class KTX2Container {
     const sampleStart = 6;
     const sampleWords = 4;
     const numSamples = (dfd.descriptorBlockSize / 4 - sampleStart) / sampleWords;
-    if (!Number.isInteger(numSamples) || numSamples < 0 || KTX2_DFD_HEADER_BYTES + numSamples * 16 > dfdByteLength) {
-      throw new Error("KTX2Container: invalid DFD sample count.");
-    }
 
     for (let i = 0; i < numSamples; i++) {
       const sample = {
@@ -205,18 +153,11 @@ export class KTX2Container {
       dfd.samples[i] = sample;
     }
 
-    ensureRange(kvdByteOffset, kvdByteLength, dataByteLength, "KVD");
     const kvdReader = new BufferReader(data, kvdByteOffset, kvdByteLength, true);
 
     while (kvdReader.position < kvdByteLength) {
       const keyValueByteLength = kvdReader.nextUint32();
-      if (keyValueByteLength > kvdReader.remaining) {
-        throw new Error("KTX2Container: KVD entry exceeds bounds.");
-      }
       const keyData = kvdReader.scan(keyValueByteLength);
-      if (keyData.byteLength >= keyValueByteLength) {
-        throw new Error("KTX2Container: KVD key missing null terminator.");
-      }
       const key = Utils.decodeText(keyData);
 
       // 4-byte alignment.
@@ -225,18 +166,11 @@ export class KTX2Container {
 
       const kvPadding = keyValueByteLength % 4 ? 4 - (keyValueByteLength % 4) : 0; // align(4)
       // 4-byte alignment.
-      if (kvPadding > kvdReader.remaining) {
-        throw new Error("KTX2Container: KVD padding exceeds bounds.");
-      }
       kvdReader.skip(kvPadding);
     }
 
     if (sgdByteLength <= 0) return this;
 
-    ensureRange(sgdByteOffset, sgdByteLength, dataByteLength, "SGD");
-    if (sgdByteLength < KTX2_SGD_HEADER_BYTES + levelCount * KTX2_SGD_IMAGE_DESC_BYTES) {
-      throw new Error("KTX2Container: SGD shorter than required header and image descriptors.");
-    }
     const sgdReader = new BufferReader(data, sgdByteOffset, sgdByteLength, true);
 
     const endpointCount = sgdReader.nextUint16();
@@ -262,11 +196,6 @@ export class KTX2Container {
     const selectorsByteOffset = endpointsByteOffset + endpointsByteLength;
     const tablesByteOffset = selectorsByteOffset + selectorsByteLength;
     const extendedByteOffset = tablesByteOffset + tablesByteLength;
-    const sgdEndOffset = sgdByteOffset + sgdByteLength;
-    ensureRange(endpointsByteOffset, endpointsByteLength, sgdEndOffset, "SGD endpoints");
-    ensureRange(selectorsByteOffset, selectorsByteLength, sgdEndOffset, "SGD selectors");
-    ensureRange(tablesByteOffset, tablesByteLength, sgdEndOffset, "SGD tables");
-    ensureRange(extendedByteOffset, extendedByteLength, sgdEndOffset, "SGD extended");
 
     const endpointsData = new Uint8Array(buffer, byteOffset + endpointsByteOffset, endpointsByteLength);
     const selectorsData = new Uint8Array(buffer, byteOffset + selectorsByteOffset, selectorsByteLength);
