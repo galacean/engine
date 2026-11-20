@@ -6,6 +6,7 @@ import {
   PrimitiveMesh,
   Entity,
   Camera,
+  Layer,
   ModelMesh
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
@@ -256,6 +257,61 @@ describe("MeshRenderer", async function () {
     // Test that set negative value works correctly.
     mr.priority = -1;
     expect(mr.priority).to.be.equal(-1);
+  });
+
+  it("batches and splits opaque MeshRenderers by _isFrontFaceInvert", () => {
+    const scene = engine.sceneManager.activeScene;
+    const testRoot = scene.createRootEntity("batch-ffi-root");
+    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
+    const material = new UnlitMaterial(engine);
+
+    const camEntity = testRoot.createChild("batch-ffi-camera");
+    camEntity.transform.setPosition(0, 0, 10);
+    camEntity.transform.lookAt(new Vector3(0, 0, 0));
+    const camera = camEntity.addComponent(Camera);
+    camera.enabled = false;
+    camera.cullingMask = Layer.Layer10;
+
+    const parentA = testRoot.createChild("parent-a");
+    parentA.transform.setScale(-1, 2, 1);
+    const entityA = parentA.createChild("mesh-a");
+    entityA.layer = Layer.Layer10;
+    entityA.transform.setRotation(0, 0, 45);
+    const mrA = entityA.addComponent(MeshRenderer);
+    mrA.mesh = mesh;
+    mrA.setMaterial(material);
+
+    const parentB = testRoot.createChild("parent-b");
+    const entityB = parentB.createChild("mesh-b");
+    entityB.layer = Layer.Layer10;
+    const mrB = entityB.addComponent(MeshRenderer);
+    mrB.mesh = mesh;
+    mrB.setMaterial(material);
+
+    engine.pause();
+    try {
+      // Opposite front-face inversion (true vs false) must not batch
+      camera.render();
+      // @ts-ignore
+      const opaqueQueue = camera._renderPipeline._cullingResults.opaqueQueue;
+      expect(opaqueQueue.batchedElements.length).to.equal(2);
+      expect(opaqueQueue.batchedElements[0].instancedRenderers.length).to.equal(0);
+      expect(opaqueQueue.batchedElements[1].instancedRenderers.length).to.equal(0);
+
+      // Matching front-face inversion (both true) must batch into one instanced draw
+      parentB.transform.setScale(-1, 1, 1);
+      camera.render();
+      expect(opaqueQueue.batchedElements.length).to.equal(1);
+      expect(opaqueQueue.batchedElements[0].instancedRenderers.length).to.equal(2);
+
+      // Restoring parentA to positive scale flips mrA back to false and splits again
+      parentA.transform.setScale(1, 2, 1);
+      camera.render();
+      expect(opaqueQueue.batchedElements.length).to.equal(2);
+    } finally {
+      testRoot.destroy();
+      engine.resume();
+    }
   });
 
   it("destroy", () => {
