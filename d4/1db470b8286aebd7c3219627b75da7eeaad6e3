@@ -1,0 +1,30 @@
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_bd4dd7d663e619 236-237,243,287,392
+packages/core/src/RenderPipeline/Blitter.ts
+  h_bd4dd7d663e619 38-53
+packages/core/src/RenderPipeline/OpaqueTexturePass.ts
+  h_bd4dd7d663e619 52
+packages/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  h_bd4dd7d663e619 141,156,171
+packages/core/src/postProcess/FinalPass.ts
+  h_bd4dd7d663e619 68,80,92
+packages/core/src/postProcess/PostProcessUberPass.ts
+  h_bd4dd7d663e619 80,186,204,215,239
+packages/rhi-webgl/src/GLRenderTarget.ts
+  h_bd4dd7d663e619 145,186-187,189,192-194
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_bd4dd7d663e619 418,433,435-436,652-654
+tests/src/core/RenderPipeline/Blitter.test.ts
+  h_bd4dd7d663e619 7,10,17,40-44,71,73,75,332,396,404,413,424,434,452,457,462,484,487,493-494,499,506,510-518,520-521,533-573,589,591-608,612-614,617-623,639-640,643,656,658,661,669-673,683-684,687-704,706,711-714
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d41db470b8286aebd7c3219627b75da7eeaad6e3",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
