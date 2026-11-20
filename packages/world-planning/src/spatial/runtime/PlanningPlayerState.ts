@@ -105,11 +105,14 @@ export class PlanningPlayerState {
   }
   observe(): void {
     if (this.retired.length > 0) {
-      for (const state of this.retired.splice(0))
+      for (let i = 0; i < this.retired.length; i++) {
+        const state = this.retired[i];
         void state
           .flush()
           .catch(this.onError)
           .finally(() => state.dispose());
+      }
+      this.retired.length = 0;
     }
     this.state?.observe(this.capture());
   }

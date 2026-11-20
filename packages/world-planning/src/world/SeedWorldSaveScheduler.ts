@@ -11,10 +11,14 @@ export class SeedWorldSaveScheduler<T> {
   private _firstDirtyAt: number | undefined;
   private _lastDirtyAt = 0;
   private _timer: ReturnType<typeof setTimeout> | undefined;
+  private _scheduledDueAt = 0;
   private _flight: Promise<void> | undefined;
   private _disposed = false;
   private _flushRequested = false;
   private _deferredCapture = false;
+  private readonly _onTimer = (): void => {
+    this._handleTimer();
+  };
 
   constructor(
     private readonly _options: {
@@ -32,14 +36,15 @@ export class SeedWorldSaveScheduler<T> {
   /** Does not capture a snapshot or wait for storage. */
   markDirty(): void {
     if (this._disposed) return;
-    if (this._revision !== this._savedRevision && !this._canCapture() && this._dueAt() <= Date.now()) {
+    const now = Date.now();
+    if (this._revision !== this._savedRevision && !this._canCapture() && this._dueAt(now) <= now) {
       this._deferredCapture = true;
     }
     this._revision++;
-    this._lastDirtyAt = Date.now();
-    this._firstDirtyAt ??= this._lastDirtyAt;
+    this._lastDirtyAt = now;
+    this._firstDirtyAt ??= now;
     this._options.onStatus("pending");
-    this._schedule();
+    this._schedule(now);
   }
 
   /** Explicit retry/manual flush; edits arriving during this write remain dirty. */
@@ -81,7 +86,7 @@ export class SeedWorldSaveScheduler<T> {
       this._flushRequested = false;
       if (newerEdit) await this.flush();
     } else if (newerEdit) {
-      this._schedule();
+      this._schedule(Date.now());
     }
   }
 
@@ -94,35 +99,51 @@ export class SeedWorldSaveScheduler<T> {
   notifyCaptureReady(): void {
     if (this._disposed || !this._canCapture() || this._revision === this._savedRevision) return;
     if (this._deferredCapture) void this.flush();
-    else this._schedule();
+    else this._schedule(Date.now());
   }
 
   private _canCapture(): boolean {
     return this._options.canCapture?.() ?? true;
   }
 
-  private _dueAt(): number {
+  private _dueAt(now: number): number {
     return Math.min(
       this._lastDirtyAt + (this._options.debounceMs ?? SEED_WORLD_SAVE_DEBOUNCE_MS),
-      (this._firstDirtyAt ?? Date.now()) + (this._options.maxWaitMs ?? SEED_WORLD_SAVE_MAX_WAIT_MS)
+      (this._firstDirtyAt ?? now) + (this._options.maxWaitMs ?? SEED_WORLD_SAVE_MAX_WAIT_MS)
     );
   }
 
-  private _schedule(): void {
+  private _schedule(now: number): void {
+    if (this._flight || this._disposed || (this._deferredCapture && !this._canCapture())) {
+      this._clearTimer();
+      return;
+    }
+    const due = this._deferredCapture ? now : this._dueAt(now);
+    // Keep the existing earlier timer instead of clearing/re-allocating closures and timers every frame.
+    if (this._timer !== undefined && due >= this._scheduledDueAt) return;
     this._clearTimer();
-    if (this._flight || this._disposed) return;
+    this._scheduledDueAt = due;
+    this._timer = setTimeout(this._onTimer, Math.max(0, due - now));
+  }
+
+  private _handleTimer(): void {
+    this._timer = undefined;
+    this._scheduledDueAt = 0;
+    if (this._disposed || this._flight || this._revision === this._savedRevision) return;
     if (this._deferredCapture && !this._canCapture()) return;
-    const due = this._deferredCapture ? Date.now() : this._dueAt();
-    this._timer = setTimeout(
-      () => {
-        void this.flush();
-      },
-      Math.max(0, due - Date.now())
-    );
+    const now = Date.now();
+    const due = this._deferredCapture ? now : this._dueAt(now);
+    if (now < due) {
+      this._scheduledDueAt = due;
+      this._timer = setTimeout(this._onTimer, due - now);
+      return;
+    }
+    void this.flush();
   }
 
   private _clearTimer(): void {
     if (this._timer !== undefined) clearTimeout(this._timer);
     this._timer = undefined;
+    this._scheduledDueAt = 0;
   }
 }

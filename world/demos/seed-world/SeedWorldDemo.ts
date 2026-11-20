@@ -200,8 +200,9 @@ import {
 } from "@galacean/engine-world-planning/spatial/WorldTemplateView";
 import { SeedWorldAudioRuntime } from "@galacean/engine-world-planning/world/SeedWorldAudioRuntime";
 import {
-  resolveSeedWorldCameraAngles,
-  resolveSeedWorldCameraForward
+  resolveSeedWorldCameraAnglesInto,
+  resolveSeedWorldCameraForward,
+  type SeedWorldCameraBookmark
 } from "@galacean/engine-world-planning/world/SeedWorldCameraBookmark";
 import {
   createSeedWorldShaderVariantSnapshotter,
@@ -1087,22 +1088,36 @@ export async function mountSeedWorldDemo(
       appliedSubjectViewKey = key;
       playerState?.observe();
     };
+    const playerCameraPosition: [number, number, number] = [0, 0, 0];
+    const playerCameraBookmark: {
+      position: [number, number, number];
+      yawDegrees: number;
+      pitchDegrees: number;
+      mode: SeedWorldCameraBookmark["mode"];
+      orbitDistanceMetres?: number;
+    } = {
+      position: playerCameraPosition,
+      yawDegrees: 0,
+      pitchDegrees: 0,
+      mode: "roam",
+      orbitDistanceMetres: undefined
+    };
     if (options.persistPlayerState !== false)
       playerState = new PlanningPlayerState(
         () => window.localStorage,
         () => {
           const p = camera.entity.transform.worldPosition;
           const mode = debugSidebar?.cameraMode ?? "roam";
-          return {
-            position: [p.x, p.y, p.z],
-            ...resolveSeedWorldCameraAngles(camera.entity.transform.worldForward),
-            mode,
-            ...(mode === "orbit"
-              ? {
-                  orbitDistanceMetres: Math.hypot(p.x - orbit.target.x, p.y - orbit.target.y, p.z - orbit.target.z)
-                }
-              : {})
-          };
+          playerCameraPosition[0] = p.x;
+          playerCameraPosition[1] = p.y;
+          playerCameraPosition[2] = p.z;
+          resolveSeedWorldCameraAnglesInto(camera.entity.transform.worldForward, playerCameraBookmark);
+          playerCameraBookmark.mode = mode;
+          playerCameraBookmark.orbitDistanceMetres =
+            mode === "orbit"
+              ? Math.hypot(p.x - orbit.target.x, p.y - orbit.target.y, p.z - orbit.target.z)
+              : undefined;
+          return playerCameraBookmark;
         },
         (bookmark) => {
           const [x, y, z] = bookmark.position;

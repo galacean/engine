@@ -106,9 +106,16 @@ export function formatSeedWorldCameraBookmarkQuery(bookmark: SeedWorldCameraBook
  * @param forward World-space view direction.
  * @returns Yaw and pitch using the Seed World URL convention.
  */
-export function resolveSeedWorldCameraAngles(
-  forward: Readonly<{ x: number; y: number; z: number }>
-): Readonly<{ yawDegrees: number; pitchDegrees: number }> {
+export interface SeedWorldCameraAngles {
+  yawDegrees: number;
+  pitchDegrees: number;
+}
+
+/** Mutates `out` in place so frame-loop callers avoid per-frame object allocations. */
+export function resolveSeedWorldCameraAnglesInto<T extends SeedWorldCameraAngles>(
+  forward: Readonly<{ x: number; y: number; z: number }>,
+  out: T
+): T {
   const length = Math.hypot(forward.x, forward.y, forward.z);
   if (!Number.isFinite(length) || length <= Number.EPSILON) {
     throw new RangeError("Seed World camera forward vector must be finite and non-zero");
@@ -116,10 +123,15 @@ export function resolveSeedWorldCameraAngles(
   const normalizedX = forward.x / length;
   const normalizedY = forward.y / length;
   const normalizedZ = forward.z / length;
-  return Object.freeze({
-    yawDegrees: normalizeYawDegrees((Math.atan2(normalizedX, normalizedZ) * 180) / Math.PI),
-    pitchDegrees: (Math.asin(Math.min(1, Math.max(-1, normalizedY))) * 180) / Math.PI
-  });
+  out.yawDegrees = normalizeYawDegrees((Math.atan2(normalizedX, normalizedZ) * 180) / Math.PI);
+  out.pitchDegrees = (Math.asin(Math.min(1, Math.max(-1, normalizedY))) * 180) / Math.PI;
+  return out;
+}
+
+export function resolveSeedWorldCameraAngles(
+  forward: Readonly<{ x: number; y: number; z: number }>
+): Readonly<SeedWorldCameraAngles> {
+  return Object.freeze(resolveSeedWorldCameraAnglesInto(forward, { yawDegrees: 0, pitchDegrees: 0 }));
 }
 
 /**
@@ -152,6 +164,20 @@ function parseFiniteTuple(value: string, count: number, label: string): number[]
     throw new RangeError(`Seed World ${label} must contain only finite numbers`);
   }
   return values;
+}
+
+export function normalizeSeedWorldCameraYawDegrees(value: number): number {
+  return normalizeYawDegrees(value);
+}
+
+/** Matches 3-decimal `formatCameraNumber` millimetre/0.001-degree bucketing without string allocations. */
+export function quantizeSeedWorldCameraNumber(value: number): number {
+  if (!Number.isFinite(value)) return value;
+  if (Math.abs(value) < 0.0005) return 0;
+  if (Math.abs(value) >= 1e9) return value;
+  const scaled = value * 1000;
+  const rounded = scaled >= 0 ? Math.round(scaled) : -Math.round(-scaled);
+  return rounded === 0 ? 0 : rounded;
 }
 
 function normalizeYawDegrees(value: number): number {
