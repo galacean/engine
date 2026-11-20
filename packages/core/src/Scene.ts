@@ -336,6 +336,7 @@ export class Scene extends EngineObject {
     const oldScene = rootEntity._scene;
     const oldParent = rootEntity.parent;
     const wasRoot = rootEntity._isRoot;
+    const sceneWasDestroyed = this.destroyed;
 
     // Validate index bounds up front before any side effects
     if (index !== undefined && (oldScene !== this || !wasRoot)) {
@@ -367,6 +368,7 @@ export class Scene extends EngineObject {
 
     if (
       !rootEntity.destroyed &&
+      (!this.destroyed || sceneWasDestroyed) &&
       rootEntity._scene === oldScene &&
       rootEntity.parent === oldParent &&
       rootEntity._isRoot === wasRoot
@@ -398,7 +400,13 @@ export class Scene extends EngineObject {
     }
 
     let activeChangeFlag = ActiveChangeFlag.None;
-    if (rootEntity._isActive && rootEntity._isRoot && rootEntity._scene === this && !rootEntity.destroyed) {
+    if (
+      rootEntity._isActive &&
+      rootEntity._isRoot &&
+      rootEntity._scene === this &&
+      !rootEntity.destroyed &&
+      !this.destroyed
+    ) {
       if (this._isActiveInEngine) {
         !rootEntity._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
       }

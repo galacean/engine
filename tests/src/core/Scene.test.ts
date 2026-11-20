@@ -512,6 +512,39 @@ describe("Scene", () => {
         if (!sceneD.destroyed) sceneD.destroy();
         if (!sceneE.destroyed) sceneE.destroy();
       }
+
+      // Case C: addRootEntity when onDisable destroys destination scene must not attach or activate into destroyed scene
+      const sceneF = new Scene(engine, "sceneF");
+      const sceneG = new Scene(engine, "sceneG"); // inactive
+      engine.sceneManager.addScene(sceneF);
+      try {
+        const f1 = sceneF.createRootEntity("f1");
+        let enableInSceneCount = 0;
+        f1.addComponent(
+          class extends Script {
+            override _onEnableInScene(): void {
+              super._onEnableInScene();
+              enableInSceneCount++;
+            }
+            override onDisable(): void {
+              sceneG.destroy();
+            }
+          }
+        );
+        expect(enableInSceneCount).toBe(1);
+        expect(() => sceneG.addRootEntity(f1)).not.toThrow();
+        expect(sceneG.destroyed).toBe(true);
+        expect(sceneG.rootEntities).toEqual([]);
+        expect(f1.scene).toBe(sceneF);
+        expect(sceneF.rootEntities).toEqual([f1]);
+        expect(enableInSceneCount).toBe(1);
+
+        sceneF.destroy();
+        expect(sceneF.destroyed).toBe(true);
+      } finally {
+        if (!sceneF.destroyed) sceneF.destroy();
+        if (!sceneG.destroyed) sceneG.destroy();
+      }
     });
 
     it("all destroy", () => {
