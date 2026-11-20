@@ -1,0 +1,16 @@
+packages/core/src/asset/ResourceManager.ts
+  h_dd004f51a3e5ec 533-539
+tests/src/loader/HierarchyDeserialization.test.ts
+  h_dd004f51a3e5ec 9,294-313
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e444454680b9681026695d2ebcaa30baa0902387",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
