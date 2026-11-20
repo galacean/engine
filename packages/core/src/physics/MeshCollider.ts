@@ -32,6 +32,8 @@ export class MeshCollider extends Collider {
   @ignoreClone
   private _nativeTrigger = false;
   @ignoreClone
+  private _meshReassigned = false;
+  @ignoreClone
   private _cookFailed = false;
   @ignoreClone
   private _triggerRejected = false;
@@ -48,6 +50,7 @@ export class MeshCollider extends Collider {
   set mesh(value: ModelMesh | null) {
     if (this._mesh !== value || this._cookFailed) {
       this._setMesh(value);
+      this._meshReassigned = true;
       this._cookFailed = false;
       this._geometryDirty = true;
       this._markDirty();
@@ -163,6 +166,7 @@ export class MeshCollider extends Collider {
     if (!mesh) {
       this._triggerRejected = false;
       this._cookFailed = false;
+      this._meshReassigned = false;
       this._geometryDirty = false;
       if (this._native) {
         this._replaceNativeShape(null);
@@ -188,10 +192,12 @@ export class MeshCollider extends Collider {
     this._geometryDirty = false;
     if (
       !shape ||
+      this._meshReassigned ||
       this._nativeMesh !== mesh ||
       this._nativeConvex !== this._convex ||
       this._nativeCookingFlags !== this._cookingFlags
     ) {
+      this._meshReassigned = false;
       const meshData = MeshCollider._getMeshData(mesh, this._convex);
       if (!meshData) {
         this._cookFailed = true;
@@ -290,6 +296,13 @@ export class MeshCollider extends Collider {
     if (!positions || positions.length === 0) {
       console.warn("MeshCollider: mesh has no position data.");
       return null;
+    }
+    for (let i = 0, n = positions.length; i < n; i++) {
+      const point = positions[i];
+      if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y) || !Number.isFinite(point.z)) {
+        console.error("MeshCollider: mesh position data must contain finite Vector3 values.");
+        return null;
+      }
     }
     if (!convex && !indices) {
       console.warn("MeshCollider: a non-convex mesh requires indices.");

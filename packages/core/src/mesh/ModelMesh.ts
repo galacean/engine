@@ -760,8 +760,9 @@ export class ModelMesh extends Mesh {
     if (advancedDataVersion >= bufferDataVersion) {
       return vertices;
     } else {
+      const result = readVertexData.call(this, vertexAttribute);
       advancedVertexDataVersions[vertexElementIndex] = bufferDataVersion;
-      return readVertexData.call(this, vertexAttribute);
+      return result;
     }
   }
 

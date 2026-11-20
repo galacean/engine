@@ -532,17 +532,26 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   /**
-   * Push the world scale to the native shape whenever any component differs from the last committed value.
+   * Push the world scale to the native shape whenever any component differs beyond relative tolerance.
    * @returns Whether the native scale was updated
    */
   protected _syncNativeScale(shape: IColliderShape, scale: Vector3, force = false): boolean {
     const nativeScale = this._nativeScale;
-    if (force || scale.x !== nativeScale.x || scale.y !== nativeScale.y || scale.z !== nativeScale.z) {
+    if (
+      force ||
+      !Collider._scaleEquals(scale.x, nativeScale.x) ||
+      !Collider._scaleEquals(scale.y, nativeScale.y) ||
+      !Collider._scaleEquals(scale.z, nativeScale.z)
+    ) {
       nativeScale.copyFrom(scale);
       shape.setWorldScale(scale);
       return true;
     }
     return false;
+  }
+
+  private static _scaleEquals(a: number, b: number): boolean {
+    return Math.abs(a - b) <= 1e-6 * Math.max(Math.abs(a), Math.abs(b));
   }
 
   /**

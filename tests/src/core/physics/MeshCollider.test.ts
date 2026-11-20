@@ -803,4 +803,159 @@ describe("MeshCollider", () => {
     expect(physics.raycast(rayAt(0))).toBe(true);
     expect(cookSpy).not.toHaveBeenCalled();
   });
+
+  it("does not resurrect stale CPU positions across shared colliders after replacing with an unreadable buffer", () => {
+    const indices = new Uint16Array([
+      0, 3, 2, 0, 2, 1, 4, 5, 6, 4, 6, 7, 0, 1, 5, 0, 5, 4, 3, 7, 6, 3, 6, 2, 0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5
+    ]);
+    const bindWidth = (mesh: ModelMesh, width: number, readable: boolean): void => {
+      const raw = new Float32Array([
+        -width,
+        -1,
+        -1,
+        width,
+        -1,
+        -1,
+        width,
+        1,
+        -1,
+        -width,
+        1,
+        -1,
+        -width,
+        -1,
+        1,
+        width,
+        -1,
+        1,
+        width,
+        1,
+        1,
+        -width,
+        1,
+        1
+      ]);
+      mesh.setVertexBufferBinding(
+        new Buffer(engine, BufferBindFlag.VertexBuffer, raw, BufferUsage.Static, readable),
+        12
+      );
+    };
+
+    const shared = new ModelMesh(engine);
+    shared.setVertexElements([new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0)]);
+    bindWidth(shared, 1, true);
+    shared.setIndices(indices);
+
+    const first = root.createChild("shared-a").addComponent(MeshCollider);
+    const secondEntity = root.createChild("shared-b");
+    secondEntity.transform.setPosition(10, 0, 0);
+    const second = secondEntity.addComponent(MeshCollider);
+    first.mesh = shared;
+    second.mesh = shared;
+    const hit = new HitResult();
+    expect(physics.raycast(rayAt(0), hit) && hit.collider === first).toBe(true);
+    expect(physics.raycast(rayAt(10), hit) && hit.collider === second).toBe(true);
+
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    bindWidth(shared, 3, false);
+    first.cookingFlags = MeshColliderShapeCookingFlag.None;
+    second.cookingFlags = MeshColliderShapeCookingFlag.None;
+
+    expect(physics.raycast(rayAt(0))).toBe(false);
+    expect(physics.raycast(rayAt(10))).toBe(false);
+    expect(errors).toHaveBeenCalledTimes(2);
+
+    // Retrying the same unreadable mesh keeps it excluded, then recovers once readable
+    first.mesh = shared;
+    expect(physics.raycast(rayAt(0))).toBe(false);
+
+    bindWidth(shared, 3, true);
+    first.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
+    second.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
+    expect(physics.raycast(rayAt(2.5), hit) && hit.collider === first).toBe(true);
+    expect(physics.raycast(rayAt(12.5), hit) && hit.collider === second).toBe(true);
+  });
+
+  it.each([false, true])(
+    "recooks when mesh is explicitly cleared and reassigned after mutating positions (convex=%s)",
+    (convex) => {
+      const mesh = createCubeMesh(engine, 1);
+      const collider = addMesh(convex, mesh);
+      expect(physics.raycast(rayAt(0))).toBe(true);
+      expect(physics.raycast(rayAt(2.5))).toBe(false);
+
+      const expanded = mesh.getPositions()!.map((p) => new Vector3(p.x * 3, p.y, p.z));
+      mesh.setPositions(expanded);
+      collider.mesh = null;
+      collider.mesh = mesh;
+
+      const hit = new HitResult();
+      expect(physics.raycast(rayAt(2.5), hit) && hit.collider === collider).toBe(true);
+    }
+  );
+
+  it.each(["sparse", "nonfinite"] as const)(
+    "excludes meshes with invalid position entries without throwing out of sync (%s)",
+    (mode) => {
+      const other = root.createChild("independent");
+      other.transform.setPosition(10, 5, 0);
+      const otherBox = other.addComponent(BoxCollider);
+      other.addComponent(Rigidbody);
+
+      const collider = addMesh(true);
+      const hit = new HitResult();
+      expect(physics.raycast(rayAt(0), hit) && hit.collider === collider).toBe(true);
+      expect(physics.raycast(rayAt(10, 10), hit) && hit.collider === otherBox).toBe(true);
+
+      const badMesh = createCubeMesh(engine, 1);
+      const badPositions = badMesh.getPositions()!.map((p) => p.clone());
+      if (mode === "sparse") {
+        delete badPositions[1];
+      } else {
+        badPositions[1].x = Number.NaN;
+      }
+      badMesh.setPositions(badPositions);
+
+      const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+      collider.mesh = badMesh;
+      expect(() => physics.raycast(rayAt(10, 10), hit)).not.toThrow();
+      expect(hit.collider).toBe(otherBox);
+      expect(physics.raycast(rayAt(0))).toBe(false);
+      expect(errors).toHaveBeenCalled();
+
+      const beforeY = other.transform.position.y;
+      expect(() => update(2)).not.toThrow();
+      expect(other.transform.position.y).toBeLessThan(beforeY);
+
+      collider.mesh = createCubeMesh(engine, 1);
+      expect(physics.raycast(rayAt(0), hit) && hit.collider === collider).toBe(true);
+    }
+  );
+
+  it.each(["box", "mesh"] as const)(
+    "avoids redundant native scale writes and mass rebuilds while rotating an unchanged nonuniform compound body (%s)",
+    (kind) => {
+      const bodyEntity = root.createChild(`rotate-scale-${kind}`);
+      bodyEntity.transform.setScale(1, 2, 1);
+      const body = bodyEntity.addComponent(Rigidbody);
+      body.isKinematic = true;
+      const child = bodyEntity.createChild("collider");
+      const collider = kind === "box" ? child.addComponent(BoxCollider) : child.addComponent(MeshCollider);
+      if (collider instanceof MeshCollider) {
+        collider.convex = true;
+        collider.mesh = createCubeMesh(engine, 1);
+      }
+      const hit = new HitResult();
+      expect(physics.raycast(rayAt(0, 8), hit) && hit.collider === collider).toBe(true);
+
+      const scaleSpy = vi.spyOn((collider as any)._native, "setWorldScale");
+      const massSpy = vi.spyOn((body as any)._nativeActor, "setMassAndUpdateInertia");
+      for (let i = 1; i <= 90; i++) {
+        bodyEntity.transform.setRotation(0, i * 3.7, 0);
+        expect(physics.raycast(rayAt(0, 8), hit) && hit.collider === collider).toBe(true);
+      }
+      expect(scaleSpy).not.toHaveBeenCalled();
+      expect(massSpy).not.toHaveBeenCalled();
+    }
+  );
 });
