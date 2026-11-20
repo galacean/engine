@@ -1,0 +1,20 @@
+packages/core/src/Camera.ts
+  h_171a11afaf879a 722-726,779-781,790-791
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_171a11afaf879a 119-120,231,245-247,252,292,301,325,349
+packages/rhi-webgl/src/GLRenderTarget.ts
+  h_171a11afaf879a 121-130,148,153-156,158,160-162,164-167,221-224,270-275
+tests/src/rhi-webgl/RenderTargetAttachmentGuards.test.ts
+  h_171a11afaf879a 1-147
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "fe24b8e3d90c45155876798a7aa050c038bf4966",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
