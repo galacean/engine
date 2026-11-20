@@ -19,6 +19,8 @@ import {
   Logger,
   Platform,
   Primitive,
+  RenderBufferLoadAction,
+  RenderBufferStoreAction,
   RenderTarget,
   SubPrimitive,
   SystemInfo,
@@ -91,6 +93,14 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   _enableGlobalDepthBias: boolean = false;
   /** @internal */
   _currentBindShaderProgram: IPlatformShaderProgram | null;
+  /** @internal */
+  _supportsInvalidateFramebuffer: boolean = true;
+  /** @internal */
+  _activeRenderTarget: RenderTarget | null = null;
+  /** @internal */
+  _activeColorStoreAction: RenderBufferStoreAction = RenderBufferStoreAction.Store;
+  /** @internal */
+  _activeDepthStoreAction: RenderBufferStoreAction = RenderBufferStoreAction.Store;
 
   /** @internal */
   readonly _options: WebGLGraphicDeviceOptions;
@@ -109,6 +119,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   private _lastScissor: Vector4 = new Vector4(null!, null!, null!, null!);
   private _lastClearColor: Color = new Color(null!, null!, null!, null!);
   private _scissorEnable: boolean = false;
+  private _fboColor0Attachment: GLenum[];
+  private _fboDepthAttachment: GLenum[];
+  private _fboStencilAttachment: GLenum[];
+  private _invalidateAttachments: GLenum[] = [];
 
   private _onDeviceLost: () => void;
   private _onDeviceRestored: () => void;
@@ -401,18 +415,25 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     renderTarget: RenderTarget | null,
     viewport: Vector4,
     isFlipProjection: boolean,
-    mipLevel?: number,
-    faceIndex?: TextureCubeFace
+    mipLevel: number = 0,
+    faceIndex?: TextureCubeFace,
+    colorLoadAction: RenderBufferLoadAction = RenderBufferLoadAction.Load,
+    colorStoreAction: RenderBufferStoreAction = RenderBufferStoreAction.Store,
+    depthLoadAction: RenderBufferLoadAction = RenderBufferLoadAction.Load,
+    depthStoreAction: RenderBufferStoreAction = RenderBufferStoreAction.Store
   ) {
+    // Flush outgoing render target's pending DontCare store actions before switching FBOs (TBDR StoreAction::DontCare)
+    this._flushPendingStoreActions();
+
     let bufferWidth: number, bufferHeight: number;
     if (renderTarget) {
       renderTarget._isContentLost = false;
 
       const platformRenderTarget = renderTarget._platformRenderTarget as GLRenderTarget;
-      platformRenderTarget.activeRenderTarget(mipLevel!, faceIndex);
+      platformRenderTarget.activeRenderTarget(mipLevel, faceIndex);
 
-      bufferWidth = renderTarget.width >> mipLevel!;
-      bufferHeight = renderTarget.height >> mipLevel!;
+      bufferWidth = renderTarget.width >> mipLevel;
+      bufferHeight = renderTarget.height >> mipLevel;
     } else {
       const gl = this._gl;
       gl.bindFramebuffer(gl.FRAMEBUFFER, this._mainFrameBuffer);
@@ -420,12 +441,35 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       bufferHeight = this.getMainFrameBufferHeight();
     }
 
+    this._activeRenderTarget = renderTarget;
+    this._activeColorStoreAction = colorStoreAction;
+    this._activeDepthStoreAction = depthStoreAction;
+
     const width = bufferWidth * viewport.z;
     const height = bufferHeight * viewport.w;
     const x = viewport.x * bufferWidth;
     const y = isFlipProjection ? viewport.y * bufferHeight : bufferHeight - viewport.y * bufferHeight - height;
     this.viewport(x, y, width, height);
     this.scissor(x, y, width, height);
+
+    // Hint TBDR GPUs to skip loading stale memory into tile cache on full-target DontCare activation (LoadAction::DontCare)
+    const discardColorLoad = colorLoadAction === RenderBufferLoadAction.DontCare;
+    const discardDepthLoad = depthLoadAction === RenderBufferLoadAction.DontCare;
+    if (
+      (discardColorLoad || discardDepthLoad) &&
+      viewport.x === 0 &&
+      viewport.y === 0 &&
+      viewport.z === 1 &&
+      viewport.w === 1
+    ) {
+      this._invalidateFrameBufferAttachments(
+        this._gl.FRAMEBUFFER,
+        renderTarget,
+        discardColorLoad,
+        discardDepthLoad,
+        discardDepthLoad
+      );
+    }
   }
 
   blitInternalRTByBlitFrameBuffer(
@@ -434,6 +478,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     clearFlags: CameraClearFlags,
     viewport: Vector4
   ) {
+    this._flushAndResetActiveRenderTarget();
     const gl = this._gl;
     // @ts-ignore
     const srcFrameBuffer = srcRT ? srcRT._platformRenderTarget._frameBuffer : null;
@@ -494,6 +539,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   }
 
   copyRenderTargetToSubTexture(srcRT: RenderTarget | null, grabTexture: Texture2D, viewport: Vector4) {
+    this._flushAndResetActiveRenderTarget();
     const gl = this._gl;
     const bufferWidth = this.getMainFrameBufferWidth();
     const bufferHeight = this.getMainFrameBufferHeight();
@@ -547,6 +593,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   }
 
   flush(): void {
+    this._flushPendingStoreActions();
     this._gl.flush();
   }
 
@@ -572,6 +619,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._readFrameBuffer = null;
     this._enableGlobalDepthBias = false;
     this._currentBindShaderProgram = null;
+    this._clearActiveRenderTargetState();
 
     const activeTextures = this._activeTextures;
     for (let i = 0, n = activeTextures.length; i < n; i++) {
@@ -588,6 +636,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   protected _initGLState(gl: WebGL2RenderingContext): void {
     this._activeTextureID = gl.TEXTURE0;
+    this._fboColor0Attachment = [gl.COLOR_ATTACHMENT0];
+    this._fboDepthAttachment = [gl.DEPTH_ATTACHMENT];
+    this._fboStencilAttachment = [gl.STENCIL_ATTACHMENT];
     this._renderStates = new GLRenderStates(gl);
     this._extensions = new GLExtensions(this);
     this._capability = new GLCapability(this);
@@ -598,13 +649,95 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     if (debugRenderInfo != null) {
       this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
     }
+    this._supportsInvalidateFramebuffer =
+      typeof gl.invalidateFramebuffer === "function" &&
+      !(this._renderer && this._renderer.includes("Intel") && this._renderer.includes("Mesa"));
     this.maxUniformBlockSize = gl.getParameter(gl.MAX_UNIFORM_BLOCK_SIZE);
   }
 
   destroy(): void {
+    this._clearActiveRenderTargetState();
     const webCanvas = this._webCanvas;
     webCanvas.removeEventListener("webglcontextlost", this._onWebGLContextLost, false);
     webCanvas.removeEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
+  }
+
+  /** @internal */
+  _flushPendingStoreActions(): void {
+    const discardColor = this._activeColorStoreAction === RenderBufferStoreAction.DontCare;
+    const discardDepth = this._activeDepthStoreAction === RenderBufferStoreAction.DontCare;
+    if (discardColor || discardDepth) {
+      this._invalidateFrameBufferAttachments(
+        this._gl.FRAMEBUFFER,
+        this._activeRenderTarget,
+        discardColor,
+        discardDepth,
+        discardDepth
+      );
+      this._activeColorStoreAction = RenderBufferStoreAction.Store;
+      this._activeDepthStoreAction = RenderBufferStoreAction.Store;
+    }
+  }
+
+  /** @internal */
+  _flushAndResetActiveRenderTarget(): void {
+    this._flushPendingStoreActions();
+    this._clearActiveRenderTargetState();
+  }
+
+  /** @internal */
+  _clearActiveRenderTargetState(): void {
+    this._activeRenderTarget = null;
+    this._activeColorStoreAction = RenderBufferStoreAction.Store;
+    this._activeDepthStoreAction = RenderBufferStoreAction.Store;
+  }
+
+  /** @internal */
+  _invalidateFrameBufferAttachments(
+    glTarget: GLenum,
+    renderTarget: RenderTarget | null,
+    invalidateColor: boolean,
+    invalidateDepth: boolean,
+    invalidateStencil: boolean
+  ): void {
+    // Skip default WebGL backbuffer (browser compositor manages discard; avoids ANGLE/driver quirks) and buggy Mesa Intel drivers
+    if (!this._supportsInvalidateFramebuffer || (!renderTarget && !this._mainFrameBuffer)) {
+      return;
+    }
+
+    const gl = this._gl;
+    let colorAttachments: GLenum[];
+    if (renderTarget) {
+      const glRT = renderTarget._platformRenderTarget as GLRenderTarget;
+      colorAttachments = glRT._oriDrawBuffers;
+      invalidateDepth = invalidateDepth && glRT._hasDepth;
+      invalidateStencil = invalidateStencil && glRT._hasStencil;
+    } else {
+      colorAttachments = this._fboColor0Attachment;
+    }
+
+    invalidateColor = invalidateColor && colorAttachments.length > 0;
+
+    if (invalidateColor) {
+      if (!invalidateDepth) {
+        gl.invalidateFramebuffer(glTarget, colorAttachments);
+      } else {
+        const attachments = this._invalidateAttachments;
+        attachments.length = 0;
+        for (let i = 0, n = colorAttachments.length; i < n; i++) {
+          attachments.push(colorAttachments[i]);
+        }
+        attachments.push(gl.DEPTH_ATTACHMENT);
+        gl.invalidateFramebuffer(glTarget, attachments);
+      }
+    } else if (invalidateDepth) {
+      gl.invalidateFramebuffer(glTarget, this._fboDepthAttachment);
+    }
+
+    // Issue stencil invalidation separately to avoid Adreno driver bug where combined depth+stencil invalidation leaks across targets
+    if (invalidateStencil) {
+      gl.invalidateFramebuffer(glTarget, this._fboStencilAttachment);
+    }
   }
 
   private _onContextCreationError(event: WebGLContextEvent) {

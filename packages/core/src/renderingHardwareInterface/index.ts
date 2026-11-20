@@ -9,3 +9,5 @@ export type { IPlatformTexture2DArray } from "./IPlatformTexture2DArray";
 export type { IPlatformTextureCube } from "./IPlatformTextureCube";
 export type { IPlatformTransformFeedback } from "./IPlatformTransformFeedback";
 export type { IPlatformTransformFeedbackPrimitive } from "./IPlatformTransformFeedbackPrimitive";
+export { RenderBufferLoadAction } from "./RenderBufferLoadAction";
+export { RenderBufferStoreAction } from "./RenderBufferStoreAction";

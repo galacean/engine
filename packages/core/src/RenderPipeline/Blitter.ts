@@ -1,6 +1,7 @@
 import { Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Material } from "../material";
+import { RenderBufferLoadAction } from "../renderingHardwareInterface";
 import { ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
@@ -43,6 +44,23 @@ export class Blitter {
     passIndex = 0,
     sourceScaleOffset?: Vector4
   ): void {
+    Blitter._blitTexture(engine, source, destination, mipLevel, viewport, material, passIndex, sourceScaleOffset);
+  }
+
+  /**
+   * @internal
+   */
+  static _blitTexture(
+    engine: Engine,
+    source: Texture2D,
+    destination: RenderTarget | null,
+    mipLevel: number = 0,
+    viewport: Vector4 = PipelineUtils.defaultViewport,
+    material: Material | null = null,
+    passIndex = 0,
+    sourceScaleOffset?: Vector4,
+    colorLoadAction: RenderBufferLoadAction = RenderBufferLoadAction.Load
+  ): void {
     const basicResources = engine._basicResources;
     const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
     const blitMaterial = material || basicResources.blitMaterial;
@@ -53,7 +71,9 @@ export class Blitter {
     // We not use projection matrix when blit, but we must modify flipProjection to make front face correct
     context.flipProjection = !!destination;
 
-    context.setRenderTarget(destination, viewport, 0);
+    const resolvedLoadAction =
+      destination && destination.colorTextureCount === 1 ? colorLoadAction : RenderBufferLoadAction.Load;
+    context.setRenderTarget(destination, viewport, 0, undefined, resolvedLoadAction);
 
     const rendererShaderData = Blitter._rendererShaderData;
 
