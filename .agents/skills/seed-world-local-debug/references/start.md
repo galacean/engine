@@ -10,8 +10,8 @@ ASAP 本地启动不加 `--server-env prod/prepub/gray`，默认走 dev。
 首次启动或更换 checkout 时，先完成 [dev 本地模型配置](prepare.md#4-模型与协议前置检查)；已有服务若启动早于配置修改，应重启后再验收。
 
 macOS 用 `lsof -nP -iTCP:4173 -sTCP:LISTEN` 和 `lsof -nP -iTCP:8082 -sTCP:LISTEN` 检查占用。
-对已存在的 PID，用 `ps -p <PID> -o pid,ppid,command`、`lsof -a -p <PID> -d cwd` 核对启动命令和工作目录；Linux 可检查 `/proc/<PID>/cwd`。
-正确且版本一致的服务可复用；不能因为占用了端口就杀进程。
+对已存在的 PID，用 `ps -p <PID> -o pid,ppid,lstart,command`、`lsof -a -p <PID> -d cwd,0,1,2` 核对启动命令、工作目录与 `stdout` 去向；Linux 可检查 `/proc/<PID>/cwd` 与 `/proc/<PID>/fd/1`。
+正确且版本一致的服务可复用；不能因为占用了端口就杀进程。但若已存在的 ASAP `fd=1` 仍连在后台/旧 PTY（如 `/dev/ttys*`）且运行已久或请求明显卡顿，应先征得确认后停止并重定向到文件重启，避免 PTY 缓冲写满阻塞 `/api/message`。
 无关服务保留并选择其他空闲端口，完整 URL 随之重新生成。
 
 ## 终端 A：Engine
@@ -30,13 +30,14 @@ BROWSER=none pnpm --dir world dev --host 127.0.0.1 --port 4173 --strictPort
 ```bash
 ASAP_ROOT=/chosen/path/asap-debug
 cd "$ASAP_ROOT"
-ASAP_DISABLE_SLS_LOGGING=1 .venv/bin/python web/app.py --port 8082
+ASAP_DISABLE_SLS_LOGGING=1 .venv/bin/python web/app.py --port 8082 > /tmp/asap-8082.log 2>&1
 ```
 
 使用该 worktree 的解释器和当前目录；不要通过另一 checkout 的 app.py 启动。
 `ASAP_DISABLE_SLS_LOGGING=1` 用于禁用 dev 本地模式下向离线 SLS 的同步日志上报，避免外网/无内网 SLS 可达时请求被超时重试阻塞数秒至数十秒（本地 `logs/asap-service/*.log` 文件仍正常落盘）。
-等待 `Application startup complete` 和 `Uvicorn running`，仅出现“服务器启动于端口”不算完成。
-保留终端或受管理的执行会话，记录 PID、cwd、commit、启动时间。
+将 `stdout/stderr` 重定向到普通文件（如 `/tmp/asap-8082.log`，不同端口可改文件名）：`is_dev()` 会拉起共享同一 `stdout` 的 `ScheduleJobDispatcher` 等高频输出子进程，若直接挂在 IDE/后台 PTY 长时间运行，PTY 读端背压写满内核缓冲后会阻塞 `web/app.py` 主协程中的同步 `print()`，导致单次 `/api/message` 卡顿数十秒；重定向后可用 `tail -f /tmp/asap-8082.log` 观察启动进度。不要顺手传 `--eval-manual-scheduler` 绕过调度器，该参数会切入评测配置。
+等待日志中出现 `Application startup complete` 和 `Uvicorn running`（或 `/healthz` 返回 HTTP 200），仅出现“服务器启动于端口”不算完成。
+保留终端或受管理的执行会话，记录 PID、cwd、commit、启动时间与重定向日志路径。
 服务一般监听 `0.0.0.0`；这是开发服务，不配置公网隧道或对外暴露。
 
 ## 生成地址和 HTTP 检查
@@ -97,9 +98,10 @@ Engine 的 AI Chat 或 ASAP 有改动时，在最小真实验收之后由用户�
 
 ## 停止、更新与故障定位
 
-- 停止：对应前台终端 `Ctrl+C`；脱离终端时仅对已核实属于本次调试的 PID 发 `TERM`，不使用宽泛 `pkill node/python/chrome`。
+- 停止：对应前台终端 `Ctrl+C`；脱离终端时仅对已核实属于本次调试的 PID 发 `TERM`，不使用宽泛 `pkill node/python/chrome`。停止 ASAP 主进程后，复查该主进程拉起的 `asap_gateway.scheduler.dispatcher` / `plan_cron` / `credit_stats_cron` 子进程是否已退出，避免残留子进程继续刷日志。
 - Engine 源码编辑：等待 Vite HMR 或页面重载；依赖或引擎产物变化时按 `world/README.md` 重新准备。
-- ASAP 编辑或更新：正常模式不保证自动重载；停止正确 PID 后从同一目标目录重启，重新记录 commit。
+- ASAP 编辑或更新：正常模式不保证自动重载；停止正确 PID（及已核实的 scheduler 子进程）后从同一目标目录重定向日志重启，重新记录 commit。
+- 对话单步卡顿数十秒但模型本身只需几秒：先看 `logs/asap-service/app-default.log` 中 `benchmark_config_store` 到 `db.load_test_scope` 之间是否出现大段空窗，再用 `lsof -a -p <PID> -d 0,1,2` 检查 ASAP 的 `fd=1` 是否连在旧 PTY（`/dev/ttys*`）；确认后按「终端 B：ASAP」重定向到文件重启即可。
 - Node 版本太低：修正当前终端的 Node/PATH，再启动；不要重写用户全局 shell 配置。
 - Vite `esbuild service is no longer running`：检查进程退出原因，再重启该 Vite；不要删除用户浏览器缓存。
 - CandyJar 缺失/调用超时：先确认完整 Wrapper 链路、两个 URL 参数一致、主机名一致、没有额外 iframe，再检查后端日志。
