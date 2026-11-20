@@ -1937,6 +1937,60 @@ export class SeedWorldPopulationRuntime {
     data.enableMacro("RENDERER_GRASS_ROCK_APPEARANCE");
   }
 
+  /** True when this world has grass-bearing rock formations that lazily publish `RENDERER_GRASS_ROCK_APPEARANCE` batches. */
+  get hasRockTopGrass(): boolean {
+    return this._grassRockPlacements.length > 0 && Boolean(this._grassRockAppearance && this._grassTerrainMaterial);
+  }
+
+  /**
+   * Build a zero-GPU-allocation representative renderer for rock-surface grass batches so shader
+   * warmup compiles the exact `MATERIAL_TERRAIN_*` + `RENDERER_SURFACE_GRASS_ATTACHMENT` +
+   * `RENDERER_GRASS_ROCK_APPEARANCE` + `RENDERER_ROCK_GRASS_GROUND` variant before reveal.
+   * Returns `undefined` when this world has no grass-bearing rock formations (e.g. `low-poly`).
+   */
+  prepareRockGrassShaderWarmup(): { readonly renderers: readonly MeshRenderer[]; dispose(): void } | undefined {
+    if (!this.hasRockTopGrass || !this._grassTerrainMaterial) return undefined;
+    const grassSource = this._rockSurfaceGrassSourceForRuntime();
+    const binding = grassSource.lods[0]?.renderer;
+    if (!binding) return undefined;
+    let warmupMaterial: Material | undefined;
+    let entity: Entity | undefined;
+    try {
+      warmupMaterial = this._detailMaterial(binding.material).clone();
+      bindSeedWorldGrassTerrainMaterial(warmupMaterial, this._grassTerrainMaterial);
+      entity = new Entity(this._engine, "RockGrassShaderWarmup");
+      const renderer = entity.addComponent(MeshRenderer);
+      renderer.mesh = binding.mesh;
+      renderer.setMaterial(warmupMaterial);
+      renderer.castShadows = SEED_WORLD_POPULATION_RUNTIME_PROFILE.shadows.castShadows;
+      renderer.receiveShadows = SEED_WORLD_POPULATION_RUNTIME_PROFILE.shadows.receiveShadows;
+      renderer.enableVertexColor = binding.enableVertexColor;
+      renderer.shaderData.enableMacro(SEED_WORLD_DETAIL_COMPACT_MACRO);
+      renderer.shaderData.enableMacro(SURFACE_GRASS_ATTACHMENT_MACRO);
+      renderer.shaderData.enableMacro("RENDERER_GRASS_ROCK_APPEARANCE");
+      renderer.shaderData.enableMacro("RENDERER_ROCK_GRASS_GROUND");
+      if (this._grassColorField) bindGrassColorField(renderer, this._grassColorField);
+      if (this._grassRoadColor) bindGrassRoadColor(renderer, this._grassRoadColor);
+      renderer.enabled = false;
+      let disposed = false;
+      const ownedEntity = entity;
+      const ownedMaterial = warmupMaterial;
+      return {
+        renderers: [renderer],
+        dispose: () => {
+          if (disposed) return;
+          disposed = true;
+          if (!ownedEntity.destroyed) ownedEntity.destroy();
+          if (!ownedMaterial.destroyed) ownedMaterial.destroy();
+        }
+      };
+    } catch (error) {
+      if (entity && !entity.destroyed) entity.destroy();
+      if (warmupMaterial && !warmupMaterial.destroyed) warmupMaterial.destroy();
+      throw error;
+    }
+  }
+
   get generatedRockGrassDiagnostics() {
     return this._generatedRockGrass?.diagnostics;
   }

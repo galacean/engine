@@ -20,11 +20,23 @@ export interface ConstructionWallRoofJoint {
   heights: number[];
 }
 
+export function hasConstructionWallRoofJointParams(
+  isCircular: boolean,
+  heightParameter: number,
+  ridgeParameter: number
+): boolean {
+  return !isCircular && heightParameter > Math.fround(0.1) && ridgeParameter === 1;
+}
+
 export function constructionWallRoofJoint(
   surface: RoofSurface,
   footprint: RoofFootprint
 ): ConstructionWallRoofJoint | undefined {
-  if ("radius" in footprint || surface.height_parameter <= Math.fround(0.1) || surface.ridge_parameter !== 1) return;
+  if (
+    "radius" in footprint ||
+    !hasConstructionWallRoofJointParams(false, surface.height_parameter, surface.ridge_parameter)
+  )
+    return;
   const [lower, upper] = expandedDimensions(surface, footprint);
   const transverse = surface.axis === 0 ? 1 : 0;
   const [c, s] = footprint.orientation;

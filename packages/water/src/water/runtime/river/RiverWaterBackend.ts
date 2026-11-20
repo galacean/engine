@@ -38,7 +38,7 @@ import type {
   WaterBackendUpdateRequest,
   WaterBodyBackend
 } from "../body/WaterBackendRegistry";
-import { WaterBodyRuntimeAdapter } from "../body/WaterBodyRuntime";
+import { WaterBodyRuntimeAdapter, type WaterBoundsXZ } from "../body/WaterBodyRuntime";
 import { resolveWaterBodyQualityTier } from "../body/WaterBodyRuntimeSemantics";
 import {
   compileWaterPlanarTransform,
@@ -56,6 +56,11 @@ import {
   type WaterSpatialFieldProvider,
   type WaterSpatialFieldSample
 } from "../spatial/WaterSpatialFieldProvider";
+import {
+  guardWaterNearShoreTask,
+  resetWaterNearShoreSample,
+  type WaterNearShoreQuery
+} from "../spatial/WaterNearShoreQuery";
 import type { EffectiveWaterRuntimeSnapshot } from "../state/EffectiveWaterRuntimeSnapshot";
 import type { WaterSurfaceAppearanceBindingV2 } from "../surface/WaterSurfaceAppearanceRuntimeTypes";
 import { resolveRiverRenderContractAdapter } from "./RiverRenderContractAdapter";
@@ -568,12 +573,52 @@ function destroyRuntime(
 
 class ActiveRiverSpatialFieldProvider implements WaterSpatialFieldProvider {
   private readonly _fallbackMetadata: WaterSpatialFieldMetadata;
+  readonly nearShore?: WaterNearShoreQuery;
+  readonly maximumSurfaceHeightInBounds?: (bounds: WaterBoundsXZ) => number | null;
 
   constructor(
     private readonly _controller: RiverRuntimeController,
     initial: WaterSpatialFieldProvider
   ) {
     this._fallbackMetadata = initial.metadata;
+    if (initial.nearShore) {
+      const radiusM = initial.nearShore.radiusM;
+      this.nearShore = Object.freeze({
+        radiusM,
+        prepare: (now, budgetMs) =>
+          this._controller.activeSpatialFieldProvider?.nearShore?.prepare?.(now, budgetMs) ?? false,
+        ...(initial.nearShore.createTask && {
+          createTask: (x, z, out) => {
+            const active = this._controller.activeSpatialFieldProvider;
+            if (!active?.nearShore?.createTask) {
+              throw new Error("River has no active near-shore task query.");
+            }
+            return guardWaterNearShoreTask(
+              active.nearShore.createTask(x, z, out),
+              out,
+              () => this._controller.activeSpatialFieldProvider === active
+            );
+          }
+        }),
+        sample: (x, z, out) => {
+          const active = this._controller.activeSpatialFieldProvider;
+          if (!active?.nearShore) {
+            resetWaterNearShoreSample(out);
+            return false;
+          }
+          return active.nearShore.sample(x, z, out);
+        }
+      } satisfies WaterNearShoreQuery);
+    }
+    if (initial.maximumSurfaceHeightInBounds) {
+      this.maximumSurfaceHeightInBounds = (bounds: WaterBoundsXZ): number | null => {
+        const active = this._controller.activeSpatialFieldProvider;
+        if (!active?.maximumSurfaceHeightInBounds) {
+          throw new Error("River has no active Spatial Field bounds query.");
+        }
+        return active.maximumSurfaceHeightInBounds(bounds);
+      };
+    }
   }
 
   get metadata(): WaterSpatialFieldMetadata {

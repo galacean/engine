@@ -26,6 +26,7 @@ import { terrainAffectsRegion, validateConstructionTerrain } from "../../runtime
 import type { ConstructionTerrainSource } from "../../runtime/TerrainField";
 import { BuildingOccupancyQuery } from "../../runtime/BuildingOccupancyQuery";
 import { ConstructionEntrance, type ConstructionEntranceState } from "../../runtime/ConstructionEntrance";
+import { hasConstructionWallRoofJointParams } from "../../runtime/ConstructionWallRoofJoint";
 import { createBuildingDistanceView } from "../../runtime/BuildingDistanceView";
 import { BuildingGlobalProxy } from "../../runtime/BuildingGlobalProxy";
 import {
@@ -1282,24 +1283,56 @@ export class BuildingRuntime extends Script {
         continue;
       }
       if (!input.assets) continue;
-      const features = new Set<string>();
-      for (const part of input.draft.parts) {
-        const alg = part.algorithm as { type?: string; "@shared"?: string } | undefined;
-        const unit = part.unit as { type?: string; "@shared"?: string; material?: string } | undefined;
-        features.add(
-          `${part.type}|${part.geometry?.generator ?? ""}|${alg?.type ?? alg?.["@shared"] ?? ""}|${unit?.type ?? unit?.["@shared"] ?? unit?.material ?? ""}`
+      const groupSharedById = new Map<string, Readonly<Record<string, unknown>>>();
+      for (const group of input.draft.groups) {
+        if (group.shared) groupSharedById.set(group.id, group.shared);
+      }
+      const resolveRef = (groupId: string, value: unknown): Record<string, unknown> | undefined => {
+        if (!value || typeof value !== "object") return undefined;
+        const obj = value as Record<string, unknown>;
+        const ref = obj["@shared"];
+        if (typeof ref === "string") {
+          const shared = groupSharedById.get(groupId)?.[ref];
+          if (shared && typeof shared === "object") {
+            return { ...(shared as Record<string, unknown>), ...obj };
+          }
+        }
+        return obj;
+      };
+      // Fingerprint strictly by shader-affecting features:
+      // 1. Resolved unit material source (`brick`, `roof_tile`, `wooden_plank`, etc.) + part type.
+      // 2. Whether the group produces a gable wall-roof joint (`injectWallRoofJoint` changes the brick/wood shader hash).
+      const groupHasWallRoofJoint = new Map<string, boolean>();
+      for (const group of input.draft.groups) {
+        const house = group.shared?.house as
+          | { circle?: unknown; roof?: { height?: number; ridge_length?: number } }
+          | undefined;
+        groupHasWallRoofJoint.set(
+          group.id,
+          Boolean(
+            house &&
+              hasConstructionWallRoofJointParams(
+                Boolean(house.circle),
+                house.roof?.height ?? 0,
+                house.roof?.ridge_length ?? 0
+              )
+          )
         );
       }
-      for (const group of input.draft.groups) {
-        if (group.shared) {
-          for (const key of Object.keys(group.shared)) features.add(`shared:${key}`);
-        }
+      const features = new Set<string>();
+      for (const part of input.draft.parts) {
+        const unit = resolveRef(part.group, part.unit);
+        const sourceKey =
+          unit?.source === undefined ? "" : typeof unit.source === "string" ? unit.source : JSON.stringify(unit.source);
+        const jointFlag = groupHasWallRoofJoint.get(part.group) ? "1" : "0";
+        if (sourceKey) features.add(`unit:${sourceKey}|joint=${jointFlag}`);
+        features.add(`part:${part.type}|${sourceKey}|joint=${jointFlag}`);
       }
       const addsFeature = [...features].some((f) => !seenFeatures.has(f));
       if (selected.length === 0 || addsFeature) {
         selected.push({ entry, input });
         for (const f of features) seenFeatures.add(f);
-        if (selected.length >= 3) break;
+        if (selected.length >= 12) break;
       }
     }
     if (selected.length === 0) return { renderers: [], extraMaterials, decorationPointLightBudget, dispose() {} };

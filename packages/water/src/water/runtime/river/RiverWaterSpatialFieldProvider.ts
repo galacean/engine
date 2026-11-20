@@ -173,12 +173,43 @@ export class TransformedRiverWaterSpatialFieldProvider implements WaterSpatialFi
   readonly metadata: WaterSpatialFieldMetadata;
   readonly gpuBinding: WaterSpatialFieldGpuBinding | undefined;
   readonly nearShore?: WaterNearShoreQuery;
+  readonly maximumSurfaceHeightInBounds?: (bounds: WaterBoundsXZ) => number | null;
 
   constructor(
     private readonly _source: WaterSpatialFieldProvider,
     private readonly _logicalBodyOrigin: readonly [x: number, z: number],
     private readonly _planarTransform: Readonly<CompiledWaterPlanarTransformV1>
   ) {
+    if (_source.maximumSurfaceHeightInBounds) {
+      const sourceBoundsQuery = _source.maximumSurfaceHeightInBounds.bind(_source);
+      const localBounds = { minX: 0, maxX: 0, minZ: 0, maxZ: 0 };
+      this.maximumSurfaceHeightInBounds = (bounds: WaterBoundsXZ): number | null => {
+        assertWaterQueryBounds(bounds);
+        const t = this._planarTransform;
+        const ox = this._logicalBodyOrigin[0] + t.source.position[0];
+        const oz = this._logicalBodyOrigin[1] + t.source.position[2];
+        const dx0 = bounds.minX - ox;
+        const dx1 = bounds.maxX - ox;
+        const dz0 = bounds.minZ - oz;
+        const dz1 = bounds.maxZ - oz;
+        const c = t.cosine;
+        const s = t.sine;
+        const lx0 = dx0 * c - dz0 * s;
+        const lz0 = dx0 * s + dz0 * c;
+        const lx1 = dx0 * c - dz1 * s;
+        const lz1 = dx0 * s + dz1 * c;
+        const lx2 = dx1 * c - dz0 * s;
+        const lz2 = dx1 * s + dz0 * c;
+        const lx3 = dx1 * c - dz1 * s;
+        const lz3 = dx1 * s + dz1 * c;
+        localBounds.minX = Math.min(lx0, lx1, lx2, lx3);
+        localBounds.maxX = Math.max(lx0, lx1, lx2, lx3);
+        localBounds.minZ = Math.min(lz0, lz1, lz2, lz3);
+        localBounds.maxZ = Math.max(lz0, lz1, lz2, lz3);
+        const maximum = sourceBoundsQuery(localBounds);
+        return maximum === null ? null : maximum + t.source.position[1];
+      };
+    }
     const nearShore = _source.nearShore;
     if (nearShore)
       this.nearShore = Object.freeze({
@@ -295,25 +326,5 @@ export class TransformedRiverWaterSpatialFieldProvider implements WaterSpatialFi
         this._planarTransform
       )
     );
-  }
-
-  maximumSurfaceHeightInBounds(bounds: WaterBoundsXZ): number | null {
-    assertWaterQueryBounds(bounds);
-    if (!this._source.maximumSurfaceHeightInBounds) throw new Error("River Spatial Field has no bounds query.");
-    const t = this._planarTransform;
-    const points = [bounds.minX, bounds.maxX].flatMap((x) =>
-      [bounds.minZ, bounds.maxZ].map((z) => {
-        const dx = x - this._logicalBodyOrigin[0] - t.source.position[0];
-        const dz = z - this._logicalBodyOrigin[1] - t.source.position[2];
-        return [dx * t.cosine - dz * t.sine, dx * t.sine + dz * t.cosine];
-      })
-    );
-    const maximum = this._source.maximumSurfaceHeightInBounds({
-      minX: Math.min(...points.map((p) => p[0])),
-      maxX: Math.max(...points.map((p) => p[0])),
-      minZ: Math.min(...points.map((p) => p[1])),
-      maxZ: Math.max(...points.map((p) => p[1]))
-    });
-    return maximum === null ? null : maximum + t.source.position[1];
   }
 }

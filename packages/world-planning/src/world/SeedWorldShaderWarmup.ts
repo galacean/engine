@@ -2,9 +2,11 @@ import {
   AntiAliasing,
   BackgroundMode,
   type Camera,
+  DepthTextureMode,
   type Engine,
   type Entity,
   DirectLight,
+  GLCapabilityType,
   Light,
   PointLight,
   SpotLight,
@@ -13,6 +15,10 @@ import {
   ParticleRenderer,
   Renderer,
   RenderQueueType,
+  ScreenSpaceReflection,
+  ScreenSpaceReflectionActivationMode,
+  ScreenSpaceReflectionReceiverMode,
+  ScreenSpaceReflectionUpsamplingMode,
   SkinnedMeshRenderer,
   type Scene,
   Shader,
@@ -20,6 +26,7 @@ import {
   ShaderMacroCollection,
   ShaderPass
 } from "@galacean/engine";
+import photoCopySource from "./PhotoCopy.shader?raw";
 import {
   normalizeSeedWorldShaderVariants,
   withSeedWorldInstanceEntranceVariants,
@@ -104,6 +111,8 @@ export interface SeedWorldRendererWarmupOptions extends SeedWorldShaderWarmupOpt
   readonly includeInactiveRoots?: readonly Entity[];
   /** Explicit offscreen warmup renderers (e.g. lazy building LOD1/LOD0) always included regardless of active state. */
   readonly additionalRenderers?: readonly Renderer[];
+  /** Explicit offscreen warmup renderers (e.g. unmaterialized vegetation species) that may batch via GPU instancing once streamed. */
+  readonly additionalInstancedRenderers?: readonly Renderer[];
   /** Alternate materials swapped onto specific renderers at runtime (e.g. shadow-only proxy materials). */
   readonly additionalRendererMaterials?: ReadonlyMap<Renderer, readonly Material[]>;
   /**
@@ -129,8 +138,14 @@ export interface SeedWorldRendererWarmupOptions extends SeedWorldShaderWarmupOpt
   readonly includeMasonryEntrance?: boolean;
   /** Whether to expand compact vegetation shaders with RENDERER_INSTANCE_GENERATION_REVEAL variants. Defaults to true. */
   readonly includeInstanceEntrance?: boolean;
-  /** Whether to expand vegetation shaders with symmetric RENDERER_LOD_DITHER variants. Defaults to true. */
+  /** Whether to expand vegetation shaders with symmetric RENDERER_LOD_DITHER variants. Defaults to false (set once at construction). */
   readonly includeLodDither?: boolean;
+  /** Whether opaque SSR receivers (e.g. wet terrain during rain) are active in this template. Defaults to false when dry. */
+  readonly includeOpaqueScreenSpaceReflection?: boolean;
+  /** Whether to also warm the masked variant (`SEED_WORLD_GLASS_MASK`) for LiquidGlass overlay icons mounted after startup. Defaults to true. */
+  readonly includeLiquidGlassMask?: boolean;
+  /** Whether to warm `SeedWorld/PhotoCopy` used by the assistant screenshot capture pipeline. Defaults to false. */
+  readonly includePhotoCopy?: boolean;
   /** Roots that will activate at publication; their current inactive gate is ignored only for prediction. */
   readonly activatedLightRoots?: readonly Entity[];
   /** Accepted roots that will retire in that same publication. */
@@ -191,6 +206,9 @@ interface RuntimeParticleGenerator {
 const DEFAULT_FRAME_BUDGET_MILLISECONDS = 6;
 const ASSET_ASSEMBLY_INSTANCE_MACRO = ShaderMacro.getByName("RENDERER_ASSET_ASSEMBLY_INSTANCE");
 const ASSET_ASSEMBLY_RENDERER_INSTANCE_MACRO = ShaderMacro.getByName("RENDERER_ASSET_ASSEMBLY_RENDERER_INSTANCE");
+const ASSET_ASSEMBLY_COMPACT_INSTANCE_MACRO = ShaderMacro.getByName("RENDERER_ASSET_ASSEMBLY_COMPACT_INSTANCE");
+const DETAIL_COMPACT_MACRO = ShaderMacro.getByName("RENDERER_SEED_WORLD_DETAIL_COMPACT");
+const MASONRY_ENTRANCE_MACRO = ShaderMacro.getByName("RENDERER_MASONRY_ENTRANCE");
 
 export function hasParallelShaderCompile(engine: Engine): boolean {
   const gl = (engine as unknown as { _hardwareRenderer?: { gl?: WebGLRenderingContext } })._hardwareRenderer?.gl;
@@ -451,6 +469,8 @@ export function collectSeedWorldRendererVariants(
   const renderers: Renderer[] = [];
   const rootRenderers: Renderer[] = [];
   const forcedRenderers = new Set<Renderer>(options.additionalRenderers ?? []);
+  const forcedInstancedRenderers = new Set<Renderer>(options.additionalInstancedRenderers ?? []);
+  for (const r of forcedInstancedRenderers) forcedRenderers.add(r);
   for (const root of roots) {
     // Entity replaces the supplied result array; retain previous roots explicitly.
     root.getComponentsIncludeChildren(Renderer, rootRenderers);
@@ -466,6 +486,9 @@ export function collectSeedWorldRendererVariants(
   if (options.additionalRenderers?.length) {
     renderers.push(...options.additionalRenderers);
   }
+  if (options.additionalInstancedRenderers?.length) {
+    renderers.push(...options.additionalInstancedRenderers);
+  }
   if (options.additionalRendererMaterials?.size) {
     for (const renderer of options.additionalRendererMaterials.keys()) {
       renderers.push(renderer);
@@ -474,6 +497,39 @@ export function collectSeedWorldRendererVariants(
   }
   // Snow follows the camera, which is a separate scene root from the generated world.
   renderers.push(...(options.particleWindRenderers ?? []));
+  const runtimeHardware = (
+    engine as unknown as {
+      _hardwareRenderer?: {
+        isWebGL2?: boolean;
+        canIUse?: (cap: GLCapabilityType) => boolean;
+        capability?: { maxDrawBuffers?: number; isFragmentHighPrecision?: boolean };
+      };
+    }
+  )._hardwareRenderer;
+  const isWebGL2 = runtimeHardware?.isWebGL2 !== false;
+  const depthPrepassEnabled = resolveDepthPrepassEnabled(engine, scene, camera);
+  const ssrRuntime = (
+    camera as unknown as {
+      screenSpaceReflection?: ScreenSpaceReflection & {
+        _isMaterialReceiver?: (material: Material, queue: RenderQueueType) => boolean;
+        _prepareSettings?: () => void;
+      };
+    }
+  ).screenSpaceReflection;
+  const ssrSupported =
+    Boolean(ssrRuntime) &&
+    ssrRuntime!.activationMode !== ScreenSpaceReflectionActivationMode.ForceOff &&
+    isWebGL2 &&
+    (runtimeHardware?.canIUse ? runtimeHardware.canIUse(GLCapabilityType.drawBuffers) : true) &&
+    (runtimeHardware?.capability?.maxDrawBuffers ?? 2) >= 2 &&
+    runtimeHardware?.capability?.isFragmentHighPrecision !== false;
+  const ssrContext: AppendShaderVariantContext = {
+    depthPrepassEnabled,
+    ssrRuntime: ssrSupported ? ssrRuntime : undefined,
+    includeOpaqueSsr: options.includeOpaqueScreenSpaceReflection === true,
+    hasOpaqueSsr: false,
+    hasTransparentSsr: false
+  };
   const variants: SeedWorldShaderVariantEntry[] = [];
   const collectedShaderMacroSets = new Set<string>();
   const additionalMacroSets = options.additionalRendererMacroSets ?? [];
@@ -490,6 +546,20 @@ export function collectSeedWorldRendererVariants(
         ]);
 
   const uniqueRenderers = [...new Set(renderers)];
+  const subEmitterTargets = new Set<ParticleRenderer>();
+  for (const sourceRenderer of uniqueRenderers) {
+    if (!(sourceRenderer instanceof ParticleRenderer) || sourceRenderer.destroyed) continue;
+    const subEmitters = (
+      sourceRenderer.generator as unknown as {
+        subEmitters?: { enabled?: boolean; subEmitters?: readonly { emitter?: ParticleRenderer | null }[] };
+      }
+    )?.subEmitters;
+    if (subEmitters?.enabled && Array.isArray(subEmitters.subEmitters)) {
+      for (const slot of subEmitters.subEmitters) {
+        if (slot?.emitter) subEmitterTargets.add(slot.emitter);
+      }
+    }
+  }
   const sharedMeshMaterialCounts = options.onlySharedMeshGpuInstancing
     ? new Map<object, Map<object, number>>()
     : undefined;
@@ -558,21 +628,45 @@ export function collectSeedWorldRendererVariants(
     if (isParticle) {
       // Match the production generator without emitting or advancing any particles.
       // Inactive snow/rain owners otherwise never publish their module macros at startup.
-      const generator = (sourceRenderer as ParticleRenderer).generator as unknown as RuntimeParticleGenerator;
+      const particleRenderer = sourceRenderer as ParticleRenderer;
+      const generator = particleRenderer.generator as unknown as RuntimeParticleGenerator;
       generator._updateShaderData(sourceRenderer.shaderData);
-      if (
-        generator._useTransformFeedback ||
-        options.particleWindRenderers?.includes(sourceRenderer as ParticleRenderer)
-      ) {
+      const particleMacros = (sourceRenderer.shaderData as unknown as RuntimeShaderData)._macroCollection;
+      const useTransformFeedback =
+        Boolean(generator._useTransformFeedback) ||
+        particleMacros.isEnable(ShaderMacro.getByName("RENDERER_TRANSFORM_FEEDBACK"));
+      const isWindParticle = Boolean(options.particleWindRenderers?.includes(particleRenderer));
+      const isSubEmitterTarget = subEmitterTargets.has(particleRenderer);
+      if (isWebGL2 && (useTransformFeedback || isWindParticle || isSubEmitterTarget)) {
         const feedback = Shader.find("Effect/ParticleFeedback");
         if (!feedback) throw new Error("Particle feedback shader is not registered");
+        const pushFeedbackPass = (passIndex: number, macros: ShaderMacroCollection) => {
+          if (!feedback.subShaders[0]?.passes[passIndex]) return;
+          const elements: ShaderMacro[] = [];
+          (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(macros, elements);
+          variants.push({
+            shader: feedback.name,
+            si: 0,
+            pi: passIndex,
+            macros: elements.map((m) => (m.value === undefined ? { n: m.name } : { n: m.name, v: m.value }))
+          });
+        };
         const feedbackMacros = new ShaderMacroCollection();
-        feedbackMacros.unionCollection((sourceRenderer.shaderData as unknown as RuntimeShaderData)._macroCollection);
-        if (generator._useTransformFeedback) appendShaderVariants(feedback, feedbackMacros, variants);
-        if (options.particleWindRenderers?.includes(sourceRenderer as ParticleRenderer)) {
+        feedbackMacros.unionCollection(particleMacros);
+        if (useTransformFeedback) {
+          pushFeedbackPass(0, feedbackMacros);
+        }
+        if (isSubEmitterTarget) {
+          const subMacros = new ShaderMacroCollection();
+          subMacros.unionCollection(feedbackMacros);
+          subMacros.enable(ShaderMacro.getByName("RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES"));
+          pushFeedbackPass(0, subMacros);
+          pushFeedbackPass(1, new ShaderMacroCollection());
+        }
+        if (isWindParticle) {
           feedbackMacros.enable(ShaderMacro.getByName("RENDERER_WOL_MODULE_ENABLED"));
           feedbackMacros.enable(ShaderMacro.getByName("RENDERER_TRANSFORM_FEEDBACK"));
-          appendShaderVariants(feedback, feedbackMacros, variants);
+          pushFeedbackPass(0, feedbackMacros);
         }
       }
     }
@@ -580,10 +674,12 @@ export function collectSeedWorldRendererVariants(
     const rendererMacros = new ShaderMacroCollection();
     ShaderMacroCollection.unionCollection(cameraMacros, renderer.shaderData._macroCollection, rendererMacros);
     if (isMesh) enableMeshVertexMacros(renderer, rendererMacros);
-    // A custom Asset Assembly BufferMesh owns its instance attributes and cannot enter the generic batcher
+    // Custom Asset Assembly / compact detail BufferMeshes own their instance attributes and never enter the generic batcher.
     const ownsInstanceGeometry =
-      rendererMacros.isEnable(ASSET_ASSEMBLY_INSTANCE_MACRO) &&
-      !rendererMacros.isEnable(ASSET_ASSEMBLY_RENDERER_INSTANCE_MACRO);
+      rendererMacros.isEnable(DETAIL_COMPACT_MACRO) ||
+      rendererMacros.isEnable(ASSET_ASSEMBLY_COMPACT_INSTANCE_MACRO) ||
+      (rendererMacros.isEnable(ASSET_ASSEMBLY_INSTANCE_MACRO) &&
+        !rendererMacros.isEnable(ASSET_ASSEMBLY_RENDERER_INSTANCE_MACRO));
     // Particle instancing is generator-owned; mesh batching and asset entrance are not particle features.
     const canGpuInstanceRenderer =
       !isParticle && !ownsInstanceGeometry && !(sourceRenderer instanceof SkinnedMeshRenderer);
@@ -603,6 +699,7 @@ export function collectSeedWorldRendererVariants(
         canGpuInstanceRenderer &&
         !material.shader.name.startsWith("Masonry/") &&
         (!sharedMeshMaterialCounts ||
+          forcedInstancedRenderers.has(sourceRenderer) ||
           (renderer.mesh !== undefined && (sharedMeshMaterialCounts.get(renderer.mesh)?.get(material) ?? 0) >= 2));
       const materialMacroVariants = isParticle
         ? particleMacroVariants
@@ -637,15 +734,27 @@ export function collectSeedWorldRendererVariants(
         const macroSetKey = `${material.shader.name}/${passCastShadows}/${contributionKey}?${shaderMacroCollectionKey(compileMacros)}`;
         if (collectedShaderMacroSets.has(macroSetKey)) continue;
         collectedShaderMacroSets.add(macroSetKey);
-        appendShaderVariants(material.shader, compileMacros, variants, passCastShadows, renderToTexture, material);
-        const appendPointLightVariants = (targetShader: Shader): void => {
+        appendShaderVariants(
+          material.shader,
+          compileMacros,
+          variants,
+          passCastShadows,
+          renderToTexture,
+          material,
+          isWebGL2,
+          false,
+          ssrContext
+        );
+        const appendPointLightVariants = (targetShader: Shader, sourceMacros: ShaderMacroCollection): void => {
           if (!options.additionalPointLightCounts?.length || !shaderConsumesPointLights(targetShader.name)) return;
+          // Startup entrance only runs under the scene's initial light state; steady-state gets alternate point-light counts.
+          if (sourceMacros.isEnable(MASONRY_ENTRANCE_MACRO)) return;
           const manager = (scene as unknown as { _lightManager?: { _pointData?: { color: Float32Array } } })
             ._lightManager;
           const rawCapacity = (manager?._pointData?.color.length ?? 0) / 3;
           const pointLightCapacity = Number.isInteger(rawCapacity) && rawCapacity > 0 ? rawCapacity : Infinity;
           const basePointMacros: ShaderMacro[] = [];
-          (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(compileMacros, basePointMacros);
+          (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(sourceMacros, basePointMacros);
           let existingPointLightCount = 0;
           for (const macro of basePointMacros) {
             if (macro.name === "SCENE_POINT_LIGHT_COUNT") {
@@ -658,7 +767,7 @@ export function collectSeedWorldRendererVariants(
             const targetPointLightCount = Math.max(0, Math.min(existingPointLightCount + delta, pointLightCapacity));
             if (targetPointLightCount === existingPointLightCount) continue;
             const pointLightMacros = new ShaderMacroCollection();
-            ShaderMacroCollection.unionCollection(compileMacros, compileMacros, pointLightMacros);
+            ShaderMacroCollection.unionCollection(sourceMacros, sourceMacros, pointLightMacros);
             for (const macro of basePointMacros) {
               if (macro.name === "SCENE_POINT_LIGHT_COUNT") pointLightMacros.disable(macro);
             }
@@ -675,13 +784,35 @@ export function collectSeedWorldRendererVariants(
                 false,
                 renderToTexture,
                 material,
+                isWebGL2,
                 true,
-                true
+                ssrContext
               );
             }
           }
         };
-        appendPointLightVariants(material.shader);
+        appendPointLightVariants(material.shader, compileMacros);
+        if (options.includeMasonryEntrance !== false && compileMacros.isEnable(MASONRY_ENTRANCE_MACRO)) {
+          const steadyMacros = new ShaderMacroCollection();
+          ShaderMacroCollection.unionCollection(compileMacros, compileMacros, steadyMacros);
+          steadyMacros.disable(MASONRY_ENTRANCE_MACRO);
+          const steadyKey = `${material.shader.name}/${passCastShadows}/${contributionKey}?${shaderMacroCollectionKey(steadyMacros)}`;
+          if (!collectedShaderMacroSets.has(steadyKey)) {
+            collectedShaderMacroSets.add(steadyKey);
+            appendShaderVariants(
+              material.shader,
+              steadyMacros,
+              variants,
+              passCastShadows,
+              renderToTexture,
+              material,
+              isWebGL2,
+              false,
+              ssrContext
+            );
+          }
+          appendPointLightVariants(material.shader, steadyMacros);
+        }
         // BuildingGlobalProxy swaps between Masonry/GlobalProxy and Masonry/GlobalProxyShadowOnly
         // when cells transition between LOD2 and LOD1/LOD0; precompile both directions symmetrically.
         const companionShaderName =
@@ -702,10 +833,13 @@ export function collectSeedWorldRendererVariants(
                 variants,
                 passCastShadows,
                 renderToTexture,
-                material
+                material,
+                isWebGL2,
+                false,
+                ssrContext
               );
             }
-            appendPointLightVariants(companionShader);
+            appendPointLightVariants(companionShader, compileMacros);
           }
         }
       }
@@ -726,7 +860,6 @@ export function collectSeedWorldRendererVariants(
       _sunLensFlareMaterial?: Material | null;
     }[];
   };
-  const isWebGL2 = runtimeEngine._hardwareRenderer?.isWebGL2 !== false;
   const blit = runtimeEngine._basicResources?.blitMaterial;
   if (blit) auxiliary.push([blit, true], [blit, false]);
   const pipeline = camera as unknown as {
@@ -806,6 +939,71 @@ export function collectSeedWorldRendererVariants(
     }
     appendShaderVariants(material.shader, macros, variants, false, target, undefined, isWebGL2);
   }
+  // Warm only the exact Lighting/ScreenSpaceReflection passes used by this template's active SSR receivers.
+  if (ssrSupported && ssrRuntime && (ssrContext.hasTransparentSsr || ssrContext.hasOpaqueSsr)) {
+    const ssrShader = Shader.find("Lighting/ScreenSpaceReflection");
+    if (ssrShader && !ssrShader.destroyed) {
+      ssrRuntime._prepareSettings?.();
+      const baseSsrMacros = new ShaderMacroCollection();
+      ShaderMacroCollection.unionCollection(cameraMacros, (engine as RuntimeEngine)._macroCollection, baseSsrMacros);
+      const msaaSamples = camera.renderTarget ? camera.renderTarget.antiAliasing : (camera.msaaSamples ?? 1);
+      const appendSsrPhase = (
+        receiverMode:
+          | ScreenSpaceReflectionReceiverMode.OpaqueComposite
+          | ScreenSpaceReflectionReceiverMode.TransparentSampleOnly
+      ) => {
+        const settings = ssrRuntime.getResolvedSettings(receiverMode);
+        const halfInputs =
+          receiverMode === ScreenSpaceReflectionReceiverMode.TransparentSampleOnly &&
+          ssrRuntime.useHalfResolutionInputs &&
+          !ssrContext.hasOpaqueSsr;
+        const verifyOpaqueDepth = msaaSamples > 1 || halfInputs;
+        const reduced = settings.resolutionScale < 1;
+        const reconstruct = reduced && settings.upsamplingMode !== ScreenSpaceReflectionUpsamplingMode.Bilinear;
+        const fusedCompositeUpsample =
+          reconstruct && receiverMode === ScreenSpaceReflectionReceiverMode.OpaqueComposite;
+        const separateUpsample = reconstruct && !fusedCompositeUpsample;
+        const gaussianFilter =
+          reduced && settings.upsamplingMode === ScreenSpaceReflectionUpsamplingMode.GaussianBilateral;
+
+        const phaseMacros = new ShaderMacroCollection();
+        ShaderMacroCollection.unionCollection(baseSsrMacros, baseSsrMacros, phaseMacros);
+        if (verifyOpaqueDepth) phaseMacros.enable(ShaderMacro.getByName("SSR_VERIFY_OPAQUE_DEPTH"));
+        if (reconstruct) phaseMacros.enable(ShaderMacro.getByName("SSR_STORE_TRACE_ORIGIN"));
+        if (fusedCompositeUpsample) phaseMacros.enable(ShaderMacro.getByName("SSR_COMPOSITE_BILATERAL_UPSAMPLE"));
+
+        const passIndexes = new Set<number>([0]); // Pass 0: Trace
+        if (halfInputs) passIndexes.add(4); // Pass 4: DownsampleDepth
+        if (gaussianFilter) passIndexes.add(1); // Pass 1: GaussianFilter
+        if (separateUpsample) passIndexes.add(2); // Pass 2: Upsample
+        if (receiverMode === ScreenSpaceReflectionReceiverMode.OpaqueComposite) passIndexes.add(3); // Pass 3: Composite
+
+        const elements: ShaderMacro[] = [];
+        (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(phaseMacros, elements);
+        const recorded = elements
+          .filter((macro) => macro.name !== "ENGINE_OUTPUT_SRGB_CORRECT")
+          .map((macro) => (macro.value === undefined ? { n: macro.name } : { n: macro.name, v: macro.value }));
+        const subShader = ssrShader.subShaders[0];
+        if (subShader) {
+          for (const pi of passIndexes) {
+            if (subShader.passes[pi]) {
+              variants.push({ shader: ssrShader.name, si: 0, pi, macros: recorded });
+            }
+          }
+        }
+      };
+      if (ssrContext.hasTransparentSsr) appendSsrPhase(ScreenSpaceReflectionReceiverMode.TransparentSampleOnly);
+      if (ssrContext.hasOpaqueSsr) appendSsrPhase(ScreenSpaceReflectionReceiverMode.OpaqueComposite);
+    }
+  }
+  if (options.includePhotoCopy) {
+    const photoCopyShader = Shader.find("SeedWorld/PhotoCopy") ?? Shader.create(photoCopySource);
+    if (photoCopyShader && !photoCopyShader.destroyed) {
+      const photoMacros = new ShaderMacroCollection();
+      ShaderMacroCollection.unionCollection(cameraMacros, (engine as RuntimeEngine)._macroCollection, photoMacros);
+      appendShaderVariants(photoCopyShader, photoMacros, variants, false, true, undefined, isWebGL2);
+    }
+  }
   // Overlay UI uses a separate, empty camera macro set. Scene lighting, mesh
   // attributes and GPU instancing do not participate in this rendering path.
   for (const renderer of options.overlayRenderers ?? []) {
@@ -820,6 +1018,16 @@ export function collectSeedWorldRendererVariants(
       macros.unionCollection(engine._macroCollection);
       macros.enable(ShaderMacro.getByName("ENGINE_SHOULD_SRGB_CORRECT"));
       appendShaderVariants(material.shader, macros, variants, false, false, material);
+      if (
+        options.includeLiquidGlassMask !== false &&
+        material.shader.name === "SeedWorld/LiquidGlassUiV6" &&
+        !macros.isEnable(ShaderMacro.getByName("SEED_WORLD_GLASS_MASK"))
+      ) {
+        const maskedMacros = new ShaderMacroCollection();
+        ShaderMacroCollection.unionCollection(macros, macros, maskedMacros);
+        maskedMacros.enable(ShaderMacro.getByName("SEED_WORLD_GLASS_MASK"));
+        appendShaderVariants(material.shader, maskedMacros, variants, false, false, material);
+      }
     }
   }
   // Resource preparation compiles the actual scene/material contract. A
@@ -827,9 +1035,9 @@ export function collectSeedWorldRendererVariants(
   // must not be injected into an otherwise renderable candidate.
   let collected: readonly SeedWorldShaderVariantEntry[] = variants;
   if (options.includeInstanceEntrance !== false) collected = withSeedWorldInstanceEntranceVariants(collected);
-  if (options.includeMasonryDither !== false) collected = withSeedWorldMasonryDitherVariants(collected);
   if (options.includeMasonryEntrance !== false) collected = withSeedWorldMasonryEntranceVariants(collected);
-  if (options.includeLodDither !== false) collected = withSeedWorldLodDitherVariants(collected);
+  if (options.includeMasonryDither !== false) collected = withSeedWorldMasonryDitherVariants(collected);
+  if (options.includeLodDither === true) collected = withSeedWorldLodDitherVariants(collected);
   return normalizeSeedWorldShaderVariants(collected);
 }
 
@@ -977,20 +1185,63 @@ function locateShaderPass(
   target: ShaderPass,
   cache: Map<ShaderPass, Readonly<{ shader: string; si: number; pi: number }>>
 ): Readonly<{ shader: string; si: number; pi: number }> | undefined {
-  const registry = (Shader as unknown as RuntimeShaderRegistry)._shaderMap;
-  for (const shader of Object.values(registry)) {
-    if (!shader || !Array.isArray(shader.subShaders)) continue;
-    for (let si = 0; si < shader.subShaders.length; si++) {
-      const passes = shader.subShaders[si].passes;
-      for (let pi = 0; pi < passes.length; pi++) {
-        const pass = passes[pi];
-        const location = Object.freeze({ shader: shader.name, si, pi });
-        cache.set(pass, location);
-        if (pass === target) return location;
+  const registry = (Shader as unknown as { _shaderMap: Readonly<Record<string, Shader | readonly Shader[]>> })
+    ._shaderMap;
+  for (const entry of Object.values(registry)) {
+    const shaders = Array.isArray(entry) ? entry : [entry];
+    for (const shader of shaders) {
+      if (!shader || !Array.isArray(shader.subShaders)) continue;
+      for (let si = 0; si < shader.subShaders.length; si++) {
+        const passes = shader.subShaders[si].passes;
+        for (let pi = 0; pi < passes.length; pi++) {
+          const pass = passes[pi];
+          const location = Object.freeze({ shader: shader.name, si, pi });
+          cache.set(pass, location);
+          if (pass === target) return location;
+        }
       }
     }
   }
   return undefined;
+}
+
+interface AppendShaderVariantContext {
+  readonly depthPrepassEnabled: boolean;
+  readonly ssrRuntime?: ScreenSpaceReflection & {
+    _isMaterialReceiver?: (material: Material, queue: RenderQueueType) => boolean;
+  };
+  readonly includeOpaqueSsr: boolean;
+  hasOpaqueSsr: boolean;
+  hasTransparentSsr: boolean;
+}
+
+function resolveDepthPrepassEnabled(engine: Engine, scene: Scene, camera: Camera): boolean {
+  const runtimeCamera = camera as unknown as {
+    depthTextureMode?: DepthTextureMode;
+    _enableForwardDepthResolve?: boolean;
+    _isIndependentCanvasEnabled?: () => boolean;
+  };
+  // Preserve backward compatibility for minimal unit-test camera mocks without depthTextureMode.
+  if (runtimeCamera.depthTextureMode === undefined) return true;
+  const rhi = (
+    engine as unknown as {
+      _hardwareRenderer?: { isWebGL2?: boolean; canIUse?: (cap: GLCapabilityType) => boolean };
+    }
+  )._hardwareRenderer;
+  const supportDepthTexture = rhi?.canIUse ? rhi.canIUse(GLCapabilityType.depthTexture) : true;
+  if (!supportDepthTexture) return false;
+  const ambientOcclusionEnabled = Boolean(
+    (scene as unknown as { ambientOcclusion?: { _isValid?: () => boolean } }).ambientOcclusion?._isValid?.()
+  );
+  const cameraDepthTextureRequested = runtimeCamera.depthTextureMode === DepthTextureMode.PrePass;
+  const baseIndependentCanvasEnabled = Boolean(runtimeCamera._isIndependentCanvasEnabled?.());
+  const forwardDepthResolveEnabled =
+    cameraDepthTextureRequested &&
+    Boolean(runtimeCamera._enableForwardDepthResolve) &&
+    !ambientOcclusionEnabled &&
+    rhi?.isWebGL2 !== false &&
+    baseIndependentCanvasEnabled;
+  return ambientOcclusionEnabled || (cameraDepthTextureRequested && !forwardDepthResolveEnabled);
 }
 
 function shaderConsumesPointLights(shaderName: string): boolean {
@@ -1014,7 +1265,8 @@ function appendShaderVariants(
   renderToTexture?: boolean,
   material?: Material,
   isWebGL2 = true,
-  forwardOnly = false
+  forwardOnly = false,
+  context?: AppendShaderVariantContext
 ): void {
   const macroElements: ShaderMacro[] = [];
   (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(macros, macroElements);
@@ -1029,6 +1281,26 @@ function appendShaderVariants(
       // Match shadow culling even while candidate roots are intentionally inactive.
       if (!castShadows && stage === "ShadowCaster") continue;
       if (stage === "TransformFeedback" && !isWebGL2) continue;
+      if (stage === "DepthOnly" && context && !context.depthPrepassEnabled) continue;
+      if (stage === "ScreenSpaceReflectionSurface" && material && context) {
+        if (!context.ssrRuntime) continue;
+        const queue =
+          pass._renderState?._getRenderQueueByShaderData?.(pass._renderStateDataMap, material.shaderData) ??
+          ((material as { isTransparent?: boolean }).isTransparent
+            ? RenderQueueType.Transparent
+            : RenderQueueType.Opaque);
+        const isReceiver = context.ssrRuntime._isMaterialReceiver
+          ? context.ssrRuntime._isMaterialReceiver(material, queue)
+          : ScreenSpaceReflection.getMaterialReceiverMode(material, queue) !==
+            ScreenSpaceReflectionReceiverMode.Disabled;
+        if (!isReceiver) continue;
+        if (queue === RenderQueueType.Transparent) {
+          context.hasTransparentSsr = true;
+        } else {
+          if (!context.includeOpaqueSsr) continue;
+          context.hasOpaqueSsr = true;
+        }
+      }
       // Contribution capture only visits opted-in transparent materials. Merely having the pass in PBR
       // does not make it reachable (opaque objects already contribute through their Forward color).
       if (

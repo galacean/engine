@@ -206,7 +206,6 @@ import {
 import {
   createSeedWorldShaderVariantSnapshotter,
   warmupSeedWorldRendererVariants,
-  warmupSeedWorldShaderVariants,
   type SeedWorldShaderVariantEntry
 } from "@galacean/engine-world-planning/world/SeedWorldShaderWarmup";
 import { registerSeedWorldVoiceHudStartupShaders } from "./assistant/SeedWorldVoiceHudShaders.ts";
@@ -318,6 +317,7 @@ export async function mountSeedWorldDemo(
   let unbindWorldClick: (() => void) | undefined;
   const editorLifetime = new AbortController();
   let pickPreparation: RuntimePickPreparation | undefined;
+  let shaderAudit: import("./src/SeedWorldShaderAudit").SeedWorldShaderAuditHandle | undefined;
   let disposed = false;
   let ready = false;
   // Debug evidence only: Long Tasks measures main-thread tasks >=50ms, not
@@ -424,6 +424,7 @@ export async function mountSeedWorldDemo(
         unmountProjectSave?.();
         unmountProjectSave = undefined;
         pickPreparation?.dispose();
+        shaderAudit?.dispose();
         runtimeDebug?.destroy();
         unregisterFarmingActivation?.();
         nativeWaterHost?.dispose();
@@ -568,6 +569,10 @@ export async function mountSeedWorldDemo(
     { once: true }
   );
   try {
+    if (pageUrl.searchParams.get("shaderAudit") === "1") {
+      const { installSeedWorldShaderAudit } = await import("./src/SeedWorldShaderAudit");
+      shaderAudit = installSeedWorldShaderAudit();
+    }
     engine = await timed("WebGLEngine.create", () =>
       WebGLEngine.create({
         canvas,
@@ -601,6 +606,19 @@ export async function mountSeedWorldDemo(
       }
     }
     pickPreparation = new RuntimePickPreparation(engine);
+    pickPreparation.ignoreShaderPrefixes([
+      "IntegratedWorld/",
+      "Building/BrickPackKernel",
+      "TinyGlade/RoofGravity",
+      "World/VolumetricClouds",
+      "SeedWorld/LiquidGlass",
+      "SeedWorld/VoiceOrb",
+      "SeedWorld/WorkingText",
+      "SeedWorld/PhotoCopy",
+      "SeedWorld/SnapshotSurfacePack",
+      "SeedWorld/InteractionDepthPack",
+      "SeedWorld/PanoramaFarHorizon"
+    ]);
     engine.sceneManager.activeScene!?.destroy();
     const resize = () => {
       if (!canvas.clientWidth || !canvas.clientHeight) return;
@@ -1970,21 +1988,37 @@ export async function mountSeedWorldDemo(
             let masonryWarmup:
               | Awaited<ReturnType<NonNullable<typeof candidateMasonry>["prepareShaderWarmup"]>>
               | undefined = undefined;
+            let vegetationWarmup:
+              | ReturnType<NonNullable<typeof candidateVegetation>["prepareShaderWarmup"]>
+              | undefined = undefined;
+            let rockGrassWarmup:
+              | ReturnType<NonNullable<typeof candidate>["population"]["prepareRockGrassShaderWarmup"]>
+              | undefined = undefined;
             let shaderWarmup;
             try {
               if (precompileShaders && ready) {
                 masonryWarmup = await candidateMasonry?.prepareShaderWarmup(signal);
+                vegetationWarmup = candidateVegetation?.prepareShaderWarmup();
+                rockGrassWarmup = candidate?.population.prepareRockGrassShaderWarmup();
               }
+              const additionalRenderers = [
+                ...(masonryWarmup?.renderers ?? []),
+                ...(rockGrassWarmup?.renderers ?? [])
+              ];
               shaderWarmup = await warmupSeedWorldRendererVariants(engine!, scene!, camera, warmupRoots, {
                 // Startup publishes additional owners below; collect their final state together before reveal.
                 enabled: precompileShaders && ready,
                 includeInactiveRoots,
-                additionalRenderers: masonryWarmup?.renderers,
+                additionalRenderers: additionalRenderers.length ? additionalRenderers : undefined,
+                additionalInstancedRenderers: vegetationWarmup?.renderers,
                 additionalRendererMaterials: masonryWarmup?.extraMaterials,
                 additionalPointLightCounts: masonryWarmup?.decorationPointLightBudget
                   ? [masonryWarmup.decorationPointLightBudget]
                   : undefined,
                 includeGpuInstancing: true,
+                onlySharedMeshGpuInstancing: true,
+                includeLodDither: false,
+                includeOpaqueScreenSpaceReflection: Boolean(environment?.surfaceWaterSsrRequested),
                 strict: true,
                 activatedLightRoots: warmupRoots,
                 retiredLightRoots: readWorld() ? [readWorld()!.root] : [],
@@ -1998,6 +2032,8 @@ export async function mountSeedWorldDemo(
                     : undefined
               });
             } finally {
+              rockGrassWarmup?.dispose();
+              vegetationWarmup?.dispose();
               masonryWarmup?.dispose();
             }
             if (pageUrl.searchParams.get("agentTrace") === "1")
@@ -2645,7 +2681,8 @@ export async function mountSeedWorldDemo(
     // Dense visible details belong to the world presentation, including photo captures.
     timed("warmupPopulationDetails (startup)", () => publication!.current?.world.warmupPopulationDetails());
 
-    let { deferredShaderVariants } = await runSeedWorldStartupShaderWarmup({
+    shaderAudit?.setPhase("startup-warmup");
+    const { report: startupWarmupReport } = await runSeedWorldStartupShaderWarmup({
       precompileShaders,
       engine: engine!,
       scene: scene!,
@@ -2660,6 +2697,8 @@ export async function mountSeedWorldDemo(
       prepareFarmingPresentation: () => farmingHost?.runtime?.preparePresentation(),
       prepareAnimalPresentation: () => animals?.preparePresentation(),
       prepareVegetationPresentation: () => publication!.current?.vegetation?.preparePresentation(),
+      prepareVegetationShaderWarmup: () => publication!.current?.vegetation?.prepareShaderWarmup(),
+      prepareRockGrassShaderWarmup: () => publication!.current?.world.population.prepareRockGrassShaderWarmup(),
       prepareMasonryShaderWarmup: (signal) => publication!.current?.masonry?.prepareShaderWarmup(signal),
       prepareAssistantPresentation: () => tools?.preparePresentation(),
       getIncludeInactiveRoots: () => [
@@ -2669,10 +2708,14 @@ export async function mountSeedWorldDemo(
           : []),
         ...(publication!.current?.template?.root ? [publication!.current.template.root] : [])
       ],
+      hasOpaqueScreenSpaceReflection: () => Boolean(environment?.surfaceWaterSsrRequested),
       getPostProcessWarmupState: () => post.getShaderWarmupState(),
       additionalBackgroundMaterials: environment!.shaderWarmupBackgroundMaterials,
       onWarmupEvent: (message, detail) => seedWorldBootTrace.event("info", "shader-warmup", message, detail)
     });
+    shaderAudit?.setParallelCompile(Boolean(startupWarmupReport?.parallelCompileSupported));
+    shaderAudit?.recordWarmupRequested(startupWarmupReport?.requested ?? 0, 0);
+    shaderAudit?.setPhase("reveal");
 
     camera.enabled = true;
     progress(1, "Seed World 已就绪");
@@ -2685,19 +2728,7 @@ export async function mountSeedWorldDemo(
     orb.destroy();
     orb = undefined;
     ready = true;
-    if (deferredShaderVariants.length > 0 && !disposed) {
-      const variantsToWarm = deferredShaderVariants;
-      deferredShaderVariants = [];
-      const idleWarmupTimer = window.setTimeout(() => {
-        if (disposed || editorLifetime.signal.aborted) return;
-        void warmupSeedWorldShaderVariants(engine!, variantsToWarm, {
-          signal: editorLifetime.signal,
-          frameBudgetMilliseconds: 4,
-          maximumPendingPrograms: 1
-        }).catch(() => {});
-      }, 1500);
-      editorLifetime.signal.addEventListener("abort", () => window.clearTimeout(idleWarmupTimer), { once: true });
-    }
+    shaderAudit?.setPhase("post-ready");
     disconnectEditorAssets = timed("tools.connectProject", () => tools!.application.connectProject(runtimeProject!));
     const savedEditor = runtimeProject.projectPackage.contents[SEED_WORLD_EDITOR_PATH];
     if (typeof savedEditor === "string")

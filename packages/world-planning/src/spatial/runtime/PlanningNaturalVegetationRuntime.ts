@@ -1391,9 +1391,109 @@ export class PlanningNaturalVegetationRuntime {
     }
   }
 
-  /** Placement and species template roots whose inactive LOD or unmaterialized-species children must still be warmed up. */
+  /** Placement roots whose inactive LOD children must still be warmed up. */
   get shaderWarmupRoots(): readonly Entity[] {
-    return [this.treeRoot, this.detailRoot, this.resourceRoot];
+    return [this.treeRoot, this.detailRoot];
+  }
+
+  /**
+   * Prepares exact production-configured vegetation renderers for shader warmup without exposing raw
+   * unstyled `resourceRoot` templates:
+   * - Temporarily restores `castShadows` on inactive LOD renderers of materialized plants whose initial
+   *   LOD configuration casts shadows.
+   * - Instantiates one temporary representative via the real `plant()` path for each world-required
+   *   species in `this.sources[0]` not yet materialized near spawn, with its exact template palette,
+   *   shadow rules, and `RENDERER_LOD_DITHER` state.
+   */
+  prepareShaderWarmup(): {
+    readonly renderers: readonly MeshRenderer[];
+    dispose(): void;
+  } {
+    if (this.disposed) {
+      return { renderers: [], dispose() {} };
+    }
+    const materializedIds = new Set<string>();
+    const restoredShadows: MeshRenderer[] = [];
+    const restorePlantShadows = (plant: Plant) => {
+      for (const [renderer, casts] of plant.lod.initialShadowCasters) {
+        if (casts && !renderer.castShadows && !renderer.destroyed) {
+          renderer.castShadows = true;
+          restoredShadows.push(renderer);
+        }
+      }
+    };
+    for (const plant of this.trees) {
+      materializedIds.add(plant.instance.assetId);
+      restorePlantShadows(plant);
+    }
+    const samplePendingByAsset = new Map<string, LandscapePlantInstance>();
+    for (const cell of this.cells.values()) {
+      for (const plant of cell.plants) {
+        materializedIds.add(plant.instance.assetId);
+        restorePlantShadows(plant);
+      }
+      if (cell.records) {
+        for (const record of cell.records) {
+          if (!record.plant && !samplePendingByAsset.has(record.instance.assetId)) {
+            samplePendingByAsset.set(record.instance.assetId, record.instance);
+          }
+        }
+      }
+    }
+
+    const unmaterializedIds: string[] = [];
+    for (const assetId of this.sources[0].keys()) {
+      if (!materializedIds.has(assetId)) unmaterializedIds.push(assetId);
+    }
+
+    let warmupRoot: Entity | undefined;
+    const extraRenderers: MeshRenderer[] = [];
+    if (unmaterializedIds.length > 0) {
+      warmupRoot = this.owner.createChild("Vegetation shader warmup");
+      warmupRoot.isActive = false;
+      try {
+        for (const assetId of unmaterializedIds) {
+          const source = this.sources[0].get(assetId);
+          if (!source) continue;
+          const pending = samplePendingByAsset.get(assetId);
+          const isTree = pending ? pending.layerId === "乔木" : source.entry.category === "Trees";
+          const synthetic: LandscapePlantInstance = pending ?? {
+            id: `warmup:${assetId}`,
+            clusterId: `warmup:${assetId}`,
+            layerId: isTree ? "乔木" : "灌木",
+            assetId,
+            position: [0, 0, 0] as const,
+            yaw: 0,
+            scale: source.kind === "stone" ? 2 : 1,
+            radius: 1,
+            height: 1
+          };
+          const plant = this.plant(warmupRoot, synthetic, isTree, this.groundingFields, this.rockGround, 0);
+          for (const [renderer, casts] of plant.lod.initialShadowCasters) {
+            if (casts && !renderer.destroyed) renderer.castShadows = true;
+          }
+          extraRenderers.push(...plant.root.getComponentsIncludeChildren(MeshRenderer, []));
+        }
+      } catch (error) {
+        for (const renderer of restoredShadows) {
+          if (!renderer.destroyed) renderer.castShadows = false;
+        }
+        if (warmupRoot && !warmupRoot.destroyed) warmupRoot.destroy();
+        throw error;
+      }
+    }
+
+    return {
+      renderers: extraRenderers,
+      dispose: () => {
+        for (const renderer of restoredShadows) {
+          if (!renderer.destroyed) renderer.castShadows = false;
+        }
+        restoredShadows.length = 0;
+        if (warmupRoot && !warmupRoot.destroyed) warmupRoot.destroy();
+        warmupRoot = undefined;
+      }
+    };
   }
 
   update(dt: number): void {

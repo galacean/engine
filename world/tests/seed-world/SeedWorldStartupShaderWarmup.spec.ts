@@ -17,7 +17,8 @@ function fixture(
   enabled = true,
   disposed = false,
   parallelCompile = true,
-  masonry?: { prepareShaderWarmup: (signal: AbortSignal) => Promise<any> }
+  masonry?: { prepareShaderWarmup: (signal: AbortSignal) => Promise<any> },
+  vegetation?: { prepareShaderWarmup: () => { renderers: readonly unknown[]; dispose: () => void } }
 ) {
   const farm = deferred(),
     animal = deferred(),
@@ -37,25 +38,6 @@ function fixture(
       longestVariantMilliseconds: 5
     };
   });
-  const warmupVariants = vi.fn(async (_engine, ordered, _options) => {
-    events.push("compile-deferred");
-    return {
-      requested: ordered.length,
-      compiled: ordered.length,
-      parallelCompileSupported: false,
-      issues: [],
-      elapsedMilliseconds: 5,
-      longestVariantMilliseconds: 5
-    };
-  });
-  const collectVariants = vi.fn((_engine, _scene, _camera, _roots, opts) =>
-    opts?.onlyEnabledRenderers
-      ? [{ shader: "Terrain/Terrain", ssi: 0, pi: 0, m: [] }]
-      : [
-          { shader: "Terrain/Terrain", ssi: 0, pi: 0, m: [] },
-          { shader: "Masonry/Brick", ssi: 0, pi: 0, m: [] }
-        ]
-  );
   const run = () =>
     runSeedWorldStartupShaderWarmup({
       precompileShaders: enabled,
@@ -80,27 +62,27 @@ function fixture(
       prepareVegetationPresentation: async () => {
         events.push("lod");
       },
+      prepareVegetationShaderWarmup: vegetation ? () => vegetation.prepareShaderWarmup() as any : undefined,
+      prepareRockGrassShaderWarmup: vegetation
+        ? () => ({ renderers: [{ name: "rock-grass-warmup" }] as any, dispose: () => {} })
+        : undefined,
       prepareMasonryShaderWarmup: masonry ? (signal) => masonry.prepareShaderWarmup(signal) : undefined,
       prepareAssistantPresentation: () => {
         events.push("hud");
         return { root: { getComponentsIncludeChildren: () => ["hidden-hud"] } as any };
       },
+      hasOpaqueScreenSpaceReflection: () => false,
       getPostProcessWarmupState: () => ({ enabled: true }) as any,
       additionalBackgroundMaterials: [],
       warmupOperations: {
         hasParallelShaderCompile: () => parallelCompile,
-        collectSeedWorldRendererVariants: collectVariants as any,
-        findMissingSeedWorldShaderVariants: (_primary, all) => all.slice(1),
-        warmupSeedWorldRendererVariants: warmup as any,
-        warmupSeedWorldShaderVariants: warmupVariants as any
+        warmupSeedWorldRendererVariants: warmup as any
       }
     });
   return {
     farm,
     animal,
     warmup,
-    warmupVariants,
-    collectVariants,
     events,
     editorLifetime,
     run
@@ -124,38 +106,48 @@ describe("startup shader publication boundary", () => {
     expect(f.warmup).toHaveBeenCalledOnce();
     expect(f.warmup.mock.calls[0][4].overlayRenderers).toEqual(["hidden-hud"]);
   });
-  it("defers secondary variants when KHR_parallel_shader_compile is unavailable", async () => {
-    const dispose = vi.fn();
+  it("compiles all template variants before reveal without deferring when KHR_parallel_shader_compile is unavailable", async () => {
+    const disposeMasonry = vi.fn();
+    const disposeVegetation = vi.fn();
     const fakeRenderer = { name: "lod1-warmup" };
-    const f = fixture(true, false, false, {
-      prepareShaderWarmup: async () => ({
-        renderers: [fakeRenderer],
-        decorationPointLightBudget: 4,
-        dispose
-      })
-    }),
+    const fakeVegRenderer = { name: "unmaterialized-tree-warmup" };
+    const f = fixture(
+        true,
+        false,
+        false,
+        {
+          prepareShaderWarmup: async () => ({
+            renderers: [fakeRenderer],
+            decorationPointLightBudget: 4,
+            dispose: disposeMasonry
+          })
+        },
+        {
+          prepareShaderWarmup: () => ({
+            renderers: [fakeVegRenderer],
+            dispose: disposeVegetation
+          })
+        }
+      ),
       task = f.run();
     f.farm.resolve();
     f.animal.resolve();
     const result = await task;
-    expect(f.events).toEqual(["lod", "hud", "compile-deferred"]);
-    expect(f.warmup).not.toHaveBeenCalled();
-    expect(f.warmupVariants).toHaveBeenCalledOnce();
-    expect(f.collectVariants).toHaveBeenCalledTimes(2);
-    expect(f.collectVariants.mock.calls[0][4]).toMatchObject({
-      onlyEnabledRenderers: true,
-      includeMasonryDither: false,
-      includeMasonryEntrance: false,
-      includeInstanceEntrance: false,
-      includeLodDither: false
+    expect(f.events).toEqual(["lod", "hud", "compile"]);
+    expect(f.warmup).toHaveBeenCalledOnce();
+    expect(f.warmup.mock.calls[0][4]).toMatchObject({
+      maximumPendingPrograms: 1,
+      additionalRenderers: [fakeRenderer, { name: "rock-grass-warmup" }],
+      additionalInstancedRenderers: [fakeVegRenderer],
+      additionalPointLightCounts: [4],
+      includeLodDither: false,
+      includeOpaqueScreenSpaceReflection: false,
+      includeLiquidGlassMask: true,
+      includePhotoCopy: true
     });
-    expect(f.collectVariants.mock.calls[0][4].additionalRenderers).toBeUndefined();
-    expect(f.collectVariants.mock.calls[1][4]).toMatchObject({
-      additionalRenderers: [fakeRenderer],
-      additionalPointLightCounts: [4]
-    });
-    expect(dispose).toHaveBeenCalledOnce();
-    expect(result.deferredShaderVariants).toEqual([{ shader: "Masonry/Brick", ssi: 0, pi: 0, m: [] }]);
+    expect(disposeMasonry).toHaveBeenCalledOnce();
+    expect(disposeVegetation).toHaveBeenCalledOnce();
+    expect(result.deferredShaderVariants).toEqual([]);
   });
   it("does not compile into a disposed scene after asynchronous preparation", async () => {
     const f = fixture(true, true),

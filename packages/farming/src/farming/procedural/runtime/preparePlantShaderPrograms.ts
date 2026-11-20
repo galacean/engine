@@ -42,10 +42,21 @@ export function getPlantShaderPreparationPasses(
   const scene = camera.entity.scene!;
   const hardware = (engine as RuntimeEngine)._hardwareRenderer;
   const reflection = camera.screenSpaceReflection;
+  const runtimeCamera = camera as unknown as {
+    _enableForwardDepthResolve?: boolean;
+    _isIndependentCanvasEnabled?: () => boolean;
+  };
+  const ambientOcclusionEnabled = Boolean(scene?.ambientOcclusion?.enabled && scene.ambientOcclusion.intensity > 0);
+  const cameraDepthRequested = camera.depthTextureMode === DepthTextureMode.PrePass;
+  const forwardDepthResolveEnabled =
+    cameraDepthRequested &&
+    Boolean(runtimeCamera._enableForwardDepthResolve) &&
+    !ambientOcclusionEnabled &&
+    hardware.isWebGL2 &&
+    Boolean(runtimeCamera._isIndependentCanvasEnabled?.());
   const prepareDepth =
     hardware.canIUse(GLCapabilityType.depthTexture) &&
-    (camera.depthTextureMode === DepthTextureMode.PrePass ||
-      (scene.ambientOcclusion.enabled && scene.ambientOcclusion.intensity > 0));
+    (ambientOcclusionEnabled || (cameraDepthRequested && !forwardDepthResolveEnabled));
   const surfaceCandidate =
     reflection.activationMode !== ScreenSpaceReflectionActivationMode.ForceOff &&
     (ScreenSpaceReflection.isMaterialReceiver(material) ||

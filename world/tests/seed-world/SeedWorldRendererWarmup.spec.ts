@@ -1,5 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
-import { MeshRenderer, Renderer, Shader, SkinnedMeshRenderer, ShaderMacro, ShaderMacroCollection } from "@galacean/engine";
+import {
+  DepthTextureMode,
+  MeshRenderer,
+  Renderer,
+  RenderQueueType,
+  ScreenSpaceReflectionActivationMode,
+  ScreenSpaceReflectionReceiverMode,
+  ScreenSpaceReflectionUpsamplingMode,
+  Shader,
+  SkinnedMeshRenderer,
+  ShaderMacro,
+  ShaderMacroCollection
+} from "@galacean/engine";
 import { collectSeedWorldRendererVariants } from "@galacean/engine-world-planning/world/SeedWorldShaderWarmup";
 
 function renderer(active: boolean, skinned = false, materials?: object[]) {
@@ -509,5 +521,190 @@ describe("renderer warmup scope", () => {
     } finally {
       findSpy.mockRestore();
     }
+  });
+
+  it("skips DepthOnly only when WebGL2 forward depth resolve is explicitly opted in and AO is disabled", () => {
+    const meshRenderer = renderer(true, false, [
+      {
+        destroyed: false,
+        shader: {
+          name: "Terrain/Terrain",
+          destroyed: false,
+          subShaders: [{ passes: [{ getTagValue: () => "Forward" }, { getTagValue: () => "DepthOnly" }] }]
+        },
+        shaderData: { _macroCollection: new ShaderMacroCollection() }
+      }
+    ]);
+    const roots = [
+      {
+        getComponentsIncludeChildren(_type: unknown, output: object[]) {
+          output.length = 0;
+          output.push(meshRenderer);
+        }
+      }
+    ] as any;
+    const collectDepth = (forwardDepthResolve: boolean | undefined, aoValid: boolean) =>
+      collectSeedWorldRendererVariants(
+        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { isWebGL2: true } } as any,
+        {
+          shaderData: { _macroCollection: new ShaderMacroCollection() },
+          background: { mode: 0 },
+          ambientOcclusion: { _isValid: () => aoValid }
+        } as any,
+        {
+          _updateShaderData() {},
+          _isIndependentCanvasEnabled: () => true,
+          ...(forwardDepthResolve !== undefined ? { _enableForwardDepthResolve: forwardDepthResolve } : {}),
+          shaderData: { _macroCollection: new ShaderMacroCollection() },
+          depthTextureMode: DepthTextureMode.PrePass,
+          renderTarget: null
+        } as any,
+        roots,
+        { includeGpuInstancing: false }
+      ).map((v) => v.pi);
+
+    // Opted-in WebGL2 forward depth resolve with AO disabled -> skips DepthOnly (pi=1).
+    expect(collectDepth(true, false)).toEqual([0]);
+    // Opt-in false or undefined (non-modify Camera) -> retains DepthOnly (pi=1).
+    expect(collectDepth(false, false)).toEqual([0, 1]);
+    expect(collectDepth(undefined, false)).toEqual([0, 1]);
+    // AO enabled forces DepthOnly even when forward depth resolve is opted in.
+    expect(collectDepth(true, true)).toEqual([0, 1]);
+  });
+
+  it("filters ScreenSpaceReflectionSurface by receiver status and warms Lighting/ScreenSpaceReflection only when receivers exist", () => {
+    const fakeSsrShader = {
+      name: "Lighting/ScreenSpaceReflection",
+      destroyed: false,
+      subShaders: [
+        {
+          passes: Array.from({ length: 5 }, () => ({ getTagValue: () => "Forward" }))
+        }
+      ]
+    };
+    const makeShader = (name: string, queue: RenderQueueType) => ({
+      name,
+      destroyed: false,
+      subShaders: [
+        {
+          passes: ["Forward", "ScreenSpaceReflectionSurface"].map((stage) => ({
+            getTagValue: () => stage,
+            _renderState: { _getRenderQueueByShaderData: () => queue },
+            _renderStateDataMap: {}
+          }))
+        }
+      ]
+    });
+    const dryTerrainMat = {
+      destroyed: false,
+      shader: makeShader("Terrain/Terrain", RenderQueueType.Opaque),
+      shaderData: { _macroCollection: new ShaderMacroCollection() },
+      isSsrReceiver: false
+    };
+    const waterMat = {
+      destroyed: false,
+      shader: makeShader("Water/Lake.v1", RenderQueueType.Transparent),
+      shaderData: { _macroCollection: new ShaderMacroCollection() },
+      isSsrReceiver: true
+    };
+    const camera = {
+      _updateShaderData() {},
+      shaderData: { _macroCollection: new ShaderMacroCollection() },
+      msaaSamples: 1,
+      screenSpaceReflection: {
+        activationMode: ScreenSpaceReflectionActivationMode.Auto,
+        useHalfResolutionInputs: true,
+        _isMaterialReceiver: (mat: any) => Boolean(mat.isSsrReceiver),
+        _prepareSettings() {},
+        getResolvedSettings: () => ({
+          resolutionScale: 0.5,
+          upsamplingMode: ScreenSpaceReflectionUpsamplingMode.Bilinear
+        })
+      }
+    } as any;
+    const findSpy = vi.spyOn(Shader, "find").mockImplementation((name: string) =>
+      name === "Lighting/ScreenSpaceReflection" ? (fakeSsrShader as any) : null
+    );
+    try {
+      const dryRoots = [
+        {
+          getComponentsIncludeChildren(_type: unknown, output: object[]) {
+            output.length = 0;
+            output.push(renderer(true, false, [dryTerrainMat]));
+          }
+        }
+      ] as any;
+      const dryVariants = collectSeedWorldRendererVariants(
+        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { isWebGL2: true } } as any,
+        { shaderData: { _macroCollection: new ShaderMacroCollection() }, background: { mode: 0 } } as any,
+        camera,
+        dryRoots,
+        { includeGpuInstancing: false, includeOpaqueScreenSpaceReflection: false }
+      );
+      // Dry scene: Terrain ScreenSpaceReflectionSurface skipped, 0 Lighting/ScreenSpaceReflection passes warmed.
+      expect(dryVariants.some((v) => v.shader === "Terrain/Terrain" && v.pi === 1)).toBe(false);
+      expect(dryVariants.some((v) => v.shader === "Lighting/ScreenSpaceReflection")).toBe(false);
+
+      const waterRoots = [
+        {
+          getComponentsIncludeChildren(_type: unknown, output: object[]) {
+            output.length = 0;
+            output.push(renderer(true, false, [dryTerrainMat, waterMat]));
+          }
+        }
+      ] as any;
+      const waterVariants = collectSeedWorldRendererVariants(
+        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { isWebGL2: true } } as any,
+        { shaderData: { _macroCollection: new ShaderMacroCollection() }, background: { mode: 0 } } as any,
+        camera,
+        waterRoots,
+        { includeGpuInstancing: false, includeOpaqueScreenSpaceReflection: false }
+      );
+      // Water scene: Water ScreenSpaceReflectionSurface kept + Lighting/ScreenSpaceReflection Trace(0) & DownsampleDepth(4) warmed with SSR_VERIFY_OPAQUE_DEPTH.
+      expect(waterVariants.some((v) => v.shader === "Water/Lake.v1" && v.pi === 1)).toBe(true);
+      const ssrPasses = waterVariants.filter((v) => v.shader === "Lighting/ScreenSpaceReflection");
+      expect(new Set(ssrPasses.map((v) => v.pi))).toEqual(new Set([0, 4]));
+      expect(ssrPasses.every((v) => v.macros.some((m) => m.n === "SSR_VERIFY_OPAQUE_DEPTH"))).toBe(true);
+    } finally {
+      findSpy.mockRestore();
+    }
+  });
+
+  it("warms additionalInstancedRenderers with GPU instancing and omits redundant LOD_DITHER synthesis by default", () => {
+    const unmaterializedTree = renderer(false, false, [
+      {
+        destroyed: false,
+        shader: {
+          name: "Terrain/Vegetation",
+          destroyed: false,
+          subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
+        },
+        shaderData: { _macroCollection: new ShaderMacroCollection() }
+      }
+    ]);
+
+    const variants = collectSeedWorldRendererVariants(
+      { _macroCollection: new ShaderMacroCollection() } as any,
+      { shaderData: { _macroCollection: new ShaderMacroCollection() }, background: { mode: 0 } } as any,
+      { _updateShaderData() {}, shaderData: { _macroCollection: new ShaderMacroCollection() } } as any,
+      [],
+      {
+        includeGpuInstancing: true,
+        onlySharedMeshGpuInstancing: true,
+        additionalInstancedRenderers: [unmaterializedTree]
+      }
+    );
+    // Single temporary representative still gets RENDERER_GPU_INSTANCE under onlySharedMeshGpuInstancing.
+    expect(
+      variants.some(
+        (v) => v.shader === "Terrain/Vegetation" && v.macros.some((m) => m.n === "RENDERER_GPU_INSTANCE")
+      )
+    ).toBe(true);
+    // includeLodDither defaults to false: must not synthesize RENDERER_LOD_DITHER onto a renderer without it.
+    expect(
+      variants.some(
+        (v) => v.shader === "Terrain/Vegetation" && v.macros.some((m) => m.n === "RENDERER_LOD_DITHER")
+      )
+    ).toBe(false);
   });
 });

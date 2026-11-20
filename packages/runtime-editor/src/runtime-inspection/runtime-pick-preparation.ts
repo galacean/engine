@@ -5,6 +5,43 @@ import { isPickOcclusionPass, pickOcclusionPass } from "./runtime-pick-occlusion
 const PICK = "RENDERER_WORLD_PICK";
 type Work = { pass: ShaderPass; macros: readonly ShaderMacro[] };
 
+const ENGINE_NON_SCENE_PICK_SHADER_PREFIXES = ["PostProcess/", "Blit/", "Sky/", "Lighting/", "2D/"] as const;
+
+function isNonScenePickPass(
+  pass: ShaderPass,
+  prefixes: readonly string[],
+  cache: WeakMap<ShaderPass, boolean>,
+  scannedShaders: WeakSet<Shader>
+): boolean {
+  const cached = cache.get(pass);
+  if (cached !== undefined) return cached;
+  if ((pass as unknown as { _feedbackVaryings?: readonly string[] })._feedbackVaryings?.length) {
+    cache.set(pass, true);
+    return true;
+  }
+  const registry = (Shader as unknown as { _shaderMap?: Readonly<Record<string, Shader | readonly Shader[]>> })
+    ._shaderMap;
+  if (registry) {
+    for (const entry of Object.values(registry)) {
+      const shaders = Array.isArray(entry) ? entry : [entry];
+      for (const shader of shaders) {
+        if (!shader || scannedShaders.has(shader) || !Array.isArray(shader.subShaders)) continue;
+        scannedShaders.add(shader);
+        const skip = prefixes.some((prefix) => shader.name.startsWith(prefix));
+        for (const sub of shader.subShaders) {
+          for (const candidate of sub.passes) {
+            cache.set(candidate, skip);
+          }
+        }
+      }
+    }
+    const resolved = cache.get(pass);
+    if (resolved !== undefined) return resolved;
+  }
+  cache.set(pass, false);
+  return false;
+}
+
 /** Prepare companion picking programs when normal rendering prepares a new variant.
  * No Entity traversal, frame polling, domain names or business-specific macro lists.
  */
@@ -13,6 +50,9 @@ export class RuntimePickPreparation {
   private readonly unsubscribe: () => void;
   private readonly targets = new WeakMap<ShaderPass, ShaderPass>();
   private readonly generated = new WeakSet<ShaderPass>();
+  private readonly ignoredPrefixes: string[] = [...ENGINE_NON_SCENE_PICK_SHADER_PREFIXES];
+  private nonScenePassCache = new WeakMap<ShaderPass, boolean>();
+  private scannedShaders = new WeakSet<Shader>();
   private readonly requested = new WeakMap<ShaderPass, Set<string>>();
   private readonly queue: Work[] = [];
   private processing?: Promise<void>;
@@ -35,12 +75,28 @@ export class RuntimePickPreparation {
     this.unsubscribe = ShaderPass.observeVariants(engine, (pass, macros) => this.request(pass, macros));
   }
 
+  /** Register host-owned non-scene shader prefixes (e.g. UI, compute kernels, sky backdrops) to skip pick preparation. */
+  ignoreShaderPrefixes(prefixes: readonly string[]): void {
+    let changed = false;
+    for (const prefix of prefixes) {
+      if (prefix && !this.ignoredPrefixes.includes(prefix)) {
+        this.ignoredPrefixes.push(prefix);
+        changed = true;
+      }
+    }
+    if (changed) {
+      this.nonScenePassCache = new WeakMap<ShaderPass, boolean>();
+      this.scannedShaders = new WeakSet<Shader>();
+    }
+  }
+
   private request(source: ShaderPass, macros: readonly ShaderMacro[]): void {
     if (
       this.disposed ||
       this.failure ||
       this.generated.has(source) ||
       isPickOcclusionPass(source) ||
+      isNonScenePickPass(source, this.ignoredPrefixes, this.nonScenePassCache, this.scannedShaders) ||
       source.getTagValue("pipelineStage") !== "Forward" ||
       macros.some((m) => m.name === PICK)
     )

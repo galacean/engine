@@ -1,0 +1,141 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { Shader, ShaderLanguage, ShaderMacro, ShaderPass } from "@galacean/engine";
+import { RuntimePickPreparation } from "../src/runtime-inspection/runtime-pick-preparation";
+
+function makeForwardPass(name = "Forward"): ShaderPass {
+  return new ShaderPass(
+    name,
+    [[0, "void main(){gl_Position=vec4(0.0);}"]],
+    [[0, "void main(){gl_FragColor=vec4(1.0);}"]],
+    ShaderLanguage.GLSLES300,
+    { pipelineStage: "Forward" }
+  );
+}
+
+describe("RuntimePickPreparation non-scene shader filtering", () => {
+  const createdShaders: Shader[] = [];
+  const preparations: RuntimePickPreparation[] = [];
+
+  function trackShader(name: string): Shader {
+    const shader = Shader.create(name, [makeForwardPass()])!;
+    createdShaders.push(shader);
+    return shader;
+  }
+
+  function createHarness() {
+    let observer: ((pass: ShaderPass, macros: readonly ShaderMacro[]) => void) | undefined;
+    vi.spyOn(ShaderPass, "observeVariants").mockImplementation((_engine, cb) => {
+      observer = cb;
+      return () => {
+        observer = undefined;
+      };
+    });
+    // Avoid compiling built-in PBR/Unlit/BlinnPhong replacement shaders when ShaderCompiler is not initialized.
+    const findSpy = vi.spyOn(Shader, "find").mockReturnValue(null);
+    const prep = new RuntimePickPreparation({} as never);
+    findSpy.mockRestore();
+    preparations.push(prep);
+
+    const queue = (prep as unknown as { queue: Array<{ pass: ShaderPass; macros: readonly ShaderMacro[] }> }).queue;
+    vi.spyOn(prep as unknown as { start(): void }, "start").mockImplementation(() => {});
+
+    return {
+      prep,
+      queue,
+      emit(pass: ShaderPass, macros: readonly ShaderMacro[] = []) {
+        observer!(pass, macros);
+      }
+    };
+  }
+
+  afterEach(() => {
+    for (const prep of preparations.splice(0)) prep.dispose();
+    for (const shader of createdShaders.splice(0)) {
+      if (!shader.destroyed) shader.destroy(true);
+    }
+    vi.restoreAllMocks();
+  });
+
+  it("skips built-in and host-registered non-scene prefixes while queuing scene shaders", () => {
+    const { prep, queue, emit } = createHarness();
+    prep.ignoreShaderPrefixes(["HostNonScene/"]);
+
+    const sceneShader = trackShader("TestScene/Surface");
+    const enginePost = trackShader("PostProcess/TestBloom");
+    const hostIgnored = trackShader("HostNonScene/Overlay");
+
+    emit(sceneShader.subShaders[0].passes[0]);
+    emit(enginePost.subShaders[0].passes[0]);
+    emit(hostIgnored.subShaders[0].passes[0]);
+
+    expect(queue).toHaveLength(1);
+  });
+
+  it("re-scans after a shader is destroyed and a lazily created ignored shader restores the same registry key count", () => {
+    const { prep, queue, emit } = createHarness();
+    prep.ignoreShaderPrefixes(["SeedWorld/SnapshotSurfacePack"]);
+
+    const transientScene = trackShader("WaterFar/test-transient-uuid");
+    emit(transientScene.subShaders[0].passes[0]);
+    expect(queue).toHaveLength(1);
+
+    const registry = (Shader as unknown as { _shaderMap: Record<string, Shader[]> })._shaderMap;
+    const countBeforeDestroy = Object.keys(registry).length;
+
+    transientScene.destroy(true);
+    expect(Object.keys(registry).length).toBe(countBeforeDestroy - 1);
+
+    const lazyIgnored = trackShader("SeedWorld/SnapshotSurfacePack");
+    expect(Object.keys(registry).length).toBe(countBeforeDestroy);
+
+    emit(lazyIgnored.subShaders[0].passes[0]);
+    expect(queue).toHaveLength(1);
+  });
+
+  it("ignores a newly created namesake shader appended to an existing Shader[] entry", () => {
+    const { prep, queue, emit } = createHarness();
+    prep.ignoreShaderPrefixes(["HostNonScene/"]);
+
+    const first = trackShader("HostNonScene/SharedName");
+    emit(first.subShaders[0].passes[0]);
+    expect(queue).toHaveLength(0);
+
+    const registry = (Shader as unknown as { _shaderMap: Record<string, Shader[]> })._shaderMap;
+    const countBeforeNamesake = Object.keys(registry).length;
+
+    const second = trackShader("HostNonScene/SharedName");
+    expect(Object.keys(registry).length).toBe(countBeforeNamesake);
+    expect(registry["HostNonScene/SharedName"].length).toBeGreaterThanOrEqual(2);
+
+    emit(second.subShaders[0].passes[0]);
+    expect(queue).toHaveLength(0);
+  });
+
+  it("invalidates cached pass classifications when ignoreShaderPrefixes adds a new prefix", () => {
+    const { prep, queue, emit } = createHarness();
+    const custom = trackShader("LateIgnored/HudPass");
+    const pass = custom.subShaders[0].passes[0];
+
+    emit(pass, []);
+    expect(queue).toHaveLength(1);
+
+    prep.ignoreShaderPrefixes(["LateIgnored/"]);
+    emit(pass, [ShaderMacro.getByName("TEST_SECOND_VARIANT")]);
+    expect(queue).toHaveLength(1);
+  });
+
+  it("negative-caches unregistered standalone ShaderPass instances to avoid repeated registry scans", () => {
+    const { queue, emit } = createHarness();
+    const standalonePass = makeForwardPass("StandaloneForward");
+    const valuesSpy = vi.spyOn(Object, "values");
+
+    emit(standalonePass, []);
+    expect(queue).toHaveLength(1);
+    const scansAfterFirst = valuesSpy.mock.calls.length;
+    expect(scansAfterFirst).toBe(1);
+
+    emit(standalonePass, [ShaderMacro.getByName("TEST_STANDALONE_SECOND")]);
+    expect(queue).toHaveLength(2);
+    expect(valuesSpy.mock.calls.length).toBe(scansAfterFirst);
+  });
+});

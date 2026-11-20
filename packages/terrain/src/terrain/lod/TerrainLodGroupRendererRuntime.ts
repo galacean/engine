@@ -94,6 +94,11 @@ export class TerrainLodGroupRendererRuntime {
     this._allRenderers = [...uniqueRenderers];
   }
 
+  /** Initial shadow-casting intent per LOD renderer before disabled LODs temporarily clear `castShadows`. */
+  get initialShadowCasters(): ReadonlyMap<MeshRenderer, boolean> {
+    return this._initialShadowCasters;
+  }
+
   /**
    * Advances this Prefab instance and applies its active LOD renderer sets.
    * @remarks Diagnostic evidence may allocate during a cross-fade; production loops use `updateRenderers`.
