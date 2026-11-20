@@ -1,4 +1,4 @@
-import { waterTerrainContentHash } from "./WaterTerrainIdentity";
+import { rememberWaterTerrainContentHash, waterTerrainContentHash } from "./WaterTerrainIdentity";
 import { interpolateGridTriangle, sampleFloat32GridRaster } from "./GridInterpolation";
 
 export type WaterTerrainHeights = readonly number[] | Float32Array | Float64Array;
@@ -25,6 +25,10 @@ export type WaterTerrainGridDefinition = Omit<WaterTerrainSnapshot, "heights" | 
 
 // Only snapshots and owned typed-array buffers built and validated here can skip subsequent full-grid validation/copies.
 const validatedImmutableTerrains = new WeakSet<object>();
+
+export function isValidatedImmutableWaterTerrainSnapshot(value: unknown): value is WaterTerrainSnapshot {
+  return typeof value === "object" && value !== null && validatedImmutableTerrains.has(value);
+}
 
 function isWaterTerrainHeights(value: unknown): value is WaterTerrainHeights {
   return Array.isArray(value) || value instanceof Float32Array || value instanceof Float64Array;
@@ -448,6 +452,10 @@ export function cropWaterTerrainSnapshot(
       ]
   );
   const cropped = patches.length ? { ...grid, refinements: Object.freeze(patches) } : grid;
+  const contentHash = waterTerrainContentHash(cropped);
   // The owner may change outside this crop. Only this exact bed and its support affect Water.
-  return Object.freeze({ ...cropped, id: `water-terrain:${waterTerrainContentHash(cropped)}`, revision: 0 });
+  const result = Object.freeze({ ...cropped, id: `water-terrain:${contentHash}`, revision: 0 });
+  validatedImmutableTerrains.add(result);
+  rememberWaterTerrainContentHash(result, contentHash);
+  return result;
 }

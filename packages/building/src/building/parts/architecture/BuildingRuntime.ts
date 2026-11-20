@@ -1346,35 +1346,52 @@ export class BuildingRuntime extends Script {
     const onAbort = () => controller.abort(signal?.reason);
     signal?.addEventListener("abort", onAbort, { once: true });
 
+    let cleanedUp = false;
     try {
-      for (const { entry, input } of selected) {
-        signal?.throwIfAborted();
-        if (this.closed || !viewValid(entry)) break;
-        await entry.view.warmupDetailedVisual?.();
-        renderers.push(...entry.view.root.getComponentsIncludeChildren(MeshRenderer, []));
-
-        const detail = await prepareBuildingDetail(entry.cpu, {
-          assets: input.assets!,
-          parent: warmupRoot,
-          camera: this.host.camera,
-          signal: controller.signal,
-          rigidDecorations: rigidBindings(input.bindings)
-        });
-        details.push(detail);
-        renderers.push(...detail.runtime.root.getComponentsIncludeChildren(MeshRenderer, []));
+      const preparedItems = await Promise.all(
+        selected.map(async ({ entry, input }) => {
+          signal?.throwIfAborted();
+          if (cleanedUp || this.closed || !viewValid(entry)) return undefined;
+          await entry.view.warmupDetailedVisual?.();
+          signal?.throwIfAborted();
+          if (cleanedUp || this.closed || !viewValid(entry)) return undefined;
+          const detail = await prepareBuildingDetail(entry.cpu, {
+            assets: input.assets!,
+            parent: warmupRoot,
+            camera: this.host!.camera,
+            signal: controller.signal,
+            rigidDecorations: rigidBindings(input.bindings)
+          });
+          if (cleanedUp) {
+            detail.destroy();
+            return undefined;
+          }
+          details.push(detail);
+          return { entry, detail };
+        })
+      );
+      for (const item of preparedItems) {
+        if (!item) continue;
+        renderers.push(...item.entry.view.root.getComponentsIncludeChildren(MeshRenderer, []));
+        renderers.push(...item.detail.runtime.root.getComponentsIncludeChildren(MeshRenderer, []));
       }
       return {
         renderers,
         extraMaterials,
         decorationPointLightBudget,
         dispose: () => {
+          cleanedUp = true;
+          controller.abort();
           for (const detail of details) detail.destroy();
           details.length = 0;
           if (!warmupRoot.destroyed) warmupRoot.destroy();
         }
       };
     } catch (error) {
+      cleanedUp = true;
+      controller.abort(error);
       for (const detail of details) detail.destroy();
+      details.length = 0;
       if (!warmupRoot.destroyed) warmupRoot.destroy();
       throw error;
     } finally {

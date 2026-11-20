@@ -33,7 +33,7 @@ import type { BuildingPaletteSlot } from "../runtime/BuildingGlobals";
 import type { ConstructionGrounding } from "../runtime/TerrainField";
 import type { ConstructionUnitRole } from "../runtime/ConstructionUnitRender";
 import type { SupportCell } from "../runtime/PlacementSupport";
-import { gridKernelInput } from "./GridUnitKernel";
+import { gridKernelInput } from "./GridUnitKernelInput";
 import type { BrickFeedbackSource } from "../runtime/BrickPackKernel";
 import type { MaterialUnit } from "../runtime/UnitPlacementStyle";
 import {

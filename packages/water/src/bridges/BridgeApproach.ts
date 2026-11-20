@@ -461,8 +461,14 @@ export function bridgeApproachGradingSampler(
   natural?: (p: { x: number; z: number }) => number
 ): (p: { x: number; z: number }) => number | undefined {
   type Triangle = { mesh: BridgeApproachMesh; influence: BridgeApproachMesh; lane: boolean };
-  const cells = new Map<string, Map<number, Triangle[]>>(),
+  const cells = new Map<number, Map<number, Triangle[]>>(),
     cellSize = 1;
+  const CELL_OFFSET = 0x200000;
+  const CELL_STRIDE = 0x400000;
+  let minX = Infinity,
+    maxX = -Infinity,
+    minZ = Infinity,
+    maxZ = -Infinity;
   approaches.forEach(({ approach }, owner) => {
     if (!approach?.grading) return;
     const { positions, indices } = approach.grading;
@@ -479,9 +485,17 @@ export function bridgeApproachGradingSampler(
       };
       const xs = [xyz[0], xyz[3], xyz[6]],
         zs = [xyz[2], xyz[5], xyz[8]];
-      for (let z = Math.floor(Math.min(...zs) / cellSize); z <= Math.floor(Math.max(...zs) / cellSize); z++)
-        for (let x = Math.floor(Math.min(...xs) / cellSize); x <= Math.floor(Math.max(...xs) / cellSize); x++) {
-          const key = `${x}:${z}`,
+      const triMinX = Math.min(...xs),
+        triMaxX = Math.max(...xs),
+        triMinZ = Math.min(...zs),
+        triMaxZ = Math.max(...zs);
+      if (triMinX < minX) minX = triMinX;
+      if (triMaxX > maxX) maxX = triMaxX;
+      if (triMinZ < minZ) minZ = triMinZ;
+      if (triMaxZ > maxZ) maxZ = triMaxZ;
+      for (let z = Math.floor(triMinZ / cellSize); z <= Math.floor(triMaxZ / cellSize); z++)
+        for (let x = Math.floor(triMinX / cellSize); x <= Math.floor(triMaxX / cellSize); x++) {
+          const key = (x + CELL_OFFSET) * CELL_STRIDE + (z + CELL_OFFSET),
             bucket = cells.get(key) ?? new Map<number, Triangle[]>();
           const list = bucket.get(owner) ?? [];
           list.push(triangle);
@@ -490,8 +504,17 @@ export function bridgeApproachGradingSampler(
         }
     }
   });
+  if (!cells.size) return () => undefined;
+  const pad = BRIDGE_APPROACH_BARYCENTRIC_EPSILON + 1e-4;
+  minX -= pad;
+  maxX += pad;
+  minZ -= pad;
+  maxZ += pad;
   return (p) => {
-    const bucket = cells.get(`${Math.floor(p.x / cellSize)}:${Math.floor(p.z / cellSize)}`);
+    if (p.x < minX || p.x > maxX || p.z < minZ || p.z > maxZ) return undefined;
+    const bucket = cells.get(
+      (Math.floor(p.x / cellSize) + CELL_OFFSET) * CELL_STRIDE + (Math.floor(p.z / cellSize) + CELL_OFFSET)
+    );
     if (!bucket) return undefined;
     let lane: number | undefined,
       sum = 0,

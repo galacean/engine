@@ -978,6 +978,11 @@ export async function mountSeedWorldDemo(
       .components.find((component) => component.type === "weather")?.values;
     applyPlanningWeather(environment, initialWeather);
     if (startupTemplate?.rockSource !== "shared") desert?.configureDesertClouds(environment);
+    // Start progressive volumetric-cloud + IBL baking right away while raster/water/buildings
+    // run in workers (camera.enabled is still false so this advances offscreen in 20ms slices
+    // during the ~3s raster wait instead of blocking serially at 94%).
+    let prewarmedIBLTask: Promise<void> | undefined = lighting.waitForEnvironmentIBLIdle();
+    void prewarmedIBLTask.catch(() => {});
     audio = new SeedWorldAudioRuntime(camera, navigation, environment, wind);
     const driver = root.addComponent(SeedDemoFrame);
     let debugReadoutElapsed = 0;
@@ -2493,7 +2498,13 @@ export async function mountSeedWorldDemo(
       sun.shadowBias = 0.5;
       sun.shadowNormalBias = 0.9;
     }
-    await timed("waitForEnvironmentIBLIdle", () => lighting!.waitForEnvironmentIBLIdle());
+    await timed("waitForEnvironmentIBLIdle", async () => {
+      if (prewarmedIBLTask) {
+        await prewarmedIBLTask;
+        prewarmedIBLTask = undefined;
+      }
+      await lighting!.waitForEnvironmentIBLIdle();
+    });
     if (pageUrl.searchParams.get("debug") === "1") {
       const { PlanningSeedObbDebug } = await import("./src/planning/spatial/runtime/PlanningSeedObbDebug.ts");
       obbDebug = new PlanningSeedObbDebug({

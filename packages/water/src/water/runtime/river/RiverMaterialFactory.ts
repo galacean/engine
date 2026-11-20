@@ -104,7 +104,9 @@ export function preloadRiverDefaultTextures(): Promise<void> {
 
 function uploadBase64RiverTexture(texture: Texture2D, data: string): void {
   const decoded = atob(data.trim());
-  const pixels = Uint8Array.from(decoded, (value) => value.charCodeAt(0));
+  const len = decoded.length;
+  const pixels = new Uint8Array(len);
+  for (let i = 0; i < len; i++) pixels[i] = decoded.charCodeAt(i);
   texture.setPixelBuffer(pixels);
   texture.generateMipmaps();
   uploadedRiverTextures.add(texture);

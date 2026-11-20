@@ -48,6 +48,7 @@ export interface PlanningGroundSurface {
 interface GroundSurface extends PlanningGroundSurface {
   vertex(x: number, z: number): number;
   prepareBounds(bounds: Bounds): void;
+  materializeFullGrid?(heights: Float32Array): void;
   raster?: Float32Array;
   published?: PlanningHeightmap;
   materializing: boolean;
@@ -107,6 +108,21 @@ function groundSurface(plan: IslandPlan): GroundSurface {
     materializing: false,
     prepareBounds: (bounds) => {
       ground.prepareBounds?.(bounds);
+    },
+    materializeFullGrid: (out: Float32Array) => {
+      for (let z = 0; z < resolution; z++) {
+        const row = z * resolution;
+        scratchPoint.z = z * spacingZ;
+        for (let x = 0; x < resolution; x++) {
+          scratchPoint.x = x * spacingX;
+          out[row + x] = Math.fround(ground(scratchPoint));
+        }
+      }
+      if (sparse.size > 0) {
+        for (const [index, entry] of sparse) {
+          out[index] = typeof entry === "function" ? entry() : entry;
+        }
+      }
     },
     releaseSparseBackground: () => {
       sparse.clear();
@@ -332,6 +348,9 @@ export function planningHeightmap(plan: IslandPlan): PlanningHeightmap {
           measured.backgroundSamples++;
         }
       }
+    } else if (surface.materializeFullGrid) {
+      surface.materializeFullGrid(heights);
+      measured.backgroundSamples += resolution * resolution;
     } else {
       for (let z = 0; z < resolution; z++) {
         const row = z * resolution;

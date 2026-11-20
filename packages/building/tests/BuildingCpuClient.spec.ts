@@ -197,3 +197,48 @@ it("a synchronous clone failure cannot poison a concurrently queued prepare", as
   (await good).cpu.dispose();
   client.dispose();
 });
+
+it("fans out concurrent prepares across worker slots and routes detail/release back to each owner", async () => {
+  vi.stubGlobal("Worker", WorkerPort);
+  const client = new BuildingCpuClient(3),
+    units = {} as any,
+    signal = new AbortController().signal;
+  const p0 = client.prepare(doc, terrain, units, signal);
+  const p1 = client.prepare(doc, terrain, units, signal);
+  const p2 = client.prepare(doc, terrain, units, signal);
+  const p3 = client.prepare(doc, terrain, units, signal);
+  expect(WorkerPort.instances).toHaveLength(3);
+  const [w0, w1, w2] = WorkerPort.instances;
+  expect(w0.sent).toHaveLength(2);
+  expect(w1.sent).toHaveLength(1);
+  expect(w2.sent).toHaveLength(1);
+  expect(w0.sent[0].units).toBe(units);
+  expect(w0.sent[1]).not.toHaveProperty("units");
+  expect(w1.sent[0].units).toBe(units);
+  expect(w2.sent[0].units).toBe(units);
+  w0.reply(w0.sent[0].id, { tag: 0 });
+  w0.reply(w0.sent[1].id, { tag: 3 });
+  w1.reply(w1.sent[0].id, { tag: 1 });
+  w2.reply(w2.sent[0].id, { tag: 2 });
+  const [r0, r1, r2, r3] = await Promise.all([p0, p1, p2, p3]);
+  // Detail compiles on r2 must route exclusively to w2.
+  const detail = r2.cpu.compile(signal);
+  const detailReq = w2.sent.at(-1);
+  expect(detailReq).toMatchObject({ mode: "detail", token: w2.sent[0].id });
+  w2.reply(detailReq.id, { ok: "slot2" });
+  expect(await detail).toEqual({ ok: "slot2" });
+  // Fault on w1 expires only r1, leaving r0/r2/r3 valid on their own workers.
+  w1.onerror!({ message: "worker 1 crash" });
+  expect(r1.cpu.valid).toBe(false);
+  expect(r0.cpu.valid).toBe(true);
+  expect(r2.cpu.valid).toBe(true);
+  expect(r3.cpu.valid).toBe(true);
+  r0.cpu.dispose();
+  r1.cpu.dispose();
+  r2.cpu.dispose();
+  r3.cpu.dispose();
+  client.dispose();
+  expect(w0.terminated).toBe(true);
+  expect(w1.terminated).toBe(true);
+  expect(w2.terminated).toBe(true);
+});
