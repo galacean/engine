@@ -8,7 +8,10 @@ import { templateAnimalPopulation } from "@galacean/engine-world-planning/spatia
 import { PlanningAnimalSurfaceKind, type PlanningAnimalSurfaceData } from "./PlanningAnimalSurface.ts";
 import type { AnimalInstanceDocument } from "@galacean/engine-animals/gameplay/animal/AnimalInstanceDocument";
 import { PBRMaterial, type Entity, type Material } from "@galacean/engine";
-import { createCuteZooToonMaterial } from "@galacean/engine-animals/gameplay/animal/CuteZooToonMaterial";
+import {
+  CUTE_ZOO_TOON_APPEARANCE,
+  createCuteZooToonMaterial
+} from "@galacean/engine-animals/gameplay/animal/CuteZooToonMaterial";
 import { AnimalAssetLibrary, type ResolvedAnimalAsset } from "@galacean/engine-animals/gameplay/animal/AnimalAssetLibrary";
 import { ConfiguredAnimal } from "@galacean/engine-animals/gameplay/animal/ConfiguredAnimal";
 import { animalCollisionRadius } from "@galacean/engine-animals/gameplay/animal/AnimalAssetCatalog";
@@ -56,6 +59,9 @@ import { planningAnimalFoodPathClear } from "./PlanningAnimalFoodClearance.ts";
 import { planningAnimalCartApproach, type PlanningAnimalCartApproach } from "./PlanningAnimalCartApproach.ts";
 
 const DISTANT_ANIMAL_UPDATE_SECONDS = 5;
+const CUTE_ZOO_PLAIN_APPEARANCE = Object.freeze({ ...CUTE_ZOO_TOON_APPEARANCE, outline: false });
+const OUTLINE_ZERO_DISTANCE = CUTE_ZOO_TOON_APPEARANCE.outlineFadeEnd ?? 0;
+const OUTLINE_OFF_HYSTERESIS_METERS = 0.25;
 
 /** Optional scene interactions; the observer camera remains independent of the physical player. */
 export interface PlanningAnimalInteractions {
@@ -122,15 +128,25 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
   private enabled = false;
   private errors: string[] = [];
   private readonly pending = new Set<Promise<void>>();
-  private readonly toonMaterials = new Map<Material, Material>();
+  private readonly toonMaterials = new Map<Material, { outlined: Material; plain: Material }>();
+  private getToonMaterialPair(source: PBRMaterial): { outlined: Material; plain: Material } {
+    let pair = this.toonMaterials.get(source);
+    if (!pair) {
+      pair = {
+        outlined: createCuteZooToonMaterial(source, CUTE_ZOO_TOON_APPEARANCE),
+        plain: createCuteZooToonMaterial(source, CUTE_ZOO_PLAIN_APPEARANCE)
+      };
+      this.toonMaterials.set(source, pair);
+    }
+    return pair;
+  }
   private readonly resolveMaterial = (source: Material): Material => {
     if (!(source instanceof PBRMaterial)) return source;
-    let material = this.toonMaterials.get(source);
-    if (!material) {
-      material = createCuteZooToonMaterial(source);
-      this.toonMaterials.set(source, material);
-    }
-    return material;
+    return this.getToonMaterialPair(source).outlined;
+  };
+  private readonly resolvePlainMaterial = (source: Material): Material => {
+    if (!(source instanceof PBRMaterial)) return source;
+    return this.getToonMaterialPair(source).plain;
   };
   private spawnTail: Promise<unknown> = Promise.resolve();
   private requestId = 0;
@@ -541,10 +557,15 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       }
       for (const actor of p.active) {
         const position = actor.animal!.position;
-        if (position.x === actor.x && position.z === actor.z) continue;
-        actor.x = position.x;
-        actor.z = position.z;
-        this.admit(p, actor);
+        if (position.x !== actor.x || position.z !== actor.z) {
+          actor.x = position.x;
+          actor.z = position.z;
+          this.admit(p, actor);
+        }
+      }
+      if (OUTLINE_ZERO_DISTANCE > 0 && p.active.size) {
+        const observer = this.observer();
+        for (const actor of p.active) this.updateActorOutline(actor, observer.x, observer.y, observer.z);
       }
     }
     if (p.fireflies) { p.fireflies.population.pack(); p.fireflies.presenter.update(); }
@@ -711,6 +732,10 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
           this.admit(p, actor);
           return;
         }
+        if (OUTLINE_ZERO_DISTANCE > 0) {
+          const observer = this.observer();
+          this.updateActorOutline(actor, observer.x, observer.y, observer.z);
+        }
         actor.animal!.attachResource(asset.resource);
         actor.state = "loaded";
         this.admit(p, actor);
@@ -749,6 +774,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
           random: randomStream(actor.birth.seed),
           tightTurns: !!actor.home,
           resolveMaterial: this.resolveMaterial,
+          resolvePlainMaterial: this.resolvePlainMaterial,
           distantUpdateSeconds: DISTANT_ANIMAL_UPDATE_SECONDS,
           interactionArrivalRadius: () => food.approaching?.appearance === "cart" && food.cart?.entering ? 0.06 : undefined,
           arrivedAtInteraction: destination => !!food.approaching &&
@@ -1263,6 +1289,25 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     catch (error) { population.dispose(); throw error; }
   }
 
+  private updateActorOutline(actor: Actor, obsX: number, obsY: number | undefined, obsZ: number): void {
+    const animal = actor.animal;
+    if (!animal) return;
+    const pos = animal.position;
+    const dx = pos.x - obsX;
+    const dz = pos.z - obsZ;
+    const dy = obsY !== undefined ? pos.y + (actor.footprint.height ?? 0) * 0.5 - obsY : 0;
+    const distSq = dx * dx + dy * dy + dz * dz;
+    // Cutoff = fadeEnd + boundingRadius ensures every vertex on this animal already has
+    // distance(camera_Position, world.xyz) >= fadeEnd (outline width == 0) before dropping the pass.
+    const cutoff = OUTLINE_ZERO_DISTANCE + animal.boundingRadius;
+    if (animal.isOutlineEnabled) {
+      const off = cutoff + OUTLINE_OFF_HYSTERESIS_METERS;
+      if (distSq >= off * off) animal.setOutlineEnabled(false);
+    } else if (distSq < cutoff * cutoff) {
+      animal.setOutlineEnabled(true);
+    }
+  }
+
   private releasePopulation(): void {
     this.previousPlayer = undefined;
     const p = this.population;
@@ -1276,7 +1321,10 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     this.enabled = false;
     this.releasePopulation();
     await Promise.allSettled([this.spawnTail, ...this.pending]);
-    for (const material of this.toonMaterials.values()) material.destroy();
+    for (const pair of this.toonMaterials.values()) {
+      pair.outlined.destroy();
+      pair.plain.destroy();
+    }
     this.toonMaterials.clear();
   }
 }

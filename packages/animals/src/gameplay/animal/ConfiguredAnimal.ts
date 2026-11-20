@@ -161,6 +161,8 @@ export interface ConfiguredAnimalOptions {
   cancelInteraction?: (query: AnimalTargetQuery) => void;
   /** Borrow a host-owned material; the host releases it after all animal instances. */
   resolveMaterial?: (source: Material) => Material;
+  /** Optional non-outlined companion material for distant instances once outline fades to zero. */
+  resolvePlainMaterial?: (source: Material) => Material;
 }
 
 /** One destination owns its admission, world revalidation and completion across gait clips. */
@@ -215,6 +217,9 @@ export class ConfiguredAnimal implements AnimalAgent {
   private speedMultiplier = 1;
   private readonly renderers: MeshRenderer[] = [];
   private readonly rendererEnabled: boolean[] = [];
+  private readonly materialVariants: { renderer: MeshRenderer; index: number; outlined: Material; plain: Material }[] =
+    [];
+  private outlineEnabled = true;
   private shadowsEnabled = false;
   private rendered = true;
   scale: number;
@@ -593,22 +598,31 @@ export class ConfiguredAnimal implements AnimalAgent {
           renderer.skin = skin;
         }
         renderer.castShadows = renderer.receiveShadows = this.shadowsEnabled;
-        renderer.getMaterials().forEach((material, index) => {
-          if (!material) return;
-          const name = material.name;
+        renderer.getMaterials().forEach((sourceMaterial, index) => {
+          if (!sourceMaterial) return;
+          const name = sourceMaterial.name;
           const correction = config.materials?.find((entry) => entry.name === name);
-          material = this.options.resolveMaterial?.(material) ?? material;
-          renderer.setMaterial(index, material);
-          if (!correction) return;
-          const owned = material.clone() as BaseMaterial;
-          this.ownedMaterials.add(owned);
-          if (correction.opaque) {
-            owned.isTransparent = false;
-            owned.alphaCutoff = 0;
+          let outlined = this.options.resolveMaterial?.(sourceMaterial) ?? sourceMaterial;
+          let plain = this.options.resolvePlainMaterial?.(sourceMaterial) ?? outlined;
+          if (correction) {
+            const applyCorrection = (base: Material): Material => {
+              const owned = base.clone() as BaseMaterial;
+              this.ownedMaterials.add(owned);
+              if (correction.opaque) {
+                owned.isTransparent = false;
+                owned.alphaCutoff = 0;
+              }
+              if (correction.doubleSided !== undefined)
+                owned.renderFace = correction.doubleSided ? RenderFace.Double : RenderFace.Front;
+              return owned;
+            };
+            outlined = applyCorrection(outlined);
+            plain = plain === outlined ? outlined : applyCorrection(plain);
           }
-          if (correction.doubleSided !== undefined)
-            owned.renderFace = correction.doubleSided ? RenderFace.Double : RenderFace.Front;
-          renderer.setMaterial(index, owned);
+          if (plain !== outlined) {
+            this.materialVariants.push({ renderer, index, outlined, plain });
+          }
+          renderer.setMaterial(index, this.outlineEnabled ? outlined : plain);
         });
       }
       if (config.rootMotionNode) {
@@ -623,7 +637,12 @@ export class ConfiguredAnimal implements AnimalAgent {
     } catch (error) {
       this.model.destroy();
       this.controller.destroy();
-      this.nativeStates.length = this.renderers.length = this.rendererEnabled.length = this.poseTransforms.length = 0;
+      this.nativeStates.length =
+        this.renderers.length =
+        this.rendererEnabled.length =
+        this.materialVariants.length =
+        this.poseTransforms.length =
+          0;
       this.nativeClipIndices.clear();
       this.animator = undefined!;
       this.controller = undefined!;
@@ -2105,6 +2124,28 @@ export class ConfiguredAnimal implements AnimalAgent {
     this.setStreamingState(visible, visible);
   }
 
+  /** Bounding sphere radius in world metres for conservative per-vertex distance checks. */
+  get boundingRadius(): number {
+    const b = this.config.bounds;
+    return 0.5 * Math.hypot(b.max[0] - b.min[0], b.max[1] - b.min[1], b.max[2] - b.min[2]) * this.scale;
+  }
+
+  /** Whether this instance currently uses the outlined material variant. */
+  get isOutlineEnabled(): boolean {
+    return this.outlineEnabled;
+  }
+
+  /** Switch between outlined and non-outlined materials without touching geometry or animation. */
+  setOutlineEnabled(enabled: boolean): void {
+    if (this.disposed || this.outlineEnabled === enabled) return;
+    this.outlineEnabled = enabled;
+    const variants = this.materialVariants;
+    for (let i = 0, len = variants.length; i < len; i++) {
+      const slot = variants[i];
+      slot.renderer.setMaterial(slot.index, enabled ? slot.outlined : slot.plain);
+    }
+  }
+
   /**
    * Select presentation and motion precision. Hidden autonomy keeps the same tasks and clock.
    * @param visible Whether to render; rendering requires full simulation.
@@ -2713,6 +2754,7 @@ export class ConfiguredAnimal implements AnimalAgent {
     this.controller?.destroy();
     for (const material of this.ownedMaterials) material.destroy();
     this.ownedMaterials.clear();
+    this.materialVariants.length = 0;
   }
 
   /** Current conservative footprint and traffic state for inspection. */

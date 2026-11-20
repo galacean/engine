@@ -11,6 +11,10 @@
       #include "ShaderLibrary/Skin/BlendShape.glsl"
       float animal_OutlineWidth;
       vec3 animal_OutlineColor;
+      #ifdef ANIMAL_OUTLINE_FADE
+        float animal_OutlineFadeStart;
+        float animal_OutlineFadeEnd;
+      #endif
       struct OutlineVaryings {
         #if SCENE_FOG_MODE != 0
           vec3 positionVS;
@@ -44,7 +48,12 @@
         #endif
         vec4 world = renderer_ModelMat * position;
         #ifdef RENDERER_HAS_NORMAL
-          world.xyz += normalize(mat3(renderer_NormalMat) * normal) * animal_OutlineWidth;
+          float outlineWidth = animal_OutlineWidth;
+          #ifdef ANIMAL_OUTLINE_FADE
+            float cameraDistance = distance(camera_Position, world.xyz);
+            outlineWidth *= 1.0 - smoothstep(animal_OutlineFadeStart, animal_OutlineFadeEnd, cameraDistance);
+          #endif
+          world.xyz += normalize(mat3(renderer_NormalMat) * normal) * outlineWidth;
         #endif
         gl_Position = camera_VPMat * world;
         #if SCENE_FOG_MODE != 0
