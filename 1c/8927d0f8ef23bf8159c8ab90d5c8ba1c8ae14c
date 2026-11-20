@@ -1,0 +1,14 @@
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  h_79b10db07e6052 35,361,398-401,406-407,411,415-416,422,429-430,828-839,850-851,884,886,891,897-908,1032,1039-1040,1046,1049-1064,1075-1076,1149-1156,1162-1163,1166-1168,1204,1207-1209
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1c8927d0f8ef23bf8159c8ab90d5c8ba1c8ae14c",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

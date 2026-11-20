@@ -1,0 +1,40 @@
+packages/loader/src/prefab/PrefabResource.ts
+  s_7c472755904c4b::t_89efd98bd2bbb2 47
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  s_7c472755904c4b::t_4e616535fbf7f6 11,22,32-33,42,48,56-57,60-68,73,80-90,95-100,134-137,139,141,143,153,156-172,205-216,218,222,226,230,234,238
+  s_7c472755904c4b::t_af66c394a955e8 154-155
+tests/src/loader/HierarchyDeserialization.test.ts
+  s_7c472755904c4b::t_89efd98bd2bbb2 1-10,99-101,105
+  s_7c472755904c4b::t_af66c394a955e8 11-98,102-104,106-107
+packages/loader/src/prefab/PrefabParser.ts
+  s_7c472755904c4b::t_4e616535fbf7f6 26-28,31
+  s_7c472755904c4b::t_89efd98bd2bbb2 12-15
+packages/loader/src/resource-deserialize/resources/scene/SceneParser.ts
+  s_7c472755904c4b::t_af66c394a955e8 101
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  s_7c472755904c4b::t_89efd98bd2bbb2 52-53
+  s_7c472755904c4b::t_4e616535fbf7f6 66-67,72-73,80,144
+packages/loader/src/SceneLoader.ts
+  s_7c472755904c4b::t_89efd98bd2bbb2 30,35,164,167-170
+  s_7c472755904c4b::t_f105d893b2d52d 171
+packages/core/src/asset/Loader.ts
+  s_7c472755904c4b::t_4e616535fbf7f6 25,37
+packages/loader/src/PrefabLoader.ts
+  s_7c472755904c4b::t_8cb9ef59b8924f 18-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "949c24f8c5d940078883a4328e1cb3cae2889bae",
+  "prompts": {},
+  "sessions": {
+    "s_7c472755904c4b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f6ed-2e64-7033-8540-618486ed1536",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

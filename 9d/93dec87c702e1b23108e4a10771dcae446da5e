@@ -1,0 +1,46 @@
+.agents/skills/seed-world-flash-publish/SKILL.md
+  h_ddbf152d31b140 31,34-36,39
+packages/runtime-editor/src/runtime-editor/scripts/RuntimeScriptCompiler.worker.ts
+  h_ddbf152d31b140 14-27,56
+packages/water/src/water/runtime/river/RiverMaterialFactory.ts
+  h_ddbf152d31b140 78-80,110-140,149,151-158,168-169,172,177-178
+world/demos/seed-world/FLASH_APP_PUBLISH.md
+  h_ddbf152d31b140 36-45
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 80-81,625-627,2626-2644
+world/demos/seed-world/SeedWorldProject.ts
+  h_ddbf152d31b140 30,71-73
+world/demos/seed-world/flash-app-cdn-manifest.json
+  h_ddbf152d31b140 9-14,63-68,87-92,213-218,639-644,1065-1070,1437-1442,1569-1574
+world/demos/seed-world/src/SeedWorldBootTrace.ts
+  h_ddbf152d31b140 158-160,331-344,350
+world/demos/seed-world/src/SeedWorldProjectTextBundle.ts
+  h_ddbf152d31b140 23-26,36,43-52
+world/demos/seed-world/src/SeedWorldStartupShaderWarmup.ts
+  h_ddbf152d31b140 1-166
+world/scripts/build-seed-world-flash-app.mjs
+  h_ddbf152d31b140 116-123,132,138-144,148-153
+world/scripts/build-seed-world-flash-source.mjs
+  h_ddbf152d31b140 71,80-82
+world/scripts/set-flash-app-cdn-secret.sh
+  h_ddbf152d31b140 28
+world/scripts/sync-flash-app-cdn-assets.py
+  h_ddbf152d31b140 74-80,110,246-252,255
+world/tests/seed-world/SeedWorldBootTrace.spec.ts
+  h_ddbf152d31b140 1-34
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  h_ddbf152d31b140 4,13-14,23-30,32-67,70-74,76-85,87,92,94,99-102,115-125
+world/vite.config.mjs
+  h_ddbf152d31b140 119-133,164-165,171-172,174
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9d93dec87c702e1b23108e4a10771dcae446da5e",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

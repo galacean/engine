@@ -1,0 +1,14 @@
+packages/physics-physx/src/PhysXPhysics.ts
+  h_dd004f51a3e5ec 67,70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4fee2ab18f0d002ba33328961a40678019b299c5",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
