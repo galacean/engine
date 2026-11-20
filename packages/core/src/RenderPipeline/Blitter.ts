@@ -98,6 +98,7 @@ export class Blitter {
       viewport.y === 0 &&
       viewport.z === 1 &&
       viewport.w === 1 &&
+      Blitter._isBuiltinFullOverwriteShader(blitMaterial.shader) &&
       !blendState.targetBlendState.enabled &&
       blendState.targetBlendState.colorWriteMask === ColorWriteMask.All &&
       !depthState.enabled &&
@@ -109,5 +110,18 @@ export class Blitter {
 
     rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program);
     rendererShaderData.setTexture(Blitter._blitTextureProperty, null);
+  }
+
+  private static _isBuiltinFullOverwriteShader(shader: Shader): boolean {
+    const builtins = Engine._builtinShaders;
+    return (
+      shader === builtins.blit ||
+      shader === builtins.blitScreen ||
+      shader === builtins.bloom ||
+      shader === builtins.uber ||
+      shader === builtins.finalSRGB ||
+      shader === builtins.finalAntiAliasing ||
+      shader === builtins.scalableAmbientOcclusion
+    );
   }
 }

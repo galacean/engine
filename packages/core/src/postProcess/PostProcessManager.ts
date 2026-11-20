@@ -174,8 +174,8 @@ export class PostProcessManager {
     this._srcRenderTarget = srcRenderTarget;
     this._destRenderTarget = destRenderTarget;
 
-    // Should blit to resolve the MSAA
-    srcRenderTarget._blitRenderTarget();
+    // Resolve MSAA and discard transient MSAA color samples on the engine-owned internalColorTarget
+    srcRenderTarget._blitRenderTarget(true);
 
     const activePasses = engine._getActivePostProcessPasses();
     this._remainActivePassCount = activePasses.length;

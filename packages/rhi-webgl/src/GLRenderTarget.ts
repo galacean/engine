@@ -13,6 +13,7 @@ import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
  * The render target in WebGL platform is used for off-screen rendering.
  */
 export class GLRenderTarget implements IPlatformRenderTarget {
+  private _rhi: WebGLGraphicDevice;
   private _gl: WebGL2RenderingContext;
   private _target: RenderTarget;
   private _frameBuffer: WebGLFramebuffer | null;
@@ -30,6 +31,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
    * Create render target in WebGL platform.
    */
   constructor(rhi: WebGLGraphicDevice, target: RenderTarget) {
+    this._rhi = rhi;
     this._gl = rhi.gl;
     this._target = target;
     this._antiAliasing = Math.min(target.antiAliasing, rhi.capability.maxAntiAliasing);
@@ -137,8 +139,9 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
   /**
    * Blit FBO.
+   * @param discardMSAA - Whether to invalidate the MSAA color renderbuffers after resolving
    */
-  blitRenderTarget(): void {
+  blitRenderTarget(discardMSAA = false): void {
     if (!this._MSAAFrameBuffer) return;
 
     const gl = this._gl;
@@ -158,6 +161,10 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, mask, gl.NEAREST);
 
       this._blitDrawBuffers![textureIndex] = gl.NONE;
+    }
+
+    if (discardMSAA && this._oriDrawBuffers.length > 0 && this._rhi._supportsInvalidateFramebuffer) {
+      gl.invalidateFramebuffer(gl.READ_FRAMEBUFFER, this._oriDrawBuffers);
     }
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
