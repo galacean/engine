@@ -364,7 +364,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
         const baseBlock = wave0[wave0Index].blocks[0];
         const firstOverride = blocks[0];
-        if (!baseBlock.calls?.length && baseBlock.props && firstOverride.props) {
+        if (baseBlock.props && firstOverride.props) {
           const rules = getDeferredRules(baseBlock.props, firstOverride.props);
           if (rules) {
             const baseProps = baseBlock.props;
@@ -389,8 +389,11 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
                 }
               }
               blocks[0] = HierarchyParser._mergeMutationBlocks({ props: staticDeferred }, firstOverride);
-              if (hasRemaining) {
-                wave0[wave0Index].blocks[0] = { props: remainingProps };
+              if (hasRemaining || baseBlock.calls?.length) {
+                wave0[wave0Index].blocks[0] = {
+                  ...(hasRemaining ? { props: remainingProps } : {}),
+                  ...(baseBlock.calls?.length ? { calls: baseBlock.calls } : {})
+                };
               } else {
                 wave0[wave0Index].blocks.length = 0;
                 hasEmptyBase = true;
@@ -486,12 +489,38 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       return chain;
     };
 
+    const noop = (): void => {};
     type PhasedQueue = MutationWaveItem & {
       phases: number[];
       cursor: number;
+      tail: Promise<unknown> | null;
     };
 
     const runPhasedGroup = (queues: PhasedQueue[]): Promise<unknown> => {
+      const allDone: Promise<unknown>[] = [];
+      const launchBlock = (
+        q: PhasedQueue,
+        idx: number
+      ): { propsDone: Promise<unknown>; blockDone: Promise<unknown> } => {
+        const target = q.target;
+        const block = q.blocks[idx];
+        const deferCheck = idx === 0 ? q.deferCheck : undefined;
+        const preResolvedProps = idx === 0 ? q.firstBlockPreResolved : undefined;
+        const runProps = (): Promise<unknown> =>
+          target.destroyed
+            ? Promise.resolve()
+            : reflectionParser.parseProps(target, block.props, deferCheck, preResolvedProps);
+        const propsDone = q.tail ? q.tail.then(runProps) : runProps();
+        const blockDone = block.calls?.length
+          ? propsDone.then(() => (target.destroyed ? undefined : reflectionParser.parseCalls(target, block.calls)))
+          : propsDone;
+        q.tail = blockDone;
+        // Mark handled so an early barrier failure never triggers an unhandled rejection before allDone settles.
+        blockDone.catch(noop);
+        allDone.push(blockDone);
+        return { propsDone, blockDone };
+      };
+
       const runNextStep = (): Promise<unknown> => {
         let minPhase = 2;
         for (let i = 0, n = queues.length; i < n; i++) {
@@ -502,10 +531,10 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
           }
         }
         if (minPhase === 2) {
-          return Promise.resolve();
+          return Promise.all(allDone);
         }
 
-        const promises: Promise<unknown>[] = [];
+        const barrier: Promise<unknown>[] = [];
         let pickedUnblocking = false;
         if (minPhase > -1) {
           for (let i = 0, n = queues.length; i < n; i++) {
@@ -520,15 +549,8 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
             }
             if (hasFutureRelax) {
               pickedUnblocking = true;
-              const idx = q.cursor++;
-              promises.push(
-                applyBlock(
-                  q.target,
-                  q.blocks[idx],
-                  idx === 0 ? q.deferCheck : undefined,
-                  idx === 0 ? q.firstBlockPreResolved : undefined
-                )
-              );
+              const { blockDone } = launchBlock(q, q.cursor++);
+              barrier.push(blockDone);
               // Serialize mutually-restricting physics blocks that immediately relax within the same
               // (ownerRigidbody, owned MeshColliders) group so paired constraints never collide.
               if (minPhase > 0) {
@@ -542,20 +564,17 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
           for (let i = 0, n = queues.length; i < n; i++) {
             const q = queues[i];
             if (q.cursor < q.blocks.length && q.phases[q.cursor] === minPhase) {
-              const idx = q.cursor++;
-              promises.push(
-                applyBlock(
-                  q.target,
-                  q.blocks[idx],
-                  idx === 0 ? q.deferCheck : undefined,
-                  idx === 0 ? q.firstBlockPreResolved : undefined
-                )
-              );
+              const { propsDone } = launchBlock(q, q.cursor++);
+              // Relaxing props (-1) satisfy the cross-target physics barrier as soon as props finish;
+              // neutral blocks without a future relax (0) never gate peer targets.
+              if (minPhase !== 0) {
+                barrier.push(propsDone);
+              }
             }
           }
         }
 
-        return Promise.all(promises).then(runNextStep);
+        return barrier.length > 0 ? Promise.all(barrier).then(runNextStep) : runNextStep();
       };
 
       return runNextStep();
@@ -605,7 +624,8 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
             deferCheck: item.deferCheck,
             firstBlockPreResolved: item.firstBlockPreResolved,
             phases: phases!,
-            cursor: 0
+            cursor: 0,
+            tail: null
           });
           continue;
         }

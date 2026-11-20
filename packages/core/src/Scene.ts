@@ -28,6 +28,7 @@ export class Scene extends EngineObject {
   private static _fogColorProperty = ShaderProperty.getByName("scene_FogColor");
   private static _fogParamsProperty = ShaderProperty.getByName("scene_FogParams");
   private static _prefilterdDFGProperty = ShaderProperty.getByName("scene_PrefilteredDFG");
+  private static _activeRootsPool: Entity[][] = [];
 
   /** Scene name. */
   name: string;
@@ -76,6 +77,10 @@ export class Scene extends EngineObject {
   _rootEntities: Entity[] = [];
   /** @internal Destination scene while `SceneManager.mergeScenes` is transferring roots from this scene. */
   _mergingInto: Scene | null = null;
+  /** @internal Number of active `Entity._setActiveComponents` batches currently executing against this scene. */
+  _activeProcessCount: number = 0;
+
+  private _pendingPhysicsDestroy: boolean = false;
 
   private _background: Background = new Background(this._engine);
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
@@ -525,19 +530,55 @@ export class Scene extends EngineObject {
   _processActive(active: boolean): void {
     this._isActiveInEngine = active;
     const rootEntities = this._rootEntities;
-    for (let i = rootEntities.length - 1; i >= 0; i--) {
-      if (i >= rootEntities.length) {
-        i = rootEntities.length;
-        continue;
-      }
-      const entity = rootEntities[i];
-      if (entity._isActive && entity._isActiveInHierarchy !== active) {
-        if (active) {
-          entity._processActive(ActiveChangeFlag.Hierarchy);
-        } else {
-          entity._processInActive(ActiveChangeFlag.Hierarchy);
+    const count = rootEntities.length;
+    if (count === 0) return;
+
+    const snapshot = Scene._activeRootsPool.pop() ?? [];
+    for (let i = 0; i < count; i++) {
+      snapshot[i] = rootEntities[i];
+    }
+    snapshot.length = count;
+
+    let firstError: unknown;
+    let hasError = false;
+    try {
+      for (let i = count - 1; i >= 0; i--) {
+        if (this._isActiveInEngine !== active) break;
+        const entity = snapshot[i];
+        if (entity._scene !== this || !entity._isRoot) continue;
+        if (entity._isActive && entity._isActiveInHierarchy !== active) {
+          try {
+            if (active) {
+              entity._processActive(ActiveChangeFlag.Hierarchy);
+            } else {
+              entity._processInActive(ActiveChangeFlag.Hierarchy);
+            }
+          } catch (error) {
+            if (!hasError) {
+              firstError = error;
+              hasError = true;
+            }
+          }
         }
       }
+    } finally {
+      snapshot.length = 0;
+      Scene._activeRootsPool.push(snapshot);
+    }
+
+    if (hasError) {
+      throw firstError;
+    }
+  }
+
+  /**
+   * @internal
+   * Release deferred native physics resources once all active component batches on this scene have drained.
+   */
+  _flushPendingPhysicsDestroy(): void {
+    if (this._pendingPhysicsDestroy) {
+      this._pendingPhysicsDestroy = false;
+      this.physics._destroy();
     }
   }
 
@@ -624,7 +665,11 @@ export class Scene extends EngineObject {
       allCreatedScenes.splice(sceneIndex, 1);
     }
 
-    runStep(() => this.physics._destroy());
+    if (this._activeProcessCount > 0) {
+      this._pendingPhysicsDestroy = true;
+    } else {
+      runStep(() => this.physics._destroy());
+    }
 
     if (hasError) {
       throw firstError;

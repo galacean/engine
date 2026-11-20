@@ -24,7 +24,9 @@ export class Entity extends EngineObject {
   static _nextHierarchyStamp = 0;
 
   private static _deactivatingEntitiesPool: Entity[][] = [];
+  private static _deactivatingSubtreeCountsPool: number[][] = [];
   private static _deferredSceneClearEntities: Entity[] = [];
+  private static _deactivationReparentVersion = 0;
 
   private static _addDeactivatingSubtreeWeight(entity: Entity | null, delta: number): void {
     for (let current = entity; current != null; current = current._parent) {
@@ -824,6 +826,7 @@ export class Entity extends EngineObject {
       this._parent = null;
       const weight = this._deactivatingCount + this._deactivatingSubtreeCount;
       if (weight > 0) {
+        Entity._deactivationReparentVersion++;
         Entity._addDeactivatingSubtreeWeight(oldParent, -weight);
       }
     }
@@ -852,11 +855,26 @@ export class Entity extends EngineObject {
     const activeChangedComponents = (this._activeChangedComponents =
       this._scene!._componentsManager.getActiveChangedTempList());
     const deactivatingEntities = Entity._deactivatingEntitiesPool.pop() ?? [];
-    const totalCount = this._setInActiveInHierarchy(activeChangedComponents, deactivatingEntities, activeChangeFlag);
-    if (this._parent) {
-      Entity._addDeactivatingSubtreeWeight(this._parent, totalCount);
+    const deactivatingSubtreeCounts = Entity._deactivatingSubtreeCountsPool.pop() ?? [];
+    const startParent = this._parent;
+    const totalCount = this._setInActiveInHierarchy(
+      activeChangedComponents,
+      deactivatingEntities,
+      deactivatingSubtreeCounts,
+      activeChangeFlag
+    );
+    if (startParent) {
+      Entity._addDeactivatingSubtreeWeight(startParent, totalCount);
     }
-    this._setActiveComponents(false, activeChangeFlag, deactivatingEntities);
+    this._setActiveComponents(
+      false,
+      activeChangeFlag,
+      deactivatingEntities,
+      deactivatingSubtreeCounts,
+      startParent,
+      totalCount,
+      Entity._deactivationReparentVersion
+    );
   }
 
   /**
@@ -1027,6 +1045,7 @@ export class Entity extends EngineObject {
 
           this._parent = parent;
           if (weight > 0) {
+            Entity._deactivationReparentVersion++;
             Entity._addDeactivatingSubtreeWeight(parent, weight);
           }
           const targetScene = parent._scene;
@@ -1103,11 +1122,16 @@ export class Entity extends EngineObject {
   private _setActiveComponents(
     isActive: boolean,
     activeChangeFlag: ActiveChangeFlag,
-    deactivatingEntities?: Entity[]
+    deactivatingEntities?: Entity[],
+    deactivatingSubtreeCounts?: number[],
+    startParent?: Entity | null,
+    totalCount = 0,
+    startReparentVersion = 0
   ): void {
     const activeChangedComponents = this._activeChangedComponents!;
     const ownerScene = this._scene!;
     const componentsManager = ownerScene._componentsManager;
+    ownerScene._activeProcessCount++;
     let firstError: unknown;
     let hasError = false;
     try {
@@ -1129,15 +1153,28 @@ export class Entity extends EngineObject {
       componentsManager.putActiveChangedTempList(activeChangedComponents);
       if (deactivatingEntities) {
         const count = deactivatingEntities.length;
-        for (let i = 0; i < count; i++) {
-          const entity = deactivatingEntities[i];
-          entity._deactivatingCount--;
-          if (entity._parent) {
-            Entity._addDeactivatingSubtreeWeight(entity._parent, -1);
+        if (Entity._deactivationReparentVersion === startReparentVersion) {
+          for (let i = 0; i < count; i++) {
+            const entity = deactivatingEntities[i];
+            entity._deactivatingCount--;
+            entity._deactivatingSubtreeCount -= deactivatingSubtreeCounts![i];
+          }
+          if (startParent) {
+            Entity._addDeactivatingSubtreeWeight(startParent, -totalCount);
+          }
+        } else {
+          for (let i = 0; i < count; i++) {
+            const entity = deactivatingEntities[i];
+            entity._deactivatingCount--;
+            if (entity._parent) {
+              Entity._addDeactivatingSubtreeWeight(entity._parent, -1);
+            }
           }
         }
         deactivatingEntities.length = 0;
         Entity._deactivatingEntitiesPool.push(deactivatingEntities);
+        deactivatingSubtreeCounts!.length = 0;
+        Entity._deactivatingSubtreeCountsPool.push(deactivatingSubtreeCounts!);
 
         const deferred = Entity._deferredSceneClearEntities;
         for (let i = deferred.length - 1; i >= 0; i--) {
@@ -1148,6 +1185,16 @@ export class Entity extends EngineObject {
             if (!entity._isRoot && !entity._parent && entity._scene) {
               Entity._traverseSetOwnerScene(entity, null);
             }
+          }
+        }
+      }
+      if (--ownerScene._activeProcessCount === 0) {
+        try {
+          ownerScene._flushPendingPhysicsDestroy();
+        } catch (error) {
+          if (!hasError) {
+            firstError = error;
+            hasError = true;
           }
         }
       }
@@ -1179,6 +1226,7 @@ export class Entity extends EngineObject {
   private _setInActiveInHierarchy(
     activeChangedComponents: Component[],
     deactivatingEntities: Entity[],
+    deactivatingSubtreeCounts: number[],
     activeChangeFlag: ActiveChangeFlag
   ): number {
     // Children-first, reverse traversal for safe removeChild during callbacks
@@ -1190,6 +1238,7 @@ export class Entity extends EngineObject {
         descendantCount += child._setInActiveInHierarchy(
           activeChangedComponents,
           deactivatingEntities,
+          deactivatingSubtreeCounts,
           activeChangeFlag
         );
       }
@@ -1197,6 +1246,7 @@ export class Entity extends EngineObject {
     this._deactivatingCount++;
     this._deactivatingSubtreeCount += descendantCount;
     deactivatingEntities.push(this);
+    deactivatingSubtreeCounts.push(descendantCount);
     activeChangeFlag & ActiveChangeFlag.Hierarchy && (this._isActiveInHierarchy = false);
     activeChangeFlag & ActiveChangeFlag.Scene && (this._isActiveInScene = false);
     const components = this._components;

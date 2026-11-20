@@ -2,6 +2,7 @@ import { IMeshColliderShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
+import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { Collider } from "./Collider";
 import { MeshColliderShapeCookingFlag } from "./enums/MeshColliderShapeCookingFlag";
@@ -13,8 +14,25 @@ type MeshData = {
 
 function requiresConvexMesh(value: unknown): boolean {
   if (!(value instanceof ModelMesh)) return false;
-  const indices = value.getIndices();
-  return !indices || indices.length === 0;
+  if (!value.accessible) return true;
+  try {
+    const indices = value.getIndices();
+    if (!indices || indices.length < 3 || indices.length % 3 !== 0) {
+      return true;
+    }
+    const subMeshes = value.subMeshes;
+    if (subMeshes.length > 0) {
+      for (let i = 0, n = subMeshes.length; i < n; i++) {
+        if (subMeshes[i].topology === MeshTopology.Triangles) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
+  } catch {
+    return true;
+  }
 }
 
 /**
@@ -33,6 +51,11 @@ export class MeshCollider extends Collider {
 
   /** @internal */
   static _deserializePropOrder(props: Record<string, unknown>): readonly string[] {
+    if (props.convex === false) {
+      return props.mesh !== undefined
+        ? ["isTrigger", "cookingFlags", "mesh", "convex"]
+        : ["isTrigger", "convex", "cookingFlags"];
+    }
     return props.isTrigger === false ? ["isTrigger", "convex", "cookingFlags"] : ["convex", "cookingFlags"];
   }
 

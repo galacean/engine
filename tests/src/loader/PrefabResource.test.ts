@@ -1721,6 +1721,114 @@ describe("Cross-prefab $component ref", () => {
         }
       }
 
+      // 7. Same-group Rigidbody / MeshCollider relaxing props satisfy the phase barrier without waiting on async calls (both directions)
+      for (const mode of ["body-waits-mesh", "mesh-waits-body-noop", "mesh-waits-body-change"] as const) {
+        let unblock!: () => void;
+        const gate = new Promise<void>((r) => (unblock = r));
+        const seen: string[] = [];
+        const bodyWaits = mode === "body-waits-mesh";
+        class CoupledBody extends Rigidbody {
+          async boot(): Promise<void> {
+            seen.push(`body:${this.isKinematic}`);
+            await gate;
+            seen.push("body-done");
+          }
+          signal(): void {
+            seen.push(`body:${this.isKinematic}`);
+            unblock();
+          }
+        }
+        class CoupledMesh extends MeshCollider {
+          async waitForBody(): Promise<void> {
+            seen.push(`mesh-wait:${this.convex}`);
+            await gate;
+            seen.push("mesh-done");
+          }
+          notify(): void {
+            seen.push(`mesh:${this.convex}`);
+            unblock();
+          }
+        }
+        const bodyType = `R10CoupledBody_${mode}`;
+        const meshType = `R10CoupledMesh_${mode}`;
+        Loader.registerClass(bodyType, CoupledBody);
+        Loader.registerClass(meshType, CoupledMesh);
+
+        const baseKey = `r10-coupled-base-${mode}.prefab`;
+        const coupledBase = await PrefabParser.parse(engine, baseKey, {
+          version: "2.0",
+          refs: [],
+          entities: [
+            { name: "body", components: [0], children: [1] },
+            { name: "mesh", components: [1] }
+          ],
+          components: [
+            { type: bodyType, props: { isKinematic: !bodyWaits } },
+            { type: meshType, props: { convex: mode !== "mesh-waits-body-change" } }
+          ],
+          root: 0
+        });
+        // @ts-ignore
+        engine.resourceManager._objectPool[baseKey] = coupledBase;
+        try {
+          const componentProps = bodyWaits
+            ? [
+                {
+                  path: [],
+                  selector: { type: bodyType, index: 0 },
+                  props: { isKinematic: true },
+                  calls: [{ method: "boot" }]
+                },
+                {
+                  path: [0],
+                  selector: { type: meshType, index: 0 },
+                  props: { convex: false },
+                  calls: [{ method: "notify" }]
+                }
+              ]
+            : [
+                {
+                  path: [],
+                  selector: { type: bodyType, index: 0 },
+                  props: { isKinematic: false },
+                  calls: [{ method: "signal" }]
+                },
+                {
+                  path: [0],
+                  selector: { type: meshType, index: 0 },
+                  props: { convex: true },
+                  calls: [{ method: "waitForBody" }]
+                }
+              ];
+          const coupledOuter = await PrefabParser.parse(engine, `r10-coupled-outer-${mode}.prefab`, {
+            version: "2.0",
+            refs: [{ url: baseKey }],
+            entities: [{ instance: { asset: 0, overrides: { componentProps } } }],
+            components: [],
+            root: 0
+          });
+          const inst = coupledOuter.instantiate();
+          try {
+            const body = inst.getComponent(CoupledBody)!;
+            const mesh = inst.children[0].getComponent(CoupledMesh)!;
+            if (bodyWaits) {
+              expect(seen).toEqual(["body:true", "mesh:false", "body-done"]);
+              expect(body.isKinematic).toBe(true);
+              expect(mesh.convex).toBe(false);
+            } else {
+              expect(seen).toEqual(["mesh-wait:true", "body:false", "mesh-done"]);
+              expect(body.isKinematic).toBe(false);
+              expect(mesh.convex).toBe(true);
+            }
+          } finally {
+            inst.destroy();
+          }
+        } finally {
+          // @ts-ignore
+          delete engine.resourceManager._objectPool[baseKey];
+        }
+      }
+
       expect(errors).not.toHaveBeenCalled();
     } finally {
       errors.mockRestore();

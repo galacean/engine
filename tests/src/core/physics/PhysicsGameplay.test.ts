@@ -17,6 +17,7 @@ import {
   JointMotor,
   Loader,
   MeshCollider,
+  MeshTopology,
   ModelMesh,
   PhysicsScene,
   PlaneCollider,
@@ -2106,6 +2107,393 @@ describe("Physics gameplay integration", () => {
       delete engine.resourceManager._objectPool[indexedKey];
       // @ts-ignore
       delete engine.resourceManager._objectPool[baseKey];
+    }
+  });
+
+  it("defers native physics teardown during out-of-frame scene.destroy() in onDisable, drains all roots across errors/reorders on scene disable, and handles line/inaccessible/base-call/replace MeshCollider prefab overrides", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const ray = new Ray(new Vector3(0, 5, 0), new Vector3(0, -1, 0));
+
+    // 1. Out-of-frame synchronous source.destroy() during onDisable keeps sibling Script/BoxCollider cleanup intact
+    for (const mode of ["root", "child"] as const) {
+      for (const withContact of [true, false]) {
+        const src = new Scene(engine, `r10-src-${mode}-${withContact}`);
+        const dst = new Scene(engine, `r10-dst-${mode}-${withContact}`);
+        engine.sceneManager.addScene(src);
+        const parent = src.createRootEntity("parent");
+        const node = mode === "child" ? parent.createChild("detached-node") : parent;
+        const leaf = node.createChild("leaf");
+        let beforeDestroy = true;
+        let afterDestroy = false;
+        let disables = 0;
+        node.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              beforeDestroy = src.destroyed;
+              src.destroy();
+              afterDestroy = src.destroyed;
+            }
+          }
+        );
+        if (withContact) {
+          node.addComponent(
+            class extends Script {
+              override onCollisionEnter(): void {}
+              override onDisable(): void {
+                disables++;
+              }
+            }
+          );
+        } else {
+          node.addComponent(
+            class extends Script {
+              override onDisable(): void {
+                disables++;
+              }
+            }
+          );
+        }
+        node.addComponent(BoxCollider);
+
+        try {
+          const hitBefore = new HitResult();
+          expect(src.physics.raycast(ray, 10, hitBefore)).toBe(true);
+          expect(hitBefore.entity).toBe(node);
+          expect(() => {
+            if (mode === "child") parent.removeChild(node);
+            else src.removeRootEntity(node);
+          }).not.toThrow();
+          expect(beforeDestroy).toBe(false);
+          expect(afterDestroy).toBe(true);
+          expect(disables).toBe(1);
+          expect(node.scene).toBeNull();
+          expect(leaf.scene).toBeNull();
+
+          dst.addRootEntity(node);
+          const hitAfter = new HitResult();
+          expect(dst.physics.raycast(ray, 10, hitAfter)).toBe(true);
+          expect(hitAfter.entity).toBe(node);
+          expect(leaf.scene).toBe(dst);
+        } finally {
+          if (!node.destroyed) node.destroy();
+          if (!src.destroyed) src.destroy();
+          if (!dst.destroyed) dst.destroy();
+        }
+      }
+    }
+
+    // 2. Scene.isActive = false continues deactivating all remaining roots across callback errors and root reorders
+    for (const action of ["transfer-child", "remove-child", "throw-and-continue", "reorder-roots"] as const) {
+      const src = new Scene(engine, `r10-disable-src-${action}`);
+      const dst = new Scene(engine, `r10-disable-dst-${action}`);
+      engine.sceneManager.addScene(src);
+      const first = src.createRootEntity("first");
+      const second = src.createRootEntity("second");
+      const moving = second.createChild("moving");
+      const leaf = moving.createChild("leaf");
+      leaf.addComponent(BoxCollider);
+      let firstDisabled = 0;
+      let secondDisabled = 0;
+      first.addComponent(
+        class extends Script {
+          override onDisable(): void {
+            firstDisabled++;
+          }
+        }
+      );
+      moving.addComponent(
+        class extends Script {
+          override onDisable(): void {
+            if (action === "transfer-child") dst.addRootEntity(moving);
+            else if (action === "remove-child") second.removeChild(moving);
+            else if (action === "throw-and-continue") throw new Error("user onDisable error");
+            else if (action === "reorder-roots") second.siblingIndex = 0;
+          }
+        }
+      );
+      moving.addComponent(
+        class extends Script {
+          override onDisable(): void {
+            secondDisabled++;
+          }
+        }
+      );
+
+      try {
+        expect(src.physics.raycast(ray, 10)).toBe(true);
+        if (action === "transfer-child" || action === "throw-and-continue") {
+          expect(() => {
+            src.isActive = false;
+          }).toThrow();
+        } else {
+          expect(() => {
+            src.isActive = false;
+          }).not.toThrow();
+        }
+        expect(first.isActiveInHierarchy).toBe(false);
+        expect(firstDisabled).toBe(1);
+        expect(secondDisabled).toBe(1);
+        if (action === "remove-child") {
+          expect(moving.scene).toBeNull();
+          expect(src.physics.raycast(ray, 10)).toBe(false);
+        } else if (action === "transfer-child") {
+          expect(moving.scene).toBe(src);
+          expect(moving.parent).toBe(second);
+          expect(dst.physics.raycast(ray, 10)).toBe(false);
+        }
+      } finally {
+        if (!moving.destroyed) moving.destroy();
+        if (!src.destroyed) src.destroy();
+        if (!dst.destroyed) dst.destroy();
+      }
+    }
+
+    // 3. MeshCollider line-indexed mesh, inaccessible base replaced by override, innocuous base call, and same-block convex=false replacement
+    const verticesMesh = new ModelMesh(engine);
+    verticesMesh.setPositions([
+      new Vector3(0, 1, 0),
+      new Vector3(-1, 0, -1),
+      new Vector3(1, 0, -1),
+      new Vector3(0, 0, 1)
+    ]);
+    const lineMesh = new ModelMesh(engine);
+    lineMesh.setPositions([new Vector3(0, 1, 0), new Vector3(-1, 0, -1), new Vector3(1, 0, -1), new Vector3(0, 0, 1)]);
+    lineMesh.setIndices(new Uint16Array([0, 1]));
+    lineMesh.addSubMesh(0, 2, MeshTopology.Lines);
+    const indexedMesh = new ModelMesh(engine);
+    indexedMesh.setPositions([
+      new Vector3(0, 1, 0),
+      new Vector3(-1, 0, -1),
+      new Vector3(1, 0, -1),
+      new Vector3(0, 0, 1)
+    ]);
+    indexedMesh.setIndices(new Uint16Array([0, 1, 2, 0, 2, 3, 0, 3, 1, 1, 3, 2]));
+    indexedMesh.addSubMesh(0, 12, MeshTopology.Triangles);
+    const inaccessibleMesh = new ModelMesh(engine);
+    inaccessibleMesh.setPositions([
+      new Vector3(0, 1, 0),
+      new Vector3(-1, 0, -1),
+      new Vector3(1, 0, -1),
+      new Vector3(0, 0, 1)
+    ]);
+    inaccessibleMesh.setIndices(new Uint16Array([0, 1, 2, 0, 2, 3, 0, 3, 1, 1, 3, 2]));
+    inaccessibleMesh.addSubMesh(0, 12, MeshTopology.Triangles);
+    inaccessibleMesh.uploadData(true);
+
+    const poolKeys: string[] = [
+      "r10-vertices.mesh",
+      "r10-line.mesh",
+      "r10-indexed.mesh",
+      "r10-inaccessible.mesh",
+      "r10-empty-base.prefab"
+    ];
+    // @ts-ignore
+    engine.resourceManager._objectPool["r10-vertices.mesh"] = verticesMesh;
+    // @ts-ignore
+    engine.resourceManager._objectPool["r10-line.mesh"] = lineMesh;
+    // @ts-ignore
+    engine.resourceManager._objectPool["r10-indexed.mesh"] = indexedMesh;
+    // @ts-ignore
+    engine.resourceManager._objectPool["r10-inaccessible.mesh"] = inaccessibleMesh;
+
+    const emptyBase = await PrefabParser.parse(engine, "r10-empty-base.prefab", {
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "root" }],
+      components: [],
+      root: 0
+    });
+    // @ts-ignore
+    engine.resourceManager._objectPool["r10-empty-base.prefab"] = emptyBase;
+
+    const observations: string[] = [];
+    class BaseCallSnapshotMesh extends MeshCollider {
+      capture(phase: string): void {
+        observations.push(`${phase}:${!!this.mesh}:${this.convex}`);
+      }
+    }
+    Loader.registerClass("R10BaseCallSnapshotMesh", BaseCallSnapshotMesh);
+
+    try {
+      // 3a. Line-indexed mesh defers cleanly to convex: true override
+      const lineOuter = await PrefabParser.parse(engine, "r10-line-outer.prefab", {
+        version: "2.0",
+        refs: [{ url: "r10-empty-base.prefab" }, { url: "r10-line.mesh" }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                addedComponents: [{ target: [], component: 0 }],
+                componentProps: [{ path: [], selector: { type: "MeshCollider", index: 0 }, props: { convex: true } }]
+              }
+            }
+          }
+        ],
+        components: [{ type: "MeshCollider", props: { mesh: { $ref: 1 } } }],
+        root: 0
+      });
+      const lineInst = lineOuter.instantiate();
+      root.addChild(lineInst);
+      try {
+        const mc = lineInst.getComponent(MeshCollider)!;
+        expect(mc.convex).toBe(true);
+        expect(mc.mesh).toBe(lineMesh);
+        expect(scene.physics.raycast(ray, 10)).toBe(true);
+      } finally {
+        lineInst.destroy();
+      }
+
+      // 3b. Inaccessible base mesh replaced by vertices mesh in convex: true override does not throw
+      const replacedOuter = await PrefabParser.parse(engine, "r10-inaccessible-replace.prefab", {
+        version: "2.0",
+        refs: [{ url: "r10-empty-base.prefab" }, { url: "r10-inaccessible.mesh" }, { url: "r10-vertices.mesh" }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                addedComponents: [{ target: [], component: 0 }],
+                componentProps: [
+                  {
+                    path: [],
+                    selector: { type: "MeshCollider", index: 0 },
+                    props: { convex: true, mesh: { $ref: 2 } }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        components: [{ type: "MeshCollider", props: { mesh: { $ref: 1 } } }],
+        root: 0
+      });
+      const replacedInst = replacedOuter.instantiate();
+      root.addChild(replacedInst);
+      try {
+        const mc = replacedInst.getComponent(MeshCollider)!;
+        expect(mc.convex).toBe(true);
+        expect(mc.mesh).toBe(verticesMesh);
+        expect(scene.physics.raycast(ray, 10)).toBe(true);
+      } finally {
+        replacedInst.destroy();
+      }
+
+      // 3c. Innocuous base call on added MeshCollider preserves deferred vertices mesh while keeping indexed mesh in Wave 0
+      for (const kind of ["vertices", "indexed"] as const) {
+        observations.length = 0;
+        const callOuter = await PrefabParser.parse(engine, `r10-base-call-${kind}.prefab`, {
+          version: "2.0",
+          refs: [{ url: "r10-empty-base.prefab" }, { url: `r10-${kind}.mesh` }],
+          entities: [
+            {
+              instance: {
+                asset: 0,
+                overrides: {
+                  addedComponents: [{ target: [], component: 0 }],
+                  componentProps: [
+                    {
+                      path: [],
+                      selector: { type: "R10BaseCallSnapshotMesh", index: 0 },
+                      props: { convex: true },
+                      calls: [{ method: "capture", args: ["override"] }]
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          components: [
+            {
+              type: "R10BaseCallSnapshotMesh",
+              props: { mesh: { $ref: 1 } },
+              calls: [{ method: "capture", args: ["base"] }]
+            }
+          ],
+          root: 0
+        });
+        const callInst = callOuter.instantiate();
+        root.addChild(callInst);
+        try {
+          expect(observations).toEqual([`base:${kind === "indexed"}:false`, "override:true:true"]);
+          expect(scene.physics.raycast(ray, 10)).toBe(true);
+        } finally {
+          callInst.destroy();
+        }
+      }
+
+      // 3d. Same-block { mesh: indexedMesh, convex: false, isTrigger: false } replacing vertex-only convex mesh
+      for (const policy of ["static", "kinematic", "dynamic-to-kinematic"] as const) {
+        const hasBody = policy !== "static";
+        const path = hasBody ? [0] : [];
+        const baseKey = `r10-replace-base-${policy}.prefab`;
+        poolKeys.push(baseKey);
+        const switchBase = await PrefabParser.parse(engine, baseKey, {
+          version: "2.0",
+          refs: [{ url: "r10-vertices.mesh" }],
+          entities: hasBody
+            ? [
+                { name: "body", components: [1], children: [1] },
+                { name: "mesh", components: [0] }
+              ]
+            : [{ name: "mesh", components: [0] }],
+          components: [
+            { type: "MeshCollider", props: { convex: true, mesh: { $ref: 0 }, isTrigger: true } },
+            ...(hasBody ? [{ type: "Rigidbody", props: { isKinematic: policy !== "dynamic-to-kinematic" } }] : [])
+          ],
+          root: 0
+        });
+        // @ts-ignore
+        engine.resourceManager._objectPool[baseKey] = switchBase;
+
+        const componentProps: any[] = [
+          {
+            path,
+            selector: { type: "MeshCollider", index: 0 },
+            props: { mesh: { $ref: 1 }, convex: false, isTrigger: false }
+          }
+        ];
+        if (policy === "dynamic-to-kinematic") {
+          componentProps.push({
+            path: [],
+            selector: { type: "Rigidbody", index: 0 },
+            props: { isKinematic: true }
+          });
+        }
+        const switchOuter = await PrefabParser.parse(engine, `r10-replace-outer-${policy}.prefab`, {
+          version: "2.0",
+          refs: [{ url: baseKey }, { url: "r10-indexed.mesh" }],
+          entities: [{ instance: { asset: 0, overrides: { componentProps } } }],
+          components: [],
+          root: 0
+        });
+        const switchInst = switchOuter.instantiate();
+        root.addChild(switchInst);
+        try {
+          const mc = (hasBody ? switchInst.children[0] : switchInst).getComponent(MeshCollider)!;
+          expect(mc.mesh).toBe(indexedMesh);
+          expect(mc.convex).toBe(false);
+          expect(mc.isTrigger).toBe(false);
+          if (hasBody) {
+            expect(mc.attachedRigidbody?.isKinematic).toBe(true);
+          }
+          expect(scene.physics.raycast(ray, 10)).toBe(true);
+        } finally {
+          switchInst.destroy();
+        }
+      }
+
+      expect(errors).not.toHaveBeenCalled();
+    } finally {
+      errors.mockRestore();
+      verticesMesh.destroy();
+      lineMesh.destroy();
+      indexedMesh.destroy();
+      inaccessibleMesh.destroy();
+      for (const key of poolKeys) {
+        // @ts-ignore
+        delete engine.resourceManager._objectPool[key];
+      }
     }
   });
 });
