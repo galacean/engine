@@ -76,6 +76,10 @@ export class Scene extends EngineObject {
   _rootEntities: Entity[] = [];
   /** @internal Destination scene while `SceneManager.mergeScenes` is transferring roots from this scene. */
   _mergingInto: Scene | null = null;
+  /** @internal Nesting depth of active `_setActiveComponents(false, ...)` passes on this scene. */
+  _deactivatingDepth: number = 0;
+  /** @internal Entities structurally detached during deactivation whose `_scene = null` is finalized at depth 0. */
+  _pendingDetachEntities: Entity[] = [];
 
   private _background: Background = new Background(this._engine);
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
@@ -324,7 +328,7 @@ export class Scene extends EngineObject {
   addRootEntity(index: number, entity: Entity): void;
 
   addRootEntity(indexOrChild: number | Entity, entity?: Entity): void {
-    if (this.destroyed) {
+    if (this.destroyed || this.pendingDestroy) {
       return;
     }
 
@@ -346,6 +350,17 @@ export class Scene extends EngineObject {
       const rootCount = this._rootEntities.length;
       if (index < 0 || index > rootCount) {
         throw `The index ${index} is out of child list bounds ${rootCount}`;
+      }
+    }
+
+    // Fail fast before mutating ownership lists if rootEntity is mid-active-processing and
+    // attaching here would trigger re-entrant _processActive or switch its scene mid-drain.
+    if (rootEntity._activeChangedComponents) {
+      if (rootEntity._isActive && !rootEntity.destroyed && !rootEntity.pendingDestroy) {
+        rootEntity._processActive(ActiveChangeFlag.Scene);
+      }
+      if (oldScene !== this) {
+        throw new Error("Cannot transfer an entity to another scene while it is processing active state changes.");
       }
     }
 
@@ -371,7 +386,9 @@ export class Scene extends EngineObject {
 
     if (
       !rootEntity.destroyed &&
+      !rootEntity.pendingDestroy &&
       !this.destroyed &&
+      !this.pendingDestroy &&
       rootEntity._scene === oldScene &&
       rootEntity.parent === oldParent &&
       rootEntity._isRoot === wasRoot
@@ -398,11 +415,20 @@ export class Scene extends EngineObject {
       }
     }
 
+    // Always synchronize active state against the entity's actual current owner (even if onDisable threw
+    // after cancelling transfer by destroying the destination), preserving the primary inActiveError.
+    try {
+      rootEntity._syncActiveStateWithOwner();
+    } catch (error) {
+      if (!hasInActiveError) {
+        inActiveError = error;
+        hasInActiveError = true;
+      }
+    }
+
     if (hasInActiveError) {
       throw inActiveError;
     }
-
-    rootEntity._syncActiveStateWithOwner();
   }
 
   /**
@@ -411,18 +437,27 @@ export class Scene extends EngineObject {
    */
   removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene === this) {
-      // Structurally detach first so duplicate re-entrant removeRootEntity(entity) inside onDisable
-      // is an immediate no-op while entity._scene remains `this` until all callbacks drain.
-      Entity._removeFromChildren(this._rootEntities, entity);
-      entity._isRoot = false;
       let inActiveChangeFlag = ActiveChangeFlag.None;
       this._isActiveInEngine && entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
       entity._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+      if (inActiveChangeFlag && entity._activeChangedComponents) {
+        // Fail fast before mutating rootEntities / _isRoot when re-entrant _processInActive will throw
+        entity._processInActive(inActiveChangeFlag);
+      }
+
+      // Structurally detach first so duplicate re-entrant removeRootEntity(entity) inside onDisable
+      // is an immediate no-op while entity._scene remains `this` until deactivation callbacks drain.
+      Entity._removeFromChildren(this._rootEntities, entity);
+      entity._isRoot = false;
       try {
         inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
       } finally {
-        if (!entity._isRoot && !entity.parent && entity._scene === this && !entity._activeChangedComponents) {
-          Entity._traverseSetOwnerScene(entity, null);
+        if (!entity._isRoot && !entity.parent && entity._scene === this) {
+          if (this._deactivatingDepth > 0) {
+            this._pendingDetachEntities.push(entity);
+          } else {
+            Entity._traverseSetOwnerScene(entity, null);
+          }
         }
       }
     }
@@ -584,6 +619,7 @@ export class Scene extends EngineObject {
     }
 
     runStep(() => this.physics._destroy());
+    this._pendingDetachEntities.length = 0;
 
     if (hasError) {
       throw firstError;

@@ -911,16 +911,16 @@ describe("Entity", async () => {
         expect(parentB.children).toEqual([]);
         expect(sceneC.rootEntities).toEqual([]);
 
-        // Relocating c1 into sceneC inside onDisable must leave c2 intact under parentA and parentB empty
+        // Re-entrant sceneC.addRootEntity(c1) inside onDisable fails fast without corrupting parentA or leaving zombie in sceneC
         expect(() => parentB.addChild(c1)).toThrow();
-        expect(sceneC.rootEntities).toEqual([c1]);
-        expect(c1.scene).toBe(sceneC);
-        expect(c1.parent).toBeNull();
+        expect(sceneC.rootEntities).toEqual([]);
+        expect(parentB.children).toEqual([c1]);
+        expect(c1.scene).toBe(sceneB);
+        expect(c1.parent).toBe(parentB);
         expect(c1.siblingIndex).toBe(0);
         expect(parentA.children).toEqual([c2]);
         expect(c2.scene).toBe(sceneA);
         expect(c2.siblingIndex).toBe(0);
-        expect(parentB.children).toEqual([]);
 
         // removeChild when onDisable reparents c2 under another inactive parent in sceneA preserves c2.scene
         const inactiveParent = sceneA.createRootEntity("inactiveParent");
@@ -1025,6 +1025,71 @@ describe("Entity", async () => {
       } finally {
         if (!cancelScene.destroyed) cancelScene.destroy();
         if (!cancelDstScene.destroyed) cancelDstScene.destroy();
+      }
+
+      // Subtree deactivation detaching a descendant drains sibling scripts cleanly (no leaked updates)
+      const subScene = new Scene(engine, "subtree-detach-scene");
+      engine.sceneManager.addScene(subScene);
+      try {
+        const subParent = subScene.createRootEntity("subParent");
+        const subChild = subParent.createChild("subChild");
+        let firstDisable = 0;
+        let secondDisable = 0;
+        let updates = 0;
+        subChild.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              firstDisable++;
+              subParent.removeChild(subChild);
+            }
+          }
+        );
+        subChild.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              secondDisable++;
+            }
+            override onUpdate(): void {
+              updates++;
+            }
+          }
+        );
+
+        engine.update();
+        const before = updates;
+        expect(() => {
+          subParent.isActive = false;
+        }).not.toThrow();
+        engine.update();
+        expect(firstDisable).toBe(1);
+        expect(secondDisable).toBe(1);
+        expect(updates - before).toBe(0);
+        expect(subChild.scene).toBeNull();
+        expect(subChild.parent).toBeNull();
+        expect(subParent.children).not.toContain(subChild);
+        expect(subChild.isActiveInHierarchy).toBe(false);
+
+        // Cycle prevention: onDisable moving destination parent under moving entity must reject cycle and restore moving active
+        const cycDst = new Scene(engine, "cycle-dst");
+        const dstParent = cycDst.createRootEntity("dstParent");
+        const moving = subScene.createRootEntity("moving");
+        moving.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              moving.addChild(dstParent);
+            }
+          }
+        );
+        expect(() => dstParent.addChild(moving)).toThrow(/descendant/);
+        expect(moving.parent).toBeNull();
+        expect(dstParent.parent).toBe(moving);
+        expect(moving.isActiveInHierarchy).toBe(true);
+        expect(() => moving.addChild(moving)).toThrow(/descendant/);
+
+        cycDst.destroy();
+        subScene.destroy();
+      } finally {
+        if (!subScene.destroyed) subScene.destroy();
       }
     });
   });

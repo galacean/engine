@@ -113,7 +113,13 @@ export class SceneManager {
    * @param destScene - target scene
    */
   mergeScenes(sourceScene: Scene, destScene: Scene): void {
-    if (sourceScene === destScene || sourceScene.destroyed || destScene.destroyed) {
+    if (
+      sourceScene === destScene ||
+      sourceScene.destroyed ||
+      sourceScene.pendingDestroy ||
+      destScene.destroyed ||
+      destScene.pendingDestroy
+    ) {
       return;
     }
 
@@ -121,7 +127,13 @@ export class SceneManager {
     sourceScene._mergingInto = destScene;
     try {
       const oldRootEntities = sourceScene._rootEntities;
-      while (oldRootEntities.length > 0 && !sourceScene.destroyed && !destScene.destroyed) {
+      while (
+        oldRootEntities.length > 0 &&
+        !sourceScene.destroyed &&
+        !sourceScene.pendingDestroy &&
+        !destScene.destroyed &&
+        !destScene.pendingDestroy
+      ) {
         const root = oldRootEntities[0];
         destScene.addRootEntity(root);
         if (oldRootEntities[0] === root) {

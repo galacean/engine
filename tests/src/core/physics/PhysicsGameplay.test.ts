@@ -27,7 +27,7 @@ import {
   SphereCollider,
   SpringJoint
 } from "@galacean/engine-core";
-import { Quaternion, Vector3 } from "@galacean/engine-math";
+import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { PrefabParser } from "../../../../packages/loader/src/prefab/PrefabParser";
 import {
@@ -1399,6 +1399,274 @@ describe("Physics gameplay integration", () => {
         // @ts-ignore
         delete engine.resourceManager._objectPool[key];
       }
+    }
+  });
+
+  it("enforces Wave 0 base isolation, defers restricting base MeshCollider trigger into relaxing override (with/without calls), and prioritizes unblocking physics phases", async () => {
+    class BaseConvexReader extends Script {
+      readConvex = false;
+      async readAsync(): Promise<void> {
+        await Promise.resolve();
+        this.readConvex = this.entity.getComponent(MeshCollider)!.convex;
+      }
+    }
+    class AsyncPhaseBody extends Rigidbody {
+      sawKinematicAtCall: boolean | null = null;
+      async readPhase(): Promise<void> {
+        await Promise.resolve();
+        this.sawKinematicAtCall = this.isKinematic;
+      }
+    }
+    Loader.registerClass("R6BaseConvexReader", BaseConvexReader);
+    Loader.registerClass("R6AsyncPhaseBody", AsyncPhaseBody);
+
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1, { keepMeshData: true });
+    // @ts-ignore
+    engine.resourceManager._objectPool["test://r6-phase.mesh"] = mesh;
+    const poolKeys: string[] = ["test://r6-phase.mesh"];
+
+    try {
+      // 1. Wave 0 base calls must never observe Wave 1 relaxing MeshCollider overrides prematurely
+      for (const inherited of [true, false]) {
+        const baseKey = `test://r6-promoted-base-${inherited}.prefab`;
+        const basePrefab = await PrefabParser.parse(engine, baseKey, {
+          version: "2.0",
+          refs: [],
+          entities: [{ name: "root", components: inherited ? [0] : [] }],
+          components: inherited ? [{ type: "MeshCollider" }] : [],
+          root: 0
+        });
+        // @ts-ignore
+        engine.resourceManager._objectPool[baseKey] = basePrefab;
+        poolKeys.push(baseKey);
+
+        const outerPrefab = await PrefabParser.parse(engine, `test://r6-promoted-outer-${inherited}.prefab`, {
+          version: "2.0",
+          refs: [{ url: baseKey, type: "Prefab" }],
+          entities: [
+            {
+              instance: {
+                asset: 0,
+                overrides: {
+                  addedComponents: inherited
+                    ? [{ target: [], component: 0 }]
+                    : [
+                        { target: [], component: 0 },
+                        { target: [], component: 1 }
+                      ],
+                  componentProps: [
+                    {
+                      path: [],
+                      selector: { type: "MeshCollider", index: 0 },
+                      props: { convex: true }
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          components: [
+            { type: "R6BaseConvexReader", calls: [{ method: "readAsync" }] },
+            ...(inherited ? [] : [{ type: "MeshCollider", props: { convex: false } }])
+          ],
+          root: 0
+        });
+        const inst = outerPrefab.instantiate();
+        try {
+          expect(inst.getComponent(BaseConvexReader)!.readConvex).toBe(false);
+          expect(inst.getComponent(MeshCollider)!.convex).toBe(true);
+        } finally {
+          inst.destroy();
+        }
+      }
+
+      // 2. Added MeshCollider base { isTrigger: true, mesh } + override { convex: true } WITH or WITHOUT calls preserves isTrigger
+      const emptyBaseKey = "test://r6-empty-base.prefab";
+      const emptyBase = await PrefabParser.parse(engine, emptyBaseKey, {
+        version: "2.0",
+        refs: [],
+        entities: [{ name: "template" }],
+        components: [],
+        root: 0
+      });
+      // @ts-ignore
+      engine.resourceManager._objectPool[emptyBaseKey] = emptyBase;
+      poolKeys.push(emptyBaseKey);
+
+      for (const overrideHasCall of [false, true]) {
+        const outerPrefab = await PrefabParser.parse(engine, `test://r6-lost-trigger-${overrideHasCall}.prefab`, {
+          version: "2.0",
+          refs: [
+            { url: emptyBaseKey, type: "Prefab" },
+            { url: "test://r6-phase.mesh", type: "ModelMesh" }
+          ],
+          entities: [
+            {
+              instance: {
+                asset: 0,
+                overrides: {
+                  addedComponents: [{ target: [], component: 0 }],
+                  componentProps: [
+                    {
+                      path: [],
+                      selector: { type: "MeshCollider", index: 0 },
+                      props: { convex: true },
+                      ...(overrideHasCall
+                        ? { calls: [{ target: ["entity"], method: "findByName", args: ["template"] }] }
+                        : {})
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          components: [{ type: "MeshCollider", props: { isTrigger: true, mesh: { $ref: 1 } } }],
+          root: 0
+        });
+        const inst = outerPrefab.instantiate();
+        try {
+          const meshCol = inst.getComponent(MeshCollider)!;
+          expect(meshCol.convex).toBe(true);
+          expect(meshCol.isTrigger).toBe(true);
+          expect(meshCol.mesh).toBe(mesh);
+          expect(errors).not.toHaveBeenCalled();
+        } finally {
+          inst.destroy();
+        }
+      }
+
+      // 3. Unblocking physics phase priority: PhaseBody [isKinematic=false + async readPhase, isKinematic=true] runs before MeshCollider [convex=false]
+      const clampBaseKey = "test://r6-clamp-base.prefab";
+      const clampBase = await PrefabParser.parse(engine, clampBaseKey, {
+        version: "2.0",
+        refs: [{ url: "test://r6-phase.mesh", type: "ModelMesh" }],
+        entities: [{ name: "template", components: [0, 1] }],
+        components: [
+          { type: "R6AsyncPhaseBody", props: { isKinematic: true, useGravity: false } },
+          { type: "MeshCollider", props: { convex: true, mesh: { $ref: 0 } } }
+        ],
+        root: 0
+      });
+      // @ts-ignore
+      engine.resourceManager._objectPool[clampBaseKey] = clampBase;
+      poolKeys.push(clampBaseKey);
+
+      const clampOuter = await PrefabParser.parse(engine, "test://r6-clamp-outer.prefab", {
+        version: "2.0",
+        refs: [{ url: clampBaseKey, type: "Prefab" }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                componentProps: [
+                  {
+                    path: [],
+                    selector: { type: "R6AsyncPhaseBody", index: 0 },
+                    props: { isKinematic: false },
+                    calls: [{ method: "readPhase" }]
+                  },
+                  {
+                    path: [],
+                    selector: { type: "R6AsyncPhaseBody", index: 0 },
+                    props: { isKinematic: true }
+                  },
+                  {
+                    path: [],
+                    selector: { type: "MeshCollider", index: 0 },
+                    props: { convex: false }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        components: [],
+        root: 0
+      });
+      const clampInst = clampOuter.instantiate();
+      try {
+        const body = clampInst.getComponent(AsyncPhaseBody)!;
+        const meshCol = clampInst.getComponent(MeshCollider)!;
+        expect(body.sawKinematicAtCall).toBe(false);
+        expect(body.isKinematic).toBe(true);
+        expect(meshCol.convex).toBe(false);
+        expect(errors).not.toHaveBeenCalled();
+      } finally {
+        clampInst.destroy();
+      }
+    } finally {
+      for (const key of poolKeys) {
+        // @ts-ignore
+        delete engine.resourceManager._objectPool[key];
+      }
+    }
+  });
+
+  it("removes BoxCollider from PhysX raycast on subtree detach during onDisable and rolls back pose & attachedRigidbody on native addShape failure", () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    // 1. Subtree deactivation where child Script.onDisable detaches child must cleanly disable BoxCollider from PhysX
+    const parent = root.createChild("detach-parent");
+    const child = parent.createChild("detach-child");
+    child.addComponent(
+      class extends Script {
+        override onDisable(): void {
+          parent.removeChild(child);
+        }
+      }
+    );
+    child.addComponent(BoxCollider);
+
+    const ray = new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0));
+    expect(scene.physics.raycast(ray, 10)).toBe(true);
+    expect(() => {
+      parent.isActive = false;
+    }).not.toThrow();
+    expect(scene.physics.raycast(ray, 10)).toBe(false);
+    expect(child.isActiveInHierarchy).toBe(false);
+    expect(child.parent).toBeNull();
+    expect(child.scene).toBeNull();
+    parent.destroy();
+    child.destroy();
+
+    // 2. Native addShape rejection during reparenting rolls back registration, updates rolled-back static pose, and reflects true attachedRigidbody
+    const moving = root.createChild("reject-moving");
+    moving.transform.position.x = 4;
+    const collider = moving.addComponent(BoxCollider);
+    const bodyEntity = root.createChild("reject-body");
+    bodyEntity.transform.position.x = 4;
+    const body = bodyEntity.addComponent(Rigidbody);
+    body.isKinematic = true;
+
+    const oldRay = new Ray(new Vector3(4, 3, 0), new Vector3(0, -1, 0));
+    const newRay = new Ray(new Vector3(8, 3, 0), new Vector3(0, -1, 0));
+    expect(scene.physics.raycast(oldRay, 10)).toBe(true);
+
+    // Force native dynamic actor addShape to reject once
+    const nativeActor = body._getNativeActor();
+    const origAddShape = nativeActor.addShape.bind(nativeActor);
+    let rejectOnce = true;
+    nativeActor.addShape = (shape: any) => {
+      if (rejectOnce) {
+        rejectOnce = false;
+        return false;
+      }
+      return origAddShape(shape);
+    };
+    try {
+      bodyEntity.addChild(moving);
+      expect(scene.physics.raycast(oldRay, 10)).toBe(false);
+      expect(scene.physics.raycast(newRay, 10)).toBe(true);
+      expect(collider.attachedRigidbody).toBeNull();
+      expect(moving.transform.worldPosition.x).toBeCloseTo(8, 5);
+      expect(errors).toHaveBeenCalledWith(
+        "BoxCollider: failed to attach to the native actor, the previous registration is kept."
+      );
+    } finally {
+      nativeActor.addShape = origAddShape;
+      bodyEntity.destroy();
     }
   });
 });

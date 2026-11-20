@@ -443,15 +443,15 @@ describe("Scene", () => {
         expect(sceneB.rootEntities).toEqual([]);
         expect(sceneC.rootEntities).toEqual([]);
 
-        // Relocating r1 inside onDisable must not evict innocent sibling r2 or leave r1 in both B and C
+        // Re-entrant addRootEntity(r1) into sceneC inside onDisable fails fast without mutating lists or evicting r2
         expect(() => sceneB.addRootEntity(r1)).toThrow();
-        expect(sceneC.rootEntities).toEqual([r1]);
-        expect(r1.scene).toBe(sceneC);
+        expect(sceneC.rootEntities).toEqual([]);
+        expect(sceneB.rootEntities).toEqual([r1]);
+        expect(r1.scene).toBe(sceneB);
         expect(r1.siblingIndex).toBe(0);
         expect(sceneA.rootEntities).toEqual([r2]);
         expect(r2.scene).toBe(sceneA);
         expect(r2.siblingIndex).toBe(0);
-        expect(sceneB.rootEntities).toEqual([]);
 
         sceneA.destroy();
         sceneB.destroy();
@@ -465,7 +465,7 @@ describe("Scene", () => {
         if (!sceneC.destroyed) sceneC.destroy();
       }
 
-      // Case B: removeRootEntity when onDisable relocates root to another scene or reparents it within the same scene
+      // Case B: removeRootEntity when onDisable attempts re-entrant addRootEntity or reparents into inactive holder
       const sceneD = new Scene(engine, "sceneD");
       const sceneE = new Scene(engine, "sceneE");
       engine.sceneManager.addScene(sceneD);
@@ -473,6 +473,8 @@ describe("Scene", () => {
       try {
         const d1 = sceneD.createRootEntity("d1");
         const d2 = sceneD.createRootEntity("d2");
+        let d1SiblingDisables = 0;
+        let d1Updates = 0;
         d1.addComponent(
           class extends Script {
             override onDisable(): void {
@@ -480,12 +482,53 @@ describe("Scene", () => {
             }
           }
         );
+        d1.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              d1SiblingDisables++;
+            }
+            override onUpdate(): void {
+              d1Updates++;
+            }
+          }
+        );
         expect(() => sceneD.removeRootEntity(d1)).toThrow();
-        expect(sceneE.rootEntities).toEqual([d1]);
-        expect(d1.scene).toBe(sceneE);
+        expect(sceneE.rootEntities).toEqual([]);
+        expect(d1.scene).toBeNull();
+        expect(d1SiblingDisables).toBe(1);
         expect(sceneD.rootEntities).toEqual([d2]);
         expect(d2.scene).toBe(sceneD);
         expect(d2.siblingIndex).toBe(0);
+        engine.update();
+        expect(d1Updates).toBe(0);
+
+        // Same-scene reattach during removeRootEntity also fails fast and drains sibling scripts
+        const dSame = sceneD.createRootEntity("dSame");
+        let dSameDisables = 0;
+        let dSameUpdates = 0;
+        dSame.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              sceneD.addRootEntity(dSame);
+            }
+          }
+        );
+        dSame.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              dSameDisables++;
+            }
+            override onUpdate(): void {
+              dSameUpdates++;
+            }
+          }
+        );
+        expect(() => sceneD.removeRootEntity(dSame)).toThrow();
+        expect(sceneD.rootEntities).toEqual([d2]);
+        expect(dSame.scene).toBeNull();
+        expect(dSameDisables).toBe(1);
+        engine.update();
+        expect(dSameUpdates).toBe(0);
 
         const d3 = sceneD.createRootEntity("d3");
         const inactiveHolder = sceneD.createRootEntity("inactiveHolder");
@@ -694,6 +737,89 @@ describe("Scene", () => {
       } finally {
         if (!selfRmScene.destroyed) selfRmScene.destroy();
         if (!selfRmTarget.destroyed) selfRmTarget.destroy();
+      }
+
+      // Case F: removeRootEntity during onEnable fails fast without half-detaching root
+      const enableRmScene = new Scene(engine, "enableRmScene");
+      engine.sceneManager.addScene(enableRmScene);
+      try {
+        const root = enableRmScene.createRootEntity("enable-rm-root");
+        root.isActive = false;
+        let updates = 0;
+        root.addComponent(
+          class extends Script {
+            override onEnable(): void {
+              enableRmScene.removeRootEntity(root);
+            }
+            override onUpdate(): void {
+              updates++;
+            }
+          }
+        );
+        expect(() => {
+          root.isActive = true;
+        }).toThrow();
+        expect(root.isActiveInHierarchy).toBe(true);
+        expect(root.scene).toBe(enableRmScene);
+        expect(enableRmScene.rootEntities).toContain(root);
+        engine.update();
+        expect(updates).toBe(1);
+        enableRmScene.destroy();
+      } finally {
+        if (!enableRmScene.destroyed) enableRmScene.destroy();
+      }
+
+      // Case G: cancelAndThrow (both sync destroy+throw AND in-frame pendingDestroy destination) restores source entity active & updating
+      for (const asRoot of [true, false]) {
+        for (const inFrame of [false, true]) {
+          const src = new Scene(engine, `cancel-src-${asRoot}-${inFrame}`);
+          const dst = new Scene(engine, `cancel-dst-${asRoot}-${inFrame}`);
+          engine.sceneManager.addScene(src);
+          try {
+            const target = asRoot ? null : dst.createRootEntity("target");
+            const moving = src.createRootEntity("moving");
+            let updates = 0;
+            let pendingObserved: boolean | undefined;
+            let armed = true;
+            const move = () => (target ? target.addChild(moving) : dst.addRootEntity(moving));
+            moving.addComponent(
+              class extends Script {
+                override onDisable(): void {
+                  if (!armed) return;
+                  armed = false;
+                  const owner = target ?? dst;
+                  owner.destroy();
+                  pendingObserved = owner.pendingDestroy;
+                  if (!inFrame) {
+                    throw new Error("stop transfer");
+                  }
+                }
+                override onUpdate(): void {
+                  updates++;
+                  if (inFrame && updates === 1) {
+                    move();
+                  }
+                }
+              }
+            );
+
+            if (inFrame) {
+              expect(() => engine.update()).not.toThrow();
+              expect(pendingObserved).toBe(true);
+            } else {
+              expect(() => move()).toThrow("stop transfer");
+              expect(pendingObserved).toBe(false);
+            }
+            expect(moving.destroyed).toBe(false);
+            expect(moving.isActiveInHierarchy).toBe(true);
+            expect(src.rootEntities).toContain(moving);
+            engine.update();
+            expect(updates).toBe(inFrame ? 2 : 1);
+          } finally {
+            if (!src.destroyed) src.destroy();
+            if (!dst.destroyed) dst.destroy();
+          }
+        }
       }
     });
 

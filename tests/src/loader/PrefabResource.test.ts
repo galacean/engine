@@ -1086,4 +1086,111 @@ describe("Cross-prefab $component ref", () => {
       delete engine.resourceManager._objectPool["async-barrier-base.prefab"];
     }
   });
+
+  it("should keep setter side effects independent of unrelated base calls and skip overrides on components destroyed during Wave 0", async () => {
+    const seen: string[] = [];
+    class SideEffectObserver extends Script {
+      set label(v: string) {
+        seen.push(v);
+      }
+      noop(): void {}
+      destroySibling(): void {
+        this.entity.getComponents(SideEffectObserver, [])[1].destroy();
+      }
+      probeDestroyed(): void {
+        seen.push(`destroyed=${this.destroyed}`);
+      }
+    }
+    Loader.registerClass("SideEffectObserver", SideEffectObserver);
+
+    const basePrefab = await PrefabParser.parse(engine, "r6-observer-base.prefab", {
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "template" }],
+      components: [],
+      root: 0
+    });
+    // @ts-ignore
+    engine.resourceManager._objectPool["r6-observer-base.prefab"] = basePrefab;
+
+    try {
+      for (const withUnrelatedCall of [false, true]) {
+        seen.length = 0;
+        const outerPrefab = await PrefabParser.parse(engine, `r6-effects-${withUnrelatedCall}.prefab`, {
+          version: "2.0",
+          refs: [{ url: "r6-observer-base.prefab" }],
+          entities: [
+            {
+              instance: {
+                asset: 0,
+                overrides: {
+                  addedComponents: [
+                    { target: [], component: 0 },
+                    { target: [], component: 1 }
+                  ],
+                  componentProps: [
+                    {
+                      path: [],
+                      selector: { type: "SideEffectObserver", index: 0 },
+                      props: { label: "instance" }
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          components: [
+            { type: "SideEffectObserver", props: { label: "base" } },
+            { type: "SideEffectObserver", ...(withUnrelatedCall ? { calls: [{ method: "noop" }] } : {}) }
+          ],
+          root: 0
+        });
+        const inst = outerPrefab.instantiate();
+        inst.destroy();
+        expect(seen).toEqual(["base", "instance"]);
+      }
+
+      // Wave 1 skips components destroyed during Wave 0 base calls
+      seen.length = 0;
+      const disposedPrefab = await PrefabParser.parse(engine, "r6-disposed-before-override.prefab", {
+        version: "2.0",
+        refs: [{ url: "r6-observer-base.prefab" }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                addedComponents: [
+                  { target: [], component: 0 },
+                  { target: [], component: 1 }
+                ],
+                componentProps: [
+                  {
+                    path: [],
+                    selector: { type: "SideEffectObserver", index: 1 },
+                    calls: [{ method: "probeDestroyed" }]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        components: [
+          { type: "SideEffectObserver", calls: [{ method: "destroySibling" }] },
+          { type: "SideEffectObserver" }
+        ],
+        root: 0
+      });
+      const disposedRoot = disposedPrefab.instantiate();
+      try {
+        expect(disposedRoot.getComponents(SideEffectObserver, [])).toHaveLength(1);
+        expect(seen).toEqual([]);
+      } finally {
+        disposedRoot.destroy();
+      }
+    } finally {
+      // @ts-ignore
+      delete engine.resourceManager._objectPool["r6-observer-base.prefab"];
+    }
+  });
 });

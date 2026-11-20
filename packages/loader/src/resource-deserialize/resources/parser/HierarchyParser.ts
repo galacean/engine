@@ -299,24 +299,21 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     }
     entityProps.length = 0;
 
-    // Split execution into Wave 0 (base pendingComponents) -> Wave 1 (prefab componentProps overrides)
-    // so cross-component async base props/calls always settle before overrides observe them.
-    // Props-only overrides merge into Wave 0 when the target has not entered Wave 1 yet and either
-    // its base block has no calls (with no base calls anywhere, or target defines _getDeserializePhase),
-    // or the override relaxes a phase constraint (phase < 0) on a template component.
+    // Strict two-wave barrier: Wave 0 (base pendingComponents) -> Wave 1 (prefab componentProps overrides).
+    // Overrides never promote into Wave 0, so Wave 0 base calls/setters always see base state identically
+    // regardless of unrelated components' calls. Only a calls-free restricting base block (phase > 0) whose
+    // Wave 1 override immediately relaxes the same target (phase < 0) defers its base props into that
+    // override block so coupled constraints (e.g. MeshCollider base isTrigger=true + override convex=true)
+    // apply cleanly together in Wave 1 without losing props or firing premature errors.
     const { pendingComponents } = this.context;
     const wave0: Array<{ target: Component; blocks: MutationBlock[] }> = [];
     const wave1: Array<{ target: Component; blocks: MutationBlock[] }> = [];
     const wave0ByTarget = componentProps.length > 0 ? new Map<Component, number>() : null;
     const wave1ByTarget = componentProps.length > 0 ? new Map<Component, number>() : null;
-    let anyBaseHasCalls = false;
 
     for (let i = 0, n = pendingComponents.length; i < n; i++) {
       const { instance, config } = pendingComponents[i];
       if (instance.destroyed) continue;
-      if (config.calls?.length) {
-        anyBaseHasCalls = true;
-      }
       if (wave0ByTarget) {
         wave0ByTarget.set(instance, wave0.length);
       }
@@ -327,27 +324,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       const { target, block } = componentProps[i];
       if (target.destroyed) continue;
 
-      const getPhase: ((props: Record<string, unknown>) => number) | undefined = (target.constructor as any)
-        ?._getDeserializePhase;
-      const hasPhase = typeof getPhase === "function";
       const wave1Index = wave1ByTarget!.get(target);
-
-      if (wave1Index === undefined && !block.calls?.length) {
-        const wave0Index = wave0ByTarget!.get(target);
-        if (wave0Index !== undefined) {
-          const baseBlocks = wave0[wave0Index].blocks;
-          const prevBase = baseBlocks[baseBlocks.length - 1];
-          if (!prevBase.calls?.length && (!anyBaseHasCalls || hasPhase)) {
-            baseBlocks[baseBlocks.length - 1] = HierarchyParser._mergeMutationBlocks(prevBase, block);
-            continue;
-          }
-        } else if (hasPhase && block.props && getPhase(block.props) < 0) {
-          wave0ByTarget!.set(target, wave0.length);
-          wave0.push({ target, blocks: [block] });
-          continue;
-        }
-      }
-
       if (wave1Index !== undefined) {
         const blocks = wave1[wave1Index].blocks;
         const prev = blocks[blocks.length - 1];
@@ -362,6 +339,42 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       }
     }
     componentProps.length = 0;
+
+    if (wave0ByTarget && wave1.length > 0) {
+      let hasDeferred = false;
+      for (let i = 0, n = wave1.length; i < n; i++) {
+        const { target, blocks } = wave1[i];
+        const wave0Index = wave0ByTarget.get(target);
+        if (wave0Index === undefined) continue;
+
+        const getPhase: ((props: Record<string, unknown>) => number) | undefined = (target.constructor as any)
+          ?._getDeserializePhase;
+        if (typeof getPhase !== "function") continue;
+
+        const baseBlock = wave0[wave0Index].blocks[0];
+        const firstOverride = blocks[0];
+        if (
+          !baseBlock.calls?.length &&
+          baseBlock.props &&
+          firstOverride.props &&
+          getPhase(baseBlock.props) > 0 &&
+          getPhase(firstOverride.props) < 0
+        ) {
+          blocks[0] = HierarchyParser._mergeMutationBlocks({ props: baseBlock.props }, firstOverride);
+          wave0[wave0Index].blocks.length = 0;
+          hasDeferred = true;
+        }
+      }
+      if (hasDeferred) {
+        let write = 0;
+        for (let i = 0, n = wave0.length; i < n; i++) {
+          if (wave0[i].blocks.length > 0) {
+            wave0[write++] = wave0[i];
+          }
+        }
+        wave0.length = write;
+      }
+    }
 
     if (wave0.length === 0) {
       return wave1.length > 0 ? this._applyMutationWave(wave1) : Promise.resolve();
@@ -408,83 +421,108 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     items: readonly { target: Component; blocks: readonly MutationBlock[] }[]
   ): Promise<unknown> {
     const reflectionParser = this._reflectionParser;
-    const applyEntry = ({
-      target,
-      blocks
-    }: {
-      target: Component;
-      blocks: readonly MutationBlock[];
-    }): Promise<unknown> => {
-      if (blocks.length === 1) {
-        return reflectionParser.parseMutationBlock(target, blocks[0]);
-      }
-      let chain: Promise<unknown> = Promise.resolve();
-      for (let i = 0, n = blocks.length; i < n; i++) {
-        const block = blocks[i];
-        chain = chain.then(() => reflectionParser.parseMutationBlock(target, block));
-      }
-      return chain;
-    };
+    const applyBlock = (target: Component, block: MutationBlock): Promise<unknown> =>
+      target.destroyed ? Promise.resolve() : reflectionParser.parseMutationBlock(target, block);
 
-    let relax: { target: Component; blocks: MutationBlock[] }[] | null = null;
-    let neutral: { target: Component; blocks: MutationBlock[] }[] | null = null;
-    let restrict: { target: Component; blocks: MutationBlock[] }[] | null = null;
+    let hasPhasedTarget = false;
+    for (let i = 0, n = items.length; i < n; i++) {
+      if (typeof (items[i].target.constructor as any)?._getDeserializePhase === "function") {
+        hasPhasedTarget = true;
+        break;
+      }
+    }
 
-    // Schedule each individual block by its own _getDeserializePhase while clamping subsequent blocks
-    // on the same target monotonically (`Math.max(prevBucket, ownBucket)`) so authored per-component
-    // order is never inverted while earlier relaxing blocks run ahead of other components' restrictions.
+    if (!hasPhasedTarget) {
+      return Promise.all(
+        items.map(({ target, blocks }) => {
+          if (blocks.length === 1) {
+            return applyBlock(target, blocks[0]);
+          }
+          let chain: Promise<unknown> = Promise.resolve();
+          for (let i = 0, n = blocks.length; i < n; i++) {
+            const block = blocks[i];
+            chain = chain.then(() => applyBlock(target, block));
+          }
+          return chain;
+        })
+      );
+    }
+
+    // Build per-target phase-annotated block queues. Each step runs the lowest-phase ready blocks
+    // (`relax (-1) -> neutral (0) -> restrict (+1)`), prioritizing ready blocks that unblock a later
+    // `relax` block on the same target before unrelated blocks in the same phase bucket.
+    const queues = new Array<{ target: Component; blocks: readonly MutationBlock[]; phases: number[]; cursor: number }>(
+      items.length
+    );
     for (let i = 0, n = items.length; i < n; i++) {
       const { target, blocks } = items[i];
       const getPhase: ((props: Record<string, unknown>) => number) | undefined = (target.constructor as any)
         ?._getDeserializePhase;
-      let prevBucket = -1;
-      let currentEntry: { target: Component; blocks: MutationBlock[] } | null = null;
-      let currentBucket = -2;
-
+      const phases = new Array<number>(blocks.length);
       for (let j = 0, m = blocks.length; j < m; j++) {
-        const block = blocks[j];
-        let ownBucket = 0;
-        if (block.props && typeof getPhase === "function") {
-          const p = getPhase(block.props);
-          ownBucket = p < 0 ? -1 : p > 0 ? 1 : 0;
-        }
-        const bucket = ownBucket > prevBucket ? ownBucket : prevBucket;
-        prevBucket = bucket;
-
-        if (currentEntry && currentBucket === bucket) {
-          currentEntry.blocks.push(block);
+        const props = blocks[j].props;
+        if (props && typeof getPhase === "function") {
+          const p = getPhase(props);
+          phases[j] = p < 0 ? -1 : p > 0 ? 1 : 0;
         } else {
-          currentEntry = { target, blocks: [block] };
-          currentBucket = bucket;
-          if (bucket < 0) {
-            (relax ||= []).push(currentEntry);
-          } else if (bucket > 0) {
-            (restrict ||= []).push(currentEntry);
-          } else {
-            (neutral ||= []).push(currentEntry);
-          }
+          phases[j] = 0;
         }
       }
+      queues[i] = { target, blocks, phases, cursor: 0 };
     }
 
-    if (!relax && !restrict) {
-      return neutral ? Promise.all(neutral.map(applyEntry)) : Promise.resolve();
-    }
+    const runNextStep = (): Promise<unknown> => {
+      let minPhase = 2;
+      for (let i = 0, n = queues.length; i < n; i++) {
+        const q = queues[i];
+        if (q.cursor < q.blocks.length) {
+          const p = q.phases[q.cursor];
+          if (p < minPhase) minPhase = p;
+        }
+      }
+      if (minPhase === 2) {
+        return Promise.resolve();
+      }
 
-    let chain: Promise<unknown> = Promise.resolve();
-    if (relax) {
-      const batch = relax;
-      chain = chain.then(() => Promise.all(batch.map(applyEntry)));
-    }
-    if (neutral) {
-      const batch = neutral;
-      chain = chain.then(() => Promise.all(batch.map(applyEntry)));
-    }
-    if (restrict) {
-      const batch = restrict;
-      chain = chain.then(() => Promise.all(batch.map(applyEntry)));
-    }
-    return chain;
+      let unblocking: { target: Component; block: MutationBlock }[] | null = null;
+      const ready: { target: Component; block: MutationBlock }[] = [];
+      const readyQueues: typeof queues = [];
+      let unblockingQueues: typeof queues | null = null;
+
+      for (let i = 0, n = queues.length; i < n; i++) {
+        const q = queues[i];
+        if (q.cursor >= q.blocks.length || q.phases[q.cursor] !== minPhase) continue;
+
+        let hasFutureRelax = false;
+        if (minPhase > -1) {
+          for (let j = q.cursor + 1, m = q.phases.length; j < m; j++) {
+            if (q.phases[j] < 0) {
+              hasFutureRelax = true;
+              break;
+            }
+          }
+        }
+
+        const step = { target: q.target, block: q.blocks[q.cursor] };
+        if (hasFutureRelax) {
+          (unblocking ||= []).push(step);
+          (unblockingQueues ||= []).push(q);
+        } else {
+          ready.push(step);
+          readyQueues.push(q);
+        }
+      }
+
+      const batch = unblocking ?? ready;
+      const advanced = unblockingQueues ?? readyQueues;
+      for (let i = 0, n = advanced.length; i < n; i++) {
+        advanced[i].cursor++;
+      }
+
+      return Promise.all(batch.map(({ target, block }) => applyBlock(target, block))).then(runNextStep);
+    };
+
+    return runNextStep();
   }
 
   // ---------------------------------------------------------------------------

@@ -97,7 +97,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * @remarks Derived from the hierarchy. It does not change when either component is disabled.
    */
   get attachedRigidbody(): Rigidbody | null {
-    return this._findRigidbody();
+    return this._nativeActor && this._dirtyIndex === -1 ? this._attachedBody : this._findRigidbody();
   }
 
   /**
@@ -382,6 +382,9 @@ export class Collider extends Component implements ICloneHook<Collider> {
     let forcePose = false;
     if (this._nativeActor !== actor) {
       if (!this._transfer(body, actor)) {
+        if (this._nativeActor) {
+          this._syncPose(shape, this._attachedBody, scale, true);
+        }
         return;
       }
       forcePose = true;
