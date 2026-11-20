@@ -6,7 +6,7 @@ export const decoderMap: Record<
   {
     decode: (engine: Engine, bufferReader: BufferReader, ...arg: any[]) => AssetPromise<any>;
   }
-> = {};
+> = Object.create(null);
 
 /**
  * Decoder decorator generator.

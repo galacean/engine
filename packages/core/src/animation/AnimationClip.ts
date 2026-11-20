@@ -8,6 +8,10 @@ import { AnimationEvent } from "./AnimationEvent";
 import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
 import { KeyframeValueType } from "./Keyframe";
 
+function compareEventTime(a: AnimationEvent, b: AnimationEvent): number {
+  return a.time! - b.time!;
+}
+
 /**
  * Stores keyframe based animations.
  */
@@ -86,6 +90,39 @@ export class AnimationClip extends EngineObject {
       events.splice(index + 1, 0, newEvent);
     }
 
+    this._updateFlagManager.dispatch();
+  }
+
+  /**
+   * @internal
+   */
+  _addEvents(newEvents: AnimationEvent[]): void {
+    const count = newEvents.length;
+    if (count === 0) return;
+
+    const events = this._events;
+    const existingCount = events.length;
+    let isSorted = true;
+    let prevTime = existingCount > 0 ? events[existingCount - 1].time! : -Infinity;
+    events.length = existingCount + count;
+
+    for (let i = 0; i < count; i++) {
+      const event = newEvents[i];
+      const time = event.time!;
+      if (!Number.isFinite(time)) {
+        events.length = existingCount;
+        throw new Error("AnimationEvent time must be a finite number.");
+      }
+      if (time < prevTime) {
+        isSorted = false;
+      }
+      prevTime = time;
+      events[existingCount + i] = event;
+    }
+
+    if (!isSorted) {
+      events.sort(compareEventTime);
+    }
     this._updateFlagManager.dispatch();
   }
 

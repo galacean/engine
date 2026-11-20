@@ -1,6 +1,8 @@
 import { AssetPromise } from "./AssetPromise";
 
-const mimeType = {
+const hasOwn = Object.prototype.hasOwnProperty;
+
+const mimeType: Record<string, XMLHttpRequestResponseType | "image"> = Object.assign(Object.create(null), {
   json: "json",
   gltf: "json",
   mtl: "json",
@@ -10,10 +12,14 @@ const mimeType = {
   png: "image",
   webp: "image",
   jpg: "image"
-};
+});
 
 const defaultRetryCount = 1;
 const defaultInterval = 500;
+
+function getOwn<T extends object, K extends keyof T>(obj: T | undefined | null, key: K): T[K] | undefined {
+  return obj != null && hasOwn.call(obj, key) ? obj[key] : undefined;
+}
 
 function hasTimeout(timeout: number | undefined): timeout is number {
   return Number.isFinite(timeout) && timeout! > 0;
@@ -40,7 +46,9 @@ export type RequestConfig = {
  */
 export function request<T>(url: string, config: RequestConfig = {}): AssetPromise<T> {
   return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress, onCancel) => {
-    const { retryCount = defaultRetryCount, retryInterval = defaultInterval, signal, ...rest } = config;
+    const retryCount = getOwn(config, "retryCount") ?? defaultRetryCount;
+    const retryInterval = getOwn(config, "retryInterval") ?? defaultInterval;
+    const signal = getOwn(config, "signal");
     const getAbortReason = () =>
       signal?.reason !== undefined ? signal.reason : new DOMException("This operation was aborted", "AbortError");
     if (signal?.aborted) {
@@ -49,10 +57,13 @@ export function request<T>(url: string, config: RequestConfig = {}): AssetPromis
     }
 
     let currentRequest: AssetPromise<T> | undefined;
-    const attemptConfig: RequestConfig = {
-      ...rest,
-      type: rest.type ?? getMimeTypeFromUrl(url)
-    };
+    const attemptConfig: RequestConfig = Object.create(null);
+    for (const key in config) {
+      if (hasOwn.call(config, key) && key !== "retryCount" && key !== "retryInterval" && key !== "signal") {
+        (attemptConfig as Record<string, unknown>)[key] = (config as Record<string, unknown>)[key];
+      }
+    }
+    attemptConfig.type = getOwn(attemptConfig, "type") ?? getMimeTypeFromUrl(url);
     const send = typeof XMLHttpRequest === "undefined" ? requestWithFetch : requestWithXHR;
     const executor = new MultiExecutor(
       () => (currentRequest = send<T>(url, attemptConfig).onProgress(setTaskCompleteProgress, setTaskDetailProgress)),
@@ -92,12 +103,13 @@ function requestWithXHR<T>(url: string, config: RequestConfig): AssetPromise<T> 
   return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress, onCancel) => {
     const xhr = new XMLHttpRequest();
     onCancel(() => xhr.abort());
-    const isImg = config.type === "image";
-    xhr.timeout = hasTimeout(config.timeout) ? config.timeout : 0;
-    const method = config.method ?? "get";
-    xhr.withCredentials = config.credentials === "include";
+    const isImg = getOwn(config, "type") === "image";
+    const timeout = getOwn(config, "timeout");
+    xhr.timeout = hasTimeout(timeout) ? timeout : 0;
+    const method = getOwn(config, "method") ?? "get";
+    xhr.withCredentials = getOwn(config, "credentials") === "include";
     // @ts-ignore
-    xhr.responseType = isImg ? "blob" : config.type;
+    xhr.responseType = isImg ? "blob" : getOwn(config, "type");
     xhr.onload = () => {
       if (xhr.status < 200 || xhr.status >= 300) {
         reject(new Error(`Request failed from: ${url}`));
@@ -150,20 +162,27 @@ function requestWithXHR<T>(url: string, config: RequestConfig): AssetPromise<T> 
       }
     };
     xhr.open(method, url, true);
-    const headers = config.headers;
+    const headers = getOwn(config, "headers");
     if (headers) {
-      Object.keys(headers).forEach((name) => {
-        xhr.setRequestHeader(name, headers[name]);
-      });
+      if (typeof Headers !== "undefined" && headers instanceof Headers) {
+        headers.forEach((value, name) => {
+          xhr.setRequestHeader(name, value);
+        });
+      } else {
+        Object.keys(headers).forEach((name) => {
+          xhr.setRequestHeader(name, headers[name]);
+        });
+      }
     }
     // @ts-ignore
-    xhr.send(config.body as XMLHttpRequestBodyInit);
+    xhr.send(getOwn(config, "body") as XMLHttpRequestBodyInit);
   });
 }
 
 function requestWithFetch<T>(url: string, config: RequestConfig): AssetPromise<T> {
   return new AssetPromise((resolve, reject, setTaskCompleteProgress, _setTaskDetailProgress, onCancel) => {
-    const { type, timeout, ...init } = config;
+    const type = getOwn(config, "type");
+    const timeout = getOwn(config, "timeout");
     if (type === "image" || type === "document") {
       reject(new Error(`Request type "${type}" requires a browser decoder.`));
       return;
@@ -176,7 +195,14 @@ function requestWithFetch<T>(url: string, config: RequestConfig): AssetPromise<T
       clearTimeout(timer);
       controller.abort();
     });
-    fetch(url, { ...init, signal: controller.signal })
+    const fetchInit: RequestInit = Object.create(null);
+    for (const key in config) {
+      if (hasOwn.call(config, key) && key !== "type" && key !== "timeout") {
+        (fetchInit as Record<string, unknown>)[key] = (config as Record<string, unknown>)[key];
+      }
+    }
+    fetchInit.signal = controller.signal;
+    fetch(url, fetchInit)
       .then(async (res) => {
         if (!res.ok) throw new Error(`Request failed from: ${url} (${res.status})`);
         const result =

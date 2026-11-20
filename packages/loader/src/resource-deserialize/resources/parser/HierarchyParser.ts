@@ -1,4 +1,4 @@
-import { Component, Engine, Entity, Loader, Scene } from "@galacean/engine-core";
+import { Component, Engine, Entity, Scene } from "@galacean/engine-core";
 import { GLTFResource } from "../../../gltf";
 import { PrefabResource } from "../../../prefab/PrefabResource";
 import { resolveRefItem } from "../../../schema/refs";
@@ -16,6 +16,8 @@ import type { RefItem } from "../../../schema/CommonSchema";
 import type { HierarchyFile } from "../../../schema/HierarchySchema";
 import { ParserContext, ParserType } from "./ParserContext";
 import { ReflectionParser } from "./ReflectionParser";
+
+const hasOwn = Object.prototype.hasOwnProperty;
 
 /** @Internal */
 export abstract class HierarchyParser<T extends Scene | PrefabResource, V extends ParserContext> {
@@ -297,8 +299,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
   /** Resolve a component on an entity by type name + per-type index */
   private static _resolveComponent(entity: Entity, selector: ComponentSelector): Component {
-    const type = Loader.getClass(selector.type);
-    if (!type) throw new Error(`HierarchyParser: override target component type "${selector.type}" is not registered`);
+    const type = ReflectionParser._resolveClass(selector.type, Component);
     const buffer = ReflectionParser._componentBuffer;
     buffer.length = 0;
     entity.getComponents(type, buffer);
@@ -309,19 +310,18 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     return result;
   }
 
-  /** Resolve component class from config and add to entity. Throws if class is not registered. */
+  /** Resolve component class from config and add to entity. Throws if class is not registered or not a Component. */
   private static _addComponentFromConfig(entity: Entity, config: ComponentSchema, refs: RefItem[]): Component {
     const key =
       config.script != null
         ? resolveRefItem(refs, config.script, "HierarchyParser", "component.script").url
         : config.type;
-    const Class = Loader.getClass(key);
-    if (!Class) throw new Error(`Loader.getClass: class "${key}" is not registered`);
+    const Class = ReflectionParser._resolveClass(key, Component);
     return entity.addComponent(Class);
   }
 
   private static _isPrefabInstanceEntity(entityConfig: EntitySchema): entityConfig is PrefabInstanceEntitySchema {
-    return "instance" in entityConfig;
+    return hasOwn.call(entityConfig, "instance");
   }
 
   /** Apply entity-level props (name, isActive, layer, transform) to an entity. */

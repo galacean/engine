@@ -23,7 +23,11 @@ export function decode<T>(arrayBuffer: ArrayBuffer, engine: Engine, ...args: any
     true,
     header
   );
-  return decoderMap[header.type].decode(engine, bufferReader, ...args).then((object) => {
+  const decoder = decoderMap[header.type];
+  if (!decoder) {
+    throw new Error(`Unsupported binary resource type: "${header.type}".`);
+  }
+  return decoder.decode(engine, bufferReader, ...args).then((object) => {
     object.name = header.name;
     return object;
   });
