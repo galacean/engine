@@ -15,12 +15,18 @@ export function loadSeedWorldProjectTextBundle(): Promise<ReadonlyMap<string, st
   if (!cachedBundlePromise) {
     cachedBundlePromise = (async () => {
       try {
-        const bundleUrl = new URL(FLASH_APP_TEXT_BUNDLE_URL, import.meta.url).href;
+        // Keep `import.meta.url` in a local binding so Vite's `vite:asset-import-meta-url` plugin
+        // does not rewrite `new URL("../", import.meta.url)` to `new URL("../", self.location)`
+        // (which throws `TypeError: Invalid URL` in `about:srcdoc` Flash App iframes and resolves
+        // against the wrong origin when HTML and assets live on separate hosts).
+        const moduleBaseUrl = import.meta.url;
+        const bundleUrl = new URL(FLASH_APP_TEXT_BUNDLE_URL, moduleBaseUrl).href;
         // Bundle entries are keyed by repository-relative path (e.g. "packages/terrain/...").
         // Resolve each key relative to the dist root (one directory above assets/).
-        const distRootUrl = new URL("../", import.meta.url).href;
+        const distRootUrl = new URL("../", moduleBaseUrl).href;
         const response = await fetch(bundleUrl);
         if (!response.ok) {
+          console.warn(`[SeedWorld] Project text bundle request failed (${response.status}): ${bundleUrl}`);
           cachedBundlePromise = undefined;
           return undefined;
         }
@@ -32,7 +38,8 @@ export function loadSeedWorldProjectTextBundle(): Promise<ReadonlyMap<string, st
           map.set(resolvedUrl, content);
         }
         return map;
-      } catch {
+      } catch (error) {
+        console.warn("[SeedWorld] Project text bundle load failed, falling back to per-file fetches", error);
         cachedBundlePromise = undefined;
         return undefined;
       }

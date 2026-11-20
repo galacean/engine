@@ -162,6 +162,17 @@ function assertClassicWorkerPayloads(assetsRoot, assetNames) {
     if (/new Worker\([^;]*\{\s*type:\s*["']module["']\s*\}/u.test(source)) {
       throw new Error(`Flash App build still contains a module Worker constructor in ${assetName}`);
     }
+    if (source.includes("__SEED_WORLD_PROJECT_TEXT_BUNDLE_URL__")) {
+      throw new Error(`Flash App build did not replace __SEED_WORLD_PROJECT_TEXT_BUNDLE_URL__ in ${assetName}`);
+    }
+    const relativeSelfLocationMatch = source.match(
+      /new URL\(\s*["'](?![a-z]+:)[^"']+["']\s*,\s*self\.location(?:\.href)?\s*\)/u
+    );
+    if (relativeSelfLocationMatch) {
+      throw new Error(
+        `Flash App chunk ${assetName} resolves a relative URL against self.location (${relativeSelfLocationMatch[0]}), which fails in about:srcdoc and split-origin CDN deployments`
+      );
+    }
     for (const match of source.matchAll(
       /__flashAppCreateClassicWorker\(\s*new URL\(\s*(["'])([^"']+)\1\s*,\s*import\.meta\.url\s*\)\.href\s*\)/gu
     )) {
