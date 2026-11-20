@@ -1,0 +1,16 @@
+.agents/skills/seed-world-local-debug/SKILL.md
+  h_ddbf152d31b140 24
+.agents/skills/seed-world-local-debug/references/start.md
+  h_ddbf152d31b140 13-14,33,38-40,101,103-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "20e5c5df15c602caec52c3bb4077d5f9ff753c77",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
