@@ -1,0 +1,32 @@
+packages/core/src/animation/animationCurve/AnimationCurve.ts
+  h_dd004f51a3e5ec 60-62
+packages/core/src/asset/request.ts
+  h_dd004f51a3e5ec 3,13,43,52-55,95-98,100,153,155-157,160,166,179
+packages/loader/src/HDRDecoder.ts
+  h_dd004f51a3e5ec 40,44-45,47-48,51,101,108,114-116,119,184
+packages/loader/src/compressed-texture/KhronosTextureContainer.ts
+  h_dd004f51a3e5ec 18-19,21,28-29,31-32,37,175,188
+packages/loader/src/gltf/parser/GLTFAnimationParser.ts
+  h_dd004f51a3e5ec 173,183,192,202,211,225
+packages/loader/src/ktx2/KTX2Container.ts
+  h_dd004f51a3e5ec 50,69,93-94,99-100
+packages/loader/src/resource-deserialize/index.ts
+  h_dd004f51a3e5ec 26
+packages/loader/src/resource-deserialize/resources/animationClip/AnimationClipDecoder.ts
+  h_dd004f51a3e5ec 49-54,75,79,88,93,102,107,116,120,129,145,152-172,180,199,208,227,236,243,252,254,263,265
+packages/loader/src/resource-deserialize/utils/Decorator.ts
+  h_dd004f51a3e5ec 9
+tests/src/loader/LoaderSecurity.test.ts
+  h_dd004f51a3e5ec 1,3,6-7,10,24-43,46-50,53,56-68,70-84,86-101,103-117,120-137,139-154,156-178,180-182,184-248,250-255,257-260,263-267,269-327,329-341,343-361,363,366-368
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1d21b9a86340a470051655aa3277113d62ea2ec5",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
