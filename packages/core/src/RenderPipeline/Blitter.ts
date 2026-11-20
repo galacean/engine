@@ -21,6 +21,7 @@ export class Blitter {
   private static _rendererShaderData = new ShaderData(ShaderDataGroup.Renderer);
   private static _texelSize = new Vector4();
   private static _defaultScaleOffset = new Vector4(1, 1, 0, 0);
+  private static _tempViewport = new Vector4();
 
   /**
    * Blit texture to destination render target using a triangle.
@@ -57,7 +58,12 @@ export class Blitter {
     // We not use projection matrix when blit, but we must modify flipProjection to make front face correct
     context.flipProjection = !!destination;
 
-    context.setRenderTarget(destination, viewport, destMipLevel, destCubeFace);
+    let targetViewport = viewport;
+    if (destination && destCubeFace != undefined) {
+      targetViewport = Blitter._tempViewport.set(viewport.x, 1 - viewport.y - viewport.w, viewport.z, viewport.w);
+    }
+
+    context.setRenderTarget(destination, targetViewport, destMipLevel, destCubeFace);
 
     const rendererShaderData = Blitter._rendererShaderData;
 

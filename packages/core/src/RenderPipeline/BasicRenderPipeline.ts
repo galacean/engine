@@ -314,7 +314,7 @@ export class BasicRenderPipeline {
       colorTarget!._blitRenderTarget();
 
       const opaqueTexturePass = this._opaqueTexturePass;
-      opaqueTexturePass.onConfig(camera, colorTarget!.getColorTexture(0)!, targetWidth, targetHeight);
+      opaqueTexturePass.onConfig(camera, colorTarget!.getColorTexture(0)!, targetWidth, targetHeight, colorMipLevel);
       opaqueTexturePass.onRender(context);
 
       // Should revert to original render target

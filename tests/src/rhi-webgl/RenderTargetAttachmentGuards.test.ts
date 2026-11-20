@@ -15,6 +15,7 @@ import {
   TextureCubeFace,
   TextureFormat,
   UnlitMaterial,
+  Vector4,
   WebGLEngine
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
@@ -34,7 +35,7 @@ describe("RenderTarget attachment guard regressions", () => {
     canvas.height = 64;
     engine = await WebGLEngine.create({ canvas });
 
-    const scene = engine.sceneManager.activeScene;
+    const scene = engine.sceneManager.activeScene!;
     const cameraEntity = scene.createRootEntity("camera");
     const camera = cameraEntity.addComponent(Camera);
     camera.enableHDR = true;
@@ -46,7 +47,7 @@ describe("RenderTarget attachment guard regressions", () => {
     const postEntity = scene.createRootEntity("post-process");
     const pp = postEntity.addComponent(PostProcess);
     pp.isGlobal = true;
-    const bloom = pp.addEffect(BloomEffect);
+    const bloom = pp.addEffect(BloomEffect)!;
     bloom.intensity.value = 1;
 
     const cubeEntity = scene.createRootEntity("cube");
@@ -77,14 +78,14 @@ describe("RenderTarget attachment guard regressions", () => {
     canvas.height = 64;
     engine = await WebGLEngine.create({ canvas });
 
-    const scene = engine.sceneManager.activeScene;
+    const scene = engine.sceneManager.activeScene!;
     scene.background.solidColor = new Color(0.25, 0.5, 0.75, 1);
 
     const cameraEntity = scene.createRootEntity("camera");
     const camera = cameraEntity.addComponent(Camera);
     camera.enableHDR = false;
 
-    const cube = new TextureCube(engine, 16, TextureFormat.R8G8B8A8, true, false);
+    const cube = new TextureCube(engine, 16, TextureFormat.R8G8B8A8_UNorm, true, false);
     const target = new RenderTarget(engine, 16, 16, cube, null);
     target.autoGenerateMipmaps = false;
     camera.renderTarget = target;
@@ -116,14 +117,14 @@ describe("RenderTarget attachment guard regressions", () => {
     canvas.height = 64;
     engine = await WebGLEngine.create({ canvas });
 
-    const scene = engine.sceneManager.activeScene;
+    const scene = engine.sceneManager.activeScene!;
     scene.background.solidColor = new Color(0.75, 0.25, 0.5, 1);
 
     const cameraEntity = scene.createRootEntity("camera");
     const camera = cameraEntity.addComponent(Camera);
     camera.enableHDR = false;
 
-    const tex2d = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8, true, false);
+    const tex2d = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, true, false);
     const target = new RenderTarget(engine, 16, 16, tex2d, null);
     target.autoGenerateMipmaps = false;
     camera.renderTarget = target;
@@ -155,7 +156,7 @@ describe("RenderTarget attachment guard regressions", () => {
     canvas.height = 64;
     engine = await WebGLEngine.create({ canvas });
 
-    const scene = engine.sceneManager.activeScene;
+    const scene = engine.sceneManager.activeScene!;
     const cameraEntity = scene.createRootEntity("camera");
     const camera = cameraEntity.addComponent(Camera);
     camera.enableHDR = true;
@@ -167,7 +168,7 @@ describe("RenderTarget attachment guard regressions", () => {
     const postEntity = scene.createRootEntity("post-process");
     const pp = postEntity.addComponent(PostProcess);
     pp.isGlobal = true;
-    const bloom = pp.addEffect(BloomEffect);
+    const bloom = pp.addEffect(BloomEffect)!;
     bloom.intensity.value = 1;
 
     const cubeEntity = scene.createRootEntity("cube");
@@ -175,7 +176,7 @@ describe("RenderTarget attachment guard regressions", () => {
     renderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
     renderer.setMaterial(new UnlitMaterial(engine));
 
-    const colorTexture = new Texture2D(engine, 64, 64, TextureFormat.R8G8B8A8, false);
+    const colorTexture = new Texture2D(engine, 64, 64, TextureFormat.R8G8B8A8_UNorm, false);
     const normalTarget = new RenderTarget(engine, 64, 64, colorTexture, TextureFormat.Depth24);
     const depthTexture = new Texture2D(engine, 64, 64, TextureFormat.Depth24, false);
     const depthOnlyTarget = new RenderTarget(engine, 64, 64, null, depthTexture);
@@ -218,7 +219,7 @@ describe("RenderTarget attachment guard regressions", () => {
     canvas.height = 64;
     engine = await WebGLEngine.create({ canvas });
 
-    const scene = engine.sceneManager.activeScene;
+    const scene = engine.sceneManager.activeScene!;
     const cameraEntity = scene.createRootEntity("camera");
     const camera = cameraEntity.addComponent(Camera);
     camera.enableHDR = false;
@@ -232,7 +233,7 @@ describe("RenderTarget attachment guard regressions", () => {
     const depthTexture = new Texture2D(engine, 64, 64, TextureFormat.Depth24, false);
     const msaaDepthTarget = new RenderTarget(engine, 64, 64, null, depthTexture, 4);
 
-    const colorTexture = new Texture2D(engine, 16, 8, TextureFormat.R8G8B8A8, true, false);
+    const colorTexture = new Texture2D(engine, 16, 8, TextureFormat.R8G8B8A8_UNorm, true, false);
     const depthRboTarget = new RenderTarget(engine, 16, 8, colorTexture, TextureFormat.Depth16, 1);
     depthRboTarget.autoGenerateMipmaps = false;
 
@@ -272,7 +273,7 @@ describe("RenderTarget attachment guard regressions", () => {
     canvas.height = 64;
     engine = await WebGLEngine.create({ canvas });
 
-    const scene = engine.sceneManager.activeScene;
+    const scene = engine.sceneManager.activeScene!;
     scene.background.solidColor = new Color(0.1, 0.2, 0.8, 1);
 
     const cameraEntity = scene.createRootEntity("camera");
@@ -292,25 +293,25 @@ describe("RenderTarget attachment guard regressions", () => {
     gl.getError();
 
     // 1. 16x16 color-only Texture2D mip 1 with enableHDR = true
-    const hdrTex2d = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8, true, false);
+    const hdrTex2d = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, true, false);
     const hdrTarget2d = new RenderTarget(engine, 16, 16, hdrTex2d, null);
     hdrTarget2d.autoGenerateMipmaps = false;
 
     // 2. 16x16 color-only Texture2D mip 1 with antiAliasing = AntiAliasing.FXAA
-    const fxaaTex2d = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8, true, false);
+    const fxaaTex2d = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, true, false);
     const fxaaTarget2d = new RenderTarget(engine, 16, 16, fxaaTex2d, null);
     fxaaTarget2d.autoGenerateMipmaps = false;
 
     // 3. 16x16 color-only TextureCube face + mip 1: direct baseline vs HDR vs FXAA
-    const baseCube = new TextureCube(engine, 16, TextureFormat.R8G8B8A8, true, false);
+    const baseCube = new TextureCube(engine, 16, TextureFormat.R8G8B8A8_UNorm, true, false);
     const baseCubeTarget = new RenderTarget(engine, 16, 16, baseCube, null);
     baseCubeTarget.autoGenerateMipmaps = false;
 
-    const hdrCube = new TextureCube(engine, 16, TextureFormat.R8G8B8A8, true, false);
+    const hdrCube = new TextureCube(engine, 16, TextureFormat.R8G8B8A8_UNorm, true, false);
     const hdrCubeTarget = new RenderTarget(engine, 16, 16, hdrCube, null);
     hdrCubeTarget.autoGenerateMipmaps = false;
 
-    const fxaaCube = new TextureCube(engine, 16, TextureFormat.R8G8B8A8, true, false);
+    const fxaaCube = new TextureCube(engine, 16, TextureFormat.R8G8B8A8_UNorm, true, false);
     const fxaaCubeTarget = new RenderTarget(engine, 16, 16, fxaaCube, null);
     fxaaCubeTarget.autoGenerateMipmaps = false;
 
@@ -410,14 +411,14 @@ describe("RenderTarget attachment guard regressions", () => {
     canvas.height = 64;
     engine = await WebGLEngine.create({ canvas });
 
-    const scene = engine.sceneManager.activeScene;
+    const scene = engine.sceneManager.activeScene!;
     scene.background.solidColor = new Color(0.25, 0.75, 0.5, 1);
 
     const cameraEntity = scene.createRootEntity("camera");
     const camera = cameraEntity.addComponent(Camera);
     camera.enableHDR = false;
 
-    const tex = new Texture2D(engine, 16, 4, TextureFormat.R8G8B8A8, true, false);
+    const tex = new Texture2D(engine, 16, 4, TextureFormat.R8G8B8A8_UNorm, true, false);
     const target = new RenderTarget(engine, 16, 4, tex, null);
     target.autoGenerateMipmaps = false;
     camera.renderTarget = target;
@@ -452,7 +453,7 @@ describe("RenderTarget attachment guard regressions", () => {
     canvas.height = 64;
     engine = await WebGLEngine.create({ canvas, shaderCompiler: new ShaderCompiler() });
 
-    const scene = engine.sceneManager.activeScene;
+    const scene = engine.sceneManager.activeScene!;
     scene.background.solidColor = new Color(0, 0, 0, 1);
 
     const cameraEntity = scene.createRootEntity("camera");
@@ -541,7 +542,7 @@ describe("RenderTarget attachment guard regressions", () => {
 
     const depthStencilTex = new Texture2D(engine, 16, 16, TextureFormat.Depth24Stencil8, false);
     const msaaDepthTarget = new RenderTarget(engine, 16, 16, null, depthStencilTex, 4);
-    const probeColorTex = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8, false, false);
+    const probeColorTex = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, false, false);
     const probeTarget = new RenderTarget(engine, 16, 16, probeColorTex, depthStencilTex, 1);
 
     const gl = canvas.getContext("webgl2")!;
@@ -586,6 +587,110 @@ describe("RenderTarget attachment guard regressions", () => {
       verifyStencilMat.destroy();
       writeStencilShader.destroy();
       verifyStencilShader.destroy();
+    }
+  });
+
+  it("matches direct pixel rows for a TextureCube face with a half-height viewport under HDR and FXAA", async () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 64;
+    canvas.height = 64;
+    engine = await WebGLEngine.create({ canvas });
+
+    const scene = engine.sceneManager.activeScene!;
+    const cameraEntity = scene.createRootEntity("camera");
+    const camera = cameraEntity.addComponent(Camera);
+
+    const directCube = new TextureCube(engine, 16, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const directTarget = new RenderTarget(engine, 16, 16, directCube, null);
+    const hdrCube = new TextureCube(engine, 16, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const hdrTarget = new RenderTarget(engine, 16, 16, hdrCube, null);
+    const fxaaCube = new TextureCube(engine, 16, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const fxaaTarget = new RenderTarget(engine, 16, 16, fxaaCube, null);
+
+    const gl = canvas.getContext("webgl2")!;
+    gl.getError();
+
+    const clearBlackAndRenderHalf = (target: RenderTarget, enableHDR: boolean, aa: AntiAliasing) => {
+      camera.enableHDR = false;
+      camera.antiAliasing = AntiAliasing.None;
+      camera.viewport = new Vector4(0, 0, 1, 1);
+      scene.background.solidColor = new Color(0, 0, 0, 1);
+      camera.renderTarget = target;
+      camera.render(TextureCubeFace.PositiveX, 0);
+
+      camera.enableHDR = enableHDR;
+      camera.antiAliasing = aa;
+      camera.viewport = new Vector4(0, 0, 1, 0.5);
+      scene.background.solidColor = new Color(0, 1, 0, 1);
+      camera.render(TextureCubeFace.PositiveX, 0);
+    };
+
+    try {
+      clearBlackAndRenderHalf(directTarget, false, AntiAliasing.None);
+      clearBlackAndRenderHalf(hdrTarget, true, AntiAliasing.None);
+      clearBlackAndRenderHalf(fxaaTarget, false, AntiAliasing.FXAA);
+      expect(gl.getError()).toBe(gl.NO_ERROR);
+
+      for (const cube of [directCube, hdrCube, fxaaCube]) {
+        const lowerRow = new Uint8Array(4);
+        const upperRow = new Uint8Array(4);
+        cube.getPixelBuffer(TextureCubeFace.PositiveX, 8, 2, 1, 1, 0, lowerRow);
+        cube.getPixelBuffer(TextureCubeFace.PositiveX, 8, 12, 1, 1, 0, upperRow);
+        expect(upperRow[1]).toBeGreaterThan(200);
+        expect(lowerRow[1]).toBeLessThan(20);
+      }
+    } finally {
+      camera.renderTarget = null;
+      directTarget.destroy();
+      directCube.destroy();
+      hdrTarget.destroy();
+      hdrCube.destroy();
+      fxaaTarget.destroy();
+      fxaaCube.destroy();
+    }
+  });
+
+  it("samples source mip 1 into camera_OpaqueTexture when opaqueTextureEnabled is used on direct RGBA8 Texture2D", async () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 64;
+    canvas.height = 64;
+    engine = await WebGLEngine.create({ canvas });
+
+    const scene = engine.sceneManager.activeScene!;
+    const cameraEntity = scene.createRootEntity("camera");
+    const camera = cameraEntity.addComponent(Camera);
+    camera.enableHDR = false;
+
+    const tex = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, true, false);
+    const target = new RenderTarget(engine, 16, 16, tex, null);
+    target.autoGenerateMipmaps = false;
+    camera.renderTarget = target;
+
+    const gl = canvas.getContext("webgl2")!;
+    gl.getError();
+
+    try {
+      // Populate mip 0 with red.
+      scene.background.solidColor = new Color(1, 0, 0, 1);
+      camera.opaqueTextureEnabled = false;
+      camera.render(undefined, 0);
+
+      // Render mip 1 with blue and opaqueTextureEnabled = true (direct RGBA8 path, no internalColorTarget).
+      scene.background.solidColor = new Color(0, 0, 1, 1);
+      camera.opaqueTextureEnabled = true;
+      camera.render(undefined, 1);
+      expect(gl.getError()).toBe(gl.NO_ERROR);
+
+      const opaqueTex = camera.shaderData.getTexture("camera_OpaqueTexture") as Texture2D | null;
+      expect(opaqueTex).not.toBeNull();
+      const pixel = new Uint8Array(4);
+      opaqueTex!.getPixelBuffer(0, 0, 1, 1, 0, pixel);
+      expect(pixel[2]).toBeGreaterThan(200);
+      expect(pixel[0]).toBeLessThan(20);
+    } finally {
+      camera.renderTarget = null;
+      target.destroy();
+      tex.destroy();
     }
   });
 });
