@@ -9,11 +9,10 @@
    (defined(MATERIAL_FARM_GROUND_SURFACE) && !defined(RENDERER_WORLD_PICK)))
   #define TERRAIN_PROJECT_GROUND_SHADOW_PCF
 
-  mat4 terrainProjectGroundShadowMatrix(vec3 positionWS) {
+  mat4 terrainProjectGroundShadowMatrix(mediump int cascadeIndex) {
     #if SCENE_SHADOW_CASCADED_COUNT == 1
       return scene_ShadowMatrices[0];
     #else
-      int cascadeIndex = computeCascadeIndex(positionWS);
       #ifdef GRAPHICS_API_WEBGL2
         // Outside every split sphere, use the engine's zero-matrix sentinel.
         return scene_ShadowMatrices[min(cascadeIndex, SCENE_SHADOW_CASCADED_COUNT)];
@@ -57,34 +56,68 @@
     return shadowCoord.z + dot(sampleUv - shadowCoord.xy, gradient) - bilinearBias;
   }
 
+  float sampleTerrainProjectGroundShadowCascade(
+    mat4 shadowMatrix,
+    vec3 shadowCoord,
+    vec3 positionDx,
+    vec3 positionDy
+  ) {
+    // Transform continuous world derivatives with this pixel's single cascade matrix.
+    // Differentiating atlas coordinates would mix different cascades at split boundaries.
+    vec3 shadowDx = (shadowMatrix * vec4(positionDx, 0.0)).xyz;
+    vec3 shadowDy = (shadowMatrix * vec4(positionDy, 0.0)).xyz;
+    vec2 gradient = terrainProjectGroundShadowGradient(shadowDx, shadowDy);
+    float attenuation = 0.0;
+    #if SCENE_SHADOW_TYPE == 3
+      float weights[9];
+      vec2 sampleUvs[9];
+      sampleShadowComputeSamplesTent5x5(scene_ShadowMapSize, shadowCoord.xy, weights, sampleUvs);
+      for (int i = 0; i < 9; i++) {
+        vec3 sampleCoord = vec3(sampleUvs[i], terrainProjectGroundShadowDepth(shadowCoord, sampleUvs[i], gradient));
+        attenuation += weights[i] * SAMPLE_TEXTURE2D_SHADOW(scene_ShadowMap, sampleCoord);
+      }
+    #else
+      vec2 halfTexel = scene_ShadowMapSize.xy * 0.5;
+      for (int i = 0; i < 4; i++) {
+        vec2 direction = vec2(mod(float(i), 2.0), floor(float(i) / 2.0)) * 2.0 - 1.0;
+        vec2 sampleUv = shadowCoord.xy + direction * halfTexel;
+        vec3 sampleCoord = vec3(sampleUv, terrainProjectGroundShadowDepth(shadowCoord, sampleUv, gradient));
+        attenuation += SAMPLE_TEXTURE2D_SHADOW(scene_ShadowMap, sampleCoord) * 0.25;
+      }
+    #endif
+    return attenuation;
+  }
+
   float sampleTerrainProjectGroundShadowMap(vec3 positionWS, vec3 positionDx, vec3 positionDy) {
-    mat4 shadowMatrix = terrainProjectGroundShadowMatrix(positionWS);
+    #if SCENE_SHADOW_CASCADED_COUNT == 1
+      mediump int cascadeIndex = 0;
+    #else
+      mediump int cascadeIndex = computeCascadeIndex(positionWS);
+    #endif
+    mat4 shadowMatrix = terrainProjectGroundShadowMatrix(cascadeIndex);
     vec3 shadowCoord = (shadowMatrix * vec4(positionWS, 1.0)).xyz;
-    float attenuation = 1.0;
-    if (shadowCoord.z > 0.0 && shadowCoord.z < 1.0) {
-      // Transform continuous world derivatives with this pixel's single cascade matrix.
-      // Differentiating atlas coordinates would mix different cascades at split boundaries.
-      vec3 shadowDx = (shadowMatrix * vec4(positionDx, 0.0)).xyz;
-      vec3 shadowDy = (shadowMatrix * vec4(positionDy, 0.0)).xyz;
-      vec2 gradient = terrainProjectGroundShadowGradient(shadowDx, shadowDy);
-      attenuation = 0.0;
-      #if SCENE_SHADOW_TYPE == 3
-        float weights[9];
-        vec2 sampleUvs[9];
-        sampleShadowComputeSamplesTent5x5(scene_ShadowMapSize, shadowCoord.xy, weights, sampleUvs);
-        for (int i = 0; i < 9; i++) {
-          vec3 sampleCoord = vec3(sampleUvs[i], terrainProjectGroundShadowDepth(shadowCoord, sampleUvs[i], gradient));
-          attenuation += weights[i] * SAMPLE_TEXTURE2D_SHADOW(scene_ShadowMap, sampleCoord);
+    bool hasSample = shadowCoord.z > 0.0 && shadowCoord.z < 1.0;
+    float attenuation = hasSample
+      ? sampleTerrainProjectGroundShadowCascade(shadowMatrix, shadowCoord, positionDx, positionDy)
+      : 1.0;
+    #if defined(SHADOW_CASCADE_BLEND_INCLUDED) && SCENE_SHADOW_CASCADED_COUNT > 1
+      float blend = getShadowCascadeBlend(positionWS, cascadeIndex);
+      if (blend > 0.001) {
+        mat4 nextShadowMatrix = terrainProjectGroundShadowMatrix(cascadeIndex + 1);
+        vec3 nextShadowCoord = (nextShadowMatrix * vec4(positionWS, 1.0)).xyz;
+        if (nextShadowCoord.z > 0.0 && nextShadowCoord.z < 1.0) {
+          float nextAttenuation = sampleTerrainProjectGroundShadowCascade(
+            nextShadowMatrix,
+            nextShadowCoord,
+            positionDx,
+            positionDy
+          );
+          attenuation = mix(attenuation, nextAttenuation, blend);
+          hasSample = true;
         }
-      #else
-        vec2 halfTexel = scene_ShadowMapSize.xy * 0.5;
-        for (int i = 0; i < 4; i++) {
-          vec2 direction = vec2(mod(float(i), 2.0), floor(float(i) / 2.0)) * 2.0 - 1.0;
-          vec2 sampleUv = shadowCoord.xy + direction * halfTexel;
-          vec3 sampleCoord = vec3(sampleUv, terrainProjectGroundShadowDepth(shadowCoord, sampleUv, gradient));
-          attenuation += SAMPLE_TEXTURE2D_SHADOW(scene_ShadowMap, sampleCoord) * 0.25;
-        }
-      #endif
+      }
+    #endif
+    if (hasSample) {
       float shadowFade = getShadowFade(positionWS);
       attenuation = mix(1.0, mix(attenuation, 1.0, shadowFade), scene_ShadowInfo.x);
     }

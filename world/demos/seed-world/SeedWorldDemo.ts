@@ -2482,6 +2482,12 @@ export async function mountSeedWorldDemo(
       sun.shadowNormalBias = 0.5;
       scene!.ambientOcclusion.intensity = 0.5;
       scene!.ambientOcclusion.radius = 0.5;
+    } else {
+      // Raise shadowBias/shadowNormalBias from the 0.25 scene baseline closer to the engine default
+      // to eliminate grazing-angle self-shadowing on plastered masonry walls in Cascade 1 while
+      // keeping the default cascade distribution (Cascade 0 tree-shadow triangle budget intact).
+      sun.shadowBias = 0.5;
+      sun.shadowNormalBias = 0.9;
     }
     await timed("waitForEnvironmentIBLIdle", () => lighting!.waitForEnvironmentIBLIdle());
     if (pageUrl.searchParams.get("debug") === "1") {
