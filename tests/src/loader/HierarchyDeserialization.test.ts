@@ -6,7 +6,6 @@ import {
   PrefabResource,
   PrimitiveMesh,
   Scene,
-  TextRenderer,
   WebGLEngine
 } from "@galacean/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -49,7 +48,7 @@ describe("Scene and prefab deserialization", () => {
     return { components: [{ id: "component", class: className, ...config }] };
   }
 
-  it("loads inherited setters, nested methods, method results, and TextRenderer without props", async () => {
+  it("loads inherited setters, nested methods, and method results", async () => {
     const scene = await load<Scene>(AssetType.Scene, {
       transform: {
         class: "Transform",
@@ -68,10 +67,6 @@ describe("Scene and prefab deserialization", () => {
               }
             ]
           }
-        },
-        {
-          id: "text",
-          class: "TextRenderer"
         }
       ]
     });
@@ -85,9 +80,6 @@ describe("Scene and prefab deserialization", () => {
       const bloom = postProcess.getEffect(BloomEffect);
       expect(bloom).not.toBeNull();
       expect(bloom.intensity.value).toBe(2.5);
-
-      const textRenderer = root.getComponent(TextRenderer);
-      expect(textRenderer.font).toBeTruthy();
     } finally {
       scene.destroy();
     }
@@ -279,9 +271,7 @@ describe("Scene and prefab deserialization", () => {
     const url = assetUrl(hierarchy({}));
     const reservedItems = [
       { type: AssetType.Prefab, url: url + "?q=%70rototype" },
-      { type: AssetType.Prefab, url: url + "?q=constructor" },
-      { type: AssetType.Prefab, url: url + "?q=engine" },
-      { type: AssetType.Prefab, url: url + "?q=_root.engine" }
+      { type: AssetType.Prefab, url: url + "?q=constructor" }
     ];
     try {
       for (const item of reservedItems) {
@@ -292,9 +282,11 @@ describe("Scene and prefab deserialization", () => {
       for (const item of reservedItems) {
         await expect(manager.load(item)).rejects.toThrow("Reserved sub-asset path member");
       }
-      await expect(manager.load({ type: AssetType.Prefab, url: url + "?q=destroy" })).rejects.toThrow(
-        "Disallowed sub-asset path target"
-      );
+      for (const suffix of ["engine", "_root.engine", "destroy"]) {
+        await expect(manager.load({ type: AssetType.Prefab, url: url + "?q=" + suffix })).rejects.toThrow(
+          "Disallowed sub-asset path target"
+        );
+      }
     } finally {
       URL.revokeObjectURL(url);
     }

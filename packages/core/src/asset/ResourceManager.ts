@@ -1,5 +1,5 @@
 import { IClone } from "@galacean/engine-design";
-import { Canvas, ContentRestorer, Engine, EngineObject, Logger, Scene, SceneManager, Utils } from "..";
+import { ContentRestorer, Engine, EngineObject, Logger, Utils } from "..";
 import { AssetPromise } from "./AssetPromise";
 import { GraphicsResource } from "./GraphicsResource";
 import { Loader } from "./Loader";
@@ -530,28 +530,12 @@ export class ResourceManager {
       for (let i = 0, n = paths.length; i < n; i++) {
         if (subResource == null) return undefined;
         subResource = subResource[paths[i]];
-        if (ResourceManager._isDisallowedSubAssetTarget(subResource)) {
+        if (typeof subResource === "function" || subResource instanceof Engine) {
           throw new Error("Disallowed sub-asset path target");
         }
       }
     }
     return subResource;
-  }
-
-  private static _isDisallowedSubAssetTarget(value: unknown): boolean {
-    const hostProcess = (globalThis as any).process;
-    return (
-      value === Object.prototype ||
-      value === globalThis ||
-      typeof value === "function" ||
-      value instanceof Engine ||
-      value instanceof Scene ||
-      value instanceof ResourceManager ||
-      value instanceof SceneManager ||
-      value instanceof Canvas ||
-      (typeof EventTarget !== "undefined" && value instanceof EventTarget) ||
-      (hostProcess !== undefined && value === hostProcess)
-    );
   }
 
   private _parseURL(path: string): { assetBaseURL: string; queryPath: string } {
@@ -585,13 +569,7 @@ export class ResourceManager {
       } else if (expression) {
         key = expression.trim();
       }
-      if (
-        key === "constructor" ||
-        key === "prototype" ||
-        key === "__proto__" ||
-        key === "engine" ||
-        key === "_engine"
-      ) {
+      if (key === "constructor" || key === "prototype" || key === "__proto__") {
         throw new Error("Reserved sub-asset path member: " + key);
       }
       result.push(key);

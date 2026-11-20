@@ -88,7 +88,7 @@ export class ReflectionParser {
 
   /** @internal */
   static _resolveClass(className: unknown, baseClass?: Function): { new (...args: any[]): any } {
-    const Class = typeof className === "string" ? Loader.getClass(className) : undefined;
+    const Class = Loader.getClass(className as string);
     if (typeof Class !== "function") {
       throw new Error("Serialized class is not registered: " + className);
     }
@@ -333,7 +333,6 @@ export class ReflectionParser {
   }
 
   private static _isProtectedRuntimeObject(value: unknown): boolean {
-    const hostProcess = (globalThis as any).process;
     return (
       value === objectPrototype ||
       value === globalThis ||
@@ -342,8 +341,7 @@ export class ReflectionParser {
       value instanceof ResourceManager ||
       value instanceof SceneManager ||
       value instanceof Canvas ||
-      (typeof EventTarget !== "undefined" && value instanceof EventTarget) ||
-      (hostProcess !== undefined && value === hostProcess)
+      (typeof EventTarget !== "undefined" && value instanceof EventTarget)
     );
   }
 

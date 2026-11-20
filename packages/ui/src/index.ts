@@ -91,10 +91,10 @@ ApplyMixins(Engine, [EngineExtension]);
 ApplyMixins(Entity, [EntityExtension]);
 
 ReflectionParser.registerCustomParseComponent("Text", async (instance: any, item: Omit<IClass, "class">) => {
-  const props = item.props;
-  if (!props?.font) {
+  const { props } = item;
+  if (!props.font) {
     // @ts-ignore
-    instance.font = Font.createFromOS(instance.engine, props?.fontFamily || "Arial");
+    instance.font = Font.createFromOS(instance.engine, props.fontFamily || "Arial");
   }
   return instance;
 });
