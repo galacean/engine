@@ -1,0 +1,20 @@
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  h_171a11afaf879a 164-165,220-222,601-603,605-623,625,640-645,2127-2148,2757
+packages/animals/src/gameplay/animal/CuteZooOutline.shader
+  h_171a11afaf879a 14-17,51-56
+packages/animals/src/gameplay/animal/CuteZooToonMaterial.ts
+  h_171a11afaf879a 22-25,44-46,49-57,62,95-105
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  h_171a11afaf879a 11-14,62-64,131-142,145-149,560-568,735-738,777,1292-1310,1324-1327
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a04064d836804cd8e46ae602e345fd8af175b367",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
