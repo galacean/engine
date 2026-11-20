@@ -98,7 +98,7 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene, Sc
         // @ts-ignore
         context._addDependentAsset(value.refId, context.resourceManager.getResourceByRef(value));
       } else {
-        for (let key in value) {
+        for (const key of Object.keys(value)) {
           this._searchDependentAssets(value[key]);
         }
       }

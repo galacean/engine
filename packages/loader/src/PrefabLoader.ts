@@ -15,9 +15,8 @@ export class PrefabLoader extends Loader<PrefabResource> {
           ...item,
           type: "json"
         })
-        .then((data) => {
-          PrefabParser.parse(engine, item.url, data).then(resolve).catch(reject);
-        }, reject);
+        .then((data) => PrefabParser.parse(engine, item.url, data))
+        .then(resolve, reject);
     });
   }
 }

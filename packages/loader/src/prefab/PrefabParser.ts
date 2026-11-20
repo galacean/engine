@@ -9,7 +9,10 @@ export class PrefabParser extends HierarchyParser<PrefabResource, ParserContext<
     const context = new ParserContext<IHierarchyFile, Entity>(engine, ParserType.Prefab, prefabResource);
     const parser = new PrefabParser(data, context, prefabResource);
     parser.start();
-    return parser.promise.then(() => prefabResource);
+    return parser.promise.catch((error) => {
+      prefabResource.destroy();
+      throw error;
+    });
   }
 
   constructor(
@@ -20,11 +23,12 @@ export class PrefabParser extends HierarchyParser<PrefabResource, ParserContext<
     super(data, context);
   }
 
-  protected override _applyEntityData(entity: Entity, entityConfig: IEntity = {}): Entity {
-    super._applyEntityData(entity, entityConfig);
+  /** @internal */
+  protected override _applyEntityData(entity: Entity, entityConfig?: IEntity): Promise<Entity> {
+    const parsedEntity = super._applyEntityData(entity, entityConfig);
     // @ts-ignore
     entity._markAsTemplate(this.context.resource);
-    return entity;
+    return parsedEntity;
   }
 
   protected override _handleRootEntity(id: string): void {

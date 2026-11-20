@@ -24,6 +24,8 @@ export class ParserContext<T extends IHierarchyFile, I extends EngineObject> {
   componentConfigMap: Map<string, any> = new Map();
   rootIds: string[] = [];
   strippedIds: string[] = [];
+  /** @internal */
+  _aborted = false;
 
   readonly resourceManager: ResourceManager;
 
@@ -54,12 +56,17 @@ export class ParserContext<T extends IHierarchyFile, I extends EngineObject> {
   /** @internal */
   _addDependentAsset(refID: string, promise: AssetPromise<any>): void {
     const tasks = this._tasks;
-    if (tasks.has(refID)) return;
-    ++this._total;
-    tasks.add(refID);
-    promise.finally(() => {
-      ++this._loaded;
-      this._setTaskCompleteProgress(this._loaded, this._total);
-    });
+    const trackProgress = !tasks.has(refID);
+    if (trackProgress) {
+      ++this._total;
+      tasks.add(refID);
+    }
+    const onSettled = () => {
+      if (trackProgress && !this._aborted) {
+        ++this._loaded;
+        this._setTaskCompleteProgress?.(this._loaded, this._total);
+      }
+    };
+    promise.then(onSettled, onSettled);
   }
 }

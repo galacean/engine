@@ -8,6 +8,7 @@ import type {
   IEntity,
   IEntityRef,
   IHierarchyFile,
+  IInstance,
   IMethod,
   IMethodParams,
   IRefEntity
@@ -18,7 +19,7 @@ export class ReflectionParser {
   static customParseComponentHandles = new Map<string, Function>();
 
   static registerCustomParseComponent(componentType: string, handle: Function) {
-    this.customParseComponentHandles[componentType] = handle;
+    this.customParseComponentHandles.set(componentType, handle);
   }
 
   constructor(private readonly _context: ParserContext<IHierarchyFile, EngineObject>) {}
@@ -28,9 +29,8 @@ export class ReflectionParser {
       entity.isActive = entityConfig.isActive ?? true;
       const transform = entity.transform;
       const transformConfig = entityConfig.transform;
-      if (transformConfig) {
-        this.parsePropsAndMethods(transform, transformConfig);
-      } else {
+      const transformPromise = transformConfig && this.parsePropsAndMethods(transform, transformConfig);
+      if (!transformConfig) {
         const { position, rotation, scale } = entityConfig;
         if (position) transform.position.copyFrom(position);
         if (rotation) transform.rotation.copyFrom(rotation);
@@ -39,53 +39,67 @@ export class ReflectionParser {
       entity.layer = entityConfig.layer ?? entity.layer;
       // @ts-ignore
       this._context.type === ParserType.Prefab && entity._markAsTemplate(this._context.resource);
-      return entity;
+      return transformPromise ? transformPromise.then(() => entity) : entity;
     });
   }
 
   parseClassObject(item: IClass) {
     const Class = Loader.getClass(item.class);
+    if (!Class) return Promise.reject(new Error("Serialized class is not registered"));
     const params = item.constructParams ?? [];
-    return Promise.all(params.map((param) => this.parseBasicType(param)))
-      .then((resultParams) => new Class(...resultParams))
-      .then((instance) => this.parsePropsAndMethods(instance, item));
+    return Promise.all(params.map((param) => this.parseBasicType(param))).then((resultParams) => {
+      if (!this._context._aborted) return this.parsePropsAndMethods(new Class(...resultParams), item);
+    });
   }
 
   parsePropsAndMethods(instance: any, item: Omit<IClass, "class">) {
-    const promises = [];
-    if (item.methods) {
-      for (let methodName in item.methods) {
-        const methodParams = item.methods[methodName];
-        for (let i = 0, count = methodParams.length; i < count; i++) {
-          promises.push(this.parseMethod(instance, methodName, methodParams[i]));
-        }
-      }
+    if (!ReflectionParser._isObjectTarget(instance)) {
+      return Promise.reject(new Error("Serialized properties and methods require an object instance"));
     }
 
-    if (item.props) {
-      for (let key in item.props) {
-        const value = item.props[key];
-        const promise = this.parseBasicType(value, instance[key]).then((v) => {
-          return (instance[key] = v);
-        });
-        promises.push(promise);
+    const promises: Promise<any>[] = [];
+    if (ReflectionParser._hasOwnValue(item, "methods")) {
+      this._parseMethods(instance, item.methods, promises);
+    }
+
+    if (ReflectionParser._hasOwnValue(item, "props") && item.props) {
+      const { props } = item;
+      for (const key of Object.keys(props)) {
+        promises.push(this._parseProperty(instance, key, props[key]));
       }
     }
 
     return Promise.all(promises).then(() => {
-      const handle = ReflectionParser.customParseComponentHandles[instance.constructor.name];
+      if (this._context._aborted) return instance;
+      const handle = ReflectionParser.customParseComponentHandles.get(instance.constructor?.name);
       if (handle) return handle(instance, item);
       else return instance;
     });
   }
 
   parseMethod(instance: any, methodName: string, methodParams: IMethodParams) {
+    if (
+      typeof methodName !== "string" ||
+      ReflectionParser._isReservedKey(methodName) ||
+      Object.prototype.hasOwnProperty.call(Object.prototype, methodName)
+    ) {
+      return Promise.reject(new Error("Reserved serialized method: " + methodName));
+    }
+    if (!ReflectionParser._isObjectTarget(instance)) {
+      return Promise.reject(new Error("Serialized methods require an object instance"));
+    }
+
     const isMethodObject = ReflectionParser._isMethodObject(methodParams);
     const params = isMethodObject ? methodParams.params : methodParams;
 
     return Promise.all(params.map((param) => this.parseBasicType(param))).then((result) => {
-      const methodResult = instance[methodName](...result);
-      if (isMethodObject && methodParams.result) {
+      if (this._context._aborted) return;
+      const method = instance[methodName];
+      if (typeof method !== "function") {
+        throw new Error("Serialized method is not callable: " + methodName);
+      }
+      const methodResult = Function.prototype.apply.call(method, instance, result);
+      if (isMethodObject && ReflectionParser._hasOwnValue(methodParams, "result") && methodParams.result) {
         return this.parsePropsAndMethods(methodResult, methodParams.result);
       } else {
         return methodResult;
@@ -119,20 +133,16 @@ export class ReflectionParser {
         // entity reference
         return Promise.resolve(this._context.entityMap.get(value.entityId));
       } else if (originValue) {
+        if (!ReflectionParser._isObjectTarget(originValue)) {
+          return Promise.reject(new Error("Serialized properties and methods require an object instance"));
+        }
+
         const promises: Promise<any>[] = [];
-        for (let key in value as any) {
+        for (const key of Object.keys(value)) {
           if (key === "methods") {
-            const methods: any = value[key];
-            for (let methodName in methods) {
-              const methodParams = methods[methodName];
-              for (let i = 0, count = methodParams.length; i < count; i++) {
-                const params = methodParams[i];
-                const promise = this.parseMethod(originValue, methodName, params);
-                promises.push(promise);
-              }
-            }
+            this._parseMethods(originValue, value[key], promises);
           } else {
-            promises.push(this.parseBasicType(value[key], originValue[key]).then((v) => (originValue[key] = v)));
+            promises.push(this._parseProperty(originValue, key, value[key]));
           }
         }
         return Promise.all(promises).then(() => originValue);
@@ -140,6 +150,26 @@ export class ReflectionParser {
     }
     // primitive type
     return Promise.resolve(value);
+  }
+
+  private _parseMethods(instance: any, methods: IInstance["methods"], promises: Promise<any>[]): void {
+    if (!methods) return;
+
+    for (const methodName of Object.keys(methods)) {
+      const calls = methods[methodName];
+      for (let i = 0, n = calls.length; i < n; i++) {
+        promises.push(this.parseMethod(instance, methodName, calls[i]));
+      }
+    }
+  }
+
+  private _parseProperty(instance: any, key: string, value: IBasicType): Promise<void> {
+    if (ReflectionParser._isReservedKey(key)) {
+      return Promise.reject(new Error("Reserved serialized property: " + key));
+    }
+    return this.parseBasicType(value, instance[key]).then((parsedValue) => {
+      if (!this._context._aborted) instance[key] = parsedValue;
+    });
   }
 
   private _getEntityByConfig(entityConfig: IEntity) {
@@ -174,27 +204,39 @@ export class ReflectionParser {
     }
   }
 
+  private static _isObjectTarget(value: unknown): boolean {
+    return value !== null && typeof value === "object" && value !== Object.prototype;
+  }
+
+  private static _isReservedKey(key: string): boolean {
+    return key === "constructor" || key === "prototype" || key === "__proto__";
+  }
+
+  private static _hasOwnValue(value: any, key: string): boolean {
+    return Object.prototype.hasOwnProperty.call(value, key) && value[key] !== undefined;
+  }
+
   private static _isClass(value: any): value is IClass {
-    return value["class"] !== undefined;
+    return ReflectionParser._hasOwnValue(value, "class");
   }
 
   private static _isClassType(value: any): value is IClassType {
-    return value["classType"] !== undefined;
+    return ReflectionParser._hasOwnValue(value, "classType");
   }
 
   private static _isAssetRef(value: any): value is IAssetRef {
-    return value["refId"] !== undefined;
+    return ReflectionParser._hasOwnValue(value, "refId");
   }
 
   private static _isEntityRef(value: any): value is IEntityRef {
-    return value["entityId"] !== undefined;
+    return ReflectionParser._hasOwnValue(value, "entityId");
   }
 
   private static _isComponentRef(value: any): value is IComponentRef {
-    return value["ownerId"] !== undefined && value["componentId"] !== undefined;
+    return ReflectionParser._hasOwnValue(value, "ownerId") && ReflectionParser._hasOwnValue(value, "componentId");
   }
 
   private static _isMethodObject(value: any): value is IMethod {
-    return Array.isArray(value?.params);
+    return value != null && ReflectionParser._hasOwnValue(value, "params") && Array.isArray(value.params);
   }
 }

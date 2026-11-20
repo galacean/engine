@@ -360,6 +360,12 @@ export class ResourceManager {
     // Parse url
     const { assetBaseURL, queryPath } = this._parseURL(url);
     const paths = queryPath ? this._parseQueryPath(queryPath) : [];
+    for (let i = 0, n = paths.length; i < n; i++) {
+      const key = paths[i];
+      if (key === "constructor" || key === "prototype" || key === "__proto__") {
+        return new AssetPromise((_, reject) => reject(new Error("Reserved sub-asset path member: " + key)));
+      }
+    }
 
     // Get remote asset base url
     const remoteConfig = this._virtualPathResourceMap[assetBaseURL];

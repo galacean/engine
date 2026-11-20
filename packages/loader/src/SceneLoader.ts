@@ -27,11 +27,12 @@ class SceneLoader extends Loader<Scene> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Scene> {
     const { engine } = resourceManager;
     return new AssetPromise((resolve, reject, setTaskCompleteProgress) => {
+      let scene: Scene;
       resourceManager
         // @ts-ignore
         ._request<IScene>(item.url, { ...item, type: "json" })
         .then((data: IScene) => {
-          const scene = new Scene(engine, data.name ?? "");
+          scene = new Scene(engine, data.name ?? "");
           const context = new ParserContext<IScene, Scene>(engine, ParserType.Scene, scene);
           const parser = new SceneParser(data, context, scene);
           parser._collectDependentAssets(data);
@@ -160,12 +161,14 @@ class SceneLoader extends Loader<Scene> {
               sceneAmbientOcclusion.minHorizonAngle = ambientOcclusion.minHorizonAngle;
             }
 
-            return Promise.all(promises).then(() => {
-              resolve(scene);
-            });
+            return Promise.all(promises).then(() => scene);
           });
         })
-        .catch(reject);
+        .catch((error) => {
+          scene?.destroy();
+          throw error;
+        })
+        .then(resolve, reject);
     });
   }
 }
