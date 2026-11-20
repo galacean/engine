@@ -1637,6 +1637,90 @@ describe("Cross-prefab $component ref", () => {
         }
       }
 
+      // 6. Same-group Rigidbody + already-convex MeshCollider setting isTrigger: true runs concurrently with zero deadlock
+      for (const isTriggered of [false, true]) {
+        let unblock!: () => void;
+        const gate = new Promise<void>((r) => (unblock = r));
+        const observed: string[] = [];
+        class GroupedWaitBody extends Rigidbody {
+          async wait(): Promise<void> {
+            observed.push(`wait:${this.isKinematic}`);
+            await gate;
+            observed.push("resumed");
+          }
+        }
+        class GroupedTriggerMesh extends MeshCollider {
+          signal(): void {
+            observed.push(`signal:${this.convex}:${this.isTrigger}`);
+            unblock();
+          }
+        }
+        const bodyType = `R9GroupedWaitBody_${isTriggered}`;
+        const meshType = `R9GroupedTriggerMesh_${isTriggered}`;
+        Loader.registerClass(bodyType, GroupedWaitBody);
+        Loader.registerClass(meshType, GroupedTriggerMesh);
+
+        const baseKey = `r9-grouped-trigger-base-${isTriggered}.prefab`;
+        const groupedBase = await PrefabParser.parse(engine, baseKey, {
+          version: "2.0",
+          refs: [],
+          entities: [{ name: "root", components: [0, 1] }],
+          components: [
+            { type: bodyType, props: { isKinematic: true } },
+            { type: meshType, props: { convex: true } }
+          ],
+          root: 0
+        });
+        // @ts-ignore
+        engine.resourceManager._objectPool[baseKey] = groupedBase;
+        try {
+          const groupedOuter = await PrefabParser.parse(engine, `r9-grouped-trigger-outer-${isTriggered}.prefab`, {
+            version: "2.0",
+            refs: [{ url: baseKey }],
+            entities: [
+              {
+                instance: {
+                  asset: 0,
+                  overrides: {
+                    componentProps: [
+                      {
+                        path: [],
+                        selector: { type: bodyType, index: 0 },
+                        props: { isKinematic: false },
+                        calls: [{ method: "wait" }]
+                      },
+                      { path: [], selector: { type: bodyType, index: 0 }, props: { isKinematic: true } },
+                      {
+                        path: [],
+                        selector: { type: meshType, index: 0 },
+                        props: isTriggered ? { isTrigger: true } : { contactOffset: 0.04 },
+                        calls: [{ method: "signal" }]
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
+            components: [],
+            root: 0
+          });
+          const inst = groupedOuter.instantiate();
+          try {
+            const body = inst.getComponent(GroupedWaitBody)!;
+            const mesh = inst.getComponent(GroupedTriggerMesh)!;
+            expect(observed).toContain("resumed");
+            expect(observed).toContain(`signal:true:${isTriggered}`);
+            expect(body.isKinematic).toBe(true);
+            expect(mesh.isTrigger).toBe(isTriggered);
+          } finally {
+            inst.destroy();
+          }
+        } finally {
+          // @ts-ignore
+          delete engine.resourceManager._objectPool[baseKey];
+        }
+      }
+
       expect(errors).not.toHaveBeenCalled();
     } finally {
       errors.mockRestore();

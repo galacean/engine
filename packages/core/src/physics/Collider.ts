@@ -74,7 +74,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
   @ignoreClone
   private _failedTransferFallback: Rigidbody | null = null;
   @ignoreClone
-  private _failedTransferVersion = 0;
+  private _failedTransferStamp = 0;
   @ignoreClone
   private _shearWarned = false;
   @ignoreClone
@@ -103,23 +103,22 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * @remarks Derived from the hierarchy. It does not change when either component is disabled.
    */
   get attachedRigidbody(): Rigidbody | null {
+    if (this._dirtyIndex === -1 && this._nativeActor) {
+      return this._attachedBody;
+    }
     const hierarchyBody = this._findRigidbody();
-    if (this._dirtyIndex === -1) {
-      if (this._nativeActor) {
-        return this._attachedBody;
+    if (
+      this._dirtyIndex === -1 &&
+      this._failedTransferTarget !== undefined &&
+      hierarchyBody === this._failedTransferTarget &&
+      !this._hasHierarchyChangedSince(this._failedTransferStamp)
+    ) {
+      const fallback = this._failedTransferFallback;
+      if (fallback === null) {
+        return null;
       }
-      if (
-        this._failedTransferTarget !== undefined &&
-        hierarchyBody === this._failedTransferTarget &&
-        this._getHierarchyVersion() === this._failedTransferVersion
-      ) {
-        const fallback = this._failedTransferFallback;
-        if (fallback === null) {
-          return null;
-        }
-        if (!fallback.destroyed && fallback.entity._scene === this.entity._scene) {
-          return fallback;
-        }
+      if (!fallback.destroyed && fallback.entity._scene === this.entity._scene) {
+        return fallback;
       }
     }
     return hierarchyBody;
@@ -411,7 +410,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       if (!this._transfer(body, actor)) {
         this._failedTransferTarget = body;
         this._failedTransferFallback = this._attachedBody;
-        this._failedTransferVersion = this._getHierarchyVersion();
+        this._failedTransferStamp = Entity._nextHierarchyStamp;
         if (this._nativeActor) {
           this._syncPose(shape, this._attachedBody, scale, true);
         }
@@ -603,12 +602,13 @@ export class Collider extends Component implements ICloneHook<Collider> {
     return this._material?._nativeMaterial ?? BasicResources.physicsDefaultMaterial;
   }
 
-  private _getHierarchyVersion(): number {
-    let version = 0;
+  private _hasHierarchyChangedSince(stamp: number): boolean {
     for (let entity: Entity | null = this.entity; entity; entity = entity.parent) {
-      version += entity._parentVersion;
+      if (entity._hierarchyStamp > stamp) {
+        return true;
+      }
     }
-    return version;
+    return false;
   }
 
   /**

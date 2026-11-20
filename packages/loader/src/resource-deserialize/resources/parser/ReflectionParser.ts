@@ -3,6 +3,11 @@ import { resolveRefItem } from "../../../schema/refs";
 import type { CallSpec, ComponentRef, MutationBlock, RefItem, SignalListener } from "../../../schema/CommonSchema";
 import { ParserContext, ParserType } from "./ParserContext";
 
+export interface DeferredPropCheck {
+  predicates: Record<string, (value: unknown) => boolean>;
+  deferredValues: Record<string, unknown>;
+}
+
 export class ReflectionParser {
   /** @internal shared with HierarchyParser; each use must length=0 -> getComponents -> read -> length=0 synchronously. */
   static _componentBuffer: Component[] = [];
@@ -16,14 +21,44 @@ export class ReflectionParser {
    * Apply v2 props to a component/object instance.
    * Each prop value is resolved recursively (handling $ref, $number, $type, $class, $entity, $component, $signal).
    */
-  parseProps(instance: any, props?: Record<string, unknown>): Promise<any> {
-    if (!props) return Promise.resolve(instance);
+  parseProps(
+    instance: any,
+    props?: Record<string, unknown>,
+    deferCheck?: DeferredPropCheck,
+    preResolvedProps?: Record<string, unknown>
+  ): Promise<any> {
+    let hasPreResolved = false;
+    if (preResolvedProps) {
+      for (const _ in preResolvedProps) {
+        hasPreResolved = true;
+        break;
+      }
+    }
+    if (!props && !hasPreResolved) return Promise.resolve(instance);
+
+    const assignProp = (key: string, value: unknown): void => {
+      const predicate = deferCheck?.predicates[key];
+      if (predicate && predicate(value)) {
+        deferCheck!.deferredValues[key] = value;
+      } else {
+        instance[key] = value;
+      }
+    };
+
+    const applyPreResolved = (): void => {
+      if (!hasPreResolved) return;
+      for (const key in preResolvedProps) {
+        if (!props || !(key in props)) {
+          instance[key] = preResolvedProps[key];
+        }
+      }
+    };
 
     try {
       const rawPropOrder: readonly string[] | ((props: Record<string, unknown>) => readonly string[]) | undefined =
         instance?.constructor?._deserializePropOrder;
-      const propOrder = typeof rawPropOrder === "function" ? rawPropOrder(props) : rawPropOrder;
-      if (propOrder?.length) {
+      const propOrder = props ? (typeof rawPropOrder === "function" ? rawPropOrder(props) : rawPropOrder) : undefined;
+      if (props && propOrder?.length) {
         const orderedKeys: string[] = [];
         for (let i = 0, n = propOrder.length; i < n; i++) {
           const key = propOrder[i];
@@ -37,11 +72,11 @@ export class ReflectionParser {
             const key = orderedKeys[i];
             const raw = props[key];
             if (!chain && (raw == null || typeof raw !== "object")) {
-              instance[key] = raw;
+              assignProp(key, raw);
             } else {
               const applyOrdered = () =>
                 this._resolveValue(raw, instance[key]).then((v) => {
-                  instance[key] = v;
+                  assignProp(key, v);
                 });
               chain = chain ? chain.then(applyOrdered) : applyOrdered();
             }
@@ -52,15 +87,16 @@ export class ReflectionParser {
               if (orderedKeys.includes(key)) continue;
               const raw = props[key];
               if (raw == null || typeof raw !== "object") {
-                instance[key] = raw;
+                assignProp(key, raw);
               } else {
                 (promises ||= []).push(
                   this._resolveValue(raw, instance[key]).then((v) => {
-                    instance[key] = v;
+                    assignProp(key, v);
                   })
                 );
               }
             }
+            applyPreResolved();
             return promises ? Promise.all(promises).then(() => instance) : Promise.resolve(instance);
           };
           return chain ? chain.then(applyRemaining) : applyRemaining();
@@ -68,18 +104,21 @@ export class ReflectionParser {
       }
 
       let promises: Promise<any>[] | null = null;
-      for (const key in props) {
-        const raw = props[key];
-        if (raw == null || typeof raw !== "object") {
-          instance[key] = raw;
-        } else {
-          (promises ||= []).push(
-            this._resolveValue(raw, instance[key]).then((v) => {
-              instance[key] = v;
-            })
-          );
+      if (props) {
+        for (const key in props) {
+          const raw = props[key];
+          if (raw == null || typeof raw !== "object") {
+            assignProp(key, raw);
+          } else {
+            (promises ||= []).push(
+              this._resolveValue(raw, instance[key]).then((v) => {
+                assignProp(key, v);
+              })
+            );
+          }
         }
       }
+      applyPreResolved();
       return promises ? Promise.all(promises).then(() => instance) : Promise.resolve(instance);
     } catch (error) {
       return Promise.reject(error);
@@ -130,9 +169,14 @@ export class ReflectionParser {
   /**
    * Apply props before executing calls from the same mutation block.
    */
-  parseMutationBlock(target: any, block?: MutationBlock): Promise<any> {
+  parseMutationBlock(
+    target: any,
+    block?: MutationBlock,
+    deferCheck?: DeferredPropCheck,
+    preResolvedProps?: Record<string, unknown>
+  ): Promise<any> {
     if (!block) return Promise.resolve(target);
-    return this.parseProps(target, block.props)
+    return this.parseProps(target, block.props, deferCheck, preResolvedProps)
       .then(() => this.parseCalls(target, block.calls))
       .then(() => target);
   }

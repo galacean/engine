@@ -11,14 +11,25 @@ type MeshData = {
   indices: Uint8Array | Uint16Array | Uint32Array | null;
 };
 
+function requiresConvexMesh(value: unknown): boolean {
+  if (!(value instanceof ModelMesh)) return false;
+  const indices = value.getIndices();
+  return !indices || indices.length === 0;
+}
+
 /**
  * A collider based on mesh geometry, either as a convex hull or as the original triangle mesh.
  * @remarks A triangle mesh (`convex = false`) can only be static or belong to a kinematic {@link Rigidbody}.
  */
 export class MeshCollider extends Collider {
-  private static readonly _deferTrigger = ["isTrigger"] as const;
-  private static readonly _deferMesh = ["mesh"] as const;
-  private static readonly _deferMeshAndTrigger = ["mesh", "isTrigger"] as const;
+  private static readonly _deferTrigger: Record<string, true | ((value: unknown) => boolean)> = { isTrigger: true };
+  private static readonly _deferMesh: Record<string, true | ((value: unknown) => boolean)> = {
+    mesh: requiresConvexMesh
+  };
+  private static readonly _deferMeshAndTrigger: Record<string, true | ((value: unknown) => boolean)> = {
+    isTrigger: true,
+    mesh: requiresConvexMesh
+  };
 
   /** @internal */
   static _deserializePropOrder(props: Record<string, unknown>): readonly string[] {
@@ -29,8 +40,6 @@ export class MeshCollider extends Collider {
   static _getDeserializePhase(props: Record<string, unknown>): number {
     if (props.convex === false) return 1;
     if (props.convex === true) return -1;
-    if (props.isTrigger === false) return -1;
-    if (props.isTrigger === true) return 1;
     return 0;
   }
 
@@ -38,13 +47,13 @@ export class MeshCollider extends Collider {
   static _getDeferredDeserializeProps(
     baseProps: Record<string, unknown>,
     overrideProps: Record<string, unknown>
-  ): readonly string[] | null {
+  ): Record<string, true | ((value: unknown) => boolean)> | null {
     if (baseProps.convex !== true && overrideProps.convex === true) {
-      const hasMesh = baseProps.mesh != null;
       const hasTrigger = baseProps.isTrigger === true;
-      if (hasMesh && hasTrigger) return MeshCollider._deferMeshAndTrigger;
-      if (hasMesh) return MeshCollider._deferMesh;
+      const hasMesh = baseProps.mesh != null;
+      if (hasTrigger && hasMesh) return MeshCollider._deferMeshAndTrigger;
       if (hasTrigger) return MeshCollider._deferTrigger;
+      if (hasMesh) return MeshCollider._deferMesh;
     }
     return null;
   }

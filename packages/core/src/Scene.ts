@@ -416,6 +416,8 @@ export class Scene extends EngineObject {
         }
         if (!wasRoot) {
           rootEntity._setParentChange();
+        } else {
+          rootEntity._hierarchyStamp = ++Entity._nextHierarchyStamp;
         }
       }
     }
@@ -454,19 +456,11 @@ export class Scene extends EngineObject {
       // is an immediate no-op while entity._scene remains `this` until deactivation callbacks drain.
       Entity._removeFromChildren(this._rootEntities, entity);
       entity._isRoot = false;
-      entity._parentVersion++;
+      entity._hierarchyStamp = ++Entity._nextHierarchyStamp;
       try {
         inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
       } finally {
-        if (
-          !entity._isRoot &&
-          !entity.parent &&
-          entity._scene === this &&
-          entity._deactivatingCount === 0 &&
-          entity._deactivatingSubtreeCount === 0
-        ) {
-          Entity._traverseSetOwnerScene(entity, null);
-        }
+        Entity._finalizeOrDeferSceneClear(entity, this);
       }
     }
   }

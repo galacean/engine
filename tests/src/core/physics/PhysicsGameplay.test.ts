@@ -1857,7 +1857,7 @@ describe("Physics gameplay integration", () => {
     }
   });
 
-  it("defers vertex-only MeshCollider mesh alongside isTrigger when Wave 1 override enables convex", async () => {
+  it("defers only unindexed MeshCollider mesh onto convex override while keeping indexed mesh visible in Wave 0, preserves deactivation tracking across ancestor reparenting, and invalidates rollback cache across any parent-chain mutation", async () => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     const vertexOnlyMesh = new ModelMesh(engine);
     vertexOnlyMesh.setPositions([
@@ -1866,10 +1866,14 @@ describe("Physics gameplay integration", () => {
       new Vector3(1, 0, -1),
       new Vector3(0, 0, 1)
     ]);
+    const indexedMesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1, { keepMeshData: true });
     const meshKey = "r8-vertex-only.mesh";
+    const indexedKey = "r9-indexed.mesh";
     const baseKey = "r8-mesh-defer-base.prefab";
     // @ts-ignore
     engine.resourceManager._objectPool[meshKey] = vertexOnlyMesh;
+    // @ts-ignore
+    engine.resourceManager._objectPool[indexedKey] = indexedMesh;
     const basePrefab = await PrefabParser.parse(engine, baseKey, {
       version: "2.0",
       refs: [],
@@ -1880,7 +1884,19 @@ describe("Physics gameplay integration", () => {
     // @ts-ignore
     engine.resourceManager._objectPool[baseKey] = basePrefab;
 
+    class Wave0MeshObserver extends Script {
+      observedMesh: ModelMesh | null = null;
+      observedConvex: boolean | null = null;
+      observe(): void {
+        const collider = this.entity.getComponent(MeshCollider)!;
+        this.observedMesh = collider.mesh;
+        this.observedConvex = collider.convex;
+      }
+    }
+    Loader.registerClass("R9Wave0MeshObserver", Wave0MeshObserver);
+
     try {
+      // 1. Vertex-only ModelMesh is deferred alongside isTrigger when Wave 1 enables convex
       const outerPrefab = await PrefabParser.parse(engine, "r8-mesh-defer-outer.prefab", {
         version: "2.0",
         refs: [{ url: baseKey }, { url: meshKey }],
@@ -1910,11 +1926,184 @@ describe("Physics gameplay integration", () => {
       } finally {
         inst.destroy();
       }
+
+      // 2. Indexed ModelMesh is assigned in Wave 0 (visible to sibling base observer) even when Wave 1 enables convex
+      for (const overrideConvex of [false, true]) {
+        const indexedOuter = await PrefabParser.parse(engine, `r9-indexed-outer-${overrideConvex}.prefab`, {
+          version: "2.0",
+          refs: [{ url: baseKey }, { url: indexedKey }],
+          entities: [
+            {
+              instance: {
+                asset: 0,
+                overrides: {
+                  addedComponents: [
+                    { target: [], component: 0 },
+                    { target: [], component: 1 }
+                  ],
+                  ...(overrideConvex
+                    ? {
+                        componentProps: [
+                          { path: [], selector: { type: "MeshCollider", index: 0 }, props: { convex: true } }
+                        ]
+                      }
+                    : {})
+                }
+              }
+            }
+          ],
+          components: [
+            { type: "MeshCollider", props: { mesh: { $ref: 1 } } },
+            { type: "R9Wave0MeshObserver", calls: [{ method: "observe" }] }
+          ],
+          root: 0
+        });
+        const indexedInst = indexedOuter.instantiate();
+        root.addChild(indexedInst);
+        try {
+          const observer = indexedInst.getComponent(Wave0MeshObserver)!;
+          const meshCollider = indexedInst.getComponent(MeshCollider)!;
+          expect(observer.observedMesh).toBe(indexedMesh);
+          expect(observer.observedConvex).toBe(false);
+          expect(meshCollider.mesh).toBe(indexedMesh);
+          expect(meshCollider.convex).toBe(overrideConvex);
+          expect(scene.physics.raycast(new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0)), 10)).toBe(true);
+          expect(errors).not.toHaveBeenCalled();
+        } finally {
+          indexedInst.destroy();
+        }
+      }
+
+      // 3. Dynamic ancestor deactivation weight conservation: reparenting a deactivating subtree onto a new ancestor
+      //    then detaching or cross-scene transferring that new ancestor cleanly removes BoxCollider from PhysX
+      const reparentCases: Array<{ action: "none" | "detach" | "transfer"; reparent: boolean }> = [
+        { action: "none", reparent: true },
+        { action: "detach", reparent: false },
+        { action: "transfer", reparent: false },
+        { action: "detach", reparent: true },
+        { action: "transfer", reparent: true }
+      ];
+      for (const { action, reparent } of reparentCases) {
+        const dstScene = new Scene(engine, `r9-reparent-dst-${action}-${reparent}`);
+        const oldAncestor = scene.createRootEntity(`r9-old-anc-${action}-${reparent}`);
+        const newAncestor = scene.createRootEntity(`r9-new-anc-${action}-${reparent}`);
+        const parent = oldAncestor.createChild("parent");
+        const child = parent.createChild("child");
+        let disables = 0;
+        let updatesAfterDisable = 0;
+        child.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              disables++;
+              if (reparent) {
+                newAncestor.addChild(parent);
+              }
+              const targetAncestor = reparent ? newAncestor : oldAncestor;
+              if (action === "detach") {
+                scene.removeRootEntity(targetAncestor);
+              } else if (action === "transfer") {
+                dstScene.addRootEntity(targetAncestor);
+              }
+            }
+            override onUpdate(): void {
+              if (disables > 0) updatesAfterDisable++;
+            }
+          }
+        );
+        child.addComponent(BoxCollider);
+        const ray = new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0));
+        try {
+          expect(scene.physics.raycast(ray, 10)).toBe(true);
+          if (action === "transfer") {
+            expect(() => {
+              parent.isActive = false;
+            }).toThrow("Cannot transfer an entity to another scene while it is processing active state changes.");
+          } else if (action === "detach") {
+            expect(() => {
+              parent.isActive = false;
+            }).toThrow("Cannot detach an entity from its scene while it is processing active state changes.");
+          } else {
+            expect(() => {
+              parent.isActive = false;
+            }).not.toThrow();
+          }
+          expect(disables).toBe(1);
+          expect(scene.physics.raycast(ray, 10)).toBe(false);
+          expect(dstScene.physics.raycast(ray, 10)).toBe(false);
+          expect(child.scene).toBe(action === "detach" ? null : scene);
+          step(1);
+          expect(updatesAfterDisable).toBe(0);
+          expect(errors).not.toHaveBeenCalled();
+        } finally {
+          if (!oldAncestor.destroyed) oldAncestor.destroy();
+          if (!newAncestor.destroyed) newAncestor.destroy();
+          if (!parent.destroyed) parent.destroy();
+          if (!dstScene.destroyed) dstScene.destroy();
+        }
+      }
+
+      // 4. Collision-free rollback parent-chain invalidation: reparenting an ancestor across parents with different
+      //    prior attachment counts still invalidates the disabled collider's failed-transfer cache
+      for (const extraParentAttachment of [false, true]) {
+        errors.mockClear();
+        const oldBodyEntity = root.createChild(`r9-rb-old-${extraParentAttachment}`);
+        const oldBody = oldBodyEntity.addComponent(Rigidbody);
+        oldBody.isKinematic = true;
+        const targetEntity = root.createChild(`r9-rb-target-${extraParentAttachment}`);
+        const targetBody = targetEntity.addComponent(Rigidbody);
+        targetBody.isKinematic = true;
+        const firstParent = targetEntity.createChild("firstParent");
+        const secondParent = targetEntity.createChild("secondParent");
+        if (extraParentAttachment) {
+          const tempHost = root.createChild("tempHost");
+          tempHost.addChild(firstParent);
+          targetEntity.addChild(firstParent);
+          tempHost.destroy();
+        }
+        const mid = oldBodyEntity.createChild("mid");
+        const leaf = mid.createChild("leaf");
+        const box = leaf.addComponent(BoxCollider);
+        const ray = new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0));
+        const targetNative = targetBody._getNativeActor();
+        const origAddShape = targetNative.addShape.bind(targetNative);
+        let rejectOnce = true;
+        targetNative.addShape = (shape: any) => {
+          if (rejectOnce) {
+            rejectOnce = false;
+            return false;
+          }
+          return origAddShape(shape);
+        };
+        try {
+          expect(scene.physics.raycast(ray, 10)).toBe(true);
+          firstParent.addChild(mid);
+          scene.physics.raycast(ray, 10);
+          expect(box.attachedRigidbody).toBe(oldBody);
+
+          box.enabled = false;
+          expect(box.attachedRigidbody).toBe(oldBody);
+
+          secondParent.addChild(mid);
+          expect(box.attachedRigidbody).toBe(targetBody);
+          expect(scene.physics.raycast(ray, 10)).toBe(false);
+
+          box.enabled = true;
+          expect(scene.physics.raycast(ray, 10)).toBe(true);
+          expect(box.attachedRigidbody).toBe(targetBody);
+        } finally {
+          targetNative.addShape = origAddShape;
+          oldBodyEntity.destroy();
+          targetEntity.destroy();
+        }
+      }
     } finally {
       errors.mockRestore();
       vertexOnlyMesh.destroy();
+      indexedMesh.destroy();
       // @ts-ignore
       delete engine.resourceManager._objectPool[meshKey];
+      // @ts-ignore
+      delete engine.resourceManager._objectPool[indexedKey];
       // @ts-ignore
       delete engine.resourceManager._objectPool[baseKey];
     }

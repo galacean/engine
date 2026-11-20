@@ -20,7 +20,35 @@ import { DisorderedArray } from "./utils/DisorderedArray";
  * Entity, be used as components container.
  */
 export class Entity extends EngineObject {
+  /** @internal */
+  static _nextHierarchyStamp = 0;
+
   private static _deactivatingEntitiesPool: Entity[][] = [];
+  private static _deferredSceneClearEntities: Entity[] = [];
+
+  private static _addDeactivatingSubtreeWeight(entity: Entity | null, delta: number): void {
+    for (let current = entity; current != null; current = current._parent) {
+      current._deactivatingSubtreeCount += delta;
+    }
+  }
+
+  /**
+   * @internal
+   * Clear `entity._scene` immediately when no deactivation batch covers `entity` or its descendants,
+   * otherwise defer until its deactivation weight reaches 0.
+   */
+  static _finalizeOrDeferSceneClear(entity: Entity, oldScene: Scene): void {
+    if (!entity._isRoot && !entity._parent && entity._scene === oldScene) {
+      if (entity._deactivatingCount > 0 || entity._deactivatingSubtreeCount > 0) {
+        const deferred = Entity._deferredSceneClearEntities;
+        if (deferred.indexOf(entity) === -1) {
+          deferred.push(entity);
+        }
+      } else {
+        Entity._traverseSetOwnerScene(entity, null);
+      }
+    }
+  }
 
   private static _isTransformType(type: ComponentConstructor): boolean {
     return type === Transform || type.prototype instanceof Transform;
@@ -158,8 +186,8 @@ export class Entity extends EngineObject {
   _deactivatingCount: number = 0;
   /** @internal Number of active `_setActiveComponents(false, ...)` batches currently draining a descendant of this entity. */
   _deactivatingSubtreeCount: number = 0;
-  /** @internal Monotonically incremented whenever this entity's parent or root attachment changes. */
-  _parentVersion: number = 0;
+  /** @internal Monotonic stamp updated whenever this entity's parent or root attachment changes. */
+  _hierarchyStamp: number = 0;
   private _transform: Transform;
   private _templateResource: ReferResource;
   private _parent: Entity | null = null;
@@ -794,6 +822,10 @@ export class Entity extends EngineObject {
     if (oldParent != null) {
       Entity._removeFromChildren(oldParent._children, this);
       this._parent = null;
+      const weight = this._deactivatingCount + this._deactivatingSubtreeCount;
+      if (weight > 0) {
+        Entity._addDeactivatingSubtreeWeight(oldParent, -weight);
+      }
     }
     return oldParent;
   }
@@ -820,23 +852,18 @@ export class Entity extends EngineObject {
     const activeChangedComponents = (this._activeChangedComponents =
       this._scene!._componentsManager.getActiveChangedTempList());
     const deactivatingEntities = Entity._deactivatingEntitiesPool.pop() ?? [];
-    let deactivatingAncestors: Entity[] | null = null;
+    const totalCount = this._setInActiveInHierarchy(activeChangedComponents, deactivatingEntities, activeChangeFlag);
     if (this._parent) {
-      deactivatingAncestors = Entity._deactivatingEntitiesPool.pop() ?? [];
-      for (let ancestor: Entity | null = this._parent; ancestor != null; ancestor = ancestor._parent) {
-        ancestor._deactivatingSubtreeCount++;
-        deactivatingAncestors.push(ancestor);
-      }
+      Entity._addDeactivatingSubtreeWeight(this._parent, totalCount);
     }
-    this._setInActiveInHierarchy(activeChangedComponents, deactivatingEntities, activeChangeFlag);
-    this._setActiveComponents(false, activeChangeFlag, deactivatingEntities, deactivatingAncestors);
+    this._setActiveComponents(false, activeChangeFlag, deactivatingEntities);
   }
 
   /**
    * @internal
    */
   _setParentChange() {
-    this._parentVersion++;
+    this._hierarchyStamp = ++Entity._nextHierarchyStamp;
     this._transform._parentChange();
     this._dispatchModify(EntityModifyFlags.Parent, this);
   }
@@ -987,14 +1014,21 @@ export class Entity extends EngineObject {
           !this.pendingDestroy &&
           (allowDestroyedParent || !parent._isInDyingHierarchy())
         ) {
+          const weight = this._deactivatingCount + this._deactivatingSubtreeCount;
           if (wasRoot) {
             oldScene && Entity._removeFromChildren(oldScene._rootEntities, this);
             this._isRoot = false;
           } else if (oldParent != null) {
             Entity._removeFromChildren(oldParent._children, this);
+            if (weight > 0) {
+              Entity._addDeactivatingSubtreeWeight(oldParent, -weight);
+            }
           }
 
           this._parent = parent;
+          if (weight > 0) {
+            Entity._addDeactivatingSubtreeWeight(parent, weight);
+          }
           const targetScene = parent._scene;
           const targetIndex = siblingIndex !== undefined ? Math.min(siblingIndex, parent._children.length) : undefined;
           Entity._addToChildren(parent._children, this, targetIndex);
@@ -1033,21 +1067,13 @@ export class Entity extends EngineObject {
 
         // Pure detach: structurally detach first so duplicate re-entrant removeChild / parent = null
         // inside onDisable is an immediate no-op while this._scene stays `oldScene` until callbacks drain.
-        Entity._removeFromChildren(oldParent!._children, this);
-        this._parent = null;
+        this._detachFromParent();
 
         try {
           inActiveChangeFlag && this._processInActive(inActiveChangeFlag);
         } finally {
-          if (
-            !this._isRoot &&
-            !this._parent &&
-            this._scene === oldScene &&
-            oldScene &&
-            this._deactivatingCount === 0 &&
-            this._deactivatingSubtreeCount === 0
-          ) {
-            Entity._traverseSetOwnerScene(this, null);
+          if (oldScene) {
+            Entity._finalizeOrDeferSceneClear(this, oldScene);
           }
           oldParent!._dispatchModify(EntityModifyFlags.Child, oldParent);
           this._setParentChange();
@@ -1077,8 +1103,7 @@ export class Entity extends EngineObject {
   private _setActiveComponents(
     isActive: boolean,
     activeChangeFlag: ActiveChangeFlag,
-    deactivatingEntities?: Entity[],
-    deactivatingAncestors?: Entity[] | null
+    deactivatingEntities?: Entity[]
   ): void {
     const activeChangedComponents = this._activeChangedComponents!;
     const ownerScene = this._scene!;
@@ -1105,41 +1130,25 @@ export class Entity extends EngineObject {
       if (deactivatingEntities) {
         const count = deactivatingEntities.length;
         for (let i = 0; i < count; i++) {
-          deactivatingEntities[i]._deactivatingCount--;
-        }
-        const ancestorCount = deactivatingAncestors ? deactivatingAncestors.length : 0;
-        for (let i = 0; i < ancestorCount; i++) {
-          deactivatingAncestors![i]._deactivatingSubtreeCount--;
-        }
-        for (let i = 0; i < count; i++) {
           const entity = deactivatingEntities[i];
-          if (
-            !entity._isRoot &&
-            !entity._parent &&
-            entity._scene === ownerScene &&
-            entity._deactivatingCount === 0 &&
-            entity._deactivatingSubtreeCount === 0
-          ) {
-            Entity._traverseSetOwnerScene(entity, null);
+          entity._deactivatingCount--;
+          if (entity._parent) {
+            Entity._addDeactivatingSubtreeWeight(entity._parent, -1);
           }
         }
         deactivatingEntities.length = 0;
         Entity._deactivatingEntitiesPool.push(deactivatingEntities);
-        if (deactivatingAncestors) {
-          for (let i = 0; i < ancestorCount; i++) {
-            const ancestor = deactivatingAncestors[i];
-            if (
-              !ancestor._isRoot &&
-              !ancestor._parent &&
-              ancestor._scene === ownerScene &&
-              ancestor._deactivatingCount === 0 &&
-              ancestor._deactivatingSubtreeCount === 0
-            ) {
-              Entity._traverseSetOwnerScene(ancestor, null);
+
+        const deferred = Entity._deferredSceneClearEntities;
+        for (let i = deferred.length - 1; i >= 0; i--) {
+          const entity = deferred[i];
+          if (entity._deactivatingCount === 0 && entity._deactivatingSubtreeCount === 0) {
+            deferred[i] = deferred[deferred.length - 1];
+            deferred.length--;
+            if (!entity._isRoot && !entity._parent && entity._scene) {
+              Entity._traverseSetOwnerScene(entity, null);
             }
           }
-          deactivatingAncestors.length = 0;
-          Entity._deactivatingEntitiesPool.push(deactivatingAncestors);
         }
       }
       if (isActive && !this._scene && !hasError) {
@@ -1171,14 +1180,22 @@ export class Entity extends EngineObject {
     activeChangedComponents: Component[],
     deactivatingEntities: Entity[],
     activeChangeFlag: ActiveChangeFlag
-  ): void {
+  ): number {
     // Children-first, reverse traversal for safe removeChild during callbacks
+    let descendantCount = 0;
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
-      child.isActive && child._setInActiveInHierarchy(activeChangedComponents, deactivatingEntities, activeChangeFlag);
+      if (child.isActive) {
+        descendantCount += child._setInActiveInHierarchy(
+          activeChangedComponents,
+          deactivatingEntities,
+          activeChangeFlag
+        );
+      }
     }
     this._deactivatingCount++;
+    this._deactivatingSubtreeCount += descendantCount;
     deactivatingEntities.push(this);
     activeChangeFlag & ActiveChangeFlag.Hierarchy && (this._isActiveInHierarchy = false);
     activeChangeFlag & ActiveChangeFlag.Scene && (this._isActiveInScene = false);
@@ -1187,6 +1204,7 @@ export class Entity extends EngineObject {
       const component = components[i];
       component.enabled && activeChangedComponents.push(component);
     }
+    return descendantCount + 1;
   }
 
   private _setSiblingIndex(sibling: Entity[], target: number): void {
