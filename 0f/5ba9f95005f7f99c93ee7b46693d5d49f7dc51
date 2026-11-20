@@ -1,0 +1,26 @@
+packages/modify/src/native/core/src/shader/ShaderProgram.ts
+  h_ddbf152d31b140 59-60,120-127,344-353,361-376,388-399
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/shaders/terrain/TerrainScreenSpaceReflectionPass.glsl
+  h_ddbf152d31b140 167-177,179-181,185-215
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_ddbf152d31b140 294-302,336-340
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 590-604
+world/demos/seed-world/flash-app-cdn-manifest.json
+  h_ddbf152d31b140 309-314,1623-1628,2373-2378
+world/tests/seed-world/TerrainFarShader.spec.ts
+  h_ddbf152d31b140 105-122
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0f5ba9f95005f7f99c93ee7b46693d5d49f7dc51",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

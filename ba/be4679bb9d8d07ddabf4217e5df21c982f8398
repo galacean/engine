@@ -1,0 +1,35 @@
+tests/src/core/RenderPipeline/ShadowCullingAndSpatialIndex.test.ts
+  h_171a11afaf879a 1-328
+packages/core/src/shadow/ShadowUtils.ts
+  h_171a11afaf879a 172-173,182-187
+packages/core/src/Renderer.ts
+  h_171a11afaf879a 48-56,62-70,97-98,102,136-157,181,346-351,369-370,372,396-419,471-474,479-480,482-485,487-490,519,524-527,529,541,581
+  h_171a11afaf879a 79,81
+packages/core/src/mesh/MeshRenderer.ts
+  h_171a11afaf879a 102-116
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  h_171a11afaf879a 8,37,50-56,59,74-76,94-95,111,150,152-153,191,199-224,227-231,233,393,395-396
+packages/core/src/RenderPipeline/RendererSpatialIndex.ts
+  h_171a11afaf879a 1-142,144-257,260-352,354-370,372-376,378-382,386-387,390-1027
+  h_171a11afaf879a 143,258-259,353,371,377,383-385,388-389
+packages/core/src/2d/text/TextRenderer.ts
+  h_171a11afaf879a 279,286-289
+  h_171a11afaf879a 9,297,336-338,346-348
+packages/core/src/RenderPipeline/RenderQueue.ts
+  h_171a11afaf879a 9,11,70,87,89-91,93-94,96-102
+packages/core/src/ComponentsManager.ts
+  h_171a11afaf879a 5,23-26,77-80,87-104
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_171a11afaf879a 5,52,127-129,470-483,485-491,494-495
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "babe4679bb9d8d07ddabf4217e5df21c982f8398",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

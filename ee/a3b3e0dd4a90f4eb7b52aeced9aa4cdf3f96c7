@@ -1,0 +1,62 @@
+packages/animals/src/controls/FreeControl.ts
+  h_171a11afaf879a 187-189,345-352,691-697,727-728,744-745
+packages/animals/src/gameplay/animal/AnimalStaticRoute.ts
+  h_171a11afaf879a 20-38,61-62
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  h_171a11afaf879a 42,197-203,708,1242-1249,1333-1339,1341-1359,1361-1366,1447,1490-1501,1505-1511,1526-1529,1535-1536,1538-1540,1563-1564,1567,1572-1573,1576,1585-1586,1589,1597,1603-1605,1620-1626,1651-1652,1669,1682,1695,1697-1700,1715-1723,1742-1743,1750,1752,1847-1866,2222,2241,2867-2874
+packages/animals/src/gameplay/animal/GroundAnimalCrowd.ts
+  h_171a11afaf879a 62,64,111-118,144,146,191,314-316,556-563,565-569,579,603-606,626-627,639,643-647,697-702,710,714,760,899-900,928,943,979-985,1146,1160,1209,1258-1262,1266,1275,1281-1282,1285-1286,1292-1293,1298-1299,1306,1308,1314-1321,1337-1340,1346-1347
+packages/animals/src/gameplay/animal/GroundAnimalRecovery.ts
+  h_171a11afaf879a 58,86-88,91,122,136-137,149-156
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  h_171a11afaf879a 286,643-652,654-655,865-871,988-1023,1026-1038,1041-1045
+packages/water/src/water/authoring/connections/WaterConnection.ts
+  h_171a11afaf879a 109-110,134-156,176,178-179
+packages/water/src/water/authoring/terrain/WaterTerrainSnapshot.ts
+  h_171a11afaf879a 2,316-323,325
+packages/water/src/water/runtime/body/WaterWorld.ts
+  h_171a11afaf879a 373-374,376,396-398
+packages/water/src/water/runtime/heightfield/HeightfieldWaterSpatialFieldProvider.ts
+  h_171a11afaf879a 241-242,247-271,275-288,292-298,303-304,312-315
+packages/water/src/water/runtime/heightfield/HeightfieldWaterSurfaceProvider.ts
+  h_171a11afaf879a 1,110,164
+packages/water/src/water/runtime/ocean/OceanWaterSurfaceProvider.ts
+  h_171a11afaf879a 150-152,163-195,203-206,211-212,215-229,231-233,235-236
+packages/water/src/water/runtime/spatial/WaterBoundsQuery.ts
+  h_171a11afaf879a 4-11,23-28,31-41,43-44,50-58,60-61,63
+packages/world-planning/src/integrations/terrain/environment/WorldEnvironmentRuntime.ts
+  h_171a11afaf879a 765-769
+packages/world-planning/src/integrations/terrain/rock-formation/GrassRockAppearance.ts
+  h_171a11afaf879a 216,220-221,240-246,255-256
+packages/world-planning/src/runtime/SeedWorldPanoramaVistaRuntime.ts
+  h_171a11afaf879a 367-368
+packages/world-planning/src/runtime/SeedWorldTerrainOcclusionCuller.ts
+  h_171a11afaf879a 361-368
+packages/world-planning/src/semantic-study/WorldPlanningTerrain.ts
+  h_171a11afaf879a 650,657-666,670
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_171a11afaf879a 198,1372-1377,1383,1398-1402,1414-1416,1545,1549-1561,1563-1569,1571-1572,1574-1581,1588
+packages/world-planning/src/spatial/runtime/PlanningNavigationSurface.ts
+  h_171a11afaf879a 93-94
+packages/world-planning/src/spatial/runtime/PlanningPlayerState.ts
+  h_171a11afaf879a 107-113
+packages/world-planning/src/world/SeedWorldExactInstanceCellRuntime.ts
+  h_171a11afaf879a 84-142,158,169,173-174,178,180,186,200,202,204-205,254-256,258,300-306,308-312,379,381,389,397,402,413-415,419,424-426,428-435,438-439,441,443-445,449,454,457-458,465,507,509-511,513-514,524-532,535
+packages/world-planning/src/world/SeedWorldPlayerState.ts
+  h_171a11afaf879a 18-24,63-90
+world/demos/seed-world/SeedWorldDemo.ts
+  h_171a11afaf879a 905-912,936-965
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat.ts
+  h_171a11afaf879a 51-60,118-174,279,293-305,343-347,349-350,354,373-383,393,395-397,401-421,488-497,500-503,511-518,525-528,533-536,538,542,544-549,554,560-561,564,570,573,578,590-591,606-607,619,639,644,647,651,683,685-688,712-723,728
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "eea3b3e0dd4a90f4eb7b52aeced9aa4cdf3f96c7",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
