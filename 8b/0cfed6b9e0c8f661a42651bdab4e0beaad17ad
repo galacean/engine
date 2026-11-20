@@ -1,0 +1,23 @@
+packages/core/src/Entity.ts
+  s_7c472755904c4b::t_1869a50b24013c 112,722,779-788,794,843-846,853-858,861-863,865-868,878-890,892-894,896-901,904-908,911-913,915-919,921-922,924-932,934-937,962-963,969-970,982-983
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  s_7c472755904c4b::t_1879524d79ab6c 134-144,146-147,150-163,167-174,177-181,184-199,203-207,211-217,219-221,225-228,233,237,239-248,250-255,257-262,302-305,307,316,324-330,333,346,373-375,377-397,403-415,426,432,436,440
+tests/src/core/Scene.test.ts
+  s_7c472755904c4b::t_4211f4df8b8673 372-516
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8b0cfed6b9e0c8f661a42651bdab4e0beaad17ad",
+  "prompts": {},
+  "sessions": {
+    "s_7c472755904c4b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f6ed-2e64-7033-8540-618486ed1536",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
