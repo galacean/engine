@@ -95,9 +95,6 @@ export class BlendShapeManager {
       subDataDirtyFlags[i].destroy();
     }
     subDataDirtyFlags.length = 0;
-
-    this._destroyVertexTexture();
-    this._lastHostCreatedInfo.set(0, 0, 0, 0);
   }
 
   /**
@@ -132,9 +129,6 @@ export class BlendShapeManager {
         }
         shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
         shaderData.disableMacro("RENDERER_BLENDSHAPE_COUNT");
-        if (shaderData.getTexture(BlendShapeManager._blendShapeTextureProperty)) {
-          shaderData.setTexture(BlendShapeManager._blendShapeTextureProperty, null);
-        }
         this._uniformOccupiesCount = blendShapeCount;
       }
 
@@ -150,11 +144,7 @@ export class BlendShapeManager {
       }
     } else {
       shaderData.disableMacro(BlendShapeManager._blendShapeMacro);
-      shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
       shaderData.disableMacro("RENDERER_BLENDSHAPE_COUNT");
-      if (shaderData.getTexture(BlendShapeManager._blendShapeTextureProperty)) {
-        shaderData.setTexture(BlendShapeManager._blendShapeTextureProperty, null);
-      }
     }
   }
 
@@ -297,8 +287,6 @@ export class BlendShapeManager {
   }
 
   private _createVertexBuffers(vertexCount: number, noLongerAccessible: boolean): void {
-    this._destroyVertexTexture();
-
     const {
       _engine: engine,
       _modelMesh: modelMesh,
@@ -330,18 +318,6 @@ export class BlendShapeManager {
     }
   }
 
-  /**
-   * @internal
-   */
-  _destroyVertexTexture(): void {
-    const vertexTexture = this._vertexTexture;
-    if (vertexTexture) {
-      vertexTexture.isGCIgnored = false;
-      vertexTexture.destroy();
-      this._vertexTexture = null!;
-    }
-  }
-
   private _createTextureArray(vertexCount: number): void {
     const maxTextureSize = this._engine._hardwareRenderer.capability.maxTextureSize;
     const vertexPixelStride = this._vertexElementCount;
@@ -353,11 +329,12 @@ export class BlendShapeManager {
       textureWidth = maxTextureSize;
     }
 
+    let blendShapeDataTexture = this._vertexTexture;
     const blendShapeCount = this._blendShapes.length;
 
-    this._destroyVertexTexture();
+    blendShapeDataTexture && blendShapeDataTexture.destroy();
 
-    const blendShapeDataTexture = new Texture2DArray(
+    blendShapeDataTexture = new Texture2DArray(
       this._engine,
       textureWidth,
       textureHeight,
@@ -367,7 +344,6 @@ export class BlendShapeManager {
       false
     );
     blendShapeDataTexture.filterMode = TextureFilterMode.Point;
-    blendShapeDataTexture.isGCIgnored = true;
 
     this._vertices = new Float32Array(blendShapeCount * textureWidth * textureHeight * 4);
     this._vertexTexture = blendShapeDataTexture;

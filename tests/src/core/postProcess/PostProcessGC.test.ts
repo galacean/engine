@@ -1,19 +1,15 @@
 import {
-  BlendShape,
   BloomEffect,
   Camera,
   Engine,
   MeshRenderer,
-  ModelMesh,
   PostProcess,
-  SkinnedMeshRenderer,
   Texture2D,
   TonemappingEffect,
   TonemappingMode,
   TrailMaterial,
   TrailRenderer,
   UnlitMaterial,
-  Vector3,
   WebGLEngine
 } from "@galacean/engine";
 import { HeadlessEngine } from "@galacean/engine-rhi-null";
@@ -196,80 +192,5 @@ describe("Internal ReferResource ResourceManager.gc() ownership regression", () 
     engine.update();
     expect(primitive.destroyed).toBe(true);
     expect(thirdBuffer.destroyed).toBe(true);
-  });
-
-  it("keeps BlendShapeManager texture array alive across gc() and releases it on recreate, clear, mode switch, and mesh GC/destroy", async () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 64;
-    canvas.height = 64;
-    engine = await WebGLEngine.create({ canvas });
-
-    const scene = engine.sceneManager.activeScene!;
-    const entity = scene.createRootEntity("skinned");
-    const renderer = entity.addComponent(SkinnedMeshRenderer);
-    renderer.enabled = false; // Not yet rendered, so shaderData has not bound _vertexTexture
-
-    const mesh = new ModelMesh(engine);
-    mesh.setPositions([new Vector3(0, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 1, 0)]);
-    const addBlendShapes = (count: number) => {
-      for (let i = 0; i < count; i++) {
-        const bs = new BlendShape(`bs_${i}`);
-        bs.addFrame(1, [new Vector3(0, 0.1, 0), new Vector3(0, 0.1, 0), new Vector3(0, 0.1, 0)]);
-        mesh.addBlendShape(bs);
-      }
-    };
-
-    // > 8 blend shapes triggers texture mode (Texture2DArray)
-    addBlendShapes(10);
-    mesh.uploadData(false);
-    renderer.mesh = mesh;
-
-    const tex1 = (mesh as any)._blendShapeManager._vertexTexture;
-    expect(tex1).toBeTruthy();
-
-    engine.resourceManager.gc();
-    expect(tex1.destroyed).toBe(false);
-
-    // Recreation on adding another BlendShape destroys old texture immediately
-    const extraBs = new BlendShape("bs_extra");
-    extraBs.addFrame(1, [new Vector3(0, 0.1, 0), new Vector3(0, 0.1, 0), new Vector3(0, 0.1, 0)]);
-    mesh.addBlendShape(extraBs);
-    mesh.uploadData(false);
-
-    const tex2 = (mesh as any)._blendShapeManager._vertexTexture;
-    expect(tex2).not.toBe(tex1);
-    expect(tex1.destroyed).toBe(true);
-    expect(tex2.destroyed).toBe(false);
-
-    // clearBlendShapes() releases texture immediately
-    mesh.clearBlendShapes();
-    expect(tex2.destroyed).toBe(true);
-    expect((mesh as any)._blendShapeManager._vertexTexture).toBeNull();
-
-    // Switching from >8 blend shapes (texture mode) back to <=8 (vertex-buffer mode)
-    addBlendShapes(10);
-    mesh.uploadData(false);
-    const texMode = (mesh as any)._blendShapeManager._vertexTexture;
-    expect(texMode).toBeTruthy();
-    expect(texMode.destroyed).toBe(false);
-
-    mesh.clearBlendShapes();
-    addBlendShapes(4);
-    mesh.uploadData(false);
-    expect(texMode.destroyed).toBe(true);
-    expect((mesh as any)._blendShapeManager._vertexTexture).toBeNull();
-
-    // Re-enter texture mode, then verify mesh GC destroys _vertexTexture
-    mesh.clearBlendShapes();
-    addBlendShapes(10);
-    mesh.uploadData(false);
-    const tex3 = (mesh as any)._blendShapeManager._vertexTexture;
-    expect(tex3.destroyed).toBe(false);
-
-    entity.destroy();
-    engine.update();
-    engine.resourceManager.gc();
-    expect(mesh.destroyed).toBe(true);
-    expect(tex3.destroyed).toBe(true);
   });
 });

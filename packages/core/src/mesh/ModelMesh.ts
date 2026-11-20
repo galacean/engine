@@ -745,7 +745,6 @@ export class ModelMesh extends Mesh {
     }
     super._onDestroy();
     this._releaseCache(true);
-    this._blendShapeManager._destroyVertexTexture();
   }
 
   private _getVertexElementData<T extends VertexType>(
