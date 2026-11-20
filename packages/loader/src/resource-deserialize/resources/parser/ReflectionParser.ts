@@ -59,7 +59,11 @@ export class ReflectionParser {
 
     try {
       const coupledKeys: readonly string[] | undefined = instance?.constructor?._deserializeCoupledProps;
-      if (coupledKeys?.length && typeof instance._applyDeserializeCoupledProps === "function") {
+      if (
+        coupledKeys?.length &&
+        typeof instance._beginDeserializeCoupledProps === "function" &&
+        typeof instance._endDeserializeCoupledProps === "function"
+      ) {
         let coupledCount = 0;
         for (let i = 0, n = coupledKeys.length; i < n; i++) {
           const key = coupledKeys[i];
@@ -110,7 +114,16 @@ export class ReflectionParser {
               break;
             }
             if (!hasCoupled) return;
-            instance._applyDeserializeCoupledProps(coupledValues);
+            let ok = false;
+            instance._beginDeserializeCoupledProps();
+            try {
+              for (const key in coupledValues) {
+                instance[key] = coupledValues[key];
+              }
+              ok = true;
+            } finally {
+              instance._endDeserializeCoupledProps(ok && !instance.destroyed);
+            }
             if (deferCheck) {
               for (const key in coupledValues) {
                 if (deferCheck.predicates[key] && instance[key] !== coupledValues[key]) {

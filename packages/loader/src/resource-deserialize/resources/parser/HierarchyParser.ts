@@ -493,118 +493,183 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     type PhasedQueue = MutationWaveItem & {
       phases: number[];
       cursor: number;
-      tail: Promise<unknown> | null;
+      busy: boolean;
+      propsPending: boolean;
+      activePhase: number;
     };
 
-    const runPhasedGroup = (groupKey: object, queues: PhasedQueue[]): Promise<unknown> => {
-      const allDone: Promise<unknown>[] = [];
-      const launchBlock = (
-        q: PhasedQueue,
-        idx: number
-      ): { propsDone: Promise<unknown>; blockDone: Promise<unknown> } => {
-        const target = q.target;
-        const block = q.blocks[idx];
-        const deferCheck = idx === 0 ? q.deferCheck : undefined;
-        const preResolvedProps = idx === 0 ? q.firstBlockPreResolved : undefined;
-        const runProps = (): Promise<unknown> =>
-          target.destroyed
+    const hasFutureRelax = (q: PhasedQueue): boolean => {
+      for (let j = q.cursor + 1, m = q.phases.length; j < m; j++) {
+        if (q.phases[j] < 0) return true;
+      }
+      return false;
+    };
+
+    const runPhasedGroup = (groupKey: object, queues: PhasedQueue[]): Promise<unknown> =>
+      new Promise<unknown>((resolve, reject) => {
+        const allDone: Promise<unknown>[] = [];
+        let activeCount = 0;
+        let failed = false;
+        let settled = false;
+
+        const finish = (): void => {
+          if (settled) return;
+          settled = true;
+          Promise.all(allDone).then(resolve, reject);
+        };
+
+        const launchBlock = (q: PhasedQueue): void => {
+          const idx = q.cursor++;
+          const target = q.target;
+          const block = q.blocks[idx];
+          const deferCheck = idx === 0 ? q.deferCheck : undefined;
+          const preResolvedProps = idx === 0 ? q.firstBlockPreResolved : undefined;
+
+          q.busy = true;
+          q.propsPending = true;
+          q.activePhase = q.phases[idx];
+          activeCount++;
+
+          const propsDone = target.destroyed
             ? Promise.resolve()
             : reflectionParser.parseProps(target, block.props, deferCheck, preResolvedProps);
-        const propsDone = q.tail ? q.tail.then(runProps) : runProps();
-        const blockDone = block.calls?.length
-          ? propsDone.then(() => (target.destroyed ? undefined : reflectionParser.parseCalls(target, block.calls)))
-          : propsDone;
-        q.tail = blockDone;
-        // Mark handled so an early barrier failure never triggers an unhandled rejection before allDone settles.
-        blockDone.catch(noop);
-        allDone.push(blockDone);
-        return { propsDone, blockDone };
-      };
+          const hasCalls = !!block.calls?.length;
+          const blockDone = hasCalls
+            ? propsDone.then(() => (target.destroyed ? undefined : reflectionParser.parseCalls(target, block.calls)))
+            : propsDone;
 
-      const runNextStep = (): Promise<unknown> => {
-        let minPhase = 2;
-        let ownerHasRemaining = false;
-        for (let i = 0, n = queues.length; i < n; i++) {
-          const q = queues[i];
-          if (q.cursor < q.blocks.length) {
-            if (q.target === groupKey) ownerHasRemaining = true;
-            const p = q.phases[q.cursor];
-            if (p < minPhase) minPhase = p;
+          // Mark handled so an early rejection never triggers an unhandled rejection before allDone settles.
+          blockDone.catch(noop);
+          allDone.push(blockDone);
+
+          if (hasCalls) {
+            propsDone.then(
+              () => {
+                q.propsPending = false;
+                pump();
+              },
+              () => {
+                q.propsPending = false;
+                failed = true;
+              }
+            );
           }
-        }
-        if (minPhase === 2) {
-          return Promise.all(allDone);
-        }
 
-        // Once the owner (Rigidbody) has no remaining blocks, sibling owned components
-        // (MeshColliders) never conflict with each other and can run concurrently.
-        if (!ownerHasRemaining) {
+          const onBlockDone = (rejected: boolean): void => {
+            q.propsPending = false;
+            q.busy = false;
+            q.activePhase = 0;
+            activeCount--;
+            if (rejected) {
+              failed = true;
+            }
+            pump();
+          };
+          blockDone.then(
+            () => onBlockDone(false),
+            () => onBlockDone(true)
+          );
+        };
+
+        const pump = (): void => {
+          if (settled) return;
+          if (failed) {
+            if (activeCount === 0) finish();
+            return;
+          }
+
+          // Pass 1: Launch all idle non-restrict blocks (relax -1 and neutral 0) immediately.
           for (let i = 0, n = queues.length; i < n; i++) {
             const q = queues[i];
-            while (q.cursor < q.blocks.length) {
-              launchBlock(q, q.cursor++);
+            if (!q.busy && q.cursor < q.blocks.length && q.phases[q.cursor] <= 0) {
+              launchBlock(q);
             }
           }
-          return Promise.all(allDone);
-        }
 
-        const barrier: Promise<unknown>[] = [];
-        let pickedUnblocking = false;
-        if (minPhase > -1) {
-          // If the owner itself has an unblocking restrict->relax cycle at minPhase > 0, serialize
-          // ONLY the owner ahead of owned MeshColliders so paired constraints never collide;
-          // never serialize sibling MeshColliders against each other.
-          let ownerUnblocking: PhasedQueue | null = null;
-          const unblockingPeers: PhasedQueue[] = [];
+          // Pass 2: Launch eligible idle restrict blocks (phase > 0) whose opposite side is not
+          // mid-props or mid-restrict and whose live component constraint currently holds.
+          let ownerActiveOrProps = false;
+          let peerActiveOrProps = false;
+          let ownerHasRemainingRestrict = false;
+          let peerHasRemainingRestrict = false;
           for (let i = 0, n = queues.length; i < n; i++) {
             const q = queues[i];
-            if (q.cursor >= q.blocks.length || q.phases[q.cursor] !== minPhase) continue;
-            let hasFutureRelax = false;
-            for (let j = q.cursor + 1, m = q.phases.length; j < m; j++) {
-              if (q.phases[j] < 0) {
-                hasFutureRelax = true;
+            const isOwner = q.target === groupKey;
+            if (q.propsPending || (q.busy && q.activePhase > 0)) {
+              if (isOwner) ownerActiveOrProps = true;
+              else peerActiveOrProps = true;
+            }
+            for (let j = q.cursor, m = q.phases.length; j < m; j++) {
+              if (q.phases[j] > 0) {
+                if (isOwner) ownerHasRemainingRestrict = true;
+                else peerHasRemainingRestrict = true;
                 break;
               }
             }
-            if (hasFutureRelax) {
-              if (minPhase > 0 && q.target === groupKey) {
-                ownerUnblocking = q;
-                break;
-              }
-              unblockingPeers.push(q);
-            }
           }
-          if (ownerUnblocking) {
-            pickedUnblocking = true;
-            barrier.push(launchBlock(ownerUnblocking, ownerUnblocking.cursor++).blockDone);
-          } else if (unblockingPeers.length > 0) {
-            pickedUnblocking = true;
-            for (let i = 0, n = unblockingPeers.length; i < n; i++) {
-              const q = unblockingPeers[i];
-              barrier.push(launchBlock(q, q.cursor++).blockDone);
-            }
-          }
-        }
 
-        if (!pickedUnblocking) {
+          const eligible: PhasedQueue[] = [];
           for (let i = 0, n = queues.length; i < n; i++) {
             const q = queues[i];
-            if (q.cursor < q.blocks.length && q.phases[q.cursor] === minPhase) {
-              const { propsDone } = launchBlock(q, q.cursor++);
-              // Relaxing props (-1) satisfy the cross-target physics barrier as soon as props finish;
-              // neutral blocks without a future relax (0) never gate peer targets.
-              if (minPhase !== 0) {
-                barrier.push(propsDone);
+            if (q.busy || q.cursor >= q.blocks.length || q.phases[q.cursor] <= 0) continue;
+            const isOwner = q.target === groupKey;
+            if (isOwner ? peerActiveOrProps : ownerActiveOrProps) continue;
+            const canRestrict: (() => boolean) | undefined = (q.target as any)._canRunDeserializeRestrict;
+            if (typeof canRestrict === "function" && !canRestrict.call(q.target)) continue;
+            eligible.push(q);
+          }
+
+          if (eligible.length > 0) {
+            if (!ownerHasRemainingRestrict || !peerHasRemainingRestrict) {
+              for (let i = 0, n = eligible.length; i < n; i++) {
+                launchBlock(eligible[i]);
+              }
+            } else {
+              let chosen: PhasedQueue | null = null;
+              let chosenHasRelax = false;
+              for (let i = 0, n = eligible.length; i < n; i++) {
+                const q = eligible[i];
+                const relax = hasFutureRelax(q);
+                if (!chosen || (relax && !chosenHasRelax)) {
+                  chosen = q;
+                  chosenHasRelax = relax;
+                  if (chosenHasRelax) break;
+                }
+              }
+              if (chosen!.target === groupKey) {
+                launchBlock(chosen!);
+              } else {
+                // Peer side chosen: launch all matching eligible peers concurrently so sibling
+                // MeshColliders never serialize or deadlock against each other.
+                for (let i = 0, n = eligible.length; i < n; i++) {
+                  const q = eligible[i];
+                  if (q.target !== groupKey && (!chosenHasRelax || hasFutureRelax(q))) {
+                    launchBlock(q);
+                  }
+                }
               }
             }
           }
-        }
 
-        return barrier.length > 0 ? Promise.all(barrier).then(runNextStep) : runNextStep();
-      };
+          // Pass 3: If idle with remaining blocks (unsatisfiable live constraint), launch them so
+          // loading always terminates and component setters report their normal diagnostics.
+          if (activeCount === 0) {
+            let launched = false;
+            for (let i = 0, n = queues.length; i < n; i++) {
+              const q = queues[i];
+              if (q.cursor < q.blocks.length) {
+                launchBlock(q);
+                launched = true;
+              }
+            }
+            if (!launched) {
+              finish();
+            }
+          }
+        };
 
-      return runNextStep();
-    };
+        pump();
+      });
 
     // Scope physics phase ordering strictly to each (ownerRigidbody, owned MeshColliders) group.
     // All neutral targets, standalone MeshColliders, independent Rigidbodies, and MeshCollider-only
@@ -651,7 +716,9 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
             firstBlockPreResolved: item.firstBlockPreResolved,
             phases: phases!,
             cursor: 0,
-            tail: null
+            busy: false,
+            propsPending: false,
+            activePhase: 0
           });
           continue;
         }

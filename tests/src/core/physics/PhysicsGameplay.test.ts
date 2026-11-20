@@ -2801,4 +2801,269 @@ describe("Physics gameplay integration", () => {
       }
     }
   });
+
+  it("fails fast on same-scene inactive reparent in onEnable, handles Scene ABA toggles, and runs derived MeshCollider setters during coupled commits", async () => {
+    // 1. Same-scene reparent to inactive (or not-yet-active) parent during onEnable fails fast without hang
+    for (const targetInactive of [true, false]) {
+      const testScene = new Scene(engine, `r12-reparent-${targetInactive}`);
+      engine.sceneManager.addScene(testScene);
+      try {
+        testScene.isActive = false;
+        const target = testScene.createRootEntity("target");
+        target.isActive = !targetInactive;
+        const moving = testScene.createRootEntity("moving");
+        const caught: string[] = [];
+        moving.addComponent(
+          class extends Script {
+            override onEnable(): void {
+              try {
+                target.addChild(this.entity);
+              } catch (error) {
+                caught.push(String(error));
+              }
+            }
+          }
+        );
+        testScene.isActive = true;
+        expect(caught.length).toBe(1);
+        expect(caught[0]).toContain("main active entity");
+        expect(moving.parent).toBeNull();
+        expect(testScene.rootEntities).toContain(moving);
+        expect(moving.isActiveInHierarchy).toBe(true);
+      } finally {
+        if (!testScene.destroyed) testScene.destroy();
+      }
+    }
+
+    // 2. Scene ABA re-entrant isActive toggles converge for late-added roots in both directions
+    for (const activate of [true, false]) {
+      const abaScene = new Scene(engine, `r12-aba-${activate}`);
+      engine.sceneManager.addScene(abaScene);
+      try {
+        const trigger = abaScene.createRootEntity("trigger");
+        let late: Entity | undefined;
+        let armed = false;
+        const events: string[] = [];
+        const toggleABA = () => {
+          if (!armed) return;
+          armed = false;
+          abaScene.isActive = !activate;
+          late = abaScene.createRootEntity("late");
+          late.addComponent(
+            class extends Script {
+              override onEnable(): void {
+                events.push("late-enable");
+              }
+              override onDisable(): void {
+                events.push("late-disable");
+              }
+            }
+          );
+          abaScene.isActive = activate;
+        };
+        trigger.addComponent(
+          class extends Script {
+            override onEnable(): void {
+              if (activate) toggleABA();
+            }
+            override onDisable(): void {
+              if (!activate) toggleABA();
+            }
+          }
+        );
+        if (activate) abaScene.isActive = false;
+        armed = true;
+        abaScene.isActive = activate;
+
+        expect(abaScene.isActive).toBe(activate);
+        expect(trigger.isActiveInHierarchy).toBe(activate);
+        expect(late!.isActiveInHierarchy).toBe(activate);
+        expect(events).toEqual(activate ? ["late-enable"] : ["late-enable", "late-disable"]);
+      } finally {
+        if (!abaScene.destroyed) abaScene.destroy();
+      }
+    }
+
+    // 2b. Normal scene.destroy() runs leaf onDisable before tearing down parent components, and
+    //     destroying the entity or scene inside onEnable completes without a spurious detach error
+    for (const action of ["scene-outside", "entity", "scene"] as const) {
+      const destroyScene = new Scene(engine, `r12-destroy-${action}`);
+      engine.sceneManager.addScene(destroyScene);
+      try {
+        const parent = destroyScene.createRootEntity("parent");
+        const leaf = parent.createChild("leaf");
+        const events: string[] = [];
+        class ParentTool extends Script {
+          release(): void {
+            events.push("released");
+          }
+        }
+        parent.addComponent(ParentTool);
+        leaf.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              if (action === "scene-outside") {
+                const tool = parent.getComponent(ParentTool);
+                expect(tool).not.toBeNull();
+                tool!.release();
+              }
+            }
+          }
+        );
+        let armed = false;
+        parent.addComponent(
+          class extends Script {
+            override onEnable(): void {
+              if (!armed) return;
+              armed = false;
+              if (action === "scene") destroyScene.destroy();
+              if (action === "entity") this.entity.destroy();
+            }
+          }
+        );
+        expect(() => {
+          if (action === "scene-outside") {
+            destroyScene.destroy();
+          } else {
+            destroyScene.isActive = false;
+            armed = true;
+            destroyScene.isActive = true;
+          }
+        }).not.toThrow();
+        expect(parent.destroyed).toBe(true);
+        expect(leaf.destroyed).toBe(true);
+        expect(destroyScene.destroyed).toBe(action !== "entity");
+        if (action === "scene-outside") {
+          expect(events).toEqual(["released"]);
+        }
+      } finally {
+        if (!destroyScene.destroyed) destroyScene.destroy();
+      }
+    }
+
+    // 3. Derived MeshCollider subclass setter runs for both uncoupled and coupled commits, and rejected
+    //    collinear triangle replacement retains the valid hull and raycast hit
+    const tetraMesh = new ModelMesh(engine);
+    tetraMesh.setPositions([new Vector3(0, 1, 0), new Vector3(-1, 0, -1), new Vector3(1, 0, -1), new Vector3(0, 0, 1)]);
+    tetraMesh.setIndices(new Uint16Array([0, 1, 2, 0, 2, 3, 0, 3, 1, 1, 3, 2]));
+    tetraMesh.addSubMesh(0, 12, MeshTopology.Triangles);
+
+    const collinearMesh = new ModelMesh(engine);
+    collinearMesh.setPositions([new Vector3(-1, 0, 0), new Vector3(0, 0, 0), new Vector3(1, 0, 0)]);
+    collinearMesh.setIndices(new Uint16Array([0, 1, 2]));
+    collinearMesh.addSubMesh(0, 3, MeshTopology.Triangles);
+
+    const poolKeys = ["r12-tetra.mesh", "r12-collinear.mesh", "r12-hull-base.prefab"];
+    // @ts-ignore
+    engine.resourceManager._objectPool["r12-tetra.mesh"] = tetraMesh;
+    // @ts-ignore
+    engine.resourceManager._objectPool["r12-collinear.mesh"] = collinearMesh;
+
+    const ray = new Ray(new Vector3(0, 4, 0), new Vector3(0, -1, 0));
+    try {
+      for (const coupled of [false, true]) {
+        const seen: string[] = [];
+        class AuthoredMesh extends MeshCollider {
+          override get convex(): boolean {
+            return super.convex;
+          }
+          override set convex(value: boolean) {
+            seen.push(`convex:${value}`);
+            super.convex = value;
+            this.contactOffset = 0.19;
+          }
+        }
+        const typeName = `R12AuthoredMesh_${coupled}`;
+        Loader.registerClass(typeName, AuthoredMesh);
+
+        const resource = await PrefabParser.parse(engine, `r12-derived-${coupled}.prefab`, {
+          version: "2.0",
+          refs: [{ url: "r12-tetra.mesh" }],
+          entities: [{ name: "root", components: [0] }],
+          components: [
+            {
+              type: typeName,
+              props: { convex: true, ...(coupled ? { mesh: { $ref: 0 }, isTrigger: true } : {}) }
+            }
+          ],
+          root: 0
+        });
+        expect(seen).toEqual(["convex:true"]);
+        const inst = resource.instantiate();
+        root.addChild(inst);
+        try {
+          const mc = inst.getComponent(AuthoredMesh)!;
+          expect(mc.convex).toBe(true);
+          expect(mc.contactOffset).toBeCloseTo(0.19);
+          expect(mc.isTrigger).toBe(coupled);
+          expect(scene.physics.raycast(ray, 10)).toBe(coupled);
+        } finally {
+          inst.destroy();
+        }
+      }
+
+      const hullBase = await PrefabParser.parse(engine, "r12-hull-base.prefab", {
+        version: "2.0",
+        refs: [{ url: "r12-tetra.mesh" }],
+        entities: [{ name: "root", components: [0] }],
+        components: [{ type: "MeshCollider", props: { convex: true, isTrigger: true, mesh: { $ref: 0 } } }],
+        root: 0
+      });
+      // @ts-ignore
+      engine.resourceManager._objectPool["r12-hull-base.prefab"] = hullBase;
+
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      try {
+        const rejectedOuter = await PrefabParser.parse(engine, "r12-collinear-outer.prefab", {
+          version: "2.0",
+          refs: [{ url: "r12-hull-base.prefab" }, { url: "r12-collinear.mesh" }],
+          entities: [
+            {
+              instance: {
+                asset: 0,
+                overrides: {
+                  componentProps: [
+                    {
+                      path: [],
+                      selector: { type: "MeshCollider", index: 0 },
+                      props: {
+                        isTrigger: false,
+                        convex: false,
+                        cookingFlags: MeshColliderShapeCookingFlag.Cleaning,
+                        mesh: { $ref: 1 }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          components: [],
+          root: 0
+        });
+        const inst = rejectedOuter.instantiate();
+        root.addChild(inst);
+        try {
+          const mc = inst.getComponent(MeshCollider)!;
+          expect(mc.mesh).toBe(tetraMesh);
+          expect(mc.isTrigger).toBe(false);
+          expect(mc.cookingFlags).toBe(MeshColliderShapeCookingFlag.Cleaning);
+          expect(scene.physics.raycast(ray, 10)).toBe(true);
+        } finally {
+          inst.destroy();
+        }
+      } finally {
+        warnSpy.mockRestore();
+        errSpy.mockRestore();
+      }
+    } finally {
+      tetraMesh.destroy();
+      collinearMesh.destroy();
+      for (const key of poolKeys) {
+        // @ts-ignore
+        delete engine.resourceManager._objectPool[key];
+      }
+    }
+  });
 });

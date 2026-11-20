@@ -1971,6 +1971,207 @@ describe("Cross-prefab $component ref", () => {
         }
       }
 
+      // 8. Event-driven live-constraint group scheduling: later owner blocks never stall currently-legal
+      //    peer blocks while owner awaits peer, and symmetric restrict->relax ties follow declaration order
+      for (const restoreKinematic of [false, true]) {
+        let unlock!: () => void;
+        const gate = new Promise<void>((r) => (unlock = r));
+        const trace: string[] = [];
+        class WaitingOwner extends Rigidbody {
+          async waitForPeer(): Promise<void> {
+            trace.push(`wait:${this.isKinematic}`);
+            await gate;
+            trace.push("resumed");
+          }
+          observe(): void {
+            trace.push(`owner:${this.isKinematic}`);
+          }
+        }
+        class SignallingPeer extends MeshCollider {
+          notify(): void {
+            trace.push(`peer:${this.convex}:${this.attachedRigidbody?.isKinematic}`);
+            unlock();
+          }
+          observe(): void {
+            trace.push(`peer:${this.convex}:${this.attachedRigidbody?.isKinematic}`);
+          }
+        }
+        const ownerType = `R12WaitingOwner_${restoreKinematic}`;
+        const peerType = `R12SignallingPeer_${restoreKinematic}`;
+        Loader.registerClass(ownerType, WaitingOwner);
+        Loader.registerClass(peerType, SignallingPeer);
+
+        const baseKey = `r12-owner-cycle-base-${restoreKinematic}.prefab`;
+        const ownerBase = await PrefabParser.parse(engine, baseKey, {
+          version: "2.0",
+          refs: [],
+          entities: [
+            { name: "body", components: [0], children: [1] },
+            { name: "mesh", components: [1] }
+          ],
+          components: [
+            { type: ownerType, props: { isKinematic: true } },
+            { type: peerType, props: { convex: true } }
+          ],
+          root: 0
+        });
+        // @ts-ignore
+        engine.resourceManager._objectPool[baseKey] = ownerBase;
+        try {
+          const outer = await PrefabParser.parse(engine, `r12-owner-cycle-outer-${restoreKinematic}.prefab`, {
+            version: "2.0",
+            refs: [{ url: baseKey }],
+            entities: [
+              {
+                instance: {
+                  asset: 0,
+                  overrides: {
+                    componentProps: [
+                      {
+                        path: [],
+                        selector: { type: ownerType, index: 0 },
+                        props: { isKinematic: true },
+                        calls: [{ method: "waitForPeer" }]
+                      },
+                      {
+                        path: [],
+                        selector: { type: ownerType, index: 0 },
+                        props: { isKinematic: false },
+                        calls: [{ method: "observe" }]
+                      },
+                      ...(restoreKinematic
+                        ? [
+                            {
+                              path: [],
+                              selector: { type: ownerType, index: 0 },
+                              props: { isKinematic: true },
+                              calls: [{ method: "observe" }]
+                            }
+                          ]
+                        : []),
+                      {
+                        path: [0],
+                        selector: { type: peerType, index: 0 },
+                        props: { convex: false },
+                        calls: [{ method: "notify" }]
+                      },
+                      {
+                        path: [0],
+                        selector: { type: peerType, index: 0 },
+                        props: { convex: true },
+                        calls: [{ method: "observe" }]
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
+            components: [],
+            root: 0
+          });
+          const inst = outer.instantiate();
+          try {
+            expect(trace).toContain("peer:false:true");
+            expect(trace).toContain("resumed");
+            expect(inst.getComponent(WaitingOwner)!.isKinematic).toBe(restoreKinematic);
+            expect(inst.children[0].getComponent(SignallingPeer)!.convex).toBe(true);
+          } finally {
+            inst.destroy();
+          }
+        } finally {
+          // @ts-ignore
+          delete engine.resourceManager._objectPool[baseKey];
+        }
+      }
+
+      for (const mode of ["owner-restricts-and-relaxes", "owner-relaxes-twice", "owner-relaxes-once"] as const) {
+        let release!: () => void;
+        const signal = new Promise<void>((r) => (release = r));
+        const events: string[] = [];
+        class GameBody extends Rigidbody {
+          async waitForSetup(): Promise<void> {
+            events.push(`body-wait:${this.isKinematic}`);
+            await signal;
+            events.push("body-ready");
+          }
+        }
+        class GameMesh extends MeshCollider {
+          finishSetup(): void {
+            events.push(`mesh-signal:${this.convex}:${this.attachedRigidbody?.isKinematic}`);
+            release();
+          }
+        }
+        const bodyType = `R12GameBody_${mode}`;
+        const meshType = `R12GameMesh_${mode}`;
+        Loader.registerClass(bodyType, GameBody);
+        Loader.registerClass(meshType, GameMesh);
+
+        const baseKey = `r12-phase-base-${mode}.prefab`;
+        const phaseBase = await PrefabParser.parse(engine, baseKey, {
+          version: "2.0",
+          refs: [],
+          entities: [
+            { name: "body", components: [0], children: [1] },
+            { name: "mesh", components: [1] }
+          ],
+          components: [
+            { type: bodyType, props: { isKinematic: true } },
+            { type: meshType, props: { convex: true } }
+          ],
+          root: 0
+        });
+        // @ts-ignore
+        engine.resourceManager._objectPool[baseKey] = phaseBase;
+        try {
+          const bodyRestricts = mode === "owner-restricts-and-relaxes";
+          const outer = await PrefabParser.parse(engine, `r12-phase-outer-${mode}.prefab`, {
+            version: "2.0",
+            refs: [{ url: baseKey }],
+            entities: [
+              {
+                instance: {
+                  asset: 0,
+                  overrides: {
+                    componentProps: [
+                      {
+                        path: [0],
+                        selector: { type: meshType, index: 0 },
+                        props: { convex: false },
+                        calls: [{ method: "finishSetup" }]
+                      },
+                      { path: [0], selector: { type: meshType, index: 0 }, props: { convex: true } },
+                      {
+                        path: [],
+                        selector: { type: bodyType, index: 0 },
+                        props: { isKinematic: !bodyRestricts },
+                        calls: [{ method: "waitForSetup" }]
+                      },
+                      ...(mode !== "owner-relaxes-once"
+                        ? [{ path: [], selector: { type: bodyType, index: 0 }, props: { isKinematic: true } }]
+                        : [])
+                    ]
+                  }
+                }
+              }
+            ],
+            components: [],
+            root: 0
+          });
+          const inst = outer.instantiate();
+          try {
+            expect(events).toContain("mesh-signal:false:true");
+            expect(events).toContain("body-ready");
+            expect(inst.getComponent(GameBody)!.isKinematic).toBe(true);
+            expect(inst.children[0].getComponent(GameMesh)!.convex).toBe(true);
+          } finally {
+            inst.destroy();
+          }
+        } finally {
+          // @ts-ignore
+          delete engine.resourceManager._objectPool[baseKey];
+        }
+      }
+
       expect(errors).not.toHaveBeenCalled();
     } finally {
       errors.mockRestore();

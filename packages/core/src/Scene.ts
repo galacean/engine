@@ -82,6 +82,7 @@ export class Scene extends EngineObject {
 
   private _pendingPhysicsDestroy: boolean = false;
   private _processingActive: boolean = false;
+  private _activeStateVersion: number = 0;
 
   private _background: Background = new Background(this._engine);
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
@@ -359,55 +360,7 @@ export class Scene extends EngineObject {
       return;
     }
 
-    // Fail fast before mutating ownership lists if rootEntity is mid-active-processing (as the batch
-    // root, a deactivating descendant, or an ancestor of a deactivating subtree) and attaching here would
-    // trigger re-entrant activation or switch its scene mid-drain.
-    if (
-      rootEntity._activeChangedComponents ||
-      rootEntity._deactivatingCount > 0 ||
-      rootEntity._deactivatingSubtreeCount > 0
-    ) {
-      if (rootEntity._isActive && (rootEntity._activeChangedComponents || rootEntity._deactivatingCount > 0)) {
-        rootEntity._processActive(ActiveChangeFlag.Scene);
-      }
-      if (oldScene !== this) {
-        throw new Error("Cannot transfer an entity to another scene while it is processing active state changes.");
-      }
-    }
-
-    // Deactivate before mutating ownership lists so callbacks observe consistent ownership.
-    // Re-evaluate after each pass in case an onDisable callback deactivates `this` scene.
-    let inActiveError: unknown;
-    let hasInActiveError = false;
-    while (
-      !rootEntity.destroyed &&
-      !rootEntity.pendingDestroy &&
-      !this.destroyed &&
-      !this.pendingDestroy &&
-      rootEntity._scene === oldScene &&
-      rootEntity.parent === oldParent &&
-      rootEntity._isRoot === wasRoot
-    ) {
-      let inActiveChangeFlag = ActiveChangeFlag.None;
-      if (rootEntity._isActiveInHierarchy && !this._isActiveInEngine) {
-        inActiveChangeFlag |= ActiveChangeFlag.Hierarchy;
-      }
-      // Cross scene should inActive first and then active
-      if (rootEntity._isActiveInScene && oldScene !== this) {
-        inActiveChangeFlag |= ActiveChangeFlag.Scene;
-      }
-      if (!inActiveChangeFlag) {
-        break;
-      }
-      try {
-        rootEntity._processInActive(inActiveChangeFlag);
-      } catch (error) {
-        if (!hasInActiveError) {
-          inActiveError = error;
-          hasInActiveError = true;
-        }
-      }
-    }
+    let inActiveError = rootEntity._drainInActiveBeforeTransfer(this, null, oldScene ?? null, oldParent, wasRoot);
 
     if (
       !rootEntity.destroyed &&
@@ -447,13 +400,12 @@ export class Scene extends EngineObject {
     try {
       rootEntity._syncActiveStateWithOwner();
     } catch (error) {
-      if (!hasInActiveError) {
+      if (inActiveError === Entity._noError) {
         inActiveError = error;
-        hasInActiveError = true;
       }
     }
 
-    if (hasInActiveError) {
+    if (inActiveError !== Entity._noError) {
       throw inActiveError;
     }
   }
@@ -555,15 +507,19 @@ export class Scene extends EngineObject {
    */
   _processActive(active: boolean): void {
     this._isActiveInEngine = active;
-    if (this._processingActive) return;
+    this._activeStateVersion++;
+    if (this._processingActive || (active && this._destroyed)) return;
 
+    const enteredDestroyed = this._destroyed;
     this._processingActive = true;
     let firstError: unknown;
     let hasError = false;
     let passes = 0;
     try {
-      while (!this._destroyed) {
+      while (true) {
+        const passVersion = this._activeStateVersion;
         const targetActive = this._isActiveInEngine;
+        if (targetActive && this._destroyed) break;
         const rootEntities = this._rootEntities;
         const count = rootEntities.length;
         if (count > 0) {
@@ -574,7 +530,7 @@ export class Scene extends EngineObject {
           snapshot.length = count;
           try {
             for (let i = count - 1; i >= 0; i--) {
-              if (this._destroyed || this._isActiveInEngine !== targetActive) break;
+              if ((!enteredDestroyed && this._destroyed) || this._activeStateVersion !== passVersion) break;
               const entity = snapshot[i];
               if (entity._scene !== this || !entity._isRoot) continue;
               if (entity._isActive && entity._isActiveInHierarchy !== targetActive) {
@@ -597,7 +553,7 @@ export class Scene extends EngineObject {
             Scene._activeRootsPool.push(snapshot);
           }
         }
-        if (this._destroyed || this._isActiveInEngine === targetActive) {
+        if ((!enteredDestroyed && this._destroyed) || this._activeStateVersion === passVersion) {
           break;
         }
         if (++passes >= 64) {

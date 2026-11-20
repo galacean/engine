@@ -12,6 +12,17 @@ type MeshData = {
   indices: Uint8Array | Uint16Array | Uint32Array | null;
 };
 
+type CoupledPropBatch = {
+  hasMesh: boolean;
+  mesh: ModelMesh | null;
+  hasConvex: boolean;
+  convex: boolean;
+  hasFlags: boolean;
+  cookingFlags: MeshColliderShapeCookingFlag;
+  hasTrigger: boolean;
+  isTrigger: boolean;
+};
+
 function requiresConvexMesh(value: unknown): boolean {
   if (!(value instanceof ModelMesh)) return false;
   if (!value.accessible) return true;
@@ -74,8 +85,12 @@ export class MeshCollider extends Collider {
     return null;
   }
 
+  private static readonly _coupledBatchPool: CoupledPropBatch[] = [];
+
   @ignoreClone
   private _mesh: ModelMesh | null = null;
+  @ignoreClone
+  private _coupledBatch: CoupledPropBatch | null = null;
   private _convex = false;
   private _cookingFlags = MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
 
@@ -89,16 +104,14 @@ export class MeshCollider extends Collider {
   }
 
   set mesh(value: ModelMesh | null) {
+    const batch = this._coupledBatch;
+    if (batch) {
+      batch.hasMesh = true;
+      batch.mesh = value;
+      return;
+    }
     if (this._mesh !== value) {
-      if (value) {
-        const meshData = MeshCollider._getMeshData(value, this._convex);
-        if (!meshData || !this._rebuildNative(meshData, this._convex, this._cookingFlags)) {
-          return;
-        }
-      } else {
-        this._replaceNativeShape(null);
-      }
-      this._setMesh(value);
+      this._commitCoupledState(true, value, false, false, false, this._cookingFlags, false, false);
     }
   }
 
@@ -112,26 +125,14 @@ export class MeshCollider extends Collider {
   }
 
   set convex(value: boolean) {
+    const batch = this._coupledBatch;
+    if (batch) {
+      batch.hasConvex = true;
+      batch.convex = value;
+      return;
+    }
     if (this._convex !== value) {
-      if (!value) {
-        if (this.isTrigger) {
-          console.error("MeshCollider: cannot set convex to false while isTrigger is true.");
-          return;
-        }
-        const body = this.attachedRigidbody;
-        if (body && !body.isKinematic) {
-          console.error("MeshCollider: cannot set convex to false while it belongs to a non-kinematic Rigidbody.");
-          return;
-        }
-      }
-      const mesh = this._mesh;
-      if (mesh) {
-        const meshData = MeshCollider._getMeshData(mesh, value);
-        if (!meshData || !this._rebuildNative(meshData, value, this._cookingFlags, true)) {
-          return;
-        }
-      }
-      this._convex = value;
+      this._commitCoupledState(false, null, true, value, false, this._cookingFlags, false, false);
     }
   }
 
@@ -144,15 +145,14 @@ export class MeshCollider extends Collider {
   }
 
   set cookingFlags(value: MeshColliderShapeCookingFlag) {
+    const batch = this._coupledBatch;
+    if (batch) {
+      batch.hasFlags = true;
+      batch.cookingFlags = value;
+      return;
+    }
     if (this._cookingFlags !== value) {
-      const mesh = this._mesh;
-      if (mesh) {
-        const meshData = MeshCollider._getMeshData(mesh, this._convex);
-        if (!meshData || !this._rebuildNative(meshData, this._convex, value)) {
-          return;
-        }
-      }
-      this._cookingFlags = value;
+      this._commitCoupledState(false, null, false, false, true, value, false, false);
     }
   }
 
@@ -180,20 +180,138 @@ export class MeshCollider extends Collider {
 
   /**
    * @internal
-   * Atomically validate and commit coupled deserialized properties (`mesh`, `convex`, `cookingFlags`, `isTrigger`)
-   * with a single native cook against the final resolved state.
+   * Open a coupled-property staging transaction so normal setters (including derived subclass overrides)
+   * run while validation and native mesh cooking are deferred until `_endDeserializeCoupledProps`.
    */
-  _applyDeserializeCoupledProps(props: Record<string, unknown>): void {
-    const hasMesh = "mesh" in props;
-    const hasConvex = "convex" in props;
-    const hasFlags = "cookingFlags" in props;
-    const hasTrigger = "isTrigger" in props;
+  _beginDeserializeCoupledProps(): void {
+    const batch = MeshCollider._coupledBatchPool.pop() ?? {
+      hasMesh: false,
+      mesh: null,
+      hasConvex: false,
+      convex: false,
+      hasFlags: false,
+      cookingFlags: this._cookingFlags,
+      hasTrigger: false,
+      isTrigger: false
+    };
+    batch.hasMesh = false;
+    batch.mesh = null;
+    batch.hasConvex = false;
+    batch.convex = false;
+    batch.hasFlags = false;
+    batch.cookingFlags = this._cookingFlags;
+    batch.hasTrigger = false;
+    batch.isTrigger = false;
+    this._coupledBatch = batch;
+  }
 
-    const nextMesh = hasMesh ? (props.mesh as ModelMesh | null) : this._mesh;
-    let nextConvex = hasConvex ? (props.convex as boolean) : this._convex;
-    const nextFlags = hasFlags ? (props.cookingFlags as MeshColliderShapeCookingFlag) : this._cookingFlags;
+  /**
+   * @internal
+   * Close a coupled-property transaction and, when `commit` is true, validate and cook once against
+   * the final resolved state.
+   */
+  _endDeserializeCoupledProps(commit: boolean): void {
+    const batch = this._coupledBatch;
+    if (!batch) return;
+    this._coupledBatch = null;
+    try {
+      if (commit) {
+        this._commitCoupledState(
+          batch.hasMesh,
+          batch.mesh,
+          batch.hasConvex,
+          batch.convex,
+          batch.hasFlags,
+          batch.cookingFlags,
+          batch.hasTrigger,
+          batch.isTrigger
+        );
+      }
+    } finally {
+      batch.mesh = null;
+      MeshCollider._coupledBatchPool.push(batch);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _getDeserializeGroup(): object | null {
+    return this._findRigidbody();
+  }
+
+  /**
+   * @internal
+   */
+  _canRunDeserializeRestrict(): boolean {
+    const body = this.attachedRigidbody;
+    return !body || body.isKinematic;
+  }
+
+  /**
+   * @internal
+   */
+  override _supportsDynamicBody(): boolean {
+    return this._convex;
+  }
+
+  protected override _hasValidGeometry(scale: Vector3): boolean {
+    const minScale = Math.fround(1e-6);
+    const maxScale = 1e6;
+    const x = Math.fround(scale.x);
+    const y = Math.fround(scale.y);
+    const z = Math.fround(scale.z);
+    return x >= minScale && y >= minScale && z >= minScale && x <= maxScale && y <= maxScale && z <= maxScale;
+  }
+
+  /**
+   * @internal
+   * @inheritdoc
+   */
+  override _onClone(target: MeshCollider): void {
+    super._onClone(target);
+    // convex and cookingFlags are already copied, so the setter cooks the same shape
+    target.mesh = this._mesh;
+  }
+
+  protected override _setIsTrigger(value: boolean): void {
+    const batch = this._coupledBatch;
+    if (batch) {
+      batch.hasTrigger = true;
+      batch.isTrigger = value;
+      return;
+    }
+    if (value && !this._convex) {
+      console.error("MeshCollider: isTrigger is only supported when convex is true.");
+      return;
+    }
+    super._setIsTrigger(value);
+  }
+
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    this._setMesh(null);
+  }
+
+  /**
+   * Single validation and native-cook path shared by individual property setters and coupled
+   * deserialization transactions.
+   */
+  private _commitCoupledState(
+    hasMesh: boolean,
+    mesh: ModelMesh | null,
+    hasConvex: boolean,
+    convex: boolean,
+    hasFlags: boolean,
+    cookingFlags: MeshColliderShapeCookingFlag,
+    hasTrigger: boolean,
+    isTrigger: boolean
+  ): void {
+    const nextMesh = hasMesh ? mesh : this._mesh;
+    let nextConvex = hasConvex ? convex : this._convex;
+    const nextFlags = hasFlags ? cookingFlags : this._cookingFlags;
     const prevTrigger = this.isTrigger;
-    let nextTrigger = hasTrigger ? (props.isTrigger as boolean) : prevTrigger;
+    let nextTrigger = hasTrigger ? isTrigger : prevTrigger;
 
     if (!nextConvex && nextTrigger) {
       if (hasTrigger) {
@@ -252,52 +370,6 @@ export class MeshCollider extends Collider {
     if (nextTrigger && !this.isTrigger) {
       this._setIsTrigger(true);
     }
-  }
-
-  /**
-   * @internal
-   */
-  _getDeserializeGroup(): object | null {
-    return this._findRigidbody();
-  }
-
-  /**
-   * @internal
-   */
-  override _supportsDynamicBody(): boolean {
-    return this._convex;
-  }
-
-  protected override _hasValidGeometry(scale: Vector3): boolean {
-    const minScale = Math.fround(1e-6);
-    const maxScale = 1e6;
-    const x = Math.fround(scale.x);
-    const y = Math.fround(scale.y);
-    const z = Math.fround(scale.z);
-    return x >= minScale && y >= minScale && z >= minScale && x <= maxScale && y <= maxScale && z <= maxScale;
-  }
-
-  /**
-   * @internal
-   * @inheritdoc
-   */
-  override _onClone(target: MeshCollider): void {
-    super._onClone(target);
-    // convex and cookingFlags are already copied, so the setter cooks the same shape
-    target.mesh = this._mesh;
-  }
-
-  protected override _setIsTrigger(value: boolean): void {
-    if (value && !this._convex) {
-      console.error("MeshCollider: isTrigger is only supported when convex is true.");
-      return;
-    }
-    super._setIsTrigger(value);
-  }
-
-  protected override _onDestroy(): void {
-    super._onDestroy();
-    this._setMesh(null);
   }
 
   /**

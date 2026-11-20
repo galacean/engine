@@ -23,6 +23,9 @@ export class Entity extends EngineObject {
   /** @internal */
   static _nextHierarchyStamp = 0;
 
+  /** @internal Sentinel returned by `_drainInActiveBeforeTransfer` when no callback threw. */
+  static readonly _noError = {};
+
   private static _deactivatingEntitiesPool: Entity[][] = [];
   private static _deactivatingSubtreeCountsPool: number[][] = [];
   private static _deferredSceneClearEntities: Entity[] = [];
@@ -957,6 +960,112 @@ export class Entity extends EngineObject {
     return false;
   }
 
+  /**
+   * @internal
+   * Fail fast if transferring this entity would violate active-batch invariants, then drain
+   * deactivation callbacks before ownership lists are mutated.
+   * Returns `Entity._noError` when no callback threw, or the first thrown error otherwise.
+   */
+  _drainInActiveBeforeTransfer(
+    targetScene: Scene | null,
+    targetParent: Entity | null,
+    oldScene: Scene | null,
+    oldParent: Entity | null,
+    wasRoot: boolean,
+    allowDestroyedParent = false
+  ): unknown {
+    // Fail fast before mutating ownership lists if this entity is mid-active-processing (as the batch
+    // root, a deactivating descendant, or an ancestor of a deactivating subtree) and attaching here
+    // would switch its scene mid-drain or trigger re-entrant activation.
+    if (this._activeChangedComponents || this._deactivatingCount > 0 || this._deactivatingSubtreeCount > 0) {
+      if (targetScene !== oldScene) {
+        throw new Error("Cannot transfer an entity to another scene while it is processing active state changes.");
+      }
+      if (this._isActive && (this._activeChangedComponents || this._deactivatingCount > 0)) {
+        const targetActiveInHierarchy = targetParent
+          ? targetParent._isActiveInHierarchy
+          : targetScene!._isActiveInEngine;
+        const targetActiveInScene = targetParent ? targetParent._isActiveInScene : true;
+        if (
+          (targetActiveInHierarchy && !this._isActiveInHierarchy) ||
+          (targetActiveInScene && !this._isActiveInScene)
+        ) {
+          this._processActive(ActiveChangeFlag.Scene);
+        }
+      }
+    }
+
+    let inActiveChangeFlag = this._getTransferInActiveFlags(targetScene, targetParent, oldScene);
+    if (!inActiveChangeFlag) {
+      return Entity._noError;
+    }
+
+    // Fail fast outside try/catch before mutating ownership lists when re-entrant _processInActive will
+    // throw (e.g., reparenting the active batch root under an inactive same-scene parent inside onEnable).
+    if (this._activeChangedComponents) {
+      this._processInActive(inActiveChangeFlag);
+    }
+
+    // Deactivate before mutating ownership lists so callbacks observe consistent ownership.
+    // Re-evaluate after each pass in case an onDisable callback moves targetParent to another scene
+    // or changes the target's active state while `this` is still owned by `oldScene`.
+    let firstError: unknown = Entity._noError;
+    while (
+      inActiveChangeFlag &&
+      !this.destroyed &&
+      !this.pendingDestroy &&
+      (targetParent
+        ? (allowDestroyedParent || !targetParent._isInDyingHierarchy()) && !targetParent._isSelfOrDescendantOf(this)
+        : !targetScene!.destroyed && !targetScene!.pendingDestroy)
+    ) {
+      const prevH = this._isActiveInHierarchy;
+      const prevS = this._isActiveInScene;
+      try {
+        this._processInActive(inActiveChangeFlag);
+      } catch (error) {
+        if (firstError === Entity._noError) {
+          firstError = error;
+        }
+      }
+      if (this._scene !== oldScene || this._parent !== oldParent || this._isRoot !== wasRoot) {
+        break;
+      }
+      // Guarantee termination if _processInActive threw before changing either active flag.
+      if (prevH === this._isActiveInHierarchy && prevS === this._isActiveInScene) {
+        break;
+      }
+      inActiveChangeFlag = this._getTransferInActiveFlags(targetScene, targetParent, oldScene);
+    }
+    return firstError;
+  }
+
+  private _getTransferInActiveFlags(
+    targetScene: Scene | null,
+    targetParent: Entity | null,
+    oldScene: Scene | null
+  ): ActiveChangeFlag {
+    let flag = ActiveChangeFlag.None;
+    if (targetParent) {
+      if (!targetParent._isActiveInHierarchy) {
+        this._isActiveInHierarchy && (flag |= ActiveChangeFlag.Hierarchy);
+      }
+      if (targetParent._isActiveInScene) {
+        // Cross-scene transfer deactivates before reactivating in the destination scene.
+        this._isActiveInScene && oldScene !== targetParent._scene && (flag |= ActiveChangeFlag.Scene);
+      } else {
+        this._isActiveInScene && (flag |= ActiveChangeFlag.Scene);
+      }
+    } else {
+      if (this._isActiveInHierarchy && !targetScene!._isActiveInEngine) {
+        flag |= ActiveChangeFlag.Hierarchy;
+      }
+      if (this._isActiveInScene && oldScene !== targetScene) {
+        flag |= ActiveChangeFlag.Scene;
+      }
+    }
+    return flag;
+  }
+
   private _setParent(parent: Entity | null, siblingIndex?: number): void {
     const oldParent = this._parent;
     if (parent !== oldParent) {
@@ -978,65 +1087,20 @@ export class Entity extends EngineObject {
         if (this.destroyed || this.pendingDestroy || (!allowDestroyedParent && parent._isInDyingHierarchy())) {
           return;
         }
-        const parentScene = parent._scene;
 
-        // Fail fast before mutating ownership lists if this entity is mid-active-processing (as the
-        // batch root, a deactivating descendant, or an ancestor of a deactivating subtree) and attaching
-        // here would trigger re-entrant activation or switch its scene mid-drain.
-        if (this._activeChangedComponents || this._deactivatingCount > 0 || this._deactivatingSubtreeCount > 0) {
-          if (
-            this._isActive &&
-            (this._activeChangedComponents || this._deactivatingCount > 0) &&
-            (parent._isActiveInHierarchy || parent._isActiveInScene)
-          ) {
-            this._processActive(ActiveChangeFlag.Scene);
-          }
-          if (parentScene !== oldScene) {
-            throw new Error("Cannot transfer an entity to another scene while it is processing active state changes.");
-          }
-        }
-
-        // Deactivate before mutating ownership lists so callbacks observe consistent ownership.
-        // Re-evaluate after each pass in case an onDisable callback moves `parent` to another scene
-        // or changes its active state while `this` is still owned by `oldScene`.
-        let inActiveError: unknown;
-        let hasInActiveError = false;
-        let ownershipUnchanged = true;
-        while (
-          ownershipUnchanged &&
-          !this.destroyed &&
-          !this.pendingDestroy &&
-          (allowDestroyedParent || !parent._isInDyingHierarchy()) &&
-          !parent._isSelfOrDescendantOf(this)
-        ) {
-          let inActiveChangeFlag = ActiveChangeFlag.None;
-          if (!parent._isActiveInHierarchy) {
-            this._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
-          }
-          if (parent._isActiveInScene) {
-            // cross scene should inActive first and then active
-            this._isActiveInScene && oldScene !== parent._scene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-          } else {
-            this._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-          }
-          if (!inActiveChangeFlag) {
-            break;
-          }
-          try {
-            this._processInActive(inActiveChangeFlag);
-          } catch (error) {
-            if (!hasInActiveError) {
-              inActiveError = error;
-              hasInActiveError = true;
-            }
-          }
-          ownershipUnchanged = this._scene === oldScene && this._parent === oldParent && this._isRoot === wasRoot;
-        }
+        let inActiveError = this._drainInActiveBeforeTransfer(
+          parent._scene ?? null,
+          parent,
+          oldScene ?? null,
+          oldParent,
+          wasRoot,
+          allowDestroyedParent
+        );
+        const ownershipUnchanged = this._scene === oldScene && this._parent === oldParent && this._isRoot === wasRoot;
 
         if (ownershipUnchanged && parent._isSelfOrDescendantOf(this)) {
-          if (!hasInActiveError) {
+          if (inActiveError === Entity._noError) {
             inActiveError = new Error("Cannot set parent to self or a descendant entity.");
-            hasInActiveError = true;
           }
         } else if (
           ownershipUnchanged &&
@@ -1078,13 +1142,12 @@ export class Entity extends EngineObject {
         try {
           this._syncActiveStateWithOwner();
         } catch (error) {
-          if (!hasInActiveError) {
+          if (inActiveError === Entity._noError) {
             inActiveError = error;
-            hasInActiveError = true;
           }
         }
 
-        if (hasInActiveError) {
+        if (inActiveError !== Entity._noError) {
           throw inActiveError;
         }
       } else {
@@ -1223,7 +1286,7 @@ export class Entity extends EngineObject {
           }
         }
       }
-      if (isActive && !this._scene && !hasError) {
+      if (isActive && !this._scene && !this._destroyed && !hasError) {
         firstError = new Error("Cannot detach an entity from its scene while it is processing active state changes.");
         hasError = true;
       }

@@ -537,6 +537,20 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     return this;
   }
 
+  /** @internal */
+  _canRunDeserializeRestrict(): boolean {
+    const colliders = this._getOwnedColliders();
+    let supported = true;
+    for (let i = 0, n = colliders.length; i < n; i++) {
+      if (!colliders[i]._supportsDynamicBody()) {
+        supported = false;
+        break;
+      }
+    }
+    colliders.length = 0;
+    return supported;
+  }
+
   /**
    * @internal
    */
