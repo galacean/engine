@@ -458,16 +458,72 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       return chain;
     };
 
-    // Only engage phased scheduling for targets that actually contain a non-zero phase block.
-    // All-neutral targets run their own sequential chains independently so unrelated async calls
-    // never lockstep or deadlock behind another target's pending promise.
-    let phasedQueues: Array<{
+    type PhasedQueue = {
       target: Component;
       blocks: readonly MutationBlock[];
       phases: number[];
       cursor: number;
-    }> | null = null;
-    let neutralItems: Array<{ target: Component; blocks: readonly MutationBlock[] }> | null = null;
+    };
+
+    const runPhasedGroup = (queues: PhasedQueue[]): Promise<unknown> => {
+      const runNextStep = (): Promise<unknown> => {
+        let minPhase = 2;
+        for (let i = 0, n = queues.length; i < n; i++) {
+          const q = queues[i];
+          if (q.cursor < q.blocks.length) {
+            const p = q.phases[q.cursor];
+            if (p < minPhase) minPhase = p;
+          }
+        }
+        if (minPhase === 2) {
+          return Promise.resolve();
+        }
+
+        const promises: Promise<unknown>[] = [];
+        let pickedUnblocking = false;
+        if (minPhase > -1) {
+          for (let i = 0, n = queues.length; i < n; i++) {
+            const q = queues[i];
+            if (q.cursor >= q.blocks.length || q.phases[q.cursor] !== minPhase) continue;
+            let hasFutureRelax = false;
+            for (let j = q.cursor + 1, m = q.phases.length; j < m; j++) {
+              if (q.phases[j] < 0) {
+                hasFutureRelax = true;
+                break;
+              }
+            }
+            if (hasFutureRelax) {
+              pickedUnblocking = true;
+              promises.push(applyBlock(q.target, q.blocks[q.cursor++]));
+              // Serialize mutually-restricting physics blocks that immediately relax within the same
+              // (ownerRigidbody, owned MeshColliders) group so paired constraints never collide.
+              if (minPhase > 0) {
+                break;
+              }
+            }
+          }
+        }
+
+        if (!pickedUnblocking) {
+          for (let i = 0, n = queues.length; i < n; i++) {
+            const q = queues[i];
+            if (q.cursor < q.blocks.length && q.phases[q.cursor] === minPhase) {
+              promises.push(applyBlock(q.target, q.blocks[q.cursor++]));
+            }
+          }
+        }
+
+        return Promise.all(promises).then(runNextStep);
+      };
+
+      return runNextStep();
+    };
+
+    // Scope physics phase ordering strictly to each (ownerRigidbody, owned MeshColliders) group.
+    // All neutral targets, standalone MeshColliders, independent Rigidbodies, and MeshCollider-only
+    // groups run their sequential chains concurrently with zero cross-group blocking.
+    let groups: Map<object, PhasedQueue[]> | null = null;
+    const independentItems: Array<{ target: Component; blocks: readonly MutationBlock[] }> = [];
 
     for (let i = 0, n = items.length; i < n; i++) {
       const item = items[i];
@@ -493,80 +549,51 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
         }
       }
       if (hasNonZeroPhase) {
-        if (!phasedQueues) {
-          phasedQueues = [];
-          neutralItems = items.slice(0, i);
+        const groupKey: object | null = (item.target as any)._getDeserializeGroup?.() ?? null;
+        if (groupKey) {
+          groups ||= new Map<object, PhasedQueue[]>();
+          let group = groups.get(groupKey);
+          if (!group) {
+            group = [];
+            groups.set(groupKey, group);
+          }
+          group.push({ target: item.target, blocks: item.blocks, phases: phases!, cursor: 0 });
+          continue;
         }
-        phasedQueues.push({ target: item.target, blocks: item.blocks, phases: phases!, cursor: 0 });
-      } else if (neutralItems) {
-        neutralItems.push(item);
       }
+      independentItems.push(item);
     }
 
-    if (!phasedQueues) {
+    if (!groups) {
       return Promise.all(items.map(runItemChain));
     }
 
-    let neutralPending = neutralItems!.length > 0;
-    const queues = phasedQueues;
-
-    const runNextStep = (): Promise<unknown> => {
-      let minPhase = neutralPending ? 0 : 2;
-      for (let i = 0, n = queues.length; i < n; i++) {
-        const q = queues[i];
-        if (q.cursor < q.blocks.length) {
-          const p = q.phases[q.cursor];
-          if (p < minPhase) minPhase = p;
-        }
-      }
-      if (minPhase === 2) {
-        return Promise.resolve();
-      }
-
-      const promises: Promise<unknown>[] = [];
-      let pickedUnblocking = false;
-      if (minPhase > -1) {
-        for (let i = 0, n = queues.length; i < n; i++) {
-          const q = queues[i];
-          if (q.cursor >= q.blocks.length || q.phases[q.cursor] !== minPhase) continue;
-          let hasFutureRelax = false;
-          for (let j = q.cursor + 1, m = q.phases.length; j < m; j++) {
-            if (q.phases[j] < 0) {
-              hasFutureRelax = true;
-              break;
-            }
-          }
-          if (hasFutureRelax) {
-            pickedUnblocking = true;
-            promises.push(applyBlock(q.target, q.blocks[q.cursor++]));
-            // Serialize mutually-restricting physics blocks that immediately relax so e.g.
-            // Rigidbody(isKinematic=false->true) and MeshCollider(convex=false->true) don't collide.
-            if (minPhase > 0) {
-              break;
-            }
+    const tasks: Promise<unknown>[] = [];
+    for (let i = 0, n = independentItems.length; i < n; i++) {
+      tasks.push(runItemChain(independentItems[i]));
+    }
+    groups.forEach((group, groupKey) => {
+      // Cross-component phase constraints exist only when a group contains BOTH the owner (Rigidbody)
+      // and at least one owned component (MeshCollider); otherwise each target runs independently.
+      let hasOwner = false;
+      if (group.length > 1) {
+        for (let i = 0, n = group.length; i < n; i++) {
+          if (group[i].target === groupKey) {
+            hasOwner = true;
+            break;
           }
         }
       }
-
-      if (!pickedUnblocking) {
-        if (minPhase === 0 && neutralPending) {
-          neutralPending = false;
-          for (let i = 0, n = neutralItems!.length; i < n; i++) {
-            promises.push(runItemChain(neutralItems![i]));
-          }
-        }
-        for (let i = 0, n = queues.length; i < n; i++) {
-          const q = queues[i];
-          if (q.cursor < q.blocks.length && q.phases[q.cursor] === minPhase) {
-            promises.push(applyBlock(q.target, q.blocks[q.cursor++]));
-          }
+      if (hasOwner) {
+        tasks.push(runPhasedGroup(group));
+      } else {
+        for (let i = 0, n = group.length; i < n; i++) {
+          tasks.push(runItemChain(group[i]));
         }
       }
+    });
 
-      return Promise.all(promises).then(runNextStep);
-    };
-
-    return runNextStep();
+    return Promise.all(tasks);
   }
 
   // ---------------------------------------------------------------------------

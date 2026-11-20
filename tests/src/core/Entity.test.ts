@@ -1209,6 +1209,62 @@ describe("Entity", async () => {
           if (!dst.destroyed) dst.destroy();
         }
       }
+
+      // Ancestor detach / cross-scene transfer while a descendant subtree is deactivating
+      for (const operation of ["detach-root", "detach-child", "transfer-root", "transfer-child"] as const) {
+        const src = new Scene(engine, `anc-src-${operation}`);
+        const dst = new Scene(engine, `anc-dst-${operation}`);
+        engine.sceneManager.addScene(src);
+        try {
+          const target = dst.createRootEntity("target");
+          const outer = src.createRootEntity("outer");
+          const grandparent = outer.createChild("grandparent");
+          const parent = grandparent.createChild("parent");
+          const child = parent.createChild("child");
+          let disabled = 0;
+          let updates = 0;
+          child.addComponent(
+            class extends Script {
+              override onDisable(): void {
+                if (operation === "detach-root") src.removeRootEntity(outer);
+                else if (operation === "detach-child") outer.removeChild(grandparent);
+                else if (operation === "transfer-root") dst.addRootEntity(outer);
+                else if (operation === "transfer-child") target.addChild(grandparent);
+              }
+            }
+          );
+          child.addComponent(
+            class extends Script {
+              override onDisable(): void {
+                disabled++;
+              }
+              override onUpdate(): void {
+                updates++;
+              }
+            }
+          );
+
+          engine.update();
+          expect(() => {
+            parent.isActive = false;
+          }).toThrow();
+          const before = updates;
+          expect(() => engine.update()).not.toThrow();
+          expect(disabled).toBe(1);
+          expect(updates - before).toBe(0);
+          expect(child.isActiveInHierarchy).toBe(false);
+          if (operation === "detach-root" || operation === "detach-child") {
+            expect(child.scene).toBeNull();
+          } else {
+            expect(child.scene).toBe(src);
+          }
+          if (!outer.destroyed) outer.destroy();
+          if (!grandparent.destroyed) grandparent.destroy();
+        } finally {
+          if (!src.destroyed) src.destroy();
+          if (!dst.destroyed) dst.destroy();
+        }
+      }
     });
   });
 

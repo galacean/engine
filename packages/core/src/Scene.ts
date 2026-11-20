@@ -353,11 +353,15 @@ export class Scene extends EngineObject {
       return;
     }
 
-    // Fail fast before mutating ownership lists if rootEntity is mid-active-processing (either as the
-    // batch root or as a deactivating descendant) and attaching here would trigger re-entrant activation
-    // or switch its scene mid-drain.
-    if (rootEntity._activeChangedComponents || rootEntity._deactivatingCount > 0) {
-      if (rootEntity._isActive) {
+    // Fail fast before mutating ownership lists if rootEntity is mid-active-processing (as the batch
+    // root, a deactivating descendant, or an ancestor of a deactivating subtree) and attaching here would
+    // trigger re-entrant activation or switch its scene mid-drain.
+    if (
+      rootEntity._activeChangedComponents ||
+      rootEntity._deactivatingCount > 0 ||
+      rootEntity._deactivatingSubtreeCount > 0
+    ) {
+      if (rootEntity._isActive && (rootEntity._activeChangedComponents || rootEntity._deactivatingCount > 0)) {
         rootEntity._processActive(ActiveChangeFlag.Scene);
       }
       if (oldScene !== this) {
@@ -450,10 +454,17 @@ export class Scene extends EngineObject {
       // is an immediate no-op while entity._scene remains `this` until deactivation callbacks drain.
       Entity._removeFromChildren(this._rootEntities, entity);
       entity._isRoot = false;
+      entity._parentVersion++;
       try {
         inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
       } finally {
-        if (!entity._isRoot && !entity.parent && entity._scene === this && entity._deactivatingCount === 0) {
+        if (
+          !entity._isRoot &&
+          !entity.parent &&
+          entity._scene === this &&
+          entity._deactivatingCount === 0 &&
+          entity._deactivatingSubtreeCount === 0
+        ) {
           Entity._traverseSetOwnerScene(entity, null);
         }
       }

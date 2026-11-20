@@ -19,50 +19,71 @@ export class ReflectionParser {
   parseProps(instance: any, props?: Record<string, unknown>): Promise<any> {
     if (!props) return Promise.resolve(instance);
 
-    const rawPropOrder: readonly string[] | ((props: Record<string, unknown>) => readonly string[]) | undefined =
-      instance?.constructor?._deserializePropOrder;
-    const propOrder = typeof rawPropOrder === "function" ? rawPropOrder(props) : rawPropOrder;
-    if (propOrder?.length) {
-      const orderedKeys: string[] = [];
-      for (let i = 0, n = propOrder.length; i < n; i++) {
-        const key = propOrder[i];
-        if (Object.prototype.hasOwnProperty.call(props, key)) {
-          orderedKeys.push(key);
+    try {
+      const rawPropOrder: readonly string[] | ((props: Record<string, unknown>) => readonly string[]) | undefined =
+        instance?.constructor?._deserializePropOrder;
+      const propOrder = typeof rawPropOrder === "function" ? rawPropOrder(props) : rawPropOrder;
+      if (propOrder?.length) {
+        const orderedKeys: string[] = [];
+        for (let i = 0, n = propOrder.length; i < n; i++) {
+          const key = propOrder[i];
+          if (Object.prototype.hasOwnProperty.call(props, key)) {
+            orderedKeys.push(key);
+          }
+        }
+        if (orderedKeys.length > 0) {
+          let chain: Promise<unknown> | null = null;
+          for (let i = 0, n = orderedKeys.length; i < n; i++) {
+            const key = orderedKeys[i];
+            const raw = props[key];
+            if (!chain && (raw == null || typeof raw !== "object")) {
+              instance[key] = raw;
+            } else {
+              const applyOrdered = () =>
+                this._resolveValue(raw, instance[key]).then((v) => {
+                  instance[key] = v;
+                });
+              chain = chain ? chain.then(applyOrdered) : applyOrdered();
+            }
+          }
+          const applyRemaining = (): Promise<any> => {
+            let promises: Promise<any>[] | null = null;
+            for (const key in props) {
+              if (orderedKeys.includes(key)) continue;
+              const raw = props[key];
+              if (raw == null || typeof raw !== "object") {
+                instance[key] = raw;
+              } else {
+                (promises ||= []).push(
+                  this._resolveValue(raw, instance[key]).then((v) => {
+                    instance[key] = v;
+                  })
+                );
+              }
+            }
+            return promises ? Promise.all(promises).then(() => instance) : Promise.resolve(instance);
+          };
+          return chain ? chain.then(applyRemaining) : applyRemaining();
         }
       }
-      if (orderedKeys.length > 0) {
-        let chain = Promise.resolve();
-        for (let i = 0, n = orderedKeys.length; i < n; i++) {
-          const key = orderedKeys[i];
-          chain = chain.then(() =>
-            this._resolveValue(props[key], instance[key]).then((v) => {
+
+      let promises: Promise<any>[] | null = null;
+      for (const key in props) {
+        const raw = props[key];
+        if (raw == null || typeof raw !== "object") {
+          instance[key] = raw;
+        } else {
+          (promises ||= []).push(
+            this._resolveValue(raw, instance[key]).then((v) => {
               instance[key] = v;
             })
           );
         }
-        return chain.then(() => {
-          const promises: Promise<any>[] = [];
-          for (const key in props) {
-            if (orderedKeys.includes(key)) continue;
-            promises.push(
-              this._resolveValue(props[key], instance[key]).then((v) => {
-                instance[key] = v;
-              })
-            );
-          }
-          return Promise.all(promises).then(() => instance);
-        });
       }
+      return promises ? Promise.all(promises).then(() => instance) : Promise.resolve(instance);
+    } catch (error) {
+      return Promise.reject(error);
     }
-
-    const promises: Promise<any>[] = [];
-    for (const key in props) {
-      const promise = this._resolveValue(props[key], instance[key]).then((v) => {
-        instance[key] = v;
-      });
-      promises.push(promise);
-    }
-    return Promise.all(promises).then(() => instance);
   }
 
   /**
@@ -206,11 +227,20 @@ export class ReflectionParser {
       originValue && typeof originValue === "object" && !Array.isArray(originValue)
         ? originValue
         : ({} as Record<string, unknown>);
-    const promises: Promise<any>[] = [];
-    for (const key in obj) {
-      promises.push(this._resolveValue(obj[key], target[key]).then((v) => (target[key] = v)));
+    try {
+      let promises: Promise<any>[] | null = null;
+      for (const key in obj) {
+        const raw = obj[key];
+        if (raw == null || typeof raw !== "object") {
+          target[key] = raw;
+        } else {
+          (promises ||= []).push(this._resolveValue(raw, target[key]).then((v) => (target[key] = v)));
+        }
+      }
+      return promises ? Promise.all(promises).then(() => target) : Promise.resolve(target);
+    } catch (error) {
+      return Promise.reject(error);
     }
-    return Promise.all(promises).then(() => target);
   }
 
   private _getRegisteredClass(value: unknown, sentinel: "$type" | "$class"): any {

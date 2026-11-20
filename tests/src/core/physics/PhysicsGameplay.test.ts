@@ -11,6 +11,7 @@ import {
   DependentMode,
   Entity,
   FixedJoint,
+  HitResult,
   HingeJoint,
   JointLimits,
   JointMotor,
@@ -1688,14 +1689,14 @@ describe("Physics gameplay integration", () => {
       };
       try {
         bodyEntity.addChild(moving);
-        const beforeQuery = collider.attachedRigidbody === body;
+        // Pure getter reads hierarchy before sync without side effects
+        expect(collider.attachedRigidbody).toBe(body);
         expect(scene.physics.raycast(oldRay, 10)).toBe(false);
         expect(scene.physics.raycast(newRay, 10)).toBe(true);
         const afterQuery = collider.attachedRigidbody === body;
         collider.enabled = false;
         const disabled = collider.attachedRigidbody === body;
 
-        expect(beforeQuery).toBe(!injected);
         expect(afterQuery).toBe(!injected);
         expect(disabled).toBe(!injected);
         expect(moving.transform.worldPosition.x).toBeCloseTo(8, 5);
@@ -1710,6 +1711,212 @@ describe("Physics gameplay integration", () => {
         nativeActor.addShape = origAddShape;
         bodyEntity.destroy();
       }
+    }
+
+    // 3. Ancestor detach / cross-scene transfer while descendant subtree deactivates removes BoxCollider from PhysX cleanly
+    const ancDst = new Scene(engine, "ancestor-physics-dst");
+    try {
+      for (const mode of ["detach-root", "detach-child", "transfer-root"] as const) {
+        const outer = scene.createRootEntity(`anc-outer-${mode}`);
+        const group = outer.createChild("group");
+        const parent = group.createChild("parent");
+        const child = parent.createChild("child");
+        child.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              if (mode === "detach-root") scene.removeRootEntity(outer);
+              else if (mode === "detach-child") outer.removeChild(group);
+              else if (mode === "transfer-root") ancDst.addRootEntity(outer);
+            }
+          }
+        );
+        child.addComponent(BoxCollider);
+        const ray = new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0));
+        expect(scene.physics.raycast(ray, 10)).toBe(true);
+        expect(() => {
+          parent.isActive = false;
+        }).toThrow();
+        expect(scene.physics.raycast(ray, 10)).toBe(false);
+        expect(ancDst.physics.raycast(ray, 10)).toBe(false);
+        expect(child.scene).toBe(mode === "transfer-root" ? scene : null);
+        if (!outer.destroyed) outer.destroy();
+        if (!group.destroyed) group.destroy();
+      }
+    } finally {
+      if (!ancDst.destroyed) ancDst.destroy();
+    }
+
+    // 4. Cross-scene A -> B rollback cleanup: moving A to another scene never carries src's collider into dst or leaves cross-scene attachedRigidbody
+    for (const mode of ["normal", "active", "disabled", "new-parent"] as const) {
+      errors.mockClear();
+      const rbDst = new Scene(engine, `rollback-dst-${mode}`);
+      const a = scene.createRootEntity(`rb-a-${mode}`);
+      const b = scene.createRootEntity(`rb-b-${mode}`);
+      try {
+        const priorBody = a.addComponent(Rigidbody);
+        priorBody.isKinematic = true;
+        const desiredBody = b.addComponent(Rigidbody);
+        desiredBody.isKinematic = true;
+        const child = a.createChild("child");
+        const box = child.addComponent(BoxCollider);
+        const ray = new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0));
+        expect(scene.physics.raycast(ray, 10)).toBe(true);
+
+        const desiredNative = desiredBody._getNativeActor();
+        const origAdd = desiredNative.addShape.bind(desiredNative);
+        let failOnce = mode !== "normal";
+        desiredNative.addShape = (shape: any) => {
+          if (failOnce) {
+            failOnce = false;
+            return false;
+          }
+          return origAdd(shape);
+        };
+        try {
+          b.addChild(child);
+          expect(box.attachedRigidbody).toBe(desiredBody);
+          scene.physics.raycast(ray, 10);
+          expect(box.attachedRigidbody).toBe(mode === "normal" ? desiredBody : priorBody);
+
+          if (mode === "disabled" || mode === "new-parent") {
+            box.enabled = false;
+          }
+          if (mode === "new-parent") {
+            child.parent = null;
+            b.addChild(child);
+          }
+          expect(box.attachedRigidbody).toBe(mode === "normal" || mode === "new-parent" ? desiredBody : priorBody);
+
+          rbDst.addRootEntity(a);
+          const hit = new HitResult();
+          expect(rbDst.physics.raycast(ray, 10, hit)).toBe(false);
+          expect(hit.collider).toBeNull();
+          expect(box.attachedRigidbody).toBe(desiredBody);
+          expect(box.attachedRigidbody?.scene).toBe(box.scene);
+        } finally {
+          desiredNative.addShape = origAdd;
+        }
+      } finally {
+        if (!a.destroyed) a.destroy();
+        if (!b.destroyed) b.destroy();
+        if (!rbDst.destroyed) rbDst.destroy();
+      }
+    }
+
+    // 5. Pure attachedRigidbody getter has zero side effects on transient reparenting (no extra onCollisionEnter)
+    for (const doRead of [false, true]) {
+      const ground = root.createChild(`transient-ground-${doRead}`);
+      ground.transform.position.y = -0.4;
+      ground.addComponent(BoxCollider).size.set(4, 1, 4);
+      const a = root.createChild(`transient-a-${doRead}`);
+      a.transform.position.y = 0.5;
+      const b = root.createChild(`transient-b-${doRead}`);
+      b.transform.position.y = 0.5;
+      const originalBody = a.addComponent(Rigidbody);
+      originalBody.useGravity = false;
+      originalBody.constraints = RigidbodyConstraints.FreezeAll;
+      const transientBody = b.addComponent(Rigidbody);
+      transientBody.enabled = false;
+      const child = a.createChild("child");
+      const box = child.addComponent(BoxCollider);
+      const events: string[] = [];
+      child.addComponent(
+        class extends Script {
+          override onCollisionEnter(): void {
+            events.push("enter");
+          }
+          override onCollisionStay(): void {
+            events.push("stay");
+          }
+          override onCollisionExit(): void {
+            events.push("exit");
+          }
+        }
+      );
+
+      try {
+        step(3);
+        expect(events[0]).toBe("enter");
+        events.length = 0;
+
+        b.addChild(child);
+        if (doRead) {
+          expect(box.attachedRigidbody).toBe(transientBody);
+        }
+        a.addChild(child);
+
+        step(2);
+        expect(events.length).toBeGreaterThan(0);
+        expect(events.every((e) => e === "stay")).toBe(true);
+        expect(box.attachedRigidbody).toBe(originalBody);
+      } finally {
+        ground.destroy();
+        a.destroy();
+        b.destroy();
+      }
+    }
+  });
+
+  it("defers vertex-only MeshCollider mesh alongside isTrigger when Wave 1 override enables convex", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const vertexOnlyMesh = new ModelMesh(engine);
+    vertexOnlyMesh.setPositions([
+      new Vector3(0, 1, 0),
+      new Vector3(-1, 0, -1),
+      new Vector3(1, 0, -1),
+      new Vector3(0, 0, 1)
+    ]);
+    const meshKey = "r8-vertex-only.mesh";
+    const baseKey = "r8-mesh-defer-base.prefab";
+    // @ts-ignore
+    engine.resourceManager._objectPool[meshKey] = vertexOnlyMesh;
+    const basePrefab = await PrefabParser.parse(engine, baseKey, {
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "base" }],
+      components: [],
+      root: 0
+    });
+    // @ts-ignore
+    engine.resourceManager._objectPool[baseKey] = basePrefab;
+
+    try {
+      const outerPrefab = await PrefabParser.parse(engine, "r8-mesh-defer-outer.prefab", {
+        version: "2.0",
+        refs: [{ url: baseKey }, { url: meshKey }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                addedComponents: [{ target: [], component: 0 }],
+                componentProps: [{ path: [], selector: { type: "MeshCollider", index: 0 }, props: { convex: true } }]
+              }
+            }
+          }
+        ],
+        components: [{ type: "MeshCollider", props: { mesh: { $ref: 1 }, isTrigger: true } }],
+        root: 0
+      });
+      const inst = outerPrefab.instantiate();
+      root.addChild(inst);
+      try {
+        const meshCollider = inst.getComponent(MeshCollider)!;
+        expect(meshCollider.convex).toBe(true);
+        expect(meshCollider.isTrigger).toBe(true);
+        expect(meshCollider.mesh).toBe(vertexOnlyMesh);
+        expect(scene.physics.raycast(new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0)), 10)).toBe(true);
+        expect(errors).not.toHaveBeenCalled();
+      } finally {
+        inst.destroy();
+      }
+    } finally {
+      errors.mockRestore();
+      vertexOnlyMesh.destroy();
+      // @ts-ignore
+      delete engine.resourceManager._objectPool[meshKey];
+      // @ts-ignore
+      delete engine.resourceManager._objectPool[baseKey];
     }
   });
 });

@@ -363,7 +363,8 @@ export class CharacterController extends Collider {
     );
   }
 
-  protected override _findRigidbody(): Rigidbody | null {
+  /** @internal */
+  override _findRigidbody(): Rigidbody | null {
     return null;
   }
 

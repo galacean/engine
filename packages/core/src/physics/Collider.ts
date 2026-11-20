@@ -74,6 +74,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
   @ignoreClone
   private _failedTransferFallback: Rigidbody | null = null;
   @ignoreClone
+  private _failedTransferVersion = 0;
+  @ignoreClone
   private _shearWarned = false;
   @ignoreClone
   private _nativePosition = new Vector3();
@@ -102,24 +104,23 @@ export class Collider extends Component implements ICloneHook<Collider> {
    */
   get attachedRigidbody(): Rigidbody | null {
     const hierarchyBody = this._findRigidbody();
-    const scene = this.scene;
-    if (
-      this._dirtyIndex !== -1 &&
-      this._phasedActiveInScene &&
-      !this.destroyed &&
-      scene &&
-      !scene.destroyed &&
-      this.engine._physicsInitialized &&
-      hierarchyBody !== this._attachedBody
-    ) {
-      scene.physics._syncCollider(this, hierarchyBody);
-    }
-    if (this._nativeActor) {
-      return this._attachedBody;
-    }
-    if (this._failedTransferTarget !== undefined && hierarchyBody === this._failedTransferTarget) {
-      const fallback = this._failedTransferFallback;
-      return fallback && !fallback.destroyed ? fallback : null;
+    if (this._dirtyIndex === -1) {
+      if (this._nativeActor) {
+        return this._attachedBody;
+      }
+      if (
+        this._failedTransferTarget !== undefined &&
+        hierarchyBody === this._failedTransferTarget &&
+        this._getHierarchyVersion() === this._failedTransferVersion
+      ) {
+        const fallback = this._failedTransferFallback;
+        if (fallback === null) {
+          return null;
+        }
+        if (!fallback.destroyed && fallback.entity._scene === this.entity._scene) {
+          return fallback;
+        }
+      }
     }
     return hierarchyBody;
   }
@@ -410,6 +411,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       if (!this._transfer(body, actor)) {
         this._failedTransferTarget = body;
         this._failedTransferFallback = this._attachedBody;
+        this._failedTransferVersion = this._getHierarchyVersion();
         if (this._nativeActor) {
           this._syncPose(shape, this._attachedBody, scale, true);
         }
@@ -469,8 +471,39 @@ export class Collider extends Component implements ICloneHook<Collider> {
     this._nativeActor = null;
     this._attachedBody = null;
     if (this._failedTransferFallback === body) {
+      this._failedTransferTarget = undefined;
       this._failedTransferFallback = null;
     }
+    this._markDirty();
+  }
+
+  /**
+   * @internal
+   * Detach a rolled-back Collider from a Rigidbody that no longer owns it in the hierarchy when that
+   * Rigidbody leaves its scene or is disabled, then queue a fresh sync in this Collider's own scene.
+   */
+  _onOrphanBodyUnavailable(body: Rigidbody): void {
+    if (this._attachedBody === body) {
+      this._detach();
+    }
+    if (this._failedTransferFallback === body) {
+      this._failedTransferTarget = undefined;
+      this._failedTransferFallback = null;
+    }
+    this._markDirty();
+  }
+
+  /**
+   * @internal
+   */
+  _findRigidbody(): Rigidbody | null {
+    for (let entity: Entity | null = this.entity; entity; entity = entity.parent) {
+      const body = entity.getComponent(Rigidbody);
+      if (body) {
+        return body;
+      }
+    }
+    return null;
   }
 
   /**
@@ -570,14 +603,12 @@ export class Collider extends Component implements ICloneHook<Collider> {
     return this._material?._nativeMaterial ?? BasicResources.physicsDefaultMaterial;
   }
 
-  protected _findRigidbody(): Rigidbody | null {
+  private _getHierarchyVersion(): number {
+    let version = 0;
     for (let entity: Entity | null = this.entity; entity; entity = entity.parent) {
-      const body = entity.getComponent(Rigidbody);
-      if (body) {
-        return body;
-      }
+      version += entity._parentVersion;
     }
-    return null;
+    return version;
   }
 
   /**

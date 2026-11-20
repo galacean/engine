@@ -1425,6 +1425,218 @@ describe("Cross-prefab $component ref", () => {
         }
       }
 
+      // 4. Independent phased Rigidbody chains & independent MeshCollider chains & Script+MeshCollider phaseCalls run concurrently (no deadlock)
+      for (const withRelaxation of [false, true]) {
+        let release!: () => void;
+        const gate = new Promise<void>((r) => (release = r));
+        const observed: string[] = [];
+        class WaitingBody extends Rigidbody {
+          async runCall(): Promise<void> {
+            observed.push(`waiting:${this.isKinematic}`);
+            await gate;
+            observed.push("ready");
+          }
+        }
+        class SignalBody extends Rigidbody {
+          runCall(): void {
+            observed.push(`release:${this.isKinematic}`);
+            release();
+          }
+        }
+        const waitKey = `R8WaitBody_${withRelaxation}`;
+        const sigKey = `R8SigBody_${withRelaxation}`;
+        Loader.registerClass(waitKey, WaitingBody);
+        Loader.registerClass(sigKey, SignalBody);
+
+        const baseKey = `r8-bodies-base-${withRelaxation}.prefab`;
+        const bodiesBase = await PrefabParser.parse(engine, baseKey, {
+          version: "2.0",
+          refs: [],
+          entities: [
+            { name: "root", children: [1, 2] },
+            { name: "a", components: [0] },
+            { name: "b", components: [1] }
+          ],
+          components: [
+            { type: waitKey, props: { isKinematic: true } },
+            { type: sigKey, props: { isKinematic: true } }
+          ],
+          root: 0
+        });
+        // @ts-ignore
+        engine.resourceManager._objectPool[baseKey] = bodiesBase;
+        try {
+          const calls = [waitKey, sigKey].flatMap((type, i) => {
+            const target = { path: [i], selector: { type, index: 0 } };
+            return [
+              { ...target, props: { isKinematic: false }, calls: [{ method: "runCall" }] },
+              ...(withRelaxation ? [{ ...target, props: { isKinematic: true } }] : [])
+            ];
+          });
+          const bodiesOuter = await PrefabParser.parse(engine, `r8-bodies-outer-${withRelaxation}.prefab`, {
+            version: "2.0",
+            refs: [{ url: baseKey }],
+            entities: [{ instance: { asset: 0, overrides: { componentProps: calls } } }],
+            components: [],
+            root: 0
+          });
+          const inst = bodiesOuter.instantiate();
+          try {
+            expect(observed).toEqual(["waiting:false", "release:false", "ready"]);
+            expect(inst.children.map((e) => e.getComponent(Rigidbody)!.isKinematic)).toEqual([
+              withRelaxation,
+              withRelaxation
+            ]);
+          } finally {
+            inst.destroy();
+          }
+        } finally {
+          // @ts-ignore
+          delete engine.resourceManager._objectPool[baseKey];
+        }
+      }
+
+      // Independent MeshCollider restrict->relax pairs & neutral Script + standalone MeshCollider phase calls
+      for (const mode of ["control", "restrict", "relax", "paired"] as const) {
+        let unblock!: () => void;
+        const gate = new Promise<void>((r) => (unblock = r));
+        const seen: string[] = [];
+        class PhaseScript extends Script {
+          async wait(): Promise<void> {
+            seen.push("wait");
+            await gate;
+            seen.push("resumed");
+          }
+          release(): void {
+            seen.push("release");
+            unblock();
+          }
+        }
+        class PhaseMesh extends MeshCollider {
+          async wait(): Promise<void> {
+            seen.push(`wait:${this.convex}`);
+            await gate;
+            seen.push("resumed");
+          }
+          release(): void {
+            seen.push(`release:${this.convex}`);
+            unblock();
+          }
+        }
+        const scriptKey = `R8PhaseScript_${mode}`;
+        const meshKey = `R8PhaseMesh_${mode}`;
+        Loader.registerClass(scriptKey, PhaseScript);
+        Loader.registerClass(meshKey, PhaseMesh);
+
+        const baseKey = `r8-phase-base-${mode}.prefab`;
+        const baseData: PrefabFile =
+          mode === "paired"
+            ? {
+                version: "2.0",
+                refs: [],
+                entities: [
+                  { name: "root", children: [1, 2] },
+                  { name: "first", components: [0] },
+                  { name: "second", components: [1] }
+                ],
+                components: [
+                  { type: meshKey, props: { convex: true } },
+                  { type: meshKey, props: { convex: true } }
+                ],
+                root: 0
+              }
+            : {
+                version: "2.0",
+                refs: [],
+                entities: [{ name: "root", components: [0, 1] }],
+                components: [{ type: scriptKey }, { type: meshKey, props: { convex: mode === "restrict" } }],
+                root: 0
+              };
+        const phaseBase = await PrefabParser.parse(engine, baseKey, baseData);
+        // @ts-ignore
+        engine.resourceManager._objectPool[baseKey] = phaseBase;
+        try {
+          const componentProps =
+            mode === "paired"
+              ? [
+                  {
+                    path: [0],
+                    selector: { type: meshKey, index: 0 },
+                    props: { convex: false },
+                    calls: [{ method: "wait" }]
+                  },
+                  { path: [0], selector: { type: meshKey, index: 0 }, props: { convex: true } },
+                  {
+                    path: [1],
+                    selector: { type: meshKey, index: 0 },
+                    props: { convex: false },
+                    calls: [{ method: "release" }]
+                  },
+                  { path: [1], selector: { type: meshKey, index: 0 }, props: { convex: true } }
+                ]
+              : [
+                  {
+                    path: [],
+                    selector: { type: scriptKey, index: 0 },
+                    calls: [{ method: mode === "relax" ? "release" : "wait" }]
+                  },
+                  {
+                    path: [],
+                    selector: { type: meshKey, index: 0 },
+                    props: mode === "control" ? { contactOffset: 0.04 } : { convex: mode === "relax" },
+                    calls: [{ method: mode === "relax" ? "wait" : "release" }]
+                  }
+                ];
+          const phaseOuter = await PrefabParser.parse(engine, `r8-phase-outer-${mode}.prefab`, {
+            version: "2.0",
+            refs: [{ url: baseKey }],
+            entities: [{ instance: { asset: 0, overrides: { componentProps } } }],
+            components: [],
+            root: 0
+          });
+          const inst = phaseOuter.instantiate();
+          inst.destroy();
+          expect(seen).toContain("resumed");
+        } finally {
+          // @ts-ignore
+          delete engine.resourceManager._objectPool[baseKey];
+        }
+      }
+
+      // 5. Wave 0 primitive prop fast path: MeshCollider center is visible to sibling Script.observe() for both isTrigger=false and isTrigger=true
+      for (const trigger of [false, true]) {
+        const centerPrefab = await PrefabParser.parse(engine, `r8-center-${trigger}.prefab`, {
+          version: "2.0",
+          refs: [{ url: "r7-empty-base.prefab" }],
+          entities: [
+            {
+              instance: {
+                asset: 0,
+                overrides: {
+                  addedComponents: [
+                    { target: [], component: 0 },
+                    { target: [], component: 1 }
+                  ],
+                  componentProps: [{ path: [], selector: { type: "MeshCollider", index: 0 }, props: { convex: true } }]
+                }
+              }
+            }
+          ],
+          components: [
+            { type: "MeshCollider", props: { center: { x: 7, y: 0, z: 0 }, isTrigger: trigger } },
+            { type: "R7WaveScriptReader", calls: [{ method: "observe" }] }
+          ],
+          root: 0
+        });
+        const inst = centerPrefab.instantiate();
+        try {
+          expect(inst.getComponent(WaveScriptReader)!.seenCenterX).toBe(7);
+          expect(inst.getComponent(MeshCollider)!.center.x).toBe(7);
+        } finally {
+          inst.destroy();
+        }
+      }
+
       expect(errors).not.toHaveBeenCalled();
     } finally {
       errors.mockRestore();

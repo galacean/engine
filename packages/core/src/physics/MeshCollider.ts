@@ -16,6 +16,10 @@ type MeshData = {
  * @remarks A triangle mesh (`convex = false`) can only be static or belong to a kinematic {@link Rigidbody}.
  */
 export class MeshCollider extends Collider {
+  private static readonly _deferTrigger = ["isTrigger"] as const;
+  private static readonly _deferMesh = ["mesh"] as const;
+  private static readonly _deferMeshAndTrigger = ["mesh", "isTrigger"] as const;
+
   /** @internal */
   static _deserializePropOrder(props: Record<string, unknown>): readonly string[] {
     return props.isTrigger === false ? ["isTrigger", "convex", "cookingFlags"] : ["convex", "cookingFlags"];
@@ -35,9 +39,14 @@ export class MeshCollider extends Collider {
     baseProps: Record<string, unknown>,
     overrideProps: Record<string, unknown>
   ): readonly string[] | null {
-    return baseProps.isTrigger === true && baseProps.convex !== true && overrideProps.convex === true
-      ? ["isTrigger"]
-      : null;
+    if (baseProps.convex !== true && overrideProps.convex === true) {
+      const hasMesh = baseProps.mesh != null;
+      const hasTrigger = baseProps.isTrigger === true;
+      if (hasMesh && hasTrigger) return MeshCollider._deferMeshAndTrigger;
+      if (hasMesh) return MeshCollider._deferMesh;
+      if (hasTrigger) return MeshCollider._deferTrigger;
+    }
+    return null;
   }
 
   @ignoreClone
@@ -142,6 +151,13 @@ export class MeshCollider extends Collider {
       return -1;
     }
     return super._getVolumeDistance(point, outClosestPoint);
+  }
+
+  /**
+   * @internal
+   */
+  _getDeserializeGroup(): object | null {
+    return this._findRigidbody();
   }
 
   /**

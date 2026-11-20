@@ -532,6 +532,11 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     this._markCollidersDirty();
   }
 
+  /** @internal */
+  _getDeserializeGroup(): object {
+    return this;
+  }
+
   /**
    * @internal
    */
@@ -545,6 +550,13 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
             joints[i]._detachNativeConnectedBody();
           }
         }
+      }
+    }
+    const colliders = this._attachedColliders;
+    for (let i = colliders.length - 1; i >= 0; i--) {
+      const collider = colliders[i];
+      if (collider._findRigidbody() !== this) {
+        collider._onOrphanBodyUnavailable(this);
       }
     }
     scene.physics._removeRigidbody(this);

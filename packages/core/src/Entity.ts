@@ -156,6 +156,10 @@ export class Entity extends EngineObject {
   _activeChangedComponents: Component[] | null | undefined;
   /** @internal Number of active `_setActiveComponents(false, ...)` batches currently draining this entity. */
   _deactivatingCount: number = 0;
+  /** @internal Number of active `_setActiveComponents(false, ...)` batches currently draining a descendant of this entity. */
+  _deactivatingSubtreeCount: number = 0;
+  /** @internal Monotonically incremented whenever this entity's parent or root attachment changes. */
+  _parentVersion: number = 0;
   private _transform: Transform;
   private _templateResource: ReferResource;
   private _parent: Entity | null = null;
@@ -816,14 +820,23 @@ export class Entity extends EngineObject {
     const activeChangedComponents = (this._activeChangedComponents =
       this._scene!._componentsManager.getActiveChangedTempList());
     const deactivatingEntities = Entity._deactivatingEntitiesPool.pop() ?? [];
+    let deactivatingAncestors: Entity[] | null = null;
+    if (this._parent) {
+      deactivatingAncestors = Entity._deactivatingEntitiesPool.pop() ?? [];
+      for (let ancestor: Entity | null = this._parent; ancestor != null; ancestor = ancestor._parent) {
+        ancestor._deactivatingSubtreeCount++;
+        deactivatingAncestors.push(ancestor);
+      }
+    }
     this._setInActiveInHierarchy(activeChangedComponents, deactivatingEntities, activeChangeFlag);
-    this._setActiveComponents(false, activeChangeFlag, deactivatingEntities);
+    this._setActiveComponents(false, activeChangeFlag, deactivatingEntities, deactivatingAncestors);
   }
 
   /**
    * @internal
    */
   _setParentChange() {
+    this._parentVersion++;
     this._transform._parentChange();
     this._dispatchModify(EntityModifyFlags.Parent, this);
   }
@@ -922,11 +935,15 @@ export class Entity extends EngineObject {
         }
         const parentScene = parent._scene;
 
-        // Fail fast before mutating ownership lists if this entity is mid-active-processing (either as
-        // the batch root or as a deactivating descendant) and attaching here would trigger re-entrant
-        // activation or switch its scene mid-drain.
-        if (this._activeChangedComponents || this._deactivatingCount > 0) {
-          if (this._isActive && (parent._isActiveInHierarchy || parent._isActiveInScene)) {
+        // Fail fast before mutating ownership lists if this entity is mid-active-processing (as the
+        // batch root, a deactivating descendant, or an ancestor of a deactivating subtree) and attaching
+        // here would trigger re-entrant activation or switch its scene mid-drain.
+        if (this._activeChangedComponents || this._deactivatingCount > 0 || this._deactivatingSubtreeCount > 0) {
+          if (
+            this._isActive &&
+            (this._activeChangedComponents || this._deactivatingCount > 0) &&
+            (parent._isActiveInHierarchy || parent._isActiveInScene)
+          ) {
             this._processActive(ActiveChangeFlag.Scene);
           }
           if (parentScene !== oldScene) {
@@ -1022,7 +1039,14 @@ export class Entity extends EngineObject {
         try {
           inActiveChangeFlag && this._processInActive(inActiveChangeFlag);
         } finally {
-          if (!this._isRoot && !this._parent && this._scene === oldScene && oldScene && this._deactivatingCount === 0) {
+          if (
+            !this._isRoot &&
+            !this._parent &&
+            this._scene === oldScene &&
+            oldScene &&
+            this._deactivatingCount === 0 &&
+            this._deactivatingSubtreeCount === 0
+          ) {
             Entity._traverseSetOwnerScene(this, null);
           }
           oldParent!._dispatchModify(EntityModifyFlags.Child, oldParent);
@@ -1053,7 +1077,8 @@ export class Entity extends EngineObject {
   private _setActiveComponents(
     isActive: boolean,
     activeChangeFlag: ActiveChangeFlag,
-    deactivatingEntities?: Entity[]
+    deactivatingEntities?: Entity[],
+    deactivatingAncestors?: Entity[] | null
   ): void {
     const activeChangedComponents = this._activeChangedComponents!;
     const ownerScene = this._scene!;
@@ -1082,14 +1107,40 @@ export class Entity extends EngineObject {
         for (let i = 0; i < count; i++) {
           deactivatingEntities[i]._deactivatingCount--;
         }
+        const ancestorCount = deactivatingAncestors ? deactivatingAncestors.length : 0;
+        for (let i = 0; i < ancestorCount; i++) {
+          deactivatingAncestors![i]._deactivatingSubtreeCount--;
+        }
         for (let i = 0; i < count; i++) {
           const entity = deactivatingEntities[i];
-          if (!entity._isRoot && !entity._parent && entity._scene === ownerScene && entity._deactivatingCount === 0) {
+          if (
+            !entity._isRoot &&
+            !entity._parent &&
+            entity._scene === ownerScene &&
+            entity._deactivatingCount === 0 &&
+            entity._deactivatingSubtreeCount === 0
+          ) {
             Entity._traverseSetOwnerScene(entity, null);
           }
         }
         deactivatingEntities.length = 0;
         Entity._deactivatingEntitiesPool.push(deactivatingEntities);
+        if (deactivatingAncestors) {
+          for (let i = 0; i < ancestorCount; i++) {
+            const ancestor = deactivatingAncestors[i];
+            if (
+              !ancestor._isRoot &&
+              !ancestor._parent &&
+              ancestor._scene === ownerScene &&
+              ancestor._deactivatingCount === 0 &&
+              ancestor._deactivatingSubtreeCount === 0
+            ) {
+              Entity._traverseSetOwnerScene(ancestor, null);
+            }
+          }
+          deactivatingAncestors.length = 0;
+          Entity._deactivatingEntitiesPool.push(deactivatingAncestors);
+        }
       }
       if (isActive && !this._scene && !hasError) {
         firstError = new Error("Cannot detach an entity from its scene while it is processing active state changes.");
