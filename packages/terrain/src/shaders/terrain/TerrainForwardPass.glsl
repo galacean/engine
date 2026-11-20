@@ -5,6 +5,12 @@ float renderer_WorldPickBase;
 #define TERRAIN_PROJECT_TERRAIN_FORWARD_PASS_INCLUDED
 
 #define TERRAIN_PROJECT_FORWARD_PASS
+#if !defined(RENDERER_WORLD_PICK) && !defined(MATERIAL_TERRAIN_FAR)
+  #define TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
+#endif
+#if SCENE_FOG_MODE != 0 && defined(SCENE_FOG_DIRECTIONAL_SKY) && !defined(RENDERER_WORLD_PICK) && !defined(MATERIAL_TERRAIN_FAR)
+  #define TERRAIN_PROJECT_VERTEX_FOG_RADIANCE
+#endif
 #if defined(MATERIAL_TERRAIN_SAND_GLINTS) && defined(MATERIAL_TERRAIN_MICRO_NORMAL) && defined(MATERIAL_TERRAIN_LAYERS) && defined(SCENE_DIRECT_LIGHT_COUNT) && !defined(MATERIAL_TERRAIN_FAR) && !defined(RENDERER_WORLD_PICK)
   #define TERRAIN_PROJECT_SAND_GLINTS
 #endif
@@ -34,6 +40,12 @@ struct Varyings {
   float clipmapMorph;
   #if SCENE_FOG_MODE != 0
     vec3 positionVS;
+    #ifdef TERRAIN_PROJECT_VERTEX_FOG_RADIANCE
+      vec3 fogRadiance;
+    #endif
+  #endif
+  #ifdef TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
+    float cloudShadow;
   #endif
   #if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
     vec3 probeIrradiance;
@@ -76,6 +88,12 @@ Varyings TerrainVertex(Attributes attributes) {
 
   #if SCENE_FOG_MODE != 0
     varyings.positionVS = (camera_ViewMat * vec4(varyings.positionWS, 1.0)).xyz;
+    #ifdef TERRAIN_PROJECT_VERTEX_FOG_RADIANCE
+      varyings.fogRadiance = clipmapVertex.valid < 0.999 ? vec3(0.0) : getFogSkyRadiance(varyings.positionVS);
+    #endif
+  #endif
+  #ifdef TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
+    varyings.cloudShadow = clipmapVertex.valid < 0.999 ? 1.0 : sampleVolumetricCloudShadow(varyings.positionWS);
   #endif
   #if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
     vec3 probeIrradiance;
@@ -130,6 +148,9 @@ void TerrainFragment(Varyings varyings) {
     float shadowAttenuation = sampleTerrainProjectGroundShadow(varyings, shadowPositionDx, shadowPositionDy);
   #else
     float shadowAttenuation = sampleTerrainProjectShadow(varyings);
+  #endif
+  #ifdef TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
+    shadowAttenuation *= varyings.cloudShadow;
   #endif
   vec3 geometryNormal = terrainProjectShadingGeometryNormal(varyings.positionWS.xz, varyings.normalWS);
   vec3 color = vec3(0.0);
@@ -305,7 +326,11 @@ void TerrainFragment(Varyings varyings) {
     color = applyTerrainProjectEntranceWave(color, varyings.positionWS);
   #endif
   #if SCENE_FOG_MODE != 0
-    color = fog(vec4(color, 1.0), varyings.positionVS).rgb;
+    #ifdef TERRAIN_PROJECT_VERTEX_FOG_RADIANCE
+      color = mix(varyings.fogRadiance, color, getSceneFogVisibility(varyings.positionVS));
+    #else
+      color = fog(vec4(color, 1.0), varyings.positionVS).rgb;
+    #endif
   #endif
   gl_FragColor = vec4(color, 1.0);
   #endif

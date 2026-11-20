@@ -131,7 +131,11 @@ float sampleTerrainProjectGroundShadow(Varyings varyings, vec3 positionDx, vec3 
   #if defined(SCENE_DIRECT_LIGHT_COUNT) && defined(NEED_CALCULATE_SHADOWS)
     attenuation = sampleTerrainProjectGroundShadowMap(varyings.positionWS, positionDx, positionDy);
   #endif
-  return attenuation * sampleVolumetricCloudShadow(varyings.positionWS);
+  #ifdef TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
+    return attenuation;
+  #else
+    return attenuation * sampleVolumetricCloudShadow(varyings.positionWS);
+  #endif
 }
 #else
 float sampleTerrainProjectShadow(Varyings varyings) {
@@ -144,7 +148,11 @@ float sampleTerrainProjectShadow(Varyings varyings) {
     #endif
     attenuation = sampleShadowMap(varyings.positionWS, receiverShadowCoord);
   #endif
-  return attenuation * sampleVolumetricCloudShadow(varyings.positionWS);
+  #ifdef TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
+    return attenuation;
+  #else
+    return attenuation * sampleVolumetricCloudShadow(varyings.positionWS);
+  #endif
 }
 #endif
 #endif
