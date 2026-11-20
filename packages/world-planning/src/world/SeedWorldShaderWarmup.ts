@@ -968,6 +968,8 @@ export function collectSeedWorldRendererVariants(
 
         const phaseMacros = new ShaderMacroCollection();
         ShaderMacroCollection.unionCollection(baseSsrMacros, baseSsrMacros, phaseMacros);
+        if (ssrRuntime.useSceneColorMipmaps !== false)
+          phaseMacros.enable(ShaderMacro.getByName("SSR_SCENE_COLOR_MIPMAPS"));
         if (verifyOpaqueDepth) phaseMacros.enable(ShaderMacro.getByName("SSR_VERIFY_OPAQUE_DEPTH"));
         if (reconstruct) phaseMacros.enable(ShaderMacro.getByName("SSR_STORE_TRACE_ORIGIN"));
         if (fusedCompositeUpsample) phaseMacros.enable(ShaderMacro.getByName("SSR_COMPOSITE_BILATERAL_UPSAMPLE"));

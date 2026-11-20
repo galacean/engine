@@ -10,7 +10,7 @@ import { CameraClearFlags } from "../../enums/CameraClearFlags";
 import { CameraType } from "../../enums/CameraType";
 import { Downsampling } from "../../enums/Downsampling";
 import { Material } from "../../material";
-import { Shader, ShaderProperty } from "../../shader";
+import { Shader, ShaderMacro, ShaderProperty } from "../../shader";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
 import { TextureUtils } from "../../texture/TextureUtils";
 import type { ScreenSpaceReflectionConsumerReceiverMode } from "./ScreenSpaceReflection";
@@ -42,6 +42,7 @@ export class ScreenSpaceReflectionPass {
   private static readonly _maxStepsProperty = ShaderProperty.getByName("material_SSRMaxSteps");
   private static readonly _binaryStepsProperty = ShaderProperty.getByName("material_SSRBinarySteps");
   private static readonly _debugModeProperty = ShaderProperty.getByName("material_SSRDebugMode");
+  private static readonly _sceneColorMipmapsMacro = ShaderMacro.getByName("SSR_SCENE_COLOR_MIPMAPS");
   private static readonly _clearColor = new Color(0, 0, 0, 0);
   private static readonly _horizontalFilterDirection = new Vector2(1, 0);
   private static readonly _verticalFilterDirection = new Vector2(0, 1);
@@ -96,6 +97,23 @@ export class ScreenSpaceReflectionPass {
     return this._transparentReceiverElementCount > 0;
   }
 
+  private static _matchesReusableOpaqueExtent(
+    actualExtent: number,
+    viewportExtent: number,
+    fullExtent: number,
+    downsampling: Downsampling,
+    sizeScale: number
+  ): boolean {
+    const expectedExtent = Math.max(1, Math.floor(viewportExtent * sizeScale));
+    if (actualExtent === expectedExtent) return true;
+    // Half-resolution SSR inputs round up with Math.ceil so odd viewports retain the trailing pixel.
+    return (
+      downsampling === Downsampling.TwoX &&
+      fullExtent === Math.max(1, Math.floor(viewportExtent)) &&
+      actualExtent === Math.max(1, Math.ceil(fullExtent / 2))
+    );
+  }
+
   /** Reuse the immutable opaque scene capture for `camera_OpaqueTexture` when its contract covers the request. */
   getReusableOpaqueTexture(camera: Camera): Texture2D | null {
     const sceneColorTarget = this._sceneColorTarget;
@@ -105,11 +123,21 @@ export class ScreenSpaceReflectionPass {
     const downsampling = camera.opaqueTextureDownsampling;
     const sizeScale = downsampling === Downsampling.None ? 1.0 : downsampling === Downsampling.TwoX ? 0.5 : 0.25;
     const viewport = camera.pixelViewport;
-    const expectedWidth = Math.max(1, Math.floor(viewport.width * sizeScale));
-    const expectedHeight = Math.max(1, Math.floor(viewport.height * sizeScale));
     if (
-      colorTexture.width !== expectedWidth ||
-      colorTexture.height !== expectedHeight ||
+      !ScreenSpaceReflectionPass._matchesReusableOpaqueExtent(
+        colorTexture.width,
+        viewport.width,
+        this._fullWidth,
+        downsampling,
+        sizeScale
+      ) ||
+      !ScreenSpaceReflectionPass._matchesReusableOpaqueExtent(
+        colorTexture.height,
+        viewport.height,
+        this._fullHeight,
+        downsampling,
+        sizeScale
+      ) ||
       colorTexture.format !== camera._getInternalColorTextureFormat() ||
       colorTexture.isSRGBColorSpace !== !camera._isInternalFormatHDR()
     ) {
@@ -283,11 +311,16 @@ export class ScreenSpaceReflectionPass {
 
       this._blit(colorTarget.getColorTexture(0) as Texture2D, sceneColorTarget, "scene-copy");
       this._sceneCopyPassCount++;
-      // Always keep _sceneColorTarget mip-complete: it uses mipMap = true (LINEAR_MIPMAP_NEAREST)
-      // and is bound as camera_OpaqueTexture during captureContributions and opaque-texture reuse.
-      this._generateSceneColorMipmaps();
-
       const shaderData = material.shaderData;
+      const useSceneColorMipmaps = this._camera.screenSpaceReflection.useSceneColorMipmaps;
+      if (useSceneColorMipmaps) {
+        // Keep _sceneColorTarget mip-complete when mipmaps are enabled: it uses LINEAR_MIPMAP_NEAREST
+        // and may be bound as camera_OpaqueTexture during captureContributions and opaque-texture reuse.
+        this._generateSceneColorMipmaps();
+        shaderData.enableMacro(ScreenSpaceReflectionPass._sceneColorMipmapsMacro);
+      } else {
+        shaderData.disableMacro(ScreenSpaceReflectionPass._sceneColorMipmapsMacro);
+      }
       shaderData.setTexture(ScreenSpaceReflectionPass._sceneColorProperty, sceneColorTarget.getColorTexture(0));
       shaderData.setTexture(ScreenSpaceReflectionPass._sceneDepthProperty, sceneDepth);
       shaderData.setTexture(ScreenSpaceReflectionPass._opaqueDepthProperty, sceneDepth);
@@ -338,15 +371,16 @@ export class ScreenSpaceReflectionPass {
     const previousDepth = cameraData.getTexture(Camera._cameraDepthTextureProperty);
     const previousIntensity = cameraData.getFloat(ScreenSpaceReflection._cameraIntensityProperty);
     const profiler = camera.screenSpaceReflection.profiler;
+    const useSceneColorMipmaps = camera.screenSpaceReflection.useSceneColorMipmaps;
     try {
-      // Reflection color needs roughness mips; depth must remain a single nearest-sampled level.
+      // Reflection color only allocates roughness mips when enabled; depth remains single-level Point.
       this._contributionTarget = this._engine._renderTargetPool.allocateRenderTarget(
         this._sceneColorTarget!.width,
         this._sceneColorTarget!.height,
         opaqueColor.format,
         colorTarget._depthFormat,
         true,
-        true,
+        useSceneColorMipmaps,
         opaqueColor.isSRGBColorSpace,
         1,
         TextureWrapMode.Clamp,
@@ -381,11 +415,13 @@ export class ScreenSpaceReflectionPass {
       } finally {
         profiler?.endSample();
       }
-      profiler?.beginSample("contribution-mipmap", null);
-      try {
-        this._contributionTarget.generateMipmaps();
-      } finally {
-        profiler?.endSample();
+      if (useSceneColorMipmaps) {
+        profiler?.beginSample("contribution-mipmap", null);
+        try {
+          this._contributionTarget.generateMipmaps();
+        } finally {
+          profiler?.endSample();
+        }
       }
       materialData.setTexture(
         ScreenSpaceReflectionPass._sceneColorProperty,
@@ -701,6 +737,7 @@ export class ScreenSpaceReflectionPass {
       : ScreenSpaceReflectionReceiverMode.TransparentSampleOnly;
     const sceneColor = colorTarget.getColorTexture(0) as Texture2D;
     const sceneFormat = sceneColor.format;
+    const useSceneColorMipmaps = this._camera.screenSpaceReflection.useSceneColorMipmaps;
     this._traceFormat = this._resolveTraceFormat();
 
     this._sceneColorTarget = PipelineUtils.recreateRenderTargetIfNeeded(
@@ -711,7 +748,7 @@ export class ScreenSpaceReflectionPass {
       sceneFormat,
       null,
       false,
-      true,
+      useSceneColorMipmaps,
       sceneColor.isSRGBColorSpace,
       1,
       TextureWrapMode.Clamp,

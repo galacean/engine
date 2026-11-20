@@ -473,4 +473,102 @@ Shader "Test/SSROpaqueMipReader" {
     output.destroy();
     scene.destroy();
   });
+
+  it("skips scene-color mipmap generation while preserving glossy transparent SSR reflections when useSceneColorMipmaps is false", () => {
+    const scene = new Scene(engine, "ssr-no-scene-mipmaps");
+    engine.sceneManager.activeScene = scene;
+    scene.background.solidColor = new Color(0.02, 0.02, 0.05, 1);
+
+    const cameraEntity = scene.createRootEntity("cam");
+    cameraEntity.transform.setPosition(0, 2.5, 4.5);
+    cameraEntity.transform.lookAt(new Vector3(0, 0.3, 0));
+    const camera = cameraEntity.addComponent(Camera);
+    camera.enableHDR = true;
+    camera.opaqueTextureEnabled = true;
+    camera.opaqueTextureDownsampling = Downsampling.TwoX;
+    camera.screenSpaceReflection.activationMode = ScreenSpaceReflectionActivationMode.ForceOn;
+    camera.screenSpaceReflection.useHalfResolutionInputs = true;
+    camera.screenSpaceReflection.useSceneColorMipmaps = false;
+    camera.screenSpaceReflection.upsamplingMode = ScreenSpaceReflectionUpsamplingMode.Bilinear;
+    camera.screenSpaceReflection.resolutionScale = 0.25;
+    camera.screenSpaceReflection.maxRaySteps = 24;
+    camera.screenSpaceReflection.hitRefinementSteps = 2;
+
+    const output = new Texture2D(engine, 129, 131, TextureFormat.R8G8B8A8, false);
+    const rt = new RenderTarget(engine, 129, 131, output, TextureFormat.Depth24, 1);
+    camera.renderTarget = rt;
+
+    // Dark opaque floor beneath water so only a live SSR reflection turns reflected pixels red.
+    const floor = scene.createRootEntity("floor").addComponent(MeshRenderer);
+    floor.mesh = PrimitiveMesh.createPlane(engine, 12, 12);
+    const floorMat = new PBRMaterial(engine);
+    floorMat.baseColor.set(0, 0, 0, 1);
+    floorMat.emissiveColor.set(0.02, 0.02, 0.02, 1);
+    floorMat.screenSpaceReflection = { mode: "Off", intensity: 0 };
+    floor.setMaterial(floorMat);
+
+    // Bright red opaque wall behind water to reflect onto the water receiver.
+    const wall = scene.createRootEntity("wall").addComponent(MeshRenderer);
+    wall.mesh = PrimitiveMesh.createCuboid(engine, 3, 2, 0.3);
+    wall.entity.transform.setPosition(0, 1.0, -0.5);
+    const wallMat = new PBRMaterial(engine);
+    wallMat.baseColor.set(0, 0, 0, 1);
+    wallMat.emissiveColor.set(0.95, 0.05, 0.05, 1);
+    wallMat.screenSpaceReflection = { mode: "Off", intensity: 0 };
+    wall.setMaterial(wallMat);
+
+    const waterShader =
+      Shader.find("Test/SSROpaqueReuseReceiver") ??
+      Shader.create(transparentReceiverShaderSource, ShaderLanguage.GLSLES300)!;
+    const waterMat = new Material(engine, waterShader);
+    ScreenSpaceReflection.setMaterialReceiver(waterMat, ScreenSpaceReflectionReceiverMode.TransparentSampleOnly);
+    const water = scene.createRootEntity("water").addComponent(MeshRenderer);
+    water.mesh = PrimitiveMesh.createPlane(engine, 8, 8);
+    water.entity.transform.setPosition(0, 0.2, 0);
+    water.setMaterial(waterMat);
+
+    const stages: string[] = [];
+    camera.screenSpaceReflection.profiler = {
+      beginSample(stage) {
+        stages.push(stage);
+      },
+      endSample() {}
+    };
+
+    const pipeline = (camera as unknown as {
+      _renderPipeline: {
+        _opaqueTexturePass: { _renderTarget: RenderTarget | null };
+        _screenSpaceReflectionPass: { sceneColorTexture: Texture2D | null };
+      };
+    })._renderPipeline;
+
+    try {
+      camera.render();
+      expect(stages).toContain("scene-copy");
+      expect(stages).not.toContain("scene-mipmap");
+      expect(stages).toContain("trace");
+      expect(pipeline._opaqueTexturePass._renderTarget ?? null).toBeNull();
+      const reusedTex = camera.shaderData.getTexture("camera_OpaqueTexture") as Texture2D;
+      expect([reusedTex.width, reusedTex.height]).toEqual([65, 66]);
+      expect(reusedTex.mipmapCount).toBe(1);
+
+      const pixels = new Uint8Array(129 * 131 * 4);
+      output.getPixelBuffer(0, 0, 129, 131, 0, pixels);
+      let reflectedRedPixels = 0;
+      for (let y = 0; y < 70; y++) {
+        for (let x = 20; x < 109; x++) {
+          const i = (y * 129 + x) * 4;
+          if (pixels[i] > 100 && pixels[i] > pixels[i + 1] + 50 && pixels[i] > pixels[i + 2] + 50) {
+            reflectedRedPixels++;
+          }
+        }
+      }
+      expect(reflectedRedPixels).toBeGreaterThan(20);
+    } finally {
+      camera.screenSpaceReflection.profiler = null;
+      rt.destroy();
+      output.destroy();
+      scene.destroy();
+    }
+  });
 });

@@ -11,6 +11,7 @@ import {
   ShaderDataGroup
 } from "@galacean/engine";
 import {
+  TERRAIN_MOBILE_WATER_SCREEN_SPACE_REFLECTION_CONFIGURATION,
   TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION,
   applyAutomaticScreenSpaceReflectionConfiguration,
   applyScreenSpaceReflectionConfiguration
@@ -265,5 +266,38 @@ it("uses the downscaled terrain opaque SSR budget in rain without lowering water
     resolutionScale: 0.5,
     maxRaySteps: 64,
     hitRefinementSteps: 5
+  });
+});
+
+it("tightens mobile water SSR budget without affecting desktop defaults or water lease lifetime", () => {
+  const { camera, reflection, updateRain } = fixture();
+  applyAutomaticScreenSpaceReflectionConfiguration(camera, TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION);
+  applyScreenSpaceReflectionConfiguration(camera, TERRAIN_MOBILE_WATER_SCREEN_SPACE_REFLECTION_CONFIGURATION);
+
+  new CameraWaterFeatureBroker(camera).setRequest("lake", {
+    ...waterRequest,
+    quality: "high",
+    screenSpaceReflection: TERRAIN_WATER_SSR_CAMERA_SETTINGS
+  });
+  updateRain(0.3);
+
+  expect(reflection.metrics.activationMode).toBe(0);
+  expect(reflection.metrics.opaqueResolvedSettings).toMatchObject({
+    quality: Quality.Low,
+    resolutionScale: 0.25,
+    maxRaySteps: 24,
+    hitRefinementSteps: 2
+  });
+  expect(reflection.metrics.transparentResolvedSettings).toMatchObject({
+    quality: Quality.Low,
+    resolutionScale: 0.25,
+    upsamplingMode: UpsamplingMode.Bilinear,
+    maxRayDistance: 168,
+    rayLengthFade: 16.8,
+    maxRaySteps: 24,
+    hitRefinementSteps: 2,
+    thickness: 0.2,
+    maxRoughness: 0.7,
+    edgeFade: 0.02
   });
 });

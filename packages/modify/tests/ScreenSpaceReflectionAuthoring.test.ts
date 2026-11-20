@@ -289,6 +289,7 @@ it("round-trips camera source and dormant overrides and releases leases on destr
   c.screenSpaceReflection.applySettings({ activationMode: Mode.ForceOff, intensity: 0.35 });
   c.screenSpaceReflection.settingsSource = Source.UseSceneSettings;
   c.screenSpaceReflection.useHalfResolutionInputs = true;
+  c.screenSpaceReflection.useSceneColorMipmaps = false;
   const data = sceneData({ activationMode: Mode.ForceOn });
   data.components[1].props = {
     screenSpaceReflectionSettings: JSON.parse(JSON.stringify(c.screenSpaceReflectionSettings))
@@ -296,6 +297,7 @@ it("round-trips camera source and dormant overrides and releases leases on destr
   const restored = await engine.resourceManager.load<Scene>({ type: AssetType.Scene, url: resource(data) });
   const ssr = restored.rootEntities[1].getComponent(Camera)!.screenSpaceReflection;
   expect(ssr.useHalfResolutionInputs).toBe(true);
+  expect(ssr.useSceneColorMipmaps).toBe(false);
   ssr._prepareSettings();
   expect(ssr.metrics.requested).toBe(true);
   ssr.settingsSource = Source.Override;
@@ -304,6 +306,7 @@ it("round-trips camera source and dormant overrides and releases leases on destr
   expect(ssr.intensity).toBe(0.35);
   c.screenSpaceReflectionSettings = { settingsSource: Source.UseSceneSettings };
   expect(c.screenSpaceReflection.useHalfResolutionInputs).toBe(false);
+  expect(c.screenSpaceReflection.useSceneColorMipmaps).toBe(true);
   const lease = ssr.acquireConsumer("test");
   restored.destroy();
   expect(lease.active).toBe(false);

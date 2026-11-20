@@ -49,7 +49,7 @@ Shader "Lighting/ScreenSpaceReflection" {
       }
 
       vec4 sampleScreenSpaceReflectionSceneColor(vec2 uv, float roughness) {
-        #ifdef HAS_TEX_LOD
+        #if defined(HAS_TEX_LOD) && defined(SSR_SCENE_COLOR_MIPMAPS)
           return texture2DLodEXT(material_SSRSceneColorTexture, uv, roughness * 5.0);
         #else
           return texture2D(material_SSRSceneColorTexture, uv);

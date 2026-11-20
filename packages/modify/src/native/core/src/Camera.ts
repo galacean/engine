@@ -75,11 +75,13 @@ export class Camera extends Component {
   get screenSpaceReflectionSettings(): {
     settingsSource: ScreenSpaceReflectionSettingsSource;
     useHalfResolutionInputs: boolean;
+    useSceneColorMipmaps: boolean;
     overrideSettings?: ScreenSpaceReflectionSettingsData;
   } {
     return {
       settingsSource: this.screenSpaceReflection.settingsSource,
       useHalfResolutionInputs: this.screenSpaceReflection.useHalfResolutionInputs,
+      useSceneColorMipmaps: this.screenSpaceReflection.useSceneColorMipmaps,
       overrideSettings: this.screenSpaceReflection._hasOverrideSettings
         ? this.screenSpaceReflection.toJSON()
         : undefined
@@ -88,6 +90,7 @@ export class Camera extends Component {
   set screenSpaceReflectionSettings(value: {
     settingsSource: ScreenSpaceReflectionSettingsSource;
     useHalfResolutionInputs?: boolean;
+    useSceneColorMipmaps?: boolean;
     overrideSettings?: Partial<ScreenSpaceReflectionSettingsData>;
   }) {
     this.screenSpaceReflection.restoreSettings(value);

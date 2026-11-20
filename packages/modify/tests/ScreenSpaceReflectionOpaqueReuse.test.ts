@@ -143,3 +143,66 @@ it("reuses SSR sceneColor for camera_OpaqueTexture when contract matches and fal
     scene.destroy();
   }
 });
+
+it("reuses half-res ceil SSR sceneColor on odd viewports without running OpaqueTexturePass", () => {
+  const scene = new Scene(engine);
+  engine.sceneManager.activeScene = scene;
+  scene.background.solidColor = new Color(0, 0, 0, 1);
+  scene.screenSpaceReflection.apply({
+    activationMode: Activation.ForceOn,
+    receiverPolicy: Policy.ExplicitOnly,
+    resolutionScale: 0.5,
+    maxRaySteps: 16
+  });
+
+  const camera = scene.createRootEntity().addComponent(Camera);
+  camera.entity.transform.setPosition(0, 0, 6);
+  camera.entity.transform.lookAt(new Vector3(0, 0, 0));
+  camera.opaqueTextureEnabled = true;
+  camera.opaqueTextureDownsampling = Downsampling.TwoX;
+  camera.screenSpaceReflection.useHalfResolutionInputs = true;
+
+  const output = new Texture2D(engine, 129, 131, TextureFormat.R8G8B8A8, false, false);
+  const rt = new RenderTarget(engine, 129, 131, output, TextureFormat.Depth24);
+  camera.renderTarget = rt;
+
+  const backdrop = scene.createRootEntity().addComponent(MeshRenderer);
+  backdrop.entity.transform.setPosition(0, 0, -2);
+  backdrop.entity.transform.setRotation(90, 0, 0);
+  backdrop.mesh = PrimitiveMesh.createPlane(engine, 12, 12);
+  const backdropMaterial = new PBRMaterial(engine);
+  backdropMaterial.baseColor.set(0, 0, 0, 1);
+  backdropMaterial.emissiveColor.set(0, 0.85, 0, 1);
+  backdrop.setMaterial(backdropMaterial);
+
+  const glass = scene.createRootEntity().addComponent(MeshRenderer);
+  glass.entity.transform.setPosition(0, 0, 1);
+  glass.entity.transform.setRotation(90, 0, 0);
+  glass.mesh = PrimitiveMesh.createPlane(engine, 4, 4);
+  const glassMaterial = createTransparentSampleMaterial();
+  glass.setMaterial(glassMaterial);
+
+  const pipeline = (camera as any)._renderPipeline;
+  const opaquePass = pipeline._opaqueTexturePass;
+  const onRenderSpy = vi.spyOn(opaquePass, "onRender");
+
+  try {
+    camera.render();
+    expect(onRenderSpy).toHaveBeenCalledTimes(0);
+    expect(opaquePass._renderTarget ?? null).toBeNull();
+    const reusedTexture = camera.shaderData.getTexture("camera_OpaqueTexture") as Texture2D;
+    expect([reusedTexture.width, reusedTexture.height]).toEqual([65, 66]);
+
+    // Full-res opaqueTexture still refuses half-res reuse on odd viewports.
+    camera.opaqueTextureDownsampling = Downsampling.None;
+    camera.render();
+    expect(onRenderSpy).toHaveBeenCalledTimes(1);
+    expect(opaquePass._renderTarget).not.toBeNull();
+  } finally {
+    onRenderSpy.mockRestore();
+    rt.destroy(true);
+    backdropMaterial.destroy();
+    glassMaterial.destroy();
+    scene.destroy();
+  }
+});

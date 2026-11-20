@@ -665,6 +665,18 @@ describe("renderer warmup scope", () => {
       const ssrPasses = waterVariants.filter((v) => v.shader === "Lighting/ScreenSpaceReflection");
       expect(new Set(ssrPasses.map((v) => v.pi))).toEqual(new Set([0, 4]));
       expect(ssrPasses.every((v) => v.macros.some((m) => m.n === "SSR_VERIFY_OPAQUE_DEPTH"))).toBe(true);
+      expect(ssrPasses.every((v) => v.macros.some((m) => m.n === "SSR_SCENE_COLOR_MIPMAPS"))).toBe(true);
+
+      camera.screenSpaceReflection.useSceneColorMipmaps = false;
+      const mobileWaterVariants = collectSeedWorldRendererVariants(
+        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { isWebGL2: true } } as any,
+        { shaderData: { _macroCollection: new ShaderMacroCollection() }, background: { mode: 0 } } as any,
+        camera,
+        waterRoots,
+        { includeGpuInstancing: false, includeOpaqueScreenSpaceReflection: false }
+      );
+      const mobileSsrPasses = mobileWaterVariants.filter((v) => v.shader === "Lighting/ScreenSpaceReflection");
+      expect(mobileSsrPasses.every((v) => !v.macros.some((m) => m.n === "SSR_SCENE_COLOR_MIPMAPS"))).toBe(true);
     } finally {
       findSpy.mockRestore();
     }
