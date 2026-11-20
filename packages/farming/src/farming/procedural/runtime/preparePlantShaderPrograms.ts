@@ -2,9 +2,6 @@ import {
   Camera,
   DepthTextureMode,
   GLCapabilityType,
-  ScreenSpaceReflection,
-  ScreenSpaceReflectionActivationMode,
-  ScreenSpaceReflectionReceiverPolicy,
   Engine,
   Entity,
   MeshRenderer,
@@ -29,8 +26,8 @@ interface RuntimeScene {
 }
 
 /** Candidate prewarming, not a second render pipeline. Runtime chooses which stages actually draw.
- * Depth may be prepared even when Forward resolves it; SSR may be prepared for a dormant consumer.
- * This conservative set avoids reproducing camera targets, sunlight arbitration or SSR lease state.
+ * Depth may be prepared even when Forward resolves it; SSR passes follow scene/camera settings and material opt-in.
+ * This conservative set avoids reproducing camera targets or sunlight arbitration.
  */
 export function getPlantShaderPreparationPasses(
   engine: Engine,
@@ -41,7 +38,6 @@ export function getPlantShaderPreparationPasses(
 ): readonly ShaderPass[] {
   const scene = camera.entity.scene!;
   const hardware = (engine as RuntimeEngine)._hardwareRenderer;
-  const reflection = camera.screenSpaceReflection;
   const runtimeCamera = camera as unknown as {
     _enableForwardDepthResolve?: boolean;
     _isIndependentCanvasEnabled?: () => boolean;
@@ -54,22 +50,19 @@ export function getPlantShaderPreparationPasses(
     !ambientOcclusionEnabled &&
     hardware.isWebGL2 &&
     Boolean(runtimeCamera._isIndependentCanvasEnabled?.());
+  const ssrSettings = camera.screenSpaceReflectionOverride ?? scene?.screenSpaceReflection;
+  const ssrEnabled =
+    camera.enableScreenSpaceReflection !== false &&
+    Boolean(ssrSettings?.enabled) &&
+    (ssrSettings?.intensity ?? 0) > 0 &&
+    (ssrSettings?.maxRoughness ?? 0) > 0;
+  const ssrSupported = ssrEnabled && hardware.isWebGL2 && (hardware.capability?.maxDrawBuffers ?? 0) >= 2;
   const prepareDepth =
-    hardware.canIUse(GLCapabilityType.depthTexture) &&
-    (ambientOcclusionEnabled || (cameraDepthRequested && !forwardDepthResolveEnabled));
-  const surfaceCandidate =
-    reflection.activationMode !== ScreenSpaceReflectionActivationMode.ForceOff &&
-    (ScreenSpaceReflection.isMaterialReceiver(material) ||
-      (reflection.receiverPolicy === ScreenSpaceReflectionReceiverPolicy.StandardPbrAuto &&
-        material.shader.subShaders[0]?.getTagValue(ScreenSpaceReflection.MATERIAL_AUTO_RECEIVER_TAG) ===
-          ScreenSpaceReflection.MATERIAL_AUTO_RECEIVER_CONTRACT &&
-        ScreenSpaceReflection.getMaterialReceiverCapability(material).supported));
-  const prepareSurface =
-    surfaceCandidate &&
-    hardware.isWebGL2 &&
-    hardware.canIUse(GLCapabilityType.drawBuffers) &&
-    hardware.capability.maxDrawBuffers >= 2 &&
-    hardware.capability.isFragmentHighPrecision;
+    (hardware.canIUse(GLCapabilityType.depthTexture) &&
+      (ambientOcclusionEnabled || (cameraDepthRequested && !forwardDepthResolveEnabled))) ||
+    ssrSupported;
+  const prepareSSRReceiver = ssrSupported && material.screenSpaceReflectionIntensity > 0;
+  const prepareSSRContributionDepth = ssrSupported && Boolean(material.contributeScreenSpaceReflectionDepth);
   return (material.shader.subShaders[0]?.passes ?? []).filter((pass) => {
     switch (pass.getTagValue("pipelineStage")) {
       case "Forward":
@@ -78,8 +71,10 @@ export function getPlantShaderPreparationPasses(
         return scene.castShadows && castShadows;
       case "DepthOnly":
         return prepareDepth;
-      case "ScreenSpaceReflectionSurface":
-        return prepareSurface;
+      case "SSRReceiver":
+        return prepareSSRReceiver;
+      case "SSRContributionDepth":
+        return prepareSSRContributionDepth;
       default:
         return false;
     }

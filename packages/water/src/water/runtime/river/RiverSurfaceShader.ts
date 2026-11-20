@@ -1,6 +1,6 @@
 import { WATER_CONNECTION_SHADER } from "../connections/WaterConnectionBinding";
 /** River shader creation and material binding. */
-import { Material, ScreenSpaceReflection } from "@galacean/engine-core";
+import { Material } from "@galacean/engine-core";
 import {
   WaterPatternModelV2,
   WaterRefractionNormalSourceV2,
@@ -35,8 +35,8 @@ import riverGeometryTemplate from "../../shaders/river/RiverGeometry.glsl?raw";
 import riverRefractionFunctions from "../../shaders/river/RiverRefraction.glsl?raw";
 import riverSurfaceNormalTemplate from "../../shaders/river/RiverSurfaceNormal.glsl?raw";
 import riverSurfaceRoughnessTemplate from "../../shaders/river/RiverSurfaceRoughness.glsl?raw";
-import riverScreenSpaceReflectionPassTemplate from "../../shaders/river/ScreenSpaceReflectionPass.glsl?raw";
-import riverScreenSpaceReflectionSurfaceTemplate from "../../shaders/river/ScreenSpaceReflectionSurface.glsl?raw";
+import riverSSRReceiverPassTemplate from "../../shaders/river/SSRReceiverPass.glsl?raw";
+import riverSSRReceiverTemplate from "../../shaders/river/SSRReceiver.glsl?raw";
 import riverWaterShaderTemplate from "../../shaders/RiverWater.shader?raw";
 import {
   registerGeneratedWaterShaderInclude,
@@ -162,7 +162,7 @@ export interface RiverSurfaceAppearanceModules {
  * and consumes that texture in Forward. Keeping this as a second tagged pass avoids a
  * River-owned render target or duplicate reflection march.
  */
-function createRiverScreenSpaceReflectionSurfacePass(
+function createRiverSSRReceiverPass(
   riverGeometryModule: string,
   localSampling: string,
   useLocalMap: boolean,
@@ -170,10 +170,7 @@ function createRiverScreenSpaceReflectionSurfacePass(
   roughnessDepthModule: string,
   patternFunctions: string
 ): string {
-  const shaderTemplateReplacements: Readonly<Record<string, string | number>> = {
-    VALUE_001_SCREENSPACEREFLECTION_MATERIAL_RECEIVER_CONTRACT_TAG:
-      ScreenSpaceReflection.MATERIAL_RECEIVER_CONTRACT_TAG,
-    VALUE_002_SCREENSPACEREFLECTION_MATERIAL_RECEIVER_CONTRACT: ScreenSpaceReflection.MATERIAL_RECEIVER_CONTRACT,
+  const surfaceReplacements: Readonly<Record<string, string | number>> = {
     VALUE_003_RIVER_GEOMETRY_MODULE: riverGeometryModule,
     ...surfaceAppearanceModules,
     ROUGHNESS_DEPTH_MODULE: roughnessDepthModule,
@@ -182,16 +179,9 @@ function createRiverScreenSpaceReflectionSurfacePass(
     LOCAL_SAMPLING: localSampling,
     USE_LOCAL_MAP: useLocalMap ? 1 : 0
   };
-  const {
-    VALUE_001_SCREENSPACEREFLECTION_MATERIAL_RECEIVER_CONTRACT_TAG,
-    VALUE_002_SCREENSPACEREFLECTION_MATERIAL_RECEIVER_CONTRACT,
-    ...surfaceReplacements
-  } = shaderTemplateReplacements;
-  const modularPassSource = renderWaterShaderTemplate(riverScreenSpaceReflectionSurfaceTemplate, surfaceReplacements);
+  const modularPassSource = renderWaterShaderTemplate(riverSSRReceiverTemplate, surfaceReplacements);
   const modularPassInclude = registerGeneratedWaterShaderInclude("RiverSsr", modularPassSource);
-  return renderWaterShaderTemplate(riverScreenSpaceReflectionPassTemplate, {
-    VALUE_001_SCREENSPACEREFLECTION_MATERIAL_RECEIVER_CONTRACT_TAG,
-    VALUE_002_SCREENSPACEREFLECTION_MATERIAL_RECEIVER_CONTRACT,
+  return renderWaterShaderTemplate(riverSSRReceiverPassTemplate, {
     WATER_SSR_INCLUDE: modularPassInclude
   });
 }
@@ -445,7 +435,7 @@ export function createSurfaceShaderSource(
       "RiverForwardFinalOutput",
       createRiverFinalOutputStatements(appearance)
     ),
-    VALUE_181_CREATERIVERSCREENSPACEREFLECTIONSURFACEPASS: createRiverScreenSpaceReflectionSurfacePass(
+    VALUE_181_CREATERIVERSSRRECEIVERPASS: createRiverSSRReceiverPass(
       riverGeometryModule,
       localSampling,
       useLocalMap,
@@ -454,13 +444,13 @@ export function createSurfaceShaderSource(
       createRiverAppearancePatternFunctions(roughnessAppearance)
     )
   };
-  const { VALUE_001_SHADERNAME, VALUE_181_CREATERIVERSCREENSPACEREFLECTIONSURFACEPASS, ...forwardReplacements } =
+  const { VALUE_001_SHADERNAME, VALUE_181_CREATERIVERSSRRECEIVERPASS, ...forwardReplacements } =
     shaderTemplateReplacements;
   const modularPassSource = renderWaterShaderTemplate(riverForwardPassTemplate, forwardReplacements);
   const modularPassInclude = registerGeneratedWaterShaderInclude("RiverForward", modularPassSource);
   return renderWaterShaderTemplate(riverWaterShaderTemplate, {
     VALUE_001_SHADERNAME,
-    VALUE_181_CREATERIVERSCREENSPACEREFLECTIONSURFACEPASS,
+    VALUE_181_CREATERIVERSSRRECEIVERPASS,
     WATER_FORWARD_INCLUDE: modularPassInclude
   });
 }

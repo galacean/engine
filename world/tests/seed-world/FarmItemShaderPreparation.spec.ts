@@ -1,8 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
-import { ShaderMacro, SkinnedMeshRenderer, ScreenSpaceReflectionActivationMode } from "@galacean/engine";
+import { ShaderMacro, SkinnedMeshRenderer } from "@galacean/engine";
 import { preparePlantShaderPrograms } from "@galacean/engine-farming/farming/procedural/runtime/preparePlantShaderPrograms";
 
-function fixture() {
+function fixture(options: {
+  ssrSceneEnabled?: boolean;
+  cameraEnableSSR?: boolean;
+  ssrOverride?: { enabled?: boolean; intensity?: number; maxRoughness?: number } | null;
+  ssrIntensity?: number;
+  contributeSSRDepth?: boolean;
+  isWebGL2?: boolean;
+  maxDrawBuffers?: number;
+} = {}) {
   const calls: { stage: string; macros: string[]; deferred: boolean }[] = [];
   const data = {
     getMacros: (out: unknown[]) => {
@@ -27,7 +35,15 @@ function fixture() {
   });
   const material = {
     shaderData: data,
-    shader: { subShaders: [{ passes: [makePass("Forward"), makePass("ShadowCaster")] }] }
+    screenSpaceReflectionIntensity: options.ssrIntensity ?? 1,
+    contributeScreenSpaceReflectionDepth: options.contributeSSRDepth ?? false,
+    shader: {
+      subShaders: [
+        {
+          passes: ["Forward", "ShadowCaster", "DepthOnly", "SSRReceiver", "SSRContributionDepth"].map(makePass)
+        }
+      ]
+    }
   };
   const renderer = Object.assign(Object.create(SkinnedMeshRenderer.prototype), {
     _update: vi.fn(),
@@ -41,16 +57,30 @@ function fixture() {
     receiveShadows: false
   }))
     Object.defineProperty(renderer, key, { value });
-  const scene = { castShadows: true, shaderData: data, _lightManager: { _updateShaderData() {} } };
+  const scene = {
+    castShadows: true,
+    shaderData: data,
+    screenSpaceReflection: {
+      enabled: options.ssrSceneEnabled ?? false,
+      intensity: 1,
+      maxRoughness: 0.6
+    },
+    _lightManager: { _updateShaderData() {} }
+  };
   const camera = {
     entity: { scene },
     shaderData: data,
     _updateShaderData() {},
-    screenSpaceReflection: { activationMode: ScreenSpaceReflectionActivationMode.ForceOff }
+    enableScreenSpaceReflection: options.cameraEnableSSR ?? false,
+    screenSpaceReflectionOverride: options.ssrOverride ?? null
   };
   const engine = {
     _macroCollection: { _length: 0 },
-    _hardwareRenderer: { canIUse: () => false, isWebGL2: false },
+    _hardwareRenderer: {
+      canIUse: () => false,
+      isWebGL2: options.isWebGL2 ?? false,
+      capability: { maxDrawBuffers: options.maxDrawBuffers ?? 1 }
+    },
     _renderContext: {}
   };
   const root = { scene, getComponentsIncludeChildren: () => [renderer] };
@@ -75,6 +105,39 @@ describe("farm item program readiness", () => {
     ]);
     expect(f.renderer.castShadows).toBe(false);
     expect(f.renderer.receiveShadows).toBe(false);
+  });
+  it("prepares DepthOnly, SSRReceiver, and optional SSRContributionDepth for SSR v2 receivers", async () => {
+    const enabled = fixture({
+      ssrSceneEnabled: true,
+      cameraEnableSSR: true,
+      ssrIntensity: 1,
+      contributeSSRDepth: true,
+      isWebGL2: true,
+      maxDrawBuffers: 2
+    });
+    await preparePlantShaderPrograms(enabled.engine as any, enabled.root as any, async (work) => work(), false, {
+      camera: enabled.camera as any
+    });
+    expect(enabled.calls.map((c) => c.stage)).toEqual([
+      "Forward",
+      "DepthOnly",
+      "SSRReceiver",
+      "SSRContributionDepth"
+    ]);
+
+    const overrideOff = fixture({
+      ssrSceneEnabled: true,
+      cameraEnableSSR: true,
+      ssrOverride: { enabled: false, intensity: 1, maxRoughness: 0.6 },
+      ssrIntensity: 1,
+      contributeSSRDepth: true,
+      isWebGL2: true,
+      maxDrawBuffers: 2
+    });
+    await preparePlantShaderPrograms(overrideOff.engine as any, overrideOff.root as any, async (work) => work(), false, {
+      camera: overrideOff.camera as any
+    });
+    expect(overrideOff.calls.map((c) => c.stage)).toEqual(["Forward"]);
   });
   it("does not submit or poll after the owning item cancels queued work", async () => {
     const f = fixture(),

@@ -60,11 +60,7 @@ const METRICS: readonly MetricDefinition[] = [
   metric("renderTarget", "Render target / 渲染分辨率", "实际 drawing buffer 分辨率与有效 DPR。"),
   metric("msaa", "MSAA / 多重采样", "相机渲染目标的多重采样数。"),
   metric("postProcess", "Post process / 后处理", "相机是否执行当前 Scene 的后处理配置。"),
-  metric(
-    "screenSpaceReflection",
-    "SSR demand / SSR 按需",
-    "SSR 是否由 Water 或 Terrain 水膜实际请求，以及当前接收 Pass 绘制数和资源占用。"
-  ),
+  metric("screenSpaceReflection", "SSR / 屏幕空间反射", "SSR 启用状态、运行状态、追踪分辨率、接收体绘制数与显存占用。"),
   metric("drawCalls", "Draw calls / 绘制调用", "平均每帧实际提交到图形接口的绘制调用。"),
   metric("instancedDrawCalls", "Instanced draws / 实例绘制", "平均每帧实例绘制调用数。"),
   metric("submittedInstances", "GPU instances / GPU 实例", "平均每帧实例绘制的实例总数。"),
@@ -251,17 +247,17 @@ export interface TerrainPerformanceSceneMetrics {
   readonly msaaSamples: number;
   /** Whether the camera currently executes its post-process chain. */
   readonly postProcessEnabled: boolean;
-  /** Whether consumer-driven SSR is currently requested. */
-  readonly screenSpaceReflectionRequested?: boolean;
-  /** Whether the SSR pipeline is effective in the latest completed frame. */
-  readonly screenSpaceReflectionEffective?: boolean;
-  /** Number of independent active Water or Terrain SSR consumer leases. */
-  readonly screenSpaceReflectionConsumerLeaseCount?: number;
-  /** Consumer whose request currently controls the Camera-wide SSR settings. */
-  readonly screenSpaceReflectionSelectedConsumerLabel?: string | null;
-  /** Opaque Terrain SSR receiver draws in the latest completed frame. */
+  /** Whether the SSR pipeline is active in the latest completed frame. */
+  readonly screenSpaceReflectionActive?: boolean;
+  /** Current SSR pass runtime state (e.g. ActiveSteady, Skipped, Disabled). */
+  readonly screenSpaceReflectionState?: string;
+  /** Active SSR trace width in pixels. */
+  readonly screenSpaceReflectionTraceWidth?: number;
+  /** Active SSR trace height in pixels. */
+  readonly screenSpaceReflectionTraceHeight?: number;
+  /** Opaque SSR receiver draws in the latest completed frame. */
   readonly screenSpaceReflectionOpaqueDraws?: number;
-  /** Transparent Water SSR receiver draws in the latest completed frame. */
+  /** Transparent SSR receiver draws in the latest completed frame. */
   readonly screenSpaceReflectionTransparentDraws?: number;
   /** Bytes currently estimated for retained SSR render resources. */
   readonly screenSpaceReflectionEstimatedBytes?: number;
@@ -565,9 +561,14 @@ export class TerrainPerformancePanel {
     );
     this._setValue("msaa", scene.msaaSamples === 1 ? "None · 1×" : `${scene.msaaSamples}×`);
     this._setValue("postProcess", scene.postProcessEnabled ? "On" : "Off");
+    const ssrStateText = scene.screenSpaceReflectionState ?? (scene.screenSpaceReflectionActive ? "Active" : "Off");
+    const ssrTraceText =
+      scene.screenSpaceReflectionTraceWidth && scene.screenSpaceReflectionTraceHeight
+        ? `${scene.screenSpaceReflectionTraceWidth}x${scene.screenSpaceReflectionTraceHeight}`
+        : "—";
     this._setValue(
       "screenSpaceReflection",
-      `${scene.screenSpaceReflectionEffective ? "Active" : "Off"} · ${scene.screenSpaceReflectionRequested ? "requested" : "idle"} · ${scene.screenSpaceReflectionConsumerLeaseCount ?? 0} leases${scene.screenSpaceReflectionSelectedConsumerLabel ? ` [${scene.screenSpaceReflectionSelectedConsumerLabel}]` : ""} · O ${scene.screenSpaceReflectionOpaqueDraws ?? 0} + T ${scene.screenSpaceReflectionTransparentDraws ?? 0} draws · ${formatMegabytes(scene.screenSpaceReflectionEstimatedBytes ?? 0)} MB`
+      `${scene.screenSpaceReflectionActive ? "Active" : "Off"} · ${ssrStateText} · ${ssrTraceText} · O ${scene.screenSpaceReflectionOpaqueDraws ?? 0} + T ${scene.screenSpaceReflectionTransparentDraws ?? 0} · ${formatMegabytes(scene.screenSpaceReflectionEstimatedBytes ?? 0)} MB`
     );
     this._setValue("water", scene.waterSummary ?? "—");
   }

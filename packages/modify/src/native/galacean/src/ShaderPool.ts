@@ -31,7 +31,8 @@ import {
   RealtimeIBLResolveSource,
   ScalableAmbientOcclusionSource,
   ScreenSpaceReflectionSource,
-  ScreenSpaceReflectionSurfaceSource,
+  SSRReceiverSource,
+  SSRContributionDepthSource,
   VolumetricCloudSource,
   WindGpuFieldSource,
   WindGpuGroundResponseSource,
@@ -65,7 +66,8 @@ export class ShaderPool {
       BlitScreenSource,
       ShadowCasterSource,
       DepthOnlySource,
-      ScreenSpaceReflectionSurfaceSource,
+      SSRReceiverSource,
+      SSRContributionDepthSource,
       // Material shaders
       PBRSource,
       BlinnPhongSource,
@@ -151,7 +153,8 @@ export class ShaderPool {
       finalSRGB: shaders.get(FinalSRGBSource)!,
       finalAntiAliasing: shaders.get(FinalAntiAliasingSource)!,
       bloom: shaders.get(BloomSource)!,
-      scalableAmbientOcclusion: shaders.get(ScalableAmbientOcclusionSource)!
+      scalableAmbientOcclusion: shaders.get(ScalableAmbientOcclusionSource)!,
+      screenSpaceReflection: shaders.get(ScreenSpaceReflectionSource)!
     };
   }
 }

@@ -18,17 +18,21 @@
         );
         vec3 rawSsrReflectionPremultipliedSample = vec3(0.0);
         float rawSsrReflectionValidity = 0.0;
-        if (
-          material_ReflectionSource > 2.5 &&
-          rainRippleSurfaceRoughness < camera_ScreenSpaceReflectionMaxRoughness
-        ) {
-          vec2 ssrScreenUv = (input.clipPosition.xy / input.clipPosition.w) * 0.5 + 0.5;
-          vec4 ssrReflection = texture2D(camera_ScreenSpaceReflectionTexture, ssrScreenUv);
-          float ssrGlobalIntensity = saturate(camera_ScreenSpaceReflectionIntensity);
-          ssrGlobalIntensity *= waterConnectionFacts(input.worldPosition.xz).y;
-          rawSsrReflectionPremultipliedSample = ssrReflection.rgb * ssrGlobalIntensity;
-          rawSsrReflectionValidity = saturate(
-            ssrReflection.a * ssrGlobalIntensity
+        #ifdef CAMERA_ENABLE_SSR
+        if (material_ReflectionSource > 2.5) {
+          vec3 fallbackEnvironment = mix(
+            rawAnalyticReflectionSample,
+            rawEnvironmentReflectionSample,
+            rawEnvironmentReflectionValidity
           );
+          vec3 ssrComposited = evaluateScreenSpaceReflection(
+            input.clipPosition,
+            surfaceNormalWS,
+            rainRippleSurfaceRoughness,
+            fallbackEnvironment
+          );
+          rawSsrReflectionValidity = waterConnectionFacts(input.worldPosition.xz).y;
+          rawSsrReflectionPremultipliedSample = ssrComposited * rawSsrReflectionValidity;
         }
+        #endif
         float reflectionIntensity = max(material_ReflectionIntensity, 0.0);

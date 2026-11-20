@@ -6,16 +6,7 @@ import { bindWaterSurfaceCaustics } from "../surface/WaterSurfaceCausticsBinding
 import type { WaterSurfaceFieldGraphReadback } from "../surface/WaterSurfaceFieldResolver";
 import { registerWaterSurfacePicking } from "../surface/WaterSurfacePicking";
 /** Dedicated heightfield-water shader: curved base surface, packed local map, waves, optics,. */
-import {
-  Engine,
-  Material,
-  ScreenSpaceReflection,
-  ScreenSpaceReflectionReceiverMode,
-  ShaderMacro,
-  Texture2D,
-  type Shader,
-  type Texture
-} from "@galacean/engine-core";
+import { Engine, Material, ShaderMacro, Texture2D, type Shader, type Texture } from "@galacean/engine-core";
 import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import type { HeightfieldWaterVisualUniformConfig } from "../../authoring/heightfield/HeightfieldWaterTypes";
 import { WaterSurfaceDepthSource } from "../../authoring/surface/enums/WaterSurfaceDepthSource";
@@ -35,7 +26,6 @@ import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
 import type { HeightfieldWaterLocalMapAtlas } from "../../compiler/heightfield/HeightfieldWaterCompiledTypes";
 import type { CompiledWaterSurfaceAppearanceV2 } from "../../compiler/surface/CompiledWaterSurfaceAppearanceTypes";
 import type { CompiledWaterWaveSet } from "../../compiler/wave/CompiledWaterWaveTypes";
-import heightfieldDepthAlphaTemplate from "../../shaders/heightfield/DepthAlpha.glsl?raw";
 import heightfieldDiffuseLightingTemplate from "../../shaders/heightfield/DiffuseLighting.glsl?raw";
 import heightfieldDirectionalLightingTemplate from "../../shaders/heightfield/DirectionalLighting.glsl?raw";
 import heightfieldFinalClosureTemplate from "../../shaders/heightfield/FinalClosure.glsl?raw";
@@ -47,8 +37,8 @@ import heightfieldWavesTemplate from "../../shaders/heightfield/HeightfieldWaves
 import heightfieldLocalMapDecodeTemplate from "../../shaders/heightfield/LocalMapDecode.glsl?raw";
 import heightfieldPlanarTransformTemplate from "../../shaders/heightfield/PlanarTransform.glsl?raw";
 import heightfieldSceneLightingUniformsTemplate from "../../shaders/heightfield/SceneLightingUniforms.glsl?raw";
-import heightfieldScreenSpaceReflectionPassTemplate from "../../shaders/heightfield/ScreenSpaceReflectionPass.glsl?raw";
-import heightfieldScreenSpaceReflectionSurfaceTemplate from "../../shaders/heightfield/ScreenSpaceReflectionSurface.glsl?raw";
+import heightfieldSSRReceiverPassTemplate from "../../shaders/heightfield/SSRReceiverPass.glsl?raw";
+import heightfieldSSRReceiverTemplate from "../../shaders/heightfield/SSRReceiver.glsl?raw";
 import heightfieldSurfaceLightingFunctionsTemplate from "../../shaders/heightfield/SurfaceLightingFunctions.glsl?raw";
 import heightfieldSurfaceNormalTemplate from "../../shaders/heightfield/SurfaceNormal.glsl?raw";
 import heightfieldSurfaceReflectionTemplate from "../../shaders/heightfield/SurfaceReflection.glsl?raw";
@@ -187,26 +177,36 @@ function applyCachedHeightfieldWaterSurfaceOpticsBinding(
   return readback;
 }
 
+function heightfieldShaderHasSSRReceiverPass(shader: Shader): boolean {
+  for (let subIndex = 0; subIndex < shader.subShaders.length; subIndex++) {
+    const passes = shader.subShaders[subIndex].passes;
+    for (let passIndex = 0; passIndex < passes.length; passIndex++) {
+      const pass = passes[passIndex];
+      if (pass.name === "SSRReceiver" || pass.getTagValue("pipelineStage") === "SSRReceiver") {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 function applyHeightfieldWaterScreenSpaceReflectionReceiver(
   state: HeightfieldWaterMaterialState,
   enabled: boolean
 ): void {
-  const registered = ScreenSpaceReflection.setMaterialReceiver(
-    state.material,
-    enabled ? ScreenSpaceReflectionReceiverMode.TransparentSampleOnly : ScreenSpaceReflectionReceiverMode.Disabled,
-    enabled ? 1 : 0
-  );
-  if (!registered) {
-    const capability = ScreenSpaceReflection.getMaterialReceiverCapability(state.material);
+  if (!heightfieldShaderHasSSRReceiverPass(state.material.shader)) {
     throw new Error(
-      `Heightfield Water shader '${state.material.shader.name}' does not implement the Core SSR receiver contract: ${capability.unsupportedReason ?? "unknown"}.`
+      `Heightfield Water shader '${state.material.shader.name}' does not implement the Core SSRReceiver pass.`
     );
   }
+  const composite =
+    state.material.shaderData.getFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.screenSpaceReflectionCompositeIntensity) ?? 1;
+  state.material.screenSpaceReflectionIntensity = enabled && composite > 0 ? 1 : 0;
 }
 
-/** Clears explicit Core receiver registration before material teardown. */
+/** Clears SSR receiver participation before material teardown. */
 export function disableHeightfieldWaterScreenSpaceReflectionReceiver(state: HeightfieldWaterMaterialState): void {
-  ScreenSpaceReflection.setMaterialReceiver(state.material, ScreenSpaceReflectionReceiverMode.Disabled, 0);
+  state.material.screenSpaceReflectionIntensity = 0;
 }
 
 function applyHeightfieldWaterSurfaceAppearanceFeatureFlags(state: HeightfieldWaterMaterialState): void {
@@ -432,16 +432,13 @@ function surfaceAppearanceV2UsesOpaqueColor(appearance: CompiledWaterSurfaceAppe
  * second phase publishes only its displaced receiver surface; Forward samples
  * the camera result and applies Water Fresnel/intensity exactly once.
  */
-function screenSpaceReflectionSurfacePass(
+function ssrReceiverPass(
   quality: WaterQualityTier,
   waveCount: number,
   appearance: CompiledWaterSurfaceAppearanceV2
 ): string {
   const appearanceUniforms = createWaterSurfaceAppearanceV2UniformDeclarations(appearance);
-  const shaderTemplateReplacements: Readonly<Record<string, string | number>> = {
-    VALUE_001_SCREENSPACEREFLECTION_MATERIAL_RECEIVER_CONTRACT_TAG:
-      ScreenSpaceReflection.MATERIAL_RECEIVER_CONTRACT_TAG,
-    VALUE_002_SCREENSPACEREFLECTION_MATERIAL_RECEIVER_CONTRACT: ScreenSpaceReflection.MATERIAL_RECEIVER_CONTRACT,
+  const surfaceReplacements: Readonly<Record<string, string | number>> = {
     VALUE_004_APPEARANCEUNIFORMS: registerGeneratedWaterShaderModule(
       "HeightfieldSsrAppearanceUniforms",
       appearanceUniforms
@@ -497,19 +494,9 @@ function screenSpaceReflectionSurfacePass(
       surfaceNormalStatements(quality, appearance, false)
     )
   };
-  const {
-    VALUE_001_SCREENSPACEREFLECTION_MATERIAL_RECEIVER_CONTRACT_TAG,
-    VALUE_002_SCREENSPACEREFLECTION_MATERIAL_RECEIVER_CONTRACT,
-    ...surfaceReplacements
-  } = shaderTemplateReplacements;
-  const modularPassSource = renderWaterShaderTemplate(
-    heightfieldScreenSpaceReflectionSurfaceTemplate,
-    surfaceReplacements
-  );
+  const modularPassSource = renderWaterShaderTemplate(heightfieldSSRReceiverTemplate, surfaceReplacements);
   const modularPassInclude = registerGeneratedWaterShaderInclude("HeightfieldSsr", modularPassSource);
-  return renderWaterShaderTemplate(heightfieldScreenSpaceReflectionPassTemplate, {
-    VALUE_001_SCREENSPACEREFLECTION_MATERIAL_RECEIVER_CONTRACT_TAG,
-    VALUE_002_SCREENSPACEREFLECTION_MATERIAL_RECEIVER_CONTRACT,
+  return renderWaterShaderTemplate(heightfieldSSRReceiverPassTemplate, {
     WATER_SSR_INCLUDE: modularPassInclude
   });
 }
@@ -672,13 +659,6 @@ export function createHeightfieldWaterShaderSource(
       "HeightfieldSurfaceNormal",
       surfaceNormalStatements(quality, surfaceAppearanceV2, true)
     ),
-    PRECOMPOSED_REPLACE: Number(surfaceAppearanceV2.composition === WaterSurfaceCompositionV2.PrecomposedReplace),
-    DEPTH_ALPHA_STATEMENTS: registerGeneratedWaterShaderModule(
-      "HeightfieldDepthAlpha",
-      renderWaterShaderTemplate(heightfieldDepthAlphaTemplate, {
-        ALPHA_INPUT_ASSIGNMENTS: createWaterSurfaceAppearanceV2AlphaInputAssignments(surfaceAppearanceV2)
-      })
-    ),
     VALUE_054_LOCALBATHYMETRYOPTICALDEPTHREFINEMENT_USELOCALBATHYMETRY: registerGeneratedWaterShaderModule(
       "HeightfieldForwardLocalBathymetryOpticalDepth",
       heightfieldOpticalDepthStatements(1, useSceneDepth, useLocalBathymetry, false)
@@ -714,18 +694,14 @@ export function createHeightfieldWaterShaderSource(
       "HeightfieldForwardResolvedOutput",
       createWaterSurfaceV2ResolvedOutputStatement("vec4(fragmentColor, fragmentAlpha)")
     ),
-    VALUE_094_SCREENSPACEREFLECTIONSURFACEPASS_QUALITY_WAVECOUNT_SURFA: screenSpaceReflectionSurfacePass(
-      quality,
-      waveCount,
-      surfaceAppearanceV2
-    )
+    VALUE_094_SSRRECEIVERPASS_QUALITY_WAVECOUNT_SURFA: ssrReceiverPass(quality, waveCount, surfaceAppearanceV2)
   };
   const {
     VALUE_001_SURFACEAPPEARANCENAME,
     VALUE_002_DEPTHSOURCENAME,
     VALUE_003_QUALITYNAME,
     VALUE_004_WAVECOUNT,
-    VALUE_094_SCREENSPACEREFLECTIONSURFACEPASS_QUALITY_WAVECOUNT_SURFA,
+    VALUE_094_SSRRECEIVERPASS_QUALITY_WAVECOUNT_SURFA,
     ...forwardReplacements
   } = shaderTemplateReplacements;
   const modularPassSource = renderWaterShaderTemplate(heightfieldForwardPassTemplate, forwardReplacements);
@@ -735,7 +711,7 @@ export function createHeightfieldWaterShaderSource(
     VALUE_002_DEPTHSOURCENAME,
     VALUE_003_QUALITYNAME,
     VALUE_004_WAVECOUNT,
-    VALUE_094_SCREENSPACEREFLECTIONSURFACEPASS_QUALITY_WAVECOUNT_SURFA,
+    VALUE_094_SSRRECEIVERPASS_QUALITY_WAVECOUNT_SURFA,
     WATER_FORWARD_INCLUDE: modularPassInclude
   });
 }
@@ -865,13 +841,12 @@ export function createHeightfieldWaterMaterial(
   );
   const material = new Material(engine, shader);
   registerWaterSurfacePicking(material, "depthWriteEnabled");
-  if (!ScreenSpaceReflection.setMaterialReceiver(material, ScreenSpaceReflectionReceiverMode.Disabled, 0)) {
-    const capability = ScreenSpaceReflection.getMaterialReceiverCapability(material);
+  if (!heightfieldShaderHasSSRReceiverPass(shader)) {
     material.destroy(true);
-    throw new Error(
-      `Heightfield Water shader '${shader.name}' does not implement the Core SSR receiver contract: ${capability.unsupportedReason ?? "unknown"}.`
-    );
+    throw new Error(`Heightfield Water shader '${shader.name}' does not implement the Core SSRReceiver pass.`);
   }
+  material.screenSpaceReflectionIntensity = 0;
+  material.screenSpaceReflectionBilateral = false;
   material.shaderData.setTexture(HEIGHTFIELD_WATER_SHADER_PROPERTY.localMapTexture, localMapTexture);
   material.shaderData.setFloat(
     HEIGHTFIELD_WATER_SHADER_PROPERTY.maxVerticalDisplacement,
@@ -928,10 +903,13 @@ export function setHeightfieldWaterScreenSpaceReflectionCompositeIntensity(
   state: HeightfieldWaterMaterialState,
   intensity: number
 ): void {
+  const resolved = Number.isFinite(intensity) ? Math.min(1, Math.max(0, intensity)) : 0;
   state.material.shaderData.setFloat(
     HEIGHTFIELD_WATER_SHADER_PROPERTY.screenSpaceReflectionCompositeIntensity,
-    Number.isFinite(intensity) ? Math.min(1, Math.max(0, intensity)) : 0
+    resolved
   );
+  state.material.screenSpaceReflectionIntensity =
+    state.bindingReadback.effectiveSource === "ssr" && resolved > 0 ? 1 : 0;
 }
 
 function bindHeightfieldWaterSurfaceAppearanceV2(

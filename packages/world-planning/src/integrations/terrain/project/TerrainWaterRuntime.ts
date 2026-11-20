@@ -354,8 +354,7 @@ export class TerrainWaterRuntime extends Script {
         cacheBudgetBytes: 256 * 1024 * 1024,
         reflection: {
           cullingMask: config.camera.cullingMask,
-          waterLayerMask: Layer.Layer30,
-          screenSpaceReflection: waterRuntime.TERRAIN_WATER_SSR_CAMERA_SETTINGS
+          waterLayerMask: Layer.Layer30
         }
       });
       this._host = host;

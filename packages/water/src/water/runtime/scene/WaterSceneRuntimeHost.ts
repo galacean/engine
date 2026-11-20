@@ -103,7 +103,6 @@ function createWaterDevelopmentAdapterView(adapter: unknown): unknown {
 export interface WaterSceneRuntimeHostReflectionOptions {
   readonly cullingMask: number;
   readonly waterLayerMask?: number;
-  readonly screenSpaceReflection?: WaterCameraFeatureRequest["screenSpaceReflection"];
 }
 
 export interface WaterSceneRuntimeHostOptions {
@@ -415,8 +414,7 @@ export class WaterSceneRuntimeHost {
       reflectionContext = {
         service: this._reflectionService,
         cullingMask: options.reflection.cullingMask,
-        waterLayerMask: options.reflection.waterLayerMask ?? this._root.layer,
-        screenSpaceReflection: options.reflection.screenSpaceReflection
+        waterLayerMask: options.reflection.waterLayerMask ?? this._root.layer
       };
       const reflectionUpdater = options.camera.entity.addComponent(WaterReflectionPreRenderSynchronizer);
       this._reflectionUpdater = reflectionUpdater;

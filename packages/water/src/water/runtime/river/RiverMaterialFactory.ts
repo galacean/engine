@@ -12,8 +12,6 @@ export {
 import {
   Engine,
   Material,
-  ScreenSpaceReflection,
-  ScreenSpaceReflectionReceiverMode,
   SystemInfo,
   Texture2D,
   TextureFilterMode,
@@ -210,6 +208,7 @@ function configureSurfaceMaterial(
   bindRiverFlowClock(material);
   setRiverSurfaceOpticsBinding(material, opticsBinding);
   setRiverScreenSpaceReflectionReceiver(material, false);
+  material.screenSpaceReflectionBilateral = false;
   setRiverSurfaceAppearanceBinding(material, binding);
   return material;
 }
@@ -400,29 +399,55 @@ export function updateRiverSurfaceTransientOpticalProfile(
   return state.bindingReadback;
 }
 
-/** Registers River's explicit Core transparent-receiver contract without owning Camera SSR resources. */
-export function setRiverScreenSpaceReflectionReceiver(material: Material, enabled: boolean): void {
-  material.shaderData.setFloat(RIVER_SCREEN_SPACE_REFLECTION_COMPOSITE_INTENSITY_PROPERTY, enabled ? 1 : 0);
+function riverShaderHasSSRReceiverPass(material: Material): boolean {
+  const shader = material.shader;
+  if (!shader) return true;
+  for (let subIndex = 0; subIndex < shader.subShaders.length; subIndex++) {
+    const passes = shader.subShaders[subIndex].passes;
+    for (let passIndex = 0; passIndex < passes.length; passIndex++) {
+      const pass = passes[passIndex];
+      if (pass.name === "SSRReceiver" || pass.getTagValue("pipelineStage") === "SSRReceiver") {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/** Registers River's explicit SSRv2 receiver intensity without owning Camera SSR resources. */
+export function setRiverScreenSpaceReflectionReceiver(
+  material: Material,
+  enabled: boolean,
+  compositeIntensity?: number
+): void {
+  const existingComposite = material.shaderData.getFloat(RIVER_SCREEN_SPACE_REFLECTION_COMPOSITE_INTENSITY_PROPERTY);
+  if (existingComposite === undefined) {
+    material.shaderData.setFloat(RIVER_SCREEN_SPACE_REFLECTION_COMPOSITE_INTENSITY_PROPERTY, 1);
+  }
+  const effectiveComposite =
+    compositeIntensity !== undefined
+      ? Number.isFinite(compositeIntensity)
+        ? Math.min(1, Math.max(0, compositeIntensity))
+        : 0
+      : (existingComposite ?? 1);
   // Material.shader is mandatory in the Engine. This guard only permits the narrow
   // ShaderData harnesses used by DOM-free runtime ownership tests.
   if (!material.shader) return;
-  const registered = ScreenSpaceReflection.setMaterialReceiver(
-    material,
-    enabled ? ScreenSpaceReflectionReceiverMode.TransparentSampleOnly : ScreenSpaceReflectionReceiverMode.Disabled,
-    enabled ? 1 : 0
-  );
-  if (!registered) {
-    const capability = ScreenSpaceReflection.getMaterialReceiverCapability(material);
-    throw new Error(
-      `River shader '${material.shader.name}' does not implement the Core SSR receiver contract: ${capability.unsupportedReason ?? "unknown"}.`
-    );
+  if (!riverShaderHasSSRReceiverPass(material)) {
+    throw new Error(`River shader '${material.shader.name}' does not implement the Core SSRReceiver pass.`);
   }
+  material.screenSpaceReflectionIntensity = enabled && effectiveComposite > 0 ? 1 : 0;
 }
 
-/** Changes River's forward SSR contribution without releasing its Camera receiver contract. */
-export function setRiverScreenSpaceReflectionCompositeIntensity(material: Material, intensity: number): void {
+/** Changes River's forward SSR contribution while syncing SSRv2 receiver participation. */
+export function setRiverScreenSpaceReflectionCompositeIntensity(
+  material: Material,
+  intensity: number,
+  receiverEnabled = material.screenSpaceReflectionIntensity > 0
+): void {
   const resolved = Number.isFinite(intensity) ? Math.min(1, Math.max(0, intensity)) : 0;
   material.shaderData.setFloat(RIVER_SCREEN_SPACE_REFLECTION_COMPOSITE_INTENSITY_PROPERTY, resolved);
+  material.screenSpaceReflectionIntensity = receiverEnabled && resolved > 0 ? 1 : 0;
 }
 
 export function setRiverSurfaceDepthWriteEnabled(material: Material, enabled: boolean): void {

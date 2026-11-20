@@ -1,6 +1,7 @@
 {
   "name": "ocean-look",
   "shader": "Water/Ocean.v1",
+  "screenSpaceReflectionIntensity": 0,
   "macros": [],
   "shaderData": {
     "material_WaterProfile": {

@@ -16,6 +16,7 @@
 #endif
 
 #include "ShaderLibrary/PBR/LightIndirectFunctions.glsl"
+#include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl"
 
 #ifdef SCENE_USE_PROBE_VOLUME
     #define PROBE_VOLUME_MAX_ACTIVE_CELLS 16
@@ -252,6 +253,24 @@ float evaluateClearCoatIBL(Varyings varyings, SurfaceData surfaceData, BSDFData 
 
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         vec3 clearCoatRadiance = getLightProbeRadiance(surfaceData, surfaceData.clearCoatNormal, bsdfData.clearCoatRoughness);
+        #ifdef CAMERA_ENABLE_SSR
+            float ssrFragEyeDepth = remapDepthBufferEyeDepth(gl_FragCoord.z);
+            #if (defined(CAMERA_SSR_BILATERAL_SAMPLE) || defined(CAMERA_SSR_VERIFY_RECEIVER_DEPTH)) && defined(HAS_DERIVATIVES)
+                float ssrDepthSlope = fwidth(ssrFragEyeDepth);
+            #else
+                float ssrDepthSlope = 0.0;
+            #endif
+            if (surfaceData.clearCoat > 0.1 && bsdfData.clearCoatRoughness < bsdfData.roughness) {
+                clearCoatRadiance = evaluateScreenSpaceReflectionWithDepth(
+                    varyings.positionCS,
+                    surfaceData.clearCoatNormal,
+                    bsdfData.clearCoatRoughness,
+                    clearCoatRadiance,
+                    ssrFragEyeDepth,
+                    ssrDepthSlope
+                );
+            }
+        #endif
         specularColor += clearCoatRadiance * surfaceData.clearCoat * evaluateClearCoatIBLResponse(surfaceData, bsdfData);
         radianceAttenuation -= surfaceData.clearCoat * F_Schlick(bsdfData.clearCoatSpecularColor.r, 1.0, surfaceData.clearCoatDotNV);
     #endif
@@ -261,6 +280,34 @@ float evaluateClearCoatIBL(Varyings varyings, SurfaceData surfaceData, BSDFData 
 
 void evaluateSpecularIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, float radianceAttenuation, inout vec3 outSpecularColor){
     vec3 radiance = getLightProbeRadiance(surfaceData, surfaceData.normal, bsdfData.roughness);
+    #ifdef CAMERA_ENABLE_SSR
+        float ssrFragEyeDepth = remapDepthBufferEyeDepth(gl_FragCoord.z);
+        #if (defined(CAMERA_SSR_BILATERAL_SAMPLE) || defined(CAMERA_SSR_VERIFY_RECEIVER_DEPTH)) && defined(HAS_DERIVATIVES)
+            float ssrDepthSlope = fwidth(ssrFragEyeDepth);
+        #else
+            float ssrDepthSlope = 0.0;
+        #endif
+        #ifdef MATERIAL_ENABLE_CLEAR_COAT
+            bool useBaseSSR = !(surfaceData.clearCoat > 0.1 && bsdfData.clearCoatRoughness < bsdfData.roughness);
+        #else
+            bool useBaseSSR = true;
+        #endif
+        if (useBaseSSR) {
+            #ifdef MATERIAL_ENABLE_ANISOTROPY
+                vec3 ssrNormal = surfaceData.anisotropicN;
+            #else
+                vec3 ssrNormal = surfaceData.normal;
+            #endif
+            radiance = evaluateScreenSpaceReflectionWithDepth(
+                varyings.positionCS,
+                ssrNormal,
+                bsdfData.roughness,
+                radiance,
+                ssrFragEyeDepth,
+                ssrDepthSlope
+            );
+        }
+    #endif
 
     float specularAO = evaluateSpecularOcclusion(surfaceData.dotNV, bsdfData.diffuseAO, bsdfData.roughness);
     outSpecularColor += specularAO * radianceAttenuation * radiance * envBRDFApprox(bsdfData.resolvedSpecularF0, bsdfData.specularF90 , bsdfData.roughness, surfaceData.dotNV) * bsdfData.energyCompensation;

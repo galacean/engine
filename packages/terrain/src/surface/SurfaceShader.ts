@@ -17,6 +17,7 @@ import grassSurfaceFieldSource from "../shaders/shared/GrassSurfaceField.glsl?ra
 import lodDitherSource from "../shaders/shared/LodDither.glsl?raw";
 import lightingSource from "../shaders/shared/Lighting.glsl?raw";
 import shadowSource from "../shaders/shared/Shadow.glsl?raw";
+import surfaceDepthShadowPassSource from "../shaders/surface/SurfaceDepthShadowPass.glsl?raw";
 import entranceWaveSource from "../shaders/shared/EntranceWave.glsl?raw";
 import terrainSurfaceDataSource from "../shaders/shared/TerrainSurfaceData.glsl?raw";
 
@@ -50,7 +51,8 @@ export function registerSurfaceShader(): Shader {
     "shared/GrassColorField.glsl": grassColorFieldSource,
     "shared/GrassSurfaceField.glsl": grassSurfaceFieldSource,
     "shared/LodDither.glsl": lodDitherSource,
-    "shared/EntranceWave.glsl": entranceWaveSource
+    "shared/EntranceWave.glsl": entranceWaveSource,
+    "surface/SurfaceDepthShadowPass.glsl": surfaceDepthShadowPassSource
   });
   return Shader.find("Terrain/Surface") ?? Shader.create(source);
 }

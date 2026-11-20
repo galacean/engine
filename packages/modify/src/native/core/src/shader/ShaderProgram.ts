@@ -58,6 +58,12 @@ export class ShaderProgram {
   _instanceLayout: InstanceBufferLayout | null = null;
   /** @internal */
   _errorLog: string | null = null;
+  /** @internal */
+  _ssrFallbackNoVerify: ShaderProgram | null = null;
+  /** @internal */
+  _ssrFallbackVerify: ShaderProgram | null = null;
+  /** @internal */
+  _ssrFallbackMaxUnits: number = -1;
 
   attributeLocation: Record<string, GLint> = Object.create(null);
   uniformBlockIds: number[] = [];
@@ -76,6 +82,14 @@ export class ShaderProgram {
    */
   get isValid(): boolean {
     return this._isValid;
+  }
+
+  /**
+   * Number of fragment texture units bound by this shader program.
+   * @internal
+   */
+  get activeTextureCount(): number {
+    return this._activeTextureUint;
   }
 
   constructor(

@@ -1,10 +1,10 @@
-import type { ScreenSpaceReflectionMaterialSettings } from "@galacean/engine-core";
 import type { RefItem } from "./CommonSchema";
 import type { IColor, IVector2, IVector3, IVector4 } from "./BasicSchema";
 
 interface MaterialData {
-  contributeScreenSpaceReflection?: boolean;
-  screenSpaceReflection?: ScreenSpaceReflectionMaterialSettings | null;
+  screenSpaceReflectionIntensity?: number;
+  contributeScreenSpaceReflectionDepth?: boolean;
+  screenSpaceReflectionBilateral?: boolean;
   name: string;
   shaderData: Record<string, MaterialShaderProperty>;
   macros: Array<{ name: string; value?: string }>;

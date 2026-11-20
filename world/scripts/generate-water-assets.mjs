@@ -90,12 +90,16 @@ try {
   }
   const terrainRoot = "packages/terrain/src/data/seed-world/";
   const terrainManifest = JSON.parse(await fs.readFile(path.join(root, terrainRoot, "project.json"), "utf8"));
+  const seedWaterPublicFiles = await fs.readdir(path.join(root, terrainRoot, "public/Shader/Water"));
   const shaders = new Map();
   for (const [kind, profile, name] of [["lake", "lake-heightfield-high-hybrid-v2", "AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0"],
     ["ocean", "ocean-near-detailed", "AIWorld/Ocean"]]) {
-    const original = terrainManifest.files.find(file => file.virtualPath === `Shader/Water/${profile}.shaderc`);
+    const manifestEntry = terrainManifest.files.find(file => file.virtualPath === `Shader/Water/${profile}.shaderc`);
+    const diskMatch = seedWaterPublicFiles.find(file => new RegExp(`^${profile}\\.[0-9a-f]+\\.shaderc$`).test(file));
+    const sourcePath = diskMatch ? `public/Shader/Water/${diskMatch}` : manifestEntry?.path;
+    if (!sourcePath) throw new Error(`Missing compiled Seed World Water shader for '${profile}'.`);
     const target = `Water/Shaders/${profile}.shaderc`;
-    await copy(terrainRoot + original.path, target, "Shader");
+    await copy(terrainRoot + sourcePath, target, "Shader");
     shaders.set(kind, { name, path: target });
   }
   // River is structurally generated in the current backend. Export its actual standalone source.
@@ -111,18 +115,12 @@ try {
   const { createWaterShaderModule, materializeWaterShaderModuleSource } = await load("runtime/material/WaterShaderModule");
   const riverSource = createRiverSurfaceAppearanceV2ShaderSource(contract.data, true);
   const riverName = riverSource.match(/Shader\s+"([^"]+)"/)[1];
-  const nativeRiverSource = materializeWaterShaderModuleSource(createWaterShaderModule(riverName, riverSource.replace(/\n    Pass "SSR Contribution (Color|Depth)" \{[\s\S]*?\n    \}/g, ""), {}, []));
+  const nativeRiverSource = materializeWaterShaderModuleSource(createWaterShaderModule(riverName, riverSource, {}, []));
   shaders.set("river", { name: riverName });
   const { createSeedWorldWaterShaderAotProfiles } = await server.ssrLoadModule("/packages/water/src/world/SeedWorldWaterShaderAotProfiles.ts");
   const modules = createSeedWorldWaterShaderAotProfiles();
   const { renderWaterShaderTemplate } = await load("runtime/material/WaterShaderTemplate");
-  // Native assets retain their existing Forward/SSR Surface contract. Runtime
-  // factories still expose contribution passes for callers that request them.
-  const nativeSource = module => renderWaterShaderTemplate(materializeWaterShaderModuleSource({ ...module,
-    source: module.source.replace(/\n    Pass "SSR Contribution (Color|Depth)" \{[\s\S]*?\n    \}/g, "")
-  }).replace(/#ifdef SSR_CONTRIBUTION_(CAPTURE|DEPTH)/g, "#if 0")
-    .replace(/#ifndef SSR_CONTRIBUTION_DEPTH/g, "#if 1")
-    .replace(/defined\(SSR_CONTRIBUTION_DEPTH\)/g, "0"), {});
+  const nativeSource = module => renderWaterShaderTemplate(materializeWaterShaderModuleSource(module), {});
   for (const kind of ["lake", "river", "ocean"]) {
     const profile = kind;
     const original = registry.getLookAuthoringSnapshot(profile === "lake" ? LAKE_WATER_LOOK_PRESET_ID : profile === "river" ? FARMLANDS_RIVER_LOOK_ID : OCEAN_LOOK_ID);

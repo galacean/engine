@@ -117,14 +117,6 @@ River Worker 直接转移编译结果中的 TypedArray buffer，并携带在 Wor
 
 从仓库根执行 `pnpm --dir world typecheck` 和 `pnpm exec vitest run --config packages/water/vitest.config.mjs`，检查类型及 Water 浏览器回归。
 
-## 潜在缺陷：首次激活前的 SSR 合成强度（R-4-01，暂不修）
+## 潜在缺陷：首次激活前的 SSR 合成强度（R-4-01，已随 SSR v2 迁移修复）
 
-首次激活之前设置 River 的 SSR 合成强度，后续材质注册 receiver 时会将强度写回 1。当前所有 Look 使用默认值 1，Planner 又是在激活之后设置，所以尚无可见影响。
-
-触发条件是以后出现合成强度不是 1 的 Look，或者有调用方在首次激活前设置该值。届时应由 `RiverRuntimeController` 持久保存强度，并在创建、注册材质后应用；本次只记录，不修改运行时行为。
-
-当前代码位置（2026-10-22）：
-
-- [RiverWaterBackend.ts:780](runtime/river/RiverWaterBackend.ts#L780)：创建运行时集合之前调用 setter。
-- [RiverRuntimeController.ts:856](runtime/river/RiverRuntimeController.ts#L856)：`setScreenSpaceReflectionCompositeIntensity` 只遍历已有集合，未保存状态。
-- [RiverMaterialFactory.ts:317](runtime/river/RiverMaterialFactory.ts#L317)：`setRiverScreenSpaceReflectionReceiver` 将 uniform 和 receiver 注册强度写为 `enabled ? 1 : 0`。
+`RiverRuntimeController` 现已持久化 `_screenSpaceReflectionCompositeIntensity` 与 `_screenSpaceReflectionEnabled` 并在创建/重绑材质后应用；`setRiverScreenSpaceReflectionReceiver` 与 `setRiverScreenSpaceReflectionCompositeIntensity` 保持正交，仅通过 `material.screenSpaceReflectionIntensity`（`0` 或 `1`）与 `material_WaterScreenSpaceReflectionCompositeIntensity` 协同同步 SSR v2 `SSRReceiver` 参与度，不再相互覆盖。

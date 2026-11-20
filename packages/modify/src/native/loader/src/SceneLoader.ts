@@ -30,7 +30,11 @@ function loadRef<T extends EngineObject>(
 
 function applySceneScreenSpaceReflection(scene: Scene, sceneData: SceneFile["scene"]): void {
   // Missing SSR restores the same defaults as a runtime-created Scene.
-  scene.screenSpaceReflection.apply(sceneData.screenSpaceReflection ?? new ScreenSpaceReflectionSettings().toJSON());
+  if (sceneData.screenSpaceReflection) {
+    scene.screenSpaceReflection.apply(sceneData.screenSpaceReflection);
+  } else {
+    new ScreenSpaceReflectionSettings().cloneTo(scene.screenSpaceReflection);
+  }
 }
 
 /**

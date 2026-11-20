@@ -5,24 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="./styles.css" />
-    <title>Meadow Lake · Screen Space Reflection</title>
+    <title>Mobile-First SSR v2 · Galacean Engine</title>
   </head>
-  <body data-state="loading" data-ssr="on" data-debug="final" data-pose="acceptance" data-frozen="false">
-    <canvas id="canvas" data-testid="ssr-canvas" aria-label="引擎级屏幕空间反射验收场景"></canvas>
+  <body data-state="loading" data-ssr="on" data-pose="overview" data-frozen="false">
+    <canvas id="canvas" data-testid="ssr-canvas" aria-label="移动端优先 SSR v2 演示画布"></canvas>
 
     <div id="loading" data-testid="ssr-loading" role="status" aria-live="polite">
       <span class="boot-mark" aria-hidden="true">SSR</span>
-      <b>正在加载湖面反射展台</b>
-      <small>CC0 water PBR · Kenney trees · Meadow 2 IBL</small>
+      <b>正在初始化 SSR v2 演示场景</b>
+      <small>Pre-Forward Dual-Stream Hi-Z · Closest-Wins Receiver · Forward Direct Sample</small>
     </div>
 
     <header class="demo-heading" aria-label="案例说明">
-      <p class="eyebrow">WORLD ENGINE · MEADOW LAKE REFERENCE SCENE</p>
-      <h1>Lake SSR</h1>
-      <p>水面与铬球 Receiver · 树木/栈桥 SSR 命中 · 天空 IBL 回退</p>
+      <p class="eyebrow">GALACEAN ENGINE · MOBILE-FIRST SSR V2</p>
+      <h1>Mobile SSR v2</h1>
+      <p>最近接收面 · Clear Coat 主反射瓣 · 双层透明深度校验 · HDR / LDR</p>
     </header>
 
-    <aside class="control-rail" data-testid="ssr-controls" aria-label="SSR 验收控制">
+    <aside class="control-rail" data-testid="ssr-controls" aria-label="SSR 控制面板">
       <section class="switch-row">
         <div>
           <p class="section-label">CAMERA FEATURE</p>
@@ -37,93 +37,88 @@
 
       <section>
         <div class="section-heading"><h2>质量预设</h2></div>
-        <div class="segment-grid three" role="group" aria-label="SSR 质量预设">
-          <button data-quality-preset="low" type="button" aria-pressed="false">性能</button>
-          <button data-quality-preset="medium" type="button" aria-pressed="false">均衡</button>
-          <button data-quality-preset="high" type="button" aria-pressed="false">画质</button>
-        </div>
-      </section>
-      <section>
-        <div class="section-heading">
-          <div>
-            <p class="section-label">FIXED + FREE CAMERA</p>
-            <h2>观察机位</h2>
-          </div>
-          <button id="camera-cut" data-testid="camera-cut" class="utility-button" type="button">Camera Cut</button>
-        </div>
-        <div id="pose-controls" class="segment-grid three" role="group" aria-label="固定机位">
-          <button data-camera-pose="acceptance" data-testid="pose-acceptance" type="button" aria-pressed="true">
-            展台
+        <div class="segment-grid two" role="group" aria-label="SSR 质量预设">
+          <button data-quality-preset="low" data-testid="quality-low" type="button" aria-pressed="false">Low 0.25x</button>
+          <button data-quality-preset="medium" data-testid="quality-medium" type="button" aria-pressed="false">
+            Medium 0.5x
           </button>
-          <button data-camera-pose="edge" data-testid="pose-edge" type="button" aria-pressed="false">离屏</button>
-          <button data-camera-pose="curve" data-testid="pose-curve" type="button" aria-pressed="false">特写</button>
+          <button data-quality-preset="high" data-testid="quality-high" type="button" aria-pressed="true">High 0.5x</button>
+          <button data-quality-preset="xhigh" data-testid="quality-xhigh" type="button" aria-pressed="false">
+            XHigh 1.0x
+          </button>
         </div>
-        <p class="camera-hint" data-testid="free-camera-help">
-          下方 40% 拖动移动 · 上方 60% 拖动视角 · 点击固定机位可重置
-        </p>
       </section>
 
       <section>
         <div class="section-heading">
           <div>
-            <p class="section-label">DEBUG OUTPUT</p>
-            <h2>管线可视化</h2>
+            <p class="section-label">SCENE TOGGLES</p>
+            <h2>特性与管道开关</h2>
           </div>
           <label class="freeze" for="freeze-time">
             <input id="freeze-time" data-testid="freeze-time" type="checkbox" />
-            <span>冻结水波</span>
+            <span>冻结动态</span>
           </label>
         </div>
-        <div id="debug-controls" class="segment-grid debug" role="group" aria-label="SSR 调试模式">
-          <button data-debug-mode="final" data-testid="debug-final" type="button" aria-pressed="true">Final</button>
-          <button data-debug-mode="surface" data-testid="debug-surface" type="button" aria-pressed="false">
-            Surface
-          </button>
-          <button data-debug-mode="depth" data-testid="debug-depth" type="button" aria-pressed="false">Depth</button>
-          <button data-debug-mode="hit" data-testid="debug-hit" type="button" aria-pressed="false">Hit</button>
-          <button data-debug-mode="confidence" data-testid="debug-confidence" type="button" aria-pressed="false">
-            Confidence
-          </button>
-          <button data-debug-mode="steps" data-testid="debug-steps" type="button" aria-pressed="false">Steps</button>
+        <div class="segment-grid three" role="group" aria-label="管线开关">
+          <button id="toggle-hdr" data-testid="toggle-hdr" type="button" aria-pressed="true">HDR: On</button>
+          <button id="toggle-contrib" data-testid="toggle-contrib" type="button" aria-pressed="true">瀑布深度: On</button>
+          <button id="camera-cut" data-testid="camera-cut" type="button" aria-pressed="false">Camera Cut</button>
         </div>
+      </section>
+
+      <section>
+        <div class="section-heading">
+          <div>
+            <p class="section-label">SHOWCASE POSES</p>
+            <h2>观察机位</h2>
+          </div>
+        </div>
+        <div id="pose-controls" class="segment-grid debug" role="group" aria-label="观察机位">
+          <button data-camera-pose="overview" data-testid="pose-overview" type="button" aria-pressed="true">总览</button>
+          <button data-camera-pose="clearcoat" data-testid="pose-clearcoat" type="button" aria-pressed="false">
+            清漆
+          </button>
+          <button data-camera-pose="layered" data-testid="pose-layered" type="button" aria-pressed="false">水/玻璃</button>
+          <button data-camera-pose="waterfall" data-testid="pose-waterfall" type="button" aria-pressed="false">瀑布</button>
+        </div>
+        <p class="camera-hint" data-testid="free-camera-help">
+          鼠标左键旋转 · 滚轮缩放 · 右键平移 · 切换机位可复位
+        </p>
       </section>
 
       <section class="diagnostic-section">
         <div class="section-heading">
           <div>
-            <p class="section-label">LIVE METRICS</p>
+            <p class="section-label">LIVE DIAGNOSTICS</p>
             <h2>运行状态</h2>
           </div>
           <output id="effective-state" data-testid="effective-state" class="state-chip">PENDING</output>
         </div>
         <dl class="metrics">
           <div>
-            <dt>Support</dt>
+            <dt>Active / State</dt>
             <dd id="support-state" data-testid="support-state">checking</dd>
           </div>
           <div>
             <dt>Quality</dt>
-            <dd id="quality-state">自定义</dd>
+            <dd id="quality-state" data-testid="quality-state">High</dd>
           </div>
           <div>
-            <dt>Render targets</dt>
-            <dd id="rt-state" data-testid="rt-state">0 · 0×0</dd>
+            <dt>Trace Size</dt>
+            <dd id="rt-state" data-testid="rt-state">0×0</dd>
           </div>
           <div>
-            <dt>Surface draws</dt>
-            <dd id="draw-state" data-testid="draw-state">0</dd>
+            <dt>Receivers (O / T)</dt>
+            <dd id="draw-state" data-testid="draw-state">0 / 0</dd>
           </div>
           <div>
-            <dt>Fullscreen draws</dt>
-            <dd id="fullscreen-state">0</dd>
+            <dt>Mask &amp; Packing</dt>
+            <dd id="format-state" data-testid="format-state">-</dd>
           </div>
           <div>
             <dt>Estimated VRAM</dt>
-            <dd id="memory-state">0 B</dd>
-          </div>
-          <div>
-            <dt>Temporal</dt>
-            <dd>Off · V1</dd>
+            <dd id="memory-state" data-testid="memory-state">0 B</dd>
           </div>
         </dl>
         <button id="capture-diagnostics" data-testid="capture-diagnostics" class="capture-button" type="button">
@@ -133,33 +128,28 @@
       </section>
     </aside>
 
-    <section class="roughness-key" data-testid="roughness-key" aria-label="SSR 场景职责说明">
+    <section class="roughness-key" data-testid="roughness-key" aria-label="SSR v2 场景要素说明">
       <div>
         <span class="key-index">01</span>
-        <b>WATER</b>
-        <small>0.08 · 2× specular + SSR</small>
+        <b>GLOSSY FLOOR</b>
+        <small>0.06 · 霓虹柱倒影 · HDR/LDR</small>
       </div>
       <div>
         <span class="key-index">02</span>
-        <b>CHROME</b>
-        <small>0.06 · SSR receiver</small>
+        <b>CLEAR COAT</b>
+        <small>0.72 漆底 + 0.04 清漆瓣 SSR</small>
       </div>
       <div>
         <span class="key-index">03</span>
-        <b>WOOD / CLAY</b>
-        <small>0.31 / 0.90 roughness</small>
+        <b>WATER / GLASS</b>
+        <small>最近透明接收 · 水底 IBL 回退</small>
       </div>
       <div>
         <span class="key-index">04</span>
-        <b>TREES / SKY</b>
-        <small>SSR hit · IBL fallback</small>
+        <b>WATERFALL</b>
+        <small>contributeDepth 可选深度贡献</small>
       </div>
     </section>
-
-    <div class="edge-note" data-testid="edge-note">
-      <span aria-hidden="true"></span>
-      <p><b>OFFSCREEN FALLBACK</b><small>切换“离屏”机位：树木/栈桥离屏后，Meadow 2 天空与环境 IBL 继续回退</small></p>
-    </div>
 
     <script type="module" src="./main.ts"></script>
   </body>

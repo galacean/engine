@@ -1,6 +1,8 @@
 {
   "name": "lake-water-look-v1",
   "shader": "Water/Lake.v1",
+  "screenSpaceReflectionIntensity": 1,
+  "screenSpaceReflectionBilateral": false,
   "macros": [],
   "shaderData": {
     "material_WaterProfile": {

@@ -59,7 +59,7 @@ describe("Terrain near/far production shader variants", () => {
     expect(source()).not.toContain("material_TerrainSandGlintStrength");
   });
 
-  it.each(["Forward", "ScreenSpaceReflectionSurface"])(
+  it.each(["Forward", "SSRReceiver"])(
     "uses the same opt-in puddle edge in %s",
     (name) => {
       const pass = terrain.subShaders[0].passes.find((entry) => entry.name === name);
@@ -74,7 +74,7 @@ describe("Terrain near/far production shader variants", () => {
     }
   );
 
-  it.each(["Forward", "ScreenSpaceReflectionSurface"])("binds the textured single alphamap in %s", (name) => {
+  it.each(["Forward", "SSRReceiver"])("binds the textured single alphamap in %s", (name) => {
     const pass = terrain.subShaders[0].passes.find((entry) => entry.name === name);
     const macros = new Map([
       ["GRAPHICS_API_WEBGL2", ""],
@@ -88,8 +88,8 @@ describe("Terrain near/far production shader variants", () => {
     expect(source).toMatch(/vec4 layerIndices\s*=\s*material_TerrainFirstLayerIndices\s*;/);
   });
 
-  it("skips diffuse ground color and moisture evaluation in Terrain ScreenSpaceReflectionSurface", () => {
-    const pass = terrain.subShaders[0].passes.find((entry) => entry.name === "ScreenSpaceReflectionSurface");
+  it("skips diffuse ground color and moisture evaluation in Terrain SSRReceiver", () => {
+    const pass = terrain.subShaders[0].passes.find((entry) => entry.name === "SSRReceiver");
     const macros = new Map([
       ["GRAPHICS_API_WEBGL2", ""],
       ["MATERIAL_TERRAIN_LAYERS", ""],
@@ -102,8 +102,8 @@ describe("Terrain near/far production shader variants", () => {
     expect(source).not.toContain("terrainProjectGroundColor");
   });
 
-  it("keeps far-terrain ScreenSpaceReflectionSurface discard conditional so ANGLE/Adreno retains the struct return", () => {
-    const pass = terrain.subShaders[0].passes.find((entry) => entry.name === "ScreenSpaceReflectionSurface");
+  it("keeps far-terrain SSRReceiver discard conditional so ANGLE/Adreno retains the struct return", () => {
+    const pass = terrain.subShaders[0].passes.find((entry) => entry.name === "SSRReceiver");
     const macros = new Map([
       ["GRAPHICS_API_WEBGL2", ""],
       ["MATERIAL_TERRAIN_LAYERS", ""],
@@ -111,7 +111,7 @@ describe("Terrain near/far production shader variants", () => {
     ]);
     const source = ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions, macros);
     const fnMatch = source.match(
-      /TerrainProjectScreenSpaceReflectionOutput\s+TerrainScreenSpaceReflectionFragment\s*\([\s\S]*?\)\s*\{([\s\S]*)\}/
+      /TerrainProjectSSRReceiverOutput\s+TerrainSSRReceiverFragment\s*\([\s\S]*?\)\s*\{([\s\S]*)\}/
     );
     expect(fnMatch).not.toBeNull();
     const body = fnMatch![1];

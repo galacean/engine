@@ -106,6 +106,12 @@ void TerrainFragment(Varyings varyings) {
     vec3 shadowPositionDx = dFdx(varyings.positionWS);
     vec3 shadowPositionDy = dFdy(varyings.positionWS);
   #endif
+  #ifdef TERRAIN_PROJECT_WATER_LAYER
+    float ssrDepthSlope = 0.0;
+    #if defined(CAMERA_ENABLE_SSR) && (defined(CAMERA_SSR_BILATERAL_SAMPLE) || defined(CAMERA_SSR_VERIFY_RECEIVER_DEPTH)) && defined(HAS_DERIVATIVES)
+      ssrDepthSlope = fwidth(remapDepthBufferEyeDepth(gl_FragCoord.z));
+    #endif
+  #endif
   if (varyings.terrainValid < 0.999) discard;
   #ifdef TERRAIN_PROJECT_ENTRANCE_WAVE
     if (
@@ -207,7 +213,7 @@ void TerrainFragment(Varyings varyings) {
             waterFilmSubstrate.viewDir,
             waterFilmSubstrate.ambientOcclusion
           );
-          terrainProjectApplyWaterFilmLighting(varyings, waterFilmSubstrate, waterFilm, lighting);
+          terrainProjectApplyWaterFilmLighting(varyings, waterFilmSubstrate, waterFilm, ssrDepthSlope, lighting);
         #endif
         color = terrainProjectFinalLighting(lighting);
       }
@@ -222,7 +228,7 @@ void TerrainFragment(Varyings varyings) {
       );
       TerrainProjectLightingResult lighting = evaluateTerrainProjectLightingWithShadow(varyings, surfaceData, shadowAttenuation);
       #ifdef TERRAIN_PROJECT_WATER_LAYER
-        terrainProjectApplyWaterFilmLighting(varyings, surfaceData, waterFilm, lighting);
+        terrainProjectApplyWaterFilmLighting(varyings, surfaceData, waterFilm, ssrDepthSlope, lighting);
       #endif
       color = terrainProjectFinalLighting(lighting);
     }
@@ -237,7 +243,7 @@ void TerrainFragment(Varyings varyings) {
     );
     TerrainProjectLightingResult lighting = evaluateTerrainProjectLightingWithShadow(varyings, surfaceData, shadowAttenuation);
     #ifdef TERRAIN_PROJECT_WATER_LAYER
-      terrainProjectApplyWaterFilmLighting(varyings, surfaceData, waterFilm, lighting);
+      terrainProjectApplyWaterFilmLighting(varyings, surfaceData, waterFilm, ssrDepthSlope, lighting);
     #endif
     color = terrainProjectFinalLighting(lighting);
   #endif

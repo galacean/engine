@@ -184,6 +184,20 @@ export class Texture2D extends Texture {
   }
 
   /**
+   * Restricts the platform texture's mipmap sampling range (`TEXTURE_BASE_LEVEL` / `TEXTURE_MAX_LEVEL`).
+   * Returns `true` when applied by the active graphics backend.
+   * @internal
+   */
+  _setMipLevelRange(baseLevel: number, maxLevel: number): boolean {
+    const platformTexture = this._platformTexture as IPlatformTexture2D;
+    if (typeof platformTexture?.setMipLevelRange === "function") {
+      platformTexture.setMipLevelRange(baseLevel, maxLevel);
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * @internal
    */
   override _rebuild(): void {

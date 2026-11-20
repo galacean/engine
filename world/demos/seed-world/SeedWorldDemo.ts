@@ -115,7 +115,6 @@ import {
   Ray,
   Renderer,
   Scene,
-  ScreenSpaceReflectionUpsamplingMode,
   Script,
   ShaderMacroCollection,
   ShaderPass,
@@ -844,9 +843,6 @@ export async function mountSeedWorldDemo(
     camera.enableHDR = TERRAIN_DEFAULT_CAMERA_CONFIGURATION.enableHDR;
     applyAutomaticScreenSpaceReflectionConfiguration(camera, TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION);
     applyScreenSpaceReflectionConfiguration(camera, TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION);
-    camera.screenSpaceReflection.useHalfResolutionInputs = true;
-    camera.screenSpaceReflection.useSceneColorMipmaps = false;
-    camera.screenSpaceReflection.upsamplingMode = ScreenSpaceReflectionUpsamplingMode.Bilinear;
     const orbit = camera.entity.addComponent(OrbitControl);
     orbit.enabled = false;
     orbit.enableDamping = false;

@@ -2930,14 +2930,9 @@ export class WaterBodyLoader {
               : undefined
             : derivedRequest;
         const requestWithOverrides = applyCameraRequestOverrides(demandedRequest, requestOverrides);
-        const request =
-          requestWithOverrides?.reflection === "ssr" && this._reflection?.screenSpaceReflection
-            ? Object.freeze({
-                ...requestWithOverrides,
-                screenSpaceReflection: this._reflection.screenSpaceReflection
-              })
-            : requestWithOverrides;
-        const nextLeases = request ? this._acquireCameraLeases(currentResolved.instance.id, request) : [];
+        const nextLeases = requestWithOverrides
+          ? this._acquireCameraLeases(currentResolved.instance.id, requestWithOverrides)
+          : [];
         const previousLeases = activationState.cameraLeases;
         activationState.cameraLeases = nextLeases;
         for (let index = previousLeases.length - 1; index >= 0; index--) {

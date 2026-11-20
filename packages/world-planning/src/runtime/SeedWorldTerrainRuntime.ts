@@ -39,8 +39,6 @@ import {
   Entity,
   Material,
   type MeshRenderer,
-  ScreenSpaceReflection,
-  ScreenSpaceReflectionReceiverMode,
   ShaderProperty,
   Texture2D,
   Vector2,
@@ -298,10 +296,7 @@ export class SeedWorldTerrainRuntime {
   setSurfaceWaterSsrEnabled(enabled: boolean): void {
     const material = this.clipmap.material;
     if (material === this._surfaceWaterSsrMaterial && enabled === this._surfaceWaterSsrEnabled) return;
-    ScreenSpaceReflection.setMaterialReceiver(
-      material,
-      enabled ? ScreenSpaceReflectionReceiverMode.OpaqueComposite : ScreenSpaceReflectionReceiverMode.Disabled
-    );
+    material.screenSpaceReflectionIntensity = enabled ? 1 : 0;
     this._surfaceWaterSsrMaterial = material;
     this._surfaceWaterSsrEnabled = enabled;
   }

@@ -3,7 +3,7 @@ const counters = vi.hoisted(() => ({ textures: 0, targets: 0, texturesDestroyed:
 vi.mock("@galacean/engine", () => ({
   Layer: { Layer31: 1 << 31 }, CameraClearFlags: { All: 7, Color: 1 }, AntiAliasing: { None: 0 },
   BackgroundMode: { SolidColor: 0 }, CompareFunction: { Less: 1, LessEqual: 2 }, DepthTextureMode: { None: 0 },
-  ScreenSpaceReflectionActivationMode: { ForceOff: 0 }, TextureFormat: { R8G8B8A8: 0, Depth24Stencil8: 1 },
+  TextureFormat: { R8G8B8A8: 0, Depth24Stencil8: 1 },
   TextureFilterMode: { Point: 0 }, TextureWrapMode: { Clamp: 0 },
   Color: class { constructor(public r = 0, public g = 0, public b = 0, public a = 1) {} copyFrom(c: any) { Object.assign(this, c); } },
   Matrix: class { static multiply() {} invert() {} }, Vector3: class {}, Renderer: class {}, Script: class {},
@@ -28,7 +28,7 @@ it("reuses scratch capacity and restores camera, layers and materials after a re
     engine: { canvas: { width: 10, height: 10 } }, scene: { rootEntities: [entity], ambientOcclusion: { enabled: true }, background: { mode: 3, solidColor: { r: 1, g: 2, b: 3, a: 1 } } },
     projectionMatrix: { clone() { return this; } }, viewport: { clone: () => ({}), set() {}, copyFrom() {} }, resetProjectionMatrix() {},
     renderTarget: null, clearFlags: 9, cullingMask: -1, enableHDR: true, enablePostProcess: true,
-    opaqueTextureEnabled: true, antiAliasing: 4, depthTextureMode: 2, screenSpaceReflection: { activationMode: 5 },
+    opaqueTextureEnabled: true, antiAliasing: 4, depthTextureMode: 2, enableScreenSpaceReflection: true,
     render() { if (++calls === throwAt) throw new Error("render failed"); }
   };
   const batch: any = { renderer, count: 1, resolve() {}, prepare: vi.fn(), restore: vi.fn() };
@@ -40,10 +40,10 @@ it("reuses scratch capacity and restores camera, layers and materials after a re
   expect(entity.layer).toBe(1);
   expect(values.get("material_WorldPickDepthCompare")).toBe(7);
   expect(macros.size).toBe(0);
-  expect(camera).toMatchObject({ renderTarget: null, clearFlags: 9, cullingMask: -1, enableHDR: true, enablePostProcess: true, antiAliasing: 4, depthTextureMode: 2 });
+  expect(camera).toMatchObject({ renderTarget: null, clearFlags: 9, cullingMask: -1, enableHDR: true, enablePostProcess: true, antiAliasing: 4, depthTextureMode: 2, enableScreenSpaceReflection: true });
   throwAt = calls + 1;
   expect(() => picker.captureIdentity(visit, () => undefined, {width:10,height:10})).toThrow("render failed");
-  expect(camera).toMatchObject({ renderTarget: null, clearFlags: 9, cullingMask: -1, enableHDR: true, enablePostProcess: true });
+  expect(camera).toMatchObject({ renderTarget: null, clearFlags: 9, cullingMask: -1, enableHDR: true, enablePostProcess: true, enableScreenSpaceReflection: true });
   expect(entity.layer).toBe(1);
   expect(macros.size).toBe(0);
   throwAt = -1;

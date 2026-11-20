@@ -2,5 +2,6 @@ export const meta = {
   title: "Screen Space Reflection (SSR)",
   owner: "星翊",
   category: "Water",
-  description: "Engine-level SSR in a CC0 meadow-lake exhibit with water PBR, Kenney trees, and meadow-sky IBL fallback."
+  description:
+    "Mobile-first SSR v2 showcase: Pre-Forward Dual-Stream Hi-Z, closest-wins receiver, Clear Coat, dual-transparent overlap, and optional transparent depth contribution."
 };

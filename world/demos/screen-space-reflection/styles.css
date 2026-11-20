@@ -230,6 +230,10 @@ button:focus-visible {
   margin-top: 13px;
 }
 
+.segment-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .segment-grid.three {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }

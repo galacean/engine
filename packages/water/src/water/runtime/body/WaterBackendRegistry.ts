@@ -68,8 +68,6 @@ export interface WaterBackendReflectionContext {
   readonly service: WaterReflectionBindingService;
   readonly cullingMask: number;
   readonly waterLayerMask: number;
-  /** Optional Camera SSR tuning shared by Water receivers on this Camera. */
-  readonly screenSpaceReflection?: WaterCameraFeatureRequest["screenSpaceReflection"];
 }
 
 interface WaterBackendRuntimeContextCommon {

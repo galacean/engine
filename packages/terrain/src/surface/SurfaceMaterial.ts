@@ -58,6 +58,9 @@ export function createSurfaceMaterial(engine: Engine, options: SurfaceMaterialOp
   material.normalTextureIntensity = options.normalStrength ?? 0.35;
   material.metallic = 0;
   material.roughness = 1;
+  // Surface materials have no SSRReceiver pass; opt out explicitly from PBRMaterial's default 1.
+  material.screenSpaceReflectionIntensity = 0;
+  material.screenSpaceReflectionBilateral = false;
   const data = material.shaderData;
   data.setFloat("material_WorldPickDepthCompare", CompareFunction.LessEqual);
   data.setFloat("material_Tiling", 1);

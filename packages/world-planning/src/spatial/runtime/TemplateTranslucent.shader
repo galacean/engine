@@ -2,7 +2,8 @@ Shader "Planning/TemplateTranslucent" {
   SubShader "Default" {
     UsePass "Pipeline/ShadowCaster/Default/ShadowCaster"
     UsePass "Pipeline/DepthOnly/Default/DepthOnly"
-    UsePass "Pipeline/ScreenSpaceReflectionSurface/Default/ScreenSpaceReflectionSurface"
+    UsePass "Pipeline/SSRReceiver/Default/SSRReceiver"
+    UsePass "Pipeline/SSRContributionDepth/Default/SSRContributionDepth"
     Pass "Forward" {
       Tags { pipelineStage = "Forward" }
       DepthState = { WriteEnabled = true; }

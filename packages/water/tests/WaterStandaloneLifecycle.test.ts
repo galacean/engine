@@ -14,10 +14,8 @@ import {
   Material,
   MeshRenderer,
   ModelMesh,
-  ScreenSpaceReflection,
-  ScreenSpaceReflectionActivationMode,
-  ScreenSpaceReflectionReceiverMode,
   Shader,
+  SSRRuntimeState,
   Vector3,
   Texture2D,
   WebGLEngine
@@ -142,7 +140,8 @@ it("synchronizes a staged lake material with SSR activation and recovery", async
   const f = await fixture("lake");
   try {
     const camera = f.system.camera!;
-    camera.screenSpaceReflection.activationMode = ScreenSpaceReflectionActivationMode.ForceOn;
+    f.scene.screenSpaceReflection.enabled = true;
+    camera.enableScreenSpaceReflection = true;
     const body = f.scene.createRootEntity("Reflection lake").addComponent(WaterBodyComponent);
     body.authoring = f.authoring;
     await (await f.system.prepareBatch([{ body, configuration: body._compileAuthoring() }])).commit().retiredCleanup;
@@ -153,13 +152,19 @@ it("synchronizes a staged lake material with SSR activation and recovery", async
     expect((renderer.mesh as ModelMesh).vertexBufferBindings[0]?.buffer.readable).toBe(false);
     const material = renderer.getMaterial()!;
     for (const active of [true, false, true]) {
-      camera.screenSpaceReflection.activationMode = active
-        ? ScreenSpaceReflectionActivationMode.ForceOn
-        : ScreenSpaceReflectionActivationMode.ForceOff;
+      camera.enableScreenSpaceReflection = active;
       for (let frame = 0; frame < 3; frame++) f.engine.update();
-      expect(ScreenSpaceReflection.getMaterialReceiverMode(material)).toBe(
-        active ? ScreenSpaceReflectionReceiverMode.TransparentSampleOnly : ScreenSpaceReflectionReceiverMode.Disabled
-      );
+      expect(material.screenSpaceReflectionIntensity).toBe(active ? 1 : 0);
+      expect(camera.screenSpaceReflectionDiagnostics.unsupportedReason).toBeNull();
+      expect(camera.screenSpaceReflectionDiagnostics.active).toBe(active);
+      if (active) {
+        expect(camera.screenSpaceReflectionDiagnostics.transparentReceiverCount).toBeGreaterThanOrEqual(1);
+        expect([SSRRuntimeState.FirstTrace, SSRRuntimeState.ActiveSteady]).toContain(
+          camera.screenSpaceReflectionDiagnostics.state
+        );
+      } else {
+        expect(camera.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.Disabled);
+      }
       expect(f.system.sample(0, 0).water).toBe(true);
     }
   } finally {

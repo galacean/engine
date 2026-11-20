@@ -1,5 +1,5 @@
 /** Per-camera reflection binding owner for shared environment and SSR resources. */
-import { Camera, Engine, Entity, TextureCube } from "@galacean/engine-core";
+import { Camera, Engine, Entity, SSRRuntimeState, TextureCube } from "@galacean/engine-core";
 import type { WaterReflectionPolicyMode } from "../../authoring/optics/WaterReflectionPolicy";
 import type {
   WaterEnvironmentReflectionFrame,
@@ -19,18 +19,6 @@ import {
   type WaterReflectionRequest,
   type WaterReflectionSource
 } from "./WaterReflectionPolicy";
-
-type WaterCameraScreenSpaceReflectionAvailability = Pick<
-  Camera["screenSpaceReflection"],
-  "effective" | "supported" | "unsupportedReason" | "metrics"
->;
-
-function cameraScreenSpaceReflection(
-  camera: Camera
-): Readonly<WaterCameraScreenSpaceReflectionAvailability> | undefined {
-  return (camera as unknown as { readonly screenSpaceReflection?: WaterCameraScreenSpaceReflectionAvailability })
-    .screenSpaceReflection;
-}
 
 export interface WaterReflectionBinding {
   /** Monotonic semantic revision; advances only when shader-visible state changes. */
@@ -329,41 +317,21 @@ export class WaterReflectionService {
 
   private _refreshAvailability(): boolean {
     const probe = this._probeTexture !== undefined;
-    const screenSpaceReflection = cameraScreenSpaceReflection(this._sourceCamera);
-    const metrics = screenSpaceReflection?.metrics;
-    const requested = screenSpaceReflection !== undefined && metrics?.requested === true;
-    const hasVisibleRecoveryReceiver = this._hasVisibleSsrRecoveryRequest();
-    const positiveIntensity = (metrics?.resolvedSettings.intensity ?? 0) > 0;
-    const awaitingFirstCapabilityFrame =
-      requested &&
-      hasVisibleRecoveryReceiver &&
-      positiveIntensity &&
-      screenSpaceReflection.supported === false &&
-      screenSpaceReflection.unsupportedReason === null;
-    const recoveringSupportedReceiver =
-      requested &&
-      hasVisibleRecoveryReceiver &&
-      positiveIntensity &&
-      screenSpaceReflection.supported === true &&
-      (metrics.inactiveReason === null ||
-        metrics.inactiveReason === "not-requested" ||
-        metrics.inactiveReason === "zero-intensity" ||
-        metrics.inactiveReason === "no-compatible-receivers");
-    const ssr =
-      screenSpaceReflection?.effective === true || awaitingFirstCapabilityFrame || recoveringSupportedReceiver;
+    const camera = this._sourceCamera;
+    const effectiveSettings = camera.screenSpaceReflectionOverride ?? camera.scene?.screenSpaceReflection;
+    const diagnostics = camera.screenSpaceReflectionDiagnostics;
+    const ssr = Boolean(
+      camera.enableScreenSpaceReflection !== false &&
+        effectiveSettings?.enabled === true &&
+        effectiveSettings.intensity > 0 &&
+        effectiveSettings.maxRoughness > 0 &&
+        (diagnostics?.unsupportedReason ?? null) === null &&
+        diagnostics?.state !== SSRRuntimeState.ContextLost
+    );
     const changed = this._availability.probe !== probe || this._availability.ssr !== ssr;
     this._availability.probe = probe;
     this._availability.ssr = ssr;
     return changed;
-  }
-
-  private _hasVisibleSsrRecoveryRequest(): boolean {
-    const requests = this._requestList;
-    for (let index = 0; index < requests.length; index++) {
-      const request = requests[index]!;
-      if (request.visible && request.ssrEligible === true && waterReflectionRequestMode(request) === "ssr") return true;
-    }
-    return false;
   }
 
   private _synchronizeBindings(): void {

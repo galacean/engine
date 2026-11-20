@@ -106,7 +106,7 @@ export class SeedWorldPerfPanel {
       tone: postSnap.enabled && (postSnap.tonemapping || postSnap.colorAdjustments.enabled),
       flare: postSnap.enabled && postSnap.sunLensFlare.enabled,
       shadow: sun.shadowType !== ShadowType.None,
-      ssr: camera.screenSpaceReflection.enabled,
+      ssr: camera.enableScreenSpaceReflection,
       clouds: Boolean(this.savedVolumetricClouds) && cloud.cloudCoverage > 0,
       wind: options.wind.enabled,
       water: true,
@@ -386,7 +386,7 @@ export class SeedWorldPerfPanel {
         sun.shadowType = on ? this.savedShadowType : ShadowType.None;
         break;
       case "ssr":
-        camera.screenSpaceReflection.enabled = on;
+        camera.enableScreenSpaceReflection = on;
         break;
       case "clouds": {
         const skyMat = scene.background.sky.material as { volumetricClouds?: unknown } | null;

@@ -10,6 +10,7 @@ export class RenderTargetPool {
 
   private _freeRenderTargets: RenderTarget[] = [];
   private _freeTextures: Texture2D[] = [];
+  private readonly _colorTexturesToDestroy: Texture2D[] = [];
   private _lastReleaseFrame = new WeakMap<RenderTarget | Texture2D, number>();
   private _engine: Engine;
 
@@ -72,9 +73,9 @@ export class RenderTargetPool {
     let depthTexture: Texture2D | null = null;
     try {
       if (colorFormat != null) {
-        const colorFormats = [colorFormat, ...additionalColorFormats];
-        for (let i = 0, n = colorFormats.length; i < n; i++) {
-          const colorTexture = new Texture2D(engine, width, height, colorFormats[i], mipmap, isSRGBColorSpace);
+        for (let i = 0, n = 1 + additionalColorFormats.length; i < n; i++) {
+          const format = i === 0 ? colorFormat : additionalColorFormats[i - 1];
+          const colorTexture = new Texture2D(engine, width, height, format, mipmap, isSRGBColorSpace);
           colorTexture.isGCIgnored = true;
           colorTexture.wrapModeU = colorTexture.wrapModeV = wrapMode;
           colorTexture.filterMode = filterMode;
@@ -168,7 +169,7 @@ export class RenderTargetPool {
   gc(): void {
     const freeRenderTargets = this._freeRenderTargets;
     for (let i = 0, n = freeRenderTargets.length; i < n; i++) {
-      RenderTargetPool._destroyResource(freeRenderTargets[i]);
+      this._destroyResource(freeRenderTargets[i]);
     }
     freeRenderTargets.length = 0;
 
@@ -185,18 +186,22 @@ export class RenderTargetPool {
       if (resource.destroyed || frame - this._lastReleaseFrame.get(resource)! >= RenderTargetPool._maxIdleFrames) {
         resources[i] = resources[resources.length - 1];
         resources.length--;
-        RenderTargetPool._destroyResource(resource);
+        this._destroyResource(resource);
       }
     }
   }
 
-  private static _destroyResource(resource: RenderTarget | Texture2D): void {
+  private _destroyResource(resource: RenderTarget | Texture2D): void {
     if (resource instanceof RenderTarget) {
-      const colors = resource.colorTextures.slice();
+      // RenderTarget clears its attachment list during destruction.
+      const colors = this._colorTexturesToDestroy;
+      const attachments = resource.colorTextures;
+      for (let i = 0, n = attachments.length; i < n; i++) colors[i] = attachments[i] as Texture2D;
       const depth = resource.depthTexture;
       resource.destroy(true);
       for (let i = 0, n = colors.length; i < n; i++) colors[i].destroy(true);
-      if (depth && !colors.includes(depth)) depth.destroy(true);
+      if (depth && !colors.includes(depth as Texture2D)) depth.destroy(true);
+      colors.length = 0;
     } else {
       resource.destroy(true);
     }

@@ -88,8 +88,26 @@ it.each(["lake", "river", "ocean"] as const)(
     const isolated = Shader.create(source.replace(WATER_BUILTIN_SHADER_NAMES[profile], `WaterSourceTest/${profile}`));
     try {
       expect(isolated.compileVariant(engine, [])).toBe(true);
+      if (profile !== "ocean") {
+        expect(
+          isolated.compileVariant(engine, [
+            "CAMERA_ENABLE_SSR",
+            "CAMERA_SSR_VERIFY_RECEIVER_DEPTH",
+            "CAMERA_SSR_BILATERAL_SAMPLE"
+          ])
+        ).toBe(true);
+      }
       registerWaterBuiltinShaders();
       expect(Shader.find(WATER_BUILTIN_SHADER_NAMES[profile])!.compileVariant(engine, [])).toBe(true);
+      if (profile !== "ocean") {
+        expect(
+          Shader.find(WATER_BUILTIN_SHADER_NAMES[profile])!.compileVariant(engine, [
+            "CAMERA_ENABLE_SSR",
+            "CAMERA_SSR_VERIFY_RECEIVER_DEPTH",
+            "CAMERA_SSR_BILATERAL_SAMPLE"
+          ])
+        ).toBe(true);
+      }
     } finally {
       isolated.destroy();
       engine.destroy();
@@ -110,7 +128,7 @@ it("culls precomposed shore pixels before shading in both shipped Lake programs"
     expect(aot.name).toBe("AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0");
     for (const shader of [Shader.find(WATER_BUILTIN_SHADER_NAMES.lake)!, aot]) {
       const passes = shader.subShaders[0].passes;
-      expect(passes.map((pass) => pass.name)).toEqual(["Forward", "ScreenSpaceReflectionSurface"]);
+      expect(passes.map((pass) => pass.name)).toEqual(["Forward", "SSRReceiver"]);
       const fragment = ShaderMacroProcessor.evaluate(passes[0]._fragmentShaderInstructions, new Map()).replace(
         /\s/g,
         ""

@@ -1,0 +1,721 @@
+import {
+  BufferBindFlag,
+  BufferUsage,
+  CameraClearFlags,
+  Canvas,
+  ColorWriteMask,
+  Engine,
+  GLCapabilityType,
+  IHardwareRenderer,
+  IPlatformBuffer,
+  IPlatformPrimitive,
+  IPlatformRenderTarget,
+  IPlatformShaderProgram,
+  IPlatformTexture,
+  IPlatformTexture2D,
+  IPlatformTextureCube,
+  IPlatformTransformFeedback,
+  IPlatformTransformFeedbackPrimitive,
+  Logger,
+  Platform,
+  Primitive,
+  RenderTarget,
+  SubPrimitive,
+  SystemInfo,
+  Texture2D,
+  Texture2DArray,
+  TextureCube,
+  TextureCubeFace,
+  TextureFormat
+} from "@galacean/engine-core";
+import { Color, Vector4 } from "@galacean/engine-math";
+import { GLBuffer } from "./GLBuffer";
+import { GLCapability } from "./GLCapability";
+import { GLExtensions } from "./GLExtensions";
+import { GLPrimitive } from "./GLPrimitive";
+import { GLRenderStates } from "./GLRenderStates";
+import { GLRenderTarget } from "./GLRenderTarget";
+import { GLTexture } from "./GLTexture";
+import { GLTexture2D } from "./GLTexture2D";
+import { GLTexture2DArray } from "./GLTexture2DArray";
+import { GLTextureCube } from "./GLTextureCube";
+import { GLTransformFeedback } from "./GLTransformFeedback";
+import { GLTransformFeedbackPrimitive } from "./GLTransformFeedbackPrimitive";
+import { WebCanvas } from "./WebCanvas";
+import { WebGLExtension } from "./type";
+
+/**
+ * WebGL mode.
+ */
+export enum WebGLMode {
+  /** Auto, use WebGL2.0 if support, or will fallback to WebGL1.0. */
+  Auto = 0,
+  /** WebGL2.0. */
+  WebGL2 = 1,
+  /** WebGL1.0, */
+  WebGL1 = 2
+}
+
+/**
+ * WebGL graphic device options.
+ */
+export interface WebGLGraphicDeviceOptions {
+  /** WebGL mode.*/
+  webGLMode?: WebGLMode;
+
+  /**
+   * @internal
+   * iOS 15 webgl implement has bug, maybe should force call flush command buffer, for example iPhone13(iOS 15.4.1).
+   */
+  _forceFlush?: boolean;
+
+  /**
+   * @internal
+   * Max allow skin uniform vectors count, default is 256
+   *
+   * @remarks large count maybe cause performance issue.
+   */
+  _maxAllowSkinUniformVectorCount?: number;
+
+  alpha?: boolean;
+  depth?: boolean;
+  desynchronized?: boolean;
+  failIfMajorPerformanceCaveat?: boolean;
+  powerPreference?: WebGLPowerPreference;
+  premultipliedAlpha?: boolean;
+  preserveDrawingBuffer?: boolean;
+  stencil?: boolean;
+  xrCompatible?: boolean;
+}
+
+/**
+ * WebGL graphic device, including WebGL1.0 and WebGL2.0.
+ */
+export class WebGLGraphicDevice implements IHardwareRenderer {
+  readonly supportsRendering = true;
+  maxUniformBlockSize: number;
+
+  /** @internal */
+  _readFrameBuffer: WebGLFramebuffer | null = null;
+  /** @internal */
+  _mainFrameBuffer: WebGLFramebuffer | null = null;
+  /** @internal */
+  _mainFrameWidth: number = 0;
+  /** @internal */
+  _mainFrameHeight: number = 0;
+  /** @internal */
+  _enableGlobalDepthBias: boolean = false;
+  /** @internal */
+  _currentBindShaderProgram: IPlatformShaderProgram | null;
+  /** @internal */
+  _currentBindVAO: WebGLVertexArrayObject | null = null;
+
+  /** @internal */
+  readonly _options: WebGLGraphicDeviceOptions;
+  private _webGLOptions: WebGLContextAttributes;
+  private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
+  private _renderStates: GLRenderStates;
+  private _extensions: GLExtensions;
+  private _capability: GLCapability;
+  private _isWebGL2: boolean;
+  private _renderer: string;
+  private _webCanvas: HTMLCanvasElement | OffscreenCanvas;
+
+  private _activeTextureID: number;
+  private _activeTextures: (GLTexture | null)[] = new Array(32);
+
+  private _lastViewport: Vector4 = new Vector4(null!, null!, null!, null!);
+  private _lastScissor: Vector4 = new Vector4(null!, null!, null!, null!);
+  private _lastClearColor: Color = new Color(null!, null!, null!, null!);
+  private _scissorEnable: boolean = false;
+  private _defaultInvalidateAttachments: (GLenum[] | null)[] = [null, null, null, null, null, null, null, null];
+  private _mainFboInvalidateAttachments: (GLenum[] | null)[] = [null, null, null, null, null, null, null, null];
+
+  private _onDeviceLost: () => void;
+  private _onDeviceRestored: () => void;
+
+  get isWebGL2(): boolean {
+    return this._isWebGL2;
+  }
+
+  get renderer(): string {
+    return this._renderer;
+  }
+
+  /**
+   * GL Context
+   * @member {WebGLRenderingContext}
+   */
+  get gl() {
+    return this._gl;
+  }
+
+  get renderStates(): GLRenderStates {
+    return this._renderStates;
+  }
+
+  get capability(): GLCapability {
+    return this._capability;
+  }
+
+  get canIUseMoreJoints() {
+    return this.capability.canIUseMoreJoints;
+  }
+
+  constructor(initializeOptions: WebGLGraphicDeviceOptions = {}) {
+    const options = <WebGLGraphicDeviceOptions>{
+      webGLMode: WebGLMode.Auto,
+      _forceFlush: false,
+      _maxAllowSkinUniformVectorCount: 256,
+      alpha: true,
+      depth: true,
+      stencil: true,
+      failIfMajorPerformanceCaveat: false,
+      powerPreference: "default",
+      premultipliedAlpha: true,
+      preserveDrawingBuffer: false,
+      desynchronized: false,
+      xrCompatible: false,
+      ...initializeOptions
+    };
+
+    if (SystemInfo.platform === Platform.IPhone || SystemInfo.platform === Platform.IPad) {
+      const version = SystemInfo.operatingSystem.match(/(\d+).?(\d+)?.?(\d+)?/);
+      if (version) {
+        const majorVersion = parseInt(version[1]);
+        const minorVersion = parseInt(version[2]);
+        if (majorVersion === 15 && minorVersion >= 0 && minorVersion <= 4) {
+          options._forceFlush = true;
+        }
+      }
+    }
+    this._options = options;
+
+    // Force disable stencil, antialias and depth, we configure them in internal render target
+    this._webGLOptions = {
+      antialias: false,
+      depth: false,
+      stencil: false,
+      alpha: options.alpha,
+      failIfMajorPerformanceCaveat: options.failIfMajorPerformanceCaveat,
+      powerPreference: options.powerPreference,
+      premultipliedAlpha: options.premultipliedAlpha,
+      preserveDrawingBuffer: options.preserveDrawingBuffer,
+      desynchronized: options.desynchronized,
+      xrCompatible: options.xrCompatible
+    };
+
+    this._onWebGLContextLost = this._onWebGLContextLost.bind(this);
+    this._onWebGLContextRestored = this._onWebGLContextRestored.bind(this);
+  }
+
+  init(canvas: Canvas, onDeviceLost: () => void, onDeviceRestored: () => void): void {
+    const webCanvas = (canvas as WebCanvas)._webCanvas;
+    const webGLMode = this._options.webGLMode;
+
+    this._onDeviceLost = onDeviceLost;
+    this._onDeviceRestored = onDeviceRestored;
+    webCanvas.addEventListener("webglcontextlost", this._onWebGLContextLost, false);
+    webCanvas.addEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
+    webCanvas.addEventListener("webglcontextcreationerror", this._onContextCreationError, false);
+
+    this._webCanvas = webCanvas;
+
+    const webGLOptions = this._webGLOptions;
+    let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext | undefined;
+    if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
+      gl = webCanvas.getContext("webgl2", webGLOptions);
+      if (!gl && !(canvas as WebCanvas)._isOffscreenCanvas()) {
+        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", webGLOptions);
+      }
+      this._isWebGL2 = true;
+
+      // Prevent weird browsers to lie (such as safari!)ƒ
+      if (gl && !(<WebGL2RenderingContext>gl).deleteQuery) {
+        this._isWebGL2 = false;
+      }
+    }
+
+    if (!gl) {
+      if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL1) {
+        gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", webGLOptions);
+        if (!gl && !(canvas as WebCanvas)._isOffscreenCanvas()) {
+          gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", webGLOptions);
+        }
+        this._isWebGL2 = false;
+      }
+    }
+
+    if (!gl) {
+      throw new Error("Get GL Context FAILED.");
+    }
+
+    this._gl = gl;
+    this._initGLState(gl);
+  }
+
+  createPlatformPrimitive(primitive: Primitive): IPlatformPrimitive {
+    return new GLPrimitive(this, primitive);
+  }
+
+  createPlatformTexture2D(texture2D: Texture2D): IPlatformTexture2D {
+    return new GLTexture2D(this, texture2D);
+  }
+
+  createPlatformTexture2DArray(texture2D: Texture2DArray): GLTexture2DArray {
+    return new GLTexture2DArray(this, texture2D);
+  }
+
+  createPlatformTextureCube(textureCube: TextureCube): IPlatformTextureCube {
+    return new GLTextureCube(this, textureCube);
+  }
+
+  createPlatformRenderTarget(target: RenderTarget): IPlatformRenderTarget {
+    return new GLRenderTarget(this, target);
+  }
+
+  createPlatformBuffer(
+    type: BufferBindFlag,
+    byteLength: number,
+    bufferUsage: BufferUsage = BufferUsage.Static,
+    data?: ArrayBuffer | ArrayBufferView
+  ): IPlatformBuffer {
+    return new GLBuffer(this, type, byteLength, bufferUsage, data);
+  }
+
+  createPlatformTransformFeedback(): IPlatformTransformFeedback {
+    return new GLTransformFeedback(this);
+  }
+
+  createPlatformTransformFeedbackPrimitive(): IPlatformTransformFeedbackPrimitive {
+    return new GLTransformFeedbackPrimitive(this);
+  }
+
+  /** @internal */
+  _bindVertexArray(vao: WebGLVertexArrayObject | null): void {
+    if (this._currentBindVAO !== vao) {
+      (<WebGL2RenderingContext>this._gl).bindVertexArray(vao);
+      this._currentBindVAO = vao;
+    }
+  }
+
+  bindUniformBufferBase(bindingPoint: number, buffer: IPlatformBuffer): void {
+    const gl = <WebGL2RenderingContext>this._gl;
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, bindingPoint, (<GLBuffer>buffer)._glBuffer);
+  }
+
+  bindUniformBlock(program: WebGLProgram, blockName: string, bindingPoint: number): number {
+    const gl = <WebGL2RenderingContext>this._gl;
+    const blockIndex = gl.getUniformBlockIndex(program, blockName);
+    if (blockIndex !== gl.INVALID_INDEX) {
+      gl.uniformBlockBinding(program, blockIndex, bindingPoint);
+    }
+    return blockIndex;
+  }
+
+  /**
+   * Enable GL_RASTERIZER_DISCARD (WebGL2 only).
+   */
+  enableRasterizerDiscard(): void {
+    if (this._isWebGL2) {
+      const gl = <WebGL2RenderingContext>this._gl;
+      gl.enable(gl.RASTERIZER_DISCARD);
+    }
+  }
+
+  /**
+   * Disable GL_RASTERIZER_DISCARD (WebGL2 only).
+   */
+  disableRasterizerDiscard(): void {
+    if (this._isWebGL2) {
+      const gl = <WebGL2RenderingContext>this._gl;
+      gl.disable(gl.RASTERIZER_DISCARD);
+    }
+  }
+
+  /**
+   * Invalidate the cached shader program state.
+   * Call this after using a custom program (e.g., Transform Feedback) outside the engine's pipeline.
+   */
+  invalidateShaderProgramState(): void {
+    if (this._currentBindShaderProgram) {
+      this._gl.useProgram(null);
+      this._currentBindShaderProgram = null;
+    }
+  }
+
+  requireExtension(ext) {
+    return this._extensions.requireExtension(ext);
+  }
+
+  canIUse(capabilityType: GLCapabilityType) {
+    return this.capability.canIUse(capabilityType);
+  }
+
+  canIUseCompressedTextureInternalFormat(type: number) {
+    return this.capability.canIUseCompressedTextureInternalFormat(type);
+  }
+
+  supportsTextureFormat(format: TextureFormat): boolean {
+    return this.capability.supportsTextureFormat(format);
+  }
+
+  supportsRenderTargetColorFormat(format: TextureFormat): boolean {
+    return this.capability.supportsRenderTargetColorFormat(format);
+  }
+
+  viewport(x: number, y: number, width: number, height: number): void {
+    const { _gl: gl, _lastViewport: lastViewport } = this;
+    if (x !== lastViewport.x || y !== lastViewport.y || width !== lastViewport.z || height !== lastViewport.w) {
+      gl.viewport(x, y, width, height);
+      lastViewport.set(x, y, width, height);
+    }
+  }
+
+  scissor(x: number, y: number, width: number, height: number): void {
+    const { _gl: gl, _lastScissor: lastScissor } = this;
+    if (x !== lastScissor.x || y !== lastScissor.y || width !== lastScissor.z || height !== lastScissor.w) {
+      const { _webCanvas: webCanvas } = this;
+      if (x === 0 && y === 0 && width === webCanvas.width && height === webCanvas.height) {
+        if (this._scissorEnable) {
+          gl.disable(gl.SCISSOR_TEST);
+          this._scissorEnable = false;
+        }
+      } else {
+        if (!this._scissorEnable) {
+          gl.enable(gl.SCISSOR_TEST);
+          this._scissorEnable = true;
+        }
+        gl.scissor(x, y, width, height);
+      }
+      lastScissor.set(x, y, width, height);
+    }
+  }
+
+  colorMask(r: boolean, g: boolean, b: boolean, a: boolean): void {
+    this._gl.colorMask(r, g, b, a);
+  }
+
+  clearRenderTarget(engine: Engine, clearFlags: CameraClearFlags, clearColor?: Color) {
+    const gl = this._gl;
+
+    const {
+      blendState: { targetBlendState },
+      depthState,
+      stencilState
+    } = engine._lastRenderState;
+    let clearFlag = 0;
+    if (clearFlags & CameraClearFlags.Color && clearColor) {
+      clearFlag |= gl.COLOR_BUFFER_BIT;
+
+      const lc = this._lastClearColor;
+      const { r, g, b, a } = clearColor;
+      if (clearColor && (r !== lc.r || g !== lc.g || b !== lc.b || a !== lc.a)) {
+        gl.clearColor(r, g, b, a);
+        lc.set(r, g, b, a);
+      }
+
+      if (targetBlendState.colorWriteMask !== ColorWriteMask.All) {
+        gl.colorMask(true, true, true, true);
+        targetBlendState.colorWriteMask = ColorWriteMask.All;
+      }
+    }
+    if (clearFlags & CameraClearFlags.Depth) {
+      clearFlag |= gl.DEPTH_BUFFER_BIT;
+      if (depthState.writeEnabled !== true) {
+        gl.depthMask(true);
+        depthState.writeEnabled = true;
+      }
+    }
+    if (clearFlags & CameraClearFlags.Stencil) {
+      clearFlag |= gl.STENCIL_BUFFER_BIT;
+      if (stencilState.writeMask !== 0xff) {
+        gl.stencilMask(0xff);
+        stencilState.writeMask = 0xff;
+      }
+    }
+    gl.clear(clearFlag);
+  }
+
+  invalidateRenderTarget(renderTarget: RenderTarget | null, clearFlags: CameraClearFlags): void {
+    if (!this._isWebGL2 || clearFlags === CameraClearFlags.None) {
+      return;
+    }
+    if (renderTarget) {
+      (renderTarget._platformRenderTarget as GLRenderTarget).invalidateRenderTarget(clearFlags);
+      return;
+    }
+    const table = this._mainFrameBuffer ? this._mainFboInvalidateAttachments : this._defaultInvalidateAttachments;
+    const attachments = table[clearFlags & CameraClearFlags.All];
+    if (attachments) {
+      (<WebGL2RenderingContext>this._gl).invalidateFramebuffer(this._gl.FRAMEBUFFER, attachments);
+    }
+  }
+
+  drawPrimitive(primitive: Primitive, subPrimitive: SubPrimitive | null, shaderProgram: IPlatformShaderProgram): void {
+    // todo: VAO not support morph animation
+    if (primitive && subPrimitive) {
+      primitive.draw(shaderProgram, subPrimitive);
+    } else {
+      Logger.error("draw primitive failed.");
+    }
+  }
+
+  getMainFrameBufferWidth(): number {
+    return this._mainFrameWidth || this._gl.drawingBufferWidth;
+  }
+
+  getMainFrameBufferHeight(): number {
+    return this._mainFrameHeight || this._gl.drawingBufferHeight;
+  }
+
+  activeRenderTarget(
+    renderTarget: RenderTarget | null,
+    viewport: Vector4,
+    isFlipProjection: boolean,
+    mipLevel?: number,
+    faceIndex?: TextureCubeFace
+  ) {
+    let bufferWidth: number, bufferHeight: number;
+    if (renderTarget) {
+      renderTarget._isContentLost = false;
+
+      const platformRenderTarget = renderTarget._platformRenderTarget as GLRenderTarget;
+      platformRenderTarget.activeRenderTarget(mipLevel!, faceIndex);
+
+      bufferWidth = Math.max(1, renderTarget.width >> mipLevel!);
+      bufferHeight = Math.max(1, renderTarget.height >> mipLevel!);
+    } else {
+      const gl = this._gl;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this._mainFrameBuffer);
+      bufferWidth = this.getMainFrameBufferWidth();
+      bufferHeight = this.getMainFrameBufferHeight();
+    }
+
+    const width = bufferWidth * viewport.z;
+    const height = bufferHeight * viewport.w;
+    const x = viewport.x * bufferWidth;
+    const y = isFlipProjection ? viewport.y * bufferHeight : bufferHeight - viewport.y * bufferHeight - height;
+    this.viewport(x, y, width, height);
+    this.scissor(x, y, width, height);
+  }
+
+  blitInternalRTByBlitFrameBuffer(
+    srcRT: RenderTarget | null,
+    destRT: RenderTarget,
+    clearFlags: CameraClearFlags,
+    viewport: Vector4
+  ) {
+    if (!this._isWebGL2) {
+      Logger.warn("WebGL1.0 not support blit frame buffer.");
+      return;
+    }
+    const gl = this._gl;
+    // @ts-ignore
+    const srcFrameBuffer = srcRT ? srcRT._platformRenderTarget._frameBuffer : null;
+    // @ts-ignore
+    const destFrameBuffer = destRT ? destRT._platformRenderTarget._frameBuffer : null;
+    const bufferWidth = this.getMainFrameBufferWidth();
+    const bufferHeight = this.getMainFrameBufferHeight();
+    const srcWidth = srcRT ? srcRT.width : bufferWidth;
+    const srcHeight = srcRT ? srcRT.height : bufferHeight;
+    const blitWidth = destRT.width;
+    const blitHeight = destRT.height;
+    const needFlipY = !srcRT;
+    const needBlitColor = (clearFlags & CameraClearFlags.Color) === 0;
+    const needBlitDepth = (clearFlags & CameraClearFlags.Depth) === 0;
+    const needBlitStencil = (clearFlags & CameraClearFlags.Stencil) === 0;
+
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, srcFrameBuffer);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, destFrameBuffer);
+
+    let blitMask = needBlitColor ? gl.COLOR_BUFFER_BIT : 0;
+
+    if (needBlitDepth || needBlitStencil) {
+      const depthFormat = destRT._depthFormat!;
+
+      if (needBlitDepth) {
+        if (
+          depthFormat === TextureFormat.Depth ||
+          (depthFormat >= TextureFormat.DepthStencil && depthFormat <= TextureFormat.Depth32Stencil8)
+        ) {
+          blitMask |= gl.DEPTH_BUFFER_BIT;
+        } else {
+          Logger.warn(`Do not clear depth, or set depth format of target which is ${TextureFormat[depthFormat]} now.`);
+        }
+      }
+
+      if (needBlitStencil) {
+        if (
+          depthFormat === TextureFormat.Stencil ||
+          depthFormat === TextureFormat.DepthStencil ||
+          depthFormat >= TextureFormat.Depth24Stencil8 ||
+          depthFormat >= TextureFormat.Depth32Stencil8
+        ) {
+          blitMask |= gl.STENCIL_BUFFER_BIT;
+        } else {
+          Logger.warn(
+            `Do not clear stencil, or set stencil format of target which is ${TextureFormat[depthFormat]} now.`
+          );
+        }
+      }
+    }
+
+    const xStart = viewport.x * srcWidth;
+    const xEnd = xStart + blitWidth;
+    const yStart = needFlipY ? srcHeight - viewport.y * srcHeight : srcHeight - viewport.y * srcHeight - blitHeight;
+    const yEnd = needFlipY ? yStart - blitHeight : yStart + blitHeight;
+
+    gl.blitFramebuffer(xStart, yStart, xEnd, yEnd, 0, 0, blitWidth, blitHeight, blitMask, gl.NEAREST);
+  }
+
+  copyRenderTargetToSubTexture(srcRT: RenderTarget | null, grabTexture: Texture2D, viewport: Vector4) {
+    const gl = this._gl;
+    const bufferWidth = this.getMainFrameBufferWidth();
+    const bufferHeight = this.getMainFrameBufferHeight();
+    const srcWidth = srcRT ? srcRT.width : bufferWidth;
+    const srcHeight = srcRT ? srcRT.height : bufferHeight;
+    const copyWidth = grabTexture.width;
+    const copyHeight = grabTexture.height;
+    const flipY = !srcRT;
+
+    const xStart = viewport.x * srcWidth;
+    const yStart = flipY ? srcHeight - viewport.y * srcHeight - copyHeight : viewport.y * srcHeight;
+
+    // @ts-ignore
+    const frameBuffer = srcRT?._platformRenderTarget._frameBuffer ?? this._mainFrameBuffer;
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+
+    const glTexture = grabTexture._platformTexture as GLTexture;
+
+    this.bindTexture(glTexture);
+
+    gl.copyTexSubImage2D(glTexture._target, 0, 0, 0, xStart, yStart, copyWidth, copyHeight);
+  }
+
+  activeTexture(textureID: number): void {
+    if (this._activeTextureID !== textureID) {
+      this._gl.activeTexture(textureID);
+      this._activeTextureID = textureID;
+    }
+  }
+
+  bindTexture(platformTexture: IPlatformTexture): void {
+    const texture = platformTexture as GLTexture;
+    const index = this._activeTextureID - this._gl.TEXTURE0;
+    if (this._activeTextures[index] !== texture) {
+      this._gl.bindTexture(texture._target, texture._glTexture);
+      this._activeTextures[index] = texture;
+    }
+  }
+
+  setGlobalDepthBias(bias: number, slopeBias: number): void {
+    const gl = this._gl;
+    const enable = bias !== 0 || slopeBias !== 0;
+    if (enable) {
+      gl.enable(gl.POLYGON_OFFSET_FILL);
+      gl.polygonOffset(slopeBias, bias);
+    } else {
+      gl.disable(gl.POLYGON_OFFSET_FILL);
+    }
+    this._enableGlobalDepthBias = enable;
+  }
+
+  flush(): void {
+    this._gl.flush();
+  }
+
+  forceLoseDevice(): void {
+    const extension = this.requireExtension(GLCapabilityType.WEBGL_lose_context);
+    extension.loseContext();
+  }
+
+  forceRestoreDevice(): void {
+    const extension = this.requireExtension(GLCapabilityType.WEBGL_lose_context);
+    extension.restoreContext();
+  }
+
+  /**
+   * @remarks
+   * WebGL context loss and restore can happen at any GPU execution point. refs to: https://www.khronos.org/webgl/wiki/HandlingContextLost
+   */
+  isContextLost() {
+    return this.gl.isContextLost();
+  }
+
+  resetState(): void {
+    this._readFrameBuffer = null;
+    this._enableGlobalDepthBias = false;
+    this._currentBindShaderProgram = null;
+    this._currentBindVAO = null;
+
+    const activeTextures = this._activeTextures;
+    for (let i = 0, n = activeTextures.length; i < n; i++) {
+      activeTextures[i] = null;
+    }
+
+    this._lastViewport.set(null!, null!, null!, null!);
+    this._lastScissor.set(null!, null!, null!, null!);
+    this._lastClearColor.set(null!, null!, null!, null!);
+    this._scissorEnable = false;
+
+    this._initGLState(this._gl);
+  }
+
+  protected _initGLState(gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext): void {
+    this._activeTextureID = gl.TEXTURE0;
+    this._renderStates = new GLRenderStates(gl);
+    this._extensions = new GLExtensions(this);
+    this._capability = new GLCapability(this);
+    // Make sure the active texture in gl context is on default, because gl context may be used in other webgl renderer.
+    gl.activeTexture(gl.TEXTURE0);
+
+    const debugRenderInfo = gl.getExtension("WEBGL_debug_renderer_info");
+    if (debugRenderInfo != null) {
+      this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
+    }
+    if (this._isWebGL2) {
+      const gl2 = <WebGL2RenderingContext>gl;
+      this.maxUniformBlockSize = gl2.getParameter(gl2.MAX_UNIFORM_BLOCK_SIZE);
+
+      const def = this._defaultInvalidateAttachments;
+      def[CameraClearFlags.Color] = [gl2.COLOR];
+      def[CameraClearFlags.Depth] = [gl2.DEPTH];
+      def[CameraClearFlags.ColorDepth] = [gl2.COLOR, gl2.DEPTH];
+      def[CameraClearFlags.Stencil] = [gl2.STENCIL];
+      def[CameraClearFlags.ColorStencil] = [gl2.COLOR, gl2.STENCIL];
+      def[CameraClearFlags.DepthStencil] = [gl2.DEPTH, gl2.STENCIL];
+      def[CameraClearFlags.All] = [gl2.COLOR, gl2.DEPTH, gl2.STENCIL];
+
+      const fbo = this._mainFboInvalidateAttachments;
+      fbo[CameraClearFlags.Color] = [gl2.COLOR_ATTACHMENT0];
+      fbo[CameraClearFlags.Depth] = [gl2.DEPTH_ATTACHMENT];
+      fbo[CameraClearFlags.ColorDepth] = [gl2.COLOR_ATTACHMENT0, gl2.DEPTH_ATTACHMENT];
+      fbo[CameraClearFlags.Stencil] = [gl2.STENCIL_ATTACHMENT];
+      fbo[CameraClearFlags.ColorStencil] = [gl2.COLOR_ATTACHMENT0, gl2.STENCIL_ATTACHMENT];
+      fbo[CameraClearFlags.DepthStencil] = [gl2.DEPTH_STENCIL_ATTACHMENT];
+      fbo[CameraClearFlags.All] = [gl2.COLOR_ATTACHMENT0, gl2.DEPTH_STENCIL_ATTACHMENT];
+    }
+  }
+
+  destroy(): void {
+    const webCanvas = this._webCanvas;
+    webCanvas.removeEventListener("webglcontextcreationerror", this._onContextCreationError, false);
+    webCanvas.removeEventListener("webglcontextlost", this._onWebGLContextLost, false);
+    webCanvas.removeEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
+  }
+
+  private _onContextCreationError(event: WebGLContextEvent) {
+    console.error("WebGLRenderer: WebGL context could not be created. Reason: ", event.statusMessage);
+  }
+
+  private _onWebGLContextLost(event: WebGLContextEvent) {
+    event.preventDefault();
+    this._onDeviceLost();
+  }
+
+  private _onWebGLContextRestored(event: WebGLContextEvent) {
+    this._onDeviceRestored();
+  }
+}

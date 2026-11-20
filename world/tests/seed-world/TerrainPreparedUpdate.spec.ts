@@ -21,7 +21,6 @@ vi.mock("@galacean/engine", async (original) => {
   const actual = await original<typeof import("@galacean/engine")>();
   return {
     ...actual,
-    ScreenSpaceReflection: { setMaterialReceiver: () => true },
     Texture2D: class {
       name = "";
       pixels = new Uint8Array();

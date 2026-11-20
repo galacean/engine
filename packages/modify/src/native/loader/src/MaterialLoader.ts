@@ -127,9 +127,18 @@ class MaterialLoader extends Loader<Material> {
       for (let i = 0; i < textures.length; i++) {
         materialShaderData.setTexture(textureReferences[i].key, textures[i]);
       }
-      material.contributeScreenSpaceReflection = materialSchema.contributeScreenSpaceReflection === true;
-      if (materialSchema.screenSpaceReflection !== undefined) {
-        material.screenSpaceReflection = materialSchema.screenSpaceReflection;
+      if (materialSchema.screenSpaceReflectionIntensity !== undefined) {
+        material.screenSpaceReflectionIntensity = materialSchema.screenSpaceReflectionIntensity;
+      } else if (shaderData["material_ScreenSpaceReflectionIntensity"] !== undefined) {
+        material.screenSpaceReflectionIntensity = Number(shaderData["material_ScreenSpaceReflectionIntensity"].value);
+      } else if (shader === Engine._builtinShaders.pbr) {
+        material.screenSpaceReflectionIntensity = 1.0;
+      }
+      if (materialSchema.contributeScreenSpaceReflectionDepth !== undefined) {
+        material.contributeScreenSpaceReflectionDepth = materialSchema.contributeScreenSpaceReflectionDepth;
+      }
+      if (materialSchema.screenSpaceReflectionBilateral !== undefined) {
+        material.screenSpaceReflectionBilateral = materialSchema.screenSpaceReflectionBilateral;
       }
       return material;
     } catch (error) {

@@ -17,6 +17,13 @@ struct TerrainProjectLightingResult {
   #define TERRAIN_PROJECT_PREPARE_ALBEDO(viewDirection, albedoColor, shadowAttenuation) albedoColor
 #endif
 
+vec3 terrainProjectEvaluateSpecularIBL(SurfaceData surfaceData, BSDFData bsdfData, vec3 radiance) {
+  float specularAO = evaluateSpecularOcclusion(surfaceData.dotNV, bsdfData.diffuseAO, bsdfData.roughness);
+  return specularAO * radiance *
+    envBRDFApprox(bsdfData.resolvedSpecularF0, bsdfData.specularF90, bsdfData.roughness, surfaceData.dotNV) *
+    bsdfData.energyCompensation;
+}
+
 TerrainProjectLightingResult evaluateTerrainProjectLightingWithShadow(Varyings varyings, SurfaceData surfaceData, float shadowAttenuation) {
   TerrainProjectLightingResult result;
   result.directDiffuse = vec3(0.0);
@@ -64,13 +71,20 @@ TerrainProjectLightingResult evaluateTerrainProjectLightingWithShadow(Varyings v
     result.directDiffuse *= canopyDirectVisibility;
     result.directSpecular *= canopyDirectVisibility;
   #endif
-  evaluateIBL(
-    varyings,
-    surfaceData,
-    bsdfData,
-    result.environmentDiffuse,
-    result.environmentSpecular
-  );
+  #ifdef TERRAIN_PROJECT_WATER_LAYER
+    // Terrain owns a separated water-film layer; sample SSR exclusively on the water film, not the substrate.
+    evaluateDiffuseIBL(varyings, surfaceData, bsdfData, result.environmentDiffuse);
+    vec3 substrateRadiance = getLightProbeRadiance(surfaceData, surfaceData.normal, bsdfData.roughness);
+    result.environmentSpecular += terrainProjectEvaluateSpecularIBL(surfaceData, bsdfData, substrateRadiance);
+  #else
+    evaluateIBL(
+      varyings,
+      surfaceData,
+      bsdfData,
+      result.environmentDiffuse,
+      result.environmentSpecular
+    );
+  #endif
   return result;
 }
 
@@ -107,6 +121,7 @@ void terrainProjectAccumulateLighting(
     Varyings varyings,
     SurfaceData substrate,
     TerrainProjectWaterFilm waterFilm,
+    float ssrDepthSlope,
     inout TerrainProjectLightingResult result
   ) {
     if (waterFilm.coverage > 0.0) {
@@ -133,15 +148,23 @@ void terrainProjectAccumulateLighting(
         unusedDiffuse,
         directSpecular
       );
-      vec3 environmentDiffuse = vec3(0.0);
-      vec3 environmentSpecular = vec3(0.0);
-      evaluateIBL(
-        varyings,
-        waterSurface,
-        waterBsdfData,
-        environmentDiffuse,
-        environmentSpecular
-      );
+      vec3 radiance = getLightProbeRadiance(waterSurface, waterSurface.normal, waterBsdfData.roughness);
+      #ifdef CAMERA_ENABLE_SSR
+        float ssrMix = saturate(scene_TerrainWaterCoverageParams.w);
+        if (ssrMix > 0.0 && waterFilm.coverage > 0.005) {
+          float ssrFragEyeDepth = remapDepthBufferEyeDepth(gl_FragCoord.z);
+          vec3 ssrRadiance = evaluateScreenSpaceReflectionWithDepth(
+            varyings.positionCS,
+            waterSurface.normal,
+            waterBsdfData.roughness,
+            radiance,
+            ssrFragEyeDepth,
+            ssrDepthSlope
+          );
+          radiance = mix(radiance, ssrRadiance, ssrMix);
+        }
+      #endif
+      vec3 environmentSpecular = terrainProjectEvaluateSpecularIBL(waterSurface, waterBsdfData, radiance);
       float reflectionIntensity = scene_TerrainWaterCoverageParams.z;
       result.directSpecular += directSpecular * waterFilm.coverage * reflectionIntensity;
       result.environmentSpecular += environmentSpecular * waterFilm.coverage * reflectionIntensity;

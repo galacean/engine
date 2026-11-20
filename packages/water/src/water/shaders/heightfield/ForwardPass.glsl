@@ -1,4 +1,7 @@
 
+      #include "ShaderLibrary/Common/Common.glsl"
+      #include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl"
+
       mat4 renderer_MVPMat;
       mat4 renderer_ModelMat;
       mat4 renderer_NormalMat;
@@ -16,10 +19,6 @@
 #endif
 #if {{USE_CAMERA_OPAQUE_TEXTURE}}
       sampler2D camera_OpaqueTexture;
-#endif
-#if {{USE_SCENE_DEPTH}}
-      vec4 camera_ProjectionParams;
-      vec4 camera_DepthBufferParams;
 #endif
       sampler2D material_LocalMapTexture;
 {{VALUE_008_CREATEWATERSURFACEAPPEARANCEV2UNIFORMDECLARATIONS_SURFAC}}
@@ -57,9 +56,6 @@
       float material_ReflectionSource;
       float material_WaterScreenSpaceReflectionCompositeIntensity;
       samplerCube material_ReflectionCubeTexture;
-      sampler2D camera_ScreenSpaceReflectionTexture;
-      float camera_ScreenSpaceReflectionIntensity;
-      float camera_ScreenSpaceReflectionMaxRoughness;
 {{VALUE_009_REFLECTIONUNIFORMDECLARATIONS_QUALITY}}
 #if {{WAVE_COUNT}} > 0
       vec4 material_WaveA0;
@@ -118,24 +114,11 @@
 {{VALUE_016_CREATEWATERSURFACEAPPEARANCESHADERFUNCTIONS}}
 {{HEIGHTFIELD_DEPTH_FUNCTIONS}}
 {{VALUE_017_CREATEWATERSURFACEAPPEARANCEV2SHADERFUNCTIONS_SURFACEAPP}}
-      float saturate(float value) {
-        return clamp(value, 0.0, 1.0);
-      }
       #include "ShaderLibrary/Lighting/VolumetricCloudShadow.glsl"
 {{VALUE_018_CONTACTFOAMSHADERFUNCTIONSV2_SURFACEAPPEARANCEV2}}
 {{VALUE_019_SHAREDSURFACEASSEMBLY_SHAREDFUNCTIONSOURCE}}
 {{VALUE_020_SURFACEAPPEARANCELIGHTINGFUNCTIONS}}
 {{HEIGHTFIELD_GEOMETRY_FUNCTIONS}}
-
-#if {{USE_SCENE_DEPTH}}
-      float remapDepthBufferEyeDepth(float depth) {
-        #ifdef CAMERA_ORTHOGRAPHIC
-          return camera_ProjectionParams.y + (camera_ProjectionParams.z - camera_ProjectionParams.y) * depth;
-        #else
-          return 1.0 / (camera_DepthBufferParams.z * depth + camera_DepthBufferParams.w);
-        #endif
-      }
-#endif
 
       Varyings vert(Attributes attr) {
         Varyings output;
@@ -213,11 +196,6 @@
         float coverage = smoothstep(-coverageHalfWidth, coverageHalfWidth, signedDistance);
         bool precomposedReplace = material_CompositionMode > {{VALUE_092_HEIGHTFIELDWATERCOMPOSITIONMODE_ALPHABLEND_0_5}};
         if (precomposedReplace && coverage <= 0.001) discard;
-#if defined(SSR_CONTRIBUTION_DEPTH) && {{PRECOMPOSED_REPLACE}}
-        // The shared precomposed closure always returns alpha=1. Color cannot
-        // affect depth; only geometric coverage, connections and reveal clip it.
-        float fragmentAlpha = 1.0;
-#else
         float elapsedTime = surfaceTime();
 {{VALUE_043_OPTICALDEPTHCALCULATION_USESCENEDEPTH_USECOMPOSITEDEPTHR}}
         opticalDepth = min(opticalDepth, max(material_MaximumSurfaceOpticalDistance, 0.0));
@@ -246,12 +224,7 @@
         float normalDotView = saturate(dot(surfaceNormalWS, viewDirection));
 {{VALUE_054_LOCALBATHYMETRYOPTICALDEPTHREFINEMENT_USELOCALBATHYMETRY}}
         float fresnelF0 = clamp(material_FresnelF0, 0.0, 1.0);
-#if defined(SSR_CONTRIBUTION_DEPTH)
-#endif
 {{VALUE_066_CREATEWATERSURFACEAPPEARANCEV2BOUNDARYSTATEMENTS_SURFACE}}
-#ifdef SSR_CONTRIBUTION_DEPTH
-{{DEPTH_ALPHA_STATEMENTS}}
-#else
 {{VALUE_067_WATERDIFFUSELIGHTINGSTATEMENTS_LITSCENECOLORCLOSURE}}
         float clarity = saturate(material_Clarity);
         // Authored color is resolved only by the shared V2 Closure below.
@@ -274,8 +247,6 @@
         float surfaceAlpha = resolvedWaterClosure.a;
         vec3 fragmentColor = shaderCompositedColor;
         float fragmentAlpha = surfaceAlpha;
-#endif
-#endif
 #ifdef MATERIAL_WATER_PRESENTATION_REVEAL
         float presentationBand = max(material_PresentationRevealBand, 0.0001);
         vec2 presentationTileUv = fract(input.atlasUv * max(material_PresentationRevealRepeat, vec2(1.0)));
@@ -300,7 +271,6 @@
           presentationProgress
         );
         if (presentationVisibility <= 0.001) discard;
-#ifndef SSR_CONTRIBUTION_DEPTH
         float presentationCrest = 1.0 - smoothstep(
           0.0,
           presentationBand * 1.8,
@@ -312,7 +282,6 @@
           presentationNoise
         );
         fragmentColor = mix(fragmentColor, presentationCrestColor, presentationCrest * 0.72);
-#endif
         fragmentAlpha *= presentationVisibility;
 #endif
         if (precomposedReplace) {
@@ -320,10 +289,5 @@
           // matching material render-state binding, so B is not consumed again.
           fragmentAlpha = 1.0;
         }
-        #ifdef SSR_CONTRIBUTION_CAPTURE
-          if (fragmentAlpha <= 0.0001) discard;
-        #endif
-        #ifndef SSR_CONTRIBUTION_DEPTH
-          {{VALUE_093_CREATEWATERSURFACEV2RESOLVEDOUTPUTSTATEMENT_VEC4_FRAGMEN}}
-        #endif
+        {{VALUE_093_CREATEWATERSURFACEV2RESOLVEDOUTPUTSTATEMENT_VEC4_FRAGMEN}}
       }

@@ -2,7 +2,8 @@ Shader "Farming/PlantOrganTint" {
     SubShader "Default" {
       UsePass "Pipeline/ShadowCaster/Default/ShadowCaster"
       UsePass "Pipeline/DepthOnly/Default/DepthOnly"
-      UsePass "Pipeline/ScreenSpaceReflectionSurface/Default/ScreenSpaceReflectionSurface"
+      UsePass "Pipeline/SSRReceiver/Default/SSRReceiver"
+      UsePass "Pipeline/SSRContributionDepth/Default/SSRContributionDepth"
 
       Pass "Forward Pass" {
         Tags { pipelineStage = "Forward"}

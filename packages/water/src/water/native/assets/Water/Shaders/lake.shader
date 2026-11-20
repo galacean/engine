@@ -169,7 +169,7 @@ material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enu
 
   SubShader "Default" {
     Pass "Forward" {
-      Tags { pipelineStage = "Forward", screenSpaceReflectionTransparentSample = "SampleV1" }
+      Tags { pipelineStage = "Forward" }
       Bool blendEnabled;
       Bool depthWriteEnabled;
       BlendState customBlendState {
@@ -191,6 +191,9 @@ material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enu
 
       VertexShader = vert;
       FragmentShader = frag;
+
+      #include "ShaderLibrary/Common/Common.glsl"
+      #include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl"
 
       mat4 renderer_MVPMat;
       mat4 renderer_ModelMat;
@@ -267,8 +270,6 @@ material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enu
       float material_WindVelocityOverride;
       highp sampler2D camera_DepthTexture;
       sampler2D camera_OpaqueTexture;
-      vec4 camera_ProjectionParams;
-      vec4 camera_DepthBufferParams;
       sampler2D material_LocalMapTexture;
 #ifndef WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
 #define WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
@@ -346,9 +347,6 @@ material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enu
       float material_ReflectionSource;
       float material_WaterScreenSpaceReflectionCompositeIntensity;
       samplerCube material_ReflectionCubeTexture;
-      sampler2D camera_ScreenSpaceReflectionTexture;
-      float camera_ScreenSpaceReflectionIntensity;
-      float camera_ScreenSpaceReflectionMaxRoughness;
 #ifndef WATER_ENVIRONMENT_REFLECTION_UNIFORMS_INCLUDED
 #define WATER_ENVIRONMENT_REFLECTION_UNIFORMS_INCLUDED
 
@@ -794,9 +792,6 @@ float waterSurfaceDerivedSceneRayDepth(
 
 #endif
 
-      float saturate(float value) {
-        return clamp(value, 0.0, 1.0);
-      }
       #include "ShaderLibrary/Lighting/VolumetricCloudShadow.glsl"
 #ifndef WATER_ANIMATED_VORONOI_F1_INCLUDED
 #define WATER_ANIMATED_VORONOI_F1_INCLUDED
@@ -1615,14 +1610,6 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
 
 
 
-      float remapDepthBufferEyeDepth(float depth) {
-        #ifdef CAMERA_ORTHOGRAPHIC
-          return camera_ProjectionParams.y + (camera_ProjectionParams.z - camera_ProjectionParams.y) * depth;
-        #else
-          return 1.0 / (camera_DepthBufferParams.z * depth + camera_DepthBufferParams.w);
-        #endif
-      }
-
       Varyings vert(Attributes attr) {
         Varyings output;
         vec4 baseWorldPosition = renderer_ModelMat * attr.POSITION;
@@ -2147,19 +2134,23 @@ float waterSurface_waveCrest = max(input.waveOffset, 0.0);
         );
         vec3 rawSsrReflectionPremultipliedSample = vec3(0.0);
         float rawSsrReflectionValidity = 0.0;
-        if (
-          material_ReflectionSource > 2.5 &&
-          rainRippleSurfaceRoughness < camera_ScreenSpaceReflectionMaxRoughness
-        ) {
-          vec2 ssrScreenUv = (input.clipPosition.xy / input.clipPosition.w) * 0.5 + 0.5;
-          vec4 ssrReflection = texture2D(camera_ScreenSpaceReflectionTexture, ssrScreenUv);
-          float ssrGlobalIntensity = saturate(camera_ScreenSpaceReflectionIntensity);
-          ssrGlobalIntensity *= waterConnectionFacts(input.worldPosition.xz).y;
-          rawSsrReflectionPremultipliedSample = ssrReflection.rgb * ssrGlobalIntensity;
-          rawSsrReflectionValidity = saturate(
-            ssrReflection.a * ssrGlobalIntensity
+        #ifdef CAMERA_ENABLE_SSR
+        if (material_ReflectionSource > 2.5) {
+          vec3 fallbackEnvironment = mix(
+            rawAnalyticReflectionSample,
+            rawEnvironmentReflectionSample,
+            rawEnvironmentReflectionValidity
           );
+          vec3 ssrComposited = evaluateScreenSpaceReflection(
+            input.clipPosition,
+            surfaceNormalWS,
+            rainRippleSurfaceRoughness,
+            fallbackEnvironment
+          );
+          rawSsrReflectionValidity = waterConnectionFacts(input.worldPosition.xz).y;
+          rawSsrReflectionPremultipliedSample = ssrComposited * rawSsrReflectionValidity;
         }
+        #endif
         float reflectionIntensity = max(material_ReflectionIntensity, 0.0);
 
         WaterSurfaceRawRefractionFactsV2 rawRefractionFacts;
@@ -2281,23 +2272,36 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
           // matching material render-state binding, so B is not consumed again.
           fragmentAlpha = 1.0;
         }
-          gl_FragColor = waterSurfaceOutputWithPick(vec4(fragmentColor, fragmentAlpha));
+        gl_FragColor = waterSurfaceOutputWithPick(vec4(fragmentColor, fragmentAlpha));
       }
 
     }
-
-    Pass "ScreenSpaceReflectionSurface" {
-      Tags {
-        pipelineStage = "ScreenSpaceReflectionSurface",
-        screenSpaceReflectionReceiver = "ColorResponseV3"
-      }
-      DepthState ssrSurfaceDepthState {
+    Pass "SSRReceiver" {
+      Tags { pipelineStage = "SSRReceiver" }
+      DepthState = {
+        Enabled = true;
         WriteEnabled = true;
         CompareFunction = CompareFunction.LessEqual;
       }
-      RasterState ssrSurfaceRasterState { CullMode = CullMode.Off; }
-      DepthState = ssrSurfaceDepthState;
-      RasterState = ssrSurfaceRasterState;
+      BlendState = {
+        Enabled = false;
+      }
+      StencilState = {
+        Enabled = true;
+        ReferenceValue = 1;
+        Mask = 255;
+        WriteMask = 255;
+        CompareFunctionFront = CompareFunction.Always;
+        CompareFunctionBack = CompareFunction.Always;
+        PassOperationFront = StencilOperation.Replace;
+        PassOperationBack = StencilOperation.Replace;
+        FailOperationFront = StencilOperation.Keep;
+        FailOperationBack = StencilOperation.Keep;
+        ZFailOperationFront = StencilOperation.Keep;
+        ZFailOperationBack = StencilOperation.Keep;
+      }
+      RasterState ssrReceiverRasterState { CullMode = CullMode.Off; }
+      RasterState = ssrReceiverRasterState;
       RenderQueueType = Transparent;
 
       VertexShader = vert;
@@ -2305,7 +2309,7 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
 
       #include "ShaderLibrary/Common/Common.glsl"
       #include "ShaderLibrary/Common/Transform.glsl"
-      #include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflection.glsl"
+      #include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl"
 
       vec4 scene_ElapsedTime;
       vec3 scene_WindVelocity;
@@ -2363,8 +2367,8 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
       float material_SurfaceTimeOverride;
       float material_MicroNormalsEnabled;
       float material_Roughness;
-      float material_ScreenSpaceReflectionMode;
       float material_ScreenSpaceReflectionIntensity;
+      vec4 camera_SSRParams;
 
       struct Attributes {
         vec4 POSITION;
@@ -2382,9 +2386,9 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
         vec2 atlasUv;
         float waveOffset;
       };
-      struct HeightfieldScreenSpaceReflectionSurfaceOutput {
-        layout(location = 0) vec4 geometry;
-        layout(location = 1) vec4 responseColor;
+      struct HeightfieldSSRReceiverOutput {
+        layout(location = 0) vec4 normalRoughness;
+        layout(location = 1) vec4 receiverDepth;
       };
 
 
@@ -2640,12 +2644,9 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
         return varyings;
       }
 
-      HeightfieldScreenSpaceReflectionSurfaceOutput frag(Varyings input) {
+      HeightfieldSSRReceiverOutput frag(Varyings input) {
+        if (material_ScreenSpaceReflectionIntensity <= 0.0) discard;
         if (waterConnectionFacts(input.worldPosition.xz).w < 0.5) discard;
-        if (
-          material_ScreenSpaceReflectionMode < 1.5
-            || material_ScreenSpaceReflectionMode > 2.5
-        ) discard;
         vec4 localMap = texture2D(material_LocalMapTexture, input.atlasUv);
         float signedDistance = (localMap.a * 2.0 - 1.0) * material_LocalMapDecode.z;
         signedDistance = waterConnectionShore(input.worldPosition.xz, signedDistance);
@@ -2830,16 +2831,13 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
 
         surfaceNormalWS = waterConnectionNormal(input.worldPosition.xz, surfaceNormalWS);
 
+        if (rainRippleSurfaceRoughness >= camera_SSRParams.y) discard;
         vec3 viewDirection = safeNormalize3(camera_Position - input.worldPosition, vec3(0.0, 1.0, 0.0));
         surfaceNormalWS *= step(0.0, dot(surfaceNormalWS, viewDirection)) * 2.0 - 1.0;
-        HeightfieldScreenSpaceReflectionSurfaceOutput surfaceOutput;
-        surfaceOutput.geometry = packScreenSpaceReflectionSurface(
-          surfaceNormalWS,
-          rainRippleSurfaceRoughness,
-          1.0
-        );
-        surfaceOutput.responseColor = vec4(vec3(material_ScreenSpaceReflectionIntensity), 1.0);
-        return surfaceOutput;
+        HeightfieldSSRReceiverOutput ssrOutput;
+        ssrOutput.normalRoughness = packSSRNormalRoughness(surfaceNormalWS, rainRippleSurfaceRoughness);
+        ssrOutput.receiverDepth = encodeSSRDepth(remapDepthBufferEyeDepth(gl_FragCoord.z), camera_ProjectionParams.z);
+        return ssrOutput;
       }
 
     }
