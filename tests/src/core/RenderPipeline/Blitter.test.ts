@@ -2,11 +2,12 @@ import {
   Blitter,
   BloomEffect,
   Camera,
-  CameraClearFlags,
   ColorWriteMask,
   Material,
   MSAASamples,
   PostProcess,
+  RenderBufferLoadAction,
+  RenderBufferStoreAction,
   RenderTarget,
   Shader,
   Texture2D,
@@ -18,7 +19,7 @@ import { HeadlessEngine } from "@galacean/engine-rhi-null";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-describe("Blitter & RHI TBDR invalidateRenderTarget", () => {
+describe("Blitter & RHI TBDR Load/Store Actions", () => {
   let engine: WebGLEngine;
   let headless: HeadlessEngine;
   let gl: WebGL2RenderingContext;
@@ -42,7 +43,7 @@ describe("Blitter & RHI TBDR invalidateRenderTarget", () => {
     headless?.destroy();
   });
 
-  it("invalidateRenderTarget filters existing attachments, splits depth/stencil, and skips default backbuffer", () => {
+  it("activeRenderTarget applies Load/Store actions with attachment filtering, Adreno split, and backbuffer/driver guards", () => {
     // @ts-ignore
     const rhi = engine._hardwareRenderer;
     const invSpy = vi.spyOn(gl, "invalidateFramebuffer");
@@ -57,62 +58,196 @@ describe("Blitter & RHI TBDR invalidateRenderTarget", () => {
 
     try {
       const fullViewport = new Vector4(0, 0, 1, 1);
+      const halfViewport = new Vector4(0.5, 0, 0.5, 1);
       while (gl.getError() !== gl.NO_ERROR);
 
-      // CameraClearFlags.None is a no-op
+      // Default Load/Store is a no-op
       invSpy.mockClear();
-      rhi.invalidateRenderTarget(singleRT, CameraClearFlags.None);
-      expect(invSpy).not.toHaveBeenCalled();
-
-      // Default WebGL backbuffer (null with _mainFrameBuffer === null) is skipped
-      rhi.activeRenderTarget(null, fullViewport, false, 0);
-      invSpy.mockClear();
-      rhi.invalidateRenderTarget(null, CameraClearFlags.All);
-      expect(invSpy).not.toHaveBeenCalled();
-
-      // Single-color Depth24Stencil8 FBO: fast path COLOR_ATTACHMENT0; Depth+Stencil split across two calls (Adreno safety)
       rhi.activeRenderTarget(singleRT, fullViewport, true, 0);
+      expect(invSpy).not.toHaveBeenCalled();
+
+      // Default WebGL backbuffer (null with _mainFrameBuffer === null) is skipped for both Load and Store DontCare
       invSpy.mockClear();
-      rhi.invalidateRenderTarget(singleRT, CameraClearFlags.Color);
+      rhi.activeRenderTarget(
+        null,
+        fullViewport,
+        false,
+        0,
+        undefined,
+        RenderBufferLoadAction.DontCare,
+        RenderBufferStoreAction.DontCare,
+        RenderBufferLoadAction.DontCare,
+        RenderBufferStoreAction.DontCare
+      );
+      rhi.activeRenderTarget(singleRT, fullViewport, true, 0);
+      expect(invSpy).not.toHaveBeenCalled();
+
+      // Sub-viewport LoadAction.DontCare is skipped to protect pixels outside the viewport
+      invSpy.mockClear();
+      rhi.activeRenderTarget(
+        singleRT,
+        halfViewport,
+        true,
+        0,
+        undefined,
+        RenderBufferLoadAction.DontCare,
+        RenderBufferStoreAction.Store,
+        RenderBufferLoadAction.DontCare,
+        RenderBufferStoreAction.Store
+      );
+      expect(invSpy).not.toHaveBeenCalled();
+
+      // Single-color Depth24Stencil8 FBO: color Load DontCare -> COLOR_ATTACHMENT0; depth Load DontCare -> Adreno split
+      invSpy.mockClear();
+      rhi.activeRenderTarget(
+        singleRT,
+        fullViewport,
+        true,
+        0,
+        undefined,
+        RenderBufferLoadAction.DontCare,
+        RenderBufferStoreAction.Store
+      );
       expect(invSpy).toHaveBeenCalledTimes(1);
       expect(Array.from(invSpy.mock.calls[0][1])).toEqual([gl.COLOR_ATTACHMENT0]);
       expect(gl.getError()).toBe(gl.NO_ERROR);
 
       invSpy.mockClear();
-      rhi.invalidateRenderTarget(singleRT, CameraClearFlags.DepthStencil);
+      rhi.activeRenderTarget(
+        singleRT,
+        fullViewport,
+        true,
+        0,
+        undefined,
+        RenderBufferLoadAction.Load,
+        RenderBufferStoreAction.Store,
+        RenderBufferLoadAction.DontCare,
+        RenderBufferStoreAction.Store
+      );
       expect(invSpy).toHaveBeenCalledTimes(2);
       expect(Array.from(invSpy.mock.calls[0][1])).toEqual([gl.DEPTH_ATTACHMENT]);
       expect(Array.from(invSpy.mock.calls[1][1])).toEqual([gl.STENCIL_ATTACHMENT]);
       expect(gl.getError()).toBe(gl.NO_ERROR);
 
       invSpy.mockClear();
-      rhi.invalidateRenderTarget(singleRT, CameraClearFlags.All);
+      rhi.activeRenderTarget(
+        singleRT,
+        fullViewport,
+        true,
+        0,
+        undefined,
+        RenderBufferLoadAction.DontCare,
+        RenderBufferStoreAction.Store,
+        RenderBufferLoadAction.DontCare,
+        RenderBufferStoreAction.DontCare
+      );
       expect(invSpy).toHaveBeenCalledTimes(2);
       expect(Array.from(invSpy.mock.calls[0][1])).toEqual([gl.COLOR_ATTACHMENT0, gl.DEPTH_ATTACHMENT]);
       expect(Array.from(invSpy.mock.calls[1][1])).toEqual([gl.STENCIL_ATTACHMENT]);
       expect(gl.getError()).toBe(gl.NO_ERROR);
 
-      // Color-only FBO: DepthStencil is filtered out completely
-      rhi.activeRenderTarget(colorOnlyRT, fullViewport, true, 0);
+      // Switching away flushes pending depth StoreAction.DontCare once (and clears pending store state)
       invSpy.mockClear();
-      rhi.invalidateRenderTarget(colorOnlyRT, CameraClearFlags.DepthStencil);
+      rhi.activeRenderTarget(colorOnlyRT, fullViewport, true, 0);
+      expect(invSpy).toHaveBeenCalledTimes(2);
+      expect(Array.from(invSpy.mock.calls[0][1])).toEqual([gl.DEPTH_ATTACHMENT]);
+      expect(Array.from(invSpy.mock.calls[1][1])).toEqual([gl.STENCIL_ATTACHMENT]);
+
+      invSpy.mockClear();
+      rhi.activeRenderTarget(colorOnlyRT, fullViewport, true, 0);
+      expect(invSpy).not.toHaveBeenCalled();
+
+      // StoreAction.DontCare also flushes before allocating a new RenderTarget FBO or explicit flush()
+      rhi.activeRenderTarget(
+        singleRT,
+        fullViewport,
+        true,
+        0,
+        undefined,
+        RenderBufferLoadAction.Load,
+        RenderBufferStoreAction.Store,
+        RenderBufferLoadAction.Load,
+        RenderBufferStoreAction.DontCare
+      );
+      invSpy.mockClear();
+      const tempRT = new RenderTarget(engine, 8, 8, null, TextureFormat.Depth24, 1);
+      try {
+        expect(invSpy).toHaveBeenCalledTimes(2);
+        expect(Array.from(invSpy.mock.calls[0][1])).toEqual([gl.DEPTH_ATTACHMENT]);
+        expect(Array.from(invSpy.mock.calls[1][1])).toEqual([gl.STENCIL_ATTACHMENT]);
+      } finally {
+        tempRT.destroy();
+      }
+
+      rhi.activeRenderTarget(
+        singleRT,
+        fullViewport,
+        true,
+        0,
+        undefined,
+        RenderBufferLoadAction.Load,
+        RenderBufferStoreAction.DontCare
+      );
+      invSpy.mockClear();
+      rhi.flush();
+      expect(invSpy).toHaveBeenCalledTimes(1);
+      expect(Array.from(invSpy.mock.calls[0][1])).toEqual([gl.COLOR_ATTACHMENT0]);
+
+      // Color-only FBO: depth Load/Store DontCare is filtered out completely
+      invSpy.mockClear();
+      rhi.activeRenderTarget(
+        colorOnlyRT,
+        fullViewport,
+        true,
+        0,
+        undefined,
+        RenderBufferLoadAction.Load,
+        RenderBufferStoreAction.Store,
+        RenderBufferLoadAction.DontCare,
+        RenderBufferStoreAction.DontCare
+      );
+      rhi.activeRenderTarget(null, fullViewport, false, 0);
       expect(invSpy).not.toHaveBeenCalled();
 
       // MRT offscreen FBO: COLOR_ATTACHMENT0..N-1
-      rhi.activeRenderTarget(mrtRT, fullViewport, true, 0);
       invSpy.mockClear();
-      rhi.invalidateRenderTarget(mrtRT, CameraClearFlags.Color);
+      rhi.activeRenderTarget(
+        mrtRT,
+        fullViewport,
+        true,
+        0,
+        undefined,
+        RenderBufferLoadAction.DontCare,
+        RenderBufferStoreAction.Store
+      );
       expect(invSpy).toHaveBeenCalledTimes(1);
       expect(Array.from(invSpy.mock.calls[0][1])).toEqual([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
       expect(gl.getError()).toBe(gl.NO_ERROR);
 
-      // Depth24-only FBO: Color is a no-op; DepthStencil invalidates only DEPTH_ATTACHMENT (no missing STENCIL_ATTACHMENT)
-      rhi.activeRenderTarget(depthOnlyRT, fullViewport, true, 0);
+      // Depth24-only FBO: color DontCare is a no-op; depth DontCare invalidates only DEPTH_ATTACHMENT
       invSpy.mockClear();
-      rhi.invalidateRenderTarget(depthOnlyRT, CameraClearFlags.Color);
+      rhi.activeRenderTarget(
+        depthOnlyRT,
+        fullViewport,
+        true,
+        0,
+        undefined,
+        RenderBufferLoadAction.DontCare,
+        RenderBufferStoreAction.Store
+      );
       expect(invSpy).not.toHaveBeenCalled();
 
-      rhi.invalidateRenderTarget(depthOnlyRT, CameraClearFlags.DepthStencil);
+      rhi.activeRenderTarget(
+        depthOnlyRT,
+        fullViewport,
+        true,
+        0,
+        undefined,
+        RenderBufferLoadAction.Load,
+        RenderBufferStoreAction.Store,
+        RenderBufferLoadAction.DontCare,
+        RenderBufferStoreAction.Store
+      );
       expect(invSpy).toHaveBeenCalledTimes(1);
       expect(Array.from(invSpy.mock.calls[0][1])).toEqual([gl.DEPTH_ATTACHMENT]);
       expect(gl.getError()).toBe(gl.NO_ERROR);
@@ -122,9 +257,16 @@ describe("Blitter & RHI TBDR invalidateRenderTarget", () => {
       // @ts-ignore
       rhi._mainFrameBuffer = singleRT._platformRenderTarget._frameBuffer;
       try {
-        rhi.activeRenderTarget(null, fullViewport, false, 0);
         invSpy.mockClear();
-        rhi.invalidateRenderTarget(null, CameraClearFlags.Color);
+        rhi.activeRenderTarget(
+          null,
+          fullViewport,
+          false,
+          0,
+          undefined,
+          RenderBufferLoadAction.DontCare,
+          RenderBufferStoreAction.Store
+        );
         expect(invSpy).toHaveBeenCalledTimes(1);
         expect(Array.from(invSpy.mock.calls[0][1])).toEqual([gl.COLOR_ATTACHMENT0]);
         expect(gl.getError()).toBe(gl.NO_ERROR);
@@ -136,17 +278,37 @@ describe("Blitter & RHI TBDR invalidateRenderTarget", () => {
       const prevSupport = rhi._supportsInvalidateFramebuffer;
       rhi._supportsInvalidateFramebuffer = false;
       try {
-        rhi.activeRenderTarget(singleRT, fullViewport, true, 0);
         invSpy.mockClear();
-        rhi.invalidateRenderTarget(singleRT, CameraClearFlags.All);
+        rhi.activeRenderTarget(
+          singleRT,
+          fullViewport,
+          true,
+          0,
+          undefined,
+          RenderBufferLoadAction.DontCare,
+          RenderBufferStoreAction.DontCare,
+          RenderBufferLoadAction.DontCare,
+          RenderBufferStoreAction.DontCare
+        );
+        rhi.activeRenderTarget(null, fullViewport, false, 0);
         expect(invSpy).not.toHaveBeenCalled();
       } finally {
         rhi._supportsInvalidateFramebuffer = prevSupport;
       }
 
       // NullGraphicDevice no-op
-      // @ts-ignore
-      expect(() => headless._hardwareRenderer.invalidateRenderTarget(null, CameraClearFlags.All)).not.toThrow();
+      expect(() =>
+        // @ts-ignore
+        headless._hardwareRenderer.activeRenderTarget(
+          null,
+          fullViewport,
+          false,
+          0,
+          undefined,
+          RenderBufferLoadAction.DontCare,
+          RenderBufferStoreAction.DontCare
+        )
+      ).not.toThrow();
     } finally {
       invSpy.mockRestore();
       singleRT.destroy();
@@ -159,7 +321,7 @@ describe("Blitter & RHI TBDR invalidateRenderTarget", () => {
     }
   });
 
-  it("Blitter.blitTexture invalidates only built-in full-overwrite passes and preserves custom discard shaders", () => {
+  it("Blitter.blitTexture infers LoadAction.DontCare safely for built-in shaders and honors explicit colorLoadAction", () => {
     const invSpy = vi.spyOn(gl, "invalidateFramebuffer");
 
     const srcTex = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, false, false);
@@ -203,6 +365,20 @@ describe("Blitter & RHI TBDR invalidateRenderTarget", () => {
     }`);
     const discardMat = new Material(engine, discardShader);
 
+    const customSolidShader = Shader.create(`Shader "Test/BlitCustomSolid" {
+      SubShader "Default" {
+        Pass "0" {
+          DepthState = { Enabled = false; WriteEnabled = false; }
+          VertexShader = vert;
+          FragmentShader = frag;
+          struct Attributes { vec4 POSITION_UV; };
+          void vert(Attributes attr) { gl_Position = vec4(attr.POSITION_UV.xy, 0.0, 1.0); }
+          void frag() { gl_FragColor = vec4(0.5, 0.25, 0.75, 1.0); }
+        }
+      }
+    }`);
+    const customSolidMat = new Material(engine, customSolidShader);
+
     const mrtShader = Shader.create(`Shader "Test/BlitMRT" {
       SubShader "Default" {
         Pass "0" {
@@ -242,7 +418,7 @@ describe("Blitter & RHI TBDR invalidateRenderTarget", () => {
       dstTex0.getPixelBuffer(outPixels);
       expect(Array.from(outPixels.slice(0, 4))).toEqual([200, 100, 50, 255]);
 
-      // 2. Custom material that discards left half -> must NOT invalidate and must preserve prefilled left-half pixels
+      // 2. Custom material that discards left half -> defaults to Load and preserves prefilled left-half pixels
       invSpy.mockClear();
       Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, discardMat);
       expect(invSpy).not.toHaveBeenCalled();
@@ -253,7 +429,27 @@ describe("Blitter & RHI TBDR invalidateRenderTarget", () => {
       expect(Array.from(outPixels.slice(leftIdx, leftIdx + 4))).toEqual([200, 100, 50, 255]);
       expect(Array.from(outPixels.slice(rightIdx, rightIdx + 4))).toEqual([10, 220, 30, 255]);
 
-      // 3. Sub-viewport with built-in blit -> must NOT invalidate (preserves untouched left half)
+      // 3. Explicit colorLoadAction overrides inference (custom shader can opt in; built-in shader can opt out)
+      invSpy.mockClear();
+      Blitter.blitTexture(
+        engine,
+        srcTex,
+        dstRT,
+        0,
+        undefined,
+        customSolidMat,
+        0,
+        undefined,
+        RenderBufferLoadAction.DontCare
+      );
+      expect(invSpy).toHaveBeenCalledTimes(1);
+      expect(Array.from(invSpy.mock.calls[0][1])).toEqual([gl.COLOR_ATTACHMENT0]);
+
+      invSpy.mockClear();
+      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, builtinMat, 0, undefined, RenderBufferLoadAction.Load);
+      expect(invSpy).not.toHaveBeenCalled();
+
+      // 4. Sub-viewport with built-in blit -> must NOT invalidate (preserves untouched left half)
       Blitter.blitTexture(engine, srcTex, dstRT);
       const bluePixels = new Uint8Array(16 * 16 * 4);
       for (let i = 0; i < 16 * 16; i++) {
@@ -270,43 +466,43 @@ describe("Blitter & RHI TBDR invalidateRenderTarget", () => {
       expect(Array.from(outPixels.slice(leftIdx, leftIdx + 4))).toEqual([200, 100, 50, 255]);
       expect(Array.from(outPixels.slice(rightIdx, rightIdx + 4))).toEqual([20, 40, 240, 255]);
 
-      // 4. Default framebuffer (null) -> must NOT invalidate
+      // 5. Default framebuffer (null) -> must NOT invalidate
       invSpy.mockClear();
       Blitter.blitTexture(engine, srcTex, null);
       expect(invSpy).not.toHaveBeenCalled();
 
-      // 5. MSAA RenderTarget -> must NOT invalidate
+      // 6. MSAA RenderTarget -> must NOT invalidate
       invSpy.mockClear();
       Blitter.blitTexture(engine, srcTex, msaaRT);
       expect(invSpy).not.toHaveBeenCalled();
 
-      // 6. MRT RenderTarget -> must NOT invalidate
+      // 7. MRT RenderTarget -> must NOT invalidate
       invSpy.mockClear();
       Blitter.blitTexture(engine, srcTex, mrtRT, 0, undefined, mrtMat);
       expect(invSpy).not.toHaveBeenCalled();
 
-      // 7. Blended pass on built-in shader -> must NOT invalidate
+      // 8. Blended pass on built-in shader -> must NOT invalidate
       passRenderState.blendState.targetBlendState.enabled = true;
       invSpy.mockClear();
       Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, builtinMat);
       expect(invSpy).not.toHaveBeenCalled();
       passRenderState.blendState.targetBlendState.enabled = savedBlendEnabled;
 
-      // 8. Partial colorWriteMask on built-in shader -> must NOT invalidate
+      // 9. Partial colorWriteMask on built-in shader -> must NOT invalidate
       passRenderState.blendState.targetBlendState.colorWriteMask = ColorWriteMask.Red;
       invSpy.mockClear();
       Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, builtinMat);
       expect(invSpy).not.toHaveBeenCalled();
       passRenderState.blendState.targetBlendState.colorWriteMask = savedColorMask;
 
-      // 9. Depth test enabled on built-in shader -> must NOT invalidate
+      // 10. Depth test enabled on built-in shader -> must NOT invalidate
       passRenderState.depthState.enabled = true;
       invSpy.mockClear();
       Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, builtinMat);
       expect(invSpy).not.toHaveBeenCalled();
       passRenderState.depthState.enabled = savedDepthEnabled;
 
-      // 10. Stencil test enabled on built-in shader -> must NOT invalidate
+      // 11. Stencil test enabled on built-in shader -> must NOT invalidate
       passRenderState.stencilState.enabled = true;
       invSpy.mockClear();
       Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, builtinMat);
@@ -325,6 +521,8 @@ describe("Blitter & RHI TBDR invalidateRenderTarget", () => {
       builtinMat.destroy();
       discardMat.destroy();
       discardShader.destroy();
+      customSolidMat.destroy();
+      customSolidShader.destroy();
       mrtMat.destroy();
       mrtShader.destroy();
       dstRT.destroy();
@@ -336,32 +534,58 @@ describe("Blitter & RHI TBDR invalidateRenderTarget", () => {
     }
   });
 
-  it("emits TBDR StoreAction::DontCare for transient depth/stencil and final MSAA resolve alongside LoadAction::DontCare", () => {
+  it("drives MSAA StoreAndResolve/Resolve and transient depth StoreAction.DontCare end-to-end", () => {
     const invSpy = vi.spyOn(gl, "invalidateFramebuffer");
+    const fullViewport = new Vector4(0, 0, 1, 1);
 
-    // 1. Direct GLRenderTarget.blitRenderTarget(discardMSAA) contract
+    // 1. Direct StoreAndResolve vs Resolve + depth DontCare on MSAA RenderTarget
     const msaaTex = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, false, false);
     const msaaRT = new RenderTarget(engine, 16, 16, msaaTex, TextureFormat.Depth24Stencil8, 4);
     try {
       // @ts-ignore
       const rhi = engine._hardwareRenderer;
-      rhi.activeRenderTarget(msaaRT, new Vector4(0, 0, 1, 1), true, 0);
+      rhi.activeRenderTarget(
+        msaaRT,
+        fullViewport,
+        true,
+        0,
+        undefined,
+        RenderBufferLoadAction.Load,
+        RenderBufferStoreAction.StoreAndResolve,
+        RenderBufferLoadAction.Load,
+        RenderBufferStoreAction.Store
+      );
       gl.clearColor(0.25, 0.5, 0.75, 1.0);
       gl.clear(gl.COLOR_BUFFER_BIT);
       while (gl.getError() !== gl.NO_ERROR);
 
-      // Mid-pass resolve (discardMSAA = false) must NOT invalidate READ_FRAMEBUFFER
+      // Mid-pass StoreAndResolve must NOT invalidate READ_FRAMEBUFFER
       invSpy.mockClear();
-      msaaRT._blitRenderTarget(false);
+      msaaRT._blitRenderTarget();
       expect(invSpy).not.toHaveBeenCalled();
       expect(gl.getError()).toBe(gl.NO_ERROR);
 
-      // Final resolve (discardMSAA = true) invalidates READ_FRAMEBUFFER COLOR_ATTACHMENT0 while preserving resolved pixels
+      // Final pass Resolve + depth DontCare invalidates depth/stencil before blit and MSAA color after blit
+      rhi.activeRenderTarget(
+        msaaRT,
+        fullViewport,
+        true,
+        0,
+        undefined,
+        RenderBufferLoadAction.Load,
+        RenderBufferStoreAction.Resolve,
+        RenderBufferLoadAction.Load,
+        RenderBufferStoreAction.DontCare
+      );
       invSpy.mockClear();
-      msaaRT._blitRenderTarget(true);
-      expect(invSpy).toHaveBeenCalledTimes(1);
+      msaaRT._blitRenderTarget();
+      expect(invSpy).toHaveBeenCalledTimes(3);
       expect(invSpy.mock.calls[0][0]).toBe(gl.READ_FRAMEBUFFER);
-      expect(Array.from(invSpy.mock.calls[0][1])).toEqual([gl.COLOR_ATTACHMENT0]);
+      expect(Array.from(invSpy.mock.calls[0][1])).toEqual([gl.DEPTH_ATTACHMENT]);
+      expect(invSpy.mock.calls[1][0]).toBe(gl.READ_FRAMEBUFFER);
+      expect(Array.from(invSpy.mock.calls[1][1])).toEqual([gl.STENCIL_ATTACHMENT]);
+      expect(invSpy.mock.calls[2][0]).toBe(gl.READ_FRAMEBUFFER);
+      expect(Array.from(invSpy.mock.calls[2][1])).toEqual([gl.COLOR_ATTACHMENT0]);
       expect(gl.getError()).toBe(gl.NO_ERROR);
 
       const resolved = new Uint8Array(16 * 16 * 4);
@@ -378,33 +602,46 @@ describe("Blitter & RHI TBDR invalidateRenderTarget", () => {
       msaaTex.destroy();
     }
 
-    // 2. Full engine.update() with PostProcess + Bloom + MSAA + OpaqueTexture
+    // 2. Full engine.update() with PostProcess + Bloom (both non-MSAA and 4x MSAA + OpaqueTexture)
     const scene = engine.sceneManager.scenes[0];
     const ppEntity = scene.createRootEntity("post-process");
     const pp = ppEntity.addComponent(PostProcess);
     const bloom = pp.addEffect(BloomEffect);
     bloom.intensity.value = 1;
     camera.enablePostProcess = true;
-    camera.msaaSamples = MSAASamples.FourX;
-    camera.opaqueTextureEnabled = true;
 
     try {
+      // 2a. Non-MSAA: flushes transient depth/stencil StoreAction.DontCare on FRAMEBUFFER before switching FBOs
+      camera.msaaSamples = MSAASamples.None;
+      camera.opaqueTextureEnabled = false;
       while (gl.getError() !== gl.NO_ERROR);
       invSpy.mockClear();
       engine.update();
       expect(gl.getError()).toBe(gl.NO_ERROR);
 
-      const calls = invSpy.mock.calls.map(([target, attachments]) => ({
+      const nonMsaaCalls = invSpy.mock.calls.map(([target, attachments]) => ({
         target,
         attachments: Array.from(attachments)
       }));
-      // StoreAction::DontCare on internalColorTarget transient depth & stencil RBO (split calls)
-      expect(calls).toContainEqual({ target: gl.FRAMEBUFFER, attachments: [gl.DEPTH_ATTACHMENT] });
-      expect(calls).toContainEqual({ target: gl.FRAMEBUFFER, attachments: [gl.STENCIL_ATTACHMENT] });
-      // StoreAction::DontCare on final MSAA resolve (READ_FRAMEBUFFER)
-      expect(calls).toContainEqual({ target: gl.READ_FRAMEBUFFER, attachments: [gl.COLOR_ATTACHMENT0] });
-      // LoadAction::DontCare on offscreen Bloom/post-process/opaque-texture blits
-      expect(calls).toContainEqual({ target: gl.FRAMEBUFFER, attachments: [gl.COLOR_ATTACHMENT0] });
+      expect(nonMsaaCalls).toContainEqual({ target: gl.FRAMEBUFFER, attachments: [gl.DEPTH_ATTACHMENT] });
+      expect(nonMsaaCalls).toContainEqual({ target: gl.FRAMEBUFFER, attachments: [gl.STENCIL_ATTACHMENT] });
+      expect(nonMsaaCalls).toContainEqual({ target: gl.FRAMEBUFFER, attachments: [gl.COLOR_ATTACHMENT0] });
+
+      // 2b. 4x MSAA + OpaqueTexture: keeps MSAA on mid-pass resolve, discards depth/stencil & MSAA color on final resolve
+      camera.msaaSamples = MSAASamples.FourX;
+      camera.opaqueTextureEnabled = true;
+      invSpy.mockClear();
+      engine.update();
+      expect(gl.getError()).toBe(gl.NO_ERROR);
+
+      const msaaCalls = invSpy.mock.calls.map(([target, attachments]) => ({
+        target,
+        attachments: Array.from(attachments)
+      }));
+      expect(msaaCalls).toContainEqual({ target: gl.READ_FRAMEBUFFER, attachments: [gl.DEPTH_ATTACHMENT] });
+      expect(msaaCalls).toContainEqual({ target: gl.READ_FRAMEBUFFER, attachments: [gl.STENCIL_ATTACHMENT] });
+      expect(msaaCalls).toContainEqual({ target: gl.READ_FRAMEBUFFER, attachments: [gl.COLOR_ATTACHMENT0] });
+      expect(msaaCalls).toContainEqual({ target: gl.FRAMEBUFFER, attachments: [gl.COLOR_ATTACHMENT0] });
     } finally {
       camera.enablePostProcess = false;
       camera.msaaSamples = MSAASamples.None;

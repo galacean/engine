@@ -13,9 +13,8 @@ export interface IPlatformRenderTarget {
 
   /**
    * Blit FBO.
-   * @param discardMSAA - Whether to invalidate the MSAA renderbuffers after resolving
    */
-  blitRenderTarget(discardMSAA?: boolean): void;
+  blitRenderTarget(): void;
 
   /**
    * Destroy render target.

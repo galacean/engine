@@ -264,8 +264,8 @@ export class RenderTarget extends GraphicsResource {
   /**
    * @internal
    */
-  _blitRenderTarget(discardMSAA?: boolean): void {
-    this._platformRenderTarget.blitRenderTarget(discardMSAA);
+  _blitRenderTarget(): void {
+    this._platformRenderTarget.blitRenderTarget();
   }
 
   /**

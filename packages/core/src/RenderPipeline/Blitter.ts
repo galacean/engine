@@ -1,7 +1,7 @@
 import { Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
-import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Material } from "../material";
+import { RenderBufferLoadAction } from "../renderingHardwareInterface";
 import { ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
@@ -34,6 +34,7 @@ export class Blitter {
    * @param material - The material to use when blit
    * @param passIndex - Pass index to use of the provided material
    * @param sourceScaleOffset - Source scale and offset
+   * @param colorLoadAction - Optional color load action for the destination render target
    */
   static blitTexture(
     engine: Engine,
@@ -43,7 +44,8 @@ export class Blitter {
     viewport: Vector4 = PipelineUtils.defaultViewport,
     material: Material | null = null,
     passIndex = 0,
-    sourceScaleOffset?: Vector4
+    sourceScaleOffset?: Vector4,
+    colorLoadAction?: RenderBufferLoadAction
   ): void {
     const basicResources = engine._basicResources;
     const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
@@ -55,7 +57,26 @@ export class Blitter {
     // We not use projection matrix when blit, but we must modify flipProjection to make front face correct
     context.flipProjection = !!destination;
 
-    context.setRenderTarget(destination, viewport, 0);
+    const pass = blitMaterial.shader.subShaders[0].passes[passIndex];
+    pass._renderState._applyStates(engine, false, pass._renderStateDataMap, blitMaterial.shaderData);
+
+    let resolvedLoadAction = colorLoadAction;
+    if (resolvedLoadAction === undefined) {
+      const { blendState, depthState, stencilState } = engine._lastRenderState;
+      resolvedLoadAction =
+        destination &&
+        destination.antiAliasing <= 1 &&
+        destination.colorTextureCount === 1 &&
+        Blitter._isBuiltinFullOverwriteShader(blitMaterial.shader) &&
+        !blendState.targetBlendState.enabled &&
+        blendState.targetBlendState.colorWriteMask === ColorWriteMask.All &&
+        !depthState.enabled &&
+        !stencilState.enabled
+          ? RenderBufferLoadAction.DontCare
+          : RenderBufferLoadAction.Load;
+    }
+
+    context.setRenderTarget(destination, viewport, 0, undefined, resolvedLoadAction);
 
     const rendererShaderData = Blitter._rendererShaderData;
 
@@ -65,7 +86,6 @@ export class Blitter {
     rendererShaderData.setVector4(Blitter._blitTexelSizeProperty, Blitter._texelSize);
     rendererShaderData.setVector4(Blitter._sourceScaleOffsetProperty, sourceScaleOffset ?? Blitter._defaultScaleOffset);
 
-    const pass = blitMaterial.shader.subShaders[0].passes[passIndex];
     const compileMacros = Shader._compileMacros;
 
     ShaderMacroCollection.unionCollection(
@@ -85,28 +105,6 @@ export class Blitter {
     program.uploadAll(program.rendererUniformBlock, rendererShaderData);
     program.uploadAll(program.materialUniformBlock, blitMaterial.shaderData);
     program.uploadUnGroupTextures();
-
-    const renderState = pass._renderState;
-    renderState._applyStates(engine, false, pass._renderStateDataMap, blitMaterial.shaderData);
-
-    const { blendState, depthState, stencilState } = engine._lastRenderState;
-    if (
-      destination &&
-      destination.antiAliasing <= 1 &&
-      destination.colorTextureCount === 1 &&
-      viewport.x === 0 &&
-      viewport.y === 0 &&
-      viewport.z === 1 &&
-      viewport.w === 1 &&
-      Blitter._isBuiltinFullOverwriteShader(blitMaterial.shader) &&
-      !blendState.targetBlendState.enabled &&
-      blendState.targetBlendState.colorWriteMask === ColorWriteMask.All &&
-      !depthState.enabled &&
-      !stencilState.enabled
-    ) {
-      // Hint TBDR GPUs (LoadAction::DontCare) to skip loading stale tile contents before full-target opaque overwrite
-      rhi.invalidateRenderTarget(destination, CameraClearFlags.Color);
-    }
 
     rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program);
     rendererShaderData.setTexture(Blitter._blitTextureProperty, null);
