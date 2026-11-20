@@ -77,7 +77,17 @@ class MaterialLoader extends Loader<Material> {
     const material = new Material(engine, shader);
     material.name = name;
 
-    const texturePromises = new Array<Promise<Texture2D>>();
+    if (renderState) {
+      try {
+        parseProperty(material, "renderState", renderState);
+      } catch (error) {
+        material.destroy();
+        throw error;
+      }
+    }
+
+    const textureKeys: string[] = [];
+    const texturePromises: Promise<Texture2D>[] = [];
     const materialShaderData = material.shaderData;
     for (let key in shaderData) {
       const { type, value } = shaderData[key];
@@ -108,13 +118,9 @@ class MaterialLoader extends Loader<Material> {
           materialShaderData.setFloat(key, <number>value);
           break;
         case MaterialLoaderType.Texture:
-          texturePromises.push(
-            // @ts-ignore
-            engine.resourceManager.getResourceByRef<Texture2D>(<IAssetRef>value).then((texture) => {
-              if (material.destroyed) return;
-              materialShaderData.setTexture(key, texture);
-            })
-          );
+          textureKeys.push(key);
+          // @ts-ignore
+          texturePromises.push(engine.resourceManager.getResourceByRef<Texture2D>(<IAssetRef>value));
           break;
         case MaterialLoaderType.Boolean:
           materialShaderData.setInt(key, value ? 1 : 0);
@@ -134,17 +140,13 @@ class MaterialLoader extends Loader<Material> {
       }
     }
 
-    if (renderState) {
-      try {
-        parseProperty(material, "renderState", renderState);
-      } catch (error) {
-        material.destroy();
-        throw error;
-      }
-    }
-
     return Promise.all(texturePromises).then(
-      () => material,
+      (textures) => {
+        for (let i = 0, n = textures.length; i < n; i++) {
+          materialShaderData.setTexture(textureKeys[i], textures[i]);
+        }
+        return material;
+      },
       (error) => {
         material.destroy();
         throw error;

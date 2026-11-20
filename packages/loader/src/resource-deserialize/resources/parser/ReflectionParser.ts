@@ -41,22 +41,22 @@ const objectPrototype = Object.prototype;
 export class ReflectionParser {
   static customParseComponentHandles = new Map<string, Function>();
 
-  private static readonly _allowedMethods: Record<string, true> = Object.assign(Object.create(null), {
-    setMaterial: true,
-    setMaterials: true,
-    addShape: true,
-    addEffect: true,
-    addTransition: true,
-    addBurst: true,
-    addKey: true,
-    addColorKey: true,
-    addAlphaKey: true,
-    addCurve: true,
-    addGradient: true,
-    set: true,
-    setValue: true,
-    copyFrom: true
-  });
+  private static readonly _allowedMethods = new Set<string>([
+    "setMaterial",
+    "setMaterials",
+    "addShape",
+    "addEffect",
+    "addTransition",
+    "addBurst",
+    "addKey",
+    "addColorKey",
+    "addAlphaKey",
+    "addCurve",
+    "addGradient",
+    "set",
+    "setValue",
+    "copyFrom"
+  ]);
 
   private static readonly _disallowedBaseClasses: ReadonlyArray<Function> = [
     Engine,
@@ -156,16 +156,18 @@ export class ReflectionParser {
       return Promise.reject(new Error("Serialized properties and methods config must be an object"));
     }
 
+    const hasProps = ReflectionParser._hasOwnValue(item, "props") && item.props !== null;
+    if (hasProps && (typeof item.props !== "object" || Array.isArray(item.props))) {
+      return Promise.reject(new Error("Serialized props must be an object"));
+    }
+
     const promises: Promise<any>[] = [];
     if (ReflectionParser._hasOwnValue(item, "methods")) {
       this._parseMethods(instance, item.methods, promises);
     }
 
-    if (ReflectionParser._hasOwnValue(item, "props") && item.props !== null) {
+    if (hasProps) {
       const { props } = item;
-      if (typeof props !== "object" || Array.isArray(props)) {
-        return Promise.reject(new Error("Serialized props must be an object"));
-      }
       for (const key in props) {
         if (!hasOwn.call(props, key)) continue;
         promises.push(this._parseProperty(instance, key, props[key]));
@@ -181,7 +183,7 @@ export class ReflectionParser {
   }
 
   parseMethod(instance: any, methodName: string, methodParams: IMethodParams) {
-    if (typeof methodName !== "string" || ReflectionParser._allowedMethods[methodName] !== true) {
+    if (!ReflectionParser._allowedMethods.has(methodName)) {
       return Promise.reject(new Error("Serialized method is not allowed: " + methodName));
     }
     if (!ReflectionParser._isSafeTarget(instance)) {

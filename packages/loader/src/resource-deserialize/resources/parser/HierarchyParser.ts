@@ -91,33 +91,37 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   protected abstract _handleRootEntity(id: string): void;
   protected abstract _clearAndResolve(): Scene | PrefabResource;
 
-  private async _parseEntities(): Promise<Entity[]> {
-    const entitiesConfig = this.data.entities;
-    if (!Array.isArray(entitiesConfig)) {
-      throw new Error("Serialized entities must be an array");
-    }
-    const entityConfigMap = this.context.entityConfigMap;
-    const engine = this._engine;
-    const count = entitiesConfig.length;
-    for (let i = 0; i < count; i++) {
-      const entityConfig = entitiesConfig[i];
-      const id = (entityConfig as IStrippedEntity).strippedId ?? entityConfig.id;
-      if (entityConfigMap.has(id)) throw new Error("Duplicate serialized entity ID: " + id);
-      entityConfig.id = id;
-      entityConfigMap.set(id, entityConfig);
-      if (
-        !(<IRefEntity>entityConfig).assetRefId &&
-        !(<IStrippedEntity>entityConfig).strippedId &&
-        entityConfig.transform
-      ) {
-        ReflectionParser._resolveClass(entityConfig.transform.class, Transform);
+  private _parseEntities(): Promise<Entity[]> {
+    try {
+      const entitiesConfig = this.data.entities;
+      if (!Array.isArray(entitiesConfig)) {
+        throw new Error("Serialized entities must be an array");
       }
+      const entityConfigMap = this.context.entityConfigMap;
+      const engine = this._engine;
+      const count = entitiesConfig.length;
+      for (let i = 0; i < count; i++) {
+        const entityConfig = entitiesConfig[i];
+        const id = (entityConfig as IStrippedEntity).strippedId ?? entityConfig.id;
+        if (entityConfigMap.has(id)) throw new Error("Duplicate serialized entity ID: " + id);
+        entityConfig.id = id;
+        entityConfigMap.set(id, entityConfig);
+        if (
+          !(<IRefEntity>entityConfig).assetRefId &&
+          !(<IStrippedEntity>entityConfig).strippedId &&
+          entityConfig.transform
+        ) {
+          ReflectionParser._resolveClass(entityConfig.transform.class, Transform);
+        }
+      }
+      const promises = new Array<Promise<Entity>>(count);
+      for (let i = 0; i < count; i++) {
+        promises[i] = this._getEntityByConfig(entitiesConfig[i], engine);
+      }
+      return Promise.all(promises);
+    } catch (error) {
+      return Promise.reject(error);
     }
-    const promises = new Array<Promise<Entity>>(count);
-    for (let i = 0; i < count; i++) {
-      promises[i] = this._getEntityByConfig(entitiesConfig[i], engine);
-    }
-    return Promise.all(promises);
   }
 
   private _parseComponents(): void {

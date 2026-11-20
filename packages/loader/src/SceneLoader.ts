@@ -39,7 +39,7 @@ class SceneLoader extends Loader<Scene> {
           context._setTaskCompleteProgress = setTaskCompleteProgress;
           parser.start();
           return parser.promise.then(() => {
-            const promises = [];
+            const promises: Promise<() => void>[] = [];
             // parse ambient light
             const ambient = data.scene.ambient;
             if (ambient) {
@@ -55,8 +55,7 @@ class SceneLoader extends Loader<Scene> {
               if (useCustomAmbient && ambient.customAmbientLight) {
                 promises.push(
                   // @ts-ignore
-                  resourceManager.getResourceByRef<any>(ambient.customAmbientLight).then((ambientLight) => {
-                    if (scene.destroyed) return;
+                  resourceManager.getResourceByRef<any>(ambient.customAmbientLight).then((ambientLight) => () => {
                     scene.ambientLight.specularTexture = ambientLight?.specularTexture;
                   })
                 );
@@ -65,8 +64,7 @@ class SceneLoader extends Loader<Scene> {
               if (ambient.ambientLight && (!useCustomAmbient || useSH)) {
                 promises.push(
                   // @ts-ignore
-                  resourceManager.getResourceByRef<any>(ambient.ambientLight).then((ambientLight) => {
-                    if (scene.destroyed) return;
+                  resourceManager.getResourceByRef<any>(ambient.ambientLight).then((ambientLight) => () => {
                     if (!useCustomAmbient) {
                       scene.ambientLight.specularTexture = ambientLight?.specularTexture;
                     }
@@ -90,14 +88,13 @@ class SceneLoader extends Loader<Scene> {
               case BackgroundMode.Sky:
                 if (background.skyMesh && background.skyMaterial) {
                   // @ts-ignore
-                  const skyMeshPromise = resourceManager.getResourceByRef<Mesh>(background.skyMesh).then((mesh) => {
-                    if (scene.destroyed) return;
+                  // prettier-ignore
+                  const skyMeshPromise = resourceManager.getResourceByRef<Mesh>(background.skyMesh).then((mesh) => () => {
                     scene.background.sky.mesh = mesh;
                   });
                   // @ts-ignore
                   // prettier-ignore
-                  const skyMaterialPromise = resourceManager.getResourceByRef<Material>(background.skyMaterial).then((material) => {
-                    if (scene.destroyed) return;
+                  const skyMaterialPromise = resourceManager.getResourceByRef<Material>(background.skyMaterial).then((material) => () => {
                     scene.background.sky.material = material;
                   });
                   promises.push(skyMeshPromise, skyMaterialPromise);
@@ -109,8 +106,7 @@ class SceneLoader extends Loader<Scene> {
                 if (background.texture) {
                   // @ts-ignore
                   // prettier-ignore
-                  const backgroundPromise = resourceManager.getResourceByRef<any>(background.texture).then((texture) => {
-                    if (scene.destroyed) return;
+                  const backgroundPromise = resourceManager.getResourceByRef<any>(background.texture).then((texture) => () => {
                     scene.background.texture = texture;
                   });
                   promises.push(backgroundPromise);
@@ -166,7 +162,10 @@ class SceneLoader extends Loader<Scene> {
               sceneAmbientOcclusion.minHorizonAngle = ambientOcclusion.minHorizonAngle;
             }
 
-            return Promise.all(promises).then(() => scene);
+            return Promise.all(promises).then((applyAssets) => {
+              for (let i = 0, n = applyAssets.length; i < n; i++) applyAssets[i]();
+              return scene;
+            });
           });
         })
         .catch((error) => {
