@@ -321,14 +321,8 @@ export class TrailRenderer extends Renderer {
 
   protected override _onDestroy(): void {
     super._onDestroy();
-    if (this._primitive && !this._primitive.destroyed) {
-      this._primitive._addReferCount(-1);
-      this._primitive.destroy();
-    }
     this._vertexBuffer?.destroy();
-    this._primitive = null!;
-    this._vertexBuffer = null!;
-    this._vertices = null!;
+    this._primitive?.destroy();
   }
 
   private _updateAndGetPlayTime(): number {
@@ -343,7 +337,7 @@ export class TrailRenderer extends Renderer {
 
   private _initGeometry(): void {
     const primitive = new Primitive(this.engine);
-    primitive._addReferCount(1);
+    primitive.isGCIgnored = true;
     this._primitive = primitive;
     // Vertex layout (9 floats = 36 bytes):
     // a_PositionBirthTime: xyz = position, w = birthTime (offset 0)
@@ -376,6 +370,7 @@ export class TrailRenderer extends Renderer {
       BufferUsage.Dynamic,
       false
     );
+    newVertexBuffer.isGCIgnored = true;
     const newVertices = new Float32Array(pointCount * pointFloatStride);
 
     // Migrate existing vertex data
@@ -396,13 +391,13 @@ export class TrailRenderer extends Renderer {
       this._bufferResized = true;
     }
 
-    const oldVertexBuffer = this._vertexBuffer;
+    this._vertexBuffer?.destroy();
+
     this._vertexBuffer = newVertexBuffer;
     this._vertices = newVertices;
     this._currentPointCapacity = newCapacity;
 
     this._primitive.setVertexBufferBinding(0, new VertexBufferBinding(newVertexBuffer, TrailRenderer.VERTEX_STRIDE));
-    oldVertexBuffer?.destroy();
   }
 
   private _retireActivePoints(currentTime: number, frameCount: number): void {

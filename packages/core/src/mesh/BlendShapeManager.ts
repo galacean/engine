@@ -336,13 +336,8 @@ export class BlendShapeManager {
   _destroyVertexTexture(): void {
     const vertexTexture = this._vertexTexture;
     if (vertexTexture) {
-      if (!vertexTexture.destroyed) {
-        const referCount = this._modelMesh._getReferCount();
-        if (referCount > 0) {
-          vertexTexture._addReferCount(-referCount);
-        }
-        vertexTexture.destroy();
-      }
+      vertexTexture.isGCIgnored = false;
+      vertexTexture.destroy();
       this._vertexTexture = null!;
     }
   }
@@ -359,7 +354,6 @@ export class BlendShapeManager {
     }
 
     const blendShapeCount = this._blendShapes.length;
-    const referCount = this._modelMesh._getReferCount();
 
     this._destroyVertexTexture();
 
@@ -373,9 +367,7 @@ export class BlendShapeManager {
       false
     );
     blendShapeDataTexture.filterMode = TextureFilterMode.Point;
-    if (referCount > 0) {
-      blendShapeDataTexture._addReferCount(referCount);
-    }
+    blendShapeDataTexture.isGCIgnored = true;
 
     this._vertices = new Float32Array(blendShapeCount * textureWidth * textureHeight * 4);
     this._vertexTexture = blendShapeDataTexture;

@@ -738,17 +738,6 @@ export class ModelMesh extends Mesh {
   /**
    * @internal
    */
-  override _addReferCount(value: number): void {
-    super._addReferCount(value);
-    const vertexTexture = this._blendShapeManager._vertexTexture;
-    if (vertexTexture && !vertexTexture.destroyed) {
-      vertexTexture._addReferCount(value);
-    }
-  }
-
-  /**
-   * @internal
-   */
   protected override _onDestroy(): void {
     const bindings = this._primitive.vertexBufferBindings;
     for (let i = 0; i < bindings.length; i++) {

@@ -25,12 +25,12 @@ export class PostProcessUberPass extends PostProcessPass {
 
     // Uber Material
     const uberMaterial = new Material(engine, Engine._builtinShaders.uber);
-    uberMaterial._addReferCount(1);
+    uberMaterial.isGCIgnored = true;
     this._uberMaterial = uberMaterial;
 
     // Bloom Material
     const bloomMaterial = new Material(engine, Engine._builtinShaders.bloom);
-    bloomMaterial._addReferCount(1);
+    bloomMaterial.isGCIgnored = true;
     this._bloomMaterial = bloomMaterial;
 
     // ShaderData initialization
@@ -79,10 +79,6 @@ export class PostProcessUberPass extends PostProcessPass {
     }
     const viewport = destTarget === camera.renderTarget ? camera.viewport : undefined;
     Blitter.blitTexture(camera.engine, srcTexture, destTarget, 0, viewport, this._uberMaterial, undefined);
-    if (bloomBlend?.isValid()) {
-      uberShaderData.setTexture(BloomEffect._bloomTextureProp, null);
-      uberShaderData.setTexture(BloomEffect._dirtTextureProp, null);
-    }
   }
 
   /**
@@ -92,9 +88,7 @@ export class PostProcessUberPass extends PostProcessPass {
   override _onDestroy() {
     super._onDestroy();
     this._releaseBloomRenderTargets();
-    this._uberMaterial._addReferCount(-1);
     this._uberMaterial.destroy();
-    this._bloomMaterial._addReferCount(-1);
     this._bloomMaterial.destroy();
   }
 
@@ -221,7 +215,6 @@ export class PostProcessUberPass extends PostProcessPass {
       }
       Blitter.blitTexture(engine, <Texture2D>highMip.getColorTexture(0), dst, undefined, undefined, bloomMaterial, 3);
     }
-    bloomShaderData.setTexture(BloomEffect._lowMipTextureProp, null);
 
     // Setup bloom on uber
     if (dirtTexture.value) {
