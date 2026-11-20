@@ -1,0 +1,21 @@
+packages/modify/src/native/core/src/lighting/environment/RealtimeIBLBaker.ts
+  s_ffe6f7e1624816::t_024e21f63a6e1c 992-995
+packages/rhi-webgl/src/GLRenderTarget.ts
+  s_ffe6f7e1624816::t_c040ef58c3373b 133-136
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "728688d89b4f25071473a922d160df384b8362da",
+  "prompts": {},
+  "sessions": {
+    "s_ffe6f7e1624816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f967-b80b-74c3-8d4f-e39d3f8076ca",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
