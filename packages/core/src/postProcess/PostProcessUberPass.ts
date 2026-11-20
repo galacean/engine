@@ -128,9 +128,8 @@ export class PostProcessUberPass extends PostProcessPass {
 
     // Determine the iteration count
     const downRes = downScale.value === BloomDownScaleMode.Half ? 1 : 2;
-    const pixelViewport = camera.pixelViewport;
-    const tw = pixelViewport.width >> downRes;
-    const th = pixelViewport.height >> downRes;
+    const tw = Math.max(1, srcTexture.width >> downRes);
+    const th = Math.max(1, srcTexture.height >> downRes);
     const maxSize = Math.max(tw, th);
     const iterations = Math.floor(Math.log2(maxSize) - 1);
     const mipCount = Math.min(Math.max(iterations, 1), BloomEffect._maxIterations);
