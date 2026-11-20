@@ -500,6 +500,14 @@ describe("PostProcess", () => {
         activeUberPass._mipRT[0].getColorTexture(0)
       );
 
+      // NaN maxIterations falls back safely to default 6 iterations (11 passes, 6 mip RTs)
+      bloomEffect.maxIterations.value = Number.NaN;
+      blitSpy.mockClear();
+      bloomEngine.update();
+      expect(countBloomBlits()).to.equal(11);
+      // @ts-ignore
+      expect(activeUberPass._mipRT.length).to.equal(6);
+
       // Disabling bloom releases all mip RTs and clears the uber bloom texture binding
       bloomEffect.enabled = false;
       bloomEngine.update();
@@ -529,7 +537,7 @@ describe("PostProcess", () => {
     bloomCamera.enablePostProcess = true;
     bloomCamera.enableHDR = true;
 
-    const destColorTexture = new Texture2D(bloomEngine, size, size, TextureFormat.R8G8B8A8, false, false);
+    const destColorTexture = new Texture2D(bloomEngine, size, size, TextureFormat.R8G8B8A8_UNorm, false, false);
     const destTarget = new RenderTarget(bloomEngine, size, size, destColorTexture);
     bloomCamera.renderTarget = destTarget;
 
@@ -612,7 +620,7 @@ describe("PostProcess", () => {
     // Use LDR RGBA8 mip chain so mipRT[0] can be read back directly for pure pyramid impulse checks
     bloomCamera.enableHDR = false;
 
-    const destColorTexture = new Texture2D(bloomEngine, size, size, TextureFormat.R8G8B8A8, false, false);
+    const destColorTexture = new Texture2D(bloomEngine, size, size, TextureFormat.R8G8B8A8_UNorm, false, false);
     const destTarget = new RenderTarget(bloomEngine, size, size, destColorTexture);
     bloomCamera.renderTarget = destTarget;
 

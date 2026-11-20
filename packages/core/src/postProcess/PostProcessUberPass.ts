@@ -141,7 +141,7 @@ export class PostProcessUberPass extends PostProcessPass {
     const th = Math.max(1, pixelViewport.height >> downRes);
     const maxSize = Math.max(tw, th);
     const iterations = Math.floor(Math.log2(maxSize) - 1);
-    const maxMipCount = Math.max(1, Math.round(maxIterations.value));
+    const maxMipCount = Math.max(1, Math.round(maxIterations.value) || 6);
     const mipCount = Math.min(Math.max(iterations, 1), maxMipCount);
 
     // Allocate mip pyramid (single RT per level; upsample blends in-place)
