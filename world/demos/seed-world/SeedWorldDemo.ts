@@ -643,6 +643,11 @@ export async function mountSeedWorldDemo(
     progress(0.04, "准备 Seed 场景");
     const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, location.href).href;
     const prefetchedTextAssets = await timed("loadProjectTextBundle", () => loadSeedWorldProjectTextBundle());
+    (
+      engine!.resourceManager as {
+        setPrefetchedTextAssets?: (assets: ReadonlyMap<string, string> | undefined) => void;
+      }
+    ).setPrefetchedTextAssets?.(prefetchedTextAssets);
     const preloadedProjectText = prefetchedTextAssets?.get(projectUrl);
     const preloadedProject = parsePreloadedJson<Parameters<typeof registerTerrainProjectResources>[2]>(
       preloadedProjectText

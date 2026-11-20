@@ -329,6 +329,8 @@ export class RuntimeProjectSession {
               true
             )
           };
+        const preloaded = this.prefetchedTextAssets?.get(file.path);
+        if (preloaded !== undefined) return contentView(preloaded, operationSignal);
         const session = this;
         return {
           kind: "text",

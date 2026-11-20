@@ -213,10 +213,34 @@ export class ResourceManager {
     );
   }
 
+  private _prefetchedTextAssets?: ReadonlyMap<string, string>;
+
+  /**
+   * Registers an immutable read-only map of preloaded text assets keyed by resolved remote URL.
+   * Only serves `"text"` and `"json"` requests whose resolved remote URL matches an entry;
+   * dynamic/authored `blob:` URLs never match and continue to bypass this cache.
+   */
+  setPrefetchedTextAssets(assets: ReadonlyMap<string, string> | undefined): void {
+    this._prefetchedTextAssets = assets;
+  }
+
   /**
    * @internal
    */
   _requestByRemoteUrl<T>(url: string, config: RequestConfig): AssetPromise<T> {
+    const preloaded = this._prefetchedTextAssets?.get(url);
+    if (preloaded !== undefined) {
+      if (config.type === "text") {
+        return AssetPromise.resolve(preloaded as unknown as T);
+      }
+      if (config.type === "json") {
+        try {
+          return AssetPromise.resolve(JSON.parse(preloaded) as T);
+        } catch {
+          // Fall back to network request when cached JSON cannot be parsed.
+        }
+      }
+    }
     return request(url, config);
   }
 
@@ -344,6 +368,7 @@ export class ResourceManager {
     this._graphicResourcePool = null!;
     this._contentRestorerPool = null!;
     this._loadingPromises = null!;
+    this._prefetchedTextAssets = undefined;
   }
 
   private _resolveLoadItemOptions(assetInfo: LoadItem, virtualResourceEntry?: VirtualResource): void {

@@ -95,6 +95,10 @@ export class RuntimeProjectScripts {
     environment?: ReturnType<typeof projectScriptInputs>
   ): Promise<CompiledRuntimeScripts> {
     signal?.throwIfAborted();
+    if (Object.keys(sources).length === 0) {
+      if (!analyzeOnly) this.built = undefined;
+      return { entries: {}, files: {}, dependencies: {}, resolutions: {} };
+    }
     const hostDeclarations = await this.host.loadDeclarations();
     signal?.throwIfAborted();
     const resolvedDeclarations = environment

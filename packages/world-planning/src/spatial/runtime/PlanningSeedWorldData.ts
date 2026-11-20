@@ -54,7 +54,7 @@ export function preparePlanningSeedWorldData(
 export function compilePlanningSeedWorldData(
   source: IslandPlan,
   terrain: PlanningPopulationTerrain,
-  previous?: PlanningSeedWorldData
+  previous?: { readonly plan: Pick<SeedWorldRuntimePlan, "roadDistance"> }
 ): PlanningSeedWorldData {
   const compiled = compilePlanningPopulation(source, terrain);
   const size = compiled.fields.sizeMetres,
