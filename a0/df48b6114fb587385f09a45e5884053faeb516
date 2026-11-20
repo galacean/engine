@@ -1,0 +1,16 @@
+world/demos/seed-world/src/SeedWorldProjectTextBundle.ts
+  h_79b10db07e6052 18-23,26,29,41-42
+world/scripts/build-seed-world-flash-app.mjs
+  h_79b10db07e6052 165-175
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a0df48b6114fb587385f09a45e5884053faeb516",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_171a11afaf879a 317
+packages/core/src/RenderPipeline/Blitter.ts
+  h_171a11afaf879a 24,61-66
+packages/core/src/RenderPipeline/OpaqueTexturePass.ts
+  h_171a11afaf879a 19,29-30,33,58,69
+tests/src/rhi-webgl/RenderTargetAttachmentGuards.test.ts
+  h_171a11afaf879a 18,38,50,81,88,120,127,159,171,179,222,236,276,296,301,306,310,314,414,421,456,545,592-695
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1e73e6512d4097eab1ad249a5b762252f1c24587",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

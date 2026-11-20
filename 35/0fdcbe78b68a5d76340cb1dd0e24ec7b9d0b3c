@@ -1,0 +1,24 @@
+packages/modify/src/native/core/src/asset/ResourceManager.ts
+  h_79b10db07e6052 216-226,231-243,371
+packages/runtime-editor/src/project/runtime-project-session.ts
+  h_79b10db07e6052 332-333
+packages/runtime-editor/src/runtime-editor/scripts/runtime-project-scripts.ts
+  h_79b10db07e6052 98-101
+packages/world-planning/src/semantic-study/PlanningRaster.worker.ts
+  h_79b10db07e6052 4-7,13-32,70-72,79-91,95,100
+packages/world-planning/src/spatial/runtime/PlanningSeedWorldData.ts
+  h_79b10db07e6052 57
+world/demos/seed-world/SeedWorldDemo.ts
+  h_79b10db07e6052 646-650
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "350fdcbe78b68a5d76340cb1dd0e24ec7b9d0b3c",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}
