@@ -232,6 +232,7 @@ export class BasicRenderPipeline {
     const colorTarget = internalColorTarget || camera.renderTarget;
     const colorViewport = internalColorTarget ? PipelineUtils.defaultViewport : camera.viewport;
     const needFlipProjection = !!internalColorTarget || (camera.renderTarget && cubeFace == undefined);
+    const keepColorFlag = !!internalColorTarget && (~finalClearFlags & CameraClearFlags.Color) !== 0;
     const finalColorStoreAction =
       internalColorTarget && internalColorTarget.antiAliasing > 1
         ? RenderBufferStoreAction.Resolve
@@ -240,6 +241,12 @@ export class BasicRenderPipeline {
       internalColorTarget && !internalColorTarget.depthTexture && internalColorTarget._depthFormat !== null
         ? RenderBufferStoreAction.DontCare
         : RenderBufferStoreAction.Store;
+    const opaqueColorStoreAction = camera.opaqueTextureEnabled
+      ? internalColorTarget && internalColorTarget.antiAliasing > 1
+        ? RenderBufferStoreAction.StoreAndResolve
+        : RenderBufferStoreAction.Store
+      : finalColorStoreAction;
+    const opaqueDepthStoreAction = camera.opaqueTextureEnabled ? RenderBufferStoreAction.Store : finalDepthStoreAction;
 
     if (context.flipProjection !== needFlipProjection) {
       // Just add projection matrix update type is enough
@@ -247,7 +254,16 @@ export class BasicRenderPipeline {
       context.applyVirtualCamera(camera._virtualCamera, needFlipProjection);
     }
 
-    context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+    context.setRenderTarget(
+      colorTarget,
+      colorViewport,
+      mipLevel,
+      cubeFace,
+      RenderBufferLoadAction.Load,
+      keepColorFlag ? RenderBufferStoreAction.Store : opaqueColorStoreAction,
+      RenderBufferLoadAction.Load,
+      keepColorFlag ? RenderBufferStoreAction.Store : opaqueDepthStoreAction
+    );
 
     // Clear color
     if (finalClearFlags !== CameraClearFlags.None) {
@@ -265,7 +281,6 @@ export class BasicRenderPipeline {
         rhi.clearRenderTarget(engine, keepDSFlags);
       }
 
-      const keepColorFlag = ~finalClearFlags & CameraClearFlags.Color;
       if (keepColorFlag) {
         if (this._shouldCopyBackgroundColor) {
           // Copy RT's color buffer to grab texture
@@ -277,28 +292,27 @@ export class BasicRenderPipeline {
             internalColorTarget,
             0,
             undefined,
-            camera.renderTarget ? undefined : engine._basicResources.blitScreenMaterial
+            camera.renderTarget ? undefined : engine._basicResources.blitScreenMaterial,
+            0,
+            undefined,
+            RenderBufferLoadAction.DontCare
           );
         } else {
           // Only blit color buffer from back buffer
           const ignoreFlags = CameraClearFlags.DepthStencil;
           rhi.blitInternalRTByBlitFrameBuffer(camera.renderTarget, internalColorTarget, ignoreFlags, camera.viewport);
         }
+        context.setRenderTarget(
+          colorTarget,
+          colorViewport,
+          mipLevel,
+          cubeFace,
+          RenderBufferLoadAction.Load,
+          opaqueColorStoreAction,
+          RenderBufferLoadAction.Load,
+          opaqueDepthStoreAction
+        );
       }
-      context.setRenderTarget(
-        colorTarget,
-        colorViewport,
-        mipLevel,
-        cubeFace,
-        RenderBufferLoadAction.Load,
-        camera.opaqueTextureEnabled
-          ? internalColorTarget.antiAliasing > 1
-            ? RenderBufferStoreAction.StoreAndResolve
-            : RenderBufferStoreAction.Store
-          : finalColorStoreAction,
-        RenderBufferLoadAction.Load,
-        camera.opaqueTextureEnabled ? RenderBufferStoreAction.Store : finalDepthStoreAction
-      );
     }
 
     const maskManager = scene._maskManager;
@@ -377,7 +391,17 @@ export class BasicRenderPipeline {
 
     // If output target is not camera's render target(only enable HDR or opaqueTexture), we should blit it to camera's render target
     if (outputTarget !== cameraRenderTarget) {
-      Blitter.blitTexture(engine, <Texture2D>outputTarget!.getColorTexture(0), cameraRenderTarget, 0, camera.viewport);
+      Blitter.blitTexture(
+        engine,
+        <Texture2D>outputTarget!.getColorTexture(0),
+        cameraRenderTarget,
+        0,
+        camera.viewport,
+        null,
+        0,
+        undefined,
+        RenderBufferLoadAction.DontCare
+      );
     }
 
     cameraRenderTarget?._blitRenderTarget();

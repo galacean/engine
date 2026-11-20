@@ -108,49 +108,51 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     // @todo: support MRT
     const { _gl: gl, _target: target } = this;
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
-
     const mipChanged = mipLevel !== this._curMipLevel;
     const faceChanged = faceIndex !== this._curFaceIndex;
 
-    const colorTexture = target.getColorTexture(0);
-    if (colorTexture) {
-      const isCube = colorTexture instanceof TextureCube;
-      if (mipChanged || (isCube && faceChanged)) {
-        gl.framebufferTexture2D(
-          gl.FRAMEBUFFER,
-          gl.COLOR_ATTACHMENT0,
-          isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex! : gl.TEXTURE_2D,
-          (colorTexture._platformTexture as GLTexture)._glTexture,
-          mipLevel
-        );
-      }
-    }
+    if (!this._MSAAFrameBuffer || mipChanged || faceChanged || target.depthTexture instanceof TextureCube) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
 
-    const { depthTexture } = target;
-    if (depthTexture) {
-      const isCube = depthTexture instanceof TextureCube;
-      if (mipChanged || isCube) {
-        const platformTexture = <GLTexture>depthTexture._platformTexture;
-        gl.framebufferTexture2D(
-          gl.FRAMEBUFFER,
-          platformTexture._formatDetail.attachment!,
-          isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex! : gl.TEXTURE_2D,
-          platformTexture._glTexture,
-          mipLevel
-        );
+      const colorTexture = target.getColorTexture(0);
+      if (colorTexture) {
+        const isCube = colorTexture instanceof TextureCube;
+        if (mipChanged || (isCube && faceChanged)) {
+          gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex! : gl.TEXTURE_2D,
+            (colorTexture._platformTexture as GLTexture)._glTexture,
+            mipLevel
+          );
+        }
       }
-    } else {
-      if (mipChanged) {
-        // @ts-ignore
-        const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl);
-        gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthRenderBuffer);
-        gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, target.width >> mipLevel, target.height >> mipLevel);
-      }
-    }
 
-    this._curMipLevel = mipLevel;
-    this._curFaceIndex = faceIndex;
+      const { depthTexture } = target;
+      if (depthTexture) {
+        const isCube = depthTexture instanceof TextureCube;
+        if (mipChanged || isCube) {
+          const platformTexture = <GLTexture>depthTexture._platformTexture;
+          gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            platformTexture._formatDetail.attachment!,
+            isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex! : gl.TEXTURE_2D,
+            platformTexture._glTexture,
+            mipLevel
+          );
+        }
+      } else {
+        if (mipChanged) {
+          // @ts-ignore
+          const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl);
+          gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthRenderBuffer);
+          gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, target.width >> mipLevel, target.height >> mipLevel);
+        }
+      }
+
+      this._curMipLevel = mipLevel;
+      this._curFaceIndex = faceIndex;
+    }
 
     if (this._MSAAFrameBuffer) {
       gl.bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);

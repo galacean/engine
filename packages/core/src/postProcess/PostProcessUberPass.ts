@@ -4,6 +4,7 @@ import { Engine } from "../Engine";
 import { Material } from "../material";
 import { Blitter } from "../RenderPipeline/Blitter";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
+import { RenderBufferLoadAction } from "../renderingHardwareInterface";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../texture";
 import { BloomDownScaleMode, BloomEffect, TonemappingEffect } from "./effects";
 import { PostProcessManager } from "./PostProcessManager";
@@ -76,7 +77,17 @@ export class PostProcessUberPass extends PostProcessPass {
       uberShaderData.disableMacro(TonemappingEffect._enableMacro);
     }
     const viewport = destTarget === camera.renderTarget ? camera.viewport : undefined;
-    Blitter.blitTexture(camera.engine, srcTexture, destTarget, 0, viewport, this._uberMaterial, undefined);
+    Blitter.blitTexture(
+      camera.engine,
+      srcTexture,
+      destTarget,
+      0,
+      viewport,
+      this._uberMaterial,
+      undefined,
+      undefined,
+      RenderBufferLoadAction.DontCare
+    );
   }
 
   /**
@@ -172,7 +183,17 @@ export class PostProcessUberPass extends PostProcessPass {
       mipWidth = Math.max(1, Math.floor(mipWidth / 2));
       mipHeight = Math.max(1, Math.floor(mipHeight / 2));
     }
-    Blitter.blitTexture(engine, srcTexture, this._mipDownRT[0], undefined, undefined, bloomMaterial, 0);
+    Blitter.blitTexture(
+      engine,
+      srcTexture,
+      this._mipDownRT[0],
+      undefined,
+      undefined,
+      bloomMaterial,
+      0,
+      undefined,
+      RenderBufferLoadAction.DontCare
+    );
 
     // Down sample - gaussian pyramid
     let lastDown = this._mipDownRT[0];
@@ -187,7 +208,9 @@ export class PostProcessUberPass extends PostProcessPass {
         undefined,
         undefined,
         bloomMaterial,
-        1
+        1,
+        undefined,
+        RenderBufferLoadAction.DontCare
       );
       Blitter.blitTexture(
         engine,
@@ -196,7 +219,9 @@ export class PostProcessUberPass extends PostProcessPass {
         undefined,
         undefined,
         bloomMaterial,
-        2
+        2,
+        undefined,
+        RenderBufferLoadAction.DontCare
       );
       lastDown = this._mipDownRT[i];
     }
@@ -211,7 +236,17 @@ export class PostProcessUberPass extends PostProcessPass {
         const texelSizeLow = bloomShaderData.getVector4(BloomEffect._lowMipTexelSizeProp);
         texelSizeLow.set(1 / lowMip.width, 1 / lowMip.height, lowMip.width, lowMip.height);
       }
-      Blitter.blitTexture(engine, <Texture2D>highMip.getColorTexture(0), dst, undefined, undefined, bloomMaterial, 3);
+      Blitter.blitTexture(
+        engine,
+        <Texture2D>highMip.getColorTexture(0),
+        dst,
+        undefined,
+        undefined,
+        bloomMaterial,
+        3,
+        undefined,
+        RenderBufferLoadAction.DontCare
+      );
     }
 
     // Setup bloom on uber

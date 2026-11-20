@@ -6,7 +6,6 @@ import { ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { ColorWriteMask } from "../shader/enums/ColorWriteMask";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { RenderTarget, Texture2D } from "../texture";
 import { PipelineUtils } from "./PipelineUtils";
@@ -34,7 +33,7 @@ export class Blitter {
    * @param material - The material to use when blit
    * @param passIndex - Pass index to use of the provided material
    * @param sourceScaleOffset - Source scale and offset
-   * @param colorLoadAction - Optional color load action for the destination render target
+   * @param colorLoadAction - Color load action for the destination render target
    */
   static blitTexture(
     engine: Engine,
@@ -45,7 +44,7 @@ export class Blitter {
     material: Material | null = null,
     passIndex = 0,
     sourceScaleOffset?: Vector4,
-    colorLoadAction?: RenderBufferLoadAction
+    colorLoadAction: RenderBufferLoadAction = RenderBufferLoadAction.Load
   ): void {
     const basicResources = engine._basicResources;
     const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
@@ -57,25 +56,8 @@ export class Blitter {
     // We not use projection matrix when blit, but we must modify flipProjection to make front face correct
     context.flipProjection = !!destination;
 
-    const pass = blitMaterial.shader.subShaders[0].passes[passIndex];
-    pass._renderState._applyStates(engine, false, pass._renderStateDataMap, blitMaterial.shaderData);
-
-    let resolvedLoadAction = colorLoadAction;
-    if (resolvedLoadAction === undefined) {
-      const { blendState, depthState, stencilState } = engine._lastRenderState;
-      resolvedLoadAction =
-        destination &&
-        destination.antiAliasing <= 1 &&
-        destination.colorTextureCount === 1 &&
-        Blitter._isBuiltinFullOverwriteShader(blitMaterial.shader) &&
-        !blendState.targetBlendState.enabled &&
-        blendState.targetBlendState.colorWriteMask === ColorWriteMask.All &&
-        !depthState.enabled &&
-        !stencilState.enabled
-          ? RenderBufferLoadAction.DontCare
-          : RenderBufferLoadAction.Load;
-    }
-
+    const resolvedLoadAction =
+      destination && destination.colorTextureCount === 1 ? colorLoadAction : RenderBufferLoadAction.Load;
     context.setRenderTarget(destination, viewport, 0, undefined, resolvedLoadAction);
 
     const rendererShaderData = Blitter._rendererShaderData;
@@ -86,6 +68,7 @@ export class Blitter {
     rendererShaderData.setVector4(Blitter._blitTexelSizeProperty, Blitter._texelSize);
     rendererShaderData.setVector4(Blitter._sourceScaleOffsetProperty, sourceScaleOffset ?? Blitter._defaultScaleOffset);
 
+    const pass = blitMaterial.shader.subShaders[0].passes[passIndex];
     const compileMacros = Shader._compileMacros;
 
     ShaderMacroCollection.unionCollection(
@@ -106,20 +89,10 @@ export class Blitter {
     program.uploadAll(program.materialUniformBlock, blitMaterial.shaderData);
     program.uploadUnGroupTextures();
 
+    const renderState = pass._renderState;
+    renderState._applyStates(engine, false, pass._renderStateDataMap, blitMaterial.shaderData);
+
     rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program);
     rendererShaderData.setTexture(Blitter._blitTextureProperty, null);
-  }
-
-  private static _isBuiltinFullOverwriteShader(shader: Shader): boolean {
-    const builtins = Engine._builtinShaders;
-    return (
-      shader === builtins.blit ||
-      shader === builtins.blitScreen ||
-      shader === builtins.bloom ||
-      shader === builtins.uber ||
-      shader === builtins.finalSRGB ||
-      shader === builtins.finalAntiAliasing ||
-      shader === builtins.scalableAmbientOcclusion
-    );
   }
 }
