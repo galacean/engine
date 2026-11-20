@@ -1,5 +1,4 @@
 import { Camera } from "../Camera";
-import { ignoreClone } from "../clone/CloneDecorators";
 import { Layer } from "../Layer";
 import { Script } from "../Script";
 import { RenderBufferDepthFormat, Texture, Texture2D, TextureCube } from "../texture";
@@ -42,17 +41,11 @@ export abstract class Probe extends Script {
    */
   protected readonly _isCube: boolean = false;
 
-  @ignoreClone
   private _oriCameraRenderTarget: RenderTarget | null;
-  @ignoreClone
   private _renderTarget: RenderTarget;
-  @ignoreClone
   private _renderTargetSwap: RenderTarget;
-  @ignoreClone
   private _activeRenderTarget: RenderTarget;
-  @ignoreClone
   private _camera: Camera;
-  @ignoreClone
   private _oriCameraCullingMask: Layer;
 
   private get _texture(): Texture | null {
@@ -76,8 +69,6 @@ export abstract class Probe extends Script {
       this._activeRenderTarget.height !== this.height ||
       this._activeRenderTarget.antiAliasing !== this.antiAliasing
     ) {
-      this._destroyRenderTargets();
-
       this._renderTarget = new RenderTarget(
         this.engine,
         this.width,
@@ -86,7 +77,6 @@ export abstract class Probe extends Script {
         RenderBufferDepthFormat.Depth,
         this.antiAliasing
       );
-      this._renderTarget._addReferCount(1);
 
       this._renderTargetSwap = new RenderTarget(
         this.engine,
@@ -96,7 +86,6 @@ export abstract class Probe extends Script {
         RenderBufferDepthFormat.Depth,
         this.antiAliasing
       );
-      this._renderTargetSwap._addReferCount(1);
 
       this._activeRenderTarget = this._renderTarget;
     }
@@ -114,50 +103,9 @@ export abstract class Probe extends Script {
       this._activeRenderTarget === this._renderTarget ? this._renderTargetSwap : this._renderTarget;
   }
 
-  /**
-   * @internal
-   */
-  protected override _onDestroy(): void {
-    super._onDestroy();
-    this._destroyRenderTargets();
-    this._camera = null!;
-    this._oriCameraRenderTarget = null;
-  }
-
   protected _reset(): void {
     if (!this.enabled) return;
     this._camera.renderTarget = this._oriCameraRenderTarget;
     this._camera.cullingMask = this._oriCameraCullingMask;
-  }
-
-  private _destroyRenderTargets(): void {
-    if (this._renderTarget) {
-      this._destroyRenderTarget(this._renderTarget);
-      this._renderTarget = null!;
-    }
-    if (this._renderTargetSwap) {
-      this._destroyRenderTarget(this._renderTargetSwap);
-      this._renderTargetSwap = null!;
-    }
-    this._activeRenderTarget = null!;
-  }
-
-  private _destroyRenderTarget(renderTarget: RenderTarget): void {
-    const colorTexture = renderTarget.getColorTexture(0);
-    if (!renderTarget.destroyed && !renderTarget.pendingDestroy) {
-      renderTarget._addReferCount(-1);
-      renderTarget.destroy();
-    }
-    if (colorTexture && !colorTexture.destroyed) {
-      if (renderTarget.pendingDestroy) {
-        // RenderTarget._onDestroy() is deferred until end of frame, so its +1 ref on colorTexture
-        // has not been decremented yet. Queue colorTexture destruction only when no external ref exists.
-        if (colorTexture.refCount <= 1) {
-          colorTexture.destroy(true);
-        }
-      } else {
-        colorTexture.destroy();
-      }
-    }
   }
 }

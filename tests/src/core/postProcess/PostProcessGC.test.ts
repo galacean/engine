@@ -2,11 +2,12 @@ import {
   BlendShape,
   BloomEffect,
   Camera,
-  CubeProbe,
   Engine,
   MeshRenderer,
   ModelMesh,
   PostProcess,
+  PostProcessPass,
+  RenderTarget,
   SkinnedMeshRenderer,
   Texture2D,
   TonemappingEffect,
@@ -33,7 +34,7 @@ describe("Internal ReferResource ResourceManager.gc() ownership regression", () 
     canvas.height = 64;
     engine = await WebGLEngine.create({ canvas });
 
-    const scene = engine.sceneManager.activeScene;
+    const scene = engine.sceneManager.activeScene!;
     const cameraEntity = scene.createRootEntity("camera");
     const camera = cameraEntity.addComponent(Camera);
     camera.enableHDR = true;
@@ -42,7 +43,7 @@ describe("Internal ReferResource ResourceManager.gc() ownership regression", () 
     const postEntity = scene.createRootEntity("post-process");
     const postProcess = postEntity.addComponent(PostProcess);
     postProcess.isGlobal = true;
-    const bloom = postProcess.addEffect(BloomEffect);
+    const bloom = postProcess.addEffect(BloomEffect)!;
     bloom.intensity.value = 1;
 
     expect(() => engine!.update()).not.toThrow();
@@ -69,7 +70,7 @@ describe("Internal ReferResource ResourceManager.gc() ownership regression", () 
     canvas.height = 64;
     engine = await WebGLEngine.create({ canvas });
 
-    const scene = engine.sceneManager.activeScene;
+    const scene = engine.sceneManager.activeScene!;
     const cameraEntity = scene.createRootEntity("camera");
     const camera = cameraEntity.addComponent(Camera);
     camera.enableHDR = true;
@@ -78,7 +79,7 @@ describe("Internal ReferResource ResourceManager.gc() ownership regression", () 
     const postEntity = scene.createRootEntity("post-process");
     const postProcess = postEntity.addComponent(PostProcess);
     postProcess.isGlobal = true;
-    const tonemapping = postProcess.addEffect(TonemappingEffect);
+    const tonemapping = postProcess.addEffect(TonemappingEffect)!;
     tonemapping.mode.value = TonemappingMode.ACES;
 
     expect(() => engine!.update()).not.toThrow();
@@ -96,7 +97,7 @@ describe("Internal ReferResource ResourceManager.gc() ownership regression", () 
     canvas.height = 64;
     engine = await WebGLEngine.create({ canvas });
 
-    const scene = engine.sceneManager.activeScene;
+    const scene = engine.sceneManager.activeScene!;
     const cameraEntity = scene.createRootEntity("camera");
     cameraEntity.addComponent(Camera);
 
@@ -125,7 +126,7 @@ describe("Internal ReferResource ResourceManager.gc() ownership regression", () 
     canvas.height = 64;
     engine = await WebGLEngine.create({ canvas });
 
-    const scene = engine.sceneManager.activeScene;
+    const scene = engine.sceneManager.activeScene!;
     const entity = scene.createRootEntity("skinned");
     const renderer = entity.addComponent(SkinnedMeshRenderer);
     renderer.enabled = false; // Not yet rendered, so shaderData has not bound _vertexTexture
@@ -160,7 +161,7 @@ describe("Internal ReferResource ResourceManager.gc() ownership regression", () 
     canvas.height = 64;
     engine = await WebGLEngine.create({ canvas });
 
-    const scene = engine.sceneManager.activeScene;
+    const scene = engine.sceneManager.activeScene!;
     const cameraEntity = scene.createRootEntity("camera");
     const camera = cameraEntity.addComponent(Camera);
     camera.enableHDR = true;
@@ -169,7 +170,7 @@ describe("Internal ReferResource ResourceManager.gc() ownership regression", () 
     const postEntity = scene.createRootEntity("post-process");
     const postProcess = postEntity.addComponent(PostProcess);
     postProcess.isGlobal = true;
-    const bloom = postProcess.addEffect(BloomEffect);
+    const bloom = postProcess.addEffect(BloomEffect)!;
     bloom.intensity.value = 1;
     bloom.dirtIntensity.value = 1;
     const dirtTexture = new Texture2D(engine, 4, 4);
@@ -195,7 +196,7 @@ describe("Internal ReferResource ResourceManager.gc() ownership regression", () 
     canvas.height = 64;
     engine = await WebGLEngine.create({ canvas });
 
-    const scene = engine.sceneManager.activeScene;
+    const scene = engine.sceneManager.activeScene!;
     const cameraEntity = scene.createRootEntity("camera");
     cameraEntity.addComponent(Camera);
 
@@ -245,7 +246,7 @@ describe("Internal ReferResource ResourceManager.gc() ownership regression", () 
     canvas.height = 64;
     engine = await WebGLEngine.create({ canvas });
 
-    const scene = engine.sceneManager.activeScene;
+    const scene = engine.sceneManager.activeScene!;
     const entity = scene.createRootEntity("skinned");
     const renderer = entity.addComponent(SkinnedMeshRenderer);
     renderer.enabled = false;
@@ -356,7 +357,7 @@ describe("Internal ReferResource ResourceManager.gc() ownership regression", () 
     canvas.height = 64;
     engine = await WebGLEngine.create({ canvas });
 
-    const scene = engine.sceneManager.activeScene;
+    const scene = engine.sceneManager.activeScene!;
     const entity = scene.createRootEntity("mesh");
     const renderer = entity.addComponent(MeshRenderer);
 
@@ -384,115 +385,47 @@ describe("Internal ReferResource ResourceManager.gc() ownership regression", () 
     expect(shader._getReferCount()).toBe(shaderBaseRef);
   });
 
-  it("releases CubeProbe render targets via _onDestroy even if a subclass overrides onDestroy without super", async () => {
-    class CustomCubeProbe extends CubeProbe {
-      userOnDestroyCalled = false;
+  it("destroys all PostProcessPasses safely when one custom pass destroys another during Engine.destroy()", async () => {
+    class PeerPass extends PostProcessPass {
+      onRender(_camera: Camera, _srcTexture: Texture2D, _destTarget: RenderTarget | null): void {}
+    }
 
-      override onDestroy(): void {
-        this.userOnDestroyCalled = true;
+    class CascadingDestroyPass extends PostProcessPass {
+      constructor(
+        engine: Engine,
+        private readonly _peer: PostProcessPass
+      ) {
+        super(engine);
+      }
+
+      onRender(_camera: Camera, _srcTexture: Texture2D, _destTarget: RenderTarget | null): void {}
+
+      override _onDestroy(): void {
+        this._peer.destroy();
+        super._onDestroy();
       }
     }
 
     const canvas = document.createElement("canvas");
     canvas.width = 64;
     canvas.height = 64;
-    engine = await WebGLEngine.create({ canvas });
+    const testEngine = await WebGLEngine.create({ canvas });
+    const uberPass = testEngine.postProcessPasses[0];
+    const uberShader = Engine._builtinShaders.uber;
+    const bloomShader = Engine._builtinShaders.bloom;
+    const uberRefBefore = uberShader._getReferCount();
+    const bloomRefBefore = bloomShader._getReferCount();
 
-    const scene = engine.sceneManager.activeScene;
-    const cameraEntity = scene.createRootEntity("camera");
-    cameraEntity.addComponent(Camera);
-    const probe = cameraEntity.addComponent(CustomCubeProbe);
-    probe.width = 16;
-    probe.height = 16;
+    const passA = new PeerPass(testEngine);
+    const passB = new CascadingDestroyPass(testEngine, passA);
+    testEngine.addPostProcessPass(passA);
+    testEngine.addPostProcessPass(passB);
 
-    engine.update();
-
-    const rt = (probe as any)._renderTarget;
-    const rtSwap = (probe as any)._renderTargetSwap;
-    const tex = rt.getColorTexture(0);
-    const texSwap = rtSwap.getColorTexture(0);
-    expect(rt.refCount).toBe(1);
-    expect(rtSwap.refCount).toBe(1);
-
-    cameraEntity.destroy();
-    engine.update();
-    engine.resourceManager.gc();
-
-    expect(probe.userOnDestroyCalled).toBe(true);
-    expect(rt.refCount).toBe(0);
-    expect(rtSwap.refCount).toBe(0);
-    expect(rt.destroyed).toBe(true);
-    expect(rtSwap.destroyed).toBe(true);
-    expect(tex.destroyed).toBe(true);
-    expect(texSwap.destroyed).toBe(true);
-  });
-
-  it("retains CubeProbe render targets across gc() and destroys textures on resize, clone, and destroy", async () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 64;
-    canvas.height = 64;
-    engine = await WebGLEngine.create({ canvas });
-
-    const scene = engine.sceneManager.activeScene;
-    const cameraEntity = scene.createRootEntity("camera");
-    const camera = cameraEntity.addComponent(Camera);
-    const probe = cameraEntity.addComponent(CubeProbe);
-    probe.width = 16;
-    probe.height = 16;
-
-    engine.update();
-
-    const rt1 = (probe as any)._renderTarget;
-    const rtSwap1 = (probe as any)._renderTargetSwap;
-    const tex1 = rt1.getColorTexture(0);
-    const texSwap1 = rtSwap1.getColorTexture(0);
-    expect(rt1.refCount).toBe(1);
-    expect(rtSwap1.refCount).toBe(1);
-
-    engine.resourceManager.gc();
-    expect(rt1.destroyed).toBe(false);
-    expect(rtSwap1.destroyed).toBe(false);
-    expect(tex1.destroyed).toBe(false);
-    expect(texSwap1.destroyed).toBe(false);
-
-    // Simulate external consumer holding tex1 via onTextureChange while texSwap1 is unreferenced
-    tex1._addReferCount(1);
-
-    // Resize triggers _destroyRenderTargets() + recreation
-    probe.width = 32;
-    probe.height = 32;
-    engine.update();
-
-    expect(rt1.destroyed).toBe(true);
-    expect(rtSwap1.destroyed).toBe(true);
-    expect(texSwap1.destroyed).toBe(true);
-    expect(texSwap1.refCount).toBe(0);
-    // Externally referenced tex1 must remain alive until consumer releases it
-    expect(tex1.destroyed).toBe(false);
-    expect(tex1.refCount).toBe(1);
-    tex1._addReferCount(-1);
-    tex1.destroy();
-    expect(tex1.destroyed).toBe(true);
-
-    const rt2 = (probe as any)._renderTarget;
-    const rtSwap2 = (probe as any)._renderTargetSwap;
-    const tex2 = rt2.getColorTexture(0);
-    const texSwap2 = rtSwap2.getColorTexture(0);
-
-    // Cloning entity must not share Probe internal render targets
-    const clonedEntity = cameraEntity.clone();
-    const clonedProbe = clonedEntity.getComponent(CubeProbe)!;
-    expect((clonedProbe as any)._renderTarget).toBeUndefined();
-    clonedEntity.destroy();
-    expect(rt2.destroyed).toBe(false);
-    expect(rt2.refCount).toBe(1);
-
-    // Destroying probe releases both render targets and their inline textures immediately
-    cameraEntity.destroy();
-    engine.update();
-    expect(rt2.destroyed).toBe(true);
-    expect(rtSwap2.destroyed).toBe(true);
-    expect(tex2.destroyed).toBe(true);
-    expect(texSwap2.destroyed).toBe(true);
+    expect(() => testEngine.destroy()).not.toThrow();
+    expect(passA.destroyed).toBe(true);
+    expect(passB.destroyed).toBe(true);
+    expect(uberPass.destroyed).toBe(true);
+    expect(uberShader._getReferCount()).toBe(uberRefBefore - 1);
+    expect(bloomShader._getReferCount()).toBe(bloomRefBefore - 1);
   });
 });

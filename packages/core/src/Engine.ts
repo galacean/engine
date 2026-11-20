@@ -498,10 +498,9 @@ export class Engine extends EventDispatcher {
     this._sceneManager._destroyAllScene();
 
     const postProcessPasses = this._postProcessPasses;
-    for (let i = postProcessPasses.length - 1; i >= 0; i--) {
-      postProcessPasses[i].destroy();
+    while (postProcessPasses.length > 0) {
+      postProcessPasses.pop()!.destroy();
     }
-    postProcessPasses.length = 0;
     this._activePostProcessPasses.length = 0;
 
     this._resourceManager._destroy();
