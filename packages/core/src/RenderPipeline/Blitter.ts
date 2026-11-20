@@ -6,7 +6,7 @@ import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
-import { RenderTarget, Texture2D } from "../texture";
+import { RenderTarget, Texture2D, TextureCubeFace } from "../texture";
 import { PipelineUtils } from "./PipelineUtils";
 
 /**
@@ -21,6 +21,7 @@ export class Blitter {
   private static _rendererShaderData = new ShaderData(ShaderDataGroup.Renderer);
   private static _texelSize = new Vector4();
   private static _defaultScaleOffset = new Vector4(1, 1, 0, 0);
+  private static _tempViewport = new Vector4();
 
   /**
    * Blit texture to destination render target using a triangle.
@@ -32,6 +33,8 @@ export class Blitter {
    * @param material - The material to use when blit
    * @param passIndex - Pass index to use of the provided material
    * @param sourceScaleOffset - Source scale and offset
+   * @param destMipLevel - Destination mip level to render to
+   * @param destCubeFace - Destination cube face to render to
    */
   static blitTexture(
     engine: Engine,
@@ -41,7 +44,9 @@ export class Blitter {
     viewport: Vector4 = PipelineUtils.defaultViewport,
     material: Material | null = null,
     passIndex = 0,
-    sourceScaleOffset?: Vector4
+    sourceScaleOffset?: Vector4,
+    destMipLevel: number = 0,
+    destCubeFace?: TextureCubeFace
   ): void {
     const basicResources = engine._basicResources;
     const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
@@ -53,7 +58,12 @@ export class Blitter {
     // We not use projection matrix when blit, but we must modify flipProjection to make front face correct
     context.flipProjection = !!destination;
 
-    context.setRenderTarget(destination, viewport, 0);
+    let targetViewport = viewport;
+    if (destination && destCubeFace != undefined) {
+      targetViewport = Blitter._tempViewport.set(viewport.x, 1 - viewport.y - viewport.w, viewport.z, viewport.w);
+    }
+
+    context.setRenderTarget(destination, targetViewport, destMipLevel, destCubeFace);
 
     const rendererShaderData = Blitter._rendererShaderData;
 

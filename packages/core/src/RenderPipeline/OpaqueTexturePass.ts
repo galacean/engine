@@ -14,26 +14,33 @@ import { RenderContext } from "./RenderContext";
  * Opaque texture pass.
  */
 export class OpaqueTexturePass extends PipelinePass {
-  private _cameraColorTexture: Texture;
-  private _renderTarget: RenderTarget;
+  private _cameraColorTexture: Texture | null = null;
+  private _renderTarget: RenderTarget | null = null;
+  private _sourceMipLevel: number = 0;
 
   constructor(engine: Engine) {
     super(engine);
   }
 
-  onConfig(camera: Camera, cameraColorTexture: Texture): void {
+  onConfig(
+    camera: Camera,
+    cameraColorTexture: Texture,
+    width: number = camera.pixelViewport.width,
+    height: number = camera.pixelViewport.height,
+    sourceMipLevel: number = 0
+  ): void {
     this._cameraColorTexture = cameraColorTexture;
+    this._sourceMipLevel = sourceMipLevel;
 
     const downsampling = camera.opaqueTextureDownsampling;
     const isNoDownsampling = downsampling === Downsampling.None;
 
-    const viewport = camera.pixelViewport;
     const sizeScale = isNoDownsampling ? 1.0 : downsampling === Downsampling.TwoX ? 0.5 : 0.25;
     const opaqueRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
       this.engine,
       this._renderTarget,
-      viewport.width * sizeScale,
-      viewport.height * sizeScale,
+      Math.max(1, Math.floor(width * sizeScale)),
+      Math.max(1, Math.floor(height * sizeScale)),
       camera._getInternalColorTextureFormat(),
       null,
       false,
@@ -48,7 +55,17 @@ export class OpaqueTexturePass extends PipelinePass {
   }
 
   override onRender(context: RenderContext): void {
-    Blitter.blitTexture(this.engine, <Texture2D>this._cameraColorTexture, this._renderTarget);
-    context.camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, this._renderTarget.getColorTexture(0));
+    Blitter.blitTexture(this.engine, <Texture2D>this._cameraColorTexture, this._renderTarget, this._sourceMipLevel);
+    context.camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, this._renderTarget!.getColorTexture(0));
+  }
+
+  release(): void {
+    const renderTarget = this._renderTarget;
+    if (renderTarget) {
+      this.engine._renderTargetPool.freeRenderTarget(renderTarget);
+      this._renderTarget = null;
+    }
+    this._cameraColorTexture = null;
+    this._sourceMipLevel = 0;
   }
 }

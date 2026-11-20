@@ -71,6 +71,10 @@ export class BasicRenderPipeline {
    */
   destroy(): void {
     this._cullingResults.destroy();
+    this._depthOnlyPass.release();
+    this._saoPass.release();
+    this._opaqueTexturePass.release();
+    this._finalPass.release();
 
     const pool = this._camera.engine._renderTargetPool;
 
@@ -116,7 +120,8 @@ export class BasicRenderPipeline {
     );
 
     // Copy the background when MSAA prevents a direct blit or sRGB needs conversion to linear.
-    const isSRGBBackground = !renderTarget || renderTarget.getColorTexture(0)!.isSRGBColorSpace;
+    const colorTexture = renderTarget?.getColorTexture(0);
+    const isSRGBBackground = !renderTarget || Boolean(colorTexture?.isSRGBColorSpace);
     this._shouldCopyBackgroundColor =
       independentCanvasEnabled &&
       !(finalClearFlags & CameraClearFlags.Color) &&
@@ -146,6 +151,10 @@ export class BasicRenderPipeline {
     }
 
     const pool = engine._renderTargetPool;
+    const targetMipLevel = mipLevel ?? 0;
+    const viewport = camera.pixelViewport;
+    const targetWidth = targetMipLevel > 0 ? Math.max(1, viewport.width >> targetMipLevel) : viewport.width;
+    const targetHeight = targetMipLevel > 0 ? Math.max(1, viewport.height >> targetMipLevel) : viewport.height;
 
     // Check if need to create internal color texture or grab texture
     if (independentCanvasEnabled) {
@@ -161,10 +170,9 @@ export class BasicRenderPipeline {
       } else {
         depthFormat = null;
       }
-      const viewport = camera.pixelViewport;
       this._internalColorTarget = pool.allocateRenderTarget(
-        viewport.width,
-        viewport.height,
+        targetWidth,
+        targetHeight,
         camera._getInternalColorTextureFormat(),
         depthFormat,
         false,
@@ -178,8 +186,8 @@ export class BasicRenderPipeline {
       if (this._shouldCopyBackgroundColor) {
         const colorTexture = camera.renderTarget?.getColorTexture(0);
         this._copyBackgroundTexture = pool.allocateTexture(
-          viewport.width,
-          viewport.height,
+          targetWidth,
+          targetHeight,
           colorTexture?.format ?? TextureFormat.R8G8B8A8_UNorm,
           false,
           colorTexture?.isSRGBColorSpace ?? false,
@@ -199,7 +207,7 @@ export class BasicRenderPipeline {
       this._saoPass.release();
     }
 
-    this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
+    this._drawRenderPass(context, camera, finalClearFlags, targetWidth, targetHeight, cubeFace, targetMipLevel);
 
     // Return the per-frame leases so the next camera with matching shape can reuse them
     if (this._internalColorTarget) {
@@ -216,8 +224,10 @@ export class BasicRenderPipeline {
     context: RenderContext,
     camera: Camera,
     finalClearFlags: CameraClearFlags,
+    targetWidth: number,
+    targetHeight: number,
     cubeFace?: TextureCubeFace,
-    mipLevel?: number
+    mipLevel: number = 0
   ) {
     const cullingResults = this._cullingResults;
     const { opaqueQueue, alphaTestQueue, transparentQueue } = cullingResults;
@@ -227,10 +237,13 @@ export class BasicRenderPipeline {
     const { background } = scene;
 
     const rhi = engine._hardwareRenderer;
+    const isDepthOnlyTarget = Boolean(cameraRenderTarget && cameraRenderTarget.colorTextureCount === 0);
     const internalColorTarget = this._internalColorTarget;
     const colorTarget = internalColorTarget || camera.renderTarget;
     const colorViewport = internalColorTarget ? PipelineUtils.defaultViewport : camera.viewport;
-    const needFlipProjection = !!internalColorTarget || (camera.renderTarget && cubeFace == undefined);
+    const colorMipLevel = internalColorTarget ? 0 : mipLevel;
+    const colorCubeFace = internalColorTarget ? undefined : cubeFace;
+    const needFlipProjection = Boolean(camera.renderTarget ? cubeFace == undefined : internalColorTarget);
 
     if (context.flipProjection !== needFlipProjection) {
       // Just add projection matrix update type is enough
@@ -238,15 +251,16 @@ export class BasicRenderPipeline {
       context.applyVirtualCamera(camera._virtualCamera, needFlipProjection);
     }
 
-    context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+    context.setRenderTarget(colorTarget, colorViewport, colorMipLevel, colorCubeFace);
 
-    // Clear color
-    if (finalClearFlags !== CameraClearFlags.None) {
+    // Clear color/depth/stencil (mask off Color when rendering to a depth-only RenderTarget)
+    const passClearFlags = isDepthOnlyTarget ? finalClearFlags & ~CameraClearFlags.Color : finalClearFlags;
+    if (passClearFlags !== CameraClearFlags.None) {
       const premultiplyColor = Background._premultiplySolidColor;
       const { solidColor } = background;
       const { a } = solidColor;
       premultiplyColor.set(solidColor.r * a, solidColor.g * a, solidColor.b * a, a);
-      rhi.clearRenderTarget(engine, finalClearFlags, premultiplyColor);
+      rhi.clearRenderTarget(engine, passClearFlags, premultiplyColor);
     }
 
     if (internalColorTarget) {
@@ -276,7 +290,7 @@ export class BasicRenderPipeline {
           rhi.blitInternalRTByBlitFrameBuffer(camera.renderTarget, internalColorTarget, ignoreFlags, camera.viewport);
         }
       }
-      context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+      context.setRenderTarget(colorTarget, colorViewport, colorMipLevel, colorCubeFace);
     }
 
     const maskManager = scene._maskManager;
@@ -286,7 +300,7 @@ export class BasicRenderPipeline {
 
     opaqueQueue.render(context, PipelineStage.Forward);
     alphaTestQueue.render(context, PipelineStage.Forward);
-    if (finalClearFlags & CameraClearFlags.Color) {
+    if (!isDepthOnlyTarget && finalClearFlags & CameraClearFlags.Color) {
       if (background.mode === BackgroundMode.Sky) {
         background.sky._render(context);
       } else if (background.mode === BackgroundMode.Texture && background.texture) {
@@ -295,17 +309,18 @@ export class BasicRenderPipeline {
     }
 
     // Copy opaque texture
-    if (camera.opaqueTextureEnabled) {
+    if (!isDepthOnlyTarget && camera.opaqueTextureEnabled) {
       // Should blit to resolve the MSAA
       colorTarget!._blitRenderTarget();
 
       const opaqueTexturePass = this._opaqueTexturePass;
-      opaqueTexturePass.onConfig(camera, colorTarget!.getColorTexture(0)!);
+      opaqueTexturePass.onConfig(camera, colorTarget!.getColorTexture(0)!, targetWidth, targetHeight, colorMipLevel);
       opaqueTexturePass.onRender(context);
 
       // Should revert to original render target
-      context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+      context.setRenderTarget(colorTarget, colorViewport, colorMipLevel, colorCubeFace);
     } else {
+      this._opaqueTexturePass.release();
       camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, null);
     }
 
@@ -318,10 +333,14 @@ export class BasicRenderPipeline {
 
     // Post process
     const needFinalPass = camera._needFinalPass();
+    const needBlitToSubresource = Boolean(cameraRenderTarget && (mipLevel > 0 || cubeFace != undefined));
     const { postProcessManager } = scene;
-    if (camera.enablePostProcess && postProcessManager._isValid()) {
-      outputTarget = needFinalPass ? postProcessManager._getOutputRenderTarget(camera) : camera.renderTarget;
-      postProcessManager._render(camera, internalColorTarget!, outputTarget);
+    if (!isDepthOnlyTarget && camera.enablePostProcess && postProcessManager._isValid()) {
+      outputTarget =
+        needFinalPass || needBlitToSubresource
+          ? postProcessManager._getOutputRenderTarget(camera, targetWidth, targetHeight)
+          : camera.renderTarget;
+      postProcessManager._render(camera, internalColorTarget!, outputTarget, targetWidth, targetHeight);
     } else {
       // Maybe internalColorTarget or camera.renderTarget or null
       outputTarget = colorTarget;
@@ -335,7 +354,7 @@ export class BasicRenderPipeline {
     // Final pass
     const finalPass = this._finalPass;
     if (needFinalPass) {
-      finalPass.onConfig(camera, outputTarget!);
+      finalPass.onConfig(camera, outputTarget!, targetWidth, targetHeight, mipLevel, cubeFace);
       finalPass.onRender(context);
       outputTarget = cameraRenderTarget;
     } else {
@@ -343,8 +362,19 @@ export class BasicRenderPipeline {
     }
 
     // If output target is not camera's render target(only enable HDR or opaqueTexture), we should blit it to camera's render target
-    if (outputTarget !== cameraRenderTarget) {
-      Blitter.blitTexture(engine, <Texture2D>outputTarget!.getColorTexture(0), cameraRenderTarget, 0, camera.viewport);
+    if (!isDepthOnlyTarget && outputTarget !== cameraRenderTarget) {
+      Blitter.blitTexture(
+        engine,
+        <Texture2D>outputTarget!.getColorTexture(0),
+        cameraRenderTarget,
+        0,
+        camera.viewport,
+        null,
+        0,
+        undefined,
+        mipLevel,
+        cubeFace
+      );
     }
 
     cameraRenderTarget?._blitRenderTarget();

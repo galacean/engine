@@ -169,7 +169,13 @@ export class PostProcessManager {
   /**
    * @internal
    */
-  _render(camera: Camera, srcRenderTarget: RenderTarget, destRenderTarget: RenderTarget | null): void {
+  _render(
+    camera: Camera,
+    srcRenderTarget: RenderTarget,
+    destRenderTarget: RenderTarget | null,
+    width: number = camera.pixelViewport.width,
+    height: number = camera.pixelViewport.height
+  ): void {
     const engine = this.scene.engine;
     this._srcRenderTarget = srcRenderTarget;
     this._destRenderTarget = destRenderTarget;
@@ -179,7 +185,7 @@ export class PostProcessManager {
 
     const activePasses = engine._getActivePostProcessPasses();
     this._remainActivePassCount = activePasses.length;
-    this._initSwapRenderTarget(camera);
+    this._initSwapRenderTarget(camera, width, height);
 
     for (let i = 0, n = activePasses.length; i < n; i++) {
       const pass = activePasses[i];
@@ -214,13 +220,16 @@ export class PostProcessManager {
   /**
    * @internal
    */
-  _getOutputRenderTarget(camera: Camera): RenderTarget {
-    const { pixelViewport } = camera;
+  _getOutputRenderTarget(
+    camera: Camera,
+    width: number = camera.pixelViewport.width,
+    height: number = camera.pixelViewport.height
+  ): RenderTarget {
     this._outputRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
       camera.engine,
       this._outputRenderTarget,
-      pixelViewport.width,
-      pixelViewport.height,
+      width,
+      height,
       camera._getTargetColorTextureFormat(),
       null,
       false,
@@ -258,14 +267,13 @@ export class PostProcessManager {
     });
   }
 
-  private _initSwapRenderTarget(camera: Camera): void {
+  private _initSwapRenderTarget(camera: Camera, width: number, height: number): void {
     if (this._remainActivePassCount > 1) {
-      const viewport = camera.pixelViewport;
       const swapRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
         this.scene.engine,
         this._swapRenderTarget,
-        viewport.width,
-        viewport.height,
+        width,
+        height,
         camera._getInternalColorTextureFormat(),
         TextureFormat.Depth24Stencil8,
         false,

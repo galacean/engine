@@ -7,7 +7,14 @@ import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader";
-import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
+import {
+  RenderTarget,
+  Texture2D,
+  TextureCubeFace,
+  TextureFilterMode,
+  TextureFormat,
+  TextureWrapMode
+} from "../texture";
 
 /**
  * @internal
@@ -16,6 +23,8 @@ import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapM
 export class FinalPass extends PipelinePass {
   private _inputRenderTarget: RenderTarget | null;
   private _srgbRenderTarget: RenderTarget | null;
+  private _destMipLevel: number = 0;
+  private _destCubeFace: TextureCubeFace | undefined = undefined;
   private _antiAliasingMaterial: Material;
   private _sRGBmaterial: Material;
 
@@ -33,16 +42,24 @@ export class FinalPass extends PipelinePass {
     this._antiAliasingMaterial = antiAliasingMaterial;
   }
 
-  onConfig(camera: Camera, inputRenderTarget: RenderTarget): void {
+  onConfig(
+    camera: Camera,
+    inputRenderTarget: RenderTarget,
+    width: number = camera.pixelViewport.width,
+    height: number = camera.pixelViewport.height,
+    mipLevel: number = 0,
+    cubeFace?: TextureCubeFace
+  ): void {
     this._inputRenderTarget = inputRenderTarget;
+    this._destMipLevel = mipLevel;
+    this._destCubeFace = cubeFace;
 
     if (camera.antiAliasing === AntiAliasing.FXAA) {
-      const { pixelViewport } = camera;
       this._srgbRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
         this.engine,
         this._srgbRenderTarget,
-        pixelViewport.width,
-        pixelViewport.height,
+        width,
+        height,
         TextureFormat.R8G8B8A8_UNorm, // FXAA need color range [0, 1], so we use R8G8B8A8_UNorm and ignore camera target HDR format
         null,
         false,
@@ -66,9 +83,31 @@ export class FinalPass extends PipelinePass {
     if (enableFXAA) {
       Blitter.blitTexture(engine, sourceTexture, this._srgbRenderTarget, 0, undefined, this._sRGBmaterial);
       const sRGBTexture = <Texture2D>this._srgbRenderTarget!.getColorTexture();
-      Blitter.blitTexture(engine, sRGBTexture, renderTarget, 0, viewport, this._antiAliasingMaterial);
+      Blitter.blitTexture(
+        engine,
+        sRGBTexture,
+        renderTarget,
+        0,
+        viewport,
+        this._antiAliasingMaterial,
+        0,
+        undefined,
+        this._destMipLevel,
+        this._destCubeFace
+      );
     } else {
-      Blitter.blitTexture(engine, sourceTexture, renderTarget, 0, viewport, this._sRGBmaterial);
+      Blitter.blitTexture(
+        engine,
+        sourceTexture,
+        renderTarget,
+        0,
+        viewport,
+        this._sRGBmaterial,
+        0,
+        undefined,
+        this._destMipLevel,
+        this._destCubeFace
+      );
     }
   }
 
@@ -79,5 +118,7 @@ export class FinalPass extends PipelinePass {
       this._srgbRenderTarget = null;
     }
     this._inputRenderTarget = null;
+    this._destMipLevel = 0;
+    this._destCubeFace = undefined;
   }
 }
