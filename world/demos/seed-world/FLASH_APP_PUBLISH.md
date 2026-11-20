@@ -14,7 +14,13 @@ pnpm b:module
 pnpm --dir world prepare:engine
 ```
 
-`prepare:engine` 会生成 `packages/modify/.cache/` 下的着色器与编译产物；修改 `packages/modify` 替换文件或着色器源码后需重新执行。
+`prepare:engine` 会生成 `packages/modify/.cache/` 下的着色器与编译产物；`build:seed-world-flash-app` 仅校验 `packages/modify/.cache/shaders.ts` 是否存在，不会自动检测源码是否更新。因此**每次 `pull` / `rebase` / 切换分支，或修改 `packages/modify` / `packages/shader` 后都应重新执行 `prepare:engine`**。
+
+若改动涉及被地形引用的公共 `ShaderLibrary/*.glsl`（如 `Shadow.glsl`、`Fog.glsl`、`Light.glsl`、`VolumetricCloudShadow.glsl`）或 `packages/terrain/src/shaders/**`，`prepare:engine` 不会更新地形预编译件，须额外重编 4 个 Seed World 地形着色器：
+
+```bash
+node world/scripts/prepare-terrain-shaders.mjs Grass Surface Terrain Vegetation
+```
 
 ## 2. 构建闪应用产物
 
@@ -43,7 +49,7 @@ world/dist/seed-world-flash-app
   pnpm --dir world build:seed-world-flash-app
   ```
   > 若 `project.json` 的 CDN URL 发生变化，合并文本包 `seed-world-project-text-bundle-*.json` 的哈希会更新，再执行一次 `--apply` 与 `build:seed-world-flash-app` 即可收敛至 `pending upload: 0`。
-- **`about:srcdoc` 地址兼容**：正式闪应用容器通过 sandbox iframe 的 `srcdoc` 运行入口，此时 `location.href` 为 `about:srcdoc`。页面已通过 `SeedWorldDocumentUrl` 读取宿主注入的 `meta[name="flash-app-html-url"]`，不会直接对 `about:srcdoc` 调用 `history.replaceState`。
+- **`about:srcdoc` 地址与文本包 URL 兼容**：正式闪应用容器通过 sandbox iframe 的 `srcdoc` 运行入口，此时 `location.href` 为 `about:srcdoc`。页面已通过 `SeedWorldDocumentUrl` 读取宿主注入的 `meta[name="flash-app-html-url"]`，不会直接对 `about:srcdoc` 调用 `history.replaceState`；同时构建脚本会强校验所有 chunk 中**不含未替换的 `__SEED_WORLD_PROJECT_TEXT_BUNDLE_URL__` 占位符**，且**不含相对路径 `new URL("...", self.location)`**（避免 `about:srcdoc` 下抛 `Invalid URL` 导致合并文本包静默加载失败）。
 
 > 不要把仓库根目录、`world/dist/seed-world`（普通多 Demo 目录结构，入口在 `world/demos/seed-world/index.html`）或 `node_modules` 当作闪应用产物目录发布。
 
@@ -80,10 +86,10 @@ python3 -m http.server 4180 \
 浏览器打开：
 
 ```text
-http://127.0.0.1:4180/?aiChat=1
+http://127.0.0.1:4180/?aiChat=1&bootTrace=1
 ```
 
-核对控制台无 404 / Worker 报错，进入 3D 世界后地形、水体、植被、建筑与相机交互均正常。
+核对控制台无 404 / Worker 报错，首屏 `bootTrace` 与合并文本包加载正常，进入 3D 世界后地形、水体、植被、建筑与相机交互均正常（排查渲染或性能可改用 `?debug=1&view=3d&bootTrace=1`）。`python3 -m http.server` 无 gzip 压缩，仅适合功能冒烟；评估真实加载耗时或手机局域网预览时应使用带 gzip 的本地静态服务。
 
 ## 5. 发布为灵光闪应用
 
@@ -131,7 +137,9 @@ env -u OSS_ACCESS_KEY_ID -u OSS_SECRET_ACCESS_KEY \
 
 | 现象 | 原因 | 处理 |
 | --- | --- | --- |
-| `Missing packages/modify/.cache/shaders.ts` | 尚未准备引擎着色器缓存 | 在仓库根目录执行 `pnpm b:module && pnpm --dir world prepare:engine` |
+| `Missing packages/modify/.cache/shaders.ts` 或打包后仍是旧着色器 | 尚未准备引擎着色器缓存，或 pull/rebase 后 `.cache/shaders.ts` 过期 / 地形 `.shaderc` 未重编 | 执行 `pnpm b:module && pnpm --dir world prepare:engine`；改动涉及公共 `ShaderLibrary/*.glsl` 或 `packages/terrain/src/shaders/**` 时，再执行 `node world/scripts/prepare-terrain-shaders.mjs Grass Surface Terrain Vegetation` |
+| 构建警告 `Local CDN-eligible asset(s) not yet in flash-app-cdn-manifest.json` | 新增或变更的 `.shaderc`/资产/合并文本包尚未同步至 MDN CDN | 执行 `sync-flash-app-cdn-assets.py --apply` 并重编 `build:seed-world-flash-app`（若修改了 `project.json` 引用资产，通常需两轮收敛至 `pending upload: 0`），然后再执行 `build:seed-world-flash-source` 并提交更新后的 `flash-app-cdn-manifest.json` |
+| 构建报 `resolves a relative URL against self.location` 或 `did not replace __SEED_WORLD_PROJECT_TEXT_BUNDLE_URL__` | 代码直接写了 `new URL("...", import.meta.url)` 被 Vite 改写为 `self.location`，或构建未走闪应用插件 | 将 `import.meta.url` 保存在局部常量后再构造 URL（避免 Vite `asset-import-meta-url` 改写为 `self.location`），并确认使用 `pnpm --dir world build:seed-world-flash-app` |
 | 独立产物进入 3D 后资源 404 | 发布了 `world/dist/seed-world` 或绕过了闪应用构建脚本 | 重新执行 `pnpm --dir world build:seed-world-flash-app`，只发布 `world/dist/seed-world-flash-app` |
 | Entry URL 打开后脚本请求指向 `/assets` 或 `../../../assets` | 使用了普通 `pnpm --dir world build` 而非闪应用构建 | 使用 `pnpm --dir world build:seed-world-flash-app`，确认 `index.html` 位于产物根目录且引用 `./assets/...` |
 | Chrome 正常，但钉钉 / 移动 WebView 卡在加载阶段或 Worker 报错 | Worker 使用了 `{ type: "module" }` 或跨源 URL | 重新运行 `build:seed-world-flash-app`，确保所有 Worker 均经 `flashAppClassicWorkers` 改写为 classic Blob `importScripts(...)` |
