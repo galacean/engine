@@ -332,6 +332,8 @@ export class WorldEnvironmentRuntime {
   private _cloudWindShapeResponse = 0;
   private _weatherIblSynchronized = true;
   private _seasonIblSynchronized = true;
+  private _cloudProfileIblSynchronized = true;
+  private _cloudProfileIblBaselineSignature = "";
   private _surfaceWaterSsrLease: ScreenSpaceReflectionConsumerLease | undefined;
   private _destroyed = false;
   private _timeDrivenTransition = false;
@@ -487,6 +489,7 @@ export class WorldEnvironmentRuntime {
       this._applyComposedState(0);
       this._lighting.requestEnvironmentBake();
       this._weatherIblSynchronized = true;
+      this._cloudProfileIblSynchronized = true;
     }
   }
 
@@ -643,6 +646,7 @@ export class WorldEnvironmentRuntime {
       this._applyComposedState(0);
       this._lighting.requestEnvironmentBake();
       this._weatherIblSynchronized = true;
+      this._cloudProfileIblSynchronized = true;
     }
   }
 
@@ -657,24 +661,28 @@ export class WorldEnvironmentRuntime {
   setCloudQuality(quality: VolumetricCloudQuality): void {
     this._assertAlive();
     this._clouds.setQuality(quality);
+    this._markCloudProfileIblDirty();
   }
 
   /** Applies partial physical layer and density-field scale tuning without bypassing material validation. */
   setCloudScaleSettings(settings: Readonly<Partial<VolumetricCloudScaleSettings>>): void {
     this._assertAlive();
     this._clouds.setScaleSettings({ ...this._clouds.getSnapshot().scaleSettings, ...settings });
+    this._markCloudProfileIblDirty();
   }
 
   /** Applies partial cloud morphology tuning while preserving the rest of the authored profile. */
   setCloudShapeProfile(profile: Readonly<Partial<VolumetricCloudShapeSettings>>): void {
     this._assertAlive();
     this._clouds.setShapeProfile({ ...this._clouds.getSnapshot().shapeProfile, ...profile });
+    this._markCloudProfileIblDirty();
   }
 
   /** Applies partial optical tuning while preserving the current terrain-scaled extinction baseline. */
   setCloudLightingProfile(profile: Readonly<Partial<VolumetricCloudLightingProfile>>): void {
     this._assertAlive();
     this._clouds.setLightingProfile({ ...this._clouds.getSnapshot().lightingProfile, ...profile });
+    this._markCloudProfileIblDirty();
   }
 
   /** Rebuilds the deterministic horizontal cloud distribution with a new seed. */
@@ -682,6 +690,7 @@ export class WorldEnvironmentRuntime {
     this._assertAlive();
     if (!Number.isSafeInteger(seed)) throw new RangeError("Terrain cloud weather seed must be a safe integer");
     this._clouds.setWeatherSeed(seed);
+    this._markCloudProfileIblDirty();
   }
 
   /** Clears cloud reconstruction history after a visual comparison or camera cut. */
@@ -937,10 +946,25 @@ export class WorldEnvironmentRuntime {
     this._clouds.setEnvironmentModifierValues(weather.cloud.cloudDensityMultiplier, windShapeResponse);
     this._clouds.applyDayNightState(this._lighting.system.state);
     this._clouds.update(deltaTime);
-    // Visible clouds update every frame, while their low-frequency environment contribution is sampled only
-    // after the previous progressive transaction is complete. Explicit weather edits still request immediately.
-    this._lighting.requestDynamicEnvironmentBake(deltaTime);
+    // Visible clouds update every frame via the direction cache. Only refresh low-frequency IBL while
+    // a timed weather/season transition or explicit cloud-profile edit is converging; steady-state wind
+    // drift keeps hemisphere irradiance stable and must not re-bake the cubemap every second.
+    if (!this._weatherIblSynchronized || !this._seasonIblSynchronized) {
+      this._lighting.requestDynamicEnvironmentBake(deltaTime);
+    } else if (
+      !this._cloudProfileIblSynchronized &&
+      (weather.cloud.cloudCoverage <= Number.EPSILON ||
+        this._clouds.material._skyCompositionSignature !== this._cloudProfileIblBaselineSignature)
+    ) {
+      this._lighting.requestEnvironmentBake();
+      this._cloudProfileIblSynchronized = true;
+    }
     this._publishSurfaceClimateState();
+  }
+
+  private _markCloudProfileIblDirty(): void {
+    this._cloudProfileIblBaselineSignature = this._clouds.material._skyCompositionSignature;
+    this._cloudProfileIblSynchronized = false;
   }
 
   /** Freeze A while a complete B is prepared, then drive weather/season from the clock's progress. */

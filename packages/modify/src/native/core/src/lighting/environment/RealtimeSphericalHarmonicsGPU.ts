@@ -1,3 +1,4 @@
+import { Vector4 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
 import { Buffer } from "../../graphic/Buffer";
 import { BufferBindFlag } from "../../graphic/enums/BufferBindFlag";
@@ -21,7 +22,9 @@ const PROJECT_SHADER_NAME = "Lighting/RealtimeIBLProjectSH";
 export class RealtimeSphericalHarmonicsGPU {
   private static readonly _sourceMapProperty = ShaderProperty.getByName("renderer_SHSourceMap");
   private static readonly _sourceMipLevelProperty = ShaderProperty.getByName("renderer_SHSourceMipLevel");
+  private static readonly _defaultViewport = new Vector4(0, 0, 1, 1);
 
+  private readonly _engine: Engine;
   private readonly _projectionBuffers = new Set<Buffer>();
   private readonly _projectionSimulator: TransformFeedbackSimulator;
   private readonly _blendSimulator: TransformFeedbackSimulator;
@@ -40,6 +43,7 @@ export class RealtimeSphericalHarmonicsGPU {
   }
 
   constructor(engine: Engine, initialPreScaledCoefficients: Float32Array) {
+    this._engine = engine;
     const projectionShader = Shader.find(PROJECT_SHADER_NAME);
     if (!projectionShader) {
       throw new Error(
@@ -100,6 +104,10 @@ export class RealtimeSphericalHarmonicsGPU {
 
   /** Projects a uniformly sampled source mip into a GPU-resident target SH buffer. */
   project(sourceMap: TextureCube, sourceMipLevel: number): void {
+    // Unbind any active offscreen FBO before Transform Feedback samples `sourceMap`.
+    // WebGL2/ANGLE still rejects framebuffer-texture feedback loops even under RASTERIZER_DISCARD,
+    // which otherwise drops the draw with GL_INVALID_OPERATION when draining baker steps back-to-back.
+    this._engine._hardwareRenderer.activeRenderTarget(null, RealtimeSphericalHarmonicsGPU._defaultViewport, false);
     const shaderData = this._projectionShaderData;
     shaderData.setTexture(RealtimeSphericalHarmonicsGPU._sourceMapProperty, sourceMap);
     shaderData.setFloat(RealtimeSphericalHarmonicsGPU._sourceMipLevelProperty, sourceMipLevel);

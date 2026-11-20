@@ -1401,11 +1401,11 @@ export class TerrainLightingRuntime {
     if (!Number.isFinite(deltaTime) || deltaTime < 0) {
       throw new RangeError("Dynamic environment-bake delta time must be finite and non-negative");
     }
+    if (!this._iblBaker.isIdle) return;
     this._dynamicEnvironmentBakeElapsedSeconds += deltaTime;
     if (this._dynamicEnvironmentBakeElapsedSeconds < PROCEDURAL_SKY_REALTIME_IBL_DYNAMIC_REFRESH_INTERVAL_SECONDS) {
       return;
     }
-    if (!this._iblBaker.isIdle) return;
     this._requestProceduralSkyBake(true);
   }
 
