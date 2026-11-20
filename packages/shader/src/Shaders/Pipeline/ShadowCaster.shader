@@ -15,37 +15,15 @@ Shader "Pipeline/ShadowCaster" {
       #include "ShaderLibrary/Skin/Skin.glsl"
       #include "ShaderLibrary/Skin/BlendShape.glsl"
 
-      #if defined(MATERIAL_IS_ALPHA_CUTOFF) || (defined(SCENE_ENABLE_TRANSPARENT_SHADOW) && defined(MATERIAL_IS_TRANSPARENT))
-        #define NEED_SHADOW_ALPHA
-        #ifdef MATERIAL_HAS_BASETEXTURE
-          #define NEED_SHADOW_UV
-        #endif
-        #ifdef RENDERER_ENABLE_VERTEXCOLOR
-          #define NEED_SHADOW_VERTEX_ALPHA
-        #endif
-      #endif
-
       vec2 scene_ShadowBias;
       vec3 scene_LightDirection;
 
-      #ifdef NEED_SHADOW_ALPHA
-        vec4 material_BaseColor;
-        float material_AlphaCutoff;
-        #ifdef NEED_SHADOW_UV
-          sampler2D material_BaseTexture;
-          #ifdef MATERIAL_NEED_TILING_OFFSET
-            vec4 material_TilingOffset;
-          #endif
-        #endif
-      #endif
+      vec4 material_BaseColor;
+      sampler2D material_BaseTexture;
+      float material_AlphaCutoff;
 
       struct Varyings {
-        #ifdef NEED_SHADOW_UV
-          vec2 v_uv;
-        #endif
-        #ifdef NEED_SHADOW_VERTEX_ALPHA
-          float v_vertexAlpha;
-        #endif
+        vec2 v_uv;
       };
 
       vec3 applyShadowBias(vec3 positionWS) {
@@ -93,19 +71,10 @@ Shader "Pipeline/ShadowCaster" {
           #endif
         #endif
 
-        #ifdef NEED_SHADOW_UV
-          #ifdef RENDERER_HAS_UV
-            v.v_uv = attr.TEXCOORD_0;
-          #else
-            v.v_uv = vec2(0.0, 0.0);
-          #endif
-          #ifdef MATERIAL_NEED_TILING_OFFSET
-            v.v_uv = v.v_uv * material_TilingOffset.xy + material_TilingOffset.zw;
-          #endif
-        #endif
-
-        #ifdef NEED_SHADOW_VERTEX_ALPHA
-          v.v_vertexAlpha = attr.COLOR_0.a;
+        #ifdef RENDERER_HAS_UV
+          v.v_uv = attr.TEXCOORD_0;
+        #else
+          v.v_uv = vec2(0.0, 0.0);
         #endif
 
         vec4 positionWS = renderer_ModelMat * position;
@@ -125,13 +94,10 @@ Shader "Pipeline/ShadowCaster" {
 
 
       void frag(Varyings v) {
-        #ifdef NEED_SHADOW_ALPHA
+        #if defined(MATERIAL_IS_ALPHA_CUTOFF) || (defined(SCENE_ENABLE_TRANSPARENT_SHADOW) && defined(MATERIAL_IS_TRANSPARENT))
           float alpha = material_BaseColor.a;
-          #ifdef NEED_SHADOW_UV
+          #ifdef MATERIAL_HAS_BASETEXTURE
             alpha *= texture2D(material_BaseTexture, v.v_uv).a;
-          #endif
-          #ifdef NEED_SHADOW_VERTEX_ALPHA
-            alpha *= v.v_vertexAlpha;
           #endif
           #ifdef MATERIAL_IS_ALPHA_CUTOFF
             if (alpha < material_AlphaCutoff) {
