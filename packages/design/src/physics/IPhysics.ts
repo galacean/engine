@@ -135,22 +135,6 @@ export interface IPhysics {
   createSpringJoint(collider: ICollider): ISpringJoint;
 
   /**
-   * Get whether two collision layers can collide with each other.
-   * @param layer1 - The first collision layer
-   * @param layer2 - The second collision layer
-   * @returns Whether the layers should collide
-   */
-  getColliderLayerCollision(layer1: number, layer2: number): boolean;
-
-  /**
-   * Set whether two collision layers can collide with each other.
-   * @param layer1 - The first collision layer
-   * @param layer2 - The second collision layer
-   * @param isCollide - Whether the layers should collide
-   */
-  setColliderLayerCollision(layer1: number, layer2: number, isCollide: boolean): void;
-
-  /**
    * Release the physics backend.
    */
   destroy(): void;

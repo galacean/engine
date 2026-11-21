@@ -58,6 +58,22 @@ export interface IPhysicsScene {
   updateEvents(): IPhysicsEvents;
 
   /**
+   * Get whether two collision layers can collide with each other.
+   * @param layer1 - The first collision layer index
+   * @param layer2 - The second collision layer index
+   * @returns Whether the layers should collide
+   */
+  getColliderLayerCollision(layer1: number, layer2: number): boolean;
+
+  /**
+   * Set whether two collision layers can collide with each other.
+   * @param layer1 - The first collision layer index
+   * @param layer2 - The second collision layer index
+   * @param isCollide - Whether the layers should collide
+   */
+  setColliderLayerCollision(layer1: number, layer2: number, isCollide: boolean): void;
+
+  /**
    * Casts a ray and reports the nearest hit with a positive distance.
    * @param origin - The world-space ray origin
    * @param direction - The normalized world-space ray direction

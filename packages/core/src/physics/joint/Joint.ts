@@ -57,7 +57,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
       preBody?._detachJoint(this);
       value?.entity._updateFlagManager.addListener(this._onConnectedTransformChanged);
       value?._attachJoint(this);
-      if (this._nativeJoint) Joint._wakeBody(preBody);
+      if (this._nativeJoint) preBody?._wakeNative();
       this._connectedBody = value;
       this._syncActiveJoint();
     }
@@ -431,14 +431,16 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   }
 
   protected _wakeBodies(): void {
-    Joint._wakeBody(this.entity.getComponent(Rigidbody));
+    this.entity.getComponent(Rigidbody)?._wakeNative();
     const body = this._connectedBody;
-    if (body?.scene === this.scene) Joint._wakeBody(body);
+    if (body && body.scene === this.scene) body._wakeNative();
   }
 
-  private static _wakeBody(body: Rigidbody | null | undefined): void {
-    if (body && !body.destroyed && body._index !== -1 && !body.isKinematic) {
-      body.wakeUp();
+  /** @internal Wake the other endpoint after the constraint enters or leaves simulation. */
+  _wakeOtherBody(body: Rigidbody): void {
+    if (this._nativeJoint) {
+      const connectedBody = this._connectedBody;
+      (body === connectedBody ? this.entity.getComponent(Rigidbody) : connectedBody)?._wakeNative();
     }
   }
 }

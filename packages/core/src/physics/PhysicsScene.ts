@@ -42,7 +42,10 @@ export class PhysicsScene {
   private _dirtyBodies: Rigidbody[] = [];
   private _dirtyColliders: Collider[] = [];
   private _massDirtyBodies: Rigidbody[] = [];
+  private _pendingSleeps?: Set<Rigidbody>;
   private _collision: Collision;
+  private readonly _eventTargets = new Map<number, Rigidbody>();
+  private _nextEventId = 0;
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
   /** @internal */
@@ -96,7 +99,7 @@ export class PhysicsScene {
    * @returns Whether the colliders should collide
    */
   getColliderLayerCollision(layer1: Layer, layer2: Layer): boolean {
-    return Engine._nativePhysics.getColliderLayerCollision(
+    return this._nativePhysicsScene.getColliderLayerCollision(
       Collider._getLayerIndex(layer1),
       Collider._getLayerIndex(layer2)
     );
@@ -109,7 +112,7 @@ export class PhysicsScene {
    * @param isCollide - Whether the colliders should collide
    */
   setColliderLayerCollision(layer1: Layer, layer2: Layer, isCollide: boolean): void {
-    Engine._nativePhysics.setColliderLayerCollision(
+    this._nativePhysicsScene.setColliderLayerCollision(
       Collider._getLayerIndex(layer1),
       Collider._getLayerIndex(layer2),
       isCollide
@@ -692,8 +695,16 @@ export class PhysicsScene {
     const step = Math.floor(simulateTime / fixedTimeStep);
     this._restTime = simulateTime - step * fixedTimeStep;
     for (let i = 0; i < step; i++) {
+      const scene = this._scene;
       componentsManager.callScriptOnPhysicsUpdate();
+      if (scene.destroyed || !scene.isActive) return;
       this._syncColliders();
+      if (scene.destroyed) return;
+      const pendingSleeps = this._pendingSleeps;
+      if (pendingSleeps?.size && scene._activeProcessCount === 0) {
+        for (const body of pendingSleeps) body._applyScheduledSleep();
+        pendingSleeps.clear();
+      }
       nativePhysicsScene.update(fixedTimeStep);
       if (this._bodyOrderDirty && !bodies.isLopping) {
         this._sortBodies();
@@ -715,7 +726,7 @@ export class PhysicsScene {
           poses.push(pose);
         }
       }
-      this._dispatchEvents(nativePhysicsScene.updateEvents());
+      if (!scene.destroyed) this._dispatchEvents(nativePhysicsScene.updateEvents());
     }
   }
 
@@ -723,8 +734,9 @@ export class PhysicsScene {
    * @internal
    * Apply pending component changes to the native scene: Rigidbody poses first, then Collider ownership and poses
    * relative to them, and finally the mass properties that depend on the attached Colliders.
+   * @returns Whether the specified body's normal mass update was deferred.
    */
-  _syncColliders(): void {
+  _syncColliders(deferMassFor?: Rigidbody): boolean {
     const dirtyBodies = this._dirtyBodies;
     while (dirtyBodies.length) {
       const body = dirtyBodies.pop()!;
@@ -738,11 +750,14 @@ export class PhysicsScene {
       collider._sync();
     }
     const massDirtyBodies = this._massDirtyBodies;
+    let deferred = false;
     while (massDirtyBodies.length) {
       const body = massDirtyBodies.pop()!;
       body._massDirtyIndex = -1;
-      body._updateMass();
+      if (body === deferMassFor) deferred = true;
+      else body._updateMass();
     }
+    return deferred;
   }
 
   /**
@@ -829,6 +844,24 @@ export class PhysicsScene {
     massDirtyBodies.push(body);
   }
 
+  /** @internal Schedules or cancels sleep after activation and Collider synchronization. */
+  _scheduleSleep(body: Rigidbody, scheduled: boolean): void {
+    if (scheduled) (this._pendingSleeps ||= new Set()).add(body);
+    else this._pendingSleeps?.delete(body);
+  }
+
+  /** @internal */
+  _registerEventTarget(target: Rigidbody): number {
+    const id = ++this._nextEventId;
+    this._eventTargets.set(id, target);
+    return id;
+  }
+
+  /** @internal */
+  _unregisterEventTarget(id: number): void {
+    this._eventTargets.delete(id);
+  }
+
   /**
    * @internal
    */
@@ -859,6 +892,8 @@ export class PhysicsScene {
     this._gravity._onValueChanged = null;
     PhysicsScene._raycastHitPool.length = 0;
     PhysicsScene._raycastSeenHits.clear();
+    this._eventTargets.clear();
+    this._pendingSleeps?.clear();
     this._nativePhysicsScene?.destroy();
     this._nativePhysicsScene = null!;
   }
@@ -917,6 +952,34 @@ export class PhysicsScene {
       const state = event.dispatchState;
       PhysicsScene._dispatchScripts(state, collider0, collider1);
       PhysicsScene._dispatchScripts(state, collider1, collider0);
+    }
+
+    const { bodySleepEventIds, bodySleepEventCount } = events;
+    for (let i = 0; i < bodySleepEventCount; i++) {
+      const id = bodySleepEventIds[i];
+      if (id < 0) this._dispatchSleepEvent(-id, "onSleep");
+      else this._dispatchSleepEvent(id, "onWake");
+    }
+  }
+
+  private _dispatchSleepEvent(id: number, method: "onSleep" | "onWake"): void {
+    const targets = this._eventTargets;
+    const target = targets.get(id);
+    if (!target) return;
+
+    const scripts = target.entity._scripts;
+    const count = scripts.length;
+    scripts._startLoop();
+    try {
+      const elements = scripts._elements;
+      for (let i = 0; i < count; i++) {
+        const script = elements[i];
+        if (!script) continue;
+        script[method]?.(target);
+        if (!targets.has(id)) break;
+      }
+    } finally {
+      scripts._endLoop(PhysicsScene._scriptIndexSetter);
     }
   }
 
@@ -997,7 +1060,7 @@ export class PhysicsScene {
   }
 
   private _setGravity(): void {
-    this._nativePhysicsScene.setGravity(this._gravity);
+    this._nativePhysicsScene?.setGravity(this._gravity);
   }
 
   private _createHitCallback(

@@ -5,6 +5,7 @@ import { ignoreClone } from "./clone/CloneDecorators";
 import { PointerEventData } from "./input/pointer/PointerEventData";
 import { Collider } from "./physics";
 import { Collision } from "./physics/Collision";
+import { Rigidbody } from "./physics/Rigidbody";
 
 /**
  * Script class, used for logic writing.
@@ -125,6 +126,21 @@ export class Script extends Component {
   onCollisionStay(other: Collision): void {}
 
   /**
+   * Called after a physics step when the Rigidbody on this Entity goes to sleep.
+   * @param body - The sleeping Rigidbody.
+   * @remarks Declare sleep and wake callbacks before the script enters the scene or during onAwake/onEnable/onStart.
+   * When fetching results, PhysX collects the latest transition for each subscribed body and can report its initial state.
+   */
+  onSleep?(body: Rigidbody): void;
+
+  /**
+   * Called after a physics step when the Rigidbody on this Entity wakes.
+   * @param body - The waking Rigidbody.
+   * @see {@link onSleep}
+   */
+  onWake?(body: Rigidbody): void;
+
+  /**
    * Called when a pointer press is dispatched to this entity.
    * @param eventData - The pointer event data that triggered this callback
    */
@@ -193,6 +209,7 @@ export class Script extends Component {
    */
   override _onAwake(): void {
     this.onAwake();
+    this._syncSleepEventRegistration();
   }
 
   /**
@@ -200,6 +217,7 @@ export class Script extends Component {
    */
   override _onEnable(): void {
     this.onEnable();
+    this._syncSleepEventRegistration();
   }
 
   /**
@@ -235,6 +253,7 @@ export class Script extends Component {
     }
 
     this._entity._addScript(this);
+    this._syncSleepEventRegistration();
     if (this._hasCollisionEventCallbacks()) {
       this._contactEventRegistered = true;
       this.scene!.physics._addContactEventConsumer(1);
@@ -262,6 +281,7 @@ export class Script extends Component {
     }
 
     this._entity._removeScript(this);
+    this._entity.getComponent(Rigidbody)?._syncSleepEventRegistration();
     if (this._contactEventRegistered) {
       this._contactEventRegistered = false;
       scene.physics._addContactEventConsumer(-1);
@@ -290,6 +310,13 @@ export class Script extends Component {
     }
     if (hasError) {
       throw firstError;
+    }
+  }
+
+  /** @internal */
+  _syncSleepEventRegistration(): void {
+    if (!this.destroyed && (this.onSleep || this.onWake)) {
+      this._entity.getComponent(Rigidbody)?._syncSleepEventRegistration();
     }
   }
 

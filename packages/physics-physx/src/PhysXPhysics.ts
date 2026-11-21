@@ -47,81 +47,29 @@ export class PhysXPhysics implements IPhysics {
   /** @internal PhysX cooking params */
   _pxCookingParams: any;
 
-  private _runTimeMode: PhysXRuntimeMode;
-  private _initializeState: InitializeState = InitializeState.Uninitialized;
-  private _initializePromise: Promise<void> | null;
+  private _initializePromise: Promise<void> | null = null;
   private _defaultErrorCallback: any;
   private _allocator: any;
-  private _wasmSIMDModeUrl: string;
-  private _wasmModeUrl: string;
 
   /**
-   * Create a PhysXPhysics instance.
+   * Creates a PhysX backend.
    * @param runtimeMode - Runtime mode. `Auto` prefers WebAssembly SIMD when supported.
-   * @param runtimeUrls - Override the runtime URLs
-   * @see {@link PhysXRuntimeMode}
+   * @param runtimeUrls - Overrides the packaged loaders. Use a module with a default factory in module Workers
+   * and Node.js. Each override locates its own WebAssembly binary.
    */
-  constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, runtimeUrls?: PhysXRuntimeUrls) {
-    this._runTimeMode = runtimeMode;
-    this._wasmSIMDModeUrl =
-      runtimeUrls?.wasmSIMDModeUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*iP4kRaWKYaUAAAAAQ4AAAAgAehQnAQ/physx.release.simd.js";
-    this._wasmModeUrl =
-      runtimeUrls?.wasmModeUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*MiEITZJl1LcAAAAAQ4AAAAgAehQnAQ/physx.release.js";
-  }
+  constructor(
+    private readonly _runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto,
+    private readonly _runtimeUrls?: PhysXRuntimeUrls
+  ) {}
 
   /**
-   * Initialize PhysXPhysics.
-   * @returns Promise object
+   * Loads the selected PhysX runtime and initializes the backend.
    */
   initialize(): Promise<void> {
-    if (this._initializeState === InitializeState.Initialized) {
-      return Promise.resolve();
-    } else if (this._initializeState === InitializeState.Initializing) {
-      return this._initializePromise!;
-    }
-
-    this._initializeState = InitializeState.Initializing;
-    let runtimeMode = this._runTimeMode;
-    const scriptPromise = new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-      document.body.appendChild(script);
-      script.async = true;
-      script.onload = resolve;
-      script.onerror = reject;
-      if (runtimeMode == PhysXRuntimeMode.Auto) {
-        runtimeMode = (SystemInfo as any)._detectSIMDSupported()
-          ? PhysXRuntimeMode.WebAssemblySIMD
-          : PhysXRuntimeMode.WebAssembly;
-      }
-
-      if (runtimeMode == PhysXRuntimeMode.WebAssemblySIMD) {
-        script.src = this._wasmSIMDModeUrl;
-      } else {
-        script.src = this._wasmModeUrl;
-      }
-    });
-
-    const initializePromise = new Promise<void>((resolve, reject) => {
-      scriptPromise
-        .then(
-          () =>
-            (<any>window).PHYSX().then((PHYSX: any) => {
-              this._runTimeMode = runtimeMode;
-              this._init(PHYSX);
-              this._initializeState = InitializeState.Initialized;
-              this._initializePromise = null;
-              console.log("PhysX loaded.");
-              resolve();
-            }, reject),
-          reject
-        )
-        .catch(reject);
-    });
-
-    this._initializePromise = initializePromise;
-    return initializePromise;
+    return (this._initializePromise ??= this._initialize().catch((error) => {
+      this._initializePromise = null;
+      throw error;
+    }));
   }
 
   /**
@@ -253,21 +201,51 @@ export class PhysXPhysics implements IPhysics {
     return new PhysXSpringJoint(this, collider);
   }
 
-  /**
-   * {@inheritDoc IPhysics.getColliderLayerCollision }
-   */
-  getColliderLayerCollision(layer1: number, layer2: number): boolean {
-    return this._physX.getGroupCollisionFlag(layer1, layer2);
+  private async _initialize(): Promise<void> {
+    const mode = this._runtimeMode;
+    const simd =
+      mode === PhysXRuntimeMode.WebAssemblySIMD ||
+      (mode === PhysXRuntimeMode.Auto && SystemInfo._detectSIMDSupported());
+    const host = globalThis as typeof globalThis & {
+      PHYSX: PhysXFactory;
+      importScripts?: (...urls: string[]) => void;
+    };
+    const hasDocument = typeof document !== "undefined";
+    const useModule = !hasDocument && !isClassicWorker(host);
+    const override = simd ? this._runtimeUrls?.wasmSIMDModeUrl : this._runtimeUrls?.wasmModeUrl;
+    const [scriptUrl, wasmUrl] = override
+      ? ([override, undefined] as const)
+      : (capturedRuntimeUrls?.[simd ? 1 : 0] ?? getPackagedRuntimeUrls(simd, useModule));
+    let create: PhysXFactory;
+    let locateFile: ((file: string) => string) | undefined = wasmUrl ? () => wasmUrl : undefined;
+    if (useModule) {
+      create = (await import(/* @vite-ignore */ scriptUrl)).default;
+    } else if (!hasDocument) {
+      const runtimeUrl = new URL(scriptUrl, location.href).href;
+      host.importScripts!(runtimeUrl);
+      create = host.PHYSX;
+      locateFile ??= (file: string) => new URL(file, runtimeUrl).href;
+    } else {
+      create = await new Promise<PhysXFactory>((resolve, reject) => {
+        const script = document.createElement("script");
+        script.crossOrigin = "anonymous";
+        script.src = scriptUrl;
+        script.onload = () => {
+          script.remove();
+          resolve(host.PHYSX);
+        };
+        script.onerror = () => {
+          script.remove();
+          reject(new Error(`Failed to load PhysX runtime: ${scriptUrl}`));
+        };
+        document.head.appendChild(script);
+      });
+    }
+    if (typeof create !== "function") throw new Error(`No PhysX factory was exported by ${scriptUrl}.`);
+    this._init(await create(locateFile ? { locateFile } : undefined), simd);
   }
 
-  /**
-   * {@inheritDoc IPhysics.setColliderLayerCollision }
-   */
-  setColliderLayerCollision(layer1: number, layer2: number, isCollide: boolean): void {
-    this._physX.setGroupCollisionFlag(layer1, layer2, isCollide);
-  }
-
-  private _init(physX: any): void {
+  private _init(physX: any, simd: boolean): void {
     const version = physX.PX_PHYSICS_VERSION;
     const defaultErrorCallback = new physX.PxDefaultErrorCallback();
     const allocator = new physX.PxDefaultAllocator();
@@ -284,7 +262,7 @@ export class PhysXPhysics implements IPhysics {
     physX.setCookingMeshPreprocessParams(cookingParams, 1); // eWELD_VERTICES
     cookingParams.meshWeldTolerance = 0.001;
     // BVH34 midphase requires SSE2; SIMD WASM provides SSE2 via WASM SIMD
-    if (this._runTimeMode === PhysXRuntimeMode.WebAssemblySIMD) {
+    if (simd) {
       physX.setCookingMidphaseType(cookingParams, 1); // eBVH34
     }
     const pxCooking = physX.PxCreateCooking(version, pxFoundation, cookingParams);
@@ -299,11 +277,40 @@ export class PhysXPhysics implements IPhysics {
   }
 }
 
-enum InitializeState {
-  Uninitialized,
-  Initializing,
-  Initialized
+// A classic script's URL is available only while its module is evaluating.
+const capturedRuntimeUrls =
+  typeof document !== "undefined" && document.currentScript?.getAttribute("src")
+    ? [getPackagedRuntimeUrls(false), getPackagedRuntimeUrls(true)]
+    : undefined;
+
+function isClassicWorker(host: { importScripts?: (...urls: string[]) => void }): boolean {
+  if (!host.importScripts) return false;
+  try {
+    // Module Workers expose importScripts but reject even an empty call.
+    host.importScripts();
+    return true;
+  } catch {
+    return false;
+  }
 }
+
+function getPackagedRuntimeUrls(simd: boolean, useModule = false): [script: string, wasm: string] {
+  return simd
+    ? [
+        useModule
+          ? new URL("../libs/physx.release.simd.mjs", import.meta.url).href
+          : new URL("../libs/physx.release.simd.js", import.meta.url).href,
+        new URL("../libs/physx.release.simd.wasm", import.meta.url).href
+      ]
+    : [
+        useModule
+          ? new URL("../libs/physx.release.mjs", import.meta.url).href
+          : new URL("../libs/physx.release.js", import.meta.url).href,
+        new URL("../libs/physx.release.wasm", import.meta.url).href
+      ];
+}
+
+type PhysXFactory = (options?: { locateFile: (file: string) => string }) => Promise<any>;
 
 interface PhysXRuntimeUrls {
   /** The URL of `PhysXRuntimeMode.WebAssembly` mode. */

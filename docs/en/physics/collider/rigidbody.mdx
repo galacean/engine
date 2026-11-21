@@ -28,8 +28,9 @@ A Rigidbody ([Rigidbody](/apis/core/#Rigidbody)) puts its Entity under physics c
 
 | Property | Description | Default |
 | --- | --- | --- |
-| [**mass**](/apis/core/#Rigidbody-mass) | Mass of the Rigidbody. The larger the mass, the harder it is to change the object's motion | 1.0 |
+| [**mass**](/apis/core/#Rigidbody-mass) | Mass of the Rigidbody. Zero represents infinite mass. | 1.0 |
 | [**useGravity**](/apis/core/#Rigidbody-useGravity) | Whether gravity affects the Rigidbody | true |
+| [**simulationEnabled**](/apis/core/#Rigidbody-simulationEnabled) | Whether the Rigidbody participates in simulation. Query-only bodies retain their Collider query settings and follow the Entity Transform. | true |
 | [**isKinematic**](/apis/core/#Rigidbody-isKinematic) | Whether the Rigidbody is kinematic. Physics does not move a kinematic body, but it can push other objects | false |
 
 ### Velocity
@@ -38,8 +39,9 @@ A Rigidbody ([Rigidbody](/apis/core/#Rigidbody)) puts its Entity under physics c
 | --- | --- | --- |
 | [**linearVelocity**](/apis/core/#Rigidbody-linearVelocity) | Linear velocity vector (world units/second) | (0,0,0) |
 | [**angularVelocity**](/apis/core/#Rigidbody-angularVelocity) | Angular velocity vector (radians/second) | (0,0,0) |
-| [**maxAngularVelocity**](/apis/core/#Rigidbody-maxAngularVelocity) | Maximum angular velocity (radians/second) | 100 |
-| [**maxDepenetrationVelocity**](/apis/core/#Rigidbody-maxDepenetrationVelocity) | Maximum velocity when moving out of a penetrating state | 1e32 |
+| [**maxLinearVelocity**](/apis/core/#Rigidbody-maxLinearVelocity) | Linear speed limit before solving (world units/second) | 1e16 |
+| [**maxAngularVelocity**](/apis/core/#Rigidbody-maxAngularVelocity) | Angular speed limit before solving (radians/second) | 100 |
+| [**maxDepenetrationVelocity**](/apis/core/#Rigidbody-maxDepenetrationVelocity) | Maximum velocity when moving out of a penetrating state | 10 |
 
 ### Damping
 
@@ -55,16 +57,20 @@ A Rigidbody ([Rigidbody](/apis/core/#Rigidbody)) puts its Entity under physics c
 | [**centerOfMass**](/apis/core/#Rigidbody-centerOfMass) | Center of mass relative to the transform's origin | (0,0,0) |
 | [**automaticCenterOfMass**](/apis/core/#Rigidbody-automaticCenterOfMass) | Whether the center of mass is calculated from the attached Colliders | true |
 | [**inertiaTensor**](/apis/core/#Rigidbody-inertiaTensor) | Diagonal inertia tensor relative to the center of mass | (1,1,1) |
+| [**inertiaTensorRotation**](/apis/core/#Rigidbody-inertiaTensorRotation) | Rotation of the principal inertia axes relative to the body | Identity quaternion |
 | [**automaticInertiaTensor**](/apis/core/#Rigidbody-automaticInertiaTensor) | Whether the inertia tensor is calculated from the attached Colliders and mass | true |
 
-Once you write to `centerOfMass` or `inertiaTensor`, the property reads back that manual value. The simulation uses the computed value while automatic mode is enabled. Disabling automatic mode applies the manual value, or preserves the current computed value if the property has never been written.
+Assigning `centerOfMass` disables automatic center-of-mass calculation. Assigning `inertiaTensor` or `inertiaTensorRotation` disables automatic calculation of both inertia properties and preserves the other value. Set the corresponding automatic flag to `true` to resume calculation.
+
+Call `setDensity(density)` after the Rigidbody enters an active physics scene to derive its mass from attached solid Colliders. The call returns `false` if there is no usable volume. Later geometry changes keep the resulting mass. Call `setDensity` again to recalculate it from volume.
 
 ### Performance
 
 | Property | Description | Default |
 | --- | --- | --- |
 | [**sleepThreshold**](/apis/core/#Rigidbody-sleepThreshold) | Mass-normalized energy threshold below which the Rigidbody goes to sleep | 0.005 |
-| [**solverIterations**](/apis/core/#Rigidbody-solverIterations) | Constraint solver iteration count | 4 |
+| [**solverIterations**](/apis/core/#Rigidbody-solverIterations) | Solver position iterations | 4 |
+| [**solverVelocityIterations**](/apis/core/#Rigidbody-solverVelocityIterations) | Solver velocity iterations | 1 |
 
 <Callout type="info">
 Constraint solving is the process used by the physics engine to resolve collisions and constraints between objects. Each iteration attempts to adjust the positions and velocities of objects to satisfy all physical constraints (such as collisions, joints, etc.).
@@ -79,14 +85,12 @@ Constraint solving is the process used by the physics engine to resolve collisio
 ### Motion Constraints
 
 - [**constraints**](/apis/core/#Rigidbody-constraints)  
-  Freezes motion along specific axes. Position and rotation can be locked separately on the X, Y and Z axes.
+  Freezes motion along specific axes. Position and rotation can be locked separately on the world X, Y and Z axes.
   ```typescript
   // Lock Y-axis position and all rotations
   rigidbody.constraints =
     RigidbodyConstraints.FreezePositionY |
-    RigidbodyConstraints.FreezeRotationX |
-    RigidbodyConstraints.FreezeRotationY |
-    RigidbodyConstraints.FreezeRotationZ;
+    RigidbodyConstraints.FreezeRotation;
   ```
 
 ### Continuous Collision Detection
@@ -99,15 +103,32 @@ PhysX uses a linear sweep for dynamic bodies and speculative contacts for kinema
 
 | Method | Description |
 | --- | --- |
-| [**applyForce**](/apis/core/#Rigidbody-applyForce) | Apply a force |
+| [**setDensity**](/apis/core/#Rigidbody-setDensity) | Derive mass from the attached solid Collider volumes |
+| [**applyForce**](/apis/core/#Rigidbody-applyForce) | Apply a world-space force at the center of mass using the selected mode |
 | [**applyForceAtPosition**](/apis/core/#Rigidbody-applyForceAtPosition) | Apply a force at a world-space position |
+| [**applyRelativeForce**](/apis/core/#Rigidbody-applyRelativeForce) | Apply a force along the body's local axes at the center of mass using the selected mode |
+| [**applyForceAtLocalPosition**](/apis/core/#Rigidbody-applyForceAtLocalPosition) | Apply a world-space force or impulse at a body-local point |
+| [**applyRelativeForceAtLocalPosition**](/apis/core/#Rigidbody-applyRelativeForceAtLocalPosition) | Apply a body-local force or impulse at a body-local point |
+| [**applyExplosionForce**](/apis/core/#Rigidbody-applyExplosionForce) | Apply a radial explosion force with linear falloff |
 | [**applyImpulse**](/apis/core/#Rigidbody-applyImpulse) | Apply a world-space impulse at the center of mass |
 | [**applyImpulseAtPosition**](/apis/core/#Rigidbody-applyImpulseAtPosition) | Apply a world-space impulse at a world-space position |
-| [**applyTorque**](/apis/core/#Rigidbody-applyTorque) | Apply a torque |
-| [**move**](/apis/core/#Rigidbody-move) | Move a kinematic Rigidbody to a position and/or rotation, affecting Rigidbodies along the path. Only works when `isKinematic` is true |
+| [**applyTorque**](/apis/core/#Rigidbody-applyTorque) | Apply a world-space torque using the selected mode |
+| [**applyRelativeTorque**](/apis/core/#Rigidbody-applyRelativeTorque) | Apply a torque around the body's local axes using the selected mode |
+| [**getWorldCenterOfMass**](/apis/core/#Rigidbody-getWorldCenterOfMass) | Write the center of mass in world space. |
+| [**getPointVelocity**](/apis/core/#Rigidbody-getPointVelocity) | Write the world-space velocity at a world-space point. |
+| [**getRelativePointVelocity**](/apis/core/#Rigidbody-getRelativePointVelocity) | Write the world-space velocity at a point in the body's unscaled local frame. |
+| [**move**](/apis/core/#Rigidbody-move) | Move a kinematic Rigidbody to a position and/or rotation, affecting Rigidbodies along the path. Queries use the pending target immediately. Requires `isKinematic`. |
 | [**sleep**](/apis/core/#Rigidbody-sleep) | Force the Rigidbody to sleep |
 | [**wakeUp**](/apis/core/#Rigidbody-wakeUp) | Wake the Rigidbody up |
 | [**isSleeping**](/apis/core/#Rigidbody-isSleeping) | Whether the Rigidbody is sleeping |
+
+Scripts on the Rigidbody's Entity can implement `onSleep(body)` and `onWake(body)`. The callbacks run after the physics step and see the updated Transform. PhysX reports the latest transition in the step and can report the body's initial state when it enters simulation.
+
+`applyForce` and `applyTorque` default to `ForceMode.Force`. Use `ForceMode.Impulse` for a one-shot linear or angular impulse, `ForceMode.VelocityChange` for a direct change in velocity, and `ForceMode.Acceleration` for acceleration independent of mass or inertia.
+
+`applyRelativeForce` and `applyRelativeTorque` use the body's local axes with the same modes. To apply a force or impulse at a body-local offset, use `applyForceAtLocalPosition` for a world-space vector or `applyRelativeForceAtLocalPosition` for a body-local vector. Offsets are measured in world units along the body's unscaled local axes.
+
+`applyExplosionForce` applies a radial force to a dynamic body with linear falloff. It uses the nearest collider surface to compute the force and torque, or the center of mass if the origin is inside the collider or no volume is available. A radius of zero uses full strength at any distance. The upward offset adjusts only the direction.
 
 ## Script Usage
 
@@ -172,15 +193,16 @@ import { Rigidbody, Script, Vector3 } from "@galacean/engine";
 class Elevator extends Script {
   private _rigidbody: Rigidbody;
   private _position = new Vector3();
+  private _elapsedTime = 0;
 
   onAwake() {
     this._rigidbody = this.entity.getComponent(Rigidbody);
     this._rigidbody.isKinematic = true;
   }
 
-  onUpdate() {
-    const time = this.engine.time.elapsedTime;
-    this._rigidbody.move(this._position.set(0, Math.sin(time) * 2, 0));
+  onPhysicsUpdate() {
+    this._elapsedTime += this.scene.physics.fixedTimeStep;
+    this._rigidbody.move(this._position.set(0, Math.sin(this._elapsedTime) * 2, 0));
   }
 }
 ```
@@ -221,10 +243,8 @@ import { Rigidbody, Vector3 } from "@galacean/engine";
 const rigidbody = entity.addComponent(Rigidbody);
 rigidbody.mass = 1.0;
 
-// Disable both calculations before assigning these values manually.
+// Assigning these values turns off their automatic calculation.
 const customRigidbody = otherEntity.addComponent(Rigidbody);
-customRigidbody.automaticCenterOfMass = false;
-customRigidbody.automaticInertiaTensor = false;
 customRigidbody.centerOfMass = new Vector3(0, 0.5, 0);
 customRigidbody.inertiaTensor = new Vector3(1, 1, 1);
 ```

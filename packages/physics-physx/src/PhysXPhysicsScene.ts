@@ -14,6 +14,7 @@ import { PhysXPhysics } from "./PhysXPhysics";
  * Simulates colliders and runs scene queries through PhysX.
  */
 export class PhysXPhysicsScene implements IPhysicsScene {
+  private static readonly _emptyExcluded: number[] = [];
   private static _tempPosition: Vector3 = new Vector3();
   private static _tempNormal: Vector3 = new Vector3();
   private static _tempPose: { translation: Vector3; rotation: Quaternion } = {
@@ -39,7 +40,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private readonly _physicsEvents = {
     contactEvents: [] as ContactEvent[],
     contactEventCount: 0,
-    triggerEvents: [] as TriggerEvent[]
+    triggerEvents: [] as TriggerEvent[],
+    bodySleepEventIds: [] as number[],
+    bodySleepEventCount: 0
   };
 
   private _triggerEventPool: TriggerEvent[] = [];
@@ -57,14 +60,19 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     const physX = physXPhysics._physX;
 
     const simulationCallback = {
-      onContactBegin: (shape0ID: number, shape1ID: number, contacts: Float32Array) => {
-        this._bufferContactEvent(shape0ID, shape1ID, contacts, PhysicsEventState.Enter);
+      onJointBreak: () => {},
+      onBodySleepChanged: (id: number, sleeping: boolean) => {
+        const events = this._physicsEvents;
+        events.bodySleepEventIds[events.bodySleepEventCount++] = sleeping ? -id : id;
       },
-      onContactEnd: (shape0ID: number, shape1ID: number, contacts: Float32Array) => {
-        this._bufferContactEvent(shape0ID, shape1ID, contacts, PhysicsEventState.Exit);
+      onContactBegin: (shape0ID: number, shape1ID: number, count: number, data: Float32Array) => {
+        this._bufferContactEvent(shape0ID, shape1ID, count, data, PhysicsEventState.Enter);
       },
-      onContactPersist: (shape0ID: number, shape1ID: number, contacts: Float32Array) => {
-        this._bufferContactEvent(shape0ID, shape1ID, contacts, PhysicsEventState.Stay);
+      onContactEnd: (shape0ID: number, shape1ID: number, count: number, data: Float32Array) => {
+        this._bufferContactEvent(shape0ID, shape1ID, count, data, PhysicsEventState.Exit);
+      },
+      onContactPersist: (shape0ID: number, shape1ID: number, count: number, data: Float32Array) => {
+        this._bufferContactEvent(shape0ID, shape1ID, count, data, PhysicsEventState.Stay);
       },
       onTriggerBegin: (index1, index2) => {
         const small = Math.min(index1, index2);
@@ -102,6 +110,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       0,
       this._physXSimulationCallbackInstance
     );
+    sceneDesc.setKinematicPairs(true, true);
     this._pxScene = pxPhysics.createScene(sceneDesc);
     sceneDesc.delete();
 
@@ -158,6 +167,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    */
   update(elapsedTime: number): void {
     this._physicsEvents.contactEventCount = 0;
+    this._physicsEvents.bodySleepEventCount = 0;
     this._syncTriggerPairs();
     const scene = this._pxScene;
     scene.simulate(elapsedTime, true);
@@ -168,7 +178,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsScene.setContactEventEnabled }
    */
   setContactEventEnabled(enabled: boolean): void {
-    this._physXPhysics._physX.setContactEventEnabled(this._physXSimulationCallbackInstance, enabled);
+    this._pxScene.setContactEventEnabled(enabled);
     if (!enabled) {
       this._physicsEvents.contactEventCount = 0;
     }
@@ -202,6 +212,20 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
+   * {@inheritDoc IPhysicsScene.getColliderLayerCollision }
+   */
+  getColliderLayerCollision(layer1: number, layer2: number): boolean {
+    return this._pxScene.getGroupCollisionFlag(layer1, layer2);
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.setColliderLayerCollision }
+   */
+  setColliderLayerCollision(layer1: number, layer2: number, isCollide: boolean): void {
+    this._pxScene.setGroupCollisionFlag(layer1, layer2, isCollide);
+  }
+
+  /**
    * {@inheritDoc IPhysicsScene.raycast }
    */
   raycast(
@@ -211,7 +235,15 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     layerMask: number,
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    const hits: Float64Array = this._pxSceneQueries.raycast(origin, direction, Math.min(distance, 3.4e38), layerMask);
+    const hits: Float64Array = this._pxSceneQueries.raycast(
+      origin,
+      direction,
+      Math.min(distance, 3.4e38),
+      layerMask,
+      true,
+      PhysXPhysicsScene._emptyExcluded,
+      false
+    );
     if (hits.length === 0) {
       return false;
     }
@@ -235,7 +267,10 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       origin,
       direction,
       Math.min(distance, 3.4e38),
-      layerMask
+      layerMask,
+      true,
+      PhysXPhysicsScene._emptyExcluded,
+      false
     );
     const length = hits.length;
     if (!length) return;
@@ -249,7 +284,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         buffers[depth] = buffer = new Float64Array(length);
       }
       buffer.set(hits);
-      for (let i = 0; i < length; i += 8) {
+      for (let i = 0; i < length; i += 9) {
         this._readHit(buffer, i, onHit);
       }
     } finally {
@@ -330,7 +365,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     return this._pxSceneQueries.overlap(
       this._getBoxGeometry(halfExtents),
       PhysXPhysicsScene._queryPose(center, orientation),
-      layerMask
+      layerMask,
+      true,
+      PhysXPhysicsScene._emptyExcluded
     );
   }
 
@@ -341,7 +378,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     return this._pxSceneQueries.overlap(
       this._getSphereGeometry(radius),
       PhysXPhysicsScene._queryPose(center),
-      layerMask
+      layerMask,
+      true,
+      PhysXPhysicsScene._emptyExcluded
     );
   }
 
@@ -358,7 +397,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     return this._pxSceneQueries.overlap(
       this._getCapsuleGeometry(radius, height),
       PhysXPhysicsScene._queryPose(center, orientation),
-      layerMask
+      layerMask,
+      true,
+      PhysXPhysicsScene._emptyExcluded
     );
   }
 
@@ -416,6 +457,11 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    */
   _removeColliderShape(id: number): void {
     this._shapeChanges.set(id, false);
+  }
+
+  /** @internal Reconcile active trigger pairs when a shape stays in the scene. */
+  _refreshTriggerPairsForShape(id: number): void {
+    this._shapeChanges.set(id, true);
   }
 
   private _getBoxGeometry(halfExtents: Vector3): any {
@@ -480,7 +526,11 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       pose,
       direction,
       Math.min(distance, 3.4e38),
-      layerMask
+      layerMask,
+      true,
+      PhysXPhysicsScene._emptyExcluded,
+      false,
+      false
     );
     if (hits.length === 0) {
       return false;
@@ -532,6 +582,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _bufferContactEvent(
     shape0ID: number,
     shape1ID: number,
+    count: number,
     contacts: Float32Array,
     state: PhysicsEventState
   ): void {
@@ -544,7 +595,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
     // Copy the native contact data before PhysX reuses the buffer for another pair.
     const bufferedContacts = event._bufferedContacts;
-    const count = (bufferedContacts.contactCount = contacts.length / 10);
+    bufferedContacts.contactCount = count;
     for (let i = 0; i < count; i++) {
       const offset = i * 10;
       const contact = (bufferedContacts.contacts[i] ||= new BufferedContactPoint());

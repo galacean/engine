@@ -25,6 +25,14 @@ const engine = await WebGLEngine.create({
 });
 ```
 
+The default loader uses the PhysX JavaScript and WebAssembly files shipped with the package. When serving the files directly, load the entry from `dist/` and keep `libs/` beside it. For a separately hosted build, use the PhysX files from the same Engine release and pass the script URL as `wasmModeUrl` or `wasmSIMDModeUrl` in the second constructor argument.
+
+In Vite development, add `@galacean/engine-physics-physx` to `optimizeDeps.exclude` so the assets resolve relative to the package.
+
+In a classic Web Worker loading the UMD bundle with `importScripts()`, provide explicit runtime script URLs.
+In a dedicated module Worker, import the package and initialize `PhysXPhysics` directly. The package loads its
+`.mjs` factory and the matching WASM. The same initialization works from Node.js using the installed package.
+
 ## Backend Notes
 
 PhysX provides complete physics functionality and high-performance simulation. It requires WebAssembly; `Auto` runtime mode only selects between SIMD and non-SIMD WebAssembly builds. Choosing the PhysX backend adds about 2.5 MB of wasm/js runtime files, which can affect package size and initialization speed.

@@ -25,6 +25,14 @@ const engine = await WebGLEngine.create({
 });
 ```
 
+默认加载同一个 npm 包里的 PhysX JS 和 WASM。直接托管时，从 `dist/` 加载入口，并保留同级的 `libs/` 目录。若自行托管，请使用与 Engine 发行版本配套的 PhysX 文件，并在构造函数的第二个参数传入脚本 URL `wasmModeUrl` 或 `wasmSIMDModeUrl`。
+
+使用 Vite 开发时，将 `@galacean/engine-physics-physx` 加入 `optimizeDeps.exclude`，使资源按包内路径解析。
+
+在 classic Web Worker 中通过 `importScripts()` 加载 UMD 包时，需要显式传入运行时脚本 URL。
+在专用 module Worker 中，直接导入包并初始化 `PhysXPhysics`。包会加载 `.mjs` 工厂及配套的 WASM。
+Node.js 从已安装的包初始化时也使用这个入口。
+
 ## 后端说明
 
 PhysX 提供完整物理功能和高性能模拟。PhysX 依赖 WebAssembly；`Auto` 运行时模式只会在 SIMD 与非 SIMD WebAssembly 构建之间选择。使用 PhysX 后端会额外引入约 2.5 MB 的 wasm/js 运行时文件，可能影响包体积和初始化速度。

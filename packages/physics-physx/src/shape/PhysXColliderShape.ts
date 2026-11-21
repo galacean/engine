@@ -51,7 +51,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * @default 0.02f * PxTolerancesScale::length
    */
   setContactOffset(offset: number): void {
-    this._pxShape.setContactOffset(offset);
+    this._pxShape.setContactOffsets(offset, 0);
   }
 
   /**
@@ -72,10 +72,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setIsTrigger }
    */
   setIsTrigger(value: boolean): void {
-    const flags = ShapeFlag.SCENE_QUERY_SHAPE | (value ? ShapeFlag.TRIGGER_SHAPE : ShapeFlag.SIMULATION_SHAPE);
-    const shapeFlags = new this._physXPhysics._physX.PxShapeFlags(flags);
-    this._pxShape.setFlags(shapeFlags);
-    shapeFlags.delete();
+    this._pxShape.setIsTrigger(value);
   }
 
   /**

@@ -118,7 +118,7 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICharacterController.move }
    */
   move(disp: Vector3, minDist: number, elapsedTime: number): number {
-    return this._pxController?.move(disp, minDist, elapsedTime) ?? 0;
+    return this._pxController?.move(disp, minDist, elapsedTime, false) ?? 0;
   }
 
   /**
@@ -242,7 +242,7 @@ export class PhysXCharacterController implements ICharacterController {
       desc = new physX.PxCapsuleControllerDesc();
       desc.radius = this._radius;
       desc.height = this._height;
-      desc.climbingMode = 1; // Constrained
+      desc.climbingMode = physX.PxCapsuleClimbingMode.eCONSTRAINED;
     }
     // Set the initial descriptor position so queries see the correct pose before the first step.
     const position = PhysXCharacterController._tempVec;

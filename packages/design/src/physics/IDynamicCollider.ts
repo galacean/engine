@@ -56,6 +56,16 @@ export interface IDynamicCollider extends ICollider {
   setAngularVelocity(value: Vector3): void;
 
   /**
+   * Writes the world-space velocity at a world-space point.
+   */
+  getPointVelocity(point: Vector3, out: Vector3): Vector3;
+
+  /**
+   * Writes the world-space velocity at a point in actor-local space.
+   */
+  getRelativePointVelocity(point: Vector3, out: Vector3): Vector3;
+
+  /**
    *  Sets the mass of a dynamic actor.
    * @param value - New mass value for the actor
    */
@@ -85,6 +95,12 @@ export interface IDynamicCollider extends ICollider {
    */
   getInertiaTensor(out: Vector3): Vector3;
 
+  /** Writes the rotation of the inertia frame relative to the actor. */
+  getInertiaTensorRotation(out: Quaternion): void;
+
+  /** Sets the rotation of the inertia frame relative to the actor. */
+  setInertiaTensorRotation(rotation: Quaternion): void;
+
   /**
    * Sets the mass of a dynamic actor and automatically updates its inertia tensor.
    * @param mass - New mass value for the actor
@@ -92,6 +108,12 @@ export interface IDynamicCollider extends ICollider {
    * the inertia tensor and center of mass based on the new mass value.
    */
   setMassAndUpdateInertia(mass: number): void;
+
+  /** Applies mass derived from solid volume. Returns the new mass or zero when no properties were changed. */
+  setDensity(density: number, automaticCenterOfMass: boolean, automaticInertiaTensor: boolean): number;
+
+  /** Sets the actor's maximum linear speed in world units per second before solving. */
+  setMaxLinearVelocity(value: number): void;
 
   /**
    * Sets the actor's maximum angular velocity in radians per second.
@@ -111,16 +133,25 @@ export interface IDynamicCollider extends ICollider {
    */
   setSleepThreshold(value: number): void;
 
+  /** Sets the scene registration ID for sleep and wake notifications. Use zero to unsubscribe. */
+  setSleepEventId(id: number): void;
+
   /**
    * Sets the solver iteration counts for the body.
-   * @param value - Number of position iterations the solver should perform for this body
+   * @param positionIterations - Number of position iterations
+   * @param velocityIterations - Number of velocity iterations
    */
-  setSolverIterations(value: number): void;
+  setSolverIterations(positionIterations: number, velocityIterations: number): void;
 
   /**
    * Whether the collider is affected by gravity.
    */
   setUseGravity(value: boolean): void;
+
+  /**
+   * Toggle simulation while retaining the actor and its query shapes in the scene.
+   */
+  setSimulationEnabled(value: boolean): void;
 
   /**
    * Applies the kinematic state and CCD together so the backend can select the supported detection method.
@@ -136,10 +167,11 @@ export interface IDynamicCollider extends ICollider {
   setConstraints(flags: number): void;
 
   /**
-   * Apply a force to the dynamic collider.
-   * @param force - The force make the collider move
+   * Applies a world-space force at the center of mass.
+   * @param force - Value in the units of the selected mode
+   * @param mode - The force application mode
    */
-  addForce(force: Vector3): void;
+  addForce(force: Vector3, mode: number): void;
 
   /**
    * Apply a force to the dynamic collider at a world-space position.
@@ -149,12 +181,6 @@ export interface IDynamicCollider extends ICollider {
   addForceAtPosition(force: Vector3, position: Vector3): void;
 
   /**
-   * Apply a world-space impulse to the dynamic collider at its center of mass.
-   * @param impulse - The world-space impulse to apply
-   */
-  addImpulse(impulse: Vector3): void;
-
-  /**
    * Apply a world-space impulse to the dynamic collider at a world-space position.
    * @param impulse - The world-space impulse to apply
    * @param position - The world-space position where the impulse is applied
@@ -162,10 +188,29 @@ export interface IDynamicCollider extends ICollider {
   addImpulseAtPosition(impulse: Vector3, position: Vector3): void;
 
   /**
-   * Apply a torque to the dynamic collider.
-   * @param torque - The force make the collider rotate
+   * Applies a world-space torque to the dynamic collider.
+   * @param torque - Value in the units of the selected mode
+   * @param mode - The force application mode
    */
-  addTorque(torque: Vector3): void;
+  addTorque(torque: Vector3, mode: number): void;
+
+  /** Applies a body-local force at the center of mass using the selected mode. */
+  addRelativeForce(force: Vector3, mode: number): void;
+
+  /** Applies a body-local torque using the selected mode. */
+  addRelativeTorque(torque: Vector3, mode: number): void;
+
+  /** Applies a world-space force or impulse at an unscaled point relative to the body origin. */
+  addForceAtLocalPosition(force: Vector3, position: Vector3, impulse: boolean): void;
+
+  /** Applies a body-local force or impulse at an unscaled point relative to the body origin. */
+  addRelativeForceAtLocalPosition(force: Vector3, position: Vector3, impulse: boolean): void;
+
+  /**
+   * Applies a radial force with linear falloff at the nearest surface point, or at the center of mass.
+   * @returns Whether the force was applied.
+   */
+  addExplosionForce(strength: number, origin: Vector3, radius: number, upwardOffset: number, mode: number): boolean;
 
   /**
    * Set a world-space target pose for the next simulation step.
