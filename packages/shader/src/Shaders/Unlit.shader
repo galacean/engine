@@ -77,6 +77,9 @@ Shader "Unlit" {
 
       struct Varyings {
           vec2 v_uv;
+          #ifdef RENDERER_ENABLE_VERTEXCOLOR
+              vec4 v_color;
+          #endif
           #if SCENE_FOG_MODE != 0
               vec3 v_positionVS;
           #endif
@@ -119,6 +122,10 @@ Shader "Unlit" {
               v.v_uv = v.v_uv * material_TilingOffset.xy + material_TilingOffset.zw;
           #endif
 
+          #ifdef RENDERER_ENABLE_VERTEXCOLOR
+              v.v_color = attr.COLOR_0;
+          #endif
+
           gl_Position = renderer_MVPMat * position;
 
           #if SCENE_FOG_MODE != 0
@@ -133,6 +140,10 @@ Shader "Unlit" {
 
           #ifdef MATERIAL_HAS_BASETEXTURE
               baseColor *= texture2D(material_BaseTexture, v.v_uv);
+          #endif
+
+          #ifdef RENDERER_ENABLE_VERTEXCOLOR
+              baseColor *= v.v_color;
           #endif
 
           #ifdef MATERIAL_IS_ALPHA_CUTOFF
