@@ -1,0 +1,18 @@
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/shaders/shared/Shadow.glsl
+  h_171a11afaf879a 134-138,151-155
+packages/terrain/src/shaders/terrain/TerrainForwardPass.glsl
+  h_171a11afaf879a 8-13,43-48,91-96,152-154,329-333
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f710083b1bbc12f5c0a0439bb492418018a9266d",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

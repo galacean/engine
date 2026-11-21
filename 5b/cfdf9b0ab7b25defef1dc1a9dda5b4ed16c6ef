@@ -1,0 +1,16 @@
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  h_dd004f51a3e5ec 289-293,298-302,354-362,373-381,392,398-408,410-414
+tests/src/loader/LoaderSecurity.test.ts
+  h_dd004f51a3e5ec 263-303
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5bcfdf9b0ab7b25defef1dc1a9dda5b4ed16c6ef",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

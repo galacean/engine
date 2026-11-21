@@ -1,0 +1,25 @@
+packages/core/src/Transform.ts
+  h_ddbf152d31b140 32,42-43,61,282-283,286,288-290,292,584,591-598,627,632,900-901,904,906-910,956-958
+  h_ddbf152d31b140 291
+packages/ui/src/component/UITransform.ts
+  h_ddbf152d31b140 245-247,429
+packages/core/src/RenderPipeline/RenderQueue.ts
+  h_ddbf152d31b140 116,198-200,203
+tests/src/core/Transform.test.ts
+  h_ddbf152d31b140 10-11,13,516-730
+tests/src/core/MeshRenderer.test.ts
+  h_ddbf152d31b140 9,262-316
+tests/src/ui/UITransform.test.ts
+  h_ddbf152d31b140 1,529-579
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f5b449905d0c5e1982fef469b434baffd80728d2",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

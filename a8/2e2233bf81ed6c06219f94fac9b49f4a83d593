@@ -1,0 +1,19 @@
+packages/core/src/physics/Rigidbody.ts
+  s_a4d9dd90218d81::t_5d95e238c6072a 650-657
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a82e2233bf81ed6c06219f94fac9b49f4a83d593",
+  "prompts": {},
+  "sessions": {
+    "s_a4d9dd90218d81": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1fc06-e419-7d62-a252-2e83fbdcf328",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

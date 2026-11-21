@@ -1,0 +1,21 @@
+tests/src/core/Entity.test.ts
+  s_377380b9d9a256::t_a9cdd6e5943791 886,888,902-904
+tests/src/core/Scene.test.ts
+  s_377380b9d9a256::t_fa68ee9925cac5 420,422,433,435-436
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9572439efe392c2c4fcbdff89c116f86438d0dfb",
+  "prompts": {},
+  "sessions": {
+    "s_377380b9d9a256": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f7dd-8702-7241-99bf-b5e87945a0bd",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

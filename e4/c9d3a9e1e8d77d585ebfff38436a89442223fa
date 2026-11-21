@@ -1,0 +1,22 @@
+packages/core/src/physics/CharacterController.ts
+  h_dd004f51a3e5ec 285-286,290-291,294,296
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 48-59,401-405,411-413,431,734-745,747-748,763-771,777-782,791-794
+packages/core/src/physics/Rigidbody.ts
+  h_dd004f51a3e5ec 651
+tests/src/core/physics/Collider.test.ts
+  h_dd004f51a3e5ec 9,13,1119-1198
+tests/src/core/physics/Rigidbody.test.ts
+  h_dd004f51a3e5ec 949-983
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e4c9d3a9e1e8d77d585ebfff38436a89442223fa",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

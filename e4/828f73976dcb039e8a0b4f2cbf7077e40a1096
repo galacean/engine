@@ -1,0 +1,80 @@
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  h_ddbf152d31b140 28-32,276,289-293,341,379-388,434,683,688-727,734-765,781,784-792,894,919,921,1507-1508
+packages/building/src/building/runtime/BuildingOccupancyQuery.ts
+  h_ddbf152d31b140 38-67,163-179,181-197,207-208,210-211,213-214
+packages/building/src/building/runtime/ConstructionEntrance.ts
+  h_ddbf152d31b140 9-10,42-54,96,107-117,119,124
+packages/building/src/building/runtime/ConstructionEntranceShader.ts
+  h_ddbf152d31b140 20-45,62,142,149,153,158-167
+packages/building/src/building/runtime/MasonryDistanceSurface.shader
+  h_ddbf152d31b140 132-133,168-171,190-193
+packages/building/tests/ConstructionEntrance.spec.ts
+  h_ddbf152d31b140 1-228
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/shaders/shared/EntranceWave.glsl
+  h_ddbf152d31b140 36,48-49,55-61,63-65,79,127-144,164,166,170,186-195,199,207-211,213-242
+packages/vegetation/src/asset-assembly/AssetEntranceEffect.ts
+  h_ddbf152d31b140 35-36,159-163,167-197,219-227,277-283,309,322,325,328,342-348,351-352,365-366,370,373-378,381-386,399-400,414-416,421
+packages/water/src/water/runtime/river/RiverQueryService.ts
+  h_ddbf152d31b140 93-96,100-101,134-148,152,205-213,216,224,233,240-276,278
+packages/world-planning/src/integrations/terrain/rock-formation/View.ts
+  h_ddbf152d31b140 25-29,50-52,211-212,214-225,227-239,293-316,318-322,324,330-333
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  h_ddbf152d31b140 2519-2521,2537-2539,2545,2547-2548,2551,4373,4377,4384,7926,7929-7949
+packages/world-planning/src/runtime/SeedWorldTerrainRuntime.ts
+  h_ddbf152d31b140 116,295-298,762,868-943,953-954,960-961,1004-1007,1021,1028-1031,1065,1120-1520,1578
+packages/world-planning/src/spatial/farming/PlanningFarmingGround.ts
+  h_ddbf152d31b140 174-214,236,238-240,242
+packages/world-planning/src/spatial/guidance/VisualGuidance.ts
+  h_ddbf152d31b140 548-550
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  h_ddbf152d31b140 1362-1365
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_ddbf152d31b140 54-58,88,90,197-198,203-204,250,347-445,990-1002,1005-1012,1032,1035-1036,1952,1963-1967,2092-2096,2099-2105,2137-2138,2146-2196,2198,2200,2217-2218,2229-2230,2241-2242,2253,2256-2257,2514-2539,2543-2546
+packages/world-planning/src/spatial/runtime/PlanningSeedScenePublication.ts
+  h_ddbf152d31b140 69,693-707
+packages/world-planning/src/spatial/runtime/PlanningWaterPublication.ts
+  h_ddbf152d31b140 13-15,25,28-32,67-68,72-78,81-88,90-94,102-123,125-127,180-196,230-232,275,328-330,340-351,365-368,370-371,418,421-506
+packages/world-planning/src/world/SeedWorldHologramRainbowEffect.ts
+  h_ddbf152d31b140 1-566
+packages/world-planning/src/world/SeedWorldSceneEntityEffectHost.ts
+  h_ddbf152d31b140 1-338
+packages/world-planning/src/world/SeedWorldShaderVariantCoverage.ts
+  h_ddbf152d31b140 229-259
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_ddbf152d31b140 32,43,147-148,1434
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 201,210,308,465,627-628,800,1278-1308,1379-1386,1443-1445,1605-1613,1615-1620,2099-2102,2187-2188,2192,2774,2803,2807,2822-2831
+world/demos/seed-world/agent-adapter/SeedWorldAgentApplication.ts
+  h_ddbf152d31b140 1197-1229,1232
+world/demos/seed-world/src/SeedWorldStartupShaderWarmup.ts
+  h_ddbf152d31b140 3,6,49-51,88,116-120,135-137,145-154,157-192,206,211
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingRuntime.ts
+  h_ddbf152d31b140 264-268,270,277,280-283,286-287,297,561-563,768
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  h_ddbf152d31b140 441-480
+world/tests/seed-world/PlanningSurfacePublication.spec.ts
+  h_ddbf152d31b140 89-91,135-226,248-549
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  h_ddbf152d31b140 15-16,1238-1264
+world/tests/seed-world/SeedWorldSceneEntityEffectHost.spec.ts
+  h_ddbf152d31b140 1-478
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  h_ddbf152d31b140 3,187-319
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e4828f73976dcb039e8a0b4f2cbf7077e40a1096",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
