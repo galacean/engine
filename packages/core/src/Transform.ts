@@ -231,7 +231,28 @@ export class Transform extends Component implements ICloneHook<Transform> {
    */
   get lossyWorldScale(): Vector3 {
     if (this._isContainDirtyFlag(TransformModifyFlags.WorldScale)) {
-      this._updateLossyWorldScale();
+      const parent = this._getParentTransform();
+      if (parent) {
+        const parentLossyWorldScale = parent.lossyWorldScale;
+        if (parent._getWorldUniformScaling()) {
+          Vector3.multiply(parentLossyWorldScale, this._scale, this._lossyWorldScale);
+        } else {
+          // Vector3 cannot be used to correctly represent the scaling. Must use Matrix3x3
+          const invRotation = Transform._tempQuat0;
+          const invRotationMat = Transform._tempMat30;
+          const worldRotScaMat = Transform._tempMat31;
+          const scaMat = Transform._tempMat32;
+          worldRotScaMat.copyFromMatrix(this.worldMatrix);
+          Quaternion.invert(this.worldRotationQuaternion, invRotation);
+          Matrix3x3.rotationQuaternion(invRotation, invRotationMat);
+          Matrix3x3.multiply(invRotationMat, worldRotScaMat, scaMat);
+          const e = scaMat.elements;
+          this._lossyWorldScale.set(e[0], e[4], e[8]);
+        }
+      } else {
+        this._lossyWorldScale.copyFrom(this._scale);
+      }
+      this._setDirtyFlagFalse(TransformModifyFlags.WorldScale);
     }
     return this._lossyWorldScale;
   }
@@ -793,38 +814,6 @@ export class Transform extends Component implements ICloneHook<Transform> {
         children[i].transform?._updateAllWorldFlag(flags);
       }
     }
-  }
-
-  private _updateLossyWorldScale(): void {
-    const parent = this._getParentTransform();
-    if (parent) {
-      if (parent._isContainDirtyFlag(TransformModifyFlags.WorldScale)) {
-        parent._updateLossyWorldScale();
-      }
-      if (parent._getWorldUniformScaling()) {
-        Vector3.multiply(parent._lossyWorldScale, this._scale, this._lossyWorldScale);
-      } else {
-        // Vector3 cannot be used to correctly represent the scaling. Must use Matrix3x3
-        const scaleMat = this._getScaleMatrix();
-        const e = scaleMat.elements;
-        this._lossyWorldScale.set(e[0], e[4], e[8]);
-      }
-    } else {
-      this._lossyWorldScale.copyFrom(this._scale);
-    }
-    this._setDirtyFlagFalse(TransformModifyFlags.WorldScale);
-  }
-
-  private _getScaleMatrix(): Matrix3x3 {
-    const invRotation = Transform._tempQuat0;
-    const invRotationMat = Transform._tempMat30;
-    const worldRotScaMat = Transform._tempMat31;
-    const scaMat = Transform._tempMat32;
-    worldRotScaMat.copyFromMatrix(this.worldMatrix);
-    Quaternion.invert(this.worldRotationQuaternion, invRotation);
-    Matrix3x3.rotationQuaternion(invRotation, invRotationMat);
-    Matrix3x3.multiply(invRotationMat, worldRotScaMat, scaMat);
-    return scaMat;
   }
 
   private _rotateByQuat(rotateQuat: Quaternion, relativeToLocal: boolean): void {

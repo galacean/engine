@@ -10,7 +10,7 @@ import {
   Transform,
   TransformModifyFlags
 } from "@galacean/engine-core";
-import { Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
+import { Matrix, Matrix3x3, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -79,12 +79,11 @@ describe("Transform test", function () {
     parent.destroy();
   });
 
-  it("uses uniform ancestor fast path recursively and falls back to _getScaleMatrix when non-uniform", () => {
+  it("uses uniform ancestor fast path recursively and falls back to matrix scale decomposition when non-uniform", () => {
     const grandparent = scene.createRootEntity("grandparent");
     const parent = grandparent.createChild("parent");
     const child = parent.createChild("child");
-    const parentScaleMatSpy = vi.spyOn(parent.transform as any, "_getScaleMatrix");
-    const childScaleMatSpy = vi.spyOn(child.transform as any, "_getScaleMatrix");
+    const scaleMatMultiplySpy = vi.spyOn(Matrix3x3, "multiply");
 
     // Uniform ancestors with negative scale and arbitrary rotations take the exact scalar-multiply fast path
     grandparent.transform.setScale(2, 2, 2);
@@ -93,17 +92,16 @@ describe("Transform test", function () {
     child.transform.setScale(1, 3, 5);
     child.transform.setRotation(45, 0, 0);
     expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(-2, -6, -10));
-    expect(parentScaleMatSpy).toHaveBeenCalledTimes(0);
-    expect(childScaleMatSpy).toHaveBeenCalledTimes(0);
+    expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(0);
 
-    // Non-uniform ancestor after a position edit must still notify and fall back to _getScaleMatrix()
+    // Non-uniform ancestor after a position edit must still notify and fall back to matrix scale decomposition
     grandparent.transform.setScale(1, 2, 3);
     parent.transform.setScale(1, 1, 1);
     parent.transform.setRotation(0, 0, 0);
     child.transform.setScale(4, 5, 6);
     child.transform.setRotation(90, 0, 0);
     expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(4, 15, 12));
-    expect(childScaleMatSpy).toHaveBeenCalledTimes(1);
+    expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(2);
 
     parent.transform.setPosition(4, 0, 0);
     grandparent.transform.setScale(2, 2, 3);
@@ -121,8 +119,7 @@ describe("Transform test", function () {
     grandparent.transform.setScale(2, 2, 2);
     expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(40, 50, 60));
 
-    parentScaleMatSpy.mockRestore();
-    childScaleMatSpy.mockRestore();
+    scaleMatMultiplySpy.mockRestore();
     grandparent.destroy();
   });
 
