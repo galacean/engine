@@ -1,0 +1,19 @@
+packages/shader-compiler/src/ShaderCompiler.ts
+  s_a4d9dd90218d81::t_a539e84e17c1ff 12,30,73,80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "016a10a40b0fe4abd70d83aaa3646f6bd97e89fe",
+  "prompts": {},
+  "sessions": {
+    "s_a4d9dd90218d81": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1fc06-e419-7d62-a252-2e83fbdcf328",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
