@@ -72,7 +72,7 @@ export class BlendState extends DataObject {
     renderElementData: ShaderData | undefined,
     defaultValue: BlendFactor
   ): BlendFactor {
-    const value = property._group & ShaderDataGroup.RenderElement ? renderElementData?.getFloat(property) : undefined;
+    const value = property._groups & ShaderDataGroup.RenderElement ? renderElementData?.getFloat(property) : undefined;
     return value ?? materialData.getFloat(property) ?? defaultValue;
   }
 
