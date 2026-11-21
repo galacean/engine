@@ -66,7 +66,7 @@ export class PostProcessUberPass extends PostProcessPass {
     } else {
       uberShaderData.disableMacro(BloomEffect._enableMacro);
       uberShaderData.setTexture(BloomEffect._bloomTextureProp, null);
-      this._releaseBloomRenderTargets();
+      this._releaseBloomRenderTargets(0);
     }
 
     if (tonemappingBlend?.isValid()) {
@@ -85,7 +85,7 @@ export class PostProcessUberPass extends PostProcessPass {
    */
   override _onDestroy() {
     super._onDestroy();
-    this._releaseBloomRenderTargets();
+    this._releaseBloomRenderTargets(0);
     this._uberMaterial.destroy();
     this._bloomMaterial.destroy();
   }
@@ -227,7 +227,7 @@ export class PostProcessUberPass extends PostProcessPass {
     }
   }
 
-  private _releaseBloomRenderTargets(fromIndex = 0): void {
+  private _releaseBloomRenderTargets(fromIndex: number): void {
     const pool = this.engine._renderTargetPool;
     const mipRT = this._mipRT;
     for (let i = fromIndex, n = mipRT.length; i < n; i++) {

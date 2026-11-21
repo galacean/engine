@@ -7,7 +7,6 @@
 #include "ShaderLibrary/PostProcess/Tonemapping/ACESTonemapping.glsl"
 
 mediump sampler2D renderer_BlitTexture;
-vec4 renderer_texelSize;
 #ifdef ENABLE_EFFECT_BLOOM
 	mediump sampler2D material_BloomTexture;
 	mediump sampler2D material_BloomDirtTexture;
