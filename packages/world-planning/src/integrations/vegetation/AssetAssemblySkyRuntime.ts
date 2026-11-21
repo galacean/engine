@@ -110,7 +110,6 @@ export class AssetAssemblySkyRuntime {
     this._clouds.setEnvironmentModifierValues(cloud.cloudDensityMultiplier, windShapeResponse);
     this._clouds.applyDayNightState(this._lighting.system.state);
     this._clouds.update(deltaTime);
-    this._lighting.requestDynamicEnvironmentBake(deltaTime);
   }
 
   /** @returns Detached cloud and physical-scale evidence. */

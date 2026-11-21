@@ -20,58 +20,107 @@ export interface BuildingCpuHandle {
 type Lease = { id: number; refs: number };
 type RequestBody = BuildingWorkerRequest extends infer R ? (R extends { id: number } ? Omit<R, "id"> : never) : never;
 
+interface WorkerSlot {
+  worker?: Worker;
+  generation: number;
+  inFlight: number;
+  assets: WeakMap<BuildingUnitAssets, Lease>;
+  terrains: WeakMap<ConstructionTerrainGrid, Lease>;
+  pending: Map<number, { resolve(value: any): void; reject(error: unknown): void; cleanup(): void }>;
+}
+
+function defaultMaxBuildingWorkers(): number {
+  const cores =
+    typeof navigator !== "undefined" && Number.isFinite(navigator.hardwareConcurrency)
+      ? navigator.hardwareConcurrency
+      : 4;
+  return Math.min(3, Math.max(1, cores - 1));
+}
+
 /** Scene-owned Worker service. Handles own solved geometry; cancel/reset/release
- * never publish results. */
+ * never publish results. Spawns additional workers lazily (up to maxWorkers) only
+ * when multiple buildings compile concurrently so startup fans out across CPU cores. */
 export class BuildingCpuClient {
-  private worker?: Worker;
+  private readonly maxWorkers: number;
+  private readonly slots: WorkerSlot[] = [];
   private nextId = 0;
   private nextResourceId = 0;
-  private generation = 0;
   private closed = false;
-  private assets = new WeakMap<BuildingUnitAssets, Lease>();
-  private terrains = new WeakMap<ConstructionTerrainGrid, Lease>();
-  private pending = new Map<number, { resolve(value: any): void; reject(error: unknown): void; cleanup(): void }>();
 
-  private send<T>(body: RequestBody, signal: AbortSignal) {
+  constructor(maxWorkers = defaultMaxBuildingWorkers()) {
+    this.maxWorkers = Math.max(1, Math.floor(maxWorkers));
+  }
+
+  private createSlot(): WorkerSlot {
+    const slot: WorkerSlot = {
+      generation: 0,
+      inFlight: 0,
+      assets: new WeakMap(),
+      terrains: new WeakMap(),
+      pending: new Map()
+    };
+    this.slots.push(slot);
+    return slot;
+  }
+
+  private pickSlot(): WorkerSlot {
+    let best: WorkerSlot | undefined;
+    for (let i = 0; i < this.slots.length; i++) {
+      const candidate = this.slots[i]!;
+      if (candidate.inFlight === 0) return candidate;
+      if (!best || candidate.inFlight < best.inFlight) best = candidate;
+    }
+    if (this.slots.length < this.maxWorkers) return this.createSlot();
+    return best ?? this.createSlot();
+  }
+
+  private send<T>(slot: WorkerSlot, body: RequestBody, signal: AbortSignal) {
     signal.throwIfAborted();
     if (this.closed) throw Error("Building compiler disposed");
-    if (!this.worker) {
-      const worker = (this.worker = new Worker(new URL("./BuildingWorker.ts", import.meta.url), { type: "module" }));
+    if (!slot.worker) {
+      const worker = (slot.worker = new Worker(new URL("./BuildingWorker.ts", import.meta.url), { type: "module" }));
       worker.onmessage = ({ data }: MessageEvent<BuildingWorkerReply>) => {
-        if (this.worker !== worker) return;
-        const request = this.pending.get(data.id);
+        if (slot.worker !== worker) return;
+        const request = slot.pending.get(data.id);
         if (!request) return;
-        this.pending.delete(data.id);
+        slot.pending.delete(data.id);
+        slot.inFlight = Math.max(0, slot.inFlight - 1);
         request.cleanup();
         if (data.ok === true) request.resolve(data.result);
         else request.reject(Error(data.error));
       };
       worker.onerror = (e) => {
-        if (this.worker === worker)
-          this.reset(new BuildingWorkerError(`Building Worker failed: ${e.message || "module script unavailable"}`));
+        if (slot.worker === worker)
+          this.resetSlot(
+            slot,
+            new BuildingWorkerError(`Building Worker failed: ${e.message || "module script unavailable"}`)
+          );
       };
       worker.onmessageerror = () => {
-        if (this.worker === worker)
-          this.reset(new BuildingWorkerError("Building Worker result could not be deserialized"));
+        if (slot.worker === worker)
+          this.resetSlot(slot, new BuildingWorkerError("Building Worker result could not be deserialized"));
       };
     }
     const id = ++this.nextId;
+    slot.inFlight++;
     const result = new Promise<T>((resolve, reject) => {
       const abort = () => {
-        this.pending.delete(id);
+        if (slot.pending.delete(id)) {
+          slot.inFlight = Math.max(0, slot.inFlight - 1);
+        }
         signal.removeEventListener("abort", abort);
         reject(signal.reason ?? new DOMException("Cancelled", "AbortError"));
       };
-      this.pending.set(id, { resolve, reject, cleanup: () => signal.removeEventListener("abort", abort) });
+      slot.pending.set(id, { resolve, reject, cleanup: () => signal.removeEventListener("abort", abort) });
       signal.addEventListener("abort", abort, { once: true });
     });
     try {
-      this.worker!.postMessage({ ...body, id } satisfies BuildingWorkerRequest);
+      slot.worker!.postMessage({ ...body, id } satisfies BuildingWorkerRequest);
     } catch (error) {
-      // Roll back resource leases synchronously: a following prepare must not
-      // reference assets/terrain that the Worker never received.
-      this.pending.get(id)?.cleanup();
-      this.pending.delete(id);
+      // Roll back resource leases and in-flight count synchronously: a following prepare
+      // must not reference assets/terrain that the Worker never received.
+      slot.pending.get(id)?.cleanup();
+      if (slot.pending.delete(id)) slot.inFlight = Math.max(0, slot.inFlight - 1);
       throw error;
     }
 
@@ -86,7 +135,8 @@ export class BuildingCpuClient {
   ): Promise<BuildingCpuPreview & { cpu: BuildingCpuHandle }> {
     signal.throwIfAborted();
     if (this.closed) throw Error("Building compiler disposed");
-    const generation = this.generation;
+    const slot = this.pickSlot();
+    const generation = slot.generation;
     const acquire = <T extends object>(cache: WeakMap<T, Lease>, value: T) => {
       let lease = cache.get(value);
       if (!lease?.refs) {
@@ -96,11 +146,12 @@ export class BuildingCpuClient {
       const first = lease.refs++ === 0;
       return { lease, first };
     };
-    const asset = acquire(this.assets, units),
-      ground = acquire(this.terrains, terrain);
+    const asset = acquire(slot.assets, units),
+      ground = acquire(slot.terrains, terrain);
     let id: number, result: Promise<BuildingCpuPreview>;
     try {
       ({ id, result } = this.send<BuildingCpuPreview>(
+        slot,
         {
           mode: "preview",
           draft,
@@ -119,14 +170,14 @@ export class BuildingCpuClient {
       throw error;
     }
     let disposed = false;
-    const valid = () => !disposed && !this.closed && generation === this.generation;
+    const valid = () => !disposed && !this.closed && generation === slot.generation;
     const release = () => {
       if (disposed) return;
       disposed = true;
       asset.lease.refs--;
       ground.lease.refs--;
-      if (generation === this.generation)
-        this.worker?.postMessage({ mode: "release", token: id } satisfies BuildingWorkerRequest);
+      if (generation === slot.generation)
+        slot.worker?.postMessage({ mode: "release", token: id } satisfies BuildingWorkerRequest);
     };
     try {
       const preview = await result;
@@ -142,6 +193,7 @@ export class BuildingCpuClient {
             if (disposed) throw Error("Building compilation snapshot disposed");
             if (!valid()) throw new BuildingWorkerError("Building compilation snapshot expired after Worker failure");
             const result = await this.send<BuildingCpuDetail>(
+              slot,
               {
                 mode: "detail",
                 token: id,
@@ -165,22 +217,23 @@ export class BuildingCpuClient {
   dispose(reason: unknown = new DOMException("Building compiler disposed", "AbortError")) {
     if (this.closed) return;
     this.closed = true;
-    this.reset(reason);
+    for (const slot of this.slots) this.resetSlot(slot, reason);
   }
-  private reset(reason: unknown) {
-    const worker = this.worker;
-    this.worker = undefined;
-    this.generation++;
+  private resetSlot(slot: WorkerSlot, reason: unknown) {
+    const worker = slot.worker;
+    slot.worker = undefined;
+    slot.generation++;
+    slot.inFlight = 0;
     if (worker) {
       worker.onmessage = worker.onerror = worker.onmessageerror = null;
       worker.terminate();
     }
-    this.assets = new WeakMap();
-    this.terrains = new WeakMap();
-    for (const request of this.pending.values()) {
+    slot.assets = new WeakMap();
+    slot.terrains = new WeakMap();
+    for (const request of slot.pending.values()) {
       request.cleanup();
       request.reject(reason);
     }
-    this.pending.clear();
+    slot.pending.clear();
   }
 }

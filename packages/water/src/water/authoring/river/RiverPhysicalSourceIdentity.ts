@@ -1,4 +1,5 @@
 import { hashRiverStableValue, hashStableValueAsync } from "../../compiler/shared/determinism";
+import { waterTerrainHashSummary } from "../terrain/WaterTerrainIdentity";
 import type { RiverNetworkDescriptor } from "./RiverDescriptor";
 
 /** Exact River surface identity; visual material, bake quality and budgets are intentionally excluded. */
@@ -14,7 +15,7 @@ function physicalSource(descriptor: RiverNetworkDescriptor) {
   return {
     physicalSchemaVersion: 2,
     schemaVersion: descriptor.schemaVersion,
-    terrain: descriptor.terrain,
+    terrain: waterTerrainHashSummary(descriptor.terrain),
     ...(descriptor.connections ? { connections: descriptor.connections } : {}),
     ...(descriptor.drops ? { drops: descriptor.drops } : {}),
     surfaceAuthority: descriptor.surfaceAuthority,

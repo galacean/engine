@@ -6,7 +6,9 @@
 #if defined(MATERIAL_SEASON_SPECIES) || defined(MATERIAL_COVERAGE_SEASON_SPECIES)
   #include "shared/SceneSeason.glsl"
 #endif
-#define TERRAIN_PROJECT_SURFACE_RAIN_NORMALS
+#ifndef SCENE_SURFACE_CLIMATE_DRY
+  #define TERRAIN_PROJECT_SURFACE_RAIN_NORMALS
+#endif
 #include "shared/SurfaceClimate.glsl"
 #ifdef MATERIAL_ENABLE_COVERAGE
   #include "surface/SurfaceCoverage.glsl"
@@ -16,6 +18,7 @@
   #include "surface/SurfaceProjection.glsl"
 #endif
 #ifdef MATERIAL_TERRAIN_COLOR_COVERAGE
+  #define TERRAIN_PROJECT_GROUND_COLOR_ONLY
   #include "shared/TerrainLayerEvaluation.glsl"
   #ifdef MATERIAL_ROCK_TOP_GRASS
     #include "shared/GrassColorField.glsl"
@@ -149,13 +152,15 @@ SurfaceData evaluateSurfaceMaterial(Varyings varyings, bool isFrontFacing) {
     shadingNormal = normalize(mix(geometryNormal, shadingNormal,
       mix(1.0, terrainCoverage, material_NormalTerrainRegionOnly) *
       mix(1.0, 1.0 - terrainCoverage, material_NormalBaseRegionOnly)));
-    #ifdef MATERIAL_ROCK_TOP_GRASS
-      albedoColor = mix(albedoColor, evaluateGrassBaseColor(varyings.positionWS.xz), terrainCoverage);
-    #else
-      TerrainProjectLayerBlend ground = terrainProjectGroundSurface(varyings.positionWS);
-      albedoColor = mix(albedoColor, terrainProjectGroundColor(ground, varyings.positionWS),
-        terrainCoverage * clamp(ground.weight, 0.0, 1.0));
-    #endif
+    if (terrainCoverage > 0.001) {
+      #ifdef MATERIAL_ROCK_TOP_GRASS
+        albedoColor = mix(albedoColor, evaluateGrassBaseColor(varyings.positionWS.xz), terrainCoverage);
+      #else
+        TerrainProjectLayerBlend ground = terrainProjectGroundSurface(varyings.positionWS);
+        albedoColor = mix(albedoColor, terrainProjectGroundColor(ground, varyings.positionWS),
+          terrainCoverage * clamp(ground.weight, 0.0, 1.0));
+      #endif
+    }
     albedoColor = mix(albedoColor, vec3(terrainCoverage), clamp(material_SurfaceCoveragePreview, 0.0, 1.0));
   #endif
   #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
@@ -208,7 +213,11 @@ SurfaceData evaluateSurfaceMaterial(Varyings varyings, bool isFrontFacing) {
   surfaceData.dotNV = clamp(dot(surfaceData.normal, surfaceData.viewDir), 0.0, 1.0);
   surfaceData.specularIntensity = 1.0;
   surfaceData.specularColor = vec3(1.0);
-  terrainProjectApplySurfaceClimate(surfaceData, geometryNormal, vec3(1.0, 0.35, 0.9));
+  #ifndef SCENE_SURFACE_CLIMATE_DRY
+  if (dot(scene_SurfaceClimate, scene_SurfaceClimate) > 0.0 || scene_TerrainWaterCoverageParams.y > 0.0) {
+    terrainProjectApplySurfaceClimate(surfaceData, geometryNormal, vec3(1.0, 0.35, 0.9));
+  }
+  #endif
   return surfaceData;
 }
 

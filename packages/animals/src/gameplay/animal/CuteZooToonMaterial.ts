@@ -19,6 +19,10 @@ export interface CuteZooToonAppearance {
   outline: boolean;
   outlineWidth: number;
   outlineColor: string;
+  /** Distance in metres where outline begins fading smoothly toward zero; omit or <=0 for infinite outline. */
+  outlineFadeStart?: number;
+  /** Distance in metres where outline reaches zero width and the outline pass can be skipped without popping. */
+  outlineFadeEnd?: number;
 }
 
 /** Accepted original-package preset, independent of the world's exposure. */
@@ -37,20 +41,25 @@ export const CUTE_ZOO_TOON_APPEARANCE: Readonly<CuteZooToonAppearance> = Object.
   rimColor: "#ffe5cf",
   outline: true,
   outlineWidth: 0.01,
-  outlineColor: "#493b38"
+  outlineColor: "#493b38",
+  outlineFadeStart: 18,
+  outlineFadeEnd: 28
 });
+
+function insertOutlinePass(baseSource: string): string {
+  const closing = "\n  }\n}";
+  const index = baseSource.lastIndexOf(closing);
+  if (index < 0) throw new Error("Failed to locate SubShader closing brace in CuteZooToon.shader");
+  // Place Outline AFTER Forward so front faces populate the depth buffer first and Early-Z
+  // rejects interior back-face fragments of the extruded hull.
+  return `${baseSource.slice(0, index)}\n${outlinePass}${closing}`;
+}
 
 function toonShader(outline: boolean): Shader {
   const name = outline ? "Animal/CuteZooToonOutlined" : "Animal/CuteZooToon";
   return (
     Shader.find(name) ??
-    Shader.create(
-      outline
-        ? source
-            .replace('"Animal/CuteZooToon"', `"${name}"`)
-            .replace('    Pass "Forward" {', `${outlinePass}\n    Pass "Forward" {`)
-        : source
-    )
+    Shader.create(outline ? insertOutlinePass(source.replace('"Animal/CuteZooToon"', `"${name}"`)) : source)
   );
 }
 
@@ -83,6 +92,17 @@ export function applyCuteZooToonAppearance(
   if (outline) {
     data.setFloat("animal_OutlineWidth", appearance.outlineWidth);
     data.setVector3("animal_OutlineColor", linearColor(appearance.outlineColor));
+    const fadeEnd = appearance.outlineFadeEnd ?? 0;
+    if (fadeEnd > 0) {
+      const fadeStart = Math.max(0, Math.min(appearance.outlineFadeStart ?? 0, fadeEnd - 1e-4));
+      data.enableMacro("ANIMAL_OUTLINE_FADE");
+      data.setFloat("animal_OutlineFadeStart", fadeStart);
+      data.setFloat("animal_OutlineFadeEnd", fadeEnd);
+    } else {
+      data.disableMacro("ANIMAL_OUTLINE_FADE");
+    }
+  } else {
+    data.disableMacro("ANIMAL_OUTLINE_FADE");
   }
   if (appearance.rim && appearance.rimStrength > 0) {
     data.enableMacro("ANIMAL_TOON_RIM");

@@ -4,6 +4,7 @@ import {
   Entity,
   Scene,
   Script,
+  ShaderMacro,
   ShaderProperty,
   Vector3,
   Vector4,
@@ -75,6 +76,7 @@ import {
 export type { TerrainSeason } from "@galacean/engine-environment/terrain/environment/SceneSeasonPalette";
 
 const SURFACE_CLIMATE = ShaderProperty.getByName("scene_SurfaceClimate");
+const SURFACE_CLIMATE_DRY = ShaderMacro.getByName("SCENE_SURFACE_CLIMATE_DRY");
 const WEATHER_STATE = ShaderProperty.getByName("scene_WeatherState");
 const WEATHER_TIME = ShaderProperty.getByName("scene_WeatherTime");
 const SURFACE_SNOW_COLOR = ShaderProperty.getByName("scene_SurfaceSnowColor");
@@ -330,6 +332,8 @@ export class WorldEnvironmentRuntime {
   private _cloudWindShapeResponse = 0;
   private _weatherIblSynchronized = true;
   private _seasonIblSynchronized = true;
+  private _cloudProfileIblSynchronized = true;
+  private _cloudProfileIblBaselineSignature = "";
   private _surfaceWaterSsrRequested = false;
   private _destroyed = false;
   private _timeDrivenTransition = false;
@@ -485,6 +489,7 @@ export class WorldEnvironmentRuntime {
       this._applyComposedState(0);
       this._lighting.requestEnvironmentBake();
       this._weatherIblSynchronized = true;
+      this._cloudProfileIblSynchronized = true;
     }
   }
 
@@ -641,6 +646,7 @@ export class WorldEnvironmentRuntime {
       this._applyComposedState(0);
       this._lighting.requestEnvironmentBake();
       this._weatherIblSynchronized = true;
+      this._cloudProfileIblSynchronized = true;
     }
   }
 
@@ -655,24 +661,28 @@ export class WorldEnvironmentRuntime {
   setCloudQuality(quality: VolumetricCloudQuality): void {
     this._assertAlive();
     this._clouds.setQuality(quality);
+    this._markCloudProfileIblDirty();
   }
 
   /** Applies partial physical layer and density-field scale tuning without bypassing material validation. */
   setCloudScaleSettings(settings: Readonly<Partial<VolumetricCloudScaleSettings>>): void {
     this._assertAlive();
     this._clouds.setScaleSettings({ ...this._clouds.getSnapshot().scaleSettings, ...settings });
+    this._markCloudProfileIblDirty();
   }
 
   /** Applies partial cloud morphology tuning while preserving the rest of the authored profile. */
   setCloudShapeProfile(profile: Readonly<Partial<VolumetricCloudShapeSettings>>): void {
     this._assertAlive();
     this._clouds.setShapeProfile({ ...this._clouds.getSnapshot().shapeProfile, ...profile });
+    this._markCloudProfileIblDirty();
   }
 
   /** Applies partial optical tuning while preserving the current terrain-scaled extinction baseline. */
   setCloudLightingProfile(profile: Readonly<Partial<VolumetricCloudLightingProfile>>): void {
     this._assertAlive();
     this._clouds.setLightingProfile({ ...this._clouds.getSnapshot().lightingProfile, ...profile });
+    this._markCloudProfileIblDirty();
   }
 
   /** Rebuilds the deterministic horizontal cloud distribution with a new seed. */
@@ -680,6 +690,7 @@ export class WorldEnvironmentRuntime {
     this._assertAlive();
     if (!Number.isSafeInteger(seed)) throw new RangeError("Terrain cloud weather seed must be a safe integer");
     this._clouds.setWeatherSeed(seed);
+    this._markCloudProfileIblDirty();
   }
 
   /** Clears cloud reconstruction history after a visual comparison or camera cut. */
@@ -852,6 +863,7 @@ export class WorldEnvironmentRuntime {
     this._scene.shaderData.setVector4(TERRAIN_WATER_OPTICS_PARAMS, this._terrainWaterOpticsParams);
     this._scene.shaderData.setVector4(TERRAIN_RIPPLE_PARAMS, this._terrainRippleParams);
     this._scene.shaderData.setFloat(WEATHER_TIME, 0);
+    this._scene.shaderData.disableMacro(SURFACE_CLIMATE_DRY);
     this._scene.shaderData.setTexture(SURFACE_WATER_NORMAL, null!);
     this._surfaceRainTextures.destroy();
     this._atmosphericWind.reset();
@@ -935,10 +947,25 @@ export class WorldEnvironmentRuntime {
     this._clouds.setEnvironmentModifierValues(weather.cloud.cloudDensityMultiplier, windShapeResponse);
     this._clouds.applyDayNightState(this._lighting.system.state);
     this._clouds.update(deltaTime);
-    // Visible clouds update every frame, while their low-frequency environment contribution is sampled only
-    // after the previous progressive transaction is complete. Explicit weather edits still request immediately.
-    this._lighting.requestDynamicEnvironmentBake(deltaTime);
+    // Visible clouds update every frame via the direction cache. Only refresh low-frequency IBL while
+    // a timed weather/season transition or explicit cloud-profile edit is converging; steady-state wind
+    // drift keeps hemisphere irradiance stable and must not re-bake the cubemap every second.
+    if (!this._weatherIblSynchronized || !this._seasonIblSynchronized) {
+      this._lighting.requestDynamicEnvironmentBake(deltaTime);
+    } else if (
+      !this._cloudProfileIblSynchronized &&
+      (weather.cloud.cloudCoverage <= Number.EPSILON ||
+        this._clouds.material._skyCompositionSignature !== this._cloudProfileIblBaselineSignature)
+    ) {
+      this._lighting.requestEnvironmentBake();
+      this._cloudProfileIblSynchronized = true;
+    }
     this._publishSurfaceClimateState();
+  }
+
+  private _markCloudProfileIblDirty(): void {
+    this._cloudProfileIblBaselineSignature = this._clouds.material._skyCompositionSignature;
+    this._cloudProfileIblSynchronized = false;
   }
 
   /** Freeze A while a complete B is prepared, then drive weather/season from the clock's progress. */
@@ -1072,7 +1099,22 @@ export class WorldEnvironmentRuntime {
     );
     this._terrainRippleParams.z = resolveTerrainRainSurfaceVisibility(precipitation.rainRate);
     this._scene.shaderData.setFloat(WEATHER_TIME, this._weatherTime);
+    this._synchronizeSurfaceClimateDryMacro(precipitation.rainRate);
     this._synchronizeSurfaceWaterScreenSpaceReflection(precipitation.rainRate);
+  }
+
+  private _synchronizeSurfaceClimateDryMacro(rainRate: number): void {
+    const isDry =
+      this._surface.wetness <= 0 &&
+      this._surface.puddles <= 0 &&
+      this._surface.snowCover <= 0 &&
+      rainRate <= 0 &&
+      this._surfaceWater.puddleStorageBias <= 0;
+    if (isDry) {
+      this._scene.shaderData.enableMacro(SURFACE_CLIMATE_DRY);
+    } else {
+      this._scene.shaderData.disableMacro(SURFACE_CLIMATE_DRY);
+    }
   }
 
   private _publishSurfaceWaterTuning(): void {
@@ -1092,6 +1134,7 @@ export class WorldEnvironmentRuntime {
     this._terrainWaterOpticsParams.set(water.rippleRoughnessMultiplier, water.ior, 0, 0);
     this._terrainRippleParams.x = water.rippleUvTiling;
     this._terrainRippleParams.y = water.rippleCount;
+    this._synchronizeSurfaceClimateDryMacro(this.weatherSystem.state.precipitation.rainRate);
   }
 
   private _synchronizeSurfaceWaterScreenSpaceReflection(rainRate: number): void {

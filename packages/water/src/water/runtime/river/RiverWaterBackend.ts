@@ -23,6 +23,7 @@ import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
 import type { WaterCompiledResource } from "../../compiler/body/WaterCompiledResource";
 import { createWaterCompiledDataSnapshot } from "../../compiler/body/WaterCompiledResource";
 import { RiverNetworkCompiler } from "../../compiler/river/RiverNetworkCompiler";
+import { summarizeRiverDescriptorForHash } from "../../compiler/river/RiverResourceMetadata";
 import type { RiverTerrainInteractionData } from "../../compiler/river/types";
 import { hashRiverStableValue, hashStableValueAsync } from "../../compiler/shared/determinism";
 import type { RiverDiagnostic } from "../../compiler/shared/diagnostics";
@@ -689,7 +690,7 @@ export class RiverWaterBackend implements WaterBodyBackend {
   private sourceIdentity(source: unknown, context?: WaterBackendCompileIdentityContext): string {
     const cached = context && this.sourceIdentities.get(context);
     if (cached && cached.source === source) return cached.hash;
-    const hash = hashRiverStableValue(source);
+    const hash = hashRiverStableValue(summarizeRiverDescriptorForHash(source));
     if (context) this.sourceIdentities.set(context, { source, hash });
     return hash;
   }
@@ -703,7 +704,7 @@ export class RiverWaterBackend implements WaterBodyBackend {
     const sourceHash =
       cached && cached.source === resolvedSource
         ? cached.hash
-        : await hashStableValueAsync(resolvedSource, context?.signal);
+        : await hashStableValueAsync(summarizeRiverDescriptorForHash(resolvedSource), context?.signal);
     if (context) this.sourceIdentities.set(context, { source: resolvedSource, hash: sourceHash });
     return hashRiverStableValue({
       compilerSemanticVersion: RIVER_COMPILER_SEMANTIC_VERSION,

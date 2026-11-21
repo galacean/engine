@@ -17,6 +17,10 @@ const BUILTIN_VIEW_CONSTRUCTORS = [
 
 const immutableSnapshots = new WeakSet<object>();
 
+export function isImmutableWaterSnapshot(value: unknown): value is object {
+  return typeof value === "object" && value !== null && immutableSnapshots.has(value);
+}
+
 function cloneArrayBufferView<T extends ArrayBufferView>(value: T): T {
   if (immutableSnapshots.has(value)) return value;
   const prototype = Object.getPrototypeOf(value);

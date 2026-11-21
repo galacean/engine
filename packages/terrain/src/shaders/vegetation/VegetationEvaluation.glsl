@@ -129,6 +129,7 @@ void terrainProjectApplyVegetationBranchClimate(inout SurfaceData surfaceData, v
 }
 
 void terrainProjectApplyVegetationWetness(inout SurfaceData surfaceData, vec3 geometryNormal) {
+  if (scene_SurfaceClimate.x <= 0.0 && scene_SurfaceClimate.w <= 0.0) return;
   terrainProjectApplySurfaceMoisture(surfaceData, geometryNormal, vec2(0.72, 0.0));
   surfaceData.dotNV = clamp(dot(surfaceData.normal, surfaceData.viewDir), 0.0, 1.0);
 }
@@ -288,7 +289,9 @@ SurfaceData evaluateVegetationMaterial(Varyings varyings, bool isFrontFacing, fl
   surfaceData.dotNV = clamp(dot(surfaceData.normal, surfaceData.viewDir), 0.0, 1.0);
   surfaceData.specularIntensity = 1.0;
   surfaceData.specularColor = vec3(1.0);
-  terrainProjectApplyVegetationWetness(surfaceData, geometryNormal);
+  #ifndef SCENE_SURFACE_CLIMATE_DRY
+    terrainProjectApplyVegetationWetness(surfaceData, geometryNormal);
+  #endif
   // Shared field colours already include the global grass season; do not apply the leaf season a second time.
   #ifndef MATERIAL_VEGETATION_SHARED_GRASS_COLOR
   #if defined(MATERIAL_VEGETATION_CLIMATE_GRASS)
@@ -308,6 +311,7 @@ SurfaceData evaluateVegetationMaterial(Varyings varyings, bool isFrontFacing, fl
     );
   #endif
   #endif
+  #ifndef SCENE_SURFACE_CLIMATE_DRY
   #if defined(MATERIAL_VEGETATION_CLIMATE_GRASS) || defined(MATERIAL_VEGETATION_CLIMATE_FLOWER)
     terrainProjectApplyVegetationGrassClimate(surfaceData, geometryNormal);
   #elif defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
@@ -316,6 +320,7 @@ SurfaceData evaluateVegetationMaterial(Varyings varyings, bool isFrontFacing, fl
     terrainProjectApplyVegetationShrubClimate(surfaceData, geometryNormal);
   #elif defined(MATERIAL_VEGETATION_CLIMATE_BRANCH)
     terrainProjectApplyVegetationBranchClimate(surfaceData, geometryNormal);
+  #endif
   #endif
   return surfaceData;
 }

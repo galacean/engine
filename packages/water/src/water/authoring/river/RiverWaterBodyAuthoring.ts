@@ -40,6 +40,7 @@ import { WaterSurfaceDepthSource } from "../surface/enums/WaterSurfaceDepthSourc
 import { WaterQualityTier } from "../wave/enums/WaterQualityTier";
 import { WaterBodyAssetRegistry } from "../../runtime/body/WaterBodyAssetRegistry";
 import { hashRiverStableValue, hashStableValueAsync } from "../../compiler/shared/determinism";
+import { waterTerrainHashSummary } from "../terrain/WaterTerrainIdentity";
 
 export { computeRiverPhysicalSourceHash } from "./RiverPhysicalSourceIdentity";
 
@@ -372,12 +373,23 @@ function riverWaterBodyAssetInput(descriptor: RiverNetworkDescriptor, assetId: s
   };
 }
 
+function riverWaterBodySourceForHash(source: ReturnType<typeof riverWaterBodyAssetInput>["source"]) {
+  if (!source.descriptor.terrain) return source;
+  return {
+    ...source,
+    descriptor: {
+      ...source.descriptor,
+      terrain: waterTerrainHashSummary(source.descriptor.terrain)
+    }
+  };
+}
+
 export function createRiverWaterBodyAsset(descriptor: RiverNetworkDescriptor, assetId = RIVER_WATER_BODY_ASSET_ID) {
   const input = riverWaterBodyAssetInput(descriptor, assetId);
   return createWaterBodyAsset({
     ...input,
     representationDataHash: hashRiverStableValue(input.representationData),
-    sourceHash: hashRiverStableValue(input.source)
+    sourceHash: hashRiverStableValue(riverWaterBodySourceForHash(input.source))
   });
 }
 export async function createRiverWaterBodyAssetAsync(
@@ -387,7 +399,7 @@ export async function createRiverWaterBodyAssetAsync(
 ) {
   signal?.throwIfAborted();
   const input = riverWaterBodyAssetInput(descriptor, assetId);
-  const sourceHash = await hashStableValueAsync(input.source, signal);
+  const sourceHash = await hashStableValueAsync(riverWaterBodySourceForHash(input.source), signal);
   return createWaterBodyAsset({
     ...input,
     representationDataHash: hashRiverStableValue(input.representationData),

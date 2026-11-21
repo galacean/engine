@@ -38,7 +38,10 @@ export function bindTerrainGroundSurface(
     "SimpleTextureChannels",
     "SimpleTextureTransform",
     "SimpleTextureMin",
-    "SimpleTextureMax"
+    "SimpleTextureMax",
+    "SimpleNormalChannels",
+    "SimpleNormalTransform",
+    "SimpleNormalInfo"
   ]) {
     const value = source.getVector4(`material_Terrain${name}`);
     if (value !== undefined) target.setVector4(`${prefix}_Terrain${name}`, value);

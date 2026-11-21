@@ -604,12 +604,17 @@ export class GroundAnimalCrowd {
       const prevReservedNeighbourCount = s.reservedNeighbourCount;
       let neighbourCount = 0;
       let reservedNeighbourCount = 0;
-      if (b.layer !== "air") {
+      if (b.layer !== "air" && (b.desiredSpeed > 0 || m.speed > 0)) {
         const speed = Math.max(b.desiredSpeed, m.speed);
         const acceleration = Math.max(0.05, b.desiredSpeed > 0 ? b.desiredSpeed / 0.6 : s.brakeAcceleration);
         const reach = b.radius + this.maximumRadius + 0.2 + speed * 0.35 + (speed * speed) / (2 * acceleration);
-        for (let x = Math.floor((m.x - reach) / this.cellSize); x <= Math.floor((m.x + reach) / this.cellSize); x++)
-          for (let z = Math.floor((m.z - reach) / this.cellSize); z <= Math.floor((m.z + reach) / this.cellSize); z++) {
+        const reachSq = reach * reach;
+        const minIx = Math.floor((m.x - reach) / this.cellSize);
+        const maxIx = Math.floor((m.x + reach) / this.cellSize);
+        const minIz = Math.floor((m.z - reach) / this.cellSize);
+        const maxIz = Math.floor((m.z + reach) / this.cellSize);
+        for (let x = minIx; x <= maxIx; x++)
+          for (let z = minIz; z <= maxIz; z++) {
             const key = this.key(x, z);
             const gridCell = this.grid.get(key);
             if (gridCell)
@@ -623,8 +628,9 @@ export class GroundAnimalCrowd {
                 )
                   continue;
                 this.neighbourChecks++;
-                if (Math.hypot(other.body.motion.x - m.x, other.body.motion.z - m.z) <= reach)
-                  s.neighbours[neighbourCount++] = other;
+                const dx = other.body.motion.x - m.x;
+                const dz = other.body.motion.z - m.z;
+                if (dx * dx + dz * dz <= reachSq) s.neighbours[neighbourCount++] = other;
               }
             const reservationCell = this.reservations.get(key);
             if (reservationCell)
@@ -633,9 +639,12 @@ export class GroundAnimalCrowd {
                 if (other === s || !sharesReservationHeight(b, other)) continue;
                 const r = other.reservation!;
                 this.neighbourChecks++;
-                const distance = Math.hypot(r.x - m.x, r.z - m.z);
+                const dx = r.x - m.x;
+                const dz = r.z - m.z;
+                const distSq = dx * dx + dz * dz;
+                const minDist = b.radius + restingRadius(other.body) + 0.001;
                 // An actor already inside a newly reserved footprint may leave; never trap it there.
-                if (distance <= reach && distance >= b.radius + restingRadius(other.body) + 0.001)
+                if (distSq <= reachSq && distSq >= minDist * minDist)
                   s.reservedNeighbours[reservedNeighbourCount++] = other;
               }
           }

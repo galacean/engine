@@ -1,7 +1,7 @@
 #ifndef TERRAIN_PROJECT_LAYER_EVALUATION_INCLUDED
 #define TERRAIN_PROJECT_LAYER_EVALUATION_INCLUDED
 #include "shared/TerrainRegions.glsl"
-  #if defined(MATERIAL_TERRAIN_LAYER_NORMAL_TEXTURES) && !(defined(MATERIAL_TERRAIN_FAR) && defined(MATERIAL_TERRAIN_SAND_RIPPLE))
+  #if defined(MATERIAL_TERRAIN_LAYER_NORMAL_TEXTURES) && !(defined(MATERIAL_TERRAIN_FAR) && defined(MATERIAL_TERRAIN_SAND_RIPPLE)) && !defined(TERRAIN_PROJECT_GRASS_ROOT_VARYINGS) && !defined(TERRAIN_PROJECT_GROUND_COLOR_ONLY)
     #define TERRAIN_PROJECT_SAMPLE_LAYER_NORMALS
   #endif
   #if defined(MATERIAL_TERRAIN_SAND_RIPPLE) && !defined(MATERIAL_TERRAIN_FAR)
@@ -28,6 +28,23 @@
     #else
     vec4 material_TerrainSimpleSurfaces[4];
     #define GROUND_TerrainSimpleSurfaces material_TerrainSimpleSurfaces
+    #endif
+    #ifdef TERRAIN_PROJECT_SAMPLE_LAYER_NORMALS
+      #ifdef TERRAIN_GROUND_RENDERER
+      vec4 renderer_TerrainSimpleNormalChannels;
+      vec4 renderer_TerrainSimpleNormalTransform;
+      vec4 renderer_TerrainSimpleNormalInfo;
+      #define GROUND_TerrainSimpleNormalChannels renderer_TerrainSimpleNormalChannels
+      #define GROUND_TerrainSimpleNormalTransform renderer_TerrainSimpleNormalTransform
+      #define GROUND_TerrainSimpleNormalInfo renderer_TerrainSimpleNormalInfo
+      #else
+      vec4 material_TerrainSimpleNormalChannels;
+      vec4 material_TerrainSimpleNormalTransform;
+      vec4 material_TerrainSimpleNormalInfo;
+      #define GROUND_TerrainSimpleNormalChannels material_TerrainSimpleNormalChannels
+      #define GROUND_TerrainSimpleNormalTransform material_TerrainSimpleNormalTransform
+      #define GROUND_TerrainSimpleNormalInfo material_TerrainSimpleNormalInfo
+      #endif
     #endif
   #endif
     #ifdef TERRAIN_GROUND_RENDERER
@@ -166,9 +183,11 @@
     float weight;
   };
 
+  #if !defined(MATERIAL_TERRAIN_UNTEXTURED_SINGLE_MAP) && !defined(MATERIAL_TERRAIN_SINGLE_DIFFUSE_SINGLE_MAP)
   vec4 terrainProjectLayerMetadataAt(int layerIndex, int column) {
     return texelFetch(GROUND_TerrainLayerMetadata, ivec2(column, layerIndex), 0);
   }
+  #endif
 
   vec4 terrainProjectSampleAlphamap(int alphamapIndex, vec2 worldXZ, int regionIndex) {
     #ifdef MATERIAL_TERRAIN_SINGLE_ALPHAMAP
@@ -218,11 +237,14 @@
     );
   }
 
+  #if !defined(MATERIAL_TERRAIN_UNTEXTURED_SINGLE_MAP) && !defined(MATERIAL_TERRAIN_SINGLE_DIFFUSE_SINGLE_MAP)
   void terrainProjectAccumulateLayer(
     inout TerrainProjectLayerBlend blend,
     int layerIndex,
     float weight,
-    vec3 positionWS
+    vec3 positionWS,
+    vec2 positionDx,
+    vec2 positionDy
   ) {
     if (weight > 0.0 && layerIndex >= 0 && layerIndex < GROUND_TerrainLayerCount) {
       vec4 diffuseRemapMin = terrainProjectLayerMetadataAt(layerIndex, 1);
@@ -235,8 +257,8 @@
         defined(TERRAIN_PROJECT_SAMPLE_LAYER_NORMALS) || defined(MATERIAL_TERRAIN_LAYER_MASK_TEXTURES)
       vec4 tiling = terrainProjectLayerMetadataAt(layerIndex, 0);
       vec2 sampleUv = (positionWS.xz + tiling.zw) / tiling.xy;
-      vec2 sampleDdx = dFdx(sampleUv);
-      vec2 sampleDdy = dFdy(sampleUv);
+      vec2 sampleDdx = positionDx / tiling.xy;
+      vec2 sampleDdy = positionDy / tiling.xy;
       #endif
 
       #ifdef MATERIAL_TERRAIN_LAYER_DIFFUSE_TEXTURES
@@ -328,6 +350,7 @@
       blend.weight += weight;
     }
   }
+  #endif
 
   bool terrainProjectResolveLayerGroups(
     vec2 worldXZ,
@@ -375,6 +398,27 @@
       sharedColor = mix(GROUND_TerrainSimpleTextureMin, GROUND_TerrainSimpleTextureMax, texel);
     }
     #endif
+    #ifdef TERRAIN_PROJECT_SAMPLE_LAYER_NORMALS
+    vec3 sharedNormal = vec3(0.0, 0.0, 1.0);
+    if (dot(weights, GROUND_TerrainSimpleNormalChannels) > 0.0) {
+      float normalScale = GROUND_TerrainSimpleNormalInfo.y;
+      float normalUvScale = 1.0;
+      #ifdef MATERIAL_TERRAIN_SAND_RIPPLE
+        normalScale = material_TerrainSandRippleParams.x;
+        normalUvScale = material_TerrainSandRippleParams.y;
+      #endif
+      vec2 nUv = (positionWS.xz * GROUND_TerrainSimpleNormalTransform.xy + GROUND_TerrainSimpleNormalTransform.zw) * normalUvScale;
+      vec2 nDx = positionDx * GROUND_TerrainSimpleNormalTransform.xy * normalUvScale;
+      vec2 nDy = positionDy * GROUND_TerrainSimpleNormalTransform.xy * normalUvScale;
+      vec3 normalSample = textureGrad(
+        GROUND_TerrainLayerNormalTextures,
+        vec3(nUv, GROUND_TerrainSimpleNormalInfo.x),
+        nDx,
+        nDy
+      ).xyz;
+      sharedNormal = terrainProjectLayerNormalTangent(normalSample, normalScale);
+    }
+    #endif
     for (int channel = 0; channel < 4; channel++) {
       int layerIndex = int(floor(layerIndices[channel] + 0.5));
       if (layerIndex >= 0) {
@@ -386,14 +430,26 @@
         #endif
         #ifdef MATERIAL_TERRAIN_GRASS_SHADING
           if (surface.w == 1.0) color.rgb = vec3(1.0);
-          if (surface.w == 2.0) color.rgb = GROUND_TerrainRoadColor.rgb;
+          #ifdef MATERIAL_TERRAIN_SINGLE_DIFFUSE_SINGLE_MAP
+            if (surface.w == 2.0) color.rgb = GROUND_TerrainSimpleTextureChannels[channel] > 0.5 ? color.rgb * GROUND_TerrainRoadColor.rgb : GROUND_TerrainRoadColor.rgb;
+          #else
+            if (surface.w == 2.0) color.rgb = GROUND_TerrainRoadColor.rgb;
+          #endif
         #endif
         #if defined(MATERIAL_TERRAIN_GRASS_SHADING) || defined(MATERIAL_TERRAIN_ROAD_PALETTE)
           blend.roadWeight += (surface.w == 2.0 ? weight : 0.0);
         #endif
         blend.grassWeight += (surface.w == 1.0 ? weight : 0.0);
         blend.albedo += color.rgb * weight;
-        blend.tangentNormal.z += weight;
+        #ifdef TERRAIN_PROJECT_SAMPLE_LAYER_NORMALS
+          float hasNormal = GROUND_TerrainSimpleNormalChannels[channel];
+          blend.tangentNormal += mix(vec3(0.0, 0.0, 1.0), sharedNormal, hasNormal) * weight;
+          #ifdef TERRAIN_PROJECT_SAND_GLINTS
+            if (hasNormal > 0.5 && surface.w != 2.0) blend.sandWeight += weight;
+          #endif
+        #else
+          blend.tangentNormal.z += weight;
+        #endif
         blend.metallic += surface.x * weight;
         blend.smoothness += surface.y * weight;
         blend.snowResponse += surface.z * weight;
@@ -413,6 +469,9 @@
       blend.snowResponse *= inverseWeight;
       blend.grassWeight *= inverseWeight;
       blend.roadWeight *= inverseWeight;
+      #ifdef TERRAIN_PROJECT_SAND_GLINTS
+        blend.sandWeight *= inverseWeight;
+      #endif
     }
     return blend;
   }
@@ -447,8 +506,10 @@
     #else
     vec4 layerIndices = texelFetch(GROUND_TerrainAlphamapMetadata, ivec2(1, alphamapIndex), 0);
     #endif
+    vec2 posDx = dFdx(positionWS.xz);
+    vec2 posDy = dFdy(positionWS.xz);
     for (int channel = 0; channel < 4; channel++) {
-      terrainProjectAccumulateLayer(blend, int(floor(layerIndices[channel] + 0.5)), weights[channel], positionWS);
+      terrainProjectAccumulateLayer(blend, int(floor(layerIndices[channel] + 0.5)), weights[channel], positionWS, posDx, posDy);
     }
     if (blend.weight > 0.0) {
       float inverseWeight = 1.0 / blend.weight;
@@ -475,17 +536,27 @@
   vec3 terrainProjectGroundColor(TerrainProjectLayerBlend blend, vec3 positionWS) {
     vec3 color = blend.albedo;
     #ifdef MATERIAL_TERRAIN_GRASS_SHADING
-      float vista = grassColorFieldVistaBlendWeight(positionWS);
-      float field = terrainProjectGrassSurfaceField(positionWS);
-      color += (grassColorFromField(field) - vec3(1.0)) * clamp(blend.grassWeight, 0.0, 1.0);
-      color += (roadDetailColorFromField(field, GROUND_TerrainRoadColor.rgb, vista) - GROUND_TerrainRoadColor.rgb)
-        * clamp(blend.roadWeight, 0.0, 1.0);
+      float grassW = clamp(blend.grassWeight, 0.0, 1.0);
+      float roadW = clamp(blend.roadWeight, 0.0, 1.0);
+      if (grassW > 0.001 || roadW > 0.001) {
+        float vista = grassColorFieldVistaBlendWeight(positionWS);
+        float field = terrainProjectGrassSurfaceField(positionWS);
+        if (grassW > 0.001) {
+          color += (grassColorFromField(field) - vec3(1.0)) * grassW;
+        }
+        if (roadW > 0.001) {
+          color += (roadDetailColorFromField(field, GROUND_TerrainRoadColor.rgb, vista) - GROUND_TerrainRoadColor.rgb) * roadW;
+        }
+      }
     #elif defined(MATERIAL_TERRAIN_ROAD_PALETTE)
-      float vista = grassColorFieldVistaBlendWeight(positionWS);
       #ifdef MATERIAL_TERRAIN_LAYER_PALETTE
-      color = mix(color, roadDetailColorFromField(terrainProjectGrassSurfaceField(positionWS), GROUND_TerrainRoadColor.rgb, vista),
-        clamp(blend.roadWeight, 0.0, 1.0));
+      float roadW = clamp(blend.roadWeight, 0.0, 1.0);
+      if (roadW > 0.001) {
+        float vista = grassColorFieldVistaBlendWeight(positionWS);
+        color = mix(color, roadDetailColorFromField(terrainProjectGrassSurfaceField(positionWS), GROUND_TerrainRoadColor.rgb, vista), roadW);
+      }
       #else
+      float vista = grassColorFieldVistaBlendWeight(positionWS);
       color = roadDetailColorFromField(terrainProjectGrassSurfaceField(positionWS), GROUND_TerrainRoadColor.rgb, vista);
       #endif
     #endif
@@ -493,6 +564,23 @@
   }
 
   TerrainProjectLayerBlend terrainProjectGroundSurface(vec3 positionWS) {
+    #if defined(MATERIAL_TERRAIN_UNTEXTURED_SINGLE_MAP) || defined(MATERIAL_TERRAIN_SINGLE_DIFFUSE_SINGLE_MAP)
+      return terrainProjectSimpleGroundSurface(positionWS, dFdx(positionWS.xz), dFdy(positionWS.xz));
+    #elif defined(MATERIAL_TERRAIN_SINGLE_ALPHAMAP)
+      TerrainProjectLayerBlend result;
+      int region, first, count;
+      if (terrainProjectResolveLayerGroups(positionWS.xz, region, first, count) &&
+          terrainProjectEvaluateLayerGroup(positionWS, region, first, result)) {
+        return result;
+      }
+      #ifdef TERRAIN_PROJECT_SAND_GLINTS
+        result.sandWeight = 0.0;
+      #endif
+      result.albedo = vec3(0.0); result.tangentNormal = vec3(0.0, 0.0, 1.0);
+      result.metallic = 0.0; result.smoothness = 0.0; result.ambientOcclusion = 0.0;
+      result.snowResponse = 0.0; result.grassWeight = 0.0; result.roadWeight = 0.0; result.weight = 0.0;
+      return result;
+    #else
     TerrainProjectLayerBlend result;
     #ifdef TERRAIN_PROJECT_SAND_GLINTS
       result.sandWeight = 0.0;
@@ -530,6 +618,7 @@
     result.grassWeight *= inverse; result.roadWeight *= inverse;
     result.tangentNormal = normalize(result.tangentNormal + vec3(0.0, 0.0, 0.00001));
     return result;
+    #endif
   }
 
 #endif

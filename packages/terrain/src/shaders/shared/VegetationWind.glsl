@@ -4,7 +4,7 @@
 #include "shared/DetailInstancing.glsl"
 #include "shared/SceneWind.glsl"
 
-
+#ifndef MATERIAL_WIND_PROCEDURAL_TREE
 vec3 scene_WindSpectrumAdvectionOffset;
 
 
@@ -1085,32 +1085,35 @@ TerrainProjectWindSample terrainProjectSampleWind(
         step(localUv.x, 1.0) * step(localUv.y, 1.0);
       vec2 edgeDistance = min(clampedLocalUv, vec2(1.0) - clampedLocalUv);
       float localFieldEdgeWeight = smoothstep(0.0, 0.04, min(edgeDistance.x, edgeDistance.y));
-      vec4 currentPackedLocal = texture2D(scene_WindLocalFieldTexture, clampedLocalUv);
-      vec4 previousPackedLocal = texture2D(scene_WindLocalFieldPreviousTexture, clampedLocalUv);
-      // The raster field is revised at a capped cadence. Interpolating the two retained slices
-      // makes the sampled air load value-continuous when current becomes previous on a refresh.
-      // Every ground receiver integrates the gust envelope through the two canonical response
-      // modes below. The state belongs to the shared world-space field rather than to individual
-      // instances: dense grass gains finite mechanical acceleration while retaining one batched
-      // draw and no per-blade state.
-      vec4 packedLocal = mix(
-        previousPackedLocal,
-        currentPackedLocal,
-        clamp(scene_WindLocalFieldTemporalParams.x, 0.0, 1.0)
-      );
       float responseFieldWeight = inside * localFieldEdgeWeight;
       float weightedInside = responseFieldWeight * localWeight;
       result.localFieldWeight = weightedInside;
-      float previousSampledExposure = texture2D(
-        scene_WindLocalFieldPreviousExposureTexture,
-        clampedLocalUv
-      ).r;
-      float currentSampledExposure = texture2D(scene_WindLocalFieldExposureTexture, clampedLocalUv).r;
-      float sampledExposure = mix(
-        previousSampledExposure,
-        currentSampledExposure,
-        clamp(scene_WindLocalFieldTemporalParams.y, 0.0, 1.0)
-      );
+      vec4 currentPackedLocal = vec4(0.0);
+      vec4 previousPackedLocal = vec4(0.0);
+      vec4 packedLocal = vec4(0.0);
+      float sampledExposure = 1.0;
+      if (responseFieldWeight > 0.0) {
+        currentPackedLocal = texture2D(scene_WindLocalFieldTexture, clampedLocalUv);
+        previousPackedLocal = texture2D(scene_WindLocalFieldPreviousTexture, clampedLocalUv);
+        packedLocal = mix(
+          previousPackedLocal,
+          currentPackedLocal,
+          clamp(scene_WindLocalFieldTemporalParams.x, 0.0, 1.0)
+        );
+        float exposureBlend = clamp(scene_WindLocalFieldTemporalParams.y, 0.0, 1.0);
+        if (exposureBlend >= 0.999) {
+          sampledExposure = texture2D(scene_WindLocalFieldExposureTexture, clampedLocalUv).r;
+        } else if (exposureBlend <= 0.001) {
+          sampledExposure = texture2D(scene_WindLocalFieldPreviousExposureTexture, clampedLocalUv).r;
+        } else {
+          float previousSampledExposure = texture2D(
+            scene_WindLocalFieldPreviousExposureTexture,
+            clampedLocalUv
+          ).r;
+          float currentSampledExposure = texture2D(scene_WindLocalFieldExposureTexture, clampedLocalUv).r;
+          sampledExposure = mix(previousSampledExposure, currentSampledExposure, exposureBlend);
+        }
+      }
       vec2 previousEmitterVelocity = previousPackedLocal.rg;
       vec2 currentEmitterVelocity = currentPackedLocal.rg;
       vec2 presentedEmitterVelocity = packedLocal.rg;
@@ -1916,6 +1919,7 @@ vec3 terrainProjectApplyHeroTreeHierarchy(
   #endif
   return resolvedPosition;
 }
+#endif
 #endif
 
 #ifdef MATERIAL_WIND_PROCEDURAL_TREE

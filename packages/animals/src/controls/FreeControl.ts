@@ -184,6 +184,9 @@ export class FreeControl extends Script implements FreeControlPointerInputTarget
   private _lastTerrainNormalProvider: TerrainNormalProvider | null = null;
   private _lastTerrainPitchProvider: TerrainPitchProvider | null = null;
   private _touchSurface: HTMLCanvasElement | null = null;
+  private _touchResizeObserver: ResizeObserver | null = null;
+  private _touchResizeListener: (() => void) | null = null;
+  private _orientationDirty = true;
   private readonly _cachedInputBounds = { left: 0, top: 0, width: 0, height: 0 };
   private _lastOrientationWidth = -1;
   private _lastOrientationHeight = -1;
@@ -343,12 +346,19 @@ export class FreeControl extends Script implements FreeControlPointerInputTarget
 
   override onLateUpdate(deltaTime: number): void {
     if (this.orientationTouchAreas && this._touchSurface) {
-      const width = this._touchSurface.clientWidth || this.engine.canvas.width;
-      const height = this._touchSurface.clientHeight || this.engine.canvas.height;
-      if (width > 0 && height > 0 && (width !== this._lastOrientationWidth || height !== this._lastOrientationHeight)) {
-        this._lastOrientationWidth = width;
-        this._lastOrientationHeight = height;
-        this._updateTouchAreas(width, height);
+      if (this._orientationDirty) {
+        this._orientationDirty = false;
+        const width = this._touchSurface.clientWidth || this.engine.canvas.width;
+        const height = this._touchSurface.clientHeight || this.engine.canvas.height;
+        if (
+          width > 0 &&
+          height > 0 &&
+          (width !== this._lastOrientationWidth || height !== this._lastOrientationHeight)
+        ) {
+          this._lastOrientationWidth = width;
+          this._lastOrientationHeight = height;
+          this._updateTouchAreas(width, height);
+        }
       }
     }
     if (!this._viewInitialized) this.synchronizeView();
@@ -726,9 +736,29 @@ export class FreeControl extends Script implements FreeControlPointerInputTarget
     this._touchSurface = canvas;
     this._lastOrientationWidth = -1;
     this._lastOrientationHeight = -1;
+    this._orientationDirty = true;
+    const markOrientationDirty = () => {
+      this._orientationDirty = true;
+    };
+    if (typeof ResizeObserver !== "undefined") {
+      this._touchResizeObserver = new ResizeObserver(markOrientationDirty);
+      this._touchResizeObserver.observe(canvas);
+    }
+    if (typeof window !== "undefined") {
+      this._touchResizeListener = markOrientationDirty;
+      window.addEventListener("resize", markOrientationDirty, { passive: true });
+    }
   }
 
   private _releaseTouchSurface(): void {
+    if (this._touchResizeObserver) {
+      this._touchResizeObserver.disconnect();
+      this._touchResizeObserver = null;
+    }
+    if (this._touchResizeListener && typeof window !== "undefined") {
+      window.removeEventListener("resize", this._touchResizeListener);
+      this._touchResizeListener = null;
+    }
     const canvas = this._touchSurface;
     if (!canvas) return;
     const ownership = FreeControl._touchSurfaces.get(canvas);
@@ -743,6 +773,7 @@ export class FreeControl extends Script implements FreeControlPointerInputTarget
     this._touchSurface = null;
     this._lastOrientationWidth = -1;
     this._lastOrientationHeight = -1;
+    this._orientationDirty = true;
   }
 
   private _contains(rect: Rect, x: number, y: number): boolean {
