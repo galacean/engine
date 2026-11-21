@@ -32,8 +32,6 @@ export class CharacterController extends Collider {
   @ignoreClone
   private _inScene = false;
   @ignoreClone
-  private _syncedScale = new Vector3();
-  @ignoreClone
   private _syncedCenter = new Vector3();
   @ignoreClone
   private _syncedPosition = new Vector3();
@@ -166,10 +164,9 @@ export class CharacterController extends Collider {
   }
 
   set upDirection(value: Vector3) {
-    if (!Number.isFinite(value.x) || !Number.isFinite(value.y) || !Number.isFinite(value.z)) {
-      throw new Error("CharacterController upDirection must be finite.");
-    }
-    const len = Math.hypot(value.x, value.y, value.z);
+    if (this._upDirection === value) return;
+    const { x, y, z } = value;
+    const len = Math.hypot(x, y, z);
     if (!Number.isFinite(len)) {
       throw new Error("CharacterController upDirection must be finite.");
     }
@@ -177,9 +174,7 @@ export class CharacterController extends Collider {
       console.warn("CharacterController: upDirection cannot be a zero vector.");
       return;
     }
-    if (this._upDirection !== value) {
-      this._upDirection.copyFrom(value);
-    }
+    this._applyUpDirection(x / len, y / len, z / len);
   }
 
   /**
@@ -207,11 +202,11 @@ export class CharacterController extends Collider {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._geometryDirty = true;
     //@ts-ignore
     this._size._onValueChanged = this._onSizeChanged.bind(this);
+    this._setUpDirection = this._setUpDirection.bind(this);
     //@ts-ignore
-    this._upDirection._onValueChanged = this._setUpDirection.bind(this);
+    this._upDirection._onValueChanged = this._setUpDirection;
   }
 
   /**
@@ -275,7 +270,6 @@ export class CharacterController extends Collider {
     );
     if (!this._hasValidGeometry(scale)) {
       this._detach();
-      this._geometryDirty = true;
       return;
     }
 
@@ -300,16 +294,9 @@ export class CharacterController extends Collider {
       syncedPosition.copyFrom(position);
       controller.setWorldPosition(position, center);
     }
-    const syncedScale = this._syncedScale;
-    if (
-      force ||
-      this._geometryDirty ||
-      scale.x !== syncedScale.x ||
-      scale.y !== syncedScale.y ||
-      scale.z !== syncedScale.z
-    ) {
+    if (force || this._geometryDirty || this._scaleChanged(scale)) {
       this._geometryDirty = false;
-      syncedScale.copyFrom(scale);
+      this._nativeScale.copyFrom(scale);
       if (this._geometry === CharacterControllerGeometry.Box) {
         const halfExtents = CharacterController._tempExtents;
         Vector3.multiply(this._size, scale, halfExtents);
@@ -336,7 +323,7 @@ export class CharacterController extends Collider {
     }
   }
 
-  protected override _createNative(): ICharacterController {
+  private _createNative(): ICharacterController {
     const controller = Engine._nativePhysics.createCharacterController(this._id, this._getNativeMaterial());
     controller.setContactOffset(this.contactOffset);
     controller.setCollisionLayer(this._collisionLayerIndex);
@@ -366,7 +353,7 @@ export class CharacterController extends Collider {
     this._setGeometryDirty();
   }
 
-  protected override _hasValidGeometry(scale: Vector3): boolean {
+  private _hasValidGeometry(scale: Vector3): boolean {
     if (this._geometry === CharacterControllerGeometry.Box) {
       const size = this._size;
       return (
@@ -428,28 +415,22 @@ export class CharacterController extends Collider {
   @ignoreClone
   private _setUpDirection(): void {
     const up = this._upDirection;
-    const len = Math.hypot(up.x, up.y, up.z);
-    if (!Number.isFinite(up.x) || !Number.isFinite(up.y) || !Number.isFinite(up.z) || !Number.isFinite(len)) {
-      //@ts-ignore
-      const listener = up._onValueChanged;
-      //@ts-ignore
-      up._onValueChanged = null;
-      up.set(0, 1, 0);
-      //@ts-ignore
-      up._onValueChanged = listener;
-      (<ICharacterController>this._native)?.setUpDirection(up);
+    const { x, y, z } = up;
+    const len = Math.hypot(x, y, z);
+    if (!Number.isFinite(len)) {
+      this._applyUpDirection(0, 1, 0);
       throw new Error("CharacterController upDirection must be finite.");
     }
-    if (len === 0) {
-      return;
-    }
-    //@ts-ignore
-    const listener = up._onValueChanged;
+    if (len !== 0) this._applyUpDirection(x / len, y / len, z / len);
+  }
+
+  private _applyUpDirection(x: number, y: number, z: number): void {
+    const up = this._upDirection;
     //@ts-ignore
     up._onValueChanged = null;
-    up.set(up.x / len, up.y / len, up.z / len);
+    up.set(x, y, z);
     //@ts-ignore
-    up._onValueChanged = listener;
+    up._onValueChanged = this._setUpDirection;
     (<ICharacterController>this._native)?.setUpDirection(up);
   }
 }

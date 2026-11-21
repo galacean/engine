@@ -126,7 +126,7 @@ export class MeshCollider extends Collider {
     return !this._native || this._nativeConvex;
   }
 
-  protected override _hasValidGeometry(scale: Vector3): boolean {
+  private static _isValidScale(scale: Vector3): boolean {
     const minScale = Math.fround(1e-6);
     const maxScale = 1e6;
     const x = Math.fround(scale.x);
@@ -168,6 +168,10 @@ export class MeshCollider extends Collider {
       return null;
     }
 
+    const scaleChanged = this._scaleChanged(scale);
+    if (scaleChanged && !MeshCollider._isValidScale(scale)) {
+      return null;
+    }
     if (!this._convex && this._isTrigger) {
       if (!this._triggerRejected) {
         this._triggerRejected = true;
@@ -177,54 +181,42 @@ export class MeshCollider extends Collider {
     }
     this._triggerRejected = false;
 
-    let shape = <IMeshColliderShape | null>this._native;
     if (this._cookFailed) {
       return null;
     }
 
-    if (
-      !shape ||
+    const previous = <IMeshColliderShape | null>this._native;
+    const needsCook =
+      !previous ||
       this._nativeMesh !== mesh ||
       this._nativeConvex !== this._convex ||
-      this._nativeCookingFlags !== this._cookingFlags
-    ) {
+      this._nativeCookingFlags !== this._cookingFlags;
+    let shape: IMeshColliderShape;
+    if (needsCook) {
       const meshData = MeshCollider._getMeshData(mesh, this._convex);
-      if (!meshData) {
+      const updated = meshData && this._cook(previous, meshData, scale);
+      if (!updated) {
         this._cookFailed = true;
-        if (shape) {
-          this._replaceNativeShape(null);
-          this._nativeMesh = null;
-        }
+        this._replaceNativeShape(null);
+        this._nativeMesh = null;
         return null;
       }
-
-      if (shape && this._nativeConvex === this._convex) {
-        this._syncNativeScale(shape, scale);
-        if (!shape.setMeshData(meshData.positions, meshData.indices, this._cookingFlags)) {
-          this._cookFailed = true;
-          this._replaceNativeShape(null);
-          this._nativeMesh = null;
-          return null;
-        }
-        this._nativeMesh = mesh;
-        this._nativeCookingFlags = this._cookingFlags;
-        this._onGeometryChanged();
-      } else {
-        const newShape = this._cook(meshData, this._convex, this._cookingFlags);
-        if (!newShape || !this._replaceNativeShape(newShape)) {
-          this._cookFailed = true;
-          if (shape) {
-            this._replaceNativeShape(null);
-            this._nativeMesh = null;
-          }
-          return null;
-        }
-        this._nativeMesh = mesh;
-        this._nativeConvex = this._convex;
-        this._nativeCookingFlags = this._cookingFlags;
+      if (updated !== previous) {
         this._nativeTrigger = this._isTrigger;
-        shape = newShape;
       }
+      shape = updated;
+      this._nativeMesh = mesh;
+      this._nativeConvex = this._convex;
+      this._nativeCookingFlags = this._cookingFlags;
+    } else {
+      shape = previous;
+      if (scaleChanged) {
+        shape.setScale(scale);
+      }
+    }
+    if (needsCook || scaleChanged) {
+      this._nativeScale.copyFrom(scale);
+      this._attachedBody?._markMassDirty();
     }
 
     if (this._nativeConvex && this._nativeTrigger !== this._isTrigger) {
@@ -243,20 +235,25 @@ export class MeshCollider extends Collider {
   }
 
   private _cook(
+    shape: IMeshColliderShape | null,
     { positions, indices }: MeshData,
-    convex: boolean,
-    cookingFlags: MeshColliderShapeCookingFlag
+    scale: Vector3
   ): IMeshColliderShape | null {
-    const shape = Engine._nativePhysics.createMeshColliderShape(
+    const convex = this._convex;
+    const flags = this._cookingFlags;
+    if (shape && this._nativeConvex === convex) {
+      return shape.setMeshData(positions, indices, flags, scale) ? shape : null;
+    }
+    const replacement = Engine._nativePhysics.createMeshColliderShape(
       this._id,
       positions,
       indices,
       convex,
       this._getNativeMaterial(),
-      cookingFlags
+      flags,
+      scale
     );
-    shape && this._initializeNativeShape(shape);
-    return shape;
+    return replacement && this._replaceNativeShape(this._initializeNativeShape(replacement)) ? replacement : null;
   }
 
   private _setMesh(value: ModelMesh | null): void {

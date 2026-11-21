@@ -9,6 +9,8 @@ import { Collider } from "./Collider";
  * A box-shaped collider.
  */
 export class BoxCollider extends Collider {
+  private static readonly _tempHalfExtents = new Vector3();
+
   private _size = new Vector3(1, 1, 1);
 
   /**
@@ -38,22 +40,23 @@ export class BoxCollider extends Collider {
     this._size._onValueChanged = this._onSizeChanged.bind(this);
   }
 
-  protected override _hasValidGeometry(scale: Vector3): boolean {
+  protected override _syncGeometry(shape: IBoxColliderShape | null, scale: Vector3): IBoxColliderShape | null {
     const size = this._size;
-    return (
-      Collider._isValidPositiveFloat32(size.x * scale.x * 0.5) &&
-      Collider._isValidPositiveFloat32(size.y * scale.y * 0.5) &&
-      Collider._isValidPositiveFloat32(size.z * scale.z * 0.5)
-    );
-  }
-
-  protected override _syncGeometry(shape: IBoxColliderShape): void {
-    shape.setSize(this._size);
-  }
-
-  protected override _createNative(): IBoxColliderShape {
-    const shape = Engine._nativePhysics.createBoxColliderShape(this._id, this._size, this._getNativeMaterial());
-    this._initializeNativeShape(shape);
+    const x = size.x * scale.x * 0.5;
+    const y = size.y * scale.y * 0.5;
+    const z = size.z * scale.z * 0.5;
+    if (
+      !Collider._isValidPositiveFloat32(x) ||
+      !Collider._isValidPositiveFloat32(y) ||
+      !Collider._isValidPositiveFloat32(z)
+    ) {
+      return null;
+    }
+    const extents = BoxCollider._tempHalfExtents.set(x, y, z);
+    if (!shape) {
+      return Engine._nativePhysics.createBoxColliderShape(this._id, extents, this._getNativeMaterial());
+    }
+    shape.setHalfExtents(extents);
     return shape;
   }
 

@@ -861,6 +861,9 @@ export class Entity extends EngineObject {
       this._parent = parent;
       if (parent) {
         this._isRoot = false;
+        if (this._isActiveInScene && parent._isActiveInScene && this._scene === parent._scene) {
+          this._scene!.physics._invalidateBodyOrder();
+        }
         parent._addToChildrenList(siblingIndex, this);
 
         const oldScene = this._scene;

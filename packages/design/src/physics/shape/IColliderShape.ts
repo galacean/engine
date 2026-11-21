@@ -3,6 +3,7 @@ import { IPhysicsMaterial } from "../IPhysicsMaterial";
 
 /**
  * Interface for physics collider shape.
+ * @remarks New shapes participate in simulation and scene queries by default.
  */
 export interface IColliderShape {
   /**
@@ -11,12 +12,6 @@ export interface IColliderShape {
    * @param rotation - The relative rotation
    */
   setLocalPose(position: Vector3, rotation: Quaternion): void;
-
-  /**
-   * Set the world scale applied to the shape geometry.
-   * @param scale - The scale
-   */
-  setWorldScale(scale: Vector3): void;
 
   /**
    * Sets the contact offset.

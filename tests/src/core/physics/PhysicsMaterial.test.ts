@@ -224,6 +224,7 @@ describe("PhysicsMaterial", () => {
     const createMaterial = vi.spyOn(physics, "createPhysicsMaterial");
     const createMesh = vi.spyOn(physics, "createMeshColliderShape");
     collider.convex = true;
+    sync();
     expect(createMaterial).not.toHaveBeenCalled();
     expect(collider.material).toBeNull();
     expect(createMesh).toHaveBeenCalledTimes(1);
@@ -231,6 +232,7 @@ describe("PhysicsMaterial", () => {
     const material = collider.getInstanceMaterial();
     material.bounciness = 0.8;
     collider.convex = false;
+    sync();
     expect(createMaterial).toHaveBeenCalledTimes(1);
     expect(createMesh).toHaveBeenCalledTimes(2);
     expect(createMesh.mock.calls[1][4]).toBe(createMaterial.mock.results[0].value);

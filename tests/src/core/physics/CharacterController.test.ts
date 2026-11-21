@@ -832,18 +832,26 @@ describe("CharacterController", () => {
       expect(hit.collider).toBe(shiftCC);
     });
 
-    it("keeps one native pose when offset and world position cancel each other", () => {
-      const ray = new Ray(new Vector3(0, 8, 0), new Vector3(0, -1, 0));
+    it("publishes a pose edit that keeps the center unchanged after move, before the next step", () => {
+      role.transform.setPosition(0, 2, 0);
+      const ray = new Ray(new Vector3(0, 2, 5), new Vector3(0, 0, -1));
       const hit = new HitResult();
-      expect(physics.raycast(ray, hit) && hit.collider === controller).toBe(true);
-      const native = controller["_native"] as unknown as { _syncControllerPose(): void };
-      const writes = vi.spyOn(native, "_syncControllerPose");
+      const hitsController = (x: number): boolean => {
+        ray.origin.x = x;
+        return physics.raycast(ray, hit) && hit.collider === controller;
+      };
 
-      role.transform.position.x = 1;
+      expect(hitsController(0)).toBe(true);
+      move(new Vector3(4, 0, 0));
+      const x = role.transform.worldPosition.x;
+      expect(x).toBeCloseTo(4, 5);
+      expect(hitsController(x)).toBe(false);
+
+      role.transform.worldPosition.x = x + 1;
       controller.center.x = -1;
 
-      expect(physics.raycast(ray, hit) && hit.collider === controller).toBe(true);
-      expect(writes).not.toHaveBeenCalled();
+      expect(hitsController(0)).toBe(false);
+      expect(hitsController(x)).toBe(true);
     });
 
     it("uses the authored position and center before composing the native controller pose", () => {

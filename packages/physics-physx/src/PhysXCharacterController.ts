@@ -1,5 +1,5 @@
 import { ICharacterController } from "@galacean/engine-design";
-import { Quaternion, Vector3 } from "@galacean/engine";
+import { Vector3 } from "@galacean/engine";
 import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
 import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
@@ -11,10 +11,6 @@ import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
  */
 export class PhysXCharacterController implements ICharacterController {
   private static _tempVec = new Vector3();
-  private static _tempPose = {
-    translation: new Vector3(),
-    rotation: new Quaternion()
-  };
 
   /** @internal */
   _id: number;
@@ -53,13 +49,10 @@ export class PhysXCharacterController implements ICharacterController {
     this._radius = radius;
     this._height = height;
     const pxController = this._pxController;
-    if (wasBox) {
-      this._rebuild();
-    } else if (pxController) {
+    if (!wasBox && pxController) {
       pxController.setRadius(radius);
       pxController.setHeight(height);
     } else {
-      // The previous creation failed: retry with the new geometry
       this._rebuild();
     }
   }
@@ -72,14 +65,11 @@ export class PhysXCharacterController implements ICharacterController {
     this._isBox = true;
     this._halfExtents.copyFrom(halfExtents);
     const pxController = this._pxController;
-    if (!wasBox) {
-      this._rebuild();
-    } else if (pxController) {
+    if (wasBox && pxController) {
       pxController.setHalfHeight(halfExtents.y);
       pxController.setHalfSideExtent(halfExtents.x);
       pxController.setHalfForwardExtent(halfExtents.z);
     } else {
-      // The previous creation failed: retry with the new geometry
       this._rebuild();
     }
   }
@@ -133,20 +123,14 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICharacterController.setWorldPosition }
    */
   setWorldPosition(position: Vector3, center: Vector3): void {
-    const worldPosition = this._worldPosition;
-    const previousCenter = this._center;
-    const x = position.x + center.x;
-    const y = position.y + center.y;
-    const z = position.z + center.z;
-    const moved =
-      x !== worldPosition.x + previousCenter.x ||
-      y !== worldPosition.y + previousCenter.y ||
-      z !== worldPosition.z + previousCenter.z;
-    worldPosition.copyFrom(position);
-    previousCenter.copyFrom(center);
+    this._worldPosition.copyFrom(position);
+    this._center.copyFrom(center);
     const controller = this._pxController;
-    if (moved && controller) {
-      this._syncControllerPose(controller, PhysXCharacterController._tempVec.set(x, y, z));
+    if (controller) {
+      // The query proxy can still be at the previous pose after move().
+      const posePosition = PhysXCharacterController._tempVec;
+      Vector3.add(position, center, posePosition);
+      this._syncControllerPose(controller, posePosition);
     }
   }
 
@@ -181,22 +165,12 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICharacterController.setUpDirection }
    */
   setUpDirection(up: Vector3): void {
-    if (!Number.isFinite(up.x) || !Number.isFinite(up.y) || !Number.isFinite(up.z)) {
-      return;
-    }
-    const len = Math.hypot(up.x, up.y, up.z);
-    if (!(len > 0 && Number.isFinite(len))) {
-      return;
-    }
-    this._upDirection.set(up.x / len, up.y / len, up.z / len);
+    this._upDirection.copyFrom(up);
     const controller = this._pxController;
     if (controller) {
-      controller.setUpDirection(this._upDirection);
-      // PhysX Controller::setUpDirectionInternal does not update mKineActor's pose;
-      // refresh the kinematic target via setPosition and sync globalPose so immediate scene queries match.
-      const currentPos = controller.getPosition();
-      const pos = PhysXCharacterController._tempVec.set(currentPos.x, currentPos.y, currentPos.z);
-      this._syncControllerPose(controller, pos);
+      controller.setUpDirection(up);
+      // Refresh the target with the new orientation.
+      this._syncControllerPose(controller, controller.getPosition());
     }
   }
 
@@ -293,15 +267,10 @@ export class PhysXCharacterController implements ICharacterController {
   }
 
   private _syncControllerPose(controller: any, position: Vector3): void {
-    controller.setPosition(position);
-    // setPosition schedules a kinematic target with mPosition and mUserParams.mQuatFromUp;
-    // copy that pose onto the proxy actor so immediate scene queries match without duplicating PhysX math.
+    if (!controller.setPosition(position)) return;
+    // Publish the target computed by PhysX on the proxy so scene queries see it immediately.
     const actor = controller.getActor();
-    const targetPose = actor.getKinematicTarget() ?? actor.getGlobalPose();
-    const pose = PhysXCharacterController._tempPose;
-    pose.translation.copyFrom(position);
-    pose.rotation.set(targetPose.rotation.x, targetPose.rotation.y, targetPose.rotation.z, targetPose.rotation.w);
-    actor.setGlobalPose(pose, true);
+    actor.setGlobalPose(actor.getKinematicTarget(), true);
     actor.delete();
   }
 }

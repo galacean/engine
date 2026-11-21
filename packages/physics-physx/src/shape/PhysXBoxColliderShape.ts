@@ -8,44 +8,18 @@ import { PhysXColliderShape } from "./PhysXColliderShape";
  * Box collider shape in PhysX.
  */
 export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxColliderShape {
-  private static _tempHalfExtents = new Vector3();
-  private _halfSize: Vector3 = new Vector3();
-
-  constructor(physXPhysics: PhysXPhysics, uniqueID: number, size: Vector3, material: PhysXPhysicsMaterial) {
+  constructor(physXPhysics: PhysXPhysics, uniqueID: number, halfExtents: Vector3, material: PhysXPhysicsMaterial) {
     super(physXPhysics);
-    const halfSize = this._halfSize;
-    halfSize.set(size.x * 0.5, size.y * 0.5, size.z * 0.5);
-    this._pxGeometry = new physXPhysics._physX.PxBoxGeometry(halfSize.x, halfSize.y, halfSize.z);
+    this._pxGeometry = new physXPhysics._physX.PxBoxGeometry(halfExtents.x, halfExtents.y, halfExtents.z);
     this._initialize(material, uniqueID);
-    this._setLocalPose();
   }
 
   /**
-   * {@inheritDoc IBoxColliderShape.setSize }
+   * {@inheritDoc IBoxColliderShape.setHalfExtents }
    */
-  setSize(value: Vector3): void {
-    this._halfSize.set(value.x * 0.5, value.y * 0.5, value.z * 0.5);
-    this._updateGeometry();
-  }
-
-  /**
-   * {@inheritDoc IColliderShape.setWorldScale }
-   */
-  override setWorldScale(scale: Vector3): void {
-    super.setWorldScale(scale);
-    this._updateGeometry();
-  }
-
-  private _updateGeometry(): void {
-    const extents = PhysXBoxColliderShape._tempHalfExtents;
-    Vector3.multiply(this._halfSize, this._worldScale, extents);
-    const fx = Math.fround(extents.x);
-    const fy = Math.fround(extents.y);
-    const fz = Math.fround(extents.z);
-    if (fx > 0 && fy > 0 && fz > 0 && Number.isFinite(fx) && Number.isFinite(fy) && Number.isFinite(fz)) {
-      extents.set(fx, fy, fz);
-      this._pxGeometry.halfExtents = extents;
-      this._pxShape.setGeometry(this._pxGeometry);
-    }
+  setHalfExtents(halfExtents: Vector3): void {
+    const geometry = this._pxGeometry;
+    geometry.halfExtents = halfExtents;
+    this._pxShape.setGeometry(geometry);
   }
 }

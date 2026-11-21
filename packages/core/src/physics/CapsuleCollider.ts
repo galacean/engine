@@ -70,41 +70,39 @@ export class CapsuleCollider extends Collider {
     }
   }
 
-  protected override _hasValidGeometry(scale: Vector3): boolean {
-    let worldRadius: number;
-    let worldHeight: number;
-    switch (this._direction) {
+  protected override _syncGeometry(shape: ICapsuleColliderShape | null, scale: Vector3): ICapsuleColliderShape | null {
+    const direction = this._direction;
+    let radialScale: number;
+    let heightScale: number;
+    switch (direction) {
       case ColliderShapeUpAxis.X:
-        worldRadius = this._radius * Math.max(scale.y, scale.z);
-        worldHeight = this._height * scale.x;
+        radialScale = Math.max(scale.y, scale.z);
+        heightScale = scale.x;
         break;
       case ColliderShapeUpAxis.Y:
-        worldRadius = this._radius * Math.max(scale.x, scale.z);
-        worldHeight = this._height * scale.y;
+        radialScale = Math.max(scale.x, scale.z);
+        heightScale = scale.y;
         break;
       case ColliderShapeUpAxis.Z:
-        worldRadius = this._radius * Math.max(scale.x, scale.y);
-        worldHeight = this._height * scale.z;
+        radialScale = Math.max(scale.x, scale.y);
+        heightScale = scale.z;
         break;
     }
-    return Collider._isValidPositiveFloat32(worldRadius) && Collider._isValidPositiveFloat32(worldHeight * 0.5);
-  }
-
-  protected override _syncGeometry(shape: ICapsuleColliderShape): void {
-    shape.setRadius(this._radius);
-    shape.setHeight(this._height);
-    shape.setUpAxis(this._direction);
-  }
-
-  protected override _createNative(): ICapsuleColliderShape {
-    const shape = Engine._nativePhysics.createCapsuleColliderShape(
-      this._id,
-      this._radius,
-      this._height,
-      this._getNativeMaterial()
-    );
-    shape.setUpAxis(this._direction);
-    this._initializeNativeShape(shape);
+    const radius = this._radius * radialScale;
+    const halfHeight = this._height * heightScale * 0.5;
+    if (!Collider._isValidPositiveFloat32(radius) || !Collider._isValidPositiveFloat32(halfHeight)) {
+      return null;
+    }
+    if (!shape) {
+      return Engine._nativePhysics.createCapsuleColliderShape(
+        this._id,
+        radius,
+        halfHeight,
+        this._getNativeMaterial(),
+        direction
+      );
+    }
+    shape.setDimensions(radius, halfHeight, direction);
     return shape;
   }
 }

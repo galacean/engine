@@ -57,7 +57,7 @@ label: Physics
 | [**inertiaTensor**](/apis/core/#Rigidbody-inertiaTensor) | 相对于质心的对角惯性张量 | (1,1,1) |
 | [**automaticInertiaTensor**](/apis/core/#Rigidbody-automaticInertiaTensor) | 是否根据所拥有的碰撞器和质量自动计算惯性张量 | true |
 
-修改 `centerOfMass` 或 `inertiaTensor` 前，需要先把 `automaticCenterOfMass` 或 `automaticInertiaTensor` 设为 false，否则修改会被忽略并输出警告。
+写入 `centerOfMass` 或 `inertiaTensor` 后，读取该属性会得到手动值。自动模式下，模拟继续使用计算值。关闭自动模式后应用手动值。如果从未写入该属性，则保留当前计算值。
 
 ### 性能优化设置
 

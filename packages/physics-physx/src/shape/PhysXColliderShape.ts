@@ -6,7 +6,7 @@ import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 /**
  * Flags which affect the behavior of Shapes.
  */
-export enum ShapeFlag {
+enum ShapeFlag {
   /** The shape will partake in collision in the physical simulation. */
   SIMULATION_SHAPE = 1 << 0,
   /** The shape will partake in scene queries (ray casts, overlap tests, sweeps, ...). */
@@ -19,19 +19,14 @@ export enum ShapeFlag {
  * Abstract class for collider shapes.
  */
 export abstract class PhysXColliderShape implements IColliderShape {
-  static readonly halfSqrt: number = 0.70710678118655;
-  static transform = {
+  protected static readonly _yAxis = new Quaternion(0, 0, Math.SQRT1_2, Math.SQRT1_2);
+  private static readonly _pose = {
     translation: new Vector3(),
-    rotation: null as Quaternion | null
+    rotation: new Quaternion()
   };
 
   protected static _tempVector4 = new Vector4();
-  private static _tempRotation = new Quaternion();
 
-  /** @internal */
-  _worldScale: Vector3 = new Vector3(1, 1, 1);
-  /** @internal */
-  _pxMaterial: any;
   /** @internal */
   _pxShape: any;
   /** @internal */
@@ -39,12 +34,6 @@ export abstract class PhysXColliderShape implements IColliderShape {
 
   protected _physXPhysics: PhysXPhysics;
   protected _pxGeometry: any;
-  /** Rotation from the shape's logical up axis to the PhysX geometry axis, applied after the local rotation. */
-  protected _axis: Quaternion | null = null;
-  protected _localPosition: Vector3 = new Vector3();
-  protected _localRotation: Quaternion = new Quaternion();
-
-  private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
   constructor(physXPhysics: PhysXPhysics) {
     this._physXPhysics = physXPhysics;
@@ -54,16 +43,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setLocalPose }
    */
   setLocalPose(position: Vector3, rotation: Quaternion): void {
-    this._localPosition.copyFrom(position);
-    this._localRotation.copyFrom(rotation);
-    this._setLocalPose();
-  }
-
-  /**
-   * {@inheritDoc IColliderShape.setWorldScale }
-   */
-  setWorldScale(scale: Vector3): void {
-    this._worldScale.set(Math.abs(scale.x), Math.abs(scale.y), Math.abs(scale.z));
+    this._setLocalPose(position, rotation);
   }
 
   /**
@@ -78,8 +58,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setMaterial }
    */
   setMaterial(value: PhysXPhysicsMaterial): void {
-    this._pxMaterial = value._pxMaterial;
-    this._pxShape.setMaterial(this._pxMaterial);
+    this._pxShape.setMaterial(value._pxMaterial);
   }
 
   /**
@@ -93,9 +72,10 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setIsTrigger }
    */
   setIsTrigger(value: boolean): void {
-    this._modifyFlag(ShapeFlag.SIMULATION_SHAPE, !value);
-    this._modifyFlag(ShapeFlag.TRIGGER_SHAPE, value);
-    this._setShapeFlags(this._shapeFlags);
+    const flags = ShapeFlag.SCENE_QUERY_SHAPE | (value ? ShapeFlag.TRIGGER_SHAPE : ShapeFlag.SIMULATION_SHAPE);
+    const shapeFlags = new this._physXPhysics._physX.PxShapeFlags(flags);
+    this._pxShape.setFlags(shapeFlags);
+    shapeFlags.delete();
   }
 
   /**
@@ -124,39 +104,30 @@ export abstract class PhysXColliderShape implements IColliderShape {
     this._pxGeometry?.delete();
   }
 
-  /**
-   *  @internal
-   */
-  _setShapeFlags(flags: ShapeFlag) {
-    this._shapeFlags = flags;
-    const shapeFlags = new this._physXPhysics._physX.PxShapeFlags(this._shapeFlags);
-    this._pxShape.setFlags(shapeFlags);
-    shapeFlags.delete();
-  }
-
-  protected _setLocalPose(): void {
-    const transform = PhysXColliderShape.transform;
-    const rotation = PhysXColliderShape._tempRotation;
-    transform.translation.copyFrom(this._localPosition);
-    if (this._axis) {
-      Quaternion.multiply(this._localRotation, this._axis, rotation);
+  protected _setLocalPose(position: Vector3, rotation: Quaternion, axis?: Quaternion | null): void {
+    const pose = PhysXColliderShape._pose;
+    const nativeRotation = pose.rotation;
+    pose.translation.copyFrom(position);
+    if (axis) {
+      Quaternion.multiply(rotation, axis, nativeRotation);
     } else {
-      rotation.copyFrom(this._localRotation);
+      nativeRotation.copyFrom(rotation);
     }
-    transform.rotation = rotation.normalize();
-    this._pxShape.setLocalPose(transform);
+    nativeRotation.normalize();
+    this._pxShape.setLocalPose(pose);
   }
 
   protected _initialize(material: PhysXPhysicsMaterial, id: number): void {
     this._id = id;
-    this._pxMaterial = material._pxMaterial;
-    const shapeFlags = new this._physXPhysics._physX.PxShapeFlags(this._shapeFlags);
-    this._pxShape = this._physXPhysics._pxPhysics.createShape(this._pxGeometry, this._pxMaterial, true, shapeFlags);
-    shapeFlags.delete();
+    this._pxShape = this._createShape(this._pxGeometry, material);
     this._pxShape.setUUID(id);
   }
 
-  private _modifyFlag(flag: ShapeFlag, value: boolean): void {
-    this._shapeFlags = value ? this._shapeFlags | flag : this._shapeFlags & ~flag;
+  protected _createShape(geometry: any, material: PhysXPhysicsMaterial): any {
+    const { _physX: physX, _pxPhysics: physics } = this._physXPhysics;
+    const shapeFlags = new physX.PxShapeFlags(ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE);
+    const shape = physics.createShape(geometry, material._pxMaterial, true, shapeFlags);
+    shapeFlags.delete();
+    return shape;
   }
 }

@@ -1,4 +1,3 @@
-import { Vector3 } from "@galacean/engine";
 import { ISphereColliderShape } from "@galacean/engine-design";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
@@ -8,41 +7,19 @@ import { PhysXColliderShape } from "./PhysXColliderShape";
  * Sphere collider shape in PhysX.
  */
 export class PhysXSphereColliderShape extends PhysXColliderShape implements ISphereColliderShape {
-  private _radius: number;
-  private _maxScale: number = 1;
-
   constructor(physXPhysics: PhysXPhysics, uniqueID: number, radius: number, material: PhysXPhysicsMaterial) {
     super(physXPhysics);
 
-    this._radius = radius;
-    this._pxGeometry = new physXPhysics._physX.PxSphereGeometry(radius * this._maxScale);
+    this._pxGeometry = new physXPhysics._physX.PxSphereGeometry(radius);
     this._initialize(material, uniqueID);
-    this._setLocalPose();
   }
 
   /**
    * {@inheritDoc ISphereColliderShape.setRadius }
    */
-  setRadius(value: number): void {
-    this._radius = value;
-    this._updateGeometry();
-  }
-
-  /**
-   * {@inheritDoc IColliderShape.setWorldScale }
-   */
-  override setWorldScale(scale: Vector3): void {
-    super.setWorldScale(scale);
-
-    this._maxScale = Math.max(Math.abs(scale.x), Math.abs(scale.y), Math.abs(scale.z));
-    this._updateGeometry();
-  }
-
-  private _updateGeometry(): void {
-    const fRadius = Math.fround(this._radius * this._maxScale);
-    if (fRadius > 0 && Number.isFinite(fRadius)) {
-      this._pxGeometry.radius = fRadius;
-      this._pxShape.setGeometry(this._pxGeometry);
-    }
+  setRadius(radius: number): void {
+    const geometry = this._pxGeometry;
+    geometry.radius = radius;
+    this._pxShape.setGeometry(geometry);
   }
 }

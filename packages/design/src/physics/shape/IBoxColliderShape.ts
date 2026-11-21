@@ -6,8 +6,7 @@ import { Vector3 } from "@galacean/engine-math";
  */
 export interface IBoxColliderShape extends IColliderShape {
   /**
-   * Set size of Box Shape.
-   * @param size - The size
+   * Set the scaled half extents of the box.
    */
-  setSize(size: Vector3): void;
+  setHalfExtents(halfExtents: Vector3): void;
 }

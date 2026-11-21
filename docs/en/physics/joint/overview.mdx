@@ -70,8 +70,11 @@ joint.connectedBody = targetEntity.getComponent(Rigidbody);
 joint.anchor.set(0, 1, 0);
 
 // Set the joint's connection point on the connected Rigidbody
+joint.automaticConnectedAnchor = false;
 joint.connectedAnchor.set(0, 0, 0);
 ```
+
+Once written, `connectedAnchor` reads back the manual value. The joint uses a calculated anchor while `automaticConnectedAnchor` is enabled and applies the manual value when it is disabled.
 
 ### Common Property Configuration
 

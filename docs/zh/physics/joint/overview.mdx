@@ -73,9 +73,11 @@ joint.connectedBody = targetEntity.getComponent(Rigidbody);
 joint.anchor.set(0, 1, 0);
 
 // 手动设置关节在目标刚体上的连接点
-fixedJoint.automaticConnectedAnchor = false;
+joint.automaticConnectedAnchor = false;
 joint.connectedAnchor.set(0, 0, 0);
 ```
+
+写入 `connectedAnchor` 后，读取该属性会得到手动锚点。`automaticConnectedAnchor` 开启时，关节使用计算出的锚点，关闭后应用手动锚点。
 
 ### 通用属性配置
 

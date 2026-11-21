@@ -57,7 +57,7 @@ A Rigidbody ([Rigidbody](/apis/core/#Rigidbody)) puts its Entity under physics c
 | [**inertiaTensor**](/apis/core/#Rigidbody-inertiaTensor) | Diagonal inertia tensor relative to the center of mass | (1,1,1) |
 | [**automaticInertiaTensor**](/apis/core/#Rigidbody-automaticInertiaTensor) | Whether the inertia tensor is calculated from the attached Colliders and mass | true |
 
-Set `automaticCenterOfMass` or `automaticInertiaTensor` to false before writing `centerOfMass` or `inertiaTensor`; otherwise the write is ignored with a warning.
+Once you write to `centerOfMass` or `inertiaTensor`, the property reads back that manual value. The simulation uses the computed value while automatic mode is enabled. Disabling automatic mode applies the manual value, or preserves the current computed value if the property has never been written.
 
 ### Performance
 

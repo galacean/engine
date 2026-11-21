@@ -308,7 +308,7 @@ describe("Rigidbody ownership", () => {
       expect(errors).toHaveBeenCalledTimes(1);
     });
 
-    it("rejects convex = false and isKinematic = false while that would put it in a dynamic body", () => {
+    it("keeps convex and motion settings while excluding non-convex geometry from a dynamic body", () => {
       const errors = vi.spyOn(console, "error").mockImplementation(() => {});
       const entity = root.createChild("mesh");
       const mesh = addMesh(entity);
@@ -317,15 +317,18 @@ describe("Rigidbody ownership", () => {
       expect(hits(0.5, 1000, 0)).toEqual(names([mesh]));
 
       mesh.convex = false;
-      expect(mesh.convex).toBe(true);
+      expect(mesh.convex).toBe(false);
+      expect(hits(0.5, 1000, 0)).toEqual([]);
       expect(errors).toHaveBeenCalledTimes(1);
 
       body.isKinematic = true;
-      mesh.convex = false;
-      expect(mesh.convex).toBe(false);
+      expect(hits(0.5, 1000, 0)).toEqual(names([mesh]));
       body.isKinematic = false;
-      expect(body.isKinematic).toBe(true);
+      expect(body.isKinematic).toBe(false);
+      expect(hits(0.5, 1000, 0)).toEqual([]);
       expect(errors).toHaveBeenCalledTimes(2);
+
+      mesh.convex = true;
       expect(hits(0.5, 1000, 0)).toEqual(names([mesh]));
     });
   });

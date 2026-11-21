@@ -149,7 +149,7 @@ describe("Collider", () => {
     const hit = new HitResult();
     const ray = new Ray(new Vector3(2.75, 4, 0), new Vector3(0, -1, 0));
     expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
-    const scaleWrites = vi.spyOn(box._native!, "setWorldScale");
+    const geometryWrites = vi.spyOn(box._native["_pxShape"], "setGeometry");
 
     const bodyEntity = root.createChild();
     bodyEntity.transform.setPosition(10, 0, 0);
@@ -160,7 +160,7 @@ describe("Collider", () => {
     ray.origin.x += 10;
     expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
     expect(box.attachedRigidbody).toBe(body);
-    expect(scaleWrites).not.toHaveBeenCalled();
+    expect(geometryWrites).not.toHaveBeenCalled();
   });
 
   describe.each([
@@ -210,6 +210,22 @@ describe("Collider", () => {
     expect(physics.overlapSphereAll(new Vector3(), 0.1, Layer.Layer0)).toHaveLength(0);
   });
 
+  it("keeps scene-query participation independent of trigger mode", () => {
+    const box = root.addComponent(BoxCollider);
+    const ray = new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0));
+    const hit = new HitResult();
+    expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
+
+    box.isSceneQuery = false;
+    box.isTrigger = true;
+    expect(physics.raycast(ray, hit)).toBe(false);
+    box.isTrigger = false;
+    expect(physics.raycast(ray, hit)).toBe(false);
+
+    box.isSceneQuery = true;
+    expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
+  });
+
   it("applies contactOffset changes to collision detection", () => {
     const box = root.createChild("box").addComponent(BoxCollider);
     const probe = root.createChild("probe");
@@ -231,9 +247,12 @@ describe("Collider", () => {
     box.size = new Vector3(2, 4, 6);
     expect(box.getClosestPoint(new Vector3(5, 0, 0), closest)).toBeCloseTo(4);
     expectPoint(closest, 1, 0, 0);
+    const geometryWrites = vi.spyOn(box._native["_pxShape"], "setGeometry");
+    root.transform.setScale(2, 1, 1);
     box.size.set(4, 2, 2);
-    expect(box.getClosestPoint(new Vector3(5, 0, 0), closest)).toBeCloseTo(3);
-    expectPoint(closest, 2, 0, 0);
+    expect(box.getClosestPoint(new Vector3(5, 0, 0), closest)).toBeCloseTo(1);
+    expectPoint(closest, 4, 0, 0);
+    expect(geometryWrites).toHaveBeenCalledTimes(1);
   });
 
   it("updates sphere radius before and after synchronization", () => {
@@ -241,9 +260,12 @@ describe("Collider", () => {
     const closest = new Vector3();
     sphere.radius = 0.5;
     expect(sphere.getClosestPoint(new Vector3(5, 0, 0), closest)).toBeCloseTo(4.5);
+    const geometryWrites = vi.spyOn(sphere._native["_pxShape"], "setGeometry");
+    root.transform.setScale(2, 1, 1);
     sphere.radius = 2;
-    expect(sphere.getClosestPoint(new Vector3(5, 0, 0), closest)).toBeCloseTo(3);
-    expectPoint(closest, 2, 0, 0);
+    expect(sphere.getClosestPoint(new Vector3(5, 0, 0), closest)).toBeCloseTo(1);
+    expectPoint(closest, 4, 0, 0);
+    expect(geometryWrites).toHaveBeenCalledTimes(1);
   });
 
   it.each([ColliderShapeUpAxis.X, ColliderShapeUpAxis.Y, ColliderShapeUpAxis.Z])(
@@ -863,20 +885,18 @@ describe("Collider", () => {
       entity.transform.setScale(0, 1, 1);
       capsule.direction = ColliderShapeUpAxis.Y;
       expect(physics.raycast(ray, hit)).toBe(true);
-      for (const [geom] of setGeometrySpy.mock.calls) {
-        expect(geom.radius).toBeGreaterThan(0);
-        expect(geom.halfHeight).toBeGreaterThan(0);
-      }
+      expect(hit.distance).toBeCloseTo(4);
+      expect(setGeometrySpy).toHaveBeenCalledTimes(1);
 
       // Same-frame reverse transition: (Y, scale=(0,1,1)) -> (X, scale=(1,0,1)) stays valid
       setGeometrySpy.mockClear();
       entity.transform.setScale(1, 0, 1);
       capsule.direction = ColliderShapeUpAxis.X;
+      capsule.radius = 0.5;
+      capsule.height = 3;
       expect(physics.raycast(ray, hit)).toBe(true);
-      for (const [geom] of setGeometrySpy.mock.calls) {
-        expect(geom.radius).toBeGreaterThan(0);
-        expect(geom.halfHeight).toBeGreaterThan(0);
-      }
+      expect(hit.distance).toBeCloseTo(3);
+      expect(setGeometrySpy).toHaveBeenCalledTimes(1);
     });
 
     it("avoids per-substep Collider._sync churn during Rigidbody._writeBack under uniform scale", () => {
@@ -982,7 +1002,7 @@ describe("Collider", () => {
         }
       }
 
-      // 3. Pure Y rotation on a uniform compound body emits 0 redundant native scale / mass writes
+      // 3. Pure Y rotation on a uniform compound body emits 0 redundant native geometry / mass writes
       const bodyEntity = root.createChild("rotate-uniform");
       bodyEntity.transform.setScale(2, 2, 2);
       const body = bodyEntity.addComponent(Rigidbody);
@@ -990,13 +1010,13 @@ describe("Collider", () => {
       const child = bodyEntity.createChild("collider");
       const box = child.addComponent(BoxCollider);
       expect(physics.raycast(downwardRay(0), hit) && hit.collider === box).toBe(true);
-      const scaleSpy = vi.spyOn(box._native!, "setWorldScale");
+      const geometryWrites = vi.spyOn(box._native["_pxShape"], "setGeometry");
       const massSpy = vi.spyOn((body as any)._nativeActor, "setMassAndUpdateInertia");
       for (let i = 1; i <= 90; i++) {
         bodyEntity.transform.setRotation(0, i * 3.7, 0);
         expect(physics.raycast(downwardRay(0), hit) && hit.collider === box).toBe(true);
       }
-      expect(scaleSpy).not.toHaveBeenCalled();
+      expect(geometryWrites).not.toHaveBeenCalled();
       expect(massSpy).not.toHaveBeenCalled();
 
       // 4. Tiny supported scale change 1e-6 -> 1.5e-6 applies accurately
@@ -1220,7 +1240,7 @@ describe("Collider", () => {
     });
 
     it.each(["child-position", "child-center", "child-mesh", "same-entity-center"] as const)(
-      "writes no native scale, local pose, or mass while a body rotates around an unchanged scale axis (%s)",
+      "writes no native geometry, local pose, or mass while a body rotates around an unchanged scale axis (%s)",
       (setup) => {
         const bodyEntity = root.createChild(setup);
         bodyEntity.transform.setScale(2, 3, 2);
@@ -1252,21 +1272,21 @@ describe("Collider", () => {
         expectHit();
 
         const shape = collider["_native"]!;
-        const scaleWrites = vi.spyOn(shape, "setWorldScale");
+        const geometryWrites = vi.spyOn(shape["_pxShape"], "setGeometry");
         const poseWrites = vi.spyOn(shape, "setLocalPose");
         const massRebuilds = vi.spyOn(body["_nativeActor"]!, "setMassAndUpdateInertia");
         for (let step = 1; step <= 90; step++) {
           bodyEntity.transform.setRotation(0, step * 3.7, 0);
           expectHit();
         }
-        expect(scaleWrites).not.toHaveBeenCalled();
+        expect(geometryWrites).not.toHaveBeenCalled();
         expect(poseWrites).not.toHaveBeenCalled();
         expect(massRebuilds).not.toHaveBeenCalled();
       }
     );
 
     it.each([true, false])(
-      "writes no native scale, local pose, or mass while translating a compound body (kinematic=%s)",
+      "writes no native geometry, local pose, or mass while translating a compound body (kinematic=%s)",
       (kinematic) => {
         const bodyEntity = root.createChild("translating body");
         const body = bodyEntity.addComponent(Rigidbody);
@@ -1284,14 +1304,14 @@ describe("Collider", () => {
         expectHit();
 
         const shape = box["_native"]!;
-        const scaleWrites = vi.spyOn(shape, "setWorldScale");
+        const geometryWrites = vi.spyOn(shape["_pxShape"], "setGeometry");
         const poseWrites = vi.spyOn(shape, "setLocalPose");
         const massRebuilds = vi.spyOn(body["_nativeActor"]!, "setMassAndUpdateInertia");
         for (let step = 1; step <= 90; step++) {
           bodyEntity.transform.setPosition(step % 2 === 0 ? 0 : 128, 0, 0);
           expectHit();
         }
-        expect(scaleWrites).not.toHaveBeenCalled();
+        expect(geometryWrites).not.toHaveBeenCalled();
         expect(poseWrites).not.toHaveBeenCalled();
         expect(massRebuilds).not.toHaveBeenCalled();
       }

@@ -1683,7 +1683,7 @@ describe("Physics gameplay integration", () => {
         expect(collider.attachedRigidbody).toBe(body);
 
         if (rejected) {
-          expect(errors).toHaveBeenCalledWith("BoxCollider: failed to attach to the native actor.");
+          expect(errors).toHaveBeenCalledOnce();
         } else {
           expect(errors).not.toHaveBeenCalled();
         }

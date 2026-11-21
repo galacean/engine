@@ -29,6 +29,7 @@ export class PhysicsScene {
   private _fixedTimeStep: number = 1 / 60;
 
   private _bodies: Rigidbody[] = [];
+  private _bodyOrderDirty = false;
   private _dirtyBodies: Rigidbody[] = [];
   private _dirtyColliders: Collider[] = [];
   private _massDirtyBodies: Rigidbody[] = [];
@@ -754,7 +755,7 @@ export class PhysicsScene {
    * @internal
    */
   _update(deltaTime: number): void {
-    const { _fixedTimeStep: fixedTimeStep, _nativePhysicsScene: nativePhysicsScene } = this;
+    const { _fixedTimeStep: fixedTimeStep, _nativePhysicsScene: nativePhysicsScene, _bodies: bodies } = this;
     const componentsManager = this._scene._componentsManager;
 
     const simulateTime = this._restTime + deltaTime;
@@ -764,25 +765,11 @@ export class PhysicsScene {
       componentsManager.callScriptOnPhysicsUpdate();
       this._syncColliders();
       nativePhysicsScene.update(fixedTimeStep);
-      const bodies = this._bodies;
+      if (this._bodyOrderDirty) {
+        this._sortBodies();
+      }
       for (let i = 0, n = bodies.length; i < n; i++) {
-        let body = bodies[i];
-        let parent = body.entity.parent;
-        while (parent) {
-          const ancestor = parent.getComponent(Rigidbody);
-          if (ancestor && ancestor._index !== -1) {
-            if (ancestor._index < i) break;
-            // World-pose setters need ancestors first; reorder the existing registration, not a second hierarchy.
-            const ancestorIndex = ancestor._index;
-            bodies[i] = ancestor;
-            bodies[ancestorIndex] = body;
-            body._index = ancestorIndex;
-            ancestor._index = i;
-            body = ancestor;
-          }
-          parent = parent.parent;
-        }
-        body._writeBack();
+        bodies[i]._writeBack();
       }
       this._dispatchEvents(nativePhysicsScene.updateEvents());
     }
@@ -837,6 +824,7 @@ export class PhysicsScene {
     const bodies = this._bodies;
     body._index = bodies.length;
     bodies.push(body);
+    this._bodyOrderDirty = true;
     PhysicsScene._addDirty(this._dirtyBodies, body);
     this._markMassDirty(body);
   }
@@ -860,6 +848,7 @@ export class PhysicsScene {
     if (last !== body) {
       bodies[body._index] = last;
       last._index = body._index;
+      this._bodyOrderDirty = true;
     }
     body._index = -1;
     this._nativePhysicsScene.removeCollider(body._getNativeActor());
@@ -870,6 +859,11 @@ export class PhysicsScene {
    */
   _markBodyDirty(body: Rigidbody): void {
     PhysicsScene._addDirty(this._dirtyBodies, body);
+  }
+
+  /** @internal */
+  _invalidateBodyOrder(): void {
+    this._bodyOrderDirty = true;
   }
 
   /**
@@ -910,6 +904,28 @@ export class PhysicsScene {
     PhysicsScene._raycastHitPool.length = 0;
     PhysicsScene._raycastSeenHits.clear();
     this._nativePhysicsScene?.destroy();
+  }
+
+  private _sortBodies(): void {
+    this._bodyOrderDirty = false;
+    const bodies = this._bodies;
+    // Publish ancestors first so each body's world pose is converted against its parent's simulated pose.
+    for (let i = 0, n = bodies.length - 1; i < n; i++) {
+      let body = bodies[i];
+      for (let parent = body.entity.parent; parent; parent = parent.parent) {
+        const ancestor = parent.getComponent(Rigidbody);
+        if (ancestor) {
+          const index = ancestor._index;
+          if (index === -1) continue;
+          if (index < i) break;
+          bodies[i] = ancestor;
+          bodies[index] = body;
+          body._index = index;
+          ancestor._index = i;
+          body = ancestor;
+        }
+      }
+    }
   }
 
   private _dispatchEvents(events: IPhysicsEvents): void {

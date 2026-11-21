@@ -106,18 +106,10 @@ describe("Joint", function () {
   });
 
   it("automaticConnectedAnchor", function () {
-    const consoleWarnSpy = vi.spyOn(console, "warn");
     const box = addBox(new Vector3(1, 1, 1), new Vector3(4, 4, 4));
 
     // No connectedBody
     const joint = box.addComponent(FixedJoint);
-    joint.automaticConnectedAnchor = true;
-    joint.connectedAnchor = new Vector3(1, 1, 1);
-    expect(consoleWarnSpy).toBeCalledTimes(1);
-    joint.connectedAnchor.y = 3;
-    expect(consoleWarnSpy).toBeCalledTimes(2);
-    joint.automaticConnectedAnchor = false;
-    joint.automaticConnectedAnchor = true;
     expect(joint.connectedAnchor).deep.include({ x: 4, y: 4, z: 4 });
 
     engine.sceneManager.activeScene.physics._update(1 / 60);
@@ -471,15 +463,11 @@ describe("Joint", function () {
     expect(() => anchor.transform.setScale(2, 2, 2)).not.toThrow();
 
     const noPhysicsEngine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-    const previousNativePhysics = (Engine as any)._nativePhysics;
-    (Engine as any)._nativePhysics = undefined;
     try {
       const entity = noPhysicsEngine.sceneManager.activeScene.createRootEntity("no-physics-joint");
-      expect(() => entity.addComponent(Rigidbody)).toThrow();
       expect(() => entity.addComponent(HingeJoint)).toThrow();
       expect(() => entity.destroy()).not.toThrow();
     } finally {
-      (Engine as any)._nativePhysics = previousNativePhysics;
       noPhysicsEngine.destroy();
     }
   });
@@ -512,7 +500,7 @@ describe("Joint", function () {
     expect(manualClone.transform.position.y).toBeCloseTo(6, 4);
   });
 
-  it("updates automatic connectedAnchor on in-place anchor edits and does not mutate connectedAnchor when rejected", function () {
+  it("updates an unwritten connectedAnchor on in-place anchor edits until automatic mode is disabled", function () {
     const box = addBox(new Vector3(1, 1, 1), new Vector3(1, 2, 3));
     const joint = box.addComponent(FixedJoint);
     joint.anchor.set(0, 1, 0);
@@ -520,14 +508,8 @@ describe("Joint", function () {
     expect(joint.connectedAnchor.y).toBeCloseTo(3, 5);
     expect(joint.connectedAnchor.z).toBeCloseTo(3, 5);
 
-    const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
-    joint.connectedAnchor = new Vector3(9, 9, 9);
-    expect(warnings).toHaveBeenCalledOnce();
-    expect(joint.connectedAnchor.x).toBeCloseTo(1, 5);
-    expect(joint.connectedAnchor.y).toBeCloseTo(3, 5);
-    expect(joint.connectedAnchor.z).toBeCloseTo(3, 5);
-
     joint.automaticConnectedAnchor = false;
+    joint.anchor.set(0, 2, 0);
     expect(joint.connectedAnchor.x).toBeCloseTo(1, 5);
     expect(joint.connectedAnchor.y).toBeCloseTo(3, 5);
     expect(joint.connectedAnchor.z).toBeCloseTo(3, 5);

@@ -20,51 +20,6 @@ export class ReflectionParser {
     if (!props) return Promise.resolve(instance);
 
     try {
-      const propOrder: readonly string[] | undefined = instance?.constructor?._deserializePropOrder;
-      if (propOrder?.length) {
-        const orderedKeys: string[] = [];
-        for (let i = 0, n = propOrder.length; i < n; i++) {
-          const key = propOrder[i];
-          if (Object.prototype.hasOwnProperty.call(props, key)) {
-            orderedKeys.push(key);
-          }
-        }
-        if (orderedKeys.length > 0) {
-          let chain: Promise<unknown> | null = null;
-          for (let i = 0, n = orderedKeys.length; i < n; i++) {
-            const key = orderedKeys[i];
-            const raw = props[key];
-            if (!chain && (raw == null || typeof raw !== "object")) {
-              instance[key] = raw;
-            } else {
-              const applyOrdered = () =>
-                this._resolveValue(raw, instance[key]).then((v) => {
-                  instance[key] = v;
-                });
-              chain = chain ? chain.then(applyOrdered) : applyOrdered();
-            }
-          }
-          const applyRemaining = (): Promise<any> => {
-            let promises: Promise<any>[] | null = null;
-            for (const key in props) {
-              if (orderedKeys.includes(key)) continue;
-              const raw = props[key];
-              if (raw == null || typeof raw !== "object") {
-                instance[key] = raw;
-              } else {
-                (promises ||= []).push(
-                  this._resolveValue(raw, instance[key]).then((v) => {
-                    instance[key] = v;
-                  })
-                );
-              }
-            }
-            return promises ? Promise.all(promises).then(() => instance) : Promise.resolve(instance);
-          };
-          return chain ? chain.then(applyRemaining) : applyRemaining();
-        }
-      }
-
       let promises: Promise<any>[] | null = null;
       for (const key in props) {
         const raw = props[key];

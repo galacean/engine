@@ -22,9 +22,6 @@ import type { Joint } from "./joint/Joint";
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
 export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
-  /** @internal */
-  static readonly _deserializePropOrder = ["automaticCenterOfMass", "automaticInertiaTensor"];
-
   private static _tempPosition = new Vector3();
   private static _tempRotation = new Quaternion();
   private static _tempColliders: Collider[] = [];
@@ -61,6 +58,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   private _centerOfMass = new Vector3();
   @ignoreClone
   private _inertiaTensor = new Vector3(1, 1, 1);
+  private _centerOfMassAuthored = false;
+  private _inertiaTensorAuthored = false;
   private _maxAngularVelocity = 18000 / Math.PI;
   private _maxDepenetrationVelocity = 1.0000000331813535e32;
   private _solverIterations = 4;
@@ -162,7 +161,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /**
    * Whether the center of mass is calculated automatically from the attached Colliders.
-   * @remarks Disabling this preserves the current value.
+   * @remarks Disabling uses the authored value, or preserves the current computed value if none was authored.
    */
   get automaticCenterOfMass(): boolean {
     return this._automaticCenterOfMass;
@@ -174,27 +173,25 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
         this._automaticCenterOfMass = true;
         this._markMassDirty();
       } else {
-        // The last computed value becomes the manual value
-        this._readComputedCenterOfMass();
+        const authored = this._centerOfMassAuthored;
+        if (!authored) this._readComputedCenterOfMass();
         this._automaticCenterOfMass = false;
+        if (authored) this._nativeActor?.setCenterOfMass(this._centerOfMass);
       }
     }
   }
 
   /**
    * The center of mass relative to the transform's origin.
-   * @remarks Set `automaticCenterOfMass` to false before changing this value.
+   * @remarks Reads the authored value once written, otherwise the last effective value.
+   * Simulation uses the computed value while `automaticCenterOfMass` is true.
    */
   get centerOfMass(): Vector3 {
-    this._automaticCenterOfMass && this._readComputedCenterOfMass();
+    if (this._automaticCenterOfMass && !this._centerOfMassAuthored) this._readComputedCenterOfMass();
     return this._centerOfMass;
   }
 
   set centerOfMass(value: Vector3) {
-    if (this._automaticCenterOfMass) {
-      this._handleCenterOfMassChanged();
-      return;
-    }
     if (this._centerOfMass !== value) {
       this._centerOfMass.copyFrom(value);
     }
@@ -202,7 +199,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /**
    * Whether the inertia tensor is calculated automatically from the attached Colliders and mass.
-   * @remarks Disabling this preserves the current value.
+   * @remarks Disabling uses the authored value, or preserves the current computed value if none was authored.
    */
   get automaticInertiaTensor(): boolean {
     return this._automaticInertiaTensor;
@@ -214,27 +211,25 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
         this._automaticInertiaTensor = true;
         this._markMassDirty();
       } else {
-        // The last computed value becomes the manual value
-        this._readComputedInertiaTensor();
+        const authored = this._inertiaTensorAuthored;
+        if (!authored) this._readComputedInertiaTensor();
         this._automaticInertiaTensor = false;
+        if (authored) this._nativeActor?.setInertiaTensor(this._inertiaTensor);
       }
     }
   }
 
   /**
    * The diagonal inertia tensor of mass relative to the center of mass.
-   * @remarks Set `automaticInertiaTensor` to false before changing this value.
+   * @remarks Reads the authored value once written, otherwise the last effective value.
+   * Simulation uses the computed value while `automaticInertiaTensor` is true.
    */
   get inertiaTensor(): Vector3 {
-    this._automaticInertiaTensor && this._readComputedInertiaTensor();
+    if (this._automaticInertiaTensor && !this._inertiaTensorAuthored) this._readComputedInertiaTensor();
     return this._inertiaTensor;
   }
 
   set inertiaTensor(value: Vector3) {
-    if (this._automaticInertiaTensor) {
-      this._handleInertiaTensorChanged();
-      return;
-    }
     if (this._inertiaTensor !== value) {
       this._inertiaTensor.copyFrom(value);
     }
@@ -491,11 +486,13 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   _onClone(target: Rigidbody): void {
     target._linearVelocity.copyFrom(this.linearVelocity);
     target._angularVelocity.copyFrom(this.angularVelocity);
-    if (!this._automaticCenterOfMass) {
-      target._centerOfMass.copyFrom(this.centerOfMass);
+    if (!this._automaticCenterOfMass || this._centerOfMassAuthored) {
+      target._centerOfMass.copyFrom(this._centerOfMass);
+      target._centerOfMassAuthored = this._centerOfMassAuthored;
     }
-    if (!this._automaticInertiaTensor) {
-      target._inertiaTensor.copyFrom(this.inertiaTensor);
+    if (!this._automaticInertiaTensor || this._inertiaTensorAuthored) {
+      target._inertiaTensor.copyFrom(this._inertiaTensor);
+      target._inertiaTensorAuthored = this._inertiaTensorAuthored;
     }
   }
 
@@ -796,24 +793,14 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   @ignoreClone
   private _handleCenterOfMassChanged(): void {
-    if (this._automaticCenterOfMass) {
-      console.warn(
-        "The center of mass is automatically calculated, please set automaticCenterOfMass to false if you want to set it manually."
-      );
-    } else {
-      this._nativeActor?.setCenterOfMass(this._centerOfMass);
-    }
+    this._centerOfMassAuthored = true;
+    if (!this._automaticCenterOfMass) this._nativeActor?.setCenterOfMass(this._centerOfMass);
   }
 
   @ignoreClone
   private _handleInertiaTensorChanged(): void {
-    if (this._automaticInertiaTensor) {
-      console.warn(
-        "The inertia tensor is automatically calculated, please set automaticInertiaTensor to false if you want to set it manually."
-      );
-    } else {
-      this._nativeActor?.setInertiaTensor(this._inertiaTensor);
-    }
+    this._inertiaTensorAuthored = true;
+    if (!this._automaticInertiaTensor) this._nativeActor?.setInertiaTensor(this._inertiaTensor);
   }
 }
 

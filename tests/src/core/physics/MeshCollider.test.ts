@@ -226,10 +226,13 @@ describe("MeshCollider", () => {
     collider.entity.transform.setScale(2, 1, 1);
     expect(physics.raycast(rayAt(3), hit)).toBe(true);
     expect(hit.collider).toBe(collider);
-    expect(physics.raycast(rayAt(5), hit)).toBe(false);
+    expect(physics.raycast(rayAt(8), hit)).toBe(false);
+    const geometryWrites = vi.spyOn(collider._native["_pxShape"], "setGeometry");
+    collider.entity.transform.setScale(3, 1, 1);
     collider.mesh = createCubeMesh(engine, 2);
-    expect(physics.raycast(rayAt(5), hit)).toBe(true);
+    expect(physics.raycast(rayAt(8), hit)).toBe(true);
     expect(hit.collider).toBe(collider);
+    expect(geometryWrites).toHaveBeenCalledTimes(1);
   });
 
   it.each([false, true])("applies world scale to mesh components created after synchronization (late=%s)", (late) => {
@@ -961,7 +964,7 @@ describe("MeshCollider", () => {
   );
 
   it.each(["box", "mesh"] as const)(
-    "avoids redundant native scale writes and mass rebuilds while rotating an unchanged uniform compound body (%s)",
+    "avoids redundant native geometry writes and mass rebuilds while rotating an unchanged uniform compound body (%s)",
     (kind) => {
       const bodyEntity = root.createChild(`rotate-scale-${kind}`);
       bodyEntity.transform.setScale(2, 2, 2);
@@ -976,13 +979,13 @@ describe("MeshCollider", () => {
       const hit = new HitResult();
       expect(physics.raycast(rayAt(0, 8), hit) && hit.collider === collider).toBe(true);
 
-      const scaleSpy = vi.spyOn((collider as any)._native, "setWorldScale");
+      const geometryWrites = vi.spyOn(collider._native["_pxShape"], "setGeometry");
       const massSpy = vi.spyOn((body as any)._nativeActor, "setMassAndUpdateInertia");
       for (let i = 1; i <= 90; i++) {
         bodyEntity.transform.setRotation(0, i * 3.7, 0);
         expect(physics.raycast(rayAt(0, 8), hit) && hit.collider === collider).toBe(true);
       }
-      expect(scaleSpy).not.toHaveBeenCalled();
+      expect(geometryWrites).not.toHaveBeenCalled();
       expect(massSpy).not.toHaveBeenCalled();
     }
   );

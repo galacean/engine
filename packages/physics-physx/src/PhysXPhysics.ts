@@ -175,8 +175,8 @@ export class PhysXPhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.createBoxColliderShape }
    */
-  createBoxColliderShape(uniqueID: number, size: Vector3, material: PhysXPhysicsMaterial): IBoxColliderShape {
-    return new PhysXBoxColliderShape(this, uniqueID, size, material);
+  createBoxColliderShape(uniqueID: number, halfExtents: Vector3, material: PhysXPhysicsMaterial): IBoxColliderShape {
+    return new PhysXBoxColliderShape(this, uniqueID, halfExtents, material);
   }
 
   /**
@@ -199,10 +199,11 @@ export class PhysXPhysics implements IPhysics {
   createCapsuleColliderShape(
     uniqueID: number,
     radius: number,
-    height: number,
-    material: PhysXPhysicsMaterial
+    halfHeight: number,
+    material: PhysXPhysicsMaterial,
+    upAxis: number
   ): ICapsuleColliderShape {
-    return new PhysXCapsuleColliderShape(this, uniqueID, radius, height, material);
+    return new PhysXCapsuleColliderShape(this, uniqueID, radius, halfHeight, material, upAxis);
   }
 
   /**
@@ -214,9 +215,19 @@ export class PhysXPhysics implements IPhysics {
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
     material: PhysXPhysicsMaterial,
-    cookingFlags: number
+    cookingFlags: number,
+    scale: Vector3
   ): IMeshColliderShape | null {
-    const shape = new PhysXMeshColliderShape(this, uniqueID, positions, indices, isConvex, material, cookingFlags);
+    const shape = new PhysXMeshColliderShape(
+      this,
+      uniqueID,
+      positions,
+      indices,
+      isConvex,
+      material,
+      cookingFlags,
+      scale
+    );
     return shape._pxShape ? shape : null;
   }
 

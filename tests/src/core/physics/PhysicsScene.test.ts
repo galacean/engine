@@ -146,6 +146,49 @@ describe("Physics Test", () => {
       expect(enginePhysX.sceneManager.scenes[0].physics.fixedTimeStep).to.eq(fixedTimeStep);
     });
 
+    it("keeps nested rigidbody poses independent after reparenting, disabling a body, and changing scenes", () => {
+      const root = enginePhysX.sceneManager.activeScene.createRootEntity();
+      const destination = new Scene(enginePhysX);
+      enginePhysX.sceneManager.addScene(destination);
+      try {
+        const removable = root.createChild();
+        removable.transform.setPosition(-10, 0, 0);
+        removable.addComponent(BoxCollider);
+        const removableBody = removable.addComponent(Rigidbody);
+        removableBody.useGravity = false;
+        const branch = root.createChild();
+        const child = branch.createChild();
+        child.transform.setPosition(10, 0, 0);
+        child.addComponent(BoxCollider);
+        child.addComponent(Rigidbody).useGravity = false;
+        const parent = root.createChild();
+        parent.addComponent(BoxCollider);
+        const parentBody = parent.addComponent(Rigidbody);
+        parentBody.useGravity = false;
+        parentBody.linearVelocity.set(6, 0, 0);
+        physicsScene._update(physicsScene.fixedTimeStep);
+
+        branch.parent = parent;
+        const childX = child.transform.worldPosition.x;
+        physicsScene._update(physicsScene.fixedTimeStep);
+        expect(parent.transform.worldPosition.x).toBeCloseTo(0.2, 4);
+        expect(child.transform.worldPosition.x).toBeCloseTo(childX, 4);
+
+        removableBody.enabled = false;
+        physicsScene._update(physicsScene.fixedTimeStep);
+        expect(parent.transform.worldPosition.x).toBeCloseTo(0.3, 4);
+        expect(child.transform.worldPosition.x).toBeCloseTo(childX, 4);
+
+        destination.addRootEntity(root);
+        destination.physics._update(destination.physics.fixedTimeStep);
+        expect(parent.transform.worldPosition.x).toBeCloseTo(0.4, 4);
+        expect(child.transform.worldPosition.x).toBeCloseTo(childX, 4);
+      } finally {
+        root.destroy();
+        destination.destroy();
+      }
+    });
+
     it("enables native contact events for any active collision callback script", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
@@ -920,7 +963,7 @@ describe("Physics Test", () => {
         bounceCombine: 0
       });
       const id = 0xffffffff;
-      const nativeShape = backend.createBoxColliderShape(id, new Vector3(1, 1, 1), material);
+      const nativeShape = backend.createBoxColliderShape(id, new Vector3(0.5, 0.5, 0.5), material);
       const nativeCollider = backend.createStaticCollider(new Vector3(0, 3, 0), new Quaternion());
       nativeCollider.addShape(nativeShape);
       nativeShape.setCollisionLayer(0);

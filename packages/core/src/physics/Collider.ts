@@ -87,6 +87,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
   protected _collisionLayerIndex = 0;
   @ignoreClone
   protected _geometryDirty = false;
+  @ignoreClone
+  protected _nativeScale = new Vector3();
 
   @ignoreClone
   private _nativeActor: ICollider | null = null;
@@ -100,8 +102,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
   private _nativePosition = new Vector3();
   @ignoreClone
   private _nativeRotation = new Quaternion();
-  @ignoreClone
-  private _nativeScale = new Vector3();
   @ignoreClone
   private _nativeWorldPosition = new Vector3();
   @ignoreClone
@@ -370,11 +370,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
     const lossyScale = transform.lossyWorldScale;
     const scale = Collider._tempScale.set(Math.abs(lossyScale.x), Math.abs(lossyScale.y), Math.abs(lossyScale.z));
-    if (!this._hasValidGeometry(scale)) {
-      this._detach();
-      return;
-    }
-
     const body = this._findRigidbody();
     if (body && !body.isKinematic && !this._supportsDynamicBody()) {
       if (this._rejectedBody !== body) {
@@ -488,65 +483,48 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   /**
-   * Whether the Collider produces valid native geometry under the given absolute world scale.
+   * Apply the final scaled geometry, or create the shape when absent.
+   * @returns The shape, or null when the geometry is invalid or unsupported.
    */
-  protected _hasValidGeometry(_scale: Vector3): boolean {
-    return true;
+  protected _syncGeometry(_shape: IColliderShape | null, _scale: Vector3): IColliderShape | null {
+    return null;
   }
-
-  /**
-   * Push updated local geometry parameters to an existing native shape.
-   */
-  protected _syncGeometry(_shape: IColliderShape): void {}
 
   /**
    * Reconcile the native shape with current component fields before attachment and pose sync.
    * @returns The active native shape, or null when the current fields cannot produce one
    */
   protected _syncNativeShape(scale: Vector3): IColliderShape | null {
-    let shape = <IColliderShape | null>this._native;
-    if (!shape) {
-      shape = <IColliderShape | null>(this._native = this._createNative());
+    const previous = <IColliderShape | null>this._native;
+    if (previous && !this._geometryDirty && !this._scaleChanged(scale)) {
+      return previous;
+    }
+    const shape = this._syncGeometry(previous, scale);
+    if (shape) {
+      if (!previous) {
+        this._native = this._initializeNativeShape(shape);
+      }
+      this._nativeScale.copyFrom(scale);
       this._geometryDirty = false;
-    } else if (this._geometryDirty) {
-      this._syncNativeScale(shape, scale);
-      this._geometryDirty = false;
-      this._syncGeometry(shape);
-      this._onGeometryChanged();
+      this._attachedBody?._markMassDirty();
     }
     return shape;
   }
 
-  /**
-   * Push the world scale to the native shape whenever any component differs from the last committed value.
-   * @returns Whether the native scale was updated
-   */
-  protected _syncNativeScale(shape: IColliderShape, scale: Vector3, force = false): boolean {
+  protected _scaleChanged(scale: Vector3): boolean {
     const nativeScale = this._nativeScale;
-    if (force || scale.x !== nativeScale.x || scale.y !== nativeScale.y || scale.z !== nativeScale.z) {
-      nativeScale.copyFrom(scale);
-      shape.setWorldScale(scale);
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Create the native object from the current fields. The base class has no geometry.
-   * @returns The native object, or null when the current fields cannot produce one
-   */
-  protected _createNative(): IColliderShape | ICharacterController | null {
-    return null;
+    return scale.x !== nativeScale.x || scale.y !== nativeScale.y || scale.z !== nativeScale.z;
   }
 
   /**
    * Apply the fields shared by every Collider to a newly created native shape.
    */
-  protected _initializeNativeShape(shape: IColliderShape): void {
+  protected _initializeNativeShape<T extends IColliderShape>(shape: T): T {
     shape.setContactOffset(this._contactOffset);
-    shape.setIsTrigger(this._isTrigger);
-    shape.setIsSceneQuery(this._isSceneQuery);
+    if (this._isTrigger) shape.setIsTrigger(true);
+    if (!this._isSceneQuery) shape.setIsSceneQuery(false);
     shape.setCollisionLayer(this._collisionLayerIndex);
+    return shape;
   }
 
   /**
@@ -567,13 +545,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
     this._native = shape;
     previous?.destroy();
     return true;
-  }
-
-  /**
-   * Notify the owning Rigidbody that the attached geometry changed, so its mass properties are recomputed.
-   */
-  protected _onGeometryChanged(): void {
-    this._attachedBody?._markMassDirty();
   }
 
   /**
@@ -679,19 +650,16 @@ export class Collider extends Component implements ICloneHook<Collider> {
       }
     }
 
-    const scaleChanged = this._syncNativeScale(shape, scale, force);
     const nativePosition = this._nativePosition;
-    const poseChanged =
+    if (
       force ||
       Collider._differsF32(position, nativePosition) ||
-      Collider._rotationDiffersF32(rotation, this._nativeRotation);
-    if (poseChanged) {
+      Collider._rotationDiffersF32(rotation, this._nativeRotation)
+    ) {
       nativePosition.copyFrom(position);
       this._nativeRotation.copyFrom(rotation);
       shape.setLocalPose(position, rotation);
-    }
-    if (body && this._nativeActor && (scaleChanged || poseChanged)) {
-      body._markMassDirty();
+      this._attachedBody?._markMassDirty();
     }
   }
 

@@ -16,9 +16,6 @@ import { Rigidbody } from "../Rigidbody";
  */
 @dependentComponents(Rigidbody, DependentMode.AutoAdd)
 export abstract class Joint extends Component implements ICloneHook<Joint> {
-  /** @internal */
-  static readonly _deserializePropOrder = ["automaticConnectedAnchor"];
-
   private static _tempVector3 = new Vector3();
   private static _tempQuat = new Quaternion();
   private static _tempMatrix = new Matrix();
@@ -30,6 +27,9 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   private _force = Infinity;
   private _torque = Infinity;
   private _automaticConnectedAnchor = true;
+  private _connectedAnchorAuthored = false;
+  @ignoreClone
+  private _calculatedConnectedAnchor: Vector3 | null = null;
 
   /**
    * The connected Rigidbody, or null to connect to a fixed point in world space.
@@ -89,34 +89,42 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
 
   /**
    * The connected anchor position.
-   * @remarks If connectedBody is set, this anchor is relative offset, or the anchor is world position.
-   * The connectedAnchor is automatically calculated, if you want to set it manually, please set automaticConnectedAnchor to false
+   * @remarks Reads the authored value once written, otherwise the last effective anchor.
+   * Simulation uses the calculated anchor while `automaticConnectedAnchor` is true.
+   * The value is local to the connected body when set, otherwise it is in world space.
    */
   get connectedAnchor(): Vector3 {
-    return this._connectedBodyInfo.anchor;
+    const anchor = this._connectedBodyInfo.anchor;
+    if (!this._connectedAnchorAuthored) {
+      // A retained reference can still be edited after switching to automatic mode.
+      this._calculatedConnectedAnchor ||= anchor.clone();
+    }
+    return anchor;
   }
 
   set connectedAnchor(value: Vector3) {
-    if (this._automaticConnectedAnchor) {
-      this._handleConnectedAnchorChanged();
-      return;
-    }
-    const connectedAnchor = this._connectedBodyInfo.anchor;
-    if (value !== connectedAnchor) {
-      connectedAnchor.copyFrom(value);
+    const anchor = this.connectedAnchor;
+    if (value !== anchor) {
+      anchor.copyFrom(value);
     }
   }
 
   /**
-   * Whether or not to calculate the connectedAnchor automatically, if true, the connectedAnchor will be calculated automatically to match the global position of the anchor property.
+   * Whether to calculate the connected anchor automatically to match the world position of `anchor`.
+   * @remarks Disabling uses the authored anchor, or preserves the calculated anchor if none was authored.
    */
   get automaticConnectedAnchor(): boolean {
     return this._automaticConnectedAnchor;
   }
 
   set automaticConnectedAnchor(value: boolean) {
-    this._automaticConnectedAnchor = value;
-    value && this._calculateConnectedAnchor();
+    if (value) {
+      this._automaticConnectedAnchor = true;
+      this._calculateConnectedAnchor();
+    } else if (this._automaticConnectedAnchor) {
+      this._automaticConnectedAnchor = false;
+      if (this._connectedAnchorAuthored) this._updateActualAnchor(AnchorOwner.Connected);
+    }
   }
 
   /**
@@ -406,10 +414,12 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   }
 
   private _calculateConnectedAnchor(): void {
+    if (!this._nativeJoint) return;
     const bodyInfo = this._bodyInfo;
-    const connectedBodyInfo = this._connectedBodyInfo;
-    const connectedAnchor = connectedBodyInfo.anchor;
-    const connectedActualAnchor = connectedBodyInfo.actualAnchor;
+    const authored = this._connectedAnchorAuthored;
+    const connectedAnchor = authored
+      ? (this._calculatedConnectedAnchor ||= new Vector3())
+      : this._connectedBodyInfo.anchor;
     const connectedBody = this._getConnectedBody();
 
     // @ts-ignore
@@ -421,11 +431,13 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
       Matrix.invert(connectedBody.entity.transform.worldMatrix, tempMatrix);
       Vector3.transformCoordinate(tempVector3, tempMatrix, connectedAnchor);
     } else {
-      Vector3.transformCoordinate(bodyInfo.anchor, this.entity.transform.worldMatrix, connectedActualAnchor);
-      connectedAnchor.copyFrom(connectedActualAnchor);
+      Vector3.transformCoordinate(bodyInfo.anchor, this.entity.transform.worldMatrix, connectedAnchor);
     }
-    // @ts-ignore
-    connectedAnchor._onValueChanged = this._handleConnectedAnchorChanged;
+    if (!authored) {
+      // @ts-ignore
+      connectedAnchor._onValueChanged = this._handleConnectedAnchorChanged;
+      this._calculatedConnectedAnchor?.copyFrom(connectedAnchor);
+    }
     this._updateActualAnchor(AnchorOwner.Connected);
   }
 
@@ -437,11 +449,8 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
 
   @ignoreClone
   private _handleConnectedAnchorChanged(): void {
-    if (this._automaticConnectedAnchor) {
-      console.warn("Cannot set connectedAnchor when automaticConnectedAnchor is true.");
-    } else {
-      this._updateActualAnchor(AnchorOwner.Connected);
-    }
+    this._connectedAnchorAuthored = true;
+    if (!this._automaticConnectedAnchor) this._updateActualAnchor(AnchorOwner.Connected);
   }
 
   @ignoreClone
@@ -474,26 +483,28 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   }
 
   private _updateActualAnchor(flag: AnchorOwner): void {
+    const nativeJoint = this._nativeJoint;
+    if (!nativeJoint) return;
+
     if (flag & AnchorOwner.Self) {
       const worldScale = this.entity.transform.lossyWorldScale;
       const selfBodyInfo = this._bodyInfo;
       Vector3.multiply(selfBodyInfo.anchor, worldScale, selfBodyInfo.actualAnchor);
-      this._nativeJoint?.setAnchor(selfBodyInfo.actualAnchor);
+      nativeJoint.setAnchor(selfBodyInfo.actualAnchor);
     }
     if (flag & AnchorOwner.Connected) {
       const connectedBodyInfo = this._connectedBodyInfo;
+      const anchor = (this._automaticConnectedAnchor && this._calculatedConnectedAnchor) || connectedBodyInfo.anchor;
       const connectedBody = this._getConnectedBody();
       if (connectedBody) {
         const worldScale = connectedBody.entity.transform.lossyWorldScale;
-        Vector3.multiply(connectedBodyInfo.anchor, worldScale, connectedBodyInfo.actualAnchor);
+        Vector3.multiply(anchor, worldScale, connectedBodyInfo.actualAnchor);
       } else {
-        connectedBodyInfo.actualAnchor.copyFrom(connectedBodyInfo.anchor);
+        connectedBodyInfo.actualAnchor.copyFrom(anchor);
       }
-      this._nativeJoint?.setConnectedAnchor(connectedBodyInfo.actualAnchor);
+      nativeJoint.setConnectedAnchor(connectedBodyInfo.actualAnchor);
     }
-    if (this._nativeJoint) {
-      this._wakeBodies();
-    }
+    this._wakeBodies();
   }
 
   protected _wakeBodies(): void {
@@ -513,8 +524,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
  */
 enum AnchorOwner {
   Self = 0x1,
-  Connected = 0x2,
-  Both = 0x3
+  Connected = 0x2
 }
 
 /**

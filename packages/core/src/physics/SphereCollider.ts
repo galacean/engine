@@ -30,17 +30,15 @@ export class SphereCollider extends Collider {
     }
   }
 
-  protected override _hasValidGeometry(scale: Vector3): boolean {
-    return Collider._isValidPositiveFloat32(this._radius * Math.max(scale.x, scale.y, scale.z));
-  }
-
-  protected override _syncGeometry(shape: ISphereColliderShape): void {
-    shape.setRadius(this._radius);
-  }
-
-  protected override _createNative(): ISphereColliderShape {
-    const shape = Engine._nativePhysics.createSphereColliderShape(this._id, this._radius, this._getNativeMaterial());
-    this._initializeNativeShape(shape);
+  protected override _syncGeometry(shape: ISphereColliderShape | null, scale: Vector3): ISphereColliderShape | null {
+    const radius = this._radius * Math.max(scale.x, scale.y, scale.z);
+    if (!Collider._isValidPositiveFloat32(radius)) {
+      return null;
+    }
+    if (!shape) {
+      return Engine._nativePhysics.createSphereColliderShape(this._id, radius, this._getNativeMaterial());
+    }
+    shape.setRadius(radius);
     return shape;
   }
 }

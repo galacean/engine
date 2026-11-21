@@ -51,6 +51,40 @@ describe("HingeJoint", function () {
     engine.sceneManager.activeScene.physics.gravity = new Vector3(0, -9.81, 0);
   });
 
+  it("keeps authored connected anchors separate from automatic anchors and clones them", () => {
+    const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const joint = boxEntity.addComponent(HingeJoint);
+    const target = rootEntity.createChild();
+    const targetBody = target.addComponent(Rigidbody);
+    targetBody.isKinematic = true;
+    joint.connectedBody = targetBody;
+
+    joint.automaticConnectedAnchor = false;
+    const connectedAnchor = joint.connectedAnchor;
+    expect(connectedAnchor.y).toBe(5);
+
+    joint.automaticConnectedAnchor = true;
+    connectedAnchor.set(4, 7, 8);
+    joint.connectedAnchor.z = 9;
+    expect(joint.connectedAnchor).toBe(connectedAnchor);
+    expect(Vector3.equals(connectedAnchor, new Vector3(4, 7, 9))).toBe(true);
+    target.transform.setScale(2, 1, 1);
+    engine.sceneManager.activeScene.physics._update(0.2);
+    expect(boxEntity.transform.worldPosition.x).toBeCloseTo(0, 2);
+    expect(boxEntity.transform.worldPosition.y).toBeCloseTo(5, 2);
+
+    joint.anchor.y = 1;
+    expect(connectedAnchor.y).toBe(7);
+    const clone = boxEntity.clone();
+    rootEntity.addChild(clone);
+    const clonedJoint = clone.getComponent(HingeJoint);
+    clonedJoint.automaticConnectedAnchor = false;
+    expect(Vector3.equals(clonedJoint.connectedAnchor, new Vector3(4, 7, 9))).toBe(true);
+    clonedJoint.connectedAnchor.x = 10;
+    joint.automaticConnectedAnchor = false;
+    expect(Vector3.equals(joint.connectedAnchor, new Vector3(4, 7, 9))).toBe(true);
+  });
+
   it("axis", function () {
     const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
     const boxEntity2 = addBox(new Vector3(1, 1, 1), new Vector3(2, 5, 0));

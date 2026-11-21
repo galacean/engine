@@ -358,7 +358,6 @@ export class Scene extends EngineObject {
       rootEntity._isRoot = true;
       rootEntity._removeFromParent();
       rootEntity._setParentChange();
-    } else if (oldScene !== this) {
     }
 
     // Add or remove from scene's rootEntities
@@ -380,10 +379,13 @@ export class Scene extends EngineObject {
     // Cross scene should inActive first and then active
     rootEntity._isActiveInScene && oldScene !== this && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
 
-    inActiveChangeFlag && rootEntity._processInActive(inActiveChangeFlag);
-
-    if (oldScene !== this) {
-      Entity._traverseSetOwnerScene(rootEntity, this);
+    try {
+      inActiveChangeFlag && rootEntity._processInActive(inActiveChangeFlag);
+    } finally {
+      // Root membership has moved, even if a source lifecycle callback throws.
+      if (oldScene !== this) {
+        Entity._traverseSetOwnerScene(rootEntity, this);
+      }
     }
 
     let activeChangeFlag = ActiveChangeFlag.None;

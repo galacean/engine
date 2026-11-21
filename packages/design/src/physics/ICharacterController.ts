@@ -79,7 +79,7 @@ export interface ICharacterController {
 
   /**
    * Set the up direction.
-   * @param up - The up direction
+   * @param up - The normalized up direction
    */
   setUpDirection(up: Vector3): void;
 

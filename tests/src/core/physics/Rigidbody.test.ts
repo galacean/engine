@@ -4,10 +4,13 @@ import {
   Entity,
   BoxCollider,
   Collider,
+  FixedJoint,
+  HingeJoint,
   HitResult,
   Rigidbody,
   RigidbodyConstraints,
   CollisionDetectionMode,
+  Loader,
   MeshCollider,
   PlaneCollider,
   PrimitiveMesh
@@ -15,6 +18,7 @@ import {
 import { WebGLEngine } from "@galacean/engine";
 import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
 import { vi, describe, beforeAll, afterAll, beforeEach, afterEach, expect, it } from "vitest";
+import { PrefabParser } from "../../../../packages/loader/src/prefab/PrefabParser";
 
 describe("Rigidbody", function () {
   let engine: Engine;
@@ -169,13 +173,10 @@ describe("Rigidbody", function () {
   });
 
   it("automaticCenterOfMass", function () {
-    const consoleWarnSpy = vi.spyOn(console, "warn");
     const box = addBox(new Vector3(2, 2, 2), true, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(Rigidbody);
     boxCollider.automaticCenterOfMass = true;
     expect(boxCollider.automaticCenterOfMass).toBeTruthy();
-    boxCollider.centerOfMass = new Vector3(0, 0, 0);
-    expect(consoleWarnSpy).toBeCalledTimes(1);
     boxCollider.automaticInertiaTensor = true;
     expect(boxCollider.centerOfMass).to.deep.include({ x: 0, y: 0, z: 0 });
 
@@ -191,7 +192,6 @@ describe("Rigidbody", function () {
   });
 
   it("inertiaTensor", function () {
-    const consoleWarnSpy = vi.spyOn(console, "warn");
     const box = addBox(new Vector3(2, 2, 2), true, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(Rigidbody);
     boxCollider.automaticCenterOfMass = false;
@@ -199,10 +199,8 @@ describe("Rigidbody", function () {
     boxCollider.automaticInertiaTensor = true;
     expect(boxCollider.automaticInertiaTensor).toBeTruthy();
     boxCollider.inertiaTensor = new Vector3(0, 1, 0);
-    expect(consoleWarnSpy).toBeCalledTimes(1);
 
     boxCollider.automaticInertiaTensor = false;
-    boxCollider.inertiaTensor = new Vector3(0, 1, 0);
     boxCollider.applyTorque(new Vector3(0, 10, 0));
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(boxCollider.inertiaTensor.y)).eq(1);
@@ -217,19 +215,12 @@ describe("Rigidbody", function () {
   });
 
   it("automaticInertiaTensor", function () {
-    const consoleWarnSpy = vi.spyOn(console, "warn");
     const box = addBox(new Vector3(2, 2, 2), true, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(Rigidbody);
-    // Disabling automaticInertiaTensor kept the value computed from the attached box
-    expect(formatValue(boxCollider.inertiaTensor.y)).eq(0.66667);
-    boxCollider.inertiaTensor = new Vector3(0, 2, 0);
-    expect(formatValue(boxCollider.inertiaTensor.y)).eq(2);
 
     boxCollider.automaticCenterOfMass = true;
     boxCollider.automaticInertiaTensor = true;
     expect(boxCollider.automaticInertiaTensor).toBeTruthy();
-    boxCollider.inertiaTensor = new Vector3(2, 0, 0);
-    expect(consoleWarnSpy).toBeCalledTimes(1);
     expect(formatValue(boxCollider.inertiaTensor.y)).eq(0.66667);
 
     const newBoxShape = box.addComponent(BoxCollider);
@@ -474,7 +465,7 @@ describe("Rigidbody", function () {
       ["inertiaTensor", "automaticInertiaTensor", false],
       ["centerOfMass", "automaticCenterOfMass", true],
       ["inertiaTensor", "automaticInertiaTensor", true]
-    ] as const)("preserves %s when disabling %s (kinematic: %s)", (property, automatic, isKinematic) => {
+    ] as const)("selects %s when disabling %s (kinematic: %s)", (property, automatic, isKinematic) => {
       const entity = rootEntity.createChild("source");
       const source = entity.addComponent(Rigidbody);
       const shape = entity.addComponent(BoxCollider);
@@ -505,13 +496,15 @@ describe("Rigidbody", function () {
       target.isKinematic = false;
 
       const expected =
-        property === "centerOfMass"
-          ? state === "reshaped"
-            ? new Vector3(3, 4, 5)
-            : new Vector3(1, 2, 3)
-          : state === "reshaped"
-            ? new Vector3(25, 20, 13)
-            : new Vector3(13, 10, 5);
+        state === "reenabled"
+          ? new Vector3(2, 3, 4)
+          : property === "centerOfMass"
+            ? state === "reshaped"
+              ? new Vector3(3, 4, 5)
+              : new Vector3(1, 2, 3)
+            : state === "reshaped"
+              ? new Vector3(25, 20, 13)
+              : new Vector3(13, 10, 5);
       const actual = target[property];
       expect(actual.x).toBeCloseTo(expected.x, 5);
       expect(actual.y).toBeCloseTo(expected.y, 5);
@@ -804,24 +797,113 @@ describe("Rigidbody", function () {
     noPhysicsEngine.destroy();
   });
 
-  it("does not leak rejected centerOfMass or inertiaTensor writes into manual mode", function () {
+  it("reads back authored mass properties while the simulation uses computed values", function () {
     const box = addBox(new Vector3(2, 2, 2), true, new Vector3(0, 0, 0));
     const body = box.getComponent(Rigidbody);
     body.automaticCenterOfMass = true;
     body.automaticInertiaTensor = true;
-
-    const initialCenterOfMass = body.centerOfMass.clone();
-    const initialInertiaTensor = body.inertiaTensor.clone();
-    const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
+    body.useGravity = false;
+    body.angularDamping = 0;
 
     body.centerOfMass = new Vector3(5, 6, 7);
-    body.inertiaTensor = new Vector3(8, 9, 10);
-    expect(warnings).toHaveBeenCalledTimes(2);
+    body.inertiaTensor.x = 8;
+    body.inertiaTensor.y = 9;
+    body.inertiaTensor.z = 10;
+    expect(Vector3.equals(body.centerOfMass, new Vector3(5, 6, 7))).toBe(true);
+    expect(Vector3.equals(body.inertiaTensor, new Vector3(8, 9, 10))).toBe(true);
 
+    const physics = engine.sceneManager.activeScene.physics;
+    body.applyForceAtPosition(new Vector3(0, 1, 0), box.transform.worldPosition);
+    physics._update(physics.fixedTimeStep);
+    expect(body.angularVelocity.length()).toBeCloseTo(0, 5);
+    body.applyTorque(new Vector3(0, 1, 0));
+    physics._update(physics.fixedTimeStep);
+    expect(body.angularVelocity.y).toBeCloseTo(((physics.fixedTimeStep * 1.5) / Math.PI) * 180, 5);
+
+    const clone = box.clone();
+    rootEntity.addChild(clone);
+    const clonedBody = clone.getComponent(Rigidbody);
+    clonedBody.automaticCenterOfMass = false;
+    clonedBody.automaticInertiaTensor = false;
+    expect(Vector3.equals(clonedBody.centerOfMass, new Vector3(5, 6, 7))).toBe(true);
+    expect(Vector3.equals(clonedBody.inertiaTensor, new Vector3(8, 9, 10))).toBe(true);
+
+    clonedBody.centerOfMass.x = 11;
+    clonedBody.inertiaTensor.y = 12;
     body.automaticCenterOfMass = false;
     body.automaticInertiaTensor = false;
-    expect(Vector3.equals(body.centerOfMass, initialCenterOfMass)).toBe(true);
-    expect(Vector3.equals(body.inertiaTensor, initialInertiaTensor)).toBe(true);
+    expect(Vector3.equals(body.centerOfMass, new Vector3(5, 6, 7))).toBe(true);
+    expect(Vector3.equals(body.inertiaTensor, new Vector3(8, 9, 10))).toBe(true);
+  });
+
+  it.each([true, false])("merges partial inherited prefab input with manual input first: %s", async (inputFirst) => {
+    Loader.registerClass("Rigidbody", Rigidbody);
+    Loader.registerClass("HingeJoint", HingeJoint);
+    Loader.registerClass("FixedJoint", FixedJoint);
+    const baseUrl = "test://manual-physics.prefab";
+    const base = await PrefabParser.parse(engine, baseUrl, {
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "body", components: [0, 1, 2] }],
+      components: [
+        { type: "Rigidbody", props: { centerOfMass: { x: 1, y: 2, z: 3 }, inertiaTensor: { x: 4, y: 5, z: 6 } } },
+        { type: "HingeJoint", props: { connectedAnchor: { x: 1, y: 2, z: 3 } } },
+        { type: "FixedJoint" }
+      ],
+      root: 0
+    });
+    vi.spyOn(engine.resourceManager, "getResourceByRef").mockResolvedValue(base);
+    const massInput = { centerOfMass: { x: 7 }, inertiaTensor: { z: 9 } };
+    const massMode = { automaticCenterOfMass: false, automaticInertiaTensor: false };
+    const jointInput = { connectedAnchor: { y: 8 } };
+    const jointMode = { automaticConnectedAnchor: false };
+    const anchorInput = { anchor: { x: 1, y: 2, z: 3 } };
+    const prefab = await PrefabParser.parse(engine, "test://manual-physics-override.prefab", {
+      version: "2.0",
+      refs: [{ url: baseUrl }],
+      entities: [
+        {
+          instance: {
+            asset: 0,
+            overrides: {
+              componentProps: [
+                {
+                  path: [],
+                  selector: { type: "Rigidbody", index: 0 },
+                  props: inputFirst ? { ...massInput, ...massMode } : { ...massMode, ...massInput }
+                },
+                {
+                  path: [],
+                  selector: { type: "HingeJoint", index: 0 },
+                  props: inputFirst ? { ...jointInput, ...jointMode } : { ...jointMode, ...jointInput }
+                },
+                {
+                  path: [],
+                  selector: { type: "FixedJoint", index: 0 },
+                  props: inputFirst ? { ...anchorInput, ...jointMode } : { ...jointMode, ...anchorInput }
+                }
+              ]
+            }
+          }
+        }
+      ],
+      components: [],
+      root: 0
+    });
+    const instance = prefab.instantiate();
+    rootEntity.addChild(instance);
+    const body = instance.getComponent(Rigidbody);
+    const joint = instance.getComponent(HingeJoint);
+    const fixed = instance.getComponent(FixedJoint);
+    expect(body.automaticCenterOfMass).toBe(false);
+    expect(body.automaticInertiaTensor).toBe(false);
+    expect(joint.automaticConnectedAnchor).toBe(false);
+    expect(Vector3.equals(body.centerOfMass, new Vector3(7, 2, 3))).toBe(true);
+    expect(Vector3.equals(body.inertiaTensor, new Vector3(4, 5, 9))).toBe(true);
+    expect(Vector3.equals(joint.connectedAnchor, new Vector3(1, 8, 3))).toBe(true);
+    expect(fixed.automaticConnectedAnchor).toBe(false);
+    expect(Vector3.equals(fixed.anchor, new Vector3(1, 2, 3))).toBe(true);
+    expect(Vector3.equals(fixed.connectedAnchor, new Vector3())).toBe(true);
   });
 
   it("ignores force, torque, and move calls after destroy while the entity stays active", function () {

@@ -59,15 +59,15 @@ export interface IPhysics {
   /**
    * Create box collider shape.
    * @param uniqueID - Collider unique id
-   * @param size - Size of the box
+   * @param halfExtents - Scaled half extents of the box
    * @param material - The material of this shape
    */
-  createBoxColliderShape(uniqueID: number, size: Vector3, material: IPhysicsMaterial): IBoxColliderShape;
+  createBoxColliderShape(uniqueID: number, halfExtents: Vector3, material: IPhysicsMaterial): IBoxColliderShape;
 
   /**
    * Create sphere collider shape.
    * @param uniqueID - Collider unique id
-   * @param radius - Radius of the sphere
+   * @param radius - Scaled radius of the sphere
    * @param material - The material of this shape
    */
   createSphereColliderShape(uniqueID: number, radius: number, material: IPhysicsMaterial): ISphereColliderShape;
@@ -82,15 +82,17 @@ export interface IPhysics {
   /**
    * Create capsule collider shape.
    * @param uniqueID - Collider unique id
-   * @param radius - Radius of capsule
-   * @param height - Height of capsule
+   * @param radius - Scaled radius of the capsule
+   * @param halfHeight - Scaled half height of the cylinder, excluding caps
    * @param material - The material of this shape
+   * @param upAxis - The local up axis
    */
   createCapsuleColliderShape(
     uniqueID: number,
     radius: number,
-    height: number,
-    material: IPhysicsMaterial
+    halfHeight: number,
+    material: IPhysicsMaterial,
+    upAxis: number
   ): ICapsuleColliderShape;
 
   /**
@@ -101,7 +103,7 @@ export interface IPhysics {
    * @param isConvex - Whether to create convex mesh (true) or triangle mesh (false)
    * @param material - The material of this shape
    * @param cookingFlags - Cooking flags
-   * @remarks The shape starts at unit scale, apply the world scale with {@link IColliderShape.setWorldScale}.
+   * @param scale - Absolute world scale
    */
   createMeshColliderShape(
     uniqueID: number,
@@ -109,7 +111,8 @@ export interface IPhysics {
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
     material: IPhysicsMaterial,
-    cookingFlags: number
+    cookingFlags: number,
+    scale: Vector3
   ): IMeshColliderShape | null;
 
   /**
