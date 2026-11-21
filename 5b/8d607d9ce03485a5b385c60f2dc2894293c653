@@ -1,0 +1,61 @@
+packages/design/src/physics/ICharacterController.ts
+  s_d2c65ec75a2f3e::t_ee33a2ff36ff32 148-153
+  s_d2c65ec75a2f3e::t_9db4cf1fe448ae 147
+packages/core/src/physics/PhysicsScene.ts
+  s_d2c65ec75a2f3e::t_486bc5678c5efd 190-191,193-194,197-198
+  s_d2c65ec75a2f3e::t_32ca5adc44d0e8 177-189,192,195-196,199-201
+  s_d2c65ec75a2f3e::t_37ca243b6fcee4 202-204,206-216
+  s_d2c65ec75a2f3e::t_a63248bfe1ef48 205
+packages/core/src/physics/CharacterController.ts
+  s_d2c65ec75a2f3e::t_04bf19f8df26c6 56-61
+  s_d2c65ec75a2f3e::t_ee33a2ff36ff32 75-76,294-329,574-576
+packages/design/src/physics/IPhysicsScene.ts
+  s_d2c65ec75a2f3e::t_486bc5678c5efd 44-45
+  s_d2c65ec75a2f3e::t_37ca243b6fcee4 48-52
+  s_d2c65ec75a2f3e::t_32ca5adc44d0e8 41-43,46
+  s_d2c65ec75a2f3e::t_dafef50bd269d3 47
+docs/zh/physics/collider/characterController.mdx
+  s_d2c65ec75a2f3e::t_04bf19f8df26c6 70-71
+  s_d2c65ec75a2f3e::t_0b43965492cdb6 75-79
+  s_d2c65ec75a2f3e::t_69fb4d0b7b7875 80
+packages/physics-physx/src/PhysXCharacterController.ts
+  s_d2c65ec75a2f3e::t_ee33a2ff36ff32 39-40,279-283,354-355
+  s_d2c65ec75a2f3e::t_a652ccc478dff3 38,275-276,353
+  s_d2c65ec75a2f3e::t_3ae10522ed7a98 277-278
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_d2c65ec75a2f3e::t_486bc5678c5efd 34,153-155,158-160,532
+  s_d2c65ec75a2f3e::t_32ca5adc44d0e8 33,143-152,156-157,161-162,531,533-534
+  s_d2c65ec75a2f3e::t_37ca243b6fcee4 201-205
+tests/src/core/physics/CharacterController.test.ts
+  s_d2c65ec75a2f3e::t_04bf19f8df26c6 13-14,111-112,835,837-859,861-870
+  s_d2c65ec75a2f3e::t_3df721fb3cc2a5 1650-1651,1653-1663,1665-1668,1670-1675
+  s_d2c65ec75a2f3e::t_fcd8925cd117e8 834,836,860
+  s_d2c65ec75a2f3e::t_75dc8181a697e7 1677-1689,1691-1702
+  s_d2c65ec75a2f3e::t_486bc5678c5efd 149-176
+  s_d2c65ec75a2f3e::t_a652ccc478dff3 177-199
+  s_d2c65ec75a2f3e::t_e9c1b43c670f29 1664,1669,1676
+  s_d2c65ec75a2f3e::t_874431c38932a5 1652
+  s_d2c65ec75a2f3e::t_a63248bfe1ef48 1599-1605
+  s_d2c65ec75a2f3e::t_37ca243b6fcee4 871,1565-1598,1606-1649,1690,1703
+  s_d2c65ec75a2f3e::t_62552a0bc943ba 872
+docs/en/physics/collider/characterController.mdx
+  s_d2c65ec75a2f3e::t_04bf19f8df26c6 70-71
+  s_d2c65ec75a2f3e::t_0b43965492cdb6 75-79
+  s_d2c65ec75a2f3e::t_9f6e2baee7279e 80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5b8d607d9ce03485a5b385c60f2dc2894293c653",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,148 @@
+packages/core/src/lighting/SpotLight.ts
+  s_d2c65ec75a2f3e::t_9135da0a65ca25 76
+  s_d2c65ec75a2f3e::t_ef71c0dd2cc1ad 77-81
+packages/core/src/2d/sprite/SpriteMask.ts
+  s_d2c65ec75a2f3e::t_2ec3c6fc6d56e4 274
+  s_d2c65ec75a2f3e::t_826bdd729f3f36 239
+packages/core/src/input/pointer/emitter/PhysicsPointerEventEmitter.ts
+  s_d2c65ec75a2f3e::t_e4ca2047cd430c 42
+  s_d2c65ec75a2f3e::t_27ab3641aa3afc 33,43,49,64
+packages/core/src/postProcess/PostProcessManager.ts
+  s_d2c65ec75a2f3e::t_e4ca2047cd430c 1,17,66,87
+packages/core/src/lighting/DirectLight.ts
+  s_d2c65ec75a2f3e::t_9135da0a65ca25 67
+  s_d2c65ec75a2f3e::t_09cc9a107a4fe6 33-34,51-59,68
+docs/zh/physics/collider/rigidbody.mdx
+  s_d2c65ec75a2f3e::t_1499274da20e4d 34-36
+packages/core/src/mesh/Skin.ts
+  s_d2c65ec75a2f3e::t_2ec3c6fc6d56e4 78-80,92-98
+  s_d2c65ec75a2f3e::t_9135da0a65ca25 25-26,81-87
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  s_d2c65ec75a2f3e::t_cfadc58224fe47 129
+  s_d2c65ec75a2f3e::t_e4ca2047cd430c 133
+packages/core/src/2d/text/TextRenderer.ts
+  s_d2c65ec75a2f3e::t_2ec3c6fc6d56e4 272,381,436
+packages/core/src/2d/sprite/SpriteRenderer.ts
+  s_d2c65ec75a2f3e::t_826bdd729f3f36 315
+  s_d2c65ec75a2f3e::t_2ec3c6fc6d56e4 346
+packages/core/src/Renderer.ts
+  s_d2c65ec75a2f3e::t_2ec3c6fc6d56e4 79-80,139,393-397,402,476-477,479-481,483
+  s_d2c65ec75a2f3e::t_910528cef4ea2a 478
+  s_d2c65ec75a2f3e::t_05d108ca1fa16d 482,484
+packages/math/src/Quaternion.ts
+  s_d2c65ec75a2f3e::t_a4f7b306ee753a 257,261,267
+packages/core/src/shadow/ShadowUtils.ts
+  s_d2c65ec75a2f3e::t_e4ca2047cd430c 215
+packages/ui/src/input/UIPointerEventEmitter.ts
+  s_d2c65ec75a2f3e::t_071ce6a32bfdd6 86-88,90-93
+  s_d2c65ec75a2f3e::t_910528cef4ea2a 11
+  s_a4d9dd90218d81::t_3d4de18c17a4b0 9,16,30-32,78,82-85,89,94,107-109
+packages/core/src/sky/Sky.ts
+  s_d2c65ec75a2f3e::t_cb32171c1cda92 83,91
+packages/ui/src/component/advanced/Text.ts
+  s_d2c65ec75a2f3e::t_910528cef4ea2a 213,304,361
+tests/src/core/physics/PhysicsInterpolation.test.ts
+  s_d2c65ec75a2f3e::t_071ce6a32bfdd6 281-300
+  s_d2c65ec75a2f3e::t_7170a054fa239c 1-11,13,15-23,25-37,39-52,54-70,72-81,86-87,89-101,103-105,107-109,111-115,117-119,121-123,145-172,178-179,181-183,187,194-202,204-205,207-209,250,301
+  s_d2c65ec75a2f3e::t_8703bffbb1eb2e 214-216,233,238,240,242-245
+  s_d2c65ec75a2f3e::t_a59be08efce53f 212
+  s_d2c65ec75a2f3e::t_d40d0ba6958186 251-280
+  s_d2c65ec75a2f3e::t_0a3fca0ba49457 173-177
+  s_d2c65ec75a2f3e::t_eaa271c6f02242 110,120,206
+  s_d2c65ec75a2f3e::t_311b97122ef360 24,38,71,102,106,116,124,142-144
+  s_d2c65ec75a2f3e::t_c9ee4511291a58 135-141,180,184-186,188-193,203
+  s_d2c65ec75a2f3e::t_2979602ea23f5f 12,14,53,82-85,210-211,213,217-232,234-237,239,241,246-249
+  s_d2c65ec75a2f3e::t_79ff7ef54387dc 125-134
+  s_d2c65ec75a2f3e::t_a271dedda0894f 88
+tests/src/math/Quaternion.test.ts
+  s_d2c65ec75a2f3e::t_79ff7ef54387dc 132-135
+packages/core/src/physics/PhysicsScene.ts
+  s_d2c65ec75a2f3e::t_49eb9e517aaee1 958-964,968
+  s_d2c65ec75a2f3e::t_a4f7b306ee753a 999
+  s_d2c65ec75a2f3e::t_5ee68cf5371729 96,951-953,957,1062,1095
+  s_d2c65ec75a2f3e::t_a4671a51328e80 76,83-84,950,954-956,965-967,969-971
+  s_d2c65ec75a2f3e::t_cb32171c1cda92 66,88-89,92,943
+  s_d2c65ec75a2f3e::t_1009e3e13e46d4 86-87,90-91,93
+  s_a4d9dd90218d81::t_942136a6d43273 69,74-75,77-82,85
+packages/core/src/Transform.ts
+  s_d2c65ec75a2f3e::t_9c6fc7809b34fb 7,647
+  s_d2c65ec75a2f3e::t_9631191167d2fb 632
+  s_d2c65ec75a2f3e::t_48fb096f502e53 628
+  s_d2c65ec75a2f3e::t_49eb9e517aaee1 645-646,648-650
+  s_d2c65ec75a2f3e::t_a4671a51328e80 56-59,627,629-631,633-635,639-644
+  s_d2c65ec75a2f3e::t_c7ebf3b4ff6f99 636-638
+  s_d2c65ec75a2f3e::t_ae0a3da9571944 651
+packages/core/src/Camera.ts
+  s_d2c65ec75a2f3e::t_e4ca2047cd430c 168-174,335,350,543,633-634,637-638,640-647,649,651,665,689,759,761-763,784-787,914-916,966-980,983-986
+  s_d2c65ec75a2f3e::t_31dfebbaa12243 625-632,635-636,639,669,760
+  s_d2c65ec75a2f3e::t_d40d0ba6958186 37-46
+  s_d2c65ec75a2f3e::t_9631191167d2fb 790
+  s_d2c65ec75a2f3e::t_9ee6a7f6575380 678,769,771,788-789,791-797
+  s_d2c65ec75a2f3e::t_3ee62c2ab329dd 331-332
+  s_d2c65ec75a2f3e::t_27ab3641aa3afc 175,679-688,691,754,764-768,770,772-783,917
+  s_a4d9dd90218d81::t_13af98e382dcb1 798
+docs/en/physics/collider/rigidbody.mdx
+  s_d2c65ec75a2f3e::t_1499274da20e4d 34-36
+packages/ui/src/component/advanced/Image.ts
+  s_d2c65ec75a2f3e::t_910528cef4ea2a 159,165,174-175
+  s_d2c65ec75a2f3e::t_0c7951c8a88437 205
+packages/core/src/mesh/SkinnedMeshRenderer.ts
+  s_d2c65ec75a2f3e::t_2ec3c6fc6d56e4 224
+packages/ui/src/component/UIRenderer.ts
+  s_d2c65ec75a2f3e::t_910528cef4ea2a 134-135,138-139,149,258-260,265
+  s_d2c65ec75a2f3e::t_86d1f72b5df79e 136-137
+  s_d2c65ec75a2f3e::t_9e101f7397107f 254,256-257
+packages/core/src/lighting/PointLight.ts
+  s_d2c65ec75a2f3e::t_9135da0a65ca25 44
+  s_d2c65ec75a2f3e::t_498a17025f5834 45-48
+packages/ui/src/component/UICanvas.ts
+  s_d2c65ec75a2f3e::t_9631191167d2fb 322
+  s_d2c65ec75a2f3e::t_910528cef4ea2a 681-684,688-689
+  s_d2c65ec75a2f3e::t_86d1f72b5df79e 17,47,263,269,311-321,323-327,370
+packages/core/src/physics/Rigidbody.ts
+  s_d2c65ec75a2f3e::t_9631191167d2fb 834,851,854,1000-1002,1008-1042
+  s_d2c65ec75a2f3e::t_5ee68cf5371729 482-483,493,803-804,806-807
+  s_d2c65ec75a2f3e::t_a4671a51328e80 2,58-59,83,480-481,484-492,800-802,805,808-812,824-825,828,831-833,835-850,852-853,1003-1007
+  s_d2c65ec75a2f3e::t_5c592db917d17f 494-497,650,788,826-827,829-830,855,1043-1046
+tests/src/ui/UIInterpolation.test.ts
+  s_d2c65ec75a2f3e::t_61b6e3d1a8eadb 46-49,73,83,93,101-115,127
+  s_d2c65ec75a2f3e::t_e28559ecfd422f 123
+  s_d2c65ec75a2f3e::t_95e31cf65f9cd1 1-45,50-72,74-82,84-92,94-100,116-122,124-126,128-136
+packages/core/src/lighting/Light.ts
+  s_d2c65ec75a2f3e::t_9135da0a65ca25 1,13,83
+  s_d2c65ec75a2f3e::t_84a9be0648affd 11-12,84-89
+packages/core/src/RenderPipeline/InstanceBuffer.ts
+  s_d2c65ec75a2f3e::t_2ec3c6fc6d56e4 66
+packages/core/src/Scene.ts
+  s_d2c65ec75a2f3e::t_865e2a6d62a219 490
+packages/core/src/mesh/MeshRenderer.ts
+  s_d2c65ec75a2f3e::t_5c0372461cbf3b 108
+packages/spine/src/renderer/SpineAnimationRenderer.ts
+  s_d2c65ec75a2f3e::t_11ff07a3addfaa 323
+packages/ui/src/interface/IGraphics.ts
+  s_d2c65ec75a2f3e::t_1a49833dd5b734 9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4b704108ca801e2218e2bacdee1bb925a24f0aa9",
+  "prompts": {},
+  "sessions": {
+    "s_a4d9dd90218d81": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1fc06-e419-7d62-a252-2e83fbdcf328",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

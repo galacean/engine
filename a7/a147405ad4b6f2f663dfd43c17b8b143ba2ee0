@@ -1,0 +1,64 @@
+packages/design/src/physics/shape/IColliderShape.ts
+  s_d2c65ec75a2f3e::t_561074cee5e6d0 17-19,21
+docs/zh/physics/overall.mdx
+  s_d2c65ec75a2f3e::t_5a6ed864ac4d2a 28
+packages/design/src/physics/joints/IHingeJoint.ts
+  s_d2c65ec75a2f3e::t_15fb5bad00784c 28,30
+docs/zh/physics/collider/overview.mdx
+  s_d2c65ec75a2f3e::t_9f126dd4df0c72 51-52,56
+  s_d2c65ec75a2f3e::t_eda456d1f7e9d2 57
+tests/src/core/physics/Collider.test.ts
+  s_d2c65ec75a2f3e::t_69c45b7ec992aa 457-488
+  s_d2c65ec75a2f3e::t_9f126dd4df0c72 407-456
+packages/core/src/physics/joint/JointLimits.ts
+  s_d2c65ec75a2f3e::t_af0a082e427b78 83-84
+  s_d2c65ec75a2f3e::t_ecf339af73bbce 73-74,76
+  s_d2c65ec75a2f3e::t_15fb5bad00784c 14,72,75,77-82,85-87,89-90
+  s_d2c65ec75a2f3e::t_8ca1ac0d8f8aed 88,91
+packages/physics-physx/src/shape/PhysXColliderShape.ts
+  s_d2c65ec75a2f3e::t_561074cee5e6d0 50,52-53
+packages/core/src/physics/CharacterController.ts
+  s_d2c65ec75a2f3e::t_561074cee5e6d0 184-196,658-659
+  s_d2c65ec75a2f3e::t_0ee83dd9077aa4 183
+docs/en/physics/joint/hingeJoint.mdx
+  s_d2c65ec75a2f3e::t_ecf339af73bbce 62
+packages/physics-physx/src/joint/PhysXHingeJoint.ts
+  s_d2c65ec75a2f3e::t_15fb5bad00784c 102-103
+tests/src/core/physics/MeshCollider.test.ts
+  s_d2c65ec75a2f3e::t_69c45b7ec992aa 85-101
+docs/zh/physics/joint/hingeJoint.mdx
+  s_d2c65ec75a2f3e::t_ecf339af73bbce 62
+packages/core/src/physics/Collider.ts
+  s_d2c65ec75a2f3e::t_03a56071ce97fe 203-204,669
+  s_d2c65ec75a2f3e::t_af0a082e427b78 217,225
+  s_d2c65ec75a2f3e::t_561074cee5e6d0 109-110,122,193,195-196,208-216,218-224,226-230,679-681,728
+  s_d2c65ec75a2f3e::t_30cf5ee4ec4925 475-476,517,648,718-727
+  s_d2c65ec75a2f3e::t_017bfa5c36d6a1 729
+tests/src/core/physics/HingeJoint.test.ts
+  s_d2c65ec75a2f3e::t_ecf339af73bbce 140-170
+docs/en/physics/overall.mdx
+  s_d2c65ec75a2f3e::t_5a6ed864ac4d2a 28
+docs/en/physics/collider/overview.mdx
+  s_d2c65ec75a2f3e::t_9f126dd4df0c72 51-52,56
+  s_d2c65ec75a2f3e::t_790d4a3a0ab1cf 57
+tests/src/core/physics/CharacterController.test.ts
+  s_d2c65ec75a2f3e::t_9f126dd4df0c72 693-698
+packages/core/src/physics/joint/HingeJoint.ts
+  s_d2c65ec75a2f3e::t_15fb5bad00784c 250
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a7a147405ad4b6f2f663dfd43c17b8b143ba2ee0",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

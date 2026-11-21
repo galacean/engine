@@ -1,0 +1,35 @@
+docs/zh/physics/query/sweep.mdx
+  s_d2c65ec75a2f3e::t_461868f800ba68 202,230,232,268,275,277
+  s_d2c65ec75a2f3e::t_9eac52c595c2db 206-215,254
+packages/core/src/physics/PhysicsScene.ts
+  s_d2c65ec75a2f3e::t_0868368556f282 487,493,500,507,524,658
+  s_d2c65ec75a2f3e::t_2b8cf92c1a5d80 578,580,589,672-673,678
+docs/en/physics/query/sweep.mdx
+  s_d2c65ec75a2f3e::t_461868f800ba68 204,232,234,256,270,277,279
+  s_d2c65ec75a2f3e::t_9eac52c595c2db 208-217
+docs/zh/physics/query/overlap.mdx
+  s_d2c65ec75a2f3e::t_461868f800ba68 198-199,206,228,247-249
+  s_d2c65ec75a2f3e::t_9eac52c595c2db 271
+tests/src/core/physics/PhysicsScene.test.ts
+  s_d2c65ec75a2f3e::t_3e832abe019623 483-484,521,958,972,1220,1484,1601-1623,1635,1746,1840,1865,1906,2721,2760-2762,2775-2777
+docs/en/physics/query/overlap.mdx
+  s_d2c65ec75a2f3e::t_461868f800ba68 198-199,206,228,247-249,271
+tests/src/core/physics/MeshColliderLayer.test.ts
+  s_d2c65ec75a2f3e::t_3e832abe019623 111,116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2e4f7870af8b0f37d4a8a0d81995c2f04b63cedf",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
