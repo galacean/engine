@@ -3,6 +3,8 @@
  * @remarks enumeration can be combined using bit operations.
  */
 export enum ShaderDataGroup {
+  /** None group. */
+  None = 0,
   /** Scene group. */
   Scene = 0x1,
   /** Camera group. */

@@ -246,10 +246,10 @@ describe("ShaderProperty isolation across shaders and groups", () => {
     const texB = new Texture2D(engine, 1, 1);
 
     material.shaderData.setTexture(propName, texA);
-    expect(ShaderProperty.getByName(propName).type).toBe(ShaderPropertyType.Texture);
+    expect(ShaderProperty.getByName(propName).types).toBe(ShaderPropertyType.Texture);
     expect(texA.refCount).toBe(1);
     material.shaderData.setFloat(propName, 2.5);
-    expect(ShaderProperty.getByName(propName).type).toBe(ShaderPropertyType.Texture | ShaderPropertyType.Float);
+    expect(ShaderProperty.getByName(propName).types).toBe(ShaderPropertyType.Texture | ShaderPropertyType.Float);
     expect(texA.refCount).toBe(0);
     expect(material.shaderData.getFloat(propName)).toBe(2.5);
     material.shaderData.setTextureArray(propName, [texA, texB]);

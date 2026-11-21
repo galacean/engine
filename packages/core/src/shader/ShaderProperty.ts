@@ -34,7 +34,7 @@ export class ShaderProperty {
   /** @internal */
   _uniqueId: number;
   /** @internal */
-  _group: number = 0;
+  _group: ShaderDataGroup = ShaderDataGroup.None;
   /** @internal */
   _type: ShaderPropertyType = ShaderPropertyType.None;
 
@@ -42,9 +42,9 @@ export class ShaderProperty {
   readonly name: string;
 
   /**
-   * Shader property type.
+   * Shader property types.
    */
-  get type(): ShaderPropertyType {
+  get types(): ShaderPropertyType {
     return this._type;
   }
 
@@ -71,7 +71,7 @@ export class ShaderProperty {
     const current = this._group;
     if ((current & group) === 0) {
       this._group = current | group;
-      current !== 0 && ShaderProperty._groupConflictVersion++;
+      current !== ShaderDataGroup.None && ShaderProperty._groupConflictVersion++;
     }
   }
 }
