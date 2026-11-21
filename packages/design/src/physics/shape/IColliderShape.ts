@@ -3,7 +3,7 @@ import { IPhysicsMaterial } from "../IPhysicsMaterial";
 
 /**
  * Interface for physics collider shape.
- * @remarks New shapes participate in simulation and scene queries by default.
+ * @remarks Set a new shape's local pose before attaching it. New shapes participate in simulation and scene queries by default.
  */
 export interface IColliderShape {
   /**

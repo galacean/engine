@@ -24,14 +24,13 @@ import type { Joint } from "./joint/Joint";
 export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   private static _tempPosition = new Vector3();
   private static _tempRotation = new Quaternion();
-  private static _tempColliders: Collider[] = [];
 
   /** @internal */
   @ignoreClone
   _dirtyIndex = -1;
   /** @internal */
   @ignoreClone
-  _massDirty = false;
+  _massDirty = RigidbodyMassDirty.None;
   /** @internal Index in the physics scene's enabled bodies. */
   @ignoreClone
   _index = -1;
@@ -151,10 +150,13 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   set mass(value: number) {
     if (this._mass !== value) {
       this._mass = value;
-      if (this._automaticInertiaTensor || this._automaticCenterOfMass) {
-        this._markMassDirty();
+      const scene = this._registeredScene;
+      if (scene) {
+        this._massDirty |= RigidbodyMassDirty.MassChanged;
+        scene.physics._markMassDirty(this);
       } else {
         this._nativeActor?.setMass(value);
+        this._massDirty &= ~RigidbodyMassDirty.MassChanged;
       }
     }
   }
@@ -629,8 +631,13 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * Recompute automatic mass properties before the next simulation step or query.
    */
   _markMassDirty(): void {
-    // Entering a scene marks the body dirty again
-    this._registeredScene?.physics._markMassDirty(this);
+    if (
+      this._automaticCenterOfMass ||
+      this._automaticInertiaTensor ||
+      this._massDirty & RigidbodyMassDirty.MassChanged
+    ) {
+      this._registeredScene?.physics._markMassDirty(this);
+    }
   }
 
   /**
@@ -682,25 +689,29 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /**
    * @internal
-   * Recompute automatic mass properties from the attached Colliders, keeping manual values.
-   * @remarks Geometry without volume, which only kinematic bodies can own, has no mass properties; while it is
-   * attached the previous values are kept.
+   * Commit an authored mass change and recompute automatic properties when attached geometry has volume.
    */
   _updateMass(): void {
+    const dirty = this._massDirty;
+    this._massDirty = RigidbodyMassDirty.None;
     const actor = this._nativeActor;
-    if (!actor || !(this._automaticCenterOfMass || this._automaticInertiaTensor)) {
-      return;
-    }
-    const colliders = this._attachedColliders;
-    for (let i = 0, n = colliders.length; i < n; i++) {
-      if (!colliders[i]._nativeSupportsDynamicBody()) {
+    if (!actor) return;
+    const mass = this._mass;
+    // PhysX uses zero as infinite mass, but automatic mass properties require a positive mass.
+    if ((this._automaticCenterOfMass || this._automaticInertiaTensor) && Collider._isValidPositiveFloat32(mass)) {
+      const colliders = this._attachedColliders;
+      const count = colliders.length;
+      let i = 0;
+      while (i < count && colliders[i]._nativeSupportsDynamicBody()) i++;
+      if (i === count) {
+        // PhysX overwrites both properties, restore the manual ones
+        actor.setMassAndUpdateInertia(mass);
+        this._automaticCenterOfMass || actor.setCenterOfMass(this._centerOfMass);
+        this._automaticInertiaTensor || actor.setInertiaTensor(this._inertiaTensor);
         return;
       }
     }
-    // PhysX overwrites both properties, restore the manual ones
-    actor.setMassAndUpdateInertia(this._mass);
-    this._automaticCenterOfMass || actor.setCenterOfMass(this._centerOfMass);
-    this._automaticInertiaTensor || actor.setInertiaTensor(this._inertiaTensor);
+    if (dirty & RigidbodyMassDirty.MassChanged) actor.setMass(mass);
   }
 
   protected override _onDestroy(): void {
@@ -727,15 +738,14 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     this._markCollidersDirty();
   }
 
-  private _markCollidersDirty(): void {
-    if (!this.entity._isActiveInScene) {
-      return;
+  private _markCollidersDirty(entity = this.entity): void {
+    if (!entity._isActiveInScene || (entity.getComponent(Rigidbody) ?? this) !== this) return;
+    const { _components: components, children } = entity;
+    for (let i = 0, n = components.length; i < n; i++) {
+      const component = components[i];
+      if (component instanceof Collider) component._markDirty();
     }
-    const colliders = this.entity.getComponentsIncludeChildren(Collider, Rigidbody._tempColliders);
-    for (let i = 0, n = colliders.length; i < n; i++) {
-      colliders[i]._markDirty();
-    }
-    colliders.length = 0;
+    for (let i = 0, n = children.length; i < n; i++) this._markCollidersDirty(children[i]);
   }
 
   /**
@@ -802,6 +812,13 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     this._inertiaTensorAuthored = true;
     if (!this._automaticInertiaTensor) this._nativeActor?.setInertiaTensor(this._inertiaTensor);
   }
+}
+
+/** @internal */
+export enum RigidbodyMassDirty {
+  None = 0,
+  Queued = 1,
+  MassChanged = 2
 }
 
 /**

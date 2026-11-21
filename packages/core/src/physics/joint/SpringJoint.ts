@@ -1,6 +1,5 @@
-import { ISpringJoint } from "@galacean/engine-design";
+import { IDynamicCollider, ISpringJoint } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
-import { Rigidbody } from "../Rigidbody";
 import { Joint } from "./Joint";
 
 /**
@@ -98,10 +97,8 @@ export class SpringJoint extends Joint {
     }
   }
 
-  protected _createJoint(): void {
-    const bodyInfo = this._bodyInfo;
-    bodyInfo.body = this.entity.getComponent(Rigidbody);
-    this._nativeJoint = Engine._nativePhysics.createSpringJoint(bodyInfo.body!._getNativeActor());
+  protected override _createJoint(actor: IDynamicCollider): ISpringJoint {
+    return Engine._nativePhysics.createSpringJoint(actor);
   }
 
   protected override _syncNative(): void {

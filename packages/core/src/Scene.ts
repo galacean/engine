@@ -344,58 +344,7 @@ export class Scene extends EngineObject {
       return;
     }
 
-    const isRoot = rootEntity._isRoot;
-    const oldScene = rootEntity._scene;
-    if (index !== undefined && (oldScene !== this || !isRoot)) {
-      const rootCount = this._rootEntities.length;
-      if (index < 0 || index > rootCount) {
-        throw `The index ${index} is out of child list bounds ${rootCount}`;
-      }
-    }
-
-    // Let rootEntity become root
-    if (!isRoot) {
-      rootEntity._isRoot = true;
-      rootEntity._removeFromParent();
-      rootEntity._setParentChange();
-    }
-
-    // Add or remove from scene's rootEntities
-    if (oldScene !== this) {
-      if (oldScene && isRoot) {
-        Entity._removeFromChildren(oldScene._rootEntities, rootEntity);
-      }
-      Entity._addToChildren(this._rootEntities, rootEntity, index);
-    } else if (!isRoot) {
-      Entity._addToChildren(this._rootEntities, rootEntity, index);
-    }
-
-    // Process rootEntity active/inActive
-    let inActiveChangeFlag = ActiveChangeFlag.None;
-    if (rootEntity._isActiveInHierarchy) {
-      this._isActiveInEngine || (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
-    }
-
-    // Cross scene should inActive first and then active
-    rootEntity._isActiveInScene && oldScene !== this && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-
-    try {
-      inActiveChangeFlag && rootEntity._processInActive(inActiveChangeFlag);
-    } finally {
-      // Root membership has moved, even if a source lifecycle callback throws.
-      if (oldScene !== this) {
-        Entity._traverseSetOwnerScene(rootEntity, this);
-      }
-    }
-
-    let activeChangeFlag = ActiveChangeFlag.None;
-    if (rootEntity._isActive) {
-      if (this._isActiveInEngine) {
-        !rootEntity._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
-      }
-      (!rootEntity._isActiveInScene || oldScene !== this) && (activeChangeFlag |= ActiveChangeFlag.Scene);
-    }
-    activeChangeFlag && rootEntity._processActive(activeChangeFlag);
+    rootEntity._attachToHierarchy(this, index);
   }
 
   /**
@@ -404,16 +353,7 @@ export class Scene extends EngineObject {
    */
   removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene === this) {
-      Entity._removeFromChildren(this._rootEntities, entity);
-      entity._isRoot = false;
-      let inActiveChangeFlag = ActiveChangeFlag.None;
-      entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
-      entity._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-      try {
-        inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
-      } finally {
-        Entity._traverseSetOwnerScene(entity, null);
-      }
+      entity._detachFromHierarchy();
     }
   }
 

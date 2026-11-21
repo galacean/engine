@@ -440,6 +440,32 @@ describe("Scene", () => {
       }
     });
 
+    it("keeps a single root owner if a disable callback attempts to move the same root again", () => {
+      const source = new Scene(engine, "source");
+      const target = new Scene(engine, "target");
+      const redirected = new Scene(engine, "redirected");
+      engine.sceneManager.addScene(source);
+      const moving = source.createRootEntity("moving");
+      const sentinel = source.createRootEntity("sentinel");
+      moving.addComponent(
+        class extends Script {
+          override onDisable(): void {
+            redirected.addRootEntity(this.entity);
+          }
+        }
+      );
+
+      expect(() => target.addRootEntity(moving)).toThrow(/lifecycle callbacks/);
+      expect(source.rootEntities.map((entity) => entity.name)).toEqual([sentinel.name]);
+      expect(target.rootEntities.map((entity) => entity.name)).toEqual([moving.name]);
+      expect(redirected.rootEntitiesCount).toBe(0);
+      expect(moving.scene === target).toBe(true);
+
+      redirected.destroy();
+      target.destroy();
+      source.destroy();
+    });
+
     it("all destroy", () => {
       scene.createRootEntity("root1");
       scene.createRootEntity("root2");

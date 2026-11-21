@@ -396,8 +396,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
     }
 
     const attachedActor = this._nativeActor;
-    const actor = attachedActor ?? (body ? body._getNativeActor() : this._getStaticActor());
-    this._syncPose(shape, body, scale, shape !== previousShape);
+    const actor = body ? (attachedActor ?? body._getNativeActor()) : this._syncStaticActor(transform);
+    this._syncShapePose(shape, body, scale, shape !== previousShape);
     if (!attachedActor) {
       if (!actor.addShape(shape)) {
         console.error(`${this.constructor.name}: failed to attach to the native actor.`);
@@ -601,21 +601,27 @@ export class Collider extends Component implements ICloneHook<Collider> {
     this._markDirty();
   }
 
-  private _getStaticActor(): IStaticCollider {
+  private _syncStaticActor(transform: Transform): IStaticCollider {
+    const position = transform.worldPosition;
+    const rotation = transform.worldRotationQuaternion;
     let actor = this._staticActor;
     if (!actor) {
-      const transform = this.entity.transform;
-      const position = transform.worldPosition;
-      const rotation = transform.worldRotationQuaternion;
       this._staticActor = actor = Engine._nativePhysics.createStaticCollider(position, rotation);
-      this._nativeWorldPosition.copyFrom(position);
-      this._nativeWorldRotation.copyFrom(rotation);
+    } else {
+      if (
+        !Collider._differsF32(position, this._nativeWorldPosition) &&
+        !Collider._rotationDiffersF32(rotation, this._nativeWorldRotation)
+      ) {
+        return actor;
+      }
+      actor.setWorldTransform(position, rotation);
     }
+    this._nativeWorldPosition.copyFrom(position);
+    this._nativeWorldRotation.copyFrom(rotation);
     return actor;
   }
 
-  private _syncPose(shape: IColliderShape, body: Rigidbody | null, scale: Vector3, force: boolean): void {
-    const entity = this.entity;
+  private _syncShapePose(shape: IColliderShape, body: Rigidbody | null, scale: Vector3, force: boolean): void {
     const position = Collider._tempPosition;
     const rotation = Collider._tempRotation;
     const euler = this._rotation;
@@ -628,25 +634,10 @@ export class Collider extends Component implements ICloneHook<Collider> {
     Vector3.multiply(this._center, scale, position);
 
     if (body) {
+      const entity = this.entity;
       const bodyEntity = body.entity;
       if (entity !== bodyEntity) {
         this._transformPoseToBodySpace(entity, bodyEntity, position, rotation);
-      }
-    } else {
-      const staticActor = this._staticActor;
-      if (staticActor) {
-        const transform = entity.transform;
-        const worldPosition = transform.worldPosition;
-        const worldRotation = transform.worldRotationQuaternion;
-        const nativeWorldPosition = this._nativeWorldPosition;
-        if (
-          Collider._differsF32(worldPosition, nativeWorldPosition) ||
-          Collider._rotationDiffersF32(worldRotation, this._nativeWorldRotation)
-        ) {
-          nativeWorldPosition.copyFrom(worldPosition);
-          this._nativeWorldRotation.copyFrom(worldRotation);
-          staticActor.setWorldTransform(worldPosition, worldRotation);
-        }
       }
     }
 

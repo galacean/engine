@@ -156,6 +156,73 @@ describe("Rigidbody", function () {
     expect(formatValue(boxCollider.linearVelocity.x)).eq(1.66667);
   });
 
+  it.each(["automatic", "manual", "disabled while editing", "disabled after editing"] as const)(
+    "applies a pending mass once when %s",
+    (mode) => {
+      const physics = engine.sceneManager.activeScene.physics;
+      const entity = rootEntity.createChild("body");
+      entity.addComponent(BoxCollider);
+      const body = entity.addComponent(Rigidbody);
+      body.useGravity = false;
+      physics._update(physics.fixedTimeStep);
+
+      const actor = body._getNativeActor();
+      const setMass = vi.spyOn(actor, "setMass");
+      const calculateMass = vi.spyOn(actor, "setMassAndUpdateInertia");
+      const manual = mode !== "automatic";
+      if (mode === "disabled while editing") body.enabled = false;
+      body.mass = 10;
+      if (mode === "disabled after editing") body.enabled = false;
+      if (manual) {
+        body.centerOfMass = new Vector3();
+        body.inertiaTensor = new Vector3(1, 1, 1);
+        body.automaticCenterOfMass = false;
+        body.automaticInertiaTensor = false;
+      }
+      body.enabled = true;
+      body.applyForce(new Vector3(10, 0, 0));
+      physics._update(physics.fixedTimeStep);
+
+      expect(body.linearVelocity.x).toBeCloseTo(physics.fixedTimeStep, 5);
+      expect(manual ? setMass : calculateMass).toHaveBeenCalledExactlyOnceWith(10);
+      expect(manual ? calculateMass : setMass).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([true, false])("does not resync colliders owned by an independent Rigidbody (enabled: %s)", (enabled) => {
+    const physics = engine.sceneManager.activeScene.physics;
+    const outer = rootEntity.createChild();
+    const body = outer.addComponent(Rigidbody);
+    const ownedCollider = outer.createChild().addComponent(BoxCollider);
+    const nested = outer.createChild();
+    const nestedBody = nested.addComponent(Rigidbody);
+    const nestedCollider = nested.createChild().addComponent(BoxCollider);
+    nestedBody.enabled = enabled;
+
+    const ray = new Ray(new Vector3(0, 8, 0), new Vector3(0, -1, 0));
+    physics.raycast(ray, 10);
+    const ownedSync = vi.spyOn(ownedCollider, "_sync");
+    const nestedSync = vi.spyOn(nestedCollider, "_sync");
+    body.isKinematic = true;
+    physics.raycast(ray, 10);
+    expect(ownedSync).toHaveBeenCalledOnce();
+    expect(nestedSync).not.toHaveBeenCalled();
+  });
+
+  it("keeps infinite mass when enabling automatic inertia in the same batch", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    const entity = addBox(new Vector3(1, 1, 1), true, new Vector3());
+    const body = entity.getComponent(Rigidbody);
+    body.useGravity = false;
+    physics._update(physics.fixedTimeStep);
+
+    body.mass = 0;
+    body.automaticInertiaTensor = true;
+    body.applyForce(new Vector3(10, 0, 0));
+    physics._update(physics.fixedTimeStep);
+    expect(body.linearVelocity.x).toBeCloseTo(0, 6);
+  });
+
   it("centerOfMass", function () {
     const box = addBox(new Vector3(2, 2, 2), true, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(Rigidbody);

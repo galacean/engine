@@ -1,7 +1,6 @@
-import { IHingeJoint } from "@galacean/engine-design";
+import { IDynamicCollider, IHingeJoint } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
-import { Rigidbody } from "../Rigidbody";
 import { HingeJointFlag } from "../enums/HingeJointFlag";
 import { Joint } from "./Joint";
 import { JointLimits } from "./JointLimits";
@@ -198,10 +197,8 @@ export class HingeJoint extends Joint {
     this._limits?._updateFlagManager.removeListener(this._onLimitsChanged);
   }
 
-  protected _createJoint(): void {
-    const bodyInfo = this._bodyInfo;
-    bodyInfo.body = this.entity.getComponent(Rigidbody);
-    this._nativeJoint = Engine._nativePhysics.createHingeJoint(bodyInfo.body!._getNativeActor());
+  protected override _createJoint(actor: IDynamicCollider): IHingeJoint {
+    return Engine._nativePhysics.createHingeJoint(actor);
   }
 
   protected override _syncNative(): void {

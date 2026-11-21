@@ -7,7 +7,7 @@ import { Script } from "../Script";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
-import { Rigidbody } from "./Rigidbody";
+import { Rigidbody, RigidbodyMassDirty } from "./Rigidbody";
 
 /**
  * A physics scene is a collection of colliders and constraints which can interact.
@@ -795,9 +795,7 @@ export class PhysicsScene {
     }
     const massDirtyBodies = this._massDirtyBodies;
     while (massDirtyBodies.length) {
-      const body = massDirtyBodies.pop()!;
-      body._massDirty = false;
-      body._updateMass();
+      massDirtyBodies.pop()!._updateMass();
     }
   }
 
@@ -826,7 +824,7 @@ export class PhysicsScene {
     bodies.push(body);
     this._bodyOrderDirty = true;
     PhysicsScene._addDirty(this._dirtyBodies, body);
-    this._markMassDirty(body);
+    body._markMassDirty();
   }
 
   /**
@@ -837,9 +835,8 @@ export class PhysicsScene {
       return;
     }
     PhysicsScene._removeDirty(this._dirtyBodies, body);
-    if (body._massDirty) {
-      // Entering a scene again marks the mass dirty there
-      body._massDirty = false;
+    if (body._massDirty & RigidbodyMassDirty.Queued) {
+      body._massDirty &= ~RigidbodyMassDirty.Queued;
       const massDirtyBodies = this._massDirtyBodies;
       massDirtyBodies.splice(massDirtyBodies.indexOf(body), 1);
     }
@@ -870,8 +867,8 @@ export class PhysicsScene {
    * @internal
    */
   _markMassDirty(body: Rigidbody): void {
-    if (!body._massDirty) {
-      body._massDirty = true;
+    if (!(body._massDirty & RigidbodyMassDirty.Queued)) {
+      body._massDirty |= RigidbodyMassDirty.Queued;
       this._massDirtyBodies.push(body);
     }
   }

@@ -44,34 +44,36 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICharacterController.setCapsule }
    */
   setCapsule(radius: number, height: number): void {
-    const wasBox = this._isBox;
+    const controller = this._isBox ? null : this._pxController;
+    radius = Math.fround(radius);
+    height = Math.fround(height);
+    if (controller) {
+      if (radius !== this._radius) controller.setRadius(radius);
+      if (height !== this._height) controller.setHeight(height);
+    }
     this._isBox = false;
     this._radius = radius;
     this._height = height;
-    const pxController = this._pxController;
-    if (!wasBox && pxController) {
-      pxController.setRadius(radius);
-      pxController.setHeight(height);
-    } else {
-      this._rebuild();
-    }
+    if (!controller) this._rebuild();
   }
 
   /**
    * {@inheritDoc ICharacterController.setBox }
    */
   setBox(halfExtents: Vector3): void {
-    const wasBox = this._isBox;
-    this._isBox = true;
-    this._halfExtents.copyFrom(halfExtents);
-    const pxController = this._pxController;
-    if (wasBox && pxController) {
-      pxController.setHalfHeight(halfExtents.y);
-      pxController.setHalfSideExtent(halfExtents.x);
-      pxController.setHalfForwardExtent(halfExtents.z);
-    } else {
-      this._rebuild();
+    const controller = this._isBox ? this._pxController : null;
+    const size = this._halfExtents;
+    const x = Math.fround(halfExtents.x);
+    const y = Math.fround(halfExtents.y);
+    const z = Math.fround(halfExtents.z);
+    if (controller) {
+      if (y !== size.y) controller.setHalfHeight(y);
+      if (x !== size.x) controller.setHalfSideExtent(x);
+      if (z !== size.z) controller.setHalfForwardExtent(z);
     }
+    this._isBox = true;
+    size.set(x, y, z);
+    if (!controller) this._rebuild();
   }
 
   /**

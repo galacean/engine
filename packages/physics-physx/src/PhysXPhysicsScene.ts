@@ -35,8 +35,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
   private _triggerEventPool: TriggerEvent[] = [];
   // Trigger pairs are scene-local: only shapes on actors of this scene can form a pair
-  private _eventMap: Record<number, Record<number, TriggerEvent | undefined>> = {};
-  private _removedShapeIds = new Set<number>();
+  private _eventMap: Record<number, Record<number, TriggerEvent | undefined>> = Object.create(null);
+  private _shapeChanges = new Map<number, boolean>();
 
   /**
    * Creates a PhysX scene with buffered collision and trigger events.
@@ -60,28 +60,29 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       onTriggerBegin: (index1, index2) => {
         const small = Math.min(index1, index2);
         const big = Math.max(index1, index2);
-        const existing = this._eventMap[small][big];
+        const pairs = this._eventMap[small];
+        const existing = pairs[big];
         if (existing) {
           // Found again after the shape was removed and added back: the overlap continues
           existing.state = PhysicsEventState.Stay;
           return;
         }
-        const event = this._getTrigger(small, big);
+        let event = this._triggerEventPool.pop();
+        if (event) {
+          event.index1 = small;
+          event.index2 = big;
+        } else {
+          event = new TriggerEvent(small, big);
+        }
         event.state = PhysicsEventState.Enter;
+        pairs[big] = event;
         this._activeTriggers.add(event);
       },
       onTriggerEnd: (index1, index2) => {
-        let event: TriggerEvent;
-        if (index1 < index2) {
-          const subMap = this._eventMap[index1];
-          event = subMap[index2]!;
-          subMap[index2] = undefined;
-        } else {
-          const subMap = this._eventMap[index2];
-          event = subMap[index1]!;
-          subMap[index1] = undefined;
-        }
-        event.state = PhysicsEventState.Exit;
+        const pairs = this._eventMap[Math.min(index1, index2)];
+        const big = Math.max(index1, index2);
+        pairs[big]!.state = PhysicsEventState.Exit;
+        pairs[big] = undefined;
       }
     };
 
@@ -148,9 +149,10 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    */
   update(elapsedTime: number): void {
     this._contactEventCount = 0;
-    this._releaseRemovedShapes();
-    this._simulate(elapsedTime);
-    this._fetchResults();
+    this._syncTriggerPairs();
+    const scene = this._pxScene;
+    scene.simulate(elapsedTime, true);
+    scene.fetchResults(true);
   }
 
   /**
@@ -170,12 +172,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     const physicsEvents = this._physicsEvents;
 
     // Collect trigger events: snapshot state for dispatch, then advance
-    const {
-      _triggerEventPool: triggerEventPool,
-      _activeTriggers: activeTriggers,
-      _triggerEvents: triggerEvents
-    } = this;
-    const eventMap = this._eventMap;
+    const { _activeTriggers: activeTriggers, _triggerEvents: triggerEvents } = this;
     triggerEvents.length = 0;
     activeTriggers.forEach((event, i) => {
       event.dispatchState = event.state;
@@ -183,11 +180,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       if (event.state === PhysicsEventState.Enter) {
         event.state = PhysicsEventState.Stay;
       } else if (event.state === PhysicsEventState.Exit) {
-        activeTriggers.deleteByIndex(i);
-        triggerEventPool.push(event);
-        // A pair of a shape added back that was not found again still owns its map entry
-        const subMap = eventMap[event.index1];
-        subMap[event.index2] === event && (subMap[event.index2] = undefined);
+        this._retireTrigger(event, i);
       }
     });
 
@@ -248,17 +241,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     layerMask: number,
     outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    if (!this._boxGeometry) {
-      this._boxGeometry = new this._physXPhysics._physX.PxBoxGeometry(halfExtents.x, halfExtents.y, halfExtents.z);
-    } else {
-      this._boxGeometry.halfExtents = halfExtents;
-    }
-
-    const pose = PhysXPhysicsScene._tempPose;
-    pose.translation.copyFrom(center);
-    pose.rotation.set(0, 0, 0, 1);
-    Quaternion.normalize(orientation, pose.rotation);
-    return this._sweepSingle(this._boxGeometry, pose, direction, distance, layerMask, outHitResult);
+    return this._sweepSingle(
+      this._getBoxGeometry(halfExtents),
+      PhysXPhysicsScene._queryPose(center, orientation),
+      direction,
+      distance,
+      layerMask,
+      outHitResult
+    );
   }
 
   /**
@@ -272,16 +262,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     layerMask: number,
     outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    if (!this._sphereGeometry) {
-      this._sphereGeometry = new this._physXPhysics._physX.PxSphereGeometry(radius);
-    } else {
-      this._sphereGeometry.radius = radius;
-    }
-
-    const pose = PhysXPhysicsScene._tempPose;
-    pose.translation.copyFrom(center);
-    pose.rotation.set(0, 0, 0, 1);
-    return this._sweepSingle(this._sphereGeometry, pose, direction, distance, layerMask, outHitResult);
+    return this._sweepSingle(
+      this._getSphereGeometry(radius),
+      PhysXPhysicsScene._queryPose(center),
+      direction,
+      distance,
+      layerMask,
+      outHitResult
+    );
   }
 
   /**
@@ -297,51 +285,36 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     layerMask: number,
     outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    if (!this._capsuleGeometry) {
-      this._capsuleGeometry = new this._physXPhysics._physX.PxCapsuleGeometry(radius, height * 0.5);
-    } else {
-      this._capsuleGeometry.radius = radius;
-      this._capsuleGeometry.halfHeight = height * 0.5;
-    }
-
-    const pose = PhysXPhysicsScene._tempPose;
-    pose.translation.copyFrom(center);
-    pose.rotation.set(0, 0, 0, 1);
-    Quaternion.normalize(orientation, pose.rotation);
-    return this._sweepSingle(this._capsuleGeometry, pose, direction, distance, layerMask, outHitResult);
+    return this._sweepSingle(
+      this._getCapsuleGeometry(radius, height),
+      PhysXPhysicsScene._queryPose(center, orientation),
+      direction,
+      distance,
+      layerMask,
+      outHitResult
+    );
   }
 
   /**
    * {@inheritDoc IPhysicsScene.overlapBoxAll }
    */
   overlapBoxAll(center: Vector3, orientation: Quaternion, halfExtents: Vector3, layerMask: number): Uint32Array {
-    if (!this._boxGeometry) {
-      this._boxGeometry = new this._physXPhysics._physX.PxBoxGeometry(halfExtents.x, halfExtents.y, halfExtents.z);
-    } else {
-      this._boxGeometry.halfExtents = halfExtents;
-    }
-
-    const pose = PhysXPhysicsScene._tempPose;
-    pose.translation.copyFrom(center);
-    pose.rotation.set(0, 0, 0, 1);
-    Quaternion.normalize(orientation, pose.rotation);
-    return this._pxSceneQueries.overlap(this._boxGeometry, pose, layerMask);
+    return this._pxSceneQueries.overlap(
+      this._getBoxGeometry(halfExtents),
+      PhysXPhysicsScene._queryPose(center, orientation),
+      layerMask
+    );
   }
 
   /**
    * {@inheritDoc IPhysicsScene.overlapSphereAll }
    */
   overlapSphereAll(center: Vector3, radius: number, layerMask: number): Uint32Array {
-    if (!this._sphereGeometry) {
-      this._sphereGeometry = new this._physXPhysics._physX.PxSphereGeometry(radius);
-    } else {
-      this._sphereGeometry.radius = radius;
-    }
-
-    const pose = PhysXPhysicsScene._tempPose;
-    pose.translation.copyFrom(center);
-    pose.rotation.set(0, 0, 0, 1);
-    return this._pxSceneQueries.overlap(this._sphereGeometry, pose, layerMask);
+    return this._pxSceneQueries.overlap(
+      this._getSphereGeometry(radius),
+      PhysXPhysicsScene._queryPose(center),
+      layerMask
+    );
   }
 
   /**
@@ -354,18 +327,11 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     orientation: Quaternion,
     layerMask: number
   ): Uint32Array {
-    if (!this._capsuleGeometry) {
-      this._capsuleGeometry = new this._physXPhysics._physX.PxCapsuleGeometry(radius, height * 0.5);
-    } else {
-      this._capsuleGeometry.radius = radius;
-      this._capsuleGeometry.halfHeight = height * 0.5;
-    }
-
-    const pose = PhysXPhysicsScene._tempPose;
-    pose.translation.copyFrom(center);
-    pose.rotation.set(0, 0, 0, 1);
-    Quaternion.normalize(orientation, pose.rotation);
-    return this._pxSceneQueries.overlap(this._capsuleGeometry, pose, layerMask);
+    return this._pxSceneQueries.overlap(
+      this._getCapsuleGeometry(radius, height),
+      PhysXPhysicsScene._queryPose(center, orientation),
+      layerMask
+    );
   }
 
   /**
@@ -405,8 +371,10 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * @internal
    */
   _addColliderShape(id: number): void {
-    // Added back before the next step: keep its trigger pairs for PhysX to find again
-    if (!this._removedShapeIds.delete(id)) {
+    const changes = this._shapeChanges;
+    if (changes.has(id)) {
+      changes.set(id, true);
+    } else {
       this._eventMap[id] = Object.create(null);
     }
   }
@@ -417,12 +385,45 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * another actor or rebuilds its shape, and PhysX finds them again. Pairs of an id that is not added back end silently.
    */
   _removeColliderShape(id: number): void {
-    this._activeTriggers.forEach((event) => {
-      if (event.index1 === id || event.index2 === id) {
-        event.state = PhysicsEventState.Exit;
-      }
-    });
-    this._removedShapeIds.add(id);
+    this._shapeChanges.set(id, false);
+  }
+
+  private _getBoxGeometry(halfExtents: Vector3): any {
+    const geometry = this._boxGeometry;
+    if (geometry) {
+      geometry.halfExtents = halfExtents;
+      return geometry;
+    }
+    const { x, y, z } = halfExtents;
+    return (this._boxGeometry = new this._physXPhysics._physX.PxBoxGeometry(x, y, z));
+  }
+
+  private _getSphereGeometry(radius: number): any {
+    const geometry = this._sphereGeometry;
+    if (geometry) {
+      geometry.radius = radius;
+      return geometry;
+    }
+    return (this._sphereGeometry = new this._physXPhysics._physX.PxSphereGeometry(radius));
+  }
+
+  private _getCapsuleGeometry(radius: number, height: number): any {
+    const geometry = this._capsuleGeometry;
+    const halfHeight = height * 0.5;
+    if (geometry) {
+      geometry.radius = radius;
+      geometry.halfHeight = halfHeight;
+      return geometry;
+    }
+    return (this._capsuleGeometry = new this._physXPhysics._physX.PxCapsuleGeometry(radius, halfHeight));
+  }
+
+  private static _queryPose(center: Vector3, orientation?: Quaternion): { translation: Vector3; rotation: Quaternion } {
+    const pose = PhysXPhysicsScene._tempPose;
+    pose.translation.copyFrom(center);
+    const rotation = pose.rotation.set(0, 0, 0, 1);
+    if (orientation) Quaternion.normalize(orientation, rotation);
+    return pose;
   }
 
   private _readHit(
@@ -460,47 +461,32 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     return true;
   }
 
-  /**
-   * Drop the trigger pairs of shapes removed since the last step and not added back.
-   */
-  private _releaseRemovedShapes(): void {
-    const removedIds = this._removedShapeIds;
-    if (removedIds.size === 0) {
+  private _syncTriggerPairs(): void {
+    const changes = this._shapeChanges;
+    if (changes.size === 0) {
       return;
     }
-    const { _triggerEventPool: triggerEventPool, _activeTriggers: activeTriggers } = this;
-    const eventMap = this._eventMap;
-    activeTriggers.forEach((event, i) => {
-      if (removedIds.has(event.index1) || removedIds.has(event.index2)) {
-        activeTriggers.deleteByIndex(i);
-        triggerEventPool.push(event);
-        const subMap = eventMap[event.index1];
-        subMap[event.index2] === event && (subMap[event.index2] = undefined);
+    this._activeTriggers.forEach((event, i) => {
+      const first = changes.get(event.index1);
+      const second = changes.get(event.index2);
+      if (first === false || second === false) {
+        this._retireTrigger(event, i);
+      } else if (first || second) {
+        // PhysX can find the reattached pair again and turn this exit into a stay.
+        event.state = PhysicsEventState.Exit;
       }
     });
-    removedIds.forEach((id) => delete eventMap[id]);
-    removedIds.clear();
+    changes.forEach((present, id) => {
+      if (!present) delete this._eventMap[id];
+    });
+    changes.clear();
   }
 
-  private _simulate(elapsedTime: number): void {
-    this._pxScene.simulate(elapsedTime, true);
-  }
-
-  private _fetchResults(block: boolean = true): void {
-    this._pxScene.fetchResults(block);
-  }
-
-  private _getTrigger(index1: number, index2: number): TriggerEvent {
-    let event: TriggerEvent | undefined;
-    if (this._triggerEventPool.length) {
-      event = this._triggerEventPool.pop()!;
-      event.index1 = index1;
-      event.index2 = index2;
-    } else {
-      event = new TriggerEvent(index1, index2);
-    }
-    this._eventMap[index1][index2] = event;
-    return event;
+  private _retireTrigger(event: TriggerEvent, index: number): void {
+    this._activeTriggers.deleteByIndex(index);
+    this._triggerEventPool.push(event);
+    const pairs = this._eventMap[event.index1];
+    if (pairs[event.index2] === event) pairs[event.index2] = undefined;
   }
 
   private _bufferContactEvent(shape0ID: number, shape1ID: number, contacts: Float32Array, state: number): void {
@@ -533,16 +519,14 @@ enum PhysicsEventState {
 /**
  * Trigger event to store interactive object ids and state.
  */
-export class TriggerEvent implements ITriggerEvent {
-  state: number;
-  dispatchState: number;
-  index1: number;
-  index2: number;
+class TriggerEvent implements ITriggerEvent {
+  state: PhysicsEventState;
+  dispatchState: PhysicsEventState;
 
-  constructor(index1: number, index2: number) {
-    this.index1 = index1;
-    this.index2 = index2;
-  }
+  constructor(
+    public index1: number,
+    public index2: number
+  ) {}
 }
 
 /**

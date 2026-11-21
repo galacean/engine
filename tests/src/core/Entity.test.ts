@@ -828,6 +828,112 @@ describe("Entity", async () => {
       }
     });
 
+    it.each(["throw", "redirect", "detach child", "detach root"] as const)(
+      "keeps hierarchy and physics ownership coherent across onDisable (%s)",
+      (mode) => {
+        const source = new Scene(engine, "source");
+        const destination = new Scene(engine, "destination");
+        const redirected = new Scene(engine, "redirected");
+        engine.sceneManager.addScene(source);
+        engine.sceneManager.addScene(destination);
+        engine.sceneManager.addScene(redirected);
+        const sourceParent = source.createRootEntity("source");
+        const target = destination.createRootEntity("destination");
+        const redirectTarget = redirected.createRootEntity("redirected");
+        target.isActive = redirectTarget.isActive = false;
+        target.transform.position.x = redirectTarget.transform.position.x = 3;
+        const child = mode === "detach root" ? source.createRootEntity("moving") : sourceParent.createChild("moving");
+        child.addComponent(BoxCollider);
+        const failure = new Error("source disable");
+        let firstDisable = true;
+        child.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              if (!firstDisable) return;
+              firstDisable = false;
+              if (mode === "throw") throw failure;
+              redirectTarget.addChild(this.entity);
+            }
+          }
+        );
+        const ray = new Ray(new Vector3(0, 8, 0), new Vector3(0, -1, 0));
+
+        try {
+          expect(source.physics.raycast(ray)).toBe(true);
+          if (mode === "throw") expect(() => target.addChild(child)).toThrow(failure);
+          else if (mode === "redirect") target.addChild(child);
+          else if (mode === "detach child") sourceParent.removeChild(child);
+          else source.removeRootEntity(child);
+
+          const finalParent = mode === "throw" ? target : redirectTarget;
+          expect(child.parent === finalParent).toBe(true);
+          expect(child.scene === finalParent.scene).toBe(true);
+          expect(source.physics.raycast(ray)).toBe(false);
+          finalParent.isActive = true;
+          ray.origin.x = 3;
+          const hit = new HitResult();
+          expect(finalParent.scene!.physics.raycast(ray, hit)).toBe(true);
+          expect(hit.entity === child).toBe(true);
+        } finally {
+          redirected.destroy();
+          destination.destroy();
+          source.destroy();
+        }
+      }
+    );
+
+    it.each(["destroyed", "under the source", "missing the requested child slot"] as const)(
+      "keeps the source active when the target is %s during onDisable",
+      (change) => {
+        const source = new Scene(engine, "source");
+        const destination = new Scene(engine, "destination");
+        engine.sceneManager.addScene(source);
+        engine.sceneManager.addScene(destination);
+        const sourceParent = source.createRootEntity("source");
+        const target = destination.createRootEntity("target");
+        target.isActive = false;
+        if (change === "missing the requested child slot") target.createChild("existing");
+        const moving = sourceParent.createChild("moving");
+        moving.addComponent(BoxCollider);
+        const ray = new Ray(new Vector3(0, 8, 0), new Vector3(0, -1, 0));
+        let firstDisable = true;
+        moving.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              if (!firstDisable) return;
+              firstDisable = false;
+              if (change === "destroyed") target.destroy();
+              else if (change === "under the source") moving.addChild(target);
+              else target.clearChildren();
+            }
+          }
+        );
+
+        try {
+          expect(source.physics.raycast(ray)).toBe(true);
+          const move = () => target.addChild(moving);
+          if (change === "destroyed") {
+            move();
+            expect(target.destroyed).toBe(true);
+          } else if (change === "under the source") {
+            expect(move).toThrow(/descendant/);
+            expect(target.parent === moving).toBe(true);
+          } else {
+            expect(() => target.addChild(1, moving)).toThrow(/out of child list bounds/);
+          }
+          expect(moving.parent === sourceParent).toBe(true);
+          expect(moving.scene === source).toBe(true);
+          expect(moving.isActiveInHierarchy).toBe(true);
+          const hit = new HitResult();
+          expect(source.physics.raycast(ray, hit)).toBe(true);
+          expect(hit.entity === moving).toBe(true);
+        } finally {
+          destination.destroy();
+          source.destroy();
+        }
+      }
+    );
+
     it.each([BoxCollider, CharacterController])(
       "unregisters %s when a sibling detaches and destroys its entity",
       (type) => {
@@ -872,6 +978,95 @@ describe("Entity", async () => {
         root.destroy();
       }
     );
+
+    it.each(["child", "root", "isActive"] as const)(
+      "rejects an onEnable change to its own %s without unpublishing the collider",
+      (mode) => {
+        const parent = mode === "child" ? scene.createRootEntity() : null;
+        const entity = parent ? parent.createChild() : scene.createRootEntity();
+        entity.transform.position.x = 12345;
+        entity.isActive = false;
+        const box = entity.addComponent(BoxCollider);
+        const rejected = vi.fn();
+        class TryDeactivate extends Script {
+          override onEnable(): void {
+            try {
+              if (mode === "child") parent!.removeChild(entity);
+              else if (mode === "root") scene.removeRootEntity(entity);
+              else entity.isActive = false;
+            } catch (error) {
+              rejected(error);
+            }
+          }
+        }
+        entity.addComponent(TryDeactivate);
+
+        const ray = new Ray(new Vector3(12345, 3, 0), new Vector3(0, -1, 0));
+        const hit = new HitResult();
+        try {
+          entity.isActive = true;
+          expect(rejected).toHaveBeenCalledOnce();
+          expect(entity.isActive).toBe(true);
+          expect(entity.scene).toBe(scene);
+          expect(parent ? parent.children : scene.rootEntities).toContain(entity);
+          expect(scene.physics.raycast(ray, hit) && hit.collider === box).toBe(true);
+
+          entity.isActive = false;
+          expect(scene.physics.raycast(ray)).toBe(false);
+        } finally {
+          entity.destroy();
+          parent?.destroy();
+        }
+      }
+    );
+
+    it.each(["child", "root"] as const)("destroys an enabled %s from its own onEnable", (mode) => {
+      const parent = mode === "child" ? scene.createRootEntity() : null;
+      const entity = parent ? parent.createChild() : scene.createRootEntity();
+      entity.transform.position.x = 12345;
+      entity.isActive = false;
+      const box = entity.addComponent(BoxCollider);
+      const ray = new Ray(new Vector3(12345, 3, 0), new Vector3(0, -1, 0));
+      const hit = new HitResult();
+      let wasQueryable = false;
+      class DestroyOnEnable extends Script {
+        override onEnable(): void {
+          wasQueryable = scene.physics.raycast(ray, hit) && hit.collider === box;
+          this.entity.destroy();
+        }
+      }
+      entity.addComponent(DestroyOnEnable);
+
+      try {
+        expect(() => (entity.isActive = true)).not.toThrow();
+        expect(wasQueryable).toBe(true);
+        expect(entity.destroyed).toBe(true);
+        expect(entity.isActive).toBe(false);
+        expect(entity.isActiveInHierarchy).toBe(false);
+        expect(parent ? parent.children : scene.rootEntities).not.toContain(entity);
+        expect(scene.physics.raycast(ray)).toBe(false);
+      } finally {
+        parent?.destroy();
+      }
+    });
+
+    it("re-enables native scene queries for a root in a standalone Scene", () => {
+      const standalone = new Scene(engine);
+      try {
+        const root = standalone.createRootEntity();
+        root.addComponent(BoxCollider);
+        const ray = new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0));
+        expect(standalone.physics.raycast(ray)).toBe(true);
+
+        root.isActive = false;
+        expect(standalone.physics.raycast(ray)).toBe(false);
+        root.isActive = true;
+        expect(root.isActiveInHierarchy).toBe(false);
+        expect(standalone.physics.raycast(ray)).toBe(true);
+      } finally {
+        standalone.destroy();
+      }
+    });
 
     it("should throw when child tries to removeChild its deactivating parent (reentrant)", () => {
       // Entity tree: root → A → B

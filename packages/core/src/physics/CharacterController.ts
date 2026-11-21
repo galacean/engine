@@ -193,7 +193,6 @@ export class CharacterController extends Collider {
     if (this._slopeLimit !== value) {
       this._slopeLimit = value;
       (<ICharacterController>this._native)?.setSlopeLimit(value);
-      this._setGeometryDirty();
     }
   }
 

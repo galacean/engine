@@ -31,7 +31,6 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
     this._axis = PhysXCapsuleColliderShape._axes[upAxis];
     this._pxGeometry = new physXPhysics._physX.PxCapsuleGeometry(radius, halfHeight);
     this._initialize(material, uniqueID);
-    this._setLocalPose(this._localPosition, this._localRotation, this._axis);
   }
 
   /**
