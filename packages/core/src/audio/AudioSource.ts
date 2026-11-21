@@ -82,6 +82,11 @@ export class AudioSource extends Component {
   }
 
   set playbackRate(value: number) {
+    if (!this._isPlaying && this._isExpired(this._getPlaybackTime())) {
+      this.stop();
+      this._playbackRate = value;
+      return;
+    }
     const elapsedTime = this._getElapsedTime();
     if (this._isPlaying) {
       this._sourceNode!.playbackRate.value = value;
@@ -130,7 +135,8 @@ export class AudioSource extends Component {
    * Playback position in clip seconds, including recovery wait time.
    */
   get time(): number {
-    return this._playbackOffset + this._getElapsedTime() * this._playbackRate;
+    const currentTime = this._getPlaybackTime();
+    return !this._isPlaying && this._isExpired(currentTime) ? 0 : currentTime;
   }
 
   /**
@@ -153,10 +159,17 @@ export class AudioSource extends Component {
       return;
     }
 
+    const expired = this._isExpired(this._getPlaybackTime());
     if (AudioManager.isAudioContextRunning()) {
+      if (expired) {
+        this.stop();
+      }
       this._startPlayback();
     } else {
-      if (!this._pendingPlay) {
+      if (expired) {
+        this._playbackOffset = 0;
+      }
+      if (!this._pendingPlay || expired) {
         this._playbackStartTime = performance.now() / 1000;
       }
       // Share the resume attempt with the document's gesture handler
@@ -171,7 +184,7 @@ export class AudioSource extends Component {
           if (this._pendingPlay !== resumePromise) {
             return;
           }
-          if (this._destroyed || !this.enabled || !this._clip || document.hidden) {
+          if (this._destroyed || !this.enabled || !this._clip?._getAudioSource() || document.hidden) {
             this.pause();
             return;
           }
@@ -208,7 +221,12 @@ export class AudioSource extends Component {
    * Pauses playing the clip.
    */
   pause(): void {
-    this._playbackOffset = this.time;
+    const currentTime = this._getPlaybackTime();
+    if (this._isExpired(currentTime)) {
+      this.stop();
+      return;
+    }
+    this._playbackOffset = currentTime;
     this._pendingPlay = null;
 
     if (this._isPlaying) {
@@ -259,9 +277,9 @@ export class AudioSource extends Component {
   }
 
   private _startPlayback(): void {
-    const startTime = this.time;
+    const startTime = this._getPlaybackTime();
     this._pendingPlay = null;
-    if (!this._loop && (startTime < 0 || startTime >= this._clip!.duration)) {
+    if (this._isExpired(startTime)) {
       this.stop();
       return;
     }
@@ -271,6 +289,15 @@ export class AudioSource extends Component {
     this._playbackStartTime = AudioManager.getContext().currentTime;
     this._isPlaying = true;
     AudioManager._playingCount++;
+  }
+
+  private _getPlaybackTime(): number {
+    return this._playbackOffset + this._getElapsedTime() * this._playbackRate;
+  }
+
+  private _isExpired(position: number): boolean {
+    const duration = this._clip?._getAudioSource()?.duration;
+    return !this._loop && duration !== undefined && (position < 0 || position >= duration);
   }
 
   private _getElapsedTime(): number {

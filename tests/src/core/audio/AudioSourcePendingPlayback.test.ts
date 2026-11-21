@@ -617,6 +617,113 @@ describe("AudioSource playback lifecycle", () => {
       expect((AudioManager as any)._playingCount).to.equal(0);
       expect(warnSpy).toHaveBeenCalledTimes(1);
     });
+
+    it.each(["pause", "disable", "hidden", "reject"] as const)(
+      "resets an expired pending source to stopped on %s so a later play succeeds",
+      async (scenario) => {
+        const shortSource = createAudioSource(2);
+        Object.assign(shortSource.entity, { isActiveInHierarchy: true });
+        shortSource.playOnEnabled = false;
+        (shortSource as any)._setActive(true, 3);
+        shortSource.playOnEnabled = true;
+
+        const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+        shortSource.play();
+        const pending = (shortSource as any)._pendingPlay as Promise<void>;
+        now = 3000;
+
+        if (scenario === "pause") {
+          shortSource.pause();
+          await finishResume();
+        } else if (scenario === "disable") {
+          shortSource.enabled = false;
+          await finishResume();
+        } else if (scenario === "hidden") {
+          const documentHidden = mockDocumentHidden(true);
+          await finishResume();
+          documentHidden.restore();
+        } else {
+          rejectResume(new Error("autoplay blocked"));
+          await Promise.allSettled([pending]);
+          await flushAsync();
+          mockUserActivation(true);
+          await AudioManager.resume();
+          await flushAsync();
+        }
+
+        expect(context.state).to.equal("running");
+        expect(shortSource.time).to.equal(0);
+        expect(shortSource.isPlaying).to.be.false;
+        expect((shortSource as any)._pendingPlay).to.be.null;
+
+        now = 5000;
+        if (scenario === "disable") {
+          shortSource.enabled = true;
+        } else {
+          shortSource.play();
+        }
+
+        expect(shortSource.isPlaying).to.be.true;
+        expect((shortSource as any)._sourceNode.start).toHaveBeenCalledWith(0, 0);
+        expect((AudioManager as any)._playingCount).to.equal(1);
+        warnSpy.mockRestore();
+      }
+    );
+
+    it("resets to stopped when pausing a playing non-looping clip past its duration before onended fires", () => {
+      context.state = "running";
+      const shortSource = createAudioSource(2);
+      shortSource.playbackRate = 2;
+      shortSource.play();
+      context.currentTime = 1.05; // 2.1s >= 2s before onended dispatches
+      shortSource.pause();
+
+      expect(shortSource.time).to.equal(0);
+      expect(shortSource.isPlaying).to.be.false;
+      expect((AudioManager as any)._playingCount).to.equal(0);
+
+      shortSource.play();
+      expect(shortSource.isPlaying).to.be.true;
+      expect((shortSource as any)._sourceNode.start).toHaveBeenCalledWith(0, 0);
+    });
+
+    it("reports zero time while expired pending and prevents negative playbackRate from resurrecting it", async () => {
+      const createNodeSpy = vi.spyOn(context, "createBufferSource");
+      const shortSource = createAudioSource(2);
+      shortSource.play();
+      now = 5000;
+
+      expect(shortSource.time).to.equal(0);
+      shortSource.playbackRate = -1;
+      now = 9000;
+      await finishResume();
+
+      expect(createNodeSpy).not.toHaveBeenCalled();
+      expect(shortSource.isPlaying).to.be.false;
+      expect(shortSource.time).to.equal(0);
+      expect((shortSource as any)._pendingPlay).to.be.null;
+    });
+
+    it("restarts the timeline when re-playing an expired non-looping clip on the same pending resume", async () => {
+      const shortSource = createAudioSource(2);
+      shortSource.play();
+      const resumePromise = (shortSource as any)._pendingPlay as Promise<void>;
+      const thenSpy = vi.spyOn(resumePromise, "then");
+
+      now = 3000;
+      shortSource.play();
+      expect((shortSource as any)._pendingPlay).toBe(resumePromise);
+      expect(thenSpy).not.toHaveBeenCalled();
+
+      now = 3200;
+      await finishResume();
+
+      expect(shortSource.isPlaying).to.be.true;
+      expect((shortSource as any)._sourceNode.start).toHaveBeenCalledTimes(1);
+      const startArgs = (shortSource as any)._sourceNode.start.mock.calls[0];
+      expect(startArgs[0]).to.equal(0);
+      expect(startArgs[1]).to.be.closeTo(0.2, 1e-6);
+    });
   });
 
   // KEY divergence: hidden play is dropped, never suspends
@@ -854,6 +961,86 @@ describe("AudioSource playback lifecycle", () => {
     await resumePromise;
     await flushAsync();
     expect(createNodeSpy).toHaveBeenCalledTimes(1);
+    expect((AudioManager as any)._playingCount).to.equal(1);
+  });
+
+  it("starts a fresh playback when an expired non-looping source is replayed inside a user gesture", async () => {
+    const now = vi.spyOn(performance, "now").mockReturnValue(0);
+    const shortSource = createAudioSource(2);
+    const context = AudioManager.getContext() as unknown as MockAudioContext;
+    let resolveColdStartResume: () => void;
+    let resolveGestureResume: () => void;
+    MockAudioContext.resumeResultQueue = [
+      new Promise<void>((resolve) => {
+        resolveColdStartResume = resolve;
+      }),
+      new Promise<void>((resolve) => {
+        resolveGestureResume = resolve;
+      })
+    ];
+    const createNodeSpy = vi.spyOn(context, "createBufferSource");
+
+    shortSource.play();
+    const coldStartResumePromise = (AudioManager as any)._resumePromise as Promise<void>;
+
+    const canvas = document.createElement("canvas");
+    document.body.appendChild(canvas);
+    canvas.addEventListener("touchend", () => shortSource.play(), { capture: true, passive: true, once: true });
+
+    now.mockReturnValue(3000);
+    mockUserActivation(true);
+    canvas.dispatchEvent(new Event("touchend", { bubbles: true }));
+    canvas.remove();
+
+    const gestureResumePromise = (AudioManager as any)._resumePromise as Promise<void>;
+    expect(gestureResumePromise).not.toBe(coldStartResumePromise);
+
+    now.mockReturnValue(3050);
+    resolveColdStartResume!();
+    resolveGestureResume!();
+    await Promise.all([coldStartResumePromise, gestureResumePromise]);
+    await flushAsync();
+
+    expect(shortSource.isPlaying).to.be.true;
+    expect(createNodeSpy).toHaveBeenCalledTimes(1);
+    expect((AudioManager as any)._playingCount).to.equal(1);
+    const startArgs = (shortSource as any)._sourceNode.start.mock.calls[0];
+    expect(startArgs[0]).to.equal(0);
+    expect(startArgs[1]).to.be.closeTo(0.05, 1e-6);
+  });
+
+  it("starts from zero when explicitly replaying an expired non-looping source after unlock with an unsettled old resume", async () => {
+    const now = vi.spyOn(performance, "now").mockReturnValue(0);
+    const shortSource = createAudioSource(2);
+    const context = AudioManager.getContext() as unknown as MockAudioContext;
+    let resolveGestureResume: () => void;
+    MockAudioContext.resumeResultQueue = [
+      new Promise<void>(() => {}),
+      new Promise<void>((resolve) => {
+        resolveGestureResume = resolve;
+      })
+    ];
+    const createNodeSpy = vi.spyOn(context, "createBufferSource");
+
+    shortSource.play();
+
+    now.mockReturnValue(3000);
+    mockUserActivation(true);
+    document.dispatchEvent(new Event("touchend"));
+    const gestureResumePromise = (AudioManager as any)._resumePromise as Promise<void>;
+    resolveGestureResume!();
+    await gestureResumePromise;
+    await flushAsync();
+
+    expect(context.state).to.equal("running");
+    expect(shortSource.isPlaying).to.be.false;
+
+    now.mockReturnValue(4000);
+    shortSource.play();
+
+    expect(shortSource.isPlaying).to.be.true;
+    expect(createNodeSpy).toHaveBeenCalledTimes(1);
+    expect((shortSource as any)._sourceNode.start).toHaveBeenCalledWith(0, 0);
     expect((AudioManager as any)._playingCount).to.equal(1);
   });
 
