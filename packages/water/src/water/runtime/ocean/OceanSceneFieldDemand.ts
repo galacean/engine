@@ -4,11 +4,134 @@ import type { OceanNearshoreStaticAtlas } from "../../compiler/ocean/OceanNearsh
 
 export const OCEAN_SCENE_FIELD_DEMAND_BUDGET = Object.freeze({
   detailedClosureEndMetres: OCEAN_RENDER_BUDGET.farFieldClosureTransitionEndMetres,
-  /** A complete half-Snap beyond the detailed closure is required before releasing full-screen fields. */
+  /** A complete half-Snap (16m) beyond the detailed closure releases full-screen fields earlier inland/far. */
   releaseMarginMetres: OCEAN_RENDER_BUDGET.nearFieldSnapSizeMetres * 0.5,
-  /** Reacquire one quarter-Snap before the detailed closure can become visible. */
+  /** Reacquire one quarter-Snap (8m) before the detailed closure can become visible. */
   reacquireMarginMetres: OCEAN_RENDER_BUDGET.nearFieldSnapSizeMetres * 0.25
 });
+
+const COARSE_DRY_DISTANCE_MAX_EDGE = 128;
+
+/** 1D Felzenszwalb-Huttenlocher squared Euclidean distance transform with physical step size. */
+function distanceTransform1D(
+  input: Float32Array,
+  output: Float32Array,
+  length: number,
+  stepMetres: number,
+  v: Int32Array,
+  z: Float64Array
+): void {
+  const stepSq = stepMetres * stepMetres;
+  let k = -1;
+  for (let q = 0; q < length; q++) {
+    const fq = input[q]!;
+    if (!Number.isFinite(fq)) continue;
+    if (k < 0) {
+      k = 0;
+      v[0] = q;
+      z[0] = Number.NEGATIVE_INFINITY;
+      z[1] = Number.POSITIVE_INFINITY;
+      continue;
+    }
+    let s = 0;
+    while (k >= 0) {
+      const p = v[k]!;
+      s = ((fq - input[p]!) / stepSq + (q * q - p * p)) / (2 * (q - p));
+      if (s > z[k]!) break;
+      k--;
+    }
+    k++;
+    v[k] = q;
+    z[k] = s;
+    z[k + 1] = Number.POSITIVE_INFINITY;
+  }
+  if (k < 0) {
+    output.fill(Number.POSITIVE_INFINITY, 0, length);
+    return;
+  }
+  let idx = 0;
+  for (let q = 0; q < length; q++) {
+    while (z[idx + 1]! < q) idx++;
+    const p = v[idx]!;
+    const delta = (q - p) * stepMetres;
+    output[q] = delta * delta + input[p]!;
+  }
+}
+
+interface CoarseDryDistanceField {
+  readonly width: number;
+  readonly height: number;
+  readonly distances: Float32Array;
+  readonly samplingErrorMetres: number;
+}
+
+/**
+ * Builds a conservative lower-bound dry-to-wet Euclidean distance grid over the full atlas extent.
+ * The RGBA8 atlas A-channel saturates at 64m for coastal precision, so inland cameras need this
+ * unclamped conservative grid to enter far-only fill without prematurely disabling coastal waves.
+ */
+function buildCoarseDryDistanceField(
+  atlas: Readonly<OceanNearshoreStaticAtlas>,
+  cellSizeX: number,
+  cellSizeZ: number
+): CoarseDryDistanceField {
+  const width = Math.min(atlas.width, COARSE_DRY_DISTANCE_MAX_EDGE);
+  const height = Math.min(atlas.height, COARSE_DRY_DISTANCE_MAX_EDGE);
+  const worldSpanX = cellSizeX * atlas.width;
+  const worldSpanZ = cellSizeZ * atlas.height;
+  const coarseCellX = worldSpanX / width;
+  const coarseCellZ = worldSpanZ / height;
+  const grid = new Float32Array(width * height);
+  grid.fill(Number.POSITIVE_INFINITY);
+
+  // Conservative downsample: any fine wet texel inside a coarse cell marks that coarse cell wet (0).
+  const pixels = atlas.pixels.borrowTypedArray();
+  const pixelCount = pixels.length;
+  for (let z = 0; z < atlas.height; z++) {
+    const cz = Math.min(height - 1, Math.floor((z * height) / atlas.height));
+    const rowOffset = z * atlas.width;
+    const coarseRowOffset = cz * width;
+    for (let x = 0; x < atlas.width; x++) {
+      const channelIndex = (rowOffset + x) * 4;
+      if (channelIndex < pixelCount && pixels[channelIndex]! > 0) {
+        const cx = Math.min(width - 1, Math.floor((x * width) / atlas.width));
+        grid[coarseRowOffset + cx] = 0;
+      }
+    }
+  }
+
+  const maxDim = Math.max(width, height);
+  const lineIn = new Float32Array(maxDim);
+  const lineOut = new Float32Array(maxDim);
+  const v = new Int32Array(maxDim);
+  const zBuf = new Float64Array(maxDim + 1);
+
+  for (let cz = 0; cz < height; cz++) {
+    const rowOffset = cz * width;
+    for (let cx = 0; cx < width; cx++) lineIn[cx] = grid[rowOffset + cx]!;
+    distanceTransform1D(lineIn, lineOut, width, coarseCellX, v, zBuf);
+    for (let cx = 0; cx < width; cx++) grid[rowOffset + cx] = lineOut[cx]!;
+  }
+  for (let cx = 0; cx < width; cx++) {
+    for (let cz = 0; cz < height; cz++) lineIn[cz] = grid[cz * width + cx]!;
+    distanceTransform1D(lineIn, lineOut, height, coarseCellZ, v, zBuf);
+    for (let cz = 0; cz < height; cz++) {
+      const toInteriorWet = Math.sqrt(lineOut[cz]!);
+      // Outside the atlas may be DeepOcean; bound conservatively by distance to the nearest atlas border.
+      const borderX = Math.min(cx, width - 1 - cx) * coarseCellX;
+      const borderZ = Math.min(cz, height - 1 - cz) * coarseCellZ;
+      const toAtlasBorder = Math.min(borderX, borderZ);
+      grid[cz * width + cx] = Math.min(toInteriorWet, toAtlasBorder);
+    }
+  }
+
+  return {
+    width,
+    height,
+    distances: grid,
+    samplingErrorMetres: Math.hypot(coarseCellX, coarseCellZ) + Math.hypot(cellSizeX, cellSizeZ)
+  };
+}
 
 export interface OceanSceneFieldCameraPosition {
   readonly x: number;
@@ -53,13 +176,15 @@ function sampleSignedShoreDistance(
   const z1 = Math.max(0, Math.min(atlas.height - 1, sourceZ0 + 1));
   const tx = texelX - sourceX0;
   const tz = texelZ - sourceZ0;
-  const pixels = atlas.pixels;
-  const top =
-    (pixels.at((z0 * atlas.width + x0) * 4 + 3) ?? 128) * (1 - tx) +
-    (pixels.at((z0 * atlas.width + x1) * 4 + 3) ?? 128) * tx;
+  const pixels = atlas.pixels.borrowTypedArray();
+  const pixelCount = pixels.length;
+  const idx00 = (z0 * atlas.width + x0) * 4 + 3;
+  const idx10 = (z0 * atlas.width + x1) * 4 + 3;
+  const idx01 = (z1 * atlas.width + x0) * 4 + 3;
+  const idx11 = (z1 * atlas.width + x1) * 4 + 3;
+  const top = (idx00 < pixelCount ? pixels[idx00]! : 128) * (1 - tx) + (idx10 < pixelCount ? pixels[idx10]! : 128) * tx;
   const bottom =
-    (pixels.at((z1 * atlas.width + x0) * 4 + 3) ?? 128) * (1 - tx) +
-    (pixels.at((z1 * atlas.width + x1) * 4 + 3) ?? 128) * tx;
+    (idx01 < pixelCount ? pixels[idx01]! : 128) * (1 - tx) + (idx11 < pixelCount ? pixels[idx11]! : 128) * tx;
   return decodeSignedShoreDistance(top * (1 - tz) + bottom * tz, atlas.shoreDistanceRange);
 }
 
@@ -69,6 +194,7 @@ export class OceanSceneFieldDemandResolver {
   private readonly _horizontalDisplacementMetres: number;
   private readonly _verticalDisplacementMetres: number;
   private readonly _horizontalSamplingErrorMetres: number;
+  private readonly _coarseDryDistance: CoarseDryDistanceField;
   private readonly _result: MutableOceanSceneFieldDemandResult = {
     required: true,
     reason: "detailed-closure",
@@ -98,6 +224,7 @@ export class OceanSceneFieldDemandResolver {
     const cellSizeX = 1 / (atlas.worldToUv[0] * atlas.width);
     const cellSizeZ = 1 / (atlas.worldToUv[1] * atlas.height);
     this._horizontalSamplingErrorMetres = Math.hypot(cellSizeX, cellSizeZ) + atlas.shoreDistanceRange / 127;
+    this._coarseDryDistance = buildCoarseDryDistanceField(atlas, cellSizeX, cellSizeZ);
   }
 
   resolve(
@@ -123,10 +250,20 @@ export class OceanSceneFieldDemandResolver {
     const sampledShoreDistance = sampleSignedShoreDistance(this._atlas, cameraX, cameraZ);
     let horizontalDryDistanceMetres = 0;
     if (sampledShoreDistance !== undefined && sampledShoreDistance < 0) {
-      horizontalDryDistanceMetres = Math.max(
+      const atlasDryDistance = Math.max(
         0,
         -sampledShoreDistance - this._horizontalSamplingErrorMetres - this._horizontalDisplacementMetres
       );
+      const u = cameraX * this._atlas.worldToUv[0] + this._atlas.worldToUv[2];
+      const v = cameraZ * this._atlas.worldToUv[1] + this._atlas.worldToUv[3];
+      const coarse = this._coarseDryDistance;
+      const cx = Math.max(0, Math.min(coarse.width - 1, Math.floor(u * coarse.width)));
+      const cz = Math.max(0, Math.min(coarse.height - 1, Math.floor(v * coarse.height)));
+      const coarseDryDistance = Math.max(
+        0,
+        coarse.distances[cz * coarse.width + cx]! - coarse.samplingErrorMetres - this._horizontalDisplacementMetres
+      );
+      horizontalDryDistanceMetres = Math.max(atlasDryDistance, coarseDryDistance);
     }
     const minimumWetSurfaceDistanceMetres = Math.hypot(horizontalDryDistanceMetres, verticalDistanceMetres);
     const required = minimumWetSurfaceDistanceMetres <= transitionThresholdMetres;

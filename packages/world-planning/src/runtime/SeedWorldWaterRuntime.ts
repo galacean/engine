@@ -144,8 +144,6 @@ export class SeedWorldWaterRuntime {
   private _oceanTextureLibraryPromise?: Promise<OceanTextureLibrary>;
   private _oceanActive = false;
   private _terrainOcclusionProvider?: SeedWorldWaterTerrainOcclusionProvider;
-  private _terrainOcclusionRevision = -1;
-  private _terrainOcclusionRefreshFrames = 0;
   private _surfaceTimeOverride?: number;
   private _oceanPresentationMode: SeedWorldOceanPresentationMode = "roam";
   private _latestRevision = 0;
@@ -583,8 +581,6 @@ export class SeedWorldWaterRuntime {
   setTerrainOcclusionProvider(provider?: SeedWorldWaterTerrainOcclusionProvider): void {
     if (provider === this._terrainOcclusionProvider) return;
     this._terrainOcclusionProvider = provider;
-    this._terrainOcclusionRevision = -1;
-    this._terrainOcclusionRefreshFrames = provider ? 2 : 0;
     this._host.setTerrainOcclusionProvider(provider);
   }
 
@@ -601,7 +597,7 @@ export class SeedWorldWaterRuntime {
         this._oceanTextureLibraryPromise = undefined;
         this._compileWorker.dispose();
         this._oceanActive = false;
-        this._terrainOcclusionRefreshFrames = 0;
+        this._terrainOcclusionProvider = undefined;
         this._authoredWaterQueries.clear();
         this._authoredLakeWaterLevelStates.clear();
       }
@@ -619,7 +615,6 @@ export class SeedWorldWaterRuntime {
 
   private _activateAuthoritativeBodySet(bodyIds: ReadonlySet<string>): void {
     this._oceanActive = bodyIds.has(SEED_WORLD_PRIMARY_OCEAN_SCENE_BODY_ID_V1);
-    if (this._terrainOcclusionProvider) this._terrainOcclusionRefreshFrames = 2;
     // A full authoritative generation publishes a new Fields/Hydrology snapshot;
     // authored occupancy is now represented there instead of by local delta bodies.
     this._authoredWaterQueries.clear();
@@ -662,27 +657,15 @@ export class SeedWorldWaterRuntime {
     if (!Number.isFinite(deltaTime) || deltaTime < 0) {
       throw new RangeError("Seed World Water delta time must be finite and non-negative.");
     }
-    this._refreshTerrainOcclusion();
     if (this._visibilityByBodyKind.ocean && this._oceanActive) {
       this._oceanBackend.updateRuntime(SEED_WORLD_PRIMARY_OCEAN_SCENE_BODY_ID_V1, deltaTime);
     }
+    this._refreshTerrainOcclusion();
   }
 
   private _refreshTerrainOcclusion(): void {
-    const provider = this._terrainOcclusionProvider;
-    if (!provider) return;
-    const revision = provider.revision;
-    if (revision === undefined) {
-      this._host.refreshTerrainOcclusion();
-      return;
-    }
-    if (revision !== this._terrainOcclusionRevision) {
-      this._terrainOcclusionRevision = revision;
-      this._terrainOcclusionRefreshFrames = 2;
-    }
-    if (this._terrainOcclusionRefreshFrames === 0) return;
+    if (!this._terrainOcclusionProvider) return;
     this._host.refreshTerrainOcclusion();
-    this._terrainOcclusionRefreshFrames--;
   }
 
   private async _ensureOceanTextureLibrary(): Promise<OceanTextureLibrary> {

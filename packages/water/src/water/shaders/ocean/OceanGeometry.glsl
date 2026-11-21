@@ -10,6 +10,11 @@
         return vec4(twoPi) / max(frequency, vec4(0.0001));
       }
 
+      float oceanGeometryEffectiveSamplingCellSize(float meshCellSize, float distanceToCamera) {
+        float continuousCellSize = {{CONTINUOUS_SAMPLING_CELL_SIZE_EXPR}};
+        return max(meshCellSize, continuousCellSize);
+      }
+
       vec4 oceanGeometryWaveGridWeight(vec4 wavelength, float samplingCellSize) {
         vec4 samplesPerWavelength = wavelength / max(samplingCellSize, 0.0001);
         return smoothstep(

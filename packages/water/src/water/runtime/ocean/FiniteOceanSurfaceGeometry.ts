@@ -33,6 +33,8 @@ interface OceanGeometryChunk {
   readonly renderer: MeshRenderer;
   readonly mesh: ModelMesh;
   readonly ownedBuffers: readonly Buffer[];
+  readonly terrainOcclusionKey: string;
+  terrainOccluded: boolean;
   readonly vertexCount: number;
   readonly triangleCount: number;
   readonly vertexBufferBytes: number;
@@ -117,15 +119,23 @@ export interface FiniteOceanSurfaceBounds {
   readonly maximum: readonly [number, number, number];
 }
 
+export interface FiniteOceanNearFieldRingSpec {
+  readonly outerHalfExtentMetres: number;
+  readonly cellSizeMetres: number;
+}
+
 export interface FiniteOceanNearFieldLayout {
   readonly windowSizeMetres: number;
   readonly halfExtentMetres: number;
   readonly cellSizeMetres: number;
+  readonly outerCellSizeMetres: number;
   readonly snapSizeMetres: number;
   readonly minimumGuaranteedRadiusMetres: number;
+  readonly rings: readonly FiniteOceanNearFieldRingSpec[];
   readonly meshAxisCount: number;
   readonly segmentsPerAxis: number;
   readonly segmentsPerMeshAxis: number;
+  readonly cellCount: number;
   readonly drawCount: number;
   readonly vertexCount: number;
   readonly triangleCount: number;
@@ -273,9 +283,14 @@ export function resolveFiniteOceanNearFieldLayout(): Readonly<FiniteOceanNearFie
   const cellSizeMetres = budget.nearFieldCellSizeMetres;
   const snapSizeMetres = budget.nearFieldSnapSizeMetres;
   const meshAxisCount = budget.nearFieldMeshAxisCount;
+  const rings: readonly FiniteOceanNearFieldRingSpec[] = budget.nearFieldConcentricRings;
   const values = [windowSizeMetres, cellSizeMetres, snapSizeMetres, meshAxisCount];
   if (values.some((value) => !Number.isFinite(value) || value <= 0)) {
     throw new RangeError("Finite Ocean near-field layout values must be finite and positive.");
+  }
+  const halfExtentMetres = windowSizeMetres * 0.5;
+  if (meshAxisCount !== 2 || rings.length === 0) {
+    throw new RangeError("Finite Ocean concentric near-field layout requires 2x2 symmetric quadrants and >=1 ring.");
   }
   const segmentsPerAxis = windowSizeMetres / cellSizeMetres;
   const segmentsPerMeshAxis = segmentsPerAxis / meshAxisCount;
@@ -290,12 +305,54 @@ export function resolveFiniteOceanNearFieldLayout(): Readonly<FiniteOceanNearFie
   ) {
     throw new RangeError("Finite Ocean near-field window, Mesh, Cell, and Snap sizes must divide exactly.");
   }
+  let previousExtent = 0;
+  let previousCell: number = cellSizeMetres;
+  let cellsPerQuadrant = 0;
+  let verticesPerMesh = 0;
+  let trianglesPerMesh = 0;
+  for (let ringIndex = 0; ringIndex < rings.length; ringIndex++) {
+    const ring = rings[ringIndex]!;
+    if (
+      !Number.isFinite(ring.outerHalfExtentMetres) ||
+      !Number.isFinite(ring.cellSizeMetres) ||
+      ring.outerHalfExtentMetres <= previousExtent ||
+      ring.cellSizeMetres <= 0 ||
+      !Number.isInteger(ring.outerHalfExtentMetres / ring.cellSizeMetres) ||
+      !Number.isInteger(previousExtent / ring.cellSizeMetres)
+    ) {
+      throw new RangeError("Finite Ocean concentric near-field rings must increase strictly and divide evenly.");
+    }
+    if (ringIndex === 0) {
+      if (ring.cellSizeMetres !== cellSizeMetres) {
+        throw new RangeError("Finite Ocean inner concentric ring must match nearFieldCellSizeMetres.");
+      }
+    } else if (ring.cellSizeMetres !== previousCell * 2) {
+      throw new RangeError("Finite Ocean concentric near-field ring transitions must step by exact 2:1 cell ratios.");
+    }
+    const outerCells = ring.outerHalfExtentMetres / ring.cellSizeMetres;
+    const innerCells = previousExtent / ring.cellSizeMetres;
+    const ringQuads = outerCells * outerCells - innerCells * innerCells;
+    cellsPerQuadrant += ringQuads;
+    if (ringIndex === 0) {
+      verticesPerMesh += (outerCells + 1) * (outerCells + 1);
+      trianglesPerMesh += ringQuads * 2;
+    } else {
+      // Shared coarse vertices along the inner ring boundary are already emitted by the previous ring.
+      verticesPerMesh += (outerCells + 1) * (outerCells + 1) - (innerCells + 1) * (innerCells + 1);
+      // Each 2:1 stitch cell along the two inner seams replaces 2 triangles with 3 (+1 per seam cell).
+      trianglesPerMesh += ringQuads * 2 + innerCells * 2;
+    }
+    previousExtent = ring.outerHalfExtentMetres;
+    previousCell = ring.cellSizeMetres;
+  }
+  if (previousExtent !== halfExtentMetres) {
+    throw new RangeError("Finite Ocean concentric near-field rings must reach exact halfExtentMetres.");
+  }
   const meshCount = meshAxisCount * meshAxisCount;
-  const verticesPerMesh = (segmentsPerMeshAxis + 1) * (segmentsPerMeshAxis + 1);
   if (verticesPerMesh > 65_535) {
     throw new RangeError("Finite Ocean near-field quadrants must remain compatible with Uint16 indices.");
   }
-  const minimumGuaranteedRadiusMetres = windowSizeMetres * 0.5 - snapSizeMetres * 0.5;
+  const minimumGuaranteedRadiusMetres = halfExtentMetres - snapSizeMetres * 0.5;
   if (minimumGuaranteedRadiusMetres <= OCEAN_LOOK.wave.fadeEndMetres) {
     throw new RangeError("Finite Ocean near field must cover the complete macro-wave fade distance.");
   }
@@ -313,16 +370,19 @@ export function resolveFiniteOceanNearFieldLayout(): Readonly<FiniteOceanNearFie
   }
   return Object.freeze({
     windowSizeMetres,
-    halfExtentMetres: windowSizeMetres * 0.5,
+    halfExtentMetres,
     cellSizeMetres,
+    outerCellSizeMetres: previousCell,
     snapSizeMetres,
     minimumGuaranteedRadiusMetres,
+    rings,
     meshAxisCount,
     segmentsPerAxis,
     segmentsPerMeshAxis,
+    cellCount: meshCount * cellsPerQuadrant,
     drawCount: meshCount,
     vertexCount: meshCount * verticesPerMesh,
-    triangleCount: meshCount * segmentsPerMeshAxis * segmentsPerMeshAxis * 2
+    triangleCount: meshCount * trianglesPerMesh
   });
 }
 
@@ -351,7 +411,7 @@ export function resolveGradedOceanFarFieldLayout(): Readonly<GradedOceanFarField
   const innerSegmentLength = (innerHalfExtentMetres * 2) / segmentsPerEdge;
   if (
     innerHalfExtentMetres !== near.halfExtentMetres ||
-    !Number.isInteger(innerSegmentLength / near.cellSizeMetres) ||
+    !Number.isInteger(innerSegmentLength / near.outerCellSizeMetres) ||
     budget.farFieldClosureTransitionEndMetres > near.minimumGuaranteedRadiusMetres ||
     projectionMarkerHalfExtentMetres !== budget.farFieldMinimumProjectionDistanceMetres ||
     actualDepthOuterHalfExtentMetres >= projectionMarkerHalfExtentMetres
@@ -508,31 +568,98 @@ export function resolveFiniteOceanNearFieldCenter(
   ] as const);
 }
 
-function appendNearFieldMesh(
-  positions: Vector3[],
-  samplingCells: Vector2[],
-  indices: number[],
-  minimumX: number,
-  minimumZ: number,
-  segments: number,
-  cellSize: number
-): void {
-  const vertexSide = segments + 1;
-  for (let z = 0; z <= segments; z++) {
-    for (let x = 0; x <= segments; x++) {
-      positions.push(new Vector3(minimumX + x * cellSize, 0, minimumZ + z * cellSize));
-      samplingCells.push(new Vector2(cellSize, 0));
+/**
+ * Builds one watertight concentric-ring quadrant covering signX * [0..R] x signZ * [0..R].
+ * Shared seam vertices use the coarser outer ring's samplingCellSize in TEXCOORD_0.x so
+ * vertex displacement matches identically across 2:1 ring transitions and quadrant axes.
+ */
+export function createFiniteOceanNearFieldQuadrantTopology(
+  layout: Readonly<FiniteOceanNearFieldLayout>,
+  signX: -1 | 1,
+  signZ: -1 | 1
+): Readonly<{ positions: Vector3[]; uvs: Vector2[]; indices: Uint16Array }> {
+  const rings = layout.rings;
+  const minCell = layout.cellSizeMetres;
+  const maxExtent = layout.halfExtentMetres;
+  const gridStride = maxExtent / minCell + 1;
+  const positions: Vector3[] = [];
+  const uvs: Vector2[] = [];
+  const indices: number[] = [];
+  const vertexIndices = new Map<number, number>();
+  const flipWinding = signX * signZ < 0;
+
+  const samplingCellSizeFor = (u: number, v: number): number => {
+    const r = u > v ? u : v;
+    for (let i = 0; i < rings.length - 1; i++) {
+      if (r < rings[i]!.outerHalfExtentMetres) return rings[i]!.cellSizeMetres;
+    }
+    return rings[rings.length - 1]!.cellSizeMetres;
+  };
+
+  const getVertex = (u: number, v: number): number => {
+    const key = (v / minCell) * gridStride + u / minCell;
+    let index = vertexIndices.get(key);
+    if (index === undefined) {
+      index = positions.length;
+      vertexIndices.set(key, index);
+      positions.push(new Vector3(signX * u, 0, signZ * v));
+      uvs.push(new Vector2(samplingCellSizeFor(u, v), 0));
+    }
+    return index;
+  };
+
+  const emitTri = (i0: number, i1: number, i2: number): void => {
+    if (flipWinding) indices.push(i0, i2, i1);
+    else indices.push(i0, i1, i2);
+  };
+
+  for (let ringIndex = 0; ringIndex < rings.length; ringIndex++) {
+    const ring = rings[ringIndex]!;
+    const innerExtent = ringIndex === 0 ? 0 : rings[ringIndex - 1]!.outerHalfExtentMetres;
+    const outerExtent = ring.outerHalfExtentMetres;
+    const cell = ring.cellSizeMetres;
+    const prevCell = ringIndex === 0 ? cell : rings[ringIndex - 1]!.cellSizeMetres;
+    const cellsOuter = outerExtent / cell;
+    const cellsInner = innerExtent / cell;
+    for (let iz = 0; iz < cellsOuter; iz++) {
+      for (let ix = 0; ix < cellsOuter; ix++) {
+        if (ix < cellsInner && iz < cellsInner) continue;
+        const u0 = ix * cell;
+        const u1 = u0 + cell;
+        const v0 = iz * cell;
+        const v1 = v0 + cell;
+        if (ringIndex > 0 && ix === cellsInner && iz < cellsInner) {
+          // 2:1 vertical seam stitch along u = innerExtent
+          const a = getVertex(u0, v0);
+          const m = getVertex(u0, v0 + prevCell);
+          const c = getVertex(u0, v1);
+          const b = getVertex(u1, v0);
+          const d = getVertex(u1, v1);
+          emitTri(a, m, b);
+          emitTri(m, c, d);
+          emitTri(m, d, b);
+        } else if (ringIndex > 0 && iz === cellsInner && ix < cellsInner) {
+          // 2:1 horizontal seam stitch along v = innerExtent
+          const a = getVertex(u0, v0);
+          const m = getVertex(u0 + prevCell, v0);
+          const b = getVertex(u1, v0);
+          const c = getVertex(u0, v1);
+          const d = getVertex(u1, v1);
+          emitTri(a, c, m);
+          emitTri(m, d, b);
+          emitTri(m, c, d);
+        } else {
+          const a = getVertex(u0, v0);
+          const b = getVertex(u1, v0);
+          const c = getVertex(u0, v1);
+          const d = getVertex(u1, v1);
+          emitTri(a, c, b);
+          emitTri(b, c, d);
+        }
+      }
     }
   }
-  for (let z = 0; z < segments; z++) {
-    for (let x = 0; x < segments; x++) {
-      const a = z * vertexSide + x;
-      const b = a + 1;
-      const c = a + vertexSide;
-      const d = c + 1;
-      indices.push(a, c, b, b, c, d);
-    }
-  }
+  return { positions, uvs, indices: new Uint16Array(indices) };
 }
 
 function createGeometryChunk(
@@ -598,6 +725,8 @@ function createGeometryChunk(
     renderer,
     mesh,
     ownedBuffers: Object.freeze([...ownedBuffers]),
+    terrainOcclusionKey: `ocean:${input.name}`,
+    terrainOccluded: false,
     vertexCount: input.positions.length,
     triangleCount: input.indices.length / 3,
     vertexBufferBytes: [...vertexBuffers].reduce((bytes, buffer) => bytes + buffer.byteLength, 0),
@@ -613,7 +742,6 @@ export class FiniteOceanSurfaceGeometry {
   private readonly _nearFieldLayout: Readonly<FiniteOceanNearFieldLayout>;
   private readonly _cameraRelativeRoot: Entity;
   private readonly _chunks: OceanGeometryChunk[] = [];
-  private readonly _occludedChunkNames = new Set<string>();
   private _nearFieldCenterX: number;
   private _nearFieldCenterZ: number;
   private _presentationPath: FiniteOceanPresentationPath;
@@ -654,44 +782,21 @@ export class FiniteOceanSurfaceGeometry {
     const nearMeshSize = nearFieldLayout.windowSizeMetres / nearFieldLayout.meshAxisCount;
     for (let meshZ = 0; meshZ < nearFieldLayout.meshAxisCount; meshZ++) {
       for (let meshX = 0; meshX < nearFieldLayout.meshAxisCount; meshX++) {
+        const signX: -1 | 1 = meshX === 0 ? -1 : 1;
+        const signZ: -1 | 1 = meshZ === 0 ? -1 : 1;
         const minimumX = -nearFieldLayout.halfExtentMetres + meshX * nearMeshSize;
         const minimumZ = -nearFieldLayout.halfExtentMetres + meshZ * nearMeshSize;
         const maximumX = minimumX + nearMeshSize;
         const maximumZ = minimumZ + nearMeshSize;
-        const positions: Vector3[] = [];
-        const samplingCells: Vector2[] = [];
-        const indices: number[] = [];
-        appendNearFieldMesh(
-          positions,
-          samplingCells,
-          indices,
-          minimumX,
-          minimumZ,
-          nearFieldLayout.segmentsPerMeshAxis,
-          nearFieldLayout.cellSizeMetres
-        );
+        const topology = createFiniteOceanNearFieldQuadrantTopology(nearFieldLayout, signX, signZ);
         this._chunks.push(
           createGeometryChunk(engine, this._cameraRelativeRoot, materials.near, this.layer, {
             name: `near-${meshX}-${meshZ}`,
             region: "near",
-            positions,
-            uvs: samplingCells,
-            indices: new Uint16Array(indices),
-            restoreTopology: () => {
-              const positions: Vector3[] = [],
-                uvs: Vector2[] = [],
-                indices: number[] = [];
-              appendNearFieldMesh(
-                positions,
-                uvs,
-                indices,
-                minimumX,
-                minimumZ,
-                nearFieldLayout.segmentsPerMeshAxis,
-                nearFieldLayout.cellSizeMetres
-              );
-              return { positions, uvs, indices: new Uint16Array(indices) };
-            },
+            positions: topology.positions,
+            uvs: topology.uvs,
+            indices: topology.indices,
+            restoreTopology: () => createFiniteOceanNearFieldQuadrantTopology(nearFieldLayout, signX, signZ),
             bounds: {
               minimum: [
                 minimumX - config.maximumDisplacement.x,
@@ -770,7 +875,7 @@ export class FiniteOceanSurfaceGeometry {
       nearFieldCellSizeMetres: nearFieldLayout.cellSizeMetres,
       nearFieldSnapSizeMetres: nearFieldLayout.snapSizeMetres,
       nearFieldMinimumGuaranteedRadiusMetres: nearFieldLayout.minimumGuaranteedRadiusMetres,
-      nearFieldCellCount: nearFieldLayout.segmentsPerAxis ** 2,
+      nearFieldCellCount: nearFieldLayout.cellCount,
       nearFieldDrawCount: nearChunks.length,
       nearFieldVertexCount,
       nearFieldTriangleCount,
@@ -826,28 +931,27 @@ export class FiniteOceanSurfaceGeometry {
 
   /** Updates per-chunk terrain-horizon occlusion without disabling the horizon ring. */
   refreshTerrainOcclusion(provider?: WaterTerrainOcclusionProvider): void {
-    if (provider === undefined) {
-      this._occludedChunkNames.clear();
-      return;
-    }
-    for (const chunk of this._chunks) {
+    const chunks = this._chunks;
+    for (let index = 0; index < chunks.length; index++) {
+      const chunk = chunks[index]!;
       if (chunk.region !== "near") continue;
-      const chunkName = chunk.entity.name;
-      if (chunk.renderer.enabled && provider.isOccluded(`ocean:${chunkName}`, chunk.renderer.bounds)) {
-        this._occludedChunkNames.add(chunkName);
-      } else {
-        this._occludedChunkNames.delete(chunkName);
+      const occluded = provider !== undefined && provider.isOccluded(chunk.terrainOcclusionKey, chunk.renderer.bounds);
+      chunk.terrainOccluded = occluded;
+      if (chunk.renderer.enabled === occluded) {
+        chunk.renderer.enabled = !occluded;
       }
     }
   }
 
-  /** True when at least one unoccluded detailed near-field quadrant intersects the camera frustum. */
+  /** True when at least one active, unoccluded detailed near-field quadrant intersects the camera frustum. */
   hasCameraVisibleNearChunk(provider: WaterCameraVisibilityProvider): boolean {
-    for (const chunk of this._chunks) {
+    const chunks = this._chunks;
+    for (let index = 0; index < chunks.length; index++) {
+      const chunk = chunks[index]!;
       if (chunk.region !== "near") continue;
       if (
-        chunk.renderer.enabled &&
-        !this._occludedChunkNames.has(chunk.entity.name) &&
+        !chunk.terrainOccluded &&
+        chunk.renderer.entity.isActiveInHierarchy &&
         provider.isVisible(chunk.renderer.bounds, chunk.renderer.entity.layer)
       ) {
         return true;
@@ -858,13 +962,16 @@ export class FiniteOceanSurfaceGeometry {
 
   /** Queries reflection demand without changing scene visibility for other cameras. */
   hasCameraVisibleChunk(provider: WaterCameraVisibilityProvider): boolean {
-    for (const { renderer } of this._chunks) {
+    const chunks = this._chunks;
+    for (let index = 0; index < chunks.length; index++) {
+      const renderer = chunks[index]!.renderer;
       if (
         renderer.enabled &&
         renderer.entity.isActiveInHierarchy &&
         provider.isVisible(renderer.bounds, renderer.entity.layer)
-      )
+      ) {
         return true;
+      }
     }
     return false;
   }
@@ -898,7 +1005,9 @@ export class FiniteOceanSurfaceGeometry {
 
   private _applyPresentationPath(): void {
     const detailed = this._presentationPath === "detailed";
-    for (const chunk of this._chunks) {
+    const chunks = this._chunks;
+    for (let index = 0; index < chunks.length; index++) {
+      const chunk = chunks[index]!;
       if (chunk.region === "near") chunk.entity.isActive = detailed;
       else if (chunk.region === "far-only-fill") chunk.entity.isActive = !detailed;
       else chunk.entity.isActive = true;

@@ -25,7 +25,7 @@
   "budgets": {
     "maximumProfileArtifactBytes": 600000,
     "maximumTotalArtifactBytes": 1200000,
-    "actualTotalArtifactBytes": 283126
+    "actualTotalArtifactBytes": 278187
   },
   "profiles": [
     {
@@ -34,11 +34,11 @@
       "variantKey": "heightfield:appearanceVariantKey=surface-appearance-v2%3Aed93d4a81a01602d;depthSource=hybrid-optional-scene-depth;quality=high;surfaceAppearance=1;surfaceAppearanceVersion=2;waveSlotCount=0",
       "sourcePath": "source/Shader/Water/LakeHeightfieldHighHybrid.shader",
       "virtualPath": "Shader/Water/lake-heightfield-high-hybrid-v2.shaderc",
-      "path": "public/Shader/Water/lake-heightfield-high-hybrid-v2.0f4025d9417d688d4cc120c68810db7e5189280eb5887140425cd2c1c4415528.shaderc",
-      "cacheKey": "0f4025d9417d688d4cc120c68810db7e5189280eb5887140425cd2c1c4415528",
-      "materializedSourceSha256": "1ca414ee67b5ada2173277942d9f8b9fac7dc1c62f7c6980bbfdcb322a18448d",
-      "artifactSha256": "0f4025d9417d688d4cc120c68810db7e5189280eb5887140425cd2c1c4415528",
-      "artifactBytes": 134767,
+      "path": "public/Shader/Water/lake-heightfield-high-hybrid-v2.cdaeaa5af39f343cddc132b25f06ca6f63559c7b596612e0f7d231f56b775729.shaderc",
+      "cacheKey": "cdaeaa5af39f343cddc132b25f06ca6f63559c7b596612e0f7d231f56b775729",
+      "materializedSourceSha256": "2b5207d0a28e48d2eccf3894a49b06b2fd39da7a86704f533839f1beed4e1278",
+      "artifactSha256": "cdaeaa5af39f343cddc132b25f06ca6f63559c7b596612e0f7d231f56b775729",
+      "artifactBytes": 126290,
       "passTopology": [
         [
           {
@@ -75,10 +75,10 @@
       },
       "compilerSha256": "df9413e216a230b9a0e60a52aeb6786b6c1b39cd161c04387f4722d1c1a1f958",
       "postprocess": {
-        "operation": "migrate-ssr-v2",
+        "operation": "water-perf-opt-v1",
         "source": "packages/water/src/world/SeedWorldWaterShaderAotProfiles.ts",
         "compilerPackage": "@galacean/engine-shader-compiler/src/ShaderPrecompiler.ts",
-        "inputArtifactSha256": "d0c7aa288369a09d15f12e26b7d335e40489b59246bcd63d2aab74d35863a48d"
+        "inputArtifactSha256": "0f4025d9417d688d4cc120c68810db7e5189280eb5887140425cd2c1c4415528"
       }
     },
     {
@@ -87,11 +87,11 @@
       "variantKey": "ocean:sharedClosure=water-surface-material-v1%3A429f59f95557570c;surface=detailed",
       "sourcePath": "source/Shader/Water/OceanNearDetailed.shader",
       "virtualPath": "Shader/Water/ocean-near-detailed.shaderc",
-      "path": "public/Shader/Water/ocean-near-detailed.87949b62cd4f35163ce49163557db7facc50256ad4cea575d8a16e86157ebc61.shaderc",
-      "cacheKey": "87949b62cd4f35163ce49163557db7facc50256ad4cea575d8a16e86157ebc61",
-      "materializedSourceSha256": "f30ec106fb77b7dd64dd28e7bebd3badb686bb2f700ba12df16b221f958e3714",
-      "artifactSha256": "87949b62cd4f35163ce49163557db7facc50256ad4cea575d8a16e86157ebc61",
-      "artifactBytes": 102680,
+      "path": "public/Shader/Water/ocean-near-detailed.82045a50982b3d7f41d410839447ba7139cd16ab91e1dcd90d22dcb44a9c3a17.shaderc",
+      "cacheKey": "82045a50982b3d7f41d410839447ba7139cd16ab91e1dcd90d22dcb44a9c3a17",
+      "materializedSourceSha256": "800c600f5778d04e90e93cfea2f47793443dc5f24c79b3809fa61ec5ff2b9446",
+      "artifactSha256": "82045a50982b3d7f41d410839447ba7139cd16ab91e1dcd90d22dcb44a9c3a17",
+      "artifactBytes": 106218,
       "passTopology": [
         [
           {
@@ -121,10 +121,10 @@
         ]
       },
       "postprocess": {
-        "operation": "remove-world-selection-v1",
-        "inputArtifactSha256": "05cb2bc00dad169ea828ad86b173406323e993f1f3d3a4af4104394571e33dfb",
-        "inputSourceGraphSha256": "a43c0a246c4780c229dd40c9c8c75861d43a89a59b04f043537c0963634fc152",
-        "preserved": "pass topology, render states, macro instructions and non-selection shader code"
+        "operation": "water-perf-opt-v1",
+        "source": "packages/water/src/world/SeedWorldWaterShaderAotProfiles.ts",
+        "compilerPackage": "@galacean/engine-shader-compiler/src/ShaderPrecompiler.ts",
+        "inputArtifactSha256": "87949b62cd4f35163ce49163557db7facc50256ad4cea575d8a16e86157ebc61"
       }
     },
     {

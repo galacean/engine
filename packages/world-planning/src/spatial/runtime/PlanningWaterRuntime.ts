@@ -572,8 +572,12 @@ export class PlanningWaterRuntime {
   }
 
   private refreshTerrainOcclusion(): void {
-    const provider = this.terrainOcclusionProvider;
-    if (!provider || this.destroyed || !this.system.runtimeState.effectiveEnabled || !this.system.activeRuntimeHost) {
+    if (
+      !this.terrainOcclusionProvider ||
+      this.destroyed ||
+      !this.system.runtimeState.effectiveEnabled ||
+      !this.system.activeRuntimeHost
+    ) {
       return;
     }
     this.host.refreshTerrainOcclusion();

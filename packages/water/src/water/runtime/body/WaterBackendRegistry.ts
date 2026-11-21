@@ -108,6 +108,7 @@ export type WaterBackendCameraRequestOverrides = Readonly<Pick<WaterCameraFeatur
 
 /** External conservative terrain-occlusion query consumed only by finite Water chunks. */
 export interface WaterTerrainOcclusionProvider {
+  readonly revision?: number;
   isOccluded(candidateId: string, bounds: BoundingBox): boolean;
 }
 
@@ -125,7 +126,7 @@ export interface WaterBackendRuntime {
   readonly reflection?: WaterReflectionBindingLifecycle;
   readonly development?: WaterBackendDevelopmentContext;
   setVisible?(visible: boolean): void;
-  /** Applies World-level terrain occlusion to finite renderer chunks; Ocean deliberately omits it. */
+  /** Applies World-level terrain occlusion to finite chunks and Ocean near-field quadrants (keeping Ocean horizon active). */
   refreshTerrainOcclusion?(provider?: WaterTerrainOcclusionProvider): void;
   /** Publishes current source-Camera frustum demand before the reflection service resolves. */
   refreshCameraVisibility?(provider: WaterCameraVisibilityProvider): void;

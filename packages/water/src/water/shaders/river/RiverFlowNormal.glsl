@@ -28,11 +28,14 @@ vec3 riverBlendNormals(vec3 a, vec3 b) {
 
 vec3 evaluateRiverFlowNormalWS(vec2 motion, float halfWidth, float localSpeed, vec2 flow, vec3 geometryNormal) {
 #ifdef MATERIAL_RIVER_FLOW_NORMAL
-  float slope = riverSlopeMask(geometryNormal);
   float gate = step(0.0001, localSpeed);
   vec2 uv = riverSourceUv(motion, halfWidth);
   vec2 tiling = vec2(2.0, 1.0) * (1.2 / max(material_SurfaceLengthScale, 0.5));
   vec4 regularUv = riverPackedUv(uv, tiling, material_FlowNormalOffsets.xy * gate);
+#ifdef WATER_SSR_SIMPLIFIED_FLOW_NORMAL
+  vec3 detail = riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.xy).rg);
+#else
+  float slope = riverSlopeMask(geometryNormal);
   vec3 regular = riverBlendNormals(
     riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.xy).rg),
     riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.zw).rg));
@@ -43,6 +46,7 @@ vec3 evaluateRiverFlowNormalWS(vec2 motion, float halfWidth, float localSpeed, v
     riverUnpackNormal(texture2D(material_SurfaceNormalTexture, slopeUv.xy).ba),
     riverUnpackNormal(texture2D(material_SurfaceNormalTexture, slopeUv.zw).ba));
   vec3 detail = mix(regular, steep, slope);
+#endif
   detail = normalize(mix(vec3(0.0, 0.0, 1.0), detail,
     material_FlowNormalStrength * material_MicroSurfaceEnabled));
   vec3 downstream = safeNormalize3(vec3(flow.x, 0.0, flow.y)

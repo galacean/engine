@@ -30,6 +30,7 @@ export const TERRAIN_GRASSLANDS_RIVER_QUALITY_PLAN = createWaterQualityPlanV2({
   geometry: "high",
   surfaceShading: "high",
   sceneFields: "scene-color-depth",
+  opaqueDownsampling: "2x",
   reflectionBudget: { environment: true, screenSpace: true },
   query: "dense",
   spatialField: {

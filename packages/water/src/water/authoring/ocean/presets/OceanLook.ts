@@ -179,8 +179,19 @@ export const OCEAN_RENDER_BUDGET = Object.freeze({
   /** Camera-following high-detail square. Its boundary stays beyond the macro-wave fade. */
   nearFieldWindowSizeMetres: 640,
   nearFieldCellSizeMetres: 2,
-  /** Keeps the complete camera-relative topology on a stable world lattice. */
-  nearFieldSnapSizeMetres: 64,
+  /**
+   * Watertight concentric rings around the snapped near-field origin.
+   * Inner 128m half-extent keeps >= 112m around the camera at 2m resolution even at worst ±16m snap
+   * (preserving full 2m waves across 0..96m with a smooth 96..112m bandlimit transition);
+   * mid 192m steps to 4m and outer 320m steps to 8m to join graded-far-field 1:1.
+   */
+  nearFieldConcentricRings: Object.freeze([
+    Object.freeze({ outerHalfExtentMetres: 128, cellSizeMetres: 2 }),
+    Object.freeze({ outerHalfExtentMetres: 192, cellSizeMetres: 4 }),
+    Object.freeze({ outerHalfExtentMetres: 320, cellSizeMetres: 8 })
+  ] as const),
+  /** Keeps the complete camera-relative topology on a stable world lattice (divisible by outer 8m cells). */
+  nearFieldSnapSizeMetres: 32,
   /** Four 320m quadrants keep every near-field Mesh on Uint16 indices. */
   nearFieldMeshAxisCount: 2,
   /** Detailed shading converges to the shared far closure before the nearest possible moving-grid edge. */

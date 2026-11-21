@@ -1686,11 +1686,14 @@ vec3 riverBlendNormals(vec3 a, vec3 b) {
 
 vec3 evaluateRiverFlowNormalWS(vec2 motion, float halfWidth, float localSpeed, vec2 flow, vec3 geometryNormal) {
 #ifdef MATERIAL_RIVER_FLOW_NORMAL
-  float slope = riverSlopeMask(geometryNormal);
   float gate = step(0.0001, localSpeed);
   vec2 uv = riverSourceUv(motion, halfWidth);
   vec2 tiling = vec2(2.0, 1.0) * (1.2 / max(material_SurfaceLengthScale, 0.5));
   vec4 regularUv = riverPackedUv(uv, tiling, material_FlowNormalOffsets.xy * gate);
+#ifdef WATER_SSR_SIMPLIFIED_FLOW_NORMAL
+  vec3 detail = riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.xy).rg);
+#else
+  float slope = riverSlopeMask(geometryNormal);
   vec3 regular = riverBlendNormals(
     riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.xy).rg),
     riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.zw).rg));
@@ -1701,6 +1704,7 @@ vec3 evaluateRiverFlowNormalWS(vec2 motion, float halfWidth, float localSpeed, v
     riverUnpackNormal(texture2D(material_SurfaceNormalTexture, slopeUv.xy).ba),
     riverUnpackNormal(texture2D(material_SurfaceNormalTexture, slopeUv.zw).ba));
   vec3 detail = mix(regular, steep, slope);
+#endif
   detail = normalize(mix(vec3(0.0, 0.0, 1.0), detail,
     material_FlowNormalStrength * material_MicroSurfaceEnabled));
   vec3 downstream = safeNormalize3(vec3(flow.x, 0.0, flow.y)
@@ -1711,14 +1715,6 @@ vec3 evaluateRiverFlowNormalWS(vec2 motion, float halfWidth, float localSpeed, v
   return safeNormalize3(geometryNormal, geometryNormal);
 #endif
 }
-
-struct RiverSceneSample {
-  vec3 color;
-  float eyeDepth;
-  float validity;
-};
-
-// Four matching depth/color samples emulate UE's depth-constrained gather on WebGL2.
 
       Varyings vert(Attributes attr) {
         Varyings output;
@@ -2034,7 +2030,9 @@ struct RiverSceneSample {
 
           * refractedGeometryBehindSurface;
         vec3 centeredSceneColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
-        vec3 displacedSceneColor = texture2D(camera_OpaqueTexture, refractedScreenUv).rgb;
+        vec3 displacedSceneColor = refractionSampleValidity > 0.001
+          ? texture2D(camera_OpaqueTexture, refractedScreenUv).rgb
+          : centeredSceneColor;
         // Boundary masks use centered fields: refraction suppression must not depend on
         // the optical path that it is about to select. Depth tint uses the selected path below.
         float centeredDepthBehind = smoothstep(0.03, 0.22, sampledOpticalDepth);
@@ -2422,6 +2420,7 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
         layout(location = 1) vec4 receiverDepth;
       };
 
+#define WATER_SSR_SIMPLIFIED_FLOW_NORMAL
 #ifndef WATER_CONNECTION_FUNCTIONS
 #define WATER_CONNECTION_FUNCTIONS
 #ifdef MATERIAL_WATER_CONNECTIONS
@@ -2664,10 +2663,6 @@ RiverGeometryVertex evaluateRiverGeometry(Attributes attr) {
 // RiverDemo (Stylized Water 2, Staggart Creations) adaptation.
 // See assets/river/SOURCE.md. Travel-time coordinates preserve downstream transport
 // through bends and changes in width/speed; the cross coordinate spans one river width.
-float riverSlopeMask(vec3 normalWS) {
-  float angle = acos(clamp(normalize(normalWS).y * 2.0 - 1.0, -1.0, 1.0)) * 57.2957795;
-  return clamp((2.0 * 40.2 - 90.0 - angle) / (40.2 - 90.0), 0.0, 1.0);
-}
 
 vec2 riverSourceUv(vec2 motion, float halfWidth) {
   return vec2(0.5 + motion.x / max(halfWidth * 2.0, 0.001), motion.y * 0.25);
@@ -2682,20 +2677,17 @@ vec3 riverUnpackNormal(vec2 packedNormal) {
   return vec3(xy, sqrt(max(1.0 - dot(xy, xy), 0.0)));
 }
 
-vec3 riverBlendNormals(vec3 a, vec3 b) {
-  // Reoriented normal mapping, as used by the reference's advanced shading.
-  a.z += 1.0;
-  b.xy = -b.xy;
-  return a * dot(a, b) / max(a.z, 0.001) - b;
-}
 
 vec3 evaluateRiverFlowNormalWS(vec2 motion, float halfWidth, float localSpeed, vec2 flow, vec3 geometryNormal) {
 #ifdef MATERIAL_RIVER_FLOW_NORMAL
-  float slope = riverSlopeMask(geometryNormal);
   float gate = step(0.0001, localSpeed);
   vec2 uv = riverSourceUv(motion, halfWidth);
   vec2 tiling = vec2(2.0, 1.0) * (1.2 / max(material_SurfaceLengthScale, 0.5));
   vec4 regularUv = riverPackedUv(uv, tiling, material_FlowNormalOffsets.xy * gate);
+#ifdef WATER_SSR_SIMPLIFIED_FLOW_NORMAL
+  vec3 detail = riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.xy).rg);
+#else
+  float slope = riverSlopeMask(geometryNormal);
   vec3 regular = riverBlendNormals(
     riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.xy).rg),
     riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.zw).rg));
@@ -2706,6 +2698,7 @@ vec3 evaluateRiverFlowNormalWS(vec2 motion, float halfWidth, float localSpeed, v
     riverUnpackNormal(texture2D(material_SurfaceNormalTexture, slopeUv.xy).ba),
     riverUnpackNormal(texture2D(material_SurfaceNormalTexture, slopeUv.zw).ba));
   vec3 detail = mix(regular, steep, slope);
+#endif
   detail = normalize(mix(vec3(0.0, 0.0, 1.0), detail,
     material_FlowNormalStrength * material_MicroSurfaceEnabled));
   vec3 downstream = safeNormalize3(vec3(flow.x, 0.0, flow.y)
@@ -2851,21 +2844,6 @@ vec3 waterSurfaceAppearanceBlendTangentNormals(
         appearanceLayerNormal0 = mix(vec3(0.0, 0.0, 1.0), appearanceLayerNormal0, smoothstep(0.0, 0.05000000, input.localFlowSpeed));
         appearanceNormalTS = waterSurfaceAppearanceBlendTangentNormals(appearanceNormalTS, appearanceLayerNormal0);
 
-        vec2 appearanceLayerCoordinate1 = baseWorldPosition.xz;
-        vec2 appearanceLayerScaled1 = appearanceLayerCoordinate1 * material_AppearanceV2Detail1Transform.xy;
-        vec2 appearanceLayerUv1 = vec2(
-          appearanceLayerScaled1.x * material_AppearanceV2Detail1Rotation.x - appearanceLayerScaled1.y * material_AppearanceV2Detail1Rotation.y,
-          appearanceLayerScaled1.x * material_AppearanceV2Detail1Rotation.y + appearanceLayerScaled1.y * material_AppearanceV2Detail1Rotation.x
-        ) + material_AppearanceV2Detail1Transform.zw;
-        vec3 appearanceLayerNormal1 = vec3(0.0, 0.0, 1.0);
-        if (material_AppearanceV2Detail1Enabled > 0.5) {
-        appearanceLayerNormal1 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
-          texture2D(material_AppearanceV2Detail1Texture, appearanceLayerUv1),
-          material_AppearanceV2Detail1Strength,
-          0.0
-        );
-        }
-        appearanceNormalTS = waterSurfaceAppearanceBlendTangentNormals(appearanceNormalTS, appearanceLayerNormal1);
 
         appearanceNormalTS = normalize(mix(vec3(0.0, 0.0, 1.0), appearanceNormalTS, material_AppearanceV2DetailNormalStrength));
         vec3 appearanceTangentWS = safeNormalize3(

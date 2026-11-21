@@ -148,6 +148,7 @@ export function planningLakeRequests(
         geometry: "high",
         surfaceShading: "high",
         sceneFields: "scene-color-depth",
+        opaqueDownsampling: "2x",
         reflectionBudget: { environment: true, screenSpace: true },
         query: "dense",
         spatialField: createLakeSpatialFieldBudget(descriptor)

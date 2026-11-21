@@ -98,7 +98,6 @@
 {{FORWARD_APPEARANCE_FUNCTIONS}}
 {{VALUE_010_CREATERIVERAPPEARANCEPATTERNFUNCTIONS_APPEARANCE}}
 {{VALUE_011_RIVER_GEOMETRY_MODULE}}
-{{REFRACTION_FUNCTIONS}}
       Varyings vert(Attributes attr) {
         Varyings output;
         RiverGeometryVertex geometry = evaluateRiverGeometry(attr);
@@ -234,7 +233,9 @@
 #endif
           * refractedGeometryBehindSurface;
         vec3 centeredSceneColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
-        vec3 displacedSceneColor = texture2D(camera_OpaqueTexture, refractedScreenUv).rgb;
+        vec3 displacedSceneColor = refractionSampleValidity > 0.001
+          ? texture2D(camera_OpaqueTexture, refractedScreenUv).rgb
+          : centeredSceneColor;
         // Boundary masks use centered fields: refraction suppression must not depend on
         // the optical path that it is about to select. Depth tint uses the selected path below.
         float centeredDepthBehind = smoothstep(0.03, 0.22, sampledOpticalDepth);

@@ -213,10 +213,19 @@ function detailLayerTemplateData(
 
 export function createWaterSurfaceAppearanceV2NormalStatements(
   appearance: CompiledWaterSurfaceAppearanceV2,
-  coordinates: Readonly<{ flowAdvected?: string; flowAdvectedWeight?: string; boundedTime?: boolean }> = {}
+  coordinates: Readonly<{
+    flowAdvected?: string;
+    flowAdvectedWeight?: string;
+    boundedTime?: boolean;
+    maxDetailLayers?: number;
+  }> = {}
 ): string {
+  const detailLayerCount =
+    coordinates.maxDetailLayers !== undefined
+      ? Math.min(appearance.detailLayers.length, Math.max(0, coordinates.maxDetailLayers))
+      : appearance.detailLayers.length;
   return renderWaterShaderTemplate(waterSurfaceAppearanceV2NormalDetailShaderTemplate, {
-    DETAIL_LAYER_COUNT: appearance.detailLayers.length,
+    DETAIL_LAYER_COUNT: detailLayerCount,
     // Geometry may supply a continuous transported domain (e.g. River travel
     // time). HF local FlowAdvected remains unresolved S2: it still uses
     // surfaceTime mod4096, including its authored velocity.

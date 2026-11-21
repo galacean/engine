@@ -243,16 +243,33 @@ function glsl(value: number): string {
 
 const HEIGHTFIELD_WATER_PLANAR_TRANSFORM_SHADER_FUNCTIONS = heightfieldPlanarTransformTemplate;
 
-/** One normal pipeline for Forward, alpha-only depth and the SSR receiver. */
+const HEIGHTFIELD_SSR_RAIN_ROUGHNESS_STATEMENTS = `
+        // Half-resolution SSRReceiver skips fine rain-ripple micro-normal fetches;
+        // apply only the conservative spatial-average storm roughness delta (~25% ripple coverage).
+        float rainRate = clamp(scene_WeatherState.x, 0.0, 1.0) * material_MicroNormalsEnabled;
+        float rainRippleStormAmount = smoothstep(0.68, 1.0, rainRate);
+        float rainRippleSurfaceRoughness = clamp(
+          material_Roughness + rainRippleStormAmount * 0.02,
+          material_Roughness,
+          1.0
+        );`;
+
+/** One normal pipeline for Forward, alpha-only depth and simplified half-res SSR receiver. */
 function surfaceNormalStatements(
   quality: WaterQualityTier,
   appearance: CompiledWaterSurfaceAppearanceV2,
-  connectionBeforeRain: boolean
+  connectionBeforeRain: boolean,
+  simplifiedForSsr = false
 ): string {
   return renderWaterShaderTemplate(heightfieldSurfaceNormalTemplate, {
-    APPEARANCE_NORMAL_STATEMENTS: createWaterSurfaceAppearanceV2NormalStatements(appearance, { boundedTime: true }),
+    APPEARANCE_NORMAL_STATEMENTS: createWaterSurfaceAppearanceV2NormalStatements(
+      appearance,
+      simplifiedForSsr ? { boundedTime: true, maxDetailLayers: 1 } : { boundedTime: true }
+    ),
     CONNECTION_BEFORE_RAIN: Number(connectionBeforeRain),
-    RAIN_NORMAL_STATEMENTS: createHeightfieldWaterRainRippleNormalStatements(quality)
+    RAIN_NORMAL_STATEMENTS: simplifiedForSsr
+      ? HEIGHTFIELD_SSR_RAIN_ROUGHNESS_STATEMENTS
+      : createHeightfieldWaterRainRippleNormalStatements(quality)
   });
 }
 
@@ -490,8 +507,8 @@ function ssrReceiverPass(
       HEIGHTFIELD_WATER_SURFACE_TUNING.flowingDirectionWeight
     ),
     SURFACE_NORMAL_STATEMENTS: registerGeneratedWaterShaderModule(
-      "HeightfieldSurfaceNormal",
-      surfaceNormalStatements(quality, appearance, true)
+      "HeightfieldSsrSurfaceNormal",
+      surfaceNormalStatements(quality, appearance, true, true)
     )
   };
   const modularPassSource = renderWaterShaderTemplate(heightfieldSSRReceiverTemplate, surfaceReplacements);

@@ -1661,6 +1661,11 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
         return vec4(twoPi) / max(frequency, vec4(0.0001));
       }
 
+      float oceanGeometryEffectiveSamplingCellSize(float meshCellSize, float distanceToCamera) {
+        float continuousCellSize = 2.0 + 2.0 * smoothstep(96.0, 112.0, distanceToCamera) + 4.0 * smoothstep(160.0, 176.0, distanceToCamera);
+        return max(meshCellSize, continuousCellSize);
+      }
+
       vec4 oceanGeometryWaveGridWeight(vec4 wavelength, float samplingCellSize) {
         vec4 samplesPerWavelength = wavelength / max(samplingCellSize, 0.0001);
         return smoothstep(
@@ -1792,7 +1797,8 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
         vec3 normalSum = vec3(0.0);
         vec4 waveBandlimitWeight = vec4(0.0);
         vec4 waveWavelength = oceanGeometryWaveWavelength(frequency);
-        vec4 waveGridWeight = oceanGeometryWaveGridWeight(waveWavelength, attributes.TEXCOORD_0.x);
+        float samplingCellSize = oceanGeometryEffectiveSamplingCellSize(attributes.TEXCOORD_0.x, distanceToCamera);
+        vec4 waveGridWeight = oceanGeometryWaveGridWeight(waveWavelength, samplingCellSize);
 
         // Preserve Ocean's inclusive i <= WaveCount loop and cumulative fade/frequency mutation.
         if (oceanMaximum4(waveGridWeight) > 0.0) {
@@ -1839,7 +1845,7 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
 
           frequency *= 1.5;
           waveWavelength = oceanGeometryWaveWavelength(frequency);
-          waveGridWeight = oceanGeometryWaveGridWeight(waveWavelength, attributes.TEXCOORD_0.x);
+          waveGridWeight = oceanGeometryWaveGridWeight(waveWavelength, samplingCellSize);
           amplitude *= fadeFactor;
           if (oceanMaximum4(waveGridWeight) > 0.0) {
             waveBandlimitWeight = waveGridWeight * oceanGeometryWaveViewWeight(
@@ -1867,7 +1873,7 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
 
           frequency *= 2.0;
           waveWavelength = oceanGeometryWaveWavelength(frequency);
-          waveGridWeight = oceanGeometryWaveGridWeight(waveWavelength, attributes.TEXCOORD_0.x);
+          waveGridWeight = oceanGeometryWaveGridWeight(waveWavelength, samplingCellSize);
           amplitude *= fadeFactor;
           if (oceanMaximum4(waveGridWeight) > 0.0) {
             waveBandlimitWeight = waveGridWeight * oceanGeometryWaveViewWeight(
@@ -2106,7 +2112,9 @@ gl_FragColor = waterSurfaceOutputWithPick(farWaterClosure);
         // Preserve the centered scene for boundary composition; the shared resolver
         // selects between actual centered/displaced facts after validity gating.
         vec3 centeredSceneColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
-        vec3 refractedSceneColor = texture2D(camera_OpaqueTexture, displacedUv).rgb;
+        vec3 refractedSceneColor = refractionValidity > 0.001
+          ? texture2D(camera_OpaqueTexture, displacedUv).rgb
+          : centeredSceneColor;
         float fallbackViewDepth = mix(verticalDepth, centeredViewDepth, centeredDepthAvailable);
         float viewDepth = mix(
           fallbackViewDepth,

@@ -73,6 +73,8 @@ float material_RefractionEnabled;
 
 #ifndef WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
 #define WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
+      float material_AppearanceV2Detail0Enabled;
+      float material_AppearanceV2Detail1Enabled;
       float material_AppearanceV2DetailEnabled;
       float material_AppearanceV2DetailNormalStrength;
       float material_AppearanceV2DepthResponseEnabled;
@@ -163,6 +165,8 @@ float waterSurfaceCompositeExponentialDensity(float firstScaledDepth, float seco
 
 #endif
 
+      vec4 material_OceanTextureEnabled;
+      float material_OceanIntersectionTextureEnabled;
       sampler2D material_SmoothWavesTexture;
       sampler2D material_RoughWavesTexture;
       sampler2D material_CausticsTexture;
@@ -413,8 +417,6 @@ vec4 waterOceanApplySceneFog(vec4 color, vec3 positionVS) {
         return reflectedRadiance * max(material_LocalEnvironmentReflectionParameters.z, 0.0);
       }
       #endif
-
-
 
 #endif
 
@@ -1511,6 +1513,11 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
         return vec4(twoPi) / max(frequency, vec4(0.0001));
       }
 
+      float oceanGeometryEffectiveSamplingCellSize(float meshCellSize, float distanceToCamera) {
+        float continuousCellSize = 2.0 + 2.0 * smoothstep(96.0, 112.0, distanceToCamera) + 4.0 * smoothstep(160.0, 176.0, distanceToCamera);
+        return max(meshCellSize, continuousCellSize);
+      }
+
       vec4 oceanGeometryWaveGridWeight(vec4 wavelength, float samplingCellSize) {
         vec4 samplesPerWavelength = wavelength / max(samplingCellSize, 0.0001);
         return smoothstep(
@@ -1642,7 +1649,8 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
         vec3 normalSum = vec3(0.0);
         vec4 waveBandlimitWeight = vec4(0.0);
         vec4 waveWavelength = oceanGeometryWaveWavelength(frequency);
-        vec4 waveGridWeight = oceanGeometryWaveGridWeight(waveWavelength, attributes.TEXCOORD_0.x);
+        float samplingCellSize = oceanGeometryEffectiveSamplingCellSize(attributes.TEXCOORD_0.x, distanceToCamera);
+        vec4 waveGridWeight = oceanGeometryWaveGridWeight(waveWavelength, samplingCellSize);
 
         // Preserve Ocean's inclusive i <= WaveCount loop and cumulative fade/frequency mutation.
         if (oceanMaximum4(waveGridWeight) > 0.0) {
@@ -1689,7 +1697,7 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
 
           frequency *= 1.5;
           waveWavelength = oceanGeometryWaveWavelength(frequency);
-          waveGridWeight = oceanGeometryWaveGridWeight(waveWavelength, attributes.TEXCOORD_0.x);
+          waveGridWeight = oceanGeometryWaveGridWeight(waveWavelength, samplingCellSize);
           amplitude *= fadeFactor;
           if (oceanMaximum4(waveGridWeight) > 0.0) {
             waveBandlimitWeight = waveGridWeight * oceanGeometryWaveViewWeight(
@@ -1717,7 +1725,7 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
 
           frequency *= 2.0;
           waveWavelength = oceanGeometryWaveWavelength(frequency);
-          waveGridWeight = oceanGeometryWaveGridWeight(waveWavelength, attributes.TEXCOORD_0.x);
+          waveGridWeight = oceanGeometryWaveGridWeight(waveWavelength, samplingCellSize);
           amplitude *= fadeFactor;
           if (oceanMaximum4(waveGridWeight) > 0.0) {
             waveBandlimitWeight = waveGridWeight * oceanGeometryWaveViewWeight(
@@ -1779,9 +1787,12 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
           0.5,
           0.15
         );
+        vec3 farNormal = vec3(0.0, 0.0, 1.0);
+        if (material_OceanTextureEnabled.y > 0.5) {
         vec3 farA = decodeNormalMap(texture2D(material_RoughWavesTexture, farUv.xy).rgb);
         vec3 farB = decodeNormalMap(texture2D(material_RoughWavesTexture, farUv.zw).rgb);
-        vec3 farNormal = blendNormalRnm(farA, farB);
+        farNormal = blendNormalRnm(farA, farB);
+        }
         float pixelDistance = distance(camera_Position, worldPosition);
         float fadeFactor = clamp(
           (material_OceanNormalFadeEndDistance - pixelDistance)
@@ -1801,9 +1812,12 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
           material_OceanNormalParameters.y,
           material_OceanNormalParameters.w
         );
+        vec3 nearNormal = vec3(0.0, 0.0, 1.0);
+        if (material_OceanTextureEnabled.x > 0.5) {
         vec3 nearA = decodeNormalMap(texture2D(material_SmoothWavesTexture, nearUv.xy).rgb);
         vec3 nearB = decodeNormalMap(texture2D(material_SmoothWavesTexture, nearUv.zw).rgb);
-        vec3 nearNormal = blendNormalRnm(nearA, nearB);
+        nearNormal = blendNormalRnm(nearA, nearB);
+        }
         return safeNormalize3(mix(farNormal, nearNormal, fadeFactor), vec3(0.0, 0.0, 1.0));
       }
 
@@ -1950,7 +1964,9 @@ gl_FragColor = waterSurfaceOutputWithPick(farWaterClosure);
         // Preserve the centered scene for boundary composition; the shared resolver
         // selects between actual centered/displaced facts after validity gating.
         vec3 centeredSceneColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
-        vec3 refractedSceneColor = texture2D(camera_OpaqueTexture, displacedUv).rgb;
+        vec3 refractedSceneColor = refractionValidity > 0.001
+          ? texture2D(camera_OpaqueTexture, displacedUv).rgb
+          : centeredSceneColor;
         float fallbackViewDepth = mix(verticalDepth, centeredViewDepth, centeredDepthAvailable);
         float viewDepth = mix(
           fallbackViewDepth,
@@ -2058,7 +2074,7 @@ gl_FragColor = waterSurfaceOutputWithPick(farWaterClosure);
           1.0
         );
         float intersection = 0.0;
-        if (material_OceanIntersectionParameters.x > 0.0) {
+        if (material_OceanIntersectionParameters.x > 0.0 && material_OceanIntersectionTextureEnabled > 0.5) {
           if (intersectionDistance > 0.0) {
             vec2 intersectionTime = vec2(-elapsedTime) * material_OceanIntersectionMotion.x;
             vec2 intersectionUv = (
@@ -2091,14 +2107,15 @@ gl_FragColor = waterSurfaceOutputWithPick(farWaterClosure);
           material_OceanSurfaceFoamParameters.z,
           material_OceanSurfaceFoamMapping.x
         );
-        float foamTexture = clamp(
+        float foamTexture = 0.0;
+        if (material_OceanTextureEnabled.w > 0.5) foamTexture = clamp(
           texture2D(material_FoamTexture, foamUv.xy).r
             + texture2D(material_FoamTexture, foamUv.zw).r,
           0.0,
           1.0
         );
         float surfaceFoam = smoothstep(foamMask, foamMask + 1.0, foamTexture)
-          * material_OceanSurfaceFoamColor.a * material_OceanSurfaceFoamParameters.x;
+          * material_OceanSurfaceFoamColor.a * material_OceanSurfaceFoamParameters.x * material_OceanTextureEnabled.w;
         float flattening = clamp(max(intersection, surfaceFoam), 0.0, 1.0);
         detailNormal = safeNormalize3(mix(detailNormal, macroNormal, flattening), macroNormal);
 
@@ -2152,7 +2169,7 @@ gl_FragColor = waterSurfaceOutputWithPick(farWaterClosure);
         ) * coverage;
         float mainLightIntensity = dot(unshadowedSunlightColor, vec3(0.3, 0.59, 0.11));
         float causticsWeight = causticsMask * material_OceanCausticsParameters.y
-          * mainLightIntensity * cloudShadowAttenuation * material_OceanCausticsParameters.x;
+          * mainLightIntensity * cloudShadowAttenuation * material_OceanCausticsParameters.x * material_OceanTextureEnabled.z;
         vec3 caustics = vec3(0.0);
         if (causticsWeight > 0.0) {
           vec2 causticsTime = vec2(-elapsedTime) * material_OceanCausticsMotion.x;

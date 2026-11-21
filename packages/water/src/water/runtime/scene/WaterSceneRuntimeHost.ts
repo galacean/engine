@@ -320,6 +320,9 @@ class SourceCameraWaterVisibilityProvider implements WaterCameraVisibilityProvid
   }
 }
 
+const WATER_TERRAIN_OCCLUSION_CAMERA_POS_SQ_THRESHOLD = 0.05 * 0.05;
+const WATER_TERRAIN_OCCLUSION_CAMERA_FORWARD_THRESHOLD = 1e-3;
+
 /** One Gallery-internal Water composition root for one Scene/Engine instance. */
 export class WaterSceneRuntimeHost {
   readonly assets: WaterBodyAssetRegistryReadPort;
@@ -330,6 +333,7 @@ export class WaterSceneRuntimeHost {
   private readonly _backends = new WaterBackendRegistry();
   private readonly _providers = new WaterBodyProviderRegistry();
   private readonly _world = new WaterWorld();
+  private readonly _camera: Camera;
   private readonly _cameraFeatures: CameraWaterFeatureBroker;
   private readonly _runtimeResources = new WaterRuntimeResourceRegistry();
   private readonly _root: Entity;
@@ -364,6 +368,15 @@ export class WaterSceneRuntimeHost {
   private _rollbackBarrier: Promise<void> = Promise.resolve();
   private _environmentSnapshot: Readonly<WaterEnvironmentSnapshot> = DEFAULT_WATER_ENVIRONMENT_SNAPSHOT;
   private _terrainOcclusionProvider?: WaterTerrainOcclusionProvider;
+  private _terrainOcclusionDirty = true;
+  private _lastTerrainOcclusionRevision = Number.NaN;
+  private _lastTerrainOcclusionSceneRevision = -1;
+  private _lastTerrainOcclusionCameraX = Number.NaN;
+  private _lastTerrainOcclusionCameraY = Number.NaN;
+  private _lastTerrainOcclusionCameraZ = Number.NaN;
+  private _lastTerrainOcclusionForwardX = Number.NaN;
+  private _lastTerrainOcclusionForwardY = Number.NaN;
+  private _lastTerrainOcclusionForwardZ = Number.NaN;
   private _mutationTail: Promise<unknown> = Promise.resolve();
   private _mutationRunning = false;
   private _floatingOrigin: readonly [x: number, z: number] = Object.freeze([0, 0]);
@@ -378,6 +391,7 @@ export class WaterSceneRuntimeHost {
       throw new TypeError("WaterSceneRuntimeHost requires a Camera and Scene-owned root Entity.");
     }
     this._root = options.root.createChild("water-scene-runtime-host");
+    this._camera = options.camera;
     const maximumConcurrentBodyPreparations =
       options.maximumConcurrentBodyPreparations ?? MAXIMUM_CONCURRENT_BODY_PREPARATIONS;
     if (
@@ -1163,6 +1177,9 @@ export class WaterSceneRuntimeHost {
       throw new Error("Water Scene mutation owns the visibility boundary.");
     }
     const body = this._requireBody(bodyId);
+    if (body.handle.visible !== visible) {
+      this._terrainOcclusionDirty = true;
+    }
     body.handle.setVisible(visible);
     const instance = body.handle.instance;
     if (instance) body.request = Object.freeze({ ...body.request, instance });
@@ -1715,6 +1732,9 @@ export class WaterSceneRuntimeHost {
       }
       throw error;
     }
+    if (changed.length > 0) {
+      this._terrainOcclusionDirty = true;
+    }
     for (const body of bodies) {
       const instance = body.handle.instance;
       if (instance) body.request = Object.freeze({ ...body.request, instance });
@@ -1806,6 +1826,7 @@ export class WaterSceneRuntimeHost {
     this._assertActive();
     if (!origin.every(Number.isFinite)) throw new RangeError("Water floating origin must contain finite coordinates.");
     this._floatingOrigin = Object.freeze([origin[0], origin[1]] as const);
+    this._terrainOcclusionDirty = true;
     for (const body of this._activeBodies.values()) {
       this._applyRenderOffset(body.root, body.request.bodyOrigin ?? [0, 0]);
     }
@@ -1816,16 +1837,57 @@ export class WaterSceneRuntimeHost {
     this._assertActive();
     if (provider === this._terrainOcclusionProvider) return;
     this._terrainOcclusionProvider = provider;
+    this._terrainOcclusionDirty = true;
+    this._lastTerrainOcclusionRevision = Number.NaN;
     if (!provider) {
-      for (const body of this._activeBodies.values()) body.handle.refreshTerrainOcclusion?.(undefined);
+      for (let index = 0; index < this._activeBodyList.length; index++) {
+        this._activeBodyList[index]!.handle.refreshTerrainOcclusion?.(undefined);
+      }
     }
   }
 
-  /** Applies the installed World Horizon once; callers choose a frame phase before Camera rendering. */
-  refreshTerrainOcclusion(): void {
+  /** Applies the installed World Horizon when dirty or camera/terrain changed; zero-GC on stationary frames. */
+  refreshTerrainOcclusion(force = false): void {
     this._assertActive();
     const provider = this._terrainOcclusionProvider;
     if (!provider) return;
+    const elements = this._camera.entity.transform.worldMatrix.elements;
+    const camX = elements[12]!;
+    const camY = elements[13]!;
+    const camZ = elements[14]!;
+    const fwdX = -elements[8]!;
+    const fwdY = -elements[9]!;
+    const fwdZ = -elements[10]!;
+    const revision = provider.revision;
+    if (!force && revision !== undefined) {
+      const dx = camX - this._lastTerrainOcclusionCameraX;
+      const dy = camY - this._lastTerrainOcclusionCameraY;
+      const dz = camZ - this._lastTerrainOcclusionCameraZ;
+      const cameraMoved =
+        !Number.isFinite(this._lastTerrainOcclusionCameraX) ||
+        dx * dx + dy * dy + dz * dz >= WATER_TERRAIN_OCCLUSION_CAMERA_POS_SQ_THRESHOLD ||
+        Math.abs(fwdX - this._lastTerrainOcclusionForwardX) +
+          Math.abs(fwdY - this._lastTerrainOcclusionForwardY) +
+          Math.abs(fwdZ - this._lastTerrainOcclusionForwardZ) >=
+          WATER_TERRAIN_OCCLUSION_CAMERA_FORWARD_THRESHOLD;
+      if (
+        !this._terrainOcclusionDirty &&
+        !cameraMoved &&
+        revision === this._lastTerrainOcclusionRevision &&
+        this._activeSceneRevision === this._lastTerrainOcclusionSceneRevision
+      ) {
+        return;
+      }
+    }
+    this._terrainOcclusionDirty = false;
+    this._lastTerrainOcclusionRevision = revision ?? Number.NaN;
+    this._lastTerrainOcclusionSceneRevision = this._activeSceneRevision;
+    this._lastTerrainOcclusionCameraX = camX;
+    this._lastTerrainOcclusionCameraY = camY;
+    this._lastTerrainOcclusionCameraZ = camZ;
+    this._lastTerrainOcclusionForwardX = fwdX;
+    this._lastTerrainOcclusionForwardY = fwdY;
+    this._lastTerrainOcclusionForwardZ = fwdZ;
     for (let index = 0; index < this._activeBodyList.length; index++) {
       this._activeBodyList[index]!.handle.refreshTerrainOcclusion?.(provider);
     }

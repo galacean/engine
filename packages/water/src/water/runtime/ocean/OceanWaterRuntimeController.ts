@@ -126,6 +126,7 @@ export class OceanWaterRuntimeController {
   private _cameraSceneFieldDemandListener?: (required: boolean) => void;
   private _cameraSceneFieldTransitionCount = 0;
   private _lastCameraPosition: Readonly<OceanCameraPosition>;
+  private _terrainOcclusionProvider?: WaterTerrainOcclusionProvider;
   private _frameCount = 0;
   private _surfaceLevelOffsetMetres = 0;
   private _destroyed = false;
@@ -354,6 +355,7 @@ export class OceanWaterRuntimeController {
   /** True when at least one active Ocean surface chunk intersects the current source-Camera frustum. */
   refreshTerrainOcclusion(provider?: WaterTerrainOcclusionProvider): void {
     this._assertActive();
+    this._terrainOcclusionProvider = provider;
     this._geometry.refreshTerrainOcclusion(provider);
   }
 
@@ -423,6 +425,9 @@ export class OceanWaterRuntimeController {
     if (offsetMetres === this._surfaceLevelOffsetMetres) return;
     this.root.transform.setPosition(0, offsetMetres, 0);
     this._surfaceLevelOffsetMetres = offsetMetres;
+    if (this._terrainOcclusionProvider) {
+      this._geometry.refreshTerrainOcclusion(this._terrainOcclusionProvider);
+    }
     this._refreshCameraSceneFieldDemand(this._lastCameraPosition);
   }
 
@@ -464,7 +469,10 @@ export class OceanWaterRuntimeController {
     }
     const cameraPosition = readOceanCameraPosition(this._cameraPositionProvider);
     this._lastCameraPosition = cameraPosition;
-    this._geometry.updateCameraPosition(cameraPosition.x, cameraPosition.z);
+    const snapped = this._geometry.updateCameraPosition(cameraPosition.x, cameraPosition.z);
+    if (snapped && this._terrainOcclusionProvider) {
+      this._geometry.refreshTerrainOcclusion(this._terrainOcclusionProvider);
+    }
     this._refreshCameraSceneFieldDemand(cameraPosition);
     this._frameCount++;
   }
@@ -472,6 +480,7 @@ export class OceanWaterRuntimeController {
   destroy(): void {
     if (this._destroyed) return;
     this._destroyed = true;
+    this._terrainOcclusionProvider = undefined;
     this._surfaceProvider.destroy();
     this._cameraSceneFieldDemandListener = undefined;
     cleanupRuntime([

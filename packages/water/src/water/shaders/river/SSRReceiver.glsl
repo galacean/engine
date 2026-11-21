@@ -66,6 +66,7 @@
         layout(location = 1) vec4 receiverDepth;
       };
 
+#define WATER_SSR_SIMPLIFIED_FLOW_NORMAL
 {{VALUE_003_RIVER_GEOMETRY_MODULE}}
 {{SURFACE_NORMAL_FUNCTIONS}}
 {{ROUGHNESS_DEPTH_FUNCTIONS}}

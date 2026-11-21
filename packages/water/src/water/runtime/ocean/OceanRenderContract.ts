@@ -37,6 +37,7 @@ export function getCanonicalOceanRenderContract(): CompiledWaterRenderContractV1
       geometry: "high",
       surfaceShading: "high",
       sceneFields: "scene-color-depth",
+      opaqueDownsampling: "2x",
       reflectionBudget: { environment: true, screenSpace: false },
       surfaceEffectBudget: { caustics: true },
       query: "off",

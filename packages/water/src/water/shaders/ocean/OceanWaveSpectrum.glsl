@@ -29,7 +29,7 @@
 
           frequency *= {{SECOND_GROUP_FREQUENCY_SCALE}};
           waveWavelength = oceanGeometryWaveWavelength(frequency);
-          waveGridWeight = oceanGeometryWaveGridWeight(waveWavelength, attributes.TEXCOORD_0.x);
+          waveGridWeight = oceanGeometryWaveGridWeight(waveWavelength, samplingCellSize);
           amplitude *= fadeFactor;
           if (oceanMaximum4(waveGridWeight) > 0.0) {
             waveBandlimitWeight = waveGridWeight * oceanGeometryWaveViewWeight(
@@ -57,7 +57,7 @@
 
           frequency *= {{THIRD_GROUP_FREQUENCY_SCALE}};
           waveWavelength = oceanGeometryWaveWavelength(frequency);
-          waveGridWeight = oceanGeometryWaveGridWeight(waveWavelength, attributes.TEXCOORD_0.x);
+          waveGridWeight = oceanGeometryWaveGridWeight(waveWavelength, samplingCellSize);
           amplitude *= fadeFactor;
           if (oceanMaximum4(waveGridWeight) > 0.0) {
             waveBandlimitWeight = waveGridWeight * oceanGeometryWaveViewWeight(

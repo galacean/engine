@@ -115,6 +115,31 @@ function glsl(value: number): string {
   return Number.isInteger(value) ? `${value}.0` : String(value);
 }
 
+/**
+ * Derives a camera-distance-continuous sampling cell size from the concentric ring budget
+ * so wave bandlimiting transitions smoothly before every 2:1 ring seam and stays invariant
+ * across near-field lattice snaps.
+ */
+function createOceanContinuousSamplingCellSizeExpression(): string {
+  const rings = OCEAN_RENDER_BUDGET.nearFieldConcentricRings;
+  const halfSnap = OCEAN_RENDER_BUDGET.nearFieldSnapSizeMetres * 0.5;
+  const terms = [glsl(rings[0]!.cellSizeMetres)];
+  let previousEnd = 0;
+  for (let index = 1; index < rings.length; index++) {
+    const innerRing = rings[index - 1]!;
+    const outerRing = rings[index]!;
+    const delta = outerRing.cellSizeMetres - innerRing.cellSizeMetres;
+    const rampEnd = innerRing.outerHalfExtentMetres - halfSnap;
+    const rampStart = Math.max(previousEnd, rampEnd - halfSnap);
+    if (rampEnd <= rampStart) {
+      throw new RangeError("Ocean concentric ring transition must exceed one half-snap margin.");
+    }
+    terms.push(`${glsl(delta)} * smoothstep(${glsl(rampStart)}, ${glsl(rampEnd)}, distanceToCamera)`);
+    previousEnd = rampEnd;
+  }
+  return terms.join(" + ");
+}
+
 /** Source is intentionally inspectable so tests can lock the authorized closure. */
 export function createOceanShaderSource(
   contract: CompiledWaterRenderContractV1 = getCanonicalOceanRenderContract()
@@ -133,6 +158,7 @@ export function createOceanShaderSource(
   const geometryFunctions =
     WATER_CONNECTION_SHADER +
     renderWaterShaderTemplate(oceanGeometryTemplate, {
+      CONTINUOUS_SAMPLING_CELL_SIZE_EXPR: createOceanContinuousSamplingCellSizeExpression(),
       MINIMUM_SAMPLES_PER_WAVELENGTH: glsl(bandlimit.minimumSamplesPerWavelength),
       FULL_SAMPLES_PER_WAVELENGTH: glsl(bandlimit.fullSamplesPerWavelength),
       MINIMUM_PROJECTED_PIXELS_PER_WAVELENGTH: glsl(bandlimit.minimumProjectedPixelsPerWavelength),

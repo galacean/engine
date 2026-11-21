@@ -111,4 +111,6 @@
 #endif
         refractionUvDelta = refractedScreenUv - screenUv;
         centeredOpaqueColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
-        displacedOpaqueColor = texture2D(camera_OpaqueTexture, refractedScreenUv).rgb;
+        displacedOpaqueColor = refractionSampleValidity > 0.001
+          ? texture2D(camera_OpaqueTexture, refractedScreenUv).rgb
+          : centeredOpaqueColor;

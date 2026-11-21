@@ -32,7 +32,6 @@ import riverForwardPassTemplate from "../../shaders/river/ForwardPass.glsl?raw";
 import riverLocalSamplingTemplate from "../../shaders/river/LocalSampling.glsl?raw";
 import riverFlowNormalFunctions from "../../shaders/river/RiverFlowNormal.glsl?raw";
 import riverGeometryTemplate from "../../shaders/river/RiverGeometry.glsl?raw";
-import riverRefractionFunctions from "../../shaders/river/RiverRefraction.glsl?raw";
 import riverSurfaceNormalTemplate from "../../shaders/river/RiverSurfaceNormal.glsl?raw";
 import riverSurfaceRoughnessTemplate from "../../shaders/river/RiverSurfaceRoughness.glsl?raw";
 import riverSSRReceiverPassTemplate from "../../shaders/river/SSRReceiverPass.glsl?raw";
@@ -357,6 +356,24 @@ export function createSurfaceShaderSource(
       })
     )
   };
+  const ssrSurfaceAppearanceModules: RiverSurfaceAppearanceModules = {
+    ...surfaceAppearanceModules,
+    // Half-resolution SSRReceiver keeps macro + primary detail normal and omits secondary micro layers.
+    SURFACE_NORMAL_STATEMENTS: registerGeneratedWaterShaderModule(
+      "RiverSsrSurfaceNormal",
+      renderWaterShaderTemplate(riverSurfaceNormalTemplate, {
+        APPEARANCE_NORMAL:
+          appearance.detailLayers.length > 0
+            ? createWaterSurfaceAppearanceV2NormalStatements(appearance, {
+                boundedTime: true,
+                maxDetailLayers: 1,
+                flowAdvected: "vec2(input.motionCoordinates.y, -input.motionCoordinates.x)",
+                flowAdvectedWeight: `smoothstep(0.0, ${glsl(RIVER_FLOW_TRAVEL_MIN_SPEED)}, input.localFlowSpeed)`
+              })
+            : "// River owns its mesh-aligned detail normal."
+      })
+    )
+  };
   const shaderTemplateReplacements: Readonly<Record<string, string | number>> = {
     VALUE_001_SHADERNAME: shaderName,
     SURFACE_BOUNDARY_STATEMENTS: createWaterSurfaceAppearanceV2BoundaryStatements(
@@ -372,9 +389,6 @@ export function createSurfaceShaderSource(
           : 0,
     REFRACTION_SHIFTED_DEPTH:
       appearance.refraction.validation === WaterRefractionValidationModeV2.ShiftedSceneDepth ? 1 : 0,
-    // Engine resolves symbols in conditional branches before compiling variants.
-    // Keep their declarations available even when surface scattering is disabled.
-    REFRACTION_FUNCTIONS: registerGeneratedWaterShaderModule("RiverRefraction", riverRefractionFunctions),
     AMBIENT_UNIFORMS: registerGeneratedWaterShaderModule(
       "RiverAmbientUniforms",
       WATER_SURFACE_AMBIENT_LIGHTING_UNIFORM_DECLARATIONS
@@ -440,7 +454,7 @@ export function createSurfaceShaderSource(
       riverGeometryModule,
       localSampling,
       useLocalMap,
-      surfaceAppearanceModules,
+      ssrSurfaceAppearanceModules,
       roughnessNeedsDepth ? riverDepthFieldTemplate : "",
       createRiverAppearancePatternFunctions(roughnessAppearance)
     )

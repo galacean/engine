@@ -46,7 +46,9 @@ function downsamplingRank(value: Downsampling): number {
 }
 
 function qualityDownsampling(quality: WaterCameraFeatureQuality): Downsampling {
-  return quality === "high" ? Downsampling.None : quality === "medium" ? Downsampling.TwoX : Downsampling.FourX;
+  // Default Scene Color refraction to half resolution ("2x") for high/medium to bound TBDR bandwidth;
+  // callers requiring full-resolution opaque color pass request.opaqueDownsampling = Downsampling.None explicitly.
+  return quality === "low" ? Downsampling.FourX : Downsampling.TwoX;
 }
 
 export class CameraWaterFeatureBroker {
