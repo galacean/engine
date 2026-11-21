@@ -124,10 +124,15 @@ rigidbody.isKinematic = false;
 
 ### 运动控制
 
+在 `onPhysicsUpdate()` 中施加持续力和扭矩，使它们随固定物理步更新。在 `onUpdate()` 中处理跳跃按键，每帧读取一次。
+
 ```typescript
 import { Keys, Rigidbody, RigidbodyConstraints, Script, Vector3 } from "@galacean/engine";
 
 class PhysicsController extends Script {
+  private static readonly _force = new Vector3(0, 0, 10);
+  private static readonly _torque = new Vector3(0, 10, 0);
+
   private _rigidbody: Rigidbody;
 
   onAwake() {
@@ -137,19 +142,20 @@ class PhysicsController extends Script {
     this._rigidbody.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
   }
 
-  onUpdate() {
+  onPhysicsUpdate() {
     const inputManager = this.engine.inputManager;
-    // 按住 W 时每帧施加推力。
     if (inputManager.isKeyHeldDown(Keys.KeyW)) {
-      this._rigidbody.applyForce(new Vector3(0, 0, 10));
+      this._rigidbody.applyForce(PhysicsController._force);
     }
     if (inputManager.isKeyHeldDown(Keys.KeyR)) {
-      this._rigidbody.applyTorque(new Vector3(0, 10, 0));
+      this._rigidbody.applyTorque(PhysicsController._torque);
     }
+  }
+
+  onUpdate() {
     // 跳跃时保留水平速度。
-    if (inputManager.isKeyDown(Keys.Space)) {
-      const velocity = this._rigidbody.linearVelocity;
-      this._rigidbody.linearVelocity = new Vector3(velocity.x, 5, velocity.z);
+    if (this.engine.inputManager.isKeyDown(Keys.Space)) {
+      this._rigidbody.linearVelocity.y = 5;
     }
   }
 }

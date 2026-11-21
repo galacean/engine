@@ -124,10 +124,15 @@ rigidbody.isKinematic = false;
 
 ### Motion Control
 
+Apply sustained force and torque in `onPhysicsUpdate()` to use the fixed physics timestep. Read the jump key in `onUpdate()` to handle a press once per frame.
+
 ```typescript
 import { Keys, Rigidbody, RigidbodyConstraints, Script, Vector3 } from "@galacean/engine";
 
 class PhysicsController extends Script {
+  private static readonly _force = new Vector3(0, 0, 10);
+  private static readonly _torque = new Vector3(0, 10, 0);
+
   private _rigidbody: Rigidbody;
 
   onAwake() {
@@ -137,19 +142,20 @@ class PhysicsController extends Script {
     this._rigidbody.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
   }
 
-  onUpdate() {
+  onPhysicsUpdate() {
     const inputManager = this.engine.inputManager;
-    // Apply thrust every frame while W is held.
     if (inputManager.isKeyHeldDown(Keys.KeyW)) {
-      this._rigidbody.applyForce(new Vector3(0, 0, 10));
+      this._rigidbody.applyForce(PhysicsController._force);
     }
     if (inputManager.isKeyHeldDown(Keys.KeyR)) {
-      this._rigidbody.applyTorque(new Vector3(0, 10, 0));
+      this._rigidbody.applyTorque(PhysicsController._torque);
     }
+  }
+
+  onUpdate() {
     // Jump without changing horizontal velocity.
-    if (inputManager.isKeyDown(Keys.Space)) {
-      const velocity = this._rigidbody.linearVelocity;
-      this._rigidbody.linearVelocity = new Vector3(velocity.x, 5, velocity.z);
+    if (this.engine.inputManager.isKeyDown(Keys.Space)) {
+      this._rigidbody.linearVelocity.y = 5;
     }
   }
 }
