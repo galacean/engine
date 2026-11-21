@@ -14,11 +14,6 @@ declare global {
        */
       inspect(input: {
         entityId: number;
-        id?: never;
-      } | {
-        /** @deprecated 使用 entityId；仅兼容旧调用，不能同时传 entityId。 */
-        id: number;
-        entityId?: never;
       }): Promise<{
         status: "found" | "unavailable";
         alive: boolean;
@@ -26,8 +21,6 @@ declare global {
         entity: ({
           /** 运行时实体 ID；直接用于 entity.inspect、entity.children 和 component.query 的 entityId 参数。 */
           entityId: number;
-          /** @deprecated 兼容旧返回字段；与 entityId 相同，新调用使用 entityId。 */
-          id: number;
           name: string;
           parentId: number | null;
           childCount: number;

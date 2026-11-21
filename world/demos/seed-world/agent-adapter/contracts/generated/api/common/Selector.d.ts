@@ -14,7 +14,7 @@ export type Selector = {
   ids?: Array<string>;
   /** 要匹配的持久资产领域。 元素数量：1 到 6。 */
   domains?: Array<AssetDomain>;
-  /** 要匹配的 WorldAssetCatalog 语义种类。 元素数量：1 到 20。 */
+  /** 要匹配的世界资产语义种类。 元素数量：1 到 20。 */
   kinds?: Array<AssetKind>;
   /** 按资产来源匹配：natural 为自然生成，authored 为玩家创建。 元素数量：1 到 2。 */
   sources?: Array<AssetSource>;
@@ -72,7 +72,7 @@ export type Selector = {
         ids?: Array<string>;
         /** 要匹配的持久资产领域。 元素数量：1 到 6。 */
         domains?: Array<AssetDomain>;
-        /** 要匹配的 WorldAssetCatalog 语义种类。 元素数量：1 到 20。 */
+        /** 要匹配的世界资产语义种类。 元素数量：1 到 20。 */
         kinds?: Array<AssetKind>;
         /** 按资产来源匹配：natural 为自然生成，authored 为玩家创建。 元素数量：1 到 2。 */
         sources?: Array<AssetSource>;

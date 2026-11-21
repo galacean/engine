@@ -102,7 +102,7 @@ export class RuntimeSceneEdit {
     return this.view().records;
   }
 
-  page(options: QueryPageOptions & { name?: string; parentId?: string | null } = {}) {
+  page(options: QueryPageOptions & { name?: string; parentEntityId?: string | null } = {}) {
     const records = this.records();
     const parents = new Map(
       records.flatMap((record) => (record.children ?? []).map((child) => [child, record.id] as const))
@@ -111,19 +111,23 @@ export class RuntimeSceneEdit {
       .filter(
         (record) =>
           (options.name === undefined || (record.name ?? "").includes(options.name)) &&
-          (options.parentId === undefined || (parents.get(record.id) ?? null) === options.parentId)
+          (options.parentEntityId === undefined || (parents.get(record.id) ?? null) === options.parentEntityId)
       )
       .map((record) => ({
         id: record.id,
         name: (record.name ?? "").slice(0, 256),
         nameTruncated: (record.name?.length ?? 0) > 256,
-        parentId: parents.get(record.id) ?? null,
+        parentEntityId: parents.get(record.id) ?? null,
         childCount: record.children?.length ?? 0,
         componentCount: record.components?.length ?? 0
       }));
     return queryPage(
       rows,
-      [this.sceneId, options.name ?? null, options.parentId === undefined ? ["all"] : ["parent", options.parentId]],
+      [
+        this.sceneId,
+        options.name ?? null,
+        options.parentEntityId === undefined ? ["all"] : ["parent", options.parentEntityId]
+      ],
       options
     );
   }

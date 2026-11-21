@@ -3,6 +3,7 @@
 
 import type { AgentToolsDeclaration } from "../common/AgentTools";
 import type { Bounds } from "../common/Bounds";
+import type { ImpactBudget } from "../common/ImpactBudget";
 import type { JsonObject } from "../common/JsonObject";
 import type { Ref } from "../common/Ref";
 declare global {
@@ -37,15 +38,7 @@ declare global {
         };
         /** 默认 apply；preview 只返回影响估算。 */
         executionMode?: "apply" | "preview";
-        /** 可选影响上限；任一估算超过上限时修改不执行，省略时不额外限制。 */
-        impactBudget?: {
-          /** 允许影响的最大水平面积，单位为平方米。 */
-          maxAreaSquareMetres?: number;
-          /** 允许创建、更新或删除的最大公共资产或对象数量。 */
-          maxObjectCount?: number;
-          /** 允许地形发生的最大绝对高度变化，单位为米。 */
-          maxTerrainDeltaMetres?: number;
-        };
+        impactBudget?: ImpactBudget;
         /** 地势从当前高度过渡到最终高度的时间，单位为秒；省略时默认 1 秒，0 时立即完成。 取值范围：0 到 30。 */
         transitionDurationSeconds?: number;
       }) | ({
@@ -79,15 +72,7 @@ declare global {
         };
         /** 默认 apply；preview 只返回影响估算。 */
         executionMode?: "apply" | "preview";
-        /** 可选影响上限；任一估算超过上限时修改不执行，省略时不额外限制。 */
-        impactBudget?: {
-          /** 允许影响的最大水平面积，单位为平方米。 */
-          maxAreaSquareMetres?: number;
-          /** 允许创建、更新或删除的最大公共资产或对象数量。 */
-          maxObjectCount?: number;
-          /** 允许地形发生的最大绝对高度变化，单位为米。 */
-          maxTerrainDeltaMetres?: number;
-        };
+        impactBudget?: ImpactBudget;
         /** 地势从当前高度过渡到最终高度的时间，单位为秒；省略时默认 1 秒，0 时立即完成。 取值范围：0 到 30。 */
         transitionDurationSeconds?: number;
       })): Promise<({

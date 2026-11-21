@@ -7,10 +7,10 @@ export function registeredComponentQuery(component, proxyType) {
   return `
 declare global { namespace editor { namespace component {
   interface RegisteredComponentEditors { ${JSON.stringify(component)}: ${proxyType}; }
-  /** Query registered component types, including unions. Narrow each result by its type before using system-specific methods. */
+  /** Query registered component types, including unions. Returns { items }. Narrow each item by its type before using system-specific methods. */
   function query<K extends keyof RegisteredComponentEditors>(input: {
     type: K; scene?: string; entityId?: string; id?: string;
-  }): Promise<RegisteredComponentEditors[K][]>;
+  }): Promise<{ items: RegisteredComponentEditors[K][] }>;
 } } }
 `;
 }
@@ -28,9 +28,9 @@ export function sceneComponentQuery(method) {
   // precise overload first, then accept optional/unfiltered selectors as DTOs.
   const input = method.inputText.replace(selector, "type: K;");
   return `interface RegisteredComponentEditors {}
-/** ${method.description.replaceAll("*/", "* /")} */
-function query<K extends string>(input: ${input}): Promise<Array<
+/** ${method.description.replaceAll("*/", "* /")} Returns { items }. */
+function query<K extends string>(input: ${input}): Promise<{ items: Array<
   K extends keyof RegisteredComponentEditors ? RegisteredComponentEditors[K] : (${method.outputText})[number]
->>;
-function query(input: ${method.inputText}): Promise<${method.outputText}>;`;
+> }>;
+function query(input: ${method.inputText}): Promise<{ items: ${method.outputText} }>;`;
 }

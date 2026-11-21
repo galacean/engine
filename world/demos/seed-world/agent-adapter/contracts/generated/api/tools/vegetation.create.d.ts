@@ -3,6 +3,7 @@
 
 import type { AgentToolsDeclaration } from "../common/AgentTools";
 import type { Bounds } from "../common/Bounds";
+import type { ImpactBudget } from "../common/ImpactBudget";
 import type { JsonObject } from "../common/JsonObject";
 import type { Ref } from "../common/Ref";
 import type { Target } from "../common/Target";
@@ -36,15 +37,7 @@ declare global {
         seed?: number;
         /** 默认 apply；preview 只返回影响估算。 */
         executionMode?: "apply" | "preview";
-        /** 可选影响上限；任一估算超过上限时修改不执行，省略时不额外限制。 */
-        impactBudget?: {
-          /** 允许影响的最大水平面积，单位为平方米。 */
-          maxAreaSquareMetres?: number;
-          /** 允许创建、更新或删除的最大公共资产或对象数量。 */
-          maxObjectCount?: number;
-          /** 允许地形发生的最大绝对高度变化，单位为米。 */
-          maxTerrainDeltaMetres?: number;
-        };
+        impactBudget?: ImpactBudget;
       }) | ({
         /** 要创建的区域植被种类；这些种类不支持单株资产。 */
         plant: "grass" | "flower" | "aquatic-grass";
@@ -61,15 +54,7 @@ declare global {
         seed?: number;
         /** 默认 apply；preview 只返回影响估算。 */
         executionMode?: "apply" | "preview";
-        /** 可选影响上限；任一估算超过上限时修改不执行，省略时不额外限制。 */
-        impactBudget?: {
-          /** 允许影响的最大水平面积，单位为平方米。 */
-          maxAreaSquareMetres?: number;
-          /** 允许创建、更新或删除的最大公共资产或对象数量。 */
-          maxObjectCount?: number;
-          /** 允许地形发生的最大绝对高度变化，单位为米。 */
-          maxTerrainDeltaMetres?: number;
-        };
+        impactBudget?: ImpactBudget;
       })): Promise<({
         /** 修改已应用到本次 execute 草稿；以 execute.receipt 判断是否提交。 */
         status: "applied";

@@ -31,7 +31,7 @@ const SKILL_DOMAINS: Readonly<Record<string, readonly string[]>> = {
 const HOST_NOTES = [
   "world_state.snapshot.viewer.atSubmission 是当前 inputId 提交时冻结的位姿和拍摄时间，不是对话开始的时间。没有生效的输入时，它为 null。viewer.current 在每次模型请求时采样。用户可能在执行期间移动或转向。相对指令按提交时的参照解析。验证已创建的对象时，核对身份和目标位置。截图使用自己的 metadata.viewer 和 capturedAt。对象不在当前画面中，不能证明创建失败。不要为了验证而重新创建对象，也不要为了验证而移动用户的相机。",
   "execute 中的世界接口都在 `tools` 下，例如 `await tools.world.parameters.query(...)`。组件扩展使用 `await editor.component.query(...)` 和返回代理上声明的方法。按方法声明中打印的完整写法调用：`spatial.resolve` 的写法是 `tools.spatial.resolve`，不是 `tools.world.spatial.resolve`。Skill 目录只是主题，不是运行时命名空间。",
-  "区分三层身份，切勿混传：① tools.world.* 使用 Ref（直接复用查询返回的 item.ref，不要手工重新拼装）；② editor.* 使用 Source 身份 {scene, id: string}（editor.component.query 直接返回数组，editor.entity.list 返回 {items}）；③ tools.runtime.* 使用运行时数字 entityId/componentId（tools.runtime.component.query 返回 {components}）。",
+  "区分三层身份，切勿混传：① tools.world.* 使用 Ref（直接复用查询返回的 item.ref，不要手工重新拼装）；② editor.* 使用 Source 身份 {scene, id: string}（当前默认主场景虚拟路径为 \"Scenes/Main.scene\"，无需先读 project.json）；③ tools.runtime.* 使用运行时数字 entityId/componentId。三层所有列表与查询接口统一返回 { items }。",
   "execute 的代码是 JavaScript，不能写类型注解。代码运行前会做类型检查：字段名以声明为准，可能为 null 的字段要先判断。只有 declare/editor/ 中声明的接口可以在当前宿主调用。read 返回 `next` 表示内容还没读完。依赖返回结构前，先按该 offset 继续读取。"
 ].join("\n\n");
 export function createSeedWorldKnowledge(

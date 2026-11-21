@@ -12,7 +12,7 @@ export type Ref = {
   id: string;
   /** 资产所属语义领域。 */
   domain: AssetDomain;
-  /** 资产语义种类，取值来自 WorldAssetCatalog。 */
+  /** 资产语义种类，详情见 skills/world-objects/references/asset-types.md。 */
   kind: AssetKind;
   source: AssetSource;
 };

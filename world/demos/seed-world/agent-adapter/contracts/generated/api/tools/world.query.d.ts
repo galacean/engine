@@ -16,14 +16,14 @@ declare global {
        * 调用入口：await tools.world.query(input)
        * 通过资产类型、语义属性、空间关系和资产关系查询当前世界资产。
        * @param input - 至少提供一种查询条件。offset/limit 只规定当前页起点和最多条目数；若 nextOffset 存在，脚本必须继续分页并在内部完成聚合或筛选。
-       * @returns 传输安全的当前页选择，包含完整 matchedCount、offset、可选 nextOffset、公共 Asset 查询投影和 selectionId。根据 item.type 在 AssetCatalog 中读取对应 /assets 详情声明，再把 item.ref 传给 world.inspect 读取类型专属 properties。pageLimitedByBytes 表示当前页因字节预算少于 limit。
+       * @returns 传输安全的当前页选择，包含完整 matchedCount、offset、可选 nextOffset、公共 Asset 查询投影和 selectionId。根据 item.type 在 skills/world-objects/references/asset-types.md 中读取对应 declare/editor/world/assets/ 详情声明，再把 item.ref 传给 world.inspect 读取类型专属 properties。pageLimitedByBytes 表示当前页因字节预算少于 limit。
        */
       query(input: {
         /** 要精确匹配的稳定 WorldAsset id；创建后验证、检查是否删除等身份查询直接使用此字段。 元素数量：1 到 64。 */
         ids?: Array<string>;
         /** 要匹配的持久资产领域。 元素数量：1 到 6。 */
         domains?: Array<AssetDomain>;
-        /** 要匹配的 WorldAssetCatalog 语义种类。 元素数量：1 到 20。 */
+        /** 要匹配的世界资产语义种类。 元素数量：1 到 20。 */
         kinds?: Array<AssetKind>;
         /** 按资产来源匹配：natural 为自然生成，authored 为玩家创建。 元素数量：1 到 2。 */
         sources?: Array<AssetSource>;
@@ -81,7 +81,7 @@ declare global {
               ids?: Array<string>;
               /** 要匹配的持久资产领域。 元素数量：1 到 6。 */
               domains?: Array<AssetDomain>;
-              /** 要匹配的 WorldAssetCatalog 语义种类。 元素数量：1 到 20。 */
+              /** 要匹配的世界资产语义种类。 元素数量：1 到 20。 */
               kinds?: Array<AssetKind>;
               /** 按资产来源匹配：natural 为自然生成，authored 为玩家创建。 元素数量：1 到 2。 */
               sources?: Array<AssetSource>;

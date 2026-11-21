@@ -21,7 +21,7 @@ it("typechecks published operation examples against the actual Editor proxy decl
   expect(examples).toHaveLength(2);
   // Bind the helper's receiver to the real query return type so untyped JS parameters cannot hide contract drift.
   const plant = `
-    const [farm] = await editor.component.query({type:"FarmingAreaComponent"});
+    const { items: [farm] } = await editor.component.query({type:"FarmingAreaComponent"});
     ${examples[0].replace("plantCrop(farm, plotId, cropId)", "plantCrop(plotId, cropId)")}
     return await plantCrop("selected-plot", "selected-crop");
   `;
@@ -33,7 +33,7 @@ it("exposes every farm-scoped operation as a typed identity-bound method", async
   const methods = pkg.definition.editorComponents![0].methods;
   expect(Object.keys(methods).sort()).toEqual(Object.keys(FARMING_API_CONTRACT).filter(name => name !== "list").map(name => name === "get" ? "read" : name).sort());
   const source = `
-    const [farm] = await editor.component.query({type: "FarmingAreaComponent", farmId: "native-farm"});
+    const { items: [farm] } = await editor.component.query({type: "FarmingAreaComponent", farmId: "native-farm"});
     const before = await farm.read();
     await farm.plant({plotId:"native/a", seedId:"berry-seed"}, {commandId:"proxy-plant"});
     const plot = await farm.getPlot({plotId:"native/a"});
@@ -55,8 +55,8 @@ it("rejects engine-style synchronous access, wrong arguments and missing harvest
   const pkg = createFarmingAgentPackage(f.api);
   for (const statement of [
     `const farms = editor.component.query({type:"FarmingAreaComponent"}); return await farms.read();`,
-    `const [farm] = await editor.component.query({type:"FarmingAreaComponent"}); return await farm.harvest({plotId:"p"});`,
-    `const [farm] = await editor.component.query({type:"FarmingAreaComponent"}); return await farm.irrigate({farmId:"other", plotId:"p"});`
+    `const { items: [farm] } = await editor.component.query({type:"FarmingAreaComponent"}); return await farm.harvest({plotId:"p"});`,
+    `const { items: [farm] } = await editor.component.query({type:"FarmingAreaComponent"}); return await farm.irrigate({farmId:"other", plotId:"p"});`
   ]) {
     expect(checker.check(`${statement}`, pkg.definition.scriptApi.modules)).toBeDefined();
   }
@@ -76,7 +76,7 @@ it("executes all farming operations through the Editor facade and verifies farmi
     const output = toAgentValue(tool.parseOutput(await tool.execute(tool.parseInput(input), {signal:new AbortController().signal})));
     return output;
   });
-  const [ref] = await editor.component.query({type:"FarmingAreaComponent", farmId:"native-farm"});
+  const { items: [ref] } = await editor.component.query({type:"FarmingAreaComponent", farmId:"native-farm"});
   const farm = ref as any;
   expect((await farm.read()).value.farmId).toBe("native-farm");
   expect((await farm.capabilities()).value.operations).toContain("plant");
@@ -152,13 +152,13 @@ it("keeps system diagnostics discoverable without an initialized area and expose
   const f=nativeFixture();fixtures.push(f);await f.ready;await f.area.dispose();
   const pkg=createFarmingAgentPackage(f.api);
   expect(pkg.tools.some(tool=>tool.name==="farming.execute")).toBe(false);
-  const source='const [system]=await editor.component.query({type:"FarmingSystem"});return await system.getDiagnostics();';
+  const source='const { items: [system] }=await editor.component.query({type:"FarmingSystem"});return await system.getDiagnostics();';
   expect(checker.check(source,pkg.definition.scriptApi.modules)).toBeUndefined();
   const editor=createAgentEditorFacade(pkg.definition.editorComponents!,async(name,input)=>{
     const tool=pkg.tools.find(tool=>tool.name===name)!;
     return toAgentValue(await tool.execute(tool.parseInput(input),{signal:new AbortController().signal}));
   });
-  expect(await editor.component.query({type:"FarmingAreaComponent"})).toEqual([]);
-  const [system]=await editor.component.query({type:"FarmingSystem"});
+  expect(await editor.component.query({type:"FarmingAreaComponent"})).toEqual({items:[]});
+  const { items: [system] }=await editor.component.query({type:"FarmingSystem"});
   expect((await (system as any).getDiagnostics()).ok).toBe(true);
 });

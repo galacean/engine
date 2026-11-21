@@ -40,18 +40,20 @@ it("composes actual world and runtime identity outputs with the typed editor inp
       const entity = (await tools.runtime.entity.inspect({entityId:hit.ref.entityId})).entity;
       if (!entity) return;
       const result = await tools.runtime.component.query({entityId:entity.entityId});
-      for (const component of result.components) {
+      for (const component of result.items) {
         await tools.runtime.component.read({componentId:component.componentId,fields:[]});
         if (component.authoring) {
-          const sources = await editor.component.query(component.authoring.componentQuery);
+          const { items: sources } = await editor.component.query(component.authoring.componentQuery);
           for (const source of sources) await editor.component.read({scene:source.scene,id:source.id});
         }
       }
     `, declarations)).toBeUndefined();
     for (const invalid of [
+      'await tools.runtime.entity.inspect({id:1});',
       'await tools.runtime.entity.inspect({entityId:1,id:1});',
       'await tools.runtime.entity.inspect({componentId:1});',
       'await tools.runtime.entity.inspect({entityId:"author-id"});',
+      'await tools.runtime.component.read({id:1,fields:[]});',
       'await tools.runtime.component.read({componentId:1,id:1,fields:[]});',
       'await tools.runtime.component.read({entityId:1,fields:[]});',
     ]) expect(checker.check(invalid, declarations)?.code, invalid).toBe("SCRIPT_CHECK_FAILED");
@@ -73,7 +75,7 @@ describe.each([
     for (const scene of ["", 'scene: "Main.scene",']) {
       expect(checker.check(loop + `
         for (const type of types) {
-          const results = await editor.component.query({${scene}type});
+          const { items: results } = await editor.component.query({${scene}type});
           for (const system of results) {
             if (system.type === "FarmingSystem") {
               const diagnosis = await system.getDiagnostics();
@@ -93,9 +95,9 @@ describe.each([
   it("preserves literal result types and method input/output checking", () => {
     for (const scene of ["", 'scene: "Main.scene",']) {
       const queries = `
-        const [farm] = await editor.component.query({${scene}type: "FarmingSystem"});
-        const [manual] = await editor.component.query({${scene}type: "MasonrySystem"});
-        const [planned] = await editor.component.query({${scene}type: "PlannedMasonrySystem"});
+        const { items: [farm] } = await editor.component.query({${scene}type: "FarmingSystem"});
+        const { items: [manual] } = await editor.component.query({${scene}type: "MasonrySystem"});
+        const { items: [planned] } = await editor.component.query({${scene}type: "PlannedMasonrySystem"});
       `;
       expect(checker.check(queries + `
         (await farm.getDiagnostics()).value;
@@ -117,7 +119,7 @@ describe.each([
     for (const scene of ["", 'scene: "Main.scene",']) {
       expect(checker.check(loop + `
         for (const type of types) {
-          const [system] = await editor.component.query({${scene}type});
+          const { items: [system] } = await editor.component.query({${scene}type});
           await system.getDiagnostics();
         }
       `, declarations)?.code).toBe("SCRIPT_CHECK_FAILED");
@@ -126,7 +128,7 @@ describe.each([
         /** @type {("MasonrySystem" | "PlannedMasonrySystem")[]} */
         const types = ["MasonrySystem", "PlannedMasonrySystem"];
         for (const type of types) {
-          for (const system of await editor.component.query({${scene}type})) {
+          for (const system of (await editor.component.query({${scene}type})).items) {
             if (system.type === "MasonrySystem") await system.read();
             else await system.listComponents({category: "building"});
           }
@@ -152,8 +154,8 @@ it("keeps unregistered and unfiltered Scene queries as source identities", () =>
   try {
     for (const declarations of [[...native, ...systems], [...systems, ...native]]) {
       const source = `
-        const all = await editor.component.query({scene: "Main.scene"});
-        const meshes = await editor.component.query({scene: "Main.scene", type: "MeshRenderer"});
+        const { items: all } = await editor.component.query({scene: "Main.scene"});
+        const { items: meshes } = await editor.component.query({scene: "Main.scene", type: "MeshRenderer"});
         for (const ref of [...all, ...meshes]) await editor.component.read({scene:ref.scene, id:ref.id});
       `;
       expect(checker.check(source, declarations)).toBeUndefined();
@@ -169,7 +171,7 @@ it("does not infer a system proxy from an optional Scene type filter", () => {
       for (const initializer of ['{scene:"Main.scene"}', '{scene:"Main.scene",type:undefined}', '{scene:"Main.scene",type:"FarmingSystem"}']) {
         const source = `
           /** @type {{scene:string,type?:"FarmingSystem"}} */ const query = ${initializer};
-          const results = await editor.component.query(query);
+          const { items: results } = await editor.component.query(query);
           for (const ref of results) await editor.component.read({scene:ref.scene,id:ref.id});
         `;
         expect(checker.check(source, declarations)).toBeUndefined();
@@ -178,7 +180,7 @@ it("does not infer a system proxy from an optional Scene type filter", () => {
       expect(checker.check(`
         /** @type {{scene:string,type:"FarmingSystem"}} */
         const query = {scene:"Main.scene",type:"FarmingSystem"};
-        const results = await editor.component.query(query);
+        const { items: results } = await editor.component.query(query);
         await results[0].getDiagnostics();
       `, declarations)).toBeUndefined();
     }

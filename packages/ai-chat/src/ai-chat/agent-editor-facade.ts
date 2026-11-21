@@ -39,7 +39,7 @@ export function createAgentEditorFacade(
       Object.fromEntries(
         toolNames
           .filter((name) => name.startsWith(prefix + ".") && /^[A-Za-z]+$/.test(name.slice(prefix.length + 1)))
-          .map((name) => [name.slice(prefix.length + 1), (input: AgentValue) => invoke(name, input)])
+          .map((name) => [name.slice(prefix.length + 1), (input: AgentValue = {}) => invoke(name, input)])
       )
     );
   return Object.freeze({
@@ -62,7 +62,7 @@ export function createAgentEditorFacade(
           >;
           const identities = await invoke(authored ? "component.query" : selected!.queryTool, input);
           if (!Array.isArray(identities)) throw new Error("Invalid component query result");
-          return identities.map((value) => {
+          const items = identities.map((value) => {
             const identity = record(value, "component identity");
             const binding = authored
               ? typeof identity.type === "string"
@@ -95,6 +95,7 @@ export function createAgentEditorFacade(
             }
             return Object.freeze(receiver);
           });
+          return Object.freeze({ items });
         }
       })
     )

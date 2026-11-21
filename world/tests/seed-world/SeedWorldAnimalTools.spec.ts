@@ -39,7 +39,7 @@ describe("Seed World animal Agent boundary", () => {
 
   it("reports disabled facts without issuing commands or disguising unavailable operations as accepted", async () => {
     const { service, call } = harness();
-    expect(await call("query", {})).toEqual({ enabled: false, animals: [], matchedCount: 0, offset: 0, pageSummary:{scope:"returned-page",returnedCount:0,loadedCount:0,renderActiveCount:0} });
+    expect(await call("query", {})).toEqual({ enabled: false, items: [], matchedCount: 0, offset: 0, pageSummary:{scope:"returned-page",returnedCount:0,loadedCount:0,renderActiveCount:0} });
     expect(await call("describe", { id })).toMatchObject({ available: false, reason: "disabled" });
     expect(await call("receipt", { id, requestId: request.requestId })).toMatchObject({
       status: "not_found",
@@ -62,7 +62,7 @@ describe("Seed World animal Agent boundary", () => {
     const input = { typeId: "bears-adult", visible: false, offset: 0, limit: 1 };
     expect(await call("query", input)).toMatchObject({
       enabled: true,
-      animals: [{ loaded: false, visible: false }],
+      items: [{ loaded: false, visible: false }],
       nextOffset: 1
     });
     expect(service.query).toHaveBeenCalledExactlyOnceWith(input);
@@ -150,7 +150,7 @@ describe("Seed World animal Agent boundary", () => {
 describe("animal content discovery and summon contract", () => {
   it("uses registered identities only and exposes idempotent session spawning through the command channel", async () => {
     const { service, call, tool } = harness();
-    expect(await call("catalog", { search: "狗" })).toMatchObject({ entries: [], matchedCount: 0 });
+    expect(await call("catalog", { search: "狗" })).toMatchObject({ items: [], matchedCount: 0 });
     expect(service.catalog).toHaveBeenCalledExactlyOnceWith({ search: "狗" });
     expect(await call("spawn", { typeId: "dog-01", requestId: "dog-request" })).toMatchObject({
       status: "rejected",
@@ -172,10 +172,10 @@ it('preserves all-match counts when projecting a short catalog page without reso
  const full=querySeedAnimalCatalog({limit:100});
  expect(value.summary).toMatchObject({scope:'all-matches',unit:'model-type',total:full.matchedCount,returned:1,hasMore:true});
  expect(value.summary.speciesCount).toBeLessThan(value.summary.total);
- expect(value.entries[0].modelUrl).toBeUndefined();
- expect(value.entries[0].appearances.every((x:any)=>x.modelUrl===undefined)).toBe(true);
+ expect(value.items[0].modelUrl).toBeUndefined();
+ expect(value.items[0].appearances.every((x:any)=>x.modelUrl===undefined)).toBe(true);
  const resources=await call('catalog',{limit:1}) as any;
- expect(resources.entries[0].modelUrl).toMatch(/^https:/);
+ expect(resources.items[0].modelUrl).toMatch(/^https:/);
  expect(resources.summary).toEqual(value.summary);
  const empty=await call('catalog',{search:'no-such-species-xx',view:'summary'}) as any;
  expect(empty.summary).toMatchObject({total:0,speciesCount:0,returned:0,hasMore:false});

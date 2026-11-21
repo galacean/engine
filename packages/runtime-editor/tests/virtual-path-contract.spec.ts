@@ -13,7 +13,8 @@ function tools(draft:RuntimeProjectEdit){const entries=nativeProjectTools(()=>dr
 it("uses the exact listed path for editing, references, compilation and undo without an asset ID",async()=>{
  const before=initial(),draft=new RuntimeProjectEdit(before,nativeAssetFormats(()=>({}))),call=tools(draft);
  expect(await call("asset.create",{path:"Shapes/B.mesh",type:"PrimitiveMesh",content:'{"type":"cuboid","cuboidWidth":2}'})).toEqual({path:"Shapes/B.mesh"});
- expect(await call("asset.list",{})).toContainEqual({path:"Shapes/B.mesh",type:"PrimitiveMesh"});
+ expect((await call("asset.list",{}) as { items: unknown[] }).items).toContainEqual({path:"Shapes/B.mesh",type:"PrimitiveMesh"});
+ expect((await call("asset.list",{search:"b.mesh",type:"PrimitiveMesh"}) as { items: unknown[] }).items).toEqual([{path:"Shapes/B.mesh",type:"PrimitiveMesh"}]);
  const files=new VirtualProjectFiles([runtimeProjectFiles(()=>draft.preview())]);
  const path=(await files.listDirectory({path:"Shapes"})).entries.find(e=>e.path.endsWith(".mesh"))!.path;
  expect(await call("asset.read",{path})).toEqual({path,type:"PrimitiveMesh",kind:"structured",data:JSON.parse(files.read(path))});

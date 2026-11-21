@@ -15,13 +15,6 @@ declare global {
        */
       read(input: {
         componentId: number;
-        id?: never;
-        /** 最多 32 个元素。 */
-        fields: Array<string>;
-      } | {
-        /** @deprecated 使用 componentId；仅兼容旧调用，不能同时传 componentId。 */
-        id: number;
-        componentId?: never;
         /** 最多 32 个元素。 */
         fields: Array<string>;
       }): Promise<{
@@ -29,8 +22,6 @@ declare global {
         component: {
           /** 运行时组件 ID；直接用于 component.read 的 componentId 参数，不是所属实体的 entityId。 */
           componentId: number;
-          /** @deprecated 兼容旧返回字段；与 componentId 相同，新调用使用 componentId。 */
-          id: number;
           entityId: number;
           type: string;
           enabled: boolean;

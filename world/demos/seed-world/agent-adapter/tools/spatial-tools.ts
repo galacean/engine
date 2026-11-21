@@ -53,7 +53,7 @@ const baseSelectorShape = {
   ids: z.array(z.string().trim().min(1).max(240)).min(1).max(64).optional()
     .describe("要精确匹配的稳定 WorldAsset id；创建后验证、检查是否删除等身份查询直接使用此字段"),
   domains: z.array(assetDomainSchema).min(1).max(6).optional().describe("要匹配的持久资产领域"),
-  kinds: z.array(assetKindSchema).min(1).max(20).optional().describe("要匹配的 WorldAssetCatalog 语义种类"),
+  kinds: z.array(assetKindSchema).min(1).max(20).optional().describe("要匹配的世界资产语义种类"),
   sources: z.array(assetSourceSchema).min(1).max(2).optional()
     .describe("按资产来源匹配：natural 为自然生成，authored 为玩家创建"),
   filters: z.array(filterSchema).max(16).optional().describe("精确语义属性过滤"),
@@ -237,13 +237,13 @@ export const worldSelectContract = defineSeedWorldApiContract({
   name: "world.query", effect: "read", domain: "world",
   description: "通过资产类型、语义属性、空间关系和资产关系查询当前世界资产。",
   inputDescription: "至少提供一种查询条件。offset/limit 只规定当前页起点和最多条目数；若 nextOffset 存在，脚本必须继续分页并在内部完成聚合或筛选。",
-  outputDescription: "传输安全的当前页选择，包含完整 matchedCount、offset、可选 nextOffset、公共 Asset 查询投影和 selectionId。根据 item.type 在 AssetCatalog 中读取对应 /assets 详情声明，再把 item.ref 传给 world.inspect 读取类型专属 properties。pageLimitedByBytes 表示当前页因字节预算少于 limit。",
+  outputDescription: "传输安全的当前页选择，包含完整 matchedCount、offset、可选 nextOffset、公共 Asset 查询投影和 selectionId。根据 item.type 在 skills/world-objects/references/asset-types.md 中读取对应 declare/editor/world/assets/ 详情声明，再把 item.ref 传给 world.inspect 读取类型专属 properties。pageLimitedByBytes 表示当前页因字节预算少于 limit。",
   input: worldQueryInputSchema, output: selectionResultSchema
 });
 export const worldInspectContract = defineSeedWorldApiContract({
   name: "world.inspect", effect: "read", domain: "world",
   description: "读取一个稳定世界资产引用的详细状态和关系。",
-  inputDescription: "来自查询或修改结果的 Ref；先根据 ref.kind 对应的 Asset Type 读取 AssetCatalog 指向的 /assets 详情声明。",
+  inputDescription: "来自查询或修改结果的 Ref；先根据 ref.kind 对应的资产类型在 skills/world-objects/references/asset-types.md 中读取 declare/editor/world/assets/ 详情声明。",
   outputDescription: "直接返回与 ref.kind 对应的具体资产。result.type 与 ref.kind 一致，result.ref.id 与输入 id 一致，类型专属字段位于 result.properties；不存在 item 包装层。",
   input: worldInspectInputSchema, output: inspectedWorldAssetSchema
 });

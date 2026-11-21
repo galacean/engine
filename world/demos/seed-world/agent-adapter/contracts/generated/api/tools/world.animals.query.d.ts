@@ -29,7 +29,7 @@ declare global {
           loadedCount: number;
           renderActiveCount: number;
         };
-        animals: Array<{
+        items: Array<{
             /** 非空稳定标识，不含控制字符，UTF-8 最多 128 字节。 */
             id: string;
             /** 非空稳定标识，不含控制字符，UTF-8 最多 128 字节。 */

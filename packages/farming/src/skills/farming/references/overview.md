@@ -31,7 +31,7 @@ Agent Tool 只返回成功的 `FarmingResult`；被拒绝的请求抛出工具�
 execute 中的 editor 是异步 Editor API，代理只携带 farmId；它不是 Engine Component 实例。`farm.read()` 读取当前快照，`farm.queryPlots({ query })` 查找地块；`farm.plant({ plotId, seedId }, { commandId })` 发起业务命令。所有方法返回 `{ ok: true, value, context? }`，错误抛出并保留命令事实。
 
 ```javascript
-const farms = await editor.component.query({ type: "FarmingAreaComponent" });
+const { items: farms } = await editor.component.query({ type: "FarmingAreaComponent" });
 return await Promise.all(farms.map(async farm => (await farm.read()).value));
 ```
 
@@ -41,7 +41,7 @@ return await Promise.all(farms.map(async farm => (await farm.read()).value));
 区域尚未初始化时，先查询系统诊断：
 
 ```javascript
-const [system] = await editor.component.query({type: "FarmingSystem"});
+const { items: [system] } = await editor.component.query({type: "FarmingSystem"});
 const diagnostics = await system.getDiagnostics();
 ```
 
@@ -78,7 +78,7 @@ async function plantCrop(farm, plotId, cropId) {
 下面的脚本适用于用户明确要求收获唯一区域的全部成熟作物，规则见 operations.md 的收获一节。
 
 ```js
-const regions = await editor.component.query({ type: "FarmingAreaComponent" });
+const { items: regions } = await editor.component.query({ type: "FarmingAreaComponent" });
 if (regions.length !== 1) throw new Error("请明确目标区域");
 const farm = regions[0];
 const farmId = farm.farmId;

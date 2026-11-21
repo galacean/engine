@@ -9,10 +9,10 @@ Scene 作者分组、灯光节点和层级从这里进入：先读 project.json 
 
 ## 查询
 
-`editor.entity.list({scene,name?,parentId?,limit?,cursor?})` 返回有界的实体摘要页 `{items,total,revision,nextCursor}`，包括关联的 Prefab 成员。
+`editor.entity.list({scene,name?,parentEntityId?,limit?,cursor?})` 返回有界的实体摘要页 `{items,total,revision,nextCursor}`，包括关联的 Prefab 成员。
 
 - name 按子串过滤，区分大小写。
-- parentId 为 null 时选择根节点。
+- parentEntityId 为 null 时选择根节点。
 - 按 nextCursor 继续时，过滤条件不变。结果变化后，旧 cursor 会被拒绝。
 - 完整属性、子节点和组件 ID 用 `editor.entity.read({scene,id})` 读取。
 

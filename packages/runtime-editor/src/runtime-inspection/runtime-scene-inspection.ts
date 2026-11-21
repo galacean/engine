@@ -20,8 +20,6 @@ export interface RuntimePickIdentity {
 }
 export interface RuntimeEntityRecord {
   entityId: number;
-  /** @deprecated Use entityId. */
-  id: number;
   name: string;
   parentId: number | null;
   children: number[];
@@ -34,8 +32,6 @@ export interface RuntimeEntityRecord {
 }
 export interface RuntimeComponentRecord {
   componentId: number;
-  /** @deprecated Use componentId. */
-  id: number;
   entityId: number;
   type: string;
   enabled: boolean;
@@ -88,7 +84,7 @@ export class RuntimeSceneInspection {
     return {
       status: nodes ? "found" : "unavailable",
       observedAt: "live" as const,
-      entities: entries.slice(offset, offset + limit).map((node) => this.inspectEntity(this.id(node))),
+      items: entries.slice(offset, offset + limit).map((node) => this.inspectEntity(this.id(node))),
       matchedCount: entries.length,
       ...(offset + limit < entries.length ? { nextOffset: offset + limit } : {})
     };
@@ -96,7 +92,7 @@ export class RuntimeSceneInspection {
   queryComponents(entityId: number, type?: string) {
     const object = this.resolve(entityId);
     const alive = object instanceof Entity;
-    const components = alive
+    const items = alive
       ? object
           .getComponents(Component, [])
           .filter(
@@ -105,7 +101,7 @@ export class RuntimeSceneInspection {
           )
           .map((component) => this.componentRecord(component))
       : [];
-    return { status: alive ? "found" : "unavailable", alive, observedAt: "live" as const, components };
+    return { status: alive ? "found" : "unavailable", alive, observedAt: "live" as const, items };
   }
   readComponent(id: number, fields: readonly string[]) {
     const component = this.resolve(id);
@@ -143,7 +139,6 @@ export class RuntimeSceneInspection {
       v = (x: { x: number; y: number; z: number }) => [x.x, x.y, x.z];
     return {
       entityId: this.id(entity),
-      id: this.id(entity),
       name: entity.name,
       parentId: entity.parent ? this.id(entity.parent) : null,
       children: entity.children
@@ -164,7 +159,6 @@ export class RuntimeSceneInspection {
     const authoring = this.source?.(component);
     return {
       componentId: this.id(component),
-      id: this.id(component),
       entityId: this.id(component.entity),
       type: componentType(component),
       enabled: component.enabled,

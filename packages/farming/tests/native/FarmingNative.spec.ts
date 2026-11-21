@@ -91,7 +91,7 @@ describe("native farming contracts and state", () => {
     const name = "/farming-contract-check.ts";
     const source =
       FARMING_API_DECLARATION +
-      `\nasync function example(){const [farm]=await editor.component.query({type:'FarmingAreaComponent',farmId:'f'});const r=await farm.getPlot({plotId:'p'});if(r.ok)r.value?.crop?.instanceId;\n// @ts-expect-error cropInstanceId is required\nawait farm.harvest({plotId:'p'});\n// @ts-expect-error reads cannot mutate revisions\nawait farm.read({}, {expectedRevision:1});}`;
+      `\nasync function example(){const {items:[farm]}=await editor.component.query({type:'FarmingAreaComponent',farmId:'f'});const r=await farm.getPlot({plotId:'p'});if(r.ok)r.value?.crop?.instanceId;\n// @ts-expect-error cropInstanceId is required\nawait farm.harvest({plotId:'p'});\n// @ts-expect-error reads cannot mutate revisions\nawait farm.read({}, {expectedRevision:1});}`;
     const options = { noEmit: true, strict: true, target: ts.ScriptTarget.ESNext, skipLibCheck: true, types: [] };
     const host = ts.createCompilerHost(options),
       original = host.getSourceFile.bind(host);

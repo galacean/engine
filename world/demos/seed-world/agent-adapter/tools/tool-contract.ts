@@ -64,7 +64,7 @@ export const assetKindSchema = z.enum(
 export const worldRefSchema = z.strictObject({
   id: z.string().trim().min(1).max(240).describe("世界资产的稳定唯一标识；只能复用 API 返回值"),
   domain: assetDomainSchema.describe("资产所属语义领域"),
-  kind: assetKindSchema.describe("资产语义种类，取值来自 WorldAssetCatalog"),
+  kind: assetKindSchema.describe("资产语义种类，详情见 skills/world-objects/references/asset-types.md"),
   source: assetSourceSchema
 }).describe(
   "LLM 可复用的稳定世界资产引用；身份只由 id、domain、kind、source 组成，运行时版本不属于 Ref"
@@ -84,16 +84,17 @@ export const objectRefSchema = domainRefSchema("object");
 export const infrastructureRefSchema = domainRefSchema("infrastructure");
 export const poiRefSchema = domainRefSchema("poi");
 
+export const impactBudgetSchema = z
+  .strictObject({
+    maxAreaSquareMetres: z.number().positive().optional().describe("允许影响的最大水平面积，单位为平方米"),
+    maxObjectCount: z.number().int().positive().optional().describe("允许创建、更新或删除的最大公共资产或对象数量"),
+    maxTerrainDeltaMetres: z.number().positive().optional().describe("允许地形发生的最大绝对高度变化，单位为米")
+  })
+  .describe("可选影响上限；任一估算超过上限时修改不执行，省略时不额外限制");
+
 export const mutationControlShape = {
   executionMode: z.enum(["apply", "preview"]).optional().describe("默认 apply；preview 只返回影响估算"),
-  impactBudget: z
-    .strictObject({
-      maxAreaSquareMetres: z.number().positive().optional().describe("允许影响的最大水平面积，单位为平方米"),
-      maxObjectCount: z.number().int().positive().optional().describe("允许创建、更新或删除的最大公共资产或对象数量"),
-      maxTerrainDeltaMetres: z.number().positive().optional().describe("允许地形发生的最大绝对高度变化，单位为米")
-    })
-    .optional()
-    .describe("可选影响上限；任一估算超过上限时修改不执行，省略时不额外限制")
+  impactBudget: impactBudgetSchema.optional()
 };
 
 const authoringResultSummaryShape = {

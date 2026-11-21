@@ -48,8 +48,8 @@ it("uses Engine instanceId and discovers current hierarchy without a scene captu
   expect(node).toMatchObject({ alive: true, observedAt: "live", entity: { parentId: f.root.instanceId, position: [3, 0, 0] } });
   expect(f.inspection.inspectEntity(node.entity!.parentId!).entity?.authoring).toEqual({ scene: "Main.scene", entityId: "authored-root",
     componentQuery: {scene: "Main.scene", entityId: "authored-root"} });
-  expect(f.inspection.queryComponents(target.entityId, "Behavior").components).toHaveLength(1);
-  expect(f.inspection.queryComponents(target.entityId, "Unknown").components).toEqual([]);
+  expect(f.inspection.queryComponents(target.entityId, "Behavior").items).toHaveLength(1);
+  expect(f.inspection.queryComponents(target.entityId, "Unknown").items).toEqual([]);
 });
 it("invalidates destroyed objects instead of resolving same-named replacements", () => {
   const f = fixture(), id = f.inspection.id(f.child);
@@ -57,7 +57,7 @@ it("invalidates destroyed objects instead of resolving same-named replacements",
   expect(f.inspection.inspectEntity(id)).toMatchObject({ status: "unavailable", alive: false });
   const replacement = new Entity({} as Engine, f.child.name);
   expect(f.inspection.id(replacement)).not.toBe(id);
-  expect(f.inspection.children(f.inspection.id(f.root)).entities).toEqual([]);
+  expect(f.inspection.children(f.inspection.id(f.root)).items).toEqual([]);
 });
 
 it("reads only requested public properties, keeps references and bounds buffers", () => {
@@ -88,7 +88,7 @@ it("dispatches generic inspection through the execute tool boundary without Engi
   const result = query.parseOutput(await query.execute(input, { signal: new AbortController().signal }));
   expect(structuredClone(result)).toMatchObject({
     observedAt: "live",
-    components: [{ id: target.componentId, type: "Behavior" }]
+    items: [{ componentId: target.componentId, type: "Behavior" }]
   });
   const runtime = new JavaScriptAgentScriptRuntime();
   const output = await runtime.execute({
@@ -96,7 +96,7 @@ it("dispatches generic inspection through the execute tool boundary without Engi
     source: `
       const entity = await tools.runtime.entity.inspect({entityId:${JSON.stringify(target.entityId)}});
       const result = await tools.runtime.component.query({entityId:entity.entity.entityId, type:"Behavior"});
-      return await tools.runtime.component.read({componentId:result.components[0].componentId,fields:["speed"]});
+      return await tools.runtime.component.read({componentId:result.items[0].componentId,fields:["speed"]});
     `,
     signal: new AbortController().signal,
     timeoutMs: 5000,
@@ -113,18 +113,19 @@ it("dispatches generic inspection through the execute tool boundary without Engi
   expect(output).toMatchObject({ ok: true, output: { status: "found", values: { speed: 2 } } });
 });
 
-it("accepts legacy IDs but rejects ambiguous parameters, wrong identity kinds and destroyed targets", async () => {
+it("rejects legacy IDs, ambiguous parameters, wrong identity kinds and destroyed targets", async () => {
   const f = fixture(), target = f.inspection.target(f.behavior);
   const application = {requireRuntimeInspection: () => f.inspection} as unknown as SeedWorldAgentApplication;
   const tools = createSeedWorldRuntimeTools(application);
   const inspect = tools.find(tool => tool.name === "runtime.entity.inspect")!;
   const read = tools.find(tool => tool.name === "runtime.component.read")!;
   const run = async (tool: typeof inspect, input: unknown) => tool.parseOutput(await tool.execute(tool.parseInput(input), {signal: new AbortController().signal}));
-  expect(await run(inspect, {id:target.entityId})).toEqual(await run(inspect, {entityId:target.entityId}));
-  expect(await run(read, {id:target.componentId, fields:["speed"]})).toEqual(await run(read, {componentId:target.componentId, fields:["speed"]}));
-  for (const input of [{id:target.entityId, entityId:target.entityId}, {componentId:target.componentId}, {entityId:"authored-root"}, {}]) {
+  expect(await run(inspect, {entityId:target.entityId})).toMatchObject({status:"found",alive:true});
+  expect(await run(read, {componentId:target.componentId, fields:["speed"]})).toMatchObject({status:"found",values:{speed:2}});
+  for (const input of [{id:target.entityId}, {id:target.entityId, entityId:target.entityId}, {componentId:target.componentId}, {entityId:"authored-root"}, {}]) {
     expect(() => inspect.parseInput(input)).toThrow();
   }
+  expect(() => read.parseInput({id:target.componentId, fields:[]})).toThrow();
   expect(() => read.parseInput({id:target.componentId, componentId:target.componentId, fields:[]})).toThrow();
   expect(() => read.parseInput({entityId:target.entityId, fields:[]})).toThrow();
   expect(await run(inspect, {entityId:target.componentId})).toMatchObject({status:"unavailable",alive:false});
@@ -140,7 +141,7 @@ it("returns an exact author component selector only when the projection owns a m
     ? {scene:"Main.scene",entityId:"authored-owner",componentId:"authored-component"} : undefined);
   const target = inspection.target(f.behavior);
   expect(inspection.inspectEntity(target.entityId).entity?.authoring).toBeUndefined();
-  const record = inspection.queryComponents(target.entityId).components.find(item => item.componentId === target.componentId)!;
+  const record = inspection.queryComponents(target.entityId).items.find(item => item.componentId === target.componentId)!;
   expect(record.componentId).toBe(target.componentId);
   expect(record.authoring?.componentQuery).toEqual({scene:"Main.scene",entityId:"authored-owner",id:"authored-component"});
   inspection.dispose();
@@ -149,10 +150,10 @@ it("returns an exact author component selector only when the projection owns a m
 it("does not report pending subtrees or components as live", () => {
   const f = fixture();
   (f.behavior as any)._pendingDestroy = true;
-  expect(f.inspection.queryComponents(f.inspection.id(f.child), "Behavior").components).toEqual([]);
+  expect(f.inspection.queryComponents(f.inspection.id(f.child), "Behavior").items).toEqual([]);
   (f.root as any)._pendingDestroy = true;
   expect(f.inspection.inspectEntity(f.inspection.id(f.child)).alive).toBe(false);
-  expect(f.inspection.children(undefined).entities).toEqual([]);
+  expect(f.inspection.children(undefined).items).toEqual([]);
 });
 
 it("uses registered component types and does not evaluate nested getters", () => {
@@ -170,7 +171,7 @@ it("uses registered component types and does not evaluate nested getters", () =>
     }
   });
   expect(f.inspection.target(f.behavior).componentType).toBe("project/Behavior.ts");
-  expect(f.inspection.queryComponents(f.inspection.id(f.child), "project/Behavior.ts").components).toHaveLength(1);
+  expect(f.inspection.queryComponents(f.inspection.id(f.child), "project/Behavior.ts").items).toHaveLength(1);
   expect(f.inspection.readComponent(f.inspection.id(f.behavior), ["nested"]).values).toMatchObject({
     nested: { type: "Object", value: 3 }
   });

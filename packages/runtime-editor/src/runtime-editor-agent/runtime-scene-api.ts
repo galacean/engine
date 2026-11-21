@@ -27,13 +27,13 @@ const updated = () => ({ updated: true as const });
 export const runtimeSceneApi = {
   "entity.list": method({
     description:
-      "Lists a bounded page of Entity summaries from the current draft, including Prefab members. name is a case-sensitive substring; parentId:null selects roots. Follow nextCursor with the same filters; changed results reject old cursors. Use entity.read for full properties, children and component IDs.",
+      "Lists a bounded page of Entity summaries from the current draft, including Prefab members. name is a case-sensitive substring; parentEntityId:null selects roots. Follow nextCursor with the same filters; changed results reject old cursors. Use entity.read for full properties, children and component IDs.",
     effect: "read",
     input: z
       .object({
         scene: id,
         name: z.string().optional(),
-        parentId: id.nullable().optional(),
+        parentEntityId: id.nullable().optional(),
         limit: z.number().int().min(1).max(100).optional(),
         cursor: z.string().max(256).optional()
       })

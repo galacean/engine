@@ -37,8 +37,8 @@ declare global {
     interface NativeAssetApi {
       /** Import a file or ordinary folder from a host source. With Retrieval enabled, source accepts /oss/ plus a returned assetPaths entry, or its asset directory; the host resolves CDN files on demand. File types come from .meta or known extensions; optional type is for a single file only. GLB must embed buffers/images; textures accept PNG/JPEG. Folders include documents, metadata and empty directories. Serialized relative references are relative to their file; Missing dependencies reject. PATH_ALREADY_EXISTS reports path/existingPath/existingKind; choose another target path and retry. Nothing is overwritten or partially published.  */
       import(input: { source: string; path: string; type?: string }): Promise<{ path: string }>;
-      /** Lists project virtual paths and types. */
-      list(input: {}): Promise<NativeAsset[]>;
+      /** Lists project virtual paths and types as { items }. Optional search (case-insensitive substring on path) and exact type filter. */
+      list(input?: { search?: string; type?: string }): Promise<{ items: NativeAsset[] }>;
       /** Metadata only; does not download the asset. Empty summary/usage means no authored explanation. */
       info(input: { path: string }): Promise<NativeAsset & {name: string; summary: string; usage: string}>;
       /** Type-specific inspection. Models return static model-local bounds (not world instances); boundsComplete=false means missing bounds or deformation. Unsupported encodings reject explicitly. */

@@ -178,9 +178,9 @@ export async function replayFarmingInstruction(
     source: `
       const references=new Map();
       async function callFarming(request){
-        if(request.operation==='list')return {value:await editor.component.query({type:'FarmingAreaComponent'})};
+        if(request.operation==='list')return {value:(await editor.component.query({type:'FarmingAreaComponent'})).items};
         const {farmId,...input}=request.input;
-        if(!references.has(farmId))references.set(farmId,(await editor.component.query({type:'FarmingAreaComponent',farmId}))[0]);
+        if(!references.has(farmId))references.set(farmId,(await editor.component.query({type:'FarmingAreaComponent',farmId})).items[0]);
         const farm=references.get(farmId);
         return await farm[request.operation==='get'?'read':request.operation](input,request.options);
       }

@@ -18,7 +18,7 @@ description: 挖河、创建或编辑湖泊与河流，以及查询海洋、水�
 - 删除使用 `component.remove`，删除 Entity 使用 `entity.delete`。公共准备阶段清理指向本次已删除水体的既有连接；任意错误引用仍会拒绝。
 
 ```js
-const matches = await editor.component.query({scene, type:"WaterBodyComponent"});
+const { items: matches } = await editor.component.query({scene, type:"WaterBodyComponent"});
 const target = {scene, id:matches[0].id};
 const record = await editor.component.read(target);
 const authoring = record.props?.authoring;

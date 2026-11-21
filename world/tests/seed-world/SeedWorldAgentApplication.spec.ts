@@ -144,7 +144,7 @@ describe("SeedWorldAgentApplication final architecture", () => {
         nativeResources
       );
       const query = edit.tools.find((tool) => tool.name === "world.animals.query")!;
-      expect(await query.execute(query.parseInput({}), { signal })).toMatchObject({ enabled: false, animals: [] });
+      expect(await query.execute(query.parseInput({}), { signal })).toMatchObject({ enabled: false, items: [] });
       expect(animals.query).toHaveBeenCalledExactlyOnceWith({});
       expect(live.find((tool) => tool.name === "world.animals.command")!.effect).toBe("command");
       expect(animals.command).not.toHaveBeenCalled();
@@ -1908,9 +1908,9 @@ it("returns animal direction through the public query using the same task viewer
   setCamera({mode: "roam", position: [-10, 0, 0], forward: [1, 0, 0]});
   const query = createSeedWorldTools(application).find(tool => tool.name === "world.animals.query")!;
   const read = async () => query.parseOutput(await query.execute(query.parseInput({}), {signal}));
-  expect(await read()).toMatchObject({animals: [{viewerRelation: {basis: "instruction-viewer", direction: "left", rightMetres: -3}}]});
+  expect(await read()).toMatchObject({items: [{viewerRelation: {basis: "instruction-viewer", direction: "left", rightMetres: -3}}]});
   release();
-  expect(await read()).toMatchObject({animals: [{viewerRelation: {basis: "live-viewer", direction: "front", forwardMetres: 13}}]});
+  expect(await read()).toMatchObject({items: [{viewerRelation: {basis: "live-viewer", direction: "front", forwardMetres: 13}}]});
 });
 
 it("merges picked and published vegetation identities before counting and pagination, retaining authoritative properties", () => {

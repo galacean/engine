@@ -23,7 +23,12 @@ const assetDocumentSchemas = {
   "history.undo": z.object({ transactionIds: z.array(id).min(1) }).strict(),
   "history.redo": z.object({ transactionIds: z.array(id).min(1) }).strict(),
   "asset.import": z.object({ source: id, path: id, type: z.string().min(1).optional() }).strict(),
-  "asset.list": z.object({}).strict(),
+  "asset.list": z
+    .object({
+      search: z.string().min(1).optional(),
+      type: z.string().min(1).optional()
+    })
+    .strict(),
   "asset.info": z.object({ path: id }).strict(),
   "asset.read": z.object({ path: id }).strict(),
   "asset.create": z.object({ path: id, type: id, content: z.string() }).strict(),
@@ -82,12 +87,23 @@ export async function executeNativeProjectTool(
         case "asset.import":
           result = await importRuntimeAsset(draft, sources, args as any, signal);
           break;
-        case "asset.list":
-          return draft.list().map((file) => ({
-            path: file.virtualPath,
-            type: file.type,
-            ...(file.params ? { params: file.params } : {})
-          }));
+        case "asset.list": {
+          const search = typeof args.search === "string" ? args.search.toLowerCase() : undefined;
+          const typeFilter = typeof args.type === "string" ? args.type : undefined;
+          const items = draft
+            .list()
+            .filter(
+              (file) =>
+                (!typeFilter || file.type === typeFilter) &&
+                (!search || file.virtualPath.toLowerCase().includes(search))
+            )
+            .map((file) => ({
+              path: file.virtualPath,
+              type: file.type,
+              ...(file.params ? { params: file.params } : {})
+            }));
+          return { items };
+        }
         case "asset.info":
           return draft.info(args.path);
         case "asset.read":

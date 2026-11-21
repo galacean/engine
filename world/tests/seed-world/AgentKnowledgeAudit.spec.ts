@@ -148,6 +148,12 @@ describe("Seed World Agent Knowledge Static Audit (Offline CI Gate)", () => {
     const apiRead = await readCold("declare/editor/native/api.d.ts");
     expect(apiRead.content).toContain('<dependency path="declare/editor/native/source.d.ts">');
 
+    // M1 gate: vegetation.update.d.ts must fit in a single page and inline its core dependencies without pagination
+    const vegRead = await readCold("declare/editor/world/tools/vegetation.update.d.ts");
+    const vegVal = vegRead.result.ok ? (vegRead.result.value as { next?: unknown; omittedDependencies?: readonly unknown[] }) : undefined;
+    expect(vegVal?.next ?? null).toBeNull();
+    expect(vegVal?.omittedDependencies ?? []).toEqual([]);
+
     // Any editor .d.ts that skips dependencies due to budget or pagination must explicitly emit <omitted_dependencies>
     const editorDts = allPaths.filter((p) => p.startsWith("declare/editor/") && p.endsWith(".d.ts"));
     const silentSkips: string[] = [];
@@ -164,17 +170,17 @@ describe("Seed World Agent Knowledge Static Audit (Offline CI Gate)", () => {
 
   it("prevents stale legacy terminology regressions and bounds initial payload size", () => {
     const targetPaths = allPaths.filter((p) => p.startsWith("skills/") || p.startsWith("declare/editor/"));
-    const hits = { APISearch: 0, AssetCatalog: 0, slashAssets: 0 };
+    const hits = { APISearch: 0, AssetCatalog: 0, bareSlashAssets: 0 };
     for (const p of targetPaths) {
       const text = files.read(p);
       if (text.includes("APISearch")) hits.APISearch++;
       if (text.includes("AssetCatalog")) hits.AssetCatalog++;
-      if (text.includes("/assets")) hits.slashAssets++;
+      if (/(?:^|[\s`（(])\/assets(?:\b|\/)/.test(text)) hits.bareSlashAssets++;
     }
     expect(hits.APISearch).toBe(0);
-    // Ratchet ceilings (will be tightened to 0 in M2):
-    expect(hits.AssetCatalog).toBeLessThanOrEqual(4);
-    expect(hits.slashAssets).toBeLessThanOrEqual(11);
+    // M1 tightened: legacy AssetCatalog and bare /assets terms eliminated (0)
+    expect(hits.AssetCatalog).toBe(0);
+    expect(hits.bareSlashAssets).toBe(0);
 
     const def = {
       toolNames: [...SEED_WORLD_API_NAMES],

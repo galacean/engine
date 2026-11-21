@@ -398,13 +398,23 @@ export function extractCaseTelemetry(
     .filter((c) => c.name.startsWith("scope_") && !c.pass)
     .map((c) => `${c.name}: ${c.detail}`);
 
-  const readCountsByStep = new Map<string, number>();
-  for (const rc of readCalls) {
-    const k = `${rc.turnIndex}:${rc.step}`;
-    readCountsByStep.set(k, (readCountsByStep.get(k) ?? 0) + 1);
+  let totalAssistantReads = 0;
+  let parallelAssistantReads = 0;
+  for (const turn of turns) {
+    for (const ev of turn.events) {
+      if (ev.type !== "transcript_appended") continue;
+      for (const msg of ev.messages) {
+        if (msg.role === "assistant" && Array.isArray(msg.toolCalls)) {
+          const batchReads = msg.toolCalls.filter((tc: { name?: string }) => tc.name === "read").length;
+          if (batchReads > 0) {
+            totalAssistantReads += batchReads;
+            if (batchReads >= 2) parallelAssistantReads += batchReads;
+          }
+        }
+      }
+    }
   }
-  const parallelReads = readCalls.filter((rc) => (readCountsByStep.get(`${rc.turnIndex}:${rc.step}`) ?? 0) >= 2).length;
-  const parallelReadRatio = readCalls.length > 0 ? Number((parallelReads / readCalls.length).toFixed(2)) : 1;
+  const parallelReadRatio = totalAssistantReads > 0 ? Number((parallelAssistantReads / totalAssistantReads).toFixed(2)) : 1;
 
   const detourFlags: string[] = [];
   if (!firstSkillHit && expectedSkills.length > 0) detourFlags.push("wrong_skill_first");

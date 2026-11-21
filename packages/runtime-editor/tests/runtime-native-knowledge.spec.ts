@@ -36,7 +36,7 @@ it("checks native edit calls and rejects a wrong argument before execution", () 
       await editor.entity.create({scene: 'scene', name: 'Linked', prefab: 'Unit.prefab'});
       await editor.entity.reparent({scene:'scene', id:entity.id, parentEntityId:null, preserveWorld:true});
       await editor.entity.revert({scene:'scene', id:entity.id, keys:['position']});
-      const refs = await editor.component.query({scene: "scene", type: "MeshRenderer"});
+      const { items: refs } = await editor.component.query({scene: "scene", type: "MeshRenderer"});
       if (refs.length) await editor.component.read({scene: refs[0].scene, id: refs[0].id});
       if (refs.length) await editor.component.revert({scene: refs[0].scene, id: refs[0].id, keys: ['enabled']});
       await editor.component.add({ scene: 'scene', entityId: entity.id, type: 'MeshRenderer', props: { mesh: { $ref: mesh.path } } });
@@ -59,13 +59,13 @@ it("keeps registered component methods typed alongside generic Scene queries", (
   try {
     for (const declarations of [[...modules, farming], [farming, ...modules]]) {
       expect(checker.check(`
-        const [farm] = await editor.component.query({scene:"Main.scene",type:"FarmingSystem"});
+        const { items: [farm] } = await editor.component.query({scene:"Main.scene",type:"FarmingSystem"});
         if (farm) await farm.list();
-        const all = await editor.component.query({scene:"Main.scene"});
+        const { items: all } = await editor.component.query({scene:"Main.scene"});
         for (const ref of all) await editor.component.read({scene:ref.scene,id:ref.id});
         return all;
       `, declarations)).toBeUndefined();
-      expect(checker.check('const [farm]=await editor.component.query({type:"FarmingSystem"});await farm.list({wrong:true});', declarations)?.code).toBe("SCRIPT_CHECK_FAILED");
+      expect(checker.check('const { items: [farm] } = await editor.component.query({type:"FarmingSystem"});await farm.list({wrong:true});', declarations)?.code).toBe("SCRIPT_CHECK_FAILED");
     }
   } finally {checker.dispose();}
 });

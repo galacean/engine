@@ -78,7 +78,7 @@ it("uses the real checked Worker for public Source edits and generated Water rea
       );
     const result = await run(`
       const scene=${JSON.stringify(current.project.projectPackage.project.scene)};
-      const existing=(await editor.component.query({scene,type:"WaterBodyComponent"}))[0];
+      const existing=(await editor.component.query({scene,type:"WaterBodyComponent"})).items[0];
       const original=await editor.component.read({scene,id:existing.id});
       const entity=await editor.entity.create({scene,name:"Worker Water"});
       const added=await editor.component.add({scene,entityId:entity.id,type:"WaterBodyComponent",props:original.props});

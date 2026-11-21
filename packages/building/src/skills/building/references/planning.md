@@ -69,11 +69,11 @@ return await editor.entity.create({ scene, name: "小房子", prefab: asset.path
 
 ```js
 const roots = await tools.runtime.entity.children({ limit: 100 });
-for (const item of roots.entities) {
+for (const item of roots.items) {
   if (!item.entity) continue;
   const found = await tools.runtime.component.query({ entityId: item.entity.entityId, type: "BuildingManager" });
-  if (!found.components.length) continue;
-  return (await tools.runtime.component.read({ componentId: found.components[0].componentId, fields: ["buildStatus"] })).values;
+  if (!found.items.length) continue;
+  return (await tools.runtime.component.read({ componentId: found.items[0].componentId, fields: ["buildStatus"] })).values;
 }
 ```
 

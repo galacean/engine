@@ -31,7 +31,7 @@ description: 耕种、播种、浇水、收获、管理农场道具和库存，�
 - 用户说“这里”时，用 getTarget 获取目标。缺少目标能力时不能猜测。
 
 ```js
-const systems = await editor.component.query({type:"FarmingSystem"});
+const { items: systems } = await editor.component.query({type:"FarmingSystem"});
 return await Promise.all(systems.map(async system => ({
   component: system,
   farms: (await system.list()).value,
@@ -56,7 +56,7 @@ return await Promise.all(systems.map(async system => ({
 ## 示例：给面前的地块浇一次水
 
 ```js
-const systems = await editor.component.query({type: "FarmingSystem"});
+const { items: systems } = await editor.component.query({type: "FarmingSystem"});
 if (systems.length !== 1) throw new Error("请明确目标系统");
 const system = systems[0];
 const farms = (await system.list()).value;

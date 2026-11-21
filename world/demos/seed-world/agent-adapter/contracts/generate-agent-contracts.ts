@@ -6,6 +6,7 @@ import * as z from "zod";
 import {
   SEED_WORLD_ASSET_TYPE_CATALOG
 } from "@galacean/engine-world-planning/agent-adapter/contracts/SeedWorldAssetContracts";
+import { treeShapePatchSchema } from "@galacean/engine-world-planning/agent-adapter/contracts/SeedWorldTreeShapeContract";
 import { SEED_WORLD_API_CONTRACTS } from "./SeedWorldContractRegistry.ts";
 import {
   authoringResultSchema,
@@ -15,6 +16,7 @@ import {
   assetRelationsSchema,
   emptyToolInputSchema,
   environmentUpdateOutputSchema,
+  impactBudgetSchema,
   inspectedWorldAssetSchema,
   jsonObjectSchema,
   liveWorldStateSchema,
@@ -65,6 +67,8 @@ for (const [kind, { typeSymbol }] of Object.entries(SEED_WORLD_ASSET_TYPE_CATALO
   registerPublic(typeSymbol, worldAssetSchemaByKind[kind as keyof typeof worldAssetSchemaByKind]);
 }
 registerPublic("MutationResult", authoringResultSchema);
+registerPublic("ImpactBudget", impactBudgetSchema);
+registerPublic("TreeShapePatch", treeShapePatchSchema);
 
 registerPublic("Season", seasonSchema);
 registerPublic("LiveWorldState", liveWorldStateSchema);
@@ -730,17 +734,15 @@ function assertDeclarationModulesTypeCheck(modules: readonly GeneratedModule[]):
     ' const result = await tools.runtime.entity.inspect({entityId:hit.ref.entityId});',
     ' if (!result.entity) return;',
     ' const components = await tools.runtime.component.query({entityId:result.entity.entityId});',
-    ' if (components.components[0]) await tools.runtime.component.read({componentId:components.components[0].componentId,fields:[]});',
+    ' if (components.items[0]) await tools.runtime.component.read({componentId:components.items[0].componentId,fields:[]});',
+    ' // @ts-expect-error Deprecated id selector is removed; entityId is required.',
     ' await tools.runtime.entity.inspect({id:hit.ref.entityId});',
+    ' // @ts-expect-error Deprecated id selector is removed; componentId is required.',
     ' await tools.runtime.component.read({id:hit.ref.componentId,fields:[]});',
-    ' // @ts-expect-error Ambiguous new/legacy selectors must be rejected before execution.',
-    ' await tools.runtime.entity.inspect({entityId:hit.ref.entityId,id:hit.ref.entityId});',
     ' // @ts-expect-error A component selector cannot target entity inspection.',
     ' await tools.runtime.entity.inspect({componentId:hit.ref.componentId});',
     ' // @ts-expect-error Author identity strings cannot target Engine objects.',
     ' await tools.runtime.entity.inspect({entityId:"authored-entity"});',
-    ' // @ts-expect-error Ambiguous new/legacy component selectors.',
-    ' await tools.runtime.component.read({componentId:hit.ref.componentId,id:hit.ref.componentId,fields:[]});',
     ' // @ts-expect-error Entity selector is not a component selector.',
     ' await tools.runtime.component.read({entityId:hit.ref.entityId,fields:[]});',
     "}",
