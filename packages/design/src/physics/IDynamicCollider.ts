@@ -44,13 +44,13 @@ export interface IDynamicCollider extends ICollider {
   setLinearVelocity(value: Vector3): void;
 
   /**
-   * Get the angular velocity of the actor.
+   * Gets the actor's angular velocity in radians per second.
    * @param out - The angular velocity of the actor
    */
   getAngularVelocity(out: Vector3): Vector3;
 
   /**
-   * Sets the angular velocity of the actor.
+   * Sets the actor's angular velocity in radians per second.
    * @param value - New angular velocity of actor
    */
   setAngularVelocity(value: Vector3): void;
@@ -94,7 +94,7 @@ export interface IDynamicCollider extends ICollider {
   setMassAndUpdateInertia(mass: number): void;
 
   /**
-   * Set the maximum angular velocity permitted for this actor.
+   * Sets the actor's maximum angular velocity in radians per second.
    * @param value - Max allowable angular velocity for actor
    */
   setMaxAngularVelocity(value: number): void;

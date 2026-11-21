@@ -77,7 +77,7 @@ label: Physics
 | 属性                                                   | 描述                         | 默认值                |
 | :----------------------------------------------------- | :--------------------------- | :-------------------- |
 | [**radius**](/apis/core/#CapsuleCollider-radius)       | 胶囊在实体局部空间中的半径   | 1                     |
-| [**height**](/apis/core/#CapsuleCollider-height)       | 圆柱部分的高度，不含两端半球 | 2                     |
+| [**height**](/apis/core/#CapsuleCollider-height)       | 总高度，包含两端半球 | 4                     |
 | [**direction**](/apis/core/#CapsuleCollider-direction) | 胶囊对齐的局部轴             | ColliderShapeUpAxis.Y |
 
 ### PlaneCollider
@@ -192,7 +192,7 @@ instance.bounciness = 0.8;
 
 | 旧写法 | 新写法 |
 | :-- | :-- |
-| `DynamicCollider` | [`Rigidbody`](/docs/physics/collider/rigidbody)，刚体属性和方法保持一致 |
+| `DynamicCollider` | [`Rigidbody`](/docs/physics/collider/rigidbody)，管理刚体属性和运动 |
 | `DynamicColliderConstraints` | `RigidbodyConstraints` |
 | `StaticCollider` | 已移除：实体及其祖先上没有刚体的碰撞器就是静态的 |
 | `new BoxColliderShape()` + `collider.addShape(shape)` | `entity.addComponent(BoxCollider)`；`SphereCollider`、`CapsuleCollider`、`PlaneCollider`、`MeshCollider` 同理 |
@@ -210,6 +210,8 @@ instance.bounciness = 0.8;
 | `hitResult.shape` | `hitResult.collider` |
 | 返回 `ColliderShape[]` 的 `overlap*All()` | 返回 `Collider[]` 的 `overlap*All()` |
 | `characterController.addShape(capsuleOrBox)` | `characterController.geometry`、`radius`、`height`、`size` 和 `center` |
+
+迁移旧场景、Prefab 或脚本时，把碰撞体和角色控制器的胶囊高度加上两倍半径。将刚体角速度和最大角速度乘以 `Math.PI / 180`，即可换算为弧度/秒。
 
 ## 更多信息
 

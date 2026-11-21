@@ -159,7 +159,7 @@ describe("Physics gameplay integration", () => {
     bumper.transform.setRotation(90, 0, 0);
     const bumperCol = bumper.addComponent(CapsuleCollider);
     bumperCol.radius = 0.16;
-    bumperCol.height = 0.6;
+    bumperCol.height = 0.92;
 
     // Static capsule obstacle placed directly in the cart's path at the bottom of the ramp
     const blocker = root.createChild("capsule-blocker");
@@ -167,7 +167,7 @@ describe("Physics gameplay integration", () => {
     blocker.transform.setRotation(90, 0, 0);
     const blockerCol = blocker.addComponent(CapsuleCollider);
     blockerCol.radius = 0.4;
-    blockerCol.height = 2.0;
+    blockerCol.height = 2.8;
 
     let hitBlocker = false;
     blocker.addComponent(
@@ -241,7 +241,7 @@ describe("Physics gameplay integration", () => {
     const blockedCC = blockedRole.addComponent(CharacterController);
     blockedCC.geometry = CharacterControllerGeometry.Capsule;
     blockedCC.radius = 0.35;
-    blockedCC.height = 0.7;
+    blockedCC.height = 1.4;
     blockedCC.stepOffset = 0.08;
 
     // Track 3 (z = 3): Walkable 35 deg ramp (slopeLimit = 45)
@@ -251,7 +251,7 @@ describe("Physics gameplay integration", () => {
     const climbCC = climbRole.addComponent(CharacterController);
     climbCC.geometry = CharacterControllerGeometry.Capsule;
     climbCC.radius = 0.35;
-    climbCC.height = 0.7;
+    climbCC.height = 1.4;
     climbCC.slopeLimit = 45;
     climbCC.stepOffset = 0.35;
 
@@ -264,7 +264,7 @@ describe("Physics gameplay integration", () => {
       const cc = role.addComponent(CharacterController);
       cc.geometry = CharacterControllerGeometry.Capsule;
       cc.radius = 0.35;
-      cc.height = 0.7;
+      cc.height = 1.4;
       cc.slopeLimit = 45;
       cc.stepOffset = 0.1;
       cc.nonWalkableMode = mode;

@@ -46,7 +46,7 @@ label: Physics
 | ---- | ---- | ------ |
 | [**geometry**](/apis/core/#CharacterController-geometry) | `CharacterControllerGeometry.Capsule`（沿 `upDirection` 的胶囊体）或 `CharacterControllerGeometry.Box`（轴对齐的盒） | Capsule |
 | [**radius**](/apis/core/#CharacterController-radius) | 胶囊体在实体局部空间中的半径 | 0.5 |
-| [**height**](/apis/core/#CharacterController-height) | 胶囊体圆柱部分的高度，不含两端半球 | 1 |
+| [**height**](/apis/core/#CharacterController-height) | 胶囊总高度，包含两端半球 | 2 |
 | [**size**](/apis/core/#CharacterController-size) | 盒在实体局部空间中的尺寸 | (1, 1, 1) |
 | [**center**](/apis/core/#Collider-center) | 几何形状在实体局部空间中的中心 | (0, 0, 0) |
 
@@ -94,7 +94,7 @@ label: Physics
 // 新建控制器默认使用胶囊体。
 const controller = entity.addComponent(CharacterController);
 controller.radius = 0.5;
-controller.height = 1;
+controller.height = 2;
 controller.center = new Vector3(0, 1, 0);
 
 // 改用盒体时，设置其沿局部轴的完整尺寸。

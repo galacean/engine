@@ -331,16 +331,16 @@ describe("HingeJoint", function () {
     expect(formatValue(joint.velocity)).eq(0);
     collider2.applyTorque(new Vector3(0, 1000, 0));
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(collider2.angularVelocity.y)).eq(1718.87328);
+    expect(collider2.angularVelocity.y).toBeCloseTo(30, 5);
 
     motor.targetVelocity = 30;
     motor.freeSpin = true;
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(collider2.angularVelocity.y)).eq(1718.87328);
+    expect(collider2.angularVelocity.y).toBeCloseTo(30, 5);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(collider2.angularVelocity.y)).eq(5454.57596);
+    expect(collider2.angularVelocity.y).toBeCloseTo(95.2, 3);
   });
 
   it("clone", function () {
@@ -498,7 +498,7 @@ describe("HingeJoint", function () {
     physics._update(physics.fixedTimeStep);
 
     const { x, y } = body.angularVelocity;
-    expect(Math.abs(x)).toBeGreaterThan(5);
+    expect(Math.abs(x)).toBeCloseTo(4, 3);
     expect(y / x).toBeCloseTo(axisX * 0.001, 4);
   });
 
@@ -703,9 +703,9 @@ describe("HingeJoint", function () {
     joint.enabled = false;
     joint.enabled = true;
     engine.sceneManager.activeScene.physics._update(0.2);
-    expect(Math.abs(body.angularVelocity.x)).toBeLessThan(1);
-    expect(Math.abs(body.angularVelocity.y)).toBeGreaterThan(50);
-    expect(Math.abs(body.angularVelocity.z)).toBeLessThan(1);
+    expect(Math.abs(body.angularVelocity.x)).toBeLessThan(MathUtil.degreeToRadian(1));
+    expect(Math.abs(body.angularVelocity.y)).toBeGreaterThan(MathUtil.degreeToRadian(50));
+    expect(Math.abs(body.angularVelocity.z)).toBeLessThan(MathUtil.degreeToRadian(1));
 
     // Overflow vector throws in setter without mutating existing axis
     expect(() => (joint.axis = new Vector3(1.5e308, 1.5e308, 0))).toThrow();

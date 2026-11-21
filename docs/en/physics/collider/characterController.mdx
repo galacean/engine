@@ -46,7 +46,7 @@ The Character Controller carries its own geometry instead of using other Collide
 |----------|-------------|---------|
 | [**geometry**](/apis/core/#CharacterController-geometry) | `CharacterControllerGeometry.Capsule` (a capsule along `upDirection`) or `CharacterControllerGeometry.Box` (an axis-aligned box) | Capsule |
 | [**radius**](/apis/core/#CharacterController-radius) | Capsule radius in the Entity's local space | 0.5 |
-| [**height**](/apis/core/#CharacterController-height) | Height of the capsule's cylindrical part, excluding both caps | 1 |
+| [**height**](/apis/core/#CharacterController-height) | Total capsule height including both caps | 2 |
 | [**size**](/apis/core/#CharacterController-size) | Box size in the Entity's local space | (1, 1, 1) |
 | [**center**](/apis/core/#Collider-center) | Center of the geometry in the Entity's local space | (0, 0, 0) |
 
@@ -94,7 +94,7 @@ The `move()` function returns a collision flag value that indicates the characte
 // A new controller uses capsule geometry.
 const controller = entity.addComponent(CharacterController);
 controller.radius = 0.5;
-controller.height = 1;
+controller.height = 2;
 controller.center = new Vector3(0, 1, 0);
 
 // To use a box, configure its full size along the local axes.

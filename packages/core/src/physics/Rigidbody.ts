@@ -57,7 +57,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   private _inertiaTensor = new Vector3(1, 1, 1);
   private _centerOfMassAuthored = false;
   private _inertiaTensorAuthored = false;
-  private _maxAngularVelocity = 18000 / Math.PI;
+  private _maxAngularVelocity = 100;
   private _maxDepenetrationVelocity = 1.0000000331813535e32;
   private _solverIterations = 4;
   private _useGravity = true;
@@ -118,7 +118,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   /**
-   * Angular velocity in world space, in degrees per second.
+   * Angular velocity in world space, in radians per second.
    */
   get angularVelocity(): Vector3 {
     const actor = this._nativeActor;
@@ -235,7 +235,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   /**
-   * Maximum angular speed in degrees per second.
+   * Maximum angular speed in radians per second.
    */
   get maxAngularVelocity(): number {
     return this._maxAngularVelocity;

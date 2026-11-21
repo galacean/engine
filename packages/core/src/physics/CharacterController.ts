@@ -21,7 +21,7 @@ export class CharacterController extends Collider {
 
   private _geometry = CharacterControllerGeometry.Capsule;
   private _radius = 0.5;
-  private _height = 1;
+  private _height = 2;
   @ignoreClone
   private _size: Vector3;
   private _stepOffset = 0.5;
@@ -72,8 +72,9 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * The cylinder height in local units, excluding both caps. Finite negative values are clamped to 0.
-   * @defaultValue 1
+   * The total capsule height in local units, including both caps. Finite negative values are clamped to 0.
+   * @defaultValue 2
+   * @remarks A height at or below twice the radius excludes the capsule from simulation and queries.
    * @throws When the value is not finite.
    */
   get height(): number {
@@ -299,7 +300,8 @@ export class CharacterController extends Collider {
         const size = this._size;
         dimensions.set((size?.x ?? 1) * scale.x * 0.5, (size?.y ?? 1) * scale.y * 0.5, (size?.z ?? 1) * scale.z * 0.5);
       } else {
-        dimensions.set(this._radius * Math.max(scale.x, scale.z), this._height * scale.y, 0);
+        const radius = this._radius;
+        dimensions.set(radius * Math.max(scale.x, scale.z), (this._height - 2 * radius) * scale.y, 0);
       }
       if (
         !Collider._isValidPositiveFloat32(dimensions.x) ||

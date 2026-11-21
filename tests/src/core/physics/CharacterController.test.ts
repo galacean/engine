@@ -90,7 +90,7 @@ describe("CharacterController", () => {
     expect(capsule.contactOffset).toBe(0.02);
     expect(capsule.geometry).toBe(CharacterControllerGeometry.Capsule);
     expect(capsule.radius).toBe(0.5);
-    expect(capsule.height).toBe(1);
+    expect(capsule.height).toBe(2);
     expect(capsule.size.x).toBe(1);
     expect(capsule.size.y).toBe(1);
     expect(capsule.size.z).toBe(1);
@@ -313,13 +313,13 @@ describe("CharacterController", () => {
     }
   );
 
-  it("changes capsule radius and cylinder height after creation", () => {
+  it("changes capsule radius and total height after creation", () => {
     controller.geometry = CharacterControllerGeometry.Capsule;
     role.transform.setPosition(0, 10, 0);
     move(new Vector3(0, -20, 0));
     expect(role.transform.position.y).toBeCloseTo(1.02, 4);
     controller.radius = 1;
-    controller.height = 4;
+    controller.height = 6;
     role.transform.setPosition(0, 10, 0);
     move(new Vector3(0, -20, 0));
     expect(role.transform.position.y).toBeCloseTo(3.02, 4);
@@ -444,7 +444,7 @@ describe("CharacterController", () => {
       controller.geometry = geometry;
       controller.size = new Vector3(2, 4, 2);
       controller.radius = 0.2;
-      controller.height = 1;
+      controller.height = 1.4;
       controller.contactOffset = 0.1;
       controller.enabled = true;
       move(new Vector3(0, -20, 0));
@@ -461,7 +461,7 @@ describe("CharacterController", () => {
       controller.contactOffset = 0.1;
       controller.size.set(2, 4, 2);
       controller.radius = 0.2;
-      controller.height = 1;
+      controller.height = 1.4;
       controller.stepOffset = 0.2;
       controller.slopeLimit = 30;
       controller.nonWalkableMode = ControllerNonWalkableMode.PreventClimbingAndForceSliding;
@@ -476,7 +476,7 @@ describe("CharacterController", () => {
       expect(copy.upDirection).not.toBe(controller.upDirection);
       expect(copy.contactOffset).toBe(0.1);
       expect(copy.radius).toBe(0.2);
-      expect(copy.height).toBe(1);
+      expect(copy.height).toBe(1.4);
       expect(copy.stepOffset).toBe(0.2);
       expect(copy.slopeLimit).toBe(30);
       expect(copy.nonWalkableMode).toBe(ControllerNonWalkableMode.PreventClimbingAndForceSliding);
@@ -651,10 +651,10 @@ describe("CharacterController", () => {
 
     controller.geometry = CharacterControllerGeometry.Capsule;
     controller.radius = 0.5;
-    controller.height = 0;
+    controller.height = 1;
     expect(physics.overlapSphereAll(new Vector3(2, 2, 0), 0.1)).not.toContain(controller);
     expect(move(new Vector3(2, 0, 0))).toBe(0);
-    controller.height = 1;
+    controller.height = 2;
     expect(physics.overlapSphereAll(new Vector3(2, 2, 0), 0.1)).toContain(controller);
     move(new Vector3(1, 0, 0));
     expect(role.transform.position.x).toBeCloseTo(3, 4);
@@ -792,7 +792,7 @@ describe("CharacterController", () => {
       expect(move(new Vector3(1, 0, 0))).toBe(0);
       controller.height = 1e40;
       expect(move(new Vector3(1, 0, 0))).toBe(0);
-      controller.height = 1;
+      controller.height = 2;
       controller.radius = 0.5;
       role.transform.setPosition(0, 2, 0);
 

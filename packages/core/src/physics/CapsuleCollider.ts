@@ -6,12 +6,12 @@ import { ColliderShapeUpAxis } from "./enums/ColliderShapeUpAxis";
 
 /**
  * A capsule-shaped collider.
- * @remarks The absolute world scale along {@link direction} scales the height. The larger scale across the other two
- * axes scales the radius. Simulation and queries require both effective dimensions to be positive.
+ * @remarks The absolute world scale along {@link direction} scales the cylindrical section. The larger scale across
+ * the other two axes scales the radius. Simulation and queries require both effective dimensions to be positive.
  */
 export class CapsuleCollider extends Collider {
   private _radius = 1;
-  private _height = 2;
+  private _height = 4;
   private _direction = ColliderShapeUpAxis.Y;
 
   /**
@@ -36,8 +36,9 @@ export class CapsuleCollider extends Collider {
   }
 
   /**
-   * The cylinder height in local units, excluding both caps. Finite negative values are clamped to 0.
-   * @defaultValue 2
+   * The total height in local units, including both caps. Finite negative values are clamped to 0.
+   * @defaultValue 4
+   * @remarks A height at or below twice the radius excludes the capsule from simulation and queries.
    * @throws When the value is not finite.
    */
   get height(): number {
@@ -91,7 +92,7 @@ export class CapsuleCollider extends Collider {
         break;
     }
     const radius = this._radius * radialScale;
-    const halfHeight = this._height * heightScale * 0.5;
+    const halfHeight = (this._height * 0.5 - this._radius) * heightScale;
     if (!Collider._isValidPositiveFloat32(radius) || !Collider._isValidPositiveFloat32(halfHeight)) {
       return null;
     }

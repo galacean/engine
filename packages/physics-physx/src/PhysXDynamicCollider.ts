@@ -1,5 +1,5 @@
 import { IDynamicCollider } from "@galacean/engine-design";
-import { MathUtil, Quaternion, Vector3 } from "@galacean/engine";
+import { Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXPhysics } from "./PhysXPhysics";
 
@@ -21,7 +21,6 @@ export enum CollisionDetectionMode {
  * A dynamic collider can act with self-defined movement or physical force
  */
 export class PhysXDynamicCollider extends PhysXCollider implements IDynamicCollider {
-  private static _tempTranslation = new Vector3();
   private static _tempRotation = new Quaternion();
 
   constructor(physXPhysics: PhysXPhysics, position: Vector3, rotation: Quaternion) {
@@ -64,23 +63,14 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
    */
   getAngularVelocity(out: Vector3): Vector3 {
     const velocity = this._pxActor.getAngularVelocity();
-    return out.set(
-      MathUtil.radianToDegree(velocity.x),
-      MathUtil.radianToDegree(velocity.y),
-      MathUtil.radianToDegree(velocity.z)
-    );
+    return out.set(velocity.x, velocity.y, velocity.z);
   }
 
   /**
    * {@inheritDoc IDynamicCollider.setAngularVelocity }
    */
   setAngularVelocity(value: Vector3): void {
-    PhysXDynamicCollider._tempTranslation.set(
-      MathUtil.degreeToRadian(value.x),
-      MathUtil.degreeToRadian(value.y),
-      MathUtil.degreeToRadian(value.z)
-    );
-    this._pxActor.setAngularVelocity(PhysXDynamicCollider._tempTranslation, true);
+    this._pxActor.setAngularVelocity(value, true);
   }
 
   /**
@@ -131,7 +121,7 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
    * {@inheritDoc IDynamicCollider.setMaxAngularVelocity }
    */
   setMaxAngularVelocity(value: number): void {
-    this._pxActor.setMaxAngularVelocity(MathUtil.degreeToRadian(value));
+    this._pxActor.setMaxAngularVelocity(value);
   }
 
   /**

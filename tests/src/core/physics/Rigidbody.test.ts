@@ -192,11 +192,15 @@ describe("Rigidbody", function () {
     expect(formatValue(boxCollider.angularVelocity.y)).eq(0);
     expect(formatValue(box.transform.rotation.y)).eq(0);
 
-    boxCollider.angularVelocity = new Vector3(0, 45, 0);
+    boxCollider.angularVelocity = new Vector3(0, Math.PI / 4, 0);
     boxCollider.angularDamping = 0;
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(boxCollider.angularVelocity.y)).eq(45);
+    expect(boxCollider.angularVelocity.y).toBeCloseTo(Math.PI / 4, 6);
     expect(formatValue(box.transform.rotation.y)).closeTo(45, 0.0001);
+
+    boxCollider.maxAngularVelocity = Math.PI / 8;
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(boxCollider.angularVelocity.y).toBeCloseTo(Math.PI / 8, 6);
   });
 
   it("keeps the simulated pose when alignment rederives the Entity's position", () => {
@@ -406,14 +410,14 @@ describe("Rigidbody", function () {
     boxCollider.applyTorque(new Vector3(0, 10, 0));
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(boxCollider.inertiaTensor.y)).eq(1);
-    expect(formatValue(boxCollider.angularVelocity.y)).eq(9.08338);
+    expect(boxCollider.angularVelocity.y).toBeCloseTo(0.15853, 5);
 
     boxCollider.inertiaTensor = new Vector3(0, 2, 0);
     boxCollider.angularVelocity.y = 0;
     boxCollider.applyTorque(new Vector3(0, 10, 0));
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(boxCollider.inertiaTensor.y)).eq(2);
-    expect(formatValue(boxCollider.angularVelocity.y)).eq(4.54169);
+    expect(boxCollider.angularVelocity.y).toBeCloseTo(0.07927, 5);
   });
 
   it("automaticInertiaTensor", function () {
@@ -1019,7 +1023,7 @@ describe("Rigidbody", function () {
     expect(body.angularVelocity.length()).toBeCloseTo(0, 5);
     body.applyTorque(new Vector3(0, 1, 0));
     physics._update(physics.fixedTimeStep);
-    expect(body.angularVelocity.y).toBeCloseTo(((physics.fixedTimeStep * 1.5) / Math.PI) * 180, 5);
+    expect(body.angularVelocity.y).toBeCloseTo(physics.fixedTimeStep * 1.5, 5);
 
     const clone = box.clone();
     rootEntity.addChild(clone);

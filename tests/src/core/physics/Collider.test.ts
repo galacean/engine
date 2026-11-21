@@ -103,7 +103,7 @@ describe("Collider", () => {
       parent.addComponent(BoxCollider);
       const parentBody = parent.addComponent(Rigidbody);
       parentBody.useGravity = false;
-      parentBody.angularVelocity.set(0, 90, 0);
+      parentBody.angularVelocity.set(0, Math.PI / 2, 0);
       const middle = parent.createChild("intermediate");
       if (disabledBoundary) middle.addComponent(Rigidbody).enabled = false;
       middle.addChild(child);
@@ -407,11 +407,11 @@ describe("Collider", () => {
   });
 
   it.each([ColliderShapeUpAxis.X, ColliderShapeUpAxis.Y, ColliderShapeUpAxis.Z])(
-    "updates capsule radius, cylinder height and direction %s",
+    "updates capsule radius, total height and direction %s",
     (direction) => {
       const capsule = root.addComponent(CapsuleCollider);
       capsule.radius = 0.5;
-      capsule.height = 2;
+      capsule.height = 3;
       const axis = [new Vector3(1, 0, 0), new Vector3(0, 1, 0), new Vector3(0, 0, 1)][direction];
       const closest = new Vector3();
       const point = axis.clone().scale(5);
@@ -420,7 +420,7 @@ describe("Collider", () => {
       expectPoint(closest, axis.x * 1.5, axis.y * 1.5, axis.z * 1.5);
 
       capsule.radius = 1;
-      capsule.height = 4;
+      capsule.height = 6;
       expect(capsule.getClosestPoint(point, closest)).toBeCloseTo(2);
       capsule.direction = (direction + 1) % 3;
       expect(capsule.getClosestPoint(point, closest)).toBeCloseTo(4);
@@ -494,7 +494,7 @@ describe("Collider", () => {
       const capsule = root.addComponent(CapsuleCollider);
       capsule.direction = direction;
       capsule.radius = 0.5;
-      capsule.height = 2;
+      capsule.height = 3;
       root.transform.setScale(2, 3, 4);
       const scales = [2, 3, 4];
       const radius = 0.5 * Math.max(scales[(direction + 1) % 3], scales[(direction + 2) % 3]);
@@ -542,7 +542,7 @@ describe("Collider", () => {
     if (collider instanceof BoxCollider) collider.size.set(2, 3, 4);
     else collider.radius = 2;
     if (collider instanceof CapsuleCollider) {
-      collider.height = 3;
+      collider.height = 7;
       collider.direction = ColliderShapeUpAxis.Z;
     }
     const clone = source.clone();
@@ -557,7 +557,10 @@ describe("Collider", () => {
     const originalDistance = collider.getClosestPoint(new Vector3(10, 2, 3), closest);
     expect(copy.getClosestPoint(new Vector3(30, 2, 3), closest)).toBeCloseTo(originalDistance);
     if (copy instanceof BoxCollider) copy.size.set(9, 9, 9);
-    else copy.radius = 4;
+    else {
+      if (copy instanceof CapsuleCollider) copy.height = 11;
+      copy.radius = 4;
+    }
     expect(copy.getClosestPoint(new Vector3(30, 2, 3), closest)).toBeLessThan(originalDistance);
     expect(collider.getClosestPoint(new Vector3(10, 2, 3), closest)).toBeCloseTo(originalDistance);
     clone.destroy();
@@ -633,7 +636,7 @@ describe("Collider", () => {
     const box = entity.addComponent(BoxCollider);
     const body = entity.addComponent(Rigidbody);
     body.useGravity = false;
-    body.angularVelocity = new Vector3(0, 0, Math.PI / 2);
+    body.angularVelocity = new Vector3(0, 0, 0.03);
     update(30);
     const transform = entity.transform;
     const point = new Vector3(10, 0, 0);
@@ -931,12 +934,12 @@ describe("Collider", () => {
       expect(capsule.height).toBe(0);
       expect(physics.raycast(ray, hit)).toBe(false);
 
-      // A zero cylinder height cannot form a valid PhysX capsule for distance queries.
       capsule.radius = 1;
+      capsule.height = 2;
       expect(physics.raycast(ray, hit)).toBe(false);
       expect(capsule.getClosestPoint(new Vector3(-5, 5, 0), new Vector3())).toBe(-1);
 
-      capsule.height = 2;
+      capsule.height = 4;
       expect(physics.raycast(ray, hit)).toBe(true);
       expect(hit.normal.x).toBeCloseTo(-1, 4);
       expect(hit.distance).toBeCloseTo(4, 4);
@@ -999,7 +1002,7 @@ describe("Collider", () => {
       expect(physics.raycast(ray, hit)).toBe(false);
       capsule.height = 1e40;
       expect(physics.raycast(ray, hit)).toBe(false);
-      capsule.height = 2;
+      capsule.height = 4;
       expect(physics.raycast(ray, hit)).toBe(true);
     });
 
@@ -1027,7 +1030,7 @@ describe("Collider", () => {
       entity.transform.setScale(1, 0, 1);
       capsule.direction = ColliderShapeUpAxis.X;
       capsule.radius = 0.5;
-      capsule.height = 3;
+      capsule.height = 4;
       expect(physics.raycast(ray, hit)).toBe(true);
       expect(hit.distance).toBeCloseTo(3);
       expect(setGeometrySpy).toHaveBeenCalledTimes(1);
