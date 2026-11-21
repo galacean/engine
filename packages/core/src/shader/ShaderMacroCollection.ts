@@ -76,8 +76,12 @@ export class ShaderMacroCollection {
       return;
     }
     const newValue = mask[index] & ~macro._maskValue;
-    if (index == endIndex && newValue === 0) {
-      this._length--;
+    if (index === endIndex && newValue === 0) {
+      let length = endIndex;
+      while (length > 0 && mask[length - 1] === 0) {
+        length--;
+      }
+      this._length = length;
     } else {
       mask[index] = newValue;
     }
@@ -117,16 +121,15 @@ export class ShaderMacroCollection {
     const removeMask = macroCollection._mask;
     const mask = this._mask;
     let endIndex = this._length - 1;
-    let i = Math.min(macroCollection._length - 1, endIndex);
-    for (; i >= 0; i--) {
+    for (let i = Math.min(macroCollection._length - 1, endIndex); i >= 0; i--) {
       const newValue = mask[i] & ~removeMask[i];
-      if (i == endIndex && newValue === 0) {
+      if (i === endIndex && newValue === 0) {
         endIndex--;
-        this._length--;
       } else {
         mask[i] = newValue;
       }
     }
+    this._length = endIndex + 1;
   }
 
   /**
@@ -136,14 +139,16 @@ export class ShaderMacroCollection {
   intersectionCollection(macroCollection: ShaderMacroCollection): void {
     const unionMask = macroCollection._mask;
     const mask = this._mask;
-    for (let i = this._length - 1; i >= 0; i--) {
+    let endIndex = Math.min(this._length, macroCollection._length) - 1;
+    for (let i = endIndex; i >= 0; i--) {
       const value = mask[i] & unionMask[i];
-      if (value == 0 && i == this._length - 1) {
-        this._length--;
+      if (value === 0 && i === endIndex) {
+        endIndex--;
       } else {
         mask[i] = value;
       }
     }
+    this._length = endIndex + 1;
   }
 
   /**
