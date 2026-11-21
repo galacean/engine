@@ -249,7 +249,7 @@ describe("ShaderProperty isolation across shaders and groups", () => {
     expect(ShaderProperty.getByName(propName).type).toBe(ShaderPropertyType.Texture);
     expect(texA.refCount).toBe(1);
     material.shaderData.setFloat(propName, 2.5);
-    expect(ShaderProperty.getByName(propName).type).toBeUndefined();
+    expect(ShaderProperty.getByName(propName).type).toBe(ShaderPropertyType.Texture | ShaderPropertyType.Float);
     expect(texA.refCount).toBe(0);
     expect(material.shaderData.getFloat(propName)).toBe(2.5);
     material.shaderData.setTextureArray(propName, [texA, texB]);

@@ -15,6 +15,12 @@ import { ShaderPropertyType } from "./enums/ShaderPropertyType";
  * Shader data collection,Correspondence includes shader properties data and macros data.
  */
 export class ShaderData extends DataObject implements IReferable, IClone, ICloneHook<ShaderData> {
+  private static readonly _batchSharedTypeMask =
+    ShaderPropertyType.Texture |
+    ShaderPropertyType.TextureArray |
+    ShaderPropertyType.FloatArray |
+    ShaderPropertyType.IntArray;
+
   /** @internal */
   @ignoreClone
   _group: ShaderDataGroup;
@@ -680,10 +686,9 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
     property._addGroup(this._group);
 
     const id = property._uniqueId;
-    const typeBit = 1 << type;
-    if (property._typeMask !== typeBit) {
-      property._typeMask |= typeBit;
-      if (property._typeMask !== typeBit) {
+    if (property._type !== type) {
+      property._type |= type;
+      if (property._type !== type) {
         this._releasePropertyValue(id, value);
       }
     }
@@ -762,13 +767,7 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
   }
 
   private _updateRendererBatchSharedFields(id: number, type: ShaderPropertyType, value: ShaderPropertyValueType): void {
-    if (
-      this._group !== ShaderDataGroup.Renderer ||
-      (type !== ShaderPropertyType.Texture &&
-        type !== ShaderPropertyType.TextureArray &&
-        type !== ShaderPropertyType.FloatArray &&
-        type !== ShaderPropertyType.IntArray)
-    ) {
+    if (this._group !== ShaderDataGroup.Renderer || (type & ShaderData._batchSharedTypeMask) === 0) {
       return;
     }
     const oldHas = this._propertyValueMap[id] != null;

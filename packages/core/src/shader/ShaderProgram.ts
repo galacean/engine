@@ -243,7 +243,7 @@ export class ShaderProgram implements IPlatformShaderProgram {
     for (let i = uniforms.length - 1; i >= 0; i--) {
       const uniform = uniforms[i];
       const property = propertyIdMap[uniform.propertyId];
-      if (property._groupMask !== 0) {
+      if (property._group !== 0) {
         uniforms.splice(i, 1);
         this._groupingUniform(uniform, property, isTexture);
       }
@@ -289,23 +289,23 @@ export class ShaderProgram implements IPlatformShaderProgram {
 
   private _groupingUniform(uniform: ShaderUniform, property: ShaderProperty, isTexture: boolean): void {
     let block: ShaderUniformBlock;
-    switch (property._groupMask) {
+    switch (property._group) {
       case 0:
         block = this.otherUniformBlock;
         break;
-      case 1 << ShaderDataGroup.Scene:
+      case ShaderDataGroup.Scene:
         block = this.sceneUniformBlock;
         break;
-      case 1 << ShaderDataGroup.Camera:
+      case ShaderDataGroup.Camera:
         block = this.cameraUniformBlock;
         break;
-      case 1 << ShaderDataGroup.Renderer:
+      case ShaderDataGroup.Renderer:
         block = this.rendererUniformBlock;
         break;
-      case 1 << ShaderDataGroup.Material:
+      case ShaderDataGroup.Material:
         block = this.materialUniformBlock;
         break;
-      case 1 << ShaderDataGroup.RenderElement:
+      case ShaderDataGroup.RenderElement:
         block = this.renderElementUniformBlock;
         break;
       default:

@@ -1,15 +1,16 @@
 /**
  * Shader data grouping.
+ * @remarks enumeration can be combined using bit operations.
  */
 export enum ShaderDataGroup {
   /** Scene group. */
-  Scene,
+  Scene = 0x1,
   /** Camera group. */
-  Camera,
+  Camera = 0x2,
   /** Renderer group. */
-  Renderer,
+  Renderer = 0x4,
   /** Material group. */
-  Material,
+  Material = 0x8,
   /** Render element group. */
-  RenderElement
+  RenderElement = 0x10
 }

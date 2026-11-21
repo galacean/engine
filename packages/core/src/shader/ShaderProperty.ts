@@ -34,9 +34,9 @@ export class ShaderProperty {
   /** @internal */
   _uniqueId: number;
   /** @internal */
-  _groupMask: number = 0;
+  _group: number = 0;
   /** @internal */
-  _typeMask: number = 0;
+  _type: ShaderPropertyType = ShaderPropertyType.None;
 
   /** Shader property name. */
   readonly name: string;
@@ -45,8 +45,7 @@ export class ShaderProperty {
    * Shader property type.
    */
   get type(): ShaderPropertyType {
-    const mask = this._typeMask;
-    return <ShaderPropertyType>(mask !== 0 && (mask & (mask - 1)) === 0 ? 31 - Math.clz32(mask) : undefined);
+    return this._type;
   }
 
   /**
@@ -61,19 +60,18 @@ export class ShaderProperty {
    * @internal
    */
   _isMultiGroup(): boolean {
-    const mask = this._groupMask;
-    return (mask & (mask - 1)) !== 0;
+    const group = this._group;
+    return (group & (group - 1)) !== 0;
   }
 
   /**
    * @internal
    */
   _addGroup(group: ShaderDataGroup): void {
-    const mask = this._groupMask;
-    const bit = 1 << group;
-    if ((mask & bit) === 0) {
-      this._groupMask = mask | bit;
-      mask !== 0 && ShaderProperty._groupConflictVersion++;
+    const current = this._group;
+    if ((current & group) === 0) {
+      this._group = current | group;
+      current !== 0 && ShaderProperty._groupConflictVersion++;
     }
   }
 }

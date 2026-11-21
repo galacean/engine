@@ -218,10 +218,7 @@ mat3 _normalMatFromModel(mat3 m) {
     return source.replace(ShaderFactory._uboUniformRegex, (match, type, name, arraySize) => {
       if (type.includes("sampler")) return match;
       const isDerived = builtinUniforms[name];
-      if (
-        isDerived === undefined &&
-        ShaderProperty._propertyNameMap[name]?._groupMask !== 1 << ShaderDataGroup.Renderer
-      )
+      if (isDerived === undefined && ShaderProperty._propertyNameMap[name]?._group !== ShaderDataGroup.Renderer)
         return match;
       if (isDerived) return "";
       if (arraySize) {
