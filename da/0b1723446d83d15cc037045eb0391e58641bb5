@@ -1,0 +1,22 @@
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  h_171a11afaf879a 8,288,297,333-339,944-946,961-963,978-983,1010-1011,1014,1018-1023,1844-1852,1883-1894,1941-1944,1946-1951,2367-2369,2477-2482,2507-2510,2571-2589,2921
+packages/animals/src/gameplay/animal/GroundAnimalCrowd.ts
+  h_171a11afaf879a 232-239,375-380,612,615-629,793,944
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  h_171a11afaf879a 115-128,635-673,679-683,821-822
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  h_171a11afaf879a 862-863,866
+world/tests/seed-world/AnimalPathfindingPerfInvariants.spec.ts
+  h_171a11afaf879a 7-9,277-412
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "da0b1723446d83d15cc037045eb0391e58641bb5",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
