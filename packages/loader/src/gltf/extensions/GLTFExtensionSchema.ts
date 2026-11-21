@@ -214,4 +214,4 @@ export type GLTFExtensionSchema =
   | IGalaceanAnimation
   | IKHRMaterialsIridescence
   | IKHRMaterialsVolume
-  | object;
+  | Object;
