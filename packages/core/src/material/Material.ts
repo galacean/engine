@@ -3,19 +3,45 @@ import { Engine } from "../Engine";
 import { ReferResource } from "../asset/ReferResource";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
+import { ShaderProperty } from "../shader/ShaderProperty";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 
 /**
  * Material.
  */
 export class Material extends ReferResource implements IClone {
+  /** @internal */
+  static _ssrIntensityProperty = ShaderProperty.getByName("material_ScreenSpaceReflectionIntensity");
+
   /** Name. */
   name: string;
+
+  /**
+   * Allow this transparent material to contribute nearest nonzero-alpha depth to SSR Hi-Z occlusion.
+   * @defaultValue `false`
+   */
+  contributeScreenSpaceReflectionDepth: boolean = false;
 
   /** @internal */
   _shader: Shader;
 
+  private _ssrIntensity: number = 0;
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Material);
+
+  /**
+   * Screen-space reflection intensity multiplier on this material (`0` opts out; `PBRMaterial` defaults to `1`).
+   */
+  get screenSpaceReflectionIntensity(): number {
+    return this._ssrIntensity;
+  }
+
+  set screenSpaceReflectionIntensity(value: number) {
+    const clamped = Number.isFinite(value) ? Math.max(0, value) : 0;
+    if (this._ssrIntensity !== clamped) {
+      this._ssrIntensity = clamped;
+      this._shaderData.setFloat(Material._ssrIntensityProperty, clamped);
+    }
+  }
 
   /**
    *  Shader data.
@@ -54,6 +80,7 @@ export class Material extends ReferResource implements IClone {
     super(engine);
     this.shader = shader;
     this.name = shader.name;
+    this._shaderData.setFloat(Material._ssrIntensityProperty, 0);
   }
 
   /**
@@ -72,6 +99,8 @@ export class Material extends ReferResource implements IClone {
   cloneTo(target: Material): void {
     target.shader = this.shader;
     this.shaderData.cloneTo(target.shaderData);
+    target._ssrIntensity = this._ssrIntensity;
+    target.contributeScreenSpaceReflectionDepth = this.contributeScreenSpaceReflectionDepth;
   }
 
   /**

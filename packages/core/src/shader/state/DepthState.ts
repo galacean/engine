@@ -83,7 +83,11 @@ export class DepthState extends DataObject {
 
     if (customStates) {
       const enabledState = customStates[RenderStateElementKey.DepthStateEnabled];
-      enabledState !== undefined && (enabled = <boolean>enabledState);
+      if (enabledState !== undefined) enabled = <boolean>enabledState;
+      const compareState = customStates[RenderStateElementKey.DepthStateCompareFunction];
+      if (compareState !== undefined) compareFunction = <CompareFunction>compareState;
+      const writeState = customStates[RenderStateElementKey.DepthStateWriteEnabled];
+      if (writeState !== undefined) writeEnabled = <boolean>writeState;
     }
 
     if (enabled != lastState.enabled) {

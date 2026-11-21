@@ -118,12 +118,17 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           mipLevel
         );
       }
-    } else {
+    } else if (this._depthRenderBuffer) {
       if (mipChanged) {
         // @ts-ignore
         const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl);
         gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthRenderBuffer);
-        gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, target.width >> mipLevel, target.height >> mipLevel);
+        gl.renderbufferStorage(
+          gl.RENDERBUFFER,
+          internalFormat,
+          Math.max(1, target.width >> mipLevel),
+          Math.max(1, target.height >> mipLevel)
+        );
       }
     }
 

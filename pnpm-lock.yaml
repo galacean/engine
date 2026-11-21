@@ -197,6 +197,9 @@ importers:
       '@galacean/engine-toolkit':
         specifier: latest
         version: 1.6.0(@galacean/engine-ui@packages+ui)(@galacean/engine@packages+galacean)
+      '@galacean/engine-toolkit-controls':
+        specifier: 1.6.0
+        version: 1.6.0(@galacean/engine@packages+galacean)
       '@galacean/engine-toolkit-stats':
         specifier: latest
         version: 1.6.0(@galacean/engine@packages+galacean)

@@ -10,7 +10,8 @@ import {
   Mesh,
   resourceLoader,
   ResourceManager,
-  Scene
+  Scene,
+  ScreenSpaceReflectionSettings
 } from "@galacean/engine-core";
 import { resolveRefItem } from "./schema/refs";
 import type { RefItem } from "./schema/CommonSchema";
@@ -167,6 +168,15 @@ export function applySceneData(
     if (ambientOcclusion.bilateralThreshold != undefined)
       sceneAO.bilateralThreshold = ambientOcclusion.bilateralThreshold;
     if (ambientOcclusion.minHorizonAngle != undefined) sceneAO.minHorizonAngle = ambientOcclusion.minHorizonAngle;
+  }
+
+  // Screen Space Reflection
+  const ssrData = sceneData.screenSpaceReflection;
+  if (ssrData) {
+    scene.screenSpaceReflection.apply(ssrData);
+  } else {
+    const defaults = new ScreenSpaceReflectionSettings();
+    defaults.cloneTo(scene.screenSpaceReflection);
   }
 
   return Promise.all(promises).then(() => {});

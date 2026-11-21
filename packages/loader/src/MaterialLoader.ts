@@ -111,6 +111,16 @@ class MaterialLoader extends Loader<Material> {
           materialShaderData.enableMacro(name, value);
         }
       }
+      if (materialSchema.screenSpaceReflectionIntensity !== undefined) {
+        material.screenSpaceReflectionIntensity = materialSchema.screenSpaceReflectionIntensity;
+      } else if (shaderData["material_ScreenSpaceReflectionIntensity"] !== undefined) {
+        material.screenSpaceReflectionIntensity = Number(shaderData["material_ScreenSpaceReflectionIntensity"].value);
+      } else if (shader === Engine._builtinShaders.pbr) {
+        material.screenSpaceReflectionIntensity = 1.0;
+      }
+      if (materialSchema.contributeScreenSpaceReflectionDepth !== undefined) {
+        material.contributeScreenSpaceReflectionDepth = materialSchema.contributeScreenSpaceReflectionDepth;
+      }
       return material;
     } catch (error) {
       material.destroy();

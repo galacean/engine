@@ -4,7 +4,8 @@ import {
   DiffuseMode,
   FogMode,
   ShadowCascadesMode,
-  ShadowResolution
+  ShadowResolution,
+  type ScreenSpaceReflectionSettingsData
 } from "@galacean/engine-core";
 import type { HierarchyFile } from "./HierarchySchema";
 import type { Vec3Tuple, Vec4Tuple } from "./CommonSchema";
@@ -62,6 +63,7 @@ export interface SceneFile extends HierarchyFile {
       bilateralThreshold?: number;
       minHorizonAngle?: number;
     };
+    screenSpaceReflection?: Partial<ScreenSpaceReflectionSettingsData>;
     /** Not supported in scene yet; presence triggers a warning. */
     postProcess?: unknown;
   };
