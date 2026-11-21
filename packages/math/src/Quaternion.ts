@@ -266,10 +266,10 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
       opposite = Math.sin(amount * acos) * invSin * Math.sign(dot);
     }
 
-    out.x = inverse * start.x + opposite * end.x;
-    out.y = inverse * start.y + opposite * end.y;
-    out.z = inverse * start.z + opposite * end.z;
-    out.w = inverse * start.w + opposite * end.w;
+    out._x = inverse * start._x + opposite * end._x;
+    out._y = inverse * start._y + opposite * end._y;
+    out._z = inverse * start._z + opposite * end._z;
+    out._w = inverse * start._w + opposite * end._w;
     out._onValueChanged?.();
   }
 
