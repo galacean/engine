@@ -1,0 +1,22 @@
+packages/core/src/shader/ShaderProgram.ts
+  h_bd4dd7d663e619 246,293
+packages/core/src/shader/ShaderProperty.ts
+  h_bd4dd7d663e619 37,45,47,74
+packages/core/src/shader/enums/ShaderDataGroup.ts
+  h_bd4dd7d663e619 6-7
+tests/src/core/material/Material.test.ts
+  h_bd4dd7d663e619 57
+tests/src/core/shader/ShaderPropertyIsolation.test.ts
+  h_bd4dd7d663e619 249,252
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "627e4b21174ee8fbca484e0957bab9825ed6c57c",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
