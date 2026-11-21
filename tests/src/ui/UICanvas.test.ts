@@ -427,8 +427,6 @@ describe("UICanvas", async () => {
     // @ts-ignore
     expect(innerCanvas._isRootCanvas).to.be.false;
 
-    // The enabling canvas claims root status before dispatching, so the demote cascades
-    // re-root to it via the ancestor search.
     const outerCanvas = outerEntity.addComponent(UICanvas);
     // @ts-ignore
     expect(outerCanvas._isRootCanvas).to.be.true;

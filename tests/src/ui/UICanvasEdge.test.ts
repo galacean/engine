@@ -3,9 +3,6 @@ import { WebGLEngine } from "@galacean/engine";
 import { Image, UICanvas } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 
-// Adversarial edge cases for the enable-order change (claim-before-broadcast).
-// These assert observable outcomes only, so they must pass under BOTH the
-// successor-threaded implementation and the reordered implementation.
 describe("UICanvasEdge", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas });
