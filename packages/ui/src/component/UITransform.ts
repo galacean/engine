@@ -240,8 +240,12 @@ export class UITransform extends Transform {
   /**
    * @internal
    */
-  override _parentChange(): void {
-    this._isParentDirty = true;
+  override _parentChange(oldParent?: Transform | null, keepWorldTransform: boolean = false): void {
+    if (keepWorldTransform) {
+      this._preserveWorldPose(oldParent ?? null);
+    } else {
+      this._isParentDirty = true;
+    }
     this._updateWorldFlagWithParentRectChange(TransformModifyFlags.WmWpWeWqWsWus);
   }
 

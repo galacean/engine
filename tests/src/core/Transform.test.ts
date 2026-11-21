@@ -9,7 +9,7 @@ import {
   Script,
   Transform
 } from "@galacean/engine-core";
-import { Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
+import { Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -511,6 +511,235 @@ describe("Transform test", function () {
     const world = cloneLayer.transform.worldMatrix;
     expect(world.elements[12]).to.equal(1010);
     expect(world.elements[13]).to.equal(2020);
+  });
+
+  describe("reparent world pose vs local pose", () => {
+    it("preserves world pose on entity.parent = newParent while addChild/createChild/removeChild preserve local pose", () => {
+      const parentA = scene.createRootEntity("reparentA");
+      parentA.transform.setPosition(10, -4, 3);
+      parentA.transform.setRotation(0, 90, 0);
+      parentA.transform.setScale(2, 2, 2);
+
+      const parentB = scene.createRootEntity("reparentB");
+      parentB.transform.setPosition(-5, 6, 2);
+      parentB.transform.setRotation(0, 0, 90);
+      parentB.transform.setScale(4, 4, 4);
+
+      // createChild keeps local pose (0, 0, 0) rather than preserving detached origin
+      const created = parentA.createChild("createdChild");
+      expect(created.transform.position).to.deep.include({ x: 0, y: 0, z: 0 });
+      expect(created.transform.worldPosition.x).to.be.closeTo(10, 1e-5);
+      expect(created.transform.worldPosition.y).to.be.closeTo(-4, 1e-5);
+      expect(created.transform.worldPosition.z).to.be.closeTo(3, 1e-5);
+
+      // Move created under parentB via parent setter (never reading worldMatrix on a second child first)
+      const child = parentA.createChild("worldChild");
+      child.transform.setPosition(1, 2, 3);
+      child.transform.setRotation(30, 45, 60);
+      child.transform.setScale(1.5, 2.5, 3.5);
+
+      const expectedWorldPos = child.transform.worldPosition.clone();
+      const expectedWorldRot = child.transform.worldRotationQuaternion.clone();
+      const expectedWorldScale = child.transform.lossyWorldScale.clone();
+      const expectedWorldMat = child.transform.worldMatrix.clone();
+
+      child.parent = parentB;
+
+      expect(child.transform.worldPosition.x).to.be.closeTo(expectedWorldPos.x, 1e-4);
+      expect(child.transform.worldPosition.y).to.be.closeTo(expectedWorldPos.y, 1e-4);
+      expect(child.transform.worldPosition.z).to.be.closeTo(expectedWorldPos.z, 1e-4);
+      expect(Math.abs(Quaternion.dot(child.transform.worldRotationQuaternion, expectedWorldRot))).to.be.closeTo(
+        1,
+        1e-5
+      );
+      expect(child.transform.lossyWorldScale.x).to.be.closeTo(expectedWorldScale.x, 1e-4);
+      expect(child.transform.lossyWorldScale.y).to.be.closeTo(expectedWorldScale.y, 1e-4);
+      expect(child.transform.lossyWorldScale.z).to.be.closeTo(expectedWorldScale.z, 1e-4);
+      for (let i = 0; i < 16; i++) {
+        expect(child.transform.worldMatrix.elements[i]).to.be.closeTo(expectedWorldMat.elements[i], 1e-4);
+      }
+
+      // Reparenting a child whose worldMatrix was never read before still resolves oldParent accurately
+      const unreadChild = parentA.createChild("unreadChild");
+      unreadChild.transform.setPosition(2, 0, 0);
+      unreadChild.parent = parentB;
+      // Under parentA (pos=(10,-4,3), rotY=90°, scale=2), local (2,0,0) maps to world (10, -4, -1)
+      expect(unreadChild.transform.worldPosition.x).to.be.closeTo(10, 1e-4);
+      expect(unreadChild.transform.worldPosition.y).to.be.closeTo(-4, 1e-4);
+      expect(unreadChild.transform.worldPosition.z).to.be.closeTo(-1, 1e-4);
+
+      // Detaching via parent = null preserves world pose into local TRS
+      child.parent = null;
+      expect(child.transform.position.x).to.be.closeTo(expectedWorldPos.x, 1e-4);
+      expect(child.transform.position.y).to.be.closeTo(expectedWorldPos.y, 1e-4);
+      expect(child.transform.position.z).to.be.closeTo(expectedWorldPos.z, 1e-4);
+      expect(Math.abs(Quaternion.dot(child.transform.rotationQuaternion, expectedWorldRot))).to.be.closeTo(1, 1e-5);
+      expect(child.transform.scale.x).to.be.closeTo(expectedWorldScale.x, 1e-4);
+      expect(child.transform.scale.y).to.be.closeTo(expectedWorldScale.y, 1e-4);
+      expect(child.transform.scale.z).to.be.closeTo(expectedWorldScale.z, 1e-4);
+
+      // addChild preserves local pose, and removeChild preserves local pose
+      const localChild = new Entity(engine, "localChild");
+      localChild.transform.setPosition(1, 2, 3);
+      parentA.addChild(localChild);
+      expect(localChild.transform.position).to.deep.include({ x: 1, y: 2, z: 3 });
+      parentA.removeChild(localChild);
+      expect(localChild.transform.position).to.deep.include({ x: 1, y: 2, z: 3 });
+
+      parentA.destroy();
+      parentB.destroy();
+      child.destroy();
+      localChild.destroy();
+    });
+
+    it("exposes preserved world pose immediately inside onEnable when attaching via entity.parent", () => {
+      const parent = scene.createRootEntity("enableParent");
+      parent.transform.setPosition(10, 0, 0);
+
+      let enabledWorldPos: Vector3 | null = null;
+      let enabledLocalPos: Vector3 | null = null;
+      class EnableProbe extends Script {
+        override onEnable(): void {
+          enabledWorldPos = this.entity.transform.worldPosition.clone();
+          enabledLocalPos = this.entity.transform.position.clone();
+        }
+      }
+
+      const detached = new Entity(engine, "detachedEnableChild");
+      detached.transform.setPosition(5, 0, 0);
+      detached.addComponent(EnableProbe);
+
+      detached.parent = parent;
+
+      expect(enabledWorldPos).not.to.equal(null);
+      expect(enabledWorldPos!.x).to.be.closeTo(5, 1e-5);
+      expect(enabledLocalPos!.x).to.be.closeTo(-5, 1e-5);
+      expect(detached.transform.worldPosition.x).to.be.closeTo(5, 1e-5);
+
+      parent.destroy();
+    });
+
+    it("preserves negative scale sign across entity.parent reparenting", () => {
+      const parentA = scene.createRootEntity("negParentA");
+      parentA.transform.setRotation(0, 0, 90);
+      parentA.transform.setScale(-2, 3, 5);
+
+      const parentB = scene.createRootEntity("negParentB");
+
+      const child = parentA.createChild("negChild");
+      const expectedWorldMat = child.transform.worldMatrix.clone();
+      const expectedWorldScale = child.transform.lossyWorldScale.clone();
+
+      child.parent = parentB;
+
+      expect(child.transform.scale.x).to.be.closeTo(-2, 1e-5);
+      expect(child.transform.scale.y).to.be.closeTo(3, 1e-5);
+      expect(child.transform.scale.z).to.be.closeTo(5, 1e-5);
+      expect(child.transform.lossyWorldScale.x).to.be.closeTo(expectedWorldScale.x, 1e-5);
+      expect(child.transform.lossyWorldScale.y).to.be.closeTo(expectedWorldScale.y, 1e-5);
+      expect(child.transform.lossyWorldScale.z).to.be.closeTo(expectedWorldScale.z, 1e-5);
+      for (let i = 0; i < 16; i++) {
+        expect(child.transform.worldMatrix.elements[i]).to.be.closeTo(expectedWorldMat.elements[i], 1e-5);
+      }
+
+      parentA.destroy();
+      parentB.destroy();
+    });
+
+    it("drops shear cleanly into consistent TRS on entity.parent reparent (A->B->C to D and null)", () => {
+      const a = scene.createRootEntity("shearA");
+      a.transform.setRotation(0, 0, 45);
+      const b = a.createChild("shearB");
+      b.transform.setScale(7, 1, 5);
+      const c = b.createChild("shearC");
+      c.transform.setRotation(0, 0, -45);
+      const d = scene.createRootEntity("shearD");
+
+      // Before reparent: sheared worldMatrix [[4,3,0,0],[3,4,0,0],[0,0,5,0],[0,0,0,1]]
+      const beforeMat = c.transform.worldMatrix.elements;
+      expect(beforeMat[0]).to.be.closeTo(4, 1e-5);
+      expect(beforeMat[1]).to.be.closeTo(3, 1e-5);
+      expect(beforeMat[4]).to.be.closeTo(3, 1e-5);
+      expect(beforeMat[5]).to.be.closeTo(4, 1e-5);
+      expect(beforeMat[10]).to.be.closeTo(5, 1e-5);
+      expect(c.transform.lossyWorldScale.x).to.be.closeTo(4, 1e-5);
+      expect(c.transform.lossyWorldScale.y).to.be.closeTo(4, 1e-5);
+      expect(c.transform.lossyWorldScale.z).to.be.closeTo(5, 1e-5);
+
+      // Reparent C to identity parent D: Unity-style diagonal scale (4, 4, 5), rebuilt clean TRS matrix
+      c.parent = d;
+
+      expect(c.transform.position.x).to.be.closeTo(0, 1e-5);
+      expect(c.transform.position.y).to.be.closeTo(0, 1e-5);
+      expect(c.transform.position.z).to.be.closeTo(0, 1e-5);
+      expect(c.transform.rotation.x).to.be.closeTo(0, 1e-4);
+      expect(c.transform.rotation.y).to.be.closeTo(0, 1e-4);
+      expect(c.transform.rotation.z).to.be.closeTo(0, 1e-4);
+      expect(c.transform.scale.x).to.be.closeTo(4, 1e-5);
+      expect(c.transform.scale.y).to.be.closeTo(4, 1e-5);
+      expect(c.transform.scale.z).to.be.closeTo(5, 1e-5);
+      expect(c.transform.lossyWorldScale.x).to.be.closeTo(4, 1e-5);
+      expect(c.transform.lossyWorldScale.y).to.be.closeTo(4, 1e-5);
+      expect(c.transform.lossyWorldScale.z).to.be.closeTo(5, 1e-5);
+
+      const expectedClean = new Matrix();
+      Matrix.scaling(new Vector3(4, 4, 5), expectedClean);
+      for (let i = 0; i < 16; i++) {
+        expect(c.transform.localMatrix.elements[i]).to.be.closeTo(expectedClean.elements[i], 1e-5);
+        expect(c.transform.worldMatrix.elements[i]).to.be.closeTo(expectedClean.elements[i], 1e-5);
+      }
+
+      // Clone and subsequent minor translation stay 100% consistent (no state split)
+      const cloned = c.clone();
+      for (let i = 0; i < 16; i++) {
+        expect(cloned.transform.localMatrix.elements[i]).to.be.closeTo(expectedClean.elements[i], 1e-5);
+      }
+      c.transform.position.x = 1;
+      expect(c.transform.worldMatrix.elements[0]).to.be.closeTo(4, 1e-5);
+      expect(c.transform.worldMatrix.elements[1]).to.be.closeTo(0, 1e-5);
+      expect(c.transform.worldMatrix.elements[5]).to.be.closeTo(4, 1e-5);
+      expect(c.transform.worldMatrix.elements[12]).to.be.closeTo(1, 1e-5);
+
+      // Same clean diagonal scale when detaching sheared child directly to null
+      const c2 = b.createChild("shearC2");
+      c2.transform.setRotation(0, 0, -45);
+      c2.parent = null;
+      expect(c2.transform.scale.x).to.be.closeTo(4, 1e-5);
+      expect(c2.transform.scale.y).to.be.closeTo(4, 1e-5);
+      expect(c2.transform.scale.z).to.be.closeTo(5, 1e-5);
+      expect(c2.transform.lossyWorldScale.x).to.be.closeTo(4, 1e-5);
+      expect(c2.transform.lossyWorldScale.y).to.be.closeTo(4, 1e-5);
+      expect(c2.transform.lossyWorldScale.z).to.be.closeTo(5, 1e-5);
+      expect(c2.transform.localMatrix.elements[1]).to.be.closeTo(0, 1e-5);
+
+      a.destroy();
+      d.destroy();
+      cloned.destroy();
+      c2.destroy();
+    });
+
+    it("handles singular (zero-scale) new parent without producing NaN", () => {
+      const parentA = scene.createRootEntity("singularA");
+      parentA.transform.setPosition(3, 4, 5);
+      const child = parentA.createChild("singularChild");
+      child.transform.setPosition(1, 2, 3);
+      child.transform.setScale(2, 2, 2);
+
+      const zeroParent = scene.createRootEntity("zeroParent");
+      zeroParent.transform.setScale(0, 1, 1);
+
+      child.parent = zeroParent;
+
+      expect(Number.isFinite(child.transform.position.x)).to.equal(true);
+      expect(Number.isFinite(child.transform.scale.x)).to.equal(true);
+      expect(Number.isFinite(child.transform.rotationQuaternion.w)).to.equal(true);
+      for (let i = 0; i < 16; i++) {
+        expect(Number.isFinite(child.transform.localMatrix.elements[i])).to.equal(true);
+      }
+
+      parentA.destroy();
+      zeroParent.destroy();
+    });
   });
 });
 
