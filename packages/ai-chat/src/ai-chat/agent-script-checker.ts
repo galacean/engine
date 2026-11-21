@@ -151,7 +151,10 @@ export class AgentJavaScriptChecker {
 /** Explain actual compiler evidence without weakening checks or inventing API names. */
 function repairContext(diagnostic: ts.Diagnostic, checker: ts.TypeChecker): Record<string, AgentValue> {
   if (!diagnostic.file || diagnostic.start === undefined) return {};
-  if (![2322, 2345, 2339, 2551, 18047, 18048, 18049, 2531, 2532, 2533].includes(diagnostic.code)) return {};
+  if (
+    ![2322, 2345, 2339, 2551, 2353, 2561, 2769, 18046, 18047, 18048, 18049, 2531, 2532, 2533].includes(diagnostic.code)
+  )
+    return {};
   let node: ts.Node = diagnostic.file;
   const position = diagnostic.start;
   const descend = (parent: ts.Node) => {
@@ -176,6 +179,51 @@ function repairContext(diagnostic: ts.Diagnostic, checker: ts.TypeChecker): Reco
       totalProperties: properties.length
     };
   }
+  if (diagnostic.code === 2353 || diagnostic.code === 2561) {
+    let literal: ts.Node | undefined = node;
+    while (literal && !ts.isObjectLiteralExpression(literal)) literal = literal.parent;
+    if (!literal || !ts.isObjectLiteralExpression(literal)) return {};
+    const expected = checker.getContextualType(literal);
+    if (!expected) return {};
+    const seen = new Set<string>();
+    const propertySymbols: ts.Symbol[] = [];
+    const members = expected.isUnion() ? expected.types : [expected];
+    for (const member of members) {
+      if (member.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Null)) continue;
+      for (const property of checker.getPropertiesOfType(member)) {
+        if (!seen.has(property.name)) {
+          seen.add(property.name);
+          propertySymbols.push(property);
+        }
+      }
+    }
+    return {
+      invalidProperty: node.getText().slice(0, 100),
+      allowedProperties: propertySymbols.slice(0, 16).map((property) => ({
+        name: property.name,
+        optional: Boolean(property.flags & ts.SymbolFlags.Optional),
+        type: typeText(checker.getTypeOfSymbolAtLocation(property, literal))
+      })),
+      totalProperties: propertySymbols.length
+    };
+  }
+  if (diagnostic.code === 2769) {
+    let call: ts.Node | undefined = node;
+    while (call && !ts.isCallExpression(call)) call = call.parent;
+    if (!call || !ts.isCallExpression(call)) return {};
+    const signatures = checker.getSignaturesOfType(checker.getTypeAtLocation(call.expression), ts.SignatureKind.Call);
+    return {
+      callee: call.expression.getText().slice(0, 200),
+      overloads: signatures
+        .slice(0, 4)
+        .map((signature) => checker.signatureToString(signature, call, ts.TypeFormatFlags.InTypeAlias).slice(0, 300)),
+      totalOverloads: signatures.length
+    };
+  }
+  if (diagnostic.code === 18046)
+    return {
+      hint: 'Value is typed as unknown. Narrow it first using typeof / Array.isArray / discriminant checks (e.g. kind === "structured" and typeof data === "object" && data !== null) before accessing properties.'
+    };
   if ([18047, 18048, 18049, 2531, 2532, 2533].includes(diagnostic.code))
     return {
       hint: "Check this value for null/undefined in the callback where it is used. Filtering another array does not necessarily narrow an object's nullable properties."
@@ -187,8 +235,21 @@ function repairContext(diagnostic: ts.Diagnostic, checker: ts.TypeChecker): Reco
   if (!expected) return {};
   const actual = checker.getTypeAtLocation(value);
   const literalType = checker.isArrayType(expected) ? (expected.getNumberIndexType() ?? expected) : expected;
-  const literalUnion =
-    literalType.isUnion() && literalType.types.every((type) => Boolean(type.flags & ts.TypeFlags.StringLiteral));
+  const isStringLiteralUnion = (type: ts.Type) =>
+    type.isUnion() && type.types.every((member) => Boolean(member.flags & ts.TypeFlags.StringLiteral));
+  const literalUnion = isStringLiteralUnion(literalType);
+  let widenedObjectLiteralProperty = false;
+  if (!literalUnion) {
+    for (const expectedProp of checker.getPropertiesOfType(expected)) {
+      const expectedPropType = checker.getNonNullableType(checker.getTypeOfSymbolAtLocation(expectedProp, value));
+      if (!isStringLiteralUnion(expectedPropType)) continue;
+      const actualProp = checker.getPropertyOfType(actual, expectedProp.name);
+      if (actualProp && checker.getTypeOfSymbolAtLocation(actualProp, value).flags & ts.TypeFlags.String) {
+        widenedObjectLiteralProperty = true;
+        break;
+      }
+    }
+  }
   return {
     actualType: typeText(actual),
     expectedType: typeText(expected),
@@ -196,6 +257,10 @@ function repairContext(diagnostic: ts.Diagnostic, checker: ts.TypeChecker): Reco
       ? {
           hint: "Use one of the declared string literals. If a loop variable was widened to string, annotate its source array with JSDoc using the declared literal union; do not cast to any."
         }
-      : {})
+      : widenedObjectLiteralProperty
+        ? {
+            hint: "String properties in plain JS variables widen to string and fail literal union checks. Reuse returned item.ref objects directly, inline the literal object in the API call, or annotate with JSDoc."
+          }
+        : {})
   };
 }

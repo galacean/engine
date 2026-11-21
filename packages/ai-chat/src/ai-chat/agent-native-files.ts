@@ -18,9 +18,17 @@ import type {
   AgentToolResult
 } from "./agent-types";
 
-const MAX_SINGLE_DEPENDENCY_BYTES = 10 * 1024;
-const MAX_INLINE_DEPENDENCY_BYTES = 14 * 1024;
+const MAX_SINGLE_DEPENDENCY_BYTES = 16 * 1024;
+const MAX_INLINE_DEPENDENCY_BYTES = 18 * 1024;
+const MAX_OMITTED_DEPENDENCY_LINES = 12;
+const MAX_DEPENDENCY_SCAN = 48;
 const declarationPath = (id: string) => `declare/editor/${id.replace(/^declare\//, "")}`;
+const RELATIVE_MODULE_FROM_RE =
+  /(?:^|[\n;])\s*(?:import|export)\b[^"';\n]*(?:\{[^}]*\}[^"';\n]*)?["'](\.\.?\/[^"'\n]+)["']/g;
+const DYNAMIC_RELATIVE_IMPORT_RE = /\bimport\(\s*["'](\.\.?\/[^"'\n]+)["']\s*\)/g;
+
+type OmittedDependencyReason = "size" | "budget" | "paginated";
+type OmittedDependency = { path: string; bytes: number; reason: OmittedDependencyReason };
 
 export function collectActiveReadPaths(messages: readonly AgentMessage[]): Set<string> {
   const paths = new Set<string>();
@@ -75,7 +83,7 @@ const descriptions: Record<AgentFileToolName, string> = {
   read: [
     "Read a virtual file. file_path is relative to the project root. Use host knowledge links directly, without a directory prefix.",
     "Text results include line numbers. offset defaults to 1 and uses 1-based numbering. limit defaults to 2000. Large results report the next line offset. Page boundaries keep rows intact. Long lines return a partial line and next={offset,column}; column is a 1-based UTF-16 position. Follow next unchanged to read the remainder without losing text.",
-    'Read an existing document before write/edit. Read it again if it changes. Reading a declaration under declare/ automatically appends unread small imported declarations in <dependency path="..."> blocks; do not re-read declarations already present in context. Read any remaining unincluded dependencies needed for the chosen call together.',
+    'Read an existing document before write/edit. Read it again if it changes. For skills/ and declare/ files, pass null for offset, column and limit to read the full document and activate automatic declaration dependency inlining. Reading a declaration under declare/ automatically appends unread small imported declarations in <dependency path="..."> blocks; do not re-read declarations already present in context. Read any remaining <omitted_dependencies> needed for the chosen call together.',
     "Files under .ai/snapshots/ return the saved image and capture metadata. Pass null for offset, column and limit. User photos and snapshot results already include their images in context. Use read when you need to examine that image again. This returns the same image, without a new capture or more detail.",
     "Other binary files return descriptors."
   ].join("\n"),
@@ -175,6 +183,7 @@ export class AgentNativeFiles {
         if (!("lines" in result)) return this.success(result, JSON.stringify(result));
         // Preserve the complete cursor in the model-facing text, including a
         // same-line continuation. An offset alone would repeat a long line.
+        const primaryRaw = result.lines.map((line) => line.text).join("\n");
         const body = result.lines.map((line) => `${line.number}: ${line.text}`).join("\n");
         const continuation = result.next
           ? `\n(Continue with read offset=${result.next.offset}${result.next.column === undefined ? "" : ` column=${result.next.column}`}.)`
@@ -183,13 +192,25 @@ export class AgentNativeFiles {
         if (
           (input.offset ?? 1) === 1 &&
           (input.column ?? 1) === 1 &&
-          !result.next &&
           result.path.startsWith("declare/") &&
           result.path.endsWith(".d.ts")
         ) {
-          const { blocks, paths } = this.collectInlineDependencies(files, result.path, primary);
-          if (paths.length) {
-            return this.success({ ...result, inlinedDependencies: paths }, `${primary}${blocks.join("")}`);
+          const { blocks, paths, omitted } = this.collectInlineDependencies(files, result.path, primary, {
+            paginated: Boolean(result.next),
+            rootSourceFallback: primaryRaw
+          });
+          if (paths.length || omitted.length) {
+            let content = `${primary}${blocks.join("")}`;
+            const { block: omittedBlock, paths: emittedOmitted } = formatOmittedDependencies(omitted, content);
+            if (omittedBlock) content += omittedBlock;
+            return this.success(
+              {
+                ...result,
+                ...(paths.length ? { inlinedDependencies: paths } : {}),
+                ...(emittedOmitted.length ? { omittedDependencies: emittedOmitted } : {})
+              },
+              content
+            );
           }
         }
         return this.success(result, primary);
@@ -367,10 +388,11 @@ export class AgentNativeFiles {
   private collectInlineDependencies(
     files: VirtualProjectFiles,
     rootPath: string,
-    primaryContent: string
-  ): { blocks: string[]; paths: string[] } {
+    primaryContent: string,
+    options: { paginated?: boolean; rootSourceFallback?: string } = {}
+  ): { blocks: string[]; paths: string[]; omitted: OmittedDependency[] } {
+    const paginated = Boolean(options.paginated);
     const modules = this.definition().scriptApi.modules;
-    if (!modules.length) return { blocks: [], paths: [] };
     const byId = new Map<string, AgentApiDeclarationModule>();
     const byPath = new Map<string, AgentApiDeclarationModule>();
     const pathById = new Map<string, string>();
@@ -383,60 +405,182 @@ export class AgentNativeFiles {
       pathById.set(module.id, resolvedPath);
     }
     const rootModule = byPath.get(rootPath);
-    if (!rootModule?.imports.length) return { blocks: [], paths: [] };
     const claimed = this.claimedDeclarations?.() ?? this.#defaultClaimed;
-    claimed.add(rootPath);
     const encoder = new TextEncoder();
     let totalResponseBytes = encoder.encode(primaryContent).byteLength;
     let inlineBytes = 0;
-    const visitedIds = new Set<string>([rootModule.id, ...rootModule.imports]);
-    const queue = [...rootModule.imports];
     const blocks: string[] = [];
     const paths: string[] = [];
-    while (queue.length > 0) {
-      const depId = queue.shift()!;
-      const depModule = byId.get(depId);
-      const depPath = pathById.get(depId);
-      if (!depModule || !depPath) continue;
-      for (const childId of depModule.imports) {
-        if (!visitedIds.has(childId)) {
-          visitedIds.add(childId);
-          queue.push(childId);
-        }
+    const omitted: OmittedDependency[] = [];
+    const pushDependency = (depPath: string, depSource: string) => {
+      if (claimed.has(depPath)) return;
+      const rawBytes = encoder.encode(depSource).byteLength;
+      if (paginated) {
+        omitted.push({ path: depPath, bytes: rawBytes, reason: "paginated" });
+        return;
       }
-      if (claimed.has(depPath)) continue;
-      let depSource: string | undefined;
-      try {
-        const current = files.readContent(depPath);
-        if (typeof current === "string") depSource = current;
-      } catch {
-        /* Fall back to catalog module source. */
-      }
-      depSource ??= depModule.source;
-      const normalized = depSource.replace(/\r\n/g, "\n").replace(/\n$/, "");
-      const numbered = normalized
-        ? normalized
-            .split("\n")
-            .map((line, index) => `${index + 1}: ${line}`)
-            .join("\n")
-        : "";
-      const block = `\n<dependency path="${depPath}">\n${numbered}\n</dependency>`;
+      const block = formatDependencyBlock(depPath, depSource);
       const blockBytes = encoder.encode(block).byteLength;
+      if (blockBytes > MAX_SINGLE_DEPENDENCY_BYTES) {
+        omitted.push({ path: depPath, bytes: rawBytes, reason: "size" });
+        return;
+      }
       if (
-        blockBytes > MAX_SINGLE_DEPENDENCY_BYTES ||
         inlineBytes + blockBytes > MAX_INLINE_DEPENDENCY_BYTES ||
         totalResponseBytes + blockBytes > MAX_READ_RESULT_BYTES - 1024
       ) {
-        continue;
+        omitted.push({ path: depPath, bytes: rawBytes, reason: "budget" });
+        return;
       }
       claimed.add(depPath);
       inlineBytes += blockBytes;
       totalResponseBytes += blockBytes;
       blocks.push(block);
       paths.push(depPath);
+    };
+
+    if (rootModule) {
+      if (!rootModule.imports.length) return { blocks: [], paths: [], omitted: [] };
+      if (!paginated) claimed.add(rootPath);
+      const visitedIds = new Set<string>([rootModule.id, ...rootModule.imports]);
+      const queue = [...rootModule.imports];
+      while (queue.length > 0) {
+        const depId = queue.shift()!;
+        const depModule = byId.get(depId);
+        const depPath = pathById.get(depId);
+        if (!depModule || !depPath) continue;
+        if (visitedIds.size < MAX_DEPENDENCY_SCAN) {
+          for (const childId of depModule.imports) {
+            if (!visitedIds.has(childId)) {
+              visitedIds.add(childId);
+              queue.push(childId);
+            }
+          }
+        }
+        pushDependency(depPath, readDeclarationText(files, depPath) ?? depModule.source);
+      }
+      return { blocks, paths, omitted };
     }
-    return { blocks, paths };
+
+    const rootSource = readDeclarationText(files, rootPath) ?? options.rootSourceFallback;
+    if (!rootSource) return { blocks: [], paths: [], omitted: [] };
+    const initialImports = resolveRelativeDeclarationImports(files, rootPath, rootSource);
+    if (!initialImports.length) return { blocks: [], paths: [], omitted: [] };
+    if (!paginated) claimed.add(rootPath);
+    const visitedPaths = new Set<string>([rootPath, ...initialImports]);
+    const queue = [...initialImports];
+    while (queue.length > 0) {
+      const depPath = queue.shift()!;
+      const depSource = readDeclarationText(files, depPath);
+      if (depSource === undefined) continue;
+      if (visitedPaths.size < MAX_DEPENDENCY_SCAN) {
+        for (const childPath of resolveRelativeDeclarationImports(files, depPath, depSource)) {
+          if (!visitedPaths.has(childPath)) {
+            visitedPaths.add(childPath);
+            queue.push(childPath);
+          }
+        }
+      }
+      pushDependency(depPath, depSource);
+    }
+    return { blocks, paths, omitted };
   }
+}
+
+function readDeclarationText(files: VirtualProjectFiles, path: string): string | undefined {
+  try {
+    const content = files.readContent(path);
+    return typeof content === "string" ? content : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function formatDependencyBlock(depPath: string, depSource: string): string {
+  const normalized = depSource.replace(/\r\n/g, "\n").replace(/\n$/, "");
+  const numbered = normalized
+    ? normalized
+        .split("\n")
+        .map((line, index) => `${index + 1}: ${line}`)
+        .join("\n")
+    : "";
+  return `\n<dependency path="${depPath}">\n${numbered}\n</dependency>`;
+}
+
+function formatOmittedDependencies(
+  omitted: readonly OmittedDependency[],
+  currentContent: string
+): { block: string; paths: string[] } {
+  if (!omitted.length) return { block: "", paths: [] };
+  const encoder = new TextEncoder();
+  const maxBytes = MAX_READ_RESULT_BYTES - 1024;
+  const currentBytes = encoder.encode(currentContent).byteLength;
+  const displayed = omitted.slice(0, MAX_OMITTED_DEPENDENCY_LINES);
+  const items = displayed.map((item) => ({
+    path: item.path,
+    line: `- ${item.path} (${item.bytes}B, ${item.reason}; read if needed)`
+  }));
+  while (items.length > 0) {
+    const remaining = omitted.length - items.length;
+    const lines = items.map((item) => item.line);
+    if (remaining > 0) lines.push(`(+${remaining} more omitted dependencies)`);
+    const block = `\n<omitted_dependencies>\n${lines.join("\n")}\n</omitted_dependencies>`;
+    if (currentBytes + encoder.encode(block).byteLength <= maxBytes) {
+      return { block, paths: items.map((item) => item.path) };
+    }
+    if (remaining > 0) {
+      const compactBlock = `\n<omitted_dependencies>\n${items.map((item) => item.line).join("\n")}\n</omitted_dependencies>`;
+      if (currentBytes + encoder.encode(compactBlock).byteLength <= maxBytes) {
+        return { block: compactBlock, paths: items.map((item) => item.path) };
+      }
+    }
+    items.pop();
+  }
+  return { block: "", paths: [] };
+}
+
+function normalizePosixRelative(baseFile: string, specifier: string): string | undefined {
+  const parts = baseFile.split("/").slice(0, -1);
+  for (const segment of specifier.split("/")) {
+    if (!segment || segment === ".") continue;
+    if (segment === "..") {
+      if (!parts.length) return undefined;
+      parts.pop();
+    } else {
+      parts.push(segment);
+    }
+  }
+  return parts.join("/");
+}
+
+function resolveRelativeDeclarationImports(files: VirtualProjectFiles, fromPath: string, source: string): string[] {
+  const resolved: string[] = [];
+  const seen = new Set<string>();
+  const specifiers: string[] = [];
+  for (const match of source.matchAll(RELATIVE_MODULE_FROM_RE)) specifiers.push(match[1]);
+  for (const match of source.matchAll(DYNAMIC_RELATIVE_IMPORT_RE)) specifiers.push(match[1]);
+  for (const specifier of specifiers) {
+    const clean = specifier.split(/[?#]/, 1)[0];
+    const base = normalizePosixRelative(fromPath, clean);
+    if (!base) continue;
+    const stripped = base.replace(/\.(?:[cm]?ts|d\.[cm]?ts|[cm]?js)$/, "");
+    const candidates = [
+      ...(base.endsWith(".d.ts") ? [base] : []),
+      `${stripped}.d.ts`,
+      `${base}.d.ts`,
+      `${stripped}/index.d.ts`
+    ];
+    for (const candidate of candidates) {
+      if (files.kind(candidate) === "file") {
+        if (candidate !== fromPath && !seen.has(candidate)) {
+          seen.add(candidate);
+          resolved.push(candidate);
+        }
+        break;
+      }
+    }
+  }
+  return resolved;
 }
 function message(error: unknown) {
   return error instanceof Error ? error.message : String(error);

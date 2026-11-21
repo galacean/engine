@@ -88,3 +88,16 @@ for (const item of roots.entities) {
 运行时读取会把数组序列化成 `{length,items,truncated}` 摘要。检查 `errors.length === 0`，具体错误看 `errors.items`。
 
 不要尝试调用组件的方法。运行时查询不会调用 `errors()` 或 `metrics()`。也不要把当前可见的旧画面当成本次修改成功。
+
+## 常用外观配色编号
+
+| 参数 | 范围 | 常用色板说明 |
+| --- | --- | --- |
+| `wallColor` | `0..12`（默认 `0`） | `0 / 4 / 10 / 12` 暖砂浅陶砖；`1 / 5` 暖红褐/红砖（需要红砖外观时选 `1` 或 `5`）；`2 / 7` 深灰石砖；`3 / 6 / 8 / 9` 浅灰石砖；`11` 中灰石砖 |
+| `roof.color` | `0..12`（默认 `2`） | `0` 暖陶红瓦；`11` 深红褐瓦；`1 / 8` 棕褐瓦；`2 / 9 / 12` 蓝灰/石板灰瓦（默认）；`3 / 4 / 6` 绿灰瓦；`5 / 7 / 10` 灰褐瓦 |
+| `woodColor` | `0..10`（默认 `0`） | `0` 暖木棕（默认）；`1` 深棕；`3` 红木褐；`4` 浅木；`9` 偏暖红木 |
+
+## 完成判定与停止规则
+
+- **何时停止**：外层 `execute` 返回 `committed` 且无 `runtimeErrors`，随后读取 `BuildingManager.buildStatus` 显示 `pending === false`、`errors.length === 0`（且 `diagnostics` 无失败项），即证明建筑已生成并完成发布；直接向用户汇报位置与特征即可。
+- **不要无止境拆解验证**：不要逐个遍历子节点的 `BuildingPartComponent` 反查渲染网格，也不要把 `tools.runtime.*` 返回的数字 `componentId`/`entityId` 传给 `editor.component.*`/`editor.entity.*`。

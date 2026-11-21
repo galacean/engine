@@ -13,7 +13,9 @@ description: 查询世界中的动物、生成新动物，或控制动物的行�
 
 ## 种群设置
 
-种群设置属于独立的 `world.parameters` animals 组件。修改前，先通过 `world.parameters` 查询当前 schema，只使用当前字段。
+<!-- COMPONENT_KNOWLEDGE: provided by registered systems at load time. -->
+
+种群设置和 `activationDistance`（激活距离）属于独立的 `world.parameters` `animals` 组件，修改入口、字段查询与事务写法见[世界参数](skills/world-objects/parameters/SKILL.md)。修改前先通过 `tools.world.parameters.describe` 与 `query` 确认当前字段，只使用当前声明的字段。
 
 - 距离单位是米。
 - 出生使用整张已发布的地图、噪声密度和实际的水陆支撑。移动使用全图的有效栖息地，没有以出生点为中心的半径限制。

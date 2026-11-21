@@ -310,3 +310,223 @@ it("retains long outputs across tasks but expires them on conversation reset", a
   await loop.run("read expired output",{});
   expect(request.mock.lastCall![0].messages.at(-2)!.content).toContain("临时文件已过期");
 });
+
+it("emits repairContext for TS2353/TS2561, TS2769, TS18046 and widened literal object properties", () => {
+  const checker = new AgentJavaScriptChecker(agentTypecheckLibraries);
+  const modules = [
+    {
+      id: "tools/query.d.ts",
+      imports: [],
+      source: [
+        "declare namespace tools {",
+        "  export function find(input: { filters?: string[]; search?: string }): void;",
+        "}",
+        "declare namespace editor {",
+        "  export function query(input: { scene: string; type?: string }): string[];",
+        "  export function query(input: { scene: string; id: string }): string[];",
+        "  export function paint(ref: { kind: 'tree' | 'rock'; id: string }): void;",
+        "  export function inspect(): { kind: string; data: unknown };",
+        "}"
+      ].join("\n")
+    }
+  ];
+
+  const badProp = checker.check('tools.find({ filter: ["tree"] });', modules);
+  expect(badProp?.details).toMatchObject({
+    diagnostics: [
+      expect.objectContaining({
+        code: 2561,
+        allowedProperties: expect.arrayContaining([
+          expect.objectContaining({ name: "filters" }),
+          expect.objectContaining({ name: "search" })
+        ])
+      })
+    ]
+  });
+
+  const extraProp = checker.check('tools.find({ fooBar: 1 });', modules);
+  expect(extraProp?.details).toMatchObject({
+    diagnostics: [
+      expect.objectContaining({
+        code: 2353,
+        allowedProperties: expect.arrayContaining([
+          expect.objectContaining({ name: "filters" }),
+          expect.objectContaining({ name: "search" })
+        ])
+      })
+    ]
+  });
+
+  const badOverload = checker.check('editor.query({ wrong: true });', modules);
+  expect(badOverload?.details).toMatchObject({
+    diagnostics: [
+      expect.objectContaining({
+        code: 2769,
+        callee: "editor.query",
+        overloads: expect.arrayContaining([expect.stringContaining("scene: string")])
+      })
+    ]
+  });
+
+  const unknownVal = checker.check('const item = editor.inspect(); return item.data.color;', modules);
+  expect(unknownVal?.details).toMatchObject({
+    diagnostics: [
+      expect.objectContaining({
+        code: 18046,
+        hint: expect.stringContaining("unknown")
+      })
+    ]
+  });
+
+  const widenedRef = checker.check('const r = { kind: "tree", id: "1" }; editor.paint(r);', modules);
+  expect(widenedRef?.details).toMatchObject({
+    diagnostics: [
+      expect.objectContaining({
+        code: 2345,
+        hint: expect.stringContaining("widen")
+      })
+    ]
+  });
+  checker.dispose();
+});
+
+it("injects post-commit loop_guidance after 6 consecutive read-only rounds while preserving tool reply adjacency", async () => {
+  request.mockReset();
+  request.mockResolvedValueOnce({
+    content: "",
+    finishReason: "tool_calls",
+    toolCalls: [fileCall("write", { file_path: "Notes/build.txt", content: "ok" }, "w1")]
+  });
+  for (let i = 0; i < 6; i++) {
+    request.mockResolvedValueOnce({
+      content: "",
+      finishReason: "tool_calls",
+      toolCalls: [fileCall("read", { file_path: "skills/fixture/guide.md" }, `r${i}`)]
+    });
+  }
+  request.mockResolvedValueOnce(final);
+
+  let stored = "";
+  const beginEdit = () => {
+    let draft = stored;
+    let changed = false;
+    return {
+      tools: [],
+      hasChanges: () => changed,
+      documents: {
+        read: async (path: string) => (path === "Notes/build.txt" ? draft || undefined : undefined),
+        write: async (path: string, content: string) => {
+          if (path === "Notes/build.txt") {
+            draft = content;
+            changed = true;
+          }
+        },
+        delete: async () => {}
+      },
+      prepare() {},
+      commit() {
+        stored = draft;
+        return { transactionId: "tx1" };
+      },
+      discard() {}
+    };
+  };
+  const loop = createTestAgentLoop({ definition: { ...definition, beginEdit }, tools: [] });
+  await loop.run("build and check", {});
+
+  const finalCallMessages = request.mock.lastCall![0].messages;
+  const loopGuidanceIndex = finalCallMessages.findIndex(
+    (m) => m.role === "user" && typeof m.content === "string" && m.content.includes('type="loop_guidance"')
+  );
+  expect(loopGuidanceIndex).toBeGreaterThan(0);
+  // Tool reply for r5 must stay immediately before loop_guidance user injection (adjacent to assistant tool call).
+  expect(finalCallMessages[loopGuidanceIndex - 1]).toMatchObject({ role: "tool", toolCallId: "r5" });
+});
+
+it("does not pre-claim paginated declaration reads in parallel batches and resets postCommitReadOnlyRounds on user supplements", async () => {
+  const sourceLines = Array.from({ length: 240 }, (_, i) => `export type L${i + 1} = ${i + 1};`).join("\n");
+  const modules = [
+    { id: "declare/native/source.d.ts", source: sourceLines, imports: [] },
+    { id: "declare/native/api.d.ts", source: 'import "./source";\nexport interface Api {}', imports: ["declare/native/source.d.ts"] }
+  ];
+  request.mockReset();
+  request
+    .mockResolvedValueOnce({
+      content: "",
+      finishReason: "tool_calls",
+      toolCalls: [
+        fileCall("read", { file_path: "declare/editor/native/api.d.ts", offset: null, column: null, limit: null }, "a1"),
+        fileCall("read", { file_path: "declare/editor/native/source.d.ts", offset: 1, column: 1, limit: 200 }, "s1")
+      ]
+    })
+    .mockResolvedValueOnce(final);
+  const declLoop = createTestAgentLoop({
+    definition: { scriptApi: { hostNotes: "# Host", entries: [], modules, documents: [] }, toolNames: [] },
+    tools: []
+  });
+  await declLoop.run("check api", {});
+  const declReplies = request.mock.calls[1][0].messages
+    .filter((m) => m.role === "tool")
+    .map((m) => String(m.content));
+  const apiReply = declReplies.find((m) => m.includes("<path>declare/editor/native/api.d.ts</path>")) ?? "";
+  expect(apiReply).toContain('<dependency path="declare/editor/native/source.d.ts">');
+  expect(apiReply).toContain("L240");
+
+  // Verify user supplement via takeInputs resets postCommitReadOnlyRounds
+  request.mockReset();
+  request.mockResolvedValueOnce({
+    content: "",
+    finishReason: "tool_calls",
+    toolCalls: [fileCall("write", { file_path: "Notes/build.txt", content: "ok" }, "w1")]
+  });
+  for (let i = 0; i < 6; i++) {
+    request.mockResolvedValueOnce({
+      content: "",
+      finishReason: "tool_calls",
+      toolCalls: [fileCall("read", { file_path: "skills/fixture/guide.md" }, `r${i}`)]
+    });
+  }
+  request.mockResolvedValueOnce(final);
+  let stored = "";
+  let step = 0;
+  const beginEdit = () => {
+    let draft = stored;
+    let changed = false;
+    return {
+      tools: [],
+      hasChanges: () => changed,
+      documents: {
+        read: async (path: string) => (path === "Notes/build.txt" ? draft || undefined : undefined),
+        write: async (path: string, content: string) => {
+          if (path === "Notes/build.txt") {
+            draft = content;
+            changed = true;
+          }
+        },
+        delete: async () => {}
+      },
+      prepare() {},
+      commit() {
+        stored = draft;
+        return { transactionId: "tx1" };
+      },
+      discard() {}
+    };
+  };
+  const loop = createTestAgentLoop({ definition: { ...definition, beginEdit }, tools: [] });
+  await loop.run("build and check", {}, [], {
+    takeInputs: async () => {
+      step += 1;
+      if (step === 7) {
+        return [{ id: "sup-1", text: "Also inspect another guide", source: "user", createdAt: new Date().toISOString() }];
+      }
+      return [];
+    },
+    hasPendingInputs: () => false,
+    saveContinuation: () => {}
+  });
+  const finalMessages = request.mock.lastCall![0].messages;
+  expect(
+    finalMessages.some((m) => m.role === "user" && typeof m.content === "string" && m.content.includes('type="loop_guidance"'))
+  ).toBe(false);
+});

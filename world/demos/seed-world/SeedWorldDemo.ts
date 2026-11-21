@@ -51,7 +51,7 @@ import {
 } from "@galacean/engine-world-planning/spatial/PlanningSubjectView";
 import { applyPlanningWeather } from "@galacean/engine-world-planning/spatial/PlanningWeather";
 import { readPlantMaterialParameters } from "@galacean/engine-world-planning/spatial/PlantMaterialParameters";
-import { createSeedWorldKnowledge } from "./agent-adapter/SeedWorldKnowledge";
+import { createSeedWorldWaterAgentKnowledge } from "./agent-adapter/SeedWorldKnowledge";
 import { WATER_QUERY_CONTRACTS } from "@galacean/engine-world-planning/spatial/runtime/WaterQueryContract";
 import { createNativeWaterAgentPackage } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterAgent";
 import type { mountNativeWaterPanel } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterPanel";
@@ -228,9 +228,7 @@ import {
 import { seedWorldBootTrace } from "./src/SeedWorldBootTrace.ts";
 
 function waterAgentKnowledge() {
-  const knowledge = createSeedWorldKnowledge(WATER_QUERY_CONTRACTS.map(item => item.name));
-  // The base World catalog already owns the shared tools namespace declaration.
-  return { ...knowledge, modules: knowledge.modules.filter(module => module.id !== "declare/world/common/AgentTools.d.ts") };
+  return createSeedWorldWaterAgentKnowledge(WATER_QUERY_CONTRACTS.map(item => item.name), { includeDigRiver: true });
 }
 
 /** Original Seed scene/HUD/gameplay host. The spatial planner supplies data, never its preview camera. */

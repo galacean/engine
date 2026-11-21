@@ -1,3 +1,4 @@
+import { MAX_READ_PAGE_BYTES } from "./agent-file-read";
 import { afterImageReclamation, ImageMemoryLimitError } from "./image-resources";
 import { isSnapshotPath } from "./agent-snapshots";
 import { nativeFileSchemas } from "./agent-native-files";
@@ -344,6 +345,8 @@ export class AgentLoop {
     let taskBudgetExceeded = false;
     let previousSuccessfulScriptSignature: string | undefined;
     let consecutiveNoProgressScripts = 0;
+    let hasCommittedMutation = false;
+    let postCommitReadOnlyRounds = 0;
     this.#activeTaskId = taskId;
     this.#controller = controller;
     this.#emit({
@@ -398,8 +401,13 @@ export class AgentLoop {
           appendTranscript({ role: "user", content: formatUserSupplementMessage(addition) });
           this.#emit({ type: "input_consumed", taskId, input: structuredClone(addition) });
         }
+        if (additions.length > 0) {
+          hasCommittedMutation = false;
+          postCommitReadOnlyRounds = 0;
+        }
         throwIfAborted(controller.signal);
         if (this.#refreshConfiguration()) {
+          postCommitReadOnlyRounds = 0;
           modelTools = buildAgentToolDefinitions(this.#definition);
           appendTranscript({
             role: "user",
@@ -478,6 +486,8 @@ export class AgentLoop {
         let batchScriptFailure: string | undefined;
         let batchToolFailure: string | undefined;
         let batchScriptSucceeded = false;
+        let batchCommittedMutation = false;
+        let batchHadWriteAttempt = false;
         const executeCall = async (
           call: (typeof calls)[number],
           callIndex: number
@@ -571,6 +581,8 @@ export class AgentLoop {
               throw new AgentTaskToolLimitError(this.#maxToolCallsPerTask);
             taskToolCalls++;
             const { name, input } = decisionResult.decision;
+            const isFileMutation = name === "write" || name === "edit" || name === "delete";
+            if (isFileMutation) batchHadWriteAttempt = true;
             const outcome = await this.#observeToolCall(
               { taskId, step: stepNumber, call: 1, toolCallId: decisionResult.toolCallId, tool: name },
               nativeFileTraceInput(input),
@@ -581,6 +593,9 @@ export class AgentLoop {
             const result = fileToolStepResult(outcome);
             stageResults.push(result);
             step.scriptResult = structuredClone(result);
+            if (isFileMutation && outcome.result.ok && outcome.receipt?.status === "committed") {
+              batchCommittedMutation = true;
+            }
             if (outcome.receipt?.status === "publication_failed")
               throw new Error("File publication outcome is uncertain; inspect the receipt before retrying");
             throwIfAborted(controller.signal);
@@ -761,12 +776,14 @@ export class AgentLoop {
             };
           } else {
             this.#emit({ type: "script_started", taskId, step: stepNumber, code: script.code });
+            let scriptInvokedWrite = false;
             const bindTools = (tools: readonly AgentTool[], registry: ToolRegistry) =>
               tools.map((tool) => ({
                 name: tool.name,
                 effect: tool.effect,
                 describeCommand: tool.describeCommand,
                 invoke: async (rawInput: AgentValue, signal: AbortSignal, call?: number) => {
+                  if (tool.effect !== "read") scriptInvokedWrite = true;
                   if (taskToolCalls >= this.#maxToolCallsPerTask) {
                     taskBudgetExceeded = true;
                     return {
@@ -829,6 +846,17 @@ export class AgentLoop {
                   }
                 : undefined
             );
+            if (scriptInvokedWrite || !scriptResult.ok) batchHadWriteAttempt = true;
+            if (
+              scriptResult.ok &&
+              ((scriptResult.receipt?.status === "committed" && !scriptResult.receipt.runtimeErrors?.length) ||
+                Boolean(
+                  scriptResult.receipt?.commands?.some((command) => command.status === "settled" && command.ok === true)
+                ))
+            ) {
+              batchCommittedMutation = true;
+              batchHadWriteAttempt = true;
+            }
           }
 
           const progressSignature = scriptResult.ok
@@ -885,16 +913,45 @@ export class AgentLoop {
         };
         const decisionResultOriginal = decisionResult;
         batchClaimedDeclarations = collectActiveReadPaths(transcript.active);
+        const batchProjectFiles = calls.some(
+          (call) =>
+            call.decision.type === "file" &&
+            call.decision.name === "read" &&
+            typeof call.decision.input.file_path === "string" &&
+            call.decision.input.file_path.startsWith("declare/") &&
+            call.decision.input.file_path.endsWith(".d.ts")
+        )
+          ? makeProjectFiles()
+          : undefined;
+        const encoder = batchProjectFiles ? new TextEncoder() : undefined;
         for (const call of calls) {
           if (
             call.decision.type === "file" &&
             call.decision.name === "read" &&
             typeof call.decision.input.file_path === "string" &&
             (call.decision.input.offset ?? 1) === 1 &&
-            (call.decision.input.column ?? 1) === 1 &&
-            call.decision.input.limit == null
+            (call.decision.input.column ?? 1) === 1
           ) {
-            batchClaimedDeclarations.add(call.decision.input.file_path);
+            const path = call.decision.input.file_path;
+            const limit = typeof call.decision.input.limit === "number" ? call.decision.input.limit : 2000;
+            if (batchProjectFiles && encoder && path.startsWith("declare/") && path.endsWith(".d.ts")) {
+              try {
+                const text = batchProjectFiles.readContent(path);
+                if (typeof text === "string") {
+                  const lines = text.split("\n");
+                  const estimatedWindowBytes = encoder.encode(text).byteLength + lines.length * 28;
+                  if (lines.length <= limit && estimatedWindowBytes <= MAX_READ_PAGE_BYTES) {
+                    batchClaimedDeclarations.add(path);
+                  }
+                  continue;
+                }
+              } catch {
+                /* Fall through to conservative limit check for stream-only providers. */
+              }
+            }
+            if (call.decision.input.limit == null) {
+              batchClaimedDeclarations.add(path);
+            }
           }
         }
         const batch = await runToolBatch(
@@ -929,6 +986,25 @@ export class AgentLoop {
         );
         transcript.offloadImages();
         if (batch.error) throw batch.error;
+        if (batchCommittedMutation) {
+          hasCommittedMutation = true;
+          postCommitReadOnlyRounds = 0;
+        } else if (
+          hasCommittedMutation &&
+          !batchHadWriteAttempt &&
+          calls.every((call) => call.decision.type !== "final")
+        ) {
+          postCommitReadOnlyRounds += 1;
+          if (postCommitReadOnlyRounds > 0 && postCommitReadOnlyRounds % 6 === 0) {
+            appendTranscript({
+              role: "user",
+              content: formatSystemInjection(
+                "loop_guidance",
+                "本任务此前已有已提交（committed）的修改，此后已连续多轮仅执行只读读取/查询。请核对用户目标与已有提交及验证回执：若目标已满足且无明确未解决错误，请立即停止排查并向用户汇报结果，不要重复读取已读文件或拆解底层组件细节。"
+              )
+            });
+          }
+        }
         // All calls in this batch came from one model response. The model has not
         // seen their results yet, so they represent at most one repair attempt.
         if (batchScriptFailure !== undefined) consecutiveScriptFailures += 1;

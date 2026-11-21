@@ -14,8 +14,18 @@
 
 位置的写法：
 
-- `u` 是 [0,1) 的周向参数，不是米。
+- `u` 是 `[0, 1)` 的周向参数，不是米。
 - `bottom`、`width`、`height` 的单位是米。
+
+### 周向参数 `u` 与墙面朝向对照
+
+- **矩形轮廓**（`rectangle: { center, size: [W, D], rotation: 0 }`，周长 `P = 2 * (W + D)`）：
+  - **Face 0（`-X` 侧，长 `D`）**：`u ∈ [0, D/P]`，中点 `0.5 * D / P`
+  - **Face 1（`+Z` 侧，长 `W`）**：`u ∈ [D/P, (D+W)/P]`，中点 `(D + 0.5 * W) / P`（默认主门面；当玩家面朝 `-Z` 且房屋在玩家前方时，`+Z` 墙面正朝向玩家）
+  - **Face 2（`+X` 侧，长 `D`）**：`u ∈ [(D+W)/P, (2D+W)/P]`，中点 `(1.5 * D + W) / P`
+  - **Face 3（`-Z` 侧，长 `W`）**：`u ∈ [(2D+W)/P, 1)`，中点 `(2 * D + 1.5 * W) / P`
+- **圆形轮廓**（`circle` with `phase: 0`）：`u = 0` 位于 `+X`，从 `+Y` 俯视随 `u` 增大逆时针绕行（`0.25 → -Z`，`0.5 → -X`，`0.75 → +Z`）。
+- 若要整体旋转房屋正门朝向，修改 `editor.entity.create` 的 `rotation: [0, yawDeg, 0]` 或 `rectangle.rotation`。
 
 可用的类型：`window-cottage`、`door-cottage`、`wall-lantern`、`window-gothic`、`door-gothic`、`window-arrow-slit`、转角窗 `window-cottage-corner`、半老虎窗 `dormer-cottage-half`、`dormer-gothic-half`、`dormer-arrow-slit-half`。`kind: "opening"` 是拱，`bottom` 必须为 0。
 

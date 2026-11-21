@@ -287,3 +287,133 @@ it("auto-inlines transitive small declaration dependencies once across parallel 
   expect(readAfterCompaction.content).toContain('<dependency path="declare/editor/world/common/Target.d.ts">');
   expect(readAfterCompaction.content).toContain('<dependency path="declare/editor/world/common/Ref.d.ts">');
 });
+
+it("auto-inlines relative imports for declare/engine declarations and deduplicates parallel reads", async () => {
+  const runtimeProvider = {
+    paths: () => [
+      "declare/engine/pkg/types/Leaf.d.ts",
+      "declare/engine/pkg/types/Mid.d.ts",
+      "declare/engine/pkg/types/EntryA.d.ts",
+      "declare/engine/pkg/types/EntryB.d.ts",
+      "declare/engine/pkg/types/physics/index.d.ts"
+    ],
+    read: (path: string) =>
+      ({
+        "declare/engine/pkg/types/Leaf.d.ts": "export interface Leaf { value: number; }\n",
+        "declare/engine/pkg/types/Mid.d.ts": 'import type { Leaf } from "./Leaf";\nexport interface Mid { leaf: Leaf; }\n',
+        "declare/engine/pkg/types/physics/index.d.ts": "export interface ColliderShape {}\n",
+        "declare/engine/pkg/types/EntryA.d.ts":
+          'import { Mid } from "./Mid";\nimport { ColliderShape } from "./physics";\nexport type Maker = typeof import("./Leaf");\nexport interface EntryA { mid: Mid; shape: ColliderShape; }\n',
+        "declare/engine/pkg/types/EntryB.d.ts": 'export * from "./Mid";\nexport interface EntryB { id: string; }\n'
+      })[path]
+  };
+  const projectFiles = createAgentProjectFiles({ entries: [], modules: [] }, [runtimeProvider]);
+  const claimed = new Set<string>();
+  const api = new AgentNativeFiles(
+    () => projectFiles,
+    () => ({ scriptApi: { catalog: "API", entries: [], modules: [] }, toolNames: [] }),
+    new Map(),
+    () => "unused",
+    60_000,
+    () => claimed
+  );
+  const signal = new AbortController().signal;
+  const [readA, readB] = await Promise.all([
+    api.execute("read", { file_path: "declare/engine/pkg/types/EntryA.d.ts" }, "ea", signal),
+    api.execute("read", { file_path: "declare/engine/pkg/types/EntryB.d.ts" }, "eb", signal)
+  ]);
+  const combined = `${readA.content}\n${readB.content}`;
+  expect(combined.match(/<dependency path="declare\/engine\/pkg\/types\/Mid\.d\.ts">/g)).toHaveLength(1);
+  expect(combined.match(/<dependency path="declare\/engine\/pkg\/types\/Leaf\.d\.ts">/g)).toHaveLength(1);
+  expect(combined.match(/<dependency path="declare\/engine\/pkg\/types\/physics\/index\.d\.ts">/g)).toHaveLength(1);
+});
+
+it("inlines 13KB dependencies under the 16KB cap and reports omitted dependencies for oversized or paginated declarations", async () => {
+  const mediumSource = Array.from({ length: 260 }, (_, i) => `export type M${i} = ${i}; // padding line for 13kb`).join("\n");
+  expect(new TextEncoder().encode(mediumSource).byteLength).toBeGreaterThan(12 * 1024);
+  expect(new TextEncoder().encode(mediumSource).byteLength).toBeLessThan(14 * 1024);
+  const oversizedDep = Array.from({ length: 420 }, (_, i) => `export type Big${i} = ${i}; // padding line`).join("\n");
+  const paginatedRoot = Array.from({ length: 360 }, (_, i) =>
+    i === 0 ? 'import type { Medium } from "../native/medium";' : `export const k${i}: number;`
+  ).join("\n");
+  const modules = [
+    { id: "declare/native/medium.d.ts", source: mediumSource, imports: [] },
+    { id: "declare/native/oversized.d.ts", source: oversizedDep, imports: [] },
+    { id: "declare/native/api.d.ts", source: 'import "./medium";\nexport interface Api {}', imports: ["declare/native/medium.d.ts"] },
+    { id: "declare/world/tools/bigDepUser.d.ts", source: 'import "../../native/oversized";\nexport function u(): void;', imports: ["declare/native/oversized.d.ts"] },
+    { id: "declare/world/tools/paginatedTool.d.ts", source: paginatedRoot, imports: ["declare/native/medium.d.ts"] }
+  ];
+  const catalog = { entries: [], modules };
+  const projectFiles = createAgentProjectFiles(catalog);
+  const freshApi = () =>
+    new AgentNativeFiles(
+      () => projectFiles,
+      () => ({ scriptApi: catalog, toolNames: [] }),
+      new Map(),
+      () => "unused"
+    );
+  const signal = new AbortController().signal;
+
+  const apiRead = await freshApi().execute("read", { file_path: "declare/editor/native/api.d.ts" }, "n1", signal);
+  expect(apiRead.content).toContain('<dependency path="declare/editor/native/medium.d.ts">');
+  expect(apiRead.result).toMatchObject({ ok: true, value: { inlinedDependencies: ["declare/editor/native/medium.d.ts"] } });
+
+  const bigDepRead = await freshApi().execute("read", { file_path: "declare/editor/world/tools/bigDepUser.d.ts" }, "n2", signal);
+  expect(bigDepRead.content).toContain("<omitted_dependencies>");
+  expect(bigDepRead.content).toContain("declare/editor/native/oversized.d.ts");
+  expect(bigDepRead.content).toContain("size");
+
+  const paginatedRead = await freshApi().execute("read", { file_path: "declare/editor/world/tools/paginatedTool.d.ts" }, "n3", signal);
+  expect(paginatedRead.content).toContain("<omitted_dependencies>");
+  expect(paginatedRead.content).toContain("declare/editor/native/medium.d.ts");
+  expect(paginatedRead.content).toContain("paginated");
+});
+
+it("keeps structured omittedDependencies aligned with rendered lines when trimmed by byte budget", async () => {
+  const filler = (prefix: string, lines: number) =>
+    Array.from({ length: lines }, (_, i) => `export type ${prefix}_${i} = "${"x".repeat(48)}";`).join("\n");
+  const rootSource =
+    `// ${"p".repeat(300)}\n` +
+    'import "./bigInlined";\nimport "./midInlined";\n' +
+    Array.from({ length: 12 }, (_, i) => `import "./huge${i}";`).join("\n") +
+    "\n" +
+    filler("R", 159);
+  const modules = [
+    { id: "declare/native/bigInlined.d.ts", source: filler("INL", 190), imports: [] },
+    { id: "declare/native/midInlined.d.ts", source: filler("MID", 45), imports: [] },
+    ...Array.from({ length: 12 }, (_, i) => ({
+      id: `declare/native/huge${i}.d.ts`,
+      source: filler(`H${i}`, 250),
+      imports: []
+    })),
+    {
+      id: "declare/native/root.d.ts",
+      source: rootSource,
+      imports: [
+        "declare/native/bigInlined.d.ts",
+        "declare/native/midInlined.d.ts",
+        ...Array.from({ length: 12 }, (_, i) => `declare/native/huge${i}.d.ts`)
+      ]
+    }
+  ];
+  const catalog = { entries: [], modules };
+  const projectFiles = createAgentProjectFiles(catalog);
+  const api = new AgentNativeFiles(
+    () => projectFiles,
+    () => ({ scriptApi: catalog, toolNames: [] }),
+    new Map(),
+    () => "unused"
+  );
+  const outcome = await api.execute("read", { file_path: "declare/editor/native/root.d.ts" }, "n4", new AbortController().signal);
+  const omittedBlock = outcome.content.match(/<omitted_dependencies>([\s\S]*?)<\/omitted_dependencies>/)?.[1] ?? "";
+  const renderedPaths = omittedBlock
+    .trim()
+    .split("\n")
+    .filter((line) => line.startsWith("- "))
+    .map((line) => line.slice(2).split(" ", 1)[0]);
+  const structuredOmitted = (outcome.result as { ok: true; value: { omittedDependencies?: string[] } }).value.omittedDependencies ?? [];
+  expect(renderedPaths.length).toBeGreaterThan(0);
+  expect(renderedPaths.length).toBeLessThan(12);
+  expect(structuredOmitted).toEqual(renderedPaths);
+  expect(omittedBlock).toContain(`(+${12 - renderedPaths.length} more omitted dependencies)`);
+});

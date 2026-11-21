@@ -13,13 +13,13 @@ description: 生成或修改建筑，处理构件连接与开口、铺设 Unit �
 
 execute 不能导入游戏 Script 模块，也不能调用运行时方法。
 
-- **新建：** 用 [tools.building.generate](declare/editor/world/tools/building.generate.d.ts) 生成，把结果的 `content` 交给 `editor.asset.create` 保存为 Prefab，再用 `editor.entity.create` 实例化。普通小房子直接用[流程](references/planning.md)中的示例。需要门窗等构件时先按[墙](skills/building/references/wall.md)检查安装参数。
-- **修改已有建筑：** 通过 Editor API 查看和编辑原生 Source，保留目标实例的 frame 和引用。
-- **检查结果：** 提交后，用运行时查询读取场景 BuildingManager 的 `buildStatus`，方法见[流程](references/planning.md)。
+- **新建：** 用 [tools.building.generate](declare/editor/world/tools/building.generate.d.ts) 生成，把结果的 `content` 交给 `editor.asset.create` 保存为 Prefab，再用 `editor.entity.create` 实例化（签名见[原生编辑 API](declare/editor/native/api.d.ts)）。普通小房子直接用[流程](skills/building/references/planning.md)中的示例。需要门窗等构件时先按[墙](skills/building/references/wall.md)检查安装参数。
+- **修改已有建筑：** 通过[原生编辑 API](declare/editor/native/api.d.ts) 查看和编辑原生 Source，保留目标实例的 frame 和引用。
+- **检查结果：** 提交后，用运行时查询读取场景 BuildingManager 的 `buildStatus`，方法见[流程](skills/building/references/planning.md)。
 
 ## 在游戏 Script 中
 
-接口从 `@galacean/seed-world-systems` 导入，真实签名见[声明入口](declare/engine/node_modules/@galacean/seed-world-systems/index.d.ts)。Script 中的修改只在运行时生效，持久化编辑走 Scene/Prefab 事务。用法见[运行时用法](references/foundation.md)。
+接口从 `@galacean/seed-world-systems` 导入，真实签名见[声明入口](declare/engine/node_modules/@galacean/seed-world-systems/index.d.ts)。Script 中的修改只在运行时生效，持久化编辑走 Scene/Prefab 事务。用法见[运行时用法](skills/building/references/foundation.md)。
 
 ## 基本概念
 
