@@ -54,22 +54,23 @@ export class ShaderProgramMap {
     this._lastQueryMap[this._lastQueryKey] = value;
   }
 
-  destroy(): void {
-    this._recursiveForEach(0, this._cacheMap);
+  destroy(skipGLDelete: boolean = false): void {
+    this._recursiveForEach(0, this._cacheMap, skipGLDelete);
     this._cacheMap = Object.create(null);
+    this._lastQueryMap = null!;
     this._cacheHierarchyDepth = 1;
   }
 
-  private _recursiveForEach(hierarchy: number, cacheMap: Tree): void {
+  private _recursiveForEach(hierarchy: number, cacheMap: Tree, skipGLDelete: boolean): void {
     if (hierarchy === this._cacheHierarchyDepth - 1) {
       for (const k in cacheMap) {
-        (<ShaderProgram>cacheMap[k]).destroy();
+        (<ShaderProgram>cacheMap[k]).destroy(skipGLDelete);
       }
       return;
     }
     ++hierarchy;
     for (const k in cacheMap) {
-      this._recursiveForEach(hierarchy, <Tree>cacheMap[k]);
+      this._recursiveForEach(hierarchy, <Tree>cacheMap[k], skipGLDelete);
     }
   }
 

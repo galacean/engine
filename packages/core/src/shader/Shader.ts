@@ -208,7 +208,7 @@ export class Shader implements IReferable {
   /**
    * @internal
    */
-  static _clear(engine: Engine): void {
+  static _clear(engine: Engine, skipGLDelete: boolean = false): void {
     const shaderMap = Shader._shaderMap;
     for (const key in shaderMap) {
       for (const shader of shaderMap[key]) {
@@ -221,7 +221,7 @@ export class Shader implements IReferable {
             for (let k = passShaderProgramMaps.length - 1; k >= 0; k--) {
               const map = passShaderProgramMaps[k];
               if (map.engine !== engine) continue;
-              map.destroy();
+              map.destroy(skipGLDelete);
               passShaderProgramMaps.splice(k, 1);
             }
           }

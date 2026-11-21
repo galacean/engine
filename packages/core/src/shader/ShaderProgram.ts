@@ -177,10 +177,21 @@ export class ShaderProgram implements IPlatformShaderProgram {
 
   /**
    * Destroy this shader program.
+   * @param skipGLDelete - Whether to skip calling gl.deleteProgram (e.g. after WebGL context loss/restore).
    */
-  destroy(): void {
+  destroy(skipGLDelete: boolean = false): void {
+    const rhi = this._engine?._hardwareRenderer;
+    if (rhi?._currentBindShaderProgram === this) {
+      rhi._currentBindShaderProgram = null;
+    }
     const gl = this._gl;
-    this._glProgram && gl.deleteProgram(this._glProgram);
+    if (this._glProgram) {
+      if (!skipGLDelete && !gl.isContextLost() && gl.isProgram(this._glProgram)) {
+        gl.deleteProgram(this._glProgram);
+      }
+      this._glProgram = null;
+    }
+    this._isValid = false;
   }
 
   private _groupingSubOtherUniforms(uniforms: ShaderUniform[], isTexture: boolean): void {

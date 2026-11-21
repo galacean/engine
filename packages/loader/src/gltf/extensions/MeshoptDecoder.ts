@@ -63,6 +63,7 @@ export function getMeshoptDecoder() {
         for (let i = 0; i < workers.length; i++) {
           workers[i].object.terminate();
         }
+        workers.length = 0;
       }
     }));
 
