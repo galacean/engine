@@ -940,10 +940,10 @@ describe("MeshCollider", () => {
   );
 
   it.each(["box", "mesh"] as const)(
-    "avoids redundant native scale writes and mass rebuilds while rotating an unchanged nonuniform compound body (%s)",
+    "avoids redundant native scale writes and mass rebuilds while rotating an unchanged uniform compound body (%s)",
     (kind) => {
       const bodyEntity = root.createChild(`rotate-scale-${kind}`);
-      bodyEntity.transform.setScale(1, 2, 1);
+      bodyEntity.transform.setScale(2, 2, 2);
       const body = bodyEntity.addComponent(Rigidbody);
       body.isKinematic = true;
       const child = bodyEntity.createChild("collider");

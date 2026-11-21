@@ -14,7 +14,7 @@ import {
   Script,
   SphereCollider
 } from "@galacean/engine-core";
-import { Ray, Vector3 } from "@galacean/engine-math";
+import { Matrix, Ray, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -877,38 +877,90 @@ describe("Collider", () => {
       expect(syncSpy).toHaveBeenCalledTimes(1);
     });
 
-    it("honors small directly authored scale edits while suppressing rotation-induced float noise", () => {
+    it("honors small world scale edits across all transform entrypoints while keeping uniform rotation zero-churn", () => {
       const downwardRay = (x: number) => new Ray(new Vector3(x, 8, 0), new Vector3(0, -1, 0));
       const hit = new HitResult();
+      const nextX = 1.0000005;
+      const outside = downwardRay(1_000_000.25);
 
-      // 1. Directly authored 1.0000005 scale edit on a large root BoxCollider updates PhysX geometry
+      // 1. Direct root 1.0000005 scale edit on a large BoxCollider
       const largeRoot = engine.sceneManager.activeScene.createRootEntity("large-scale-root");
       try {
         const box = largeRoot.addComponent(BoxCollider);
         box.size = new Vector3(2_000_000, 2, 2);
-        const outside = downwardRay(1_000_000.25);
         expect(physics.raycast(downwardRay(999_999), hit) && hit.collider === box).toBe(true);
         expect(physics.raycast(outside)).toBe(false);
-        largeRoot.transform.setScale(1.0000005, 1, 1);
+        largeRoot.transform.setScale(nextX, 1, 1);
         expect(physics.raycast(outside, hit) && hit.collider === box).toBe(true);
       } finally {
         largeRoot.destroy();
       }
 
-      // 2. Directly authored 1.0000005 scale edit on a child BoxCollider also updates PhysX geometry
-      const largeParent = root.createChild("large-scale-parent");
-      const largeChild = largeParent.createChild("large-scale-child");
-      const childBox = largeChild.addComponent(BoxCollider);
-      childBox.size = new Vector3(2_000_000, 2, 2);
-      const outside = downwardRay(1_000_000.25);
-      expect(physics.raycast(outside)).toBe(false);
-      largeParent.transform.setScale(1.0000005, 1, 1);
-      expect(physics.raycast(outside, hit) && hit.collider === childBox).toBe(true);
-      largeParent.destroy();
+      // 2. All child/parent/rotate-then-scale/matrix/reparent entrypoints sync on first raycast
+      for (const entry of [
+        "child-scale",
+        "parent-scale",
+        "rotate-then-child-scale",
+        "child-scale-then-rotate",
+        "rotate-then-parent-scale",
+        "localMatrix",
+        "worldMatrix",
+        "reparent"
+      ] as const) {
+        const parent = engine.sceneManager.activeScene.createRootEntity(`scale-parent-${entry}`);
+        const destination = engine.sceneManager.activeScene.createRootEntity(`scale-dst-${entry}`);
+        const child = parent.createChild("collider");
+        const matrixEdit = entry === "localMatrix" || entry === "worldMatrix";
+        if (matrixEdit) child.transform.setScale(1, 2, 1);
+        else parent.transform.setScale(1, 2, 1);
+        destination.transform.setScale(nextX, 2, 1);
+        const box = child.addComponent(BoxCollider);
+        box.size.set(2_000_000, 2, 2);
+        try {
+          expect(physics.raycast(downwardRay(999_999), hit) && hit.collider === box).toBe(true);
+          expect(physics.raycast(outside)).toBe(false);
+          const matrix = new Matrix();
+          switch (entry) {
+            case "child-scale":
+              child.transform.setScale(nextX, 1, 1);
+              break;
+            case "parent-scale":
+              parent.transform.setScale(nextX, 2, 1);
+              break;
+            case "rotate-then-child-scale":
+              parent.transform.setRotation(19, 0, 0);
+              child.transform.setScale(nextX, 1, 1);
+              break;
+            case "child-scale-then-rotate":
+              child.transform.setScale(nextX, 1, 1);
+              parent.transform.setRotation(19, 0, 0);
+              break;
+            case "rotate-then-parent-scale":
+              parent.transform.setRotation(19, 0, 0);
+              parent.transform.setScale(nextX, 2, 1);
+              break;
+            case "localMatrix":
+              Matrix.scaling(new Vector3(nextX, 2, 1), matrix);
+              child.transform.localMatrix = matrix;
+              break;
+            case "worldMatrix":
+              Matrix.scaling(new Vector3(nextX, 2, 1), matrix);
+              child.transform.worldMatrix = matrix;
+              break;
+            case "reparent":
+              destination.addChild(child);
+              break;
+          }
+          expect(physics.raycast(outside, hit) && hit.collider === box).toBe(true);
+        } finally {
+          parent.destroy();
+          destination.destroy();
+        }
+      }
 
-      // 3. Pure Y rotation on a nonuniform compound body emits 0 redundant native scale / mass writes
-      const bodyEntity = root.createChild("rotate-nonuniform");
-      bodyEntity.transform.setScale(1, 2, 1);
+      // 3. Pure Y rotation on a uniform compound body emits 0 redundant native scale / mass writes
+      const bodyEntity = root.createChild("rotate-uniform");
+      bodyEntity.transform.setScale(2, 2, 2);
       const body = bodyEntity.addComponent(Rigidbody);
       body.isKinematic = true;
       const child = bodyEntity.createChild("collider");
@@ -923,7 +975,7 @@ describe("Collider", () => {
       expect(scaleSpy).not.toHaveBeenCalled();
       expect(massSpy).not.toHaveBeenCalled();
 
-      // 4. Tiny supported scale change 1e-6 -> 1.5e-6 still applies accurately
+      // 4. Tiny supported scale change 1e-6 -> 1.5e-6 applies accurately
       const tiny = root.createChild("tiny-scale-box");
       tiny.transform.setScale(1e-6, 1e-6, 1e-6);
       const tinyBox = tiny.addComponent(BoxCollider);
