@@ -208,11 +208,13 @@ export class ShaderProgram implements IPlatformShaderProgram {
     const conflictVersion = ShaderProperty._groupConflictVersion;
     if (this._groupConflictVersion !== conflictVersion) {
       this._groupConflictVersion = conflictVersion;
-      this._extractMultiGroupUniforms();
+      this._regroupUniformBlock(this.sceneUniformBlock, ShaderDataGroup.Scene);
+      this._regroupUniformBlock(this.cameraUniformBlock, ShaderDataGroup.Camera);
+      this._regroupUniformBlock(this.rendererUniformBlock, ShaderDataGroup.Renderer);
+      this._regroupUniformBlock(this.materialUniformBlock, ShaderDataGroup.Material);
+      this._regroupUniformBlock(this.renderElementUniformBlock, ShaderDataGroup.RenderElement);
     }
-    const { constUniforms, textureUniforms } = this.otherUniformBlock;
-    constUniforms.length > 0 && this._groupingSubOtherUniforms(constUniforms, false);
-    textureUniforms.length > 0 && this._groupingSubOtherUniforms(textureUniforms, true);
+    this._regroupUniformBlock(this.otherUniformBlock, ShaderDataGroup.None);
   }
 
   /**
@@ -238,39 +240,20 @@ export class ShaderProgram implements IPlatformShaderProgram {
     this._glProgram && gl.deleteProgram(this._glProgram);
   }
 
-  private _groupingSubOtherUniforms(uniforms: ShaderUniform[], isTexture: boolean): void {
+  private _regroupUniformBlock(block: ShaderUniformBlock, group: ShaderDataGroup): void {
+    const { constUniforms, textureUniforms } = block;
+    constUniforms.length > 0 && this._regroupUniforms(constUniforms, group, false);
+    textureUniforms.length > 0 && this._regroupUniforms(textureUniforms, group, true);
+  }
+
+  private _regroupUniforms(uniforms: ShaderUniform[], group: ShaderDataGroup, isTexture: boolean): void {
     const propertyIdMap = ShaderProperty._propertyIdMap;
     for (let i = uniforms.length - 1; i >= 0; i--) {
       const uniform = uniforms[i];
       const property = propertyIdMap[uniform.propertyId];
-      if (property._groups !== ShaderDataGroup.None) {
+      if (property._groups !== group) {
         uniforms.splice(i, 1);
         this._groupingUniform(uniform, property, isTexture);
-      }
-    }
-  }
-
-  private _extractMultiGroupUniforms(): void {
-    this._extractBlockMultiGroupUniforms(this.sceneUniformBlock);
-    this._extractBlockMultiGroupUniforms(this.cameraUniformBlock);
-    this._extractBlockMultiGroupUniforms(this.rendererUniformBlock);
-    this._extractBlockMultiGroupUniforms(this.materialUniformBlock);
-    this._extractBlockMultiGroupUniforms(this.renderElementUniformBlock);
-  }
-
-  private _extractBlockMultiGroupUniforms(block: ShaderUniformBlock): void {
-    const target = this.multiGroupUniformBlock;
-    this._extractSubMultiGroupUniforms(block.constUniforms, target.constUniforms);
-    this._extractSubMultiGroupUniforms(block.textureUniforms, target.textureUniforms);
-  }
-
-  private _extractSubMultiGroupUniforms(source: ShaderUniform[], target: ShaderUniform[]): void {
-    const propertyIdMap = ShaderProperty._propertyIdMap;
-    for (let i = source.length - 1; i >= 0; i--) {
-      const uniform = source[i];
-      if (propertyIdMap[uniform.propertyId]._isMultiGroup()) {
-        source.splice(i, 1);
-        target.push(uniform);
       }
     }
   }

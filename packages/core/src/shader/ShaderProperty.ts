@@ -59,14 +59,6 @@ export class ShaderProperty {
   /**
    * @internal
    */
-  _isMultiGroup(): boolean {
-    const groups = this._groups;
-    return (groups & (groups - 1)) !== 0;
-  }
-
-  /**
-   * @internal
-   */
   _addGroup(group: ShaderDataGroup): void {
     const groups = this._groups;
     if ((groups & group) === 0) {
