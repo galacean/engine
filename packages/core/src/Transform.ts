@@ -11,6 +11,7 @@ import type { ICloneHook } from "./clone/ICloneHook";
  */
 export class Transform extends Component implements ICloneHook<Transform> {
   private static _tempQuat0: Quaternion = new Quaternion();
+  private static _tempQuat1: Quaternion = new Quaternion();
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
   private static _tempVec32: Vector3 = new Vector3();
@@ -571,8 +572,12 @@ export class Transform extends Component implements ICloneHook<Transform> {
   /**
    * @internal
    */
-  _parentChange(): void {
-    this._isParentDirty = true;
+  _parentChange(oldParent?: Transform | null, keepWorldTransform: boolean = false): void {
+    if (keepWorldTransform) {
+      this._preserveWorldPose(oldParent ?? null);
+    } else {
+      this._isParentDirty = true;
+    }
     this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
   }
 
@@ -626,6 +631,78 @@ export class Transform extends Component implements ICloneHook<Transform> {
    */
   _onClone(target: Transform): void {
     target._copyLocalPoseFrom(this);
+  }
+
+  protected _preserveWorldPose(oldParent: Transform | null): void {
+    const oldWorldMat = Transform._tempMat41;
+    const oldWorldRot = Transform._tempQuat1;
+    const oldWorldPos = Transform._tempVec30;
+    const oldWorldRotScaMat = Transform._tempMat30;
+
+    if (oldParent) {
+      Matrix.multiply(oldParent.worldMatrix, this.localMatrix, oldWorldMat);
+      Quaternion.multiply(oldParent.worldRotationQuaternion, this.rotationQuaternion, oldWorldRot);
+    } else {
+      oldWorldMat.copyFrom(this.localMatrix);
+      oldWorldRot.copyFrom(this.rotationQuaternion);
+    }
+    oldWorldMat.getTranslation(oldWorldPos);
+    oldWorldRotScaMat.copyFromMatrix(oldWorldMat);
+
+    this._isParentDirty = true;
+    const newParent = this._getParentTransform();
+
+    const { _position: position, _rotationQuaternion: rotationQuaternion, _scale: scale } = this;
+    position._onValueChanged = rotationQuaternion._onValueChanged = scale._onValueChanged = null;
+
+    if (newParent) {
+      const invNewParentQuat = Transform._tempQuat0;
+      Quaternion.invert(newParent.worldRotationQuaternion, invNewParentQuat);
+      Quaternion.multiply(invNewParentQuat, oldWorldRot, rotationQuaternion);
+      rotationQuaternion.normalize();
+
+      const invNewParentMat = Transform._tempMat42;
+      if (Matrix.invert(newParent.worldMatrix, invNewParentMat) !== null) {
+        Vector3.transformCoordinate(oldWorldPos, invNewParentMat, position);
+
+        const invNewParentRotScaMat = Transform._tempMat31;
+        const localRotScaMat = Transform._tempMat32;
+        invNewParentRotScaMat.copyFromMatrix(invNewParentMat);
+        Matrix3x3.multiply(invNewParentRotScaMat, oldWorldRotScaMat, localRotScaMat);
+
+        const invLocalRot = Transform._tempQuat0;
+        const invLocalRotMat = Transform._tempMat30;
+        const scaleMat = Transform._tempMat31;
+        Quaternion.invert(rotationQuaternion, invLocalRot);
+        Matrix3x3.rotationQuaternion(invLocalRot, invLocalRotMat);
+        Matrix3x3.multiply(invLocalRotMat, localRotScaMat, scaleMat);
+
+        const e = scaleMat.elements;
+        scale.set(e[0], e[4], e[8]);
+      }
+    } else {
+      position.copyFrom(oldWorldPos);
+      rotationQuaternion.copyFrom(oldWorldRot);
+      rotationQuaternion.normalize();
+
+      const invLocalRot = Transform._tempQuat0;
+      const invLocalRotMat = Transform._tempMat31;
+      const scaleMat = Transform._tempMat32;
+      Quaternion.invert(rotationQuaternion, invLocalRot);
+      Matrix3x3.rotationQuaternion(invLocalRot, invLocalRotMat);
+      Matrix3x3.multiply(invLocalRotMat, oldWorldRotScaMat, scaleMat);
+
+      const e = scaleMat.elements;
+      scale.set(e[0], e[4], e[8]);
+    }
+
+    position._onValueChanged = this._onPositionChanged;
+    rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
+    scale._onValueChanged = this._onScaleChanged;
+
+    this._localUniformScaling = scale.x === scale.y && scale.y === scale.z;
+    this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler | TransformModifyFlags.LocalMatrix);
+    this._setDirtyFlagFalse(TransformModifyFlags.LocalQuat);
   }
 
   protected _onLocalMatrixChanging(): void {

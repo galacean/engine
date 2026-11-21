@@ -526,6 +526,42 @@ describe("UITransform", async () => {
       expect(clonedTransform.position.x).to.eq(originalTransform.position.x);
     });
   });
+
+  describe("reparent", () => {
+    it("preserves world pose on entity.parent while alignment still overrides position when enabled", () => {
+      const parentA = canvasEntity.createChild("ui-reparent-a");
+      const parentB = canvasEntity.createChild("ui-reparent-b");
+      (parentA.transform as UITransform).position.set(100, 50, 0);
+      (parentB.transform as UITransform).position.set(30, -20, 0);
+      (parentB.transform as UITransform).size.set(200, 100);
+
+      const child = parentA.createChild("ui-reparent-child");
+      const childT = child.transform as UITransform;
+      childT.position.set(10, 20, 0);
+      const expectedWorldX = childT.worldPosition.x;
+      const expectedWorldY = childT.worldPosition.y;
+
+      child.parent = parentB;
+      expect(childT.worldPosition.x).to.be.closeTo(expectedWorldX, 1e-4);
+      expect(childT.worldPosition.y).to.be.closeTo(expectedWorldY, 1e-4);
+      expect(childT.position.x).to.be.closeTo(80, 1e-4);
+      expect(childT.position.y).to.be.closeTo(90, 1e-4);
+
+      // With alignment enabled, reparenting lets alignment drive position relative to new parent rect
+      const alignedChild = parentA.createChild("ui-reparent-aligned");
+      const alignedT = alignedChild.transform as UITransform;
+      alignedT.size.set(40, 20);
+      alignedT.horizontalAlignment = HorizontalAlignmentMode.Left;
+      alignedT.alignLeft = 10;
+
+      alignedChild.parent = parentB;
+      // parentB rect.x = -100, alignedChild rect.x = -20 -> x = -100 - (-20) + 10 = -70
+      expect(alignedT.position.x).to.be.closeTo(-70, 1e-4);
+
+      parentA.destroy();
+      parentB.destroy();
+    });
+  });
 });
 
 enum UITransformModifyFlags {

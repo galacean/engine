@@ -192,7 +192,7 @@ export class Entity extends EngineObject {
   }
 
   set parent(value: Entity | null) {
-    this._setParent(value);
+    this._setParent(value, undefined, true);
   }
 
   /**
@@ -431,7 +431,7 @@ export class Entity extends EngineObject {
       ? new Entity(this.engine, name, transform.constructor as ComponentConstructor)
       : new Entity(this.engine, name);
     child.layer = this.layer;
-    child.parent = this;
+    this.addChild(child);
     return child;
   }
 
@@ -628,8 +628,8 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  _setParentChange() {
-    this._transform._parentChange();
+  _setParentChange(oldParent?: Transform | null, keepWorldTransform: boolean = false) {
+    this._transform._parentChange(oldParent, keepWorldTransform);
     this._dispatchModify(EntityModifyFlags.Parent, this);
   }
 
@@ -656,9 +656,10 @@ export class Entity extends EngineObject {
     this._dispatchModify(EntityModifyFlags.Child, this);
   }
 
-  private _setParent(parent: Entity | null, siblingIndex?: number): void {
+  private _setParent(parent: Entity | null, siblingIndex?: number, keepWorldTransform: boolean = false): void {
     const oldParent = this._parent;
     if (parent !== oldParent) {
+      const oldParentTransform = oldParent ? oldParent._transform : null;
       if (this._isRoot) {
         Entity._removeFromChildren(this._scene!._rootEntities, this);
         this._isRoot = false;
@@ -669,7 +670,9 @@ export class Entity extends EngineObject {
       if (parent) {
         this._isRoot = false;
         parent._addToChildrenList(siblingIndex, this);
-
+      }
+      this._transform._parentChange(oldParentTransform, keepWorldTransform);
+      if (parent) {
         const oldScene = this._scene;
         const parentScene = parent._scene;
 
@@ -710,7 +713,7 @@ export class Entity extends EngineObject {
           Entity._traverseSetOwnerScene(this, null);
         }
       }
-      this._setParentChange();
+      this._dispatchModify(EntityModifyFlags.Parent, this);
     } else {
       if (parent && siblingIndex !== undefined) {
         this.siblingIndex = siblingIndex;
