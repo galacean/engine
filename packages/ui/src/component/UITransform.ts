@@ -242,9 +242,7 @@ export class UITransform extends Transform {
    */
   override _parentChange(): void {
     this._isParentDirty = true;
-    this._updateWorldFlagWithParentRectChange(
-      TransformModifyFlags.WmWpWeWqWsWus | TransformModifyFlags.SubtreeWorldScale
-    );
+    this._updateWorldFlagWithParentRectChange(TransformModifyFlags.WmWpWeWqWsWus);
   }
 
   /**
@@ -426,7 +424,7 @@ export class UITransform extends Transform {
 
 /**
  * @internal
- * extends TransformModifyFlags (`0x200`–`0x8000`; core high internal flags start at `0x10000`).
+ * extends TransformModifyFlags
  */
 export enum UITransformModifyFlags {
   Size = 0x200,
