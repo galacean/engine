@@ -1,0 +1,14 @@
+packages/core/src/shader/state/BlendState.ts
+  h_bd4dd7d663e619 75-78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cd378c92ec29fb08740b213e4749b01a7386b640",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
