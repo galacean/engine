@@ -1699,7 +1699,7 @@ export async function createHeadlessSeedWorldFixture(options: {
     },
     children: (entityId?: number, offset?: number, limit?: number) => {
       const res = baseInspection.children(entityId, offset, limit);
-      for (const item of res.entities) {
+      for (const item of res.items) {
         if (item.entity && item.entity.name === "BuildingHost" && !item.entity.components.includes(SYNTHETIC_BUILDING_MANAGER_ID)) {
           item.entity.components.push(SYNTHETIC_BUILDING_MANAGER_ID);
         }
@@ -1710,9 +1710,8 @@ export async function createHeadlessSeedWorldFixture(options: {
       const res = baseInspection.queryComponents(entityId, type);
       const inspected = baseInspection.inspectEntity(entityId);
       if (inspected.entity?.name === "BuildingHost" && (!type || type === "BuildingManager")) {
-        res.components.push({
+        res.items.push({
           componentId: SYNTHETIC_BUILDING_MANAGER_ID,
-          id: SYNTHETIC_BUILDING_MANAGER_ID,
           entityId,
           type: "BuildingManager",
           enabled: true,
@@ -1737,7 +1736,6 @@ export async function createHeadlessSeedWorldFixture(options: {
           status: "found",
           component: {
             componentId: SYNTHETIC_BUILDING_MANAGER_ID,
-            id: SYNTHETIC_BUILDING_MANAGER_ID,
             entityId: scene.rootEntities.find((e) => e.name === "BuildingHost")?.instanceId ?? 0,
             type: "BuildingManager",
             enabled: true,
