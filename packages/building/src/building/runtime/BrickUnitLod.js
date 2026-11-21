@@ -54,7 +54,27 @@ export function brickLodBounds(bytes) {
   return { bounds, cullRadius, force };
 }
 
-export function brickFeedbackLodBounds(source) {
+function sampleTerrainHeight(grid, wx, wz) {
+  const u = (wx - grid.origin[0]) / grid.size,
+    v = (wz - grid.origin[1]) / grid.size;
+  const n = grid.resolution,
+    x = Math.min(1, Math.max(0, u)) * (n - 1),
+    z = Math.min(1, Math.max(0, v)) * (n - 1),
+    x0 = Math.floor(x),
+    z0 = Math.floor(z),
+    x1 = Math.min(n - 1, x0 + 1),
+    z1 = Math.min(n - 1, z0 + 1),
+    tx = x - x0,
+    tz = z - z0;
+  const h00 = grid.samples[z0 * n + x0],
+    h10 = grid.samples[z0 * n + x1],
+    h01 = grid.samples[z1 * n + x0],
+    h11 = grid.samples[z1 * n + x1];
+  const val = h00 + (h10 - h00) * tx + (h01 + (h11 - h01) * tx - (h00 + (h10 - h00) * tx)) * tz;
+  return grid.decode.offset + (val / 65535) * grid.decode.scale;
+}
+
+export function brickFeedbackLodBounds(source, terrainGrid) {
   const count = source.count;
   const bounds = new Float32Array(count * 4);
   const cullRadius = new Float32Array(count);
@@ -95,6 +115,13 @@ export function brickFeedbackLodBounds(source) {
     const [cx, cz, cos, sin] = p.strip;
     const [gapU, gapV, gapLimit, trim] = p.gap;
     const groundY = p.groundY ?? 0;
+    const holes = p.holes ?? [];
+    const removeCount = Math.min(holes.length, p.removeCount ?? holes.length);
+    const tInfo = p.terrain && terrainGrid ? p.terrain : null;
+    const tPx = tInfo ? tInfo.frame.position[0] : 0;
+    const tPz = tInfo ? tInfo.frame.position[2] : 0;
+    const tCos = tInfo ? Math.cos(tInfo.frame.rotationY) : 1;
+    const tSin = tInfo ? Math.sin(tInfo.frame.rotationY) : 0;
     const joint = (span, gap) => span - (gapLimit < 0 ? gap : Math.min(gap, span * gapLimit));
     for (let i = 0; i < count; i++) {
       if (cols <= 0) continue;
@@ -113,8 +140,61 @@ export function brickFeedbackLodBounds(source) {
         rx1 = Math.min(rx1, u1);
         ry1 = Math.min(ry1, v1);
         if (!(rx1 > rx0 && ry1 > ry0)) continue;
+        let dropped = false;
+        for (let hi = 0; hi < removeCount; hi++) {
+          const hole = holes[hi];
+          if (!(hole[0] < rx1 && rx0 < hole[2] && hole[1] < ry1 && ry0 < hole[3])) continue;
+          const a = rx0,
+            b = ry0,
+            rc = rx1,
+            d = ry1;
+          const a0 = hole[0] > a ? (hole[0] - a) * (d - b) : 0;
+          const a1 = rc > hole[2] ? (rc - hole[2]) * (d - b) : 0;
+          const a2 = hole[1] > b ? (rc - a) * (hole[1] - b) : 0;
+          const a3 = d > hole[3] ? (rc - a) * (d - hole[3]) : 0;
+          let bestArea = a0;
+          rx0 = a;
+          ry0 = b;
+          rx1 = hole[0];
+          ry1 = d;
+          if (a1 > bestArea) {
+            bestArea = a1;
+            rx0 = hole[2];
+            ry0 = b;
+            rx1 = rc;
+            ry1 = d;
+          }
+          if (a2 > bestArea) {
+            bestArea = a2;
+            rx0 = a;
+            ry0 = b;
+            rx1 = rc;
+            ry1 = hole[1];
+          }
+          if (a3 > bestArea) {
+            bestArea = a3;
+            rx0 = a;
+            ry0 = hole[3];
+            rx1 = rc;
+            ry1 = d;
+          }
+          if (!(bestArea > 0)) {
+            dropped = true;
+            break;
+          }
+        }
+        if (dropped) continue;
       }
       if (rx0 < u0 - 1e-6 || rx1 > u1 + 1e-6 || ry0 < v0 - 1e-6 || ry1 > v1 + 1e-6) continue;
+      let blocked = false;
+      for (let hi = 0; hi < holes.length; hi++) {
+        const hole = holes[hi];
+        if (hole[0] < rx1 && rx0 < hole[2] && hole[1] < ry1 && ry0 < hole[3]) {
+          blocked = true;
+          break;
+        }
+      }
+      if (blocked) continue;
       const sx = joint(rx1 - rx0, gapU),
         sy = joint(ry1 - ry0, gapV),
         sz = p.nominal[2];
@@ -132,8 +212,11 @@ export function brickFeedbackLodBounds(source) {
         continue;
       const x = (rx0 + rx1) * 0.5 - p.length * 0.5;
       const bx = cx + cos * x;
-      const by = (ry0 + ry1) * 0.5 + groundY;
       const bz = cz + sin * x;
+      const gy = tInfo
+        ? sampleTerrainHeight(terrainGrid, tPx + tCos * bx + tSin * bz, tPz - tSin * bx + tCos * bz)
+        : groundY;
+      const by = (ry0 + ry1) * 0.5 + gy;
       const br = (Math.abs(cos * sx) + Math.abs(-sin * sz)) * HALF_SQRT3;
       const b4 = i * 4;
       bounds[b4] = bx;
@@ -156,8 +239,8 @@ export function brickFeedbackLodBounds(source) {
 
 /** Native threshold 30; 26..34 is the host complementary coverage band. */
 export class BrickUnitLod extends MaterialUnitLod {
-  static fromFeedback(source) {
-    return new BrickUnitLod(brickFeedbackLodBounds(source));
+  static fromFeedback(source, terrainGrid) {
+    return new BrickUnitLod(brickFeedbackLodBounds(source, terrainGrid));
   }
   constructor(bytesOrBounds) {
     const parsed = bytesOrBounds instanceof Uint8Array ? brickLodBounds(bytesOrBounds) : bytesOrBounds;

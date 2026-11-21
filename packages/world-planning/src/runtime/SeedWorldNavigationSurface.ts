@@ -203,10 +203,10 @@ export class SeedWorldNavigationSurface implements TerrainNavigationGroundProvid
       Math.floor(normalizedZ * this.fields.surfaceResolution)
     );
     const index = surfaceZ * this.fields.surfaceResolution + surfaceX;
-    if (this.fields.wetlandWeight[index]! / 255 < SEED_WORLD_WETLAND_WATER_MINIMUM_WEIGHT) {
+    if ((this.fields.wetlandWeight?.[index] ?? 0) / 255 < SEED_WORLD_WETLAND_WATER_MINIMUM_WEIGHT) {
       return undefined;
     }
-    const waterLevel = this.fields.wetlandWaterLevelMetres[index];
+    const waterLevel = this.fields.wetlandWaterLevelMetres?.length ? this.fields.wetlandWaterLevelMetres[index] : 0;
     return Number.isFinite(waterLevel) ? waterLevel : undefined;
   }
 }

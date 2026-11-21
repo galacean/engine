@@ -351,7 +351,7 @@ export class WorldPlanning3DView {
       });
       if (epoch !== this.prepareEpoch) return;
       const parts = compilePlanningScene(plan),
-        map = plan.poiDistribution ? untexturedSurface : planningAlphamap(plan);
+        map = plan.poiDistribution ? untexturedSurface : planningAlphamap(plan, true);
       let texture = this.surfaceTexture;
       if (!texture || map !== this.surfaceMap) {
         texture = new Texture2D(this.engine, map.resolution, map.resolution, TextureFormat.R8G8B8A8, true, false);

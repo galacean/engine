@@ -93,7 +93,7 @@ function findWaterTarget(fields: SeedWorldFields): Readonly<{ x: number; y: numb
     for (let x = 1; x < resolution - 1; x++) {
       const index = z * resolution + x;
       if (fields.waterMask[index] === 0) continue;
-      const waterLevel = fields.wetlandWaterLevelMetres[index]!;
+      const waterLevel = fields.wetlandWaterLevelMetres?.length ? fields.wetlandWaterLevelMetres[index]! : 0;
       if (!Number.isFinite(waterLevel)) continue;
       const normalizedX = (x + 0.5) / resolution;
       const normalizedZ = (z + 0.5) / resolution;

@@ -1516,7 +1516,7 @@ function compileDetailBaseSuitability(
         riparianWeight *
         rockClearanceWeight *
         habitatMultiplier *
-        detailMoistureDensity(fields.wetness[index]! / 255, profile);
+        detailMoistureDensity((fields.wetness?.[index] ?? 0) / 255, profile);
     }
   }
   return suitability;

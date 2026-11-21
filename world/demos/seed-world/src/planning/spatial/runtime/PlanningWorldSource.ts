@@ -71,7 +71,7 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
       );
     } catch (error) { client.dispose(); throw error; }
   }
-  const initialPlan = accepted?.plan;
+  let initialPlan = accepted?.plan;
   // Source/project history owns undo; the runtime session is a derived consumer.
   const options: PlanningSessionOptions = { history: false };
   let disposed = false, started = false;
@@ -88,11 +88,15 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
     document ?? createSeedPlanningDocument(seed),
     options
   );
-  const dispose = () => { if (!disposed) { disposed = true; client.dispose(); } };
+  const dispose = () => { if (!disposed) { disposed = true; initialPlan = undefined; client.dispose(); } };
   return {
     session,
     replaceSavedTemplate,
-    initialPlan,
+    takeInitialPlan() {
+      const plan = initialPlan;
+      initialPlan = undefined;
+      return plan;
+    },
     async initialize(preparePublication?: PlanningSessionOptions["preparePublication"]) {
       if (disposed) throw new Error("Planning world source disposed");
       if (started) throw new Error("Planning world source initialization already started");

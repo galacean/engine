@@ -14,39 +14,59 @@ import {
   type SeedWorldTerrainGenerationSettings
 } from "@galacean/engine-terrain/world/SeedWorldTerrainGenerationSettings";
 
-/** Published planner inputs for the original Seed render/navigation/tool consumers.
- * This is a projection of existing geometry and rasters, never a second world solve.
- */
-export interface PlanningSeedWorldData {
+/** Published planner inputs retained by long-lived query/scene snapshots (excludes transient GPU upload buffers). */
+export interface PlanningSeedWorldSnapshot {
   readonly plan: SeedWorldRuntimePlan;
   readonly fields: SeedWorldFields;
   readonly population: SeedWorldPopulationPreview;
   readonly surfaceIntent: SeedWorldSurfaceMaterialIntent;
   readonly terrainSettings: SeedWorldTerrainGenerationSettings;
+}
+
+/** Published planner inputs for the original Seed render/navigation/tool consumers.
+ * This is a projection of existing geometry and rasters, never a second world solve.
+ */
+export interface PlanningSeedWorldData extends PlanningSeedWorldSnapshot {
+  /** Transient GPU upload payload; omitted from long-lived snapshots and published scene data once uploaded. */
+  readonly terrainNormalSamples?: Uint8Array;
+}
+
+/** Freshly compiled planner data including the transient terrain normal upload payload. */
+export interface CompiledPlanningSeedWorldData extends PlanningSeedWorldSnapshot {
   readonly terrainNormalSamples: Uint8Array;
 }
-const snapshots = new WeakMap<IslandPlan, PlanningSeedWorldData>();
+
+const snapshots = new WeakMap<IslandPlan, PlanningSeedWorldSnapshot>();
+
+/** Return an immutable snapshot view without the transient GPU normal upload buffer. */
+export function stripPlanningTerrainNormalSamples(data: PlanningSeedWorldData): PlanningSeedWorldSnapshot {
+  const { terrainNormalSamples: _, ...snapshot } = data;
+  return snapshot;
+}
 
 /** Reuse native data across query readers and authoring forks of the same immutable full plan. */
-export function planningSeedWorldDataSnapshot(source: IslandPlan, terrain: () => PlanningPopulationTerrain) {
+export function planningSeedWorldDataSnapshot(
+  source: IslandPlan,
+  terrain: () => PlanningPopulationTerrain
+): PlanningSeedWorldSnapshot {
   const owner = planningQueryDataOwner(source);
   let data = snapshots.get(owner);
   if (!data) {
-    data = compilePlanningSeedWorldData(source, terrain());
+    data = compilePlanningSeedWorldSnapshot(source, terrain());
     snapshots.set(owner, data);
   }
   return data;
 }
 
-/** Publish native geometry/population for query readers without baking appearance textures. */
+/** Publish native geometry/population for query readers without retaining transient normal upload bytes. */
 export function preparePlanningSeedWorldData(
   source: IslandPlan,
   terrain: PlanningPopulationTerrain,
-  compiled?: PlanningSeedWorldData
-): PlanningSeedWorldData {
+  compiled?: CompiledPlanningSeedWorldData
+): CompiledPlanningSeedWorldData {
   const data = compiled ?? compilePlanningSeedWorldData(source, terrain);
   // Raster Worker data is authoritative too; tool readback must not compile it again on the host.
-  snapshots.set(planningQueryDataOwner(source), data);
+  snapshots.set(planningQueryDataOwner(source), stripPlanningTerrainNormalSamples(data));
   return data;
 }
 
@@ -55,7 +75,30 @@ export function compilePlanningSeedWorldData(
   source: IslandPlan,
   terrain: PlanningPopulationTerrain,
   previous?: { readonly plan: Pick<SeedWorldRuntimePlan, "roadDistance"> }
-): PlanningSeedWorldData {
+): CompiledPlanningSeedWorldData {
+  const snapshot = compilePlanningSeedWorldSnapshot(source, terrain, previous);
+  const h = terrain.height;
+  const normalSource = {
+    id: "published-planning-world",
+    worldPosition: [0, 0, 0] as const,
+    worldSize: [snapshot.fields.sizeMetres, 1, snapshot.fields.sizeMetres] as const,
+    heightSampleSize: [h.resolution, h.resolution] as const,
+    heightDecodeOffset: h.decodeOffset,
+    heightDecodeScale: h.decodeScale,
+    heightSamples: snapshot.fields.heightSamples,
+    surfaceHeights: h.heights
+  };
+  return {
+    ...snapshot,
+    terrainNormalSamples: bakeTerrainNormalSamples(normalSource)
+  };
+}
+
+function compilePlanningSeedWorldSnapshot(
+  source: IslandPlan,
+  terrain: PlanningPopulationTerrain,
+  previous?: { readonly plan: Pick<SeedWorldRuntimePlan, "roadDistance"> }
+): PlanningSeedWorldSnapshot {
   const compiled = compilePlanningPopulation(source, terrain);
   const size = compiled.fields.sizeMetres,
     resolution = compiled.fields.surfaceResolution;
@@ -122,16 +165,6 @@ export function compilePlanningSeedWorldData(
         )
       )
     )
-  };
-  const normalSource = {
-    id: "published-planning-world",
-    worldPosition: [0, 0, 0] as const,
-    worldSize: [size, 1, size] as const,
-    heightSampleSize: [hs, hs] as const,
-    heightDecodeOffset: h.decodeOffset,
-    heightDecodeScale: h.decodeScale,
-    heightSamples: fields.heightSamples,
-    surfaceHeights: h.heights
   };
   const norm = (p: PlanPoint) => ({ x: p.x / size, y: p.z / size });
   const plan: SeedWorldRuntimePlan = {
@@ -205,8 +238,7 @@ export function compilePlanningSeedWorldData(
         soilCoverage,
         bed ? hashBytes(bed, hashBytes(fields.materialWeights)) : hashBytes(fields.materialWeights)
       )
-    },
-    terrainNormalSamples: bakeTerrainNormalSamples(normalSource)
+    }
   };
 }
 

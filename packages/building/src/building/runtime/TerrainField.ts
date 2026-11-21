@@ -73,7 +73,11 @@ export function supportQuery(mesh: ConstructionGroundMesh) {
 }
 export function constructionSupportHeight(grid: ConstructionTerrainGrid, x: number, z: number): number {
   let height = constructionTerrainHeight(grid, x, z);
-  for (const mesh of grid.supports ?? []) height = supportQuery(mesh).sample(x, z, height);
+  for (const mesh of grid.supports ?? []) {
+    const b = bounds(mesh);
+    if (x < b[0] || x > b[2] || z < b[1] || z > b[3]) continue;
+    height = supportQuery(mesh).sample(x, z, height);
+  }
   return height;
 }
 

@@ -50,7 +50,8 @@ async function handle(input: BuildingWorkerRequest) {
   }
   const { id } = input;
   try {
-    if (input.mode === "preview") {
+    if (input.mode === "preview" || input.mode === "previewOnly") {
+      const retainPreparation = input.mode === "preview";
       leases.set(id, { assetId: input.assetId, terrainId: input.terrainId });
       if (input.units) assets.set(input.assetId, input.units);
       if (input.terrain) terrains.set(input.terrainId, input.terrain);
@@ -59,8 +60,18 @@ async function handle(input: BuildingWorkerRequest) {
       if (!units || !terrain) throw Error("Building Worker input snapshot is unavailable");
       const { prepared, ...result } = await prepareBuildingCpu(input.draft, terrain, units, input.options);
       packConstructionPreview(result.preview);
-      preparations.set(id, prepared);
+      if (retainPreparation) preparations.set(id, prepared);
       if (input.workerSlim) {
+        if (!retainPreparation) {
+          const excluded = new Set<ArrayBuffer>();
+          collectArrayBuffers(units, excluded);
+          collectArrayBuffers(terrain, excluded);
+          const transferSet = new Set<ArrayBuffer>();
+          collectArrayBuffers(result.preview, transferSet, excluded);
+          collectArrayBuffers(result.occupancy, transferSet, excluded);
+          reply({ id, ok: true, result }, [...transferSet]);
+          return;
+        }
         // Keep buffers shared with surface/backing parts for future compile(), while
         // transferring buffers belonging exclusively to preview-only fields being dropped.
         const keepBuffers = new Set<ArrayBuffer>();
@@ -110,6 +121,32 @@ async function handle(input: BuildingWorkerRequest) {
       } else {
         reply({ id, ok: true, result });
       }
+    } else if (input.mode === "detailFromDraft") {
+      leases.set(id, { assetId: input.assetId, terrainId: input.terrainId });
+      if (input.units) assets.set(input.assetId, input.units);
+      if (input.terrain) terrains.set(input.terrainId, input.terrain);
+      const units = assets.get(input.assetId),
+        terrain = terrains.get(input.terrainId);
+      if (!units || !terrain) throw Error("Building Worker input snapshot is unavailable");
+      const { prepared } = await prepareBuildingCpu(input.draft, terrain, units, input.options);
+      const slim = Boolean(input.workerSlim);
+      const result = await compileBuildingCpu(prepared, {
+        feedbackGrid: input.feedbackGrid,
+        activeMaterialsOnly: slim,
+        omitEmptyCells: Boolean(input.omitEmptyCells),
+        deflateAfterCompile: slim
+      });
+      if (slim) {
+        for (const deco of result.renderInput.decorations) {
+          for (const part of deco.parts) packDecorationPart(part);
+        }
+      }
+      const excluded = new Set<ArrayBuffer>();
+      collectArrayBuffers(units, excluded);
+      collectArrayBuffers(terrain, excluded);
+      const transferSet = new Set<ArrayBuffer>();
+      collectArrayBuffers(result.renderInput, transferSet, excluded);
+      reply({ id, ok: true, result }, [...transferSet]);
     } else {
       const prepared = preparations.get(input.token);
       if (!prepared) throw Error("Building compilation snapshot is unavailable");

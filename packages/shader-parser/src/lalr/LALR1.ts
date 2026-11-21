@@ -33,9 +33,15 @@ export class LALR1 {
   }
 
   private buildStateTable() {
-    const startStateItemCore = [new StateItem(this.grammar.productions[0], 0, [ETokenType.EOF])];
-    const startState = State.create(startStateItemCore);
-    this._extendState(startState);
+    try {
+      const startStateItemCore = [new StateItem(this.grammar.productions[0], 0, [ETokenType.EOF])];
+      const startState = State.create(startStateItemCore);
+      this._extendState(startState);
+    } finally {
+      // Static state tables are only needed while building actionTable/gotoTable.
+      State.closureMap.clear();
+      State.pool.clear();
+    }
   }
 
   private _extendState(state: State) {

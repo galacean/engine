@@ -219,20 +219,20 @@ export interface SeedWorldFields {
   readonly rockySlopeWeight: Uint8Array;
   /** Ocean and river ownership used by water clearance and population sampling. */
   readonly waterMask: Uint8Array;
-  /** Accumulation field. */
-  readonly flow: Uint8Array;
-  /** Erosion/deposition response field. */
-  readonly sediment: Uint8Array;
-  /** Soil moisture response field. */
-  readonly wetness: Uint8Array;
-  /** Road-cleared inland-wetland influence compiled from the canonical river-bank SDF; ocean is excluded. */
-  readonly wetlandWeight: Uint8Array;
+  /** Optional accumulation field (omitted in planning-compiled worlds). */
+  readonly flow?: Uint8Array;
+  /** Optional erosion/deposition response field (omitted in planning-compiled worlds). */
+  readonly sediment?: Uint8Array;
+  /** Optional soil moisture response field (omitted in planning-compiled worlds). */
+  readonly wetness?: Uint8Array;
+  /** Optional road-cleared inland-wetland influence compiled from the canonical river-bank SDF; ocean is excluded. */
+  readonly wetlandWeight?: Uint8Array;
   /** Signed world-metre distance to the canonical river/basin water boundary. */
   readonly riverBankDistanceMetres: Float32Array;
   /** Optional published distance to any actual water footprint, including the coast. */
   readonly waterBoundaryDistanceMetres?: Float32Array;
-  /** Absolute world-space water elevation shared by wetland excavation and the global water plane. */
-  readonly wetlandWaterLevelMetres: Float32Array;
+  /** Optional absolute world-space water elevation shared by wetland excavation and the global water plane. */
+  readonly wetlandWaterLevelMetres?: Float32Array;
   /** Habitat classification field. */
   readonly habitat: Uint8Array;
   /** Basin profile used to derive both Hfinal wetland depth and standing-water elevation. */
@@ -261,15 +261,17 @@ export function cloneSeedWorldFields(fields: SeedWorldFields): SeedWorldFields {
     materialWeights: new Uint8Array(fields.materialWeights),
     rockySlopeWeight: new Uint8Array(fields.rockySlopeWeight),
     waterMask: new Uint8Array(fields.waterMask),
-    flow: new Uint8Array(fields.flow),
-    sediment: new Uint8Array(fields.sediment),
-    wetness: new Uint8Array(fields.wetness),
-    wetlandWeight: new Uint8Array(fields.wetlandWeight),
+    ...(fields.flow ? { flow: new Uint8Array(fields.flow) } : {}),
+    ...(fields.sediment ? { sediment: new Uint8Array(fields.sediment) } : {}),
+    ...(fields.wetness ? { wetness: new Uint8Array(fields.wetness) } : {}),
+    ...(fields.wetlandWeight ? { wetlandWeight: new Uint8Array(fields.wetlandWeight) } : {}),
     riverBankDistanceMetres: new Float32Array(fields.riverBankDistanceMetres),
     ...(fields.waterBoundaryDistanceMetres
       ? { waterBoundaryDistanceMetres: new Float32Array(fields.waterBoundaryDistanceMetres) }
       : {}),
-    wetlandWaterLevelMetres: new Float32Array(fields.wetlandWaterLevelMetres),
+    ...(fields.wetlandWaterLevelMetres
+      ? { wetlandWaterLevelMetres: new Float32Array(fields.wetlandWaterLevelMetres) }
+      : {}),
     habitat: new Uint8Array(fields.habitat)
   });
 }
@@ -526,12 +528,12 @@ export function resampleSeedWorldSurfaceFields(fields: SeedWorldFields, surfaceR
             byteSums[channel] += fields.materialWeights[materialOffset + channel]!;
           }
           rockySlopeSum += fields.rockySlopeWeight[sourceIndex]!;
-          flowSum += fields.flow[sourceIndex]!;
-          sedimentSum += fields.sediment[sourceIndex]!;
-          wetnessSum += fields.wetness[sourceIndex]!;
-          wetlandSum += fields.wetlandWeight[sourceIndex]!;
+          flowSum += fields.flow?.[sourceIndex] ?? 0;
+          sedimentSum += fields.sediment?.[sourceIndex] ?? 0;
+          wetnessSum += fields.wetness?.[sourceIndex] ?? 0;
+          wetlandSum += fields.wetlandWeight?.[sourceIndex] ?? 0;
           riverBankDistanceSum += fields.riverBankDistanceMetres[sourceIndex]!;
-          waterLevelSum += fields.wetlandWaterLevelMetres[sourceIndex]!;
+          waterLevelSum += fields.wetlandWaterLevelMetres?.[sourceIndex] ?? 0;
         }
       }
       writeAveragedMaterialWeights(materialWeights, outputIndex * 4, byteSums, sampleCount);
@@ -717,9 +719,9 @@ export function sampleSeedWorldPopulation(
     curvature: shape.curvature,
     rockySlopeWeight: fields.rockySlopeWeight[surfaceIndex] / 255,
     grassSurfaceWeight: fields.materialWeights[surfaceIndex * 4] / 255,
-    flow: fields.flow[surfaceIndex] / 255,
-    moisture: fields.wetness[surfaceIndex] / 255,
-    wetlandWeight: fields.wetlandWeight[surfaceIndex] / 255,
+    flow: (fields.flow?.[surfaceIndex] ?? 0) / 255,
+    moisture: (fields.wetness?.[surfaceIndex] ?? 0) / 255,
+    wetlandWeight: (fields.wetlandWeight?.[surfaceIndex] ?? 0) / 255,
     riverDistanceMetres: riverDistance,
     waterBoundaryDistanceMetres: waterBoundaryDistance,
     roadDistanceMetres: roadDistance,
@@ -878,12 +880,12 @@ export function seedWorldFieldTransferables(fields: SeedWorldFields): Transferab
     fields.materialWeights.buffer,
     fields.rockySlopeWeight.buffer,
     fields.waterMask.buffer,
-    fields.flow.buffer,
-    fields.sediment.buffer,
-    fields.wetness.buffer,
-    fields.wetlandWeight.buffer,
+    ...(fields.flow ? [fields.flow.buffer] : []),
+    ...(fields.sediment ? [fields.sediment.buffer] : []),
+    ...(fields.wetness ? [fields.wetness.buffer] : []),
+    ...(fields.wetlandWeight ? [fields.wetlandWeight.buffer] : []),
     fields.riverBankDistanceMetres.buffer,
-    fields.wetlandWaterLevelMetres.buffer,
+    ...(fields.wetlandWaterLevelMetres ? [fields.wetlandWaterLevelMetres.buffer] : []),
     fields.habitat.buffer
   ];
 }

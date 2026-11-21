@@ -180,13 +180,18 @@ export function bakeSeedWorldHydrology(
   const materialWeights = new Uint8Array(sourceFields.materialWeights);
   const rockySlopeWeight = new Uint8Array(sourceFields.rockySlopeWeight.length);
   const waterMask = new Uint8Array(sourceFields.waterMask);
-  const flow = new Uint8Array(sourceFields.flow);
-  const sediment = new Uint8Array(sourceFields.sediment);
-  const wetness = new Uint8Array(sourceFields.wetness.length);
-  const wetlandWeight = new Uint8Array(sourceFields.wetlandWeight.length);
-  const riverBankDistanceMetres = new Float32Array(sourceFields.surfaceResolution ** 2);
+  const surfaceCellCount = sourceFields.surfaceResolution ** 2;
+  const flow = sourceFields.flow?.length ? new Uint8Array(sourceFields.flow) : new Uint8Array(surfaceCellCount);
+  const sediment = sourceFields.sediment?.length
+    ? new Uint8Array(sourceFields.sediment)
+    : new Uint8Array(surfaceCellCount);
+  const wetness = new Uint8Array(surfaceCellCount);
+  const wetlandWeight = new Uint8Array(surfaceCellCount);
+  const riverBankDistanceMetres = new Float32Array(surfaceCellCount);
   riverBankDistanceMetres.fill(sourceFields.sizeMetres);
-  const wetlandWaterLevelMetres = new Float32Array(sourceFields.wetlandWaterLevelMetres);
+  const wetlandWaterLevelMetres = sourceFields.wetlandWaterLevelMetres?.length
+    ? new Float32Array(sourceFields.wetlandWaterLevelMetres)
+    : new Float32Array(surfaceCellCount);
   const habitat = new Uint8Array(sourceFields.habitat);
   const surfaceSupportRadiusMetres = (Math.SQRT2 * sourceFields.sizeMetres) / (2 * sourceFields.surfaceResolution);
   const bodySignedDistances = surfaceBasinSignedDistances.map((signedDistance, bodyIndex) => {

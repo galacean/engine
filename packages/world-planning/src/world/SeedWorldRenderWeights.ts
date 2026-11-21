@@ -1,14 +1,10 @@
 import type { SeedWorldSurfaceMaterialIntent } from "../runtime/SeedWorldSurfaceIntent.ts";
 
-const projections = new WeakMap<SeedWorldSurfaceMaterialIntent, Uint8Array>();
-
 /** Project immutable world classification to explicit grass/mineral/bare-ground RGBA weights.
- * World consumers retain the original road/water channels. The returned projection is shared
- * by terrain publication and grass coverage for the same immutable surface revision.
+ * World consumers retain the original road/water channels. Computed on demand to avoid retaining
+ * a duplicate 4 MiB projection alongside surfaceIntent after GPU texture upload.
  */
 export function seedWorldRenderWeights(intent: SeedWorldSurfaceMaterialIntent): Uint8Array {
-  const cached = projections.get(intent);
-  if (cached) return cached;
   const source = intent.materialWeights,
     bed = intent.riverBedCoverage;
   const count = intent.resolution ** 2;
@@ -33,6 +29,5 @@ export function seedWorldRenderWeights(intent: SeedWorldSurfaceMaterialIntent): 
     output[p + 2] = 255 - grass - mineral - soil;
     output[p + 3] = soil;
   }
-  projections.set(intent, output);
   return output;
 }

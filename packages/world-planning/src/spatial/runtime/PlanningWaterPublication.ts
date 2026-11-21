@@ -6,7 +6,7 @@ import type { PublishedPlanningSeedScene } from "./PlanningSeedScenePublication"
 import type { PlanningRasterClient } from "../../semantic-study/PlanningRasterClient";
 import { planningHeightmap } from "../../semantic-study/PlanningHeightmap";
 import { planningAlphamap } from "../../semantic-study/PlanningAlphamap";
-import { preparePlanningSeedWorldData } from "./PlanningSeedWorldData";
+import { preparePlanningSeedWorldData, stripPlanningTerrainNormalSamples } from "./PlanningSeedWorldData";
 import { preparePlanningNaturalGroundPopulation } from "./PlanningNaturalVegetation";
 import { yieldSeedWorldPreparationTask } from "../../world/SeedWorldPreparationTask";
 import { createPlanningWaterQuery } from "./PlanningWaterQueries";
@@ -254,12 +254,14 @@ export async function preparePlanningWaterImpact(
       { height: planningHeightmap(plan), alpha: planningAlphamap(plan) },
       native
     );
-    const data = dependencies
-      ? candidate
+    let terrainNormalSamples: Uint8Array | undefined = candidate.terrainNormalSamples;
+    const baseData = stripPlanningTerrainNormalSamples(candidate);
+    const data: PlanningSeedWorldData = dependencies
+      ? baseData
       : {
-          ...candidate,
+          ...baseData,
           plan: {
-            ...candidate.plan,
+            ...baseData.plan,
             roads: previous.data.plan.roads,
             roadDistance: previous.data.plan.roadDistance
           }
@@ -296,7 +298,9 @@ export async function preparePlanningWaterImpact(
     }
     // Habitat/distance propagation can extend beyond the edited shoreline. Include exact changed ecology texels.
     const resolution = data.fields.surfaceResolution;
-    const include = (before: ArrayLike<number>, after: ArrayLike<number>, channels = 1) => {
+    const include = (before: ArrayLike<number> | undefined, after: ArrayLike<number> | undefined, channels = 1) => {
+      if (!before?.length && !after?.length) return;
+      if (!before || !after) throw Error("Terrain patch lattice mismatch");
       const rectangle = terrainChangedRectangle(before, after, resolution, resolution, channels);
       if (!rectangle) return;
       const step = data.fields.sizeMetres / (resolution - 1);
@@ -333,10 +337,11 @@ export async function preparePlanningWaterImpact(
         data.fields,
         data.surfaceIntent,
         data.terrainSettings,
-        data.terrainNormalSamples,
+        terrainNormalSamples!,
         raster.takeSurfaceRelief(plan)
       )
     );
+    terrainNormalSamples = undefined;
     if (
       previous.world.exactPrefabs?.exactInstances.length &&
       typeof previous.world.applyAuthoringHeightPatch === "function"

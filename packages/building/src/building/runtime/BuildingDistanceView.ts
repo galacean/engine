@@ -275,7 +275,10 @@ export async function createBuildingDistanceView(
   assets: PrefabResource,
   camera?: import("@galacean/engine").Camera,
   signal: AbortSignal = new AbortController().signal,
-  options?: { unifiedGlobalProxy?: boolean }
+  options?: {
+    unifiedGlobalProxy?: boolean;
+    loadPreview?: (signal: AbortSignal) => Promise<ConstructionPreview>;
+  }
 ) {
   registerConstructionSceneLighting();
   if (!ShaderFactory.includeMap["Masonry/Entrance.glsl"])
@@ -324,6 +327,7 @@ export async function createBuildingDistanceView(
   const visualRoot = resources.root.createChild("Visual surfaces");
   const visualResources: V2ViewResources = { root: visualRoot, meshes: [], materials: [] };
   const unifiedGlobalProxy = Boolean(options?.unifiedGlobalProxy);
+  const loadPreview = options?.loadPreview;
   const shadowRoot = unifiedGlobalProxy ? undefined : resources.root.createChild("Shadow surfaces");
   const shadowMaterial = unifiedGlobalProxy
     ? undefined
@@ -372,6 +376,8 @@ export async function createBuildingDistanceView(
   let deviceRestoreCleanup: (() => void) | undefined;
   let pendingGeometry: ConstructionPreview | undefined;
   let pendingGroup: BuildingDistanceInput | undefined;
+  let previewAbort: AbortController | undefined;
+  let warmupInFlight = 0;
   let lastEntranceStates: ReadonlyMap<string, ConstructionEntranceState> | undefined;
   let lastFade = 1;
   let ditherEnabled = false;
@@ -399,6 +405,8 @@ export async function createBuildingDistanceView(
     disposed = true;
     detailedGeneration++;
     clearDetailedRetryHooks();
+    previewAbort?.abort();
+    previewAbort = undefined;
     pendingGeometry = undefined;
     pendingGroup = undefined;
     nativeDecorationView?.destroy();
@@ -974,10 +982,13 @@ export async function createBuildingDistanceView(
 
     const teardownDetailedVisual = () => {
       detailedGeneration++;
+      previewAbort?.abort();
+      previewAbort = undefined;
       detailedInitialized = false;
       detailedVisualReady = false;
       detailedReady = undefined;
       lod1GeometryBuilt = false;
+      if (loadPreview) pendingGeometry = undefined;
       visualTintSubscriptions.forEach((subscription) => subscription.destroy());
       visualTintSubscriptions.length = 0;
       nativeDecorationView?.destroy();
@@ -1044,18 +1055,11 @@ export async function createBuildingDistanceView(
       }
     };
 
-    const ensureDetailedVisual = (): Promise<void> => {
-      if (detailedReady) return detailedReady;
-      if (!pendingGeometry || !pendingGroup) return Promise.resolve();
-      const gen = ++detailedGeneration;
-      detailedInitialized = true;
-      detailedRetryAt = 0;
-      if (detailedRetryTimer !== undefined) {
-        clearTimeout(detailedRetryTimer);
-        detailedRetryTimer = undefined;
-      }
-      const activeGeom = pendingGeometry;
-      const activeGroup = pendingGroup;
+    const hydrateDetailedVisual = (
+      gen: number,
+      activeGeom: ConstructionPreview,
+      activeGroup: BuildingDistanceInput
+    ): Promise<void> => {
       try {
         if (!lod1GeometryBuilt) {
           buildLod1Visuals(activeGeom, activeGroup, false);
@@ -1109,6 +1113,8 @@ export async function createBuildingDistanceView(
           for (const entity of ownerEntities.get(hiddenOwner) ?? []) entity.isActive = false;
           for (const entity of visualOwnerEntities.get(hiddenOwner) ?? []) entity.isActive = false;
         }
+        // Once LOD1 geometry & native decorations are constructed, release CPU preview buffers when reloadable.
+        if (loadPreview) pendingGeometry = undefined;
       } catch (error) {
         if (!disposed && gen === detailedGeneration) {
           teardownDetailedVisual();
@@ -1169,10 +1175,9 @@ export async function createBuildingDistanceView(
         detailedRetryAt = 0;
         detailedVisualReady = true;
         syncVisualRoots();
-        detailedReady = Promise.resolve();
-        return detailedReady;
+        return Promise.resolve();
       }
-      detailedReady = Promise.all(pendingTasks).then(
+      return Promise.all(pendingTasks).then(
         () => {
           if (disposed || gen !== detailedGeneration) return;
           clearDetailedRetryHooks();
@@ -1181,6 +1186,40 @@ export async function createBuildingDistanceView(
           syncVisualRoots();
         },
         (error) => {
+          if (!disposed && gen === detailedGeneration) {
+            teardownDetailedVisual();
+            scheduleDetailedRetry();
+          }
+          throw error;
+        }
+      );
+    };
+
+    const ensureDetailedVisual = (): Promise<void> => {
+      if (detailedReady) return detailedReady;
+      if (!pendingGroup || (!pendingGeometry && !loadPreview)) return Promise.resolve();
+      const gen = ++detailedGeneration;
+      detailedInitialized = true;
+      detailedRetryAt = 0;
+      if (detailedRetryTimer !== undefined) {
+        clearTimeout(detailedRetryTimer);
+        detailedRetryTimer = undefined;
+      }
+      const activeGroup = pendingGroup;
+      if (pendingGeometry) {
+        const task = hydrateDetailedVisual(gen, pendingGeometry, activeGroup);
+        if (!disposed && gen === detailedGeneration) detailedReady = task;
+        return task;
+      }
+      const controller = (previewAbort = new AbortController());
+      detailedReady = loadPreview!(controller.signal).then(
+        (reloadedGeom) => {
+          if (previewAbort === controller) previewAbort = undefined;
+          if (disposed || gen !== detailedGeneration) return;
+          return hydrateDetailedVisual(gen, reloadedGeom, activeGroup);
+        },
+        (error) => {
+          if (previewAbort === controller) previewAbort = undefined;
           if (!disposed && gen === detailedGeneration) {
             teardownDetailedVisual();
             scheduleDetailedRetry();
@@ -1224,7 +1263,7 @@ export async function createBuildingDistanceView(
     let lastUseFar = false;
     let lastShadowVisible = false;
     const syncVisualRoots = () => {
-      const hasVisualSource = detailedInitialized || Boolean(pendingGeometry);
+      const hasVisualSource = detailedInitialized || Boolean(pendingGeometry) || Boolean(loadPreview);
       const proxyHandlesEntrance = entranceSettled || (Boolean(globalProxySlot) && proxyEntranceEligible);
       const wantDetailed =
         visualVisible &&
@@ -1251,7 +1290,7 @@ export async function createBuildingDistanceView(
             const stillProxyHandlesEntrance = entranceSettled || (Boolean(globalProxySlot) && proxyEntranceEligible);
             const stillWantDetailed =
               visualVisible &&
-              Boolean(pendingGeometry) &&
+              (Boolean(pendingGeometry) || Boolean(loadPreview)) &&
               (!hasFarProxy || hiddenOwners.size > 0 || !stillProxyHandlesEntrance || !farProxyMode);
             if (stillWantDetailed) void ensureDetailedVisual().catch(() => {});
           });
@@ -1262,15 +1301,26 @@ export async function createBuildingDistanceView(
       const proxyHandlesEntrance = entranceSettled || (Boolean(globalProxySlot) && proxyEntranceEligible);
       if (
         disposed ||
-        !detailedInitialized ||
+        warmupInFlight > 0 ||
         !hasFarProxy ||
         !proxyHandlesEntrance ||
         hiddenOwners.size > 0 ||
         (visualVisible && !farProxyMode)
       )
         return;
+      if (loadPreview && visualVisible) pendingGeometry = undefined;
+      if (!detailedInitialized) return;
       teardownDetailedVisual();
       syncVisualRoots();
+    };
+    const releasePendingGeometry = () => {
+      if (loadPreview && warmupInFlight === 0) pendingGeometry = undefined;
+    };
+    const warmupDetailedVisual = (): Promise<void> => {
+      warmupInFlight++;
+      return ensureDetailedVisual().finally(() => {
+        warmupInFlight = Math.max(0, warmupInFlight - 1);
+      });
     };
     const ready = hasFarProxy ? Promise.resolve() : ensureDetailedVisual();
     syncVisualRoots();
@@ -1385,8 +1435,9 @@ export async function createBuildingDistanceView(
         farProxyMode = active;
         syncVisualRoots();
       },
-      warmupDetailedVisual: ensureDetailedVisual,
+      warmupDetailedVisual,
       releaseDetailedVisual,
+      releasePendingGeometry,
       setFade(fade: number) {
         lastFade = fade;
         const needDither = fade < 0.999;

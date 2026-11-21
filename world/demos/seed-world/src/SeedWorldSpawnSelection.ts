@@ -147,7 +147,7 @@ function collectInlandWaterViewTargets(fields: SeedWorldFields): readonly SeedWo
   const candidates: Array<Readonly<{ target: SeedWorldInlandWaterViewTarget; index: number }>> = [];
   const resolution = fields.surfaceResolution;
   for (let index = 0; index < fields.waterMask.length; index++) {
-    if (fields.waterMask[index] === 0 || fields.wetlandWeight[index]! < 128) continue;
+    if (fields.waterMask[index] === 0 || (fields.wetlandWeight?.[index] ?? 0) < 128) continue;
     const x = index % resolution;
     const z = Math.floor(index / resolution);
     const worldX = ((x + 0.5) / resolution - 0.5) * fields.sizeMetres;
@@ -158,7 +158,7 @@ function collectInlandWaterViewTargets(fields: SeedWorldFields): readonly SeedWo
         target: Object.freeze({
           position: Object.freeze({
             x: worldX,
-            y: fields.wetlandWaterLevelMetres[index]! + 3,
+            y: (fields.wetlandWaterLevelMetres?.[index] ?? 0) + 3,
             z: worldZ
           }),
           opennessMetres: Math.max(0, -fields.riverBankDistanceMetres[index]!)

@@ -242,3 +242,98 @@ it("fans out concurrent prepares across worker slots and routes detail/release b
   expect(w1.terminated).toBe(true);
   expect(w2.terminated).toBe(true);
 });
+
+it("hibernates idle workers while keeping handles valid, and transparently re-hydrates detail & preview on demand", async () => {
+  vi.stubGlobal("Worker", WorkerPort);
+  const client = new BuildingCpuClient(1, 15),
+    units = {} as any,
+    signal = new AbortController().signal;
+  const prep = client.prepare(doc, terrain, units, signal),
+    w0 = WorkerPort.instances[0];
+  w0.reply(w0.sent[0].id, { preview: { tag: "initial" } });
+  const { cpu } = await prep;
+  expect(cpu.valid).toBe(true);
+  expect(w0.terminated).toBe(false);
+
+  // After idleTimeoutMs, the idle worker terminates while the handle stays valid.
+  await new Promise((r) => setTimeout(r, 40));
+  expect(w0.terminated).toBe(true);
+  expect(cpu.valid).toBe(true);
+
+  // Subsequent compile() transparently respawns a worker and uses detailFromDraft.
+  const detailPromise = cpu.compile(signal, { omitEmptyCells: true });
+  expect(WorkerPort.instances).toHaveLength(2);
+  const w1 = WorkerPort.instances[1];
+  expect(w1.sent[0]).toMatchObject({ mode: "detailFromDraft", draft: doc, omitEmptyCells: true });
+  expect(w1.sent[0].units).toBe(units);
+  expect(w1.sent[0].terrain).toBe(terrain);
+  w1.reply(w1.sent[0].id, { renderInput: { ok: true } });
+  expect(await detailPromise).toEqual({ renderInput: { ok: true } });
+
+  // detailFromDraft releases its ephemeral lease once complete.
+  expect(w1.sent[1]).toMatchObject({ mode: "release", token: w1.sent[0].id });
+
+  // preview() reloads preview via previewOnly and symmetrically releases its lease once complete.
+  const previewPromise = cpu.preview!(signal);
+  expect(w1.sent[2]).toMatchObject({ mode: "previewOnly", draft: doc });
+  w1.reply(w1.sent[2].id, { preview: { tag: "reloaded" } });
+  expect(await previewPromise).toEqual({ tag: "reloaded" });
+  expect(w1.sent[3]).toMatchObject({ mode: "release", token: w1.sent[2].id });
+
+  // Worker hibernates again once idle.
+  await new Promise((r) => setTimeout(r, 40));
+  expect(w1.terminated).toBe(true);
+  expect(cpu.valid).toBe(true);
+
+  cpu.dispose();
+  client.dispose();
+});
+
+it("keeps main-thread and worker resource leases symmetric when previewOnly runs on an active slot", async () => {
+  const workerLeases = new Map<number, { assetId: number; terrainId: number }>();
+  const workerAssets = new Map<number, unknown>();
+  const workerTerrains = new Map<number, unknown>();
+  class LeaseCheckingWorker extends WorkerPort {
+    override postMessage(value: any) {
+      super.postMessage(value);
+      if (value.mode === "release") {
+        const lease = workerLeases.get(value.token);
+        workerLeases.delete(value.token);
+        if (lease) {
+          if (![...workerLeases.values()].some((v) => v.assetId === lease.assetId)) workerAssets.delete(lease.assetId);
+          if (![...workerLeases.values()].some((v) => v.terrainId === lease.terrainId))
+            workerTerrains.delete(lease.terrainId);
+        }
+        return;
+      }
+      queueMicrotask(() => {
+        if (this.terminated) return;
+        if (value.mode === "preview" || value.mode === "previewOnly" || value.mode === "detailFromDraft") {
+          workerLeases.set(value.id, { assetId: value.assetId, terrainId: value.terrainId });
+          if (value.units) workerAssets.set(value.assetId, value.units);
+          if (value.terrain) workerTerrains.set(value.terrainId, value.terrain);
+          if (!workerAssets.has(value.assetId) || !workerTerrains.has(value.terrainId)) {
+            this.onmessage?.({
+              data: { id: value.id, ok: false, error: "Building Worker input snapshot is unavailable" }
+            });
+            return;
+          }
+          this.reply(value.id, { preview: { ok: true } });
+        }
+      });
+    }
+  }
+  vi.stubGlobal("Worker", LeaseCheckingWorker);
+  const client = new BuildingCpuClient(1, 3000),
+    units = { tag: "units" } as any,
+    signal = new AbortController().signal;
+
+  const a = await client.prepare(doc, terrain, units, signal);
+  await a.cpu.preview!(signal);
+  a.cpu.dispose();
+  // Next prepare within idle timeout must resend units/terrain instead of hitting missing snapshot!
+  const b = await client.prepare(doc, terrain, units, signal);
+  expect(b.cpu.valid).toBe(true);
+  b.cpu.dispose();
+  client.dispose();
+});

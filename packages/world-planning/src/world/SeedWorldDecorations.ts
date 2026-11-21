@@ -2274,6 +2274,8 @@ function projectToWetlandBoundary(
 }
 
 function sampleWetlandWeight(fields: SeedWorldFields, position: SeedWorldPoint): number {
+  const wetlandWeight = fields.wetlandWeight;
+  if (!wetlandWeight?.length) return 0;
   const sampleX = clamp(position.x * fields.surfaceResolution - 0.5, 0, fields.surfaceResolution - 1);
   const sampleY = clamp(position.y * fields.surfaceResolution - 0.5, 0, fields.surfaceResolution - 1);
   const x0 = Math.floor(sampleX);
@@ -2283,13 +2285,13 @@ function sampleWetlandWeight(fields: SeedWorldFields, position: SeedWorldPoint):
   const tx = sampleX - x0;
   const ty = sampleY - y0;
   const top = mix(
-    fields.wetlandWeight[y0 * fields.surfaceResolution + x0],
-    fields.wetlandWeight[y0 * fields.surfaceResolution + x1],
+    wetlandWeight[y0 * fields.surfaceResolution + x0],
+    wetlandWeight[y0 * fields.surfaceResolution + x1],
     tx
   );
   const bottom = mix(
-    fields.wetlandWeight[y1 * fields.surfaceResolution + x0],
-    fields.wetlandWeight[y1 * fields.surfaceResolution + x1],
+    wetlandWeight[y1 * fields.surfaceResolution + x0],
+    wetlandWeight[y1 * fields.surfaceResolution + x1],
     tx
   );
   return mix(top, bottom, ty);
@@ -2319,7 +2321,7 @@ function surfacePointIsDryWetland(fields: SeedWorldFields, position: SeedWorldPo
   const x = Math.min(fields.surfaceResolution - 1, Math.floor(position.x * fields.surfaceResolution));
   const y = Math.min(fields.surfaceResolution - 1, Math.floor(position.y * fields.surfaceResolution));
   const index = y * fields.surfaceResolution + x;
-  return fields.wetlandWeight[index] >= ROCK_WETLAND_BOUNDARY_WEIGHT && fields.waterMask[index] === 0;
+  return (fields.wetlandWeight?.[index] ?? 0) >= ROCK_WETLAND_BOUNDARY_WEIGHT && fields.waterMask[index] === 0;
 }
 
 function wetlandBoundaryCells(cells: readonly number[], resolution: number): readonly number[] {

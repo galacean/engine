@@ -9,6 +9,7 @@ import {
   prepareBuildingCpu
 } from "../src/building/parts/architecture/BuildingCpu";
 import { prepareBuildingTerrain } from "../src/building/parts/architecture/BuildingTerrain";
+import { brickFeedbackLodBounds } from "../src/building/runtime/BrickUnitLod.js";
 import { constructionGeometry } from "./fixtures/constructionGeometry";
 import type { ConstructionTerrainGrid } from "../src/building/runtime/TerrainField";
 import type { BuildingCoreDraft } from "../src/building/core";
@@ -127,4 +128,43 @@ it("reserves final prefab attachments outside the wall without retaining triangl
     expect(part).not.toHaveProperty("positions");
     expect(part).not.toHaveProperty("indices");
   }
+});
+
+it("emits heightmap-backed grid feedback for freeWall on sloped terrain and falls back to pack when rock supports overlap", async () => {
+  const sloped: ConstructionTerrainGrid = {
+    samples: new Uint16Array([0, 65535, 0, 65535]),
+    resolution: 2,
+    origin: [-50, -50],
+    size: 100,
+    decode: { offset: 10, scale: 10 }
+  };
+  const draft = European.buildWall({ id: "sloped-wall", length: 6, height: 2, depth: 0.45 });
+  const prep = await prepareBuildingCpu(draft, sloped, constructionGeometry);
+  const detail = await compileBuildingCpu(prep.prepared, { feedbackGrid: true, omitEmptyCells: false });
+  const fb = detail.renderInput.groups[0]!.brickFeedback!;
+  expect(fb.kind).toBe("grid");
+  if (fb.kind !== "grid") throw Error("Expected grid feedback");
+  expect(fb.grid.terrain).toBeDefined();
+  const lod = brickFeedbackLodBounds(fb, sloped);
+  const cpuYs = detail.renderInput.groups[0]!.cells.map((c) => c.center[1]);
+  const lodYs = Array.from({ length: fb.count }, (_, i) =>
+    lod.cullRadius[i]! > 0 ? lod.bounds[i * 4 + 1]! : null
+  ).filter((v): v is number => v !== null);
+  expect(Math.min(...lodYs)).toBeCloseTo(Math.min(...cpuYs), 3);
+  expect(Math.max(...lodYs)).toBeCloseTo(Math.max(...cpuYs), 3);
+  expect(Math.min(...lodYs)).toBeGreaterThan(14);
+
+  // When an overlapping rock support mesh raises part of the sloped wall, terrainInfo is omitted -> falls back to pack.
+  const withRock: ConstructionTerrainGrid = {
+    ...sloped,
+    supports: [
+      {
+        positions: new Float32Array([-2, 18, -2, 2, 18, -2, 2, 18, 2, -2, 18, 2]),
+        indices: new Uint32Array([0, 2, 1, 0, 3, 2])
+      }
+    ]
+  };
+  const rockPrep = await prepareBuildingCpu(draft, withRock, constructionGeometry);
+  const rockDetail = await compileBuildingCpu(rockPrep.prepared, { feedbackGrid: true, omitEmptyCells: false });
+  expect(rockDetail.renderInput.groups[0]!.brickFeedback!.kind).toBe("pack");
 });

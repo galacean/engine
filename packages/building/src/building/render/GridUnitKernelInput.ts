@@ -12,12 +12,22 @@ import {
 import { encodeBrick96 } from "../runtime/UnitPacking.js";
 
 export const GRID_UNIT_KERNEL_STRIDE = 64;
+export const MAX_GRID_KERNEL_HOLES = 32;
 const FNV_PRIME = 0x01000193;
 
 /** FNV-1a over a string without the final mix, so the GPU can continue the same hash. */
 function fnvState(text: string, h: number): number {
   for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), FNV_PRIME);
   return h >>> 0;
+}
+
+/** Pure heightmap sampling metadata (no sample buffer copy). */
+export interface GridKernelTerrainInfo {
+  readonly resolution: number;
+  readonly origin: readonly [number, number];
+  readonly size: number;
+  readonly decode: { readonly offset: number; readonly scale: number };
+  readonly frame: { readonly position: readonly [number, number, number]; readonly rotationY: number };
 }
 
 /** Everything the kernel reads. Its size does not depend on the number of units. */
@@ -39,6 +49,11 @@ export interface GridKernelInput {
   readonly seedState: number;
   /** Constant world ground Y elevation of a flat groundStrip (default 0). */
   readonly groundY?: number;
+  /** Rectangular removed/reserved areas [u0, v0, u1, v1]; first `removeCount` are removeArea (trimmable), rest reserveArea. */
+  readonly holes?: readonly (readonly [number, number, number, number])[];
+  readonly removeCount?: number;
+  /** Rolling terrain heightmap sampling parameters (reads shared GPU heightmap texture). */
+  readonly terrain?: GridKernelTerrainInfo;
 }
 
 interface GridData {
@@ -54,22 +69,42 @@ interface GridData {
   closed: boolean;
 }
 
-/** Turns a part's layout into kernel input, or explains why the prototype cannot lay it. */
-export function gridKernelInput(part: ExpandablePart & { readonly key?: string }, slot: number): GridKernelInput {
+/** Turns a part's layout into kernel input, or explains why the kernel cannot lay it. */
+export function gridKernelInput(
+  part: ExpandablePart & { readonly key?: string },
+  slot: number,
+  options?: { readonly groundY?: number; readonly terrain?: GridKernelTerrainInfo }
+): GridKernelInput {
   const unit = part.unit,
     layout = part.layout;
   if (!unit || !layout) throw Error("The part has no layout");
-  if (part.algorithm.type !== "surfaceGrid") throw Error("The prototype lays surfaceGrid parts only");
-  if (part.modifications.length) throw Error("The prototype does not support area modifications yet");
-  if (unit.rotation || unit.position || unit.pivot) throw Error("The prototype needs a centred, unrotated unit");
+  if (part.algorithm.type !== "surfaceGrid") throw Error("Grid kernel lays surfaceGrid parts only");
+  if (unit.rotation || unit.position || unit.pivot) throw Error("Grid kernel needs a centred, unrotated unit");
   const b = unit.bounds;
-  if (!b || b.min.some((v, i) => v !== -b.max[i])) throw Error("The prototype needs bounds centred on the origin");
+  if (!b || b.min.some((v, i) => v !== -b.max[i])) throw Error("Grid kernel needs bounds centred on the origin");
   const entries = layout.data as GridData[];
-  if (entries.length !== 1 || entries[0].closed) throw Error("The prototype lays one open surface");
+  if (entries.length !== 1 || entries[0].closed) throw Error("Grid kernel lays one open surface");
   const e = entries[0];
+  const removes: [number, number, number, number][] = [];
+  const reserves: [number, number, number, number][] = [];
+  for (const mod of part.modifications) {
+    if (mod.element !== e.id) continue;
+    if (mod.op === "removeArea") {
+      if (mod.outline) throw Error("Grid kernel does not support outlined area removals");
+      removes.push([mod.rect[0], mod.rect[1], mod.rect[2], mod.rect[3]]);
+    } else if (mod.op === "reserveArea") {
+      reserves.push([mod.rect[0], mod.rect[1], mod.rect[2], mod.rect[3]]);
+    } else {
+      throw Error(`Grid kernel does not support modification "${mod.op}"`);
+    }
+  }
+  const holes = [...removes, ...reserves];
+  if (holes.length > MAX_GRID_KERNEL_HOLES) {
+    throw Error(`Grid kernel supports at most ${MAX_GRID_KERNEL_HOLES} holes`);
+  }
   const element = part.original.elements[e.id];
   if (element?.kind !== "surface" || element.surface.kind !== "groundStrip")
-    throw Error("The prototype lays groundStrip faces only");
+    throw Error("Grid kernel lays groundStrip faces only");
   const strip = element.surface.params as {
     rectangle: { center: [number, number]; size: [number, number]; rotation: number };
     height: number;
@@ -91,7 +126,10 @@ export function gridKernelInput(part: ExpandablePart & { readonly key?: string }
     rangeMin: [...range.min] as [number, number, number],
     rangeMax: [...range.max] as [number, number, number],
     gap: [params.gap?.[0] ?? 0, params.gap?.[1] ?? 0, params.gapLimit ?? -1, params.trim ? 1 : 0],
-    seedState
+    seedState,
+    ...(options?.groundY !== undefined ? { groundY: options.groundY } : {}),
+    ...(holes.length > 0 ? { holes, removeCount: removes.length } : {}),
+    ...(options?.terrain ? { terrain: options.terrain } : {})
   };
 }
 

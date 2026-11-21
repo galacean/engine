@@ -27,16 +27,16 @@ function retain(key: string, map: PlanningAlphamap): void {
   if (surfaces.size > 2) surfaces.delete(surfaces.keys().next().value!);
 }
 /** Rasterize semantic areas once per snapshot; never alter height or geometry. Water wins over roads, then soil, then grass. */
-export function planningAlphamap(plan: IslandPlan): PlanningAlphamap {
+export function planningAlphamap(plan: IslandPlan, includeSdf = false): PlanningAlphamap {
   const saved = cache.get(plan);
-  if (saved) {
+  if (saved && (!includeSdf || saved.sdf.length > 0)) {
     retain(snapshotKeys.get(plan)!, saved);
     return saved;
   }
   const key = surfaceKey(plan);
   snapshotKeys.set(plan, key);
   const shared = surfaces.get(key);
-  if (shared) {
+  if (shared && (!includeSdf || shared.sdf.length > 0)) {
     cache.set(plan, shared);
     return shared;
   }
@@ -170,17 +170,21 @@ export function planningAlphamap(plan: IslandPlan): PlanningAlphamap {
   const weights = new Uint8Array(size * 4),
     riverBedCoverage = new Uint8Array(size),
     coverage = new Uint8Array(size),
-    sdf = new Uint8Array(size * 4);
+    sdf = includeSdf ? new Uint8Array(size * 4) : new Uint8Array(0);
   const blend = (d: number) => surfaceTransitionWeight(d, -1, 1);
   for (let i = 0; i < size; i++) {
-    sdf[i * 4] = Math.round(((soil[i] / range) * 0.5 + 0.5) * 255);
-    sdf[i * 4 + 1] = Math.round(((water[i] / range) * 0.5 + 0.5) * 255);
-    sdf[i * 4 + 3] = 255;
+    const sByte = Math.round(((soil[i] / range) * 0.5 + 0.5) * 255);
+    const wByte = Math.round(((water[i] / range) * 0.5 + 0.5) * 255);
+    if (includeSdf) {
+      sdf[i * 4] = sByte;
+      sdf[i * 4 + 1] = wByte;
+      sdf[i * 4 + 3] = 255;
+    }
     coverage[i] = Math.round(blend(landField[i]) * 255);
     if (!coverage[i]) continue;
     riverBedCoverage[i] = Math.round(blend(river[i] - PLANNING_RIVER_BED_BANK_EXTENSION_METRES) * 255);
-    const w = blend(((sdf[i * 4 + 1] / 255) * 2 - 1) * range),
-      d = blend(((sdf[i * 4] / 255) * 2 - 1) * range) * (1 - w);
+    const w = blend(((wByte / 255) * 2 - 1) * range),
+      d = blend(((sByte / 255) * 2 - 1) * range) * (1 - w);
     weights[i * 4 + 2] = Math.round(w * 255);
     weights[i * 4 + 1] = Math.min(255 - weights[i * 4 + 2], Math.round(d * 255));
     weights[i * 4] = 255 - weights[i * 4 + 1] - weights[i * 4 + 2];
@@ -226,7 +230,8 @@ function surfaceKey(plan: IslandPlan): string {
 /** Adopt immutable worker raster data without repainting polygons on the UI thread. */
 export function adoptPlanningAlphamap(plan: IslandPlan, data: PlanningAlphamap): PlanningAlphamap {
   const key = surfaceKey(plan),
-    map = surfaces.get(key) ?? data;
+    existing = surfaces.get(key),
+    map = existing && existing.sdf.length >= data.sdf.length ? existing : data;
   cache.set(plan, map);
   snapshotKeys.set(plan, key);
   retain(key, map);

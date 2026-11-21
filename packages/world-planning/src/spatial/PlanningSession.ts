@@ -10,7 +10,6 @@ import {
 import { tryRevealSpatialWorld } from "./layout/SpatialWorld";
 import { refreshSpatialInstanceInputs, tryEditSpatialInstances } from "./layout/SpatialInstanceEdits";
 import { inheritPlanningHeightmap } from "../semantic-study/PlanningHeightmap";
-import { inheritPlanningQueryData } from "./PlanningQueryDataOwner";
 import { planningWaterCreation, type PlanningWaterCreation } from "./PlanningWaterAuthoring";
 import { awaitPlanningPreparation } from "./PlanningPreparationCancellation";
 import { isRockFormationOnlyEdit, prepareRockFormationEdit } from "../integrations/terrain/rock-formation/Edit.ts";
@@ -399,10 +398,7 @@ export class PlanningSession {
     // checks in the published result, but do not rebuild the scene for them.
     const worldUnchanged =
       !baseline.outOfSync && !!baseline.result && samePlanningRenderState(baseline.result.plan, result.plan);
-    const detached = structuredClone(result);
-    inheritPlanningHeightmap(detached.plan, result.plan);
-    inheritPlanningQueryData(detached.plan, result.plan);
-    return this.options.preparePublication(structuredClone(document), detached, {
+    return this.options.preparePublication(structuredClone(document), result, {
       previousDocument: baseline.document,
       forceFull: baseline.outOfSync,
       worldUnchanged,

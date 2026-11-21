@@ -131,10 +131,7 @@ function createSurfaceRainRippleNormalAtlas(engine: Engine): Texture2D {
   return texture;
 }
 
-let cachedRippleAtlasPixels: Uint8Array | undefined;
-
 function buildRippleNormalAtlasPixels(): Uint8Array {
-  if (cachedRippleAtlasPixels) return cachedRippleAtlasPixels;
   const pixels = new Uint8Array(RIPPLE_ATLAS_SIZE * RIPPLE_ATLAS_SIZE * 4);
   const frameCount = RIPPLE_ATLAS_COLUMNS * RIPPLE_ATLAS_ROWS;
   const dropCount = RIPPLE_DROPS.length;
@@ -198,7 +195,6 @@ function buildRippleNormalAtlasPixels(): Uint8Array {
       }
     }
   }
-  cachedRippleAtlasPixels = pixels;
   return pixels;
 }
 

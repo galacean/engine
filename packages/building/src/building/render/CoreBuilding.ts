@@ -33,7 +33,7 @@ import type { BuildingPaletteSlot } from "../runtime/BuildingGlobals";
 import type { ConstructionGrounding } from "../runtime/TerrainField";
 import type { ConstructionUnitRole } from "../runtime/ConstructionUnitRender";
 import type { SupportCell } from "../runtime/PlacementSupport";
-import { gridKernelInput } from "./GridUnitKernelInput";
+import { gridKernelInput, type GridKernelTerrainInfo } from "./GridUnitKernelInput";
 import type { BrickFeedbackSource } from "../runtime/BrickPackKernel";
 import type { MaterialUnit } from "../runtime/UnitPlacementStyle";
 import {
@@ -1933,29 +1933,58 @@ function emptyUnits() {
   };
 }
 
-function packBrickFeedbackSource(binding: CoreBinding, draw: DrawPlan, slot: number): BrickFeedbackSource {
+function packBrickFeedbackSource(
+  binding: CoreBinding,
+  draw: DrawPlan,
+  slot: number,
+  terrainInfo?: GridKernelTerrainInfo
+): BrickFeedbackSource {
   if (
     binding.parts.length === 1 &&
     draw.cells.length > 0 &&
     binding.parts[0].units.length === draw.cells.length &&
-    !binding.parts[0].part.modifications.length &&
     binding.parts[0].part.algorithm.type === "surfaceGrid"
   ) {
     const { part, units } = binding.parts[0];
-    const chart = chartOf(part);
-    const flat = !chart || chart.points.every((pt) => Math.abs(pt[1] - chart.minGround) < 1e-5);
-    if (flat && units.every((u) => !u.params?.deformation && !u.params?.flags && !u.params?.accent)) {
-      try {
-        const grid = gridKernelInput(part as Parameters<typeof gridKernelInput>[0], slot);
-        if (grid.count === units.length) {
-          return {
-            kind: "grid",
-            count: grid.count,
-            grid: { ...grid, groundY: chart?.minGround ?? 0 }
-          };
+    if (units.every((u) => !u.params?.deformation && !u.params?.flags && !u.params?.accent)) {
+      let gridOptions: { readonly groundY?: number; readonly terrain?: GridKernelTerrainInfo } | undefined;
+      if (terrainInfo) {
+        gridOptions = { terrain: terrainInfo };
+      } else {
+        // Without heightmap metadata (e.g. custom function terrain or rock-supported walls),
+        // only use flat grid mode when every laid unit shares one constant ground elevation.
+        let flatGroundY: number | undefined;
+        let isConstantGround = true;
+        for (const u of units) {
+          const uv = u.params?.uv as readonly [number, number] | undefined;
+          if (!uv || !Number.isFinite(uv[1])) {
+            isConstantGround = false;
+            break;
+          }
+          const gy = u.frame.origin[1] - uv[1];
+          if (flatGroundY === undefined) flatGroundY = gy;
+          else if (Math.abs(gy - flatGroundY) > 1e-4) {
+            isConstantGround = false;
+            break;
+          }
         }
-      } catch {
-        // Fall through to TransformFeedback packer if surface is non-groundStrip.
+        if (isConstantGround && flatGroundY !== undefined) {
+          gridOptions = { groundY: flatGroundY };
+        }
+      }
+      if (gridOptions) {
+        try {
+          const grid = gridKernelInput(part as Parameters<typeof gridKernelInput>[0], slot, gridOptions);
+          if (grid.count >= units.length) {
+            return {
+              kind: "grid",
+              count: grid.count,
+              grid
+            };
+          }
+        } catch {
+          // Fall through to TransformFeedback packer if surface is non-groundStrip or exceeds hole limits.
+        }
       }
     }
   }
@@ -2004,7 +2033,12 @@ export async function coreBuildingRenderInput(
   layout: CoreBuildingLayout,
   view: CoreBuildingView = coreBuildingView(layout),
   assets?: BuildingUnitAssets,
-  options?: { feedbackGrid?: boolean; activeMaterialsOnly?: boolean; omitEmptyCells?: boolean }
+  options?: {
+    feedbackGrid?: boolean;
+    activeMaterialsOnly?: boolean;
+    omitEmptyCells?: boolean;
+    terrainInfo?: GridKernelTerrainInfo;
+  }
 ): Promise<BuildingRenderInput> {
   hydrateCoreBuildingLayout(layout);
   const groups: BuildingUnitDrawGroup[] = [];
@@ -2062,7 +2096,7 @@ export async function coreBuildingRenderInput(
           ...(useBrickFeedback
             ? {
                 materialUnits: ["brick" as const],
-                brickFeedback: packBrickFeedbackSource(binding, draw, owner.slot)
+                brickFeedback: packBrickFeedbackSource(binding, draw, owner.slot, options?.terrainInfo)
               }
             : activeMaterialsOnly
               ? { materialUnits: [binding.material] }

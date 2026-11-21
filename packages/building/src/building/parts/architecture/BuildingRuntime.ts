@@ -99,6 +99,11 @@ function localCandidate(
       signal.throwIfAborted();
       return compileBuildingCpu(prepared);
     },
+    preview: async (signal) => {
+      if (disposed) throw Error("Building compilation snapshot disposed");
+      signal.throwIfAborted();
+      return prepareBuildingOnGround(draft, { height, grounding }, assets).preview;
+    },
     dispose: () => {
       disposed = true;
     }
@@ -886,6 +891,7 @@ export class BuildingRuntime extends Script {
       const { preview: geometry, occupancy: occupancyData } = candidate;
       check();
       const occupancy = BuildingOccupancyQuery.fromSnapshot(occupancyData!);
+      const cpuHandle = cpu;
       distance = await createBuildingDistanceView(
         this.engine,
         frame,
@@ -897,7 +903,10 @@ export class BuildingRuntime extends Script {
         assets,
         this.host!.camera,
         signal,
-        { unifiedGlobalProxy: true }
+        {
+          unifiedGlobalProxy: true,
+          loadPreview: cpuHandle.preview ? (s) => cpuHandle.preview!(s) : undefined
+        }
       );
       markGeneratedBuildingOutput(distance.root);
       distance.root.isActive = false;
@@ -1080,6 +1089,7 @@ export class BuildingRuntime extends Script {
           parent: view.frame,
           camera: this.host!.camera,
           signal: build.controller.signal,
+          terrainGrid: input.terrain?.grid,
           rigidDecorations: rigidBindings(input.bindings)
         });
         markGeneratedBuildingOutput(fine.runtime.root);
@@ -1106,6 +1116,7 @@ export class BuildingRuntime extends Script {
         }
         fine.runtime.setEntrance(view.entranceStates);
         view.fine = fine;
+        view.view.releasePendingGeometry?.();
         fine = undefined;
         view.error = undefined;
         view.retryAt = undefined;
@@ -1524,6 +1535,7 @@ export class BuildingRuntime extends Script {
             parent: warmupRoot,
             camera: this.host!.camera,
             signal: controller.signal,
+            terrainGrid: input.terrain?.grid,
             rigidDecorations: rigidBindings(input.bindings)
           });
           if (cleanedUp) {
@@ -1550,6 +1562,9 @@ export class BuildingRuntime extends Script {
           details.length = 0;
           for (const entry of warmedFarEntries) {
             if (!entry.fine && entry.lod === 2) entry.view.releaseDetailedVisual?.();
+          }
+          for (const entry of this.entries) {
+            entry.view.releasePendingGeometry?.();
           }
           warmedFarEntries.length = 0;
           if (!warmupRoot.destroyed) warmupRoot.destroy();

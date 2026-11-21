@@ -128,4 +128,53 @@ describe("BrickUnitLod finite bounds validation", () => {
     expect(Number.isFinite(parsed.bounds[3])).toBe(true);
     expect(Number.isFinite(parsed.cullRadius[0])).toBe(true);
   });
+
+  it("applies holes and rolling heightmap sampling in brickFeedbackLodBounds grid mode", () => {
+    // 2x2 heightmap sloping from 0m (x=0) to 10m (x=10)
+    const terrainGrid = {
+      samples: new Uint16Array([0, 65535, 0, 65535]),
+      resolution: 2,
+      origin: [0, 0] as [number, number],
+      size: 10,
+      decode: { offset: 0, scale: 10 }
+    };
+    const parsed = brickFeedbackLodBounds(
+      {
+        kind: "grid",
+        count: 4,
+        grid: {
+          columns: [4, 0, 0, 4],
+          oddEnd: 4,
+          grid: [1, 1, 0, 0],
+          bounds: [0, 4, 0, 1],
+          strip: [5, 5, 1, 0],
+          length: 4,
+          gap: [0, 0, -1, 1],
+          nominal: [1, 1, 0.2],
+          rangeMin: [0.25, 0.25, 0.5],
+          rangeMax: [2, 2, 2],
+          holes: [[1, 0, 2, 1]],
+          removeCount: 1,
+          terrain: {
+            resolution: 2,
+            origin: [0, 0],
+            size: 10,
+            decode: { offset: 0, scale: 10 },
+            frame: { position: [0, 0, 0], rotationY: 0 }
+          }
+        }
+      },
+      terrainGrid
+    );
+    // Slot 0: x = 5 + (0.5 - 2) = 3.5 -> terrain height 3.5m -> brick center y = 0.5 + 3.5 = 4.0m
+    expect(parsed.bounds[0]).toBeCloseTo(3.5, 5);
+    expect(parsed.bounds[1]).toBeCloseTo(4.0, 5);
+    expect(parsed.cullRadius[0]).toBeGreaterThan(0);
+    // Slot 1: covered completely by hole [1,0,2,1] -> skipped (cullRadius = 0)
+    expect(parsed.cullRadius[1]).toBe(0);
+    // Slot 2: x = 5 + (2.5 - 2) = 5.5 -> terrain height 5.5m -> brick center y = 0.5 + 5.5 = 6.0m
+    expect(parsed.bounds[8]).toBeCloseTo(5.5, 5);
+    expect(parsed.bounds[9]).toBeCloseTo(6.0, 5);
+    expect(parsed.cullRadius[2]).toBeGreaterThan(0);
+  });
 });

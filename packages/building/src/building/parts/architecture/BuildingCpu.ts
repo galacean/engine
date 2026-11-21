@@ -16,6 +16,7 @@ import {
 } from "../../render/CoreBuilding";
 import { groundSupportsInRegion, type ConstructionGrounding } from "../../runtime/TerrainField";
 import type { ConstructionTerrainGrid } from "../../runtime/TerrainField";
+import type { GridKernelTerrainInfo } from "../../render/GridUnitKernelInput";
 import { BuildingOccupancyQuery } from "../../runtime/BuildingOccupancyQuery";
 import type { BuildingUnitAssets } from "../../runtime/BuildingUnitAssets";
 import type { TerrainHeight } from "../../runtime/PublishedWallProfile";
@@ -78,13 +79,25 @@ export function buildingGround(
   frame: BuildingPlacementFrame = { position: [0, 0, 0], rotationY: 0 }
 ) {
   const region = buildingWorldRegion(draft, frame);
-  return prepareBuildingTerrain({ ...terrain, supports: groundSupportsInRegion(terrain, region) }, frame);
+  const supports = groundSupportsInRegion(terrain, region);
+  const prepared = prepareBuildingTerrain({ ...terrain, supports }, frame);
+  const terrainInfo: GridKernelTerrainInfo | undefined =
+    supports.length === 0
+      ? {
+          resolution: terrain.resolution,
+          origin: [terrain.origin[0], terrain.origin[1]],
+          size: terrain.size,
+          decode: { offset: terrain.decode.offset, scale: terrain.decode.scale },
+          frame: { position: [frame.position[0], frame.position[1], frame.position[2]], rotationY: frame.rotationY }
+        }
+      : undefined;
+  return { ...prepared, terrainInfo };
 }
 /** Designs a draft on a ground and prepares the distance view, occupied envelopes, palette
  * and focus poses. The design stays in the result for the later detail. */
 export function prepareBuildingOnGround(
   draft: BuildingCoreDraft,
-  ground: { height: TerrainHeight; grounding: ConstructionGrounding },
+  ground: { height: TerrainHeight; grounding: ConstructionGrounding; terrainInfo?: GridKernelTerrainInfo },
   assets: BuildingUnitAssets,
   options: Pick<BuildingCpuOptions, "requireAllParts"> = {}
 ) {
@@ -132,7 +145,10 @@ export async function compileBuildingCpu(
   const { layout, preview, ground, assets } = prepared;
   try {
     return {
-      renderInput: await coreBuildingRenderInput(layout, preview, assets, options),
+      renderInput: await coreBuildingRenderInput(layout, preview, assets, {
+        ...options,
+        terrainInfo: ground.terrainInfo
+      }),
       grounding: coreBuildingGrounding(layout, preview, ground)
     };
   } finally {

@@ -20,6 +20,8 @@ import {
   type Engine
 } from "@galacean/engine";
 import { GridUnitKernel, type GridKernelInput } from "../render/GridUnitKernel";
+import type { ConstructionTerrainGrid } from "./TerrainField";
+import { restoreResource } from "@galacean/engine-modify/rendering/RestorableResources";
 
 export interface BrickPackFeedbackInput {
   kind: "pack";
@@ -84,10 +86,42 @@ void main() {
 
 const PACK_SHADER_NAME = "Building/BrickPackKernel";
 const VARYINGS = ["result0", "result1", "result2", "result3"];
-const OUT_ELEMENTS = [0, 1, 2, 3].map((i) => new VertexElement(`record${i}`, i * 16, VertexElementFormat.UInt4, 0));
 const IN_ELEMENTS = [0, 1, 2, 3, 4].map((i) => new VertexElement(`a${i}`, i * 16, VertexElementFormat.Vector4, 0));
 const RendererShaderData = ShaderData as unknown as new (group: ShaderDataGroup) => ShaderData;
 const PROP_U_SLOT = ShaderProperty.getByName("uSlot");
+const IS_LITTLE_ENDIAN = new Uint8Array(new Uint16Array([1]).buffer)[0] === 1;
+const terrainHeightTextures = new WeakMap<Engine, { samples: Uint16Array; resolution: number; texture: Texture2D }>();
+
+/** Upload an R16 terrain height grid once per Engine/samples pair as a shared R8G8 GPU Texture2D (zero CPU copy on LE). */
+export function getOrCreateTerrainHeightTexture(engine: Engine, grid: ConstructionTerrainGrid): Texture2D {
+  const cached = terrainHeightTextures.get(engine);
+  if (cached && cached.samples === grid.samples && cached.resolution === grid.resolution && !cached.texture.destroyed) {
+    return cached.texture;
+  }
+  if (cached && !cached.texture.destroyed) {
+    cached.texture.destroy();
+  }
+  const n = grid.resolution;
+  const texture = new Texture2D(engine, n, n, TextureFormat.R8G8, false, false);
+  texture.filterMode = TextureFilterMode.Point;
+  texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Clamp;
+  let bytes: Uint8Array;
+  if (IS_LITTLE_ENDIAN) {
+    bytes = new Uint8Array(grid.samples.buffer, grid.samples.byteOffset, grid.samples.byteLength);
+  } else {
+    bytes = new Uint8Array(grid.samples.length * 2);
+    for (let i = 0; i < grid.samples.length; i++) {
+      const v = grid.samples[i]!;
+      bytes[i * 2] = v & 0xff;
+      bytes[i * 2 + 1] = v >>> 8;
+    }
+  }
+  texture.setPixelBuffer(bytes);
+  restoreResource(texture, () => texture.setPixelBuffer(bytes));
+  texture.isGCIgnored = true;
+  terrainHeightTextures.set(engine, { samples: grid.samples, resolution: n, texture });
+  return texture;
+}
 
 function packKernelPass(): ShaderPass {
   let shader = Shader.find(PACK_SHADER_NAME);
@@ -123,7 +157,11 @@ function uploadGlBufferToTexture(engine: Engine, glBuffer: WebGLBuffer, texture:
 }
 
 /** Generate `storage_0_1` brick Texture2D via GPU TransformFeedback + PBO upload (zero CPU 64B copy, zero readback). */
-export function buildBrickStorageFromFeedback(engine: Engine, source: BrickFeedbackSource): Texture2D {
+export function buildBrickStorageFromFeedback(
+  engine: Engine,
+  source: BrickFeedbackSource,
+  terrainGrid?: ConstructionTerrainGrid
+): Texture2D {
   const count = Math.max(1, source.count);
   const texels = count * 4;
   const width = Math.min(1024, texels);
@@ -134,7 +172,9 @@ export function buildBrickStorageFromFeedback(engine: Engine, source: BrickFeedb
   if (source.count === 0) return texture;
 
   if (source.kind === "grid") {
-    const kernel = new GridUnitKernel(engine, source.grid);
+    const heightMap =
+      source.grid.terrain && terrainGrid ? getOrCreateTerrainHeightTexture(engine, terrainGrid) : undefined;
+    const kernel = new GridUnitKernel(engine, source.grid, heightMap);
     try {
       const binding = kernel.run();
       const glBuffer = (binding.buffer as unknown as { _platformBuffer: { _glBuffer: WebGLBuffer } })._platformBuffer
@@ -147,11 +187,18 @@ export function buildBrickStorageFromFeedback(engine: Engine, source: BrickFeedb
   }
 
   const inputBuf = new Buffer(engine, BufferBindFlag.VertexBuffer, source.data, BufferUsage.Static, false);
-  const simulator = new TransformFeedbackSimulator(engine, OUT_STRIDE, count, packKernelPass(), VARYINGS);
+  const simulator = new TransformFeedbackSimulator(
+    engine,
+    OUT_STRIDE,
+    count,
+    packKernelPass(),
+    VARYINGS,
+    "output-only"
+  );
   const shaderData = new RendererShaderData(ShaderDataGroup.Renderer);
   shaderData.setInt(PROP_U_SLOT, source.slot);
   try {
-    if (!simulator.beginUpdate(shaderData, OUT_ELEMENTS, [new VertexBufferBinding(inputBuf, IN_STRIDE)], IN_ELEMENTS)) {
+    if (!simulator.beginUpdate(shaderData, [], [new VertexBufferBinding(inputBuf, IN_STRIDE)], IN_ELEMENTS)) {
       throw Error("Brick pack TransformFeedback failed to compile");
     }
     try {

@@ -3,7 +3,7 @@ import type { RockFormationMesh, V3 } from "@galacean/engine-terrain/rock-format
 import { rockObbId } from "./Authoring.ts";
 import { ConstructionGroundSupports } from "@galacean/engine-building/building/runtime/ConstructionGroundSupports";
 
-const supportQueries = new WeakMap<RockFormationMesh, { query: ConstructionGroundSupports; bounds: number[] }>();
+const supportQueries = new WeakMap<RockFormationMesh, { query?: ConstructionGroundSupports; bounds: number[] }>();
 
 /** Query the actual immutable rock triangles at their displayed placements.
  * Vegetation and buildings share the native vertical support algorithm; no fitted
@@ -20,17 +20,19 @@ export function rockFormationGround(plan: IslandPlan, formations: readonly RockF
         bounds[2] = Math.max(bounds[2], p[i]);
         bounds[3] = Math.max(bounds[3], p[i + 2]);
       }
-      support = { query: new ConstructionGroundSupports([formation.mesh]), bounds };
+      support = { bounds };
       supportQueries.set(formation, support);
     }
-    return { ...support, origin };
+    return { formation, support, origin };
   });
   return (x: number, z: number, fallback: number): number => {
     let height = fallback;
-    for (const { query, bounds, origin } of surfaces) {
+    for (const { formation, support, origin } of surfaces) {
+      const bounds = support.bounds;
       const px = x - origin[0],
         pz = z - origin[2];
       if (px < bounds[0] || px > bounds[2] || pz < bounds[1] || pz > bounds[3]) continue;
+      const query = (support.query ??= new ConstructionGroundSupports([formation.mesh]));
       height = query.sample(px, pz, height - origin[1]) + origin[1];
     }
     return height;

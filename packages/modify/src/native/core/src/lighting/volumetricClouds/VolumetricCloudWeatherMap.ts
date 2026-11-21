@@ -90,9 +90,7 @@ export const VOLUMETRIC_CLOUD_DEFAULT_WEATHER_SETTINGS: Readonly<VolumetricCloud
  * every texel. Live weather changes therefore remain a single texture lookup.
  */
 export class VolumetricCloudWeatherMap {
-  readonly basis = new Uint8Array(
-    VOLUMETRIC_CLOUD_WEATHER_MAP_WIDTH * VOLUMETRIC_CLOUD_WEATHER_MAP_HEIGHT * WEATHER_MAP_CHANNEL_COUNT
-  );
+  readonly basis: Uint8Array;
   readonly profile: Readonly<VolumetricCloudWeatherMapProfile>;
   readonly seed: number;
 
@@ -104,9 +102,12 @@ export class VolumetricCloudWeatherMap {
     const usesDefaultProfile =
       options.profile === undefined || options.profile === VOLUMETRIC_CLOUD_DEFAULT_WEATHER_MAP_PROFILE;
     if (usesDefaultProfile && seed === VOLUMETRIC_CLOUD_DEFAULT_WEATHER_SEED && defaultBasisCache) {
-      this.basis.set(defaultBasisCache);
+      this.basis = defaultBasisCache;
       return;
     }
+    this.basis = new Uint8Array(
+      VOLUMETRIC_CLOUD_WEATHER_MAP_WIDTH * VOLUMETRIC_CLOUD_WEATHER_MAP_HEIGHT * WEATHER_MAP_CHANNEL_COUNT
+    );
     const profile = this.profile;
     const seedOffset = seed === VOLUMETRIC_CLOUD_DEFAULT_WEATHER_SEED ? 0 : hashSeed(seed);
     for (let y = 0; y < VOLUMETRIC_CLOUD_WEATHER_MAP_HEIGHT; y++) {
@@ -130,7 +131,7 @@ export class VolumetricCloudWeatherMap {
       this.basis[index + 2] = encode(resolveTopClouds(large, fine, resolvedCoverage, profile));
       this.basis[index + 3] = encode(coverageRank);
     }
-    if (usesDefaultProfile && seed === VOLUMETRIC_CLOUD_DEFAULT_WEATHER_SEED) defaultBasisCache = this.basis.slice();
+    if (usesDefaultProfile && seed === VOLUMETRIC_CLOUD_DEFAULT_WEATHER_SEED) defaultBasisCache = this.basis;
   }
 
   /** Pack the Enviro Worley basis into an uploadable RGBA buffer. */

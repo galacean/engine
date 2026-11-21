@@ -278,12 +278,12 @@ function validateAuthoritativePresentationSource(
     [fields.materialWeights.length, cellCount * 4, "material weights"],
     [fields.rockySlopeWeight.length, cellCount, "rocky slope"],
     [fields.waterMask.length, cellCount, "water mask"],
-    [fields.flow.length, cellCount, "flow"],
-    [fields.sediment.length, cellCount, "sediment"],
-    [fields.wetness.length, cellCount, "wetness"],
-    [fields.wetlandWeight.length, cellCount, "wetland weight"],
+    [fields.flow?.length ?? 0, cellCount, "flow"],
+    [fields.sediment?.length ?? 0, cellCount, "sediment"],
+    [fields.wetness?.length ?? 0, cellCount, "wetness"],
+    [fields.wetlandWeight?.length ?? 0, cellCount, "wetland weight"],
     [fields.riverBankDistanceMetres.length, cellCount, "river-bank distance"],
-    [fields.wetlandWaterLevelMetres.length, cellCount, "wetland water level"],
+    [fields.wetlandWaterLevelMetres?.length ?? 0, cellCount, "wetland water level"],
     [fields.habitat.length, cellCount, "habitat"]
   ] as const;
   for (const [actual, expected, label] of expectedLengths) {

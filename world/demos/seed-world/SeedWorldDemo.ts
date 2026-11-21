@@ -190,6 +190,7 @@ import { PlanningSeedScenePublication } from "@galacean/engine-world-planning/sp
 import { createPlanningSeedSolids } from "@galacean/engine-world-planning/spatial/runtime/PlanningSeedSolids";
 import {
   preparePlanningSeedWorldData,
+  stripPlanningTerrainNormalSamples,
   type PlanningSeedWorldData
 } from "@galacean/engine-world-planning/spatial/runtime/PlanningSeedWorldData";
 import { applyPlanningTreeVariations } from "@galacean/engine-world-planning/spatial/runtime/PlanningTreeVariations";
@@ -232,6 +233,25 @@ function waterAgentKnowledge() {
   return createSeedWorldWaterAgentKnowledge(WATER_QUERY_CONTRACTS.map(item => item.name), { includeDigRiver: true });
 }
 
+/** Avoid capturing the 500-line preparation scope Context in long-lived rock/wind callbacks. */
+function bindGrassAppearanceRegistrar(world: SeedWorldTerrainRuntime) {
+  return (material: Parameters<SeedWorldTerrainRuntime["registerGrassAppearanceMaterial"]>[0]) =>
+    world.registerGrassAppearanceMaterial(material);
+}
+
+function createTerrainWindExposure(
+  engine: WebGLEngine,
+  first: SeedWorldTerrainRuntime,
+  readWorld: () => SeedWorldTerrainRuntime | undefined,
+  readRevision: () => number
+) {
+  return new TerrainWindGpuExposureProvider(
+    engine,
+    () => (readWorld() ?? first).clipmap.heightSamplingSource,
+    readRevision
+  );
+}
+
 /** Original Seed scene/HUD/gameplay host. The spatial planner supplies data, never its preview camera. */
 export async function mountSeedWorldDemo(
   handoff?: PlanningWorldHandoff,
@@ -269,6 +289,7 @@ export async function mountSeedWorldDemo(
   let sandstorm: Entity | undefined;
   let mojaveLayout: Entity | undefined;
   const readWorld = () => publication?.current?.world;
+  const readRevision = () => publication?.current?.revision ?? 0;
   const readPublished = () => {
     const current = publication?.current;
     return current
@@ -719,7 +740,7 @@ export async function mountSeedWorldDemo(
     // after planningSource.storage.initialize has fetched its critical manifests without bandwidth contention.
     const prewarmedPopulationResources = preparePlanningPopulationResources(engine);
     void prewarmedPopulationResources.catch(() => {});
-    let prewarmedRasterPlan: IslandPlan | undefined = source.initialPlan;
+    let prewarmedRasterPlan: IslandPlan | undefined = source.takeInitialPlan();
     const hasPlannedBuildings = (prewarmedRasterPlan?.buildings?.length ?? 0) > 0;
     if (hasPlannedBuildings && !disposed && runtimeProject) {
       const leafTypes = new Set(["Mesh", "KTX2", "Texture", "Shader"]);
@@ -1757,25 +1778,33 @@ export async function mountSeedWorldDemo(
           const [, formationMeshes] = await Promise.all([rasterPromise, rocksPromise]);
           // Superseded raster calls resolve undefined; only the request revision decides acceptance.
           signal.throwIfAborted();
-          const nativeData = raster.takeNativeData(prewarmedSource ?? plan);
-          if (!nativeData) throw new Error("Native terrain data was not prepared for this publication");
-          if (prewarmedSource && prewarmedSource !== plan) {
-            adoptPlanningHeightmap(plan, planningHeightmap(prewarmedSource));
-            adoptPlanningAlphamap(plan, planningAlphamap(prewarmedSource));
-            if (plan.parameters.landMode !== "continuous") {
-              adoptPlanningOcean(plan, preparedPlanningOcean(prewarmedSource));
+          // Isolate nativeData/compiledData in a nested block so transient terrainNormalSamples
+          // cannot be promoted into the outer preparation function's shared V8 Context.
+          let terrainNormalSamples: Uint8Array | undefined;
+          let candidateData: PlanningSeedWorldData;
+          {
+            const nativeData = raster.takeNativeData(prewarmedSource ?? plan);
+            if (!nativeData) throw new Error("Native terrain data was not prepared for this publication");
+            if (prewarmedSource && prewarmedSource !== plan) {
+              adoptPlanningHeightmap(plan, planningHeightmap(prewarmedSource));
+              adoptPlanningAlphamap(plan, planningAlphamap(prewarmedSource));
+              if (plan.parameters.landMode !== "continuous") {
+                adoptPlanningOcean(plan, preparedPlanningOcean(prewarmedSource));
+              }
             }
+            const compiledData = timed("preparePlanningSeedWorldData", () =>
+              preparePlanningSeedWorldData(
+                plan,
+                {
+                  height: planningHeightmap(plan),
+                  alpha: planningAlphamap(plan)
+                },
+                nativeData
+              )
+            );
+            terrainNormalSamples = compiledData.terrainNormalSamples;
+            candidateData = stripPlanningTerrainNormalSamples(compiledData);
           }
-          const candidateData = timed("preparePlanningSeedWorldData", () =>
-            preparePlanningSeedWorldData(
-              plan,
-              {
-                height: planningHeightmap(plan),
-                alpha: planningAlphamap(plan)
-              },
-              nativeData
-            )
-          );
           signal.throwIfAborted();
           const cameraPreparationAt = performance.now();
           const playerWorld = {
@@ -1789,7 +1818,7 @@ export async function mountSeedWorldDemo(
           const preparedPlayer = playerState?.prepare(playerWorld, {
             restoreCamera: !initial
           });
-          const groundPopulation = planningNaturalGroundPopulation(
+          let groundPopulation: PlanningSeedWorldData["population"] | undefined = planningNaturalGroundPopulation(
             candidateData.population,
             planningNaturalGrassDensity(library),
             plan
@@ -1862,10 +1891,10 @@ export async function mountSeedWorldDemo(
                 candidateData.plan,
                 runtimeFields,
                 [],
-                groundPopulation,
+                groundPopulation!,
                 candidateData.surfaceIntent,
                 candidateData.terrainSettings,
-                candidateData.terrainNormalSamples,
+                terrainNormalSamples!,
                 SEED_WORLD_SURFACE_LOD_CROSS_FADE_DURATION_SECONDS,
                 undefined,
                 signal,
@@ -1873,6 +1902,8 @@ export async function mountSeedWorldDemo(
                   ? desert.desertSurfaceOptions(plan, result.recipe.parameters.terrainSurface, result.recipe.edits)
                   : result.recipe.parameters.terrainSurface
               );
+              groundPopulation = undefined;
+              terrainNormalSamples = undefined;
               recordBootSpan("SeedWorldTerrainRuntime.create", spanAt);
               signal.throwIfAborted();
               candidate.setSurfaceWaterSsrEnabled(environment!.surfaceWaterSsrRequested);
@@ -1979,7 +2010,7 @@ export async function mountSeedWorldDemo(
                     formations: formationMeshes,
                     sourcePlan: plan,
                     rockColorBlend: readRockFormationSettings(document).colorBlend,
-                    registerGrassAppearance: (material) => candidate!.registerGrassAppearanceMaterial(material)
+                    registerGrassAppearance: bindGrassAppearanceRegistrar(candidate!)
                   })
                 ).then((val) => (candidateSolids = val)),
                 timed("PlanningNaturalVegetationRuntime.create", () =>
@@ -2172,17 +2203,12 @@ export async function mountSeedWorldDemo(
               canvas.dataset.buildingShaderWarmup = JSON.stringify(shaderWarmup);
             signal.throwIfAborted();
             if (!exposure) {
-              const first = candidate!;
-              candidateExposure = new TerrainWindGpuExposureProvider(
-                engine!,
-                () => (readWorld() ?? first).clipmap.heightSamplingSource,
-                () => publication?.current?.revision ?? 0
-              );
+              candidateExposure = createTerrainWindExposure(engine!, candidate!, readWorld, readRevision);
             }
             return {
               authoringRevision: document.revision,
               masonry: candidateMasonry,
-              assertCurrent: () => candidateMasonry!.assertCurrent(),
+              assertCurrent: candidateMasonry!.assertCurrent.bind(candidateMasonry!),
               vegetation: candidateVegetation,
               template: candidateTemplate,
               preparedWater: candidateWater,

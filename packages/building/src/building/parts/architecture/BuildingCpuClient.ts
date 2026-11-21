@@ -18,6 +18,7 @@ export interface BuildingCpuCompileOptions {
 export interface BuildingCpuHandle {
   readonly valid: boolean;
   compile(signal: AbortSignal, options?: BuildingCpuCompileOptions): Promise<BuildingCpuDetail>;
+  preview?(signal: AbortSignal): Promise<BuildingCpuPreview["preview"]>;
   dispose(): void;
 }
 type Lease = { id: number; refs: number };
@@ -26,11 +27,16 @@ type RequestBody = BuildingWorkerRequest extends infer R ? (R extends { id: numb
 interface WorkerSlot {
   worker?: Worker;
   generation: number;
+  /** Incremented on clean idle hibernation (distinct from `generation`, which tracks fault/disposal). */
+  epoch: number;
   inFlight: number;
+  idleTimer?: ReturnType<typeof setTimeout>;
   assets: WeakMap<BuildingUnitAssets, Lease>;
   terrains: WeakMap<ConstructionTerrainGrid, Lease>;
   pending: Map<number, { resolve(value: any): void; reject(error: unknown): void; cleanup(): void }>;
 }
+
+const DEFAULT_IDLE_TERMINATE_MS = 10000;
 
 function defaultMaxBuildingWorkers(): number {
   const cores =
@@ -42,21 +48,26 @@ function defaultMaxBuildingWorkers(): number {
 
 /** Scene-owned Worker service. Handles own solved geometry; cancel/reset/release
  * never publish results. Spawns additional workers lazily (up to maxWorkers) only
- * when multiple buildings compile concurrently so startup fans out across CPU cores. */
+ * when multiple buildings compile concurrently so startup fans out across CPU cores,
+ * and hibernates (terminates) idle workers after `idleTimeoutMs`, transparently
+ * re-hydrating detail/preview requests on demand from lightweight main-thread inputs. */
 export class BuildingCpuClient {
   private readonly maxWorkers: number;
+  private readonly idleTimeoutMs: number;
   private readonly slots: WorkerSlot[] = [];
   private nextId = 0;
   private nextResourceId = 0;
   private closed = false;
 
-  constructor(maxWorkers = defaultMaxBuildingWorkers()) {
+  constructor(maxWorkers = defaultMaxBuildingWorkers(), idleTimeoutMs = DEFAULT_IDLE_TERMINATE_MS) {
     this.maxWorkers = Math.max(1, Math.floor(maxWorkers));
+    this.idleTimeoutMs = Math.max(0, idleTimeoutMs);
   }
 
   private createSlot(): WorkerSlot {
     const slot: WorkerSlot = {
       generation: 0,
+      epoch: 0,
       inFlight: 0,
       assets: new WeakMap(),
       terrains: new WeakMap(),
@@ -64,6 +75,43 @@ export class BuildingCpuClient {
     };
     this.slots.push(slot);
     return slot;
+  }
+
+  private cancelIdleTerminate(slot: WorkerSlot): void {
+    if (slot.idleTimer !== undefined) {
+      clearTimeout(slot.idleTimer);
+      slot.idleTimer = undefined;
+    }
+  }
+
+  private scheduleIdleTerminate(slot: WorkerSlot): void {
+    if (this.closed || this.idleTimeoutMs <= 0 || !slot.worker || slot.inFlight > 0 || slot.pending.size > 0) return;
+    this.cancelIdleTerminate(slot);
+    slot.idleTimer = setTimeout(() => {
+      slot.idleTimer = undefined;
+      this.hibernateSlot(slot);
+    }, this.idleTimeoutMs);
+  }
+
+  private hibernateSlot(slot: WorkerSlot): void {
+    if (this.closed || !slot.worker || slot.inFlight > 0 || slot.pending.size > 0) return;
+    const worker = slot.worker;
+    slot.worker = undefined;
+    slot.epoch++;
+    worker.onmessage = worker.onerror = worker.onmessageerror = null;
+    worker.terminate();
+    slot.assets = new WeakMap();
+    slot.terrains = new WeakMap();
+  }
+
+  private acquireResource<T extends object>(cache: WeakMap<T, Lease>, value: T) {
+    let lease = cache.get(value);
+    if (!lease?.refs) {
+      lease = { id: ++this.nextResourceId, refs: 0 };
+      cache.set(value, lease);
+    }
+    const first = lease.refs++ === 0;
+    return { lease, first };
   }
 
   private pickSlot(): WorkerSlot {
@@ -80,6 +128,7 @@ export class BuildingCpuClient {
   private send<T>(slot: WorkerSlot, body: RequestBody, signal: AbortSignal) {
     signal.throwIfAborted();
     if (this.closed) throw Error("Building compiler disposed");
+    this.cancelIdleTerminate(slot);
     if (!slot.worker) {
       const worker = (slot.worker = new Worker(new URL("./BuildingWorker.ts", import.meta.url), { type: "module" }));
       worker.onmessage = ({ data }: MessageEvent<BuildingWorkerReply>) => {
@@ -91,6 +140,7 @@ export class BuildingCpuClient {
         request.cleanup();
         if (data.ok === true) request.resolve(data.result);
         else request.reject(Error(data.error));
+        this.scheduleIdleTerminate(slot);
       };
       worker.onerror = (e) => {
         if (slot.worker === worker)
@@ -113,6 +163,7 @@ export class BuildingCpuClient {
         }
         signal.removeEventListener("abort", abort);
         reject(signal.reason ?? new DOMException("Cancelled", "AbortError"));
+        this.scheduleIdleTerminate(slot);
       };
       slot.pending.set(id, { resolve, reject, cleanup: () => signal.removeEventListener("abort", abort) });
       signal.addEventListener("abort", abort, { once: true });
@@ -124,6 +175,7 @@ export class BuildingCpuClient {
       // must not reference assets/terrain that the Worker never received.
       slot.pending.get(id)?.cleanup();
       if (slot.pending.delete(id)) slot.inFlight = Math.max(0, slot.inFlight - 1);
+      this.scheduleIdleTerminate(slot);
       throw error;
     }
 
@@ -140,17 +192,9 @@ export class BuildingCpuClient {
     if (this.closed) throw Error("Building compiler disposed");
     const slot = this.pickSlot();
     const generation = slot.generation;
-    const acquire = <T extends object>(cache: WeakMap<T, Lease>, value: T) => {
-      let lease = cache.get(value);
-      if (!lease?.refs) {
-        lease = { id: ++this.nextResourceId, refs: 0 };
-        cache.set(value, lease);
-      }
-      const first = lease.refs++ === 0;
-      return { lease, first };
-    };
-    const asset = acquire(slot.assets, units),
-      ground = acquire(slot.terrains, terrain);
+    const preparedEpoch = slot.epoch;
+    const asset = this.acquireResource(slot.assets, units),
+      ground = this.acquireResource(slot.terrains, terrain);
     let id: number, result: Promise<BuildingCpuPreview>;
     try {
       ({ id, result } = this.send<BuildingCpuPreview>(
@@ -177,10 +221,11 @@ export class BuildingCpuClient {
     const release = () => {
       if (disposed) return;
       disposed = true;
-      asset.lease.refs--;
-      ground.lease.refs--;
-      if (generation === slot.generation)
+      if (generation === slot.generation && preparedEpoch === slot.epoch) {
+        asset.lease.refs = Math.max(0, asset.lease.refs - 1);
+        ground.lease.refs = Math.max(0, ground.lease.refs - 1);
         slot.worker?.postMessage({ mode: "release", token: id } satisfies BuildingWorkerRequest);
+      }
     };
     try {
       const preview = await result;
@@ -195,20 +240,107 @@ export class BuildingCpuClient {
           compile: async (signal, compileOptions) => {
             if (disposed) throw Error("Building compilation snapshot disposed");
             if (!valid()) throw new BuildingWorkerError("Building compilation snapshot expired after Worker failure");
-            const result = await this.send<BuildingCpuDetail>(
-              slot,
-              {
-                mode: "detail",
-                token: id,
-                feedbackGrid: true,
-                workerSlim: true,
-                ...(compileOptions?.omitEmptyCells ? { omitEmptyCells: true } : {})
-              },
-              signal
-            ).result;
+            let detail: BuildingCpuDetail;
+            if (slot.epoch === preparedEpoch && slot.worker) {
+              detail = await this.send<BuildingCpuDetail>(
+                slot,
+                {
+                  mode: "detail",
+                  token: id,
+                  feedbackGrid: true,
+                  workerSlim: true,
+                  ...(compileOptions?.omitEmptyCells ? { omitEmptyCells: true } : {})
+                },
+                signal
+              ).result;
+            } else {
+              // Worker hibernated while idle: transparently re-hydrate detail from lightweight draft/terrain refs.
+              const targetSlot = this.pickSlot();
+              const targetGen = targetSlot.generation;
+              const targetEpoch = targetSlot.epoch;
+              const targetAsset = this.acquireResource(targetSlot.assets, units);
+              const targetGround = this.acquireResource(targetSlot.terrains, terrain);
+              let reqId: number | undefined;
+              let detailPromise: Promise<BuildingCpuDetail>;
+              try {
+                ({ id: reqId, result: detailPromise } = this.send<BuildingCpuDetail>(
+                  targetSlot,
+                  {
+                    mode: "detailFromDraft",
+                    draft,
+                    options,
+                    assetId: targetAsset.lease.id,
+                    terrainId: targetGround.lease.id,
+                    ...(targetAsset.first ? { units } : {}),
+                    ...(targetGround.first ? { terrain } : {}),
+                    feedbackGrid: true,
+                    workerSlim: true,
+                    ...(compileOptions?.omitEmptyCells ? { omitEmptyCells: true } : {})
+                  },
+                  signal
+                ));
+              } catch (err) {
+                targetAsset.lease.refs = Math.max(0, targetAsset.lease.refs - 1);
+                targetGround.lease.refs = Math.max(0, targetGround.lease.refs - 1);
+                throw err;
+              }
+              try {
+                detail = await detailPromise;
+              } finally {
+                if (targetSlot.generation === targetGen && targetSlot.epoch === targetEpoch) {
+                  targetAsset.lease.refs = Math.max(0, targetAsset.lease.refs - 1);
+                  targetGround.lease.refs = Math.max(0, targetGround.lease.refs - 1);
+                  targetSlot.worker?.postMessage({ mode: "release", token: reqId! } satisfies BuildingWorkerRequest);
+                }
+              }
+            }
             signal.throwIfAborted();
             if (!valid()) throw Error("Building compilation snapshot disposed or expired");
-            return result;
+            return detail;
+          },
+          preview: async (signal) => {
+            if (disposed) throw Error("Building compilation snapshot disposed");
+            if (!valid()) throw new BuildingWorkerError("Building compilation snapshot expired after Worker failure");
+            const targetSlot = this.pickSlot();
+            const targetGen = targetSlot.generation;
+            const targetEpoch = targetSlot.epoch;
+            const targetAsset = this.acquireResource(targetSlot.assets, units);
+            const targetGround = this.acquireResource(targetSlot.terrains, terrain);
+            let reqId: number | undefined;
+            let previewPromise: Promise<BuildingCpuPreview>;
+            try {
+              ({ id: reqId, result: previewPromise } = this.send<BuildingCpuPreview>(
+                targetSlot,
+                {
+                  mode: "previewOnly",
+                  draft,
+                  options,
+                  workerSlim: true,
+                  assetId: targetAsset.lease.id,
+                  terrainId: targetGround.lease.id,
+                  ...(targetAsset.first ? { units } : {}),
+                  ...(targetGround.first ? { terrain } : {})
+                },
+                signal
+              ));
+            } catch (err) {
+              targetAsset.lease.refs = Math.max(0, targetAsset.lease.refs - 1);
+              targetGround.lease.refs = Math.max(0, targetGround.lease.refs - 1);
+              throw err;
+            }
+            let res: BuildingCpuPreview;
+            try {
+              res = await previewPromise;
+            } finally {
+              if (targetSlot.generation === targetGen && targetSlot.epoch === targetEpoch) {
+                targetAsset.lease.refs = Math.max(0, targetAsset.lease.refs - 1);
+                targetGround.lease.refs = Math.max(0, targetGround.lease.refs - 1);
+                targetSlot.worker?.postMessage({ mode: "release", token: reqId! } satisfies BuildingWorkerRequest);
+              }
+            }
+            signal.throwIfAborted();
+            if (!valid()) throw Error("Building compilation snapshot disposed or expired");
+            return res.preview;
           },
           dispose: release
         }
@@ -224,6 +356,7 @@ export class BuildingCpuClient {
     for (const slot of this.slots) this.resetSlot(slot, reason);
   }
   private resetSlot(slot: WorkerSlot, reason: unknown) {
+    this.cancelIdleTerminate(slot);
     const worker = slot.worker;
     slot.worker = undefined;
     slot.generation++;

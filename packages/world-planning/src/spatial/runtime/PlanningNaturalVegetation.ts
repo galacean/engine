@@ -591,8 +591,8 @@ interface GroundProjection {
   flowers: string;
   roadEdges: ReadonlyMap<number, RoadEdgeEntry>;
 }
-// Accepted and candidate inputs only; history must not retain an extra dense projection per edit.
-const groundProjections = new Map<SeedWorldPopulationPreview, GroundProjection>();
+// Weakly keyed by immutable source preview so retired projections are garbage-collected automatically.
+const groundProjections = new WeakMap<SeedWorldPopulationPreview, GroundProjection>();
 const GROUND_PREPARATION_SLICE_MILLISECONDS = 12;
 function hashGroundProjectionBlock(bytes: Uint8Array, start: number, hash: number): number {
   const end = Math.min(bytes.length, start + 65536);
@@ -654,9 +654,7 @@ function rememberGroundProjection(
   plan?: IslandPlan
 ): SeedWorldPopulationPreview {
   if (signature) {
-    groundProjections.delete(source);
     groundProjections.set(source, { source, result, signature, flowers: groundFlowerSignature(plan), roadEdges });
-    while (groundProjections.size > 2) groundProjections.delete(groundProjections.keys().next().value!);
   }
   return result;
 }

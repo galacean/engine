@@ -133,6 +133,7 @@ export class MaterialUnitLod {
     for (let k = 0; k < selection.length; k++) {
       const id = selection[k],
         p = id * 4;
+      if (cullRadius && cullRadius[id] <= 0) continue;
       const bx = bounds[p],
         by = bounds[p + 1],
         bz = bounds[p + 2];

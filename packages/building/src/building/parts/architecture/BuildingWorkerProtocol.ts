@@ -8,7 +8,7 @@ export type BuildingCpuDetail = Awaited<ReturnType<typeof compileBuildingCpu>>;
 export type BuildingWorkerRequest =
   | {
       id: number;
-      mode: "preview";
+      mode: "preview" | "previewOnly";
       draft: BuildingDraft;
       assetId: number;
       terrainId: number;
@@ -21,6 +21,19 @@ export type BuildingWorkerRequest =
       id: number;
       mode: "detail";
       token: number;
+      feedbackGrid?: boolean;
+      workerSlim?: boolean;
+      omitEmptyCells?: boolean;
+    }
+  | {
+      id: number;
+      mode: "detailFromDraft";
+      draft: BuildingDraft;
+      assetId: number;
+      terrainId: number;
+      units?: BuildingUnitAssets;
+      terrain?: ConstructionTerrainGrid;
+      options?: BuildingCpuOptions;
       feedbackGrid?: boolean;
       workerSlim?: boolean;
       omitEmptyCells?: boolean;

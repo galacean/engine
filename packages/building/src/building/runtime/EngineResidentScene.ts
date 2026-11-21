@@ -27,6 +27,7 @@ import { WoodUnitLod, GableWoodUnitLod } from "./WoodUnitLod.js";
 import { MaterialUnitLod } from "./MaterialUnitLod.js";
 import { BrickUnitLod } from "./BrickUnitLod.js";
 import { buildBrickStorageFromFeedback, type BrickFeedbackSource } from "./BrickPackKernel";
+import type { ConstructionTerrainGrid } from "./TerrainField";
 
 import { injectConstructionDecorationLighting } from "./ConstructionDecorationLightShader";
 import { injectConstructionRoofClip } from "./ConstructionRoofClipShader";
@@ -437,7 +438,8 @@ export class EngineResidentScene {
     private readonly engine: Engine,
     parent: Entity,
     private asset?: (name: string) => Promise<ArrayBuffer>,
-    private readonly bounds?: { min: number[]; max: number[] }
+    private readonly bounds?: { min: number[]; max: number[] },
+    private readonly terrainGrid?: ConstructionTerrainGrid
   ) {
     this.root = parent.createChild("Masonry");
   }
@@ -1094,7 +1096,7 @@ export class EngineResidentScene {
     const fragment = residentFragment(entrance.fragment);
     const unitSelector = isBrick
       ? d.resources.storage_0_1?.feedbackBrick
-        ? BrickUnitLod.fromFeedback(d.resources.storage_0_1.feedbackBrick)
+        ? BrickUnitLod.fromFeedback(d.resources.storage_0_1.feedbackBrick, this.terrainGrid)
         : new BrickUnitLod(new Uint8Array(await this.asset!(d.resources.storage_0_1.file!)))
       : isWood
         ? new (d.family === "wood-gable" ? GableWoodUnitLod : WoodUnitLod)(
@@ -1140,7 +1142,7 @@ export class EngineResidentScene {
       }
       let texture: Texture2D;
       if (r.feedbackBrick) {
-        texture = this.own(buildBrickStorageFromFeedback(this.engine, r.feedbackBrick));
+        texture = this.own(buildBrickStorageFromFeedback(this.engine, r.feedbackBrick, this.terrainGrid));
         const byteLength = Math.max(1, r.feedbackBrick.count) * 64;
         this.metrics.uploadBytes += byteLength;
         this.metrics.residentBytes += byteLength;

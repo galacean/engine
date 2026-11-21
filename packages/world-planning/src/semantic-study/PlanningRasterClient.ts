@@ -1,6 +1,6 @@
 import type { PreparedSurfaceReliefMask, SeedWorldSurfaceReliefMaskTuning } from "../runtime/SeedWorldSurfaceRelief";
 import { PlanningRasterTransfer, type PlanningRasterPacket } from "./PlanningRasterTransfer";
-import type { PlanningSeedWorldData } from "../spatial/runtime/PlanningSeedWorldData";
+import type { CompiledPlanningSeedWorldData } from "../spatial/runtime/PlanningSeedWorldData";
 import type { IslandPlan } from "./IslandPlanModel";
 import { adoptPlanningHeightmap, cachedPlanningHeightmap } from "./PlanningHeightmap";
 import { adoptPlanningAlphamap } from "./PlanningAlphamap";
@@ -8,7 +8,7 @@ import { adoptPlanningOcean } from "./PlanningOceanSource";
 interface RasterResult {
   id: number;
   raster: PlanningRasterPacket;
-  nativeData?: PlanningSeedWorldData;
+  nativeData?: CompiledPlanningSeedWorldData;
   surfaceRelief?: PreparedSurfaceReliefMask;
   elapsedMs: number;
   error?: string;
@@ -19,7 +19,7 @@ export class PlanningRasterClient {
   private rasters = new PlanningRasterTransfer();
   private baseId?: number;
   private sequence = 0;
-  private nativeData = new WeakMap<IslandPlan, PlanningSeedWorldData>();
+  private nativeData = new WeakMap<IslandPlan, CompiledPlanningSeedWorldData>();
   /** Consume detached native data only after the matching request has completed. */
   takeNativeData(plan: IslandPlan) {
     const value = this.nativeData.get(plan);

@@ -3,6 +3,7 @@ import { buildingAssets, retainBuildingResource } from "../../resources/Building
 import { EngineResidentScene } from "../../runtime/EngineResidentScene";
 import { buildBuildingRenderPackage, type BuildingRenderInput } from "../../runtime/BuildingRenderPackage";
 import { buildingGlobals } from "../../runtime/BuildingGlobals";
+import type { ConstructionTerrainGrid } from "../../runtime/TerrainField";
 
 /** Rendering is shared with dev/2.0: same assets, shaders, clip ABI and tile feedback. */
 export async function renderBuilding(
@@ -13,6 +14,7 @@ export async function renderBuilding(
     assets: PrefabResource;
     signal: AbortSignal;
     bounds?: { min: number[]; max: number[] };
+    terrainGrid?: ConstructionTerrainGrid;
     rigidDecorations?: { poses: ReadonlyMap<string, readonly number[]>; resolve(id: string): Entity | undefined };
     releasePackageAfterApply?: boolean;
   }
@@ -32,7 +34,7 @@ export async function renderBuilding(
       library.compilation.stoneGeometry,
       slim ? { skipDocumentClone: true } : undefined
     );
-    runtime = new EngineResidentScene(parent.engine, parent, built.asset, options.bounds);
+    runtime = new EngineResidentScene(parent.engine, parent, built.asset, options.bounds, options.terrainGrid);
     runtime.root.isActive = false;
     await runtime.load(built.package);
     if (options.rigidDecorations) runtime.bindRigidDecorations(options.rigidDecorations.resolve);
