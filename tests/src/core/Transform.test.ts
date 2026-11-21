@@ -49,6 +49,35 @@ describe("Transform test", function () {
     expect(transform.lossyWorldScale).to.deep.equal(new Vector3(4, 15, 12));
   });
 
+  it("updates child world scale after a parent position and scale edit following a child read", () => {
+    const parent = scene.createRootEntity("scale parent");
+    const child = parent.createChild("scale child");
+    // Reading only the child must not leave the parent's world scale dirty
+    expect(child.transform.lossyWorldScale.x).to.equal(1);
+
+    parent.transform.position.set(4, 0, 0);
+    parent.transform.setScale(2, 1, 1);
+    expect(child.transform.lossyWorldScale.x).to.equal(2);
+    expect(child.transform.worldPosition.x).to.equal(4);
+    parent.destroy();
+  });
+
+  it("updates child world scale after a parent rotation and scale edit following a child read", () => {
+    const parent = scene.createRootEntity("rotated scale parent");
+    parent.transform.setScale(2, 2, 2);
+    const child = parent.createChild("rotated scale child");
+    expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(2, 2, 2));
+
+    // A uniformly scaled parent rotation does not notify children of a scale change
+    parent.transform.setRotation(0, 90, 0);
+    parent.transform.setScale(3, 3, 3);
+    const scale = child.transform.lossyWorldScale;
+    expect(scale.x).to.be.closeTo(3, 1e-6);
+    expect(scale.y).to.be.closeTo(3, 1e-6);
+    expect(scale.z).to.be.closeTo(3, 1e-6);
+    parent.destroy();
+  });
+
   it("Parent Dirty", () => {
     const root1 = scene.createRootEntity();
     const root2 = scene.createRootEntity();

@@ -231,7 +231,10 @@ export class Transform extends Component implements ICloneHook<Transform> {
    */
   get lossyWorldScale(): Vector3 {
     if (this._isContainDirtyFlag(TransformModifyFlags.WorldScale)) {
-      if (this._getParentTransform()) {
+      const parent = this._getParentTransform();
+      if (parent) {
+        // Clean the ancestors' scale first: an ancestor scale edit skips notifying children while its own flag is dirty
+        parent.lossyWorldScale;
         // Vector3 cannot be used to correctly represent the scaling. Must use Matrix3x3
         const scaleMat = this._getScaleMatrix();
         const e = scaleMat.elements;
