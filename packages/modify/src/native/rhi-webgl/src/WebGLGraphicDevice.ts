@@ -109,6 +109,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   _currentBindShaderProgram: IPlatformShaderProgram | null;
   /** @internal */
   _currentBindVAO: WebGLVertexArrayObject | null = null;
+  /** @internal */
+  _currentDrawFrameBuffer: WebGLFramebuffer | null = null;
 
   /** @internal */
   readonly _options: WebGLGraphicDeviceOptions;
@@ -441,9 +443,56 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     gl.clear(clearFlag);
   }
 
-  invalidateRenderTarget(renderTarget: RenderTarget | null, clearFlags: CameraClearFlags): void {
+  /** @internal */
+  _bindFramebuffer(target: GLenum, framebuffer: WebGLFramebuffer | null): void {
+    const gl = this._gl;
+    gl.bindFramebuffer(target, framebuffer);
+    if (target === gl.FRAMEBUFFER || (this._isWebGL2 && target === (<WebGL2RenderingContext>gl).DRAW_FRAMEBUFFER)) {
+      this._currentDrawFrameBuffer = framebuffer;
+    }
+  }
+
+  invalidateRenderTarget(
+    renderTarget: RenderTarget | null,
+    clearFlags: CameraClearFlags,
+    fullTargetOnly: boolean = false,
+    mipLevel: number = 0
+  ): void {
     if (!this._isWebGL2 || clearFlags === CameraClearFlags.None) {
       return;
+    }
+    let expectedFBO: WebGLFramebuffer | null;
+    if (renderTarget) {
+      expectedFBO = (renderTarget._platformRenderTarget as GLRenderTarget)._getActiveDrawFrameBuffer();
+      if (!expectedFBO) {
+        return;
+      }
+    } else {
+      expectedFBO = this._mainFrameBuffer;
+    }
+    if (this._currentDrawFrameBuffer !== expectedFBO) {
+      return;
+    }
+    if (fullTargetOnly) {
+      const targetWidth =
+        renderTarget !== null ? Math.max(1, renderTarget.width >> mipLevel) : this.getMainFrameBufferWidth();
+      const targetHeight =
+        renderTarget !== null ? Math.max(1, renderTarget.height >> mipLevel) : this.getMainFrameBufferHeight();
+      const viewport = this._lastViewport;
+      if (viewport.x !== 0 || viewport.y !== 0 || viewport.z !== targetWidth || viewport.w !== targetHeight) {
+        return;
+      }
+      if (this._scissorEnable) {
+        const scissor = this._lastScissor;
+        if (
+          scissor.x > 0 ||
+          scissor.y > 0 ||
+          scissor.x + scissor.z < targetWidth ||
+          scissor.y + scissor.w < targetHeight
+        ) {
+          return;
+        }
+      }
     }
     if (renderTarget) {
       (renderTarget._platformRenderTarget as GLRenderTarget).invalidateRenderTarget(clearFlags);
@@ -491,7 +540,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       bufferHeight = Math.max(1, renderTarget.height >> mipLevel!);
     } else {
       const gl = this._gl;
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this._mainFrameBuffer);
+      this._bindFramebuffer(gl.FRAMEBUFFER, this._mainFrameBuffer);
       bufferWidth = this.getMainFrameBufferWidth();
       bufferHeight = this.getMainFrameBufferHeight();
     }
@@ -534,7 +583,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     const needBlitStencil = (clearFlags & CameraClearFlags.Stencil) === 0;
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, srcFrameBuffer);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, destFrameBuffer);
+    this._bindFramebuffer(gl.DRAW_FRAMEBUFFER, destFrameBuffer);
 
     let blitMask = needBlitColor ? gl.COLOR_BUFFER_BIT : 0;
 
@@ -592,7 +641,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     // @ts-ignore
     const frameBuffer = srcRT?._platformRenderTarget._frameBuffer ?? this._mainFrameBuffer;
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+    this._bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
 
     const glTexture = grabTexture._platformTexture as GLTexture;
 
@@ -656,6 +705,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._enableGlobalDepthBias = false;
     this._currentBindShaderProgram = null;
     this._currentBindVAO = null;
+    this._currentDrawFrameBuffer = null;
 
     const activeTextures = this._activeTextures;
     for (let i = 0, n = activeTextures.length; i < n; i++) {

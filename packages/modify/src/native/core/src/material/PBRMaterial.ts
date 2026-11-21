@@ -1,10 +1,11 @@
 import { Color, MathUtil, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Logger } from "../base";
-import { ShaderMacro, ShaderProperty } from "../shader";
+import { ShaderData, ShaderMacro, ShaderProperty } from "../shader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Texture2D } from "../texture/Texture2D";
 import { BaseMaterial } from "./BaseMaterial";
+import { Material } from "./Material";
 import { RefractionMode } from "./enums/Refraction";
 import { TextureCoordinate } from "./enums/TextureCoordinate";
 
@@ -25,6 +26,8 @@ export class PBRMaterial extends BaseMaterial {
   private static _metallicProp = ShaderProperty.getByName("material_Metal");
   private static _roughnessProp = ShaderProperty.getByName("material_Roughness");
   private static _roughnessMetallicTextureProp = ShaderProperty.getByName("material_RoughnessMetallicTexture");
+  private static _hasRoughnessTexMacro = ShaderMacro.getByName("MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE");
+  private static _enableClearCoatMacro = ShaderMacro.getByName("MATERIAL_ENABLE_CLEAR_COAT");
 
   private static _iorProp = ShaderProperty.getByName("material_IOR");
 
@@ -810,6 +813,29 @@ export class PBRMaterial extends BaseMaterial {
   }
 
   /**
+   * @internal
+   */
+  static _isRoughnessEligibleForSSR(shaderData: ShaderData, maxRoughness: number): boolean {
+    const macros = shaderData._macroCollection;
+    if (!macros.isEnable(PBRMaterial._hasRoughnessTexMacro) && !macros.isEnable(PBRMaterial._enableClearCoatMacro)) {
+      const roughness = shaderData.getFloat(PBRMaterial._roughnessProp);
+      if (roughness !== undefined && roughness >= maxRoughness) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * @internal
+   */
+  override _canReceiveScreenSpaceReflection(maxRoughness: number): boolean {
+    return (
+      this.screenSpaceReflectionIntensity > 0 && PBRMaterial._isRoughnessEligibleForSSR(this.shaderData, maxRoughness)
+    );
+  }
+
+  /**
    * @inheritdoc
    */
   override clone(): PBRMaterial {
@@ -837,3 +863,5 @@ export class PBRMaterial extends BaseMaterial {
     }
   }
 }
+
+Material._pbrSSREligibilityChecker = PBRMaterial._isRoughnessEligibleForSSR;

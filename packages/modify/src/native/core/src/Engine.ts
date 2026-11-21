@@ -86,8 +86,6 @@ export class Engine extends EventDispatcher {
   /** @internal */
   _renderTargetPool: RenderTargetPool;
   /** @internal */
-  _activeSSRPasses: { _sweepIfIdle(frameCount: number): void }[] = [];
-  /** @internal */
   _lastRenderState: RenderState = new RenderState();
 
   /** @internal */
@@ -394,13 +392,6 @@ export class Engine extends EventDispatcher {
     }
 
     this._renderTargetPool.trim();
-    const ssrPasses = this._activeSSRPasses;
-    if (ssrPasses.length > 0) {
-      const frameCount = this.time.frameCount;
-      for (let i = ssrPasses.length - 1; i >= 0; i--) {
-        ssrPasses[i]._sweepIfIdle(frameCount);
-      }
-    }
 
     // Process pending destroys
     this._processPendingDestroyObjects();
@@ -526,7 +517,7 @@ export class Engine extends EventDispatcher {
 
     this.inputManager._destroy();
     this._batcherManager.destroy();
-    this._renderTargetPool.gc();
+    this._renderTargetPool.destroy();
     this.xrManager?._destroy();
     this.dispatch(EngineEventType.Shutdown, this);
 

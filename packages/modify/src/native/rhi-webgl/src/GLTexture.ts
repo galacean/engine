@@ -691,7 +691,7 @@ export class GLTexture implements IPlatformTexture {
     const gl = this._gl;
     const { baseFormat, dataType, readFormat, readType, alignment } = this._formatDetail;
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
+    this._rhi._bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
 
     if (mipLevel > 0 && !this._isWebGL2) {
       mipLevel = 0;
@@ -714,7 +714,7 @@ export class GLTexture implements IPlatformTexture {
     // Base format is different from read format in webgl1.0 with sRGB
     gl.readPixels(x, y, width, height, readFormat ?? baseFormat!, readType ?? dataType!, out);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this._rhi._bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
   private _isFloat32Format(format: TextureFormat): boolean {

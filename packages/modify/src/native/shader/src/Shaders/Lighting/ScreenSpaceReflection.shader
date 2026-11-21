@@ -231,12 +231,14 @@ Shader "Lighting/ScreenSpaceReflection" {
       highp sampler2D material_SSRNormalRoughnessTexture;
       highp sampler2D material_SSRReceiverDepthTexture;
       highp sampler2D material_SSRPrevColorPyramidTexture;
-      highp sampler2D material_SSRPrevTraceDepthTexture;
 
       mat4 camera_SSRInvProjMat;
-      mat4 camera_SSRInvViewMat;
-      mat4 camera_SSRPrevVPMat;
-      vec4 camera_SSRPrevViewZRow;
+      #ifndef SSR_CURRENT_FRAME_COLOR
+        highp sampler2D material_SSRPrevTraceDepthTexture;
+        mat4 camera_SSRInvViewMat;
+        mat4 camera_SSRPrevVPMat;
+        vec4 camera_SSRPrevViewZRow;
+      #endif
 
       vec4 material_SSRTraceTexelSize;     // 1/w, 1/h, w, h
       vec4 material_SSRColorPyramidInfo;  // x: maxColorMip, y: colorW, z: colorH, w: frameJitter
@@ -354,16 +356,12 @@ Shader "Lighting/ScreenSpaceReflection" {
         float zOverW1 = mix(zOverW0, rayEndVS.z / endCS.w, clipFrac);
         float q0 = -zOverW0;
         float q1 = -zOverW1;
+        float qDelta = q1 - q0;
+        float invWDelta = invW1 - invW0;
 
         float dfPerPx = 1.0 / max(totalPx, 1.0);
         float jitter = interleavedGradientNoise(gl_FragCoord.xy + vec2(material_SSRColorPyramidInfo.w));
-        float f = min(dfPerPx * (1.0 + jitter * 0.25), 0.999);
-
-        vec2 dirSign = step(vec2(0.0), dirUV);
-
         int maxSteps = int(material_SSRMaxSteps);
-        int maxMip = int(material_SSRHiZMaxMip);
-        int mip = 0;
         float thicknessFloor = material_SSRTraceSettings.y;
 
         bool hit = false;
@@ -371,171 +369,273 @@ Shader "Lighting/ScreenSpaceReflection" {
         float hitSceneDepth = farClip;
         float hitEffThickness = thicknessFloor;
 
-        int fgBlockCount = 0;
-        int stepsUsed = 0;
-        bool escapeToLinear = false;
-        float prevLinearF = f;
-        float prevLinearDiff = -1.0;
+        #ifdef SSR_LINEAR_TRACE
+          // Near-dense, far-sparse mip-0 linear trace (0 Hi-Z build passes) + 4-step binary refinement
+          float fSteps = max(float(maxSteps), 1.0);
+          float fStart = min(dfPerPx * (1.0 + jitter * 0.5), 0.999);
+          float fSpan = 1.0 - fStart;
+          float prevF = fStart;
+          float prevRayZ = (q0 + qDelta * fStart) / max(invW0 + invWDelta * fStart, EPSILON);
+          float prevDiff = -1.0;
+          int binaryRefines = 0;
 
-        // Stage 1: Conservative Hi-Z traversal. If the ray is repeatedly trapped behind a
-        // foreground occluder (e.g. thin foreground tree branches dilating coarse min-depth tiles),
-        // break out and finish with remaining budget in Stage 2 without branch divergence here.
-        for (int i = 0; i < 64; ++i) {
-          if (i >= maxSteps || f >= 1.0) {
-            break;
-          }
-          stepsUsed = i + 1;
+          for (int i = 0; i < 64; ++i) {
+            if (i >= maxSteps) {
+              break;
+            }
+            float u = (float(i) + 0.25 + jitter * 0.75) / fSteps;
+            float f = (totalPx <= fSteps) ? min(1.0, fStart + float(i) * dfPerPx) : min(1.0, fStart + fSpan * (0.5 * u + 0.5 * u * u));
+            vec2 uv = startUV + dirUV * f;
+            if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+              break;
+            }
 
-          vec2 uv = startUV + dirUV * f;
-          if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
-            break;
-          }
+            float rayZ = (q0 + qDelta * f) / max(invW0 + invWDelta * f, EPSILON);
+            float sceneZ = decodeSSRDepth(textureLod(material_SSRHiZTexture, uv, 0.0), farClip);
+            float diff = rayZ - sceneZ;
 
-          vec2 mipCount = max(vec2(1.0), floor(traceSize * exp2(-float(mip))));
-          vec2 cellIdx = floor(uv * mipCount);
-          float tEdgeX = abs(dirUV.x) > 1e-6 ? ((cellIdx.x + dirSign.x) / mipCount.x - uv.x) / dirUV.x : 1e6;
-          float tEdgeY = abs(dirUV.y) > 1e-6 ? ((cellIdx.y + dirSign.y) / mipCount.y - uv.y) / dirUV.y : 1e6;
-          float fExit = min(1.0, f + max(min(tEdgeX, tEdgeY), 0.0));
-          float fNext = min(1.0, fExit + dfPerPx * 0.15);
-
-          float rayZ0 = mix(q0, q1, f) / max(mix(invW0, invW1, f), EPSILON);
-          float rayZ1 = mix(q0, q1, fExit) / max(mix(invW0, invW1, fExit), EPSILON);
-          float rayMinZ = min(rayZ0, rayZ1);
-          float rayMaxZ = max(rayZ0, rayZ1);
-
-          float cellMinDepth = decodeSSRDepth(textureLod(material_SSRHiZTexture, uv, float(mip)), farClip);
-
-          if (rayMaxZ < cellMinDepth) {
-            f = fNext;
-            prevLinearF = f;
-            prevLinearDiff = rayMaxZ - cellMinDepth;
-            if (mip < maxMip) {
-              vec2 parentMipCount = max(vec2(1.0), floor(traceSize * exp2(-float(mip + 1))));
-              vec2 nextUV = startUV + dirUV * f;
-              vec2 oldParent = floor(uv * parentMipCount);
-              vec2 newParent = floor(nextUV * parentMipCount);
-              if (oldParent.x != newParent.x || oldParent.y != newParent.y) {
-                mip++;
+            if (diff >= 0.0 && sceneZ < farSentinel) {
+              if (prevDiff < 0.0 && binaryRefines < 3) {
+                binaryRefines++;
+                float lo = prevF;
+                float hi = f;
+                float hiSceneZ = sceneZ;
+                for (int b = 0; b < 4; ++b) {
+                  float mid = 0.5 * (lo + hi);
+                  float mZ = (q0 + qDelta * mid) / max(invW0 + invWDelta * mid, EPSILON);
+                  float mS = decodeSSRDepth(textureLod(material_SSRHiZTexture, startUV + dirUV * mid, 0.0), farClip);
+                  if (mZ - mS >= 0.0) {
+                    hi = mid;
+                    hiSceneZ = mS;
+                  } else {
+                    lo = mid;
+                  }
+                }
+                float zLo = (q0 + qDelta * lo) / max(invW0 + invWDelta * lo, EPSILON);
+                float zHi = (q0 + qDelta * hi) / max(invW0 + invWDelta * hi, EPSILON);
+                float effT = max(thicknessFloor, hiSceneZ * 0.015 + abs(zHi - zLo) * 1.5);
+                if (hiSceneZ < farSentinel && zHi <= hiSceneZ + effT) {
+                  float denom = qDelta - hiSceneZ * invWDelta;
+                  if (abs(denom) > 1e-7) {
+                    hitF = clamp((hiSceneZ * invW0 - q0) / denom, lo, hi);
+                  } else {
+                    hitF = 0.5 * (lo + hi);
+                  }
+                  hitSceneDepth = hiSceneZ;
+                  hitEffThickness = effT;
+                  hit = true;
+                  break;
+                }
+              } else if (prevDiff >= 0.0) {
+                float directTol = max(thicknessFloor, sceneZ * 0.015 + abs(rayZ - prevRayZ) * 0.5);
+                if (diff <= directTol) {
+                  hitF = f;
+                  hitSceneDepth = sceneZ;
+                  hitEffThickness = directTol;
+                  hit = true;
+                  break;
+                }
               }
             }
-          } else if (mip > 0) {
-            float fgTol = max(thicknessFloor, cellMinDepth * 0.02);
-            if (rayMinZ > cellMinDepth + fgTol) {
+
+            prevF = f;
+            prevRayZ = rayZ;
+            prevDiff = diff;
+            if (f >= 1.0) {
+              break;
+            }
+          }
+        #else
+          float f = min(dfPerPx * (1.0 + jitter * 0.25), 0.999);
+
+          vec2 dirSign = step(vec2(0.0), dirUV);
+          bool validDirX = abs(dirUV.x) > 1e-6;
+          bool validDirY = abs(dirUV.y) > 1e-6;
+          vec2 invDirUV = vec2(validDirX ? 1.0 / dirUV.x : 0.0, validDirY ? 1.0 / dirUV.y : 0.0);
+
+          int maxMip = int(material_SSRHiZMaxMip);
+          int mip = 0;
+          int prevMip = 0;
+          float mipScale = 1.0;
+          vec2 mipCount = traceSize;
+          vec2 invMipCount = 1.0 / mipCount;
+
+          int fgBlockCount = 0;
+          int stepsUsed = 0;
+          bool escapeToLinear = false;
+          float prevLinearF = f;
+          float prevLinearDiff = -1.0;
+
+          // Stage 1: Conservative Hi-Z traversal. If the ray is repeatedly trapped behind a
+          // foreground occluder (e.g. thin foreground tree branches dilating coarse min-depth tiles),
+          // break out and finish with remaining budget in Stage 2 without branch divergence here.
+          for (int i = 0; i < 64; ++i) {
+            if (i >= maxSteps || f >= 1.0) {
+              break;
+            }
+            stepsUsed = i + 1;
+
+            vec2 uv = startUV + dirUV * f;
+            if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+              break;
+            }
+
+            if (mip != prevMip) {
+              mipCount = max(vec2(1.0), floor(traceSize * mipScale));
+              invMipCount = 1.0 / mipCount;
+              prevMip = mip;
+            }
+            vec2 cellIdx = floor(uv * mipCount);
+            float tEdgeX = validDirX ? ((cellIdx.x + dirSign.x) * invMipCount.x - uv.x) * invDirUV.x : 1e6;
+            float tEdgeY = validDirY ? ((cellIdx.y + dirSign.y) * invMipCount.y - uv.y) * invDirUV.y : 1e6;
+            float fExit = min(1.0, f + max(min(tEdgeX, tEdgeY), 0.0));
+            float fNext = min(1.0, fExit + dfPerPx * 0.15);
+
+            // Always evaluate both endpoints cleanly because fNext advances by +dfPerPx*0.15 and mip drops hold/rewind f.
+            float rayZ0 = (q0 + qDelta * f) / max(invW0 + invWDelta * f, EPSILON);
+            float rayZ1 = (q0 + qDelta * fExit) / max(invW0 + invWDelta * fExit, EPSILON);
+            float rayMinZ = min(rayZ0, rayZ1);
+            float rayMaxZ = max(rayZ0, rayZ1);
+
+            float cellMinDepth = decodeSSRDepth(textureLod(material_SSRHiZTexture, uv, float(mip)), farClip);
+
+            if (rayMaxZ < cellMinDepth) {
+              f = fNext;
+              prevLinearF = f;
+              prevLinearDiff = rayMaxZ - cellMinDepth;
+              if (mip < maxMip) {
+                vec2 parentMipCount = max(vec2(1.0), floor(traceSize * (mipScale * 0.5)));
+                vec2 nextUV = startUV + dirUV * f;
+                vec2 oldParent = floor(uv * parentMipCount);
+                vec2 newParent = floor(nextUV * parentMipCount);
+                if (oldParent.x != newParent.x || oldParent.y != newParent.y) {
+                  mip++;
+                  mipScale *= 0.5;
+                  mipCount = parentMipCount;
+                  invMipCount = 1.0 / mipCount;
+                  prevMip = mip;
+                }
+              }
+            } else if (mip > 0) {
+              float fgTol = max(thicknessFloor, cellMinDepth * 0.02);
+              if (rayMinZ > cellMinDepth + fgTol) {
+                fgBlockCount++;
+                if (fgBlockCount >= 3) {
+                  escapeToLinear = true;
+                  break;
+                }
+              } else if (rayZ0 < cellMinDepth && rayZ1 >= cellMinDepth) {
+                float denom = qDelta - cellMinDepth * invWDelta;
+                if (abs(denom) > 1e-7) {
+                  float fPlane = (cellMinDepth * invW0 - q0) / denom;
+                  if (fPlane > f && fPlane < fExit) {
+                    f = max(f, fPlane - dfPerPx * 0.05);
+                  }
+                }
+              }
+              mip--;
+              mipScale *= 2.0;
+            } else {
+              float spanZ = abs(rayZ1 - rayZ0);
+              float effThickness = max(thicknessFloor, cellMinDepth * 0.015 + spanZ * 1.5);
+              if (cellMinDepth < farSentinel && rayMinZ <= cellMinDepth + effThickness) {
+                // Analytic intersection within the Point-filtered mip 0 cell [f, fExit]
+                float denom = qDelta - cellMinDepth * invWDelta;
+                if (abs(denom) > 1e-7) {
+                  hitF = clamp((cellMinDepth * invW0 - q0) / denom, f, fExit);
+                } else {
+                  hitF = 0.5 * (f + fExit);
+                }
+                hitSceneDepth = cellMinDepth;
+                hitEffThickness = effThickness;
+                hit = true;
+                break;
+              }
               fgBlockCount++;
               if (fgBlockCount >= 3) {
                 escapeToLinear = true;
+                prevLinearF = f;
+                prevLinearDiff = rayZ0 - cellMinDepth;
+                f = fNext;
                 break;
               }
-            } else if (rayZ0 < cellMinDepth && rayZ1 >= cellMinDepth) {
-              float denom = (q1 - q0) - cellMinDepth * (invW1 - invW0);
-              if (abs(denom) > 1e-7) {
-                float fPlane = (cellMinDepth * invW0 - q0) / denom;
-                if (fPlane > f && fPlane < fExit) {
-                  f = max(f, fPlane - dfPerPx * 0.05);
-                }
-              }
-            }
-            mip--;
-          } else {
-            float spanZ = abs(rayZ1 - rayZ0);
-            float effThickness = max(thicknessFloor, cellMinDepth * 0.015 + spanZ * 1.5);
-            if (cellMinDepth < farSentinel && rayMinZ <= cellMinDepth + effThickness) {
-              // Analytic intersection within the Point-filtered mip 0 cell [f, fExit]
-              float denom = (q1 - q0) - cellMinDepth * (invW1 - invW0);
-              if (abs(denom) > 1e-7) {
-                hitF = clamp((cellMinDepth * invW0 - q0) / denom, f, fExit);
-              } else {
-                hitF = 0.5 * (f + fExit);
-              }
-              hitSceneDepth = cellMinDepth;
-              hitEffThickness = effThickness;
-              hit = true;
-              break;
-            }
-            fgBlockCount++;
-            if (fgBlockCount >= 3) {
-              escapeToLinear = true;
-              prevLinearF = f;
-              prevLinearDiff = rayZ0 - cellMinDepth;
               f = fNext;
-              break;
             }
-            f = fNext;
           }
-        }
 
-        // Stage 2: Foreground-occluder escape using remaining step budget on Hi-Z mip 0.
-        // Unobstructed warps skip this loop completely.
-        if (escapeToLinear && !hit && stepsUsed < maxSteps && f < 1.0) {
-          int remainingSteps = maxSteps - stepsUsed;
-          float strideF = max((1.0 - f) / float(max(remainingSteps, 1)), dfPerPx * 2.0);
-          float prevRayZ = mix(q0, q1, prevLinearF) / max(mix(invW0, invW1, prevLinearF), EPSILON);
-          int binaryRefines = 0;
+          // Stage 2: Foreground-occluder escape using remaining step budget on Hi-Z mip 0.
+          // Unobstructed warps skip this loop completely.
+          if (escapeToLinear && !hit && stepsUsed < maxSteps && f < 1.0) {
+            int remainingSteps = maxSteps - stepsUsed;
+            float strideF = max((1.0 - f) / float(max(remainingSteps, 1)), dfPerPx * 2.0);
+            float prevRayZ = (q0 + qDelta * prevLinearF) / max(invW0 + invWDelta * prevLinearF, EPSILON);
+            int binaryRefines = 0;
 
-          for (int j = 0; j < 64; ++j) {
-            if (stepsUsed >= maxSteps || f >= 1.0) {
-              break;
-            }
-            stepsUsed++;
-
-            float fNext = min(1.0, f + strideF);
-            vec2 uvNext = startUV + dirUV * fNext;
-            if (uvNext.x < 0.0 || uvNext.x > 1.0 || uvNext.y < 0.0 || uvNext.y > 1.0) {
-              break;
-            }
-
-            float rayZ = mix(q0, q1, fNext) / max(mix(invW0, invW1, fNext), EPSILON);
-            float sceneZ = decodeSSRDepth(textureLod(material_SSRHiZTexture, uvNext, 0.0), farClip);
-            float diff = rayZ - sceneZ;
-
-            if (diff >= 0.0 && prevLinearDiff < 0.0 && binaryRefines < 3) {
-              binaryRefines++;
-              float lo = prevLinearF;
-              float hi = fNext;
-              float hiSceneZ = sceneZ;
-              for (int b = 0; b < 3; ++b) {
-                float mid = 0.5 * (lo + hi);
-                float mZ = mix(q0, q1, mid) / max(mix(invW0, invW1, mid), EPSILON);
-                float mS = decodeSSRDepth(textureLod(material_SSRHiZTexture, startUV + dirUV * mid, 0.0), farClip);
-                if (mZ - mS >= 0.0) {
-                  hi = mid;
-                  hiSceneZ = mS;
-                } else {
-                  lo = mid;
-                }
-              }
-              float zLo = mix(q0, q1, lo) / max(mix(invW0, invW1, lo), EPSILON);
-              float zHi = mix(q0, q1, hi) / max(mix(invW0, invW1, hi), EPSILON);
-              float effT = max(thicknessFloor, hiSceneZ * 0.015 + abs(zHi - zLo) * 1.5);
-              if (hiSceneZ < farSentinel && zHi <= hiSceneZ + effT) {
-                float denom = (q1 - q0) - hiSceneZ * (invW1 - invW0);
-                if (abs(denom) > 1e-7) {
-                  hitF = clamp((hiSceneZ * invW0 - q0) / denom, lo, hi);
-                } else {
-                  hitF = 0.5 * (lo + hi);
-                }
-                hitSceneDepth = hiSceneZ;
-                hitEffThickness = effT;
-                hit = true;
+            for (int j = 0; j < 12; ++j) {
+              if (stepsUsed >= maxSteps || f >= 1.0) {
                 break;
               }
-            } else if (diff >= 0.0 && prevLinearDiff >= 0.0 && sceneZ < farSentinel) {
-              float directTol = max(thicknessFloor, sceneZ * 0.015 + abs(rayZ - prevRayZ) * 0.5);
-              if (diff <= directTol) {
-                hitF = fNext;
-                hitSceneDepth = sceneZ;
-                hitEffThickness = directTol;
-                hit = true;
+              stepsUsed++;
+
+              float fNext = min(1.0, f + strideF);
+              vec2 uvNext = startUV + dirUV * fNext;
+              if (uvNext.x < 0.0 || uvNext.x > 1.0 || uvNext.y < 0.0 || uvNext.y > 1.0) {
                 break;
               }
-            }
 
-            prevLinearF = fNext;
-            prevLinearDiff = diff;
-            prevRayZ = rayZ;
-            f = fNext;
+              float rayZ = (q0 + qDelta * fNext) / max(invW0 + invWDelta * fNext, EPSILON);
+              float sceneZ = decodeSSRDepth(textureLod(material_SSRHiZTexture, uvNext, 0.0), farClip);
+              float diff = rayZ - sceneZ;
+
+              if (diff >= 0.0 && prevLinearDiff < 0.0 && binaryRefines < 2) {
+                binaryRefines++;
+                float lo = prevLinearF;
+                float hi = fNext;
+                float hiSceneZ = sceneZ;
+                for (int b = 0; b < 2; ++b) {
+                  float mid = 0.5 * (lo + hi);
+                  float mZ = (q0 + qDelta * mid) / max(invW0 + invWDelta * mid, EPSILON);
+                  float mS = decodeSSRDepth(textureLod(material_SSRHiZTexture, startUV + dirUV * mid, 0.0), farClip);
+                  if (mZ - mS >= 0.0) {
+                    hi = mid;
+                    hiSceneZ = mS;
+                  } else {
+                    lo = mid;
+                  }
+                }
+                float zLo = (q0 + qDelta * lo) / max(invW0 + invWDelta * lo, EPSILON);
+                float zHi = (q0 + qDelta * hi) / max(invW0 + invWDelta * hi, EPSILON);
+                float effT = max(thicknessFloor, hiSceneZ * 0.015 + abs(zHi - zLo) * 1.5);
+                if (hiSceneZ < farSentinel && zHi <= hiSceneZ + effT) {
+                  float denom = qDelta - hiSceneZ * invWDelta;
+                  if (abs(denom) > 1e-7) {
+                    hitF = clamp((hiSceneZ * invW0 - q0) / denom, lo, hi);
+                  } else {
+                    hitF = 0.5 * (lo + hi);
+                  }
+                  hitSceneDepth = hiSceneZ;
+                  hitEffThickness = effT;
+                  hit = true;
+                  break;
+                }
+              } else if (diff >= 0.0 && prevLinearDiff >= 0.0 && sceneZ < farSentinel) {
+                float directTol = max(thicknessFloor, sceneZ * 0.015 + abs(rayZ - prevRayZ) * 0.5);
+                if (diff <= directTol) {
+                  hitF = fNext;
+                  hitSceneDepth = sceneZ;
+                  hitEffThickness = directTol;
+                  hit = true;
+                  break;
+                }
+              }
+
+              prevLinearF = fNext;
+              prevLinearDiff = diff;
+              prevRayZ = rayZ;
+              f = fNext;
+            }
           }
-        }
+        #endif
 
         if (!hit) {
           return output;
@@ -548,33 +648,46 @@ Shader "Lighting/ScreenSpaceReflection" {
           return output;
         }
 
-        vec3 hitPosWS = (camera_SSRInvViewMat * vec4(hitPosVS, 1.0)).xyz;
-        vec4 prevClip = camera_SSRPrevVPMat * vec4(hitPosWS, 1.0);
-        if (prevClip.w <= EPSILON) {
-          return output;
-        }
-
-        vec2 prevColorUV = prevClip.xy / prevClip.w * 0.5 + 0.5;
         float edgeFade = material_SSRTraceSettings.w;
-        float screenFade = computeBorderFade(hitUV, edgeFade) * computeBorderFade(prevColorUV, edgeFade);
-        if (screenFade <= 0.0) {
-          return output;
-        }
+        vec2 colorSampleUV;
+        float screenFade;
+        float historyConfidence;
+        #ifdef SSR_CURRENT_FRAME_COLOR
+          colorSampleUV = hitUV;
+          screenFade = computeBorderFade(hitUV, edgeFade);
+          if (screenFade <= 0.0) {
+            return output;
+          }
+          historyConfidence = 1.0;
+        #else
+          vec3 hitPosWS = (camera_SSRInvViewMat * vec4(hitPosVS, 1.0)).xyz;
+          vec4 prevClip = camera_SSRPrevVPMat * vec4(hitPosWS, 1.0);
+          if (prevClip.w <= EPSILON) {
+            return output;
+          }
 
-        // Disocclusion check against Frame N-1 Hi-Z mip0 depth
-        float prevHitEyeDepth = -dot(camera_SSRPrevViewZRow, vec4(hitPosWS, 1.0));
-        float prevSceneEyeDepth = decodeSSRDepth(texture2D(material_SSRPrevTraceDepthTexture, prevColorUV), farClip);
-        float disoccTolerance = max(0.15, prevSceneEyeDepth * 0.05 + hitDist * 0.02);
-        float disoccDiff = abs(prevHitEyeDepth - prevSceneEyeDepth);
-        float historyConfidence = (prevSceneEyeDepth <= 0.0 || prevSceneEyeDepth >= farSentinel)
-          ? 0.0
-          : (1.0 - smoothstep(disoccTolerance * 0.5, disoccTolerance * 1.5, disoccDiff));
-        if (historyConfidence <= 0.001) {
-          return output;
-        }
+          vec2 prevColorUV = prevClip.xy / prevClip.w * 0.5 + 0.5;
+          colorSampleUV = prevColorUV;
+          screenFade = computeBorderFade(hitUV, edgeFade) * computeBorderFade(prevColorUV, edgeFade);
+          if (screenFade <= 0.0) {
+            return output;
+          }
+
+          // Disocclusion check strictly at mip 0 of Frame N-1 Hi-Z pyramid to prevent coarse-mip grazing artifacts.
+          float prevHitEyeDepth = -dot(camera_SSRPrevViewZRow, vec4(hitPosWS, 1.0));
+          float prevSceneEyeDepth = decodeSSRDepth(textureLod(material_SSRPrevTraceDepthTexture, prevColorUV, 0.0), farClip);
+          float disoccTolerance = max(0.15, prevSceneEyeDepth * 0.05 + hitDist * 0.02);
+          float disoccDiff = abs(prevHitEyeDepth - prevSceneEyeDepth);
+          historyConfidence = (prevSceneEyeDepth <= 0.0 || prevSceneEyeDepth >= farSentinel)
+            ? 0.0
+            : (1.0 - smoothstep(disoccTolerance * 0.5, disoccTolerance * 1.5, disoccDiff));
+          if (historyConfidence <= 0.001) {
+            return output;
+          }
+        #endif
 
         float distFade = 1.0 - smoothstep(maxDistance * 0.75, maxDistance, hitDist);
-        float hitRayZ = mix(q0, q1, hitF) / max(mix(invW0, invW1, hitF), EPSILON);
+        float hitRayZ = (q0 + qDelta * hitF) / max(invW0 + invWDelta * hitF, EPSILON);
         float hitDepthDelta = max(hitRayZ - hitSceneDepth, 0.0);
         float thicknessFade = 1.0 - smoothstep(hitEffThickness * 0.7, hitEffThickness, hitDepthDelta);
         float confidence = screenFade * historyConfidence * distFade * thicknessFade;
@@ -582,7 +695,7 @@ Shader "Lighting/ScreenSpaceReflection" {
           return output;
         }
 
-        // Distance-aware cone mip lookup into previous linear color pyramid
+        // Distance-aware cone mip lookup into linear color pyramid
         float projScale = abs(camera_ProjMat[1][1]) * material_SSRColorPyramidInfo.z * 0.5;
         #ifdef CAMERA_ORTHOGRAPHIC
           float coneRadiusPx = hitDist * roughness * roughness * projScale;
@@ -592,10 +705,15 @@ Shader "Lighting/ScreenSpaceReflection" {
         float maxColorMip = material_SSRColorPyramidInfo.x;
         float coneMip = clamp(log2(max(coneRadiusPx, 1.0)), 0.0, maxColorMip);
 
-        vec3 radiance = textureLod(material_SSRPrevColorPyramidTexture, prevColorUV, coneMip).rgb;
+        vec3 radiance = textureLod(material_SSRPrevColorPyramidTexture, colorSampleUV, coneMip).rgb;
         radiance = max(radiance, vec3(0.0));
 
-        output.reflection = vec4(radiance * confidence, confidence);
+        #ifdef SSR_PACKED_HDR_REINHARD
+          vec3 encodedRadiance = min(radiance / (vec3(1.0) + radiance), vec3(253.0 / 255.0));
+          output.reflection = vec4(encodedRadiance * confidence, confidence);
+        #else
+          output.reflection = vec4(radiance * confidence, confidence);
+        #endif
         #ifdef SSR_OUTPUT_HIT_DIST
           output.hitDist = encodeSSRDepth(hitDist, farClip);
         #endif
@@ -670,23 +788,6 @@ Shader "Lighting/ScreenSpaceReflection" {
         }
 
         vec4 currCenter = texture2D(material_SSRTraceRawTexture, uv);
-
-        // 3x3 neighborhood variance clamp on current raw trace
-        vec2 texel = material_SSRTraceTexelSize.xy;
-        vec4 m1 = vec4(0.0);
-        vec4 m2 = vec4(0.0);
-        for (int y = -1; y <= 1; ++y) {
-          for (int x = -1; x <= 1; ++x) {
-            vec4 sampleColor = texture2D(material_SSRTraceRawTexture, clamp(uv + vec2(float(x), float(y)) * texel, vec2(0.0), vec2(1.0)));
-            m1 += sampleColor;
-            m2 += sampleColor * sampleColor;
-          }
-        }
-        vec4 mean = m1 * (1.0 / 9.0);
-        vec4 variance = max(m2 * (1.0 / 9.0) - mean * mean, vec4(0.0));
-        vec4 stddev = sqrt(variance);
-        vec4 clampMin = max(vec4(0.0), mean - stddev * 1.25);
-        vec4 clampMax = mean + stddev * 1.25;
 
         vec3 surfacePosVS = reconstructSSRViewPosition(uv, currRecvEyeDepth, camera_SSRInvProjMat);
         vec3 surfacePosWS = (camera_SSRInvViewMat * vec4(surfacePosVS, 1.0)).xyz;
@@ -795,6 +896,38 @@ Shader "Lighting/ScreenSpaceReflection" {
             return;
           }
         #endif
+
+        // Neighborhood variance clamp on current raw trace (runs only when history passes validation;
+        // Clamp-wrapped material_SSRTraceRawTexture eliminates per-tap UV clamp, and center is seeded directly).
+        vec2 texel = material_SSRTraceTexelSize.xy;
+        vec4 m1 = currCenter;
+        vec4 m2 = currCenter * currCenter;
+        #ifdef SSR_TEMPORAL_5TAP_CLAMP
+          vec4 sL = texture2D(material_SSRTraceRawTexture, uv - vec2(texel.x, 0.0));
+          vec4 sR = texture2D(material_SSRTraceRawTexture, uv + vec2(texel.x, 0.0));
+          vec4 sD = texture2D(material_SSRTraceRawTexture, uv - vec2(0.0, texel.y));
+          vec4 sU = texture2D(material_SSRTraceRawTexture, uv + vec2(0.0, texel.y));
+          m1 += sL + sR + sD + sU;
+          m2 += sL * sL + sR * sR + sD * sD + sU * sU;
+          const float invTapCount = 0.2;
+        #else
+          for (int y = -1; y <= 1; ++y) {
+            for (int x = -1; x <= 1; ++x) {
+              if (x == 0 && y == 0) {
+                continue;
+              }
+              vec4 sampleColor = texture2D(material_SSRTraceRawTexture, uv + vec2(float(x), float(y)) * texel);
+              m1 += sampleColor;
+              m2 += sampleColor * sampleColor;
+            }
+          }
+          const float invTapCount = 1.0 / 9.0;
+        #endif
+        vec4 mean = m1 * invTapCount;
+        vec4 variance = max(m2 * invTapCount - mean * mean, vec4(0.0));
+        vec4 stddev = sqrt(variance);
+        vec4 clampMin = max(vec4(0.0), mean - stddev * 1.25);
+        vec4 clampMax = mean + stddev * 1.25;
 
         vec4 prevColor = clamp(texture2D(material_SSRPrevSSRTexture, prevUV), clampMin, clampMax);
         gl_FragColor = mix(currCenter, prevColor, historyWeight);
@@ -910,6 +1043,81 @@ Shader "Lighting/ScreenSpaceReflection" {
           vec3 sum = cCenter * 4.0 + c0 + c1 + c2 + c3;
           gl_FragColor = vec4(max(sum * 0.125, vec3(0.0)), 1.0);
         #endif
+      }
+    }
+
+    Pass "DownsampleAndBuildHiZMip0" {
+      DepthState = {
+        Enabled = true;
+        WriteEnabled = true;
+        CompareFunction = CompareFunction.Always;
+      }
+
+      BlendState = {
+        Enabled = false;
+        ColorWriteMask = ColorWriteMask.All;
+      }
+
+      VertexShader = vert;
+      FragmentShader = downsampleAndBuildHiZMip0Fragment;
+
+      #include "ShaderLibrary/Blit/BlitVertex.glsl"
+      #include "ShaderLibrary/Common/Common.glsl"
+      #include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl"
+
+      highp sampler2D material_SSRFullDepthTexture;
+      vec4 material_SSRSourceTexelSize;
+      vec4 material_SSRDestTexelSize;
+
+      #ifdef SSR_HAS_CONTRIB_DEPTH
+        highp sampler2D material_SSRContribDepthTexture;
+      #endif
+
+      void downsampleAndBuildHiZMip0Fragment(Varyings v) {
+        #ifdef SSR_DOWNSAMPLE_FROM_FULL_DEPTH
+          vec2 invSrc = material_SSRSourceTexelSize.xy;
+          ivec2 srcSize = max(ivec2(material_SSRSourceTexelSize.zw + vec2(0.5)), ivec2(1));
+          ivec2 dstSize = max(ivec2(material_SSRDestTexelSize.zw + vec2(0.5)), ivec2(1));
+          ivec2 dstCoord = ivec2(floor(gl_FragCoord.xy));
+          int x0 = clamp((dstCoord.x * srcSize.x) / dstSize.x, 0, srcSize.x - 1);
+          int x1 = clamp(((dstCoord.x + 1) * srcSize.x + dstSize.x - 1) / dstSize.x - 1, x0, srcSize.x - 1);
+          int y0 = clamp((dstCoord.y * srcSize.y) / dstSize.y, 0, srcSize.y - 1);
+          int y1 = clamp(((dstCoord.y + 1) * srcSize.y + dstSize.y - 1) / dstSize.y - 1, y0, srcSize.y - 1);
+          float maxD = 0.0;
+          float minD = 1.0;
+          for (int dy = 0; dy < 6; ++dy) {
+            int sy = y0 + dy;
+            if (sy > y1) {
+              break;
+            }
+            for (int dx = 0; dx < 6; ++dx) {
+              int sx = x0 + dx;
+              if (sx > x1) {
+                break;
+              }
+              vec2 sampleUV = (vec2(float(sx), float(sy)) + vec2(0.5)) * invSrc;
+              float d = texture2D(material_SSRFullDepthTexture, sampleUV).r;
+              maxD = max(maxD, d);
+              minD = min(minD, d);
+            }
+          }
+        #else
+          float d = texture2D(material_SSRFullDepthTexture, v.v_uv).r;
+          float maxD = d;
+          float minD = d;
+        #endif
+
+        // Write opaque-only farthest depth to _ssrDepthTex before folding transparent contributors.
+        gl_FragDepthEXT = maxD;
+
+        #ifdef SSR_HAS_CONTRIB_DEPTH
+          float contribRawDepth = texture2D(material_SSRContribDepthTexture, v.v_uv).r;
+          minD = min(minD, contribRawDepth);
+        #endif
+
+        float farClip = camera_ProjectionParams.z;
+        float eyeDepth = minD >= 0.999999 ? farClip : remapDepthBufferEyeDepth(minD);
+        gl_FragColor = encodeSSRDepth(eyeDepth, farClip);
       }
     }
   }

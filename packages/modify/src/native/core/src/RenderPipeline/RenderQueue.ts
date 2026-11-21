@@ -1,8 +1,8 @@
 import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { BasicResources, RenderStateElementMap } from "../BasicResources";
 import { Utils } from "../Utils";
-import { RenderQueueType, Shader, ShaderProperty } from "../shader";
-import { ShaderMacro } from "../shader/ShaderMacro";
+import { SSRProgramResolver } from "../lighting/screenSpaceReflection/SSRProgramResolver";
+import { RenderQueueType, Shader } from "../shader";
 import { ConstantBufferBindingPoint } from "../shader/enums/ConstantBufferBindingPoint";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { BatcherManager } from "./BatcherManager";
@@ -16,15 +16,6 @@ import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
  * @internal
  */
 export class RenderQueue {
-  private static _ssrEnableMacro = ShaderMacro.getByName("CAMERA_ENABLE_SSR");
-  private static _ssrVerifyDepthMacro = ShaderMacro.getByName("CAMERA_SSR_VERIFY_RECEIVER_DEPTH");
-  private static _ssrBilateralMacro = ShaderMacro.getByName("CAMERA_SSR_BILATERAL_SAMPLE");
-  private static _ssrPackedDepthMacro = ShaderMacro.getByName("SSR_PACKED_DEPTH_RG8");
-  private static _ssrPackedNormalMacro = ShaderMacro.getByName("SSR_PACKED_NORMAL_OCT8");
-  private static _roughnessProp = ShaderProperty.getByName("material_Roughness");
-  private static _hasRoughnessTexMacro = ShaderMacro.getByName("MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE");
-  private static _enableClearCoatMacro = ShaderMacro.getByName("MATERIAL_ENABLE_CLEAR_COAT");
-
   static compareForOpaque(a: RenderElement, b: RenderElement): number {
     return (
       a.priority - b.priority ||
@@ -124,14 +115,9 @@ export class RenderQueue {
     }
     const renderQueueType = this.renderQueueType;
     const needMaskType = maskType !== RenderQueueMaskType.No;
-    const isForwardStage = pipelineStageTagValue === PipelineStage.Forward;
+    const ssrState = context._ssrState;
+    const ssrForwardActive = pipelineStageTagValue === PipelineStage.Forward && ssrState.enabled;
     const isSSRReceiverStage = pipelineStageTagValue === PipelineStage.SSRReceiver;
-    const camSSREnable = camera._ssrForwardEnabled;
-    const camSSRVerifyDepth = camera._ssrVerifyReceiverDepth;
-    const camSSRBilateral = camera._ssrBilateralSample;
-    const camSSRPackedDepth = camera._ssrPackedDepthRG8;
-    const camSSRPackedNormal = camera._ssrPackedNormalOct8;
-    const camSSRMaxRoughness = camera._ssrMaxRoughness;
     const cameraEngineMacros = this._cameraEngineMacros;
     ShaderMacroCollection.unionCollection(
       context.camera._globalShaderMacro,
@@ -183,19 +169,7 @@ export class RenderQueue {
       const { shaderData: rendererData, instanceId: rendererId } = component;
       const { shaderData: materialData, instanceId: materialId } = material;
 
-      let allowSSRForElement = isForwardStage && camSSREnable && material.screenSpaceReflectionIntensity > 0;
-      if (allowSSRForElement) {
-        const materialMacros = materialData._macroCollection;
-        if (
-          !materialMacros.isEnable(RenderQueue._hasRoughnessTexMacro) &&
-          !materialMacros.isEnable(RenderQueue._enableClearCoatMacro)
-        ) {
-          const roughness = materialData.getFloat(RenderQueue._roughnessProp);
-          if (roughness !== undefined && roughness >= camSSRMaxRoughness) {
-            allowSSRForElement = false;
-          }
-        }
-      }
+      const allowSSRForElement = ssrForwardActive && material._canReceiveScreenSpaceReflection(ssrState.maxRoughness);
 
       let macrosBuilt = false;
       let frontFaceInvert: boolean | undefined;
@@ -222,88 +196,14 @@ export class RenderQueue {
           macrosBuilt = true;
         }
 
-        let useBilateral = false;
-        let useVerifyDepth = false;
-        if (isForwardStage) {
-          const allowBilateral = material.screenSpaceReflectionBilateral !== false;
-          useBilateral = allowSSRForElement && camSSRBilateral && allowBilateral;
-          useVerifyDepth =
-            allowSSRForElement && !useBilateral && (camSSRVerifyDepth || (camSSRBilateral && !allowBilateral));
-          RenderQueue._syncMacro(compileMacros, RenderQueue._ssrEnableMacro, allowSSRForElement);
-          RenderQueue._syncMacro(compileMacros, RenderQueue._ssrVerifyDepthMacro, useVerifyDepth);
-          RenderQueue._syncMacro(compileMacros, RenderQueue._ssrBilateralMacro, useBilateral);
-          RenderQueue._syncMacro(
-            compileMacros,
-            RenderQueue._ssrPackedDepthMacro,
-            allowSSRForElement && camSSRPackedDepth && (useVerifyDepth || useBilateral)
-          );
-          RenderQueue._syncMacro(
-            compileMacros,
-            RenderQueue._ssrPackedNormalMacro,
-            allowSSRForElement && camSSRPackedNormal && useBilateral
-          );
-        } else if (isSSRReceiverStage) {
-          RenderQueue._syncMacro(compileMacros, RenderQueue._ssrPackedDepthMacro, camSSRPackedDepth);
-          RenderQueue._syncMacro(compileMacros, RenderQueue._ssrPackedNormalMacro, camSSRPackedNormal);
-        }
-
-        let program = shaderPass._getShaderProgram(engine, compileMacros);
+        let program;
         if (allowSSRForElement) {
-          const maxUnits = rhi.capability.maxFragmentTextureUnits;
-          const cachedFallback =
-            program._ssrFallbackMaxUnits === maxUnits
-              ? camSSRVerifyDepth
-                ? program._ssrFallbackVerify
-                : program._ssrFallbackNoVerify
-              : null;
-          if (cachedFallback) {
-            program = cachedFallback;
-          } else if (!program.isValid || program.activeTextureCount > maxUnits) {
-            const rejectedProgram = program;
-            const level1Delta = camSSRVerifyDepth ? 1 : 2;
-            const canTryLevel1 =
-              useBilateral && (!program.isValid || program.activeTextureCount - level1Delta <= maxUnits);
-            const canTryDropVerify =
-              !useBilateral &&
-              useVerifyDepth &&
-              !camSSRVerifyDepth &&
-              (!program.isValid || program.activeTextureCount - 1 <= maxUnits);
-            if (canTryLevel1) {
-              compileMacros.disable(RenderQueue._ssrBilateralMacro);
-              compileMacros.disable(RenderQueue._ssrPackedNormalMacro);
-              RenderQueue._syncMacro(compileMacros, RenderQueue._ssrVerifyDepthMacro, camSSRVerifyDepth);
-              RenderQueue._syncMacro(
-                compileMacros,
-                RenderQueue._ssrPackedDepthMacro,
-                camSSRPackedDepth && camSSRVerifyDepth
-              );
-              program = shaderPass._getShaderProgram(engine, compileMacros);
-            } else if (canTryDropVerify) {
-              compileMacros.disable(RenderQueue._ssrVerifyDepthMacro);
-              compileMacros.disable(RenderQueue._ssrPackedDepthMacro);
-              program = shaderPass._getShaderProgram(engine, compileMacros);
-            }
-            if (!program.isValid || program.activeTextureCount > maxUnits) {
-              compileMacros.disable(RenderQueue._ssrEnableMacro);
-              compileMacros.disable(RenderQueue._ssrVerifyDepthMacro);
-              compileMacros.disable(RenderQueue._ssrBilateralMacro);
-              compileMacros.disable(RenderQueue._ssrPackedDepthMacro);
-              compileMacros.disable(RenderQueue._ssrPackedNormalMacro);
-              program = shaderPass._getShaderProgram(engine, compileMacros);
-            }
-            if (program.isValid && program !== rejectedProgram) {
-              if (rejectedProgram._ssrFallbackMaxUnits !== maxUnits) {
-                rejectedProgram._ssrFallbackVerify = null;
-                rejectedProgram._ssrFallbackNoVerify = null;
-                rejectedProgram._ssrFallbackMaxUnits = maxUnits;
-              }
-              if (camSSRVerifyDepth) {
-                rejectedProgram._ssrFallbackVerify = program;
-              } else {
-                rejectedProgram._ssrFallbackNoVerify = program;
-              }
-            }
+          program = SSRProgramResolver.resolveForwardProgram(engine, shaderPass, material, ssrState, compileMacros);
+        } else {
+          if (isSSRReceiverStage) {
+            SSRProgramResolver.applyReceiverStageMacros(compileMacros, ssrState);
           }
+          program = shaderPass._getShaderProgram(engine, compileMacros);
         }
         if (!program.isValid) {
           continue;
@@ -417,12 +317,4 @@ export class RenderQueue {
   }
 
   destroy(): void {}
-
-  private static _syncMacro(collection: ShaderMacroCollection, macro: ShaderMacro, enabled: boolean): void {
-    if (enabled) {
-      collection.enable(macro);
-    } else {
-      collection.disable(macro);
-    }
-  }
 }

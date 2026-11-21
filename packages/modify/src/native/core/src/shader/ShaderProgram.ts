@@ -687,6 +687,10 @@ export class ShaderProgram {
     return (code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || code === 95;
   }
 
+  private static _isWhitespace(code: number): boolean {
+    return code === 32 || code === 9 || code === 10 || code === 13 || code === 12;
+  }
+
   private static _containsIdentifier(source: string, identifier: string): boolean {
     const len = identifier.length;
     const sourceLen = source.length;
@@ -696,7 +700,13 @@ export class ShaderProgram {
       const afterIdx = idx + len;
       const afterOk = afterIdx >= sourceLen || !ShaderProgram._isIdentChar(source.charCodeAt(afterIdx));
       if (beforeOk && afterOk) {
-        return true;
+        let prev = idx - 1;
+        while (prev >= 0 && ShaderProgram._isWhitespace(source.charCodeAt(prev))) {
+          prev--;
+        }
+        if (prev < 0 || source.charCodeAt(prev) !== 46 /* '.' */) {
+          return true;
+        }
       }
       idx = source.indexOf(identifier, idx + 1);
     }

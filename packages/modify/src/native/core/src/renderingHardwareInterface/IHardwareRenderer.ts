@@ -73,7 +73,12 @@ export interface IHardwareRenderer {
     faceIndex?: TextureCubeFace
   ): void;
   clearRenderTarget(engine: Engine, flags: CameraClearFlags, color?: Color | null): void;
-  invalidateRenderTarget?(target: RenderTarget | null, flags: CameraClearFlags): void;
+  invalidateRenderTarget?(
+    target: RenderTarget | null,
+    flags: CameraClearFlags,
+    fullTargetOnly?: boolean,
+    mipLevel?: number
+  ): void;
   drawPrimitive(primitive: Primitive, subPrimitive: SubPrimitive | null, program: IPlatformShaderProgram): void;
   blitInternalRTByBlitFrameBuffer(
     source: RenderTarget | null,

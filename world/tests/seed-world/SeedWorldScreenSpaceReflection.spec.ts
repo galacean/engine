@@ -42,7 +42,8 @@ function fixture(requiresRain = true) {
     transparentReceiverCount: 1,
     useHardwareStencil: true,
     usesPackedDepthRG8: false,
-    usesPackedNormalOct8: true
+    usesPackedNormalOct8: true,
+    useLinearTrace: true
   };
   const camera = {
     scene: { screenSpaceReflection: sceneSettings },
@@ -92,17 +93,22 @@ describe("Seed World SSR v2 configuration, diagnostics, and terrain wetness gati
     applyScreenSpaceReflectionConfiguration(camera, TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION);
     expect(camera.enableScreenSpaceReflection).toBe(true);
     expect(camera.screenSpaceReflectionOverride).toBeNull();
+    expect(TERRAIN_SCREEN_SPACE_REFLECTION_SETTINGS.quality).toBe(ScreenSpaceReflectionQuality.Medium);
+    expect(TERRAIN_SCREEN_SPACE_REFLECTION_SETTINGS.useLinearTrace).toBe(true);
     expect(sceneSettings).toMatchObject(TERRAIN_SCREEN_SPACE_REFLECTION_SETTINGS);
 
     applyScreenSpaceReflectionConfiguration(camera, {
       useCameraOverride: true,
       quality: "high",
-      thickness: 0.45
+      thickness: 0.45,
+      useLinearTrace: false
     });
     expect(camera.screenSpaceReflectionOverride).not.toBeNull();
     expect(camera.screenSpaceReflectionOverride!.quality).toBe(ScreenSpaceReflectionQuality.High);
     expect(camera.screenSpaceReflectionOverride!.thickness).toBe(0.45);
+    expect(camera.screenSpaceReflectionOverride!.useLinearTrace).toBe(false);
     expect(sceneSettings.quality).toBe(ScreenSpaceReflectionQuality.Medium);
+    expect(sceneSettings.useLinearTrace).toBe(true);
     expect(sceneSettings.thickness).toBe(TERRAIN_SCREEN_SPACE_REFLECTION_SETTINGS.thickness);
 
     diagnostics.active = true;
@@ -113,7 +119,8 @@ describe("Seed World SSR v2 configuration, diagnostics, and terrain wetness gati
       cameraEnabled: true,
       useCameraOverride: true,
       quality: "high",
-      thickness: 0.45
+      thickness: 0.45,
+      useLinearTrace: false
     });
     expect(status).toMatchObject({
       active: true,

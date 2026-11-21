@@ -15,6 +15,7 @@ import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
  * The render target in WebGL platform is used for off-screen rendering.
  */
 export class GLRenderTarget implements IPlatformRenderTarget {
+  private _rhi: WebGLGraphicDevice;
   private _gl: WebGLRenderingContext & WebGL2RenderingContext;
   private _isWebGL2: boolean;
   private _target: RenderTarget;
@@ -26,14 +27,17 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   private _oriDrawBuffers: GLenum[];
   private _blitDrawBuffers: GLenum[] | null;
   private _curMipLevel: number = 0;
+  private _mainFBOMipLevel: number = 0;
   private _curFaceIndex: TextureCubeFace | undefined = undefined;
   private _antiAliasing: number;
+  private _mipFrameBuffers: (WebGLFramebuffer | null)[] | null = null;
   private _invalidateAttachments: (GLenum[] | null)[] = [null, null, null, null, null, null, null, null];
 
   /**
    * Create render target in WebGL platform.
    */
   constructor(rhi: WebGLGraphicDevice, target: RenderTarget) {
+    this._rhi = rhi;
     this._gl = rhi.gl as WebGLRenderingContext & WebGL2RenderingContext;
     this._isWebGL2 = rhi.isWebGL2;
     this._target = target;
@@ -102,14 +106,49 @@ export class GLRenderTarget implements IPlatformRenderTarget {
    */
   activeRenderTarget(mipLevel: number, faceIndex?: TextureCubeFace): void {
     // @todo: support MRT
-    const { _gl: gl, _target: target } = this;
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
-
-    const mipChanged = mipLevel !== this._curMipLevel;
-    const faceChanged = faceIndex !== this._curFaceIndex;
+    const { _rhi: rhi, _gl: gl, _target: target } = this;
+    const level = mipLevel ?? 0;
 
     const colorTexture = target.getColorTexture(0);
+    // Fast-path per-mip FBO cache for 2D non-MSAA, color-only, single-attachment mipmapped targets (e.g. Hi-Z / ColorPyramid).
+    if (
+      level > 0 &&
+      !this._MSAAFrameBuffer &&
+      !this._depthRenderBuffer &&
+      !target.depthTexture &&
+      target.colorTextureCount === 1 &&
+      colorTexture &&
+      !(colorTexture instanceof TextureCube) &&
+      level < colorTexture.mipmapCount
+    ) {
+      let mipFBO = this._mipFrameBuffers?.[level] ?? null;
+      if (!mipFBO) {
+        mipFBO = gl.createFramebuffer();
+        if (!mipFBO) {
+          return;
+        }
+        (this._mipFrameBuffers ??= [])[level] = mipFBO;
+        rhi._bindFramebuffer(gl.FRAMEBUFFER, mipFBO);
+        gl.framebufferTexture2D(
+          gl.FRAMEBUFFER,
+          gl.COLOR_ATTACHMENT0,
+          gl.TEXTURE_2D,
+          (colorTexture._platformTexture as GLTexture)._glTexture,
+          level
+        );
+      } else {
+        rhi._bindFramebuffer(gl.FRAMEBUFFER, mipFBO);
+      }
+      this._curMipLevel = level;
+      this._curFaceIndex = faceIndex;
+      return;
+    }
+
+    rhi._bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
+
+    const mipChanged = level !== this._mainFBOMipLevel;
+    const faceChanged = faceIndex !== this._curFaceIndex;
+
     if (colorTexture) {
       const isCube = colorTexture instanceof TextureCube;
       if (mipChanged || (isCube && faceChanged)) {
@@ -118,7 +157,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           gl.COLOR_ATTACHMENT0,
           isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex! : gl.TEXTURE_2D,
           (colorTexture._platformTexture as GLTexture)._glTexture,
-          mipLevel
+          level
         );
       }
     }
@@ -133,7 +172,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           platformTexture._formatDetail.attachment!,
           isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex! : gl.TEXTURE_2D,
           platformTexture._glTexture,
-          mipLevel
+          level
         );
       }
     } else if (this._depthRenderBuffer) {
@@ -144,17 +183,18 @@ export class GLRenderTarget implements IPlatformRenderTarget {
         gl.renderbufferStorage(
           gl.RENDERBUFFER,
           internalFormat,
-          Math.max(1, target.width >> mipLevel),
-          Math.max(1, target.height >> mipLevel)
+          Math.max(1, target.width >> level),
+          Math.max(1, target.height >> level)
         );
       }
     }
 
-    this._curMipLevel = mipLevel;
+    this._mainFBOMipLevel = level;
+    this._curMipLevel = level;
     this._curFaceIndex = faceIndex;
 
     if (this._MSAAFrameBuffer) {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
+      rhi._bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
     }
   }
 
@@ -170,7 +210,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     const { colorTextureCount, width, height } = this._target;
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this._MSAAFrameBuffer);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this._frameBuffer);
+    this._rhi._bindFramebuffer(gl.DRAW_FRAMEBUFFER, this._frameBuffer);
 
     for (let textureIndex = 0; textureIndex < colorTextureCount; textureIndex++) {
       const attachment = gl.COLOR_ATTACHMENT0 + textureIndex;
@@ -188,7 +228,20 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       this.invalidateRenderTarget(CameraClearFlags.All, gl.READ_FRAMEBUFFER);
     }
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this._rhi._bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  /**
+   * @internal
+   */
+  _getActiveDrawFrameBuffer(): WebGLFramebuffer | null {
+    if (this._MSAAFrameBuffer) {
+      return this._MSAAFrameBuffer;
+    }
+    if (this._mipFrameBuffers && this._curMipLevel > 0) {
+      return this._mipFrameBuffers[this._curMipLevel] ?? this._frameBuffer;
+    }
+    return this._frameBuffer;
   }
 
   /**
@@ -209,6 +262,26 @@ export class GLRenderTarget implements IPlatformRenderTarget {
    */
   destroy(): void {
     const gl = this._gl;
+
+    if (
+      (this._frameBuffer && this._rhi._currentDrawFrameBuffer === this._frameBuffer) ||
+      (this._MSAAFrameBuffer && this._rhi._currentDrawFrameBuffer === this._MSAAFrameBuffer)
+    ) {
+      this._rhi._currentDrawFrameBuffer = null;
+    }
+
+    if (this._mipFrameBuffers) {
+      for (let i = 0, n = this._mipFrameBuffers.length; i < n; i++) {
+        const mipFBO = this._mipFrameBuffers[i];
+        if (mipFBO) {
+          if (this._rhi._currentDrawFrameBuffer === mipFBO) {
+            this._rhi._currentDrawFrameBuffer = null;
+          }
+          gl.deleteFramebuffer(mipFBO);
+        }
+      }
+      this._mipFrameBuffers = null;
+    }
 
     this._frameBuffer && gl.deleteFramebuffer(this._frameBuffer);
     this._depthRenderBuffer && gl.deleteRenderbuffer(this._depthRenderBuffer);
@@ -233,7 +306,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     const { _depth, colorTextureCount, width, height } = this._target;
     const drawBuffers = new Array(colorTextureCount);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
+    this._rhi._bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
 
     /** color render buffer */
     for (let i = 0; i < colorTextureCount; i++) {
@@ -277,7 +350,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       }
     }
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this._rhi._bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindRenderbuffer(gl.RENDERBUFFER, null);
   }
 
@@ -289,7 +362,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
     this._blitDrawBuffers = new Array(colorTextureCount);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
+    this._rhi._bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
 
     // prepare MRT+MSAA color RBOs
     for (let i = 0; i < colorTextureCount; i++) {
@@ -313,7 +386,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     }
 
     this._checkFrameBuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this._rhi._bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindRenderbuffer(gl.RENDERBUFFER, null);
   }
 

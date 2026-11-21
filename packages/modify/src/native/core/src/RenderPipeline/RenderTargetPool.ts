@@ -4,12 +4,20 @@ import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapM
 /**
  * @internal
  */
+export interface IIdleResourceReclaimer {
+  _sweepIfIdle(frameCount: number): void;
+}
+
+/**
+ * @internal
+ */
 export class RenderTargetPool {
   private static readonly _maxIdleFrames = 10;
   private static readonly _noAdditionalColorFormats: readonly TextureFormat[] = Object.freeze([]);
 
   private _freeRenderTargets: RenderTarget[] = [];
   private _freeTextures: Texture2D[] = [];
+  private _idleReclaimers: IIdleResourceReclaimer[] = [];
   private readonly _colorTexturesToDestroy: Texture2D[] = [];
   private _lastReleaseFrame = new WeakMap<RenderTarget | Texture2D, number>();
   private _engine: Engine;
@@ -159,11 +167,40 @@ export class RenderTargetPool {
     this._freeTextures.push(texture);
   }
 
+  registerIdleReclaimer(reclaimer: IIdleResourceReclaimer): void {
+    const reclaimers = this._idleReclaimers;
+    if (reclaimers.indexOf(reclaimer) === -1) {
+      reclaimers.push(reclaimer);
+    }
+  }
+
+  unregisterIdleReclaimer(reclaimer: IIdleResourceReclaimer): void {
+    const reclaimers = this._idleReclaimers;
+    const idx = reclaimers.indexOf(reclaimer);
+    if (idx !== -1) {
+      const last = reclaimers.length - 1;
+      if (idx !== last) {
+        reclaimers[idx] = reclaimers[last];
+      }
+      reclaimers.length = last;
+    }
+  }
+
   /** Reclaim expired free entries after rendering. Borrowed resources are not in the free lists. */
   trim(): void {
     const frame = this._engine.time.frameCount;
     this._trimResources(this._freeRenderTargets, frame);
     this._trimResources(this._freeTextures, frame);
+    const reclaimers = this._idleReclaimers;
+    for (let i = reclaimers.length - 1; i >= 0; i--) {
+      if (i >= reclaimers.length) continue;
+      reclaimers[i]._sweepIfIdle(frame);
+    }
+  }
+
+  destroy(): void {
+    this.gc();
+    this._idleReclaimers.length = 0;
   }
 
   gc(): void {

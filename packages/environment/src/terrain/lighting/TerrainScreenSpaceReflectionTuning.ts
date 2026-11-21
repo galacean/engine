@@ -21,6 +21,9 @@ export const TERRAIN_SCREEN_SPACE_REFLECTION_MAX_ROUGHNESS = 0.65;
 /** Default temporal history blend weight used by Medium and High quality presets. */
 export const TERRAIN_SCREEN_SPACE_REFLECTION_TEMPORAL_BLEND = 0.85;
 
+/** Default to 0-Hi-Z mip-0 linear ray marching on Medium quality while keeping Hi-Z available via settings. */
+export const TERRAIN_SCREEN_SPACE_REFLECTION_USE_LINEAR_TRACE = true;
+
 /** Shared v2 SSR settings preset for Seed World terrain rain film and transparent Water surfaces. */
 export const TERRAIN_SCREEN_SPACE_REFLECTION_SETTINGS: Readonly<ScreenSpaceReflectionSettingsData> = {
   enabled: true,
@@ -30,5 +33,6 @@ export const TERRAIN_SCREEN_SPACE_REFLECTION_SETTINGS: Readonly<ScreenSpaceRefle
   maxDistance: TERRAIN_SCREEN_SPACE_REFLECTION_MAX_RAY_DISTANCE_METRES,
   thickness: TERRAIN_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES,
   edgeFade: TERRAIN_WATER_SCREEN_SPACE_REFLECTION_EDGE_FADE,
-  temporalBlend: TERRAIN_SCREEN_SPACE_REFLECTION_TEMPORAL_BLEND
+  temporalBlend: TERRAIN_SCREEN_SPACE_REFLECTION_TEMPORAL_BLEND,
+  useLinearTrace: TERRAIN_SCREEN_SPACE_REFLECTION_USE_LINEAR_TRACE
 };

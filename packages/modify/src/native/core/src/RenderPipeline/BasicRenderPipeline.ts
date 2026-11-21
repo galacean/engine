@@ -176,6 +176,20 @@ export class BasicRenderPipeline {
    * @param ignoreClear - Ignore clear flag
    */
   render(context: RenderContext, cubeFace?: TextureCubeFace, mipLevel?: number, ignoreClear?: CameraClearFlags) {
+    context._ssrState.reset();
+    try {
+      this._renderWithContext(context, cubeFace, mipLevel, ignoreClear);
+    } finally {
+      context._ssrState.reset();
+    }
+  }
+
+  private _renderWithContext(
+    context: RenderContext,
+    cubeFace?: TextureCubeFace,
+    mipLevel?: number,
+    ignoreClear?: CameraClearFlags
+  ): void {
     this._cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.All);
 
     const camera = this._camera;
@@ -261,7 +275,14 @@ export class BasicRenderPipeline {
     batcherManager.uploadBuffer();
     this._renderRegisteredPasses(PipelinePassStage.AfterCulling, context, cullingResults);
 
-    this._ssrPass.prepare(context, cullingResults, cubeFace !== undefined || (mipLevel ?? 0) > 0);
+    const canReuseOpaqueColorOnPostOpaque =
+      forwardDepthResolveEnabled && !depthPassEnabled && supportDepthTexture && camera.opaqueTextureEnabled;
+    this._ssrPass.prepare(
+      context,
+      cullingResults,
+      cubeFace !== undefined || (mipLevel ?? 0) > 0,
+      canReuseOpaqueColorOnPostOpaque
+    );
 
     if (depthPassEnabled) {
       depthOnlyPass.onConfig(camera);
@@ -322,7 +343,20 @@ export class BasicRenderPipeline {
       this._saoPass.release();
     }
 
-    this._ssrPass.renderPreForward(context, cullingResults, depthPassEnabled ? depthOnlyPass.renderTarget : null);
+    // TEMPORARY DUAL-PATH WORKAROUND (Stage-Interim):
+    // When a scene has transparent-only SSR receivers (`canDeferToPostOpaque`) and `forwardDepthResolveEnabled`
+    // is active without a prepass (`!depthPassEnabled`), running `renderPreForward` before Forward passes
+    // `fullDepthRT = null`, forcing a redundant full-scene `DepthOnly` render solely for SSR. Deferring SSR
+    // to post-opaque lets it consume the already-resolved opaque forward depth (`resolvedForwardDepthRT`).
+    // Architectural note: Dual-path pre-forward vs. post-opaque scheduling in `BasicRenderPipeline` is
+    // architecturally undesirable and strictly temporary until unified depth-producer / render-graph pass
+    // scheduling eliminates pipeline dual-path branching.
+    const deferSSRToPostOpaque =
+      this._ssrPass.canDeferToPostOpaque && forwardDepthResolveEnabled && !depthPassEnabled && supportDepthTexture;
+
+    if (!deferSSRToPostOpaque) {
+      this._ssrPass.renderPreForward(context, cullingResults, depthPassEnabled ? depthOnlyPass.renderTarget : null);
+    }
 
     this._drawRenderPass(
       context,
@@ -330,6 +364,7 @@ export class BasicRenderPipeline {
       finalClearFlags,
       forwardDepthResolveEnabled,
       sunLensFlareDepthPatchEnabled,
+      deferSSRToPostOpaque,
       cubeFace,
       mipLevel
     );
@@ -506,6 +541,7 @@ export class BasicRenderPipeline {
     finalClearFlags: CameraClearFlags,
     forwardDepthResolveEnabled: boolean,
     sunLensFlareDepthPatchEnabled: boolean,
+    deferSSRToPostOpaque: boolean,
     cubeFace?: TextureCubeFace,
     mipLevel?: number
   ) {
@@ -598,6 +634,7 @@ export class BasicRenderPipeline {
     }
 
     let forwardTargetResolved = false;
+    let resolvedForwardDepthRT: RenderTarget | null = null;
     if (forwardDepthResolveEnabled) {
       if (!internalColorTarget || !colorTarget) {
         throw new Error("Forward depth resolve requires an internal color target.");
@@ -605,6 +642,7 @@ export class BasicRenderPipeline {
       if (colorTarget.antiAliasing > 1) {
         colorTarget!._blitRenderTarget();
         forwardTargetResolved = true;
+        resolvedForwardDepthRT = colorTarget;
         const depthTexture = colorTarget.depthTexture;
         if (!depthTexture) throw new Error("MSAA forward depth resolve requires a resolved depth texture.");
         camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, depthTexture);
@@ -616,9 +654,12 @@ export class BasicRenderPipeline {
         const depthOnlyPass = this._depthOnlyPass;
         depthOnlyPass.onConfig(camera, depthFormat);
         depthOnlyPass.onResolveForwardDepth(camera, colorTarget);
+        resolvedForwardDepthRT = depthOnlyPass.renderTarget;
       }
       camera._depthTextureSource = "forward-resolve";
-      context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+      if (!camera.opaqueTextureEnabled && !deferSSRToPostOpaque) {
+        context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+      }
     } else if (sunLensFlareDepthPatchEnabled && internalColorTarget && colorTarget) {
       const depthFormat = colorTarget._depthFormat;
       if (depthFormat !== null && depthFormat !== TextureFormat.Stencil) {
@@ -656,26 +697,58 @@ export class BasicRenderPipeline {
         );
         this._sunLensFlareDepthTexture = this._sunLensFlareDepthPatchRT.depthTexture;
         this._sunLensFlareDepthRect.set(srcW / patchW, srcH / patchH, -srcX0 / patchW, -srcY0 / patchH);
-        context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+        if (!camera.opaqueTextureEnabled) {
+          context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+        }
       }
     }
 
-    // Copy opaque texture
+    // Copy opaque texture (optionally sharing a mipmapped R11G11B10 color pyramid with post-opaque water SSR)
+    let reusedOpaqueColorTex: Texture2D | null = null;
     if (camera.opaqueTextureEnabled) {
       // Should blit to resolve the MSAA
       if (!forwardTargetResolved) {
         colorTarget!._blitRenderTarget();
       }
 
+      const wantOpaqueColorForSSR = deferSSRToPostOpaque && this._ssrPass.canReuseOpaqueColorPyramid;
       const opaqueTexturePass = this._opaqueTexturePass;
-      opaqueTexturePass.onConfig(camera, colorTarget!.getColorTexture(0)!);
-      opaqueTexturePass.onRender(context);
+      opaqueTexturePass.onConfig(camera, colorTarget!.getColorTexture(0)!, wantOpaqueColorForSSR);
+      if (
+        wantOpaqueColorForSSR &&
+        opaqueTexturePass.renderTarget &&
+        this._ssrPass.renderOpaqueColorPyramid(
+          context,
+          colorTarget!.getColorTexture(0) as Texture2D,
+          opaqueTexturePass.renderTarget,
+          colorViewport
+        )
+      ) {
+        reusedOpaqueColorTex = opaqueTexturePass.renderTarget.getColorTexture(0) as Texture2D;
+      } else {
+        opaqueTexturePass.onRender(context);
+      }
 
       // Should revert to original render target
-      context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+      if (!deferSSRToPostOpaque) {
+        context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+      }
     } else {
       this._opaqueTexturePass.release();
       camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, null);
+    }
+
+    if (deferSSRToPostOpaque) {
+      // Temporary post-opaque SSR path; see `deferSSRToPostOpaque` architectural note in `_renderWithContext`.
+      try {
+        this._ssrPass.renderPreForward(context, cullingResults, resolvedForwardDepthRT, reusedOpaqueColorTex);
+      } finally {
+        // Pin opaque texture to mip 0 before Forward water refraction to prevent quad derivative seams across mips.
+        if (reusedOpaqueColorTex && reusedOpaqueColorTex._supportsMipLevelRange()) {
+          reusedOpaqueColorTex._setMipLevelRange(0, 0);
+        }
+      }
+      context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
     }
 
     transparentQueue.render(context, PipelineStage.Forward);
@@ -688,9 +761,7 @@ export class BasicRenderPipeline {
       if (colorTarget === internalColorTarget) {
         if (colorTarget.antiAliasing > 1) {
           // Final resolve for this camera: discard MSAA color+depth renderbuffers right after resolve to skip TBDR STORE.
-          (colorTarget._platformRenderTarget as { blitRenderTarget(discardMSAA?: boolean): void }).blitRenderTarget(
-            true
-          );
+          colorTarget._blitRenderTarget(true);
         } else if (!colorTarget.depthTexture && colorTarget._depthFormat !== null) {
           // Non-MSAA internal color target is still bound; discard unused depth/stencil renderbuffer before switching FBO.
           rhi.invalidateRenderTarget?.(colorTarget, CameraClearFlags.DepthStencil);
@@ -699,7 +770,11 @@ export class BasicRenderPipeline {
         colorTarget._blitRenderTarget();
       }
     }
-    this._ssrPass.captureHistory(context, colorTarget, colorViewport);
+    if (reusedOpaqueColorTex) {
+      this._ssrPass.commitCurrentFrameHistory(context);
+    } else {
+      this._ssrPass.captureHistory(context, colorTarget, colorViewport);
+    }
 
     // Output render target of each stage
     let outputTarget: RenderTarget | null = null;

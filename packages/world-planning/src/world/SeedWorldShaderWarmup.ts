@@ -823,6 +823,7 @@ function collectSeedWorldRendererVariantsInternal(
     runtimeHardware?.capability?.isFragmentHighPrecision !== false;
   const ssrEnabled = ssrCameraEnabled && ssrSettingsValid && hardwareSupportsSsr;
   const ssrQuality = rawSsrSettings?.quality ?? ScreenSpaceReflectionQuality.Medium;
+  const ssrUseLinearTrace = Boolean(rawSsrSettings?.useLinearTrace);
   const ssrMaxRoughness = rawSsrSettings?.maxRoughness ?? 0.6;
   const hwFormatSupport = (
     runtimeHardware as unknown as { supportsRenderTargetColorFormat?: (format: TextureFormat) => boolean } | undefined
@@ -1380,9 +1381,14 @@ function collectSeedWorldRendererVariantsInternal(
         if (ssrContext.hasContribDepth) {
           appendSsrPass(1, [...baseHiZ0Macros, { n: "SSR_HAS_CONTRIB_DEPTH" }]); // Pass 1: BuildHiZMip0 (with contrib depth)
         }
-        appendSsrPass(2); // Pass 2: BuildHiZMipN
+        if (!ssrUseLinearTrace) {
+          appendSsrPass(2); // Pass 2: BuildHiZMipN
+        }
         appendSsrPass(3); // Pass 3: CopyTexture
-        appendSsrPass(4, useHighVirtual ? [{ n: "SSR_OUTPUT_HIT_DIST" }] : undefined); // Pass 4: HiZTrace
+        const traceMacros: SeedWorldShaderVariantMacro[] = [];
+        if (useHighVirtual) traceMacros.push({ n: "SSR_OUTPUT_HIT_DIST" });
+        if (ssrUseLinearTrace) traceMacros.push({ n: "SSR_LINEAR_TRACE" });
+        appendSsrPass(4, traceMacros.length > 0 ? traceMacros : undefined); // Pass 4: HiZTrace
         if (ssrQuality !== ScreenSpaceReflectionQuality.Low) {
           appendSsrPass(5, useHighVirtual ? [{ n: "SSR_HIGH_VIRTUAL_REPROJECTION" }] : undefined); // Pass 5: TemporalResolve
         }

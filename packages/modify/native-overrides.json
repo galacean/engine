@@ -742,5 +742,37 @@
   {
     "original": "packages/shader/src/Shaders/Pipeline/SSRReceiver.shader",
     "replacement": "packages/modify/src/native/shader/src/Shaders/Pipeline/SSRReceiver.shader"
+  },
+  {
+    "original": "packages/core/src/base/EngineObject.ts",
+    "replacement": "packages/modify/src/native/core/src/base/EngineObject.ts"
+  },
+  {
+    "original": "packages/core/src/asset/ReferResource.ts",
+    "replacement": "packages/modify/src/native/core/src/asset/ReferResource.ts"
+  },
+  {
+    "original": "packages/core/src/RenderPipeline/RenderContext.ts",
+    "replacement": "packages/modify/src/native/core/src/RenderPipeline/RenderContext.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/screenSpaceReflection/SSRProgramResolver.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/SSRProgramResolver.ts"
+  },
+  {
+    "original": "packages/core/src/renderingHardwareInterface/IPlatformRenderTarget.ts",
+    "replacement": "packages/modify/src/native/core/src/renderingHardwareInterface/IPlatformRenderTarget.ts"
+  },
+  {
+    "original": "packages/core/src/texture/RenderTarget.ts",
+    "replacement": "packages/modify/src/native/core/src/texture/RenderTarget.ts"
+  },
+  {
+    "original": "packages/core/src/material/BaseMaterial.ts",
+    "replacement": "packages/modify/src/native/core/src/material/BaseMaterial.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/GLTexture2DArray.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/GLTexture2DArray.ts"
   }
 ]

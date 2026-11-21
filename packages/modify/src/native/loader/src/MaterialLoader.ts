@@ -1,11 +1,11 @@
 import {
   AssetPromise,
   AssetType,
+  BaseMaterial,
   Engine,
   LoadItem,
   Loader,
   Material,
-  RenderQueueType,
   ResourceManager,
   Shader,
   Texture,
@@ -137,23 +137,11 @@ class MaterialLoader extends Loader<Material> {
       } else if (shader === Engine._builtinShaders.pbr) {
         material.screenSpaceReflectionIntensity = 1.0;
       }
-      // Sync default DepthOnly render queue for legacy built-in PBR/Unlit .mat assets that declare
-      // a Forward render queue (e.g. Transparent glass) without an explicit material_DepthOnlyRenderQueue.
-      if (
-        (shader === Engine._builtinShaders.pbr || shader === Engine._builtinShaders.unlit) &&
-        shaderData["material_DepthOnlyRenderQueue"] === undefined
-      ) {
-        let depthOnlyQueue: number | undefined;
-        if (shaderData["renderQueueType"] !== undefined) {
-          depthOnlyQueue = Number(shaderData["renderQueueType"].value);
-        } else if (shaderData["blendEnabled"]?.value) {
-          depthOnlyQueue = RenderQueueType.Transparent;
-        } else if (macros.some((macro) => macro.name === "MATERIAL_IS_ALPHA_CUTOFF")) {
-          depthOnlyQueue = RenderQueueType.AlphaTest;
-        }
-        if (depthOnlyQueue !== undefined && Number.isFinite(depthOnlyQueue)) {
-          materialShaderData.setFloat("material_DepthOnlyRenderQueue", depthOnlyQueue);
-        }
+      // Sync default DepthOnly render queue for legacy built-in PBR/Unlit/BlinnPhong .mat assets
+      // that declare a Forward render queue (e.g. Transparent glass) without an explicit material_DepthOnlyRenderQueue.
+      const builtinShaders = Engine._builtinShaders;
+      if (shader === builtinShaders.pbr || shader === builtinShaders.unlit || shader === builtinShaders.blinnPhong) {
+        BaseMaterial._syncDefaultDepthOnlyRenderQueue(materialShaderData);
       }
       if (materialSchema.contributeScreenSpaceReflectionDepth !== undefined) {
         material.contributeScreenSpaceReflectionDepth = materialSchema.contributeScreenSpaceReflectionDepth;

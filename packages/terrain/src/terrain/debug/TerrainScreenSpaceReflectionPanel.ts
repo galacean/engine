@@ -24,6 +24,7 @@ export interface TerrainScreenSpaceReflectionPanelConfiguration {
   readonly thickness: number;
   readonly edgeFade: number;
   readonly temporalBlend: number;
+  readonly useLinearTrace: boolean;
 }
 
 /** Default World SSR v2 settings profile synchronized across Terrain water film and Water surfaces. */
@@ -37,7 +38,8 @@ export const TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION: TerrainScreenSpaceRe
   maxDistance: TERRAIN_SCREEN_SPACE_REFLECTION_SETTINGS.maxDistance,
   thickness: TERRAIN_SCREEN_SPACE_REFLECTION_SETTINGS.thickness,
   edgeFade: TERRAIN_SCREEN_SPACE_REFLECTION_SETTINGS.edgeFade,
-  temporalBlend: TERRAIN_SCREEN_SPACE_REFLECTION_SETTINGS.temporalBlend
+  temporalBlend: TERRAIN_SCREEN_SPACE_REFLECTION_SETTINGS.temporalBlend,
+  useLinearTrace: TERRAIN_SCREEN_SPACE_REFLECTION_SETTINGS.useLinearTrace
 };
 
 /** Snapshot of active SSR settings and runtime pass diagnostics reported by `camera.screenSpaceReflectionDiagnostics`. */
@@ -55,6 +57,7 @@ export interface TerrainScreenSpaceReflectionPanelStatus {
   readonly useHardwareStencil: boolean;
   readonly usesPackedDepthRG8: boolean;
   readonly usesPackedNormalOct8: boolean;
+  readonly useLinearTrace?: boolean;
 }
 
 /** Applies SSR v2 settings to `camera.enableScreenSpaceReflection`, `camera.screenSpaceReflectionOverride`, or `camera.scene.screenSpaceReflection`. */
@@ -82,7 +85,8 @@ export function applyScreenSpaceReflectionConfiguration(
     configuration.maxDistance !== undefined ||
     configuration.thickness !== undefined ||
     configuration.edgeFade !== undefined ||
-    configuration.temporalBlend !== undefined;
+    configuration.temporalBlend !== undefined ||
+    configuration.useLinearTrace !== undefined;
   if (!hasSettingsFields) {
     return;
   }
@@ -116,6 +120,9 @@ export function applyScreenSpaceReflectionConfiguration(
   if (configuration.temporalBlend !== undefined) {
     target.temporalBlend = requireFiniteInRange(configuration.temporalBlend, "temporalBlend", 0, 0.95);
   }
+  if (configuration.useLinearTrace !== undefined) {
+    target.useLinearTrace = Boolean(configuration.useLinearTrace);
+  }
 }
 
 /** Reads the effective v2 SSR configuration and runtime diagnostics from `camera`. */
@@ -135,7 +142,8 @@ export function inspectScreenSpaceReflectionPanelStatus(camera: Camera): Terrain
       maxDistance: source.maxDistance,
       thickness: source.thickness,
       edgeFade: source.edgeFade,
-      temporalBlend: source.temporalBlend
+      temporalBlend: source.temporalBlend,
+      useLinearTrace: Boolean(source.useLinearTrace)
     },
     active: diagnostics.active,
     state: diagnostics.state,
@@ -148,7 +156,8 @@ export function inspectScreenSpaceReflectionPanelStatus(camera: Camera): Terrain
     transparentReceiverCount: diagnostics.transparentReceiverCount,
     useHardwareStencil: diagnostics.useHardwareStencil,
     usesPackedDepthRG8: diagnostics.usesPackedDepthRG8,
-    usesPackedNormalOct8: diagnostics.usesPackedNormalOct8
+    usesPackedNormalOct8: diagnostics.usesPackedNormalOct8,
+    useLinearTrace: diagnostics.useLinearTrace
   };
 }
 
@@ -223,6 +232,14 @@ export class TerrainScreenSpaceReflectionPanel {
     );
     this.bind(
       settingsFolder
+        .add(this._state, "useLinearTrace")
+        .name("Linear Trace / 线性追踪")
+        .onChange((value: boolean) => this.push({ useLinearTrace: value })),
+      "ssr-linear-trace",
+      "Linear Trace / 线性追踪"
+    );
+    this.bind(
+      settingsFolder
         .add(this._state, "intensity", 0, 2, 0.01)
         .name("Intensity / 反射强度")
         .onChange((value: number) => this.push({ intensity: value })),
@@ -293,6 +310,7 @@ export class TerrainScreenSpaceReflectionPanel {
       this._state.cameraEnabled = configuration.cameraEnabled;
       this._state.useCameraOverride = configuration.useCameraOverride;
       this._state.quality = configuration.quality;
+      this._state.useLinearTrace = configuration.useLinearTrace;
       this._state.intensity = configuration.intensity;
       this._state.maxRoughness = configuration.maxRoughness;
       this._state.maxDistance = configuration.maxDistance;
@@ -319,7 +337,8 @@ export class TerrainScreenSpaceReflectionPanel {
     const packing = [
       status.useHardwareStencil ? "hw-stencil" : "sw-mask",
       status.usesPackedDepthRG8 ? "depth-rg8" : "depth-f16",
-      status.usesPackedNormalOct8 ? "norm-oct8" : "norm-rgba"
+      status.usesPackedNormalOct8 ? "norm-oct8" : "norm-rgba",
+      status.useLinearTrace ? "trace-linear" : "trace-hiz"
     ].join(", ");
     this._updateResourceStatus(`${traceSize} · ${formatBytes(status.estimatedBytes)} · ${packing}`);
   }

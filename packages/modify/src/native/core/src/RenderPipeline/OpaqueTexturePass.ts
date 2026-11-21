@@ -1,8 +1,10 @@
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
+import { GLCapabilityType } from "../base/Constant";
 import { Downsampling } from "../enums/Downsampling";
-import { Texture, Texture2D, TextureFilterMode } from "../texture";
+import { Texture, Texture2D, TextureFilterMode, TextureFormat } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
+import { TextureUtils } from "../texture/TextureUtils";
 import { TextureWrapMode } from "../texture/enums/TextureWrapMode";
 import { Blitter } from "./Blitter";
 import { PipelinePass } from "./PipelinePass";
@@ -21,28 +23,61 @@ export class OpaqueTexturePass extends PipelinePass {
     super(engine);
   }
 
-  onConfig(camera: Camera, cameraColorTexture: Texture): void {
+  get renderTarget(): RenderTarget | null {
+    return this._renderTarget;
+  }
+
+  onConfig(camera: Camera, cameraColorTexture: Texture, requireMipmaps: boolean = false): void {
     this._cameraColorTexture = cameraColorTexture;
 
     const downsampling = camera.opaqueTextureDownsampling;
     const isNoDownsampling = downsampling === Downsampling.None;
-
     const viewport = camera.pixelViewport;
     const sizeScale = isNoDownsampling ? 1.0 : downsampling === Downsampling.TwoX ? 0.5 : 0.25;
+    const targetW = Math.max(1, Math.floor(viewport.width * sizeScale));
+    const targetH = Math.max(1, Math.floor(viewport.height * sizeScale));
+    const rhi = this.engine._hardwareRenderer;
+    const isHDR = camera._isInternalFormatHDR();
+    const isSRGB = !isHDR;
+    const colorFormat =
+      isHDR && rhi.supportsRenderTargetColorFormat(TextureFormat.R11G11B10_UFloat)
+        ? TextureFormat.R11G11B10_UFloat
+        : camera._getInternalColorTextureFormat();
+    const canHardwareMip =
+      requireMipmaps &&
+      rhi.isWebGL2 &&
+      Math.max(targetW, targetH) > 1 &&
+      TextureUtils.supportGenerateMipmaps(colorFormat, true, isSRGB, true) &&
+      rhi.supportsRenderTargetColorFormat(colorFormat) &&
+      (colorFormat !== TextureFormat.R32G32B32A32 || rhi.canIUse(GLCapabilityType.textureFloatLinear));
+
     const opaqueRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
       this.engine,
       this._renderTarget,
-      viewport.width * sizeScale,
-      viewport.height * sizeScale,
-      camera._getInternalColorTextureFormat(),
+      targetW,
+      targetH,
+      colorFormat,
       null,
       false,
-      false,
-      !camera._isInternalFormatHDR(),
+      canHardwareMip,
+      isSRGB,
       1,
       TextureWrapMode.Clamp,
-      isNoDownsampling ? TextureFilterMode.Point : TextureFilterMode.Bilinear
+      canHardwareMip
+        ? TextureFilterMode.Trilinear
+        : isNoDownsampling
+          ? TextureFilterMode.Point
+          : TextureFilterMode.Bilinear
     );
+
+    if (canHardwareMip) {
+      opaqueRenderTarget.autoGenerateMipmaps = false;
+    } else {
+      const tex = opaqueRenderTarget.getColorTexture(0) as Texture2D | null;
+      if (tex && tex._supportsMipLevelRange()) {
+        tex._setMipLevelRange(0, 1000);
+      }
+    }
 
     this._renderTarget = opaqueRenderTarget;
   }
@@ -54,6 +89,10 @@ export class OpaqueTexturePass extends PipelinePass {
 
   release(): void {
     if (this._renderTarget) {
+      const tex = this._renderTarget.getColorTexture(0) as Texture2D | null;
+      if (tex && tex._supportsMipLevelRange()) {
+        tex._setMipLevelRange(0, 1000);
+      }
       this.engine._renderTargetPool.freeRenderTarget(this._renderTarget);
       this._renderTarget = null;
     }

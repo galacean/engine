@@ -12,6 +12,8 @@ import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 export class Material extends ReferResource implements IClone {
   /** @internal */
   static _ssrIntensityProperty = ShaderProperty.getByName("material_ScreenSpaceReflectionIntensity");
+  /** @internal */
+  static _pbrSSREligibilityChecker: ((shaderData: ShaderData, maxRoughness: number) => boolean) | null = null;
 
   /** Name. */
   name: string;
@@ -116,6 +118,23 @@ export class Material extends ReferResource implements IClone {
     target.contributeScreenSpaceReflectionDepth = this.contributeScreenSpaceReflectionDepth;
     target.screenSpaceReflectionBilateral = this.screenSpaceReflectionBilateral;
     target.screenSpaceReflectionOccluder = this.screenSpaceReflectionOccluder;
+  }
+
+  /**
+   * Whether this material is eligible to receive screen-space reflections at `maxRoughness`.
+   * Subclasses (e.g. `PBRMaterial`) override this for material-specific roughness culling;
+   * serialized built-in PBR materials instantiated as base `Material` delegate to the same checker.
+   * @internal
+   */
+  _canReceiveScreenSpaceReflection(maxRoughness: number): boolean {
+    if (this._ssrIntensity <= 0) {
+      return false;
+    }
+    const pbrShader = Engine._builtinShaders?.pbr;
+    if (pbrShader && this._shader === pbrShader && Material._pbrSSREligibilityChecker) {
+      return Material._pbrSSREligibilityChecker(this._shaderData, maxRoughness);
+    }
+    return true;
   }
 
   /**

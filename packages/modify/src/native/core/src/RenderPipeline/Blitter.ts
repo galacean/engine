@@ -41,6 +41,7 @@ export class Blitter {
    * @param sourceScaleOffset - Source scale and offset
    * @param destMipLevel - Destination mip level to render into
    * @param invalidateColor - Whether to invalidate destination color buffer before full-viewport overwrite
+   * @param scissorRect - Optional GL pixel scissor rectangle `(x, y, width, height)` applied after binding the target
    */
   static blitTexture(
     engine: Engine,
@@ -52,7 +53,8 @@ export class Blitter {
     passIndex = 0,
     sourceScaleOffset?: Vector4,
     destMipLevel: number = 0,
-    invalidateColor: boolean = true
+    invalidateColor: boolean = true,
+    scissorRect?: Vector4
   ): void {
     const basicResources = engine._basicResources;
     const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
@@ -65,6 +67,9 @@ export class Blitter {
     context.flipProjection = !!destination;
 
     context.setRenderTarget(destination, viewport, destMipLevel);
+    if (scissorRect) {
+      rhi.scissor(scissorRect.x, scissorRect.y, scissorRect.z, scissorRect.w);
+    }
 
     const rendererShaderData = Blitter._rendererShaderData;
 
@@ -105,7 +110,7 @@ export class Blitter {
       getMainFrameBufferWidth?: () => number;
       getMainFrameBufferHeight?: () => number;
     };
-    const scissorRect = rhiWithScissor._lastScissor;
+    const activeScissor = rhiWithScissor._lastScissor;
     const targetWidth =
       destination !== null
         ? Math.max(1, destination.width >> destMipLevel)
@@ -116,13 +121,13 @@ export class Blitter {
         : rhiWithScissor.getMainFrameBufferHeight?.();
     const fullScissorClear =
       !rhiWithScissor._scissorEnable ||
-      (scissorRect !== undefined &&
+      (activeScissor !== undefined &&
         targetWidth !== undefined &&
         targetHeight !== undefined &&
-        scissorRect.x === 0 &&
-        scissorRect.y === 0 &&
-        scissorRect.z === targetWidth &&
-        scissorRect.w === targetHeight);
+        activeScissor.x === 0 &&
+        activeScissor.y === 0 &&
+        activeScissor.z === targetWidth &&
+        activeScissor.w === targetHeight);
     if (
       invalidateColor &&
       destination !== null &&

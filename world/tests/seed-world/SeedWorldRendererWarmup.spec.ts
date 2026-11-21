@@ -847,6 +847,27 @@ describe("renderer warmup scope", () => {
       expect(pass1.macros.some((m) => m.n === "SSR_DOWNSAMPLE_FROM_FULL_DEPTH")).toBe(true);
       expect(pass1.macros.some((m) => m.n === "SSR_PACKED_NORMAL_OCT8")).toBe(true);
 
+      // Linear trace mode (useLinearTrace: true) skips BuildHiZMipN (pass 2) and warms SSR_LINEAR_TRACE on HiZTrace (pass 4).
+      camera.screenSpaceReflectionOverride = {
+        ...sceneSsr,
+        useLinearTrace: true
+      };
+      const linearWaterVariants = collectSeedWorldRendererVariants(
+        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { isWebGL2: true } } as any,
+        {
+          shaderData: { _macroCollection: new ShaderMacroCollection() },
+          background: { mode: 0 },
+          screenSpaceReflection: sceneSsr
+        } as any,
+        camera,
+        waterRoots,
+        { includeGpuInstancing: false, includeOpaqueScreenSpaceReflection: false }
+      );
+      const linearSsrPasses = linearWaterVariants.filter((v) => v.shader === "Lighting/ScreenSpaceReflection");
+      expect(new Set(linearSsrPasses.map((v) => v.pi))).toEqual(new Set([0, 1, 3, 4, 5, 6]));
+      const linearTracePass = linearSsrPasses.find((v) => v.pi === 4)!;
+      expect(linearTracePass.macros.some((m) => m.n === "SSR_LINEAR_TRACE")).toBe(true);
+
       // Low quality disables temporal resolve (pass 5).
       camera.screenSpaceReflectionOverride = {
         ...sceneSsr,
