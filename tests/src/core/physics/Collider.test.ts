@@ -6,9 +6,11 @@ import {
   Entity,
   HitResult,
   Layer,
+  MeshCollider,
   PhysicsMaterial,
   PhysicsScene,
   PlaneCollider,
+  PrimitiveMesh,
   Rigidbody,
   Scene,
   Script,
@@ -1113,5 +1115,85 @@ describe("Collider", () => {
         }
       }
     });
+  });
+
+  describe("unchanged local pose under body motion", () => {
+    it.each(["child-position", "child-center", "child-mesh", "same-entity-center"] as const)(
+      "writes no native scale, local pose, or mass while a uniformly scaled body rotates (%s)",
+      (setup) => {
+        const bodyEntity = root.createChild(setup);
+        bodyEntity.transform.setScale(2, 2, 2);
+        const body = bodyEntity.addComponent(Rigidbody);
+        body.isKinematic = true;
+        const holder = setup === "same-entity-center" ? bodyEntity : bodyEntity.createChild("shape");
+        if (setup === "child-position" || setup === "child-mesh") holder.transform.setPosition(1, 0, 0.25);
+        let collider: BoxCollider | MeshCollider;
+        if (setup === "child-mesh") {
+          const mesh = holder.addComponent(MeshCollider);
+          mesh.convex = true;
+          mesh.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1, { keepMeshData: true });
+          collider = mesh;
+        } else {
+          collider = holder.addComponent(BoxCollider);
+        }
+        if (setup === "child-center" || setup === "same-entity-center") collider.center.set(1, 0, 0.25);
+
+        const center = new Vector3();
+        const closest = new Vector3();
+        const hit = new HitResult();
+        const ray = new Ray(new Vector3(), new Vector3(0, -1, 0));
+        const expectHit = () => {
+          Vector3.transformCoordinate(collider.center, holder.transform.worldMatrix, center);
+          ray.origin.set(center.x, 8, center.z);
+          expect(physics.raycast(ray, hit) && hit.collider === collider).toBe(true);
+          expect(collider.getClosestPoint(center, closest)).toBe(0);
+        };
+        expectHit();
+
+        const shape = collider["_native"]!;
+        const scaleWrites = vi.spyOn(shape, "setWorldScale");
+        const poseWrites = vi.spyOn(shape, "setLocalPose");
+        const massRebuilds = vi.spyOn(body["_nativeActor"]!, "setMassAndUpdateInertia");
+        for (let step = 1; step <= 90; step++) {
+          bodyEntity.transform.setRotation(0, step * 3.7, 0);
+          expectHit();
+        }
+        expect(scaleWrites).not.toHaveBeenCalled();
+        expect(poseWrites).not.toHaveBeenCalled();
+        expect(massRebuilds).not.toHaveBeenCalled();
+      }
+    );
+
+    it.each([true, false])(
+      "writes no native scale, local pose, or mass while translating a compound body (kinematic=%s)",
+      (kinematic) => {
+        const bodyEntity = root.createChild("translating body");
+        const body = bodyEntity.addComponent(Rigidbody);
+        body.isKinematic = kinematic;
+        body.useGravity = false;
+        const child = bodyEntity.createChild("shape");
+        child.transform.setPosition(0.2, 0, 0);
+        const box = child.addComponent(BoxCollider);
+        const hit = new HitResult();
+        const ray = new Ray(new Vector3(0.2, 8, 0), new Vector3(0, -1, 0));
+        const expectHit = () => {
+          ray.origin.x = child.transform.worldPosition.x;
+          expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
+        };
+        expectHit();
+
+        const shape = box["_native"]!;
+        const scaleWrites = vi.spyOn(shape, "setWorldScale");
+        const poseWrites = vi.spyOn(shape, "setLocalPose");
+        const massRebuilds = vi.spyOn(body["_nativeActor"]!, "setMassAndUpdateInertia");
+        for (let step = 1; step <= 90; step++) {
+          bodyEntity.transform.setPosition(step % 2, 0, 0);
+          expectHit();
+        }
+        expect(scaleWrites).not.toHaveBeenCalled();
+        expect(poseWrites).not.toHaveBeenCalled();
+        expect(massRebuilds).not.toHaveBeenCalled();
+      }
+    );
   });
 });

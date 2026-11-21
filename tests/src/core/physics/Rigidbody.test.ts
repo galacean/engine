@@ -946,4 +946,39 @@ describe("Rigidbody", function () {
       tree.destroy();
     }
   });
+
+  it.each(["none", "same-position", "different-position"] as const)(
+    "keeps a pending kinematic move until an ancestor transform actually changes (%s)",
+    (parentEdit) => {
+      const physics = engine.sceneManager.activeScene.physics;
+      const parent = rootEntity.createChild("ancestor");
+      parent.transform.setPosition(0.3, 0, 0);
+      const child = parent.createChild("kinematic actor");
+      // The world position is stored as Float64, while recomputing it from the Float32 world matrix rounds it
+      child.transform.worldPosition = new Vector3(0.2, 0, 0);
+      const body = child.addComponent(Rigidbody);
+      body.isKinematic = true;
+      const box = child.addComponent(BoxCollider);
+      const hit = new HitResult();
+      const hits = (x: number, z: number) =>
+        physics.raycast(new Ray(new Vector3(x, 8, z), new Vector3(0, -1, 0)), hit) && hit.collider === box;
+      expect(hits(0.2, 0)).toBe(true);
+      expect(hits(0.2, 3)).toBe(false);
+
+      body.move(new Vector3(0.2, 0, 3));
+      if (parentEdit !== "none") {
+        parent.transform.setPosition(parentEdit === "same-position" ? 0.3 : 1.3, 0, 0);
+      }
+      physics._update(physics.fixedTimeStep);
+
+      if (parentEdit === "different-position") {
+        // An actual ancestor edit overrides the pending kinematic target
+        expect(hits(1.2, 0)).toBe(true);
+        expect(hits(1.2, 3)).toBe(false);
+      } else {
+        expect(hits(0.2, 3)).toBe(true);
+        expect(hits(0.2, 0)).toBe(false);
+      }
+    }
+  );
 });

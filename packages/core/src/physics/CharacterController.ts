@@ -282,32 +282,18 @@ export class CharacterController extends Collider {
 
     const center = CharacterController._tempExtents;
     Vector3.multiply(this.center, scale, center);
-    const syncedCenter = this._syncedCenter;
-    if (force || center.x !== syncedCenter.x || center.y !== syncedCenter.y || center.z !== syncedCenter.z) {
-      syncedCenter.copyFrom(center);
+    if (force || Collider._differsF32(center, this._syncedCenter)) {
+      this._syncedCenter.copyFrom(center);
       controller.setCenter(center);
     }
     const position = transform.worldPosition;
-    const syncedPosition = this._syncedPosition;
-    if (
-      force ||
-      position.x !== syncedPosition.x ||
-      position.y !== syncedPosition.y ||
-      position.z !== syncedPosition.z
-    ) {
-      syncedPosition.copyFrom(position);
+    if (force || Collider._differsF32(position, this._syncedPosition)) {
+      this._syncedPosition.copyFrom(position);
       controller.setWorldPosition(position);
     }
-    const syncedScale = this._syncedScale;
-    if (
-      force ||
-      this._geometryDirty ||
-      scale.x !== syncedScale.x ||
-      scale.y !== syncedScale.y ||
-      scale.z !== syncedScale.z
-    ) {
+    if (force || this._geometryDirty || Collider._differsF32(scale, this._syncedScale)) {
       this._geometryDirty = false;
-      syncedScale.copyFrom(scale);
+      this._syncedScale.copyFrom(scale);
       if (this._geometry === CharacterControllerGeometry.Box) {
         const halfExtents = CharacterController._tempExtents;
         Vector3.multiply(this._size, scale, halfExtents);
