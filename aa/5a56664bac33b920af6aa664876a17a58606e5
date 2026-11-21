@@ -1,0 +1,48 @@
+packages/core/src/physics/Collider.ts
+  s_d2c65ec75a2f3e::t_5fe3b64e3d4ce5 121,193-195,200-211,671
+  s_d2c65ec75a2f3e::t_2d0df43fe23cdb 196,199
+  s_d2c65ec75a2f3e::t_32359bf1de0f86 197-198
+packages/physics-physx/src/PhysXCharacterController.ts
+  s_d2c65ec75a2f3e::t_5fe3b64e3d4ce5 33,131-136,374
+docs/en/physics/collider/overview.mdx
+  s_d2c65ec75a2f3e::t_8fd6e9ea9501fc 49,59
+  s_d2c65ec75a2f3e::t_963a2859fcc92c 60
+packages/core/src/physics/PhysicsScene.ts
+  s_d2c65ec75a2f3e::t_2d0df43fe23cdb 1403
+docs/zh/physics/collider/overview.mdx
+  s_d2c65ec75a2f3e::t_8fd6e9ea9501fc 49,59
+  s_d2c65ec75a2f3e::t_11620c27dcbeb9 60
+tests/src/core/physics/Collider.test.ts
+  s_d2c65ec75a2f3e::t_32359bf1de0f86 405-407,415-416
+  s_d2c65ec75a2f3e::t_b134dedc9dfa19 376-404,408-414,417-429
+packages/core/src/physics/CharacterController.ts
+  s_d2c65ec75a2f3e::t_5fe3b64e3d4ce5 583
+packages/physics-physx/src/shape/PhysXColliderShape.ts
+  s_d2c65ec75a2f3e::t_5fe3b64e3d4ce5 13,77,87-89
+  s_d2c65ec75a2f3e::t_4a0675fd10d1b9 90-91
+tests/src/core/physics/PhysicsScene.test.ts
+  s_d2c65ec75a2f3e::t_270460914fa567 510-512
+  s_d2c65ec75a2f3e::t_b134dedc9dfa19 483-509,513-531
+tests/src/core/physics/CharacterController.test.ts
+  s_d2c65ec75a2f3e::t_b134dedc9dfa19 236,238
+packages/design/src/physics/ICharacterController.ts
+  s_d2c65ec75a2f3e::t_5fe3b64e3d4ce5 66-68
+packages/design/src/physics/shape/IColliderShape.ts
+  s_d2c65ec75a2f3e::t_5fe3b64e3d4ce5 50-52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "aa5a56664bac33b920af6aa664876a17a58606e5",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
