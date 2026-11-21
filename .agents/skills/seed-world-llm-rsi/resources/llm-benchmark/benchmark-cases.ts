@@ -1134,5 +1134,418 @@ export const BENCHMARK_CASES: readonly BenchmarkCaseDefinition[] = [
         { name: "reply_hygiene_clean", pass: noLeak, detail: `reply=${reply.slice(0, 180)}` }
       ];
     }
+  },
+  {
+    id: "25_environment_wind_fog_cloud_update",
+    name: "环境更新（风/雾/云）：调大风速并增加轻雾与多云覆盖",
+    category: "environment-write",
+    turns: ["把风调大一点，加上轻雾，再把天空云量调多一些。"],
+    expectedSkills: ["skills/environment/SKILL.md"],
+    expectedDeclares: ["declare/editor/world/tools/atmosphere.update.d.ts"],
+    optimalSteps: 4,
+    verify(fixture, turns) {
+      const muts = fixture.state.getEnvironmentMutations();
+      const called = allCalledTools(turns);
+      const serialized = JSON.stringify(muts);
+      const touchedAtmosphere = hasTool(called, "tools.atmosphere.update");
+      const touchedWindOrFogOrCloud = /wind|fog|cloud/i.test(serialized);
+      return [
+        { name: "called_atmosphere_update", pass: touchedAtmosphere, detail: `called=${[...called].join(",")}` },
+        { name: "updated_wind_fog_or_cloud", pass: touchedWindOrFogOrCloud && muts.length > 0, detail: `muts=${serialized.slice(0, 180)}` }
+      ];
+    }
+  },
+  {
+    id: "26_building_inspect_update_delete",
+    name: "建筑完整 CRUD：先建小屋并移动改名，再删除该建筑节点",
+    category: "building-crud",
+    turns: [
+      "在 (20, 0, 20) 建一座单层小木屋，节点命名为 'TempCabin'。",
+      "查出刚才建的 'TempCabin'，把它的位置移到 (24, 0, 20) 后再删掉这个临时建筑节点。"
+    ],
+    expectedSkills: ["skills/building/SKILL.md", "skills/scene-nodes/SKILL.md"],
+    expectedDeclares: [
+      "declare/editor/world/tools/building.generate.d.ts",
+      "declare/editor/native/api.d.ts"
+    ],
+    optimalSteps: 8,
+    verify(fixture, turns) {
+      const { sceneJson } = getAllProjectSceneData(fixture);
+      const called = allCalledTools(turns);
+      const stillExists = (sceneJson.entities ?? []).some((e: any) => entityName(e) === "TempCabin");
+      return [
+        { name: "generated_and_created", pass: hasTool(called, "tools.building.generate") && hasTool(called, "editor.entity.create"), detail: `called=${[...called].join(",")}` },
+        { name: "updated_and_deleted", pass: hasTool(called, "editor.entity.update") && hasTool(called, "editor.entity.delete"), detail: `called=${[...called].join(",")}` },
+        { name: "temp_cabin_deleted", pass: !stillExists, detail: `stillExists=${stillExists}` }
+      ];
+    }
+  },
+  {
+    id: "27_water_sample_and_delete",
+    name: "水体 R+D：采样湖泊中心 (4, 4) 水深与水面高程，然后移除该湖泊组件",
+    category: "water-crud",
+    turns: ["先采样 (4, 4) 处湖泊的水面高程和水深并汇报，然后再把场景里这个湖泊的 WaterBodyComponent 移除。"],
+    expectedSkills: ["skills/water/SKILL.md", "skills/components/SKILL.md"],
+    expectedDeclares: [
+      "declare/editor/world/tools/water.sample.d.ts",
+      "declare/editor/native/api.d.ts"
+    ],
+    optimalSteps: 5,
+    verify(fixture, turns) {
+      const { sceneJson } = getAllProjectSceneData(fixture);
+      const called = allCalledTools(turns);
+      const hasWaterComp = (sceneJson.components ?? []).some((c: { type?: string }) => c.type === "WaterBodyComponent");
+      return [
+        { name: "sampled_water", pass: hasTool(called, "tools.water.sample"), detail: `called=${[...called].join(",")}` },
+        { name: "removed_water_component", pass: (hasTool(called, "editor.component.remove") || hasTool(called, "editor.entity.delete")) && !hasWaterComp, detail: `hasWaterComp=${hasWaterComp}` }
+      ];
+    }
+  },
+  {
+    id: "28_terrain_query_update_patch_delete",
+    name: "地形完整 CRUD：创建山丘 → 调高 → 局部修补地面 → 删除该山丘",
+    category: "terrain-crud",
+    turns: [
+      "在 (-15, 0, 25) 建一座半径 12 米、高 5 米的小山丘。",
+      "把刚才建的那座小山丘再调高到 9 米，然后把它删掉并确认删除。"
+    ],
+    expectedSkills: ["skills/terrain/SKILL.md", "skills/world-objects/SKILL.md"],
+    expectedDeclares: [
+      "declare/editor/world/tools/terrain.create.d.ts",
+      "declare/editor/world/tools/terrain.update.d.ts",
+      "declare/editor/world/tools/world.delete.d.ts"
+    ],
+    optimalSteps: 8,
+    verify(fixture, turns) {
+      const called = allCalledTools(turns);
+      const removed = fixture.state.getRemovedIds();
+      return [
+        { name: "created_terrain", pass: hasTool(called, "tools.terrain.create"), detail: `called=${[...called].join(",")}` },
+        { name: "updated_terrain", pass: hasTool(called, "tools.terrain.update") || hasTool(called, "tools.terrain.patch"), detail: `called=${[...called].join(",")}` },
+        { name: "deleted_terrain", pass: hasTool(called, "tools.world.delete") && removed.length > 0, detail: `removed=${removed.join(",")}` }
+      ];
+    }
+  },
+  {
+    id: "29_vegetation_inspect_update_tree_shape",
+    name: "植被 R+U：查询近处松树详情并调整共享树形外观（增高 1.4 倍、偏金秋叶色）",
+    category: "vegetation-crud",
+    turns: ["先查出 (6, 0, -9) 附近那棵松树的详情，再把这类松树的共享树形高度缩放调到 1.4 倍，树叶颜色调成金黄色。"],
+    expectedSkills: ["skills/vegetation/SKILL.md", "skills/world-objects/SKILL.md"],
+    expectedDeclares: [
+      "declare/editor/world/tools/world.query.d.ts",
+      "declare/editor/world/tools/world.inspect.d.ts",
+      "declare/editor/world/tools/vegetation.update.d.ts"
+    ],
+    optimalSteps: 5,
+    verify(fixture, turns) {
+      const called = allCalledTools(turns);
+      return [
+        { name: "queried_and_inspected_tree", pass: hasTool(called, "tools.world.query") && hasTool(called, "tools.world.inspect"), detail: `called=${[...called].join(",")}` },
+        { name: "updated_vegetation_shape", pass: hasTool(called, "tools.vegetation.update"), detail: `called=${[...called].join(",")}` }
+      ];
+    }
+  },
+  {
+    id: "30_world_objects_selection_and_inspect",
+    name: "世界对象 R+选区：查询所有树木、读取最近树木详情并保存命名选区",
+    category: "world-objects-crud",
+    turns: ["查出世界里所有的树木并读取离玩家最近那棵树的详细属性，然后把查询到的树保存为一个命名选区 'near_trees'。"],
+    expectedSkills: ["skills/world-objects/SKILL.md"],
+    expectedDeclares: [
+      "declare/editor/world/tools/world.query.d.ts",
+      "declare/editor/world/tools/world.inspect.d.ts",
+      "declare/editor/world/tools/world.selection.save.d.ts"
+    ],
+    optimalSteps: 5,
+    verify(fixture, turns) {
+      const called = allCalledTools(turns);
+      return [
+        { name: "called_query_and_inspect", pass: hasTool(called, "tools.world.query") && hasTool(called, "tools.world.inspect"), detail: `called=${[...called].join(",")}` },
+        { name: "called_selection_save", pass: hasTool(called, "tools.world.selection.save"), detail: `called=${[...called].join(",")}` }
+      ];
+    }
+  },
+  {
+    id: "31_world_parameters_reset",
+    name: "规划参数 R+Reset：查询动物激活距离并重置为默认值",
+    category: "world-parameters",
+    turns: ["先查一下动物系统当前的 activationDistance 参数，再把它 reset 重置回默认值。"],
+    expectedSkills: ["skills/world-objects/parameters/SKILL.md"],
+    expectedDeclares: [
+      "declare/editor/world/tools/world.parameters.describe.d.ts",
+      "declare/editor/world/tools/world.parameters.inspect.d.ts",
+      "declare/editor/world/tools/world.parameters.apply.d.ts"
+    ],
+    optimalSteps: 5,
+    verify(fixture, turns) {
+      const paramState = fixture.state.getParameterState();
+      const called = allCalledTools(turns);
+      const usedReset = JSON.stringify(paramState.applyCalls).includes('"reset"');
+      return [
+        { name: "called_parameters_apply", pass: hasTool(called, "tools.world.parameters.apply"), detail: `called=${[...called].join(",")}` },
+        { name: "used_reset_op", pass: usedReset, detail: `applyCalls=${JSON.stringify(paramState.applyCalls).slice(0, 180)}` }
+      ];
+    }
+  },
+  {
+    id: "32_spatial_resolve_and_check",
+    name: "空间解析与落点检查：解析玩家右侧 20 米坐标并检查该点地形高度与坡度",
+    category: "spatial-read",
+    turns: ["帮我解析玩家右侧 20 米的位置坐标，并用空间检查工具确认该位置的高度、坡度和是否适合放置物体，不要修改场景。"],
+    expectedSkills: ["skills/spatial/SKILL.md"],
+    expectedDeclares: [
+      "declare/editor/world/tools/spatial.resolve.d.ts",
+      "declare/editor/world/tools/spatial.check.d.ts"
+    ],
+    optimalSteps: 4,
+    verify(fixture, turns) {
+      const called = allCalledTools(turns);
+      const removed = fixture.state.getRemovedIds();
+      return [
+        { name: "called_spatial_resolve", pass: hasTool(called, "tools.spatial.resolve"), detail: `called=${[...called].join(",")}` },
+        { name: "called_spatial_check", pass: hasTool(called, "tools.spatial.check"), detail: `called=${[...called].join(",")}` },
+        { name: "scope_read_only", pass: removed.length === 0 && fixture.state.getTeleports().length === 0, detail: `teleports=${fixture.state.getTeleports().length}` }
+      ];
+    }
+  },
+  {
+    id: "33_animals_query_describe_receipt",
+    name: "动物全链路：生成小狗 → query 查询实例 → describe 查技能 → command 并 receipt 核验",
+    category: "animals-crud",
+    turns: ["生成 1 只小狗，然后用动物查询接口找到它，查看它支持的技能，下发一个自由活动/漫步命令并查一次命令回执。"],
+    expectedSkills: ["skills/animals/SKILL.md"],
+    expectedDeclares: [
+      "declare/editor/world/tools/world.animals.catalog.d.ts",
+      "declare/editor/world/tools/world.animals.spawn.d.ts",
+      "declare/editor/world/tools/world.animals.query.d.ts",
+      "declare/editor/world/tools/world.animals.describe.d.ts",
+      "declare/editor/world/tools/world.animals.command.d.ts",
+      "declare/editor/world/tools/world.animals.receipt.d.ts"
+    ],
+    optimalSteps: 6,
+    verify(fixture, turns) {
+      const called = allCalledTools(turns);
+      return [
+        { name: "spawned_and_queried", pass: hasTool(called, "tools.world.animals.spawn") && hasTool(called, "tools.world.animals.query"), detail: `called=${[...called].join(",")}` },
+        { name: "described_and_commanded", pass: hasTool(called, "tools.world.animals.describe") && hasTool(called, "tools.world.animals.command"), detail: `called=${[...called].join(",")}` },
+        { name: "checked_receipt", pass: hasTool(called, "tools.world.animals.receipt"), detail: `receipts=${fixture.state.getAnimalReceipts().length}` }
+      ];
+    }
+  },
+  {
+    id: "34_farming_plot_crud_plant_delete",
+    name: "农场完整 CRUD：查询地块与目录 → 改名标签 → 在空地播种或新建并删除测试地块",
+    category: "farming-crud",
+    turns: ["检查农场里的现有地块和种子目录，给现有空地块（或新建一个测试空地块）更新标签为 'TestPlot'，并在确认后汇报地块与可用种子信息。"],
+    expectedSkills: ["skills/farming/SKILL.md"],
+    expectedDeclares: ["declare/editor/farming/methods/README.md"],
+    optimalSteps: 5,
+    verify(fixture, turns) {
+      const called = allCalledTools(turns);
+      const scriptPayload = turns.flatMap((t) => t.scripts).map((s) => s.code).join("\n");
+      const queried = [...called].some((n) => /list|queryPlots|getCatalog/.test(n)) || /\b(?:queryPlots|getCatalog)\b/.test(scriptPayload);
+      const mutated = [...called].some((n) => /updatePlot|createPlot|plant/.test(n)) || /\b(?:updatePlot|createPlot|plant)\b/.test(scriptPayload);
+      return [
+        { name: "queried_farm_plots_and_catalog", pass: queried, detail: `called=${[...called].join(",")}` },
+        { name: "mutated_plot", pass: mutated, detail: `mutated=${mutated}` }
+      ];
+    }
+  },
+  {
+    id: "35_farming_inventory_and_items",
+    name: "农场库存与道具：查询库存/容器/道具统计并检查当前携带物",
+    category: "farming-read",
+    turns: ["查询当前农场的固定仓储库存、容器列表、道具统计和玩家当前携带的农具，不要修改农场状态。"],
+    expectedSkills: ["skills/farming/SKILL.md"],
+    expectedDeclares: ["declare/editor/farming/methods/README.md"],
+    optimalSteps: 5,
+    verify(fixture, turns) {
+      const called = allCalledTools(turns);
+      const scriptPayload = turns.flatMap((t) => t.scripts).map((s) => s.code).join("\n");
+      const checkedInv = /\b(?:getInventory|getContainers|getItemTotals)\b/.test(scriptPayload) || [...called].some((n) => /Inventory|Containers|ItemTotals/.test(n));
+      const checkedCarry = /\b(?:getCarry|queryItems)\b/.test(scriptPayload) || [...called].some((n) => /Carry|queryItems/.test(n));
+      return [
+        { name: "checked_inventory_and_containers", pass: checkedInv, detail: `called=${[...called].join(",")}` },
+        { name: "checked_carry_or_items", pass: checkedCarry, detail: `checkedCarry=${checkedCarry}` }
+      ];
+    }
+  },
+  {
+    id: "36_scene_nodes_read_reparent_delete",
+    name: "Scene 节点完整 CRUD：创建父子节点 → 读取详情 → reparent 换父 → 删除临时节点",
+    category: "scene-nodes-crud",
+    turns: [
+      "在场景根节点下创建 'GroupA'（位置 0,0,0）、'GroupB'（位置 5,0,0）和挂在 'GroupA' 下的子节点 'ChildBox'（位置 1,0,0）。",
+      "读取 'ChildBox' 的信息，把它 reparent 移到 'GroupB' 下面，最后把 'GroupA' 删掉。"
+    ],
+    expectedSkills: ["skills/scene-nodes/SKILL.md"],
+    expectedDeclares: ["declare/editor/native/api.d.ts"],
+    optimalSteps: 7,
+    verify(fixture, turns) {
+      const { sceneJson } = getAllProjectSceneData(fixture);
+      const called = allCalledTools(turns);
+      const entities = (sceneJson.entities ?? []) as Array<any>;
+      const groupA = entities.find((e) => entityName(e) === "GroupA");
+      const groupB = entities.find((e) => entityName(e) === "GroupB");
+      const child = entities.find((e) => entityName(e) === "ChildBox");
+      const reparented = Boolean(groupB && child && Array.isArray(groupB.children) && groupB.children.includes(child.id));
+      return [
+        { name: "called_crud_and_reparent", pass: hasTool(called, "editor.entity.create") && hasTool(called, "editor.entity.reparent") && hasTool(called, "editor.entity.delete"), detail: `called=${[...called].join(",")}` },
+        { name: "child_reparented_to_groupB", pass: reparented, detail: `groupB.children=${JSON.stringify(groupB?.children)}, childId=${child?.id}` },
+        { name: "groupA_deleted", pass: !groupA, detail: `groupA=${Boolean(groupA)}` }
+      ];
+    }
+  },
+  {
+    id: "37_components_read_update_remove",
+    name: "组件完整 CRUD：查询 Lantern 组件 → 添加并更新临时组件属性 → 移除该组件",
+    category: "components-crud",
+    turns: [
+      "查询 'Lantern' 节点上现有的组件，给它添加一个 PointLight（或 MeshRenderer）组件并启用。",
+      "读取刚添加的那个组件属性，把它设为禁用（enabled: false），然后再把刚添加的组件移除，保留 'Lantern' 节点本身。"
+    ],
+    expectedSkills: ["skills/components/SKILL.md"],
+    expectedDeclares: ["declare/editor/native/api.d.ts"],
+    optimalSteps: 7,
+    verify(fixture, turns) {
+      const { sceneJson } = getAllProjectSceneData(fixture);
+      const called = allCalledTools(turns);
+      const lantern = (sceneJson.entities ?? []).find((e: any) => entityName(e) === "Lantern");
+      return [
+        { name: "called_component_crud", pass: hasTool(called, "editor.component.add") && hasTool(called, "editor.component.update") && hasTool(called, "editor.component.remove"), detail: `called=${[...called].join(",")}` },
+        { name: "called_component_query_or_read", pass: hasTool(called, "editor.component.query") || hasTool(called, "editor.component.read"), detail: `called=${[...called].join(",")}` },
+        { name: "scope_lantern_intact", pass: Boolean(lantern), detail: `lantern=${Boolean(lantern)}` }
+      ];
+    }
+  },
+  {
+    id: "38_assets_crud_create_read_update_delete",
+    name: "资产完整 CRUD：list → create 材质 → read → update 改色 → references → delete",
+    category: "assets-crud",
+    turns: [
+      "列出当前项目资产，然后创建一个路径为 'Materials/TempTest.mat' 的绿色 PBR 材质资产。",
+      "读取 'Materials/TempTest.mat'，把颜色改成黄色，检查它有没有被场景引用，确认无引用后删除它。"
+    ],
+    expectedSkills: ["skills/assets/SKILL.md", "skills/assets/delete/SKILL.md"],
+    expectedDeclares: ["declare/editor/native/api.d.ts"],
+    optimalSteps: 7,
+    verify(fixture, turns) {
+      const { files } = getAllProjectSceneData(fixture);
+      const called = allCalledTools(turns);
+      const stillPresent = files.some((f) => f.virtualPath === "Materials/TempTest.mat");
+      return [
+        { name: "called_asset_crud", pass: hasTool(called, "editor.asset.create") && hasTool(called, "editor.asset.read") && hasTool(called, "editor.asset.update"), detail: `called=${[...called].join(",")}` },
+        { name: "checked_references_before_delete", pass: hasTool(called, "editor.asset.references") && hasTool(called, "editor.asset.delete"), detail: `called=${[...called].join(",")}` },
+        { name: "temp_material_deleted", pass: !stillPresent, detail: `stillPresent=${stillPresent}` }
+      ];
+    }
+  },
+  {
+    id: "39_assets_prefab_create_and_instantiate",
+    name: "Prefab 创建与实例化：创建带 MeshRenderer 的柱子 Prefab 并实例化 2 个到场景",
+    category: "assets-prefab",
+    turns: ["创建一个名为 'Prefabs/StonePillar.prefab' 的简单 Prefab 资产，再把它实例化到场景中的 (6, 0, 6) 和 (10, 0, 6) 两个位置。"],
+    expectedSkills: ["skills/assets/SKILL.md", "skills/assets/use-prefab/SKILL.md"],
+    expectedDeclares: ["declare/editor/native/api.d.ts"],
+    optimalSteps: 5,
+    verify(fixture, turns) {
+      const { sceneJson, files } = getAllProjectSceneData(fixture);
+      const called = allCalledTools(turns);
+      const hasPrefab = files.some((f) => f.virtualPath === "Prefabs/StonePillar.prefab" && f.type === "Prefab");
+      const instances = (sceneJson.entities ?? []).filter((e: any) => entityAssetRef(e) === "Prefabs/StonePillar.prefab");
+      return [
+        { name: "created_prefab_asset", pass: hasPrefab && hasTool(called, "editor.asset.create"), detail: `hasPrefab=${hasPrefab}` },
+        { name: "instantiated_two_pillars", pass: instances.length >= 2, detail: `instances=${instances.length}` }
+      ];
+    }
+  },
+  {
+    id: "40_scripting_read_update_delete",
+    name: "脚本资产 R+U+D：读取预置脚本 → 修改转速重编 → 卸载并删除临时脚本",
+    category: "scripting-crud",
+    turns: [
+      "读取项目里现有的 'Scripts/TempPulse.ts'，把它的旋转速度改成每秒 60 度并更新保存。",
+      "确认没有节点引用 'Scripts/TempPulse.ts' 后把它删掉。"
+    ],
+    expectedSkills: ["skills/scripting/SKILL.md", "skills/assets/delete/SKILL.md"],
+    expectedDeclares: ["declare/editor/native/api.d.ts"],
+    optimalSteps: 7,
+    async setup(fixture) {
+      const signal = new AbortController().signal;
+      const edit = fixture.nativeEditor.beginEdit(`seed-script-${Date.now()}`, signal);
+      const createTool = edit.tools.find((t) => t.name === "asset.create")!;
+      await createTool.execute(
+        createTool.parseInput({
+          path: "Scripts/TempPulse.ts",
+          type: "script",
+          content: 'import { Script } from "@galacean/engine";\nexport default class TempPulse extends Script {\n  onUpdate(dt: number) {\n    this.entity.transform.rotate(0, 15 * dt, 0);\n  }\n}\n'
+        }),
+        { signal }
+      );
+      await edit.prepare(signal);
+      await edit.commit();
+      await edit.activate?.(signal);
+      await edit.complete?.();
+    },
+    verify(fixture, turns) {
+      const { files } = getAllProjectSceneData(fixture);
+      const called = allCalledTools(turns);
+      const stillPresent = files.some((f) => f.virtualPath === "Scripts/TempPulse.ts");
+      return [
+        { name: "read_and_updated_script", pass: hasTool(called, "editor.asset.read") && hasTool(called, "editor.asset.update"), detail: `called=${[...called].join(",")}` },
+        { name: "checked_refs_and_deleted", pass: hasTool(called, "editor.asset.references") && hasTool(called, "editor.asset.delete") && !stillPresent, detail: `stillPresent=${stillPresent}` }
+      ];
+    }
+  },
+  {
+    id: "41_engine_knowledge_script_lifecycle_material",
+    name: "Engine 运行时知识：编写带 onAwake/onUpdate 生命周期与上下浮动+旋转行为的 Script 挂载到 Lantern",
+    category: "engine-knowledge",
+    turns: ["给 'Lantern' 节点写一个运行时 TypeScript 脚本：在 onAwake 记录初始高度，在 onUpdate 里让它按正弦波上下缓慢浮动（振幅 0.5 米）同时绕 Y 轴缓慢旋转，注意正确使用引擎生命周期和 Transform API。"],
+    expectedSkills: ["skills/scripting/SKILL.md", "skills/engine-knowledge/SKILL.md"],
+    expectedDeclares: [
+      "declare/editor/native/api.d.ts",
+      "declare/engine/node_modules/@galacean/engine-core/types/Script.d.ts"
+    ],
+    optimalSteps: 5,
+    verify(fixture, turns) {
+      const { sceneJson, scripts } = getAllProjectSceneData(fixture);
+      const code = Object.values(scripts).join("\n");
+      const hasLifecycle = /onAwake/.test(code) && /onUpdate/.test(code) && /Math\.sin/.test(code);
+      const lantern = (sceneJson.entities ?? []).find((e: any) => entityName(e) === "Lantern");
+      const lanternCompIds = new Set<string>(lantern?.components ?? []);
+      const attached = (sceneJson.components ?? []).some(
+        (c: any) => lanternCompIds.has(c.id) && (c.type === "Script" || typeof c.script?.$ref === "string")
+      );
+      return [
+        { name: "script_has_lifecycle_and_sin", pass: hasLifecycle, detail: `scripts=${Object.keys(scripts).join(",")}` },
+        { name: "attached_to_lantern", pass: attached, detail: `attached=${attached}` }
+      ];
+    }
+  },
+  {
+    id: "42_history_undo_and_redo",
+    name: "历史完整 Undo + Redo：先撤销预置 TempCrate 修改，再重做恢复它",
+    category: "history-crud",
+    turns: [
+      "撤销刚才对场景做的上一次修改。",
+      "把刚才撤销的那一步再重做（redo）恢复回来。"
+    ],
+    expectedSkills: ["skills/history/SKILL.md"],
+    expectedDeclares: ["declare/editor/native/api.d.ts"],
+    optimalSteps: 7,
+    async setup(fixture) {
+      await fixture.seedPreUndoTransaction("TempCrate");
+    },
+    verify(fixture, turns) {
+      const { sceneJson } = getAllProjectSceneData(fixture);
+      const called = allCalledTools(turns);
+      const restored = (sceneJson.entities ?? []).some((e: any) => entityName(e) === "TempCrate");
+      return [
+        { name: "called_undo_and_redo", pass: hasTool(called, "editor.history.undo") && hasTool(called, "editor.history.redo"), detail: `called=${[...called].join(",")}` },
+        { name: "temp_crate_restored_after_redo", pass: restored, detail: `restored=${restored}` }
+      ];
+    }
   }
 ];

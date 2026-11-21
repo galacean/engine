@@ -15,7 +15,7 @@ description: >-
 
 ## 核心闭环（6 步）
 
-完整操作规范见 [RSI 闭环手册](references/rsi-loop.md)；指标与 18 题定义见 [指标与审计标准](references/metrics-and-audit.md)；实战避坑与待办见 [Harness 避坑与 Backlog](references/harness-and-pitfalls.md)。
+完整操作规范见 [RSI 闭环手册](references/rsi-loop.md)；指标与 42 题全 Skill×CRUD 矩阵见 [指标与审计标准](references/metrics-and-audit.md)；实战避坑与待办见 [Harness 避坑与 Backlog](references/harness-and-pitfalls.md)。
 
 1. **隔离工作树与探活**：
    - 默认不污染用户脏工作区；基于目标分支（默认 `origin/experimental/engine-next`）拉隔离 worktree，或按用户明确要求评测当前工作区。
@@ -29,8 +29,8 @@ description: >-
 3. **分层无头基准压测（串行）**：
    - 始终串行打本地 `127.0.0.1:8082`，强制校验 `BENCH_EXPECTED_MODEL`（默认 `DeepSeek-V4.1-Flash`），开启 `BENCH_SKIP_EXISTING=1` 断点续跑：
      - **冒烟**：`BENCH_CASES=01,03`
-     - **高杠杆 A/B（推荐日常 RSI）**：`BENCH_CASES=03,05,06,08,10,15,16`
-     - **全量基线**：留空（18 题，约 20–40 分钟）
+     - **高杠杆 A/B（推荐日常 RSI）**：`BENCH_CASES=03,05,06,08,10,15,16,19,20,21,22,23,24`
+     - **全量矩阵（15 Skill × CRUD + 复合/语音/遵守度）**：留空（42 题，支持 `BENCH_SKIP_EXISTING=1` 分批断点续跑）
 4. **Trace 五类归因**：
    - 先严格区分 **Transport 故障 / Fixture 漂移 / 公共链路断点 / Skill&Knowledge 缺口 / 模型能力上限**，严禁把网络或夹具故障当 LLM 缺陷修。
 5. **按 ROI 分层改造**：

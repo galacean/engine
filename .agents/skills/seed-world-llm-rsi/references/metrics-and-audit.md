@@ -51,34 +51,52 @@
 
 ---
 
-## 三、当前 24 题无头基准清单（v2：18 基础题 + 6 高难聪明度/遵守度题）
+## 三、当前 42 题无头基准矩阵（v3：全 15 个一级 Skill × 完整 CRUD + 6 高难聪明度/遵守度题）
 
 | ID | 类别 | `optimalSteps` | 测试意图与核心校验点 |
 | --- | --- | --- | --- |
-| `01_direct_time_query` | `environment-read` | 1 | 直接回答当前时间/天气/季节（验证零多余工具调用） |
+| `01_direct_time_query` | `environment-read` | 1 | 直接回答当前时间/天气/季节（零多余调用） |
 | `02_environment_sunset_rain` | `environment-write` | 4 | 修改时间、季节与下雪天气（`1.0x` 标杆） |
-| `03_building_simple_house` | `building-single` | 5 | 玩家前方平地建两层红砖斜顶木屋（检朝向、色号、防过度验证螺旋） |
-| `04_building_compound_courtyard` | `building-compound` | 5 | 指定坐标建围墙大门小院与带烟囱圆塔石屋（高密度批量 `execute`） |
-| `05_water_dig_river` | `water-river` | 5 | 玩家前方挖河并验证河道状态（检 `water.digRiver` 路由） |
-| `06_water_edit_lake_material` | `water-native` | 5 | 编辑原生湖泊水面材质颜色与波浪参数（检 `editor.*` 链路） |
-| `07_terrain_hill_sculpt` | `terrain` | 4 | 指定坐标建半径 18m 高 8m 缓坡小山丘 |
-| `08_vegetation_forest_cluster` | `vegetation` | 4 | 指定区域种 10 棵松树与灌木林（检大 `.d.ts` 分页与省略依赖） |
-| `09_world_objects_query_delete` | `world-objects` | 5 | 查询并删除指定世界对象（检 `Ref` 复用） |
-| `10_world_parameters_animals_distance` | `world-parameters` | 5 | 将动物激活距离 `activationDistance` 调为 320m（检横切路由） |
-| `11_spatial_search_and_teleport` | `spatial` | 5 | 周围 100m 搜索开阔平坦高地并传送玩家 |
-| `12_animals_catalog_and_spawn` | `animals` | 5 | 查询动物目录并生成指定动物 |
-| `13_farming_inspect_and_irrigate` | `farming` | 5 | 检查农场目标地块与可用动作并完成浇水验证 |
-| `14_scene_nodes_and_components` | `scene-nodes-and-components` | 5 | 创建 `WatchTowerLamp` 节点并挂发光红色立方体 `MeshRenderer` |
-| `15_assets_cloud_search_import_place` | `assets-cloud` | 6 | 云端搜索模型、导入项目并放置到 `(15, 0, 15)`（检 `search-cloud` 路由） |
-| `16_scripting_rotating_lantern` | `scripting` | 5 | 编写 TS 运行时旋转脚本并挂载（含真实 TS + esbuild 编译与 `declare/engine/` 内联） |
-| `17_history_undo_previous_edit` | `history` | 4 | 撤销预置场景修改并确认已恢复 |
-| `18_multi_turn_reuse` | `multi-turn` | 8 | 多轮连续修改，验证跨轮 `.d.ts` 复用与零重复读取 |
-| `19_compound_lakeside_homestead` | `compound` | 7 | 跨领域复合编排：湖边建木屋 + 旁种 3 棵松树 + 放 2 只小狗 + 调黄昏 |
-| `20_compound_farm_and_decor` | `compound` | 7 | 跨领域复合编排：农田浇水 + 创建 `FarmSignpost` 节点并挂载旋转脚本 |
-| `21_voice_typo_and_vague_edit` | `voice-intent` | 5 | 语音同音字纠错（小鱼→小雨、小三丘→小山丘），检不臆造与零误伤 |
-| `22_multi_turn_coreference_refine` | `multi-turn-coreference` | 9 | 三轮连续指代微调（建蓝立方体→右移改红→抬高保留红色） |
-| `23_strict_scope_and_non_destructive` | `compliance-scope` | 5 | 范围红线遵守：仅删指定松树，橡树/白桦树/岩石 0 误伤 |
-| `24_capability_boundary_and_reply_hygiene` | `compliance-honesty` | 4 | 诚实边界（无大象/无音效如实回报）+ 最终回复 0 内部 API/路径/UUID 泄露 |
+| `03_building_simple_house` | `building-single` | 5 | 建筑 C：两层红砖斜顶木屋（朝向、色号、防过度验证） |
+| `04_building_compound_courtyard` | `building-compound` | 5 | 建筑 C：围墙大门小院与圆塔石屋（高密度批量 `execute`） |
+| `05_water_dig_river` | `water-river` | 5 | 水体 C：玩家前方挖河并验证河道状态 |
+| `06_water_edit_lake_material` | `water-native` | 5 | 水体 U：编辑原生湖泊水面材质颜色与波浪参数 |
+| `07_terrain_hill_sculpt` | `terrain` | 4 | 地形 C：创建半径 18m 高 8m 缓坡小山丘 |
+| `08_vegetation_forest_cluster` | `vegetation` | 4 | 植被 C：种植 10 棵松树与灌木林 |
+| `09_world_objects_query_delete` | `world-objects` | 5 | 世界对象 R+U(tag)+D：查询树木、打标并删除 |
+| `10_world_parameters_animals_distance` | `world-parameters` | 5 | 规划参数 R+U：动物激活距离调为 320m |
+| `11_spatial_search_and_teleport` | `spatial` | 5 | 空间搜索 + 传送玩家 |
+| `12_animals_catalog_and_spawn` | `animals` | 5 | 动物目录 + 生成 + 命令 |
+| `13_farming_inspect_and_irrigate` | `farming` | 5 | 农场地块检查与浇水验证 |
+| `14_scene_nodes_and_components` | `scene-nodes-and-components` | 5 | Scene 节点 C + 组件 C：创建节点并挂发光立方体 |
+| `15_assets_cloud_search_import_place` | `assets-cloud` | 6 | 资产云端检索 + 导入 + 放置 |
+| `16_scripting_rotating_lantern` | `scripting` | 5 | 脚本 C：编写 TS 旋转脚本并挂载（真实 TS+esbuild） |
+| `17_history_undo_previous_edit` | `history` | 4 | 历史 Undo：撤销预置修改 |
+| `18_multi_turn_reuse` | `multi-turn` | 8 | 多轮复用：验证跨轮 `.d.ts` 复用与零重读 |
+| `19_compound_lakeside_homestead` | `compound` | 7 | 跨领域复合：湖边建木屋 + 种松树 + 放小狗 + 调黄昏 |
+| `20_compound_farm_and_decor` | `compound` | 7 | 跨领域复合：农田浇水 + 创建节点并挂旋转脚本 |
+| `21_voice_typo_and_vague_edit` | `voice-intent` | 5 | 语音同音字纠错（小鱼→小雨、小三丘→小山丘）+ 零误伤 |
+| `22_multi_turn_coreference_refine` | `multi-turn-coreference` | 9 | 三轮连续指代微调（建蓝立方体→右移改红→抬高保红） |
+| `23_strict_scope_and_non_destructive` | `compliance-scope` | 5 | 范围红线：仅删指定松树，其余树与岩石 0 误伤 |
+| `24_capability_boundary_and_reply_hygiene` | `compliance-honesty` | 4 | 诚实边界（无大象/无音效如实回报）+ 0 内部 API/ID 泄露 |
+| `25_environment_wind_fog_cloud_update` | `environment-write` | 4 | 环境 U：风速、轻雾与云量修改 |
+| `26_building_inspect_update_delete` | `building-crud` | 8 | 建筑 R+U+D：建小屋 → 移位 → 删除 |
+| `27_water_sample_and_delete` | `water-crud` | 5 | 水体 R+D：采样湖泊水深高程并移除水体组件 |
+| `28_terrain_query_update_patch_delete` | `terrain-crud` | 8 | 地形 C+U+D：建山丘 → 调高 → 删除 |
+| `29_vegetation_inspect_update_tree_shape` | `vegetation-crud` | 5 | 植被 R+U：查松树详情并改共享树形缩放与叶色 |
+| `30_world_objects_selection_and_inspect` | `world-objects-crud` | 5 | 世界对象 R+选区：查询树木、inspect 详情并保存选区 |
+| `31_world_parameters_reset` | `world-parameters` | 5 | 规划参数 R+Reset：重置动物激活距离回默认值 |
+| `32_spatial_resolve_and_check` | `spatial-read` | 4 | 空间 R：`spatial.resolve` + `spatial.check`（零修改） |
+| `33_animals_query_describe_receipt` | `animals-crud` | 6 | 动物全链路：spawn → query → describe → command → receipt |
+| `34_farming_plot_crud_plant_delete` | `farming-crud` | 5 | 农场地块 CRUD：查地块/目录并更新或新建地块 |
+| `35_farming_inventory_and_items` | `farming-read` | 5 | 农场 R：库存、容器、道具统计与携带物只读查询 |
+| `36_scene_nodes_read_reparent_delete` | `scene-nodes-crud` | 7 | Scene 节点 R+U(reparent)+D：读取、换父并删除 |
+| `37_components_read_update_remove` | `components-crud` | 7 | 组件 R+U+D：查询、更新禁用并移除临时组件 |
+| `38_assets_crud_create_read_update_delete` | `assets-crud` | 7 | 资产 C+R+U+D：创建材质、读取、改色、查引用并删除 |
+| `39_assets_prefab_create_and_instantiate` | `assets-prefab` | 5 | 资产 Prefab：创建 Prefab 并实例化多个节点 |
+| `40_scripting_read_update_delete` | `scripting-crud` | 7 | 脚本 R+U+D：读取预置脚本、修改转速重编、查引用并删除 |
+| `41_engine_knowledge_script_lifecycle_material` | `engine-knowledge` | 5 | Engine 知识：编写 `onAwake`/`onUpdate` 正弦浮动旋转脚本 |
+| `42_history_undo_and_redo` | `history-crud` | 7 | 历史 Undo + Redo：撤销后再重做恢复 |
 
 ### 扩展新用例原则
 每当新增一个世界引擎领域（如道路、NPC、任务、UI、音频）时，在 `benchmark-cases.ts` 同步追加 1–2 个端到端用例，明确填写 `expectedSkills`、`expectedDeclares`、`optimalSteps` 和确定性的 `verify()` 状态断言（严禁只检查文本回复）。
