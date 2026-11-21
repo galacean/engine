@@ -704,6 +704,47 @@ describe("AudioSource playback lifecycle", () => {
       expect((shortSource as any)._pendingPlay).to.be.null;
     });
 
+    it("prevents setting loop = true on an expired pending source from starting looped playback on unlock", async () => {
+      const createNodeSpy = vi.spyOn(context, "createBufferSource");
+      const shortSource = createAudioSource(0.1);
+      shortSource.play();
+      now = 250;
+
+      expect(shortSource.time).to.equal(0);
+      shortSource.loop = true;
+      expect(shortSource.loop).to.be.true;
+      expect(shortSource.time).to.equal(0);
+      expect((shortSource as any)._pendingPlay).to.be.null;
+
+      await finishResume();
+
+      expect(createNodeSpy).not.toHaveBeenCalled();
+      expect(shortSource.isPlaying).to.be.false;
+      expect(shortSource.time).to.equal(0);
+      expect((AudioManager as any)._playingCount).to.equal(0);
+
+      shortSource.play();
+      expect(shortSource.isPlaying).to.be.true;
+      expect((shortSource as any)._sourceNode.loop).to.be.true;
+      expect((shortSource as any)._sourceNode.start).toHaveBeenCalledWith(0, 0);
+    });
+
+    it("preserves a non-expired pending play when loop = true is enabled before expiry", async () => {
+      const shortSource = createAudioSource(0.1);
+      shortSource.play();
+      now = 50;
+
+      shortSource.loop = true;
+      now = 250;
+      await finishResume();
+
+      expect(shortSource.isPlaying).to.be.true;
+      expect((shortSource as any)._sourceNode.loop).to.be.true;
+      const startArgs = (shortSource as any)._sourceNode.start.mock.calls[0];
+      expect(startArgs[0]).to.equal(0);
+      expect(startArgs[1]).to.be.closeTo(0.05, 1e-6);
+    });
+
     it("restarts the timeline when re-playing an expired non-looping clip on the same pending resume", async () => {
       const shortSource = createAudioSource(2);
       shortSource.play();

@@ -82,16 +82,17 @@ export class AudioSource extends Component {
   }
 
   set playbackRate(value: number) {
-    if (!this._isPlaying && this._isExpired(this._getPlaybackTime())) {
+    const elapsedTime = this._getElapsedTime();
+    const currentTime = this._playbackOffset + elapsedTime * this._playbackRate;
+    if (!this._isPlaying && this._isExpired(currentTime)) {
       this.stop();
       this._playbackRate = value;
       return;
     }
-    const elapsedTime = this._getElapsedTime();
     if (this._isPlaying) {
       this._sourceNode!.playbackRate.value = value;
     }
-    this._playbackOffset += elapsedTime * this._playbackRate;
+    this._playbackOffset = currentTime;
     this._playbackStartTime += elapsedTime;
     this._playbackRate = value;
   }
@@ -123,6 +124,9 @@ export class AudioSource extends Component {
 
   set loop(value: boolean) {
     if (value !== this._loop) {
+      if (!this._isPlaying && this._isExpired(this._getPlaybackTime())) {
+        this.stop();
+      }
       this._loop = value;
 
       if (this._isPlaying) {
