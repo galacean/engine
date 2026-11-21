@@ -27,7 +27,7 @@ export class Utils {
 
   static searchRootCanvasInParents(element: IElement): UICanvas {
     let entity = element instanceof UICanvas ? element.entity.parent : element.entity;
-    let rootCanvas: UICanvas = null;
+    let rootCanvas: UICanvas | null = null;
     while (entity) {
       if (entity._isActiveInScene) {
         const components = entity._components;
