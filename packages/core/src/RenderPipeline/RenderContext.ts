@@ -33,6 +33,8 @@ export class RenderContext {
   replacementFailureStrategy: ReplacementFailureStrategy | null;
 
   flipProjection: boolean | null = false;
+  /** @internal */
+  _onlyShadowCaster: boolean = false;
   viewMatrix: Matrix;
   projectionMatrix: Matrix;
   viewProjectionMatrix: Matrix;

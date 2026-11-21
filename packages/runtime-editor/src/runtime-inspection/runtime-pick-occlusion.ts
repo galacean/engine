@@ -42,6 +42,11 @@ export function pickOcclusionPass(original: ShaderPass) {
   );
   const dst = output as unknown as Pass;
   dst._tagsMap = { ...src._tagsMap };
+  const pipelineStage = original.getTagValue<string>("pipelineStage");
+  output.deleteTag("pipelineStage");
+  if (pipelineStage !== undefined) {
+    output.setTag("pipelineStage", pipelineStage);
+  }
   dst._renderStateDataMap = { ...src._renderStateDataMap };
   const state = dst._renderState,
     prior = src._renderState;

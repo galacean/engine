@@ -101,12 +101,20 @@ export function buildingScenePreparation(scenePath: string,
       const source = JSON.parse(draft.read(scenePath) as string) as GalaceanSourceSceneFile;
       const ids = new Set([...scene.list(), ...scene.queryComponents()].map(value => value.id));
       if ([...fragment.entities, ...fragment.components].some(value => ids.has(value.id))) throw Error("Generated building identity conflicts with Scene");
-      // Preserve generated stable IDs. The common reparent operation converts
-      // these Scene subtrees to instance additions when the owner is inherited.
-      source.scene.rootEntities.push(...fragment.rootEntities);
+      // Preserve generated stable IDs. When parent is a regular source entity (always true for
+      // layout roots), attach rootEntities directly in one JSON write instead of N sequential reparents.
+      const parentEntity = source.entities.find((entity) => entity.id === parent);
       source.entities.push(...fragment.entities); source.components.push(...fragment.components);
-      draft.update(scenePath, JSON.stringify(source));
-      for (const root of fragment.rootEntities) scene.reparent(root, parent, false);
+      if (parentEntity && !parentEntity.instance) {
+        (parentEntity.children ??= []).push(...fragment.rootEntities);
+        draft.update(scenePath, JSON.stringify(source));
+      } else {
+        source.scene.rootEntities.push(...fragment.rootEntities);
+        draft.update(scenePath, JSON.stringify(source));
+        scene.batch(() => {
+          for (const root of fragment.rootEntities) scene.reparent(root, parent, false);
+        });
+      }
       edited();
     });
   };

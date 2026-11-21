@@ -12,9 +12,12 @@ import type { BuildingUnitAssets } from "../../runtime/BuildingUnitAssets";
 export class BuildingWorkerError extends Error {
   readonly recoverable = true;
 }
+export interface BuildingCpuCompileOptions {
+  readonly omitEmptyCells?: boolean;
+}
 export interface BuildingCpuHandle {
   readonly valid: boolean;
-  compile(signal: AbortSignal): Promise<BuildingCpuDetail>;
+  compile(signal: AbortSignal, options?: BuildingCpuCompileOptions): Promise<BuildingCpuDetail>;
   dispose(): void;
 }
 type Lease = { id: number; refs: number };
@@ -189,7 +192,7 @@ export class BuildingCpuClient {
           get valid() {
             return valid();
           },
-          compile: async (signal) => {
+          compile: async (signal, compileOptions) => {
             if (disposed) throw Error("Building compilation snapshot disposed");
             if (!valid()) throw new BuildingWorkerError("Building compilation snapshot expired after Worker failure");
             const result = await this.send<BuildingCpuDetail>(
@@ -198,7 +201,8 @@ export class BuildingCpuClient {
                 mode: "detail",
                 token: id,
                 feedbackGrid: true,
-                workerSlim: true
+                workerSlim: true,
+                ...(compileOptions?.omitEmptyCells ? { omitEmptyCells: true } : {})
               },
               signal
             ).result;

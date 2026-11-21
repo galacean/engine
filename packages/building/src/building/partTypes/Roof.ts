@@ -312,6 +312,20 @@ function slopeParams(context: LayingContext<unknown>): RoofSlopeParams {
   if (element?.kind !== "surface" || element.surface.kind !== "roofSlope") throw Error("roofTiles lays a roof slope");
   return element.surface.params as RoofSlopeParams;
 }
+const tileSpacingCache = new WeakMap<RoofSlopeParams, Map<number, number>>();
+function rowSpacingAt(p: RoofSlopeParams, rows: number, r: number, v: number): number {
+  let byRow = tileSpacingCache.get(p);
+  if (!byRow) tileSpacingCache.set(p, (byRow = new Map()));
+  const cacheKey = (rows << 16) | r;
+  let cached = byRow.get(cacheKey);
+  if (cached !== undefined) return cached;
+  const o0 = slopeFrame(p, 0.5, v).origin;
+  const other = rows === 1 ? 1 : r < rows - 1 ? rowV(rows, r + 1) : rowV(rows, r - 1);
+  const o1 = slopeFrame(p, 0.5, other).origin;
+  cached = Math.hypot(o0[0] - o1[0], o0[1] - o1[1], o0[2] - o1[2]);
+  byRow.set(cacheKey, cached);
+  return cached;
+}
 function tileAt(
   context: LayingContext<TileParams>,
   p: RoofSlopeParams,
@@ -326,10 +340,7 @@ function tileAt(
   const frame = slopeFrame(p, (c + 0.5) / cols, v);
   const [l, rr] = rowEnds(p, slopeSampler(p).at(v).x);
   const tileWidth = Math.hypot(rr[0] - l[0], rr[1] - l[1]) / cols;
-  // Row spacing along the middle of the slope; the top row measures to the row below.
-  const mid = (vv: number) => slopeFrame(p, 0.5, vv).origin;
-  const other = rows === 1 ? 1 : r < rows - 1 ? rowV(rows, r + 1) : rowV(rows, r - 1);
-  const spacing = Math.hypot(...sub(mid(v), mid(other)));
+  const spacing = rowSpacingAt(p, rows, r, v);
   const key = `${r}/${c}`;
   const jitter = context.params.lengthJitter ?? 0.2;
   const length =

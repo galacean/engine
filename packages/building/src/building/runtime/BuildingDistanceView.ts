@@ -12,13 +12,16 @@ import {
 import { constructionEntranceRanges, type ConstructionEntranceState } from "./ConstructionEntrance";
 import entranceShadow from "./ConstructionEntranceShadow.shader?raw";
 import { subscribeDistanceAppearance } from "./MasonryDistanceAppearance";
-import { plannedMasonryVertexData } from "./MasonryDistanceVertexData";
+import { plannedMasonryVertexData, mergePlannedMasonryVertexData } from "./MasonryDistanceVertexData";
 import { constructionDecorationGLSL } from "./ConstructionDecorationShader";
 import { leaseDecorationTextures } from "./ConstructionDecorationTextures";
 import { registerConstructionSceneLighting } from "./ConstructionSceneLighting";
 import { leasePlasterTextures } from "./ConstructionPlasterTextures";
 import { constructionPlasterGLSL, constructionPlasterFinishGLSL } from "./ConstructionPlasterShader";
-import { uploadRestorableModelMesh } from "@galacean/engine-modify/rendering/RestorableResources";
+import {
+  destroyOwnedModelMesh,
+  uploadRestorableModelMesh
+} from "@galacean/engine-modify/rendering/RestorableResources";
 import {
   masonryAppearance,
   masonryTintGLSL,
@@ -49,6 +52,8 @@ import {
   Shader,
   ShaderLanguage,
   ShaderFactory,
+  ShaderMacro,
+  ShaderProperty,
   type Engine,
   type Entity
 } from "@galacean/engine";
@@ -94,6 +99,14 @@ const SHADOW_BUCKET_VERTEX_ELEMENTS = [
   new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0),
   new VertexElement(VertexAttribute.Normal, 12, VertexElementFormat.NormalizedByte4, 0)
 ];
+const MACRO_SURFACE_DITHER =
+  ShaderMacro?.getByName?.("MASONRY_SURFACE_DITHER") ?? ("MASONRY_SURFACE_DITHER" as unknown as ShaderMacro);
+const MACRO_PLASTER = ShaderMacro?.getByName?.("MASONRY_PLASTER") ?? ("MASONRY_PLASTER" as unknown as ShaderMacro);
+const PROP_MASONRY_LOD_FADE =
+  ShaderProperty?.getByName?.("renderer_MasonryLodFade") ?? ("renderer_MasonryLodFade" as unknown as ShaderProperty);
+const PROP_MASONRY_LOD_DEBUG_COLOR =
+  ShaderProperty?.getByName?.("renderer_MasonryLodDebugColor") ??
+  ("renderer_MasonryLodDebugColor" as unknown as ShaderProperty);
 
 function packSignedByteDist(v: number): number {
   return Math.round(v < -1 ? -127 : v > 1 ? 127 : v * 127);
@@ -101,7 +114,7 @@ function packSignedByteDist(v: number): number {
 function packNormalizedU16Dist(v: number): number {
   return v <= 0 ? 0 : v >= 1 ? 65535 : Math.round(v * 65535);
 }
-function computeFlatNormalsDist(rawPositions: readonly number[], indices: readonly number[]): Float32Array {
+function computeFlatNormalsDist(rawPositions: ArrayLike<number>, indices: ArrayLike<number>): Float32Array {
   const normals = new Float32Array(rawPositions.length);
   for (let i = 0; i < indices.length; i += 3) {
     const ia = indices[i]! * 3;
@@ -148,7 +161,7 @@ function buildCompactShadowMesh(
   engine: Engine,
   resources: V2ViewResources,
   owner: string,
-  chunks: readonly { positions: readonly number[]; indices: readonly number[] }[],
+  chunks: readonly { positions: ArrayLike<number>; indices: ArrayLike<number> }[],
   vertexCount: number,
   indexCount: number
 ): ModelMesh {
@@ -195,15 +208,14 @@ function buildCompactShadowMesh(
   const shadowMesh = new ModelMesh(engine, owner + " shadow");
   resources.meshes.push(shadowMesh);
   shadowMesh.setVertexElements(SHADOW_BUCKET_VERTEX_ELEMENTS);
-  shadowMesh.setVertexBufferBinding(
-    new Buffer(engine, BufferBindFlag.VertexBuffer, sBytes, BufferUsage.Static, true),
-    SHADOW_BUCKET_STRIDE
-  );
+  const shadowVb = new Buffer(engine, BufferBindFlag.VertexBuffer, sBytes, BufferUsage.Static, true);
+  shadowMesh.setVertexBufferBinding(shadowVb, SHADOW_BUCKET_STRIDE);
   shadowMesh.setIndices(sIndices);
   shadowMesh.addSubMesh(0, sIndices.length);
   shadowMesh.bounds.min.set(minX, minY, minZ);
   shadowMesh.bounds.max.set(maxX, maxY, maxZ);
   uploadRestorableModelMesh(shadowMesh);
+  shadowVb.markAsUnreadable();
   return shadowMesh;
 }
 
@@ -325,6 +337,7 @@ export async function createBuildingDistanceView(
   const appearance = masonryAppearance(engine),
     tintSubscriptions: Array<{ destroy(): void }> = [],
     visualTintSubscriptions: Array<{ destroy(): void }> = [];
+  const colorOwnerById = new Map(group.colorOwners.map((b) => [b.id, b] as const));
   const colorSeeds = new Map(
     group.colorOwners.map((b) => {
       const seed = masonryColorSeed(b);
@@ -351,9 +364,17 @@ export async function createBuildingDistanceView(
   const visualEntranceBindings: { owner: string; apply: ReturnType<typeof entranceBinding> }[] = [];
   let disposed = false;
   let detailedInitialized = false;
+  let detailedVisualReady = false;
   let detailedReady: Promise<void> | undefined;
+  let detailedGeneration = 0;
+  let detailedRetryAt = 0;
+  let detailedRetryTimer: ReturnType<typeof setTimeout> | undefined;
+  let deviceRestoreCleanup: (() => void) | undefined;
+  let pendingGeometry: ConstructionPreview | undefined;
+  let pendingGroup: BuildingDistanceInput | undefined;
   let lastEntranceStates: ReadonlyMap<string, ConstructionEntranceState> | undefined;
   let lastFade = 1;
+  let ditherEnabled = false;
   let lastLodDebugEnabled = false;
   let textureLease: ReturnType<typeof leasePlasterTextures> | undefined;
   const plasterMaterials: PBRMaterial[] = [];
@@ -365,9 +386,21 @@ export async function createBuildingDistanceView(
   let farProxy: ReturnType<typeof createBuildingFarProxy> | undefined;
   let globalProxySlot: GlobalProxySlotHandle | undefined;
   const nativeDecorationPicks: SeedWorldPickBatch[] = [];
+  const clearDetailedRetryHooks = () => {
+    if (detailedRetryTimer !== undefined) {
+      clearTimeout(detailedRetryTimer);
+      detailedRetryTimer = undefined;
+    }
+    deviceRestoreCleanup?.();
+    deviceRestoreCleanup = undefined;
+  };
   const disposeView = () => {
     if (disposed) return;
     disposed = true;
+    detailedGeneration++;
+    clearDetailedRetryHooks();
+    pendingGeometry = undefined;
+    pendingGroup = undefined;
     nativeDecorationView?.destroy();
     tintSubscriptions.forEach((subscription) => subscription.destroy());
     visualTintSubscriptions.forEach((subscription) => subscription.destroy());
@@ -389,8 +422,8 @@ export async function createBuildingDistanceView(
   };
   try {
     interface ShadowChunk {
-      positions: readonly number[];
-      indices: readonly number[];
+      positions: ArrayLike<number>;
+      indices: ArrayLike<number>;
       mesh?: ModelMesh;
     }
     interface ShadowBucket {
@@ -424,8 +457,8 @@ export async function createBuildingDistanceView(
       const appendShadowChunk = (
         owner: string,
         decoration: boolean,
-        positions: readonly number[],
-        indices: readonly number[],
+        positions: ArrayLike<number>,
+        indices: ArrayLike<number>,
         mesh?: ModelMesh
       ) => {
         if (!shadowBuckets) return;
@@ -442,7 +475,7 @@ export async function createBuildingDistanceView(
 
       interface OpaqueBucketPart {
         positions: readonly number[];
-        uvs?: readonly (readonly [number, number])[];
+        uvs?: PackedUv2;
         indices: readonly number[];
         role: "brick" | "roof_tile" | "wooden_plank";
         srcColor: readonly [number, number, number];
@@ -455,8 +488,18 @@ export async function createBuildingDistanceView(
         vertexCount: number;
         indexCount: number;
       }
+      interface PlannedBatchBucket {
+        owner: string;
+        material: PBRMaterial;
+        isPlaster: boolean;
+        isDecoration: boolean;
+        hasAppearance: boolean;
+        entries: Array<{ part: (typeof srcGeometry.parts)[number]; pickIndex: number }>;
+        pickIds: string[];
+      }
       const opaqueMaterials = new Map<string, PBRMaterial>();
       const opaqueBuckets = new Map<string, OpaqueBucket>();
+      const plannedBuckets = new Map<string, PlannedBatchBucket>();
       const sharedOpaqueRefreshers: Array<() => void> = [];
 
       for (const p of srcGeometry.parts) {
@@ -470,7 +513,7 @@ export async function createBuildingDistanceView(
         }
         if (!p.indices.length) continue;
 
-        const owner = srcGroup.colorOwners.find((b) => b.id === p.owner);
+        const owner = colorOwnerById.get(p.owner);
         const isOpaqueMerged =
           owner !== undefined &&
           !p.plaster &&
@@ -486,6 +529,7 @@ export async function createBuildingDistanceView(
             mat = new PBRMaterial(engine);
             mat.shader = Shader.find("Masonry/SupportSurface") ?? Shader.create(shader, ShaderLanguage.GLSLES300);
             mat.shaderData.setFloat("material_WorldPickDepthCompare", CompareFunction.LessEqual);
+            if (ditherEnabled) mat.shaderData?.enableMacro?.(MACRO_SURFACE_DITHER);
             mat.baseColor = new Color(1, 1, 1, 1);
             mat.shaderData.setFloat("material_MasonryPattern", 0);
             mat.shaderData.setFloat("material_MasonryUnit", p.placement === "unit" ? 1 : 0);
@@ -552,7 +596,9 @@ export async function createBuildingDistanceView(
           material = new PBRMaterial(engine);
           material.shader = Shader.find("Masonry/SupportSurface") ?? Shader.create(shader, ShaderLanguage.GLSLES300);
           material.shaderData.setFloat("material_WorldPickDepthCompare", CompareFunction.LessEqual);
-          const ownerEntry = srcGroup.colorOwners.find((b) => b.id === p.owner)!;
+          if (ditherEnabled) material.shaderData?.enableMacro?.(MACRO_SURFACE_DITHER);
+          if (p.plaster) material.shaderData?.enableMacro?.(MACRO_PLASTER);
+          const ownerEntry = colorOwnerById.get(p.owner)!;
           visualTintSubscriptions.push(
             subscribeDistanceAppearance(appearance, material, {
               role: p.material === "wall" ? "brick" : p.material,
@@ -587,87 +633,101 @@ export async function createBuildingDistanceView(
           material.roughness = 0.9;
           material.screenSpaceReflectionIntensity = 0;
           material.screenSpaceReflectionBilateral = false;
-          material.renderFace = RenderFace.Double;
+          material.renderFace = p.stonePaving ? RenderFace.Front : RenderFace.Double;
           materials.set(materialKey, material);
           material.shaderData.setFloat("material_MasonryEmission", p.emissive ?? 0);
           visualResources.materials.push(material);
           if (p.plaster) plasterMaterials.push(material);
           if (p.decoration) decorationMaterials.push(material);
         }
-        const entity =
-          (p.decoration || p.plaster) && p.colors && p.normals && p.emission
-            ? (() => {
-                const { data, stride, count } = plannedMasonryVertexData(p);
-                const mesh = new ModelMesh(engine, p.owner + " decorations");
-                visualResources.meshes.push(mesh);
-                const elements = [
-                  new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0),
-                  new VertexElement(VertexAttribute.Normal, 12, VertexElementFormat.Vector3, 0),
-                  new VertexElement(VertexAttribute.Color, 24, VertexElementFormat.Vector4, 0),
-                  new VertexElement(VertexAttribute.UV, 40, VertexElementFormat.Vector2, 0),
-                  new VertexElement(VertexAttribute.UV1, 48, VertexElementFormat.Vector2, 0)
-                ];
-                if (p.appearance)
-                  elements.push(new VertexElement(VertexAttribute.Tangent, 56, VertexElementFormat.Vector4, 0));
-                mesh.setVertexElements(elements);
-                mesh.setVertexBufferBinding(
-                  new Buffer(engine, BufferBindFlag.VertexBuffer, data, BufferUsage.Static, true),
-                  stride
-                );
-                mesh.setIndices(count > 65535 ? new Uint32Array(p.indices) : new Uint16Array(p.indices));
-                mesh.addSubMesh(0, p.indices.length);
-                const min = [Infinity, Infinity, Infinity],
-                  max = [-Infinity, -Infinity, -Infinity];
-                for (let i = 0; i < p.positions.length; i++) {
-                  const k = i % 3;
-                  const warp = (p.plaster || p.appearance) && k !== 1 ? 0.03 : 0;
-                  min[k] = Math.min(min[k], p.positions[i] - warp);
-                  max[k] = Math.max(max[k], p.positions[i] + warp);
-                }
-                mesh.bounds.min.set(min[0], min[1], min[2]);
-                mesh.bounds.max.set(max[0], max[1], max[2]);
-                uploadRestorableModelMesh(mesh);
-                const e = visualRoot.createChild(p.owner),
-                  r = e.addComponent(MeshRenderer);
-                r.mesh = mesh;
-                r.setMaterial(material!);
-                r.enableVertexColor = true;
-                r.castShadows = !p.plaster;
-                r.receiveShadows = true;
-                if (includeShadows && !p.plaster) attachShadowCaster(p.owner, mesh, !!p.decoration);
-                return e;
-              })()
-            : (() => {
-                const e = addV2Surface(
-                  engine,
-                  visualResources,
-                  p.owner,
-                  { ...p, pickIds: Array<number>(p.positions.length / 3).fill(0) },
-                  material,
-                  { upward: false, shadows: true }
-                );
-                if (includeShadows && !p.plaster) {
-                  appendShadowChunk(
-                    p.owner,
-                    !!p.decoration,
-                    p.positions,
-                    p.indices,
-                    e.getComponent(MeshRenderer)!.mesh as ModelMesh
-                  );
-                }
-                return e;
-              })();
+        if ((p.decoration || p.plaster) && p.colors && p.normals && p.emission) {
+          const plannedKey = `${p.owner}\0${materialKey}\0${p.appearance ? 1 : 0}\0${p.plaster ? 1 : 0}`;
+          let pb = plannedBuckets.get(plannedKey);
+          if (!pb) {
+            pb = {
+              owner: p.owner,
+              material: material!,
+              isPlaster: !!p.plaster,
+              isDecoration: !!p.decoration,
+              hasAppearance: !!p.appearance,
+              entries: [],
+              pickIds: []
+            };
+            plannedBuckets.set(plannedKey, pb);
+          }
+          const pickIndex = pb.pickIds.length;
+          pb.pickIds.push(p.pickId === undefined ? buildingGroupKey(p.owner) : buildingPartKey(p.pickId));
+          pb.entries.push({ part: p, pickIndex });
+          continue;
+        }
+        const entity = addV2Surface(engine, visualResources, p.owner, p, material, { upward: false, shadows: true });
+        if (includeShadows && !p.plaster) {
+          appendShadowChunk(
+            p.owner,
+            !!p.decoration,
+            p.positions,
+            p.indices,
+            entity.getComponent(MeshRenderer)!.mesh as ModelMesh
+          );
+        }
         const entities = visualOwnerEntities.get(p.owner) ?? [];
         entities.push(entity);
         visualOwnerEntities.set(p.owner, entities);
         const renderer = entity.getComponent(MeshRenderer)!;
-        renderer.priority = -100;
+        renderer.priority = p.stonePaving || p.plaster ? -98 : p.decoration ? -102 : -105;
         renderer.castShadows = false;
-        renderer.shaderData.setFloat("renderer_MasonryLodFade", lastFade);
+        renderer.shaderData.setFloat(PROP_MASONRY_LOD_FADE, lastFade);
         visualEntranceBindings.push({ owner: p.owner, apply: entranceBinding(renderer.shaderData) });
         const batch = new SeedWorldArrayPickBatch(renderer);
         batch.count = 1;
         batch.id = p.pickId === undefined ? buildingGroupKey(p.owner) : buildingPartKey(p.pickId);
+        batches.push(batch);
+      }
+
+      for (const pb of plannedBuckets.values()) {
+        const merged = mergePlannedMasonryVertexData(pb.entries);
+        const mesh = new ModelMesh(engine, pb.owner + " decorations");
+        visualResources.meshes.push(mesh);
+        const elements = [
+          new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0),
+          new VertexElement(VertexAttribute.Normal, 12, VertexElementFormat.Vector3, 0),
+          new VertexElement(VertexAttribute.Color, 24, VertexElementFormat.Vector4, 0),
+          new VertexElement(VertexAttribute.UV, 40, VertexElementFormat.Vector2, 0),
+          new VertexElement(VertexAttribute.UV1, 48, VertexElementFormat.Vector2, 0)
+        ];
+        if (merged.hasAppearance)
+          elements.push(new VertexElement(VertexAttribute.Tangent, 56, VertexElementFormat.Vector4, 0));
+        mesh.setVertexElements(elements);
+        const vb = new Buffer(engine, BufferBindFlag.VertexBuffer, merged.data, BufferUsage.Static, true);
+        mesh.setVertexBufferBinding(vb, merged.stride);
+        mesh.setIndices(merged.indices);
+        mesh.addSubMesh(0, merged.indices.length);
+        mesh.bounds.min.set(merged.bounds[0], merged.bounds[1], merged.bounds[2]);
+        mesh.bounds.max.set(merged.bounds[3], merged.bounds[4], merged.bounds[5]);
+        uploadRestorableModelMesh(mesh);
+        vb.markAsUnreadable();
+        const entity = visualRoot.createChild(pb.owner);
+        const renderer = entity.addComponent(MeshRenderer);
+        renderer.mesh = mesh;
+        renderer.setMaterial(pb.material);
+        renderer.enableVertexColor = true;
+        renderer.castShadows = false;
+        renderer.receiveShadows = true;
+        renderer.priority = pb.isPlaster ? -98 : -102;
+        renderer.shaderData.setFloat(PROP_MASONRY_LOD_FADE, lastFade);
+        if (includeShadows && !pb.isPlaster) attachShadowCaster(pb.owner, mesh, pb.isDecoration);
+        const entities = visualOwnerEntities.get(pb.owner) ?? [];
+        entities.push(entity);
+        visualOwnerEntities.set(pb.owner, entities);
+        visualEntranceBindings.push({ owner: pb.owner, apply: entranceBinding(renderer.shaderData) });
+        const batch = new SeedWorldArrayPickBatch(renderer);
+        if (pb.pickIds.length === 1) {
+          batch.count = 1;
+          batch.id = pb.pickIds[0];
+        } else {
+          batch.count = pb.pickIds.length;
+          batch.ids = pb.pickIds;
+        }
         batches.push(batch);
       }
 
@@ -720,7 +780,7 @@ export async function createBuildingDistanceView(
             f32[fOff] = x;
             f32[fOff + 1] = y;
             f32[fOff + 2] = z;
-            const itemUvs = item.uvs as unknown as PackedUv2 | undefined;
+            const itemUvs = item.uvs;
             f32[fOff + 6] = uvU(itemUvs, v, x / 16);
             f32[fOff + 7] = uvV(itemUvs, v, z / 16);
 
@@ -753,6 +813,7 @@ export async function createBuildingDistanceView(
         mesh.bounds.max.set(maxX, maxY, maxZ);
         const packed = uploadRestorableModelMesh(mesh);
         const retainedData = packed[0]?.data;
+        vertexBuffer.markAsUnreadable();
 
         if (retainedData) {
           sharedOpaqueRefreshers.push(
@@ -765,10 +826,10 @@ export async function createBuildingDistanceView(
         renderer.mesh = mesh;
         renderer.setMaterial(bucket.material);
         renderer.enableVertexColor = true;
-        renderer.priority = -100;
+        renderer.priority = -105;
         renderer.castShadows = false;
         renderer.receiveShadows = true;
-        renderer.shaderData.setFloat("renderer_MasonryLodFade", lastFade);
+        renderer.shaderData.setFloat(PROP_MASONRY_LOD_FADE, lastFade);
         visualEntranceBindings.push({ owner: bucket.owner, apply: entranceBinding(renderer.shaderData) });
 
         const entities = visualOwnerEntities.get(bucket.owner) ?? [];
@@ -900,111 +961,235 @@ export async function createBuildingDistanceView(
 
     const hasFarProxy = Boolean(farProxy || globalProxySlot);
     let lod1GeometryBuilt = false;
-    let pendingGeometry: ConstructionPreview | undefined = geometry;
-    let pendingGroup: BuildingDistanceInput | undefined = group;
+    pendingGeometry = geometry;
+    pendingGroup = group;
 
     if (hasFarProxy) {
       if (!unifiedGlobalProxy) buildLazyShadowCasters(geometry);
     } else {
       buildLod1Visuals(geometry, group, !unifiedGlobalProxy);
       lod1GeometryBuilt = true;
-      pendingGeometry = undefined;
-      pendingGroup = undefined;
     }
     geometry = undefined as unknown as ConstructionPreview;
+
+    const teardownDetailedVisual = () => {
+      detailedGeneration++;
+      detailedInitialized = false;
+      detailedVisualReady = false;
+      detailedReady = undefined;
+      lod1GeometryBuilt = false;
+      visualTintSubscriptions.forEach((subscription) => subscription.destroy());
+      visualTintSubscriptions.length = 0;
+      nativeDecorationView?.destroy();
+      nativeDecorationView = undefined;
+      nativeDecorationPicks.length = 0;
+      batches.length = 0;
+      visualEntranceBindings.length = 0;
+      visualOwnerEntities.clear();
+      materials.clear();
+      lodAppearanceIds.clear();
+      lodMaterialBindings.length = 0;
+      plasterMaterials.length = 0;
+      stoneFloorMaterials.length = 0;
+      decorationMaterials.length = 0;
+      const staleTextures = lodTextures.size ? [...lodTextures.values()] : [];
+      lodTextures.clear();
+      const staleLeases = [textureLease, stoneFloorLease, decorationTextureLease];
+      textureLease = undefined;
+      stoneFloorLease = undefined;
+      decorationTextureLease = undefined;
+      const staleMaterials = visualResources.materials.splice(0);
+      const staleMeshes = visualResources.meshes.splice(0);
+      const children = [...visualRoot.children];
+      let anyPending = false;
+      for (const child of children) {
+        child.isActive = false;
+        child.destroy();
+        if (child.pendingDestroy) anyPending = true;
+      }
+      const release = () => {
+        for (const material of staleMaterials) material.destroy();
+        for (const mesh of staleMeshes) destroyOwnedModelMesh(mesh);
+        for (const tex of staleTextures) tex.destroy();
+        for (const lease of staleLeases) lease?.destroy();
+      };
+      // Child entity destruction is deferred until end-of-frame while Engine._frameInProcess is true;
+      // destroying materials/meshes/textures synchronously would fail refCount === 0 and leak them.
+      if (anyPending) queueMicrotask(release);
+      else release();
+    };
+
+    const scheduleDetailedRetry = () => {
+      if (disposed) return;
+      detailedRetryAt = performance.now() + 2000;
+      if (detailedRetryTimer === undefined) {
+        detailedRetryTimer = setTimeout(() => {
+          detailedRetryTimer = undefined;
+          if (disposed || detailedInitialized) return;
+          detailedRetryAt = 0;
+          syncVisualRoots();
+        }, 2000);
+      }
+      if (!deviceRestoreCleanup && typeof engine.on === "function") {
+        const onRestored = () => {
+          clearDetailedRetryHooks();
+          if (disposed) return;
+          detailedRetryAt = 0;
+          syncVisualRoots();
+        };
+        engine.on("devicerestored", onRestored);
+        deviceRestoreCleanup = () => {
+          engine.off?.("devicerestored", onRestored);
+        };
+      }
+    };
 
     const ensureDetailedVisual = (): Promise<void> => {
       if (detailedReady) return detailedReady;
       if (!pendingGeometry || !pendingGroup) return Promise.resolve();
+      const gen = ++detailedGeneration;
       detailedInitialized = true;
+      detailedRetryAt = 0;
+      if (detailedRetryTimer !== undefined) {
+        clearTimeout(detailedRetryTimer);
+        detailedRetryTimer = undefined;
+      }
       const activeGeom = pendingGeometry;
       const activeGroup = pendingGroup;
-      if (!lod1GeometryBuilt) {
-        buildLod1Visuals(activeGeom, activeGroup, false);
-        lod1GeometryBuilt = true;
-        if (lastEntranceStates) {
-          for (const binding of visualEntranceBindings) binding.apply(lastEntranceStates.get(binding.owner));
-        }
-        if (lastLodDebugEnabled) {
-          const lod1Color = new Vector4(0.95, 0.78, 0.08, 0.82);
-          for (const batch of batches) batch.renderer.shaderData.setVector4("renderer_MasonryLodDebugColor", lod1Color);
-        }
-      }
-      for (const binding of lodMaterialBindings) {
-        if (disposed) break;
-        let appearanceTexture = lodTextures.get(binding.appearance);
-        if (!appearanceTexture) {
-          appearanceTexture = createConstructionLodTexture(engine, binding.appearance);
-          lodTextures.set(binding.appearance, appearanceTexture);
-        }
-        binding.material.shaderData.enableMacro("MASONRY_LAYOUT_APPEARANCE");
-        binding.material.shaderData.setTexture("material_MasonryLayout", appearanceTexture);
-        binding.material.shaderData.setVector4("material_MasonryLayoutUV", new Vector4(...binding.uvTransform));
-      }
-      stoneFloorLease = stoneFloorMaterials.length ? leaseStoneFloorTextures(engine, assets) : undefined;
-      textureLease = plasterMaterials.length ? leasePlasterTextures(engine, assets) : undefined;
-      decorationTextureLease = decorationMaterials.length ? leaseDecorationTextures(engine, assets) : undefined;
-      if (hasNativeDecorations) {
-        nativeDecorationView = createDecorationNativeView(
-          engine,
-          visualRoot,
-          activeGeom.stones,
-          activeGroup.paletteSlots,
-          {
-            assets,
-            retainedWallUnits: activeGeom.retainedWallUnits,
-            parts: activeGeom.decorationParts,
-            rigidDecorations: activeGroup.rigidDecorations,
-            frames: activeGeom.frames,
-            woodArchFrames: activeGeom.woodArchFrames,
-            woodArchPillars: activeGeom.woodArchPillars,
-            camera,
-            bounds: boundsSnapshot
+      try {
+        if (!lod1GeometryBuilt) {
+          buildLod1Visuals(activeGeom, activeGroup, false);
+          lod1GeometryBuilt = true;
+          if (lastEntranceStates) {
+            for (const binding of visualEntranceBindings) binding.apply(lastEntranceStates.get(binding.owner));
           }
+          if (lastLodDebugEnabled) {
+            const lod1Color = new Vector4(0.95, 0.78, 0.08, 0.82);
+            for (const batch of batches) batch.renderer.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, lod1Color);
+          }
+        }
+        for (const binding of lodMaterialBindings) {
+          if (disposed) break;
+          let appearanceTexture = lodTextures.get(binding.appearance);
+          if (!appearanceTexture) {
+            appearanceTexture = createConstructionLodTexture(engine, binding.appearance);
+            lodTextures.set(binding.appearance, appearanceTexture);
+          }
+          binding.material.shaderData.enableMacro("MASONRY_LAYOUT_APPEARANCE");
+          binding.material.shaderData.setTexture("material_MasonryLayout", appearanceTexture);
+          binding.material.shaderData.setVector4("material_MasonryLayoutUV", new Vector4(...binding.uvTransform));
+        }
+        stoneFloorLease = stoneFloorMaterials.length ? leaseStoneFloorTextures(engine, assets) : undefined;
+        textureLease = plasterMaterials.length ? leasePlasterTextures(engine, assets) : undefined;
+        decorationTextureLease = decorationMaterials.length ? leaseDecorationTextures(engine, assets) : undefined;
+        if (hasNativeDecorations) {
+          nativeDecorationView = createDecorationNativeView(
+            engine,
+            visualRoot,
+            activeGeom.stones,
+            activeGroup.paletteSlots,
+            {
+              assets,
+              retainedWallUnits: activeGeom.retainedWallUnits,
+              parts: activeGeom.decorationParts,
+              rigidDecorations: activeGroup.rigidDecorations,
+              frames: activeGeom.frames,
+              woodArchFrames: activeGeom.woodArchFrames,
+              woodArchPillars: activeGeom.woodArchPillars,
+              camera,
+              bounds: boundsSnapshot
+            }
+          );
+          if (lastEntranceStates) nativeDecorationView.setEntrance(lastEntranceStates);
+          for (const hiddenOwner of hiddenOwners) nativeDecorationView.setOwnerVisible(hiddenOwner, false);
+          if (lastFade !== 1) nativeDecorationView.setFade(lastFade);
+          if (lastLodDebugEnabled) nativeDecorationView.setLodDebugEnabled(true);
+        }
+        for (const hiddenOwner of hiddenOwners) {
+          for (const entity of ownerEntities.get(hiddenOwner) ?? []) entity.isActive = false;
+          for (const entity of visualOwnerEntities.get(hiddenOwner) ?? []) entity.isActive = false;
+        }
+      } catch (error) {
+        if (!disposed && gen === detailedGeneration) {
+          teardownDetailedVisual();
+          scheduleDetailedRetry();
+        }
+        return Promise.reject(error);
+      }
+      const currentNativeDecorationView = nativeDecorationView;
+      const pendingTasks: Promise<unknown>[] = [];
+      if (stoneFloorLease) {
+        pendingTasks.push(
+          stoneFloorLease.ready.then((bind) => {
+            if (disposed || gen !== detailedGeneration) return;
+            if (bind) for (const m of stoneFloorMaterials) bind(m);
+          })
         );
-        if (lastEntranceStates) nativeDecorationView.setEntrance(lastEntranceStates);
-        for (const hiddenOwner of hiddenOwners) nativeDecorationView.setOwnerVisible(hiddenOwner, false);
-        if (lastFade !== 1) nativeDecorationView.setFade(lastFade);
-        if (lastLodDebugEnabled) nativeDecorationView.setLodDebugEnabled(true);
       }
-      for (const hiddenOwner of hiddenOwners) {
-        for (const entity of ownerEntities.get(hiddenOwner) ?? []) entity.isActive = false;
-        for (const entity of visualOwnerEntities.get(hiddenOwner) ?? []) entity.isActive = false;
+      if (textureLease) {
+        pendingTasks.push(
+          textureLease.ready.then((bind) => {
+            if (disposed || gen !== detailedGeneration) return;
+            if (bind) for (const m of plasterMaterials) bind(m);
+          })
+        );
       }
-      pendingGeometry = undefined;
-      pendingGroup = undefined;
-      detailedReady = Promise.all([
-        stoneFloorLease?.ready.then((bind) => {
-          if (!disposed && bind) for (const m of stoneFloorMaterials) bind(m);
-        }),
-        textureLease?.ready.then((bind) => {
-          if (!disposed && bind) for (const m of plasterMaterials) bind(m);
-        }),
-        decorationTextureLease?.ready.then((bind) => {
-          if (!disposed && bind) for (const m of decorationMaterials) bind(m);
-        }),
-        nativeDecorationView?.ready.then(() => {
-          if (disposed) return;
-          nativeDecorationView?.visitRenderers((renderer, ownerId, draw) => {
-            const ids = draw.pickIds ?? [
-              draw.objectBinding?.id ??
-                (draw.pickId === undefined ? buildingGroupKey(ownerId) : buildingPartKey(draw.pickId))
-            ];
-            nativeDecorationPicks.push({
-              renderer,
-              count: ids.length,
-              resolve: (index) => ids[index],
-              prepare: () => {
-                if (draw.pickIds) renderer.shaderData.setFloat("renderer_MasonryPickObjects", 1);
-              },
-              restore: () => renderer.shaderData.setFloat("renderer_MasonryPickObjects", 0)
+      if (decorationTextureLease) {
+        pendingTasks.push(
+          decorationTextureLease.ready.then((bind) => {
+            if (disposed || gen !== detailedGeneration) return;
+            if (bind) for (const m of decorationMaterials) bind(m);
+          })
+        );
+      }
+      if (currentNativeDecorationView) {
+        pendingTasks.push(
+          currentNativeDecorationView.ready.then(() => {
+            if (disposed || gen !== detailedGeneration || nativeDecorationView !== currentNativeDecorationView) return;
+            currentNativeDecorationView.visitRenderers((renderer, ownerId, draw) => {
+              const ids = draw.pickIds ?? [
+                draw.objectBinding?.id ??
+                  (draw.pickId === undefined ? buildingGroupKey(ownerId) : buildingPartKey(draw.pickId))
+              ];
+              nativeDecorationPicks.push({
+                renderer,
+                count: ids.length,
+                resolve: (index) => ids[index],
+                prepare: () => {
+                  if (draw.pickIds) renderer.shaderData.setFloat("renderer_MasonryPickObjects", 1);
+                },
+                restore: () => renderer.shaderData.setFloat("renderer_MasonryPickObjects", 0)
+              });
             });
-          });
-        })
-      ]).then(() => undefined);
+          })
+        );
+      }
+      if (pendingTasks.length === 0) {
+        clearDetailedRetryHooks();
+        detailedRetryAt = 0;
+        detailedVisualReady = true;
+        syncVisualRoots();
+        detailedReady = Promise.resolve();
+        return detailedReady;
+      }
+      detailedReady = Promise.all(pendingTasks).then(
+        () => {
+          if (disposed || gen !== detailedGeneration) return;
+          clearDetailedRetryHooks();
+          detailedRetryAt = 0;
+          detailedVisualReady = true;
+          syncVisualRoots();
+        },
+        (error) => {
+          if (!disposed && gen === detailedGeneration) {
+            teardownDetailedVisual();
+            scheduleDetailedRetry();
+          }
+          throw error;
+        }
+      );
       return detailedReady;
     };
-    const ready = hasFarProxy ? Promise.resolve() : ensureDetailedVisual();
     if (globalProxySlot) {
       let proxyPaletteInitialized = false;
       const slotRef = globalProxySlot;
@@ -1033,68 +1218,60 @@ export async function createBuildingDistanceView(
     let visualVisible = false;
     let farProxyMode = hasFarProxy;
     let entranceSettled = true;
+    let proxyEntranceEligible = true;
     let detailedCheckQueued = false;
     let lastUseFar = false;
     let lastShadowVisible = false;
     const syncVisualRoots = () => {
       const hasVisualSource = detailedInitialized || Boolean(pendingGeometry);
-      const useFar =
-        hasFarProxy &&
+      const proxyHandlesEntrance = entranceSettled || (Boolean(globalProxySlot) && proxyEntranceEligible);
+      const wantDetailed =
         visualVisible &&
-        entranceSettled &&
-        hiddenOwners.size === 0 &&
-        (farProxyMode || !hasVisualSource);
-      const shadowVisible = entranceSettled;
+        hasVisualSource &&
+        (!hasFarProxy || hiddenOwners.size > 0 || !proxyHandlesEntrance || !farProxyMode);
+      const canFallbackToFar = hasFarProxy && visualVisible && hiddenOwners.size === 0 && proxyHandlesEntrance;
+      // Never hide Far/Global Proxy before visualRoot is built and ready; otherwise the building
+      // vanishes for 1+ frames while ensureDetailedVisual() runs asynchronously after render.
+      const useFar = canFallbackToFar && (farProxyMode || !detailedVisualReady || !hasVisualSource);
+      const shadowVisible = entranceSettled || !hasVisualSource;
       lastUseFar = useFar;
       lastShadowVisible = shadowVisible;
       if (farProxy) farProxy.root.isActive = useFar;
       globalProxySlot?.updateState(useFar, shadowVisible, lastFade, lastLodDebugEnabled);
       visualRoot.isActive = visualVisible && !useFar;
-      if (!detailedInitialized && hasVisualSource && visualVisible && !farProxyMode && !detailedCheckQueued) {
-        detailedCheckQueued = true;
-        queueMicrotask(() => {
-          detailedCheckQueued = false;
-          if (disposed || detailedInitialized) return;
-          if (visualVisible && !farProxyMode) void ensureDetailedVisual();
-        });
+      if (wantDetailed && !detailedInitialized && performance.now() >= detailedRetryAt) {
+        if (!canFallbackToFar) {
+          void ensureDetailedVisual().catch(() => {});
+        } else if (!detailedCheckQueued) {
+          detailedCheckQueued = true;
+          queueMicrotask(() => {
+            detailedCheckQueued = false;
+            if (disposed || detailedInitialized || performance.now() < detailedRetryAt) return;
+            const stillProxyHandlesEntrance = entranceSettled || (Boolean(globalProxySlot) && proxyEntranceEligible);
+            const stillWantDetailed =
+              visualVisible &&
+              Boolean(pendingGeometry) &&
+              (!hasFarProxy || hiddenOwners.size > 0 || !stillProxyHandlesEntrance || !farProxyMode);
+            if (stillWantDetailed) void ensureDetailedVisual().catch(() => {});
+          });
+        }
       }
     };
     const releaseDetailedVisual = () => {
-      if (disposed || !detailedInitialized || !hasFarProxy) return;
-      detailedInitialized = false;
-      detailedReady = undefined;
-      lod1GeometryBuilt = false;
-      visualTintSubscriptions.forEach((subscription) => subscription.destroy());
-      visualTintSubscriptions.length = 0;
-      nativeDecorationView?.destroy();
-      nativeDecorationView = undefined;
-      nativeDecorationPicks.length = 0;
-      batches.length = 0;
-      visualEntranceBindings.length = 0;
-      visualOwnerEntities.clear();
-      materials.clear();
-      lodAppearanceIds.clear();
-      lodMaterialBindings.length = 0;
-      plasterMaterials.length = 0;
-      stoneFloorMaterials.length = 0;
-      decorationMaterials.length = 0;
-      const staleTextures = lodTextures.size ? [...lodTextures.values()] : [];
-      lodTextures.clear();
-      const staleLeases = [textureLease, stoneFloorLease, decorationTextureLease];
-      textureLease = undefined;
-      stoneFloorLease = undefined;
-      decorationTextureLease = undefined;
-      const staleMaterials = visualResources.materials.splice(0);
-      const staleMeshes = visualResources.meshes.splice(0);
-      for (const child of [...visualRoot.children]) child.destroy();
-      for (const material of staleMaterials) material.destroy();
-      for (const mesh of staleMeshes) mesh.destroy();
-      queueMicrotask(() => {
-        for (const tex of staleTextures) tex.destroy();
-        for (const lease of staleLeases) lease?.destroy();
-      });
+      const proxyHandlesEntrance = entranceSettled || (Boolean(globalProxySlot) && proxyEntranceEligible);
+      if (
+        disposed ||
+        !detailedInitialized ||
+        !hasFarProxy ||
+        !proxyHandlesEntrance ||
+        hiddenOwners.size > 0 ||
+        (visualVisible && !farProxyMode)
+      )
+        return;
+      teardownDetailedVisual();
       syncVisualRoots();
     };
+    const ready = hasFarProxy ? Promise.resolve() : ensureDetailedVisual();
     syncVisualRoots();
     return {
       ready,
@@ -1105,14 +1282,57 @@ export async function createBuildingDistanceView(
         for (const binding of visualEntranceBindings) binding.apply(states.get(binding.owner));
         nativeDecorationView?.setEntrance(states);
         let settled = true;
-        for (const s of states.values()) {
-          if (s.progress < 1) {
-            settled = false;
-            break;
+        let commonProgress = 1;
+        let hasProgress = false;
+        let uniformProgress = true;
+        let localMinY = Infinity;
+        let localMaxY = -Infinity;
+        const recordOwnerState = (progress: number, minY?: number, maxY?: number) => {
+          if (progress < 1) settled = false;
+          if (!hasProgress) {
+            commonProgress = progress;
+            hasProgress = true;
+          } else if (Math.abs(progress - commonProgress) > 1e-4) {
+            uniformProgress = false;
+          }
+          if (minY !== undefined && minY < localMinY) localMinY = minY;
+          if (maxY !== undefined && maxY > localMaxY) localMaxY = maxY;
+        };
+        if (entranceRanges.size > 0) {
+          // Owners omitted from `states` are treated as settled (progress = 1), matching entranceBinding().
+          for (const [owner, range] of entranceRanges) {
+            const s = states.get(owner);
+            if (s) recordOwnerState(s.progress, s.minimumY, s.minimumY + s.height);
+            else recordOwnerState(1, range.min, range.max);
+          }
+        } else {
+          for (const s of states.values()) {
+            recordOwnerState(s.progress, s.minimumY, s.minimumY + s.height);
           }
         }
-        entranceSettled = settled;
-        syncVisualRoots();
+        if (globalProxySlot) {
+          if (settled || !hasProgress) {
+            globalProxySlot.updateEntrance(1, 0, 1);
+          } else if (uniformProgress) {
+            const wm = parent.transform.worldMatrix.elements;
+            const yScale = Math.hypot(wm[4] ?? 0, wm[5] ?? 1, wm[6] ?? 0) || 1;
+            const yOrigin = wm[13] ?? 0;
+            const worldMinY = Number.isFinite(localMinY) ? yOrigin + localMinY * yScale : worldBounds.min.y;
+            const worldHeight =
+              Number.isFinite(localMinY) && Number.isFinite(localMaxY)
+                ? Math.max(0.001, (localMaxY - localMinY) * yScale)
+                : Math.max(0.001, worldBounds.max.y - worldBounds.min.y);
+            globalProxySlot.updateEntrance(commonProgress, worldMinY, worldHeight);
+          } else {
+            globalProxySlot.updateEntrance(1, 0, 1);
+          }
+        }
+        const nextProxyEntranceEligible = settled || uniformProgress;
+        if (settled !== entranceSettled || nextProxyEntranceEligible !== proxyEntranceEligible) {
+          entranceSettled = settled;
+          proxyEntranceEligible = nextProxyEntranceEligible;
+          syncVisualRoots();
+        }
       },
       root: resources.root,
       bounds: boundsSnapshot,
@@ -1144,6 +1364,7 @@ export async function createBuildingDistanceView(
         syncVisualRoots();
       },
       setVisualVisible(visible: boolean) {
+        if (visualVisible === visible) return;
         visualVisible = visible;
         syncVisualRoots();
       },
@@ -1156,7 +1377,16 @@ export async function createBuildingDistanceView(
       releaseDetailedVisual,
       setFade(fade: number) {
         lastFade = fade;
-        for (const batch of batches) batch.renderer.shaderData.setFloat("renderer_MasonryLodFade", fade);
+        const needDither = fade < 0.999;
+        if (needDither !== ditherEnabled) {
+          ditherEnabled = needDither;
+          for (let i = 0, n = visualResources.materials.length; i < n; i++) {
+            const sd = visualResources.materials[i]!.shaderData;
+            if (needDither) sd?.enableMacro?.(MACRO_SURFACE_DITHER);
+            else sd?.disableMacro?.(MACRO_SURFACE_DITHER);
+          }
+        }
+        for (const batch of batches) batch.renderer.shaderData.setFloat(PROP_MASONRY_LOD_FADE, fade);
         nativeDecorationView?.setFade(fade);
         farProxy?.setFade(fade);
         globalProxySlot?.updateState(lastUseFar, lastShadowVisible, fade, lastLodDebugEnabled);
@@ -1164,7 +1394,7 @@ export async function createBuildingDistanceView(
       setLodDebugEnabled(enabled: boolean) {
         lastLodDebugEnabled = enabled;
         const lod1Color = enabled ? new Vector4(0.95, 0.78, 0.08, 0.82) : new Vector4(0, 0, 0, 0);
-        for (const batch of batches) batch.renderer.shaderData.setVector4("renderer_MasonryLodDebugColor", lod1Color);
+        for (const batch of batches) batch.renderer.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, lod1Color);
         nativeDecorationView?.setLodDebugEnabled(enabled);
         if (enabled) farProxy?.setLodDebugColor(0.95, 0.2, 0.18, 0.82);
         else farProxy?.setLodDebugColor(0, 0, 0, 0);

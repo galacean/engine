@@ -10,6 +10,7 @@ import { ShaderPart } from "./ShaderPart";
 import { ShaderProgramMap } from "./ShaderProgramMap";
 import { ShaderProgram } from "./ShaderProgram";
 import { ShaderProperty } from "./ShaderProperty";
+import { ShaderTagKey } from "./ShaderTagKey";
 import { ShaderLanguage } from "./enums/ShaderLanguage";
 import { ShaderMacroProcessor } from "./ShaderMacroProcessor";
 import { RenderState } from "./state/RenderState";
@@ -50,6 +51,8 @@ export class ShaderPass extends ShaderPart {
   _renderStateDataMap: Record<number, ShaderProperty> = {};
   /** @internal */
   _shaderProgramMaps: ShaderProgramMap[] = [];
+  /** @internal */
+  _pipelineStage: string | undefined;
   /** @internal Transform feedback output varyings (WebGL2 only). */
   _feedbackVaryings?: string[];
 
@@ -128,6 +131,30 @@ export class ShaderPass extends ShaderPart {
     const mergedTags = { pipelineStage: PipelineStage.Forward, ...tags };
     for (const key in mergedTags) {
       this.setTag(key, mergedTags[key]);
+    }
+  }
+
+  /**
+   * @inheritdoc
+   */
+  override setTag<T extends number | string | boolean>(keyName: string, value: T): void;
+  override setTag<T extends number | string | boolean>(key: ShaderTagKey, value: T): void;
+  override setTag<T extends number | string | boolean>(keyOrKeyName: ShaderTagKey | string, value: T): void {
+    super.setTag(keyOrKeyName as ShaderTagKey, value);
+    if (typeof keyOrKeyName === "string" ? keyOrKeyName === "pipelineStage" : keyOrKeyName.name === "pipelineStage") {
+      this._pipelineStage = value as unknown as string;
+    }
+  }
+
+  /**
+   * @inheritdoc
+   */
+  override deleteTag(keyName: string): void;
+  override deleteTag(key: ShaderTagKey): void;
+  override deleteTag(keyOrKeyName: ShaderTagKey | string): void {
+    super.deleteTag(keyOrKeyName as ShaderTagKey);
+    if (typeof keyOrKeyName === "string" ? keyOrKeyName === "pipelineStage" : keyOrKeyName.name === "pipelineStage") {
+      this._pipelineStage = undefined;
     }
   }
 

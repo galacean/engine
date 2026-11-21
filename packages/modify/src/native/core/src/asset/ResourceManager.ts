@@ -214,6 +214,7 @@ export class ResourceManager {
   }
 
   private _prefetchedTextAssets?: ReadonlyMap<string, string>;
+  private _prefetchedBinaryAssets?: ReadonlyMap<string, Uint8Array>;
 
   /**
    * Registers an immutable read-only map of preloaded text assets keyed by resolved remote URL.
@@ -225,9 +226,25 @@ export class ResourceManager {
   }
 
   /**
+   * Registers an immutable read-only map of preloaded binary assets keyed by resolved remote URL.
+   * Serves `"arraybuffer"`, `"text"`, and `"json"` requests whose resolved remote URL matches an entry;
+   * `"arraybuffer"` returns an independent slice so callers/workers cannot mutate or detach the backing buffer.
+   */
+  setPrefetchedBinaryAssets(assets: ReadonlyMap<string, Uint8Array> | undefined): void {
+    this._prefetchedBinaryAssets = assets;
+  }
+
+  /**
    * @internal
    */
   _requestByRemoteUrl<T>(url: string, config: RequestConfig): AssetPromise<T> {
+    if (config.signal?.aborted) {
+      const reason =
+        config.signal.reason !== undefined
+          ? config.signal.reason
+          : new DOMException("This operation was aborted", "AbortError");
+      return new AssetPromise<T>((_, reject) => reject(reason));
+    }
     const preloaded = this._prefetchedTextAssets?.get(url);
     if (preloaded !== undefined) {
       if (config.type === "text") {
@@ -236,6 +253,22 @@ export class ResourceManager {
       if (config.type === "json") {
         try {
           return AssetPromise.resolve(JSON.parse(preloaded) as T);
+        } catch {
+          // Fall back to network request when cached JSON cannot be parsed.
+        }
+      }
+    }
+    const preloadedBinary = this._prefetchedBinaryAssets?.get(url);
+    if (preloadedBinary !== undefined) {
+      if (config.type === "arraybuffer") {
+        return AssetPromise.resolve(preloadedBinary.slice().buffer as unknown as T);
+      }
+      if (config.type === "text") {
+        return AssetPromise.resolve(new TextDecoder().decode(preloadedBinary) as unknown as T);
+      }
+      if (config.type === "json") {
+        try {
+          return AssetPromise.resolve(JSON.parse(new TextDecoder().decode(preloadedBinary)) as T);
         } catch {
           // Fall back to network request when cached JSON cannot be parsed.
         }
@@ -369,6 +402,7 @@ export class ResourceManager {
     this._contentRestorerPool = null!;
     this._loadingPromises = null!;
     this._prefetchedTextAssets = undefined;
+    this._prefetchedBinaryAssets = undefined;
   }
 
   private _resolveLoadItemOptions(assetInfo: LoadItem, virtualResourceEntry?: VirtualResource): void {

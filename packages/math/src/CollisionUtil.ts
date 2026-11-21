@@ -350,16 +350,77 @@ export class CollisionUtil {
    */
   static intersectsFrustumAndBox(frustum: BoundingFrustum, box: BoundingBox): boolean {
     const { min, max } = box;
-    const p = CollisionUtil._tempVec30;
+    const minX = min.x;
+    const minY = min.y;
+    const minZ = min.z;
+    const maxX = max.x;
+    const maxY = max.y;
+    const maxZ = max.z;
 
-    for (let i = 0; i < 6; ++i) {
-      const plane = frustum.getPlane(i)!;
-      const normal = plane.normal;
+    let plane = frustum.near;
+    let normal = plane.normal;
+    if (
+      normal.x * (normal.x >= 0 ? maxX : minX) +
+        normal.y * (normal.y >= 0 ? maxY : minY) +
+        normal.z * (normal.z >= 0 ? maxZ : minZ) <
+      -plane.distance
+    ) {
+      return false;
+    }
 
-      p.set(normal.x >= 0 ? max.x : min.x, normal.y >= 0 ? max.y : min.y, normal.z >= 0 ? max.z : min.z);
-      if (Vector3.dot(normal, p) < -plane.distance) {
-        return false;
-      }
+    plane = frustum.far;
+    normal = plane.normal;
+    if (
+      normal.x * (normal.x >= 0 ? maxX : minX) +
+        normal.y * (normal.y >= 0 ? maxY : minY) +
+        normal.z * (normal.z >= 0 ? maxZ : minZ) <
+      -plane.distance
+    ) {
+      return false;
+    }
+
+    plane = frustum.left;
+    normal = plane.normal;
+    if (
+      normal.x * (normal.x >= 0 ? maxX : minX) +
+        normal.y * (normal.y >= 0 ? maxY : minY) +
+        normal.z * (normal.z >= 0 ? maxZ : minZ) <
+      -plane.distance
+    ) {
+      return false;
+    }
+
+    plane = frustum.right;
+    normal = plane.normal;
+    if (
+      normal.x * (normal.x >= 0 ? maxX : minX) +
+        normal.y * (normal.y >= 0 ? maxY : minY) +
+        normal.z * (normal.z >= 0 ? maxZ : minZ) <
+      -plane.distance
+    ) {
+      return false;
+    }
+
+    plane = frustum.bottom;
+    normal = plane.normal;
+    if (
+      normal.x * (normal.x >= 0 ? maxX : minX) +
+        normal.y * (normal.y >= 0 ? maxY : minY) +
+        normal.z * (normal.z >= 0 ? maxZ : minZ) <
+      -plane.distance
+    ) {
+      return false;
+    }
+
+    plane = frustum.top;
+    normal = plane.normal;
+    if (
+      normal.x * (normal.x >= 0 ? maxX : minX) +
+        normal.y * (normal.y >= 0 ? maxY : minY) +
+        normal.z * (normal.z >= 0 ? maxZ : minZ) <
+      -plane.distance
+    ) {
+      return false;
     }
 
     return true;

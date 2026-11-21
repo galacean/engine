@@ -77,6 +77,10 @@ import type { SeedWorldPickVisitor } from "@galacean/engine-modify/rendering/See
 import { bindWorldClickInput } from "./src/SeedWorldClickInput.ts";
 import { waitForSnapshotWarmup } from "./src/SeedWorldSnapshotWarmup.ts";
 import { openSeedWorldProject } from "./SeedWorldProject.ts";
+import {
+  loadSeedWorldCommonBinaryBundle,
+  releaseSeedWorldCommonBinaryBundle
+} from "./src/SeedWorldCommonBinaryBundle.ts";
 import { loadSeedWorldProjectTextBundle, parsePreloadedJson } from "./src/SeedWorldProjectTextBundle.ts";
 import { runSeedWorldStartupShaderWarmup } from "./src/SeedWorldStartupShaderWarmup.ts";
 import { createSeedWorldProjectClose } from "./SeedWorldProjectClose.ts";
@@ -531,6 +535,7 @@ export async function mountSeedWorldDemo(
     },
     async () => {
       await disposeRuntime();
+      releaseSeedWorldCommonBinaryBundle();
       runtimeProject?.dispose();
     }
   );
@@ -647,6 +652,21 @@ export async function mountSeedWorldDemo(
     loading.dataset.state = "loading";
     progress(0.04, "准备 Seed 场景");
     const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, location.href).href;
+    // Start downloading & gunzipping the common binary bundle (.mesh/.shaderc/.tex/.shader) in parallel with
+    // openSeedWorldProject + WorldPlanning.worker so it lands in RAM before leaf asset loading starts.
+    const commonBinaryBundleTask = timed("loadCommonBinaryBundle (parallel)", () =>
+      loadSeedWorldCommonBinaryBundle().then((assets) => {
+        if (!disposed) {
+          (
+            engine!.resourceManager as {
+              setPrefetchedBinaryAssets?: (assets: ReadonlyMap<string, Uint8Array> | undefined) => void;
+            }
+          ).setPrefetchedBinaryAssets?.(assets);
+        }
+        return assets;
+      })
+    );
+    void commonBinaryBundleTask.catch(() => {});
     const prefetchedTextAssets = await timed("loadProjectTextBundle", () => loadSeedWorldProjectTextBundle());
     (
       engine!.resourceManager as {
@@ -695,6 +715,7 @@ export async function mountSeedWorldDemo(
       preparePlanningFarmingScene(runtimeProject!, { baseUrl: location.href })
     );
     source = await timed("await planning source", () => sourceTask!);
+    await timed("await common binary bundle", () => commonBinaryBundleTask);
     // Kick off background raster, rocks, population resources, and (only when planned) building leaf preload
     // after planningSource.storage.initialize has fetched its critical manifests without bandwidth contention.
     const prewarmedPopulationResources = preparePlanningPopulationResources(engine);
@@ -2771,7 +2792,7 @@ export async function mountSeedWorldDemo(
     timed("warmupPopulationDetails (startup)", () => publication!.current?.world.warmupPopulationDetails());
 
     shaderAudit?.setPhase("startup-warmup");
-    const { report: startupWarmupReport, deferredShaderVariants } = await runSeedWorldStartupShaderWarmup({
+    let { report: startupWarmupReport, deferredShaderVariants } = await runSeedWorldStartupShaderWarmup({
       precompileShaders,
       engine: engine!,
       scene: scene!,
@@ -2803,8 +2824,13 @@ export async function mountSeedWorldDemo(
       deferredBackgroundMaterials: sceneEntityEffectHost ? sceneEntityEffectHost.warmupMaterials : undefined,
       onWarmupEvent: (message, detail) => seedWorldBootTrace.event("info", "shader-warmup", message, detail)
     });
+    if (disposed || editorLifetime.signal.aborted) return;
     shaderAudit?.setParallelCompile(Boolean(startupWarmupReport?.parallelCompileSupported));
-    shaderAudit?.recordWarmupRequested(startupWarmupReport?.requested ?? 0, deferredShaderVariants.length);
+    const startupAttempted = Math.max(
+      0,
+      (startupWarmupReport?.requested ?? 0) - (startupWarmupReport?.deferred?.length ?? 0)
+    );
+    shaderAudit?.recordWarmupRequested(startupAttempted, deferredShaderVariants.length);
     shaderAudit?.setPhase("reveal");
 
     camera.enabled = true;
@@ -2815,19 +2841,37 @@ export async function mountSeedWorldDemo(
         readWorld()?.update(0);
       })
     );
+    if (disposed || editorLifetime.signal.aborted) return;
     orb.destroy();
     orb = undefined;
     ready = true;
     shaderAudit?.setPhase("post-ready");
     if (deferredShaderVariants.length > 0 && !disposed) {
-      // On synchronous mobile GPUs (parallel=false), compile CRUD-only rainbow/hologram shader
-      // variants across post-ready idle frames (1 program / <=4ms per frame) without delaying boot.
-      void warmupSeedWorldShaderVariants(engine!, deferredShaderVariants, {
-        strict: false,
-        frameBudgetMilliseconds: 4,
-        maximumPendingPrograms: 1,
-        signal: editorLifetime.signal
-      }).catch(() => {});
+      const variantsToWarm = deferredShaderVariants;
+      deferredShaderVariants = [];
+      const parallelBgWarmup = Boolean(startupWarmupReport?.parallelCompileSupported);
+      const idleWarmupTimer = window.setTimeout(() => {
+        if (disposed || editorLifetime.signal.aborted) return;
+        void warmupSeedWorldShaderVariants(engine!, variantsToWarm, {
+          strict: false,
+          signal: editorLifetime.signal,
+          preserveOrder: true,
+          frameBudgetMilliseconds: 4,
+          maximumPendingPrograms: parallelBgWarmup ? 8 : 1
+        })
+          .then((bgReport) => {
+            if (!disposed) {
+              seedWorldBootTrace.event(
+                "info",
+                "shader-warmup-bg",
+                `compiled ${bgReport.compiled}/${bgReport.requested} deferred variants in ${Math.round(bgReport.elapsedMilliseconds)}ms`,
+                `longest=${Math.round(bgReport.longestVariantMilliseconds)}ms parallelCompile=${parallelBgWarmup}`
+              );
+            }
+          })
+          .catch(() => {});
+      }, parallelBgWarmup ? 200 : 300);
+      editorLifetime.signal.addEventListener("abort", () => window.clearTimeout(idleWarmupTimer), { once: true });
     }
     disconnectEditorAssets = timed("tools.connectProject", () => tools!.application.connectProject(runtimeProject!));
     const savedEditor = runtimeProject.projectPackage.contents[SEED_WORLD_EDITOR_PATH];
@@ -2984,7 +3028,9 @@ export async function mountSeedWorldDemo(
             if (visible) tools?.show();
             else tools?.hide();
           },
-          getBuildingEntity: () => nativeBuildingHost?.system.entity,
+          setBuildingVisible: (visible) => {
+            if (nativeBuildingHost) nativeBuildingHost.system.visible = visible;
+          },
           setDprOverride: (dpr) => {
             dprOverride = dpr;
             resize();
@@ -2996,6 +3042,10 @@ export async function mountSeedWorldDemo(
     canvas.dataset.status = "ready";
     document.body.dataset.worldReady = "true";
     seedWorldBootTrace.finish();
+    // Release the ~10.9 MiB decompressed SWB1 prefetch buffer once startup leaf loading completes;
+    // rare post-ready lazy loads or context restores transparently fall back to immutable HTTP-cached CDN URLs.
+    engine?.resourceManager?.setPrefetchedBinaryAssets?.(undefined);
+    releaseSeedWorldCommonBinaryBundle();
     // The world is already visible and navigable. Two independent preparations start now:
     // 1. The capture path of the world camera. The assistant's snapshot and the user's photo both use it,
     //    so it runs first and a view capture waits for it.

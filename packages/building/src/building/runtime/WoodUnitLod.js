@@ -19,38 +19,78 @@ function affinePlankLodBounds(bytes, stride) {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength),
     count = bytes.byteLength / stride,
     bounds = new Float32Array(count * 4),
-    depthPadding = new Float32Array(count);
+    depthPadding = new Float32Array(count),
+    cullRadius = new Float32Array(count);
   for (let i = 0; i < count; i++) {
-    const p = i * stride,
-      a = [];
-    for (let k = 0; k < 12; k++) a.push(view.getFloat32(p + k * 4, true));
-    if (!a.every(Number.isFinite)) throw Error("Non-finite wood LOD transform");
-    for (let k = 0; k < 3; k++) bounds[i * 4 + k] = a[9 + k] + a[3 + k] * 0.5;
-    const x = Math.hypot(a[0], a[1], a[2]),
-      y = Math.hypot(a[3], a[4], a[5]),
-      z = Math.hypot(a[6], a[7], a[8]);
-    bounds[i * 4 + 3] = Math.max(Math.min(x, y), Math.max(Math.min(y, z), Math.min(x, z)));
-    depthPadding[i] =
-      0.5 * Math.max(Math.hypot(a[0], a[3], a[6]), Math.hypot(a[1], a[4], a[7]), Math.hypot(a[2], a[5], a[8]));
+    const p = i * stride;
+    const a0 = view.getFloat32(p, true),
+      a1 = view.getFloat32(p + 4, true),
+      a2 = view.getFloat32(p + 8, true),
+      a3 = view.getFloat32(p + 12, true),
+      a4 = view.getFloat32(p + 16, true),
+      a5 = view.getFloat32(p + 20, true),
+      a6 = view.getFloat32(p + 24, true),
+      a7 = view.getFloat32(p + 28, true),
+      a8 = view.getFloat32(p + 32, true),
+      a9 = view.getFloat32(p + 36, true),
+      a10 = view.getFloat32(p + 40, true),
+      a11 = view.getFloat32(p + 44, true);
+    if (
+      !Number.isFinite(a0) ||
+      !Number.isFinite(a1) ||
+      !Number.isFinite(a2) ||
+      !Number.isFinite(a3) ||
+      !Number.isFinite(a4) ||
+      !Number.isFinite(a5) ||
+      !Number.isFinite(a6) ||
+      !Number.isFinite(a7) ||
+      !Number.isFinite(a8) ||
+      !Number.isFinite(a9) ||
+      !Number.isFinite(a10) ||
+      !Number.isFinite(a11)
+    )
+      throw Error("Non-finite wood LOD transform");
+    const bx = a9 + a3 * 0.5,
+      by = a10 + a4 * 0.5,
+      bz = a11 + a5 * 0.5;
+    const x = Math.hypot(a0, a1, a2),
+      y = Math.hypot(a3, a4, a5),
+      z = Math.hypot(a6, a7, a8);
+    const med = Math.max(Math.min(x, y), Math.max(Math.min(y, z), Math.min(x, z)));
+    const pad = 0.5 * Math.max(Math.hypot(a0, a3, a6), Math.hypot(a1, a4, a7), Math.hypot(a2, a5, a8));
+    const b4 = i * 4;
+    bounds[b4] = bx;
+    bounds[b4 + 1] = by;
+    bounds[b4 + 2] = bz;
+    bounds[b4 + 3] = med;
+    depthPadding[i] = pad;
+    cullRadius[i] = 0.5 * (x + y + z) + 0.35;
+    if (
+      !Number.isFinite(bounds[b4]) ||
+      !Number.isFinite(bounds[b4 + 1]) ||
+      !Number.isFinite(bounds[b4 + 2]) ||
+      !Number.isFinite(bounds[b4 + 3]) ||
+      !Number.isFinite(depthPadding[i]) ||
+      !Number.isFinite(cullRadius[i])
+    )
+      throw Error("Wood LOD bounds exceed finite f32 range");
   }
-  if (!bounds.every(Number.isFinite) || !depthPadding.every(Number.isFinite))
-    throw Error("Wood LOD bounds exceed finite f32 range");
-  return { bounds, depthPadding };
+  return { bounds, depthPadding, cullRadius };
 }
 
 /** Native threshold 7; 6..8 is our complementary transition, not a native fade.
  * Native flags bit0 selects another HIGH bucket, not a force-high exemption. */
 export class WoodUnitLod extends MaterialUnitLod {
   constructor(bytes) {
-    const { bounds, depthPadding } = woodLodBounds(bytes);
-    super(bounds, new Uint8Array(bytes.byteLength / 80), 6, 8, depthPadding);
+    const { bounds, depthPadding, cullRadius } = woodLodBounds(bytes);
+    super(bounds, new Uint8Array(bytes.byteLength / 80), 6, 8, depthPadding, cullRadius);
   }
 }
 
 /** Same native 7px threshold and host complementary transition as ordinary wood. */
 export class GableWoodUnitLod extends MaterialUnitLod {
   constructor(bytes) {
-    const { bounds, depthPadding } = gableWoodLodBounds(bytes);
-    super(bounds, new Uint8Array(bytes.byteLength / 96), 6, 8, depthPadding);
+    const { bounds, depthPadding, cullRadius } = gableWoodLodBounds(bytes);
+    super(bounds, new Uint8Array(bytes.byteLength / 96), 6, 8, depthPadding, cullRadius);
   }
 }

@@ -1,6 +1,7 @@
 import { Color, MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
 import { PipelinePass } from "../RenderPipeline/PipelinePass";
+import { Renderer } from "../Renderer";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { ContextRendererUpdateFlag, RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
@@ -61,6 +62,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
   private _depthTexture: Texture2D | null;
   private _renderTarget: RenderTarget | null;
   private _viewportOffsets: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
+  private _shadowCandidates: Renderer[] = [];
 
   constructor(camera: Camera) {
     super(camera.engine);
@@ -96,13 +98,10 @@ export class CascadedShadowCasterPass extends PipelinePass {
     const {
       engine,
       _camera: camera,
-      _viewportOffsets: viewports,
       _shadowSliceData: shadowSliceData,
       _splitBoundSpheres: splitBoundSpheres,
       _shadowMatrices: shadowMatrices
     } = this;
-
-    const { opaqueQueue, alphaTestQueue } = camera._renderPipeline._cullingResults;
 
     const scene = camera.scene!;
     const componentsManager = scene._componentsManager;
@@ -178,7 +177,93 @@ export class CascadedShadowCasterPass extends PipelinePass {
     const cameraForward = CascadedShadowCasterPass._tempVector;
     cameraForward.copyFrom(camera.entity.transform.worldForward);
 
-    const shadowTileResolution = this._shadowTileResolution;
+    const shadowCandidates = this._shadowCandidates;
+    shadowCandidates.length = 0;
+    const renderers = componentsManager._renderers;
+    const elements = renderers._elements;
+    const cameraCullingMask = camera.cullingMask;
+    const lightCullingMask = light.cullingMask;
+    for (let k = renderers.length - 1; k >= 0; --k) {
+      const renderer = elements[k];
+      if (!renderer.castShadows) continue;
+      const layer = renderer._entity.layer;
+      if (cameraCullingMask & layer && lightCullingMask & layer) {
+        shadowCandidates.push(renderer);
+      }
+    }
+
+    context._onlyShadowCaster = true;
+    try {
+      this._renderDirectShadowCascades(
+        context,
+        light,
+        shadowCascades,
+        splitDistance,
+        cameraForward,
+        lightUp,
+        lightSide,
+        lightForward,
+        boundSphere,
+        splitBoundSpheres,
+        shadowMatrices,
+        width,
+        height
+      );
+    } finally {
+      context._onlyShadowCaster = false;
+      shadowCandidates.length = 0;
+    }
+  }
+
+  private _prepareFarMeshProxy(
+    context: RenderContext,
+    renderer: Renderer,
+    proxyMesh: unknown,
+    frameCount: number
+  ): void {
+    const meshCarrier = renderer as unknown as { _mesh?: unknown };
+    const originalMesh = meshCarrier._mesh;
+    if (originalMesh) {
+      meshCarrier._mesh = proxyMesh;
+      try {
+        renderer._prepareRender(context);
+        renderer._renderFrameCount = frameCount;
+      } finally {
+        meshCarrier._mesh = originalMesh;
+      }
+    } else {
+      renderer._prepareRender(context);
+      renderer._renderFrameCount = frameCount;
+    }
+  }
+
+  private _renderDirectShadowCascades(
+    context: RenderContext,
+    light: DirectLight,
+    shadowCascades: number,
+    splitDistance: number[],
+    cameraForward: Vector3,
+    lightUp: Vector3,
+    lightSide: Vector3,
+    lightForward: Vector3,
+    boundSphere: ShadowSliceData["splitBoundSphere"],
+    splitBoundSpheres: Float32Array,
+    shadowMatrices: Float32Array,
+    width: number,
+    height: number
+  ): void {
+    const {
+      engine,
+      _camera: camera,
+      _viewportOffsets: viewports,
+      _shadowSliceData: shadowSliceData,
+      _shadowCandidates: shadowCandidates,
+      _shadowTileResolution: shadowTileResolution
+    } = this;
+    const { opaqueQueue, alphaTestQueue } = camera._renderPipeline._cullingResults;
+    const rhi = engine._hardwareRenderer;
+    const frameCount = engine.time.frameCount;
+    const candidateCount = shadowCandidates.length;
 
     for (let j = 0; j < shadowCascades; j++) {
       ShadowUtils.getBoundSphereByFrustum(
@@ -207,14 +292,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
         shadowMatrices
       );
       if (shadowCascades > 1) {
-        ShadowUtils.applySliceTransform(
-          shadowTileResolution,
-          width,
-          height,
-          j,
-          this._viewportOffsets[j],
-          shadowMatrices
-        );
+        ShadowUtils.applySliceTransform(shadowTileResolution, width, height, j, viewports[j], shadowMatrices);
       }
       this._updateSingleShadowCasterShaderData(light, shadowSliceData, context);
 
@@ -228,72 +306,62 @@ export class CascadedShadowCasterPass extends PipelinePass {
       splitBoundSpheres[offset + 3] = radius * radius;
       opaqueQueue.clear();
       alphaTestQueue.clear();
-      const renderers = componentsManager._renderers;
-      const elements = renderers._elements;
-      const frameCount = engine.time.frameCount;
-      for (let k = renderers.length - 1; k >= 0; --k) {
-        const renderer = elements[k];
-        const farProxy =
-          j >= 1
-            ? (
-                renderer as {
-                  _farShadowCascadeProxy?: {
-                    readonly renderers?: readonly (typeof renderer)[];
-                    readonly mesh?: { destroyed?: boolean };
-                    _lastFrame: number;
-                    _lastCascade: number;
-                  };
-                }
-              )._farShadowCascadeProxy
-            : undefined;
-        if (!farProxy) {
-          ShadowUtils.shadowCullFrustum(context, light, renderer, shadowSliceData);
-          continue;
-        }
-        const layer = renderer._entity.layer;
-        if (!(context.camera.cullingMask & layer && light.cullingMask & layer) || !renderer.castShadows) {
-          continue;
-        }
-        if (farProxy._lastFrame === frameCount && farProxy._lastCascade === j) {
-          continue;
-        }
-        farProxy._lastFrame = frameCount;
-        farProxy._lastCascade = j;
-        if (farProxy.renderers) {
-          const proxyRenderers = farProxy.renderers;
-          for (let p = 0, pn = proxyRenderers.length; p < pn; p++) {
-            const proxy = proxyRenderers[p];
-            if (!proxy || proxy.destroyed || proxy.pendingDestroy || !proxy._entity.isActiveInHierarchy) {
-              continue;
-            }
-            if (
-              ShadowUtils.cullingRenderBounds(proxy.bounds, shadowSliceData.cullPlaneCount, shadowSliceData.cullPlanes)
-            ) {
-              proxy._prepareRender(context);
-              proxy._renderFrameCount = frameCount;
-            }
+
+      const cullPlaneCount = shadowSliceData.cullPlaneCount;
+      const cullPlanes = shadowSliceData.cullPlanes;
+      if (j === 0) {
+        for (let k = 0; k < candidateCount; k++) {
+          const renderer = shadowCandidates[k];
+          if (ShadowUtils.cullingRenderBounds(renderer.bounds, cullPlaneCount, cullPlanes)) {
+            renderer._prepareRender(context);
+            renderer._renderFrameCount = frameCount;
           }
-        } else if (farProxy.mesh && !farProxy.mesh.destroyed) {
-          if (
-            ShadowUtils.cullingRenderBounds(renderer.bounds, shadowSliceData.cullPlaneCount, shadowSliceData.cullPlanes)
-          ) {
-            const meshCarrier = renderer as { _mesh?: unknown };
-            const originalMesh = meshCarrier._mesh;
-            if (originalMesh) {
-              meshCarrier._mesh = farProxy.mesh;
-              try {
-                renderer._prepareRender(context);
-                renderer._renderFrameCount = frameCount;
-              } finally {
-                meshCarrier._mesh = originalMesh;
-              }
-            } else {
+        }
+      } else {
+        for (let k = 0; k < candidateCount; k++) {
+          const renderer = shadowCandidates[k];
+          const farProxy = (
+            renderer as unknown as {
+              _farShadowCascadeProxy?: {
+                readonly renderers?: readonly Renderer[];
+                readonly mesh?: { destroyed?: boolean };
+                _lastFrame: number;
+                _lastCascade: number;
+              };
+            }
+          )._farShadowCascadeProxy;
+          if (!farProxy) {
+            if (ShadowUtils.cullingRenderBounds(renderer.bounds, cullPlaneCount, cullPlanes)) {
               renderer._prepareRender(context);
               renderer._renderFrameCount = frameCount;
+            }
+            continue;
+          }
+          if (farProxy._lastFrame === frameCount && farProxy._lastCascade === j) {
+            continue;
+          }
+          farProxy._lastFrame = frameCount;
+          farProxy._lastCascade = j;
+          if (farProxy.renderers) {
+            const proxyRenderers = farProxy.renderers;
+            for (let p = 0, pn = proxyRenderers.length; p < pn; p++) {
+              const proxy = proxyRenderers[p];
+              if (!proxy || proxy.destroyed || proxy.pendingDestroy || !proxy._entity.isActiveInHierarchy) {
+                continue;
+              }
+              if (ShadowUtils.cullingRenderBounds(proxy.bounds, cullPlaneCount, cullPlanes)) {
+                proxy._prepareRender(context);
+                proxy._renderFrameCount = frameCount;
+              }
+            }
+          } else if (farProxy.mesh && !farProxy.mesh.destroyed) {
+            if (ShadowUtils.cullingRenderBounds(renderer.bounds, cullPlaneCount, cullPlanes)) {
+              this._prepareFarMeshProxy(context, renderer, farProxy.mesh, frameCount);
             }
           }
         }
       }
+
       camera._renderPipeline._prepareShadowRenderViewCulling(
         context,
         j,

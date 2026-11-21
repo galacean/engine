@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Shader, ShaderLanguage, ShaderMacro, ShaderPass } from "@galacean/engine";
+import { Logger, Shader, ShaderLanguage, ShaderMacro, ShaderPass } from "@galacean/engine";
+import { pickOcclusionPass } from "../src/runtime-inspection/runtime-pick-occlusion";
 import { RuntimePickPreparation } from "../src/runtime-inspection/runtime-pick-preparation";
 
 function makeForwardPass(name = "Forward"): ShaderPass {
@@ -137,5 +138,41 @@ describe("RuntimePickPreparation non-scene shader filtering", () => {
     emit(standalonePass, [ShaderMacro.getByName("TEST_STANDALONE_SECOND")]);
     expect(queue).toHaveLength(2);
     expect(valuesSpy.mock.calls.length).toBe(scansAfterFirst);
+  });
+});
+
+describe("pickOcclusionPass pipelineStage cache sync", () => {
+  it("preserves pipelineStage tag and cached _pipelineStage on derived occlusion passes without triggering tag-replacement warnings", () => {
+    const warnSpy = vi.spyOn(Logger, "warn");
+    try {
+      const shadowPass = new ShaderPass(
+        "ShadowCaster",
+        [[0, "void main(){gl_Position=vec4(0.0);}"]],
+        [[0, "void main(){gl_FragColor=vec4(1.0);}"]],
+        ShaderLanguage.GLSLES300,
+        { pipelineStage: "ShadowCaster" }
+      );
+      const forwardPass = makeForwardPass("Forward");
+      const customNoStagePass = makeForwardPass("Unstaged");
+      customNoStagePass.deleteTag("pipelineStage");
+      warnSpy.mockClear();
+
+      const derivedShadow = pickOcclusionPass(shadowPass).pass;
+      const derivedForward = pickOcclusionPass(forwardPass).pass;
+      const derivedUnstaged = pickOcclusionPass(customNoStagePass).pass;
+
+      expect(warnSpy).not.toHaveBeenCalled();
+
+      expect(derivedShadow.getTagValue("pipelineStage")).toBe("ShadowCaster");
+      expect((derivedShadow as unknown as { _pipelineStage?: string })._pipelineStage).toBe("ShadowCaster");
+
+      expect(derivedForward.getTagValue("pipelineStage")).toBe("Forward");
+      expect((derivedForward as unknown as { _pipelineStage?: string })._pipelineStage).toBe("Forward");
+
+      expect(derivedUnstaged.getTagValue("pipelineStage")).toBeUndefined();
+      expect((derivedUnstaged as unknown as { _pipelineStage?: string })._pipelineStage).toBeUndefined();
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 });

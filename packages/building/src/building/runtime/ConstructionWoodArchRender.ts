@@ -145,6 +145,8 @@ export function appendWoodArchRenderPackage(
   }
   const files = new Map<string, ArrayBuffer>(),
     draws = base.package.draws.slice();
+  const hasGlobalView = base.dynamicFiles.includes("globals/view");
+  const hasGlobalFrame = base.dynamicFiles.includes("globals/frame");
   const put = (name: string, bytes: Uint8Array) => {
     files.set(name, bytes.slice().buffer);
     return name;
@@ -156,8 +158,9 @@ export function appendWoodArchRenderPackage(
     const id = "wood-arches/" + encodeURIComponent(key),
       prefix = "dynamic/" + id;
     if (draws.some((d) => d.id === id)) throw Error("Duplicate wood arch draw");
-    const viewFile = put(prefix + "/view.bin", view);
-    const frameFile = put(prefix + "/frame.bin", frameConstants);
+    const viewFile = hasGlobalView || files.has("globals/view") ? "globals/view" : put("globals/view", view);
+    const frameFile =
+      hasGlobalFrame || files.has("globals/frame") ? "globals/frame" : put("globals/frame", frameConstants);
     const instanceFile = put(prefix + "/instances.bin", packed.instances);
     const samplesFile = put(prefix + "/samples.bin", new Uint8Array(packed.samples.buffer));
     const indirection = Uint32Array.from(group, (_, i) => i);
@@ -167,7 +170,12 @@ export function appendWoodArchRenderPackage(
     if (!files.has(vertexFile)) {
       const mesh = createWoodArchAtlasMesh(level);
       files.set(vertexFile, mesh.positions.buffer as ArrayBuffer);
-      files.set(indexFile, new Uint32Array(mesh.indices).buffer);
+      files.set(
+        indexFile,
+        mesh.positions.length / 3 <= 65535
+          ? (new Uint16Array(mesh.indices).buffer as ArrayBuffer)
+          : (new Uint32Array(mesh.indices).buffer as ArrayBuffer)
+      );
     }
     draws.push({
       id,

@@ -20,16 +20,18 @@ export const MASONRY_RESIDENCY = {
   fullTriangleBudget: 2_000_000
 };
 
+const DEFAULT_MASONRY_RESIDENCY_BUDGET = Object.freeze({
+  retainMs: 10_000,
+  cacheBytes: 12 * 1024 * 1024,
+  detailBytes: 24 * 1024 * 1024,
+  fullTriangleBudget: MASONRY_RESIDENCY.fullTriangleBudget,
+  // Cap simultaneously active fine buildings so dense villages cannot flood LOD0/LOD1.
+  maxFullBuildings: 1,
+  maxDetailBuildings: 6
+});
+
 export function getMasonryResidencyBudget() {
-  return {
-    retainMs: 10_000,
-    cacheBytes: 12 * 1024 * 1024,
-    detailBytes: 24 * 1024 * 1024,
-    fullTriangleBudget: MASONRY_RESIDENCY.fullTriangleBudget,
-    // Cap simultaneously active fine buildings so dense villages cannot flood LOD0/LOD1.
-    maxFullBuildings: 1,
-    maxDetailBuildings: 6
-  };
+  return DEFAULT_MASONRY_RESIDENCY_BUDGET;
 }
 
 export interface MasonryLodTuning {

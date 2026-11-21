@@ -161,6 +161,7 @@ type ProfileView = MasonryResidencyEntry & {
   lights: BoundLight[];
   bodies: Component[];
   groupIds: Map<Component, string>;
+  entranceInstanceKeys: readonly string[];
   worldMatrix: Float64Array;
   retryAt?: number;
   occupancy: BuildingOccupancyQuery;
@@ -218,6 +219,7 @@ type Build = {
 export class BuildingRuntime extends Script {
   private readonly compiler = new BuildingCpuClient();
   protected readonly members = new Map<Component, ReturnType<Entity["transform"]["registerWorldChangeFlag"]>>();
+  private readonly dirtyTransformMembers = new Set<Component>();
   protected readonly views = new Map<Entity, View>();
   protected readonly entries: ProfileView[] = [];
   private readonly residencyMetrics = {
@@ -264,12 +266,16 @@ export class BuildingRuntime extends Script {
   private probeRevision = -1;
   private frameRevision = -1;
   private frameGroups = new Map<Entity, Component[]>();
+  private inputCacheRevision = -1;
+  private inputCacheTerrain?: ConstructionTerrainSource;
+  private readonly inputCache = new Map<Entity, BuildingRuntimeInput>();
   private error?: unknown;
   private publishedTerrain?: ConstructionTerrainSource;
   private terrainUpdate?: { discard(): void };
   private inputUpdates = 0;
   private closed = false;
   private lights?: ConstructionDecorationLights;
+  private lightsDirty = true;
   private readonly lightDescriptors: ConstructionDecorationLight[] = [];
   private readonly lightPosition = new Vector3();
   private readonly entrance = new ConstructionEntrance();
@@ -285,6 +291,7 @@ export class BuildingRuntime extends Script {
     if (value === this.shown) return;
     this.shown = value;
     this.surfaceRevision++;
+    this.lightsDirty = true;
     for (const view of this.views.values()) showView(view, value);
     for (const item of this.exitingViews) {
       if (item.anchor && !item.anchor.destroyed) item.anchor.isActive = value;
@@ -323,15 +330,14 @@ export class BuildingRuntime extends Script {
     this.updateLights(0);
   }
   private applyEntrance(changed?: ReadonlySet<string>): void {
+    let touched = false;
     for (const view of this.entries) {
-      if (
-        changed &&
-        ![...view.groupIds.values()].some((id) => changed.has(buildingInstanceKey(view.frame, buildingGroupKey(id))))
-      )
-        continue;
+      if (changed && !view.entranceInstanceKeys.some((key) => changed.has(key))) continue;
       view.view.setEntrance(view.entranceStates);
       view.fine?.runtime.setEntrance(view.entranceStates);
+      if (view.lights.length) touched = true;
     }
+    if (touched) this.lightsDirty = true;
   }
 
   bind(host: BuildingRuntimeHost): void {
@@ -342,6 +348,8 @@ export class BuildingRuntime extends Script {
     if (host.terrain) validateConstructionTerrain(host.terrain.grid);
     this.publishedTerrain = host.terrain;
     this.host = host;
+    BuildingRuntime.clearInputCache(this);
+    this.lightsDirty = true;
     this.residency = new MasonryResidency(
       this.engine,
       host.camera,
@@ -359,12 +367,24 @@ export class BuildingRuntime extends Script {
   }
   add(component: Component): void {
     if (this.members.has(component)) return;
-    this.members.set(component, component.entity.transform.registerWorldChangeFlag());
+    const flag = component.entity.transform.registerWorldChangeFlag();
+    if (typeof flag.dispatch === "function") {
+      const prevDispatch = flag.dispatch as (type?: number, param?: unknown) => void;
+      flag.dispatch = (type?: number, param?: unknown) => {
+        prevDispatch.call(flag, type, param);
+        this.dirtyTransformMembers.add(component);
+        BuildingRuntime.clearInputCache(this);
+      };
+    }
+    if (flag.flag) this.dirtyTransformMembers.add(component);
+    this.members.set(component, flag);
     this.invalidate();
   }
   protected removeMember(component: Component): void {
+    this.dirtyTransformMembers.delete(component);
     this.members.get(component)?.destroy();
     this.members.delete(component);
+    this.lightsDirty = true;
     if (this.host?.isBody(component)) {
       for (const build of [this.build, this.detailBuild])
         if (build?.bodies.includes(component)) build.controller.abort();
@@ -383,7 +403,8 @@ export class BuildingRuntime extends Script {
             for (const draw of view.fine?.runtime.draws.values() ?? [])
               if (draw.ownerId === id) {
                 draw.enabled = false;
-                draw.renderer.enabled = draw.lodRenderer.enabled = false;
+                draw.renderer.enabled = false;
+                if (draw.lodRenderer) draw.lodRenderer.enabled = false;
               }
           }
         }
@@ -402,8 +423,15 @@ export class BuildingRuntime extends Script {
     if (this.inputUpdates) this.inputUpdates--;
   }
 
+  private static clearInputCache(runtime: BuildingRuntime): void {
+    runtime.inputCache?.clear();
+    runtime.inputCacheTerrain = undefined;
+    runtime.inputCacheRevision = -1;
+  }
+
   invalidate(): void {
     this.revision++;
+    BuildingRuntime.clearInputCache(this);
   }
   private readTransforms(): void {
     // A restarted Worker no longer owns these snapshots, even if author inputs are unchanged.
@@ -412,17 +440,21 @@ export class BuildingRuntime extends Script {
         view.signature = "";
         this.invalidate();
       }
-    this.members.forEach(this.readMemberTransform);
+    if (!this.dirtyTransformMembers.size) return;
+    let dirtied = false;
+    for (const member of this.dirtyTransformMembers) {
+      const flag = this.members.get(member);
+      if (!flag || !flag.flag) continue;
+      member.entity.transform.worldMatrix;
+      flag.flag = false;
+      dirtied = true;
+    }
+    this.dirtyTransformMembers.clear();
+    if (dirtied) {
+      this.lightsDirty = true;
+      this.invalidate();
+    }
   }
-  private readonly readMemberTransform = (
-    flag: ReturnType<Entity["transform"]["registerWorldChangeFlag"]>,
-    member: Component
-  ): void => {
-    if (!flag.flag) return;
-    member.entity.transform.worldMatrix;
-    flag.flag = false;
-    this.invalidate();
-  };
   onUpdate(deltaTime: number): void {
     this.readTransforms();
     this.validateBuild();
@@ -523,6 +555,7 @@ export class BuildingRuntime extends Script {
       this.entries.length = 0;
       this.residency!.desired.clear();
       this.publishedTerrain = terrain;
+      BuildingRuntime.clearInputCache(this);
       for (const entry of entries) {
         entry.signature = signatures.get(entry)!;
         this.views.set(entry.frame, entry);
@@ -539,6 +572,7 @@ export class BuildingRuntime extends Script {
       }
       this.probeRevision = -1;
       this.detailDirty = true;
+      this.lightsDirty = true;
       this.updateResidency(0);
       this.updateLights(0);
     };
@@ -554,6 +588,7 @@ export class BuildingRuntime extends Script {
       before.length = 0;
       beforeSignatures.clear();
       preparedSignatures.clear();
+      BuildingRuntime.clearInputCache(this);
     };
     const rollback = () => {
       if (finished || !committed) return;
@@ -661,9 +696,21 @@ export class BuildingRuntime extends Script {
     return frames;
   }
   protected input(frame: Entity, publishedTerrain = this.publishedTerrain): BuildingRuntimeInput {
+    const useCache = publishedTerrain === this.publishedTerrain && this.dirtyTransformMembers.size === 0;
+    if (useCache) {
+      if (this.inputCacheRevision !== this.revision || this.inputCacheTerrain !== publishedTerrain) {
+        this.inputCache.clear();
+        this.inputCacheRevision = this.revision;
+        this.inputCacheTerrain = publishedTerrain;
+      }
+      const cached = this.inputCache.get(frame);
+      if (cached) return cached;
+    }
     const bodies = this.frames().get(frame);
     if (!bodies?.length) throw Error("Building group no longer has active owners");
-    return this.host!.collect(frame, bodies, this.members.keys(), publishedTerrain);
+    const collected = this.host!.collect(frame, bodies, this.members.keys(), publishedTerrain);
+    if (useCache) this.inputCache.set(frame, collected);
+    return collected;
   }
   private validateBuild(force = false): void {
     this.validateSingleBuild(this.build, force);
@@ -683,6 +730,7 @@ export class BuildingRuntime extends Script {
   private retire(view: View, animateExit = false): void {
     if (view.kind === "profile") this.residency?.desired.delete(view);
     this.views.delete(view.frame);
+    this.lightsDirty = true;
     const index = view.kind === "profile" ? this.entries.indexOf(view) : -1;
     if (index >= 0) this.entries.splice(index, 1);
     const canAnimateExit =
@@ -846,6 +894,9 @@ export class BuildingRuntime extends Script {
       if (!cpu.valid) throw Error("Building compilation snapshot expired during view preparation");
       if (this.closed) throw Error("Building system is disposed");
       const lights = bindLights(constructionDecorationLights(geometry.decorationParts), bindings, frame);
+      const entranceInstanceKeys: string[] = [];
+      for (const id of new Set(groupIds.values()))
+        entranceInstanceKeys.push(buildingInstanceKey(frame, buildingGroupKey(id)));
       return {
         kind: "profile",
         entranceStates: new Map(),
@@ -855,6 +906,7 @@ export class BuildingRuntime extends Script {
         lights,
         bodies,
         groupIds,
+        entranceInstanceKeys,
         occupancy,
         cpu,
         diagnostics: candidate.diagnostics,
@@ -920,6 +972,7 @@ export class BuildingRuntime extends Script {
             if (!old || !old.occupancy.hasSameGeometry(candidate.occupancy)) this.surfaceRevision++;
             if (old) this.retire(old, false);
             this.views.set(frame, candidate);
+            this.lightsDirty = true;
             if (candidate.kind === "profile") this.entries.push(candidate);
             this.refreshProbe(candidate);
             showView(candidate, this.shown);
@@ -959,13 +1012,8 @@ export class BuildingRuntime extends Script {
       this.probeRevision = this.revision;
     }
     const now = performance.now();
-    this.residency.updateDemand(deltaTime);
-    this.residency.updatePresentation(now);
-    if (!this.shown)
-      for (const view of this.entries) {
-        view.view.root.isActive = false;
-        if (view.fine) view.fine.runtime.root.isActive = false;
-      }
+    this.residency.updateDemand(deltaTime, this.shown);
+    this.residency.updatePresentation(now, this.shown);
     for (let i = 0, n = this.entries.length; i < n; i++) {
       const retryAt = this.entries[i].retryAt;
       if (retryAt !== undefined && now >= retryAt) {
@@ -1050,11 +1098,7 @@ export class BuildingRuntime extends Script {
         view.error = undefined;
         view.retryAt = undefined;
         residency.invalidate();
-        residency.updatePresentation(performance.now());
-        if (!this.shown) {
-          view.view.root.isActive = false;
-          view.fine.runtime.root.isActive = false;
-        }
+        residency.updatePresentation(performance.now(), this.shown);
         await new Promise<void>((resolve) => setTimeout(resolve, 0));
       } catch (error) {
         fine?.destroy();
@@ -1071,21 +1115,24 @@ export class BuildingRuntime extends Script {
   }
   private updateLights(deltaSeconds: number): void {
     if (!this.host) return;
-    this.lightDescriptors.length = 0;
-    if (this.shown)
-      for (const view of this.views.values())
-        for (const light of view.lights) {
-          if (view.kind === "profile" && (this.entrance.states.get(light.descriptor.ownerId)?.progress ?? 1) < 1)
-            continue;
-          const object = light.member;
-          if (!this.members.has(object)) continue;
-          Vector3.transformCoordinate(light.local, object.entity.transform.worldMatrix, this.lightPosition);
-          const p = light.descriptor.position;
-          p[0] = this.lightPosition.x;
-          p[1] = this.lightPosition.y;
-          p[2] = this.lightPosition.z;
-          this.lightDescriptors.push(light.descriptor);
-        }
+    if (this.lightsDirty) {
+      this.lightsDirty = false;
+      this.lightDescriptors.length = 0;
+      if (this.shown)
+        for (const view of this.views.values())
+          for (const light of view.lights) {
+            if (view.kind === "profile" && (this.entrance.states.get(light.descriptor.ownerId)?.progress ?? 1) < 1)
+              continue;
+            const object = light.member;
+            if (!this.members.has(object)) continue;
+            Vector3.transformCoordinate(light.local, object.entity.transform.worldMatrix, this.lightPosition);
+            const p = light.descriptor.position;
+            p[0] = this.lightPosition.x;
+            p[1] = this.lightPosition.y;
+            p[2] = this.lightPosition.z;
+            this.lightDescriptors.push(light.descriptor);
+          }
+    }
     if (!this.lights && this.lightDescriptors.length) this.lights = new ConstructionDecorationLights(this.entity, 4);
     this.lights?.update(this.lightDescriptors, this.host.camera, deltaSeconds);
   }
@@ -1210,6 +1257,7 @@ export class BuildingRuntime extends Script {
       });
     }
     const cells = await view.inspection.result;
+    this.readTransforms();
     if (this.views.get(view.frame) !== view || this.input(view.frame).signature !== view.signature)
       throw Error("Building changed during surface inspection");
     return inspectMasonrySurface(cells, id, polygon);
@@ -1233,7 +1281,7 @@ export class BuildingRuntime extends Script {
       scopedVisitor.__fromRuntime = true;
       view.view.visitPickBatches(scopedVisitor);
       for (const draw of view.fine?.runtime.draws.values() ?? [])
-        for (const renderer of [draw.renderer, draw.lodRenderer]) {
+        for (const renderer of draw.lodRenderer ? [draw.renderer, draw.lodRenderer] : [draw.renderer]) {
           if (!renderer.enabled || !renderer.entity.isActiveInHierarchy) continue;
           const ids = draw.pickIds ?? [
             draw.objectBinding?.id ??
@@ -1260,7 +1308,7 @@ export class BuildingRuntime extends Script {
     for (const view of this.entries) {
       for (const draw of view.fine?.runtime.draws.values() ?? []) {
         draws++;
-        renderers += Number(draw.renderer.enabled) + Number(draw.lodRenderer.enabled);
+        renderers += Number(draw.renderer.enabled) + Number(Boolean(draw.lodRenderer?.enabled));
       }
       if (view.fine) derivedEntities += count(view.fine.runtime.root);
       derivedEntities += count(view.view.root);
@@ -1434,6 +1482,7 @@ export class BuildingRuntime extends Script {
     warmupRoot.isActive = false;
     markGeneratedBuildingOutput(warmupRoot);
     const details: Candidate[] = [];
+    const warmedFarEntries: ProfileView[] = [];
     const renderers: MeshRenderer[] = [];
     const controller = new AbortController();
     const onAbort = () => controller.abort(signal?.reason);
@@ -1445,9 +1494,19 @@ export class BuildingRuntime extends Script {
         selected.map(async ({ entry, input }) => {
           signal?.throwIfAborted();
           if (cleanedUp || this.closed || !viewValid(entry)) return undefined;
+          // Only release LOD1 after warmup for already-committed LOD2 views; releaseDetailedVisual()
+          // itself guards views whose entrance cannot be played on GlobalProxy or that are actively viewing LOD1.
+          const releaseFarAfterWarmup = this.views.get(entry.frame) === entry && !entry.fine && entry.lod === 2;
+          if (releaseFarAfterWarmup) warmedFarEntries.push(entry);
           await entry.view.warmupDetailedVisual?.();
+          if (cleanedUp) {
+            if (releaseFarAfterWarmup && this.views.get(entry.frame) === entry && !entry.fine && entry.lod === 2) {
+              entry.view.releaseDetailedVisual?.();
+            }
+            return undefined;
+          }
           signal?.throwIfAborted();
-          if (cleanedUp || this.closed || !viewValid(entry)) return undefined;
+          if (this.closed || !viewValid(entry)) return undefined;
           const detail = await prepareBuildingDetail(entry.cpu, {
             assets: input.assets!,
             parent: warmupRoot,
@@ -1477,6 +1536,10 @@ export class BuildingRuntime extends Script {
           controller.abort();
           for (const detail of details) detail.destroy();
           details.length = 0;
+          for (const entry of warmedFarEntries) {
+            if (!entry.fine && entry.lod === 2) entry.view.releaseDetailedVisual?.();
+          }
+          warmedFarEntries.length = 0;
           if (!warmupRoot.destroyed) warmupRoot.destroy();
         }
       };
@@ -1485,6 +1548,10 @@ export class BuildingRuntime extends Script {
       controller.abort(error);
       for (const detail of details) detail.destroy();
       details.length = 0;
+      for (const entry of warmedFarEntries) {
+        if (!entry.fine && entry.lod === 2) entry.view.releaseDetailedVisual?.();
+      }
+      warmedFarEntries.length = 0;
       if (!warmupRoot.destroyed) warmupRoot.destroy();
       throw error;
     } finally {
@@ -1509,6 +1576,8 @@ export class BuildingRuntime extends Script {
     this.compiler.dispose();
     for (const flag of this.members.values()) flag.destroy();
     this.members.clear();
+    this.dirtyTransformMembers.clear();
+    BuildingRuntime.clearInputCache(this);
     this.lights?.dispose();
   }
 }

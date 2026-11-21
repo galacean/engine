@@ -57,24 +57,148 @@ import {
   Camera,
   Script,
   Matrix,
-  Vector4
+  ShaderMacro,
+  ShaderProperty,
+  Vector4,
+  type BoolUpdateFlag
 } from "@galacean/engine";
 import { NATIVE_DORMER_GRID } from "./DormerBins";
 import { engineShaderSource } from "./EngineShaderSource";
 import { EngineRoofFeedback } from "./EngineRoofFeedback";
-import { resolveDocument } from "./PlacementDocument.js";
+import { placementKey, resolveDocument, units as PLACEMENT_UNITS } from "./PlacementDocument.js";
+
+const MACRO_MASONRY_DITHER = ShaderMacro.getByName("RENDERER_MASONRY_DITHER");
+const PROP_MASONRY_LOD_FADE = ShaderProperty.getByName("renderer_MasonryLodFade");
+const PROP_MASONRY_LOD_DEBUG_COLOR = ShaderProperty.getByName("renderer_MasonryLodDebugColor");
+
+/**
+ * Single source of truth for the camera localView 4x4 matrix slice inside ViewConstants_natural
+ * (R32G32B32A32_UInt, 4 uint32 words per texel).
+ */
+export const VIEW_CONSTANTS_CAMERA_PATCH = Object.freeze({
+  wordOffset: 80,
+  wordCount: 16,
+  texelX: 80 >>> 2,
+  texelWidth: 16 >>> 2,
+  minTextureWidth: (80 + 16) >>> 2
+});
+
+function extractFrustumPlanesFromColumnMajorMatrix(e: ArrayLike<number>, out: Float32Array): void {
+  const e0 = e[0]!,
+    e1 = e[1]!,
+    e2 = e[2]!,
+    e3 = e[3]!;
+  const e4 = e[4]!,
+    e5 = e[5]!,
+    e6 = e[6]!,
+    e7 = e[7]!;
+  const e8 = e[8]!,
+    e9 = e[9]!,
+    e10 = e[10]!,
+    e11 = e[11]!;
+  const e12 = e[12]!,
+    e13 = e[13]!,
+    e14 = e[14]!,
+    e15 = e[15]!;
+  // Left, Right, Bottom, Top, Near, Far planes
+  const write = (offset: number, a: number, b: number, c: number, d: number) => {
+    const inv = 1 / (Math.hypot(a, b, c) || 1);
+    out[offset] = a * inv;
+    out[offset + 1] = b * inv;
+    out[offset + 2] = c * inv;
+    out[offset + 3] = d * inv;
+  };
+  write(0, e3 + e0, e7 + e4, e11 + e8, e15 + e12);
+  write(4, e3 - e0, e7 - e4, e11 - e8, e15 - e12);
+  write(8, e3 + e1, e7 + e5, e11 + e9, e15 + e13);
+  write(12, e3 - e1, e7 - e5, e11 - e9, e15 - e13);
+  write(16, e3 + e2, e7 + e6, e11 + e10, e15 + e14);
+  write(20, e3 - e2, e7 - e6, e11 - e10, e15 - e14);
+}
+
 class ConstructionCameraSync extends Script {
-  sync: ((camera: Camera, includeInactive?: boolean) => void) | null = null;
+  readonly listeners = new Set<(camVersion: number, includeInactive?: boolean) => void>();
+  private camVersion = 1;
+  private cameraFlag?: BoolUpdateFlag;
+  private initialized = false;
+  private lastCustomView = false;
+  private readonly lastView = new Float64Array(16).fill(NaN);
+  private readonly lastProj = new Float64Array(16).fill(NaN);
+  private lastVpW = NaN;
+  private lastVpH = NaN;
+  private lastOrtho = false;
+
+  bumpIfCameraChanged(camera: Camera): number {
+    const vm = camera.viewMatrix.elements;
+    if (!this.initialized) {
+      this.initialized = true;
+      this.cameraFlag = (
+        camera.entity.transform as { registerWorldChangeFlag?: () => BoolUpdateFlag }
+      ).registerWorldChangeFlag?.();
+      this.lastView.set(vm);
+    }
+    const customView = Boolean((camera as unknown as { _isCustomViewMatrix?: boolean })._isCustomViewMatrix);
+    let moved = false;
+    if (this.cameraFlag && !customView && !this.lastCustomView) {
+      if (this.cameraFlag.flag) {
+        this.cameraFlag.flag = false;
+        moved = true;
+        this.lastView.set(vm);
+      }
+    } else {
+      if (this.cameraFlag && !customView && this.cameraFlag.flag) {
+        this.cameraFlag.flag = false;
+      }
+      for (let i = 0; i < 16; i++) {
+        if (this.lastView[i] !== vm[i]) {
+          this.lastView[i] = vm[i]!;
+          moved = true;
+        }
+      }
+    }
+    this.lastCustomView = customView;
+    const pe = camera.projectionMatrix.elements;
+    for (let i = 0; i < 16; i++) {
+      if (this.lastProj[i] !== pe[i]) {
+        this.lastProj[i] = pe[i]!;
+        moved = true;
+      }
+    }
+    const vp = camera.pixelViewport;
+    if (moved || vp.width !== this.lastVpW || vp.height !== this.lastVpH || camera.isOrthographic !== this.lastOrtho) {
+      this.lastVpW = vp.width;
+      this.lastVpH = vp.height;
+      this.lastOrtho = camera.isOrthographic;
+      this.camVersion++;
+    }
+    return this.camVersion;
+  }
+
   onBeginRender(camera: Camera) {
-    this.sync?.(camera);
+    const version = this.bumpIfCameraChanged(camera);
+    for (const listener of this.listeners) listener(version, false);
+  }
+
+  override onDestroy(): void {
+    this.cameraFlag?.destroy();
+    this.cameraFlag = undefined;
+    this.listeners.clear();
   }
 }
-function setRendererMacro(renderer: MeshRenderer, name: string, enabled: boolean) {
-  if (enabled) renderer.shaderData.enableMacro(name);
-  else renderer.shaderData.disableMacro(name);
+
+const SHARED_CAMERA_SYNCS = new WeakMap<Camera, ConstructionCameraSync>();
+
+function setRendererMacro(renderer: MeshRenderer, name: string | ShaderMacro, enabled: boolean) {
+  if (enabled) renderer.shaderData.enableMacro(name as string);
+  else renderer.shaderData.disableMacro(name as string);
 }
-const programs = new Map<string, Promise<Shader>>();
-function residentShader(vertex: string, fragment: string, cullMode: CullMode = CullMode.Off) {
+const enginePrograms = new WeakMap<Engine, Map<string, Promise<Shader>>>();
+function residentShader(engine: Engine, vertex: string, fragment: string, cullMode: CullMode = CullMode.Off) {
+  let programs = enginePrograms.get(engine);
+  if (!programs) {
+    programs = new Map();
+    enginePrograms.set(engine, programs);
+  }
   const source = JSON.stringify([vertex, fragment, `GLES300/cull${cullMode}/depthLessEqual`]);
   let result = programs.get(source);
   if (!result) {
@@ -104,7 +228,7 @@ function residentShader(vertex: string, fragment: string, cullMode: CullMode = C
       state.depthState.compareFunction = CompareFunction.LessEqual;
       return Shader.create(name, [pass])!;
     })().catch((e) => {
-      programs.delete(source);
+      programs!.delete(source);
       throw e;
     });
     programs.set(source, result);
@@ -149,13 +273,23 @@ ${source.includes("flat in float masonryPickIndex;") ? "pickId+=floor(masonryPic
       )
   );
 }
+const unitVertexCache = new Map<string, string>();
 function unitVertex(source: string) {
-  return (
-    "in float masonryUnitFade;\nflat out float masonryUnitWeight;\n" +
-    source.replace("original_main();", "masonryUnitWeight=masonryUnitFade;original_main();")
-  );
+  let cached = unitVertexCache.get(source);
+  if (cached === undefined) {
+    cached =
+      "in float masonryUnitFade;\nflat out float masonryUnitWeight;\n" +
+      source.replace("original_main();", "masonryUnitWeight=masonryUnitFade;original_main();");
+    unitVertexCache.set(source, cached);
+  }
+  return cached;
 }
+const unitFragmentHighCache = new Map<string, string>();
+const unitFragmentLowCache = new Map<string, string>();
 function unitFragment(source: string, low: boolean) {
+  const cache = low ? unitFragmentLowCache : unitFragmentHighCache;
+  let cached = cache.get(source);
+  if (cached !== undefined) return cached;
   const gate = `
 flat in float masonryUnitWeight;
 void masonryUnitCoverage(){
@@ -166,7 +300,9 @@ void masonryUnitCoverage(){
 #endif
 }
 `;
-  return gate + source.replace("masonryLodDither();", "masonryLodDither();masonryUnitCoverage();");
+  cached = gate + source.replace("masonryLodDither();", "masonryLodDither();masonryUnitCoverage();");
+  cache.set(source, cached);
+  return cached;
 }
 interface UnitDrawLod {
   selector: MaterialUnitLod;
@@ -265,7 +401,7 @@ export class EngineResidentScene {
       rigidBindings?: readonly RigidDecorationBinding[];
       objectBinding?: RigidDecorationBinding;
       renderer: MeshRenderer;
-      lodRenderer: MeshRenderer;
+      lodRenderer?: MeshRenderer;
       enabled: boolean;
       mesh: BufferMesh;
       meshes: BufferMesh[];
@@ -281,10 +417,12 @@ export class EngineResidentScene {
   private readonly bufferCache = new Map<string, Promise<Buffer>>();
   private readonly storageCache = new Map<string, Promise<Texture2D>>();
   private readonly storageData = new Map<Texture2D, Uint32Array>();
-  private readonly viewData = new Map<Texture2D, Uint32Array>();
+  private readonly viewData = new Map<Texture2D, { words: Uint32Array; floats: Float32Array; patch: Uint32Array }>();
   private disposed = false;
   private lodStates: readonly { lodIndex: number; signedFade: number }[] = [{ lodIndex: 0, signedFade: 1 }];
   private syncCamera: (() => void) | null = null;
+  private lodDirty = true;
+  private cameraCleanup: (() => void) | null = null;
   private pack: ResidentPackage | null = null;
   private entranceBindings: { owner?: string; apply: ReturnType<typeof entranceBinding> }[] = [];
   /** Shares author-owned progress across resident meshes and material variants. */
@@ -347,23 +485,86 @@ export class EngineResidentScene {
       height = Math.ceil(count / width),
       words = new Uint32Array(width * height * 4);
     new Uint8Array(words.buffer).set(new Uint8Array(raw));
-    const t = this.own(new Texture2D(this.engine, width, height, TextureFormat.R32G32B32A32_UInt, false, false));
-    t.filterMode = TextureFilterMode.Point;
-    t.wrapModeU = t.wrapModeV = TextureWrapMode.Clamp;
-    t.setPixelBuffer(words);
+    const createTexture = () => {
+      const t = new Texture2D(this.engine, width, height, TextureFormat.R32G32B32A32_UInt, false, false);
+      t.filterMode = TextureFilterMode.Point;
+      t.wrapModeU = t.wrapModeV = TextureWrapMode.Clamp;
+      t.setPixelBuffer(words);
+      restoreResource(t, () => t.setPixelBuffer(words));
+      return t;
+    };
+    let poolKey: string | undefined;
+    if (name === "globals/frame") {
+      let frameKey = "storage-frame:";
+      for (let i = 0; i < words.length; i++) {
+        frameKey += (i ? "," : "") + words[i]!.toString(36);
+      }
+      poolKey = frameKey;
+    } else if (name === "globals/dormerCounts" || name === "globals/dormerHoles") {
+      let allZero = true;
+      for (let i = 0; i < words.length; i++) {
+        if (words[i] !== 0) {
+          allZero = false;
+          break;
+        }
+      }
+      if (allZero) poolKey = `storage-zero:${words.length}`;
+    }
+    if (poolKey) {
+      let ownedBytes = false;
+      const lease = leaseResidentResource(
+        this.engine,
+        poolKey,
+        async () => {
+          const texture = createTexture();
+          this.metrics.uploadBytes += words.byteLength;
+          return {
+            texture,
+            destroy: () => texture.destroy()
+          };
+        },
+        (owned) => {
+          if (owned === ownedBytes) return;
+          ownedBytes = owned;
+          this.metrics.residentBytes += owned ? words.byteLength : -words.byteLength;
+        }
+      );
+      this.resources.push(lease);
+      const { texture } = await lease.value;
+      return texture;
+    }
+    const t = this.own(createTexture());
     this.storageData.set(t, words);
-    restoreResource(t, () => t.setPixelBuffer(words));
     this.metrics.uploadBytes += words.byteLength;
     this.metrics.residentBytes += words.byteLength;
     return t;
   }
   bindCamera(camera: Camera) {
-    const script = camera.entity.addComponent(ConstructionCameraSync),
-      inverse = new Matrix(),
+    this.cameraCleanup?.();
+    let script = SHARED_CAMERA_SYNCS.get(camera);
+    if (!script || script.destroyed) {
+      script = camera.entity.addComponent(ConstructionCameraSync);
+      SHARED_CAMERA_SYNCS.set(camera, script);
+    }
+    const inverse = new Matrix(),
       localView = new Matrix(),
-      modelView = new Matrix();
-    script.sync = (_camera, includeInactive = false) => {
+      modelView = new Matrix(),
+      modelViewProj = new Matrix(),
+      frustumPlanes = new Float32Array(24);
+    const rootWorldFlag = (
+      this.root.transform as { registerWorldChangeFlag?: () => BoolUpdateFlag }
+    ).registerWorldChangeFlag?.();
+    let lastCamVersion = -1;
+
+    const listener = (camVersion: number, includeInactive = false) => {
+      if (this.disposed) return;
       if (!includeInactive && !this.root.isActiveInHierarchy) return;
+      const rootChanged = !rootWorldFlag || rootWorldFlag.flag;
+      if (rootWorldFlag) rootWorldFlag.flag = false;
+      if (!includeInactive && !rootChanged && !this.lodDirty && camVersion === lastCamVersion) return;
+      lastCamVersion = camVersion;
+      this.lodDirty = false;
+
       Matrix.invert(this.root.transform.worldMatrix, inverse);
       Matrix.multiply(inverse, camera.entity.transform.worldMatrix, localView);
       Matrix.multiply(camera.viewMatrix, this.root.transform.worldMatrix, modelView);
@@ -378,49 +579,102 @@ export class EngineResidentScene {
         0.5 *
         Math.abs(camera.projectionMatrix.elements[5]) *
         Math.max(minVpHeight, Math.min(2160, camera.pixelViewport.height));
+      let hasFrustumUnitLod = false;
+      for (const draw of this.draws.values()) {
+        const lod = draw.unitLod;
+        if (lod && lod.active && draw.enabled && lod.forced < 0) {
+          hasFrustumUnitLod = true;
+          break;
+        }
+      }
+      if (hasFrustumUnitLod) {
+        Matrix.multiply(camera.projectionMatrix, modelView, modelViewProj);
+        extractFrustumPlanesFromColumnMajorMatrix(modelViewProj.elements, frustumPlanes);
+      }
       const selectionStart = performance.now();
       for (const draw of this.draws.values()) {
         const lod = draw.unitLod;
         if (!lod || !lod.active || !draw.enabled) continue;
-        if (lod.selector.update(modelView.elements, pixelScale, camera.isOrthographic, scale, lod.forced)) {
+        if (
+          lod.selector.update(
+            modelView.elements,
+            pixelScale,
+            camera.isOrthographic,
+            scale,
+            lod.forced,
+            lod.forced < 0 ? frustumPlanes : null
+          )
+        ) {
           const counts = [lod.selector.highCount, lod.selector.lowCount];
           const ids = [lod.selector.high, lod.selector.low],
-            fades = [lod.selector.highFade, lod.selector.lowFade];
+            fades = [lod.selector.highFade, lod.selector.lowFade],
+            dirtyList = [lod.selector.highChanged, lod.selector.lowChanged];
           for (let i = 0; i < 2; i++) {
-            lod.words[i].set(ids[i].subarray(0, counts[i]));
-            lod.lists[i].setPixelBuffer(lod.words[i]);
-            const bytes = lod.words[i].byteLength + counts[i] * 4;
-            this.metrics.lodUploadBytes += bytes;
-            this.metrics.uploadBytes += bytes;
-            if (counts[i]) lod.fades[i].setData(fades[i], 0, 0, counts[i]);
-            draw.meshes[i].instanceCount = counts[i];
+            if (!dirtyList[i]) continue;
+            const c = counts[i]!;
+            draw.meshes[i].instanceCount = c;
+            if (c > 0) {
+              lod.words[i].set(ids[i].subarray(0, c));
+              lod.lists[i].setPixelBuffer(lod.words[i]);
+              lod.fades[i].setData(fades[i], 0, 0, c);
+              const bytes = lod.words[i].byteLength + c * 4;
+              this.metrics.lodUploadBytes += bytes;
+              this.metrics.uploadBytes += bytes;
+            }
           }
-          setRendererMacro(draw.renderer, "RENDERER_MASONRY_DITHER", lod.lodFade < 1 || lod.selector.hasHighFade);
-          setRendererMacro(draw.lodRenderer, "RENDERER_MASONRY_DITHER", lod.lodFade < 1 || lod.selector.hasLowFade);
+          setRendererMacro(draw.renderer, MACRO_MASONRY_DITHER, lod.lodFade < 1 || lod.selector.hasHighFade);
+          if (draw.lodRenderer) {
+            setRendererMacro(draw.lodRenderer, MACRO_MASONRY_DITHER, lod.lodFade < 1 || lod.selector.hasLowFade);
+          }
         }
         draw.renderer.enabled = lod.active && lod.selector.highCount > 0;
-        draw.lodRenderer.enabled = lod.active && lod.selector.lowCount > 0;
+        if (draw.lodRenderer) draw.lodRenderer.enabled = lod.active && lod.selector.lowCount > 0;
       }
       this.metrics.lodSelectionMs = performance.now() - selectionStart;
       this.updateTriangleMetrics();
-      for (const [texture, words] of this.viewData) {
-        const data = new Float32Array(words.buffer);
+      for (const [texture, entry] of this.viewData) {
+        const data = entry.floats;
         let changed = false;
         // Native std140 declares row_major; Engine Matrix stores columns. The
         // reflected reader already honors the declaration. Convert at the writer.
-        for (let i = 0; i < 16; i++) {
+        const base = VIEW_CONSTANTS_CAMERA_PATCH.wordOffset;
+        for (let i = 0; i < VIEW_CONSTANTS_CAMERA_PATCH.wordCount; i++) {
           const value = localView.elements[(i % 4) * 4 + Math.floor(i / 4)];
-          if (data[80 + i] !== value) {
-            data[80 + i] = value;
+          if (data[base + i] !== value) {
+            data[base + i] = value;
             changed = true;
           }
         }
-        if (changed) texture.setPixelBuffer(words);
+        if (changed) {
+          if (texture.width >= VIEW_CONSTANTS_CAMERA_PATCH.minTextureWidth && texture.height >= 1) {
+            texture.setPixelBuffer(
+              entry.patch,
+              0,
+              VIEW_CONSTANTS_CAMERA_PATCH.texelX,
+              0,
+              VIEW_CONSTANTS_CAMERA_PATCH.texelWidth,
+              1
+            );
+          } else {
+            texture.setPixelBuffer(entry.words);
+          }
+        }
       }
     };
-    this.resources.push(script);
-    this.syncCamera = () => script.sync?.(camera, true);
-    script.sync(camera);
+    script.listeners.add(listener);
+    this.cameraCleanup = () => {
+      rootWorldFlag?.destroy?.();
+      script.listeners.delete(listener);
+      if (script.listeners.size === 0 && !script.destroyed) {
+        script.destroy();
+        if (SHARED_CAMERA_SYNCS.get(camera) === script) SHARED_CAMERA_SYNCS.delete(camera);
+      }
+    };
+    this.syncCamera = () => {
+      this.lodDirty = true;
+      listener(script.bumpIfCameraChanged(camera), true);
+    };
+    this.syncCamera();
   }
   private texture(name: string, array: boolean, pack: ResidentPackage) {
     const key = `${array}:${name}`;
@@ -477,43 +731,96 @@ export class EngineResidentScene {
   }
   applyDocument(document: any) {
     if (!this.pack?.document) throw Error("This scene has no author placement document");
-    const start = performance.now(),
-      resolution = resolveDocument(this.pack, document);
+    const start = performance.now();
     let bytes = 0;
-    for (const group of resolution.selections)
-      for (const d of this.pack.draws) {
-        if (d.group !== group.group || !d.variant) continue;
-        const active = this.draws.get(d.id);
-        if (!active) continue;
-        const ids = group.selections[d.variant];
-        if (active.unitLod) {
-          active.unitLod.selector.select(ids);
-        } else if (active.visibility) {
-          const mask = active.visibility.values;
-          mask.fill(0);
+    let visibleCells = 0;
+    const drawsByGroup = new Map<number, Array<{ id: string; variant: string; indirection?: string | null }>>();
+    for (const d of this.pack.draws) {
+      if (d.group === null || d.group === undefined || !d.variant) continue;
+      let list = drawsByGroup.get(d.group);
+      if (!list) drawsByGroup.set(d.group, (list = []));
+      list.push({ id: d.id, variant: d.variant, indirection: d.indirection });
+    }
+    const applyDrawIds = (
+      dMeta: { id: string; variant: string; indirection?: string | null },
+      ids: number[] | null,
+      rangeCount: number
+    ) => {
+      const active = this.draws.get(dMeta.id);
+      if (!active) return;
+      const count = ids ? ids.length : rangeCount;
+      if (active.unitLod) {
+        if (ids) active.unitLod.selector.select(ids);
+        else active.unitLod.selector.selectRange(rangeCount);
+      } else if (active.visibility) {
+        const mask = active.visibility.values;
+        mask.fill(0);
+        if (ids) {
           for (const i of ids) mask[i] = 1;
-          active.visibility.buffer.setData(mask);
-          bytes += mask.byteLength;
-        } else {
-          const t = active.resources.get(d.indirection!);
-          if (!t) throw Error("Missing material indirection");
-          const data = this.storageData.get(t)!;
-          data.fill(0);
-          data.set(ids);
-          t.setPixelBuffer(data);
-          for (const mesh of active.meshes) mesh.instanceCount = ids.length;
-          bytes += data.byteLength;
+        } else if (rangeCount > 0) {
+          mask.fill(1, 0, Math.min(rangeCount, mask.length));
         }
-        active.enabled = ids.length > 0;
-        active.renderer.enabled = active.enabled;
-        active.lodRenderer.enabled = false;
+        active.visibility.buffer.setData(mask);
+        bytes += mask.byteLength;
+      } else {
+        const t = active.resources.get(dMeta.indirection!);
+        if (!t) throw Error("Missing material indirection");
+        const data = this.storageData.get(t)!;
+        data.fill(0);
+        if (ids) data.set(ids);
+        else for (let i = 0; i < rangeCount; i++) data[i] = i;
+        t.setPixelBuffer(data);
+        for (const mesh of active.meshes) mesh.instanceCount = count;
+        bytes += data.byteLength;
       }
+      active.enabled = count > 0;
+      active.renderer.enabled = active.enabled;
+      if (active.lodRenderer) active.lodRenderer.enabled = false;
+    };
+    const packGroups = this.pack.groups;
+    const canFastPath =
+      !document?.overrides?.length &&
+      Array.isArray(document?.geometries) &&
+      document.geometries.every((g: any) => g?.source?.type !== "connection") &&
+      Array.isArray(document?.bindings) &&
+      Array.isArray(packGroups);
+    let fastApplied = false;
+    if (canFastPath && packGroups) {
+      if (placementKey(this.pack.document) !== placementKey(document))
+        throw Error("几何、排列规则或占位尺寸已变化，需要重新编译铺设缓存；当前画面与草稿保留。");
+      const bindings = new Map<string, any>(document.bindings.map((b: any) => [b.id, b]));
+      const allValid = packGroups.every((group: any) => {
+        const b = bindings.get(group.binding_id);
+        return b && PLACEMENT_UNITS.has(b.unit_id) && (!group.materialUnits || group.materialUnits.includes(b.unit_id));
+      });
+      if (allValid) {
+        fastApplied = true;
+        for (const group of packGroups) {
+          const activeUnit = bindings.get(group.binding_id).unit_id;
+          const count = group.cellCount ?? group.cells?.length ?? 0;
+          visibleCells += count;
+          for (const dMeta of drawsByGroup.get(group.id) ?? []) {
+            if (dMeta.variant === activeUnit) applyDrawIds(dMeta, null, count);
+            else applyDrawIds(dMeta, [], 0);
+          }
+        }
+      }
+    }
+    if (!fastApplied) {
+      const resolution = resolveDocument(this.pack, document);
+      for (const group of resolution.selections) {
+        for (const dMeta of drawsByGroup.get(group.group) ?? []) {
+          applyDrawIds(dMeta, group.selections[dMeta.variant], 0);
+        }
+      }
+      visibleCells = resolution.cells.filter((c) => !c.hidden).length;
+    }
     this.setLodStates(this.lodStates);
     this.syncCamera?.();
     return {
       resolveAndUploadMs: performance.now() - start,
       uploadBytes: bytes,
-      visibleCells: resolution.cells.filter((c) => !c.hidden).length
+      visibleCells
     };
   }
   private async prepare(d: ResidentDraw, pack: ResidentPackage) {
@@ -811,7 +1118,12 @@ export class EngineResidentScene {
     // Only closed outward-wound brick geometry can safely back-face cull; open shells
     // (roof, wood, plaster, stone-floor, decorations) and Brick SDF proxy boxes stay CullMode.Off.
     const highCullMode = d.family === "brick" ? CullMode.Back : CullMode.Off;
-    const shader = await residentShader(vertex, isUnit ? unitFragment(fragment, false) : fragment, highCullMode);
+    const shader = await residentShader(
+      this.engine,
+      vertex,
+      isUnit ? unitFragment(fragment, false) : fragment,
+      highCullMode
+    );
     const material = this.own(
       (d.nativeMaterial ?? d.nativeUnit?.material)?.clone() ?? new Material(this.engine, shader)
     );
@@ -837,7 +1149,15 @@ export class EngineResidentScene {
       }
       resources.set(name, texture);
       if (name === "ViewConstants_natural" && !this.viewData.has(texture)) {
-        this.viewData.set(texture, this.storageData.get(texture)!);
+        const words = this.storageData.get(texture)!;
+        this.viewData.set(texture, {
+          words,
+          floats: new Float32Array(words.buffer, words.byteOffset, words.byteLength >>> 2),
+          patch: words.subarray(
+            VIEW_CONSTANTS_CAMERA_PATCH.wordOffset,
+            VIEW_CONSTANTS_CAMERA_PATCH.wordOffset + VIEW_CONSTANTS_CAMERA_PATCH.wordCount
+          )
+        });
       }
       material.shaderData.setTexture(r.kind === "uniform" ? "uniform_" + name : name, texture);
     }
@@ -845,25 +1165,38 @@ export class EngineResidentScene {
       renderer = entity.addComponent(
         d.rigidBindings ? RigidDecorationRenderer : d.objectBinding ? MountedDecorationRenderer : MeshRenderer
       );
+    const drawPriority =
+      d.family === "brick" || d.family === "wood" || d.family === "wood-gable" || d.family === "roof"
+        ? -105
+        : d.family === "decoration" || d.family === "wood-arch" || d.family === "stone-decoration"
+          ? -102
+          : d.family === "plaster" || d.family === "stone-floor"
+            ? -98
+            : -100;
     renderer.mesh = mesh;
     renderer.setMaterial(material);
     renderer.enabled = !d.variant || d.variant === "roof_tile";
-    renderer.priority = -100;
+    renderer.priority = drawPriority;
     renderer.castShadows = false;
-    renderer.shaderData.setFloat("renderer_MasonryLodFade", 1);
-    renderer.shaderData.setVector4("renderer_MasonryLodDebugColor", new Vector4(0, 0, 0, 0));
-    const lodRenderer = this.root
-      .createChild(d.id + "/lod-transition")
-      .addComponent(
-        d.rigidBindings ? RigidDecorationRenderer : d.objectBinding ? MountedDecorationRenderer : MeshRenderer
-      );
-    lodRenderer.setMaterial(material);
-    lodRenderer.mesh = meshes[meshes.length - 1];
-    lodRenderer.enabled = false;
-    lodRenderer.priority = -100;
-    lodRenderer.castShadows = false;
-    lodRenderer.shaderData.setFloat("renderer_MasonryLodFade", 1);
-    lodRenderer.shaderData.setVector4("renderer_MasonryLodDebugColor", new Vector4(0, 0, 0, 0));
+    renderer.shaderData.setFloat(PROP_MASONRY_LOD_FADE, 1);
+    renderer.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, this.lodDebugColorOff);
+    const needsLodRenderer = isUnit || meshes.length > 1;
+    const lodRenderer = needsLodRenderer
+      ? this.root
+          .createChild(d.id + "/lod-transition")
+          .addComponent(
+            d.rigidBindings ? RigidDecorationRenderer : d.objectBinding ? MountedDecorationRenderer : MeshRenderer
+          )
+      : undefined;
+    if (lodRenderer) {
+      lodRenderer.setMaterial(material);
+      lodRenderer.mesh = meshes[meshes.length - 1];
+      lodRenderer.enabled = false;
+      lodRenderer.priority = drawPriority;
+      lodRenderer.castShadows = false;
+      lodRenderer.shaderData.setFloat(PROP_MASONRY_LOD_FADE, 1);
+      lodRenderer.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, this.lodDebugColorOff);
+    }
     let unitLod: UnitDrawLod | undefined;
     let lowMaterial: Material | undefined;
     if (isBrick) {
@@ -872,7 +1205,7 @@ export class EngineResidentScene {
       // so LOD0 <-> LOD1 transitions have zero brightness or color shift.
       const lowFragment = unitFragment(fragment, true);
       lowMaterial = this.own(material.clone());
-      lowMaterial.shader = await residentShader(vertex, lowFragment, CullMode.Back);
+      lowMaterial.shader = await residentShader(this.engine, vertex, lowFragment, CullMode.Back);
       bindTint(lowMaterial);
       lowMaterial.shaderData.setVector4("renderer_DormerGrid", dormerGrid);
       for (const [name, r] of Object.entries(d.resources)) {
@@ -964,8 +1297,8 @@ export class EngineResidentScene {
       lowMesh.bounds.copyFrom(mesh.bounds);
       lowMesh.instanceCount = d.count;
       meshes.push(lowMesh);
-      lodRenderer.mesh = lowMesh;
-      lodRenderer.setMaterial(lowMaterial);
+      lodRenderer!.mesh = lowMesh;
+      lodRenderer!.setMaterial(lowMaterial);
     } else if (isWood) {
       const medium = meshes[1],
         binding = medium.vertexBufferBindings.length;
@@ -974,7 +1307,9 @@ export class EngineResidentScene {
         ...medium.vertexElements,
         new VertexElement("masonryUnitFade", 0, VertexElementFormat.Float, binding, 1)
       ]);
-      lowMaterial = this.own(new Material(this.engine, await residentShader(vertex, unitFragment(fragment, true))));
+      lowMaterial = this.own(
+        new Material(this.engine, await residentShader(this.engine, vertex, unitFragment(fragment, true)))
+      );
       bindTint(lowMaterial);
       lowMaterial.shaderData.setVector4("renderer_DormerGrid", dormerGrid);
       for (const [name, r] of Object.entries(d.resources)) {
@@ -984,7 +1319,7 @@ export class EngineResidentScene {
         }
         lowMaterial.shaderData.setTexture(r.kind === "uniform" ? "uniform_" + name : name, resources.get(name)!);
       }
-      lodRenderer.setMaterial(lowMaterial);
+      lodRenderer!.setMaterial(lowMaterial);
     }
     if (isUnit) {
       if (!d.indirection) throw Error("Missing native material-unit indirection");
@@ -1010,11 +1345,16 @@ export class EngineResidentScene {
       };
       this.metrics.residentBytes += lowList.width * lowList.height * 16 + d.count * 8;
     }
-    for (const target of [renderer, lodRenderer])
+    this.entranceBindings.push({
+      owner: d.ownerId,
+      apply: entranceBinding(renderer.shaderData, this.root.transform.position.y)
+    });
+    if (lodRenderer) {
       this.entranceBindings.push({
         owner: d.ownerId,
-        apply: entranceBinding(target.shaderData, this.root.transform.position.y)
+        apply: entranceBinding(lodRenderer.shaderData, this.root.transform.position.y)
       });
+    }
     this.draws.set(d.id, {
       ownerId: d.ownerId,
       pickIds: d.pickIds,
@@ -1034,7 +1374,7 @@ export class EngineResidentScene {
   }
   bindRigidDecorations(resolve: (id: string) => Entity | undefined): void {
     for (const draw of this.draws.values()) {
-      for (const renderer of [draw.renderer, draw.lodRenderer]) {
+      for (const renderer of draw.lodRenderer ? [draw.renderer, draw.lodRenderer] : [draw.renderer]) {
         if (draw.rigidBindings) (renderer as RigidDecorationRenderer).configure(draw.rigidBindings, resolve);
         else if (draw.objectBinding) (renderer as MountedDecorationRenderer).configure(draw.objectBinding, resolve);
       }
@@ -1054,25 +1394,25 @@ export class EngineResidentScene {
     const detail = states.filter((s) => s.lodIndex < 2);
     for (const draw of this.draws.values()) {
       if (!enabled) {
-        draw.renderer.shaderData.setVector4("renderer_MasonryLodDebugColor", this.lodDebugColorOff);
-        draw.lodRenderer.shaderData.setVector4("renderer_MasonryLodDebugColor", this.lodDebugColorOff);
+        draw.renderer.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, this.lodDebugColorOff);
+        draw.lodRenderer?.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, this.lodDebugColorOff);
         continue;
       }
       if (fixedLod !== undefined) {
         const c = fixedLod === 0 ? this.lodDebugColor0 : this.lodDebugColor1;
-        draw.renderer.shaderData.setVector4("renderer_MasonryLodDebugColor", c);
-        draw.lodRenderer.shaderData.setVector4("renderer_MasonryLodDebugColor", c);
+        draw.renderer.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, c);
+        draw.lodRenderer?.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, c);
         continue;
       }
       if (draw.unitLod) {
-        draw.renderer.shaderData.setVector4("renderer_MasonryLodDebugColor", this.lodDebugColor0);
-        draw.lodRenderer.shaderData.setVector4("renderer_MasonryLodDebugColor", this.lodDebugColor1);
+        draw.renderer.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, this.lodDebugColor0);
+        draw.lodRenderer?.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, this.lodDebugColor1);
         continue;
       }
       const c0 = (detail[0]?.lodIndex ?? 0) === 0 ? this.lodDebugColor0 : this.lodDebugColor1;
       const c1 = (detail[1]?.lodIndex ?? 1) === 0 ? this.lodDebugColor0 : this.lodDebugColor1;
-      draw.renderer.shaderData.setVector4("renderer_MasonryLodDebugColor", c0);
-      draw.lodRenderer.shaderData.setVector4("renderer_MasonryLodDebugColor", c1);
+      draw.renderer.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, c0);
+      draw.lodRenderer?.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, c1);
     }
   }
 
@@ -1083,6 +1423,7 @@ export class EngineResidentScene {
     this.syncCamera?.();
   }
   setLodStates(states: readonly { lodIndex: number; signedFade: number }[]) {
+    this.lodDirty = true;
     this.lodStates = states;
     const detail = states.filter((s) => s.lodIndex < 2);
     this.metrics.fullCoverage = detail.some((s) => s.lodIndex === 0);
@@ -1096,20 +1437,23 @@ export class EngineResidentScene {
         const fade = detail.length > 1 ? 1 : (detail[0]?.signedFade ?? 1);
         draw.renderer.mesh = draw.meshes[0];
         draw.mesh = draw.meshes[0];
-        draw.lodRenderer.mesh = draw.meshes[1];
         draw.renderer.enabled = lod.active && lod.selector.highCount > 0;
-        draw.lodRenderer.enabled = lod.active && lod.selector.lowCount > 0;
         lod.lodFade = fade;
-        draw.renderer.shaderData.setFloat("renderer_MasonryLodFade", fade);
-        draw.lodRenderer.shaderData.setFloat("renderer_MasonryLodFade", fade);
-        setRendererMacro(draw.renderer, "RENDERER_MASONRY_DITHER", fade < 1 || lod.selector.hasHighFade);
-        setRendererMacro(draw.lodRenderer, "RENDERER_MASONRY_DITHER", fade < 1 || lod.selector.hasLowFade);
+        draw.renderer.shaderData.setFloat(PROP_MASONRY_LOD_FADE, fade);
+        setRendererMacro(draw.renderer, MACRO_MASONRY_DITHER, fade < 1 || lod.selector.hasHighFade);
+        if (draw.lodRenderer) {
+          draw.lodRenderer.mesh = draw.meshes[1];
+          draw.lodRenderer.enabled = lod.active && lod.selector.lowCount > 0;
+          draw.lodRenderer.shaderData.setFloat(PROP_MASONRY_LOD_FADE, fade);
+          setRendererMacro(draw.lodRenderer, MACRO_MASONRY_DITHER, fade < 1 || lod.selector.hasLowFade);
+        }
         continue;
       }
       // Draws without a reduced mesh need only one submission when both unit LODs cross-fade.
       const same = draw.meshes.length === 1 && detail.length === 2;
       for (let i = 0; i < 2; i++) {
         const renderer = i === 0 ? draw.renderer : draw.lodRenderer;
+        if (!renderer) continue;
         const state = detail[i];
         renderer.enabled = draw.enabled && !!state && !(same && i === 1);
         if (state) {
@@ -1117,8 +1461,8 @@ export class EngineResidentScene {
           if (renderer.mesh !== mesh) renderer.mesh = mesh;
           if (i === 0) draw.mesh = mesh;
           const fade = same ? 1 : state.signedFade;
-          renderer.shaderData.setFloat("renderer_MasonryLodFade", fade);
-          setRendererMacro(renderer, "RENDERER_MASONRY_DITHER", fade < 1);
+          renderer.shaderData.setFloat(PROP_MASONRY_LOD_FADE, fade);
+          setRendererMacro(renderer, MACRO_MASONRY_DITHER, fade < 1);
         }
       }
     }
@@ -1132,7 +1476,7 @@ export class EngineResidentScene {
     for (const d of this.draws.values())
       if (d.enabled) {
         if (d.renderer.enabled) triangles += (d.mesh.instanceCount * d.mesh.subMesh!.count) / 3;
-        if (d.lodRenderer.enabled) {
+        if (d.lodRenderer?.enabled) {
           const mesh = d.lodRenderer.mesh as BufferMesh;
           triangles += (mesh.instanceCount * mesh.subMesh!.count) / 3;
         }
@@ -1148,6 +1492,8 @@ export class EngineResidentScene {
   destroy() {
     if (this.disposed) return;
     this.disposed = true;
+    this.cameraCleanup?.();
+    this.cameraCleanup = null;
     this.syncCamera = null;
     this.root.destroy();
     const release = () => {

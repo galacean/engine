@@ -69,9 +69,14 @@ export function unitIssue(unit: BuildingUnit): string | undefined {
     return (error as Error).message;
   }
 }
+const DEFAULT_RANGE: UnitRange = { min: ONE, max: ONE };
+const DEFAULT_PIVOT: Vec3 = [0.5, 0.5, 0.5];
+
 /** Issue when a stretch leaves the prototype's range. */
 export function stretchIssue(unit: BuildingUnit, stretch: Vec3): string | undefined {
-  const { min, max } = unit.range ?? { min: ONE, max: ONE };
+  const range = unit.range ?? DEFAULT_RANGE;
+  const min = range.min,
+    max = range.max;
   for (let i = 0; i < 3; i++)
     if (!Number.isFinite(stretch[i]) || stretch[i] < min[i] - EPSILON || stretch[i] > max[i] + EPSILON)
       return `Stretch ${stretch.join(", ")} is outside the unit range`;
@@ -83,10 +88,17 @@ export function unitMatrix(unit: BuildingUnit, stretch: Vec3 = ONE): number[] {
   if (unit.rotation) m = multiply(m, rotation(quatFromEuler(unit.rotation)));
   const s = unit.scale ?? ONE;
   m = multiply(m, scaling([s[0] * stretch[0], s[1] * stretch[1], s[2] * stretch[2]]));
-  if (!unit.bounds) return [...m];
+  if (!unit.bounds) return m as number[];
   const { min, max } = unit.bounds,
-    pivot = unit.pivot ?? [0.5, 0.5, 0.5];
-  return multiply(m, translation([0, 1, 2].map((i) => -(min[i] + pivot[i] * (max[i] - min[i]))) as unknown as Vec3));
+    pivot = unit.pivot ?? DEFAULT_PIVOT;
+  return multiply(
+    m,
+    translation([
+      -(min[0] + pivot[0] * (max[0] - min[0])),
+      -(min[1] + pivot[1] * (max[1] - min[1])),
+      -(min[2] + pivot[2] * (max[2] - min[2]))
+    ])
+  );
 }
 /** Bounds of a laid copy in the laying frame, or undefined when the asset bounds are unknown. */
 export function unitBox(unit: BuildingUnit, stretch: Vec3 = ONE): { min: Vec3; max: Vec3 } | undefined {
@@ -125,12 +137,30 @@ export function unitNominal(unit: BuildingUnit): Vec3 {
 }
 /** Normalized stretch of a laid size against the nominal size. */
 export function unitStretch(unit: BuildingUnit, size: Vec3): Vec3 {
-  const nominal = unitNominal(unit);
-  return [0, 1, 2].map((i) =>
-    nominal[i] > 0 ? size[i] / nominal[i] : size[i] === 0 ? 1 : Infinity
-  ) as unknown as Vec3;
+  if (!unit.bounds) throw Error("Sizing a unit needs its bounds");
+  const s = unit.scale ?? ONE,
+    { min, max } = unit.bounds;
+  const n0 = (max[0] - min[0]) * s[0],
+    n1 = (max[1] - min[1]) * s[1],
+    n2 = (max[2] - min[2]) * s[2];
+  return [
+    n0 > 0 ? size[0] / n0 : size[0] === 0 ? 1 : Infinity,
+    n1 > 0 ? size[1] / n1 : size[1] === 0 ? 1 : Infinity,
+    n2 > 0 ? size[2] / n2 : size[2] === 0 ? 1 : Infinity
+  ];
 }
 /** Whether a laid size stays inside the unit's range. */
 export function unitFits(unit: BuildingUnit, size: Vec3): boolean {
-  return stretchIssue(unit, unitStretch(unit, size)) === undefined;
+  if (!unit.bounds) throw Error("Sizing a unit needs its bounds");
+  const s = unit.scale ?? ONE,
+    { min, max } = unit.bounds;
+  const range = unit.range ?? DEFAULT_RANGE,
+    rMin = range.min,
+    rMax = range.max;
+  for (let i = 0; i < 3; i++) {
+    const nominal = (max[i] - min[i]) * s[i];
+    const stretch = nominal > 0 ? size[i] / nominal : size[i] === 0 ? 1 : Infinity;
+    if (!Number.isFinite(stretch) || stretch < rMin[i] - EPSILON || stretch > rMax[i] + EPSILON) return false;
+  }
+  return true;
 }

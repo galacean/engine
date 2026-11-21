@@ -32,6 +32,7 @@ export interface BuildingUnitDrawGroup {
   ownerId: string;
   role: ConstructionUnitRole;
   cells: SupportCell[];
+  cellCount?: number;
   units: Record<MaterialUnit, Uint8Array>;
   brickFeedback?: BrickFeedbackSource;
   materialUnits?: MaterialUnit[];
@@ -203,29 +204,32 @@ export function buildBuildingRenderPackage(
       });
   }
   const result = builder.build();
+  const groupById = new Map<number, BuildingUnitDrawGroup>(input.groups.map((g) => [g.id, g]));
   for (const draw of result.package.draws) {
-    const group = input.groups.find((group) => group.id === draw.group);
+    const group = draw.group != null ? groupById.get(draw.group) : undefined;
     if (group?.decorationId !== undefined) draw.pickId = group.decorationId;
   }
   result.package.colorOwners = input.colorOwners.map((o) => ({ ...o }));
   result.package.dormerGrid = [...input.dormerBins.grid];
   if (options?.skipDocumentClone) {
     result.package.document = input.placementDocument;
-    result.package.groups = input.groups.map(({ id, binding_id, role, cells, materialUnits }) => ({
+    result.package.groups = input.groups.map(({ id, binding_id, role, cells, cellCount, materialUnits }) => ({
       id,
       binding_id,
       role,
       cells,
+      ...(cellCount !== undefined ? { cellCount } : {}),
       ...(materialUnits ? { materialUnits } : {})
     }));
     result.package.plans = input.plans;
   } else {
     result.package.document = structuredClone(input.placementDocument);
-    result.package.groups = input.groups.map(({ id, binding_id, role, cells, materialUnits }) => ({
+    result.package.groups = input.groups.map(({ id, binding_id, role, cells, cellCount, materialUnits }) => ({
       id,
       binding_id,
       role,
       cells: structuredClone(cells),
+      ...(cellCount !== undefined ? { cellCount } : {}),
       ...(materialUnits ? { materialUnits: [...materialUnits] } : {})
     }));
     result.package.plans = structuredClone(input.plans);

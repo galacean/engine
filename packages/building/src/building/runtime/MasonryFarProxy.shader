@@ -30,10 +30,14 @@ Shader "Masonry/FarProxy" {
      return v;
    }
    void MasonryFarProxyDepthFragment(MasonryFarProxyDepthVaryings v) {
-     masonryLodDither();
-     if (v.surfaceTag.x > 2.5 && v.surfaceTag.x < 3.5) {
-       if (plasterSurface(v.uv, v.surfaceTag.y, v.surfaceTag.z, v.surfaceTag.w).x < 0.5) discard;
-     }
+     #ifdef MASONRY_FAR_DITHER
+       masonryLodDither();
+     #endif
+     #ifdef MASONRY_FAR_PLASTER
+       if (v.surfaceTag.x > 2.5 && v.surfaceTag.x < 3.5) {
+         if (plasterSurface(v.uv, v.surfaceTag.y, v.surfaceTag.z, v.surfaceTag.w).x < 0.5) discard;
+       }
+     #endif
    }
   }
   Pass "Forward" {
@@ -118,10 +122,14 @@ Shader "Masonry/FarProxy" {
      return v;
    }
    void MasonryFarProxyFragment(MasonryFarProxyVaryings v) {
-     masonryLodDither();
+     #ifdef MASONRY_FAR_DITHER
+       masonryLodDither();
+     #endif
      float kind = v.surfaceTag.x;
      #ifdef RENDERER_WORLD_PICK
-       if (kind > 2.5 && kind < 3.5 && plasterSurface(v.uv, v.surfaceTag.y, v.surfaceTag.z, v.surfaceTag.w).x < 0.5) discard;
+       #ifdef MASONRY_FAR_PLASTER
+         if (kind > 2.5 && kind < 3.5 && plasterSurface(v.uv, v.surfaceTag.y, v.surfaceTag.z, v.surfaceTag.w).x < 0.5) discard;
+       #endif
        float id = floor(renderer_WorldPickBase + v.worldPickOffset + 0.5);
        #ifdef RENDERER_WORLD_PICK_DEPTH
          id = floor(gl_FragCoord.z * 16777215.0 + 0.5);
@@ -129,16 +137,18 @@ Shader "Masonry/FarProxy" {
        gl_FragColor = vec4(mod(id, 256.0), mod(floor(id / 256.0), 256.0), floor(id / 65536.0), 255.0) / 255.0;
      #else
      vec3 albedo = v.color.rgb;
-     float roughness = 0.9;
-     if (kind > 2.5 && kind < 3.5) {
-       vec3 plasterDetail = plasterSurface(v.uv, v.surfaceTag.y, v.surfaceTag.z, v.surfaceTag.w);
-       if (plasterDetail.x < 0.5) discard;
-       float limeVariation = plasterNativeNoise(v.uv * 1.2, 2) * 0.04;
-       albedo = clamp(albedo + limeVariation, vec3(0.0), vec3(1.5));
-       albedo = mix(albedo, albedo * vec3(0.45, 0.40, 0.36), plasterDetail.y * 0.85);
-     } else if (kind > 5.5) {
-       roughness = 0.35;
-     } else if (kind < 4.5 && v.surfaceTag.z < 0.5) {
+     bool isPlaster = false;
+     #ifdef MASONRY_FAR_PLASTER
+       if (kind > 2.5 && kind < 3.5) {
+         isPlaster = true;
+         vec3 plasterDetail = plasterSurface(v.uv, v.surfaceTag.y, v.surfaceTag.z, v.surfaceTag.w);
+         if (plasterDetail.x < 0.5) discard;
+         float limeVariation = plasterNativeNoise(v.uv * 1.2, 2) * 0.04;
+         albedo = clamp(albedo + limeVariation, vec3(0.0), vec3(1.5));
+         albedo = mix(albedo, albedo * vec3(0.45, 0.40, 0.36), plasterDetail.y * 0.85);
+       }
+     #endif
+     if (!isPlaster && kind <= 4.5 && v.surfaceTag.z < 0.5) {
        if (kind < 0.5) {
          albedo *= masonryFarCourseTone(v.uv, vec2(2.1, 3.8), 0.5, 0.88, 0.88, 1.08);
        } else if (kind < 1.5) {
@@ -150,7 +160,7 @@ Shader "Masonry/FarProxy" {
        }
      }
      vec3 n = normalize(v.normalWS) * (gl_FrontFacing || (kind > 2.5 && kind < 3.5) ? 1.0 : -1.0);
-     vec3 lit = masonryResidentSceneLight(albedo, n, v.positionWS, roughness);
+     vec3 lit = masonryFarProxyLight(albedo, n, v.positionWS);
      lit += vec3(1.0, 0.57, 0.18) * v.color.a;
      vec3 outRgb = masonrySceneFog(lit, v.positionWS);
      if (renderer_MasonryLodDebugColor.a > 0.0) {

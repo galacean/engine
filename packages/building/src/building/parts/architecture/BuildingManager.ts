@@ -91,7 +91,7 @@ export class BuildingManager extends BuildingRuntime {
       camera: options.camera,
       terrain: options.terrain,
       frame: (part) => partFrame(part as BuildingPartComponent | BuildingGroupComponent),
-      isBody: (part) => part instanceof BuildingGroupComponent && !!part.definition,
+      isBody: (part) => part instanceof BuildingGroupComponent && !!part._rawDefinition,
       kinds: (groups) => {
         // Rebuild only this small per-read index, so diagnostics reflect edits,
         // activation and reparenting without a second invalidation lifecycle.
@@ -120,7 +120,7 @@ export class BuildingManager extends BuildingRuntime {
       groupIdentity: (part) =>
         buildingInstanceKey(
           partFrame(part as BuildingPartComponent | BuildingGroupComponent),
-          buildingGroupKey((part as BuildingGroupComponent).definition!.id)
+          buildingGroupKey((part as BuildingGroupComponent)._rawDefinition!.id)
         ),
       resolve: (id) => this.findIdentity(id),
       validate: () => validatePartCollection(this.entity.scene!.rootEntities.flatMap(authoredBuildingMembers)),
@@ -154,7 +154,7 @@ export class BuildingManager extends BuildingRuntime {
       (g): g is BuildingGroupComponent =>
         g instanceof BuildingGroupComponent &&
         partFrame(g) === partFrame(part) &&
-        g.definition?.id === part.definition?.group
+        g._rawDefinition?.id === part._rawDefinition?.group
     );
     if (!group) throw Error("Missing building group owner");
     return group;
@@ -176,7 +176,7 @@ export class BuildingManager extends BuildingRuntime {
     if (frame.destroyed || frame.scene !== this.entity.scene) return;
     return authoredBuildingMembers(frame).find(
       (p): p is BuildingPartComponent =>
-        p instanceof BuildingPartComponent && partFrame(p) === frame && p.definition?.id === id
+        p instanceof BuildingPartComponent && partFrame(p) === frame && p._rawDefinition?.id === id
     );
   }
   /** Read the accepted render snapshot. Pending/failed edits never invent a
@@ -199,15 +199,15 @@ export class BuildingManager extends BuildingRuntime {
       this.identities.clear();
       const groups = this.listGroups();
       const activeGroups = new Set(
-        groups.filter((g) => g.definition).map((g) => buildingInstanceKey(partFrame(g), g.definition!.id))
+        groups.filter((g) => g._rawDefinition).map((g) => buildingInstanceKey(partFrame(g), g._rawDefinition!.id))
       );
       for (const member of [
         ...groups,
         ...this.list().filter(
-          (p) => !!p.definition && activeGroups.has(buildingInstanceKey(partFrame(p), p.definition.group))
+          (p) => !!p._rawDefinition && activeGroups.has(buildingInstanceKey(partFrame(p), p._rawDefinition.group))
         )
       ]) {
-        const definition = member.definition;
+        const definition = member._rawDefinition;
         if (!definition) continue;
         const localId =
           member instanceof BuildingGroupComponent ? buildingGroupKey(definition.id) : buildingPartKey(definition.id);
@@ -290,12 +290,12 @@ export class BuildingManager extends BuildingRuntime {
       connections: parts.flatMap((p) => p.connections)
     };
     for (const group of authored.filter((g): g is BuildingGroupComponent => g instanceof BuildingGroupComponent)) {
-      if (!group.definition) continue;
+      if (!group._rawDefinition) continue;
       const world = group.entity.transform.worldMatrix;
       horizontalFrame(world);
       const placed = placeBuildingGroup(
-        group.definition,
-        parts.flatMap((p) => (p.definition?.group === group.definition!.id ? [p.definition] : [])),
+        group.definition!,
+        parts.flatMap((p) => (p._rawDefinition?.group === group._rawDefinition!.id ? [p.definition!] : [])),
         world.elements
       );
       draft.groups.push(placed.group);

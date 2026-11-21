@@ -30,14 +30,26 @@ export async function packConstructionUnits(input: {
   role: ConstructionUnitRole;
   roofApertures?: boolean;
   roofDesign?: unknown;
+  roofRawRecords?: Map<string, Uint8Array>;
+  materials?: readonly MaterialUnit[];
   source?: Partial<Record<MaterialUnit, Uint8Array>>;
 }) {
-  const units = await packUnits({ cells: input.cells, slot: input.slot, roof_design: input.roofDesign });
+  const units = await packUnits({
+    cells: input.cells,
+    slot: input.slot,
+    roof_design: input.roofDesign,
+    roof_raw_records: input.roofRawRecords,
+    materials: input.materials
+  });
   for (const material of ["brick", "wooden_plank", "roof_tile"] as const) {
     const source = input.source?.[material];
     if (source) units[material] = source;
   }
-  if (input.role !== "layout" && input.role !== "connections") {
+  if (
+    input.role !== "layout" &&
+    input.role !== "connections" &&
+    units.roof_tile.byteLength >= input.cells.length * 64
+  ) {
     // Own the normalized buffer; never mutate borrowed native source records.
     if (input.source?.roof_tile) units.roof_tile = units.roof_tile.slice();
     const view = new DataView(units.roof_tile.buffer, units.roof_tile.byteOffset, units.roof_tile.byteLength);
@@ -53,10 +65,14 @@ export function constructionSurfaceUnitDraw(
   material: MaterialUnit,
   instances: Uint8Array,
   options: {
-    sourceDraw?: ConstructionUnitDraw;
+    sourceDraw?: Omit<ConstructionUnitDraw, "instances"> & { instances?: Uint8Array };
   } = {}
 ): ConstructionUnitDraw {
-  if (options.sourceDraw) return options.sourceDraw;
+  if (options.sourceDraw) {
+    return options.sourceDraw.instances
+      ? (options.sourceDraw as ConstructionUnitDraw)
+      : { ...options.sourceDraw, instances };
+  }
   return {
     template: material === "wooden_plank" ? "wood" : material === "roof_tile" ? "roof" : "brick",
     instances,

@@ -35,11 +35,19 @@ export class BuildingPartComponent extends Component {
   }
   /** @internal Read classification without copying or exposing the author definition. */
   get _groupId(): string | undefined {
-    return this._definition?.group;
+    return (this._definition !== undefined ? this._definition : this.definition)?.group;
   }
   /** @internal */
   get _partType(): string | undefined {
-    return this._definition?.type;
+    return (this._definition !== undefined ? this._definition : this.definition)?.type;
+  }
+  /** @internal Read author definition without structuredClone. Caller must not mutate. */
+  get _rawDefinition(): BuildingPartDef | null {
+    return this._definition !== undefined ? this._definition : this.definition;
+  }
+  /** @internal Read author connections without structuredClone. Caller must not mutate. */
+  get _rawConnections(): readonly ConnectionDef[] {
+    return this._connections !== undefined ? this._connections : this.connections;
   }
   set definition(value: BuildingPartDef | null) {
     this._definition = structuredClone(value);

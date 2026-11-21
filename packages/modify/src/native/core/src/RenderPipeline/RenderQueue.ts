@@ -42,6 +42,7 @@ export class RenderQueue {
   readonly elements = new Array<RenderElement>();
   readonly batchedElements = new Array<RenderElement>();
   rendererUpdateFlag = ContextRendererUpdateFlag.None;
+  private _cameraEngineMacros = new ShaderMacroCollection();
 
   constructor(public renderQueueType: RenderQueueType) {}
 
@@ -65,7 +66,6 @@ export class RenderQueue {
       return 0;
     }
 
-    const pipelineStageKey = RenderContext.pipelineStageKey;
     const renderQueueType = this.renderQueueType;
     let count = 0;
 
@@ -79,7 +79,7 @@ export class RenderQueue {
       const materialData = element.material.shaderData;
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
         const shaderPass = shaderPasses[j];
-        if (shaderPass.getTagValue(pipelineStageKey) !== pipelineStageTagValue) {
+        if (shaderPass._pipelineStage !== pipelineStageTagValue) {
           continue;
         }
         const passQueueType = shaderPass._renderState._getRenderQueueByShaderData(
@@ -122,7 +122,6 @@ export class RenderQueue {
         realtimeSphericalHarmonicsBuffer._platformBuffer
       );
     }
-    const pipelineStageKey = RenderContext.pipelineStageKey;
     const renderQueueType = this.renderQueueType;
     const needMaskType = maskType !== RenderQueueMaskType.No;
     const isForwardStage = pipelineStageTagValue === PipelineStage.Forward;
@@ -133,6 +132,13 @@ export class RenderQueue {
     const camSSRPackedDepth = camera._ssrPackedDepthRG8;
     const camSSRPackedNormal = camera._ssrPackedNormalOct8;
     const camSSRMaxRoughness = camera._ssrMaxRoughness;
+    const cameraEngineMacros = this._cameraEngineMacros;
+    ShaderMacroCollection.unionCollection(
+      context.camera._globalShaderMacro,
+      engine._macroCollection,
+      cameraEngineMacros
+    );
+    const compileMacros = Shader._compileMacros;
 
     for (let i = 0; i < length; i++) {
       const curElement = batchedElements[i];
@@ -177,15 +183,6 @@ export class RenderQueue {
       const { shaderData: rendererData, instanceId: rendererId } = component;
       const { shaderData: materialData, instanceId: materialId } = material;
 
-      // Build compile macros
-      const compileMacros = Shader._compileMacros;
-      ShaderMacroCollection.unionCollection(component._globalShaderMacro, materialData._macroCollection, compileMacros);
-      ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
-
-      if (isInstanced) {
-        compileMacros.enable(InstanceBuffer.gpuInstanceMacro);
-      }
-
       let allowSSRForElement = isForwardStage && camSSREnable && material.screenSpaceReflectionIntensity > 0;
       if (allowSSRForElement) {
         const materialMacros = materialData._macroCollection;
@@ -200,9 +197,11 @@ export class RenderQueue {
         }
       }
 
+      let macrosBuilt = false;
+      let frontFaceInvert: boolean | undefined;
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
         const shaderPass = shaderPasses[j];
-        if (shaderPass.getTagValue(pipelineStageKey) !== pipelineStageTagValue) {
+        if (shaderPass._pipelineStage !== pipelineStageTagValue) {
           continue;
         }
 
@@ -212,6 +211,15 @@ export class RenderQueue {
           if (passQueueType !== renderQueueType) {
             continue;
           }
+        }
+
+        if (!macrosBuilt) {
+          ShaderMacroCollection.unionCollection(cameraEngineMacros, rendererData._macroCollection, compileMacros);
+          ShaderMacroCollection.unionCollection(compileMacros, materialData._macroCollection, compileMacros);
+          if (isInstanced) {
+            compileMacros.enable(InstanceBuffer.gpuInstanceMacro);
+          }
+          macrosBuilt = true;
         }
 
         let useBilateral = false;
@@ -363,9 +371,12 @@ export class RenderQueue {
         }
 
         // Apply render state
+        if (frontFaceInvert === undefined) {
+          frontFaceInvert = component._isFrontFaceInvert();
+        }
         renderState._applyStates(
           engine,
-          component._isFrontFaceInvert(),
+          frontFaceInvert,
           shaderPass._renderStateDataMap,
           material.shaderData,
           customStates,

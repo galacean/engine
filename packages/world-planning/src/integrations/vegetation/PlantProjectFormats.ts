@@ -59,6 +59,8 @@ function parse(content: string | Uint8Array): unknown {
   );
 }
 
+const NO_REFERENCE_PLANT_TYPES = new Set(["PlantStructure", "TreeStructure", "PlantShape"]);
+
 /** Custom formats describe procedural domains. Geometry, textures, materials and templates retain native formats. */
 export const plantProjectFormats: ReadonlyMap<string, RuntimeAssetFormat> = new Map(
   [...validators].map(([type, validate]) => [
@@ -68,14 +70,21 @@ export const plantProjectFormats: ReadonlyMap<string, RuntimeAssetFormat> = new 
       validate: (content) => {
         validate(parse(content));
       },
-      references: (content, file) => [
-        ...new Set([
-          ...json.references(typeof content === "string" ? content : new TextDecoder().decode(content), file),
-          ...(type === "PlantProduction"
-            ? productionCatalogReferences(validateManifest(parse(content), SEED_WORLD_PRODUCTION_ASSET_CATALOG))
-            : [])
-        ])
-      ]
+      ...(NO_REFERENCE_PLANT_TYPES.has(type)
+        ? {
+            referenceTypes: [] as readonly string[],
+            references: () => [] as string[]
+          }
+        : {
+            references: (content: string | Uint8Array, file: Parameters<RuntimeAssetFormat["references"]>[1]) => [
+              ...new Set([
+                ...json.references(typeof content === "string" ? content : new TextDecoder().decode(content), file),
+                ...(type === "PlantProduction"
+                  ? productionCatalogReferences(validateManifest(parse(content), SEED_WORLD_PRODUCTION_ASSET_CATALOG))
+                  : [])
+              ])
+            ]
+          })
     }
   ])
 );

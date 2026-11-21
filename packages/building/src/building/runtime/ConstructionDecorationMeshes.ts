@@ -4,7 +4,7 @@ export interface DecorationMesh {
   colors: Float32Array;
   /** Flat [u0, v0, u1, v1, ...] UV pairs (length vertexCount * 2, or 0 if absent). */
   materialUVs: Float32Array;
-  indices: Uint32Array;
+  indices: Uint16Array | Uint32Array;
   glass: Uint8Array;
   metal: Uint8Array;
   bounds: { min: number[]; max: number[] };
@@ -62,7 +62,7 @@ export function createDecorationMesh(
     positions: Float32Array.from(positions.values),
     normals: Float32Array.from(normals.values),
     colors: Float32Array.from(colors.values),
-    indices: Uint32Array.from(indices),
+    indices: vertexCount <= 65535 ? Uint16Array.from(indices) : Uint32Array.from(indices),
     bounds,
     doubleSided,
     materialUVs: uvChannel && uvChannel.width === 2 ? Float32Array.from(uvChannel.values) : new Float32Array(0),

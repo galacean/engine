@@ -25,6 +25,7 @@
     "./terrain/environment/TerrainSurfaceRainTextures": "./src/terrain/environment/TerrainSurfaceRainTextures.ts",
     "./terrain/environment/TerrainSurfaceWaterSsrDemand": "./src/terrain/environment/TerrainSurfaceWaterSsrDemand.ts",
     "./terrain/environment/TerrainVolumetricCloudPreset": "./src/terrain/environment/TerrainVolumetricCloudPreset.ts",
+    "./terrain/environment/TerrainVolumetricCloudScalePreset": "./src/terrain/environment/TerrainVolumetricCloudScalePreset.ts",
     "./terrain/lighting/SeedWorldLightingPreset": "./src/terrain/lighting/SeedWorldLightingPreset.ts",
     "./terrain/lighting/TerrainAtmosphericFog": "./src/terrain/lighting/TerrainAtmosphericFog.ts",
     "./terrain/lighting/TerrainIBLProfiler": "./src/terrain/lighting/TerrainIBLProfiler.ts",

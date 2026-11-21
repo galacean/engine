@@ -15,6 +15,9 @@ function makeEntry(
 ): MasonryResidencyEntry & {
   id: number;
   farProxyActive: boolean;
+  visualVisible: boolean;
+  releaseCalls: number;
+  releaseWhenFarProxyActive: boolean[];
   setLodStatesMock: ReturnType<typeof vi.fn>;
 } {
   const { residentBytes = 1024, loaded = true, x = 0 } = opts;
@@ -24,10 +27,16 @@ function makeEntry(
   const entry: MasonryResidencyEntry & {
     id: number;
     farProxyActive: boolean;
+    visualVisible: boolean;
+    releaseCalls: number;
+    releaseWhenFarProxyActive: boolean[];
     setLodStatesMock: ReturnType<typeof vi.fn>;
   } = {
     id,
     farProxyActive: false,
+    visualVisible: false,
+    releaseCalls: 0,
+    releaseWhenFarProxyActive: [],
     setLodStatesMock,
     fine: loaded
       ? {
@@ -57,9 +66,15 @@ function makeEntry(
     view: {
       root: { isActive: true } as unknown as MasonryResidencyEntry["view"]["root"],
       recentlyRendered: true,
-      setVisualVisible: () => {},
+      setVisualVisible: (visible: boolean) => {
+        entry.visualVisible = visible;
+      },
       setFarProxyActive: (active: boolean) => {
         entry.farProxyActive = active;
+      },
+      releaseDetailedVisual: () => {
+        entry.releaseCalls++;
+        entry.releaseWhenFarProxyActive.push(entry.farProxyActive);
       },
       setFade: () => {}
     },
@@ -234,6 +249,227 @@ describe("MasonryResidency budget caps", () => {
     // B must now claim the single LOD0 slot and A must step down to LOD1
     expect(entryB.budgetLod).toBe(0);
     expect(entryA.budgetLod).toBe(1);
+  });
+
+  it("keeps hidden buildings inactive across cache evictions and camera moves when shown=false", () => {
+    const { engine, camera } = makeFakeCameraAndEngine();
+    const farState = { rootActive: true, farActive: false, visualVisible: false };
+    const nearState = { rootActive: true, farActive: false, visualVisible: false };
+    const farCached = makeEntry(1, 400, { loaded: true });
+    farCached.visible = true;
+    farCached.view = {
+      root: {
+        get isActive() { return farState.rootActive; },
+        set isActive(v: boolean) { farState.rootActive = v; }
+      } as unknown as MasonryResidencyEntry["view"]["root"],
+      recentlyRendered: true,
+      setVisualVisible: (v: boolean) => { farState.visualVisible = v; },
+      setFarProxyActive: (v: boolean) => { farState.farActive = v; },
+      setFade: () => {}
+    };
+    const coarseNearby = makeEntry(2, 30, { loaded: false });
+    coarseNearby.visible = true;
+    coarseNearby.view = {
+      root: {
+        get isActive() { return nearState.rootActive; },
+        set isActive(v: boolean) { nearState.rootActive = v; }
+      } as unknown as MasonryResidencyEntry["view"]["root"],
+      recentlyRendered: true,
+      setVisualVisible: (v: boolean) => { nearState.visualVisible = v; },
+      setFarProxyActive: (v: boolean) => { nearState.farActive = v; },
+      setFade: () => {}
+    };
+
+    const residency = new MasonryResidency(
+      engine,
+      camera,
+      [farCached, coarseNearby],
+      createMasonryResidencyMetrics(),
+      () => {},
+      () => {}
+    );
+    residency.updateDemand(0.016);
+    // Advance past retainMs (60_000) while shown=false to trigger evict(farCached)
+    residency.updatePresentation(100_000, false);
+    expect(farCached.fine).toBeUndefined();
+    expect(farState.rootActive).toBe(false);
+    expect(farState.farActive).toBe(false);
+    expect(farState.visualVisible).toBe(false);
+
+    // Move camera while shown=false: selectLod() must not reactivate coarse visuals
+    camera.viewMatrix.elements[12] = 0.5;
+    residency.updateDemand(0.016);
+    expect(nearState.visualVisible).toBe(false);
+    expect(nearState.farActive).toBe(false);
+
+    // Repeated hidden publishes must not fabricate synthetic cacheHits while runtime.root stays inactive.
+    const metrics = (residency as unknown as { metrics: { cacheHits: number } }).metrics;
+    metrics.cacheHits = 0;
+    const fineVisible = makeEntry(3, 12, { loaded: true });
+    fineVisible.lod = 0;
+    fineVisible.visible = true;
+    residency.entries.push(fineVisible);
+    residency.publishResidency(100_008, false);
+    residency.publishResidency(100_012, false);
+    expect(metrics.cacheHits).toBe(0);
+
+    // Re-enabling shown=true activates the visible fine resident and records one cache hit.
+    residency.updatePresentation(100_016, true);
+    expect(metrics.cacheHits).toBe(1);
+    expect(farState.rootActive).toBe(true);
+    expect(farState.farActive).toBe(true);
+    expect(farState.visualVisible).toBe(true);
+  });
+
+  it("never releases LOD1 on entering LOD0 and only releases at lod === 2 after farProxy is activated", () => {
+    const { engine, camera } = makeFakeCameraAndEngine();
+    const nearEntry = makeEntry(0, 12, { loaded: true });
+    const farEntry = makeEntry(1, 250, { loaded: false });
+    const metrics = createMasonryResidencyMetrics();
+    const residency = new MasonryResidency(
+      engine,
+      camera,
+      [nearEntry, farEntry],
+      metrics,
+      () => {},
+      () => {}
+    );
+
+    residency.updateDemand(0.016);
+    residency.updatePresentation(1000);
+    residency.updateDemand(2.0);
+    residency.updatePresentation(3000);
+
+    // Entering and settling at LOD0 must keep LOD1 views re-hydratable, not strip them.
+    expect(nearEntry.budgetLod).toBe(0);
+    expect(nearEntry.releaseCalls).toBe(0);
+
+    // Distant LOD2 entry has releaseDetailedVisual called at lod === 2 with farProxyActive already true.
+    expect(farEntry.lod).toBe(2);
+    expect(farEntry.releaseCalls).toBeGreaterThan(0);
+    expect(farEntry.releaseWhenFarProxyActive.every(Boolean)).toBe(true);
+  });
+
+  it("keeps farProxy active while waiting for async fine load and during coarse<->fine crossfades, falling back only on error", () => {
+    const { engine, camera } = makeFakeCameraAndEngine();
+    const loadingEntry = makeEntry(0, 35, { loaded: false });
+    const crossfadeEntry = makeEntry(1, 35, { loaded: true });
+    const metrics = createMasonryResidencyMetrics();
+    const residency = new MasonryResidency(
+      engine,
+      camera,
+      [loadingEntry, crossfadeEntry],
+      metrics,
+      () => {},
+      () => {}
+    );
+
+    // Walking into LOD1 range while fine is still loading must keep farProxy active (no throwaway detailed build).
+    residency.updateDemand(0.016);
+    expect(loadingEntry.lod).toBe(1);
+    expect(residency.desired.has(loadingEntry)).toBe(true);
+    expect(loadingEntry.farProxyActive).toBe(true);
+
+    // Mid-crossfade (coarse + fine both visible): farProxy stays active so GlobalProxy dithers directly against fine.
+    residency.updatePresentation(1000);
+    residency.updateDemand(0.2);
+    residency.updatePresentation(1200);
+    expect(crossfadeEntry.coarseVisible).toBe(true);
+    expect(crossfadeEntry.farProxyActive).toBe(true);
+
+    // If fine fails to load (error set), fall back to detailed distance view (farProxyActive=false).
+    loadingEntry.error = "compile failed";
+    residency.invalidate();
+    residency.updatePresentation(1216);
+    expect(loadingEntry.farProxyActive).toBe(false);
+
+    // Retreating to LOD2 must restore farProxyActive=true and allow releaseDetailedVisual() even with e.error set.
+    camera.entity.transform.worldPosition = { x: 0, y: 2, z: 265 } as never;
+    camera.viewMatrix.elements[14] = -265;
+    residency.invalidate();
+    residency.updateDemand(0.016);
+    expect(loadingEntry.lod).toBe(2);
+    expect(loadingEntry.farProxyActive).toBe(true);
+    expect(loadingEntry.releaseCalls).toBeGreaterThan(0);
+    expect(loadingEntry.releaseWhenFarProxyActive.every(Boolean)).toBe(true);
+  });
+
+  it("hides visualVisible before changing farProxyActive so coarse hide never flashes detailed views", () => {
+    const { engine, camera } = makeFakeCameraAndEngine();
+    const events: string[] = [];
+    const entry = makeEntry(0, 300, { loaded: false });
+    const origSetVisualVisible = entry.view.setVisualVisible;
+    const origSetFarProxyActive = entry.view.setFarProxyActive!;
+    entry.view.setVisualVisible = (v: boolean) => {
+      events.push(`vis:${v}`);
+      origSetVisualVisible(v);
+    };
+    entry.view.setFarProxyActive = (a: boolean) => {
+      events.push(`far:${a}`);
+      origSetFarProxyActive(a);
+    };
+
+    const residency = new MasonryResidency(engine, camera, [entry], createMasonryResidencyMetrics(), () => {}, () => {});
+    residency.updateDemand(0.016);
+    residency.updatePresentation(1000, true);
+    expect(entry.visualVisible).toBe(true);
+    expect(entry.farProxyActive).toBe(true);
+
+    events.length = 0;
+    // Move view frustum offscreen horizontally so visible flips true -> false
+    camera.viewMatrix.elements[12] = 5000;
+    residency.invalidate();
+    residency.updateDemand(0.016);
+    expect(entry.visualVisible).toBe(false);
+    expect(entry.farProxyActive).toBe(false);
+    expect(events).toEqual(["vis:false", "far:false"]);
+  });
+
+  it("keeps evicted nodes hidden when publishResidency(now, false) is called directly", () => {
+    const { engine, camera } = makeFakeCameraAndEngine();
+    const entry = makeEntry(0, 200, { loaded: true });
+    const residency = new MasonryResidency(engine, camera, [entry], createMasonryResidencyMetrics(), () => {}, () => {});
+
+    entry.lod = 2;
+    entry.visible = true;
+    entry.lastUsed = 0;
+    residency.publishResidency(1_000_000, false);
+
+    expect(entry.fine).toBeUndefined();
+    expect(entry.view.root.isActive).toBe(false);
+    expect(entry.visualVisible).toBe(false);
+    expect(entry.farProxyActive).toBe(false);
+  });
+
+  it("synchronizes shown in updateDemand(dt, shown) so hiding never toggles coarse visuals on then off", () => {
+    const { engine, camera } = makeFakeCameraAndEngine();
+    const events: string[] = [];
+    const entry = makeEntry(0, 200, { loaded: false });
+    const origSetVisualVisible = entry.view.setVisualVisible;
+    const origSetFarProxyActive = entry.view.setFarProxyActive!;
+    entry.view.setVisualVisible = (v: boolean) => {
+      events.push(`vis:${v}`);
+      origSetVisualVisible(v);
+    };
+    entry.view.setFarProxyActive = (a: boolean) => {
+      events.push(`far:${a}`);
+      origSetFarProxyActive(a);
+    };
+
+    const residency = new MasonryResidency(engine, camera, [entry], createMasonryResidencyMetrics(), () => {}, () => {});
+    residency.updateDemand(0.016, true);
+    residency.updatePresentation(500, true);
+    expect(entry.visualVisible).toBe(true);
+    expect(entry.farProxyActive).toBe(true);
+
+    events.length = 0;
+    residency.updateDemand(0.016, false);
+    residency.updatePresentation(1000, false);
+    expect(entry.visualVisible).toBe(false);
+    expect(entry.farProxyActive).toBe(false);
+    expect(events).not.toContain("vis:true");
+    expect(events).not.toContain("far:true");
+    expect(events).toEqual(["vis:false", "far:false"]);
   });
 });
 

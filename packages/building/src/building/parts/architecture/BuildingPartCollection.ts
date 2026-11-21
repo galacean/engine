@@ -109,7 +109,13 @@ export function connectionParts(connection: ConnectionDef): string[] {
     ? [connection.guest, ...connection.hosts.map((h) => h.part)]
     : [...connection.parts];
 }
-const identity = (m: Matrix) => Array.from(m.elements).every((v, i) => Math.abs(v - (i % 5 === 0 ? 1 : 0)) < 1e-9);
+const identity = (m: Matrix) => {
+  const e = m.elements;
+  for (let i = 0; i < 16; i++) {
+    if (!(Math.abs(e[i]! - (i % 5 === 0 ? 1 : 0)) < 1e-9)) return false;
+  }
+  return true;
+};
 /** Native frames, flat component definitions and the asset kit are the only author inputs.
  * Each group's node places its group in the frame: a horizontal rigid move of its
  * footprints. Parts stay where their group is. */
@@ -123,18 +129,21 @@ export function collectBuildingParts(
 ): BuildingRuntimeInput {
   const primary = (bodies as BuildingGroupComponent[])
     .slice()
-    .sort((a, b) => a.definition!.id.localeCompare(b.definition!.id));
-  const activeGroups = new Set(primary.map((g) => g.definition!.id));
-  const parts = [...members]
-    .filter(
-      (p): p is BuildingPartComponent =>
-        p instanceof BuildingPartComponent &&
-        !!p.definition &&
-        partFrame(p) === frame &&
-        activeGroups.has(p.definition.group)
-    )
-    .sort((a, b) => a.definition!.id.localeCompare(b.definition!.id));
-  const activeParts = new Set(parts.map((p) => p.definition!.id));
+    .sort((a, b) => a._rawDefinition!.id.localeCompare(b._rawDefinition!.id));
+  const activeGroups = new Set(primary.map((g) => g._rawDefinition!.id));
+  const parts: BuildingPartComponent[] = [];
+  for (const p of members) {
+    if (
+      p instanceof BuildingPartComponent &&
+      p._rawDefinition &&
+      partFrame(p) === frame &&
+      activeGroups.has(p._rawDefinition.group)
+    ) {
+      parts.push(p);
+    }
+  }
+  parts.sort((a, b) => a._rawDefinition!.id.localeCompare(b._rawDefinition!.id));
+  const activeParts = new Set(parts.map((p) => p._rawDefinition!.id));
   const libraries = primary.map((p) => p.assetLibrary ?? defaultLibrary).filter((v): v is PrefabResource => !!v);
   const assets = libraries[0];
   if (libraries.some((l) => l !== assets || l.destroyed || l.engine !== frame.engine))
@@ -145,33 +154,44 @@ export function collectBuildingParts(
     connections: []
   };
   const bindings: BuildingRuntimeInput["bindings"] = new Map();
+  const partsByGroup = new Map<string, BuildingPartComponent[]>();
+  for (const p of parts) {
+    const gid = p._rawDefinition!.group;
+    let list = partsByGroup.get(gid);
+    if (!list) partsByGroup.set(gid, (list = []));
+    list.push(p);
+  }
   for (const group of primary) {
-    const own = parts.filter((p) => p.definition!.group === group.definition!.id);
+    const rawGroupDef = group._rawDefinition!;
+    const own = partsByGroup.get(rawGroupDef.id) ?? [];
     const matrix = partFrameMatrix(group.entity, frame);
     horizontalFrame(matrix);
     for (const part of own)
       if (part.entity !== group.entity && !identity(partFrameMatrix(part.entity, group.entity)))
-        throw Error(`Move the group "${group.definition!.id}", not its part "${part.definition!.id}"`);
+        throw Error(`Move the group "${rawGroupDef.id}", not its part "${part._rawDefinition!.id}"`);
     const placed = placeBuildingGroup(
-      group.definition!,
+      structuredClone(rawGroupDef),
       own.map((p) => p.definition!),
       matrix.elements
     );
     draft.groups.push(placed.group);
     draft.parts.push(...placed.parts);
-    bindings.set(buildingGroupKey(group.definition!.id), {
+    bindings.set(buildingGroupKey(rawGroupDef.id), {
       member: group,
       inverse: Array.from(partFrameInverse(group.entity, frame).elements)
     });
     for (const part of own)
-      bindings.set(buildingPartKey(part.definition!.id), {
+      bindings.set(buildingPartKey(part._rawDefinition!.id), {
         member: part,
         inverse: Array.from(partFrameInverse(part.entity, frame).elements)
       });
   }
   // Author connections stay intact; the design gets those whose parts are all active.
-  for (const part of parts)
-    draft.connections.push(...part.connections.filter((c) => connectionParts(c).every((id) => activeParts.has(id))));
+  for (const part of parts) {
+    for (const c of part._rawConnections) {
+      if (connectionParts(c).every((id) => activeParts.has(id))) draft.connections.push(structuredClone(c));
+    }
+  }
   validateBuildingDraft(draft);
   if (draft.parts.length && !assets) throw Error("Building parts require a native material library");
   const worldFrame = terrain && draft.parts.length ? frame.transform.worldMatrix.clone() : undefined;
@@ -190,7 +210,7 @@ export function collectBuildingParts(
       decode: { offset: 0, scale: 1 }
     }
   };
-  const groupIds = new Map(bodies.map((b) => [b, (b as BuildingGroupComponent).definition!.id]));
+  const groupIds = new Map(bodies.map((b) => [b, (b as BuildingGroupComponent)._rawDefinition!.id]));
   // A height function lives on the main thread; terrain grids travel to the Worker.
   const execution = terrainHeight ? "main" : "worker";
   return {
@@ -211,7 +231,7 @@ export function collectBuildingParts(
       placement,
       [...bindings].map(([key, value]) => [key, value.inverse]),
       ground.revision,
-      parts.map((p) => [p.definition!.id, p.inputRevision])
+      parts.map((p) => [p._rawDefinition!.id, p.inputRevision])
     ])
   };
 }

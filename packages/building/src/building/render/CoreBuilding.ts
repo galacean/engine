@@ -75,7 +75,7 @@ import { placeConstructionWoodArch } from "../runtime/ConstructionWoodArch";
 import { woodArchFrameGeometry, woodArchPillarGeometry } from "../runtime/ConstructionWoodArchGeometry";
 import { wallChartSampler } from "../partTypes/House";
 import { packConstructionUnits } from "../runtime/ConstructionUnitRender";
-import { encodeConstructionDormerBins } from "../runtime/DormerBins";
+import { countConstructionDormerBinOverflows, encodeConstructionDormerBins } from "../runtime/DormerBins";
 import { placeProfileRoofSpire } from "../runtime/ProfileRoofSpire";
 import { wallRoofJointHeight } from "../runtime/ConstructionWallRoofJoint";
 import { f32BitsToHalf } from "../runtime/UnitPacking.js";
@@ -150,6 +150,8 @@ export function coreBuildingEnvironment(
 export interface CoreBuildingOptions {
   /** Must be the environment the design ran with. */
   readonly environment?: BuildingEnvironment;
+  /** Validate that laid unit keys within each part are unique. */
+  readonly validateKeys?: boolean;
 }
 interface LaidPart {
   readonly part: ResolvedPart;
@@ -176,6 +178,37 @@ export interface CoreBuildingLayout {
   readonly owners: readonly CoreOwner[];
   readonly surfaces: ReturnType<typeof bindSurfaces>;
   readonly registry: BuildingRegistry;
+  readonly environment?: BuildingEnvironment;
+  deflated?: boolean;
+}
+
+/** Release expanded unit lists retained inside a layout snapshot after preview preparation. */
+export function deflateCoreBuildingLayout(layout: CoreBuildingLayout): void {
+  if (layout.deflated) return;
+  for (const owner of layout.owners) {
+    for (const binding of owner.bindings) {
+      for (const laid of binding.parts) {
+        (laid as { units: readonly LaidUnit[] }).units = [];
+      }
+    }
+  }
+  layout.deflated = true;
+}
+
+/** Re-expand unit lists on demand before compiling or reading a deflated layout. */
+export function hydrateCoreBuildingLayout(layout: CoreBuildingLayout): void {
+  if (!layout.deflated) return;
+  const environment = layout.environment ?? {};
+  for (const owner of layout.owners) {
+    for (const binding of owner.bindings) {
+      for (const laid of binding.parts) {
+        (laid as { units: readonly LaidUnit[] }).units = expandUnits(laid.part, layout.registry, {
+          environment
+        });
+      }
+    }
+  }
+  layout.deflated = false;
 }
 
 /** Lays every unit of the design once and sorts the parts into material bindings. */
@@ -195,7 +228,16 @@ export function coreBuildingLayout(
       const family = part.unit?.source === "stone_floor" ? "stoneFloor" : FAMILIES[part.type];
       if (!family) throw Error(`The renderer has no family for part type "${part.type}"`);
       const list = byFamily.get(family) ?? [];
-      list.push({ part, units: expandUnits(part, registry, { environment }) });
+      const units = expandUnits(part, registry, { environment });
+      if (options.validateKeys) {
+        const keys = new Set<string>();
+        for (let i = 0, n = units.length; i < n; i++) {
+          const key = units[i].key;
+          if (keys.has(key)) throw Error("Laid unit keys must be unique strings");
+          keys.add(key);
+        }
+      }
+      list.push({ part, units });
       byFamily.set(family, list);
     }
     const bindings = [...byFamily].map(([family, parts]): CoreBinding => {
@@ -225,7 +267,14 @@ export function coreBuildingLayout(
       bindings
     };
   });
-  return { result, owners, surfaces: bindSurfaces(registry.surfaces, environment), registry };
+  return {
+    result,
+    owners,
+    surfaces: bindSurfaces(registry.surfaces, environment),
+    registry,
+    environment,
+    deflated: false
+  };
 }
 
 const chartOf = (part: ResolvedPart): WallChartParams | undefined => {
@@ -309,14 +358,14 @@ function quaternionBasis(q: number[]): number[][] {
     [2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)]
   ];
 }
+const _toHalfView = new DataView(new ArrayBuffer(4));
 const toHalf = (v: number) => {
-  const f = new DataView(new ArrayBuffer(4));
-  f.setFloat32(0, v, true);
-  return f32BitsToHalf(f.getUint32(0, true));
+  _toHalfView.setFloat32(0, v, true);
+  return f32BitsToHalf(_toHalfView.getUint32(0, true));
 };
 interface RoofRecords {
   cells: SupportCell[];
-  records: { cell_id: string; initial64_hex: string; quaternion_f32: number[]; world_height_origin: number }[];
+  rawById: Map<string, Uint8Array>;
 }
 /** The roof's lowest eave: the height the roof records and the entrance animation start from. */
 function roofBase(binding: CoreBinding): number {
@@ -341,17 +390,32 @@ function roofEntry(
   settled = false
 ) {
   const q = frameQuaternion(u);
-  const size = u.size!.map(Math.fround);
-  const position = [u.frame.origin[0], u.frame.origin[1] - base, u.frame.origin[2]].map(Math.fround);
+  const srcSize = u.size!;
+  const s0 = Math.fround(srcSize[0]),
+    s1 = Math.fround(srcSize[1]),
+    s2 = Math.fround(srcSize[2]);
+  const origin = u.frame.origin;
+  const px = Math.fround(origin[0]),
+    py = Math.fround(origin[1] - base),
+    pz = Math.fround(origin[2]);
   const plane = (u.params?.clip as number[] | undefined) ?? NO_CLIP;
-  // The plane moves with the record's heights.
-  const clip = [plane[0], plane[1], plane[2], Math.min(65504, plane[3] + plane[1] * base)];
   const bytes = new Uint8Array(64),
     view = new DataView(bytes.buffer);
-  position.forEach((v, i) => view.setFloat32(i * 4, v, true));
-  [...clip, ...size, (u.params?.shade as number | undefined) ?? 0, ...q].forEach((v, i) =>
-    view.setUint16(16 + i * 2, toHalf(v), true)
-  );
+  view.setFloat32(0, px, true);
+  view.setFloat32(4, py, true);
+  view.setFloat32(8, pz, true);
+  view.setUint16(16, toHalf(plane[0]), true);
+  view.setUint16(18, toHalf(plane[1]), true);
+  view.setUint16(20, toHalf(plane[2]), true);
+  view.setUint16(22, toHalf(Math.min(65504, plane[3] + plane[1] * base)), true);
+  view.setUint16(24, toHalf(s0), true);
+  view.setUint16(26, toHalf(s1), true);
+  view.setUint16(28, toHalf(s2), true);
+  view.setUint16(30, toHalf((u.params?.shade as number | undefined) ?? 0), true);
+  view.setUint16(32, toHalf(q[0]), true);
+  view.setUint16(34, toHalf(q[1]), true);
+  view.setUint16(36, toHalf(q[2]), true);
+  view.setUint16(38, toHalf(q[3]), true);
   view.setUint32(40, slot, true);
   if (settled) view.setFloat32(48, 1, true);
   view.setUint32(52, u.seed >>> 0, true);
@@ -362,19 +426,14 @@ function roofEntry(
     id,
     logical_id: id,
     surface_id: surface,
-    anchor_uv: [u.frame.origin[0], u.frame.origin[2]],
-    center: [position[0], position[1] + base, position[2]],
+    anchor_uv: [origin[0], origin[2]],
+    center: [px, py + base, pz],
     tangent,
     bitangent,
     normal,
-    size
+    size: [s0, s1, s2]
   });
-  target.records.push({
-    cell_id: id,
-    initial64_hex: Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join(""),
-    quaternion_f32: q,
-    world_height_origin: base
-  });
+  target.rawById.set(id, bytes);
 }
 /** Roof tiles fall into place over one second; a flat roof falls twice as fast. */
 function roofEntrance(base: number, count: number, flat = false) {
@@ -479,25 +538,22 @@ function bindingDraws(binding: CoreBinding, slot: number, layout: CoreBuildingLa
     for (const { part, units } of binding.parts) {
       if (!CARRIED_ROOFS.has(part.type)) continue;
       const owner = carrierOf(layout, part) ?? partId(part);
-      const records = carried.get(owner) ?? { cells: [], records: [] };
-      carried.set(owner, records);
+      let records = carried.get(owner);
+      if (!records) carried.set(owner, (records = { cells: [], rawById: new Map() }));
       // Settled records stand at their world height: no entrance lifts them from a base.
       for (const u of units) roofEntry(records, `${binding.id}/${partId(part)}/${u.key}`, binding.id, u, 0, slot, true);
     }
     for (const [decorationId, records] of carried) {
-      const bytes = new Uint8Array(records.records.length * 64);
-      records.records.forEach((r, i) =>
-        bytes.set(
-          Uint8Array.from(r.initial64_hex.match(/../g)!, (h) => parseInt(h, 16)),
-          i * 64
-        )
-      );
+      const bytes = new Uint8Array(records.cells.length * 64);
+      for (let i = 0; i < records.cells.length; i++) {
+        bytes.set(records.rawById.get(records.cells[i].id)!, i * 64);
+      }
       draws.push({ role: "dormer_roof", cells: records.cells, settled: bytes, decorationId });
     }
     if (pitched.length) {
       const base = roofBase(binding);
-      const tiles: RoofRecords = { cells: [], records: [] },
-        edges: RoofRecords = { cells: [], records: [] };
+      const tiles: RoofRecords = { cells: [], rawById: new Map() },
+        edges: RoofRecords = { cells: [], rawById: new Map() };
       for (const { part, units } of pitched)
         for (const u of units) {
           const id = `${binding.id}/${partId(part)}/${u.key}`;
@@ -676,16 +732,20 @@ function insidePolygon(polygon: readonly number[][], x: number, z: number) {
 }
 /** Whether a unit's box reaches beyond a footprint outline. */
 function standsOut(cell: SupportCell, outline: readonly number[][]) {
-  for (const x of [-0.5, 0.5])
-    for (const y of [-0.5, 0.5])
-      for (const z of [-0.5, 0.5]) {
-        const at = (k: number) =>
-          cell.center[k] +
-          x * cell.size[0] * cell.tangent[k] +
-          y * cell.size[1] * cell.bitangent[k] +
-          z * cell.size[2] * cell.normal[k];
-        if (!insidePolygon(outline, at(0), at(2))) return true;
-      }
+  const hx0 = 0.5 * cell.size[0] * cell.tangent[0],
+    hz0 = 0.5 * cell.size[0] * cell.tangent[2];
+  const hx1 = 0.5 * cell.size[1] * cell.bitangent[0],
+    hz1 = 0.5 * cell.size[1] * cell.bitangent[2];
+  const hx2 = 0.5 * cell.size[2] * cell.normal[0],
+    hz2 = 0.5 * cell.size[2] * cell.normal[2];
+  const cx = cell.center[0],
+    cz = cell.center[2];
+  for (let i = 0; i < 8; i++) {
+    const sx = i & 1 ? 1 : -1;
+    const sy = i & 2 ? 1 : -1;
+    const sz = i & 4 ? 1 : -1;
+    if (!insidePolygon(outline, cx + sx * hx0 + sy * hx1 + sz * hx2, cz + sx * hz0 + sy * hz1 + sz * hz2)) return true;
+  }
   return false;
 }
 
@@ -857,20 +917,29 @@ function unrolledSurface(surface: ReturnType<EffectiveGeometry["surface"]>, offs
     u: [u0, u1],
     v: [v0, v1]
   } = surface.domain;
-  const point = (u: number, v: number): number[] => [...surface.frame(u, v).origin];
-  const vs = Array.from({ length: nv + 1 }, (_, j) => v0 + ((v1 - v0) * j) / nv);
-  const us = Array.from({ length: nu + 1 }, (_, i) => u0 + ((u1 - u0) * i) / nu);
+  const vs = new Array<number>(nv + 1);
+  for (let j = 0; j <= nv; j++) vs[j] = v0 + ((v1 - v0) * j) / nv;
+  const us = new Array<number>(nu + 1);
+  for (let i = 0; i <= nu; i++) us[i] = u0 + ((u1 - u0) * i) / nu;
   const mid = (u0 + u1) / 2;
-  const ts = [0];
-  for (let j = 1; j <= nv; j++) ts.push(ts[j - 1] + Math.hypot(...sub3(point(mid, vs[j]), point(mid, vs[j - 1]))));
+  const ts = new Array<number>(nv + 1);
+  ts[0] = 0;
+  let prevOrigin = surface.frame(mid, vs[0]).origin;
+  for (let j = 1; j <= nv; j++) {
+    const nextOrigin = surface.frame(mid, vs[j]).origin;
+    ts[j] =
+      ts[j - 1] +
+      Math.hypot(nextOrigin[0] - prevOrigin[0], nextOrigin[1] - prevOrigin[1], nextOrigin[2] - prevOrigin[2]);
+    prevOrigin = nextOrigin;
+  }
   // Arc length along a row from its middle.
   const along = (u: number, v: number) => {
     const steps = 8;
     let s = 0;
-    let prev = point(mid, v);
+    let prev = surface.frame(mid, v).origin;
     for (let k = 1; k <= steps; k++) {
-      const next = point(mid + ((u - mid) * k) / steps, v);
-      s += Math.hypot(...sub3(next, prev));
+      const next = surface.frame(mid + ((u - mid) * k) / steps, v).origin;
+      s += Math.hypot(next[0] - prev[0], next[1] - prev[1], next[2] - prev[2]);
       prev = next;
     }
     return u < mid ? -s : s;
@@ -881,30 +950,41 @@ function unrolledSurface(surface: ReturnType<EffectiveGeometry["surface"]>, offs
     return ts[j] + (ts[j + 1] - ts[j]) * (x - j);
   };
   const chart = (u: number, v: number) => [offset + along(u, v), tAt(v)];
+  const cols = nu + 1;
+  const gridPoints = new Array<number[]>(cols * (nv + 1));
+  const gridCharts = new Array<number[]>(cols * (nv + 1));
+  for (let j = 0; j <= nv; j++) {
+    const vj = vs[j];
+    const tv = ts[j];
+    for (let i = 0; i <= nu; i++) {
+      const ui = us[i];
+      const idx = j * cols + i;
+      const o = surface.frame(ui, vj).origin;
+      gridPoints[idx] = [o[0], o[1], o[2]];
+      gridCharts[idx] = [offset + along(ui, vj), tv];
+    }
+  }
   const mesh = emptyMesh();
   for (let j = 0; j < nv; j++)
     for (let i = 0; i < nu; i++) {
-      const corners = [
-        [us[i], vs[j]],
-        [us[i + 1], vs[j]],
-        [us[i + 1], vs[j + 1]],
-        [us[i], vs[j + 1]]
-      ];
+      const a = j * cols + i;
+      const b = a + 1;
+      const c = b + cols;
+      const d = a + cols;
       quad(
         mesh,
-        corners.map(([u, v]) => point(u, v)),
-        corners.map(([u, v]) => chart(u, v))
+        [gridPoints[a], gridPoints[b], gridPoints[c], gridPoints[d]],
+        [gridCharts[a], gridCharts[b], gridCharts[c], gridCharts[d]]
       );
     }
   let width = 0;
-  for (const v of vs) width = Math.max(width, along(u1, v) - along(u0, v));
+  for (let j = 0; j <= nv; j++) {
+    const s0 = gridCharts[j * cols][0] - offset;
+    const s1 = gridCharts[j * cols + nu][0] - offset;
+    if (s1 - s0 > width) width = s1 - s0;
+  }
   return { mesh, chart, width };
 }
-const sub3 = (a: readonly number[], b: readonly number[]): [number, number, number] => [
-  a[0] - b[0],
-  a[1] - b[1],
-  a[2] - b[2]
-];
 
 /** The paved part of a roof deck in its own plane coordinates: the square, or the inscribed
  * disc. */
@@ -1088,16 +1168,23 @@ function unitBox(mesh: Mesh, part: ResolvedPart, u: LaidUnit, anchor?: number[])
     [2, 6, 7, 3],
     [0, 1, 5, 4]
   ]) {
-    const corners = face.map((i) => v[i]);
-    const w = Math.hypot(...sub3(corners[1], corners[0])),
-      h = Math.hypot(...sub3(corners[3], corners[0]));
+    const c0 = v[face[0]],
+      c1 = v[face[1]],
+      c2 = v[face[2]],
+      c3 = v[face[3]];
+    const w = Math.hypot(c1[0] - c0[0], c1[1] - c0[1], c1[2] - c0[2]),
+      h = Math.hypot(c3[0] - c0[0], c3[1] - c0[1], c3[2] - c0[2]);
     const [u0, v0] = anchor ? [anchor[0] - w / 2, anchor[1] - h / 2] : [0, 0];
-    quad(mesh, corners, [
-      [u0, v0],
-      [u0 + w, v0],
-      [u0 + w, v0 + h],
-      [u0, v0 + h]
-    ]);
+    quad(
+      mesh,
+      [c0, c1, c2, c3],
+      [
+        [u0, v0],
+        [u0 + w, v0],
+        [u0 + w, v0 + h],
+        [u0, v0 + h]
+      ]
+    );
   }
 }
 
@@ -1115,6 +1202,7 @@ export interface CoreBuildingViewOptions {
 /** Display, structure and distance geometry of a laid design, in the shape the building
  * renderer and the distance view consume. */
 export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildingViewOptions = {}) {
+  hydrateCoreBuildingLayout(layout);
   const parts: ConstructionPreviewPart[] = [];
   const retainedWallUnits: RetainedWallUnits[] = [];
   const structure = new Map<string, ConstructionSurfacePart>();
@@ -1498,6 +1586,7 @@ export function coreBuildingDecorations(
   layout: CoreBuildingLayout,
   assets: BuildingUnitAssets
 ): CompiledConstructionDecorations[] {
+  hydrateCoreBuildingLayout(layout);
   const result: CompiledConstructionDecorations[] = [];
   for (const owner of layout.owners) {
     const prefabs = owner.bindings.filter((b) => b.family === "prefab");
@@ -1768,6 +1857,7 @@ export function coreBuildingPalette(layout: CoreBuildingLayout) {
 
 /** A focus pose for every author part: the center of its laid units. */
 export function coreBuildingFocus(layout: CoreBuildingLayout) {
+  hydrateCoreBuildingLayout(layout);
   const poses: { part: string; position: number[] }[] = [];
   for (const owner of layout.owners)
     for (const binding of owner.bindings)
@@ -1835,11 +1925,13 @@ export function coreBuildingGrounding(
   return grounding;
 }
 
-const EMPTY_UNITS = {
-  brick: new Uint8Array(0),
-  wooden_plank: new Uint8Array(0),
-  roof_tile: new Uint8Array(0)
-};
+function emptyUnits() {
+  return {
+    brick: new Uint8Array(0),
+    wooden_plank: new Uint8Array(0),
+    roof_tile: new Uint8Array(0)
+  };
+}
 
 function packBrickFeedbackSource(binding: CoreBinding, draw: DrawPlan, slot: number): BrickFeedbackSource {
   if (
@@ -1912,13 +2004,16 @@ export async function coreBuildingRenderInput(
   layout: CoreBuildingLayout,
   view: CoreBuildingView = coreBuildingView(layout),
   assets?: BuildingUnitAssets,
-  options?: { feedbackGrid?: boolean }
+  options?: { feedbackGrid?: boolean; activeMaterialsOnly?: boolean; omitEmptyCells?: boolean }
 ): Promise<BuildingRenderInput> {
+  hydrateCoreBuildingLayout(layout);
   const groups: BuildingUnitDrawGroup[] = [];
   const plans: { binding_id: string; cells: SupportCell[]; dependencies: unknown[] }[] = [];
   const geometries: unknown[] = [],
     bindings: unknown[] = [];
   const feedbackBrick = Boolean(options?.feedbackGrid);
+  const activeMaterialsOnly = Boolean(options?.activeMaterialsOnly);
+  const omitEmptyCells = Boolean(options?.omitEmptyCells);
   for (const owner of layout.owners)
     for (const binding of owner.bindings) {
       // Prefabs and finishes are drawn from the view, not as unit groups.
@@ -1940,19 +2035,27 @@ export async function coreBuildingRenderInput(
           draw.role !== "layout" &&
           draw.role !== "connections" &&
           draw.role !== "dormer_roof";
+        const needsDomainRoof = Boolean(draw.roofApertures) || draw.role === "layout" || draw.role === "connections";
+        const packMaterials = activeMaterialsOnly
+          ? needsDomainRoof && binding.material !== "roof_tile"
+            ? ([binding.material, "roof_tile"] as const)
+            : ([binding.material] as const)
+          : undefined;
         groups.push({
           id: groups.length,
           binding_id: binding.id,
           ownerId: owner.group.id,
           role: draw.role,
-          cells: draw.cells,
+          cells: omitEmptyCells ? [] : draw.cells,
+          ...(omitEmptyCells ? { cellCount: draw.cells.length } : {}),
           units: useBrickFeedback
-            ? EMPTY_UNITS
+            ? emptyUnits()
             : await packConstructionUnits({
                 cells: draw.cells,
                 slot: owner.slot,
                 role: draw.role,
-                ...(draw.design && { roofDesign: { schema: "roof-design-v1", records: draw.design.records } }),
+                ...(packMaterials && { materials: packMaterials }),
+                ...(draw.design && { roofRawRecords: draw.design.rawById }),
                 ...(draw.settled && { source: { roof_tile: draw.settled } }),
                 ...(draw.roofApertures && { roofApertures: true })
               }),
@@ -1961,14 +2064,18 @@ export async function coreBuildingRenderInput(
                 materialUnits: ["brick" as const],
                 brickFeedback: packBrickFeedbackSource(binding, draw, owner.slot)
               }
-            : {}),
+            : activeMaterialsOnly
+              ? { materialUnits: [binding.material] }
+              : {}),
           ...(draw.gravity && { gravity: draw.gravity }),
           ...(draw.wallRoofJoint && { wallRoofJoint: draw.wallRoofJoint }),
           ...(draw.decorationId && { decorationId: draw.decorationId }),
           ...(draw.roofApertures && { roofApertures: true })
         });
       }
-      plans.push({ binding_id: binding.id, cells: draws.flatMap((d) => d.cells), dependencies });
+      if (!omitEmptyCells) {
+        plans.push({ binding_id: binding.id, cells: draws.flatMap((d) => d.cells), dependencies });
+      }
       geometries.push({ id: binding.id, source: { type: "core", parts: binding.parts.map((p) => p.part.key) } });
       const algorithm = binding.parts[0].part.algorithm;
       bindings.push({
@@ -1987,7 +2094,7 @@ export async function coreBuildingRenderInput(
     groups,
     decorations: assets ? coreBuildingDecorations(layout, assets) : [],
     // Openings beyond a bin's capacity leave their tiles uncut; `coreBuildingDiagnostics` says so.
-    dormerBins: encodeConstructionDormerBins(roofApertures(layout)),
+    dormerBins: encodeConstructionDormerBins(roofApertures(layout), { compactEmpty: true }),
     colorOwners: palette.colorOwners.map(({ id, seed }) => ({ id, seed })),
     backingParts: view.parts.filter(
       (p) => p.placement !== "unit" && p.backing !== false && !p.decoration && !p.plaster
@@ -2159,6 +2266,7 @@ function outlineRecords(
 }
 /** The roof renderer's apertures for a layout, as 48-byte records (see `apertureRecord`). */
 export function roofApertures(layout: CoreBuildingLayout): Uint8Array[] {
+  hydrateCoreBuildingLayout(layout);
   const records: Uint8Array[] = [];
   for (const owner of layout.owners)
     for (const binding of owner.bindings) {
@@ -2229,7 +2337,7 @@ export function roofApertures(layout: CoreBuildingLayout): Uint8Array[] {
 
 /** What drawing a design could not do in full. It still draws. */
 export function coreBuildingDiagnostics(layout: CoreBuildingLayout): { source: string; message: string }[] {
-  const { droppedAssignments } = encodeConstructionDormerBins(roofApertures(layout)).report;
+  const droppedAssignments = countConstructionDormerBinOverflows(roofApertures(layout));
   if (!droppedAssignments) return [];
   return [
     {

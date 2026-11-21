@@ -72,7 +72,7 @@ export function appendStoneFloorRenderPackage(
       vertexFile = `dynamic/${id}/vertices.bin`,
       indexFile = `dynamic/${id}/indices.bin`;
     files.set(vertexFile, data.buffer);
-    files.set(indexFile, new Uint32Array(part.indices).buffer);
+    files.set(indexFile, (count <= 65535 ? new Uint16Array(part.indices) : new Uint32Array(part.indices)).buffer);
     draws.push({
       id,
       ownerId: part.owner,

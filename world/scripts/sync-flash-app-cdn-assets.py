@@ -45,6 +45,7 @@ def load_local_env_file(path: Path) -> None:
 
 LEAF_EXTENSIONS = {
     ".ktx2",
+    ".tex",
     ".mesh",
     ".glb",
     ".png",

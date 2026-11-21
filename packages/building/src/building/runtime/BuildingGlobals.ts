@@ -12,7 +12,7 @@ export function buildingGlobals(slots: readonly BuildingPaletteSlot[], frame: Ar
   const u32 = (f: (slot: BuildingPaletteSlot) => number) => bytes(Uint32Array.from(slots, f));
   return {
     view: bytes(viewConstants({ eye: [-8, 9, -13], target: [1.1, 3.6, 0], halfExtent: 6.5 }, "row-major")),
-    frame: new Uint8Array(frame.slice(0)),
+    frame: new Uint8Array(frame),
     frameCounter: new Uint8Array(16),
     identities: u32((s) => s.seed),
     roofColors: u32((s) => s.roofColor),

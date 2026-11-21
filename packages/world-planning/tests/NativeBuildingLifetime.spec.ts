@@ -141,3 +141,125 @@ it("prepareTerrain candidate prepareShaderWarmup emits negative point-light delt
   inactiveWarmup.dispose();
   candidate.discard();
 });
+
+it("releases retired terrain samples and avoids input thrash when preparing terrain with active buildings", async () => {
+  let previous: ReturnType<typeof terrain> | undefined = terrain(512);
+  let next: ReturnType<typeof terrain> | undefined = terrain(256);
+  const prevRef = new WeakRef(previous.grid.samples);
+  const nextRef = new WeakRef(next.grid.samples);
+  let collectCount = 0;
+
+  const frame = { destroyed: false, scene: null as any } as any;
+  const body = { entity: frame } as any;
+  const members = new Map([[body, { flag: false, destroy() {} }]]);
+  const existingView = {
+    kind: "profile",
+    frame,
+    bodies: [body],
+    signature: "sig-512",
+    cpu: { valid: true, dispose() {} },
+    view: { root: { isActive: true }, setVisualVisible() {}, setFarProxyActive() {}, destroy() {}, setEntrance() {} },
+    lights: [],
+    entranceInstanceKeys: [],
+    entranceStates: new Map()
+  };
+  const system: any = {
+    closed: false,
+    shown: false,
+    surfaceRevision: 0,
+    generationSerial: 0,
+    probeRevision: -1,
+    detailDirty: false,
+    lightsDirty: false,
+    revision: 1,
+    applied: 1,
+    frameRevision: 1,
+    frameGroups: new Map([[frame, [body]]]),
+    inputCacheRevision: -1,
+    inputCacheTerrain: undefined,
+    inputCache: new Map(),
+    dirtyTransformMembers: new Set(),
+    identities: new Map(),
+    publishedTerrain: previous,
+    entries: [],
+    members,
+    views: new Map([[frame, existingView]]),
+    residency: { desired: new Set(), invalidate() {} },
+    compiler: { dispose() {} },
+    async flush() {},
+    readTransforms() {},
+    frames: () => system.frameGroups,
+    input: (BuildingManager.prototype as any).input,
+    acceptEntrance() {},
+    refreshProbe() {},
+    queriesFor: () => [],
+    captureQueries: () => ({}),
+    updateResidency() {},
+    updateLights() {},
+    clearExitingViews() {},
+    retire: (BuildingManager.prototype as any).retire,
+    prepareView: async (targetFrame: any, input: any) => ({
+      ...existingView,
+      frame: targetFrame,
+      signature: input.signature
+    }),
+    host: {
+      validate: () => {},
+      isBody: () => true,
+      frame: () => frame,
+      collect: (_frame: any, _bodies: any, _members: any, sourceTerrain: any) => {
+        collectCount++;
+        return {
+          signature: `sig-${sourceTerrain?.revision ?? 0}`,
+          execution: "worker",
+          draft: { groups: [] },
+          placement: { position: [0, 0, 0], rotationY: 0 }
+        };
+      }
+    }
+  };
+  frame.scene = system.entity = { scene: { id: "scene" }, destroyed: false };
+
+  // Warm cache on previous terrain.
+  expect(system.input(frame).signature).toBe("sig-512");
+  expect(collectCount).toBe(1);
+
+  // prepareTerrain(next) should collect `next` once and hit cached `previous` without thrashing `inputCache`.
+  collectCount = 0;
+  let candidate: Awaited<ReturnType<typeof BuildingManager.prototype.prepareTerrain>> | undefined =
+    await BuildingManager.prototype.prepareTerrain.call(system, next, new AbortController().signal);
+  expect(collectCount).toBe(1);
+  expect(system.inputCacheTerrain).toBe(previous);
+
+  candidate.commit();
+  candidate.finalize();
+  candidate = undefined;
+  previous = undefined;
+
+  expect(system.inputCacheTerrain).toBeUndefined();
+  expect(system.inputCache.size).toBe(0);
+  await collectRetired();
+  expect(prevRef.deref()).toBeUndefined();
+
+  // Separate discarded transaction must not pin its candidate terrain in `inputCacheTerrain`.
+  let discardedTerrain: ReturnType<typeof terrain> | undefined = terrain(128);
+  const discardedRef = new WeakRef(discardedTerrain.grid.samples);
+  let discardedCandidate: Awaited<ReturnType<typeof BuildingManager.prototype.prepareTerrain>> | undefined =
+    await BuildingManager.prototype.prepareTerrain.call(system, discardedTerrain, new AbortController().signal);
+  discardedCandidate.discard();
+  discardedCandidate = undefined;
+  discardedTerrain = undefined;
+  expect(system.inputCacheTerrain).toBeUndefined();
+
+  // Populate cache on live `next`, then destroy runtime and verify `inputCacheTerrain` releases it.
+  expect(system.input(frame).signature).toBe("sig-256");
+  BuildingManager.prototype.onDestroy.call(system);
+  system.publishedTerrain = undefined;
+  next = undefined;
+  expect(system.inputCacheTerrain).toBeUndefined();
+  expect(system.inputCache.size).toBe(0);
+
+  await collectRetired();
+  expect(nextRef.deref()).toBeUndefined();
+  expect(discardedRef.deref()).toBeUndefined();
+});

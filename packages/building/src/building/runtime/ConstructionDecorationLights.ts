@@ -4,6 +4,7 @@ import {
   ShaderProperty,
   ShadowType,
   Script,
+  type BoolUpdateFlag,
   type ShaderMacro,
   type Camera,
   type Scene
@@ -34,6 +35,7 @@ export class ConstructionDecorationLights {
   readonly root: Entity;
   readonly metrics = { active: 0, allocated: 0, updates: 0 };
   private readonly emitters: PointLight[] = [];
+  private rootWorldFlag?: BoolUpdateFlag;
   private readonly positions = new Float32Array(32);
   private readonly colors = new Float32Array(32);
   private disposed = false;
@@ -43,6 +45,10 @@ export class ConstructionDecorationLights {
   private readonly cameraPosition = new Float64Array(3).fill(NaN);
   private readonly policyCamera = new Float64Array(3);
   private inputLights: ConstructionDecorationLight[] = [];
+  private publishedScene?: Scene;
+  private publishedOwned = -1;
+  private publishedLegacy = -1;
+  private publishedFallback = -1;
   private sameLights(lights: readonly ConstructionDecorationLight[]): boolean {
     if (lights.length !== this.inputLights.length) return false;
     for (let i = 0; i < lights.length; i++) {
@@ -57,6 +63,9 @@ export class ConstructionDecorationLights {
     this.policy = new ConstructionDecorationLightPolicy(budget);
     this.root = parent.createChild("MasonryLocalLights");
     this.root.isActive = false;
+    this.rootWorldFlag = (
+      this.root.transform as { registerWorldChangeFlag?: () => BoolUpdateFlag }
+    ).registerWorldChangeFlag?.();
     for (let i = 0; i < budget; i++) {
       const emitter = this.root.createChild("slot-" + i).addComponent(PointLight);
       emitter.shadowType = ShadowType.None;
@@ -79,9 +88,12 @@ export class ConstructionDecorationLights {
     }
     const p = camera.entity.transform.worldPosition;
     if (!Number.isFinite(deltaSeconds) || deltaSeconds < 0) throw Error("Finite light camera/time required");
+    const rootMoved = Boolean(this.rootWorldFlag?.flag);
+    if (this.rootWorldFlag) this.rootWorldFlag.flag = false;
     const sameLights = this.sameLights(lights);
     if (
       !cameraChanged &&
+      !rootMoved &&
       this.policy.settled &&
       sameLights &&
       this.cameraPosition[0] === p.x &&
@@ -113,7 +125,10 @@ export class ConstructionDecorationLights {
           y = position[1],
           z = position[2],
           offset = i * 4;
-        emitter.entity.transform.setWorldPosition(x, y, z);
+        const wp = emitter.entity.transform.worldPosition;
+        if (wp.x !== x || wp.y !== y || wp.z !== z) {
+          emitter.entity.transform.setWorldPosition(x, y, z);
+        }
         emitter.distance = light.range;
         emitter.color.set(light.color[0] * energy, light.color[1] * energy, light.color[2] * energy, 1);
         this.positions[offset] = x;
@@ -129,7 +144,12 @@ export class ConstructionDecorationLights {
     }
     this.metrics.updates++;
     this.root.isActive = this.metrics.active > 0;
-    ConstructionDecorationLights.publishers.set(this.root.scene!, this);
+    const scene = this.root.scene!;
+    if (ConstructionDecorationLights.publishers.get(scene) !== this) {
+      // Another publisher owned or cleared this scene's masks; force publishIdentity() to rewrite them.
+      this.publishedScene = undefined;
+    }
+    ConstructionDecorationLights.publishers.set(scene, this);
     this.publish();
   }
   private publish() {
@@ -142,7 +162,10 @@ export class ConstructionDecorationLights {
     // macro count and the light's engine-owned index; never match by position or
     // assume that removing another light preserves its unordered-array slot.
     const scene = this.root.scene!;
-    if (ConstructionDecorationLights.publishers.get(scene) !== this) return;
+    if (ConstructionDecorationLights.publishers.get(scene) !== this) {
+      this.publishedScene = undefined;
+      return;
+    }
     const macros = this.macros;
     macros.length = 0;
     scene.shaderData.getMacros(macros);
@@ -168,9 +191,20 @@ export class ConstructionDecorationLights {
       }
     }
     macros.length = 0;
-    scene.shaderData.setInt(pointMaskProperty, owned);
-    scene.shaderData.setInt(legacyMaskProperty, legacy);
-    scene.shaderData.setInt(fallbackMaskProperty, fallback);
+    if (
+      this.publishedScene !== scene ||
+      this.publishedOwned !== owned ||
+      this.publishedLegacy !== legacy ||
+      this.publishedFallback !== fallback
+    ) {
+      this.publishedScene = scene;
+      this.publishedOwned = owned;
+      this.publishedLegacy = legacy;
+      this.publishedFallback = fallback;
+      scene.shaderData.setInt(pointMaskProperty, owned);
+      scene.shaderData.setInt(legacyMaskProperty, legacy);
+      scene.shaderData.setInt(fallbackMaskProperty, fallback);
+    }
   }
   dispose() {
     if (this.disposed) return;
@@ -180,11 +214,18 @@ export class ConstructionDecorationLights {
     this.camera = undefined;
     this.positions.fill(0);
     this.colors.fill(0);
+    this.rootWorldFlag?.destroy();
+    this.rootWorldFlag = undefined;
+    this.publishedScene = undefined;
+    this.publishedOwned = -1;
+    this.publishedLegacy = -1;
+    this.publishedFallback = -1;
     this.metrics.active = 0;
     if (ConstructionDecorationLights.publishers.get(this.root.scene!) === this) {
       this.publish();
-      for (const name of ["scene_MasonryPointMask", "scene_MasonryLegacyMask", "scene_MasonryFallbackMask"])
-        this.root.scene!.shaderData.setInt(name, 0);
+      this.root.scene!.shaderData.setInt(pointMaskProperty, 0);
+      this.root.scene!.shaderData.setInt(legacyMaskProperty, 0);
+      this.root.scene!.shaderData.setInt(fallbackMaskProperty, 0);
       ConstructionDecorationLights.publishers.delete(this.root.scene!);
     }
     this.root.destroy();

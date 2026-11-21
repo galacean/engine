@@ -1,4 +1,12 @@
 import { MaterialUnitLod } from "./MaterialUnitLod.js";
+const HALF_SQRT3 = Math.sqrt(3) / 2;
+
+function decodeHalf(b) {
+  const e = (b >>> 10) & 31,
+    m = b & 1023;
+  return (b & 32768 ? -1 : 1) * (e === 0 ? m * 2 ** -24 : e === 31 ? Infinity : (1024 + m) * 2 ** (e - 25));
+}
+
 /** Native wall64 instance ABI, decoded once from authored instance bytes. No GPU readback.
  * Tiny Glade's screen metric uses the absolute first row of the packed basis,
  * multiplied by sqrt(3)/2. Keep that producer's conservative radius unchanged. */
@@ -7,39 +15,76 @@ export function brickLodBounds(bytes) {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const count = bytes.byteLength / 64,
     bounds = new Float32Array(count * 4),
+    cullRadius = new Float32Array(count),
     force = new Uint8Array(count);
-  const half = (p) => {
-    const b = view.getUint16(p, true),
-      e = (b >>> 10) & 31,
-      m = b & 1023;
-    return (b & 32768 ? -1 : 1) * (e === 0 ? m * 2 ** -24 : e === 31 ? Infinity : (1024 + m) * 2 ** (e - 25));
-  };
   for (let i = 0; i < count; i++) {
     const p = i * 64;
-    bounds[i * 4] = view.getFloat32(p + 20, true);
-    bounds[i * 4 + 1] = view.getFloat32(p + 24, true);
-    bounds[i * 4 + 2] = view.getFloat32(p + 28, true);
-    bounds[i * 4 + 3] = ((Math.abs(half(p)) + Math.abs(half(p + 6)) + Math.abs(half(p + 12))) * Math.sqrt(3)) / 2;
+    const x = view.getFloat32(p + 20, true);
+    const y = view.getFloat32(p + 24, true);
+    const z = view.getFloat32(p + 28, true);
+    const m00 = decodeHalf(view.getUint16(p, true)),
+      m01 = decodeHalf(view.getUint16(p + 2, true)),
+      m02 = decodeHalf(view.getUint16(p + 4, true));
+    const m10 = decodeHalf(view.getUint16(p + 6, true)),
+      m11 = decodeHalf(view.getUint16(p + 8, true)),
+      m12 = decodeHalf(view.getUint16(p + 10, true));
+    const m20 = decodeHalf(view.getUint16(p + 12, true)),
+      m21 = decodeHalf(view.getUint16(p + 14, true)),
+      m22 = decodeHalf(view.getUint16(p + 16, true));
+    const r = (Math.abs(m00) + Math.abs(m10) + Math.abs(m20)) * HALF_SQRT3;
+    const b4 = i * 4;
+    bounds[b4] = x;
+    bounds[b4 + 1] = y;
+    bounds[b4 + 2] = z;
+    bounds[b4 + 3] = r;
+    const c0 = Math.hypot(m00, m01, m02);
+    const c1 = Math.hypot(m10, m11, m12);
+    const c2 = Math.hypot(m20, m21, m22);
+    cullRadius[i] = 0.5 * (c0 + c1 + c2) + 0.35;
+    if (
+      !Number.isFinite(bounds[b4]) ||
+      !Number.isFinite(bounds[b4 + 1]) ||
+      !Number.isFinite(bounds[b4 + 2]) ||
+      !Number.isFinite(bounds[b4 + 3]) ||
+      !Number.isFinite(cullRadius[i])
+    )
+      throw Error("Non-finite brick LOD bounds");
     force[i] = (view.getUint32(p + 60, true) & 128) !== 0 ? 1 : 0;
   }
-  if (!bounds.every(Number.isFinite)) throw Error("Non-finite brick LOD bounds");
-  return { bounds, force };
+  return { bounds, cullRadius, force };
 }
 
 export function brickFeedbackLodBounds(source) {
   const count = source.count;
   const bounds = new Float32Array(count * 4);
+  const cullRadius = new Float32Array(count);
   const force = new Uint8Array(count);
-  const k = Math.sqrt(3) / 2;
   if (source.kind === "pack") {
     const f = source.data;
     const u = new Uint32Array(f.buffer, f.byteOffset, f.byteLength >>> 2);
     for (let i = 0; i < count; i++) {
       const o = i * 20;
-      bounds[i * 4] = f[o + 9];
-      bounds[i * 4 + 1] = f[o + 10];
-      bounds[i * 4 + 2] = f[o + 11];
-      bounds[i * 4 + 3] = (Math.abs(f[o]) + Math.abs(f[o + 3]) + Math.abs(f[o + 6])) * k;
+      const x = f[o + 9],
+        y = f[o + 10],
+        z = f[o + 11];
+      const r = (Math.abs(f[o]) + Math.abs(f[o + 3]) + Math.abs(f[o + 6])) * HALF_SQRT3;
+      const b4 = i * 4;
+      bounds[b4] = x;
+      bounds[b4 + 1] = y;
+      bounds[b4 + 2] = z;
+      bounds[b4 + 3] = r;
+      const c0 = Math.hypot(f[o], f[o + 1], f[o + 2]);
+      const c1 = Math.hypot(f[o + 3], f[o + 4], f[o + 5]);
+      const c2 = Math.hypot(f[o + 6], f[o + 7], f[o + 8]);
+      cullRadius[i] = 0.5 * (c0 + c1 + c2) + 0.35;
+      if (
+        !Number.isFinite(bounds[b4]) ||
+        !Number.isFinite(bounds[b4 + 1]) ||
+        !Number.isFinite(bounds[b4 + 2]) ||
+        !Number.isFinite(bounds[b4 + 3]) ||
+        !Number.isFinite(cullRadius[i])
+      )
+        throw Error("Non-finite brick feedback LOD bounds");
       force[i] = (u[o + 19] & 128) !== 0 ? 1 : 0;
     }
   } else {
@@ -86,14 +131,27 @@ export function brickFeedbackLodBounds(source) {
       )
         continue;
       const x = (rx0 + rx1) * 0.5 - p.length * 0.5;
-      bounds[i * 4] = cx + cos * x;
-      bounds[i * 4 + 1] = (ry0 + ry1) * 0.5 + groundY;
-      bounds[i * 4 + 2] = cz + sin * x;
-      bounds[i * 4 + 3] = (Math.abs(cos * sx) + Math.abs(-sin * sz)) * k;
+      const bx = cx + cos * x;
+      const by = (ry0 + ry1) * 0.5 + groundY;
+      const bz = cz + sin * x;
+      const br = (Math.abs(cos * sx) + Math.abs(-sin * sz)) * HALF_SQRT3;
+      const b4 = i * 4;
+      bounds[b4] = bx;
+      bounds[b4 + 1] = by;
+      bounds[b4 + 2] = bz;
+      bounds[b4 + 3] = br;
+      cullRadius[i] = 0.5 * (sx + sy + sz) + 0.35;
+      if (
+        !Number.isFinite(bounds[b4]) ||
+        !Number.isFinite(bounds[b4 + 1]) ||
+        !Number.isFinite(bounds[b4 + 2]) ||
+        !Number.isFinite(bounds[b4 + 3]) ||
+        !Number.isFinite(cullRadius[i])
+      )
+        throw Error("Non-finite brick feedback LOD bounds");
     }
   }
-  if (!bounds.every(Number.isFinite)) throw Error("Non-finite brick feedback LOD bounds");
-  return { bounds, force };
+  return { bounds, cullRadius, force };
 }
 
 /** Native threshold 30; 26..34 is the host complementary coverage band. */
@@ -102,7 +160,7 @@ export class BrickUnitLod extends MaterialUnitLod {
     return new BrickUnitLod(brickFeedbackLodBounds(source));
   }
   constructor(bytesOrBounds) {
-    const { bounds, force } = bytesOrBounds instanceof Uint8Array ? brickLodBounds(bytesOrBounds) : bytesOrBounds;
-    super(bounds, force, 48, 60);
+    const parsed = bytesOrBounds instanceof Uint8Array ? brickLodBounds(bytesOrBounds) : bytesOrBounds;
+    super(parsed.bounds, parsed.force, 48, 60, null, parsed.cullRadius ?? null);
   }
 }

@@ -452,9 +452,10 @@ export class EffectiveSurface {
   private over(areas: readonly Rect[], u0: number, u1: number): Rect[] {
     const out: Rect[] = [];
     for (const r of areas) {
-      const [k0, k1] = this.domain.closedU
-        ? [Math.ceil((u0 - r[2]) / this.period), Math.floor((u1 - r[0]) / this.period)]
-        : [0, 0];
+      const [k0, k1] =
+        this.domain.closedU && this.period > EPSILON
+          ? [Math.ceil((u0 - r[2]) / this.period), Math.floor((u1 - r[0]) / this.period)]
+          : [0, 0];
       for (let k = k0; k <= k1; k++) {
         const s = k * this.period;
         if (r[0] + s < u1 && u0 < r[2] + s) out.push(s === 0 ? r : [r[0] + s, r[1], r[2] + s, r[3]]);
@@ -467,7 +468,7 @@ export class EffectiveSurface {
     const outline = this.outlines.get(r);
     const inside = (a: number, b: number) => (edge ? a <= b : a < b);
     if (!(inside(r[1], v) && inside(v, r[3]))) return false;
-    const s = this.domain.closedU ? Math.floor((u - r[0]) / this.period) * this.period : 0;
+    const s = this.domain.closedU && this.period > EPSILON ? Math.floor((u - r[0]) / this.period) * this.period : 0;
     return inside(r[0] + s, u) && inside(u, r[2] + s) && (!outline || insideOutline(outline, u - s, v));
   }
   /** The surface's actual extent before removed areas, as one polygon in (u, v). */
@@ -544,37 +545,76 @@ export class EffectiveSurface {
       (d.closedU || (u >= d.u[0] - EPSILON && u <= d.u[1] + EPSILON))
     )
       return true;
-    return this.adds.some((r) =>
-      this.shifts().some(
-        (s) => u >= r[0] + s - EPSILON && u <= r[2] + s + EPSILON && v >= r[1] - EPSILON && v <= r[3] + EPSILON
-      )
-    );
+    const adds = this.adds;
+    if (adds.length === 0) return false;
+    const closed = d.closedU,
+      period = this.period;
+    for (let i = 0, n = adds.length; i < n; i++) {
+      const r = adds[i];
+      if (!(v >= r[1] - EPSILON && v <= r[3] + EPSILON)) continue;
+      if (!closed) {
+        if (u >= r[0] - EPSILON && u <= r[2] + EPSILON) return true;
+      } else {
+        for (let k = -1; k <= 1; k++) {
+          const s = k * period;
+          if (u >= r[0] + s - EPSILON && u <= r[2] + s + EPSILON) return true;
+        }
+      }
+    }
+    return false;
   }
   contains(u: number, v: number): boolean {
-    return this.included(u, v) && !this.removes.some((r) => this.inArea(r, u, v, false));
+    if (!this.included(u, v)) return false;
+    for (let i = 0, n = this.removes.length; i < n; i++) {
+      if (this.inArea(this.removes[i], u, v, false)) return false;
+    }
+    return true;
+  }
+  private hasAreaOverlap(areas: readonly Rect[], u0: number, u1: number, v0: number, v1: number): boolean {
+    const closed = this.domain.closedU,
+      period = this.period;
+    for (let i = 0, n = areas.length; i < n; i++) {
+      const r = areas[i];
+      if (!(r[1] < v1 && v0 < r[3])) continue;
+      if (!closed) {
+        if (r[0] < u1 && u0 < r[2]) return true;
+      } else if (period <= EPSILON) {
+        if (r[0] < u1 && u0 < r[2]) return true;
+      } else {
+        const k0 = Math.ceil((u0 - r[2]) / period),
+          k1 = Math.floor((u1 - r[0]) / period);
+        for (let k = k0; k <= k1; k++) {
+          const s = k * period;
+          if (r[0] + s < u1 && u0 < r[2] + s) return true;
+        }
+      }
+    }
+    return false;
   }
   /** True when the whole rectangle lies on the effective surface. Inclusion in a union of
    * added areas is tested at the corners and centre; removed areas are tested exactly. */
   covers(rect: Rect): boolean {
-    const [v0, v1] = [rect[1], rect[3]];
-    let [u0, u1] = [rect[0], rect[2]];
+    const v0 = rect[1],
+      v1 = rect[3];
+    let u0 = rect[0],
+      u1 = rect[2];
     if (!(u1 > u0 && v1 > v0)) return false;
-    if (this.domain.closedU) {
+    if (this.domain.closedU && this.period > EPSILON) {
       const shift = Math.floor((u0 - this.domain.u[0]) / this.period) * this.period;
       u0 -= shift;
       u1 -= shift;
     }
     const um = (u0 + u1) / 2,
       vm = (v0 + v1) / 2;
-    const corners: [number, number][] = [
-      [u0, v0],
-      [u1, v0],
-      [u0, v1],
-      [u1, v1],
-      [um, vm]
-    ];
-    if (!corners.every(([u, v]) => this.included(u, v))) return false;
-    return ![...this.removedOver(u0, u1), ...this.reservedOver(u0, u1)].some((r) => r[1] < v1 && v0 < r[3]);
+    if (
+      !this.included(u0, v0) ||
+      !this.included(u1, v0) ||
+      !this.included(u0, v1) ||
+      !this.included(u1, v1) ||
+      !this.included(um, vm)
+    )
+      return false;
+    return !this.hasAreaOverlap(this.removes, u0, u1, v0, v1) && !this.hasAreaOverlap(this.reserves, u0, u1, v0, v1);
   }
 }
 /** A curve with its span edits applied. */

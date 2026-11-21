@@ -15,6 +15,8 @@ import {
   Shader,
   ShaderFactory,
   ShaderLanguage,
+  ShaderMacro,
+  ShaderProperty,
   Vector3,
   Vector4,
   VertexElement,
@@ -83,6 +85,15 @@ export function packU8Scaled(value: number, scale: number): number {
 }
 
 const SHARED_MATERIALS = new WeakMap<Engine, { standard?: Material; inlinePick?: Material }>();
+const MACRO_FAR_DITHER =
+  ShaderMacro?.getByName?.("MASONRY_FAR_DITHER") ?? ("MASONRY_FAR_DITHER" as unknown as ShaderMacro);
+const MACRO_FAR_PLASTER =
+  ShaderMacro?.getByName?.("MASONRY_FAR_PLASTER") ?? ("MASONRY_FAR_PLASTER" as unknown as ShaderMacro);
+const PROP_FAR_LOD_FADE =
+  ShaderProperty?.getByName?.("renderer_MasonryLodFade") ?? ("renderer_MasonryLodFade" as unknown as ShaderProperty);
+const PROP_FAR_LOD_DEBUG_COLOR =
+  ShaderProperty?.getByName?.("renderer_MasonryLodDebugColor") ??
+  ("renderer_MasonryLodDebugColor" as unknown as ShaderProperty);
 
 function getSharedFarProxyMaterial(engine: Engine, inlinePick = false): Material {
   let cache = SHARED_MATERIALS.get(engine);
@@ -304,11 +315,20 @@ export function collapsePreviewPartToBox(part: ConstructionPreviewPart): Constru
   }
   const emission = part.emission ? new Array<number>(24).fill(avgE) : undefined;
   return {
-    ...part,
+    owner: part.owner,
+    material: part.material,
+    placement: part.placement,
+    decoration: part.decoration,
+    roofSpire: part.roofSpire,
+    stonePaving: part.stonePaving,
+    pickId: part.pickId,
+    color: part.color,
+    emissive: part.emissive,
+    plaster: part.plaster,
     positions: box.positions as unknown as number[],
     normals: box.normals as unknown as number[],
     indices: box.indices as unknown as number[],
-    uvs: undefined,
+    uvs: [],
     colors,
     emission
   };
@@ -403,11 +423,11 @@ export function collapseDecorationToBoxes(dp: ConstructionDecorationPart): Const
     const kinds = b.emissive ? new Array<number>(24).fill(DecorationMaterial.glass) : undefined;
     out.push({
       ...dp,
-      positions: box.positions,
-      normals: box.normals,
-      indices: box.indices,
-      colors,
-      emission,
+      positions: box.positions as unknown as number[],
+      normals: box.normals as unknown as number[],
+      indices: box.indices as unknown as number[],
+      colors: colors as unknown as number[],
+      emission: emission as unknown as number[],
       uvs: undefined,
       tintMask,
       appearance: kinds ? ({ kinds } as ConstructionDecorationPart["appearance"]) : undefined
@@ -535,7 +555,7 @@ export function writeCompactFarProxyColors(
   for (let s = 0; s < partSpans.length; s++) {
     const span = partSpans[s]!;
     let baseR: number, baseG: number, baseB: number;
-    if (span.isPlaster) {
+    if (span.isPlaster || span.role === "plaster") {
       if (brickTint) {
         const lum = span.fallback[0] * 0.2126 + span.fallback[1] * 0.7152 + span.fallback[2] * 0.0722;
         baseR = lum * brickTint[0];
@@ -645,10 +665,14 @@ export function createBuildingFarProxy(
   let totalVertices = 0;
   let totalIndices = 0;
 
+  let hasPlaster = false;
   for (let i = 0; i < parts.length; i++) {
     const rawPart = parts[i]!;
     if (!rawPart.indices.length || !rawPart.positions.length) continue;
-    if (rawPart.plaster && rawPart.plaster.wear >= 1) continue;
+    if (rawPart.plaster) {
+      if (rawPart.plaster.wear >= 1) continue;
+      hasPlaster = true;
+    }
     const p =
       rawPart.decoration && !rawPart.roofSpire && rawPart.indices.length > 72
         ? collapsePreviewPartToBox(rawPart)
@@ -834,12 +858,14 @@ export function createBuildingFarProxy(
   renderer.mesh = mesh;
   renderer.setMaterial(getSharedFarProxyMaterial(engine, inlinePick));
   renderer.enableVertexColor = true;
-  renderer.priority = -100;
+  renderer.priority = hasPlaster ? -98 : -105;
   renderer.castShadows = false;
   renderer.receiveShadows = true;
-  renderer.shaderData.setFloat("renderer_MasonryLodFade", 1);
+  if (hasPlaster) renderer.shaderData?.enableMacro?.(MACRO_FAR_PLASTER);
+  renderer.shaderData.setFloat(PROP_FAR_LOD_FADE, 1);
   const debugColor = new Vector4(0, 0, 0, 0);
-  renderer.shaderData.setVector4("renderer_MasonryLodDebugColor", debugColor);
+  renderer.shaderData.setVector4(PROP_FAR_LOD_DEBUG_COLOR, debugColor);
+  let ditherEnabled = false;
 
   return {
     root,
@@ -850,11 +876,17 @@ export function createBuildingFarProxy(
       colorBuffer.setData(colorBytes);
     },
     setFade(fade: number) {
-      renderer.shaderData.setFloat("renderer_MasonryLodFade", fade);
+      const needDither = fade < 0.999;
+      if (needDither !== ditherEnabled) {
+        ditherEnabled = needDither;
+        if (needDither) renderer.shaderData?.enableMacro?.(MACRO_FAR_DITHER);
+        else renderer.shaderData?.disableMacro?.(MACRO_FAR_DITHER);
+      }
+      renderer.shaderData.setFloat(PROP_FAR_LOD_FADE, fade);
     },
     setLodDebugColor(r: number, g: number, b: number, a: number) {
       debugColor.set(r, g, b, a);
-      renderer.shaderData.setVector4("renderer_MasonryLodDebugColor", debugColor);
+      renderer.shaderData.setVector4(PROP_FAR_LOD_DEBUG_COLOR, debugColor);
     },
     destroy() {
       const release = () => {

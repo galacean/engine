@@ -36,9 +36,28 @@ export function dormerSelectedBins(record: Uint8Array, grid?: DormerGrid): numbe
   for (let row = zmin; row <= zmax; row++) for (let col = xmin; col <= xmax; col++) out.push(row * 15 + col);
   return out;
 }
-export function encodeDormerBins(records: readonly Uint8Array[], grid?: DormerGrid) {
-  const counts = new Uint32Array(225),
-    holes = new Uint8Array(225 * 50 * 48),
+export function encodeDormerBins(
+  records: readonly Uint8Array[],
+  grid?: DormerGrid,
+  options?: { compactEmpty?: boolean }
+) {
+  const counts = new Uint32Array(225);
+  if (records.length === 0 && options?.compactEmpty) {
+    return {
+      counts,
+      holes: new Uint8Array(64),
+      report: {
+        inputCount: 0,
+        physicalCapacity: 50,
+        admittedCount: 49,
+        droppedAssignments: 0,
+        overflowBins: [] as number[],
+        policy: "Original first-49 per spatial bin; later assignments dropped, duplicates retained",
+        occupiedBins: [] as Array<{ bin: number; count: number }>
+      }
+    };
+  }
+  const holes = new Uint8Array(225 * 50 * 48),
     overflow: number[] = [];
   let droppedAssignments = 0;
   records.forEach((record) => {
@@ -67,11 +86,31 @@ export function encodeDormerBins(records: readonly Uint8Array[], grid?: DormerGr
   };
 }
 
-/** The native bins are local to a fixed 130 m domain. Host-authored groups may
- * extend beyond it. Keep the native addressing exactly for in-domain content;
- * otherwise derive one shared CPU/GPU address transform from every hole bound.
- * Hole coordinates, cubic clipping and first-49 capacity remain unchanged. */
-export function encodeConstructionDormerBins(records: readonly Uint8Array[]) {
+/** Lightweight overflow check that avoids allocating the 540 KB holes buffer. */
+export function countDormerBinOverflows(records: readonly Uint8Array[], grid?: DormerGrid): number {
+  if (!records.length) return 0;
+  const counts = new Uint16Array(225);
+  let droppedAssignments = 0;
+  for (let i = 0; i < records.length; i++) {
+    for (const bin of dormerSelectedBins(records[i]!, grid)) {
+      if (counts[bin] === 49) {
+        droppedAssignments++;
+        continue;
+      }
+      counts[bin]++;
+    }
+  }
+  return droppedAssignments;
+}
+
+/** Domain-aware dormer bin overflow count without allocating the 540 KB holes buffer. */
+export function countConstructionDormerBinOverflows(records: readonly Uint8Array[]): number {
+  if (!records.length) return 0;
+  const { grid, native } = computeDormerGrid(records);
+  return countDormerBinOverflows(records, native ? undefined : grid);
+}
+
+function computeDormerGrid(records: readonly Uint8Array[]): { grid: DormerGrid; native: boolean } {
   const lo = [-65, -65],
     hi = [65, 65];
   for (const record of records) {
@@ -87,5 +126,14 @@ export function encodeConstructionDormerBins(records: readonly Uint8Array[]) {
     : [lo[0], lo[1], div(15, sub(hi[0], lo[0])), div(15, sub(hi[1], lo[1]))];
   if (!grid.every(Number.isFinite) || grid[2] <= 0 || grid[3] <= 0)
     throw Error("Dormer grid exceeds finite address domain");
-  return { ...encodeDormerBins(records, native ? undefined : grid), grid };
+  return { grid, native };
+}
+
+/** The native bins are local to a fixed 130 m domain. Host-authored groups may
+ * extend beyond it. Keep the native addressing exactly for in-domain content;
+ * otherwise derive one shared CPU/GPU address transform from every hole bound.
+ * Hole coordinates, cubic clipping and first-49 capacity remain unchanged. */
+export function encodeConstructionDormerBins(records: readonly Uint8Array[], options?: { compactEmpty?: boolean }) {
+  const { grid, native } = computeDormerGrid(records);
+  return { ...encodeDormerBins(records, native ? undefined : grid, options), grid };
 }

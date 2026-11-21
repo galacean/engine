@@ -4,7 +4,7 @@ const FLASH_APP_TEXT_BUNDLE_URL: string | undefined = "__SEED_WORLD_PROJECT_TEXT
 let cachedBundlePromise: Promise<ReadonlyMap<string, string> | undefined> | undefined;
 
 /**
- * Loads the build-time consolidated small project text bundle (.prefab/.mat/.tex/.scene/.json)
+ * Loads the build-time consolidated small project text bundle (.prefab/.mat/.scene/.json)
  * when running in a Flash App production build. Returns undefined in dev/non-flash builds or on fetch miss,
  * allowing RuntimeProjectSession to fall back transparently to per-file fetches.
  */

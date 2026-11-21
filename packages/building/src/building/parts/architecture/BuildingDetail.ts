@@ -35,8 +35,8 @@ export async function prepareBuildingDetail(cpu: BuildingCpuHandle, options: Par
   options.signal.throwIfAborted();
   retainBuildingResource(options.assets, 1);
   try {
-    const { renderInput, grounding } = await cpu.compile(options.signal);
-    const unitCount = renderInput.groups.reduce((sum, group) => sum + group.cells.length, 0);
+    const { renderInput, grounding } = await cpu.compile(options.signal, { omitEmptyCells: true });
+    const unitCount = renderInput.groups.reduce((sum, group) => sum + (group.cellCount ?? group.cells.length), 0);
     options.signal.throwIfAborted();
     const renderSource = narrowActiveMaterialUnits(renderInput);
     const rendered = await renderBuilding(renderSource, {

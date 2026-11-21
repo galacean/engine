@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { brickFeedbackLodBounds, brickLodBounds } from "../src/building/runtime/BrickUnitLod.js";
 import { MaterialUnitLod } from "../src/building/runtime/MaterialUnitLod.js";
 
 function identityView(cameraZ: number): Float32Array {
@@ -67,5 +68,64 @@ describe("MaterialUnitLod", () => {
     expect(lod.lowCount).toBe(0);
     expect(lod.hasHighFade).toBe(false);
     expect(lod.hasLowFade).toBe(false);
+  });
+});
+
+describe("BrickUnitLod finite bounds validation", () => {
+  it("throws when brickFeedbackLodBounds pack overflows float32 or has off-row NaN", () => {
+    const overflow = new Float32Array(20);
+    overflow[0] = 3e38;
+    overflow[3] = 3e38;
+    expect(() => brickFeedbackLodBounds({ kind: "pack", count: 1, data: overflow })).toThrow(
+      "Non-finite brick feedback LOD bounds"
+    );
+
+    const offRowNaN = new Float32Array(20);
+    offRowNaN[0] = 1;
+    offRowNaN[1] = Number.NaN;
+    expect(() => brickFeedbackLodBounds({ kind: "pack", count: 1, data: offRowNaN })).toThrow(
+      "Non-finite brick feedback LOD bounds"
+    );
+  });
+
+  it("throws when brickLodBounds decodes non-finite off-row half-float components", () => {
+    const wall64 = new Uint8Array(64);
+    const dv = new DataView(wall64.buffer);
+    dv.setUint16(2, 0x7c00, true); // m01 = +Infinity
+    expect(() => brickLodBounds(wall64)).toThrow("Non-finite brick LOD bounds");
+  });
+
+  it("throws when brickFeedbackLodBounds grid overflows float32 bounds or cullRadius", () => {
+    expect(() =>
+      brickFeedbackLodBounds({
+        kind: "grid",
+        count: 1,
+        grid: {
+          columns: [1, 0, 0, 1],
+          grid: [3e38, 3e38, 0, 0],
+          bounds: [0, 6e38, 0, 6e38],
+          strip: [0, 0, 1, 0],
+          gap: [0, 0, 0, 0],
+          nominal: [3e38, 3e38, 3e38],
+          rangeMin: [0, 0, 0],
+          rangeMax: [2, 2, 2],
+          length: 0,
+          groundY: 0
+        }
+      })
+    ).toThrow("Non-finite brick feedback LOD bounds");
+  });
+
+  it("parses valid brick wall64 records cleanly", () => {
+    const wall64 = new Uint8Array(64);
+    const dv = new DataView(wall64.buffer);
+    dv.setUint16(0, 0x3c00, true); // m00 = 1
+    dv.setUint16(8, 0x3c00, true); // m11 = 1
+    dv.setUint16(16, 0x3c00, true); // m22 = 1
+    dv.setFloat32(20, 4, true);
+    const parsed = brickLodBounds(wall64);
+    expect(parsed.bounds[0]).toBe(4);
+    expect(Number.isFinite(parsed.bounds[3])).toBe(true);
+    expect(Number.isFinite(parsed.cullRadius[0])).toBe(true);
   });
 });

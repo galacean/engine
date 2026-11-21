@@ -35,8 +35,9 @@ float wallJointCeiling(vec3 p) {
 }
 void original_main()`
   );
-  // Run after the original fragment producer: wood/brick SDFs must be clipped
-  // at the actual ray hit, never at the six-face proxy's rasterized position.
+  // Run after the original fragment producer so any derivative / implicit-LOD texture
+  // sampling inside original_main() executes under uniform control flow (GLSL ES 3.00 §3.9.2),
+  // and wood/brick SDF rays clip at their actual ray hit rather than the proxy surface.
   const point = fragment.includes("vec3 masonrySdfHitLocal;")
     ? `masonryWallJointRest+masonrySdfHitLocal-${variant.world}`
     : "masonryWallJointRest";

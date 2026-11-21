@@ -16,7 +16,7 @@ import {
   withSeedWorldGenerationRevealVariants
 } from "@galacean/engine-world-planning/world/SeedWorldShaderWarmup";
 
-function renderer(active: boolean, skinned = false, materials?: object[]) {
+function renderer(active: boolean, skinned = false, materials?: object[], castShadows = true) {
   const instance = Object.create((skinned ? SkinnedMeshRenderer : MeshRenderer).prototype);
   const macros = new ShaderMacroCollection();
   macros.enable(ShaderMacro.getByName(active ? "ACTIVE_GEOMETRY" : "INACTIVE_TEMPLATE"));
@@ -25,7 +25,7 @@ function renderer(active: boolean, skinned = false, materials?: object[]) {
     shaderData: { value: { _macroCollection: macros } },
     mesh: { value: { _primitive: { vertexElements: [{ attribute: "NORMAL" }] } } },
     enabled: { value: false },
-    castShadows: { value: true },
+    castShadows: { value: castShadows },
     _update: { value: () => {} },
     getMaterials: {
       value: () =>
@@ -1261,5 +1261,199 @@ describe("renderer warmup scope", () => {
           v.macros.some((m) => m.n === "RENDERER_GENERATION_REVEAL")
       )
     ).toBe(false);
+  });
+
+  it("omits SCENE_POINT_LIGHT_COUNT expansion on GLOBAL_PROXY_ENTRANCE variants while keeping it on steady-state Masonry/GlobalProxy", () => {
+    const entranceMacros = new ShaderMacroCollection();
+    entranceMacros.enable(ShaderMacro.getByName("GLOBAL_PROXY_ENTRANCE"));
+    const globalProxyRenderer = renderer(true, false, [
+      {
+        destroyed: false,
+        shader: {
+          name: "Masonry/GlobalProxy",
+          destroyed: false,
+          subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
+        },
+        shaderData: { _macroCollection: entranceMacros }
+      }
+    ]);
+
+    const variants = collectSeedWorldRendererVariants(
+      { _macroCollection: new ShaderMacroCollection() } as any,
+      { shaderData: { _macroCollection: new ShaderMacroCollection() }, background: { mode: 0 } } as any,
+      { _updateShaderData() {}, shaderData: { _macroCollection: new ShaderMacroCollection() } } as any,
+      [],
+      {
+        additionalRenderers: [globalProxyRenderer],
+        additionalPointLightCounts: [4]
+      }
+    );
+
+    const hasMacro = (v: (typeof variants)[number], name: string, value?: string) =>
+      v.macros.some((m) => m.n === name && (value === undefined || m.v === value));
+    // Entrance variant must NOT expand SCENE_POINT_LIGHT_COUNT=4.
+    expect(
+      variants.some(
+        (v) =>
+          v.shader === "Masonry/GlobalProxy" &&
+          hasMacro(v, "GLOBAL_PROXY_ENTRANCE") &&
+          hasMacro(v, "SCENE_POINT_LIGHT_COUNT", "4")
+      )
+    ).toBe(false);
+    // Paired steady-state variant (macro-off) MUST still expand SCENE_POINT_LIGHT_COUNT=4.
+    expect(
+      variants.some(
+        (v) =>
+          v.shader === "Masonry/GlobalProxy" &&
+          !hasMacro(v, "GLOBAL_PROXY_ENTRANCE") &&
+          hasMacro(v, "SCENE_POINT_LIGHT_COUNT", "4")
+      )
+    ).toBe(true);
+  });
+
+  it("collects steady-state ShadowCaster for Masonry/GlobalProxy with GLOBAL_PROXY_PLASTER when shadow-only companion is present", () => {
+    const structMacros = new ShaderMacroCollection();
+    structMacros.enable(ShaderMacro.getByName("GLOBAL_PROXY_ENTRANCE"));
+    structMacros.enable(ShaderMacro.getByName("GLOBAL_PROXY_PLASTER"));
+    const globalProxyShader = {
+      name: "Masonry/GlobalProxy",
+      destroyed: false,
+      subShaders: [{ passes: [{ getTagValue: () => "ShadowCaster" }, { getTagValue: () => "Forward" }] }]
+    };
+    const shadowOnlyMat = {
+      destroyed: false,
+      shader: {
+        name: "Masonry/GlobalProxyShadowOnly",
+        destroyed: false,
+        subShaders: [{ passes: [{ getTagValue: () => "ShadowCaster" }] }]
+      },
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    };
+    const bucketRenderer = renderer(
+      true,
+      false,
+      [
+        {
+          destroyed: false,
+          shader: globalProxyShader,
+          shaderData: { _macroCollection: structMacros }
+        }
+      ],
+      false
+    );
+    const findSpy = vi.spyOn(Shader, "find").mockImplementation((name: string) =>
+      name === "Masonry/GlobalProxy" ? (globalProxyShader as any) : null
+    );
+    try {
+      const variants = collectSeedWorldRendererVariants(
+        { _macroCollection: new ShaderMacroCollection() } as any,
+        { shaderData: { _macroCollection: new ShaderMacroCollection() }, background: { mode: 0 } } as any,
+        { _updateShaderData() {}, shaderData: { _macroCollection: new ShaderMacroCollection() } } as any,
+        [],
+        {
+          includeGpuInstancing: false,
+          additionalRenderers: [bucketRenderer],
+          additionalRendererMaterials: new Map([[bucketRenderer, [shadowOnlyMat as any]]])
+        }
+      );
+
+      // Steady-state ShadowCaster (pi=0) with GLOBAL_PROXY_PLASTER must be collected for t=2.4s settle.
+      expect(
+        variants.some(
+          (v) =>
+            v.shader === "Masonry/GlobalProxy" &&
+            v.pi === 0 &&
+            v.macros.every((m) => m.n !== "GLOBAL_PROXY_ENTRANCE") &&
+            v.macros.some((m) => m.n === "GLOBAL_PROXY_PLASTER")
+        )
+      ).toBe(true);
+      // Entrance ShadowCaster (pi=0) with GLOBAL_PROXY_ENTRANCE must remain omitted while castShadows=false.
+      expect(
+        variants.some(
+          (v) =>
+            v.shader === "Masonry/GlobalProxy" &&
+            v.pi === 0 &&
+            v.macros.some((m) => m.n === "GLOBAL_PROXY_ENTRANCE")
+        )
+      ).toBe(false);
+    } finally {
+      findSpy.mockRestore();
+    }
+  });
+
+  it("collects steady-state ShadowCaster with GLOBAL_PROXY_PLASTER regardless of bucket ordering when a non-shadow bucket precedes a shadow-casting bucket", () => {
+    const makeStructMacros = () => {
+      const m = new ShaderMacroCollection();
+      m.enable(ShaderMacro.getByName("GLOBAL_PROXY_ENTRANCE"));
+      m.enable(ShaderMacro.getByName("GLOBAL_PROXY_PLASTER"));
+      return m;
+    };
+    const globalProxyShader = {
+      name: "Masonry/GlobalProxy",
+      destroyed: false,
+      subShaders: [{ passes: [{ getTagValue: () => "ShadowCaster" }, { getTagValue: () => "Forward" }] }]
+    };
+    const shadowOnlyMat = {
+      destroyed: false,
+      shader: {
+        name: "Masonry/GlobalProxyShadowOnly",
+        destroyed: false,
+        subShaders: [{ passes: [{ getTagValue: () => "ShadowCaster" }] }]
+      },
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    };
+    const noShadowBucket = renderer(
+      true,
+      false,
+      [
+        {
+          destroyed: false,
+          shader: globalProxyShader,
+          shaderData: { _macroCollection: makeStructMacros() }
+        }
+      ],
+      false
+    );
+    const shadowBucket = renderer(
+      true,
+      false,
+      [
+        {
+          destroyed: false,
+          shader: globalProxyShader,
+          shaderData: { _macroCollection: makeStructMacros() }
+        }
+      ],
+      false
+    );
+    const findSpy = vi.spyOn(Shader, "find").mockImplementation((name: string) =>
+      name === "Masonry/GlobalProxy" ? (globalProxyShader as any) : null
+    );
+    try {
+      const collect = (order: MeshRenderer[]) =>
+        collectSeedWorldRendererVariants(
+          { _macroCollection: new ShaderMacroCollection() } as any,
+          { shaderData: { _macroCollection: new ShaderMacroCollection() }, background: { mode: 0 } } as any,
+          { _updateShaderData() {}, shaderData: { _macroCollection: new ShaderMacroCollection() } } as any,
+          [],
+          {
+            includeGpuInstancing: false,
+            additionalRenderers: order,
+            additionalRendererMaterials: new Map([[shadowBucket, [shadowOnlyMat as any]]])
+          }
+        );
+      const hasSteadyPlasterShadow = (list: ReturnType<typeof collect>) =>
+        list.some(
+          (v) =>
+            v.shader === "Masonry/GlobalProxy" &&
+            v.pi === 0 &&
+            v.macros.every((m) => m.n !== "GLOBAL_PROXY_ENTRANCE") &&
+            v.macros.some((m) => m.n === "GLOBAL_PROXY_PLASTER")
+        );
+      expect(hasSteadyPlasterShadow(collect([noShadowBucket, shadowBucket]))).toBe(true);
+      expect(hasSteadyPlasterShadow(collect([shadowBucket, noShadowBucket]))).toBe(true);
+    } finally {
+      findSpy.mockRestore();
+    }
   });
 });

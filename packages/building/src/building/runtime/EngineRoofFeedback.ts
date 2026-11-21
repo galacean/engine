@@ -6,6 +6,7 @@ import {
   ShaderDataGroup,
   ShaderLanguage,
   ShaderPass,
+  ShaderProperty,
   TransformFeedbackSimulator,
   VertexBufferBinding,
   VertexElement,
@@ -31,6 +32,12 @@ const SHADER_NAME = "TinyGlade/RoofGravity64";
 // Engine-owned group is required; its constructor is stripped from public d.ts.
 // Keep this internal bridge explicit instead of constructing an ungrouped object.
 const RendererShaderData = ShaderData as unknown as new (group: ShaderDataGroup) => ShaderData;
+const PROP_FIRST_INSTANCE = ShaderProperty.getByName("firstInstance");
+const PROP_INSTANCE_COUNT = ShaderProperty.getByName("instanceCount");
+const PROP_DT = ShaderProperty.getByName("dt");
+const PROP_WALL_HEIGHT_DELTA = ShaderProperty.getByName("wallHeightDelta");
+const PROP_ROOF_PIVOT_Y = ShaderProperty.getByName("roofPivotY");
+const PROP_ANIMATION_T = ShaderProperty.getByName("animationT");
 
 function gravityPass(): ShaderPass {
   let shader = Shader.find(SHADER_NAME);
@@ -115,12 +122,12 @@ export class EngineRoofFeedback {
     try {
       for (const step of timeline) {
         if (!step.instance_count) continue;
-        data.setInt("firstInstance", step.first_instance);
-        data.setInt("instanceCount", step.instance_count);
-        data.setFloat("dt", step.dt);
-        data.setFloat("wallHeightDelta", step.wall_height_delta);
-        data.setFloat("roofPivotY", step.roof_pivot_y);
-        data.setFloat("animationT", step.animation_t);
+        data.setInt(PROP_FIRST_INSTANCE, step.first_instance);
+        data.setInt(PROP_INSTANCE_COUNT, step.instance_count);
+        data.setFloat(PROP_DT, step.dt);
+        data.setFloat(PROP_WALL_HEIGHT_DELTA, step.wall_height_delta);
+        data.setFloat(PROP_ROOF_PIVOT_Y, step.roof_pivot_y);
+        data.setFloat(PROP_ANIMATION_T, step.animation_t);
         if (!simulator.beginUpdate(data, ELEMENTS, NO_INPUTS, NO_ELEMENTS))
           throw new Error("Roof gravity program failed");
         try {

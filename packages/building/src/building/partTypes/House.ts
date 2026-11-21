@@ -84,17 +84,34 @@ export interface Battlement {
 const flat = () => 0;
 const ground = (environment: BuildingEnvironment) => environment.ground ?? flat;
 
-function edges(p: WallChartParams) {
-  const out: { edge: number; u: number; l: number }[] = [];
+interface CachedEdge {
+  edge: number;
+  u: number;
+  l: number;
+  ax: number;
+  az: number;
+  dx: number;
+  dz: number;
+  tx: number;
+  tz: number;
+}
+const edgesCache = new WeakMap<readonly (readonly number[])[], CachedEdge[]>();
+function edges(p: WallChartParams): CachedEdge[] {
+  let out = edgesCache.get(p.points);
+  if (out) return out;
+  out = [];
   let u = 0;
   for (let edge = 1; edge < p.points.length; edge++) {
     const a = p.points[edge - 1],
       b = p.points[edge],
-      l = Math.hypot(b[0] - a[0], b[2] - a[2]);
+      dx = b[0] - a[0],
+      dz = b[2] - a[2],
+      l = Math.hypot(dx, dz);
     if (l < 1e-8) continue;
-    out.push({ edge, u, l });
+    out.push({ edge, u, l, ax: a[0], az: a[2], dx, dz, tx: dx / l, tz: dz / l });
     u += l;
   }
+  edgesCache.set(p.points, out);
   return out;
 }
 
@@ -121,16 +138,19 @@ export const wallChartSurface: SurfaceKind<WallChartParams> = {
   cuts: (p) => p.cuts ?? [],
   frame: (p, u, v): Frame => {
     const all = edges(p);
-    const e = all.find((x) => u <= x.u + x.l) ?? all[all.length - 1];
-    const a = p.points[e.edge - 1],
-      b = p.points[e.edge],
-      s = (u - e.u) / e.l;
-    const tangent = [(b[0] - a[0]) / e.l, 0, (b[2] - a[2]) / e.l] as const;
+    let e = all[all.length - 1];
+    for (let i = 0, n = all.length; i < n; i++) {
+      if (u <= all[i].u + all[i].l) {
+        e = all[i];
+        break;
+      }
+    }
+    const s = (u - e.u) / e.l;
     return {
-      origin: [a[0] + s * (b[0] - a[0]), v, a[2] + s * (b[2] - a[2])],
-      x: [tangent[0], 0, tangent[2]],
+      origin: [e.ax + s * e.dx, v, e.az + s * e.dz],
+      x: [e.tx, 0, e.tz],
       y: [0, 1, 0],
-      z: [-tangent[2], 0, tangent[0]]
+      z: [-e.tz, 0, e.tx]
     };
   }
 };
@@ -277,6 +297,19 @@ const joint = (span: number, gap: number) => span - Math.min(gap, span * 0.2);
  * other units occupy, in that range's u. */
 function blockedOver(surface: EffectiveSurface, u0: number, u1: number): Rect[] {
   return [...surface.removedOver(u0, u1), ...surface.reservedOver(u0, u1)];
+}
+function hasBlockedOverlap(surface: EffectiveSurface, u0: number, u1: number, lo: number, hi: number): boolean {
+  const removed = surface.removedOver(u0, u1);
+  for (let i = 0; i < removed.length; i++) {
+    const h = removed[i];
+    if (h[1] < hi && lo < h[3]) return true;
+  }
+  const reserved = surface.reservedOver(u0, u1);
+  for (let i = 0; i < reserved.length; i++) {
+    const h = reserved[i];
+    if (h[1] < hi && lo < h[3]) return true;
+  }
+  return false;
 }
 /** A course position as a rectangle on the chart, or nothing where none fits. */
 function courseCell(chart: WallChartParams, d: CourseLayout, e: CourseEdge, row: number, col: number) {
@@ -1226,8 +1259,12 @@ export const masonryCourses: LayingAlgorithm<MasonryParams, MasonryLayout> = {
     if (tl - bl < 0.03 || tr - br < 0.03 || piece.u1 - piece.u0 < 0.03) return;
     const key = `${r}/${j}/${runPiece}/${holePiece}`;
     // Bricks within half a brick of a removed area are accent stones, as in the native masonry.
-    const accent = blockedOver(surface, piece.u0 - d.w / 2, piece.u1 + d.w / 2).some(
-      (h) => h[1] - d.h / 2 < Math.max(tl, tr) && Math.min(bl, br) < h[3] + d.h / 2
+    const accent = hasBlockedOverlap(
+      surface,
+      piece.u0 - d.w / 2,
+      piece.u1 + d.w / 2,
+      Math.min(bl, br) - d.h / 2,
+      Math.max(tl, tr) + d.h / 2
     );
     const depth =
       ((p.depth ?? 0.56) + (context.random(key, "depth").next() - 0.5) * (p.depthJitter ?? 0.07)) * scale.depth;

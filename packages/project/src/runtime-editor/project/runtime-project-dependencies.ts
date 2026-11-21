@@ -181,6 +181,18 @@ export class RuntimeDependencyMaintenance {
   accept(pack: RuntimeProjectPackage): void {
     this.rememberScripts(pack);
     this.acceptedScripts = this.scripts;
+    const acceptedPaths = new Set(pack.project.files.map((file) => file.virtualPath));
+    for (const path of this.assets.keys()) {
+      if (!acceptedPaths.has(path)) this.assets.delete(path);
+    }
+    for (const file of pack.project.files) {
+      if (file.type === "script") continue;
+      if (this.formats.get(file.type)?.referenceTypes?.length === 0) {
+        this.assets.delete(file.virtualPath);
+      } else if (pack.contents[file.virtualPath] === undefined && file.dependencies !== undefined) {
+        this.remember(pack, file, file.dependencies);
+      }
+    }
   }
 
   private matchingScripts(pack: RuntimeProjectPackage): ScriptSnapshot | undefined {
@@ -275,8 +287,6 @@ export class RuntimeDependencyMaintenance {
         } else if (content !== undefined || file.dependencies === undefined) delete file.dependencies;
       }
     }
-    const paths = new Set(pack.project.files.map((f) => f.virtualPath));
-    for (const path of this.assets.keys()) if (!paths.has(path)) this.assets.delete(path);
   }
 }
 

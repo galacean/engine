@@ -1,7 +1,7 @@
 import type { PlanningComponentDefinition } from "./PlanningComponents";
 import type { PlanningSystemDeclaration } from "./PlanningSystemDeclaration";
 import type { WorldEnvironmentRuntime } from "../integrations/terrain/environment/WorldEnvironmentRuntime";
-import { TERRAIN_CLEAR_VOLUMETRIC_CLOUD_SCALE_SETTINGS } from "@galacean/engine-environment/terrain/environment/TerrainVolumetricCloudPreset";
+import { TERRAIN_CLEAR_VOLUMETRIC_CLOUD_SCALE_SETTINGS } from "@galacean/engine-environment/terrain/environment/TerrainVolumetricCloudScalePreset";
 
 /** Serialized inputs to the existing cloud and precipitation owners. */
 export const PLANNING_WEATHER_COMPONENT: PlanningComponentDefinition = {

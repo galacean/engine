@@ -428,25 +428,42 @@ export const surfaceGrid: LayingAlgorithm<
       ];
       if (!(rect[2] > rect[0] && rect[3] > rect[1])) return;
       // Of what stays beside a removed area, the largest piece is laid.
-      for (const hole of surface.removedOver(rect[0], rect[2])) {
+      const holes = surface.removedOver(rect[0], rect[2]);
+      for (let hi = 0; hi < holes.length; hi++) {
+        const hole = holes[hi];
         if (!(hole[0] < rect[2] && rect[0] < hole[2] && hole[1] < rect[3] && rect[1] < hole[3])) continue;
-        const [a, b, c, d] = rect;
-        const sides: Rect[] = [
-          [a, b, hole[0], d],
-          [hole[2], b, c, d],
-          [a, b, c, hole[1]],
-          [a, hole[3], c, d]
-        ];
-        const area = (q: Rect) => Math.max(0, q[2] - q[0]) * Math.max(0, q[3] - q[1]);
-        rect = sides.reduce((x, y) => (area(y) > area(x) ? y : x));
-        if (!(area(rect) > 0)) return;
+        const a = rect[0],
+          b = rect[1],
+          c = rect[2],
+          d = rect[3];
+        const a0 = hole[0] > a ? (hole[0] - a) * (d - b) : 0;
+        const a1 = c > hole[2] ? (c - hole[2]) * (d - b) : 0;
+        const a2 = hole[1] > b ? (c - a) * (hole[1] - b) : 0;
+        const a3 = d > hole[3] ? (c - a) * (d - hole[3]) : 0;
+        let bestArea = a0;
+        rect = [a, b, hole[0], d];
+        if (a1 > bestArea) {
+          bestArea = a1;
+          rect = [hole[2], b, c, d];
+        }
+        if (a2 > bestArea) {
+          bestArea = a2;
+          rect = [a, b, c, hole[1]];
+        }
+        if (a3 > bestArea) {
+          bestArea = a3;
+          rect = [a, hole[3], c, d];
+        }
+        if (!(bestArea > 0)) return;
       }
     }
     if (!surface.covers(rect)) return;
-    const gap = p.gap ?? [0, 0];
-    const resized = p.trim || e.fill || gap[0] || gap[1];
+    const gap = p.gap;
+    const gap0 = gap ? gap[0] : 0;
+    const gap1 = gap ? gap[1] : 0;
+    const resized = p.trim || e.fill || gap0 || gap1;
     const size = resized
-      ? sized(context.unit, joint(rect[2] - rect[0], gap[0], p.gapLimit), joint(rect[3] - rect[1], gap[1], p.gapLimit))
+      ? sized(context.unit, joint(rect[2] - rect[0], gap0, p.gapLimit), joint(rect[3] - rect[1], gap1, p.gapLimit))
       : undefined;
     // A unit trimmed below its range is not laid at all.
     if (size && !unitFits(context.unit, size)) return;

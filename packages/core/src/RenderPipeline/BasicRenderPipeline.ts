@@ -378,7 +378,7 @@ export class BasicRenderPipeline {
         for (let j = 0, m = replacementSubShaders.length; j < m; j++) {
           const subShader = replacementSubShaders[j];
           if (subShader.getTagValue(replacementTag) === materialSubShader.getTagValue(replacementTag)) {
-            this._pushRenderElementByType(renderElement, subShader);
+            this._pushRenderElementByType(context, renderElement, subShader);
             replacementSuccess = true;
           }
         }
@@ -387,28 +387,35 @@ export class BasicRenderPipeline {
           !replacementSuccess &&
           context.replacementFailureStrategy === ReplacementFailureStrategy.KeepOriginalShader
         ) {
-          this._pushRenderElementByType(renderElement, materialSubShader);
+          this._pushRenderElementByType(context, renderElement, materialSubShader);
         }
       } else {
-        this._pushRenderElementByType(renderElement, replacementSubShaders[0]);
+        this._pushRenderElementByType(context, renderElement, replacementSubShaders[0]);
       }
     } else {
-      this._pushRenderElementByType(renderElement, materialSubShader);
+      this._pushRenderElementByType(context, renderElement, materialSubShader);
     }
   }
 
-  private _pushRenderElementByType(renderElement: RenderElement, subShader: SubShader): void {
+  private _pushRenderElementByType(context: RenderContext, renderElement: RenderElement, subShader: SubShader): void {
     const shaderPasses = subShader.passes;
     const cullingResults = this._cullingResults;
+    const onlyShadowCaster = context._onlyShadowCaster;
+    const shaderData = renderElement.material.shaderData;
     renderElement.subShader = subShader;
     let pushedQueueFlags = RenderQueueFlags.None;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
       const shaderPass = shaderPasses[i];
+      const isShadowCasterPass = shaderPass._pipelineStage === PipelineStage.ShadowCaster;
+      if (onlyShadowCaster !== isShadowCasterPass) {
+        continue;
+      }
+
       const renderState = shaderPass._renderState;
-      const renderQueueType = renderState._getRenderQueueByShaderData(
-        shaderPass._renderStateDataMap,
-        renderElement.material.shaderData
-      );
+      const renderQueueType = renderState._getRenderQueueByShaderData(shaderPass._renderStateDataMap, shaderData);
+      if (onlyShadowCaster && renderQueueType === RenderQueueType.Transparent) {
+        continue;
+      }
 
       const flag = 1 << renderQueueType;
       if (pushedQueueFlags & flag) {
@@ -434,6 +441,9 @@ export class BasicRenderPipeline {
           cullingResults.alphaTestQueue.pushRenderElement(elementForQueue);
           break;
         case RenderQueueType.Transparent:
+          if (elementForQueue.distanceForSort !== elementForQueue.distanceForSort) {
+            elementForQueue.distanceForSort = elementForQueue.component._updateDistanceForSort(context);
+          }
           cullingResults.transparentQueue.pushRenderElement(elementForQueue);
           break;
       }

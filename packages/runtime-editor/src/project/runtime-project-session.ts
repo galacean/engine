@@ -209,6 +209,7 @@ export class RuntimeProjectSession {
 
   private readonly urls = new Set<string>();
   private readonly resourceChanges = new RuntimeAssetChanges();
+  private hasProjectedResources = false;
   private readonly resourceUrls = new Map<string, { content: string | Uint8Array; type: string; path: string }>();
   private readonly scripts: RuntimeProjectScripts;
   private readonly lifetime = new AbortController();
@@ -527,19 +528,30 @@ export class RuntimeProjectSession {
   async resources(signal?: AbortSignal): Promise<RuntimeProjectManifest["files"]> {
     const operation = signal ? AbortSignal.any([signal, this.lifetime.signal]) : this.lifetime.signal;
     operation.throwIfAborted();
+    const projection = this.projectPackage;
+    const editableHierarchyFiles = projection.project.files.filter(
+      (file) =>
+        file.params?.editableSource === true &&
+        /^(Scene|Prefab)$/i.test(file.type) &&
+        projection.contents[file.virtualPath] === undefined
+    );
+    if (editableHierarchyFiles.length > 0) {
+      await this.prepareFilesParallel(editableHierarchyFiles, signal);
+    }
     const provider = this.fileProvider();
     await prepareProjectSources(this.projectPackage, (path) => provider.prepare!(path, operation));
     operation.throwIfAborted();
-    const projection = this.projectPackage;
     const affected = this.resourceChanges.affected(projection);
     // Native Material/Prefab loaders resolve references once. Reissue their URL
     // when a dependency changes, even when their own serialized text is unchanged.
-    const pendingDependentFiles = projection.project.files.filter(
-      (file) =>
-        affected.has(file.virtualPath) &&
-        Boolean(file.dependencies?.length) &&
-        projection.contents[file.virtualPath] === undefined
-    );
+    const pendingDependentFiles = this.hasProjectedResources
+      ? projection.project.files.filter(
+          (file) =>
+            affected.has(file.virtualPath) &&
+            Boolean(file.dependencies?.length) &&
+            projection.contents[file.virtualPath] === undefined
+        )
+      : [];
     if (pendingDependentFiles.length > 0) {
       await this.prepareFilesParallel(pendingDependentFiles, signal);
       for (const file of pendingDependentFiles) {
@@ -583,6 +595,7 @@ export class RuntimeProjectSession {
       }
     }
     this.resourceChanges.accept(projection);
+    this.hasProjectedResources = true;
     return resources;
   }
 
@@ -842,6 +855,34 @@ export class RuntimeProjectSession {
     });
   }
 
+  /** Rebase remote load locations without persisting unedited remote bytes into `pack.contents`. */
+  rebaseRemoteFiles(
+    build: (current: RuntimeProjectPackage) => {
+      files: RuntimeProjectManifest["files"];
+      preservedDependencies?: ReadonlyMap<string, readonly string[]>;
+      contents?: Readonly<Record<string, string | Uint8Array>>;
+    },
+    options?: { recordHistory?: boolean }
+  ): Promise<void> {
+    return this.enqueuePublication(async () => {
+      const pack = this.projectPackage;
+      const next = build(pack);
+      const candidate: RuntimeProjectPackage = {
+        ...pack,
+        project: { ...pack.project, files: next.files },
+        contents: next.contents ? { ...next.contents, ...pack.contents } : pack.contents
+      };
+      await this.commitPackage(
+        candidate,
+        undefined,
+        undefined,
+        undefined,
+        options?.recordHistory !== false,
+        next.preservedDependencies
+      );
+    });
+  }
+
   /** Detached editor drafts retain current domain writes. An owner can prepare
    * explicit replacements through publishAsset and adopt them after commit. */
   ownRuntimeAsset(
@@ -922,7 +963,8 @@ export class RuntimeProjectSession {
     runtimeWrite?: string,
     history?: { transactionId: string; move?: HistoryMove; sceneChanges?: Record<string, RuntimeSceneChangeSet> },
     explicitRuntimeEdit?: { path: string; finalizeContent?: () => string | Uint8Array },
-    recordHistory = true
+    recordHistory = true,
+    preservedRemoteDependencies?: ReadonlyMap<string, readonly string[]>
   ): Promise<RuntimeProjectUndo> {
     this.lifetime.signal.throwIfAborted();
     const checkpoint = runtimeEditWork();
@@ -942,6 +984,15 @@ export class RuntimeProjectSession {
       Object.keys(candidate.contents).filter((path) => this.projectPackage.contents[path] === undefined)
     );
     invalidateChangedDependencies(this.projectPackage, candidate, this.referenceFormats);
+    if (preservedRemoteDependencies?.size) {
+      for (const file of candidate.project.files) {
+        if (candidate.contents[file.virtualPath] !== undefined || file.type === "script") continue;
+        const preserved = preservedRemoteDependencies.get(file.virtualPath);
+        if (!preserved) continue;
+        if (this.referenceFormats.get(file.type)?.referenceTypes?.length === 0) continue;
+        file.dependencies = [...preserved];
+      }
+    }
     await this.validateCandidate(candidate);
     await checkpoint(this.lifetime.signal);
     candidate = await this.withDependencies(candidate);
@@ -1049,6 +1100,7 @@ export class RuntimeProjectSession {
     this.urls.clear();
     this.resourceUrls.clear();
     this.resourceChanges.clear();
+    this.hasProjectedResources = false;
     this.storage.close();
   }
 }

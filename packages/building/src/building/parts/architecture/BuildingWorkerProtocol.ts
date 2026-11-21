@@ -17,7 +17,14 @@ export type BuildingWorkerRequest =
       options?: BuildingCpuOptions;
       workerSlim?: boolean;
     }
-  | { id: number; mode: "detail"; token: number; feedbackGrid?: boolean; workerSlim?: boolean }
+  | {
+      id: number;
+      mode: "detail";
+      token: number;
+      feedbackGrid?: boolean;
+      workerSlim?: boolean;
+      omitEmptyCells?: boolean;
+    }
   | { mode: "release"; token: number };
 export type BuildingWorkerReply =
   | { id: number; ok: true; result: BuildingCpuPreview | BuildingCpuDetail }

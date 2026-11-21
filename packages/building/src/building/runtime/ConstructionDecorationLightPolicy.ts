@@ -117,11 +117,22 @@ export class ConstructionDecorationLightPolicy {
     resident.clear();
     for (const slot of this.slots) if (slot.descriptor) resident.add(slot.descriptor.id);
     const candidates = this._candidates;
+    const enterLimit2 = this.enterDistance * this.enterDistance;
+    const exitLimit2 = this.exitDistance * this.exitDistance;
+    const cx = camera[0],
+      cy = camera[1],
+      cz = camera[2];
     let count = 0;
     for (let i = 0, n = lights.length; i < n; i++) {
       const l = lights[i];
-      const d = Math.hypot(l.position[0] - camera[0], l.position[1] - camera[1], l.position[2] - camera[2]);
-      if (!(l.intensity > 0 && d < (resident.has(l.id) ? this.exitDistance : this.enterDistance))) continue;
+      if (l.intensity <= 0) continue;
+      const limit2 = resident.has(l.id) ? exitLimit2 : enterLimit2;
+      const dx = l.position[0] - cx,
+        dy = l.position[1] - cy,
+        dz = l.position[2] - cz;
+      const d2 = dx * dx + dy * dy + dz * dz;
+      if (!(d2 < limit2)) continue;
+      const d = Math.sqrt(d2);
       const candidate = (candidates[count] ??= { l, d });
       candidate.l = l;
       candidate.d = d;

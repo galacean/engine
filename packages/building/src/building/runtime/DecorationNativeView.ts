@@ -42,7 +42,7 @@ interface DecorationNativeViewState {
   loading: boolean;
   fade: number;
   lodDebug: boolean;
-  entrance: ReadonlyMap<string, ConstructionEntranceState>;
+  entrance: Map<string, ConstructionEntranceState>;
   hiddenOwners: Set<string>;
 }
 
@@ -179,14 +179,17 @@ async function loadDecorationNativeView(
   try {
     await state.scene.load(built.package);
     if (state.destroyed) return;
+    state.scene.releasePackageData?.();
     if (options.rigidDecorations) state.scene.bindRigidDecorations(options.rigidDecorations.resolve);
     if (options.camera) state.scene.bindCamera(options.camera);
     state.scene.setLodStates([{ lodIndex: 0, signedFade: state.fade }]);
     if (state.lodDebug) state.scene.setLodDebugTint(true, 1);
     state.scene.setEntrance(state.entrance);
     for (const draw of state.scene.draws.values())
-      if (draw.ownerId && state.hiddenOwners.has(draw.ownerId))
-        draw.renderer.entity.isActive = draw.lodRenderer.entity.isActive = false;
+      if (draw.ownerId && state.hiddenOwners.has(draw.ownerId)) {
+        draw.renderer.entity.isActive = false;
+        if (draw.lodRenderer) draw.lodRenderer.entity.isActive = false;
+      }
     state.scene.root.isActive = true;
   } catch (error) {
     state.scene.destroy();
@@ -207,7 +210,10 @@ function decorationNativeViewControls(state: DecorationNativeViewState, ready: P
       else state.hiddenOwners.add(owner);
       if (state.scene)
         for (const draw of state.scene.draws.values())
-          if (draw.ownerId === owner) draw.renderer.entity.isActive = draw.lodRenderer.entity.isActive = visible;
+          if (draw.ownerId === owner) {
+            draw.renderer.entity.isActive = visible;
+            if (draw.lodRenderer) draw.lodRenderer.entity.isActive = visible;
+          }
     },
     setFade(value: number) {
       state.fade = value;
@@ -218,7 +224,19 @@ function decorationNativeViewControls(state: DecorationNativeViewState, ready: P
       if (!state.destroyed && !state.loading) state.scene?.setLodDebugTint(enabled, 1);
     },
     setEntrance(states: ReadonlyMap<string, ConstructionEntranceState>) {
-      state.entrance = new Map([...states].map(([id, state]) => [id, { ...state }]));
+      for (const id of state.entrance.keys()) {
+        if (!states.has(id)) state.entrance.delete(id);
+      }
+      for (const [id, next] of states) {
+        const cur = state.entrance.get(id);
+        if (cur) {
+          cur.progress = next.progress;
+          cur.minimumY = next.minimumY;
+          cur.height = next.height;
+        } else {
+          state.entrance.set(id, { ...next });
+        }
+      }
       if (!state.destroyed && !state.loading) state.scene?.setEntrance(state.entrance);
     },
     visitRenderers(
@@ -235,7 +253,7 @@ function decorationNativeViewControls(state: DecorationNativeViewState, ready: P
       for (const draw of state.scene.draws.values()) {
         if (draw.ownerId === undefined) continue;
         visitor(draw.renderer, draw.ownerId, draw);
-        visitor(draw.lodRenderer, draw.ownerId, draw);
+        if (draw.lodRenderer) visitor(draw.lodRenderer, draw.ownerId, draw);
       }
     },
     get triangles() {

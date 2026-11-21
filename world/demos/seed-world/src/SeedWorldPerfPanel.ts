@@ -39,7 +39,7 @@ export interface SeedWorldPerfPanelOptions {
   readonly setVistaVisible: (visible: boolean) => void;
   readonly getVistaVisible: () => boolean;
   readonly setHudVisible: (visible: boolean) => void;
-  readonly getBuildingEntity: () => Entity | undefined;
+  readonly setBuildingVisible: (visible: boolean) => void;
   readonly setDprOverride: (dpr: number | null) => void;
 }
 
@@ -428,11 +428,9 @@ export class SeedWorldPerfPanel {
         if (published) published.solids.root.isActive = on;
         break;
       }
-      case "building": {
-        const entity = this.options.getBuildingEntity();
-        if (entity) entity.isActive = on;
+      case "building":
+        this.options.setBuildingVisible(on);
         break;
-      }
       case "farming": {
         const entity = scene.findEntityByName("Farming Runtime");
         if (entity) entity.isActive = on;

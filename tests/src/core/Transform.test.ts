@@ -7,9 +7,10 @@ import {
   MeshRenderer,
   Scene,
   Script,
-  Transform
+  Transform,
+  TransformModifyFlags
 } from "@galacean/engine-core";
-import { Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
+import { Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -511,6 +512,221 @@ describe("Transform test", function () {
     const world = cloneLayer.transform.worldMatrix;
     expect(world.elements[12]).to.equal(1010);
     expect(world.elements[13]).to.equal(2020);
+  });
+
+  describe("_isFrontFaceInvert", () => {
+    it("evaluates local scale sign parity and zero-axis cases", () => {
+      const node = new Entity(engine, "parity");
+      const t = node.transform;
+
+      expect(t._isFrontFaceInvert()).to.equal(false);
+
+      t.setScale(-1, 1, 1);
+      expect(t._isFrontFaceInvert()).to.equal(true);
+
+      t.setScale(-1, -1, 1);
+      expect(t._isFrontFaceInvert()).to.equal(false);
+
+      t.setScale(-1, -1, -1);
+      expect(t._isFrontFaceInvert()).to.equal(true);
+
+      t.setScale(-1, 1, 0);
+      expect(t._isFrontFaceInvert()).to.equal(true);
+
+      t.setScale(-1, -1, 0);
+      expect(t._isFrontFaceInvert()).to.equal(false);
+
+      t.setScale(0, 0, 0);
+      expect(t._isFrontFaceInvert()).to.equal(false);
+    });
+
+    it("XORs sign parity across multi-level hierarchies and updates on parent flips", () => {
+      const root = scene.createRootEntity("ffi-root");
+      const mid = root.createChild("ffi-mid");
+      const leaf = mid.createChild("ffi-leaf");
+
+      root.transform.setScale(-1, 1, 1);
+      expect(root.transform._isFrontFaceInvert()).to.equal(true);
+      expect(mid.transform._isFrontFaceInvert()).to.equal(true);
+      expect(leaf.transform._isFrontFaceInvert()).to.equal(true);
+
+      mid.transform.setScale(-2, 3, 4);
+      expect(mid.transform._isFrontFaceInvert()).to.equal(false);
+      expect(leaf.transform._isFrontFaceInvert()).to.equal(false);
+
+      leaf.transform.setScale(1, 1, -0.5);
+      expect(leaf.transform._isFrontFaceInvert()).to.equal(true);
+
+      // Flipping ancestor back to positive propagates through all descendants
+      root.transform.setScale(1, 1, 1);
+      expect(root.transform._isFrontFaceInvert()).to.equal(false);
+      expect(mid.transform._isFrontFaceInvert()).to.equal(true);
+      expect(leaf.transform._isFrontFaceInvert()).to.equal(false);
+
+      root.destroy();
+    });
+
+    it("updates on reparenting and Transform replacement", () => {
+      const negParent = scene.createRootEntity("neg-parent");
+      negParent.transform.setScale(-1, 1, 1);
+      const child = scene.createRootEntity("reparent-child");
+      const grandChild = child.createChild("reparent-grandchild");
+
+      expect(child.transform._isFrontFaceInvert()).to.equal(false);
+      expect(grandChild.transform._isFrontFaceInvert()).to.equal(false);
+
+      negParent.addChild(child);
+      expect(child.transform._isFrontFaceInvert()).to.equal(true);
+      expect(grandChild.transform._isFrontFaceInvert()).to.equal(true);
+
+      scene.addRootEntity(child);
+      expect(child.transform._isFrontFaceInvert()).to.equal(false);
+      expect(grandChild.transform._isFrontFaceInvert()).to.equal(false);
+
+      // Replacing parent's Transform preserves negative local scale parity and refreshes descendants
+      negParent.addChild(child);
+      expect(negParent.transform._isFrontFaceInvert()).to.equal(true);
+      expect(child.transform._isFrontFaceInvert()).to.equal(true);
+      expect(grandChild.transform._isFrontFaceInvert()).to.equal(true);
+
+      negParent.addComponent(Transform);
+      expect(negParent.transform._isFrontFaceInvert()).to.equal(true);
+      expect(child.transform._isFrontFaceInvert()).to.equal(true);
+      expect(grandChild.transform._isFrontFaceInvert()).to.equal(true);
+
+      negParent.transform.setScale(1, 1, 1);
+      expect(negParent.transform._isFrontFaceInvert()).to.equal(false);
+      expect(child.transform._isFrontFaceInvert()).to.equal(false);
+      expect(grandChild.transform._isFrontFaceInvert()).to.equal(false);
+
+      negParent.destroy();
+    });
+
+    it.each(["replacement", "clone"])("refreshes constructor-read _isFrontFaceInvert cache after %s", (operation) => {
+      class ReadingFrontFaceTransform extends Transform {
+        constructor(entity: Entity) {
+          super(entity);
+          void this._isFrontFaceInvert();
+        }
+      }
+
+      const source = new Entity(engine, "cached-ffi", ReadingFrontFaceTransform);
+      source.transform.setScale(-2, 3, 4);
+      expect(source.transform._isFrontFaceInvert()).to.equal(true);
+
+      const target =
+        operation === "replacement" ? source.addComponent(ReadingFrontFaceTransform) : source.clone().transform;
+      expect(target._isFrontFaceInvert()).to.equal(true);
+
+      target.setScale(2, 3, 4);
+      expect(target._isFrontFaceInvert()).to.equal(false);
+
+      if (operation === "clone") {
+        target.entity.destroy();
+      }
+      source.destroy();
+    });
+
+    it("handles negative non-uniform parent scale combined with child rotation", () => {
+      const parent = scene.createRootEntity("nonuniform-neg-parent");
+      parent.transform.setScale(-1, 2, 1);
+      const child = parent.createChild("rotated-child");
+      child.transform.setRotation(0, 0, 45);
+
+      expect(child.transform._isFrontFaceInvert()).to.equal(true);
+      expect(child.transform.worldMatrix.determinant()).to.be.lessThan(0);
+
+      parent.destroy();
+    });
+
+    it("remains decoupled from WorldScale dirty updates", () => {
+      const parent = scene.createRootEntity("decouple-parent");
+      parent.transform.setScale(2, 3, 4);
+      const child = parent.createChild("decouple-child");
+
+      // Warm both caches
+      child.transform.lossyWorldScale;
+      expect(child.transform._isFrontFaceInvert()).to.equal(false);
+
+      // Same-sign scale change dirties WorldScale without dirtying IsWorldFrontFaceInvert
+      child.transform.setScale(5, 6, 7);
+      expect((child.transform as any)._dirtyFlag & TransformModifyFlags.WorldScale).to.not.equal(0);
+      expect(child.transform._isFrontFaceInvert()).to.equal(false);
+      expect((child.transform as any)._dirtyFlag & TransformModifyFlags.WorldScale).to.not.equal(0);
+
+      // Rotation under non-uniform parent dirties WorldScale without touching WorldScale cache on _isFrontFaceInvert
+      child.transform.lossyWorldScale;
+      child.transform.setRotation(0, 0, 30);
+      expect((child.transform as any)._dirtyFlag & TransformModifyFlags.WorldScale).to.not.equal(0);
+      expect(child.transform._isFrontFaceInvert()).to.equal(false);
+      expect((child.transform as any)._dirtyFlag & TransformModifyFlags.WorldScale).to.not.equal(0);
+
+      parent.destroy();
+    });
+
+    it("updates when assigning localMatrix and worldMatrix", () => {
+      const parent = scene.createRootEntity("mat-parent");
+      const child = parent.createChild("mat-child");
+
+      const reflectX = new Matrix(-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 5, 0, 0, 1);
+      parent.transform.localMatrix = reflectX;
+      expect(parent.transform._isFrontFaceInvert()).to.equal(true);
+      expect(child.transform._isFrontFaceInvert()).to.equal(true);
+
+      const identity = new Matrix();
+      parent.transform.localMatrix = identity;
+      expect(parent.transform._isFrontFaceInvert()).to.equal(false);
+      expect(child.transform._isFrontFaceInvert()).to.equal(false);
+
+      parent.transform.worldMatrix = reflectX;
+      expect(parent.transform._isFrontFaceInvert()).to.equal(true);
+      expect(child.transform._isFrontFaceInvert()).to.equal(true);
+
+      parent.transform.worldMatrix = identity;
+      expect(parent.transform._isFrontFaceInvert()).to.equal(false);
+      expect(child.transform._isFrontFaceInvert()).to.equal(false);
+
+      parent.destroy();
+    });
+
+    it("preserves and updates _isFrontFaceInvert across clone and _onClone reads", () => {
+      class FrontFaceReaderOnClone extends Script implements ICloneHook<FrontFaceReaderOnClone> {
+        _onClone(target: any): void {
+          target.entity.transform._isFrontFaceInvert();
+        }
+      }
+
+      const source = new Entity(engine, "ffi-source");
+      const layer = source.createChild("layer");
+      layer.transform.setScale(-1, 1, 1);
+      const leaf = layer.createChild("leaf");
+      leaf.addComponent(FrontFaceReaderOnClone);
+
+      expect(layer.transform._isFrontFaceInvert()).to.equal(true);
+      expect(leaf.transform._isFrontFaceInvert()).to.equal(true);
+
+      const clone = source.clone();
+      const cloneLayer = clone.findByName("layer");
+      const cloneLeaf = clone.findByName("leaf");
+
+      expect(cloneLayer.transform._isFrontFaceInvert()).to.equal(true);
+      expect(cloneLeaf.transform._isFrontFaceInvert()).to.equal(true);
+
+      const holder = scene.createRootEntity("ffi-holder");
+      holder.transform.setScale(-1, 1, 1);
+      holder.addChild(clone);
+
+      expect(cloneLayer.transform._isFrontFaceInvert()).to.equal(false);
+      expect(cloneLeaf.transform._isFrontFaceInvert()).to.equal(false);
+
+      scene.addRootEntity(clone);
+      expect(cloneLayer.transform._isFrontFaceInvert()).to.equal(true);
+      expect(cloneLeaf.transform._isFrontFaceInvert()).to.equal(true);
+
+      holder.destroy();
+      clone.destroy();
+      source.destroy();
+    });
   });
 });
 

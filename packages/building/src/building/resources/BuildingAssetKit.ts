@@ -391,63 +391,67 @@ export function buildingAssets(source: PrefabResource): BuildingAssets {
       }
     };
     const units = Object.fromEntries(Object.entries(kit.units).map(([name, prefab]) => [name, extract(prefab)]));
-    const decorations = Object.fromEntries(
-      Object.entries(kit.decorations).map(([name, prefab]) => [name, extract(prefab)])
-    );
+    const hasPrefabs = Object.keys(kit.prefabs).length > 0;
+    const decorations = hasPrefabs
+      ? ({} as Record<string, NativeBuildingUnit>)
+      : Object.fromEntries(Object.entries(kit.decorations).map(([name, prefab]) => [name, extract(prefab)]));
     const unitNames = new Map(Object.entries(kit.units).map(([name, prefab]) => [prefab, name]));
     const assemblies: Record<string, BuildingAssembly> = {};
-    for (const [key, prefab] of Object.entries(kit.assemblies)) {
-      const entity = prefab.instantiate();
-      try {
-        if (!entity.getComponent(BuildingAssemblyComponent)) throw Error("Assembly requires BuildingAssemblyComponent");
-        const selected: BuildingAssembly["selected"] = [];
-        const paths = new Set<string>();
-        const visit = (node: typeof entity, path: string) => {
-          if (!node.isActive || Math.min(node.transform.scale.x, node.transform.scale.y, node.transform.scale.z) <= 0)
-            throw Error("Assembly requires active authored nodes and positive scale");
-          const metadata = node.getComponent(BuildingUnitComponent);
-          if (node.getComponent(MeshRenderer) || metadata) {
-            if (!metadata?.enabled || metadata.family !== "decoration" || !node.getComponent(MeshRenderer)?.enabled)
-              throw Error("Assembly part requires an enabled decoration unit and MeshRenderer");
-            const name = `${key}/${path}`,
-              matrix = Array.from(node.transform.worldMatrix.elements);
-            validateAssemblyPart(name, matrix, metadata?.surfaceKind);
-            if (decorations[name]) throw Error("Duplicate assembly part: " + name);
-            decorations[name] = { ...extractEntity(node), localMatrix: matrix };
-            const role = assemblyRole(metadata.attachment);
-            const stoneTemplate = metadata.stoneFrame
-              ? (unitNames.get(metadata.stoneFrame) ?? `stone-frame/${name}`)
-              : undefined;
-            if (stoneTemplate) {
-              if (role !== "frame") throw Error("Stone alternative requires frame attachment");
-              const unit = units[stoneTemplate] ?? extract(metadata.stoneFrame!);
-              if (unit.family !== "stone-decoration") throw Error("Stone alternative requires a stone-decoration unit");
-              units[stoneTemplate] = unit;
-              unitNames.set(metadata.stoneFrame!, stoneTemplate);
+    if (!hasPrefabs)
+      for (const [key, prefab] of Object.entries(kit.assemblies)) {
+        const entity = prefab.instantiate();
+        try {
+          if (!entity.getComponent(BuildingAssemblyComponent))
+            throw Error("Assembly requires BuildingAssemblyComponent");
+          const selected: BuildingAssembly["selected"] = [];
+          const paths = new Set<string>();
+          const visit = (node: typeof entity, path: string) => {
+            if (!node.isActive || Math.min(node.transform.scale.x, node.transform.scale.y, node.transform.scale.z) <= 0)
+              throw Error("Assembly requires active authored nodes and positive scale");
+            const metadata = node.getComponent(BuildingUnitComponent);
+            if (node.getComponent(MeshRenderer) || metadata) {
+              if (!metadata?.enabled || metadata.family !== "decoration" || !node.getComponent(MeshRenderer)?.enabled)
+                throw Error("Assembly part requires an enabled decoration unit and MeshRenderer");
+              const name = `${key}/${path}`,
+                matrix = Array.from(node.transform.worldMatrix.elements);
+              validateAssemblyPart(name, matrix, metadata?.surfaceKind);
+              if (decorations[name]) throw Error("Duplicate assembly part: " + name);
+              decorations[name] = { ...extractEntity(node), localMatrix: matrix };
+              const role = assemblyRole(metadata.attachment);
+              const stoneTemplate = metadata.stoneFrame
+                ? (unitNames.get(metadata.stoneFrame) ?? `stone-frame/${name}`)
+                : undefined;
+              if (stoneTemplate) {
+                if (role !== "frame") throw Error("Stone alternative requires frame attachment");
+                const unit = units[stoneTemplate] ?? extract(metadata.stoneFrame!);
+                if (unit.family !== "stone-decoration")
+                  throw Error("Stone alternative requires a stone-decoration unit");
+                units[stoneTemplate] = unit;
+                unitNames.set(metadata.stoneFrame!, stoneTemplate);
+              }
+              selected.push([
+                name,
+                path,
+                metadata.surfaceKind,
+                assemblyEmissionOrigin(metadata.emissionOrigin, matrix),
+                { role, ...(stoneTemplate ? { stoneTemplate, localMatrix: matrix } : {}) }
+              ]);
             }
-            selected.push([
-              name,
-              path,
-              metadata.surfaceKind,
-              assemblyEmissionOrigin(metadata.emissionOrigin, matrix),
-              { role, ...(stoneTemplate ? { stoneTemplate, localMatrix: matrix } : {}) }
-            ]);
-          }
-          for (const child of node.children) {
-            const childPath = path ? `${path}/${child.name}` : child.name;
-            if (!child.name || child.name.includes("/") || paths.has(childPath))
-              throw Error("Invalid assembly child path");
-            paths.add(childPath);
-            visit(child, childPath);
-          }
-        };
-        visit(entity, "");
-        if (!selected.length) throw Error("Empty building assembly: " + key);
-        assemblies[key] = { selected };
-      } finally {
-        entity.destroy();
+            for (const child of node.children) {
+              const childPath = path ? `${path}/${child.name}` : child.name;
+              if (!child.name || child.name.includes("/") || paths.has(childPath))
+                throw Error("Invalid assembly child path");
+              paths.add(childPath);
+              visit(child, childPath);
+            }
+          };
+          visit(entity, "");
+          if (!selected.length) throw Error("Empty building assembly: " + key);
+          assemblies[key] = { selected };
+        } finally {
+          entity.destroy();
+        }
       }
-    }
     // A building prefab's members keep their authored poses: each one's world matrix in the
     // prefab is baked into its mesh, so the prefab places as a single unit.
     const prefabs: Record<string, BuildingPrefab> = {};

@@ -1,6 +1,7 @@
 import { Color, MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
 import { PipelinePass } from "../RenderPipeline/PipelinePass";
+import { Renderer } from "../Renderer";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { ContextRendererUpdateFlag, RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
@@ -61,6 +62,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
   private _depthTexture: Texture2D;
   private _renderTarget: RenderTarget | null;
   private _viewportOffsets: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
+  private _shadowCandidates: Renderer[] = [];
 
   constructor(camera: Camera) {
     super(camera.engine);
@@ -84,13 +86,10 @@ export class CascadedShadowCasterPass extends PipelinePass {
     const {
       engine,
       _camera: camera,
-      _viewportOffsets: viewports,
       _shadowSliceData: shadowSliceData,
       _splitBoundSpheres: splitBoundSpheres,
       _shadowMatrices: shadowMatrices
     } = this;
-
-    const { opaqueQueue, alphaTestQueue } = camera._renderPipeline._cullingResults;
 
     const scene = camera.scene!;
     const componentsManager = scene._componentsManager;
@@ -164,7 +163,71 @@ export class CascadedShadowCasterPass extends PipelinePass {
     const cameraForward = CascadedShadowCasterPass._tempVector;
     cameraForward.copyFrom(camera.entity.transform.worldForward);
 
-    const shadowTileResolution = this._shadowTileResolution;
+    const shadowCandidates = this._shadowCandidates;
+    shadowCandidates.length = 0;
+    const renderers = componentsManager._renderers;
+    const elements = renderers._elements;
+    const cameraCullingMask = camera.cullingMask;
+    const lightCullingMask = light.cullingMask;
+    for (let k = renderers.length - 1; k >= 0; --k) {
+      const renderer = elements[k];
+      if (!renderer.castShadows) continue;
+      const layer = renderer._entity.layer;
+      if (cameraCullingMask & layer && lightCullingMask & layer) {
+        shadowCandidates.push(renderer);
+      }
+    }
+
+    context._onlyShadowCaster = true;
+    try {
+      this._renderDirectShadowCascades(
+        context,
+        light,
+        shadowCascades,
+        splitDistance,
+        cameraForward,
+        lightUp,
+        lightSide,
+        lightForward,
+        boundSphere,
+        splitBoundSpheres,
+        shadowMatrices,
+        width,
+        height
+      );
+    } finally {
+      context._onlyShadowCaster = false;
+      shadowCandidates.length = 0;
+    }
+  }
+
+  private _renderDirectShadowCascades(
+    context: RenderContext,
+    light: DirectLight,
+    shadowCascades: number,
+    splitDistance: number[],
+    cameraForward: Vector3,
+    lightUp: Vector3,
+    lightSide: Vector3,
+    lightForward: Vector3,
+    boundSphere: ShadowSliceData["splitBoundSphere"],
+    splitBoundSpheres: Float32Array,
+    shadowMatrices: Float32Array,
+    width: number,
+    height: number
+  ): void {
+    const {
+      engine,
+      _camera: camera,
+      _viewportOffsets: viewports,
+      _shadowSliceData: shadowSliceData,
+      _shadowCandidates: shadowCandidates,
+      _shadowTileResolution: shadowTileResolution
+    } = this;
+    const { opaqueQueue, alphaTestQueue } = camera._renderPipeline._cullingResults;
+    const rhi = engine._hardwareRenderer;
+    const frameCount = engine.time.frameCount;
+    const candidateCount = shadowCandidates.length;
 
     for (let j = 0; j < shadowCascades; j++) {
       ShadowUtils.getBoundSphereByFrustum(
@@ -193,14 +256,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
         shadowMatrices
       );
       if (shadowCascades > 1) {
-        ShadowUtils.applySliceTransform(
-          shadowTileResolution,
-          width,
-          height,
-          j,
-          this._viewportOffsets[j],
-          shadowMatrices
-        );
+        ShadowUtils.applySliceTransform(shadowTileResolution, width, height, j, viewports[j], shadowMatrices);
       }
       this._updateSingleShadowCasterShaderData(light, shadowSliceData, context);
 
@@ -214,10 +270,14 @@ export class CascadedShadowCasterPass extends PipelinePass {
       splitBoundSpheres[offset + 3] = radius * radius;
       opaqueQueue.clear();
       alphaTestQueue.clear();
-      const renderers = componentsManager._renderers;
-      const elements = renderers._elements;
-      for (let k = renderers.length - 1; k >= 0; --k) {
-        ShadowUtils.shadowCullFrustum(context, light, elements[k], shadowSliceData);
+      const cullPlaneCount = shadowSliceData.cullPlaneCount;
+      const cullPlanes = shadowSliceData.cullPlanes;
+      for (let k = 0; k < candidateCount; k++) {
+        const renderer = shadowCandidates[k];
+        if (ShadowUtils.cullingRenderBounds(renderer.bounds, cullPlaneCount, cullPlanes)) {
+          renderer._prepareRender(context);
+          renderer._renderFrameCount = frameCount;
+        }
       }
 
       if (opaqueQueue.elements.length || alphaTestQueue.elements.length) {

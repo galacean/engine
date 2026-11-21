@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { Entity, MeshRenderer, Scene, Shader, ShaderFactory, ShaderLanguage, type Engine } from "@galacean/engine";
+import { Camera, Entity, Logger, MeshRenderer, Scene, Script, Shader, ShaderFactory, ShaderLanguage, type Engine } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { HeadlessEngine } from "../../rhi-null/src/HeadlessEngine";
 import { ShaderMacroProcessor } from "../../core/src/shader/ShaderMacroProcessor";
 import { registerConstructionSceneLighting } from "../src/building/runtime/ConstructionSceneLighting";
 import { constructionPlasterGLSL } from "../src/building/runtime/ConstructionPlasterShader";
@@ -347,5 +348,97 @@ describe("BuildingGlobalProxy shader & spatial bucketing contract", () => {
     slotNearB.destroy();
     slotFar.destroy();
     expect(BuildingGlobalProxy.existing(s)).toBeUndefined();
+  });
+
+  it("deactivates entities before in-frame mesh detach/destroy so Engine._render never logs 'mesh is null.' and handles scene destroy before microtask flush", async () => {
+    installShaderCompiler();
+    const g = globalThis as { cancelAnimationFrame?: (id: number) => void };
+    const hadCancelAnimationFrame = Object.prototype.hasOwnProperty.call(g, "cancelAnimationFrame");
+    const prevCancelAnimationFrame = g.cancelAnimationFrame;
+    if (!g.cancelAnimationFrame) g.cancelAnimationFrame = () => {};
+
+    const loggedErrors: string[] = [];
+    const origLoggerError = Logger.error;
+    Logger.error = (...args: unknown[]) => {
+      loggedErrors.push(args.map(String).join(" "));
+    };
+
+    const runInFrameScenario = async (action: "rebuild" | "destroyLast" | "destroySceneBeforeMicrotask") => {
+      const engine = await HeadlessEngine.create({ width: 64, height: 64 });
+      try {
+        (engine._hardwareRenderer as unknown as { supportsRendering: boolean }).supportsRendering = true;
+        const scene = engine.sceneManager.activeScene;
+        const camEnt = scene.createRootEntity("cam");
+        camEnt.transform.setPosition(0, 0, 10);
+        const camera = camEnt.addComponent(Camera);
+        // Bypass final GL shader program compile while still running Engine._render -> _prepareRender -> MeshRenderer._render.
+        (camera as unknown as { _renderPipeline: { _drawRenderPass: () => void } })._renderPipeline._drawRenderPass =
+          () => {};
+
+        const proxy = BuildingGlobalProxy.forScene(scene);
+        const frame = scene.createRootEntity("bldg");
+        const handle = proxy.register({
+          root: frame,
+          frame,
+          parts: [makeNonBoxWallPart("wall"), makeUnitBoxPart("wall")],
+          colorOwners: [{ id: "wall", seed: 1, wallColor: 0, roofColor: 0, woodColor: 0 }],
+          appearance: masonryAppearance(engine),
+          hiddenOwners: new Set()
+        });
+        proxy.flushIfDirty();
+        handle.updateState(true, true, 1, false);
+        engine.update();
+        loggedErrors.length = 0;
+
+        if (action === "rebuild") {
+          class RebuildScript extends Script {
+            private done = false;
+            override onUpdate(): void {
+              if (!this.done) {
+                this.done = true;
+                handle.markTopologyDirty();
+              }
+            }
+          }
+          scene.createRootEntity("rebuild-trigger").addComponent(RebuildScript);
+          engine.update();
+          expect(loggedErrors).toEqual([]);
+        } else if (action === "destroyLast") {
+          class DestroyScript extends Script {
+            private done = false;
+            override onUpdate(): void {
+              if (!this.done) {
+                this.done = true;
+                handle.destroy();
+              }
+            }
+          }
+          scene.createRootEntity("destroy-trigger").addComponent(DestroyScript);
+          engine.update();
+          expect(loggedErrors).toEqual([]);
+          expect(BuildingGlobalProxy.existing(scene)).toBeUndefined();
+        } else {
+          handle.markTopologyDirty();
+          expect(proxy.destroyed).toBe(false);
+          engine.destroy();
+          expect(proxy.destroyed).toBe(true);
+          await Promise.resolve();
+          expect(loggedErrors).toEqual([]);
+        }
+      } finally {
+        if (!engine.destroyed) engine.destroy();
+        await Promise.resolve();
+      }
+    };
+
+    try {
+      await runInFrameScenario("rebuild");
+      await runInFrameScenario("destroyLast");
+      await runInFrameScenario("destroySceneBeforeMicrotask");
+    } finally {
+      Logger.error = origLoggerError;
+      if (hadCancelAnimationFrame) g.cancelAnimationFrame = prevCancelAnimationFrame;
+      else delete g.cancelAnimationFrame;
+    }
   });
 });

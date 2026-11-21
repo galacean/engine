@@ -8,6 +8,7 @@ import {
   ShaderDataGroup,
   ShaderLanguage,
   ShaderPass,
+  ShaderProperty,
   Texture2D,
   TextureFilterMode,
   TextureFormat,
@@ -86,6 +87,7 @@ const VARYINGS = ["result0", "result1", "result2", "result3"];
 const OUT_ELEMENTS = [0, 1, 2, 3].map((i) => new VertexElement(`record${i}`, i * 16, VertexElementFormat.UInt4, 0));
 const IN_ELEMENTS = [0, 1, 2, 3, 4].map((i) => new VertexElement(`a${i}`, i * 16, VertexElementFormat.Vector4, 0));
 const RendererShaderData = ShaderData as unknown as new (group: ShaderDataGroup) => ShaderData;
+const PROP_U_SLOT = ShaderProperty.getByName("uSlot");
 
 function packKernelPass(): ShaderPass {
   let shader = Shader.find(PACK_SHADER_NAME);
@@ -147,7 +149,7 @@ export function buildBrickStorageFromFeedback(engine: Engine, source: BrickFeedb
   const inputBuf = new Buffer(engine, BufferBindFlag.VertexBuffer, source.data, BufferUsage.Static, false);
   const simulator = new TransformFeedbackSimulator(engine, OUT_STRIDE, count, packKernelPass(), VARYINGS);
   const shaderData = new RendererShaderData(ShaderDataGroup.Renderer);
-  shaderData.setInt("uSlot", source.slot);
+  shaderData.setInt(PROP_U_SLOT, source.slot);
   try {
     if (!simulator.beginUpdate(shaderData, OUT_ELEMENTS, [new VertexBufferBinding(inputBuf, IN_STRIDE)], IN_ELEMENTS)) {
       throw Error("Brick pack TransformFeedback failed to compile");

@@ -93,21 +93,32 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
   invalidate(): void {
     this.residencyDirty = true;
   }
-  updateDemand(dt: number): number {
+  updateDemand(dt: number, shown?: boolean): number {
+    if (shown !== undefined && shown !== this.lastShown) {
+      this.lastShown = shown;
+      this.residencyDirty = true;
+    }
     this.elapsed += Math.max(0, dt);
     const changes = this.cameraChanged();
     if (changes || this.selectionDirty) this.selectLod(changes);
     return changes;
   }
-  updatePresentation(now: number): void {
+  updatePresentation(now: number, shown = true): void {
+    if (shown !== this.lastShown) {
+      this.lastShown = shown;
+      this.residencyDirty = true;
+    }
     if (this.residencyDirty || now >= this.residencyWake || this.elapsed >= this.transitionWake)
-      this.publishResidency(now);
+      this.publishResidency(now, shown);
   }
 
   private elapsed = 0;
   readonly desired = new Set<E>();
   selectionDirty = true;
   private residencyDirty = true;
+  private lastShown = true;
+  private readonly _detailCandidates: E[] = [];
+  private readonly _fullCandidates: E[] = [];
   private residencyWake = Infinity;
   private transitionWake = Infinity;
   // Own scalar snapshots: engine matrices and transition scratch arrays are mutable.
@@ -161,8 +172,10 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
     const flags = this.selectionDirty ? 7 : changes;
     this.selectionDirty = false;
     const position = camera.entity.transform.worldPosition;
-    const detailCandidates: E[] = [];
-    const fullCandidates: E[] = [];
+    const detailCandidates = this._detailCandidates;
+    detailCandidates.length = 0;
+    const fullCandidates = this._fullCandidates;
+    fullCandidates.length = 0;
     for (const e of this.entries) {
       e.probe.update(view, position, flags, e.lod);
       // An unloaded request entering view changes queue order, not resident LOD
@@ -196,18 +209,21 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
         }
       }
     }
+    detailCandidates.length = 0;
+    fullCandidates.length = 0;
     for (const e of this.entries) {
       const wanted = e.lod < 2 && e.visible && (!wantedSet || wantedSet.has(e));
       // Coarse-only visibility changes need no residency sort, transition update
       // or metrics rebuild. Final per-renderer culling remains engine-owned.
       if (!e.fine) {
-        const useFarProxy = e.visible && (e.lod === 2 || !wanted);
-        if (e.coarseVisible !== e.visible) {
-          e.view.setFarProxyActive?.(useFarProxy);
-          e.view.setVisualVisible(e.visible);
-          e.coarseVisible = e.visible;
-        } else if (e.visible) {
-          e.view.setFarProxyActive?.(useFarProxy);
+        const coarseShown = this.lastShown && e.visible;
+        // Keep Far/Global Proxy active while waiting for async fine compilation (avoid building
+        // a throwaway detailed distance view for ~200ms); fall back only when an in-range
+        // desired building failed fine compilation.
+        const useFarProxy = coarseShown && !(Boolean(e.error) && wanted);
+        this.applyCoarsePresentation(e, coarseShown, useFarProxy);
+        if (e.lod === 2) {
+          e.view.releaseDetailedVisual?.();
         }
       }
       if (wanted !== this.desired.has(e)) {
@@ -285,6 +301,21 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
       fullTriangles
     });
   }
+  private applyCoarsePresentation(e: E, coarseShown: boolean, useFarProxy: boolean): void {
+    if (coarseShown) {
+      e.view.setFarProxyActive?.(useFarProxy);
+      if (e.coarseVisible !== true) {
+        e.view.setVisualVisible(true);
+        e.coarseVisible = true;
+      }
+    } else {
+      if (e.coarseVisible !== false) {
+        e.view.setVisualVisible(false);
+        e.coarseVisible = false;
+      }
+      e.view.setFarProxyActive?.(useFarProxy);
+    }
+  }
   evict(e: E) {
     this.invalidate();
     this.onResourcesChanged(e);
@@ -296,13 +327,14 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
     e.fine?.destroy();
     e.fine = undefined;
     e.transition.reset(this.elapsed);
-    e.view.root.isActive = true;
+    e.view.root.isActive = this.lastShown;
+    const coarseShown = this.lastShown && e.visible;
+    const useFarProxy = coarseShown && !(Boolean(e.error) && e.lod < 2 && this.desired.has(e));
+    this.applyCoarsePresentation(e, coarseShown, useFarProxy);
+    e.view.setFade(1);
     if (e.lod === 2) {
       e.view.releaseDetailedVisual?.();
     }
-    e.view.setFarProxyActive?.(e.visible && (e.lod === 2 || !this.desired.has(e)));
-    e.view.setVisualVisible(e.visible);
-    e.view.setFade(1);
     this.metrics.evictions++;
   }
   /** Admit one asynchronous detail request using the same ranking as display.
@@ -326,7 +358,8 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
     }
     return this.metrics.residentBytes <= budget.detailBytes;
   }
-  publishResidency(now = performance.now()) {
+  publishResidency(now = performance.now(), shown = true) {
+    this.lastShown = shown;
     // Budget release and asynchronous readiness are also ranking events. Use the
     // latest cached distances even if movement stayed within one LOD band.
     this.refreshPriorities();
@@ -391,9 +424,9 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
       if (states.length > 1) this.metrics.transitioning++;
       const fineVisible = states.some((s) => s.lodIndex < 2);
       const coarse = states.find((s) => s.lodIndex === 2);
-      const coarseVisible = !!coarse && e.visible;
+      const coarseVisible = shown && !!coarse && e.visible;
       if (runtime) {
-        if (fineVisible && e.visible && !runtime.root.isActive) this.metrics.cacheHits++;
+        if (shown && fineVisible && e.visible && !runtime.root.isActive) this.metrics.cacheHits++;
         const previous = e.presentation;
         if (
           !previous ||
@@ -407,7 +440,7 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
           if (e.visible && fullCoverage && !runtime.metrics.fullCoverage) this.residencyDirty = true;
           e.presentation = states.flatMap((s) => [s.lodIndex, s.signedFade]);
         }
-        runtime.root.isActive = fineVisible && e.visible;
+        runtime.root.isActive = fineVisible && e.visible && shown;
         if (getMasonryLodTuning().colorizeLod) runtime.setLodDebugTint(true);
         // Prefetch retains nearby resources in every direction, independent of rendering.
         const retained = this.desired.has(e) || fineVisible;
@@ -415,17 +448,11 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
         if (retained || e.retained) e.lastUsed = now;
         e.retained = retained;
       }
-      e.view.root.isActive = true;
-      e.view.setFarProxyActive?.(
-        coarseVisible && (e.lod === 2 || !this.desired.has(e) || (!!runtime && e.budgetLod === 2)) && !fineVisible
-      );
-      if (runtime && fineVisible && !coarseVisible && states.length === 1) {
-        e.view.releaseDetailedVisual?.();
-      }
-      if (e.coarseVisible !== coarseVisible) {
-        e.view.setVisualVisible(coarseVisible);
-        e.coarseVisible = coarseVisible;
-      }
+      e.view.root.isActive = shown;
+      // GlobalProxy and FarProxy support Bayer dither crossfades directly; keep them active
+      // during coarse <-> fine crossfades instead of rebuilding a throwaway detailed view.
+      const useFarProxy = coarseVisible && !(Boolean(e.error) && e.lod < 2 && this.desired.has(e));
+      this.applyCoarsePresentation(e, coarseVisible, useFarProxy);
       const coarseFade = coarse?.signedFade ?? 1;
       if (coarseVisible && e.coarseFade !== coarseFade) {
         e.view.setFade(coarseFade);

@@ -12,6 +12,7 @@ import { seedWorldProjectFormats } from "./SeedWorldProjectFormats.ts";
 import { seedWorldScriptModules } from "./systems/SeedWorldScriptModules.ts";
 import { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
 import { RuntimeProjectStorage, type RuntimeProjectManifest } from "@galacean/engine-project/runtime-editor/project/runtime-project";
+import { extractAssetDependencies } from "@galacean/engine-project/runtime-editor/project/runtime-project-dependencies";
 import { SEED_WORLD_PRODUCTION_ASSET_CATALOG } from "@galacean/engine-vegetation/asset-assembly/SeedWorldProductionAssetCatalog";
 import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
 import { SEMANTIC_DEFAULTS } from "@galacean/engine-world-planning/semantic-study/WorldPlanningContract";
@@ -102,7 +103,7 @@ export async function openSeedWorldProject(
     registerPlantProjectAssets();
     project.registerAssetFormats(seedWorldProjectFormats);
     await seedWorldBootTrace.span("openSeedWorldProject.migrateBuildingAssetPaths", () =>
-      migrateBuildingAssetPaths(project, initial, projectUrl)
+      migrateBuildingAssetPaths(project, initial, projectUrl, prefetchedTextAssets)
     );
     await seedWorldBootTrace.span("openSeedWorldProject.migrateWaterTextures", () =>
       migrateSeedWorldWaterTextures(project)
@@ -127,47 +128,87 @@ export async function openSeedWorldProject(
   }
 }
 
-/** Rebase known built-in locations before any restored hierarchy can fetch the retired folder. */
+const SEED_WORLD_FLASH_CDN_HOST = "mdn.alipayobjects.com";
+const SEED_WORLD_FLASH_CDN_MARKER = "/seed-world-flash/";
+
+function isSeedWorldFlashCdnUrl(url: URL): boolean {
+  return url.hostname === SEED_WORLD_FLASH_CDN_HOST && url.pathname.includes(SEED_WORLD_FLASH_CDN_MARKER);
+}
+
+/** Rebase retired built-in locations (legacy folder, local-to-CDN offloads, or updated built-in hashes)
+ * before any restored hierarchy or resource loader can fetch a deleted or stale URL. */
 async function migrateBuildingAssetPaths(
   project: RuntimeProjectSession,
   initial: RuntimeProjectManifest,
-  baseUrl: string
+  baseUrl: string,
+  prefetchedTextAssets?: ReadonlyMap<string, string>
 ): Promise<void> {
   const locations = new Map(initial.files.map((file) => [file.virtualPath, file]));
+  const baseOrigin = new URL(baseUrl).origin;
   const relocate = (file: RuntimeProjectManifest["files"][number]) => {
     const current = locations.get(file.virtualPath);
     if (!current || current.type !== file.type) return file;
-    const path = new URL(current.path, baseUrl).href;
-    const legacy = path.replace("/packages/building/src/building/", "/packages/building/src/tiny-glade/");
-    return legacy !== path && new URL(file.path, baseUrl).href === legacy ? { ...file, path } : file;
+    const targetUrl = new URL(current.path, baseUrl);
+    const savedUrl = new URL(file.path, baseUrl);
+    if (savedUrl.href === targetUrl.href) return file;
+    const legacy = targetUrl.href.replace("/packages/building/src/building/", "/packages/building/src/tiny-glade/");
+    const isLegacyTinyGlade = legacy !== targetUrl.href && savedUrl.href === legacy;
+    const isSameOriginBuiltin =
+      ((baseOrigin !== "null" && savedUrl.origin === baseOrigin) ||
+        (savedUrl.protocol === "file:" && targetUrl.protocol === "file:")) &&
+      (savedUrl.pathname.includes("/packages/") || savedUrl.pathname.includes("/assets/"));
+    const isUpdatedFlashCdn = isSeedWorldFlashCdnUrl(savedUrl);
+    return isLegacyTinyGlade || isSameOriginBuiltin || isUpdatedFlashCdn ? { ...file, path: targetUrl.href } : file;
   };
   const current = project.projectPackage;
   const files = current.project.files.map(relocate);
   const changed = files.filter((file, index) => file !== current.project.files[index]);
   if (!changed.length) return;
-  // A URL change invalidates dependency metadata. Hydrate only reference-bearing
-  // sources at their new locations; saved edits always retain their own bytes.
+  // Remote URL rebasing invalidates dependency metadata. Preserve validated built-in
+  // dependencies or extract them transiently without persisting unedited remote bytes into pack.contents.
   const formats = new Map([...nativeAssetFormats(() => ({})), ...seedWorldProjectFormats]);
+  const filePaths = new Set(files.map((file) => file.virtualPath));
+  const preservedDependencies = new Map<string, readonly string[]>();
   const contents: Record<string, string> = {};
   for (const file of changed) {
-    if (current.contents[file.virtualPath] !== undefined || formats.get(file.type)?.referenceTypes?.length === 0) continue;
-    const response = await fetch(file.path);
-    if (!response.ok) throw new Error(`Building migration read failed (${response.status}): ${file.virtualPath}`);
-    const text = await response.text();
-    if (file.type !== "Prefab" && file.type !== "Scene") { contents[file.virtualPath] = text; continue; }
-    const original = JSON.parse(text);
-    const converted = original.asset ? original : importRuntimeHierarchy(original, file.virtualPath, files, name => Boolean(Loader.getClass(name)));
-    contents[file.virtualPath] = JSON.stringify(converted);
-    if (!original.asset) {
-      const candidate = { ...current, project: { ...current.project, files }, contents: { ...current.contents, ...contents } };
-      assertRuntimeHierarchyEquivalent(original, JSON.parse(compileProjectResource(candidate, file.virtualPath) as string));
+    const format = formats.get(file.type);
+    if (current.contents[file.virtualPath] !== undefined || !format || format.referenceTypes?.length === 0) continue;
+    const initialFile = locations.get(file.virtualPath);
+    if (
+      file.type !== "script" &&
+      initialFile?.dependencies !== undefined &&
+      initialFile.dependencies.every((dep) => filePaths.has(dep))
+    ) {
+      preservedDependencies.set(file.virtualPath, [...initialFile.dependencies]);
+      continue;
     }
+    const preloaded = prefetchedTextAssets?.get(file.path);
+    let text: string;
+    if (preloaded !== undefined) {
+      text = preloaded;
+    } else {
+      const response = await fetch(file.path);
+      if (!response.ok) throw new Error(`Building migration read failed (${response.status}): ${file.virtualPath}`);
+      text = await response.text();
+    }
+    if (file.type === "Prefab" || file.type === "Scene") {
+      const original = JSON.parse(text);
+      if (!original.asset) {
+        const converted = importRuntimeHierarchy(original, file.virtualPath, files, (name) => Boolean(Loader.getClass(name)));
+        contents[file.virtualPath] = JSON.stringify(converted);
+        const candidate = { ...current, project: { ...current.project, files }, contents: { ...current.contents, ...contents } };
+        assertRuntimeHierarchyEquivalent(original, JSON.parse(compileProjectResource(candidate, file.virtualPath) as string));
+        continue;
+      }
+    }
+    const deps = extractAssetDependencies(file, text, format);
+    if (deps !== undefined) preservedDependencies.set(file.virtualPath, deps);
   }
-  await project.update(
+  await project.rebaseRemoteFiles(
     (pack) => ({
-      ...pack,
-      project: { ...pack.project, files: pack.project.files.map(relocate) },
-      contents: { ...contents, ...pack.contents }
+      files: pack.project.files.map(relocate),
+      preservedDependencies,
+      ...(Object.keys(contents).length ? { contents } : {})
     }),
     { recordHistory: false }
   );

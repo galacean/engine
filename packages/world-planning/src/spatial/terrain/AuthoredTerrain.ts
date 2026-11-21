@@ -1,5 +1,14 @@
-import type { PlanningResource } from "../PlanningResources";
-import { isPlanningTerrainResource } from "../PlanningResources";
+import type {
+  PlanningResource,
+  PlanningTerrainFeatureResource,
+  PlanningTerrainPatchResource
+} from "../PlanningResources";
+
+function isTerrainResource(
+  resource: PlanningResource
+): resource is PlanningTerrainPatchResource | PlanningTerrainFeatureResource {
+  return resource.resourceType === "terrain-patch" || resource.resourceType === "terrain-feature";
+}
 import type { PlanPoint } from "../../semantic-study/IslandPlanModel";
 import type { SeedWorldTerrainPatchShapeV1 } from "../../world/SeedWorldWorldEdit";
 import {
@@ -10,7 +19,7 @@ import {
 /** Reuse the established landform geometry, without its old store or publication runtime. */
 export function authoredTerrainDisplacement(resources: readonly PlanningResource[]): (point: PlanPoint) => number {
   const mm = (metres: number) => Math.round(metres * 1000);
-  const shapes = resources.filter(isPlanningTerrainResource).map((resource) => {
+  const shapes = resources.filter(isTerrainResource).map((resource) => {
     const value = resource.properties;
     const center = { centerXOffsetMillimetres: mm(value.x), centerZOffsetMillimetres: mm(value.z) };
     let shape: SeedWorldTerrainPatchShapeV1;

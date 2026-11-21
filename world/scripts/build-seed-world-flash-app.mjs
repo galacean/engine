@@ -138,6 +138,7 @@ function inspectFlashAppBuild(outputRoot) {
     const rel = filePath.slice(outputRoot.length + 1).split(sep).join("/");
     if (
       /^assets\/seed-world-project-text-bundle-[a-f0-9]+\.json$/u.test(rel) ||
+      /^assets\/seed-world-common-bin-bundle-[a-f0-9]+\.bin$/u.test(rel) ||
       /^assets\/esbuild-[a-f0-9]+\.wasm$/u.test(rel)
     ) {
       unoffloadedCdnWarnings.push(rel);
@@ -164,6 +165,9 @@ function assertClassicWorkerPayloads(assetsRoot, assetNames) {
     }
     if (source.includes("__SEED_WORLD_PROJECT_TEXT_BUNDLE_URL__")) {
       throw new Error(`Flash App build did not replace __SEED_WORLD_PROJECT_TEXT_BUNDLE_URL__ in ${assetName}`);
+    }
+    if (source.includes("__SEED_WORLD_COMMON_BIN_BUNDLE_URL__")) {
+      throw new Error(`Flash App build did not replace __SEED_WORLD_COMMON_BIN_BUNDLE_URL__ in ${assetName}`);
     }
     const relativeSelfLocationMatch = source.match(
       /new URL\(\s*["'](?![a-z]+:)[^"']+["']\s*,\s*self\.location(?:\.href)?\s*\)/u

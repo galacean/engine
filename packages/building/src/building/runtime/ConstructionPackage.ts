@@ -60,6 +60,14 @@ export class ConstructionPackageBuilder {
     const instanceFile = root + "instances.bin";
     if (!feedbackBrick && input.instances) pending.set(instanceFile, input.instances);
     const indices = new Uint8Array(Uint32Array.from({ length: count }, (_, i) => i).buffer);
+    const canAliasDormerCounts =
+      this.globals.roofCounts === undefined ||
+      this.globals.domainCounts === undefined ||
+      this.globals.roofCounts === this.globals.domainCounts;
+    const canAliasDormerHoles =
+      this.globals.roofHoles === undefined ||
+      this.globals.domainHoles === undefined ||
+      this.globals.roofHoles === this.globals.domainHoles;
     for (const [name, binding] of Object.entries(unit.bindings)) {
       const { role } = binding;
       if (role === "instances" && feedbackBrick) {
@@ -70,7 +78,13 @@ export class ConstructionPackageBuilder {
       if (!(bytes instanceof Uint8Array) || bytes.byteLength < (binding.minByteLength ?? 0) || bytes.byteLength % 4)
         throw Error(`Missing/invalid ${role} for ${input.id}/${name}`);
       const shared = role !== "instances" && role !== "indirection" && !Object.hasOwn(input.bindings ?? {}, role);
-      const file = role === "instances" ? instanceFile : (shared ? "globals/" : root) + role;
+      const sharedRole =
+        shared && canAliasDormerCounts && (role === "roofCounts" || role === "domainCounts")
+          ? "dormerCounts"
+          : shared && canAliasDormerHoles && (role === "roofHoles" || role === "domainHoles")
+            ? "dormerHoles"
+            : role;
+      const file = role === "instances" ? instanceFile : (shared ? "globals/" : root) + sharedRole;
       pending.set(file, bytes);
       resources[name] = { kind: binding.kind, file };
     }

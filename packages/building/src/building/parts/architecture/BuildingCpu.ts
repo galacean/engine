@@ -11,7 +11,8 @@ import {
   coreBuildingPalette,
   coreBuildingRenderInput,
   coreBuildingView,
-  coreBuildingDiagnostics
+  coreBuildingDiagnostics,
+  deflateCoreBuildingLayout
 } from "../../render/CoreBuilding";
 import { groundSupportsInRegion, type ConstructionGrounding } from "../../runtime/TerrainField";
 import type { ConstructionTerrainGrid } from "../../runtime/TerrainField";
@@ -89,10 +90,11 @@ export function prepareBuildingOnGround(
 ) {
   validateBuildingDraft(draft);
   const environment = coreBuildingEnvironment(ground.height, assets);
-  const result = designBuildingCore(draft, registry, { environment });
-  if (options.requireAllParts !== false && result.diagnostics.length)
+  const requireAll = options.requireAllParts !== false;
+  const result = designBuildingCore(draft, registry, { environment, validate: !requireAll });
+  if (requireAll && result.diagnostics.length)
     throw Error(result.diagnostics.map((d) => d.source + ": " + d.message).join("\n"));
-  const layout = coreBuildingLayout(result, registry, { environment });
+  const layout = coreBuildingLayout(result, registry, { environment, validateKeys: requireAll });
   const preview = coreBuildingView(layout, {
     assets,
     includeAppearance: true,
@@ -120,11 +122,20 @@ export type BuildingCpuPreparation = ReturnType<typeof prepareBuildingOnGround>;
 /** The resident detail of a prepared design: render input and ground contact. */
 export async function compileBuildingCpu(
   prepared: BuildingCpuPreparation["prepared"],
-  options?: { feedbackGrid?: boolean }
+  options?: {
+    feedbackGrid?: boolean;
+    activeMaterialsOnly?: boolean;
+    omitEmptyCells?: boolean;
+    deflateAfterCompile?: boolean;
+  }
 ) {
   const { layout, preview, ground, assets } = prepared;
-  return {
-    renderInput: await coreBuildingRenderInput(layout, preview, assets, options),
-    grounding: coreBuildingGrounding(layout, preview, ground)
-  };
+  try {
+    return {
+      renderInput: await coreBuildingRenderInput(layout, preview, assets, options),
+      grounding: coreBuildingGrounding(layout, preview, ground)
+    };
+  } finally {
+    if (options?.deflateAfterCompile) deflateCoreBuildingLayout(layout);
+  }
 }

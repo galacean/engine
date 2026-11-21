@@ -174,36 +174,47 @@ export function withSeedWorldIblBlendVariants(
 
 const MASONRY_RESIDENT_SHADER_PATTERN = /^Masonry\/[0-9a-f]{64}$/;
 
-/** Resident masonry shaders toggle `RENDERER_MASONRY_DITHER` between steady state and LOD/unit crossfades.
- * Startup entrance (`RENDERER_MASONRY_ENTRANCE`) does not simultaneously crossfade LODs, so skip adding
- * `RENDERER_MASONRY_DITHER` onto entrance-only variants. */
+function masonryDitherMacroForShader(shader: string): string | undefined {
+  if (MASONRY_RESIDENT_SHADER_PATTERN.test(shader)) return "RENDERER_MASONRY_DITHER";
+  if (shader === "Masonry/SupportSurface") return "MASONRY_SURFACE_DITHER";
+  if (shader === "Masonry/FarProxy") return "MASONRY_FAR_DITHER";
+  if (shader === "Masonry/GlobalProxy") return "GLOBAL_PROXY_DITHER";
+  return undefined;
+}
+
+const MASONRY_ENTRANCE_MACROS = new Set(["RENDERER_MASONRY_ENTRANCE", "GLOBAL_PROXY_ENTRANCE"]);
+
+/** Masonry shaders toggle their dither macro between steady state and LOD/unit crossfades.
+ * Startup entrance (`RENDERER_MASONRY_ENTRANCE` / `GLOBAL_PROXY_ENTRANCE`) does not simultaneously
+ * crossfade LODs, so skip adding the dither macro onto entrance-only variants. */
 export function withSeedWorldMasonryDitherVariants(
   entries: readonly SeedWorldShaderVariantEntry[]
 ): readonly SeedWorldShaderVariantEntry[] {
   return normalizeSeedWorldShaderVariants(
     entries.flatMap((entry) => {
-      if (!MASONRY_RESIDENT_SHADER_PATTERN.test(entry.shader)) return [entry];
-      const hasDither = entry.macros.some((macro) => macro.n === "RENDERER_MASONRY_DITHER");
+      const ditherMacro = masonryDitherMacroForShader(entry.shader);
+      if (!ditherMacro) return [entry];
+      const hasDither = entry.macros.some((macro) => macro.n === ditherMacro);
       if (hasDither) {
-        return [entry, { ...entry, macros: entry.macros.filter((macro) => macro.n !== "RENDERER_MASONRY_DITHER") }];
+        return [entry, { ...entry, macros: entry.macros.filter((macro) => macro.n !== ditherMacro) }];
       }
-      if (entry.macros.some((macro) => macro.n === "RENDERER_MASONRY_ENTRANCE")) return [entry];
-      return [entry, { ...entry, macros: [...entry.macros, { n: "RENDERER_MASONRY_DITHER" }] }];
+      if (entry.macros.some((macro) => MASONRY_ENTRANCE_MACROS.has(macro.n))) return [entry];
+      return [entry, { ...entry, macros: [...entry.macros, { n: ditherMacro }] }];
     })
   );
 }
 
 /**
- * Building renderers enable `RENDERER_MASONRY_ENTRANCE` during startup reveal and disable it
- * once the entrance finishes; precompile the steady-state (macro-off) variant alongside it.
+ * Building renderers enable `RENDERER_MASONRY_ENTRANCE` or `GLOBAL_PROXY_ENTRANCE` during startup
+ * reveal and disable it once the entrance finishes; precompile the steady-state (macro-off) variant alongside it.
  */
 export function withSeedWorldMasonryEntranceVariants(
   entries: readonly SeedWorldShaderVariantEntry[]
 ): readonly SeedWorldShaderVariantEntry[] {
   return normalizeSeedWorldShaderVariants(
     entries.flatMap((entry) =>
-      entry.macros.some((macro) => macro.n === "RENDERER_MASONRY_ENTRANCE")
-        ? [entry, { ...entry, macros: entry.macros.filter((macro) => macro.n !== "RENDERER_MASONRY_ENTRANCE") }]
+      entry.macros.some((macro) => MASONRY_ENTRANCE_MACROS.has(macro.n))
+        ? [entry, { ...entry, macros: entry.macros.filter((macro) => !MASONRY_ENTRANCE_MACROS.has(macro.n)) }]
         : [entry]
     )
   );

@@ -15,6 +15,8 @@ export function validateRoofDesign(
 export function packUnits(spec: {
   cells: readonly SupportCell[];
   slot: number;
+  materials?: readonly MaterialUnit[] | ReadonlySet<MaterialUnit>;
   roof_design?: unknown;
+  roof_raw_records?: Map<string, Uint8Array>;
   source_render_metadata?: unknown;
 }): Promise<Record<MaterialUnit, Uint8Array>>;

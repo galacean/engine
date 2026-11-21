@@ -64,7 +64,7 @@ export function addV2Surface(
   const uvs: Vector2[] = [];
   const indices = Array.from(geometry.indices);
   const flatUvs = geometry.uvs instanceof Float32Array ? geometry.uvs : undefined;
-  const tupleUvs = !flatUvs ? geometry.uvs : undefined;
+  const tupleUvs = geometry.uvs instanceof Float32Array ? undefined : geometry.uvs;
   for (let i = 0; i < geometry.positions.length; i += 3) {
     const v = i / 3;
     positions.push(

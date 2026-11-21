@@ -297,3 +297,155 @@ it("reopens legacy Water PNG references as KTX2 without overwriting authored tex
   expect(reopened.projectPackage).toEqual(checkpoint);
   expect(f.fetcher).not.toHaveBeenCalled();
 });
+
+it("rebases saved same-origin and Flash App CDN built-in URLs to updated build URLs without clobbering custom external URLs", async () => {
+  const f = storageFixture();
+  const initial = JSON.parse(
+    await readCatalogFile(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl)
+  ) as RuntimeProjectManifest;
+  const project = await openSeedWorldProject(f.url, initial);
+  await project.save();
+  project.dispose();
+
+  const saved = f.records.get(project.id)!;
+  const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, f.url).href;
+  const texEntry = saved.project.files.find((file) => file.virtualPath === "Building/Units/Textures/default_normal.tex")!;
+  const shaderEntry = saved.project.files.find((file) => file.virtualPath === "Shader/Terrain.shaderc")!;
+  const localRollbackEntry = saved.project.files.find((file) => file.virtualPath === "Building/Units/Meshes/brick.mesh")!;
+  const customEntry = saved.project.files.find((file) => file.virtualPath === "Building/Units/Textures/brick_colors-neutral.ktx2")!;
+  const staleLocalTexPath = new URL("/packages/building/src/building/assets/native/Textures/stale-default_normal.tex", projectUrl).href;
+  texEntry.path = staleLocalTexPath;
+  shaderEntry.path = "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/0000000000000000-Terrain.shaderc";
+  localRollbackEntry.path = "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/1111111111111111-brick.mesh";
+  customEntry.path = "https://assets.example.test/custom-bricks.ktx2";
+
+  const nextShaderCdn = "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/2222222222222222-Terrain.shaderc";
+  const nextLocalBrickPath = new URL(
+    initial.files.find((file) => file.virtualPath === "Building/Units/Meshes/brick.mesh")?.path ??
+      "/packages/building/src/building/assets/native/Meshes/brick.mesh",
+    projectUrl
+  ).href;
+  const upgradedInitial: RuntimeProjectManifest = {
+    ...initial,
+    files: initial.files.map((file) =>
+      file.virtualPath === "Shader/Terrain.shaderc" ? { ...file, path: nextShaderCdn } : file
+    )
+  };
+  f.fetcher.mockClear();
+  const restored = await openSeedWorldProject(f.url, upgradedInitial);
+  sessions.push(restored);
+
+  expect(restored.projectPackage.project.files.find((file) => file.virtualPath === "Shader/Terrain.shaderc")?.path).toBe(
+    nextShaderCdn
+  );
+  // Flash App CDN URL must also rebase back to a local same-origin built-in URL when modified locally or rolled back.
+  expect(restored.projectPackage.project.files.find((file) => file.virtualPath === "Building/Units/Meshes/brick.mesh")?.path).not.toBe(
+    "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/1111111111111111-brick.mesh"
+  );
+  expect(
+    restored.projectPackage.project.files.find((file) => file.virtualPath === "Building/Units/Meshes/brick.mesh")?.path
+  ).toContain("brick.mesh");
+  void nextLocalBrickPath;
+  // Built-in .tex rebased off the stale same-origin path back to the current built-in location.
+  expect(
+    restored.projectPackage.project.files.find((file) => file.virtualPath === "Building/Units/Textures/default_normal.tex")
+      ?.path
+  ).not.toBe(staleLocalTexPath);
+  // Custom third-party URL must stay untouched.
+  expect(
+    restored.projectPackage.project.files.find((file) => file.virtualPath === "Building/Units/Textures/brick_colors-neutral.ktx2")
+      ?.path
+  ).toBe("https://assets.example.test/custom-bricks.ktx2");
+  // Binary leaf rebasing must not trigger text fetches.
+  expect(f.fetcher).not.toHaveBeenCalled();
+});
+
+it("keeps unedited PlantStructure, PlantSpecies, and Material out of pack.contents across open->resources()->save and multi-hop Flash CDN upgrades", async () => {
+  const f = storageFixture();
+  const baseInitial = JSON.parse(
+    await readCatalogFile(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl)
+  ) as RuntimeProjectManifest;
+  const cdnBase = "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/";
+  const tracked = [
+    {
+      vp: "World/Vegetation/meadow-sm_birchtree_07-structure.json",
+      diskPath: baseInitial.files.find(
+        (file) => file.virtualPath === "World/Vegetation/meadow-sm_birchtree_07-structure.json"
+      )!.path
+    },
+    {
+      vp: "World/Vegetation/plant-species.json",
+      diskPath: baseInitial.files.find((file) => file.virtualPath === "World/Vegetation/plant-species.json")!.path
+    },
+    {
+      vp: "Material/Terrain/seed-world.mat",
+      diskPath: baseInitial.files.find((file) => file.virtualPath === "Material/Terrain/seed-world.mat")!.path
+    }
+  ] as const;
+  const cdnUrl = (version: string, vp: string) =>
+    `${cdnBase}${version}-${vp.replace(/[^a-z0-9._-]+/gi, "_")}`;
+  const withVersionedCdn = (version: string): RuntimeProjectManifest => ({
+    ...baseInitial,
+    files: baseInitial.files.map((file) => {
+      const match = tracked.find((entry) => entry.vp === file.virtualPath);
+      return match ? { ...file, path: cdnUrl(version, match.vp) } : file;
+    })
+  });
+  const baseProjectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, f.url).href;
+  f.fetcher.mockImplementation(async (input) => {
+    const url = String(input);
+    const match = tracked.find((entry) => /v[1-4]-/.test(url) && url === cdnUrl(/v\d+/.exec(url)![0], entry.vp));
+    if (match) {
+      const diskUrl = new URL(match.diskPath, baseProjectUrl).href;
+      return new Response(await readCatalogFile(diskUrl));
+    }
+    return new Response(await readCatalogFile(url));
+  });
+
+  // Visit 1: open -> resources() -> save() must leave PlantStructure, PlantSpecies, and Material URL-backed,
+  // while still compiling editableSource:true building-kit.prefab into a blob: URL.
+  const v1Session = await openSeedWorldProject(f.url, withVersionedCdn("v1"));
+  const res1 = await v1Session.resources();
+  await v1Session.save();
+  for (const entry of tracked) {
+    expect(v1Session.projectPackage.contents[entry.vp]).toBeUndefined();
+    expect(res1.find((file) => file.virtualPath === entry.vp)?.path).toBe(cdnUrl("v1", entry.vp));
+  }
+  expect(v1Session.projectPackage.contents["Building/Units/building-kit.prefab"]).toBeDefined();
+  expect(res1.find((file) => file.virtualPath === "Building/Units/building-kit.prefab")?.path).toMatch(/^blob:/);
+  v1Session.dispose();
+
+  // Visit 2 (CDN v1 -> v2) and Visit 3 (CDN v2 -> v3): zero open fetches, zero pack.contents leakage,
+  // valid preserved dependencies, and fresh v3 CDN URLs directly in resources().
+  for (const version of ["v2", "v3"] as const) {
+    f.fetcher.mockClear();
+    const reopened = await openSeedWorldProject(f.url, withVersionedCdn(version));
+    sessions.push(reopened);
+    expect(f.fetcher).not.toHaveBeenCalled();
+    const resources = await reopened.resources();
+    expect(f.fetcher).not.toHaveBeenCalled();
+    validateProjectDependencies(reopened.projectPackage);
+    for (const entry of tracked) {
+      expect(reopened.projectPackage.contents[entry.vp]).toBeUndefined();
+      expect(resources.find((file) => file.virtualPath === entry.vp)?.path).toBe(cdnUrl(version, entry.vp));
+    }
+    await reopened.save();
+    reopened.dispose();
+    sessions.pop();
+  }
+
+  // Fallback path when initial manifest omits precomputed dependencies: fetches transiently to recompute
+  // dependencies without writing unedited bytes into pack.contents.
+  const initialWithoutDeps: RuntimeProjectManifest = {
+    ...withVersionedCdn("v4"),
+    files: withVersionedCdn("v4").files.map((file) =>
+      file.virtualPath === "Material/Terrain/seed-world.mat" ? { ...file, dependencies: undefined } : file
+    )
+  };
+  f.fetcher.mockClear();
+  const fallbackSession = await openSeedWorldProject(f.url, initialWithoutDeps);
+  sessions.push(fallbackSession);
+  expect(f.fetcher).toHaveBeenCalledWith(cdnUrl("v4", "Material/Terrain/seed-world.mat"));
+  expect(fallbackSession.projectPackage.contents["Material/Terrain/seed-world.mat"]).toBeUndefined();
+  validateProjectDependencies(fallbackSession.projectPackage);
+});

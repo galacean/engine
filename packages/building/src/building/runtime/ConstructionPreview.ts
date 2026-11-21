@@ -205,6 +205,18 @@ function packAppearance(
   appearance.centers = toFloat32(appearance.centers) as unknown as number[];
 }
 
+/** Pack numeric/tuple arrays in a ConstructionDecorationPart into TypedArrays for Worker transfer and retention. */
+export function packDecorationPart(d: ConstructionDecorationPart): void {
+  const vCount = d.positions.length / 3;
+  d.positions = toFloat32(d.positions) as unknown as number[];
+  d.normals = toFloat32(d.normals) as unknown as number[];
+  d.colors = toFloat32(d.colors) as unknown as number[];
+  d.emission = toFloat32(d.emission) as unknown as number[];
+  d.indices = toIndexArray(d.indices, vCount) as unknown as number[];
+  if (d.uvs) d.uvs = toFlatUv32(d.uvs as unknown as PackedUv2) as unknown as number[][];
+  packAppearance(d.appearance);
+}
+
 /** Convert boxed JS numeric/tuple arrays in a ConstructionPreview into compact TypedArrays
  * before sending across Worker boundaries or retaining on the Main Thread. */
 export function packConstructionPreview(preview: ConstructionPreview): void {
@@ -228,14 +240,7 @@ export function packConstructionPreview(preview: ConstructionPreview): void {
     packAppearance(p.appearance);
   }
   for (const d of preview.decorationParts) {
-    const vCount = d.positions.length / 3;
-    d.positions = toFloat32(d.positions) as unknown as number[];
-    d.normals = toFloat32(d.normals) as unknown as number[];
-    d.colors = toFloat32(d.colors) as unknown as number[];
-    d.emission = toFloat32(d.emission) as unknown as number[];
-    d.indices = toIndexArray(d.indices, vCount) as unknown as number[];
-    if (d.uvs) d.uvs = toFlatUv32(d.uvs as unknown as PackedUv2) as unknown as number[][];
-    packAppearance(d.appearance);
+    packDecorationPart(d);
   }
   if (preview.structuralParts) {
     for (const s of preview.structuralParts) {

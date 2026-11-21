@@ -215,6 +215,7 @@ const ASSET_ASSEMBLY_RENDERER_INSTANCE_MACRO = ShaderMacro.getByName("RENDERER_A
 const ASSET_ASSEMBLY_COMPACT_INSTANCE_MACRO = ShaderMacro.getByName("RENDERER_ASSET_ASSEMBLY_COMPACT_INSTANCE");
 const DETAIL_COMPACT_MACRO = ShaderMacro.getByName("RENDERER_SEED_WORLD_DETAIL_COMPACT");
 const MASONRY_ENTRANCE_MACRO = ShaderMacro.getByName("RENDERER_MASONRY_ENTRANCE");
+const GLOBAL_PROXY_ENTRANCE_MACRO = ShaderMacro.getByName("GLOBAL_PROXY_ENTRANCE");
 const SSR_ALL_FORWARD_MACROS = new Set([
   "CAMERA_ENABLE_SSR",
   "CAMERA_SSR_VERIFY_RECEIVER_DEPTH",
@@ -1077,23 +1078,11 @@ function collectSeedWorldRendererVariantsInternal(
         }
         const passCastShadows = sourceRenderer.castShadows || material.shader.name === "Masonry/GlobalProxyShadowOnly";
         const macroSetKey = `${material.shader.name}/${passCastShadows}/${contributionKey}?${shaderMacroCollectionKey(compileMacros)}`;
-        if (collectedShaderMacroSets.has(macroSetKey)) continue;
-        collectedShaderMacroSets.add(macroSetKey);
-        appendShaderVariants(
-          material.shader,
-          compileMacros,
-          variants,
-          passCastShadows,
-          renderToTexture,
-          material,
-          isWebGL2,
-          false,
-          ssrContext
-        );
         const appendPointLightVariants = (targetShader: Shader, sourceMacros: ShaderMacroCollection): void => {
           if (!options.additionalPointLightCounts?.length || !shaderConsumesPointLights(targetShader.name)) return;
           // Startup entrance only runs under the scene's initial light state; steady-state gets alternate point-light counts.
-          if (sourceMacros.isEnable(MASONRY_ENTRANCE_MACRO)) return;
+          if (sourceMacros.isEnable(MASONRY_ENTRANCE_MACRO) || sourceMacros.isEnable(GLOBAL_PROXY_ENTRANCE_MACRO))
+            return;
           const manager = (scene as unknown as { _lightManager?: { _pointData?: { color: Float32Array } } })
             ._lightManager;
           const rawCapacity = (manager?._pointData?.color.length ?? 0) / 3;
@@ -1136,19 +1125,41 @@ function collectSeedWorldRendererVariantsInternal(
             }
           }
         };
-        appendPointLightVariants(material.shader, compileMacros);
-        if (options.includeMasonryEntrance !== false && compileMacros.isEnable(MASONRY_ENTRANCE_MACRO)) {
+        if (!collectedShaderMacroSets.has(macroSetKey)) {
+          collectedShaderMacroSets.add(macroSetKey);
+          appendShaderVariants(
+            material.shader,
+            compileMacros,
+            variants,
+            passCastShadows,
+            renderToTexture,
+            material,
+            isWebGL2,
+            false,
+            ssrContext
+          );
+          appendPointLightVariants(material.shader, compileMacros);
+        }
+        if (
+          options.includeMasonryEntrance !== false &&
+          (compileMacros.isEnable(MASONRY_ENTRANCE_MACRO) || compileMacros.isEnable(GLOBAL_PROXY_ENTRANCE_MACRO))
+        ) {
           const steadyMacros = new ShaderMacroCollection();
           ShaderMacroCollection.unionCollection(compileMacros, compileMacros, steadyMacros);
           steadyMacros.disable(MASONRY_ENTRANCE_MACRO);
-          const steadyKey = `${material.shader.name}/${passCastShadows}/${contributionKey}?${shaderMacroCollectionKey(steadyMacros)}`;
+          steadyMacros.disable(GLOBAL_PROXY_ENTRANCE_MACRO);
+          const steadyCastShadows =
+            passCastShadows ||
+            (material.shader.name === "Masonry/GlobalProxy" &&
+              Boolean(extraMaterials?.some((m) => m.shader.name === "Masonry/GlobalProxyShadowOnly")));
+          const steadyKey = `${material.shader.name}/${steadyCastShadows}/${contributionKey}?${shaderMacroCollectionKey(steadyMacros)}`;
           if (!collectedShaderMacroSets.has(steadyKey)) {
             collectedShaderMacroSets.add(steadyKey);
             appendShaderVariants(
               material.shader,
               steadyMacros,
               variants,
-              passCastShadows,
+              steadyCastShadows,
               renderToTexture,
               material,
               isWebGL2,

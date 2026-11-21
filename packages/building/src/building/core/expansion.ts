@@ -50,7 +50,24 @@ export interface ExpansionOptions {
 }
 
 export function frameMatrix(f: Frame): number[] {
-  return [...f.x, 0, ...f.y, 0, ...f.z, 0, ...f.origin, 1];
+  return [
+    f.x[0],
+    f.x[1],
+    f.x[2],
+    0,
+    f.y[0],
+    f.y[1],
+    f.y[2],
+    0,
+    f.z[0],
+    f.z[1],
+    f.z[2],
+    0,
+    f.origin[0],
+    f.origin[1],
+    f.origin[2],
+    1
+  ];
 }
 export function layingContext(
   part: Omit<ExpandablePart, "layout">,
@@ -106,5 +123,14 @@ export function* expandPart(
 }
 /** All laid units of a part as an array. Use it for checks and queries, not for rendering. */
 export function expandUnits(part: ExpandablePart, registry: BuildingRegistry, options: ExpansionOptions = {}) {
-  return [...expandPart(part, registry, options)];
+  const out: LaidUnit[] = [];
+  if (!part.unit || !part.layout) return out;
+  const algorithm = registry.algorithms.get(part.algorithm.type);
+  if (!algorithm) throw Error(`Unknown laying algorithm "${part.algorithm.type}"`);
+  const context = layingContext(part, part.unit, part.layout.params, registry, options.environment ?? {});
+  for (let i = 0, n = part.layout.count; i < n; i++) {
+    const spec = algorithm.unitAt(context, part.layout.data, i);
+    if (spec) out.push(laidUnit(context, spec));
+  }
+  return out;
 }

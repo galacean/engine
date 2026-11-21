@@ -132,4 +132,6 @@ it("a part node moved away from its group is rejected, not silently normalized",
   other.transform.localMatrix.elements[12] = 2;
   Object.defineProperty(m.parts[1], "entity", { value: other });
   expect(() => collectBuildingParts(m.frame, [m.group], m.members, undefined)).toThrow(/Move the group/);
+  other.transform.localMatrix.elements[12] = Number.NaN;
+  expect(() => collectBuildingParts(m.frame, [m.group], m.members, undefined)).toThrow(/Move the group/);
 });

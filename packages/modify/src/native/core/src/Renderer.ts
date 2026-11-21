@@ -14,7 +14,6 @@ import { Material } from "./material";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderProperty } from "./shader/ShaderProperty";
 import { ShaderData } from "./shader/ShaderData";
-import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 
 /**
@@ -44,9 +43,6 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   /** @internal */
   @ignoreClone
   _rendererIndex: number = -1;
-  /** @internal */
-  @ignoreClone
-  _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
   @ignoreClone
   _renderFrameCount: number;
@@ -322,25 +318,29 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
       this._update(context);
     }
 
-    const virtualCamera = context.virtualCamera;
-    const cameraPosition = virtualCamera.position;
-    const boundsCenter = this.bounds.getCenter(Renderer._tempVector0);
-
-    if (virtualCamera.isOrthographic) {
-      Vector3.subtract(boundsCenter, cameraPosition, boundsCenter);
-      this._distanceForSort = Vector3.dot(boundsCenter, virtualCamera.forward);
-    } else {
-      this._distanceForSort = Vector3.distanceSquared(boundsCenter, cameraPosition);
-    }
-
+    this._distanceForSort = NaN;
     this._render(context);
+  }
 
-    // union camera global macro and renderer macro.
-    ShaderMacroCollection.unionCollection(
-      context.camera._globalShaderMacro,
-      this.shaderData._macroCollection,
-      this._globalShaderMacro
-    );
+  /**
+   * @internal
+   */
+  _updateDistanceForSort(context: RenderContext): number {
+    let distance = this._distanceForSort;
+    if (distance !== distance) {
+      const virtualCamera = context.virtualCamera;
+      const cameraPosition = virtualCamera.position;
+      const boundsCenter = this.bounds.getCenter(Renderer._tempVector0);
+
+      if (virtualCamera.isOrthographic) {
+        Vector3.subtract(boundsCenter, cameraPosition, boundsCenter);
+        distance = Vector3.dot(boundsCenter, virtualCamera.forward);
+      } else {
+        distance = Vector3.distanceSquared(boundsCenter, cameraPosition);
+      }
+      this._distanceForSort = distance;
+    }
+    return distance;
   }
 
   /**
@@ -376,7 +376,6 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
       material && this._addResourceReferCount(material, -1);
     }
 
-    this._globalShaderMacro = null!;
     this._bounds = null!;
     this._materials = null!;
     this._shaderData = null!;

@@ -30,6 +30,7 @@ export async function initialBuildingSource(
   layoutKey?: string
 ) {
   const result: ReturnType<typeof buildingDraftSource> = { rootEntities: [], entities: [], components: [] };
+  let sliceStart = performance.now();
   for (const group of initialBuildingDrafts(plan)) {
     signal?.throwIfAborted();
     const height = prepareBuildingTerrain(terrain, { position: group.position, rotationY: 0 }).height;
@@ -95,7 +96,10 @@ export async function initialBuildingSource(
     result.rootEntities.push(...source.rootEntities);
     result.entities.push(...source.entities);
     result.components.push(...source.components);
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    if (performance.now() - sliceStart >= 16) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      sliceStart = performance.now();
+    }
   }
   signal?.throwIfAborted();
   return result;

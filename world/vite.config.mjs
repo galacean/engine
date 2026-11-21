@@ -1,6 +1,7 @@
 import path from "node:path";
 import fs from "node:fs";
 import crypto from "node:crypto";
+import zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { engineModify } from "@galacean/engine-modify/vite";
 import { PUGC_UNSUPPORTED_ASSET_EXTENSIONS, projectAssets } from "./scripts/project-assets.mjs";
@@ -91,6 +92,7 @@ function flashAppClassicWorkers() {
 const FLASH_APP_CDN_MANIFEST_PATH = path.join(world, "demos/seed-world/flash-app-cdn-manifest.json");
 const FLASH_APP_CDN_LEAF_EXTENSIONS = new Set([
   ".ktx2",
+  ".tex",
   ".mesh",
   ".glb",
   ".png",
@@ -113,7 +115,8 @@ const FLASH_APP_CDN_LEAF_EXTENSIONS = new Set([
   ".asset",
   ".br"
 ]);
-const FLASH_APP_TEXT_BUNDLE_EXTENSIONS = new Set([".prefab", ".mat", ".tex", ".scene", ".json"]);
+const FLASH_APP_TEXT_BUNDLE_EXTENSIONS = new Set([".prefab", ".mat", ".scene", ".json"]);
+const FLASH_APP_COMMON_BIN_BUNDLE_EXTENSIONS = new Set([".mesh", ".shaderc", ".tex", ".shader"]);
 const FLASH_APP_CDN_JSON_URL_KEYS = new Set(["path", "url"]);
 const FLASH_APP_TEXT_BUNDLE_MAX_BYTES = 128 * 1024;
 const FLASH_APP_CDN_LARGE_JSON_EXCLUDED_BASENAMES = new Set([
@@ -151,7 +154,7 @@ function sha256Buffer(source) {
  * In WORLD_FLASH_APP=1 builds:
  * 1. Rewrites references to content-hash-matched binary/leaf assets in flash-app-cdn-manifest.json
  *    to their immutable mdn.alipayobjects.com URLs and omits duplicate copies from dist.
- * 2. Consolidates small packages/ project text files (.prefab/.mat/.tex/.scene/.json <= 128 KiB)
+ * 2. Consolidates small project text files (.prefab/.mat/.scene/.json <= 128 KiB)
  *    into a single gzip-friendly JSON bundle fetched once at startup.
  */
 function flashAppCdnAndTextBundle() {
@@ -178,7 +181,7 @@ function flashAppCdnAndTextBundle() {
         }
       }
 
-      // 2. Rewrite references inside emitted JSON/material/prefab/scene/tex manifests to CDN URLs.
+      // 2. Rewrite references inside emitted JSON/material/prefab/scene manifests to CDN URLs.
       if (cdnUrlByFileName.size > 0) {
         const rewriteJsonObject = (value, baseDir, key) => {
           if (typeof value === "string" && value.length < 1024 && !/^(?:[a-z]+:|\/|#)/i.test(value)) {
@@ -254,20 +257,71 @@ function flashAppCdnAndTextBundle() {
             item.source = rewriteJsUrls(source, baseDir);
           }
         }
+      }
 
-        // Remove redundant local copies of CDN-hosted binaries from dist.
-        for (const fileName of cdnUrlByFileName.keys()) {
-          delete bundle[fileName];
+      // 2.5 Emit single gzipped common binary bundle (.mesh/.shaderc/.tex/.shader) BEFORE deleting CDN-offloaded
+      // files from dist, keyed by each entry's final runtime URL (CDN URL when offloaded, else dist-relative path).
+      const commonBinEntries = [];
+      const seenCommonBinKeys = new Set();
+      for (const fileName of Object.keys(bundle).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))) {
+        const item = bundle[fileName];
+        if (!item || item.type !== "asset") continue;
+        const ext = path.extname(fileName).toLowerCase();
+        if (!FLASH_APP_COMMON_BIN_BUNDLE_EXTENSIONS.has(ext)) continue;
+        const buf = typeof item.source === "string" ? Buffer.from(item.source, "utf8") : Buffer.from(item.source);
+        if (buf.length === 0) continue;
+        const key = cdnUrlByFileName.get(fileName) ?? fileName;
+        if (seenCommonBinKeys.has(key)) continue;
+        seenCommonBinKeys.add(key);
+        commonBinEntries.push({ key, buf });
+      }
+      if (commonBinEntries.length > 0) {
+        const index = [];
+        let offset = 0;
+        for (const entry of commonBinEntries) {
+          index.push([entry.key, offset, entry.buf.length]);
+          offset += entry.buf.length;
+        }
+        const headerBytes = Buffer.from(JSON.stringify(index), "utf8");
+        const prefix = Buffer.alloc(8);
+        prefix.write("SWB1", 0, 4, "ascii");
+        prefix.writeUInt32LE(headerBytes.length, 4);
+        const rawPack = Buffer.concat([prefix, headerBytes, ...commonBinEntries.map((e) => e.buf)]);
+        const gzPack = zlib.gzipSync(rawPack, { level: 9 });
+        // Normalize RFC 1952 OS byte (offset 9) to 0xff (unknown) for cross-platform bit-identical builds.
+        if (gzPack.length >= 10) gzPack[9] = 0xff;
+        const { sha256, size } = sha256Buffer(gzPack);
+        const bundleFileName = `assets/seed-world-common-bin-bundle-${sha256.slice(0, 8)}.bin`;
+        const cdnEntry = cdnBySha256[sha256];
+        const runtimeUrl =
+          cdnEntry && typeof cdnEntry.url === "string" && cdnEntry.url.startsWith("https://") && cdnEntry.size === size
+            ? cdnEntry.url
+            : `./seed-world-common-bin-bundle-${sha256.slice(0, 8)}.bin`;
+        if (runtimeUrl.startsWith("./")) {
+          this.emitFile({ type: "asset", fileName: bundleFileName, source: gzPack });
+        }
+        for (const item of Object.values(bundle)) {
+          if (item.type === "chunk" && item.code.includes("__SEED_WORLD_COMMON_BIN_BUNDLE_URL__")) {
+            item.code = item.code.replaceAll("__SEED_WORLD_COMMON_BIN_BUNDLE_URL__", runtimeUrl);
+          }
         }
       }
 
-      // 3. Emit single consolidated project text bundle for small packages/ manifests/prefabs/materials.
+      // Remove redundant local copies of CDN-hosted binaries from dist.
+      for (const fileName of cdnUrlByFileName.keys()) {
+        delete bundle[fileName];
+      }
+
+      // 3. Emit single consolidated project text bundle for small project manifests/prefabs/materials/scenes.
       const textBundleEntries = {};
       let bundledCount = 0;
       for (const [fileName, item] of Object.entries(bundle)) {
-        if (item.type !== "asset" || !fileName.startsWith("packages/")) continue;
+        if (item.type !== "asset") continue;
         const ext = path.extname(fileName).toLowerCase();
         if (!FLASH_APP_TEXT_BUNDLE_EXTENSIONS.has(ext)) continue;
+        const inPackages = fileName.startsWith("packages/");
+        const inAssetsText = fileName.startsWith("assets/") && ext !== ".json";
+        if (!inPackages && !inAssetsText) continue;
         const buf = typeof item.source === "string" ? Buffer.from(item.source, "utf8") : Buffer.from(item.source);
         if (buf.length === 0 || buf.length > FLASH_APP_TEXT_BUNDLE_MAX_BYTES) continue;
         textBundleEntries[fileName] = buf.toString("utf8");
@@ -275,7 +329,7 @@ function flashAppCdnAndTextBundle() {
       }
       if (bundledCount > 0) {
         const sortedBundle = Object.fromEntries(
-          Object.entries(textBundleEntries).sort(([a], [b]) => a.localeCompare(b))
+          Object.entries(textBundleEntries).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
         );
         const payload = JSON.stringify(sortedBundle);
         const { sha256, size } = sha256Buffer(payload);

@@ -17,7 +17,11 @@ export class BuildingGroupComponent extends Component {
   }
   /** @internal Read classification without copying or exposing the author definition. */
   get _groupId(): string | undefined {
-    return this._definition?.id;
+    return (this._definition !== undefined ? this._definition : this.definition)?.id;
+  }
+  /** @internal Read author group definition without structuredClone. Caller must not mutate. */
+  get _rawDefinition(): BuildingGroupDef | null {
+    return this._definition !== undefined ? this._definition : this.definition;
   }
   set definition(value: BuildingGroupDef | null) {
     this._definition = structuredClone(value);

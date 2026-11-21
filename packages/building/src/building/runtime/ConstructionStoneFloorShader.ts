@@ -25,23 +25,25 @@ vec3 stoneFloorFinish(vec2 chart,vec4 transform,float color,vec3 position,vec3 c
  float det=ux.x*uy.y-ux.y*uy.x;
  vec3 tangent=abs(det)>1e-12 ? (px*uy.y-py*ux.y)/det : vec3(1,0,0);
  vec3 bitangent=abs(det)>1e-12 ? (py*ux.x-px*uy.x)/det : vec3(0,0,1);
- vec3 view=cameraPosition-position;
+ vec3 viewDir=normalize(cameraPosition-position);
  // UV vectors are metres/texture-repeat; retain their metric lengths for POM.
- float vz=max(.1,dot(normal,normalize(view)));
- vec2 ray=vec2(dot(normalize(view),normalize(tangent))/max(length(tangent),.001),
-               dot(normalize(view),normalize(bitangent))/max(length(bitangent),.001))*.075/vz;
- float layer=0.0, previous=0.0, height=1.0;
+ float vz=max(.1,dot(normal,viewDir));
+ vec2 ray=vec2(dot(viewDir,normalize(tangent))/max(length(tangent),.001),
+               dot(viewDir,normalize(bitangent))/max(length(bitangent),.001))*.075/vz;
  vec2 sampleUV=uv;
  // Fade subpixel parallax without changing the stone identity or color field.
  ray*=1.0-smoothstep(.005,.025,max(length(ux),length(uy)));
- for(int i=0;i<12;i++) {
-   height=1.0-textureGrad(material_StoneFloorHeight,sampleUV,ux,uy).r;
-   if(layer>=height)break;
-   previous=layer-height;layer+=1.0/12.0;sampleUV=uv-ray*layer;
+ if(dot(ray,ray)>1e-8) {
+   float layer=0.0, previous=0.0, height=1.0;
+   for(int i=0;i<12;i++) {
+     height=1.0-textureGrad(material_StoneFloorHeight,sampleUV,ux,uy).r;
+     if(layer>=height)break;
+     previous=layer-height;layer+=1.0/12.0;sampleUV=uv-ray*layer;
+   }
+   float after=layer-height;
+   float blend=clamp(after/max(after-previous,1e-6),0.0,1.0);
+   sampleUV+=ray*(blend/12.0);
  }
- float after=layer-height;
- float blend=clamp(after/max(after-previous,1e-6),0.0,1.0);
- sampleUV+=ray*(blend/12.0);
  vec3 seed=textureGrad(material_StoneFloorSeed,sampleUV,ux,uy).rgb;
  uint id=uint(int(trunc(seed.x*32.0-.5)+trunc(seed.y*32.0-.5)));
  vec2 random=vec2(stoneFloorHash(id^7993234u),stoneFloorHash(id^9730541u));

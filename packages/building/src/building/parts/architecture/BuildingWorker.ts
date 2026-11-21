@@ -2,7 +2,30 @@ import { prepareBuildingCpu, compileBuildingCpu, type BuildingCpuPreparation } f
 import type { BuildingWorkerRequest, BuildingWorkerReply } from "./BuildingWorkerProtocol";
 import type { ConstructionTerrainGrid } from "../../runtime/TerrainField";
 import type { BuildingUnitAssets } from "../../runtime/BuildingUnitAssets";
-import { packConstructionPreview } from "../../runtime/ConstructionPreview";
+import { packConstructionPreview, packDecorationPart } from "../../runtime/ConstructionPreview";
+import { deflateCoreBuildingLayout } from "../../render/CoreBuilding";
+
+function collectArrayBuffers(value: unknown, out: Set<ArrayBuffer>, excluded?: ReadonlySet<ArrayBuffer>): void {
+  if (!value || typeof value !== "object") return;
+  if (ArrayBuffer.isView(value)) {
+    const buffer = value.buffer;
+    if (buffer instanceof ArrayBuffer && buffer.byteLength > 0 && !excluded?.has(buffer)) {
+      out.add(buffer);
+    }
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) collectArrayBuffers(value[i], out, excluded);
+    return;
+  }
+  for (const v of Object.values(value)) collectArrayBuffers(v, out, excluded);
+}
+
+function slimKeptPreviewPart(p: BuildingCpuPreparation["prepared"]["preview"]["parts"][number]): boolean {
+  return (
+    !!p.plaster || !!p.stonePaving || !!p.roofSpire || !(p.placement === "unit" || p.backing === false || p.decoration)
+  );
+}
 
 // Immutable asset/terrain snapshots are shared by independent preview handles.
 // A failed preparation retains its lease until the client's release arrives too.
@@ -37,8 +60,30 @@ async function handle(input: BuildingWorkerRequest) {
       const { prepared, ...result } = await prepareBuildingCpu(input.draft, terrain, units, input.options);
       packConstructionPreview(result.preview);
       preparations.set(id, prepared);
-      reply({ id, ok: true, result });
       if (input.workerSlim) {
+        // Keep buffers shared with surface/backing parts for future compile(), while
+        // transferring buffers belonging exclusively to preview-only fields being dropped.
+        const keepBuffers = new Set<ArrayBuffer>();
+        for (const p of prepared.preview.parts) {
+          if (!slimKeptPreviewPart(p)) continue;
+          const savedLod = p.lodAppearance;
+          p.lodAppearance = undefined;
+          collectArrayBuffers(p, keepBuffers);
+          p.lodAppearance = savedLod;
+        }
+        collectArrayBuffers(result.occupancy, keepBuffers);
+        const transferSet = new Set<ArrayBuffer>();
+        collectArrayBuffers(result.preview.decorationParts, transferSet, keepBuffers);
+        collectArrayBuffers(result.preview.retainedWallUnits, transferSet, keepBuffers);
+        collectArrayBuffers(result.preview.stones, transferSet, keepBuffers);
+        collectArrayBuffers(result.preview.frames, transferSet, keepBuffers);
+        collectArrayBuffers(result.preview.woodArchFrames, transferSet, keepBuffers);
+        collectArrayBuffers(result.preview.woodArchPillars, transferSet, keepBuffers);
+        for (const p of result.preview.parts) {
+          if (p.lodAppearance) collectArrayBuffers(p.lodAppearance, transferSet, keepBuffers);
+          if (!slimKeptPreviewPart(p)) collectArrayBuffers(p, transferSet, keepBuffers);
+        }
+        reply({ id, ok: true, result }, [...transferSet]);
         prepared.preview.decorationParts = [];
         prepared.preview.retainedWallUnits = [];
         prepared.preview.occupancyBounds = [];
@@ -49,31 +94,50 @@ async function handle(input: BuildingWorkerRequest) {
         prepared.preview.woodArchPillars = [];
         for (const p of prepared.preview.parts) {
           p.lodAppearance = undefined;
-          if (
-            !p.plaster &&
-            !p.stonePaving &&
-            !p.roofSpire &&
-            (p.placement === "unit" || p.backing === false || p.decoration)
-          ) {
+          if (!slimKeptPreviewPart(p)) {
             p.positions = [];
             p.normals = undefined;
             p.colors = undefined;
+            p.neutralColors = undefined;
+            p.tintRoles = undefined;
+            p.appearance = undefined;
             p.uvs = undefined;
             p.emission = undefined;
             p.indices = [];
           }
         }
+        deflateCoreBuildingLayout(prepared.layout);
+      } else {
+        reply({ id, ok: true, result });
       }
     } else {
       const prepared = preparations.get(input.token);
       if (!prepared) throw Error("Building compilation snapshot is unavailable");
-      const result = await compileBuildingCpu(prepared, { feedbackGrid: input.feedbackGrid });
-      const transfer: Transferable[] = [];
+      const slim = Boolean(input.workerSlim);
+      const result = await compileBuildingCpu(prepared, {
+        feedbackGrid: input.feedbackGrid,
+        activeMaterialsOnly: slim,
+        omitEmptyCells: Boolean(input.omitEmptyCells),
+        deflateAfterCompile: slim
+      });
+      const transferSet = new Set<ArrayBuffer>();
       for (const g of result.renderInput.groups) {
-        if (g.brickFeedback?.kind === "pack") transfer.push(g.brickFeedback.data.buffer);
+        if (g.brickFeedback?.kind === "pack" && g.brickFeedback.data.buffer.byteLength > 0) {
+          transferSet.add(g.brickFeedback.data.buffer);
+        }
+        if (slim) collectArrayBuffers(g.units, transferSet);
       }
-      // Cloning preserves buffers shared with the retained solved geometry.
-      reply({ id, ok: true, result }, transfer);
+      if (slim) {
+        collectArrayBuffers(result.renderInput.dormerBins, transferSet);
+        for (const deco of result.renderInput.decorations) {
+          for (const part of deco.parts) {
+            packDecorationPart(part);
+            collectArrayBuffers(part, transferSet);
+          }
+        }
+      }
+      // Cloning preserves backing/surface buffers shared with the retained solved geometry.
+      reply({ id, ok: true, result }, [...transferSet]);
     }
   } catch (error) {
     if (input.mode === "preview") preparations.delete(id);

@@ -621,3 +621,229 @@ it("propagates activation cancellation to remote Prefab source loading without c
     expect(session.projectPackage.contents["Remote.prefab"]).toBeUndefined();
   } finally { session.dispose(); fetching.mockRestore(); opening.mockRestore(); }
 });
+
+it("keeps unedited dependent Materials out of pack.contents on initial resources() and reissues URLs after live dependency edits", async () => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  const pack = project();
+  pack.project.files.push(
+    { virtualPath: "Textures/albedo.png", path: "https://example.test/albedo.png", type: "Texture", dependencies: [] },
+    {
+      virtualPath: "Materials/wall.mat",
+      path: "https://example.test/wall.mat",
+      type: "Material",
+      dependencies: ["Textures/albedo.png"]
+    }
+  );
+  const materialJson = JSON.stringify({
+    name: "Wall",
+    shader: "pbr",
+    macros: [],
+    shaderData: { material_BaseTexture: { type: "Texture", value: { url: "Textures/albedo.png" } } }
+  });
+  const opening = vi
+    .spyOn(RuntimeProjectStorage, "open")
+    .mockResolvedValue({ load: async () => pack, close() {}, save: async () => {} } as any);
+  const fetching = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+    if (String(input) === "https://example.test/wall.mat") return new Response(materialJson);
+    throw new Error(`Unexpected fetch: ${String(input)}`);
+  });
+  const session = await RuntimeProjectSession.open("cold-resources", pack.project, "https://example.test/");
+  try {
+    const initialResources = await session.resources();
+    expect(fetching).not.toHaveBeenCalled();
+    expect(session.projectPackage.contents["Materials/wall.mat"]).toBeUndefined();
+    expect(initialResources.find((file) => file.virtualPath === "Materials/wall.mat")?.path).toBe(
+      "https://example.test/wall.mat"
+    );
+
+    await session.publishAsset(
+      pack.project.files.find((file) => file.virtualPath === "Textures/albedo.png")!,
+      new Uint8Array([255, 216, 255, 224])
+    );
+    const updatedResources = await session.resources();
+    expect(fetching).toHaveBeenCalledTimes(1);
+    expect(updatedResources.find((file) => file.virtualPath === "Materials/wall.mat")?.path).toMatch(/^blob:/);
+  } finally {
+    session.dispose();
+    fetching.mockRestore();
+    opening.mockRestore();
+  }
+});
+
+it("rebases remote URLs with preserved dependencies via rebaseRemoteFiles without populating pack.contents", async () => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  let savedPack = project();
+  savedPack.project.files.push(
+    { virtualPath: "Textures/albedo.png", path: "https://example.test/v1/albedo.png", type: "Texture", dependencies: [] },
+    {
+      virtualPath: "Materials/wall.mat",
+      path: "https://example.test/v1/wall.mat",
+      type: "Material",
+      dependencies: ["Textures/albedo.png"]
+    }
+  );
+  const opening = vi.spyOn(RuntimeProjectStorage, "open").mockResolvedValue({
+    load: async () => structuredClone(savedPack),
+    close() {},
+    save: vi.fn(async (_id: string, next: RuntimeProjectPackage) => {
+      savedPack = structuredClone(next);
+    })
+  } as any);
+  const fetching = vi.spyOn(globalThis, "fetch");
+  const session = await RuntimeProjectSession.open("rebase-remote", savedPack.project, "https://example.test/");
+  try {
+    await session.rebaseRemoteFiles(
+      (current) => ({
+        files: current.project.files.map((file) =>
+          file.virtualPath === "Materials/wall.mat"
+            ? { ...file, path: "https://example.test/v2/wall.mat" }
+            : file
+        ),
+        preservedDependencies: new Map([["Materials/wall.mat", ["Textures/albedo.png"]]])
+      }),
+      { recordHistory: false }
+    );
+    expect(fetching).not.toHaveBeenCalled();
+    expect(session.projectPackage.contents["Materials/wall.mat"]).toBeUndefined();
+    expect(
+      session.projectPackage.project.files.find((file) => file.virtualPath === "Materials/wall.mat")
+    ).toMatchObject({
+      path: "https://example.test/v2/wall.mat",
+      dependencies: ["Textures/albedo.png"]
+    });
+    await expect(session.save()).resolves.toBeUndefined();
+    expect(savedPack.contents["Materials/wall.mat"]).toBeUndefined();
+
+    await expect(
+      session.rebaseRemoteFiles(
+        (current) => ({
+          files: current.project.files.map((file) =>
+            file.virtualPath === "Materials/wall.mat"
+              ? { ...file, path: "https://example.test/v3/wall.mat" }
+              : file
+          ),
+          preservedDependencies: new Map([["Materials/wall.mat", ["Textures/missing.png"]]])
+        }),
+        { recordHistory: false }
+      )
+    ).rejects.toThrow("missing asset 'Textures/missing.png'");
+  } finally {
+    session.dispose();
+    fetching.mockRestore();
+    opening.mockRestore();
+  }
+});
+
+it("does not poison RuntimeDependencyMaintenance across failed rebase retries, multi-file corrections, or discarded drafts", async () => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  const { RuntimeProjectEdit } = await import("@galacean/engine-project/runtime-editor/project/runtime-project-edit.ts");
+  let savedPack = project();
+  savedPack.project.files.push(
+    { virtualPath: "Textures/albedo.png", path: "https://example.test/v1/albedo.png", type: "Texture", dependencies: [] },
+    { virtualPath: "Textures/alt.png", path: "https://example.test/v1/alt.png", type: "Texture", dependencies: [] },
+    {
+      virtualPath: "Materials/wall.mat",
+      path: "https://example.test/v2/wall.mat",
+      type: "Material",
+      dependencies: ["Textures/albedo.png"]
+    }
+  );
+  const opening = vi.spyOn(RuntimeProjectStorage, "open").mockResolvedValue({
+    load: async () => structuredClone(savedPack),
+    close() {},
+    save: vi.fn(async (_id: string, next: RuntimeProjectPackage) => {
+      savedPack = structuredClone(next);
+    })
+  } as any);
+  const fetching = vi.spyOn(globalThis, "fetch");
+  const session = await RuntimeProjectSession.open("rebase-poison-guard", savedPack.project, "https://example.test/");
+  try {
+    // Discarded draft deletes wall.mat + failed rebase on v3 must not evict v2 or break save()/retry
+    const discardedDraft = new RuntimeProjectEdit(
+      session.projectPackage,
+      session.referenceFormats,
+      session.dependencyMaintenance
+    );
+    discardedDraft.delete("Materials/wall.mat");
+    discardedDraft.refreshDependencies();
+
+    // Path A: failed v2 -> v3 rebase must not block subsequent save() or valid v2 -> v3 retry
+    await expect(
+      session.rebaseRemoteFiles(
+        (current) => ({
+          files: current.project.files.map((file) =>
+            file.virtualPath === "Materials/wall.mat"
+              ? { ...file, path: "https://example.test/v3/wall.mat" }
+              : file
+          ),
+          preservedDependencies: new Map([["Materials/wall.mat", ["Textures/missing.png"]]])
+        }),
+        { recordHistory: false }
+      )
+    ).rejects.toThrow("missing asset 'Textures/missing.png'");
+
+    await expect(session.save()).resolves.toBeUndefined();
+    expect(
+      session.projectPackage.project.files.find((file) => file.virtualPath === "Materials/wall.mat")?.dependencies
+    ).toEqual(["Textures/albedo.png"]);
+
+    await expect(
+      session.rebaseRemoteFiles(
+        (current) => ({
+          files: current.project.files.map((file) =>
+            file.virtualPath === "Materials/wall.mat"
+              ? { ...file, path: "https://example.test/v3/wall.mat" }
+              : file
+          ),
+          preservedDependencies: new Map([["Materials/wall.mat", ["Textures/albedo.png"]]])
+        }),
+        { recordHistory: false }
+      )
+    ).resolves.toBeUndefined();
+
+    // Path B: failed batch for v4 with stale edge must not overwrite corrected edge on retry
+    await expect(
+      session.rebaseRemoteFiles(
+        (current) => ({
+          files: [
+            ...current.project.files.map((file) =>
+              file.virtualPath === "Materials/wall.mat"
+                ? { ...file, path: "https://example.test/v4/wall.mat" }
+                : file
+            ),
+            { virtualPath: "Materials/broken.mat", path: "https://example.test/v4/broken.mat", type: "Material" }
+          ],
+          preservedDependencies: new Map([
+            ["Materials/wall.mat", ["Textures/albedo.png"]],
+            ["Materials/broken.mat", ["Textures/missing.png"]]
+          ])
+        }),
+        { recordHistory: false }
+      )
+    ).rejects.toThrow("missing asset 'Textures/missing.png'");
+
+    await session.rebaseRemoteFiles(
+      (current) => ({
+        files: current.project.files.map((file) =>
+          file.virtualPath === "Materials/wall.mat"
+            ? { ...file, path: "https://example.test/v4/wall.mat" }
+            : file
+        ),
+        preservedDependencies: new Map([["Materials/wall.mat", ["Textures/alt.png"]]])
+      }),
+      { recordHistory: false }
+    );
+    expect(
+      session.projectPackage.project.files.find((file) => file.virtualPath === "Materials/wall.mat")
+    ).toMatchObject({
+      path: "https://example.test/v4/wall.mat",
+      dependencies: ["Textures/alt.png"]
+    });
+    await expect(session.save()).resolves.toBeUndefined();
+    expect(fetching).not.toHaveBeenCalled();
+  } finally {
+    session.dispose();
+    fetching.mockRestore();
+    opening.mockRestore();
+  }
+});

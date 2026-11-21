@@ -40,7 +40,13 @@ Shader "Masonry/SupportSurface" {
      #ifdef RENDERER_MASONRY_ENTRANCE
        masonryEntranceCoverage(masonryEntranceAmount(v.localPosition,v.entranceDelay,0.0));
      #endif
-     masonryLodDither(); if(material_MasonryPattern < -1.5 && plasterSurface(v.uv,material_MasonryPlaster.x,material_MasonryPlaster.y,v.plasterDistance).x < .5) discard; }
+     #ifdef MASONRY_SURFACE_DITHER
+       masonryLodDither();
+     #endif
+     #ifdef MASONRY_PLASTER
+       if(material_MasonryPattern < -1.5 && plasterSurface(v.uv,material_MasonryPlaster.x,material_MasonryPlaster.y,v.plasterDistance).x < .5) discard;
+     #endif
+   }
   }
   Pass "Forward" {
    Tags { pipelineStage = "Forward" }
@@ -132,11 +138,19 @@ Shader "Masonry/SupportSurface" {
       float masonryEntranceAmt=masonryEntranceAmount(v.localPosition,material_MasonryPattern < -1.5 ? .12 : material_MasonryPattern < -.5 && mod(v.decorationData.w,16.0)>.5 ? .08 : 0.0,0.0);
       masonryEntranceCoverage(masonryEntranceAmt);
     #endif
-    masonryLodDither();
+    #ifdef MASONRY_SURFACE_DITHER
+      masonryLodDither();
+    #endif
     vec3 plasterDetail=vec3(1.0);
-    if(material_MasonryPattern < -1.5){plasterDetail=plasterSurface(v.uv,material_MasonryPlaster.x,material_MasonryPlaster.y,v.color.a);}
+    #ifdef MASONRY_PLASTER
+      if(material_MasonryPattern < -1.5){
+        plasterDetail=plasterSurface(v.uv,material_MasonryPlaster.x,material_MasonryPlaster.y,v.color.a);
+      }
+    #endif
     #ifdef RENDERER_WORLD_PICK
-      if(material_MasonryPattern < -1.5 && plasterDetail.x<.5)discard;
+      #ifdef MASONRY_PLASTER
+        if(material_MasonryPattern < -1.5 && plasterDetail.x<.5)discard;
+      #endif
       float id = floor(renderer_WorldPickBase + v.uv1.x + 0.5);
       #ifdef RENDERER_WORLD_PICK_DEPTH
         id = floor(gl_FragCoord.z * 16777215.0 + 0.5);
@@ -156,12 +170,14 @@ Shader "Masonry/SupportSurface" {
       #endif
       vec3 n=normalize(surfaceNormal);
       vec3 albedo=surfaceAlbedo;
-      if(material_MasonryPattern < -1.5){
-        albedo=plasterFinish(v.uv,vec4(material_MasonryPlaster.xyz,v.color.a),albedo,plasterDetail,v.positionWS,n);
-        if(plasterDetail.x<.5)discard;
-        vec4 plasterTint=masonryMaterialOverride(0.0);
-        if(plasterTint.a>.5)albedo=vec3(dot(albedo,vec3(.2126,.7152,.0722)))*plasterTint.rgb;
-      }
+      #ifdef MASONRY_PLASTER
+        if(material_MasonryPattern < -1.5){
+          albedo=plasterFinish(v.uv,vec4(material_MasonryPlaster.xyz,v.color.a),albedo,plasterDetail,v.positionWS,n);
+          if(plasterDetail.x<.5)discard;
+          vec4 plasterTint=masonryMaterialOverride(0.0);
+          if(plasterTint.a>.5)albedo=vec3(dot(albedo,vec3(.2126,.7152,.0722)))*plasterTint.rgb;
+        }
+      #endif
       vec3 emission=vec3(1.0,.57,.18)*v.uv1.y;float roughness=.9;
       if(material_MasonryPattern > -1.5) albedo=masonryDecorationFinish(v.uv,v.decorationData.w,v.decorationData.xyz,v.positionWS,albedo,v.uv1.y,camera_Position,n,emission,roughness);
       vec3 outRgb = masonrySceneFog(masonryResidentSceneLight(albedo,n,v.positionWS,roughness)+emission,v.positionWS);

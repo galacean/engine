@@ -1,19 +1,19 @@
 import {
   OceanNearshoreOutsidePolicy,
-  OceanNearshoreSchemaVersion,
-  type WaterOceanRepresentationStateV1
-} from "@galacean/engine-water/water/index";
+  OceanNearshoreSchemaVersion
+} from "@galacean/engine-water/water/authoring/ocean/OceanNearshoreTypes";
+import type { WaterOceanRepresentationStateV1 } from "@galacean/engine-water/water/authoring/body/WaterBodyInstance";
 import { createImmutableWaterSnapshot } from "@galacean/engine-water/water/authoring/identity/WaterImmutableSnapshot";
 import {
   OceanWaterCompiledResource,
   type OceanWaterBodyDescriptorV1,
   type OceanWaterCompiledTransferV1
-} from "@galacean/engine-water/water/runtime/ocean/index";
+} from "@galacean/engine-water/water/runtime/ocean/OceanWaterCompiledResource";
 import { planningHeightmap, type PlanningHeightmap } from "./PlanningHeightmap";
 import { rasterizePolygonGrid } from "../geometry/V2Geometry";
 import type { IslandPlan } from "./IslandPlanModel";
 
-import { numericContentIdentity } from "@galacean/engine-water/water/compiler/index";
+import { numericContentIdentity } from "@galacean/engine-water/water/compiler/shared/numericIdentity";
 
 // Bounded immutable CPU caches shared by Planner and the water preview, including Worker execution.
 const compiledByContent = new Map<string, OceanWaterCompiledTransferV1>();

@@ -25,7 +25,8 @@ Shader "Masonry/GlobalProxy" {
 
   Pass "DepthOnly" {
    Tags { pipelineStage = "DepthOnly" }
-   RasterState = { CullMode = CullMode.Off; }
+   CullMode rasterStateCullMode;
+   RasterState = { CullMode = rasterStateCullMode; }
    #include "ShaderLibrary/Common/Common.glsl"
    #include "ShaderLibrary/Common/Transform.glsl"
    #include "Masonry/Plaster.glsl"
@@ -42,10 +43,17 @@ Shader "Masonry/GlobalProxy" {
     #endif
    };
    vec4 material_ProxyState[64];
+   #ifdef GLOBAL_PROXY_ENTRANCE
+    vec4 material_ProxyEntrance[64];
+   #endif
    struct MasonryGlobalProxyDepthVaryings {
     vec2 uv;
     vec4 surfaceTag;
     float lodFade;
+    #ifdef GLOBAL_PROXY_ENTRANCE
+     vec4 entrance;
+     float worldY;
+    #endif
    };
    VertexShader = MasonryGlobalProxyDepthVertex;
    FragmentShader = MasonryGlobalProxyDepthFragment;
@@ -62,8 +70,18 @@ Shader "Masonry/GlobalProxy" {
      int slot = metaCode & 63;
      vec3 positionWS = a.POSITION;
     #endif
-    vec4 state = material_ProxyState[clamp(slot, 0, 63)];
+    int clampedSlot = clamp(slot, 0, 63);
+    vec4 state = material_ProxyState[clampedSlot];
     v.lodFade = state.z;
+    #ifdef GLOBAL_PROXY_ENTRANCE
+     vec4 entrance = material_ProxyEntrance[clampedSlot];
+     v.entrance = entrance;
+     v.worldY = positionWS.y;
+     if (entrance.x <= 0.0) {
+      gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+      return v;
+     }
+    #endif
     if (state.x < 0.5 || v.lodFade <= -1.0) {
      gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
      return v;
@@ -72,24 +90,40 @@ Shader "Masonry/GlobalProxy" {
     return v;
    }
    void MasonryGlobalProxyDepthFragment(MasonryGlobalProxyDepthVaryings v) {
-    if (v.lodFade < 1.0) {
-     if (v.lodFade <= -1.0) discard;
-     vec2 p = mod(floor(gl_FragCoord.xy), 4.0);
-     vec2 lo = mod(p, 2.0), hi = floor(p / 2.0);
-     float a = 2.0 * lo.x + 3.0 * lo.y - 4.0 * lo.x * lo.y;
-     float b = 2.0 * hi.x + 3.0 * hi.y - 4.0 * hi.x * hi.y;
-     float threshold = (4.0 * a + b + 0.5) / 16.0;
-     if (v.lodFade >= 0.0 ? threshold > v.lodFade : threshold <= -v.lodFade) discard;
-    }
-    if (v.surfaceTag.x > 2.5 && v.surfaceTag.x < 3.5) {
-     if (plasterSurface(v.uv, v.surfaceTag.y, v.surfaceTag.z, v.surfaceTag.w).x < 0.5) discard;
-    }
+    #ifdef GLOBAL_PROXY_ENTRANCE
+     if (v.entrance.x < 1.0) {
+      if (v.entrance.x <= 0.0) discard;
+      float eh = clamp((v.worldY - v.entrance.y) / max(v.entrance.z, 0.001), 0.0, 1.0);
+      float edelay = (v.surfaceTag.x > 2.5 && v.surfaceTag.x < 3.5) ? 0.12 : ((v.surfaceTag.x > 4.5) ? 0.08 : 0.0);
+      float eth = min(0.98, 0.16 + 0.70 * eh + edelay);
+      float eamt = smoothstep(0.8 * eth, eth, pow(v.entrance.x, 0.8));
+      float emask = fract(52.9829189 * fract(dot(floor(gl_FragCoord.xy), vec2(0.06711056, 0.00583715))));
+      if (eamt <= emask) discard;
+     }
+    #endif
+    #ifdef GLOBAL_PROXY_DITHER
+     if (v.lodFade < 1.0) {
+      if (v.lodFade <= -1.0) discard;
+      vec2 p = mod(floor(gl_FragCoord.xy), 4.0);
+      vec2 lo = mod(p, 2.0), hi = floor(p / 2.0);
+      float a = 2.0 * lo.x + 3.0 * lo.y - 4.0 * lo.x * lo.y;
+      float b = 2.0 * hi.x + 3.0 * hi.y - 4.0 * hi.x * hi.y;
+      float threshold = (4.0 * a + b + 0.5) / 16.0;
+      if (v.lodFade >= 0.0 ? threshold > v.lodFade : threshold <= -v.lodFade) discard;
+     }
+    #endif
+    #ifdef GLOBAL_PROXY_PLASTER
+     if (v.surfaceTag.x > 2.5 && v.surfaceTag.x < 3.5) {
+      if (plasterSurface(v.uv, v.surfaceTag.y, v.surfaceTag.z, v.surfaceTag.w).x < 0.5) discard;
+     }
+    #endif
    }
   }
 
   Pass "Forward" {
    Tags { pipelineStage = "Forward" }
-   RasterState = { CullMode = CullMode.Off; }
+   CullMode rasterStateCullMode;
+   RasterState = { CullMode = rasterStateCullMode; }
    CompareFunction material_WorldPickDepthCompare;
    DepthState = { WriteEnabled = true; CompareFunction = material_WorldPickDepthCompare; }
    #include "ShaderLibrary/Common/Common.glsl"
@@ -112,6 +146,9 @@ Shader "Masonry/GlobalProxy" {
     #endif
    };
    vec4 material_ProxyState[64];
+   #ifdef GLOBAL_PROXY_ENTRANCE
+    vec4 material_ProxyEntrance[64];
+   #endif
    #ifdef RENDERER_WORLD_PICK
     float renderer_WorldPickBase;
    #endif
@@ -123,6 +160,9 @@ Shader "Masonry/GlobalProxy" {
     vec4 surfaceTag;
     float lodFade;
     float lodDebug;
+    #ifdef GLOBAL_PROXY_ENTRANCE
+     vec4 entrance;
+    #endif
     #ifdef RENDERER_WORLD_PICK
      float worldPickOffset;
     #endif
@@ -176,9 +216,18 @@ Shader "Masonry/GlobalProxy" {
      #endif
     #endif
     v.positionWS = positionWS;
-    vec4 state = material_ProxyState[clamp(slot, 0, 63)];
+    int clampedSlot = clamp(slot, 0, 63);
+    vec4 state = material_ProxyState[clampedSlot];
     v.lodFade = state.z;
     v.lodDebug = state.w;
+    #ifdef GLOBAL_PROXY_ENTRANCE
+     vec4 entrance = material_ProxyEntrance[clampedSlot];
+     v.entrance = entrance;
+     if (entrance.x <= 0.0) {
+      gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+      return v;
+     }
+    #endif
     if (state.x < 0.5 || v.lodFade <= -1.0) {
      gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
      return v;
@@ -187,18 +236,33 @@ Shader "Masonry/GlobalProxy" {
     return v;
    }
    void MasonryGlobalProxyFragment(MasonryGlobalProxyVaryings v) {
-    if (v.lodFade < 1.0) {
-     if (v.lodFade <= -1.0) discard;
-     vec2 p = mod(floor(gl_FragCoord.xy), 4.0);
-     vec2 lo = mod(p, 2.0), hi = floor(p / 2.0);
-     float a = 2.0 * lo.x + 3.0 * lo.y - 4.0 * lo.x * lo.y;
-     float b = 2.0 * hi.x + 3.0 * hi.y - 4.0 * hi.x * hi.y;
-     float threshold = (4.0 * a + b + 0.5) / 16.0;
-     if (v.lodFade >= 0.0 ? threshold > v.lodFade : threshold <= -v.lodFade) discard;
-    }
+    #ifdef GLOBAL_PROXY_ENTRANCE
+     if (v.entrance.x < 1.0) {
+      if (v.entrance.x <= 0.0) discard;
+      float eh = clamp((v.positionWS.y - v.entrance.y) / max(v.entrance.z, 0.001), 0.0, 1.0);
+      float edelay = (v.surfaceTag.x > 2.5 && v.surfaceTag.x < 3.5) ? 0.12 : ((v.surfaceTag.x > 4.5) ? 0.08 : 0.0);
+      float eth = min(0.98, 0.16 + 0.70 * eh + edelay);
+      float eamt = smoothstep(0.8 * eth, eth, pow(v.entrance.x, 0.8));
+      float emask = fract(52.9829189 * fract(dot(floor(gl_FragCoord.xy), vec2(0.06711056, 0.00583715))));
+      if (eamt <= emask) discard;
+     }
+    #endif
+    #ifdef GLOBAL_PROXY_DITHER
+     if (v.lodFade < 1.0) {
+      if (v.lodFade <= -1.0) discard;
+      vec2 p = mod(floor(gl_FragCoord.xy), 4.0);
+      vec2 lo = mod(p, 2.0), hi = floor(p / 2.0);
+      float a = 2.0 * lo.x + 3.0 * lo.y - 4.0 * lo.x * lo.y;
+      float b = 2.0 * hi.x + 3.0 * hi.y - 4.0 * hi.x * hi.y;
+      float threshold = (4.0 * a + b + 0.5) / 16.0;
+      if (v.lodFade >= 0.0 ? threshold > v.lodFade : threshold <= -v.lodFade) discard;
+     }
+    #endif
     float kind = v.surfaceTag.x;
     #ifdef RENDERER_WORLD_PICK
-     if (kind > 2.5 && kind < 3.5 && plasterSurface(v.uv, v.surfaceTag.y, v.surfaceTag.z, v.surfaceTag.w).x < 0.5) discard;
+     #ifdef GLOBAL_PROXY_PLASTER
+      if (kind > 2.5 && kind < 3.5 && plasterSurface(v.uv, v.surfaceTag.y, v.surfaceTag.z, v.surfaceTag.w).x < 0.5) discard;
+     #endif
      float id = floor(renderer_WorldPickBase + v.worldPickOffset + 0.5);
      #ifdef RENDERER_WORLD_PICK_DEPTH
       id = floor(gl_FragCoord.z * 16777215.0 + 0.5);
@@ -206,16 +270,18 @@ Shader "Masonry/GlobalProxy" {
      gl_FragColor = vec4(mod(id, 256.0), mod(floor(id / 256.0), 256.0), floor(id / 65536.0), 255.0) / 255.0;
     #else
      vec3 albedo = v.color.rgb;
-     float roughness = 0.9;
-     if (kind > 2.5 && kind < 3.5) {
-      vec3 plasterDetail = plasterSurface(v.uv, v.surfaceTag.y, v.surfaceTag.z, v.surfaceTag.w);
-      if (plasterDetail.x < 0.5) discard;
-      float limeVariation = plasterNativeNoise(v.uv * 1.2, 2) * 0.04;
-      albedo = clamp(albedo + limeVariation, vec3(0.0), vec3(1.5));
-      albedo = mix(albedo, albedo * vec3(0.45, 0.40, 0.36), plasterDetail.y * 0.85);
-     } else if (kind > 5.5) {
-      roughness = 0.35;
-     } else if (kind < 4.5 && v.surfaceTag.z < 0.5) {
+     bool isPlaster = false;
+     #ifdef GLOBAL_PROXY_PLASTER
+      if (kind > 2.5 && kind < 3.5) {
+       isPlaster = true;
+       vec3 plasterDetail = plasterSurface(v.uv, v.surfaceTag.y, v.surfaceTag.z, v.surfaceTag.w);
+       if (plasterDetail.x < 0.5) discard;
+       float limeVariation = plasterNativeNoise(v.uv * 1.2, 2) * 0.04;
+       albedo = clamp(albedo + limeVariation, vec3(0.0), vec3(1.5));
+       albedo = mix(albedo, albedo * vec3(0.45, 0.40, 0.36), plasterDetail.y * 0.85);
+      }
+     #endif
+     if (!isPlaster && kind <= 4.5 && v.surfaceTag.z < 0.5) {
       if (kind < 0.5) {
        albedo *= masonryFarCourseTone(v.uv, vec2(2.1, 3.8), 0.5, 0.88, 0.88, 1.08);
       } else if (kind < 1.5) {
@@ -227,7 +293,7 @@ Shader "Masonry/GlobalProxy" {
       }
      }
      vec3 n = normalize(v.normalWS) * (gl_FrontFacing || (kind > 2.5 && kind < 3.5) ? 1.0 : -1.0);
-     vec3 lit = masonryResidentSceneLight(albedo, n, v.positionWS, roughness);
+     vec3 lit = masonryFarProxyLight(albedo, n, v.positionWS);
      lit += vec3(1.0, 0.57, 0.18) * v.color.a;
      vec3 outRgb = masonrySceneFog(lit, v.positionWS);
      if (v.lodDebug > 0.0) {
