@@ -1,7 +1,7 @@
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import { planningWhiteboxes } from "@galacean/engine-world-planning/semantic-study/PlanningWhiteboxes";
 import type { SeedWorldPopulationPreview } from "@galacean/engine-world-planning/runtime/SeedWorldPopulationPlan";
-import { rayBox, type Point3 } from "@galacean/engine-world-planning/spatial/guidance/VisibilityQuery";
+import { type Point3 } from "@galacean/engine-world-planning/spatial/guidance/VisibilityQuery";
 import { subjectVolumes, subjectViewFitDistance } from "@galacean/engine-world-planning/spatial/PlanningSubjectView";
 import { PLANNING_REFERENCE } from "@galacean/engine-world-planning/planning-data/PlanningReference";
 import { bridgeGround } from "@galacean/engine-world-planning/spatial/hydrology/RiverCrossings";
@@ -28,6 +28,8 @@ export interface PlanningSpawnViewOptions {
   readonly eyeHeight: number;
   readonly farClip: number;
   readonly desertComposition?: boolean;
+  /** Optional conservative upper bound on ground(x, z) so upward sky rays exit early with identical results. */
+  readonly maxTerrainHeight?: number;
   /** Viewport sampling precision only; it does not impose an aesthetic acceptance threshold. */
   readonly rows?: number;
 }
@@ -60,17 +62,33 @@ export function selectPlanningSpawnView(
   const solids = parts.flatMap((part) =>
     part.boxes
       .filter((box) => box.occlusion)
-      .map((box) => ({
-        box,
-        ownerId: part.id,
-        category: (part.layer === "building"
-          ? "building"
-          : part.layer === "tree"
-            ? "tree"
-            : part.layer === "rock" || part.layer === "landscape-rock"
-              ? "rock"
-              : undefined) as Category | undefined
-      }))
+      .map((box) => {
+        const hx = box.sizeX * 0.5;
+        const hy = box.sizeY * 0.5;
+        const hz = box.sizeZ * 0.5;
+        const r = Math.hypot(hx, hy, hz) + 1e-4;
+        return {
+          box,
+          ownerId: part.id,
+          category: (part.layer === "building"
+            ? "building"
+            : part.layer === "tree"
+              ? "tree"
+              : part.layer === "rock" || part.layer === "landscape-rock"
+                ? "rock"
+                : undefined) as Category | undefined,
+          cx: box.center.x,
+          cy: (box.elevation ?? 0) + hy,
+          cz: box.center.z,
+          hx,
+          hy,
+          hz,
+          r,
+          rSq: r * r,
+          cos: Math.cos(box.yaw),
+          sin: Math.sin(box.yaw)
+        };
+      })
   );
   const visibleBuildings = new Set(parts.filter((part) => part.layer === "building").map((part) => part.id));
   const village = plan.spatialLayout?.groups.find((group) =>
@@ -86,6 +104,19 @@ export function selectPlanningSpawnView(
   );
   const candidates = (local.length ? local : subjects).slice().sort((a, b) => a.id.localeCompare(b.id));
   const waterAt = createPlanningWaterQuery(plan, (point) => ground(point.x, point.z) ?? -Infinity);
+  let maxWaterSurface = plan.parameters.landMode !== "continuous" ? 0 : -Infinity;
+  for (const water of plan.waters) {
+    const profile = plan.planning?.profiles.find((p) => p.ownerId === water.id && p.kind === "water");
+    if (!profile) continue;
+    for (let i = 0; i < profile.points.length; i++) {
+      const py = profile.points[i]!.y;
+      if (py > maxWaterSurface) maxWaterSurface = py;
+    }
+  }
+  const maxRaymarchY =
+    options.maxTerrainHeight !== undefined && Number.isFinite(options.maxTerrainHeight)
+      ? Math.max(maxWaterSurface, options.maxTerrainHeight)
+      : undefined;
   const step = plan.raster.spacing;
   if (!(step > 0) || !Number.isFinite(step)) throw new Error("Spawn view needs the published terrain spacing");
   const columns = Math.ceil(rows * aspect),
@@ -161,6 +192,11 @@ export function selectPlanningSpawnView(
     const length = Math.hypot(point.x, point.y, point.z);
     return { x: point.x / length, y: point.y / length, z: point.z / length };
   };
+  const maxTanSq = tangent * tangent * (1 + aspect * aspect);
+  const sinHalfCone = Math.sqrt(maxTanSq / (1 + maxTanSq));
+  const cosHalfCone = Math.sqrt(1 / (1 + maxTanSq));
+  const cosHalfConeSq = cosHalfCone * cosHalfCone;
+
   const measure = (eye: Point3, target: Point3, subjectId?: string) => {
     const coverage = empty();
     const foregroundRocks = [0, 0];
@@ -168,25 +204,144 @@ export function selectPlanningSpawnView(
     let distantTerrain = 0;
     let projected = 0,
       visible = 0;
-    const subject = solids.filter((solid) => solid.ownerId === subjectId);
     const f = normalized({ x: target.x - eye.x, y: target.y - eye.y, z: target.z - eye.z });
     const right = normalized({ x: -f.z, y: 0, z: f.x });
     const up = { x: -right.z * f.y, y: right.z * f.x - right.x * f.z, z: right.x * f.y };
+    // Pre-filter solids against the camera view cone and precompute eye-local OBB origin once per view.
+    type PreparedSolid = {
+      ownerId: string;
+      category: Category | undefined;
+      vx: number;
+      vy: number;
+      vz: number;
+      distSq: number;
+      r: number;
+      rSq: number;
+      cos: number;
+      sin: number;
+      ox: number;
+      oy: number;
+      oz: number;
+      hx: number;
+      hy: number;
+      hz: number;
+    };
+    const activeSolids: PreparedSolid[] = [];
+    const subjectSolids: PreparedSolid[] = [];
+    for (let i = 0; i < solids.length; i++) {
+      const s = solids[i]!;
+      const vx = s.cx - eye.x;
+      const vy = s.cy - eye.y;
+      const vz = s.cz - eye.z;
+      const proj = vx * f.x + vy * f.y + vz * f.z;
+      if (proj + s.r < 0 || proj - s.r > farClip) continue;
+      const distSq = vx * vx + vy * vy + vz * vz;
+      if (proj > s.r && distSq > s.rSq) {
+        const perpSq = distSq - proj * proj;
+        const limit = proj * sinHalfCone + s.r;
+        if (perpSq * cosHalfConeSq > limit * limit) continue;
+      }
+      const dx = -vx;
+      const dz = -vz;
+      const prepared: PreparedSolid = {
+        ownerId: s.ownerId,
+        category: s.category,
+        vx,
+        vy,
+        vz,
+        distSq,
+        r: s.r,
+        rSq: s.rSq,
+        cos: s.cos,
+        sin: s.sin,
+        ox: dx * s.cos + dz * s.sin,
+        oy: -vy,
+        oz: -dx * s.sin + dz * s.cos,
+        hx: s.hx,
+        hy: s.hy,
+        hz: s.hz
+      };
+      activeSolids.push(prepared);
+      if (s.ownerId === subjectId) subjectSolids.push(prepared);
+    }
+    const intersectPrepared = (s: PreparedSolid, dx: number, dy: number, dz: number, maxDist: number): number => {
+      const tProj = s.vx * dx + s.vy * dy + s.vz * dz;
+      if (tProj + s.r < 0 || tProj - s.r >= maxDist) return Infinity;
+      if (s.distSq - tProj * tProj > s.rSq) return Infinity;
+      const ldx = dx * s.cos + dz * s.sin;
+      const ldz = -dx * s.sin + dz * s.cos;
+      let low = 0;
+      let high = maxDist;
+      if (Math.abs(ldx) < 1e-10) {
+        if (Math.abs(s.ox) > s.hx) return Infinity;
+      } else {
+        const inv = 1 / ldx;
+        const a = (-s.hx - s.ox) * inv;
+        const b = (s.hx - s.ox) * inv;
+        if (a < b) {
+          if (a > low) low = a;
+          if (b < high) high = b;
+        } else {
+          if (b > low) low = b;
+          if (a < high) high = a;
+        }
+        if (low > high) return Infinity;
+      }
+      if (Math.abs(dy) < 1e-10) {
+        if (Math.abs(s.oy) > s.hy) return Infinity;
+      } else {
+        const inv = 1 / dy;
+        const a = (-s.hy - s.oy) * inv;
+        const b = (s.hy - s.oy) * inv;
+        if (a < b) {
+          if (a > low) low = a;
+          if (b < high) high = b;
+        } else {
+          if (b > low) low = b;
+          if (a < high) high = a;
+        }
+        if (low > high) return Infinity;
+      }
+      if (Math.abs(ldz) < 1e-10) {
+        if (Math.abs(s.oz) > s.hz) return Infinity;
+      } else {
+        const inv = 1 / ldz;
+        const a = (-s.hz - s.oz) * inv;
+        const b = (s.hz - s.oz) * inv;
+        if (a < b) {
+          if (a > low) low = a;
+          if (b < high) high = b;
+        } else {
+          if (b > low) low = b;
+          if (a < high) high = a;
+        }
+        if (low > high) return Infinity;
+      }
+      return low;
+    };
     for (let row = 0; row < rows; row++)
       for (let column = 0; column < columns; column++) {
         const u = ((2 * (column + 0.5)) / columns - 1) * tangent * aspect;
         const v = (1 - (2 * (row + 0.5)) / rows) * tangent;
-        const direction = normalized({
-          x: f.x + right.x * u + up.x * v,
-          y: f.y + up.y * v,
-          z: f.z + right.z * u + up.z * v
-        });
-        if (subject.some((solid) => rayBox(eye, direction, solid.box) < farClip)) projected++;
+        const rawX = f.x + right.x * u + up.x * v;
+        const rawY = f.y + up.y * v;
+        const rawZ = f.z + right.z * u + up.z * v;
+        const invLen = 1 / Math.hypot(rawX, rawY, rawZ);
+        const dirX = rawX * invLen;
+        const dirY = rawY * invLen;
+        const dirZ = rawZ * invLen;
+        for (let i = 0; i < subjectSolids.length; i++) {
+          if (intersectPrepared(subjectSolids[i]!, dirX, dirY, dirZ, farClip) < farClip) {
+            projected++;
+            break;
+          }
+        }
         let distance = farClip,
           category: Category | undefined,
           ownerId: string | undefined;
-        for (const solid of solids) {
-          const hit = rayBox(eye, direction, solid.box);
+        for (let i = 0; i < activeSolids.length; i++) {
+          const solid = activeSolids[i]!;
+          const hit = intersectPrepared(solid, dirX, dirY, dirZ, distance);
           if (hit < distance) {
             distance = hit;
             category = solid.category;
@@ -198,16 +353,19 @@ export function selectPlanningSpawnView(
         const count = Math.ceil(distance / step);
         for (let index = 1; index <= count; index++) {
           const t = Math.min(index * step, distance);
-          const x = eye.x + direction.x * t,
-            z = eye.z + direction.z * t;
+          const x = eye.x + dirX * t,
+            z = eye.z + dirZ * t;
           if (x < 0 || z < 0 || x > plan.parameters.width || z > plan.parameters.depth) break;
-          const y = eye.y + direction.y * t,
-            terrain = ground(x, z);
+          const y = eye.y + dirY * t;
+          if (maxRaymarchY !== undefined && dirY >= 0 && y > maxRaymarchY) break;
+          const terrain = ground(x, z);
           if (terrain === undefined) break;
-          const water = waterAt(x, z);
-          if (water.water && y <= water.surfaceElevationMetres!) {
-            category = "water";
-            break;
+          if (y <= maxWaterSurface) {
+            const water = waterAt(x, z);
+            if (water.water && y <= water.surfaceElevationMetres!) {
+              category = "water";
+              break;
+            }
           }
           if (y <= terrain) {
             density = vegetationAt(x, z);
@@ -248,6 +406,7 @@ export function selectPlanningSpawnView(
         )
         .slice(0, 7)
     : candidates;
+  const anchor = standingEye(plan.spawn.x, plan.spawn.z);
   for (const building of framingCandidates) {
     const base = building.baseHeight ?? ground(building.center.x, building.center.z);
     if (base === undefined || !Number.isFinite(base)) continue;
@@ -293,7 +452,6 @@ export function selectPlanningSpawnView(
       }
       return true;
     };
-    const anchor = standingEye(plan.spawn.x, plan.spawn.z);
     if (anchor && Math.hypot(anchor.x - target.x, anchor.y - target.y, anchor.z - target.z) >= distance) {
       consider(anchor);
       if (!desertComposition) continue;

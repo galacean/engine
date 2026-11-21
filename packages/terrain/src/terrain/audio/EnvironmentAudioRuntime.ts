@@ -102,6 +102,8 @@ export class EnvironmentAudioRuntime extends Script {
   private frameTime = 0;
   private unlocked = false;
   private loading = false;
+  private loadDeferred = false;
+  private loadRequestedWhileDeferred = false;
   private muted = false;
   private volume = 0.65;
   private active = false;
@@ -157,12 +159,24 @@ export class EnvironmentAudioRuntime extends Script {
     void this.unlock();
   };
 
+  /** Defer downloading the 32 ambient/footstep WAV clips until startup first-screen reveal finishes. */
+  setLoadDeferred(deferred: boolean): void {
+    this.loadDeferred = deferred;
+    if (!deferred && this.loadRequestedWhileDeferred && !this.loading && !this.destroyed && !this.pendingDestroy) {
+      this.loadRequestedWhileDeferred = false;
+      void this.load();
+    }
+  }
+
   /** Request engine playback from the first trusted gesture; the engine owns context recovery. */
   async unlock(): Promise<void> {
     if (this.destroyed || this.pendingDestroy || (this.unlocked && AudioManager.state === "running")) return;
     try {
       const resumed = AudioManager.resume();
-      if (!this.loading) void this.load();
+      if (!this.loading) {
+        if (this.loadDeferred) this.loadRequestedWhileDeferred = true;
+        else void this.load();
+      }
       await resumed;
       if (this.destroyed || this.pendingDestroy) return;
       this.unlocked = AudioManager.state === "running";

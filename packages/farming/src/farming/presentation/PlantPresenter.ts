@@ -294,6 +294,7 @@ export class PlantPresenter {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.setShaderWorkPaused(false);
     while (this.entryList.length > 0) this.remove(this.entryList[this.entryList.length - 1].state.instanceId);
     this.scheduler.clear();
     if (this.harvesting.size > 0) {
@@ -303,8 +304,38 @@ export class PlantPresenter {
       this.harvesting.clear();
     }
   }
+  private shaderWorkPaused = false;
+  private shaderWorkResumeWaiters: Array<() => void> = [];
+  /** Defer background shader compilation during critical reveal windows (e.g., orb.reveal). */
+  setShaderWorkPaused(paused: boolean): void {
+    this.shaderWorkPaused = paused;
+    if (!paused && this.shaderWorkResumeWaiters.length > 0) {
+      const waiters = this.shaderWorkResumeWaiters.splice(0);
+      for (const resolve of waiters) resolve();
+    }
+  }
   /** Item GPU preparation shares the existing crop work budget. */
   async preparePresentationWork<T>(work: () => T, phase: string, signal: AbortSignal): Promise<T> {
+    if (this.disposed) throw new Error("Farming presentation disposed");
+    if (phase === "shader" && this.shaderWorkPaused) {
+      await new Promise<void>((resolve, reject) => {
+        if (signal.aborted) {
+          reject(signal.reason ?? new DOMException("Aborted", "AbortError"));
+          return;
+        }
+        const onResume = () => {
+          signal.removeEventListener("abort", onAbort);
+          resolve();
+        };
+        const onAbort = () => {
+          const idx = this.shaderWorkResumeWaiters.indexOf(onResume);
+          if (idx >= 0) this.shaderWorkResumeWaiters.splice(idx, 1);
+          reject(signal.reason ?? new DOMException("Aborted", "AbortError"));
+        };
+        signal.addEventListener("abort", onAbort, { once: true });
+        this.shaderWorkResumeWaiters.push(onResume);
+      });
+    }
     if (this.disposed) throw new Error("Farming presentation disposed");
     const id = `presentation:${this.nextPresentationJob++}`;
     this.presentationJobs.add(id);

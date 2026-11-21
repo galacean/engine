@@ -107,11 +107,15 @@ export async function preparePlantShaderPrograms(
   const prepared = new Set<RuntimeProgram>();
   const submissions: { pass: RuntimePass; macros: ShaderMacroCollection }[] = [];
   for (const camera of cameras) {
+    if (camera.enabled === false) continue;
+    const runtimeCamera = camera as unknown as RuntimeCamera & { _isIndependentCanvasEnabled?: () => boolean };
+    const renderToTexture = Boolean(camera.renderTarget) || Boolean(runtimeCamera._isIndependentCanvasEnabled?.());
+    const outputSRGB = ShaderMacro.getByName("ENGINE_OUTPUT_SRGB_CORRECT");
     const cameraMacros = await schedule(() => {
       // Direct callers may not have started Engine.run. Prepare lights through
       // their owner without advancing scene time or physics.
       (scene as unknown as RuntimeScene)._lightManager._updateShaderData(scene.shaderData);
-      (camera as unknown as RuntimeCamera)._updateShaderData();
+      runtimeCamera._updateShaderData();
       const macros = new ShaderMacroCollection();
       appendMacros(scene.shaderData, macros);
       appendMacros(camera.shaderData, macros);
@@ -143,9 +147,6 @@ export async function preparePlantShaderPrograms(
         macros.unionCollection(rendererMacros);
         appendMacros(material.shaderData, macros);
         macros.unionCollection((engine as RuntimeEngine)._macroCollection);
-        const outputSRGB = ShaderMacro.getByName("ENGINE_OUTPUT_SRGB_CORRECT");
-        if (camera.renderTarget) macros.disable(outputSRGB);
-        else macros.enable(outputSRGB);
         for (const state of options.shadowStates?.(renderer) ?? [
           { cast: renderer.castShadows, receive: renderer.receiveShadows }
         ]) {
@@ -155,10 +156,15 @@ export async function preparePlantShaderPrograms(
           if (state.receive) stateMacros.enable(receive);
           else stateMacros.disable(receive);
           for (const pass of getPlantShaderPreparationPasses(engine, camera, renderer, material, state.cast)) {
-            submissions.push({ pass: pass as RuntimePass, macros: stateMacros });
+            const stage = pass.getTagValue("pipelineStage");
+            const passMacros = new ShaderMacroCollection();
+            passMacros.unionCollection(stateMacros);
+            if (!renderToTexture && stage === "Forward") passMacros.enable(outputSRGB);
+            else passMacros.disable(outputSRGB);
+            submissions.push({ pass: pass as RuntimePass, macros: passMacros });
             if (prepareInstances) {
               const instanced = new ShaderMacroCollection();
-              instanced.unionCollection(stateMacros);
+              instanced.unionCollection(passMacros);
               instanced.enable(ShaderMacro.getByName("RENDERER_GPU_INSTANCE"));
               submissions.push({ pass: pass as RuntimePass, macros: instanced });
             }

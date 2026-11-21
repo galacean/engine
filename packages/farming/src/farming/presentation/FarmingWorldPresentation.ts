@@ -344,6 +344,16 @@ export class FarmingWorldPresentation {
   }
 
   /** Synchronously flush pending soil batch geometry so renderers have valid meshes before shader warmup. */
+  /** Pause/resume asynchronous farm item shader compilation during critical first-screen reveal windows. */
+  setBackgroundShaderWorkPaused(paused: boolean): void {
+    this.plants.setShaderWorkPaused(paused);
+  }
+
+  /** Resolves once in-flight soil textures are bound so startup shader warmup sees final material macros. */
+  whenSoilTexturesSettled(): Promise<void> {
+    return this.soils.whenTexturesSettled();
+  }
+
   flushPendingVisuals(): void {
     if (!this.disposed) this.soils.update(0);
   }

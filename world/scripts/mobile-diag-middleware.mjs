@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-export const DEFAULT_MOBILE_DIAG_MAX_BODY_BYTES = 1024 * 1024;
+export const DEFAULT_MOBILE_DIAG_MAX_BODY_BYTES = 4 * 1024 * 1024;
 
 function readExistingLines(diagLog) {
   if (!fs.existsSync(diagLog)) return [];

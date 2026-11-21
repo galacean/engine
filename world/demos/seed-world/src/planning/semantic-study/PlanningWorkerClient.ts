@@ -6,6 +6,20 @@ import { adoptPlanningHeightmap, cachedPlanningHeightmap } from "@galacean/engin
 import type { PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import { seedWorldBootTrace } from "../../SeedWorldBootTrace.ts";
 let ownerSequence = 0;
+let prewarmedWorker: Worker | null = null;
+
+/** Spawns an idle Planning Worker early so its JS bundle downloads and boots in parallel with WebGL/Orb setup. */
+export function prewarmPlanningWorker(): void {
+  if (prewarmedWorker || typeof Worker !== "function") return;
+  try {
+    prewarmedWorker = new Worker(new URL("./WorldPlanning.worker.ts", import.meta.url), {
+      type: "module"
+    });
+  } catch {
+    prewarmedWorker = null;
+  }
+}
+
 export class PlanningWorkerClient {
   private readonly owner = ++ownerSequence;
   private generation = 0;
@@ -88,9 +102,13 @@ export class PlanningWorkerClient {
     if (this.inFlight || !this.queued) return;
     try {
       if (!this.worker) {
-        const worker = (this.worker = new Worker(new URL("./WorldPlanning.worker.ts", import.meta.url), {
-          type: "module"
-        }));
+        const adopted = prewarmedWorker;
+        prewarmedWorker = null;
+        const worker = (this.worker =
+          adopted ??
+          new Worker(new URL("./WorldPlanning.worker.ts", import.meta.url), {
+            type: "module"
+          }));
         worker.onmessage = ({ data }: MessageEvent<PlanningWorkerResponse>) => {
           if (this.worker !== worker) return;
           if (data.type === "progress") {

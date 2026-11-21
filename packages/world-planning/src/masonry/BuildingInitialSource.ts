@@ -18,6 +18,11 @@ import { prepareBuildingTerrain } from "@galacean/engine-building/building/parts
 
 const registry = createBuildingTypeRegistry();
 
+/** Returns true only when the plan yields at least one authored building group. */
+export function hasInitialBuildings(plan: IslandPlan): boolean {
+  return initialBuildingDrafts(plan).length > 0;
+}
+
 /** One-shot creation from published planning intent. Style builders publish parts
  * directly; mounted parts that the design does not lay, such as a window inside a
  * neighbouring house, are never saved as objects. */

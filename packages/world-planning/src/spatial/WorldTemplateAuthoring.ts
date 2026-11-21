@@ -1,10 +1,15 @@
 import {
   createSeedPlanningDocument,
   createSeedPlanningInputs,
-  initializePlanningPopulation,
+  preparePlanningPopulation,
   type PlanningPopulationOptions
 } from "./PlanningInitialization";
-import { exportPlanningRecipe, importPlanningDocument, type PlanningDocument } from "./PlanningDocument";
+import {
+  exportPlanningAuthoring,
+  exportPlanningRecipe,
+  importPlanningDocument,
+  type PlanningDocument
+} from "./PlanningDocument";
 import { PLANT_MATERIAL_SLOTS, plantMaterialField } from "./PlantMaterialParameters";
 import { settlementRandom } from "../semantic-study/SettlementGeometry";
 import { templateBaseSeed, templateLinearColor, worldTemplate, type WorldTemplate } from "./WorldTemplateCatalog";
@@ -242,7 +247,11 @@ function templateCore(template: WorldTemplate) {
   return core;
 }
 
-function createConfiguredTemplate(seed: number, id: string, options?: PlanningPopulationOptions): PlanningDocument {
+function prepareConfiguredTemplate(
+  seed: number,
+  id: string,
+  options?: PlanningPopulationOptions
+): { document: PlanningDocument; result?: ReturnType<typeof preparePlanningPopulation>["result"] } {
   const { spawn, spawnPoi } = WORLD_TEMPLATE_CONFIGS[id]!;
   const document = createSeedPlanningInputs(seed);
   const components = document.entities.world.components;
@@ -252,7 +261,7 @@ function createConfiguredTemplate(seed: number, id: string, options?: PlanningPo
   };
   for (const [type, values] of Object.entries(worldTemplatePaletteValues(id, seed)))
     components[type] = { ...components[type], values: { ...components[type]?.values, ...values } };
-  if (!spawn || !spawnPoi) return initializePlanningPopulation(document, options);
+  if (!spawn || !spawnPoi) return preparePlanningPopulation(document, options);
 
   const recipe = exportPlanningRecipe(document);
   const terrain = createSpatialTerrainPlan(recipe);
@@ -304,9 +313,13 @@ function createConfiguredTemplate(seed: number, id: string, options?: PlanningPo
       })
     }
   };
-  const initialized = initializePlanningPopulation(document, options);
-  if (layout) Object.assign(initialized.entities[TEMPLATE_SPAWN_POI_ID].components.layout.values, layout);
-  return initialized;
+  const prepared = preparePlanningPopulation(document, options);
+  const beforeKey = layout ? JSON.stringify({ ...exportPlanningAuthoring(prepared.document), revision: 0 }) : "";
+  if (layout) Object.assign(prepared.document.entities[TEMPLATE_SPAWN_POI_ID].components.layout.values, layout);
+  const mutated = layout
+    ? JSON.stringify({ ...exportPlanningAuthoring(prepared.document), revision: 0 }) !== beforeKey
+    : false;
+  return { document: prepared.document, result: mutated ? undefined : prepared.result };
 }
 
 /** Create template authoring with a one-time editable initial population.
@@ -320,11 +333,20 @@ export function createTemplatePlanningDocument(
   id: string,
   options?: PlanningPopulationOptions
 ): PlanningDocument {
+  return prepareTemplatePlanningDocument(seed, id, options).document;
+}
+
+/** Prepare template authoring together with its validated structural result for worker-local reuse when unchanged. */
+export function prepareTemplatePlanningDocument(
+  seed: number,
+  id: string,
+  options?: PlanningPopulationOptions
+): { document: PlanningDocument; result?: ReturnType<typeof preparePlanningPopulation>["result"] } {
   const template = worldTemplate(id);
   if (!template) throw new Error("未知世界风格：" + id);
   const art = WORLD_TEMPLATE_ART[id];
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 0xffffffff) throw new Error("Seed 须为 0–4294967295 的整数");
-  if (WORLD_TEMPLATE_CONFIGS[id]) return createConfiguredTemplate(seed, id, options);
+  if (WORLD_TEMPLATE_CONFIGS[id]) return prepareConfiguredTemplate(seed, id, options);
   const initial = createSeedPlanningInputs(seed);
   const recipe = exportPlanningRecipe(initial);
   const jitter = (field: string) => settlementRandom(seed, `template:${id}:${field}`) * 2 - 1;
@@ -439,7 +461,9 @@ export function createTemplatePlanningDocument(
     values.referenceLevel = Math.fround(level) - 0.02;
     document.entities[lake.id] = lake;
   }
-  const initialized = initializePlanningPopulation(document, { ...art.initialPlanning?.population, ...options });
+  const prepared = preparePlanningPopulation(document, { ...art.initialPlanning?.population, ...options });
+  const initialized = prepared.document;
+  const beforeKey = JSON.stringify({ ...exportPlanningAuthoring(initialized), revision: 0 });
   if (art.initialPlanning?.poiMemberMax !== undefined) {
     const layout = (initialized.entities.world.components.layout ??= { values: {} });
     layout.values.memberMax = art.initialPlanning.poiMemberMax;
@@ -458,7 +482,8 @@ export function createTemplatePlanningDocument(
       };
     }
   }
-  return initialized;
+  const mutated = JSON.stringify({ ...exportPlanningAuthoring(initialized), revision: 0 }) !== beforeKey;
+  return { document: initialized, result: mutated ? undefined : prepared.result };
 }
 
 /** Apply a reference recipe while retaining independently authored plant controls.

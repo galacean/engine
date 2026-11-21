@@ -474,13 +474,17 @@ export class SoilVisualProvider {
     }
     const material = this.perimeterMaterial;
     if (!material.baseTexture)
-      void this.loadTexture("perimeter", "diffuse", "grass-mud-albedo-smoothness", (texture) => {
-        material.baseTexture = texture;
-      });
+      void this.trackTextureLoad(
+        this.loadTexture("perimeter", "diffuse", "grass-mud-albedo-smoothness", (texture) => {
+          material.baseTexture = texture;
+        })
+      );
     if (!material.normalTexture)
-      void this.loadTexture("perimeter", "normal", "grass-mud-normal", (texture) => {
-        material.normalTexture = texture;
-      });
+      void this.trackTextureLoad(
+        this.loadTexture("perimeter", "normal", "grass-mud-normal", (texture) => {
+          material.normalTexture = texture;
+        })
+      );
     this.perimeterRenderers.add(renderer);
     renderer.setMaterial(material);
   }
@@ -539,19 +543,40 @@ export class SoilVisualProvider {
     }
   }
 
+  private readonly pendingTextureLoads = new Set<Promise<void>>();
+
+  /** Resolves once any in-flight soil/perimeter texture loads have settled (never waits on retry timers). */
+  async whenTexturesSettled(): Promise<void> {
+    while (this.pendingTextureLoads.size > 0 && !this.disposed) {
+      await Promise.all([...this.pendingTextureLoads]);
+    }
+  }
+
+  private trackTextureLoad(task: Promise<void>): Promise<void> {
+    this.pendingTextureLoads.add(task);
+    void task.finally(() => {
+      this.pendingTextureLoads.delete(task);
+    });
+    return task;
+  }
+
   private requestSoilTextures(): void {
     if (!this.diffuseTexture)
-      void this.loadTexture("soil", "diffuse", "juliovii-handpainted-dirt", (texture) => {
-        this.diffuseTexture = texture;
-        for (const { material } of this.appearances.values()) if (material) material.baseTexture = texture;
-        if (this.batches && !this.batches.material.destroyed) this.batches.material.baseTexture = texture;
-      });
+      void this.trackTextureLoad(
+        this.loadTexture("soil", "diffuse", "juliovii-handpainted-dirt", (texture) => {
+          this.diffuseTexture = texture;
+          for (const { material } of this.appearances.values()) if (material) material.baseTexture = texture;
+          if (this.batches && !this.batches.material.destroyed) this.batches.material.baseTexture = texture;
+        })
+      );
     if (!this.normalTexture)
-      void this.loadTexture("soil", "normal", "juliovii-handpainted-dirt-normal", (texture) => {
-        this.normalTexture = texture;
-        for (const { material } of this.appearances.values()) if (material) material.normalTexture = texture;
-        if (this.batches && !this.batches.material.destroyed) this.batches.material.normalTexture = texture;
-      });
+      void this.trackTextureLoad(
+        this.loadTexture("soil", "normal", "juliovii-handpainted-dirt-normal", (texture) => {
+          this.normalTexture = texture;
+          for (const { material } of this.appearances.values()) if (material) material.normalTexture = texture;
+          if (this.batches && !this.batches.material.destroyed) this.batches.material.normalTexture = texture;
+        })
+      );
   }
 
   private async loadTexture(

@@ -1825,6 +1825,33 @@ export class PlanningNaturalVegetationRuntime {
   }
 
   /**
+   * Returns only the spawn-frame view-culled instanced tree & understory renderers that `cull()`
+   * will submit on the first reveal frame (both camera passes and shadow cascade views), without
+   * creating synthetic representatives for offscreen species.
+   */
+  preparePrimaryShaderWarmup(): {
+    readonly renderers: readonly MeshRenderer[];
+    readonly cameraOnlyRenderers: readonly MeshRenderer[];
+    readonly shadowOnlyRenderers: readonly MeshRenderer[];
+    dispose(): void;
+  } {
+    if (this.disposed) {
+      return { renderers: [], cameraOnlyRenderers: [], shadowOnlyRenderers: [], dispose() {} };
+    }
+    const trees = this.instancedTrees?.getPrimaryWarmupRenderers();
+    const understory = this.instancedUnderstory?.getPrimaryWarmupRenderers();
+    return {
+      renderers: [...(trees?.renderers ?? []), ...(understory?.renderers ?? [])],
+      cameraOnlyRenderers: [...(trees?.cameraOnlyRenderers ?? []), ...(understory?.cameraOnlyRenderers ?? [])],
+      shadowOnlyRenderers: [...(trees?.shadowOnlyRenderers ?? []), ...(understory?.shadowOnlyRenderers ?? [])],
+      dispose() {
+        trees?.dispose();
+        understory?.dispose();
+      }
+    };
+  }
+
+  /**
    * Prepares exact production-configured vegetation renderers for shader warmup without exposing raw
    * unstyled `resourceRoot` templates:
    * - Temporarily restores `castShadows` on inactive LOD renderers of materialized plants whose initial

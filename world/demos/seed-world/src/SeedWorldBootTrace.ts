@@ -1,3 +1,9 @@
+import {
+  summarizeSeedWorldShaderAudit,
+  type SeedWorldShaderAuditSnapshot,
+  type SeedWorldShaderAuditSummary
+} from "./SeedWorldShaderAudit";
+
 export interface BootTraceActiveSpan {
   readonly id: number;
   readonly name: string;
@@ -33,6 +39,7 @@ export interface BootTraceEvent {
 
 export interface BootTraceResourceSummary {
   readonly name: string;
+  readonly category: string;
   readonly initiatorType: string;
   readonly startMs: number;
   readonly durationMs: number;
@@ -41,7 +48,65 @@ export interface BootTraceResourceSummary {
   readonly responseStatus?: number;
 }
 
+export interface BootTraceResourceCategoryStats {
+  readonly count: number;
+  readonly cachedCount: number;
+  readonly transferBytes: number;
+  readonly decodedBytes: number;
+  readonly maxDurationMs: number;
+  readonly sumDurationMs: number;
+  readonly firstStartMs: number;
+  readonly lastEndMs: number;
+}
+
+export interface BootTraceDeviceInfo {
+  readonly userAgent?: string;
+  readonly devicePixelRatio?: number;
+  readonly hardwareConcurrency?: number;
+  readonly deviceMemory?: number;
+  readonly viewport?: readonly [number, number];
+  readonly webglVersion?: string;
+  readonly gpuVendor?: string;
+  readonly gpuRenderer?: string;
+  readonly parallelShaderCompile?: boolean;
+}
+
+export interface BootTraceNavigationInfo {
+  readonly type?: string;
+  readonly responseStartMs?: number;
+  readonly responseEndMs?: number;
+  readonly domInteractiveMs?: number;
+  readonly domContentLoadedMs?: number;
+  readonly loadEventEndMs?: number;
+  readonly transferSize?: number;
+  readonly decodedBodySize?: number;
+}
+
+export interface BootTraceMeta {
+  readonly templateId?: string;
+  readonly templateFamily?: string;
+  readonly features?: Readonly<Record<string, boolean | number | string>>;
+  readonly device?: BootTraceDeviceInfo;
+  readonly navigation?: BootTraceNavigationInfo;
+  readonly startupWarmup?: {
+    readonly requested: number;
+    readonly compiled: number;
+    readonly deferred: number;
+    readonly elapsedMs: number;
+    readonly longestVariantMs: number;
+    readonly parallelCompile: boolean;
+  };
+  readonly bgWarmup?: {
+    readonly requested: number;
+    readonly compiled: number;
+    readonly elapsedMs: number;
+    readonly longestVariantMs: number;
+    readonly completedAtMs: number;
+  };
+}
+
 export interface BootTraceSnapshot {
+  readonly runId: string;
   readonly timeOrigin: number;
   readonly elapsedMs: number;
   readonly url: string;
@@ -51,13 +116,24 @@ export interface BootTraceSnapshot {
   readonly currentPhase: string;
   readonly progress: number;
   readonly error?: string;
+  readonly meta?: BootTraceMeta;
+  readonly shaderSummary?: SeedWorldShaderAuditSummary;
   readonly active: readonly BootTraceActiveSpan[];
   readonly spans: readonly BootTraceCompletedSpan[];
   readonly phases: readonly BootTracePhaseEntry[];
   readonly events: readonly BootTraceEvent[];
   readonly resourceStats: {
     readonly count: number;
+    readonly cachedCount: number;
+    readonly networkCount: number;
     readonly totalTransferBytes: number;
+    readonly totalDecodedBytes: number;
+    readonly waterfallWindow?: {
+      readonly firstStartMs: number;
+      readonly lastEndMs: number;
+      readonly spanMs: number;
+    };
+    readonly byCategory: Readonly<Record<string, BootTraceResourceCategoryStats>>;
     readonly slowest: readonly BootTraceResourceSummary[];
   };
 }
@@ -102,35 +178,168 @@ function shortResourceName(url: string): string {
   }
 }
 
+function makeRunId(): string {
+  const rand = Math.random().toString(36).slice(2, 8);
+  return `boot-${Date.now().toString(36)}-${rand}`;
+}
+
+function classifyResourceCategory(url: string, initiatorType: string): string {
+  let pathname = url;
+  try {
+    pathname = new URL(url).pathname.toLowerCase();
+  } catch {
+    pathname = url.toLowerCase().split(/[?#]/)[0] ?? "";
+  }
+  if (pathname.includes("seed-world-common-bin-bundle") || pathname.includes("seed-world-project-text-bundle")) {
+    return "bundle";
+  }
+  if (pathname.endsWith(".wasm") || pathname.endsWith(".wasm.br")) return "wasm";
+  if (pathname.endsWith(".js") || pathname.endsWith(".mjs") || pathname.endsWith(".cjs")) return "js";
+  if (pathname.endsWith(".css")) return "css";
+  if (pathname.endsWith(".ktx2") || pathname.endsWith(".tex")) return "ktx2";
+  if (/\.(png|jpe?g|webp|avif|gif|svg)$/.test(pathname)) return "image";
+  if (pathname.endsWith(".glb") || pathname.endsWith(".gltf")) return "glb";
+  if (pathname.endsWith(".mesh") || pathname.endsWith(".bin") || pathname.endsWith(".treewind")) return "mesh";
+  if (pathname.endsWith(".shader") || pathname.endsWith(".shaderc") || pathname.endsWith(".glsl")) return "shader";
+  if (/\.(prefab|mat|scene|json|animctrl|asset)$/.test(pathname)) return "manifest";
+  if (/\.(mp3|wav|ogg|m4a|aac)$/.test(pathname)) return "audio";
+  if (initiatorType === "script") return "js";
+  return "other";
+}
+
+function readNavigationInfo(): BootTraceNavigationInfo | undefined {
+  if (typeof performance === "undefined" || typeof performance.getEntriesByType !== "function") return undefined;
+  const entries = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
+  const nav = entries[0];
+  if (!nav) return undefined;
+  return {
+    type: nav.type,
+    responseStartMs: Math.round(nav.responseStart),
+    responseEndMs: Math.round(nav.responseEnd),
+    domInteractiveMs: Math.round(nav.domInteractive),
+    domContentLoadedMs: Math.round(nav.domContentLoadedEventEnd),
+    loadEventEndMs: Math.round(nav.loadEventEnd),
+    transferSize: typeof nav.transferSize === "number" ? nav.transferSize : undefined,
+    decodedBodySize: typeof nav.decodedBodySize === "number" ? nav.decodedBodySize : undefined
+  };
+}
+
+function readBasicDeviceInfo(): BootTraceDeviceInfo {
+  const nav = typeof navigator !== "undefined" ? (navigator as Navigator & { deviceMemory?: number }) : undefined;
+  const win = typeof window !== "undefined" ? window : undefined;
+  return {
+    ...(nav?.userAgent ? { userAgent: nav.userAgent } : {}),
+    ...(typeof win?.devicePixelRatio === "number" ? { devicePixelRatio: win.devicePixelRatio } : {}),
+    ...(typeof nav?.hardwareConcurrency === "number" ? { hardwareConcurrency: nav.hardwareConcurrency } : {}),
+    ...(typeof nav?.deviceMemory === "number" ? { deviceMemory: nav.deviceMemory } : {}),
+    ...(win ? { viewport: [win.innerWidth, win.innerHeight] as const } : {})
+  };
+}
+
 function readResourceStats(): BootTraceSnapshot["resourceStats"] {
   if (typeof performance === "undefined" || typeof performance.getEntriesByType !== "function") {
-    return { count: 0, totalTransferBytes: 0, slowest: [] };
+    return {
+      count: 0,
+      cachedCount: 0,
+      networkCount: 0,
+      totalTransferBytes: 0,
+      totalDecodedBytes: 0,
+      byCategory: {},
+      slowest: []
+    };
   }
   const entries = performance.getEntriesByType("resource") as (PerformanceResourceTiming & { responseStatus?: number })[];
   let totalTransferBytes = 0;
+  let totalDecodedBytes = 0;
+  let cachedCount = 0;
+  let networkCount = 0;
+  let firstStartMs = Number.POSITIVE_INFINITY;
+  let lastEndMs = 0;
+  const categoryAcc: Record<
+    string,
+    {
+      count: number;
+      cachedCount: number;
+      transferBytes: number;
+      decodedBytes: number;
+      maxDurationMs: number;
+      sumDurationMs: number;
+      firstStartMs: number;
+      lastEndMs: number;
+    }
+  > = {};
   const summaries: BootTraceResourceSummary[] = [];
   for (const entry of entries) {
+    if (entry.name.includes("/__mobile-diag")) continue;
     const transferSize = typeof entry.transferSize === "number" ? entry.transferSize : 0;
+    const decodedBodySize = typeof entry.decodedBodySize === "number" ? entry.decodedBodySize : 0;
+    const startMs = Math.round(entry.startTime);
+    const durationMs = Math.round(entry.duration);
+    const endMs = startMs + durationMs;
+    const isCached = transferSize === 0 && decodedBodySize > 0;
+    if (isCached) cachedCount++;
+    else networkCount++;
     totalTransferBytes += transferSize;
+    totalDecodedBytes += decodedBodySize;
+    if (startMs < firstStartMs) firstStartMs = startMs;
+    if (endMs > lastEndMs) lastEndMs = endMs;
+
+    const category = classifyResourceCategory(entry.name, entry.initiatorType || "unknown");
+    const cat = (categoryAcc[category] ??= {
+      count: 0,
+      cachedCount: 0,
+      transferBytes: 0,
+      decodedBytes: 0,
+      maxDurationMs: 0,
+      sumDurationMs: 0,
+      firstStartMs: Number.POSITIVE_INFINITY,
+      lastEndMs: 0
+    });
+    cat.count += 1;
+    if (isCached) cat.cachedCount += 1;
+    cat.transferBytes += transferSize;
+    cat.decodedBytes += decodedBodySize;
+    cat.sumDurationMs += durationMs;
+    if (durationMs > cat.maxDurationMs) cat.maxDurationMs = durationMs;
+    if (startMs < cat.firstStartMs) cat.firstStartMs = startMs;
+    if (endMs > cat.lastEndMs) cat.lastEndMs = endMs;
+
     summaries.push({
       name: shortResourceName(entry.name),
+      category,
       initiatorType: entry.initiatorType || "unknown",
-      startMs: Math.round(entry.startTime),
-      durationMs: Math.round(entry.duration),
+      startMs,
+      durationMs,
       transferSize,
-      decodedBodySize: typeof entry.decodedBodySize === "number" ? entry.decodedBodySize : 0,
+      decodedBodySize,
       ...(typeof entry.responseStatus === "number" ? { responseStatus: entry.responseStatus } : {})
     });
   }
   summaries.sort((a, b) => b.durationMs - a.durationMs);
+  const byCategory: Record<string, BootTraceResourceCategoryStats> = {};
+  for (const [k, v] of Object.entries(categoryAcc).sort((a, b) => b[1].transferBytes - a[1].transferBytes || b[1].sumDurationMs - a[1].sumDurationMs)) {
+    byCategory[k] = {
+      ...v,
+      firstStartMs: Number.isFinite(v.firstStartMs) ? v.firstStartMs : 0
+    };
+  }
+  const counted = cachedCount + networkCount;
   return {
-    count: entries.length,
+    count: counted,
+    cachedCount,
+    networkCount,
     totalTransferBytes,
-    slowest: summaries.slice(0, 20)
+    totalDecodedBytes,
+    ...(counted > 0 && Number.isFinite(firstStartMs)
+      ? { waterfallWindow: { firstStartMs, lastEndMs, spanMs: Math.max(0, lastEndMs - firstStartMs) } }
+      : {}),
+    byCategory,
+    slowest: summaries.slice(0, 25)
   };
 }
 
 class SeedWorldBootTraceController {
+  private runId = makeRunId();
   private nextSpanId = 1;
   private status: "loading" | "ready" | "error" = "loading";
   private currentPhase = "entry";
@@ -139,6 +348,9 @@ class SeedWorldBootTraceController {
   private url = "";
   private verbose = false;
   private autoOpenOverlay = false;
+  private meta: BootTraceMeta = {};
+  private shaderAuditProvider: (() => SeedWorldShaderAuditSnapshot | undefined) | undefined;
+  private diagStatusText = "";
   private readonly active = new Map<number, InternalActiveSpan>();
   private readonly spans: BootTraceCompletedSpan[] = [];
   private readonly phases: BootTracePhaseEntry[] = [];
@@ -151,6 +363,7 @@ class SeedWorldBootTraceController {
   private overlayToggle: HTMLButtonElement | undefined;
   private overlayPanel: HTMLElement | undefined;
   private overlayBody: HTMLElement | undefined;
+  private overlayReportBtn: HTMLButtonElement | undefined;
   private overlayOpen = false;
   private resourceObserver: PerformanceObserver | undefined;
 
@@ -163,13 +376,67 @@ class SeedWorldBootTraceController {
     this.autoOpenOverlay = Boolean(options.autoOpenOverlay);
     if (typeof performance !== "undefined" && typeof performance.setResourceTimingBufferSize === "function") {
       try {
-        performance.setResourceTimingBufferSize(2000);
+        performance.setResourceTimingBufferSize(4000);
       } catch {
         /* Ignore unsupported environments. */
       }
     }
     this.ensureWatchdog();
     this.ensureResourceObserver();
+  }
+
+  setMeta(partial: Partial<BootTraceMeta>): void {
+    this.meta = {
+      ...this.meta,
+      ...partial,
+      ...(partial.features || this.meta.features
+        ? { features: { ...(this.meta.features ?? {}), ...(partial.features ?? {}) } }
+        : {}),
+      ...(partial.device || this.meta.device
+        ? { device: { ...(this.meta.device ?? {}), ...(partial.device ?? {}) } }
+        : {})
+    };
+    this.renderOverlay();
+  }
+
+  setShaderAuditProvider(provider: (() => SeedWorldShaderAuditSnapshot | undefined) | undefined): void {
+    this.shaderAuditProvider = provider;
+  }
+
+  async reportToDiag(
+    stage: "ready" | "post-ready" | "error" | "manual",
+    endpointUrl = "/__mobile-diag"
+  ): Promise<boolean> {
+    if (typeof fetch !== "function") return false;
+    this.diagStatusText = `上报中(${stage})...`;
+    if (this.overlayReportBtn) this.overlayReportBtn.textContent = this.diagStatusText;
+    try {
+      const payload = {
+        kind: "seed-world-boot-trace",
+        stage,
+        runId: this.runId,
+        recordedAt: new Date().toISOString(),
+        snapshot: this.snapshot()
+      };
+      const response = await fetch(endpointUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json; charset=utf-8" },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        this.diagStatusText = `上报失败(${response.status})`;
+        if (this.overlayReportBtn) this.overlayReportBtn.textContent = this.diagStatusText;
+        return false;
+      }
+      this.diagStatusText = `已上报(${stage})`;
+      if (this.overlayReportBtn) this.overlayReportBtn.textContent = this.diagStatusText;
+      this.renderOverlay();
+      return true;
+    } catch {
+      this.diagStatusText = "未连接上报端";
+      if (this.overlayReportBtn) this.overlayReportBtn.textContent = "上报 Trace";
+      return false;
+    }
   }
 
   attachCanvas(canvas: HTMLCanvasElement): void {
@@ -200,6 +467,21 @@ class SeedWorldBootTraceController {
     } else if (this.verbose) {
       console.log(`[SeedWorldBoot +${Math.round(atMs)}ms] ${tag}: ${message}`, detail ?? "");
     }
+    this.renderOverlay();
+  }
+
+  recordSpan(name: string, startMs: number, endMs = nowMs(), detail?: string): void {
+    const id = this.nextSpanId++;
+    const durationMs = Math.max(0, endMs - startMs);
+    this.spans.push({
+      id,
+      name,
+      startMs,
+      endMs,
+      durationMs,
+      status: "ok",
+      ...(detail ? { detail } : {})
+    });
     this.renderOverlay();
   }
 
@@ -330,11 +612,15 @@ class SeedWorldBootTraceController {
 
   reset(): void {
     this.dispose(false);
+    this.runId = makeRunId();
     this.nextSpanId = 1;
     this.status = "loading";
     this.currentPhase = "entry";
     this.progressValue = 0;
     this.errorMessage = undefined;
+    this.meta = {};
+    this.shaderAuditProvider = undefined;
+    this.diagStatusText = "";
     this.active.clear();
     this.spans.length = 0;
     this.phases.length = 0;
@@ -353,6 +639,7 @@ class SeedWorldBootTraceController {
     this.overlayToggle = undefined;
     this.overlayPanel = undefined;
     this.overlayBody = undefined;
+    this.overlayReportBtn = undefined;
   }
 
   snapshot(): BootTraceSnapshot {
@@ -370,7 +657,20 @@ class SeedWorldBootTraceController {
       elapsedMs: now - item.startMs,
       ...(item.detail ? { detail: item.detail } : {})
     }));
+    const navigation = readNavigationInfo();
+    const mergedDevice: BootTraceDeviceInfo = {
+      ...readBasicDeviceInfo(),
+      ...(this.meta.device ?? {})
+    };
+    const meta: BootTraceMeta = {
+      ...this.meta,
+      ...(Object.keys(mergedDevice).length > 0 ? { device: mergedDevice } : {}),
+      ...(navigation ? { navigation } : {})
+    };
+    const rawAudit = this.shaderAuditProvider?.();
+    const shaderSummary = rawAudit ? summarizeSeedWorldShaderAudit(rawAudit) : undefined;
     return {
+      runId: this.runId,
       timeOrigin: typeof performance !== "undefined" ? performance.timeOrigin : 0,
       elapsedMs: now,
       url: this.url || (typeof location !== "undefined" ? location.href : ""),
@@ -380,6 +680,8 @@ class SeedWorldBootTraceController {
       currentPhase: this.currentPhase,
       progress: this.progressValue,
       ...(this.errorMessage ? { error: this.errorMessage } : {}),
+      ...(Object.keys(meta).length > 0 ? { meta } : {}),
+      ...(shaderSummary ? { shaderSummary } : {}),
       active,
       spans: [...this.spans],
       phases: [...this.phases],
@@ -391,10 +693,30 @@ class SeedWorldBootTraceController {
   formatText(): string {
     const snap = this.snapshot();
     const lines: string[] = [
-      `Seed World Boot Trace | status=${snap.status} | phase="${snap.currentPhase}" (${Math.round(snap.progress * 100)}%) | elapsed=${(snap.elapsedMs / 1000).toFixed(2)}s`,
+      `Seed World Boot Trace | status=${snap.status} | phase="${snap.currentPhase}" (${Math.round(snap.progress * 100)}%) | elapsed=${(snap.elapsedMs / 1000).toFixed(2)}s${this.diagStatusText ? ` | ${this.diagStatusText}` : ""}`,
+      ...(snap.meta?.templateId
+        ? [`template=${snap.meta.templateId}${snap.meta.templateFamily ? ` (${snap.meta.templateFamily})` : ""}`]
+        : []),
+      ...(snap.meta?.device?.gpuRenderer
+        ? [
+            `gpu=${snap.meta.device.gpuRenderer} | parallelCompile=${String(snap.meta.device.parallelShaderCompile ?? "?")} | dpr=${snap.meta.device.devicePixelRatio ?? "?"}`
+          ]
+        : []),
       ...(snap.artifactId ? [`artifact=${snap.artifactId} v${snap.artifactVersion ?? "?"}`] : []),
       ...(snap.error ? [`ERROR: ${snap.error}`] : [])
     ];
+    if (snap.shaderSummary) {
+      const s = snap.shaderSummary;
+      lines.push(
+        "",
+        `SHADERS: total=${s.compiledTotal} (${s.totalCompileMs}ms) | startup=${s.compiledInStartupCount} (${s.compiledInStartupMs}ms) | boundReveal=${s.boundInRevealCount} | wastedInReveal=${s.startupWastedInRevealCount} | revealMiss=${s.revealCompileMissCount} | postMiss=${s.postReadyRenderCompileMissCount} | deferred=${s.warmupDeferred}`
+      );
+      for (const top of s.slowestCompiles.slice(0, 8)) {
+        lines.push(
+          `  ${top.elapsedMs.toFixed(1).padStart(7, " ")}ms  [${top.phase}/${top.caller}]${top.boundInReveal ? " [REVEAL]" : ""}  ${top.shader}(p${top.pi}:${top.stage})`
+        );
+      }
+    }
     if (snap.active.length > 0) {
       lines.push("", "ACTIVE (in-flight):");
       for (const item of snap.active) {
@@ -420,15 +742,24 @@ class SeedWorldBootTraceController {
         );
       }
     }
-    if (snap.resourceStats.slowest.length > 0) {
+    const cats = Object.entries(snap.resourceStats.byCategory);
+    if (cats.length > 0) {
       lines.push(
         "",
-        `SLOWEST RESOURCES (total=${snap.resourceStats.count}, transfer=${(snap.resourceStats.totalTransferBytes / (1024 * 1024)).toFixed(2)} MiB):`
+        `RESOURCES BY TYPE (count=${snap.resourceStats.count}, net=${snap.resourceStats.networkCount}, cache=${snap.resourceStats.cachedCount}, xfer=${(snap.resourceStats.totalTransferBytes / (1024 * 1024)).toFixed(2)}MiB, decoded=${(snap.resourceStats.totalDecodedBytes / (1024 * 1024)).toFixed(2)}MiB):`
       );
+      for (const [cat, stat] of cats) {
+        lines.push(
+          `  ${cat.padEnd(9, " ")} n=${String(stat.count).padStart(3, " ")}  xfer=${(stat.transferBytes / 1024).toFixed(0).padStart(6, " ")}KB  dec=${(stat.decodedBytes / 1024).toFixed(0).padStart(6, " ")}KB  max=${String(stat.maxDurationMs).padStart(5, " ")}ms`
+        );
+      }
+    }
+    if (snap.resourceStats.slowest.length > 0) {
+      lines.push("", "SLOWEST RESOURCES:");
       for (const res of snap.resourceStats.slowest.slice(0, 12)) {
         const kb = res.transferSize > 0 ? `${(res.transferSize / 1024).toFixed(0)}KB` : "cached/0B";
         const status = res.responseStatus !== undefined ? ` HTTP ${res.responseStatus}` : "";
-        lines.push(`  ${String(res.durationMs).padStart(6, " ")}ms  ${kb.padStart(10, " ")}  [${res.initiatorType}${status}]  ${res.name}`);
+        lines.push(`  ${String(res.durationMs).padStart(6, " ")}ms  ${kb.padStart(10, " ")}  [${res.category}${status}]  ${res.name}`);
       }
     }
     return lines.join("\n");
@@ -458,7 +789,16 @@ class SeedWorldBootTraceController {
     const title = document.createElement("strong");
     title.textContent = "Seed World Boot Trace";
     const actions = document.createElement("div");
-    actions.style.cssText = "display:flex;gap:6px;";
+    actions.style.cssText = "display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;";
+
+    const reportBtn = document.createElement("button");
+    reportBtn.type = "button";
+    reportBtn.textContent = this.diagStatusText || "上报 Trace";
+    reportBtn.style.cssText =
+      "cursor:pointer;background:rgba(46,160,120,0.28);color:#d9fff2;border:1px solid rgba(82,216,170,0.4);border-radius:6px;padding:2px 8px;font:inherit;";
+    reportBtn.onclick = () => {
+      void this.reportToDiag("manual");
+    };
 
     const copyBtn = document.createElement("button");
     copyBtn.type = "button";
@@ -490,7 +830,7 @@ class SeedWorldBootTraceController {
       panel.hidden = true;
     };
 
-    actions.append(copyBtn, closeBtn);
+    actions.append(reportBtn, copyBtn, closeBtn);
     header.append(title, actions);
 
     const body = document.createElement("pre");
@@ -510,6 +850,7 @@ class SeedWorldBootTraceController {
     };
 
     root.append(panel, toggle);
+    this.overlayReportBtn = reportBtn;
     host.append(root);
     this.overlayRoot = root;
     this.overlayToggle = toggle;

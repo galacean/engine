@@ -42,6 +42,15 @@ function isNonScenePickPass(
   return false;
 }
 
+export interface RuntimePickPreparationOptions {
+  /**
+   * When true, defers building replacement pick shaders (`PBR`/`Unlit`/`BlinnPhong`) and draining
+   * `RENDERER_WORLD_PICK` compilations until `resume()` or `flush()` is called. Variants observed
+   * while paused are still buffered so nothing is lost once resumed.
+   */
+  readonly deferStart?: boolean;
+}
+
 /** Prepare companion picking programs when normal rendering prepares a new variant.
  * No Entity traversal, frame polling, domain names or business-specific macro lists.
  */
@@ -55,11 +64,34 @@ export class RuntimePickPreparation {
   private scannedShaders = new WeakSet<Shader>();
   private readonly requested = new WeakMap<ShaderPass, Set<string>>();
   private readonly queue: Work[] = [];
+  private readonly deferredObserved: { pass: ShaderPass; macros: readonly ShaderMacro[] }[] = [];
+  private paused = false;
+  private meshReplacementsInitialized = false;
   private processing?: Promise<void>;
   private failure?: unknown;
   private disposed = false;
 
-  constructor(private readonly engine: Engine) {
+  constructor(
+    private readonly engine: Engine,
+    options?: RuntimePickPreparationOptions
+  ) {
+    this.paused = Boolean(options?.deferStart);
+    if (!this.paused) {
+      this.ensureMeshReplacements();
+    }
+    this.unsubscribe = ShaderPass.observeVariants(engine, (pass, macros) => {
+      if (this.disposed || this.failure) return;
+      if (this.paused) {
+        this.deferredObserved.push({ pass, macros: [...macros] });
+        return;
+      }
+      this.request(pass, macros);
+    });
+  }
+
+  private ensureMeshReplacements(): void {
+    if (this.meshReplacementsInitialized) return;
+    this.meshReplacementsInitialized = true;
     // The built-in mesh port and capture use the very same replacement pass.
     for (const name of ["PBR", "Unlit", "BlinnPhong"]) {
       const original = Shader.find(name);
@@ -72,7 +104,17 @@ export class RuntimePickPreparation {
           if (pass.getTagValue("pipelineStage") === "Forward") this.targets.set(pass, replacement);
         }
     }
-    this.unsubscribe = ShaderPass.observeVariants(engine, (pass, macros) => this.request(pass, macros));
+  }
+
+  /** Activate replacement shader compilation and drain all variants observed while paused. */
+  resume(): void {
+    if (!this.paused || this.disposed || this.failure) return;
+    this.paused = false;
+    this.ensureMeshReplacements();
+    const buffered = this.deferredObserved.splice(0, this.deferredObserved.length);
+    for (const entry of buffered) {
+      this.request(entry.pass, entry.macros);
+    }
   }
 
   /** Register host-owned non-scene shader prefixes (e.g. UI, compute kernels, sky backdrops) to skip pick preparation. */
@@ -158,12 +200,13 @@ export class RuntimePickPreparation {
   get ready(): boolean {
     if (this.disposed) throw new DOMException("Picking preparation disposed", "AbortError");
     if (this.failure) throw this.failure;
-    return !this.processing;
+    return !this.paused && !this.processing;
   }
 
   /** Join queued preparation, e.g. before enabling the shutter or requesting a snapshot. */
   async flush(signal?: AbortSignal): Promise<void> {
     signal?.throwIfAborted();
+    if (this.paused) this.resume();
     while (this.processing) {
       const pending = this.processing;
       await new Promise<void>((resolve, reject) => {
@@ -179,6 +222,8 @@ export class RuntimePickPreparation {
 
   dispose(): void {
     this.disposed = true;
+    this.paused = false;
+    this.deferredObserved.length = 0;
     this.unsubscribe();
     this.controller.abort();
     this.queue.length = 0;

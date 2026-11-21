@@ -584,4 +584,52 @@ describe("NaturalUnderstoryInstancedPool", () => {
     expect(c0ShadowView.view.mesh.destroy).toHaveBeenCalledOnce();
     expect(c0ShadowView.storage.instanceBuffer.destroy).toHaveBeenCalledWith(true);
   });
+
+  it("returns exact camera-only and shadow-only primary warmup renderers when view culling is active", () => {
+    const { parent, camera } = createMockParentAndCamera();
+    const unregister = vi.fn();
+    (camera as any).enableFrustumCulling = true;
+    (camera as any).registerRenderViewCullingSource = vi.fn(() => ({ unregister }));
+
+    const pool = new NaturalUnderstoryInstancedPool(parent, camera, "PrimaryWarmupPool", {
+      maxShadowCascadeIndex: 1,
+      shadowLodPolicy: "lowest"
+    });
+    const makeSpec = (key: string): InstancedUnderstoryBucketSpec => ({
+      key,
+      mesh: createMockMesh(key),
+      material: createMockMaterial("Terrain/Vegetation"),
+      macros: ["RENDERER_ASSET_ASSEMBLY_INSTANCE"],
+      castShadows: true,
+      receiveShadows: true,
+      enableVertexColor: false,
+      usesGpuVariation: true,
+      interactionOccluder: true
+    });
+    const lod0Spec = makeSpec("tree-lod0");
+    const lod3Spec = makeSpec("tree-lod3");
+    const offscreenOnlySpec = makeSpec("tree-far-offscreen");
+
+    pool.setCell("cell-0", [
+      // Visible near camera at LOD0, casts shadow at LOD3 (lowest)
+      makeRecord({ id: "near-front", x: 0, y: 0, z: -15, worldSize: 10, spec: lod0Spec, secondSpec: lod3Spec, lodThresholds: [0.2, 0] }),
+      // Behind camera beyond shadow distance -> excluded from both camera & shadow warmup
+      makeRecord({ id: "far-behind", x: 0, y: 0, z: 250, worldSize: 10, spec: offscreenOnlySpec, lodThresholds: [0] })
+    ]);
+    pool.update(Infinity, true, 120);
+
+    const primary = pool.getPrimaryWarmupRenderers();
+    expect(primary.renderers).toHaveLength(0);
+    expect(primary.cameraOnlyRenderers).toHaveLength(1);
+    expect(primary.shadowOnlyRenderers).toHaveLength(1);
+    expect(primary.shadowOnlyRenderers[0]!.castShadows).toBe(true);
+    expect(primary.shadowOnlyRenderers[0]!.receiveShadows).toBe(false);
+    expect(primary.shadowOnlyRenderers[0]!.mesh).toBe(lod3Spec.mesh);
+
+    primary.dispose();
+    // Temporary mesh reference is cleaned up without disturbing real shadow views.
+    expect(primary.shadowOnlyRenderers[0]!.mesh).toBeNull();
+
+    pool.dispose();
+  });
 });

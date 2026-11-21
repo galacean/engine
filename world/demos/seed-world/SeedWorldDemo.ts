@@ -79,7 +79,9 @@ import { bindWorldClickInput } from "./src/SeedWorldClickInput.ts";
 import { waitForSnapshotWarmup } from "./src/SeedWorldSnapshotWarmup.ts";
 import { openSeedWorldProject } from "./SeedWorldProject.ts";
 import {
+  loadSeedWorldBuildingBinaryBundle,
   loadSeedWorldCommonBinaryBundle,
+  mergeSeedWorldBinaryAssetMaps,
   releaseSeedWorldCommonBinaryBundle
 } from "./src/SeedWorldCommonBinaryBundle.ts";
 import { loadSeedWorldProjectTextBundle, parsePreloadedJson } from "./src/SeedWorldProjectTextBundle.ts";
@@ -226,6 +228,7 @@ import {
   createPlanningWorldSource,
   type PlanningWorldHandoff
 } from "./src/planning/spatial/runtime/PlanningWorldSource.ts";
+import { prewarmPlanningWorker } from "./src/planning/semantic-study/PlanningWorkerClient.ts";
 import { seedWorldBootTrace } from "./src/SeedWorldBootTrace.ts";
 
 function waterAgentKnowledge() {
@@ -413,7 +416,7 @@ export async function mountSeedWorldDemo(
   const recordBootSpan = (name: string, startMs: number) => {
     const endMs = performance.now();
     bootSpans.push({ name, startMs, endMs });
-    seedWorldBootTrace.event("info", "span", `${name} (${Math.round(endMs - startMs)}ms)`);
+    seedWorldBootTrace.recordSpan(name, startMs, endMs);
     if (traceBootSpans) {
       performance.measure(`seed-boot:${name}`, { start: startMs, end: endMs });
       syncBootSpansDataset();
@@ -600,9 +603,49 @@ export async function mountSeedWorldDemo(
     { once: true }
   );
   try {
-    if (pageUrl.searchParams.get("shaderAudit") === "1") {
+    // Overlap Planning Worker boot and startup asset bundle fetches with WebGLEngine + Loading Orb initialization.
+    prewarmPlanningWorker();
+    const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, location.href).href;
+    let prefetchedCommonBinaryAssets: ReadonlyMap<string, Uint8Array> | undefined;
+    let prefetchedBuildingBinaryAssets: ReadonlyMap<string, Uint8Array> | undefined;
+    const syncPrefetchedBinaryAssets = () => {
+      if (disposed || !engine) return;
+      (
+        engine.resourceManager as {
+          setPrefetchedBinaryAssets?: (assets: ReadonlyMap<string, Uint8Array> | undefined) => void;
+        }
+      ).setPrefetchedBinaryAssets?.(
+        mergeSeedWorldBinaryAssetMaps(prefetchedCommonBinaryAssets, prefetchedBuildingBinaryAssets)
+      );
+    };
+    const prefetchedTextAssetsTask = timed("loadProjectTextBundle (parallel)", () => loadSeedWorldProjectTextBundle());
+    void prefetchedTextAssetsTask.catch(() => {});
+    const commonBinaryBundleTask = timed("loadCommonBinaryBundle (parallel)", () =>
+      loadSeedWorldCommonBinaryBundle().then((assets) => {
+        prefetchedCommonBinaryAssets = assets;
+        syncPrefetchedBinaryAssets();
+        return assets;
+      })
+    );
+    void commonBinaryBundleTask.catch(() => {});
+    const requestedTemplateId = pageUrl.searchParams.get("template") ?? "original";
+    const eagerBuildingBundle =
+      requestedTemplateId !== "titan-wasteland" && requestedTemplateId !== "low-poly";
+    let buildingBinaryBundleTask: Promise<ReadonlyMap<string, Uint8Array> | undefined> | undefined = eagerBuildingBundle
+      ? timed("loadBuildingBinaryBundle (parallel)", () =>
+          loadSeedWorldBuildingBinaryBundle().then((assets) => {
+            prefetchedBuildingBinaryAssets = assets;
+            syncPrefetchedBinaryAssets();
+            return assets;
+          })
+        )
+      : undefined;
+    void buildingBinaryBundleTask?.catch(() => {});
+
+    if (pageUrl.searchParams.get("shaderAudit") === "1" || bootTraceParam) {
       const { installSeedWorldShaderAudit } = await import("./src/SeedWorldShaderAudit");
       shaderAudit = installSeedWorldShaderAudit();
+      seedWorldBootTrace.setShaderAuditProvider(() => shaderAudit?.snapshot());
     }
     engine = await timed("WebGLEngine.create", () =>
       WebGLEngine.create({
@@ -626,16 +669,28 @@ export async function mountSeedWorldDemo(
       const gl = rhi?.gl;
       if (gl) {
         const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+        const vendor = dbg ? String(gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) ?? "") : String(gl.getParameter(gl.VENDOR) ?? "");
         const renderer = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) ?? "") : String(gl.getParameter(gl.RENDERER) ?? "");
+        const parallelCompile = Boolean(gl.getExtension("KHR_parallel_shader_compile"));
+        seedWorldBootTrace.setMeta({
+          device: {
+            webglVersion: "WebGL2",
+            gpuVendor: vendor || "unknown",
+            gpuRenderer: renderer || "unknown",
+            parallelShaderCompile: parallelCompile
+          }
+        });
         seedWorldBootTrace.event(
           "info",
           "webgl",
           `WebGL2 ${renderer || "unknown"}`,
-          `texUnits=${gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)} vsTex=${gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS)} combTex=${gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS)} vsUni=${gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS)} fsUni=${gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS)} vary=${gl.getParameter(gl.MAX_VARYING_VECTORS)} attr=${gl.getParameter(gl.MAX_VERTEX_ATTRIBS)} parallel=${Boolean(gl.getExtension("KHR_parallel_shader_compile"))}`
+          `texUnits=${gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)} vsTex=${gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS)} combTex=${gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS)} vsUni=${gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS)} fsUni=${gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS)} vary=${gl.getParameter(gl.MAX_VARYING_VECTORS)} attr=${gl.getParameter(gl.MAX_VERTEX_ATTRIBS)} parallel=${parallelCompile}`
         );
       }
     }
-    pickPreparation = new RuntimePickPreparation(engine);
+    pickPreparation = timed("new RuntimePickPreparation", () =>
+      new RuntimePickPreparation(engine!, { deferStart: true })
+    );
     pickPreparation.ignoreShaderPrefixes([
       "IntegratedWorld/",
       "Building/BrickPackKernel",
@@ -650,7 +705,6 @@ export async function mountSeedWorldDemo(
       "SeedWorld/PanoramaFarHorizon",
       "SeedWorld/HologramRainbow"
     ]);
-    engine.sceneManager.activeScene!?.destroy();
     const resize = () => {
       if (!canvas.clientWidth || !canvas.clientHeight) return;
       const nativeDpr = window.devicePixelRatio || 1;
@@ -661,31 +715,19 @@ export async function mountSeedWorldDemo(
       );
       orb?.resize();
     };
-    resizeObserver = new ResizeObserver(resize);
-    resizeObserver.observe(canvas);
-    resize();
-    engine.run();
+    timed("engine.initAndRun", () => {
+      engine!.sceneManager.activeScene!?.destroy();
+      resizeObserver = new ResizeObserver(resize);
+      resizeObserver.observe(canvas);
+      resize();
+      engine!.run();
+    });
     traceBootPhase("loadingScene");
     orb = await timed("WorldBubbleLoadingScene.createInEngine", () => WorldBubbleLoadingScene.createInEngine(engine!));
     loading.dataset.state = "loading";
     progress(0.04, "准备 Seed 场景");
-    const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, location.href).href;
-    // Start downloading & gunzipping the common binary bundle (.mesh/.shaderc/.tex/.shader) in parallel with
-    // openSeedWorldProject + WorldPlanning.worker so it lands in RAM before leaf asset loading starts.
-    const commonBinaryBundleTask = timed("loadCommonBinaryBundle (parallel)", () =>
-      loadSeedWorldCommonBinaryBundle().then((assets) => {
-        if (!disposed) {
-          (
-            engine!.resourceManager as {
-              setPrefetchedBinaryAssets?: (assets: ReadonlyMap<string, Uint8Array> | undefined) => void;
-            }
-          ).setPrefetchedBinaryAssets?.(assets);
-        }
-        return assets;
-      })
-    );
-    void commonBinaryBundleTask.catch(() => {});
-    const prefetchedTextAssets = await timed("loadProjectTextBundle", () => loadSeedWorldProjectTextBundle());
+    syncPrefetchedBinaryAssets();
+    const prefetchedTextAssets = await timed("await project text bundle", () => prefetchedTextAssetsTask);
     (
       engine!.resourceManager as {
         setPrefetchedTextAssets?: (assets: ReadonlyMap<string, string> | undefined) => void;
@@ -732,14 +774,29 @@ export async function mountSeedWorldDemo(
     await timed("preparePlanningFarmingScene", () =>
       preparePlanningFarmingScene(runtimeProject!, { baseUrl: location.href })
     );
+    // Pre-spawn idle raster worker while planning worker runs so module fetch/parse is off the critical path.
+    raster.prewarm();
     source = await timed("await planning source", () => sourceTask!);
     await timed("await common binary bundle", () => commonBinaryBundleTask);
     // Kick off background raster, rocks, population resources, and (only when planned) building leaf preload
-    // after planningSource.storage.initialize has fetched its critical manifests without bandwidth contention.
+    // after planningSource.worker finishes so KTX2 WASM workers never starve big-core planning or trigger
+    // early mobile thermal throttling.
     const prewarmedPopulationResources = preparePlanningPopulationResources(engine);
     void prewarmedPopulationResources.catch(() => {});
     let prewarmedRasterPlan: IslandPlan | undefined = source.takeInitialPlan();
     const hasPlannedBuildings = (prewarmedRasterPlan?.buildings?.length ?? 0) > 0;
+    if (hasPlannedBuildings) {
+      if (!buildingBinaryBundleTask) {
+        buildingBinaryBundleTask = timed("loadBuildingBinaryBundle", () =>
+          loadSeedWorldBuildingBinaryBundle().then((assets) => {
+            prefetchedBuildingBinaryAssets = assets;
+            syncPrefetchedBinaryAssets();
+            return assets;
+          })
+        );
+      }
+      await timed("await building binary bundle", () => buildingBinaryBundleTask!);
+    }
     if (hasPlannedBuildings && !disposed && runtimeProject) {
       const leafTypes = new Set(["Mesh", "KTX2", "Texture", "Shader"]);
       const buildingLeafFiles = runtimeProject.projectPackage.project.files.filter(
@@ -752,7 +809,8 @@ export async function mountSeedWorldDemo(
       if (buildingLeafFiles.length > 0) {
         engine!.resourceManager.registerVirtualResources(buildingLeafFiles);
         let cursor = 0;
-        const concurrency = Math.min(8, buildingLeafFiles.length);
+        // Cap preload concurrency at 3 so KTX2 transcoding overlaps with raster.run without starving CPU cores.
+        const concurrency = Math.min(3, buildingLeafFiles.length);
         for (let w = 0; w < concurrency; w++) {
           void (async () => {
             while (!disposed && cursor < buildingLeafFiles.length) {
@@ -900,6 +958,15 @@ export async function mountSeedWorldDemo(
     const startupTemplateId = source.session.recipe().parameters.worldTemplate?.id ?? "";
     const startupTemplate = worldTemplate(startupTemplateId);
     const startupArt = WORLD_TEMPLATE_ART[startupTemplateId];
+    seedWorldBootTrace.setMeta({
+      templateId: startupTemplateId || "original",
+      ...(startupTemplate?.family ? { templateFamily: startupTemplate.family } : {}),
+      features: {
+        hasPlannedBuildings,
+        showAssistant: options.showAssistant !== false,
+        precompileShaders
+      }
+    });
     const solarPosition = startupArt?.solarPosition
       ? { ...PROCEDURAL_SKY_SOLAR_POSITION, ...startupArt.solarPosition }
       : desert?.DESERT_SOLAR_POSITION;
@@ -1023,6 +1090,7 @@ export async function mountSeedWorldDemo(
     let prewarmedIBLTask: Promise<void> | undefined = lighting.waitForEnvironmentIBLIdle();
     void prewarmedIBLTask.catch(() => {});
     audio = new SeedWorldAudioRuntime(camera, navigation, environment, wind);
+    audio.audio.setLoadDeferred(true);
     const driver = root.addComponent(SeedDemoFrame);
     let debugReadoutElapsed = 0;
     let lastObservedCamX = Number.NaN;
@@ -1233,12 +1301,16 @@ export async function mountSeedWorldDemo(
       data: PlanningSeedWorldData,
       groundPopulation?: PlanningSeedWorldData["population"]
     ): SpawnView => {
+      const maxTerrainHeight = data.fields.heightDecode
+        ? data.fields.heightDecode.offset + data.fields.heightDecode.scale
+        : undefined;
       const options = {
         aspect: camera.aspectRatio,
         verticalFovDegrees: PLANNING_RUNTIME_OPTIONS.verticalFieldOfView,
         eyeHeight: navigation.eyeHeight,
         farClip: camera.farClipPlane,
-        desertComposition: plan.parameters.worldTemplate?.id === "titan-wasteland"
+        desertComposition: plan.parameters.worldTemplate?.id === "titan-wasteland",
+        maxTerrainHeight
       };
       const key = JSON.stringify(options);
       const cached = spawnViews.get(plan);
@@ -2854,6 +2926,7 @@ export async function mountSeedWorldDemo(
     let {
       report: startupWarmupReport,
       deferredShaderVariants,
+      collectDeferredVariants,
       ssrVerifyReceiverDepth
     } = await runSeedWorldStartupShaderWarmup({
       precompileShaders,
@@ -2867,9 +2940,11 @@ export async function mountSeedWorldDemo(
       lifetimeSignal: editorLifetime.signal,
       progress,
       timed,
+      deferSecondaryCollection: true,
       prepareFarmingPresentation: () => farmingHost?.runtime?.preparePresentation(),
       prepareAnimalPresentation: () => animals?.preparePresentation(),
       prepareVegetationPresentation: () => publication!.current?.vegetation?.preparePresentation(),
+      preparePrimaryVegetationShaderWarmup: () => publication!.current?.vegetation?.preparePrimaryShaderWarmup(),
       prepareVegetationShaderWarmup: () => publication!.current?.vegetation?.prepareShaderWarmup(),
       prepareRockGrassShaderWarmup: () => publication!.current?.world.population.prepareRockGrassShaderWarmup(),
       prepareMasonryShaderWarmup: (signal) => publication!.current?.masonry?.prepareShaderWarmup(signal),
@@ -2894,37 +2969,84 @@ export async function mountSeedWorldDemo(
       (startupWarmupReport?.requested ?? 0) - (startupWarmupReport?.deferred?.length ?? 0)
     );
     shaderAudit?.recordWarmupRequested(startupAttempted, deferredShaderVariants.length);
+    seedWorldBootTrace.setMeta({
+      features: {
+        hasSSR: Boolean(environment?.surfaceWaterSsrRequested),
+        hasMasonry: Boolean(publication?.current?.masonry),
+        hasVegetation: Boolean(publication?.current?.vegetation),
+        hasAnimals: Boolean(animals),
+        hasFarming: Boolean(farmingHost?.runtime)
+      },
+      ...(startupWarmupReport
+        ? {
+            startupWarmup: {
+              requested: startupWarmupReport.requested,
+              compiled: startupWarmupReport.compiled,
+              deferred: deferredShaderVariants.length,
+              elapsedMs: Math.round(startupWarmupReport.elapsedMilliseconds),
+              longestVariantMs: Math.round(startupWarmupReport.longestVariantMilliseconds),
+              parallelCompile: Boolean(startupWarmupReport.parallelCompileSupported)
+            }
+          }
+        : {})
+    });
     shaderAudit?.setPhase("reveal");
+    farmingHost?.runtime?.worldPresentation?.setBackgroundShaderWorkPaused(true);
 
     camera.enabled = true;
     progress(1, "Seed World 已就绪");
-    await timed("orb.reveal", () =>
-      orb!.reveal(() => {
-        publication?.current?.masonry?.startEntrance();
-        readWorld()?.update(0);
-      })
-    );
+    try {
+      await timed("orb.reveal", () =>
+        orb!.reveal(() => {
+          publication?.current?.masonry?.startEntrance();
+          readWorld()?.update(0);
+        })
+      );
+    } finally {
+      farmingHost?.runtime?.worldPresentation?.setBackgroundShaderWorkPaused(false);
+    }
     if (disposed || editorLifetime.signal.aborted) return;
     orb.destroy();
     orb = undefined;
     ready = true;
+    audio?.audio.setLoadDeferred(false);
     shaderAudit?.setPhase("post-ready");
-    if (deferredShaderVariants.length > 0 && !disposed) {
-      const variantsToWarm = deferredShaderVariants;
+    let bgWarmupDone: Promise<void> = Promise.resolve();
+    if ((deferredShaderVariants.length > 0 || collectDeferredVariants) && !disposed) {
+      const initialVariantsToWarm = deferredShaderVariants;
+      const deferredCollector = collectDeferredVariants;
       deferredShaderVariants = [];
+      collectDeferredVariants = undefined;
       const parallelBgWarmup = Boolean(startupWarmupReport?.parallelCompileSupported);
-      const idleWarmupTimer = window.setTimeout(() => {
-        if (disposed || editorLifetime.signal.aborted) return;
-        void warmupSeedWorldShaderVariants(engine!, variantsToWarm, {
-          strict: false,
-          signal: editorLifetime.signal,
-          preserveOrder: true,
-          frameBudgetMilliseconds: 4,
-          maximumPendingPrograms: parallelBgWarmup ? 8 : 1,
-          ssrVerifyReceiverDepth
-        })
-          .then((bgReport) => {
+      bgWarmupDone = new Promise<void>((resolve) => {
+        const idleWarmupTimer = window.setTimeout(() => {
+          if (disposed || editorLifetime.signal.aborted) {
+            resolve();
+            return;
+          }
+          void (async () => {
+            const collected = deferredCollector ? await deferredCollector() : [];
+            const variantsToWarm = [...initialVariantsToWarm, ...collected];
+            if (disposed || editorLifetime.signal.aborted || variantsToWarm.length === 0) return;
+            shaderAudit?.recordWarmupRequested(startupAttempted, variantsToWarm.length);
+            const bgReport = await warmupSeedWorldShaderVariants(engine!, variantsToWarm, {
+              strict: false,
+              signal: editorLifetime.signal,
+              preserveOrder: true,
+              frameBudgetMilliseconds: 4,
+              maximumPendingPrograms: parallelBgWarmup ? 8 : 1,
+              ssrVerifyReceiverDepth
+            });
             if (!disposed) {
+              seedWorldBootTrace.setMeta({
+                bgWarmup: {
+                  requested: bgReport.requested,
+                  compiled: bgReport.compiled,
+                  elapsedMs: Math.round(bgReport.elapsedMilliseconds),
+                  longestVariantMs: Math.round(bgReport.longestVariantMilliseconds),
+                  completedAtMs: Math.round(performance.now())
+                }
+              });
               seedWorldBootTrace.event(
                 "info",
                 "shader-warmup-bg",
@@ -2932,10 +3054,19 @@ export async function mountSeedWorldDemo(
                 `longest=${Math.round(bgReport.longestVariantMilliseconds)}ms parallelCompile=${parallelBgWarmup}`
               );
             }
-          })
-          .catch(() => {});
-      }, parallelBgWarmup ? 200 : 300);
-      editorLifetime.signal.addEventListener("abort", () => window.clearTimeout(idleWarmupTimer), { once: true });
+          })()
+            .catch(() => {})
+            .finally(resolve);
+        }, parallelBgWarmup ? 200 : 300);
+        editorLifetime.signal.addEventListener(
+          "abort",
+          () => {
+            window.clearTimeout(idleWarmupTimer);
+            resolve();
+          },
+          { once: true }
+        );
+      });
     }
     disconnectEditorAssets = timed("tools.connectProject", () => tools!.application.connectProject(runtimeProject!));
     const savedEditor = runtimeProject.projectPackage.contents[SEED_WORLD_EDITOR_PATH];
@@ -3106,8 +3237,29 @@ export async function mountSeedWorldDemo(
     canvas.dataset.status = "ready";
     document.body.dataset.worldReady = "true";
     seedWorldBootTrace.finish();
-    // Release the ~10.9 MiB decompressed SWB1 prefetch buffer once startup leaf loading completes;
-    // rare post-ready lazy loads or context restores transparently fall back to immutable HTTP-cached CDN URLs.
+    if (bootTraceParam) {
+      void seedWorldBootTrace.reportToDiag("ready");
+      const postReadyDelay = new Promise<void>((resolve) => {
+        const timer = window.setTimeout(resolve, 3500);
+        editorLifetime.signal.addEventListener(
+          "abort",
+          () => {
+            window.clearTimeout(timer);
+            resolve();
+          },
+          { once: true }
+        );
+      });
+      void Promise.all([bgWarmupDone, postReadyDelay]).then(() => {
+        if (!disposed && !editorLifetime.signal.aborted) {
+          void seedWorldBootTrace.reportToDiag("post-ready");
+        }
+      });
+    }
+    // Release the decompressed SWB1 prefetch buffers once startup leaf loading completes;
+    // rare post-ready lazy loads or context restores transparently fall back to HTTP-cached URLs.
+    prefetchedCommonBinaryAssets = undefined;
+    prefetchedBuildingBinaryAssets = undefined;
     engine?.resourceManager?.setPrefetchedBinaryAssets?.(undefined);
     releaseSeedWorldCommonBinaryBundle();
     // The world is already visible and navigable. Two independent preparations start now:
@@ -3122,6 +3274,8 @@ export async function mountSeedWorldDemo(
       preparingViews = viewSnapshots;
     const preparingTools = tools;
     const capturePathWarmup = (async () => {
+      await bgWarmupDone;
+      if (disposed || editorLifetime.signal.aborted) return;
       await timed("pickPreparation.flush #1", () => preparingPicks.flush(editorLifetime.signal));
       await timed("worldPicker.prepareSnapshot", () =>
         preparingPicker.prepareSnapshot(
@@ -3179,6 +3333,9 @@ export async function mountSeedWorldDemo(
     });
   } catch (error) {
     seedWorldBootTrace.fail(error);
+    if (bootTraceParam) {
+      void seedWorldBootTrace.reportToDiag("error");
+    }
     canvas.dataset.status = "error";
     canvas.dataset.error = String(error);
     loading.dataset.state = "error";

@@ -82,37 +82,50 @@ export class PlanningRasterClient {
       this.dispatch();
     });
   }
+  /** Pre-spawn the idle raster worker so module fetch/parse overlaps with planning worker computation. */
+  prewarm(): void {
+    if (this.worker) return;
+    try {
+      this.ensureWorker();
+    } catch {
+      // Best-effort prewarm; run() surfaces any real worker startup error.
+    }
+  }
+  private ensureWorker(): Worker {
+    if (this.worker) return this.worker;
+    const worker = new Worker(new URL("./PlanningRaster.worker.ts", import.meta.url), { type: "module" });
+    worker.onmessage = ({ data }: MessageEvent<RasterResult>) => {
+      this.inFlight = false;
+      if (data.id === this.active?.id) {
+        const active = this.active;
+        this.active = undefined;
+        if (data.error) active.reject(new Error(data.error));
+        else {
+          try {
+            const raster = this.rasters.decode(data.id, data.raster);
+            adoptPlanningHeightmap(active.plan, raster.height);
+            adoptPlanningAlphamap(active.plan, raster.alpha);
+            if (raster.ocean) adoptPlanningOcean(active.plan, raster.ocean);
+            if (data.nativeData) this.nativeData.set(active.plan, data.nativeData);
+            if (data.surfaceRelief) this.surfaceRelief.set(active.plan, data.surfaceRelief);
+            this.baseId = data.id;
+            active.resolve(data.elapsedMs);
+          } catch (error) {
+            active.reject(error instanceof Error ? error : new Error(String(error)));
+          }
+        }
+      }
+      this.dispatch();
+      if (!this.inFlight && !this.queued && !this.active) this.scheduleIdleRelease();
+    };
+    worker.onerror = (e) => this.fail(new Error(e.message || "地表编译线程失败"));
+    this.worker = worker;
+    return worker;
+  }
   private dispatch(): void {
     if (this.inFlight || !this.queued) return;
     try {
-      if (!this.worker) {
-        this.worker = new Worker(new URL("./PlanningRaster.worker.ts", import.meta.url), { type: "module" });
-        this.worker.onmessage = ({ data }: MessageEvent<RasterResult>) => {
-          this.inFlight = false;
-          if (data.id === this.active?.id) {
-            const active = this.active;
-            this.active = undefined;
-            if (data.error) active.reject(new Error(data.error));
-            else {
-              try {
-                const raster = this.rasters.decode(data.id, data.raster);
-                adoptPlanningHeightmap(active.plan, raster.height);
-                adoptPlanningAlphamap(active.plan, raster.alpha);
-                if (raster.ocean) adoptPlanningOcean(active.plan, raster.ocean);
-                if (data.nativeData) this.nativeData.set(active.plan, data.nativeData);
-                if (data.surfaceRelief) this.surfaceRelief.set(active.plan, data.surfaceRelief);
-                this.baseId = data.id;
-                active.resolve(data.elapsedMs);
-              } catch (error) {
-                active.reject(error instanceof Error ? error : new Error(String(error)));
-              }
-            }
-          }
-          this.dispatch();
-          if (!this.inFlight && !this.queued && !this.active) this.scheduleIdleRelease();
-        };
-        this.worker.onerror = (e) => this.fail(new Error(e.message || "地表编译线程失败"));
-      }
+      const worker = this.ensureWorker();
       this.inFlight = true;
       const request = this.queued;
       this.queued = undefined;
@@ -126,7 +139,7 @@ export class PlanningRasterClient {
       const height = compiledHeight && !heightFromBase ? (({ sample, ...data }) => data)(compiledHeight) : undefined;
       // Clone rather than transfer: CPU picking, navigation and subsequent edits retain
       // their canonical height buffers while the raster worker compiles other surfaces.
-      this.worker.postMessage({ ...request, baseId: this.baseId, height, heightFromBase });
+      worker.postMessage({ ...request, baseId: this.baseId, height, heightFromBase });
     } catch (error) {
       this.fail(new Error(String(error)));
     }

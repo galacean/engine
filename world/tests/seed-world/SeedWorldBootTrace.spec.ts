@@ -1,7 +1,9 @@
 import zlib from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { seedWorldBootTrace } from "../../demos/seed-world/src/SeedWorldBootTrace";
+import { summarizeSeedWorldShaderAudit } from "../../demos/seed-world/src/SeedWorldShaderAudit";
 import {
+  mergeSeedWorldBinaryAssetMaps,
   parseSeedWorldCommonBinaryBundle,
   releaseSeedWorldCommonBinaryBundle
 } from "../../demos/seed-world/src/SeedWorldCommonBinaryBundle";
@@ -27,6 +29,65 @@ describe("SeedWorldBootTrace lifecycle", () => {
     expect(nextSnap.spans).toEqual([]);
     expect(nextSnap.phases).toEqual([]);
     seedWorldBootTrace.dispose(false);
+  });
+
+  it("summarizes shader audit misses, reveal hits, and wasted startup compiles", () => {
+    const summary = summarizeSeedWorldShaderAudit({
+      parallelCompile: false,
+      warmupRequested: 2,
+      warmupDeferred: 1,
+      compiled: [
+        {
+          programId: 1,
+          shader: "Terrain/Terrain",
+          si: 0,
+          pi: 0,
+          stage: "Forward",
+          macros: ["A"],
+          phase: "startup-warmup",
+          caller: "warmup",
+          stack: [],
+          compiledAtMs: 1000,
+          elapsedMs: 120
+        },
+        {
+          programId: 2,
+          shader: "Masonry/Wall",
+          si: 0,
+          pi: 0,
+          stage: "Forward",
+          macros: ["B"],
+          phase: "startup-warmup",
+          caller: "warmup",
+          stack: [],
+          compiledAtMs: 1120,
+          elapsedMs: 240
+        },
+        {
+          programId: 3,
+          shader: "Water/Surface",
+          si: 0,
+          pi: 0,
+          stage: "Forward",
+          macros: ["C"],
+          phase: "reveal",
+          caller: "render-loop",
+          stack: [],
+          compiledAtMs: 2100,
+          elapsedMs: 85
+        }
+      ],
+      boundProgramIds: [1, 3],
+      boundByPhase: { reveal: [1, 3] }
+    });
+
+    expect(summary.compiledTotal).toBe(3);
+    expect(summary.compiledInStartupCount).toBe(2);
+    expect(summary.startupBoundInRevealCount).toBe(1);
+    expect(summary.startupWastedInRevealCount).toBe(1);
+    expect(summary.startupWastedInReveal[0]?.shader).toBe("Masonry/Wall");
+    expect(summary.revealCompileMissCount).toBe(1);
+    expect(summary.revealCompileMisses[0]?.shader).toBe("Water/Surface");
   });
 });
 
@@ -80,6 +141,13 @@ describe("parseSeedWorldCommonBinaryBundle", () => {
     const bad = new TextEncoder().encode("NOT_A_BUNDLE").buffer;
     expect(await parseSeedWorldCommonBinaryBundle(bad, "https://example.test/")).toBeUndefined();
     expect(await parseSeedWorldCommonBinaryBundle(new ArrayBuffer(0), "https://example.test/")).toBeUndefined();
+    const merged = mergeSeedWorldBinaryAssetMaps(
+      new Map([["a", new Uint8Array([1])]]),
+      undefined,
+      new Map([["b", new Uint8Array([2])]])
+    );
+    expect(merged?.size).toBe(2);
+    expect(Array.from(merged!.get("b")!)).toEqual([2]);
     expect(() => releaseSeedWorldCommonBinaryBundle()).not.toThrow();
   });
 });

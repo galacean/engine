@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { ShaderMacro, SkinnedMeshRenderer } from "@galacean/engine";
 import { preparePlantShaderPrograms } from "@galacean/engine-farming/farming/procedural/runtime/preparePlantShaderPrograms";
+import { PlantPresenter } from "@galacean/engine-farming/farming/presentation/PlantPresenter";
 
 function fixture(options: {
   ssrSceneEnabled?: boolean;
@@ -152,5 +153,52 @@ describe("farm item program readiness", () => {
     );
     await expect(pending).rejects.toThrow("Item retired");
     expect(f.calls).toEqual([]);
+  });
+  it("disables ENGINE_OUTPUT_SRGB_CORRECT on independent-canvas cameras and skips disabled startup cameras", async () => {
+    const hdr = fixture({
+      ssrSceneEnabled: true,
+      cameraEnableSSR: true,
+      ssrIntensity: 1,
+      isWebGL2: true,
+      maxDrawBuffers: 2
+    });
+    (hdr.camera as any)._isIndependentCanvasEnabled = () => true;
+    await preparePlantShaderPrograms(hdr.engine as any, hdr.root as any, async (work) => work(), false, {
+      camera: hdr.camera as any
+    });
+    expect(hdr.calls.length).toBeGreaterThan(0);
+    expect(hdr.calls.every((c) => !c.macros.includes("ENGINE_OUTPUT_SRGB_CORRECT"))).toBe(true);
+
+    const disabledCam = fixture();
+    (disabledCam.camera as any).enabled = false;
+    await preparePlantShaderPrograms(disabledCam.engine as any, disabledCam.root as any, async (work) => work(), false, {
+      camera: disabledCam.camera as any
+    });
+    expect(disabledCam.calls).toEqual([]);
+  });
+
+  it("defers queued shader presentation work while PlantPresenter.setShaderWorkPaused(true) is active", async () => {
+    const presenter = new PlantPresenter({} as any, { plants: [] } as any, () => undefined, () => {});
+    presenter.setShaderWorkPaused(true);
+    const controller = new AbortController();
+    let ran = false;
+    const job = presenter.preparePresentationWork(
+      () => {
+        ran = true;
+        return "ok";
+      },
+      "shader",
+      controller.signal
+    );
+    await Promise.resolve();
+    presenter.update(0.016);
+    expect(ran).toBe(false);
+
+    presenter.setShaderWorkPaused(false);
+    await Promise.resolve();
+    presenter.update(0.016);
+    await expect(job).resolves.toBe("ok");
+    expect(ran).toBe(true);
+    presenter.dispose();
   });
 });

@@ -881,6 +881,96 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
   }
 
   /**
+   * Returns exact renderers submitted by `cull()` on the initial spawn frame so primary
+   * startup shader warmup achieves zero reveal compile misses without warming offscreen species.
+   */
+  getPrimaryWarmupRenderers(): {
+    readonly renderers: MeshRenderer[];
+    readonly cameraOnlyRenderers: MeshRenderer[];
+    readonly shadowOnlyRenderers: MeshRenderer[];
+    dispose(): void;
+  } {
+    const renderers: MeshRenderer[] = [];
+    const cameraOnlyRenderers: MeshRenderer[] = [];
+    const shadowOnlyRenderers: MeshRenderer[] = [];
+    const tempShadowMeshes: InstancedShadowView[] = [];
+    if (this.disposed || !this.poolRoot.isActiveInHierarchy) {
+      return { renderers, cameraOnlyRenderers, shadowOnlyRenderers, dispose() {} };
+    }
+    for (const bucket of this.buckets.values()) {
+      if (bucket.nextCount > 0 && bucket.entity.isActive && !bucket.renderer.destroyed) {
+        if (this.usesViewCulling) {
+          cameraOnlyRenderers.push(bucket.renderer);
+        } else {
+          renderers.push(bucket.renderer);
+        }
+      }
+    }
+    if (this.usesViewCulling && this.cells.size > 0) {
+      const camPos = this.camera?.entity?.transform?.worldPosition;
+      const camX = camPos ? camPos.x : 0;
+      const camY = camPos ? camPos.y : 0;
+      const camZ = camPos ? camPos.z : 0;
+      const shadowLimit = this.lastShadowDist > 0 ? Math.min(this.lastMaxDist, this.lastShadowDist) : this.lastMaxDist;
+      const shadowLimitSq = Number.isFinite(shadowLimit) ? shadowLimit * shadowLimit : Infinity;
+      const shadowCellLimitSq = Number.isFinite(shadowLimit) ? (shadowLimit + 16) * (shadowLimit + 16) : Infinity;
+      const useLowestLod = this.shadowLodPolicy === "lowest";
+      const seenShadowBuckets = new Set<string>();
+      for (const cell of this.cells.values()) {
+        for (let s = 0; s < cell.subCells.length; s++) {
+          const sub = cell.subCells[s]!;
+          if (shadowCellLimitSq < Infinity && distancePointToBoxSq(camX, camY, camZ, sub.bounds) > shadowCellLimitSq) {
+            continue;
+          }
+          const recs = sub.records;
+          for (let i = 0; i < recs.length; i++) {
+            const rec = recs[i]!;
+            if (rec.excluded || !recordCastsShadows(rec)) continue;
+            if (shadowLimitSq < Infinity) {
+              const dx = rec.instance.position[0] - camX;
+              const dz = rec.instance.position[2] - camZ;
+              if (dx * dx + dz * dz > shadowLimitSq) continue;
+            }
+            const tier = useLowestLod
+              ? resolveLowestNonEmptyLodIndex(rec.lods)
+              : rec.assignedLod >= 0
+                ? rec.assignedLod
+                : resolveLowestNonEmptyLodIndex(rec.lods);
+            if (tier < 0) continue;
+            const parts = rec.lods[tier]!.parts;
+            for (let p = 0; p < parts.length; p++) {
+              const part = parts[p]!;
+              if (seenShadowBuckets.has(part.bucketKey)) continue;
+              seenShadowBuckets.add(part.bucketKey);
+              const bucket = this.ensureBucket(part.bucketSpec);
+              const sv = this.ensureShadowView(bucket, 0);
+              if (sv.renderer.destroyed) continue;
+              if (!sv.renderer.mesh) {
+                sv.renderer.mesh = bucket.spec.mesh;
+                tempShadowMeshes.push(sv);
+              }
+              shadowOnlyRenderers.push(sv.renderer);
+            }
+          }
+        }
+      }
+    }
+    return {
+      renderers,
+      cameraOnlyRenderers,
+      shadowOnlyRenderers,
+      dispose() {
+        for (let i = 0; i < tempShadowMeshes.length; i++) {
+          const sv = tempShadowMeshes[i]!;
+          if (!sv.view && !sv.renderer.destroyed) {
+            sv.renderer.mesh = null as unknown as MeshRenderer["mesh"];
+          }
+        }
+      }
+    };
+  }
+
+  /**
    * Per-view culling and submission callback invoked by `BasicRenderPipeline` for both the main
    * Camera view (shared by SSR depth prepass and forward pass) and each directional shadow cascade.
    */

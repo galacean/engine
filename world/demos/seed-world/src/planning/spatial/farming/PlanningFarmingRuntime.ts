@@ -236,6 +236,7 @@ export class PlanningFarmingRuntime {
   async preparePresentation(): Promise<void> {
     await this.task;
     await this.land?.whenReady;
+    await this.presentation?.whenSoilTexturesSettled();
     this.presentation?.flushPendingVisuals();
   }
   sampleTarget(ray: import("@galacean/engine-farming/farming/api/index").GroundRay, maximumDistance: number) {

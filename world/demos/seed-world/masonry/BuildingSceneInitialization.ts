@@ -6,7 +6,8 @@ import type { ConstructionTerrainSource } from "@galacean/engine-building/buildi
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import { BUILTIN_BUILDING_ASSETS } from "@galacean/engine-building/building/resources/BuiltinBuildingAssets";
 import { buildingAssets } from "@galacean/engine-building/building/resources/BuildingAssetKit";
-import { initialBuildingSource } from "@galacean/engine-world-planning/masonry/BuildingInitialSource";
+import { hasInitialBuildings, initialBuildingSource } from "@galacean/engine-world-planning/masonry/BuildingInitialSource";
+import { seedWorldBootTrace } from "../src/SeedWorldBootTrace.ts";
 
 type AuthoringEdit = Pick<RuntimeEditorEdit, "run" | "withAsset">;
 type Inputs = { plan: IslandPlan; terrain: ConstructionTerrainSource };
@@ -57,10 +58,16 @@ export function buildingScenePreparation(scenePath: string,
     if (!selection) return;
     const { plan, terrain } = await inputs(edit, signal);
     signal.throwIfAborted();
+    const planHasBuildings = hasInitialBuildings(plan);
     const key = buildingLayoutKey(plan);
     const parent = await edit.run(({ draft, edited }) => {
       const { identity, initialized, layouts } = selection;
       const scene = new RuntimeSceneEdit(draft, scenePath);
+      if (!layouts && !planHasBuildings) {
+        const frames = (scene.readEntity(identity.entityId).children ?? [])
+          .filter((id) => id.startsWith("building-group:["));
+        if (frames.length === 0) return undefined;
+      }
       const state: BuildingLayouts = layouts ?? { generator: identity.id, active: key, roots: {} };
       const existingIds = new Set(scene.list().map((entity) => entity.id));
       const createRoot = (name: string, isActive: boolean) =>
@@ -90,11 +97,18 @@ export function buildingScenePreparation(scenePath: string,
       edited();
       return needsBuildings ? state.roots[key] : undefined;
     });
-    if (!parent) return;
-    const fragment = await edit.withAsset<PrefabResource, Awaited<ReturnType<typeof initialBuildingSource>>>(BUILTIN_BUILDING_ASSETS, async assets => {
-      const compilation = buildingAssets(assets.resource).compilation;
-      return initialBuildingSource(plan, terrain.grid, compilation, BUILTIN_BUILDING_ASSETS, signal, key);
-    });
+    if (!parent || !planHasBuildings) return;
+    const fragment = await seedWorldBootTrace.span("building.withAsset", () =>
+      edit.withAsset<PrefabResource, Awaited<ReturnType<typeof initialBuildingSource>>>(
+        BUILTIN_BUILDING_ASSETS,
+        async (assets) => {
+          const compilation = buildingAssets(assets.resource).compilation;
+          return seedWorldBootTrace.span("building.initialBuildingSource", () =>
+            initialBuildingSource(plan, terrain.grid, compilation, BUILTIN_BUILDING_ASSETS, signal, key)
+          );
+        }
+      )
+    );
     await edit.run(({ draft, edited }) => {
       signal.throwIfAborted();
       const scene = new RuntimeSceneEdit(draft, scenePath);
@@ -130,8 +144,12 @@ export async function initializeBuildingScene(project: RuntimeProjectSession, ed
   plan: IslandPlan, terrain: ConstructionTerrainSource, signal: AbortSignal): Promise<void> {
   const edit = editor.beginEdit(crypto.randomUUID(), signal);
   try {
-    await buildingScenePreparation(project.projectPackage.project.scene, async () => ({ plan, terrain }), plan)(edit, signal);
+    await seedWorldBootTrace.span("building.preparation", () =>
+      buildingScenePreparation(project.projectPackage.project.scene, async () => ({ plan, terrain }), plan)(edit, signal)
+    );
     if (!edit.hasChanges()) return;
-    await edit.prepare(signal); await edit.commit(); await edit.activate(signal);
+    await seedWorldBootTrace.span("building.edit.prepare", () => edit.prepare(signal));
+    await seedWorldBootTrace.span("building.edit.commit", () => edit.commit());
+    await seedWorldBootTrace.span("building.edit.activate", () => edit.activate(signal));
   } finally { edit.discard(); }
 }

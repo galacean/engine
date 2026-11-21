@@ -10,6 +10,7 @@ import {
 } from "./PlanningPopulationInitialization";
 export {
   initializePlanningPopulation,
+  preparePlanningPopulation,
   type PlanningPopulationOptions,
   type PlanningPopulationReceipt
 } from "./PlanningPopulationInitialization";

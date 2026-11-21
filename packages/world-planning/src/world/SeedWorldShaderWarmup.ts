@@ -1,6 +1,8 @@
 import {
   AntiAliasing,
   BackgroundMode,
+  BoundingBox,
+  BoundingFrustum,
   type Camera,
   DepthTextureMode,
   type Engine,
@@ -8,6 +10,7 @@ import {
   DirectLight,
   GLCapabilityType,
   Light,
+  Matrix,
   PointLight,
   SpotLight,
   type Material,
@@ -24,7 +27,8 @@ import {
   ShaderMacroCollection,
   ShaderPass,
   ShaderProperty,
-  TextureFormat
+  TextureFormat,
+  Vector3
 } from "@galacean/engine";
 import photoCopySource from "./PhotoCopy.shader?raw";
 import {
@@ -115,6 +119,10 @@ export interface SeedWorldRendererWarmupOptions extends SeedWorldShaderWarmupOpt
   readonly includeInactiveRoots?: readonly Entity[];
   /** Explicit offscreen warmup renderers (e.g. lazy building LOD1/LOD0) always included regardless of active state. */
   readonly additionalRenderers?: readonly Renderer[];
+  /** Explicit view-culled renderers submitted only to Camera passes (Forward/DepthOnly/SSR), skipping ShadowCaster. */
+  readonly additionalCameraOnlyRenderers?: readonly Renderer[];
+  /** Explicit view-culled shadow-cascade renderers submitted only to ShadowCaster passes. */
+  readonly additionalShadowOnlyRenderers?: readonly Renderer[];
   /** Explicit offscreen warmup renderers (e.g. unmaterialized vegetation species) that may batch via GPU instancing once streamed. */
   readonly additionalInstancedRenderers?: readonly Renderer[];
   /** Alternate materials swapped onto specific renderers at runtime (e.g. shadow-only proxy materials). */
@@ -136,6 +144,12 @@ export interface SeedWorldRendererWarmupOptions extends SeedWorldShaderWarmupOpt
   readonly onlySharedMeshGpuInstancing?: boolean;
   /** Skip disabled Renderer components (e.g. inactive LOD transitions / disabled weather emitters) for fast first-frame warmup. */
   readonly onlyEnabledRenderers?: boolean;
+  /**
+   * Restrict non-global MeshRenderers to those intersecting the camera's spawn frustum for Forward/Depth/SSR passes,
+   * while still keeping ShadowCaster passes for offscreen shadow casters within shadow distance so first-screen
+   * reveals have zero compile misses without over-compiling behind-camera variants.
+   */
+  readonly onlyFrustumVisible?: boolean;
   /** Whether to expand resident masonry shaders with symmetric RENDERER_MASONRY_DITHER variants. Defaults to true. */
   readonly includeMasonryDither?: boolean;
   /** Whether to expand masonry shaders with symmetric RENDERER_MASONRY_ENTRANCE variants. Defaults to true. */
@@ -218,6 +232,8 @@ const ASSET_ASSEMBLY_COMPACT_INSTANCE_MACRO = ShaderMacro.getByName("RENDERER_AS
 const DETAIL_COMPACT_MACRO = ShaderMacro.getByName("RENDERER_SEED_WORLD_DETAIL_COMPACT");
 const MASONRY_ENTRANCE_MACRO = ShaderMacro.getByName("RENDERER_MASONRY_ENTRANCE");
 const GLOBAL_PROXY_ENTRANCE_MACRO = ShaderMacro.getByName("GLOBAL_PROXY_ENTRANCE");
+const MASONRY_DITHER_MACRO = ShaderMacro.getByName("RENDERER_MASONRY_DITHER");
+const GLOBAL_PROXY_DITHER_MACRO = ShaderMacro.getByName("GLOBAL_PROXY_DITHER");
 const SSR_ALL_FORWARD_MACROS = new Set([
   "CAMERA_ENABLE_SSR",
   "CAMERA_SSR_VERIFY_RECEIVER_DEPTH",
@@ -756,7 +772,11 @@ function collectSeedWorldRendererVariantsInternal(
   const renderers: Renderer[] = [];
   const rootRenderers: Renderer[] = [];
   const forcedRenderers = new Set<Renderer>(options.additionalRenderers ?? []);
+  const forcedCameraOnlyRenderers = new Set<Renderer>(options.additionalCameraOnlyRenderers ?? []);
+  const forcedShadowOnlyRenderers = new Set<Renderer>(options.additionalShadowOnlyRenderers ?? []);
   const forcedInstancedRenderers = new Set<Renderer>(options.additionalInstancedRenderers ?? []);
+  for (const r of forcedCameraOnlyRenderers) forcedRenderers.add(r);
+  for (const r of forcedShadowOnlyRenderers) forcedRenderers.add(r);
   for (const r of forcedInstancedRenderers) forcedRenderers.add(r);
   for (const root of roots) {
     // Entity replaces the supplied result array; retain previous roots explicitly.
@@ -772,6 +792,12 @@ function collectSeedWorldRendererVariantsInternal(
   }
   if (options.additionalRenderers?.length) {
     renderers.push(...options.additionalRenderers);
+  }
+  if (options.additionalCameraOnlyRenderers?.length) {
+    renderers.push(...options.additionalCameraOnlyRenderers);
+  }
+  if (options.additionalShadowOnlyRenderers?.length) {
+    renderers.push(...options.additionalShadowOnlyRenderers);
   }
   if (options.additionalInstancedRenderers?.length) {
     renderers.push(...options.additionalInstancedRenderers);
@@ -883,6 +909,55 @@ function collectSeedWorldRendererVariantsInternal(
         ]);
 
   const uniqueRenderers = [...new Set(renderers)];
+  let cameraFrustum: BoundingFrustum | undefined;
+  let cameraWorldPosition: Vector3 | undefined;
+  const shadowDistance =
+    Math.max(0, Number((scene as unknown as { shadowDistance?: number }).shadowDistance ?? 120)) + 32;
+  if (options.onlyFrustumVisible && camera.entity?.transform) {
+    const proj = (camera as unknown as { projectionMatrix?: Matrix }).projectionMatrix;
+    const view = (camera as unknown as { viewMatrix?: Matrix }).viewMatrix;
+    if (proj && view) {
+      const vp = new Matrix();
+      Matrix.multiply(proj, view, vp);
+      cameraFrustum = new BoundingFrustum();
+      cameraFrustum.calculateFromMatrix(vp);
+      cameraWorldPosition = camera.entity.transform.worldPosition;
+    }
+  }
+  const isGlobalWarmupShader = (shaderName: string): boolean =>
+    shaderName.startsWith("Sky/") ||
+    shaderName === "Terrain/Terrain" ||
+    shaderName.startsWith("WaterFar/") ||
+    shaderName.startsWith("AIWorld/") ||
+    shaderName.startsWith("World/") ||
+    shaderName.startsWith("SeedWorld/") ||
+    shaderName.startsWith("PostProcess/") ||
+    shaderName.startsWith("Blit/") ||
+    shaderName.startsWith("2D/");
+  const isBoxWithinShadowDistance = (box: BoundingBox, origin: Vector3, maxDist: number): boolean => {
+    const dx = origin.x < box.min.x ? box.min.x - origin.x : origin.x > box.max.x ? origin.x - box.max.x : 0;
+    const dy = origin.y < box.min.y ? box.min.y - origin.y : origin.y > box.max.y ? origin.y - box.max.y : 0;
+    const dz = origin.z < box.min.z ? box.min.z - origin.z : origin.z > box.max.z ? origin.z - box.max.z : 0;
+    return dx * dx + dy * dy + dz * dz <= maxDist * maxDist;
+  };
+  const hasFiniteBoundedBox = (box: BoundingBox | undefined): box is BoundingBox => {
+    if (!box) return false;
+    const { min, max } = box;
+    if (
+      !Number.isFinite(min.x) ||
+      !Number.isFinite(min.y) ||
+      !Number.isFinite(min.z) ||
+      !Number.isFinite(max.x) ||
+      !Number.isFinite(max.y) ||
+      !Number.isFinite(max.z)
+    ) {
+      return false;
+    }
+    const ex = max.x - min.x;
+    const ey = max.y - min.y;
+    const ez = max.z - min.z;
+    return ex >= 0 && ey >= 0 && ez >= 0 && ex + ey + ez > 1e-4 && Math.max(ex, ey, ez) < 1000;
+  };
   const subEmitterTargets = new Set<ParticleRenderer>();
   for (const sourceRenderer of uniqueRenderers) {
     if (!(sourceRenderer instanceof ParticleRenderer) || sourceRenderer.destroyed) continue;
@@ -916,7 +991,7 @@ function collectSeedWorldRendererVariantsInternal(
         !forcedRenderers.has(sourceRenderer)
       )
         continue;
-      if (options.onlyEnabledRenderers && !sourceRenderer.enabled) continue;
+      if (options.onlyEnabledRenderers && !sourceRenderer.enabled && !forcedRenderers.has(sourceRenderer)) continue;
       if (!(sourceRenderer instanceof MeshRenderer) || sourceRenderer instanceof SkinnedMeshRenderer) continue;
       const mesh = (sourceRenderer as unknown as RuntimeMeshRenderer).mesh;
       if (!mesh) continue;
@@ -951,7 +1026,7 @@ function collectSeedWorldRendererVariantsInternal(
       !forcedRenderers.has(sourceRenderer)
     )
       continue;
-    if (options.onlyEnabledRenderers && !sourceRenderer.enabled) continue;
+    if (options.onlyEnabledRenderers && !sourceRenderer.enabled && !forcedRenderers.has(sourceRenderer)) continue;
     const isMesh = sourceRenderer instanceof MeshRenderer;
     const isParticle = sourceRenderer instanceof ParticleRenderer;
     if (!isMesh && !isParticle) continue;
@@ -1029,6 +1104,44 @@ function collectSeedWorldRendererVariantsInternal(
     const materials = extraMaterials?.length
       ? [...renderer.getMaterials(), ...extraMaterials]
       : renderer.getMaterials();
+    let frustumShadowOnly = forcedShadowOnlyRenderers.has(sourceRenderer);
+    if (
+      !frustumShadowOnly &&
+      cameraFrustum &&
+      !forcedRenderers.has(sourceRenderer) &&
+      !ownsInstanceGeometry &&
+      isMesh &&
+      !materials.some(
+        (m) =>
+          m &&
+          !m.destroyed &&
+          m.shader &&
+          !m.shader.destroyed &&
+          (isGlobalWarmupShader(m.shader.name) || m.shader.name.startsWith("Masonry/"))
+      )
+    ) {
+      const rawBounds = (sourceRenderer as unknown as { bounds?: BoundingBox }).bounds;
+      if (hasFiniteBoundedBox(rawBounds)) {
+        // Pad animated SkinnedMeshRenderer bounds slightly so nearby animals walking across the
+        // frustum boundary during orb.reveal never cause a first-frame compile miss.
+        const testBounds =
+          sourceRenderer instanceof SkinnedMeshRenderer
+            ? new BoundingBox(
+                new Vector3(rawBounds.min.x - 2, rawBounds.min.y - 1, rawBounds.min.z - 2),
+                new Vector3(rawBounds.max.x + 2, rawBounds.max.y + 1, rawBounds.max.z + 2)
+              )
+            : rawBounds;
+        if (!cameraFrustum.intersectsBox(testBounds)) {
+          const canCastShadowInRange =
+            Boolean(scene.castShadows) &&
+            (sourceRenderer.castShadows ||
+              materials.some((m) => m && !m.destroyed && m.shader?.name === "Masonry/GlobalProxyShadowOnly")) &&
+            (!cameraWorldPosition || isBoxWithinShadowDistance(testBounds, cameraWorldPosition, shadowDistance));
+          if (!canCastShadowInRange) continue;
+          frustumShadowOnly = true;
+        }
+      }
+    }
     for (const material of materials) {
       if (!material || material.destroyed || material.shader.destroyed) continue;
       // Masonry shaders own their custom instance/packed vertex streams and never enter the generic UBO batcher.
@@ -1072,13 +1185,21 @@ function collectSeedWorldRendererVariantsInternal(
           compileMacros
         );
         compileMacros.unionCollection((engine as RuntimeEngine)._macroCollection);
+        if (options.includeMasonryDither === false && material.shader.name.startsWith("Masonry/")) {
+          // Transient pre-reveal LOD crossfades settle before frame 0 renders; strip dither macros
+          // during primary warmup so startup compiles the settled reveal variant instead of a wasted dither pair.
+          compileMacros.disable(MASONRY_DITHER_MACRO);
+          compileMacros.disable(GLOBAL_PROXY_DITHER_MACRO);
+        }
         for (const macro of extraMacros) {
           compileMacros.enable(
             macro.v === undefined ? ShaderMacro.getByName(macro.n) : ShaderMacro.getByName(macro.n, macro.v)
           );
         }
-        const passCastShadows = sourceRenderer.castShadows || material.shader.name === "Masonry/GlobalProxyShadowOnly";
-        const macroSetKey = `${material.shader.name}/${passCastShadows}/${contributionKey}?${shaderMacroCollectionKey(compileMacros)}`;
+        const passCastShadows =
+          !forcedCameraOnlyRenderers.has(sourceRenderer) &&
+          (sourceRenderer.castShadows || material.shader.name === "Masonry/GlobalProxyShadowOnly");
+        const macroSetKey = `${material.shader.name}/${passCastShadows}/${frustumShadowOnly ? "shadow" : "full"}/${contributionKey}?${shaderMacroCollectionKey(compileMacros)}`;
         const appendPointLightVariants = (targetShader: Shader, sourceMacros: ShaderMacroCollection): void => {
           if (!options.additionalPointLightCounts?.length || !shaderConsumesPointLights(targetShader.name)) return;
           // Startup entrance only runs under the scene's initial light state; steady-state gets alternate point-light counts.
@@ -1137,9 +1258,10 @@ function collectSeedWorldRendererVariantsInternal(
             material,
             supportsRendering,
             false,
-            ssrContext
+            ssrContext,
+            frustumShadowOnly
           );
-          appendPointLightVariants(material.shader, compileMacros);
+          if (!frustumShadowOnly) appendPointLightVariants(material.shader, compileMacros);
         }
         if (
           options.includeMasonryEntrance !== false &&
@@ -1693,7 +1815,8 @@ function appendShaderVariants(
   material?: Material,
   supportsRendering = true,
   forwardOnly = false,
-  context?: AppendShaderVariantContext
+  context?: AppendShaderVariantContext,
+  shadowOnly = false
 ): void {
   const macroElements: ShaderMacro[] = [];
   (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(macros, macroElements);
@@ -1704,6 +1827,7 @@ function appendShaderVariants(
     for (let pi = 0; pi < shader.subShaders[si].passes.length; pi++) {
       const pass = shader.subShaders[si].passes[pi];
       const stage = pass.getTagValue("pipelineStage");
+      if (shadowOnly && stage !== "ShadowCaster") continue;
       if (forwardOnly && stage !== "Forward") continue;
       // Match shadow culling even while candidate roots are intentionally inactive.
       if (!castShadows && stage === "ShadowCaster") continue;

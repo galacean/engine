@@ -175,4 +175,36 @@ describe("pickOcclusionPass pipelineStage cache sync", () => {
       warnSpy.mockRestore();
     }
   });
+
+  it("defers replacement shader work and compilation until resume() when deferStart is true", () => {
+    let observer: ((pass: ShaderPass, macros: readonly ShaderMacro[]) => void) | undefined;
+    vi.spyOn(ShaderPass, "observeVariants").mockImplementation((_engine, cb) => {
+      observer = cb;
+      return () => {
+        observer = undefined;
+      };
+    });
+    const findSpy = vi.spyOn(Shader, "find").mockReturnValue(null);
+    const prep = new RuntimePickPreparation({} as never, { deferStart: true });
+    const sceneShader = Shader.create("TestScene/DeferredSurface", [makeForwardPass()])!;
+    try {
+      expect(findSpy).not.toHaveBeenCalled();
+      expect(prep.ready).toBe(false);
+
+      const queue = (prep as unknown as { queue: Array<{ pass: ShaderPass; macros: readonly ShaderMacro[] }> }).queue;
+      vi.spyOn(prep as unknown as { start(): void }, "start").mockImplementation(() => {});
+
+      observer!(sceneShader.subShaders[0].passes[0], []);
+      expect(queue).toHaveLength(0);
+
+      prep.resume();
+      expect(findSpy).toHaveBeenCalled();
+      expect(queue).toHaveLength(1);
+      expect(prep.ready).toBe(true);
+    } finally {
+      prep.dispose();
+      if (!sceneShader.destroyed) sceneShader.destroy(true);
+      vi.restoreAllMocks();
+    }
+  });
 });

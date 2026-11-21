@@ -10,21 +10,68 @@ export interface AuditedShaderCompile {
   readonly phase: string;
   readonly caller: string;
   readonly stack: readonly string[];
+  readonly compiledAtMs: number;
   readonly elapsedMs: number;
+}
+
+export interface SeedWorldShaderAuditSnapshot {
+  readonly parallelCompile: boolean;
+  readonly warmupRequested: number;
+  readonly warmupDeferred: number;
+  readonly compiled: readonly AuditedShaderCompile[];
+  readonly boundProgramIds: readonly number[];
+  readonly boundByPhase: Readonly<Record<string, readonly number[]>>;
+}
+
+export interface SeedWorldShaderAuditSummaryEntry {
+  readonly shader: string;
+  readonly stage: string;
+  readonly si: number;
+  readonly pi: number;
+  readonly phase: string;
+  readonly caller: string;
+  readonly compiledAtMs: number;
+  readonly elapsedMs: number;
+  readonly boundInReveal: boolean;
+  readonly boundEver: boolean;
+  readonly macros: readonly string[];
+}
+
+export interface SeedWorldShaderAuditSummary {
+  readonly parallelCompile: boolean;
+  readonly warmupRequested: number;
+  readonly warmupDeferred: number;
+  readonly compiledTotal: number;
+  readonly totalCompileMs: number;
+  readonly boundTotalCount: number;
+  readonly boundInRevealCount: number;
+  readonly compiledInStartupCount: number;
+  readonly compiledInStartupMs: number;
+  readonly startupBoundInRevealCount: number;
+  readonly startupWastedInRevealCount: number;
+  readonly revealCompileMissCount: number;
+  readonly postReadyRenderCompileMissCount: number;
+  readonly byPhase: Readonly<Record<string, { readonly count: number; readonly totalMs: number; readonly maxMs: number }>>;
+  readonly byCaller: Readonly<Record<string, { readonly count: number; readonly totalMs: number; readonly maxMs: number }>>;
+  readonly byShader: readonly {
+    readonly shader: string;
+    readonly count: number;
+    readonly totalMs: number;
+    readonly maxMs: number;
+    readonly startupCount: number;
+    readonly boundInRevealCount: number;
+    readonly renderMissCount: number;
+  }[];
+  readonly revealCompileMisses: readonly SeedWorldShaderAuditSummaryEntry[];
+  readonly startupWastedInReveal: readonly SeedWorldShaderAuditSummaryEntry[];
+  readonly slowestCompiles: readonly SeedWorldShaderAuditSummaryEntry[];
 }
 
 export interface SeedWorldShaderAuditHandle {
   setPhase(phase: string): void;
   setParallelCompile(supported: boolean): void;
   recordWarmupRequested(count: number, deferredCount: number): void;
-  snapshot(): {
-    readonly parallelCompile: boolean;
-    readonly warmupRequested: number;
-    readonly warmupDeferred: number;
-    readonly compiled: readonly AuditedShaderCompile[];
-    readonly boundProgramIds: readonly number[];
-    readonly boundByPhase: Readonly<Record<string, readonly number[]>>;
-  };
+  snapshot(): SeedWorldShaderAuditSnapshot;
   dispose(): void;
 }
 
@@ -178,6 +225,7 @@ export function installSeedWorldShaderAudit(): SeedWorldShaderAuditHandle {
         phase: currentPhase,
         caller: classifyCaller(stack),
         stack,
+        compiledAtMs: Math.round(t0 * 100) / 100,
         elapsedMs
       });
     }
@@ -223,4 +271,151 @@ export function installSeedWorldShaderAudit(): SeedWorldShaderAuditHandle {
 
   (window as unknown as { __seedWorldShaderAudit?: SeedWorldShaderAuditHandle }).__seedWorldShaderAudit = handle;
   return handle;
+}
+
+function roundMs(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+export function summarizeSeedWorldShaderAudit(snapshot: SeedWorldShaderAuditSnapshot): SeedWorldShaderAuditSummary {
+  const boundAll = new Set(snapshot.boundProgramIds);
+  const boundReveal = new Set(snapshot.boundByPhase.reveal ?? []);
+  const byPhase: Record<string, { count: number; totalMs: number; maxMs: number }> = {};
+  const byCaller: Record<string, { count: number; totalMs: number; maxMs: number }> = {};
+  const byShaderMap = new Map<
+    string,
+    {
+      shader: string;
+      count: number;
+      totalMs: number;
+      maxMs: number;
+      startupCount: number;
+      boundInRevealCount: number;
+      renderMissCount: number;
+    }
+  >();
+
+  let totalCompileMs = 0;
+  let compiledInStartupCount = 0;
+  let compiledInStartupMs = 0;
+  let startupBoundInRevealCount = 0;
+  let revealCompileMissCount = 0;
+  let postReadyRenderCompileMissCount = 0;
+
+  const entries: SeedWorldShaderAuditSummaryEntry[] = [];
+  const revealCompileMisses: SeedWorldShaderAuditSummaryEntry[] = [];
+  const startupWastedInReveal: SeedWorldShaderAuditSummaryEntry[] = [];
+
+  for (const item of snapshot.compiled) {
+    const boundInReveal = boundReveal.has(item.programId);
+    const boundEver = boundAll.has(item.programId);
+    const summaryEntry: SeedWorldShaderAuditSummaryEntry = {
+      shader: item.shader,
+      stage: item.stage,
+      si: item.si,
+      pi: item.pi,
+      phase: item.phase,
+      caller: item.caller,
+      compiledAtMs: item.compiledAtMs,
+      elapsedMs: item.elapsedMs,
+      boundInReveal,
+      boundEver,
+      macros: item.macros
+    };
+    entries.push(summaryEntry);
+    totalCompileMs += item.elapsedMs;
+
+    const phaseBucket = (byPhase[item.phase] ??= { count: 0, totalMs: 0, maxMs: 0 });
+    phaseBucket.count += 1;
+    phaseBucket.totalMs += item.elapsedMs;
+    if (item.elapsedMs > phaseBucket.maxMs) phaseBucket.maxMs = item.elapsedMs;
+
+    const callerBucket = (byCaller[item.caller] ??= { count: 0, totalMs: 0, maxMs: 0 });
+    callerBucket.count += 1;
+    callerBucket.totalMs += item.elapsedMs;
+    if (item.elapsedMs > callerBucket.maxMs) callerBucket.maxMs = item.elapsedMs;
+
+    let shaderBucket = byShaderMap.get(item.shader);
+    if (!shaderBucket) {
+      shaderBucket = {
+        shader: item.shader,
+        count: 0,
+        totalMs: 0,
+        maxMs: 0,
+        startupCount: 0,
+        boundInRevealCount: 0,
+        renderMissCount: 0
+      };
+      byShaderMap.set(item.shader, shaderBucket);
+    }
+    shaderBucket.count += 1;
+    shaderBucket.totalMs += item.elapsedMs;
+    if (item.elapsedMs > shaderBucket.maxMs) shaderBucket.maxMs = item.elapsedMs;
+    if (boundInReveal) shaderBucket.boundInRevealCount += 1;
+
+    if (item.phase === "startup-warmup") {
+      compiledInStartupCount += 1;
+      compiledInStartupMs += item.elapsedMs;
+      shaderBucket.startupCount += 1;
+      if (boundInReveal) {
+        startupBoundInRevealCount += 1;
+      } else {
+        startupWastedInReveal.push(summaryEntry);
+      }
+    }
+
+    const isRenderMiss =
+      item.phase === "reveal" || (item.phase === "post-ready" && item.caller === "render-loop");
+    if (isRenderMiss) {
+      shaderBucket.renderMissCount += 1;
+      revealCompileMisses.push(summaryEntry);
+      if (item.phase === "reveal") revealCompileMissCount += 1;
+      else postReadyRenderCompileMissCount += 1;
+    }
+  }
+
+  for (const bucket of Object.values(byPhase)) {
+    bucket.totalMs = roundMs(bucket.totalMs);
+    bucket.maxMs = roundMs(bucket.maxMs);
+  }
+  for (const bucket of Object.values(byCaller)) {
+    bucket.totalMs = roundMs(bucket.totalMs);
+    bucket.maxMs = roundMs(bucket.maxMs);
+  }
+
+  const byShader = [...byShaderMap.values()]
+    .map((b) => ({
+      ...b,
+      totalMs: roundMs(b.totalMs),
+      maxMs: roundMs(b.maxMs)
+    }))
+    .sort((a, b) => b.totalMs - a.totalMs || b.count - a.count);
+
+  startupWastedInReveal.sort((a, b) => b.elapsedMs - a.elapsedMs || a.shader.localeCompare(b.shader));
+  revealCompileMisses.sort((a, b) => a.compiledAtMs - b.compiledAtMs);
+  const slowestCompiles = [...entries]
+    .sort((a, b) => b.elapsedMs - a.elapsedMs || a.shader.localeCompare(b.shader))
+    .slice(0, 35);
+
+  return {
+    parallelCompile: snapshot.parallelCompile,
+    warmupRequested: snapshot.warmupRequested,
+    warmupDeferred: snapshot.warmupDeferred,
+    compiledTotal: snapshot.compiled.length,
+    totalCompileMs: roundMs(totalCompileMs),
+    boundTotalCount: boundAll.size,
+    boundInRevealCount: boundReveal.size,
+    compiledInStartupCount,
+    compiledInStartupMs: roundMs(compiledInStartupMs),
+    startupBoundInRevealCount,
+    startupWastedInRevealCount: startupWastedInReveal.length,
+    revealCompileMissCount,
+    postReadyRenderCompileMissCount,
+    byPhase,
+    byCaller,
+    byShader,
+    revealCompileMisses: revealCompileMisses.slice(0, 80),
+    startupWastedInReveal: startupWastedInReveal.slice(0, 80),
+    slowestCompiles
+  };
 }

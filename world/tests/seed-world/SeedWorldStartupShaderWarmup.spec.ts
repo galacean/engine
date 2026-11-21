@@ -188,7 +188,7 @@ describe("startup shader publication boundary", () => {
     expect(f.collectVariants).toHaveBeenCalledTimes(2);
     expect(f.collectVariants.mock.calls[0][4]).toMatchObject({
       onlyEnabledRenderers: true,
-      includeMasonryDither: false,
+      includeMasonryDither: true,
       includeMasonryEntrance: true,
       includeInstanceEntrance: false,
       includeLodDither: false,
@@ -254,7 +254,7 @@ describe("startup shader publication boundary", () => {
     expect(disposeVegetation).toHaveBeenCalledOnce();
     expect(result.deferredShaderVariants).toEqual([]);
   });
-  it("defers secondary template variants to idle with a startup budget when KHR_parallel_shader_compile is unavailable", async () => {
+  it("defers secondary template variants to idle without truncating primary first-screen variants when KHR_parallel_shader_compile is unavailable", async () => {
     const disposeMasonry = vi.fn();
     const disposeVegetation = vi.fn();
     const fakeRenderer = { name: "lod1-warmup" };
@@ -286,12 +286,13 @@ describe("startup shader publication boundary", () => {
     expect(f.warmupVariants).toHaveBeenCalledOnce();
     expect(f.warmupVariants.mock.calls[0][2]).toMatchObject({
       preserveOrder: true,
-      maximumPendingPrograms: 1,
-      maxElapsedMilliseconds: 6500
+      maximumPendingPrograms: 1
     });
+    expect(f.warmupVariants.mock.calls[0][2].maxElapsedMilliseconds).toBeUndefined();
     expect(f.collectVariants).toHaveBeenCalledTimes(2);
     expect(f.collectVariants.mock.calls[0][4]).toMatchObject({
       onlyEnabledRenderers: true,
+      onlyFrustumVisible: true,
       includeMasonryDither: false,
       includeMasonryEntrance: false,
       includeInstanceEntrance: false,

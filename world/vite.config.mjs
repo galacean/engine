@@ -152,118 +152,122 @@ function sha256Buffer(source) {
 }
 
 /**
- * In WORLD_FLASH_APP=1 builds:
- * 1. Rewrites references to content-hash-matched binary/leaf assets in flash-app-cdn-manifest.json
- *    to their immutable mdn.alipayobjects.com URLs and omits duplicate copies from dist.
- * 2. Consolidates small project text files (.prefab/.mat/.scene/.json <= 128 KiB)
+ * Emits consolidated startup bundles for `seed-world` production builds (both normal preview and
+ * WORLD_FLASH_APP=1):
+ * 1. (Flash App only) Rewrites references to content-hash-matched binary/leaf assets in
+ *    flash-app-cdn-manifest.json to their immutable mdn.alipayobjects.com URLs and omits duplicate copies.
+ * 2. Emits split gzipped SWB1 binary bundles (.mesh/.shaderc/.tex/.shader):
+ *    - `seed-world-common-bin-bundle`: shared core binaries (non-building) loaded by all templates.
+ *    - `seed-world-building-bin-bundle`: `packages/building/` binaries loaded only when a template uses buildings.
+ * 3. Consolidates small project text files (.prefab/.mat/.scene/.json <= 128 KiB)
  *    into a single gzip-friendly JSON bundle fetched once at startup.
  */
-function flashAppCdnAndTextBundle() {
+function seedWorldAssetBundles({ offloadCdn = false } = {}) {
   return {
-    name: "flash-app-cdn-and-text-bundle",
+    name: "seed-world-asset-bundles",
     generateBundle(_options, bundle) {
-      const cdnBySha256 = loadFlashAppCdnManifest();
+      const cdnBySha256 = offloadCdn ? loadFlashAppCdnManifest() : {};
       const cdnUrlByFileName = new Map();
 
-      // 1. Identify emitted leaf binary assets and large (> 128 KiB) leaf package JSONs
-      // whose exact sha256 + size exist on mdn.alipayobjects.com.
-      for (const [fileName, item] of Object.entries(bundle)) {
-        if (item.type !== "asset") continue;
-        const ext = path.extname(fileName).toLowerCase();
-        // Skip physx JS/WASM sidecars resolved via Emscripten locateFile relative to physx.release*.js.
-        if (/(?:^|\/)physx\.release(?:\.simd)?(?:\.[a-f0-9]+)?\.wasm$/i.test(fileName)) continue;
-        const isLeafBinary = FLASH_APP_CDN_LEAF_EXTENSIONS.has(ext);
-        if (!isLeafBinary && !(fileName.startsWith("packages/") && ext === ".json")) continue;
-        const { sha256, size } = sha256Buffer(item.source);
-        if (!isLeafBinary && !isFlashAppCdnLargeJson(fileName, size)) continue;
-        const entry = cdnBySha256[sha256];
-        if (entry && typeof entry.url === "string" && entry.url.startsWith("https://") && entry.size === size) {
-          cdnUrlByFileName.set(fileName, entry.url);
-        }
-      }
-
-      // 2. Rewrite references inside emitted JSON/material/prefab/scene manifests to CDN URLs.
-      if (cdnUrlByFileName.size > 0) {
-        const rewriteJsonObject = (value, baseDir, key) => {
-          if (typeof value === "string" && value.length < 1024 && !/^(?:[a-z]+:|\/|#)/i.test(value)) {
-            if (!FLASH_APP_CDN_JSON_URL_KEYS.has(key)) return value;
-            const [rawPath, suffix = ""] = value.split(/(?=[?#])/);
-            const normalized = path.posix.normalize(path.posix.join(baseDir, rawPath));
-            const cdnUrl = cdnUrlByFileName.get(normalized);
-            if (cdnUrl) return `${cdnUrl}${suffix}`;
-            return value;
-          }
-          if (Array.isArray(value)) {
-            let changed = false;
-            for (let i = 0; i < value.length; i++) {
-              const next = rewriteJsonObject(value[i], baseDir, key);
-              if (next !== value[i]) {
-                value[i] = next;
-                changed = true;
-              }
-            }
-            return changed ? value : value;
-          }
-          if (value && typeof value === "object") {
-            for (const [k, v] of Object.entries(value)) {
-              const next = rewriteJsonObject(v, baseDir, k);
-              if (next !== v) value[k] = next;
-            }
-          }
-          return value;
-        };
-
+      if (offloadCdn) {
+        // 1. Identify emitted leaf binary assets and large (> 128 KiB) leaf package JSONs
+        // whose exact sha256 + size exist on mdn.alipayobjects.com.
         for (const [fileName, item] of Object.entries(bundle)) {
           if (item.type !== "asset") continue;
           const ext = path.extname(fileName).toLowerCase();
-          if (!FLASH_APP_TEXT_BUNDLE_EXTENSIONS.has(ext)) continue;
-          const text = typeof item.source === "string" ? item.source : Buffer.from(item.source).toString("utf8");
-          let parsed;
-          try {
-            parsed = JSON.parse(text);
-          } catch {
-            continue;
-          }
-          if (!parsed || typeof parsed !== "object") continue;
-          const baseDir = path.posix.dirname(fileName);
-          const before = JSON.stringify(parsed);
-          rewriteJsonObject(parsed, baseDir, "");
-          const after = JSON.stringify(parsed);
-          if (after !== before) {
-            item.source = after;
+          // Skip physx JS/WASM sidecars resolved via Emscripten locateFile relative to physx.release*.js.
+          if (/(?:^|\/)physx\.release(?:\.simd)?(?:\.[a-f0-9]+)?\.wasm$/i.test(fileName)) continue;
+          const isLeafBinary = FLASH_APP_CDN_LEAF_EXTENSIONS.has(ext);
+          if (!isLeafBinary && !(fileName.startsWith("packages/") && ext === ".json")) continue;
+          const { sha256, size } = sha256Buffer(item.source);
+          if (!isLeafBinary && !isFlashAppCdnLargeJson(fileName, size)) continue;
+          const entry = cdnBySha256[sha256];
+          if (entry && typeof entry.url === "string" && entry.url.startsWith("https://") && entry.size === size) {
+            cdnUrlByFileName.set(fileName, entry.url);
           }
         }
 
-        // Rewrite `new URL("<rel>", import.meta.url)` and classic-worker `new URL("<rel>", (self.__FLASH_APP_WORKER_BASE_URL__||self.location.href))`
-        // inside JS chunks & classic worker scripts.
-        const rewriteJsUrls = (code, baseDir) =>
-          code.replace(
-            /new URL\(\s*(["'])([^"']+)\1\s*,\s*(import\.meta\.url|\(self\.__FLASH_APP_WORKER_BASE_URL__\|\|self\.location\.href\))\s*\)/gu,
-            (match, quote, rel, baseExpr) => {
-              if (/^(?:[a-z]+:|\/|#)/i.test(rel)) return match;
-              const [rawPath, suffix = ""] = rel.split(/(?=[?#])/);
+        // 2. Rewrite references inside emitted JSON/material/prefab/scene manifests to CDN URLs.
+        if (cdnUrlByFileName.size > 0) {
+          const rewriteJsonObject = (value, baseDir, key) => {
+            if (typeof value === "string" && value.length < 1024 && !/^(?:[a-z]+:|\/|#)/i.test(value)) {
+              if (!FLASH_APP_CDN_JSON_URL_KEYS.has(key)) return value;
+              const [rawPath, suffix = ""] = value.split(/(?=[?#])/);
               const normalized = path.posix.normalize(path.posix.join(baseDir, rawPath));
               const cdnUrl = cdnUrlByFileName.get(normalized);
-              if (!cdnUrl) return match;
-              return `new URL(${JSON.stringify(`${cdnUrl}${suffix}`)},${baseExpr})`;
+              if (cdnUrl) return `${cdnUrl}${suffix}`;
+              return value;
             }
-          );
+            if (Array.isArray(value)) {
+              for (let i = 0; i < value.length; i++) {
+                const next = rewriteJsonObject(value[i], baseDir, key);
+                if (next !== value[i]) value[i] = next;
+              }
+              return value;
+            }
+            if (value && typeof value === "object") {
+              for (const [k, v] of Object.entries(value)) {
+                const next = rewriteJsonObject(v, baseDir, k);
+                if (next !== v) value[k] = next;
+              }
+            }
+            return value;
+          };
 
-        for (const [fileName, item] of Object.entries(bundle)) {
-          const baseDir = path.posix.dirname(fileName);
-          if (item.type === "chunk" && fileName.endsWith(".js")) {
-            item.code = rewriteJsUrls(item.code, baseDir);
-          } else if (item.type === "asset" && fileName.endsWith(".js")) {
-            const source = typeof item.source === "string" ? item.source : Buffer.from(item.source).toString("utf8");
-            item.source = rewriteJsUrls(source, baseDir);
+          for (const [fileName, item] of Object.entries(bundle)) {
+            if (item.type !== "asset") continue;
+            const ext = path.extname(fileName).toLowerCase();
+            if (!FLASH_APP_TEXT_BUNDLE_EXTENSIONS.has(ext)) continue;
+            const text = typeof item.source === "string" ? item.source : Buffer.from(item.source).toString("utf8");
+            let parsed;
+            try {
+              parsed = JSON.parse(text);
+            } catch {
+              continue;
+            }
+            if (!parsed || typeof parsed !== "object") continue;
+            const baseDir = path.posix.dirname(fileName);
+            const before = JSON.stringify(parsed);
+            rewriteJsonObject(parsed, baseDir, "");
+            const after = JSON.stringify(parsed);
+            if (after !== before) {
+              item.source = after;
+            }
+          }
+
+          // Rewrite `new URL("<rel>", import.meta.url)` and classic-worker `new URL("<rel>", (self.__FLASH_APP_WORKER_BASE_URL__||self.location.href))`
+          // inside JS chunks & classic worker scripts.
+          const rewriteJsUrls = (code, baseDir) =>
+            code.replace(
+              /new URL\(\s*(["'])([^"']+)\1\s*,\s*(import\.meta\.url|\(self\.__FLASH_APP_WORKER_BASE_URL__\|\|self\.location\.href\))\s*\)/gu,
+              (match, quote, rel, baseExpr) => {
+                if (/^(?:[a-z]+:|\/|#)/i.test(rel)) return match;
+                const [rawPath, suffix = ""] = rel.split(/(?=[?#])/);
+                const normalized = path.posix.normalize(path.posix.join(baseDir, rawPath));
+                const cdnUrl = cdnUrlByFileName.get(normalized);
+                if (!cdnUrl) return match;
+                return `new URL(${JSON.stringify(`${cdnUrl}${suffix}`)},${baseExpr})`;
+              }
+            );
+
+          for (const [fileName, item] of Object.entries(bundle)) {
+            const baseDir = path.posix.dirname(fileName);
+            if (item.type === "chunk" && fileName.endsWith(".js")) {
+              item.code = rewriteJsUrls(item.code, baseDir);
+            } else if (item.type === "asset" && fileName.endsWith(".js")) {
+              const source = typeof item.source === "string" ? item.source : Buffer.from(item.source).toString("utf8");
+              item.source = rewriteJsUrls(source, baseDir);
+            }
           }
         }
       }
 
-      // 2.5 Emit single gzipped common binary bundle (.mesh/.shaderc/.tex/.shader) BEFORE deleting CDN-offloaded
+      // 2.5 Emit split gzipped SWB1 binary bundles (.mesh/.shaderc/.tex/.shader) BEFORE deleting CDN-offloaded
       // files from dist, keyed by each entry's final runtime URL (CDN URL when offloaded, else dist-relative path).
       const commonBinEntries = [];
+      const buildingBinEntries = [];
       const seenCommonBinKeys = new Set();
+      const seenBuildingBinKeys = new Set();
       for (const fileName of Object.keys(bundle).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))) {
         const item = bundle[fileName];
         if (!item || item.type !== "asset") continue;
@@ -272,14 +276,18 @@ function flashAppCdnAndTextBundle() {
         const buf = typeof item.source === "string" ? Buffer.from(item.source, "utf8") : Buffer.from(item.source);
         if (buf.length === 0) continue;
         const key = cdnUrlByFileName.get(fileName) ?? fileName;
-        if (seenCommonBinKeys.has(key)) continue;
-        seenCommonBinKeys.add(key);
-        commonBinEntries.push({ key, buf });
+        const isBuildingAsset = fileName.startsWith("packages/building/");
+        const seen = isBuildingAsset ? seenBuildingBinKeys : seenCommonBinKeys;
+        const targetList = isBuildingAsset ? buildingBinEntries : commonBinEntries;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        targetList.push({ key, buf });
       }
-      if (commonBinEntries.length > 0) {
+      const emitSwb1Bundle = (entries, namePrefix, placeholder) => {
+        if (entries.length === 0) return;
         const index = [];
         let offset = 0;
-        for (const entry of commonBinEntries) {
+        for (const entry of entries) {
           index.push([entry.key, offset, entry.buf.length]);
           offset += entry.buf.length;
         }
@@ -287,30 +295,34 @@ function flashAppCdnAndTextBundle() {
         const prefix = Buffer.alloc(8);
         prefix.write("SWB1", 0, 4, "ascii");
         prefix.writeUInt32LE(headerBytes.length, 4);
-        const rawPack = Buffer.concat([prefix, headerBytes, ...commonBinEntries.map((e) => e.buf)]);
+        const rawPack = Buffer.concat([prefix, headerBytes, ...entries.map((e) => e.buf)]);
         const gzPack = zlib.gzipSync(rawPack, { level: 9 });
         // Normalize RFC 1952 OS byte (offset 9) to 0xff (unknown) for cross-platform bit-identical builds.
         if (gzPack.length >= 10) gzPack[9] = 0xff;
         const { sha256, size } = sha256Buffer(gzPack);
-        const bundleFileName = `assets/seed-world-common-bin-bundle-${sha256.slice(0, 8)}.bin`;
+        const bundleFileName = `assets/${namePrefix}-${sha256.slice(0, 8)}.bin`;
         const cdnEntry = cdnBySha256[sha256];
         const runtimeUrl =
           cdnEntry && typeof cdnEntry.url === "string" && cdnEntry.url.startsWith("https://") && cdnEntry.size === size
             ? cdnEntry.url
-            : `./seed-world-common-bin-bundle-${sha256.slice(0, 8)}.bin`;
+            : `./${namePrefix}-${sha256.slice(0, 8)}.bin`;
         if (runtimeUrl.startsWith("./")) {
           this.emitFile({ type: "asset", fileName: bundleFileName, source: gzPack });
         }
         for (const item of Object.values(bundle)) {
-          if (item.type === "chunk" && item.code.includes("__SEED_WORLD_COMMON_BIN_BUNDLE_URL__")) {
-            item.code = item.code.replaceAll("__SEED_WORLD_COMMON_BIN_BUNDLE_URL__", runtimeUrl);
+          if (item.type === "chunk" && item.code.includes(placeholder)) {
+            item.code = item.code.replaceAll(placeholder, runtimeUrl);
           }
         }
-      }
+      };
+      emitSwb1Bundle(commonBinEntries, "seed-world-common-bin-bundle", "__SEED_WORLD_COMMON_BIN_BUNDLE_URL__");
+      emitSwb1Bundle(buildingBinEntries, "seed-world-building-bin-bundle", "__SEED_WORLD_BUILDING_BIN_BUNDLE_URL__");
 
-      // Remove redundant local copies of CDN-hosted binaries from dist.
-      for (const fileName of cdnUrlByFileName.keys()) {
-        delete bundle[fileName];
+      // Remove redundant local copies of CDN-hosted binaries from dist (Flash App only).
+      if (offloadCdn) {
+        for (const fileName of cdnUrlByFileName.keys()) {
+          delete bundle[fileName];
+        }
       }
 
       // 3. Emit single consolidated project text bundle for small project manifests/prefabs/materials/scenes.
@@ -358,6 +370,109 @@ function flashAppCdnAndTextBundle() {
  * Writes JSONL into the gitignored repo `tmp/` directory by default (overridable via `WORLD_PERF_DIAG_LOG`)
  * so any developer can capture mobile/desktop frame breakdowns out of the box without editing config.
  */
+const PREVIEW_GZIP_EXTENSIONS = new Set([
+  ".html",
+  ".js",
+  ".mjs",
+  ".cjs",
+  ".css",
+  ".json",
+  ".svg",
+  ".wasm",
+  ".shader",
+  ".shaderc",
+  ".prefab",
+  ".mat",
+  ".scene",
+  ".animctrl",
+  ".asset",
+  ".txt",
+  ".xml"
+]);
+
+const PREVIEW_MIME_TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".mjs": "application/javascript; charset=utf-8",
+  ".cjs": "application/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".wasm": "application/wasm",
+  ".shader": "text/plain; charset=utf-8",
+  ".shaderc": "application/json; charset=utf-8",
+  ".prefab": "application/json; charset=utf-8",
+  ".mat": "application/json; charset=utf-8",
+  ".scene": "application/json; charset=utf-8",
+  ".animctrl": "application/json; charset=utf-8",
+  ".asset": "application/json; charset=utf-8",
+  ".txt": "text/plain; charset=utf-8",
+  ".xml": "application/xml; charset=utf-8"
+};
+
+function previewGzipPlugin() {
+  const gzipCache = new Map();
+  return {
+    name: "world-preview-gzip",
+    configurePreviewServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if ((req.method !== "GET" && req.method !== "HEAD") || !req.url) return next();
+        const acceptEncoding = String(req.headers["accept-encoding"] || "");
+        if (!/\bgzip\b/i.test(acceptEncoding)) return next();
+        let pathname;
+        try {
+          pathname = decodeURIComponent(new URL(req.url, "http://localhost").pathname);
+        } catch {
+          return next();
+        }
+        const ext = path.extname(pathname).toLowerCase();
+        if (!PREVIEW_GZIP_EXTENSIONS.has(ext)) {
+          if (pathname.startsWith("/assets/")) {
+            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          }
+          return next();
+        }
+        const resolved = path.resolve(outDir, "." + pathname);
+        if (!resolved.startsWith(outDir + path.sep)) return next();
+        let stat;
+        try {
+          stat = fs.statSync(resolved);
+          if (!stat.isFile() || stat.size < 1024) return next();
+        } catch {
+          return next();
+        }
+        const cacheKey = `${resolved}:${stat.mtimeMs}:${stat.size}`;
+        let compressed = gzipCache.get(cacheKey);
+        if (!compressed) {
+          compressed = zlib.gzipSync(fs.readFileSync(resolved), { level: 6 });
+          gzipCache.set(cacheKey, compressed);
+        }
+        const etag = `W/"gz-${stat.size}-${Math.floor(stat.mtimeMs)}"`;
+        res.setHeader("Vary", "Accept-Encoding");
+        res.setHeader("ETag", etag);
+        res.setHeader(
+          "Cache-Control",
+          pathname.includes("/assets/") ? "public, max-age=31536000, immutable" : "no-cache"
+        );
+        if (req.headers["if-none-match"] === etag) {
+          res.statusCode = 304;
+          res.end();
+          return;
+        }
+        res.statusCode = 200;
+        res.setHeader("Content-Type", PREVIEW_MIME_TYPES[ext] || "application/octet-stream");
+        res.setHeader("Content-Encoding", "gzip");
+        res.setHeader("Content-Length", compressed.byteLength);
+        if (req.method === "HEAD") {
+          res.end();
+          return;
+        }
+        res.end(compressed);
+      });
+    }
+  };
+}
+
 function mobileDiagPlugin() {
   const diagLog = process.env.WORLD_PERF_DIAG_LOG
     ? path.resolve(process.env.WORLD_PERF_DIAG_LOG)
@@ -377,7 +492,7 @@ export default {
   root: flashApp ? path.join(world, "demos", demo) : root,
   base: "./",
   plugins: [
-    ...(!flashApp ? [mobileDiagPlugin()] : []),
+    ...(!flashApp ? [mobileDiagPlugin(), previewGzipPlugin()] : []),
     engineModify(),
     projectAssets(root, { pugcCompatible: flashApp }),
     treeBuild.createTreeReconstructionServer(),
@@ -385,7 +500,8 @@ export default {
       shaderLibrary: shaderLibrary(path.join(root, "packages/modify/.cache/shader-src/ShaderLibrary"))
     }),
     waterBuild.createWaterShaderProductionAssetPlugin(path.join(root, "packages/water/src/water/shaders")),
-    ...(flashApp ? [flashAppClassicWorkers(), flashAppCdnAndTextBundle()] : [])
+    ...(demo === "seed-world" ? [seedWorldAssetBundles({ offloadCdn: flashApp })] : []),
+    ...(flashApp ? [flashAppClassicWorkers()] : [])
   ],
   server: { host: "127.0.0.1", port: 5193, open: `/world/demos/${demo}/index.html`, fs: { allow: [root] } },
   resolve: {

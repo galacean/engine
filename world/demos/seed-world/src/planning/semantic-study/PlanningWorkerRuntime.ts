@@ -1,4 +1,4 @@
-import { createTemplatePlanningDocument } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
+import { prepareTemplatePlanningDocument } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
 import {
   planningWaterPatch,
   planningWaterHeightPatch,
@@ -82,7 +82,7 @@ export function createPlanningWorkerRuntime(postMessage: (message: PlanningWorke
         postMessage({ type: "progress", requestId: request.requestId, stage: "初始化布局参数" });
         initialized = undefined;
         const prepared = request.templateId
-          ? { document: createTemplatePlanningDocument(request.seed, request.templateId), result: undefined }
+          ? prepareTemplatePlanningDocument(request.seed, request.templateId)
           : prepareSeedPlanningDocument(request.seed);
         const { document, result } = prepared;
         if (result) initialized = { authoring: authoringKey(document), result };

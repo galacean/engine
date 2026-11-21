@@ -1477,4 +1477,74 @@ describe("renderer warmup scope", () => {
       findSpy.mockRestore();
     }
   });
+
+  it("supports view-culled additionalCameraOnlyRenderers and additionalShadowOnlyRenderers under onlyEnabledRenderers", () => {
+    const vegShader = {
+      name: "Terrain/Vegetation",
+      destroyed: false,
+      subShaders: [
+        {
+          passes: [{ getTagValue: () => "Forward" }, { getTagValue: () => "ShadowCaster" }]
+        }
+      ]
+    };
+    const camBucket = renderer(true, false, [
+      { destroyed: false, shader: vegShader, shaderData: { _macroCollection: new ShaderMacroCollection() } }
+    ]);
+    camBucket.shaderData._macroCollection.enable(ShaderMacro.getByName("RENDERER_IS_RECEIVE_SHADOWS"));
+
+    const shadowView = renderer(false, false, [
+      { destroyed: false, shader: vegShader, shaderData: { _macroCollection: new ShaderMacroCollection() } }
+    ]);
+
+    const variants = collectSeedWorldRendererVariants(
+      { _macroCollection: new ShaderMacroCollection() } as any,
+      { shaderData: { _macroCollection: new ShaderMacroCollection() }, background: { mode: 0 } } as any,
+      { _updateShaderData() {}, shaderData: { _macroCollection: new ShaderMacroCollection() } } as any,
+      [],
+      {
+        onlyEnabledRenderers: true,
+        includeGpuInstancing: false,
+        additionalCameraOnlyRenderers: [camBucket],
+        additionalShadowOnlyRenderers: [shadowView]
+      }
+    );
+
+    const forward = variants.filter((v) => v.shader === "Terrain/Vegetation" && v.pi === 0);
+    const shadow = variants.filter((v) => v.shader === "Terrain/Vegetation" && v.pi === 1);
+    expect(forward).toHaveLength(1);
+    expect(forward[0]!.macros.some((m) => m.n === "RENDERER_IS_RECEIVE_SHADOWS")).toBe(true);
+    expect(shadow).toHaveLength(1);
+    expect(shadow[0]!.macros.some((m) => m.n === "RENDERER_IS_RECEIVE_SHADOWS")).toBe(false);
+  });
+
+  it("strips transient masonry dither macros when includeMasonryDither is false", () => {
+    const masonryShader = {
+      name: "Masonry/TestWall",
+      destroyed: false,
+      subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
+    };
+    const masonryRenderer = renderer(true, false, [
+      { destroyed: false, shader: masonryShader, shaderData: { _macroCollection: new ShaderMacroCollection() } }
+    ]);
+    masonryRenderer.shaderData._macroCollection.enable(ShaderMacro.getByName("RENDERER_MASONRY_DITHER"));
+    masonryRenderer.shaderData._macroCollection.enable(ShaderMacro.getByName("RENDERER_MASONRY_ENTRANCE"));
+
+    const variants = collectSeedWorldRendererVariants(
+      { _macroCollection: new ShaderMacroCollection() } as any,
+      { shaderData: { _macroCollection: new ShaderMacroCollection() }, background: { mode: 0 } } as any,
+      { _updateShaderData() {}, shaderData: { _macroCollection: new ShaderMacroCollection() } } as any,
+      [],
+      {
+        includeMasonryDither: false,
+        includeMasonryEntrance: false,
+        additionalRenderers: [masonryRenderer]
+      }
+    );
+
+    const masonryVariants = variants.filter((v) => v.shader === "Masonry/TestWall");
+    expect(masonryVariants).toHaveLength(1);
+    expect(masonryVariants[0]!.macros.some((m) => m.n === "RENDERER_MASONRY_DITHER")).toBe(false);
+    expect(masonryVariants[0]!.macros.some((m) => m.n === "RENDERER_MASONRY_ENTRANCE")).toBe(true);
+  });
 });

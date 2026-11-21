@@ -1,9 +1,11 @@
-// Replaced at build time in WORLD_FLASH_APP=1 builds with the emitted single-request gzipped binary bundle URL.
-const FLASH_APP_COMMON_BIN_BUNDLE_URL: string | undefined = "__SEED_WORLD_COMMON_BIN_BUNDLE_URL__";
+// Replaced at build time in seed-world production builds with the emitted single-request gzipped binary bundle URLs.
+const COMMON_BIN_BUNDLE_URL: string | undefined = "__SEED_WORLD_COMMON_BIN_BUNDLE_URL__";
+const BUILDING_BIN_BUNDLE_URL: string | undefined = "__SEED_WORLD_BUILDING_BIN_BUNDLE_URL__";
 
 const BUNDLE_MAGIC = "SWB1";
 
-let cachedBundlePromise: Promise<ReadonlyMap<string, Uint8Array> | undefined> | undefined;
+let cachedCommonBundlePromise: Promise<ReadonlyMap<string, Uint8Array> | undefined> | undefined;
+let cachedBuildingBundlePromise: Promise<ReadonlyMap<string, Uint8Array> | undefined> | undefined;
 
 async function maybeGunzip(buffer: ArrayBuffer): Promise<Uint8Array | undefined> {
   const bytes = new Uint8Array(buffer);
@@ -63,52 +65,97 @@ export async function parseSeedWorldCommonBinaryBundle(
   }
 }
 
-/**
- * Loads the build-time consolidated gzipped common binary bundle (.mesh/.shaderc/.tex/.shader)
- * when running in a Flash App production build. Returns undefined in dev/non-flash builds or on fetch/decode miss,
- * allowing ResourceManager to fall back transparently to per-file CDN fetches.
- */
-export function loadSeedWorldCommonBinaryBundle(): Promise<ReadonlyMap<string, Uint8Array> | undefined> {
-  if (!FLASH_APP_COMMON_BIN_BUNDLE_URL || FLASH_APP_COMMON_BIN_BUNDLE_URL.startsWith("__SEED_WORLD_")) {
+function fetchSwb1Bundle(
+  bundleRelOrUrl: string | undefined,
+  label: string,
+  getCached: () => Promise<ReadonlyMap<string, Uint8Array> | undefined> | undefined,
+  setCached: (next: Promise<ReadonlyMap<string, Uint8Array> | undefined> | undefined) => void
+): Promise<ReadonlyMap<string, Uint8Array> | undefined> {
+  if (!bundleRelOrUrl || bundleRelOrUrl.startsWith("__SEED_WORLD_")) {
     return Promise.resolve(undefined);
   }
-  if (!cachedBundlePromise) {
-    let promise: Promise<ReadonlyMap<string, Uint8Array> | undefined> | undefined;
-    const clearIfCurrent = () => {
-      if (promise && cachedBundlePromise === promise) cachedBundlePromise = undefined;
-    };
-    promise = (async () => {
-      try {
-        // Keep `import.meta.url` in a local binding so Vite's `vite:asset-import-meta-url` plugin
-        // does not rewrite `new URL("../", import.meta.url)` to `new URL("../", self.location)`.
-        const moduleBaseUrl = import.meta.url;
-        const bundleUrl = new URL(FLASH_APP_COMMON_BIN_BUNDLE_URL, moduleBaseUrl).href;
-        const distRootUrl = new URL("../", moduleBaseUrl).href;
-        const response = await fetch(bundleUrl);
-        if (!response.ok) {
-          console.warn(`[SeedWorld] Common binary bundle request failed (${response.status}): ${bundleUrl}`);
-          clearIfCurrent();
-          return undefined;
-        }
-        const buffer = await response.arrayBuffer();
-        const parsed = await parseSeedWorldCommonBinaryBundle(buffer, distRootUrl);
-        if (!parsed) clearIfCurrent();
-        return parsed;
-      } catch (error) {
-        console.warn("[SeedWorld] Common binary bundle load failed, falling back to per-file fetches", error);
+  const existing = getCached();
+  if (existing) return existing;
+  let promise: Promise<ReadonlyMap<string, Uint8Array> | undefined> | undefined;
+  const clearIfCurrent = () => {
+    if (promise && getCached() === promise) setCached(undefined);
+  };
+  promise = (async () => {
+    try {
+      // Keep `import.meta.url` in a local binding so Vite's `vite:asset-import-meta-url` plugin
+      // does not rewrite `new URL("../", import.meta.url)` to `new URL("../", self.location)`.
+      const moduleBaseUrl = import.meta.url;
+      const bundleUrl = new URL(bundleRelOrUrl, moduleBaseUrl).href;
+      const distRootUrl = new URL("../", moduleBaseUrl).href;
+      const response = await fetch(bundleUrl);
+      if (!response.ok) {
+        console.warn(`[SeedWorld] ${label} request failed (${response.status}): ${bundleUrl}`);
         clearIfCurrent();
         return undefined;
       }
-    })();
-    cachedBundlePromise = promise;
-  }
-  return cachedBundlePromise;
+      const buffer = await response.arrayBuffer();
+      const parsed = await parseSeedWorldCommonBinaryBundle(buffer, distRootUrl);
+      if (!parsed) clearIfCurrent();
+      return parsed;
+    } catch (error) {
+      console.warn(`[SeedWorld] ${label} load failed, falling back to per-file fetches`, error);
+      clearIfCurrent();
+      return undefined;
+    }
+  })();
+  setCached(promise);
+  return promise;
 }
 
 /**
- * Releases the module-level reference to the decompressed SWB1 binary bundle so the ~10.9 MiB
- * uncompressed ArrayBuffer can be garbage collected after startup loading completes or on dispose.
+ * Loads the build-time consolidated gzipped core common binary bundle (non-building .mesh/.shaderc/.tex/.shader).
+ * Returns undefined in dev builds or on fetch/decode miss so ResourceManager falls back transparently.
+ */
+export function loadSeedWorldCommonBinaryBundle(): Promise<ReadonlyMap<string, Uint8Array> | undefined> {
+  return fetchSwb1Bundle(
+    COMMON_BIN_BUNDLE_URL,
+    "Common binary bundle",
+    () => cachedCommonBundlePromise,
+    (next) => {
+      cachedCommonBundlePromise = next;
+    }
+  );
+}
+
+/**
+ * Loads the build-time consolidated gzipped building-kit binary bundle (`packages/building/` .mesh/.shaderc/.tex/.shader).
+ * Loaded only for templates/scenes that actually use authored buildings so non-building templates pay zero bytes.
+ */
+export function loadSeedWorldBuildingBinaryBundle(): Promise<ReadonlyMap<string, Uint8Array> | undefined> {
+  return fetchSwb1Bundle(
+    BUILDING_BIN_BUNDLE_URL,
+    "Building binary bundle",
+    () => cachedBuildingBundlePromise,
+    (next) => {
+      cachedBuildingBundlePromise = next;
+    }
+  );
+}
+
+/** Combines one or more prefetched binary bundle maps into a single lookup table for ResourceManager. */
+export function mergeSeedWorldBinaryAssetMaps(
+  ...maps: readonly (ReadonlyMap<string, Uint8Array> | undefined)[]
+): ReadonlyMap<string, Uint8Array> | undefined {
+  const nonEmpty = maps.filter((m): m is ReadonlyMap<string, Uint8Array> => Boolean(m && m.size > 0));
+  if (nonEmpty.length === 0) return undefined;
+  if (nonEmpty.length === 1) return nonEmpty[0];
+  const merged = new Map<string, Uint8Array>();
+  for (const map of nonEmpty) {
+    for (const [key, value] of map) merged.set(key, value);
+  }
+  return merged;
+}
+
+/**
+ * Releases module-level references to decompressed SWB1 binary bundles so their ArrayBuffers
+ * can be garbage collected after startup loading completes or on dispose.
  */
 export function releaseSeedWorldCommonBinaryBundle(): void {
-  cachedBundlePromise = undefined;
+  cachedCommonBundlePromise = undefined;
+  cachedBuildingBundlePromise = undefined;
 }
