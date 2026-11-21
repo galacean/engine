@@ -25,6 +25,9 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
   @ignoreClone
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
 
+  // Types of properties whose name is set with several types, other properties use the first type
+  @ignoreClone
+  private _propertyTypeMap: Record<number, ShaderPropertyType> = Object.create(null);
   @ignoreClone
   private _batchSharedFields: number[] = [];
   @ignoreClone
@@ -415,12 +418,6 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
   setTexture(property: ShaderProperty, value: Texture | null): void;
 
   setTexture(property: string | ShaderProperty, value: Texture | null): void {
-    const refCount = this._refCount;
-    if (refCount > 0) {
-      const lastValue = this.getPropertyValue<Texture>(property);
-      lastValue && lastValue._addReferCount(-refCount);
-      value && value._addReferCount(refCount);
-    }
     this._setPropertyValue(property, ShaderPropertyType.Texture, value);
   }
 
@@ -457,20 +454,6 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
   setTextureArray(property: ShaderProperty, value: Texture[]): void;
 
   setTextureArray(property: string | ShaderProperty, value: Texture[]): void {
-    const refCount = this._refCount;
-    if (refCount > 0) {
-      const lastValue = this.getPropertyValue<Texture[]>(property);
-      if (lastValue) {
-        for (let i = 0, n = lastValue.length; i < n; i++) {
-          lastValue[i]._addReferCount(-refCount);
-        }
-      }
-      if (value) {
-        for (let i = 0, n = value.length; i < n; i++) {
-          value[i]._addReferCount(refCount);
-        }
-      }
-    }
     this._setPropertyValue(property, ShaderPropertyType.TextureArray, value);
   }
 
@@ -626,15 +609,25 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
     }
     const referCount = target._getReferCount();
     const propertyValueMap = this._propertyValueMap;
+    const propertyTypeMap = this._propertyTypeMap;
     const targetPropertyValueMap = target._propertyValueMap;
+    const targetPropertyTypeMap = target._propertyTypeMap;
     for (const key in targetPropertyValueMap) {
       if (referCount > 0) this._addTexturesReferCount(targetPropertyValueMap[key], -referCount);
-      if (!(key in propertyValueMap)) delete targetPropertyValueMap[key];
+      if (!(key in propertyValueMap)) {
+        delete targetPropertyValueMap[key];
+        delete targetPropertyTypeMap[key];
+      }
     }
     const keys = Object.keys(propertyValueMap);
     for (let i = 0, n = keys.length; i < n; i++) {
       const k = keys[i];
       const property = <ShaderPropertyValueType>propertyValueMap[k];
+      if (k in propertyTypeMap) {
+        targetPropertyTypeMap[k] = propertyTypeMap[k];
+      } else {
+        delete targetPropertyTypeMap[k];
+      }
       if (property != null) {
         if (typeof property === "number") {
           targetPropertyValueMap[k] = property;
@@ -647,7 +640,8 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
           referCount > 0 && this._addTexturesReferCount(<ShaderPropertyValueType>cloned, referCount);
         } else {
           const targetProperty = targetPropertyValueMap[k];
-          if (targetProperty) {
+          // The same name may hold another value type in the target
+          if (targetProperty && targetProperty.constructor === property.constructor) {
             targetProperty.copyFrom(property);
           } else {
             targetPropertyValueMap[k] = property.clone();
@@ -679,25 +673,30 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
       property = ShaderProperty.getByName(property);
     }
 
-    if (property._group !== this._group) {
-      if (property._group === undefined) {
-        property._group = this._group;
-      } else {
-        throw `Shader property ${property.name} has been used as ${ShaderDataGroup[property._group]} group.`;
-      }
-    }
-
-    if (property._type !== type) {
-      if (property._type === undefined) {
-        property._type = type;
-      } else {
-        throw `Shader property ${property.name} has been used as ${ShaderPropertyType[property._type]} type.`;
-      }
-    }
+    property._addGroup(this._group);
 
     const id = property._uniqueId;
+    const propertyValueMap = this._propertyValueMap;
+    const firstType = property._type;
+    if (firstType === undefined) {
+      property._type = type;
+    } else if (firstType !== type || property._hasTypeConflict) {
+      // The name holds several value types, so track the type per shader data
+      property._hasTypeConflict = true;
+      const propertyTypeMap = this._propertyTypeMap;
+      const lastType = id in propertyValueMap ? (propertyTypeMap[id] ?? firstType) : undefined;
+      propertyTypeMap[id] = type;
+      if (lastType !== undefined && lastType !== type) {
+        // Release the previous value as its own type
+        this._refCount > 0 && this._transferTextureReferences(id, lastType, null);
+        this._updateRendererBatchSharedFields(id, lastType, null);
+        propertyValueMap[id] = null;
+      }
+    }
+
+    this._refCount > 0 && this._transferTextureReferences(id, type, value);
     this._updateRendererBatchSharedFields(id, type, value);
-    this._propertyValueMap[id] = value;
+    propertyValueMap[id] = value;
   }
 
   /**
@@ -748,6 +747,31 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
       for (let i = 0, n = property.length; i < n; i++) {
         const element = property[i];
         element instanceof Texture && element._addReferCount(count);
+      }
+    }
+  }
+
+  private _transferTextureReferences(id: number, type: ShaderPropertyType, value: ShaderPropertyValueType): void {
+    const refCount = this._refCount;
+    if (type === ShaderPropertyType.Texture) {
+      const lastValue = <Texture>this._propertyValueMap[id];
+      if (lastValue !== value) {
+        lastValue && lastValue._addReferCount(-refCount);
+        value && (<Texture>value)._addReferCount(refCount);
+      }
+    } else if (type === ShaderPropertyType.TextureArray) {
+      const lastValue = <Texture[]>this._propertyValueMap[id];
+      if (lastValue !== value) {
+        if (lastValue) {
+          for (let i = 0, n = lastValue.length; i < n; i++) {
+            lastValue[i]._addReferCount(-refCount);
+          }
+        }
+        if (value) {
+          for (let i = 0, n = (<Texture[]>value).length; i < n; i++) {
+            (<Texture[]>value)[i]._addReferCount(refCount);
+          }
+        }
       }
     }
   }

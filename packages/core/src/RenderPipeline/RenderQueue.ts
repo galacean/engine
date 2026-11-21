@@ -192,6 +192,7 @@ export class RenderQueue {
             program.uploadUnGroupTextures();
           }
         }
+        program.uploadMultiGroupUniforms(sceneData, cameraData, rendererData, materialData, renderElementShaderData);
 
         // Apply render state
         renderState._applyStates(

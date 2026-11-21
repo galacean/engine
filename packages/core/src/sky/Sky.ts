@@ -122,6 +122,7 @@ export class Sky {
     program.uploadAll(program.sceneUniformBlock, sceneData);
     program.uploadAll(program.cameraUniformBlock, cameraShaderData);
     program.uploadAll(program.materialUniformBlock, materialShaderData);
+    program.uploadMultiGroupUniforms(sceneData, cameraShaderData, undefined, materialShaderData, undefined);
     program.uploadUnGroupTextures();
 
     pass._renderState._applyStates(engine, false, pass._renderStateDataMap, materialShaderData);

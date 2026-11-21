@@ -82,6 +82,13 @@ export class Blitter {
     program.uploadAll(program.cameraUniformBlock, camera.shaderData);
     program.uploadAll(program.rendererUniformBlock, rendererShaderData);
     program.uploadAll(program.materialUniformBlock, blitMaterial.shaderData);
+    program.uploadMultiGroupUniforms(
+      camera.scene!.shaderData,
+      camera.shaderData,
+      rendererShaderData,
+      blitMaterial.shaderData,
+      undefined
+    );
     program.uploadUnGroupTextures();
 
     const renderState = pass._renderState;

@@ -286,6 +286,10 @@ export class ShaderUniform {
   }
 
   uploadTextureArray(shaderUniform: ShaderUniform, value: Texture[]): void {
+    // A single texture left by another shader falls back to defaults
+    if (!Array.isArray(value)) {
+      value = <Texture[]>shaderUniform.textureDefault;
+    }
     const rhi = this._rhi;
     const textureIndices = shaderUniform.textureIndex as GLenum[];
     for (let i = 0; i < value.length; i++) {
