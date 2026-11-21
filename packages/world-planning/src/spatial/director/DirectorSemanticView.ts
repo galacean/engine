@@ -86,6 +86,7 @@ export class DirectorSemanticView {
     this.gl = canvas.getContext("webgl2")!;
     this.auxiliary = parent.createChild("Director semantic camera").addComponent(Camera);
     this.auxiliary.enabled = false;
+    this.auxiliary.enableScreenSpaceReflection = false;
     this.auxiliary.enableHDR = this.auxiliary.enablePostProcess = false;
     this.auxiliary.antiAliasing = AntiAliasing.None;
     this.auxiliary.clearFlags = CameraClearFlags.All;

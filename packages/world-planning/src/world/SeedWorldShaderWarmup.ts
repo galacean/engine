@@ -269,17 +269,37 @@ function buildNextSsrFallbackEntry(
   maxUnits: number
 ): SeedWorldShaderVariantEntry | null {
   if (!entry.macros.some((macro) => macro.n === "CAMERA_ENABLE_SSR")) return null;
-  if (entry.macros.some((macro) => macro.n === "CAMERA_SSR_BILATERAL_SAMPLE")) {
+  const hasBilateral = entry.macros.some((macro) => macro.n === "CAMERA_SSR_BILATERAL_SAMPLE");
+  const hasVerify = entry.macros.some((macro) => macro.n === "CAMERA_SSR_VERIFY_RECEIVER_DEPTH");
+  if (hasBilateral) {
     const level1Delta = verifyDepth ? 1 : 2;
     const canTryLevel1 =
       !rejectedProgram.isValid || maxUnits <= 0 || (rejectedProgram.activeTextureCount ?? 0) - level1Delta <= maxUnits;
     if (canTryLevel1) {
       const nextMacros = entry.macros.filter(
-        (macro) => macro.n !== "CAMERA_SSR_BILATERAL_SAMPLE" && macro.n !== "CAMERA_SSR_VERIFY_RECEIVER_DEPTH"
+        (macro) =>
+          macro.n !== "CAMERA_SSR_BILATERAL_SAMPLE" &&
+          macro.n !== "CAMERA_SSR_VERIFY_RECEIVER_DEPTH" &&
+          macro.n !== "SSR_PACKED_NORMAL_OCT8" &&
+          (verifyDepth || macro.n !== "SSR_PACKED_DEPTH_RG8")
       );
       if (verifyDepth) {
         nextMacros.push({ n: "CAMERA_SSR_VERIFY_RECEIVER_DEPTH" });
       }
+      return {
+        shader: entry.shader,
+        si: entry.si,
+        pi: entry.pi,
+        macros: nextMacros
+      };
+    }
+  } else if (hasVerify && !verifyDepth) {
+    const canTryDropVerify =
+      !rejectedProgram.isValid || maxUnits <= 0 || (rejectedProgram.activeTextureCount ?? 0) - 1 <= maxUnits;
+    if (canTryDropVerify) {
+      const nextMacros = entry.macros.filter(
+        (macro) => macro.n !== "CAMERA_SSR_VERIFY_RECEIVER_DEPTH" && macro.n !== "SSR_PACKED_DEPTH_RG8"
+      );
       return {
         shader: entry.shader,
         si: entry.si,
@@ -672,6 +692,13 @@ function collectSeedWorldRendererVariantsInternal(
     (camera.shaderData as unknown as RuntimeShaderData)._macroCollection,
     cameraMacros
   );
+  // Active cameras can retain transient Forward SSR macros from the previous frame; strip them so warmup
+  // never leaks stale SSR variants onto non-SSR passes or SSR-disabled collections.
+  const activeCameraMacros: ShaderMacro[] = [];
+  (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(cameraMacros, activeCameraMacros);
+  for (const macro of activeCameraMacros) {
+    if (SSR_ALL_FORWARD_MACROS.has(macro.name)) cameraMacros.disable(macro);
+  }
 
   if (options.activatedLightRoots) {
     const lightMacroNames = new Set(["SCENE_POINT_LIGHT_COUNT", "SCENE_SPOT_LIGHT_COUNT", "SCENE_DIRECT_LIGHT_COUNT"]);
@@ -982,9 +1009,12 @@ function collectSeedWorldRendererVariantsInternal(
           : authoredMacroVariants;
       // Material admission is not a shader macro: an opted-in contributor or SSR receiver must not be deduplicated
       // against an otherwise identical non-participant before its extra passes are collected.
-      const contribDepthEnabled = Boolean(
-        (material as unknown as { contributeScreenSpaceReflectionDepth?: boolean }).contributeScreenSpaceReflectionDepth
-      );
+      const contribDepthEnabled =
+        ssrContext.ssrEnabled &&
+        Boolean(
+          (material as unknown as { contributeScreenSpaceReflectionDepth?: boolean })
+            .contributeScreenSpaceReflectionDepth
+        );
       const ssrBilateral =
         (material as unknown as { screenSpaceReflectionBilateral?: boolean }).screenSpaceReflectionBilateral !== false;
       const ssrReceiverKey =
@@ -1229,24 +1259,46 @@ function collectSeedWorldRendererVariantsInternal(
     if (ssrContext.deferredSsrForward?.length) {
       const camSSRBilateral = ssrQuality === ScreenSpaceReflectionQuality.High;
       const camSSRVerifyDepth = ssrContext.hasTransparentSsr;
-      const commonSsrMacros: SeedWorldShaderVariantMacro[] = [{ n: "CAMERA_ENABLE_SSR" }];
-      if (ssrPackedDepthRG8) commonSsrMacros.push({ n: "SSR_PACKED_DEPTH_RG8" });
-      if (ssrPackedNormalOct8) commonSsrMacros.push({ n: "SSR_PACKED_NORMAL_OCT8" });
+      const buildForwardSsrMacros = (useBilateral: boolean, useVerifyDepth: boolean): SeedWorldShaderVariantMacro[] => {
+        const macros: SeedWorldShaderVariantMacro[] = [{ n: "CAMERA_ENABLE_SSR" }];
+        if (useBilateral) {
+          macros.push({ n: "CAMERA_SSR_BILATERAL_SAMPLE" });
+        } else if (useVerifyDepth) {
+          macros.push({ n: "CAMERA_SSR_VERIFY_RECEIVER_DEPTH" });
+        }
+        if (ssrPackedDepthRG8 && (useVerifyDepth || useBilateral)) {
+          macros.push({ n: "SSR_PACKED_DEPTH_RG8" });
+        }
+        if (ssrPackedNormalOct8 && useBilateral) {
+          macros.push({ n: "SSR_PACKED_NORMAL_OCT8" });
+        }
+        return macros;
+      };
       for (const entry of ssrContext.deferredSsrForward) {
         const useBilateral = camSSRBilateral && entry.allowBilateral;
         const useVerifyDepth = !useBilateral && (camSSRVerifyDepth || (camSSRBilateral && !entry.allowBilateral));
-        const forwardSsrMacros = [...commonSsrMacros];
-        if (useBilateral) {
-          forwardSsrMacros.push({ n: "CAMERA_SSR_BILATERAL_SAMPLE" });
-        } else if (useVerifyDepth) {
-          forwardSsrMacros.push({ n: "CAMERA_SSR_VERIFY_RECEIVER_DEPTH" });
-        }
         variants.push({
           shader: entry.shader,
           si: entry.si,
           pi: entry.pi,
-          macros: [...entry.macros, ...forwardSsrMacros]
+          macros: [...entry.macros, ...buildForwardSsrMacros(useBilateral, useVerifyDepth)]
         });
+        // When both transparent and opaque SSR receivers exist under non-High quality, culling all
+        // transparent receivers drops camSSRVerifyDepth at runtime; warm the opaque-only Forward variant too.
+        if (
+          ssrContext.hasTransparentSsr &&
+          ssrContext.hasOpaqueSsr &&
+          !useBilateral &&
+          !camSSRBilateral &&
+          entry.isOpaque
+        ) {
+          variants.push({
+            shader: entry.shader,
+            si: entry.si,
+            pi: entry.pi,
+            macros: [...entry.macros, ...buildForwardSsrMacros(false, false)]
+          });
+        }
       }
     }
     const ssrShader = Shader.find("Lighting/ScreenSpaceReflection");
@@ -1275,10 +1327,12 @@ function collectSeedWorldRendererVariantsInternal(
           ssrQuality === ScreenSpaceReflectionQuality.High || ssrQuality === ScreenSpaceReflectionQuality.XHigh;
         const isXHigh = ssrQuality === ScreenSpaceReflectionQuality.XHigh;
         if (depthPrepassEnabled) appendSsrPass(0); // Pass 0: DownsampleDepth
-        const hiZ0Macros: SeedWorldShaderVariantMacro[] = [];
-        if (depthPrepassEnabled && !isXHigh) hiZ0Macros.push({ n: "SSR_DOWNSAMPLE_FROM_FULL_DEPTH" });
-        if (ssrContext.hasContribDepth) hiZ0Macros.push({ n: "SSR_HAS_CONTRIB_DEPTH" });
-        appendSsrPass(1, hiZ0Macros); // Pass 1: BuildHiZMip0
+        const baseHiZ0Macros: SeedWorldShaderVariantMacro[] =
+          depthPrepassEnabled && !isXHigh ? [{ n: "SSR_DOWNSAMPLE_FROM_FULL_DEPTH" }] : [];
+        appendSsrPass(1, baseHiZ0Macros); // Pass 1: BuildHiZMip0 (without contrib depth)
+        if (ssrContext.hasContribDepth) {
+          appendSsrPass(1, [...baseHiZ0Macros, { n: "SSR_HAS_CONTRIB_DEPTH" }]); // Pass 1: BuildHiZMip0 (with contrib depth)
+        }
         appendSsrPass(2); // Pass 2: BuildHiZMipN
         appendSsrPass(3); // Pass 3: CopyTexture
         appendSsrPass(4, useHighVirtual ? [{ n: "SSR_OUTPUT_HIT_DIST" }] : undefined); // Pass 4: HiZTrace
@@ -1519,6 +1573,7 @@ function locateShaderPass(
 
 interface DeferredSsrForwardEntry extends SeedWorldShaderVariantEntry {
   readonly allowBilateral: boolean;
+  readonly isOpaque: boolean;
 }
 
 interface AppendShaderVariantContext {
@@ -1602,6 +1657,12 @@ function appendShaderVariants(
       if (stage === "TransformFeedback" && !isWebGL2) continue;
       if (stage === "DepthOnly" && context && !context.depthPrepassEnabled) {
         if (context.ssrEnabled && context.deferredSsrDepthOnly) {
+          if (
+            (material as { screenSpaceReflectionOccluder?: boolean } | undefined)?.screenSpaceReflectionOccluder ===
+            false
+          ) {
+            continue;
+          }
           const queue = material
             ? (pass._renderState?._getRenderQueueByShaderData?.(pass._renderStateDataMap, material.shaderData) ??
               ((material as { isTransparent?: boolean }).isTransparent
@@ -1643,22 +1704,30 @@ function appendShaderVariants(
       }
       // Contribution depth capture only visits opted-in transparent materials. Merely having the pass in PBR
       // does not make it reachable (opaque objects already contribute through their Forward color).
-      if (
-        material &&
-        stage === "SSRContributionDepth" &&
-        (!(material as unknown as { contributeScreenSpaceReflectionDepth?: boolean })
-          .contributeScreenSpaceReflectionDepth ||
-          pass._renderState._getRenderQueueByShaderData(pass._renderStateDataMap, material.shaderData) !==
-            RenderQueueType.Transparent)
-      )
-        continue;
-      if (material && stage === "SSRContributionDepth" && context) {
-        context.hasContribDepth = true;
+      if (stage === "SSRContributionDepth") {
+        if (context && !context.ssrEnabled) continue;
+        if (
+          material &&
+          (!(material as unknown as { contributeScreenSpaceReflectionDepth?: boolean })
+            .contributeScreenSpaceReflectionDepth ||
+            pass._renderState._getRenderQueueByShaderData(pass._renderStateDataMap, material.shaderData) !==
+              RenderQueueType.Transparent)
+        )
+          continue;
+        if (material && context) {
+          context.hasContribDepth = true;
+        }
       }
       let passMacros = recordedMacros;
       if (renderToTexture !== undefined) {
         passMacros = recordedMacros.filter((macro) => macro.n !== "ENGINE_OUTPUT_SRGB_CORRECT");
-        if (!renderToTexture && stage !== "ShadowCaster" && stage !== "DepthOnly") {
+        if (
+          !renderToTexture &&
+          stage !== "ShadowCaster" &&
+          stage !== "DepthOnly" &&
+          stage !== "SSRReceiver" &&
+          stage !== "SSRContributionDepth"
+        ) {
           passMacros.push({ n: "ENGINE_OUTPUT_SRGB_CORRECT" });
         }
       }
@@ -1687,7 +1756,8 @@ function appendShaderVariants(
             si,
             pi,
             macros: passMacros,
-            allowBilateral
+            allowBilateral,
+            isOpaque: queue !== RenderQueueType.Transparent
           });
         }
       }

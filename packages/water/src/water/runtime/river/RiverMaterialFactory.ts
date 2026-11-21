@@ -421,15 +421,15 @@ export function setRiverScreenSpaceReflectionReceiver(
   compositeIntensity?: number
 ): void {
   const existingComposite = material.shaderData.getFloat(RIVER_SCREEN_SPACE_REFLECTION_COMPOSITE_INTENSITY_PROPERTY);
-  if (existingComposite === undefined) {
-    material.shaderData.setFloat(RIVER_SCREEN_SPACE_REFLECTION_COMPOSITE_INTENSITY_PROPERTY, 1);
-  }
   const effectiveComposite =
     compositeIntensity !== undefined
       ? Number.isFinite(compositeIntensity)
         ? Math.min(1, Math.max(0, compositeIntensity))
         : 0
       : (existingComposite ?? 1);
+  if (compositeIntensity !== undefined || existingComposite === undefined) {
+    material.shaderData.setFloat(RIVER_SCREEN_SPACE_REFLECTION_COMPOSITE_INTENSITY_PROPERTY, effectiveComposite);
+  }
   // Material.shader is mandatory in the Engine. This guard only permits the narrow
   // ShaderData harnesses used by DOM-free runtime ownership tests.
   if (!material.shader) return;

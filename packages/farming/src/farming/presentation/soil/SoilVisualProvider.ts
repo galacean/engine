@@ -476,6 +476,7 @@ function createSoilMaterial(engine: Engine, shader?: Shader): PBRMaterial {
   for (let i = 0; i < 3; i++) material.shaderData.setVector3(`soil_Row${i}`, new Vector3());
   material.metallic = 0;
   material.normalTextureIntensity = DEFAULT_SOIL_VISUAL_CONFIG.soil.normalIntensity;
+  material.screenSpaceReflectionIntensity = 0;
   material.isGCIgnored = true;
   return material;
 }

@@ -109,6 +109,7 @@ export class SeedWorldPicker {
     if (batch.interactionOccluder === false) this.interactionExcluded.add(batch.renderer);
   };
   private interactionCamera?: Camera;
+  private identityCamera?: Camera;
   private readonly materialEpochs = new WeakMap<Material, number>();
   private readonly collectBound = this.collect.bind(this);
 
@@ -195,6 +196,7 @@ export class SeedWorldPicker {
         this.interactionTarget = new RenderTarget(camera.engine, 16, 1, this.interactionTexture);
         this.interactionCamera = camera.scene!.createRootEntity("Visual interaction depth").addComponent(Camera);
         this.interactionCamera.enabled = false;
+        this.interactionCamera.enableScreenSpaceReflection = false;
         this.interactionCamera.updateRendererVisibility = false;
         this.interactionCamera.registerRenderViewCullingSource({
           cull: (context) => {
@@ -393,6 +395,42 @@ export class SeedWorldPicker {
     };
   }
 
+  private ensureIdentityCamera(): Camera {
+    const source = this.camera;
+    let identityCamera = this.identityCamera;
+    if (!identityCamera) {
+      identityCamera = source.scene!.createRootEntity("Photo identity capture").addComponent(Camera);
+      identityCamera.enabled = false;
+      identityCamera.enableScreenSpaceReflection = false;
+      identityCamera.updateRendererVisibility = false;
+      identityCamera.registerRenderViewCullingSource?.({
+        cull: (context) => {
+          source.visitRenderViewRenderers((renderer) => {
+            if (context.isVisible(renderer.bounds)) context.submit(renderer);
+          });
+        }
+      });
+      this.identityCamera = identityCamera;
+    }
+    const sourceTransform = source.entity.transform;
+    const identityTransform = identityCamera.entity.transform;
+    identityTransform.worldPosition = sourceTransform.worldPosition;
+    if (sourceTransform.worldRotationQuaternion) {
+      identityTransform.worldRotationQuaternion = sourceTransform.worldRotationQuaternion;
+    }
+    identityCamera.nearClipPlane = source.nearClipPlane;
+    identityCamera.farClipPlane = source.farClipPlane;
+    identityCamera.fieldOfView = source.fieldOfView;
+    identityCamera.aspectRatio = source.aspectRatio;
+    identityCamera.isOrthographic = source.isOrthographic;
+    identityCamera.orthographicSize = source.orthographicSize;
+    identityCamera.cullingMask = source.cullingMask;
+    identityCamera.projectionMatrix = source.projectionMatrix;
+    identityCamera.renderFilter = source.renderFilter;
+    identityCamera.enableScreenSpaceReflection = false;
+    return identityCamera;
+  }
+
   private captureIdentity(
     visit: SeedWorldPickSource,
     resolveRef: (batch: SeedWorldPickBatch) => ViewRef,
@@ -401,6 +439,7 @@ export class SeedWorldPicker {
   ): ViewFrame {
     const { width, height } = image;
     const metadata = this.captureViewMetadata();
+    const captureCamera = this.ensureIdentityCamera();
     // Scratch ID + depth + packed output. Only the packed RGBA8 survives capture.
     const release = budget?.reserve("temporary", width * height * 12);
     let result: ViewFrame | undefined;
@@ -410,6 +449,7 @@ export class SeedWorldPicker {
       this.render(visit, {
         width,
         height,
+        camera: captureCamera,
         consume: () => {
           const ranges = this.bindings.slice(0, this.bindingCount).map(({ base, batch }) => {
             const ref = { ...resolveRef(batch!) },
@@ -481,7 +521,7 @@ export class SeedWorldPicker {
           const priorCamera = context.camera,
             priorFlip = context.flipProjection;
           try {
-            context.camera = camera;
+            context.camera = captureCamera;
             Blitter.blitTexture(engine, this.texture!, packedTarget, 0, undefined, this.surfacePack);
           } finally {
             context.camera = priorCamera;
@@ -629,6 +669,8 @@ export class SeedWorldPicker {
   dispose(): void {
     this.interactionBoundary?.destroy();
     this.interactionCamera?.entity.destroy();
+    this.identityCamera?.entity.destroy();
+    this.identityCamera = undefined;
     this.interactionDepth?.destroy(true);
     this.interactionTarget?.destroy(true);
     this.interactionTexture?.destroy(true);

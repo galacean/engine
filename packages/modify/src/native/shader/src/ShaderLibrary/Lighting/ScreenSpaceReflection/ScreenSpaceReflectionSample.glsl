@@ -5,7 +5,7 @@
   #include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl"
 
   highp sampler2D camera_SSRTexture;
-  // x: global intensity, y: maxRoughness, z: unused, w: farClip
+  // x: global intensity, y: maxRoughness, z: traceScale, w: farClip
   vec4 camera_SSRParams;
   // x: 1/traceW, y: 1/traceH, z: traceW, w: traceH
   vec4 camera_SSRTraceTexelSize;
@@ -27,7 +27,7 @@
     float fragEyeDepth,
     float depthSlope
   ) {
-    float ssrScale = max(camera_SSRParams.x, 0.0) * saturate(material_ScreenSpaceReflectionIntensity);
+    float ssrScale = max(camera_SSRParams.x, 0.0) * max(material_ScreenSpaceReflectionIntensity, 0.0);
     if (ssrScale <= 0.0 || roughness >= camera_SSRParams.y || positionCS.w <= EPSILON) {
       return envRadiance;
     }
@@ -77,14 +77,20 @@
           }
         }
       }
-      if (weightSum < 0.05) {
+      if (weightSum <= 1e-4) {
         return envRadiance;
       }
       vec4 ssr = ssrAccum / weightSum;
+      ssr *= smoothstep(0.01, 0.1, weightSum);
     #else
       #ifdef CAMERA_SSR_VERIFY_RECEIVER_DEPTH
         float receiverEyeDepth = decodeSSRDepth(texture2D(camera_SSRReceiverDepthTexture, screenUV), farClip);
-        float depthTolerance = max(0.02, receiverEyeDepth * 0.008) + depthSlope * 2.0;
+        #ifdef SSR_PACKED_DEPTH_RG8
+          float depthFloor = max(0.02, farClip * (2.5 / 65535.0));
+        #else
+          float depthFloor = 0.02;
+        #endif
+        float depthTolerance = max(depthFloor, receiverEyeDepth * 0.002) + depthSlope * 2.0;
         if (receiverEyeDepth <= 0.0 || abs(fragEyeDepth - receiverEyeDepth) > depthTolerance) {
           return envRadiance;
         }
@@ -95,7 +101,7 @@
     // Roughness fade near maxRoughness threshold.
     float maxR = max(camera_SSRParams.y, 1e-4);
     float roughFade = 1.0 - smoothstep(maxR * 0.85, maxR, roughness);
-    float alpha = saturate(ssr.a * ssrScale * roughFade);
+    float alpha = saturate(ssr.a * saturate(ssrScale) * roughFade);
     return envRadiance * (1.0 - alpha) + ssr.rgb * (ssrScale * roughFade);
   }
 

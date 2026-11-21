@@ -89,24 +89,25 @@ it.each(["lake", "river", "ocean"] as const)(
     try {
       expect(isolated.compileVariant(engine, [])).toBe(true);
       if (profile !== "ocean") {
-        expect(
-          isolated.compileVariant(engine, [
-            "CAMERA_ENABLE_SSR",
-            "CAMERA_SSR_VERIFY_RECEIVER_DEPTH",
-            "CAMERA_SSR_BILATERAL_SAMPLE"
-          ])
-        ).toBe(true);
+        for (const macros of [
+          ["CAMERA_ENABLE_SSR"],
+          ["CAMERA_ENABLE_SSR", "CAMERA_SSR_VERIFY_RECEIVER_DEPTH", "SSR_PACKED_DEPTH_RG8"],
+          ["CAMERA_ENABLE_SSR", "CAMERA_SSR_BILATERAL_SAMPLE", "SSR_PACKED_DEPTH_RG8", "SSR_PACKED_NORMAL_OCT8"]
+        ]) {
+          expect(isolated.compileVariant(engine, macros)).toBe(true);
+        }
       }
       registerWaterBuiltinShaders();
       expect(Shader.find(WATER_BUILTIN_SHADER_NAMES[profile])!.compileVariant(engine, [])).toBe(true);
       if (profile !== "ocean") {
-        expect(
-          Shader.find(WATER_BUILTIN_SHADER_NAMES[profile])!.compileVariant(engine, [
-            "CAMERA_ENABLE_SSR",
-            "CAMERA_SSR_VERIFY_RECEIVER_DEPTH",
-            "CAMERA_SSR_BILATERAL_SAMPLE"
-          ])
-        ).toBe(true);
+        const registeredShader = Shader.find(WATER_BUILTIN_SHADER_NAMES[profile])!;
+        for (const macros of [
+          ["CAMERA_ENABLE_SSR"],
+          ["CAMERA_ENABLE_SSR", "CAMERA_SSR_VERIFY_RECEIVER_DEPTH", "SSR_PACKED_DEPTH_RG8"],
+          ["CAMERA_ENABLE_SSR", "CAMERA_SSR_BILATERAL_SAMPLE", "SSR_PACKED_DEPTH_RG8", "SSR_PACKED_NORMAL_OCT8"]
+        ]) {
+          expect(registeredShader.compileVariant(engine, macros)).toBe(true);
+        }
       }
     } finally {
       isolated.destroy();

@@ -229,7 +229,7 @@
     },
     {
       "virtualPath": "Shader/Water/lake-heightfield-high-hybrid-v2.shaderc",
-      "path": "public/Shader/Water/lake-heightfield-high-hybrid-v2.1f690618a490f59ba71a91efe45bcce09033e5729e31da0c53d30a483b17e15e.shaderc",
+      "path": "public/Shader/Water/lake-heightfield-high-hybrid-v2.0f4025d9417d688d4cc120c68810db7e5189280eb5887140425cd2c1c4415528.shaderc",
       "type": "Shader",
       "dependencies": []
     },
@@ -247,7 +247,7 @@
     },
     {
       "virtualPath": "Shader/Water/WaterAotManifest.json",
-      "path": "public/Shader/Water/WaterAotManifest.24497641014dc9b5ba2272a92e68f145f23878bd2f2a8744ced8d36176d0ebee.json",
+      "path": "public/Shader/Water/WaterAotManifest.cf5f44d1700a53d90b50c615c4292af0f5f589b994913addabd7ced923453107.json",
       "type": "JSON",
       "dependencies": [
         "Shader/Water/lake-heightfield-high-hybrid-v2.shaderc",

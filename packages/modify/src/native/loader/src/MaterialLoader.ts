@@ -5,6 +5,7 @@ import {
   LoadItem,
   Loader,
   Material,
+  RenderQueueType,
   ResourceManager,
   Shader,
   Texture,
@@ -86,7 +87,9 @@ class MaterialLoader extends Loader<Material> {
             );
             break;
           case MaterialLoaderType.Float:
-            materialShaderData.setFloat(key, <number>value);
+            if (key !== "material_ScreenSpaceReflectionIntensity") {
+              materialShaderData.setFloat(key, <number>value);
+            }
             break;
           case MaterialLoaderType.Texture:
             if (value == null) materialShaderData.setTexture(key, null);
@@ -133,6 +136,24 @@ class MaterialLoader extends Loader<Material> {
         material.screenSpaceReflectionIntensity = Number(shaderData["material_ScreenSpaceReflectionIntensity"].value);
       } else if (shader === Engine._builtinShaders.pbr) {
         material.screenSpaceReflectionIntensity = 1.0;
+      }
+      // Sync default DepthOnly render queue for legacy built-in PBR/Unlit .mat assets that declare
+      // a Forward render queue (e.g. Transparent glass) without an explicit material_DepthOnlyRenderQueue.
+      if (
+        (shader === Engine._builtinShaders.pbr || shader === Engine._builtinShaders.unlit) &&
+        shaderData["material_DepthOnlyRenderQueue"] === undefined
+      ) {
+        let depthOnlyQueue: number | undefined;
+        if (shaderData["renderQueueType"] !== undefined) {
+          depthOnlyQueue = Number(shaderData["renderQueueType"].value);
+        } else if (shaderData["blendEnabled"]?.value) {
+          depthOnlyQueue = RenderQueueType.Transparent;
+        } else if (macros.some((macro) => macro.name === "MATERIAL_IS_ALPHA_CUTOFF")) {
+          depthOnlyQueue = RenderQueueType.AlphaTest;
+        }
+        if (depthOnlyQueue !== undefined && Number.isFinite(depthOnlyQueue)) {
+          materialShaderData.setFloat("material_DepthOnlyRenderQueue", depthOnlyQueue);
+        }
       }
       if (materialSchema.contributeScreenSpaceReflectionDepth !== undefined) {
         material.contributeScreenSpaceReflectionDepth = materialSchema.contributeScreenSpaceReflectionDepth;

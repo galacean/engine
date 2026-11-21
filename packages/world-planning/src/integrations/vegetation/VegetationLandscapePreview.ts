@@ -661,6 +661,8 @@ export class VegetationLandscapePreview {
       material = new PBRMaterial(owner.engine);
     material.baseColor = color;
     material.roughness = 0.9;
+    material.screenSpaceReflectionIntensity = 0;
+    material.screenSpaceReflectionBilateral = false;
     owned.push(mesh, material);
     renderer.mesh = mesh;
     renderer.setMaterial(material);
@@ -713,6 +715,8 @@ export class VegetationLandscapePreview {
     const material = new PBRMaterial(owner.engine);
     material.baseColor = new Color(0.16, 0.09, 0.055, 1);
     material.roughness = 1;
+    material.screenSpaceReflectionIntensity = 0;
+    material.screenSpaceReflectionBilateral = false;
     const renderer = owner.createChild("Cabin roof").addComponent(MeshRenderer);
     renderer.mesh = roof;
     renderer.setMaterial(material);

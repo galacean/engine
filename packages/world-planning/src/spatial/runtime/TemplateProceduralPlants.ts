@@ -882,9 +882,12 @@ function createProceduralWindMaterial(
   if (!vegetationTemplate || vegetationTemplate.shader.name !== "Terrain/Vegetation") {
     const fallback = createSurfaceMaterial(engine, { baseColor: new Color(1, 1, 1, 1) });
     fallback.renderFace = RenderFace.Double;
+    fallback.screenSpaceReflectionOccluder = false;
     return fallback;
   }
   const material = vegetationTemplate.clone();
+  // Low ground shrubs, grass tufts, and flowers opt out of shadow casting and SSR DepthOnly occlusion.
+  material.screenSpaceReflectionOccluder = false;
   const data = material.shaderData;
   for (const macro of data.getMacros()) {
     if (

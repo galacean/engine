@@ -418,6 +418,15 @@ export class WorldTemplateRuntime {
           if (node.assetLeafMaterials?.length)
             this.bindLeafMaterials(normalized, node.assetLeafMaterials, leafTemplate!, node);
           if (node.assetMaterials) this.bindAssetMaterials(normalized, node.assetMaterials);
+          // Template GLB models (bark, wood, stone, foliage) are diffuse/rough props, not SSR mirrors.
+          for (const renderer of normalized.getComponentsIncludeChildren(MeshRenderer, [])) {
+            for (const material of renderer.getMaterials()) {
+              if (material instanceof PBRMaterial) {
+                material.screenSpaceReflectionIntensity = 0;
+                material.screenSpaceReflectionBilateral = false;
+              }
+            }
+          }
           if (node.castShadows !== undefined) {
             for (const renderer of normalized.getComponentsIncludeChildren(MeshRenderer, []))
               renderer.castShadows = node.castShadows;

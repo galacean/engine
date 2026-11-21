@@ -187,6 +187,24 @@ export class Camera extends Component {
   /** @internal Opt-in for consumers that only sample Camera depth after opaque Forward. */
   @ignoreClone
   _enableForwardDepthResolve: boolean = false;
+  /** @internal */
+  @ignoreClone
+  _ssrForwardEnabled: boolean = false;
+  /** @internal */
+  @ignoreClone
+  _ssrVerifyReceiverDepth: boolean = false;
+  /** @internal */
+  @ignoreClone
+  _ssrBilateralSample: boolean = false;
+  /** @internal */
+  @ignoreClone
+  _ssrPackedDepthRG8: boolean = false;
+  /** @internal */
+  @ignoreClone
+  _ssrPackedNormalOct8: boolean = false;
+  /** @internal */
+  @ignoreClone
+  _ssrMaxRoughness: number = 0.6;
 
   private _priority: number = 0;
   private _isCustomViewMatrix = false;

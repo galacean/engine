@@ -336,8 +336,6 @@ for (const demo of demos) {
           // SSR provides a fixed simulation time specifically for visual acceptance.
           if (demo.entry === "demos/screen-space-reflection/index.html") {
             await page.evaluate(() => {
-              window.ssrDemo?.freezeTime?.(true);
-              window.ssrDemo?.setCameraPose?.("acceptance");
               window.__SSR_DEMO__?.setFrozen?.(true);
               window.__SSR_DEMO__?.setPose?.("overview");
             });

@@ -210,6 +210,7 @@ export class PlantHarvestEffect extends Script {
           if (!source) return null;
           const material = source.clone();
           material.shader = shader;
+          material.screenSpaceReflectionIntensity = 0;
           material.shaderData.setTexture("harvest_NoiseTexture", noise);
           material.shaderData.setFloat("harvest_Visibility", 1);
           material.shaderData.setFloat("harvest_EdgeWidth", 0.08);

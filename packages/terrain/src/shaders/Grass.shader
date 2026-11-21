@@ -1,5 +1,6 @@
 Shader "Terrain/Grass" {
   SubShader "Default" {
+    // Intentionally omits DepthOnly to stay within mobile Hi-Z pre-pass vertex budget.
     Pass "Forward" {
       Tags { pipelineStage = "Forward" }
 

@@ -428,9 +428,9 @@ function surfaceAppearanceV2UsesOpaqueColor(appearance: CompiledWaterSurfaceAppe
 }
 
 /**
- * Transparent Water does not participate in the opaque SSR composite. This
- * second phase publishes only its displaced receiver surface; Forward samples
- * the camera result and applies Water Fresnel/intensity exactly once.
+ * Transparent Water does not participate in the opaque SSR composite. Its
+ * SSRReceiver pass publishes displaced normal/roughness and receiver depth;
+ * Forward samples the camera SSR result and applies Water Fresnel/intensity once.
  */
 function ssrReceiverPass(
   quality: WaterQualityTier,
@@ -491,7 +491,7 @@ function ssrReceiverPass(
     ),
     SURFACE_NORMAL_STATEMENTS: registerGeneratedWaterShaderModule(
       "HeightfieldSurfaceNormal",
-      surfaceNormalStatements(quality, appearance, false)
+      surfaceNormalStatements(quality, appearance, true)
     )
   };
   const modularPassSource = renderWaterShaderTemplate(heightfieldSSRReceiverTemplate, surfaceReplacements);
@@ -896,8 +896,8 @@ export function createHeightfieldWaterMaterial(
 }
 
 /**
- * Sets only the Heightfield Water Forward SSR composite weight.
- * Camera SSR acquisition and the transparent Surface pass receiver remain unchanged.
+ * Updates the Heightfield Water Forward SSR composite weight while syncing SSRReceiver participation;
+ * Camera SSR pass ownership remains independent.
  */
 export function setHeightfieldWaterScreenSpaceReflectionCompositeIntensity(
   state: HeightfieldWaterMaterialState,

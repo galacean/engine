@@ -101,7 +101,7 @@ export class ShaderPool {
       RealtimeIBLResolveSource,
       // AO shader
       ScalableAmbientOcclusionSource,
-      // Screen-space reflection fullscreen trace/composite shader
+      // Screen-space reflection Hi-Z trace, temporal resolve, and color pyramid shader
       ScreenSpaceReflectionSource,
       // World environment shaders
       VolumetricCloudSource,

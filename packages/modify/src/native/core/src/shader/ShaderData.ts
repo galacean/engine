@@ -25,6 +25,9 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
   /** @internal */
   @ignoreClone
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
+  /** @internal */
+  @ignoreClone
+  _trackBatchSharedFields: boolean = true;
 
   @ignoreClone
   private _batchSharedFields: number[] = [];
@@ -749,6 +752,7 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
 
   private _updateRendererBatchSharedFields(id: number, type: ShaderPropertyType, value: ShaderPropertyValueType): void {
     if (
+      !this._trackBatchSharedFields ||
       this._group !== ShaderDataGroup.Renderer ||
       (type !== ShaderPropertyType.Texture &&
         type !== ShaderPropertyType.TextureArray &&

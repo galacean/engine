@@ -20,6 +20,11 @@
       float material_Roughness;
       float material_ScreenSpaceReflectionIntensity;
       vec4 camera_SSRParams;
+#ifdef MATERIAL_WATER_PRESENTATION_REVEAL
+      float material_PresentationRevealProgress;
+      float material_PresentationRevealBand;
+      vec2 material_PresentationRevealRepeat;
+#endif
 #if {{SSR_WAVE_COUNT}} > 0
       vec4 material_WaveA0;
       vec4 material_WaveB0;
@@ -130,11 +135,50 @@
 
       HeightfieldSSRReceiverOutput frag(Varyings input) {
         if (material_ScreenSpaceReflectionIntensity <= 0.0) discard;
-        if (waterConnectionFacts(input.worldPosition.xz).w < 0.5) discard;
         vec4 localMap = texture2D(material_LocalMapTexture, input.atlasUv);
         float signedDistance = (localMap.a * 2.0 - 1.0) * material_LocalMapDecode.z;
         signedDistance = waterConnectionShore(input.worldPosition.xz, signedDistance);
-        if (smoothstep(-0.08, 0.08, signedDistance) <= 0.001) discard;
+        // Keep the shoreline transition wider than both one screen-space
+        // derivative and one RGBA8 signed-distance decode step, matching ForwardPass
+        // and computing derivatives before any per-fragment discard.
+        #ifdef HAS_DERIVATIVES
+          float coverageHalfWidth = max(
+            0.08,
+            max(
+              fwidth(signedDistance) * 1.25,
+              material_LocalMapDecode.z * (2.0 / 255.0)
+            )
+          );
+        #else
+          float coverageHalfWidth = max(0.08, material_LocalMapDecode.z * (2.0 / 255.0));
+        #endif
+        if (waterConnectionFacts(input.worldPosition.xz).w < 0.5) discard;
+        if (smoothstep(-coverageHalfWidth, coverageHalfWidth, signedDistance) <= 0.001) discard;
+#ifdef MATERIAL_WATER_PRESENTATION_REVEAL
+        float presentationBand = max(material_PresentationRevealBand, 0.0001);
+        vec2 presentationTileUv = fract(input.atlasUv * max(material_PresentationRevealRepeat, vec2(1.0)));
+        vec2 presentationGrid = vec2(64.0, 48.0);
+        vec2 presentationNoisePosition = presentationTileUv * presentationGrid;
+        vec2 presentationCell = floor(presentationNoisePosition);
+        vec2 presentationCellUv = fract(presentationNoisePosition);
+        presentationCellUv = presentationCellUv * presentationCellUv * (3.0 - 2.0 * presentationCellUv);
+        float presentationCellNoise00 = fract(sin(dot(presentationCell, vec2(127.1, 311.7))) * 43758.5453123);
+        float presentationCellNoise10 = fract(sin(dot(presentationCell + vec2(1.0, 0.0), vec2(127.1, 311.7))) * 43758.5453123);
+        float presentationCellNoise01 = fract(sin(dot(presentationCell + vec2(0.0, 1.0), vec2(127.1, 311.7))) * 43758.5453123);
+        float presentationCellNoise11 = fract(sin(dot(presentationCell + vec2(1.0, 1.0), vec2(127.1, 311.7))) * 43758.5453123);
+        float presentationNoise = mix(
+          mix(presentationCellNoise00, presentationCellNoise10, presentationCellUv.x),
+          mix(presentationCellNoise01, presentationCellNoise11, presentationCellUv.x),
+          presentationCellUv.y
+        );
+        float presentationProgress = clamp(material_PresentationRevealProgress, 0.0, 1.0);
+        float presentationVisibility = smoothstep(
+          presentationNoise - presentationBand,
+          presentationNoise + presentationBand,
+          presentationProgress
+        );
+        if (presentationVisibility <= 0.001) discard;
+#endif
         float elapsedTime = surfaceTime();
         vec2 flowXZ = (localMap.rg * 2.0 - 1.0) * material_LocalMapDecode.x;
         float flowSpeed = length(flowXZ);

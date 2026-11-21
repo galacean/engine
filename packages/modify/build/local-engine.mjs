@@ -12,6 +12,7 @@ const names = [
   "loader",
   "math",
   "physics-physx",
+  "rhi-null",
   "rhi-webgl",
   "shader",
   "shader-compiler",

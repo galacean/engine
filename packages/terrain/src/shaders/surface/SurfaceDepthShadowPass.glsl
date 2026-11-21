@@ -22,8 +22,13 @@
 #endif
 
 #ifdef MATERIAL_SURFACE_ALPHA_CLIP
-  sampler2D material_BaseTexture;
+  #ifdef MATERIAL_HAS_BASETEXTURE
+    sampler2D material_BaseTexture;
+  #endif
   float material_Tiling;
+  #ifdef MATERIAL_HAS_UV_SCALE
+    vec2 material_UvScale;
+  #endif
 #endif
 struct SurfaceDepthShadowVaryings {
   #ifdef MATERIAL_SURFACE_ALPHA_CLIP
@@ -46,6 +51,16 @@ SurfaceDepthShadowVaryings terrainProjectBuildSurfaceDepthShadowVaryings(Attribu
   #ifdef MATERIAL_SURFACE_ALPHA_CLIP
     #ifdef RENDERER_HAS_UV
       varyings.uv = attributes.TEXCOORD_0 * material_Tiling;
+      #ifdef MATERIAL_HAS_UV_SCALE
+        varyings.uv *= material_UvScale;
+      #endif
+      #if defined(RENDERER_PROCEDURAL_TREE_BARK_UV_SCALE) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
+        #ifdef RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG
+          varyings.uv *= terrainProjectProceduralTreeBarkUvScaleFromInstance(attributes);
+        #else
+          varyings.uv *= terrainProjectProceduralTreeBarkUvScale();
+        #endif
+      #endif
     #else
       varyings.uv = vec2(0.0);
     #endif
@@ -127,7 +142,7 @@ SurfaceDepthShadowVaryings terrainProjectBuildSurfaceDepthShadowVaryings(Attribu
 }
 
 void terrainProjectDiscardInvalidSurfaceDepthShadow(SurfaceDepthShadowVaryings varyings) {
-  #ifdef MATERIAL_SURFACE_ALPHA_CLIP
+  #if defined(MATERIAL_SURFACE_ALPHA_CLIP) && defined(MATERIAL_HAS_BASETEXTURE)
     if (texture2D(material_BaseTexture, varyings.uv).a < 0.5) discard;
   #endif
   #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE

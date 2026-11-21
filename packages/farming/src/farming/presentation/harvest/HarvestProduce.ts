@@ -59,6 +59,7 @@ export class HarvestProduce {
       ).mesh;
       this.material = new PBRMaterial(parent.engine);
       this.material.shader = Shader.find("Farming/BasketReveal") ?? Shader.create(localShader);
+      this.material.screenSpaceReflectionIntensity = 0;
       this.material.baseColor = new Color(1, 1, 1, 1);
       this.material.roughness = 0.8;
       this.material.shaderData.setFloat("basket_Elapsed", 0);

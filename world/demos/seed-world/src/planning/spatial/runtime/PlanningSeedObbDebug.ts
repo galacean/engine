@@ -182,6 +182,7 @@ export class PlanningSeedObbDebug {
       m.shader = Shader.find("Planning/MetreWhitebox") ?? Shader.create(whiteboxShader);
       m.baseColor = new Color(color[0], color[1], color[2], 1).toLinear(new Color());
       m.roughness = .88; m.metallic = 0; m.renderFace = RenderFace.Double;
+      m.screenSpaceReflectionIntensity = 0; m.screenSpaceReflectionBilateral = false;
       m.shaderData.setFloat("planning_SurfaceGrid", water ? 1 : 0);
       m.shaderData.setFloat("planning_Unlit", water ? 1 : 0);
       m.shaderData.setFloat("planning_Textured", 0);

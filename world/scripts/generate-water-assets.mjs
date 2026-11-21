@@ -95,8 +95,11 @@ try {
   for (const [kind, profile, name] of [["lake", "lake-heightfield-high-hybrid-v2", "AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0"],
     ["ocean", "ocean-near-detailed", "AIWorld/Ocean"]]) {
     const manifestEntry = terrainManifest.files.find(file => file.virtualPath === `Shader/Water/${profile}.shaderc`);
+    const manifestPathExists = manifestEntry?.path
+      ? await fs.access(path.join(root, terrainRoot, manifestEntry.path)).then(() => true, () => false)
+      : false;
     const diskMatch = seedWaterPublicFiles.find(file => new RegExp(`^${profile}\\.[0-9a-f]+\\.shaderc$`).test(file));
-    const sourcePath = diskMatch ? `public/Shader/Water/${diskMatch}` : manifestEntry?.path;
+    const sourcePath = manifestPathExists ? manifestEntry.path : diskMatch ? `public/Shader/Water/${diskMatch}` : undefined;
     if (!sourcePath) throw new Error(`Missing compiled Seed World Water shader for '${profile}'.`);
     const target = `Water/Shaders/${profile}.shaderc`;
     await copy(terrainRoot + sourcePath, target, "Shader");

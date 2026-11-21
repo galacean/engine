@@ -498,6 +498,8 @@ export async function createBuildingDistanceView(
             }
             mat.shaderData.setVector4("material_MasonryPlaster", new Vector4(0, 1, 0, 0));
             mat.roughness = 0.9;
+            mat.screenSpaceReflectionIntensity = 0;
+            mat.screenSpaceReflectionBilateral = false;
             mat.renderFace = RenderFace.Front;
             mat.shaderData.setFloat("material_MasonryEmission", p.emissive ?? 0);
             const applyTintUniforms = makeOpaqueMaterialUpdater(mat, appearance);
@@ -583,6 +585,8 @@ export async function createBuildingDistanceView(
             stoneFloorMaterials.push(material);
           }
           material.roughness = 0.9;
+          material.screenSpaceReflectionIntensity = 0;
+          material.screenSpaceReflectionBilateral = false;
           material.renderFace = RenderFace.Double;
           materials.set(materialKey, material);
           material.shaderData.setFloat("material_MasonryEmission", p.emissive ?? 0);

@@ -110,8 +110,155 @@ describe("renderer warmup scope", () => {
       destroyed: false,
       shaderData: { _macroCollection: new ShaderMacroCollection() }
     }));
-    const variants = collect([renderer(true, false, materials)]);
+    const variants = collectSeedWorldRendererVariants(
+      { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { isWebGL2: true } } as any,
+      {
+        shaderData: { _macroCollection: new ShaderMacroCollection() },
+        background: { mode: 0 },
+        screenSpaceReflection: { enabled: true, quality: ScreenSpaceReflectionQuality.Medium, intensity: 1, maxRoughness: 0.6 }
+      } as any,
+      {
+        _updateShaderData() {},
+        shaderData: { _macroCollection: new ShaderMacroCollection() },
+        enableScreenSpaceReflection: true
+      } as any,
+      [
+        {
+          getComponentsIncludeChildren(_type: unknown, output: object[]) {
+            output.length = 0;
+            output.push(renderer(true, false, materials));
+          }
+        }
+      ] as any
+    );
     expect(new Set(variants.map((v) => v.pi))).toEqual(new Set([0, 1]));
+  });
+
+  it("strips transient SSR macros from active cameras and skips SSRContributionDepth when SSR is disabled", () => {
+    const shader = {
+      name: "SsrWarmupRegression",
+      destroyed: false,
+      subShaders: [
+        {
+          passes: ["Forward", "SSRReceiver", "SSRContributionDepth"].map((stage) => ({
+            getTagValue: () => stage,
+            _renderState: { _getRenderQueueByShaderData: () => RenderQueueType.Transparent },
+            _renderStateDataMap: {}
+          }))
+        }
+      ]
+    };
+    const mat = {
+      shader,
+      destroyed: false,
+      contributeScreenSpaceReflectionDepth: true,
+      screenSpaceReflectionIntensity: 1,
+      screenSpaceReflectionBilateral: false,
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    };
+    const cameraMacros = new ShaderMacroCollection();
+    for (const macroName of [
+      "CAMERA_ENABLE_SSR",
+      "CAMERA_SSR_VERIFY_RECEIVER_DEPTH",
+      "CAMERA_SSR_BILATERAL_SAMPLE",
+      "SSR_PACKED_DEPTH_RG8",
+      "SSR_PACKED_NORMAL_OCT8"
+    ]) {
+      cameraMacros.enable(ShaderMacro.getByName(macroName));
+    }
+    const roots = [
+      {
+        getComponentsIncludeChildren(_type: unknown, output: object[]) {
+          output.length = 0;
+          output.push(renderer(true, false, [mat]));
+        }
+      }
+    ] as any;
+    const offVariants = collectSeedWorldRendererVariants(
+      { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { isWebGL2: true } } as any,
+      {
+        shaderData: { _macroCollection: new ShaderMacroCollection() },
+        background: { mode: 0 },
+        screenSpaceReflection: { enabled: false }
+      } as any,
+      {
+        _updateShaderData() {},
+        _isIndependentCanvasEnabled: () => true,
+        renderTarget: null,
+        shaderData: { _macroCollection: cameraMacros },
+        enableScreenSpaceReflection: false
+      } as any,
+      roots,
+      { includeGpuInstancing: false }
+    );
+    expect(offVariants).toHaveLength(1);
+    expect(offVariants[0].pi).toBe(0);
+    for (const macroName of [
+      "CAMERA_ENABLE_SSR",
+      "CAMERA_SSR_VERIFY_RECEIVER_DEPTH",
+      "CAMERA_SSR_BILATERAL_SAMPLE",
+      "SSR_PACKED_DEPTH_RG8",
+      "SSR_PACKED_NORMAL_OCT8"
+    ]) {
+      expect(offVariants[0].macros.some((m) => m.n === macroName)).toBe(false);
+    }
+
+    const fakeSsrShader = {
+      name: "Lighting/ScreenSpaceReflection",
+      destroyed: false,
+      subShaders: [{ passes: Array.from({ length: 8 }, () => ({ getTagValue: () => "Forward" })) }]
+    };
+    const findSpy = vi.spyOn(Shader, "find").mockImplementation((name: string) =>
+      name === "Lighting/ScreenSpaceReflection" ? (fakeSsrShader as any) : null
+    );
+    try {
+      const onVariants = collectSeedWorldRendererVariants(
+        {
+          _macroCollection: new ShaderMacroCollection(),
+          _hardwareRenderer: { isWebGL2: true, supportsRenderTargetColorFormat: () => false }
+        } as any,
+        {
+          shaderData: { _macroCollection: new ShaderMacroCollection() },
+          background: { mode: 0 },
+          screenSpaceReflection: {
+            enabled: true,
+            quality: ScreenSpaceReflectionQuality.Medium,
+            intensity: 1,
+            maxRoughness: 0.6
+          }
+        } as any,
+        {
+          _updateShaderData() {},
+          _isIndependentCanvasEnabled: () => true,
+          renderTarget: null,
+          shaderData: { _macroCollection: cameraMacros },
+          enableScreenSpaceReflection: true
+        } as any,
+        roots,
+        { includeGpuInstancing: false }
+      );
+      const receiverVariant = onVariants.find((v) => v.shader === "SsrWarmupRegression" && v.pi === 1)!;
+      const contribVariant = onVariants.find((v) => v.shader === "SsrWarmupRegression" && v.pi === 2)!;
+      expect(receiverVariant).toBeDefined();
+      expect(contribVariant).toBeDefined();
+      expect(receiverVariant.macros.some((m) => m.n === "ENGINE_OUTPUT_SRGB_CORRECT")).toBe(false);
+      expect(contribVariant.macros.some((m) => m.n === "ENGINE_OUTPUT_SRGB_CORRECT")).toBe(false);
+      // Forward verified-depth variant gets SSR_PACKED_DEPTH_RG8 when R16F is unsupported, never SSR_PACKED_NORMAL_OCT8.
+      const forwardSsr = onVariants.find(
+        (v) =>
+          v.shader === "SsrWarmupRegression" &&
+          v.pi === 0 &&
+          v.macros.some((m) => m.n === "CAMERA_ENABLE_SSR")
+      )!;
+      expect(forwardSsr.macros.some((m) => m.n === "SSR_PACKED_DEPTH_RG8")).toBe(true);
+      expect(forwardSsr.macros.some((m) => m.n === "SSR_PACKED_NORMAL_OCT8")).toBe(false);
+      // BuildHiZMip0 (Pass 1) is warmed both with and without SSR_HAS_CONTRIB_DEPTH when contributors exist.
+      const pass1Variants = onVariants.filter((v) => v.shader === "Lighting/ScreenSpaceReflection" && v.pi === 1);
+      expect(pass1Variants.some((v) => v.macros.some((m) => m.n === "SSR_HAS_CONTRIB_DEPTH"))).toBe(true);
+      expect(pass1Variants.some((v) => !v.macros.some((m) => m.n === "SSR_HAS_CONTRIB_DEPTH"))).toBe(true);
+    } finally {
+      findSpy.mockRestore();
+    }
   });
   it("excludes inactive templates while retaining disabled LOD renderers on active entities", () => {
     const variants = collect([renderer(false), renderer(true)], false);
@@ -867,6 +1014,41 @@ describe("renderer warmup scope", () => {
             v.macros.some((m) => m.n === "CAMERA_ENABLE_SSR") &&
             v.macros.some((m) => m.n === "CAMERA_SSR_VERIFY_RECEIVER_DEPTH") &&
             !v.macros.some((m) => m.n === "CAMERA_SSR_BILATERAL_SAMPLE")
+        )
+      ).toBe(true);
+
+      // Under Medium quality with both Water and wet Terrain, warm both verified and opaque-only Terrain variants.
+      camera.screenSpaceReflectionOverride = {
+        ...sceneSsr,
+        quality: ScreenSpaceReflectionQuality.Medium
+      };
+      const mixedMediumVariants = collectSeedWorldRendererVariants(
+        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { isWebGL2: true } } as any,
+        {
+          shaderData: { _macroCollection: new ShaderMacroCollection() },
+          background: { mode: 0 },
+          screenSpaceReflection: sceneSsr
+        } as any,
+        camera,
+        waterRoots,
+        { includeGpuInstancing: false, includeOpaqueScreenSpaceReflection: true }
+      );
+      expect(
+        mixedMediumVariants.some(
+          (v) =>
+            v.shader === "Terrain/Terrain" &&
+            v.pi === 0 &&
+            v.macros.some((m) => m.n === "CAMERA_ENABLE_SSR") &&
+            v.macros.some((m) => m.n === "CAMERA_SSR_VERIFY_RECEIVER_DEPTH")
+        )
+      ).toBe(true);
+      expect(
+        mixedMediumVariants.some(
+          (v) =>
+            v.shader === "Terrain/Terrain" &&
+            v.pi === 0 &&
+            v.macros.some((m) => m.n === "CAMERA_ENABLE_SSR") &&
+            !v.macros.some((m) => m.n === "CAMERA_SSR_VERIFY_RECEIVER_DEPTH")
         )
       ).toBe(true);
     } finally {

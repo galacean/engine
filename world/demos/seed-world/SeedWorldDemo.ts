@@ -135,7 +135,6 @@ import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import {
   TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION,
-  applyAutomaticScreenSpaceReflectionConfiguration,
   applyScreenSpaceReflectionConfiguration
 } from "@galacean/engine-terrain/terrain/debug/TerrainScreenSpaceReflectionPanel";
 import { registerTerrainProjectResources } from "@galacean/engine-terrain/terrain/loader/TerrainSceneLoader";
@@ -841,7 +840,6 @@ export async function mountSeedWorldDemo(
     camera.fieldOfView = PLANNING_RUNTIME_OPTIONS.verticalFieldOfView;
     camera.farClipPlane = TERRAIN_DEFAULT_CAMERA_CONFIGURATION.farClipPlane;
     camera.enableHDR = TERRAIN_DEFAULT_CAMERA_CONFIGURATION.enableHDR;
-    applyAutomaticScreenSpaceReflectionConfiguration(camera, TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION);
     applyScreenSpaceReflectionConfiguration(camera, TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION);
     const orbit = camera.entity.addComponent(OrbitControl);
     orbit.enabled = false;

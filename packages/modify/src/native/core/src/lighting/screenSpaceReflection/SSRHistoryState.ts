@@ -16,9 +16,12 @@ export class SSRHistoryState {
   lastColorHeight: number = 0;
   lastQuality: ScreenSpaceReflectionQuality = ScreenSpaceReflectionQuality.Medium;
   lastIsOrthographic: boolean = false;
+  lastFarClip: number = 0;
   pingPongIndex: 0 | 1 = 0;
 
   readonly prevVPMat = new Matrix();
+  readonly prevInvProjMat = new Matrix();
+  readonly prevInvViewMat = new Matrix();
   readonly prevViewZRow = new Vector4();
 
   prevColorPyramidRT: RenderTarget | null = null;
@@ -33,14 +36,28 @@ export class SSRHistoryState {
 
   private static _destroyRT(rt: RenderTarget | null): null {
     if (rt && !rt.destroyed) {
-      rt.destroy(true);
+      const engine = rt.engine;
+      const prev = engine._processingPendingDestroys;
+      engine._processingPendingDestroys = true;
+      try {
+        rt.destroy(true);
+      } finally {
+        engine._processingPendingDestroys = prev;
+      }
     }
     return null;
   }
 
   private static _destroyTex(tex: Texture2D | null): null {
     if (tex && !tex.destroyed) {
-      tex.destroy(true);
+      const engine = tex.engine;
+      const prev = engine._processingPendingDestroys;
+      engine._processingPendingDestroys = true;
+      try {
+        tex.destroy(true);
+      } finally {
+        engine._processingPendingDestroys = prev;
+      }
     }
     return null;
   }

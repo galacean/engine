@@ -11,7 +11,6 @@ import { TERRAIN_SCREEN_SPACE_REFLECTION_SETTINGS } from "@galacean/engine-envir
 import { createSurfaceMaterial } from "@galacean/engine-terrain/surface/SurfaceMaterial";
 import {
   TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION,
-  applyAutomaticScreenSpaceReflectionConfiguration,
   applyScreenSpaceReflectionConfiguration,
   inspectScreenSpaceReflectionPanelStatus
 } from "@galacean/engine-terrain/terrain/debug/TerrainScreenSpaceReflectionPanel";
@@ -90,7 +89,7 @@ function fixture(requiresRain = true) {
 describe("Seed World SSR v2 configuration, diagnostics, and terrain wetness gating", () => {
   it("applies the world SSR v2 preset to scene.screenSpaceReflection and supports isolated camera overrides", () => {
     const { sceneSettings, camera, diagnostics } = fixture();
-    applyAutomaticScreenSpaceReflectionConfiguration(camera, TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION);
+    applyScreenSpaceReflectionConfiguration(camera, TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION);
     expect(camera.enableScreenSpaceReflection).toBe(true);
     expect(camera.screenSpaceReflectionOverride).toBeNull();
     expect(sceneSettings).toMatchObject(TERRAIN_SCREEN_SPACE_REFLECTION_SETTINGS);

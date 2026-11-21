@@ -120,7 +120,8 @@ Shader "Pipeline/SSRReceiver" {
 
       float ssrGetAARoughnessFactor(vec3 n) {
         #ifdef HAS_DERIVATIVES
-          vec3 dxy = max(abs(dFdx(n)), abs(dFdy(n)));
+          float traceScale = camera_SSRParams.z > 0.0 ? camera_SSRParams.z : 1.0;
+          vec3 dxy = max(abs(dFdx(n)), abs(dFdy(n))) * traceScale;
           return max(max(dxy.x, dxy.y), dxy.z);
         #else
           return 0.0;
@@ -244,9 +245,10 @@ Shader "Pipeline/SSRReceiver" {
           #endif
         #endif
 
-        vec3 viewDir = getViewDirection(camera_Position, camera_Forward, varyings.positionWS);
+        float baseRoughness = max(SSR_MIN_PERCEPTUAL_ROUGHNESS, min(roughness + ssrGetAARoughnessFactor(surfaceNormal), 1.0));
 
         #ifdef MATERIAL_ENABLE_ANISOTROPY
+          vec3 viewDir = getViewDirection(camera_Position, camera_Forward, varyings.positionWS);
           float aniso = material_AnisotropyInfo.z;
           vec3 anisoDir = vec3(material_AnisotropyInfo.xy, 0.0);
           #ifdef MATERIAL_HAS_ANISOTROPY_TEXTURE
@@ -262,7 +264,6 @@ Shader "Pipeline/SSRReceiver" {
           surfaceNormal = normalize(mix(surfaceNormal, aNorm, abs(aniso) * saturate(5.0 * roughness)));
         #endif
 
-        float baseRoughness = max(SSR_MIN_PERCEPTUAL_ROUGHNESS, min(roughness + ssrGetAARoughnessFactor(surfaceNormal), 1.0));
         vec3 chosenNormal = surfaceNormal;
         float chosenRoughness = baseRoughness;
 

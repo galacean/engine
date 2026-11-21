@@ -89,6 +89,8 @@ export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
       material.metallic = 0;
       material.baseColor = new Color(1, 1, 1, 1);
       material.roughness = 1;
+      material.screenSpaceReflectionIntensity = 0;
+      material.screenSpaceReflectionBilateral = false;
       material.shaderData.setFloat("material_WorldPickDepthCompare", CompareFunction.LessEqual);
       this.grassOverlay = new PlanningFarmGrassOverlay(parent.scene!);
     } catch (error) {

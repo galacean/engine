@@ -1,7 +1,7 @@
 import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { BasicResources, RenderStateElementMap } from "../BasicResources";
 import { Utils } from "../Utils";
-import { RenderQueueType, Shader } from "../shader";
+import { RenderQueueType, Shader, ShaderProperty } from "../shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ConstantBufferBindingPoint } from "../shader/enums/ConstantBufferBindingPoint";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
@@ -21,6 +21,9 @@ export class RenderQueue {
   private static _ssrBilateralMacro = ShaderMacro.getByName("CAMERA_SSR_BILATERAL_SAMPLE");
   private static _ssrPackedDepthMacro = ShaderMacro.getByName("SSR_PACKED_DEPTH_RG8");
   private static _ssrPackedNormalMacro = ShaderMacro.getByName("SSR_PACKED_NORMAL_OCT8");
+  private static _roughnessProp = ShaderProperty.getByName("material_Roughness");
+  private static _hasRoughnessTexMacro = ShaderMacro.getByName("MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE");
+  private static _enableClearCoatMacro = ShaderMacro.getByName("MATERIAL_ENABLE_CLEAR_COAT");
 
   static compareForOpaque(a: RenderElement, b: RenderElement): number {
     return (
@@ -106,8 +109,9 @@ export class RenderQueue {
       return;
     }
 
-    const { engine, instanceId: cameraId, shaderData: cameraData } = context.camera;
-    const scene = context.camera.scene!;
+    const camera = context.camera;
+    const { engine, instanceId: cameraId, shaderData: cameraData } = camera;
+    const scene = camera.scene!;
     const { instanceId: sceneId, shaderData: sceneData, _maskManager: maskManager } = scene;
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
@@ -123,12 +127,12 @@ export class RenderQueue {
     const needMaskType = maskType !== RenderQueueMaskType.No;
     const isForwardStage = pipelineStageTagValue === PipelineStage.Forward;
     const isSSRReceiverStage = pipelineStageTagValue === PipelineStage.SSRReceiver;
-    const cameraMacros = cameraData._macroCollection;
-    const camSSREnable = cameraMacros.isEnable(RenderQueue._ssrEnableMacro);
-    const camSSRVerifyDepth = cameraMacros.isEnable(RenderQueue._ssrVerifyDepthMacro);
-    const camSSRBilateral = cameraMacros.isEnable(RenderQueue._ssrBilateralMacro);
-    const camSSRPackedDepth = cameraMacros.isEnable(RenderQueue._ssrPackedDepthMacro);
-    const camSSRPackedNormal = cameraMacros.isEnable(RenderQueue._ssrPackedNormalMacro);
+    const camSSREnable = camera._ssrForwardEnabled;
+    const camSSRVerifyDepth = camera._ssrVerifyReceiverDepth;
+    const camSSRBilateral = camera._ssrBilateralSample;
+    const camSSRPackedDepth = camera._ssrPackedDepthRG8;
+    const camSSRPackedNormal = camera._ssrPackedNormalOct8;
+    const camSSRMaxRoughness = camera._ssrMaxRoughness;
 
     for (let i = 0; i < length; i++) {
       const curElement = batchedElements[i];
@@ -182,7 +186,19 @@ export class RenderQueue {
         compileMacros.enable(InstanceBuffer.gpuInstanceMacro);
       }
 
-      const allowSSRForElement = isForwardStage && camSSREnable && material.screenSpaceReflectionIntensity > 0;
+      let allowSSRForElement = isForwardStage && camSSREnable && material.screenSpaceReflectionIntensity > 0;
+      if (allowSSRForElement) {
+        const materialMacros = materialData._macroCollection;
+        if (
+          !materialMacros.isEnable(RenderQueue._hasRoughnessTexMacro) &&
+          !materialMacros.isEnable(RenderQueue._enableClearCoatMacro)
+        ) {
+          const roughness = materialData.getFloat(RenderQueue._roughnessProp);
+          if (roughness !== undefined && roughness >= camSSRMaxRoughness) {
+            allowSSRForElement = false;
+          }
+        }
+      }
 
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
         const shaderPass = shaderPasses[j];
@@ -199,10 +215,11 @@ export class RenderQueue {
         }
 
         let useBilateral = false;
+        let useVerifyDepth = false;
         if (isForwardStage) {
           const allowBilateral = material.screenSpaceReflectionBilateral !== false;
           useBilateral = allowSSRForElement && camSSRBilateral && allowBilateral;
-          const useVerifyDepth =
+          useVerifyDepth =
             allowSSRForElement && !useBilateral && (camSSRVerifyDepth || (camSSRBilateral && !allowBilateral));
           RenderQueue._syncMacro(compileMacros, RenderQueue._ssrEnableMacro, allowSSRForElement);
           RenderQueue._syncMacro(compileMacros, RenderQueue._ssrVerifyDepthMacro, useVerifyDepth);
@@ -210,12 +227,12 @@ export class RenderQueue {
           RenderQueue._syncMacro(
             compileMacros,
             RenderQueue._ssrPackedDepthMacro,
-            allowSSRForElement && camSSRPackedDepth
+            allowSSRForElement && camSSRPackedDepth && (useVerifyDepth || useBilateral)
           );
           RenderQueue._syncMacro(
             compileMacros,
             RenderQueue._ssrPackedNormalMacro,
-            allowSSRForElement && camSSRPackedNormal
+            allowSSRForElement && camSSRPackedNormal && useBilateral
           );
         } else if (isSSRReceiverStage) {
           RenderQueue._syncMacro(compileMacros, RenderQueue._ssrPackedDepthMacro, camSSRPackedDepth);
@@ -238,11 +255,24 @@ export class RenderQueue {
             const level1Delta = camSSRVerifyDepth ? 1 : 2;
             const canTryLevel1 =
               useBilateral && (!program.isValid || program.activeTextureCount - level1Delta <= maxUnits);
+            const canTryDropVerify =
+              !useBilateral &&
+              useVerifyDepth &&
+              !camSSRVerifyDepth &&
+              (!program.isValid || program.activeTextureCount - 1 <= maxUnits);
             if (canTryLevel1) {
               compileMacros.disable(RenderQueue._ssrBilateralMacro);
-              if (camSSRVerifyDepth) {
-                compileMacros.enable(RenderQueue._ssrVerifyDepthMacro);
-              }
+              compileMacros.disable(RenderQueue._ssrPackedNormalMacro);
+              RenderQueue._syncMacro(compileMacros, RenderQueue._ssrVerifyDepthMacro, camSSRVerifyDepth);
+              RenderQueue._syncMacro(
+                compileMacros,
+                RenderQueue._ssrPackedDepthMacro,
+                camSSRPackedDepth && camSSRVerifyDepth
+              );
+              program = shaderPass._getShaderProgram(engine, compileMacros);
+            } else if (canTryDropVerify) {
+              compileMacros.disable(RenderQueue._ssrVerifyDepthMacro);
+              compileMacros.disable(RenderQueue._ssrPackedDepthMacro);
               program = shaderPass._getShaderProgram(engine, compileMacros);
             }
             if (!program.isValid || program.activeTextureCount > maxUnits) {

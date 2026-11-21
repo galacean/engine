@@ -44,6 +44,7 @@ export class FarmItemHighlight {
             const shader = Shader.find("Farming/ItemRimLight") ?? Shader.create(FARM_ITEM_HIGHLIGHT_SHADER);
             const material = source.clone();
             material.shader = shader;
+            material.screenSpaceReflectionIntensity = 0;
             entry = { material, users: 0 };
             shared.set(source, entry);
           }

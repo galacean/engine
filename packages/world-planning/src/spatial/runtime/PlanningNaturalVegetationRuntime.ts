@@ -400,6 +400,9 @@ export class PlanningNaturalVegetationRuntime {
 
   private configureLibraryMaterial(slot: string, asset: { id: string; category: string }, id: string): Material {
     let material = this.materials!.materialForSlot(slot, asset as never, id);
+    if (asset.category !== "Trees") {
+      material.screenSpaceReflectionOccluder = false;
+    }
     const role = plantMaterialRole(slot),
       range = PLANT_GROUND_COVER_VARIATIONS.get(asset.id);
     const groundCover = !!range && (role === "leaf" || role === "shrub");

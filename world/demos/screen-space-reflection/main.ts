@@ -12,6 +12,7 @@ import {
   PBRMaterial,
   PointLight,
   PrimitiveMesh,
+  RealtimeIBLBaker,
   ScreenSpaceReflectionQuality,
   Script,
   SkyProceduralMaterial,
@@ -132,6 +133,7 @@ async function bootstrap(): Promise<void> {
   sunEntity.transform.setRotation(-42, 32, 0);
   const sunLight = sunEntity.addComponent(DirectLight);
   sunLight.color = new Color(1.0 * 1.3, 0.96 * 1.3, 0.9 * 1.3, 1.0);
+  scene.sun = sunLight;
 
   const accentLightEntity = root.createChild("AccentLight");
   accentLightEntity.transform.setPosition(-2.0, 3.5, 2.0);
@@ -362,40 +364,42 @@ async function bootstrap(): Promise<void> {
 
   // Wire UI Controls
   const ssrCheckbox = document.getElementById("ssr-enabled") as HTMLInputElement;
-  ssrCheckbox.addEventListener("change", () => {
-    const enabled = ssrCheckbox.checked;
+  const applySsrEnabled = (enabled: boolean): void => {
     camera.enableScreenSpaceReflection = enabled;
     ssrSettings.enabled = enabled;
+    ssrCheckbox.checked = enabled;
     syncHud();
-  });
+  };
+  ssrCheckbox.addEventListener("change", () => applySsrEnabled(ssrCheckbox.checked));
 
-  document.querySelectorAll<HTMLButtonElement>("[data-quality-preset]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const key = btn.dataset.qualityPreset as DemoQualityKey;
-      ssrSettings.quality = QUALITY_MAP[key];
-      document.querySelectorAll<HTMLButtonElement>("[data-quality-preset]").forEach((b) => {
-        b.setAttribute("aria-pressed", b === btn ? "true" : "false");
-      });
-      syncHud();
+  const applyQuality = (key: DemoQualityKey): void => {
+    ssrSettings.quality = QUALITY_MAP[key];
+    document.querySelectorAll<HTMLButtonElement>("[data-quality-preset]").forEach((btn) => {
+      btn.setAttribute("aria-pressed", btn.dataset.qualityPreset === key ? "true" : "false");
     });
+    syncHud();
+  };
+  document.querySelectorAll<HTMLButtonElement>("[data-quality-preset]").forEach((btn) => {
+    btn.addEventListener("click", () => applyQuality(btn.dataset.qualityPreset as DemoQualityKey));
   });
 
   const hdrBtn = document.getElementById("toggle-hdr") as HTMLButtonElement;
-  hdrBtn.addEventListener("click", () => {
-    camera.enableHDR = !camera.enableHDR;
-    hdrBtn.setAttribute("aria-pressed", String(camera.enableHDR));
-    hdrBtn.textContent = `HDR: ${camera.enableHDR ? "On" : "Off"}`;
+  const applyHdr = (enabled: boolean): void => {
+    camera.enableHDR = enabled;
+    hdrBtn.setAttribute("aria-pressed", String(enabled));
+    hdrBtn.textContent = `HDR: ${enabled ? "On" : "Off"}`;
     syncHud();
-  });
+  };
+  hdrBtn.addEventListener("click", () => applyHdr(!camera.enableHDR));
 
   const contribBtn = document.getElementById("toggle-contrib") as HTMLButtonElement;
-  contribBtn.addEventListener("click", () => {
-    waterfallMat.contributeScreenSpaceReflectionDepth = !waterfallMat.contributeScreenSpaceReflectionDepth;
-    const on = waterfallMat.contributeScreenSpaceReflectionDepth;
-    contribBtn.setAttribute("aria-pressed", String(on));
-    contribBtn.textContent = `瀑布深度: ${on ? "On" : "Off"}`;
+  const applyWaterfallContrib = (enabled: boolean): void => {
+    waterfallMat.contributeScreenSpaceReflectionDepth = enabled;
+    contribBtn.setAttribute("aria-pressed", String(enabled));
+    contribBtn.textContent = `瀑布深度: ${enabled ? "On" : "Off"}`;
     syncHud();
-  });
+  };
+  contribBtn.addEventListener("click", () => applyWaterfallContrib(!waterfallMat.contributeScreenSpaceReflectionDepth));
 
   const cutBtn = document.getElementById("camera-cut") as HTMLButtonElement;
   cutBtn.addEventListener("click", () => {
@@ -404,10 +408,13 @@ async function bootstrap(): Promise<void> {
   });
 
   const freezeCheckbox = document.getElementById("freeze-time") as HTMLInputElement;
-  freezeCheckbox.addEventListener("change", () => {
-    frozen = freezeCheckbox.checked;
-    document.body.dataset.frozen = String(frozen);
-  });
+  const applyFrozen = (nextFrozen: boolean): void => {
+    frozen = nextFrozen;
+    freezeCheckbox.checked = nextFrozen;
+    document.body.dataset.frozen = String(nextFrozen);
+    syncHud();
+  };
+  freezeCheckbox.addEventListener("change", () => applyFrozen(freezeCheckbox.checked));
 
   document.querySelectorAll<HTMLButtonElement>("[data-camera-pose]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -449,27 +456,40 @@ async function bootstrap(): Promise<void> {
   // Expose minimal verification helper for browser tests and World acceptance
   (window as unknown as Record<string, unknown>).__SSR_DEMO__ = {
     getDiagnostics: () => camera.screenSpaceReflectionDiagnostics,
-    setQuality: (q: DemoQualityKey) => {
-      ssrSettings.quality = QUALITY_MAP[q];
+    setQuality: applyQuality,
+    setEnabled: applySsrEnabled,
+    setHDR: applyHdr,
+    setFrozen: applyFrozen,
+    setPose: (p: DemoPoseKey) => {
+      applyCameraPose(p, true);
+      syncHud();
     },
-    setEnabled: (v: boolean) => {
-      camera.enableScreenSpaceReflection = v;
-      ssrSettings.enabled = v;
+    notifyCut: () => {
+      camera.notifyScreenSpaceReflectionCut();
+      syncHud();
     },
-    setHDR: (v: boolean) => {
-      camera.enableHDR = v;
-    },
-    setFrozen: (v: boolean) => {
-      frozen = v;
-      freezeCheckbox.checked = v;
-      document.body.dataset.frozen = String(v);
-    },
-    setPose: (p: DemoPoseKey) => applyCameraPose(p, true),
-    notifyCut: () => camera.notifyScreenSpaceReflectionCut(),
-    setWaterfallContrib: (v: boolean) => {
-      waterfallMat.contributeScreenSpaceReflectionDepth = v;
-    }
+    setWaterfallContrib: applyWaterfallContrib
   };
+
+  // Bake SkyProceduralMaterial once so IBL fallback, OptOutSphere, and SubmergedGlossyTile get genuine specular IBL.
+  let iblBaker: RealtimeIBLBaker | null = null;
+  if ((engine as unknown as { _hardwareRenderer?: { isWebGL2?: boolean } })._hardwareRenderer?.isWebGL2) {
+    iblBaker = new RealtimeIBLBaker(scene, { resolution: 128, sampleCount: 64 });
+    iblBaker.requestBake();
+    while (!iblBaker.isIdle) {
+      iblBaker.update();
+    }
+  }
+
+  window.addEventListener(
+    "beforeunload",
+    () => {
+      iblBaker?.destroy();
+      iblBaker = null;
+      engine.destroy();
+    },
+    { once: true }
+  );
 
   applyCameraPose("overview", false);
   syncHud();

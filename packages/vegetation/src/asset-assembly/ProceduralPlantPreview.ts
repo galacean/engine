@@ -85,6 +85,8 @@ export async function bootProceduralPlantPreview(): Promise<void> {
     material.baseColor = new Color(...color, 1);
     material.metallic = 0;
     material.roughness = 0.8;
+    material.screenSpaceReflectionIntensity = 0;
+    material.screenSpaceReflectionBilateral = false;
     material.renderFace = RenderFace.Double;
     materials.set(id, material);
   }

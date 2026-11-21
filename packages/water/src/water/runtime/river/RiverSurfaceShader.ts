@@ -290,6 +290,7 @@ export function createSurfaceShaderSource(
   };
   const roughnessNeedsDepth = roughnessAppearance.boundaryEffects.some((effect) =>
     [
+      WaterFieldSemantic.SceneEyeDepth,
       WaterFieldSemantic.SceneRayDepth,
       WaterFieldSemantic.SurfaceNormalDepth,
       WaterFieldSemantic.OpticalPath,

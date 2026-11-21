@@ -21,6 +21,7 @@ const scene = await engine.resourceManager.load<Scene>({
   url: project.projectPackage.project.scene
 });
 engine.sceneManager.activeScene = scene;
+scene.screenSpaceReflection.enabled = true;
 const native = new RuntimeNativeEditor(project, scene),
   editor = native.editor;
 const camera = scene.createRootEntity("Editor camera").addComponent(Camera);

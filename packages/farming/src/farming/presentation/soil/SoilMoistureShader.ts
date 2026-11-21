@@ -4,6 +4,8 @@ import pbr from "../../procedural/runtime/PlantOrganTint.shader?raw";
 /** Standard PBR lighting with wetness and a world-aligned reverse dissolve over the host ground. */
 export const SOIL_MOISTURE_SHADER = pbr
   .replace('Shader "Farming/PlantOrganTint"', 'Shader "Farming/SoilMoisture"')
+  .replace('UsePass "Pipeline/SSRReceiver/Default/SSRReceiver"', "")
+  .replace('UsePass "Pipeline/SSRContributionDepth/Default/SSRContributionDepth"', "")
   .replace(
     "vec4 renderer_OrganTint;",
     `
@@ -99,7 +101,7 @@ export const SOIL_MOISTURE_SHADER = pbr
   SurfaceData surfaceData = getSurfaceData`
   )
   .replace(
-    /  float value = max\(surfaceData\.albedoColor[\s\S]*?\/\/ Can modify surfaceData here/,
+    / {2}float value = max\(surfaceData\.albedoColor[\s\S]*?\/\/ Can modify surfaceData here/,
     `
     #ifdef RENDERER_ENABLE_VERTEXCOLOR
       surfaceData.opacity *= coverage;

@@ -25,7 +25,7 @@ for (const directory of fs.readdirSync(path.join(root, "packages"))) {
   parsed.options.paths[`${name}/types/*`] = [`packages/${directory}/src/*`];
   parsed.options.paths[`${name}/*`] = [`packages/${directory}/src/*`];
 }
-const nativeNames = new Set(["core", "loader", "rhi-webgl", "galacean", "math", "shader", "shader-compiler", "ui", "physics-physx", "design"]);
+const nativeNames = new Set(["core", "loader", "rhi-webgl", "rhi-null", "galacean", "math", "shader", "shader-compiler", "ui", "physics-physx", "design"]);
 const isNative = diagnostic => diagnostic.file && nativeNames.has(path.relative(root, diagnostic.file.fileName).split(path.sep)[1]);
 function compilerHost(options, modified) {
   const host = ts.createCompilerHost(options);
@@ -57,7 +57,7 @@ const declarations = ["world/assets.d.ts", "world/node_modules/vite/client.d.ts"
 const program = ts.createProgram([...parsed.fileNames, ...declarations], parsed.options, compilerHost(parsed.options, true));
 const diagnostics = ts.getPreEmitDiagnostics(program).filter(diagnostic => !isNative(diagnostic));
 const nativeOptions = { ...parsed.options, noImplicitAny: false, noImplicitOverride: true, strict: false, target: ts.ScriptTarget.ESNext };
-const nativeRoots = ["core", "loader", "rhi-webgl", "galacean"].map(name => path.join(root, "packages", name, "src/index.ts"));
+const nativeRoots = ["core", "loader", "rhi-webgl", "rhi-null", "galacean"].map(name => path.join(root, "packages", name, "src/index.ts"));
 const nativeDiagnostics = modified => ts.getPreEmitDiagnostics(ts.createProgram([...nativeRoots, ...declarations], nativeOptions, compilerHost(nativeOptions, modified)));
 const key = diagnostic => `${diagnostic.file?.fileName}:${diagnostic.code}:${ts.flattenDiagnosticMessageText(diagnostic.messageText, " ")}`;
 const baseline = new Set(nativeDiagnostics(false).map(key));

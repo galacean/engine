@@ -20,7 +20,11 @@ export class Blitter {
   private static _blitTexelSizeProperty = ShaderProperty.getByName("renderer_texelSize"); // x: 1/width, y: 1/height, z: width, w: height
   private static _sourceScaleOffsetProperty = ShaderProperty.getByName("renderer_SourceScaleOffset");
 
-  private static _rendererShaderData = new ShaderData(ShaderDataGroup.Renderer);
+  private static _rendererShaderData = (() => {
+    const data = new ShaderData(ShaderDataGroup.Renderer);
+    data._trackBatchSharedFields = false;
+    return data;
+  })();
   private static _texelSize = new Vector4();
   private static _defaultScaleOffset = new Vector4(1, 1, 0, 0);
 
@@ -35,6 +39,7 @@ export class Blitter {
    * @param passIndex - Pass index to use of the provided material
    * @param sourceScaleOffset - Source scale and offset
    * @param destMipLevel - Destination mip level to render into
+   * @param invalidateColor - Whether to invalidate destination color buffer before full-viewport overwrite
    */
   static blitTexture(
     engine: Engine,
@@ -45,7 +50,8 @@ export class Blitter {
     material: Material | null = null,
     passIndex = 0,
     sourceScaleOffset?: Vector4,
-    destMipLevel: number = 0
+    destMipLevel: number = 0,
+    invalidateColor: boolean = true
   ): void {
     const basicResources = engine._basicResources;
     const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
@@ -92,11 +98,37 @@ export class Blitter {
     renderState._applyStates(engine, false, pass._renderStateDataMap, blitMaterial.shaderData);
 
     const appliedState = engine._lastRenderState;
+    const rhiWithScissor = rhi as {
+      _scissorEnable?: boolean;
+      _lastScissor?: Vector4;
+      getMainFrameBufferWidth?: () => number;
+      getMainFrameBufferHeight?: () => number;
+    };
+    const scissorRect = rhiWithScissor._lastScissor;
+    const targetWidth =
+      destination !== null
+        ? Math.max(1, destination.width >> destMipLevel)
+        : rhiWithScissor.getMainFrameBufferWidth?.();
+    const targetHeight =
+      destination !== null
+        ? Math.max(1, destination.height >> destMipLevel)
+        : rhiWithScissor.getMainFrameBufferHeight?.();
+    const fullScissorClear =
+      !rhiWithScissor._scissorEnable ||
+      (scissorRect !== undefined &&
+        targetWidth !== undefined &&
+        targetHeight !== undefined &&
+        scissorRect.x === 0 &&
+        scissorRect.y === 0 &&
+        scissorRect.z === targetWidth &&
+        scissorRect.w === targetHeight);
     if (
+      invalidateColor &&
       viewport.x === 0 &&
       viewport.y === 0 &&
       viewport.z === 1 &&
       viewport.w === 1 &&
+      fullScissorClear &&
       !appliedState.blendState.targetBlendState.enabled &&
       !appliedState.depthState.enabled &&
       !appliedState.stencilState.enabled &&

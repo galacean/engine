@@ -1,10 +1,9 @@
 import type { SeedWorldIndexedShaderVariantManifest } from "@galacean/engine-world-planning/world/SeedWorldShaderVariantCoverage";
 
 /**
- * Project-owned production recording: material/mesh layouts, entrance, fog, IBL and weather particles.
- * Independent of generated positions and textures; compile before awaiting the world Workers.
- * Seasonal values remain uniforms. IBL endpoint blending is expanded by the warmup consumer.
- * Refresh from recordShaderVariants when a production material or render feature changes.
+ * @deprecated Unreferenced historical static manifest (0 runtime imports).
+ * Superseded by live scene-collected SSR v2 warmup in `SeedWorldShaderWarmup.ts`.
+ * Retained solely for migration manifest parity; do not add new runtime imports.
  */
 export const SEED_WORLD_SHADER_VARIANT_MANIFEST = {
   shaders: [

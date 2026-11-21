@@ -478,6 +478,11 @@ export function updateWaterMaterialParameters(
     next.look.reflectionSampling.screenSpaceCompositeIntensity > 0
       ? 1
       : 0;
+  if (profile !== "ocean") {
+    result.screenSpaceReflectionBilateral = false;
+  } else {
+    delete result.screenSpaceReflectionBilateral;
+  }
   materialDefinition(next, (name, type, value) => {
     if (type !== "Texture") result.shaderData[name] = { type, value };
   });

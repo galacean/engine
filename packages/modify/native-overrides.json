@@ -692,6 +692,10 @@
     "replacement": "packages/modify/src/native/rhi-null/src/NullGraphicDevice.ts"
   },
   {
+    "original": "packages/rhi-null/src/NullTexture.ts",
+    "replacement": "packages/modify/src/native/rhi-null/src/NullTexture.ts"
+  },
+  {
     "original": "packages/rhi-webgl/src/GLCapability.ts",
     "replacement": "packages/modify/src/native/rhi-webgl/src/GLCapability.ts"
   },

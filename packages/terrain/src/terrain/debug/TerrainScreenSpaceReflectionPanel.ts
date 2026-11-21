@@ -74,6 +74,19 @@ export function applyScreenSpaceReflectionConfiguration(
     camera.screenSpaceReflectionOverride = override;
   }
 
+  const hasSettingsFields =
+    configuration.globalEnabled !== undefined ||
+    configuration.quality !== undefined ||
+    configuration.intensity !== undefined ||
+    configuration.maxRoughness !== undefined ||
+    configuration.maxDistance !== undefined ||
+    configuration.thickness !== undefined ||
+    configuration.edgeFade !== undefined ||
+    configuration.temporalBlend !== undefined;
+  if (!hasSettingsFields) {
+    return;
+  }
+
   const target = camera.screenSpaceReflectionOverride ?? sceneSettings;
   if (!target) {
     throw new Error("Camera.scene is required to apply scene-level SSR settings without a camera override.");
@@ -103,14 +116,6 @@ export function applyScreenSpaceReflectionConfiguration(
   if (configuration.temporalBlend !== undefined) {
     target.temporalBlend = requireFiniteInRange(configuration.temporalBlend, "temporalBlend", 0, 0.95);
   }
-}
-
-/** Applies an automatic SSR preset configuration onto the scene/camera SSR v2 settings. */
-export function applyAutomaticScreenSpaceReflectionConfiguration(
-  camera: Camera,
-  configuration: TerrainScreenSpaceReflectionPanelConfiguration
-): void {
-  applyScreenSpaceReflectionConfiguration(camera, configuration);
 }
 
 /** Reads the effective v2 SSR configuration and runtime diagnostics from `camera`. */

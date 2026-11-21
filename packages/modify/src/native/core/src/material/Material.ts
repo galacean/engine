@@ -23,6 +23,13 @@ export class Material extends ReferResource implements IClone {
   contributeScreenSpaceReflectionDepth: boolean = false;
 
   /**
+   * Allow opaque and alpha-test geometry using this material to render into SSR's fallback DepthOnly pass.
+   * Opt out for grass cards, small ground foliage, and micro-details that add draw-call cost without meaningful SSR occlusion.
+   * @defaultValue `true`
+   */
+  screenSpaceReflectionOccluder: boolean = true;
+
+  /**
    * Allow bilateral 2x2 normal+depth SSR sampling on this material under High quality (`false` falls back to 2-tap depth-verified sampling).
    * @defaultValue `true`
    */
@@ -108,6 +115,7 @@ export class Material extends ReferResource implements IClone {
     target._ssrIntensity = this._ssrIntensity;
     target.contributeScreenSpaceReflectionDepth = this.contributeScreenSpaceReflectionDepth;
     target.screenSpaceReflectionBilateral = this.screenSpaceReflectionBilateral;
+    target.screenSpaceReflectionOccluder = this.screenSpaceReflectionOccluder;
   }
 
   /**

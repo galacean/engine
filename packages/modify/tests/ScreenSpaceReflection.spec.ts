@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  GLCapabilityType,
   Material,
   PipelineStage,
   ScreenSpaceReflectionQuality,
@@ -10,6 +11,7 @@ import {
 } from "@galacean/engine";
 import { ShaderMacroProcessor } from "../../core/src/shader/ShaderMacroProcessor";
 import { TextureUtils } from "../src/native/core/src/texture/TextureUtils";
+import { GLCapability } from "../src/native/rhi-webgl/src/GLCapability";
 
 const compiledDir = new URL("../.cache/compiled/", import.meta.url);
 const readCompiledShader = (name: string) =>
@@ -126,15 +128,23 @@ describe("ScreenSpaceReflection v2 (Node unit & shader compatibility)", () => {
     );
     expect(pbrForward).toBeDefined();
 
-    const macros = new Map<string, string>([
+    const baseMacros = new Map<string, string>([
+      ["GRAPHICS_API_WEBGL2", ""],
+      ["CAMERA_ENABLE_SSR", ""]
+    ]);
+    const evaluatedBase = ShaderMacroProcessor.evaluate(pbrForward.fragmentShaderInstructions, baseMacros);
+    expect(evaluatedBase).toContain("camera_SSRTexture");
+    expect(evaluatedBase).not.toContain("camera_SSRReceiverDepthTexture");
+    expect(evaluatedBase).not.toContain("camera_SSRReceiverNormalRoughnessTexture");
+
+    const bilateralMacros = new Map<string, string>([
       ["GRAPHICS_API_WEBGL2", ""],
       ["CAMERA_ENABLE_SSR", ""],
-      ["CAMERA_SSR_VERIFY_RECEIVER_DEPTH", ""],
       ["CAMERA_SSR_BILATERAL_SAMPLE", ""],
       ["SSR_PACKED_DEPTH_RG8", ""],
       ["SSR_PACKED_NORMAL_OCT8", ""]
     ]);
-    const evaluated = ShaderMacroProcessor.evaluate(pbrForward.fragmentShaderInstructions, macros);
+    const evaluated = ShaderMacroProcessor.evaluate(pbrForward.fragmentShaderInstructions, bilateralMacros);
     expect(evaluated).toContain("camera_SSRTexture");
     expect(evaluated).toContain("camera_SSRReceiverDepthTexture");
     expect(evaluated).toContain("camera_SSRReceiverNormalRoughnessTexture");
@@ -149,6 +159,42 @@ describe("ScreenSpaceReflection v2 (Node unit & shader compatibility)", () => {
     expect(evaluatedVerifyOnly).toContain("camera_SSRTexture");
     expect(evaluatedVerifyOnly).toContain("camera_SSRReceiverDepthTexture");
     expect(evaluatedVerifyOnly).not.toContain("camera_SSRReceiverNormalRoughnessTexture");
+  });
+
+  it("CR-001: requires WebGL2 colorBufferFloat (not colorBufferHalfFloat) for R16_SFloat / R16G16_SFloat render targets", () => {
+    const makeCap = (isWebGL2: boolean, caps: GLCapabilityType[]) => {
+      const set = new Set(caps);
+      return {
+        rhi: { isWebGL2 },
+        canIUse: (type: GLCapabilityType) => set.has(type),
+        supportsTextureFormat: GLCapability.prototype.supportsTextureFormat
+      };
+    };
+
+    const halfFloatOnly = makeCap(true, [GLCapabilityType.colorBufferHalfFloat, GLCapabilityType.textureHalfFloat]);
+    expect(
+      GLCapability.prototype.supportsRenderTargetColorFormat.call(halfFloatOnly, TextureFormat.R16G16B16A16)
+    ).toBe(true);
+    expect(GLCapability.prototype.supportsRenderTargetColorFormat.call(halfFloatOnly, TextureFormat.R16_SFloat)).toBe(
+      false
+    );
+    expect(
+      GLCapability.prototype.supportsRenderTargetColorFormat.call(halfFloatOnly, TextureFormat.R16G16_SFloat)
+    ).toBe(false);
+
+    const floatCap = makeCap(true, [GLCapabilityType.colorBufferFloat]);
+    expect(GLCapability.prototype.supportsRenderTargetColorFormat.call(floatCap, TextureFormat.R16_SFloat)).toBe(true);
+    expect(GLCapability.prototype.supportsRenderTargetColorFormat.call(floatCap, TextureFormat.R16G16_SFloat)).toBe(
+      true
+    );
+
+    const webgl1Float = makeCap(false, [GLCapabilityType.colorBufferFloat, GLCapabilityType.colorBufferHalfFloat]);
+    expect(GLCapability.prototype.supportsRenderTargetColorFormat.call(webgl1Float, TextureFormat.R16_SFloat)).toBe(
+      false
+    );
+    expect(GLCapability.prototype.supportsRenderTargetColorFormat.call(webgl1Float, TextureFormat.R16G16_SFloat)).toBe(
+      false
+    );
   });
 
   it("defaults Material.screenSpaceReflectionBilateral to true and preserves opt-out across cloneTo", () => {
@@ -166,5 +212,22 @@ describe("ScreenSpaceReflection v2 (Node unit & shader compatibility)", () => {
     expect(target.screenSpaceReflectionBilateral).toBe(true);
     mat.cloneTo(target);
     expect(target.screenSpaceReflectionBilateral).toBe(false);
+  });
+
+  it("defaults Material.screenSpaceReflectionOccluder to true and preserves opt-out across cloneTo", () => {
+    const mockEngine = { resourceManager: { _addReferResource() {} } } as any;
+    const mockShader = { name: "MockSSRShader", destroyed: false, _addReferCount() {} } as any;
+
+    const mat = new Material(mockEngine, mockShader);
+    expect(mat.screenSpaceReflectionOccluder).toBe(true);
+
+    mat.screenSpaceReflectionOccluder = false;
+    const cloned = mat.clone();
+    expect(cloned.screenSpaceReflectionOccluder).toBe(false);
+
+    const target = new Material(mockEngine, mockShader);
+    expect(target.screenSpaceReflectionOccluder).toBe(true);
+    mat.cloneTo(target);
+    expect(target.screenSpaceReflectionOccluder).toBe(false);
   });
 });

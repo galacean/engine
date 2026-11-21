@@ -53,6 +53,28 @@ function readRotation(value: number | (() => number)): number {
   return resolved;
 }
 
+function createEnvironmentReflectionLobe(
+  candidate: AmbientLight["specularTexture"] | null | undefined,
+  rotationDegrees: number,
+  exposure: number,
+  intensity: number,
+  hdr: boolean,
+  projection: Readonly<WaterEnvironmentReflectionProjection> | undefined
+): Readonly<WaterEnvironmentReflectionLobe> | undefined {
+  if (!candidate) return undefined;
+  return Object.freeze({
+    texture: candidate,
+    ownership: "borrowed" as const,
+    rotationDegrees,
+    exposure,
+    intensity,
+    colorSpace: candidate.isSRGBColorSpace ? ("srgb" as const) : ("linear" as const),
+    hdr,
+    maximumMipLevel: Math.max(0, candidate.mipmapCount - 1),
+    projection
+  });
+}
+
 /**
  * One provider is scene-scoped, not water-body-scoped. Multiple water bodies
  * consume the service's selected snapshot without duplicating the cubemap.
@@ -140,22 +162,6 @@ export class WaterEnvironmentReflectionProvider {
     const projection = source.projection;
     const colorSpace = texture?.isSRGBColorSpace ? "srgb" : "linear";
     const maximumMipLevel = texture ? Math.max(0, texture.mipmapCount - 1) : 0;
-    const createLobe = (
-      candidate: typeof texture | null | undefined
-    ): Readonly<WaterEnvironmentReflectionLobe> | undefined =>
-      candidate
-        ? Object.freeze({
-            texture: candidate,
-            ownership: "borrowed" as const,
-            rotationDegrees,
-            exposure,
-            intensity,
-            colorSpace: candidate.isSRGBColorSpace ? ("srgb" as const) : ("linear" as const),
-            hdr: source.hdr,
-            maximumMipLevel: Math.max(0, candidate.mipmapCount - 1),
-            projection
-          })
-        : undefined;
     const previousFrame = this._frame;
     let nextFrame: Readonly<WaterEnvironmentReflectionFrame> | undefined;
     let nextFrameRevision = this._frameRevision;
@@ -185,8 +191,22 @@ export class WaterEnvironmentReflectionProvider {
             providerId: this._id,
             role: this._role,
             revision: ++nextFrameRevision,
-            primary: createLobe(texture)!,
-            secondary: createLobe(secondaryTexture),
+            primary: createEnvironmentReflectionLobe(
+              texture,
+              rotationDegrees,
+              exposure,
+              intensity,
+              source.hdr,
+              projection
+            )!,
+            secondary: createEnvironmentReflectionLobe(
+              secondaryTexture,
+              rotationDegrees,
+              exposure,
+              intensity,
+              source.hdr,
+              projection
+            ),
             secondaryWeight
           });
     }

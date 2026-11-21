@@ -263,7 +263,7 @@ export class PlanningSeedRuntimeDebug {
         },
         screenSpaceReflection: {
           // Planning Water exposes per-body looks, not the old aggregate reflection switch.
-          // Camera SSR owns the real consumer metrics; absent legacy water readouts stay absent.
+          // Camera SSR owns the real SSR v2 diagnostics; absent legacy water readouts stay absent.
           readStatus: () => inspectScreenSpaceReflectionPanelStatus(options.camera),
           applyConfiguration: (configuration) => applyScreenSpaceReflectionConfiguration(options.camera, configuration)
         },
