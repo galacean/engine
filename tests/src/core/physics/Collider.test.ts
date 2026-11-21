@@ -12,7 +12,7 @@ import {
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { vi, describe, beforeAll, beforeEach, expect, it, afterEach } from "vitest";
+import { vi, describe, beforeAll, afterAll, beforeEach, expect, it, afterEach } from "vitest";
 
 class CollisionScript extends Script {
   onTriggerEnter = vi.fn(CollisionScript.prototype.onTriggerEnter);
@@ -69,8 +69,8 @@ describe("physics collider test", function () {
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
     const physicsBox = new BoxColliderShape();
-    physicsBox.getInstanceMaterial().dynamicFriction = 0;
-    physicsBox.getInstanceMaterial().staticFriction = 0;
+    physicsBox.getInstanceMaterial(engine).dynamicFriction = 0;
+    physicsBox.getInstanceMaterial(engine).staticFriction = 0;
     physicsBox.size = cubeSize;
     const boxCollider = boxEntity.addComponent(type);
     boxCollider.addShape(physicsBox);
@@ -87,8 +87,13 @@ describe("physics collider test", function () {
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
   });
 
+  afterAll(() => engine.destroy());
+
   beforeEach(function () {
-    rootEntity.clearChildren();
+    while (rootEntity.children.length) {
+      rootEntity.children[0].destroy();
+    }
+    engine.resourceManager.gc();
 
     boxEntity = rootEntity.createChild("BoxEntity");
 
@@ -105,7 +110,7 @@ describe("physics collider test", function () {
     boxEntity.transform.position.y = cubeSize / 2;
     physicsBox = new BoxColliderShape();
     physicsBox.size = new Vector3(cubeSize, cubeSize, cubeSize);
-    physicsBox.getInstanceMaterial().bounciness = 0.1;
+    physicsBox.getInstanceMaterial(engine).bounciness = 0.1;
 
     const radius = 1.25;
     sphereEntity.transform.position.x = 0;
@@ -309,7 +314,7 @@ describe("physics collider test", function () {
     collider.automaticInertiaTensor = false;
     collider.inertiaTensor.set(10000000, 10000000, 10000000);
     collider.applyForce(new Vector3(1000, 0, 0));
-    collider.shapes[0].getInstanceMaterial().dynamicFriction = 1;
+    collider.shapes[0].getInstanceMaterial(engine).dynamicFriction = 1;
     //@ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(collider.linearVelocity.x)).eq(0.97066);
@@ -324,7 +329,7 @@ describe("physics collider test", function () {
     collider2.automaticInertiaTensor = false;
     collider2.inertiaTensor.set(10000000, 10000000, 10000000);
     collider2.applyForce(new Vector3(1000, 0, 0));
-    collider2.shapes[0].getInstanceMaterial().dynamicFriction = 1;
+    collider2.shapes[0].getInstanceMaterial(engine).dynamicFriction = 1;
     //@ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(collider2.linearVelocity.x)).eq(0.97066);
@@ -338,7 +343,7 @@ describe("physics collider test", function () {
     collider.automaticInertiaTensor = false;
     collider.inertiaTensor.set(10000000, 10000000, 10000000);
     collider.applyForce(new Vector3(1000, 0, 0));
-    collider.shapes[0].getInstanceMaterial().dynamicFriction = 1;
+    collider.shapes[0].getInstanceMaterial(engine).dynamicFriction = 1;
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(collider.linearVelocity.x)).eq(0.97066);

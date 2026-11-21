@@ -12,7 +12,7 @@ import {
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
-import { vi, describe, beforeAll, beforeEach, expect, it } from "vitest";
+import { vi, describe, beforeAll, afterAll, beforeEach, expect, it } from "vitest";
 
 describe("DynamicCollider", function () {
   let engine: Engine;
@@ -24,8 +24,8 @@ describe("DynamicCollider", function () {
     planeEntity.transform.setScale(20, 1, 20);
 
     const physicsPlane = new PlaneColliderShape();
-    physicsPlane.getInstanceMaterial().dynamicFriction = 0;
-    physicsPlane.getInstanceMaterial().staticFriction = 0;
+    physicsPlane.getInstanceMaterial(engine).dynamicFriction = 0;
+    physicsPlane.getInstanceMaterial(engine).staticFriction = 0;
     const planeCollider = planeEntity.addComponent(StaticCollider);
     planeCollider.addShape(physicsPlane);
     return planeEntity;
@@ -36,8 +36,8 @@ describe("DynamicCollider", function () {
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
     const physicsBox = new BoxColliderShape();
-    physicsBox.getInstanceMaterial().dynamicFriction = 0;
-    physicsBox.getInstanceMaterial().staticFriction = 0;
+    physicsBox.getInstanceMaterial(engine).dynamicFriction = 0;
+    physicsBox.getInstanceMaterial(engine).staticFriction = 0;
     physicsBox.size = cubeSize;
     const boxCollider = boxEntity.addComponent(type);
     if (type === DynamicCollider) {
@@ -76,8 +76,13 @@ describe("DynamicCollider", function () {
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
   });
 
+  afterAll(() => engine.destroy());
+
   beforeEach(function () {
-    rootEntity.clearChildren();
+    while (rootEntity.children.length) {
+      rootEntity.children[0].destroy();
+    }
+    engine.resourceManager.gc();
   });
 
   it("addShape and removeShape", function () {

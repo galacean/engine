@@ -17,7 +17,7 @@ import {
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
-import { describe, beforeAll, beforeEach, expect, it } from "vitest";
+import { describe, beforeAll, afterAll, beforeEach, expect, it } from "vitest";
 
 describe("CharacterController", function () {
   let engine: Engine;
@@ -42,8 +42,8 @@ describe("CharacterController", function () {
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
     const physicsBox = new BoxColliderShape();
-    physicsBox.getInstanceMaterial().dynamicFriction = 0;
-    physicsBox.getInstanceMaterial().staticFriction = 0;
+    physicsBox.getInstanceMaterial(engine).dynamicFriction = 0;
+    physicsBox.getInstanceMaterial(engine).staticFriction = 0;
     physicsBox.size = cubeSize;
     const boxCollider = boxEntity.addComponent(type);
     boxCollider.addShape(physicsBox);
@@ -88,8 +88,13 @@ describe("CharacterController", function () {
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
   });
 
+  afterAll(() => engine.destroy());
+
   beforeEach(() => {
-    rootEntity.clearChildren();
+    while (rootEntity.children.length) {
+      rootEntity.children[0].destroy();
+    }
+    engine.resourceManager.gc();
     roleEntity = rootEntity.createChild("role");
     const moveScript = roleEntity.addComponent(MoveScript);
     const controller = roleEntity.addComponent(CharacterController);
@@ -109,11 +114,13 @@ describe("CharacterController", function () {
   it("addShape and removeShape", () => {
     // Test that addShape works correctly if add more shapes.
     const controller = roleEntity.getComponent(CharacterController);
+    const rejected = new BoxColliderShape();
     try {
-      controller.addShape(new BoxColliderShape());
-    } catch (err) {
-      expect(err).eq("only allow single shape on controller!");
-      expect(controller.shapes.length).eq(1);
+      expect(() => controller.addShape(rejected)).toThrow("only allow single shape on controller!");
+      expect(controller.shapes).toHaveLength(1);
+      expect(rejected.collider).toBeFalsy();
+    } finally {
+      rejected._destroy();
     }
 
     // Test that removeShape works correctly if remove the shape.
@@ -121,12 +128,12 @@ describe("CharacterController", function () {
     controller.removeShape(shape);
     expect(controller.shapes.length).eq(0);
 
-    controller.addShape(new BoxColliderShape());
+    controller.addShape(shape);
     // Test that clearShapes works correctly if clear the shapes.
     controller.clearShapes();
     expect(controller.shapes.length).eq(0);
 
-    controller.addShape(new BoxColliderShape());
+    controller.addShape(shape);
     expect(controller.shapes.length).eq(1);
   });
 

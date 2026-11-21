@@ -12,7 +12,7 @@ import {
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
-import { describe, beforeAll, beforeEach, expect, it } from "vitest";
+import { describe, beforeAll, afterAll, beforeEach, expect, it } from "vitest";
 
 describe("HingeJoint", function () {
   let rootEntity: Entity;
@@ -23,8 +23,8 @@ describe("HingeJoint", function () {
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
     const physicsBox = new BoxColliderShape();
-    physicsBox.getInstanceMaterial().dynamicFriction = 0;
-    physicsBox.getInstanceMaterial().staticFriction = 0;
+    physicsBox.getInstanceMaterial(engine).dynamicFriction = 0;
+    physicsBox.getInstanceMaterial(engine).staticFriction = 0;
     physicsBox.size = cubeSize;
     const boxCollider = boxEntity.addComponent(type);
     boxCollider.addShape(physicsBox);
@@ -41,8 +41,13 @@ describe("HingeJoint", function () {
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
   });
 
+  afterAll(() => engine.destroy());
+
   beforeEach(function () {
-    rootEntity.clearChildren();
+    while (rootEntity.children.length) {
+      rootEntity.children[0].destroy();
+    }
+    engine.resourceManager.gc();
     engine.sceneManager.activeScene.physics.gravity = new Vector3(0, -9.81, 0);
   });
 

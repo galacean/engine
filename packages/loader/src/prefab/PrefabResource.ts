@@ -31,12 +31,11 @@ export class PrefabResource extends ReferResource {
   /**
    * @internal
    */
-  _addDependenceAsset(resource: ReferResource) {
-    this._dependenceAssets.add(resource);
-    // @todo: The PhysicsMaterial does not inherit from ReferResource. Currently,
-    // ReferResource requires the engine to be passed as a parameter, which prevents cross-engine reuse.
-    // A refactor of ReferResource will be needed in the future.
-    if (resource instanceof ReferResource) {
+  _addDependenceAsset(resource: unknown): void {
+    // ReflectionParser also passes non-ReferResource assets such as Shader, which have no superResource association.
+    // _superResources is a plain array, so the Set ensures each dependency is associated and disassociated exactly once.
+    if (resource instanceof ReferResource && !this._dependenceAssets.has(resource)) {
+      this._dependenceAssets.add(resource);
       resource._associationSuperResource(this);
     }
   }
@@ -45,9 +44,7 @@ export class PrefabResource extends ReferResource {
     super._onDestroy();
     this._root?.destroy();
     this._dependenceAssets.forEach((asset) => {
-      if (asset instanceof ReferResource) {
-        asset._disassociationSuperResource(this);
-      }
+      asset._disassociationSuperResource(this);
     });
   }
 }
