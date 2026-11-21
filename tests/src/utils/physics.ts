@@ -1,6 +1,12 @@
+import type { IPhysics } from "@galacean/engine-design";
+import { HavokPhysics } from "@galacean/engine-physics-havok";
 import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 
-export function createPhysics(requestedRuntimeMode?: PhysXRuntimeMode): PhysXPhysics {
+export function createPhysics(requestedRuntimeMode?: PhysXRuntimeMode): IPhysics {
+  if (import.meta.env.VITE_PHYSICS_BACKEND === "havok") {
+    return new HavokPhysics();
+  }
+
   const mode = import.meta.env.VITE_PHYSX_RUNTIME_MODE;
   const runtimeMode =
     requestedRuntimeMode ??

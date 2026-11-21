@@ -5,15 +5,18 @@ type: Physics
 label: Physics
 ---
 
-The physics engine is a core part of game runtime. Galacean exposes physics through the unified [Physics System API](https://github.com/galacean/engine/tree/main/packages/design/src/physics) and provides a built-in PhysX backend compiled through [PhysX.js](https://github.com/galacean/physX.js). For the overall design of the physics components, refer to the [Wiki](https://github.com/galacean/engine/wiki/Physical-system-design).
+The physics engine is a core part of game runtime. Galacean exposes physics through the unified [Physics System API](https://github.com/galacean/engine/tree/main/packages/design/src/physics), providing a built-in PhysX backend compiled through [PhysX.js](https://github.com/galacean/physX.js) and an optional Havok WebAssembly backend. For the overall design of the physics components, refer to the [Wiki](https://github.com/galacean/engine/wiki/Physical-system-design).
 
-For scenarios that use physics components or `InputManager` raycast picking, initialize the physics backend before use:
+For scenarios that use physics components or `InputManager` raycast picking, initialize a physics backend before use:
 
 - [physics-physx](https://github.com/galacean/engine/tree/main/packages/physics-physx)
+- [physics-havok](https://github.com/galacean/engine/tree/main/packages/physics-havok) (optional, requires WebAssembly SIMD)
 
-Developers can set the physics backend in the **Project Settings** panel opened from the [Main Menu](/en/docs/interface/sidebar) interface.
+In the Editor, developers can enable the PhysX backend in the **Project Settings** panel opened from the [Main Menu](/en/docs/interface/sidebar) interface. The Havok backend is currently configured via script initialization.
 
 ## Script Usage
+
+Using PhysX:
 
 ```typescript
 import { WebGLEngine } from "@galacean/engine";
@@ -25,16 +28,32 @@ const engine = await WebGLEngine.create({
 });
 ```
 
+Using Havok (optional backend):
+
+```typescript
+import { WebGLEngine } from "@galacean/engine";
+import { HavokPhysics } from "@galacean/engine-physics-havok";
+
+const engine = await WebGLEngine.create({
+  canvas: htmlCanvas,
+  physics: new HavokPhysics()
+});
+```
+
 ## Backend Notes
 
 PhysX provides complete physics functionality and high-performance simulation. It requires WebAssembly; `Auto` runtime mode only selects between SIMD and non-SIMD WebAssembly builds. Choosing the PhysX backend adds about 2.5 MB of wasm/js runtime files, which can affect package size and initialization speed.
 
-| Feature                        | physics-physx |
-| ------------------------------ | ------------- |
-| Collision Detection            | Yes           |
-| Physics Effects and Feedback   | Yes           |
-| Continuous Collision Detection | Yes           |
-| Joint System                   | Yes           |
+Havok (`@galacean/engine-physics-havok`) is an optional WebAssembly physics backend with a smaller footprint (~2.1 MB of wasm/js runtime files, ~700 KB gzip total payload) and no `SharedArrayBuffer` / `COOP` / `COEP` requirement. It requires WebAssembly SIMD (`v128`) with no non-SIMD fallback (modern browsers, including iOS 16.4+). Some PhysX-specific tuning properties (such as per-shape `contactOffset`, `sleepThreshold`, `solverIterations`, `maxDepenetrationVelocity`, per-body CCD mode toggles, and joint mass/inertia scales) are not exposed by Havok WASM. See the [`@galacean/engine-physics-havok` README](https://github.com/galacean/engine/tree/main/packages/physics-havok) for detailed capability differences and custom loading options.
+
+| Feature                        | physics-physx               | physics-havok                              |
+| ------------------------------ | --------------------------- | ------------------------------------------ |
+| Collision Detection            | Yes                         | Yes                                        |
+| Physics Effects and Feedback   | Yes                         | Yes                                        |
+| Continuous Collision Detection | Yes                         | Internal (no per-body mode toggle)         |
+| Joint System                   | Yes                         | Yes (no joint mass/inertia scale)          |
+| WebAssembly Requirement        | WebAssembly (SIMD optional) | WebAssembly SIMD required (e.g. iOS 16.4+) |
+| Runtime Payload                | ~2.5–3.0 MB (wasm/js)       | ~2.1 MB (wasm/js, ~700 KB gzip total)      |
 
 ## More Information
 
