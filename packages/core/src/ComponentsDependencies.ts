@@ -35,8 +35,8 @@ export class ComponentsDependencies {
 
   /**
    * @internal
-   * Invoke `onAdd` for each index in `types`, adding any unsatisfied dependency that appears later in `types`
-   * before the component that requires it while preserving the original order otherwise.
+   * Prefer requested providers before their dependents. If a requested dependency chain is blocked,
+   * retry with declared AutoAdd types to avoid exploring combinations of nested providers.
    */
   static _forEachInAddOrder(
     entity: Entity,
@@ -50,43 +50,97 @@ export class ComponentsDependencies {
       return;
     }
 
-    const visited = new Uint8Array(n);
-    const visit = (index: number): void => {
-      if (visited[index]) return;
-      visited[index] = 1;
+    const added = new Uint8Array(n);
+    let prerequisites: (number | ComponentConstructor)[] | undefined;
+    let resolving: ComponentConstructor[] | undefined;
+    const dependencies = ComponentsDependencies._dependenciesMap;
+    type DependencyOrder = "batch" | "requested" | "declared";
 
-      let type: ComponentConstructor = types[index];
-      while (type && type !== Component) {
-        const dependentInfo = ComponentsDependencies._dependenciesMap.get(type);
-        if (dependentInfo) {
-          const { components } = dependentInfo;
-          for (let i = 0, len = components.length; i < len; i++) {
-            const dep = components[i];
-            if (!entity.getComponent(dep)) {
-              for (let j = 0; j < n; j++) {
-                if (!visited[j] && (types[j] === dep || types[j].prototype instanceof dep)) {
-                  visit(j);
-                  break;
-                }
-              }
-            }
+    const hasProvider = (type: ComponentConstructor): boolean => {
+      if (entity.getComponent(type)) return true;
+      if (!prerequisites) return false;
+      for (let i = 0, count = prerequisites.length; i < count; i++) {
+        const planned = prerequisites[i];
+        const candidate = typeof planned === "number" ? types[planned] : planned;
+        if (candidate === type || candidate.prototype instanceof type) return true;
+      }
+      return false;
+    };
+
+    const prove = (type: ComponentConstructor, index: number, order: DependencyOrder): boolean =>
+      order === "batch" ? plan(type, index, "requested") || plan(type, index, "declared") : plan(type, index, order);
+
+    const plan = (type: ComponentConstructor, index: number, order: DependencyOrder): boolean => {
+      if (resolving?.includes(type)) return false;
+      const required = order === "batch";
+      const start = prerequisites?.length ?? 0;
+      let stack: ComponentConstructor[] | undefined;
+      requirements: for (let current = type; current !== Component; current = Object.getPrototypeOf(current)) {
+        const info = dependencies.get(current);
+        if (!info) continue;
+        const { components, mode } = info;
+        for (let i = 0, count = components.length; i < count; i++) {
+          const dependency = components[i];
+          if (hasProvider(dependency)) continue;
+          if (!stack) {
+            stack = resolving ||= [];
+            stack.push(type);
+          }
+          let provided = false;
+          let autoAdd = mode === DependentMode.AutoAdd;
+          const matchSubtype = order !== "declared" || mode === DependentMode.CheckOnly;
+          for (let j = 0; j < n; j++) {
+            if (added[j]) continue;
+            const candidate = types[j];
+            if (candidate !== dependency && !(matchSubtype && candidate.prototype instanceof dependency)) continue;
+            if (!required || candidate === dependency) autoAdd = false;
+            provided = prove(candidate, j, order);
+            if (provided || !required) break;
+          }
+          if (!provided && autoAdd) {
+            provided = prove(dependency, -1, order);
+          }
+          if (!provided) {
+            if (required) break requirements;
+            // Keep a rejected provider's prerequisites from running their constructors.
+            if (prerequisites) prerequisites.length = start;
+            stack.pop();
+            return false;
           }
         }
-        type = Object.getPrototypeOf(type);
       }
-
-      onAdd(index);
+      stack?.pop();
+      if (required && !prerequisites?.length) {
+        onAdd(index);
+      } else {
+        (prerequisites ||= []).push(index === -1 ? type : index);
+      }
+      return true;
     };
 
     for (let i = 0; i < n; i++) {
-      visit(i);
+      if (added[i]) continue;
+      added[i] = 1;
+      plan(types[i], i, "batch");
+      if (!prerequisites?.length) continue;
+      for (let j = 0, count = prerequisites.length; j < count; j++) {
+        const planned = prerequisites[j];
+        if (typeof planned === "number") {
+          added[planned] = 1;
+          onAdd(planned);
+        } else if (!entity.getComponent(planned)) {
+          entity.addComponent(planned);
+        }
+      }
+      prerequisites.length = 0;
     }
   }
 
   /**
    * @internal
-   * Invoke `onRemove` for each index in `components`, removing any dependent component in `components`
-   * on the same entity before the dependencies it requires while preserving the original order otherwise.
+   * Remove a dependent before its last provider, preserving source order otherwise.
+   * @param components - Stable snapshot of the components selected for removal
+   * @param onRemove - Removes the component at the given index from its entity synchronously
    */
   static _forEachInRemoveOrder(components: readonly Component[], onRemove: (index: number) => void): void {
     const n = components.length;
@@ -101,11 +155,14 @@ export class ComponentsDependencies {
       if (visited[index]) return;
       visited[index] = 1;
 
-      const entity = components[index].entity;
-      let type = components[index].constructor as ComponentConstructor;
+      const component = components[index];
+      if (component.destroyed) return;
+      const entity = component.entity;
+      let type = component.constructor as ComponentConstructor;
       while (type && type !== Component) {
         const invDeps = ComponentsDependencies._invDependenciesMap.get(type);
         if (invDeps) {
+          if (ComponentsDependencies._hasAnotherProvider(entity._components, type)) break;
           for (let i = 0, len = invDeps.length; i < len; i++) {
             const dependent = invDeps[i];
             for (let j = 0; j < n; j++) {
@@ -139,6 +196,14 @@ export class ComponentsDependencies {
     return false;
   }
 
+  private static _hasAnotherProvider(components: readonly Component[], type: ComponentConstructor): boolean {
+    let count = 0;
+    for (let i = 0, n = components.length; i < n; i++) {
+      if (components[i] instanceof type && ++count > 1) return true;
+    }
+    return false;
+  }
+
   /**
    * @internal
    * Verify that removing `type` from `entity` does not leave any surviving component with an unsatisfied dependency.
@@ -160,10 +225,7 @@ export class ComponentsDependencies {
       }
       const invDependencies = ComponentsDependencies._invDependenciesMap.get(type);
       if (invDependencies) {
-        let count = 0;
-        for (let i = 0; i < n; i++) {
-          if (components[i] instanceof type && ++count > 1) return usedReplacement;
-        }
+        if (ComponentsDependencies._hasAnotherProvider(components, type)) return usedReplacement;
         let dependents: Component[] | null = null;
         for (let i = 0, len = invDependencies.length; i < len; i++) {
           const dependentType = invDependencies[i];
@@ -190,22 +252,6 @@ export class ComponentsDependencies {
       type = Object.getPrototypeOf(type);
     }
     return usedReplacement;
-  }
-
-  /**
-   * @internal
-   */
-  static _addDependency(
-    targetInfo: DependentInfo,
-    dependentComponent: ComponentConstructor,
-    map: Map<DependentInfo, ComponentConstructor[]>
-  ): void {
-    const components = map.get(targetInfo);
-    if (!components) {
-      map.set(targetInfo, [dependentComponent]);
-    } else {
-      components.includes(dependentComponent) || components.push(dependentComponent);
-    }
   }
 
   /**

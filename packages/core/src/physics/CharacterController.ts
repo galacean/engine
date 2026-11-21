@@ -16,14 +16,15 @@ import { Rigidbody } from "./Rigidbody";
  * {@link Rigidbody}. Its geometry follows the Entity's world scale; {@link Collider.rotation} does not apply.
  */
 export class CharacterController extends Collider {
-  private static _tempWorldPosition = new Vector3();
+  private static _tempMovePosition = new Vector3();
   private static _tempWorldScale = new Vector3();
   private static _tempExtents = new Vector3();
 
   private _geometry = CharacterControllerGeometry.Capsule;
   private _radius = 0.5;
   private _height = 1;
-  private _size = new Vector3(1, 1, 1);
+  @ignoreClone
+  private _size: Vector3;
   private _stepOffset = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
   private _upDirection = new Vector3(0, 1, 0);
@@ -92,17 +93,25 @@ export class CharacterController extends Collider {
   /**
    * The box size in the Entity's local space. Negative components are clamped to 0.
    * @defaultValue `(1, 1, 1)`
+   * @remarks Mutating the returned vector updates the box size.
    */
   get size(): Vector3 {
-    return this._size;
+    let size = this._size;
+    if (!size) {
+      this._size = size = new Vector3(1, 1, 1);
+      //@ts-ignore
+      size._onValueChanged = this._onSizeChanged.bind(this);
+    }
+    return size;
   }
 
   set size(value: Vector3) {
     if (!Number.isFinite(value.x) || !Number.isFinite(value.y) || !Number.isFinite(value.z)) {
       throw new Error("CharacterController size must be finite.");
     }
-    if (this._size !== value) {
-      this._size.copyFrom(value);
+    const size = this.size;
+    if (size !== value) {
+      size.copyFrom(value);
     }
   }
 
@@ -199,11 +208,16 @@ export class CharacterController extends Collider {
    */
   constructor(entity: Entity) {
     super(entity);
-    //@ts-ignore
-    this._size._onValueChanged = this._onSizeChanged.bind(this);
     this._setUpDirection = this._setUpDirection.bind(this);
     //@ts-ignore
     this._upDirection._onValueChanged = this._setUpDirection;
+  }
+
+  /** @internal */
+  override _onClone(target: CharacterController): void {
+    super._onClone(target);
+    const size = this._size;
+    if (size) target.size = size;
   }
 
   /**
@@ -227,7 +241,7 @@ export class CharacterController extends Collider {
       return 0;
     }
     const flags = controller.move(disp, minDist, elapsedTime);
-    const position = CharacterController._tempWorldPosition;
+    const position = CharacterController._tempMovePosition;
     controller.getWorldPosition(position);
     const transform = this.entity.transform;
     transform.worldPosition = position;
@@ -260,6 +274,8 @@ export class CharacterController extends Collider {
     // Reading the world matrix re-arms transform change notifications that are only sent from a clean state
     transform.worldMatrix;
     const lossyScale = transform.lossyWorldScale;
+    const position = transform.worldPosition;
+    const colliderCenter = this.center;
     const scale = CharacterController._tempWorldScale.set(
       Math.abs(lossyScale.x),
       Math.abs(lossyScale.y),
@@ -272,7 +288,7 @@ export class CharacterController extends Collider {
     if (syncGeometry) {
       if (box) {
         const size = this._size;
-        dimensions.set(size.x * scale.x * 0.5, size.y * scale.y * 0.5, size.z * scale.z * 0.5);
+        dimensions.set((size?.x ?? 1) * scale.x * 0.5, (size?.y ?? 1) * scale.y * 0.5, (size?.z ?? 1) * scale.z * 0.5);
       } else {
         dimensions.set(this._radius * Math.max(scale.x, scale.z), this._height * scale.y, 0);
       }
@@ -287,23 +303,23 @@ export class CharacterController extends Collider {
     }
 
     const controller = <ICharacterController>(this._native ||= this._createNative());
-    const center = CharacterController._tempWorldPosition;
-    Vector3.multiply(this.center, scale, center);
-    const position = transform.worldPosition;
+    const centerX = colliderCenter.x * scale.x;
+    const centerY = colliderCenter.y * scale.y;
+    const centerZ = colliderCenter.z * scale.z;
     const syncedCenter = this._syncedCenter;
     const nativePosition = this._nativePosition;
     if (
       force ||
-      center.x !== syncedCenter.x ||
-      center.y !== syncedCenter.y ||
-      center.z !== syncedCenter.z ||
+      centerX !== syncedCenter.x ||
+      centerY !== syncedCenter.y ||
+      centerZ !== syncedCenter.z ||
       position.x !== nativePosition.x ||
       position.y !== nativePosition.y ||
       position.z !== nativePosition.z
     ) {
-      syncedCenter.copyFrom(center);
+      syncedCenter.set(centerX, centerY, centerZ);
       nativePosition.copyFrom(position);
-      controller.setWorldPosition(position, center);
+      controller.setWorldPosition(position, syncedCenter);
     }
     if (syncGeometry) {
       this._geometryDirty = false;

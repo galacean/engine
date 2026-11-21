@@ -1,4 +1,3 @@
-import { Vector3 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { Scene } from "../Scene";
@@ -14,7 +13,6 @@ import { PostProcessEffect } from "./PostProcessEffect";
  */
 export class PostProcessManager {
   private static _tempColliders: Collider[] = [];
-  private static _tempVector3 = new Vector3();
 
   /** @internal */
   _uberMaterial: Material;
@@ -93,8 +91,7 @@ export class PostProcessManager {
             physicsSynced = true;
           }
           hasCollider = true;
-          const distance = collider._getVolumeDistance(cameraPosition, PostProcessManager._tempVector3);
-          // A collider outside the simulation has no distance, so it has no influence either
+          const distance = collider._getVolumeDistance(cameraPosition);
           if (distance >= 0 && distance < closestDistance) {
             closestDistance = distance;
             if (distance === 0) break;

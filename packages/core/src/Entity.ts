@@ -259,7 +259,10 @@ export class Entity extends EngineObject {
     this._transform = transform;
     transform._setActive(true, ActiveChangeFlag.All);
 
-    if (n > 0) {
+    if (n === 1) {
+      const type = components[0];
+      if (type !== transformType) this.addComponent(type);
+    } else if (n > 1) {
       ComponentsDependencies._forEachInAddOrder(this, components, (i) => {
         const componentType = components[i];
         if (!Entity._isTransformType(componentType)) {
@@ -433,12 +436,12 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Clear children entities.
+   * Detaches the children present when this method is called.
    */
   clearChildren(): void {
-    const children = this._children;
-    while (children.length > 0) {
-      children[children.length - 1]._setParent(null);
+    const children = this._children.slice();
+    for (let i = children.length - 1; i >= 0; i--) {
+      this.removeChild(children[i]);
     }
   }
 
@@ -453,7 +456,8 @@ export class Entity extends EngineObject {
   /** @internal */
   _clone(templateOwner?: ReferResource): Entity {
     const cloneMap = new Map<object, object>();
-    const cloneEntity = this._createCloneEntity(cloneMap, templateOwner);
+    // Component constructors can start another clone while the type array is in use.
+    const cloneEntity = this._createCloneEntity(cloneMap, [], templateOwner);
     this._parseCloneEntity(this, cloneEntity, cloneMap);
     return cloneEntity;
   }
@@ -492,6 +496,10 @@ export class Entity extends EngineObject {
       if (addedCount > 0) this._addComponents(addedTypes, onAdd);
       return;
     }
+    if (addedCount === 0) {
+      ComponentsDependencies._forEachInRemoveOrder(removed, (i) => removed[i].destroy());
+      return;
+    }
 
     const replacedEntries: Array<{ dependency: ComponentConstructor; dependents: Component[] }> = [];
     const suspendedDependents: Component[] = [];
@@ -499,34 +507,30 @@ export class Entity extends EngineObject {
     ComponentsDependencies._forEachInRemoveOrder(removed, (i) => {
       const component = removed[i];
       if (component.destroyed) return;
-      if (addedCount > 0) {
-        const prevLen = replacedEntries.length;
-        const needsReplacement = ComponentsDependencies._removeCheck(
-          this,
-          component.constructor as ComponentConstructor,
-          addedTypes,
-          replacedEntries
-        );
-        if (needsReplacement) {
-          for (let j = prevLen, m = replacedEntries.length; j < m; j++) {
-            const dependents = replacedEntries[j].dependents;
-            for (let k = 0, p = dependents.length; k < p; k++) {
-              const dep = dependents[k];
-              if (dep._deactivateInScene()) {
-                suspendedDependents.push(dep);
-              }
+      const prevLen = replacedEntries.length;
+      const needsReplacement = ComponentsDependencies._removeCheck(
+        this,
+        component.constructor as ComponentConstructor,
+        addedTypes,
+        replacedEntries
+      );
+      if (needsReplacement) {
+        for (let j = prevLen, m = replacedEntries.length; j < m; j++) {
+          const dependents = replacedEntries[j].dependents;
+          for (let k = 0, p = dependents.length; k < p; k++) {
+            const dep = dependents[k];
+            if (dep._deactivateInScene()) {
+              suspendedDependents.push(dep);
             }
           }
-          this._removeComponent(component);
-          component.destroy();
-          return;
         }
+        this._removeComponent(component);
       }
       component.destroy();
     });
 
     if (replacedEntries.length === 0) {
-      if (addedCount > 0) this._addComponents(addedTypes, onAdd);
+      this._addComponents(addedTypes, onAdd);
       return;
     }
 
@@ -600,7 +604,11 @@ export class Entity extends EngineObject {
     this._templateResource = templateResource;
   }
 
-  private _createCloneEntity(cloneMap: Map<object, object>, templateOwner?: ReferResource): Entity {
+  private _createCloneEntity(
+    cloneMap: Map<object, object>,
+    types: ComponentConstructor[],
+    templateOwner?: ReferResource
+  ): Entity {
     const components = this._components;
     const n = components.length;
     const cloneEntity = new Entity(this.engine, this.name, components[0].constructor as ComponentConstructor);
@@ -610,7 +618,7 @@ export class Entity extends EngineObject {
     cloneMap.set(this, cloneEntity);
     cloneMap.set(components[0], cloneEntity._components[0]);
     if (n > 1) {
-      const types = new Array<ComponentConstructor>(n - 1);
+      types.length = n - 1;
       for (let i = 1; i < n; i++) {
         types[i - 1] = components[i].constructor as ComponentConstructor;
       }
@@ -628,7 +636,7 @@ export class Entity extends EngineObject {
     cloneEntity._isActive = this._isActive;
     const srcChildren = this._children;
     for (let i = 0, n = srcChildren.length; i < n; i++) {
-      cloneEntity.addChild(srcChildren[i]._createCloneEntity(cloneMap));
+      cloneEntity.addChild(srcChildren[i]._createCloneEntity(cloneMap, types));
     }
     return cloneEntity;
   }
@@ -647,7 +655,7 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Destroy self.
+   * Destroys this entity, its components, and its descendants.
    */
   override destroy(): void {
     if (this._destroyed) return;
@@ -671,15 +679,15 @@ export class Entity extends EngineObject {
     }
 
     const components = this._components;
-    for (let i = components.length - 1; i >= 0; i--) {
-      const component = components[i];
-      if (!component) continue;
+    // Destroy callbacks can remove other components from the live list.
+    const removalOrder = components.length > 1 ? components.slice().reverse() : components;
+    ComponentsDependencies._forEachInRemoveOrder(removalOrder, (i) => {
       try {
-        component.destroy();
+        removalOrder[i].destroy();
       } catch (error) {
         recordError(error);
       }
-    }
+    });
     this._components.length = 0;
 
     const children = this._children;
@@ -689,9 +697,13 @@ export class Entity extends EngineObject {
         child.destroy();
       } catch (error) {
         recordError(error);
-        if (children[0] === child) {
-          child._removeFromParent();
-          Entity._assignOwnerScene(child, null);
+      }
+      if (children[0] === child) {
+        // A reentrant parent destroy can encounter a child already being destroyed.
+        try {
+          child._detachFromHierarchy();
+        } catch (error) {
+          recordError(error);
         }
       }
     }

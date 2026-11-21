@@ -89,7 +89,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         const pairs = this._eventMap[Math.min(index1, index2)];
         const big = Math.max(index1, index2);
         pairs[big]!.state = PhysicsEventState.Exit;
-        pairs[big] = undefined;
+        delete pairs[big];
       }
     };
 
@@ -177,20 +177,25 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    */
   updateEvents(): IPhysicsEvents {
     const physicsEvents = this._physicsEvents;
-
-    // Collect trigger events: snapshot state for dispatch, then advance
-    const { triggerEvents } = physicsEvents;
+    const triggerEvents = physicsEvents.triggerEvents;
+    const activeTriggers = this._activeTriggers;
+    const elements = activeTriggers._elements;
     triggerEvents.length = 0;
-    this._activeTriggers.forEach((event, i) => {
-      event.dispatchState = event.state;
-      triggerEvents.push(event);
-      if (event.state === PhysicsEventState.Enter) {
-        event.state = PhysicsEventState.Stay;
-      } else if (event.state === PhysicsEventState.Exit) {
-        this._retireTrigger(event, i);
+    activeTriggers._startLoop();
+    try {
+      for (let i = 0, n = activeTriggers.length; i < n; i++) {
+        const event = elements[i];
+        const state = (event.dispatchState = event.state);
+        triggerEvents.push(event);
+        if (state === PhysicsEventState.Enter) {
+          event.state = PhysicsEventState.Stay;
+        } else if (state === PhysicsEventState.Exit) {
+          this._retireTrigger(event, i);
+        }
       }
-    });
-
+    } finally {
+      activeTriggers._endLoop(undefined);
+    }
     return physicsEvents;
   }
 
@@ -469,27 +474,37 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     if (changes.size === 0) {
       return;
     }
-    this._activeTriggers.forEach((event, i) => {
-      const first = changes.get(event.index1);
-      const second = changes.get(event.index2);
-      if (first === false || second === false) {
-        this._retireTrigger(event, i);
-      } else if (first || second) {
-        // PhysX can find the reattached pair again and turn this exit into a stay.
-        event.state = PhysicsEventState.Exit;
+    const activeTriggers = this._activeTriggers;
+    const elements = activeTriggers._elements;
+    activeTriggers._startLoop();
+    try {
+      for (let i = 0, n = activeTriggers.length; i < n; i++) {
+        const event = elements[i];
+        const first = changes.get(event.index1);
+        const second = changes.get(event.index2);
+        if (first === false || second === false) {
+          this._retireTrigger(event, i);
+        } else if (first || second) {
+          // PhysX can find the reattached pair again and turn this exit into a stay.
+          event.state = PhysicsEventState.Exit;
+        }
       }
-    });
-    changes.forEach((present, id) => {
-      if (!present) delete this._eventMap[id];
-    });
+    } finally {
+      activeTriggers._endLoop(undefined);
+    }
+    changes.forEach(this._forgetRemovedShape);
     changes.clear();
   }
+
+  private readonly _forgetRemovedShape = (present: boolean, id: number): void => {
+    if (!present) delete this._eventMap[id];
+  };
 
   private _retireTrigger(event: TriggerEvent, index: number): void {
     this._activeTriggers.deleteByIndex(index);
     this._triggerEventPool.push(event);
     const pairs = this._eventMap[event.index1];
-    if (pairs[event.index2] === event) pairs[event.index2] = undefined;
+    if (pairs[event.index2] === event) delete pairs[event.index2];
   }
 
   private _bufferContactEvent(

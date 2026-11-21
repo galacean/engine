@@ -13,10 +13,12 @@ import {
   Loader,
   MeshCollider,
   PlaneCollider,
-  PrimitiveMesh
+  PrimitiveMesh,
+  Transform
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
+import { HorizontalAlignmentMode, UITransform } from "@galacean/engine-ui";
 import { vi, describe, beforeAll, afterAll, beforeEach, afterEach, expect, it } from "vitest";
 import { PrefabParser } from "../../../../packages/loader/src/prefab/PrefabParser";
 
@@ -138,6 +140,56 @@ describe("Rigidbody", function () {
     expect(formatValue(box.transform.rotation.y)).closeTo(45, 0.0001);
   });
 
+  it("keeps the simulated pose when alignment rederives the Entity's position", () => {
+    const parent = rootEntity.createChild();
+    parent.addComponent(UITransform);
+    const entity = parent.createChild();
+    const transform = entity.transform as UITransform;
+    transform.horizontalAlignment = HorizontalAlignmentMode.Center;
+    const collider = entity.addComponent(BoxCollider);
+    const body = entity.addComponent(Rigidbody);
+    body.useGravity = false;
+    body.linearVelocity = new Vector3(120, 0, 0);
+
+    const physics = engine.sceneManager.activeScene.physics;
+    physics._update(physics.fixedTimeStep);
+    expect(transform.worldPosition.x).toBe(0);
+
+    const ray = new Ray(new Vector3(2, 0, -2), new Vector3(0, 0, 1));
+    const hit = new HitResult();
+    expect(physics.raycast(ray, 4, hit)).toBe(true);
+    expect(hit.collider).toBe(collider);
+  });
+
+  it("keeps the simulated pose when the Transform adjusts position during rotation write-back", () => {
+    class OffsetOnRotationTransform extends Transform {
+      override get worldRotationQuaternion(): Quaternion {
+        return super.worldRotationQuaternion;
+      }
+
+      override set worldRotationQuaternion(value: Quaternion) {
+        super.worldRotationQuaternion = value;
+        this.position.x = value.z === 0 ? 0 : 5;
+      }
+    }
+
+    const entity = rootEntity.createChild();
+    const transform = entity.addComponent(OffsetOnRotationTransform);
+    const collider = entity.addComponent(BoxCollider);
+    const body = entity.addComponent(Rigidbody);
+    body.isKinematic = true;
+    body.move(new Quaternion(0, 0, Math.SQRT1_2, Math.SQRT1_2));
+
+    const physics = engine.sceneManager.activeScene.physics;
+    physics._update(physics.fixedTimeStep);
+    expect(transform.worldPosition.x).toBe(5);
+
+    const ray = new Ray(new Vector3(0, 0, -2), new Vector3(0, 0, 1));
+    const hit = new HitResult();
+    expect(physics.raycast(ray, 4, hit)).toBe(true);
+    expect(hit.collider).toBe(collider);
+  });
+
   it("mass", function () {
     const box = addBox(new Vector3(2, 2, 2), true, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(Rigidbody);
@@ -188,6 +240,30 @@ describe("Rigidbody", function () {
       expect(manual ? calculateMass : setMass).not.toHaveBeenCalled();
     }
   );
+
+  it("cancels multiple queued mass updates and applies the latest masses after re-enabling", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    const bodies = [0, 5, 10].map((x) => {
+      const entity = rootEntity.createChild();
+      entity.transform.setPosition(x, 0, 0);
+      entity.addComponent(BoxCollider);
+      const body = entity.addComponent(Rigidbody);
+      body.useGravity = false;
+      return body;
+    });
+    physics._update(physics.fixedTimeStep);
+
+    for (let i = 0; i < bodies.length; i++) bodies[i].mass = i + 2;
+    bodies[0].enabled = bodies[2].enabled = false;
+    bodies[0].enabled = bodies[2].enabled = true;
+    const force = new Vector3(12, 0, 0);
+    for (const body of bodies) body.applyForce(force);
+    physics._update(physics.fixedTimeStep);
+
+    for (let i = 0; i < bodies.length; i++) {
+      expect(bodies[i].linearVelocity.x).toBeCloseTo((12 / (i + 2)) * physics.fixedTimeStep, 5);
+    }
+  });
 
   it.each([true, false])("does not resync colliders owned by an independent Rigidbody (enabled: %s)", (enabled) => {
     const physics = engine.sceneManager.activeScene.physics;

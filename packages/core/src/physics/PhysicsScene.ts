@@ -7,7 +7,7 @@ import { Script } from "../Script";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
-import { Rigidbody, RigidbodyMassDirty } from "./Rigidbody";
+import { Rigidbody } from "./Rigidbody";
 
 /**
  * A physics scene is a collection of colliders and constraints which can interact.
@@ -15,7 +15,6 @@ import { Rigidbody, RigidbodyMassDirty } from "./Rigidbody";
  * order in which components are enabled never produces intermediate native states.
  */
 export class PhysicsScene {
-  private static _collision = new Collision();
   private static _identityQuaternion = new Quaternion(0, 0, 0, 1);
   private static _tempDirection = new Vector3();
   private static _raycastHitPool: HitResult[] = [];
@@ -35,6 +34,7 @@ export class PhysicsScene {
   private _dirtyBodies: Rigidbody[] = [];
   private _dirtyColliders: Collider[] = [];
   private _massDirtyBodies: Rigidbody[] = [];
+  private _collision: Collision;
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
   /** @internal */
@@ -185,11 +185,10 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
-    const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
+    const normalizedDirection = distance > 0 ? this._syncCastDirection(ray.direction) : null;
 
     let result = false;
-    if (distance > 0 && normalizedDirection) {
-      this._syncColliders();
+    if (normalizedDirection) {
       result = this._nativePhysicsScene.raycast(
         ray.origin,
         normalizedDirection,
@@ -268,9 +267,8 @@ export class PhysicsScene {
 
     const pool = PhysicsScene._raycastHitPool;
     let hitCount = 0;
-    const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
-    if (distance > 0 && normalizedDirection) {
-      this._syncColliders();
+    const normalizedDirection = distance > 0 ? this._syncCastDirection(ray.direction) : null;
+    if (normalizedDirection) {
       this._nativePhysicsScene.raycastAll(
         ray.origin,
         normalizedDirection,
@@ -406,11 +404,11 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
-    const normalizedDirection = PhysicsScene._normalizeDirection(direction);
+    const normalizedDirection =
+      distance > 0 && PhysicsScene._isValidBoxExtents(halfExtents) ? this._syncCastDirection(direction) : null;
 
     let result = false;
-    if (distance > 0 && normalizedDirection && PhysicsScene._isValidBoxExtents(halfExtents)) {
-      this._syncColliders();
+    if (normalizedDirection) {
       result = this._nativePhysicsScene.boxCast(
         center,
         orientation,
@@ -515,11 +513,11 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
-    const normalizedDirection = PhysicsScene._normalizeDirection(direction);
+    const normalizedDirection =
+      distance > 0 && Collider._isValidPositiveFloat32(radius) ? this._syncCastDirection(direction) : null;
 
     let result = false;
-    if (distance > 0 && normalizedDirection && Collider._isValidPositiveFloat32(radius)) {
-      this._syncColliders();
+    if (normalizedDirection) {
       result = this._nativePhysicsScene.sphereCast(
         center,
         radius,
@@ -646,16 +644,13 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
-    const normalizedDirection = PhysicsScene._normalizeDirection(direction);
+    const normalizedDirection =
+      distance > 0 && Collider._isValidPositiveFloat32(radius) && Collider._isValidPositiveFloat32(height * 0.5)
+        ? this._syncCastDirection(direction)
+        : null;
 
     let result = false;
-    if (
-      distance > 0 &&
-      normalizedDirection &&
-      Collider._isValidPositiveFloat32(radius) &&
-      Collider._isValidPositiveFloat32(height * 0.5)
-    ) {
-      this._syncColliders();
+    if (normalizedDirection) {
       result = this._nativePhysicsScene.capsuleCast(
         center,
         radius,
@@ -797,7 +792,9 @@ export class PhysicsScene {
     }
     const massDirtyBodies = this._massDirtyBodies;
     while (massDirtyBodies.length) {
-      massDirtyBodies.pop()!._updateMass();
+      const body = massDirtyBodies.pop()!;
+      body._massDirtyIndex = -1;
+      body._updateMass();
     }
   }
 
@@ -837,10 +834,15 @@ export class PhysicsScene {
       return;
     }
     PhysicsScene._removeDirty(this._dirtyBodies, body);
-    if (body._massDirty & RigidbodyMassDirty.Queued) {
-      body._massDirty &= ~RigidbodyMassDirty.Queued;
+    const massIndex = body._massDirtyIndex;
+    if (massIndex !== -1) {
       const massDirtyBodies = this._massDirtyBodies;
-      massDirtyBodies.splice(massDirtyBodies.indexOf(body), 1);
+      const last = massDirtyBodies.pop()!;
+      if (last !== body) {
+        massDirtyBodies[massIndex] = last;
+        last._massDirtyIndex = massIndex;
+      }
+      body._massDirtyIndex = -1;
     }
     const bodies = this._bodies;
     const last = bodies.pop()!;
@@ -869,7 +871,9 @@ export class PhysicsScene {
    * @internal
    */
   _queueMassUpdate(body: Rigidbody): void {
-    this._massDirtyBodies.push(body);
+    const massDirtyBodies = this._massDirtyBodies;
+    body._massDirtyIndex = massDirtyBodies.length;
+    massDirtyBodies.push(body);
   }
 
   /**
@@ -926,24 +930,26 @@ export class PhysicsScene {
 
   private _dispatchEvents(events: IPhysicsEvents): void {
     const physicalObjectsMap = Engine._physicalObjectsMap;
-    const collision = PhysicsScene._collision;
     const { contactEvents, contactEventCount, triggerEvents } = events;
 
-    try {
-      for (let i = 0, n = contactEventCount; i < n; i++) {
-        const event = contactEvents[i];
-        const collider0 = physicalObjectsMap[event.shape0Id];
-        const collider1 = physicalObjectsMap[event.shape1Id];
-        if (!collider0 || !collider1) continue;
-        collision._nativeCollision = event;
-        const state = event.state;
-        PhysicsScene._dispatchScripts(state, collider0, collider1, collision);
-        PhysicsScene._dispatchScripts(state, collider1, collider0, collision);
+    if (contactEventCount > 0) {
+      const collision = (this._collision ||= new Collision());
+      try {
+        for (let i = 0; i < contactEventCount; i++) {
+          const event = contactEvents[i];
+          const collider0 = physicalObjectsMap[event.shape0Id];
+          const collider1 = physicalObjectsMap[event.shape1Id];
+          if (!collider0 || !collider1) continue;
+          collision._nativeCollision = event;
+          const state = event.state;
+          PhysicsScene._dispatchScripts(state, collider0, collider1, collision);
+          PhysicsScene._dispatchScripts(state, collider1, collider0, collision);
+        }
+      } finally {
+        collision._nativeCollision = null!;
+        collision.collider = null!;
+        collision.selfCollider = null!;
       }
-    } finally {
-      collision._nativeCollision = null!;
-      collision.collider = null!;
-      collision.selfCollider = null!;
     }
 
     for (let i = 0, n = triggerEvents.length; i < n; i++) {
@@ -1023,9 +1029,14 @@ export class PhysicsScene {
     );
   }
 
-  private static _normalizeDirection(direction: Vector3): Vector3 | null {
-    const out = PhysicsScene._tempDirection;
-    return Vector3.normalize(direction, out) ? out : null;
+  private _syncCastDirection(direction: Vector3): Vector3 | null {
+    const { x, y, z } = direction;
+    const length = Math.sqrt(x * x + y * y + z * z);
+    if (!(length > MathUtil.zeroTolerance && Number.isFinite(length))) return null;
+    // A Transform getter can query the scene during sync and reuse the same native direction.
+    this._syncColliders();
+    const inverseLength = 1 / length;
+    return PhysicsScene._tempDirection.set(x * inverseLength, y * inverseLength, z * inverseLength);
   }
 
   private _setGravity(): void {

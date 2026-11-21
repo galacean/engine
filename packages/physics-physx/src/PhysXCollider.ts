@@ -11,7 +11,7 @@ export abstract class PhysXCollider implements ICollider {
   private static _tempTransform: {
     translation: Vector3;
     rotation: Quaternion;
-  } = { translation: null!, rotation: new Quaternion() };
+  } = { translation: new Vector3(), rotation: new Quaternion() };
 
   /** @internal  */
   _scene: PhysXPhysicsScene | null = null;
@@ -77,9 +77,9 @@ export abstract class PhysXCollider implements ICollider {
    * {@inheritDoc IStaticCollider.getWorldTransform }
    */
   getWorldTransform(outPosition: Vector3, outRotation: Quaternion): void {
-    const transform = this._pxActor.getGlobalPose();
-    outPosition.set(transform.translation.x, transform.translation.y, transform.translation.z);
-    outRotation.set(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
+    const { translation, rotation } = this._pxActor.getGlobalPose();
+    outPosition.copyFrom(translation);
+    outRotation.copyFrom(rotation);
   }
 
   /**
@@ -94,8 +94,8 @@ export abstract class PhysXCollider implements ICollider {
    */
   _transform(pos: Vector3, rot: Quaternion): { translation: Vector3; rotation: Quaternion } {
     const transform = PhysXCollider._tempTransform;
-    transform.translation = pos;
-    // Normalize a copy: the caller's quaternion may be an Entity's world rotation
+    // A Transform's vectors carry callbacks that keep its Entity alive.
+    transform.translation.copyFrom(pos);
     Quaternion.normalize(rot, transform.rotation);
     return transform;
   }

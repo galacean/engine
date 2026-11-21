@@ -512,8 +512,9 @@ export class Scene extends EngineObject {
     const sceneManager = this._engine.sceneManager;
     runStep(() => sceneManager.removeScene(this));
 
-    while (this.rootEntitiesCount > 0) {
-      const root = this._rootEntities[0];
+    const roots = this._rootEntities;
+    while (roots.length > 0) {
+      const root = roots[0];
       try {
         root.destroy();
       } catch (error) {
@@ -521,11 +522,10 @@ export class Scene extends EngineObject {
           firstError = error;
           hasError = true;
         }
-        if (this._rootEntities[0] === root) {
-          Entity._removeFromChildren(this._rootEntities, root);
-          root._isRoot = false;
-          Entity._assignOwnerScene(root, null);
-        }
+      }
+      if (roots[0] === root) {
+        // An in-progress root teardown must unregister before native scene destruction.
+        runStep(() => root._detachFromHierarchy());
       }
     }
     runStep(() => this.background.destroy());

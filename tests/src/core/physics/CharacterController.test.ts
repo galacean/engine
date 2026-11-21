@@ -11,7 +11,8 @@ import {
   PhysicsScene,
   PlaneCollider,
   Rigidbody,
-  Script
+  Script,
+  Transform
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
@@ -99,6 +100,82 @@ describe("CharacterController", () => {
     expect(capsule.upDirection.y).toBe(1);
     expect(capsule.upDirection.z).toBe(0);
     expect(capsule.slopeLimit).toBe(45);
+  });
+
+  it("clones authored box size and syncs subsequent mutations on the clone", () => {
+    controller.size.set(1, 2, 1);
+    const clone = role.clone();
+    clone.transform.setPosition(3, 3, 0);
+    root.addChild(clone);
+    const cloneController = clone.getComponent(CharacterController);
+    const ray = new Ray(new Vector3(4, 3, -3), new Vector3(0, 0, 1));
+    const hit = new HitResult();
+
+    expect(cloneController.size.y).toBe(2);
+    expect(physics.raycast(ray, 6)).toBe(false);
+    cloneController.size.x = 3;
+    expect(controller.size.x).toBe(1);
+    expect(physics.raycast(ray, 6, hit)).toBe(true);
+    expect(hit.collider).toBe(cloneController);
+  });
+
+  it("keeps the controller center when a Transform getter queries the scene during sync", () => {
+    const cast = (x: number, y: number) => physics.raycast(new Ray(new Vector3(x, y, -3), new Vector3(0, 0, 1)), 5);
+    let queryDuringSync = false;
+    let nestedResult: boolean | undefined;
+    class QueryingTransform extends Transform {
+      override get worldPosition(): Vector3 {
+        if (queryDuringSync) {
+          queryDuringSync = false;
+          nestedResult = cast(5.1, 20);
+        }
+        return super.worldPosition;
+      }
+    }
+
+    const other = root.createChild();
+    other.transform.setPosition(0, 20, 0);
+    const otherController = other.addComponent(CharacterController);
+    otherController.center.x = 5;
+    role.addComponent(QueryingTransform).setPosition(0, 3, 0);
+    controller.center.x = 2;
+    expect(cast(2, 3)).toBe(true);
+
+    otherController.center.x = 5.1;
+    controller.center.x = 2.5;
+    queryDuringSync = true;
+
+    expect(cast(2.5, 3)).toBe(true);
+    expect(nestedResult).toBe(true);
+    expect(cast(5.1, 3)).toBe(false);
+  });
+
+  it("keeps the moved position when its Transform setter queries the scene", () => {
+    const other = root.createChild();
+    other.transform.setPosition(0, 20, 0);
+    const otherController = other.addComponent(CharacterController);
+    otherController.center.x = 5;
+    const ray = new Ray(new Vector3(5.1, 20, -3), new Vector3(0, 0, 1));
+    let nestedResult: boolean | undefined;
+
+    class QueryingTransform extends Transform {
+      override get worldPosition(): Vector3 {
+        return super.worldPosition;
+      }
+
+      override set worldPosition(value: Vector3) {
+        otherController.center.x = 5.1;
+        nestedResult = physics.raycast(ray, 5);
+        super.worldPosition = value;
+      }
+    }
+
+    const transform = role.addComponent(QueryingTransform);
+    transform.setPosition(0, 3, 0);
+    move(new Vector3(2, 0, 0));
+
+    expect(nestedResult).toBe(true);
+    expect(transform.worldPosition.x).toBeCloseTo(2);
   });
 
   it("writes the world position immediately when moved under a transformed parent", () => {

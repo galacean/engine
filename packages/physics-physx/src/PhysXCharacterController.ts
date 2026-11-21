@@ -23,7 +23,7 @@ export class PhysXCharacterController implements ICharacterController {
   private _isBox = false;
   private _radius = 0.5;
   private _height = 1;
-  private _halfExtents = new Vector3(0.5, 0.5, 0.5);
+  private _halfExtents: Vector3;
   private _center = new Vector3();
   private _worldPosition = new Vector3();
   private _contactOffset = 0.02;
@@ -62,7 +62,7 @@ export class PhysXCharacterController implements ICharacterController {
    */
   setBox(halfExtents: Vector3): void {
     const controller = this._isBox ? this._pxController : null;
-    const size = this._halfExtents;
+    const size = (this._halfExtents ||= new Vector3());
     const x = Math.fround(halfExtents.x);
     const y = Math.fround(halfExtents.y);
     const z = Math.fround(halfExtents.z);

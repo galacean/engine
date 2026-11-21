@@ -104,8 +104,9 @@ export class MeshCollider extends Collider {
 
   /**
    * @internal
+   * @inheritdoc
    */
-  override _getVolumeDistance(point: Vector3, outClosestPoint: Vector3): number {
+  override _getVolumeDistance(point: Vector3, outClosestPoint?: Vector3): number {
     if (!this._convex) {
       return -1;
     }

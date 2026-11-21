@@ -251,6 +251,8 @@ describe("Script", () => {
         engine.update();
         expect(calls).toEqual(["pending", "appended"]);
         expect(starts.length).toBe(0);
+        entity.destroy();
+        expect(starts._elements.every((script) => script === null)).toBe(true);
       } finally {
         engine.destroy();
       }

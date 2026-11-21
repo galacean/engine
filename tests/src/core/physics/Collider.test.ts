@@ -14,10 +14,12 @@ import {
   Rigidbody,
   Scene,
   Script,
-  SphereCollider
+  SphereCollider,
+  Transform
 } from "@galacean/engine-core";
 import { Matrix, Ray, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
+import { UITransform } from "@galacean/engine-ui";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 class CollisionRecorder extends Script {
@@ -161,6 +163,120 @@ describe("Collider", () => {
     expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
     expect(box.attachedRigidbody).toBe(body);
     expect(geometryWrites).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])("honors a custom world matrix after adding a Rigidbody (intermediate=%s)", (intermediate) => {
+    class TranslatedTransform extends Transform {
+      private readonly _matrix = new Matrix();
+
+      constructor(entity: Entity) {
+        super(entity);
+        this._matrix.elements[12] = 5;
+      }
+
+      override get worldMatrix(): Matrix {
+        return this._matrix;
+      }
+    }
+
+    const parent = root.createChild();
+    const translated = parent.createChild();
+    translated.addComponent(TranslatedTransform);
+    const entity = intermediate ? translated.createChild() : translated;
+    const collider = entity.addComponent(BoxCollider);
+    const translatedRay = new Ray(new Vector3(5, 0, -3), new Vector3(0, 0, 1));
+    const originRay = new Ray(new Vector3(0, 0, -3), new Vector3(0, 0, 1));
+    const hit = new HitResult();
+
+    expect(physics.raycast(translatedRay, 5, hit)).toBe(true);
+    expect(hit.collider).toBe(collider);
+
+    const body = parent.addComponent(Rigidbody);
+    body.isKinematic = true;
+    expect(collider.attachedRigidbody).toBe(body);
+    expect(entity.transform.worldPosition.x).toBe(5);
+    expect(physics.raycast(translatedRay, 5, hit)).toBe(true);
+    expect(hit.collider).toBe(collider);
+    expect(physics.raycast(originRay, 5)).toBe(false);
+  });
+
+  it.each([
+    { placement: "static", compound: false },
+    { placement: "compound", compound: true }
+  ])("keeps a $placement Collider's pose during a nested query", ({ compound }) => {
+    const cast = (x: number, y = 0) => physics.raycast(new Ray(new Vector3(x, y, -3), new Vector3(0, 0, 1)), 5);
+    let nestedResult: boolean | undefined;
+    let queryDuringSync = false;
+    const query = (): void => {
+      if (queryDuringSync) {
+        queryDuringSync = false;
+        nestedResult = cast(compound ? 5.1 : 0, 20);
+      }
+    };
+    class StaticQueryingTransform extends Transform {
+      override get worldPosition(): Vector3 {
+        query();
+        return super.worldPosition;
+      }
+    }
+
+    class CompoundQueryingTransform extends Transform {
+      override get localMatrix(): Matrix {
+        query();
+        return super.localMatrix;
+      }
+    }
+
+    const other = root.createChild();
+    other.transform.setPosition(0, 20, 0);
+    const target = root.createChild();
+    let otherBoxEntity = other;
+    let targetBoxEntity = target;
+    if (compound) {
+      other.addComponent(Rigidbody).isKinematic = true;
+      target.addComponent(Rigidbody).isKinematic = true;
+      otherBoxEntity = other.createChild();
+      targetBoxEntity = target.createChild();
+    }
+    const otherBox = otherBoxEntity.addComponent(BoxCollider);
+    if (compound) otherBox.center.x = 5;
+    targetBoxEntity.addComponent(compound ? CompoundQueryingTransform : StaticQueryingTransform);
+    const box = targetBoxEntity.addComponent(BoxCollider);
+    box.center.x = 2;
+    expect(cast(2)).toBe(true);
+
+    if (compound) {
+      otherBox.center.x = 5.1;
+    } else {
+      other.transform.setScale(3, 3, 3);
+    }
+    box.center.x = 2.5;
+    queryDuringSync = true;
+
+    expect(cast(2.5)).toBe(true);
+    expect(nestedResult).toBe(true);
+    expect(cast(compound ? 5.1 : 7.5)).toBe(false);
+  });
+
+  it("keeps Box geometry and mass unchanged when a UITransform only rotates", () => {
+    const parent = root.createChild();
+    parent.addComponent(UITransform);
+    const entity = parent.createChild();
+    const transform = entity.transform;
+    const box = entity.addComponent(BoxCollider);
+    const body = entity.addComponent(Rigidbody);
+    const ray = new Ray(new Vector3(0, 0, -3), new Vector3(0, 0, 1));
+    expect(physics.raycast(ray, 5)).toBe(true);
+    const geometryWrites = vi.spyOn(box._native["_pxShape"], "setGeometry");
+    const massRebuilds = vi.spyOn(body["_nativeActor"]!, "setMassAndUpdateInertia");
+
+    for (let degrees = 1; degrees <= 20; degrees++) {
+      transform.setRotation(0, 0, degrees);
+      expect(physics.raycast(ray, 5)).toBe(true);
+    }
+
+    expect(geometryWrites).not.toHaveBeenCalled();
+    expect(massRebuilds).not.toHaveBeenCalled();
   });
 
   describe.each([

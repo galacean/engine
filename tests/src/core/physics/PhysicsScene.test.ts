@@ -12,6 +12,7 @@ import {
   Scene,
   Script,
   SphereCollider,
+  Transform,
   CharacterControllerGeometry
 } from "@galacean/engine-core";
 import { Ray, Vector3, Quaternion } from "@galacean/engine-math";
@@ -521,6 +522,44 @@ describe("Physics Test", () => {
       expect(physicsScene.capsuleCast(inside, 0.1, 0.5, tinyDir, 6)).to.eq(false);
 
       root.destroy();
+    });
+
+    it("keeps the outer ray direction when collider sync issues another raycast", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity();
+      const outerRay = new Ray(new Vector3(0, 43, 0), new Vector3(1, 0, 0));
+      const innerRay = new Ray(outerRay.origin, new Vector3(0, 1, 0));
+      let trace: boolean | undefined;
+      let queryDuringSync = false;
+      class QueryTransform extends Transform {
+        override get worldMatrix() {
+          if (queryDuringSync) {
+            queryDuringSync = false;
+            trace = scene.physics.raycast(innerRay, 5);
+          }
+          return super.worldMatrix;
+        }
+      }
+
+      const other = new Entity(enginePhysX, "reentrant", QueryTransform);
+      root.addChild(other);
+      try {
+        const target = root.createChild("target");
+        target.transform.setPosition(3, 43, 0);
+        target.addComponent(BoxCollider);
+        other.transform.setPosition(-3, 43, 0);
+        other.addComponent(BoxCollider);
+        const result = new HitResult();
+        expect(scene.physics.raycast(outerRay, 5, result)).toBe(true);
+
+        other.transform.setPosition(-4, 43, 0);
+        queryDuringSync = true;
+        expect(scene.physics.raycast(outerRay, 5, result)).toBe(true);
+        expect(trace).toBe(false);
+        expect(result.entity).toBe(target);
+      } finally {
+        root.destroy();
+      }
     });
 
     it("raycastAll", () => {

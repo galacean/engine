@@ -12,7 +12,7 @@ import {
   Engine
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { MathUtil, Quaternion, Vector3 } from "@galacean/engine-math";
+import { MathUtil, Vector3 } from "@galacean/engine-math";
 import { describe, beforeAll, afterAll, beforeEach, expect, it } from "vitest";
 
 describe("HingeJoint", function () {
@@ -455,8 +455,6 @@ describe("HingeJoint", function () {
 
   it("handles antiparallel -X axis and transient zero axis without corrupting orientation", function () {
     engine.sceneManager.activeScene.physics.gravity.set(0, 0, 0);
-    // Prime internal Quaternion scratch vectors before constructing a -X axis hinge.
-    Quaternion.rotationAxisAngle(new Vector3(0, 0, 1), 0.5, new Quaternion());
 
     const posBox = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
     const posJoint = posBox.addComponent(HingeJoint);
@@ -483,6 +481,25 @@ describe("HingeJoint", function () {
     expect(negJoint.axis.z).toBeCloseTo(1, 5);
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(Number.isFinite(negBox.getComponent(Rigidbody).angularVelocity.z)).toBe(true);
+  });
+
+  it.each([1, -1])("keeps the authored hinge tilt near %sX", (axisX) => {
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const body = box.getComponent(Rigidbody);
+    body.useGravity = false;
+    const joint = box.addComponent(HingeJoint);
+    joint.axis = new Vector3(axisX, 0.001, 0);
+    const motor = new JointMotor();
+    motor.targetVelocity = 4;
+    joint.motor = motor;
+    joint.useMotor = true;
+
+    const physics = engine.sceneManager.activeScene.physics;
+    physics._update(physics.fixedTimeStep);
+
+    const { x, y } = body.angularVelocity;
+    expect(Math.abs(x)).toBeGreaterThan(5);
+    expect(y / x).toBeCloseTo(axisX * 0.001, 4);
   });
 
   it("computes default JointLimits contactDistance in radians for narrow degree ranges", function () {

@@ -205,6 +205,7 @@ export class DisorderedArray<T> {
       const element = elements[i];
       if (!element) continue;
       elements[index] = element;
+      elements[i] = null!;
       swapFn?.(element, index);
       index++;
     }

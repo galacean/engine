@@ -1,4 +1,5 @@
 import { Engine, Entity, ReferResource } from "@galacean/engine-core";
+import type { GLTFResource } from "../gltf/GLTFResource";
 
 /**
  * The Prefab resource.
@@ -7,8 +8,8 @@ export class PrefabResource extends ReferResource {
   /** @internal */
   _root: Entity;
 
-  private readonly _dependenceAssets = new Set<ReferResource>();
-  private _templateSources?: Set<PrefabResource>;
+  private _dependenceAssets?: Set<ReferResource>;
+  private _templateSources?: Set<PrefabResource | GLTFResource>;
 
   /**
    * @internal
@@ -29,15 +30,19 @@ export class PrefabResource extends ReferResource {
     return this._root?.clone();
   }
 
-  /** @internal */
-  _instantiateAsTemplate(owner: PrefabResource): Entity {
-    const sources = (owner._templateSources ||= new Set());
-    if (!sources.has(this)) {
-      sources.add(this);
-      // GC uses the source Prefab's own reference count when collecting its assets.
-      this._addReferCount(1);
+  /**
+   * Clone a detached template root and retain its source for this prefab's lifetime.
+   * @internal
+   */
+  _instantiateTemplate(source: PrefabResource | GLTFResource): Entity {
+    const sources = (this._templateSources ||= new Set());
+    const count = sources.size;
+    if (sources.add(source).size !== count) {
+      // GC checks the source's reference count when collecting its assets.
+      source._addReferCount(1);
     }
-    return this._root._clone(owner);
+    const root = source instanceof PrefabResource ? source._root : source._defaultSceneRoot;
+    return root._clone(this);
   }
 
   /**
@@ -46,9 +51,10 @@ export class PrefabResource extends ReferResource {
   _addDependenceAsset(resource: unknown): void {
     // ReflectionParser also passes non-ReferResource assets such as Shader, which have no superResource association.
     // _superResources is a plain array, so the Set ensures each dependency is associated and disassociated exactly once.
-    if (!this.destroyed && resource instanceof ReferResource && !this._dependenceAssets.has(resource)) {
-      this._dependenceAssets.add(resource);
-      resource._associationSuperResource(this);
+    if (!this.destroyed && resource instanceof ReferResource) {
+      const assets = (this._dependenceAssets ||= new Set());
+      const count = assets.size;
+      if (assets.add(resource).size !== count) resource._associationSuperResource(this);
     }
   }
 
@@ -59,10 +65,10 @@ export class PrefabResource extends ReferResource {
     } finally {
       this._root = null!;
       const assets = this._dependenceAssets;
-      for (const asset of assets) {
-        asset._disassociationSuperResource(this);
+      if (assets) {
+        for (const asset of assets) asset._disassociationSuperResource(this);
+        this._dependenceAssets = undefined;
       }
-      assets.clear();
       const sources = this._templateSources;
       if (sources) {
         for (const source of sources) {

@@ -8,9 +8,6 @@ import { PhysXJoint } from "./PhysXJoint";
  * A joint which behaves in a similar way to a hinge or axle.
  */
 export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
-  protected static _xAxis = new Vector3(1, 0, 0);
-
-  private _axis = new Vector3(1, 0, 0);
   private _axisRotationQuaternion = new Quaternion();
   private _connectedAxisRotationQuaternion = new Quaternion();
 
@@ -29,38 +26,43 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
 
   override setRotation(value: Quaternion): void {
     this._rotation.copyFrom(value);
-    this.setAxis(this._axis);
+    this._updateConnectedPose();
   }
 
   /**
    * {@inheritDoc IHingeJoint.setAxis }
    */
   setAxis(value: Vector3): void {
-    if (!Number.isFinite(value.x) || !Number.isFinite(value.y) || !Number.isFinite(value.z)) {
-      return;
-    }
-    const len = Math.hypot(value.x, value.y, value.z);
+    const { x, y, z } = value;
+    const len = Math.hypot(x, y, z);
     if (!(len > 0 && Number.isFinite(len))) {
       return;
     }
-    const axis = this._axis;
-    axis.set(value.x / len, value.y / len, value.z / len);
-    const xAxis = PhysXHingeJoint._xAxis;
+    const normalizedY = y / len;
+    const normalizedZ = z / len;
     const axisRotationQuaternion = this._axisRotationQuaternion;
-    xAxis.set(1, 0, 0);
-    const dot = MathUtil.clamp(Vector3.dot(xAxis, axis), -1, 1);
-    if (dot > 1 - 1e-6) {
-      axisRotationQuaternion.set(0, 0, 0, 1);
-    } else if (dot < -1 + 1e-6) {
+    const lateral = Math.hypot(normalizedY, normalizedZ);
+    if (lateral > 0) {
+      const halfAngle = Math.atan2(lateral, x / len) * 0.5;
+      const sine = Math.sin(halfAngle);
+      axisRotationQuaternion.set(
+        0,
+        (-normalizedZ / lateral) * sine,
+        (normalizedY / lateral) * sine,
+        Math.cos(halfAngle)
+      );
+    } else if (x < 0) {
       axisRotationQuaternion.set(0, 1, 0, 0);
     } else {
-      const angle = Math.acos(dot);
-      Vector3.cross(xAxis, axis, xAxis);
-      Quaternion.rotationAxisAngle(xAxis, angle, axisRotationQuaternion);
+      axisRotationQuaternion.set(0, 0, 0, 1);
     }
     this._setLocalPose(0, this._anchor, axisRotationQuaternion);
+    this._updateConnectedPose();
+  }
+
+  private _updateConnectedPose(): void {
     const connectedAxisRotationQuaternion = this._connectedAxisRotationQuaternion;
-    Quaternion.multiply(this._rotation, axisRotationQuaternion, connectedAxisRotationQuaternion);
+    Quaternion.multiply(this._rotation, this._axisRotationQuaternion, connectedAxisRotationQuaternion);
     this._setLocalPose(1, this._connectedAnchor, connectedAxisRotationQuaternion);
   }
 

@@ -11,6 +11,8 @@ import type { ICloneHook } from "./clone/ICloneHook";
  */
 export class Transform extends Component implements ICloneHook<Transform> {
   private static readonly _authoredLocalMatrixFlag = 0x40000000;
+  private static readonly _customMatrixFlag = 0x20000000;
+  private static readonly _customWorldPoseFlag = 0x10000000;
   private static _tempQuat0: Quaternion = new Quaternion();
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
@@ -226,9 +228,8 @@ export class Transform extends Component implements ICloneHook<Transform> {
   }
 
   /**
-   * Local lossy scaling.
-   * @remarks The value obtained may not be correct under certain conditions(for example, the parent node has non-uniform world scaling,
-   * and the child node has a rotation), the scaling will be tilted.
+   * Approximate world scale along the three local axes.
+   * @remarks Inherited non-uniform scale can shear a rotated child, which three scale values cannot fully represent.
    */
   get lossyWorldScale(): Vector3 {
     if (this._isContainDirtyFlag(TransformModifyFlags.WorldScale)) {
@@ -238,8 +239,8 @@ export class Transform extends Component implements ICloneHook<Transform> {
         // Clear the ancestor's scale flag so its next scale change reaches this descendant.
         const parentScale = parent.lossyWorldScale;
         if (
-          !this._hasAuthoredLocalMatrix &&
-          (parent._getWorldUniformScaling() || (!parent._hasAuthoredLocalMatrix && this._isLocalScaleAligned()))
+          this._usesTRSMatrix &&
+          (parent._getWorldUniformScaling() || (parent._usesTRSMatrix && this._isLocalScaleAligned()))
         ) {
           Vector3.multiply(parentScale, this._scale, scale);
         } else {
@@ -329,6 +330,29 @@ export class Transform extends Component implements ICloneHook<Transform> {
    */
   constructor(entity: Entity) {
     super(entity);
+
+    // Layout subclasses can inherit the matrix and rotation calculations.
+    const hasOwn = Object.prototype.hasOwnProperty;
+    const customFlags = Transform._customMatrixFlag | Transform._customWorldPoseFlag;
+    for (
+      let prototype = Object.getPrototypeOf(this);
+      prototype !== Transform.prototype;
+      prototype = Object.getPrototypeOf(prototype)
+    ) {
+      if (hasOwn.call(prototype, "worldMatrix") || hasOwn.call(prototype, "worldRotationQuaternion")) {
+        this._dirtyFlag |= customFlags;
+        break;
+      }
+      if (
+        hasOwn.call(prototype, "localMatrix") ||
+        hasOwn.call(prototype, "rotationQuaternion") ||
+        hasOwn.call(prototype, "lossyWorldScale")
+      ) {
+        this._dirtyFlag |= Transform._customMatrixFlag;
+      }
+      if (hasOwn.call(prototype, "worldPosition")) this._dirtyFlag |= Transform._customWorldPoseFlag;
+      if ((this._dirtyFlag & customFlags) === customFlags) break;
+    }
 
     this._onPositionChanged = this._onPositionChanged.bind(this);
     this._onWorldPositionChanged = this._onWorldPositionChanged.bind(this);
@@ -830,8 +854,10 @@ export class Transform extends Component implements ICloneHook<Transform> {
     const invRotationMat = Transform._tempMat30;
     const worldRotScaMat = Transform._tempMat31;
     const scaMat = Transform._tempMat32;
-    worldRotScaMat.copyFromMatrix(this.worldMatrix);
-    Quaternion.invert(this.worldRotationQuaternion, invRotation);
+    const worldMatrix = this.worldMatrix;
+    const worldRotation = this.worldRotationQuaternion;
+    worldRotScaMat.copyFromMatrix(worldMatrix);
+    Quaternion.invert(worldRotation, invRotation);
     Matrix3x3.rotationQuaternion(invRotation, invRotationMat);
     Matrix3x3.multiply(invRotationMat, worldRotScaMat, scaMat);
     return scaMat;
@@ -917,15 +943,27 @@ export class Transform extends Component implements ICloneHook<Transform> {
     }
   }
 
-  /** @internal */
-  get _hasAuthoredLocalMatrix(): boolean {
+  private get _hasAuthoredLocalMatrix(): boolean {
     return this._isContainDirtyFlag(Transform._authoredLocalMatrixFlag);
+  }
+
+  /**
+   * Whether the built-in TRS fields describe the matrices and rotations.
+   * @internal
+   */
+  get _usesTRSMatrix(): boolean {
+    return !this._isContainDirtyFlag(Transform._authoredLocalMatrixFlag | Transform._customMatrixFlag);
+  }
+
+  /** @internal Whether a subclass overrides a world-space pose accessor. */
+  get _hasCustomWorldPose(): boolean {
+    return this._isContainDirtyFlag(Transform._customWorldPoseFlag);
   }
 
   /** @internal */
   _getWorldUniformScaling(): boolean {
     if (this._isContainDirtyFlag(TransformModifyFlags.IsWorldUniformScaling)) {
-      if (this._localUniformScaling && !this._hasAuthoredLocalMatrix) {
+      if (this._localUniformScaling && this._usesTRSMatrix) {
         const parent = this._getParentTransform();
         this._worldUniformScaling = !parent || parent._getWorldUniformScaling();
       } else {

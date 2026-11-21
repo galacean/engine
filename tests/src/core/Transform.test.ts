@@ -62,6 +62,39 @@ describe("Transform test", function () {
     parent.destroy();
   });
 
+  it("uses custom local matrices for child and descendant world scale", () => {
+    class MatrixScalingTransform extends Transform {
+      private readonly _matrix = new Matrix();
+
+      constructor(entity: Entity) {
+        super(entity);
+        this._matrix.elements[0] = 2;
+      }
+
+      override get localMatrix(): Matrix {
+        return this._matrix;
+      }
+    }
+
+    const root = scene.createRootEntity();
+    const child = root.createChild();
+    const grandchild = child.createChild();
+    const custom = child.addComponent(MatrixScalingTransform);
+    try {
+      root.transform.setScale(3, 3, 3);
+      expect(custom.worldMatrix.elements[0]).toBe(6);
+      expect(custom.lossyWorldScale).toEqual(new Vector3(6, 3, 3));
+
+      const transform = grandchild.transform;
+      expect(transform.lossyWorldScale).toEqual(new Vector3(6, 3, 3));
+      transform.setRotation(0, 0, 90);
+      expect(transform.lossyWorldScale.x).toBeCloseTo(3, 5);
+      expect(transform.lossyWorldScale.y).toBeCloseTo(6, 5);
+    } finally {
+      root.destroy();
+    }
+  });
+
   it("refreshes a rotated child's cached world scale after translating and scaling its parent", () => {
     const parent = scene.createRootEntity();
     parent.transform.setScale(2, 1, 1);

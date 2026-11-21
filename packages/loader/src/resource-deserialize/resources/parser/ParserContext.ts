@@ -35,7 +35,7 @@ export class ParserContext {
   entityInstances: Entity[] = [];
   /** Components waiting for props/calls application (Stage 4). */
   pendingComponents: Array<{ instance: Component; config: ComponentSchema }> = [];
-  /** Pre-removal component lists (plus additions) for entities with removedComponents, preserving $component indices. */
+  /** Selector order where removals or dependency-ordered construction changed the live component list. */
   componentSnapshots: Map<Entity, Component[]> | null = null;
   /** Pre-removal children lists for parents with removedEntities, preserving $entity indices. */
   childSnapshots: Map<Entity, Entity[]> | null = null;

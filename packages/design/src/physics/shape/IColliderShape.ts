@@ -26,7 +26,7 @@ export interface IColliderShape {
   setMaterial(material: IPhysicsMaterial): void;
 
   /**
-   * Set the collision layer of this shape without detaching it, so active contact and trigger pairs persist.
+   * Change the collision layer in place, preserving active pairs still allowed by the collision matrix.
    * @param layer - The collision layer index, from 0 to 31
    */
   setCollisionLayer(layer: number): void;
@@ -44,10 +44,10 @@ export interface IColliderShape {
   setIsSceneQuery(value: boolean): void;
 
   /**
-   * Get the distance between a point and the shape.
-   * @param point - Location in world space you want to find the closest point to
-   * @returns The x, y, and z components of the Vector4 represent the closest point on the shape in world space,
-   * and the w component represents the distance between the point and the shape
+   * Query the closest point on the shape.
+   * @param point - The point in world space
+   * @returns A vector whose `w` is the squared distance, or -1 when unavailable.
+   * For a positive distance, `x`, `y`, and `z` give the closest point in world space.
    */
   pointDistance(point: Vector3): Vector4;
   /**

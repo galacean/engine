@@ -3,7 +3,8 @@ import { Collider } from "./Collider";
 import { ICollision } from "@galacean/engine-design";
 
 /**
- * Collision information passed to the scripts on one of the two colliding Colliders' Entity.
+ * Contact data reported to a script during a collision callback.
+ * @remarks The physics scene reuses this object. Read it during the callback and copy any values needed afterward.
  */
 export class Collision {
   /** @internal */
@@ -22,12 +23,10 @@ export class Collision {
   }
 
   /**
-   * Get contact points.
-   * @param outContacts - The result of contact points
-   * @returns The actual count of contact points
-   *
-   * @remarks To optimize performance, the engine does not modify the length of the array you pass.
-   * You need to obtain the actual number of contact points from the function's return value.
+   * Write contact points to the supplied array.
+   * @param outContacts - The array to fill, reusing its existing contact points
+   * @returns The number of entries written
+   * @remarks The array grows as needed. Entries beyond the returned count are left unchanged.
    */
   getContacts(outContacts: ContactPoint[]): number {
     const nativeCollision = this._nativeCollision;
@@ -35,13 +34,13 @@ export class Collision {
     const nativeContactPoints = nativeCollision.getContacts();
     const length = nativeContactPoints.size();
     for (let i = 0; i < length; i++) {
-      const nativeContractPoint = nativeContactPoints.get(i);
+      const nativeContactPoint = nativeContactPoints.get(i);
 
       const contact = (outContacts[i] ||= new ContactPoint());
-      contact.position.copyFrom(nativeContractPoint.position);
-      contact.normal.copyFrom(nativeContractPoint.normal).scale(factor);
-      contact.impulse.copyFrom(nativeContractPoint.impulse).scale(factor);
-      contact.separation = nativeContractPoint.separation;
+      contact.position.copyFrom(nativeContactPoint.position);
+      contact.normal.copyFrom(nativeContactPoint.normal).scale(factor);
+      contact.impulse.copyFrom(nativeContactPoint.impulse).scale(factor);
+      contact.separation = nativeContactPoint.separation;
     }
     return length;
   }

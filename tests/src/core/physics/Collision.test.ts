@@ -1,5 +1,5 @@
 import { createPhysics } from "../../utils/physics";
-import { BoxCollider, Collision, ContactPoint, Rigidbody, Entity, Engine, Script } from "@galacean/engine-core";
+import { BoxCollider, Collision, ContactPoint, Rigidbody, Entity, Engine, Scene, Script } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { describe, beforeAll, afterAll, beforeEach, expect, it } from "vitest";
@@ -42,6 +42,54 @@ describe("Collision", function () {
     engine.resourceManager.gc();
     engine.sceneManager.activeScene.physics.gravity = new Vector3(0, -9.81, 0);
   });
+
+  it.each([false, true])(
+    "keeps borrowed contacts intact while another scene advances (contacts: %s)",
+    (hasContacts) => {
+      const outerScene = engine.sceneManager.activeScene;
+      const innerScene = new Scene(engine);
+      let ranInner = false;
+      if (hasContacts) {
+        engine.sceneManager.addScene(innerScene);
+        const innerBody = innerScene.createRootEntity();
+        innerBody.addComponent(BoxCollider);
+        innerBody.addComponent(Rigidbody);
+        innerBody.addComponent(
+          class extends Script {
+            override onCollisionEnter(): void {
+              ranInner = true;
+            }
+          }
+        );
+        const innerBox = innerScene.createRootEntity();
+        innerBox.transform.setPosition(0.3, 0, 0);
+        innerBox.addComponent(BoxCollider);
+      }
+      const staticBox = addBox(new Vector3(1, 1, 1), null, new Vector3(0.3, 0, 0)).getComponent(BoxCollider);
+      const body = addBox(new Vector3(1, 1, 1), Rigidbody, new Vector3());
+      let ran = false;
+      body.addComponent(
+        class extends Script {
+          override onCollisionEnter(collision: Collision): void {
+            const count = collision.contactCount;
+            innerScene.physics._update(innerScene.physics.fixedTimeStep);
+            expect(count).toBeGreaterThan(0);
+            expect(collision.contactCount).toBe(count);
+            expect(collision.collider).toBe(staticBox);
+            ran = true;
+          }
+        }
+      );
+
+      try {
+        outerScene.physics._update(outerScene.physics.fixedTimeStep);
+        expect(ran).toBe(true);
+        expect(ranInner).toBe(hasContacts);
+      } finally {
+        innerScene.destroy();
+      }
+    }
+  );
 
   it("contacts on the moving body", function () {
     engine.sceneManager.activeScene.physics.gravity = new Vector3(0, 0, 0);

@@ -353,6 +353,28 @@ describe("Entity", async () => {
       parent.clearChildren();
       expect(parent.children.length).eq(0);
     });
+
+    it("keeps a child added by onDisable during clearChildren", () => {
+      const parent = scene.createRootEntity("parent");
+      const child = parent.createChild("child");
+      const replacement = new Entity(engine, "replacement");
+      child.addComponent(
+        class extends Script {
+          override onDisable(): void {
+            parent.addChild(replacement);
+          }
+        }
+      );
+
+      parent.clearChildren();
+
+      expect(child.parent).toBeNull();
+      expect(parent.children).toEqual([replacement]);
+      expect(replacement.parent === parent).toBe(true);
+      expect(replacement.scene === scene).toBe(true);
+      expect(replacement.isActiveInHierarchy).toBe(true);
+    });
+
     it("sibling index", () => {
       const root = scene.createRootEntity();
       const child0 = new Entity(engine, "child0");
@@ -674,6 +696,78 @@ describe("Entity", async () => {
       entity.createChild("child4");
       entity.destroy();
       expect(entity.children.length).eq(0);
+    });
+
+    it("finishes destroying a parent requested by its child's onDestroy", () => {
+      const parent = new Entity(engine, "parent");
+      const child = parent.createChild("child");
+      const sibling = parent.createChild("sibling");
+      const calls: string[] = [];
+      child.addComponent(
+        class extends Script {
+          override onDestroy(): void {
+            calls.push("child");
+            parent.destroy();
+            calls.push("parent returned");
+          }
+        }
+      );
+      sibling.addComponent(
+        class extends Script {
+          override onDestroy(): void {
+            calls.push("sibling");
+          }
+        }
+      );
+
+      child.destroy();
+
+      expect(calls).toEqual(["child", "sibling", "parent returned"]);
+      expect(parent.destroyed && child.destroyed && sibling.destroyed).toBe(true);
+      expect(parent.children).toEqual([]);
+      expect(child.parent).toBeNull();
+      expect(sibling.parent).toBeNull();
+    });
+
+    it("finishes destroying a scene requested by its root's onDestroy with active physics", () => {
+      const owner = new Scene(engine);
+      engine.sceneManager.addScene(owner);
+      const root = owner.createRootEntity("root");
+      const body = root.addComponent(Rigidbody);
+      const box = root.addComponent(BoxCollider);
+      const calls: string[] = [];
+      root.addComponent(
+        class extends Script {
+          override onDisable(): void {
+            calls.push("disable");
+          }
+
+          override onDestroy(): void {
+            calls.push("destroy");
+          }
+        }
+      );
+      root.addComponent(
+        class extends Script {
+          override onDestroy(): void {
+            calls.push("root callback");
+            owner.destroy();
+            calls.push("scene returned");
+          }
+        }
+      );
+
+      const hit = new HitResult();
+      expect(owner.physics.raycast(new Ray(new Vector3(0, 0, 5), new Vector3(0, 0, -1)), hit)).toBe(true);
+      expect(hit.collider).toBe(box);
+
+      root.destroy();
+
+      expect(calls).toEqual(["root callback", "disable", "scene returned", "destroy"]);
+      expect(owner.destroyed && root.destroyed && body.destroyed && box.destroyed).toBe(true);
+      expect(engine.sceneManager.scenes).not.toContain(owner);
+      expect(owner.rootEntities).toEqual([]);
+      expect(root.scene).toBeNull();
     });
 
     it("addChildAfterDestroy", () => {

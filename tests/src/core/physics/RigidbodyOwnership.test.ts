@@ -223,6 +223,26 @@ describe("Rigidbody ownership", () => {
       expect(bodyEntity.transform.worldPosition.y).toBeLessThan(1000);
     });
 
+    it("transfers a registered collider to a Rigidbody added in the disabled state", () => {
+      class DisabledRigidbody extends Rigidbody {
+        constructor(entity: Entity) {
+          super(entity);
+          this.enabled = false;
+        }
+      }
+
+      const entity = root.createChild("body");
+      const box = entity.addComponent(BoxCollider);
+      expect(hits(0, 1000, 0)).toEqual(names([box]));
+
+      const body = entity.addComponent(DisabledRigidbody);
+      expect(box.attachedRigidbody).toBe(body);
+      expect(hits(0, 1000, 0)).toEqual([]);
+
+      body.enabled = true;
+      expect(hits(0, 1000, 0)).toEqual(names([box]));
+    });
+
     it("never lets a disabled nested Rigidbody's Colliders fall back to the outer Rigidbody", () => {
       const outerEntity = root.createChild("outer");
       outerEntity.addComponent(BoxCollider);
