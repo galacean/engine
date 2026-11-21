@@ -986,5 +986,79 @@ describe("Collider", () => {
       update();
       expect(physics.raycast(downwardRay(2.5), hit) && hit.collider === tinyBox).toBe(true);
     });
+
+    it("keeps offset center and world pose exact whenever scale updates (static/kinematic, with/without resize, narrow offset)", () => {
+      const next = 1.0000005;
+      const matrix = new Matrix();
+      Matrix.scaling(new Vector3(next, 2, 1), matrix);
+
+      for (const [owner, resize] of [
+        ["static", false],
+        ["kinematic", false],
+        ["static", true]
+      ] as const) {
+        const live = engine.sceneManager.activeScene.createRootEntity(`offset-live-${owner}-${resize}`);
+        const controlRoot = engine.sceneManager.activeScene.createRootEntity(`offset-ctrl-${owner}-${resize}`);
+        try {
+          const setup = (parent: Entity, final: boolean) => {
+            if (owner === "kinematic") parent.addComponent(Rigidbody).isKinematic = true;
+            const child = parent.createChild("offset-box");
+            if (final) child.transform.localMatrix = matrix;
+            else child.transform.setScale(1, 2, 1);
+            const box = child.addComponent(BoxCollider);
+            if (final && resize) box.size.y = 3;
+            box.center.set(1, 0, 0);
+            return box;
+          };
+          const box = setup(live, false);
+          const control = setup(controlRoot, true);
+          const query = new Vector3(Math.fround(0.49999988), 0, 0);
+          const closest = new Vector3();
+          const before = box.getClosestPoint(query, closest);
+          const expected = control.getClosestPoint(query, closest);
+          const controlX = closest.x;
+          expect(expected).toBeGreaterThan(before);
+
+          box.entity.transform.localMatrix = matrix;
+          if (resize) box.size.y = 3;
+          const actual = box.getClosestPoint(query, closest);
+          expect(actual).toBeCloseTo(expected, 10);
+          expect(closest.x).toBeCloseTo(controlX, 10);
+        } finally {
+          live.destroy();
+          controlRoot.destroy();
+        }
+      }
+
+      // Narrow offset box moves completely clear of the old center after 1 -> 1.0000005 scale edit
+      const narrow = engine.sceneManager.activeScene.createRootEntity("narrow-live");
+      const narrowCtrl = engine.sceneManager.activeScene.createRootEntity("narrow-ctrl");
+      try {
+        const makeNarrow = (parent: Entity, x: number) => {
+          const child = parent.createChild("offset");
+          child.transform.setScale(x, 2, 1);
+          const box = child.addComponent(BoxCollider);
+          box.center.set(1, 0, 0);
+          box.size.set(4e-7, 1, 1);
+          return box;
+        };
+        const box = makeNarrow(narrow, 1);
+        const control = makeNarrow(narrowCtrl, next);
+        const query = new Vector3(1, 0, 0);
+        const closest = new Vector3();
+        expect(box.getClosestPoint(query, closest)).toBe(0);
+        const expected = control.getClosestPoint(query, closest);
+        const controlX = closest.x;
+        expect(expected).toBeGreaterThan(2e-7);
+
+        box.entity.transform.setScale(next, 2, 1);
+        const actual = box.getClosestPoint(query, closest);
+        expect(actual).toBeCloseTo(expected, 10);
+        expect(closest.x).toBeCloseTo(controlX, 10);
+      } finally {
+        narrow.destroy();
+        narrowCtrl.destroy();
+      }
+    });
   });
 });

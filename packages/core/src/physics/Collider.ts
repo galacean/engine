@@ -386,11 +386,19 @@ export class Collider extends Component implements ICloneHook<Collider> {
     }
     this._rejectedBody = null;
 
+    const prevShape = this._native;
+    const nativeScale = this._nativeScale;
+    const prevScaleX = nativeScale.x;
+    const prevScaleY = nativeScale.y;
+    const prevScaleZ = nativeScale.z;
     const shape = this._syncNativeShape(scale);
     if (!shape) {
       this._detach();
       return;
     }
+    const scaleUpdated =
+      prevShape === shape &&
+      (nativeScale.x !== prevScaleX || nativeScale.y !== prevScaleY || nativeScale.z !== prevScaleZ);
 
     const actor = body ? body._getNativeActor() : this._getStaticActor();
     let forcePose = false;
@@ -408,7 +416,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     }
     this._failedTransferTarget = undefined;
     this._failedTransferFallback = null;
-    this._syncPose(shape, body, scale, forcePose);
+    this._syncPose(shape, body, scale, forcePose, scaleUpdated);
   }
 
   /**
@@ -711,7 +719,18 @@ export class Collider extends Component implements ICloneHook<Collider> {
     return actor;
   }
 
-  private _syncPose(shape: IColliderShape, body: Rigidbody | null, scale: Vector3, force: boolean): void {
+  private _syncPose(
+    shape: IColliderShape,
+    body: Rigidbody | null,
+    scale: Vector3,
+    force: boolean,
+    scaleUpdated = false
+  ): void {
+    const scaleChanged = this._syncNativeScale(shape, scale, force) || scaleUpdated;
+    if (scaleChanged) {
+      body?._markMassDirty();
+    }
+
     const transform = this.entity.transform;
     const worldPosition = transform.worldPosition;
     const worldRotation = transform.worldRotationQuaternion;
@@ -741,27 +760,27 @@ export class Collider extends Component implements ICloneHook<Collider> {
     } else {
       rotation.copyFrom(localRotation);
       const staticActor = this._staticActor;
-      if (
-        staticActor &&
-        (force ||
-          !Vector3.equals(worldPosition, this._nativeWorldPosition) ||
-          !Quaternion.equals(worldRotation, this._nativeWorldRotation))
-      ) {
-        this._nativeWorldPosition.copyFrom(worldPosition);
-        this._nativeWorldRotation.copyFrom(worldRotation);
-        staticActor.setWorldTransform(worldPosition, worldRotation);
+      if (staticActor) {
+        const nativeWorldPosition = this._nativeWorldPosition;
+        const worldPositionChanged = scaleChanged
+          ? worldPosition.x !== nativeWorldPosition.x ||
+            worldPosition.y !== nativeWorldPosition.y ||
+            worldPosition.z !== nativeWorldPosition.z
+          : !Vector3.equals(worldPosition, nativeWorldPosition);
+        if (force || worldPositionChanged || !Quaternion.equals(worldRotation, this._nativeWorldRotation)) {
+          nativeWorldPosition.copyFrom(worldPosition);
+          this._nativeWorldRotation.copyFrom(worldRotation);
+          staticActor.setWorldTransform(worldPosition, worldRotation);
+        }
       }
     }
 
-    if (this._syncNativeScale(shape, scale, force)) {
-      body?._markMassDirty();
-    }
-    if (
-      force ||
-      !Vector3.equals(position, this._nativePosition) ||
-      !Quaternion.equals(rotation, this._nativeRotation)
-    ) {
-      this._nativePosition.copyFrom(position);
+    const nativePosition = this._nativePosition;
+    const positionChanged = scaleChanged
+      ? position.x !== nativePosition.x || position.y !== nativePosition.y || position.z !== nativePosition.z
+      : !Vector3.equals(position, nativePosition);
+    if (force || positionChanged || !Quaternion.equals(rotation, this._nativeRotation)) {
+      nativePosition.copyFrom(position);
       this._nativeRotation.copyFrom(rotation);
       shape.setLocalPose(position, rotation);
       body?._markMassDirty();
