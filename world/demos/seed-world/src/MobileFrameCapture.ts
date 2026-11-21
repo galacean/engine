@@ -722,10 +722,9 @@ export function attachMobileFrameCapture(options: MobileFrameCaptureOptions): Mo
           .filter(([, on]) => !on)
           .map(([k]) => k);
 
-        const ssrDiag =
-          typeof (camera as unknown as AnyRec).screenSpaceReflectionDiagnostics === "object"
-            ? (camera as unknown as AnyRec).screenSpaceReflectionDiagnostics
-            : null;
+        // Snapshot SSR diagnostics by value so later SSR toggles never mutate historical captures or JSONL exports.
+        const rawSsrDiag = (camera as unknown as AnyRec).screenSpaceReflectionDiagnostics;
+        const ssrDiag = rawSsrDiag && typeof rawSsrDiag === "object" ? { ...rawSsrDiag } : null;
 
         const payload: MobileFrameCaptureRecord = {
           schemaVersion: 2,

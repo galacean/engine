@@ -597,6 +597,10 @@ describe("Seed World perf capture accuracy & first-principles invariants", () =>
     expect(rec1.postPassesMs["u(PostProcess/Uber)"]).toBe(0.3);
     expect(rec1.touchDiag.joystickHit).toBe("SVG#joy.icon-btn");
 
+    // Mutating the engine's reused screenSpaceReflectionDiagnostics object after capture #1 must not corrupt rec1!
+    cameraMock.screenSpaceReflectionDiagnostics.active = false;
+    expect((rec1.ssrDiag as { active: boolean }).active).toBe(true);
+
     // Queued "toggle:water=off" automatically starts after 250ms delay!
     vi.advanceTimersByTime(250);
     expect(controller.button.textContent).toBe("采样中(toggle:water=off)...");
