@@ -289,11 +289,14 @@ export class ShaderProgram implements IPlatformShaderProgram {
   }
 
   private _uploadTexture(uniform: ShaderUniform, value: ShaderPropertyValueType | undefined): void {
-    // The same name may hold a non-texture value after a material switches shaders
-    if ((<Texture>value)?.destroyed === false || (Array.isArray(value) && Array.isArray(uniform.textureDefault))) {
-      uniform.applyFunc(uniform, <ShaderPropertyValueType>value);
+    const textureDefault = uniform.textureDefault;
+    if (!value) {
+      uniform.applyFunc(uniform, textureDefault);
+    } else if ((<Texture>value).destroyed === false || (Array.isArray(value) && Array.isArray(textureDefault))) {
+      uniform.applyFunc(uniform, value);
     } else {
-      uniform.applyFunc(uniform, uniform.textureDefault);
+      // Destroyed textures and non-texture values left by another shader fall back to defaults
+      uniform.applyFunc(uniform, textureDefault);
     }
   }
 

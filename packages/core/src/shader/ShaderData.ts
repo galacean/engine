@@ -623,7 +623,6 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
     for (let i = 0, n = keys.length; i < n; i++) {
       const k = keys[i];
       const property = <ShaderPropertyValueType>propertyValueMap[k];
-      const sameType = target._getPropertyType(+k) === this._getPropertyType(+k);
       if (k in propertyTypeMap) {
         targetPropertyTypeMap[k] = propertyTypeMap[k];
       } else {
@@ -642,7 +641,7 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
         } else {
           const targetProperty = targetPropertyValueMap[k];
           // The same name may hold another value type in the target
-          if (targetProperty && sameType) {
+          if (targetProperty && targetProperty.constructor === property.constructor) {
             targetProperty.copyFrom(property);
           } else {
             targetPropertyValueMap[k] = property.clone();
@@ -684,22 +683,19 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
     } else if (firstType !== type || property._hasTypeConflict) {
       // The name holds several value types, so track the type per shader data
       property._hasTypeConflict = true;
-      const lastType = this._getPropertyType(id);
-      this._propertyTypeMap[id] = type;
+      const propertyTypeMap = this._propertyTypeMap;
+      const lastType = id in propertyValueMap ? (propertyTypeMap[id] ?? firstType) : undefined;
+      propertyTypeMap[id] = type;
       if (lastType !== undefined && lastType !== type) {
-        this._replaceResource(id, lastType, propertyValueMap[id], null);
+        // Release the previous value as its own type
+        this._refCount > 0 && this._transferTextureReferences(id, lastType, null);
+        this._updateRendererBatchSharedFields(id, lastType, null);
         propertyValueMap[id] = null;
       }
     }
-    // Only textures and arrays own references or affect batching
-    if (
-      type === ShaderPropertyType.Texture ||
-      type === ShaderPropertyType.TextureArray ||
-      type === ShaderPropertyType.FloatArray ||
-      type === ShaderPropertyType.IntArray
-    ) {
-      this._replaceResource(id, type, propertyValueMap[id], value);
-    }
+
+    this._refCount > 0 && this._transferTextureReferences(id, type, value);
+    this._updateRendererBatchSharedFields(id, type, value);
     propertyValueMap[id] = value;
   }
 
@@ -734,16 +730,6 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
   /**
    * @internal
    */
-  _getPropertyType(id: number): ShaderPropertyType | undefined {
-    if (!(id in this._propertyValueMap)) {
-      return undefined;
-    }
-    return this._propertyTypeMap[id] ?? ShaderProperty._propertyIdMap[id]._type;
-  }
-
-  /**
-   * @internal
-   */
   _addReferCount(value: number): void {
     this._refCount += value;
     const properties = this._propertyValueMap;
@@ -765,49 +751,43 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
     }
   }
 
-  // Textures own references, and textures and arrays stay outside the instance UBO
-  private _replaceResource(
-    id: number,
-    type: ShaderPropertyType,
-    lastValue: ShaderPropertyValueType,
-    value: ShaderPropertyValueType
-  ): void {
-    if (lastValue === value) {
-      return;
-    }
+  private _transferTextureReferences(id: number, type: ShaderPropertyType, value: ShaderPropertyValueType): void {
     const refCount = this._refCount;
-    switch (type) {
-      case ShaderPropertyType.Texture:
-        if (refCount > 0) {
-          lastValue && (<Texture>lastValue)._addReferCount(-refCount);
-          value && (<Texture>value)._addReferCount(refCount);
-        }
-        break;
-      case ShaderPropertyType.TextureArray:
-        if (refCount > 0) {
-          if (lastValue) {
-            for (let i = 0, n = (<Texture[]>lastValue).length; i < n; i++) {
-              (<Texture[]>lastValue)[i]._addReferCount(-refCount);
-            }
-          }
-          if (value) {
-            for (let i = 0, n = (<Texture[]>value).length; i < n; i++) {
-              (<Texture[]>value)[i]._addReferCount(refCount);
-            }
+    if (type === ShaderPropertyType.Texture) {
+      const lastValue = <Texture>this._propertyValueMap[id];
+      if (lastValue !== value) {
+        lastValue && lastValue._addReferCount(-refCount);
+        value && (<Texture>value)._addReferCount(refCount);
+      }
+    } else if (type === ShaderPropertyType.TextureArray) {
+      const lastValue = <Texture[]>this._propertyValueMap[id];
+      if (lastValue !== value) {
+        if (lastValue) {
+          for (let i = 0, n = lastValue.length; i < n; i++) {
+            lastValue[i]._addReferCount(-refCount);
           }
         }
-        break;
-      case ShaderPropertyType.FloatArray:
-      case ShaderPropertyType.IntArray:
-        break;
-      default:
-        return;
+        if (value) {
+          for (let i = 0, n = (<Texture[]>value).length; i < n; i++) {
+            (<Texture[]>value)[i]._addReferCount(refCount);
+          }
+        }
+      }
     }
-    this._group === ShaderDataGroup.Renderer &&
-      this._updateRendererBatchSharedFields(id, lastValue != null, value != null);
   }
 
-  private _updateRendererBatchSharedFields(id: number, oldHas: boolean, newHas: boolean): void {
+  private _updateRendererBatchSharedFields(id: number, type: ShaderPropertyType, value: ShaderPropertyValueType): void {
+    if (
+      this._group !== ShaderDataGroup.Renderer ||
+      (type !== ShaderPropertyType.Texture &&
+        type !== ShaderPropertyType.TextureArray &&
+        type !== ShaderPropertyType.FloatArray &&
+        type !== ShaderPropertyType.IntArray)
+    ) {
+      return;
+    }
+    const oldHas = this._propertyValueMap[id] != null;
+    const newHas = value != null;
     if (oldHas === newHas) {
       return;
     }
