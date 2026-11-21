@@ -17,3 +17,5 @@ description: 删除项目资产或查询谁在引用某个资产时使用。
 Editor 在 project.json 中维护直接依赖，并按反向索引查询。依赖信息缺失不等于没有引用。即使没有引用，已注册的 Scene 和运行时持有的资产仍受保护。删除这类资产前，先释放组件的持有关系。删除成功后，资产表记录、内容和 `.meta` 通过正常的保存和撤销事务一起移除。
 
 子资源引用也会保护它所在的资产。例如材质贴图值 `{url: "Can.glb", key: "textures[0]"}` 引用了 `Can.glb`。查询 `Can.glb` 可以找到这个材质。该引用存在时，`asset.delete` 会拒绝删除。
+
+接口：[原生编辑 API](declare/editor/native/api.d.ts)（`editor.asset.list` 返回 `{ items }`）。

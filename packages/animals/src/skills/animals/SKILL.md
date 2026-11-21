@@ -1,6 +1,6 @@
 ---
 name: animals
-description: 查询世界中的动物、生成新动物，或控制动物的行为时使用。
+description: 查询、生成或控制世界中的单个动物时使用；调整动物系统全局参数（如激活距离、种群配置）见 world-objects。
 ---
 
 # 动物
@@ -60,7 +60,7 @@ description: 查询世界中的动物、生成新动物，或控制动物的行�
 
 ## 生成新动物
 
-用户要一种新动物（例如狗）时，用名称或别名调用 `tools.world.animals.catalog`，取得注册的 `typeId` 和可选的 `appearanceId`。目录包含全部 14 个 Cute Zoo 模型和 100 个低多边形模型，按 speciesId 分组。在目录中不代表场景中存在，也不代表有固定默认数量。系统停用时也能读取目录，读取不会下载模型。
+用户要一种新动物（例如狗）时，用名称或别名调用 `tools.world.animals.catalog`（结果位于 `items`），取得注册的 `typeId` 和可选的 `appearanceId`。目录包含全部 14 个 Cute Zoo 模型和 100 个低多边形模型，按 speciesId 分组。在目录中不代表场景中存在，也不代表有固定默认数量。系统停用时也能读取目录，读取不会下载模型。若目录中无匹配物种（如用户要求未收录的动物），直接如实说明目录暂无该动物，不要反复搜云端模型库或用其他动物替代。
 
 目录概览用 `tools.world.animals.catalog({view:"summary"})`，结果不含资源 URL。`summary` 中的 total、speciesCount 和 appearanceCount 覆盖所有匹配项，`returned` 只描述当前页。总结时不要截取序列化的 JSON。选取事实，并保留它们的范围和分页信息。
 
@@ -73,7 +73,7 @@ description: 查询世界中的动物、生成新动物，或控制动物的行�
 - 默认在观察者 12 米内查找，要求在地图内、栖息地兼容，避开地形障碍和动物占地。放置失败会被报告，不会扩大栖息地范围。
 - accepted 不代表加载完成。查询返回的 id，等待 loaded 和 visible，再用 describe 和 command 控制行为。
 - 宿主停用或未就绪时，生成请求会被拒绝。
-- 运行时新增的动物只存在于当前会话，种群重建或刷新时会被清除，`editor.history.undo` 不会撤销。持久的初始数量仍用 `world.parameters`。
+- 运行时新增的动物只存在于当前会话，种群重建或刷新时会被清除，`editor.history.undo`（见[原生编辑 API](declare/editor/native/api.d.ts)）不会撤销。持久的初始数量仍用 `world.parameters`。
 
 ## 接口索引
 

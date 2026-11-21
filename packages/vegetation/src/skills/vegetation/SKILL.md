@@ -13,7 +13,7 @@ description: 创建、移动或调整树木、灌木、草和花时使用。
 - 移动作者植物：用 `vegetation.update` 的 `patch.target`。目标位置见 [spatial](skills/spatial/SKILL.md)。
 - 修改树的外观：先用 `world.inspect` 读取当前值和共享效果，再用 `vegetation.update` 的共享外观操作。这个操作可能影响使用相同效果的其他树。
 - 修改区域植被或规划参数：用[规划参数](skills/world-objects/parameters/SKILL.md)。
-- 查找或删除植物：用 [world-objects](skills/world-objects/SKILL.md)。
+- 查找、检查或删除植物：直接读 [tools.world.query](declare/editor/world/tools/world.query.d.ts)、[tools.world.inspect](declare/editor/world/tools/world.inspect.d.ts)、[tools.world.delete](declare/editor/world/tools/world.delete.d.ts)（更多规则见 [world-objects](skills/world-objects/SKILL.md)）。
 
 ## 选择引用
 

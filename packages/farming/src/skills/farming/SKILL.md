@@ -16,7 +16,7 @@ description: 耕种、播种、浇水、收获、管理农场道具和库存，�
 
 ## 组件代理
 
-`editor.component.query({type:"FarmingSystem", scene?, entityId?, id?})` 返回真实场景组件的异步代理，身份是 scene、entityId、id、type。
+`editor.component.query({type:"FarmingSystem", scene?, entityId?, id?})` 返回 `{ items }`（接口见[原生编辑 API](declare/editor/native/api.d.ts)），每个元素为真实场景组件的异步代理，身份是 scene、entityId、id、type。
 
 - 代理不是 Engine 实例，所有方法都要 await。组件删除后，旧代理失效。
 - farmId、plotId、cropInstanceId 是系统内的业务身份，不是 Entity 或 Component ID。

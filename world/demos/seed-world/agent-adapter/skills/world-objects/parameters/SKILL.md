@@ -5,14 +5,20 @@ description: 查询或修改规划组件参数（world.parameters）时使用，
 
 # 规划参数
 
-`world.parameters.describe` 可用时，当前场景使用组件编辑方式。流程如下：
+`world.parameters.describe` 可用时，当前场景使用组件编辑方式。标准两步完成（减少多余往返）：
 
-1. 从公开元数据中找到相关组件。
-2. 目标未知时，查询符合条件的实体。
-3. 用 inspect 读取目标的有效值和 `versionToken`。
-4. 用这个 token 提交一次原子的 `world.parameters.apply`。
+1. **一次 `execute` 完成读取**：先调用 `describe` 确认字段名，再在同一脚本中按需 `query` 目标实体并 `inspect` 当前值与 `versionToken`。
+2. **一次 `execute` 提交修改**：用拿到的 `versionToken` 提交原子 `world.parameters.apply`。若 `apply` 返回 `accepted` 且诊断无错误，即可直接汇报完成，无需再额外跑一次 `inspect`。
 
 `set`、`reset`、`base` 与 Inspector 使用的操作相同。范围、单位、字段规则和材质部位语义来自组件元数据。不要编造字段名。
+
+## 接口声明（可直接并行 read）
+
+- [tools.world.parameters.describe](declare/editor/world/tools/world.parameters.describe.d.ts)
+- [tools.world.parameters.query](declare/editor/world/tools/world.parameters.query.d.ts)
+- [tools.world.parameters.inspect](declare/editor/world/tools/world.parameters.inspect.d.ts)
+- [tools.world.parameters.apply](declare/editor/world/tools/world.parameters.apply.d.ts)
+- [tools.world.parameters.receipt](declare/editor/world/tools/world.parameters.receipt.d.ts)
 
 ## 分页
 

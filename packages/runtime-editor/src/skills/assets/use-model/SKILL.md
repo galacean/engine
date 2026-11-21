@@ -9,9 +9,9 @@ GLTF 资产不是 Prefab。放置模型的做法是：在节点上挂一个 Scri
 
 ## 完整流程
 
-下面两次 execute 就能放好一个外部模型。不需要再读其他文档，除非任务超出这个流程。
+下面两次 execute 就能放好一个外部模型（接口签名见[原生编辑 API](declare/editor/native/api.d.ts)）。不需要再读其他文档，除非任务超出这个流程。
 
-先读 project.json 取得活动 Scene。落点用已知坐标。相对位置按宿主的空间 Skill 解析。
+已知默认主场景路径（如 `"Scenes/Main.scene"`）时直接使用，无需先读 `project.json`；未知时再查 `project.json`。落点用已知坐标，相对位置按宿主的空间 Skill 解析。
 
 ```js
 // 第 1 次 execute：导入模型，创建加载脚本
@@ -51,7 +51,7 @@ await editor.component.add({
 
 ## 确认结果
 
-回执为 committed 且没有运行错误，就说明编辑已生效。需要确认外观时，调用一次 snapshot。画面里能看到模型就可以结束。
+回执为 `committed` 且没有 `runtimeErrors`，就说明编辑已生效；用户未要求视觉验收时直接汇报完成，不要再额外调用 `tools.runtime.*` 或 `snapshot` 二次排查。需要确认外观时，调用一次 `snapshot`，画面里能看到模型就可以结束。
 
 不要沿 pick 的结果逐级追查父节点来证明身份。模型的子节点是运行时实例，不在 `editor.entity` 的作者层级中，查询作者节点的子节点数为 0 是正常现象。只有画面和预期不符时，才用运行时查询排查。
 

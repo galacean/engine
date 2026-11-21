@@ -25,7 +25,11 @@ function buildFullKnowledgeCatalog() {
   for (const doc of base.documents ?? []) documentsByPath.set(doc.path, doc.content);
   for (const doc of waterKnowledge.documents ?? []) documentsByPath.set(doc.path, doc.content);
   documentsByPath.set("skills/assets/search-cloud/SKILL.md", searchCloudSkill);
-  for (const doc of [...farmingSkillDocuments, ...FARMING_METHOD_DOCS]) {
+  // Match production FarmingComponentEditor: overview.md describes the retired FarmingAreaComponent proxy.
+  for (const doc of [
+    ...farmingSkillDocuments.filter((d) => d.path !== "skills/farming/references/overview.md"),
+    ...FARMING_METHOD_DOCS
+  ]) {
     documentsByPath.set(doc.path, doc.content);
   }
 
@@ -39,6 +43,10 @@ function buildFullKnowledgeCatalog() {
 
   return {
     ...base,
+    hostNotes: [
+      base.hostNotes ?? "",
+      "云端资产检索见 [云端搜索](skills/assets/search-cloud/SKILL.md)。"
+    ].join("\n\n"),
     skills: [...skillsByName.values()],
     documents: [...documentsByPath.entries()].map(([path, content]) => ({ path, content })),
     modules: [...modulesById.values()]
@@ -62,6 +70,14 @@ describe("Seed World Agent Knowledge Static Audit (Offline CI Gate)", () => {
         queue.push(entry);
       }
     }
+    // Host-mounted optional extensions (e.g. retrieval search-cloud) route from hostNotes at hop 0.
+    for (const match of (catalog.hostNotes ?? "").matchAll(/\]\(<?([^)>\s]+)>?\)/g)) {
+      const target = match[1]!.split("#")[0]!;
+      if (target && pathSet.has(target) && target.startsWith("skills/") && !hopDepth.has(target)) {
+        hopDepth.set(target, 0);
+        queue.push(target);
+      }
+    }
 
     while (queue.length > 0) {
       const cur = queue.shift()!;
@@ -77,11 +93,8 @@ describe("Seed World Agent Knowledge Static Audit (Offline CI Gate)", () => {
     }
 
     const unreachable = skillMarkdowns.filter((p) => !hopDepth.has(p)).sort();
-    // Ratchet baseline (M2 target: []):
-    expect(unreachable).toEqual([
-      "skills/assets/search-cloud/SKILL.md",
-      "skills/farming/references/overview.md"
-    ]);
+    // M2 tightened: 0 unreachable orphan documents
+    expect(unreachable).toEqual([]);
   });
 
   it("exposes water.digRiver in water/SKILL.md API_INDEX and links every world tool declaration", () => {
@@ -108,14 +121,8 @@ describe("Seed World Agent Knowledge Static Audit (Offline CI Gate)", () => {
         }
       }
     }
-    // Ratchet baseline (M2 target: []):
-    expect(missingNativeLink.sort()).toEqual([
-      "skills/animals/SKILL.md",
-      "skills/assets/delete/SKILL.md",
-      "skills/assets/inspect/SKILL.md",
-      "skills/assets/use-model/SKILL.md",
-      "skills/farming/SKILL.md"
-    ]);
+    // M2 tightened: every SKILL.md mentioning editor.* links declare/editor/native/api.d.ts
+    expect(missingNativeLink.sort()).toEqual([]);
   });
 
   it("inlines native/source.d.ts when reading native/api.d.ts and discloses any omitted dependencies explicitly", async () => {

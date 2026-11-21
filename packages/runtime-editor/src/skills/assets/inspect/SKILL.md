@@ -17,3 +17,5 @@ description: 需要了解项目资产的类型、说明或内容时使用。
 读取模型不会告诉你场景实例的世界坐标。查询实例用 Entity 和 Component 接口。其他编码会明确报不支持，可以用 VFS 的 read 查看原始文本或二进制描述。
 
 只有注册资产有同名 `.meta`。项目清单、文件夹、README 和声明不生成 `.meta`。未填写的资产 summary 和 usage 为空。
+
+接口：[原生编辑 API](declare/editor/native/api.d.ts)（`editor.asset.list` 支持 `{ search?, type? }` 并返回 `{ items }`）。

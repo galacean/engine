@@ -9,12 +9,13 @@ description: 给节点添加或移除组件、读取或修改组件属性、调�
 
 ## 查询
 
-- `editor.component.query({scene, entityId?, id?, type?})` 查询当前作者草稿，包括本次 execute 之前的编辑。
+- `editor.component.query({scene, entityId?, id?, type?})` 查询当前作者草稿，返回 `{ items }`（包括本次 execute 之前的编辑）。
 - `editor.component.read` 返回作者属性。
-- 查询已注册的字面量类型时，还会提供带类型的实时方法。
-- `editor.component.query({type})` 不传 scene 时查询当前运行时。
+- 查询已注册的字面量类型时，`items` 中的元素还会提供带类型的实时方法。
+- `editor.component.query({type})` 不传 scene 时查询当前运行时，同样返回 `{ items }`。
 - 新组件要提交并激活后，才能调用实时方法。
 - 组件移除后，同一 Scene 范围的查询不再返回它。
+- 增删改组件后，外层 `execute` 返回 `committed` 且无 `runtimeErrors` 即已完成，无需额外调用 `tools.runtime.*` 复查。
 
 名称只用于发现。组件身份由 scene、entityId、id、type 确定。带类型的系统代理每次实时调用都会重新解析身份。不要使用 Engine 的 instanceId，也不要假设已删除的组件仍然存在。
 

@@ -15,7 +15,7 @@ execute 不能导入游戏 Script 模块，也不能调用运行时方法。
 
 - **新建：** 用 [tools.building.generate](declare/editor/world/tools/building.generate.d.ts) 生成，把结果的 `content` 交给 `editor.asset.create` 保存为 Prefab，再用 `editor.entity.create` 实例化（签名见[原生编辑 API](declare/editor/native/api.d.ts)）。普通小房子直接用[流程](skills/building/references/planning.md)中的示例。需要门窗等构件时先按[墙](skills/building/references/wall.md)检查安装参数。
 - **修改已有建筑：** 通过[原生编辑 API](declare/editor/native/api.d.ts) 查看和编辑原生 Source，保留目标实例的 frame 和引用。
-- **检查结果：** 提交后，用运行时查询读取场景 BuildingManager 的 `buildStatus`，方法见[流程](skills/building/references/planning.md)。
+- **检查结果：** 提交后，用运行时查询读取场景 BuildingManager 的 `buildStatus`，方法见[流程](skills/building/references/planning.md)；确认 `pending === false` 且 `errors.length === 0` 即建造完成，直接汇报，不要再调 `snapshot` 或逐个拆查底层组件。
 
 ## 在游戏 Script 中
 
@@ -36,9 +36,9 @@ execute 不能导入游戏 Script 模块，也不能调用运行时方法。
 
 | 工作 | 说明 |
 | --- | --- |
-| 生成入口、持久创建、检查发布 | [流程](references/planning.md) |
-| Script 中的组件、引用和生命周期 | [运行时用法](references/foundation.md) |
-| 围墙、栅栏、台阶和自定义构件 | [结构](references/structure.md) |
-| 屋面、老虎窗和屋顶挂件 | [屋顶](references/roof.md) |
-| 开窗和墙体 | [墙](references/wall.md) |
-| 连接与验收 | [连接](references/connections.md) |
+| 生成入口、持久创建、检查发布 | [流程](skills/building/references/planning.md) |
+| Script 中的组件、引用和生命周期 | [运行时用法](skills/building/references/foundation.md) |
+| 围墙、栅栏、台阶和自定义构件 | [结构](skills/building/references/structure.md) |
+| 屋面、老虎窗和屋顶挂件 | [屋顶](skills/building/references/roof.md) |
+| 开窗和墙体 | [墙](skills/building/references/wall.md) |
+| 连接与验收 | [连接](skills/building/references/connections.md) |

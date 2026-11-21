@@ -5,7 +5,9 @@ description: 创建、查询、移动、删除 Scene 节点，调整层级或搭
 
 # Scene 节点
 
-Scene 作者分组、灯光节点和层级从这里进入：先读 project.json 找到活动 Scene，再用 `editor.entity.list` 查询作者记录。自动生成的运行时网格不是 Scene 作者分组。查询 Scene 结构时，不需要递归枚举所有生成网格。
+Scene 作者分组、灯光节点和层级从这里进入：已知默认主场景路径（如 `"Scenes/Main.scene"`）时直接调用 `editor.entity.list` 查询作者记录，无需先读 `project.json`。自动生成的运行时网格不是 Scene 作者分组。查询 Scene 结构时，不需要递归枚举所有生成网格。
+
+编辑完成后，若 `execute` 返回 `committed` 且无 `runtimeErrors`，即可直接汇报结果，无需额外调用 `tools.runtime.*` 二次验证。
 
 ## 查询
 

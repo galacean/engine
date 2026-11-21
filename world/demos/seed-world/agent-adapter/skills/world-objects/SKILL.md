@@ -1,6 +1,6 @@
 ---
 name: world-objects
-description: 查询、检查、删除世界对象，或管理对象标签和选区时使用。树木、地貌、水体等由世界系统管理的对象从这里定位；Scene 节点见 scene-nodes。
+description: 查询、检查、删除世界对象，管理标签与选区，或调整世界系统全局参数（如动物激活距离、种群/植被配置）时使用；Scene 节点见 scene-nodes。
 ---
 
 # 对象查询与管理
