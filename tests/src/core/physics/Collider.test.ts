@@ -1059,6 +1059,59 @@ describe("Collider", () => {
         narrow.destroy();
         narrowCtrl.destroy();
       }
+
+      // Simultaneous -2^-21 translation + (1 + 2^-21) scale cancellation keeps exact world center across static/kinematic owners
+      const shift = 2 ** -21;
+      for (const [owner, edit] of [
+        ["static", "setters"],
+        ["static", "matrix-and-resize"],
+        ["same-entity", "setters"],
+        ["same-entity", "matrix-and-resize"],
+        ["child", "setters"]
+      ] as const) {
+        const live = engine.sceneManager.activeScene.createRootEntity(`shift-live-${owner}-${edit}`);
+        const controlRoot = engine.sceneManager.activeScene.createRootEntity(`shift-ctrl-${owner}-${edit}`);
+        const applyEdit = (target: Entity) => {
+          if (edit === "matrix-and-resize") {
+            const m = new Matrix();
+            Matrix.scaling(new Vector3(1 + shift, 2, 1), m);
+            m.elements[12] = -shift;
+            target.transform.localMatrix = m;
+          } else {
+            target.transform.setPosition(-shift, 0, 0);
+            target.transform.setScale(1 + shift, 2, 1);
+          }
+        };
+        try {
+          const setup = (target: Entity, fromFinal: boolean) => {
+            if (fromFinal) applyEdit(target);
+            else target.transform.setScale(1, 2, 1);
+            const body = owner === "static" ? null : target.addComponent(Rigidbody);
+            if (body) body.isKinematic = true;
+            const holder = owner === "child" ? target.createChild("shape") : target;
+            const box = holder.addComponent(BoxCollider);
+            box.center.set(1, 0, 0);
+            box.size.set(4e-7, fromFinal && edit === "matrix-and-resize" ? 3 : 1, 1);
+            return box;
+          };
+          const box = setup(live, false);
+          const control = setup(controlRoot, true);
+          const point = new Vector3(1, 0, 0);
+          const closest = new Vector3();
+          expect(box.getClosestPoint(point, closest)).toBe(0);
+          const expected = control.getClosestPoint(point, closest);
+          expect(expected).toBe(0);
+          // Start from a clean ancestor scale cache so Transform propagates the subsequent setPosition + setScale edit.
+          expect(live.transform.lossyWorldScale.x).toBe(1);
+
+          applyEdit(live);
+          if (edit === "matrix-and-resize") box.size.y = 3;
+          expect(box.getClosestPoint(point, closest)).toBe(expected);
+        } finally {
+          live.destroy();
+          controlRoot.destroy();
+        }
+      }
     });
   });
 });

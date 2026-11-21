@@ -789,5 +789,47 @@ describe("CharacterController", () => {
       expect(physics.raycast(new Ray(new Vector3(0, 1.5, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(true);
       expect(physics.raycast(new Ray(new Vector3(1.5, 0, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(false);
     });
+
+    it("syncs sub-1e-6 scale, position, and center edits without dropping updates", () => {
+      const tinyScaleEntity = root.createChild("tiny-scale-cct");
+      tinyScaleEntity.transform.setPosition(0, 10, 0);
+      tinyScaleEntity.transform.setScale(1e-6, 1e-6, 1e-6);
+      const tinyScaleCC = tinyScaleEntity.addComponent(CharacterController);
+      tinyScaleCC.geometry = CharacterControllerGeometry.Box;
+      tinyScaleCC.size.set(1e6, 1e6, 1e6);
+      tinyScaleCC.contactOffset = 0.01;
+      tinyScaleCC.collisionLayer = Layer.Layer5;
+
+      const hit = new HitResult();
+      const edgeRay = new Ray(new Vector3(0.6, 10, 5), new Vector3(0, 0, -1));
+      expect(physics.raycast(edgeRay, 10, Layer.Layer5, hit)).toBe(false);
+
+      // Delta 5e-7 < 1e-6: world size grows from 1.0 to 1.5
+      tinyScaleEntity.transform.setScale(1.5e-6, 1.5e-6, 1.5e-6);
+      expect(physics.raycast(edgeRay, 10, Layer.Layer5, hit)).toBe(true);
+      expect(hit.collider).toBe(tinyScaleCC);
+
+      // Simultaneous -2^-21 translation + +2^-21 center edit on a narrow box keeps the exact world center
+      const shift = 2 ** -21;
+      const shiftEntity = root.createChild("sub-eps-shift-cct");
+      shiftEntity.transform.setPosition(0, 20, 0);
+      const shiftCC = shiftEntity.addComponent(CharacterController);
+      shiftCC.geometry = CharacterControllerGeometry.Box;
+      shiftCC.size.set(4e-7, 1, 1);
+      shiftCC.center.set(1, 0, 0);
+      shiftCC.contactOffset = 1e-7;
+      shiftCC.collisionLayer = Layer.Layer6;
+
+      const centerRay = new Ray(new Vector3(1, 20, 5), new Vector3(0, 0, -1));
+      expect(physics.raycast(centerRay, 10, Layer.Layer6, hit)).toBe(true);
+      expect(hit.collider).toBe(shiftCC);
+
+      shiftEntity.transform.setPosition(-shift, 20, 0);
+      expect(physics.raycast(centerRay, 10, Layer.Layer6, hit)).toBe(false);
+
+      shiftCC.center.set(1 + shift, 0, 0);
+      expect(physics.raycast(centerRay, 10, Layer.Layer6, hit)).toBe(true);
+      expect(hit.collider).toBe(shiftCC);
+    });
   });
 });

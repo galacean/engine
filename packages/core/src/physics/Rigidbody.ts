@@ -647,8 +647,14 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       transform.worldMatrix;
       const position = transform.worldPosition;
       const rotation = transform.worldRotationQuaternion;
-      if (!Vector3.equals(position, this._nativePosition) || !Quaternion.equals(rotation, this._nativeRotation)) {
-        this._nativePosition.copyFrom(position);
+      const nativePosition = this._nativePosition;
+      if (
+        position.x !== nativePosition.x ||
+        position.y !== nativePosition.y ||
+        position.z !== nativePosition.z ||
+        !Quaternion.equals(rotation, this._nativeRotation)
+      ) {
+        nativePosition.copyFrom(position);
         this._nativeRotation.copyFrom(rotation);
         actor.setWorldTransform(position, rotation);
       }
