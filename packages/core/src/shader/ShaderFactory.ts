@@ -4,6 +4,7 @@ import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
 import { Renderer } from "../Renderer";
 import { ConstantBufferBindingPoint } from "./enums/ConstantBufferBindingPoint";
+import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 import { ShaderBlockProperty } from "./ShaderBlockProperty";
 import { ShaderProperty } from "./ShaderProperty";
 
@@ -217,7 +218,8 @@ mat3 _normalMatFromModel(mat3 m) {
     return source.replace(ShaderFactory._uboUniformRegex, (match, type, name, arraySize) => {
       if (type.includes("sampler")) return match;
       const isDerived = builtinUniforms[name];
-      if (isDerived === undefined && !name.startsWith("renderer_")) return match;
+      if (isDerived === undefined && ShaderProperty._getShaderPropertyGroup(name) !== ShaderDataGroup.Renderer)
+        return match;
       if (isDerived) return "";
       if (arraySize) {
         Logger.error(`GPU Instancing does not support array uniform "${name}${arraySize}"`);

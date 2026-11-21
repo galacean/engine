@@ -7,6 +7,7 @@ import { ShaderProperty } from "../ShaderProperty";
 import { BlendFactor } from "../enums/BlendFactor";
 import { BlendOperation } from "../enums/BlendOperation";
 import { ColorWriteMask } from "../enums/ColorWriteMask";
+import { ShaderDataGroup } from "../enums/ShaderDataGroup";
 import { RenderStateElementKey } from "../enums/RenderStateElementKey";
 import { RenderState } from "./RenderState";
 import { RenderTargetBlendState } from "./RenderTargetBlendState";
@@ -65,6 +66,24 @@ export class BlendState extends DataObject {
     }
   }
 
+  private static _getBlendFactor(
+    property: ShaderProperty,
+    shaderData: ShaderData,
+    renderElementData: ShaderData | undefined,
+    defaultValue: BlendFactor
+  ): BlendFactor {
+    const mask = property._groupMask;
+    const renderElementBit = 1 << ShaderDataGroup.RenderElement;
+    if (mask & renderElementBit) {
+      const value = renderElementData?.getFloat(property);
+      // A name also set in other groups falls back to the material value
+      if (value !== undefined || mask === renderElementBit) {
+        return value ?? defaultValue;
+      }
+    }
+    return shaderData.getFloat(property) ?? defaultValue;
+  }
+
   /** The blend state of the render target. */
   readonly targetBlendState: RenderTargetBlendState = new RenderTargetBlendState();
   /** Constant blend color. */
@@ -97,33 +116,41 @@ export class BlendState extends DataObject {
     }
     const sourceColorBlendFactorProp = renderStateDataMap[RenderStateElementKey.BlendStateSourceColorBlendFactor0];
     if (sourceColorBlendFactorProp !== undefined) {
-      target.sourceColorBlendFactor =
-        renderElementData?.getFloat(sourceColorBlendFactorProp) ??
-        shaderData.getFloat(sourceColorBlendFactorProp) ??
-        BlendFactor.One;
+      target.sourceColorBlendFactor = BlendState._getBlendFactor(
+        sourceColorBlendFactorProp,
+        shaderData,
+        renderElementData,
+        BlendFactor.One
+      );
     }
     const sourceAlphaBlendFactorProp = renderStateDataMap[RenderStateElementKey.BlendStateSourceAlphaBlendFactor0];
     if (sourceAlphaBlendFactorProp !== undefined) {
-      target.sourceAlphaBlendFactor =
-        renderElementData?.getFloat(sourceAlphaBlendFactorProp) ??
-        shaderData.getFloat(sourceAlphaBlendFactorProp) ??
-        BlendFactor.One;
+      target.sourceAlphaBlendFactor = BlendState._getBlendFactor(
+        sourceAlphaBlendFactorProp,
+        shaderData,
+        renderElementData,
+        BlendFactor.One
+      );
     }
     const destinationColorBlendFactorProp =
       renderStateDataMap[RenderStateElementKey.BlendStateDestinationColorBlendFactor0];
     if (destinationColorBlendFactorProp !== undefined) {
-      target.destinationColorBlendFactor =
-        renderElementData?.getFloat(destinationColorBlendFactorProp) ??
-        shaderData.getFloat(destinationColorBlendFactorProp) ??
-        BlendFactor.Zero;
+      target.destinationColorBlendFactor = BlendState._getBlendFactor(
+        destinationColorBlendFactorProp,
+        shaderData,
+        renderElementData,
+        BlendFactor.Zero
+      );
     }
     const destinationAlphaBlendFactorProp =
       renderStateDataMap[RenderStateElementKey.BlendStateDestinationAlphaBlendFactor0];
     if (destinationAlphaBlendFactorProp !== undefined) {
-      target.destinationAlphaBlendFactor =
-        renderElementData?.getFloat(destinationAlphaBlendFactorProp) ??
-        shaderData.getFloat(destinationAlphaBlendFactorProp) ??
-        BlendFactor.Zero;
+      target.destinationAlphaBlendFactor = BlendState._getBlendFactor(
+        destinationAlphaBlendFactorProp,
+        shaderData,
+        renderElementData,
+        BlendFactor.Zero
+      );
     }
     const colorWriteMaskProp = renderStateDataMap[RenderStateElementKey.BlendStateColorWriteMask0];
     if (colorWriteMaskProp !== undefined) {

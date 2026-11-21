@@ -3,7 +3,7 @@ import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Logger } from "../base/Logger";
 import { Texture } from "../texture";
-import { ShaderData } from "./ShaderData";
+import { ShaderData, ShaderPropertyValueType } from "./ShaderData";
 import { ShaderProperty } from "./ShaderProperty";
 import { ShaderUniform } from "./ShaderUniform";
 import { ShaderUniformBlock } from "./ShaderUniformBlock";
@@ -34,6 +34,23 @@ export class ShaderProgram implements IPlatformShaderProgram {
       .join("\n");
   }
 
+  // Prefer the most specific owner, so renderer values override shared material values
+  private static _findValue(
+    id: number,
+    sceneData: ShaderData | undefined,
+    cameraData: ShaderData | undefined,
+    rendererData: ShaderData | undefined,
+    materialData: ShaderData | undefined,
+    renderElementData: ShaderData | undefined
+  ): ShaderPropertyValueType | undefined {
+    let value: ShaderPropertyValueType | undefined;
+    if (renderElementData && (value = renderElementData._propertyValueMap[id]) != null) return value;
+    if (rendererData && (value = rendererData._propertyValueMap[id]) != null) return value;
+    if (materialData && (value = materialData._propertyValueMap[id]) != null) return value;
+    if (cameraData && (value = cameraData._propertyValueMap[id]) != null) return value;
+    return sceneData?._propertyValueMap[id];
+  }
+
   id: number;
 
   readonly sceneUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
@@ -42,6 +59,8 @@ export class ShaderProgram implements IPlatformShaderProgram {
   readonly materialUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
   readonly renderElementUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
   readonly otherUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
+  /** Uniforms whose name is set in multiple groups, resolved from the owning shader data per draw. */
+  readonly multiGroupUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
 
   /** @internal */
   _uploadRenderCount: number = -1;
@@ -66,6 +85,7 @@ export class ShaderProgram implements IPlatformShaderProgram {
   private _gl: WebGL2RenderingContext;
   private _glProgram: WebGLProgram | null;
   private _activeTextureUint: number = 0;
+  private _groupConflictVersion: number = 0;
 
   /**
    * Whether this shader program is valid.
@@ -127,18 +147,45 @@ export class ShaderProgram implements IPlatformShaderProgram {
     if (textureUniforms) {
       for (let i = 0, n = textureUniforms.length; i < n; i++) {
         const uniform = textureUniforms[i];
-        const texture = propertyValueMap[uniform.propertyId];
-        if (texture instanceof Texture) {
-          if (!texture.destroyed && !(uniform.textureDefault instanceof Array)) {
-            uniform.applyFunc(uniform, texture);
-            continue;
-          }
-        } else if (Array.isArray(texture) && uniform.textureDefault instanceof Array) {
-          uniform.applyFunc(uniform, texture);
-          continue;
-        }
-        uniform.applyFunc(uniform, uniform.textureDefault);
+        this._uploadTexture(uniform, propertyValueMap[uniform.propertyId]);
       }
+    }
+  }
+
+  /**
+   * Upload uniforms whose name is set in multiple groups, using the most specific shader data that holds the value.
+   */
+  uploadMultiGroupUniforms(
+    sceneData: ShaderData | undefined,
+    cameraData: ShaderData | undefined,
+    rendererData: ShaderData | undefined,
+    materialData: ShaderData | undefined,
+    renderElementData: ShaderData | undefined
+  ): void {
+    const { constUniforms, textureUniforms } = this.multiGroupUniformBlock;
+    for (let i = 0, n = constUniforms.length; i < n; i++) {
+      const uniform = constUniforms[i];
+      const value = ShaderProgram._findValue(
+        uniform.propertyId,
+        sceneData,
+        cameraData,
+        rendererData,
+        materialData,
+        renderElementData
+      );
+      value != null && uniform.applyFunc(uniform, value);
+    }
+    for (let i = 0, n = textureUniforms.length; i < n; i++) {
+      const uniform = textureUniforms[i];
+      const value = ShaderProgram._findValue(
+        uniform.propertyId,
+        sceneData,
+        cameraData,
+        rendererData,
+        materialData,
+        renderElementData
+      );
+      this._uploadTexture(uniform, value);
     }
   }
 
@@ -157,36 +204,17 @@ export class ShaderProgram implements IPlatformShaderProgram {
   }
 
   /**
-   * Grouping other data per program based on which ShaderData actually owns each property.
+   * Grouping other data.
    */
-  groupingOtherUniformBlock(
-    sceneData?: ShaderData,
-    cameraData?: ShaderData,
-    rendererData?: ShaderData,
-    materialData?: ShaderData,
-    renderElementData?: ShaderData
-  ): void {
+  groupingOtherUniformBlock(): void {
+    const conflictVersion = ShaderProperty._groupConflictVersion;
+    if (this._groupConflictVersion !== conflictVersion) {
+      this._groupConflictVersion = conflictVersion;
+      this._extractMultiGroupUniforms();
+    }
     const { constUniforms, textureUniforms } = this.otherUniformBlock;
-    constUniforms.length > 0 &&
-      this._groupingSubOtherUniforms(
-        constUniforms,
-        false,
-        sceneData,
-        cameraData,
-        rendererData,
-        materialData,
-        renderElementData
-      );
-    textureUniforms.length > 0 &&
-      this._groupingSubOtherUniforms(
-        textureUniforms,
-        true,
-        sceneData,
-        cameraData,
-        rendererData,
-        materialData,
-        renderElementData
-      );
+    constUniforms.length > 0 && this._groupingSubOtherUniforms(constUniforms, false);
+    textureUniforms.length > 0 && this._groupingSubOtherUniforms(textureUniforms, true);
   }
 
   /**
@@ -212,45 +240,64 @@ export class ShaderProgram implements IPlatformShaderProgram {
     this._glProgram && gl.deleteProgram(this._glProgram);
   }
 
-  private _groupingSubOtherUniforms(
-    uniforms: ShaderUniform[],
-    isTexture: boolean,
-    sceneData?: ShaderData,
-    cameraData?: ShaderData,
-    rendererData?: ShaderData,
-    materialData?: ShaderData,
-    renderElementData?: ShaderData
-  ): void {
-    const renderElementMap = renderElementData?._propertyValueMap;
-    const materialMap = materialData?._propertyValueMap;
-    const rendererMap = rendererData?._propertyValueMap;
-    const cameraMap = cameraData?._propertyValueMap;
-    const sceneMap = sceneData?._propertyValueMap;
-
+  private _groupingSubOtherUniforms(uniforms: ShaderUniform[], isTexture: boolean): void {
+    const propertyIdMap = ShaderProperty._propertyIdMap;
     for (let i = uniforms.length - 1; i >= 0; i--) {
       const uniform = uniforms[i];
-      const id = uniform.propertyId;
-      let group: ShaderDataGroup | undefined;
-      if (renderElementMap && renderElementMap[id] !== undefined) {
-        group = ShaderDataGroup.RenderElement;
-      } else if (materialMap && materialMap[id] !== undefined) {
-        group = ShaderDataGroup.Material;
-      } else if (rendererMap && rendererMap[id] !== undefined) {
-        group = ShaderDataGroup.Renderer;
-      } else if (cameraMap && cameraMap[id] !== undefined) {
-        group = ShaderDataGroup.Camera;
-      } else if (sceneMap && sceneMap[id] !== undefined) {
-        group = ShaderDataGroup.Scene;
-      }
-
-      if (group !== undefined) {
+      const property = propertyIdMap[uniform.propertyId];
+      if (property._groupMask !== 0) {
         uniforms.splice(i, 1);
-        this._groupingUniform(uniform, group, isTexture);
+        this._assignUniform(uniform, property, isTexture);
       }
     }
   }
 
-  private _groupingUniform(uniform: ShaderUniform, group: ShaderDataGroup | null, isTexture: boolean): void {
+  private _assignUniform(uniform: ShaderUniform, property: ShaderProperty, isTexture: boolean): void {
+    if (property._isMultiGroup()) {
+      const block = this.multiGroupUniformBlock;
+      (isTexture ? block.textureUniforms : block.constUniforms).push(uniform);
+    } else {
+      this._groupingUniform(uniform, property._getGroup(), isTexture);
+    }
+  }
+
+  // Move uniforms whose name became shared by multiple groups after they were grouped
+  private _extractMultiGroupUniforms(): void {
+    const blocks = [
+      this.sceneUniformBlock,
+      this.cameraUniformBlock,
+      this.rendererUniformBlock,
+      this.materialUniformBlock,
+      this.renderElementUniformBlock
+    ];
+    for (let i = 0; i < blocks.length; i++) {
+      this._extractSubMultiGroupUniforms(blocks[i].constUniforms, false);
+      this._extractSubMultiGroupUniforms(blocks[i].textureUniforms, true);
+    }
+  }
+
+  private _extractSubMultiGroupUniforms(uniforms: ShaderUniform[], isTexture: boolean): void {
+    const propertyIdMap = ShaderProperty._propertyIdMap;
+    for (let i = uniforms.length - 1; i >= 0; i--) {
+      const uniform = uniforms[i];
+      if (propertyIdMap[uniform.propertyId]._isMultiGroup()) {
+        uniforms.splice(i, 1);
+        const block = this.multiGroupUniformBlock;
+        (isTexture ? block.textureUniforms : block.constUniforms).push(uniform);
+      }
+    }
+  }
+
+  private _uploadTexture(uniform: ShaderUniform, value: ShaderPropertyValueType | undefined): void {
+    // The same name may hold a non-texture value after a material switches shaders
+    if ((<Texture>value)?.destroyed === false || (Array.isArray(value) && Array.isArray(uniform.textureDefault))) {
+      uniform.applyFunc(uniform, <ShaderPropertyValueType>value);
+    } else {
+      uniform.applyFunc(uniform, uniform.textureDefault);
+    }
+  }
+
+  private _groupingUniform(uniform: ShaderUniform, group: ShaderDataGroup | undefined, isTexture: boolean): void {
     switch (group) {
       case ShaderDataGroup.Scene:
         if (isTexture) {
@@ -401,7 +448,8 @@ export class ShaderProgram implements IPlatformShaderProgram {
       if (location === null) return;
 
       shaderUniform.name = name;
-      shaderUniform.propertyId = ShaderProperty.getByName(name)._uniqueId;
+      const property = ShaderProperty.getByName(name);
+      shaderUniform.propertyId = property._uniqueId;
       shaderUniform.location = location;
 
       switch (type) {
@@ -554,12 +602,9 @@ export class ShaderProgram implements IPlatformShaderProgram {
           throw new Error("Unsupported uniform type");
       }
 
-      if (isTexture) {
-        this.otherUniformBlock.textureUniforms.push(shaderUniform);
-      } else {
-        this.otherUniformBlock.constUniforms.push(shaderUniform);
-      }
+      this._assignUniform(shaderUniform, property, isTexture);
     });
+    this._groupConflictVersion = ShaderProperty._groupConflictVersion;
 
     attributeInfos.forEach(({ name }) => {
       this.attributeLocation[name] = gl.getAttribLocation(program, name);
