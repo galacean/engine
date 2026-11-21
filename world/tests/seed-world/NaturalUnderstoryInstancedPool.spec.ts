@@ -2,14 +2,17 @@ import { describe, expect, it, vi } from "vitest";
 import {
   Entity,
   MeshRenderer,
+  RenderViewType,
   ShaderData,
   ShaderDataGroup,
   type Camera,
   type Material,
   type ModelMesh,
+  type RenderViewCullingContext,
+  type RenderViewCullingSource,
   type Texture2D
 } from "@galacean/engine-core";
-import { BoundingBox, Matrix, Vector3, Vector4 } from "@galacean/engine-math";
+import { BoundingBox, ContainmentType, Matrix, Vector3, Vector4 } from "@galacean/engine-math";
 import type { LandscapePlantInstance } from "@galacean/engine-vegetation/world/VegetationLandscapePlan";
 import {
   applyUnderstoryBucketSpecToRenderer,
@@ -412,5 +415,173 @@ describe("NaturalUnderstoryInstancedPool", () => {
     pool.dispose();
     expect(flowerBucket.view.mesh.destroy).toHaveBeenCalledOnce();
     expect(flowerBucket.storage.instanceBuffer.destroy).toHaveBeenCalledWith(true);
+  });
+
+  it("culls Camera and ShadowCascades independently, forces lowest-precision LOD in shadows, and skips Cascade >= 1 for understory", () => {
+    const { parent, camera } = createMockParentAndCamera();
+    let registeredSource: RenderViewCullingSource | null = null;
+    const unregister = vi.fn(() => {
+      registeredSource = null;
+    });
+    (camera as any).enableFrustumCulling = true;
+    (camera as any).registerRenderViewCullingSource = vi.fn((source: RenderViewCullingSource) => {
+      registeredSource = source;
+      return { unregister };
+    });
+
+    const pool = new NaturalUnderstoryInstancedPool(parent, camera, "TreePool", {
+      maxShadowCascadeIndex: 3,
+      shadowLodPolicy: "lowest"
+    });
+    expect(registeredSource).toBe(pool);
+
+    const lod0Spec: InstancedUnderstoryBucketSpec = {
+      key: "tree-lod0",
+      mesh: createMockMesh("tree-lod0"),
+      material: createMockMaterial("Terrain/Vegetation"),
+      macros: ["RENDERER_PROCEDURAL_TREE_GPU_VARIATION"],
+      castShadows: true,
+      receiveShadows: true,
+      enableVertexColor: false,
+      usesGpuVariation: true,
+      interactionOccluder: true
+    };
+    const lod3Spec: InstancedUnderstoryBucketSpec = {
+      key: "tree-lod3",
+      mesh: createMockMesh("tree-lod3"),
+      material: createMockMaterial("Terrain/Vegetation"),
+      macros: ["RENDERER_PROCEDURAL_TREE_GPU_VARIATION"],
+      // Even when camera-distance rules mark LOD3 castShadows=false, shadow views must still cast via lowest LOD.
+      castShadows: false,
+      receiveShadows: true,
+      enableVertexColor: false,
+      usesGpuVariation: true,
+      interactionOccluder: true
+    };
+
+    const nearFrontTree = makeRecord({
+      id: "t-near-front",
+      x: 0,
+      y: 0,
+      z: -12,
+      spec: lod0Spec,
+      secondSpec: lod3Spec,
+      worldSize: 10,
+      lodThresholds: [0.2, 0]
+    });
+    const behindTree = makeRecord({
+      id: "t-behind",
+      x: 0,
+      y: 0,
+      z: 14,
+      spec: lod0Spec,
+      secondSpec: lod3Spec,
+      worldSize: 10,
+      lodThresholds: [0.2, 0]
+    });
+    const farFrontTree = makeRecord({
+      id: "t-far-front",
+      x: 0,
+      y: 0,
+      z: -120,
+      spec: lod0Spec,
+      secondSpec: lod3Spec,
+      worldSize: 10,
+      lodThresholds: [0.2, 0]
+    });
+
+    pool.setCell("trees", [nearFrontTree, behindTree, farFrontTree]);
+    pool.update(Infinity, true, 180);
+
+    // Main camera view strictly excludes off-frustum behindTree, keeps nearFrontTree at LOD0 and farFrontTree at LOD3.
+    expect(nearFrontTree.assignedLod).toBe(0);
+    expect(behindTree.assignedLod).toBe(-1);
+    expect(farFrontTree.assignedLod).toBe(1);
+
+    const lod0Bucket = (pool as any).buckets.get("tree-lod0");
+    const lod3Bucket = (pool as any).buckets.get("tree-lod3");
+    expect(lod0Bucket.renderer.enabled).toBe(false);
+    expect(lod0Bucket.view.mesh.instanceCount).toBe(1);
+    expect(lod3Bucket.view.mesh.instanceCount).toBe(1);
+
+    // Pick batches remain discoverable even though view-culled renderers have enabled=false.
+    const pickedCounts: number[] = [];
+    pool.visitPickBatches((b) => pickedCounts.push(b.count));
+    expect(pickedCounts).toEqual([1, 1]);
+
+    // Camera view cull submits both LOD0 and LOD3 camera renderers.
+    const camSubmitted: MeshRenderer[] = [];
+    const camContext: RenderViewCullingContext = {
+      viewType: RenderViewType.Camera,
+      camera,
+      virtualCamera: { viewProjectionMatrix: new Matrix() } as any,
+      shadowCascadeIndex: -1,
+      isVisible: () => true,
+      classifyBounds: () => ContainmentType.Intersects,
+      submit: (r) => camSubmitted.push(r)
+    };
+    pool.cull(camContext);
+    expect(camSubmitted).toContain(lod0Bucket.renderer);
+    expect(camSubmitted).toContain(lod3Bucket.renderer);
+
+    // Shadow Cascade 0 (near -50..+30): includes nearFrontTree AND behindTree, excludes farFrontTree (-120),
+    // and submits ONLY the lowest-precision LOD3 shadow view (never LOD0!).
+    const c0Submitted: MeshRenderer[] = [];
+    const c0Vp = new Matrix();
+    c0Vp.elements[0] = 1.1;
+    const c0Context: RenderViewCullingContext = {
+      viewType: RenderViewType.ShadowCascade,
+      camera,
+      virtualCamera: { viewProjectionMatrix: c0Vp } as any,
+      shadowCascadeIndex: 0,
+      classifyBounds: (b) => (b.max.z < -50 || b.min.z > 30 ? ContainmentType.Disjoint : ContainmentType.Intersects),
+      isVisible: (b) => b.max.z >= -50 && b.min.z <= 30,
+      submit: (r) => c0Submitted.push(r)
+    };
+    pool.cull(c0Context);
+    expect(c0Submitted.length).toBe(1);
+    expect(lod0Bucket.shadowViews[0]).toBeUndefined();
+    const c0ShadowView = lod3Bucket.shadowViews[0];
+    expect(c0ShadowView).toBeDefined();
+    expect(c0ShadowView.renderer.castShadows).toBe(true);
+    expect(c0ShadowView.renderer.receiveShadows).toBe(false);
+    expect(c0ShadowView.view.mesh.instanceCount).toBe(2);
+    expect(c0Submitted[0]).toBe(c0ShadowView.renderer);
+
+    // Shadow Cascade 1 (far -160..-50): includes ONLY farFrontTree at LOD3.
+    const c1Submitted: MeshRenderer[] = [];
+    const c1Vp = new Matrix();
+    c1Vp.elements[0] = 2.2;
+    const c1Context: RenderViewCullingContext = {
+      viewType: RenderViewType.ShadowCascade,
+      camera,
+      virtualCamera: { viewProjectionMatrix: c1Vp } as any,
+      shadowCascadeIndex: 1,
+      classifyBounds: (b) => (b.max.z < -160 || b.min.z > -50 ? ContainmentType.Disjoint : ContainmentType.Intersects),
+      isVisible: (b) => b.max.z >= -160 && b.min.z <= -50,
+      submit: (r) => c1Submitted.push(r)
+    };
+    pool.cull(c1Context);
+    expect(c1Submitted.length).toBe(1);
+    expect(lod3Bucket.shadowViews[1].view.mesh.instanceCount).toBe(1);
+
+    // Understory pool with maxShadowCascadeIndex=0 skips Cascade 1 completely.
+    const understoryPool = new NaturalUnderstoryInstancedPool(parent, camera, "UnderstoryPool", {
+      maxShadowCascadeIndex: 0,
+      shadowLodPolicy: "lowest"
+    });
+    understoryPool.setCell("cell-0", [
+      makeRecord({ id: "shrub-1", x: 0, y: 0, z: -80, spec: lod0Spec, secondSpec: lod3Spec, lodThresholds: [0.2, 0] })
+    ]);
+    understoryPool.update(120, true);
+    const understoryC1: MeshRenderer[] = [];
+    understoryPool.cull({ ...c1Context, submit: (r) => understoryC1.push(r) });
+    expect(understoryC1.length).toBe(0);
+
+    pool.dispose();
+    understoryPool.dispose();
+    expect(unregister).toHaveBeenCalledTimes(2);
+    expect(c0ShadowView.view.mesh.destroy).toHaveBeenCalledOnce();
+    expect(c0ShadowView.storage.instanceBuffer.destroy).toHaveBeenCalledWith(true);
   });
 });

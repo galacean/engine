@@ -276,12 +276,19 @@ export class PlanningNaturalVegetationRuntime {
     // Renderer visibility and shadow culling still belong to the engine for these plants.
     this.lodCells = new SeedWorldExactInstanceCellRuntime(camera, [], undefined, false);
     this.treeRoot = treeParent.createChild("Natural meadow trees");
-    this.instancedTrees = new NaturalUnderstoryInstancedPool(this.treeRoot, camera, "Natural trees instanced pool");
+    this.instancedTrees = new NaturalUnderstoryInstancedPool(this.treeRoot, camera, "Natural trees instanced pool", {
+      maxShadowCascadeIndex: 3,
+      shadowLodPolicy: "lowest"
+    });
     this.detailRoot = detailParent.createChild("Natural meadow understory");
     this.instancedUnderstory = new NaturalUnderstoryInstancedPool(
       this.detailRoot,
       camera,
-      "Natural understory instanced pool"
+      "Natural understory instanced pool",
+      {
+        maxShadowCascadeIndex: 0,
+        shadowLodPolicy: "lowest"
+      }
     );
     this.resourceRoot = owner.createChild("Natural meadow sources");
     this.resourceRoot.isActive = false;

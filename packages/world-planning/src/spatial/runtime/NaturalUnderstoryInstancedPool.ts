@@ -2,14 +2,19 @@ import {
   BoundingBox,
   BoundingFrustum,
   BoundingSphere,
+  ContainmentType,
   Matrix,
   MeshRenderer,
   Quaternion,
+  RenderViewType,
   Vector3,
   type Camera,
   type Entity,
   type Material,
   type ModelMesh,
+  type RenderViewCullingContext,
+  type RenderViewCullingSource,
+  type RenderViewCullingSourceRegistration,
   type Texture2D,
   Vector4
 } from "@galacean/engine";
@@ -27,10 +32,29 @@ import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
 } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+import {
+  capturePopulationViewCache,
+  createPopulationViewCaches,
+  POPULATION_RENDER_VIEW_COUNT,
+  populationViewCacheMatches,
+  type PopulationViewCache
+} from "../../world/SeedWorldInstanceBatch";
 
 const SUBCELL_SIZE_M = 16;
 const CAMERA_MATRIX_EPSILON = 1e-5;
 const LOD_HYSTERESIS_RATIO = 0.06;
+const MAX_SHADOW_CASCADES = POPULATION_RENDER_VIEW_COUNT - 1;
+
+/** Shadow LOD selection policy for instanced vegetation shadow cascades. */
+export type InstancedShadowLodPolicy = "lowest" | "camera";
+
+/** Optional multi-view culling and shadow LOD configuration for `NaturalUnderstoryInstancedPool`. */
+export interface NaturalUnderstoryInstancedPoolOptions {
+  /** Highest directional shadow cascade index rendered by this pool (`0` = near cascade only, `3` = all cascades). */
+  readonly maxShadowCascadeIndex?: number;
+  /** Which LOD tier shadow cascades submit (`"lowest"` uses the lowest-precision non-empty LOD mesh). */
+  readonly shadowLodPolicy?: InstancedShadowLodPolicy;
+}
 
 const DISALLOWED_RENDERER_MACROS = new Set([
   "RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG",
@@ -119,6 +143,7 @@ export interface InstancedUnderstoryRecord {
   readonly pickId: string | undefined;
   excluded: boolean;
   assignedLod: number;
+  readonly castsShadows?: boolean;
   readonly lods: readonly InstancedUnderstoryLod[];
 }
 
@@ -130,6 +155,17 @@ interface InstancedUnderstorySubCell {
 interface InstancedUnderstoryCellData {
   readonly records: InstancedUnderstoryRecord[];
   readonly subCells: InstancedUnderstorySubCell[];
+}
+
+interface InstancedShadowView {
+  readonly entity: Entity;
+  readonly renderer: MeshRenderer;
+  storage?: TreeAssemblyInstanceStorage;
+  view?: TreeAssemblyInstancedMesh;
+  capacity: number;
+  nextCount: number;
+  writeCursor: number;
+  readonly visibleBounds: BoundingBox;
 }
 
 interface InstancedBucket {
@@ -144,6 +180,7 @@ interface InstancedBucket {
   writeCursor: number;
   readonly pickIds: (string | undefined)[];
   readonly visibleBounds: BoundingBox;
+  readonly shadowViews: (InstancedShadowView | undefined)[];
 }
 
 export interface UnderstoryRendererBindingLike {
@@ -202,6 +239,75 @@ function resolveLodTier(screenHeight: number, prevTier: number, lods: readonly I
     if (screenHeight >= effective) return tier;
   }
   return count - 1;
+}
+
+function recordCastsShadows(rec: InstancedUnderstoryRecord): boolean {
+  if (rec.castsShadows !== undefined) return rec.castsShadows;
+  for (let l = 0; l < rec.lods.length; l++) {
+    const parts = rec.lods[l]!.parts;
+    for (let p = 0; p < parts.length; p++) {
+      if (parts[p]!.bucketSpec.castShadows) return true;
+    }
+  }
+  return false;
+}
+
+function resolveLowestNonEmptyLodIndex(lods: readonly InstancedUnderstoryLod[]): number {
+  for (let i = lods.length - 1; i >= 0; i--) {
+    if (lods[i]!.parts.length > 0) return i;
+  }
+  return -1;
+}
+
+function writePartInstance(
+  staging: Float32Array,
+  offset: number,
+  part: InstancedUnderstoryPart,
+  usesGpuVariation: boolean
+): void {
+  if (usesGpuVariation) {
+    staging[offset] = part.posX;
+    staging[offset + 1] = part.posY;
+    staging[offset + 2] = part.posZ;
+    staging[offset + 3] = part.branchX;
+    staging[offset + 4] = part.quatX;
+    staging[offset + 5] = part.quatY;
+    staging[offset + 6] = part.quatZ;
+    staging[offset + 7] = part.quatW;
+    staging[offset + 8] = part.scaleX;
+    staging[offset + 9] = part.scaleY;
+    staging[offset + 10] = part.scaleZ;
+    staging[offset + 11] = part.branchY;
+    staging[offset + 12] = part.colorR;
+    staging[offset + 13] = part.colorG;
+    staging[offset + 14] = part.colorB;
+    staging[offset + 15] = 1;
+    staging[offset + 16] = part.varX;
+    staging[offset + 17] = part.varY;
+    staging[offset + 18] = part.varZ;
+    staging[offset + 19] = part.varW;
+    staging[offset + 20] = part.colorR;
+    staging[offset + 21] = part.colorG;
+    staging[offset + 22] = part.colorB;
+    staging[offset + 23] = 1;
+  } else {
+    staging[offset] = part.posX;
+    staging[offset + 1] = part.posY;
+    staging[offset + 2] = part.posZ;
+    staging[offset + 3] = 1;
+    staging[offset + 4] = part.quatX;
+    staging[offset + 5] = part.quatY;
+    staging[offset + 6] = part.quatZ;
+    staging[offset + 7] = part.quatW;
+    staging[offset + 8] = part.scaleX;
+    staging[offset + 9] = part.scaleY;
+    staging[offset + 10] = part.scaleZ;
+    staging[offset + 11] = 1;
+    staging[offset + 12] = part.colorR;
+    staging[offset + 13] = part.colorG;
+    staging[offset + 14] = part.colorB;
+    staging[offset + 15] = 1;
+  }
 }
 
 const SUPPORTED_INSTANCED_SHADERS = new Set(["Terrain/Vegetation", "Terrain/Surface"]);
@@ -420,6 +526,13 @@ export function buildInstancedUnderstoryRecord(params: {
   }
 
   const terminalCutoff = lods[lods.length - 1]?.screenRelativeTransitionHeight ?? 0;
+  let castsShadows = false;
+  for (let i = 0; i < levels.length; i++) {
+    if (levels[i]!.castShadows) {
+      castsShadows = true;
+      break;
+    }
+  }
   return {
     instance,
     groundHeight,
@@ -431,6 +544,7 @@ export function buildInstancedUnderstoryRecord(params: {
     pickId,
     excluded,
     assignedLod: -1,
+    castsShadows,
     lods
   };
 }
@@ -462,7 +576,7 @@ export function applyUnderstoryBucketSpecToRenderer(renderer: MeshRenderer, spec
   }
 }
 
-export class NaturalUnderstoryInstancedPool {
+export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
   private readonly poolRoot: Entity;
   private readonly cells = new Map<string, InstancedUnderstoryCellData>();
   private readonly buckets = new Map<string, InstancedBucket>();
@@ -470,10 +584,19 @@ export class NaturalUnderstoryInstancedPool {
   private readonly vpMatrix = new Matrix();
   private readonly lastVpElements = new Float32Array(16);
   private readonly scratchSphere = new BoundingSphere(new Vector3(), 1);
+  private readonly scratchBox = new BoundingBox(new Vector3(), new Vector3());
+  private readonly viewCaches: PopulationViewCache[] = createPopulationViewCaches();
+  private readonly usesViewCulling: boolean;
+  private readonly maxShadowCascadeIndex: number;
+  private readonly shadowLodPolicy: InstancedShadowLodPolicy;
+  private readonly cullingRegistration?: RenderViewCullingSourceRegistration;
+  private readonly shadowScratchRecords: InstancedUnderstoryRecord[] = [];
+  private readonly shadowScratchLods: number[] = [];
   private lastCamValid = false;
   private lastFovKey = NaN;
-  private lastMaxDist = NaN;
-  private lastShadowDist = NaN;
+  private lastMaxDist = Infinity;
+  private lastShadowDist = 0;
+  private contentRevision = 1;
   private membershipDirty = false;
   private dataDirty = false;
   private disposed = false;
@@ -481,9 +604,21 @@ export class NaturalUnderstoryInstancedPool {
   constructor(
     parent: Entity,
     private readonly camera: Camera,
-    poolName = "Natural understory instanced pool"
+    poolName = "Natural understory instanced pool",
+    options?: NaturalUnderstoryInstancedPoolOptions
   ) {
     this.poolRoot = parent.createChild(poolName);
+    this.maxShadowCascadeIndex = options?.maxShadowCascadeIndex ?? MAX_SHADOW_CASCADES - 1;
+    this.shadowLodPolicy = options?.shadowLodPolicy ?? "lowest";
+    const camWithViewCulling = camera as Camera & {
+      registerRenderViewCullingSource?: (source: RenderViewCullingSource) => RenderViewCullingSourceRegistration;
+    };
+    if (typeof camWithViewCulling?.registerRenderViewCullingSource === "function") {
+      this.usesViewCulling = true;
+      this.cullingRegistration = camWithViewCulling.registerRenderViewCullingSource(this);
+    } else {
+      this.usesViewCulling = false;
+    }
   }
 
   get bucketCount(): number {
@@ -726,7 +861,11 @@ export class NaturalUnderstoryInstancedPool {
   visitPickBatches(visitor: SeedWorldPickVisitor): void {
     if (this.disposed) return;
     for (const bucket of this.buckets.values()) {
-      if (bucket.pickBatch.count > 0 && bucket.entity.isActiveInHierarchy && bucket.renderer.enabled) {
+      if (
+        bucket.pickBatch.count > 0 &&
+        bucket.entity.isActiveInHierarchy &&
+        (this.usesViewCulling || bucket.renderer.enabled)
+      ) {
         visitor(bucket.pickBatch);
       }
     }
@@ -742,9 +881,59 @@ export class NaturalUnderstoryInstancedPool {
   }
 
   /**
+   * Per-view culling and submission callback invoked by `BasicRenderPipeline` for both the main
+   * Camera view (shared by SSR depth prepass and forward pass) and each directional shadow cascade.
+   */
+  cull(context: RenderViewCullingContext): void {
+    if (this.disposed || context.camera !== this.camera || !this.poolRoot.isActiveInHierarchy) return;
+    if (this.cells.size === 0) return;
+
+    if (context.viewType === RenderViewType.Camera) {
+      this.update(this.lastMaxDist, false, this.lastShadowDist);
+      for (const bucket of this.buckets.values()) {
+        if (bucket.nextCount > 0 && bucket.entity.isActive) {
+          context.submit(bucket.renderer);
+        }
+      }
+      return;
+    }
+
+    const cascadeIndex = context.shadowCascadeIndex;
+    if (cascadeIndex < 0 || cascadeIndex >= MAX_SHADOW_CASCADES || cascadeIndex > this.maxShadowCascadeIndex) {
+      return;
+    }
+
+    if (this.membershipDirty || this.dataDirty) {
+      this.contentRevision++;
+      // Keep dirty flags intact for camera view update if cull ran first; camera view clears them.
+    }
+
+    const viewIndex = cascadeIndex + 1;
+    const cache = this.viewCaches[viewIndex]!;
+    if (populationViewCacheMatches(cache, context, this.contentRevision)) {
+      for (const bucket of this.buckets.values()) {
+        const sv = bucket.shadowViews[cascadeIndex];
+        if (sv && sv.nextCount > 0 && sv.entity.isActive) {
+          context.submit(sv.renderer);
+        }
+      }
+      return;
+    }
+
+    this.cullShadowCascade(context, cascadeIndex);
+    capturePopulationViewCache(cache, context, this.contentRevision);
+    for (const bucket of this.buckets.values()) {
+      const sv = bucket.shadowViews[cascadeIndex];
+      if (sv && sv.nextCount > 0 && sv.entity.isActive) {
+        context.submit(sv.renderer);
+      }
+    }
+  }
+
+  /**
    * Performs cell frustum/distance culling and LOD bucketing.
-   * When `shadowCullDistanceMetres > 0`, shadow-casting instances within that radius remain included
-   * even outside the camera frustum so off-camera trees continue casting accurate shadows.
+   * When multi-view culling is registered on the Camera, view 0 keeps strictly camera-frustum-visible
+   * instances while shadow cascades cull independently with lowest-precision LOD trees in `cull()`.
    * Early-returns with zero allocations and zero GPU uploads when the camera and cell set are unchanged.
    */
   update(maxDetailDistanceMetres: number, force = false, shadowCullDistanceMetres = 0): void {
@@ -760,12 +949,13 @@ export class NaturalUnderstoryInstancedPool {
     const fov = camera.fieldOfView ?? 45;
     const fovKey = isOrtho ? -orthoSize : fov;
 
-    let cameraChanged =
-      force ||
-      !this.lastCamValid ||
-      fovKey !== this.lastFovKey ||
-      maxDetailDistanceMetres !== this.lastMaxDist ||
-      shadowCullDistanceMetres !== this.lastShadowDist;
+    const distChanged =
+      maxDetailDistanceMetres !== this.lastMaxDist || shadowCullDistanceMetres !== this.lastShadowDist;
+    if (this.membershipDirty || this.dataDirty || force || distChanged) {
+      this.contentRevision++;
+    }
+
+    let cameraChanged = force || !this.lastCamValid || fovKey !== this.lastFovKey || distChanged;
     let frustumValid = false;
     const viewMatrix = camera.viewMatrix;
     const projectionMatrix = camera.projectionMatrix;
@@ -801,7 +991,16 @@ export class NaturalUnderstoryInstancedPool {
       for (const bucket of this.buckets.values()) {
         if (bucket.view) bucket.view.mesh.instanceCount = 0;
         bucket.entity.isActive = false;
+        bucket.nextCount = 0;
         bucket.pickBatch.count = 0;
+        for (let c = 0; c < MAX_SHADOW_CASCADES; c++) {
+          const sv = bucket.shadowViews[c];
+          if (sv) {
+            if (sv.view) sv.view.mesh.instanceCount = 0;
+            sv.entity.isActive = false;
+            sv.nextCount = 0;
+          }
+        }
       }
       this.membershipDirty = false;
       this.dataDirty = false;
@@ -823,9 +1022,12 @@ export class NaturalUnderstoryInstancedPool {
     const maxDistSq = maxDist * maxDist;
     const maxDistHystSq = maxDistHysteresis * maxDistHysteresis;
     const maxCellDistSq = (maxDistHysteresis + 4) * (maxDistHysteresis + 4);
-    const shadowDistSq = shadowCullDistanceMetres > 0 ? shadowCullDistanceMetres * shadowCullDistanceMetres : 0;
-    const shadowCellDistSq =
-      shadowCullDistanceMetres > 0 ? (shadowCullDistanceMetres + 16) * (shadowCullDistanceMetres + 16) : 0;
+    // Only retain off-frustum shadow casters inside View 0 when the Camera lacks multi-view culling.
+    const includeOffFrustumShadows = !this.usesViewCulling && shadowCullDistanceMetres > 0;
+    const shadowDistSq = includeOffFrustumShadows ? shadowCullDistanceMetres * shadowCullDistanceMetres : 0;
+    const shadowCellDistSq = includeOffFrustumShadows
+      ? (shadowCullDistanceMetres + 16) * (shadowCullDistanceMetres + 16)
+      : 0;
 
     let anyChanged = this.membershipDirty || this.dataDirty;
 
@@ -835,7 +1037,7 @@ export class NaturalUnderstoryInstancedPool {
         const sub = cell.subCells[s]!;
         const subDistSq = distancePointToBoxSq(camX, camY, camZ, sub.bounds);
         const subInFrustum = subDistSq <= maxCellDistSq && (!frustumValid || this.frustum.intersectsBox(sub.bounds));
-        const subInShadowRadius = shadowCellDistSq > 0 && subDistSq <= shadowCellDistSq;
+        const subInShadowRadius = includeOffFrustumShadows && subDistSq <= shadowCellDistSq;
 
         const recs = sub.records;
         if (!subInFrustum && !subInShadowRadius) {
@@ -869,7 +1071,7 @@ export class NaturalUnderstoryInstancedPool {
                   inFrustum = false;
                 }
               }
-              const shadowEligible = !inFrustum && shadowDistSq > 0 && horizDistSq <= shadowDistSq;
+              const shadowEligible = includeOffFrustumShadows && !inFrustum && horizDistSq <= shadowDistSq;
               if (inFrustum || shadowEligible) {
                 let screenHeight: number;
                 if (isOrtho) {
@@ -884,7 +1086,7 @@ export class NaturalUnderstoryInstancedPool {
                   if (inFrustum) {
                     next = candidate;
                   } else {
-                    // Only keep off-frustum records if the selected tier actually casts shadows.
+                    // Legacy single-view fallback: only keep off-frustum records if the selected tier casts shadows.
                     const parts = rec.lods[candidate]!.parts;
                     for (let p = 0; p < parts.length; p++) {
                       if (parts[p]!.bucketSpec.castShadows) {
@@ -957,52 +1159,7 @@ export class NaturalUnderstoryInstancedPool {
           const bucket = this.buckets.get(part.bucketKey)!;
           const slot = bucket.writeCursor++;
           const view = bucket.view!;
-          const staging = view.staging;
-          const offset = slot * view.recordFloats;
-
-          if (bucket.spec.usesGpuVariation) {
-            staging[offset] = part.posX;
-            staging[offset + 1] = part.posY;
-            staging[offset + 2] = part.posZ;
-            staging[offset + 3] = part.branchX;
-            staging[offset + 4] = part.quatX;
-            staging[offset + 5] = part.quatY;
-            staging[offset + 6] = part.quatZ;
-            staging[offset + 7] = part.quatW;
-            staging[offset + 8] = part.scaleX;
-            staging[offset + 9] = part.scaleY;
-            staging[offset + 10] = part.scaleZ;
-            staging[offset + 11] = part.branchY;
-            staging[offset + 12] = part.colorR;
-            staging[offset + 13] = part.colorG;
-            staging[offset + 14] = part.colorB;
-            staging[offset + 15] = 1;
-            staging[offset + 16] = part.varX;
-            staging[offset + 17] = part.varY;
-            staging[offset + 18] = part.varZ;
-            staging[offset + 19] = part.varW;
-            staging[offset + 20] = part.colorR;
-            staging[offset + 21] = part.colorG;
-            staging[offset + 22] = part.colorB;
-            staging[offset + 23] = 1;
-          } else {
-            staging[offset] = part.posX;
-            staging[offset + 1] = part.posY;
-            staging[offset + 2] = part.posZ;
-            staging[offset + 3] = 1;
-            staging[offset + 4] = part.quatX;
-            staging[offset + 5] = part.quatY;
-            staging[offset + 6] = part.quatZ;
-            staging[offset + 7] = part.quatW;
-            staging[offset + 8] = part.scaleX;
-            staging[offset + 9] = part.scaleY;
-            staging[offset + 10] = part.scaleZ;
-            staging[offset + 11] = 1;
-            staging[offset + 12] = part.colorR;
-            staging[offset + 13] = part.colorG;
-            staging[offset + 14] = part.colorB;
-            staging[offset + 15] = 1;
-          }
+          writePartInstance(view.staging, slot * view.recordFloats, part, bucket.spec.usesGpuVariation);
 
           bucket.pickIds[slot] = rec.pickId;
           const vb = bucket.visibleBounds;
@@ -1029,17 +1186,145 @@ export class NaturalUnderstoryInstancedPool {
     }
   }
 
-  /** Releases all GPU buffers, BufferMeshes, and bucket entities. */
+  /** Releases all GPU buffers, BufferMeshes, view registrations, and bucket entities. */
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.cullingRegistration?.unregister();
     for (const bucket of this.buckets.values()) {
       bucket.view?.mesh.destroy();
       bucket.storage?.instanceBuffer.destroy(true);
+      for (let c = 0; c < MAX_SHADOW_CASCADES; c++) {
+        const sv = bucket.shadowViews[c];
+        if (sv) {
+          sv.view?.mesh.destroy();
+          sv.storage?.instanceBuffer.destroy(true);
+        }
+      }
     }
     this.buckets.clear();
     this.cells.clear();
     if (!this.poolRoot.destroyed) this.poolRoot.destroy();
+  }
+
+  private cullShadowCascade(context: RenderViewCullingContext, cascadeIndex: number): void {
+    const camPos = this.camera?.entity?.transform?.worldPosition;
+    const camX = camPos ? camPos.x : 0;
+    const camY = camPos ? camPos.y : 0;
+    const camZ = camPos ? camPos.z : 0;
+    const shadowLimit = this.lastShadowDist > 0 ? Math.min(this.lastMaxDist, this.lastShadowDist) : this.lastMaxDist;
+    const shadowLimitSq = Number.isFinite(shadowLimit) ? shadowLimit * shadowLimit : Infinity;
+    const shadowCellLimitSq = Number.isFinite(shadowLimit) ? (shadowLimit + 16) * (shadowLimit + 16) : Infinity;
+    const useLowestLod = this.shadowLodPolicy === "lowest";
+    const scratchRecs = this.shadowScratchRecords;
+    const scratchLods = this.shadowScratchLods;
+    scratchRecs.length = 0;
+    scratchLods.length = 0;
+
+    // Reset existing shadow views for this cascade.
+    for (const bucket of this.buckets.values()) {
+      const sv = bucket.shadowViews[cascadeIndex];
+      if (sv) {
+        sv.nextCount = 0;
+        sv.writeCursor = 0;
+        sv.visibleBounds.min.set(Infinity, Infinity, Infinity);
+        sv.visibleBounds.max.set(-Infinity, -Infinity, -Infinity);
+      }
+    }
+
+    // Pass 1: Cull sub-cells and records strictly against this cascade's shadow frustum & distance.
+    for (const cell of this.cells.values()) {
+      for (let s = 0; s < cell.subCells.length; s++) {
+        const sub = cell.subCells[s]!;
+        if (shadowCellLimitSq < Infinity && distancePointToBoxSq(camX, camY, camZ, sub.bounds) > shadowCellLimitSq) {
+          continue;
+        }
+        const containment = context.classifyBounds(sub.bounds);
+        if (containment === ContainmentType.Disjoint) continue;
+        const fullyContained = containment === ContainmentType.Contains;
+        const recs = sub.records;
+        for (let i = 0; i < recs.length; i++) {
+          const rec = recs[i]!;
+          if (rec.excluded || !recordCastsShadows(rec)) continue;
+          const rx = rec.instance.position[0];
+          const rz = rec.instance.position[2];
+          if (shadowLimitSq < Infinity) {
+            const dx = rx - camX;
+            const dz = rz - camZ;
+            if (dx * dx + dz * dz > shadowLimitSq) continue;
+          }
+          if (!fullyContained) {
+            const r = rec.boundingRadius;
+            const ry = rec.worldCenterY;
+            this.scratchBox.min.set(rx - r, ry - r, rz - r);
+            this.scratchBox.max.set(rx + r, ry + r, rz + r);
+            if (!context.isVisible(this.scratchBox)) continue;
+          }
+          const tier = useLowestLod
+            ? resolveLowestNonEmptyLodIndex(rec.lods)
+            : rec.assignedLod >= 0
+              ? rec.assignedLod
+              : resolveLowestNonEmptyLodIndex(rec.lods);
+          if (tier < 0) continue;
+          scratchRecs.push(rec);
+          scratchLods.push(tier);
+          const parts = rec.lods[tier]!.parts;
+          for (let p = 0; p < parts.length; p++) {
+            const part = parts[p]!;
+            const bucket = this.ensureBucket(part.bucketSpec);
+            const sv = this.ensureShadowView(bucket, cascadeIndex);
+            sv.nextCount++;
+          }
+        }
+      }
+    }
+
+    // Pass 2: Ensure GPU capacity for non-empty shadow views.
+    for (const bucket of this.buckets.values()) {
+      const sv = bucket.shadowViews[cascadeIndex];
+      if (sv && sv.nextCount > 0) {
+        this.ensureShadowViewCapacity(bucket, sv, sv.nextCount);
+      }
+    }
+
+    // Pass 3: Pack visible shadow instances into this cascade's staging buffers.
+    for (let i = 0; i < scratchRecs.length; i++) {
+      const rec = scratchRecs[i]!;
+      const tier = scratchLods[i]!;
+      const parts = rec.lods[tier]!.parts;
+      const r = rec.boundingRadius;
+      const rx = rec.instance.position[0];
+      const ry = rec.worldCenterY;
+      const rz = rec.instance.position[2];
+      for (let p = 0; p < parts.length; p++) {
+        const part = parts[p]!;
+        const bucket = this.buckets.get(part.bucketKey)!;
+        const sv = bucket.shadowViews[cascadeIndex]!;
+        const slot = sv.writeCursor++;
+        const view = sv.view!;
+        writePartInstance(view.staging, slot * view.recordFloats, part, bucket.spec.usesGpuVariation);
+        const vb = sv.visibleBounds;
+        vb.min.set(Math.min(vb.min.x, rx - r), Math.min(vb.min.y, ry - r), Math.min(vb.min.z, rz - r));
+        vb.max.set(Math.max(vb.max.x, rx + r), Math.max(vb.max.y, ry + r), Math.max(vb.max.z, rz + r));
+      }
+    }
+    scratchRecs.length = 0;
+    scratchLods.length = 0;
+
+    // Pass 4: Upload non-empty shadow views and deactivate empty ones.
+    for (const bucket of this.buckets.values()) {
+      const sv = bucket.shadowViews[cascadeIndex];
+      if (!sv) continue;
+      const count = sv.nextCount;
+      if (count > 0 && sv.view) {
+        sv.view.mesh.bounds = sv.visibleBounds;
+        uploadTreeAssemblyInstances(sv.view, count);
+        sv.entity.isActive = true;
+      } else {
+        if (sv.view) sv.view.mesh.instanceCount = 0;
+        sv.entity.isActive = false;
+      }
+    }
   }
 
   private ensureBucket(spec: InstancedUnderstoryBucketSpec): InstancedBucket {
@@ -1049,6 +1334,9 @@ export class NaturalUnderstoryInstancedPool {
     entity.isActive = false;
     const renderer = entity.addComponent(MeshRenderer);
     applyUnderstoryBucketSpecToRenderer(renderer, spec);
+    if (this.usesViewCulling) {
+      renderer.enabled = false;
+    }
     const pickBatch = new SeedWorldArrayPickBatch(renderer);
     pickBatch.instanced = true;
     pickBatch.count = 0;
@@ -1063,10 +1351,59 @@ export class NaturalUnderstoryInstancedPool {
       nextCount: 0,
       writeCursor: 0,
       pickIds: [],
-      visibleBounds: new BoundingBox(new Vector3(), new Vector3())
+      visibleBounds: new BoundingBox(new Vector3(), new Vector3()),
+      shadowViews: new Array<InstancedShadowView | undefined>(MAX_SHADOW_CASCADES)
     };
     this.buckets.set(spec.key, bucket);
     return bucket;
+  }
+
+  private ensureShadowView(bucket: InstancedBucket, cascadeIndex: number): InstancedShadowView {
+    let sv = bucket.shadowViews[cascadeIndex];
+    if (sv) return sv;
+    const entity = this.poolRoot.createChild(`InstancedShadowC${cascadeIndex}:${bucket.spec.mesh.name || "mesh"}`);
+    entity.isActive = false;
+    const renderer = entity.addComponent(MeshRenderer);
+    applyUnderstoryBucketSpecToRenderer(renderer, bucket.spec);
+    renderer.castShadows = true;
+    renderer.receiveShadows = false;
+    renderer.enabled = false;
+    sv = {
+      entity,
+      renderer,
+      capacity: 0,
+      nextCount: 0,
+      writeCursor: 0,
+      visibleBounds: new BoundingBox(new Vector3(), new Vector3())
+    };
+    bucket.shadowViews[cascadeIndex] = sv;
+    return sv;
+  }
+
+  private ensureShadowViewCapacity(bucket: InstancedBucket, sv: InstancedShadowView, needed: number): void {
+    if (sv.view && sv.capacity >= needed) return;
+    const nextCap = nextPow2(needed);
+    const engine = this.poolRoot.engine;
+    const recordFloats = bucket.spec.usesGpuVariation
+      ? TREE_ASSEMBLY_GPU_VARIATION_INSTANCE_FLOATS
+      : TREE_ASSEMBLY_INSTANCE_FLOATS;
+    const storage = createTreeAssemblyInstanceStorage(engine, nextCap, recordFloats);
+    const view = createTreeAssemblyInstancedMesh(
+      engine,
+      bucket.spec.mesh,
+      nextCap,
+      sv.visibleBounds,
+      sv.entity.name,
+      storage
+    );
+    const prevView = sv.view;
+    const prevStorage = sv.storage;
+    sv.storage = storage;
+    sv.view = view;
+    sv.capacity = nextCap;
+    sv.renderer.mesh = view.mesh;
+    if (prevView) prevView.mesh.destroy();
+    if (prevStorage) prevStorage.instanceBuffer.destroy(true);
   }
 
   private ensureBucketCapacity(bucket: InstancedBucket, needed: number): void {
