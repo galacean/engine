@@ -1,5 +1,5 @@
 import { IDynamicCollider } from "@galacean/engine-design";
-import { CollisionDetectionMode, Quaternion, Vector3 } from "@galacean/engine";
+import { Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXPhysics } from "./PhysXPhysics";
 
@@ -142,25 +142,13 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   /**
    * {@inheritDoc IDynamicCollider.setMotionState }
    */
-  setMotionState(isKinematic: boolean, collisionDetectionMode: number): void {
-    const { PxRigidBodyFlag } = this._physXPhysics._physX;
-    // PhysX 4.1 does not support sweep-based CCD on kinematic bodies
-    const useSpeculativeCCD =
-      collisionDetectionMode === CollisionDetectionMode.Speculative ||
-      (isKinematic && collisionDetectionMode !== CollisionDetectionMode.Discrete);
-
-    this._pxActor.setRigidBodyFlag(PxRigidBodyFlag.eENABLE_CCD, false);
-    this._pxActor.setRigidBodyFlag(PxRigidBodyFlag.eENABLE_CCD_FRICTION, false);
-    this._pxActor.setRigidBodyFlag(PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, false);
-    this._pxActor.setRigidBodyFlag(PxRigidBodyFlag.eKINEMATIC, isKinematic);
-    if (useSpeculativeCCD) {
-      this._pxActor.setRigidBodyFlag(PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, true);
-    } else if (collisionDetectionMode !== CollisionDetectionMode.Discrete) {
-      this._pxActor.setRigidBodyFlag(PxRigidBodyFlag.eENABLE_CCD, true);
-      if (collisionDetectionMode === CollisionDetectionMode.SweepWithFriction) {
-        this._pxActor.setRigidBodyFlag(PxRigidBodyFlag.eENABLE_CCD_FRICTION, true);
-      }
-    }
+  setMotionState(isKinematic: boolean, useCCD: boolean): void {
+    const { eENABLE_CCD, eENABLE_SPECULATIVE_CCD, eKINEMATIC } = this._physXPhysics._physX.PxRigidBodyFlag;
+    const actor = this._pxActor;
+    // PhysX 4.1 rejects swept CCD combined with either kinematic motion or speculative CCD.
+    actor.setRigidBodyFlag(isKinematic ? eENABLE_CCD : eENABLE_SPECULATIVE_CCD, false);
+    actor.setRigidBodyFlag(eKINEMATIC, isKinematic);
+    actor.setRigidBodyFlag(isKinematic ? eENABLE_SPECULATIVE_CCD : eENABLE_CCD, useCCD);
   }
 
   /**

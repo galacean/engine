@@ -10,7 +10,6 @@ import {
   Rigidbody,
   RigidbodyConstraints,
   SphereCollider,
-  CollisionDetectionMode,
   Loader,
   MeshCollider,
   PlaneCollider,
@@ -818,98 +817,72 @@ describe("Rigidbody", function () {
     expect(box.transform.position.z).greaterThan(0);
   });
 
-  it.each([
-    CollisionDetectionMode.Discrete,
-    CollisionDetectionMode.Sweep,
-    CollisionDetectionMode.SweepWithFriction,
-    CollisionDetectionMode.Speculative
-  ])("keeps collision detection mode %s effective after kinematic transitions", (mode) => {
+  it.each([false, true])("keeps useCCD=%s effective after kinematic transitions", (useCCD) => {
     const box = addBox(new Vector3(1, 1, 1), true, new Vector3(-5, 0, 0));
     const body = box.getComponent(Rigidbody);
     body.useGravity = false;
-    body.collisionDetectionMode = mode;
-    expect(body.collisionDetectionMode).toBe(mode);
+    expect(body.useCCD).toBe(false);
+    body.useCCD = useCCD;
     body.isKinematic = true;
     body.move(new Vector3(-4, 0, 0));
-    engine.sceneManager.activeScene.physics._update(1 / 60);
+    const physics = engine.sceneManager.activeScene.physics;
+    physics._update(1 / 60);
     expect(box.transform.position.x).toBeCloseTo(-4, 5);
-    addBox(new Vector3(0.1, 10, 10), false, new Vector3(0, 0, 0));
+    addBox(new Vector3(0.1, 10, 10), false, new Vector3());
     body.isKinematic = false;
     body.linearVelocity.set(600, 0, 0);
-    engine.sceneManager.activeScene.physics._update(1 / 60);
-    if (mode === CollisionDetectionMode.Discrete) {
-      expect(box.transform.position.x).toBeGreaterThan(0);
-    } else {
-      expect(box.transform.position.x).toBeLessThan(-0.5);
-      expect(body.linearVelocity.x).toBeLessThan(600);
-    }
+    physics._update(1 / 60);
+
+    expect(box.transform.position.x > 0).toBe(!useCCD);
+    expect(body.linearVelocity.x < 600).toBe(useCCD);
   });
 
-  it.each([
-    [CollisionDetectionMode.Discrete, true, 0],
-    [CollisionDetectionMode.Sweep, false, 0],
-    [CollisionDetectionMode.SweepWithFriction, false, 120 / 21]
-  ])(
-    "controls tunneling and tangential impulse against a dynamic target in CCD mode %s",
-    (mode, crosses, tangentSpeed) => {
-      const projectile = rootEntity.createChild();
-      projectile.transform.setPosition(-5, 0, 0);
-      const sphere = projectile.addComponent(SphereCollider);
-      sphere.radius = 0.5;
-      const body = projectile.addComponent(Rigidbody);
-      body.useGravity = false;
-      body.linearDamping = 0;
-      body.collisionDetectionMode = mode;
-      body.linearVelocity.set(600, 0, 120);
+  it.each([false, true])("controls swept impacts against a dynamic target with useCCD=%s", (useCCD) => {
+    const projectile = rootEntity.createChild();
+    projectile.transform.setPosition(-5, 0, 0);
+    const sphere = projectile.addComponent(SphereCollider);
+    sphere.radius = 0.5;
+    const body = projectile.addComponent(Rigidbody);
+    body.useGravity = false;
 
-      const box = addBox(new Vector3(0.1, 40, 40), true, new Vector3());
-      const target = box.getComponent(Rigidbody);
-      target.useGravity = false;
-      target.mass = 20;
-      for (const collider of [sphere, box.getComponent(BoxCollider)]) {
-        const material = collider.getInstanceMaterial();
-        material.staticFriction = material.dynamicFriction = 1;
-        material.bounciness = 0;
-      }
-
-      engine.sceneManager.activeScene.physics._update(1 / 60);
-
-      expect(projectile.transform.worldPosition.x > box.transform.worldPosition.x).toBe(crosses);
-      expect(target.linearVelocity.z).toBeCloseTo(tangentSpeed, 4);
+    const box = addBox(new Vector3(0.1, 40, 40), true, new Vector3());
+    const target = box.getComponent(Rigidbody);
+    target.useGravity = false;
+    target.mass = 20;
+    for (const collider of [sphere, box.getComponent(BoxCollider)]) {
+      const material = collider.getInstanceMaterial();
+      material.staticFriction = material.dynamicFriction = 1;
+      material.bounciness = 0;
     }
-  );
 
-  it.each([CollisionDetectionMode.Sweep, CollisionDetectionMode.SweepWithFriction])(
-    "uses speculative CCD behavior for kinematic mode %s",
-    function (mode) {
-      const simulate = (kinematicMode: CollisionDetectionMode) => {
-        const moving = addBox(new Vector3(1, 1, 1), true, new Vector3(-5, 0, 0));
-        const target = addBox(new Vector3(1, 1, 1), true, new Vector3(0, 0, 0));
-        const movingCollider = moving.getComponent(Rigidbody);
-        const targetCollider = target.getComponent(Rigidbody);
-        movingCollider.isKinematic = true;
-        movingCollider.collisionDetectionMode = kinematicMode;
-        targetCollider.useGravity = false;
-        targetCollider.linearDamping = 0;
-        targetCollider.collisionDetectionMode = CollisionDetectionMode.Sweep;
-        engine.sceneManager.activeScene.physics._update(1 / 60);
-        movingCollider.move(new Vector3(5, 0, 0));
-        engine.sceneManager.activeScene.physics._update(1 / 60);
-        const result = {
-          targetPosition: target.transform.position.x,
-          targetVelocity: targetCollider.linearVelocity.x
-        };
-        while (rootEntity.children.length) rootEntity.children[0].destroy();
-        return result;
-      };
+    const physics = engine.sceneManager.activeScene.physics;
+    physics._update(1 / 60);
+    body.useCCD = true;
+    body.useCCD = useCCD;
+    body.linearVelocity.set(600, 0, 120);
+    physics._update(1 / 60);
 
-      const fallback = simulate(mode);
-      const explicit = simulate(CollisionDetectionMode.Speculative);
-      expect(fallback.targetPosition).toBeGreaterThan(0);
-      expect(fallback.targetPosition).toBeCloseTo(explicit.targetPosition, 5);
-      expect(fallback.targetVelocity).toBeCloseTo(explicit.targetVelocity, 5);
-    }
-  );
+    expect(projectile.transform.worldPosition.x > box.transform.worldPosition.x).toBe(!useCCD);
+    expect(target.linearVelocity.x > 0).toBe(useCCD);
+    expect(target.linearVelocity.z).toBeCloseTo(0, 4);
+  });
+
+  it.each([false, true])("controls speculative contacts on kinematic bodies with useCCD=%s", (useCCD) => {
+    const moving = addBox(new Vector3(1, 1, 1), true, new Vector3(-5, 0, 0));
+    const target = addBox(new Vector3(1, 1, 1), true, new Vector3());
+    const movingBody = moving.getComponent(Rigidbody);
+    const targetBody = target.getComponent(Rigidbody);
+    movingBody.isKinematic = true;
+    targetBody.useGravity = false;
+    const physics = engine.sceneManager.activeScene.physics;
+    physics._update(1 / 60);
+    movingBody.useCCD = true;
+    movingBody.useCCD = useCCD;
+    movingBody.move(new Vector3(5, 0, 0));
+    physics._update(1 / 60);
+
+    expect(targetBody.linearVelocity.x > 0).toBe(useCCD);
+  });
 
   it("sleep", function () {
     const box = addBox(new Vector3(2, 2, 2), true, new Vector3(0, 0, 0));
@@ -1012,7 +985,7 @@ describe("Rigidbody", function () {
     boxCollider.sleepThreshold = 100;
     boxCollider.solverIterations = 10;
     boxCollider.constraints = RigidbodyConstraints.FreezePositionX;
-    boxCollider.collisionDetectionMode = CollisionDetectionMode.SweepWithFriction;
+    boxCollider.useCCD = true;
     boxCollider.sleep();
     boxCollider.wakeUp();
     boxCollider.applyForce(new Vector3(1, 0, 0));

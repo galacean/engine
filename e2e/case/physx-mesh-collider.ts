@@ -7,7 +7,6 @@ import {
   AssetType,
   BoxCollider,
   Camera,
-  CollisionDetectionMode,
   Color,
   Entity,
   GLTFResource,
@@ -46,8 +45,7 @@ function createFallingBox(
 
   // Physics - box collider with CCD to prevent tunneling
   entity.addComponent(BoxCollider).size = size;
-  const body = entity.addComponent(Rigidbody);
-  body.collisionDetectionMode = CollisionDetectionMode.Sweep;
+  entity.addComponent(Rigidbody).useCCD = true;
 
   return entity;
 }

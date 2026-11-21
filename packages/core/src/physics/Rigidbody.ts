@@ -63,7 +63,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   private _useGravity = true;
   private _isKinematic = false;
   private _constraints: RigidbodyConstraints = 0;
-  private _collisionDetectionMode: CollisionDetectionMode = CollisionDetectionMode.Discrete;
+  private _useCCD = false;
   private _sleepThreshold = 5e-3;
   private _automaticCenterOfMass = true;
   private _automaticInertiaTensor = true;
@@ -332,7 +332,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
           }
         }
       }
-      this._nativeActor?.setMotionState(value, this._collisionDetectionMode);
+      this._nativeActor?.setMotionState(value, this._useCCD);
       // Revisit the hierarchy so previously excluded shapes can rejoin when the body becomes kinematic.
       this._phasedActiveInScene && this._markCollidersDirty();
     }
@@ -353,17 +353,17 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   /**
-   * The collision detection mode.
-   * @remarks With the PhysX backend, Sweep and SweepWithFriction are mapped to speculative CCD while the
-   * Rigidbody is kinematic.
+   * Whether to use continuous collision detection.
+   * @defaultValue false
+   * @remarks PhysX sweeps linear motion for dynamic bodies and uses speculative contacts for kinematic bodies.
    */
-  get collisionDetectionMode(): CollisionDetectionMode {
-    return this._collisionDetectionMode;
+  get useCCD(): boolean {
+    return this._useCCD;
   }
 
-  set collisionDetectionMode(value: CollisionDetectionMode) {
-    if (this._collisionDetectionMode !== value) {
-      this._collisionDetectionMode = value;
+  set useCCD(value: boolean) {
+    if (this._useCCD !== value) {
+      this._useCCD = value;
       this._nativeActor?.setMotionState(this._isKinematic, value);
     }
   }
@@ -543,7 +543,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       this._nativeRotation = rotation.clone();
 
       // Non-convex triangle meshes require a kinematic native actor before attachment
-      actor.setMotionState(this._isKinematic, this._collisionDetectionMode);
+      actor.setMotionState(this._isKinematic, this._useCCD);
       actor.setLinearDamping(this._linearDamping);
       actor.setAngularDamping(this._angularDamping);
       actor.setLinearVelocity(this._linearVelocity);
@@ -796,20 +796,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     this._inertiaTensorAuthored = true;
     if (!this._automaticInertiaTensor) this._nativeActor?.setInertiaTensor(this._inertiaTensor);
   }
-}
-
-/**
- * The collision detection mode constants.
- */
-export enum CollisionDetectionMode {
-  /** Continuous collision detection is off for this Rigidbody. */
-  Discrete = 0,
-  /** Uses swept CCD without enabling CCD friction on this body. */
-  Sweep = 1,
-  /** Uses swept CCD and enables friction during CCD impacts. */
-  SweepWithFriction = 2,
-  /** Uses speculative CCD. */
-  Speculative = 3
 }
 
 /**

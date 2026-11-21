@@ -9,7 +9,7 @@ export { MeshCollider } from "./MeshCollider";
 export { PhysicsMaterial } from "./PhysicsMaterial";
 export { PhysicsScene } from "./PhysicsScene";
 export { PlaneCollider } from "./PlaneCollider";
-export { CollisionDetectionMode, Rigidbody, RigidbodyConstraints } from "./Rigidbody";
+export { Rigidbody, RigidbodyConstraints } from "./Rigidbody";
 export { SphereCollider } from "./SphereCollider";
 export * from "./enums";
 export * from "./joint";

@@ -89,20 +89,11 @@ label: Physics
     RigidbodyConstraints.FreezeRotationZ;
   ```
 
-### 碰撞检测模式
+### 连续碰撞检测
 
-使用 PhysX 后端时，[`collisionDetectionMode`](/apis/core/#Rigidbody-collisionDetectionMode) 决定刚体在模拟中如何检测碰撞。
+[`useCCD`](/apis/core/#Rigidbody-useCCD) 默认为 `false`。如果刚体可能在两个物理步之间穿过较薄的碰撞体，可以开启此选项。
 
-| 模式 | PhysX 行为 |
-| ---- | ---- |
-| **Discrete** | 在每个固定步检测接触。高速刚体可能穿过较薄的碰撞体。 |
-| **Sweep** | 使用扫掠 CCD，该刚体不开启 CCD 摩擦。 |
-| **SweepWithFriction** | 使用扫掠 CCD，并开启扫掠碰撞时的摩擦。 |
-| **Speculative** | 根据刚体运动预测可能出现的接触。 |
-
-两种扫掠模式都可以检测与静态或动态目标的碰撞。若碰撞双方任一刚体开启了 CCD 摩擦，且接触材质有摩擦，扫掠碰撞就能产生切向摩擦。
-
-运动学刚体设为 `Sweep` 或 `SweepWithFriction` 时，PhysX 使用推测性 CCD。
+PhysX 对动态刚体使用线性扫掠，对运动学刚体使用推测式接触。动态刚体高速自转时，仍可能漏掉仅由两步之间的旋转产生的碰撞。
 
 ## 公开方法
 

@@ -123,11 +123,11 @@ export interface IDynamicCollider extends ICollider {
   setUseGravity(value: boolean): void;
 
   /**
-   * Sets the kinematic state and requested collision detection mode in one native transition.
+   * Applies the kinematic state and CCD together so the backend can select the supported detection method.
    * @param isKinematic - Whether the dynamic collider is kinematic
-   * @param collisionDetectionMode - The requested collision detection mode
+   * @param useCCD - Whether to use continuous collision detection
    */
-  setMotionState(isKinematic: boolean, collisionDetectionMode: number): void;
+  setMotionState(isKinematic: boolean, useCCD: boolean): void;
 
   /**
    * Raises or clears a particular rigid dynamic lock flag.

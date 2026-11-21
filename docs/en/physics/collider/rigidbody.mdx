@@ -89,20 +89,11 @@ Constraint solving is the process used by the physics engine to resolve collisio
     RigidbodyConstraints.FreezeRotationZ;
   ```
 
-### Collision Detection Mode
+### Continuous Collision Detection
 
-With the PhysX backend, [`collisionDetectionMode`](/apis/core/#Rigidbody-collisionDetectionMode) selects how a Rigidbody detects collisions during simulation.
+[`useCCD`](/apis/core/#Rigidbody-useCCD) defaults to `false`. Enable it on bodies that may pass through thin colliders between physics steps.
 
-| Mode | PhysX behavior |
-| ---- | ---- |
-| **Discrete** | Checks for contact at each fixed step. Fast bodies can pass through thin colliders. |
-| **Sweep** | Uses swept CCD without enabling CCD friction on this body. |
-| **SweepWithFriction** | Uses swept CCD and enables friction during CCD impacts. |
-| **Speculative** | Predicts potential contacts from the body's motion. |
-
-Both swept modes can detect collisions with static and dynamic targets. A swept impact can apply friction if either body enables CCD friction and the contact materials provide friction.
-
-PhysX uses speculative CCD for kinematic bodies set to `Sweep` or `SweepWithFriction`.
+PhysX uses a linear sweep for dynamic bodies and speculative contacts for kinematic bodies. A fast-spinning dynamic body can still miss collisions caused solely by rotation between steps.
 
 ## Methods
 
