@@ -64,6 +64,15 @@ export class ParserSemanticValidation {
       } else if (node instanceof ASTNode.FunctionDeclarator) {
         const issue = this.functionReturnTypeIssue(node);
         if (issue) issues.push(issue);
+      } else if (node instanceof ASTNode.QualifierDeclaration) {
+        const qualifier = node.children[0] as ASTNode.TypeQualifier;
+        if (!ParserUtils.isInvariantOnlyQualifier(qualifier)) {
+          issues.push({
+            code: "SyntaxError",
+            message: "Standalone qualifier declaration only supports 'invariant'.",
+            location: qualifier.location
+          });
+        }
       }
       for (let index = node.children.length - 1; index >= 0; index--) {
         const child = node.children[index];
@@ -418,7 +427,30 @@ export class ParserSemanticValidation {
   static constructorIssue(node: ASTNode.FunctionCallGeneric): ParserSemanticIssue | undefined {
     const functionIdentifier = node.children[0] as ASTNode.FunctionIdentifier;
     if (!functionIdentifier.isBuiltin) return;
+    const typeSpecifier = functionIdentifier.children[0] as ASTNode.TypeSpecifier;
     const list = node.children.length === 4 ? node.children[2] : undefined;
+    if (typeSpecifier.arraySpecifier) {
+      const array = typeSpecifier.arraySpecifier;
+      const argumentsList = list instanceof ASTNode.FunctionCallParameterList ? list : undefined;
+      const signature = argumentsList?.paramSig ?? [];
+      if (signature.includes(TypeAny)) return;
+      if (signature.length === 0 || (array.size !== undefined && signature.length !== array.size)) {
+        return {
+          code: "ConstructorArgCount",
+          message: `Array constructor '${typeSpecifier.lexeme}' requires ${array.size ?? "at least one"} elements but received ${signature.length}.`,
+          location: node.location
+        };
+      }
+      const invalidIndex = signature.findIndex((type) => !TypeSystem.isAssignable(typeSpecifier.type, type));
+      if (invalidIndex >= 0) {
+        return {
+          code: "ConstructorArgType",
+          message: `Array constructor requires elements of type '${typeSpecifier.lexeme}'.`,
+          location: argumentsList!.paramNodes[invalidIndex].location
+        };
+      }
+      return;
+    }
     if (!(list instanceof ASTNode.FunctionCallParameterList)) return;
     const badIndex = list.paramSig.findIndex((type) => TypeSystem.isSamplerType(type) || typeof type === "string");
     if (badIndex >= 0) {

@@ -173,6 +173,7 @@ macro_else_expression:
 
 global_declaration:
     precision_specifier
+    | qualifier_declaration
     | variable_declaration_statement
     | struct_specifier
     | function_definition
@@ -201,16 +202,23 @@ global_macro_branch:
     ;
 
 
+qualifier_declaration:
+    type_qualifier id ';'
+    ;
+
 variable_declaration:
     fully_specified_type id
     | fully_specified_type id array_specifier
     | fully_specified_type id '=' initializer
+    | fully_specified_type id array_specifier '=' initializer
     ;
 
 variable_declaration_list:
     variable_declaration
     | variable_declaration_list ',' id
     | variable_declaration_list ',' id array_specifier
+    | variable_declaration_list ',' id '=' initializer
+    | variable_declaration_list ',' id array_specifier '=' initializer
     ;
 
 variable_declaration_statement:
