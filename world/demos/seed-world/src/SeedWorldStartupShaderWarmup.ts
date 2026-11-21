@@ -64,6 +64,7 @@ export interface SeedWorldStartupShaderWarmupDeps {
 export interface SeedWorldStartupShaderWarmupResult {
   readonly report?: SeedWorldShaderWarmupReport;
   readonly deferredShaderVariants: readonly SeedWorldShaderVariantEntry[];
+  readonly ssrVerifyReceiverDepth?: boolean;
 }
 
 const MASONRY_ENTRANCE_MACROS = new Set(["RENDERER_MASONRY_ENTRANCE", "GLOBAL_PROXY_ENTRANCE"]);
@@ -137,7 +138,7 @@ export async function runSeedWorldStartupShaderWarmup(
   deps: SeedWorldStartupShaderWarmupDeps
 ): Promise<SeedWorldStartupShaderWarmupResult> {
   if (!deps.precompileShaders) {
-    return { deferredShaderVariants: [] };
+    return { deferredShaderVariants: [], ssrVerifyReceiverDepth: false };
   }
   const ops = {
     hasParallelShaderCompile: deps.warmupOperations?.hasParallelShaderCompile ?? hasParallelShaderCompile,
@@ -163,6 +164,7 @@ export async function runSeedWorldStartupShaderWarmup(
   else deps.lifetimeSignal?.addEventListener("abort", onLifetimeAbort, { once: true });
   let prepCleanedUp = false;
   let deferredShaderVariants: SeedWorldShaderVariantEntry[] = [];
+  let ssrVerifyReceiverDepth = false;
   let shaderWarmup: SeedWorldShaderWarmupReport;
   const agentTraceEnabled = deps.pageUrl.searchParams.get("agentTrace") === "1";
   try {
@@ -213,7 +215,10 @@ export async function runSeedWorldStartupShaderWarmup(
       maximumPendingPrograms: parallelCompile ? 16 : 1,
       overlayRenderers: assistant?.root.getComponentsIncludeChildren(Renderer, []) ?? [],
       postProcessState: deps.getPostProcessWarmupState(),
-      additionalBackgroundMaterials: startupBackgroundMaterials
+      additionalBackgroundMaterials: startupBackgroundMaterials,
+      onCollectSummary: ({ hasTransparentSsr }: { readonly hasTransparentSsr: boolean }) => {
+        if (hasTransparentSsr) ssrVerifyReceiverDepth = true;
+      }
     } as const;
     const fullWarmupOptions = {
       ...baseWarmupOptions,
@@ -317,6 +322,7 @@ export async function runSeedWorldStartupShaderWarmup(
           preserveOrder: true,
           frameBudgetMilliseconds: 32,
           maximumPendingPrograms: parallelCompile ? 16 : 1,
+          ssrVerifyReceiverDepth,
           ...(parallelCompile ? {} : { maxElapsedMilliseconds: 6500 })
         })
       );
@@ -373,5 +379,5 @@ export async function runSeedWorldStartupShaderWarmup(
   if (agentTraceEnabled) {
     deps.canvas.dataset.buildingShaderWarmup = JSON.stringify(shaderWarmup);
   }
-  return { report: shaderWarmup, deferredShaderVariants };
+  return { report: shaderWarmup, deferredShaderVariants, ssrVerifyReceiverDepth };
 }

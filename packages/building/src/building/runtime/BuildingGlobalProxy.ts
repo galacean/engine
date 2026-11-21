@@ -285,6 +285,7 @@ export interface GlobalProxyRegistrationInput {
 export interface GlobalProxySlotHandle {
   updateState(farVisible: boolean, shadowVisible: boolean, fade: number, lodDebug: boolean): void;
   updateEntrance(progress: number, worldMinY: number, worldHeight: number): void;
+  setPickable(pickable: boolean): void;
   refreshColors(): void;
   markTopologyDirty(): void;
   destroy(): void;
@@ -338,6 +339,7 @@ interface SlotRecord {
   frame: Entity;
   farVisible: boolean;
   shadowVisible: boolean;
+  pickable: boolean;
   fade: number;
   lodDebug: boolean;
   entranceProgress: number;
@@ -363,7 +365,7 @@ interface StructChunkRender {
   metaBuf: Buffer;
   idxBuf: Buffer;
   castsShadow: boolean;
-  pickEntries: Array<{ frame: Entity; id: string }>;
+  pickEntries: Array<{ slot: SlotRecord; frame: Entity; id: string }>;
 }
 
 interface BucketRenderState {
@@ -381,7 +383,7 @@ interface BucketRenderState {
   boxMesh?: BufferMesh;
   boxInstanceBuf?: Buffer;
   boxHasShadowCasters: boolean;
-  boxPickEntries: Array<{ frame: Entity; id: string }>;
+  boxPickEntries: Array<{ slot: SlotRecord; frame: Entity; id: string }>;
   structChunks: StructChunkRender[];
   slotColorCaches: Map<number, SlotColorBinding>;
   colorDirtySlots: Set<SlotRecord>;
@@ -614,7 +616,7 @@ export class BuildingGlobalProxy {
     const id = this.nextSlotId++;
     const localSlot = targetBucket.slots.length;
     const worldFlag = (
-      input.frame.transform as { registerWorldChangeFlag?: () => BoolUpdateFlag }
+      (input.root.destroyed ? input.frame : input.root).transform as { registerWorldChangeFlag?: () => BoolUpdateFlag }
     ).registerWorldChangeFlag?.();
     if (worldFlag) worldFlag.flag = false;
     const record: SlotRecord = {
@@ -625,6 +627,7 @@ export class BuildingGlobalProxy {
       frame: input.frame,
       farVisible: false,
       shadowVisible: false,
+      pickable: true,
       fade: 1,
       lodDebug: false,
       entranceProgress: 1,
@@ -635,7 +638,9 @@ export class BuildingGlobalProxy {
       colorOwners: input.colorOwners,
       appearance: input.appearance,
       hiddenOwners: input.hiddenOwners,
-      lastWorldMatrix: new Float64Array(input.frame.transform.worldMatrix.elements),
+      lastWorldMatrix: new Float64Array(
+        (input.root.destroyed ? input.frame : input.root).transform.worldMatrix.elements
+      ),
       worldFlag
     };
     targetBucket.slots.push(record);
@@ -662,6 +667,13 @@ export class BuildingGlobalProxy {
         record.entranceProgress = progress;
         record.entranceMinY = worldMinY;
         record.entranceHeight = Math.max(0.001, worldHeight);
+        this.syncSlotUniform(record.bucket, record);
+        this.syncBucketVisibility(record.bucket);
+      },
+      setPickable: (pickable) => {
+        if (this.destroyed || !this.slotsById.has(id)) return;
+        if (record.pickable === pickable) return;
+        record.pickable = pickable;
         this.syncSlotUniform(record.bucket, record);
         this.syncBucketVisibility(record.bucket);
       },
@@ -732,10 +744,18 @@ export class BuildingGlobalProxy {
     }
   }
 
+  private slotWorldMatrix(slot: SlotRecord): Float32Array | Float64Array {
+    if (!slot.root.destroyed) return slot.root.transform.worldMatrix.elements;
+    if (!slot.frame.destroyed) return slot.frame.transform.worldMatrix.elements;
+    return slot.lastWorldMatrix;
+  }
+
   private syncSlotUniform(bucket: BucketRenderState, s: SlotRecord): void {
     const active = !s.root.destroyed && s.root.isActiveInHierarchy;
+    const pickAllowed = s.pickable && !s.frame.destroyed;
     const off = s.localSlot * 4;
-    bucket.statesUniform[off] = active && s.farVisible ? 1 : 0;
+    // state.x: 0 = hidden, 1 = visible & pickable, 2 = visible & non-pickable (exiting dissolve).
+    bucket.statesUniform[off] = active && s.farVisible ? (pickAllowed ? 1 : 2) : 0;
     bucket.statesUniform[off + 1] = active && s.shadowVisible ? 1 : 0;
     bucket.statesUniform[off + 2] = s.fade;
     bucket.statesUniform[off + 3] = s.lodDebug ? 1 : 0;
@@ -756,7 +776,7 @@ export class BuildingGlobalProxy {
       if (far) {
         anyFar = true;
         if (bucket.statesUniform[off + 2]! < 0.999) anyDither = true;
-        if (bucket.entranceUniform[off]! < 0.999) anyEntrance = true;
+        if (Math.abs(bucket.entranceUniform[off]! - 1) > 1e-4) anyEntrance = true;
       }
       if (bucket.statesUniform[off + 1]! > 0.5) anyShadow = true;
     }
@@ -804,12 +824,12 @@ export class BuildingGlobalProxy {
   }
 
   private reconcileSlotTransform(record: SlotRecord): boolean {
-    if (record.frame.destroyed) return false;
+    if (record.root.destroyed && record.frame.destroyed) return false;
     if (record.worldFlag) {
       if (!record.worldFlag.flag) return false;
       record.worldFlag.flag = false;
     }
-    const wm = record.frame.transform.worldMatrix.elements;
+    const wm = this.slotWorldMatrix(record);
     let moved = false;
     for (let k = 0; k < 16; k++) {
       if (wm[k] !== record.lastWorldMatrix[k]) {
@@ -989,7 +1009,7 @@ export class BuildingGlobalProxy {
 
     for (let sIdx = 0; sIdx < bucket.slots.length; sIdx++) {
       const slot = bucket.slots[sIdx]!;
-      const wm = slot.frame.transform.worldMatrix.elements;
+      const wm = this.slotWorldMatrix(slot);
       slot.lastWorldMatrix.set(wm);
       this.syncSlotUniform(bucket, slot);
 
@@ -1055,7 +1075,7 @@ export class BuildingGlobalProxy {
         let p = boxPickMap.get(key);
         if (p === undefined) {
           p = bucket.boxPickEntries.length;
-          bucket.boxPickEntries.push({ frame: slot.frame, id: key });
+          bucket.boxPickEntries.push({ slot, frame: slot.frame, id: key });
           boxPickMap.set(key, p);
         }
         return p;
@@ -1299,7 +1319,7 @@ export class BuildingGlobalProxy {
         const pickF32 = new Float32Array(grp.verts);
         const useU32 = grp.verts > 0xffff;
         const indices = useU32 ? new Uint32Array(grp.indices) : new Uint16Array(grp.indices);
-        const pickEntries: Array<{ frame: Entity; id: string }> = [];
+        const pickEntries: Array<{ slot: SlotRecord; frame: Entity; id: string }> = [];
         const pickMap = new Map<string, number>();
 
         let vBase = 0;
@@ -1315,7 +1335,7 @@ export class BuildingGlobalProxy {
           let pickOffset = pickMap.get(mapKey);
           if (pickOffset === undefined) {
             pickOffset = pickEntries.length;
-            pickEntries.push({ frame: sp.frame, id: sp.pickKey });
+            pickEntries.push({ slot: bucket.slots[sp.slot]!, frame: sp.frame, id: sp.pickKey });
             pickMap.set(mapKey, pickOffset);
           }
           const m = sp.wm;
@@ -1449,7 +1469,7 @@ export class BuildingGlobalProxy {
           alreadyScoped: !scopeFrame,
           resolve: (index) => {
             const e = entries[index];
-            if (!e) return undefined;
+            if (!e || !e.slot.pickable || e.frame.destroyed) return undefined;
             if (scopeFrame) return e.frame === scopeFrame ? e.id : undefined;
             return buildingInstanceKey(e.frame, e.id);
           }
@@ -1469,7 +1489,7 @@ export class BuildingGlobalProxy {
             alreadyScoped: !scopeFrame,
             resolve: (index) => {
               const e = entries[index];
-              if (!e) return undefined;
+              if (!e || !e.slot.pickable || e.frame.destroyed) return undefined;
               if (scopeFrame) return e.frame === scopeFrame ? e.id : undefined;
               return buildingInstanceKey(e.frame, e.id);
             }

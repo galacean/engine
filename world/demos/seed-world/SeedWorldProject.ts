@@ -172,10 +172,16 @@ async function migrateBuildingAssetPaths(
   const contents: Record<string, string> = {};
   for (const file of changed) {
     const format = formats.get(file.type);
-    if (current.contents[file.virtualPath] !== undefined || !format || format.referenceTypes?.length === 0) continue;
+    if (
+      current.contents[file.virtualPath] !== undefined ||
+      file.type === "script" ||
+      !format ||
+      format.referenceTypes?.length === 0
+    ) {
+      continue;
+    }
     const initialFile = locations.get(file.virtualPath);
     if (
-      file.type !== "script" &&
       initialFile?.dependencies !== undefined &&
       initialFile.dependencies.every((dep) => filePaths.has(dep))
     ) {

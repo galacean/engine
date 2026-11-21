@@ -7,6 +7,11 @@ import { registerConstructionSceneLighting } from "../src/building/runtime/Const
 import { constructionPlasterGLSL } from "../src/building/runtime/ConstructionPlasterShader";
 import { masonryAppearance } from "../src/building/runtime/MasonryAppearance";
 import { BuildingGlobalProxy } from "../src/building/runtime/BuildingGlobalProxy";
+import { createBuildingDistanceView } from "../src/building/runtime/BuildingDistanceView";
+import { BuildingManager } from "../src/building/parts/architecture/BuildingManager";
+import { CONSTRUCTION_EXIT_SECONDS } from "../src/building/runtime/ConstructionEntrance";
+import { buildingGroupKey, buildingInstanceKey } from "../src/building/runtime/BuildingObjectIdentity";
+import type { ConstructionPreview } from "../src/building/runtime/ConstructionPreview";
 import globalProxyShaderSource from "../src/building/runtime/MasonryGlobalProxy.shader?raw";
 import globalProxyShadowOnlyShaderSource from "../src/building/runtime/MasonryGlobalProxyShadowOnly.shader?raw";
 import globalProxyShadowCasterGlsl from "../src/building/runtime/MasonryGlobalProxyShadowCaster.glsl?raw";
@@ -438,6 +443,360 @@ describe("BuildingGlobalProxy shader & spatial bucketing contract", () => {
     } finally {
       Logger.error = origLoggerError;
       if (hadCancelAnimationFrame) g.cancelAnimationFrame = prevCancelAnimationFrame;
+      else delete g.cancelAnimationFrame;
+    }
+  });
+
+  it("supports CRUD sweep [2, 3) and dissolve [0, 1) rainbow entrance on GlobalProxy without blinking shadows during sweep", async () => {
+    installShaderCompiler();
+    const g = globalThis as unknown as { cancelAnimationFrame?: (id: number) => void };
+    const hadCaf = "cancelAnimationFrame" in g;
+    const prevCaf = g.cancelAnimationFrame;
+    if (!hadCaf) g.cancelAnimationFrame = () => {};
+    const engine = await HeadlessEngine.create();
+    try {
+      const scene = engine.sceneManager.activeScene!;
+      const camera = scene.createRootEntity("cam").addComponent(Camera);
+      const frame = scene.createRootEntity("house");
+      frame.transform.setPosition(10, 5, -3);
+      const preview: ConstructionPreview = {
+        bounds: { min: [0, 0, 0], max: [4, 4, 4] },
+        parts: [makeNonBoxWallPart("g1")],
+        stones: [],
+        decorationParts: [],
+        frames: [],
+        woodArchFrames: [],
+        woodArchPillars: [],
+        archGroups: [],
+        retainedWallUnits: []
+      } as unknown as ConstructionPreview;
+
+      const view = await createBuildingDistanceView(
+        engine,
+        frame,
+        {
+          colorOwners: [{ id: "g1", seed: 1, wallColor: 0, roofColor: 0, woodColor: 0 }],
+          paletteSlots: [{ seed: 1, wallColor: 0, roofColor: 0, woodColor: 0 }]
+        },
+        preview,
+        undefined as any,
+        camera,
+        undefined,
+        { unifiedGlobalProxy: true }
+      );
+      await view.ready;
+      view.setVisualVisible(true);
+      view.setFarProxyActive(true);
+      const proxy = BuildingGlobalProxy.existing(scene)!;
+      proxy.flushIfDirty();
+      const bucket = (proxy as any).buckets[0];
+
+      // CRUD edit sweep progress in [2, 3): enables GLOBAL_PROXY_ENTRANCE, preserves shadow, writes progress & worldMinY.
+      view.setEntrance(new Map([["g1", { progress: 2.5, minimumY: 0, height: 4 }]]));
+      proxy.flushIfDirty();
+      expect(bucket.entranceEnabled).toBe(true);
+      expect(bucket.entranceUniform[0]).toBeCloseTo(2.5, 4);
+      expect(bucket.entranceUniform[1]).toBeCloseTo(5, 4);
+      expect(bucket.statesUniform[0]).toBe(1);
+      expect(bucket.statesUniform[1]).toBe(1);
+
+      // CRUD create/delete dissolve progress in [0, 1): enables GLOBAL_PROXY_ENTRANCE and hides shadow.
+      view.setEntrance(new Map([["g1", { progress: 0.5, minimumY: 0, height: 4 }]]));
+      proxy.flushIfDirty();
+      expect(bucket.entranceEnabled).toBe(true);
+      expect(bucket.entranceUniform[0]).toBeCloseTo(0.5, 4);
+      expect(bucket.statesUniform[0]).toBe(1);
+      expect(bucket.statesUniform[1]).toBe(0);
+
+      // Settled progress = 1: disables GLOBAL_PROXY_ENTRANCE and restores shadow.
+      view.setEntrance(new Map([["g1", { progress: 1, minimumY: 0, height: 4 }]]));
+      proxy.flushIfDirty();
+      expect(bucket.entranceEnabled).toBe(false);
+      expect(bucket.entranceUniform[0]).toBe(1);
+      expect(bucket.statesUniform[1]).toBe(1);
+
+      // Verify compiled Masonry/GlobalProxy Forward shader includes rainbow sweep/edge and state.x > 1.5 pick cull.
+      const compiler = registerIncludes();
+      const parsed = compiler._parseShaderSource(globalProxyShaderSource);
+      const forwardPass = parsed.subShaders[0]!.passes[2]!;
+      const compiled = compiler._parseShaderPass(
+        forwardPass.contents,
+        forwardPass.vertexEntry,
+        forwardPass.fragmentEntry,
+        ShaderLanguage.GLSLES300,
+        undefined,
+        forwardPass.contentScopeStarts
+      );
+      const forwardFrag = ShaderMacroProcessor.evaluate(
+        [...compiled!.fragmentShaderInstructions!],
+        new Map<string, string>([
+          ["GRAPHICS_API_WEBGL2", ""],
+          ["GLOBAL_PROXY_ENTRANCE", ""]
+        ])
+      );
+      expect(forwardFrag).toContain("rainbowEdge");
+      expect(forwardFrag).toContain("sweepP");
+      const pickVert = ShaderMacroProcessor.evaluate(
+        [...compiled!.vertexShaderInstructions!],
+        new Map<string, string>([
+          ["GRAPHICS_API_WEBGL2", ""],
+          ["RENDERER_WORLD_PICK", ""]
+        ])
+      );
+      expect(pickVert).toContain("state.x > 1.5");
+
+      view.destroy();
+    } finally {
+      if (!engine.destroyed) engine.destroy();
+      if (hadCaf) g.cancelAnimationFrame = prevCaf;
+      else delete g.cancelAnimationFrame;
+    }
+  });
+
+  it("keeps exitingViews anchored under non-identity parents, disables picking, and syncs visible=false on GlobalProxy", async () => {
+    installShaderCompiler();
+    const g = globalThis as unknown as { cancelAnimationFrame?: (id: number) => void };
+    const hadCaf = "cancelAnimationFrame" in g;
+    const prevCaf = g.cancelAnimationFrame;
+    if (!hadCaf) g.cancelAnimationFrame = () => {};
+
+    const runExitCase = async (destroyFrame: boolean) => {
+      const engine = await HeadlessEngine.create();
+      try {
+        const scene = engine.sceneManager.activeScene!;
+        const camera = scene.createRootEntity("cam").addComponent(Camera);
+        const manager = BuildingManager.forScene(scene);
+
+        const cluster = scene.createRootEntity("VillageCluster");
+        cluster.transform.setPosition(10, 20, 30);
+        const frame = cluster.createChild("HouseFrame");
+        frame.transform.setPosition(1, 2, 3); // world = (11, 22, 33)
+        const siblingFrame = cluster.createChild("SiblingFrame");
+        siblingFrame.transform.setPosition(5, 2, 3);
+
+        const preview: ConstructionPreview = {
+          bounds: { min: [0, 0, 0], max: [4, 4, 4] },
+          parts: [makeNonBoxWallPart("g1")],
+          stones: [],
+          decorationParts: [],
+          frames: [],
+          woodArchFrames: [],
+          woodArchPillars: [],
+          archGroups: [],
+          retainedWallUnits: []
+        } as unknown as ConstructionPreview;
+        const appearance = {
+          colorOwners: [{ id: "g1", seed: 1, wallColor: 0, roofColor: 0, woodColor: 0 }],
+          paletteSlots: [{ seed: 1, wallColor: 0, roofColor: 0, woodColor: 0 }]
+        };
+
+        const view = await createBuildingDistanceView(engine, frame, appearance, preview, undefined as any, camera, undefined, {
+          unifiedGlobalProxy: true
+        });
+        await view.ready;
+        view.setVisualVisible(true);
+        view.setFarProxyActive(true);
+
+        const siblingView = await createBuildingDistanceView(
+          engine,
+          siblingFrame,
+          appearance,
+          preview,
+          undefined as any,
+          camera,
+          undefined,
+          { unifiedGlobalProxy: true }
+        );
+        await siblingView.ready;
+        siblingView.setVisualVisible(true);
+        siblingView.setFarProxyActive(true);
+
+        const proxy = BuildingGlobalProxy.existing(scene)!;
+        proxy.flushIfDirty();
+        const bucket = (proxy as any).buckets[0];
+        const slot0 = bucket.slots[0];
+        expect(slot0.lastWorldMatrix[13]).toBeCloseTo(22, 4);
+
+        const runtimeView: any = {
+          kind: "profile",
+          frame,
+          signature: "sig",
+          visible: true,
+          entranceStates: new Map([["g1", { progress: 1, minimumY: 0, height: 4 }]]),
+          entranceInstanceKeys: [],
+          worldMatrix: new Float64Array(16),
+          occupancyMatrix: new Float64Array(16),
+          lights: [],
+          diagnostics: [],
+          focus: new Map(),
+          cpu: { valid: true, dispose() {} },
+          view
+        };
+        (manager as any).views.set(frame, runtimeView);
+        (manager as any).entries.push(runtimeView);
+        (manager as any).entranceEnabled = true;
+        (manager as any).entranceStarted = true;
+
+        (manager as any).retire(runtimeView, true);
+        if (destroyFrame) {
+          frame.destroy();
+        } else {
+          // Component-removal retire while frame remains alive and moves elsewhere
+          frame.transform.setPosition(99, -50, 99);
+        }
+
+        // Advance exit dissolve: worldMinY must remain anchored at Y=22 (not detached/moved frame Y).
+        (manager as any).advanceExitingViews(CONSTRUCTION_EXIT_SECONDS * 0.5);
+        proxy.flushIfDirty();
+        expect(bucket.entranceUniform[1]).toBeCloseTo(22, 4);
+
+        // Exiting slot stays visible in Forward/DepthOnly (state.x=2) but disabled for GPU pick & visitPickBatches.
+        expect(bucket.statesUniform[0]).toBe(2);
+        const pickedKeys: string[] = [];
+        manager.visitPickBatches((batch) => {
+          for (let i = 0; i < batch.count; i++) {
+            const key = batch.resolve(i);
+            if (key) pickedKeys.push(key);
+          }
+        });
+        expect(pickedKeys).not.toContain(buildingInstanceKey(frame, buildingGroupKey("g1")));
+        expect(pickedKeys).toContain(buildingInstanceKey(siblingFrame, buildingGroupKey("g1")));
+
+        // Sibling bucket rebuild must keep exiting slot anchored at Y=22 (no teleport).
+        siblingView.setOwnerVisible("g1", false);
+        proxy.flushIfDirty();
+        expect(slot0.lastWorldMatrix[13]).toBeCloseTo(22, 4);
+
+        // manager.visible = false synchronously zeroes exiting slot state.x without waiting for onLateUpdate.
+        manager.visible = false;
+        expect(bucket.statesUniform[0]).toBe(0);
+
+        (manager as any).clearExitingViews();
+        siblingView.destroy();
+      } finally {
+        if (!engine.destroyed) engine.destroy();
+      }
+    };
+
+    try {
+      await runExitCase(true);
+      await runExitCase(false);
+    } finally {
+      if (hadCaf) g.cancelAnimationFrame = prevCaf;
+      else delete g.cancelAnimationFrame;
+    }
+  });
+
+  it("preserves exiting view LOD exclusivity when BuildingRuntime.visible toggles false then true", async () => {
+    installShaderCompiler();
+    const g = globalThis as unknown as { cancelAnimationFrame?: (id: number) => void };
+    const hadCaf = "cancelAnimationFrame" in g;
+    const prevCaf = g.cancelAnimationFrame;
+    if (!hadCaf) g.cancelAnimationFrame = () => {};
+
+    const runLodToggle = async (lod: "lod0" | "lod2") => {
+      const engine = await HeadlessEngine.create();
+      try {
+        const scene = engine.sceneManager.activeScene!;
+        const camera = scene.createRootEntity("cam").addComponent(Camera);
+        const manager = BuildingManager.forScene(scene);
+        const frame = scene.createRootEntity("house");
+        const preview: ConstructionPreview = {
+          bounds: { min: [0, 0, 0], max: [4, 4, 4] },
+          parts: [makeNonBoxWallPart("g1")],
+          stones: [],
+          decorationParts: [],
+          frames: [],
+          woodArchFrames: [],
+          woodArchPillars: [],
+          archGroups: [],
+          retainedWallUnits: []
+        } as unknown as ConstructionPreview;
+
+        const view = await createBuildingDistanceView(
+          engine,
+          frame,
+          {
+            colorOwners: [{ id: "g1", seed: 1, wallColor: 0, roofColor: 0, woodColor: 0 }],
+            paletteSlots: [{ seed: 1, wallColor: 0, roofColor: 0, woodColor: 0 }]
+          },
+          preview,
+          undefined as any,
+          camera,
+          undefined,
+          { unifiedGlobalProxy: true }
+        );
+        await view.ready;
+        view.setVisualVisible(lod === "lod2");
+        view.setFarProxyActive(lod === "lod2");
+
+        const fineRoot = frame.createChild("MasonryFine");
+        fineRoot.isActive = lod === "lod0";
+
+        const proxy = BuildingGlobalProxy.existing(scene)!;
+        proxy.flushIfDirty();
+        const bucket = (proxy as any).buckets[0];
+
+        const runtimeView: any = {
+          kind: "profile",
+          frame,
+          signature: "sig",
+          visible: true,
+          entranceStates: new Map([["g1", { progress: 1, minimumY: 0, height: 4 }]]),
+          entranceInstanceKeys: [],
+          worldMatrix: new Float64Array(16),
+          occupancyMatrix: new Float64Array(16),
+          lights: [],
+          diagnostics: [],
+          focus: new Map(),
+          cpu: { valid: true, dispose() {} },
+          view,
+          fine: {
+            runtime: { root: fineRoot, setEntrance() {} },
+            destroy() {
+              if (!fineRoot.destroyed) fineRoot.destroy();
+            }
+          }
+        };
+        (manager as any).views.set(frame, runtimeView);
+        (manager as any).entries.push(runtimeView);
+        (manager as any).entranceEnabled = true;
+        (manager as any).entranceStarted = true;
+
+        (manager as any).retire(runtimeView, true);
+        frame.destroy();
+        proxy.flushIfDirty();
+
+        manager.visible = false;
+        expect(bucket.statesUniform[0]).toBe(0);
+        expect(fineRoot.isActive).toBe(false);
+
+        manager.visible = true;
+        proxy.flushIfDirty();
+        await Promise.resolve();
+
+        const visualActive = view.root.children.find((c) => c.name === "Visual surfaces")?.isActive ?? false;
+        if (lod === "lod0") {
+          expect(bucket.statesUniform[0]).toBe(0);
+          expect(visualActive).toBe(false);
+          expect(fineRoot.isActive).toBe(true);
+        } else {
+          expect(bucket.statesUniform[0]).toBe(2);
+          expect(visualActive).toBe(false);
+          expect(fineRoot.isActive).toBe(false);
+        }
+
+        (manager as any).clearExitingViews();
+      } finally {
+        if (!engine.destroyed) engine.destroy();
+      }
+    };
+
+    try {
+      await runLodToggle("lod0");
+      await runLodToggle("lod2");
+    } finally {
+      if (hadCaf) g.cancelAnimationFrame = prevCaf;
       else delete g.cancelAnimationFrame;
     }
   });

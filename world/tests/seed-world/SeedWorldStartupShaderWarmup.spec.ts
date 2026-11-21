@@ -1,7 +1,19 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
-import { MeshRenderer, PipelineStage, Shader, ShaderMacro, ShaderMacroCollection } from "@galacean/engine";
-import { collectSeedWorldRendererVariants } from "@galacean/engine-world-planning/world/SeedWorldShaderWarmup";
+import {
+  MeshRenderer,
+  PipelineStage,
+  RenderQueueType,
+  Renderer,
+  ScreenSpaceReflectionQuality,
+  Shader,
+  ShaderMacro,
+  ShaderMacroCollection
+} from "@galacean/engine";
+import {
+  collectSeedWorldRendererVariants,
+  warmupSeedWorldShaderVariants
+} from "@galacean/engine-world-planning/world/SeedWorldShaderWarmup";
 import {
   findMissingSeedWorldShaderVariants,
   withSeedWorldMasonryDitherVariants
@@ -939,6 +951,208 @@ describe("startup shader publication boundary", () => {
     } finally {
       spy.mockRestore();
     }
+  });
+
+  it("propagates ssrVerifyReceiverDepth through the default deferSecondary startup and deferred warmup paths", async () => {
+    const enableSsrMacro = ShaderMacro.getByName("CAMERA_ENABLE_SSR");
+    const verifyDepthMacro = ShaderMacro.getByName("CAMERA_SSR_VERIFY_RECEIVER_DEPTH");
+
+    const runScenario = async (url: string, renderQueue: RenderQueueType, includeOpaqueSsr = false) => {
+      const progFullVerifyOverflow = {
+        isValid: true,
+        activeTextureCount: 17,
+        _pollReady: () => true
+      } as any;
+      const progNoVerifySsr = {
+        isValid: true,
+        activeTextureCount: 16,
+        _pollReady: () => true
+      } as any;
+      const progNoSsr = {
+        isValid: true,
+        activeTextureCount: 14,
+        _pollReady: () => true
+      } as any;
+      const progDeferredOverflow = {
+        isValid: true,
+        activeTextureCount: 17,
+        _pollReady: () => true
+      } as any;
+      const progDeferredNoVerifySsr = {
+        isValid: true,
+        activeTextureCount: 16,
+        _pollReady: () => true
+      } as any;
+      const progDeferredNoSsr = {
+        isValid: true,
+        activeTextureCount: 14,
+        _pollReady: () => true
+      } as any;
+
+      const forwardPass = {
+        getTagValue: () => PipelineStage.Forward,
+        _renderState: { _getRenderQueueByShaderData: () => renderQueue },
+        _renderStateDataMap: {},
+        _getShaderProgram(_engine: unknown, macros: ShaderMacroCollection) {
+          if (macros.isEnable(enableSsrMacro) && macros.isEnable(verifyDepthMacro)) return progFullVerifyOverflow;
+          if (macros.isEnable(enableSsrMacro)) return progNoVerifySsr;
+          return progNoSsr;
+        }
+      };
+      const receiverPass = {
+        getTagValue: () => "SSRReceiver",
+        _renderState: { _getRenderQueueByShaderData: () => renderQueue },
+        _renderStateDataMap: {},
+        _getShaderProgram: () => ({ isValid: true, activeTextureCount: 4, _pollReady: () => true })
+      };
+      const deferredPass = {
+        getTagValue: () => PipelineStage.Forward,
+        _renderState: { _getRenderQueueByShaderData: () => renderQueue },
+        _renderStateDataMap: {},
+        _getShaderProgram(_engine: unknown, macros: ShaderMacroCollection) {
+          if (macros.isEnable(enableSsrMacro) && macros.isEnable(verifyDepthMacro)) return progDeferredOverflow;
+          if (macros.isEnable(enableSsrMacro)) return progDeferredNoVerifySsr;
+          return progDeferredNoSsr;
+        }
+      };
+      const shaderName = renderQueue === RenderQueueType.Transparent ? "Water/Lake.v1" : "Terrain/Terrain";
+      const primaryShader = {
+        name: shaderName,
+        destroyed: false,
+        subShaders: [{ passes: [forwardPass, receiverPass] }]
+      };
+      const deferredShader = {
+        name: "Water/Deferred.v1",
+        destroyed: false,
+        subShaders: [{ passes: [deferredPass, receiverPass] }]
+      };
+      const makeMaterial = (shader: typeof primaryShader) => ({
+        destroyed: false,
+        shader,
+        shaderData: { _macroCollection: new ShaderMacroCollection() },
+        screenSpaceReflectionIntensity: 1,
+        screenSpaceReflectionBilateral: false
+      });
+      const makeRenderer = (shader: typeof primaryShader, enabled: boolean) => {
+        const renderer = Object.create(MeshRenderer.prototype);
+        Object.defineProperties(renderer, {
+          entity: { value: { isActiveInHierarchy: true, destroyed: false, layer: 1 } },
+          shaderData: { value: { _macroCollection: new ShaderMacroCollection() } },
+          mesh: { value: { _primitive: { vertexElements: [{ attribute: "NORMAL" }] } } },
+          enabled: { value: enabled },
+          destroyed: { value: false },
+          castShadows: { value: false },
+          getMaterials: { value: () => [makeMaterial(shader)] }
+        });
+        return renderer;
+      };
+      const primaryRenderer = makeRenderer(primaryShader, true);
+      const deferredRenderer = makeRenderer(deferredShader, false);
+
+      const engine = {
+        _macroCollection: new ShaderMacroCollection(),
+        _hardwareRenderer: {
+          isWebGL2: true,
+          capability: { maxFragmentTextureUnits: 16, maxDrawBuffers: 4, isFragmentHighPrecision: true },
+          canIUse: () => true,
+          gl: { getExtension: () => ({}) }
+        }
+      } as any;
+      const scene = {
+        rootEntities: [
+          {
+            getComponentsIncludeChildren(ctor: any, out: any[]) {
+              out.length = 0;
+              if (ctor === Renderer) out.push(primaryRenderer, deferredRenderer);
+              return out;
+            }
+          }
+        ],
+        background: { mode: 0 },
+        screenSpaceReflection: {
+          enabled: true,
+          intensity: 1,
+          maxRoughness: 0.6,
+          quality: ScreenSpaceReflectionQuality.Medium
+        },
+        shaderData: { _macroCollection: new ShaderMacroCollection() }
+      } as any;
+      const camera = {
+        enabled: true,
+        enableScreenSpaceReflection: true,
+        shaderData: { _macroCollection: new ShaderMacroCollection() },
+        _updateShaderData() {},
+        _isIndependentCanvasEnabled: () => false
+      } as any;
+
+      const findSpy = vi.spyOn(Shader, "find").mockImplementation((name: string) => {
+        if (name === shaderName) return primaryShader as any;
+        if (name === "Water/Deferred.v1") return deferredShader as any;
+        return null;
+      });
+      try {
+        const result = await runSeedWorldStartupShaderWarmup({
+          precompileShaders: true,
+          engine,
+          scene,
+          camera,
+          pageUrl: new URL(url),
+          canvas: { dataset: {} } as any,
+          showAssistant: false,
+          isDisposed: () => false,
+          progress: () => {},
+          timed: (_name, fn) => fn(),
+          prepareAssistantPresentation: () => undefined,
+          hasOpaqueScreenSpaceReflection: () => includeOpaqueSsr,
+          getPostProcessWarmupState: () => ({ enabled: false }) as any,
+          additionalBackgroundMaterials: []
+        });
+        if (result.deferredShaderVariants.length > 0) {
+          await warmupSeedWorldShaderVariants(engine, result.deferredShaderVariants, {
+            strict: false,
+            preserveOrder: true,
+            ssrVerifyReceiverDepth: result.ssrVerifyReceiverDepth
+          });
+        }
+        return {
+          ssrVerifyReceiverDepth: result.ssrVerifyReceiverDepth,
+          deferredCount: result.deferredShaderVariants.length,
+          primaryMaxUnits: progFullVerifyOverflow._ssrFallbackMaxUnits,
+          primaryVerify: progFullVerifyOverflow._ssrFallbackVerify,
+          primaryNoVerify: progFullVerifyOverflow._ssrFallbackNoVerify,
+          expectedPrimaryNoSsr: progNoSsr,
+          expectedPrimaryNoVerifySsr: progNoVerifySsr,
+          deferredVerify: progDeferredOverflow._ssrFallbackVerify,
+          deferredNoVerify: progDeferredOverflow._ssrFallbackNoVerify,
+          expectedDeferredNoSsr: progDeferredNoSsr
+        };
+      } finally {
+        findSpy.mockRestore();
+      }
+    };
+
+    // Transparent SSR receiver (water) under default production deferSecondary path:
+    // both primary startup warmup and post-ready deferred warmup must populate _ssrFallbackVerify.
+    const transparentProd = await runScenario("http://localhost/?view=3d", RenderQueueType.Transparent);
+    expect(transparentProd.ssrVerifyReceiverDepth).toBe(true);
+    expect(transparentProd.deferredCount).toBeGreaterThan(0);
+    expect(transparentProd.primaryMaxUnits).toBe(16);
+    expect(transparentProd.primaryVerify).toBe(transparentProd.expectedPrimaryNoSsr);
+    expect(transparentProd.primaryNoVerify).toBeNull();
+    expect(transparentProd.deferredVerify).toBe(transparentProd.expectedDeferredNoSsr);
+    expect(transparentProd.deferredNoVerify).toBeNull();
+
+    // Parity with ?agentTrace=1 (non-deferred warmupSeedWorldRendererVariants path).
+    const transparentTrace = await runScenario("http://localhost/?view=3d&agentTrace=1", RenderQueueType.Transparent);
+    expect(transparentTrace.ssrVerifyReceiverDepth).toBe(true);
+    expect(transparentTrace.primaryVerify).toBe(transparentTrace.expectedPrimaryNoSsr);
+    expect(transparentTrace.primaryNoVerify).toBeNull();
+
+    // Control: opaque-only SSR receiver does NOT force depth verification.
+    const opaqueOnly = await runScenario("http://localhost/?view=3d", RenderQueueType.Opaque, true);
+    expect(opaqueOnly.ssrVerifyReceiverDepth).toBe(false);
+    expect(opaqueOnly.primaryVerify).toBeUndefined();
+    expect(opaqueOnly.primaryNoVerify).toBeUndefined();
   });
 });
 

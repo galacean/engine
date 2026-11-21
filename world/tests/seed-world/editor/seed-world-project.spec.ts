@@ -449,3 +449,46 @@ it("keeps unedited PlantStructure, PlantSpecies, and Material out of pack.conten
   expect(fallbackSession.projectPackage.contents["Material/Terrain/seed-world.mat"]).toBeUndefined();
   validateProjectDependencies(fallbackSession.projectPackage);
 });
+
+it("rebases unedited remote script URLs without crashing inside migrateBuildingAssetPaths", async () => {
+  const f = storageFixture();
+  const baseInitial = JSON.parse(
+    await readCatalogFile(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl)
+  ) as RuntimeProjectManifest;
+  const oldScriptUrl = "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/0000000000000000-RemoteDemo.ts";
+  const newScriptUrl = "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/1111111111111111-RemoteDemo.ts";
+  const withScript = (scriptUrl: string): RuntimeProjectManifest => ({
+    ...baseInitial,
+    files: [
+      ...baseInitial.files,
+      { virtualPath: "Scripts/RemoteDemo.ts", path: scriptUrl, type: "script", dependencies: [] }
+    ]
+  });
+  f.fetcher.mockImplementation(async (input) => {
+    const url = String(input);
+    if (url === oldScriptUrl || url === newScriptUrl) {
+      return new Response("export class RemoteDemo {}", { status: 200 });
+    }
+    return new Response(await readCatalogFile(url));
+  });
+
+  const compileSpy = vi.spyOn(RuntimeProjectSession.prototype, "compileScripts").mockResolvedValue({
+    ok: true,
+    diagnostics: [],
+    dependencies: { "Scripts/RemoteDemo.ts": [] },
+    modules: {}
+  } as any);
+
+  const first = await openSeedWorldProject(f.url, withScript(oldScriptUrl));
+  await first.save();
+  first.dispose();
+  compileSpy.mockClear();
+
+  const reopened = await openSeedWorldProject(f.url, withScript(newScriptUrl));
+  sessions.push(reopened);
+  expect(compileSpy).toHaveBeenCalledTimes(1);
+  expect(reopened.projectPackage.project.files.find((file) => file.virtualPath === "Scripts/RemoteDemo.ts")?.path).toBe(
+    newScriptUrl
+  );
+  validateProjectDependencies(reopened.projectPackage);
+});

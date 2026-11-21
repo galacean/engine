@@ -160,6 +160,8 @@ export interface SeedWorldRendererWarmupOptions extends SeedWorldShaderWarmupOpt
   readonly postProcessState?: SeedWorldPostProcessWarmupState;
   /** Alternate background owners that may install after collection of scene.background.sky.material. */
   readonly additionalBackgroundMaterials?: readonly Material[];
+  /** Invoked with collection metadata (such as whether transparent SSR receivers require depth verification). */
+  readonly onCollectSummary?: (summary: { readonly hasTransparentSsr: boolean }) => void;
 }
 
 type RuntimeShaderProgram = ReturnType<ShaderPass["_getShaderProgram"]>;
@@ -1447,6 +1449,7 @@ function collectSeedWorldRendererVariantsInternal(
   if (options.includeMasonryEntrance !== false) collected = withSeedWorldMasonryEntranceVariants(collected);
   if (options.includeMasonryDither !== false) collected = withSeedWorldMasonryDitherVariants(collected);
   if (options.includeLodDither === true) collected = withSeedWorldLodDitherVariants(collected);
+  options.onCollectSummary?.({ hasTransparentSsr: ssrContext.hasTransparentSsr });
   return {
     variants: normalizeSeedWorldShaderVariants(collected),
     hasTransparentSsr: ssrContext.hasTransparentSsr

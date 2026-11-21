@@ -279,7 +279,13 @@ export class BuildingRuntime extends Script {
   private readonly lightDescriptors: ConstructionDecorationLight[] = [];
   private readonly lightPosition = new Vector3();
   private readonly entrance = new ConstructionEntrance();
-  private readonly exitingViews: { view: View; progress: number; anchor?: Entity }[] = [];
+  private readonly exitingViews: {
+    view: View;
+    progress: number;
+    anchor?: Entity;
+    coarseVisible: boolean;
+    fineActive: boolean;
+  }[] = [];
   private entranceEnabled = false;
   private entranceStarted = false;
 
@@ -296,7 +302,10 @@ export class BuildingRuntime extends Script {
     for (const item of this.exitingViews) {
       if (item.anchor && !item.anchor.destroyed) item.anchor.isActive = value;
       if (!item.view.view.root.destroyed) item.view.view.root.isActive = value;
-      if (item.view.fine && !item.view.fine.runtime.root.destroyed) item.view.fine.runtime.root.isActive = value;
+      item.view.view.setVisualVisible?.(value && item.coarseVisible);
+      if (item.view.fine && !item.view.fine.runtime.root.destroyed) {
+        item.view.fine.runtime.root.isActive = value && item.fineActive;
+      }
     }
     this.updateResidency(0);
     this.updateLights(0);
@@ -748,6 +757,8 @@ export class BuildingRuntime extends Script {
       // Detach generated geometry from the author frame onto a runtime-owned anchor so
       // frame.destroy() (editor entity.delete / BuildingManager.remove) cannot cascade-destroy
       // the exit dissolve animation synchronously.
+      const coarseVisible = view.view.isVisualVisible ?? true;
+      const fineActive = Boolean(view.fine && !view.fine.runtime.root.destroyed && view.fine.runtime.root.isActive);
       const anchor = this.entity.createChild("Building exiting");
       markGeneratedBuildingOutput(anchor);
       const frameTransform = view.frame.transform;
@@ -755,6 +766,7 @@ export class BuildingRuntime extends Script {
       anchor.transform.worldRotationQuaternion = frameTransform.worldRotationQuaternion;
       anchor.transform.scale = frameTransform.lossyWorldScale;
       anchor.addChild(view.view.root);
+      view.view.setPickable?.(false);
       if (view.fine && !view.fine.runtime.root.destroyed) {
         anchor.addChild(view.fine.runtime.root);
       }
@@ -769,7 +781,7 @@ export class BuildingRuntime extends Script {
       if (view.fine && !view.fine.runtime.root.destroyed) {
         view.fine.runtime.setEntrance(view.entranceStates);
       }
-      this.exitingViews.push({ view, progress: 1, anchor });
+      this.exitingViews.push({ view, progress: 1, anchor, coarseVisible, fineActive });
     } else {
       destroyView(view);
     }

@@ -1218,6 +1218,7 @@ export async function createBuildingDistanceView(
     let visualVisible = false;
     let farProxyMode = hasFarProxy;
     let entranceSettled = true;
+    let entranceDissolving = false;
     let proxyEntranceEligible = true;
     let detailedCheckQueued = false;
     let lastUseFar = false;
@@ -1233,7 +1234,7 @@ export async function createBuildingDistanceView(
       // Never hide Far/Global Proxy before visualRoot is built and ready; otherwise the building
       // vanishes for 1+ frames while ensureDetailedVisual() runs asynchronously after render.
       const useFar = canFallbackToFar && (farProxyMode || !detailedVisualReady || !hasVisualSource);
-      const shadowVisible = entranceSettled || !hasVisualSource;
+      const shadowVisible = !entranceDissolving || !hasVisualSource;
       lastUseFar = useFar;
       lastShadowVisible = shadowVisible;
       if (farProxy) farProxy.root.isActive = useFar;
@@ -1282,13 +1283,15 @@ export async function createBuildingDistanceView(
         for (const binding of visualEntranceBindings) binding.apply(states.get(binding.owner));
         nativeDecorationView?.setEntrance(states);
         let settled = true;
+        let dissolving = false;
         let commonProgress = 1;
         let hasProgress = false;
         let uniformProgress = true;
         let localMinY = Infinity;
         let localMaxY = -Infinity;
         const recordOwnerState = (progress: number, minY?: number, maxY?: number) => {
-          if (progress < 1) settled = false;
+          if (Math.abs(progress - 1) > 1e-4) settled = false;
+          if (progress < 1 - 1e-4) dissolving = true;
           if (!hasProgress) {
             commonProgress = progress;
             hasProgress = true;
@@ -1314,7 +1317,8 @@ export async function createBuildingDistanceView(
           if (settled || !hasProgress) {
             globalProxySlot.updateEntrance(1, 0, 1);
           } else if (uniformProgress) {
-            const wm = parent.transform.worldMatrix.elements;
+            // Read from surviving resources.root (identity child of parent while live, reparented to anchor when exiting).
+            const wm = (resources.root.destroyed ? parent : resources.root).transform.worldMatrix.elements;
             const yScale = Math.hypot(wm[4] ?? 0, wm[5] ?? 1, wm[6] ?? 0) || 1;
             const yOrigin = wm[13] ?? 0;
             const worldMinY = Number.isFinite(localMinY) ? yOrigin + localMinY * yScale : worldBounds.min.y;
@@ -1328,8 +1332,13 @@ export async function createBuildingDistanceView(
           }
         }
         const nextProxyEntranceEligible = settled || uniformProgress;
-        if (settled !== entranceSettled || nextProxyEntranceEligible !== proxyEntranceEligible) {
+        if (
+          settled !== entranceSettled ||
+          dissolving !== entranceDissolving ||
+          nextProxyEntranceEligible !== proxyEntranceEligible
+        ) {
           entranceSettled = settled;
+          entranceDissolving = dissolving;
           proxyEntranceEligible = nextProxyEntranceEligible;
           syncVisualRoots();
         }
@@ -1367,6 +1376,9 @@ export async function createBuildingDistanceView(
         if (visualVisible === visible) return;
         visualVisible = visible;
         syncVisualRoots();
+      },
+      setPickable(pickable: boolean) {
+        globalProxySlot?.setPickable(pickable);
       },
       setFarProxyActive(active: boolean) {
         if (farProxyMode === active) return;

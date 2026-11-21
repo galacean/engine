@@ -232,19 +232,26 @@ Shader "Masonry/GlobalProxy" {
      gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
      return v;
     }
+    #ifdef RENDERER_WORLD_PICK
+     if (state.x > 1.5) {
+      gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+      return v;
+     }
+    #endif
     gl_Position = camera_VPMat * vec4(positionWS, 1.0);
     return v;
    }
    void MasonryGlobalProxyFragment(MasonryGlobalProxyVaryings v) {
     #ifdef GLOBAL_PROXY_ENTRANCE
+     float entranceAmt = 1.0;
      if (v.entrance.x < 1.0) {
       if (v.entrance.x <= 0.0) discard;
       float eh = clamp((v.positionWS.y - v.entrance.y) / max(v.entrance.z, 0.001), 0.0, 1.0);
       float edelay = (v.surfaceTag.x > 2.5 && v.surfaceTag.x < 3.5) ? 0.12 : ((v.surfaceTag.x > 4.5) ? 0.08 : 0.0);
       float eth = min(0.98, 0.16 + 0.70 * eh + edelay);
-      float eamt = smoothstep(0.8 * eth, eth, pow(v.entrance.x, 0.8));
+      entranceAmt = smoothstep(0.8 * eth, eth, pow(v.entrance.x, 0.8));
       float emask = fract(52.9829189 * fract(dot(floor(gl_FragCoord.xy), vec2(0.06711056, 0.00583715))));
-      if (eamt <= emask) discard;
+      if (entranceAmt <= emask) discard;
      }
     #endif
     #ifdef GLOBAL_PROXY_DITHER
@@ -296,6 +303,25 @@ Shader "Masonry/GlobalProxy" {
      vec3 lit = masonryFarProxyLight(albedo, n, v.positionWS);
      lit += vec3(1.0, 0.57, 0.18) * v.color.a;
      vec3 outRgb = masonrySceneFog(lit, v.positionWS);
+     #ifdef GLOBAL_PROXY_ENTRANCE
+      float rainbowEdge = 0.0;
+      float eNormY = clamp((v.positionWS.y - v.entrance.y) / max(v.entrance.z, 0.001), 0.0, 1.0);
+      if (v.entrance.x > 1.5) {
+       float sweepP = clamp(v.entrance.x - 2.0, 0.0, 1.0);
+       float sweep = mix(-0.24, 1.24, sweepP);
+       rainbowEdge = (1.0 - smoothstep(0.0, 0.30, abs(eNormY - sweep))) * sin(sweepP * 3.14159265);
+      } else if (v.entrance.x > 0.0 && v.entrance.x < 1.0) {
+       rainbowEdge = entranceAmt * (1.0 - entranceAmt) * 4.0;
+      }
+      if (rainbowEdge > 0.001) {
+       float shift = v.entrance.x > 1.5 ? (v.entrance.x - 2.0) * 1.4 : v.entrance.x * 1.1;
+       float phase = fract(eNormY * 1.65 + (v.positionWS.x + v.positionWS.z) * 0.16 - shift);
+       vec3 raw = clamp(abs(mod(phase * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+       vec3 rainbow = pow(raw, vec3(2.2)) * rainbowEdge * 2.65;
+       float rainbowW = clamp(rainbowEdge * 0.76, 0.0, 0.76);
+       outRgb = outRgb * (1.0 - rainbowW) + rainbow;
+      }
+     #endif
      if (v.lodDebug > 0.0) {
       outRgb = mix(outRgb, vec3(0.95, 0.2, 0.18), 0.82 * v.lodDebug);
      }

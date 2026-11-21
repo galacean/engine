@@ -2827,7 +2827,11 @@ export async function mountSeedWorldDemo(
     timed("warmupPopulationDetails (startup)", () => publication!.current?.world.warmupPopulationDetails());
 
     shaderAudit?.setPhase("startup-warmup");
-    let { report: startupWarmupReport, deferredShaderVariants } = await runSeedWorldStartupShaderWarmup({
+    let {
+      report: startupWarmupReport,
+      deferredShaderVariants,
+      ssrVerifyReceiverDepth
+    } = await runSeedWorldStartupShaderWarmup({
       precompileShaders,
       engine: engine!,
       scene: scene!,
@@ -2892,7 +2896,8 @@ export async function mountSeedWorldDemo(
           signal: editorLifetime.signal,
           preserveOrder: true,
           frameBudgetMilliseconds: 4,
-          maximumPendingPrograms: parallelBgWarmup ? 8 : 1
+          maximumPendingPrograms: parallelBgWarmup ? 8 : 1,
+          ssrVerifyReceiverDepth
         })
           .then((bgReport) => {
             if (!disposed) {
