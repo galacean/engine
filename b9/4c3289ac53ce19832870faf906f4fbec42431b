@@ -1,0 +1,22 @@
+packages/core/src/postProcess/PostProcessUberPass.ts
+  h_79b10db07e6052 37,112,117,216-222
+packages/core/src/postProcess/effects/BloomEffect.ts
+  h_79b10db07e6052 32,40-41
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl
+  h_79b10db07e6052 12-13,35-45
+packages/shader/src/ShaderLibrary/PostProcess/UberPost.glsl
+  h_79b10db07e6052 14,25
+tests/src/core/postProcess/PostProcess.test.ts
+  h_79b10db07e6052 579-583,596-605,720-799
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b94c3289ac53ce19832870faf906f4fbec42431b",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}
