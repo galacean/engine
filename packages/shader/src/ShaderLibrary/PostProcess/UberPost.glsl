@@ -7,10 +7,10 @@
 #include "ShaderLibrary/PostProcess/Tonemapping/ACESTonemapping.glsl"
 
 mediump sampler2D renderer_BlitTexture;
-vec4 renderer_texelSize;
 #ifdef ENABLE_EFFECT_BLOOM
 	mediump sampler2D material_BloomTexture;
 	mediump sampler2D material_BloomDirtTexture;
+	vec4 material_BloomTexelSize;
 	vec4 material_BloomTint;
 	vec4 material_BloomDirtTilingOffset;
 	vec4 material_BloomIntensityParams;
@@ -21,19 +21,19 @@ void frag(Varyings v) {
 
 	#ifdef ENABLE_EFFECT_BLOOM
     	#ifdef BLOOM_HQ
-    	  mediump vec4 bloom = sampleTexture2DBicubic(material_BloomTexture, v.v_uv, renderer_texelSize);
+    	  mediump vec3 bloom = sampleTexture2DBicubic(material_BloomTexture, v.v_uv, material_BloomTexelSize).rgb;
     	#else
-    	  mediump vec4 bloom = texture2D(material_BloomTexture, v.v_uv);
+    	  mediump vec3 bloom = texture2D(material_BloomTexture, v.v_uv).rgb;
     	#endif
 
     	bloom *= material_BloomIntensityParams.x;
-    	color += bloom * material_BloomTint;
+    	color.rgb += bloom * material_BloomTint.rgb;
 
     	#ifdef BLOOM_DIRT
-    	  mediump vec4 dirt = texture2D(material_BloomDirtTexture, v.v_uv * material_BloomDirtTilingOffset.xy + material_BloomDirtTilingOffset.zw);
+    	  mediump vec3 dirt = texture2D(material_BloomDirtTexture, v.v_uv * material_BloomDirtTilingOffset.xy + material_BloomDirtTilingOffset.zw).rgb;
     	  dirt *= material_BloomIntensityParams.y;
     	  // Additive bloom (artist friendly)
-    	  color += dirt * bloom;
+    	  color.rgb += dirt * bloom;
     	#endif
 	#endif
 
