@@ -84,6 +84,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
   @ignoreClone
   private _nativeScale = new Vector3();
   @ignoreClone
+  private _scaleChangedDirectly = false;
+  @ignoreClone
   private _nativeWorldPosition = new Vector3();
   @ignoreClone
   private _nativeWorldRotation = new Quaternion();
@@ -532,17 +534,20 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   /**
-   * Push the world scale to the native shape whenever any component differs beyond relative tolerance.
+   * Push the world scale to the native shape when a direct/forced scale edit changes any component or a
+   * rotation-induced update differs beyond relative tolerance.
    * @returns Whether the native scale was updated
    */
   protected _syncNativeScale(shape: IColliderShape, scale: Vector3, force = false): boolean {
     const nativeScale = this._nativeScale;
-    if (
-      force ||
-      !Collider._scaleEquals(scale.x, nativeScale.x) ||
-      !Collider._scaleEquals(scale.y, nativeScale.y) ||
-      !Collider._scaleEquals(scale.z, nativeScale.z)
-    ) {
+    const exact = force || this._scaleChangedDirectly || !this.entity.parent;
+    this._scaleChangedDirectly = false;
+    const changed = exact
+      ? force || scale.x !== nativeScale.x || scale.y !== nativeScale.y || scale.z !== nativeScale.z
+      : !Collider._scaleEquals(scale.x, nativeScale.x) ||
+        !Collider._scaleEquals(scale.y, nativeScale.y) ||
+        !Collider._scaleEquals(scale.z, nativeScale.z);
+    if (changed) {
       nativeScale.copyFrom(scale);
       shape.setWorldScale(scale);
       return true;
@@ -671,6 +676,13 @@ export class Collider extends Component implements ICloneHook<Collider> {
     // only scale or hierarchy changes (both include WorldScale) can alter its local shape.
     if (this._attachedBody?.entity === this.entity && !(type & TransformModifyFlags.WorldScale)) {
       return;
+    }
+    if (
+      (type & TransformModifyFlags.WorldScale) !== 0 &&
+      ((type & (TransformModifyFlags.WorldQuat | TransformModifyFlags.WorldEuler)) === 0 ||
+        (type & TransformModifyFlags.IsWorldUniformScaling) !== 0)
+    ) {
+      this._scaleChangedDirectly = true;
     }
     this._markDirty();
   }

@@ -876,5 +876,63 @@ describe("Collider", () => {
       update(1);
       expect(syncSpy).toHaveBeenCalledTimes(1);
     });
+
+    it("honors small directly authored scale edits while suppressing rotation-induced float noise", () => {
+      const downwardRay = (x: number) => new Ray(new Vector3(x, 8, 0), new Vector3(0, -1, 0));
+      const hit = new HitResult();
+
+      // 1. Directly authored 1.0000005 scale edit on a large root BoxCollider updates PhysX geometry
+      const largeRoot = engine.sceneManager.activeScene.createRootEntity("large-scale-root");
+      try {
+        const box = largeRoot.addComponent(BoxCollider);
+        box.size = new Vector3(2_000_000, 2, 2);
+        const outside = downwardRay(1_000_000.25);
+        expect(physics.raycast(downwardRay(999_999), hit) && hit.collider === box).toBe(true);
+        expect(physics.raycast(outside)).toBe(false);
+        largeRoot.transform.setScale(1.0000005, 1, 1);
+        expect(physics.raycast(outside, hit) && hit.collider === box).toBe(true);
+      } finally {
+        largeRoot.destroy();
+      }
+
+      // 2. Directly authored 1.0000005 scale edit on a child BoxCollider also updates PhysX geometry
+      const largeParent = root.createChild("large-scale-parent");
+      const largeChild = largeParent.createChild("large-scale-child");
+      const childBox = largeChild.addComponent(BoxCollider);
+      childBox.size = new Vector3(2_000_000, 2, 2);
+      const outside = downwardRay(1_000_000.25);
+      expect(physics.raycast(outside)).toBe(false);
+      largeParent.transform.setScale(1.0000005, 1, 1);
+      expect(physics.raycast(outside, hit) && hit.collider === childBox).toBe(true);
+      largeParent.destroy();
+
+      // 3. Pure Y rotation on a nonuniform compound body emits 0 redundant native scale / mass writes
+      const bodyEntity = root.createChild("rotate-nonuniform");
+      bodyEntity.transform.setScale(1, 2, 1);
+      const body = bodyEntity.addComponent(Rigidbody);
+      body.isKinematic = true;
+      const child = bodyEntity.createChild("collider");
+      const box = child.addComponent(BoxCollider);
+      expect(physics.raycast(downwardRay(0), hit) && hit.collider === box).toBe(true);
+      const scaleSpy = vi.spyOn(box._native!, "setWorldScale");
+      const massSpy = vi.spyOn((body as any)._nativeActor, "setMassAndUpdateInertia");
+      for (let i = 1; i <= 90; i++) {
+        bodyEntity.transform.setRotation(0, i * 3.7, 0);
+        expect(physics.raycast(downwardRay(0), hit) && hit.collider === box).toBe(true);
+      }
+      expect(scaleSpy).not.toHaveBeenCalled();
+      expect(massSpy).not.toHaveBeenCalled();
+
+      // 4. Tiny supported scale change 1e-6 -> 1.5e-6 still applies accurately
+      const tiny = root.createChild("tiny-scale-box");
+      tiny.transform.setScale(1e-6, 1e-6, 1e-6);
+      const tinyBox = tiny.addComponent(BoxCollider);
+      tinyBox.size.set(4e6, 2e6, 4e6);
+      update();
+      expect(physics.raycast(downwardRay(2.5))).toBe(false);
+      tiny.transform.setScale(1.5e-6, 1e-6, 1e-6);
+      update();
+      expect(physics.raycast(downwardRay(2.5), hit) && hit.collider === tinyBox).toBe(true);
+    });
   });
 });
