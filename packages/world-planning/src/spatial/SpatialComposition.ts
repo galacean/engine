@@ -27,7 +27,7 @@ import { spatialCompositionParameters } from "./SpatialCompositionParameters";
 import { worldTemplate } from "./WorldTemplateCatalog";
 import { buildWorldTemplateGeometry, templateNodeFootprint } from "./WorldTemplateGeometry";
 import type { RiverParameters } from "./hydrology/RiverRegions";
-import type { LakeParameters } from "./hydrology/LakeRegions";
+import { planningLakeCollarMinHeight, type LakeParameters } from "./hydrology/LakeRegions";
 
 export const COMPOSITION_OWNER = "landscape-composition";
 export const COMPOSITION_RELIEF_OWNER = `${COMPOSITION_OWNER}:relief`;
@@ -136,7 +136,7 @@ export function compositionHydrology(plan: IslandPlan): {
     lakes[`lake:authored:${COMPOSITION_OWNER}`] = {
       enabled: true,
       shoreline,
-      referenceLevel: Math.min(...shoreline.map(ground)) - 0.1,
+      referenceLevel: Math.fround(planningLakeCollarMinHeight(plan, shoreline, ground) - 0.1),
       radiusM: q.basinRadiusM,
       depthM: q.basinDepthM,
       bankWidthM: q.bankWidthM,

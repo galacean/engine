@@ -1,7 +1,12 @@
 import { expect, it, vi } from "vitest";
 import { changedSpatialWaterBounds } from "@galacean/engine-world-planning/spatial/layout/SpatialWaterDependencies";
 import { generateSpatialWorld } from "@galacean/engine-world-planning/spatial/layout/SpatialWorld";
-import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
+import { createSeedPlanningDocument, createSeedPlanningInputs } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
+import { exportPlanningRecipe } from "@galacean/engine-world-planning/spatial/PlanningDocument";
+import { createSpatialTerrainPlan } from "@galacean/engine-world-planning/spatial/layout/SpatialTerrain";
+import { generateRiverRegions, RIVER_DEFAULTS } from "@galacean/engine-world-planning/spatial/hydrology/RiverRegions";
+import { generateLakeRegions, LAKE_DEFAULTS } from "@galacean/engine-world-planning/spatial/hydrology/LakeRegions";
+import { planningLakeBoundary } from "@galacean/engine-world-planning/semantic-study/PlanningLakeBoundary";
 import { createPlanningGroundSampler } from "@galacean/engine-world-planning/semantic-study/WorldPlanningTerrain";
 import * as layout from "@galacean/engine-world-planning/spatial/layout/LayoutKernel";
 import { planningWaterParameters } from "../../demos/seed-world/src/planning/spatial/PlanningWaterSource";
@@ -227,3 +232,23 @@ it.each([
   },
   120000
 );
+
+it("keeps automatic Seed World lakes closed after river bank grading and multi-river generation", () => {
+  // Seed 2864462861 previously placed lake:0 inside river:0's bank grading and spilled to the capture border.
+  for (const { seed, rivers, lakes } of [
+    { seed: 2864462861, rivers: 1, lakes: 1 },
+    { seed: 7922, rivers: 2, lakes: 3 },
+    { seed: 23760, rivers: 2, lakes: 3 }
+  ]) {
+    const recipe = exportPlanningRecipe(createSeedPlanningInputs(seed));
+    const plan = createSpatialTerrainPlan(recipe);
+    generateRiverRegions(plan, { ...RIVER_DEFAULTS, countMin: rivers, countMax: rivers }, {});
+    generateLakeRegions(plan, { ...LAKE_DEFAULTS, countMin: lakes, countMax: lakes }, {});
+    const generatedLakes = plan.waters.filter((water) => water.kind === "lake" && water.lake);
+    expect(generatedLakes).toHaveLength(lakes);
+    for (const lake of generatedLakes) {
+      const resolved = planningLakeBoundary(plan, lake);
+      expect(resolved.boundary.rings.length).toBeGreaterThan(0);
+    }
+  }
+}, 60000);

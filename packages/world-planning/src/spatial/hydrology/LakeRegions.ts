@@ -1,10 +1,10 @@
 import { planningCandidateCount, type PlanningCountRange } from "../PlanningCountRange";
 import { sampleLakeBoundary } from "@galacean/engine-water/water/compiler/index";
-import { generateRiverRegions, RIVER_DEFAULTS } from "./RiverRegions";
 import type { IslandPlan, PlanPoint } from "../../semantic-study/IslandPlanModel";
 import type { PlanningCheck } from "../../semantic-study/WorldPlanningContract";
 import { createPlanningGroundSampler, createPlanningRingQuery } from "../../semantic-study/WorldPlanningTerrain";
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
+import profile from "../../planning-data/settlement-profile.json";
 
 export interface LakeParameters extends PlanningCountRange {
   referenceLevel?: number;
@@ -48,6 +48,79 @@ function circle(center: PlanPoint, radius: number, phase: number): PlanPoint[] {
   });
 }
 
+function lakeGridMetrics(plan: Pick<IslandPlan, "parameters" | "raster">, external: boolean) {
+  if (external) {
+    const spacing = plan.raster.spacing > 0 ? plan.raster.spacing : 1;
+    return {
+      spacingX: spacing,
+      spacingZ: spacing,
+      cols: Math.max(2, Math.round(plan.parameters.width / spacing) + 1),
+      rows: Math.max(2, Math.round(plan.parameters.depth / spacing) + 1)
+    };
+  }
+  const resolution = profile.world.heightmapResolution;
+  return {
+    spacingX: plan.parameters.width / (resolution - 1),
+    spacingZ: plan.parameters.depth / (resolution - 1),
+    cols: resolution,
+    rows: resolution
+  };
+}
+
+/** Minimum terrain height along the outer shoreline and its two-cell exterior grid collar.
+ * Setting a lake datum strictly below this value guarantees a closed dry grid barrier on
+ * canonical float32-triangle heightmaps, preventing capture-border boundary spills.
+ */
+export function planningLakeCollarMinHeight(
+  plan: Pick<IslandPlan, "parameters" | "raster">,
+  ring: PlanPoint[],
+  ground: (p: PlanPoint) => number,
+  options?: { external?: boolean }
+): number {
+  if (ring.length < 3) return Infinity;
+  const external = options?.external ?? false;
+  const { spacingX, spacingZ, cols, rows } = lakeGridMetrics(plan, external);
+  const inside = createPlanningRingQuery(ring);
+  const step = Math.min(0.5, Math.min(spacingX, spacingZ) * 0.5);
+  const visited = new Set<number>();
+  const probe = { x: 0, z: 0 };
+  let minimum = Infinity;
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[i];
+    const b = ring[(i + 1) % ring.length];
+    const count = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / step));
+    for (let j = 0; j < count; j++) {
+      const t = j / count;
+      const px = a.x + (b.x - a.x) * t;
+      const pz = a.z + (b.z - a.z) * t;
+      probe.x = px;
+      probe.z = pz;
+      const rimHeight = ground(probe);
+      if (rimHeight < minimum) minimum = rimHeight;
+      const gx0 = Math.floor(px / spacingX);
+      const gz0 = Math.floor(pz / spacingZ);
+      for (let oz = -1; oz <= 2; oz++) {
+        const gz = gz0 + oz;
+        if (gz < 0 || gz >= rows) continue;
+        const wz = external ? Math.min(plan.parameters.depth, gz * spacingZ) : gz * spacingZ;
+        for (let ox = -1; ox <= 2; ox++) {
+          const gx = gx0 + ox;
+          if (gx < 0 || gx >= cols) continue;
+          const key = gz * cols + gx;
+          if (visited.has(key)) continue;
+          visited.add(key);
+          probe.x = external ? Math.min(plan.parameters.width, gx * spacingX) : gx * spacingX;
+          probe.z = wz;
+          if (inside.inside(probe)) continue;
+          const collarHeight = ground(probe);
+          if (collarHeight < minimum) minimum = collarHeight;
+        }
+      }
+    }
+  }
+  return minimum;
+}
+
 /** Deterministic initial sites are chosen before per-lake edits, so editing one does not reroll its neighbours. */
 export function generateLakeRegions(
   plan: IslandPlan,
@@ -70,29 +143,61 @@ export function generateLakeRegions(
     )
     .sort();
   if (!candidateCount && !manualIds.length) return [];
-  // Site identity depends on base Terrain and the seeded initial corridors, never current river edits.
-  const sitePlan: IslandPlan = { ...plan, waters: [], planning: { ...plan.planning!, profiles: [] } };
-  // External generation must choose its datum after river mouths and their bank grading.
-  // Legacy editing retains its seeded, river-edit-independent site identity.
-  const ground = createPlanningGroundSampler(baseGround ? plan : sitePlan, { natural: true, baseGround });
-  const rimHeights = (ring: PlanPoint[]) => {
-    if (!baseGround) return ring.map(ground);
-    // Check between authored vertices too; the caller's external field can contain
-    // low saddles along an edge. Keep the same half-metre sampling for site and edit validation.
-    return ring.flatMap((a, i) => {
+  // Sample terrain after all current rivers and their bank grading are applied, so automatic
+  // lakes never pick sites or datums undercut by neighbouring river banks.
+  const ground = createPlanningGroundSampler(plan, { natural: true, baseGround });
+  const rimHeights = (ring: readonly PlanPoint[]) =>
+    // Check between authored vertices too; both river bank grading and external fields can
+    // introduce low saddles along an edge. Keep half-metre sampling for site and edit validation.
+    ring.flatMap((a, i) => {
       const b = ring[(i + 1) % ring.length];
       const count = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.5));
       return Array.from({ length: count }, (_, j) =>
         ground({ x: a.x + ((b.x - a.x) * j) / count, z: a.z + ((b.z - a.z) * j) / count })
       );
     });
+  const minRimHeight = (ring: readonly PlanPoint[]) => {
+    const probe = { x: 0, z: 0 };
+    let min = Infinity;
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i];
+      const b = ring[(i + 1) % ring.length];
+      const count = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.5));
+      for (let j = 0; j < count; j++) {
+        probe.x = a.x + ((b.x - a.x) * j) / count;
+        probe.z = a.z + ((b.z - a.z) * j) / count;
+        const h = ground(probe);
+        if (h < min) min = h;
+      }
+    }
+    return min;
   };
-  if (candidateCount && !baseGround) generateRiverRegions(sitePlan, RIVER_DEFAULTS, {}, reservations);
-  const initialWaters = (baseGround ? plan.waters : sitePlan.waters).map((w) => createPlanningRingQuery(w.outline));
+  const external = Boolean(baseGround);
+  const { spacingX, spacingZ } = lakeGridMetrics(plan, external);
+  const maxSpacing = Math.max(spacingX, spacingZ);
   const lands = [plan.land, ...plan.islands].map((outline) => createPlanningRingQuery(outline));
   const waters = plan.waters.map((w) => createPlanningRingQuery(w.outline));
+  const authoredLakes = manualIds.flatMap((id) => {
+    const cfg = { ...config, ...local[id] };
+    const shore = cfg.shoreline?.filter((p) => p.ring === "shore");
+    if (
+      !shore ||
+      shore.length < 3 ||
+      !Number.isFinite(cfg.offsetX) ||
+      !Number.isFinite(cfg.offsetZ) ||
+      !shore.every((p) => Number.isFinite(p.x) && Number.isFinite(p.z))
+    )
+      return [];
+    return [
+      {
+        ring: createPlanningRingQuery(shore.map((p) => ({ x: p.x + cfg.offsetX, z: p.z + cfg.offsetZ }))),
+        bankWidthM: Number.isFinite(cfg.bankWidthM) && cfg.bankWidthM > 0 ? cfg.bankWidthM : config.bankWidthM
+      }
+    ];
+  });
   const candidates: Array<{ center: PlanPoint; level: number; score: number }> = [];
-  const margin = config.radiusM * 1.15 + config.bankWidthM;
+  const margin = config.radiusM * 1.15 + Math.max(config.bankWidthM, maxSpacing * 2.5);
+  const outerProbeRadius = config.radiusM + maxSpacing * 2;
   const step = Math.max(16, config.radiusM);
   const phase = settlementRandom(plan.parameters.seed, "lakes:shape") * Math.PI * 2;
   for (let z = margin; candidateCount && z < plan.parameters.depth - margin; z += step) {
@@ -100,13 +205,34 @@ export function generateLakeRegions(
       const center = { x, z };
       if (!lands.some((land) => land.inside(center) && land.distance(center, margin) >= margin)) continue;
       if (reservations.some((area) => area.inside(center) || area.distance(center, margin) < margin)) continue;
-      if (initialWaters.some((water) => water.inside(center) || water.distance(center, margin) < margin)) continue;
+      if (waters.some((water) => water.inside(center) || water.distance(center, margin) < margin)) continue;
+      if (
+        authoredLakes.some(
+          (lake) =>
+            lake.ring.inside(center) || lake.ring.distance(center, margin + lake.bankWidthM) < margin + lake.bankWidthM
+        )
+      )
+        continue;
       const shore = circle(center, config.radiusM, phase);
-      const heights = rimHeights(shore);
+      const heights = baseGround ? rimHeights(shore) : shore.map(ground);
+      let minHeight = Infinity,
+        maxHeight = -Infinity;
+      for (let k = 0; k < heights.length; k++) {
+        const h = heights[k];
+        if (h < minHeight) minHeight = h;
+        if (h > maxHeight) maxHeight = h;
+      }
+      // Probe two grid cells outside the shore during ranking so river banks and downhill
+      // slopes outside the rim immediately penalize unstable sites.
+      const outer = circle(center, outerProbeRadius, phase);
+      for (let k = 0; k < outer.length; k++) {
+        const h = ground(outer[k]);
+        if (h < minHeight) minHeight = h;
+      }
       // Keep a dry rim above the datum. Equality at the lowest rim creates a flat
-      // spill saddle that R16 quantization can connect to neighbouring lowlands.
+      // spill saddle that Float32/R16 quantization can connect to neighbouring lowlands.
       // This chooses the initial automatic datum; edits never adjust an explicit datum.
-      const level = Math.min(...heights) - 0.1;
+      const level = Math.fround(minHeight - 0.1);
       if (!baseGround && level <= 0.1) continue;
       const basin = level - ground(center);
       if (!config.allowCarving && basin < config.depthM) continue;
@@ -114,7 +240,7 @@ export function generateLakeRegions(
         center,
         level,
         score:
-          Math.max(...heights) -
+          maxHeight -
           level -
           Math.min(basin, config.depthM) * 2 +
           level * 0.01 +
@@ -128,7 +254,12 @@ export function generateLakeRegions(
     if (sites.length >= candidateCount) break;
     if (sites.some((s) => Math.hypot(s.center.x - candidate.center.x, s.center.z - candidate.center.z) < margin * 2))
       continue;
-    sites.push(candidate);
+    const shore = circle(candidate.center, config.radiusM, phase);
+    const exactCollarMin = planningLakeCollarMinHeight(plan, shore, ground, { external });
+    const level = Math.fround(exactCollarMin - 0.1);
+    if (!baseGround && level <= 0.1) continue;
+    if (!config.allowCarving && level - ground(candidate.center) < config.depthM) continue;
+    sites.push({ ...candidate, level });
   }
   const naturalCount = sites.length;
   for (const id of manualIds) {
@@ -208,7 +339,7 @@ export function generateLakeRegions(
       carved: cfg.allowCarving
     };
     if (shape.waterLevel > referenceLevel + 1e-6) throw new Error("M1 不支持超出湖岸的漫岸演算");
-    if (shape.waterLevel > Math.min(...rimHeights(outline)) + 1e-6)
+    if (shape.waterLevel > minRimHeight(outline) + 1e-6)
       throw new Error(`湖泊 ${id} 的修改使水位高于岸顶；请显式降低水位`);
     for (const hole of holes) {
       const query = createPlanningRingQuery(hole),

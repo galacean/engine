@@ -417,3 +417,59 @@ it("closes the actual seed42 Editor lake on final RG16 terrain after river-mouth
   // One-metre triangles cut across the curved bank; report that sampling error separately.
   expect(maxDecodedGap).toBeLessThanOrEqual(0.15);
 });
+
+it("closes generated lakes on steep sloped terrain within a tight two-cell capture box", async () => {
+  const { resolveLakeTerrainBoundary } = await import("@galacean/engine-water/water/compiler/index");
+  const { createPlanningRingQuery } = await import("../src/semantic-study/WorldPlanningTerrain");
+  const size = 256;
+  const result = generateTerrainHydrology({
+    ...input,
+    seed: 7,
+    width: size,
+    depth: size,
+    landPolygons: [
+      [
+        { x: 0, z: 0 },
+        { x: size, z: 0 },
+        { x: size, z: size },
+        { x: 0, z: size }
+      ]
+    ],
+    heightAt: (x, z) => 20 + 0.35 * x + 0.1 * z,
+    lakes: { countMin: 2, countMax: 2 }
+  });
+  expect(result.lakes).toHaveLength(2);
+  for (const lake of result.lakes) {
+    const outer = lake.shoreline.filter((p) => p.ring === "shore");
+    const x0 = Math.max(0, Math.floor(Math.min(...outer.map((p) => p.x))) - 2);
+    const z0 = Math.max(0, Math.floor(Math.min(...outer.map((p) => p.z))) - 2);
+    const x1 = Math.min(size, Math.ceil(Math.max(...outer.map((p) => p.x))) + 2);
+    const z1 = Math.min(size, Math.ceil(Math.max(...outer.map((p) => p.z))) + 2);
+    const columns = x1 - x0 + 1;
+    const rows = z1 - z0 + 1;
+    const heights = new Float32Array(columns * rows);
+    for (let rz = 0; rz < rows; rz++)
+      for (let rx = 0; rx < columns; rx++) heights[rz * columns + rx] = Math.fround(result.heightAt(x0 + rx, z0 + rz));
+    const domain = createPlanningRingQuery(outer);
+    const boundary = resolveLakeTerrainBoundary(
+      {
+        grid: { originXZ: [x0, z0], cellSizeXZ: [1, 1], width: columns, height: rows },
+        heights,
+        bedTerrain: {
+          id: lake.id,
+          revision: 1,
+          origin: [x0, z0],
+          spacing: 1,
+          spacingZ: 1,
+          columns,
+          rows,
+          surface: "float32-triangles",
+          heights
+        }
+      },
+      lake.referenceLevel + lake.levelOffsetM,
+      (x, z) => domain.inside({ x, z }) || domain.distance({ x, z }, 0.05 + 1e-6) <= 0.05
+    );
+    expect(boundary.rings.length).toBeGreaterThan(0);
+  }
+});

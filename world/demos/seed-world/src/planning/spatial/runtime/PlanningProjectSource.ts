@@ -44,7 +44,10 @@ import { initializePlanningWater, retainRemovedWater } from "./PlanningWaterInit
 import { planningSeed } from "@galacean/engine-world-planning/spatial/PlanningLayoutScope";
 import { createSpatialTerrainPlan } from "@galacean/engine-world-planning/spatial/layout/SpatialTerrain";
 import { createPlanningGroundSampler } from "@galacean/engine-world-planning/semantic-study/WorldPlanningTerrain";
-import type { LakeParameters } from "@galacean/engine-world-planning/spatial/hydrology/LakeRegions";
+import {
+  planningLakeCollarMinHeight,
+  type LakeParameters
+} from "@galacean/engine-world-planning/spatial/hydrology/LakeRegions";
 import { generatePlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningRuntime";
 import { compositionReliefGround } from "@galacean/engine-world-planning/spatial/SpatialCompositionGeometry";
 import type { RiverParameters } from "@galacean/engine-world-planning/spatial/hydrology/RiverRegions";
@@ -324,16 +327,16 @@ export function retainPlanningWaterSource(document: PlanningDocument, pack: Runt
   }
   // A template replaces the terrain, so retained absolute lake levels need a new datum.
   if (template || templateChanged) {
-    const ground = createPlanningGroundSampler(createSpatialTerrainPlan(exportPlanningRecipe(next)), { natural: true });
+    const terrainPlan = createSpatialTerrainPlan(exportPlanningRecipe(next));
+    const ground = createPlanningGroundSampler(terrainPlan, { natural: true });
     for (const entity of Object.values(next.entities)) {
       const lake = entity.components.lakes?.values as Partial<LakeParameters> | undefined;
       if (!lake || lake.enabled === false || !lake.shoreline || lake.referenceLevel === undefined) continue;
-      const rim =
-        Math.min(
-          ...lake.shoreline
-            .filter((point) => point.ring === "shore")
-            .map((point) => ground({ x: point.x + (lake.offsetX ?? 0), z: point.z + (lake.offsetZ ?? 0) }))
-        ) - 0.1;
+      const outer = lake.shoreline
+        .filter((point) => point.ring === "shore")
+        .map((point) => ({ x: point.x + (lake.offsetX ?? 0), z: point.z + (lake.offsetZ ?? 0) }));
+      if (outer.length < 3) continue;
+      const rim = Math.fround(planningLakeCollarMinHeight(terrainPlan, outer, ground) - 0.1);
       if (lake.referenceLevel + (lake.levelOffsetM ?? 0) <= rim) continue;
       lake.referenceLevel = rim;
       lake.levelOffsetM = 0;
