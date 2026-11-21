@@ -859,9 +859,11 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
               // Swept movement still rejects deeper penetration; feeding endpoints are checked separately.
               if (from.x === to.x && from.z === to.z &&
                   from.x === animal.position.x && from.z === animal.position.z) return true;
+              const obstacles = this.interactions.food?.obstacles;
+              if (!obstacles?.length) return true;
               const y = p.habitat.heightAt(to.x, to.z, medium, height) ?? animal.position.y;
               return planningAnimalFoodPathClear(from, to, Math.min(y, animal.position.y),
-                Math.max(y, animal.position.y) + height, r, this.interactions.food?.obstacles ?? []);
+                Math.max(y, animal.position.y) + height, r, obstacles);
             }
           }
         }

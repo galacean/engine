@@ -5,6 +5,7 @@ import {
   AnimatorController,
   AnimatorControllerLayer,
   AnimatorCullingMode,
+  AnimatorStateInstance,
   AnimatorStateTransition,
   BaseMaterial,
   Entity,
@@ -284,6 +285,7 @@ export class ConfiguredAnimal implements AnimalAgent {
   private readonly nativeStates: { name: string; pose: AnimalPoseState }[][] = [];
   private readonly nativeClipIndices = new Map<string, number>();
   private activeState!: { name: string; pose: AnimalPoseState };
+  private activeStateInstance: AnimatorStateInstance | null = null;
   private crossfadeCount = 0;
   private directPlayCount = 0;
   private lastBlendSeconds = 0;
@@ -292,6 +294,7 @@ export class ConfiguredAnimal implements AnimalAgent {
   private sampledGait = false;
   private blockedPoseSteps = 0;
   private pendingAnimatorSeconds = 0;
+  private pendingGroundPlacement = false;
   private verifiedAnimatedState?: { name: string; pose: AnimalPoseState };
   private nativeTransition = new AnimatorStateTransition();
   private readonly blendClock = new AnimalBlendClock();
@@ -327,6 +330,13 @@ export class ConfiguredAnimal implements AnimalAgent {
   private slopeSampledHeading = NaN;
   private slopeSampledScale = NaN;
   private slopeSampledMedium = "";
+  private appliedHeading = NaN;
+  private appliedSlopePitch = NaN;
+  private appliedSlopeRoll = NaN;
+  private cachedGroundFrame = -1;
+  private cachedGroundX = NaN;
+  private cachedGroundZ = NaN;
+  private cachedGroundY = NaN;
   private calibrationBaseX = 0;
   private calibrationBaseY = 0;
   private calibrationBaseZ = 0;
@@ -931,6 +941,9 @@ export class ConfiguredAnimal implements AnimalAgent {
 
   /** Flush any deferred bone-pose evaluation accumulated across 1/60s simulation substeps. */
   flushPose(): void {
+    if (this.pendingGroundPlacement && this.active && !this.disposed) {
+      this.placeOnGround(Infinity);
+    }
     const dt = this.pendingAnimatorSeconds;
     if (dt <= 0) return;
     this.pendingAnimatorSeconds = 0;
@@ -945,7 +958,9 @@ export class ConfiguredAnimal implements AnimalAgent {
     this.sampledAnimationSeconds = 0;
     this.sampledGait = false;
     if (!this.active || !this.animator) return 0;
-    const state = this.animator.findAnimatorState(this.activeState.name, 0);
+    const state =
+      this.activeStateInstance ??
+      (this.activeStateInstance = this.animator.findAnimatorState(this.activeState.name, 0));
     const poseState = this.activeState.pose;
     if (poseState.finished) this.playback.elapsed = this.duration;
     const nativeRate = this.animator.speed * (state?.speed ?? 0);
@@ -960,9 +975,14 @@ export class ConfiguredAnimal implements AnimalAgent {
       !!state &&
       state.speed > 0
     ) {
+      this.nativeTransition.duration = this.blendClock.advance(seconds, seconds * nativeRate);
+      if (this.system.deferringPose && !this.anchor) {
+        this.pendingAnimatorSeconds += seconds;
+        this.system.markPendingPoseFlush(this);
+        return 0;
+      }
       const pending = this.pendingAnimatorSeconds;
       this.pendingAnimatorSeconds = 0;
-      this.nativeTransition.duration = this.blendClock.advance(seconds, seconds * nativeRate);
       this.animator.update(pending + seconds);
       this.correctRootMotion();
       return 0;
@@ -987,13 +1007,20 @@ export class ConfiguredAnimal implements AnimalAgent {
     this.sampledAnimationSeconds = animationSeconds;
     if (animationSeconds > 0) {
       const animatorDelta = animationSeconds / nativeRate;
+      // Stationary/idle steps grant zero translation (fraction === 0), so gait-sliding verification is not needed;
+      // crossfade progress is advanced via AnimalBlendClock so the final rendered evaluation matches exact blend weight.
       const canDefer =
         this.system.deferringPose &&
-        this.verifiedAnimatedState === this.activeState &&
+        (fraction === 0 || this.verifiedAnimatedState === this.activeState) &&
         this.playback.elapsed < this.duration &&
-        this.blendClock.remaining === 0 &&
         !this.anchor;
       if (canDefer) {
+        if (this.blendClock.remaining > 0) {
+          this.nativeTransition.duration = this.blendClock.advance(
+            animationSeconds / (this.playback.rate * nativeRate),
+            animationSeconds
+          );
+        }
         this.pendingAnimatorSeconds += animatorDelta;
         this.system.markPendingPoseFlush(this);
         this.sampledGait = fraction > 0;
@@ -1814,7 +1841,15 @@ export class ConfiguredAnimal implements AnimalAgent {
 
   /** Shared support/approach target for actual elevation and newly accepted movement predictions. */
   private targetElevation(): number {
-    const sampled = this.options.ground?.heightAt(this.motion.x, this.motion.z, this.movementMedium);
+    const frame = this.root.engine?.time?.frameCount;
+    const sampled =
+      this.movementMedium === "ground" &&
+      frame !== undefined &&
+      this.cachedGroundFrame === frame &&
+      this.motion.x === this.cachedGroundX &&
+      this.motion.z === this.cachedGroundZ
+        ? this.cachedGroundY
+        : this.options.ground?.heightAt(this.motion.x, this.motion.z, this.movementMedium);
     let height = Number.isFinite(sampled)
       ? sampled! - (this.movementMedium === "water" ? (this.config.waterline ?? 0) * this.scale : 0)
       : this.root.transform.position.y;
@@ -1845,6 +1880,18 @@ export class ConfiguredAnimal implements AnimalAgent {
   }
 
   private placeOnGround(seconds = Infinity, distant = false): void {
+    if (
+      !distant &&
+      this.system.deferringPose &&
+      !this.changingMedium &&
+      this.movementMedium !== "air" &&
+      this.arrivalHeight === undefined
+    ) {
+      this.pendingGroundPlacement = true;
+      this.system.markPendingPoseFlush(this);
+      return;
+    }
+    this.pendingGroundPlacement = false;
     const height = this.targetElevation();
     const current = this.root.transform.position.y;
     const step =
@@ -1891,11 +1938,17 @@ export class ConfiguredAnimal implements AnimalAgent {
         this.crowd!.publishQueryState(this.crowdBody);
       }
     }
-    this.root.transform.setPosition(this.motion.x, y, this.motion.z);
+    const pos = this.root.transform.position;
+    if (pos.x !== this.motion.x || pos.y !== y || pos.z !== this.motion.z) {
+      this.root.transform.setPosition(this.motion.x, y, this.motion.z);
+    }
     if (this.crowdBody) {
-      this.crowdBody.elevation = y;
-      this.crowdBody.height = (this.config.bounds.max[1] - this.config.bounds.min[1]) * this.scale;
-      this.crowd!.publishQueryState(this.crowdBody);
+      const bodyHeight = (this.config.bounds.max[1] - this.config.bounds.min[1]) * this.scale;
+      if (this.crowdBody.elevation !== y || this.crowdBody.height !== bodyHeight) {
+        this.crowdBody.elevation = y;
+        this.crowdBody.height = bodyHeight;
+        this.crowd!.publishQueryState(this.crowdBody);
+      }
     }
   }
 
@@ -2311,6 +2364,9 @@ export class ConfiguredAnimal implements AnimalAgent {
       this.completeAnimation();
       if (this.velocity <= 0 || !this.finishAnimation) break;
     }
+    this.appliedHeading = this.motion.heading;
+    this.appliedSlopePitch = 0;
+    this.appliedSlopeRoll = 0;
     this.root.transform.setRotation(0, (this.motion.heading * 180) / Math.PI, 0);
     this.presentedHeading = this.motion.heading;
     if (verticalElapsed > 0) this.placeOnGround(verticalElapsed, true);
@@ -2418,7 +2474,12 @@ export class ConfiguredAnimal implements AnimalAgent {
       }
       if (!this.rendered) {
         this.pendingSlopeSeconds = 0;
-        this.root.transform.setRotation(0, (heading * 180) / Math.PI, 0);
+        if (heading !== this.appliedHeading || this.appliedSlopePitch !== 0 || this.appliedSlopeRoll !== 0) {
+          this.appliedHeading = heading;
+          this.appliedSlopePitch = 0;
+          this.appliedSlopeRoll = 0;
+          this.root.transform.setRotation(0, (heading * 180) / Math.PI, 0);
+        }
         return;
       }
     }
@@ -2443,6 +2504,10 @@ export class ConfiguredAnimal implements AnimalAgent {
       const z = this.motion.z;
       const centerY = ground.heightAt(x, z, "ground");
       if (centerY !== undefined && Number.isFinite(centerY)) {
+        this.cachedGroundFrame = this.root.engine?.time?.frameCount ?? -1;
+        this.cachedGroundX = x;
+        this.cachedGroundZ = z;
+        this.cachedGroundY = centerY;
         const bodyL = Math.max(0.1, (this.config.bounds.max[2] - this.config.bounds.min[2]) * this.scale);
         const bodyW = Math.max(0.1, (this.config.bounds.max[0] - this.config.bounds.min[0]) * this.scale);
         const bodyH = Math.max(0.1, (this.config.bounds.max[1] - this.config.bounds.min[1]) * this.scale);
@@ -2503,11 +2568,25 @@ export class ConfiguredAnimal implements AnimalAgent {
       this.slopeHeightOffset =
         Math.abs(dHeight) < 1e-4 ? this.slopeTargetHeightOffset : this.slopeHeightOffset + dHeight * alpha;
     }
-    if (this.slopePitch === 0 && this.slopeRoll === 0) {
-      this.root.transform.setRotation(0, (heading * 180) / Math.PI, 0);
-    } else {
-      Quaternion.rotationYawPitchRoll(heading, this.slopePitch, this.slopeRoll, this.slopeQuat);
-      this.root.transform.setRotationQuaternion(this.slopeQuat.x, this.slopeQuat.y, this.slopeQuat.z, this.slopeQuat.w);
+    if (
+      heading !== this.appliedHeading ||
+      this.slopePitch !== this.appliedSlopePitch ||
+      this.slopeRoll !== this.appliedSlopeRoll
+    ) {
+      this.appliedHeading = heading;
+      this.appliedSlopePitch = this.slopePitch;
+      this.appliedSlopeRoll = this.slopeRoll;
+      if (this.slopePitch === 0 && this.slopeRoll === 0) {
+        this.root.transform.setRotation(0, (heading * 180) / Math.PI, 0);
+      } else {
+        Quaternion.rotationYawPitchRoll(heading, this.slopePitch, this.slopeRoll, this.slopeQuat);
+        this.root.transform.setRotationQuaternion(
+          this.slopeQuat.x,
+          this.slopeQuat.y,
+          this.slopeQuat.z,
+          this.slopeQuat.w
+        );
+      }
     }
     if (this.calibration) {
       const targetCalY = this.calibrationBaseY + this.slopeHeightOffset;
@@ -2839,6 +2918,7 @@ export class ConfiguredAnimal implements AnimalAgent {
         ? this.nativeStates[index].find((state) => state.name !== sourceName && state !== this.activeState)!
         : this.nativeStates[index][0];
     this.activeState = next;
+    this.activeStateInstance = this.animator.findAnimatorState(next.name, 0);
     next.pose.finished = false;
     const blendSeconds = continuingGait
       ? Math.max(this.gaitSeams[index], this.blendClock.remaining)

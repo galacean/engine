@@ -4,6 +4,9 @@ import { PlanningNavigationSurface } from "@galacean/engine-world-planning/spati
 import { PlanningAnimalHabitat } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat";
 import { AnimalSystem } from "@galacean/engine-animals/gameplay/animal/AnimalSystem";
 import { ConfiguredAnimal } from "@galacean/engine-animals/gameplay/animal/ConfiguredAnimal";
+import { AnimalBlendClock } from "@galacean/engine-animals/gameplay/animal/AnimalBlendClock";
+import { AnimalMotionPlayback } from "@galacean/engine-animals/gameplay/animal/AnimalMotionPlayback";
+import { PlanningWaterRuntime } from "@galacean/engine-world-planning/spatial/runtime/PlanningWaterRuntime";
 
 vi.mock("@galacean/engine-world-planning/semantic-study/PlanningWhiteboxes", () => ({ planningWhiteboxes: () => [] }));
 
@@ -270,5 +273,141 @@ describe("animal pathfinding performance invariants", () => {
     expect(ground.canTraverseCalls).toBeLessThan(35);
     // Airborne stays at exact 1/15s cadence (~120+ air vertical sweep checks).
     expect(air.airCalls).toBeGreaterThan(100);
+  });
+
+  it("defers Animator.update across 1/60s substeps for stationary and crossfading poses", () => {
+    const makeStubAnimal = (locomotionSpeed: number, blendSeconds: number) => {
+      const updateSpy = vi.fn();
+      const pose = { sampled: false, finished: false };
+      const activeState = { name: "clip", pose };
+      const playback = new AnimalMotionPlayback();
+      playback.start(2.0, locomotionSpeed, "distance", 1);
+      const blendClock = new AnimalBlendClock();
+      blendClock.start(blendSeconds);
+      const system = { deferringPose: true, markPendingPoseFlush: vi.fn() };
+      const engine = { time: { frameCount: 10 } };
+      const animal: any = Object.create(ConfiguredAnimal.prototype);
+      Object.assign(animal, {
+        active: true,
+        disposed: false,
+        system,
+        root: { isActiveInHierarchy: true, engine },
+        config: { bounds: { min: [-0.5, 0, -0.5], max: [0.5, 1, 0.5] } },
+        scale: 1,
+        movementMedium: "ground",
+        slopePitch: 0,
+        clipStartedFrame: -1,
+        activeState,
+        activeStateInstance: { speed: 1 },
+        verifiedAnimatedState: locomotionSpeed > 0 ? activeState : undefined,
+        playback,
+        blendClock,
+        nativeTransition: { duration: blendSeconds },
+        pendingAnimatorSeconds: 0,
+        pendingGroundPlacement: false,
+        animator: {
+          speed: 1,
+          findAnimatorState: () => ({ speed: 1 }),
+          _isPoseCulled: () => true,
+          update: (dt: number) => {
+            pose.sampled = true;
+            updateSpy(dt);
+          }
+        },
+        correctRootMotion: () => {}
+      });
+      Object.defineProperty(animal, "duration", { get: () => 2.0 });
+      return { animal, system, updateSpy, blendClock };
+    };
+
+    // 1. Stationary idle animal (fraction === 0, never verified) defers intermediate substeps & runs Animator.update once.
+    const idle = makeStubAnimal(0, 0.3);
+    const still = { x: 0, z: 0, heading: 0, speed: 0, angularSpeed: 0 };
+    idle.system.deferringPose = true;
+    idle.animal.prepareAnimation(1 / 60, still);
+    idle.animal.prepareAnimation(1 / 60, still);
+    expect(idle.updateSpy).not.toHaveBeenCalled();
+    idle.system.deferringPose = false;
+    idle.animal.prepareAnimation(1 / 60, still);
+    expect(idle.updateSpy).toHaveBeenCalledTimes(1);
+    expect(idle.updateSpy.mock.calls[0][0]).toBeCloseTo(3 / 60, 5);
+    expect(idle.blendClock.remaining).toBeCloseTo(0.3 - 3 / 60, 5);
+
+    // 2. Moving crossfading animal (verified state, blendClock > 0) defers intermediate substeps & evaluates once.
+    const mover = makeStubAnimal(1.5, 0.25);
+    const walking = { x: 0, z: 0, heading: 0, speed: 1.5, angularSpeed: 0 };
+    mover.system.deferringPose = true;
+    expect(mover.animal.prepareAnimation(1 / 60, walking)).toBe(1);
+    expect(mover.animal.prepareAnimation(1 / 60, walking)).toBe(1);
+    expect(mover.updateSpy).not.toHaveBeenCalled();
+    mover.system.deferringPose = false;
+    expect(mover.animal.prepareAnimation(1 / 60, walking)).toBe(1);
+    expect(mover.updateSpy).toHaveBeenCalledTimes(1);
+    expect(mover.updateSpy.mock.calls[0][0]).toBeCloseTo(3 / 60, 5);
+    expect(mover.blendClock.remaining).toBeCloseTo(0.25 - 3 / 60, 5);
+  });
+
+  it("caches PlanningWaterRuntime spatial fields until revision changes and honors live queryEnabled toggles", () => {
+    let sysRevision = 1;
+    let bodiesGetterCalls = 0;
+    let runtimeInterfacesCalls = 0;
+    let queryEnabled = true;
+    const maxHeightSpy = vi.fn(() => 2.5);
+    const handle = {
+      active: true,
+      get queryEnabled() {
+        return queryEnabled;
+      },
+      get runtimeInterfaces() {
+        runtimeInterfacesCalls++;
+        return {
+          spatialField: {
+            metadata: { bounds: { minX: 0, minZ: 0, maxX: 20, maxZ: 20 } },
+            maximumSurfaceHeightInBounds: maxHeightSpy
+          }
+        };
+      }
+    };
+    const water: any = Object.create(PlanningWaterRuntime.prototype);
+    Object.assign(water, {
+      destroyed: false,
+      publishedRevision: 1,
+      queryBounds: { minX: 0, minZ: 0, maxX: 0, maxZ: 0 },
+      cachedSpatialFieldsNavRevision: -1,
+      cachedSpatialFieldsSystemRevision: -1,
+      cachedSpatialFieldsHost: undefined,
+      cachedSpatialFieldsConservative: false,
+      cachedSpatialFields: [],
+      system: {
+        runtimeState: { effectiveEnabled: true },
+        activeRuntimeHost: { getBodyHandle: () => handle },
+        get revision() {
+          return sysRevision;
+        },
+        get bodies() {
+          bodiesGetterCalls++;
+          return [{ waterId: "lake-1" }];
+        }
+      }
+    });
+
+    // Repeated queries reuse cached spatial field without re-walking system.bodies or re-creating runtimeInterfaces.
+    expect(water.hasWaterInBounds(5, 5, 10, 10)).toBe(true);
+    expect(water.hasWaterInBounds(30, 30, 35, 35)).toBe(false);
+    expect(water.hasWaterInBounds(1, 1, 2, 2)).toBe(true);
+    expect(bodiesGetterCalls).toBe(1);
+    expect(runtimeInterfacesCalls).toBe(1);
+
+    // Live queryEnabled toggle takes effect immediately even without bumping system.revision.
+    queryEnabled = false;
+    expect(water.hasWaterInBounds(5, 5, 10, 10)).toBe(false);
+    expect(bodiesGetterCalls).toBe(1);
+    queryEnabled = true;
+
+    // Bumping system.revision invalidates and rebuilds the cache cleanly.
+    sysRevision = 2;
+    expect(water.hasWaterInBounds(5, 5, 10, 10)).toBe(true);
+    expect(bodiesGetterCalls).toBe(2);
+    expect(runtimeInterfacesCalls).toBe(2);
   });
 });

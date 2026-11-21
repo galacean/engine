@@ -228,9 +228,15 @@ export class GroundAnimalCrowd {
 
   /** A new task waypoint releases the previous traffic wait; no other actors' velocities are predicted. */
   publishIntent(body: GroundAnimalBody): void {
-    this.publishQueryState(body);
     const state = this.byBody.get(body);
-    if (state && (state.intentX !== body.target[0] || state.intentZ !== body.target[1])) {
+    if (!state) return;
+    this.publishQueryStateFor(state);
+    this.publishIntentFor(state);
+  }
+
+  private publishIntentFor(state: BodyState): void {
+    const body = state.body;
+    if (state.intentX !== body.target[0] || state.intentZ !== body.target[1]) {
       state.intentX = body.target[0];
       state.intentZ = body.target[1];
       state.recovery.reset();
@@ -366,8 +372,12 @@ export class GroundAnimalCrowd {
   /** Publish changed query inputs after a managed body's host writes them. No allocation or global scan. */
   publishQueryState(body: GroundAnimalBody): void {
     const state = this.byBody.get(body);
-    if (state && crowdBodyChanged(body, state.publishedQuery)) {
-      copyCrowdBody(body, state.publishedQuery);
+    if (state) this.publishQueryStateFor(state);
+  }
+
+  private publishQueryStateFor(state: BodyState): void {
+    if (crowdBodyChanged(state.body, state.publishedQuery)) {
+      copyCrowdBody(state.body, state.publishedQuery);
       this.queryRevision++;
     }
   }
@@ -599,9 +609,24 @@ export class GroundAnimalCrowd {
       const s = active[i],
         b = s.body,
         m = b.motion;
-      this.publishIntent(b);
+      this.publishIntentFor(s);
       const prevNeighbourCount = s.neighbourCount;
       const prevReservedNeighbourCount = s.reservedNeighbourCount;
+      // Fast-path stationary bodies: zero translation, zero neighbour/contact/terrain checks, only advance pose clock.
+      if (b.desiredSpeed <= 0 && m.speed === 0 && m.angularSpeed === 0 && !s.recovery.recovering) {
+        if (prevNeighbourCount > 0 || prevReservedNeighbourCount > 0) clearBodyNeighbours(s);
+        b.blocked = false;
+        b.arrived = false;
+        b.surfaceBlocked = false;
+        const cp = s.contactProposed;
+        cp.x = m.x;
+        cp.z = m.z;
+        cp.heading = m.heading;
+        cp.speed = 0;
+        cp.angularSpeed = 0;
+        b.motionFraction?.(seconds, cp);
+        continue;
+      }
       let neighbourCount = 0;
       let reservedNeighbourCount = 0;
       if (b.layer !== "air" && (b.desiredSpeed > 0 || m.speed > 0)) {
@@ -765,7 +790,7 @@ export class GroundAnimalCrowd {
           b.desiredSpeed > 0 &&
           m.speed < Math.min(0.12, b.desiredSpeed * 0.3) &&
           (fraction < 0.01 || limit < Math.min(0.12, b.desiredSpeed * 0.3));
-      this.updateGrid(s);
+      if (appliedFraction > 0 && (rawDx !== 0 || rawDz !== 0)) this.updateGrid(s);
       for (let j = 0; j < neighbourCount; j++) {
         const n = s.neighbours[j];
         this.worstClearance = Math.min(
@@ -916,7 +941,7 @@ export class GroundAnimalCrowd {
   }
 
   private updateGrid(state: BodyState): void {
-    this.publishQueryState(state.body);
+    this.publishQueryStateFor(state);
     const motion = state.body.motion;
     const key = this.key(Math.floor(motion.x / this.cellSize), Math.floor(motion.z / this.cellSize));
     if (key === state.cellKey) return;
