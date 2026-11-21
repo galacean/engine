@@ -47,7 +47,7 @@ function createFallingBox(
   // Physics - box collider with CCD to prevent tunneling
   entity.addComponent(BoxCollider).size = size;
   const body = entity.addComponent(Rigidbody);
-  body.collisionDetectionMode = CollisionDetectionMode.Continuous;
+  body.collisionDetectionMode = CollisionDetectionMode.Sweep;
 
   return entity;
 }

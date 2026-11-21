@@ -354,7 +354,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /**
    * The collision detection mode.
-   * @remarks With the PhysX backend, Continuous and ContinuousDynamic are mapped to speculative CCD while the
+   * @remarks With the PhysX backend, Sweep and SweepWithFriction are mapped to speculative CCD while the
    * Rigidbody is kinematic.
    */
   get collisionDetectionMode(): CollisionDetectionMode {
@@ -803,13 +803,13 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
  */
 export enum CollisionDetectionMode {
   /** Continuous collision detection is off for this Rigidbody. */
-  Discrete,
+  Discrete = 0,
   /** Uses swept CCD without enabling CCD friction on this body. */
-  Continuous,
+  Sweep = 1,
   /** Uses swept CCD and enables friction during CCD impacts. */
-  ContinuousDynamic,
+  SweepWithFriction = 2,
   /** Uses speculative CCD. */
-  ContinuousSpeculative
+  Speculative = 3
 }
 
 /**

@@ -9,6 +9,7 @@ import {
   HitResult,
   Rigidbody,
   RigidbodyConstraints,
+  SphereCollider,
   CollisionDetectionMode,
   Loader,
   MeshCollider,
@@ -819,9 +820,9 @@ describe("Rigidbody", function () {
 
   it.each([
     CollisionDetectionMode.Discrete,
-    CollisionDetectionMode.Continuous,
-    CollisionDetectionMode.ContinuousDynamic,
-    CollisionDetectionMode.ContinuousSpeculative
+    CollisionDetectionMode.Sweep,
+    CollisionDetectionMode.SweepWithFriction,
+    CollisionDetectionMode.Speculative
   ])("keeps collision detection mode %s effective after kinematic transitions", (mode) => {
     const box = addBox(new Vector3(1, 1, 1), true, new Vector3(-5, 0, 0));
     const body = box.getComponent(Rigidbody);
@@ -844,7 +845,41 @@ describe("Rigidbody", function () {
     }
   });
 
-  it.each([CollisionDetectionMode.Continuous, CollisionDetectionMode.ContinuousDynamic])(
+  it.each([
+    [CollisionDetectionMode.Discrete, true, 0],
+    [CollisionDetectionMode.Sweep, false, 0],
+    [CollisionDetectionMode.SweepWithFriction, false, 120 / 21]
+  ])(
+    "controls tunneling and tangential impulse against a dynamic target in CCD mode %s",
+    (mode, crosses, tangentSpeed) => {
+      const projectile = rootEntity.createChild();
+      projectile.transform.setPosition(-5, 0, 0);
+      const sphere = projectile.addComponent(SphereCollider);
+      sphere.radius = 0.5;
+      const body = projectile.addComponent(Rigidbody);
+      body.useGravity = false;
+      body.linearDamping = 0;
+      body.collisionDetectionMode = mode;
+      body.linearVelocity.set(600, 0, 120);
+
+      const box = addBox(new Vector3(0.1, 40, 40), true, new Vector3());
+      const target = box.getComponent(Rigidbody);
+      target.useGravity = false;
+      target.mass = 20;
+      for (const collider of [sphere, box.getComponent(BoxCollider)]) {
+        const material = collider.getInstanceMaterial();
+        material.staticFriction = material.dynamicFriction = 1;
+        material.bounciness = 0;
+      }
+
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+
+      expect(projectile.transform.worldPosition.x > box.transform.worldPosition.x).toBe(crosses);
+      expect(target.linearVelocity.z).toBeCloseTo(tangentSpeed, 4);
+    }
+  );
+
+  it.each([CollisionDetectionMode.Sweep, CollisionDetectionMode.SweepWithFriction])(
     "uses speculative CCD behavior for kinematic mode %s",
     function (mode) {
       const simulate = (kinematicMode: CollisionDetectionMode) => {
@@ -856,7 +891,7 @@ describe("Rigidbody", function () {
         movingCollider.collisionDetectionMode = kinematicMode;
         targetCollider.useGravity = false;
         targetCollider.linearDamping = 0;
-        targetCollider.collisionDetectionMode = CollisionDetectionMode.Continuous;
+        targetCollider.collisionDetectionMode = CollisionDetectionMode.Sweep;
         engine.sceneManager.activeScene.physics._update(1 / 60);
         movingCollider.move(new Vector3(5, 0, 0));
         engine.sceneManager.activeScene.physics._update(1 / 60);
@@ -869,7 +904,7 @@ describe("Rigidbody", function () {
       };
 
       const fallback = simulate(mode);
-      const explicit = simulate(CollisionDetectionMode.ContinuousSpeculative);
+      const explicit = simulate(CollisionDetectionMode.Speculative);
       expect(fallback.targetPosition).toBeGreaterThan(0);
       expect(fallback.targetPosition).toBeCloseTo(explicit.targetPosition, 5);
       expect(fallback.targetVelocity).toBeCloseTo(explicit.targetVelocity, 5);
@@ -977,7 +1012,7 @@ describe("Rigidbody", function () {
     boxCollider.sleepThreshold = 100;
     boxCollider.solverIterations = 10;
     boxCollider.constraints = RigidbodyConstraints.FreezePositionX;
-    boxCollider.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+    boxCollider.collisionDetectionMode = CollisionDetectionMode.SweepWithFriction;
     boxCollider.sleep();
     boxCollider.wakeUp();
     boxCollider.applyForce(new Vector3(1, 0, 0));

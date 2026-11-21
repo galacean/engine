@@ -96,13 +96,13 @@ With the PhysX backend, [`collisionDetectionMode`](/apis/core/#Rigidbody-collisi
 | Mode | PhysX behavior |
 | ---- | ---- |
 | **Discrete** | Checks for contact at each fixed step. Fast bodies can pass through thin colliders. |
-| **Continuous** | Uses swept CCD without enabling CCD friction on this body. |
-| **ContinuousDynamic** | Uses swept CCD and enables friction during CCD impacts. |
-| **ContinuousSpeculative** | Predicts potential contacts from the body's motion. |
+| **Sweep** | Uses swept CCD without enabling CCD friction on this body. |
+| **SweepWithFriction** | Uses swept CCD and enables friction during CCD impacts. |
+| **Speculative** | Predicts potential contacts from the body's motion. |
 
 Both swept modes can detect collisions with static and dynamic targets. A swept impact can apply friction if either body enables CCD friction and the contact materials provide friction.
 
-PhysX uses speculative CCD for kinematic bodies set to `Continuous` or `ContinuousDynamic`.
+PhysX uses speculative CCD for kinematic bodies set to `Sweep` or `SweepWithFriction`.
 
 ## Methods
 
