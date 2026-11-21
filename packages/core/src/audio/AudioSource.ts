@@ -14,7 +14,7 @@ export class AudioSource extends Component {
   @ignoreClone
   private _isPlaying = false;
   @ignoreClone
-  private _pendingPlay = false;
+  private _pendingPlay: Promise<void> | null = null;
 
   private _clip: AudioClip | null;
   @ignoreClone
@@ -23,9 +23,9 @@ export class AudioSource extends Component {
   private _sourceNode: AudioBufferSourceNode | null = null;
 
   @ignoreClone
-  private _pausedTime = -1;
+  private _playbackOffset = 0;
   @ignoreClone
-  private _playTime = -1;
+  private _playbackStartTime = 0;
 
   private _volume = 1;
   private _lastVolume = 1;
@@ -82,10 +82,19 @@ export class AudioSource extends Component {
   }
 
   set playbackRate(value: number) {
-    this._playbackRate = value;
-    if (this._isPlaying) {
-      this._sourceNode!.playbackRate.value = this._playbackRate;
+    const elapsedTime = this._getElapsedTime();
+    const currentTime = this._playbackOffset + elapsedTime * this._playbackRate;
+    if (!this._isPlaying && this._isExpired(currentTime)) {
+      this.stop();
+      this._playbackRate = value;
+      return;
     }
+    if (this._isPlaying) {
+      this._sourceNode!.playbackRate.value = value;
+    }
+    this._playbackOffset = currentTime;
+    this._playbackStartTime += elapsedTime;
+    this._playbackRate = value;
   }
 
   /**
@@ -115,6 +124,9 @@ export class AudioSource extends Component {
 
   set loop(value: boolean) {
     if (value !== this._loop) {
+      if (!this._isPlaying && this._isExpired(this._getPlaybackTime())) {
+        this.stop();
+      }
       this._loop = value;
 
       if (this._isPlaying) {
@@ -124,15 +136,11 @@ export class AudioSource extends Component {
   }
 
   /**
-   * Playback position in seconds.
+   * Playback position in clip seconds, including recovery wait time.
    */
   get time(): number {
-    if (this._isPlaying) {
-      const currentTime = AudioManager.getContext().currentTime;
-      return currentTime - this._playTime;
-    } else {
-      return this._pausedTime > 0 ? this._pausedTime - this._playTime : 0;
-    }
+    const currentTime = this._getPlaybackTime();
+    return !this._isPlaying && this._isExpired(currentTime) ? 0 : currentTime;
   }
 
   /**
@@ -141,44 +149,56 @@ export class AudioSource extends Component {
   constructor(entity: Entity) {
     super(entity);
     this._onPlayEnd = this._onPlayEnd.bind(this);
-    // Gain node is created lazily on first play, not here: creating it would spin up the AudioContext
-    // before any user gesture, and on iOS such a pre-gesture context never recovers from a phone-call
-    // interruption (stays a silent zombie)
   }
 
   /**
-   * Play the clip.
+   * Play the clip with recovery-delay compensation.
    */
   play(): void {
-    if (!this._clip?._getAudioSource() || this._isPlaying || this._pendingPlay) {
+    if (!this._clip?._getAudioSource() || this._isPlaying) {
       return;
     }
-    // Hidden page: don't start (would leak a sound) and don't pend (would replay out of sync) -> drop
+    // Ignore background plays to avoid delayed sounds
     if (document.hidden) {
       return;
     }
 
+    const expired = this._isExpired(this._getPlaybackTime());
     if (AudioManager.isAudioContextRunning()) {
+      if (expired) {
+        this.stop();
+      }
       this._startPlayback();
     } else {
-      // iOS Safari requires resume() to be called within the same user gesture callback that triggers playback.
-      // Document-level events won't work - must call resume() directly here in play().
-      this._pendingPlay = true;
-      AudioManager.resume().then(
+      if (expired) {
+        this._playbackOffset = 0;
+      }
+      if (!this._pendingPlay || expired) {
+        this._playbackStartTime = performance.now() / 1000;
+      }
+      // Share the resume attempt with the document's gesture handler
+      const resumePromise = AudioManager.resume();
+      if (this._pendingPlay === resumePromise) {
+        return;
+      }
+      this._pendingPlay = resumePromise;
+      resumePromise.then(
         () => {
-          // Check if cancelled by stop()/pause()
-          if (!this._pendingPlay) {
+          // A cancelled or replaced play must not consume the current request
+          if (this._pendingPlay !== resumePromise) {
             return;
           }
-          this._pendingPlay = false;
-          // Check if still valid to play after async resume (page may have been hidden meanwhile)
-          if (this._destroyed || !this.enabled || !this._clip || document.hidden) {
+          if (this._destroyed || !this.enabled || !this._clip?._getAudioSource() || document.hidden) {
+            this.pause();
             return;
           }
           this._startPlayback();
         },
         (e) => {
-          this._pendingPlay = false;
+          if (this._pendingPlay !== resumePromise) {
+            return;
+          }
+          this.pause();
           console.warn("Failed to resume AudioContext:", e);
         }
       );
@@ -189,7 +209,7 @@ export class AudioSource extends Component {
    * Stops playing the clip.
    */
   stop(): void {
-    this._pendingPlay = false;
+    this._pendingPlay = null;
 
     if (this._isPlaying) {
       this._clearSourceNode();
@@ -197,21 +217,25 @@ export class AudioSource extends Component {
       AudioManager._playingCount--;
     }
 
-    // stop() always resets to the start, including from a paused state (where _isPlaying is already false)
-    this._pausedTime = -1;
-    this._playTime = -1;
+    this._playbackOffset = 0;
+    this._playbackStartTime = 0;
   }
 
   /**
    * Pauses playing the clip.
    */
   pause(): void {
-    this._pendingPlay = false;
+    const currentTime = this._getPlaybackTime();
+    if (this._isExpired(currentTime)) {
+      this.stop();
+      return;
+    }
+    this._playbackOffset = currentTime;
+    this._pendingPlay = null;
 
     if (this._isPlaying) {
       this._clearSourceNode();
 
-      this._pausedTime = AudioManager.getContext().currentTime;
       this._isPlaying = false;
       AudioManager._playingCount--;
     }
@@ -248,6 +272,7 @@ export class AudioSource extends Component {
   private _ensureGainNode(): GainNode {
     let gainNode = this._gainNode;
     if (!gainNode) {
+      // Defer context creation to playback for iOS interruption recovery
       this._gainNode = gainNode = AudioManager.getContext().createGain();
       gainNode.connect(AudioManager.getGainNode());
       gainNode.gain.value = this._volume;
@@ -256,13 +281,38 @@ export class AudioSource extends Component {
   }
 
   private _startPlayback(): void {
-    const startTime = this._pausedTime > 0 ? this._pausedTime - this._playTime : 0;
+    const startTime = this._getPlaybackTime();
+    this._pendingPlay = null;
+    if (this._isExpired(startTime)) {
+      this.stop();
+      return;
+    }
     this._initSourceNode(startTime);
 
-    this._playTime = AudioManager.getContext().currentTime - startTime;
-    this._pausedTime = -1;
+    this._playbackOffset = startTime;
+    this._playbackStartTime = AudioManager.getContext().currentTime;
     this._isPlaying = true;
     AudioManager._playingCount++;
+  }
+
+  private _getPlaybackTime(): number {
+    return this._playbackOffset + this._getElapsedTime() * this._playbackRate;
+  }
+
+  private _isExpired(position: number): boolean {
+    const duration = this._clip?._getAudioSource()?.duration;
+    return !this._loop && duration !== undefined && (position < 0 || position >= duration);
+  }
+
+  private _getElapsedTime(): number {
+    if (this._isPlaying) {
+      return AudioManager.getContext().currentTime - this._playbackStartTime;
+    }
+    if (this._pendingPlay) {
+      // Context time freezes during recovery
+      return performance.now() / 1000 - this._playbackStartTime;
+    }
+    return 0;
   }
 
   private _initSourceNode(startTime: number): void {
@@ -277,9 +327,14 @@ export class AudioSource extends Component {
     this._sourceNode = sourceNode;
 
     sourceNode.connect(this._ensureGainNode());
-    // startTime is total elapsed time; for a looping clip wrap it into the buffer to keep the loop phase
-    // (start()'s offset clamps past the end, it does not wrap)
-    const offset = this._loop && buffer.duration > 0 ? startTime % buffer.duration : startTime;
+    // start() clamps offsets; wrap them to preserve loop phase
+    let offset = startTime;
+    if (this._loop && buffer.duration > 0) {
+      offset %= buffer.duration;
+      if (offset < 0) {
+        offset += buffer.duration;
+      }
+    }
     sourceNode.start(0, offset);
   }
 
