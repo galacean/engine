@@ -1103,8 +1103,6 @@ describe("Collider", () => {
           expect(box.getClosestPoint(point, closest)).toBe(0);
           const expected = control.getClosestPoint(point, closest);
           expect(expected).toBe(0);
-          // Start from a clean ancestor scale cache so Transform propagates the subsequent setPosition + setScale edit.
-          expect(live.transform.lossyWorldScale.x).toBe(1);
 
           applyEdit(live);
           if (edit === "matrix-and-resize") box.size.y = 3;

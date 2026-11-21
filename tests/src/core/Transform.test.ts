@@ -327,6 +327,24 @@ describe("Transform test", function () {
     entity.destroy();
   });
 
+  it("refreshes a descendant's world scale when an ancestor is translated and then scaled", () => {
+    const root = scene.createRootEntity("scale-parent");
+    try {
+      const transform = root.transform;
+      transform.setScale(1, 2, 1);
+      const descendant = root.createChild().createChild().transform;
+      expect(descendant.lossyWorldScale.x).toBe(1);
+
+      transform.setPosition(4, 0, 0);
+      transform.setScale(2, 2, 1);
+
+      expect(descendant.worldPosition.x).toBe(4);
+      expect(descendant.lossyWorldScale.x).toBe(2);
+    } finally {
+      root.destroy();
+    }
+  });
+
   it("preserves quaternion-authored rotation while replacing Transform", () => {
     const entity = new Entity(engine, "quaternion-transform");
     const expected = new Quaternion();
