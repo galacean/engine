@@ -8,10 +8,11 @@ export class ShaderProperty {
   /** @internal */
   static _propertyIdMap: Record<number, ShaderProperty> = Object.create(null);
   /** @internal */
+  static _propertyNameMap: Record<string, ShaderProperty> = Object.create(null);
+  /** @internal */
   static _groupConflictVersion: number = 0;
 
   private static _propertyNameCounter: number = 0;
-  private static _propertyNameMap: Record<string, ShaderProperty> = Object.create(null);
 
   /**
    * Get shader property by name.
@@ -30,20 +31,6 @@ export class ShaderProperty {
     }
   }
 
-  /**
-   * @internal
-   */
-  static _getShaderPropertyGroup(propertyName: string): ShaderDataGroup | undefined {
-    return ShaderProperty._propertyNameMap[propertyName]?._getGroup();
-  }
-
-  private static _getSingleBit(mask: number): number | undefined {
-    if (mask === 0 || (mask & (mask - 1)) !== 0) {
-      return undefined;
-    }
-    return 31 - Math.clz32(mask);
-  }
-
   /** @internal */
   _uniqueId: number;
   /** @internal */
@@ -58,7 +45,8 @@ export class ShaderProperty {
    * Shader property type.
    */
   get type(): ShaderPropertyType {
-    return <ShaderPropertyType>ShaderProperty._getSingleBit(this._typeMask);
+    const mask = this._typeMask;
+    return <ShaderPropertyType>(mask !== 0 && (mask & (mask - 1)) === 0 ? 31 - Math.clz32(mask) : undefined);
   }
 
   /**
@@ -67,13 +55,6 @@ export class ShaderProperty {
   constructor(name: string) {
     this.name = name;
     this._uniqueId = ShaderProperty._propertyNameCounter++;
-  }
-
-  /**
-   * @internal
-   */
-  _getGroup(): ShaderDataGroup | undefined {
-    return <ShaderDataGroup>ShaderProperty._getSingleBit(this._groupMask);
   }
 
   /**

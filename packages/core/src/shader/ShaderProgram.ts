@@ -289,28 +289,27 @@ export class ShaderProgram implements IPlatformShaderProgram {
 
   private _groupingUniform(uniform: ShaderUniform, property: ShaderProperty, isTexture: boolean): void {
     let block: ShaderUniformBlock;
-    if (property._isMultiGroup()) {
-      block = this.multiGroupUniformBlock;
-    } else {
-      switch (property._getGroup()) {
-        case ShaderDataGroup.Scene:
-          block = this.sceneUniformBlock;
-          break;
-        case ShaderDataGroup.Camera:
-          block = this.cameraUniformBlock;
-          break;
-        case ShaderDataGroup.Renderer:
-          block = this.rendererUniformBlock;
-          break;
-        case ShaderDataGroup.Material:
-          block = this.materialUniformBlock;
-          break;
-        case ShaderDataGroup.RenderElement:
-          block = this.renderElementUniformBlock;
-          break;
-        default:
-          block = this.otherUniformBlock;
-      }
+    switch (property._groupMask) {
+      case 0:
+        block = this.otherUniformBlock;
+        break;
+      case 1 << ShaderDataGroup.Scene:
+        block = this.sceneUniformBlock;
+        break;
+      case 1 << ShaderDataGroup.Camera:
+        block = this.cameraUniformBlock;
+        break;
+      case 1 << ShaderDataGroup.Renderer:
+        block = this.rendererUniformBlock;
+        break;
+      case 1 << ShaderDataGroup.Material:
+        block = this.materialUniformBlock;
+        break;
+      case 1 << ShaderDataGroup.RenderElement:
+        block = this.renderElementUniformBlock;
+        break;
+      default:
+        block = this.multiGroupUniformBlock;
     }
     (isTexture ? block.textureUniforms : block.constUniforms).push(uniform);
   }
