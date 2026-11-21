@@ -33,10 +33,13 @@
           * step(displacedScreenUv.y, 0.998);
         vec2 refractedScreenUv = clamp(displacedScreenUv, vec2(0.002), vec2(0.998));
 #if {{REFRACTION_VALIDATION_MODE}} > 0
-        float refractedSceneDepthBufferSample = texture2D(
-          camera_DepthTexture,
-          refractedScreenUv
-        ).r;
+        vec2 refractionDepthDeltaUv = refractedScreenUv - screenUv;
+        float refractedSceneDepthBufferSample = (refractionScreenInterior > 0.5 && dot(refractionDepthDeltaUv, refractionDepthDeltaUv) > 1e-10)
+          ? texture2D(
+              camera_DepthTexture,
+              refractedScreenUv
+            ).r
+          : sceneDepthBufferSample;
         float refractedSceneEyeDepthSample = remapDepthBufferEyeDepth(
           refractedSceneDepthBufferSample
         );
@@ -110,7 +113,16 @@
         );
 #endif
         refractionUvDelta = refractedScreenUv - screenUv;
-        centeredOpaqueColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
-        displacedOpaqueColor = refractionSampleValidity > 0.001
-          ? texture2D(camera_OpaqueTexture, refractedScreenUv).rgb
-          : centeredOpaqueColor;
+        if (refractionSampleValidity > 0.9999 && refractionFeatureWeight > 0.5) {
+          displacedOpaqueColor = texture2D(camera_OpaqueTexture, refractedScreenUv).rgb;
+          centeredOpaqueColor = displacedOpaqueColor;
+          if (dot(refractionUvDelta, refractionUvDelta) <= 1e-10) {
+            centeredOpaqueSampled = true;
+          }
+        } else {
+          centeredOpaqueColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
+          centeredOpaqueSampled = true;
+          displacedOpaqueColor = refractionSampleValidity > 0.001
+            ? texture2D(camera_OpaqueTexture, refractedScreenUv).rgb
+            : centeredOpaqueColor;
+        }

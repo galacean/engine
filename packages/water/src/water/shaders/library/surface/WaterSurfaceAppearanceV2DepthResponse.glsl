@@ -65,15 +65,18 @@
         appearanceDepthTintColor = appearanceDepthTintColor * (1.0 - appearanceBoundaryAlbedoWeight) + appearanceBoundaryAlbedo;
         appearanceDepthTintFactor = clamp(appearanceDepthTintFactor + appearanceBoundaryAlbedoWeight, 0.0, 1.0);
 #if {{HAS_CAUSTICS}} == 1
-        vec3 causticsView = normalize(camera_Position - input.worldPosition);
-        vec2 causticsUv = input.worldPosition.xz * material_AppearanceV2CausticsTransform.xy
-          + {{CAUSTICS_OFFSET}}
-          + material_AppearanceV2CausticsParallax.x * causticsView.xz / (abs(causticsView.y) + material_AppearanceV2CausticsParallax.y)
-          + appearanceLayerNormal0.x * material_AppearanceV2CausticsResponse.y;
-        vec3 causticsColor = clamp(texture2D(material_AppearanceV2CausticsTexture, causticsUv).rgb * material_AppearanceV2CausticsResponse.x, 0.0, 1.0)
-          * (1.0 - clamp(max({{CAUSTICS_DEPTH}}, 0.0) * material_AppearanceV2CausticsResponse.z, 0.0, 1.0));
-        appearanceDepthTintColor += causticsColor;
-        appearanceDepthTintFactor = clamp(appearanceDepthTintFactor + length(causticsColor) * material_AppearanceV2CausticsResponse.w, 0.0, 1.0);
+        float causticsDepthFade = 1.0 - clamp(max({{CAUSTICS_DEPTH}}, 0.0) * material_AppearanceV2CausticsResponse.z, 0.0, 1.0);
+        if (causticsDepthFade > 0.0 && material_AppearanceV2CausticsResponse.x > 0.0) {
+          vec3 causticsView = normalize(camera_Position - input.worldPosition);
+          vec2 causticsUv = input.worldPosition.xz * material_AppearanceV2CausticsTransform.xy
+            + {{CAUSTICS_OFFSET}}
+            + material_AppearanceV2CausticsParallax.x * causticsView.xz / (abs(causticsView.y) + material_AppearanceV2CausticsParallax.y)
+            + appearanceLayerNormal0.x * material_AppearanceV2CausticsResponse.y;
+          vec3 causticsColor = clamp(texture2D(material_AppearanceV2CausticsTexture, causticsUv).rgb * material_AppearanceV2CausticsResponse.x, 0.0, 1.0)
+            * causticsDepthFade;
+          appearanceDepthTintColor += causticsColor;
+          appearanceDepthTintFactor = clamp(appearanceDepthTintFactor + length(causticsColor) * material_AppearanceV2CausticsResponse.w, 0.0, 1.0);
+        }
 #endif
 #if {{REFRACTED_ALBEDO}} == 1
         appearanceDepthTintFactor *= appearanceCoastalAlpha;

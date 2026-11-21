@@ -72,6 +72,8 @@ float material_RefractionEnabled;
 
 #ifndef WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
 #define WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
+      float material_AppearanceV2Detail0Enabled;
+      float material_AppearanceV2Detail1Enabled;
       float material_AppearanceV2DetailEnabled;
       float material_AppearanceV2DetailNormalStrength;
       float material_AppearanceV2DepthResponseEnabled;
@@ -240,8 +242,6 @@ float waterSpatialFieldDecodeSignedDistance(
       #ifdef MATERIAL_WATER_LOCAL_ENVIRONMENT_REFLECTION
 
       #endif
-
-
 
 #endif
 
@@ -646,35 +646,33 @@ vec4 waterSurfaceEvaluateFinalClosureV2(
     closure.diffuseLighting,
     closure.primaryColorClosureModel
   );
-  vec3 opticalVolumeColor = waterSurfaceApplyOpticalVolume(
-    primaryColor,
-    closure.absorptionCoefficient,
-    closure.scatteringColor,
-    closure.scatteringCoefficient,
-    closure.opticalDepth
-  );
-  vec3 baseColor = mix(
-    opticalVolumeColor,
-    primaryColor,
-    step(0.5, closure.primaryColorClosureModel)
-  );
-  vec3 refractedVolumeColor = waterSurfaceApplyOpticalVolume(
-    closure.refractionColor,
-    closure.absorptionCoefficient,
-    closure.scatteringColor,
-    closure.scatteringCoefficient,
-    closure.opticalDepth
-  );
-  vec3 resolvedRefractionColor = mix(
-    refractedVolumeColor,
-    closure.refractionColor,
-    step(0.5, closure.primaryColorClosureModel)
-  );
-  vec3 color = mix(
-    baseColor,
-    resolvedRefractionColor,
-    clamp(closure.refractionWeight, 0.0, 1.0) * (1.0 - step(1.5, closure.primaryColorClosureModel))
-  );
+  vec3 baseColor = primaryColor;
+  float refractionMix = 0.0;
+  vec3 resolvedRefractionColor = closure.refractionColor;
+  if (closure.primaryColorClosureModel < 0.5) {
+    baseColor = waterSurfaceApplyOpticalVolume(
+      primaryColor,
+      closure.absorptionCoefficient,
+      closure.scatteringColor,
+      closure.scatteringCoefficient,
+      closure.opticalDepth
+    );
+    refractionMix = clamp(closure.refractionWeight, 0.0, 1.0);
+    if (refractionMix > 0.0) {
+      resolvedRefractionColor = waterSurfaceApplyOpticalVolume(
+        closure.refractionColor,
+        closure.absorptionCoefficient,
+        closure.scatteringColor,
+        closure.scatteringCoefficient,
+        closure.opticalDepth
+      );
+    }
+  } else if (closure.primaryColorClosureModel < 1.5) {
+    refractionMix = clamp(closure.refractionWeight, 0.0, 1.0);
+  }
+  vec3 color = refractionMix > 0.0
+    ? mix(baseColor, resolvedRefractionColor, refractionMix)
+    : baseColor;
   vec3 boundaryContribution = closure.boundaryColor * max(closure.diffuseLighting, vec3(0.0));
   float litSceneColorClosure = step(1.5, closure.primaryColorClosureModel);
   color += boundaryContribution * litSceneColorClosure;
@@ -984,18 +982,25 @@ float waterSurface_waveCrest = 0.0;
           * mix(1.0, material_NearshoreOutsidePolicy.y, outsideEdges.y)
           * mix(1.0, material_NearshoreOutsidePolicy.z, outsideEdges.z)
           * mix(1.0, material_NearshoreOutsidePolicy.w, outsideEdges.w);
-        vec4 nearshoreSample = texture2D(material_NearshoreTexture, clamp(nearshoreUv, vec2(0.0), vec2(1.0)));
-        float sampledShoreDistance = waterSpatialFieldDecodeSignedDistance(
-          nearshoreSample.a,
-          2.0078740157480315,
-          -1.0078740157480315,
-          material_NearshoreDecode.y
-        );
-        float shoreDistance = mix(
-          sampledShoreDistance,
-          mix(-material_NearshoreDecode.y, material_NearshoreDecode.y, outsideWet),
-          outsideAtlas
-        );
+        float shoreDistance = mix(-material_NearshoreDecode.y, material_NearshoreDecode.y, outsideWet);
+        if (outsideAtlas < 0.5) {
+          vec2 clampedNearshoreUv = clamp(nearshoreUv, vec2(0.0), vec2(1.0));
+          #ifdef GRAPHICS_API_WEBGL2
+            vec4 nearshoreSample = textureLod(material_NearshoreTexture, clampedNearshoreUv, 0.0);
+          #else
+            #ifdef HAS_TEX_LOD
+              vec4 nearshoreSample = texture2DLodEXT(material_NearshoreTexture, clampedNearshoreUv, 0.0);
+            #else
+              vec4 nearshoreSample = texture2D(material_NearshoreTexture, clampedNearshoreUv);
+            #endif
+          #endif
+          shoreDistance = waterSpatialFieldDecodeSignedDistance(
+            nearshoreSample.a,
+            2.0078740157480315,
+            -1.0078740157480315,
+            material_NearshoreDecode.y
+          );
+        }
         float shoreAntialias = max(
           max(material_NearshoreCellSize.x, material_NearshoreCellSize.y) * 0.42,
           max(fwidth(shoreDistance) * 1.25, material_NearshoreDecode.y * (2.0 / 255.0))

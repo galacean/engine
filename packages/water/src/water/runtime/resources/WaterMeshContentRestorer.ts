@@ -1,5 +1,7 @@
-import { type Buffer, type Engine, type ModelMesh, VertexAttribute } from "@galacean/engine-core";
+import { type Buffer, BufferMesh, type Engine, type ModelMesh, VertexAttribute } from "@galacean/engine-core";
 import { registerWaterContentRestorer } from "./WaterContentRestorer";
+
+type RestorableWaterMesh = BufferMesh | ModelMesh;
 
 export interface WaterMeshRestoreSource {
   readonly vertexCount: number;
@@ -20,7 +22,7 @@ const COMPONENTS: Readonly<Record<string, number>> = {
 /** Restore existing buffers after uploadData(true), without retaining a second packed vertex array. */
 export function registerWaterMeshContentRestorer(
   engine: Engine,
-  mesh: ModelMesh,
+  mesh: RestorableWaterMesh,
   source: () => WaterMeshRestoreSource
 ): void {
   registerWaterContentRestorer(engine, mesh, () => {
@@ -41,8 +43,12 @@ export function registerWaterMeshContentRestorer(
       }
       binding.buffer.setData(packed);
     }
-    // Same buffer-level restoration as RiverMeshUploader; the index accessor is omitted from engine declarations.
-    const primitive = (mesh as ModelMesh & { _primitive: { indexBufferBinding: { buffer: Buffer } } })._primitive;
-    primitive.indexBufferBinding.buffer.setData(data.indices);
+    // Prefer public BufferMesh.indexBufferBinding; ModelMesh does not declare it publicly so keep _primitive fallback.
+    const indexBinding =
+      mesh instanceof BufferMesh
+        ? mesh.indexBufferBinding
+        : (mesh as ModelMesh & { _primitive: { indexBufferBinding: { buffer: Buffer } | null } })._primitive
+            .indexBufferBinding;
+    indexBinding?.buffer.setData(data.indices);
   });
 }

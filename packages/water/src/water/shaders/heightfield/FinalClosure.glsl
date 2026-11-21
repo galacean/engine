@@ -52,8 +52,20 @@
         closureInput.clarity = clarity;
         {{VALUE_007_CREATEWATERSURFACEAPPEARANCEV2ALPHAINPUTASSIGNMENTS_}}
         closureInput.coverage = coverage;
-        closureInput.compositionSceneColor = centeredOpaqueColor;
         closureInput.precomposedReplace = {{VALUE_008_COMPOSITION}};
+        #if {{USE_OPAQUE_TEXTURE}}
+        if (
+          !centeredOpaqueSampled &&
+          closureInput.precomposedReplace > 0.5 &&
+          !(closureInput.coastalAlphaWeight >= 0.9999 &&
+            closureInput.coastalAlpha >= 0.9999 &&
+            closureInput.coverage >= 0.9999)
+        ) {
+          centeredOpaqueColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
+          centeredOpaqueSampled = true;
+        }
+        #endif
+        closureInput.compositionSceneColor = centeredOpaqueColor;
         #ifdef MATERIAL_WATER_CONNECTIONS
         // Both sides approach clear, flat water before their authored optical response resumes.
         float connectionWeight = waterConnectionFacts(input.worldPosition.xz).x;

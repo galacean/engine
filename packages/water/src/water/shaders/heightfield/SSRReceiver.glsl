@@ -92,6 +92,10 @@
         vec3 computedBaseBitangentWS = normalize(
           cross(computedBaseNormalWS, computedBaseTangentWS) * attr.TANGENT.w
         );
+        float waveOffset = 0.0;
+        float tangentSlope = 0.0;
+        float bitangentSlope = 0.0;
+#if {{SSR_WAVE_COUNT}} > 0
         vec4 localMap = texture2D(material_LocalMapTexture, attr.TEXCOORD_0);
         vec2 flowXZ = (localMap.rg * 2.0 - 1.0) * material_LocalMapDecode.x;
         float signedDistance = (localMap.a * 2.0 - 1.0) * material_LocalMapDecode.z;
@@ -110,16 +114,14 @@
           1.0,
           flowWeight
         );
-        float waveOffset = 0.0;
-        float tangentSlope = 0.0;
-        float bitangentSlope = 0.0;
 {{VALUE_029_WAVEAPPLYSTATEMENTS_WAVECOUNT}}
+        waveOffset *= waterConnectionFacts(baseWorldPosition.xz).x;
+#endif
         vec3 computedMacroNormalWS = normalize(
           computedBaseNormalWS
             - computedBaseTangentWS * tangentSlope
             - computedBaseBitangentWS * bitangentSlope
         );
-        waveOffset *= waterConnectionFacts(baseWorldPosition.xz).x;
         vec4 localPosition = attr.POSITION + vec4(attr.NORMAL * waveOffset, 0.0);
         gl_Position = renderer_MVPMat * localPosition;
         varyings.worldPosition = baseWorldPosition.xyz + computedBaseNormalWS * waveOffset;

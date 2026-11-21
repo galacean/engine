@@ -3,9 +3,10 @@ Shader "{{VALUE_001_SHADERNAME}}" {
   SubShader "Default" {
     Pass "Forward" {
       Tags { pipelineStage = "Forward" }
+      Bool blendEnabled;
       Bool depthWriteEnabled;
       BlendState customBlendState {
-        Enabled = true;
+        Enabled = blendEnabled;
         SourceColorBlendFactor = BlendFactor.SourceAlpha;
         DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
         SourceAlphaBlendFactor = BlendFactor.One;

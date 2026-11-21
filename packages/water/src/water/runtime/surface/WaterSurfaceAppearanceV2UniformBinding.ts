@@ -1,11 +1,13 @@
 /** Shared Surface Appearance V2 numeric bindings and HF/River bounded clocks. */
 import type { Material } from "@galacean/engine-core";
 import type { CompiledWaterSurfaceAppearanceV2 } from "../../compiler/surface/CompiledWaterSurfaceAppearanceTypes";
-import { Vector4 } from "@galacean/engine-math";
+import { Vector3, Vector4 } from "@galacean/engine-math";
 import {
   WaterSurfaceDepthResponseModelV2,
   WaterSurfaceDetailSpace,
   WaterPatternModelV2,
+  WaterPatternResponseV2,
+  type WaterPatternV2,
   type WaterSurfaceAppearanceAssetV2,
   type WaterSurfaceDepthResponseV2
 } from "../../authoring/surface/WaterSurfaceAppearanceTypes";
@@ -20,6 +22,58 @@ import {
 export interface WaterSurfaceDepthResponseShaderData {
   setFloat(propertyName: string, value: number): void;
   setVector4(propertyName: string, value: Vector4): void;
+}
+
+export interface WaterPatternUniformShaderData {
+  setFloat(propertyName: string, value: number): void;
+  setVector3(propertyName: string, value: Vector3): void;
+}
+
+function sanitizeFiniteNumber(value: number | undefined, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function sanitizeNonNegativeFinite(value: number | undefined): number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
+/** Uploads sanitized finite pattern uniforms so the shader needs no per-pixel isFinite guards. */
+export function applyWaterPatternUniformsV2(
+  shaderData: WaterPatternUniformShaderData,
+  index: number,
+  pattern: Readonly<WaterPatternV2>
+): void {
+  shaderData.setFloat(
+    getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternWorldScale"),
+    sanitizeFiniteNumber(pattern.worldScale, 0)
+  );
+  shaderData.setFloat(
+    getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternTimeRate"),
+    sanitizeFiniteNumber(pattern.timeRate, 0)
+  );
+  shaderData.setFloat(
+    getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternOpacity"),
+    sanitizeNonNegativeFinite(pattern.opacity)
+  );
+  if (pattern.response === WaterPatternResponseV2.Power || pattern.exponent !== undefined) {
+    shaderData.setFloat(
+      getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternExponent"),
+      sanitizeFiniteNumber(pattern.exponent, 1)
+    );
+  }
+  const weights = pattern.octaves.weights;
+  shaderData.setVector3(
+    getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternWeights"),
+    new Vector3(
+      sanitizeNonNegativeFinite(weights[0]),
+      sanitizeNonNegativeFinite(weights[1]),
+      sanitizeNonNegativeFinite(weights[2])
+    )
+  );
+  shaderData.setFloat(
+    getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternLacunarity"),
+    sanitizeFiniteNumber(pattern.lacunarity, 0)
+  );
 }
 
 function toVector4(color: readonly [number, number, number, number]): Vector4 {
@@ -163,7 +217,7 @@ export function bindWaterSurfaceAppearanceV2Clock(
         ? [
             {
               property: getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternTimeRate"),
-              rate: effect.pattern.timeRate,
+              rate: sanitizeFiniteNumber(effect.pattern.timeRate, 0),
               period: effect.pattern.model === WaterPatternModelV2.AnimatedVoronoiF1 ? 2 * Math.PI : 289
             }
           ]

@@ -28,32 +28,36 @@ vec3 riverBlendNormals(vec3 a, vec3 b) {
 
 vec3 evaluateRiverFlowNormalWS(vec2 motion, float halfWidth, float localSpeed, vec2 flow, vec3 geometryNormal) {
 #ifdef MATERIAL_RIVER_FLOW_NORMAL
-  float gate = step(0.0001, localSpeed);
-  vec2 uv = riverSourceUv(motion, halfWidth);
-  vec2 tiling = vec2(2.0, 1.0) * (1.2 / max(material_SurfaceLengthScale, 0.5));
-  vec4 regularUv = riverPackedUv(uv, tiling, material_FlowNormalOffsets.xy * gate);
+  float flowNormalWeight = material_FlowNormalStrength * material_MicroSurfaceEnabled;
+  if (flowNormalWeight > 0.0) {
+    float gate = step(0.0001, localSpeed);
+    vec2 uv = riverSourceUv(motion, halfWidth);
+    vec2 tiling = vec2(2.0, 1.0) * (1.2 / max(material_SurfaceLengthScale, 0.5));
+    vec4 regularUv = riverPackedUv(uv, tiling, material_FlowNormalOffsets.xy * gate);
 #ifdef WATER_SSR_SIMPLIFIED_FLOW_NORMAL
-  vec3 detail = riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.xy).rg);
+    vec3 detail = riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.xy).rg);
 #else
-  float slope = riverSlopeMask(geometryNormal);
-  vec3 regular = riverBlendNormals(
-    riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.xy).rg),
-    riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.zw).rg));
-  // Scale only the spatial primary y; the final time rate already includes this half.
-  vec4 slopeUv = vec4(uv * tiling * vec2(1.0, 0.5), uv * tiling * 0.5);
-  slopeUv.yw += material_FlowNormalOffsets.xx * gate;
-  vec3 steep = riverBlendNormals(
-    riverUnpackNormal(texture2D(material_SurfaceNormalTexture, slopeUv.xy).ba),
-    riverUnpackNormal(texture2D(material_SurfaceNormalTexture, slopeUv.zw).ba));
-  vec3 detail = mix(regular, steep, slope);
+    float slope = riverSlopeMask(geometryNormal);
+    vec3 regular = riverBlendNormals(
+      riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.xy).rg),
+      riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.zw).rg));
+    vec3 detail = regular;
+    if (slope > 0.0) {
+      // Scale only the spatial primary y; the final time rate already includes this half.
+      vec4 slopeUv = vec4(uv * tiling * vec2(1.0, 0.5), uv * tiling * 0.5);
+      slopeUv.yw += material_FlowNormalOffsets.xx * gate;
+      vec3 steep = riverBlendNormals(
+        riverUnpackNormal(texture2D(material_SurfaceNormalTexture, slopeUv.xy).ba),
+        riverUnpackNormal(texture2D(material_SurfaceNormalTexture, slopeUv.zw).ba));
+      detail = mix(regular, steep, slope);
+    }
 #endif
-  detail = normalize(mix(vec3(0.0, 0.0, 1.0), detail,
-    material_FlowNormalStrength * material_MicroSurfaceEnabled));
-  vec3 downstream = safeNormalize3(vec3(flow.x, 0.0, flow.y)
-    - geometryNormal * dot(vec3(flow.x, 0.0, flow.y), geometryNormal), vec3(0.0, 0.0, 1.0));
-  vec3 across = safeNormalize3(cross(downstream, geometryNormal), vec3(1.0, 0.0, 0.0));
-  return safeNormalize3(geometryNormal * detail.z + across * detail.x + downstream * detail.y, geometryNormal);
-#else
+    detail = normalize(mix(vec3(0.0, 0.0, 1.0), detail, flowNormalWeight));
+    vec3 downstream = safeNormalize3(vec3(flow.x, 0.0, flow.y)
+      - geometryNormal * dot(vec3(flow.x, 0.0, flow.y), geometryNormal), vec3(0.0, 0.0, 1.0));
+    vec3 across = safeNormalize3(cross(downstream, geometryNormal), vec3(1.0, 0.0, 0.0));
+    return safeNormalize3(geometryNormal * detail.z + across * detail.x + downstream * detail.y, geometryNormal);
+  }
+#endif
   return safeNormalize3(geometryNormal, geometryNormal);
-#endif
 }

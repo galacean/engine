@@ -202,9 +202,10 @@ material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enu
   SubShader "Default" {
     Pass "Forward" {
       Tags { pipelineStage = "Forward" }
+      Bool blendEnabled;
       Bool depthWriteEnabled;
       BlendState customBlendState {
-        Enabled = true;
+        Enabled = blendEnabled;
         SourceColorBlendFactor = BlendFactor.SourceAlpha;
         DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
         SourceAlphaBlendFactor = BlendFactor.One;
@@ -1084,26 +1085,29 @@ WaterSurfaceResolvedLightingV2 waterSurfaceAccumulateDirectLightingV2(
 ) {
   vec3 safeLightRadiance = max(lightRadiance, vec3(0.0));
   float safeNormalDotLight = clamp(normalDotLight, 0.0, 1.0);
-  float standardDirectSpecular = waterSurfaceDirectSpecular(
-    fresnelF0,
-    perceptualRoughness,
-    normalDotView,
-    safeNormalDotLight,
-    normalDotHalf,
-    lightDotHalf
-  );
-  float litDirectSpecular = waterSurfaceLitDirectSpecular(
-    fresnelF0,
-    perceptualRoughness,
-    safeNormalDotLight,
-    normalDotHalf,
-    lightDotHalf
-  );
-  float resolvedDirectSpecular = mix(
-    standardDirectSpecular,
-    litDirectSpecular,
-    step(1.5, primaryColorClosureModel) * (1.0 - step(3.5, primaryColorClosureModel))
-  ) * clamp(directSpecularEnabled, 0.0, 1.0);
+  float resolvedDirectSpecular = 0.0;
+  float specGate = clamp(directSpecularEnabled, 0.0, 1.0);
+  if (specGate > 0.0) {
+    if (primaryColorClosureModel >= 1.5 && primaryColorClosureModel < 3.5) {
+      resolvedDirectSpecular = waterSurfaceLitDirectSpecular(
+        fresnelF0,
+        perceptualRoughness,
+        safeNormalDotLight,
+        normalDotHalf,
+        lightDotHalf
+      );
+    } else {
+      resolvedDirectSpecular = waterSurfaceDirectSpecular(
+        fresnelF0,
+        perceptualRoughness,
+        normalDotView,
+        safeNormalDotLight,
+        normalDotHalf,
+        lightDotHalf
+      );
+    }
+    resolvedDirectSpecular *= specGate;
+  }
   lighting.diffuseRadiance += safeLightRadiance * safeNormalDotLight;
   lighting.directSpecularRadiance += safeLightRadiance * resolvedDirectSpecular;
   return lighting;
@@ -1127,35 +1131,33 @@ vec4 waterSurfaceEvaluateFinalClosureV2(
     closure.diffuseLighting,
     closure.primaryColorClosureModel
   );
-  vec3 opticalVolumeColor = waterSurfaceApplyOpticalVolume(
-    primaryColor,
-    closure.absorptionCoefficient,
-    closure.scatteringColor,
-    closure.scatteringCoefficient,
-    closure.opticalDepth
-  );
-  vec3 baseColor = mix(
-    opticalVolumeColor,
-    primaryColor,
-    step(0.5, closure.primaryColorClosureModel)
-  );
-  vec3 refractedVolumeColor = waterSurfaceApplyOpticalVolume(
-    closure.refractionColor,
-    closure.absorptionCoefficient,
-    closure.scatteringColor,
-    closure.scatteringCoefficient,
-    closure.opticalDepth
-  );
-  vec3 resolvedRefractionColor = mix(
-    refractedVolumeColor,
-    closure.refractionColor,
-    step(0.5, closure.primaryColorClosureModel)
-  );
-  vec3 color = mix(
-    baseColor,
-    resolvedRefractionColor,
-    clamp(closure.refractionWeight, 0.0, 1.0) * (1.0 - step(1.5, closure.primaryColorClosureModel))
-  );
+  vec3 baseColor = primaryColor;
+  float refractionMix = 0.0;
+  vec3 resolvedRefractionColor = closure.refractionColor;
+  if (closure.primaryColorClosureModel < 0.5) {
+    baseColor = waterSurfaceApplyOpticalVolume(
+      primaryColor,
+      closure.absorptionCoefficient,
+      closure.scatteringColor,
+      closure.scatteringCoefficient,
+      closure.opticalDepth
+    );
+    refractionMix = clamp(closure.refractionWeight, 0.0, 1.0);
+    if (refractionMix > 0.0) {
+      resolvedRefractionColor = waterSurfaceApplyOpticalVolume(
+        closure.refractionColor,
+        closure.absorptionCoefficient,
+        closure.scatteringColor,
+        closure.scatteringCoefficient,
+        closure.opticalDepth
+      );
+    }
+  } else if (closure.primaryColorClosureModel < 1.5) {
+    refractionMix = clamp(closure.refractionWeight, 0.0, 1.0);
+  }
+  vec3 color = refractionMix > 0.0
+    ? mix(baseColor, resolvedRefractionColor, refractionMix)
+    : baseColor;
   vec3 boundaryContribution = closure.boundaryColor * max(closure.diffuseLighting, vec3(0.0));
   float litSceneColorClosure = step(1.5, closure.primaryColorClosureModel);
   color += boundaryContribution * litSceneColorClosure;
@@ -1327,10 +1329,6 @@ float waterSurfaceDerivedSceneRayDepth(
 #ifndef WATER_ANIMATED_VORONOI_F1_INCLUDED
 #define WATER_ANIMATED_VORONOI_F1_INCLUDED
 
-bool waterAnimatedVoronoiF1IsFinite(float value) {
-  return value == value && abs(value) < 1.0e20;
-}
-
 vec2 waterAnimatedVoronoiF1Hash(vec2 cell) {
   vec2 projected = vec2(
     dot(cell, vec2(127.1, 311.7)),
@@ -1354,16 +1352,34 @@ float waterAnimatedVoronoiF1Candidate(
 float waterAnimatedVoronoiF1(vec2 position, float time) {
   vec2 cell = floor(position);
   vec2 localPosition = fract(position);
-  // Compare squared distances before the single square root per octave.
-  float f1 = 128.0;
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, -1.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, -1.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, -1.0), time));
+  // Center cell first, then 4 orthogonal and 4 diagonal neighbors (commutative min).
+  float f1 = waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, 0.0), time);
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, 0.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, 0.0), time));
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, 0.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, 1.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, -1.0), time));
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, 1.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, -1.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, -1.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, 1.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, 1.0), time));
+  return clamp(0.707 * sqrt(f1), 0.0, 1.0);
+}
+
+float waterAnimatedVoronoiF1UpperBounded(vec2 position, float time, float f1Max) {
+  vec2 cell = floor(position);
+  vec2 localPosition = fract(position);
+  // Center-first exact early exit: since f1 can only decrease across min(), f1 <= f1Max
+  // already proves final F1 <= f1Max. Negative f1Max disables early exit.
+  float f1 = waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, 0.0), time);
+  if (f1 <= f1Max) return 0.0;
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, 0.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, 0.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, -1.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, 1.0), time));
+  if (f1 <= f1Max) return 0.0;
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, -1.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, -1.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, 1.0), time));
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, 1.0), time));
   return clamp(0.707 * sqrt(f1), 0.0, 1.0);
 }
@@ -1376,41 +1392,97 @@ float evaluateWaterAnimatedVoronoiF1(
   vec3 octaveWeights,
   float lacunarity
 ) {
-    if (
-      !waterAnimatedVoronoiF1IsFinite(worldPositionXz.x)
-      || !waterAnimatedVoronoiF1IsFinite(worldPositionXz.y)
-      || !waterAnimatedVoronoiF1IsFinite(surfaceTime)
-      || !waterAnimatedVoronoiF1IsFinite(worldScale)
-      || !waterAnimatedVoronoiF1IsFinite(timeRate)
-      || !waterAnimatedVoronoiF1IsFinite(lacunarity)
-      || worldScale <= 0.0
-      || timeRate <= 0.0
-      || lacunarity <= 0.0
-      || !(waterAnimatedVoronoiF1IsFinite(octaveWeights.x) && octaveWeights.x >= 0.0
-        && waterAnimatedVoronoiF1IsFinite(octaveWeights.y) && octaveWeights.y >= 0.0
-        && waterAnimatedVoronoiF1IsFinite(octaveWeights.z) && octaveWeights.z >= 0.0)
-    ) {
-      return 0.0;
-    }
-  float animatedTime = surfaceTime * timeRate;
-  if (!waterAnimatedVoronoiF1IsFinite(animatedTime)) return 0.0;
-  float safeWorldScale = worldScale;
-  float safeLacunarity = lacunarity;
     float weightSum = octaveWeights.x + octaveWeights.y + octaveWeights.z;
-  if (!(weightSum > 0.0) || !waterAnimatedVoronoiF1IsFinite(weightSum)) return 0.0;
+    bool validWeights = octaveWeights.x >= 0.0 && octaveWeights.y >= 0.0 && octaveWeights.z >= 0.0;
+  if (
+    !(worldScale > 0.0)
+    || !(timeRate > 0.0)
+    || !(lacunarity > 0.0)
+    || !validWeights
+    || !(weightSum > 0.0)
+  ) {
+    return 0.0;
+  }
+  float animatedTime = surfaceTime * timeRate;
   float weightedPattern = 0.0;
-  weightedPattern += waterAnimatedVoronoiF1(
-    worldPositionXz * safeWorldScale * 1.0,
-    animatedTime
-  ) * octaveWeights.x;
+  if (octaveWeights.x > 0.0) {
     weightedPattern += waterAnimatedVoronoiF1(
-      worldPositionXz * safeWorldScale * safeLacunarity,
+      worldPositionXz * worldScale,
       animatedTime
-    ) * octaveWeights.y;
-    weightedPattern += waterAnimatedVoronoiF1(
-      worldPositionXz * safeWorldScale * safeLacunarity * safeLacunarity,
-      animatedTime
-    ) * octaveWeights.z;
+    ) * octaveWeights.x;
+  }
+    if (octaveWeights.y > 0.0) {
+      weightedPattern += waterAnimatedVoronoiF1(
+        worldPositionXz * worldScale * lacunarity,
+        animatedTime
+      ) * octaveWeights.y;
+    }
+    if (octaveWeights.z > 0.0) {
+      weightedPattern += waterAnimatedVoronoiF1(
+        worldPositionXz * worldScale * lacunarity * lacunarity,
+        animatedTime
+      ) * octaveWeights.z;
+    }
+  return clamp(weightedPattern / weightSum, 0.0, 1.0);
+}
+
+float evaluateWaterAnimatedVoronoiF1UpperBounded(
+  vec2 worldPositionXz,
+  float surfaceTime,
+  float worldScale,
+  float timeRate,
+  vec3 octaveWeights,
+  float lacunarity,
+  float pMax
+) {
+    float weightSum = octaveWeights.x + octaveWeights.y + octaveWeights.z;
+    bool validWeights = octaveWeights.x >= 0.0 && octaveWeights.y >= 0.0 && octaveWeights.z >= 0.0;
+  if (
+    !(worldScale > 0.0)
+    || !(timeRate > 0.0)
+    || !(lacunarity > 0.0)
+    || !validWeights
+    || !(weightSum > 0.0)
+  ) {
+    return 0.0;
+  }
+  if (pMax >= 1.0) return 0.0;
+  const float eps = 0.00001;
+  float animatedTime = surfaceTime * timeRate;
+  float targetSum = pMax * weightSum;
+  float w0 = octaveWeights.x;
+    float rest0 = octaveWeights.y + octaveWeights.z;
+  float v0Max = (w0 > 0.0) ? ((targetSum - rest0) / w0 - eps) : -1.0;
+  if (v0Max >= 1.0) return 0.0;
+  float f1Max0 = (v0Max > 0.0) ? ((v0Max / 0.707) * (v0Max / 0.707)) : -1.0;
+  float v0 = (w0 > 0.0)
+    ? waterAnimatedVoronoiF1UpperBounded(worldPositionXz * worldScale, animatedTime, f1Max0)
+    : 0.0;
+  if (v0Max >= 0.0 && v0 <= v0Max) return 0.0;
+  float weightedPattern = w0 * v0;
+    float w1 = octaveWeights.y;
+      float rest1 = octaveWeights.z;
+    float v1Max = (w1 > 0.0) ? ((targetSum - weightedPattern - rest1) / w1 - eps) : -1.0;
+    if (v1Max >= 1.0) return 0.0;
+    float f1Max1 = (v1Max > 0.0) ? ((v1Max / 0.707) * (v1Max / 0.707)) : -1.0;
+    float v1 = (w1 > 0.0)
+      ? waterAnimatedVoronoiF1UpperBounded(worldPositionXz * worldScale * lacunarity, animatedTime, f1Max1)
+      : 0.0;
+    if (v1Max >= 0.0 && v1 <= v1Max) return 0.0;
+    weightedPattern += w1 * v1;
+    float w2 = octaveWeights.z;
+    float v2Max = (w2 > 0.0) ? ((targetSum - weightedPattern) / w2 - eps) : -1.0;
+    if (v2Max >= 1.0) return 0.0;
+    float f1Max2 = (v2Max > 0.0) ? ((v2Max / 0.707) * (v2Max / 0.707)) : -1.0;
+    float v2 = (w2 > 0.0)
+      ? waterAnimatedVoronoiF1UpperBounded(
+          worldPositionXz * worldScale * lacunarity * lacunarity,
+          animatedTime,
+          f1Max2
+        )
+      : 0.0;
+    if (v2Max >= 0.0 && v2 <= v2Max) return 0.0;
+    weightedPattern += w2 * v2;
   return clamp(weightedPattern / weightSum, 0.0, 1.0);
 }
 
@@ -1506,75 +1578,110 @@ float riverHash21(vec2 point) {
   return float(riverHashCell(point) >> 8u) * (1.0 / 16777216.0);
 }
 
-float riverValueNoise(vec2 point) {
+// Returns (value, dValue/dx, dValue/dy) using the exact same lattice and curve as riverValueNoise.
+vec3 riverValueNoiseWithGrad(vec2 point) {
   point = mod(point, 4096.0);
   vec2 cell = floor(point);
   vec2 local = fract(point);
   vec2 curve = local * local * (3.0 - 2.0 * local);
-  float bottom = mix(riverHash21(cell), riverHash21(cell + vec2(1.0, 0.0)), curve.x);
-  float top = mix(
-    riverHash21(cell + vec2(0.0, 1.0)),
-    riverHash21(cell + vec2(1.0, 1.0)),
-    curve.x
-  );
-  return mix(bottom, top, curve.y);
+  vec2 dCurve = 6.0 * local * (1.0 - local);
+  float v00 = riverHash21(cell);
+  float v10 = riverHash21(cell + vec2(1.0, 0.0));
+  float v01 = riverHash21(cell + vec2(0.0, 1.0));
+  float v11 = riverHash21(cell + vec2(1.0, 1.0));
+  float bottom = mix(v00, v10, curve.x);
+  float top = mix(v01, v11, curve.x);
+  float value = mix(bottom, top, curve.y);
+  float dValDx = mix(v10 - v00, v11 - v01, curve.y) * dCurve.x;
+  float dValDy = (top - bottom) * dCurve.y;
+  return vec3(value, dValDx, dValDy);
 }
 
-float riverFbm(vec2 point, vec4 offsets) {
-  float value = riverValueNoise(point + vec2(0.0, offsets.x)) * 0.55000000;
-  value += riverValueNoise(
-    point * 2.03000000
-      + vec2(17.70000000, 9.20000000 + offsets.y)
-  ) * 0.28000000;
-  value += riverValueNoise(
-    point * 4.11000000
-      + vec2(8.30000000, 21.60000000 + offsets.z)
-  ) * 0.17000000;
-  return value;
-}
 
-float riverShoreDamping(float signedAcrossDistance, float halfWidth) {
-  float shoreDistance = halfWidth - abs(signedAcrossDistance);
-  return smoothstep(0.0, material_ShoreDampingWidth, shoreDistance);
-}
-
-vec2 riverWarpedDomain(vec2 motionCoord, float warpOffset) {
+// Evaluates (height, dHeight/dAcross, dHeight/dDownstream) analytically in 24 hashes instead of 120.
+vec3 riverMacroSurfaceWithGrad(
+  vec2 motionCoord,
+  float halfWidth,
+  float localFlowSpeed,
+  float sampledFlowSpeed
+) {
+  float shoreDistance = halfWidth - abs(motionCoord.x);
+  float shoreDamping = smoothstep(0.0, material_ShoreDampingWidth, shoreDistance);
+  float dShoreDampingDx = 0.0;
+  if (
+    material_ShoreDampingWidth > 0.0
+    && shoreDistance > 0.0
+    && shoreDistance < material_ShoreDampingWidth
+  ) {
+    float t = shoreDistance / material_ShoreDampingWidth;
+    float dSmooth = (6.0 * t * (1.0 - t)) / material_ShoreDampingWidth;
+    float dAbsX = motionCoord.x > 0.0 ? -1.0 : (motionCoord.x < 0.0 ? 1.0 : 0.0);
+    dShoreDampingDx = dSmooth * dAbsX;
+  }
+  float flowing = localFlowSpeed > 0.00010000 ? 1.0 : 0.0;
+  vec4 offsets = material_SurfaceDomainOffsets * flowing;
+  float warpOffset = material_SurfaceWarpOffset * flowing;
   float lengthScale = max(material_SurfaceLengthScale, 0.001);
   vec2 baseDomain = vec2(
     motionCoord.x,
     motionCoord.y * 1.50000000
   ) / lengthScale;
-  vec2 warp = vec2(
-    riverValueNoise(
-      baseDomain * 0.55000000
-        + vec2(13.10000000, 7.70000000 + warpOffset)
-    ),
-    riverValueNoise(
-      baseDomain * 0.55000000
-        + vec2(3.80000000, 19.40000000 + warpOffset)
-    )
-  ) * 2.0 - 1.0;
-  return baseDomain + warp * (0.58000000 * material_SurfaceTurbulence);
-}
+  float warpGain = 0.58000000 * material_SurfaceTurbulence;
+  vec3 warpSampleX = riverValueNoiseWithGrad(
+    baseDomain * 0.55000000
+      + vec2(13.10000000, 7.70000000 + warpOffset)
+  );
+  vec3 warpSampleY = riverValueNoiseWithGrad(
+    baseDomain * 0.55000000
+      + vec2(3.80000000, 19.40000000 + warpOffset)
+  );
+  vec2 warp = vec2(warpSampleX.x, warpSampleY.x) * 2.0 - 1.0;
+  vec2 warped = baseDomain + warp * warpGain;
+  float warpJacobianScale = 2.0 * warpGain * 0.55000000;
+  float jxx = 1.0 + warpJacobianScale * warpSampleX.y;
+  float jxy = warpJacobianScale * warpSampleX.z;
+  float jyx = warpJacobianScale * warpSampleY.y;
+  float jyy = 1.0 + warpJacobianScale * warpSampleY.z;
 
-float riverMacroHeight(
-  vec2 motionCoord,
-  float halfWidth,
-  float localFlowSpeed
-) {
-  float shoreDamping = riverShoreDamping(motionCoord.x, halfWidth);
-  float flowing = localFlowSpeed > 0.00010000 ? 1.0 : 0.0;
-  vec4 offsets = material_SurfaceDomainOffsets * flowing;
-  vec2 warped = riverWarpedDomain(motionCoord, material_SurfaceWarpOffset * flowing);
-  float broad = riverFbm(warped, offsets);
-  float ridgeNoise = riverValueNoise(
+  vec3 broad0 = riverValueNoiseWithGrad(warped + vec2(0.0, offsets.x));
+  vec3 broad1 = riverValueNoiseWithGrad(
+    warped * 2.03000000
+      + vec2(17.70000000, 9.20000000 + offsets.y)
+  );
+  vec3 broad2 = riverValueNoiseWithGrad(
+    warped * 4.11000000
+      + vec2(8.30000000, 21.60000000 + offsets.z)
+  );
+  float broad = broad0.x * 0.55000000
+    + broad1.x * 0.28000000
+    + broad2.x * 0.17000000;
+  vec2 gradBroadWarped = broad0.yz * 0.55000000
+    + broad1.yz * (0.28000000 * 2.03000000)
+    + broad2.yz * (0.17000000 * 4.11000000);
+
+  vec3 ridgeSample = riverValueNoiseWithGrad(
     warped * 1.37000000
       + vec2(5.20000000, 11.60000000 + offsets.w)
   );
-  float ridge = 1.0 - abs(ridgeNoise * 2.0 - 1.0);
+  float ridgeSigned = ridgeSample.x * 2.0 - 1.0;
+  float ridge = 1.0 - abs(ridgeSigned);
+  float ridgeSign = ridgeSigned >= 0.0 ? -2.0 : 2.0;
+  vec2 gradRidgeWarped = ridgeSample.yz * (1.37000000 * ridgeSign);
+
   float shape = (broad - 0.5) * 0.72000000
     + (ridge - 0.5) * 0.28000000 * material_SurfaceTurbulence;
-  return material_SurfaceMaxDisplacement * shoreDamping * shape;
+  vec2 gradShapeWarped = gradBroadWarped * 0.72000000
+    + gradRidgeWarped * (0.28000000 * material_SurfaceTurbulence);
+  float gradBaseX = gradShapeWarped.x * jxx + gradShapeWarped.y * jyx;
+  float gradBaseY = gradShapeWarped.x * jxy + gradShapeWarped.y * jyy;
+
+  float height = material_SurfaceMaxDisplacement * shoreDamping * shape;
+  float dAcross = material_SurfaceMaxDisplacement
+    * (dShoreDampingDx * shape + shoreDamping * (gradBaseX / lengthScale));
+  float dDownstream = material_SurfaceMaxDisplacement
+    * shoreDamping
+    * (gradBaseY * (1.50000000 / (lengthScale * sampledFlowSpeed)));
+  return vec3(height, dAcross, dDownstream);
 }
 
 struct RiverGeometryVertex {
@@ -1589,43 +1696,20 @@ struct RiverGeometryVertex {
 
 RiverGeometryVertex evaluateRiverGeometry(Attributes attr) {
   RiverGeometryVertex geometry;
-  float derivativeStep = 0.05000000;
   float sampledFlowSpeed = max(attr.TEXCOORD_1.x, 0.05000000);
-  float flowTimeStep = derivativeStep / sampledFlowSpeed;
-  float downstreamSpan = flowTimeStep * sampledFlowSpeed;
   float computedMacroHeight = 0.0;
   float acrossDerivative = 0.0;
   float downstreamDerivative = 0.0;
   if (material_SurfaceMaxDisplacement * material_MacroDisplacementEnabled > 0.0) {
-  computedMacroHeight = riverMacroHeight(
-    attr.TEXCOORD_2,
-    attr.TEXCOORD_3.x,
-    attr.TEXCOORD_1.x
-  ) * material_MacroDisplacementEnabled;
-  float acrossPositive = riverMacroHeight(
-    attr.TEXCOORD_2 + vec2(derivativeStep, 0.0),
-    attr.TEXCOORD_3.x,
-    attr.TEXCOORD_1.x
-  );
-  float acrossNegative = riverMacroHeight(
-    attr.TEXCOORD_2 - vec2(derivativeStep, 0.0),
-    attr.TEXCOORD_3.x,
-    attr.TEXCOORD_1.x
-  );
-  float downstreamPositive = riverMacroHeight(
-    attr.TEXCOORD_2 + vec2(0.0, flowTimeStep),
-    attr.TEXCOORD_3.x,
-    attr.TEXCOORD_1.x
-  );
-  float downstreamNegative = riverMacroHeight(
-    attr.TEXCOORD_2 - vec2(0.0, flowTimeStep),
-    attr.TEXCOORD_3.x,
-    attr.TEXCOORD_1.x
-  );
-  acrossDerivative = (acrossPositive - acrossNegative) / (derivativeStep * 2.0)
-    * material_MacroDisplacementEnabled;
-  downstreamDerivative = (downstreamPositive - downstreamNegative) / (downstreamSpan * 2.0)
-    * material_MacroDisplacementEnabled;
+    vec3 macroSurface = riverMacroSurfaceWithGrad(
+      attr.TEXCOORD_2,
+      attr.TEXCOORD_3.x,
+      attr.TEXCOORD_1.x,
+      sampledFlowSpeed
+    );
+    computedMacroHeight = macroSurface.x * material_MacroDisplacementEnabled;
+    acrossDerivative = macroSurface.y * material_MacroDisplacementEnabled;
+    downstreamDerivative = macroSurface.z * material_MacroDisplacementEnabled;
   }
   vec4 localPosition = attr.POSITION;
   float connectionMotion = waterConnectionFacts((renderer_ModelMat * attr.POSITION).xz).x;
@@ -1686,34 +1770,38 @@ vec3 riverBlendNormals(vec3 a, vec3 b) {
 
 vec3 evaluateRiverFlowNormalWS(vec2 motion, float halfWidth, float localSpeed, vec2 flow, vec3 geometryNormal) {
 #ifdef MATERIAL_RIVER_FLOW_NORMAL
-  float gate = step(0.0001, localSpeed);
-  vec2 uv = riverSourceUv(motion, halfWidth);
-  vec2 tiling = vec2(2.0, 1.0) * (1.2 / max(material_SurfaceLengthScale, 0.5));
-  vec4 regularUv = riverPackedUv(uv, tiling, material_FlowNormalOffsets.xy * gate);
+  float flowNormalWeight = material_FlowNormalStrength * material_MicroSurfaceEnabled;
+  if (flowNormalWeight > 0.0) {
+    float gate = step(0.0001, localSpeed);
+    vec2 uv = riverSourceUv(motion, halfWidth);
+    vec2 tiling = vec2(2.0, 1.0) * (1.2 / max(material_SurfaceLengthScale, 0.5));
+    vec4 regularUv = riverPackedUv(uv, tiling, material_FlowNormalOffsets.xy * gate);
 #ifdef WATER_SSR_SIMPLIFIED_FLOW_NORMAL
-  vec3 detail = riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.xy).rg);
+    vec3 detail = riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.xy).rg);
 #else
-  float slope = riverSlopeMask(geometryNormal);
-  vec3 regular = riverBlendNormals(
-    riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.xy).rg),
-    riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.zw).rg));
-  // Scale only the spatial primary y; the final time rate already includes this half.
-  vec4 slopeUv = vec4(uv * tiling * vec2(1.0, 0.5), uv * tiling * 0.5);
-  slopeUv.yw += material_FlowNormalOffsets.xx * gate;
-  vec3 steep = riverBlendNormals(
-    riverUnpackNormal(texture2D(material_SurfaceNormalTexture, slopeUv.xy).ba),
-    riverUnpackNormal(texture2D(material_SurfaceNormalTexture, slopeUv.zw).ba));
-  vec3 detail = mix(regular, steep, slope);
+    float slope = riverSlopeMask(geometryNormal);
+    vec3 regular = riverBlendNormals(
+      riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.xy).rg),
+      riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.zw).rg));
+    vec3 detail = regular;
+    if (slope > 0.0) {
+      // Scale only the spatial primary y; the final time rate already includes this half.
+      vec4 slopeUv = vec4(uv * tiling * vec2(1.0, 0.5), uv * tiling * 0.5);
+      slopeUv.yw += material_FlowNormalOffsets.xx * gate;
+      vec3 steep = riverBlendNormals(
+        riverUnpackNormal(texture2D(material_SurfaceNormalTexture, slopeUv.xy).ba),
+        riverUnpackNormal(texture2D(material_SurfaceNormalTexture, slopeUv.zw).ba));
+      detail = mix(regular, steep, slope);
+    }
 #endif
-  detail = normalize(mix(vec3(0.0, 0.0, 1.0), detail,
-    material_FlowNormalStrength * material_MicroSurfaceEnabled));
-  vec3 downstream = safeNormalize3(vec3(flow.x, 0.0, flow.y)
-    - geometryNormal * dot(vec3(flow.x, 0.0, flow.y), geometryNormal), vec3(0.0, 0.0, 1.0));
-  vec3 across = safeNormalize3(cross(downstream, geometryNormal), vec3(1.0, 0.0, 0.0));
-  return safeNormalize3(geometryNormal * detail.z + across * detail.x + downstream * detail.y, geometryNormal);
-#else
+    detail = normalize(mix(vec3(0.0, 0.0, 1.0), detail, flowNormalWeight));
+    vec3 downstream = safeNormalize3(vec3(flow.x, 0.0, flow.y)
+      - geometryNormal * dot(vec3(flow.x, 0.0, flow.y), geometryNormal), vec3(0.0, 0.0, 1.0));
+    vec3 across = safeNormalize3(cross(downstream, geometryNormal), vec3(1.0, 0.0, 0.0));
+    return safeNormalize3(geometryNormal * detail.z + across * detail.x + downstream * detail.y, geometryNormal);
+  }
+#endif
   return safeNormalize3(geometryNormal, geometryNormal);
-#endif
 }
 
       Varyings vert(Attributes attr) {
@@ -1975,9 +2063,11 @@ vec3 evaluateRiverFlowNormalWS(vec2 motion, float halfWidth, float localSpeed, v
         vec4 foamUv = riverPackedUv(foamSourceUv, vec2(0.5, 1.0), material_FlowFoamOffsets.xy * transportGate);
         regularFoam = texture2D(material_RiverFoamTexture, foamUv.xy).r
           + texture2D(material_RiverFoamTexture, foamUv.zw).r;
-        vec4 slopeFoamUv = riverPackedUv(foamSourceUv, vec2(0.5, 0.5), material_FlowFoamOffsets.xz * transportGate);
-        slopeFoam = texture2D(material_RiverFoamTexture, slopeFoamUv.xy).r
-          + texture2D(material_RiverFoamTexture, slopeFoamUv.zw).r;
+        if (foamSlopeMask > 0.0) {
+          vec4 slopeFoamUv = riverPackedUv(foamSourceUv, vec2(0.5, 0.5), material_FlowFoamOffsets.xz * transportGate);
+          slopeFoam = texture2D(material_RiverFoamTexture, slopeFoamUv.xy).r
+            + texture2D(material_RiverFoamTexture, slopeFoamUv.zw).r;
+        }
 #endif
         regularFoam = saturate(regularFoam);
         slopeFoam = saturate(slopeFoam);
@@ -2012,9 +2102,12 @@ vec3 evaluateRiverFlowNormalWS(vec2 motion, float halfWidth, float localSpeed, v
           * step(0.002, displacedScreenUv.y)
           * step(displacedScreenUv.y, 0.998);
         vec2 refractedScreenUv = clamp(displacedScreenUv, vec2(0.002), vec2(0.998));
-        float refractedSceneEyeDepth = remapDepthBufferEyeDepth(
-          texture2D(camera_DepthTexture, refractedScreenUv).r
-        );
+        vec2 refractionDepthDeltaUv = refractedScreenUv - screenUv;
+        float refractedSceneEyeDepth = (refractionScreenInterior > 0.5 && dot(refractionDepthDeltaUv, refractionDepthDeltaUv) > 1e-10)
+          ? remapDepthBufferEyeDepth(
+              texture2D(camera_DepthTexture, refractedScreenUv).r
+            )
+          : sceneEyeDepthSample;
         float refractedOpticalDepth = max(refractedSceneEyeDepth - input.surfaceEyeDepth, 0.0);
         float refractionDepthTolerance = max(
           0.18000000,
@@ -2071,19 +2164,58 @@ vec3 evaluateRiverFlowNormalWS(vec2 motion, float halfWidth, float localSpeed, v
         float appearanceBoundaryField1 = sampledOpticalDepth;
         float appearanceBoundaryRawNormalized1 = appearanceBoundaryField1
           / max(material_AppearanceV2Boundary1Range, 0.0001);
-        float appearanceBoundaryNormalized1 = clamp(
-          appearanceBoundaryRawNormalized1,
-          0.0,
-          1.0
-        );
-        float appearanceBoundaryMask1 = appearanceBoundaryNormalized1;
-        appearanceBoundaryMask1 = 1.0 - appearanceBoundaryMask1;
+        float appearanceBoundaryMask1 = 0.0;
 
-        float appearanceBoundaryPattern1 = evaluateWaterAnimatedVoronoiF1( input.worldPosition.xz, material_AppearanceV2Boundary1PatternTimeRate, material_AppearanceV2Boundary1PatternWorldScale, 1.0, material_AppearanceV2Boundary1PatternWeights, material_AppearanceV2Boundary1PatternLacunarity );
-
-        float appearanceBoundaryPatternResponse1 = pow(max(abs(1.0 - appearanceBoundaryPattern1), 0.0001), material_AppearanceV2Boundary1PatternExponent);
-
-        appearanceBoundaryMask1 = clamp(1.0 - appearanceBoundaryRawNormalized1 + appearanceBoundaryPatternResponse1, 0.0, 1.0) * material_AppearanceV2Boundary1PatternOpacity;
+        bool appearanceBoundaryGate1 = (material_AppearanceV2Boundary1PatternOpacity > 0.0001);
+        appearanceBoundaryGate1 = appearanceBoundaryGate1 && (material_AppearanceV2BoundaryMaterialEnabled > 0.0001);
+        if (appearanceBoundaryGate1) {
+          float appearanceBoundaryRawNorm1 = appearanceBoundaryRawNormalized1;
+          float appearanceBoundaryPatternExp1 = material_AppearanceV2Boundary1PatternExponent;
+          if (appearanceBoundaryPatternExp1 == 0.0) {
+            appearanceBoundaryMask1 = clamp(2.0 - appearanceBoundaryRawNorm1, 0.0, 1.0) * material_AppearanceV2Boundary1PatternOpacity;
+          } else if (appearanceBoundaryPatternExp1 < 0.0) {
+            if (appearanceBoundaryRawNorm1 <= 1.0) {
+              appearanceBoundaryMask1 = material_AppearanceV2Boundary1PatternOpacity;
+            } else {
+              float appearanceBoundaryPMax1 = -1.0;
+              bool appearanceBoundaryAlwaysZero1 = false;
+              if (appearanceBoundaryRawNorm1 > 2.0) {
+                float appearanceBoundaryBaseReq1 = pow(
+                  appearanceBoundaryRawNorm1 - 1.0,
+                  1.0 / appearanceBoundaryPatternExp1
+                );
+                if (appearanceBoundaryBaseReq1 <= 0.0001) {
+                  appearanceBoundaryAlwaysZero1 = true;
+                }
+                else {
+                  appearanceBoundaryPMax1 = 1.0 - appearanceBoundaryBaseReq1;
+                }
+              }
+              if (appearanceBoundaryAlwaysZero1) {
+                appearanceBoundaryMask1 = 0.0;
+              } else {
+                float appearanceBoundaryPattern1 = appearanceBoundaryPMax1 >= 0.0
+                  ? evaluateWaterAnimatedVoronoiF1UpperBounded( input.worldPosition.xz, material_AppearanceV2Boundary1PatternTimeRate, material_AppearanceV2Boundary1PatternWorldScale, 1.0, material_AppearanceV2Boundary1PatternWeights, material_AppearanceV2Boundary1PatternLacunarity, appearanceBoundaryPMax1 )
+                  : evaluateWaterAnimatedVoronoiF1( input.worldPosition.xz, material_AppearanceV2Boundary1PatternTimeRate, material_AppearanceV2Boundary1PatternWorldScale, 1.0, material_AppearanceV2Boundary1PatternWeights, material_AppearanceV2Boundary1PatternLacunarity );
+                float appearanceBoundaryPatternResponse1 = pow(max(abs(1.0 - appearanceBoundaryPattern1), 0.0001), appearanceBoundaryPatternExp1);
+                appearanceBoundaryMask1 = clamp(1.0 - appearanceBoundaryRawNorm1 + appearanceBoundaryPatternResponse1, 0.0, 1.0) * material_AppearanceV2Boundary1PatternOpacity;
+              }
+            }
+          } else {
+            if (appearanceBoundaryRawNorm1 >= 2.0) {
+              appearanceBoundaryMask1 = 0.0;
+            } else if (appearanceBoundaryRawNorm1 <= 0.0) {
+              appearanceBoundaryMask1 = material_AppearanceV2Boundary1PatternOpacity;
+            } else {
+              float appearanceBoundaryPMax1 = -1.0;
+              float appearanceBoundaryPattern1 = evaluateWaterAnimatedVoronoiF1( input.worldPosition.xz, material_AppearanceV2Boundary1PatternTimeRate, material_AppearanceV2Boundary1PatternWorldScale, 1.0, material_AppearanceV2Boundary1PatternWeights, material_AppearanceV2Boundary1PatternLacunarity );
+              float appearanceBoundaryPatternResponse1 = pow(max(abs(1.0 - appearanceBoundaryPattern1), 0.0001), appearanceBoundaryPatternExp1);
+              appearanceBoundaryMask1 = clamp(1.0 - appearanceBoundaryRawNorm1 + appearanceBoundaryPatternResponse1, 0.0, 1.0) * material_AppearanceV2Boundary1PatternOpacity;
+            }
+          }
+        } else {
+          appearanceBoundaryMask1 = 0.0;
+        }
 
         appearanceBoundaryMask1 *= 1.0;
         contactFoamMask = max(
@@ -2099,39 +2231,40 @@ vec3 evaluateRiverFlowNormalWS(vec2 motion, float halfWidth, float localSpeed, v
 #endif
 
         float refractionSampleWeight = refractionSampleValidity;
-        vec3 rawAnalyticReflectionSample = waterSurfaceResolveAnalyticReflectionFallbackV2(
-          surfaceNormalWS.y,
-          effectiveSurfaceRoughness,
-          1.0
-        );
-        vec3 rawEnvironmentReflectionSample;
-        float rawEnvironmentReflectionValidity;
-        waterSurfaceSampleRawEnvironmentReflectionV2(
-          reflect(-viewDirection, surfaceNormalWS),
-          input.worldPosition,
-          effectiveSurfaceRoughness,
-          rawEnvironmentReflectionSample,
-          rawEnvironmentReflectionValidity
-        );
-          vec3 rawSsrReflectionPremultipliedSample = vec3(0.0);
+        vec3 rawAnalyticReflectionSample = vec3(0.0);
+        vec3 rawEnvironmentReflectionSample = vec3(0.0);
+        float rawEnvironmentReflectionValidity = 0.0;
+        vec3 rawSsrReflectionPremultipliedSample = vec3(0.0);
         float rawSsrReflectionValidity = 0.0;
+        bool sampleEnvironmentReflection = true;
         #ifdef CAMERA_ENABLE_SSR
         if (material_ReflectionSource > 2.5) {
-          vec3 fallbackEnvironment = mix(
-            rawAnalyticReflectionSample,
+          vec4 ssrRaw = sampleScreenSpaceReflectionRaw(
+            input.clipPosition,
+            surfaceNormalWS,
+            effectiveSurfaceRoughness
+          );
+          float connectionSsrValidity = clamp(waterConnectionFacts(input.worldPosition.xz).y, 0.0, 1.0);
+          rawSsrReflectionValidity = connectionSsrValidity * ssrRaw.a;
+          rawSsrReflectionPremultipliedSample = ssrRaw.rgb * connectionSsrValidity;
+          float ssrCompositeScale = clamp(material_WaterScreenSpaceReflectionCompositeIntensity, 0.0, 1.0);
+          sampleEnvironmentReflection = rawSsrReflectionValidity * ssrCompositeScale < 0.9999;
+        }
+        #endif
+        if (sampleEnvironmentReflection) {
+          rawAnalyticReflectionSample = waterSurfaceResolveAnalyticReflectionFallbackV2(
+            surfaceNormalWS.y,
+            effectiveSurfaceRoughness,
+            1.0
+          );
+          waterSurfaceSampleRawEnvironmentReflectionV2(
+            reflect(-viewDirection, surfaceNormalWS),
+            input.worldPosition,
+            effectiveSurfaceRoughness,
             rawEnvironmentReflectionSample,
             rawEnvironmentReflectionValidity
           );
-          vec3 ssrComposited = evaluateScreenSpaceReflection(
-            input.clipPosition,
-            surfaceNormalWS,
-            effectiveSurfaceRoughness,
-            fallbackEnvironment
-          );
-          rawSsrReflectionValidity = waterConnectionFacts(input.worldPosition.xz).y;
-          rawSsrReflectionPremultipliedSample = ssrComposited * rawSsrReflectionValidity;
         }
-        #endif
         float reflectionIntensity = max(material_ReflectionIntensity, 0.0);
 
 #ifndef WATER_SURFACE_GEOMETRY_BRIDGE_INCLUDED
@@ -2178,15 +2311,18 @@ float waterSurface_waveCrest = crestMask;
         vec3 appearanceDepthTintColor = mix(material_AppearanceV2DepthShallowColor.rgb, material_AppearanceV2DepthDeepColor.rgb, clamp(max(sampledOpticalDepth, 0.0) * material_AppearanceV2DepthCoefficient0, 0.0, 1.0));
         appearanceDepthTintColor = appearanceDepthTintColor * (1.0 - appearanceBoundaryAlbedoWeight) + appearanceBoundaryAlbedo;
         appearanceDepthTintFactor = clamp(appearanceDepthTintFactor + appearanceBoundaryAlbedoWeight, 0.0, 1.0);
-        vec3 causticsView = normalize(camera_Position - input.worldPosition);
-        vec2 causticsUv = input.worldPosition.xz * material_AppearanceV2CausticsTransform.xy
-          + material_AppearanceV2CausticsTransform.zw
-          + material_AppearanceV2CausticsParallax.x * causticsView.xz / (abs(causticsView.y) + material_AppearanceV2CausticsParallax.y)
-          + appearanceLayerNormal0.x * material_AppearanceV2CausticsResponse.y;
-        vec3 causticsColor = clamp(texture2D(material_AppearanceV2CausticsTexture, causticsUv).rgb * material_AppearanceV2CausticsResponse.x, 0.0, 1.0)
-          * (1.0 - clamp(max(sampledOpticalDepth, 0.0) * material_AppearanceV2CausticsResponse.z, 0.0, 1.0));
-        appearanceDepthTintColor += causticsColor;
-        appearanceDepthTintFactor = clamp(appearanceDepthTintFactor + length(causticsColor) * material_AppearanceV2CausticsResponse.w, 0.0, 1.0);
+        float causticsDepthFade = 1.0 - clamp(max(sampledOpticalDepth, 0.0) * material_AppearanceV2CausticsResponse.z, 0.0, 1.0);
+        if (causticsDepthFade > 0.0 && material_AppearanceV2CausticsResponse.x > 0.0) {
+          vec3 causticsView = normalize(camera_Position - input.worldPosition);
+          vec2 causticsUv = input.worldPosition.xz * material_AppearanceV2CausticsTransform.xy
+            + material_AppearanceV2CausticsTransform.zw
+            + material_AppearanceV2CausticsParallax.x * causticsView.xz / (abs(causticsView.y) + material_AppearanceV2CausticsParallax.y)
+            + appearanceLayerNormal0.x * material_AppearanceV2CausticsResponse.y;
+          vec3 causticsColor = clamp(texture2D(material_AppearanceV2CausticsTexture, causticsUv).rgb * material_AppearanceV2CausticsResponse.x, 0.0, 1.0)
+            * causticsDepthFade;
+          appearanceDepthTintColor += causticsColor;
+          appearanceDepthTintFactor = clamp(appearanceDepthTintFactor + length(causticsColor) * material_AppearanceV2CausticsResponse.w, 0.0, 1.0);
+        }
         appearanceDepthTintFactor *= appearanceCoastalAlpha;
 #endif
 
@@ -2510,75 +2646,110 @@ float riverHash21(vec2 point) {
   return float(riverHashCell(point) >> 8u) * (1.0 / 16777216.0);
 }
 
-float riverValueNoise(vec2 point) {
+// Returns (value, dValue/dx, dValue/dy) using the exact same lattice and curve as riverValueNoise.
+vec3 riverValueNoiseWithGrad(vec2 point) {
   point = mod(point, 4096.0);
   vec2 cell = floor(point);
   vec2 local = fract(point);
   vec2 curve = local * local * (3.0 - 2.0 * local);
-  float bottom = mix(riverHash21(cell), riverHash21(cell + vec2(1.0, 0.0)), curve.x);
-  float top = mix(
-    riverHash21(cell + vec2(0.0, 1.0)),
-    riverHash21(cell + vec2(1.0, 1.0)),
-    curve.x
-  );
-  return mix(bottom, top, curve.y);
+  vec2 dCurve = 6.0 * local * (1.0 - local);
+  float v00 = riverHash21(cell);
+  float v10 = riverHash21(cell + vec2(1.0, 0.0));
+  float v01 = riverHash21(cell + vec2(0.0, 1.0));
+  float v11 = riverHash21(cell + vec2(1.0, 1.0));
+  float bottom = mix(v00, v10, curve.x);
+  float top = mix(v01, v11, curve.x);
+  float value = mix(bottom, top, curve.y);
+  float dValDx = mix(v10 - v00, v11 - v01, curve.y) * dCurve.x;
+  float dValDy = (top - bottom) * dCurve.y;
+  return vec3(value, dValDx, dValDy);
 }
 
-float riverFbm(vec2 point, vec4 offsets) {
-  float value = riverValueNoise(point + vec2(0.0, offsets.x)) * 0.55000000;
-  value += riverValueNoise(
-    point * 2.03000000
-      + vec2(17.70000000, 9.20000000 + offsets.y)
-  ) * 0.28000000;
-  value += riverValueNoise(
-    point * 4.11000000
-      + vec2(8.30000000, 21.60000000 + offsets.z)
-  ) * 0.17000000;
-  return value;
-}
 
-float riverShoreDamping(float signedAcrossDistance, float halfWidth) {
-  float shoreDistance = halfWidth - abs(signedAcrossDistance);
-  return smoothstep(0.0, material_ShoreDampingWidth, shoreDistance);
-}
-
-vec2 riverWarpedDomain(vec2 motionCoord, float warpOffset) {
+// Evaluates (height, dHeight/dAcross, dHeight/dDownstream) analytically in 24 hashes instead of 120.
+vec3 riverMacroSurfaceWithGrad(
+  vec2 motionCoord,
+  float halfWidth,
+  float localFlowSpeed,
+  float sampledFlowSpeed
+) {
+  float shoreDistance = halfWidth - abs(motionCoord.x);
+  float shoreDamping = smoothstep(0.0, material_ShoreDampingWidth, shoreDistance);
+  float dShoreDampingDx = 0.0;
+  if (
+    material_ShoreDampingWidth > 0.0
+    && shoreDistance > 0.0
+    && shoreDistance < material_ShoreDampingWidth
+  ) {
+    float t = shoreDistance / material_ShoreDampingWidth;
+    float dSmooth = (6.0 * t * (1.0 - t)) / material_ShoreDampingWidth;
+    float dAbsX = motionCoord.x > 0.0 ? -1.0 : (motionCoord.x < 0.0 ? 1.0 : 0.0);
+    dShoreDampingDx = dSmooth * dAbsX;
+  }
+  float flowing = localFlowSpeed > 0.00010000 ? 1.0 : 0.0;
+  vec4 offsets = material_SurfaceDomainOffsets * flowing;
+  float warpOffset = material_SurfaceWarpOffset * flowing;
   float lengthScale = max(material_SurfaceLengthScale, 0.001);
   vec2 baseDomain = vec2(
     motionCoord.x,
     motionCoord.y * 1.50000000
   ) / lengthScale;
-  vec2 warp = vec2(
-    riverValueNoise(
-      baseDomain * 0.55000000
-        + vec2(13.10000000, 7.70000000 + warpOffset)
-    ),
-    riverValueNoise(
-      baseDomain * 0.55000000
-        + vec2(3.80000000, 19.40000000 + warpOffset)
-    )
-  ) * 2.0 - 1.0;
-  return baseDomain + warp * (0.58000000 * material_SurfaceTurbulence);
-}
+  float warpGain = 0.58000000 * material_SurfaceTurbulence;
+  vec3 warpSampleX = riverValueNoiseWithGrad(
+    baseDomain * 0.55000000
+      + vec2(13.10000000, 7.70000000 + warpOffset)
+  );
+  vec3 warpSampleY = riverValueNoiseWithGrad(
+    baseDomain * 0.55000000
+      + vec2(3.80000000, 19.40000000 + warpOffset)
+  );
+  vec2 warp = vec2(warpSampleX.x, warpSampleY.x) * 2.0 - 1.0;
+  vec2 warped = baseDomain + warp * warpGain;
+  float warpJacobianScale = 2.0 * warpGain * 0.55000000;
+  float jxx = 1.0 + warpJacobianScale * warpSampleX.y;
+  float jxy = warpJacobianScale * warpSampleX.z;
+  float jyx = warpJacobianScale * warpSampleY.y;
+  float jyy = 1.0 + warpJacobianScale * warpSampleY.z;
 
-float riverMacroHeight(
-  vec2 motionCoord,
-  float halfWidth,
-  float localFlowSpeed
-) {
-  float shoreDamping = riverShoreDamping(motionCoord.x, halfWidth);
-  float flowing = localFlowSpeed > 0.00010000 ? 1.0 : 0.0;
-  vec4 offsets = material_SurfaceDomainOffsets * flowing;
-  vec2 warped = riverWarpedDomain(motionCoord, material_SurfaceWarpOffset * flowing);
-  float broad = riverFbm(warped, offsets);
-  float ridgeNoise = riverValueNoise(
+  vec3 broad0 = riverValueNoiseWithGrad(warped + vec2(0.0, offsets.x));
+  vec3 broad1 = riverValueNoiseWithGrad(
+    warped * 2.03000000
+      + vec2(17.70000000, 9.20000000 + offsets.y)
+  );
+  vec3 broad2 = riverValueNoiseWithGrad(
+    warped * 4.11000000
+      + vec2(8.30000000, 21.60000000 + offsets.z)
+  );
+  float broad = broad0.x * 0.55000000
+    + broad1.x * 0.28000000
+    + broad2.x * 0.17000000;
+  vec2 gradBroadWarped = broad0.yz * 0.55000000
+    + broad1.yz * (0.28000000 * 2.03000000)
+    + broad2.yz * (0.17000000 * 4.11000000);
+
+  vec3 ridgeSample = riverValueNoiseWithGrad(
     warped * 1.37000000
       + vec2(5.20000000, 11.60000000 + offsets.w)
   );
-  float ridge = 1.0 - abs(ridgeNoise * 2.0 - 1.0);
+  float ridgeSigned = ridgeSample.x * 2.0 - 1.0;
+  float ridge = 1.0 - abs(ridgeSigned);
+  float ridgeSign = ridgeSigned >= 0.0 ? -2.0 : 2.0;
+  vec2 gradRidgeWarped = ridgeSample.yz * (1.37000000 * ridgeSign);
+
   float shape = (broad - 0.5) * 0.72000000
     + (ridge - 0.5) * 0.28000000 * material_SurfaceTurbulence;
-  return material_SurfaceMaxDisplacement * shoreDamping * shape;
+  vec2 gradShapeWarped = gradBroadWarped * 0.72000000
+    + gradRidgeWarped * (0.28000000 * material_SurfaceTurbulence);
+  float gradBaseX = gradShapeWarped.x * jxx + gradShapeWarped.y * jyx;
+  float gradBaseY = gradShapeWarped.x * jxy + gradShapeWarped.y * jyy;
+
+  float height = material_SurfaceMaxDisplacement * shoreDamping * shape;
+  float dAcross = material_SurfaceMaxDisplacement
+    * (dShoreDampingDx * shape + shoreDamping * (gradBaseX / lengthScale));
+  float dDownstream = material_SurfaceMaxDisplacement
+    * shoreDamping
+    * (gradBaseY * (1.50000000 / (lengthScale * sampledFlowSpeed)));
+  return vec3(height, dAcross, dDownstream);
 }
 
 struct RiverGeometryVertex {
@@ -2593,43 +2764,20 @@ struct RiverGeometryVertex {
 
 RiverGeometryVertex evaluateRiverGeometry(Attributes attr) {
   RiverGeometryVertex geometry;
-  float derivativeStep = 0.05000000;
   float sampledFlowSpeed = max(attr.TEXCOORD_1.x, 0.05000000);
-  float flowTimeStep = derivativeStep / sampledFlowSpeed;
-  float downstreamSpan = flowTimeStep * sampledFlowSpeed;
   float computedMacroHeight = 0.0;
   float acrossDerivative = 0.0;
   float downstreamDerivative = 0.0;
   if (material_SurfaceMaxDisplacement * material_MacroDisplacementEnabled > 0.0) {
-  computedMacroHeight = riverMacroHeight(
-    attr.TEXCOORD_2,
-    attr.TEXCOORD_3.x,
-    attr.TEXCOORD_1.x
-  ) * material_MacroDisplacementEnabled;
-  float acrossPositive = riverMacroHeight(
-    attr.TEXCOORD_2 + vec2(derivativeStep, 0.0),
-    attr.TEXCOORD_3.x,
-    attr.TEXCOORD_1.x
-  );
-  float acrossNegative = riverMacroHeight(
-    attr.TEXCOORD_2 - vec2(derivativeStep, 0.0),
-    attr.TEXCOORD_3.x,
-    attr.TEXCOORD_1.x
-  );
-  float downstreamPositive = riverMacroHeight(
-    attr.TEXCOORD_2 + vec2(0.0, flowTimeStep),
-    attr.TEXCOORD_3.x,
-    attr.TEXCOORD_1.x
-  );
-  float downstreamNegative = riverMacroHeight(
-    attr.TEXCOORD_2 - vec2(0.0, flowTimeStep),
-    attr.TEXCOORD_3.x,
-    attr.TEXCOORD_1.x
-  );
-  acrossDerivative = (acrossPositive - acrossNegative) / (derivativeStep * 2.0)
-    * material_MacroDisplacementEnabled;
-  downstreamDerivative = (downstreamPositive - downstreamNegative) / (downstreamSpan * 2.0)
-    * material_MacroDisplacementEnabled;
+    vec3 macroSurface = riverMacroSurfaceWithGrad(
+      attr.TEXCOORD_2,
+      attr.TEXCOORD_3.x,
+      attr.TEXCOORD_1.x,
+      sampledFlowSpeed
+    );
+    computedMacroHeight = macroSurface.x * material_MacroDisplacementEnabled;
+    acrossDerivative = macroSurface.y * material_MacroDisplacementEnabled;
+    downstreamDerivative = macroSurface.z * material_MacroDisplacementEnabled;
   }
   vec4 localPosition = attr.POSITION;
   float connectionMotion = waterConnectionFacts((renderer_ModelMat * attr.POSITION).xz).x;
@@ -2680,34 +2828,38 @@ vec3 riverUnpackNormal(vec2 packedNormal) {
 
 vec3 evaluateRiverFlowNormalWS(vec2 motion, float halfWidth, float localSpeed, vec2 flow, vec3 geometryNormal) {
 #ifdef MATERIAL_RIVER_FLOW_NORMAL
-  float gate = step(0.0001, localSpeed);
-  vec2 uv = riverSourceUv(motion, halfWidth);
-  vec2 tiling = vec2(2.0, 1.0) * (1.2 / max(material_SurfaceLengthScale, 0.5));
-  vec4 regularUv = riverPackedUv(uv, tiling, material_FlowNormalOffsets.xy * gate);
+  float flowNormalWeight = material_FlowNormalStrength * material_MicroSurfaceEnabled;
+  if (flowNormalWeight > 0.0) {
+    float gate = step(0.0001, localSpeed);
+    vec2 uv = riverSourceUv(motion, halfWidth);
+    vec2 tiling = vec2(2.0, 1.0) * (1.2 / max(material_SurfaceLengthScale, 0.5));
+    vec4 regularUv = riverPackedUv(uv, tiling, material_FlowNormalOffsets.xy * gate);
 #ifdef WATER_SSR_SIMPLIFIED_FLOW_NORMAL
-  vec3 detail = riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.xy).rg);
+    vec3 detail = riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.xy).rg);
 #else
-  float slope = riverSlopeMask(geometryNormal);
-  vec3 regular = riverBlendNormals(
-    riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.xy).rg),
-    riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.zw).rg));
-  // Scale only the spatial primary y; the final time rate already includes this half.
-  vec4 slopeUv = vec4(uv * tiling * vec2(1.0, 0.5), uv * tiling * 0.5);
-  slopeUv.yw += material_FlowNormalOffsets.xx * gate;
-  vec3 steep = riverBlendNormals(
-    riverUnpackNormal(texture2D(material_SurfaceNormalTexture, slopeUv.xy).ba),
-    riverUnpackNormal(texture2D(material_SurfaceNormalTexture, slopeUv.zw).ba));
-  vec3 detail = mix(regular, steep, slope);
+    float slope = riverSlopeMask(geometryNormal);
+    vec3 regular = riverBlendNormals(
+      riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.xy).rg),
+      riverUnpackNormal(texture2D(material_SurfaceNormalTexture, regularUv.zw).rg));
+    vec3 detail = regular;
+    if (slope > 0.0) {
+      // Scale only the spatial primary y; the final time rate already includes this half.
+      vec4 slopeUv = vec4(uv * tiling * vec2(1.0, 0.5), uv * tiling * 0.5);
+      slopeUv.yw += material_FlowNormalOffsets.xx * gate;
+      vec3 steep = riverBlendNormals(
+        riverUnpackNormal(texture2D(material_SurfaceNormalTexture, slopeUv.xy).ba),
+        riverUnpackNormal(texture2D(material_SurfaceNormalTexture, slopeUv.zw).ba));
+      detail = mix(regular, steep, slope);
+    }
 #endif
-  detail = normalize(mix(vec3(0.0, 0.0, 1.0), detail,
-    material_FlowNormalStrength * material_MicroSurfaceEnabled));
-  vec3 downstream = safeNormalize3(vec3(flow.x, 0.0, flow.y)
-    - geometryNormal * dot(vec3(flow.x, 0.0, flow.y), geometryNormal), vec3(0.0, 0.0, 1.0));
-  vec3 across = safeNormalize3(cross(downstream, geometryNormal), vec3(1.0, 0.0, 0.0));
-  return safeNormalize3(geometryNormal * detail.z + across * detail.x + downstream * detail.y, geometryNormal);
-#else
+    detail = normalize(mix(vec3(0.0, 0.0, 1.0), detail, flowNormalWeight));
+    vec3 downstream = safeNormalize3(vec3(flow.x, 0.0, flow.y)
+      - geometryNormal * dot(vec3(flow.x, 0.0, flow.y), geometryNormal), vec3(0.0, 0.0, 1.0));
+    vec3 across = safeNormalize3(cross(downstream, geometryNormal), vec3(1.0, 0.0, 0.0));
+    return safeNormalize3(geometryNormal * detail.z + across * detail.x + downstream * detail.y, geometryNormal);
+  }
+#endif
   return safeNormalize3(geometryNormal, geometryNormal);
-#endif
 }
 
 #ifndef WATER_SURFACE_NORMAL_FUNCTIONS_INCLUDED

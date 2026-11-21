@@ -73,18 +73,25 @@
           * mix(1.0, material_NearshoreOutsidePolicy.y, outsideEdges.y)
           * mix(1.0, material_NearshoreOutsidePolicy.z, outsideEdges.z)
           * mix(1.0, material_NearshoreOutsidePolicy.w, outsideEdges.w);
-        vec4 nearshoreSample = texture2D(material_NearshoreTexture, clamp(nearshoreUv, vec2(0.0), vec2(1.0)));
-        float sampledShoreDistance = waterSpatialFieldDecodeSignedDistance(
-          nearshoreSample.a,
-          2.0078740157480315,
-          -1.0078740157480315,
-          material_NearshoreDecode.y
-        );
-        float shoreDistance = mix(
-          sampledShoreDistance,
-          mix(-material_NearshoreDecode.y, material_NearshoreDecode.y, outsideWet),
-          outsideAtlas
-        );
+        float shoreDistance = mix(-material_NearshoreDecode.y, material_NearshoreDecode.y, outsideWet);
+        if (outsideAtlas < 0.5) {
+          vec2 clampedNearshoreUv = clamp(nearshoreUv, vec2(0.0), vec2(1.0));
+          #ifdef GRAPHICS_API_WEBGL2
+            vec4 nearshoreSample = textureLod(material_NearshoreTexture, clampedNearshoreUv, 0.0);
+          #else
+            #ifdef HAS_TEX_LOD
+              vec4 nearshoreSample = texture2DLodEXT(material_NearshoreTexture, clampedNearshoreUv, 0.0);
+            #else
+              vec4 nearshoreSample = texture2D(material_NearshoreTexture, clampedNearshoreUv);
+            #endif
+          #endif
+          shoreDistance = waterSpatialFieldDecodeSignedDistance(
+            nearshoreSample.a,
+            2.0078740157480315,
+            -1.0078740157480315,
+            material_NearshoreDecode.y
+          );
+        }
         float shoreAntialias = max(
           max(material_NearshoreCellSize.x, material_NearshoreCellSize.y) * 0.42,
           max(fwidth(shoreDistance) * 1.25, material_NearshoreDecode.y * (2.0 / 255.0))

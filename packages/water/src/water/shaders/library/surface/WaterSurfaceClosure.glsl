@@ -193,26 +193,29 @@ WaterSurfaceResolvedLightingV2 waterSurfaceAccumulateDirectLightingV2(
 ) {
   vec3 safeLightRadiance = max(lightRadiance, vec3(0.0));
   float safeNormalDotLight = clamp(normalDotLight, 0.0, 1.0);
-  float standardDirectSpecular = waterSurfaceDirectSpecular(
-    fresnelF0,
-    perceptualRoughness,
-    normalDotView,
-    safeNormalDotLight,
-    normalDotHalf,
-    lightDotHalf
-  );
-  float litDirectSpecular = waterSurfaceLitDirectSpecular(
-    fresnelF0,
-    perceptualRoughness,
-    safeNormalDotLight,
-    normalDotHalf,
-    lightDotHalf
-  );
-  float resolvedDirectSpecular = mix(
-    standardDirectSpecular,
-    litDirectSpecular,
-    step(1.5, primaryColorClosureModel) * (1.0 - step(3.5, primaryColorClosureModel))
-  ) * clamp(directSpecularEnabled, 0.0, 1.0);
+  float resolvedDirectSpecular = 0.0;
+  float specGate = clamp(directSpecularEnabled, 0.0, 1.0);
+  if (specGate > 0.0) {
+    if (primaryColorClosureModel >= 1.5 && primaryColorClosureModel < 3.5) {
+      resolvedDirectSpecular = waterSurfaceLitDirectSpecular(
+        fresnelF0,
+        perceptualRoughness,
+        safeNormalDotLight,
+        normalDotHalf,
+        lightDotHalf
+      );
+    } else {
+      resolvedDirectSpecular = waterSurfaceDirectSpecular(
+        fresnelF0,
+        perceptualRoughness,
+        normalDotView,
+        safeNormalDotLight,
+        normalDotHalf,
+        lightDotHalf
+      );
+    }
+    resolvedDirectSpecular *= specGate;
+  }
   lighting.diffuseRadiance += safeLightRadiance * safeNormalDotLight;
   lighting.directSpecularRadiance += safeLightRadiance * resolvedDirectSpecular;
   return lighting;
@@ -236,35 +239,33 @@ vec4 waterSurfaceEvaluateFinalClosureV2(
     closure.diffuseLighting,
     closure.primaryColorClosureModel
   );
-  vec3 opticalVolumeColor = waterSurfaceApplyOpticalVolume(
-    primaryColor,
-    closure.absorptionCoefficient,
-    closure.scatteringColor,
-    closure.scatteringCoefficient,
-    closure.opticalDepth
-  );
-  vec3 baseColor = mix(
-    opticalVolumeColor,
-    primaryColor,
-    step(0.5, closure.primaryColorClosureModel)
-  );
-  vec3 refractedVolumeColor = waterSurfaceApplyOpticalVolume(
-    closure.refractionColor,
-    closure.absorptionCoefficient,
-    closure.scatteringColor,
-    closure.scatteringCoefficient,
-    closure.opticalDepth
-  );
-  vec3 resolvedRefractionColor = mix(
-    refractedVolumeColor,
-    closure.refractionColor,
-    step(0.5, closure.primaryColorClosureModel)
-  );
-  vec3 color = mix(
-    baseColor,
-    resolvedRefractionColor,
-    clamp(closure.refractionWeight, 0.0, 1.0) * (1.0 - step(1.5, closure.primaryColorClosureModel))
-  );
+  vec3 baseColor = primaryColor;
+  float refractionMix = 0.0;
+  vec3 resolvedRefractionColor = closure.refractionColor;
+  if (closure.primaryColorClosureModel < 0.5) {
+    baseColor = waterSurfaceApplyOpticalVolume(
+      primaryColor,
+      closure.absorptionCoefficient,
+      closure.scatteringColor,
+      closure.scatteringCoefficient,
+      closure.opticalDepth
+    );
+    refractionMix = clamp(closure.refractionWeight, 0.0, 1.0);
+    if (refractionMix > 0.0) {
+      resolvedRefractionColor = waterSurfaceApplyOpticalVolume(
+        closure.refractionColor,
+        closure.absorptionCoefficient,
+        closure.scatteringColor,
+        closure.scatteringCoefficient,
+        closure.opticalDepth
+      );
+    }
+  } else if (closure.primaryColorClosureModel < 1.5) {
+    refractionMix = clamp(closure.refractionWeight, 0.0, 1.0);
+  }
+  vec3 color = refractionMix > 0.0
+    ? mix(baseColor, resolvedRefractionColor, refractionMix)
+    : baseColor;
   vec3 boundaryContribution = closure.boundaryColor * max(closure.diffuseLighting, vec3(0.0));
   float litSceneColorClosure = step(1.5, closure.primaryColorClosureModel);
   color += boundaryContribution * litSceneColorClosure;

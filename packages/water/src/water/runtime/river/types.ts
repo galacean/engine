@@ -1,10 +1,10 @@
 /** GPU and query contracts owned by the river runtime. */
-import type { ModelMesh } from "@galacean/engine-core";
+import type { BufferMesh } from "@galacean/engine-core";
 import type { Vector3 } from "@galacean/engine-math";
 import type { RiverChunkSourceKind } from "../../compiler/river/RiverGeometryEnums";
 
 export interface RiverMeshBuildResult {
-  surfaceMesh: ModelMesh;
+  surfaceMesh: BufferMesh;
 }
 
 /** Caller-owned scalar result. `sampleSurface` mutates it without allocating. */

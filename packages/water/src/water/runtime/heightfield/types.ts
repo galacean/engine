@@ -1,5 +1,5 @@
 /** GPU-facing runtime contracts for heightfield water. */
-import type { Buffer, Material, ModelMesh } from "@galacean/engine-core";
+import type { Buffer, BufferMesh, Material } from "@galacean/engine-core";
 import type { WaterSurfaceDepthSource } from "../../authoring/surface/enums/WaterSurfaceDepthSource";
 import type { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
 import type { CompiledWaterWaveSet } from "../../compiler/wave/CompiledWaterWaveTypes";
@@ -11,7 +11,7 @@ export type MutableHeightfieldWaterSurfaceOpticsBinding = {
 };
 
 export interface HeightfieldWaterMeshBuildResult {
-  readonly surfaceMesh: ModelMesh;
+  readonly surfaceMesh: BufferMesh;
   /** Buffers allocated by this mesh upload and destroyed with the runtime set. */
   readonly ownedBuffers: readonly Buffer[];
 }

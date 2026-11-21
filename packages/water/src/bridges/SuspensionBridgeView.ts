@@ -41,16 +41,38 @@ function destroyAssets(resource: GLTFResource): void {
   for (const material of resource.materials ?? []) material.destroy(true);
   for (const texture of resource.textures ?? []) texture.destroy(true);
 }
+function flattenVector3List(values: readonly Vector3[]): number[] {
+  const flat = new Array<number>(values.length * 3);
+  for (let i = 0; i < values.length; i++) {
+    const item = values[i]!;
+    const offset = i * 3;
+    flat[offset] = item.x;
+    flat[offset + 1] = item.y;
+    flat[offset + 2] = item.z;
+  }
+  return flat;
+}
+
 function readMesh(mesh: ModelMesh): BridgeMeshData {
   const positions = mesh.getPositions(),
     normals = mesh.getNormals(),
-    uvs = mesh.getUVs();
-  if (!positions || !normals || !uvs) throw new Error(`吊桥源部件缺少可读顶点：${mesh.name}`);
+    uvs = mesh.getUVs(),
+    rawIndices = mesh.getIndices();
+  if (!positions || !normals || !uvs || !rawIndices) throw new Error(`吊桥源部件缺少可读顶点：${mesh.name}`);
+  const flatUvs = new Array<number>(uvs.length * 2);
+  for (let i = 0; i < uvs.length; i++) {
+    const item = uvs[i]!;
+    const offset = i * 2;
+    flatUvs[offset] = item.x;
+    flatUvs[offset + 1] = item.y;
+  }
+  const indices = new Array<number>(rawIndices.length);
+  for (let i = 0; i < rawIndices.length; i++) indices[i] = rawIndices[i]!;
   return {
-    positions: positions.flatMap((p) => [p.x, p.y, p.z]),
-    normals: normals.flatMap((p) => [p.x, p.y, p.z]),
-    uvs: uvs.flatMap((p) => [p.x, p.y]),
-    indices: Array.from(mesh.getIndices()!)
+    positions: flattenVector3List(positions),
+    normals: flattenVector3List(normals),
+    uvs: flatUvs,
+    indices
   };
 }
 function readTemplate(resource: GLTFResource): BridgeTemplate {
@@ -303,7 +325,8 @@ export class SuspensionBridgeView {
   updateLod(camera: Camera): void {
     if (this.disposed || !this.root.isActiveInHierarchy) return;
     const p = camera.entity.transform.worldPosition;
-    for (const binding of this.bindings) {
+    for (let b = 0; b < this.bindings.length; b++) {
+      const binding = this.bindings[b]!;
       BoundingBox.transform(binding.bounds, binding.renderers[0].entity.transform.worldMatrix, binding.worldBounds);
       const { min, max } = binding.worldBounds;
       const dx = Math.max(min.x - p.x, 0, p.x - max.x),

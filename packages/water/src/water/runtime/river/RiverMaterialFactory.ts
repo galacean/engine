@@ -19,6 +19,7 @@ import {
   TextureWrapMode
 } from "@galacean/engine-core";
 import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { WaterSurfaceCompositionV2 } from "../../authoring/surface/WaterSurfaceAppearanceTypes";
 import type { RiverMaterialConfig } from "../../authoring/river/RiverAuthoringTypes";
 import type { RiverCompiledSurfaceMotionData } from "../../compiler/river/types";
 import type { WaterReflectionBinding } from "../optics/WaterReflectionService";
@@ -42,6 +43,7 @@ import {
   getWaterSurfaceAppearanceV2DetailProperty
 } from "../surface/WaterSurfaceAppearanceV2Shader";
 import {
+  applyWaterPatternUniformsV2,
   applyWaterSurfaceDepthResponseV2Uniforms,
   bindWaterSurfaceAppearanceV2Clock,
   updateWaterSurfaceAppearanceV2Clock
@@ -203,6 +205,7 @@ function configureSurfaceMaterial(
     getRiverTexture(engine, foamTextures, "foam", "RiverFoam")
   );
   updateRiverMaterial(material, config, flowSpeedMultiplier);
+  material.shaderData.setInt(RIVER_SHADER_PROPERTY.blendEnabled, 1);
   setRiverSurfaceDepthWriteEnabled(material, false);
   updateRiverSurfaceMotion(material, motion);
   setRiverSurfaceFeatureFlags(material, true, true);
@@ -274,6 +277,10 @@ export function setRiverSurfaceAppearanceBinding(
   const appearance = binding.appearance;
   material.shader = resolveRiverSurfaceShader(binding, state.useLocalMap);
   const shaderData = material.shaderData;
+  shaderData.setInt(
+    RIVER_SHADER_PROPERTY.blendEnabled,
+    appearance.composition === WaterSurfaceCompositionV2.PrecomposedReplace ? 0 : 1
+  );
   shaderData.setFloat(
     WATER_SURFACE_APPEARANCE_V2_SHADER_PROPERTY.detailEnabled,
     appearance.detailLayers.length > 0 ? 1 : 0
@@ -340,30 +347,7 @@ export function setRiverSurfaceAppearanceBinding(
       );
     }
     if (!effect.pattern) return;
-    shaderData.setFloat(
-      getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternWorldScale"),
-      effect.pattern.worldScale
-    );
-    shaderData.setFloat(getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternTimeRate"), effect.pattern.timeRate);
-    shaderData.setFloat(getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternOpacity"), effect.pattern.opacity);
-    if (effect.pattern.exponent !== undefined) {
-      shaderData.setFloat(
-        getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternExponent"),
-        effect.pattern.exponent
-      );
-    }
-    shaderData.setVector3(
-      getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternWeights"),
-      new Vector3(
-        effect.pattern.octaves.weights[0] ?? 0,
-        effect.pattern.octaves.weights[1] ?? 0,
-        effect.pattern.octaves.weights[2] ?? 0
-      )
-    );
-    shaderData.setFloat(
-      getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternLacunarity"),
-      effect.pattern.lacunarity
-    );
+    applyWaterPatternUniformsV2(shaderData, index, effect.pattern);
   });
   bindWaterSurfaceAppearanceV2Clock(material, appearance, true);
   updateRiverFlowClock(material);

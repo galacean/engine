@@ -5,6 +5,7 @@ export const RIVER_SHADER_PROPERTY = {
   flowSpeedMultiplier: "material_FlowSpeed",
   foamIntensity: "material_FoamIntensity",
   clarity: "material_Clarity",
+  blendEnabled: "blendEnabled",
   depthWriteEnabled: "material_DepthWriteEnabled",
   noiseTexture: "material_NoiseTexture",
   surfaceNormalTexture: "material_SurfaceNormalTexture",

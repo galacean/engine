@@ -1,7 +1,18 @@
 import { destroyWaterOwnedMesh } from "../resources/destroyWaterOwnedMesh";
-/** Converts compiler-owned CPU geometry into reusable Galacean ModelMesh resources. */
-import { type Buffer, ContentRestorer, Engine, MeshTopology, ModelMesh, VertexAttribute } from "@galacean/engine-core";
-import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+/** Converts compiler-owned CPU geometry into reusable Galacean BufferMesh resources. */
+import {
+  Buffer,
+  BufferBindFlag,
+  BufferMesh,
+  BufferUsage,
+  ContentRestorer,
+  Engine,
+  IndexFormat,
+  MeshTopology,
+  VertexAttribute,
+  VertexElement,
+  VertexElementFormat
+} from "@galacean/engine-core";
 import type { RiverGeometryData, RiverRenderableArtifact } from "../../compiler/river/types";
 import type { RiverMeshBuildResult } from "./types";
 
@@ -10,148 +21,282 @@ export interface RiverMeshUploadOptions {
   releaseCpuData?: boolean;
 }
 
-function motionGradient(geometry: RiverGeometryData, index: number): readonly number[] {
-  if (geometry.motionGradients) return geometry.motionGradients[index];
-  const tangent = geometry.tangents?.[index] ?? [0, 0, 1, 1];
-  const length = Math.hypot(tangent[0], tangent[2]) || 1;
-  return [-tangent[2] / length, tangent[0] / length, tangent[0] / length, tangent[2] / length];
+function writeAttributeTuples(
+  packed: Float32Array,
+  values: readonly (readonly number[])[],
+  floatStride: number,
+  floatOffset: number,
+  componentCount: number,
+  sourceStart = 0
+): void {
+  for (let i = 0; i < values.length; i++) {
+    const source = values[i]!;
+    const dst = i * floatStride + floatOffset;
+    for (let c = 0; c < componentCount; c++) {
+      packed[dst + c] = source[sourceStart + c]!;
+    }
+  }
+}
+
+function writeFallbackMotionGradients(
+  packed: Float32Array,
+  geometry: RiverGeometryData,
+  floatStride: number,
+  uv4Offset: number,
+  uv5Offset: number
+): void {
+  const tangents = geometry.tangents;
+  const vertexCount = geometry.positions.length;
+  for (let i = 0; i < vertexCount; i++) {
+    const tangent = tangents?.[i];
+    const tx = tangent ? tangent[0]! : 0;
+    const tz = tangent ? tangent[2]! : 1;
+    const length = Math.hypot(tx, tz) || 1;
+    const nx = -tz / length;
+    const nz = tx / length;
+    const fx = tx / length;
+    const fz = tz / length;
+    const base = i * floatStride;
+    packed[base + uv4Offset] = nx;
+    packed[base + uv4Offset + 1] = nz;
+    packed[base + uv5Offset] = fx;
+    packed[base + uv5Offset + 1] = fz;
+  }
+}
+
+function packRiverVertexBuffer(
+  geometry: RiverGeometryData,
+  elements: readonly VertexElement[],
+  floatStride: number,
+  uv4FloatOffset: number,
+  uv5FloatOffset: number
+): Float32Array {
+  const vertexCount = geometry.positions.length;
+  const packed = new Float32Array(vertexCount * floatStride);
+  for (let e = 0; e < elements.length; e++) {
+    const element = elements[e]!;
+    const floatOffset = element.offset / Float32Array.BYTES_PER_ELEMENT;
+    switch (element.attribute) {
+      case VertexAttribute.Position:
+        writeAttributeTuples(packed, geometry.positions, floatStride, floatOffset, 3);
+        break;
+      case VertexAttribute.Normal:
+        writeAttributeTuples(packed, geometry.normals!, floatStride, floatOffset, 3);
+        break;
+      case VertexAttribute.Tangent:
+        writeAttributeTuples(packed, geometry.tangents!, floatStride, floatOffset, 4);
+        break;
+      case VertexAttribute.Color:
+        writeAttributeTuples(packed, geometry.colors!, floatStride, floatOffset, 4);
+        break;
+      case VertexAttribute.UV:
+        writeAttributeTuples(packed, geometry.uvs, floatStride, floatOffset, 2);
+        break;
+      case VertexAttribute.UV1:
+        writeAttributeTuples(packed, geometry.uv1s, floatStride, floatOffset, 2);
+        break;
+      case VertexAttribute.UV2:
+        writeAttributeTuples(packed, geometry.uv2s!, floatStride, floatOffset, 2);
+        break;
+      case VertexAttribute.UV3:
+        writeAttributeTuples(packed, geometry.uv3s!, floatStride, floatOffset, 2);
+        break;
+      case VertexAttribute.UV4:
+        if (geometry.motionGradients) {
+          writeAttributeTuples(packed, geometry.motionGradients, floatStride, floatOffset, 2, 0);
+        }
+        break;
+      case VertexAttribute.UV5:
+        if (geometry.motionGradients) {
+          writeAttributeTuples(packed, geometry.motionGradients, floatStride, floatOffset, 2, 2);
+        } else {
+          writeFallbackMotionGradients(packed, geometry, floatStride, uv4FloatOffset, uv5FloatOffset);
+        }
+        break;
+      default:
+        throw new Error(`Unexpected River mesh attribute: ${element.attribute}`);
+    }
+  }
+  return packed;
+}
+
+function buildRiverVertexLayout(geometry: RiverGeometryData): {
+  elements: VertexElement[];
+  floatStride: number;
+  uv4FloatOffset: number;
+  uv5FloatOffset: number;
+} {
+  const elements: VertexElement[] = [];
+  let floatOffset = 0;
+  const pushElement = (attribute: string, format: VertexElementFormat, floatCount: number) => {
+    elements.push(new VertexElement(attribute, floatOffset * Float32Array.BYTES_PER_ELEMENT, format, 0));
+    floatOffset += floatCount;
+  };
+  pushElement(VertexAttribute.Position, VertexElementFormat.Vector3, 3);
+  if (geometry.normals) pushElement(VertexAttribute.Normal, VertexElementFormat.Vector3, 3);
+  if (geometry.tangents) pushElement(VertexAttribute.Tangent, VertexElementFormat.Vector4, 4);
+  if (geometry.colors) pushElement(VertexAttribute.Color, VertexElementFormat.Vector4, 4);
+  pushElement(VertexAttribute.UV, VertexElementFormat.Vector2, 2);
+  pushElement(VertexAttribute.UV1, VertexElementFormat.Vector2, 2);
+  if (geometry.uv2s) pushElement(VertexAttribute.UV2, VertexElementFormat.Vector2, 2);
+  if (geometry.uv3s) pushElement(VertexAttribute.UV3, VertexElementFormat.Vector2, 2);
+  const uv4FloatOffset = floatOffset;
+  pushElement(VertexAttribute.UV4, VertexElementFormat.Vector2, 2);
+  const uv5FloatOffset = floatOffset;
+  pushElement(VertexAttribute.UV5, VertexElementFormat.Vector2, 2);
+  return { elements, floatStride: floatOffset, uv4FloatOffset, uv5FloatOffset };
 }
 
 /** Keeps only the immutable compiler recipe; packed vertex data lives for one restore call. */
-class RiverMeshContentRestorer extends ContentRestorer<ModelMesh> {
+class RiverMeshContentRestorer extends ContentRestorer<BufferMesh> {
   constructor(
-    mesh: ModelMesh,
-    private readonly geometry: RiverGeometryData
+    mesh: BufferMesh,
+    private readonly geometry: RiverGeometryData,
+    private readonly floatStride: number,
+    private readonly uv4FloatOffset: number,
+    private readonly uv5FloatOffset: number
   ) {
     super(mesh);
   }
 
   restoreContent(): void {
     const mesh = this.resource;
-    const geometry = this.geometry;
-    const elements = mesh.vertexElements;
-    for (const [bindingIndex, binding] of mesh.vertexBufferBindings.entries()) {
-      if (!binding) continue;
-      const packed = new Float32Array(binding.buffer.byteLength / Float32Array.BYTES_PER_ELEMENT);
-      for (const element of elements) {
-        if (element.bindingIndex !== bindingIndex) continue;
-        let values: readonly (readonly number[])[] | undefined;
-        let componentStart = 0;
-        let componentCount: number;
-        switch (element.attribute) {
-          case VertexAttribute.Position:
-            values = geometry.positions;
-            componentCount = 3;
-            break;
-          case VertexAttribute.Normal:
-            values = geometry.normals;
-            componentCount = 3;
-            break;
-          case VertexAttribute.Tangent:
-            values = geometry.tangents;
-            componentCount = 4;
-            break;
-          case VertexAttribute.Color:
-            values = geometry.colors;
-            componentCount = 4;
-            break;
-          case VertexAttribute.UV:
-            values = geometry.uvs;
-            componentCount = 2;
-            break;
-          case VertexAttribute.UV1:
-            values = geometry.uv1s;
-            componentCount = 2;
-            break;
-          case VertexAttribute.UV2:
-            values = geometry.uv2s;
-            componentCount = 2;
-            break;
-          case VertexAttribute.UV3:
-            values = geometry.uv3s;
-            componentCount = 2;
-            break;
-          case VertexAttribute.UV4:
-            values = geometry.motionGradients;
-            componentCount = 2;
-            break;
-          case VertexAttribute.UV5:
-            values = geometry.motionGradients;
-            componentStart = 2;
-            componentCount = 2;
-            break;
-          default:
-            throw new Error(`Unexpected River mesh attribute: ${element.attribute}`);
-        }
-        for (let index = 0; index < geometry.positions.length; index++) {
-          const source = values ? values[index] : motionGradient(geometry, index);
-          const offset = (index * binding.stride + element.offset) / Float32Array.BYTES_PER_ELEMENT;
-          for (let component = 0; component < componentCount; component++) {
-            packed[offset + component] = source[componentStart + component];
-          }
-        }
-      }
-      // setData remains valid after uploadData(true) has released the advanced vertex cache.
+    if (mesh.destroyed) return;
+    const binding = mesh.vertexBufferBindings[0];
+    if (binding && !binding.buffer.destroyed) {
+      const packed = packRiverVertexBuffer(
+        this.geometry,
+        mesh.vertexElements,
+        this.floatStride,
+        this.uv4FloatOffset,
+        this.uv5FloatOffset
+      );
       binding.buffer.setData(packed);
     }
-    // The engine declaration bundle hides this internal index-buffer accessor.
-    const primitive = (mesh as ModelMesh & { _primitive: { indexBufferBinding: { _buffer: Buffer } } })._primitive;
-    const indices = geometry.indices.borrowTypedArray();
-    primitive.indexBufferBinding._buffer.setData(
-      geometry.positions.length > 65535 ? indices : new Uint16Array(indices)
-    );
+    const indexBuffer = mesh.indexBufferBinding?.buffer;
+    if (indexBuffer && !indexBuffer.destroyed) {
+      const indices = this.geometry.indices.borrowTypedArray();
+      indexBuffer.setData(
+        this.geometry.positions.length > 65535
+          ? indices instanceof Uint32Array
+            ? indices
+            : new Uint32Array(indices)
+          : indices instanceof Uint16Array
+            ? indices
+            : new Uint16Array(indices)
+      );
+    }
   }
 }
 
 function uploadGeometry(
   engine: Engine,
   geometry: RiverGeometryData,
-  existing?: ModelMesh,
+  existing?: BufferMesh,
   releaseCpuData = false
-): ModelMesh {
-  const mesh = existing ?? new ModelMesh(engine);
-  try {
-    const positions = geometry.positions.map((value) => new Vector3(value[0], value[1], value[2]));
-    const uvs = geometry.uvs.map((value) => new Vector2(value[0], value[1]));
-    const uv1s = geometry.uv1s.map((value) => new Vector2(value[0], value[1]));
-    const uv2s = geometry.uv2s?.map((value) => new Vector2(value[0], value[1])) ?? null;
-    const uv3s = geometry.uv3s?.map((value) => new Vector2(value[0], value[1])) ?? null;
-    const sourceIndices = geometry.indices.borrowTypedArray();
-    const indices = positions.length > 65535 ? sourceIndices : new Uint16Array(sourceIndices);
+): BufferMesh {
+  const readable = !releaseCpuData;
+  const { elements, floatStride, uv4FloatOffset, uv5FloatOffset } = buildRiverVertexLayout(geometry);
+  const packedVertices = packRiverVertexBuffer(geometry, elements, floatStride, uv4FloatOffset, uv5FloatOffset);
+  const byteStride = floatStride * Float32Array.BYTES_PER_ELEMENT;
+  const sourceIndices = geometry.indices.borrowTypedArray();
+  const useUint32 = geometry.positions.length > 65535;
+  const indices = useUint32
+    ? sourceIndices instanceof Uint32Array
+      ? sourceIndices
+      : new Uint32Array(sourceIndices)
+    : sourceIndices instanceof Uint16Array
+      ? sourceIndices
+      : new Uint16Array(sourceIndices);
 
+  const mesh = existing ?? new BufferMesh(engine);
+  const prevVertexBinding = existing?.vertexBufferBindings[0] ?? undefined;
+  const prevVertexBuffer = prevVertexBinding?.buffer;
+  const prevIndexBinding = existing?.indexBufferBinding ?? undefined;
+  const prevIndexBuffer = prevIndexBinding?.buffer;
+  const prevVertexElements = existing ? [...existing.vertexElements] : undefined;
+  const indexFormat = useUint32 ? IndexFormat.UInt32 : IndexFormat.UInt16;
+  const reuseVertex = Boolean(
+    prevVertexBinding &&
+      prevVertexBinding.stride === byteStride &&
+      prevVertexBuffer &&
+      !prevVertexBuffer.destroyed &&
+      prevVertexBuffer.byteLength === packedVertices.byteLength &&
+      prevVertexBuffer.readable === readable
+  );
+  const reuseIndex = Boolean(
+    prevIndexBinding &&
+      prevIndexBinding.format === indexFormat &&
+      prevIndexBuffer &&
+      !prevIndexBuffer.destroyed &&
+      prevIndexBuffer.byteLength === indices.byteLength &&
+      prevIndexBuffer.readable === readable
+  );
+  let createdVertexBuffer: Buffer | undefined;
+  let createdIndexBuffer: Buffer | undefined;
+  let reboundVertex = false;
+  let reboundIndex = false;
+  try {
+    // Phase 1: allocate replacement GPU buffers before mutating existing mesh bindings or destroying prior buffers.
+    if (!reuseVertex) {
+      createdVertexBuffer = new Buffer(
+        engine,
+        BufferBindFlag.VertexBuffer,
+        packedVertices,
+        BufferUsage.Static,
+        readable
+      );
+    }
+    if (!reuseIndex) {
+      createdIndexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, indices, BufferUsage.Static, readable);
+    }
+
+    // Phase 2: upload, rebind, update layout/bounds, and register restorer.
+    if (reuseVertex) {
+      prevVertexBuffer!.setData(packedVertices);
+    } else {
+      mesh.setVertexBufferBinding(createdVertexBuffer!, byteStride, 0);
+      reboundVertex = true;
+    }
+    if (reuseIndex) {
+      prevIndexBuffer!.setData(indices);
+    } else {
+      mesh.setIndexBufferBinding(createdIndexBuffer!, indexFormat);
+      reboundIndex = true;
+    }
+
+    mesh.setVertexElements(elements);
     mesh.bounds.min.set(geometry.bounds.min[0], geometry.bounds.min[1], geometry.bounds.min[2]);
     mesh.bounds.max.set(geometry.bounds.max[0], geometry.bounds.max[1], geometry.bounds.max[2]);
-    mesh.setPositions(positions);
-    mesh.setNormals(
-      geometry.normals ? geometry.normals.map((value) => new Vector3(value[0], value[1], value[2])) : null
-    );
-    mesh.setTangents(
-      geometry.tangents ? geometry.tangents.map((value) => new Vector4(value[0], value[1], value[2], value[3])) : null
-    );
-    mesh.setUVs(uvs);
-    mesh.setUVs(uv1s, 1);
-    mesh.setUVs(uv2s, 2);
-    mesh.setUVs(uv3s, 3);
-    const motionGradients = geometry.positions.map((_, index) => motionGradient(geometry, index));
-    mesh.setUVs(
-      motionGradients.map((g) => new Vector2(g[0], g[1])),
-      4
-    );
-    mesh.setUVs(
-      motionGradients.map((g) => new Vector2(g[2], g[3])),
-      5
-    );
-    mesh.setColors(
-      geometry.colors ? geometry.colors.map((value) => new Color(value[0], value[1], value[2], value[3])) : null
-    );
-    mesh.setIndices(indices);
     mesh.clearSubMesh();
     mesh.addSubMesh(geometry.drawStart, geometry.drawCount, MeshTopology.Triangles);
-    mesh.uploadData(releaseCpuData);
-    engine.resourceManager.addContentRestorer(new RiverMeshContentRestorer(mesh, geometry));
+    engine.resourceManager.addContentRestorer(
+      new RiverMeshContentRestorer(mesh, geometry, floatStride, uv4FloatOffset, uv5FloatOffset)
+    );
+
+    // Phase 3: commit succeeded; safely destroy replaced buffers.
+    if (createdVertexBuffer && prevVertexBuffer && !prevVertexBuffer.destroyed) prevVertexBuffer.destroy(true);
+    if (createdIndexBuffer && prevIndexBuffer && !prevIndexBuffer.destroyed) prevIndexBuffer.destroy(true);
+
     return mesh;
   } catch (error) {
-    if (!existing) destroyWaterOwnedMesh(mesh);
+    if (existing) {
+      if (reboundVertex && prevVertexBinding && prevVertexBuffer && !prevVertexBuffer.destroyed) {
+        mesh.setVertexBufferBinding(prevVertexBinding, 0);
+      }
+      if (reboundIndex) {
+        mesh.setIndexBufferBinding(
+          prevIndexBinding && prevIndexBuffer && !prevIndexBuffer.destroyed ? prevIndexBinding : null
+        );
+      }
+      if (prevVertexElements) {
+        mesh.setVertexElements(prevVertexElements);
+      }
+    } else if (!mesh.destroyed) {
+      destroyWaterOwnedMesh(mesh);
+    }
+    if (createdVertexBuffer && !createdVertexBuffer.destroyed) createdVertexBuffer.destroy(true);
+    if (createdIndexBuffer && !createdIndexBuffer.destroyed) createdIndexBuffer.destroy(true);
     throw error;
   }
 }

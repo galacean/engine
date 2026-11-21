@@ -31,31 +31,23 @@ float riverHash21(vec2 point) {
   return float(riverHashCell(point) >> 8u) * (1.0 / 16777216.0);
 }
 
-float riverValueNoise(vec2 point) {
+// Returns (value, dValue/dx, dValue/dy) using the exact same lattice and curve as riverValueNoise.
+vec3 riverValueNoiseWithGrad(vec2 point) {
   point = mod(point, {{NOISE_PERIOD}});
   vec2 cell = floor(point);
   vec2 local = fract(point);
   vec2 curve = local * local * (3.0 - 2.0 * local);
-  float bottom = mix(riverHash21(cell), riverHash21(cell + vec2(1.0, 0.0)), curve.x);
-  float top = mix(
-    riverHash21(cell + vec2(0.0, 1.0)),
-    riverHash21(cell + vec2(1.0, 1.0)),
-    curve.x
-  );
-  return mix(bottom, top, curve.y);
-}
-
-float riverFbm(vec2 point, vec4 offsets) {
-  float value = riverValueNoise(point + vec2(0.0, offsets.x)) * {{OCTAVE_WEIGHT_0}};
-  value += riverValueNoise(
-    point * {{SECOND_OCTAVE_SCALE}}
-      + vec2({{SECOND_OCTAVE_OFFSET_X}}, {{SECOND_OCTAVE_OFFSET_Y}} + offsets.y)
-  ) * {{OCTAVE_WEIGHT_1}};
-  value += riverValueNoise(
-    point * {{THIRD_OCTAVE_SCALE}}
-      + vec2({{THIRD_OCTAVE_OFFSET_X}}, {{THIRD_OCTAVE_OFFSET_Y}} + offsets.z)
-  ) * {{OCTAVE_WEIGHT_2}};
-  return value;
+  vec2 dCurve = 6.0 * local * (1.0 - local);
+  float v00 = riverHash21(cell);
+  float v10 = riverHash21(cell + vec2(1.0, 0.0));
+  float v01 = riverHash21(cell + vec2(0.0, 1.0));
+  float v11 = riverHash21(cell + vec2(1.0, 1.0));
+  float bottom = mix(v00, v10, curve.x);
+  float top = mix(v01, v11, curve.x);
+  float value = mix(bottom, top, curve.y);
+  float dValDx = mix(v10 - v00, v11 - v01, curve.y) * dCurve.x;
+  float dValDy = (top - bottom) * dCurve.y;
+  return vec3(value, dValDx, dValDy);
 }
 
 float riverShoreDamping(float signedAcrossDistance, float halfWidth) {
@@ -63,43 +55,90 @@ float riverShoreDamping(float signedAcrossDistance, float halfWidth) {
   return smoothstep(0.0, material_ShoreDampingWidth, shoreDistance);
 }
 
-vec2 riverWarpedDomain(vec2 motionCoord, float warpOffset) {
+// Evaluates (height, dHeight/dAcross, dHeight/dDownstream) analytically in 24 hashes instead of 120.
+vec3 riverMacroSurfaceWithGrad(
+  vec2 motionCoord,
+  float halfWidth,
+  float localFlowSpeed,
+  float sampledFlowSpeed
+) {
+  float shoreDistance = halfWidth - abs(motionCoord.x);
+  float shoreDamping = smoothstep(0.0, material_ShoreDampingWidth, shoreDistance);
+  float dShoreDampingDx = 0.0;
+  if (
+    material_ShoreDampingWidth > 0.0
+    && shoreDistance > 0.0
+    && shoreDistance < material_ShoreDampingWidth
+  ) {
+    float t = shoreDistance / material_ShoreDampingWidth;
+    float dSmooth = (6.0 * t * (1.0 - t)) / material_ShoreDampingWidth;
+    float dAbsX = motionCoord.x > 0.0 ? -1.0 : (motionCoord.x < 0.0 ? 1.0 : 0.0);
+    dShoreDampingDx = dSmooth * dAbsX;
+  }
+  float flowing = localFlowSpeed > {{FLOW_EPSILON}} ? 1.0 : 0.0;
+  vec4 offsets = material_SurfaceDomainOffsets * flowing;
+  float warpOffset = material_SurfaceWarpOffset * flowing;
   float lengthScale = max(material_SurfaceLengthScale, 0.001);
   vec2 baseDomain = vec2(
     motionCoord.x,
     motionCoord.y * {{REFERENCE_FLOW_SPEED}}
   ) / lengthScale;
-  vec2 warp = vec2(
-    riverValueNoise(
-      baseDomain * {{DOMAIN_WARP_SCALE}}
-        + vec2({{WARP_OFFSET_X_X}}, {{WARP_OFFSET_X_Y}} + warpOffset)
-    ),
-    riverValueNoise(
-      baseDomain * {{DOMAIN_WARP_SCALE}}
-        + vec2({{WARP_OFFSET_Y_X}}, {{WARP_OFFSET_Y_Y}} + warpOffset)
-    )
-  ) * 2.0 - 1.0;
-  return baseDomain + warp * ({{DOMAIN_WARP_STRENGTH}} * material_SurfaceTurbulence);
-}
+  float warpGain = {{DOMAIN_WARP_STRENGTH}} * material_SurfaceTurbulence;
+  vec3 warpSampleX = riverValueNoiseWithGrad(
+    baseDomain * {{DOMAIN_WARP_SCALE}}
+      + vec2({{WARP_OFFSET_X_X}}, {{WARP_OFFSET_X_Y}} + warpOffset)
+  );
+  vec3 warpSampleY = riverValueNoiseWithGrad(
+    baseDomain * {{DOMAIN_WARP_SCALE}}
+      + vec2({{WARP_OFFSET_Y_X}}, {{WARP_OFFSET_Y_Y}} + warpOffset)
+  );
+  vec2 warp = vec2(warpSampleX.x, warpSampleY.x) * 2.0 - 1.0;
+  vec2 warped = baseDomain + warp * warpGain;
+  float warpJacobianScale = 2.0 * warpGain * {{DOMAIN_WARP_SCALE}};
+  float jxx = 1.0 + warpJacobianScale * warpSampleX.y;
+  float jxy = warpJacobianScale * warpSampleX.z;
+  float jyx = warpJacobianScale * warpSampleY.y;
+  float jyy = 1.0 + warpJacobianScale * warpSampleY.z;
 
-float riverMacroHeight(
-  vec2 motionCoord,
-  float halfWidth,
-  float localFlowSpeed
-) {
-  float shoreDamping = riverShoreDamping(motionCoord.x, halfWidth);
-  float flowing = localFlowSpeed > {{FLOW_EPSILON}} ? 1.0 : 0.0;
-  vec4 offsets = material_SurfaceDomainOffsets * flowing;
-  vec2 warped = riverWarpedDomain(motionCoord, material_SurfaceWarpOffset * flowing);
-  float broad = riverFbm(warped, offsets);
-  float ridgeNoise = riverValueNoise(
+  vec3 broad0 = riverValueNoiseWithGrad(warped + vec2(0.0, offsets.x));
+  vec3 broad1 = riverValueNoiseWithGrad(
+    warped * {{SECOND_OCTAVE_SCALE}}
+      + vec2({{SECOND_OCTAVE_OFFSET_X}}, {{SECOND_OCTAVE_OFFSET_Y}} + offsets.y)
+  );
+  vec3 broad2 = riverValueNoiseWithGrad(
+    warped * {{THIRD_OCTAVE_SCALE}}
+      + vec2({{THIRD_OCTAVE_OFFSET_X}}, {{THIRD_OCTAVE_OFFSET_Y}} + offsets.z)
+  );
+  float broad = broad0.x * {{OCTAVE_WEIGHT_0}}
+    + broad1.x * {{OCTAVE_WEIGHT_1}}
+    + broad2.x * {{OCTAVE_WEIGHT_2}};
+  vec2 gradBroadWarped = broad0.yz * {{OCTAVE_WEIGHT_0}}
+    + broad1.yz * ({{OCTAVE_WEIGHT_1}} * {{SECOND_OCTAVE_SCALE}})
+    + broad2.yz * ({{OCTAVE_WEIGHT_2}} * {{THIRD_OCTAVE_SCALE}});
+
+  vec3 ridgeSample = riverValueNoiseWithGrad(
     warped * {{RIDGE_SCALE}}
       + vec2({{RIDGE_OFFSET_X}}, {{RIDGE_OFFSET_Y}} + offsets.w)
   );
-  float ridge = 1.0 - abs(ridgeNoise * 2.0 - 1.0);
+  float ridgeSigned = ridgeSample.x * 2.0 - 1.0;
+  float ridge = 1.0 - abs(ridgeSigned);
+  float ridgeSign = ridgeSigned >= 0.0 ? -2.0 : 2.0;
+  vec2 gradRidgeWarped = ridgeSample.yz * ({{RIDGE_SCALE}} * ridgeSign);
+
   float shape = (broad - 0.5) * {{BROAD_WEIGHT}}
     + (ridge - 0.5) * {{RIDGE_WEIGHT}} * material_SurfaceTurbulence;
-  return material_SurfaceMaxDisplacement * shoreDamping * shape;
+  vec2 gradShapeWarped = gradBroadWarped * {{BROAD_WEIGHT}}
+    + gradRidgeWarped * ({{RIDGE_WEIGHT}} * material_SurfaceTurbulence);
+  float gradBaseX = gradShapeWarped.x * jxx + gradShapeWarped.y * jyx;
+  float gradBaseY = gradShapeWarped.x * jxy + gradShapeWarped.y * jyy;
+
+  float height = material_SurfaceMaxDisplacement * shoreDamping * shape;
+  float dAcross = material_SurfaceMaxDisplacement
+    * (dShoreDampingDx * shape + shoreDamping * (gradBaseX / lengthScale));
+  float dDownstream = material_SurfaceMaxDisplacement
+    * shoreDamping
+    * (gradBaseY * ({{REFERENCE_FLOW_SPEED}} / (lengthScale * sampledFlowSpeed)));
+  return vec3(height, dAcross, dDownstream);
 }
 
 struct RiverGeometryVertex {
@@ -114,43 +153,20 @@ struct RiverGeometryVertex {
 
 RiverGeometryVertex evaluateRiverGeometry(Attributes attr) {
   RiverGeometryVertex geometry;
-  float derivativeStep = {{DERIVATIVE_STEP}};
   float sampledFlowSpeed = max(attr.TEXCOORD_1.x, {{DERIVATIVE_MIN_FLOW_SPEED}});
-  float flowTimeStep = derivativeStep / sampledFlowSpeed;
-  float downstreamSpan = flowTimeStep * sampledFlowSpeed;
   float computedMacroHeight = 0.0;
   float acrossDerivative = 0.0;
   float downstreamDerivative = 0.0;
   if (material_SurfaceMaxDisplacement * material_MacroDisplacementEnabled > 0.0) {
-  computedMacroHeight = riverMacroHeight(
-    attr.TEXCOORD_2,
-    attr.TEXCOORD_3.x,
-    attr.TEXCOORD_1.x
-  ) * material_MacroDisplacementEnabled;
-  float acrossPositive = riverMacroHeight(
-    attr.TEXCOORD_2 + vec2(derivativeStep, 0.0),
-    attr.TEXCOORD_3.x,
-    attr.TEXCOORD_1.x
-  );
-  float acrossNegative = riverMacroHeight(
-    attr.TEXCOORD_2 - vec2(derivativeStep, 0.0),
-    attr.TEXCOORD_3.x,
-    attr.TEXCOORD_1.x
-  );
-  float downstreamPositive = riverMacroHeight(
-    attr.TEXCOORD_2 + vec2(0.0, flowTimeStep),
-    attr.TEXCOORD_3.x,
-    attr.TEXCOORD_1.x
-  );
-  float downstreamNegative = riverMacroHeight(
-    attr.TEXCOORD_2 - vec2(0.0, flowTimeStep),
-    attr.TEXCOORD_3.x,
-    attr.TEXCOORD_1.x
-  );
-  acrossDerivative = (acrossPositive - acrossNegative) / (derivativeStep * 2.0)
-    * material_MacroDisplacementEnabled;
-  downstreamDerivative = (downstreamPositive - downstreamNegative) / (downstreamSpan * 2.0)
-    * material_MacroDisplacementEnabled;
+    vec3 macroSurface = riverMacroSurfaceWithGrad(
+      attr.TEXCOORD_2,
+      attr.TEXCOORD_3.x,
+      attr.TEXCOORD_1.x,
+      sampledFlowSpeed
+    );
+    computedMacroHeight = macroSurface.x * material_MacroDisplacementEnabled;
+    acrossDerivative = macroSurface.y * material_MacroDisplacementEnabled;
+    downstreamDerivative = macroSurface.z * material_MacroDisplacementEnabled;
   }
   vec4 localPosition = attr.POSITION;
   float connectionMotion = waterConnectionFacts((renderer_ModelMat * attr.POSITION).xz).x;

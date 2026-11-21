@@ -230,6 +230,7 @@
         // Authored color is resolved only by the shared V2 Closure below.
         vec3 waterColor = material_ShallowColor.rgb;
         vec3 centeredOpaqueColor = waterColor;
+        bool centeredOpaqueSampled = false;
         vec3 displacedOpaqueColor = waterColor;
         vec2 refractionUvDelta = vec2(0.0);
         float refractionDepthContinuity = 1.0;

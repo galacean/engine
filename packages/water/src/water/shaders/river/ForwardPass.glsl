@@ -166,9 +166,11 @@
         vec4 foamUv = riverPackedUv(foamSourceUv, vec2(0.5, 1.0), material_FlowFoamOffsets.xy * transportGate);
         regularFoam = texture2D(material_RiverFoamTexture, foamUv.xy).r
           + texture2D(material_RiverFoamTexture, foamUv.zw).r;
-        vec4 slopeFoamUv = riverPackedUv(foamSourceUv, vec2(0.5, 0.5), material_FlowFoamOffsets.xz * transportGate);
-        slopeFoam = texture2D(material_RiverFoamTexture, slopeFoamUv.xy).r
-          + texture2D(material_RiverFoamTexture, slopeFoamUv.zw).r;
+        if (foamSlopeMask > 0.0) {
+          vec4 slopeFoamUv = riverPackedUv(foamSourceUv, vec2(0.5, 0.5), material_FlowFoamOffsets.xz * transportGate);
+          slopeFoam = texture2D(material_RiverFoamTexture, slopeFoamUv.xy).r
+            + texture2D(material_RiverFoamTexture, slopeFoamUv.zw).r;
+        }
 #endif
         regularFoam = saturate(regularFoam);
         slopeFoam = saturate(slopeFoam);
@@ -212,9 +214,12 @@
           * step(0.002, displacedScreenUv.y)
           * step(displacedScreenUv.y, 0.998);
         vec2 refractedScreenUv = clamp(displacedScreenUv, vec2(0.002), vec2(0.998));
-        float refractedSceneEyeDepth = remapDepthBufferEyeDepth(
-          texture2D(camera_DepthTexture, refractedScreenUv).r
-        );
+        vec2 refractionDepthDeltaUv = refractedScreenUv - screenUv;
+        float refractedSceneEyeDepth = (refractionScreenInterior > 0.5 && dot(refractionDepthDeltaUv, refractionDepthDeltaUv) > 1e-10)
+          ? remapDepthBufferEyeDepth(
+              texture2D(camera_DepthTexture, refractedScreenUv).r
+            )
+          : sceneEyeDepthSample;
         float refractedOpticalDepth = max(refractedSceneEyeDepth - input.surfaceEyeDepth, 0.0);
         float refractionDepthTolerance = max(
           {{VALUE_166_GLSL_RIVER_SURFACE_SHADER_TUNING_REFRACTIONDEPTHTOLERANC}},
@@ -241,39 +246,40 @@
         float centeredDepthBehind = smoothstep(0.03, 0.22, sampledOpticalDepth);
 {{SURFACE_BOUNDARY_STATEMENTS}}
         float refractionSampleWeight = refractionSampleValidity;
-        vec3 rawAnalyticReflectionSample = waterSurfaceResolveAnalyticReflectionFallbackV2(
-          surfaceNormalWS.y,
-          effectiveSurfaceRoughness,
-          1.0
-        );
-        vec3 rawEnvironmentReflectionSample;
-        float rawEnvironmentReflectionValidity;
-        waterSurfaceSampleRawEnvironmentReflectionV2(
-          reflect(-viewDirection, surfaceNormalWS),
-          input.worldPosition,
-          effectiveSurfaceRoughness,
-          rawEnvironmentReflectionSample,
-          rawEnvironmentReflectionValidity
-        );
-          vec3 rawSsrReflectionPremultipliedSample = vec3(0.0);
+        vec3 rawAnalyticReflectionSample = vec3(0.0);
+        vec3 rawEnvironmentReflectionSample = vec3(0.0);
+        float rawEnvironmentReflectionValidity = 0.0;
+        vec3 rawSsrReflectionPremultipliedSample = vec3(0.0);
         float rawSsrReflectionValidity = 0.0;
+        bool sampleEnvironmentReflection = true;
         #ifdef CAMERA_ENABLE_SSR
         if (material_ReflectionSource > 2.5) {
-          vec3 fallbackEnvironment = mix(
-            rawAnalyticReflectionSample,
+          vec4 ssrRaw = sampleScreenSpaceReflectionRaw(
+            input.clipPosition,
+            surfaceNormalWS,
+            effectiveSurfaceRoughness
+          );
+          float connectionSsrValidity = clamp(waterConnectionFacts(input.worldPosition.xz).y, 0.0, 1.0);
+          rawSsrReflectionValidity = connectionSsrValidity * ssrRaw.a;
+          rawSsrReflectionPremultipliedSample = ssrRaw.rgb * connectionSsrValidity;
+          float ssrCompositeScale = clamp(material_WaterScreenSpaceReflectionCompositeIntensity, 0.0, 1.0);
+          sampleEnvironmentReflection = rawSsrReflectionValidity * ssrCompositeScale < 0.9999;
+        }
+        #endif
+        if (sampleEnvironmentReflection) {
+          rawAnalyticReflectionSample = waterSurfaceResolveAnalyticReflectionFallbackV2(
+            surfaceNormalWS.y,
+            effectiveSurfaceRoughness,
+            1.0
+          );
+          waterSurfaceSampleRawEnvironmentReflectionV2(
+            reflect(-viewDirection, surfaceNormalWS),
+            input.worldPosition,
+            effectiveSurfaceRoughness,
             rawEnvironmentReflectionSample,
             rawEnvironmentReflectionValidity
           );
-          vec3 ssrComposited = evaluateScreenSpaceReflection(
-            input.clipPosition,
-            surfaceNormalWS,
-            effectiveSurfaceRoughness,
-            fallbackEnvironment
-          );
-          rawSsrReflectionValidity = waterConnectionFacts(input.worldPosition.xz).y;
-          rawSsrReflectionPremultipliedSample = ssrComposited * rawSsrReflectionValidity;
         }
-        #endif
         float reflectionIntensity = max(material_ReflectionIntensity, 0.0);
 
 {{VALUE_179_ASSEMBLY_GEOMETRYBRIDGESOURCE}}

@@ -12,7 +12,6 @@ import type { HeightfieldWaterVisualUniformConfig } from "../../authoring/height
 import { WaterSurfaceDepthSource } from "../../authoring/surface/enums/WaterSurfaceDepthSource";
 import {
   WaterPatternModelV2,
-  WaterPatternResponseV2,
   WaterRefractionNormalSourceV2,
   WaterRefractionValidationModeV2,
   WaterSurfaceAppearanceSchemaVersion,
@@ -94,6 +93,7 @@ import {
   getWaterSurfaceAppearanceV2ShaderSuffix
 } from "../surface/WaterSurfaceAppearanceV2Shader";
 import {
+  applyWaterPatternUniformsV2,
   applyWaterSurfaceDepthResponseV2Uniforms,
   bindWaterSurfaceAppearanceV2Clock,
   updateWaterSurfaceAppearanceV2Clock
@@ -384,7 +384,10 @@ function waterDiffuseLightingStatements(litSceneColorClosure: boolean): string {
   });
 }
 
-function createHeightfieldV2FinalClosureStatements(appearance: CompiledWaterSurfaceAppearanceV2): string {
+function createHeightfieldV2FinalClosureStatements(
+  appearance: CompiledWaterSurfaceAppearanceV2,
+  useOpaqueTexture: boolean
+): string {
   const litSceneColorClosure =
     appearance.primaryColorClosure === WaterSurfacePrimaryColorClosure.LitSceneColorDepthRamp ||
     appearance.primaryColorClosure === WaterSurfacePrimaryColorClosure.SceneColorCompositeDepthRamp;
@@ -398,6 +401,7 @@ function createHeightfieldV2FinalClosureStatements(appearance: CompiledWaterSurf
       ? `${getWaterSurfaceAppearanceV2DepthProperty("shallowColor")}.rgb`
       : "material_ShallowColor.rgb";
   return renderWaterShaderTemplate(heightfieldFinalClosureTemplate, {
+    USE_OPAQUE_TEXTURE: useOpaqueTexture ? 1 : 0,
     VALUE_001_PRIMARYCOLORCLOSUREMODEL: primaryColorClosureModel,
     VALUE_002_REFRACTIONENABLED: refractionEnabled,
     VALUE_003_SURFACECOLOR: surfaceColor,
@@ -652,12 +656,7 @@ export function createHeightfieldWaterShaderSource(
     ),
     VALUE_043_OPTICALDEPTHCALCULATION_USESCENEDEPTH_USECOMPOSITEDEPTHR: registerGeneratedWaterShaderModule(
       "HeightfieldForwardOpticalDepth",
-      heightfieldOpticalDepthStatements(
-        0,
-        useSceneDepth,
-        useLocalBathymetry,
-        useLocalBathymetry && !useSceneDepth && useOpaqueTexture
-      )
+      heightfieldOpticalDepthStatements(0, useSceneDepth, useLocalBathymetry, !useSceneDepth && useOpaqueTexture)
     ),
     VALUE_045_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_MINIMUMFLOWSPEED: glsl(
       HEIGHTFIELD_WATER_SURFACE_TUNING.minimumFlowSpeed
@@ -703,7 +702,7 @@ export function createHeightfieldWaterShaderSource(
     ),
     VALUE_071_CREATEHEIGHTFIELDV2FINALCLOSURESTATEMENTS_SURFACEAPPEARA: registerGeneratedWaterShaderModule(
       "HeightfieldForwardFinalClosure",
-      createHeightfieldV2FinalClosureStatements(surfaceAppearanceV2)
+      createHeightfieldV2FinalClosureStatements(surfaceAppearanceV2, useOpaqueTexture)
     ),
 
     VALUE_092_HEIGHTFIELDWATERCOMPOSITIONMODE_ALPHABLEND_0_5: HeightfieldWaterCompositionMode.AlphaBlend + 0.5,
@@ -1003,33 +1002,7 @@ function bindHeightfieldWaterSurfaceAppearanceV2(
       );
     }
     if (effect.pattern) {
-      shaderData.setFloat(
-        getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternWorldScale"),
-        effect.pattern.worldScale
-      );
-      shaderData.setFloat(
-        getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternTimeRate"),
-        effect.pattern.timeRate
-      );
-      shaderData.setFloat(getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternOpacity"), effect.pattern.opacity);
-      if (effect.pattern.response === WaterPatternResponseV2.Power) {
-        shaderData.setFloat(
-          getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternExponent"),
-          effect.pattern.exponent as number
-        );
-      }
-      shaderData.setVector3(
-        getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternWeights"),
-        new Vector3(
-          effect.pattern.octaves.weights[0] ?? 0,
-          effect.pattern.octaves.weights[1] ?? 0,
-          effect.pattern.octaves.weights[2] ?? 0
-        )
-      );
-      shaderData.setFloat(
-        getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternLacunarity"),
-        effect.pattern.lacunarity
-      );
+      applyWaterPatternUniformsV2(shaderData, index, effect.pattern);
     }
   });
   shaderData.setFloat(WATER_SURFACE_APPEARANCE_V2_SHADER_PROPERTY.refractionUvScale, appearance.refraction.uvScale);

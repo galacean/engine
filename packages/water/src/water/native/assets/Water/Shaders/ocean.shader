@@ -1151,26 +1151,29 @@ WaterSurfaceResolvedLightingV2 waterSurfaceAccumulateDirectLightingV2(
 ) {
   vec3 safeLightRadiance = max(lightRadiance, vec3(0.0));
   float safeNormalDotLight = clamp(normalDotLight, 0.0, 1.0);
-  float standardDirectSpecular = waterSurfaceDirectSpecular(
-    fresnelF0,
-    perceptualRoughness,
-    normalDotView,
-    safeNormalDotLight,
-    normalDotHalf,
-    lightDotHalf
-  );
-  float litDirectSpecular = waterSurfaceLitDirectSpecular(
-    fresnelF0,
-    perceptualRoughness,
-    safeNormalDotLight,
-    normalDotHalf,
-    lightDotHalf
-  );
-  float resolvedDirectSpecular = mix(
-    standardDirectSpecular,
-    litDirectSpecular,
-    step(1.5, primaryColorClosureModel) * (1.0 - step(3.5, primaryColorClosureModel))
-  ) * clamp(directSpecularEnabled, 0.0, 1.0);
+  float resolvedDirectSpecular = 0.0;
+  float specGate = clamp(directSpecularEnabled, 0.0, 1.0);
+  if (specGate > 0.0) {
+    if (primaryColorClosureModel >= 1.5 && primaryColorClosureModel < 3.5) {
+      resolvedDirectSpecular = waterSurfaceLitDirectSpecular(
+        fresnelF0,
+        perceptualRoughness,
+        safeNormalDotLight,
+        normalDotHalf,
+        lightDotHalf
+      );
+    } else {
+      resolvedDirectSpecular = waterSurfaceDirectSpecular(
+        fresnelF0,
+        perceptualRoughness,
+        normalDotView,
+        safeNormalDotLight,
+        normalDotHalf,
+        lightDotHalf
+      );
+    }
+    resolvedDirectSpecular *= specGate;
+  }
   lighting.diffuseRadiance += safeLightRadiance * safeNormalDotLight;
   lighting.directSpecularRadiance += safeLightRadiance * resolvedDirectSpecular;
   return lighting;
@@ -1194,35 +1197,33 @@ vec4 waterSurfaceEvaluateFinalClosureV2(
     closure.diffuseLighting,
     closure.primaryColorClosureModel
   );
-  vec3 opticalVolumeColor = waterSurfaceApplyOpticalVolume(
-    primaryColor,
-    closure.absorptionCoefficient,
-    closure.scatteringColor,
-    closure.scatteringCoefficient,
-    closure.opticalDepth
-  );
-  vec3 baseColor = mix(
-    opticalVolumeColor,
-    primaryColor,
-    step(0.5, closure.primaryColorClosureModel)
-  );
-  vec3 refractedVolumeColor = waterSurfaceApplyOpticalVolume(
-    closure.refractionColor,
-    closure.absorptionCoefficient,
-    closure.scatteringColor,
-    closure.scatteringCoefficient,
-    closure.opticalDepth
-  );
-  vec3 resolvedRefractionColor = mix(
-    refractedVolumeColor,
-    closure.refractionColor,
-    step(0.5, closure.primaryColorClosureModel)
-  );
-  vec3 color = mix(
-    baseColor,
-    resolvedRefractionColor,
-    clamp(closure.refractionWeight, 0.0, 1.0) * (1.0 - step(1.5, closure.primaryColorClosureModel))
-  );
+  vec3 baseColor = primaryColor;
+  float refractionMix = 0.0;
+  vec3 resolvedRefractionColor = closure.refractionColor;
+  if (closure.primaryColorClosureModel < 0.5) {
+    baseColor = waterSurfaceApplyOpticalVolume(
+      primaryColor,
+      closure.absorptionCoefficient,
+      closure.scatteringColor,
+      closure.scatteringCoefficient,
+      closure.opticalDepth
+    );
+    refractionMix = clamp(closure.refractionWeight, 0.0, 1.0);
+    if (refractionMix > 0.0) {
+      resolvedRefractionColor = waterSurfaceApplyOpticalVolume(
+        closure.refractionColor,
+        closure.absorptionCoefficient,
+        closure.scatteringColor,
+        closure.scatteringCoefficient,
+        closure.opticalDepth
+      );
+    }
+  } else if (closure.primaryColorClosureModel < 1.5) {
+    refractionMix = clamp(closure.refractionWeight, 0.0, 1.0);
+  }
+  vec3 color = refractionMix > 0.0
+    ? mix(baseColor, resolvedRefractionColor, refractionMix)
+    : baseColor;
   vec3 boundaryContribution = closure.boundaryColor * max(closure.diffuseLighting, vec3(0.0));
   float litSceneColorClosure = step(1.5, closure.primaryColorClosureModel);
   color += boundaryContribution * litSceneColorClosure;
@@ -1988,27 +1989,30 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
           * mix(1.0, material_NearshoreOutsidePolicy.y, outsideEdges.y)
           * mix(1.0, material_NearshoreOutsidePolicy.z, outsideEdges.z)
           * mix(1.0, material_NearshoreOutsidePolicy.w, outsideEdges.w);
-        vec4 nearshoreSample = texture2D(material_NearshoreTexture, clamp(nearshoreUv, vec2(0.0), vec2(1.0)));
-        float sampledVerticalDepth = waterSpatialFieldDecodeDepth(
-          nearshoreSample.b,
-          max(material_NearshoreDecode.x, 0.0001)
-        );
-        float sampledShoreDistance = waterSpatialFieldDecodeSignedDistance(
-          nearshoreSample.a,
-          2.0078740157480315,
-          -1.0078740157480315,
-          material_NearshoreDecode.y
-        );
-        float verticalDepth = mix(
-          sampledVerticalDepth,
-          max(material_NearshoreDecode.x, 0.0001) * outsideWet,
-          outsideAtlas
-        );
-        float shoreDistance = mix(
-          sampledShoreDistance,
-          mix(-material_NearshoreDecode.y, material_NearshoreDecode.y, outsideWet),
-          outsideAtlas
-        );
+        float verticalDepth = max(material_NearshoreDecode.x, 0.0001) * outsideWet;
+        float shoreDistance = mix(-material_NearshoreDecode.y, material_NearshoreDecode.y, outsideWet);
+        if (outsideAtlas < 0.5) {
+          vec2 clampedNearshoreUv = clamp(nearshoreUv, vec2(0.0), vec2(1.0));
+          #ifdef GRAPHICS_API_WEBGL2
+            vec4 nearshoreSample = textureLod(material_NearshoreTexture, clampedNearshoreUv, 0.0);
+          #else
+            #ifdef HAS_TEX_LOD
+              vec4 nearshoreSample = texture2DLodEXT(material_NearshoreTexture, clampedNearshoreUv, 0.0);
+            #else
+              vec4 nearshoreSample = texture2D(material_NearshoreTexture, clampedNearshoreUv);
+            #endif
+          #endif
+          verticalDepth = waterSpatialFieldDecodeDepth(
+            nearshoreSample.b,
+            max(material_NearshoreDecode.x, 0.0001)
+          );
+          shoreDistance = waterSpatialFieldDecodeSignedDistance(
+            nearshoreSample.a,
+            2.0078740157480315,
+            -1.0078740157480315,
+            material_NearshoreDecode.y
+          );
+        }
         float shoreAntialias = max(
           max(material_NearshoreCellSize.x, material_NearshoreCellSize.y) * 0.42,
           max(fwidth(shoreDistance) * 1.25, material_NearshoreDecode.y * (2.0 / 255.0))
@@ -2080,7 +2084,6 @@ gl_FragColor = waterSurfaceOutputWithPick(farWaterClosure);
           * step(surfaceEyeDepth + 0.0001, centeredEyeDepth)
           * step(centeredDepthRaw, 0.999999);
         float centeredViewDepth = max(centeredEyeDepth - surfaceEyeDepth, 0.0) * centeredDepthAvailable;
-        vec3 centeredOpaquePosition = reconstructOpaquePositionWS(screenUv, centeredEyeDepth);
 
         detailNormal = waterConnectionNormal(input.worldPosition.xz, detailNormal);
         vec3 cameraForwardWS = safeNormalize3(
@@ -2095,8 +2098,9 @@ gl_FragColor = waterSurfaceOutputWithPick(farWaterClosure);
         ) / max(abs(input.clipPosition.w), 1.0);
         vec2 requestedDisplacedUv = screenUv + refractionOffset;
         float refractionScreenInterior = screenInterior(requestedDisplacedUv);
-        vec2 requestedDepthUv = mix(screenUv, requestedDisplacedUv, refractionScreenInterior);
-        float requestedDisplacedDepthRaw = texture2D(camera_DepthTexture, requestedDepthUv).r;
+        float requestedDisplacedDepthRaw = (refractionScreenInterior > 0.5 && dot(refractionOffset, refractionOffset) > 1e-10)
+          ? texture2D(camera_DepthTexture, requestedDisplacedUv).r
+          : centeredDepthRaw;
         float requestedDisplacedEyeDepth = remapDepthBufferEyeDepth(requestedDisplacedDepthRaw);
         float refractionValidity = material_CameraFeaturesAvailable
           * refractionScreenInterior
@@ -2109,12 +2113,17 @@ gl_FragColor = waterSurfaceOutputWithPick(farWaterClosure);
         float displacedDepthAvailable = material_CameraFeaturesAvailable
           * step(surfaceEyeDepth + 0.0001, displacedEyeDepth)
           * step(displacedDepthRaw, 0.999999);
-        // Preserve the centered scene for boundary composition; the shared resolver
-        // selects between actual centered/displaced facts after validity gating.
-        vec3 centeredSceneColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
-        vec3 refractedSceneColor = refractionValidity > 0.001
-          ? texture2D(camera_OpaqueTexture, displacedUv).rgb
-          : centeredSceneColor;
+        vec3 centeredSceneColor;
+        vec3 refractedSceneColor;
+        if (refractionValidity > 0.9999 && material_RefractionEnabled > 0.5) {
+          refractedSceneColor = texture2D(camera_OpaqueTexture, displacedUv).rgb;
+          centeredSceneColor = refractedSceneColor;
+        } else {
+          centeredSceneColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
+          refractedSceneColor = refractionValidity > 0.001
+            ? texture2D(camera_OpaqueTexture, displacedUv).rgb
+            : centeredSceneColor;
+        }
         float fallbackViewDepth = mix(verticalDepth, centeredViewDepth, centeredDepthAvailable);
         float viewDepth = mix(
           fallbackViewDepth,
@@ -2129,10 +2138,11 @@ gl_FragColor = waterSurfaceOutputWithPick(farWaterClosure);
 #endif
         float fallbackRayDistance = waterSurfaceDerivedSceneRayDepth(verticalDepth, waterSurface_macroNormalWS, fieldViewDirection);
         float sceneRayDepth = mix(fallbackRayDistance, viewDepth / max(sceneRayEyeScale, 0.001), max(centeredDepthAvailable, displacedDepthAvailable));
-        vec3 refractedOpaquePosition = reconstructOpaquePositionWS(displacedUv, displacedEyeDepth);
-        vec3 authoredOpaquePosition = input.worldPosition - vec3(0.0, verticalDepth, 0.0);
-        vec3 opaquePosition = mix(authoredOpaquePosition, centeredOpaquePosition, centeredDepthAvailable);
-        opaquePosition = mix(opaquePosition, refractedOpaquePosition, displacedDepthAvailable);
+        vec3 opaquePosition = displacedDepthAvailable > 0.5
+          ? reconstructOpaquePositionWS(displacedUv, displacedEyeDepth)
+          : (centeredDepthAvailable > 0.5
+            ? reconstructOpaquePositionWS(screenUv, centeredEyeDepth)
+            : input.worldPosition - vec3(0.0, verticalDepth, 0.0));
         float exactSurfaceNormalDepth = abs(dot(
           input.worldPosition - opaquePosition,
           normalize(waterSurface_macroNormalWS)
@@ -3084,35 +3094,33 @@ vec4 waterSurfaceEvaluateFinalClosureV2(
     closure.diffuseLighting,
     closure.primaryColorClosureModel
   );
-  vec3 opticalVolumeColor = waterSurfaceApplyOpticalVolume(
-    primaryColor,
-    closure.absorptionCoefficient,
-    closure.scatteringColor,
-    closure.scatteringCoefficient,
-    closure.opticalDepth
-  );
-  vec3 baseColor = mix(
-    opticalVolumeColor,
-    primaryColor,
-    step(0.5, closure.primaryColorClosureModel)
-  );
-  vec3 refractedVolumeColor = waterSurfaceApplyOpticalVolume(
-    closure.refractionColor,
-    closure.absorptionCoefficient,
-    closure.scatteringColor,
-    closure.scatteringCoefficient,
-    closure.opticalDepth
-  );
-  vec3 resolvedRefractionColor = mix(
-    refractedVolumeColor,
-    closure.refractionColor,
-    step(0.5, closure.primaryColorClosureModel)
-  );
-  vec3 color = mix(
-    baseColor,
-    resolvedRefractionColor,
-    clamp(closure.refractionWeight, 0.0, 1.0) * (1.0 - step(1.5, closure.primaryColorClosureModel))
-  );
+  vec3 baseColor = primaryColor;
+  float refractionMix = 0.0;
+  vec3 resolvedRefractionColor = closure.refractionColor;
+  if (closure.primaryColorClosureModel < 0.5) {
+    baseColor = waterSurfaceApplyOpticalVolume(
+      primaryColor,
+      closure.absorptionCoefficient,
+      closure.scatteringColor,
+      closure.scatteringCoefficient,
+      closure.opticalDepth
+    );
+    refractionMix = clamp(closure.refractionWeight, 0.0, 1.0);
+    if (refractionMix > 0.0) {
+      resolvedRefractionColor = waterSurfaceApplyOpticalVolume(
+        closure.refractionColor,
+        closure.absorptionCoefficient,
+        closure.scatteringColor,
+        closure.scatteringCoefficient,
+        closure.opticalDepth
+      );
+    }
+  } else if (closure.primaryColorClosureModel < 1.5) {
+    refractionMix = clamp(closure.refractionWeight, 0.0, 1.0);
+  }
+  vec3 color = refractionMix > 0.0
+    ? mix(baseColor, resolvedRefractionColor, refractionMix)
+    : baseColor;
   vec3 boundaryContribution = closure.boundaryColor * max(closure.diffuseLighting, vec3(0.0));
   float litSceneColorClosure = step(1.5, closure.primaryColorClosureModel);
   color += boundaryContribution * litSceneColorClosure;
@@ -3422,18 +3430,25 @@ float waterSurface_waveCrest = 0.0;
           * mix(1.0, material_NearshoreOutsidePolicy.y, outsideEdges.y)
           * mix(1.0, material_NearshoreOutsidePolicy.z, outsideEdges.z)
           * mix(1.0, material_NearshoreOutsidePolicy.w, outsideEdges.w);
-        vec4 nearshoreSample = texture2D(material_NearshoreTexture, clamp(nearshoreUv, vec2(0.0), vec2(1.0)));
-        float sampledShoreDistance = waterSpatialFieldDecodeSignedDistance(
-          nearshoreSample.a,
-          2.0078740157480315,
-          -1.0078740157480315,
-          material_NearshoreDecode.y
-        );
-        float shoreDistance = mix(
-          sampledShoreDistance,
-          mix(-material_NearshoreDecode.y, material_NearshoreDecode.y, outsideWet),
-          outsideAtlas
-        );
+        float shoreDistance = mix(-material_NearshoreDecode.y, material_NearshoreDecode.y, outsideWet);
+        if (outsideAtlas < 0.5) {
+          vec2 clampedNearshoreUv = clamp(nearshoreUv, vec2(0.0), vec2(1.0));
+          #ifdef GRAPHICS_API_WEBGL2
+            vec4 nearshoreSample = textureLod(material_NearshoreTexture, clampedNearshoreUv, 0.0);
+          #else
+            #ifdef HAS_TEX_LOD
+              vec4 nearshoreSample = texture2DLodEXT(material_NearshoreTexture, clampedNearshoreUv, 0.0);
+            #else
+              vec4 nearshoreSample = texture2D(material_NearshoreTexture, clampedNearshoreUv);
+            #endif
+          #endif
+          shoreDistance = waterSpatialFieldDecodeSignedDistance(
+            nearshoreSample.a,
+            2.0078740157480315,
+            -1.0078740157480315,
+            material_NearshoreDecode.y
+          );
+        }
         float shoreAntialias = max(
           max(material_NearshoreCellSize.x, material_NearshoreCellSize.y) * 0.42,
           max(fwidth(shoreDistance) * 1.25, material_NearshoreDecode.y * (2.0 / 255.0))

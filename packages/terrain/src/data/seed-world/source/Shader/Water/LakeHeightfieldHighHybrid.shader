@@ -629,10 +629,6 @@ float waterSurfaceDerivedSceneRayDepth(
 #ifndef WATER_ANIMATED_VORONOI_F1_INCLUDED
 #define WATER_ANIMATED_VORONOI_F1_INCLUDED
 
-bool waterAnimatedVoronoiF1IsFinite(float value) {
-  return value == value && abs(value) < 1.0e20;
-}
-
 vec2 waterAnimatedVoronoiF1Hash(vec2 cell) {
   vec2 projected = vec2(
     dot(cell, vec2(127.1, 311.7)),
@@ -656,16 +652,34 @@ float waterAnimatedVoronoiF1Candidate(
 float waterAnimatedVoronoiF1(vec2 position, float time) {
   vec2 cell = floor(position);
   vec2 localPosition = fract(position);
-  // Compare squared distances before the single square root per octave.
-  float f1 = 128.0;
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, -1.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, -1.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, -1.0), time));
+  // Center cell first, then 4 orthogonal and 4 diagonal neighbors (commutative min).
+  float f1 = waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, 0.0), time);
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, 0.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, 0.0), time));
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, 0.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, 1.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, -1.0), time));
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, 1.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, -1.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, -1.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, 1.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, 1.0), time));
+  return clamp(0.707 * sqrt(f1), 0.0, 1.0);
+}
+
+float waterAnimatedVoronoiF1UpperBounded(vec2 position, float time, float f1Max) {
+  vec2 cell = floor(position);
+  vec2 localPosition = fract(position);
+  // Center-first exact early exit: since f1 can only decrease across min(), f1 <= f1Max
+  // already proves final F1 <= f1Max. Negative f1Max disables early exit.
+  float f1 = waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, 0.0), time);
+  if (f1 <= f1Max) return 0.0;
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, 0.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, 0.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, -1.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, 1.0), time));
+  if (f1 <= f1Max) return 0.0;
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, -1.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, -1.0), time));
+  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, 1.0), time));
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, 1.0), time));
   return clamp(0.707 * sqrt(f1), 0.0, 1.0);
 }
@@ -678,41 +692,97 @@ float evaluateWaterAnimatedVoronoiF1(
   vec3 octaveWeights,
   float lacunarity
 ) {
-    if (
-      !waterAnimatedVoronoiF1IsFinite(worldPositionXz.x)
-      || !waterAnimatedVoronoiF1IsFinite(worldPositionXz.y)
-      || !waterAnimatedVoronoiF1IsFinite(surfaceTime)
-      || !waterAnimatedVoronoiF1IsFinite(worldScale)
-      || !waterAnimatedVoronoiF1IsFinite(timeRate)
-      || !waterAnimatedVoronoiF1IsFinite(lacunarity)
-      || worldScale <= 0.0
-      || timeRate <= 0.0
-      || lacunarity <= 0.0
-      || !(waterAnimatedVoronoiF1IsFinite(octaveWeights.x) && octaveWeights.x >= 0.0
-        && waterAnimatedVoronoiF1IsFinite(octaveWeights.y) && octaveWeights.y >= 0.0
-        && waterAnimatedVoronoiF1IsFinite(octaveWeights.z) && octaveWeights.z >= 0.0)
-    ) {
-      return 0.0;
-    }
-  float animatedTime = surfaceTime * timeRate;
-  if (!waterAnimatedVoronoiF1IsFinite(animatedTime)) return 0.0;
-  float safeWorldScale = worldScale;
-  float safeLacunarity = lacunarity;
     float weightSum = octaveWeights.x + octaveWeights.y + octaveWeights.z;
-  if (!(weightSum > 0.0) || !waterAnimatedVoronoiF1IsFinite(weightSum)) return 0.0;
+    bool validWeights = octaveWeights.x >= 0.0 && octaveWeights.y >= 0.0 && octaveWeights.z >= 0.0;
+  if (
+    !(worldScale > 0.0)
+    || !(timeRate > 0.0)
+    || !(lacunarity > 0.0)
+    || !validWeights
+    || !(weightSum > 0.0)
+  ) {
+    return 0.0;
+  }
+  float animatedTime = surfaceTime * timeRate;
   float weightedPattern = 0.0;
-  weightedPattern += waterAnimatedVoronoiF1(
-    worldPositionXz * safeWorldScale * 1.0,
-    animatedTime
-  ) * octaveWeights.x;
+  if (octaveWeights.x > 0.0) {
     weightedPattern += waterAnimatedVoronoiF1(
-      worldPositionXz * safeWorldScale * safeLacunarity,
+      worldPositionXz * worldScale,
       animatedTime
-    ) * octaveWeights.y;
-    weightedPattern += waterAnimatedVoronoiF1(
-      worldPositionXz * safeWorldScale * safeLacunarity * safeLacunarity,
-      animatedTime
-    ) * octaveWeights.z;
+    ) * octaveWeights.x;
+  }
+    if (octaveWeights.y > 0.0) {
+      weightedPattern += waterAnimatedVoronoiF1(
+        worldPositionXz * worldScale * lacunarity,
+        animatedTime
+      ) * octaveWeights.y;
+    }
+    if (octaveWeights.z > 0.0) {
+      weightedPattern += waterAnimatedVoronoiF1(
+        worldPositionXz * worldScale * lacunarity * lacunarity,
+        animatedTime
+      ) * octaveWeights.z;
+    }
+  return clamp(weightedPattern / weightSum, 0.0, 1.0);
+}
+
+float evaluateWaterAnimatedVoronoiF1UpperBounded(
+  vec2 worldPositionXz,
+  float surfaceTime,
+  float worldScale,
+  float timeRate,
+  vec3 octaveWeights,
+  float lacunarity,
+  float pMax
+) {
+    float weightSum = octaveWeights.x + octaveWeights.y + octaveWeights.z;
+    bool validWeights = octaveWeights.x >= 0.0 && octaveWeights.y >= 0.0 && octaveWeights.z >= 0.0;
+  if (
+    !(worldScale > 0.0)
+    || !(timeRate > 0.0)
+    || !(lacunarity > 0.0)
+    || !validWeights
+    || !(weightSum > 0.0)
+  ) {
+    return 0.0;
+  }
+  if (pMax >= 1.0) return 0.0;
+  const float eps = 0.00001;
+  float animatedTime = surfaceTime * timeRate;
+  float targetSum = pMax * weightSum;
+  float w0 = octaveWeights.x;
+    float rest0 = octaveWeights.y + octaveWeights.z;
+  float v0Max = (w0 > 0.0) ? ((targetSum - rest0) / w0 - eps) : -1.0;
+  if (v0Max >= 1.0) return 0.0;
+  float f1Max0 = (v0Max > 0.0) ? ((v0Max / 0.707) * (v0Max / 0.707)) : -1.0;
+  float v0 = (w0 > 0.0)
+    ? waterAnimatedVoronoiF1UpperBounded(worldPositionXz * worldScale, animatedTime, f1Max0)
+    : 0.0;
+  if (v0Max >= 0.0 && v0 <= v0Max) return 0.0;
+  float weightedPattern = w0 * v0;
+    float w1 = octaveWeights.y;
+      float rest1 = octaveWeights.z;
+    float v1Max = (w1 > 0.0) ? ((targetSum - weightedPattern - rest1) / w1 - eps) : -1.0;
+    if (v1Max >= 1.0) return 0.0;
+    float f1Max1 = (v1Max > 0.0) ? ((v1Max / 0.707) * (v1Max / 0.707)) : -1.0;
+    float v1 = (w1 > 0.0)
+      ? waterAnimatedVoronoiF1UpperBounded(worldPositionXz * worldScale * lacunarity, animatedTime, f1Max1)
+      : 0.0;
+    if (v1Max >= 0.0 && v1 <= v1Max) return 0.0;
+    weightedPattern += w1 * v1;
+    float w2 = octaveWeights.z;
+    float v2Max = (w2 > 0.0) ? ((targetSum - weightedPattern) / w2 - eps) : -1.0;
+    if (v2Max >= 1.0) return 0.0;
+    float f1Max2 = (v2Max > 0.0) ? ((v2Max / 0.707) * (v2Max / 0.707)) : -1.0;
+    float v2 = (w2 > 0.0)
+      ? waterAnimatedVoronoiF1UpperBounded(
+          worldPositionXz * worldScale * lacunarity * lacunarity,
+          animatedTime,
+          f1Max2
+        )
+      : 0.0;
+    if (v2Max >= 0.0 && v2 <= v2Max) return 0.0;
+    weightedPattern += w2 * v2;
   return clamp(weightedPattern / weightSum, 0.0, 1.0);
 }
 
@@ -1139,26 +1209,29 @@ WaterSurfaceResolvedLightingV2 waterSurfaceAccumulateDirectLightingV2(
 ) {
   vec3 safeLightRadiance = max(lightRadiance, vec3(0.0));
   float safeNormalDotLight = clamp(normalDotLight, 0.0, 1.0);
-  float standardDirectSpecular = waterSurfaceDirectSpecular(
-    fresnelF0,
-    perceptualRoughness,
-    normalDotView,
-    safeNormalDotLight,
-    normalDotHalf,
-    lightDotHalf
-  );
-  float litDirectSpecular = waterSurfaceLitDirectSpecular(
-    fresnelF0,
-    perceptualRoughness,
-    safeNormalDotLight,
-    normalDotHalf,
-    lightDotHalf
-  );
-  float resolvedDirectSpecular = mix(
-    standardDirectSpecular,
-    litDirectSpecular,
-    step(1.5, primaryColorClosureModel) * (1.0 - step(3.5, primaryColorClosureModel))
-  ) * clamp(directSpecularEnabled, 0.0, 1.0);
+  float resolvedDirectSpecular = 0.0;
+  float specGate = clamp(directSpecularEnabled, 0.0, 1.0);
+  if (specGate > 0.0) {
+    if (primaryColorClosureModel >= 1.5 && primaryColorClosureModel < 3.5) {
+      resolvedDirectSpecular = waterSurfaceLitDirectSpecular(
+        fresnelF0,
+        perceptualRoughness,
+        safeNormalDotLight,
+        normalDotHalf,
+        lightDotHalf
+      );
+    } else {
+      resolvedDirectSpecular = waterSurfaceDirectSpecular(
+        fresnelF0,
+        perceptualRoughness,
+        normalDotView,
+        safeNormalDotLight,
+        normalDotHalf,
+        lightDotHalf
+      );
+    }
+    resolvedDirectSpecular *= specGate;
+  }
   lighting.diffuseRadiance += safeLightRadiance * safeNormalDotLight;
   lighting.directSpecularRadiance += safeLightRadiance * resolvedDirectSpecular;
   return lighting;
@@ -1182,35 +1255,33 @@ vec4 waterSurfaceEvaluateFinalClosureV2(
     closure.diffuseLighting,
     closure.primaryColorClosureModel
   );
-  vec3 opticalVolumeColor = waterSurfaceApplyOpticalVolume(
-    primaryColor,
-    closure.absorptionCoefficient,
-    closure.scatteringColor,
-    closure.scatteringCoefficient,
-    closure.opticalDepth
-  );
-  vec3 baseColor = mix(
-    opticalVolumeColor,
-    primaryColor,
-    step(0.5, closure.primaryColorClosureModel)
-  );
-  vec3 refractedVolumeColor = waterSurfaceApplyOpticalVolume(
-    closure.refractionColor,
-    closure.absorptionCoefficient,
-    closure.scatteringColor,
-    closure.scatteringCoefficient,
-    closure.opticalDepth
-  );
-  vec3 resolvedRefractionColor = mix(
-    refractedVolumeColor,
-    closure.refractionColor,
-    step(0.5, closure.primaryColorClosureModel)
-  );
-  vec3 color = mix(
-    baseColor,
-    resolvedRefractionColor,
-    clamp(closure.refractionWeight, 0.0, 1.0) * (1.0 - step(1.5, closure.primaryColorClosureModel))
-  );
+  vec3 baseColor = primaryColor;
+  float refractionMix = 0.0;
+  vec3 resolvedRefractionColor = closure.refractionColor;
+  if (closure.primaryColorClosureModel < 0.5) {
+    baseColor = waterSurfaceApplyOpticalVolume(
+      primaryColor,
+      closure.absorptionCoefficient,
+      closure.scatteringColor,
+      closure.scatteringCoefficient,
+      closure.opticalDepth
+    );
+    refractionMix = clamp(closure.refractionWeight, 0.0, 1.0);
+    if (refractionMix > 0.0) {
+      resolvedRefractionColor = waterSurfaceApplyOpticalVolume(
+        closure.refractionColor,
+        closure.absorptionCoefficient,
+        closure.scatteringColor,
+        closure.scatteringCoefficient,
+        closure.opticalDepth
+      );
+    }
+  } else if (closure.primaryColorClosureModel < 1.5) {
+    refractionMix = clamp(closure.refractionWeight, 0.0, 1.0);
+  }
+  vec3 color = refractionMix > 0.0
+    ? mix(baseColor, resolvedRefractionColor, refractionMix)
+    : baseColor;
   vec3 boundaryContribution = closure.boundaryColor * max(closure.diffuseLighting, vec3(0.0));
   float litSceneColorClosure = step(1.5, closure.primaryColorClosureModel);
   color += boundaryContribution * litSceneColorClosure;
@@ -1671,78 +1742,80 @@ float waterSurface_waveCrest = max(input.waveOffset, 0.0);
 
         float rainRate = clamp(scene_WeatherState.x, 0.0, 1.0)
           * material_MicroNormalsEnabled;
-        float rainRippleUpwardCosine = clamp(input.macroNormalWS.y, 0.0, 1.0);
-        float rainRippleUpwardFade = rainRippleUpwardCosine * smoothstep(
-          0.2,
-          0.55,
-          rainRippleUpwardCosine
-        );
-        vec3 rainRippleCameraDelta = camera_Position - input.worldPosition;
-        float rainRippleHorizontalDistance = length(rainRippleCameraDelta.xz);
-        float rainRippleVerticalDistance = abs(rainRippleCameraDelta.y);
-        float rainRippleDistance =
-          rainRippleHorizontalDistance + rainRippleVerticalDistance * 0.25;
-        float rainRippleDistanceFade = 1.0 - smoothstep(
-          42.0,
-          150.0,
-          rainRippleDistance
-        );
-        float rainRipplePlaybackStrength = smoothstep(0.04, 0.72, rainRate);
-        float rainRippleRainAmount = smoothstep(0.02, 1.0, rainRate);
-        float rainRippleStormAmount = smoothstep(0.68, 1.0, rainRate);
-        float rainRippleRainPresence = step(0.0001, rainRate);
-        float rainRippleRingAmplitude = mix(0.82, 1.0, rainRippleStormAmount);
-        float rainRippleVisibility = rainRippleRainPresence
-          * rainRippleUpwardFade
-          * rainRippleDistanceFade;
-        float rainRippleContribution = rainRippleVisibility
-          * rainRippleRingAmplitude;
         float rainRippleMask = 0.0;
-        if (rainRippleContribution > 0.001) {
-          vec2 rainRipplePrimarySample = rainRippleField(
-            baseWorldPosition.xz * 0.68,
-            scene_WeatherTime,
-            0.0,
-            rainRipplePlaybackStrength
+        float rainRippleStormAmount = 0.0;
+        if (rainRate > 0.0001) {
+          float rainRippleUpwardCosine = clamp(input.macroNormalWS.y, 0.0, 1.0);
+          float rainRippleUpwardFade = rainRippleUpwardCosine * smoothstep(
+            0.2,
+            0.55,
+            rainRippleUpwardCosine
           );
-          float rainRipplePrimaryDensity = rainRippleDensityWeight(
-            rainRipplePrimarySample,
-            rainRippleRainAmount
+          vec3 rainRippleCameraDelta = camera_Position - input.worldPosition;
+          float rainRippleHorizontalDistance = length(rainRippleCameraDelta.xz);
+          float rainRippleVerticalDistance = abs(rainRippleCameraDelta.y);
+          float rainRippleDistance =
+            rainRippleHorizontalDistance + rainRippleVerticalDistance * 0.25;
+          float rainRippleDistanceFade = 1.0 - smoothstep(
+            42.0,
+            150.0,
+            rainRippleDistance
           );
-          vec2 rainRippleSlope = rainRipplePrimarySample
-            * (0.28 * rainRipplePrimaryDensity);
-          float rainRippleRawMask = length(rainRipplePrimarySample)
-            * rainRipplePrimaryDensity;
-          vec2 rotatedRainRippleXZ = vec2(
-            baseWorldPosition.x * 0.8 - baseWorldPosition.z * 0.6,
-            baseWorldPosition.x * 0.6 + baseWorldPosition.z * 0.8
-          );
-          vec2 rainRippleSecondarySample = rainRippleField(
-            rotatedRainRippleXZ * 1.07 + vec2(0.37, 0.19),
-            scene_WeatherTime,
-            23.0,
-            rainRipplePlaybackStrength
-          );
-          float rainRippleSecondaryDensity = rainRippleDensityWeight(
-            rainRippleSecondarySample,
-            rainRippleRainAmount
-          );
-          float rainRippleSecondaryAmount = smoothstep(0.35, 1.0, rainRate);
-          float rainRippleSecondaryWeight = rainRippleSecondaryDensity
-            * rainRippleSecondaryAmount;
-          rainRippleSlope += rainRippleSecondarySample
-            * (0.18 * rainRippleSecondaryWeight);
-          rainRippleRawMask = max(
-            rainRippleRawMask,
-            length(rainRippleSecondarySample) * rainRippleSecondaryWeight
-          );
-          rainRippleMask = smoothstep(0.035, 0.24, rainRippleRawMask)
-            * clamp(rainRippleContribution, 0.0, 1.0);
-          surfaceNormalWS = rainRippleApplyNormal(
-            surfaceNormalWS,
-            input.macroNormalWS,
-            rainRippleSlope * rainRippleContribution
-          );
+          rainRippleStormAmount = smoothstep(0.68, 1.0, rainRate);
+          float rainRippleRingAmplitude = mix(0.82, 1.0, rainRippleStormAmount);
+          float rainRippleContribution = rainRippleUpwardFade
+            * rainRippleDistanceFade
+            * rainRippleRingAmplitude;
+          if (rainRippleContribution > 0.001) {
+            float rainRipplePlaybackStrength = smoothstep(0.04, 0.72, rainRate);
+            float rainRippleRainAmount = smoothstep(0.02, 1.0, rainRate);
+            vec2 rainRipplePrimarySample = rainRippleField(
+              baseWorldPosition.xz * 0.68,
+              scene_WeatherTime,
+              0.0,
+              rainRipplePlaybackStrength
+            );
+            float rainRipplePrimaryDensity = rainRippleDensityWeight(
+              rainRipplePrimarySample,
+              rainRippleRainAmount
+            );
+            vec2 rainRippleSlope = rainRipplePrimarySample
+              * (0.28 * rainRipplePrimaryDensity);
+            float rainRippleRawMask = length(rainRipplePrimarySample)
+              * rainRipplePrimaryDensity;
+            float rainRippleSecondaryAmount = smoothstep(0.35, 1.0, rainRate);
+            if (rainRippleSecondaryAmount > 0.0) {
+              vec2 rotatedRainRippleXZ = vec2(
+                baseWorldPosition.x * 0.8 - baseWorldPosition.z * 0.6,
+                baseWorldPosition.x * 0.6 + baseWorldPosition.z * 0.8
+              );
+              vec2 rainRippleSecondarySample = rainRippleField(
+                rotatedRainRippleXZ * 1.07 + vec2(0.37, 0.19),
+                scene_WeatherTime,
+                23.0,
+                rainRipplePlaybackStrength
+              );
+              float rainRippleSecondaryDensity = rainRippleDensityWeight(
+                rainRippleSecondarySample,
+                rainRippleRainAmount
+              );
+              float rainRippleSecondaryWeight = rainRippleSecondaryDensity
+                * rainRippleSecondaryAmount;
+              rainRippleSlope += rainRippleSecondarySample
+                * (0.18 * rainRippleSecondaryWeight);
+              rainRippleRawMask = max(
+                rainRippleRawMask,
+                length(rainRippleSecondarySample) * rainRippleSecondaryWeight
+              );
+            }
+            rainRippleMask = smoothstep(0.035, 0.24, rainRippleRawMask)
+              * clamp(rainRippleContribution, 0.0, 1.0);
+            surfaceNormalWS = rainRippleApplyNormal(
+              surfaceNormalWS,
+              input.macroNormalWS,
+              rainRippleSlope * rainRippleContribution
+            );
+          }
         }
         float rainRippleRoughnessResponse = mix(
           -0.018,
@@ -1816,19 +1889,59 @@ float waterSurface_waveCrest = max(input.waveOffset, 0.0);
         float appearanceBoundaryField1 = sceneDepthDelta;
         float appearanceBoundaryRawNormalized1 = appearanceBoundaryField1
           / max(material_AppearanceV2Boundary1Range, 0.0001);
-        float appearanceBoundaryNormalized1 = clamp(
-          appearanceBoundaryRawNormalized1,
-          0.0,
-          1.0
-        );
-        float appearanceBoundaryMask1 = appearanceBoundaryNormalized1;
-        appearanceBoundaryMask1 = 1.0 - appearanceBoundaryMask1;
+        float appearanceBoundaryMask1 = 0.0;
 
-        float appearanceBoundaryPattern1 = evaluateWaterAnimatedVoronoiF1( input.worldPosition.xz, material_AppearanceV2Boundary1PatternTimeRate, material_AppearanceV2Boundary1PatternWorldScale, 1.0, material_AppearanceV2Boundary1PatternWeights, material_AppearanceV2Boundary1PatternLacunarity );
-
-        float appearanceBoundaryPatternResponse1 = pow(max(abs(1.0 - appearanceBoundaryPattern1), 0.0001), material_AppearanceV2Boundary1PatternExponent);
-
-        appearanceBoundaryMask1 = clamp(1.0 - appearanceBoundaryRawNormalized1 + appearanceBoundaryPatternResponse1, 0.0, 1.0) * material_AppearanceV2Boundary1PatternOpacity;
+        bool appearanceBoundaryGate1 = (material_AppearanceV2Boundary1PatternOpacity > 0.0001);
+        appearanceBoundaryGate1 = appearanceBoundaryGate1 && (material_AppearanceV2BoundaryMaterialEnabled > 0.0001);
+        appearanceBoundaryGate1 = appearanceBoundaryGate1 && (centeredDepthBehind > 0.0001);
+        if (appearanceBoundaryGate1) {
+          float appearanceBoundaryRawNorm1 = appearanceBoundaryRawNormalized1;
+          float appearanceBoundaryPatternExp1 = material_AppearanceV2Boundary1PatternExponent;
+          if (appearanceBoundaryPatternExp1 == 0.0) {
+            appearanceBoundaryMask1 = clamp(2.0 - appearanceBoundaryRawNorm1, 0.0, 1.0) * material_AppearanceV2Boundary1PatternOpacity;
+          } else if (appearanceBoundaryPatternExp1 < 0.0) {
+            if (appearanceBoundaryRawNorm1 <= 1.0) {
+              appearanceBoundaryMask1 = material_AppearanceV2Boundary1PatternOpacity;
+            } else {
+              float appearanceBoundaryPMax1 = -1.0;
+              bool appearanceBoundaryAlwaysZero1 = false;
+              if (appearanceBoundaryRawNorm1 > 2.0) {
+                float appearanceBoundaryBaseReq1 = pow(
+                  appearanceBoundaryRawNorm1 - 1.0,
+                  1.0 / appearanceBoundaryPatternExp1
+                );
+                if (appearanceBoundaryBaseReq1 <= 0.0001) {
+                  appearanceBoundaryAlwaysZero1 = true;
+                }
+                else {
+                  appearanceBoundaryPMax1 = 1.0 - appearanceBoundaryBaseReq1;
+                }
+              }
+              if (appearanceBoundaryAlwaysZero1) {
+                appearanceBoundaryMask1 = 0.0;
+              } else {
+                float appearanceBoundaryPattern1 = appearanceBoundaryPMax1 >= 0.0
+                  ? evaluateWaterAnimatedVoronoiF1UpperBounded( input.worldPosition.xz, material_AppearanceV2Boundary1PatternTimeRate, material_AppearanceV2Boundary1PatternWorldScale, 1.0, material_AppearanceV2Boundary1PatternWeights, material_AppearanceV2Boundary1PatternLacunarity, appearanceBoundaryPMax1 )
+                  : evaluateWaterAnimatedVoronoiF1( input.worldPosition.xz, material_AppearanceV2Boundary1PatternTimeRate, material_AppearanceV2Boundary1PatternWorldScale, 1.0, material_AppearanceV2Boundary1PatternWeights, material_AppearanceV2Boundary1PatternLacunarity );
+                float appearanceBoundaryPatternResponse1 = pow(max(abs(1.0 - appearanceBoundaryPattern1), 0.0001), appearanceBoundaryPatternExp1);
+                appearanceBoundaryMask1 = clamp(1.0 - appearanceBoundaryRawNorm1 + appearanceBoundaryPatternResponse1, 0.0, 1.0) * material_AppearanceV2Boundary1PatternOpacity;
+              }
+            }
+          } else {
+            if (appearanceBoundaryRawNorm1 >= 2.0) {
+              appearanceBoundaryMask1 = 0.0;
+            } else if (appearanceBoundaryRawNorm1 <= 0.0) {
+              appearanceBoundaryMask1 = material_AppearanceV2Boundary1PatternOpacity;
+            } else {
+              float appearanceBoundaryPMax1 = -1.0;
+              float appearanceBoundaryPattern1 = evaluateWaterAnimatedVoronoiF1( input.worldPosition.xz, material_AppearanceV2Boundary1PatternTimeRate, material_AppearanceV2Boundary1PatternWorldScale, 1.0, material_AppearanceV2Boundary1PatternWeights, material_AppearanceV2Boundary1PatternLacunarity );
+              float appearanceBoundaryPatternResponse1 = pow(max(abs(1.0 - appearanceBoundaryPattern1), 0.0001), appearanceBoundaryPatternExp1);
+              appearanceBoundaryMask1 = clamp(1.0 - appearanceBoundaryRawNorm1 + appearanceBoundaryPatternResponse1, 0.0, 1.0) * material_AppearanceV2Boundary1PatternOpacity;
+            }
+          }
+        } else {
+          appearanceBoundaryMask1 = 0.0;
+        }
 
         appearanceBoundaryMask1 *= centeredDepthBehind;
         contactFoamMask = max(
@@ -1872,6 +1985,7 @@ float waterSurface_waveCrest = max(input.waveOffset, 0.0);
         // Authored color is resolved only by the shared V2 Closure below.
         vec3 waterColor = material_ShallowColor.rgb;
         vec3 centeredOpaqueColor = waterColor;
+        bool centeredOpaqueSampled = false;
         vec3 displacedOpaqueColor = waterColor;
         vec2 refractionUvDelta = vec2(0.0);
         float refractionDepthContinuity = 1.0;
@@ -1902,10 +2016,13 @@ float waterSurface_waveCrest = max(input.waveOffset, 0.0);
           * step(0.002, displacedScreenUv.y)
           * step(displacedScreenUv.y, 0.998);
         vec2 refractedScreenUv = clamp(displacedScreenUv, vec2(0.002), vec2(0.998));
-        float refractedSceneDepthBufferSample = texture2D(
-          camera_DepthTexture,
-          refractedScreenUv
-        ).r;
+        vec2 refractionDepthDeltaUv = refractedScreenUv - screenUv;
+        float refractedSceneDepthBufferSample = (refractionScreenInterior > 0.5 && dot(refractionDepthDeltaUv, refractionDepthDeltaUv) > 1e-10)
+          ? texture2D(
+              camera_DepthTexture,
+              refractedScreenUv
+            ).r
+          : sceneDepthBufferSample;
         float refractedSceneEyeDepthSample = remapDepthBufferEyeDepth(
           refractedSceneDepthBufferSample
         );
@@ -1932,10 +2049,19 @@ float waterSurface_waveCrest = max(input.waveOffset, 0.0);
           (1.0 - refractedSceneDepthAvailable) * localRefractedGeometryBehindSurface
         );
         refractionUvDelta = refractedScreenUv - screenUv;
-        centeredOpaqueColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
-        displacedOpaqueColor = refractionSampleValidity > 0.001
-          ? texture2D(camera_OpaqueTexture, refractedScreenUv).rgb
-          : centeredOpaqueColor;
+        if (refractionSampleValidity > 0.9999 && refractionFeatureWeight > 0.5) {
+          displacedOpaqueColor = texture2D(camera_OpaqueTexture, refractedScreenUv).rgb;
+          centeredOpaqueColor = displacedOpaqueColor;
+          if (dot(refractionUvDelta, refractionUvDelta) <= 1e-10) {
+            centeredOpaqueSampled = true;
+          }
+        } else {
+          centeredOpaqueColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
+          centeredOpaqueSampled = true;
+          displacedOpaqueColor = refractionSampleValidity > 0.001
+            ? texture2D(camera_OpaqueTexture, refractedScreenUv).rgb
+            : centeredOpaqueColor;
+        }
 
 #ifndef WATER_SURFACE_APPEARANCE_V2_DEPTH_RESPONSE_INCLUDED
 #define WATER_SURFACE_APPEARANCE_V2_DEPTH_RESPONSE_INCLUDED
@@ -1949,43 +2075,44 @@ float waterSurface_waveCrest = max(input.waveOffset, 0.0);
         appearanceDepthTintFactor = clamp(appearanceDepthTintFactor + appearanceBoundaryAlbedoWeight, 0.0, 1.0);
 #endif
 
-        vec3 probeDirection = safeNormalize3(
-          reflect(-viewDirection, surfaceNormalWS),
-          input.baseNormalWS
-        );
-        vec3 rawAnalyticReflectionSample = waterSurfaceResolveAnalyticReflectionFallbackV2(
-          surfaceNormalWS.y,
-          effectiveSurfaceRoughness,
-          scene_EnvMapLight.specularIntensity
-        );
-        vec3 rawEnvironmentReflectionSample;
-        float rawEnvironmentReflectionValidity;
-        waterSurfaceSampleRawEnvironmentReflectionV2(
-          probeDirection,
-          input.worldPosition,
-          effectiveSurfaceRoughness,
-          rawEnvironmentReflectionSample,
-          rawEnvironmentReflectionValidity
-        );
+        vec3 rawAnalyticReflectionSample = vec3(0.0);
+        vec3 rawEnvironmentReflectionSample = vec3(0.0);
+        float rawEnvironmentReflectionValidity = 0.0;
         vec3 rawSsrReflectionPremultipliedSample = vec3(0.0);
         float rawSsrReflectionValidity = 0.0;
+        bool sampleEnvironmentReflection = true;
         #ifdef CAMERA_ENABLE_SSR
         if (material_ReflectionSource > 2.5) {
-          vec3 fallbackEnvironment = mix(
-            rawAnalyticReflectionSample,
+          vec4 ssrRaw = sampleScreenSpaceReflectionRaw(
+            input.clipPosition,
+            surfaceNormalWS,
+            rainRippleSurfaceRoughness
+          );
+          float connectionSsrValidity = clamp(waterConnectionFacts(input.worldPosition.xz).y, 0.0, 1.0);
+          rawSsrReflectionValidity = connectionSsrValidity * ssrRaw.a;
+          rawSsrReflectionPremultipliedSample = ssrRaw.rgb * connectionSsrValidity;
+          float ssrCompositeScale = clamp(material_WaterScreenSpaceReflectionCompositeIntensity, 0.0, 1.0);
+          sampleEnvironmentReflection = rawSsrReflectionValidity * ssrCompositeScale < 0.9999;
+        }
+        #endif
+        if (sampleEnvironmentReflection) {
+          vec3 probeDirection = safeNormalize3(
+            reflect(-viewDirection, surfaceNormalWS),
+            input.baseNormalWS
+          );
+          rawAnalyticReflectionSample = waterSurfaceResolveAnalyticReflectionFallbackV2(
+            surfaceNormalWS.y,
+            effectiveSurfaceRoughness,
+            scene_EnvMapLight.specularIntensity
+          );
+          waterSurfaceSampleRawEnvironmentReflectionV2(
+            probeDirection,
+            input.worldPosition,
+            effectiveSurfaceRoughness,
             rawEnvironmentReflectionSample,
             rawEnvironmentReflectionValidity
           );
-          vec3 ssrComposited = evaluateScreenSpaceReflection(
-            input.clipPosition,
-            surfaceNormalWS,
-            rainRippleSurfaceRoughness,
-            fallbackEnvironment
-          );
-          rawSsrReflectionValidity = waterConnectionFacts(input.worldPosition.xz).y;
-          rawSsrReflectionPremultipliedSample = ssrComposited * rawSsrReflectionValidity;
         }
-        #endif
         float reflectionIntensity = max(material_ReflectionIntensity, 0.0);
 
         WaterSurfaceRawRefractionFactsV2 rawRefractionFacts;
@@ -2047,8 +2174,18 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
 #endif
 
         closureInput.coverage = coverage;
-        closureInput.compositionSceneColor = centeredOpaqueColor;
         closureInput.precomposedReplace = 1.0;
+        if (
+          !centeredOpaqueSampled &&
+          closureInput.precomposedReplace > 0.5 &&
+          !(closureInput.coastalAlphaWeight >= 0.9999 &&
+            closureInput.coastalAlpha >= 0.9999 &&
+            closureInput.coverage >= 0.9999)
+        ) {
+          centeredOpaqueColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
+          centeredOpaqueSampled = true;
+        }
+        closureInput.compositionSceneColor = centeredOpaqueColor;
         #ifdef MATERIAL_WATER_CONNECTIONS
         // Both sides approach clear, flat water before their authored optical response resumes.
         float connectionWeight = waterConnectionFacts(input.worldPosition.xz).x;
@@ -2397,34 +2534,14 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
         vec3 computedBaseBitangentWS = normalize(
           cross(computedBaseNormalWS, computedBaseTangentWS) * attr.TANGENT.w
         );
-        vec4 localMap = texture2D(material_LocalMapTexture, attr.TEXCOORD_0);
-        vec2 flowXZ = (localMap.rg * 2.0 - 1.0) * material_LocalMapDecode.x;
-        float signedDistance = (localMap.a * 2.0 - 1.0) * material_LocalMapDecode.z;
-        signedDistance = waterConnectionShore(baseWorldPosition.xz, signedDistance);
-        float shoreDamping = smoothstep(0.0, max(material_ShoreDampingWidth, 0.0001), signedDistance);
-        float flowSpeed = length(flowXZ);
-        float flowWeight = smoothstep(
-          0.055,
-          0.756,
-          flowSpeed
-        );
-        vec2 flowDirection = safeNormalize2(flowXZ, vec2(-0.36, -0.9329523));
-        float macroFlowAlignment = flowWeight * 0.72;
-        float macroAmplitudeScale = mix(
-          0.3,
-          1.0,
-          flowWeight
-        );
         float waveOffset = 0.0;
         float tangentSlope = 0.0;
         float bitangentSlope = 0.0;
-
         vec3 computedMacroNormalWS = normalize(
           computedBaseNormalWS
             - computedBaseTangentWS * tangentSlope
             - computedBaseBitangentWS * bitangentSlope
         );
-        waveOffset *= waterConnectionFacts(baseWorldPosition.xz).x;
         vec4 localPosition = attr.POSITION + vec4(attr.NORMAL * waveOffset, 0.0);
         gl_Position = renderer_MVPMat * localPosition;
         varyings.worldPosition = baseWorldPosition.xyz + computedBaseNormalWS * waveOffset;
