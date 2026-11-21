@@ -32,6 +32,7 @@ import {
 import {
   buildFarmLandGeometry,
   captureFarmLandHeights,
+  farmLandActiveCellMask,
   farmLandGrid,
   sameFarmLandHeights,
   FARM_LAND_HEIGHT_SAMPLE_COUNT,
@@ -52,7 +53,15 @@ export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
   private readonly material: PBRMaterial;
   private readonly chunks = new Map<
     string,
-    { entity: Entity; mesh: BufferMesh; signature: string; heights: Float64Array }
+    {
+      entity: Entity;
+      mesh: BufferMesh;
+      signature: string;
+      heights: Float64Array;
+      activeBounds?: readonly GroundBounds[];
+      maskLo: number;
+      maskHi: number;
+    }
   >();
   private readonly grassOverlay: PlanningFarmGrassOverlay;
   private readonly grassTiles = new Map<string, FarmGrassTile>();
@@ -125,8 +134,10 @@ export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
       captureFarmLandHeights(fields, grid, domain, this.heightScratch);
       if (sameFarmLandHeights(chunk.heights, this.heightScratch)) continue;
       const heights = this.heightScratch.slice();
-      const mesh = this.createMesh(domain, heights);
-      chunk.entity.getComponent(MeshRenderer)!.mesh = mesh;
+      const mesh = this.createMesh(domain, heights, chunk.activeBounds);
+      const renderer = chunk.entity.getComponent(MeshRenderer)!;
+      renderer.mesh = mesh;
+      if (mesh.subMesh) renderer.enabled = mesh.subMesh.count > 0;
       disposeSoilMesh(chunk.mesh);
       chunk.mesh = mesh;
       chunk.heights = heights;
@@ -188,7 +199,9 @@ export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
           )
         : undefined;
       const signature = `${chunk.signature}/${JSON.stringify(holes)}/opaque:${JSON.stringify(localOpaque)}${before ? `/preview:${JSON.stringify(before)}` : ""}`;
-      if (previous?.signature === signature) continue;
+      const nextMask = farmLandActiveCellMask(this.grid, chunk, chunk.bounds, this.margin);
+      const maskChanged = !previous || previous.maskLo !== nextMask.maskLo || previous.maskHi !== nextMask.maskHi;
+      if (previous?.signature === signature && !maskChanged) continue;
       const field = bakeFarmLandCoverage(chunk, size, holes, localOpaque);
       this.grassTiles.set(chunk.key, {
         x: chunk.x,
@@ -198,17 +211,27 @@ export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
       });
       changed = true;
       const heights = previous?.heights ?? captureFarmLandHeights(this.fields, this.grid, chunk);
-      const mesh = previous?.mesh ?? this.createMesh(chunk, heights);
+      const mesh = !maskChanged && previous ? previous.mesh : this.createMesh(chunk, heights, chunk.bounds);
       const entity = previous?.entity ?? this.root.createChild(`Farm land ${chunk.key}`);
       const renderer = entity.getComponent(MeshRenderer) ?? entity.addComponent(MeshRenderer);
       entity.transform.setWorldPosition(chunk.x, 0, chunk.z);
       renderer.mesh = mesh;
+      if (mesh.subMesh) renderer.enabled = mesh.subMesh.count > 0;
       renderer.castShadows = false;
       renderer.receiveShadows = true;
       // Both surfaces blend; submit the dirt underlay before the worked-bed layer regardless of camera distance.
       renderer.priority = -1;
       renderer.setMaterial(this.material);
-      this.chunks.set(chunk.key, { entity, mesh, signature, heights });
+      if (previous && mesh !== previous.mesh) disposeSoilMesh(previous.mesh);
+      this.chunks.set(chunk.key, {
+        entity,
+        mesh,
+        signature,
+        heights,
+        activeBounds: chunk.bounds,
+        maskLo: nextMask.maskLo,
+        maskHi: nextMask.maskHi
+      });
     }
     if (changed) this.grassOverlay.update([...this.grassTiles.values()], size);
   }
@@ -279,11 +302,17 @@ export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
     return next;
   }
 
-  private createMesh(chunk: Pick<FarmLandChunk, "x" | "z">, heights: Float64Array): BufferMesh {
+  private createMesh(
+    chunk: Pick<FarmLandChunk, "x" | "z">,
+    heights: Float64Array,
+    activeBounds?: readonly GroundBounds[]
+  ): BufferMesh {
     const grid = this.grid,
       domain = { x: chunk.x, z: chunk.z };
     const offset = DEFAULT_SOIL_VISUAL_CONFIG.soil.edge.surfaceOffset / 2;
-    const data = buildFarmLandGeometry(grid, domain, heights, offset);
+    const activeSnapshot = activeBounds?.map((b) => ({ ...b }));
+    const activeMargin = this.margin;
+    const data = buildFarmLandGeometry(grid, domain, heights, offset, activeSnapshot, activeMargin);
     const mesh = new BufferMesh(this.root.engine, `Farm land ${chunk.x},${chunk.z}`);
     const vertices = new Buffer(this.root.engine, BufferBindFlag.VertexBuffer, data.vertices, BufferUsage.Static);
     const indices = new Buffer(this.root.engine, BufferBindFlag.IndexBuffer, data.indices, BufferUsage.Static);
@@ -294,11 +323,11 @@ export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
       new VertexElement("NORMAL", 12, VertexElementFormat.Vector3, 0)
     ]);
     mesh.addSubMesh(0, data.indices.length, MeshTopology.Triangles);
-    mesh.bounds.min.set(0, data.minimumY, 0);
-    mesh.bounds.max.set(data.width, data.maximumY, data.depth);
-    // Reuse the existing tiny height snapshot, not another retained copy of packed vertex/index arrays.
+    mesh.bounds.min.set(data.minimumX, data.minimumY, data.minimumZ);
+    mesh.bounds.max.set(data.maximumX, data.maximumY, data.maximumZ);
+    // Reuse the existing tiny height snapshot and bounds snapshot, not another retained copy of packed arrays.
     restoreResource(mesh, () => {
-      const restored = buildFarmLandGeometry(grid, domain, heights, offset);
+      const restored = buildFarmLandGeometry(grid, domain, heights, offset, activeSnapshot, activeMargin);
       vertices.setData(restored.vertices);
       indices.setData(restored.indices);
     });

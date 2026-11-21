@@ -37,7 +37,12 @@ export function basketUsed(item: Pick<FarmItem, "contents">): number {
 }
 export function carriedItem(state: FarmItemsState): FarmItem | undefined {
   const carry = state.carried;
-  return carry ? state.instances.find((item) => item.id === carry.itemId) : undefined;
+  if (!carry) return undefined;
+  const instances = state.instances;
+  for (let i = 0; i < instances.length; i++) {
+    if (instances[i].id === carry.itemId) return instances[i];
+  }
+  return undefined;
 }
 export function freezeFarmItems(state: FarmItemsState): FarmItemsState {
   if (Object.isFrozen(state)) return state;

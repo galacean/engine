@@ -68,23 +68,41 @@ export function buildMoistureStencils(
 }
 
 /** Missing display nodes use the remaining contributors, never an artificial dry value. */
-export function sampleMoisture(
+export function sampleMoistureInto(
   stencil: readonly (readonly string[])[],
   values: ReadonlyMap<string, number>,
+  out: number[] | Float32Array,
   preview?: { readonly plotId: string; readonly weight: number }
-): number[] {
-  return stencil.map((ids) => {
-    let sum = 0,
-      count = 0;
-    for (const id of ids) {
+): void {
+  const previewId = preview?.plotId;
+  const previewWeight = preview?.weight ?? 1;
+  for (let i = 0; i < stencil.length; i++) {
+    const ids = stencil[i];
+    let sum = 0;
+    let count = 0;
+    let hasPreview = false;
+    for (let j = 0; j < ids.length; j++) {
+      const id = ids[j];
+      if (previewId !== undefined && id === previewId) hasPreview = true;
       const value = values.get(id);
       if (value !== undefined) {
-        const weight = id === preview?.plotId ? preview.weight : 1;
+        const weight = id === previewId ? previewWeight : 1;
         sum += value * weight;
         count += weight;
       }
     }
     // A preview-only centre keeps its own moisture even at zero visual weight.
-    return count ? sum / count : preview && ids.includes(preview.plotId) ? (values.get(preview.plotId) ?? 0) : 0;
-  });
+    out[i] = count ? sum / count : hasPreview ? (values.get(previewId!) ?? 0) : 0;
+  }
+}
+
+/** Missing display nodes use the remaining contributors, never an artificial dry value. */
+export function sampleMoisture(
+  stencil: readonly (readonly string[])[],
+  values: ReadonlyMap<string, number>,
+  preview?: { readonly plotId: string; readonly weight: number }
+): number[] {
+  const out = new Array<number>(stencil.length);
+  sampleMoistureInto(stencil, values, out, preview);
+  return out;
 }

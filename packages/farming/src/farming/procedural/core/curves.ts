@@ -43,3 +43,44 @@ export function sampleGrowthCurve<T>(
 export const sampleScalarCurve = (keys: GrowthCurve<number>, age: number) => sampleGrowthCurve(keys, age, mix);
 export const sampleColorCurve = (keys: GrowthCurve<PlantPoint>, age: number) =>
   sampleGrowthCurve(keys, age, pointMix, false);
+
+export function sampleColorCurveInto(
+  keys: GrowthCurve<PlantPoint>,
+  age: number,
+  out: [number, number, number]
+): [number, number, number] {
+  if (!Number.isFinite(age)) throw new Error("生长进度必须是有限数值");
+  if (!keys.length) throw new Error("生长曲线不能为空");
+  if (age <= keys[0].age) {
+    const v = keys[0].value;
+    out[0] = v[0];
+    out[1] = v[1];
+    out[2] = v[2];
+    return out;
+  }
+  for (let i = 1; i < keys.length; i++) {
+    if (age === keys[i].age) {
+      const v = keys[i].value;
+      out[0] = v[0];
+      out[1] = v[1];
+      out[2] = v[2];
+      return out;
+    }
+    if (age <= keys[i].age) {
+      const a = keys[i - 1],
+        b = keys[i];
+      const t = (age - a.age) / (b.age - a.age);
+      const va = a.value,
+        vb = b.value;
+      out[0] = va[0] + (vb[0] - va[0]) * t;
+      out[1] = va[1] + (vb[1] - va[1]) * t;
+      out[2] = va[2] + (vb[2] - va[2]) * t;
+      return out;
+    }
+  }
+  const last = keys[keys.length - 1].value;
+  out[0] = last[0];
+  out[1] = last[1];
+  out[2] = last[2];
+  return out;
+}

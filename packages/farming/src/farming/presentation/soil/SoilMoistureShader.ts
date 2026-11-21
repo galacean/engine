@@ -41,46 +41,70 @@ export const SOIL_MOISTURE_SHADER = pbr
   )
   .replace(
     "float organMask;",
-    "float organMask;\n    float soilCoverage;\n    #ifdef FARM_SOIL_BATCH\n      float soilSlot;\n    #endif"
+    `#ifdef FARM_SOIL_BATCH
+      vec4 soilMeta;
+      vec3 soilRow0;
+      vec3 soilRow1;
+      vec3 soilRow2;
+    #else
+      float soilCoverage;
+    #endif`
   )
   .replace(
-    "varyings.vertexColor = vec4(1.0);",
-    `
-    varyings.vertexColor = vec4(attributes.COLOR_0.ggg, 1.0);
-    varyings.soilCoverage = attributes.COLOR_0.a;
+    /varyings\.vertexColor = vec4\(1\.0\);\s*varyings\.organMask = attributes\.COLOR_0\.a;/,
+    `varyings.vertexColor = vec4(attributes.COLOR_0.ggg, 1.0);
     #ifdef FARM_SOIL_BATCH
-      varyings.soilSlot = attributes.COLOR_0.r;
-    #endif
-  `
+      float slot = floor(attributes.COLOR_0.r + 0.5);
+      vec2 tile = vec2(mod(slot, soil_BatchLayout.x), floor(slot / soil_BatchLayout.x));
+      vec2 stateUV = (tile * vec2(3.0, 1.0) + vec2(0.5)) / (soil_BatchLayout.xy * vec2(3.0, 1.0));
+      vec4 state0 = texture2D(soil_BatchStates, stateUV);
+      vec4 state1 = texture2D(soil_BatchStates, stateUV + vec2(1.0 / (soil_BatchLayout.x * 3.0), 0.0));
+      vec4 state2 = texture2D(soil_BatchStates, stateUV + vec2(2.0 / (soil_BatchLayout.x * 3.0), 0.0));
+      varyings.soilMeta = vec4(tile, state0.w, state1.w);
+      varyings.soilRow0 = state0.xyz;
+      varyings.soilRow1 = state1.xyz;
+      varyings.soilRow2 = state2.xyz;
+      float soilVisible = state2.w;
+    #else
+      varyings.soilCoverage = attributes.COLOR_0.a;
+    #endif`
   )
   .replace(
-    "SurfaceData surfaceData = getSurfaceData",
+    /gl_Position = renderer_MVPMat \* vertexInputs\.positionOS;\s*varyings\.positionCS = gl_Position;/,
+    `gl_Position = renderer_MVPMat * vertexInputs.positionOS;
+  #if defined(FARM_SOIL_BATCH) && defined(RENDERER_ENABLE_VERTEXCOLOR)
+    if (soilVisible <= 0.0) {
+      gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+    }
+  #endif
+  varyings.positionCS = gl_Position;`
+  )
+  .replace(
+    /float organMembership = 0\.0;\s*#ifdef RENDERER_ENABLE_VERTEXCOLOR\s*organMembership = varyings\.organMask;[\s\S]*?#endif\s*SurfaceData surfaceData = getSurfaceData/,
     `
     vec3 row0 = soil_Row0;
     vec3 row1 = soil_Row1;
     vec3 row2 = soil_Row2;
     float cultivationProgress = soil_CultivationProgress;
     float boundaryProgress = soil_BoundaryProgress;
-    #ifdef FARM_SOIL_BATCH
-      float slot = floor(varyings.soilSlot + 0.5);
-      vec2 tile = vec2(mod(slot, soil_BatchLayout.x), floor(slot / soil_BatchLayout.x));
-      vec2 stateUV = (tile * vec2(3.0, 1.0) + vec2(0.5)) / (soil_BatchLayout.xy * vec2(3.0, 1.0));
-      vec4 state0 = texture2D(soil_BatchStates, stateUV);
-      vec4 state1 = texture2D(soil_BatchStates, stateUV + vec2(1.0 / (soil_BatchLayout.x * 3.0), 0.0));
-      vec4 state2 = texture2D(soil_BatchStates, stateUV + vec2(2.0 / (soil_BatchLayout.x * 3.0), 0.0));
-      if (state2.w <= 0.0) discard;
-      row0 = state0.xyz;
-      row1 = state1.xyz;
-      row2 = state2.xyz;
-      boundaryProgress = state0.w;
-      cultivationProgress = state1.w;
+    #if defined(FARM_SOIL_BATCH) && defined(RENDERER_ENABLE_VERTEXCOLOR)
+      row0 = varyings.soilRow0;
+      row1 = varyings.soilRow1;
+      row2 = varyings.soilRow2;
+      boundaryProgress = varyings.soilMeta.z;
+      cultivationProgress = varyings.soilMeta.w;
     #endif
   #ifdef RENDERER_ENABLE_VERTEXCOLOR
     float opening = soilWorkReveal(varyings.positionWS.xz, cultivationProgress);
     float joining = soilWorkReveal(varyings.positionWS.xz, boundaryProgress);
-    float coverage = varyings.soilCoverage;
+    #ifdef FARM_SOIL_BATCH
+      float coverage = 1.0;
+    #else
+      float coverage = varyings.soilCoverage;
+    #endif
     #ifdef FARM_SOIL_COVERAGE
       #ifdef FARM_SOIL_BATCH
+        vec2 tile = floor(varyings.soilMeta.xy + 0.5);
         // Sampling from the same normalized coordinates, clamped to texel centres, preserves the original 65x65 bilinear mask.
         vec2 coverageUV = (tile * 65.0 + clamp(varyings.uv * 65.0, vec2(0.5), vec2(64.5))) / soil_BatchLayout.zw;
         vec2 contours = texture2D(soil_BatchCoverage, coverageUV).rg;

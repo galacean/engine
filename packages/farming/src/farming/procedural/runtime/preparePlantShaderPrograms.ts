@@ -6,6 +6,7 @@ import {
   Entity,
   MeshRenderer,
   SkinnedMeshRenderer,
+  type BufferMesh,
   type ModelMesh,
   type Material,
   ShaderData,
@@ -137,7 +138,7 @@ export async function preparePlantShaderPrograms(
         TANGENT: "RENDERER_HAS_TANGENT",
         COLOR_0: renderer.enableVertexColor ? "RENDERER_ENABLE_VERTEXCOLOR" : undefined
       };
-      for (const element of (renderer.mesh as ModelMesh).vertexElements) {
+      for (const element of (renderer.mesh as ModelMesh | BufferMesh).vertexElements) {
         const macro = vertexMacros[element.semantic];
         if (macro) rendererMacros.enable(ShaderMacro.getByName(macro));
       }

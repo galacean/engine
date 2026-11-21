@@ -50,18 +50,10 @@ export class PlantPresenter {
   private schedulingFrames = 0;
   private schedulingMilliseconds = 0;
   private readonly harvesting = new Map<PlantHarvestEffect, string>();
-  private readonly scratchRenderState = {
-    instanceId: "",
-    cropId: "",
-    cropRevision: 1,
-    cycleId: "",
-    cycleRevision: 1,
-    plantId: "",
-    plantRevision: 1,
-    recipeRevision: 1,
-    progress: 0,
-    shape: null as unknown as PlantRenderState["shape"]
-  };
+  private readonly syncStates: PlantRenderState[] = [];
+  private readonly syncIds = new Set<string>();
+  private readonly staleIds: string[] = [];
+  private readonly diagnosticMeshIds = new Set<number>();
   private readonly readQueuePriority = (id: string): number =>
     this.presentationJobs.has(id) ? 2 : (this.entries.get(id)?.visibility ?? -1);
   constructor(
@@ -79,37 +71,61 @@ export class PlantPresenter {
   }
   sync(inputs: readonly PlantRenderState[], snap = false, now = performance.now()): void {
     if (this.disposed) return;
-    const states = inputs.map((s) => validatePlantRenderState(this.catalog, s));
-    const ids = new Set(states.map((s) => s.instanceId));
-    if (ids.size !== states.length) throw new Error("重复植物实例 ID");
-    for (const id of this.entries.keys()) if (!ids.has(id)) this.remove(id);
-    for (const state of states) {
-      let entry = this.entries.get(state.instanceId);
-      if (entry && entry.state.cropId !== state.cropId) {
-        this.remove(state.instanceId);
-        entry = undefined;
+    const states = this.syncStates;
+    const ids = this.syncIds;
+    const staleIds = this.staleIds;
+    states.length = 0;
+    ids.clear();
+    staleIds.length = 0;
+    try {
+      for (let i = 0; i < inputs.length; i++) {
+        const state = validatePlantRenderState(this.catalog, inputs[i]);
+        if (ids.has(state.instanceId)) throw new Error("重复植物实例 ID");
+        ids.add(state.instanceId);
+        states.push(state);
       }
-      if (!entry) {
-        entry = { state, timeline: new CropVisualTimeline(), controller: new AbortController(), visibility: -1 };
-        entry.timeline.push(state.progress, now, 0, true);
-        this.entries.set(state.instanceId, entry);
-        this.entryList.push(entry);
-        void this.load(entry);
-      } else {
-        const changedShape = Object.keys(state.shape).some(
-          (k) => state.shape[k as keyof typeof state.shape] !== entry!.state.shape[k as keyof typeof state.shape]
-        );
-        const restartMatureLoad =
-          !entry.instance && entry.state.progress === 1 && (state.progress !== 1 || changedShape);
-        entry.state = state;
-        entry.timeline.push(state.progress, now, this.options.interpolationMs ?? 1000, snap || state.progress === 1);
-        if (entry.task && (snap || changedShape)) entry.task.lastProgress = NaN;
-        if (restartMatureLoad) {
-          entry.controller.abort();
-          entry.controller = new AbortController();
+      for (let i = 0; i < this.entryList.length; i++) {
+        const id = this.entryList[i].state.instanceId;
+        if (!ids.has(id)) staleIds.push(id);
+      }
+      for (let i = 0; i < staleIds.length; i++) this.remove(staleIds[i]);
+      const interpolationMs = this.options.interpolationMs ?? 1000;
+      for (let i = 0; i < states.length; i++) {
+        const state = states[i];
+        let entry = this.entries.get(state.instanceId);
+        if (entry && entry.state.cropId !== state.cropId) {
+          this.remove(state.instanceId);
+          entry = undefined;
+        }
+        if (!entry) {
+          entry = { state, timeline: new CropVisualTimeline(), controller: new AbortController(), visibility: -1 };
+          entry.timeline.push(state.progress, now, 0, true);
+          this.entries.set(state.instanceId, entry);
+          this.entryList.push(entry);
           void this.load(entry);
+        } else {
+          const prevShape = entry.state.shape;
+          const nextShape = state.shape;
+          const changedShape =
+            nextShape.leafSpread !== prevShape.leafSpread ||
+            nextShape.stemBend !== prevShape.stemBend ||
+            nextShape.fruitScale !== prevShape.fruitScale;
+          const restartMatureLoad =
+            !entry.instance && entry.state.progress === 1 && (state.progress !== 1 || changedShape);
+          entry.state = state;
+          entry.timeline.push(state.progress, now, interpolationMs, snap || state.progress === 1);
+          if (entry.task && (snap || changedShape)) entry.task.lastProgress = NaN;
+          if (restartMatureLoad) {
+            entry.controller.abort();
+            entry.controller = new AbortController();
+            void this.load(entry);
+          }
         }
       }
+    } finally {
+      states.length = 0;
+      ids.clear();
+      staleIds.length = 0;
     }
   }
   retry(id: string): void {
@@ -278,10 +294,14 @@ export class PlantPresenter {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    for (const id of this.entries.keys()) this.remove(id);
+    while (this.entryList.length > 0) this.remove(this.entryList[this.entryList.length - 1].state.instanceId);
     this.scheduler.clear();
-    for (const effect of this.harvesting.keys()) effect.dispose();
-    this.harvesting.clear();
+    if (this.harvesting.size > 0) {
+      const effects: PlantHarvestEffect[] = [];
+      this.harvesting.forEach((_id, effect) => effects.push(effect));
+      for (let i = 0; i < effects.length; i++) effects[i].dispose();
+      this.harvesting.clear();
+    }
   }
   /** Item GPU preparation shares the existing crop work budget. */
   async preparePresentationWork<T>(work: () => T, phase: string, signal: AbortSignal): Promise<T> {
@@ -302,25 +322,19 @@ export class PlantPresenter {
   }
   private apply(entry: Entry, progress: number) {
     if (entry.preview) return;
-    const scratch = this.scratchRenderState;
-    const state = entry.state;
-    scratch.instanceId = state.instanceId;
-    scratch.cropId = state.cropId;
-    scratch.cropRevision = state.cropRevision;
-    scratch.cycleId = state.cycleId;
-    scratch.cycleRevision = state.cycleRevision;
-    scratch.plantId = state.plantId;
-    scratch.plantRevision = state.plantRevision;
-    scratch.recipeRevision = state.recipeRevision;
-    scratch.progress = progress;
-    scratch.shape = state.shape;
-    entry.instance!.update(scratch);
+    const instance = entry.instance!;
+    let emergence: number;
+    if (instance.updateValidated) {
+      emergence = instance.updateValidated(entry.state, progress);
+    } else {
+      instance.update({ ...entry.state, progress });
+      emergence = instance.query().emergence;
+    }
     // Direct snap/shape updates must invalidate the same cache used by scheduled updates.
     if (entry.task) entry.task.lastProgress = progress;
-    if (entry.distanceHidden) entry.instance!.plant.root.isActive = false;
-    const query = entry.instance!.query();
+    if (entry.distanceHidden) instance.plant.root.isActive = false;
     // Sharing is optional for an existing plant; failures remain in its resource diagnostics.
-    this.report(entry, query.emergence > 0 ? "ready" : "seeded");
+    this.report(entry, emergence > 0 ? "ready" : "seeded");
     this.startHarvestPreview(entry);
   }
   private async load(entry: Entry) {
@@ -348,11 +362,9 @@ export class PlantPresenter {
       const initial = instance.query().state;
       if (
         initial.progress !== entry.timeline.target ||
-        Object.keys(entry.state.shape).some(
-          (key) =>
-            initial.shape[key as keyof typeof initial.shape] !==
-            entry.state.shape[key as keyof typeof entry.state.shape]
-        )
+        initial.shape.leafSpread !== entry.state.shape.leafSpread ||
+        initial.shape.stemBend !== entry.state.shape.stemBend ||
+        initial.shape.fruitScale !== entry.state.shape.fruitScale
       )
         await this.workQueue.enqueue(id, controller.signal, () => this.apply(entry, entry.timeline.target));
       else {
@@ -400,8 +412,10 @@ export class PlantPresenter {
   getPerformanceDiagnostics() {
     let mature = 0,
       shared = 0;
-    const meshes = new Set<number>();
-    for (const entry of this.entries.values()) {
+    const meshes = this.diagnosticMeshIds;
+    meshes.clear();
+    for (let i = 0; i < this.entryList.length; i++) {
+      const entry = this.entryList[i];
       const plant = entry.instance?.plant;
       if (entry.state.progress >= 1) {
         mature++;
@@ -411,10 +425,12 @@ export class PlantPresenter {
         }
       }
     }
+    const sharedMeshes = meshes.size;
+    meshes.clear();
     return {
       mature,
       shared,
-      sharedMeshes: meshes.size,
+      sharedMeshes,
       queued: this.workQueue.stats.queued,
       schedulingFrames: this.schedulingFrames,
       schedulingMilliseconds: this.schedulingMilliseconds

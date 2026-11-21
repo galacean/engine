@@ -1,5 +1,5 @@
 import type { FarmSnapshot } from "../../domain/FarmState";
-import { buildMoistureStencils, sampleMoisture } from "./SoilMoistureSamples";
+import { buildMoistureStencils, sampleMoistureInto } from "./SoilMoistureSamples";
 import { SOIL_MOISTURE_SHADER } from "./SoilMoistureShader";
 import {
   AssetType,
@@ -36,9 +36,27 @@ interface SoilAppearance {
   moisture: number;
   targetMoisture: number;
   held: boolean;
+  dirty: boolean;
   readonly holds: Set<object>;
-  samples: number[];
+  readonly samples: number[];
 }
+
+interface TopologySnapshotEntry {
+  plotId: string;
+  groundId: string;
+  cellX: number;
+  cellZ: number;
+  waterMask: number | undefined;
+  availability: string;
+}
+
+interface FieldEntry {
+  id: string;
+  renderer: SoilVisualTarget;
+  stencil: readonly (readonly string[])[] | undefined;
+}
+
+const SOIL_ROW_NAMES = ["soil_Row0", "soil_Row1", "soil_Row2"] as const;
 
 interface SoilTextureFailure {
   readonly error: string;
@@ -66,17 +84,31 @@ export class SoilVisualProvider {
   private diffuseTexture: Texture2D | null = null;
   private normalTexture: Texture2D | null = null;
   private transitionBlend = 0;
-  private topologyKey = "";
+  private topologyInitialized = false;
+  private readonly topologyPlots: TopologySnapshotEntry[] = [];
+  private topologyPlotCount = 0;
+  private topologyPreviewId?: string;
+  private topologyPreviewGroundId?: string;
+  private topologyPreviewCellX = 0;
+  private topologyPreviewCellZ = 0;
   private stencils = new Map<string, readonly (readonly string[])[]>();
-  private fieldRenderers = new Map<string, SoilVisualTarget>();
-  private displayValues = new Map<string, number>();
-  private dirty = new Set<SoilVisualTarget>();
+  private readonly fieldRenderers = new Map<string, SoilVisualTarget>();
+  private readonly fieldRendererIds: string[] = [];
+  private readonly fieldRendererTargets: SoilVisualTarget[] = [];
+  private readonly fieldEntries: FieldEntry[] = [];
+  private readonly displayValues = new Map<string, number>();
+  private readonly dirtyList: SoilVisualTarget[] = [];
   private moisturePreview?: { plotId: string; weight: number };
-  private dependents = new Map<SoilVisualTarget, Set<SoilVisualTarget>>();
+  private readonly dependents = new Map<SoilVisualTarget, SoilVisualTarget[]>();
   private perimeterMaterial?: PBRMaterial;
   private readonly textureStatus = new Map<string, "loading" | "ready" | SoilTextureFailure>();
   private disposed = false;
   private batches?: SoilRenderBatches;
+  private readonly recordFieldRenderer = (renderer: SoilVisualTarget, id: string): void => {
+    this.fieldRenderers.set(id, renderer);
+    this.fieldRendererIds.push(id);
+    this.fieldRendererTargets.push(renderer);
+  };
 
   constructor(
     private readonly engine: Engine,
@@ -114,8 +146,9 @@ export class SoilVisualProvider {
       moisture,
       targetMoisture: moisture,
       held: false,
+      dirty: false,
       holds: new Set(),
-      samples: Array(9).fill(moisture)
+      samples: new Array<number>(9).fill(moisture)
     };
     this.appearances.set(batch, appearance);
     updateSoilMaterial(appearance);
@@ -126,7 +159,9 @@ export class SoilVisualProvider {
     if (renderer instanceof MeshRenderer && this.perimeterRenderers.delete(renderer)) {
       if (!renderer.destroyed && renderer.getMaterial() === this.perimeterMaterial) renderer.setMaterial(null!);
     }
-    const material = this.appearances.get(renderer)?.material;
+    const appearance = this.appearances.get(renderer);
+    if (appearance) appearance.dirty = false;
+    const material = appearance?.material;
     if (material) {
       if (!(renderer instanceof SoilBatchPlot) && !renderer.destroyed && renderer.getMaterial() === material)
         renderer.setMaterial(null!);
@@ -134,7 +169,6 @@ export class SoilVisualProvider {
     }
     if (renderer instanceof SoilBatchPlot) renderer.dispose();
     this.appearances.delete(renderer);
-    this.dirty.delete(renderer);
     this.dependents.delete(renderer);
   }
 
@@ -196,8 +230,9 @@ export class SoilVisualProvider {
         moisture: targetMoisture,
         targetMoisture,
         held: false,
+        dirty: false,
         holds: new Set(),
-        samples: Array(9).fill(targetMoisture)
+        samples: new Array<number>(9).fill(targetMoisture)
       };
       this.appearances.set(renderer, appearance);
       updateSoilMaterial(appearance);
@@ -241,33 +276,124 @@ export class SoilVisualProvider {
     else appearance?.material?.shaderData.setFloat("soil_BoundaryProgress", progress);
   }
 
+  private markDirty(renderer: SoilVisualTarget): void {
+    const appearance = this.appearances.get(renderer);
+    if (!appearance || appearance.dirty) return;
+    appearance.dirty = true;
+    this.dirtyList.push(renderer);
+  }
+
   /** Rebuild interpolation contributors only when plots or their confirmed connections change. */
   setField(snapshot: FarmSnapshot, renderers: ReadonlyMap<string, SoilVisualTarget>, preview?: SoilCell): void {
+    const plots = snapshot.plots;
     const previewId = preview?.plotId;
-    if (snapshot.plots.some((plot) => plot.plotId === previewId)) preview = undefined;
-    const key = JSON.stringify([
-      snapshot.plots.map((p) => [p.plotId, p.groundId, p.cellX, p.cellZ, p.ground.waterMask, p.ground.availability]),
-      preview && [preview.plotId, preview.groundId, preview.cellX, preview.cellZ]
-    ]);
-    if (key === this.topologyKey && [...renderers].every(([id, r]) => this.fieldRenderers.get(id) === r)) return;
-    this.topologyKey = key;
+    if (previewId !== undefined) {
+      for (let i = 0; i < plots.length; i++) {
+        if (plots[i].plotId === previewId) {
+          preview = undefined;
+          break;
+        }
+      }
+    }
+    let sameTopology =
+      this.topologyInitialized &&
+      plots.length === this.topologyPlotCount &&
+      (preview?.plotId ?? undefined) === this.topologyPreviewId &&
+      (!preview ||
+        (preview.groundId === this.topologyPreviewGroundId &&
+          preview.cellX === this.topologyPreviewCellX &&
+          preview.cellZ === this.topologyPreviewCellZ));
+    if (sameTopology) {
+      for (let i = 0; i < plots.length; i++) {
+        const plot = plots[i];
+        const cached = this.topologyPlots[i];
+        if (
+          plot.plotId !== cached.plotId ||
+          plot.groundId !== cached.groundId ||
+          plot.cellX !== cached.cellX ||
+          plot.cellZ !== cached.cellZ ||
+          plot.ground.waterMask !== cached.waterMask ||
+          plot.ground.availability !== cached.availability
+        ) {
+          sameTopology = false;
+          break;
+        }
+      }
+    }
+    if (sameTopology && renderers.size === this.fieldRenderers.size) {
+      let sameRenderers = true;
+      for (let i = 0; i < this.fieldRendererIds.length; i++) {
+        if (renderers.get(this.fieldRendererIds[i]) !== this.fieldRendererTargets[i]) {
+          sameRenderers = false;
+          break;
+        }
+      }
+      if (sameRenderers) return;
+    }
+
+    this.topologyInitialized = true;
+    this.topologyPlotCount = plots.length;
+    for (let i = 0; i < plots.length; i++) {
+      const plot = plots[i];
+      let cached = this.topologyPlots[i];
+      if (!cached) {
+        cached = {
+          plotId: plot.plotId,
+          groundId: plot.groundId,
+          cellX: plot.cellX,
+          cellZ: plot.cellZ,
+          waterMask: plot.ground.waterMask,
+          availability: plot.ground.availability
+        };
+        this.topologyPlots[i] = cached;
+      } else {
+        cached.plotId = plot.plotId;
+        cached.groundId = plot.groundId;
+        cached.cellX = plot.cellX;
+        cached.cellZ = plot.cellZ;
+        cached.waterMask = plot.ground.waterMask;
+        cached.availability = plot.ground.availability;
+      }
+    }
+    this.topologyPreviewId = preview?.plotId;
+    this.topologyPreviewGroundId = preview?.groundId;
+    this.topologyPreviewCellX = preview?.cellX ?? 0;
+    this.topologyPreviewCellZ = preview?.cellZ ?? 0;
+
     if (this.moisturePreview?.plotId !== preview?.plotId)
       this.moisturePreview = preview ? { plotId: preview.plotId, weight: 0 } : undefined;
-    this.fieldRenderers = new Map(renderers);
-    this.stencils = buildMoistureStencils(snapshot.plots, preview);
+    this.fieldRenderers.clear();
+    this.fieldRendererIds.length = 0;
+    this.fieldRendererTargets.length = 0;
+    renderers.forEach(this.recordFieldRenderer);
+    this.stencils = buildMoistureStencils(plots, preview);
+    this.fieldEntries.length = 0;
     this.dependents.clear();
-    for (const [id, stencil] of this.stencils) {
-      const renderer = renderers.get(id);
-      if (!renderer) continue;
-      this.dirty.add(renderer);
-      for (const contributors of stencil)
-        for (const source of contributors) {
-          const input = renderers.get(source);
-          if (!input) continue;
-          if (!this.dependents.has(input)) this.dependents.set(input, new Set());
-          this.dependents.get(input)!.add(renderer);
-        }
+    for (let i = 0; i < this.dirtyList.length; i++) {
+      const appearance = this.appearances.get(this.dirtyList[i]);
+      if (appearance) appearance.dirty = false;
     }
+    this.dirtyList.length = 0;
+
+    this.stencils.forEach((stencil, id) => {
+      const renderer = renderers.get(id);
+      if (!renderer) return;
+      this.fieldEntries.push({ id, renderer, stencil });
+      this.markDirty(renderer);
+      for (let s = 0; s < stencil.length; s++) {
+        const contributors = stencil[s];
+        for (let c = 0; c < contributors.length; c++) {
+          const input = renderers.get(contributors[c]);
+          if (!input) continue;
+          let list = this.dependents.get(input);
+          if (!list) {
+            list = [];
+            this.dependents.set(input, list);
+          }
+          if (list.indexOf(renderer) < 0) list.push(renderer);
+        }
+      }
+    });
   }
 
   /** Only display interpolation changes during work; water simulation is not involved. */
@@ -276,7 +402,10 @@ export class SoilVisualProvider {
     if (!preview || preview.weight === progress) return;
     preview.weight = progress;
     const renderer = this.fieldRenderers.get(preview.plotId);
-    if (renderer) for (const dependent of this.dependents.get(renderer) ?? []) this.dirty.add(dependent);
+    if (!renderer) return;
+    const dependents = this.dependents.get(renderer);
+    if (!dependents) return;
+    for (let i = 0; i < dependents.length; i++) this.markDirty(dependents[i]);
   }
 
   /** Delay visual wetting until the watering effect lands; the confirmed target stays current. */
@@ -295,25 +424,30 @@ export class SoilVisualProvider {
     this.transitionBlend =
       deltaSeconds > 0 ? 1 - Math.exp(-deltaSeconds / DEFAULT_SOIL_VISUAL_CONFIG.soil.moisture.transitionSeconds) : 0;
     this.appearances.forEach(this.updateAppearance, this);
-    if (!this.dirty.size) {
+    const dirtyList = this.dirtyList;
+    if (!dirtyList.length) {
       this.batches?.flush();
       return;
     }
     this.displayValues.clear();
-    for (const [id, renderer] of this.fieldRenderers) {
-      const appearance = this.appearances.get(renderer);
-      if (appearance) this.displayValues.set(id, appearance.moisture);
+    const fieldEntries = this.fieldEntries;
+    for (let i = 0; i < fieldEntries.length; i++) {
+      const entry = fieldEntries[i];
+      const appearance = this.appearances.get(entry.renderer);
+      if (appearance) this.displayValues.set(entry.id, appearance.moisture);
     }
-    for (const [id, renderer] of this.fieldRenderers) {
-      if (!this.dirty.has(renderer)) continue;
-      const appearance = this.appearances.get(renderer),
-        stencil = this.stencils.get(id);
-      if (appearance && stencil) {
-        appearance.samples = sampleMoisture(stencil, this.displayValues, this.moisturePreview);
-        updateSoilMaterial(appearance);
-      }
+    for (let i = 0; i < fieldEntries.length; i++) {
+      const entry = fieldEntries[i];
+      const appearance = this.appearances.get(entry.renderer);
+      if (!appearance || !appearance.dirty || !entry.stencil) continue;
+      sampleMoistureInto(entry.stencil, this.displayValues, appearance.samples, this.moisturePreview);
+      updateSoilMaterial(appearance);
     }
-    this.dirty.clear();
+    for (let i = 0; i < dirtyList.length; i++) {
+      const appearance = this.appearances.get(dirtyList[i]);
+      if (appearance) appearance.dirty = false;
+    }
+    dirtyList.length = 0;
     this.batches?.flush();
   }
 
@@ -360,10 +494,16 @@ export class SoilVisualProvider {
       this.release(renderer);
     }
     this.fieldRenderers.clear();
+    this.fieldRendererIds.length = 0;
+    this.fieldRendererTargets.length = 0;
+    this.fieldEntries.length = 0;
+    this.topologyPlots.length = 0;
+    this.topologyPlotCount = 0;
+    this.topologyInitialized = false;
     this.stencils.clear();
     this.dependents.clear();
     this.displayValues.clear();
-    this.dirty.clear();
+    this.dirtyList.length = 0;
     for (const renderer of this.perimeterRenderers) this.release(renderer);
     this.perimeterMaterial?.destroy(true);
     this.perimeterMaterial = undefined;
@@ -390,9 +530,10 @@ export class SoilVisualProvider {
         ? appearance.targetMoisture
         : appearance.moisture + difference * this.transitionBlend;
     const dependents = this.dependents.get(renderer);
-    if (dependents) for (const dependent of dependents) this.dirty.add(dependent);
-    else {
-      appearance.samples.fill(appearance.moisture);
+    if (dependents) {
+      for (let i = 0; i < dependents.length; i++) this.markDirty(dependents[i]);
+    } else {
+      for (let i = 0; i < 9; i++) appearance.samples[i] = appearance.moisture;
       updateSoilMaterial(appearance);
     }
   }
@@ -487,7 +628,7 @@ function updateSoilMaterial({ material, batch, samples }: SoilAppearance): void 
     return;
   }
   for (let i = 0; i < 3; i++)
-    material!.shaderData.getVector3(`soil_Row${i}`).set(samples[i * 3], samples[i * 3 + 1], samples[i * 3 + 2]);
+    material!.shaderData.getVector3(SOIL_ROW_NAMES[i]).set(samples[i * 3], samples[i * 3 + 1], samples[i * 3 + 2]);
 }
 
 function createPerimeterMaterial(engine: Engine): PBRMaterial {

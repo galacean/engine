@@ -16,6 +16,10 @@ export interface PlantRenderState {
   readonly progress: number;
   readonly shape: PlantShape;
 }
+const validatedStates = new WeakMap<PlantRenderState, PlantingCatalog>();
+export function isValidatedPlantRenderState(catalog: PlantingCatalog, input: PlantRenderState): boolean {
+  return validatedStates.get(input) === catalog;
+}
 const revision = z.number().int().positive();
 const schema = z
   .object({
@@ -34,6 +38,7 @@ const schema = z
   })
   .strict();
 export function validatePlantRenderState(catalog: PlantingCatalog, input: PlantRenderState): PlantRenderState {
+  if (validatedStates.get(input) === catalog) return input;
   requirePlantingCatalog(catalog);
   const state = schema.parse(input);
   validatePlantShape(state.shape);
@@ -47,7 +52,9 @@ export function validatePlantRenderState(catalog: PlantingCatalog, input: PlantR
     state.recipeRevision !== crop.appearance.recipeRevision
   )
     throw new Error("植物状态与内容引用不匹配");
-  return freezePlantContent(state);
+  const frozen = freezePlantContent(state);
+  validatedStates.set(frozen, catalog);
+  return frozen;
 }
 /** External hosts supply confirmed progress. This function does not simulate time. */
 export function createPlantRenderState(

@@ -1,14 +1,20 @@
 import { Script, Color, Vector4, type PBRMaterial, MeshRenderer, type Engine, type Entity } from "@galacean/engine";
 import type { PlantingCatalog } from "../../content/PlantingCatalog";
-import { validatePlantRenderState, type PlantRenderState } from "../../presentation/PlantRenderState";
+import {
+  isValidatedPlantRenderState,
+  validatePlantRenderState,
+  type PlantRenderState
+} from "../../presentation/PlantRenderState";
 import {
   createProceduralPlant,
   defaultPlantCreationScheduler,
   type PlantCreationScheduler
 } from "./createProceduralPlant";
 import { shapeSeedForId } from "../../domain/FarmingGround";
-import { sampleColorCurve } from "../core/curves";
+import { sampleColorCurveInto } from "../core/curves";
 import { acquireMaturePlant, type MaturePlantLease } from "./MaturePlantResources";
+import { ORGAN_TINT_PROPERTY } from "./PlantOrganMaterials";
+import { plantDefinitionKey } from "./PlantResourcePool";
 import { preparePlantShaderPrograms } from "./preparePlantShaderPrograms";
 import { ProceduralPlant } from "./ProceduralPlant";
 import type { PlantGrowthDefinition } from "../core/PlantGrowthDefinition";
@@ -35,6 +41,8 @@ export interface PlantInstance {
   readonly definition: PlantGrowthDefinition;
   readonly plant: ProceduralPlant;
   update(state: PlantRenderState): void;
+  /** Zero-allocation fast path for presenters holding an already-validated base state. Returns emergence. */
+  updateValidated?(baseState: PlantRenderState, progress: number): number;
   query(): Readonly<{
     state: PlantRenderState;
     stageId: string;
@@ -57,13 +65,18 @@ export async function createPlantInstance(
   schedule: PlantCreationScheduler = defaultPlantCreationScheduler,
   maximumShadowTriangles = Infinity
 ): Promise<PlantInstance> {
-  let state = validatePlantRenderState(catalog, input);
+  const initialState = validatePlantRenderState(catalog, input);
+  let baseState: PlantRenderState = initialState;
+  let currentProgress = initialState.progress;
+  let currentShape = initialState.shape;
+  let materializedState: PlantRenderState | undefined = initialState;
   if (signal?.aborted || engine.destroyed || parent.destroyed) throw new Error("植物宿主已释放");
-  const mapping = catalog.getMapping(state.cropId);
-  const applyEmergence = (plant: ProceduralPlant, progress: number) => {
+  const mapping = catalog.getMapping(initialState.cropId);
+  const applyEmergence = (plant: ProceduralPlant, progress: number): number => {
     const emergence = mapping.emergence(progress);
     plant.root.transform.setScale(emergence, emergence, emergence);
     plant.root.isActive = emergence > 0;
+    return emergence;
   };
   const admitted: PlantCreationScheduler = (work, phase, phaseSignal) => {
     const signals = [signal, phaseSignal].filter((s): s is AbortSignal => Boolean(s));
@@ -102,8 +115,11 @@ export async function createPlantInstance(
       }
     });
   };
-  const entry = catalog.getPlant(state.plantId);
+  const entry = catalog.getPlant(baseState.plantId);
   const definition = "recipe" in entry ? entry : await admitted(() => loadPlantGrowthDefinition(entry), "recipe");
+  const definitionKey = plantDefinitionKey(definition);
+  const tintColorScratch: [number, number, number] = [1, 1, 1];
+  const tintRenderersScratch: MeshRenderer[] = [];
   signal?.throwIfAborted();
   if (engine.destroyed || parent.destroyed) throw new Error("植物宿主已释放");
   const lifetime = new AbortController();
@@ -122,8 +138,8 @@ export async function createPlantInstance(
     const castShadows = current.geometry.indices.length / 3 <= maximumShadowTriangles;
     for (const renderer of current.root.getComponentsIncludeChildren(MeshRenderer, []))
       renderer.castShadows = castShadows;
-    current.root.transform.setRotation(0, (shapeSeedForId("crop-yaw:" + state.instanceId) / 2 ** 32) * 360, 0);
-    applyEmergence(current, state.progress);
+    current.root.transform.setRotation(0, (shapeSeedForId("crop-yaw:" + baseState.instanceId) / 2 ** 32) * 360, 0);
+    applyEmergence(current, currentProgress);
   };
   const cancelPending = () => {
     generation++;
@@ -137,7 +153,7 @@ export async function createPlantInstance(
   const newLease = () => {
     attempt = new AbortController();
     // The lease follows this attempt, not whichever crop first queued the build.
-    return acquireMaturePlant(engine, definition, state.shape, admitted, attempt.signal);
+    return acquireMaturePlant(engine, definition, currentShape, admitted, attempt.signal);
   };
   const dispose = () => {
     if (disposed) return;
@@ -153,7 +169,7 @@ export async function createPlantInstance(
   };
   lifetime.signal.addEventListener("abort", dispose, { once: true });
   try {
-    if (state.progress === 1) {
+    if (currentProgress === 1) {
       const lease = (pending = newLease());
       const source = await lease.ready;
       await admitted(() => {
@@ -163,7 +179,9 @@ export async function createPlantInstance(
           parent,
           source.renderer.getMaterial()! as PBRMaterial,
           undefined,
-          { plant: source, release: lease.release }
+          { plant: source, release: lease.release },
+          currentShape,
+          { definitionKey, poolGrowth: true }
         );
         plant.root.isActive = false;
         configure(plant);
@@ -181,10 +199,11 @@ export async function createPlantInstance(
         definition,
         engine,
         parent,
-        mapping.age(state.progress),
+        mapping.age(currentProgress),
         admitted,
-        state.shape,
-        configure
+        currentShape,
+        configure,
+        { poolGrowth: true }
       );
       // Cancellation may have run while the factory was publishing its result.
       // That cleanup could not see this instance yet, so release the late owner here.
@@ -204,7 +223,7 @@ export async function createPlantInstance(
   const prepareShared = () => {
     if (
       disposed ||
-      state.progress !== 1 ||
+      currentProgress !== 1 ||
       plant.shared ||
       plant.hasAnchorOffsets ||
       pending ||
@@ -272,46 +291,87 @@ export async function createPlantInstance(
       }
     })();
   };
+  const applyStateUpdate = (
+    nextBase: PlantRenderState,
+    nextProgress: number,
+    nextMaterialized: PlantRenderState | undefined
+  ): number => {
+    if (nextBase.instanceId !== baseState.instanceId || nextBase.cropId !== baseState.cropId) {
+      throw new Error("不能改变植物实例身份");
+    }
+    const nextShape = nextBase.shape;
+    const changed =
+      nextProgress !== currentProgress ||
+      nextShape.leafSpread !== currentShape.leafSpread ||
+      nextShape.stemBend !== currentShape.stemBend ||
+      nextShape.fruitScale !== currentShape.fruitScale;
+    if (changed) {
+      cancelPending();
+      resourceError = undefined;
+    }
+    const age = mapping.age(nextProgress);
+    if (growth) growth.setGrowth(age, nextShape);
+    else plant.setGrowth(age, nextShape);
+    if (!plant.shared && definition.material.tintColors) {
+      sampleColorCurveInto(definition.material.tintColors, plant.geometry.maturity, tintColorScratch);
+      const r = Color.gammaToLinearSpace(tintColorScratch[0]);
+      const g = Color.gammaToLinearSpace(tintColorScratch[1]);
+      const b = Color.gammaToLinearSpace(tintColorScratch[2]);
+      tintRenderersScratch.length = 0;
+      plant.root.getComponentsIncludeChildren(MeshRenderer, tintRenderersScratch);
+      for (let i = 0; i < tintRenderersScratch.length; i++) {
+        const shaderData = tintRenderersScratch[i].shaderData;
+        const existing = shaderData.getVector4(ORGAN_TINT_PROPERTY);
+        if (existing) existing.set(r, g, b, 1);
+        else shaderData.setVector4(ORGAN_TINT_PROPERTY, new Vector4(r, g, b, 1));
+      }
+      tintRenderersScratch.length = 0;
+    }
+    if (!plant.shared) shared = undefined;
+    const emergence = applyEmergence(plant, nextProgress);
+    baseState = nextBase;
+    currentProgress = nextProgress;
+    currentShape = nextShape;
+    materializedState = nextMaterialized;
+    prepareShared();
+    return emergence;
+  };
   const instance: PlantInstance = {
     definition,
     plant: plant!,
     update(input) {
       if (disposed) throw new Error("植物实例已释放");
       const next = validatePlantRenderState(catalog, input);
-      if (next.instanceId !== state.instanceId || next.cropId !== state.cropId) throw new Error("不能改变植物实例身份");
-      const changed =
-        next.progress !== state.progress ||
-        Object.keys(next.shape).some(
-          (key) => next.shape[key as keyof typeof next.shape] !== state.shape[key as keyof typeof state.shape]
-        );
-      if (changed) {
-        cancelPending();
-        resourceError = undefined;
+      applyStateUpdate(next, next.progress, next);
+    },
+    updateValidated(inputBase, progress) {
+      if (disposed) throw new Error("植物实例已释放");
+      if (!Number.isFinite(progress) || progress < 0 || progress > 1) {
+        throw new RangeError("生长进度必须在 [0, 1] 范围内");
       }
-      if (growth) growth.setGrowth(mapping.age(next.progress), next.shape);
-      else plant.setGrowth(mapping.age(next.progress), next.shape);
-      if (!plant.shared && definition.material.tintColors) {
-        const color = sampleColorCurve(definition.material.tintColors, plant.geometry.maturity);
-        for (const renderer of plant.root.getComponentsIncludeChildren(MeshRenderer, []))
-          renderer.shaderData.setVector4(
-            "renderer_OrganTint",
-            new Vector4(...(color.map(Color.gammaToLinearSpace) as [number, number, number]), 1)
-          );
-      }
-      if (!plant.shared) shared = undefined;
-      applyEmergence(plant, next.progress);
-      state = next;
-      prepareShared();
+      const verifiedBase = isValidatedPlantRenderState(catalog, inputBase)
+        ? inputBase
+        : validatePlantRenderState(catalog, inputBase);
+      return applyStateUpdate(verifiedBase, progress, verifiedBase.progress === progress ? verifiedBase : undefined);
     },
     query() {
-      const stages = catalog.getCrop(state.cropId).cycle.stages;
-      const stage = [...stages].reverse().find((s) => s.minimumProgress <= state.progress)!;
+      const stages = catalog.getCrop(baseState.cropId).cycle.stages;
+      let stage = stages[0];
+      for (let i = stages.length - 1; i >= 0; i--) {
+        if (stages[i].minimumProgress <= currentProgress) {
+          stage = stages[i];
+          break;
+        }
+      }
+      if (!materializedState) {
+        materializedState = Object.freeze({ ...baseState, progress: currentProgress });
+      }
       return Object.freeze({
-        state,
+        state: materializedState,
         stageId: stage.id,
         stageName: stage.name,
-        age: mapping.age(state.progress),
-        emergence: mapping.emergence(state.progress),
+        age: mapping.age(currentProgress),
+        emergence: mapping.emergence(currentProgress),
         resources: Object.freeze({
           mode: plant.shared
             ? ("shared" as const)

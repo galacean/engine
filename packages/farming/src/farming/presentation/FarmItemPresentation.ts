@@ -14,7 +14,7 @@ import {
   Vector3
 } from "@galacean/engine";
 import type { FarmingService } from "../application/FarmingService";
-import { carriedItem, type FarmItem } from "../domain/FarmItems";
+import { carriedItem, type FarmItem, type FarmItemsState } from "../domain/FarmItems";
 import { FARM_BASKET_CONTENT_SCALE } from "../domain/FarmItemDimensions";
 import { registerFarmingPropResources } from "./props/FarmingPropResources";
 import { farmItemCarryPose, type FarmItemCarryPoseOverrides } from "./FarmItemCarryPoses";
@@ -72,6 +72,9 @@ interface ItemVisual {
 export class FarmItemPresentation {
   readonly root: Entity;
   private readonly visuals = new Map<string, ItemVisual>();
+  private readonly visualList: { id: string; visual: ItemVisual }[] = [];
+  private readonly heldRendererScratch: Renderer[] = [];
+  private previousItems?: FarmItemsState;
   private readonly meshes = new Set<ModelMesh>();
   private readonly materials: PBRMaterial[] = [];
   private readonly produceMaterial: PBRMaterial;
@@ -120,6 +123,8 @@ export class FarmItemPresentation {
   private sync(): void {
     if (this.disposed) return;
     const state = this.service.getSnapshot().items;
+    if (state === this.previousItems) return;
+    this.previousItems = state;
     const carry = carriedItem(state);
     const carryId = carry?.id ?? "";
     if (carryId !== this.previousCarry) {
@@ -157,6 +162,7 @@ export class FarmItemPresentation {
           shadows: [{ renderer: content, cast: content.castShadows, receive: content.receiveShadows }]
         };
         this.visuals.set(item.id, visual);
+        this.visualList.push({ id: item.id, visual });
         visual.seedId = item.seedId;
         this.loadItem(item, visual);
       }
@@ -418,7 +424,9 @@ export class FarmItemPresentation {
     const warningStrength = this.capacityWarning ? farmItemWarningStrength(this.capacityWarning.elapsed) : 0;
     this.heldBounds.visible = false;
     const cameraPosition = this.camera.entity.transform.worldPosition;
-    for (const [id, visual] of this.visuals) {
+    const visualList = this.visualList;
+    for (let i = 0; i < visualList.length; i++) {
+      const { id, visual } = visualList[i];
       const carried = id === held?.id;
       // Finish moving props off-screen, but skip pose/material work for settled distant items.
       if (
@@ -437,7 +445,10 @@ export class FarmItemPresentation {
         visual.distanceVisible = true;
         if (!visual.root.isActive) visual.root.isActive = true;
         const pose = farmItemCarryPose(held!.type, this.camera.aspectRatio < 1, this.carryPoses);
-        const [x, y, z] = pose.position;
+        const posePosition = pose.position;
+        const x = posePosition[0],
+          y = posePosition[1],
+          z = posePosition[2];
         const progress = this.motion * this.motion * (3 - 2 * this.motion);
         visual.groundPose?.apply(1 - progress);
         const from = this.pickupFrom;
@@ -483,7 +494,14 @@ export class FarmItemPresentation {
       } else {
         visual.retraction = undefined;
         if (visual.dropFrom) {
-          const item = state.instances.find((item) => item.id === id);
+          let item: FarmItem | undefined;
+          const instances = state.instances;
+          for (let j = 0; j < instances.length; j++) {
+            if (instances[j].id === id) {
+              item = instances[j];
+              break;
+            }
+          }
           if (item) {
             visual.dropProgress = Math.min(1, (visual.dropProgress ?? 0) + seconds / 0.36);
             const p = visual.dropProgress * visual.dropProgress * (3 - 2 * visual.dropProgress);
@@ -525,24 +543,29 @@ export class FarmItemPresentation {
     bounds.minimumY = Infinity;
     bounds.maximumX = -Infinity;
     bounds.maximumY = -Infinity;
-    const renderers = visual.root.getComponentsIncludeChildren(Renderer, []);
-    for (const renderer of renderers) {
+    const renderers = this.heldRendererScratch;
+    renderers.length = 0;
+    visual.root.getComponentsIncludeChildren(Renderer, renderers);
+    for (let i = 0; i < renderers.length; i++) {
+      const renderer = renderers[i];
       if (!renderer.entity.isActiveInHierarchy) continue;
       const mesh = renderer instanceof MeshRenderer ? renderer.mesh : undefined;
       if (renderer instanceof MeshRenderer && !mesh) continue;
       const b = mesh?.bounds ?? renderer.bounds;
-      for (const x of [b.min.x, b.max.x])
-        for (const y of [b.min.y, b.max.y])
-          for (const z of [b.min.z, b.max.z]) {
-            this.projected.set(x, y, z);
-            if (mesh) this.projected.transformCoordinate(renderer.entity.transform.worldMatrix);
-            this.camera.worldToScreenPoint(this.projected, this.projected);
-            if (this.projected.z <= 0) continue;
-            bounds.minimumX = Math.min(bounds.minimumX, this.projected.x);
-            bounds.minimumY = Math.min(bounds.minimumY, this.projected.y);
-            bounds.maximumX = Math.max(bounds.maximumX, this.projected.x);
-            bounds.maximumY = Math.max(bounds.maximumY, this.projected.y);
-          }
+      for (let corner = 0; corner < 8; corner++) {
+        this.projected.set(
+          (corner & 1) !== 0 ? b.max.x : b.min.x,
+          (corner & 2) !== 0 ? b.max.y : b.min.y,
+          (corner & 4) !== 0 ? b.max.z : b.min.z
+        );
+        if (mesh) this.projected.transformCoordinate(renderer.entity.transform.worldMatrix);
+        this.camera.worldToScreenPoint(this.projected, this.projected);
+        if (this.projected.z <= 0) continue;
+        bounds.minimumX = Math.min(bounds.minimumX, this.projected.x);
+        bounds.minimumY = Math.min(bounds.minimumY, this.projected.y);
+        bounds.maximumX = Math.max(bounds.maximumX, this.projected.x);
+        bounds.maximumY = Math.max(bounds.maximumY, this.projected.y);
+      }
     }
     bounds.visible = Number.isFinite(bounds.minimumX);
   }
@@ -588,6 +611,9 @@ export class FarmItemPresentation {
       destroyOwnedMesh(visual.cargoMesh);
     }
     this.visuals.clear();
+    this.visualList.length = 0;
+    this.heldRendererScratch.length = 0;
+    this.previousItems = undefined;
     this.root.destroy();
     destroyOwnedMeshSet(this.meshes);
     for (const material of this.materials) material.destroy();

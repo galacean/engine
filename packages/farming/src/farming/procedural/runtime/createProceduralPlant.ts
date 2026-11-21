@@ -1,11 +1,20 @@
-import { AssetType, Engine, Entity, MeshRenderer, PBRMaterial, RenderFace, type Texture2D } from "@galacean/engine";
+import { AssetType, Engine, Entity, MeshRenderer, type Texture2D } from "@galacean/engine";
 import { parsePlantGrowthMetadata, type PlantGrowthDefinition } from "../core/PlantGrowthDefinition";
 import { DEFAULT_PLANT_SHAPE, type PlantShape } from "../core/PlantGrowthRecipe";
 import { parsePlantGrowthRecipe } from "../core/validation";
 import { PlantGeometryEvaluator } from "../core/PlantGeometryEvaluator";
-import { PlantOrganMaterials } from "./PlantOrganMaterials";
+import { bindSharedPlantOrganTint, type PlantOrganAppearance } from "./PlantOrganMaterials";
 import { ProceduralPlant } from "./ProceduralPlant";
 import { preparePlantShaderPrograms } from "./preparePlantShaderPrograms";
+import {
+  acquirePlantGrowthMesh,
+  acquirePlantSpeciesMaterial,
+  acquirePlantStaticGeometry,
+  plantDefinitionKey,
+  type PlantGrowthMeshLease,
+  type PlantSpeciesMaterialLease,
+  type PlantStaticGeometryLease
+} from "./PlantResourcePool";
 
 export type PlantCreationPhase =
   | "recipe"
@@ -45,7 +54,8 @@ export async function createProceduralPlant(
   initialShape: PlantShape = DEFAULT_PLANT_SHAPE,
   publish: (plant: ProceduralPlant) => void = (plant) => {
     plant.root.isActive = true;
-  }
+  },
+  options: { readonly poolGrowth?: boolean } = {}
 ): Promise<PlantGrowthInstance> {
   const { recipe: _recipe, atlasUrl: _atlas, ...source } = definition;
   const metadata = parsePlantGrowthMetadata(source);
@@ -54,6 +64,11 @@ export async function createProceduralPlant(
   if (!definition.atlasUrl) throw new Error("植物缺少图集地址");
   if ((recipe.volumes.some((v) => v.tint) || recipe.meshes?.some((m) => m.tint)) && !metadata.material.tintColors)
     throw new Error("着色部件缺少颜色曲线");
+  const parsedDefinition: PlantGrowthDefinition =
+    Object.isFrozen(definition) && Object.isFrozen(definition.recipe) && Object.isFrozen(definition.material)
+      ? definition
+      : { ...metadata, recipe, atlasUrl: definition.atlasUrl };
+  const definitionKey = plantDefinitionKey(parsedDefinition);
   // Each await returns control to the host queue. Promise-only yielding would
   // keep every synchronous step in the same event-loop turn.
   const step: PlantCreationScheduler = (work, phase) =>
@@ -74,46 +89,78 @@ export async function createProceduralPlant(
       }),
     "texture"
   );
-  let material: PBRMaterial | undefined;
-  let materials: PlantOrganMaterials | undefined;
+  let materialLease: PlantSpeciesMaterialLease | undefined;
+  let staticLease: PlantStaticGeometryLease | undefined;
+  let growthLease: PlantGrowthMeshLease | undefined;
   let plant: ProceduralPlant | undefined;
+  let evaluator: PlantGeometryEvaluator | undefined;
   try {
     await step(() => {
-      material = new PBRMaterial(engine);
-      material.name = metadata.name;
-      material.baseTexture = texture;
-      material.metallic = metadata.material.metallic;
-      material.roughness = metadata.material.roughness;
-      material.alphaCutoff = metadata.material.alphaCutoff;
-      material.renderFace = metadata.material.doubleSided ? RenderFace.Double : RenderFace.Front;
-      materials = metadata.material.tintColors
-        ? new PlantOrganMaterials(engine, metadata.material.tintColors)
-        : undefined;
+      materialLease = acquirePlantSpeciesMaterial(engine, definitionKey, metadata, texture);
     }, "material");
-    let evaluator: PlantGeometryEvaluator | undefined = await step(() => {
-      const evaluator = new PlantGeometryEvaluator(recipe);
-      evaluator.update(initialAge, initialShape);
-      return evaluator;
-    }, "geometry");
-    await step(() => {
-      plant = new ProceduralPlant(recipe, engine, parent, material!, evaluator!, undefined, initialShape);
-      // Partial instances must not reach a render pass before initial growth/tint.
-      plant.root.isActive = false;
-    }, "gpu");
-    // Scheduled closures share the factory context; do not retain an old private evaluator after a later binding swap.
-    evaluator = undefined;
+    if (options.poolGrowth) {
+      await step(() => {
+        growthLease = acquirePlantGrowthMesh(engine, definitionKey, recipe, initialShape, initialAge);
+      }, "geometry");
+      await step(() => {
+        plant = new ProceduralPlant(
+          recipe,
+          engine,
+          parent,
+          materialLease!.material,
+          undefined,
+          undefined,
+          initialShape,
+          { definitionKey, growthLease, poolGrowth: true }
+        );
+        growthLease = undefined;
+        // Partial instances must not reach a render pass before initial growth/tint.
+        plant.root.isActive = false;
+      }, "gpu");
+    } else {
+      evaluator = await step(() => {
+        const created = new PlantGeometryEvaluator(recipe);
+        created.update(initialAge, initialShape);
+        return created;
+      }, "geometry");
+      await step(() => {
+        staticLease = acquirePlantStaticGeometry(engine, definitionKey, recipe, evaluator!);
+        plant = new ProceduralPlant(
+          recipe,
+          engine,
+          parent,
+          materialLease!.material,
+          evaluator!,
+          undefined,
+          initialShape,
+          { definitionKey, staticLease, poolGrowth: false }
+        );
+        staticLease = undefined;
+        // Partial instances must not reach a render pass before initial growth/tint.
+        plant.root.isActive = false;
+      }, "gpu");
+      // Scheduled closures share the factory context; do not retain an old private evaluator after a later binding swap.
+      evaluator = undefined;
+    }
     const current = plant!;
-    let appearance = await step(
-      () => materials?.bind(current.root.getComponentsIncludeChildren(MeshRenderer, []), () => current.disposed),
-      "tint"
-    );
+    const ownedMaterialRelease = materialLease!;
+    materialLease = undefined;
+    let appearance: PlantOrganAppearance | undefined;
     current.ownAppearance(() => {
       appearance = undefined;
-      materials?.dispose();
-      material?.destroy(true);
-      materials = undefined;
-      material = undefined;
+      ownedMaterialRelease.release();
     });
+    if (metadata.material.tintColors) {
+      appearance = await step(
+        () =>
+          bindSharedPlantOrganTint(
+            current.root.getComponentsIncludeChildren(MeshRenderer, []),
+            metadata.material.tintColors!,
+            () => current.disposed
+          ),
+        "tint"
+      );
+    }
     let released = false;
     let tintProgress = NaN;
     const instance: PlantGrowthInstance = {
@@ -130,12 +177,10 @@ export async function createProceduralPlant(
         if (released) return;
         released = true;
         current.dispose();
-        materials?.dispose();
-        material?.destroy(true);
       }
     };
     await step(() => instance.setGrowth(initialAge, initialShape), "growth");
-    await preparePlantShaderPrograms(engine, current.root, step);
+    await preparePlantShaderPrograms(engine, current.root, step, true);
     await step(() => {
       // The owner must apply its final presentation state synchronously before activation.
       publish(current);
@@ -143,8 +188,9 @@ export async function createProceduralPlant(
     return instance;
   } catch (error) {
     plant?.dispose();
-    materials?.dispose();
-    material?.destroy(true);
+    growthLease?.release();
+    staticLease?.release();
+    materialLease?.release();
     throw error;
   }
 }

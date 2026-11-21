@@ -1,6 +1,16 @@
-import { Color, Engine, Material, ModelMesh, MeshRenderer, PBRMaterial, Shader, Vector4 } from "@galacean/engine";
+import {
+  BufferMesh,
+  Color,
+  Engine,
+  Material,
+  ModelMesh,
+  MeshRenderer,
+  PBRMaterial,
+  Shader,
+  Vector4
+} from "@galacean/engine";
 import source from "./PlantOrganTint.shader?plant-precompiled";
-import { sampleColorCurve, type GrowthCurve, type PlantPoint } from "../core/curves";
+import { sampleColorCurveInto, type GrowthCurve, type PlantPoint } from "../core/curves";
 
 /** COLOR_0.a selects tinted organs, not opacity. Tint inputs are sRGB. */
 export interface PlantOrganAppearance {
@@ -12,6 +22,15 @@ export interface PlantOrganAppearance {
 
 export const ORGAN_TINT_PROPERTY = "renderer_OrganTint";
 
+function writeRendererOrganTint(renderers: readonly MeshRenderer[], r: number, g: number, b: number, a: number): void {
+  for (let i = 0; i < renderers.length; i++) {
+    const shaderData = renderers[i].shaderData;
+    const existing = shaderData.getVector4(ORGAN_TINT_PROPERTY);
+    if (existing) existing.set(r, g, b, a);
+    else shaderData.setVector4(ORGAN_TINT_PROPERTY, new Vector4(r, g, b, a));
+  }
+}
+
 /** Instance-owned tint materials; renderer uniforms never mutate another plant. */
 export class PlantOrganMaterials {
   private readonly materials = new Map<Material, PBRMaterial>();
@@ -21,10 +40,12 @@ export class PlantOrganMaterials {
   ) {}
 
   bind(renderers: MeshRenderer[], isReleased: () => boolean): PlantOrganAppearance {
-    for (const renderer of renderers) {
+    for (let i = 0; i < renderers.length; i++) {
+      const renderer = renderers[i];
+      const mesh = renderer.mesh;
       if (
-        !(renderer.mesh instanceof ModelMesh) ||
-        !renderer.mesh.vertexElements.some((element) => element.semantic === "COLOR_0")
+        !(mesh instanceof ModelMesh || mesh instanceof BufferMesh) ||
+        !mesh.vertexElements.some((element) => element.semantic === "COLOR_0")
       )
         throw new Error("部件着色需要 COLOR_0 遮罩");
       const original = renderer.getMaterial();
@@ -46,24 +67,37 @@ export class PlantOrganMaterials {
       }
       renderer.setMaterial(material);
       renderer.enableVertexColor = true;
-      renderer.shaderData.setVector4(ORGAN_TINT_PROPERTY, new Vector4(1, 1, 1, 0));
+      const existing = renderer.shaderData.getVector4(ORGAN_TINT_PROPERTY);
+      if (existing) existing.set(1, 1, 1, 0);
+      else renderer.shaderData.setVector4(ORGAN_TINT_PROPERTY, new Vector4(1, 1, 1, 0));
     }
     const thisColors = this.colors;
+    const colorScratch: [number, number, number] = [1, 1, 1];
     let progress: number | null = null;
     const assertLive = () => {
       if (isReleased()) throw new Error("植物实例已释放");
     };
     const setColor = (color: Readonly<{ r: number; g: number; b: number }>) => {
       assertLive();
-      if (![color.r, color.g, color.b].every((v) => Number.isFinite(v) && v >= 0 && v <= 1))
+      if (
+        !Number.isFinite(color.r) ||
+        color.r < 0 ||
+        color.r > 1 ||
+        !Number.isFinite(color.g) ||
+        color.g < 0 ||
+        color.g > 1 ||
+        !Number.isFinite(color.b) ||
+        color.b < 0 ||
+        color.b > 1
+      )
         throw new Error("部件颜色必须是 0..1 的 sRGB 数值");
-      const tint = new Vector4(
+      writeRendererOrganTint(
+        renderers,
         Color.gammaToLinearSpace(color.r),
         Color.gammaToLinearSpace(color.g),
         Color.gammaToLinearSpace(color.b),
         1
       );
-      for (const renderer of renderers) renderer.shaderData.setVector4(ORGAN_TINT_PROPERTY, tint.clone());
       progress = null;
     };
     return {
@@ -72,13 +106,20 @@ export class PlantOrganMaterials {
       },
       setColor,
       setProgress(value) {
-        const color = sampleColorCurve(thisColors, value);
-        setColor({ r: color[0], g: color[1], b: color[2] });
+        sampleColorCurveInto(thisColors, value, colorScratch);
+        assertLive();
+        writeRendererOrganTint(
+          renderers,
+          Color.gammaToLinearSpace(colorScratch[0]),
+          Color.gammaToLinearSpace(colorScratch[1]),
+          Color.gammaToLinearSpace(colorScratch[2]),
+          1
+        );
         progress = Math.max(0, Math.min(1, value));
       },
       reset() {
         assertLive();
-        for (const renderer of renderers) renderer.shaderData.setVector4(ORGAN_TINT_PROPERTY, new Vector4(1, 1, 1, 0));
+        writeRendererOrganTint(renderers, 1, 1, 1, 0);
         progress = null;
       }
     };
@@ -88,4 +129,76 @@ export class PlantOrganMaterials {
     for (const material of this.materials.values()) material.destroy(true);
     this.materials.clear();
   }
+}
+
+/** Shared-material organ tint helper for runtime instances using Tier A materials directly. */
+export function bindSharedPlantOrganTint(
+  renderers: readonly MeshRenderer[],
+  colors: GrowthCurve<PlantPoint>,
+  isReleased: () => boolean
+): PlantOrganAppearance {
+  for (let i = 0; i < renderers.length; i++) {
+    const renderer = renderers[i];
+    const mesh = renderer.mesh;
+    if (
+      !(mesh instanceof ModelMesh || mesh instanceof BufferMesh) ||
+      !mesh.vertexElements.some((element) => element.semantic === "COLOR_0")
+    )
+      throw new Error("部件着色需要 COLOR_0 遮罩");
+    renderer.enableVertexColor = true;
+    const existing = renderer.shaderData.getVector4(ORGAN_TINT_PROPERTY);
+    if (existing) existing.set(1, 1, 1, 0);
+    else renderer.shaderData.setVector4(ORGAN_TINT_PROPERTY, new Vector4(1, 1, 1, 0));
+  }
+  const colorScratch: [number, number, number] = [1, 1, 1];
+  let progress: number | null = null;
+  const assertLive = () => {
+    if (isReleased()) throw new Error("植物实例已释放");
+  };
+  const setColor = (color: Readonly<{ r: number; g: number; b: number }>) => {
+    assertLive();
+    if (
+      !Number.isFinite(color.r) ||
+      color.r < 0 ||
+      color.r > 1 ||
+      !Number.isFinite(color.g) ||
+      color.g < 0 ||
+      color.g > 1 ||
+      !Number.isFinite(color.b) ||
+      color.b < 0 ||
+      color.b > 1
+    )
+      throw new Error("部件颜色必须是 0..1 的 sRGB 数值");
+    writeRendererOrganTint(
+      renderers,
+      Color.gammaToLinearSpace(color.r),
+      Color.gammaToLinearSpace(color.g),
+      Color.gammaToLinearSpace(color.b),
+      1
+    );
+    progress = null;
+  };
+  return {
+    get progress() {
+      return progress;
+    },
+    setColor,
+    setProgress(value) {
+      sampleColorCurveInto(colors, value, colorScratch);
+      assertLive();
+      writeRendererOrganTint(
+        renderers,
+        Color.gammaToLinearSpace(colorScratch[0]),
+        Color.gammaToLinearSpace(colorScratch[1]),
+        Color.gammaToLinearSpace(colorScratch[2]),
+        1
+      );
+      progress = Math.max(0, Math.min(1, value));
+    },
+    reset() {
+      assertLive();
+      writeRendererOrganTint(renderers, 1, 1, 1, 0);
+      progress = null;
+    }
+  };
 }

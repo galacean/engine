@@ -23,8 +23,8 @@ import {
 } from "../domain/FarmingGround";
 import { normalizeSoilMoisture } from "../domain/SoilMoisture";
 import { PlantPresenter, PLANT_DISTANCE_CULLED, type PlantVisualLoadState } from "./PlantPresenter";
-import { cropRenderState } from "./PlantRenderState";
-import { SoilVisualProvider } from "./soil/SoilVisualProvider";
+import { cropRenderState, type PlantRenderState } from "./PlantRenderState";
+import { SoilVisualProvider, type SoilVisualTarget } from "./soil/SoilVisualProvider";
 import { createFarmingPlotSurface } from "./soil/FarmingPlotSurface";
 import type { SoilCell } from "./soil/SoilBoundary";
 import { SoilBoundaryPreview } from "./soil/SoilBoundaryPreview";
@@ -62,6 +62,52 @@ class FarmingPresentationFrame extends Script {
   }
 }
 type Surface = ReturnType<typeof createFarmingPlotSurface>;
+interface SurfaceEntry {
+  readonly id: string;
+  readonly view: Surface;
+  syncedGroundRevision: number;
+  syncedMoisture: number;
+  m0: number;
+  m1: number;
+  m2: number;
+  m4: number;
+  m5: number;
+  m6: number;
+  m8: number;
+  m9: number;
+  m10: number;
+  stretch: number;
+}
+interface CachedCropRenderState {
+  cropId: string;
+  cropDefinitionVersion: number;
+  cycleId: string;
+  cycleRevision: number;
+  plantDefinitionId: string;
+  plantDefinitionRevision: number;
+  recipeRevision: number;
+  growthUnits: number;
+  leafSpread: number;
+  stemBend: number;
+  fruitScale: number;
+  state: PlantRenderState;
+}
+function hasCropRemovalChange(changes: readonly FarmChange[], cropId: string): boolean {
+  for (let i = 0; i < changes.length; i++) {
+    const change = changes[i];
+    if ((change.kind === "crop-harvested" || change.kind === "crop-removed") && change.cropInstanceId === cropId)
+      return true;
+  }
+  return false;
+}
+function collectAvailablePlots(plots: readonly PlotState[], out: PlotState[]): PlotState[] {
+  out.length = 0;
+  for (let i = 0; i < plots.length; i++) {
+    const plot = plots[i];
+    if (plot.ground.availability === "available") out.push(plot);
+  }
+  return out;
+}
 
 /** Reusable agriculture on a borrowed host camera and ground. No terrain, light, movement or Scene creation. */
 export class FarmingWorldPresentation {
@@ -69,6 +115,15 @@ export class FarmingWorldPresentation {
   readonly items: FarmItemPresentation;
   readonly port: FarmingPresentationPort;
   private readonly surfaces = new Map<string, Surface>();
+  private surfaceEntries = new Map<string, SurfaceEntry>();
+  private surfaceEntryList: SurfaceEntry[] = [];
+  private surfaceRenderers = new Map<string, SoilVisualTarget>();
+  private previousPlotsMap = new Map<string, PlotState>();
+  private availablePlots: PlotState[] = [];
+  private validPlotIds = new Set<string>();
+  private staleSurfaceIds: string[] = [];
+  private cachedCropStates = new Map<string, CachedCropRenderState>();
+  private syncCropInputs: PlantRenderState[] = [];
   private readonly loads = new Map<string, { state: PlantVisualLoadState; message?: string }>();
   private readonly soils: SoilVisualProvider;
   private readonly plants: PlantPresenter;
@@ -99,14 +154,40 @@ export class FarmingWorldPresentation {
     actionHint: FarmSelectionAction | undefined;
     snapshot: FarmSnapshot | null;
   };
+  private selectionGround?: FarmingGroundView;
+  private selectionGroundId = "";
+  private selectionPlotPos?: Vector3;
+  private selectionWorkSurface?: Surface;
+  private selectionTrianglesFn?: (
+    bounds: Parameters<NonNullable<FarmingGroundView["surfaceTriangles"]>>[1]
+  ) => ReturnType<NonNullable<FarmingGroundView["surfaceTriangles"]>>;
+  private selectionWorkHeightAtFn?: (x: number, z: number) => number | null;
+  private selectionGroundHeightAtFn?: (x: number, z: number) => number | null;
+  private selectionSurface?: {
+    groundId: string;
+    revision: number;
+    action: FarmSelectionAction;
+    triangles: (
+      bounds: Parameters<NonNullable<FarmingGroundView["surfaceTriangles"]>>[1]
+    ) => ReturnType<NonNullable<FarmingGroundView["surfaceTriangles"]>>;
+  };
   private manualTarget = false;
   private lockedTarget: { plotId: string | null; ground: GroundTarget | null } | null = null;
   private targetGroundRevision = -1;
   private playerOccluded?: (ray: Ray, distance: number, ignoredRoot?: Entity) => boolean;
   private preparePlayerOcclusion?: (ray: Ray, ignoredRoot?: Entity) => Promise<boolean>;
   private playerHintOccluded?: (ray: Ray, distance: number, target: string, ignoredRoot?: Entity) => boolean;
+  private hintTargetKeyX = NaN;
+  private hintTargetKeyY = NaN;
+  private hintTargetKeyZ = NaN;
+  private hintTargetKey = "";
   private playerActionTarget?: FarmWorkSelection;
   private playerTargetKey = "";
+  private playerTargetHeldId = "";
+  private playerTargetSnapshotRevision = -1;
+  private playerTargetGroundRevision = -1;
+  private playerTargetAspect = NaN;
+  private playerTargetFov = NaN;
   private playerTargetCheckedAt = -Infinity;
   private playerTarget: FarmWorkSelection | null = null;
   private selectionAction?: {
@@ -368,7 +449,18 @@ export class FarmingWorldPresentation {
     this.playerHintOccluded = hintQuery;
     this.preparePlayerOcclusion = prepare;
     this.playerTargetKey = "";
+    this.hintTargetKeyX = NaN;
     if (this.hintOcclusion) this.hintOcclusion.checkedAt = -Infinity;
+  }
+  private formatHintTargetKey(x: number, y: number, z: number): string {
+    if (x === this.hintTargetKeyX && y === this.hintTargetKeyY && z === this.hintTargetKeyZ) {
+      return this.hintTargetKey;
+    }
+    this.hintTargetKeyX = x;
+    this.hintTargetKeyY = y;
+    this.hintTargetKeyZ = z;
+    this.hintTargetKey = `${x},${y},${z}`;
+    return this.hintTargetKey;
   }
   private hintOccluded(point: Vector3): boolean {
     // The drawn ring is lifted above the surface. Share the work target's actual
@@ -394,7 +486,7 @@ export class FarmingWorldPresentation {
       return this.playerHintOccluded(
         this.workRay,
         distance,
-        `${this.workPoint.x},${this.workPoint.y},${this.workPoint.z}`,
+        this.formatHintTargetKey(this.workPoint.x, this.workPoint.y, this.workPoint.z),
         this.getGroundOcclusionRoot(target)
       );
     }
@@ -455,7 +547,7 @@ export class FarmingWorldPresentation {
     const horizontalDistance = Math.hypot(rx, rz);
     if (horizontalDistance < FARM_WORK_REACH.minimum || horizontalDistance > FARM_WORK_REACH.maximum) return false;
 
-    this.workPoint.set(...selected.position);
+    this.workPoint.set(selected.position[0], selected.position[1], selected.position[2]);
     if (selecting) {
       const forward = this.camera.entity.transform.worldForward;
       const length = Math.hypot(forward.x, forward.z);
@@ -486,7 +578,7 @@ export class FarmingWorldPresentation {
       return !this.playerHintOccluded(
         this.workRay,
         distance,
-        selected.position.join(","),
+        this.formatHintTargetKey(selected.position[0], selected.position[1], selected.position[2]),
         this.getGroundOcclusionRoot(selected.ground)
       );
     return !this.playerOccluded?.(
@@ -523,21 +615,34 @@ export class FarmingWorldPresentation {
   getPlayerWorkTarget(): FarmWorkSelection | null {
     if (this.playerActionTarget) return this.playerActionTarget;
     const held = carriedItem(this.snapshot.items);
-    if (!isNearbyFarmTool(held?.type)) {
+    if (!held || !isNearbyFarmTool(held.type)) {
       this.playerTargetKey = "";
       return (this.playerTarget = null);
     }
     const view = this.ground.capture();
-    const key = `${held!.id}/${this.snapshot.revision}/${view.revision}/${this.camera.aspectRatio}/${this.camera.fieldOfView}`;
+    const snapshotRev = this.snapshot.revision;
+    const groundRev = view.revision;
+    const aspect = this.camera.aspectRatio;
+    const fov = this.camera.fieldOfView;
     const now = performance.now();
-    if (key === this.playerTargetKey && now - this.playerTargetCheckedAt < FARM_WORK_TARGET_REFRESH_MS)
+    if (
+      this.playerTargetKey === "cached" &&
+      this.playerTargetHeldId === held.id &&
+      this.playerTargetSnapshotRevision === snapshotRev &&
+      this.playerTargetGroundRevision === groundRev &&
+      this.playerTargetAspect === aspect &&
+      this.playerTargetFov === fov &&
+      now - this.playerTargetCheckedAt < FARM_WORK_TARGET_REFRESH_MS
+    )
       return this.playerTarget;
-    this.playerTargetKey = key;
+    this.playerTargetKey = "cached";
+    this.playerTargetHeldId = held.id;
+    this.playerTargetSnapshotRevision = snapshotRev;
+    this.playerTargetGroundRevision = groundRev;
+    this.playerTargetAspect = aspect;
+    this.playerTargetFov = fov;
     this.playerTargetCheckedAt = now;
-    for (const selected of this.playerWorkCandidates("hint")) {
-      return (this.playerTarget = selected);
-    }
-    return (this.playerTarget = null);
+    return (this.playerTarget = this.playerWorkCandidates("hint").next().value ?? null);
   }
 
   private *playerWorkCandidates(visibility: "hint" | "none" = "none"): Generator<FarmWorkSelection, void> {
@@ -659,7 +764,7 @@ export class FarmingWorldPresentation {
     if (this.actionHint) {
       const plotId = this.actionHint.plotId;
       const ground = this.actionHint.target;
-      this.target = { plotId, ground };
+      if (this.target.plotId !== plotId || this.target.ground !== ground) this.target = { plotId, ground };
       if (this.needsSelectionRefresh(plotId, ground, this.actionHint.action)) this.refreshSelection();
       return;
     }
@@ -669,7 +774,7 @@ export class FarmingWorldPresentation {
       const selected = this.getPlayerWorkTarget();
       const plotId = selected?.plotId ?? null;
       const ground = selected?.ground ?? null;
-      this.target = { plotId, ground };
+      if (this.target.plotId !== plotId || this.target.ground !== ground) this.target = { plotId, ground };
       this.manualTarget = false;
       if (this.needsSelectionRefresh(plotId, ground, undefined)) this.refreshSelection();
       return;
@@ -745,6 +850,54 @@ export class FarmingWorldPresentation {
     };
     return action;
   }
+  private setSurface(id: string, view: Surface): SurfaceEntry {
+    const surfaceEntries = (this.surfaceEntries ??= new Map());
+    const surfaceEntryList = (this.surfaceEntryList ??= []);
+    const surfaceRenderers = (this.surfaceRenderers ??= new Map());
+    const existing = surfaceEntries.get(id);
+    if (existing) {
+      if (existing.view === view) return existing;
+      this.removeSurface(id, false);
+    }
+    const entry: SurfaceEntry = {
+      id,
+      view,
+      syncedGroundRevision: -1,
+      syncedMoisture: NaN,
+      m0: NaN,
+      m1: NaN,
+      m2: NaN,
+      m4: NaN,
+      m5: NaN,
+      m6: NaN,
+      m8: NaN,
+      m9: NaN,
+      m10: NaN,
+      stretch: 1
+    };
+    this.surfaces.set(id, view);
+    surfaceRenderers.set(id, view.renderer);
+    surfaceEntries.set(id, entry);
+    surfaceEntryList.push(entry);
+    return entry;
+  }
+
+  private removeSurface(id: string, clearDistance = true): void {
+    const surfaceEntries = this.surfaceEntries;
+    const existing = surfaceEntries?.get(id);
+    this.surfaces.delete(id);
+    this.surfaceRenderers?.delete(id);
+    surfaceEntries?.delete(id);
+    if (clearDistance) this.distanceHiddenPlots.delete(id);
+    if (existing && this.surfaceEntryList) {
+      const index = this.surfaceEntryList.indexOf(existing);
+      if (index >= 0) {
+        const last = this.surfaceEntryList.pop()!;
+        if (index < this.surfaceEntryList.length) this.surfaceEntryList[index] = last;
+      }
+    }
+  }
+
   private refreshSelection(): void {
     const syncState = (this.selectionSyncState ??= {
       active: false,
@@ -756,12 +909,13 @@ export class FarmingWorldPresentation {
       actionHint: undefined,
       snapshot: null
     });
+    const ground = this.ground.capture();
     syncState.active = this.active;
     syncState.plotId = this.target.plotId;
     syncState.groundId = this.target.ground?.groundId ?? null;
     syncState.cellX = this.target.ground?.cellX ?? NaN;
     syncState.cellZ = this.target.ground?.cellZ ?? NaN;
-    syncState.groundRevision = this.ground.capture().revision;
+    syncState.groundRevision = ground.revision;
     syncState.actionHint = this.actionHint?.action;
     syncState.snapshot = this.snapshot;
     this.selectionSyncValid = true;
@@ -769,28 +923,48 @@ export class FarmingWorldPresentation {
       this.selection.hide();
       return;
     }
-    const target = this.target.ground ?? this.snapshot.plots.find((plot) => plot.plotId === this.target.plotId);
+    let target: GroundTarget | undefined = this.target.ground ?? undefined;
+    if (!target && this.target.plotId) {
+      const plots = this.snapshot.plots;
+      for (let i = 0; i < plots.length; i++) {
+        if (plots[i].plotId === this.target.plotId) {
+          target = plots[i];
+          break;
+        }
+      }
+    }
     if (!target) {
       this.selection.hide();
       return;
     }
-    const ground = this.ground.capture();
     const action = this.actionHint?.action ?? this.availableSelectionAction(target, ground);
     if (!action) {
       this.selection.hide();
       return;
     }
-    const selectionSurface = {
-      groundId: target.groundId,
-      revision: ground.revision,
-      action,
-      triangles: (bounds: Parameters<NonNullable<typeof ground.surfaceTriangles>>[1]) =>
-        ground.surfaceTriangles?.(target.groundId, bounds) ?? []
-    };
-    const surface = this.target.plotId && this.surfaces.get(this.target.plotId);
+    this.selectionGround = ground;
+    this.selectionGroundId = target.groundId;
+    const selectionSurface = (this.selectionSurface ??= {
+      groundId: "",
+      revision: -1,
+      action: null,
+      triangles: (this.selectionTrianglesFn ??= (bounds) =>
+        this.selectionGround?.surfaceTriangles?.(this.selectionGroundId, bounds) ?? [])
+    });
+    selectionSurface.groundId = target.groundId;
+    selectionSurface.revision = ground.revision;
+    selectionSurface.action = action;
+    const surface = this.target.plotId ? this.surfaces.get(this.target.plotId) : undefined;
     if (surface && surface.root.isActiveInHierarchy) {
       const p = surface.root.transform.worldPosition;
-      this.selection.show(p.x, p.z, (x, z) => p.y + surface.work.heightAt(x - p.x, z - p.z), selectionSurface);
+      this.selectionPlotPos = p;
+      this.selectionWorkSurface = surface;
+      const workHeightAt = (this.selectionWorkHeightAtFn ??= (x: number, z: number) => {
+        const pos = this.selectionPlotPos;
+        const workSurface = this.selectionWorkSurface;
+        return pos && workSurface ? pos.y + workSurface.work.heightAt(x - pos.x, z - pos.z) : null;
+      });
+      this.selection.show(p.x, p.z, workHeightAt, selectionSurface);
       return;
     }
     // Uncultivated cells use the same exact terrain footprint and range material.
@@ -805,7 +979,11 @@ export class FarmingWorldPresentation {
     const { originX, originZ, cellSize } = this.snapshot.grid;
     const x = originX + (target.cellX + 0.5) * cellSize;
     const z = originZ + (target.cellZ + 0.5) * cellSize;
-    this.selection.show(x, z, (x, z) => ground.sample(target.groundId, x, z)?.position[1] ?? null, selectionSurface);
+    this.selectionPlotPos = undefined;
+    this.selectionWorkSurface = undefined;
+    const groundHeightAt = (this.selectionGroundHeightAtFn ??= (gx: number, gz: number) =>
+      this.selectionGround?.sample(this.selectionGroundId, gx, gz)?.position[1] ?? null);
+    this.selection.show(x, z, groundHeightAt, selectionSurface);
   }
   getSowingSurface(plotId: string) {
     const view = this.surfaces.get(plotId);
@@ -830,95 +1008,180 @@ export class FarmingWorldPresentation {
   }
   private sync(snapshot: FarmSnapshot, changes: readonly FarmChange[], groundChanged = false): void {
     if (this.disposed) return;
+    const cachedCropStates = (this.cachedCropStates ??= new Map());
+    const previousPlots = (this.previousPlotsMap ??= new Map());
+    const availablePlots = (this.availablePlots ??= []);
+    const valid = (this.validPlotIds ??= new Set());
+    const staleIds = (this.staleSurfaceIds ??= []);
+    const surfaceEntries = (this.surfaceEntries ??= new Map());
+    const surfaceEntryList = (this.surfaceEntryList ??= []);
+    const surfaceRenderers = (this.surfaceRenderers ??= new Map());
+    const cropInputs = (this.syncCropInputs ??= []);
     if (snapshot.items.carried?.itemId !== this.snapshot.items.carried?.itemId) {
       this.playerTarget = null;
       this.playerTargetKey = "";
     }
-    for (const id of Object.keys(this.snapshot.crops))
+    for (const id in this.snapshot.crops)
       if (!snapshot.crops[id]) {
-        if (
-          changes.some(
-            (change) =>
-              (change.kind === "crop-harvested" || change.kind === "crop-removed") && change.cropInstanceId === id
-          )
-        )
-          this.plants.harvest(id);
+        cachedCropStates.delete(id);
+        if (hasCropRemovalChange(changes, id)) this.plants.harvest(id);
         else this.plants.remove(id);
       }
-    const previousPlots = new Map(this.snapshot.plots.map((plot) => [plot.plotId, plot]));
+    previousPlots.clear();
+    const prevPlotList = this.snapshot.plots;
+    for (let i = 0; i < prevPlotList.length; i++) previousPlots.set(prevPlotList[i].plotId, prevPlotList[i]);
     this.snapshot = snapshot;
-    const plots = snapshot.plots.filter((p) => p.ground.availability === "available");
+    const plots = collectAvailablePlots(snapshot.plots, availablePlots);
     const work = this.work;
     if (work) {
-      const plot = plots.find((plot) => plot.plotId === work.plotId);
-      if (plot ? !sameGroundCell(work.view.placement, plot) : previousPlots.has(work.plotId)) {
+      let matchedPlot: PlotState | undefined;
+      for (let i = 0; i < plots.length; i++) {
+        if (plots[i].plotId === work.plotId) {
+          matchedPlot = plots[i];
+          break;
+        }
+      }
+      if (matchedPlot ? !sameGroundCell(work.view.placement, matchedPlot) : previousPlots.has(work.plotId)) {
         this.actionMotion?.controller.abort();
         this.finishWork();
       }
     }
-    const valid = new Set(plots.map((p) => p.plotId));
-    for (const [id, view] of this.surfaces)
-      if (!valid.has(id) && this.work?.view !== view) {
+    valid.clear();
+    for (let i = 0; i < plots.length; i++) valid.add(plots[i].plotId);
+    staleIds.length = 0;
+    for (let i = 0; i < surfaceEntryList.length; i++) {
+      const entry = surfaceEntryList[i];
+      if (!valid.has(entry.id) && this.work?.view !== entry.view) staleIds.push(entry.id);
+    }
+    for (let i = 0; i < staleIds.length; i++) {
+      const id = staleIds[i];
+      const view = this.surfaces.get(id);
+      if (view) {
         view.work.dispose();
         view.root.destroy();
-        this.surfaces.delete(id);
-        this.distanceHiddenPlots.delete(id);
       }
-    for (const plot of plots) {
-      let view = this.surfaces.get(plot.plotId);
-      const sameSurface = view && sameGroundCell(view.placement, plot);
-      const moisture = normalizeSoilMoisture(this.definitions.soilProfile, plot.soil.moistureUnits);
-      if (!view || !sameSurface) {
-        const previous = view;
-        if (previous) {
-          // A relocation must fit even when all atlas slots are already in use.
-          previous.work.dispose();
-          this.surfaces.delete(plot.plotId);
+      this.removeSurface(id);
+    }
+    staleIds.length = 0;
+    const groundView = this.ground.capture();
+    const groundRevision = groundView.revision;
+    const { originX, originZ, cellSize } = snapshot.grid;
+    try {
+      const soilProfile = plots.length ? this.definitions.soilProfile : undefined;
+      for (let i = 0; i < plots.length; i++) {
+        const plot = plots[i];
+        let entry = surfaceEntries.get(plot.plotId);
+        let view = entry?.view;
+        const sameSurface = Boolean(view && sameGroundCell(view.placement, plot));
+        const moisture = normalizeSoilMoisture(soilProfile!, plot.soil.moistureUnits);
+        if (!view || !entry || !sameSurface) {
+          const previous = view;
+          if (previous) {
+            // A relocation must fit even when all atlas slots are already in use.
+            previous.work.dispose();
+            this.removeSurface(plot.plotId, false);
+          }
+          try {
+            view = createFarmingPlotSurface(
+              this.root,
+              snapshot.grid,
+              this.ground,
+              plot,
+              this.soils,
+              moisture,
+              previous?.cropAnchor
+            );
+          } catch (error) {
+            const occupant = previousPlots.get(plot.plotId)?.occupantId;
+            if (previous && occupant) this.plants.remove(occupant);
+            throw error;
+          } finally {
+            previous?.root.destroy();
+          }
+          entry = this.setSurface(plot.plotId, view);
         }
-        try {
-          view = createFarmingPlotSurface(
-            this.root,
-            snapshot.grid,
-            this.ground,
-            plot,
-            this.soils,
-            moisture,
-            previous?.cropAnchor
-          );
-        } catch (error) {
-          const occupant = previousPlots.get(plot.plotId)?.occupantId;
-          if (previous && occupant) this.plants.remove(occupant);
-          throw error;
-        } finally {
-          previous?.root.destroy();
+        if (!sameSurface || groundChanged || entry.syncedGroundRevision !== groundRevision) {
+          const x = originX + (plot.cellX + 0.5) * cellSize;
+          const z = originZ + (plot.cellZ + 0.5) * cellSize;
+          const sample = groundView.sample(plot.groundId, x, z);
+          if (sample) view.root.transform.setWorldPosition(sample.position[0], sample.position[1], sample.position[2]);
+          view.root.isActive = Boolean(sample);
+          entry.syncedGroundRevision = groundRevision;
         }
-        this.surfaces.set(plot.plotId, view);
+        if (
+          sameSurface &&
+          this.work?.view !== view &&
+          previousPlots.get(plot.plotId)?.soil.preparation !== plot.soil.preparation
+        )
+          view.work.setPreparation(plot.soil.preparation);
+        if (!sameSurface || entry.syncedMoisture !== moisture) {
+          view.work.setMoisture(moisture);
+          entry.syncedMoisture = moisture;
+        }
       }
-      const bounds = plotBounds(snapshot.grid, plot),
-        x = (bounds.minimumX + bounds.maximumX) / 2,
-        z = (bounds.minimumZ + bounds.maximumZ) / 2;
-      const sample = this.ground.capture().sample(plot.groundId, x, z);
-      if (sample) view.root.transform.setWorldPosition(...sample.position);
-      view.root.isActive = Boolean(sample);
-      if (
-        sameSurface &&
-        this.work?.view !== view &&
-        previousPlots.get(plot.plotId)?.soil.preparation !== plot.soil.preparation
-      )
-        view.work.setPreparation(plot.soil.preparation);
-      view.work.setMoisture(moisture);
+    } finally {
+      previousPlots.clear();
     }
     this.boundaryPreview.refresh(plots, this.surfaces, this.work?.preview, groundChanged);
-    this.soils.setField(
-      snapshot,
-      new Map([...this.surfaces].map(([id, view]) => [id, view.renderer])),
-      this.work?.preview
-    );
-    this.plants.sync(
-      Object.values(snapshot.crops)
-        .filter((c) => valid.has(c.anchorPlotId))
-        .map((c) => cropRenderState(this.definitions.catalog, c))
-    );
+    this.soils.setField(snapshot, surfaceRenderers, this.work?.preview);
+    cropInputs.length = 0;
+    const crops = snapshot.crops;
+    for (const id in crops) {
+      const crop = crops[id];
+      if (!valid.has(crop.anchorPlotId)) continue;
+      let cached = cachedCropStates.get(id);
+      if (
+        cached &&
+        cached.cropId === crop.cropId &&
+        cached.cropDefinitionVersion === crop.cropDefinitionVersion &&
+        cached.cycleId === crop.cycleId &&
+        cached.cycleRevision === crop.cycleRevision &&
+        cached.plantDefinitionId === crop.plantDefinitionId &&
+        cached.plantDefinitionRevision === crop.plantDefinitionRevision &&
+        cached.recipeRevision === crop.recipeRevision &&
+        cached.growthUnits === crop.growthUnits &&
+        cached.leafSpread === crop.shape.leafSpread &&
+        cached.stemBend === crop.shape.stemBend &&
+        cached.fruitScale === crop.shape.fruitScale
+      ) {
+        cropInputs.push(cached.state);
+      } else {
+        const renderState = cropRenderState(this.definitions.catalog, crop);
+        if (!cached) {
+          cached = {
+            cropId: crop.cropId,
+            cropDefinitionVersion: crop.cropDefinitionVersion,
+            cycleId: crop.cycleId,
+            cycleRevision: crop.cycleRevision,
+            plantDefinitionId: crop.plantDefinitionId,
+            plantDefinitionRevision: crop.plantDefinitionRevision,
+            recipeRevision: crop.recipeRevision,
+            growthUnits: crop.growthUnits,
+            leafSpread: crop.shape.leafSpread,
+            stemBend: crop.shape.stemBend,
+            fruitScale: crop.shape.fruitScale,
+            state: renderState
+          };
+          cachedCropStates.set(id, cached);
+        } else {
+          cached.cropId = crop.cropId;
+          cached.cropDefinitionVersion = crop.cropDefinitionVersion;
+          cached.cycleId = crop.cycleId;
+          cached.cycleRevision = crop.cycleRevision;
+          cached.plantDefinitionId = crop.plantDefinitionId;
+          cached.plantDefinitionRevision = crop.plantDefinitionRevision;
+          cached.recipeRevision = crop.recipeRevision;
+          cached.growthUnits = crop.growthUnits;
+          cached.leafSpread = crop.shape.leafSpread;
+          cached.stemBend = crop.shape.stemBend;
+          cached.fruitScale = crop.shape.fruitScale;
+          cached.state = renderState;
+        }
+        cropInputs.push(renderState);
+      }
+    }
+    this.plants.sync(cropInputs);
+    cropInputs.length = 0;
     this.targetGroundRevision = -1;
     this.refreshSelection();
   }
@@ -931,7 +1194,9 @@ export class FarmingWorldPresentation {
       this.work.elapsed += dt;
       let playbackTime = Math.max(0, this.work.elapsed - workBlendSeconds);
       // Brief resistance at blade contact; tool and soil all share this stopped clock.
-      for (const stop of this.work.contactStops) {
+      const stops = this.work.contactStops;
+      for (let i = 0; i < stops.length; i++) {
+        const stop = stops[i];
         if (playbackTime <= stop) break;
         playbackTime -= Math.min(0.05, playbackTime - stop);
       }
@@ -973,11 +1238,13 @@ export class FarmingWorldPresentation {
       this.plotPriorities.clear();
       const cameraPosition = this.camera.entity.transform.worldPosition;
       const plots = this.snapshot.plots;
+      const crops = this.snapshot.crops;
+      const cellSize = this.snapshot.grid.cellSize;
       for (let i = 0; i < plots.length; i++) {
         const plot = plots[i];
-        const surface = this.surfaces.get(plot.plotId);
-        if (!surface) continue;
-        const plotPos = surface.root.transform.worldPosition;
+        const entry = this.surfaceEntries.get(plot.plotId);
+        if (!entry) continue;
+        const plotPos = entry.view.root.transform.worldPosition;
         if (
           !this.growthVisibility.withinDrawDistance(plotPos, cameraPosition, !this.distanceHiddenPlots.has(plot.plotId))
         ) {
@@ -986,15 +1253,41 @@ export class FarmingWorldPresentation {
         }
         this.distanceHiddenPlots.delete(plot.plotId);
         if (!plot.occupantId) continue;
-        const crop = this.snapshot.crops[plot.occupantId];
-        const matrix = surface.root.transform.worldMatrix.elements;
-        const stretch = Math.max(
-          Math.hypot(matrix[0], matrix[4], matrix[8]),
-          Math.hypot(matrix[1], matrix[5], matrix[9]),
-          Math.hypot(matrix[2], matrix[6], matrix[10])
-        );
-        const radius =
-          (Math.max(this.snapshot.grid.cellSize, crop ? (this.cropRadii.get(crop.cropId) ?? 0) : 0) + 0.06) * stretch;
+        const crop = crops[plot.occupantId];
+        const matrix = entry.view.root.transform.worldMatrix.elements;
+        const m0 = matrix[0],
+          m1 = matrix[1],
+          m2 = matrix[2],
+          m4 = matrix[4],
+          m5 = matrix[5],
+          m6 = matrix[6],
+          m8 = matrix[8],
+          m9 = matrix[9],
+          m10 = matrix[10];
+        let stretch = entry.stretch;
+        if (
+          entry.m0 !== m0 ||
+          entry.m1 !== m1 ||
+          entry.m2 !== m2 ||
+          entry.m4 !== m4 ||
+          entry.m5 !== m5 ||
+          entry.m6 !== m6 ||
+          entry.m8 !== m8 ||
+          entry.m9 !== m9 ||
+          entry.m10 !== m10
+        ) {
+          entry.m0 = m0;
+          entry.m1 = m1;
+          entry.m2 = m2;
+          entry.m4 = m4;
+          entry.m5 = m5;
+          entry.m6 = m6;
+          entry.m8 = m8;
+          entry.m9 = m9;
+          entry.m10 = m10;
+          stretch = entry.stretch = Math.max(Math.hypot(m0, m4, m8), Math.hypot(m1, m5, m9), Math.hypot(m2, m6, m10));
+        }
+        const radius = (Math.max(cellSize, crop ? (this.cropRadii.get(crop.cropId) ?? 0) : 0) + 0.06) * stretch;
         this.plotPriorities.set(
           plot.plotId,
           this.growthVisibility.priority(plotPos, radius, cameraPosition, plot.plotId === this.target.plotId)
@@ -1063,7 +1356,7 @@ export class FarmingWorldPresentation {
         this.soils,
         normalizeSoilMoisture(this.definitions.soilProfile, preview.soil.moistureUnits)
       );
-      this.surfaces.set(id, view);
+      this.setSurface(id, view);
     }
     this.toolRoot.isActive = false;
     this.toolRoot.transform.setWorldPosition(
@@ -1095,16 +1388,9 @@ export class FarmingWorldPresentation {
       };
     });
     if (!plot) this.soilWork?.begin(bounds);
-    this.boundaryPreview.refresh(
-      this.snapshot.plots.filter((plot) => plot.ground.availability === "available"),
-      this.surfaces,
-      this.work?.preview
-    );
-    this.soils.setField(
-      this.snapshot,
-      new Map([...this.surfaces].map(([id, view]) => [id, view.renderer])),
-      this.work?.preview
-    );
+    const availablePlots = collectAvailablePlots(this.snapshot.plots, this.availablePlots);
+    this.boundaryPreview.refresh(availablePlots, this.surfaces, this.work?.preview);
+    this.soils.setField(this.snapshot, this.surfaceRenderers, this.work?.preview);
     this.tool.play();
     return completed;
   }
@@ -1135,14 +1421,11 @@ export class FarmingWorldPresentation {
     } else {
       work.view.work.dispose();
       work.view.root.destroy();
-      this.surfaces.delete(work.plotId);
-      this.distanceHiddenPlots.delete(work.plotId);
+      this.removeSurface(work.plotId);
     }
-    this.boundaryPreview.refresh(
-      this.snapshot.plots.filter((plot) => plot.ground.availability === "available"),
-      this.surfaces
-    );
-    this.soils.setField(this.snapshot, new Map([...this.surfaces].map(([id, view]) => [id, view.renderer])));
+    const availablePlots = collectAvailablePlots(this.snapshot.plots, this.availablePlots);
+    this.boundaryPreview.refresh(availablePlots, this.surfaces);
+    this.soils.setField(this.snapshot, this.surfaceRenderers);
     this.targetGroundRevision = -1;
     this.refreshSelection();
   }
@@ -1166,8 +1449,10 @@ export class FarmingWorldPresentation {
   /** Lightweight debug sampling; active counts are hierarchy/distance state, not GPU submissions. */
   getPerformanceDiagnostics() {
     let activePlots = 0;
-    for (const view of this.surfaces.values())
-      if (view.renderer.enabled && view.renderer.entity.isActiveInHierarchy) activePlots++;
+    for (let i = 0; i < this.surfaceEntryList.length; i++) {
+      const renderer = this.surfaceEntryList[i].view.renderer;
+      if (renderer.enabled && renderer.entity.isActiveInHierarchy) activePlots++;
+    }
     return {
       sourceId: this.root.instanceId,
       plots: this.surfaces.size,
@@ -1216,8 +1501,20 @@ export class FarmingWorldPresentation {
     this.selection.dispose();
     this.tool.dispose();
     this.plants.dispose();
-    for (const view of this.surfaces.values()) view.work.dispose();
+    for (let i = 0; i < this.surfaceEntryList.length; i++) this.surfaceEntryList[i].view.work.dispose();
     this.surfaces.clear();
+    this.surfaceEntries.clear();
+    this.surfaceEntryList.length = 0;
+    this.surfaceRenderers.clear();
+    this.previousPlotsMap.clear();
+    this.availablePlots.length = 0;
+    this.validPlotIds.clear();
+    this.staleSurfaceIds.length = 0;
+    this.cachedCropStates.clear();
+    this.syncCropInputs.length = 0;
+    this.selectionGround = undefined;
+    this.selectionWorkSurface = undefined;
+    this.selectionPlotPos = undefined;
     this.distanceHiddenPlots.clear();
     this.root.destroy();
     this.soils.dispose();
