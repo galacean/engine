@@ -3,7 +3,6 @@ import {
   Color,
   Entity,
   Scene,
-  ScreenSpaceReflectionReceiverMode,
   Script,
   ShaderMacro,
   ShaderProperty,
@@ -22,8 +21,7 @@ import {
   type WeatherSkyLightingState,
   type WeatherState,
   type WeatherTransitionProgress,
-  type WeatherWindState,
-  type ScreenSpaceReflectionConsumerLease
+  type WeatherWindState
 } from "@galacean/engine";
 import {
   VolumetricCloudSkyRuntime,
@@ -336,7 +334,7 @@ export class WorldEnvironmentRuntime {
   private _seasonIblSynchronized = true;
   private _cloudProfileIblSynchronized = true;
   private _cloudProfileIblBaselineSignature = "";
-  private _surfaceWaterSsrLease: ScreenSpaceReflectionConsumerLease | undefined;
+  private _surfaceWaterSsrRequested = false;
   private _destroyed = false;
   private _timeDrivenTransition = false;
 
@@ -594,7 +592,7 @@ export class WorldEnvironmentRuntime {
 
   /** Whether the terrain water film currently requests SSR on this camera. */
   get surfaceWaterSsrRequested(): boolean {
-    return this._surfaceWaterSsrLease?.active === true;
+    return this._surfaceWaterSsrRequested;
   }
 
   /** Restores the authored Terrain rainwater parameter defaults without clearing accumulated water. */
@@ -1140,10 +1138,7 @@ export class WorldEnvironmentRuntime {
   }
 
   private _synchronizeSurfaceWaterScreenSpaceReflection(rainRate: number): void {
-    if (this._surfaceWaterSsrLease && !this._surfaceWaterSsrLease.active) {
-      this._surfaceWaterSsrLease = undefined;
-    }
-    const activeLease = this.surfaceWaterSsrRequested;
+    const activeRequest = this._surfaceWaterSsrRequested;
     const demandState = this._surfaceWaterSsrDemandState;
     demandState.rainRate = rainRate;
     demandState.puddles = this._surface.puddles;
@@ -1151,24 +1146,13 @@ export class WorldEnvironmentRuntime {
     demandState.coverageMultiplier = this._surfaceWater.coverageMultiplier;
     demandState.reflectionIntensity = this._surfaceWater.reflectionIntensity;
     demandState.ssrMix = this._surfaceWater.ssrMix;
-    const shouldRequest =
+    this._surfaceWaterSsrRequested =
       (!this._surfaceWaterSsrRequiresRain || rainRate > Number.EPSILON) &&
-      terrainSurfaceWaterRequestsScreenSpaceReflection(demandState, activeLease);
-    if (shouldRequest === activeLease) return;
-    if (!shouldRequest) {
-      this._releaseSurfaceWaterScreenSpaceReflection();
-      return;
-    }
-    const lease = this._camera.screenSpaceReflection.acquireConsumer("terrain-surface-water", {
-      receiverMode: ScreenSpaceReflectionReceiverMode.OpaqueComposite
-    });
-    if (lease.active) this._surfaceWaterSsrLease = lease;
-    else lease.release();
+      terrainSurfaceWaterRequestsScreenSpaceReflection(demandState, activeRequest);
   }
 
   private _releaseSurfaceWaterScreenSpaceReflection(): void {
-    this._surfaceWaterSsrLease?.release();
-    this._surfaceWaterSsrLease = undefined;
+    this._surfaceWaterSsrRequested = false;
   }
 
   private _publishSeasonState(): void {

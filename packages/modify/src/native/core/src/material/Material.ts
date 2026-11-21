@@ -1,9 +1,6 @@
 import { IClone } from "@galacean/engine-design";
 import { Engine } from "../Engine";
 import { ReferResource } from "../asset/ReferResource";
-import { ScreenSpaceReflection } from "../lighting/screenSpaceReflection/ScreenSpaceReflection";
-import type { ScreenSpaceReflectionMaterialSettings } from "../lighting/screenSpaceReflection/ScreenSpaceReflectionSettings";
-import { ScreenSpaceReflectionReceiverMode } from "../lighting/screenSpaceReflection/enums/ScreenSpaceReflectionReceiverMode";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -13,68 +10,51 @@ import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
  * Material.
  */
 export class Material extends ReferResource implements IClone {
-  private static readonly _screenSpaceReflectionModeProperty = ShaderProperty.getByName(
-    "material_ScreenSpaceReflectionMode"
-  );
-  private static readonly _screenSpaceReflectionIntensityProperty = ShaderProperty.getByName(
-    "material_ScreenSpaceReflectionIntensity"
-  );
-
-  private _screenSpaceReflection: Readonly<ScreenSpaceReflectionMaterialSettings> | null = null;
-  private _screenSpaceReflectionRuntimeReceiver: {
-    mode: ScreenSpaceReflectionReceiverMode;
-    intensity: number;
-    registered: boolean;
-  } | null = null;
-  /** Author intent, or null when the material is owned by legacy runtime registration. */
-  get screenSpaceReflection(): Readonly<ScreenSpaceReflectionMaterialSettings> | null {
-    return this._screenSpaceReflection;
-  }
-  /** Set null to release author ownership and restore the previous runtime receiver. */
-  set screenSpaceReflection(value: Readonly<ScreenSpaceReflectionMaterialSettings> | null) {
-    if (value == null) {
-      if (!this._screenSpaceReflection) return;
-      const receiver = this._screenSpaceReflectionRuntimeReceiver;
-      this._screenSpaceReflection = null;
-      this._screenSpaceReflectionRuntimeReceiver = null;
-      ScreenSpaceReflection.resolveMaterialReceiver(this);
-      if (receiver) {
-        this.shaderData.setFloat(Material._screenSpaceReflectionModeProperty, receiver.mode);
-        this.shaderData.setFloat(Material._screenSpaceReflectionIntensityProperty, receiver.intensity);
-        this._screenSpaceReflectionReceiverRegistered = receiver.registered;
-      }
-      return;
-    }
-    if (!this._screenSpaceReflection) {
-      this._screenSpaceReflectionRuntimeReceiver = {
-        mode: this.shaderData.getFloat(Material._screenSpaceReflectionModeProperty),
-        intensity: this.shaderData.getFloat(Material._screenSpaceReflectionIntensityProperty),
-        registered: this._screenSpaceReflectionReceiverRegistered
-      };
-    }
-    this._screenSpaceReflection = Object.freeze({
-      mode: value.mode === "On" || value.mode === "Auto" ? value.mode : "Off",
-      intensity: Math.max(0, Math.min(1, Number.isFinite(value.intensity) ? value.intensity : 1))
-    });
-    ScreenSpaceReflection.resolveMaterialReceiver(this);
-  }
-  /** @internal Null preserves legacy explicit runtime registration until an author API is used. */
-  get _screenSpaceReflectionAuthorSettings(): Readonly<ScreenSpaceReflectionMaterialSettings> | null {
-    return this._screenSpaceReflection;
-  }
-  /** Allow this transparent material to supply SSR hit color/depth. Independent of receiver ownership. */
-  contributeScreenSpaceReflection = false;
+  /** @internal */
+  static _ssrIntensityProperty = ShaderProperty.getByName("material_ScreenSpaceReflectionIntensity");
 
   /** Name. */
   name: string;
 
+  /**
+   * Allow this transparent material to contribute nearest nonzero-alpha depth to SSR Hi-Z occlusion.
+   * @defaultValue `false`
+   */
+  contributeScreenSpaceReflectionDepth: boolean = false;
+
+  /**
+   * Allow opaque and alpha-test geometry using this material to render into SSR's fallback DepthOnly pass.
+   * Opt out for grass cards, small ground foliage, and micro-details that add draw-call cost without meaningful SSR occlusion.
+   * @defaultValue `true`
+   */
+  screenSpaceReflectionOccluder: boolean = true;
+
+  /**
+   * Allow bilateral 2x2 normal+depth SSR sampling on this material under High quality (`false` falls back to 2-tap depth-verified sampling).
+   * @defaultValue `true`
+   */
+  screenSpaceReflectionBilateral: boolean = true;
+
   /** @internal */
   _shader: Shader;
 
-  /** @internal Whether this material is explicitly registered for the current SSR receiver contract. */
-  _screenSpaceReflectionReceiverRegistered = false;
-
+  private _ssrIntensity: number = 0;
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Material);
+
+  /**
+   * Screen-space reflection intensity multiplier on this material (`0` opts out; `PBRMaterial` defaults to `1`).
+   */
+  get screenSpaceReflectionIntensity(): number {
+    return this._ssrIntensity;
+  }
+
+  set screenSpaceReflectionIntensity(value: number) {
+    const clamped = Number.isFinite(value) ? Math.max(0, value) : 0;
+    if (this._ssrIntensity !== clamped) {
+      this._ssrIntensity = clamped;
+      this._shaderData.setFloat(Material._ssrIntensityProperty, clamped);
+    }
+  }
 
   /**
    * Shader data.
@@ -98,17 +78,6 @@ export class Material extends ReferResource implements IClone {
     }
 
     this._shader = value;
-
-    // Standard PBR owns the built-in Auto receiver contract. Initialize the
-    // uniforms once so a shared WebGL program cannot retain another material's
-    // values. Custom shaders remain fail-closed unless explicitly registered.
-    if (
-      ScreenSpaceReflection._supportsShaderAutoReceiver(value) &&
-      this._shaderData.getFloat(Material._screenSpaceReflectionModeProperty) === undefined
-    ) {
-      this._shaderData.setFloat(Material._screenSpaceReflectionModeProperty, ScreenSpaceReflectionReceiverMode.Auto);
-      this._shaderData.setFloat(Material._screenSpaceReflectionIntensityProperty, 1);
-    }
   }
 
   /**
@@ -124,14 +93,7 @@ export class Material extends ReferResource implements IClone {
     super(engine);
     this.shader = shader;
     this.name = shader.name;
-
-    if (this._shaderData.getFloat(Material._screenSpaceReflectionModeProperty) === undefined) {
-      this._shaderData.setFloat(
-        Material._screenSpaceReflectionModeProperty,
-        ScreenSpaceReflectionReceiverMode.Disabled
-      );
-      this._shaderData.setFloat(Material._screenSpaceReflectionIntensityProperty, 0);
-    }
+    this._shaderData.setFloat(Material._ssrIntensityProperty, 0);
   }
 
   /**
@@ -150,14 +112,10 @@ export class Material extends ReferResource implements IClone {
   cloneTo(target: Material): void {
     target.shader = this.shader;
     this.shaderData.cloneTo(target.shaderData);
-    target.contributeScreenSpaceReflection = this.contributeScreenSpaceReflection;
-    target._screenSpaceReflectionReceiverRegistered = this._screenSpaceReflectionReceiverRegistered;
-    target._screenSpaceReflection = this._screenSpaceReflection
-      ? Object.freeze({ ...this._screenSpaceReflection })
-      : null;
-    target._screenSpaceReflectionRuntimeReceiver = this._screenSpaceReflectionRuntimeReceiver
-      ? { ...this._screenSpaceReflectionRuntimeReceiver }
-      : null;
+    target._ssrIntensity = this._ssrIntensity;
+    target.contributeScreenSpaceReflectionDepth = this.contributeScreenSpaceReflectionDepth;
+    target.screenSpaceReflectionBilateral = this.screenSpaceReflectionBilateral;
+    target.screenSpaceReflectionOccluder = this.screenSpaceReflectionOccluder;
   }
 
   /**
@@ -180,7 +138,6 @@ export class Material extends ReferResource implements IClone {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._screenSpaceReflectionReceiverRegistered = false;
     this._shader = null!;
     this._shaderData = null!;
   }

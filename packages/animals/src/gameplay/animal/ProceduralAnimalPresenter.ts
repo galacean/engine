@@ -41,6 +41,8 @@ export class ProceduralAnimalAssets {
       material.baseColor = new Color(((rgb >> 16) & 255) / 255, ((rgb >> 8) & 255) / 255, (rgb & 255) / 255, 1);
       material.roughness = 0.88;
       material.metallic = 0;
+      material.screenSpaceReflectionIntensity = 0;
+      material.screenSpaceReflectionBilateral = false;
       this._materials.set(hex, material);
     }
     return material;

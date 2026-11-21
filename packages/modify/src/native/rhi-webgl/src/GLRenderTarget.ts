@@ -1,0 +1,403 @@
+import {
+  CameraClearFlags,
+  GLCapabilityType,
+  IPlatformRenderTarget,
+  RenderTarget,
+  Texture,
+  TextureCube,
+  TextureCubeFace,
+  TextureFormat
+} from "@galacean/engine-core";
+import { GLTexture } from "./GLTexture";
+import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
+
+/**
+ * The render target in WebGL platform is used for off-screen rendering.
+ */
+export class GLRenderTarget implements IPlatformRenderTarget {
+  private _gl: WebGLRenderingContext & WebGL2RenderingContext;
+  private _isWebGL2: boolean;
+  private _target: RenderTarget;
+  private _frameBuffer: WebGLFramebuffer | null;
+  private _MSAAFrameBuffer: WebGLFramebuffer | null;
+  private _depthRenderBuffer: WebGLRenderbuffer | null;
+  private _MSAAColorRenderBuffers: (WebGLRenderbuffer | null)[] = [];
+  private _MSAADepthRenderBuffer: WebGLRenderbuffer | null;
+  private _oriDrawBuffers: GLenum[];
+  private _blitDrawBuffers: GLenum[] | null;
+  private _curMipLevel: number = 0;
+  private _curFaceIndex: TextureCubeFace | undefined = undefined;
+  private _antiAliasing: number;
+  private _invalidateAttachments: (GLenum[] | null)[] = [null, null, null, null, null, null, null, null];
+
+  /**
+   * Create render target in WebGL platform.
+   */
+  constructor(rhi: WebGLGraphicDevice, target: RenderTarget) {
+    this._gl = rhi.gl as WebGLRenderingContext & WebGL2RenderingContext;
+    this._isWebGL2 = rhi.isWebGL2;
+    this._target = target;
+    this._antiAliasing = Math.min(target.antiAliasing, rhi.capability.maxAntiAliasing);
+
+    /** @ts-ignore */
+    const { _colorTextures, _depth, width, height } = target;
+    const isDepthTexture = _depth instanceof Texture;
+
+    /** todo
+     * MRT + Cube + [,MSAA]
+     * MRT + MSAA
+     */
+
+    for (let i = 0, n = _colorTextures.length; i < n; i++) {
+      const { format, isSRGBColorSpace } = _colorTextures[i];
+      if (!rhi.supportsRenderTargetColorFormat(format)) {
+        throw new Error(`TextureFormat is not supported:${TextureFormat[format]} in RenderTarget`);
+      }
+      if (isSRGBColorSpace && format === TextureFormat.R8G8B8) {
+        throw new Error(`If you want to use sRGB color space, only R8G8B8A8 format is supported in RenderTarget`);
+      }
+    }
+
+    if (!isDepthTexture && _depth !== null && !GLTexture._supportRenderBufferDepthFormat(_depth, rhi)) {
+      throw new Error(`TextureFormat is not supported:${TextureFormat[_depth]} in RenderTarget`);
+    }
+
+    if (_colorTextures.length > 1 && !rhi.canIUse(GLCapabilityType.drawBuffers)) {
+      throw new Error("MRT is not supported");
+    }
+
+    if (_colorTextures.some((v: Texture) => v.width !== width || v.height !== height)) {
+      throw new Error("ColorTexture's size must as same as RenderTarget");
+    }
+
+    if (isDepthTexture && (_depth.width !== width || _depth.height !== height)) {
+      throw new Error("DepthTexture's size must as same as RenderTarget");
+    }
+
+    // todo: necessary to support MRT + Cube + [,MSAA] ?
+    if (_colorTextures.length > 1 && _colorTextures.some((v: Texture) => v instanceof TextureCube)) {
+      throw new Error("MRT+Cube+[,MSAA] is not supported");
+    }
+
+    this._frameBuffer = this._gl.createFramebuffer();
+
+    // bind main FBO
+    this._bindMainFBO();
+
+    // bind MSAA FBO
+    if (this._antiAliasing > 1) {
+      this._MSAAFrameBuffer = this._gl.createFramebuffer();
+      this._bindMSAAFBO();
+    }
+
+    if (this._isWebGL2) {
+      this._initInvalidateAttachments();
+    }
+  }
+
+  /**
+   * Set which face and mipLevel of the cube texture to render to.
+   * @param mipLevel - Set mip level the data want to write
+   * @param faceIndex - Cube texture face
+   */
+  activeRenderTarget(mipLevel: number, faceIndex?: TextureCubeFace): void {
+    // @todo: support MRT
+    const { _gl: gl, _target: target } = this;
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
+
+    const mipChanged = mipLevel !== this._curMipLevel;
+    const faceChanged = faceIndex !== this._curFaceIndex;
+
+    const colorTexture = target.getColorTexture(0);
+    if (colorTexture) {
+      const isCube = colorTexture instanceof TextureCube;
+      if (mipChanged || (isCube && faceChanged)) {
+        gl.framebufferTexture2D(
+          gl.FRAMEBUFFER,
+          gl.COLOR_ATTACHMENT0,
+          isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex! : gl.TEXTURE_2D,
+          (colorTexture._platformTexture as GLTexture)._glTexture,
+          mipLevel
+        );
+      }
+    }
+
+    const { depthTexture } = target;
+    if (depthTexture) {
+      const isCube = depthTexture instanceof TextureCube;
+      if (mipChanged || isCube) {
+        const platformTexture = <GLTexture>depthTexture._platformTexture;
+        gl.framebufferTexture2D(
+          gl.FRAMEBUFFER,
+          platformTexture._formatDetail.attachment!,
+          isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex! : gl.TEXTURE_2D,
+          platformTexture._glTexture,
+          mipLevel
+        );
+      }
+    } else if (this._depthRenderBuffer) {
+      if (mipChanged) {
+        // @ts-ignore
+        const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl, this._isWebGL2);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthRenderBuffer);
+        gl.renderbufferStorage(
+          gl.RENDERBUFFER,
+          internalFormat,
+          Math.max(1, target.width >> mipLevel),
+          Math.max(1, target.height >> mipLevel)
+        );
+      }
+    }
+
+    this._curMipLevel = mipLevel;
+    this._curFaceIndex = faceIndex;
+
+    if (this._MSAAFrameBuffer) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
+    }
+  }
+
+  /**
+   * Blit FBO.
+   * @param discardMSAA - When true on WebGL2, invalidates the MSAA read framebuffer attachments immediately after resolve.
+   */
+  blitRenderTarget(discardMSAA: boolean = false): void {
+    if (!this._MSAAFrameBuffer) return;
+
+    const gl = this._gl;
+    const mask = gl.COLOR_BUFFER_BIT | (this._target.depthTexture ? gl.DEPTH_BUFFER_BIT : 0);
+    const { colorTextureCount, width, height } = this._target;
+
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this._MSAAFrameBuffer);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this._frameBuffer);
+
+    for (let textureIndex = 0; textureIndex < colorTextureCount; textureIndex++) {
+      const attachment = gl.COLOR_ATTACHMENT0 + textureIndex;
+
+      this._blitDrawBuffers![textureIndex] = attachment;
+
+      gl.readBuffer(attachment);
+      gl.drawBuffers(this._blitDrawBuffers!);
+      gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, mask, gl.NEAREST);
+
+      this._blitDrawBuffers![textureIndex] = gl.NONE;
+    }
+
+    if (discardMSAA && this._isWebGL2) {
+      this.invalidateRenderTarget(CameraClearFlags.All, gl.READ_FRAMEBUFFER);
+    }
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  /**
+   * Invalidate currently bound framebuffer attachments on WebGL2 to skip unnecessary TBDR tile LOAD/STORE.
+   */
+  invalidateRenderTarget(clearFlags: CameraClearFlags, target: GLenum = this._gl.FRAMEBUFFER): void {
+    if (!this._isWebGL2 || clearFlags === CameraClearFlags.None) {
+      return;
+    }
+    const attachments = this._invalidateAttachments[clearFlags & CameraClearFlags.All];
+    if (attachments) {
+      this._gl.invalidateFramebuffer(target, attachments);
+    }
+  }
+
+  /**
+   * Destroy render target.
+   */
+  destroy(): void {
+    const gl = this._gl;
+
+    this._frameBuffer && gl.deleteFramebuffer(this._frameBuffer);
+    this._depthRenderBuffer && gl.deleteRenderbuffer(this._depthRenderBuffer);
+    this._MSAAFrameBuffer && gl.deleteFramebuffer(this._MSAAFrameBuffer);
+    this._MSAADepthRenderBuffer && gl.deleteRenderbuffer(this._MSAADepthRenderBuffer);
+
+    for (let i = 0; i < this._MSAAColorRenderBuffers.length; i++) {
+      gl.deleteRenderbuffer(this._MSAAColorRenderBuffers[i]);
+    }
+
+    this._frameBuffer = null!;
+    this._depthRenderBuffer = null;
+    this._MSAAFrameBuffer = null;
+    this._MSAAColorRenderBuffers.length = 0;
+    this._MSAADepthRenderBuffer = null;
+  }
+
+  private _bindMainFBO(): void {
+    const gl = this._gl;
+    const isWebGL2: boolean = this._isWebGL2;
+
+    const { _depth, colorTextureCount, width, height } = this._target;
+    const drawBuffers = new Array(colorTextureCount);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
+
+    /** color render buffer */
+    for (let i = 0; i < colorTextureCount; i++) {
+      const colorTexture = this._target.getColorTexture(i)!;
+      const attachment = gl.COLOR_ATTACHMENT0 + i;
+
+      drawBuffers[i] = attachment;
+
+      if (!(colorTexture instanceof TextureCube)) {
+        gl.framebufferTexture2D(
+          gl.FRAMEBUFFER,
+          attachment,
+          gl.TEXTURE_2D,
+          (colorTexture._platformTexture as GLTexture)._glTexture,
+          0
+        );
+      }
+    }
+
+    if (colorTextureCount > 1) {
+      gl.drawBuffers(drawBuffers);
+    }
+    this._oriDrawBuffers = drawBuffers;
+
+    /** depth render buffer */
+    if (_depth !== null) {
+      if (_depth instanceof Texture) {
+        if (!(_depth instanceof TextureCube)) {
+          const platformTexture = _depth._platformTexture as GLTexture;
+          gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            platformTexture._formatDetail.attachment!,
+            gl.TEXTURE_2D,
+            platformTexture._glTexture,
+            0
+          );
+        }
+      } else if (this._antiAliasing <= 1) {
+        const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
+        this._depthRenderBuffer = this._createRenderBuffer(internalFormat, attachment!);
+      }
+    }
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+  }
+
+  private _bindMSAAFBO(): void {
+    const gl = this._gl;
+    const isWebGL2 = this._isWebGL2;
+
+    const { _depth, colorTextureCount } = this._target;
+
+    this._blitDrawBuffers = new Array(colorTextureCount);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
+
+    // prepare MRT+MSAA color RBOs
+    for (let i = 0; i < colorTextureCount; i++) {
+      this._blitDrawBuffers[i] = gl.NONE;
+
+      const internalFormat = (this._target.getColorTexture(i)!._platformTexture as GLTexture)._formatDetail
+        .internalFormat;
+
+      this._MSAAColorRenderBuffers[i] = this._createRenderBuffer(internalFormat, gl.COLOR_ATTACHMENT0 + i);
+    }
+    gl.drawBuffers(this._oriDrawBuffers);
+
+    // prepare MSAA depth RBO
+    if (_depth !== null) {
+      const { internalFormat, attachment } =
+        _depth instanceof Texture
+          ? (_depth._platformTexture as GLTexture)._formatDetail
+          : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
+
+      this._MSAADepthRenderBuffer = this._createRenderBuffer(internalFormat, attachment!);
+    }
+
+    this._checkFrameBuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+  }
+
+  private _initInvalidateAttachments(): void {
+    const gl = this._gl;
+    // @ts-ignore
+    const { _depth, colorTextureCount } = this._target;
+    let hasDepth = false;
+    let hasStencil = false;
+    if (_depth !== null) {
+      const depthFormat = _depth instanceof Texture ? _depth.format : _depth;
+      hasDepth = depthFormat !== TextureFormat.Stencil;
+      hasStencil =
+        depthFormat === TextureFormat.Stencil ||
+        depthFormat === TextureFormat.DepthStencil ||
+        depthFormat === TextureFormat.Depth24Stencil8 ||
+        depthFormat === TextureFormat.Depth32Stencil8;
+    }
+
+    const table = this._invalidateAttachments;
+    for (let mask = 1; mask <= CameraClearFlags.All; mask++) {
+      const attachments: GLenum[] = [];
+      if ((mask & CameraClearFlags.Color) !== 0) {
+        for (let i = 0; i < colorTextureCount; i++) {
+          attachments.push(gl.COLOR_ATTACHMENT0 + i);
+        }
+      }
+      const wantDepth = (mask & CameraClearFlags.Depth) !== 0 && hasDepth;
+      const wantStencil = (mask & CameraClearFlags.Stencil) !== 0 && hasStencil;
+      if (wantDepth && wantStencil) {
+        attachments.push(gl.DEPTH_STENCIL_ATTACHMENT);
+      } else if (wantDepth) {
+        attachments.push(gl.DEPTH_ATTACHMENT);
+      } else if (wantStencil) {
+        attachments.push(gl.STENCIL_ATTACHMENT);
+      }
+      table[mask] = attachments.length > 0 ? attachments : null;
+    }
+  }
+
+  private _createRenderBuffer(internalFormat: GLenum, attachment: GLenum): WebGLRenderbuffer | null {
+    const gl = this._gl;
+    const { width, height } = this._target;
+    const antiAliasing = this._antiAliasing;
+    const renderBuffer = gl.createRenderbuffer();
+
+    gl.bindRenderbuffer(gl.RENDERBUFFER, renderBuffer);
+
+    if (antiAliasing > 1) {
+      gl.renderbufferStorageMultisample(gl.RENDERBUFFER, antiAliasing, internalFormat, width, height);
+    } else {
+      gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, width, height);
+    }
+
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, renderBuffer);
+
+    return renderBuffer;
+  }
+
+  private _checkFrameBuffer(): void {
+    const gl = this._gl;
+    const e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+
+    switch (e) {
+      case gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+        throw new Error(
+          "The attachment types are mismatched or not all framebuffer attachment points are framebuffer attachment complete"
+        );
+      case gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+        throw new Error("There is no attachment");
+      case gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
+        throw new Error(" Height and width of the attachment are not the same.");
+      case gl.FRAMEBUFFER_UNSUPPORTED:
+        // #5.14.3 Event Types in https://registry.khronos.org/webgl/specs/1.0.0/
+        if (!gl.isContextLost()) {
+          throw new Error(
+            "The format of the attachment is not supported or if depth and stencil attachments are not the same renderbuffer"
+          );
+        }
+        break;
+      case gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: // Only for WebGL2
+        throw new Error(
+          "The values of gl.RENDERBUFFER_SAMPLES are different among attached renderbuffers, or are non-zero if the attached images are a mix of renderbuffers and textures."
+        );
+    }
+  }
+}

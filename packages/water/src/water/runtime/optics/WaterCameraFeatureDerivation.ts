@@ -131,8 +131,7 @@ export function deriveWaterCameraFeatureResolution(
   const depthTexture = fieldGraph.cameraDepthRequested;
   const opaqueTexture = fieldGraph.cameraOpaqueColorRequested;
   const caustics = resolveEffectiveWaterCausticsEnabled(resolved.optics.caustics, resolved.qualityPlan);
-  // Environment ownership stays in WaterReflectionService. SSR instead acquires
-  // the engine Camera's shared consumer lease through this broker.
+  // Environment and SSR configuration stay owned by Scene/Camera; Water only reports reflection intent.
   const requiresLease = depthTexture || opaqueTexture || cameraReflection === "ssr";
   if (!requiresLease) return Object.freeze({ fieldGraph });
   const request: WaterCameraFeatureRequest = Object.freeze({

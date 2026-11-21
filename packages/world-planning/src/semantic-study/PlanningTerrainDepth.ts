@@ -60,6 +60,7 @@ export class PlanningTerrainDepth {
   ) {
     this.camera = parent.createChild("Terrain diagnostic camera").addComponent(Camera);
     this.camera.enabled = false;
+    this.camera.enableScreenSpaceReflection = false;
     this.camera.cullingMask = layer;
     this.camera.enableHDR = this.camera.enablePostProcess = false;
     this.camera.clearFlags = CameraClearFlags.All;

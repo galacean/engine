@@ -647,7 +647,7 @@ export class HeightfieldWaterBackend implements WaterBodyBackend {
       controller.setDepthWriteEnabled(renderContract.renderState.depthWriteEnabled);
       // Instance priority belongs to query/interaction arbitration. Renderer ordering is a
       // separate Render Contract concern: folding the instance value into MeshRenderer.priority
-      // moves Water's Forward and SSR surface passes out of their canonical ordering.
+      // moves Water's Forward and SSRReceiver passes out of their canonical ordering.
       controller.setRenderPriority(renderContract.renderState.priorityOffset);
       const runtimeVisible = staged ? false : effective.instance.visible;
       if (context.reflection) {

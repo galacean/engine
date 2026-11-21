@@ -16,8 +16,8 @@ export interface TerrainSurfaceWaterSsrDemandState {
 
 // These thresholds deliberately sit below the Shader's first visible water-film response.
 // The gate may keep SSR alive for a little longer than necessary, but must never turn it off
-// while a visible free-water contribution remains. Separate thresholds avoid lease flapping
-// at the end of weather transitions and hydrology drainage.
+// while a visible free-water contribution remains. Separate thresholds avoid receiver toggle
+// flapping at the end of weather transitions and hydrology drainage.
 const TERRAIN_SURFACE_WATER_SSR_ACQUIRE_THRESHOLD = 1e-3;
 const TERRAIN_SURFACE_WATER_SSR_RELEASE_THRESHOLD = 2.5e-4;
 const TERRAIN_RAIN_TO_MAXIMUM_FILM_STORAGE = 0.48;

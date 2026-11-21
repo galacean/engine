@@ -19,28 +19,40 @@ Shader "Terrain/Terrain" {
       #include "terrain/TerrainForwardPass.glsl"
     }
 
-    Pass "ScreenSpaceReflectionSurface" {
-      Tags {
-        pipelineStage = "ScreenSpaceReflectionSurface",
-        screenSpaceReflectionReceiver = "ColorResponseV3"
-      }
+    Pass "SSRReceiver" {
+      Tags { pipelineStage = "SSRReceiver" }
 
       DepthState = {
         Enabled = true;
-        WriteEnabled = true;
+        WriteEnabled = false;
+        CompareFunction = CompareFunction.LessEqual;
       }
       BlendState = {
         Enabled = false;
+      }
+      StencilState = {
+        Enabled = true;
+        ReferenceValue = 1;
+        Mask = 255;
+        WriteMask = 255;
+        CompareFunctionFront = CompareFunction.Always;
+        CompareFunctionBack = CompareFunction.Always;
+        PassOperationFront = StencilOperation.Replace;
+        PassOperationBack = StencilOperation.Replace;
+        FailOperationFront = StencilOperation.Keep;
+        FailOperationBack = StencilOperation.Keep;
+        ZFailOperationFront = StencilOperation.Keep;
+        ZFailOperationBack = StencilOperation.Keep;
       }
       RasterState = {
         CullMode = CullMode.Back;
       }
       RenderQueueType = Opaque;
 
-      VertexShader = TerrainScreenSpaceReflectionVertex;
-      FragmentShader = TerrainScreenSpaceReflectionFragment;
+      VertexShader = TerrainSSRReceiverVertex;
+      FragmentShader = TerrainSSRReceiverFragment;
 
-      #include "terrain/TerrainScreenSpaceReflectionPass.glsl"
+      #include "terrain/TerrainSSRReceiverPass.glsl"
     }
 
     Pass "ShadowCaster" {
@@ -58,51 +70,25 @@ Shader "Terrain/Terrain" {
       FragmentShader = TerrainShadowFragment;
 
       #define TERRAIN_PROJECT_SHADOW_CASTER_PASS
-      #include "ShaderLibrary/Common/Common.glsl"
-      #include "ShaderLibrary/Common/Transform.glsl"
-      #include "ShaderLibrary/Common/Attributes.glsl"
-      #include "terrain/TerrainHeight.glsl"
-      #include "shared/EntranceWave.glsl"
-      #include "shared/Shadow.glsl"
+      #include "terrain/TerrainDepthShadowPass.glsl"
+    }
 
-      struct TerrainShadowVaryings {
-        vec2 sourceXZ;
-        vec3 sourcePositionWS;
-        float terrainValid;
-        #ifdef TERRAIN_PROJECT_ENTRANCE_WAVE
-          float entranceSourceY;
-        #endif
-      };
+    Pass "DepthOnly" {
+      Tags { pipelineStage = "DepthOnly" }
 
-      TerrainShadowVaryings TerrainShadowVertex(Attributes attributes) {
-        TerrainShadowVaryings varyings;
-        TerrainProjectClipmapVertex clipmapVertex = terrainProjectClipmapVertexAt(attributes.POSITION);
-        varyings.sourceXZ = clipmapVertex.sourceXZ;
-        varyings.sourcePositionWS = clipmapVertex.positionWS;
-        varyings.terrainValid = clipmapVertex.valid;
-        #ifdef TERRAIN_PROJECT_ENTRANCE_WAVE
-          varyings.entranceSourceY = clipmapVertex.positionWS.y;
-        #endif
-        vec3 normalWS = terrainProjectClipmapGeometryNormal(clipmapVertex);
-        vec3 positionWS = clipmapVertex.positionWS;
-        #ifdef TERRAIN_PROJECT_ENTRANCE_WAVE
-          positionWS = terrainProjectApplyEntranceWavePosition(positionWS);
-          positionWS = terrainProjectApplyEntranceWaveHeightPosition(positionWS, varyings.entranceSourceY);
-        #endif
-        gl_Position = terrainProjectShadowClipPosition(applyTerrainProjectShadowBias(positionWS, normalWS));
-        return varyings;
+      DepthState = {
+        WriteEnabled = true;
       }
-
-      void TerrainShadowFragment(TerrainShadowVaryings varyings) {
-        if (varyings.terrainValid < 0.999) discard;
-        #ifdef TERRAIN_PROJECT_ENTRANCE_WAVE
-          if (
-            terrainProjectEntranceWaveReveal(varyings.sourcePositionWS) <= 0.001 ||
-            terrainProjectEntranceWaveHeightReveal(varyings.entranceSourceY) <= 0.001
-          ) discard;
-        #endif
-        gl_FragColor = terrainProjectShadowColor();
+      RasterState = {
+        CullMode = CullMode.Back;
       }
+      RenderQueueType = Opaque;
+
+      VertexShader = TerrainDepthOnlyVertex;
+      FragmentShader = TerrainDepthOnlyFragment;
+
+      #define TERRAIN_PROJECT_DEPTH_ONLY_PASS
+      #include "terrain/TerrainDepthShadowPass.glsl"
     }
   }
 }

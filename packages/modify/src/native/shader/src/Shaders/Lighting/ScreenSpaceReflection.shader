@@ -1,6 +1,55 @@
 Shader "Lighting/ScreenSpaceReflection" {
   SubShader "Default" {
-    Pass "Trace" {
+    Pass "DownsampleDepth" {
+      DepthState = {
+        Enabled = true;
+        WriteEnabled = true;
+        CompareFunction = CompareFunction.Always;
+      }
+
+      BlendState = {
+        Enabled = false;
+        ColorWriteMask = ColorWriteMask.None;
+      }
+
+      VertexShader = vert;
+      FragmentShader = downsampleDepthFragment;
+
+      #include "ShaderLibrary/Blit/BlitVertex.glsl"
+
+      highp sampler2D material_SSRFullDepthTexture;
+      vec4 material_SSRSourceTexelSize;
+      vec4 material_SSRDestTexelSize;
+
+      void downsampleDepthFragment(Varyings v) {
+        vec2 invSrc = material_SSRSourceTexelSize.xy;
+        ivec2 srcSize = max(ivec2(material_SSRSourceTexelSize.zw + vec2(0.5)), ivec2(1));
+        ivec2 dstSize = max(ivec2(material_SSRDestTexelSize.zw + vec2(0.5)), ivec2(1));
+        ivec2 dstCoord = ivec2(floor(gl_FragCoord.xy));
+        int x0 = clamp((dstCoord.x * srcSize.x) / dstSize.x, 0, srcSize.x - 1);
+        int x1 = clamp(((dstCoord.x + 1) * srcSize.x + dstSize.x - 1) / dstSize.x - 1, x0, srcSize.x - 1);
+        int y0 = clamp((dstCoord.y * srcSize.y) / dstSize.y, 0, srcSize.y - 1);
+        int y1 = clamp(((dstCoord.y + 1) * srcSize.y + dstSize.y - 1) / dstSize.y - 1, y0, srcSize.y - 1);
+        float maxD = 0.0;
+        for (int dy = 0; dy < 6; ++dy) {
+          int sy = y0 + dy;
+          if (sy > y1) {
+            break;
+          }
+          for (int dx = 0; dx < 6; ++dx) {
+            int sx = x0 + dx;
+            if (sx > x1) {
+              break;
+            }
+            vec2 sampleUV = (vec2(float(sx), float(sy)) + vec2(0.5)) * invSrc;
+            maxD = max(maxD, texture2D(material_SSRFullDepthTexture, sampleUV).r);
+          }
+        }
+        gl_FragDepthEXT = maxD;
+      }
+    }
+
+    Pass "BuildHiZMip0" {
       DepthState = {
         Enabled = false;
         WriteEnabled = false;
@@ -11,407 +60,748 @@ Shader "Lighting/ScreenSpaceReflection" {
       }
 
       VertexShader = vert;
-      FragmentShader = traceScreenSpaceReflection;
+      FragmentShader = buildHiZMip0Fragment;
+
+      #include "ShaderLibrary/Blit/BlitVertex.glsl"
+      #include "ShaderLibrary/Common/Common.glsl"
+      #include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl"
+
+      highp sampler2D material_SSROpaqueDepthTexture;
+      vec4 material_SSRSourceTexelSize;
+      vec4 material_SSRDestTexelSize;
+
+      #ifdef SSR_HAS_CONTRIB_DEPTH
+        highp sampler2D material_SSRContribDepthTexture;
+      #endif
+
+      void buildHiZMip0Fragment(Varyings v) {
+        #ifdef SSR_DOWNSAMPLE_FROM_FULL_DEPTH
+          vec2 invSrc = material_SSRSourceTexelSize.xy;
+          ivec2 srcSize = max(ivec2(material_SSRSourceTexelSize.zw + vec2(0.5)), ivec2(1));
+          ivec2 dstSize = max(ivec2(material_SSRDestTexelSize.zw + vec2(0.5)), ivec2(1));
+          ivec2 dstCoord = ivec2(floor(gl_FragCoord.xy));
+          int x0 = clamp((dstCoord.x * srcSize.x) / dstSize.x, 0, srcSize.x - 1);
+          int x1 = clamp(((dstCoord.x + 1) * srcSize.x + dstSize.x - 1) / dstSize.x - 1, x0, srcSize.x - 1);
+          int y0 = clamp((dstCoord.y * srcSize.y) / dstSize.y, 0, srcSize.y - 1);
+          int y1 = clamp(((dstCoord.y + 1) * srcSize.y + dstSize.y - 1) / dstSize.y - 1, y0, srcSize.y - 1);
+          float rawDepth = 1.0;
+          for (int dy = 0; dy < 6; ++dy) {
+            int sy = y0 + dy;
+            if (sy > y1) {
+              break;
+            }
+            for (int dx = 0; dx < 6; ++dx) {
+              int sx = x0 + dx;
+              if (sx > x1) {
+                break;
+              }
+              vec2 sampleUV = (vec2(float(sx), float(sy)) + vec2(0.5)) * invSrc;
+              rawDepth = min(rawDepth, texture2D(material_SSROpaqueDepthTexture, sampleUV).r);
+            }
+          }
+        #else
+          float rawDepth = texture2D(material_SSROpaqueDepthTexture, v.v_uv).r;
+        #endif
+
+        #ifdef SSR_HAS_CONTRIB_DEPTH
+          float contribRawDepth = texture2D(material_SSRContribDepthTexture, v.v_uv).r;
+          rawDepth = min(rawDepth, contribRawDepth);
+        #endif
+
+        float farClip = camera_ProjectionParams.z;
+        float eyeDepth = rawDepth >= 0.999999 ? farClip : remapDepthBufferEyeDepth(rawDepth);
+        gl_FragColor = encodeSSRDepth(eyeDepth, farClip);
+      }
+    }
+
+    Pass "BuildHiZMipN" {
+      DepthState = {
+        Enabled = false;
+        WriteEnabled = false;
+      }
+
+      BlendState = {
+        Enabled = false;
+      }
+
+      VertexShader = vert;
+      FragmentShader = buildHiZMipNFragment;
+
+      #include "ShaderLibrary/Blit/BlitVertex.glsl"
+      #include "ShaderLibrary/Common/Common.glsl"
+      #include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl"
+
+      highp sampler2D material_SSRHiZInputTexture;
+      vec4 material_SSRSourceTexelSize;
+      vec4 material_SSRDestTexelSize;
+      float renderer_BlitMipLevel;
+
+      void buildHiZMipNFragment(Varyings v) {
+        float farClip = camera_ProjectionParams.z;
+        vec2 invSrc = material_SSRSourceTexelSize.xy;
+        ivec2 srcSize = max(ivec2(material_SSRSourceTexelSize.zw + vec2(0.5)), ivec2(1));
+        ivec2 dstSize = max(ivec2(material_SSRDestTexelSize.zw + vec2(0.5)), ivec2(1));
+        ivec2 dstCoord = ivec2(floor(gl_FragCoord.xy));
+        int x0 = clamp((dstCoord.x * srcSize.x) / dstSize.x, 0, srcSize.x - 1);
+        int x1 = clamp(((dstCoord.x + 1) * srcSize.x + dstSize.x - 1) / dstSize.x - 1, x0, srcSize.x - 1);
+        int y0 = clamp((dstCoord.y * srcSize.y) / dstSize.y, 0, srcSize.y - 1);
+        int y1 = clamp(((dstCoord.y + 1) * srcSize.y + dstSize.y - 1) / dstSize.y - 1, y0, srcSize.y - 1);
+
+        float minD = farClip;
+        for (int dy = 0; dy < 3; ++dy) {
+          int sy = y0 + dy;
+          if (sy > y1) {
+            break;
+          }
+          for (int dx = 0; dx < 3; ++dx) {
+            int sx = x0 + dx;
+            if (sx > x1) {
+              break;
+            }
+            vec2 sampleUV = (vec2(float(sx), float(sy)) + vec2(0.5)) * invSrc;
+            minD = min(minD, decodeSSRDepth(textureLod(material_SSRHiZInputTexture, sampleUV, renderer_BlitMipLevel), farClip));
+          }
+        }
+
+        gl_FragColor = encodeSSRDepth(minD, farClip);
+      }
+    }
+
+    Pass "CopyTexture" {
+      DepthState = {
+        Enabled = false;
+        WriteEnabled = false;
+      }
+
+      BlendState = {
+        Enabled = false;
+      }
+
+      VertexShader = vert;
+      FragmentShader = copyTextureFragment;
+
+      #include "ShaderLibrary/Blit/BlitVertex.glsl"
+
+      highp sampler2D material_SSRCopyTexture;
+      vec4 renderer_SourceScaleOffset;
+      float renderer_BlitMipLevel;
+
+      void copyTextureFragment(Varyings v) {
+        vec2 uv = v.v_uv * renderer_SourceScaleOffset.xy + renderer_SourceScaleOffset.zw;
+        gl_FragColor = textureLod(material_SSRCopyTexture, uv, renderer_BlitMipLevel);
+      }
+    }
+
+    Pass "HiZTrace" {
+      Bool material_SSRUseHardwareStencil;
+
+      DepthState = {
+        Enabled = false;
+        WriteEnabled = false;
+      }
+
+      BlendState = {
+        Enabled = false;
+      }
+
+      StencilState = {
+        Enabled = material_SSRUseHardwareStencil;
+        ReferenceValue = 1;
+        Mask = 255;
+        WriteMask = 0;
+        CompareFunctionFront = CompareFunction.Equal;
+        CompareFunctionBack = CompareFunction.Equal;
+        PassOperationFront = StencilOperation.Keep;
+        PassOperationBack = StencilOperation.Keep;
+        FailOperationFront = StencilOperation.Keep;
+        FailOperationBack = StencilOperation.Keep;
+        ZFailOperationFront = StencilOperation.Keep;
+        ZFailOperationBack = StencilOperation.Keep;
+      }
+
+      VertexShader = vert;
+      FragmentShader = hiZTraceFragment;
 
       #include "ShaderLibrary/Blit/BlitVertex.glsl"
       #include "ShaderLibrary/Common/Common.glsl"
       #include "ShaderLibrary/Common/Transform.glsl"
-      #include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflection.glsl"
+      #include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl"
 
-      highp sampler2D material_SSRSceneColorTexture;
-      highp sampler2D material_SSRSceneDepthTexture;
-      highp sampler2D material_SSROpaqueDepthTexture;
-      highp sampler2D material_SSRSurfaceTexture;
+      highp sampler2D material_SSRHiZTexture;
+      highp sampler2D material_SSRNormalRoughnessTexture;
       highp sampler2D material_SSRReceiverDepthTexture;
-      vec4 material_SSRSurfaceTexelSize;
-      vec4 material_SSRTraceTexelSize;
-      float material_SSRMaxDistance;
-      float material_SSRRayLengthFade;
-      float material_SSRThickness;
-      float material_SSRMaxRoughness;
-      float material_SSREdgeFade;
-      float material_SSRMaxSteps;
-      float material_SSRBinarySteps;
-      float material_SSRDebugMode;
+      highp sampler2D material_SSRPrevColorPyramidTexture;
+      highp sampler2D material_SSRPrevTraceDepthTexture;
 
-      struct ScreenSpaceReflectionTraceOutput {
+      mat4 camera_SSRInvProjMat;
+      mat4 camera_SSRInvViewMat;
+      mat4 camera_SSRPrevVPMat;
+      vec4 camera_SSRPrevViewZRow;
+
+      vec4 material_SSRTraceTexelSize;     // 1/w, 1/h, w, h
+      vec4 material_SSRColorPyramidInfo;  // x: maxColorMip, y: colorW, z: colorH, w: frameJitter
+      vec4 material_SSRTraceSettings;     // x: maxDistance, y: thickness, z: maxRoughness, w: edgeFade
+      float material_SSRMaxSteps;
+      float material_SSRHiZMaxMip;
+
+      struct SSRTraceOutput {
         layout(location = 0) vec4 reflection;
-        #ifdef SSR_STORE_TRACE_ORIGIN
-          layout(location = 1) vec4 origin;
+        #ifdef SSR_OUTPUT_HIT_DIST
+          layout(location = 1) vec4 hitDist;
         #endif
       };
 
-      vec4 packScreenSpaceReflectionOrigin(vec2 uv) {
-        vec2 encoded = floor(clamp(uv, vec2(0.0), vec2(1.0)) * 65535.0 + 0.5);
-        vec2 highBytes = floor(encoded / 256.0);
-        vec2 lowBytes = encoded - highBytes * 256.0;
-        return vec4(highBytes.x, lowBytes.x, highBytes.y, lowBytes.y) / 255.0;
+      float computeBorderFade(vec2 uv, float edgeFade) {
+        if (edgeFade <= 0.0) {
+          return (uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0) ? 1.0 : 0.0;
+        }
+        vec2 edge = min(uv, vec2(1.0) - uv);
+        return saturate(min(edge.x, edge.y) / edgeFade);
       }
 
-      vec4 sampleScreenSpaceReflectionSceneColor(vec2 uv, float roughness) {
-        #if defined(HAS_TEX_LOD) && defined(SSR_SCENE_COLOR_MIPMAPS)
-          return texture2DLodEXT(material_SSRSceneColorTexture, uv, roughness * 5.0);
+      SSRTraceOutput hiZTraceFragment(Varyings v) {
+        SSRTraceOutput output;
+        output.reflection = vec4(0.0);
+        #ifdef SSR_OUTPUT_HIT_DIST
+          output.hitDist = vec4(0.0);
+        #endif
+
+        float farClip = camera_ProjectionParams.z;
+        float farSentinel = getSSRFarSentinel(farClip);
+        float nearClip = camera_ProjectionParams.y;
+
+        float startEyeDepth = decodeSSRDepth(texture2D(material_SSRReceiverDepthTexture, v.v_uv), farClip);
+        if (startEyeDepth <= 0.0 || startEyeDepth >= farSentinel) {
+          return output;
+        }
+
+        vec3 worldNormal;
+        float roughness;
+        if (!unpackSSRNormalRoughness(texture2D(material_SSRNormalRoughnessTexture, v.v_uv), worldNormal, roughness)) {
+          return output;
+        }
+
+        float maxRoughness = material_SSRTraceSettings.z;
+        if (roughness >= maxRoughness) {
+          return output;
+        }
+
+        vec3 startPosVS = reconstructSSRViewPosition(v.v_uv, startEyeDepth, camera_SSRInvProjMat);
+        vec3 normalVS = normalize(mat3(camera_ViewMat) * worldNormal);
+        #ifdef CAMERA_ORTHOGRAPHIC
+          vec3 viewRayVS = vec3(0.0, 0.0, -1.0);
         #else
-          return texture2D(material_SSRSceneColorTexture, uv);
+          vec3 viewRayVS = normalize(startPosVS);
         #endif
-      }
 
-      bool projectScreenSpaceReflectionPoint(vec3 viewPosition, out vec2 uv, out float clipW) {
-        vec4 clipPosition = camera_ProjMat * vec4(viewPosition, 1.0);
-        clipW = clipPosition.w;
-        if (clipW <= EPSILON) return false;
-        uv = clipPosition.xy / clipPosition.w * 0.5 + 0.5;
-        return true;
-      }
-
-      float screenSpaceReflectionRayFraction(float screenFraction, float startW, float endW) {
-        float numerator = screenFraction * startW;
-        float denominator = (1.0 - screenFraction) * endW + numerator;
-        return numerator / max(denominator, EPSILON);
-      }
-
-      float clipScreenSpaceReflectionRay(vec2 startUV, vec2 deltaUV) {
-        vec2 screenMin = material_SSRTraceTexelSize.xy * 0.5;
-        vec2 screenMax = vec2(1.0) - screenMin;
-        float clippedFraction = 1.0;
-        if (deltaUV.x > EPSILON) {
-          clippedFraction = min(clippedFraction, (screenMax.x - startUV.x) / deltaUV.x);
-        } else if (deltaUV.x < -EPSILON) {
-          clippedFraction = min(clippedFraction, (screenMin.x - startUV.x) / deltaUV.x);
+        if (dot(-viewRayVS, normalVS) <= 0.0) {
+          return output;
         }
-        if (deltaUV.y > EPSILON) {
-          clippedFraction = min(clippedFraction, (screenMax.y - startUV.y) / deltaUV.y);
-        } else if (deltaUV.y < -EPSILON) {
-          clippedFraction = min(clippedFraction, (screenMin.y - startUV.y) / deltaUV.y);
-        }
-        return clamp(clippedFraction, 0.0, 1.0);
-      }
 
-      vec2 sampleScreenSpaceReflectionDepthDifference(vec3 rayPosition, vec2 uv) {
-        float rawSceneDepth = texture2D(material_SSRSceneDepthTexture, uv).r;
-        if (rawSceneDepth >= 0.999999) return vec2(-1.0, 0.0);
-        float sceneEyeDepth = remapDepthBufferEyeDepth(rawSceneDepth);
-        return vec2(-rayPosition.z - sceneEyeDepth, sceneEyeDepth);
-      }
+        vec3 reflDirVS = normalize(reflect(viewRayVS, normalVS));
+        float normalBias = max(0.008, startEyeDepth * 0.004);
+        vec3 rayStartVS = startPosVS + normalVS * normalBias;
 
-      float resolveScreenSpaceReflectionThickness(
-        float sceneEyeDepth,
-        float refinementDepthUncertainty
-      ) {
-        // One percent of linear depth keeps the accepted object thickness
-        // approximately stable in projected size while the metre value remains
-        // the near-field floor
-        float depthRelativeThickness = sceneEyeDepth * 0.01;
-        return max(
-          material_SSRThickness,
-          max(depthRelativeThickness, refinementDepthUncertainty)
-        );
-      }
-
-      bool sampleScreenSpaceReflectionReceiverCandidate(
-        vec2 surfacePixel,
-        out vec2 candidateUV,
-        out vec4 candidateSurface,
-        out float candidateDepth
-      ) {
-        if (
-          surfacePixel.x < 0.0 ||
-          surfacePixel.y < 0.0 ||
-          surfacePixel.x >= material_SSRSurfaceTexelSize.z ||
-          surfacePixel.y >= material_SSRSurfaceTexelSize.w
-        ) {
-          return false;
-        }
-        candidateUV = (surfacePixel + vec2(0.5)) * material_SSRSurfaceTexelSize.xy;
-        candidateSurface = texture2D(material_SSRSurfaceTexture, candidateUV);
-        if (candidateSurface.a <= 0.0 || candidateSurface.b >= material_SSRMaxRoughness) return false;
-
-        candidateDepth = texture2D(material_SSRReceiverDepthTexture, candidateUV).r;
-        if (candidateDepth >= 0.999999) return false;
-        #ifdef SSR_VERIFY_OPAQUE_DEPTH
-          float candidateEyeDepth = remapDepthBufferEyeDepth(candidateDepth);
-          float rawSceneDepth = texture2D(material_SSROpaqueDepthTexture, candidateUV).r;
-          if (rawSceneDepth < 0.999999) {
-            float sceneEyeDepth = remapDepthBufferEyeDepth(rawSceneDepth);
-            // Occlusion must not reuse the hit thickness: near a contact edge the hidden receiver
-            // lies only a few centimetres behind the occluder, and a thickness-sized tolerance
-            // would treat it as visible and composite its reflection onto the occluder pixel.
-            float occlusionTolerance = sceneEyeDepth * 0.001;
-            if (candidateEyeDepth > sceneEyeDepth + occlusionTolerance) return false;
+        float maxDistance = min(material_SSRTraceSettings.x, farClip);
+        if (reflDirVS.z > 1e-5) {
+          float tNear = (-nearClip - 0.01 - rayStartVS.z) / reflDirVS.z;
+          if (tNear <= 0.0) {
+            return output;
           }
-        #endif
-        return true;
-      }
-
-      bool selectScreenSpaceReflectionReceiver(
-        vec2 traceUV,
-        out vec2 receiverUV,
-        out vec4 receiverSurface,
-        out float receiverDepth
-      ) {
-        vec2 tracePixel = clamp(
-          floor(traceUV * material_SSRTraceTexelSize.zw),
-          vec2(0.0),
-          material_SSRTraceTexelSize.zw - vec2(1.0)
-        );
-        // Partition authoritative pixel centers between trace cells. Applying
-        // floor/ceil directly to texel edges overlaps adjacent cells whenever
-        // the full-resolution extent is odd, so two traces can claim the same
-        // receiver and leave the full-resolution identity resolve phase-shifted.
-        vec2 firstSurfacePixel = max(
-          ceil(
-            tracePixel * material_SSRSurfaceTexelSize.zw / material_SSRTraceTexelSize.zw
-              - vec2(0.5)
-          ),
-          vec2(0.0)
-        );
-        vec2 surfacePixelEnd = min(
-          ceil(
-            (tracePixel + vec2(1.0)) * material_SSRSurfaceTexelSize.zw
-              / material_SSRTraceTexelSize.zw
-              - vec2(0.5)
-          ),
-          material_SSRSurfaceTexelSize.zw
-        );
-        // A trace can be finer than the receiver input. Its cell may then contain no receiver pixel center.
-        if (any(greaterThan(material_SSRTraceTexelSize.zw, material_SSRSurfaceTexelSize.zw))) {
-          firstSurfacePixel = floor(traceUV * material_SSRSurfaceTexelSize.zw);
-          surfacePixelEnd = firstSurfacePixel + vec2(1.0);
-        }
-        vec2 preferredSurfacePixel = clamp(
-          floor(traceUV * material_SSRSurfaceTexelSize.zw),
-          firstSurfacePixel,
-          max(surfacePixelEnd - vec2(1.0), firstSurfacePixel)
-        );
-        if (
-          sampleScreenSpaceReflectionReceiverCandidate(
-            preferredSurfacePixel,
-            receiverUV,
-            receiverSurface,
-            receiverDepth
-          )
-        ) {
-          return true;
+          maxDistance = min(maxDistance, tNear);
         }
 
-        float closestPixelDistance = 100000000.0;
-        bool found = false;
-        receiverUV = vec2(0.0);
-        receiverSurface = vec4(0.0);
-        receiverDepth = 1.0;
-
-        // resolutionScale is clamped to at least 0.25, so one trace cell covers
-        // no more than 4x4 authoritative receiver pixels. Search spatially
-        // nearby only when the preferred pixel has no receiver coverage.
-        for (int y = 0; y < 4; ++y) {
-          for (int x = 0; x < 4; ++x) {
-            vec2 surfacePixel = firstSurfacePixel + vec2(float(x), float(y));
-            if (
-              surfacePixel.x >= surfacePixelEnd.x ||
-              surfacePixel.y >= surfacePixelEnd.y ||
-              all(equal(surfacePixel, preferredSurfacePixel))
-            ) {
-              continue;
-            }
-            vec2 candidateUV;
-            vec4 candidateSurface;
-            float candidateDepth;
-            if (
-              !sampleScreenSpaceReflectionReceiverCandidate(
-                surfacePixel,
-                candidateUV,
-                candidateSurface,
-                candidateDepth
-              )
-            ) {
-              continue;
-            }
-            vec2 pixelOffset = surfacePixel - preferredSurfacePixel;
-            float pixelDistance = dot(pixelOffset, pixelOffset);
-            if (pixelDistance < closestPixelDistance) {
-              closestPixelDistance = pixelDistance;
-              receiverUV = candidateUV;
-              receiverSurface = candidateSurface;
-              receiverDepth = candidateDepth;
-              found = true;
-            }
-          }
+        vec3 rayEndVS = rayStartVS + reflDirVS * maxDistance;
+        vec4 startCS = camera_ProjMat * vec4(rayStartVS, 1.0);
+        vec4 endCS = camera_ProjMat * vec4(rayEndVS, 1.0);
+        if (startCS.w <= EPSILON || endCS.w <= EPSILON) {
+          return output;
         }
-        return found;
-      }
 
-      vec4 evaluateScreenSpaceReflectionTrace(Varyings varyings, out vec4 packedOrigin) {
-        vec2 uv;
-        vec4 surface;
-        float receiverDepth;
-        packedOrigin = vec4(0.0);
-        if (!selectScreenSpaceReflectionReceiver(varyings.v_uv, uv, surface, receiverDepth)) {
-          return vec4(0.0);
+        vec2 startUV = startCS.xy / startCS.w * 0.5 + 0.5;
+        vec2 endUV = endCS.xy / endCS.w * 0.5 + 0.5;
+        vec2 fullDeltaUV = endUV - startUV;
+
+        vec2 traceMin = material_SSRTraceTexelSize.xy * 0.5;
+        vec2 traceMax = vec2(1.0) - traceMin;
+        float clipFrac = 1.0;
+        if (fullDeltaUV.x > EPSILON) {
+          clipFrac = min(clipFrac, (traceMax.x - startUV.x) / fullDeltaUV.x);
+        } else if (fullDeltaUV.x < -EPSILON) {
+          clipFrac = min(clipFrac, (traceMin.x - startUV.x) / fullDeltaUV.x);
         }
-        #ifdef SSR_STORE_TRACE_ORIGIN
-          packedOrigin = packScreenSpaceReflectionOrigin(uv);
-        #endif
-
-        vec3 viewPosition = reconstructScreenSpaceReflectionViewPosition(uv, receiverDepth);
-        vec3 viewNormal = decodeScreenSpaceReflectionViewNormal(surface.rg);
-        vec3 viewToSurface = normalize(viewPosition);
-        vec3 rayDirection = normalize(reflect(viewToSurface, viewNormal));
-        float receiverThickness = resolveScreenSpaceReflectionThickness(-viewPosition.z, 0.0);
-        vec3 rayOrigin = viewPosition + viewNormal * min(receiverThickness * 0.25, 0.05);
-        float rayLength = material_SSRMaxDistance;
-        if (rayDirection.z > EPSILON) {
-          rayLength = min(rayLength, max((-rayOrigin.z / rayDirection.z) * 0.999, 0.0));
+        if (fullDeltaUV.y > EPSILON) {
+          clipFrac = min(clipFrac, (traceMax.y - startUV.y) / fullDeltaUV.y);
+        } else if (fullDeltaUV.y < -EPSILON) {
+          clipFrac = min(clipFrac, (traceMin.y - startUV.y) / fullDeltaUV.y);
         }
-        if (rayLength <= EPSILON) return vec4(0.0);
-
-        vec3 rayEnd = rayOrigin + rayDirection * rayLength;
-        vec2 startUV;
-        vec2 endUV;
-        float startW;
-        float endW;
-        if (
-          !projectScreenSpaceReflectionPoint(rayOrigin, startUV, startW) ||
-          !projectScreenSpaceReflectionPoint(rayEnd, endUV, endW)
-        ) {
-          return vec4(0.0);
+        clipFrac = clamp(clipFrac, 0.0, 1.0);
+        if (clipFrac <= 0.0) {
+          return output;
         }
-        vec2 screenDelta = endUV - startUV;
-        float clippedScreenFraction = clipScreenSpaceReflectionRay(startUV, screenDelta);
-        vec2 clippedScreenDelta = screenDelta * clippedScreenFraction;
-        float projectedPixelLength = max(
-          abs(clippedScreenDelta.x) * material_SSRTraceTexelSize.z,
-          abs(clippedScreenDelta.y) * material_SSRTraceTexelSize.w
-        );
-        float traceStepCount = min(max(ceil(projectedPixelLength), 1.0), max(material_SSRMaxSteps, 1.0));
-        float screenStep = clippedScreenFraction / traceStepCount;
 
-        // March uniformly along the projected major axis as URP Linear does
-        // Perspective-correct conversion keeps the samples on the physical view-space ray
-        float previousScreenFraction = 0.0;
-        float previousDifference = -receiverThickness;
-        float hitT = 0.0;
-        float hitDifference = receiverThickness;
-        float hitThickness = receiverThickness;
-        vec2 hitUV = vec2(0.0);
+        vec2 clippedEndUV = mix(startUV, endUV, clipFrac);
+        vec2 dirUV = clippedEndUV - startUV;
+        vec2 traceSize = material_SSRTraceTexelSize.zw;
+        float totalPx = length(dirUV * traceSize);
+        if (totalPx < 1.0) {
+          return output;
+        }
+
+        float invW0 = 1.0 / startCS.w;
+        float invW1 = mix(invW0, 1.0 / endCS.w, clipFrac);
+        float zOverW0 = rayStartVS.z * invW0;
+        float zOverW1 = mix(zOverW0, rayEndVS.z / endCS.w, clipFrac);
+        float q0 = -zOverW0;
+        float q1 = -zOverW1;
+
+        float dfPerPx = 1.0 / max(totalPx, 1.0);
+        float jitter = interleavedGradientNoise(gl_FragCoord.xy + vec2(material_SSRColorPyramidInfo.w));
+        float f = min(dfPerPx * (1.0 + jitter * 0.25), 0.999);
+
+        vec2 dirSign = step(vec2(0.0), dirUV);
+
+        int maxSteps = int(material_SSRMaxSteps);
+        int maxMip = int(material_SSRHiZMaxMip);
+        int mip = 0;
+        float thicknessFloor = material_SSRTraceSettings.y;
+
         bool hit = false;
-        float executedStepFraction = 0.0;
+        float hitF = 0.0;
+        float hitSceneDepth = farClip;
+        float hitEffThickness = thicknessFloor;
 
-        for (int stepIndex = 0; stepIndex < 64; ++stepIndex) {
-          if (float(stepIndex) >= traceStepCount) break;
-          float currentScreenFraction = screenStep * (float(stepIndex) + 1.0);
-          float currentRayFraction = screenSpaceReflectionRayFraction(
-            currentScreenFraction,
-            startW,
-            endW
-          );
-          float currentT = rayLength * currentRayFraction;
-          vec3 rayPosition = rayOrigin + rayDirection * currentT;
-          vec2 projectedUV = startUV + screenDelta * currentScreenFraction;
-          executedStepFraction = (float(stepIndex) + 1.0) / traceStepCount;
+        int fgBlockCount = 0;
+        int stepsUsed = 0;
+        bool escapeToLinear = false;
+        float prevLinearF = f;
+        float prevLinearDiff = -1.0;
 
-          float difference = sampleScreenSpaceReflectionDepthDifference(rayPosition, projectedUV).x;
-          if (difference >= 0.0 && previousDifference < 0.0) {
-            float lowScreenFraction = previousScreenFraction;
-            float highScreenFraction = currentScreenFraction;
-            vec2 refinedUV = projectedUV;
-            for (int binaryIndex = 0; binaryIndex < 5; ++binaryIndex) {
-              if (float(binaryIndex) >= material_SSRBinarySteps) break;
-              float middleScreenFraction = (lowScreenFraction + highScreenFraction) * 0.5;
-              float middleRayFraction = screenSpaceReflectionRayFraction(
-                middleScreenFraction,
-                startW,
-                endW
-              );
-              float middleT = rayLength * middleRayFraction;
-              vec3 middlePosition = rayOrigin + rayDirection * middleT;
-              refinedUV = startUV + screenDelta * middleScreenFraction;
-              float refinedDifference = sampleScreenSpaceReflectionDepthDifference(middlePosition, refinedUV).x;
-              if (refinedDifference >= 0.0) highScreenFraction = middleScreenFraction;
-              else lowScreenFraction = middleScreenFraction;
-            }
-            float lowRayFraction = screenSpaceReflectionRayFraction(lowScreenFraction, startW, endW);
-            float highRayFraction = screenSpaceReflectionRayFraction(highScreenFraction, startW, endW);
-            float hitRayFraction = (lowRayFraction + highRayFraction) * 0.5;
-            hitT = rayLength * hitRayFraction;
-            vec3 hitPosition = rayOrigin + rayDirection * hitT;
-            float hitScreenFraction = (lowScreenFraction + highScreenFraction) * 0.5;
-            hitUV = startUV + screenDelta * hitScreenFraction;
-            if (all(greaterThanEqual(hitUV, vec2(0.0))) && all(lessThanEqual(hitUV, vec2(1.0)))) {
-              vec2 hitDepthSample = sampleScreenSpaceReflectionDepthDifference(hitPosition, hitUV);
-              hitDifference = abs(hitDepthSample.x);
-              float refinementDepthUncertainty = abs(rayDirection.z) * rayLength *
-                (highRayFraction - lowRayFraction) * 0.5;
-              hitThickness = resolveScreenSpaceReflectionThickness(
-                hitDepthSample.y,
-                refinementDepthUncertainty
-              );
-              hit = hitDepthSample.y > 0.0 && hitDifference <= hitThickness;
-            }
-            if (hit) break;
-            // A depth discontinuity can belong to a thin foreground object that the ray misses.
-            // Keep the measured sign after rejecting it. A new bracket requires a real
-            // front-to-back crossing, not another sample behind the same foreground surface.
-            previousScreenFraction = currentScreenFraction;
-            previousDifference = difference;
-            continue;
+        // Stage 1: Conservative Hi-Z traversal. If the ray is repeatedly trapped behind a
+        // foreground occluder (e.g. thin foreground tree branches dilating coarse min-depth tiles),
+        // break out and finish with remaining budget in Stage 2 without branch divergence here.
+        for (int i = 0; i < 64; ++i) {
+          if (i >= maxSteps || f >= 1.0) {
+            break;
+          }
+          stepsUsed = i + 1;
+
+          vec2 uv = startUV + dirUV * f;
+          if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+            break;
           }
 
-          previousScreenFraction = currentScreenFraction;
-          previousDifference = difference;
+          vec2 mipCount = max(vec2(1.0), floor(traceSize * exp2(-float(mip))));
+          vec2 cellIdx = floor(uv * mipCount);
+          float tEdgeX = abs(dirUV.x) > 1e-6 ? ((cellIdx.x + dirSign.x) / mipCount.x - uv.x) / dirUV.x : 1e6;
+          float tEdgeY = abs(dirUV.y) > 1e-6 ? ((cellIdx.y + dirSign.y) / mipCount.y - uv.y) / dirUV.y : 1e6;
+          float fExit = min(1.0, f + max(min(tEdgeX, tEdgeY), 0.0));
+          float fNext = min(1.0, fExit + dfPerPx * 0.15);
+
+          float rayZ0 = mix(q0, q1, f) / max(mix(invW0, invW1, f), EPSILON);
+          float rayZ1 = mix(q0, q1, fExit) / max(mix(invW0, invW1, fExit), EPSILON);
+          float rayMinZ = min(rayZ0, rayZ1);
+          float rayMaxZ = max(rayZ0, rayZ1);
+
+          float cellMinDepth = decodeSSRDepth(textureLod(material_SSRHiZTexture, uv, float(mip)), farClip);
+
+          if (rayMaxZ < cellMinDepth) {
+            f = fNext;
+            prevLinearF = f;
+            prevLinearDiff = rayMaxZ - cellMinDepth;
+            if (mip < maxMip) {
+              vec2 parentMipCount = max(vec2(1.0), floor(traceSize * exp2(-float(mip + 1))));
+              vec2 nextUV = startUV + dirUV * f;
+              vec2 oldParent = floor(uv * parentMipCount);
+              vec2 newParent = floor(nextUV * parentMipCount);
+              if (oldParent.x != newParent.x || oldParent.y != newParent.y) {
+                mip++;
+              }
+            }
+          } else if (mip > 0) {
+            float fgTol = max(thicknessFloor, cellMinDepth * 0.02);
+            if (rayMinZ > cellMinDepth + fgTol) {
+              fgBlockCount++;
+              if (fgBlockCount >= 3) {
+                escapeToLinear = true;
+                break;
+              }
+            } else if (rayZ0 < cellMinDepth && rayZ1 >= cellMinDepth) {
+              float denom = (q1 - q0) - cellMinDepth * (invW1 - invW0);
+              if (abs(denom) > 1e-7) {
+                float fPlane = (cellMinDepth * invW0 - q0) / denom;
+                if (fPlane > f && fPlane < fExit) {
+                  f = max(f, fPlane - dfPerPx * 0.05);
+                }
+              }
+            }
+            mip--;
+          } else {
+            float spanZ = abs(rayZ1 - rayZ0);
+            float effThickness = max(thicknessFloor, cellMinDepth * 0.015 + spanZ * 1.5);
+            if (cellMinDepth < farSentinel && rayMinZ <= cellMinDepth + effThickness) {
+              // Analytic intersection within the Point-filtered mip 0 cell [f, fExit]
+              float denom = (q1 - q0) - cellMinDepth * (invW1 - invW0);
+              if (abs(denom) > 1e-7) {
+                hitF = clamp((cellMinDepth * invW0 - q0) / denom, f, fExit);
+              } else {
+                hitF = 0.5 * (f + fExit);
+              }
+              hitSceneDepth = cellMinDepth;
+              hitEffThickness = effThickness;
+              hit = true;
+              break;
+            }
+            fgBlockCount++;
+            if (fgBlockCount >= 3) {
+              escapeToLinear = true;
+              prevLinearF = f;
+              prevLinearDiff = rayZ0 - cellMinDepth;
+              f = fNext;
+              break;
+            }
+            f = fNext;
+          }
+        }
+
+        // Stage 2: Foreground-occluder escape using remaining step budget on Hi-Z mip 0.
+        // Unobstructed warps skip this loop completely.
+        if (escapeToLinear && !hit && stepsUsed < maxSteps && f < 1.0) {
+          int remainingSteps = maxSteps - stepsUsed;
+          float strideF = max((1.0 - f) / float(max(remainingSteps, 1)), dfPerPx * 2.0);
+          float prevRayZ = mix(q0, q1, prevLinearF) / max(mix(invW0, invW1, prevLinearF), EPSILON);
+          int binaryRefines = 0;
+
+          for (int j = 0; j < 64; ++j) {
+            if (stepsUsed >= maxSteps || f >= 1.0) {
+              break;
+            }
+            stepsUsed++;
+
+            float fNext = min(1.0, f + strideF);
+            vec2 uvNext = startUV + dirUV * fNext;
+            if (uvNext.x < 0.0 || uvNext.x > 1.0 || uvNext.y < 0.0 || uvNext.y > 1.0) {
+              break;
+            }
+
+            float rayZ = mix(q0, q1, fNext) / max(mix(invW0, invW1, fNext), EPSILON);
+            float sceneZ = decodeSSRDepth(textureLod(material_SSRHiZTexture, uvNext, 0.0), farClip);
+            float diff = rayZ - sceneZ;
+
+            if (diff >= 0.0 && prevLinearDiff < 0.0 && binaryRefines < 3) {
+              binaryRefines++;
+              float lo = prevLinearF;
+              float hi = fNext;
+              float hiSceneZ = sceneZ;
+              for (int b = 0; b < 3; ++b) {
+                float mid = 0.5 * (lo + hi);
+                float mZ = mix(q0, q1, mid) / max(mix(invW0, invW1, mid), EPSILON);
+                float mS = decodeSSRDepth(textureLod(material_SSRHiZTexture, startUV + dirUV * mid, 0.0), farClip);
+                if (mZ - mS >= 0.0) {
+                  hi = mid;
+                  hiSceneZ = mS;
+                } else {
+                  lo = mid;
+                }
+              }
+              float zLo = mix(q0, q1, lo) / max(mix(invW0, invW1, lo), EPSILON);
+              float zHi = mix(q0, q1, hi) / max(mix(invW0, invW1, hi), EPSILON);
+              float effT = max(thicknessFloor, hiSceneZ * 0.015 + abs(zHi - zLo) * 1.5);
+              if (hiSceneZ < farSentinel && zHi <= hiSceneZ + effT) {
+                float denom = (q1 - q0) - hiSceneZ * (invW1 - invW0);
+                if (abs(denom) > 1e-7) {
+                  hitF = clamp((hiSceneZ * invW0 - q0) / denom, lo, hi);
+                } else {
+                  hitF = 0.5 * (lo + hi);
+                }
+                hitSceneDepth = hiSceneZ;
+                hitEffThickness = effT;
+                hit = true;
+                break;
+              }
+            } else if (diff >= 0.0 && prevLinearDiff >= 0.0 && sceneZ < farSentinel) {
+              float directTol = max(thicknessFloor, sceneZ * 0.015 + abs(rayZ - prevRayZ) * 0.5);
+              if (diff <= directTol) {
+                hitF = fNext;
+                hitSceneDepth = sceneZ;
+                hitEffThickness = directTol;
+                hit = true;
+                break;
+              }
+            }
+
+            prevLinearF = fNext;
+            prevLinearDiff = diff;
+            prevRayZ = rayZ;
+            f = fNext;
+          }
         }
 
         if (!hit) {
-          if (material_SSRDebugMode > 5.5) {
-            return vec4(vec3(executedStepFraction), 1.0);
-          }
-          return vec4(0.0);
+          return output;
         }
 
-        float edgeDistance = min(min(hitUV.x, hitUV.y), min(1.0 - hitUV.x, 1.0 - hitUV.y));
-        float edgeConfidence = material_SSREdgeFade > EPSILON
-          ? smoothstep(0.0, material_SSREdgeFade, edgeDistance)
-          : 1.0;
-        // Fade only near the physical ray limit; projected step count controls precision, not coverage
-        float distanceFadeStart = max(rayLength - material_SSRRayLengthFade, 0.0);
-        float distanceConfidence = material_SSRRayLengthFade > EPSILON
-          ? 1.0 - smoothstep(distanceFadeStart, rayLength, hitT)
-          : 1.0;
-        float thicknessConfidence = 1.0 - smoothstep(
-          hitThickness * 0.5,
-          hitThickness,
-          hitDifference
-        );
-        float roughnessConfidence = saturate(1.0 - surface.b / max(material_SSRMaxRoughness, EPSILON));
-        float frontFaceConfidence = step(0.0, dot(viewNormal, -viewToSurface));
-        // Reject only the unstable cone whose reflected ray points almost directly
-        // back toward the camera. A linear NdotV term would suppress the grazing
-        // angles where receiver BRDFs, especially dielectric Fresnel, are strongest.
-        float viewRayAlignment = dot(viewToSurface, rayDirection);
-        float stabilityConfidence = smoothstep(-1.0, -0.9, viewRayAlignment);
-        float confidence = edgeConfidence * distanceConfidence * thicknessConfidence * roughnessConfidence
-          * frontFaceConfidence * stabilityConfidence;
-        if (material_SSRDebugMode > 5.5) {
-          return vec4(vec3(executedStepFraction), confidence);
+        vec2 hitUV = startUV + dirUV * hitF;
+        vec3 hitPosVS = reconstructSSRViewPosition(hitUV, hitSceneDepth, camera_SSRInvProjMat);
+        float hitDist = length(hitPosVS - startPosVS);
+        if (hitDist > maxDistance) {
+          return output;
         }
-        vec3 reflectionSample = sampleScreenSpaceReflectionSceneColor(hitUV, surface.b).rgb;
-        // Premultiplication is required before half-resolution filtering. A
-        // straight-alpha hit next to a cleared miss would otherwise interpolate
-        // RGB toward black and then apply confidence a second time downstream.
-        return vec4(reflectionSample * confidence, confidence);
-      }
 
-      ScreenSpaceReflectionTraceOutput traceScreenSpaceReflection(Varyings varyings) {
-        ScreenSpaceReflectionTraceOutput output;
-        vec4 origin;
-        output.reflection = evaluateScreenSpaceReflectionTrace(varyings, origin);
-        #ifdef SSR_STORE_TRACE_ORIGIN
-          output.origin = origin;
+        vec3 hitPosWS = (camera_SSRInvViewMat * vec4(hitPosVS, 1.0)).xyz;
+        vec4 prevClip = camera_SSRPrevVPMat * vec4(hitPosWS, 1.0);
+        if (prevClip.w <= EPSILON) {
+          return output;
+        }
+
+        vec2 prevColorUV = prevClip.xy / prevClip.w * 0.5 + 0.5;
+        float edgeFade = material_SSRTraceSettings.w;
+        float screenFade = computeBorderFade(hitUV, edgeFade) * computeBorderFade(prevColorUV, edgeFade);
+        if (screenFade <= 0.0) {
+          return output;
+        }
+
+        // Disocclusion check against Frame N-1 Hi-Z mip0 depth
+        float prevHitEyeDepth = -dot(camera_SSRPrevViewZRow, vec4(hitPosWS, 1.0));
+        float prevSceneEyeDepth = decodeSSRDepth(texture2D(material_SSRPrevTraceDepthTexture, prevColorUV), farClip);
+        float disoccTolerance = max(0.15, prevSceneEyeDepth * 0.05 + hitDist * 0.02);
+        float disoccDiff = abs(prevHitEyeDepth - prevSceneEyeDepth);
+        float historyConfidence = (prevSceneEyeDepth <= 0.0 || prevSceneEyeDepth >= farSentinel)
+          ? 0.0
+          : (1.0 - smoothstep(disoccTolerance * 0.5, disoccTolerance * 1.5, disoccDiff));
+        if (historyConfidence <= 0.001) {
+          return output;
+        }
+
+        float distFade = 1.0 - smoothstep(maxDistance * 0.75, maxDistance, hitDist);
+        float hitRayZ = mix(q0, q1, hitF) / max(mix(invW0, invW1, hitF), EPSILON);
+        float hitDepthDelta = max(hitRayZ - hitSceneDepth, 0.0);
+        float thicknessFade = 1.0 - smoothstep(hitEffThickness * 0.7, hitEffThickness, hitDepthDelta);
+        float confidence = screenFade * historyConfidence * distFade * thicknessFade;
+        if (confidence <= 0.001) {
+          return output;
+        }
+
+        // Distance-aware cone mip lookup into previous linear color pyramid
+        float projScale = abs(camera_ProjMat[1][1]) * material_SSRColorPyramidInfo.z * 0.5;
+        #ifdef CAMERA_ORTHOGRAPHIC
+          float coneRadiusPx = hitDist * roughness * roughness * projScale;
+        #else
+          float coneRadiusPx = (hitDist * roughness * roughness * projScale) / max(hitSceneDepth, 0.1);
+        #endif
+        float maxColorMip = material_SSRColorPyramidInfo.x;
+        float coneMip = clamp(log2(max(coneRadiusPx, 1.0)), 0.0, maxColorMip);
+
+        vec3 radiance = textureLod(material_SSRPrevColorPyramidTexture, prevColorUV, coneMip).rgb;
+        radiance = max(radiance, vec3(0.0));
+
+        output.reflection = vec4(radiance * confidence, confidence);
+        #ifdef SSR_OUTPUT_HIT_DIST
+          output.hitDist = encodeSSRDepth(hitDist, farClip);
         #endif
         return output;
       }
     }
 
-    Pass "GaussianFilter" {
+    Pass "TemporalResolve" {
+      Bool material_SSRUseHardwareStencil;
+
+      DepthState = {
+        Enabled = false;
+        WriteEnabled = false;
+      }
+
+      BlendState = {
+        Enabled = false;
+      }
+
+      StencilState = {
+        Enabled = material_SSRUseHardwareStencil;
+        ReferenceValue = 1;
+        Mask = 255;
+        WriteMask = 0;
+        CompareFunctionFront = CompareFunction.Equal;
+        CompareFunctionBack = CompareFunction.Equal;
+        PassOperationFront = StencilOperation.Keep;
+        PassOperationBack = StencilOperation.Keep;
+        FailOperationFront = StencilOperation.Keep;
+        FailOperationBack = StencilOperation.Keep;
+        ZFailOperationFront = StencilOperation.Keep;
+        ZFailOperationBack = StencilOperation.Keep;
+      }
+
+      VertexShader = vert;
+      FragmentShader = temporalResolveFragment;
+
+      #include "ShaderLibrary/Blit/BlitVertex.glsl"
+      #include "ShaderLibrary/Common/Common.glsl"
+      #include "ShaderLibrary/Common/Transform.glsl"
+      #include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl"
+
+      highp sampler2D material_SSRTraceRawTexture;
+      highp sampler2D material_SSRPrevSSRTexture;
+      highp sampler2D material_SSRReceiverDepthTexture;
+      highp sampler2D material_SSRPrevReceiverDepthTexture;
+
+      vec4 material_SSRTraceTexelSize;
+      mat4 camera_SSRInvProjMat;
+      mat4 camera_SSRInvViewMat;
+      mat4 camera_SSRPrevVPMat;
+      mat4 camera_SSRPrevInvProjMat;
+      mat4 camera_SSRPrevInvViewMat;
+      vec4 camera_SSRPrevViewZRow;
+      float material_SSRTemporalBlend;
+
+      #ifdef SSR_HIGH_VIRTUAL_REPROJECTION
+        highp sampler2D material_SSRHitDistTexture;
+        highp sampler2D material_SSRNormalRoughnessTexture;
+        highp sampler2D material_SSRPrevNormalRoughnessTexture;
+      #endif
+
+      void temporalResolveFragment(Varyings v) {
+        float farClip = camera_ProjectionParams.z;
+        float farSentinel = getSSRFarSentinel(farClip);
+        vec2 uv = v.v_uv;
+
+        float currRecvEyeDepth = decodeSSRDepth(texture2D(material_SSRReceiverDepthTexture, uv), farClip);
+        if (currRecvEyeDepth <= 0.0 || currRecvEyeDepth >= farSentinel) {
+          gl_FragColor = vec4(0.0);
+          return;
+        }
+
+        vec4 currCenter = texture2D(material_SSRTraceRawTexture, uv);
+
+        // 3x3 neighborhood variance clamp on current raw trace
+        vec2 texel = material_SSRTraceTexelSize.xy;
+        vec4 m1 = vec4(0.0);
+        vec4 m2 = vec4(0.0);
+        for (int y = -1; y <= 1; ++y) {
+          for (int x = -1; x <= 1; ++x) {
+            vec4 sampleColor = texture2D(material_SSRTraceRawTexture, clamp(uv + vec2(float(x), float(y)) * texel, vec2(0.0), vec2(1.0)));
+            m1 += sampleColor;
+            m2 += sampleColor * sampleColor;
+          }
+        }
+        vec4 mean = m1 * (1.0 / 9.0);
+        vec4 variance = max(m2 * (1.0 / 9.0) - mean * mean, vec4(0.0));
+        vec4 stddev = sqrt(variance);
+        vec4 clampMin = max(vec4(0.0), mean - stddev * 1.25);
+        vec4 clampMax = mean + stddev * 1.25;
+
+        vec3 surfacePosVS = reconstructSSRViewPosition(uv, currRecvEyeDepth, camera_SSRInvProjMat);
+        vec3 surfacePosWS = (camera_SSRInvViewMat * vec4(surfacePosVS, 1.0)).xyz;
+
+        vec2 prevUV = vec2(0.0);
+        float historyWeight = material_SSRTemporalBlend;
+
+        #ifdef SSR_HIGH_VIRTUAL_REPROJECTION
+          vec3 currNormal;
+          float roughness;
+          vec4 currNRTexel = texture2D(material_SSRNormalRoughnessTexture, uv);
+          bool hasCurrNR = unpackSSRNormalRoughness(currNRTexel, currNormal, roughness);
+          float hitDist = decodeSSRDepth(texture2D(material_SSRHitDistTexture, uv), farClip);
+          bool virtValid = false;
+          vec2 virtPrevUV = vec2(0.0);
+          float virtNormalDot = 0.0;
+
+          if (hasCurrNR && hitDist > 0.0 && hitDist < farSentinel) {
+            #ifdef CAMERA_ORTHOGRAPHIC
+              vec3 rayDirWS = normalize(camera_Forward);
+            #else
+              vec3 rayDirWS = normalize(surfacePosWS - camera_Position);
+            #endif
+            vec3 virtualPosWS = surfacePosWS + rayDirWS * hitDist;
+            float surfFactor = smoothstep(0.05, 0.35, roughness);
+            vec3 reprojWS = mix(virtualPosWS, surfacePosWS, surfFactor);
+
+            vec4 virtPrevClip = camera_SSRPrevVPMat * vec4(reprojWS, 1.0);
+            if (virtPrevClip.w > EPSILON) {
+              virtPrevUV = virtPrevClip.xy / virtPrevClip.w * 0.5 + 0.5;
+              if (virtPrevUV.x >= 0.0 && virtPrevUV.x <= 1.0 && virtPrevUV.y >= 0.0 && virtPrevUV.y <= 1.0) {
+                float virtPrevDepth = decodeSSRDepth(texture2D(material_SSRPrevReceiverDepthTexture, virtPrevUV), farClip);
+                if (virtPrevDepth > 0.0 && virtPrevDepth < farSentinel) {
+                  vec3 virtPrevSurfVS = reconstructSSRViewPosition(virtPrevUV, virtPrevDepth, camera_SSRPrevInvProjMat);
+                  vec3 virtPrevSurfWS = (camera_SSRPrevInvViewMat * vec4(virtPrevSurfVS, 1.0)).xyz;
+                  float planeDist = abs(dot(virtPrevSurfWS - surfacePosWS, currNormal));
+                  float planeTol = max(0.05, currRecvEyeDepth * 0.03);
+                  if (planeDist <= planeTol) {
+                    vec3 prevNormal;
+                    float prevRoughness;
+                    if (unpackSSRNormalRoughness(texture2D(material_SSRPrevNormalRoughnessTexture, virtPrevUV), prevNormal, prevRoughness)) {
+                      virtNormalDot = dot(currNormal, prevNormal);
+                      if (virtNormalDot > 0.5) {
+                        virtValid = true;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          if (virtValid) {
+            prevUV = virtPrevUV;
+            historyWeight *= pow(saturate(virtNormalDot), 4.0);
+          } else {
+            // Fall back to surface reprojection only when virtual reprojection fails.
+            vec4 surfPrevClip = camera_SSRPrevVPMat * vec4(surfacePosWS, 1.0);
+            if (surfPrevClip.w <= EPSILON) {
+              gl_FragColor = currCenter;
+              return;
+            }
+            vec2 surfPrevUV = surfPrevClip.xy / surfPrevClip.w * 0.5 + 0.5;
+            if (surfPrevUV.x < 0.0 || surfPrevUV.x > 1.0 || surfPrevUV.y < 0.0 || surfPrevUV.y > 1.0) {
+              gl_FragColor = currCenter;
+              return;
+            }
+            float surfPrevRecvDepth = decodeSSRDepth(texture2D(material_SSRPrevReceiverDepthTexture, surfPrevUV), farClip);
+            float expectedPrevEyeDepth = -dot(camera_SSRPrevViewZRow, vec4(surfacePosWS, 1.0));
+            float recvTol = max(0.05, expectedPrevEyeDepth * 0.03);
+            if (surfPrevRecvDepth <= 0.0 || surfPrevRecvDepth >= farSentinel || abs(expectedPrevEyeDepth - surfPrevRecvDepth) > recvTol) {
+              gl_FragColor = currCenter;
+              return;
+            }
+            vec3 prevNormal;
+            float prevRoughness;
+            if (hasCurrNR && unpackSSRNormalRoughness(texture2D(material_SSRPrevNormalRoughnessTexture, surfPrevUV), prevNormal, prevRoughness)) {
+              float surfNormalDot = dot(currNormal, prevNormal);
+              if (surfNormalDot <= 0.5) {
+                gl_FragColor = currCenter;
+                return;
+              }
+              prevUV = surfPrevUV;
+              historyWeight *= pow(saturate(surfNormalDot), 4.0);
+            } else {
+              gl_FragColor = currCenter;
+              return;
+            }
+          }
+        #else
+          vec4 surfPrevClip = camera_SSRPrevVPMat * vec4(surfacePosWS, 1.0);
+          if (surfPrevClip.w <= EPSILON) {
+            gl_FragColor = currCenter;
+            return;
+          }
+          prevUV = surfPrevClip.xy / surfPrevClip.w * 0.5 + 0.5;
+          if (prevUV.x < 0.0 || prevUV.x > 1.0 || prevUV.y < 0.0 || prevUV.y > 1.0) {
+            gl_FragColor = currCenter;
+            return;
+          }
+          float surfPrevRecvDepth = decodeSSRDepth(texture2D(material_SSRPrevReceiverDepthTexture, prevUV), farClip);
+          float expectedPrevEyeDepth = -dot(camera_SSRPrevViewZRow, vec4(surfacePosWS, 1.0));
+          float recvTol = max(0.05, expectedPrevEyeDepth * 0.03);
+          if (surfPrevRecvDepth <= 0.0 || surfPrevRecvDepth >= farSentinel || abs(expectedPrevEyeDepth - surfPrevRecvDepth) > recvTol) {
+            gl_FragColor = currCenter;
+            return;
+          }
+        #endif
+
+        vec4 prevColor = clamp(texture2D(material_SSRPrevSSRTexture, prevUV), clampMin, clampMax);
+        gl_FragColor = mix(currCenter, prevColor, historyWeight);
+      }
+    }
+
+    Pass "ColorPyramidPrefilter" {
       DepthState = {
         Enabled = false;
         WriteEnabled = false;
@@ -422,91 +812,57 @@ Shader "Lighting/ScreenSpaceReflection" {
       }
 
       VertexShader = vert;
-      FragmentShader = filterScreenSpaceReflection;
+      FragmentShader = colorPyramidPrefilterFragment;
 
       #include "ShaderLibrary/Blit/BlitVertex.glsl"
 
       highp sampler2D renderer_BlitTexture;
       vec4 renderer_texelSize;
-      vec2 material_SSRFilterDirection;
+      vec4 renderer_SourceScaleOffset;
+      vec4 material_SSRDestTexelSize;
 
-      vec4 filterScreenSpaceReflection(Varyings varyings) {
-        vec2 pixelOffset = renderer_texelSize.xy * material_SSRFilterDirection;
-        vec4 filtered = vec4(0.0);
-        filtered += (
-          texture2D(renderer_BlitTexture, varyings.v_uv + pixelOffset * 0.53805) +
-          texture2D(renderer_BlitTexture, varyings.v_uv - pixelOffset * 0.53805)
-        ) * 0.44908;
-        filtered += (
-          texture2D(renderer_BlitTexture, varyings.v_uv + pixelOffset * 2.06278) +
-          texture2D(renderer_BlitTexture, varyings.v_uv - pixelOffset * 2.06278)
-        ) * 0.05092;
-        return filtered;
-      }
-    }
-
-    Pass "Upsample" {
-      DepthState = {
-        Enabled = false;
-        WriteEnabled = false;
-      }
-
-      BlendState = {
-        Enabled = false;
-      }
-
-      VertexShader = vert;
-      FragmentShader = upsampleScreenSpaceReflection;
-
-      #include "ShaderLibrary/Blit/BlitVertex.glsl"
-      #include "ShaderLibrary/Common/Common.glsl"
-      #include "ShaderLibrary/Common/Transform.glsl"
-      #include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflection.glsl"
-
-      highp sampler2D material_SSRSurfaceTexture;
-      highp sampler2D material_SSRReceiverDepthTexture;
-      highp sampler2D material_SSRTraceTexture;
-      highp sampler2D material_SSRTraceOriginTexture;
-      vec4 material_SSRTraceTexelSize;
-      float material_SSRThickness;
-      float material_SSRMaxRoughness;
-
-      vec4 evaluateScreenSpaceReflectionUpsample(Varyings varyings) {
-        vec2 uv = varyings.v_uv;
-        vec4 currentSurface = texture2D(material_SSRSurfaceTexture, uv);
-        float currentDepth = texture2D(material_SSRReceiverDepthTexture, uv).r;
-        if (
-          currentSurface.a <= 0.0 ||
-          currentSurface.b >= material_SSRMaxRoughness ||
-          currentDepth >= 0.999999
-        ) {
-          return vec4(0.0);
-        }
-
-        float currentEyeDepth = remapDepthBufferEyeDepth(currentDepth);
-        vec3 currentViewPosition = reconstructScreenSpaceReflectionViewPositionFromEyeDepth(uv, currentEyeDepth);
-        vec3 currentNormal = decodeScreenSpaceReflectionViewNormal(currentSurface.rg);
-        return sampleScreenSpaceReflectionBilateralTrace(
-          uv,
-          currentSurface.b,
-          currentViewPosition,
-          currentNormal,
-          currentEyeDepth,
-          material_SSRSurfaceTexture,
-          material_SSRReceiverDepthTexture,
-          material_SSRTraceTexture,
-          material_SSRTraceOriginTexture,
-          material_SSRTraceTexelSize,
-          material_SSRThickness
+      vec3 sanitizeHDR(vec3 c) {
+        vec3 nonNeg = vec3(
+          c.r >= 0.0 ? c.r : 0.0,
+          c.g >= 0.0 ? c.g : 0.0,
+          c.b >= 0.0 ? c.b : 0.0
         );
+        return min(nonNeg, vec3(65504.0));
       }
 
-      void upsampleScreenSpaceReflection(Varyings varyings) {
-        gl_FragColor = evaluateScreenSpaceReflectionUpsample(varyings);
+      float karisWeight(vec3 c) {
+        float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
+        return 1.0 / (1.0 + lum);
+      }
+
+      void colorPyramidPrefilterFragment(Varyings v) {
+        vec2 scale = renderer_SourceScaleOffset.xy;
+        vec2 offset = renderer_SourceScaleOffset.zw;
+        vec2 baseUV = v.v_uv * scale + offset;
+        vec2 hs = max(renderer_texelSize.xy * 0.5, material_SSRDestTexelSize.xy * scale * 0.25);
+        vec2 inset = min(hs, scale * 0.5);
+        vec2 uvMin = offset + inset;
+        vec2 uvMax = offset + scale - inset;
+        #ifdef SSR_COLOR_PYRAMID_FULL_RES
+          vec3 avg = sanitizeHDR(texture2D(renderer_BlitTexture, clamp(baseUV, uvMin, uvMax)).rgb);
+          gl_FragColor = vec4(avg, 1.0);
+        #else
+          vec3 c0 = sanitizeHDR(texture2D(renderer_BlitTexture, clamp(baseUV + vec2(-hs.x, -hs.y), uvMin, uvMax)).rgb);
+          vec3 c1 = sanitizeHDR(texture2D(renderer_BlitTexture, clamp(baseUV + vec2( hs.x, -hs.y), uvMin, uvMax)).rgb);
+          vec3 c2 = sanitizeHDR(texture2D(renderer_BlitTexture, clamp(baseUV + vec2(-hs.x,  hs.y), uvMin, uvMax)).rgb);
+          vec3 c3 = sanitizeHDR(texture2D(renderer_BlitTexture, clamp(baseUV + vec2( hs.x,  hs.y), uvMin, uvMax)).rgb);
+
+          float w0 = karisWeight(c0);
+          float w1 = karisWeight(c1);
+          float w2 = karisWeight(c2);
+          float w3 = karisWeight(c3);
+          vec3 avg = (c0 * w0 + c1 * w1 + c2 * w2 + c3 * w3) / max(w0 + w1 + w2 + w3, 1e-4);
+          gl_FragColor = vec4(avg, 1.0);
+        #endif
       }
     }
 
-    Pass "Composite" {
+    Pass "ColorPyramidDownsample" {
       DepthState = {
         Enabled = false;
         WriteEnabled = false;
@@ -517,168 +873,43 @@ Shader "Lighting/ScreenSpaceReflection" {
       }
 
       VertexShader = vert;
-      FragmentShader = compositeScreenSpaceReflection;
+      FragmentShader = colorPyramidDownsampleFragment;
 
-      #include "ShaderLibrary/Blit/BlitVertex.glsl"
-      #include "ShaderLibrary/Common/Common.glsl"
-      #include "ShaderLibrary/Common/Transform.glsl"
-      #include "ShaderLibrary/Lighting/Light.glsl"
-      #include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflection.glsl"
-
-      highp sampler2D material_SSRSceneColorTexture;
-      highp sampler2D material_SSRSurfaceTexture;
-      highp sampler2D material_SSRResponseTexture;
-      highp sampler2D material_SSRReceiverDepthTexture;
-      highp sampler2D material_SSRTraceTexture;
-      #ifdef SSR_COMPOSITE_BILATERAL_UPSAMPLE
-        highp sampler2D material_SSRTraceOriginTexture;
-        vec4 material_SSRTraceTexelSize;
-        float material_SSRThickness;
-      #endif
-      mat4 camera_ViewInvMat;
-      float camera_ScreenSpaceReflectionIntensity;
-      float material_SSRMaxRoughness;
-      float material_SSRDebugMode;
-
-      vec3 sampleScreenSpaceReflectionEnvironment(vec3 viewPosition, vec3 viewNormal, float roughness) {
-        #ifdef SCENE_USE_SPECULAR_ENV
-          vec3 reflectedView = reflect(normalize(viewPosition), viewNormal);
-          vec3 reflectedWorld = normalize(mat3(camera_ViewInvMat) * reflectedView);
-          float mipLevel = roughness * scene_EnvMapLight.mipMapLevel;
-          #ifdef HAS_TEX_LOD
-            vec4 environment = textureCubeLodEXT(scene_EnvSpecularSampler, reflectedWorld, mipLevel);
-          #else
-            vec4 environment = textureCube(scene_EnvSpecularSampler, reflectedWorld, mipLevel);
-          #endif
-          #ifdef ENGINE_NO_SRGB
-            environment = sRGBToLinear(environment);
-          #endif
-          #ifdef SCENE_USE_SPECULAR_ENV_BLEND
-            float mipLevel2 = roughness * scene_EnvMapLight.mipMapLevel2;
-            #ifdef HAS_TEX_LOD
-              vec4 environment2 = textureCubeLodEXT(scene_EnvSpecularSampler2, reflectedWorld, mipLevel2);
-            #else
-              vec4 environment2 = textureCube(scene_EnvSpecularSampler2, reflectedWorld, mipLevel2);
-            #endif
-            #ifdef ENGINE_NO_SRGB
-              environment2 = sRGBToLinear(environment2);
-            #endif
-            environment = mix(environment, environment2, scene_EnvMapLight.specularTextureBlend);
-          #endif
-          return environment.rgb * scene_EnvMapLight.specularIntensity;
-        #else
-          return vec3(0.0);
-        #endif
-      }
-
-      void compositeScreenSpaceReflection(Varyings varyings) {
-        vec2 uv = varyings.v_uv;
-        vec4 surface = texture2D(material_SSRSurfaceTexture, uv);
-
-        if (material_SSRDebugMode > 0.5) {
-          vec4 baseColor = texture2D(material_SSRSceneColorTexture, uv);
-          float receiverDepth = texture2D(material_SSRReceiverDepthTexture, uv).r;
-          vec4 trace = vec4(0.0);
-          if (surface.a > 0.0 && surface.b < material_SSRMaxRoughness && receiverDepth < 0.999999) {
-            #ifdef SSR_COMPOSITE_BILATERAL_UPSAMPLE
-              float eyeDepth = remapDepthBufferEyeDepth(receiverDepth);
-              vec3 viewPos = reconstructScreenSpaceReflectionViewPositionFromEyeDepth(uv, eyeDepth);
-              vec3 viewNorm = decodeScreenSpaceReflectionViewNormal(surface.rg);
-              trace = sampleScreenSpaceReflectionBilateralTrace(
-                uv,
-                surface.b,
-                viewPos,
-                viewNorm,
-                eyeDepth,
-                material_SSRSurfaceTexture,
-                material_SSRReceiverDepthTexture,
-                material_SSRTraceTexture,
-                material_SSRTraceOriginTexture,
-                material_SSRTraceTexelSize,
-                material_SSRThickness
-              );
-            #else
-              trace = texture2D(material_SSRTraceTexture, uv);
-            #endif
-          }
-          if (material_SSRDebugMode < 1.5) {
-            gl_FragColor = baseColor;
-          } else if (material_SSRDebugMode < 2.5) {
-            gl_FragColor = vec4(decodeScreenSpaceReflectionViewNormal(surface.rg) * 0.5 + 0.5, 1.0);
-          } else if (material_SSRDebugMode < 3.5) {
-            float eyeDepth = receiverDepth < 0.999999 ? remapDepthBufferLinear01(receiverDepth) : 1.0;
-            gl_FragColor = vec4(vec3(eyeDepth), 1.0);
-          } else if (material_SSRDebugMode < 4.5) {
-            gl_FragColor = vec4(vec3(trace.a > 0.0 ? 1.0 : 0.0), 1.0);
-          } else if (material_SSRDebugMode < 5.5) {
-            gl_FragColor = vec4(vec3(trace.a), 1.0);
-          } else {
-            gl_FragColor = vec4(vec3(trace.r), 1.0);
-          }
-          return;
-        }
-
-        // Discard non-receiver and rough pixels before reading sceneColor or writing the target:
-        // internalColorTarget already holds the exact Forward baseColor on untouched pixels.
-        if (surface.a <= 0.0 || surface.b >= material_SSRMaxRoughness) {
-          discard;
-        }
-
-        float receiverDepth = texture2D(material_SSRReceiverDepthTexture, uv).r;
-        if (receiverDepth >= 0.999999) {
-          discard;
-        }
-
-        float receiverEyeDepth = remapDepthBufferEyeDepth(receiverDepth);
-        vec3 viewPosition = reconstructScreenSpaceReflectionViewPositionFromEyeDepth(uv, receiverEyeDepth);
-        vec3 viewNormal = decodeScreenSpaceReflectionViewNormal(surface.rg);
-        #ifdef SSR_COMPOSITE_BILATERAL_UPSAMPLE
-          vec4 trace = sampleScreenSpaceReflectionBilateralTrace(
-            uv,
-            surface.b,
-            viewPosition,
-            viewNormal,
-            receiverEyeDepth,
-            material_SSRSurfaceTexture,
-            material_SSRReceiverDepthTexture,
-            material_SSRTraceTexture,
-            material_SSRTraceOriginTexture,
-            material_SSRTraceTexelSize,
-            material_SSRThickness
-          );
-        #else
-          vec4 trace = texture2D(material_SSRTraceTexture, uv);
-        #endif
-        if (trace.a <= 0.0) {
-          discard;
-        }
-
-        vec4 baseColor = texture2D(material_SSRSceneColorTexture, uv);
-        vec4 response = texture2D(material_SSRResponseTexture, uv);
-        vec3 environmentRadiance = sampleScreenSpaceReflectionEnvironment(viewPosition, viewNormal, surface.b);
-        float ssrScale = saturate(camera_ScreenSpaceReflectionIntensity) * saturate(response.a);
-        float ssrBlend = saturate(trace.a * ssrScale);
-        // Trace RGB is confidence-premultiplied before spatial filtering. This
-        // form preserves energy when bilinear filtering
-        // crosses hit/miss or edge-fade boundaries.
-        vec3 reflectionRadiance = environmentRadiance * (1.0 - ssrBlend) + trace.rgb * ssrScale;
-        baseColor.rgb += (reflectionRadiance - environmentRadiance) * surface.a * response.rgb;
-        gl_FragColor = baseColor;
-      }
-    }
-
-    Pass "DownsampleDepth" {
-      DepthState = { Enabled = true; WriteEnabled = true; CompareFunction = CompareFunction.Always; }
-      BlendState = { Enabled = false; ColorWriteMask = ColorWriteMask.None; }
-      VertexShader = vert;
-      FragmentShader = downsampleDepth;
       #include "ShaderLibrary/Blit/BlitVertex.glsl"
 
       highp sampler2D renderer_BlitTexture;
+      float renderer_BlitMipLevel;
+      vec4 material_SSRSourceTexelSize;
 
-      void downsampleDepth(Varyings varyings) {
-        gl_FragDepthEXT = texture2D(renderer_BlitTexture, varyings.v_uv).r;
-        gl_FragColor = vec4(0.0);
+      #ifdef SSR_COLOR_PYRAMID_KARIS_DOWNSAMPLE
+        float karisWeight(vec3 c) {
+          float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
+          return 1.0 / (1.0 + lum);
+        }
+      #endif
+
+      void colorPyramidDownsampleFragment(Varyings v) {
+        // 5-tap Dual Kawase downsample using bilinear taps at half-texel corners + center
+        vec2 offset = material_SSRSourceTexelSize.xy;
+        vec2 uvMin = offset * 0.5;
+        vec2 uvMax = vec2(1.0) - uvMin;
+        vec3 cCenter = textureLod(renderer_BlitTexture, clamp(v.v_uv, uvMin, uvMax), renderer_BlitMipLevel).rgb;
+        vec3 c0 = textureLod(renderer_BlitTexture, clamp(v.v_uv + vec2(-offset.x, -offset.y), uvMin, uvMax), renderer_BlitMipLevel).rgb;
+        vec3 c1 = textureLod(renderer_BlitTexture, clamp(v.v_uv + vec2( offset.x, -offset.y), uvMin, uvMax), renderer_BlitMipLevel).rgb;
+        vec3 c2 = textureLod(renderer_BlitTexture, clamp(v.v_uv + vec2(-offset.x,  offset.y), uvMin, uvMax), renderer_BlitMipLevel).rgb;
+        vec3 c3 = textureLod(renderer_BlitTexture, clamp(v.v_uv + vec2( offset.x,  offset.y), uvMin, uvMax), renderer_BlitMipLevel).rgb;
+        #ifdef SSR_COLOR_PYRAMID_KARIS_DOWNSAMPLE
+          float wCenter = 4.0 * karisWeight(cCenter);
+          float w0 = karisWeight(c0);
+          float w1 = karisWeight(c1);
+          float w2 = karisWeight(c2);
+          float w3 = karisWeight(c3);
+          vec3 sum = (cCenter * wCenter + c0 * w0 + c1 * w1 + c2 * w2 + c3 * w3) / max(wCenter + w0 + w1 + w2 + w3, 1e-4);
+          gl_FragColor = vec4(max(sum, vec3(0.0)), 1.0);
+        #else
+          vec3 sum = cCenter * 4.0 + c0 + c1 + c2 + c3;
+          gl_FragColor = vec4(max(sum * 0.125, vec3(0.0)), 1.0);
+        #endif
       }
     }
   }

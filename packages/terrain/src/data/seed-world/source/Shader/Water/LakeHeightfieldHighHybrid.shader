@@ -2,7 +2,7 @@
 Shader "AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0" {
   SubShader "Default" {
     Pass "Forward" {
-      Tags { pipelineStage = "Forward", screenSpaceReflectionTransparentSample = "SampleV1" }
+      Tags { pipelineStage = "Forward" }
       Bool blendEnabled;
       Bool depthWriteEnabled;
       BlendState customBlendState {
@@ -24,6 +24,9 @@ Shader "AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0" 
 
       VertexShader = vert;
       FragmentShader = frag;
+
+      #include "ShaderLibrary/Common/Common.glsl"
+      #include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl"
 
       mat4 renderer_MVPMat;
       mat4 renderer_ModelMat;
@@ -100,11 +103,11 @@ Shader "AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0" 
       float material_WindVelocityOverride;
       highp sampler2D camera_DepthTexture;
       sampler2D camera_OpaqueTexture;
-      vec4 camera_ProjectionParams;
-      vec4 camera_DepthBufferParams;
       sampler2D material_LocalMapTexture;
 #ifndef WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
 #define WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
+      float material_AppearanceV2Detail0Enabled;
+      float material_AppearanceV2Detail1Enabled;
       float material_AppearanceV2DetailEnabled;
       float material_AppearanceV2DetailNormalStrength;
       float material_AppearanceV2DepthResponseEnabled;
@@ -177,9 +180,6 @@ Shader "AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0" 
       float material_ReflectionSource;
       float material_WaterScreenSpaceReflectionCompositeIntensity;
       samplerCube material_ReflectionCubeTexture;
-      sampler2D camera_ScreenSpaceReflectionTexture;
-      float camera_ScreenSpaceReflectionIntensity;
-      float camera_ScreenSpaceReflectionMaxRoughness;
 #ifndef WATER_ENVIRONMENT_REFLECTION_UNIFORMS_INCLUDED
 #define WATER_ENVIRONMENT_REFLECTION_UNIFORMS_INCLUDED
 
@@ -230,6 +230,13 @@ Shader "AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0" 
       };
 
 
+      vec2 waterWorldToLocalXZ(vec2 worldXZ) {
+        vec2 delta = worldXZ - material_WaterWorldToLocalPlanar.zw;
+        return vec2(
+          delta.x * material_WaterWorldToLocalPlanar.x - delta.y * material_WaterWorldToLocalPlanar.y,
+          delta.x * material_WaterWorldToLocalPlanar.y + delta.y * material_WaterWorldToLocalPlanar.x
+        );
+      }
 
       vec2 waterLocalDirectionToWorldXZ(vec2 localDirection) {
         return vec2(
@@ -520,6 +527,21 @@ vec3 waterSurfaceAppearanceSafeNormalize3(vec3 value, vec3 fallbackValue) {
     : fallbackValue;
 }
 
+vec3 waterSurfaceAppearanceDecodeTangentNormal(
+  vec4 packedNormal,
+  float strength,
+  float flipGreen
+) {
+  vec2 slope = packedNormal.rg * 2.0 - 1.0;
+  slope.y *= mix(1.0, -1.0, step(0.5, flipGreen));
+  slope *= strength;
+  float normalZ = sqrt(max(1.0 - dot(slope, slope), 0.0001));
+  normalZ = mix(1.0, normalZ, clamp(strength, 0.0, 1.0));
+  return waterSurfaceAppearanceSafeNormalize3(
+    vec3(slope, normalZ),
+    vec3(0.0, 0.0, 1.0)
+  );
+}
 
 vec3 waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
   vec4 packedNormal,
@@ -535,6 +557,15 @@ vec3 waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
   return vec3(sourceSlope * strength, normalZ);
 }
 
+vec3 waterSurfaceAppearanceBlendTangentNormals(
+  vec3 firstNormal,
+  vec3 secondNormal
+) {
+  return waterSurfaceAppearanceSafeNormalize3(
+    vec3(firstNormal.xy + secondNormal.xy, firstNormal.z * secondNormal.z),
+    vec3(0.0, 0.0, 1.0)
+  );
+}
 
 vec3 waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(
   vec3 firstNormal,
@@ -549,7 +580,20 @@ vec3 waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(
   );
 }
 
+vec3 waterSurfaceAppearanceV2BlendAddSlope(vec3 baseNormal, vec3 detailNormal) {
+  vec2 slope = baseNormal.xy / max(baseNormal.z, 0.0001)
+    + detailNormal.xy / max(detailNormal.z, 0.0001);
+  return waterSurfaceAppearanceSafeNormalize3(vec3(slope, 1.0), vec3(0.0, 0.0, 1.0));
+}
 
+vec3 waterSurfaceAppearanceV2BlendReoriented(vec3 baseNormal, vec3 detailNormal) {
+  vec3 t = baseNormal + vec3(0.0, 0.0, 1.0);
+  vec3 u = detailNormal * vec3(-1.0, -1.0, 1.0);
+  return waterSurfaceAppearanceSafeNormalize3(
+    t * dot(t, u) / max(t.z, 0.0001) - u,
+    vec3(0.0, 0.0, 1.0)
+  );
+}
 
 #endif
 
@@ -616,18 +660,111 @@ float waterSurfaceDerivedSceneRayDepth(
 }
 
 // max(1-exp(-a), 1-exp(-b)) == 1-exp(-max(a,b)); one exp for one or two terms.
+float waterSurfaceCompositeExponentialDensity(float firstScaledDepth, float secondScaledDepth) {
+  return clamp(1.0 - exp(-max(max(firstScaledDepth, 0.0), max(secondScaledDepth, 0.0))), 0.0, 1.0);
+}
 
 #endif
 
 #ifndef WATER_SURFACE_APPEARANCE_V2_FUNCTIONS_INCLUDED
 #define WATER_SURFACE_APPEARANCE_V2_FUNCTIONS_INCLUDED
 
+#ifndef WATER_SURFACE_NORMAL_FUNCTIONS_INCLUDED
+#define WATER_SURFACE_NORMAL_FUNCTIONS_INCLUDED
+vec3 waterSurfaceAppearanceSafeNormalize3(vec3 value, vec3 fallbackValue) {
+  float lengthSquared = dot(value, value);
+  return lengthSquared > 0.000001
+    ? value * inversesqrt(lengthSquared)
+    : fallbackValue;
+}
+
+vec3 waterSurfaceAppearanceDecodeTangentNormal(
+  vec4 packedNormal,
+  float strength,
+  float flipGreen
+) {
+  vec2 slope = packedNormal.rg * 2.0 - 1.0;
+  slope.y *= mix(1.0, -1.0, step(0.5, flipGreen));
+  slope *= strength;
+  float normalZ = sqrt(max(1.0 - dot(slope, slope), 0.0001));
+  normalZ = mix(1.0, normalZ, clamp(strength, 0.0, 1.0));
+  return waterSurfaceAppearanceSafeNormalize3(
+    vec3(slope, normalZ),
+    vec3(0.0, 0.0, 1.0)
+  );
+}
+
+vec3 waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
+  vec4 packedNormal,
+  float strength,
+  float flipGreen
+) {
+  vec2 sourceSlope = packedNormal.rg * 2.0 - 1.0;
+  sourceSlope.y *= mix(1.0, -1.0, step(0.5, flipGreen));
+  float sourceNormalZ = sqrt(max(1.0 - clamp(dot(sourceSlope, sourceSlope), 0.0, 1.0), 0.0001));
+  float normalZ = mix(1.0, sourceNormalZ, clamp(strength, 0.0, 1.0));
+  // Do not normalize here: partial-derivative/whiteout blends own the final
+  // normalization and must retain the authored XY-to-Z strength relation.
+  return vec3(sourceSlope * strength, normalZ);
+}
+
+vec3 waterSurfaceAppearanceBlendTangentNormals(
+  vec3 firstNormal,
+  vec3 secondNormal
+) {
+  return waterSurfaceAppearanceSafeNormalize3(
+    vec3(firstNormal.xy + secondNormal.xy, firstNormal.z * secondNormal.z),
+    vec3(0.0, 0.0, 1.0)
+  );
+}
+
+vec3 waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(
+  vec3 firstNormal,
+  vec3 secondNormal
+) {
+  return waterSurfaceAppearanceSafeNormalize3(
+    vec3(
+      firstNormal.xy * secondNormal.z + secondNormal.xy * firstNormal.z,
+      firstNormal.z * secondNormal.z
+    ),
+    vec3(0.0, 0.0, 1.0)
+  );
+}
+
+vec3 waterSurfaceAppearanceV2BlendAddSlope(vec3 baseNormal, vec3 detailNormal) {
+  vec2 slope = baseNormal.xy / max(baseNormal.z, 0.0001)
+    + detailNormal.xy / max(detailNormal.z, 0.0001);
+  return waterSurfaceAppearanceSafeNormalize3(vec3(slope, 1.0), vec3(0.0, 0.0, 1.0));
+}
+
+vec3 waterSurfaceAppearanceV2BlendReoriented(vec3 baseNormal, vec3 detailNormal) {
+  vec3 t = baseNormal + vec3(0.0, 0.0, 1.0);
+  vec3 u = detailNormal * vec3(-1.0, -1.0, 1.0);
+  return waterSurfaceAppearanceSafeNormalize3(
+    t * dot(t, u) / max(t.z, 0.0001) - u,
+    vec3(0.0, 0.0, 1.0)
+  );
+}
 
 #endif
 
-      float saturate(float value) {
-        return clamp(value, 0.0, 1.0);
-      }
+float waterSurfaceAppearanceV2RefractionValidity(
+  float insideScreen,
+  float waterCoverage,
+  float shoreSafety,
+  float centeredGeometryBehindSurface,
+  float shiftedGeometryBehindSurface,
+  float shiftedDepthContinuity
+) {
+  return clamp(insideScreen, 0.0, 1.0)
+    * clamp(waterCoverage, 0.0, 1.0)
+    * clamp(shoreSafety, 0.0, 1.0)
+    * clamp(centeredGeometryBehindSurface, 0.0, 1.0)
+    * clamp(shiftedGeometryBehindSurface, 0.0, 1.0)
+    * clamp(shiftedDepthContinuity, 0.0, 1.0);
+}
+#endif
+
       #include "ShaderLibrary/Lighting/VolumetricCloudShadow.glsl"
 #ifndef WATER_ANIMATED_VORONOI_F1_INCLUDED
 #define WATER_ANIMATED_VORONOI_F1_INCLUDED
@@ -1444,15 +1581,40 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
 
 
 
-
-
-      float remapDepthBufferEyeDepth(float depth) {
-        #ifdef CAMERA_ORTHOGRAPHIC
-          return camera_ProjectionParams.y + (camera_ProjectionParams.z - camera_ProjectionParams.y) * depth;
-        #else
-          return 1.0 / (camera_DepthBufferParams.z * depth + camera_DepthBufferParams.w);
-        #endif
+      void applyHeightfieldWave(
+        vec4 waveA,
+        vec4 waveB,
+        vec2 restXZ,
+        vec3 tangentWS,
+        vec3 bitangentWS,
+        vec2 localFlowDirection,
+        float flowAlignment,
+        float macroAmplitudeScale,
+        float shoreDamping,
+        inout float displacement,
+        inout float tangentSlope,
+        inout float bitangentSlope
+      ) {
+        vec2 tangentXZ = safeNormalize2(tangentWS.xz, vec2(1.0, 0.0));
+        vec2 authoredDirection = safeNormalize2(waveA.xy, tangentXZ);
+        vec2 localWaveDirection = safeNormalize2(
+          mix(authoredDirection, localFlowDirection, flowAlignment),
+          authoredDirection
+        );
+        vec2 waveDirection = waterLocalDirectionToWorldXZ(localWaveDirection);
+        float theta = waveA.w * dot(localWaveDirection, restXZ) - 6.28318531 * waveB.y + waveB.z;
+        float amplitude = waveA.z
+          * material_WaveStrength
+          * material_WavesEnabled
+          * macroAmplitudeScale;
+        float sine = sin(theta);
+        float cosine = cos(theta);
+        float slope = amplitude * waveA.w * cosine * shoreDamping;
+        displacement += amplitude * sine * shoreDamping;
+        tangentSlope += slope * dot(waveDirection, tangentWS.xz);
+        bitangentSlope += slope * dot(waveDirection, bitangentWS.xz);
       }
+
 
       Varyings vert(Attributes attr) {
         Varyings output;
@@ -1625,11 +1787,14 @@ float waterSurface_waveCrest = max(input.waveOffset, 0.0);
           appearanceLayerScaled0.x * material_AppearanceV2Detail0Rotation.x - appearanceLayerScaled0.y * material_AppearanceV2Detail0Rotation.y,
           appearanceLayerScaled0.x * material_AppearanceV2Detail0Rotation.y + appearanceLayerScaled0.y * material_AppearanceV2Detail0Rotation.x
         ) + material_AppearanceV2Detail0Transform.zw;
-        vec3 appearanceLayerNormal0 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
+        vec3 appearanceLayerNormal0 = vec3(0.0, 0.0, 1.0);
+        if (material_AppearanceV2Detail0Enabled > 0.5) {
+        appearanceLayerNormal0 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
           texture2D(material_AppearanceV2Detail0Texture, appearanceLayerUv0),
           material_AppearanceV2Detail0Strength,
           0.0
         );
+        }
         appearanceNormalTS = waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(appearanceNormalTS, appearanceLayerNormal0);
 
         vec2 appearanceLayerCoordinate1 = baseWorldPosition.xz;
@@ -1638,11 +1803,14 @@ float waterSurface_waveCrest = max(input.waveOffset, 0.0);
           appearanceLayerScaled1.x * material_AppearanceV2Detail1Rotation.x - appearanceLayerScaled1.y * material_AppearanceV2Detail1Rotation.y,
           appearanceLayerScaled1.x * material_AppearanceV2Detail1Rotation.y + appearanceLayerScaled1.y * material_AppearanceV2Detail1Rotation.x
         ) + material_AppearanceV2Detail1Transform.zw;
-        vec3 appearanceLayerNormal1 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
+        vec3 appearanceLayerNormal1 = vec3(0.0, 0.0, 1.0);
+        if (material_AppearanceV2Detail1Enabled > 0.5) {
+        appearanceLayerNormal1 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
           texture2D(material_AppearanceV2Detail1Texture, appearanceLayerUv1),
           material_AppearanceV2Detail1Strength,
           0.0
         );
+        }
         appearanceNormalTS = waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(appearanceNormalTS, appearanceLayerNormal1);
 
         appearanceNormalTS = normalize(mix(vec3(0.0, 0.0, 1.0), appearanceNormalTS, material_AppearanceV2DetailNormalStrength));
@@ -1972,19 +2140,23 @@ float waterSurface_waveCrest = max(input.waveOffset, 0.0);
         );
         vec3 rawSsrReflectionPremultipliedSample = vec3(0.0);
         float rawSsrReflectionValidity = 0.0;
-        if (
-          material_ReflectionSource > 2.5 &&
-          rainRippleSurfaceRoughness < camera_ScreenSpaceReflectionMaxRoughness
-        ) {
-          vec2 ssrScreenUv = (input.clipPosition.xy / input.clipPosition.w) * 0.5 + 0.5;
-          vec4 ssrReflection = texture2D(camera_ScreenSpaceReflectionTexture, ssrScreenUv);
-          float ssrGlobalIntensity = saturate(camera_ScreenSpaceReflectionIntensity);
-          ssrGlobalIntensity *= waterConnectionFacts(input.worldPosition.xz).y;
-          rawSsrReflectionPremultipliedSample = ssrReflection.rgb * ssrGlobalIntensity;
-          rawSsrReflectionValidity = saturate(
-            ssrReflection.a * ssrGlobalIntensity
+        #ifdef CAMERA_ENABLE_SSR
+        if (material_ReflectionSource > 2.5) {
+          vec3 fallbackEnvironment = mix(
+            rawAnalyticReflectionSample,
+            rawEnvironmentReflectionSample,
+            rawEnvironmentReflectionValidity
           );
+          vec3 ssrComposited = evaluateScreenSpaceReflection(
+            input.clipPosition,
+            surfaceNormalWS,
+            rainRippleSurfaceRoughness,
+            fallbackEnvironment
+          );
+          rawSsrReflectionValidity = waterConnectionFacts(input.worldPosition.xz).y;
+          rawSsrReflectionPremultipliedSample = ssrComposited * rawSsrReflectionValidity;
         }
+        #endif
         float reflectionIntensity = max(material_ReflectionIntensity, 0.0);
 
         WaterSurfaceRawRefractionFactsV2 rawRefractionFacts;
@@ -2106,23 +2278,36 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
           // matching material render-state binding, so B is not consumed again.
           fragmentAlpha = 1.0;
         }
-          gl_FragColor = waterSurfaceOutputWithPick(vec4(fragmentColor, fragmentAlpha));
+        gl_FragColor = waterSurfaceOutputWithPick(vec4(fragmentColor, fragmentAlpha));
       }
 
     }
-
-    Pass "ScreenSpaceReflectionSurface" {
-      Tags {
-        pipelineStage = "ScreenSpaceReflectionSurface",
-        screenSpaceReflectionReceiver = "ColorResponseV3"
-      }
-      DepthState ssrSurfaceDepthState {
+    Pass "SSRReceiver" {
+      Tags { pipelineStage = "SSRReceiver" }
+      DepthState = {
+        Enabled = true;
         WriteEnabled = true;
         CompareFunction = CompareFunction.LessEqual;
       }
-      RasterState ssrSurfaceRasterState { CullMode = CullMode.Off; }
-      DepthState = ssrSurfaceDepthState;
-      RasterState = ssrSurfaceRasterState;
+      BlendState = {
+        Enabled = false;
+      }
+      StencilState = {
+        Enabled = true;
+        ReferenceValue = 1;
+        Mask = 255;
+        WriteMask = 255;
+        CompareFunctionFront = CompareFunction.Always;
+        CompareFunctionBack = CompareFunction.Always;
+        PassOperationFront = StencilOperation.Replace;
+        PassOperationBack = StencilOperation.Replace;
+        FailOperationFront = StencilOperation.Keep;
+        FailOperationBack = StencilOperation.Keep;
+        ZFailOperationFront = StencilOperation.Keep;
+        ZFailOperationBack = StencilOperation.Keep;
+      }
+      RasterState ssrReceiverRasterState { CullMode = CullMode.Off; }
+      RasterState = ssrReceiverRasterState;
       RenderQueueType = Transparent;
 
       VertexShader = vert;
@@ -2130,7 +2315,7 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
 
       #include "ShaderLibrary/Common/Common.glsl"
       #include "ShaderLibrary/Common/Transform.glsl"
-      #include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflection.glsl"
+      #include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl"
 
       vec4 scene_ElapsedTime;
       vec3 scene_WindVelocity;
@@ -2139,6 +2324,8 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
       sampler2D material_LocalMapTexture;
 #ifndef WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
 #define WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
+      float material_AppearanceV2Detail0Enabled;
+      float material_AppearanceV2Detail1Enabled;
       float material_AppearanceV2DetailEnabled;
       float material_AppearanceV2DetailNormalStrength;
       float material_AppearanceV2DepthResponseEnabled;
@@ -2186,8 +2373,13 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
       float material_SurfaceTimeOverride;
       float material_MicroNormalsEnabled;
       float material_Roughness;
-      float material_ScreenSpaceReflectionMode;
       float material_ScreenSpaceReflectionIntensity;
+      vec4 camera_SSRParams;
+#ifdef MATERIAL_WATER_PRESENTATION_REVEAL
+      float material_PresentationRevealProgress;
+      float material_PresentationRevealBand;
+      vec2 material_PresentationRevealRepeat;
+#endif
 
       struct Attributes {
         vec4 POSITION;
@@ -2205,13 +2397,28 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
         vec2 atlasUv;
         float waveOffset;
       };
-      struct HeightfieldScreenSpaceReflectionSurfaceOutput {
-        layout(location = 0) vec4 geometry;
-        layout(location = 1) vec4 responseColor;
+      struct HeightfieldSSRReceiverOutput {
+        layout(location = 0) vec4 normalRoughness;
+        layout(location = 1) vec4 receiverDepth;
       };
 
 
+      vec2 waterWorldToLocalXZ(vec2 worldXZ) {
+        vec2 delta = worldXZ - material_WaterWorldToLocalPlanar.zw;
+        return vec2(
+          delta.x * material_WaterWorldToLocalPlanar.x - delta.y * material_WaterWorldToLocalPlanar.y,
+          delta.x * material_WaterWorldToLocalPlanar.y + delta.y * material_WaterWorldToLocalPlanar.x
+        );
+      }
 
+      vec2 waterLocalDirectionToWorldXZ(vec2 localDirection) {
+        return vec2(
+          localDirection.x * material_WaterWorldToLocalPlanar.x
+            + localDirection.y * material_WaterWorldToLocalPlanar.y,
+          -localDirection.x * material_WaterWorldToLocalPlanar.y
+            + localDirection.y * material_WaterWorldToLocalPlanar.x
+        );
+      }
 
 
 #ifndef WATER_HEIGHTFIELD_RAIN_RIPPLE_INCLUDED
@@ -2287,6 +2494,21 @@ vec3 waterSurfaceAppearanceSafeNormalize3(vec3 value, vec3 fallbackValue) {
     : fallbackValue;
 }
 
+vec3 waterSurfaceAppearanceDecodeTangentNormal(
+  vec4 packedNormal,
+  float strength,
+  float flipGreen
+) {
+  vec2 slope = packedNormal.rg * 2.0 - 1.0;
+  slope.y *= mix(1.0, -1.0, step(0.5, flipGreen));
+  slope *= strength;
+  float normalZ = sqrt(max(1.0 - dot(slope, slope), 0.0001));
+  normalZ = mix(1.0, normalZ, clamp(strength, 0.0, 1.0));
+  return waterSurfaceAppearanceSafeNormalize3(
+    vec3(slope, normalZ),
+    vec3(0.0, 0.0, 1.0)
+  );
+}
 
 vec3 waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
   vec4 packedNormal,
@@ -2302,6 +2524,15 @@ vec3 waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
   return vec3(sourceSlope * strength, normalZ);
 }
 
+vec3 waterSurfaceAppearanceBlendTangentNormals(
+  vec3 firstNormal,
+  vec3 secondNormal
+) {
+  return waterSurfaceAppearanceSafeNormalize3(
+    vec3(firstNormal.xy + secondNormal.xy, firstNormal.z * secondNormal.z),
+    vec3(0.0, 0.0, 1.0)
+  );
+}
 
 vec3 waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(
   vec3 firstNormal,
@@ -2316,17 +2547,133 @@ vec3 waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(
   );
 }
 
+vec3 waterSurfaceAppearanceV2BlendAddSlope(vec3 baseNormal, vec3 detailNormal) {
+  vec2 slope = baseNormal.xy / max(baseNormal.z, 0.0001)
+    + detailNormal.xy / max(detailNormal.z, 0.0001);
+  return waterSurfaceAppearanceSafeNormalize3(vec3(slope, 1.0), vec3(0.0, 0.0, 1.0));
+}
 
+vec3 waterSurfaceAppearanceV2BlendReoriented(vec3 baseNormal, vec3 detailNormal) {
+  vec3 t = baseNormal + vec3(0.0, 0.0, 1.0);
+  vec3 u = detailNormal * vec3(-1.0, -1.0, 1.0);
+  return waterSurfaceAppearanceSafeNormalize3(
+    t * dot(t, u) / max(t.z, 0.0001) - u,
+    vec3(0.0, 0.0, 1.0)
+  );
+}
 
 #endif
 
+float waterSurfaceAppearanceDepthTintFactor(
+  float sceneDepthDelta,
+  float distance,
+  float exponent
+) {
+  return pow(
+    clamp(sceneDepthDelta / max(distance, 0.0001), 0.0, 1.0),
+    max(exponent, 0.0001)
+  );
+}
 
 #endif
 
 #ifndef WATER_SURFACE_APPEARANCE_V2_FUNCTIONS_INCLUDED
 #define WATER_SURFACE_APPEARANCE_V2_FUNCTIONS_INCLUDED
 
+#ifndef WATER_SURFACE_NORMAL_FUNCTIONS_INCLUDED
+#define WATER_SURFACE_NORMAL_FUNCTIONS_INCLUDED
+vec3 waterSurfaceAppearanceSafeNormalize3(vec3 value, vec3 fallbackValue) {
+  float lengthSquared = dot(value, value);
+  return lengthSquared > 0.000001
+    ? value * inversesqrt(lengthSquared)
+    : fallbackValue;
+}
 
+vec3 waterSurfaceAppearanceDecodeTangentNormal(
+  vec4 packedNormal,
+  float strength,
+  float flipGreen
+) {
+  vec2 slope = packedNormal.rg * 2.0 - 1.0;
+  slope.y *= mix(1.0, -1.0, step(0.5, flipGreen));
+  slope *= strength;
+  float normalZ = sqrt(max(1.0 - dot(slope, slope), 0.0001));
+  normalZ = mix(1.0, normalZ, clamp(strength, 0.0, 1.0));
+  return waterSurfaceAppearanceSafeNormalize3(
+    vec3(slope, normalZ),
+    vec3(0.0, 0.0, 1.0)
+  );
+}
+
+vec3 waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
+  vec4 packedNormal,
+  float strength,
+  float flipGreen
+) {
+  vec2 sourceSlope = packedNormal.rg * 2.0 - 1.0;
+  sourceSlope.y *= mix(1.0, -1.0, step(0.5, flipGreen));
+  float sourceNormalZ = sqrt(max(1.0 - clamp(dot(sourceSlope, sourceSlope), 0.0, 1.0), 0.0001));
+  float normalZ = mix(1.0, sourceNormalZ, clamp(strength, 0.0, 1.0));
+  // Do not normalize here: partial-derivative/whiteout blends own the final
+  // normalization and must retain the authored XY-to-Z strength relation.
+  return vec3(sourceSlope * strength, normalZ);
+}
+
+vec3 waterSurfaceAppearanceBlendTangentNormals(
+  vec3 firstNormal,
+  vec3 secondNormal
+) {
+  return waterSurfaceAppearanceSafeNormalize3(
+    vec3(firstNormal.xy + secondNormal.xy, firstNormal.z * secondNormal.z),
+    vec3(0.0, 0.0, 1.0)
+  );
+}
+
+vec3 waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(
+  vec3 firstNormal,
+  vec3 secondNormal
+) {
+  return waterSurfaceAppearanceSafeNormalize3(
+    vec3(
+      firstNormal.xy * secondNormal.z + secondNormal.xy * firstNormal.z,
+      firstNormal.z * secondNormal.z
+    ),
+    vec3(0.0, 0.0, 1.0)
+  );
+}
+
+vec3 waterSurfaceAppearanceV2BlendAddSlope(vec3 baseNormal, vec3 detailNormal) {
+  vec2 slope = baseNormal.xy / max(baseNormal.z, 0.0001)
+    + detailNormal.xy / max(detailNormal.z, 0.0001);
+  return waterSurfaceAppearanceSafeNormalize3(vec3(slope, 1.0), vec3(0.0, 0.0, 1.0));
+}
+
+vec3 waterSurfaceAppearanceV2BlendReoriented(vec3 baseNormal, vec3 detailNormal) {
+  vec3 t = baseNormal + vec3(0.0, 0.0, 1.0);
+  vec3 u = detailNormal * vec3(-1.0, -1.0, 1.0);
+  return waterSurfaceAppearanceSafeNormalize3(
+    t * dot(t, u) / max(t.z, 0.0001) - u,
+    vec3(0.0, 0.0, 1.0)
+  );
+}
+
+#endif
+
+float waterSurfaceAppearanceV2RefractionValidity(
+  float insideScreen,
+  float waterCoverage,
+  float shoreSafety,
+  float centeredGeometryBehindSurface,
+  float shiftedGeometryBehindSurface,
+  float shiftedDepthContinuity
+) {
+  return clamp(insideScreen, 0.0, 1.0)
+    * clamp(waterCoverage, 0.0, 1.0)
+    * clamp(shoreSafety, 0.0, 1.0)
+    * clamp(centeredGeometryBehindSurface, 0.0, 1.0)
+    * clamp(shiftedGeometryBehindSurface, 0.0, 1.0)
+    * clamp(shiftedDepthContinuity, 0.0, 1.0);
+}
 #endif
 
 #ifndef WATER_CONNECTION_FUNCTIONS
@@ -2412,6 +2759,39 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
 
 
 
+      void applyHeightfieldWave(
+        vec4 waveA,
+        vec4 waveB,
+        vec2 restXZ,
+        vec3 tangentWS,
+        vec3 bitangentWS,
+        vec2 localFlowDirection,
+        float flowAlignment,
+        float macroAmplitudeScale,
+        float shoreDamping,
+        inout float displacement,
+        inout float tangentSlope,
+        inout float bitangentSlope
+      ) {
+        vec2 tangentXZ = safeNormalize2(tangentWS.xz, vec2(1.0, 0.0));
+        vec2 authoredDirection = safeNormalize2(waveA.xy, tangentXZ);
+        vec2 localWaveDirection = safeNormalize2(
+          mix(authoredDirection, localFlowDirection, flowAlignment),
+          authoredDirection
+        );
+        vec2 waveDirection = waterLocalDirectionToWorldXZ(localWaveDirection);
+        float theta = waveA.w * dot(localWaveDirection, restXZ) - 6.28318531 * waveB.y + waveB.z;
+        float amplitude = waveA.z
+          * material_WaveStrength
+          * material_WavesEnabled
+          * macroAmplitudeScale;
+        float sine = sin(theta);
+        float cosine = cos(theta);
+        float slope = amplitude * waveA.w * cosine * shoreDamping;
+        displacement += amplitude * sine * shoreDamping;
+        tangentSlope += slope * dot(waveDirection, tangentWS.xz);
+        bitangentSlope += slope * dot(waveDirection, bitangentWS.xz);
+      }
 
 
       Varyings vert(Attributes attr) {
@@ -2463,16 +2843,52 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
         return varyings;
       }
 
-      HeightfieldScreenSpaceReflectionSurfaceOutput frag(Varyings input) {
-        if (waterConnectionFacts(input.worldPosition.xz).w < 0.5) discard;
-        if (
-          material_ScreenSpaceReflectionMode < 1.5
-            || material_ScreenSpaceReflectionMode > 2.5
-        ) discard;
+      HeightfieldSSRReceiverOutput frag(Varyings input) {
+        if (material_ScreenSpaceReflectionIntensity <= 0.0) discard;
         vec4 localMap = texture2D(material_LocalMapTexture, input.atlasUv);
         float signedDistance = (localMap.a * 2.0 - 1.0) * material_LocalMapDecode.z;
         signedDistance = waterConnectionShore(input.worldPosition.xz, signedDistance);
-        if (smoothstep(-0.08, 0.08, signedDistance) <= 0.001) discard;
+        // Keep the shoreline transition wider than both one screen-space
+        // derivative and one RGBA8 signed-distance decode step, matching ForwardPass
+        // and computing derivatives before any per-fragment discard.
+        #ifdef HAS_DERIVATIVES
+          float coverageHalfWidth = max(
+            0.08,
+            max(
+              fwidth(signedDistance) * 1.25,
+              material_LocalMapDecode.z * (2.0 / 255.0)
+            )
+          );
+        #else
+          float coverageHalfWidth = max(0.08, material_LocalMapDecode.z * (2.0 / 255.0));
+        #endif
+        if (waterConnectionFacts(input.worldPosition.xz).w < 0.5) discard;
+        if (smoothstep(-coverageHalfWidth, coverageHalfWidth, signedDistance) <= 0.001) discard;
+#ifdef MATERIAL_WATER_PRESENTATION_REVEAL
+        float presentationBand = max(material_PresentationRevealBand, 0.0001);
+        vec2 presentationTileUv = fract(input.atlasUv * max(material_PresentationRevealRepeat, vec2(1.0)));
+        vec2 presentationGrid = vec2(64.0, 48.0);
+        vec2 presentationNoisePosition = presentationTileUv * presentationGrid;
+        vec2 presentationCell = floor(presentationNoisePosition);
+        vec2 presentationCellUv = fract(presentationNoisePosition);
+        presentationCellUv = presentationCellUv * presentationCellUv * (3.0 - 2.0 * presentationCellUv);
+        float presentationCellNoise00 = fract(sin(dot(presentationCell, vec2(127.1, 311.7))) * 43758.5453123);
+        float presentationCellNoise10 = fract(sin(dot(presentationCell + vec2(1.0, 0.0), vec2(127.1, 311.7))) * 43758.5453123);
+        float presentationCellNoise01 = fract(sin(dot(presentationCell + vec2(0.0, 1.0), vec2(127.1, 311.7))) * 43758.5453123);
+        float presentationCellNoise11 = fract(sin(dot(presentationCell + vec2(1.0, 1.0), vec2(127.1, 311.7))) * 43758.5453123);
+        float presentationNoise = mix(
+          mix(presentationCellNoise00, presentationCellNoise10, presentationCellUv.x),
+          mix(presentationCellNoise01, presentationCellNoise11, presentationCellUv.x),
+          presentationCellUv.y
+        );
+        float presentationProgress = clamp(material_PresentationRevealProgress, 0.0, 1.0);
+        float presentationVisibility = smoothstep(
+          presentationNoise - presentationBand,
+          presentationNoise + presentationBand,
+          presentationProgress
+        );
+        if (presentationVisibility <= 0.001) discard;
+#endif
         float elapsedTime = surfaceTime();
         vec2 flowXZ = (localMap.rg * 2.0 - 1.0) * material_LocalMapDecode.x;
         float flowSpeed = length(flowXZ);
@@ -2505,11 +2921,14 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
           appearanceLayerScaled0.x * material_AppearanceV2Detail0Rotation.x - appearanceLayerScaled0.y * material_AppearanceV2Detail0Rotation.y,
           appearanceLayerScaled0.x * material_AppearanceV2Detail0Rotation.y + appearanceLayerScaled0.y * material_AppearanceV2Detail0Rotation.x
         ) + material_AppearanceV2Detail0Transform.zw;
-        vec3 appearanceLayerNormal0 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
+        vec3 appearanceLayerNormal0 = vec3(0.0, 0.0, 1.0);
+        if (material_AppearanceV2Detail0Enabled > 0.5) {
+        appearanceLayerNormal0 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
           texture2D(material_AppearanceV2Detail0Texture, appearanceLayerUv0),
           material_AppearanceV2Detail0Strength,
           0.0
         );
+        }
         appearanceNormalTS = waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(appearanceNormalTS, appearanceLayerNormal0);
 
         vec2 appearanceLayerCoordinate1 = baseWorldPosition.xz;
@@ -2518,11 +2937,14 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
           appearanceLayerScaled1.x * material_AppearanceV2Detail1Rotation.x - appearanceLayerScaled1.y * material_AppearanceV2Detail1Rotation.y,
           appearanceLayerScaled1.x * material_AppearanceV2Detail1Rotation.y + appearanceLayerScaled1.y * material_AppearanceV2Detail1Rotation.x
         ) + material_AppearanceV2Detail1Transform.zw;
-        vec3 appearanceLayerNormal1 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
+        vec3 appearanceLayerNormal1 = vec3(0.0, 0.0, 1.0);
+        if (material_AppearanceV2Detail1Enabled > 0.5) {
+        appearanceLayerNormal1 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
           texture2D(material_AppearanceV2Detail1Texture, appearanceLayerUv1),
           material_AppearanceV2Detail1Strength,
           0.0
         );
+        }
         appearanceNormalTS = waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(appearanceNormalTS, appearanceLayerNormal1);
 
         appearanceNormalTS = normalize(mix(vec3(0.0, 0.0, 1.0), appearanceNormalTS, material_AppearanceV2DetailNormalStrength));
@@ -2550,6 +2972,7 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
         );
 #endif
 
+        surfaceNormalWS = waterConnectionNormal(input.worldPosition.xz, surfaceNormalWS);
 #ifndef WATER_HEIGHTFIELD_RAIN_RIPPLE_LAYERED_STATEMENTS_INCLUDED
 #define WATER_HEIGHTFIELD_RAIN_RIPPLE_LAYERED_STATEMENTS_INCLUDED
 
@@ -2645,18 +3068,14 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
 
 #endif
 
-        surfaceNormalWS = waterConnectionNormal(input.worldPosition.xz, surfaceNormalWS);
 
+        if (rainRippleSurfaceRoughness >= camera_SSRParams.y) discard;
         vec3 viewDirection = safeNormalize3(camera_Position - input.worldPosition, vec3(0.0, 1.0, 0.0));
         surfaceNormalWS *= step(0.0, dot(surfaceNormalWS, viewDirection)) * 2.0 - 1.0;
-        HeightfieldScreenSpaceReflectionSurfaceOutput surfaceOutput;
-        surfaceOutput.geometry = packScreenSpaceReflectionSurface(
-          surfaceNormalWS,
-          rainRippleSurfaceRoughness,
-          1.0
-        );
-        surfaceOutput.responseColor = vec4(vec3(material_ScreenSpaceReflectionIntensity), 1.0);
-        return surfaceOutput;
+        HeightfieldSSRReceiverOutput ssrOutput;
+        ssrOutput.normalRoughness = packSSRNormalRoughness(surfaceNormalWS, rainRippleSurfaceRoughness);
+        ssrOutput.receiverDepth = encodeSSRDepth(remapDepthBufferEyeDepth(gl_FragCoord.z), camera_ProjectionParams.z);
+        return ssrOutput;
       }
 
     }

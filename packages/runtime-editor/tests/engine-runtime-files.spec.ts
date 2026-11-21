@@ -32,9 +32,25 @@ describe("engine runtime files", () => {
 
   it("resolves engine imports and typechecks a Script against the mounted files", () => {
     const virtual = new Map(Object.entries(declarations).map(([path, text]) => ["/project/" + path.slice("declare/engine/".length), text]));
-    virtual.set("/project/main.ts", `import { Script, ScreenSpaceReflection } from "@galacean/engine";
-const receiverContract: "ColorResponseV3" = ScreenSpaceReflection.MATERIAL_RECEIVER_CONTRACT;
+    virtual.set("/project/main.ts", `import {
+  Camera,
+  PBRMaterial,
+  Scene,
+  ScreenSpaceReflectionQuality,
+  ScreenSpaceReflectionSettings,
+  Script
+} from "@galacean/engine";
 export default class Rotate extends Script {
+  configureSSR(scene: Scene, camera: Camera, material: PBRMaterial): void {
+    const settings: ScreenSpaceReflectionSettings = scene.screenSpaceReflection;
+    settings.enabled = true;
+    settings.quality = ScreenSpaceReflectionQuality.Medium;
+    camera.enableScreenSpaceReflection = true;
+    camera.screenSpaceReflectionOverride = { quality: ScreenSpaceReflectionQuality.High };
+    camera.notifyScreenSpaceReflectionCut();
+    material.screenSpaceReflectionIntensity = 1.0;
+    material.contributeScreenSpaceReflectionDepth = false;
+  }
   onUpdate(dt: number): void { this.entity.transform.rotate(0, dt * 90, 0); }
 }`);
     const options: ts.CompilerOptions = { noEmit: true, strict: true, skipLibCheck: true, target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 };

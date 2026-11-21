@@ -87,7 +87,11 @@ export async function loadProceduralPlantMaterialBindings(
             anisoLevel: 8
           }
         });
-        if (!(texture instanceof Texture2D) || texture.width !== descriptor.width || texture.height !== descriptor.height)
+        if (
+          !(texture instanceof Texture2D) ||
+          texture.width !== descriptor.width ||
+          texture.height !== descriptor.height
+        )
           throw new Error(`Plant appearance image dimensions changed: ${id}`);
         textures.set(id, texture);
       }),
@@ -227,6 +231,7 @@ export function createProceduralPlantMaterialBindings(
           throw new Error(`Missing plant albedo resource: ${binding.albedo}`);
         material = sources[role].clone();
         material.name = `${sources[role].name} · plant library`;
+        material.screenSpaceReflectionOccluder = structuralWind;
         configureProceduralTreeCanopyOcclusionMaterial(material, {
           ...DEFAULT_PROCEDURAL_TREE_CANOPY_OCCLUSION_TUNING,
           enabled: structuralWind && role !== "bark"

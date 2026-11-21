@@ -14,7 +14,26 @@ import { resolveWaterOpaqueDownsampling } from "../src/water/authoring/quality/W
 import { createWaterQualitySettings } from "../src/water/native/WaterQualitySettings";
 import { scopedLook } from "../src/water/native/WaterResources";
 import { WaterSurfaceAppearanceCompiler } from "../src/water/compiler/surface/WaterSurfaceAppearanceCompiler";
+import { WaterRenderContractCompiler } from "../src/water/compiler/surface/WaterRenderContractCompiler";
 import { resolveWaterSurfaceAppearanceBinding } from "../src/water/runtime/surface/WaterSurfaceAppearanceBinding";
+import { createRiverSurfaceAppearanceV2ShaderSource } from "../src/water/runtime/river/RiverSurfaceShader";
+import { createWaterShaderModule, materializeWaterShaderModuleSource } from "../src/water/runtime/material/WaterShaderModule";
+import {
+  WaterFieldConsumerActivation,
+  WaterFieldFallback,
+  WaterFieldProviderKind,
+  WaterFieldRequirement,
+  WaterFieldSemantic,
+  WaterFieldUnit
+} from "../src/water/authoring/surface/WaterSurfaceFieldTypes";
+import { WaterBodyAssetRegistry } from "../src/water/runtime/body/WaterBodyAssetRegistry";
+import {
+  registerRiverWaterBodyPresets,
+  registerFarmlandsRiverLook,
+  FARMLANDS_RIVER_LOOK_ID,
+  riverQualityPlanIdForQuality
+} from "../src/water/presets/river/index";
+import { FARMLANDS_WAVE_RESOURCE, FARMLANDS_CAUSTICS_RESOURCE } from "../src/water/resources/river/FarmlandsWaterAssets";
 
 it("defaults refraction to half resolution and honors full-resolution overrides", () => {
   expect(resolveWaterOpaqueDownsampling({ sceneFields: "scene-color-depth" })).toBe("2x");
@@ -186,4 +205,54 @@ it("rejects invalid authoring even when low quality would discard it", () => {
     detailLayers: authored.detailLayers.map((layer, index) => (index === 1 ? { ...layer, strength: -1 } : layer))
   };
   expect(() => resolveWaterSurfaceAppearanceForQuality(invalid, { surfaceShading: "low" })).toThrow();
+});
+
+it("F2: declares sceneDepthDelta in River SSRReceiver when boundary roughness uses SceneEyeDepth", () => {
+  const registry = new WaterBodyAssetRegistry();
+  registerRiverWaterBodyPresets(registry);
+  registerFarmlandsRiverLook(registry);
+  const riverLook = registry.getLookAuthoringSnapshot(FARMLANDS_RIVER_LOOK_ID);
+  const patchedAppearance = structuredClone(riverLook.appearance.appearance);
+  patchedAppearance.boundaryEffects = [
+    {
+      ...patchedAppearance.boundaryEffects[0],
+      field: WaterFieldSemantic.SceneEyeDepth,
+      outputs: { roughness: 0.35 }
+    }
+  ];
+  const fieldDependencies = {
+    ...riverLook.appearance.fieldDependencies,
+    bindings: [
+      ...riverLook.appearance.fieldDependencies.bindings,
+      {
+        consumerId: "test-boundary-roughness-eye-depth",
+        semantic: WaterFieldSemantic.SceneEyeDepth,
+        providers: [WaterFieldProviderKind.CameraDepth, WaterFieldProviderKind.Derived],
+        activation: WaterFieldConsumerActivation.Always,
+        requirement: WaterFieldRequirement.Optional,
+        fallback: WaterFieldFallback.UseNextProvider,
+        unit: WaterFieldUnit.Meter
+      }
+    ]
+  };
+  const contract = WaterRenderContractCompiler.compile({
+    sourceId: riverLook.look.id,
+    look: { ...riverLook.look, riverDrops: undefined },
+    appearance: patchedAppearance,
+    fieldDependencies,
+    optics: { id: riverLook.optics.id, profile: riverLook.optics.profile },
+    reflectionIntent: riverLook.reflectionPolicy,
+    qualityPlan: registry.getQualityPlan(riverQualityPlanIdForQuality("high")),
+    renderState: riverLook.renderState,
+    resources: [FARMLANDS_WAVE_RESOURCE, FARMLANDS_CAUSTICS_RESOURCE]
+  });
+  expect(contract.diagnostics).toEqual([]);
+  expect(contract.valid).toBe(true);
+  const rawSource = createRiverSurfaceAppearanceV2ShaderSource(contract.data!, false);
+  const shaderName = rawSource.match(/Shader\s+"([^"]+)"/)![1];
+  const source = materializeWaterShaderModuleSource(createWaterShaderModule(shaderName, rawSource, {}, []));
+  const receiverIndex = source.indexOf('Pass "SSRReceiver"');
+  expect(receiverIndex).toBeGreaterThan(-1);
+  const receiverSource = source.slice(receiverIndex);
+  expect(receiverSource).toContain("float sceneDepthDelta =");
 });

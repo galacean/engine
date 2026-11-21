@@ -38,6 +38,8 @@ interface TextureParameter {
 export interface WaterMaterialFile {
   name: string;
   shader: string;
+  screenSpaceReflectionIntensity?: number;
+  screenSpaceReflectionBilateral?: boolean;
   macros: { name: string; value?: string }[];
   shaderData: Record<string, { type: ParameterType | "Texture"; value: unknown }>;
 }
@@ -107,9 +109,16 @@ export function createWaterMaterialFile(
 ): WaterMaterialFile {
   if (look.look.riverDrops)
     throw new TypeError("NOT_SUPPORTED: River Drops is not part of the public Water material contract.");
+  const policy = look.reflectionPolicy.policy;
+  const ssrEnabled =
+    profile !== "ocean" &&
+    (policy.preferred === "ssr" || policy.fallbacks.includes("ssr")) &&
+    look.look.reflectionSampling.screenSpaceCompositeIntensity > 0;
   const material: WaterMaterialFile = {
     name: look.look.id,
     shader: WATER_BUILTIN_SHADER_NAMES[profile],
+    screenSpaceReflectionIntensity: ssrEnabled ? 1 : 0,
+    ...(profile !== "ocean" ? { screenSpaceReflectionBilateral: false } : {}),
     macros: [],
     shaderData: {
       material_WaterProfile: { type: "Integer", value: profiles.indexOf(profile) }
@@ -461,6 +470,19 @@ export function updateWaterMaterialParameters(
   next: WaterLookAuthoringComponents
 ): WaterMaterialFile {
   const result = structuredClone(file);
+  const profile = resolveWaterMaterialProfile(result.shaderData.material_WaterProfile?.value, false);
+  const policy = next.reflectionPolicy.policy;
+  result.screenSpaceReflectionIntensity =
+    profile !== "ocean" &&
+    (policy.preferred === "ssr" || policy.fallbacks.includes("ssr")) &&
+    next.look.reflectionSampling.screenSpaceCompositeIntensity > 0
+      ? 1
+      : 0;
+  if (profile !== "ocean") {
+    result.screenSpaceReflectionBilateral = false;
+  } else {
+    delete result.screenSpaceReflectionBilateral;
+  }
   materialDefinition(next, (name, type, value) => {
     if (type !== "Texture") result.shaderData[name] = { type, value };
   });

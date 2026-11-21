@@ -355,7 +355,7 @@ export class HeightfieldWaterRuntimeController {
     return this._refractionEnabled;
   }
 
-  /** Requested Water Forward composite weight; Camera SSR and its lease are intentionally independent. */
+  /** Requested Water Forward SSR composite weight; Camera SSR state and reflection binding remain independent. */
   get screenSpaceReflectionCompositeIntensity(): number {
     return this._screenSpaceReflectionCompositeIntensity;
   }
@@ -604,7 +604,7 @@ export class HeightfieldWaterRuntimeController {
     this._recordAppliedReflectionBinding(binding);
   }
 
-  /** Changes only Water Forward SSR consumption and keeps Camera SSR acquisition/Surface receiver state intact. */
+  /** Changes Water Forward SSR consumption and syncs SSRReceiver participation without altering Camera SSR settings. */
   setScreenSpaceReflectionCompositeIntensity(intensity: number): void {
     const resolvedIntensity = Number.isFinite(intensity) ? Math.min(1, Math.max(0, intensity)) : 0;
     this._screenSpaceReflectionCompositeIntensity = resolvedIntensity;

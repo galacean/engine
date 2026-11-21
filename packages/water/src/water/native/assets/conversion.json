@@ -272,10 +272,10 @@
     }
   },
   {
-    "source": "packages/terrain/src/data/seed-world/public/Shader/Water/lake-heightfield-high-hybrid-v2.d0c7aa288369a09d15f12e26b7d335e40489b59246bcd63d2aab74d35863a48d.shaderc",
+    "source": "packages/terrain/src/data/seed-world/public/Shader/Water/lake-heightfield-high-hybrid-v2.0f4025d9417d688d4cc120c68810db7e5189280eb5887140425cd2c1c4415528.shaderc",
     "target": "Water/Shaders/lake-heightfield-high-hybrid-v2.shaderc",
-    "sha256": "d0c7aa288369a09d15f12e26b7d335e40489b59246bcd63d2aab74d35863a48d",
-    "byteLength": 111383,
+    "sha256": "0f4025d9417d688d4cc120c68810db7e5189280eb5887140425cd2c1c4415528",
+    "byteLength": 134767,
     "type": "Shader"
   },
   {

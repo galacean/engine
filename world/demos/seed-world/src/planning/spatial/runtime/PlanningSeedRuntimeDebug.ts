@@ -263,7 +263,7 @@ export class PlanningSeedRuntimeDebug {
         },
         screenSpaceReflection: {
           // Planning Water exposes per-body looks, not the old aggregate reflection switch.
-          // Camera SSR owns the real consumer metrics; absent legacy water readouts stay absent.
+          // Camera SSR owns the real SSR v2 diagnostics; absent legacy water readouts stay absent.
           readStatus: () => inspectScreenSpaceReflectionPanelStatus(options.camera),
           applyConfiguration: (configuration) => applyScreenSpaceReflectionConfiguration(options.camera, configuration)
         },
@@ -441,7 +441,7 @@ export class PlanningSeedRuntimeDebug {
     const submitted = world.population.submittedCounts;
     const exact = world.getExactInstanceSpatialSnapshot();
     const horizon = world.getTerrainOcclusionDiagnostics();
-    const ssr = camera.screenSpaceReflection.metrics;
+    const ssr = camera.screenSpaceReflectionDiagnostics;
     const detailInstances = compacted.grass + compacted.flower;
     const visibleDetailInstances = submitted.grass + submitted.flower;
     const farm = this.performance.expanded ? this.options.farming?.runtime : undefined;
@@ -512,12 +512,12 @@ export class PlanningSeedRuntimeDebug {
 
       msaaSamples: camera.msaaSamples,
       postProcessEnabled: post.profileEnabled,
-      screenSpaceReflectionRequested: ssr.requested,
-      screenSpaceReflectionEffective: ssr.effective,
-      screenSpaceReflectionConsumerLeaseCount: ssr.activeConsumerLeaseCount,
-      screenSpaceReflectionSelectedConsumerLabel: ssr.selectedConsumerLabel,
-      screenSpaceReflectionOpaqueDraws: ssr.opaqueSurfacePassDrawCount,
-      screenSpaceReflectionTransparentDraws: ssr.transparentSurfacePassDrawCount,
+      screenSpaceReflectionActive: ssr.active,
+      screenSpaceReflectionState: ssr.state,
+      screenSpaceReflectionTraceWidth: ssr.traceWidth,
+      screenSpaceReflectionTraceHeight: ssr.traceHeight,
+      screenSpaceReflectionOpaqueDraws: ssr.opaqueReceiverCount,
+      screenSpaceReflectionTransparentDraws: ssr.transparentReceiverCount,
       screenSpaceReflectionEstimatedBytes: ssr.estimatedBytes,
       shadowCascadeCount: root.scene!.shadowCascades,
       waterSummary: water.getPerformanceSummary()

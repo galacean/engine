@@ -1,6 +1,8 @@
 {
   "name": "farmlands-scene-demo-river-v1",
   "shader": "Water/River.v1",
+  "screenSpaceReflectionIntensity": 1,
+  "screenSpaceReflectionBilateral": false,
   "macros": [],
   "shaderData": {
     "material_WaterProfile": {

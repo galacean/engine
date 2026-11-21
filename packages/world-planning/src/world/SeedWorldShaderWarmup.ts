@@ -15,16 +15,16 @@ import {
   ParticleRenderer,
   Renderer,
   RenderQueueType,
-  ScreenSpaceReflection,
-  ScreenSpaceReflectionActivationMode,
-  ScreenSpaceReflectionReceiverMode,
-  ScreenSpaceReflectionUpsamplingMode,
+  ScreenSpaceReflectionQuality,
+  type ScreenSpaceReflectionSettings,
   SkinnedMeshRenderer,
   type Scene,
   Shader,
   ShaderMacro,
   ShaderMacroCollection,
-  ShaderPass
+  ShaderPass,
+  ShaderProperty,
+  TextureFormat
 } from "@galacean/engine";
 import photoCopySource from "./PhotoCopy.shader?raw";
 import {
@@ -86,6 +86,8 @@ export interface SeedWorldShaderWarmupOptions {
   /** Preserve caller-supplied priority order instead of lexicographical sorting. */
   readonly preserveOrder?: boolean;
   readonly strict?: boolean;
+  /** Whether Level-1 SSR sampler-budget fallback should enable CAMERA_SSR_VERIFY_RECEIVER_DEPTH (matches RenderQueue when transparent SSR receivers exist). */
+  readonly ssrVerifyReceiverDepth?: boolean;
   readonly onProgress?: (completed: number, total: number) => void;
   /** Diagnostic receipt of exact requested identities before compilation. */
   readonly onVariants?: (variants: readonly SeedWorldShaderVariantEntry[]) => void;
@@ -209,6 +211,14 @@ const ASSET_ASSEMBLY_RENDERER_INSTANCE_MACRO = ShaderMacro.getByName("RENDERER_A
 const ASSET_ASSEMBLY_COMPACT_INSTANCE_MACRO = ShaderMacro.getByName("RENDERER_ASSET_ASSEMBLY_COMPACT_INSTANCE");
 const DETAIL_COMPACT_MACRO = ShaderMacro.getByName("RENDERER_SEED_WORLD_DETAIL_COMPACT");
 const MASONRY_ENTRANCE_MACRO = ShaderMacro.getByName("RENDERER_MASONRY_ENTRANCE");
+const SSR_ALL_FORWARD_MACROS = new Set([
+  "CAMERA_ENABLE_SSR",
+  "CAMERA_SSR_VERIFY_RECEIVER_DEPTH",
+  "CAMERA_SSR_BILATERAL_SAMPLE",
+  "SSR_PACKED_DEPTH_RG8",
+  "SSR_PACKED_NORMAL_OCT8"
+]);
+
 const PARTICLE_TRAJECTORY_FEEDBACK_MACRO = ShaderMacro.getByName("RENDERER_TRAJECTORY_FEEDBACK");
 const PARTICLE_FEEDBACK_STATE_VARYINGS = ["v_FeedbackPosition", "v_FeedbackVelocity"];
 const PARTICLE_FEEDBACK_TRAJECTORY_VARYINGS = [
@@ -231,6 +241,104 @@ function resolveTransformFeedbackVaryings(
       : PARTICLE_FEEDBACK_STATE_VARYINGS;
   }
   return undefined;
+}
+
+type RuntimeSsrShaderProgram = RuntimeShaderProgram & {
+  _errorLog?: string | null;
+  activeTextureCount?: number;
+  _ssrFallbackMaxUnits?: number;
+  _ssrFallbackVerify?: RuntimeShaderProgram | null;
+  _ssrFallbackNoVerify?: RuntimeShaderProgram | null;
+};
+
+function isTextureUnitOverflowError(errorLog: string | null | undefined): boolean {
+  return Boolean(errorLog && /MAX_TEXTURE_IMAGE_UNITS|texture image units/i.test(errorLog));
+}
+
+function getCachedSsrFallback(
+  program: RuntimeSsrShaderProgram,
+  maxUnits: number,
+  verifyDepth: boolean
+): RuntimeSsrShaderProgram | null {
+  if (maxUnits <= 0 || program._ssrFallbackMaxUnits !== maxUnits) return null;
+  return (verifyDepth ? program._ssrFallbackVerify : program._ssrFallbackNoVerify) ?? null;
+}
+
+function cacheSsrFallback(
+  rejectedPrograms: readonly RuntimeSsrShaderProgram[],
+  fallbackProgram: RuntimeSsrShaderProgram,
+  maxUnits: number,
+  verifyDepth: boolean
+): void {
+  if (maxUnits <= 0 || !fallbackProgram.isValid) return;
+  for (const rejected of rejectedPrograms) {
+    if (rejected === fallbackProgram) continue;
+    if (rejected._ssrFallbackMaxUnits !== maxUnits) {
+      rejected._ssrFallbackVerify = null;
+      rejected._ssrFallbackNoVerify = null;
+      rejected._ssrFallbackMaxUnits = maxUnits;
+    }
+    if (verifyDepth) {
+      rejected._ssrFallbackVerify = fallbackProgram;
+    } else {
+      rejected._ssrFallbackNoVerify = fallbackProgram;
+    }
+  }
+}
+
+function buildNextSsrFallbackEntry(
+  entry: SeedWorldShaderVariantEntry,
+  verifyDepth: boolean,
+  rejectedProgram: RuntimeSsrShaderProgram,
+  maxUnits: number
+): SeedWorldShaderVariantEntry | null {
+  if (!entry.macros.some((macro) => macro.n === "CAMERA_ENABLE_SSR")) return null;
+  const hasBilateral = entry.macros.some((macro) => macro.n === "CAMERA_SSR_BILATERAL_SAMPLE");
+  const hasVerify = entry.macros.some((macro) => macro.n === "CAMERA_SSR_VERIFY_RECEIVER_DEPTH");
+  if (hasBilateral) {
+    const level1Delta = verifyDepth ? 1 : 2;
+    const canTryLevel1 =
+      !rejectedProgram.isValid || maxUnits <= 0 || (rejectedProgram.activeTextureCount ?? 0) - level1Delta <= maxUnits;
+    if (canTryLevel1) {
+      const nextMacros = entry.macros.filter(
+        (macro) =>
+          macro.n !== "CAMERA_SSR_BILATERAL_SAMPLE" &&
+          macro.n !== "CAMERA_SSR_VERIFY_RECEIVER_DEPTH" &&
+          macro.n !== "SSR_PACKED_NORMAL_OCT8" &&
+          (verifyDepth || macro.n !== "SSR_PACKED_DEPTH_RG8")
+      );
+      if (verifyDepth) {
+        nextMacros.push({ n: "CAMERA_SSR_VERIFY_RECEIVER_DEPTH" });
+      }
+      return {
+        shader: entry.shader,
+        si: entry.si,
+        pi: entry.pi,
+        macros: nextMacros
+      };
+    }
+  } else if (hasVerify && !verifyDepth) {
+    const canTryDropVerify =
+      !rejectedProgram.isValid || maxUnits <= 0 || (rejectedProgram.activeTextureCount ?? 0) - 1 <= maxUnits;
+    if (canTryDropVerify) {
+      const nextMacros = entry.macros.filter(
+        (macro) => macro.n !== "CAMERA_SSR_VERIFY_RECEIVER_DEPTH" && macro.n !== "SSR_PACKED_DEPTH_RG8"
+      );
+      return {
+        shader: entry.shader,
+        si: entry.si,
+        pi: entry.pi,
+        macros: nextMacros
+      };
+    }
+  }
+  const strippedMacros = entry.macros.filter((macro) => !SSR_ALL_FORWARD_MACROS.has(macro.n));
+  return {
+    shader: entry.shader,
+    si: entry.si,
+    pi: entry.pi,
+    macros: strippedMacros
+  };
 }
 
 export function hasParallelShaderCompile(engine: Engine): boolean {
@@ -258,9 +366,22 @@ export async function warmupSeedWorldShaderVariants(
   let frameStartedAt = startedAt;
   let compiled = 0;
   let longestVariantMilliseconds = 0;
+  const rawMaxUnits = (
+    engine as unknown as { _hardwareRenderer?: { capability?: { maxFragmentTextureUnits?: number } } }
+  )._hardwareRenderer?.capability?.maxFragmentTextureUnits;
+  const maxFragmentTextureUnits =
+    typeof rawMaxUnits === "number" && Number.isFinite(rawMaxUnits) && rawMaxUnits > 0 ? rawMaxUnits : 0;
+  const ssrVerifyReceiverDepth = options.ssrVerifyReceiverDepth === true;
+  type Alias = {
+    key: string;
+    entry: SeedWorldShaderVariantEntry;
+    pass: RuntimeShaderPass;
+    rejectedPrograms: RuntimeSsrShaderProgram[];
+  };
   type ProgramState = {
-    keys: string[];
+    aliases: Alias[];
     settled: boolean;
+    overflowFallback?: boolean;
     failure?: Pick<SeedWorldShaderWarmupIssue, "reason" | "message">;
   };
   const programs = new Map<RuntimeShaderProgram, ProgramState>();
@@ -282,9 +403,108 @@ export async function warmupSeedWorldShaderVariants(
     options.signal?.throwIfAborted();
     frameStartedAt = performance.now();
   };
-  const completeAlias = (key: string, state: ProgramState) => {
-    if (state.failure) issues.push({ key, ...state.failure });
-    else compiled++;
+  const isProgramTextureUnitOverflow = (program: RuntimeSsrShaderProgram): boolean => {
+    if (program.isValid) {
+      return maxFragmentTextureUnits > 0 && (program.activeTextureCount ?? 0) > maxFragmentTextureUnits;
+    }
+    return isTextureUnitOverflowError(program._errorLog);
+  };
+  const submitFallbackOrFail = (
+    alias: Alias,
+    rejectedProgram: RuntimeSsrShaderProgram,
+    failure: Pick<SeedWorldShaderWarmupIssue, "reason" | "message">
+  ): void => {
+    const cached = getCachedSsrFallback(rejectedProgram, maxFragmentTextureUnits, ssrVerifyReceiverDepth);
+    if (
+      cached &&
+      cached.isValid &&
+      (maxFragmentTextureUnits <= 0 || (cached.activeTextureCount ?? 0) <= maxFragmentTextureUnits)
+    ) {
+      cacheSsrFallback(alias.rejectedPrograms, cached, maxFragmentTextureUnits, ssrVerifyReceiverDepth);
+      compiled++;
+      return;
+    }
+    if (!options.cacheOnly) {
+      const nextEntry = buildNextSsrFallbackEntry(
+        alias.entry,
+        ssrVerifyReceiverDepth,
+        rejectedProgram,
+        maxFragmentTextureUnits
+      );
+      if (nextEntry) {
+        submitProgram({
+          key: alias.key,
+          entry: nextEntry,
+          pass: alias.pass,
+          rejectedPrograms: [...alias.rejectedPrograms, rejectedProgram]
+        });
+        return;
+      }
+    }
+    issues.push({ key: alias.key, ...failure });
+  };
+  const submitProgram = (alias: Alias): void => {
+    const macros = new ShaderMacroCollection();
+    for (const macro of alias.entry.macros) {
+      macros.enable(macro.v === undefined ? ShaderMacro.getByName(macro.n) : ShaderMacro.getByName(macro.n, macro.v));
+    }
+    const variantStartedAt = performance.now();
+    try {
+      const feedbackVaryings = resolveTransformFeedbackVaryings(alias.entry.shader, alias.pass, macros);
+      const program = alias.pass._getShaderProgram(
+        engine,
+        macros,
+        feedbackVaryings ?? true,
+        options.cacheOnly
+      ) as RuntimeSsrShaderProgram;
+      const elapsed = performance.now() - variantStartedAt;
+      longestVariantMilliseconds = Math.max(longestVariantMilliseconds, elapsed);
+      const existing = programs.get(program);
+      if (existing) {
+        if (!existing.settled) {
+          existing.aliases.push(alias);
+        } else if (existing.overflowFallback) {
+          if (
+            !alias.rejectedPrograms.includes(program) &&
+            alias.entry.macros.some((macro) => macro.n === "CAMERA_ENABLE_SSR")
+          ) {
+            submitFallbackOrFail(
+              alias,
+              program,
+              existing.failure ?? {
+                reason: "invalid-program",
+                message: "Shader program exceeded fragment texture image units."
+              }
+            );
+          } else if (existing.failure) {
+            issues.push({ key: alias.key, ...existing.failure });
+          } else {
+            issues.push({
+              key: alias.key,
+              reason: "invalid-program",
+              message: "Shader program failed texture unit budget without a valid fallback."
+            });
+          }
+        } else if (existing.failure) {
+          issues.push({ key: alias.key, ...existing.failure });
+        } else {
+          cacheSsrFallback(alias.rejectedPrograms, program, maxFragmentTextureUnits, ssrVerifyReceiverDepth);
+          compiled++;
+        }
+      } else {
+        const state: ProgramState = { aliases: [alias], settled: false };
+        programs.set(program, state);
+        pending.set(program, state);
+      }
+    } catch (error) {
+      const elapsed = performance.now() - variantStartedAt;
+      longestVariantMilliseconds = Math.max(longestVariantMilliseconds, elapsed);
+      issues.push({
+        key: alias.key,
+        reason: "compile-error",
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
   };
   const submit = (entry: SeedWorldShaderVariantEntry) => {
     const key = seedWorldShaderVariantKey(entry);
@@ -302,35 +522,7 @@ export async function warmupSeedWorldShaderVariants(
       });
       return;
     }
-
-    const macros = new ShaderMacroCollection();
-    for (const macro of entry.macros) {
-      macros.enable(macro.v === undefined ? ShaderMacro.getByName(macro.n) : ShaderMacro.getByName(macro.n, macro.v));
-    }
-    const variantStartedAt = performance.now();
-    try {
-      const feedbackVaryings = resolveTransformFeedbackVaryings(entry.shader, pass, macros);
-      const program = pass._getShaderProgram(engine, macros, feedbackVaryings ?? true, options.cacheOnly);
-      const elapsed = performance.now() - variantStartedAt;
-      longestVariantMilliseconds = Math.max(longestVariantMilliseconds, elapsed);
-      const existing = programs.get(program);
-      if (existing) {
-        if (existing.settled) completeAlias(key, existing);
-        else existing.keys.push(key);
-      } else {
-        const state: ProgramState = { keys: [key], settled: false };
-        programs.set(program, state);
-        pending.set(program, state);
-      }
-    } catch (error) {
-      const elapsed = performance.now() - variantStartedAt;
-      longestVariantMilliseconds = Math.max(longestVariantMilliseconds, elapsed);
-      issues.push({
-        key,
-        reason: "compile-error",
-        message: error instanceof Error ? error.message : String(error)
-      });
-    }
+    submitProgram({ key, entry, pass, rejectedPrograms: [] });
   };
 
   let nextEntry = 0;
@@ -354,15 +546,6 @@ export async function warmupSeedWorldShaderVariants(
       try {
         if (program._pollReady()) {
           state.settled = true;
-          if (!program.isValid) {
-            const detail = (program as unknown as { _errorLog?: string | null })._errorLog;
-            state.failure = {
-              reason: "invalid-program",
-              message: detail
-                ? `Shader program compiled to an invalid program (${detail}).`
-                : "Shader program compiled to an invalid program."
-            };
-          }
         }
       } catch (error) {
         state.settled = true;
@@ -372,8 +555,55 @@ export async function warmupSeedWorldShaderVariants(
       }
       if (state.settled) {
         pending.delete(program);
-        for (const key of state.keys) completeAlias(key, state);
-        state.keys.length = 0;
+        const settledAliases = state.aliases.splice(0);
+        if (state.failure) {
+          for (const alias of settledAliases) issues.push({ key: alias.key, ...state.failure });
+        } else {
+          const ssrProgram = program as RuntimeSsrShaderProgram;
+          if (isProgramTextureUnitOverflow(ssrProgram)) {
+            const overflowFailure: Pick<SeedWorldShaderWarmupIssue, "reason" | "message"> = !ssrProgram.isValid
+              ? {
+                  reason: "invalid-program",
+                  message: ssrProgram._errorLog
+                    ? `Shader program compiled to an invalid program (${ssrProgram._errorLog}).`
+                    : "Shader program compiled to an invalid program."
+                }
+              : {
+                  reason: "invalid-program",
+                  message: `Shader program exceeded maxFragmentTextureUnits (${ssrProgram.activeTextureCount}/${maxFragmentTextureUnits}).`
+                };
+            state.failure = overflowFailure;
+            const hasSsrAlias = settledAliases.some((alias) =>
+              alias.entry.macros.some((macro) => macro.n === "CAMERA_ENABLE_SSR")
+            );
+            if (hasSsrAlias) {
+              state.overflowFallback = true;
+              for (const alias of settledAliases) {
+                if (alias.entry.macros.some((macro) => macro.n === "CAMERA_ENABLE_SSR")) {
+                  submitFallbackOrFail(alias, ssrProgram, overflowFailure);
+                } else {
+                  issues.push({ key: alias.key, ...overflowFailure });
+                }
+              }
+            } else {
+              for (const alias of settledAliases) issues.push({ key: alias.key, ...overflowFailure });
+            }
+          } else if (!ssrProgram.isValid) {
+            const detail = ssrProgram._errorLog;
+            state.failure = {
+              reason: "invalid-program",
+              message: detail
+                ? `Shader program compiled to an invalid program (${detail}).`
+                : "Shader program compiled to an invalid program."
+            };
+            for (const alias of settledAliases) issues.push({ key: alias.key, ...state.failure });
+          } else {
+            for (const alias of settledAliases) {
+              cacheSsrFallback(alias.rejectedPrograms, ssrProgram, maxFragmentTextureUnits, ssrVerifyReceiverDepth);
+              compiled++;
+            }
+          }
+        }
       }
       if (performance.now() - frameStartedAt >= frameBudgetMilliseconds) await yieldFrame();
       // Do not wait for the slowest program in the old batch before submitting more work.
@@ -419,9 +649,18 @@ export async function warmupSeedWorldRendererVariants(
   options: SeedWorldRendererWarmupOptions = {}
 ): Promise<SeedWorldShaderWarmupReport> {
   if (options.enabled === false) return skippedWarmupReport(0);
-  const variants = collectSeedWorldRendererVariants(engine, scene, camera, roots, options);
+  const { variants, hasTransparentSsr } = collectSeedWorldRendererVariantsInternal(
+    engine,
+    scene,
+    camera,
+    roots,
+    options
+  );
   options.onVariants?.(variants);
-  return warmupSeedWorldShaderVariants(engine, variants, options);
+  return warmupSeedWorldShaderVariants(engine, variants, {
+    ...options,
+    ssrVerifyReceiverDepth: options.ssrVerifyReceiverDepth ?? hasTransparentSsr
+  });
 }
 
 function deduplicateOrderedShaderVariants(
@@ -458,6 +697,16 @@ export function collectSeedWorldRendererVariants(
   roots: readonly Entity[],
   options: SeedWorldRendererWarmupOptions = {}
 ): readonly SeedWorldShaderVariantEntry[] {
+  return collectSeedWorldRendererVariantsInternal(engine, scene, camera, roots, options).variants;
+}
+
+function collectSeedWorldRendererVariantsInternal(
+  engine: Engine,
+  scene: Scene,
+  camera: Camera,
+  roots: readonly Entity[],
+  options: SeedWorldRendererWarmupOptions = {}
+): { readonly variants: readonly SeedWorldShaderVariantEntry[]; readonly hasTransparentSsr: boolean } {
   const runtimeCamera = camera as unknown as RuntimeCamera;
   runtimeCamera._updateShaderData();
   // Engine macros describe the last rendered target (often the Loading Scene).
@@ -473,6 +722,13 @@ export function collectSeedWorldRendererVariants(
     (camera.shaderData as unknown as RuntimeShaderData)._macroCollection,
     cameraMacros
   );
+  // Active cameras can retain transient Forward SSR macros from the previous frame; strip them so warmup
+  // never leaks stale SSR variants onto non-SSR passes or SSR-disabled collections.
+  const activeCameraMacros: ShaderMacro[] = [];
+  (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(cameraMacros, activeCameraMacros);
+  for (const macro of activeCameraMacros) {
+    if (SSR_ALL_FORWARD_MACROS.has(macro.name)) cameraMacros.disable(macro);
+  }
 
   if (options.activatedLightRoots) {
     const lightMacroNames = new Set(["SCENE_POINT_LIGHT_COUNT", "SCENE_SPOT_LIGHT_COUNT", "SCENE_DIRECT_LIGHT_COUNT"]);
@@ -532,27 +788,78 @@ export function collectSeedWorldRendererVariants(
   )._hardwareRenderer;
   const isWebGL2 = runtimeHardware?.isWebGL2 !== false;
   const depthPrepassEnabled = resolveDepthPrepassEnabled(engine, scene, camera);
-  const ssrRuntime = (
-    camera as unknown as {
-      screenSpaceReflection?: ScreenSpaceReflection & {
-        _isMaterialReceiver?: (material: Material, queue: RenderQueueType) => boolean;
-        _prepareSettings?: () => void;
-      };
-    }
-  ).screenSpaceReflection;
-  const ssrSupported =
-    Boolean(ssrRuntime) &&
-    ssrRuntime!.activationMode !== ScreenSpaceReflectionActivationMode.ForceOff &&
+  const rawSsrSettings =
+    (
+      camera as unknown as {
+        screenSpaceReflectionOverride?: Partial<ScreenSpaceReflectionSettings> | ScreenSpaceReflectionSettings | null;
+      }
+    ).screenSpaceReflectionOverride ??
+    (
+      scene as unknown as {
+        screenSpaceReflection?: Partial<ScreenSpaceReflectionSettings> | ScreenSpaceReflectionSettings;
+      }
+    ).screenSpaceReflection;
+  const ssrCameraEnabled =
+    (camera as unknown as { enableScreenSpaceReflection?: boolean }).enableScreenSpaceReflection !== false;
+  const ssrSettingsValid = Boolean(
+    rawSsrSettings &&
+      (typeof (rawSsrSettings as { _isValid?: () => boolean })._isValid === "function"
+        ? (rawSsrSettings as { _isValid: () => boolean })._isValid()
+        : rawSsrSettings.enabled === true &&
+          (rawSsrSettings.intensity ?? 1) > 0 &&
+          (rawSsrSettings.maxRoughness ?? 0.6) > 0)
+  );
+  const hardwareSupportsSsr =
     isWebGL2 &&
     (runtimeHardware?.canIUse ? runtimeHardware.canIUse(GLCapabilityType.drawBuffers) : true) &&
     (runtimeHardware?.capability?.maxDrawBuffers ?? 2) >= 2 &&
     runtimeHardware?.capability?.isFragmentHighPrecision !== false;
+  const ssrEnabled = ssrCameraEnabled && ssrSettingsValid && hardwareSupportsSsr;
+  const ssrQuality = rawSsrSettings?.quality ?? ScreenSpaceReflectionQuality.Medium;
+  const ssrMaxRoughness = rawSsrSettings?.maxRoughness ?? 0.6;
+  const hwFormatSupport = (
+    runtimeHardware as unknown as { supportsRenderTargetColorFormat?: (format: TextureFormat) => boolean } | undefined
+  )?.supportsRenderTargetColorFormat;
+  const supportsR16Float = hwFormatSupport ? hwFormatSupport.call(runtimeHardware, TextureFormat.R16_SFloat) : true;
+  const supportsRGBA16 = hwFormatSupport ? hwFormatSupport.call(runtimeHardware, TextureFormat.R16G16B16A16) : true;
+  const ssrPackedDepthRG8 = ssrEnabled && !supportsR16Float;
+  const ssrHighPrecisionNormals =
+    Boolean((camera as unknown as { enableHDR?: boolean }).enableHDR) ||
+    ssrQuality === ScreenSpaceReflectionQuality.High ||
+    ssrQuality === ScreenSpaceReflectionQuality.XHigh;
+  const ssrPackedNormalOct8 = ssrEnabled && !(ssrHighPrecisionNormals && supportsRGBA16);
+  const ssrRoughnessProp = ShaderProperty.getByName("material_Roughness");
+  const ssrHasRoughnessTexMacro = ShaderMacro.getByName("MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE");
+  const ssrEnableClearCoatMacro = ShaderMacro.getByName("MATERIAL_ENABLE_CLEAR_COAT");
+  const isSsrReceiver = (material: Material): boolean => {
+    const intensity = (material as unknown as { screenSpaceReflectionIntensity?: number })
+      .screenSpaceReflectionIntensity;
+    if (intensity === undefined || intensity <= 0) return false;
+    const shaderData = material.shaderData as unknown as {
+      _macroCollection?: ShaderMacroCollection;
+      getFloat?: (prop: ShaderProperty) => number | undefined;
+    };
+    const macros = shaderData?._macroCollection;
+    if (macros && !macros.isEnable(ssrHasRoughnessTexMacro) && !macros.isEnable(ssrEnableClearCoatMacro)) {
+      const roughness = shaderData.getFloat?.(ssrRoughnessProp);
+      if (roughness !== undefined && roughness >= ssrMaxRoughness) return false;
+    }
+    return true;
+  };
+  const ssrReceiverExtraMacros: SeedWorldShaderVariantMacro[] = [];
+  if (ssrPackedDepthRG8) ssrReceiverExtraMacros.push({ n: "SSR_PACKED_DEPTH_RG8" });
+  if (ssrPackedNormalOct8) ssrReceiverExtraMacros.push({ n: "SSR_PACKED_NORMAL_OCT8" });
   const ssrContext: AppendShaderVariantContext = {
     depthPrepassEnabled,
-    ssrRuntime: ssrSupported ? ssrRuntime : undefined,
+    ssrEnabled,
     includeOpaqueSsr: options.includeOpaqueScreenSpaceReflection === true,
+    isSsrReceiver,
+    ssrReceiverExtraMacros,
+    deferredSsrDepthOnly: [],
+    deferredSsrForward: [],
     hasOpaqueSsr: false,
-    hasTransparentSsr: false
+    hasTransparentSsr: false,
+    hasContribDepth: false
   };
   const variants: SeedWorldShaderVariantEntry[] = [];
   const collectedShaderMacroSets = new Set<string>();
@@ -730,17 +1037,27 @@ export function collectSeedWorldRendererVariants(
         : useGpuInstancingForMaterial
           ? gpuInstancedMacroVariants
           : authoredMacroVariants;
-      // Material admission is not a shader macro: an opted-in contributor must not be deduplicated
-      // against an otherwise identical non-contributor before its extra passes are collected.
-      const contributionKey = material.contributeScreenSpaceReflection
-        ? material.shader.subShaders
+      // Material admission is not a shader macro: an opted-in contributor or SSR receiver must not be deduplicated
+      // against an otherwise identical non-participant before its extra passes are collected.
+      const contribDepthEnabled =
+        ssrContext.ssrEnabled &&
+        Boolean(
+          (material as unknown as { contributeScreenSpaceReflectionDepth?: boolean })
+            .contributeScreenSpaceReflectionDepth
+        );
+      const ssrBilateral =
+        (material as unknown as { screenSpaceReflectionBilateral?: boolean }).screenSpaceReflectionBilateral !== false;
+      const ssrReceiverKey =
+        ssrContext.ssrEnabled && isSsrReceiver(material) ? (ssrBilateral ? "rx1b1" : "rx1b0") : "rx0";
+      const contributionKey = contribDepthEnabled
+        ? `${ssrReceiverKey}:${material.shader.subShaders
             .flatMap((subShader) =>
               subShader.passes.map((pass) =>
                 pass._renderState._getRenderQueueByShaderData(pass._renderStateDataMap, material.shaderData)
               )
             )
-            .join(",")
-        : "off";
+            .join(",")}`
+        : `${ssrReceiverKey}:off`;
       for (const extraMacros of materialMacroVariants) {
         const compileMacros = new ShaderMacroCollection();
         ShaderMacroCollection.unionCollection(
@@ -963,63 +1280,113 @@ export function collectSeedWorldRendererVariants(
     }
     appendShaderVariants(material.shader, macros, variants, false, target, undefined, isWebGL2);
   }
-  // Warm only the exact Lighting/ScreenSpaceReflection passes used by this template's active SSR receivers.
-  if (ssrSupported && ssrRuntime && (ssrContext.hasTransparentSsr || ssrContext.hasOpaqueSsr)) {
+  // Warm deferred SSR DepthOnly / Forward SSR variants + exact Lighting/ScreenSpaceReflection v2 passes when receivers exist.
+  const hasAnySsrReceivers = ssrContext.hasTransparentSsr || ssrContext.hasOpaqueSsr;
+  if (ssrEnabled && hasAnySsrReceivers) {
+    if (!depthPrepassEnabled && ssrContext.deferredSsrDepthOnly?.length) {
+      variants.push(...ssrContext.deferredSsrDepthOnly);
+    }
+    if (ssrContext.deferredSsrForward?.length) {
+      const camSSRBilateral = ssrQuality === ScreenSpaceReflectionQuality.High;
+      const camSSRVerifyDepth = ssrContext.hasTransparentSsr;
+      const buildForwardSsrMacros = (useBilateral: boolean, useVerifyDepth: boolean): SeedWorldShaderVariantMacro[] => {
+        const macros: SeedWorldShaderVariantMacro[] = [{ n: "CAMERA_ENABLE_SSR" }];
+        if (useBilateral) {
+          macros.push({ n: "CAMERA_SSR_BILATERAL_SAMPLE" });
+        } else if (useVerifyDepth) {
+          macros.push({ n: "CAMERA_SSR_VERIFY_RECEIVER_DEPTH" });
+        }
+        if (ssrPackedDepthRG8 && (useVerifyDepth || useBilateral)) {
+          macros.push({ n: "SSR_PACKED_DEPTH_RG8" });
+        }
+        if (ssrPackedNormalOct8 && useBilateral) {
+          macros.push({ n: "SSR_PACKED_NORMAL_OCT8" });
+        }
+        return macros;
+      };
+      for (const entry of ssrContext.deferredSsrForward) {
+        const useBilateral = camSSRBilateral && entry.allowBilateral;
+        const useVerifyDepth = !useBilateral && (camSSRVerifyDepth || (camSSRBilateral && !entry.allowBilateral));
+        variants.push({
+          shader: entry.shader,
+          si: entry.si,
+          pi: entry.pi,
+          macros: [...entry.macros, ...buildForwardSsrMacros(useBilateral, useVerifyDepth)]
+        });
+        // When both transparent and opaque SSR receivers exist under non-High quality, culling all
+        // transparent receivers drops camSSRVerifyDepth at runtime; warm the opaque-only Forward variant too.
+        if (
+          ssrContext.hasTransparentSsr &&
+          ssrContext.hasOpaqueSsr &&
+          !useBilateral &&
+          !camSSRBilateral &&
+          entry.isOpaque
+        ) {
+          variants.push({
+            shader: entry.shader,
+            si: entry.si,
+            pi: entry.pi,
+            macros: [...entry.macros, ...buildForwardSsrMacros(false, false)]
+          });
+        }
+      }
+    }
     const ssrShader = Shader.find("Lighting/ScreenSpaceReflection");
     if (ssrShader && !ssrShader.destroyed) {
-      ssrRuntime._prepareSettings?.();
-      const baseSsrMacros = new ShaderMacroCollection();
-      ShaderMacroCollection.unionCollection(cameraMacros, (engine as RuntimeEngine)._macroCollection, baseSsrMacros);
-      const msaaSamples = camera.renderTarget ? camera.renderTarget.antiAliasing : (camera.msaaSamples ?? 1);
-      const appendSsrPhase = (
-        receiverMode:
-          | ScreenSpaceReflectionReceiverMode.OpaqueComposite
-          | ScreenSpaceReflectionReceiverMode.TransparentSampleOnly
-      ) => {
-        const settings = ssrRuntime.getResolvedSettings(receiverMode);
-        const halfInputs =
-          receiverMode === ScreenSpaceReflectionReceiverMode.TransparentSampleOnly &&
-          ssrRuntime.useHalfResolutionInputs &&
-          !ssrContext.hasOpaqueSsr;
-        const verifyOpaqueDepth = msaaSamples > 1 || halfInputs;
-        const reduced = settings.resolutionScale < 1;
-        const reconstruct = reduced && settings.upsamplingMode !== ScreenSpaceReflectionUpsamplingMode.Bilinear;
-        const fusedCompositeUpsample =
-          reconstruct && receiverMode === ScreenSpaceReflectionReceiverMode.OpaqueComposite;
-        const separateUpsample = reconstruct && !fusedCompositeUpsample;
-        const gaussianFilter =
-          reduced && settings.upsamplingMode === ScreenSpaceReflectionUpsamplingMode.GaussianBilateral;
-
-        const phaseMacros = new ShaderMacroCollection();
-        ShaderMacroCollection.unionCollection(baseSsrMacros, baseSsrMacros, phaseMacros);
-        if (ssrRuntime.useSceneColorMipmaps !== false)
-          phaseMacros.enable(ShaderMacro.getByName("SSR_SCENE_COLOR_MIPMAPS"));
-        if (verifyOpaqueDepth) phaseMacros.enable(ShaderMacro.getByName("SSR_VERIFY_OPAQUE_DEPTH"));
-        if (reconstruct) phaseMacros.enable(ShaderMacro.getByName("SSR_STORE_TRACE_ORIGIN"));
-        if (fusedCompositeUpsample) phaseMacros.enable(ShaderMacro.getByName("SSR_COMPOSITE_BILATERAL_UPSAMPLE"));
-
-        const passIndexes = new Set<number>([0]); // Pass 0: Trace
-        if (halfInputs) passIndexes.add(4); // Pass 4: DownsampleDepth
-        if (gaussianFilter) passIndexes.add(1); // Pass 1: GaussianFilter
-        if (separateUpsample) passIndexes.add(2); // Pass 2: Upsample
-        if (receiverMode === ScreenSpaceReflectionReceiverMode.OpaqueComposite) passIndexes.add(3); // Pass 3: Composite
-
-        const elements: ShaderMacro[] = [];
-        (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(phaseMacros, elements);
-        const recorded = elements
+      const subShader = ssrShader.subShaders[0];
+      if (subShader) {
+        const baseSsrMacros = new ShaderMacroCollection();
+        ShaderMacroCollection.unionCollection(cameraMacros, (engine as RuntimeEngine)._macroCollection, baseSsrMacros);
+        if (ssrPackedDepthRG8) baseSsrMacros.enable(ShaderMacro.getByName("SSR_PACKED_DEPTH_RG8"));
+        if (ssrPackedNormalOct8) baseSsrMacros.enable(ShaderMacro.getByName("SSR_PACKED_NORMAL_OCT8"));
+        const baseElements: ShaderMacro[] = [];
+        (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(baseSsrMacros, baseElements);
+        const baseRecorded = baseElements
           .filter((macro) => macro.name !== "ENGINE_OUTPUT_SRGB_CORRECT")
           .map((macro) => (macro.value === undefined ? { n: macro.name } : { n: macro.name, v: macro.value }));
-        const subShader = ssrShader.subShaders[0];
-        if (subShader) {
-          for (const pi of passIndexes) {
-            if (subShader.passes[pi]) {
-              variants.push({ shader: ssrShader.name, si: 0, pi, macros: recorded });
-            }
-          }
+        const appendSsrPass = (pi: number, extraMacros?: readonly SeedWorldShaderVariantMacro[]) => {
+          if (!subShader.passes[pi]) return;
+          variants.push({
+            shader: ssrShader.name,
+            si: 0,
+            pi,
+            macros: extraMacros?.length ? [...baseRecorded, ...extraMacros] : baseRecorded
+          });
+        };
+        const useHighVirtual =
+          ssrQuality === ScreenSpaceReflectionQuality.High || ssrQuality === ScreenSpaceReflectionQuality.XHigh;
+        const isXHigh = ssrQuality === ScreenSpaceReflectionQuality.XHigh;
+        if (depthPrepassEnabled) appendSsrPass(0); // Pass 0: DownsampleDepth
+        const baseHiZ0Macros: SeedWorldShaderVariantMacro[] =
+          depthPrepassEnabled && !isXHigh ? [{ n: "SSR_DOWNSAMPLE_FROM_FULL_DEPTH" }] : [];
+        appendSsrPass(1, baseHiZ0Macros); // Pass 1: BuildHiZMip0 (without contrib depth)
+        if (ssrContext.hasContribDepth) {
+          appendSsrPass(1, [...baseHiZ0Macros, { n: "SSR_HAS_CONTRIB_DEPTH" }]); // Pass 1: BuildHiZMip0 (with contrib depth)
         }
-      };
-      if (ssrContext.hasTransparentSsr) appendSsrPhase(ScreenSpaceReflectionReceiverMode.TransparentSampleOnly);
-      if (ssrContext.hasOpaqueSsr) appendSsrPhase(ScreenSpaceReflectionReceiverMode.OpaqueComposite);
+        appendSsrPass(2); // Pass 2: BuildHiZMipN
+        appendSsrPass(3); // Pass 3: CopyTexture
+        appendSsrPass(4, useHighVirtual ? [{ n: "SSR_OUTPUT_HIT_DIST" }] : undefined); // Pass 4: HiZTrace
+        if (ssrQuality !== ScreenSpaceReflectionQuality.Low) {
+          appendSsrPass(5, useHighVirtual ? [{ n: "SSR_HIGH_VIRTUAL_REPROJECTION" }] : undefined); // Pass 5: TemporalResolve
+        }
+        const supportsColorPyramidR11G11B10 = hwFormatSupport
+          ? hwFormatSupport.call(runtimeHardware, TextureFormat.R11G11B10_UFloat)
+          : true;
+        const colorPyramidFormat = supportsColorPyramidR11G11B10
+          ? TextureFormat.R11G11B10_UFloat
+          : supportsRGBA16
+            ? TextureFormat.R16G16B16A16
+            : TextureFormat.R8G8B8A8;
+        const supportsColorPyramidHardwareMipmaps =
+          !isXHigh && isWebGL2 && (!hwFormatSupport || hwFormatSupport.call(runtimeHardware, colorPyramidFormat));
+        appendSsrPass(6, isXHigh ? [{ n: "SSR_COLOR_PYRAMID_FULL_RES" }] : undefined); // Pass 6: ColorPyramidPrefilter
+        if (isXHigh || !supportsColorPyramidHardwareMipmaps) {
+          appendSsrPass(7); // Pass 7: ColorPyramidDownsample (XHigh mips 2..N, or software fallback)
+        }
+        if (isXHigh) {
+          appendSsrPass(7, [{ n: "SSR_COLOR_PYRAMID_KARIS_DOWNSAMPLE" }]); // Pass 7 mip 1
+        }
+      }
     }
   }
   if (options.includePhotoCopy) {
@@ -1064,7 +1431,10 @@ export function collectSeedWorldRendererVariants(
   if (options.includeMasonryEntrance !== false) collected = withSeedWorldMasonryEntranceVariants(collected);
   if (options.includeMasonryDither !== false) collected = withSeedWorldMasonryDitherVariants(collected);
   if (options.includeLodDither === true) collected = withSeedWorldLodDitherVariants(collected);
-  return normalizeSeedWorldShaderVariants(collected);
+  return {
+    variants: normalizeSeedWorldShaderVariants(collected),
+    hasTransparentSsr: ssrContext.hasTransparentSsr
+  };
 }
 
 /** Predict LightManager registration after the atomic root swap without activating any entity. */
@@ -1231,14 +1601,22 @@ function locateShaderPass(
   return undefined;
 }
 
+interface DeferredSsrForwardEntry extends SeedWorldShaderVariantEntry {
+  readonly allowBilateral: boolean;
+  readonly isOpaque: boolean;
+}
+
 interface AppendShaderVariantContext {
   readonly depthPrepassEnabled: boolean;
-  readonly ssrRuntime?: ScreenSpaceReflection & {
-    _isMaterialReceiver?: (material: Material, queue: RenderQueueType) => boolean;
-  };
+  readonly ssrEnabled: boolean;
   readonly includeOpaqueSsr: boolean;
+  readonly isSsrReceiver?: (material: Material) => boolean;
+  readonly ssrReceiverExtraMacros?: readonly SeedWorldShaderVariantMacro[];
+  readonly deferredSsrDepthOnly?: SeedWorldShaderVariantEntry[];
+  readonly deferredSsrForward?: DeferredSsrForwardEntry[];
   hasOpaqueSsr: boolean;
   hasTransparentSsr: boolean;
+  hasContribDepth: boolean;
 }
 
 function resolveDepthPrepassEnabled(engine: Engine, scene: Scene, camera: Camera): boolean {
@@ -1307,41 +1685,110 @@ function appendShaderVariants(
       // Match shadow culling even while candidate roots are intentionally inactive.
       if (!castShadows && stage === "ShadowCaster") continue;
       if (stage === "TransformFeedback" && !isWebGL2) continue;
-      if (stage === "DepthOnly" && context && !context.depthPrepassEnabled) continue;
-      if (stage === "ScreenSpaceReflectionSurface" && material && context) {
-        if (!context.ssrRuntime) continue;
+      if (stage === "DepthOnly" && context && !context.depthPrepassEnabled) {
+        if (context.ssrEnabled && context.deferredSsrDepthOnly) {
+          if (
+            (material as { screenSpaceReflectionOccluder?: boolean } | undefined)?.screenSpaceReflectionOccluder ===
+            false
+          ) {
+            continue;
+          }
+          const queue = material
+            ? (pass._renderState?._getRenderQueueByShaderData?.(pass._renderStateDataMap, material.shaderData) ??
+              ((material as { isTransparent?: boolean }).isTransparent
+                ? RenderQueueType.Transparent
+                : RenderQueueType.Opaque))
+            : RenderQueueType.Opaque;
+          if (queue !== RenderQueueType.Transparent) {
+            const depthMacros =
+              renderToTexture !== undefined
+                ? recordedMacros.filter((macro) => macro.n !== "ENGINE_OUTPUT_SRGB_CORRECT")
+                : recordedMacros;
+            context.deferredSsrDepthOnly.push({ shader: shader.name, si, pi, macros: depthMacros });
+          }
+        }
+        continue;
+      }
+      if (stage === "SSRReceiver" && material && context) {
+        if (!context.ssrEnabled) continue;
         const queue =
           pass._renderState?._getRenderQueueByShaderData?.(pass._renderStateDataMap, material.shaderData) ??
           ((material as { isTransparent?: boolean }).isTransparent
             ? RenderQueueType.Transparent
             : RenderQueueType.Opaque);
-        const isReceiver = context.ssrRuntime._isMaterialReceiver
-          ? context.ssrRuntime._isMaterialReceiver(material, queue)
-          : ScreenSpaceReflection.getMaterialReceiverMode(material, queue) !==
-            ScreenSpaceReflectionReceiverMode.Disabled;
-        if (!isReceiver) continue;
+        const isReceiver = context.isSsrReceiver
+          ? context.isSsrReceiver(material)
+          : ((material as unknown as { screenSpaceReflectionIntensity?: number }).screenSpaceReflectionIntensity ?? 0) >
+            0;
+        const forceTerrainOpaque =
+          !isReceiver &&
+          queue !== RenderQueueType.Transparent &&
+          context.includeOpaqueSsr &&
+          shader.name.startsWith("Terrain/");
+        if (!isReceiver && !forceTerrainOpaque) continue;
         if (queue === RenderQueueType.Transparent) {
           context.hasTransparentSsr = true;
         } else {
-          if (!context.includeOpaqueSsr) continue;
           context.hasOpaqueSsr = true;
         }
       }
-      // Contribution capture only visits opted-in transparent materials. Merely having the pass in PBR
+      // Contribution depth capture only visits opted-in transparent materials. Merely having the pass in PBR
       // does not make it reachable (opaque objects already contribute through their Forward color).
-      if (
-        material &&
-        (stage === "ScreenSpaceReflectionContributionColor" || stage === "ScreenSpaceReflectionContributionDepth") &&
-        (!material.contributeScreenSpaceReflection ||
-          pass._renderState._getRenderQueueByShaderData(pass._renderStateDataMap, material.shaderData) !==
-            RenderQueueType.Transparent)
-      )
-        continue;
+      if (stage === "SSRContributionDepth") {
+        if (context && !context.ssrEnabled) continue;
+        if (
+          material &&
+          (!(material as unknown as { contributeScreenSpaceReflectionDepth?: boolean })
+            .contributeScreenSpaceReflectionDepth ||
+            pass._renderState._getRenderQueueByShaderData(pass._renderStateDataMap, material.shaderData) !==
+              RenderQueueType.Transparent)
+        )
+          continue;
+        if (material && context) {
+          context.hasContribDepth = true;
+        }
+      }
       let passMacros = recordedMacros;
       if (renderToTexture !== undefined) {
         passMacros = recordedMacros.filter((macro) => macro.n !== "ENGINE_OUTPUT_SRGB_CORRECT");
-        if (!renderToTexture && stage !== "ShadowCaster" && stage !== "DepthOnly") {
+        if (
+          !renderToTexture &&
+          stage !== "ShadowCaster" &&
+          stage !== "DepthOnly" &&
+          stage !== "SSRReceiver" &&
+          stage !== "SSRContributionDepth"
+        ) {
           passMacros.push({ n: "ENGINE_OUTPUT_SRGB_CORRECT" });
+        }
+      }
+      if (stage === "SSRReceiver" && context?.ssrReceiverExtraMacros?.length) {
+        passMacros = [...passMacros, ...context.ssrReceiverExtraMacros];
+      }
+      if (stage === "Forward" && context?.ssrEnabled && context.deferredSsrForward && material) {
+        const ssrIntensity =
+          (material as unknown as { screenSpaceReflectionIntensity?: number }).screenSpaceReflectionIntensity ?? 0;
+        const queue =
+          pass._renderState?._getRenderQueueByShaderData?.(pass._renderStateDataMap, material.shaderData) ??
+          ((material as { isTransparent?: boolean }).isTransparent
+            ? RenderQueueType.Transparent
+            : RenderQueueType.Opaque);
+        const forceTerrainOpaque =
+          ssrIntensity <= 0 &&
+          queue !== RenderQueueType.Transparent &&
+          context.includeOpaqueSsr &&
+          shader.name.startsWith("Terrain/");
+        if (ssrIntensity > 0 || forceTerrainOpaque) {
+          const allowBilateral =
+            (material as unknown as { screenSpaceReflectionBilateral?: boolean }).screenSpaceReflectionBilateral !==
+            false;
+          context.deferredSsrForward.push({
+            shader: shader.name,
+            si,
+            pi,
+            macros: passMacros,
+            allowBilateral,
+            isOpaque: queue !== RenderQueueType.Transparent
+          });
         }
       }
       variants.push({ shader: shader.name, si, pi, macros: passMacros });

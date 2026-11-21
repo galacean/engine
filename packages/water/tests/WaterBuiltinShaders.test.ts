@@ -88,8 +88,27 @@ it.each(["lake", "river", "ocean"] as const)(
     const isolated = Shader.create(source.replace(WATER_BUILTIN_SHADER_NAMES[profile], `WaterSourceTest/${profile}`));
     try {
       expect(isolated.compileVariant(engine, [])).toBe(true);
+      if (profile !== "ocean") {
+        for (const macros of [
+          ["CAMERA_ENABLE_SSR"],
+          ["CAMERA_ENABLE_SSR", "CAMERA_SSR_VERIFY_RECEIVER_DEPTH", "SSR_PACKED_DEPTH_RG8"],
+          ["CAMERA_ENABLE_SSR", "CAMERA_SSR_BILATERAL_SAMPLE", "SSR_PACKED_DEPTH_RG8", "SSR_PACKED_NORMAL_OCT8"]
+        ]) {
+          expect(isolated.compileVariant(engine, macros)).toBe(true);
+        }
+      }
       registerWaterBuiltinShaders();
       expect(Shader.find(WATER_BUILTIN_SHADER_NAMES[profile])!.compileVariant(engine, [])).toBe(true);
+      if (profile !== "ocean") {
+        const registeredShader = Shader.find(WATER_BUILTIN_SHADER_NAMES[profile])!;
+        for (const macros of [
+          ["CAMERA_ENABLE_SSR"],
+          ["CAMERA_ENABLE_SSR", "CAMERA_SSR_VERIFY_RECEIVER_DEPTH", "SSR_PACKED_DEPTH_RG8"],
+          ["CAMERA_ENABLE_SSR", "CAMERA_SSR_BILATERAL_SAMPLE", "SSR_PACKED_DEPTH_RG8", "SSR_PACKED_NORMAL_OCT8"]
+        ]) {
+          expect(registeredShader.compileVariant(engine, macros)).toBe(true);
+        }
+      }
     } finally {
       isolated.destroy();
       engine.destroy();
@@ -110,7 +129,7 @@ it("culls precomposed shore pixels before shading in both shipped Lake programs"
     expect(aot.name).toBe("AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0");
     for (const shader of [Shader.find(WATER_BUILTIN_SHADER_NAMES.lake)!, aot]) {
       const passes = shader.subShaders[0].passes;
-      expect(passes.map((pass) => pass.name)).toEqual(["Forward", "ScreenSpaceReflectionSurface"]);
+      expect(passes.map((pass) => pass.name)).toEqual(["Forward", "SSRReceiver"]);
       const fragment = ShaderMacroProcessor.evaluate(passes[0]._fragmentShaderInstructions, new Map()).replace(
         /\s/g,
         ""

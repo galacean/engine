@@ -364,44 +364,12 @@
     "replacement": "packages/modify/src/native/core/src/lighting/weather/index.ts"
   },
   {
-    "original": "packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionProfiler.ts",
-    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionProfiler.ts"
-  },
-  {
     "original": "packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts",
     "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts"
   },
   {
     "original": "packages/core/src/lighting/screenSpaceReflection/index.ts",
     "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/index.ts"
-  },
-  {
-    "original": "packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts",
-    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts"
-  },
-  {
-    "original": "packages/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionUpsamplingMode.ts",
-    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionUpsamplingMode.ts"
-  },
-  {
-    "original": "packages/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionDebugMode.ts",
-    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionDebugMode.ts"
-  },
-  {
-    "original": "packages/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionActivationMode.ts",
-    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionActivationMode.ts"
-  },
-  {
-    "original": "packages/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionQuality.ts",
-    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionQuality.ts"
-  },
-  {
-    "original": "packages/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionReceiverMode.ts",
-    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionReceiverMode.ts"
-  },
-  {
-    "original": "packages/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionReceiverPolicy.ts",
-    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionReceiverPolicy.ts"
   },
   {
     "original": "packages/core/src/postProcess/effects/ColorAdjustmentsEffect.ts",
@@ -564,10 +532,6 @@
     "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/PBR/LightDirectPBR.glsl"
   },
   {
-    "original": "packages/shader/src/Shaders/Pipeline/ScreenSpaceReflectionSurface.shader",
-    "replacement": "packages/modify/src/native/shader/src/Shaders/Pipeline/ScreenSpaceReflectionSurface.shader"
-  },
-  {
     "original": "packages/shader/src/Shaders/World/WindGpuTreeResponse.shader",
     "replacement": "packages/modify/src/native/shader/src/Shaders/World/WindGpuTreeResponse.shader"
   },
@@ -614,10 +578,6 @@
   {
     "original": "packages/shader/src/ShaderLibrary/Lighting/VolumetricCloudComposition.glsl",
     "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Lighting/VolumetricCloudComposition.glsl"
-  },
-  {
-    "original": "packages/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflection.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflection.glsl"
   },
   {
     "original": "packages/shader/src/ShaderLibrary/Particle/Module/WindOverLifetime.glsl",
@@ -680,15 +640,107 @@
     "replacement": "packages/modify/src/native/core/src/shader/state/DepthState.ts"
   },
   {
-    "original": "packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionConfig.ts",
-    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionConfig.ts"
-  },
-  {
     "original": "packages/core/src/shader/state/RasterState.ts",
     "replacement": "packages/modify/src/native/core/src/shader/state/RasterState.ts"
   },
   {
     "original": "packages/core/src/particle/ParticleBounds.ts",
     "replacement": "packages/modify/src/native/core/src/particle/ParticleBounds.ts"
+  },
+  {
+    "original": "packages/core/src/RenderPipeline/Blitter.ts",
+    "replacement": "packages/modify/src/native/core/src/RenderPipeline/Blitter.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/screenSpaceReflection/SSRDiagnostics.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/SSRDiagnostics.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/screenSpaceReflection/SSRHistoryState.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/SSRHistoryState.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionQuality.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionQuality.ts"
+  },
+  {
+    "original": "packages/core/src/material/PBRMaterial.ts",
+    "replacement": "packages/modify/src/native/core/src/material/PBRMaterial.ts"
+  },
+  {
+    "original": "packages/core/src/postProcess/PostProcessManager.ts",
+    "replacement": "packages/modify/src/native/core/src/postProcess/PostProcessManager.ts"
+  },
+  {
+    "original": "packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts",
+    "replacement": "packages/modify/src/native/core/src/renderingHardwareInterface/IHardwareRenderer.ts"
+  },
+  {
+    "original": "packages/core/src/shader/BuiltinShaders.ts",
+    "replacement": "packages/modify/src/native/core/src/shader/BuiltinShaders.ts"
+  },
+  {
+    "original": "packages/core/src/texture/TextureUtils.ts",
+    "replacement": "packages/modify/src/native/core/src/texture/TextureUtils.ts"
+  },
+  {
+    "original": "packages/core/src/texture/enums/TextureFormat.ts",
+    "replacement": "packages/modify/src/native/core/src/texture/enums/TextureFormat.ts"
+  },
+  {
+    "original": "packages/rhi-null/src/NullGraphicDevice.ts",
+    "replacement": "packages/modify/src/native/rhi-null/src/NullGraphicDevice.ts"
+  },
+  {
+    "original": "packages/rhi-null/src/NullTexture.ts",
+    "replacement": "packages/modify/src/native/rhi-null/src/NullTexture.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/GLCapability.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/GLCapability.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/GLRenderTarget.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/GLRenderTarget.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/GLTexture.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/GLTexture.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/WebGLGraphicDevice.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/WebGLGraphicDevice.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/type.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/type.ts"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Pipeline/DepthOnlyPass.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Pipeline/DepthOnlyPass.glsl"
+  },
+  {
+    "original": "packages/shader/src/Shaders/BlinnPhong.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/BlinnPhong.shader"
+  },
+  {
+    "original": "packages/shader/src/Shaders/Pipeline/DepthOnly.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/Pipeline/DepthOnly.shader"
+  },
+  {
+    "original": "packages/shader/src/Shaders/Pipeline/SSRContributionDepth.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/Pipeline/SSRContributionDepth.shader"
+  },
+  {
+    "original": "packages/shader/src/Shaders/Pipeline/SSRReceiver.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/Pipeline/SSRReceiver.shader"
   }
 ]

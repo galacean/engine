@@ -163,18 +163,27 @@ function pinMaterialSet(materials: RiverRuntimeMaterialSet): void {
   if (materials.surfaceLocalMap) materials.surfaceLocalMap.isGCIgnored = true;
 }
 
-function applyRiverSurfaceOpticsBinding(material: Material, binding: Readonly<WaterSurfaceOpticsBinding>): void {
+function applyRiverSurfaceOpticsBinding(
+  material: Material,
+  binding: Readonly<WaterSurfaceOpticsBinding>,
+  compositeIntensity: number
+): boolean {
   const readback = setRiverSurfaceOpticsBinding(material, binding);
-  setRiverScreenSpaceReflectionReceiver(material, readback.effectiveSource === "ssr");
+  const ssrEnabled = readback.effectiveSource === "ssr";
+  setRiverScreenSpaceReflectionReceiver(material, ssrEnabled, compositeIntensity);
+  return ssrEnabled;
 }
 
 function applyRiverReflectionBinding(
   material: Material,
   tier: WaterSurfaceOpticsBinding["tier"],
-  binding: Readonly<WaterReflectionBinding> | undefined
-): void {
+  binding: Readonly<WaterReflectionBinding> | undefined,
+  compositeIntensity: number
+): boolean {
   const readback = setRiverSurfaceReflectionBinding(material, tier, binding);
-  setRiverScreenSpaceReflectionReceiver(material, readback.effectiveSource === "ssr");
+  const ssrEnabled = readback.effectiveSource === "ssr";
+  setRiverScreenSpaceReflectionReceiver(material, ssrEnabled, compositeIntensity);
+  return ssrEnabled;
 }
 
 /** One pre-render update per controller, independent of Native/Seed World integration. */
@@ -217,6 +226,8 @@ export class RiverRuntimeController {
   private _surfaceOpticsBinding?: MutableRiverSurfaceOpticsBinding;
   private _reflectionBindingApplied = false;
   private _appliedReflectionBindingRevision?: number;
+  private _screenSpaceReflectionCompositeIntensity = 1;
+  private _screenSpaceReflectionEnabled = false;
   private _surfaceAppearanceBinding?: Readonly<WaterSurfaceAppearanceBindingV2>;
 
   /** Authored native surface shader; runtime bindings remain owned by this controller. */
@@ -705,9 +716,17 @@ export class RiverRuntimeController {
     }
     for (const runtimeSet of this._runtimeSets.values()) {
       for (const reach of runtimeSet.reaches) {
-        applyRiverSurfaceOpticsBinding(reach.materials.surface, cached);
+        this._screenSpaceReflectionEnabled = applyRiverSurfaceOpticsBinding(
+          reach.materials.surface,
+          cached,
+          this._screenSpaceReflectionCompositeIntensity
+        );
         if (reach.materials.surfaceLocalMap) {
-          applyRiverSurfaceOpticsBinding(reach.materials.surfaceLocalMap, cached);
+          applyRiverSurfaceOpticsBinding(
+            reach.materials.surfaceLocalMap,
+            cached,
+            this._screenSpaceReflectionCompositeIntensity
+          );
         }
       }
     }
@@ -736,11 +755,21 @@ export class RiverRuntimeController {
 
   /** Changes only forward SSR composition while retaining the active receiver and reflection binding. */
   setScreenSpaceReflectionCompositeIntensity(intensity: number): void {
+    const resolved = Number.isFinite(intensity) ? Math.min(1, Math.max(0, intensity)) : 0;
+    this._screenSpaceReflectionCompositeIntensity = resolved;
     for (const runtimeSet of this._runtimeSets.values()) {
       for (const reach of runtimeSet.reaches) {
-        setRiverScreenSpaceReflectionCompositeIntensity(reach.materials.surface, intensity);
+        setRiverScreenSpaceReflectionCompositeIntensity(
+          reach.materials.surface,
+          resolved,
+          this._screenSpaceReflectionEnabled
+        );
         if (reach.materials.surfaceLocalMap) {
-          setRiverScreenSpaceReflectionCompositeIntensity(reach.materials.surfaceLocalMap, intensity);
+          setRiverScreenSpaceReflectionCompositeIntensity(
+            reach.materials.surfaceLocalMap,
+            resolved,
+            this._screenSpaceReflectionEnabled
+          );
         }
       }
     }
@@ -753,9 +782,17 @@ export class RiverRuntimeController {
     binding.reflectionSampling = Object.freeze({ ...binding.reflectionSampling, ...config });
     for (const runtimeSet of this._runtimeSets.values()) {
       for (const reach of runtimeSet.reaches) {
-        applyRiverSurfaceOpticsBinding(reach.materials.surface, binding);
+        this._screenSpaceReflectionEnabled = applyRiverSurfaceOpticsBinding(
+          reach.materials.surface,
+          binding,
+          this._screenSpaceReflectionCompositeIntensity
+        );
         if (reach.materials.surfaceLocalMap) {
-          applyRiverSurfaceOpticsBinding(reach.materials.surfaceLocalMap, binding);
+          applyRiverSurfaceOpticsBinding(
+            reach.materials.surfaceLocalMap,
+            binding,
+            this._screenSpaceReflectionCompositeIntensity
+          );
         }
       }
     }
@@ -800,9 +837,19 @@ export class RiverRuntimeController {
     current.reflection = binding;
     for (const runtimeSet of this._runtimeSets.values()) {
       for (const reach of runtimeSet.reaches) {
-        applyRiverReflectionBinding(reach.materials.surface, current.tier, binding);
+        this._screenSpaceReflectionEnabled = applyRiverReflectionBinding(
+          reach.materials.surface,
+          current.tier,
+          binding,
+          this._screenSpaceReflectionCompositeIntensity
+        );
         if (reach.materials.surfaceLocalMap) {
-          applyRiverReflectionBinding(reach.materials.surfaceLocalMap, current.tier, binding);
+          applyRiverReflectionBinding(
+            reach.materials.surfaceLocalMap,
+            current.tier,
+            binding,
+            this._screenSpaceReflectionCompositeIntensity
+          );
         }
       }
     }
@@ -961,7 +1008,11 @@ export class RiverRuntimeController {
         setRiverSurfaceDepthWriteEnabled(materialSet.surface, this._depthWriteEnabled);
         setRiverSurfaceFeatureFlags(materialSet.surface, this._macroDisplacementEnabled, this._microSurfaceEnabled);
         setRiverSurfaceTimeOverride(materialSet.surface, this._surfaceTimeOverride);
-        applyRiverSurfaceOpticsBinding(materialSet.surface, surfaceOpticsBinding);
+        this._screenSpaceReflectionEnabled = applyRiverSurfaceOpticsBinding(
+          materialSet.surface,
+          surfaceOpticsBinding,
+          this._screenSpaceReflectionCompositeIntensity
+        );
         if (materialSet.surfaceLocalMap) {
           setRiverSurfaceDepthWriteEnabled(materialSet.surfaceLocalMap, this._depthWriteEnabled);
           setRiverSurfaceFeatureFlags(
@@ -970,7 +1021,11 @@ export class RiverRuntimeController {
             this._microSurfaceEnabled
           );
           setRiverSurfaceTimeOverride(materialSet.surfaceLocalMap, this._surfaceTimeOverride);
-          applyRiverSurfaceOpticsBinding(materialSet.surfaceLocalMap, surfaceOpticsBinding);
+          applyRiverSurfaceOpticsBinding(
+            materialSet.surfaceLocalMap,
+            surfaceOpticsBinding,
+            this._screenSpaceReflectionCompositeIntensity
+          );
         }
         reaches.push({
           root: reachRoot,

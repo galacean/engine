@@ -1,4 +1,7 @@
 
+      #include "ShaderLibrary/Common/Common.glsl"
+      #include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl"
+
       mat4 renderer_MVPMat;
       mat4 renderer_ModelMat;
       mat4 renderer_NormalMat;
@@ -11,8 +14,6 @@
 {{AMBIENT_UNIFORMS}}
       vec4 scene_SunlightColor;
       vec3 scene_SunlightDirection;
-      vec4 camera_DepthBufferParams;
-      vec4 camera_ProjectionParams;
       highp sampler2D camera_DepthTexture;
       sampler2D camera_OpaqueTexture;
       sampler2D material_SurfaceNormalTexture;
@@ -57,9 +58,6 @@
       float material_ReflectionSource;
       float material_WaterScreenSpaceReflectionCompositeIntensity;
       samplerCube material_ReflectionCubeTexture;
-      sampler2D camera_ScreenSpaceReflectionTexture;
-      float camera_ScreenSpaceReflectionIntensity;
-      float camera_ScreenSpaceReflectionMaxRoughness;
 {{VALUE_004_WATER_ENVIRONMENT_REFLECTION_UNIFORM_DECLARATIONS}}
 {{SURFACE_APPEARANCE_UNIFORMS}}
       #include "ShaderLibrary/Lighting/VolumetricCloudShadow.glsl"
@@ -94,20 +92,12 @@
       };
 
 {{AMBIENT_FUNCTIONS}}
-      float saturate(float value) { return clamp(value, 0.0, 1.0); }
 {{VALUE_006_WATER_ENVIRONMENT_REFLECTION_SHADER_FUNCTIONS}}
 {{VALUE_007_ASSEMBLY_SHAREDFUNCTIONSOURCE}}
 {{SURFACE_NORMAL_FUNCTIONS}}
 {{FORWARD_APPEARANCE_FUNCTIONS}}
 {{VALUE_010_CREATERIVERAPPEARANCEPATTERNFUNCTIONS_APPEARANCE}}
 {{VALUE_011_RIVER_GEOMETRY_MODULE}}
-      float remapDepthBufferEyeDepth(float depth) {
-        #ifdef CAMERA_ORTHOGRAPHIC
-          return camera_ProjectionParams.y + (camera_ProjectionParams.z - camera_ProjectionParams.y) * depth;
-        #else
-          return 1.0 / (camera_DepthBufferParams.z * depth + camera_DepthBufferParams.w);
-        #endif
-      }
 {{REFRACTION_FUNCTIONS}}
       Varyings vert(Attributes attr) {
         Varyings output;
@@ -264,19 +254,25 @@
           rawEnvironmentReflectionSample,
           rawEnvironmentReflectionValidity
         );
-        vec3 rawSsrReflectionPremultipliedSample = vec3(0.0);
+          vec3 rawSsrReflectionPremultipliedSample = vec3(0.0);
         float rawSsrReflectionValidity = 0.0;
-        if (
-          material_ReflectionSource > 2.5 &&
-          effectiveSurfaceRoughness < camera_ScreenSpaceReflectionMaxRoughness
-        ) {
-          vec4 ssrReflection = texture2D(camera_ScreenSpaceReflectionTexture, screenUv);
-          float ssrGlobalIntensity = saturate(camera_ScreenSpaceReflectionIntensity) * waterConnectionFacts(input.worldPosition.xz).y;
-          rawSsrReflectionPremultipliedSample = ssrReflection.rgb * ssrGlobalIntensity;
-          rawSsrReflectionValidity = saturate(
-            ssrReflection.a * ssrGlobalIntensity
+        #ifdef CAMERA_ENABLE_SSR
+        if (material_ReflectionSource > 2.5) {
+          vec3 fallbackEnvironment = mix(
+            rawAnalyticReflectionSample,
+            rawEnvironmentReflectionSample,
+            rawEnvironmentReflectionValidity
           );
+          vec3 ssrComposited = evaluateScreenSpaceReflection(
+            input.clipPosition,
+            surfaceNormalWS,
+            effectiveSurfaceRoughness,
+            fallbackEnvironment
+          );
+          rawSsrReflectionValidity = waterConnectionFacts(input.worldPosition.xz).y;
+          rawSsrReflectionPremultipliedSample = ssrComposited * rawSsrReflectionValidity;
         }
+        #endif
         float reflectionIntensity = max(material_ReflectionIntensity, 0.0);
 
 {{VALUE_179_ASSEMBLY_GEOMETRYBRIDGESOURCE}}

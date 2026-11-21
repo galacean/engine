@@ -393,6 +393,8 @@ export class WorldPlanning3DView {
           if (material instanceof PBRMaterial) {
             material.roughness = 0.88;
             material.metallic = 0;
+            material.screenSpaceReflectionIntensity = 0;
+            material.screenSpaceReflectionBilateral = false;
           }
           material.baseColor = whiteboxColor(part.color);
           material.renderFace = RenderFace.Double;

@@ -135,10 +135,8 @@ Shader "PBR" {
   }
 
     SubShader "Default" {
-      Tags { screenSpaceReflectionAuto = "PbrV1" }
       UsePass "Pipeline/ShadowCaster/Default/ShadowCaster"
-      UsePass "Pipeline/DepthOnly/Default/DepthOnly"
-      UsePass "Pipeline/ScreenSpaceReflectionSurface/Default/ScreenSpaceReflectionSurface"
+      UsePass "Pipeline/DepthOnly/Default/DepthOnlyVertexColor"
 
       Pass "Forward Pass" {
         Tags { pipelineStage = "Forward"}
@@ -175,142 +173,8 @@ Shader "PBR" {
 
         #include "ShaderLibrary/PBR/ForwardPassPBR.glsl"
       }
-      Pass "SSR Contribution Color" {
-        Tags { pipelineStage = "ScreenSpaceReflectionContributionColor", screenSpaceReflectionContribution = "ColorDepthV1" }
 
-        RenderQueueType renderQueueType;
-        BlendFactor sourceColorBlendFactor;
-        BlendFactor destinationColorBlendFactor;
-        BlendFactor sourceAlphaBlendFactor;
-        BlendFactor destinationAlphaBlendFactor;
-        CullMode rasterStateCullMode;
-        Bool blendEnabled;
-        Bool depthWriteEnabled;
-
-        DepthState = {
-          WriteEnabled = depthWriteEnabled;
-        }
-
-        BlendState = {
-          Enabled = blendEnabled;
-          SourceColorBlendFactor = sourceColorBlendFactor;
-          DestinationColorBlendFactor = destinationColorBlendFactor;
-          SourceAlphaBlendFactor = sourceAlphaBlendFactor;
-          DestinationAlphaBlendFactor = destinationAlphaBlendFactor;
-        }
-
-        RasterState = {
-          CullMode = rasterStateCullMode;
-        }
-
-        RenderQueueType = renderQueueType;
-
-        VertexShader = PBRVertex;
-        FragmentShader = PBRFragment;
-
-        #define SSR_CONTRIBUTION_CAPTURE
-        #include "ShaderLibrary/PBR/ForwardPassPBR.glsl"
-      }
-      Pass "SSR Contribution Depth" {
-        RenderQueueType renderQueueType;
-        Tags { pipelineStage = "ScreenSpaceReflectionContributionDepth", screenSpaceReflectionContribution = "ColorDepthV1" }
-        CullMode rasterStateCullMode;
-        DepthState = { WriteEnabled = true; CompareFunction = CompareFunction.LessEqual; }
-        BlendState = { Enabled = false; ColorWriteMask = ColorWriteMask.None; }
-        RasterState = { CullMode = rasterStateCullMode; }
-        RenderQueueType = renderQueueType;
-        VertexShader = contributionDepthVert;
-        FragmentShader = contributionDepthFrag;
-
-        #include "ShaderLibrary/Common/Common.glsl"
-        #include "ShaderLibrary/Common/Transform.glsl"
-        #include "ShaderLibrary/Common/Attributes.glsl"
-        #include "ShaderLibrary/Skin/Skin.glsl"
-        #include "ShaderLibrary/Skin/BlendShape.glsl"
-
-        vec4 material_BaseColor;
-        #ifdef MATERIAL_HAS_BASETEXTURE
-          vec4 material_TilingOffset;
-          sampler2D material_BaseTexture;
-        #endif
-        #ifdef MATERIAL_IS_ALPHA_CUTOFF
-          float material_AlphaCutoff;
-        #endif
-
-        struct ContributionDepthVaryings {
-          #ifdef MATERIAL_HAS_BASETEXTURE
-            vec2 uv;
-          #endif
-          #ifdef RENDERER_ENABLE_VERTEXCOLOR
-            vec4 vertexColor;
-          #endif
-          #if !defined(MATERIAL_HAS_BASETEXTURE) && !defined(RENDERER_ENABLE_VERTEXCOLOR)
-            float _unused;
-          #endif
-        };
-
-        ContributionDepthVaryings contributionDepthVert(Attributes attr) {
-          ContributionDepthVaryings varyings;
-          #ifdef MATERIAL_HAS_BASETEXTURE
-            vec2 uv0 = vec2(0.0);
-            #ifdef RENDERER_HAS_UV
-              uv0 = attr.TEXCOORD_0;
-            #endif
-            varyings.uv = uv0 * material_TilingOffset.xy + material_TilingOffset.zw;
-          #endif
-          #ifdef RENDERER_ENABLE_VERTEXCOLOR
-            varyings.vertexColor = attr.COLOR_0;
-          #endif
-          #if !defined(MATERIAL_HAS_BASETEXTURE) && !defined(RENDERER_ENABLE_VERTEXCOLOR)
-            varyings._unused = 0.0;
-          #endif
-
-          vec4 position = vec4(attr.POSITION, 1.0);
-          #ifdef RENDERER_HAS_BLENDSHAPE
-            #ifdef RENDERER_HAS_NORMAL
-              vec3 normal = vec3(attr.NORMAL);
-              #ifdef RENDERER_HAS_TANGENT
-                vec4 tangent = vec4(attr.TANGENT);
-              #endif
-            #endif
-            calculateBlendShape(attr, position
-              #ifdef RENDERER_HAS_NORMAL
-                , normal
-                #ifdef RENDERER_HAS_TANGENT
-                  , tangent
-                #endif
-              #endif
-            );
-          #endif
-          #ifdef RENDERER_HAS_SKIN
-            mat4 skinMatrix = getSkinMatrix(attr);
-            position = skinMatrix * position;
-          #endif
-
-          gl_Position = renderer_MVPMat * position;
-          return varyings;
-        }
-
-        void contributionDepthFrag(ContributionDepthVaryings varyings) {
-          float alpha = material_BaseColor.a;
-          #ifdef MATERIAL_HAS_BASETEXTURE
-            alpha *= texture2D(material_BaseTexture, varyings.uv).a;
-          #endif
-          #ifdef RENDERER_ENABLE_VERTEXCOLOR
-            alpha *= varyings.vertexColor.a;
-          #endif
-          #ifdef MATERIAL_IS_ALPHA_CUTOFF
-            if (alpha < material_AlphaCutoff) {
-              discard;
-            }
-          #endif
-          #ifdef MATERIAL_IS_TRANSPARENT
-            if (alpha <= 0.0001) {
-              discard;
-            }
-          #endif
-        }
-      }
-
+      UsePass "Pipeline/SSRReceiver/Default/SSRReceiver"
+      UsePass "Pipeline/SSRContributionDepth/Default/SSRContributionDepth"
     }
   }

@@ -384,7 +384,7 @@ export async function loadAssetAssemblySourceLibrary(
           })
         ),
     loadAtomicSourceFamily(engine, manifest.grassVariants, "grass", ["Terrain/Grass"]),
-    loadAtomicSourceFamily(engine, manifest.flowerVariants, "flower", ["Terrain/Vegetation"]),
+    loadAtomicSourceFamily(engine, manifest.flowerVariants, "flower", ["Terrain/Vegetation"], false),
     options.loadRockGeometry === false
       ? Promise.resolve(undefined)
       : loadAtomicLodSourceFamily(engine, manifest.largeRockGrassVariants, "large rock · grass", ["Terrain/Surface"]),
@@ -399,9 +399,9 @@ export async function loadAssetAssemblySourceLibrary(
       : loadAtomicLodSourceFamily(engine, manifest.stoneVariants, "stone", ["Terrain/Surface"]),
     options.loadRockGeometry === false
       ? Promise.resolve(undefined)
-      : loadAtomicLodSource(engine, manifest.debris, "debris", ["Terrain/Surface"]),
-    loadAtomicLodSource(engine, manifest.mushroom, "mushroom", ["Terrain/Vegetation"]),
-    loadAtomicLodSourceFamily(engine, manifest.lotusVariants, "lotus", ["Terrain/Vegetation"], "one-or-more"),
+      : loadAtomicLodSource(engine, manifest.debris, "debris", ["Terrain/Surface"], undefined, false),
+    loadAtomicLodSource(engine, manifest.mushroom, "mushroom", ["Terrain/Vegetation"], undefined, false),
+    loadAtomicLodSourceFamily(engine, manifest.lotusVariants, "lotus", ["Terrain/Vegetation"], "one-or-more", false),
     options.loadRockGeometry === false || options.legacyRockMode === "large-rock"
       ? Promise.resolve(undefined)
       : Promise.all(
@@ -583,10 +583,11 @@ async function loadAtomicSourceFamily(
   engine: Engine,
   sources: readonly AtomicManifest[],
   category: "grass" | "flower",
-  expectedShaders: readonly string[]
+  expectedShaders: readonly string[],
+  screenSpaceReflectionOccluder = true
 ): Promise<AtomicAssemblySourceFamily> {
   const variants = await Promise.all(
-    sources.map((source) => loadAtomicSource(engine, source, category, expectedShaders))
+    sources.map((source) => loadAtomicSource(engine, source, category, expectedShaders, screenSpaceReflectionOccluder))
   );
   return Object.freeze({ primary: variants[0]!, variants: Object.freeze(variants) });
 }
@@ -595,7 +596,8 @@ async function loadAtomicSource(
   engine: Engine,
   source: AtomicManifest,
   category: "grass" | "flower",
-  expectedShaders: readonly string[]
+  expectedShaders: readonly string[],
+  screenSpaceReflectionOccluder = true
 ): Promise<AtomicAssemblySource> {
   return {
     id: source.id,
@@ -603,7 +605,17 @@ async function loadAtomicSource(
     selectionWeight: source.selectionWeight!,
     defaultColorRgb: source.defaultColorRgb!,
     defaultLodProfile: detachLodProfile(source.defaultLodProfile!),
-    lods: [await loadPrefabAtom(engine, source.id, source.label ?? category, source.prefabUrl, expectedShaders)]
+    lods: [
+      await loadPrefabAtom(
+        engine,
+        source.id,
+        source.label ?? category,
+        source.prefabUrl,
+        expectedShaders,
+        undefined,
+        screenSpaceReflectionOccluder
+      )
+    ]
   };
 }
 
@@ -612,11 +624,19 @@ async function loadAtomicLodSourceFamily(
   sources: readonly AtomicLodManifest[],
   label: string,
   expectedShaders: readonly string[],
-  rendererCardinality: StaticRendererCardinality = "exactly-one"
+  rendererCardinality: StaticRendererCardinality = "exactly-one",
+  screenSpaceReflectionOccluder = true
 ): Promise<AtomicAssemblySourceFamily> {
   const variants = await Promise.all(
     sources.map((source, index) =>
-      loadAtomicLodSource(engine, source, `${label} ${index + 1}`, expectedShaders, rendererCardinality)
+      loadAtomicLodSource(
+        engine,
+        source,
+        `${label} ${index + 1}`,
+        expectedShaders,
+        rendererCardinality,
+        screenSpaceReflectionOccluder
+      )
     )
   );
   return Object.freeze({ primary: variants[0]!, variants: Object.freeze(variants) });
@@ -627,7 +647,8 @@ async function loadAtomicLodSource(
   source: AtomicLodManifest,
   label: string,
   expectedShaders: readonly string[],
-  rendererCardinality: StaticRendererCardinality = "exactly-one"
+  rendererCardinality: StaticRendererCardinality = "exactly-one",
+  screenSpaceReflectionOccluder = true
 ): Promise<AtomicAssemblySource> {
   const lods = await Promise.all(
     source.lods.map((lod, index) =>
@@ -637,7 +658,8 @@ async function loadAtomicLodSource(
         `${source.label ?? label} LOD${index}`,
         lod.prefabUrl,
         expectedShaders,
-        rendererCardinality
+        rendererCardinality,
+        screenSpaceReflectionOccluder
       )
     )
   );
@@ -658,7 +680,8 @@ async function loadPrefabAtom(
   label: string,
   prefabUrl: string,
   expectedShaders: readonly string[],
-  rendererCardinality: StaticRendererCardinality = "exactly-one"
+  rendererCardinality: StaticRendererCardinality = "exactly-one",
+  screenSpaceReflectionOccluder = true
 ): Promise<ProductionPrefabAtom> {
   const prefab = await engine.resourceManager.load<PrefabResource>({ type: AssetType.Prefab, url: prefabUrl });
   if (!(prefab instanceof PrefabResource)) throw new Error(`Asset Assembly ${label} did not resolve a Prefab`);
@@ -679,6 +702,11 @@ async function loadPrefabAtom(
     )
   ) {
     throw new Error(`Asset Assembly ${label} Prefab does not bind one supported static production primitive`);
+  }
+  if (!screenSpaceReflectionOccluder) {
+    for (const renderer of renderers) {
+      renderer.material.screenSpaceReflectionOccluder = false;
+    }
   }
   return { id, label, prefab, renderer: renderers[0]!, renderers: Object.freeze([...renderers]) };
 }

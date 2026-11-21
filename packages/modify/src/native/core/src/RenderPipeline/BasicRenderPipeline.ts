@@ -1,8 +1,6 @@
 import type { Renderer } from "../Renderer";
 import type { Plane } from "@galacean/engine-math";
 import { MathUtil, Vector2, Vector4 } from "@galacean/engine-math";
-import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
-import type { RenderStateElementMap } from "../BasicResources";
 import { Background } from "../Background";
 import { Engine } from "../Engine";
 import { Camera } from "../Camera";
@@ -10,16 +8,9 @@ import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
-import { Downsampling } from "../enums/Downsampling";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
 import { ScalableAmbientObscurancePass } from "../lighting/ambientOcclusion/ScalableAmbientObscurancePass";
-import {
-  ScreenSpaceReflection,
-  ScreenSpaceReflectionPass,
-  ScreenSpaceReflectionReceiverMode
-} from "../lighting/screenSpaceReflection";
-import { ScreenSpaceReflectionConfig } from "../lighting/screenSpaceReflection/ScreenSpaceReflectionConfig";
-import type { Material } from "../material";
+import { ScreenSpaceReflectionPass, SSRDiagnostics } from "../lighting/screenSpaceReflection";
 import { FinalPass } from "../postProcess";
 import {
   SunLensFlareCameraState,
@@ -28,12 +19,8 @@ import {
 } from "../postProcess/effects/SunLensFlareEffect";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import type { ShaderPass } from "../shader/ShaderPass";
 import { SubShader } from "../shader/SubShader";
-import { CompareFunction } from "../shader/enums/CompareFunction";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
-import { RenderStateElementKey } from "../shader/enums/RenderStateElementKey";
-import { StencilOperation } from "../shader/enums/StencilOperation";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowType } from "../shadow/enum/ShadowType";
 import {
@@ -59,57 +46,12 @@ import {
   type RenderViewCullingSourceRegistration
 } from "./RenderViewCulling";
 import { PipelineStage } from "./enums/PipelineStage";
-import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
-import type { RenderElementFilter, RenderElementSubsetCount } from "./RenderQueue";
 /**
  * Basic render pipeline.
  */
 export class BasicRenderPipeline {
-  private static readonly _screenSpaceReflectionSurfaceStates = {
-    [RenderStateElementKey.DepthStateEnabled]: true,
-    [RenderStateElementKey.DepthStateWriteEnabled]: true,
-    [RenderStateElementKey.DepthStateCompareFunction]: CompareFunction.LessEqual
-  } as RenderStateElementMap;
-  /** Multisampled Forward depth is resolved by sub-sample, so the pixel-centre receiver needs a slope tolerance. */
-  private static readonly _screenSpaceReflectionMsaaSurfaceStates = {
-    ...BasicRenderPipeline._screenSpaceReflectionSurfaceStates,
-    [RenderStateElementKey.RasterStateDepthBias]: ScreenSpaceReflectionConfig.msaaSurfaceDepthBias,
-    [RenderStateElementKey.RasterStateSlopeScaledDepthBias]: ScreenSpaceReflectionConfig.msaaSurfaceSlopeScaledDepthBias
-  } as RenderStateElementMap;
-
   /** @internal */
   _cullingResults: CullingResults;
-
-  private readonly _screenSpaceReflectionReceiverCache: Record<RenderQueueType, Map<Material, boolean>> = {
-    [RenderQueueType.Opaque]: new Map(),
-    [RenderQueueType.AlphaTest]: new Map(),
-    [RenderQueueType.Transparent]: new Map()
-  };
-
-  private _isScreenSpaceReflectionReceiver(material: Material, queue: RenderQueueType): boolean {
-    const cache = this._screenSpaceReflectionReceiverCache[queue];
-    let eligible = cache.get(material);
-    if (eligible === undefined) {
-      eligible = this._camera.screenSpaceReflection._isMaterialReceiver(material, queue);
-      ScreenSpaceReflection.resolveMaterialReceiver(material, queue);
-      cache.set(material, eligible);
-    }
-    return eligible;
-  }
-
-  private _clearScreenSpaceReflectionReceiverCache(): void {
-    const caches = this._screenSpaceReflectionReceiverCache;
-    for (let queue = RenderQueueType.Opaque; queue <= RenderQueueType.Transparent; queue++) {
-      const cache = caches[queue];
-      if (cache.size) cache.clear();
-    }
-  }
-
-  private static _getScreenSpaceReflectionSurfaceStates(forwardTarget: RenderTarget): RenderStateElementMap {
-    return forwardTarget.antiAliasing > 1
-      ? BasicRenderPipeline._screenSpaceReflectionMsaaSurfaceStates
-      : BasicRenderPipeline._screenSpaceReflectionSurfaceStates;
-  }
 
   private _camera: Camera;
   private _lastCanvasSize = new Vector2();
@@ -118,7 +60,7 @@ export class BasicRenderPipeline {
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
   private _saoPass: ScalableAmbientObscurancePass;
-  private _screenSpaceReflectionPass: ScreenSpaceReflectionPass;
+  private _ssrPass: ScreenSpaceReflectionPass;
   private _opaqueTexturePass: OpaqueTexturePass;
   private _finalPass: FinalPass;
   private _copyBackgroundTexture: Texture2D | null;
@@ -145,33 +87,6 @@ export class BasicRenderPipeline {
     effectiveIntensity: 0,
     aspectRatio: 1
   };
-  // Bound once so per-frame SSR queue scans and draws allocate no closures
-  private readonly _receiverCount: RenderElementSubsetCount = { total: 0, subset: 0 };
-  private readonly _receiverMaterialFilter: RenderElementFilter = (material, _element, queueType) =>
-    this._isScreenSpaceReflectionReceiver(material, queueType);
-  private readonly _receiverFilter: RenderElementFilter = (material, element, queueType) =>
-    this._isScreenSpaceReflectionReceiver(material, queueType) &&
-    this._isScreenSpaceReflectionElementMaskSafe(element, queueType);
-  private readonly _contributionCapabilities = new Map<Material, boolean>();
-  private _contributionContext: RenderContext | null = null;
-  private readonly _contributesScreenSpaceReflection = (material: Material, element: RenderElement): boolean => {
-    if (!material.contributeScreenSpaceReflection) return false;
-    const capabilities = this._contributionCapabilities;
-    let supported = capabilities.get(material);
-    if (supported === undefined) {
-      supported = ScreenSpaceReflection.supportsMaterialContribution(material);
-      capabilities.set(material, supported);
-    }
-    return supported && this._isScreenSpaceReflectionElementMaskSafe(element, RenderQueueType.Transparent);
-  };
-  private readonly _drawScreenSpaceReflectionContributions = (stage: PipelineStage): number =>
-    this._cullingResults.transparentQueue.render(
-      this._contributionContext!,
-      stage,
-      RenderQueueMaskType.No,
-      this._contributesScreenSpaceReflection,
-      false
-    );
 
   /**
    * Create a basic render pipeline.
@@ -180,13 +95,14 @@ export class BasicRenderPipeline {
   constructor(camera: Camera) {
     this._camera = camera;
     const { engine } = camera;
+    const shaders = Engine._builtinShaders;
     this._cullingResults = new CullingResults();
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
-    this._saoPass = new ScalableAmbientObscurancePass(engine, Engine._builtinShaders.scalableAmbientOcclusion);
-    this._screenSpaceReflectionPass = new ScreenSpaceReflectionPass(engine, camera);
+    this._saoPass = new ScalableAmbientObscurancePass(engine, shaders.scalableAmbientOcclusion);
+    this._ssrPass = new ScreenSpaceReflectionPass(engine, shaders.screenSpaceReflection);
     this._opaqueTexturePass = new OpaqueTexturePass(engine);
-    this._finalPass = new FinalPass(engine, Engine._builtinShaders.finalSRGB, Engine._builtinShaders.finalAntiAliasing);
+    this._finalPass = new FinalPass(engine, shaders.finalSRGB, shaders.finalAntiAliasing);
   }
 
   /**
@@ -199,7 +115,7 @@ export class BasicRenderPipeline {
     this._cascadedShadowCasterPass.release();
     this._depthOnlyPass.release();
     this._saoPass.destroy();
-    this._screenSpaceReflectionPass.destroy();
+    this._ssrPass.destroy();
     this._opaqueTexturePass.release();
     this._finalPass.destroy();
     const afterCullingPasses = this._afterCullingPasses;
@@ -234,8 +150,17 @@ export class BasicRenderPipeline {
     this._sunLensFlareCameraState?.destroy();
     this._sunLensFlareCameraState = null;
 
-    this._clearScreenSpaceReflectionReceiverCache();
     this._camera = null!;
+  }
+
+  /** @internal */
+  _getScreenSpaceReflectionDiagnostics(): Readonly<SSRDiagnostics> {
+    return this._ssrPass.getDiagnostics();
+  }
+
+  /** @internal */
+  _notifyScreenSpaceReflectionCut(): void {
+    this._ssrPass.notifyCut();
   }
 
   /** @internal */
@@ -251,15 +176,12 @@ export class BasicRenderPipeline {
    * @param ignoreClear - Ignore clear flag
    */
   render(context: RenderContext, cubeFace?: TextureCubeFace, mipLevel?: number, ignoreClear?: CameraClearFlags) {
-    this._clearScreenSpaceReflectionReceiverCache();
     this._cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.All);
 
     const camera = this._camera;
     const { engine, renderTarget } = camera;
     const scene = camera.scene!;
-    let screenSpaceReflectionEnabled = this._screenSpaceReflectionPass.prepare(cubeFace !== undefined, mipLevel ?? 0);
-    const baseIndependentCanvasEnabled = camera._isIndependentCanvasEnabled();
-    let independentCanvasEnabled = baseIndependentCanvasEnabled || screenSpaceReflectionEnabled;
+    const independentCanvasEnabled = camera._isIndependentCanvasEnabled();
     const rhi = engine._hardwareRenderer;
     const cullingResults = this._cullingResults;
     const sunlight = scene._lightManager._sunlight;
@@ -268,7 +190,10 @@ export class BasicRenderPipeline {
     const supportDepthTexture = depthOnlyPass.supportDepthTexture;
 
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
-    const msaaSamples = renderTarget ? renderTarget.antiAliasing : camera.msaaSamples;
+    const msaaSamples = Math.min(
+      renderTarget ? renderTarget.antiAliasing : camera.msaaSamples,
+      rhi.capability.maxAntiAliasing
+    );
 
     const cameraDepthTextureRequested = camera.depthTextureMode === DepthTextureMode.PrePass && supportDepthTexture;
     const sunLensFlareBlend = camera.enablePostProcess
@@ -280,7 +205,7 @@ export class BasicRenderPipeline {
       !ambientOcclusionEnabled &&
       rhi.isWebGL2 &&
       supportDepthTexture &&
-      baseIndependentCanvasEnabled &&
+      independentCanvasEnabled &&
       cubeFace === undefined &&
       (mipLevel ?? 0) === 0 &&
       SunLensFlareEffect._resolveScreenState(camera, scene, sunLensFlareBlend!, this._sunLensFlareScreenState).visible;
@@ -295,7 +220,7 @@ export class BasicRenderPipeline {
       ((cameraDepthTextureRequested && camera._enableForwardDepthResolve) || sunLensFlareFullDepthResolveEnabled) &&
       !ambientOcclusionEnabled &&
       rhi.isWebGL2 &&
-      baseIndependentCanvasEnabled &&
+      independentCanvasEnabled &&
       cubeFace === undefined &&
       (mipLevel ?? 0) === 0;
     // Ambient occlusion enable will force enable depth prepass.
@@ -336,45 +261,7 @@ export class BasicRenderPipeline {
     batcherManager.uploadBuffer();
     this._renderRegisteredPasses(PipelinePassStage.AfterCulling, context, cullingResults);
 
-    if (screenSpaceReflectionEnabled) {
-      // One scan per queue yields both registered receivers and the mask-safe subset
-      const receiverStage = PipelineStage.ScreenSpaceReflectionSurface;
-      const count = this._receiverCount;
-      cullingResults.opaqueQueue.countRenderElements(
-        receiverStage,
-        this._receiverMaterialFilter,
-        this._receiverFilter,
-        count
-      );
-      let registeredReceiverCount = count.total;
-      let opaqueReceiverCount = count.subset;
-      cullingResults.alphaTestQueue.countRenderElements(
-        receiverStage,
-        this._receiverMaterialFilter,
-        this._receiverFilter,
-        count
-      );
-      registeredReceiverCount += count.total;
-      opaqueReceiverCount += count.subset;
-      cullingResults.transparentQueue.countRenderElements(
-        receiverStage,
-        this._receiverMaterialFilter,
-        this._receiverFilter,
-        count
-      );
-      registeredReceiverCount += count.total;
-      const transparentReceiverCount = count.subset;
-      screenSpaceReflectionEnabled = this._screenSpaceReflectionPass.configureReceiverPhases(
-        opaqueReceiverCount,
-        transparentReceiverCount,
-        registeredReceiverCount - opaqueReceiverCount - transparentReceiverCount
-      );
-      independentCanvasEnabled = baseIndependentCanvasEnabled || screenSpaceReflectionEnabled;
-      this._shouldCopyBackgroundColor =
-        independentCanvasEnabled &&
-        !(finalClearFlags & CameraClearFlags.Color) &&
-        (!this._canUseBlitFrameBuffer || isSRGBBackground);
-    }
+    this._ssrPass.prepare(context, cullingResults, cubeFace !== undefined || (mipLevel ?? 0) > 0);
 
     if (depthPassEnabled) {
       depthOnlyPass.onConfig(camera);
@@ -403,66 +290,25 @@ export class BasicRenderPipeline {
       }
       const viewport = camera.pixelViewport;
 
-      try {
-        this._internalColorTarget = this._allocateInternalColorTarget(
-          baseDepthFormat,
-          forwardDepthResolveEnabled,
-          sunLensFlareDepthPatchEnabled,
-          msaaSamples,
-          screenSpaceReflectionEnabled
-        );
-      } catch (error) {
-        if (!screenSpaceReflectionEnabled) throw error;
-        this._screenSpaceReflectionPass.failClose("screen-space-reflection-internal-render-target-unavailable");
-        screenSpaceReflectionEnabled = false;
-        independentCanvasEnabled = baseIndependentCanvasEnabled;
-        this._shouldCopyBackgroundColor =
-          independentCanvasEnabled &&
-          !(finalClearFlags & CameraClearFlags.Color) &&
-          (!this._canUseBlitFrameBuffer || isSRGBBackground);
-        if (baseIndependentCanvasEnabled) {
-          this._internalColorTarget = this._allocateInternalColorTarget(
-            baseDepthFormat,
-            forwardDepthResolveEnabled,
-            sunLensFlareDepthPatchEnabled,
-            msaaSamples,
-            false
-          );
-        }
-      }
+      this._internalColorTarget = this._allocateInternalColorTarget(
+        baseDepthFormat,
+        forwardDepthResolveEnabled,
+        sunLensFlareDepthPatchEnabled,
+        msaaSamples
+      );
 
       if (this._shouldCopyBackgroundColor) {
         const colorTexture = camera.renderTarget?.getColorTexture(0);
-        try {
-          this._copyBackgroundTexture = pool.allocateTexture(
-            viewport.width,
-            viewport.height,
-            colorTexture?.format ?? TextureFormat.R8G8B8A8,
-            false,
-            colorTexture?.isSRGBColorSpace ?? false,
-            TextureWrapMode.Clamp,
-            TextureFilterMode.Bilinear
-          );
-        } catch (error) {
-          if (!screenSpaceReflectionEnabled || baseIndependentCanvasEnabled) throw error;
-          this._screenSpaceReflectionPass.failClose("screen-space-reflection-background-copy-unavailable");
-          screenSpaceReflectionEnabled = false;
-          independentCanvasEnabled = false;
-          this._shouldCopyBackgroundColor = false;
-          if (this._internalColorTarget) {
-            pool.freeRenderTarget(this._internalColorTarget);
-            this._internalColorTarget = null;
-          }
-        }
+        this._copyBackgroundTexture = pool.allocateTexture(
+          viewport.width,
+          viewport.height,
+          colorTexture?.format ?? TextureFormat.R8G8B8A8,
+          false,
+          colorTexture?.isSRGBColorSpace ?? false,
+          TextureWrapMode.Clamp,
+          TextureFilterMode.Bilinear
+        );
       }
-    }
-
-    if (screenSpaceReflectionEnabled && this._internalColorTarget) {
-      this._screenSpaceReflectionPass.configurePipelineResources(
-        this._internalColorTarget,
-        baseIndependentCanvasEnabled,
-        baseIndependentCanvasEnabled ? null : this._copyBackgroundTexture
-      );
     }
 
     // Scalable ambient obscurance pass
@@ -476,6 +322,8 @@ export class BasicRenderPipeline {
       this._saoPass.release();
     }
 
+    this._ssrPass.renderPreForward(context, cullingResults, depthPassEnabled ? depthOnlyPass.renderTarget : null);
+
     this._drawRenderPass(
       context,
       camera,
@@ -485,7 +333,7 @@ export class BasicRenderPipeline {
       cubeFace,
       mipLevel
     );
-    this._clearScreenSpaceReflectionReceiverCache();
+    this._ssrPass.releaseFrameTargets();
 
     // Return the per-frame leases so the next camera with matching shape can reuse them
     if (this._internalColorTarget) {
@@ -615,20 +463,19 @@ export class BasicRenderPipeline {
     baseDepthFormat: TextureFormat | null,
     forwardDepthResolveEnabled: boolean,
     sunLensFlareDepthPatchEnabled: boolean,
-    msaaSamples: number,
-    forScreenSpaceReflection: boolean
+    msaaSamples: number
   ): RenderTarget {
     const camera = this._camera;
     const viewport = camera.pixelViewport;
     let depthFormat = baseDepthFormat;
-    if (forScreenSpaceReflection || forwardDepthResolveEnabled || sunLensFlareDepthPatchEnabled) {
+    if (forwardDepthResolveEnabled || sunLensFlareDepthPatchEnabled) {
       if (depthFormat === null || depthFormat === TextureFormat.Stencil) {
         depthFormat = camera.engine._hardwareRenderer._options.stencil
           ? TextureFormat.Depth24Stencil8
           : TextureFormat.Depth24;
       }
     }
-    const needDepthTexture = forScreenSpaceReflection || (forwardDepthResolveEnabled && msaaSamples > 1);
+    const needDepthTexture = forwardDepthResolveEnabled && msaaSamples > 1;
     return camera.engine._renderTargetPool.allocateRenderTarget(
       viewport.width,
       viewport.height,
@@ -640,7 +487,7 @@ export class BasicRenderPipeline {
       msaaSamples,
       TextureWrapMode.Clamp,
       TextureFilterMode.Bilinear,
-      forScreenSpaceReflection || forwardDepthResolveEnabled ? TextureFilterMode.Point : TextureFilterMode.Bilinear
+      forwardDepthResolveEnabled ? TextureFilterMode.Point : TextureFilterMode.Bilinear
     );
   }
 
@@ -750,102 +597,14 @@ export class BasicRenderPipeline {
       }
     }
 
-    const screenSpaceReflectionPass = this._screenSpaceReflectionPass;
-    let screenSpaceReflectionCaptured = false;
-    let opaqueSurfaceComposited = false;
     let forwardTargetResolved = false;
-    if (camera.screenSpaceReflection.effective && internalColorTarget) {
-      // Resolve the actual Opaque Forward color and depth for SSR capture.
-      colorTarget!._blitRenderTarget();
-      forwardTargetResolved = true;
-      let hasTransparentContributors = false;
-      if (camera.screenSpaceReflection._includesTransparentContributors) {
-        // Reuse capability checks across count/color/depth within this capture only.
-        // Queue state and pass tags can change before the next camera render.
-        this._contributionCapabilities.clear();
-        hasTransparentContributors =
-          transparentQueue.countRenderElements(
-            PipelineStage.ScreenSpaceReflectionContributionColor,
-            this._contributesScreenSpaceReflection
-          ) > 0;
-      }
-      try {
-        screenSpaceReflectionCaptured = screenSpaceReflectionPass.captureScene(context, internalColorTarget);
-        if (screenSpaceReflectionCaptured && hasTransparentContributors) {
-          this._contributionContext = context;
-          try {
-            screenSpaceReflectionPass.captureContributions(
-              context,
-              internalColorTarget,
-              this._drawScreenSpaceReflectionContributions
-            );
-          } finally {
-            this._contributionContext = null;
-          }
-        }
-      } finally {
-        if (camera.screenSpaceReflection._includesTransparentContributors) {
-          this._contributionCapabilities.clear();
-        }
-        // MSAA resolve and SSR capture can leave the resolved/default or a private SSR FBO bound.
-        // Always restore the Forward color/depth target, including fail-closed capture paths.
-        context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
-      }
-      if (screenSpaceReflectionCaptured && screenSpaceReflectionPass.hasOpaqueReceivers) {
-        try {
-          screenSpaceReflectionCaptured = screenSpaceReflectionPass.beginSurface(
-            context,
-            ScreenSpaceReflectionReceiverMode.OpaqueComposite,
-            internalColorTarget
-          );
-          if (screenSpaceReflectionCaptured) {
-            let opaqueSurfaceDrawCount: number;
-            const surfaceStates = BasicRenderPipeline._getScreenSpaceReflectionSurfaceStates(internalColorTarget);
-            try {
-              opaqueSurfaceDrawCount =
-                opaqueQueue.render(
-                  context,
-                  PipelineStage.ScreenSpaceReflectionSurface,
-                  RenderQueueMaskType.No,
-                  this._receiverFilter,
-                  false,
-                  surfaceStates
-                ) +
-                alphaTestQueue.render(
-                  context,
-                  PipelineStage.ScreenSpaceReflectionSurface,
-                  RenderQueueMaskType.No,
-                  this._receiverFilter,
-                  false,
-                  surfaceStates
-                );
-            } finally {
-              screenSpaceReflectionPass.endSurface();
-            }
-            screenSpaceReflectionPass.recordSurfaceDraws(opaqueSurfaceDrawCount);
-            if (opaqueSurfaceDrawCount > 0) {
-              screenSpaceReflectionPass.trace();
-              screenSpaceReflectionPass.composite(internalColorTarget);
-              opaqueSurfaceComposited = true;
-              forwardTargetResolved = false;
-            }
-          }
-        } finally {
-          // Phase preparation and fullscreen passes may leave a private/default FBO bound.
-          context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
-        }
-      }
-    }
-
     if (forwardDepthResolveEnabled) {
       if (!internalColorTarget || !colorTarget) {
         throw new Error("Forward depth resolve requires an internal color target.");
       }
       if (colorTarget.antiAliasing > 1) {
-        if (!forwardTargetResolved) {
-          colorTarget!._blitRenderTarget();
-          forwardTargetResolved = true;
-        }
+        colorTarget!._blitRenderTarget();
+        forwardTargetResolved = true;
         const depthTexture = colorTarget.depthTexture;
         if (!depthTexture) throw new Error("MSAA forward depth resolve requires a resolved depth texture.");
         camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, depthTexture);
@@ -901,74 +660,46 @@ export class BasicRenderPipeline {
       }
     }
 
-    if (screenSpaceReflectionCaptured && screenSpaceReflectionPass.hasTransparentReceivers) {
-      try {
-        if (
-          screenSpaceReflectionPass.beginSurface(
-            context,
-            ScreenSpaceReflectionReceiverMode.TransparentSampleOnly,
-            internalColorTarget!
-          )
-        ) {
-          let transparentSurfaceDrawCount: number;
-          try {
-            transparentSurfaceDrawCount = transparentQueue.render(
-              context,
-              PipelineStage.ScreenSpaceReflectionSurface,
-              RenderQueueMaskType.No,
-              this._receiverFilter,
-              false,
-              BasicRenderPipeline._getScreenSpaceReflectionSurfaceStates(internalColorTarget!)
-            );
-          } finally {
-            screenSpaceReflectionPass.endSurface();
-          }
-          screenSpaceReflectionPass.recordSurfaceDraws(transparentSurfaceDrawCount, true);
-          if (transparentSurfaceDrawCount > 0) {
-            screenSpaceReflectionPass.trace();
-            screenSpaceReflectionPass.publish();
-          }
-        }
-      } finally {
-        context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
-      }
-    }
-
-    // Copy opaque texture (or reuse the immutable SSR opaque capture when its contract covers the request)
+    // Copy opaque texture
     if (camera.opaqueTextureEnabled) {
-      const ssrSceneColor =
-        screenSpaceReflectionCaptured && !opaqueSurfaceComposited
-          ? screenSpaceReflectionPass.getReusableOpaqueTexture(camera)
-          : null;
-      if (ssrSceneColor) {
-        this._opaqueTexturePass.release();
-        camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, ssrSceneColor);
-      } else {
-        // Should blit to resolve the MSAA
-        if (!forwardTargetResolved) {
-          colorTarget!._blitRenderTarget();
-          forwardTargetResolved = true;
-        }
-
-        const opaqueTexturePass = this._opaqueTexturePass;
-        opaqueTexturePass.onConfig(camera, colorTarget!.getColorTexture(0)!);
-        opaqueTexturePass.onRender(context);
-
-        // Should revert to original render target
-        context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+      // Should blit to resolve the MSAA
+      if (!forwardTargetResolved) {
+        colorTarget!._blitRenderTarget();
       }
+
+      const opaqueTexturePass = this._opaqueTexturePass;
+      opaqueTexturePass.onConfig(camera, colorTarget!.getColorTexture(0)!);
+      opaqueTexturePass.onRender(context);
+
+      // Should revert to original render target
+      context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
     } else {
       this._opaqueTexturePass.release();
       camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, null);
     }
 
-    try {
-      transparentQueue.render(context, PipelineStage.Forward);
-    } finally {
-      screenSpaceReflectionPass.endFrame();
-    }
+    transparentQueue.render(context, PipelineStage.Forward);
     // Revert stencil buffer generated by mask
     maskManager.clearMask(context, PipelineStage.Forward);
+
+    // Resolve the scene color once and share it with SSR history + PostProcessManager
+    const colorTargetResolved = !!colorTarget;
+    if (colorTarget) {
+      if (colorTarget === internalColorTarget) {
+        if (colorTarget.antiAliasing > 1) {
+          // Final resolve for this camera: discard MSAA color+depth renderbuffers right after resolve to skip TBDR STORE.
+          (colorTarget._platformRenderTarget as { blitRenderTarget(discardMSAA?: boolean): void }).blitRenderTarget(
+            true
+          );
+        } else if (!colorTarget.depthTexture && colorTarget._depthFormat !== null) {
+          // Non-MSAA internal color target is still bound; discard unused depth/stencil renderbuffer before switching FBO.
+          rhi.invalidateRenderTarget?.(colorTarget, CameraClearFlags.DepthStencil);
+        }
+      } else {
+        colorTarget._blitRenderTarget();
+      }
+    }
+    this._ssrPass.captureHistory(context, colorTarget, colorViewport);
 
     // Output render target of each stage
     let outputTarget: RenderTarget | null = null;
@@ -976,9 +707,10 @@ export class BasicRenderPipeline {
     // Post process
     const needFinalPass = camera._needFinalPass();
     const { postProcessManager } = scene;
-    if (camera.enablePostProcess && postProcessManager._isValid()) {
+    const hasPostProcess = camera.enablePostProcess && postProcessManager._isValid();
+    if (hasPostProcess) {
       outputTarget = needFinalPass ? postProcessManager._getOutputRenderTarget(camera) : camera.renderTarget;
-      postProcessManager._render(camera, internalColorTarget!, outputTarget);
+      postProcessManager._render(camera, internalColorTarget!, outputTarget, colorTargetResolved);
       camera.shaderData.setTexture(
         Camera._cameraPostProcessTextureProperty,
         <Texture2D>outputTarget!.getColorTexture(0)
@@ -987,9 +719,6 @@ export class BasicRenderPipeline {
       camera.shaderData.setTexture(Camera._cameraPostProcessTextureProperty, null);
       // Maybe internalColorTarget or camera.renderTarget or null
       outputTarget = colorTarget;
-      if (internalColorTarget) {
-        internalColorTarget._blitRenderTarget();
-      }
       postProcessManager._releaseSwapRenderTarget();
       postProcessManager._releaseOutputRenderTarget();
     }
@@ -1009,7 +738,15 @@ export class BasicRenderPipeline {
       Blitter.blitTexture(engine, <Texture2D>outputTarget!.getColorTexture(0), cameraRenderTarget, 0, camera.viewport);
     }
 
-    cameraRenderTarget?._blitRenderTarget();
+    const cameraTargetAlreadyResolved =
+      colorTargetResolved &&
+      colorTarget === cameraRenderTarget &&
+      outputTarget === cameraRenderTarget &&
+      !hasPostProcess &&
+      !needFinalPass;
+    if (!cameraTargetAlreadyResolved) {
+      cameraRenderTarget?._blitRenderTarget();
+    }
     cameraRenderTarget?.generateMipmaps();
   }
 
@@ -1047,124 +784,6 @@ export class BasicRenderPipeline {
     } else {
       this._pushRenderElementByType(renderElement, materialSubShader);
     }
-  }
-
-  /** Receiver surfaces do not copy Forward stencil contents, so masked/stencil elements fail closed. */
-  private _isScreenSpaceReflectionElementMaskSafe(
-    renderElement: RenderElement,
-    renderQueueType: RenderQueueType
-  ): boolean {
-    if (renderElement.component._maskInteraction !== SpriteMaskInteraction.None) return false;
-    const instancedRenderers = renderElement.instancedRenderers;
-    for (let i = 0, n = instancedRenderers.length; i < n; i++) {
-      if (instancedRenderers[i]._maskInteraction !== SpriteMaskInteraction.None) return false;
-    }
-
-    const material = renderElement.material;
-    const passes = renderElement.subShader.passes;
-    for (let i = 0, n = passes.length; i < n; i++) {
-      const pass = passes[i];
-      if (pass.getTagValue(RenderContext.pipelineStageKey) !== PipelineStage.Forward) continue;
-      if (
-        pass._renderState._getRenderQueueByShaderData(pass._renderStateDataMap, material.shaderData) !== renderQueueType
-      ) {
-        continue;
-      }
-      if (BasicRenderPipeline._hasUnsafeStencil(pass, material)) return false;
-    }
-    return true;
-  }
-
-  private static _resolveStencilValue(
-    dataMap: ShaderPass["_renderStateDataMap"],
-    shaderData: Material["shaderData"],
-    key: RenderStateElementKey,
-    fixedValue: number,
-    defaultValue: number
-  ): number {
-    const property = dataMap[key];
-    return property === undefined ? fixedValue : (shaderData.getFloat(property) ?? defaultValue);
-  }
-
-  private static _hasUnsafeStencil(pass: ShaderPass, material: Material): boolean {
-    const stencil = pass._renderState.stencilState;
-    const dataMap = pass._renderStateDataMap;
-    const shaderData = material.shaderData;
-    const enabledProperty = dataMap[RenderStateElementKey.StencilStateEnabled];
-    const enabled = enabledProperty === undefined ? stencil.enabled : !!(shaderData.getFloat(enabledProperty) ?? false);
-    if (!enabled) return false;
-
-    const compareFunctionFront = BasicRenderPipeline._resolveStencilValue(
-      dataMap,
-      shaderData,
-      RenderStateElementKey.StencilStateCompareFunctionFront,
-      stencil.compareFunctionFront,
-      CompareFunction.Always
-    );
-    const compareFunctionBack = BasicRenderPipeline._resolveStencilValue(
-      dataMap,
-      shaderData,
-      RenderStateElementKey.StencilStateCompareFunctionBack,
-      stencil.compareFunctionBack,
-      CompareFunction.Always
-    );
-    if (compareFunctionFront !== CompareFunction.Always || compareFunctionBack !== CompareFunction.Always) {
-      return true;
-    }
-
-    const writeMask = BasicRenderPipeline._resolveStencilValue(
-      dataMap,
-      shaderData,
-      RenderStateElementKey.StencilStateWriteMask,
-      stencil.writeMask,
-      0xff
-    );
-    if (writeMask === 0) return false;
-    const keep = StencilOperation.Keep;
-    return (
-      BasicRenderPipeline._resolveStencilValue(
-        dataMap,
-        shaderData,
-        RenderStateElementKey.StencilStatePassOperationFront,
-        stencil.passOperationFront,
-        keep
-      ) !== keep ||
-      BasicRenderPipeline._resolveStencilValue(
-        dataMap,
-        shaderData,
-        RenderStateElementKey.StencilStatePassOperationBack,
-        stencil.passOperationBack,
-        keep
-      ) !== keep ||
-      BasicRenderPipeline._resolveStencilValue(
-        dataMap,
-        shaderData,
-        RenderStateElementKey.StencilStateFailOperationFront,
-        stencil.failOperationFront,
-        keep
-      ) !== keep ||
-      BasicRenderPipeline._resolveStencilValue(
-        dataMap,
-        shaderData,
-        RenderStateElementKey.StencilStateFailOperationBack,
-        stencil.failOperationBack,
-        keep
-      ) !== keep ||
-      BasicRenderPipeline._resolveStencilValue(
-        dataMap,
-        shaderData,
-        RenderStateElementKey.StencilStateZFailOperationFront,
-        stencil.zFailOperationFront,
-        keep
-      ) !== keep ||
-      BasicRenderPipeline._resolveStencilValue(
-        dataMap,
-        shaderData,
-        RenderStateElementKey.StencilStateZFailOperationBack,
-        stencil.zFailOperationBack,
-        keep
-      ) !== keep
-    );
   }
 
   private _pushRenderElementByType(renderElement: RenderElement, subShader: SubShader): void {

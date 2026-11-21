@@ -1,63 +1,72 @@
+import { readFileSync } from "node:fs";
 import {
   type Camera,
   type Material,
-  RenderQueueType,
-  ScreenSpaceReflection,
-  ScreenSpaceReflectionQuality as Quality,
-  ScreenSpaceReflectionReceiverMode as ReceiverMode,
-  ScreenSpaceReflectionUpsamplingMode as UpsamplingMode,
+  ScreenSpaceReflectionQuality,
+  ScreenSpaceReflectionSettings,
   Shader,
-  ShaderData,
-  ShaderDataGroup
+  SSRRuntimeState
 } from "@galacean/engine";
+import { TERRAIN_SCREEN_SPACE_REFLECTION_SETTINGS } from "@galacean/engine-environment/terrain/lighting/TerrainScreenSpaceReflectionTuning";
+import { createSurfaceMaterial } from "@galacean/engine-terrain/surface/SurfaceMaterial";
 import {
   TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION,
-  applyAutomaticScreenSpaceReflectionConfiguration,
-  applyScreenSpaceReflectionConfiguration
+  applyScreenSpaceReflectionConfiguration,
+  inspectScreenSpaceReflectionPanelStatus
 } from "@galacean/engine-terrain/terrain/debug/TerrainScreenSpaceReflectionPanel";
-import {
-  CameraWaterFeatureBroker,
-  type WaterCameraFeatureRequest
-} from "@galacean/engine-water/water/runtime/optics/CameraWaterFeatureBroker";
-import { TERRAIN_WATER_SSR_CAMERA_SETTINGS } from "@galacean/engine-world-planning/integrations/grasslands/GrasslandsWaterPcg";
+import { createWaterMaterialDefaults } from "@galacean/engine-water/water/native/WaterMaterialFile";
 import {
   TERRAIN_DEFAULT_SURFACE_WATER_TUNING,
   WorldEnvironmentRuntime
 } from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
 import { SeedWorldTerrainRuntime } from "@galacean/engine-world-planning/runtime/SeedWorldTerrainRuntime";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-beforeEach(() => {
-  // The phase policy does not need the GPU's empty fallback texture.
-  vi.spyOn(ScreenSpaceReflection.prototype, "_unpublish").mockImplementation(() => {});
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
-
-function createMaterial(receiver: ReceiverMode = ReceiverMode.OpaqueComposite): Material {
-  const material = {
-    shader: Shader.find("PBR"),
-    shaderData: new ShaderData(ShaderDataGroup.Material)
+function createMaterial(intensity = 0): Material {
+  return {
+    screenSpaceReflectionIntensity: intensity
   } as Material;
-  expect(ScreenSpaceReflection.setMaterialReceiver(material, receiver)).toBe(true);
-  return material;
 }
 
 function fixture(requiresRain = true) {
-  const camera = { shaderData: new ShaderData(ShaderDataGroup.Camera) } as Camera;
-  const reflection = new ScreenSpaceReflection(camera);
-  Object.defineProperty(camera, "screenSpaceReflection", { value: reflection });
+  const sceneSettings = new ScreenSpaceReflectionSettings();
+  let cameraOverride: ScreenSpaceReflectionSettings | null = null;
+  const diagnostics = {
+    active: false,
+    state: SSRRuntimeState.Skipped,
+    traceWidth: 640,
+    traceHeight: 360,
+    estimatedBytes: 2_097_152,
+    unsupportedReason: null as string | null,
+    opaqueReceiverCount: 0,
+    transparentReceiverCount: 1,
+    useHardwareStencil: true,
+    usesPackedDepthRG8: false,
+    usesPackedNormalOct8: true
+  };
+  const camera = {
+    scene: { screenSpaceReflection: sceneSettings },
+    enableScreenSpaceReflection: true,
+    get screenSpaceReflectionOverride() {
+      return cameraOverride;
+    },
+    set screenSpaceReflectionOverride(value: ScreenSpaceReflectionSettings | null) {
+      cameraOverride = value;
+    },
+    screenSpaceReflectionDiagnostics: diagnostics
+  } as unknown as Camera;
+
   const weather = Object.assign(Object.create(WorldEnvironmentRuntime.prototype), {
     _camera: camera,
     _surface: { puddles: 0.4 },
     _surfaceWater: { ...TERRAIN_DEFAULT_SURFACE_WATER_TUNING, puddleStorageBias: 0.3 },
     _surfaceWaterSsrDemandState: {},
-    _surfaceWaterSsrRequiresRain: requiresRain
+    _surfaceWaterSsrRequiresRain: requiresRain,
+    _surfaceWaterSsrRequested: false
   }) as WorldEnvironmentRuntime;
-  const near = createMaterial();
-  const far = createMaterial(ReceiverMode.Disabled);
+
+  const near = createMaterial(0);
+  const far = createMaterial(0);
   const clipmap = {
     material: near,
     get renderMaterials() {
@@ -65,207 +74,147 @@ function fixture(requiresRain = true) {
     }
   };
   const terrain = Object.assign(Object.create(SeedWorldTerrainRuntime.prototype), {
-    clipmap
+    clipmap,
+    _surfaceWaterSsrEnabled: false
   }) as SeedWorldTerrainRuntime;
+
   const updateRain = (rate: number) => {
     weather["_synchronizeSurfaceWaterScreenSpaceReflection"](rate);
     terrain.setSurfaceWaterSsrEnabled(weather.surfaceWaterSsrRequested);
   };
-  return { camera, reflection, clipmap, terrain, weather, updateRain };
+
+  return { sceneSettings, camera, diagnostics, clipmap, terrain, weather, updateRain };
 }
 
-const waterRequest: WaterCameraFeatureRequest = {
-  reflection: "ssr",
-  quality: "high",
-  depthTexture: false,
-  opaqueTexture: false,
-  caustics: false
-};
+describe("Seed World SSR v2 configuration, diagnostics, and terrain wetness gating", () => {
+  it("applies the world SSR v2 preset to scene.screenSpaceReflection and supports isolated camera overrides", () => {
+    const { sceneSettings, camera, diagnostics } = fixture();
+    applyScreenSpaceReflectionConfiguration(camera, TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION);
+    expect(camera.enableScreenSpaceReflection).toBe(true);
+    expect(camera.screenSpaceReflectionOverride).toBeNull();
+    expect(sceneSettings).toMatchObject(TERRAIN_SCREEN_SPACE_REFLECTION_SETTINGS);
 
-it.each([
-  ["low", Quality.Low, 0.25, 16, 2],
-  ["medium", Quality.Medium, 0.5, 32, 3],
-  ["high", Quality.High, 0.5, 64, 5]
-] as const)(
-  "forwards the %s water trace preset and keeps quality tiers active under Seed World startup config",
-  (quality, expectedQuality, resolutionScale, maxRaySteps, hitRefinementSteps) => {
-    const { camera, reflection } = fixture();
-    applyAutomaticScreenSpaceReflectionConfiguration(camera, TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION);
-    expect(reflection.getReceiverTraceSettingsOverride(ReceiverMode.TransparentSampleOnly)).toBeNull();
-
-    const standaloneBroker = new CameraWaterFeatureBroker(camera);
-    standaloneBroker.setRequest("lake", { ...waterRequest, quality });
-    expect(reflection.metrics.transparentResolvedSettings).toMatchObject({
-      quality: expectedQuality,
-      resolutionScale,
-      upsamplingMode: UpsamplingMode.Bilinear,
-      thickness: 0.2
+    applyScreenSpaceReflectionConfiguration(camera, {
+      useCameraOverride: true,
+      quality: "high",
+      thickness: 0.45
     });
-    standaloneBroker.destroy();
+    expect(camera.screenSpaceReflectionOverride).not.toBeNull();
+    expect(camera.screenSpaceReflectionOverride!.quality).toBe(ScreenSpaceReflectionQuality.High);
+    expect(camera.screenSpaceReflectionOverride!.thickness).toBe(0.45);
+    expect(sceneSettings.quality).toBe(ScreenSpaceReflectionQuality.Medium);
+    expect(sceneSettings.thickness).toBe(TERRAIN_SCREEN_SPACE_REFLECTION_SETTINGS.thickness);
 
-    new CameraWaterFeatureBroker(camera).setRequest("lake", {
-      ...waterRequest,
-      quality,
-      screenSpaceReflection: TERRAIN_WATER_SSR_CAMERA_SETTINGS
+    diagnostics.active = true;
+    diagnostics.state = SSRRuntimeState.ActiveSteady;
+    const status = inspectScreenSpaceReflectionPanelStatus(camera);
+    expect(status.configuration).toMatchObject({
+      globalEnabled: true,
+      cameraEnabled: true,
+      useCameraOverride: true,
+      quality: "high",
+      thickness: 0.45
     });
-    expect(reflection.metrics.transparentResolvedSettings).toMatchObject({
-      quality: expectedQuality,
-      resolutionScale,
-      upsamplingMode: UpsamplingMode.Bilinear,
-      maxRayDistance: 168,
-      rayLengthFade: 16.8,
-      maxRaySteps,
-      hitRefinementSteps,
-      thickness: 0.2,
-      maxRoughness: 0.7,
-      edgeFade: 0.02
+    expect(status).toMatchObject({
+      active: true,
+      state: SSRRuntimeState.ActiveSteady,
+      supported: true,
+      traceWidth: 640,
+      traceHeight: 360,
+      estimatedBytes: 2_097_152,
+      transparentReceiverCount: 1,
+      useHardwareStencil: true,
+      usesPackedDepthRG8: false,
+      usesPackedNormalOct8: true
     });
 
-    applyScreenSpaceReflectionConfiguration(camera, { waterThickness: 0.45 });
-    expect(reflection.metrics.transparentResolvedSettings).toMatchObject({
-      thickness: 0.45,
-      upsamplingMode: UpsamplingMode.Bilinear
-    });
-  }
-);
-
-it("applies mode-only water updates and rejects an invalid mode without replacing the request", () => {
-  const { camera, reflection } = fixture();
-  const broker = new CameraWaterFeatureBroker(camera);
-  const request = { ...waterRequest, screenSpaceReflection: TERRAIN_WATER_SSR_CAMERA_SETTINGS };
-  const setMode = (upsamplingMode: UpsamplingMode) =>
-    broker.setRequest("lake", {
-      ...request,
-      screenSpaceReflection: { ...request.screenSpaceReflection, upsamplingMode }
-    });
-  broker.setRequest("lake", request);
-  expect(request.screenSpaceReflection.upsamplingMode).toBe(UpsamplingMode.Bilinear);
-  for (const mode of [UpsamplingMode.Bilateral, UpsamplingMode.GaussianBilateral, UpsamplingMode.Bilinear]) {
-    setMode(mode);
-    expect(reflection.metrics.transparentResolvedSettings.upsamplingMode).toBe(mode);
-  }
-  expect(() => setMode(-1 as UpsamplingMode)).toThrow(RangeError);
-  expect(reflection.metrics.transparentResolvedSettings.upsamplingMode).toBe(UpsamplingMode.Bilinear);
-  expect(reflection.metrics.activeConsumerLeaseCount).toBe(1);
-});
-
-it("uses the mode to break a tie between leases with the same label and priority", () => {
-  const { camera, reflection } = fixture();
-  const broker = new CameraWaterFeatureBroker(camera);
-  broker.acquireRequest("lake", {
-    ...waterRequest,
-    screenSpaceReflection: { upsamplingMode: UpsamplingMode.Bilateral }
-  });
-  const bilinear = broker.acquireRequest("lake", waterRequest);
-  expect(reflection.metrics.transparentResolvedSettings.upsamplingMode).toBe(UpsamplingMode.Bilinear);
-  bilinear.destroy();
-  expect(reflection.metrics.transparentResolvedSettings.upsamplingMode).toBe(UpsamplingMode.Bilateral);
-});
-
-it("keeps dry terrain out of SSR even with a water lease and retained puddles", () => {
-  const { reflection, clipmap, updateRain } = fixture();
-  const opaqueProp = createMaterial();
-  updateRain(0);
-  expect(reflection._beginFrame(true, null)).toBe(false);
-  const water = reflection.acquireConsumer("water-pcg", { receiverMode: ReceiverMode.TransparentSampleOnly });
-  expect(reflection._beginFrame(true, null)).toBe(true);
-  expect(reflection._isMaterialReceiver(clipmap.material, RenderQueueType.Opaque)).toBe(false);
-  expect(reflection._isMaterialReceiver(opaqueProp, RenderQueueType.Opaque)).toBe(true);
-  expect(reflection.metrics.activeConsumerLeaseCount).toBe(1);
-  water.release();
-});
-
-it("enables only near terrain in rain and releases its request when rain stops", () => {
-  const { reflection, clipmap, updateRain, weather } = fixture();
-  updateRain(0.3);
-  expect(weather.surfaceWaterSsrRequested).toBe(true);
-  expect(reflection._beginFrame(true, null)).toBe(true);
-  expect(reflection._isMaterialReceiver(clipmap.material, RenderQueueType.Opaque)).toBe(true);
-  expect(reflection._isMaterialReceiver(clipmap.renderMaterials[1]!, RenderQueueType.Opaque)).toBe(false);
-
-  const water = reflection.acquireConsumer("water-pcg", { receiverMode: ReceiverMode.TransparentSampleOnly });
-  updateRain(0);
-  expect(weather.surfaceWaterSsrRequested).toBe(false);
-  expect(reflection._isMaterialReceiver(clipmap.material, RenderQueueType.Opaque)).toBe(false);
-  expect(reflection.metrics.activeConsumerLeaseCount).toBe(1);
-  expect(water.active).toBe(true);
-  water.release();
-  expect(reflection._beginFrame(true, null)).toBe(false);
-});
-
-it("reapplies the current state to a replacement near material without rewriting stable materials", () => {
-  const { clipmap, updateRain, terrain } = fixture();
-  updateRain(0);
-  const setter = vi.spyOn(ScreenSpaceReflection, "setMaterialReceiver");
-  terrain.setSurfaceWaterSsrEnabled(false);
-  expect(setter).not.toHaveBeenCalled();
-
-  clipmap.material = createMaterial();
-  setter.mockClear();
-  terrain.setSurfaceWaterSsrEnabled(false);
-  expect(setter).toHaveBeenCalledExactlyOnceWith(clipmap.material, ReceiverMode.Disabled);
-  expect(ScreenSpaceReflection.getMaterialReceiverMode(clipmap.material)).toBe(ReceiverMode.Disabled);
-
-  updateRain(0.3);
-  clipmap.material = createMaterial(ReceiverMode.Disabled);
-  setter.mockClear();
-  terrain.setSurfaceWaterSsrEnabled(true);
-  expect(setter).toHaveBeenCalledExactlyOnceWith(clipmap.material, ReceiverMode.OpaqueComposite);
-  expect(ScreenSpaceReflection.getMaterialReceiverMode(clipmap.material)).toBe(ReceiverMode.OpaqueComposite);
-});
-
-it("keeps the existing retained-puddle demand when rain is not required", () => {
-  const { weather, updateRain } = fixture(false);
-  updateRain(0);
-  expect(weather.surfaceWaterSsrRequested).toBe(true);
-});
-
-it("applies the unified Seed World SSR budget for both terrain rain and water", () => {
-  const { camera, reflection, updateRain } = fixture();
-  applyAutomaticScreenSpaceReflectionConfiguration(camera, TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION);
-  applyScreenSpaceReflectionConfiguration(camera, TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION);
-  new CameraWaterFeatureBroker(camera).setRequest("lake", {
-    ...waterRequest,
-    quality: "high",
-    screenSpaceReflection: TERRAIN_WATER_SSR_CAMERA_SETTINGS
-  });
-  updateRain(0.3);
-
-  expect(reflection.metrics.activationMode).toBe(0);
-  expect(reflection.metrics.opaqueResolvedSettings).toMatchObject({
-    quality: Quality.Low,
-    resolutionScale: 0.25,
-    maxRayDistance: 168,
-    rayLengthFade: 16.8,
-    maxRaySteps: 24,
-    hitRefinementSteps: 2,
-    thickness: 0.2,
-    maxRoughness: 0.7,
-    edgeFade: 0.06
-  });
-  expect(reflection.metrics.transparentResolvedSettings).toMatchObject({
-    quality: Quality.High,
-    resolutionScale: 0.5,
-    upsamplingMode: UpsamplingMode.Bilinear,
-    maxRayDistance: 168,
-    rayLengthFade: 16.8,
-    maxRaySteps: 64,
-    hitRefinementSteps: 3,
-    thickness: 0.2,
-    maxRoughness: 0.7,
-    edgeFade: 0.02
+    applyScreenSpaceReflectionConfiguration(camera, { useCameraOverride: false });
+    expect(camera.screenSpaceReflectionOverride).toBeNull();
   });
 
-  applyScreenSpaceReflectionConfiguration(camera, {
-    quality: "high",
-    resolutionScale: 0.5,
-    maxRaySteps: 64,
-    hitRefinementSteps: 5
+  it("gates near terrain material.screenSpaceReflectionIntensity by rainfall and keeps far terrain at 0", () => {
+    const { clipmap, updateRain, weather } = fixture();
+    updateRain(0);
+    expect(weather.surfaceWaterSsrRequested).toBe(false);
+    expect(clipmap.material.screenSpaceReflectionIntensity).toBe(0);
+    expect(clipmap.renderMaterials[1]!.screenSpaceReflectionIntensity).toBe(0);
+
+    updateRain(0.3);
+    expect(weather.surfaceWaterSsrRequested).toBe(true);
+    expect(clipmap.material.screenSpaceReflectionIntensity).toBe(1);
+    expect(clipmap.renderMaterials[1]!.screenSpaceReflectionIntensity).toBe(0);
+
+    updateRain(0);
+    expect(weather.surfaceWaterSsrRequested).toBe(false);
+    expect(clipmap.material.screenSpaceReflectionIntensity).toBe(0);
   });
-  expect(reflection.metrics.opaqueResolvedSettings).toMatchObject({
-    quality: Quality.High,
-    resolutionScale: 0.5,
-    maxRaySteps: 64,
-    hitRefinementSteps: 5
+
+  it("reapplies intensity onto a replaced near material without rewriting stable materials", () => {
+    const { clipmap, updateRain, terrain } = fixture();
+    updateRain(0.3);
+    expect(clipmap.material.screenSpaceReflectionIntensity).toBe(1);
+
+    let writes = 0;
+    const trackedMaterial = {
+      _value: 0,
+      get screenSpaceReflectionIntensity() {
+        return this._value;
+      },
+      set screenSpaceReflectionIntensity(v: number) {
+        writes++;
+        this._value = v;
+      }
+    } as unknown as Material;
+
+    clipmap.material = trackedMaterial;
+    terrain.setSurfaceWaterSsrEnabled(true);
+    expect(writes).toBe(1);
+    expect(trackedMaterial.screenSpaceReflectionIntensity).toBe(1);
+
+    terrain.setSurfaceWaterSsrEnabled(true);
+    expect(writes).toBe(1);
+
+    terrain.setSurfaceWaterSsrEnabled(false);
+    expect(writes).toBe(2);
+    expect(trackedMaterial.screenSpaceReflectionIntensity).toBe(0);
+  });
+
+  it("keeps retained-puddle demand when rain is not required", () => {
+    const { clipmap, weather, updateRain } = fixture(false);
+    updateRain(0);
+    expect(weather.surfaceWaterSsrRequested).toBe(true);
+    expect(clipmap.material.screenSpaceReflectionIntensity).toBe(1);
+  });
+
+  it("opts Water and Terrain/Surface materials out of Forward bilateral SSR sampling", () => {
+    expect(createWaterMaterialDefaults("lake").screenSpaceReflectionBilateral).toBe(false);
+    expect(createWaterMaterialDefaults("river").screenSpaceReflectionBilateral).toBe(false);
+    const lakeMat = JSON.parse(
+      readFileSync(
+        new URL("../../../packages/water/src/water/native/assets/Water/Materials/lake.mat", import.meta.url),
+        "utf8"
+      )
+    );
+    const riverMat = JSON.parse(
+      readFileSync(
+        new URL("../../../packages/water/src/water/native/assets/Water/Materials/river.mat", import.meta.url),
+        "utf8"
+      )
+    );
+    expect(lakeMat.screenSpaceReflectionBilateral).toBe(false);
+    expect(riverMat.screenSpaceReflectionBilateral).toBe(false);
+
+    const mockShader = { name: "MockSurface", destroyed: false, _addReferCount() {} } as any;
+    const mockEngine = { resourceManager: { _addReferResource() {} } } as any;
+    const findSpy = vi.spyOn(Shader, "find").mockImplementation((name: string) =>
+      name === "PBR" || name === "Terrain/Surface" ? mockShader : null!
+    );
+    try {
+      const surfaceMat = createSurfaceMaterial(mockEngine);
+      expect(surfaceMat.screenSpaceReflectionIntensity).toBe(0);
+      expect(surfaceMat.screenSpaceReflectionBilateral).toBe(false);
+    } finally {
+      findSpy.mockRestore();
+    }
   });
 });

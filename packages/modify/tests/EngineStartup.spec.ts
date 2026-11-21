@@ -9,7 +9,9 @@ describe("World engine bootstrap", () => {
     expect(Engine._builtinShaders.blit).toBe(Shader.find("Blit/Blit"));
     expect(Engine._builtinShaders.skyProcedural).toBe(Shader.find("Sky/SkyProcedural"));
     expect(Engine._builtinShaders.particleFeedback).toBe(Shader.find("Effect/ParticleFeedback"));
-    expect(Shader.find("Pipeline/ScreenSpaceReflectionSurface")).toBeInstanceOf(Shader);
+    expect(Engine._builtinShaders.screenSpaceReflection).toBe(Shader.find("Lighting/ScreenSpaceReflection"));
+    expect(Shader.find("Pipeline/SSRReceiver")).toBeInstanceOf(Shader);
+    expect(Shader.find("Pipeline/SSRContributionDepth")).toBeInstanceOf(Shader);
     expect(Engine._builtinShaders.particleFeedback.subShaders[0].passes[0]._feedbackVaryings).toEqual([
       "v_FeedbackPosition",
       "v_FeedbackVelocity"

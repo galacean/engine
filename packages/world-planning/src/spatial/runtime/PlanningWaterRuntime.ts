@@ -56,7 +56,6 @@ import {
   type WaterSurfaceSample,
   type WaterTerrainOcclusionProvider
 } from "@galacean/engine-water/water/runtime/index";
-import { TERRAIN_WATER_SSR_CAMERA_SETTINGS } from "../../integrations/grasslands/GrasslandsWaterPcg";
 import waterPresentation from "../../planning-data/water-rendering.json";
 import { registerSeedWorldAuthoredBasinAuthoringV1 } from "../../runtime/hydrology-v1/SeedWorldWaterAuthoringPresetsV1.ts";
 import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
@@ -162,8 +161,7 @@ export class PlanningWaterRuntime {
         yieldBetweenBodyPreparationBatches: true,
         reflection: {
           cullingMask: options.camera.cullingMask,
-          waterLayerMask: Layer.Layer30,
-          screenSpaceReflection: TERRAIN_WATER_SSR_CAMERA_SETTINGS
+          waterLayerMask: Layer.Layer30
         }
       },
       options.environmentReflection,

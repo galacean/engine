@@ -58,6 +58,12 @@ export class ShaderProgram {
   _instanceLayout: InstanceBufferLayout | null = null;
   /** @internal */
   _errorLog: string | null = null;
+  /** @internal */
+  _ssrFallbackNoVerify: ShaderProgram | null = null;
+  /** @internal */
+  _ssrFallbackVerify: ShaderProgram | null = null;
+  /** @internal */
+  _ssrFallbackMaxUnits: number = -1;
 
   attributeLocation: Record<string, GLint> = Object.create(null);
   uniformBlockIds: number[] = [];
@@ -69,13 +75,23 @@ export class ShaderProgram {
   private _engine: Engine;
   private _gl: WebGLRenderingContext;
   private _glProgram: WebGLProgram | null;
+  private _fragmentSource: string | null;
   private _activeTextureUint: number = 0;
+  private _activeFragmentTextureCount: number = 0;
 
   /**
    * Whether this shader program is valid.
    */
   get isValid(): boolean {
     return this._isValid;
+  }
+
+  /**
+   * Number of fragment texture units bound by this shader program.
+   * @internal
+   */
+  get activeTextureCount(): number {
+    return this._activeFragmentTextureCount;
   }
 
   constructor(
@@ -87,6 +103,7 @@ export class ShaderProgram {
   ) {
     this._engine = engine;
     this._gl = engine._hardwareRenderer.gl;
+    this._fragmentSource = fragmentSource;
     if (deferCompletion) this._parallelCompile = this._gl.getExtension("KHR_parallel_shader_compile");
     this._pendingCompilation = !!this._parallelCompile;
     this._glProgram = this._createProgram(vertexSource, fragmentSource, transformFeedbackVaryings);
@@ -94,7 +111,10 @@ export class ShaderProgram {
     if (this._glProgram && !this._pendingCompilation) {
       this._isValid = true;
       this._recordLocation();
-    } else if (!this._glProgram) this._pendingCompilation = false;
+    } else if (!this._glProgram) {
+      this._pendingCompilation = false;
+      this._fragmentSource = null;
+    }
 
     this.id = ShaderProgram._counter++;
   }
@@ -231,6 +251,7 @@ export class ShaderProgram {
     const gl = this._gl;
     this._glProgram && gl.deleteProgram(this._glProgram);
     this._glProgram = null;
+    this._fragmentSource = null;
     this._pendingCompilation = false;
     this._isValid = false;
   }
@@ -414,6 +435,22 @@ export class ShaderProgram {
     const attributeInfos = this._getAttributeInfos();
     const basicResources = this._engine._basicResources;
     let needsUniformBlockReflection = false;
+    this._activeFragmentTextureCount = 0;
+
+    let fsStripped: string | null = null;
+    const isSamplerUsedInFS = (samplerName: string): boolean => {
+      const source = this._fragmentSource;
+      if (source === null) {
+        return true;
+      }
+      if (source.indexOf(samplerName) === -1) {
+        return false;
+      }
+      if (fsStripped === null) {
+        fsStripped = source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\r\n]*/g, " ").replace(/\buniform\b[^;]*;/g, " ");
+      }
+      return ShaderProgram._containsIdentifier(fsStripped, samplerName);
+    };
 
     uniformInfos.forEach(({ name, size, type }) => {
       // Query the original reflection name before normalizing the property key.
@@ -559,6 +596,9 @@ export class ShaderProgram {
           }
 
           isTexture = true;
+          if (isSamplerUsedInFS(name)) {
+            this._activeFragmentTextureCount += isArray ? size : 1;
+          }
           if (isArray) {
             const defaultTextures = new Array<Texture>(size);
             const textureIndices = new Int32Array(size);
@@ -609,6 +649,8 @@ export class ShaderProgram {
         }
       }
     }
+
+    this._fragmentSource = null;
   }
 
   private _getUniformInfos(): WebGLActiveInfo[] {
@@ -639,5 +681,25 @@ export class ShaderProgram {
     }
 
     return attributeInfos;
+  }
+
+  private static _isIdentChar(code: number): boolean {
+    return (code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || code === 95;
+  }
+
+  private static _containsIdentifier(source: string, identifier: string): boolean {
+    const len = identifier.length;
+    const sourceLen = source.length;
+    let idx = source.indexOf(identifier);
+    while (idx !== -1) {
+      const beforeOk = idx === 0 || !ShaderProgram._isIdentChar(source.charCodeAt(idx - 1));
+      const afterIdx = idx + len;
+      const afterOk = afterIdx >= sourceLen || !ShaderProgram._isIdentChar(source.charCodeAt(afterIdx));
+      if (beforeOk && afterOk) {
+        return true;
+      }
+      idx = source.indexOf(identifier, idx + 1);
+    }
+    return false;
   }
 }

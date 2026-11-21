@@ -3,6 +3,8 @@ Shader "Masonry/SupportSurface" {
   UsePass "Pipeline/ShadowCaster/Default/ShadowCaster"
   Pass "DepthOnly" {
    Tags { pipelineStage = "DepthOnly" }
+   CullMode rasterStateCullMode;
+   RasterState = { CullMode = rasterStateCullMode; }
    #include "ShaderLibrary/Common/Common.glsl"
    #include "ShaderLibrary/Common/Transform.glsl"
    #include "ShaderLibrary/Common/Attributes.glsl"

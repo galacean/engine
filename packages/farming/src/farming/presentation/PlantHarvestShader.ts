@@ -14,9 +14,17 @@ float harvestDissolve(vec3 positionWS) {
 }
 `;
 
-const depthPass = (shadow: boolean) => `
+const depthPass = (shadow: boolean) => {
+  const renderQueue = shadow ? "material_ShadowCasterRenderQueue" : "material_DepthOnlyRenderQueue";
+  return `
 Pass "${shadow ? "ShadowCaster" : "DepthOnly"}" {
   Tags { pipelineStage = "${shadow ? "ShadowCaster" : "DepthOnly"}" }
+  RenderQueueType ${renderQueue};
+  CullMode rasterStateCullMode;
+  RasterState = {
+    CullMode = rasterStateCullMode;
+  }
+  RenderQueueType = ${renderQueue};
   VertexShader = harvestDepthVertex;
   FragmentShader = harvestDepthFragment;
   #include "ShaderLibrary/Common/Common.glsl"
@@ -68,13 +76,15 @@ Pass "${shadow ? "ShadowCaster" : "DepthOnly"}" {
     #endif
   }
 }`;
+};
 
 /** Preserve organ tint and texture cutout while dissolving color, depth and shadows together. */
 export const PLANT_HARVEST_SHADER = plantTint
   .replace('Shader "Farming/PlantOrganTint"', 'Shader "Farming/HarvestDissolve"')
   .replace('UsePass "Pipeline/ShadowCaster/Default/ShadowCaster"', depthPass(true))
   .replace('UsePass "Pipeline/DepthOnly/Default/DepthOnly"', depthPass(false))
-  .replace('UsePass "Pipeline/ScreenSpaceReflectionSurface/Default/ScreenSpaceReflectionSurface"', "")
+  .replace('UsePass "Pipeline/SSRReceiver/Default/SSRReceiver"', "")
+  .replace('UsePass "Pipeline/SSRContributionDepth/Default/SSRContributionDepth"', "")
   .replace("vec4 renderer_OrganTint;", `vec4 renderer_OrganTint; ${dissolve}`)
   .replace(
     "void PBRFragment(Varyings varyings) {",

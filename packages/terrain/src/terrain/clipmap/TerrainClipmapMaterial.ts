@@ -10,8 +10,6 @@ import {
   ContentRestorer,
   Engine,
   Material,
-  ScreenSpaceReflection,
-  ScreenSpaceReflectionReceiverMode,
   Texture,
   Texture2D,
   Texture2DArray,
@@ -459,7 +457,10 @@ export function createTerrainClipmapMaterialBinding(
     }
     for (const macro of farMaterialOptions?.sharedMacros ?? []) material.shaderData.enableMacro(macro);
     farMaterialOptions?.configureMaterial?.(material);
-    ScreenSpaceReflection.setMaterialReceiver(material, ScreenSpaceReflectionReceiverMode.OpaqueComposite, 1);
+    // Dry terrain starts with SSR intensity = 0 so it does not register as an SSR receiver;
+    // wet hydrology runtime raises intensity when water-film SSR demand becomes active.
+    material.screenSpaceReflectionIntensity = 0;
+    material.screenSpaceReflectionBilateral = false;
     if (farMaterialOptions) {
       if (farMaterialOptions.nearTransitionMacro) {
         material.shaderData.enableMacro(farMaterialOptions.nearTransitionMacro);
@@ -470,7 +471,8 @@ export function createTerrainClipmapMaterialBinding(
         farMaterial.shaderData.disableMacro(farMaterialOptions.nearTransitionMacro);
       }
       farMaterial.shaderData.enableMacro(farMaterialOptions.farMacro);
-      ScreenSpaceReflection.setMaterialReceiver(farMaterial, ScreenSpaceReflectionReceiverMode.Disabled);
+      farMaterial.screenSpaceReflectionIntensity = 0;
+      farMaterial.screenSpaceReflectionBilateral = false;
     }
   } catch (error) {
     farMaterial?.destroy();

@@ -183,7 +183,7 @@ export class TerrainRuntimeDebugOwner {
       this._current = owned;
       return session;
     } catch (error) {
-      screenSpaceReflectionPanel?.destroy();
+      screenSpaceReflectionPanel?.dispose();
       volumetricCloudPanel?.destroy();
       inspector?.destroy();
       debug?.destroy();
@@ -207,7 +207,7 @@ function destroyOwnedSession(owned: OwnedTerrainRuntimeDebugSession): void {
   if (owned.destroyed) return;
   owned.destroyed = true;
   const session = owned.session;
-  session.screenSpaceReflectionPanel.destroy();
+  session.screenSpaceReflectionPanel.dispose();
   session.volumetricCloudPanel.destroy();
   session.inspector.destroy();
   session.debug?.destroy();

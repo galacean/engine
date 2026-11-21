@@ -12,7 +12,7 @@ const replacements = new Map(
 );
 const nativePackages = new Map([
   ["@galacean/engine", "galacean"],
-  ...["core", "math", "loader", "rhi-webgl", "ui", "physics-physx", "design", "shader-compiler"].map((name) => [
+  ...["core", "math", "loader", "rhi-webgl", "rhi-null", "ui", "physics-physx", "design", "shader-compiler"].map((name) => [
     `@galacean/engine-${name}`,
     name
   ])

@@ -42,6 +42,7 @@ export class PlantOrganMaterials {
         material.name = "植物部件着色";
         // Cutout leaves retain their texture alpha; opaque queue avoids transparent sorting.
         material.isTransparent = false;
+        material.screenSpaceReflectionIntensity = 0;
       }
       renderer.setMaterial(material);
       renderer.enableVertexColor = true;

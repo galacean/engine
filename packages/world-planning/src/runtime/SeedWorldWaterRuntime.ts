@@ -62,7 +62,6 @@ import {
   type SeedWorldOceanPresentationMode
 } from "@galacean/engine-water/world/SeedWorldOceanPresentation";
 import { registerSeedWorldWaterStartupShaders } from "@galacean/engine-water/world/SeedWorldWaterStartupShaders";
-import { TERRAIN_WATER_SSR_CAMERA_SETTINGS } from "../integrations/grasslands/GrasslandsWaterPcg.ts";
 import type { SeedWorldRiverV1, SeedWorldTerrainPatchV1 } from "../world/SeedWorldWorldEdit.ts";
 import { registerSeedWorldAuthoredBasinAuthoringV1 } from "./hydrology-v1/SeedWorldWaterAuthoringPresetsV1.ts";
 import {
@@ -167,8 +166,7 @@ export class SeedWorldWaterRuntime {
       yieldBetweenBodyPreparationBatches: true,
       reflection: {
         cullingMask: config.camera.cullingMask,
-        waterLayerMask: Layer.Layer30,
-        screenSpaceReflection: TERRAIN_WATER_SSR_CAMERA_SETTINGS
+        waterLayerMask: Layer.Layer30
       }
     });
     this._heightfieldBackend = new HeightfieldWaterBackend({

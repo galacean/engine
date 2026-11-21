@@ -49,6 +49,11 @@ export function constructionLightingHelpers(instructions: Instructions): Instruc
   return result;
 }
 let helpers: Instructions | undefined;
+let helpersDeclareProjectionParams = false;
+const CAMERA_PROJECTION_PARAMS_DECL_PATTERN =
+  /(?:^|\n)[ \t]*uniform\s+(?:(?:lowp|mediump|highp)\s+)?vec4\s+camera_ProjectionParams\s*;\s*/g;
+const HAS_CAMERA_PROJECTION_PARAMS_DECL_PATTERN = /\buniform\b[^;\n]*\bcamera_ProjectionParams\b\s*;/;
+
 export function constructionLightingInstructions(fragment: string): Instructions {
   if (!helpers) {
     registerConstructionSceneLighting();
@@ -59,7 +64,13 @@ export function constructionLightingInstructions(fragment: string): Instructions
       (shader.subShaders[0].passes[0] as unknown as { _fragmentShaderInstructions: Instructions })
         ._fragmentShaderInstructions
     );
+    helpersDeclareProjectionParams = helpers.some(
+      (instruction) => instruction[0] === 0 && HAS_CAMERA_PROJECTION_PARAMS_DECL_PATTERN.test(instruction[1] as string)
+    );
   }
+  const normalizedFragment = helpersDeclareProjectionParams
+    ? fragment.replace(CAMERA_PROJECTION_PARAMS_DECL_PATTERN, "\n")
+    : fragment;
   // Append gates AFTER the helper instructions so their absolute jumps stay valid.
-  return [...helpers, ...rawGlslInstructions(RAW_GLSL_MACROS, fragment, helpers.length)];
+  return [...helpers, ...rawGlslInstructions(RAW_GLSL_MACROS, normalizedFragment, helpers.length)];
 }

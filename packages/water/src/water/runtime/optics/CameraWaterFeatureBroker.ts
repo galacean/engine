@@ -1,14 +1,5 @@
 /** Single owner for scene-wide camera textures requested by visible water bodies. */
-import {
-  DepthTextureMode,
-  Downsampling,
-  ScreenSpaceReflectionQuality,
-  ScreenSpaceReflectionReceiverMode,
-  ScreenSpaceReflectionUpsamplingMode,
-  type ScreenSpaceReflection,
-  type ScreenSpaceReflectionConsumerLease,
-  type ScreenSpaceReflectionConsumerRequest
-} from "@galacean/engine-core";
+import { DepthTextureMode, Downsampling } from "@galacean/engine-core";
 import {
   acquireCameraDepthTexturePrePass,
   type CameraDepthTexturePrePassLease
@@ -23,11 +14,6 @@ export interface WaterCameraFeatureRequest {
   readonly caustics: boolean;
   readonly quality: WaterCameraFeatureQuality;
   readonly opaqueDownsampling?: Downsampling;
-  /**
-   * Optional scene-scale SSR tuning. The broker deterministically selects one
-   * complete normalized Water request and forwards it unchanged to the Camera.
-   */
-  readonly screenSpaceReflection?: Readonly<ScreenSpaceReflectionConsumerRequest>;
 }
 
 export interface WaterCameraFeatureTarget {
@@ -38,16 +24,7 @@ export interface WaterCameraFeatureTarget {
   _enableForwardDepthResolve?: boolean;
   /** Optional for legacy test doubles; production Camera reports its most recent render path. */
   readonly depthTextureSource?: "none" | "prepass" | "forward-resolve";
-  /** Optional for legacy test doubles. Production Camera instances own this feature. */
-  readonly screenSpaceReflection?: Pick<
-    ScreenSpaceReflection,
-    "effective" | "supported" | "unsupportedReason" | "acquireConsumer"
-  > & {};
 }
-
-type MutableScreenSpaceReflectionConsumerRequest = {
-  -readonly [Property in keyof ScreenSpaceReflectionConsumerRequest]: ScreenSpaceReflectionConsumerRequest[Property];
-};
 
 export interface WaterCameraFeatureRequestLease {
   readonly consumerId: string;
@@ -72,139 +49,6 @@ function qualityDownsampling(quality: WaterCameraFeatureQuality): Downsampling {
   return quality === "high" ? Downsampling.None : quality === "medium" ? Downsampling.TwoX : Downsampling.FourX;
 }
 
-const WATER_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES = 0.2;
-
-const WATER_SCREEN_SPACE_REFLECTION_REQUESTS: Readonly<
-  Record<WaterCameraFeatureQuality, Readonly<ScreenSpaceReflectionConsumerRequest>>
-> = Object.freeze({
-  low: Object.freeze({
-    receiverMode: ScreenSpaceReflectionReceiverMode.TransparentSampleOnly,
-    quality: ScreenSpaceReflectionQuality.Low,
-    resolutionScale: 0.25,
-    upsamplingMode: ScreenSpaceReflectionUpsamplingMode.Bilinear,
-    maxRayDistance: 32,
-    thickness: WATER_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES,
-    maxRoughness: 0.7,
-    edgeFade: 0.1
-  }),
-  medium: Object.freeze({
-    receiverMode: ScreenSpaceReflectionReceiverMode.TransparentSampleOnly,
-    quality: ScreenSpaceReflectionQuality.Medium,
-    resolutionScale: 0.5,
-    upsamplingMode: ScreenSpaceReflectionUpsamplingMode.Bilinear,
-    maxRayDistance: 56,
-    thickness: WATER_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES,
-    maxRoughness: 0.7,
-    edgeFade: 0.08
-  }),
-  high: Object.freeze({
-    receiverMode: ScreenSpaceReflectionReceiverMode.TransparentSampleOnly,
-    quality: ScreenSpaceReflectionQuality.High,
-    resolutionScale: 0.5,
-    upsamplingMode: ScreenSpaceReflectionUpsamplingMode.Bilinear,
-    maxRayDistance: 80,
-    thickness: WATER_SCREEN_SPACE_REFLECTION_MIN_THICKNESS_METRES,
-    maxRoughness: 0.7,
-    edgeFade: 0.06
-  })
-});
-
-function screenSpaceReflectionQualityRank(quality: ScreenSpaceReflectionQuality | undefined): number {
-  switch (quality) {
-    case ScreenSpaceReflectionQuality.Low:
-      return 0;
-    case ScreenSpaceReflectionQuality.Medium:
-      return 1;
-    case ScreenSpaceReflectionQuality.High:
-      return 2;
-    default:
-      return -1;
-  }
-}
-
-function freezeScreenSpaceReflectionRequest(
-  request: Readonly<ScreenSpaceReflectionConsumerRequest>
-): Readonly<ScreenSpaceReflectionConsumerRequest> {
-  return Object.freeze({ ...request });
-}
-
-function screenSpaceReflectionRequestsEqual(
-  left: Readonly<ScreenSpaceReflectionConsumerRequest> | undefined,
-  right: Readonly<ScreenSpaceReflectionConsumerRequest>
-): boolean {
-  if (!left) return false;
-  return (
-    left.priority === right.priority &&
-    left.receiverMode === right.receiverMode &&
-    left.quality === right.quality &&
-    left.resolutionScale === right.resolutionScale &&
-    left.upsamplingMode === right.upsamplingMode &&
-    left.intensity === right.intensity &&
-    left.maxRayDistance === right.maxRayDistance &&
-    left.rayLengthFade === right.rayLengthFade &&
-    left.thickness === right.thickness &&
-    left.maxRoughness === right.maxRoughness &&
-    left.edgeFade === right.edgeFade
-  );
-}
-
-function resolveScreenSpaceReflectionCandidate(
-  quality: WaterCameraFeatureQuality,
-  override?: Readonly<ScreenSpaceReflectionConsumerRequest>
-): MutableScreenSpaceReflectionConsumerRequest {
-  const candidate: MutableScreenSpaceReflectionConsumerRequest = {
-    ...WATER_SCREEN_SPACE_REFLECTION_REQUESTS[quality]
-  };
-  if (!override) return candidate;
-  if (override.priority !== undefined) {
-    candidate.priority = Number.isFinite(override.priority) ? override.priority : 0;
-  }
-  if (override.quality !== undefined) candidate.quality = override.quality;
-  if (override.resolutionScale !== undefined) candidate.resolutionScale = override.resolutionScale;
-  if (override.upsamplingMode !== undefined) candidate.upsamplingMode = override.upsamplingMode;
-  if (override.intensity !== undefined) candidate.intensity = override.intensity;
-  if (override.maxRayDistance !== undefined) candidate.maxRayDistance = override.maxRayDistance;
-  if (override.rayLengthFade !== undefined) candidate.rayLengthFade = override.rayLengthFade;
-  if (override.thickness !== undefined) candidate.thickness = override.thickness;
-  if (override.maxRoughness !== undefined) candidate.maxRoughness = override.maxRoughness;
-  if (override.edgeFade !== undefined) candidate.edgeFade = override.edgeFade;
-  return candidate;
-}
-
-interface WaterScreenSpaceReflectionCandidate {
-  readonly consumerId: string;
-  readonly request: Readonly<ScreenSpaceReflectionConsumerRequest>;
-}
-
-function screenSpaceReflectionRequestKey(request: Readonly<ScreenSpaceReflectionConsumerRequest>): string {
-  return JSON.stringify([
-    request.priority ?? 0,
-    request.receiverMode ?? null,
-    request.quality ?? null,
-    request.resolutionScale ?? null,
-    request.upsamplingMode ?? null,
-    request.intensity ?? null,
-    request.maxRayDistance ?? null,
-    request.rayLengthFade ?? null,
-    request.thickness ?? null,
-    request.maxRoughness ?? null,
-    request.edgeFade ?? null
-  ]);
-}
-
-/** Exact Core arbitration: priority desc, then UTF-16 code-unit label/key asc. */
-function compareScreenSpaceReflectionCandidates(
-  left: WaterScreenSpaceReflectionCandidate,
-  right: WaterScreenSpaceReflectionCandidate
-): number {
-  const priorityDifference = (right.request.priority ?? 0) - (left.request.priority ?? 0);
-  if (priorityDifference !== 0) return priorityDifference;
-  if (left.consumerId !== right.consumerId) return left.consumerId < right.consumerId ? -1 : 1;
-  const leftKey = screenSpaceReflectionRequestKey(left.request);
-  const rightKey = screenSpaceReflectionRequestKey(right.request);
-  return leftKey === rightKey ? 0 : leftKey < rightKey ? -1 : 1;
-}
-
 export class CameraWaterFeatureBroker {
   private readonly _requests = new Map<string, WaterCameraFeatureRequest>();
   private readonly _leaseRequests = new Map<
@@ -216,8 +60,7 @@ export class CameraWaterFeatureBroker {
   private readonly _originalOpaqueTextureDownsampling: Downsampling;
   private readonly _originalForwardDepthResolveEnabled: boolean | undefined;
   private _depthTextureLease?: CameraDepthTexturePrePassLease;
-  private _screenSpaceReflectionLease?: ScreenSpaceReflectionConsumerLease;
-  private _screenSpaceReflectionRequest?: Readonly<ScreenSpaceReflectionConsumerRequest>;
+  private _ssrRequested = false;
   private _nextLeaseId = 1;
   private _destroyed = false;
 
@@ -228,9 +71,13 @@ export class CameraWaterFeatureBroker {
     this._originalForwardDepthResolveEnabled = _camera._enableForwardDepthResolve;
   }
 
+  /** Whether any visible active Water body on this camera requests SSR. */
+  get ssrRequested(): boolean {
+    return this._ssrRequested;
+  }
+
   setRequest(consumerId: string, request?: WaterCameraFeatureRequest): void {
     if (this._destroyed) throw new Error("Camera water feature broker has been destroyed.");
-    if (request) this._validateRequest(request);
     if (request) this._requests.set(consumerId, request);
     else this._requests.delete(consumerId);
     this._apply();
@@ -238,7 +85,6 @@ export class CameraWaterFeatureBroker {
 
   acquireRequest(consumerId: string, request: WaterCameraFeatureRequest): WaterCameraFeatureRequestLease {
     if (this._destroyed) throw new Error("Camera water feature broker has been destroyed.");
-    this._validateRequest(request);
     const leaseId = this._nextLeaseId++;
     this._leaseRequests.set(leaseId, { consumerId, request });
     this._apply();
@@ -267,28 +113,17 @@ export class CameraWaterFeatureBroker {
     this._destroyed = true;
     this._requests.clear();
     this._leaseRequests.clear();
-    this._releaseScreenSpaceReflectionOwnership();
+    this._ssrRequested = false;
     this._restoreOriginalState();
   }
 
   private _apply(): void {
     let depthRequested = false;
+    let ssrRequested = false;
     let opaqueRequested = this._originalOpaqueTextureEnabled;
     let selectedDownsampling = this._originalOpaqueTextureDownsampling;
-    const requests = [
-      ...[...this._requests].map(([consumerId, request]) => ({ consumerId, request })),
-      ...this._leaseRequests.values()
-    ];
-    const screenSpaceReflectionCandidates: WaterScreenSpaceReflectionCandidate[] = [];
-    for (const { consumerId, request } of requests) {
-      if (request.reflection === "ssr") {
-        screenSpaceReflectionCandidates.push({
-          consumerId,
-          request: freezeScreenSpaceReflectionRequest(
-            resolveScreenSpaceReflectionCandidate(request.quality, request.screenSpaceReflection)
-          )
-        });
-      }
+    for (const request of this._requests.values()) {
+      if (request.reflection === "ssr") ssrRequested = true;
       depthRequested ||= request.depthTexture;
       if (!request.opaqueTexture) continue;
       const downsampling = request.opaqueDownsampling ?? qualityDownsampling(request.quality);
@@ -297,6 +132,18 @@ export class CameraWaterFeatureBroker {
       }
       opaqueRequested = true;
     }
+    for (const entry of this._leaseRequests.values()) {
+      const request = entry.request;
+      if (request.reflection === "ssr") ssrRequested = true;
+      depthRequested ||= request.depthTexture;
+      if (!request.opaqueTexture) continue;
+      const downsampling = request.opaqueDownsampling ?? qualityDownsampling(request.quality);
+      if (!opaqueRequested || downsamplingRank(downsampling) < downsamplingRank(selectedDownsampling)) {
+        selectedDownsampling = downsampling;
+      }
+      opaqueRequested = true;
+    }
+    this._ssrRequested = ssrRequested;
     this._setDepthTextureRequired(depthRequested);
     if (this._originalForwardDepthResolveEnabled !== undefined) {
       this._camera._enableForwardDepthResolve =
@@ -305,53 +152,6 @@ export class CameraWaterFeatureBroker {
     }
     this._camera.opaqueTextureEnabled = opaqueRequested;
     this._camera.opaqueTextureDownsampling = selectedDownsampling;
-    screenSpaceReflectionCandidates.sort(compareScreenSpaceReflectionCandidates);
-    const selectedScreenSpaceReflection = screenSpaceReflectionCandidates[0];
-    const frozenScreenSpaceReflectionRequest = selectedScreenSpaceReflection?.request;
-    this._applyScreenSpaceReflectionOwnership(frozenScreenSpaceReflectionRequest);
-  }
-
-  private _validateRequest(request: WaterCameraFeatureRequest): void {
-    if (request.screenSpaceReflection && request.reflection !== "ssr") {
-      throw new Error("Water Camera SSR settings require reflection='ssr'.");
-    }
-    const screenSpaceReflection = request.screenSpaceReflection;
-    if (!screenSpaceReflection) return;
-    if (
-      screenSpaceReflection.receiverMode !== undefined &&
-      screenSpaceReflection.receiverMode !== ScreenSpaceReflectionReceiverMode.TransparentSampleOnly
-    ) {
-      throw new RangeError("Water Camera SSR requests may only target the transparent sample-only receiver phase.");
-    }
-    if (
-      screenSpaceReflection.quality !== undefined &&
-      screenSpaceReflectionQualityRank(screenSpaceReflection.quality) < 0
-    ) {
-      throw new RangeError("Water Camera SSR quality is invalid.");
-    }
-    const { upsamplingMode } = screenSpaceReflection;
-    if (
-      upsamplingMode !== undefined &&
-      upsamplingMode !== ScreenSpaceReflectionUpsamplingMode.Bilinear &&
-      upsamplingMode !== ScreenSpaceReflectionUpsamplingMode.Bilateral &&
-      upsamplingMode !== ScreenSpaceReflectionUpsamplingMode.GaussianBilateral
-    ) {
-      throw new RangeError("Water Camera SSR upsamplingMode is invalid.");
-    }
-    const finiteRanges = [
-      ["resolutionScale", screenSpaceReflection.resolutionScale, 0.25, 1],
-      ["intensity", screenSpaceReflection.intensity, 0, 1],
-      ["maxRayDistance", screenSpaceReflection.maxRayDistance, Number.EPSILON, Number.POSITIVE_INFINITY],
-      ["rayLengthFade", screenSpaceReflection.rayLengthFade, 0, Number.POSITIVE_INFINITY],
-      ["thickness", screenSpaceReflection.thickness, Number.EPSILON, Number.POSITIVE_INFINITY],
-      ["maxRoughness", screenSpaceReflection.maxRoughness, 0, 1],
-      ["edgeFade", screenSpaceReflection.edgeFade, 0, 0.5]
-    ] as const;
-    for (const [name, value, minimum, maximum] of finiteRanges) {
-      if (value !== undefined && (!Number.isFinite(value) || value < minimum || value > maximum)) {
-        throw new RangeError(`Water Camera SSR ${name} is outside its supported range.`);
-      }
-    }
   }
 
   private _restoreOriginalState(): void {
@@ -374,49 +174,5 @@ export class CameraWaterFeatureBroker {
       this._depthTextureLease?.destroy();
       this._depthTextureLease = undefined;
     }
-  }
-
-  private _applyScreenSpaceReflectionOwnership(
-    request: Readonly<ScreenSpaceReflectionConsumerRequest> | undefined
-  ): void {
-    if (!request) {
-      this._releaseScreenSpaceReflectionOwnership();
-      return;
-    }
-    if (
-      this._screenSpaceReflectionLease?.active &&
-      screenSpaceReflectionRequestsEqual(this._screenSpaceReflectionRequest, request)
-    ) {
-      return;
-    }
-    const target = this._camera.screenSpaceReflection;
-    if (!target) {
-      return;
-    }
-    try {
-      if (this._screenSpaceReflectionLease?.active) {
-        if (this._screenSpaceReflectionLease.update(request)) {
-          this._screenSpaceReflectionRequest = request;
-          return;
-        }
-      }
-      const lease = target.acquireConsumer("water-pcg", request);
-      if (!lease.active) {
-        lease.release();
-        return;
-      }
-      const previousLease = this._screenSpaceReflectionLease;
-      this._screenSpaceReflectionLease = lease;
-      this._screenSpaceReflectionRequest = request;
-      previousLease?.release();
-    } catch {
-      // A camera may reject SSR ownership; environment reflection remains available.
-    }
-  }
-
-  private _releaseScreenSpaceReflectionOwnership(): void {
-    this._screenSpaceReflectionLease?.release();
-    this._screenSpaceReflectionLease = undefined;
-    this._screenSpaceReflectionRequest = undefined;
   }
 }
