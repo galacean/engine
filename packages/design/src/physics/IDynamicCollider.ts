@@ -149,6 +149,19 @@ export interface IDynamicCollider extends ICollider {
   addForceAtPosition(force: Vector3, position: Vector3): void;
 
   /**
+   * Apply a world-space impulse to the dynamic collider at its center of mass.
+   * @param impulse - The world-space impulse to apply
+   */
+  addImpulse(impulse: Vector3): void;
+
+  /**
+   * Apply a world-space impulse to the dynamic collider at a world-space position.
+   * @param impulse - The world-space impulse to apply
+   * @param position - The world-space position where the impulse is applied
+   */
+  addImpulseAtPosition(impulse: Vector3, position: Vector3): void;
+
+  /**
    * Apply a torque to the dynamic collider.
    * @param torque - The force make the collider rotate
    */

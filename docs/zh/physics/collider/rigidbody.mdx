@@ -101,6 +101,8 @@ PhysX 对动态刚体使用线性扫掠，对运动学刚体使用推测式接�
 | --- | --- |
 | [**applyForce**](/apis/core/#Rigidbody-applyForce) | 施加力 |
 | [**applyForceAtPosition**](/apis/core/#Rigidbody-applyForceAtPosition) | 在世界空间中的指定位置施加力 |
+| [**applyImpulse**](/apis/core/#Rigidbody-applyImpulse) | 在质心施加世界空间冲量 |
+| [**applyImpulseAtPosition**](/apis/core/#Rigidbody-applyImpulseAtPosition) | 在世界空间中的指定位置施加冲量 |
 | [**applyTorque**](/apis/core/#Rigidbody-applyTorque) | 施加扭矩 |
 | [**move**](/apis/core/#Rigidbody-move) | 把运动学刚体移动到指定位置和/或旋转，会影响路径上的其他刚体。仅在 `isKinematic` 为 true 时生效 |
 | [**sleep**](/apis/core/#Rigidbody-sleep) | 强制休眠 |
@@ -124,7 +126,7 @@ rigidbody.isKinematic = false;
 
 ### 运动控制
 
-在 `onPhysicsUpdate()` 中施加持续力和扭矩，使它们随固定物理步更新。在 `onUpdate()` 中处理跳跃按键，每帧读取一次。
+在 `onPhysicsUpdate()` 中施加持续力和扭矩，使它们随固定物理步更新。在 `onUpdate()` 中处理跳跃按键并施加一次性冲量，每帧读取一次。
 
 ```typescript
 import { Keys, Rigidbody, RigidbodyConstraints, Script, Vector3 } from "@galacean/engine";
@@ -132,6 +134,7 @@ import { Keys, Rigidbody, RigidbodyConstraints, Script, Vector3 } from "@galacea
 class PhysicsController extends Script {
   private static readonly _force = new Vector3(0, 0, 10);
   private static readonly _torque = new Vector3(0, 10, 0);
+  private static readonly _jumpImpulse = new Vector3(0, 5, 0);
 
   private _rigidbody: Rigidbody;
 
@@ -155,7 +158,7 @@ class PhysicsController extends Script {
   onUpdate() {
     // 跳跃时保留水平速度。
     if (this.engine.inputManager.isKeyDown(Keys.Space)) {
-      this._rigidbody.linearVelocity.y = 5;
+      this._rigidbody.applyImpulse(PhysicsController._jumpImpulse);
     }
   }
 }

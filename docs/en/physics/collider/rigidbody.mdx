@@ -101,6 +101,8 @@ PhysX uses a linear sweep for dynamic bodies and speculative contacts for kinema
 | --- | --- |
 | [**applyForce**](/apis/core/#Rigidbody-applyForce) | Apply a force |
 | [**applyForceAtPosition**](/apis/core/#Rigidbody-applyForceAtPosition) | Apply a force at a world-space position |
+| [**applyImpulse**](/apis/core/#Rigidbody-applyImpulse) | Apply a world-space impulse at the center of mass |
+| [**applyImpulseAtPosition**](/apis/core/#Rigidbody-applyImpulseAtPosition) | Apply a world-space impulse at a world-space position |
 | [**applyTorque**](/apis/core/#Rigidbody-applyTorque) | Apply a torque |
 | [**move**](/apis/core/#Rigidbody-move) | Move a kinematic Rigidbody to a position and/or rotation, affecting Rigidbodies along the path. Only works when `isKinematic` is true |
 | [**sleep**](/apis/core/#Rigidbody-sleep) | Force the Rigidbody to sleep |
@@ -124,7 +126,7 @@ rigidbody.isKinematic = false;
 
 ### Motion Control
 
-Apply sustained force and torque in `onPhysicsUpdate()` to use the fixed physics timestep. Read the jump key in `onUpdate()` to handle a press once per frame.
+Apply sustained force and torque in `onPhysicsUpdate()` to use the fixed physics timestep. Read the jump key in `onUpdate()` and apply a one-shot impulse once per frame.
 
 ```typescript
 import { Keys, Rigidbody, RigidbodyConstraints, Script, Vector3 } from "@galacean/engine";
@@ -132,6 +134,7 @@ import { Keys, Rigidbody, RigidbodyConstraints, Script, Vector3 } from "@galacea
 class PhysicsController extends Script {
   private static readonly _force = new Vector3(0, 0, 10);
   private static readonly _torque = new Vector3(0, 10, 0);
+  private static readonly _jumpImpulse = new Vector3(0, 5, 0);
 
   private _rigidbody: Rigidbody;
 
@@ -155,7 +158,7 @@ class PhysicsController extends Script {
   onUpdate() {
     // Jump without changing horizontal velocity.
     if (this.engine.inputManager.isKeyDown(Keys.Space)) {
-      this._rigidbody.linearVelocity.y = 5;
+      this._rigidbody.applyImpulse(PhysicsController._jumpImpulse);
     }
   }
 }

@@ -411,6 +411,21 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   /**
+   * Applies a world-space impulse at the center of mass on the next physics step.
+   */
+  applyImpulse(impulse: Vector3): void {
+    // The current mass properties convert the impulse, so pending Collider changes are applied first
+    this._phasedActiveInScene && this._getSyncedActor()?.addImpulse(impulse);
+  }
+
+  /**
+   * Applies a world-space impulse at a world-space position on the next physics step.
+   */
+  applyImpulseAtPosition(impulse: Vector3, position: Vector3): void {
+    this._phasedActiveInScene && this._getSyncedActor()?.addImpulseAtPosition(impulse, position);
+  }
+
+  /**
    * Applies a world-space torque.
    */
   applyTorque(torque: Vector3): void {

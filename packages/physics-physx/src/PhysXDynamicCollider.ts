@@ -173,6 +173,22 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
+   * {@inheritDoc IDynamicCollider.addImpulse }
+   */
+  addImpulse(impulse: Vector3): void {
+    const actor = this._pxActor;
+    // Apply at the native center of mass in actor space so PhysX produces zero torque.
+    actor.addImpulseAtLocalPos(impulse, actor.getCMassLocalPose().translation);
+  }
+
+  /**
+   * {@inheritDoc IDynamicCollider.addImpulseAtPosition }
+   */
+  addImpulseAtPosition(impulse: Vector3, position: Vector3): void {
+    this._pxActor.addImpulseAtPos(impulse, position);
+  }
+
+  /**
    * {@inheritDoc IDynamicCollider.addTorque }
    */
   addTorque(torque: Vector3) {
