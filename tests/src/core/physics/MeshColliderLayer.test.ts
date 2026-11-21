@@ -108,12 +108,12 @@ describe("Mesh collider collision layers", () => {
           }
           expect(physics.boxCast(origin, halfExtents, direction, orientation, 10, layer)).toBe(expected);
           expect(physics.sphereCast(origin, 0.25, direction, 10, layer)).toBe(expected);
-          expect(physics.capsuleCast(origin, 0.25, 1, direction, orientation, 10, layer)).toBe(expected);
+          expect(physics.capsuleCast(origin, 0.25, 1.5, direction, orientation, 10, layer)).toBe(expected);
 
           const overlaps: Collider[][] = [
             physics.overlapBoxAll(overlapCenter, halfExtents, orientation, layer),
             physics.overlapSphereAll(overlapCenter, 0.25, layer),
-            physics.overlapCapsuleAll(overlapCenter, 0.25, 1, orientation, layer)
+            physics.overlapCapsuleAll(overlapCenter, 0.25, 1.5, orientation, layer)
           ];
           for (const result of overlaps) {
             expect(result).toHaveLength(expected ? 1 : 0);

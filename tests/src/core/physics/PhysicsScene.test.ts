@@ -480,8 +480,8 @@ describe("Physics Test", () => {
       expect(physicsScene.boxCast(origin, halfExtents, longDir, 4)).to.eq(false);
       expect(physicsScene.sphereCast(origin, 0.1, shortDir, 6)).to.eq(true);
       expect(physicsScene.sphereCast(origin, 0.1, longDir, 4)).to.eq(false);
-      expect(physicsScene.capsuleCast(origin, 0.1, 0.5, shortDir, 6)).to.eq(true);
-      expect(physicsScene.capsuleCast(origin, 0.1, 0.5, longDir, 4)).to.eq(false);
+      expect(physicsScene.capsuleCast(origin, 0.1, 0.7, shortDir, 6)).to.eq(true);
+      expect(physicsScene.capsuleCast(origin, 0.1, 0.7, longDir, 4)).to.eq(false);
 
       // The caller's vectors are left untouched.
       expect(shortDir.z).to.eq(-0.1);
@@ -518,7 +518,7 @@ describe("Physics Test", () => {
       const halfExtents = new Vector3(0.1, 0.1, 0.1);
       expect(physicsScene.boxCast(inside, halfExtents, tinyDir, 6)).to.eq(false);
       expect(physicsScene.sphereCast(inside, 0.1, tinyDir, 6)).to.eq(false);
-      expect(physicsScene.capsuleCast(inside, 0.1, 0.5, tinyDir, 6)).to.eq(false);
+      expect(physicsScene.capsuleCast(inside, 0.1, 0.7, tinyDir, 6)).to.eq(false);
 
       root.destroy();
     });
@@ -955,7 +955,7 @@ describe("Physics Test", () => {
       expect(hit.collider).to.eq(farShape);
       expect(physics.sphereCast(ray.origin, 0.1, ray.direction, 100, mask, hit)).to.eq(true);
       expect(hit.collider).to.eq(farShape);
-      expect(physics.capsuleCast(ray.origin, 0.1, 0.2, ray.direction, new Quaternion(), 100, mask, hit)).to.eq(true);
+      expect(physics.capsuleCast(ray.origin, 0.1, 0.4, ray.direction, new Quaternion(), 100, mask, hit)).to.eq(true);
       expect(hit.collider).to.eq(farShape);
       const center = new Vector3(2, 0, 0);
       {
@@ -969,7 +969,7 @@ describe("Physics Test", () => {
         expect(overlap[0]).to.be.eq(farShape);
       }
       {
-        const overlap = physics.overlapCapsuleAll(center, 5, 1, new Quaternion(), mask);
+        const overlap = physics.overlapCapsuleAll(center, 5, 11, new Quaternion(), mask);
         expect(overlap).to.have.length(1);
         expect(overlap[0]).to.be.eq(farShape);
       }
@@ -1217,7 +1217,7 @@ describe("Physics Test", () => {
 
       const direction = new Vector3(1, 0, 0);
       const hit = new HitResult();
-      const ok = physicsScene.capsuleCast(new Vector3(0, 0, 0), 0.3, 0.5, direction, 100, hit);
+      const ok = physicsScene.capsuleCast(new Vector3(0, 0, 0), 0.3, 1.1, direction, 100, hit);
 
       expect(ok).to.eq(true);
       expect(hit.entity).to.eq(farBox);
@@ -1481,7 +1481,7 @@ describe("Physics Test", () => {
       // Test capsuleCast with no hit
       const center = new Vector3(3, 3, 3);
       const radius = 0.5;
-      const height = 1.0;
+      const height = 2;
       const direction = new Vector3(0, 1, 0);
       const orientation = new Quaternion();
       expect(
@@ -1598,6 +1598,29 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
+    it("uses the total height in capsule sweeps and overlaps", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physics = scene.physics;
+      const root = scene.createRootEntity();
+      const target = root.addComponent(BoxCollider);
+      target.size.set(1, 1, 1);
+
+      const radius = 0.5;
+      const height = 2;
+      const center = new Vector3(-5, 0, 0);
+      const hit = new HitResult();
+      expect(physics.capsuleCast(center, radius, height, new Vector3(1, 0, 0), 10, hit)).toBe(true);
+      expect(hit.collider).toBe(target);
+      expect(hit.distance).toBeCloseTo(3.5, 4);
+
+      center.x = -1.75;
+      expect(physics.overlapCapsuleAll(center, radius, height)).toEqual([]);
+      center.x = -1.25;
+      expect(physics.overlapCapsuleAll(center, radius, height)).toEqual([target]);
+
+      root.destroy();
+    });
+
     it("capsuleCast - New Overloads", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
@@ -1609,7 +1632,7 @@ describe("Physics Test", () => {
 
       const center = new Vector3(3, 3, 3);
       const radius = 0.5;
-      const height = 1.0;
+      const height = 2;
       const direction = new Vector3(-1, -1, -1).normalize();
       const outHitResult = new HitResult();
 
@@ -1720,7 +1743,7 @@ describe("Physics Test", () => {
       const results = [
         physicsScene.overlapBoxAll(center, new Vector3(1, 1, 1), orientation),
         physicsScene.overlapSphereAll(center, 2),
-        physicsScene.overlapCapsuleAll(center, 2, 4, orientation)
+        physicsScene.overlapCapsuleAll(center, 2, 8, orientation)
       ];
 
       for (const shapes of results) {
@@ -1814,7 +1837,7 @@ describe("Physics Test", () => {
       // Test overlapCapsule with no overlap
       const center = new Vector3(3, 3, 3);
       const radius = 0.5;
-      const height = 1.0;
+      const height = 2;
       const orientation = new Quaternion();
       expect(
         enginePhysX.sceneManager.scenes[0].physics.overlapCapsuleAll(center, radius, height, orientation)
@@ -1839,7 +1862,7 @@ describe("Physics Test", () => {
 
       center.set(0, 0, 0);
       let capsuleRadius = 2;
-      let capsuleHeight = 4;
+      let capsuleHeight = 8;
       const cContain = enginePhysX.sceneManager.scenes[0].physics.overlapCapsuleAll(
         center,
         capsuleRadius,
@@ -1880,7 +1903,7 @@ describe("Physics Test", () => {
       // Test overlapCapsule with edge contact
       center.set(0.5, 0.5, 0.5);
       capsuleRadius = 0.5;
-      capsuleHeight = 1;
+      capsuleHeight = 2;
       const cEdge = enginePhysX.sceneManager.scenes[0].physics.overlapCapsuleAll(
         center,
         capsuleRadius,
@@ -2695,7 +2718,7 @@ describe("Physics Test", () => {
       expect(physicsScene.overlapBoxAll(new Vector3(0, 0, 0), new Vector3(1, 1, 1), nonUnitQuat)).toContain(
         targetCollider
       );
-      expect(physicsScene.overlapCapsuleAll(new Vector3(0, 0, 0), 0.5, 1, nonUnitQuat)).toContain(targetCollider);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(0, 0, 0), 0.5, 2, nonUnitQuat)).toContain(targetCollider);
 
       const mover = root.createChild("mover");
       mover.transform.setPosition(0, 5, 0);
@@ -2734,7 +2757,9 @@ describe("Physics Test", () => {
       expect(physicsScene.capsuleCast(origin, -0.5, 1, dir, 20, hit)).toBe(false);
       expect(physicsScene.capsuleCast(origin, 0.5, -1, dir, 20, hit)).toBe(false);
       expect(physicsScene.capsuleCast(origin, 0.5, 0, dir, 20, hit)).toBe(false);
-      expect(physicsScene.capsuleCast(origin, 0.5, 1, dir, 20, hit)).toBe(true);
+      expect(physicsScene.capsuleCast(origin, 0.5, 0.5, dir, 20, hit)).toBe(false);
+      expect(physicsScene.capsuleCast(origin, 0.5, 1, dir, 20, hit)).toBe(false);
+      expect(physicsScene.capsuleCast(origin, 0.5, 2, dir, 20, hit)).toBe(true);
       expect(hit.normal.x).toBeCloseTo(-1, 4);
 
       const existing = [target.getComponent(BoxCollider)!];
@@ -2747,7 +2772,9 @@ describe("Physics Test", () => {
       expect(physicsScene.overlapCapsuleAll(new Vector3(), 0, 1)).toEqual([]);
       expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, -1)).toEqual([]);
       expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, 0)).toEqual([]);
-      expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, 1)).toHaveLength(1);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, 0.5)).toEqual([]);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, 1)).toEqual([]);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, 2)).toHaveLength(1);
 
       // Exercise values that are positive in JS but invalid after Float32 conversion.
       expect(physicsScene.boxCast(origin, new Vector3(1e-40, 1, 1), dir, 20, hit)).toBe(false);

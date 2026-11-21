@@ -484,27 +484,27 @@ export class PhysicsScene {
 
   /**
    * Tests whether sweeping a capsule hits a collider.
-   * @param height - Length of the cylindrical section in world units, excluding both caps.
+   * @param height - Total height in world units, including both caps. Must exceed twice the radius.
    */
   capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3): boolean;
 
   /**
    * Tests whether sweeping a capsule hits a collider.
-   * @param height - Length of the cylindrical section in world units, excluding both caps.
+   * @param height - Total height in world units, including both caps. Must exceed twice the radius.
    * @param outHitResult - Receives the closest hit.
    */
   capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3, outHitResult: HitResult): boolean;
 
   /**
    * Tests whether sweeping a capsule hits a collider.
-   * @param height - Length of the cylindrical section in world units, excluding both caps.
+   * @param height - Total height in world units, including both caps. Must exceed twice the radius.
    * @param distance - Maximum distance in world units.
    */
   capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3, distance: number): boolean;
 
   /**
    * Tests whether sweeping a capsule hits a collider.
-   * @param height - Length of the cylindrical section in world units, excluding both caps.
+   * @param height - Total height in world units, including both caps. Must exceed twice the radius.
    * @param distance - Maximum distance in world units.
    * @param outHitResult - Receives the closest hit.
    */
@@ -521,7 +521,7 @@ export class PhysicsScene {
    * Tests whether sweeping a capsule hits a collider.
    * @param center - Initial center in world space.
    * @param radius - Radius in world units.
-   * @param height - Length of the cylindrical section in world units, excluding both caps.
+   * @param height - Total height in world units, including both caps. Must exceed twice the radius.
    * @param direction - Sweep direction in world space.
    * @param orientation - World-space rotation of the capsule, whose local long axis is X.
    * @param distance - Maximum distance in world units.
@@ -575,8 +575,9 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
+    const cylinderHeight = height - 2 * radius;
     const normalizedDirection =
-      distance > 0 && Collider._isValidPositiveFloat32(radius) && Collider._isValidPositiveFloat32(height * 0.5)
+      distance > 0 && Collider._isValidPositiveFloat32(radius) && Collider._isValidPositiveFloat32(cylinderHeight * 0.5)
         ? this._syncCastDirection(direction)
         : null;
 
@@ -585,7 +586,7 @@ export class PhysicsScene {
       result = this._nativePhysicsScene.capsuleCast(
         center,
         radius,
-        height,
+        cylinderHeight,
         orientation,
         normalizedDirection,
         distance,
@@ -654,7 +655,7 @@ export class PhysicsScene {
    * Finds the colliders overlapping a capsule.
    * @param center - Center in world space.
    * @param radius - Radius in world units.
-   * @param height - Length of the cylindrical section in world units, excluding both caps.
+   * @param height - Total height in world units, including both caps. Must exceed twice the radius.
    * @param orientation - World-space rotation of the capsule, whose local long axis is X. Defaults to the identity rotation.
    * @param layerMask - Collision layers to include. Defaults to `Layer.Everything`.
    * @param colliders - Output array whose contents are replaced. Omit to allocate an array.
@@ -668,12 +669,13 @@ export class PhysicsScene {
     layerMask: Layer = Layer.Everything,
     colliders: Collider[] = []
   ): Collider[] {
-    if (!(Collider._isValidPositiveFloat32(radius) && Collider._isValidPositiveFloat32(height * 0.5))) {
+    const cylinderHeight = height - 2 * radius;
+    if (!(Collider._isValidPositiveFloat32(radius) && Collider._isValidPositiveFloat32(cylinderHeight * 0.5))) {
       colliders.length = 0;
       return colliders;
     }
     this._syncColliders();
-    const ids = this._nativePhysicsScene.overlapCapsuleAll(center, radius, height, orientation, layerMask);
+    const ids = this._nativePhysicsScene.overlapCapsuleAll(center, radius, cylinderHeight, orientation, layerMask);
 
     return PhysicsScene._collectColliders(ids, colliders);
   }
