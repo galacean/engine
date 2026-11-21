@@ -125,7 +125,19 @@ function config({ location, pkgJson }) {
           {
             file: mainFile,
             sourcemap: true,
-            format: "commonjs"
+            format: "commonjs",
+            plugins:
+              pkgJson.name === "@galacean/engine-physics-physx"
+                ? [
+                    {
+                      name: "preserve-physx-runtime-import",
+                      renderDynamicImport({ targetModuleId }) {
+                        // Node resolves the packaged ESM factory through a file URL.
+                        if (targetModuleId === null) return { left: "import(", right: ")" };
+                      }
+                    }
+                  ]
+                : []
           }
         ],
         plugins: curPlugins
