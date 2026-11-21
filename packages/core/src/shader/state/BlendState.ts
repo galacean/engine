@@ -72,16 +72,10 @@ export class BlendState extends DataObject {
     renderElementData: ShaderData | undefined,
     defaultValue: BlendFactor
   ): BlendFactor {
-    const mask = property._groupMask;
-    const renderElementBit = 1 << ShaderDataGroup.RenderElement;
-    if (mask & renderElementBit) {
-      const value = renderElementData?.getFloat(property);
-      // A name also set in other groups falls back to the material value
-      if (value !== undefined || mask === renderElementBit) {
-        return value ?? defaultValue;
-      }
-    }
-    return shaderData.getFloat(property) ?? defaultValue;
+    // Render element values override material values
+    const value =
+      property._groupMask & (1 << ShaderDataGroup.RenderElement) ? renderElementData?.getFloat(property) : undefined;
+    return value ?? shaderData.getFloat(property) ?? defaultValue;
   }
 
   /** The blend state of the render target. */
