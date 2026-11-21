@@ -857,6 +857,7 @@ export class ModelMesh extends Mesh {
         const vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, needByteLength, bufferUsage, true);
         this._internalVertexBuffer = vertexBuffer;
         this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride));
+        this._vertexBufferInfos[vertexBufferIndex].dataVersion = -1;
       }
       bufferCreatedInfo.set(isCreate ? bufferStride : 0, isCreate ? vertexCount : 0, isCreate ? vertexBufferIndex : -1);
     }

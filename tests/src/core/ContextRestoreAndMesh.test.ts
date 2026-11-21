@@ -265,6 +265,44 @@ describe("Context restore and ModelMesh re-upload regressions", () => {
         mesh.setPositions([new Vector3(0.5, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 1, 0)]);
         mesh.uploadData(true);
       }).not.toThrow();
+
+      // Re-bind AFTER setPositions (single setter) must still write new vertices instead of zeros
+      const singlePositions = [new Vector3(0.75, 0.25, 0), new Vector3(1.5, 0, 0), new Vector3(0, 1.5, 0)];
+      mesh.setPositions(singlePositions);
+      const binding2 = mesh.vertexBufferBindings[0]!;
+      mesh.setVertexBufferBinding(binding2.buffer, binding2.stride, 0);
+      mesh.uploadData(true);
+
+      const singleReadback = new Float32Array(9);
+      mesh.vertexBufferBindings[0]!.buffer.getData(singleReadback);
+      expect(Array.from(singleReadback)).toEqual([0.75, 0.25, 0, 1.5, 0, 0, 0, 1.5, 0]);
+
+      // Re-bind AFTER setPositions (batch setter) must also write new vertices instead of zeros
+      const batchPositions = [new Vector3(0.125, 0.5, 0.25), new Vector3(2, 0, 0), new Vector3(0, 2, 0)];
+      mesh.setPositions(batchPositions);
+      const binding3 = mesh.vertexBufferBindings[0]!;
+      mesh.setVertexBufferBindings([binding3], 0);
+      mesh.uploadData(false);
+
+      const batchReadback = new Float32Array(9);
+      mesh.vertexBufferBindings[0]!.buffer.getData(batchReadback);
+      expect(Array.from(batchReadback)).toEqual([0.125, 0.5, 0.25, 2, 0, 0, 0, 2, 0]);
+      expect(mesh.getPositions()).toEqual(batchPositions);
+
+      // Changing vertex layout (stride 12 -> 24) after uploadData(false) followed by same-buffer re-bind must write new vertices
+      const layoutPositions = [new Vector3(1, 2, 3), new Vector3(4, 5, 6), new Vector3(7, 8, 9)];
+      const layoutNormals = [new Vector3(0, 0, 1), new Vector3(0, 1, 0), new Vector3(1, 0, 0)];
+      mesh.setPositions(layoutPositions);
+      mesh.setNormals(layoutNormals);
+      const binding4 = mesh.vertexBufferBindings[0]!;
+      mesh.setVertexBufferBinding(binding4.buffer, binding4.stride, 0);
+      mesh.uploadData(false);
+
+      const layoutReadback = new Float32Array(18);
+      mesh.vertexBufferBindings[0]!.buffer.getData(layoutReadback);
+      expect(Array.from(layoutReadback)).toEqual([1, 2, 3, 0, 0, 1, 4, 5, 6, 0, 1, 0, 7, 8, 9, 1, 0, 0]);
+      expect(mesh.getPositions()).toEqual(layoutPositions);
+      expect(mesh.getNormals()).toEqual(layoutNormals);
     } finally {
       mesh.destroy();
     }
