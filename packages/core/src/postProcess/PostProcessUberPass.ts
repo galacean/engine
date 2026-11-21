@@ -145,6 +145,7 @@ export class PostProcessUberPass extends PostProcessPass {
 
     // Allocate mip pyramid (single RT per level; upsample blends in-place)
     const isHDR = camera._isInternalFormatHDR();
+    // Bloom only composites RGB, so prefer R11G11B10_UFloat even when scene HDR needs alpha
     const bloomColorFormat =
       isHDR && engine._hardwareRenderer.supportsRenderTargetColorFormat(TextureFormat.R11G11B10_UFloat)
         ? TextureFormat.R11G11B10_UFloat

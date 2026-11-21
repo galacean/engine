@@ -37,7 +37,7 @@ export class BloomEffect extends PostProcessEffect {
   /** @internal */
   static _bloomTextureProp = ShaderProperty.getByName("material_BloomTexture");
   /** @internal */
-  static _bloomTexelSizeProp = ShaderProperty.getByName("material_BloomTexelSize");
+  static _bloomTexelSizeProp = ShaderProperty.getByName("material_BloomTexelSize"); // x: 1/width, y: 1/height, z: width, w: height
   /** @internal */
   static _dirtTextureProp = ShaderProperty.getByName("material_BloomDirtTexture");
   /** @internal */
@@ -59,9 +59,8 @@ export class BloomEffect extends PostProcessEffect {
   downScale = new PostProcessEffectEnumParameter(BloomDownScaleMode, BloomDownScaleMode.Half);
 
   /**
-   * Controls the maximum number of iterations in the bloom mip pyramid.
-   * @remarks Higher values produce a wider bloom radius at the cost of additional render passes.
-   * Clamped to the integer range `1`–`8` (non-integer values are rounded when applied).
+   * Controls the maximum number of blur iterations for the bloom effect.
+   * @remarks Higher values widen the bloom spread at higher performance cost. Effective range is `1`–`8` (rounded to an integer and bounded by resolution).
    * @defaultValue `6`
    */
   maxIterations = new PostProcessEffectFloatParameter(6, 1, 8, false);

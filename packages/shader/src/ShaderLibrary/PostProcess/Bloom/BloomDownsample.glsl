@@ -7,7 +7,7 @@ mediump sampler2D renderer_BlitTexture;
 vec4 renderer_texelSize;
 
 void frag(Varyings v) {
-    // 5x5 shift-invariant filter in 9 bilinear taps (handles even and odd mip sizes without blind spots)
+    // 5x5 shift-invariant filter in 9 bilinear taps (Castaño 2013; no odd-mip blind spots)
     vec2 t = renderer_texelSize.xy;
     vec2 uv = v.v_uv * renderer_texelSize.zw + 0.5;
     vec2 base = (floor(uv) - 0.5) * t;
