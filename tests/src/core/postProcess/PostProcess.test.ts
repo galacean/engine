@@ -797,4 +797,158 @@ describe("PostProcess", () => {
       bloomEngine.destroy();
     }
   });
+
+  it("Bloom odd-size mip downsample keeps shifted single-texel energy stable", async () => {
+    // 130x130 Half -> mip0 = 65x65 (odd) -> mip1 = 32x32
+    const size = 130;
+    const htmlCanvas = document.createElement("canvas");
+    htmlCanvas.width = size;
+    htmlCanvas.height = size;
+    const bloomEngine = await WebGLEngine.create({ canvas: htmlCanvas });
+    const bloomScene = bloomEngine.sceneManager.scenes[0];
+    bloomScene.background.solidColor.set(0, 0, 0, 1);
+
+    const cameraEntity = bloomScene.createRootEntity("camera");
+    cameraEntity.transform.setPosition(0, 0, 10);
+    const bloomCamera = cameraEntity.addComponent(Camera);
+    bloomCamera.isOrthographic = true;
+    bloomCamera.orthographicSize = size / 2;
+    bloomCamera.enablePostProcess = true;
+    bloomCamera.enableHDR = false;
+
+    const destColorTexture = new Texture2D(bloomEngine, size, size, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const destTarget = new RenderTarget(bloomEngine, size, size, destColorTexture);
+    bloomCamera.renderTarget = destTarget;
+
+    // 2x2 square in 130x130 -> 1x1 texel in mip0 (65x65); shifting by 2px in X/Y steps across odd/even parities in mip0
+    const dotEntity = bloomScene.createRootEntity("dot");
+    const renderer = dotEntity.addComponent(MeshRenderer);
+    renderer.mesh = PrimitiveMesh.createCuboid(bloomEngine, 2, 2, 1);
+    const material = new UnlitMaterial(bloomEngine);
+    material.baseColor.set(1, 1, 1, 1);
+    renderer.setMaterial(material);
+
+    const pp = bloomScene.createRootEntity("post-process").addComponent(PostProcess);
+    const bloomEffect = pp.addEffect(BloomEffect);
+    bloomEffect.downScale.value = BloomDownScaleMode.Half;
+    bloomEffect.maxIterations.value = 2;
+    bloomEffect.threshold.value = 0;
+    bloomEffect.intensity.value = 1;
+
+    try {
+      const gl = (bloomEngine as any)._hardwareRenderer._gl as WebGL2RenderingContext;
+      const activeUberPass = bloomEngine.postProcessPasses[0];
+
+      const energies: number[] = [];
+      for (const [dx, dy] of [
+        [0, 0],
+        [2, 0],
+        [0, 2],
+        [2, 2]
+      ]) {
+        dotEntity.transform.setPosition(dx, dy, 0);
+        while (gl.getError() !== gl.NO_ERROR);
+        bloomEngine.update();
+        expect(gl.getError()).to.equal(gl.NO_ERROR);
+
+        // @ts-ignore
+        const mip1RT: RenderTarget = activeUberPass._mipRT[1];
+        expect(mip1RT.width).to.equal(32);
+        const mip1Tex = mip1RT.getColorTexture(0) as Texture2D;
+        const pixels = new Uint8Array(mip1RT.width * mip1RT.height * 4);
+        mip1Tex.getPixelBuffer(pixels);
+        let linearEnergy = 0;
+        for (let i = 0; i < pixels.length; i += 4) {
+          if (pixels[i] > 0) {
+            linearEnergy += Math.pow(pixels[i] / 255, 2.2);
+          }
+        }
+        energies.push(linearEnergy);
+      }
+
+      const minEnergy = Math.min(...energies);
+      const maxEnergy = Math.max(...energies);
+      expect(minEnergy).to.be.greaterThan(0);
+      // Shift-invariant 5x5 9-tap avoids checkerboard dropout (Jimenez 13-tap drops >50x on odd mip center)
+      expect(maxEnergy / minEnergy).to.be.lessThan(1.25);
+    } finally {
+      bloomCamera.renderTarget = null;
+      destTarget.destroy(true);
+      bloomEngine.destroy();
+    }
+  });
+
+  it("Bloom uses R11G11B10_UFloat independently in transparent HDR and preserves output alpha", async () => {
+    const size = 128;
+    const htmlCanvas = document.createElement("canvas");
+    htmlCanvas.width = size;
+    htmlCanvas.height = size;
+    const bloomEngine = await WebGLEngine.create({ canvas: htmlCanvas });
+    const bloomScene = bloomEngine.sceneManager.scenes[0];
+    bloomScene.background.solidColor.set(0, 0, 0, 0);
+
+    const cameraEntity = bloomScene.createRootEntity("camera");
+    cameraEntity.transform.setPosition(0, 0, 10);
+    const bloomCamera = cameraEntity.addComponent(Camera);
+    bloomCamera.isOrthographic = true;
+    bloomCamera.orthographicSize = size / 2;
+    bloomCamera.enablePostProcess = true;
+    bloomCamera.enableHDR = true;
+    bloomCamera.isAlphaOutputRequired = true;
+
+    const destColorTexture = new Texture2D(bloomEngine, size, size, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const destTarget = new RenderTarget(bloomEngine, size, size, destColorTexture);
+    bloomCamera.renderTarget = destTarget;
+
+    const dotEntity = bloomScene.createRootEntity("dot");
+    const renderer = dotEntity.addComponent(MeshRenderer);
+    renderer.mesh = PrimitiveMesh.createCuboid(bloomEngine, 4, 4, 1);
+    const material = new UnlitMaterial(bloomEngine);
+    material.baseColor.set(4, 4, 4, 1);
+    renderer.setMaterial(material);
+
+    const pp = bloomScene.createRootEntity("post-process").addComponent(PostProcess);
+    const bloomEffect = pp.addEffect(BloomEffect);
+    bloomEffect.downScale.value = BloomDownScaleMode.Half;
+    bloomEffect.maxIterations.value = 4;
+    bloomEffect.threshold.value = 0;
+    bloomEffect.scatter.value = 0.7;
+    bloomEffect.intensity.value = 1;
+
+    try {
+      const gl = (bloomEngine as any)._hardwareRenderer._gl as WebGL2RenderingContext;
+      const activeUberPass = bloomEngine.postProcessPasses[0];
+
+      while (gl.getError() !== gl.NO_ERROR);
+      bloomEngine.update();
+      expect(gl.getError()).to.equal(gl.NO_ERROR);
+
+      const rhi = (bloomEngine as any)._hardwareRenderer;
+      if (bloomCamera._isInternalFormatHDR() && rhi.supportsRenderTargetColorFormat(TextureFormat.R11G11B10_UFloat)) {
+        expect(bloomCamera._getInternalColorTextureFormat()).to.equal(TextureFormat.R16G16B16A16_SFloat);
+        // @ts-ignore
+        expect(activeUberPass._mipRT[0].getColorTexture(0).format).to.equal(TextureFormat.R11G11B10_UFloat);
+      }
+
+      const outPixels = new Uint8Array(size * size * 4);
+      destColorTexture.getPixelBuffer(outPixels);
+      const readPixel = (x: number, y: number) => {
+        const idx = (y * size + x) * 4;
+        return [outPixels[idx], outPixels[idx + 1], outPixels[idx + 2], outPixels[idx + 3]];
+      };
+      const center = readPixel(64, 64);
+      const halo = readPixel(70, 64);
+      const corner = readPixel(0, 0);
+      expect(center[0]).to.be.greaterThan(200);
+      expect(center[3]).to.equal(255);
+      // Bloom halo adds RGB glow over transparent background without polluting alpha
+      expect(halo[0]).to.be.greaterThan(0);
+      expect(halo[3]).to.equal(0);
+      expect(corner[3]).to.equal(0);
+    } finally {
+      bloomCamera.renderTarget = null;
+      destTarget.destroy(true);
+      bloomEngine.destroy();
+    }
+  });
 });

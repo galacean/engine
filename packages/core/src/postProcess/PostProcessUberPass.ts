@@ -4,7 +4,7 @@ import { Engine } from "../Engine";
 import { Material } from "../material";
 import { Blitter } from "../RenderPipeline/Blitter";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
-import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../texture";
+import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import { BloomDownScaleMode, BloomEffect, TonemappingEffect } from "./effects";
 import { PostProcessManager } from "./PostProcessManager";
 import { PostProcessPass, PostProcessPassEvent } from "./PostProcessPass";
@@ -144,8 +144,12 @@ export class PostProcessUberPass extends PostProcessPass {
     const mipCount = Math.min(Math.max(iterations, 1), maxMipCount);
 
     // Allocate mip pyramid (single RT per level; upsample blends in-place)
-    const internalColorTextureFormat = camera._getInternalColorTextureFormat();
-    const isSRGB = !camera._isInternalFormatHDR();
+    const isHDR = camera._isInternalFormatHDR();
+    const bloomColorFormat =
+      isHDR && engine._hardwareRenderer.supportsRenderTargetColorFormat(TextureFormat.R11G11B10_UFloat)
+        ? TextureFormat.R11G11B10_UFloat
+        : camera._getInternalColorTextureFormat();
+    const isSRGB = !isHDR;
     const mipRT = this._mipRT;
     let mipWidth = tw;
     let mipHeight = th;
@@ -155,7 +159,7 @@ export class PostProcessUberPass extends PostProcessPass {
         mipRT[i],
         mipWidth,
         mipHeight,
-        internalColorTextureFormat,
+        bloomColorFormat,
         null,
         false,
         false,
@@ -174,7 +178,7 @@ export class PostProcessUberPass extends PostProcessPass {
     // Prefilter
     Blitter.blitTexture(engine, srcTexture, mipRT[0], undefined, undefined, bloomMaterial, 0);
 
-    // Progressive single-pass 13-tap downsample pyramid (Jimenez, SIGGRAPH 2014)
+    // Progressive single-pass 5x5 9-tap downsample pyramid (Castaño 2013)
     for (let i = 1; i < mipCount; i++) {
       Blitter.blitTexture(
         engine,
