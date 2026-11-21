@@ -1,4 +1,4 @@
-import { Entity, MeshRenderer, WebGLEngine } from "@galacean/engine";
+import { Entity, MeshRenderer, TransformModifyFlags, WebGLEngine } from "@galacean/engine";
 import { HorizontalAlignmentMode, Image, UICanvas, UITransform, VerticalAlignmentMode } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 
@@ -525,6 +525,57 @@ describe("UITransform", async () => {
       expect(clonedTransform.alignLeft).to.eq(20);
       expect(clonedTransform.position.x).to.eq(originalTransform.position.x);
     });
+  });
+
+  it("updates _isFrontFaceInvert when reparented under negative and positive scale parents", () => {
+    const negParent = root.createChild("ui-neg-parent");
+    negParent.transform.setScale(-1, 1, 1);
+    const posParent = root.createChild("ui-pos-parent");
+    posParent.transform.setScale(1, 1, 1);
+
+    const uiEntity = posParent.createChild("ui-child");
+    const uiTransform = uiEntity.addComponent(UITransform);
+    expect(uiTransform).to.be.instanceOf(UITransform);
+
+    expect(uiTransform._isFrontFaceInvert()).to.eq(false);
+
+    negParent.addChild(uiEntity);
+    expect(uiTransform._isFrontFaceInvert()).to.eq(true);
+
+    posParent.addChild(uiEntity);
+    expect(uiTransform._isFrontFaceInvert()).to.eq(false);
+
+    negParent.destroy();
+    posParent.destroy();
+  });
+
+  it("keeps TransformModifyFlags.IsWorldFrontFaceInvert disjoint from UITransformModifyFlags", () => {
+    expect(TransformModifyFlags.IsWorldFrontFaceInvert).to.be.at.least(0x10000);
+    expect(
+      TransformModifyFlags.IsWorldFrontFaceInvert & (UITransformModifyFlags.Size | UITransformModifyFlags.Pivot)
+    ).to.eq(0);
+
+    const entity = root.createChild("ui-flag-disjoint");
+    const uiTransform = entity.addComponent(UITransform);
+    expect(uiTransform).to.be.instanceOf(UITransform);
+    // @ts-ignore
+    const updateFlagMgr = entity._updateFlagManager as any;
+    const events: number[] = [];
+    const listener = (type?: number) => {
+      if (typeof type === "number") events.push(type);
+    };
+    updateFlagMgr.addListener(listener);
+
+    try {
+      uiTransform.size.set(240, 120);
+      uiTransform.pivot.set(0.25, 0.75);
+      expect(events.some((e) => (e & UITransformModifyFlags.Size) !== 0)).to.eq(true);
+      expect(events.some((e) => (e & UITransformModifyFlags.Pivot) !== 0)).to.eq(true);
+      expect(events.every((e) => (e & TransformModifyFlags.IsWorldFrontFaceInvert) === 0)).to.eq(true);
+    } finally {
+      updateFlagMgr.removeListener(listener);
+      entity.destroy();
+    }
   });
 });
 

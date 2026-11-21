@@ -113,6 +113,7 @@ export class RenderQueue {
         compileMacros.enable(InstanceBuffer.gpuInstanceMacro);
       }
 
+      let frontFaceInvert: boolean | undefined;
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
         const shaderPass = shaderPasses[j];
         if (shaderPass.getTagValue(pipelineStageKey) !== pipelineStageTagValue) {
@@ -194,9 +195,12 @@ export class RenderQueue {
         }
 
         // Apply render state
+        if (frontFaceInvert === undefined) {
+          frontFaceInvert = component._isFrontFaceInvert();
+        }
         renderState._applyStates(
           engine,
-          component._isFrontFaceInvert(),
+          frontFaceInvert,
           shaderPass._renderStateDataMap,
           material.shaderData,
           customStates,
