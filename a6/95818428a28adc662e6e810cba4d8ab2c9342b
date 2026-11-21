@@ -1,0 +1,19 @@
+packages/physics-physx/src/PhysXPhysics.ts
+  s_d2c65ec75a2f3e::t_8c3b3a95a93b9b 243
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a695818428a28adc662e6e810cba4d8ab2c9342b",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

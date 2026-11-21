@@ -1,0 +1,88 @@
+packages/design/src/physics/index.ts
+  s_d2c65ec75a2f3e::t_dbd849d7559df9 9
+packages/core/src/physics/Collider.ts
+  s_d2c65ec75a2f3e::t_251556ca5cc1c0 218
+  s_d2c65ec75a2f3e::t_aa4d5f54f07ce7 216-217
+  s_d2c65ec75a2f3e::t_dbd849d7559df9 122,213-215,219-230,691
+packages/physics-physx/libs/physx.release.simd.js
+  s_d2c65ec75a2f3e::t_0b2756101c3553 1
+docs/zh/physics/collider/event.mdx
+  s_d2c65ec75a2f3e::t_8fd1a20becf99a 96-115
+packages/core/src/physics/CharacterController.ts
+  s_d2c65ec75a2f3e::t_9703f27928000d 584
+packages/design/src/physics/IContactModification.ts
+  s_d2c65ec75a2f3e::t_149dc40f0a5f60 15-16,18
+  s_d2c65ec75a2f3e::t_dbd849d7559df9 1-14,17,19-23
+packages/design/src/physics/IPhysicsScene.ts
+  s_d2c65ec75a2f3e::t_dbd849d7559df9 4,96-97
+  s_d2c65ec75a2f3e::t_63fbc1e6ed95ec 98
+packages/physics-physx/src/PhysXCharacterController.ts
+  s_d2c65ec75a2f3e::t_dbd849d7559df9 34,138-143,382
+packages/core/src/physics/PhysicsScene.ts
+  s_d2c65ec75a2f3e::t_819498c250c1ee 1150,1163,1185-1186,1190
+  s_d2c65ec75a2f3e::t_c842de3b96ae21 1099
+  s_d2c65ec75a2f3e::t_aa4d5f54f07ce7 128,1199
+  s_d2c65ec75a2f3e::t_149dc40f0a5f60 19,113-127,129-139,1354
+docs/en/physics/collider/event.mdx
+  s_d2c65ec75a2f3e::t_8fd1a20becf99a 97-116
+packages/core/src/Engine.ts
+  s_d2c65ec75a2f3e::t_aa4d5f54f07ce7 55-61,320,580
+e2e/.dev/physx.release.js
+  s_d2c65ec75a2f3e::t_76fa2ee65f04a2 1
+packages/physics-physx/libs/physx.release.js
+  s_d2c65ec75a2f3e::t_76fa2ee65f04a2 1
+packages/core/src/Scene.ts
+  s_d2c65ec75a2f3e::t_aa4d5f54f07ce7 419
+docs/zh/physics/collider/overview.mdx
+  s_d2c65ec75a2f3e::t_8fd1a20becf99a 50
+packages/core/src/Component.ts
+  s_d2c65ec75a2f3e::t_aa4d5f54f07ce7 5,43
+packages/core/src/Entity.ts
+  s_d2c65ec75a2f3e::t_aa4d5f54f07ce7 270,795
+e2e/.dev/physx.release.simd.js
+  s_d2c65ec75a2f3e::t_0b2756101c3553 1
+packages/core/src/base/EngineObject.ts
+  s_d2c65ec75a2f3e::t_aa4d5f54f07ce7 52
+tests/src/core/physics/ContactModification.test.ts
+  s_d2c65ec75a2f3e::t_49e3969af5bdc0 9,13-14,145
+  s_d2c65ec75a2f3e::t_aa4d5f54f07ce7 146-150
+  s_d2c65ec75a2f3e::t_819498c250c1ee 132-134
+  s_d2c65ec75a2f3e::t_01d7e773af9f29 1-8,10-12,15-131,135-144,151-164
+packages/core/src/physics/ContactModification.ts
+  s_d2c65ec75a2f3e::t_149dc40f0a5f60 84,89,99
+  s_d2c65ec75a2f3e::t_819498c250c1ee 69
+  s_d2c65ec75a2f3e::t_251556ca5cc1c0 10-11,41,50
+  s_d2c65ec75a2f3e::t_aa4d5f54f07ce7 31,125,134
+  s_d2c65ec75a2f3e::t_dbd849d7559df9 1-9,12-30,32-40,42-49,51-68,70-78,83,85-88,90-98,100-124,126-133,135-150
+  s_d2c65ec75a2f3e::t_c842de3b96ae21 79-82
+docs/en/physics/collider/overview.mdx
+  s_d2c65ec75a2f3e::t_8fd1a20becf99a 50
+packages/design/src/physics/shape/IColliderShape.ts
+  s_d2c65ec75a2f3e::t_dbd849d7559df9 53-55
+packages/physics-physx/src/PhysXPhysics.ts
+  s_d2c65ec75a2f3e::t_49e3969af5bdc0 1,86
+packages/physics-physx/src/shape/PhysXColliderShape.ts
+  s_d2c65ec75a2f3e::t_dbd849d7559df9 92-96
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_d2c65ec75a2f3e::t_404c5ebbf5cea8 3,44,244-259,541
+packages/design/src/physics/ICharacterController.ts
+  s_d2c65ec75a2f3e::t_dbd849d7559df9 69-71
+packages/core/src/physics/index.ts
+  s_d2c65ec75a2f3e::t_dbd849d7559df9 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "85336e48f462823d82b86baa4221ceac7ef2d184",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
