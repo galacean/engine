@@ -27,17 +27,22 @@ export class Utils {
 
   static searchRootCanvasInParents(element: IElement): UICanvas | null {
     let entity = element instanceof UICanvas ? element.entity.parent : element.entity;
+    let rootCanvas: UICanvas | null = null;
     while (entity) {
-      const components = entity._components;
-      for (let i = 0, n = components.length; i < n; i++) {
-        const component = components[i];
-        if (component.enabled && component instanceof UICanvas && component._isRootCanvas) {
-          return component;
+      if (entity._isActiveInScene) {
+        const components = entity._components;
+        for (let i = 0, n = components.length; i < n; i++) {
+          const component = components[i];
+          // @ts-ignore
+          if (component instanceof UICanvas && component._phasedActiveInScene) {
+            rootCanvas = component;
+            break;
+          }
         }
       }
       entity = entity.parent;
     }
-    return null;
+    return rootCanvas;
   }
 
   static setGroupDirty(element: IGroupAble): void {
@@ -134,6 +139,9 @@ export class Utils {
       }
       entity = entity.parent;
       count++;
+    }
+    for (let i = count, n = listeningEntities.length; i < n; i++) {
+      listeningEntities[i]._unRegisterModifyListener(listener);
     }
     listeningEntities.length = count;
   }
