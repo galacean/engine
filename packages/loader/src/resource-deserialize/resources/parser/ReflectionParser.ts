@@ -286,12 +286,20 @@ export class ReflectionParser {
 
     // $entity — entity reference by path (first element = flat index, subsequent = children indices)
     if (hasOwn.call(obj, "$entity")) {
-      return Promise.resolve(this._resolveEntityRef(obj.$entity as number[]));
+      try {
+        return Promise.resolve(this._resolveEntityRef(obj.$entity as number[]));
+      } catch (error) {
+        return Promise.reject(error);
+      }
     }
 
     // $component — component reference: { entity, type, index }
     if (hasOwn.call(obj, "$component")) {
-      return Promise.resolve(this._resolveComponent(obj.$component as ComponentRef));
+      try {
+        return Promise.resolve(this._resolveComponent(obj.$component as ComponentRef));
+      } catch (error) {
+        return Promise.reject(error);
+      }
     }
 
     // $signal — signal binding: register listeners on the existing Signal instance
@@ -343,7 +351,15 @@ export class ReflectionParser {
       return Promise.reject(new Error("$signal requires a pre-initialized Signal instance on the target property"));
     }
     const promises = listeners.map((listener) => {
-      const targetComponent = this._resolveComponent(listener.target.$component);
+      if (!listener?.target?.$component) {
+        return Promise.reject(new Error("$signal listener requires target.$component"));
+      }
+      let targetComponent: Component | null;
+      try {
+        targetComponent = this._resolveComponent(listener.target.$component);
+      } catch (error) {
+        return Promise.reject(error);
+      }
       if (!targetComponent) return Promise.resolve();
 
       return Promise.all((listener.args ?? []).map((a) => this._resolveValue(a))).then((resolvedArgs) => {
@@ -354,6 +370,15 @@ export class ReflectionParser {
   }
 
   private _resolveComponent(comp: ComponentRef): Component | null {
+    if (!comp || typeof comp !== "object") {
+      throw new Error("Serialized $component reference must be an object");
+    }
+    if (typeof comp.index !== "number" || !Number.isInteger(comp.index) || comp.index < 0) {
+      throw new Error(`Serialized $component index must be a non-negative integer`);
+    }
+    if (typeof comp.type !== "string" || comp.type.length === 0) {
+      throw new Error("Serialized $component type must be a non-empty string");
+    }
     const entity = this._resolveEntityRef(comp.entity);
     if (!entity) return null;
     const type = Loader.getClass(comp.type);
@@ -364,16 +389,29 @@ export class ReflectionParser {
     const buffer = ReflectionParser._componentBuffer;
     buffer.length = 0;
     entity.getComponents(type, buffer);
-    const result = buffer[comp.index] ?? null;
+    const result = comp.index < buffer.length ? buffer[comp.index] : null;
     buffer.length = 0;
     return result;
   }
 
   private _resolveEntityRef(path: number[]): Entity | null {
-    if (!path || path.length === 0) return null;
-    let entity = this._context.entityInstances[path[0]] ?? null;
+    if (path == null) return null;
+    if (!Array.isArray(path)) {
+      throw new Error("Serialized $entity path must be an array");
+    }
+    if (path.length === 0) return null;
+    const rootIndex = path[0];
+    if (typeof rootIndex !== "number" || !Number.isInteger(rootIndex) || rootIndex < 0) {
+      throw new Error("Serialized $entity path index must be a non-negative integer");
+    }
+    const entityInstances = this._context.entityInstances;
+    let entity = rootIndex < entityInstances.length ? entityInstances[rootIndex] : null;
     for (let i = 1, n = path.length; entity && i < n; i++) {
-      entity = entity.children[path[i]] ?? null;
+      const childIndex = path[i];
+      if (typeof childIndex !== "number" || !Number.isInteger(childIndex) || childIndex < 0) {
+        throw new Error("Serialized $entity path index must be a non-negative integer");
+      }
+      entity = childIndex < entity.children.length ? entity.children[childIndex] : null;
     }
     return entity;
   }

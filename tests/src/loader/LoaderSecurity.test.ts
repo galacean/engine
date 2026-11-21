@@ -260,6 +260,47 @@ describe("v2 resource deserialization & prototype security", () => {
       await expect(PrefabParser.parse(engine, "bad-comp-ref.prefab", badComponentRefPrefab)).rejects.toThrow(
         "not assignable to Component"
       );
+
+      for (const badIndex of ["__proto__", "constructor", -1, 1.5]) {
+        const badCompIndexPrefab = {
+          version: "2.0",
+          refs: [],
+          entities: [{ name: "root", components: [0] }],
+          components: [
+            {
+              type: "MeshRenderer",
+              props: {
+                target: { $component: { entity: [0], type: "MeshRenderer", index: badIndex } }
+              }
+            }
+          ],
+          root: 0
+        } as any;
+        await expect(PrefabParser.parse(engine, "bad-comp-index.prefab", badCompIndexPrefab)).rejects.toThrow(
+          "non-negative integer"
+        );
+      }
+
+      for (const badEntityPath of [["__proto__"], [0, "constructor"], [-1]]) {
+        const badEntityRefPrefab = {
+          version: "2.0",
+          refs: [],
+          entities: [{ name: "root", components: [0] }],
+          components: [
+            {
+              type: "MeshRenderer",
+              props: {
+                target: { $entity: badEntityPath }
+              }
+            }
+          ],
+          root: 0
+        } as any;
+        await expect(PrefabParser.parse(engine, "bad-entity-index.prefab", badEntityRefPrefab)).rejects.toThrow(
+          "non-negative integer"
+        );
+      }
+
       expect(executed).toBe(false);
     } finally {
       delete (globalThis as any).__galaceanV2RceTest;
