@@ -82,7 +82,7 @@ function createSubEmitterScene(engine: Engine, rootEntity: Entity, texture: Text
   subMain.gravityModifier.constant = 0.3;
   subMain.simulationSpace = ParticleSimulationSpace.World;
   subMain.playOnEnabled = false;
-  subGenerator.emission.rateOverTime.constant = 0;
+  subGenerator.emission.rateOverTime.constant = 18;
 
   const subShape = new ConeShape();
   subShape.angle = 35;
@@ -138,11 +138,18 @@ function createSubEmitterScene(engine: Engine, rootEntity: Entity, texture: Text
   parentGenerator.subEmitters.enabled = true;
   parentGenerator.subEmitters.addSubEmitter(
     subRenderer,
+    ParticleSubEmitterType.Birth,
+    ParticleSubEmitterInheritProperty.Color |
+      ParticleSubEmitterInheritProperty.Size |
+      ParticleSubEmitterInheritProperty.Velocity
+  );
+  parentGenerator.subEmitters.addSubEmitter(
+    subRenderer,
     ParticleSubEmitterType.Death,
     ParticleSubEmitterInheritProperty.Color |
       ParticleSubEmitterInheritProperty.Size |
       ParticleSubEmitterInheritProperty.Velocity,
-    undefined,
+    1,
     4
   );
 

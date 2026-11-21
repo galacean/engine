@@ -10,7 +10,6 @@ Shader "Pipeline/ShadowCaster" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "ShaderLibrary/Common/Common.glsl"
       #include "ShaderLibrary/Common/Transform.glsl"
       #include "ShaderLibrary/Common/Attributes.glsl"
       #include "ShaderLibrary/Skin/Skin.glsl"
@@ -67,7 +66,7 @@ Shader "Pipeline/ShadowCaster" {
           position = skinMatrix * position;
 
           #ifdef RENDERER_HAS_NORMAL
-            mat3 skinNormalMatrix = INVERSE_MAT(mat3(skinMatrix));
+            mat3 skinNormalMatrix = inverse(mat3(skinMatrix));
             normal = normal * skinNormalMatrix;
           #endif
         #endif
@@ -93,15 +92,6 @@ Shader "Pipeline/ShadowCaster" {
         return v;
       }
 
-      #ifdef ENGINE_NO_DEPTH_TEXTURE
-        vec4 pack(float depth) {
-          const vec4 bitShift = vec4(1.0, 256.0, 256.0 * 256.0, 256.0 * 256.0 * 256.0);
-          const vec4 bitMask = vec4(1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0, 0.0);
-          vec4 rgbaDepth = fract(depth * bitShift);
-          rgbaDepth -= rgbaDepth.gbaa * bitMask;
-          return rgbaDepth;
-        }
-      #endif
 
       void frag(Varyings v) {
         #if defined(MATERIAL_IS_ALPHA_CUTOFF) || (defined(SCENE_ENABLE_TRANSPARENT_SHADOW) && defined(MATERIAL_IS_TRANSPARENT))
@@ -120,12 +110,6 @@ Shader "Pipeline/ShadowCaster" {
               discard;
             }
           #endif
-        #endif
-
-        #ifdef ENGINE_NO_DEPTH_TEXTURE
-          gl_FragColor = pack(gl_FragCoord.z);
-        #else
-          gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
         #endif
       }
     }

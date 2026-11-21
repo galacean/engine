@@ -1,0 +1,174 @@
+{
+  "skeleton": {
+    "spine": "3.8.99"
+  },
+  "bones": [
+    {
+      "name": "root"
+    }
+  ],
+  "slots": [
+    {
+      "name": "normal",
+      "bone": "root",
+      "attachment": "quad",
+      "blend": "normal",
+      "dark": "404040",
+      "color": "808080ff"
+    },
+    {
+      "name": "additive",
+      "bone": "root",
+      "attachment": "quad",
+      "blend": "additive",
+      "dark": "404040",
+      "color": "808080ff"
+    },
+    {
+      "name": "multiply",
+      "bone": "root",
+      "attachment": "quad",
+      "blend": "multiply",
+      "dark": "404040",
+      "color": "808080ff"
+    },
+    {
+      "name": "screen",
+      "bone": "root",
+      "attachment": "quad",
+      "blend": "screen",
+      "dark": "404040",
+      "color": "808080ff"
+    }
+  ],
+  "skins": [
+    {
+      "name": "default",
+      "attachments": {
+        "normal": {
+          "quad": {
+            "path": "quad",
+            "x": -300,
+            "width": 100,
+            "height": 100
+          }
+        },
+        "additive": {
+          "quad": {
+            "path": "quad",
+            "x": -100,
+            "width": 100,
+            "height": 100
+          }
+        },
+        "multiply": {
+          "quad": {
+            "path": "quad",
+            "x": 100,
+            "width": 100,
+            "height": 100
+          }
+        },
+        "screen": {
+          "quad": {
+            "path": "quad",
+            "x": 300,
+            "width": 100,
+            "height": 100
+          }
+        }
+      }
+    },
+    {
+      "name": "straight",
+      "attachments": {
+        "normal": {
+          "quad": {
+            "path": "alt",
+            "x": -300,
+            "width": 100,
+            "height": 100
+          }
+        },
+        "additive": {
+          "quad": {
+            "path": "alt",
+            "x": -100,
+            "width": 100,
+            "height": 100
+          }
+        },
+        "multiply": {
+          "quad": {
+            "path": "alt",
+            "x": 100,
+            "width": 100,
+            "height": 100
+          }
+        },
+        "screen": {
+          "quad": {
+            "path": "alt",
+            "x": 300,
+            "width": 100,
+            "height": 100
+          }
+        }
+      }
+    }
+  ],
+  "animations": {
+    "fade": {
+      "slots": {
+        "normal": {
+          "color": [
+            {
+              "time": 0,
+              "color": "80808000"
+            },
+            {
+              "time": 1,
+              "color": "808080ff"
+            }
+          ]
+        },
+        "additive": {
+          "color": [
+            {
+              "time": 0,
+              "color": "80808000"
+            },
+            {
+              "time": 1,
+              "color": "808080ff"
+            }
+          ]
+        },
+        "multiply": {
+          "color": [
+            {
+              "time": 0,
+              "color": "80808000"
+            },
+            {
+              "time": 1,
+              "color": "808080ff"
+            }
+          ]
+        },
+        "screen": {
+          "color": [
+            {
+              "time": 0,
+              "color": "80808000"
+            },
+            {
+              "time": 1,
+              "color": "808080ff"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

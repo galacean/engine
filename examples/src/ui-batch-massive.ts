@@ -92,7 +92,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 // Vertical gradient panel with double border (atlas-style game button background)
 function makeGradientPanel(engine: WebGLEngine): Texture2D {
   const size = 64;
-  const tex = new Texture2D(engine, size, size, TextureFormat.R8G8B8A8, false);
+  const tex = new Texture2D(engine, size, size, TextureFormat.R8G8B8A8_UNorm, false);
   const data = new Uint8Array(size * size * 4);
   // Base palette: deep navy → electric blue gradient
   const top = [70, 130, 240];
@@ -136,7 +136,7 @@ function makeGradientPanel(engine: WebGLEngine): Texture2D {
 function makeIconAtlas(engine: WebGLEngine): Texture2D {
   const cellSize = 32;
   const atlasSize = cellSize * 2;
-  const tex = new Texture2D(engine, atlasSize, atlasSize, TextureFormat.R8G8B8A8, false);
+  const tex = new Texture2D(engine, atlasSize, atlasSize, TextureFormat.R8G8B8A8_UNorm, false);
   const data = new Uint8Array(atlasSize * atlasSize * 4);
 
   const writePixel = (cx: number, cy: number, lx: number, ly: number, r: number, g: number, b: number, a: number) => {

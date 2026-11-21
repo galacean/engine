@@ -1,4 +1,4 @@
-import { AssetPromise, AssetType, ResourceManager, Shader, Texture2D } from "@galacean/engine";
+import { AssetPromise, AssetType, ResourceManager, Shader, ShaderLanguage, Texture2D } from "@galacean/engine";
 import "@galacean/engine-loader";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -177,7 +177,9 @@ describe("ResourceManager", () => {
       const requestSpy = vi
         .spyOn(resourceManager, "_requestByRemoteUrl")
         .mockReturnValue(
-          AssetPromise.resolve(JSON.stringify({ name: "custom", platformTarget: 0, subShaders: [] })) as any
+          AssetPromise.resolve(
+            JSON.stringify({ name: "custom", platformTarget: ShaderLanguage.GLSLES300, subShaders: [] })
+          ) as any
         );
       // @ts-ignore
       const createSpy = vi.spyOn(Shader, "_createFromPrecompiled").mockReturnValue({ name: "custom" } as Shader);
@@ -205,7 +207,8 @@ describe("ResourceManager", () => {
       ]);
       // @ts-ignore
       const requestSpy = vi.spyOn(resourceManager, "_requestByRemoteUrl").mockReturnValue(AssetPromise.resolve(source));
-      const createSpy = vi.spyOn(Shader, "create").mockReturnValue({ name: "source" } as Shader);
+      // @ts-ignore - internal loader entry under test.
+      const createSpy = vi.spyOn(Shader, "_createFromSource").mockReturnValue({ name: "source" } as Shader);
 
       try {
         await resourceManager.load("Shaders/source.shader");
@@ -314,6 +317,82 @@ describe("ResourceManager", () => {
       }
     });
 
+    it("routes eager sub-asset results through a virtual resource path", async () => {
+      const resourceManager = engine.resourceManager;
+      const virtualPath = "Assets/Eager/model.glb";
+      const physicalPath = "bundles/eager-model.glb";
+      const material = { name: "material" };
+      resourceManager.baseUrl = "https://base.example.com/project/";
+      resourceManager.registerVirtualResources([{ virtualPath, path: physicalPath, type: AssetType.GLTF }]);
+      // @ts-ignore -- replace the internal loader to keep the main asset pending
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.GLTF], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
+
+      try {
+        const subAssetPromise = resourceManager.load(`${virtualPath}?q=materials[0]`);
+        // @ts-ignore -- exercise the loader-to-resource-manager sub-asset contract
+        resourceManager._onSubAssetSuccess(physicalPath, "materials[0]", material);
+
+        await expect(subAssetPromise).resolves.toBe(material);
+      } finally {
+        resourceManager.cancelNotLoaded(virtualPath);
+        resourceManager.baseUrl = null;
+        loaderSpy.mockRestore();
+      }
+    });
+
+    it("routes eager sub-asset results through baseUrl", async () => {
+      const resourceManager = engine.resourceManager;
+      const relativePath = "Assets/Eager/relative.glb";
+      const material = { name: "material" };
+      resourceManager.baseUrl = "https://base.example.com/project/";
+      // @ts-ignore -- replace the internal loader to keep the main asset pending
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.GLTF], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
+
+      try {
+        const subAssetPromise = resourceManager.load(`${relativePath}?q=materials[0]`);
+        // @ts-ignore -- exercise the loader-to-resource-manager sub-asset contract
+        resourceManager._onSubAssetSuccess(
+          "https://base.example.com/project/Assets/Eager/relative.glb",
+          "materials[0]",
+          material
+        );
+
+        await expect(subAssetPromise).resolves.toBe(material);
+      } finally {
+        resourceManager.cancelNotLoaded(relativePath);
+        resourceManager.baseUrl = null;
+        loaderSpy.mockRestore();
+      }
+    });
+
+    it("keeps a base-relative shader path as loader-owned source metadata", async () => {
+      const resourceManager = engine.resourceManager;
+      const previousBaseUrl = resourceManager.baseUrl;
+      resourceManager.baseUrl = "https://cdn.ali.com/project/";
+      const source = 'Shader "Custom/BaseRelativeSource" {}';
+      // @ts-ignore
+      const requestSpy = vi.spyOn(resourceManager, "_requestByRemoteUrl").mockReturnValue(AssetPromise.resolve(source));
+      // @ts-ignore - internal loader entry under test.
+      const createSpy = vi.spyOn(Shader, "_createFromSource").mockReturnValue({ name: "source" } as Shader);
+
+      try {
+        await resourceManager.load({ url: "Shaders/base-relative-source.shader", type: AssetType.Shader });
+
+        expect(requestSpy).toHaveBeenCalledWith(
+          "https://cdn.ali.com/project/Shaders/base-relative-source.shader",
+          expect.objectContaining({ type: "text" })
+        );
+        expect(createSpy).toHaveBeenCalledWith(source, undefined, "Shaders/base-relative-source.shader");
+      } finally {
+        resourceManager.baseUrl = previousBaseUrl;
+        requestSpy.mockRestore();
+        createSpy.mockRestore();
+      }
+    });
     it("fills params from virtualPathResourceMap when params is omitted", () => {
       const resourceManager = engine.resourceManager;
       resourceManager.registerVirtualResources([

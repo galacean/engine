@@ -55,7 +55,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       transform.setPosition(0, 1, 0);
       transform.setRotation(45, 45, 0);
       const meshRenderer = entity.addComponent(MeshRenderer);
-      meshRenderer.mesh = PrimitiveMesh.createCylinder(engine);
+      meshRenderer.mesh = PrimitiveMesh.createCylinder(engine, 0.5, 2);
       meshRenderer.setMaterial(material);
 
       updateForE2E(engine);

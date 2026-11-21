@@ -1,3 +1,4 @@
+import { createPhysics } from "../../utils/physics";
 import {
   BoxColliderShape,
   Camera,
@@ -10,7 +11,6 @@ import {
   StaticCollider
 } from "@galacean/engine-core";
 import { Vector2, Vector3 } from "@galacean/engine-math";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, expect, it } from "vitest";
 
@@ -21,7 +21,7 @@ canvasDOM.style.height = "5px";
 body.appendChild(canvasDOM);
 
 describe("InputManager", async () => {
-  const engine = await WebGLEngine.create({ canvas: canvasDOM, physics: new PhysXPhysics() });
+  const engine = await WebGLEngine.create({ canvas: canvasDOM, physics: createPhysics() });
   const { inputManager, canvas } = engine;
   // Twice the 5x5 CSS size, so pointer coordinates map at a 2x ratio.
   canvas.setResolution(10, 10);

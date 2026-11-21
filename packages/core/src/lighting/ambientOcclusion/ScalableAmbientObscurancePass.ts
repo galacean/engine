@@ -15,8 +15,6 @@ import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
  * Scalable Ambient Obscurance render pass.
  */
 export class ScalableAmbientObscurancePass extends PipelinePass {
-  static readonly SHADER_NAME = "Lighting/ScalableAmbientOcclusion";
-
   private static _invRadiusSquaredProp = ShaderProperty.getByName("material_invRadiusSquared");
   private static _intensityProp = ShaderProperty.getByName("material_intensity");
   private static _projectionScaleRadiusProp = ShaderProperty.getByName("material_projectionScaleRadius");
@@ -25,8 +23,6 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   private static _peak2Prop = ShaderProperty.getByName("material_peak2");
   private static _powerProp = ShaderProperty.getByName("material_power");
   private static _invProjScaleXYProp = ShaderProperty.getByName("material_invProjScaleXY");
-
-  readonly isSupported: boolean;
 
   // Shader properties for bilateral blur
   private static _farPlaneOverEdgeDistanceProp = ShaderProperty.getByName("material_farPlaneOverEdgeDistance");
@@ -45,13 +41,12 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   private _offsetY = new Vector4();
   private _quality: AmbientOcclusionQuality;
 
-  constructor(engine: Engine) {
+  constructor(engine: Engine, shader: Shader) {
     super(engine);
 
-    const material = new Material(engine, Shader.find(ScalableAmbientObscurancePass.SHADER_NAME));
+    const material = new Material(engine, shader);
     material._addReferCount(1);
     this._material = material;
-    this.isSupported = this.engine._hardwareRenderer.capability.isFragmentHighPrecision;
   }
 
   onConfig(camera: Camera, depthRenderTarget: RenderTarget): void {
@@ -60,7 +55,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
 
     this._depthRenderTarget = depthRenderTarget;
 
-    const format = TextureFormat.R8G8B8;
+    const format = TextureFormat.R8G8B8_UNorm;
 
     this._saoRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
       engine,

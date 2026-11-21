@@ -340,9 +340,9 @@ export class Text extends UIRenderer implements ITextRenderer {
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const { subChunk, texture } = textChunks[i];
       const renderElement = textRenderElementPool.get();
-      renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
-      renderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
-      renderElement.shaderData.setTexture(Text._textTextureProperty, texture);
+      const shaderData = renderElement.shaderData ?? new ShaderData(ShaderDataGroup.RenderElement);
+      renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk, shaderData);
+      shaderData.setTexture(Text._textTextureProperty, texture);
       renderElement.subShader = subShader;
       renderElement.priority = priority;
       renderElement.distanceForSort = distanceForSort;

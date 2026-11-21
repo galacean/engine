@@ -24,6 +24,7 @@ export class PhysXCharacterController implements ICharacterController {
   _shape: PhysXColliderShape | null;
   private _shapeScaledPosition = new Vector3();
   private _worldPosition: Vector3 | null = null;
+  private _collisionLayer = 0;
 
   private _physXPhysics: PhysXPhysics;
 
@@ -87,15 +88,16 @@ export class PhysXCharacterController implements ICharacterController {
   /**
    * {@inheritDoc ICharacterController.addShape }
    */
-  addShape(shape: PhysXColliderShape): void {
+  addShape(shape: PhysXColliderShape, layer: number): boolean {
+    this._collisionLayer = layer;
     // Add shape should sync latest position and world scale to pxController
     this._updateShapePosition(shape._position, shape._worldScale);
     // When CharacterController is disabled, set shape property need check pxController whether exist because of this._pxManager is null and won't create pxController
     this._pxManager && this._createPXController(this._pxManager, shape);
     this._shape = shape;
     shape._controllers.add(this);
-    this._pxController?.setContactOffset(shape._contractOffset);
     this._scene?._addColliderShape(shape._id);
+    return true;
   }
 
   /**
@@ -112,6 +114,7 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICollider.setCollisionLayer }
    */
   setCollisionLayer(layer: number): void {
+    this._collisionLayer = layer;
     const actor = this._pxController?.getActor();
 
     if (actor) {
@@ -156,10 +159,13 @@ export class PhysXCharacterController implements ICharacterController {
     }
 
     desc.setMaterial(shape._pxMaterial);
+    desc.contactOffset = shape._contactOffset;
     this._pxController = pxManager._getControllerManager().createController(desc);
     desc.delete();
 
     this._pxController.setUUID(shape._id);
+    this._physXPhysics._physX.setGroup(this._pxController.getActor(), this._collisionLayer);
+    this._pxController.setSceneQueryEnabled(shape._pxShape.isSceneQueryEnabled());
 
     this._updateNativePosition();
   }

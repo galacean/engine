@@ -43,7 +43,7 @@ export class TextUtils {
     if (!textContext) {
       let canvas: HTMLCanvasElement | OffscreenCanvas;
       try {
-        canvas = new OffscreenCanvas(0, 0);
+        canvas = new OffscreenCanvas(1, 1);
       } catch {
         canvas = document.createElement("canvas");
       }
@@ -431,7 +431,7 @@ export class TextUtils {
     if (isChar) {
       let data: Uint8Array | null = null;
       if (size > 0) {
-        // Extract alpha channel only for Alpha8 texture format.
+        // Store glyph coverage from the canvas alpha channel in the R8 atlas.
         const alphaPixelCount = size * integerW;
         data = new Uint8Array(alphaPixelCount);
         let offset = top * integerW * 4 + 3;

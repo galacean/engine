@@ -1,9 +1,9 @@
-import { Engine, EngineConfiguration, Scene } from "@galacean/engine-core";
+import { Engine, EngineConfiguration } from "@galacean/engine-core";
 import { WebGLGraphicDevice, WebGLGraphicDeviceOptions } from "./";
 import { WebCanvas } from "./WebCanvas";
 
 /**
- * WebGL platform engine, supports WebGL 1.0 and WebGL 2.0.
+ * WebGL platform engine, supports WebGL 2.0.
  */
 export class WebGLEngine extends Engine {
   /**
@@ -17,11 +17,7 @@ export class WebGLEngine extends Engine {
     const webGLGraphicDevice = new WebGLGraphicDevice(configuration.graphicDeviceOptions);
     const engine = new WebGLEngine(webCanvas, webGLGraphicDevice, configuration);
     webCanvas.setAutoResolution();
-    const promise = engine._initialize(configuration) as Promise<WebGLEngine>;
-    return promise.then(() => {
-      engine.sceneManager.addScene(new Scene(engine, "DefaultScene"));
-      return engine;
-    });
+    return engine._initialize(configuration);
   }
 
   /**

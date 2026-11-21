@@ -100,13 +100,7 @@ void evaluateDirectRadiance(Varyings varyings, SurfaceData surfaceData, BSDFData
         for ( int i = 0; i < SCENE_DIRECT_LIGHT_COUNT; i ++ ) {
             // warning: use `continue` syntax may trigger flickering bug in safri 16.1.
             if(!isRendererCulledByLight(renderer_Layer.xy, scene_DirectLightCullingMask[i])){
-                #ifdef GRAPHICS_API_WEBGL2
                     DirectLight directionalLight = getDirectLight(i);
-                #else
-                    DirectLight directionalLight;
-                    directionalLight.color = scene_DirectLightColor[i];
-                    directionalLight.direction = scene_DirectLightDirection[i];
-                #endif
                 
                 #ifdef NEED_CALCULATE_SHADOWS
                     if (i == 0) { // Sun light index is always 0
@@ -123,14 +117,7 @@ void evaluateDirectRadiance(Varyings varyings, SurfaceData surfaceData, BSDFData
 
         for ( int i = 0; i < SCENE_POINT_LIGHT_COUNT; i ++ ) {
             if(!isRendererCulledByLight(renderer_Layer.xy, scene_PointLightCullingMask[i])){
-                #ifdef GRAPHICS_API_WEBGL2
                     PointLight pointLight = getPointLight(i);
-                #else
-                    PointLight pointLight;
-                    pointLight.color = scene_PointLightColor[i];
-                    pointLight.position = scene_PointLightPosition[i];
-                    pointLight.distance = scene_PointLightDistance[i];
-                #endif
                 addPointDirectLightRadiance(varyings, surfaceData, bsdfData, pointLight, totalDiffuseColor, totalSpecularColor);
             } 
         }
@@ -141,17 +128,7 @@ void evaluateDirectRadiance(Varyings varyings, SurfaceData surfaceData, BSDFData
       
         for ( int i = 0; i < SCENE_SPOT_LIGHT_COUNT; i ++ ) {
             if(!isRendererCulledByLight(renderer_Layer.xy, scene_SpotLightCullingMask[i])){
-                #ifdef GRAPHICS_API_WEBGL2
                     SpotLight spotLight = getSpotLight(i);
-                #else
-                    SpotLight spotLight;
-                    spotLight.color = scene_SpotLightColor[i];
-                    spotLight.position = scene_SpotLightPosition[i];
-                    spotLight.direction = scene_SpotLightDirection[i];
-                    spotLight.distance = scene_SpotLightDistance[i];
-                    spotLight.angleCos = scene_SpotLightAngleCos[i];
-                    spotLight.penumbraCos = scene_SpotLightPenumbraCos[i];
-                #endif
                 addSpotDirectLightRadiance( varyings, surfaceData, bsdfData, spotLight, totalDiffuseColor, totalSpecularColor);
             } 
         }

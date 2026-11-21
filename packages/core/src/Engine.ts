@@ -1,11 +1,4 @@
-import {
-  IHardwareRenderer,
-  IInputOptions,
-  IPhysics,
-  IPhysicsManager,
-  IShaderCompiler,
-  IXRDevice
-} from "@galacean/engine-design";
+import { IInputOptions, IPhysics, IPhysicsManager, IShaderCompiler, IXRDevice } from "@galacean/engine-design";
 import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
@@ -23,19 +16,20 @@ import { SceneManager } from "./SceneManager";
 import { RenderingStatistics } from "./asset/RenderingStatistics";
 import { ResourceManager } from "./asset/ResourceManager";
 import { EngineObject, EventDispatcher, Logger, Time } from "./base";
-import { GLCapabilityType } from "./base/Constant";
 import { InputManager } from "./input";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
 import { ColliderShape } from "./physics/shape/ColliderShape";
 import { PostProcessPass } from "./postProcess/PostProcessPass";
 import { PostProcessUberPass } from "./postProcess/PostProcessUberPass";
 import { Shader } from "./shader/Shader";
+import type { BuiltinShaders } from "./shader/BuiltinShaders";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderProgramMap } from "./shader/ShaderProgramMap";
 import { ShaderFactory } from "./shader/ShaderFactory";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureFormat } from "./texture";
+import type { IHardwareRenderer } from "./renderingHardwareInterface";
 import { UIUtils } from "./ui/UIUtils";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
@@ -46,9 +40,8 @@ import { XRManager } from "./xr/XRManager";
  */
 export class Engine extends EventDispatcher {
   /** @internal */
-  static _noDepthTextureMacro = ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE");
-  /** @internal */
-  static _noSRGBSupportMacro = ShaderMacro.getByName("ENGINE_NO_SRGB");
+  static _builtinShaders: BuiltinShaders;
+
   /** @internal */
   static _outputSRGBCorrectMacro = ShaderMacro.getByName("ENGINE_OUTPUT_SRGB_CORRECT");
   /** @internal Conversion of space units to pixel units for 2D. */
@@ -129,7 +122,7 @@ export class Engine extends EventDispatcher {
   private _time: Time = new Time();
   private _isPaused: boolean = true;
   private _requestId: number;
-  private _timeoutId: number;
+  private _timeoutId: ReturnType<typeof setTimeout>;
   private _vSyncCounter: number = 1;
   private _targetFrameInterval: number = 1000 / 60;
   private _destroyed: boolean = false;
@@ -141,15 +134,15 @@ export class Engine extends EventDispatcher {
   private _onCanvasResize = (): void => this._renderTargetPool.gc();
 
   private _animate = () => {
-    if (this._vSyncCount) {
-      const raf = this.xrManager?._getRequestAnimationFrame() || requestAnimationFrame;
+    const raf = this._vSyncCount ? this._getRequestAnimationFrame() : undefined;
+    if (raf) {
       this._requestId = raf(this._animate);
       if (this._vSyncCounter++ % this._vSyncCount === 0) {
         this.update();
         this._vSyncCounter = 1;
       }
     } else {
-      this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
+      this._timeoutId = setTimeout(this._animate, this._targetFrameInterval);
       this.update();
     }
   };
@@ -205,7 +198,7 @@ export class Engine extends EventDispatcher {
 
   /**
    * The number of vertical synchronization means the number of vertical blanking for one frame.
-   * @remarks 0 means that the vertical synchronization is turned off.
+   * @remarks 0 means that the vertical synchronization is turned off. Hosts without animation-frame scheduling use `targetFrameRate`.
    */
   get vSyncCount(): number {
     return this._vSyncCount;
@@ -218,8 +211,8 @@ export class Engine extends EventDispatcher {
   /**
    * Set the target frame rate you want to achieve.
    * @remarks
-   * It only takes effect when vSyncCount = 0 (ie, vertical synchronization is turned off).
-   * The larger the value, the higher the target frame rate, Number.POSITIVE_INFINITY represents the infinite target frame rate.
+   * It takes effect when `vSyncCount = 0` or the host does not provide animation-frame scheduling.
+   * The larger the value, the higher the target frame rate, `Number.POSITIVE_INFINITY` represents the infinite target frame rate.
    */
   get targetFrameRate(): number {
     return this._targetFrameRate;
@@ -266,19 +259,11 @@ export class Engine extends EventDispatcher {
       this.xrManager._initialize(this, xrDevice);
     }
 
-    if (!hardwareRenderer.canIUse(GLCapabilityType.depthTexture)) {
-      this._macroCollection.enable(Engine._noDepthTextureMacro);
-    } else {
-      const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false, false);
-      depthTexture2D.isGCIgnored = true;
-      this._depthTexture2D = depthTexture2D;
-    }
+    const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false, false);
+    depthTexture2D.isGCIgnored = true;
+    this._depthTexture2D = depthTexture2D;
 
-    if (!hardwareRenderer.canIUse(GLCapabilityType.sRGB)) {
-      this._macroCollection.enable(Engine._noSRGBSupportMacro);
-    }
-
-    this._basicResources = new BasicResources(this);
+    this._basicResources = new BasicResources(this, Engine._builtinShaders);
     this._particleBufferUtils = new ParticleBufferUtils(this);
 
     const uberPass = new PostProcessUberPass(this);
@@ -299,8 +284,10 @@ export class Engine extends EventDispatcher {
    */
   pause(): void {
     this._isPaused = true;
-    const caf = this.xrManager?._getCancelAnimationFrame() || cancelAnimationFrame;
-    caf(this._requestId);
+    const caf =
+      this.xrManager?._getCancelAnimationFrame() ||
+      (typeof cancelAnimationFrame === "undefined" ? undefined : cancelAnimationFrame);
+    caf?.(this._requestId);
     clearTimeout(this._timeoutId);
   }
 
@@ -311,11 +298,11 @@ export class Engine extends EventDispatcher {
     if (!this._isPaused) return;
     this._isPaused = false;
     this.time._reset();
-    if (this._vSyncCount) {
-      const raf = this.xrManager?._getRequestAnimationFrame() || requestAnimationFrame;
+    const raf = this._vSyncCount ? this._getRequestAnimationFrame() : undefined;
+    if (raf) {
       this._requestId = raf(this._animate);
     } else {
-      this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
+      this._timeoutId = setTimeout(this._animate, this._targetFrameInterval);
     }
   }
 
@@ -563,14 +550,15 @@ export class Engine extends EventDispatcher {
    * @internal
    */
   _render(scenes: ReadonlyArray<Scene>): void {
-    // Update `Renderer` logic and shader data
+    // Update all scenes before rendering any camera
     const deltaTime = this.time.deltaTime;
     for (let i = 0, n = scenes.length; i < n; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
-      scene._componentsManager.callRendererOnUpdate(deltaTime);
-      scene._updateShaderData();
+      scene._updateRendering(deltaTime);
     }
+
+    if (!this._hardwareRenderer.supportsRendering) return;
 
     // Fire script `onBeginRender` and `onEndRender`
     for (let i = 0, n = scenes.length; i < n; i++) {
@@ -632,7 +620,7 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
-  protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
+  protected _initialize(configuration: EngineConfiguration): Promise<this> {
     const { shaderCompiler, physics } = configuration;
 
     if (shaderCompiler && !Shader._shaderCompiler) {
@@ -641,8 +629,6 @@ export class Engine extends EventDispatcher {
       // shader-compiler defaults to an empty map and stays free of any direct
       // ShaderFactory dependency, so the binding has to be wired here at the
       // runtime boundary.
-      // @ts-ignore — `_setIncludeMap` is shader-compiler @internal; `includeMap`
-      // is `ShaderFactory` @internal. Both intentionally cross-package wired.
       shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
       Shader._shaderCompiler = shaderCompiler;
     }
@@ -651,12 +637,15 @@ export class Engine extends EventDispatcher {
     if (physics) {
       initializePromises.push(
         physics.initialize().then(() => {
-          if (Engine._nativePhysics) {
-            console.warn(
-              "A physics engine has already been configured. All physics operations will now be handled by the newly specified physics engine."
-            );
+          if (Engine._nativePhysics !== physics) {
+            if (Engine._nativePhysics) {
+              console.warn(
+                "A physics engine has already been configured. All physics operations will now be handled by the newly specified physics engine."
+              );
+            }
+            Engine._nativePhysics = physics;
+            BasicResources._initializePhysics();
           }
-          Engine._nativePhysics = physics;
           this._nativePhysicsManager = physics.createPhysicsManager();
           this._physicsInitialized = true;
           return this;
@@ -671,7 +660,17 @@ export class Engine extends EventDispatcher {
     }
 
     initializePromises.push(this._basicResources._initialize());
-    return Promise.all(initializePromises).then(() => this);
+    return Promise.all(initializePromises).then(() => {
+      this.sceneManager.addScene(new Scene(this, "DefaultScene"));
+      return this;
+    });
+  }
+
+  private _getRequestAnimationFrame(): ((callback: FrameRequestCallback) => number) | undefined {
+    return (
+      this.xrManager?._getRequestAnimationFrame() ||
+      (typeof requestAnimationFrame === "undefined" ? undefined : requestAnimationFrame)
+    );
   }
 
   private _onDeviceLost(): void {

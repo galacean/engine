@@ -4,7 +4,6 @@ import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
-import { ColliderShapeChangeFlag } from "./enums/ColliderShapeChangeFlag";
 import { ColliderShape } from "./shape/ColliderShape";
 import { MeshColliderShape } from "./shape/MeshColliderShape";
 
@@ -120,8 +119,8 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * Whether or not to calculate the center of mass automatically, if true, the center of mass will be calculated based on the associated shapes.
-   * @remarks Affected by the position, rotation of the shapes.
+   * Whether the center of mass is calculated automatically from the attached shapes.
+   * @remarks Disabling this preserves the current value.
    */
   get automaticCenterOfMass(): boolean {
     return this._automaticCenterOfMass;
@@ -138,7 +137,7 @@ export class DynamicCollider extends Collider {
 
   /**
    * The center of mass relative to the transform's origin.
-   * @remarks The center of mass is automatically calculated, if you want to set it manually, please set automaticCenterOfMass to false.
+   * @remarks Set `automaticCenterOfMass` to false before changing this value.
    */
   get centerOfMass(): Vector3 {
     // @ts-ignore
@@ -156,8 +155,8 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * Whether or not to calculate the inertia tensor automatically, if true, the inertia tensor will be calculated based on the associated shapes and mass.
-   * @remarks Affected by the position, rotation of the shapes and the mass of the collider.
+   * Whether the inertia tensor is calculated automatically from the attached shapes and mass.
+   * @remarks Disabling this preserves the current value.
    */
   get automaticInertiaTensor(): boolean {
     return this._automaticInertiaTensor;
@@ -174,7 +173,7 @@ export class DynamicCollider extends Collider {
 
   /**
    * The diagonal inertia tensor of mass relative to the center of mass.
-   * @remarks The inertia tensor is automatically calculated, if you want to set it manually, please set automaticInertiaTensor to false.
+   * @remarks Set `automaticInertiaTensor` to false before changing this value.
    */
   get inertiaTensor(): Vector3 {
     // @ts-ignore
@@ -466,17 +465,19 @@ export class DynamicCollider extends Collider {
   override _onClone(target: DynamicCollider): void {
     target._linearVelocity.copyFrom(this.linearVelocity);
     target._angularVelocity.copyFrom(this.angularVelocity);
-    target._centerOfMass.copyFrom(this.centerOfMass);
-    target._inertiaTensor.copyFrom(this.inertiaTensor);
+    if (!this._automaticCenterOfMass) {
+      target._centerOfMass.copyFrom(this.centerOfMass);
+    }
+    if (!this._automaticInertiaTensor) {
+      target._inertiaTensor.copyFrom(this.inertiaTensor);
+    }
     super._onClone(target);
   }
 
   /**
    * @internal
    */
-  override _handleShapesChanged(changeType: ColliderShapeChangeFlag): void {
-    super._handleShapesChanged(changeType);
-
+  override _handleShapesChanged(): void {
     if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
       this._setMassAndUpdateInertia();
     }
@@ -510,10 +511,13 @@ export class DynamicCollider extends Collider {
     if (this._isKinematic) {
       return;
     }
+    // PhysX overwrites both properties, so capture manual values before recomputing
+    const centerOfMass = this._automaticCenterOfMass ? null : this.centerOfMass;
+    const inertiaTensor = this._automaticInertiaTensor ? null : this.inertiaTensor;
     (<IDynamicCollider>this._nativeCollider).setMassAndUpdateInertia(this._mass);
 
-    this._automaticCenterOfMass || (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
-    this._automaticInertiaTensor || (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
+    centerOfMass && (<IDynamicCollider>this._nativeCollider).setCenterOfMass(centerOfMass);
+    inertiaTensor && (<IDynamicCollider>this._nativeCollider).setInertiaTensor(inertiaTensor);
   }
 
   @ignoreClone

@@ -16,9 +16,11 @@ import {
   ShaderLanguage,
   ShaderMacro,
   ShaderMacroCollection,
-  ShaderPass
+  ShaderPass,
+  ShaderPreprocessorDirective
 } from "@galacean/engine-core";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/src/ShaderPrecompiler";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
@@ -30,6 +32,7 @@ const { readFile } = server.commands;
 Logger.enable();
 
 const shaderCompiler = new ShaderCompiler();
+const shaderPrecompiler = new ShaderPrecompiler();
 
 // ─── Macro sets ────────────────────────────────────────────────────────
 const baseMacros: { name: string; value?: string }[] = [
@@ -113,9 +116,11 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas });
   const PBRSource = await readFile("../packages/shader/src/Shaders/PBR.shader");
+  const ParticleSource = await readFile("../packages/shader/src/Shaders/Effect/Particle.shader");
+  const SSAOSource = await readFile("../packages/shader/src/Shaders/Lighting/ScalableAmbientOcclusion.shader");
 
-  // @ts-ignore — bind runtime include map so the compiler can resolve `#include`.
-  shaderCompiler._includeMap = ShaderFactory.includeMap;
+  shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
+  shaderPrecompiler.setIncludeMap(ShaderFactory.includeMap);
   // @ts-ignore
   Shader._shaderCompiler = shaderCompiler;
 
@@ -135,7 +140,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
       it(`${file}: live instructions === precompiled instructions`, async () => {
         const source = await readFile(`src/shader-compiler/shaders/${file}`);
         const parsed = shaderCompiler._parseShaderSource(source);
-        const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+        const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
 
         for (let i = 0; i < parsed.subShaders.length; i++) {
           for (let j = 0; j < parsed.subShaders[i].passes.length; j++) {
@@ -146,7 +151,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
               livePass.contents,
               livePass.vertexEntry,
               livePass.fragmentEntry,
-              ShaderLanguage.GLSLES100
+              ShaderLanguage.GLSLES300
             );
 
             const pass = precompiled.subShaders[i].passes[j];
@@ -157,11 +162,11 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
       });
     }
 
-    for (const platform of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
-      const label = platform === ShaderLanguage.GLSLES100 ? "GLSLES100" : "GLSLES300";
+    for (const platform of [ShaderLanguage.GLSLES300]) {
+      const label = "GLSLES300";
       it(`PBR (${label}): live instructions === precompiled instructions`, () => {
         const parsed = shaderCompiler._parseShaderSource(PBRSource);
-        const precompiled = shaderCompiler._precompile(PBRSource, platform);
+        const precompiled = shaderPrecompiler.precompile(PBRSource, platform);
 
         for (let i = 0; i < parsed.subShaders.length; i++) {
           for (let j = 0; j < parsed.subShaders[i].passes.length; j++) {
@@ -181,6 +186,28 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
         }
       });
     }
+
+    it("Particle: live instructions === precompiled instructions", () => {
+      const parsed = shaderCompiler._parseShaderSource(ParticleSource);
+      const precompiled = shaderPrecompiler.precompile(ParticleSource, ShaderLanguage.GLSLES300);
+
+      for (let i = 0; i < parsed.subShaders.length; i++) {
+        for (let j = 0; j < parsed.subShaders[i].passes.length; j++) {
+          const livePass = parsed.subShaders[i].passes[j];
+          if (livePass.isUsePass) continue;
+
+          const liveProgram = shaderCompiler._parseShaderPass(
+            livePass.contents,
+            livePass.vertexEntry,
+            livePass.fragmentEntry,
+            ShaderLanguage.GLSLES300
+          );
+          const pass = precompiled.subShaders[i].passes[j];
+          expect(pass.vertexShaderInstructions).toEqual(liveProgram.vertexShaderInstructions);
+          expect(pass.fragmentShaderInstructions).toEqual(liveProgram.fragmentShaderInstructions);
+        }
+      }
+    });
   });
 
   // ═══════════════════════════════════════════════════════════
@@ -192,7 +219,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
       platform: ShaderLanguage,
       macros: { name: string; value?: string }[]
     ) {
-      const precompiled = shaderCompiler._precompile(source, platform);
+      const precompiled = shaderPrecompiler.precompile(source, platform);
       const macroCollection = buildMacroCollection(macros);
 
       for (const sub of precompiled.subShaders) {
@@ -215,50 +242,50 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
     }
 
     it("PBR: precompiled GLSL → WebGL (base macros)", () => {
-      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, baseMacros);
+      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES300, baseMacros);
     });
 
     it("PBR: precompiled GLSL → WebGL (material variant macros)", () => {
-      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, [...baseMacros, ...materialVariantMacros]);
+      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES300, [...baseMacros, ...materialVariantMacros]);
     });
 
     it("PBR with shadow cascades 2", () => {
       const macros = baseMacros.map((m) => (m.name === "SCENE_SHADOW_CASCADED_COUNT" ? { ...m, value: "2" } : m));
-      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, macros);
+      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES300, macros);
     });
 
     it("PBR with shadow cascades 4", () => {
       const macros = baseMacros.map((m) => (m.name === "SCENE_SHADOW_CASCADED_COUNT" ? { ...m, value: "4" } : m));
-      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, macros);
+      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES300, macros);
     });
 
     it("PBR with hard shadows (SCENE_SHADOW_TYPE=1)", () => {
       const macros = baseMacros.map((m) => (m.name === "SCENE_SHADOW_TYPE" ? { ...m, value: "1" } : m));
-      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, macros);
+      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES300, macros);
     });
 
     it("PBR with PCF9 shadows (SCENE_SHADOW_TYPE=3)", () => {
       const macros = baseMacros.map((m) => (m.name === "SCENE_SHADOW_TYPE" ? { ...m, value: "3" } : m));
-      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, macros);
+      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES300, macros);
     });
 
     it("PBR with clear coat macros", () => {
-      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, [...baseMacros, ...clearCoatMacros]);
+      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES300, [...baseMacros, ...clearCoatMacros]);
     });
 
     it("PBR with texture macros", () => {
-      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, [...baseMacros, ...textureMacros]);
+      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES300, [...baseMacros, ...textureMacros]);
     });
 
     it("PBR with alpha cutoff", () => {
-      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, [
+      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES300, [
         ...baseMacros,
         { name: "MATERIAL_IS_ALPHA_CUTOFF" }
       ]);
     });
 
     it("PBR with transparency", () => {
-      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, [
+      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES300, [
         ...baseMacros,
         { name: "MATERIAL_IS_TRANSPARENT" }
       ]);
@@ -266,36 +293,110 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
 
     it("PBR with fog mode 1 (linear)", () => {
       const macros = baseMacros.map((m) => (m.name === "SCENE_FOG_MODE" ? { ...m, value: "1" } : m));
-      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, macros);
+      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES300, macros);
     });
 
     it("PBR with fog mode 2 (exponential)", () => {
       const macros = baseMacros.map((m) => (m.name === "SCENE_FOG_MODE" ? { ...m, value: "2" } : m));
-      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, macros);
+      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES300, macros);
     });
 
     it("PBR with fog mode 3 (exponential squared)", () => {
       const macros = baseMacros.map((m) => (m.name === "SCENE_FOG_MODE" ? { ...m, value: "3" } : m));
-      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, macros);
+      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES300, macros);
     });
 
+    it("PBR with unsupported fog mode uses the no-fog fallback", () => {
+      const macros = baseMacros.map((m) => (m.name === "SCENE_FOG_MODE" ? { ...m, value: "99" } : m));
+      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES300, macros);
+    });
+
+    for (const quality of ["0", "1", "2", "99"]) {
+      it(`SSAO quality ${quality}`, () => {
+        validatePrecompiledWebGL(SSAOSource, ShaderLanguage.GLSLES300, [{ name: "SSAO_QUALITY", value: quality }]);
+      });
+    }
+
     it("PBR with UV1 + occlusion texture", () => {
-      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, [...baseMacros, ...uv1OcclusionMacros]);
+      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES300, [...baseMacros, ...uv1OcclusionMacros]);
     });
 
     it("PBR with camera orthographic", () => {
-      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, [...baseMacros, { name: "CAMERA_ORTHOGRAPHIC" }]);
+      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES300, [...baseMacros, { name: "CAMERA_ORTHOGRAPHIC" }]);
     });
 
     it("PBR with tangent + normal texture", () => {
-      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, [...baseMacros, ...tangentNormalMacros]);
+      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES300, [...baseMacros, ...tangentNormalMacros]);
+    });
+
+    for (const mode of [
+      "RENDERER_MODE_SPHERE_BILLBOARD",
+      "RENDERER_MODE_STRETCHED_BILLBOARD",
+      "RENDERER_MODE_HORIZONTAL_BILLBOARD",
+      "RENDERER_MODE_VERTICAL_BILLBOARD",
+      "RENDERER_MODE_MESH"
+    ]) {
+      it(`Particle ${mode} mode`, () => {
+        validatePrecompiledWebGL(ParticleSource, ShaderLanguage.GLSLES300, [{ name: mode }]);
+      });
+    }
+
+    for (const mode of ["RENDERER_VOL_CONSTANT_MODE", "RENDERER_VOL_CURVE_MODE"]) {
+      it(`Particle ${mode} mode`, () => {
+        validatePrecompiledWebGL(ParticleSource, ShaderLanguage.GLSLES300, [
+          { name: "RENDERER_MODE_SPHERE_BILLBOARD" },
+          { name: mode }
+        ]);
+      });
+    }
+
+    it("Particle uses deterministic priority when render-mode macros overlap", () => {
+      const macros = [
+        { name: "RENDERER_MODE_SPHERE_BILLBOARD" },
+        { name: "RENDERER_MODE_STRETCHED_BILLBOARD" },
+        { name: "RENDERER_MODE_HORIZONTAL_BILLBOARD" },
+        { name: "RENDERER_MODE_VERTICAL_BILLBOARD" },
+        { name: "RENDERER_MODE_MESH" },
+        { name: "RENDERER_ENABLE_VERTEXCOLOR" }
+      ];
+      validatePrecompiledWebGL(ParticleSource, ShaderLanguage.GLSLES300, macros);
+
+      const precompiled = shaderPrecompiler.precompile(ParticleSource, ShaderLanguage.GLSLES300, "");
+      const pass = precompiled.subShaders[0].passes.find((candidate) => candidate.name === "Forward Pass");
+      const vertexSource = ShaderMacroProcessor.evaluate(pass!.vertexShaderInstructions!, makeMacroMap(macros));
+      expect(vertexSource).to.match(/normalize\s*\(\s*cross\s*\(\s*camera_Forward\s*,\s*camera_Up\s*\)\s*\)/);
+      expect(vertexSource).to.not.include("rotationZHalfPI");
+      expect(vertexSource).to.not.match(/cameraUpVector\s*=\s*vec3\s*\(\s*0\.0\s*,\s*1\.0\s*,\s*0\.0\s*\)/);
+    });
+
+    it("Particle mesh with separate random size-over-lifetime curves", () => {
+      const macros = [
+        { name: "RENDERER_MODE_MESH" },
+        { name: "RENDERER_SOL_CURVE_MODE" },
+        { name: "RENDERER_SOL_IS_SEPARATE" },
+        { name: "RENDERER_SOL_IS_RANDOM_TWO" }
+      ];
+      validatePrecompiledWebGL(ParticleSource, ShaderLanguage.GLSLES300, macros);
+
+      const precompiled = shaderPrecompiler.precompile(ParticleSource, ShaderLanguage.GLSLES300);
+      const pass = precompiled.subShaders[0].passes.find((candidate) => candidate.name === "Forward Pass");
+      expect(pass?.vertexShaderInstructions).toBeDefined();
+      const vertexSource = ShaderMacroProcessor.evaluate(pass!.vertexShaderInstructions!, makeMacroMap(macros));
+      for (const axis of ["X", "Y", "Z"]) {
+        expect(vertexSource).toMatch(
+          new RegExp(
+            `lifeSize${axis}\\s*=\\s*mix\\s*\\(\\s*evaluateParticleCurve\\s*\\(\\s*renderer_SOLMinCurve${axis}[^;]+lifeSize${axis}`
+          )
+        );
+      }
+      expect(vertexSource).toMatch(/size\s*\*=\s*vec3\s*\(\s*lifeSizeX\s*,\s*lifeSizeY\s*,\s*lifeSizeZ\s*\)/);
     });
 
     const simpleShaders = ["noFragArgs.shader", "waterfull.shader", "mrt-struct.shader", "multi-pass.shader"];
     for (const file of simpleShaders) {
       it(`${file}: precompiled GLSL → WebGL`, async () => {
         const source = await readFile(`src/shader-compiler/shaders/${file}`);
-        validatePrecompiledWebGL(source, ShaderLanguage.GLSLES100, baseMacros);
+        validatePrecompiledWebGL(source, ShaderLanguage.GLSLES300, baseMacros);
       });
     }
   });
@@ -309,7 +410,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
       platform: ShaderLanguage,
       macros: { name: string; value?: string }[]
     ) {
-      const precompiled = shaderCompiler._precompile(source, platform);
+      const precompiled = shaderPrecompiler.precompile(source, platform);
       const restored = JSON.parse(JSON.stringify(precompiled));
       const macroCollection = buildMacroCollection(macros);
 
@@ -333,29 +434,29 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
     }
 
     it("PBR: .shaderc → WebGL (base macros)", () => {
-      validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES100, baseMacros);
+      validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES300, baseMacros);
     });
 
     it("PBR: .shaderc → WebGL (material variant macros)", () => {
-      validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES100, [...baseMacros, ...materialVariantMacros]);
+      validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES300, [...baseMacros, ...materialVariantMacros]);
     });
 
     it("PBR: .shaderc → WebGL (clear coat)", () => {
-      validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES100, [...baseMacros, ...clearCoatMacros]);
+      validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES300, [...baseMacros, ...clearCoatMacros]);
     });
 
     it("PBR: .shaderc → WebGL (shadow cascades 4)", () => {
       const macros = baseMacros.map((m) => (m.name === "SCENE_SHADOW_CASCADED_COUNT" ? { ...m, value: "4" } : m));
-      validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES100, macros);
+      validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES300, macros);
     });
 
     it("PBR: .shaderc → WebGL (fog mode 2)", () => {
       const macros = baseMacros.map((m) => (m.name === "SCENE_FOG_MODE" ? { ...m, value: "2" } : m));
-      validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES100, macros);
+      validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES300, macros);
     });
 
     it("PBR: .shaderc → WebGL (textures + tangent + alpha cutoff)", () => {
-      validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES100, [
+      validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES300, [
         ...baseMacros,
         ...textureMacros,
         ...tangentNormalMacros,
@@ -367,7 +468,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
     for (const file of simpleShaders) {
       it(`${file}: .shaderc → WebGL`, async () => {
         const source = await readFile(`src/shader-compiler/shaders/${file}`);
-        validateGspRoundTrip(source, ShaderLanguage.GLSLES100, baseMacros);
+        validateGspRoundTrip(source, ShaderLanguage.GLSLES300, baseMacros);
       });
     }
   });
@@ -379,7 +480,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
     it("multi-pass: renderStates match between paths", async () => {
       const source = await readFile("src/shader-compiler/shaders/multi-pass.shader");
       const parsed = shaderCompiler._parseShaderSource(source);
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
 
       for (let i = 0; i < parsed.subShaders.length; i++) {
         for (let j = 0; j < parsed.subShaders[i].passes.length; j++) {
@@ -406,7 +507,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
 
     it("PBR: renderStates variableMap keys match", () => {
       const parsed = shaderCompiler._parseShaderSource(PBRSource);
-      const precompiled = shaderCompiler._precompile(PBRSource, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(PBRSource, ShaderLanguage.GLSLES300);
 
       for (let i = 0; i < parsed.subShaders.length; i++) {
         for (let j = 0; j < parsed.subShaders[i].passes.length; j++) {
@@ -432,7 +533,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
       it(`${file}: metadata matches between paths`, async () => {
         const source = await readFile(`src/shader-compiler/shaders/${file}`);
         const parsed = shaderCompiler._parseShaderSource(source);
-        const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+        const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
 
         expect(precompiled.name).toBe(parsed.name);
 
@@ -467,7 +568,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
     it("macro-pre: evaluateInstructions output matches live compilation per macro combo", async () => {
       const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
       const parsed = shaderCompiler._parseShaderSource(source);
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
 
       const combos: Array<{ label: string; macros: { name: string; value?: string }[] }> = [
         { label: "empty", macros: [] },
@@ -497,7 +598,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
     });
 
     it("PBR: different macro combos produce different evaluated output", () => {
-      const precompiled = shaderCompiler._precompile(PBRSource, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(PBRSource, ShaderLanguage.GLSLES300);
       // Find the Forward Pass (not ShadowCaster/DepthOnly which have simple shaders)
       const pass = precompiled.subShaders[0].passes.find((p) => p.name === "Forward Pass");
       if (!pass?.fragmentShaderInstructions) return;
@@ -520,15 +621,17 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
   // A/B 7: Instruction-based optimization correctness
   // ═══════════════════════════════════════════════════════════
   describe("A/B: instruction optimization", () => {
-    it("noFragArgs (single TEXT instruction): still compiles with full macro set", async () => {
+    it("noFragArgs (one text instruction): still compiles with full macro set", async () => {
       const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
 
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
           if (pass.isUsePass) continue;
-          expect(pass.vertexShaderInstructions!.length).toBe(1);
-          expect(pass.fragmentShaderInstructions!.length).toBe(1);
+          for (const instructions of [pass.vertexShaderInstructions!, pass.fragmentShaderInstructions!]) {
+            expect(instructions).toHaveLength(1);
+            expect(instructions[0][0]).toBe(ShaderPreprocessorDirective.Text);
+          }
         }
       }
 
@@ -540,7 +643,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
             pass.name,
             pass.vertexShaderInstructions,
             pass.fragmentShaderInstructions!,
-            ShaderLanguage.GLSLES100,
+            ShaderLanguage.GLSLES300,
             pass.tags
           );
           // @ts-ignore
@@ -550,15 +653,17 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
       }
     });
 
-    it("mrt-struct (single TEXT instruction): compiles correctly", async () => {
+    it("mrt-struct (one text instruction): compiles correctly", async () => {
       const source = await readFile("src/shader-compiler/shaders/mrt-struct.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
 
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
           if (pass.isUsePass) continue;
-          expect(pass.vertexShaderInstructions!.length).toBe(1);
-          expect(pass.fragmentShaderInstructions!.length).toBe(1);
+          for (const instructions of [pass.vertexShaderInstructions!, pass.fragmentShaderInstructions!]) {
+            expect(instructions).toHaveLength(1);
+            expect(instructions[0][0]).toBe(ShaderPreprocessorDirective.Text);
+          }
         }
       }
 
@@ -570,7 +675,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
             pass.name,
             pass.vertexShaderInstructions,
             pass.fragmentShaderInstructions!,
-            ShaderLanguage.GLSLES100,
+            ShaderLanguage.GLSLES300,
             pass.tags
           );
           // @ts-ignore

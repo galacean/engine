@@ -81,17 +81,17 @@ Shader "Effect/Particle" {
       void frag(Varyings v) {
           vec4 color = material_BaseColor * v.v_Color;
 
-          #if defined(RENDERER_MODE_MESH) && defined(RENDERER_ENABLE_VERTEXCOLOR)
+          #if defined(RENDERER_MODE_MESH) && !defined(RENDERER_MODE_SPHERE_BILLBOARD) && !defined(RENDERER_MODE_STRETCHED_BILLBOARD) && !defined(RENDERER_MODE_HORIZONTAL_BILLBOARD) && !defined(RENDERER_MODE_VERTICAL_BILLBOARD) && defined(RENDERER_ENABLE_VERTEXCOLOR)
               color *= v.v_MeshColor;
           #endif
 
           #ifdef MATERIAL_HAS_BASETEXTURE
-              color *= texture2DSRGB(material_BaseTexture, v.v_TextureCoordinate);
+              color *= texture2D(material_BaseTexture, v.v_TextureCoordinate);
           #endif
 
           vec3 emissiveRadiance = material_EmissiveColor;
           #ifdef MATERIAL_HAS_EMISSIVETEXTURE
-              emissiveRadiance *= texture2DSRGB(material_EmissiveTexture, v.v_TextureCoordinate).rgb;
+              emissiveRadiance *= texture2D(material_EmissiveTexture, v.v_TextureCoordinate).rgb;
           #endif
 
           color.rgb += emissiveRadiance;

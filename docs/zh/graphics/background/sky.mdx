@@ -45,11 +45,11 @@ label: Graphics/Background
 ```typescript
 // 创建大气散射材质
 const skyMaterial = new SkyProceduralMaterial(engine);
-// 设置天空盒
+// 设置程序化天空背景
 const background = scene.background;
 background.mode = BackgroundMode.Sky;
 background.sky.material = skyMaterial;
-background.sky.mesh = PrimitiveMesh.createSphere(engine);
+background.sky.mesh = PrimitiveMesh.createSphere(engine, 0.5);
 ```
 
 ### 属性

@@ -1,6 +1,14 @@
-import { Shader, ShaderLanguage, ShaderMacro, ShaderMacroCollection } from "@galacean/engine-core";
+import {
+  Shader,
+  ShaderFactory,
+  ShaderLanguage,
+  ShaderMacro,
+  ShaderMacroCollection,
+  ShaderPreprocessorDirective
+} from "@galacean/engine-core";
 import { IPrecompiledShader } from "@galacean/engine-design";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/src/ShaderPrecompiler";
 import {
   ShaderInstructionEncoder,
   ShaderInstruction
@@ -16,6 +24,7 @@ const { readFile } = server.commands;
 Logger.enable();
 
 const shaderCompiler = new ShaderCompiler();
+const shaderPrecompiler = new ShaderPrecompiler();
 
 // Helper: build a macro Map from name/value pairs
 function makeMacroMap(entries: Array<[string, string]>): Map<string, string> {
@@ -25,6 +34,7 @@ function makeMacroMap(entries: Array<[string, string]>): Map<string, string> {
 describe("ShaderCompiler Precompile", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas, shaderCompiler });
+  shaderPrecompiler.setIncludeMap(ShaderFactory.includeMap);
   const PBRSource = await readFile("../packages/shader/src/Shaders/PBR.shader");
 
   // ─────────────────────────────────────────────────────────
@@ -34,7 +44,7 @@ describe("ShaderCompiler Precompile", async () => {
     it("round-trip: JSON.stringify → JSON.parse preserves all data", () => {
       const original: IPrecompiledShader = {
         name: "TestShader",
-        platformTarget: ShaderLanguage.GLSLES100,
+        platformTarget: ShaderLanguage.GLSLES300,
         subShaders: [
           {
             name: "Default",
@@ -72,7 +82,7 @@ describe("ShaderCompiler Precompile", async () => {
     it("Color values as [r,g,b,a] arrays survive round-trip", () => {
       const original: IPrecompiledShader = {
         name: "ColorTest",
-        platformTarget: ShaderLanguage.GLSLES100,
+        platformTarget: ShaderLanguage.GLSLES300,
         subShaders: [
           {
             name: "Default",
@@ -100,7 +110,7 @@ describe("ShaderCompiler Precompile", async () => {
       const instructions = ShaderInstructionEncoder.parse("#ifdef FOO\nA\n#else\nB\n#endif\n");
       const original: IPrecompiledShader = {
         name: "ShaderInstructionTest",
-        platformTarget: ShaderLanguage.GLSLES100,
+        platformTarget: ShaderLanguage.GLSLES300,
         subShaders: [
           {
             name: "Default",
@@ -126,7 +136,7 @@ describe("ShaderCompiler Precompile", async () => {
     it("multiple subShaders and passes survive round-trip", () => {
       const original: IPrecompiledShader = {
         name: "MultiTest",
-        platformTarget: ShaderLanguage.GLSLES100,
+        platformTarget: ShaderLanguage.GLSLES300,
         subShaders: [
           {
             name: "Sub0",
@@ -172,7 +182,7 @@ describe("ShaderCompiler Precompile", async () => {
     it("UsePass flag preserved", () => {
       const original: IPrecompiledShader = {
         name: "UsePassTest",
-        platformTarget: ShaderLanguage.GLSLES100,
+        platformTarget: ShaderLanguage.GLSLES300,
         subShaders: [
           {
             name: "Default",
@@ -318,12 +328,12 @@ describe("ShaderCompiler Precompile", async () => {
     it("#if without spaces around operator parses the same as with spaces", () => {
       const noSpaces = ShaderInstructionEncoder.parse("#if SCENE_SHADOW_CASCADED_COUNT==1\nbody\n#endif\n");
       const withSpaces = ShaderInstructionEncoder.parse("#if SCENE_SHADOW_CASCADED_COUNT == 1\nbody\n#endif\n");
-      const noSp = noSpaces.find((i) => i[0] === 3); // IF_CMP
-      const withSp = withSpaces.find((i) => i[0] === 3);
-      expect(noSp).toBeDefined();
-      expect(noSp![1]).toBe(withSp![1]); // same macro name
-      expect(noSp![2]).toBe(withSp![2]); // same operator
-      expect(noSp![3]).toBe(withSp![3]); // same value
+      expect(ShaderMacroProcessor.evaluate(noSpaces, makeMacroMap([["SCENE_SHADOW_CASCADED_COUNT", "1"]]))).toBe(
+        ShaderMacroProcessor.evaluate(withSpaces, makeMacroMap([["SCENE_SHADOW_CASCADED_COUNT", "1"]]))
+      );
+      expect(ShaderMacroProcessor.evaluate(noSpaces, makeMacroMap([["SCENE_SHADOW_CASCADED_COUNT", "2"]]))).toBe(
+        ShaderMacroProcessor.evaluate(withSpaces, makeMacroMap([["SCENE_SHADOW_CASCADED_COUNT", "2"]]))
+      );
     });
 
     it("#ifdef + #elif defined() mix (normal_get.glsl pattern)", () => {
@@ -385,8 +395,8 @@ describe("ShaderCompiler Precompile", async () => {
         ""
       ].join("\n");
       const inst = ShaderInstructionEncoder.parse(glsl);
-      // Three IF_CMP instructions (one for #if, two for #elif)
-      expect(inst.filter((i) => i[0] === 3).length).toBe(3);
+      // Three conditional instructions (one for #if, two for #elif)
+      expect(inst.filter((i) => i[0] === 3 || i[0] === 4).length).toBe(3);
       // Two ELSE instructions (one per #elif)
       expect(inst.filter((i) => i[0] === 5).length).toBe(2);
       // One ENDIF
@@ -464,6 +474,11 @@ describe("ShaderCompiler Precompile", async () => {
       expect(inst[0][2]).toEqual(["color"]);
       expect(inst[0][3]).toBe("color");
     });
+
+    it("parses a tab between an object-like macro name and value", () => {
+      const instructions = ShaderInstructionEncoder.parse("#define VALUE\t1\n#if VALUE\nBODY\n#endif\n");
+      expect(ShaderMacroProcessor.evaluate(instructions, new Map())).toContain("BODY");
+    });
   });
 
   // ─────────────────────────────────────────────────────────
@@ -503,6 +518,19 @@ describe("ShaderCompiler Precompile", async () => {
       const inst = ShaderInstructionEncoder.parse("#ifndef FOO\nBODY\n#endif\n");
       expect(eval_(inst, [])).toContain("BODY");
       expect(eval_(inst, [["FOO", ""]])).not.toContain("BODY");
+    });
+
+    it("#if MACRO uses the numeric macro value", () => {
+      const inst = ShaderInstructionEncoder.parse("#if FOO\nBODY\n#endif\n");
+      expect(eval_(inst, [])).not.toContain("BODY");
+      expect(eval_(inst, [["FOO", "0"]])).not.toContain("BODY");
+      expect(eval_(inst, [["FOO", "1"]])).toContain("BODY");
+    });
+
+    it("rejects a malformed preprocessor condition before runtime evaluation", () => {
+      expect(() => ShaderInstructionEncoder.parse("#if 123 defined(FOO)\nBODY\n#endif\n")).toThrow(
+        "Unexpected token 'defined' in preprocessor expression."
+      );
     });
 
     it("#if MACRO == value: correct branch selected", () => {
@@ -773,23 +801,23 @@ describe("ShaderCompiler Precompile", async () => {
       expect(eval_(inst, [])).not.toContain("FOG");
     });
 
-    it("same macro redefined in different branches — WebGL2 vs WebGL1", () => {
+    it("same macro redefined for explicit and implicit LOD", () => {
       const glsl = [
-        "#ifdef GRAPHICS_API_WEBGL2",
+        "#ifdef USE_EXPLICIT_LOD",
         "  #define SAMPLE(tex, coord) textureLod(tex, coord, 0.0)",
         "#else",
-        "  #define SAMPLE(tex, coord) texture2D(tex, coord)",
+        "  #define SAMPLE(tex, coord) texture(tex, coord)",
         "#endif",
         "SAMPLE(myTex, uv)",
         ""
       ].join("\n");
       const inst = ShaderInstructionEncoder.parse(glsl);
-      const webgl2 = eval_(inst, [["GRAPHICS_API_WEBGL2", ""]]);
-      const webgl1 = eval_(inst, []);
-      expect(webgl2).toContain("textureLod(myTex, uv, 0.0)");
-      expect(webgl2).not.toContain("texture2D");
-      expect(webgl1).toContain("texture2D(myTex, uv)");
-      expect(webgl1).not.toContain("textureLod");
+      const explicitLOD = eval_(inst, [["USE_EXPLICIT_LOD", ""]]);
+      const implicitLOD = eval_(inst, []);
+      expect(explicitLOD).toContain("textureLod(myTex, uv, 0.0)");
+      expect(explicitLOD).not.toContain("texture(");
+      expect(implicitLOD).toContain("texture(myTex, uv)");
+      expect(implicitLOD).not.toContain("textureLod");
     });
 
     it("deep nesting evaluation — 4-level nesting with different macro combos", () => {
@@ -864,7 +892,7 @@ describe("ShaderCompiler Precompile", async () => {
     // evaluateShaderInstructions twice with the same inputs produces identical output.
     it("evaluateShaderInstructions is deterministic (same input → same output)", async () => {
       const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
 
       const macroCombinations: Array<Array<[string, string]>> = [
         [],
@@ -887,7 +915,7 @@ describe("ShaderCompiler Precompile", async () => {
 
     it("evaluateShaderInstructions output survives JSON round-trip of instructions", async () => {
       const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
 
       for (const subShader of precompiled.subShaders) {
         for (const pass of subShader.passes) {
@@ -904,20 +932,20 @@ describe("ShaderCompiler Precompile", async () => {
   });
 
   // ─────────────────────────────────────────────────────────
-  // 5. ShaderCompiler._precompile()
+  // 5. ShaderPrecompiler.precompile()
   // ─────────────────────────────────────────────────────────
-  describe("ShaderCompiler._precompile()", () => {
+  describe("ShaderPrecompiler.precompile()", () => {
     it("should produce valid IPrecompiledShader from PBR source", () => {
-      const precompiled = shaderCompiler._precompile(PBRSource, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(PBRSource, ShaderLanguage.GLSLES300);
 
       expect(typeof precompiled.name).toBe("string");
       expect(precompiled.name.length).toBeGreaterThan(0);
-      expect(precompiled.platformTarget).toBe(ShaderLanguage.GLSLES100);
+      expect(precompiled.platformTarget).toBe(ShaderLanguage.GLSLES300);
       expect(precompiled.subShaders.length).toBeGreaterThan(0);
     });
 
     it("precompiled output should match live compilation for each pass", () => {
-      const precompiled = shaderCompiler._precompile(PBRSource, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(PBRSource, ShaderLanguage.GLSLES300);
       const liveSource = shaderCompiler._parseShaderSource(PBRSource);
 
       for (let i = 0; i < liveSource.subShaders.length; i++) {
@@ -938,7 +966,7 @@ describe("ShaderCompiler Precompile", async () => {
               livePass.contents,
               livePass.vertexEntry,
               livePass.fragmentEntry,
-              ShaderLanguage.GLSLES100
+              ShaderLanguage.GLSLES300
             );
             // Both paths produce instructions from the same CodeGen output
             expect(precompiledPass.vertexShaderInstructions).toEqual(liveProgram.vertexShaderInstructions);
@@ -949,14 +977,14 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("output should survive JSON round-trip", () => {
-      const precompiled = shaderCompiler._precompile(PBRSource, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(PBRSource, ShaderLanguage.GLSLES300);
       const restored = JSON.parse(JSON.stringify(precompiled)) as IPrecompiledShader;
       expect(restored.name).toBe(precompiled.name);
       expect(restored.subShaders.length).toBe(precompiled.subShaders.length);
     });
 
     it("output should survive JSON stringify → parse round-trip", () => {
-      const precompiled = shaderCompiler._precompile(PBRSource, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(PBRSource, ShaderLanguage.GLSLES300);
       const restored: IPrecompiledShader = JSON.parse(JSON.stringify(precompiled));
 
       for (let i = 0; i < precompiled.subShaders.length; i++) {
@@ -969,25 +997,25 @@ describe("ShaderCompiler Precompile", async () => {
       }
     });
 
-    it("simple shader (noFragArgs) → instructions should be single TEXT", async () => {
+    it("simple shader (noFragArgs) keeps one text instruction", async () => {
       const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
 
       for (const subShader of precompiled.subShaders) {
         for (const pass of subShader.passes) {
           if (pass.isUsePass) continue;
-          // No-macro shaders should have single TEXT instruction
-          expect(pass.vertexShaderInstructions!.length).toBe(1);
-          expect(pass.vertexShaderInstructions![0][0]).toBe(0);
-          expect(pass.fragmentShaderInstructions!.length).toBe(1);
-          expect(pass.fragmentShaderInstructions![0][0]).toBe(0);
+          for (const instructions of [pass.vertexShaderInstructions!, pass.fragmentShaderInstructions!]) {
+            expect(instructions).toHaveLength(1);
+            expect(instructions[0][0]).toBe(ShaderPreprocessorDirective.Text);
+            expect(ShaderMacroProcessor.evaluate(instructions, new Map())).toMatch(/void\s+main\s*\(/);
+          }
         }
       }
     });
 
     it("macro-heavy shader → instructions with conditionals", async () => {
       const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
 
       let foundMacroPass = false;
       for (const subShader of precompiled.subShaders) {
@@ -1006,7 +1034,7 @@ describe("ShaderCompiler Precompile", async () => {
 
     it("multi-pass shader → renderStates have constantMap entries (BlendState)", async () => {
       const source = await readFile("src/shader-compiler/shaders/multi-pass.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
 
       let hasConstant = false;
       for (const subShader of precompiled.subShaders) {
@@ -1021,7 +1049,7 @@ describe("ShaderCompiler Precompile", async () => {
 
     it("multi-pass shader → UsePass correctly flagged", async () => {
       const source = await readFile("src/shader-compiler/shaders/multi-pass.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
 
       const allPasses = precompiled.subShaders.flatMap((s) => s.passes);
       const usePasses = allPasses.filter((p) => p.isUsePass);
@@ -1037,7 +1065,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("GLSLES300 platformTarget is preserved in output", () => {
-      const precompiled = shaderCompiler._precompile(PBRSource, ShaderLanguage.GLSLES300);
+      const precompiled = shaderPrecompiler.precompile(PBRSource, ShaderLanguage.GLSLES300);
       expect(precompiled.platformTarget).toBe(ShaderLanguage.GLSLES300);
     });
 
@@ -1049,7 +1077,7 @@ describe("ShaderCompiler Precompile", async () => {
     // `galacean-tools/baker/IBLBaker.shader`) so `<<`/`>>` are covered too.
     it("preserves every GLSL ES 3.00 numeric literal form", async () => {
       const source = await readFile("src/shader-compiler/shaders/numeric-literals.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES300);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
       const pass = precompiled.subShaders[0].passes[0];
       const text = [
         ...((pass.vertexShaderInstructions as ShaderInstruction[]) ?? []),
@@ -1094,13 +1122,10 @@ describe("ShaderCompiler Precompile", async () => {
       }
     });
 
-    // Regression for SkyMat `material_AtmosphereThickness undeclared`. The
-    // fixture exercises paren / operator / fn-call / unary / nested-fn macro
-    // values; each must emit a DefineVal and every user identifier in the
-    // value must become a real `uniform` declaration.
+    // Complex object-like macro values must retain their referenced uniforms.
     it("emits object-like Define instructions and uniforms for complex macro values", async () => {
       const source = await readFile("src/shader-compiler/shaders/macro-value-refs.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
       const fragInstr = (precompiled.subShaders[0].passes[0].fragmentShaderInstructions as ShaderInstruction[]) ?? [];
 
       const defines = new Map<string, ShaderInstruction>();
@@ -1141,12 +1166,10 @@ describe("ShaderCompiler Precompile", async () => {
       }
     });
 
-    // Regression: comment text inside `#define` values must not leak into the
-    // identifier scanner. Real `u_used_*` refs are kept; `u_in_comment_*`
-    // mentions are not promoted to uniforms.
+    // Comment text inside `#define` values is not an identifier reference.
     it("does not collect identifiers from comments inside #define values", async () => {
       const source = await readFile("src/shader-compiler/shaders/macro-value-refs-with-comments.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
       const fragInstr = (precompiled.subShaders[0].passes[0].fragmentShaderInstructions as ShaderInstruction[]) ?? [];
       const fragText = fragInstr
         .filter((i) => i[0] === 0)
@@ -1169,7 +1192,7 @@ describe("ShaderCompiler Precompile", async () => {
 
     it("subShader tags are preserved", async () => {
       const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
 
       const sub = precompiled.subShaders[0];
       expect(sub.tags).toBeDefined();
@@ -1178,7 +1201,7 @@ describe("ShaderCompiler Precompile", async () => {
 
     it("pass tags are preserved", async () => {
       const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
 
       const pass = precompiled.subShaders[0].passes[0];
       expect(pass.tags).toBeDefined();
@@ -1186,47 +1209,32 @@ describe("ShaderCompiler Precompile", async () => {
     });
   });
 
-  // After LALR enforces shift on `macro_call_symbol . '('`, the visitor at
-  // `K(args)` must distinguish three callee kinds derived from the macro's
-  // replacement and apply IO-struct formal flattening only when the callee is
-  // a user-declared function. Earlier the filter ran for every object-like
-  // macro and silently dropped member-access / literal args (e.g. emitting
-  // `vec3()` from `MyVec3(attr.POSITION.x, attr.POSITION.y, attr.POSITION.z)`).
-  describe("MacroCallFunction calleeKind-aware arg filtering", () => {
+  describe("macro aliases preserve call arguments", () => {
     let evaluated: string;
     beforeAll(async () => {
       const source = await readFile("src/shader-compiler/shaders/macro-as-type-args.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
       const vi = precompiled.subShaders[0].passes[0].vertexShaderInstructions ?? [];
       evaluated = ShaderMacroProcessor.evaluate(vi as any, new Map());
     });
 
-    // (1) builtin type alias: constructor call, no formal flattening
     it("builtin type alias keeps member-access args", () => {
-      // After flatten, `attr.POSITION.x/y/z` → `POSITION.x/y/z`.
-      expect(evaluated).toMatch(/vec3\s*\(\s*POSITION\.x\s*,\s*POSITION\.y\s*,\s*POSITION\.z\s*\)/);
+      expect(evaluated).toMatch(/vec3\s*\(\s*attr\.POSITION\.x\s*,\s*attr\.POSITION\.y\s*,\s*attr\.POSITION\.z\s*\)/);
     });
     it("builtin type alias keeps literal args", () => {
       expect(evaluated).toMatch(/vec3\s*\(\s*0\.1\s*,\s*0\.2\s*,\s*0\.3\s*\)/);
     });
     it("builtin type alias never emits an empty constructor call", () => {
-      // Defends against the original bug where every arg was filtered.
       expect(evaluated).not.toMatch(/vec3\s*\(\s*\)/);
     });
 
-    // (2) builtin function alias: args are values, no flattening
     it("builtin function alias keeps all args verbatim", () => {
       expect(evaluated).toMatch(/mix\s*\(\s*v_member\s*,\s*v_literal\s*,\s*0\.5\s*\)/);
     });
 
-    // (3) user-fn alias: formal flattening DOES apply — bare IO-struct arg
-    //     must be dropped so the call site matches the flattened signature.
-    it("user-fn alias drops bare IO-struct arg paired with flattened formal", () => {
-      // `computeColor(Attributes a)` flattens to `computeColor()` and call
-      // becomes `computeColor()` (the `attr` arg drops).
-      expect(evaluated).toMatch(/computeColor\s*\(\s*\)/);
-      // The macro name `MyHelper` should still appear in the macro define
-      // table (the directive itself), but never as `MyHelper(attr)` text.
+    it("user-fn alias preserves the structure argument and parameter", () => {
+      expect(evaluated).toMatch(/computeColor\s*\(\s*Attributes\s+a\s*\)/);
+      expect(evaluated).toMatch(/computeColor\s*\(\s*attr\s*\)/);
       expect(evaluated).not.toMatch(/MyHelper\s*\(\s*attr\s*\)/);
     });
   });
@@ -1236,7 +1244,7 @@ describe("ShaderCompiler Precompile", async () => {
   // ─────────────────────────────────────────────────────────
   describe("Shader._createFromPrecompiled()", () => {
     it("should create Shader with correct name and subShader count", () => {
-      const precompiled = shaderCompiler._precompile(PBRSource, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(PBRSource, ShaderLanguage.GLSLES300);
       const testData = { ...precompiled, name: "TestPBR_CFP_1" };
       const shader = Shader._createFromPrecompiled(testData);
 
@@ -1247,25 +1255,9 @@ describe("ShaderCompiler Precompile", async () => {
       shader.destroy(true);
     });
 
-    it("platformTarget is set on each ShaderPass", async () => {
-      const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
-      const testData = { ...precompiled, name: "TestNoFrag_CFP_PlatformTarget" };
-      const shader = Shader._createFromPrecompiled(testData);
-
-      for (const sub of shader.subShaders) {
-        for (const pass of sub.passes) {
-          // @ts-ignore
-          expect(pass._platformTarget).toBe(ShaderLanguage.GLSLES100);
-        }
-      }
-
-      shader.destroy(true);
-    });
-
     it("_vertexShaderInstructions / _fragmentShaderInstructions are set correctly", async () => {
       const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
       const testData = { ...precompiled, name: "TestNoFrag_CFP_ShaderInstructions" };
       const shader = Shader._createFromPrecompiled(testData);
 
@@ -1283,7 +1275,7 @@ describe("ShaderCompiler Precompile", async () => {
 
     it("_vertexShaderInstructions populated for macro-heavy shader", async () => {
       const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
       const testData = { ...precompiled, name: "TestMacroPre_CFP_ShaderInstructions" };
       const shader = Shader._createFromPrecompiled(testData);
 
@@ -1305,7 +1297,7 @@ describe("ShaderCompiler Precompile", async () => {
 
     it("SubShader tags are preserved after _createFromPrecompiled", async () => {
       const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
       const testData = { ...precompiled, name: "TestMacroPre_CFP_Tags" };
       const shader = Shader._createFromPrecompiled(testData);
 
@@ -1317,7 +1309,7 @@ describe("ShaderCompiler Precompile", async () => {
 
     it("ShaderPass tags are preserved after _createFromPrecompiled", async () => {
       const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
       const testData = { ...precompiled, name: "TestNoFrag_CFP_PassTags" };
       const shader = Shader._createFromPrecompiled(testData);
 
@@ -1327,21 +1319,25 @@ describe("ShaderCompiler Precompile", async () => {
       shader.destroy(true);
     });
 
-    it("duplicate shader name → returns existing shader (no re-registration)", () => {
-      const precompiled = shaderCompiler._precompile(PBRSource, ShaderLanguage.GLSLES100);
-      const testData = { ...precompiled, name: "TestPBR_CFP_Duplicate" };
+    it("creates independent precompiled shaders with the same name", async () => {
+      const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
+      const testData = { ...precompiled, name: "Test_CFP_Duplicate" };
 
       const first = Shader._createFromPrecompiled(testData);
       const second = Shader._createFromPrecompiled(testData);
 
-      expect(second).toBeFalsy();
+      expect(second).not.toBe(first);
+      expect(Shader.find(testData.name)).toBe(second);
 
       first.destroy(true);
+      expect(Shader.find(testData.name)).toBe(second);
+      second.destroy(true);
     });
 
     it("UsePass in multi-pass shader is handled without throwing", async () => {
       const source = await readFile("src/shader-compiler/shaders/multi-pass.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
       const testData = { ...precompiled, name: "TestMultiPass_CFP_UsePass" };
 
       expect(() => Shader._createFromPrecompiled(testData)).not.toThrow();
@@ -1365,7 +1361,7 @@ describe("ShaderCompiler Precompile", async () => {
     for (const shaderFile of testShaders) {
       it(`${shaderFile}: precompile output matches live compilation`, async () => {
         const source = await readFile(`src/shader-compiler/shaders/${shaderFile}`);
-        const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+        const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
         const liveSource = shaderCompiler._parseShaderSource(source);
 
         for (let i = 0; i < liveSource.subShaders.length; i++) {
@@ -1378,7 +1374,7 @@ describe("ShaderCompiler Precompile", async () => {
               livePass.contents,
               livePass.vertexEntry,
               livePass.fragmentEntry,
-              ShaderLanguage.GLSLES100
+              ShaderLanguage.GLSLES300
             );
 
             const precompiledPass = precompiled.subShaders[i].passes[j];
@@ -1392,7 +1388,7 @@ describe("ShaderCompiler Precompile", async () => {
 
     it("GLSLES300 precompile output matches GLSLES300 live compilation", async () => {
       const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES300);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
       const liveSource = shaderCompiler._parseShaderSource(source);
 
       for (let i = 0; i < liveSource.subShaders.length; i++) {
@@ -1417,14 +1413,14 @@ describe("ShaderCompiler Precompile", async () => {
   // 8. Performance
   // ─────────────────────────────────────────────────────────
   describe("Performance", () => {
-    it("JSON.parse should be faster than _precompile", () => {
-      const warmup = shaderCompiler._precompile(PBRSource, ShaderLanguage.GLSLES100);
+    it("JSON.parse should be faster than precompile", () => {
+      const warmup = shaderPrecompiler.precompile(PBRSource, ShaderLanguage.GLSLES300);
       const jsonStr = JSON.stringify(warmup);
 
       const RUNS = 5;
       const compileStart = performance.now();
       for (let i = 0; i < RUNS; i++) {
-        shaderCompiler._precompile(PBRSource, ShaderLanguage.GLSLES100);
+        shaderPrecompiler.precompile(PBRSource, ShaderLanguage.GLSLES300);
       }
       const compileTime = (performance.now() - compileStart) / RUNS;
 
@@ -1434,7 +1430,7 @@ describe("ShaderCompiler Precompile", async () => {
       }
       const parseTime = (performance.now() - parseStart) / RUNS;
 
-      console.log(`[Perf] _precompile avg: ${compileTime.toFixed(2)}ms`);
+      console.log(`[Perf] precompile avg: ${compileTime.toFixed(2)}ms`);
       console.log(`[Perf] JSON.parse avg: ${parseTime.toFixed(2)}ms`);
       console.log(`[Perf] Speedup: ${(compileTime / parseTime).toFixed(1)}x`);
 
@@ -1443,7 +1439,7 @@ describe("ShaderCompiler Precompile", async () => {
 
     it("evaluateShaderInstructions is fast on macro-heavy shader", async () => {
       const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
-      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
 
       let fragmentShaderInstructions: ShaderInstruction[] | undefined;
       for (const sub of precompiled.subShaders) {

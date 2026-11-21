@@ -11,7 +11,9 @@ import { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
 import { BaseMaterial, BlinnPhongMaterial, Material } from "./material";
 import { PrefilteredDFG } from "./material/utils/PrefilteredDFG";
 import { ModelMesh } from "./mesh";
+import { PhysicsMaterial } from "./physics/PhysicsMaterial";
 import { Shader } from "./shader/Shader";
+import type { BuiltinShaders } from "./shader/BuiltinShaders";
 import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
 import { CompareFunction } from "./shader/enums/CompareFunction";
 import { CullMode } from "./shader/enums/CullMode";
@@ -27,10 +29,18 @@ import { Color } from "@galacean/engine-math";
  * @internal
  */
 export class BasicResources {
+  static physicsDefaultMaterial: PhysicsMaterial;
   private static _maskReadInsideRenderStates: RenderStateElementMap | null = null;
   private static _maskReadOutsideRenderStates: RenderStateElementMap | null = null;
   private static _maskWriteIncrementRenderStates: RenderStateElementMap | null = null;
   private static _maskWriteDecrementRenderStates: RenderStateElementMap | null = null;
+
+  /**
+   * @internal
+   */
+  static _initializePhysics(): void {
+    BasicResources.physicsDefaultMaterial = new PhysicsMaterial();
+  }
 
   static getMaskInteractionRenderStates(maskInteraction: SpriteMaskInteraction): RenderStateElementMap {
     const visibleInsideMask = maskInteraction === SpriteMaskInteraction.VisibleInsideMask;
@@ -127,7 +137,10 @@ export class BasicResources {
     return this._prefilteredDFGTexture;
   }
 
-  constructor(public engine: Engine) {
+  constructor(
+    public engine: Engine,
+    shaders: BuiltinShaders
+  ) {
     // prettier-ignore
     const vertices = new Float32Array([
       -1, -1, 0, 1, // left-bottom
@@ -140,10 +153,10 @@ export class BasicResources {
       -1, -1, 0, 0, // left-bottom
       -1, 3, 0, 2]); // left-top
 
-    const blitMaterial = new Material(engine, Shader.find("Blit/Blit"));
+    const blitMaterial = new Material(engine, shaders.blit);
     blitMaterial._addReferCount(1);
 
-    const blitScreenMaterial = new Material(engine, Shader.find("Blit/BlitScreen"));
+    const blitScreenMaterial = new Material(engine, shaders.blitScreen);
     blitScreenMaterial._addReferCount(1);
 
     this.blitMaterial = blitMaterial;
@@ -158,44 +171,41 @@ export class BasicResources {
     this.whiteTexture2D = this._create1x1Texture(
       engine,
       TextureType.Texture2D,
-      TextureFormat.R8G8B8A8,
+      TextureFormat.R8G8B8A8_UNorm,
       whitePixel,
       true
     );
     this.whiteTextureCube = this._create1x1Texture(
       engine,
       TextureType.TextureCube,
-      TextureFormat.R8G8B8A8,
+      TextureFormat.R8G8B8A8_UNorm,
       whitePixel,
       true
     );
 
-    const isWebGL2 = engine._hardwareRenderer.isWebGL2;
-    if (isWebGL2) {
-      this.whiteTexture2DArray = this._create1x1Texture(
-        engine,
-        TextureType.Texture2DArray,
-        TextureFormat.R8G8B8A8,
-        whitePixel,
-        true
-      );
+    this.whiteTexture2DArray = this._create1x1Texture(
+      engine,
+      TextureType.Texture2DArray,
+      TextureFormat.R8G8B8A8_UNorm,
+      whitePixel,
+      true
+    );
 
-      const whitePixel32 = new Uint32Array([255, 255, 255, 255]);
-      this.uintWhiteTexture2D = this._create1x1Texture(
-        engine,
-        TextureType.Texture2D,
-        TextureFormat.R32G32B32A32_UInt,
-        whitePixel32,
-        false
-      );
-    }
+    const whitePixel32 = new Uint32Array([255, 255, 255, 255]);
+    this.uintWhiteTexture2D = this._create1x1Texture(
+      engine,
+      TextureType.Texture2D,
+      TextureFormat.R32G32B32A32_UInt,
+      whitePixel32,
+      false
+    );
 
-    this.spriteDefaultMaterial = this._create2DMaterial(engine, Shader.find("2D/Sprite"));
-    this.textDefaultMaterial = this._create2DMaterial(engine, Shader.find("2D/Text"));
-    this.spriteMaskDefaultMaterial = this._createSpriteMaskMaterial(engine);
+    this.spriteDefaultMaterial = this._create2DMaterial(engine, shaders.sprite);
+    this.textDefaultMaterial = this._create2DMaterial(engine, shaders.text);
+    this.spriteMaskDefaultMaterial = this._create2DMaterial(engine, shaders.spriteMask);
 
-    this.meshMagentaMaterial = this._createMagentaMaterial(engine, "Unlit");
-    this.particleMagentaMaterial = this._createMagentaMaterial(engine, "Effect/Particle");
+    this.meshMagentaMaterial = this._createMagentaMaterial(engine, shaders.unlit);
+    this.particleMagentaMaterial = this._createMagentaMaterial(engine, shaders.particle);
   }
 
   /**
@@ -209,13 +219,10 @@ export class BasicResources {
    * @internal
    */
   _initialize(): Promise<BasicResources> {
-    return new Promise((resolve, reject) => {
-      PrefilteredDFG.create(this.engine)
-        .then((texture) => {
-          this._prefilteredDFGTexture = texture;
-          resolve(this);
-        })
-        .catch(reject);
+    if (!this.engine._hardwareRenderer.supportsRendering) return Promise.resolve(this);
+    return PrefilteredDFG.create(this.engine).then((texture) => {
+      this._prefilteredDFGTexture = texture;
+      return this;
     });
   }
 
@@ -302,16 +309,10 @@ export class BasicResources {
     return material;
   }
 
-  private _createMagentaMaterial(engine: Engine, shaderName: string): BaseMaterial {
-    const material = new BaseMaterial(engine, Shader.find(shaderName));
+  private _createMagentaMaterial(engine: Engine, shader: Shader): BaseMaterial {
+    const material = new BaseMaterial(engine, shader);
     material.isGCIgnored = true;
     material.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
-    return material;
-  }
-
-  private _createSpriteMaskMaterial(engine: Engine): Material {
-    const material = new Material(engine, Shader.find("2D/SpriteMask"));
-    material.isGCIgnored = true;
     return material;
   }
 }

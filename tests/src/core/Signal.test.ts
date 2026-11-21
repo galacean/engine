@@ -76,7 +76,9 @@ describe("Signal", async () => {
     const signal = new Signal<[number]>();
     const fn = vi.fn();
     signal.once(fn);
+    expect(signal.listenerCount).toBe(1);
     signal.invoke(1);
+    expect(signal.listenerCount).toBe(0);
     signal.invoke(2);
     expect(fn).toHaveBeenCalledOnce();
     expect(fn).toHaveBeenCalledWith(1);

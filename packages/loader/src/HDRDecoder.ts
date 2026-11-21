@@ -2,7 +2,7 @@
  * HDR (Radiance RGBE) image decoder.
  *
  * Decodes .hdr files into pixel data. Supports parsing the header
- * and decoding RLE-compressed RGBE scanlines into R16G16B16A16 half-float pixels.
+ * and decoding RLE-compressed RGBE scanlines into R16G16B16A16_SFloat half-float pixels.
  */
 export class HDRDecoder {
   private static _float2HalfTables = HDRDecoder._generateFloat2HalfTables();
@@ -52,7 +52,7 @@ export class HDRDecoder {
   }
 
   /**
-   * Decode an HDR file buffer into R16G16B16A16 half-float pixel data.
+   * Decode an HDR file buffer into R16G16B16A16_SFloat half-float pixel data.
    * @param buffer - The full HDR file as Uint8Array.
    * @returns Object with width, height, and half-float pixel data.
    */
@@ -66,7 +66,7 @@ export class HDRDecoder {
 
   /**
    * @internal
-   * Convert RGBE pixel data to R16G16B16A16 half-float.
+   * Convert RGBE pixel data to R16G16B16A16_SFloat half-float.
    */
   static _rgbeToHalfFloat(rgbe: Uint8Array, width: number, height: number): Uint16Array {
     const floatView = this._floatView;

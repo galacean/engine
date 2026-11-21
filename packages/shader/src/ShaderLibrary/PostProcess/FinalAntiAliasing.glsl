@@ -4,11 +4,7 @@
 #define FXAA_PC 1
 #define FXAA_QUALITY_PRESET 12
 #define FXAA_GREEN_AS_LUMA 0
-#if defined(GRAPHICS_API_WEBGL2)
-    #define FXAA_GLSL_130 1
-#elif defined(GRAPHICS_API_WEBGL1)
-    #define FXAA_GLSL_120 1
-#endif
+#define FXAA_GLSL_130 1
 
 #include "ShaderLibrary/Common/Common.glsl"
 #include "ShaderLibrary/PostProcess/FXAA/FXAA3_11.glsl"

@@ -19,16 +19,16 @@ export class FinalPass extends PipelinePass {
   private _antiAliasingMaterial: Material;
   private _sRGBmaterial: Material;
 
-  constructor(engine: Engine) {
+  constructor(engine: Engine, sRGBShader: Shader, antiAliasingShader: Shader) {
     super(engine);
 
     // SRGB Material
-    const sRGBmaterial = new Material(engine, Shader.find("PostProcess/FinalSRGB"));
+    const sRGBmaterial = new Material(engine, sRGBShader);
     sRGBmaterial._addReferCount(1);
     this._sRGBmaterial = sRGBmaterial;
 
     // FXAA Material
-    const antiAliasingMaterial = new Material(engine, Shader.find("PostProcess/FinalAntiAliasing"));
+    const antiAliasingMaterial = new Material(engine, antiAliasingShader);
     antiAliasingMaterial._addReferCount(1);
     this._antiAliasingMaterial = antiAliasingMaterial;
   }
@@ -43,7 +43,7 @@ export class FinalPass extends PipelinePass {
         this._srgbRenderTarget,
         pixelViewport.width,
         pixelViewport.height,
-        TextureFormat.R8G8B8A8, // FXAA need color range [0, 1], so we use R8G8B8A8 and ignore camera target HDR format
+        TextureFormat.R8G8B8A8_UNorm, // FXAA need color range [0, 1], so we use R8G8B8A8_UNorm and ignore camera target HDR format
         null,
         false,
         false,

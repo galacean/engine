@@ -67,7 +67,7 @@ WebGLEngine.create({
 
 function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture2D, glTFModel: GLTFResource): Entity {
   const meshRenderer = rootEntity.createChild("Mesh").addComponent(MeshRenderer);
-  meshRenderer.mesh = PrimitiveMesh.createCylinder(engine);
+  meshRenderer.mesh = PrimitiveMesh.createCylinder(engine, 0.5, 2);
   const unlitMaterial = new UnlitMaterial(engine);
   unlitMaterial.baseTexture = glTFModel.textures[0];
   meshRenderer.setMaterial(unlitMaterial);

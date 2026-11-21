@@ -67,7 +67,10 @@ export class AudioSource extends Component {
   set volume(value: number) {
     value = Math.min(Math.max(0, value), 1.0);
     this._volume = value;
-    this._gainNode?.gain.setValueAtTime(value, AudioManager.getContext().currentTime);
+    // No node yet -> _ensureGainNode() applies _volume on first play
+    if (this._gainNode) {
+      this._gainNode.gain.value = value;
+    }
   }
 
   /**
@@ -250,7 +253,7 @@ export class AudioSource extends Component {
       // Defer context creation to playback for iOS interruption recovery
       this._gainNode = gainNode = AudioManager.getContext().createGain();
       gainNode.connect(AudioManager.getGainNode());
-      gainNode.gain.setValueAtTime(this._volume, AudioManager.getContext().currentTime);
+      gainNode.gain.value = this._volume;
     }
     return gainNode;
   }

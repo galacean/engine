@@ -199,7 +199,8 @@ export class RenderQueue {
           component._isFrontFaceInvert(),
           shaderPass._renderStateDataMap,
           material.shaderData,
-          customStates
+          customStates,
+          renderElementShaderData
         );
 
         // Draw

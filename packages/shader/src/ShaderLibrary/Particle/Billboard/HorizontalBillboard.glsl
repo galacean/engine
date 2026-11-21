@@ -11,9 +11,9 @@
 	// Uses Z-axis rotation data to match Unity behavior.
 	float rot;
 	if (renderer_ThreeDStartRotation) {
-		rot = radians(computeParticleRotationFloat(a_StartRotation0.z, age, normalizedAge));
+		rot = radians(computeParticleRotationFloat(a_StartRotationSpeed.z, age, normalizedAge));
 	} else {
-		rot = radians(computeParticleRotationFloat(a_StartRotation0.x, age, normalizedAge));
+		rot = radians(computeParticleRotationFloat(a_StartRotationSpeed.x, age, normalizedAge));
 	}
 
 	float c = cos(rot);

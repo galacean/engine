@@ -1,0 +1,27 @@
+/** Receives CPU geometry synchronously from a backend, in skeleton draw order.
+ * The shared renderer owns the output buffers and batches. Backends may reuse their input arrays after append returns.
+ */
+export interface ISpineGeometry<TTexture> {
+  readonly tintBlack: boolean;
+
+  /** Append one drawable attachment after world vertex calculation and clipping.
+   * Input vertices contain x, y, r, g, b, a, u, v, followed by dark r, g, b, a when tintBlack is enabled.
+   * Colors are unassociated (straight) sRGB values; the shared shader converts RGB to linear.
+   * Textures use straight alpha, validated at the asset boundary.
+   * Only vertexCount vertices and indexCount indices are consumed; indices are local to this attachment.
+   * drawOrder is the slot's index in the skeleton draw order, including slots without geometry.
+   * slotIndex is its stable index in Skeleton.slots, independent of animated draw order.
+   * Blend modes: normal=0, additive=1, multiply=2, screen=3.
+   * The input arrays are copied during this call and are not retained.
+   */
+  append(
+    vertices: ArrayLike<number>,
+    vertexCount: number,
+    indices: ArrayLike<number>,
+    indexCount: number,
+    texture: TTexture,
+    blendMode: 0 | 1 | 2 | 3,
+    drawOrder: number,
+    slotIndex: number
+  ): void;
+}

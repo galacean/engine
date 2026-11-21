@@ -1,5 +1,4 @@
 import {
-  GLCapabilityType,
   IPlatformRenderTarget,
   RenderTarget,
   Texture,
@@ -14,8 +13,7 @@ import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
  * The render target in WebGL platform is used for off-screen rendering.
  */
 export class GLRenderTarget implements IPlatformRenderTarget {
-  private _gl: WebGLRenderingContext & WebGL2RenderingContext;
-  private _isWebGL2: boolean;
+  private _gl: WebGL2RenderingContext;
   private _target: RenderTarget;
   private _frameBuffer: WebGLFramebuffer | null;
   private _MSAAFrameBuffer: WebGLFramebuffer | null;
@@ -26,18 +24,18 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   private _blitDrawBuffers: GLenum[] | null;
   private _curMipLevel: number = 0;
   private _curFaceIndex: TextureCubeFace | undefined = undefined;
+  private _antiAliasing: number;
 
   /**
    * Create render target in WebGL platform.
    */
   constructor(rhi: WebGLGraphicDevice, target: RenderTarget) {
-    this._gl = rhi.gl as WebGLRenderingContext & WebGL2RenderingContext;
-    this._isWebGL2 = rhi.isWebGL2;
+    this._gl = rhi.gl;
     this._target = target;
+    this._antiAliasing = Math.min(target.antiAliasing, rhi.capability.maxAntiAliasing);
 
     /** @ts-ignore */
     const { _colorTextures, _depth, width, height } = target;
-    const isDepthTexture = _depth instanceof Texture;
 
     /** todo
      * MRT + Cube + [,MSAA]
@@ -46,27 +44,19 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
     for (let i = 0, n = _colorTextures.length; i < n; i++) {
       const { format, isSRGBColorSpace } = _colorTextures[i];
-      if (!GLTexture._supportRenderBufferColorFormat(format, rhi)) {
+      if (!rhi.supportsRenderTargetColorFormat(format)) {
         throw new Error(`TextureFormat is not supported:${TextureFormat[format]} in RenderTarget`);
       }
-      if (isSRGBColorSpace && format === TextureFormat.R8G8B8) {
-        throw new Error(`If you want to use sRGB color space, only R8G8B8A8 format is supported in RenderTarget`);
+      if (isSRGBColorSpace && format === TextureFormat.R8G8B8_UNorm) {
+        throw new Error(`If you want to use sRGB color space, only R8G8B8A8_UNorm format is supported in RenderTarget`);
       }
-    }
-
-    if (!isDepthTexture && _depth !== null && !GLTexture._supportRenderBufferDepthFormat(_depth, rhi)) {
-      throw new Error(`TextureFormat is not supported:${TextureFormat[_depth]} in RenderTarget`);
-    }
-
-    if (_colorTextures.length > 1 && !rhi.canIUse(GLCapabilityType.drawBuffers)) {
-      throw new Error("MRT is not supported");
     }
 
     if (_colorTextures.some((v: Texture) => v.width !== width || v.height !== height)) {
       throw new Error("ColorTexture's size must as same as RenderTarget");
     }
 
-    if (isDepthTexture && (_depth.width !== width || _depth.height !== height)) {
+    if (_depth instanceof Texture && (_depth.width !== width || _depth.height !== height)) {
       throw new Error("DepthTexture's size must as same as RenderTarget");
     }
 
@@ -81,7 +71,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     this._bindMainFBO();
 
     // bind MSAA FBO
-    if (target.antiAliasing > 1) {
+    if (this._antiAliasing > 1) {
       this._MSAAFrameBuffer = this._gl.createFramebuffer();
       this._bindMSAAFBO();
     }
@@ -131,7 +121,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     } else {
       if (mipChanged) {
         // @ts-ignore
-        const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl, this._isWebGL2);
+        const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl);
         gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthRenderBuffer);
         gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, target.width >> mipLevel, target.height >> mipLevel);
       }
@@ -197,7 +187,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
   private _bindMainFBO(): void {
     const gl = this._gl;
-    const isWebGL2: boolean = this._isWebGL2;
 
     const { _depth, colorTextureCount, width, height } = this._target;
     const drawBuffers = new Array(colorTextureCount);
@@ -240,8 +229,8 @@ export class GLRenderTarget implements IPlatformRenderTarget {
             0
           );
         }
-      } else if (this._target.antiAliasing <= 1) {
-        const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
+      } else if (this._antiAliasing <= 1) {
+        const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl);
         this._depthRenderBuffer = this._createRenderBuffer(internalFormat, attachment!);
       }
     }
@@ -252,7 +241,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
   private _bindMSAAFBO(): void {
     const gl = this._gl;
-    const isWebGL2 = this._isWebGL2;
 
     const { _depth, colorTextureCount } = this._target;
 
@@ -276,7 +264,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       const { internalFormat, attachment } =
         _depth instanceof Texture
           ? (_depth._platformTexture as GLTexture)._formatDetail
-          : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
+          : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl);
 
       this._MSAADepthRenderBuffer = this._createRenderBuffer(internalFormat, attachment!);
     }
@@ -288,7 +276,8 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
   private _createRenderBuffer(internalFormat: GLenum, attachment: GLenum): WebGLRenderbuffer | null {
     const gl = this._gl;
-    const { width, height, antiAliasing } = this._target;
+    const { width, height } = this._target;
+    const antiAliasing = this._antiAliasing;
     const renderBuffer = gl.createRenderbuffer();
 
     gl.bindRenderbuffer(gl.RENDERBUFFER, renderBuffer);
@@ -325,7 +314,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           );
         }
         break;
-      case gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: // Only for WebGL2
+      case gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
         throw new Error(
           "The values of gl.RENDERBUFFER_SAMPLES are different among attached renderbuffers, or are non-zero if the attached images are a mix of renderbuffers and textures."
         );

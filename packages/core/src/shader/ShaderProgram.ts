@@ -1,4 +1,4 @@
-import { IHardwareRenderer } from "@galacean/engine-design";
+import type { IHardwareRenderer, IPlatformShaderProgram } from "../renderingHardwareInterface";
 import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Logger } from "../base/Logger";
@@ -15,7 +15,7 @@ import { InstanceBufferLayout, ShaderFactory } from "./ShaderFactory";
  * Shader program, corresponding to the GPU shader program.
  * @internal
  */
-export class ShaderProgram {
+export class ShaderProgram implements IPlatformShaderProgram {
   private static _counter: number = 0;
 
   private static _addLineNum(str: string) {
@@ -63,7 +63,7 @@ export class ShaderProgram {
   // @todo: move to RHI.
   private _isValid: boolean;
   private _engine: Engine;
-  private _gl: WebGLRenderingContext;
+  private _gl: WebGL2RenderingContext;
   private _glProgram: WebGLProgram | null;
   private _activeTextureUint: number = 0;
 
@@ -270,13 +270,9 @@ export class ShaderProgram {
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
 
-    // Set Transform Feedback varyings before linking (WebGL2 only)
+    // Set Transform Feedback varyings before linking
     if (transformFeedbackVaryings?.length) {
-      (<WebGL2RenderingContext>gl).transformFeedbackVaryings(
-        program,
-        transformFeedbackVaryings,
-        (<WebGL2RenderingContext>gl).INTERLEAVED_ATTRIBS
-      );
+      gl.transformFeedbackVaryings(program, transformFeedbackVaryings, gl.INTERLEAVED_ATTRIBS);
     }
 
     gl.linkProgram(program);
@@ -430,29 +426,29 @@ export class ShaderProgram {
         case gl.FLOAT_MAT4:
           shaderUniform.applyFunc = isArray ? shaderUniform.uploadMat4v : shaderUniform.uploadMat4;
           break;
-        case (<WebGL2RenderingContext>gl).FLOAT_MAT2x3:
+        case gl.FLOAT_MAT2x3:
           shaderUniform.applyFunc = shaderUniform.uploadMat2x3;
           break;
-        case (<WebGL2RenderingContext>gl).FLOAT_MAT2x4:
+        case gl.FLOAT_MAT2x4:
           shaderUniform.applyFunc = shaderUniform.uploadMat2x4;
           break;
-        case (<WebGL2RenderingContext>gl).FLOAT_MAT3x2:
+        case gl.FLOAT_MAT3x2:
           shaderUniform.applyFunc = shaderUniform.uploadMat3x2;
           break;
-        case (<WebGL2RenderingContext>gl).FLOAT_MAT3x4:
+        case gl.FLOAT_MAT3x4:
           shaderUniform.applyFunc = shaderUniform.uploadMat3x4;
           break;
-        case (<WebGL2RenderingContext>gl).FLOAT_MAT4x2:
+        case gl.FLOAT_MAT4x2:
           shaderUniform.applyFunc = shaderUniform.uploadMat4x2;
           break;
-        case (<WebGL2RenderingContext>gl).FLOAT_MAT4x3:
+        case gl.FLOAT_MAT4x3:
           shaderUniform.applyFunc = shaderUniform.uploadMat4x3;
           break;
         case gl.SAMPLER_2D:
         case gl.SAMPLER_CUBE:
-        case (<WebGL2RenderingContext>gl).UNSIGNED_INT_SAMPLER_2D:
-        case (<WebGL2RenderingContext>gl).SAMPLER_2D_ARRAY:
-        case (<WebGL2RenderingContext>gl).SAMPLER_2D_SHADOW:
+        case gl.UNSIGNED_INT_SAMPLER_2D:
+        case gl.SAMPLER_2D_ARRAY:
+        case gl.SAMPLER_2D_SHADOW:
           let defaultTexture: Texture;
           switch (type) {
             case gl.SAMPLER_2D:
@@ -461,13 +457,13 @@ export class ShaderProgram {
             case gl.SAMPLER_CUBE:
               defaultTexture = basicResources.whiteTextureCube;
               break;
-            case (<WebGL2RenderingContext>gl).UNSIGNED_INT_SAMPLER_2D:
+            case gl.UNSIGNED_INT_SAMPLER_2D:
               defaultTexture = basicResources.uintWhiteTexture2D;
               break;
-            case (<WebGL2RenderingContext>gl).SAMPLER_2D_ARRAY:
+            case gl.SAMPLER_2D_ARRAY:
               defaultTexture = basicResources.whiteTexture2DArray;
               break;
-            case (<WebGL2RenderingContext>gl).SAMPLER_2D_SHADOW:
+            case gl.SAMPLER_2D_SHADOW:
               defaultTexture = this._engine._depthTexture2D;
               shaderUniform.textureUseCompareMode = true;
               break;
@@ -510,18 +506,15 @@ export class ShaderProgram {
       this.attributeLocation[name] = gl.getAttribLocation(program, name);
     });
 
-    // Record uniform block indices and bind binding points (WebGL2 only)
-    if (this._engine._hardwareRenderer.isWebGL2) {
-      const gl2 = <WebGL2RenderingContext>gl;
-      const bindingMap = ShaderFactory.uniformBlockBindingMap;
-      const blockCount = gl2.getProgramParameter(program, gl2.ACTIVE_UNIFORM_BLOCKS) ?? 0;
-      for (let i = 0; i < blockCount; i++) {
-        const id = ShaderBlockProperty.getByName(gl2.getActiveUniformBlockName(program, i)!)._uniqueId;
-        this.uniformBlockIds[i] = id;
-        const bindingPoint = bindingMap[id];
-        if (bindingPoint !== undefined) {
-          gl2.uniformBlockBinding(program, i, bindingPoint);
-        }
+    // Record uniform block indices and bind binding points
+    const bindingMap = ShaderFactory.uniformBlockBindingMap;
+    const blockCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORM_BLOCKS) ?? 0;
+    for (let i = 0; i < blockCount; i++) {
+      const id = ShaderBlockProperty.getByName(gl.getActiveUniformBlockName(program, i)!)._uniqueId;
+      this.uniformBlockIds[i] = id;
+      const bindingPoint = bindingMap[id];
+      if (bindingPoint !== undefined) {
+        gl.uniformBlockBinding(program, i, bindingPoint);
       }
     }
   }

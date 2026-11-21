@@ -64,6 +64,7 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   protected _rendererLayer: Vector4 = new Vector4();
   @ignoreClone
   protected _bounds: BoundingBox = new BoundingBox();
+  @ignoreClone
   protected _transformEntity: Entity | null;
 
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
@@ -86,7 +87,7 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   }
 
   /**
-   * Whether it is culled in the current frame and does not participate in rendering.
+   * Whether this renderer was culled by all cameras in the previous frame.
    */
   get isCulled(): boolean {
     return !(this._renderFrameCount === undefined || this._renderFrameCount === this._engine.time.frameCount - 1);

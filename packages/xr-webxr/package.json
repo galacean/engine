@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-xr-webxr",
-  "version": "2.0.0-alpha.50",
+  "version": "2.0.0-alpha.64",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -35,7 +35,9 @@
   },
   "devDependencies": {
     "@galacean/engine-design": "workspace:*",
-    "@galacean/engine-math": "workspace:*"
+    "@galacean/engine": "workspace:*"
   },
-  "peerDependencies": {}
+  "peerDependencies": {
+    "@galacean/engine": "workspace:*"
+  }
 }

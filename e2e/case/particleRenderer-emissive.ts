@@ -18,15 +18,13 @@ import {
   ParticleRenderer,
   Texture2D,
   Vector3,
-  WebGLEngine,
-  WebGLMode
+  WebGLEngine
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 // Create engine
 WebGLEngine.create({
-  canvas: "canvas",
-  graphicDeviceOptions: { webGLMode: WebGLMode.Auto }
+  canvas: "canvas"
 }).then((engine) => {
   Logger.enable();
 

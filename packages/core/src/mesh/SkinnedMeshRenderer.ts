@@ -3,7 +3,6 @@ import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
 import { RendererUpdateFlags } from "../Renderer";
-import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { ShaderProperty } from "../shader";
 import { Texture2D } from "../texture/Texture2D";
@@ -99,12 +98,15 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     this._skin = null;
 
     const rhi = this.entity.engine._hardwareRenderer;
-    let maxVertexUniformVectors = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
+    let maxVertexUniformVectors = rhi.capability.maxVertexUniformVectors;
 
     // Limit size to 256 to avoid some problem:
     // For renderer is "Apple GPU", when uniform is large than 256 the skeleton matrix array access in shader very slow in Safari or WKWebview. This may be a apple bug, Chrome and Firefox is OK!
     // For renderer is "ANGLE (AMD, AMD Radeon(TM) Graphics Direct3011 vs_5_0 ps_5_0, D3011)", compile shader si very slow because of max uniform is 4096.
-    maxVertexUniformVectors = Math.min(maxVertexUniformVectors, rhi._options._maxAllowSkinUniformVectorCount);
+    maxVertexUniformVectors = Math.min(
+      maxVertexUniformVectors,
+      rhi._options._maxAllowSkinUniformVectorCount ?? maxVertexUniformVectors
+    );
 
     this._maxVertexUniformVectors = maxVertexUniformVectors;
 
@@ -180,23 +182,22 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         );
 
         if (boneCount > remainUniformJointCount) {
-          const engine = this.engine;
-          if (engine._hardwareRenderer.canIUseMoreJoints) {
-            if (boneCountChange) {
-              this._jointTexture?.destroy();
-              this._jointTexture = new Texture2D(engine, 4, boneCount, TextureFormat.R32G32B32A32, false, false);
-              this._jointTexture.filterMode = TextureFilterMode.Point;
-              this._jointTexture.isGCIgnored = true;
-            }
-            shaderData.disableMacro("RENDERER_JOINTS_NUM");
-            shaderData.enableMacro("RENDERER_USE_JOINT_TEXTURE");
-            shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this._jointTexture);
-          } else {
-            Logger.error(
-              `component's joints count(${boneCount}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${this._maxVertexUniformVectors}, and don't support jointTexture in this device. suggest joint count less than ${remainUniformJointCount}.`,
-              this
+          if (boneCountChange) {
+            this._jointTexture?.destroy();
+            this._jointTexture = new Texture2D(
+              this.engine,
+              4,
+              boneCount,
+              TextureFormat.R32G32B32A32_SFloat,
+              false,
+              false
             );
+            this._jointTexture.filterMode = TextureFilterMode.Point;
+            this._jointTexture.isGCIgnored = true;
           }
+          shaderData.disableMacro("RENDERER_JOINTS_NUM");
+          shaderData.enableMacro("RENDERER_USE_JOINT_TEXTURE");
+          shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this._jointTexture);
         } else {
           this._jointTexture?.destroy();
           shaderData.disableMacro("RENDERER_USE_JOINT_TEXTURE");

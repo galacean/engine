@@ -1,0 +1,419 @@
+import { EShaderStage } from "../common/enums/ShaderStage";
+import { type BranchCoverage, type BranchSignature, type DeclarationCoexistence } from "../common/BaseToken";
+import { getLexicalBranchCoverage, getLexicalDeclarationCoexistence } from "../common/BranchIdentity";
+import { ASTNode } from "../parser/AST";
+import { ESymbolType, FnSymbol, SymbolInfo, SymbolTable, VarSymbol } from "../parser/symbolTable";
+import type { StructProp } from "../parser/types";
+import type { ShaderClueIR } from "./ShaderClueIR";
+import { findUnsupportedStructOwnership } from "./ShaderStructOwnership";
+import {
+  isDeferredDeclarationPair,
+  type DeferredDeclarationOwnership,
+  type ShaderDeclarationOwnershipInfo
+} from "./ShaderDeclarationOwnership";
+
+/** Role a struct type plays in backend stage IO. @internal */
+export enum ShaderStructRole {
+  Varying = "varying",
+  Attribute = "attribute",
+  Mrt = "mrt"
+}
+
+/** Backend-relevant stage entry and its matching declarations. @internal */
+export interface ShaderEntryPointInfo {
+  /** Pipeline stage represented by this entry. */
+  readonly stage: EShaderStage;
+  /** Entry function name from the ShaderLab pass. */
+  readonly name: string;
+  /** Matching function declarations retained across macro branches. */
+  readonly functions: readonly FnSymbol[];
+  /** Whether two declarations are proven active under the same macro configuration. */
+  readonly hasDefiniteAmbiguity: boolean;
+}
+
+/** A struct assigned incompatible IO roles. The analyzer decides how to diagnose this fact. @internal */
+export interface ShaderStructRoleConflict {
+  /** Conflicting struct declaration. */
+  readonly struct: ASTNode.StructSpecifier;
+  /** Roles inferred from the two entry signatures. */
+  readonly roles: readonly ShaderStructRole[];
+}
+
+/** Backend-required shader input/output facts. @internal */
+export interface ShaderIOInfo {
+  readonly attributeStructs: readonly ASTNode.StructSpecifier[];
+  readonly attributeList: readonly StructProp[];
+  readonly varyingStructs: readonly ASTNode.StructSpecifier[];
+  readonly varyingList: readonly StructProp[];
+  readonly mrtStructs: readonly ASTNode.StructSpecifier[];
+  readonly mrtList: readonly StructProp[];
+  /** Exact variable identities whose custom structs are lowered as stage interfaces. */
+  readonly structVariableRoles: ReadonlyMap<VarSymbol, ShaderStructRole>;
+  /** Interface variables reachable from the vertex entry, used for unresolved global macro values. */
+  readonly vertexStructVariableRoles: ReadonlyMap<VarSymbol, ShaderStructRole>;
+  /** Interface variables reachable from the fragment entry, used for unresolved global macro values. */
+  readonly fragmentStructVariableRoles: ReadonlyMap<VarSymbol, ShaderStructRole>;
+}
+
+/**
+ * Lightweight semantic information required by shader backends.
+ *
+ * It derives entry and IO facts from `ShaderClueIR` without creating diagnostics or depending on an
+ * analyzer. Invalid-role facts are retained separately so emitters can stay deterministic while an
+ * analyzer chooses the diagnostic policy.
+ * @internal
+ */
+export class ShaderCoreInfo {
+  /** Vertex entry facts. */
+  readonly vertexEntry: ShaderEntryPointInfo;
+  /** Fragment entry facts. */
+  readonly fragmentEntry: ShaderEntryPointInfo;
+  /** Valid, unambiguous stage IO consumed by backends. */
+  readonly io: ShaderIOInfo;
+  /** IO role conflicts excluded from `io`. */
+  readonly roleConflicts: readonly ShaderStructRoleConflict[];
+  /** Global preprocessor declarations that backends may reproduce. */
+  readonly outerGlobalMacroDeclarations: readonly ASTNode.GlobalDeclaration[];
+  /** Surviving declarations whose inheritance ownership must be selected for the concrete macro variant. */
+  readonly deferredDeclarationOwnership: ReadonlyMap<SymbolInfo, DeferredDeclarationOwnership>;
+  /** Deferred candidates whose unresolved signatures or known inheritance conflicts prevent safe selection. */
+  readonly unsupportedDeferredDeclarations: readonly SymbolInfo[];
+
+  /**
+   * Derives backend-required facts from a neutral shader IR.
+   * @param ir - Neutral shader IR.
+   * @param vertexEntry - Vertex entry function name.
+   * @param fragmentEntry - Fragment entry function name.
+   * @param getDeclarationCoexistence - Optional full macro-proof function for authoring/offline validation.
+   * @param getBranchCoverage - Optional full coverage proof for conditional runtime owners.
+   * @returns Lightweight backend information with no diagnostics.
+   */
+  static create(
+    ir: ShaderClueIR,
+    vertexEntry: string,
+    fragmentEntry: string,
+    getDeclarationCoexistence: DeclarationCoexistenceResolver = getLexicalDeclarationCoexistence,
+    getBranchCoverage: BranchCoverageResolver = getLexicalBranchCoverage
+  ): ShaderCoreInfo {
+    return new ShaderCoreInfo(ir, vertexEntry, fragmentEntry, getDeclarationCoexistence, getBranchCoverage);
+  }
+
+  private constructor(
+    ir: ShaderClueIR,
+    vertexEntry: string,
+    fragmentEntry: string,
+    readonly getDeclarationCoexistence: DeclarationCoexistenceResolver,
+    readonly getBranchCoverage: BranchCoverageResolver
+  ) {
+    const symbolTable = ir.shaderData.symbolTable;
+    const ownership = ir.shaderData.declarationOwnership;
+    this.deferredDeclarationOwnership = ownership.declarations;
+    const vertexFunctions = findFunctions(symbolTable, vertexEntry);
+    const fragmentFunctions = findFunctions(symbolTable, fragmentEntry);
+    this.vertexEntry = createEntryPointInfo(
+      EShaderStage.VERTEX,
+      vertexEntry,
+      vertexFunctions,
+      getDeclarationCoexistence,
+      ownership
+    );
+    this.fragmentEntry = createEntryPointInfo(
+      EShaderStage.FRAGMENT,
+      fragmentEntry,
+      fragmentFunctions,
+      getDeclarationCoexistence,
+      ownership
+    );
+
+    const mutableIO = createIOInfo();
+    collectEntryIO(vertexFunctions, fragmentFunctions, mutableIO);
+    this.roleConflicts = removeRoleConflicts(mutableIO);
+    const roles = new Map<ASTNode.StructSpecifier, ShaderStructRole>();
+    registerStructRoles(roles, mutableIO.attributeStructs, ShaderStructRole.Attribute);
+    registerStructRoles(roles, mutableIO.varyingStructs, ShaderStructRole.Varying);
+    registerStructRoles(roles, mutableIO.mrtStructs, ShaderStructRole.Mrt);
+    this.unsupportedDeferredDeclarations = ownership.unsupported.concat(
+      findUnsupportedStructOwnership(
+        ownership,
+        vertexFunctions.concat(fragmentFunctions),
+        roles,
+        ir.shaderData.referenceResolutionSnapshots
+      )
+    );
+    deriveStructVariableRoles(symbolTable, vertexFunctions, fragmentFunctions, mutableIO, roles);
+    this.io = mutableIO;
+    this.outerGlobalMacroDeclarations = ir.shaderData.getOuterGlobalMacroDeclarations();
+  }
+}
+
+export type DeclarationCoexistenceResolver = (
+  earlier: BranchSignature,
+  later: BranchSignature
+) => DeclarationCoexistence;
+export type BranchCoverageResolver = (
+  candidates: readonly BranchSignature[],
+  callSiteBranch: BranchSignature
+) => BranchCoverage;
+
+interface MutableShaderIOInfo {
+  attributeStructs: ASTNode.StructSpecifier[];
+  attributeList: StructProp[];
+  varyingStructs: ASTNode.StructSpecifier[];
+  varyingList: StructProp[];
+  mrtStructs: ASTNode.StructSpecifier[];
+  mrtList: StructProp[];
+  structVariableRoles: Map<VarSymbol, ShaderStructRole>;
+  vertexStructVariableRoles: Map<VarSymbol, ShaderStructRole>;
+  fragmentStructVariableRoles: Map<VarSymbol, ShaderStructRole>;
+}
+
+function createIOInfo(): MutableShaderIOInfo {
+  return {
+    attributeStructs: [],
+    attributeList: [],
+    varyingStructs: [],
+    varyingList: [],
+    mrtStructs: [],
+    mrtList: [],
+    structVariableRoles: new Map(),
+    vertexStructVariableRoles: new Map(),
+    fragmentStructVariableRoles: new Map()
+  };
+}
+
+function findFunctions(symbolTable: SymbolTable<SymbolInfo>, entry: string): FnSymbol[] {
+  const lookupSymbol = new SymbolInfo("", null);
+  lookupSymbol.set(entry, ESymbolType.FN);
+  const functions = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
+  functions.sort((left, right) => left.astNode.location.start.index - right.astNode.location.start.index);
+  return functions;
+}
+
+function createEntryPointInfo(
+  stage: EShaderStage,
+  name: string,
+  functions: readonly FnSymbol[],
+  getDeclarationCoexistence: DeclarationCoexistenceResolver,
+  ownership: ShaderDeclarationOwnershipInfo
+): ShaderEntryPointInfo {
+  let hasDefiniteAmbiguity = false;
+  for (let i = 0, n = functions.length; i < n && !hasDefiniteAmbiguity; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (isDeferredDeclarationPair(ownership, functions[i], functions[j])) continue;
+      if (getDeclarationCoexistence(functions[i].branchSignature, functions[j].branchSignature) === "coexist") {
+        hasDefiniteAmbiguity = true;
+        break;
+      }
+    }
+  }
+  return { stage, name, functions, hasDefiniteAmbiguity };
+}
+
+function appendStructs(
+  declarations: readonly ASTNode.StructSpecifier[],
+  structs: ASTNode.StructSpecifier[],
+  props: StructProp[],
+  seen: Set<ASTNode.StructSpecifier>
+): void {
+  for (const node of declarations) {
+    if (seen.has(node)) continue;
+    seen.add(node);
+    structs.push(node);
+    props.push(...node.propList);
+  }
+}
+
+function collectEntryIO(
+  vertexFunctions: readonly FnSymbol[],
+  fragmentFunctions: readonly FnSymbol[],
+  io: MutableShaderIOInfo
+): void {
+  const attributeStructs = new Set<ASTNode.StructSpecifier>();
+  const varyingStructs = new Set<ASTNode.StructSpecifier>();
+  const mrtStructs = new Set<ASTNode.StructSpecifier>();
+  for (const fn of vertexFunctions) {
+    const proto = fn.astNode.protoType;
+    if (typeof proto.returnType.type === "string") {
+      appendStructs(
+        proto.returnType.typeSpecifier.structDeclarations,
+        io.varyingStructs,
+        io.varyingList,
+        varyingStructs
+      );
+    }
+    const attributeType = proto.parameterList?.[0]?.typeInfo.type;
+    if (typeof attributeType === "string") {
+      appendStructs(
+        proto.parameterList![0].typeInfo.structDeclarations,
+        io.attributeStructs,
+        io.attributeList,
+        attributeStructs
+      );
+    }
+  }
+
+  for (const fn of fragmentFunctions) {
+    const returnType = fn.astNode.protoType.returnType.type;
+    if (typeof returnType === "string") {
+      appendStructs(
+        fn.astNode.protoType.returnType.typeSpecifier.structDeclarations,
+        io.mrtStructs,
+        io.mrtList,
+        mrtStructs
+      );
+    }
+  }
+}
+
+function removeRoleConflicts(io: MutableShaderIOInfo): ShaderStructRoleConflict[] {
+  const roles = new Map<ASTNode.StructSpecifier, ShaderStructRole[]>();
+  const register = (nodes: readonly ASTNode.StructSpecifier[], role: ShaderStructRole): void => {
+    for (const node of nodes) {
+      const nodeRoles = roles.get(node) ?? [];
+      if (nodeRoles.indexOf(role) === -1) nodeRoles.push(role);
+      roles.set(node, nodeRoles);
+    }
+  };
+  register(io.attributeStructs, ShaderStructRole.Attribute);
+  register(io.varyingStructs, ShaderStructRole.Varying);
+  register(io.mrtStructs, ShaderStructRole.Mrt);
+
+  const conflicts: ShaderStructRoleConflict[] = [];
+  const conflictingStructs = new Set<ASTNode.StructSpecifier>();
+  roles.forEach((structRoles, struct) => {
+    if (structRoles.length > 1) {
+      conflicts.push({ struct, roles: structRoles });
+      conflictingStructs.add(struct);
+    }
+  });
+  if (!conflictingStructs.size) return conflicts;
+
+  const droppedProps = new Set<StructProp>();
+  const filterStructs = (structs: ASTNode.StructSpecifier[]): void => {
+    for (let index = structs.length - 1; index >= 0; index--) {
+      if (conflictingStructs.has(structs[index])) {
+        for (const prop of structs[index].propList) droppedProps.add(prop);
+        structs.splice(index, 1);
+      }
+    }
+  };
+  filterStructs(io.attributeStructs);
+  filterStructs(io.varyingStructs);
+  filterStructs(io.mrtStructs);
+  const filterProps = (props: StructProp[]): void => {
+    for (let index = props.length - 1; index >= 0; index--) {
+      if (droppedProps.has(props[index])) props.splice(index, 1);
+    }
+  };
+  filterProps(io.attributeList);
+  filterProps(io.varyingList);
+  filterProps(io.mrtList);
+  return conflicts;
+}
+
+function deriveStructVariableRoles(
+  symbolTable: SymbolTable<SymbolInfo>,
+  vertexFunctions: readonly FnSymbol[],
+  fragmentFunctions: readonly FnSymbol[],
+  io: MutableShaderIOInfo,
+  structRoles: ReadonlyMap<ASTNode.StructSpecifier, ShaderStructRole>
+): void {
+  const functionFacts = new Map<FnSymbol, FunctionRoleFacts>();
+  symbolTable.forEach((symbol) => {
+    if (symbol instanceof FnSymbol) {
+      functionFacts.set(symbol, collectFunctionRoleFacts(symbol, structRoles, io.structVariableRoles));
+    } else if (symbol instanceof VarSymbol && symbol.isGlobalVariable) {
+      registerVariableRole(io.structVariableRoles, symbol, structRoles);
+      registerVariableRole(io.vertexStructVariableRoles, symbol, structRoles);
+      registerVariableRole(io.fragmentStructVariableRoles, symbol, structRoles);
+    }
+  });
+
+  populateReachableFunctionVariables(io.vertexStructVariableRoles, vertexFunctions, functionFacts);
+  populateReachableFunctionVariables(io.fragmentStructVariableRoles, fragmentFunctions, functionFacts);
+}
+
+interface VariableRoleFact {
+  readonly variable: VarSymbol;
+  readonly role: ShaderStructRole;
+}
+
+interface FunctionRoleFacts {
+  readonly variables: readonly VariableRoleFact[];
+  readonly callees: readonly FnSymbol[];
+}
+
+function populateReachableFunctionVariables(
+  target: Map<VarSymbol, ShaderStructRole>,
+  entries: readonly FnSymbol[],
+  functionFacts: ReadonlyMap<FnSymbol, FunctionRoleFacts>
+): void {
+  const visited = new Set<FnSymbol>();
+  const pending = entries.slice();
+  while (pending.length) {
+    const fn = pending.pop()!;
+    if (visited.has(fn)) continue;
+    visited.add(fn);
+    const facts = functionFacts.get(fn);
+    if (!facts) continue;
+    for (const { variable, role } of facts.variables) target.set(variable, role);
+    pending.push(...facts.callees);
+  }
+}
+
+function collectFunctionRoleFacts(
+  fn: FnSymbol,
+  roles: ReadonlyMap<ASTNode.StructSpecifier, ShaderStructRole>,
+  allVariableRoles: Map<VarSymbol, ShaderStructRole>
+): FunctionRoleFacts {
+  const variables: VariableRoleFact[] = [];
+  const callees: FnSymbol[] = [];
+  const register = (variable: VarSymbol): void => {
+    const role = resolveVariableRole(variable, roles);
+    if (!role) return;
+    variables.push({ variable, role });
+    allVariableRoles.set(variable, role);
+  };
+  const parameters = fn.astNode.protoType.parameterList;
+  if (parameters) {
+    for (const parameter of parameters) {
+      const parameterNode = parameter.astNode;
+      if (parameterNode instanceof ASTNode.ParameterDeclaration && parameterNode.symbol) {
+        register(parameterNode.symbol);
+      }
+    }
+  }
+  for (const variable of fn.localVariables) register(variable);
+  callees.push(...fn.calledFunctions);
+  return { variables, callees };
+}
+
+function registerStructRoles(
+  roles: Map<ASTNode.StructSpecifier, ShaderStructRole>,
+  structs: readonly ASTNode.StructSpecifier[],
+  role: ShaderStructRole
+): void {
+  for (const struct of structs) roles.set(struct, role);
+}
+
+function registerVariableRole(
+  target: Map<VarSymbol, ShaderStructRole>,
+  variable: VarSymbol,
+  roles: ReadonlyMap<ASTNode.StructSpecifier, ShaderStructRole>
+): void {
+  const role = resolveVariableRole(variable, roles);
+  if (role) target.set(variable, role);
+}
+
+function resolveVariableRole(
+  variable: VarSymbol,
+  roles: ReadonlyMap<ASTNode.StructSpecifier, ShaderStructRole>
+): ShaderStructRole | undefined {
+  let resolvedRole: ShaderStructRole | undefined;
+  for (const declaration of variable.dataType?.structDeclarations ?? []) {
+    const role = roles.get(declaration);
+    if (!role || (resolvedRole && resolvedRole !== role)) return;
+    resolvedRole = role;
+  }
+  return resolvedRole;
+}

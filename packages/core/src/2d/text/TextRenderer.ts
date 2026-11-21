@@ -416,9 +416,9 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const { subChunk, texture } = textChunks[i];
       const renderElement = textRenderElementPool.get();
-      renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
-      renderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
-      renderElement.shaderData.setTexture(TextRenderer._textureProperty, texture);
+      const shaderData = renderElement.shaderData ?? new ShaderData(ShaderDataGroup.RenderElement);
+      renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk, shaderData);
+      shaderData.setTexture(TextRenderer._textureProperty, texture);
       renderElement.priority = priority;
       renderElement.distanceForSort = distanceForSort;
       renderPipeline.pushRenderElement(context, renderElement);

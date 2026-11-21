@@ -1,4 +1,4 @@
-import { IHardwareRenderer } from "@galacean/engine-design";
+import type { IHardwareRenderer } from "../renderingHardwareInterface";
 import { Color, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Texture } from "../texture/Texture";
@@ -19,7 +19,7 @@ export class ShaderUniform {
   textureUseCompareMode: boolean = false;
 
   private _rhi: IHardwareRenderer;
-  private _gl: WebGLRenderingContext;
+  private _gl: WebGL2RenderingContext;
 
   constructor(engine: Engine) {
     const rhi = engine._hardwareRenderer;
@@ -254,27 +254,27 @@ export class ShaderUniform {
   }
 
   uploadMat2x3(shaderUniform: ShaderUniform, value: Float32Array): void {
-    (<WebGL2RenderingContext>this._gl).uniformMatrix2x3fv(shaderUniform.location, false, value);
+    this._gl.uniformMatrix2x3fv(shaderUniform.location, false, value);
   }
 
   uploadMat2x4(shaderUniform: ShaderUniform, value: Float32Array): void {
-    (<WebGL2RenderingContext>this._gl).uniformMatrix2x4fv(shaderUniform.location, false, value);
+    this._gl.uniformMatrix2x4fv(shaderUniform.location, false, value);
   }
 
   uploadMat3x2(shaderUniform: ShaderUniform, value: Float32Array): void {
-    (<WebGL2RenderingContext>this._gl).uniformMatrix3x2fv(shaderUniform.location, false, value);
+    this._gl.uniformMatrix3x2fv(shaderUniform.location, false, value);
   }
 
   uploadMat3x4(shaderUniform: ShaderUniform, value: Float32Array): void {
-    (<WebGL2RenderingContext>this._gl).uniformMatrix3x4fv(shaderUniform.location, false, value);
+    this._gl.uniformMatrix3x4fv(shaderUniform.location, false, value);
   }
 
   uploadMat4x2(shaderUniform: ShaderUniform, value: Float32Array): void {
-    (<WebGL2RenderingContext>this._gl).uniformMatrix4x2fv(shaderUniform.location, false, value);
+    this._gl.uniformMatrix4x2fv(shaderUniform.location, false, value);
   }
 
   uploadMat4x3(shaderUniform: ShaderUniform, value: Float32Array): void {
-    (<WebGL2RenderingContext>this._gl).uniformMatrix4x3fv(shaderUniform.location, false, value);
+    this._gl.uniformMatrix4x3fv(shaderUniform.location, false, value);
   }
 
   uploadTexture(shaderUniform: ShaderUniform, value: Texture): void {

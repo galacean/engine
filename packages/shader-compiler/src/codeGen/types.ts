@@ -2,7 +2,7 @@ import type { IShaderSource } from "@galacean/engine-design";
 
 export type IRenderState = [
   /** Constant RenderState. */
-  Record<number, boolean | string | number | any>,
+  Record<number, boolean | string | number>,
   /** Variable RenderState. */
   Record<number, string>
 ];
