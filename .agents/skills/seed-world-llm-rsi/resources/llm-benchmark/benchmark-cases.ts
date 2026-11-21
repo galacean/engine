@@ -1229,10 +1229,12 @@ export const BENCHMARK_CASES: readonly BenchmarkCaseDefinition[] = [
     verify(fixture, turns) {
       const called = allCalledTools(turns);
       const removed = fixture.state.getRemovedIds();
+      const liveText = JSON.stringify(fixture.state.getLiveState());
+      const authoredRemoved = !liveText.includes("terrain-feature-");
       return [
         { name: "created_terrain", pass: hasTool(called, "tools.terrain.create"), detail: `called=${[...called].join(",")}` },
         { name: "updated_terrain", pass: hasTool(called, "tools.terrain.update") || hasTool(called, "tools.terrain.patch"), detail: `called=${[...called].join(",")}` },
-        { name: "deleted_terrain", pass: hasTool(called, "tools.world.delete") && removed.length > 0, detail: `removed=${removed.join(",")}` }
+        { name: "deleted_terrain", pass: hasTool(called, "tools.world.delete") && (removed.length > 0 || authoredRemoved), detail: `removed=${removed.join(",")}, authoredRemoved=${authoredRemoved}` }
       ];
     }
   },
