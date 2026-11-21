@@ -1,0 +1,22 @@
+packages/core/src/shader/ShaderData.ts
+  h_bd4dd7d663e619 689-691
+packages/core/src/shader/ShaderFactory.ts
+  h_bd4dd7d663e619 221
+packages/core/src/shader/ShaderProgram.ts
+  h_bd4dd7d663e619 246,291
+packages/core/src/shader/ShaderProperty.ts
+  h_bd4dd7d663e619 37,39,48,63-64,71-74
+packages/core/src/shader/state/BlendState.ts
+  h_bd4dd7d663e619 75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d2a476176a95268b2ad1d3c9b2e36b8cbb4151d9",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
