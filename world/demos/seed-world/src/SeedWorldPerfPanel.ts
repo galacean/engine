@@ -1,9 +1,54 @@
+import {
+  attachMobileFrameCapture,
+  type PerfCumulativeCounters,
+  type PerfFrameObserver
+} from "./MobileFrameCapture";
 import { ShadowType, type Camera, type DirectLight, type Entity, type Scene, type WebGLEngine } from "@galacean/engine";
 import type { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/project/TerrainPostProcessRuntime";
 import type { TerrainWindRuntime } from "@galacean/engine-terrain/terrain/project/TerrainWindRuntime";
 import type { WorldEnvironmentRuntime } from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
 import type { PlanningWaterRuntime } from "@galacean/engine-world-planning/spatial/runtime/PlanningWaterRuntime";
 import type { PublishedPlanningSeedScene } from "@galacean/engine-world-planning/spatial/runtime/PlanningSeedScenePublication";
+
+const GL_TRIANGLES = 4;
+const GL_TRIANGLE_STRIP = 5;
+const GL_TRIANGLE_FAN = 6;
+const GL_FRAMEBUFFER = 0x8d40;
+const GL_DRAW_FRAMEBUFFER = 0x8ca9;
+const GL_FRAMEBUFFER_BINDING = 0x8ca6;
+
+/** Exact triangle count submitted by a single WebGL draw call (TRIANGLES, TRIANGLE_STRIP, TRIANGLE_FAN). */
+export function primitiveTriangleCount(mode: number, count: number): number {
+  if (count <= 0) return 0;
+  if (mode === GL_TRIANGLES) return (count / 3) | 0;
+  if (mode === GL_TRIANGLE_STRIP || mode === GL_TRIANGLE_FAN) return count > 2 ? count - 2 : 0;
+  return 0;
+}
+
+/**
+ * Exact byte length uploaded by `gl.bufferData(target, srcData, usage, srcOffset?, length?)`
+ * or `gl.bufferSubData(target, dstByteOffset, srcData, srcOffset?, length?)`.
+ * Follows WebGL2 semantics where `srcOffset` and `length` are in elements of `srcData` and `length === 0` means "to end".
+ */
+export function bufferSourceByteLength(
+  srcData: BufferSource | null | undefined,
+  srcOffset?: number,
+  length?: number
+): number {
+  if (!srcData) return 0;
+  if (ArrayBuffer.isView(srcData)) {
+    const bpe = (srcData as Uint8Array).BYTES_PER_ELEMENT || 1;
+    const offsetBytes = srcOffset && srcOffset > 0 ? srcOffset * bpe : 0;
+    const remaining = srcData.byteLength - offsetBytes;
+    if (remaining <= 0) return 0;
+    if (length !== undefined && length > 0) {
+      const requested = length * bpe;
+      return requested < remaining ? requested : remaining;
+    }
+    return remaining;
+  }
+  return typeof (srcData as ArrayBuffer).byteLength === "number" ? (srcData as ArrayBuffer).byteLength : 0;
+}
 
 export type SeedWorldPerfModuleKey =
   | "bloom"
@@ -79,18 +124,36 @@ export class SeedWorldPerfPanel {
   private readonly btnMap = new Map<SeedWorldPerfModuleKey, HTMLButtonElement>();
   private readonly restoreHooks: (() => void)[] = [];
 
-  private frames = 0;
-  private lastSampleAt = performance.now();
   private readonly startedAt = performance.now();
-  private cpuSum = 0;
-  private cpuMax = 0;
-  private dcCount = 0;
-  private trisCount = 0;
-  private fboCount = 0;
-  private bufCount = 0;
-  private bufBytes = 0;
+  // Monotonic cumulative totals updated strictly on completed engine.update() boundaries and GL hooks.
+  private totalFrames = 0;
+  private totalCpuMs = 0;
+  private totalDc = 0;
+  private totalTris = 0;
+  private totalDrawFboSwitches = 0;
+  private totalAllFboBinds = 0;
+  private totalBufUploads = 0;
+  private totalBufUploadBytes = 0;
+  private totalBufOrphans = 0;
+  private totalBufOrphanBytes = 0;
+  private currentDrawFbo: WebGLFramebuffer | null = null;
+
+  // 1-second live HUD window anchored strictly on engine.update() frame boundaries (zero mid-frame skew).
+  private winStartAt = performance.now();
+  private winFrames = 0;
+  private winCpuSum = 0;
+  private winCpuMax = 0;
+  private winStartDc = 0;
+  private winStartTris = 0;
+  private winStartFbo = 0;
+  private winStartBufUploads = 0;
+  private winStartBufUploadBytes = 0;
+  private winStartBufOrphans = 0;
+
   private dprIdx = 0;
   private disposed = false;
+  private frameObserver: PerfFrameObserver | null = null;
+  private mobileCapture: ReturnType<typeof attachMobileFrameCapture> | null = null;
 
   constructor(private readonly options: SeedWorldPerfPanelOptions) {
     const { sun, environment, post, camera } = options;
@@ -129,6 +192,19 @@ export class SeedWorldPerfPanel {
     this.badge.textContent = "PERF PANEL | sampling...";
     document.body.append(this.badge);
 
+    this.mobileCapture = attachMobileFrameCapture({
+      engine: options.engine,
+      scene: options.scene,
+      camera: options.camera,
+      canvas: options.canvas,
+      readLiveState: () => ({ ...this.liveState }),
+      readCumulativeCounters: (out) => this.readCumulativeCounters(out),
+      setFrameObserver: (observer) => {
+        this.frameObserver = observer;
+      },
+      readPerfText: () => this.badge.textContent || ""
+    });
+
     this.panelWrap = this.buildPanelDom();
     document.body.append(this.panelWrap);
   }
@@ -137,43 +213,65 @@ export class SeedWorldPerfPanel {
     return this.paused.has(key);
   }
 
-  tick(): void {
-    if (this.disposed) return;
-    this.frames++;
-    const now = performance.now();
-    if (now - this.lastSampleAt < 1000) return;
+  /** Writes monotonic engine + WebGL totals into `out` with zero heap allocations. */
+  readCumulativeCounters(out: PerfCumulativeCounters): PerfCumulativeCounters {
+    out.frames = this.totalFrames;
+    out.cpuMs = this.totalCpuMs;
+    out.dc = this.totalDc;
+    out.tris = this.totalTris;
+    out.fbo = this.totalDrawFboSwitches;
+    out.fboAll = this.totalAllFboBinds;
+    out.bufUploads = this.totalBufUploads;
+    out.bufUploadBytes = this.totalBufUploadBytes;
+    out.bufOrphans = this.totalBufOrphans;
+    out.bufOrphanBytes = this.totalBufOrphanBytes;
+    return out;
+  }
 
-    const dtSec = (now - this.lastSampleAt) / 1000;
-    const fps = this.frames / dtSec;
-    const cpuAvg = this.cpuSum / this.frames;
-    const dcAvg = this.dcCount / this.frames;
-    const fboAvg = this.fboCount / this.frames;
-    const trisK = this.trisCount / this.frames / 1000;
-    const bufAvg = this.bufCount / this.frames;
-    const bufKB = this.bufBytes / this.frames / 1024;
+  /** Retained as a no-op for caller compatibility; HUD sampling is driven strictly by engine.update() boundaries. */
+  tick(): void {}
+
+  private flushHudWindow(now: number): void {
+    const frames = this.winFrames;
+    if (frames <= 0) return;
+    const dtSec = Math.max(1e-6, (now - this.winStartAt) / 1000);
+    const fps = frames / dtSec;
+    const cpuAvg = this.winCpuSum / frames;
+    const dcAvg = (this.totalDc - this.winStartDc) / frames;
+    const fboAvg = (this.totalDrawFboSwitches - this.winStartFbo) / frames;
+    const trisK = (this.totalTris - this.winStartTris) / frames / 1000;
+    const bufAvg = (this.totalBufUploads - this.winStartBufUploads) / frames;
+    const bufKB = (this.totalBufUploadBytes - this.winStartBufUploadBytes) / frames / 1024;
+    const orphanAvg = (this.totalBufOrphans - this.winStartBufOrphans) / frames;
+    const orphanPart = orphanAvg >= 0.5 ? ` orph=${orphanAvg.toFixed(0)}` : "";
     const elapsedS = Math.round((now - this.startedAt) / 1000);
     const { width, height } = this.options.engine.canvas;
 
     const summary =
       `PERF | t=${elapsedS}s | ${width}x${height}\n` +
-      `${fps.toFixed(1)}fps | cpu=${cpuAvg.toFixed(1)}ms(max ${this.cpuMax.toFixed(1)}) | dc=${dcAvg.toFixed(0)} fbo=${fboAvg.toFixed(0)} tris=${trisK.toFixed(0)}k buf=${bufAvg.toFixed(0)}(${bufKB.toFixed(0)}KB)`;
+      `${fps.toFixed(1)}fps | cpu=${cpuAvg.toFixed(1)}ms(max ${this.winCpuMax.toFixed(1)}) | ` +
+      `dc=${dcAvg.toFixed(0)} fbo=${fboAvg.toFixed(0)} tris=${trisK.toFixed(0)}k buf=${bufAvg.toFixed(0)}(${bufKB.toFixed(0)}KB)${orphanPart}`;
     this.badge.textContent = summary;
     this.options.canvas.dataset.perfHud = summary;
 
-    this.frames = 0;
-    this.lastSampleAt = now;
-    this.cpuSum = 0;
-    this.cpuMax = 0;
-    this.dcCount = 0;
-    this.trisCount = 0;
-    this.fboCount = 0;
-    this.bufCount = 0;
-    this.bufBytes = 0;
+    this.winStartAt = now;
+    this.winFrames = 0;
+    this.winCpuSum = 0;
+    this.winCpuMax = 0;
+    this.winStartDc = this.totalDc;
+    this.winStartTris = this.totalTris;
+    this.winStartFbo = this.totalDrawFboSwitches;
+    this.winStartBufUploads = this.totalBufUploads;
+    this.winStartBufUploadBytes = this.totalBufUploadBytes;
+    this.winStartBufOrphans = this.totalBufOrphans;
   }
 
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.frameObserver = null;
+    this.currentDrawFbo = null;
+    this.mobileCapture?.dispose();
     for (let i = this.restoreHooks.length - 1; i >= 0; i--) {
       this.restoreHooks[i]();
     }
@@ -191,11 +289,27 @@ export class SeedWorldPerfPanel {
     if (gl) {
       const proto = Object.getPrototypeOf(gl) as WebGL2RenderingContext | null;
       const gl2 = gl as WebGL2RenderingContext;
+      if (typeof gl.getParameter === "function") {
+        try {
+          this.currentDrawFbo = (gl.getParameter(GL_FRAMEBUFFER_BINDING) as WebGLFramebuffer | null) ?? null;
+        } catch {
+          this.currentDrawFbo = null;
+        }
+      }
+
+      const restoreProp = (targetObj: object, key: string, wrapped: unknown, prev: unknown, hadOwn: boolean) => {
+        const rec = targetObj as Record<string, unknown>;
+        if (rec[key] === wrapped) {
+          if (hadOwn) rec[key] = prev;
+          else delete rec[key];
+        }
+      };
 
       // Guard against cycles when another debug monitor (e.g. TerrainRenderSubmissionMonitor)
       // installs or re-installs GL hooks on the same context. Use fixed-arity wrappers to avoid
       // per-call rest-argument array allocations.
       {
+        const hadOwn = Object.prototype.hasOwnProperty.call(gl, "drawElements");
         const prev = gl.drawElements;
         const nativeFn = proto?.drawElements ?? prev;
         let active = false;
@@ -203,19 +317,18 @@ export class SeedWorldPerfPanel {
           if (active || this.disposed) return nativeFn.call(gl, mode, count, type, offset);
           active = true;
           try {
-            this.dcCount++;
-            if (mode === 4) this.trisCount += (count / 3) | 0;
+            this.totalDc++;
+            this.totalTris += primitiveTriangleCount(mode, count);
             return prev.call(gl, mode, count, type, offset);
           } finally {
             active = false;
           }
         };
         gl.drawElements = wrapped;
-        this.restoreHooks.push(() => {
-          if (gl.drawElements === wrapped) gl.drawElements = prev;
-        });
+        this.restoreHooks.push(() => restoreProp(gl, "drawElements", wrapped, prev, hadOwn));
       }
       {
+        const hadOwn = Object.prototype.hasOwnProperty.call(gl, "drawArrays");
         const prev = gl.drawArrays;
         const nativeFn = proto?.drawArrays ?? prev;
         let active = false;
@@ -223,19 +336,18 @@ export class SeedWorldPerfPanel {
           if (active || this.disposed) return nativeFn.call(gl, mode, first, count);
           active = true;
           try {
-            this.dcCount++;
-            if (mode === 4) this.trisCount += (count / 3) | 0;
+            this.totalDc++;
+            this.totalTris += primitiveTriangleCount(mode, count);
             return prev.call(gl, mode, first, count);
           } finally {
             active = false;
           }
         };
         gl.drawArrays = wrapped;
-        this.restoreHooks.push(() => {
-          if (gl.drawArrays === wrapped) gl.drawArrays = prev;
-        });
+        this.restoreHooks.push(() => restoreProp(gl, "drawArrays", wrapped, prev, hadOwn));
       }
       if (typeof gl2.drawElementsInstanced === "function") {
+        const hadOwn = Object.prototype.hasOwnProperty.call(gl2, "drawElementsInstanced");
         const prev = gl2.drawElementsInstanced;
         const nativeFn = proto?.drawElementsInstanced ?? prev;
         let active = false;
@@ -243,19 +355,20 @@ export class SeedWorldPerfPanel {
           if (active || this.disposed) return nativeFn.call(gl2, mode, count, type, offset, instanceCount);
           active = true;
           try {
-            this.dcCount++;
-            if (mode === 4) this.trisCount += ((count / 3) | 0) * instanceCount;
+            this.totalDc++;
+            if (instanceCount > 0) {
+              this.totalTris += primitiveTriangleCount(mode, count) * instanceCount;
+            }
             return prev.call(gl2, mode, count, type, offset, instanceCount);
           } finally {
             active = false;
           }
         };
         gl2.drawElementsInstanced = wrapped;
-        this.restoreHooks.push(() => {
-          if (gl2.drawElementsInstanced === wrapped) gl2.drawElementsInstanced = prev;
-        });
+        this.restoreHooks.push(() => restoreProp(gl2, "drawElementsInstanced", wrapped, prev, hadOwn));
       }
       if (typeof gl2.drawArraysInstanced === "function") {
+        const hadOwn = Object.prototype.hasOwnProperty.call(gl2, "drawArraysInstanced");
         const prev = gl2.drawArraysInstanced;
         const nativeFn = proto?.drawArraysInstanced ?? prev;
         let active = false;
@@ -263,19 +376,20 @@ export class SeedWorldPerfPanel {
           if (active || this.disposed) return nativeFn.call(gl2, mode, first, count, instanceCount);
           active = true;
           try {
-            this.dcCount++;
-            if (mode === 4) this.trisCount += ((count / 3) | 0) * instanceCount;
+            this.totalDc++;
+            if (instanceCount > 0) {
+              this.totalTris += primitiveTriangleCount(mode, count) * instanceCount;
+            }
             return prev.call(gl2, mode, first, count, instanceCount);
           } finally {
             active = false;
           }
         };
         gl2.drawArraysInstanced = wrapped;
-        this.restoreHooks.push(() => {
-          if (gl2.drawArraysInstanced === wrapped) gl2.drawArraysInstanced = prev;
-        });
+        this.restoreHooks.push(() => restoreProp(gl2, "drawArraysInstanced", wrapped, prev, hadOwn));
       }
       {
+        const hadOwn = Object.prototype.hasOwnProperty.call(gl, "bindFramebuffer");
         const prev = gl.bindFramebuffer;
         const nativeFn = proto?.bindFramebuffer ?? prev;
         let active = false;
@@ -283,18 +397,24 @@ export class SeedWorldPerfPanel {
           if (active || this.disposed) return nativeFn.call(gl, target, framebuffer);
           active = true;
           try {
-            this.fboCount++;
+            this.totalAllFboBinds++;
+            if (target === GL_FRAMEBUFFER || target === GL_DRAW_FRAMEBUFFER) {
+              const nextFbo = framebuffer ?? null;
+              if (nextFbo !== this.currentDrawFbo) {
+                this.currentDrawFbo = nextFbo;
+                this.totalDrawFboSwitches++;
+              }
+            }
             return prev.call(gl, target, framebuffer);
           } finally {
             active = false;
           }
         };
         gl.bindFramebuffer = wrapped;
-        this.restoreHooks.push(() => {
-          if (gl.bindFramebuffer === wrapped) gl.bindFramebuffer = prev;
-        });
+        this.restoreHooks.push(() => restoreProp(gl, "bindFramebuffer", wrapped, prev, hadOwn));
       }
       {
+        const hadOwn = Object.prototype.hasOwnProperty.call(gl, "bufferData");
         const prev = gl.bufferData as (
           target: number,
           srcData: BufferSource | number | null,
@@ -318,10 +438,13 @@ export class SeedWorldPerfPanel {
           }
           active = true;
           try {
-            this.bufCount++;
-            if (typeof srcData === "number") this.bufBytes += srcData;
-            else if (srcData && typeof (srcData as ArrayBufferView).byteLength === "number") {
-              this.bufBytes += (srcData as ArrayBufferView).byteLength;
+            if (typeof srcData === "number") {
+              // Size-only allocation / SetDataOptions.Discard orphan (0 bytes copied from CPU).
+              this.totalBufOrphans++;
+              if (srcData > 0) this.totalBufOrphanBytes += srcData;
+            } else if (srcData) {
+              this.totalBufUploads++;
+              this.totalBufUploadBytes += bufferSourceByteLength(srcData, srcOffset, length);
             }
             if (srcOffset === undefined) return prev.call(gl, target, srcData, usage);
             if (length === undefined) return prev.call(gl, target, srcData, usage, srcOffset);
@@ -331,12 +454,48 @@ export class SeedWorldPerfPanel {
           }
         };
         gl.bufferData = wrapped as typeof gl.bufferData;
-        this.restoreHooks.push(() => {
-          if ((gl.bufferData as unknown) === wrapped) gl.bufferData = prev as typeof gl.bufferData;
-        });
+        this.restoreHooks.push(() => restoreProp(gl, "bufferData", wrapped, prev, hadOwn));
+      }
+      if (typeof gl.bufferSubData === "function") {
+        const hadOwn = Object.prototype.hasOwnProperty.call(gl, "bufferSubData");
+        const prev = gl.bufferSubData as (
+          target: number,
+          dstByteOffset: number,
+          srcData: BufferSource,
+          srcOffset?: number,
+          length?: number
+        ) => void;
+        const nativeFn = (proto?.bufferSubData as typeof prev | undefined) ?? prev;
+        let active = false;
+        const wrapped = (
+          target: number,
+          dstByteOffset: number,
+          srcData: BufferSource,
+          srcOffset?: number,
+          length?: number
+        ) => {
+          if (active || this.disposed) {
+            if (srcOffset === undefined) return nativeFn.call(gl, target, dstByteOffset, srcData);
+            if (length === undefined) return nativeFn.call(gl, target, dstByteOffset, srcData, srcOffset);
+            return nativeFn.call(gl, target, dstByteOffset, srcData, srcOffset, length);
+          }
+          active = true;
+          try {
+            this.totalBufUploads++;
+            this.totalBufUploadBytes += bufferSourceByteLength(srcData, srcOffset, length);
+            if (srcOffset === undefined) return prev.call(gl, target, dstByteOffset, srcData);
+            if (length === undefined) return prev.call(gl, target, dstByteOffset, srcData, srcOffset);
+            return prev.call(gl, target, dstByteOffset, srcData, srcOffset, length);
+          } finally {
+            active = false;
+          }
+        };
+        gl.bufferSubData = wrapped as typeof gl.bufferSubData;
+        this.restoreHooks.push(() => restoreProp(gl, "bufferSubData", wrapped, prev, hadOwn));
       }
     }
 
+    const hadOwnUpdate = Object.prototype.hasOwnProperty.call(engine, "update");
     const origUpdate = engine.update;
     const wrappedUpdate = () => {
       if (this.disposed) {
@@ -344,14 +503,39 @@ export class SeedWorldPerfPanel {
         return;
       }
       const t0 = performance.now();
-      origUpdate.call(engine);
-      const dtMs = performance.now() - t0;
-      this.cpuSum += dtMs;
-      if (dtMs > this.cpuMax) this.cpuMax = dtMs;
+      if (this.winFrames === 0 && this.totalFrames === 0) {
+        // Anchor Window 1 to frame 1 start so pre-frame async GL work never contaminates frame 1 averages.
+        this.winStartAt = t0;
+        this.winStartDc = this.totalDc;
+        this.winStartTris = this.totalTris;
+        this.winStartFbo = this.totalDrawFboSwitches;
+        this.winStartBufUploads = this.totalBufUploads;
+        this.winStartBufUploadBytes = this.totalBufUploadBytes;
+        this.winStartBufOrphans = this.totalBufOrphans;
+      }
+      this.frameObserver?.onFrameBegin(t0);
+      try {
+        origUpdate.call(engine);
+      } finally {
+        const t1 = performance.now();
+        const dtMs = t1 - t0;
+        this.totalFrames++;
+        this.totalCpuMs += dtMs;
+        this.winFrames++;
+        this.winCpuSum += dtMs;
+        if (dtMs > this.winCpuMax) this.winCpuMax = dtMs;
+        this.frameObserver?.onFrameEnd(dtMs, t1);
+        if (t1 - this.winStartAt >= 1000) {
+          this.flushHudWindow(t1);
+        }
+      }
     };
     engine.update = wrappedUpdate;
     this.restoreHooks.push(() => {
-      if (engine.update === wrappedUpdate) engine.update = origUpdate;
+      if (engine.update === wrappedUpdate) {
+        if (hadOwnUpdate) engine.update = origUpdate;
+        else delete (engine as unknown as { update?: unknown }).update;
+      }
     });
   }
 
@@ -472,21 +656,35 @@ export class SeedWorldPerfPanel {
       wrap.addEventListener(ev, stopEvt, { passive: true });
     }
 
+    const compactStart = typeof window !== "undefined" && (window.innerWidth <= 900 || "ontouchstart" in window);
+
+    const topRow = document.createElement("div");
+    topRow.style.cssText = "display:flex;gap:6px;align-items:center;";
+
     const toggleBtn = document.createElement("button");
     toggleBtn.type = "button";
-    toggleBtn.textContent = "收起开关 ▲";
+    toggleBtn.textContent = compactStart ? "模块开关 ▾" : "收起开关 ▲";
     toggleBtn.style.cssText =
       "background:rgba(15,23,42,0.88);color:#f8fafc;border:1px solid rgba(148,163,184,0.5);border-radius:8px;padding:6px 10px;font:600 12px/1.2 sans-serif;cursor:pointer;";
 
     const drawer = document.createElement("div");
     drawer.style.cssText =
-      "margin-top:6px;width:240px;max-height:70vh;overflow-y:auto;background:rgba(15,23,42,0.9);border:1px solid rgba(148,163,184,0.4);border-radius:10px;padding:8px;display:block;";
+      `margin-top:6px;width:240px;max-height:70vh;overflow-y:auto;background:rgba(15,23,42,0.9);border:1px solid rgba(148,163,184,0.4);border-radius:10px;padding:8px;display:${compactStart ? "none" : "block"};`;
 
     toggleBtn.onclick = () => {
       const open = drawer.style.display === "none";
       drawer.style.display = open ? "block" : "none";
       toggleBtn.textContent = open ? "收起开关 ▲" : "模块开关 ▾";
     };
+
+    topRow.append(toggleBtn);
+    if (this.mobileCapture) {
+      this.mobileCapture.button.style.cssText =
+        "background:#0f766e;color:#f0fdfa;border:1px solid #2dd4bf;border-radius:8px;padding:6px 10px;font:600 11px/1.2 sans-serif;cursor:pointer;";
+      this.mobileCapture.exportButton.style.cssText =
+        "background:rgba(15,23,42,0.88);color:#cbd5e1;border:1px solid rgba(148,163,184,0.5);border-radius:8px;padding:6px 8px;font:600 11px/1.2 sans-serif;cursor:pointer;";
+      topRow.append(this.mobileCapture.button, this.mobileCapture.exportButton);
+    }
 
     const presetRow = document.createElement("div");
     presetRow.style.cssText = "display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:7px;";
@@ -499,6 +697,7 @@ export class SeedWorldPerfPanel {
       b.onclick = () => {
         onClick();
         this.refreshButtons();
+        this.mobileCapture?.schedule(`preset:${label}`, 1200);
       };
       presetRow.append(b);
     };
@@ -534,6 +733,7 @@ export class SeedWorldPerfPanel {
       this.dprIdx = (this.dprIdx + 1) % DPR_STEPS.length;
       this.options.setDprOverride(DPR_STEPS[this.dprIdx]);
       updateDprLabel();
+      this.mobileCapture?.schedule("dpr", 1200);
     };
 
     const grid = document.createElement("div");
@@ -547,6 +747,7 @@ export class SeedWorldPerfPanel {
       b.onclick = () => {
         this.applyToggle(key, !this.liveState[key]);
         this.refreshButtons();
+        this.mobileCapture?.schedule(`toggle:${key}=${this.liveState[key] ? "on" : "off"}`, 1200);
       };
       this.btnMap.set(key, b);
       grid.append(b);
@@ -554,7 +755,7 @@ export class SeedWorldPerfPanel {
     this.refreshButtons();
 
     drawer.append(presetRow, dprBtn, grid);
-    wrap.append(toggleBtn, drawer);
+    wrap.append(topRow, drawer);
     return wrap;
   }
 }

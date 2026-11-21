@@ -66,6 +66,7 @@ import { NATIVE_DORMER_GRID } from "./DormerBins";
 import { engineShaderSource } from "./EngineShaderSource";
 import { EngineRoofFeedback } from "./EngineRoofFeedback";
 import { placementKey, resolveDocument, units as PLACEMENT_UNITS } from "./PlacementDocument.js";
+import { digestSha256 } from "./Sha256.js";
 
 const MACRO_MASONRY_DITHER = ShaderMacro.getByName("RENDERER_MASONRY_DITHER");
 const PROP_MASONRY_LOD_FADE = ShaderProperty.getByName("renderer_MasonryLodFade");
@@ -203,7 +204,7 @@ function residentShader(engine: Engine, vertex: string, fragment: string, cullMo
   let result = programs.get(source);
   if (!result) {
     result = (async () => {
-      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(source));
+      const digest = await digestSha256(new TextEncoder().encode(source));
       const name = "Masonry/" + Array.from(new Uint8Array(digest), (v) => v.toString(16).padStart(2, "0")).join("");
       const existing = Shader.find(name);
       if (existing) return existing;

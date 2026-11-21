@@ -33,6 +33,7 @@ import {
   type NativeBuildingWorld
 } from "@galacean/engine-world-planning/masonry/NativeBuildingHost";
 import type { mountNativeBuildingPanel } from "@galacean/engine-world-planning/masonry/NativeBuildingPanel";
+import type { MobileSeedTickHost } from "./src/MobileFrameCapture.ts";
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
 import { readAnimalPopulationConfig } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
@@ -1026,17 +1027,50 @@ export async function mountSeedWorldDemo(
       current.solids.bridgesView.updateLod(camera);
     };
     driver.tick = (dt) => {
+      const markTick = (globalThis as unknown as MobileSeedTickHost).__mobileSeedTickMark;
+      let t0 = markTick ? performance.now() : 0;
       if (!perfPanel?.isPaused("farming")) farmingHost?.runtime?.update(dt);
+      if (markTick) {
+        markTick("farming", performance.now() - t0);
+        t0 = performance.now();
+      }
       if (!ready) return;
-      perfPanel?.tick();
       readWorld()?.update(dt);
+      if (markTick) {
+        markTick("world", performance.now() - t0);
+        t0 = performance.now();
+      }
       if (!perfPanel?.isPaused("vegetation")) publication?.current?.vegetation?.update(dt);
+      if (markTick) {
+        markTick("vegetation", performance.now() - t0);
+        t0 = performance.now();
+      }
       obbDebug?.update(dt);
+      if (markTick) {
+        markTick("obbDebug", performance.now() - t0);
+        t0 = performance.now();
+      }
       if (!perfPanel?.isPaused("water")) water?.update(dt);
+      if (markTick) {
+        markTick("water", performance.now() - t0);
+        t0 = performance.now();
+      }
       if (!perfPanel?.isPaused("vista")) vista?.update();
+      if (markTick) {
+        markTick("vista", performance.now() - t0);
+        t0 = performance.now();
+      }
       if (!perfPanel?.isPaused("animals")) animals?.advance?.(dt);
+      if (markTick) {
+        markTick("animals", performance.now() - t0);
+        t0 = performance.now();
+      }
       // WorldEnvironmentRuntime owns the wind local-field centre and resamples it every frame
       audio?.update(dt, ready, tools?.listening ?? false);
+      if (markTick) {
+        markTick("audio", performance.now() - t0);
+        t0 = performance.now();
+      }
       if (!restoreMasonryView && playerState) {
         const camPos = camera.entity.transform.worldPosition;
         const camFwd = camera.entity.transform.worldForward;
@@ -1067,7 +1101,9 @@ export async function mountSeedWorldDemo(
           playerState.observe();
         }
       }
+      if (markTick) markTick("playerState", performance.now() - t0);
       if ((debugReadoutElapsed += dt) >= 0.1) {
+        const tDbg = markTick ? performance.now() : 0;
         debugSidebar?.update();
         lodDebugPanel?.update();
         runtimeDebug?.refresh();
@@ -1090,6 +1126,7 @@ export async function mountSeedWorldDemo(
             groundClearance: navigation.groundClearance
           });
         }
+        if (markTick) markTick("debugReadout", performance.now() - tDbg);
       }
     };
     let appliedSubjectViewKey: string | undefined;

@@ -5,6 +5,7 @@ import zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { engineModify } from "@galacean/engine-modify/vite";
 import { PUGC_UNSUPPORTED_ASSET_EXTENSIONS, projectAssets } from "./scripts/project-assets.mjs";
+import { createMobileDiagMiddleware } from "./scripts/mobile-diag-middleware.mjs";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const plantBuild = require("../packages/farming/src/farming/tools/plant-shader-precompile.cjs");
@@ -352,10 +353,31 @@ function flashAppCdnAndTextBundle() {
   };
 }
 
+/**
+ * Local dev/preview receiver for Seed World's opt-in perf frame capture (?debug=1&panel=1).
+ * Writes JSONL into the gitignored repo `tmp/` directory by default (overridable via `WORLD_PERF_DIAG_LOG`)
+ * so any developer can capture mobile/desktop frame breakdowns out of the box without editing config.
+ */
+function mobileDiagPlugin() {
+  const diagLog = process.env.WORLD_PERF_DIAG_LOG
+    ? path.resolve(process.env.WORLD_PERF_DIAG_LOG)
+    : path.join(root, "tmp/seed-world-perf-diag.jsonl");
+  const handler = createMobileDiagMiddleware({ diagLog, root });
+  const attach = (server) => {
+    server.middlewares.use("/__mobile-diag", handler);
+  };
+  return {
+    name: "mobile-diag-receiver",
+    configureServer: attach,
+    configurePreviewServer: attach
+  };
+}
+
 export default {
   root: flashApp ? path.join(world, "demos", demo) : root,
   base: "./",
   plugins: [
+    ...(!flashApp ? [mobileDiagPlugin()] : []),
     engineModify(),
     projectAssets(root, { pugcCompatible: flashApp }),
     treeBuild.createTreeReconstructionServer(),
