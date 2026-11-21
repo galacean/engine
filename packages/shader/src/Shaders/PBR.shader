@@ -136,7 +136,7 @@ Shader "PBR" {
         
     SubShader "Default" {
       UsePass "Pipeline/ShadowCaster/Default/ShadowCaster"
-      UsePass "Pipeline/DepthOnly/Default/DepthOnly"
+      UsePass "Pipeline/DepthOnly/Default/DepthOnlyVertexColor"
 
       Pass "Forward Pass" {
         Tags { pipelineStage = "Forward"} 
@@ -173,5 +173,8 @@ Shader "PBR" {
 
         #include "ShaderLibrary/PBR/ForwardPassPBR.glsl"
       }
+
+      UsePass "Pipeline/SSRReceiver/Default/SSRReceiver"
+      UsePass "Pipeline/SSRContributionDepth/Default/SSRContributionDepth"
     }
   }

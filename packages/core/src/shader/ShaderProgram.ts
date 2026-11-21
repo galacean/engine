@@ -56,6 +56,12 @@ export class ShaderProgram implements IPlatformShaderProgram {
 
   /** @internal */
   _instanceLayout: InstanceBufferLayout | null = null;
+  /** @internal */
+  _ssrFallbackNoVerify: ShaderProgram | null = null;
+  /** @internal */
+  _ssrFallbackVerify: ShaderProgram | null = null;
+  /** @internal */
+  _ssrFallbackMaxUnits: number = -1;
 
   attributeLocation: Record<string, GLint> = Object.create(null);
   uniformBlockIds: number[] = [];
@@ -72,6 +78,14 @@ export class ShaderProgram implements IPlatformShaderProgram {
    */
   get isValid(): boolean {
     return this._isValid;
+  }
+
+  /**
+   * Number of fragment texture units bound by this shader program.
+   * @internal
+   */
+  get activeTextureCount(): number {
+    return this._activeTextureUint;
   }
 
   constructor(engine: Engine, vertexSource: string, fragmentSource: string, transformFeedbackVaryings?: string[]) {
@@ -281,13 +295,15 @@ export class ShaderProgram implements IPlatformShaderProgram {
     gl.deleteShader(vertexShader);
     gl.deleteShader(fragmentShader);
 
-    if (Logger.isEnabled && !gl.getProgramParameter(program, gl.LINK_STATUS) && !gl.isContextLost()) {
-      Logger.error(
-        `Could not link WebGL program\n\n` +
-          `Shader error: ${gl.getError()}\n\n` +
-          `Validate status: ${gl.getProgramParameter(program, gl.VALIDATE_STATUS)}\n\n` +
-          `Program information log: ${gl.getProgramInfoLog(program)}`
-      );
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS) && !gl.isContextLost()) {
+      if (Logger.isEnabled) {
+        Logger.error(
+          `Could not link WebGL program\n\n` +
+            `Shader error: ${gl.getError()}\n\n` +
+            `Validate status: ${gl.getProgramParameter(program, gl.VALIDATE_STATUS)}\n\n` +
+            `Program information log: ${gl.getProgramInfoLog(program)}`
+        );
+      }
       gl.deleteProgram(program);
       return null;
     }

@@ -17,6 +17,11 @@ import { DepthTextureMode } from "./enums/DepthTextureMode";
 import { Downsampling } from "./enums/Downsampling";
 import { MSAASamples } from "./enums/MSAASamples";
 import { ReplacementFailureStrategy } from "./enums/ReplacementFailureStrategy";
+import {
+  ScreenSpaceReflectionSettings,
+  type ScreenSpaceReflectionSettingsData,
+  type SSRDiagnostics
+} from "./lighting/screenSpaceReflection";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -54,6 +59,35 @@ export class Camera extends Component {
 
   /** Whether to enable frustum culling, it is enabled by default. */
   enableFrustumCulling: boolean = true;
+
+  /** Whether screen-space reflection is enabled for this camera. */
+  enableScreenSpaceReflection: boolean = true;
+
+  @ignoreClone
+  private _screenSpaceReflectionOverride: ScreenSpaceReflectionSettings | null = null;
+
+  /** Optional per-camera override for screen-space reflection settings. */
+  get screenSpaceReflectionOverride(): ScreenSpaceReflectionSettings | null {
+    return this._screenSpaceReflectionOverride;
+  }
+
+  set screenSpaceReflectionOverride(
+    value: ScreenSpaceReflectionSettings | Partial<ScreenSpaceReflectionSettingsData> | null
+  ) {
+    if (value == null) {
+      this._screenSpaceReflectionOverride = null;
+    } else if (value instanceof ScreenSpaceReflectionSettings) {
+      this._screenSpaceReflectionOverride = value;
+    } else if (typeof value === "object") {
+      const normalized = new ScreenSpaceReflectionSettings();
+      normalized.apply(value);
+      this._screenSpaceReflectionOverride = normalized;
+    } else {
+      throw new Error(
+        "Invalid Camera.screenSpaceReflectionOverride: expected ScreenSpaceReflectionSettings, settings object, or null."
+      );
+    }
+  }
 
   /**
    * Determining what to clear when rendering by a Camera.
@@ -803,6 +837,33 @@ export class Camera extends Component {
    */
   _unRegisterModifyListener(onChange: (flag: CameraModifyFlags) => void): void {
     this._updateFlagManager?.removeListener(onChange);
+  }
+
+  /**
+   * Read-only runtime diagnostics snapshot for screen-space reflection on this camera.
+   */
+  get screenSpaceReflectionDiagnostics(): Readonly<SSRDiagnostics> {
+    return this._renderPipeline._getScreenSpaceReflectionDiagnostics();
+  }
+
+  /**
+   * Notify screen-space reflection that a camera cut or discontinuity occurred so history resets cleanly.
+   */
+  notifyScreenSpaceReflectionCut(): void {
+    this._renderPipeline._notifyScreenSpaceReflectionCut();
+  }
+
+  /**
+   * @internal
+   */
+  _onClone(target: Camera): void {
+    if (this.screenSpaceReflectionOverride) {
+      const override = new ScreenSpaceReflectionSettings();
+      this.screenSpaceReflectionOverride.cloneTo(override);
+      target.screenSpaceReflectionOverride = override;
+    } else {
+      target.screenSpaceReflectionOverride = null;
+    }
   }
 
   /**

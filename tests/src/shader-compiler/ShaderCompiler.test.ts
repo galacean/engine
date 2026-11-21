@@ -298,12 +298,14 @@ describe("ShaderCompiler", async () => {
     expect(shader.name).to.equal("PBR");
     expect(subShader.name).to.equal("Default");
     expect(pass1.name).to.equal("Forward Pass");
-    expect(passList.length).to.eq(3);
+    expect(passList.length).to.eq(5);
 
-    // Pass (ShadowCaster and DepthOnly are UsePass from Utility shaders)
+    // Pass (ShadowCaster, DepthOnly, SSRReceiver and SSRContributionDepth are UsePass from Pipeline shaders)
     expect(passList[0].isUsePass).to.be.true;
     expect(passList[1].isUsePass).to.be.true;
     expect(passList[2].name).eq("Forward Pass");
+    expect(passList[3].isUsePass).to.be.true;
+    expect(passList[4].isUsePass).to.be.true;
 
     // renderState
     expect(pass1.renderStates).not.be.null;

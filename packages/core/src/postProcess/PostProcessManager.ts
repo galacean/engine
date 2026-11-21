@@ -169,13 +169,20 @@ export class PostProcessManager {
   /**
    * @internal
    */
-  _render(camera: Camera, srcRenderTarget: RenderTarget, destRenderTarget: RenderTarget | null): void {
+  _render(
+    camera: Camera,
+    srcRenderTarget: RenderTarget,
+    destRenderTarget: RenderTarget | null,
+    isSourceResolved: boolean = false
+  ): void {
     const engine = this.scene.engine;
     this._srcRenderTarget = srcRenderTarget;
     this._destRenderTarget = destRenderTarget;
 
-    // Should blit to resolve the MSAA
-    srcRenderTarget._blitRenderTarget();
+    // Should blit to resolve the MSAA unless the caller already resolved it once for this frame.
+    if (!isSourceResolved) {
+      srcRenderTarget._blitRenderTarget();
+    }
 
     const activePasses = engine._getActivePostProcessPasses();
     this._remainActivePassCount = activePasses.length;

@@ -797,6 +797,7 @@ export class PBRMaterial extends BaseMaterial {
     shaderData.setColor(PBRMaterial._attenuationColorProp, new Color(1, 1, 1));
     shaderData.setFloat(PBRMaterial._specularIntensityProp, 1);
     shaderData.setColor(PBRMaterial._specularColorProp, new Color(1, 1, 1));
+    this.screenSpaceReflectionIntensity = 1.0;
 
     // @ts-ignore
     this._iridescenceRange._onValueChanged = this._onIridescenceRangeChanged.bind(this);

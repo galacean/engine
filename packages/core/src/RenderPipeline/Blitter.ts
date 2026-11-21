@@ -32,6 +32,7 @@ export class Blitter {
    * @param material - The material to use when blit
    * @param passIndex - Pass index to use of the provided material
    * @param sourceScaleOffset - Source scale and offset
+   * @param destMipLevel - Destination mip level to render into
    */
   static blitTexture(
     engine: Engine,
@@ -41,7 +42,8 @@ export class Blitter {
     viewport: Vector4 = PipelineUtils.defaultViewport,
     material: Material | null = null,
     passIndex = 0,
-    sourceScaleOffset?: Vector4
+    sourceScaleOffset?: Vector4,
+    destMipLevel: number = 0
   ): void {
     const basicResources = engine._basicResources;
     const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
@@ -53,7 +55,7 @@ export class Blitter {
     // We not use projection matrix when blit, but we must modify flipProjection to make front face correct
     context.flipProjection = !!destination;
 
-    context.setRenderTarget(destination, viewport, 0);
+    context.setRenderTarget(destination, viewport, destMipLevel);
 
     const rendererShaderData = Blitter._rendererShaderData;
 

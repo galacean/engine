@@ -1,12 +1,17 @@
 import { Engine } from "../Engine";
-import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
+import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode, type Texture } from "../texture";
 
 /**
  * @internal
  */
 export class RenderTargetPool {
+  private static readonly _maxIdleFrames = 10;
+  private static readonly _noAdditionalColorFormats: readonly TextureFormat[] = Object.freeze([]);
+
   private _freeRenderTargets: RenderTarget[] = [];
   private _freeTextures: Texture2D[] = [];
+  private readonly _colorTexturesToDestroy: Texture[] = [];
+  private _lastReleaseFrame = new WeakMap<RenderTarget | Texture2D, number>();
   private _engine: Engine;
 
   constructor(engine: Engine) {
@@ -23,7 +28,10 @@ export class RenderTargetPool {
     isSRGBColorSpace: boolean,
     antiAliasing: number,
     wrapMode: TextureWrapMode,
-    filterMode: TextureFilterMode
+    filterMode: TextureFilterMode,
+    depthFilterMode: TextureFilterMode = filterMode,
+    additionalColorFormats: readonly TextureFormat[] = RenderTargetPool._noAdditionalColorFormats,
+    depthMipmap: boolean = mipmap
   ): RenderTarget {
     const freeRenderTargets = this._freeRenderTargets;
     for (let i = freeRenderTargets.length - 1; i >= 0; i--) {
@@ -38,50 +46,68 @@ export class RenderTargetPool {
           needDepthTexture,
           mipmap,
           isSRGBColorSpace,
-          antiAliasing
+          antiAliasing,
+          additionalColorFormats,
+          depthMipmap
         )
       ) {
         freeRenderTargets[i] = freeRenderTargets[freeRenderTargets.length - 1];
         freeRenderTargets.length--;
-        const colorTexture = renderTarget.getColorTexture(0) as Texture2D;
-        if (colorTexture) {
+        const colorTextures = renderTarget.colorTextures;
+        for (let j = 0, m = colorTextures.length; j < m; j++) {
+          const colorTexture = colorTextures[j] as Texture2D;
           colorTexture.wrapModeU = colorTexture.wrapModeV = wrapMode;
           colorTexture.filterMode = filterMode;
         }
         const depthTexture = renderTarget.depthTexture as Texture2D;
         if (depthTexture) {
           depthTexture.wrapModeU = depthTexture.wrapModeV = wrapMode;
-          depthTexture.filterMode = filterMode;
+          depthTexture.filterMode = depthFilterMode;
         }
         return renderTarget;
       }
     }
 
     const engine = this._engine;
-    let colorTexture: Texture2D | null = null;
-    if (colorFormat != null) {
-      colorTexture = new Texture2D(engine, width, height, colorFormat, mipmap, isSRGBColorSpace);
-      colorTexture.isGCIgnored = true;
-      colorTexture.wrapModeU = colorTexture.wrapModeV = wrapMode;
-      colorTexture.filterMode = filterMode;
-    }
-
-    let renderTarget: RenderTarget;
-    if (needDepthTexture) {
-      let depthTexture: Texture2D | null = null;
-      if (depthFormat) {
-        depthTexture = new Texture2D(engine, width, height, depthFormat, mipmap, isSRGBColorSpace);
-        depthTexture.isGCIgnored = true;
-        depthTexture.wrapModeU = depthTexture.wrapModeV = wrapMode;
-        depthTexture.filterMode = filterMode;
+    const colorTextures: Texture2D[] = [];
+    let depthTexture: Texture2D | null = null;
+    try {
+      if (colorFormat != null) {
+        for (let i = 0, n = 1 + additionalColorFormats.length; i < n; i++) {
+          const format = i === 0 ? colorFormat : additionalColorFormats[i - 1];
+          const colorTexture = new Texture2D(engine, width, height, format, mipmap, isSRGBColorSpace);
+          colorTexture.isGCIgnored = true;
+          colorTexture.wrapModeU = colorTexture.wrapModeV = wrapMode;
+          colorTexture.filterMode = filterMode;
+          colorTextures.push(colorTexture);
+        }
       }
-      renderTarget = new RenderTarget(engine, width, height, colorTexture, depthTexture, antiAliasing);
-    } else {
-      renderTarget = new RenderTarget(engine, width, height, colorTexture, depthFormat, antiAliasing);
-    }
-    renderTarget.isGCIgnored = true;
 
-    return renderTarget;
+      let renderTarget: RenderTarget;
+      if (needDepthTexture) {
+        if (depthFormat) {
+          depthTexture = new Texture2D(engine, width, height, depthFormat, depthMipmap, isSRGBColorSpace);
+          depthTexture.isGCIgnored = true;
+          depthTexture.wrapModeU = depthTexture.wrapModeV = wrapMode;
+          depthTexture.filterMode = depthFilterMode;
+        }
+        renderTarget =
+          colorTextures.length > 1
+            ? new RenderTarget(engine, width, height, colorTextures, depthTexture, antiAliasing)
+            : new RenderTarget(engine, width, height, colorTextures[0] ?? null, depthTexture, antiAliasing);
+      } else {
+        renderTarget =
+          colorTextures.length > 1
+            ? new RenderTarget(engine, width, height, colorTextures, depthFormat, antiAliasing)
+            : new RenderTarget(engine, width, height, colorTextures[0] ?? null, depthFormat, antiAliasing);
+      }
+      renderTarget.isGCIgnored = true;
+      return renderTarget;
+    } catch (error) {
+      for (let i = 0, n = colorTextures.length; i < n; i++) colorTextures[i].destroy(true);
+      depthTexture?.destroy(true);
+      throw error;
+    }
   }
 
   allocateTexture(
@@ -121,25 +147,29 @@ export class RenderTargetPool {
 
   freeRenderTarget(renderTarget: RenderTarget): void {
     if (!renderTarget || renderTarget.destroyed) return;
+    if (this._freeRenderTargets.includes(renderTarget)) return;
+    this._lastReleaseFrame.set(renderTarget, this._engine.time.frameCount);
     this._freeRenderTargets.push(renderTarget);
   }
 
   freeTexture(texture: Texture2D): void {
     if (!texture || texture.destroyed) return;
+    if (this._freeTextures.includes(texture)) return;
+    this._lastReleaseFrame.set(texture, this._engine.time.frameCount);
     this._freeTextures.push(texture);
+  }
+
+  /** Reclaim expired free entries after rendering. Borrowed resources are not in the free lists. */
+  trim(): void {
+    const frame = this._engine.time.frameCount;
+    this._trimResources(this._freeRenderTargets, frame);
+    this._trimResources(this._freeTextures, frame);
   }
 
   gc(): void {
     const freeRenderTargets = this._freeRenderTargets;
     for (let i = 0, n = freeRenderTargets.length; i < n; i++) {
-      const renderTarget = freeRenderTargets[i];
-      const colorTexture = renderTarget.getColorTexture(0);
-      const depthTexture = renderTarget.depthTexture;
-      renderTarget.destroy(true);
-      colorTexture?.destroy(true);
-      if (depthTexture && depthTexture !== colorTexture) {
-        depthTexture.destroy(true);
-      }
+      this._destroyResource(freeRenderTargets[i]);
     }
     freeRenderTargets.length = 0;
 
@@ -148,6 +178,33 @@ export class RenderTargetPool {
       freeTextures[i].destroy(true);
     }
     freeTextures.length = 0;
+  }
+
+  private _trimResources(resources: (RenderTarget | Texture2D)[], frame: number): void {
+    for (let i = resources.length - 1; i >= 0; i--) {
+      const resource = resources[i];
+      if (resource.destroyed || frame - this._lastReleaseFrame.get(resource)! >= RenderTargetPool._maxIdleFrames) {
+        resources[i] = resources[resources.length - 1];
+        resources.length--;
+        this._destroyResource(resource);
+      }
+    }
+  }
+
+  private _destroyResource(resource: RenderTarget | Texture2D): void {
+    if (resource instanceof RenderTarget) {
+      // RenderTarget clears its attachment list during destruction.
+      const colors = this._colorTexturesToDestroy;
+      const attachments = resource.colorTextures;
+      for (let i = 0, n = attachments.length; i < n; i++) colors[i] = attachments[i];
+      const depth = resource.depthTexture;
+      resource.destroy(true);
+      for (let i = 0, n = colors.length; i < n; i++) colors[i].destroy(true);
+      if (depth && !colors.includes(depth)) depth.destroy(true);
+      colors.length = 0;
+    } else {
+      resource.destroy(true);
+    }
   }
 
   private static _matchRenderTarget(
@@ -159,37 +216,44 @@ export class RenderTargetPool {
     needDepthTexture: boolean,
     mipmap: boolean,
     isSRGBColorSpace: boolean,
-    antiAliasing: number
+    antiAliasing: number,
+    additionalColorFormats: readonly TextureFormat[],
+    depthMipmap: boolean
   ): boolean {
     if (renderTarget.width !== width || renderTarget.height !== height || renderTarget.antiAliasing !== antiAliasing) {
       return false;
     }
 
-    const colorTexture = renderTarget.getColorTexture(0) as Texture2D;
-    if (colorFormat != null) {
+    const colorCount = colorFormat == null ? 0 : 1 + additionalColorFormats.length;
+    if (renderTarget.colorTextureCount !== colorCount) return false;
+    for (let i = 0; i < colorCount; i++) {
+      const colorTexture = renderTarget.getColorTexture(i) as Texture2D;
       if (
         !colorTexture ||
-        colorTexture.format !== colorFormat ||
+        colorTexture.format !== (i === 0 ? colorFormat : additionalColorFormats[i - 1]) ||
         colorTexture.mipmapCount > 1 !== mipmap ||
         colorTexture.isSRGBColorSpace !== isSRGBColorSpace
       ) {
         return false;
       }
-    } else if (colorTexture) {
-      return false;
     }
 
     const depthTexture = renderTarget.depthTexture;
     if (needDepthTexture) {
       if (depthFormat) {
-        if (!depthTexture || (depthTexture as Texture2D).format !== depthFormat) {
+        const depthTexture2D = depthTexture as Texture2D;
+        if (
+          !depthTexture2D ||
+          depthTexture2D.format !== depthFormat ||
+          depthTexture2D.mipmapCount > 1 !== depthMipmap
+        ) {
           return false;
         }
-      } else if (depthTexture) {
+      } else if (depthTexture || renderTarget._depthFormat !== null) {
         return false;
       }
     } else {
-      if (renderTarget._depthFormat !== depthFormat) {
+      if (depthTexture || renderTarget._depthFormat !== depthFormat) {
         return false;
       }
     }

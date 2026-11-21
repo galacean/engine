@@ -375,6 +375,7 @@ export class Engine extends EventDispatcher {
     if (!this._hardwareRenderer.isContextLost()) {
       this._render(scenes);
     }
+    this._renderTargetPool.trim();
 
     // Process pending destroys
     this._processPendingDestroyObjects();

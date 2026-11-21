@@ -14,8 +14,8 @@ import { RenderContext } from "./RenderContext";
  * Opaque texture pass.
  */
 export class OpaqueTexturePass extends PipelinePass {
-  private _cameraColorTexture: Texture;
-  private _renderTarget: RenderTarget;
+  private _cameraColorTexture: Texture | null;
+  private _renderTarget: RenderTarget | null;
 
   constructor(engine: Engine) {
     super(engine);
@@ -49,6 +49,14 @@ export class OpaqueTexturePass extends PipelinePass {
 
   override onRender(context: RenderContext): void {
     Blitter.blitTexture(this.engine, <Texture2D>this._cameraColorTexture, this._renderTarget);
-    context.camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, this._renderTarget.getColorTexture(0));
+    context.camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, this._renderTarget!.getColorTexture(0));
+  }
+
+  release(): void {
+    if (this._renderTarget) {
+      this.engine._renderTargetPool.freeRenderTarget(this._renderTarget);
+      this._renderTarget = null;
+    }
+    this._cameraColorTexture = null;
   }
 }

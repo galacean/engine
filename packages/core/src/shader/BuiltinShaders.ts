@@ -25,4 +25,5 @@ export interface BuiltinShaders {
   readonly finalAntiAliasing: Shader;
   readonly bloom: Shader;
   readonly scalableAmbientOcclusion: Shader;
+  readonly screenSpaceReflection: Shader;
 }
