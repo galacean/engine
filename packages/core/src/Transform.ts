@@ -233,12 +233,11 @@ export class Transform extends Component implements ICloneHook<Transform> {
     if (this._isContainDirtyFlag(TransformModifyFlags.WorldScale)) {
       const parent = this._getParentTransform();
       if (parent) {
-        // Must read parent.lossyWorldScale before branching so ancestor WorldScale dirty flags are cleared on both paths
+        // Clear ancestor WorldScale dirty flags on both paths.
         const parentLossyWorldScale = parent.lossyWorldScale;
         if (parent._getWorldUniformScaling()) {
           Vector3.multiply(parentLossyWorldScale, this._scale, this._lossyWorldScale);
         } else {
-          // Vector3 cannot be used to correctly represent the scaling. Must use Matrix3x3
           const scaleMat = this._getScaleMatrix();
           const e = scaleMat.elements;
           this._lossyWorldScale.set(e[0], e[4], e[8]);
