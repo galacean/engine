@@ -1,8 +1,9 @@
+import type { Scene } from "./Scene";
 import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { ignoreClone } from "./clone/CloneDecorators";
 import { PointerEventData } from "./input/pointer/PointerEventData";
-import { ColliderShape } from "./physics";
+import { Collider } from "./physics";
 import { Collision } from "./physics/Collision";
 
 /**
@@ -34,8 +35,11 @@ export class Script extends Component {
   @ignoreClone
   _entityScriptsIndex: number = -1;
 
+  @ignoreClone
+  private _contactEventRegistered: boolean = false;
+
   /**
-   * Called when be enabled first time, only once.
+   * Called once when this script first participates in hierarchy activation.
    */
   onAwake(): void {}
 
@@ -79,23 +83,25 @@ export class Script extends Component {
   onPhysicsUpdate(): void {}
 
   /**
-   * Called when the trigger enter.
-   * @param other - ColliderShape
+   * Called when a trigger overlap begins.
+   * @param other - The collider on the other side of the overlap
+   * @param self - The collider on this script's entity
    */
-  onTriggerEnter(other: ColliderShape): void {}
+  onTriggerEnter(other: Collider, self: Collider): void {}
 
   /**
-   * Called when the trigger exit.
-   * @param other - ColliderShape
+   * Called when a trigger overlap ends.
+   * @param other - The collider on the other side of the overlap
+   * @param self - The collider on this script's entity
    */
-  onTriggerExit(other: ColliderShape): void {}
+  onTriggerExit(other: Collider, self: Collider): void {}
 
   /**
-   * Called when the trigger stay.
-   * @remarks onTriggerStay is called every frame while the trigger stay.
-   * @param other - ColliderShape
+   * Called on subsequent physics steps while a trigger overlap continues.
+   * @param other - The collider on the other side of the overlap
+   * @param self - The collider on this script's entity
    */
-  onTriggerStay(other: ColliderShape): void {}
+  onTriggerStay(other: Collider, self: Collider): void {}
 
   /**
    * Called when the collision enter.
@@ -119,31 +125,31 @@ export class Script extends Component {
   onCollisionStay(other: Collision): void {}
 
   /**
-   * Called when the pointer is down while over the ColliderShape.
+   * Called when a pointer press is dispatched to this entity.
    * @param eventData - The pointer event data that triggered this callback
    */
   onPointerDown(eventData: PointerEventData): void {}
 
   /**
-   * Called when the pointer is up while over the ColliderShape.
+   * Called when a pointer release is dispatched to this entity.
    * @param eventData - The pointer event data that triggered this callback
    */
   onPointerUp(eventData: PointerEventData): void {}
 
   /**
-   * Called when the pointer is down and up with the same collider.
+   * Called when this entity receives both the pointer press and release for a click.
    * @param eventData - The pointer event data that triggered this callback
    */
   onPointerClick(eventData: PointerEventData): void {}
 
   /**
-   *  Called when the pointer enters the ColliderShape.
+   * Called when this entity joins the pointer's hit path.
    * @param eventData - The pointer event data that triggered this callback
    */
   onPointerEnter(eventData: PointerEventData): void {}
 
   /**
-   * Called when the pointer exits the ColliderShape.
+   * Called when this entity leaves the pointer's hit path.
    * @param eventData - The pointer event data that triggered this callback
    */
   onPointerExit(eventData: PointerEventData): void {}
@@ -230,6 +236,7 @@ export class Script extends Component {
 
     this._entity._addScript(this);
     if (this._hasCollisionEventCallbacks()) {
+      this._contactEventRegistered = true;
       this.scene!.physics._addContactEventConsumer(1);
     }
   }
@@ -237,8 +244,8 @@ export class Script extends Component {
   /**
    * @internal
    */
-  override _onDisableInScene(): void {
-    const componentsManager = this.scene!._componentsManager;
+  override _onDisableInScene(scene: Scene): void {
+    const componentsManager = scene._componentsManager;
     const { prototype } = Script;
 
     if (!this._started) {
@@ -255,8 +262,9 @@ export class Script extends Component {
     }
 
     this._entity._removeScript(this);
-    if (this._hasCollisionEventCallbacks()) {
-      this.scene!.physics._addContactEventConsumer(-1);
+    if (this._contactEventRegistered) {
+      this._contactEventRegistered = false;
+      scene.physics._addContactEventConsumer(-1);
     }
   }
 
@@ -264,8 +272,25 @@ export class Script extends Component {
    * @internal
    */
   protected override _onDestroy(): void {
-    super._onDestroy();
-    this.onDestroy();
+    let firstError: unknown;
+    let hasError = false;
+    try {
+      super._onDestroy();
+    } catch (error) {
+      firstError = error;
+      hasError = true;
+    }
+    try {
+      this.onDestroy();
+    } catch (error) {
+      if (!hasError) {
+        firstError = error;
+        hasError = true;
+      }
+    }
+    if (hasError) {
+      throw firstError;
+    }
   }
 
   private _hasCollisionEventCallbacks(): boolean {

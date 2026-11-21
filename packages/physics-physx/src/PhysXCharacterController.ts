@@ -1,35 +1,117 @@
 import { ICharacterController } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine";
 import { PhysXPhysics } from "./PhysXPhysics";
+import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
 import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
-import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
-import { ColliderShapeUpAxis, PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
-import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 
 /**
- * Base class for character controllers.
+ * PhysX character controller with settings that persist across scene removal.
+ * @remarks The scene’s controller manager creates the native controller on entry and releases it on removal.
  */
 export class PhysXCharacterController implements ICharacterController {
   private static _tempVec = new Vector3();
 
-  /** @internal  */
-  _scene: PhysXPhysicsScene | null = null;
   /** @internal */
   _id: number;
   /** @internal */
-  _pxController: any;
-  /** @internal */
-  _pxManager: PhysXPhysicsScene | null;
-  /** @internal */
-  _shape: PhysXColliderShape | null;
-  private _shapeScaledPosition = new Vector3();
-  private _worldPosition: Vector3 | null = null;
-  private _collisionLayer = 0;
+  _pxController: any = null;
 
   private _physXPhysics: PhysXPhysics;
+  private _scene: PhysXPhysicsScene | null = null;
+  private _pxMaterial: any;
+  private _isBox = false;
+  private _radius = 0.5;
+  private _height = 1;
+  private _halfExtents: Vector3;
+  private _center = new Vector3();
+  private _worldPosition = new Vector3();
+  private _contactOffset = 0.02;
+  private _collisionLayer = 0;
+  private _isSceneQuery = true;
+  private _stepOffset = 0.5;
+  private _nonWalkableMode = 0;
+  private _upDirection = new Vector3(0, 1, 0);
+  private _slopeLimit = 45;
 
-  constructor(physXPhysics: PhysXPhysics) {
+  constructor(physXPhysics: PhysXPhysics, uniqueID: number, material: PhysXPhysicsMaterial) {
     this._physXPhysics = physXPhysics;
+    this._id = uniqueID;
+    this._pxMaterial = material._pxMaterial;
+  }
+
+  /**
+   * {@inheritDoc ICharacterController.setCapsule }
+   */
+  setCapsule(radius: number, height: number, stepOffset: number): void {
+    radius = Math.fround(radius);
+    height = Math.fround(height);
+    const maxStepOffset = Math.fround(height + 2 * radius);
+    const controller = this._syncStepOffset(stepOffset, maxStepOffset, false);
+    if (controller) {
+      if (radius !== this._radius) controller.setRadius(radius);
+      if (height !== this._height) controller.setHeight(height);
+    }
+    this._isBox = false;
+    this._radius = radius;
+    this._height = height;
+    if (!controller) this._rebuild();
+  }
+
+  /**
+   * {@inheritDoc ICharacterController.setBox }
+   */
+  setBox(halfExtents: Vector3, stepOffset: number): void {
+    const size = (this._halfExtents ||= new Vector3());
+    const x = Math.fround(halfExtents.x);
+    const y = Math.fround(halfExtents.y);
+    const z = Math.fround(halfExtents.z);
+    const controller = this._syncStepOffset(stepOffset, 2 * y, true);
+    if (controller) {
+      if (y !== size.y) controller.setHalfHeight(y);
+      if (x !== size.x) controller.setHalfSideExtent(x);
+      if (z !== size.z) controller.setHalfForwardExtent(z);
+    }
+    this._isBox = true;
+    size.set(x, y, z);
+    if (!controller) this._rebuild();
+  }
+
+  /**
+   * {@inheritDoc ICharacterController.setContactOffset }
+   */
+  setContactOffset(offset: number): void {
+    this._contactOffset = offset;
+    this._pxController?.setContactOffset(offset);
+  }
+
+  /**
+   * {@inheritDoc ICharacterController.setMaterial }
+   */
+  setMaterial(material: PhysXPhysicsMaterial): void {
+    const pxMaterial = material._pxMaterial;
+    this._pxMaterial = pxMaterial;
+    this._pxController?.setMaterial(pxMaterial);
+  }
+
+  /**
+   * {@inheritDoc ICharacterController.setCollisionLayer }
+   */
+  setCollisionLayer(layer: number): void {
+    this._collisionLayer = layer;
+    const controller = this._pxController;
+    if (controller) {
+      const actor = controller.getActor();
+      this._physXPhysics._physX.setGroup(actor, layer);
+      actor.delete();
+    }
+  }
+
+  /**
+   * {@inheritDoc ICharacterController.setIsSceneQuery }
+   */
+  setIsSceneQuery(value: boolean): void {
+    this._isSceneQuery = value;
+    this._pxController?.setSceneQueryEnabled(value);
   }
 
   /**
@@ -42,32 +124,33 @@ export class PhysXCharacterController implements ICharacterController {
   /**
    * {@inheritDoc ICharacterController.setWorldPosition }
    */
-  setWorldPosition(position: Vector3): void {
-    this._worldPosition = position;
-    this._updateNativePosition();
+  setWorldPosition(position: Vector3, center: Vector3): void {
+    this._worldPosition.copyFrom(position);
+    this._center.copyFrom(center);
+    const controller = this._pxController;
+    if (controller) {
+      const posePosition = PhysXCharacterController._tempVec;
+      Vector3.add(position, center, posePosition);
+      this._syncControllerPose(controller, posePosition);
+    }
   }
 
   /**
    * {@inheritDoc ICharacterController.getWorldPosition }
    */
   getWorldPosition(position: Vector3): void {
-    if (this._pxController) {
-      position.copyFrom(this._pxController.getPosition());
-      position.subtract(this._shapeScaledPosition);
+    const pxController = this._pxController;
+    if (pxController) {
+      this._worldPosition.copyFrom(pxController.getPosition()).subtract(this._center);
     }
-  }
-
-  /**
-   * {@inheritDoc ICharacterController.setStepOffset }
-   */
-  setStepOffset(offset: number): void {
-    this._pxController?.setStepOffset(offset);
+    position.copyFrom(this._worldPosition);
   }
 
   /**
    * {@inheritDoc ICharacterController.setNonWalkableMode }
    */
   setNonWalkableMode(flag: number): void {
+    this._nonWalkableMode = flag;
     this._pxController?.setNonWalkableMode(flag);
   }
 
@@ -75,124 +158,132 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICharacterController.setUpDirection }
    */
   setUpDirection(up: Vector3): void {
-    this._pxController?.setUpDirection(up);
+    this._upDirection.copyFrom(up);
+    const controller = this._pxController;
+    if (controller) {
+      controller.setUpDirection(up);
+      // Changing the up direction leaves the query proxy at its prior orientation.
+      this._syncControllerPose(controller, controller.getPosition());
+    }
   }
 
   /**
    * {@inheritDoc ICharacterController.setSlopeLimit }
    */
   setSlopeLimit(slopeLimit: number): void {
+    this._slopeLimit = slopeLimit;
     this._pxController?.setSlopeLimit(Math.cos((slopeLimit * Math.PI) / 180));
-  }
-
-  /**
-   * {@inheritDoc ICharacterController.addShape }
-   */
-  addShape(shape: PhysXColliderShape, layer: number): boolean {
-    this._collisionLayer = layer;
-    // Add shape should sync latest position and world scale to pxController
-    this._updateShapePosition(shape._position, shape._worldScale);
-    // When CharacterController is disabled, set shape property need check pxController whether exist because of this._pxManager is null and won't create pxController
-    this._pxManager && this._createPXController(this._pxManager, shape);
-    this._shape = shape;
-    shape._controllers.add(this);
-    this._scene?._addColliderShape(shape._id);
-    return true;
-  }
-
-  /**
-   * {@inheritDoc ICharacterController.removeShape }
-   */
-  removeShape(shape: PhysXColliderShape): void {
-    this._destroyPXController();
-    this._shape = null;
-    shape._controllers.delete(this);
-    this._scene?._removeColliderShape(shape._id);
-  }
-
-  /**
-   * {@inheritDoc ICollider.setCollisionLayer }
-   */
-  setCollisionLayer(layer: number): void {
-    this._collisionLayer = layer;
-    const actor = this._pxController?.getActor();
-
-    if (actor) {
-      this._physXPhysics._physX.setGroup(actor, layer);
-    }
   }
 
   /**
    * {@inheritDoc ICharacterController.destroy }
    */
   destroy(): void {
-    this._destroyPXController();
+    this._scene?.removeCharacterController(this);
   }
 
   /**
    * @internal
    */
-  _createPXController(pxManager: PhysXPhysicsScene, shape: PhysXColliderShape): void {
-    let desc: any;
-    if (shape instanceof PhysXBoxColliderShape) {
-      desc = new this._physXPhysics._physX.PxBoxControllerDesc();
-      desc.halfHeight = shape._halfSize.y;
-      desc.halfSideExtent = shape._halfSize.x;
-      desc.halfForwardExtent = shape._halfSize.z;
-      if (shape._rotation.lengthSquared() > 0) {
-        console.warn("Box character controller `rotation` is not supported in PhysX and will be ignored");
-      }
-    } else if (shape instanceof PhysXCapsuleColliderShape) {
-      desc = new this._physXPhysics._physX.PxCapsuleControllerDesc();
-      desc.radius = shape._radius;
-      desc.height = shape._halfHeight * 2;
-      desc.climbingMode = 1; // constraint mode
+  _addToScene(scene: PhysXPhysicsScene): void {
+    this._scene = scene;
+    this._createPXController();
+  }
 
-      if (shape._rotation.lengthSquared() > 0) {
-        console.warn("Capsule character controller `rotation` is not supported in PhysX and will be ignored");
-      }
-      if (shape._upAxis !== ColliderShapeUpAxis.Y) {
-        console.warn("Capsule character controller `upAxis` is not supported in PhysX and will be ignored");
-      }
-    } else {
-      throw "unsupported shape type";
+  /**
+   * @internal
+   */
+  _removeFromScene(): void {
+    this._destroyPXController();
+    this._scene = null;
+  }
+
+  private _syncStepOffset(offset: number, maximum: number, box: boolean) {
+    // PhysX validates the step against the rounded geometry only at creation.
+    offset = Math.fround(offset);
+    if (!(offset >= 0 && offset <= maximum && Number.isFinite(offset))) {
+      this._stepOffset = -1;
+      return null;
     }
+    const controller = this._isBox === box ? this._pxController : null;
+    if (offset !== this._stepOffset) {
+      this._stepOffset = offset;
+      controller?.setStepOffset(offset);
+    }
+    return controller;
+  }
 
-    desc.setMaterial(shape._pxMaterial);
-    desc.contactOffset = shape._contactOffset;
-    this._pxController = pxManager._getControllerManager().createController(desc);
+  private _rebuild(): void {
+    // Retry creation when the geometry changes after a rejected descriptor.
+    if (this._scene) {
+      this.getWorldPosition(this._worldPosition);
+      this._destroyPXController();
+      this._createPXController();
+    }
+  }
+
+  private _createPXController(): void {
+    if (this._stepOffset < 0) {
+      console.error(
+        "CharacterController: stepOffset must be representable by PhysX and within the controller's world height."
+      );
+      return;
+    }
+    const physX = this._physXPhysics._physX;
+    const scene = this._scene!;
+    let desc: any;
+    if (this._isBox) {
+      const halfExtents = this._halfExtents;
+      desc = new physX.PxBoxControllerDesc();
+      desc.halfHeight = halfExtents.y;
+      desc.halfSideExtent = halfExtents.x;
+      desc.halfForwardExtent = halfExtents.z;
+    } else {
+      desc = new physX.PxCapsuleControllerDesc();
+      desc.radius = this._radius;
+      desc.height = this._height;
+      desc.climbingMode = 1; // Constrained
+    }
+    // Set the initial descriptor position so queries see the correct pose before the first step.
+    const position = PhysXCharacterController._tempVec;
+    Vector3.add(this._worldPosition, this._center, position);
+    desc.position = position;
+    desc.upDirection = this._upDirection;
+    desc.setMaterial(this._pxMaterial);
+    desc.contactOffset = this._contactOffset;
+    desc.stepOffset = this._stepOffset;
+    desc.slopeLimit = Math.cos((this._slopeLimit * Math.PI) / 180);
+    desc.setNonWalkableMode(this._nonWalkableMode);
+    const pxController = scene._getControllerManager().createController(desc);
     desc.delete();
 
-    this._pxController.setUUID(shape._id);
-    this._physXPhysics._physX.setGroup(this._pxController.getActor(), this._collisionLayer);
-    this._pxController.setSceneQueryEnabled(shape._pxShape.isSceneQueryEnabled());
-
-    this._updateNativePosition();
+    if (!pxController) {
+      console.error("CharacterController: failed to create the controller, check its geometry and stepOffset.");
+      return;
+    }
+    this._pxController = pxController;
+    pxController.setUUID(this._id);
+    pxController.setSceneQueryEnabled(this._isSceneQuery);
+    const actor = pxController.getActor();
+    physX.setGroup(actor, this._collisionLayer);
+    actor.delete();
+    scene._addColliderShape(this._id);
   }
 
-  /**
-   * @internal
-   */
-  _destroyPXController(): void {
-    if (this._pxController) {
-      this._pxController.release();
+  private _destroyPXController(): void {
+    const pxController = this._pxController;
+    if (pxController) {
+      this._scene!._removeColliderShape(this._id);
+      pxController.release();
       this._pxController = null;
     }
   }
 
-  /**
-   * @internal
-   */
-  _updateShapePosition(shapePosition: Vector3, worldScale: Vector3): void {
-    Vector3.multiply(shapePosition, worldScale, this._shapeScaledPosition);
-    this._updateNativePosition();
-  }
-
-  private _updateNativePosition(): void {
-    const worldPosition = this._worldPosition;
-    if (this._pxController && worldPosition) {
-      Vector3.add(worldPosition, this._shapeScaledPosition, PhysXCharacterController._tempVec);
-      this._pxController.setPosition(PhysXCharacterController._tempVec);
-    }
+  private _syncControllerPose(controller: any, position: Vector3): void {
+    if (!controller.setPosition(position)) return;
+    // Apply the kinematic target immediately so queries see the updated pose before the next step.
+    const actor = controller.getActor();
+    actor.setGlobalPose(actor.getKinematicTarget(), true);
+    actor.delete();
   }
 }

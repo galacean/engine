@@ -13,7 +13,7 @@ Collision events are an important part of the physics system, allowing scripts t
 Collision events are triggered when two colliders in collider mode physically interact with each other. These events provide information about the collision, such as the contact point, normal, and the other collider involved.
 
 ### Trigger Events
-Trigger events are triggered when a collider enters, stays in, or exits a trigger area. Triggers are collision shapes with the `isTrigger` property set to true. They detect overlaps without causing physical reactions.
+Trigger events are triggered when a collider enters, stays in, or exits a trigger area. Triggers are Colliders with the `isTrigger` property set to true. They detect overlaps without causing physical reactions.
 
 ## Event Trigger Relationship
 
@@ -29,13 +29,15 @@ The detailed event trigger relationship between colliders and triggers is illust
 | **Trigger Mode** | Only triggers event callbacks, no physical collision | Area detection, trigger mechanisms, etc. |
 
 <Callout type="positive">
-Collider mode and trigger mode are properties of collision shapes. A collider can contain multiple collision shapes, each of which can be independently set as a trigger. This means:
-A collider can have both modes simultaneously, with some shapes set to collider mode and others to trigger mode, allowing for both physical collisions and area detection
+Trigger mode is set per Collider component. An Entity, or a Rigidbody with several Colliders, can combine both modes: some Colliders handle physical collisions while others set `isTrigger` to detect areas.
 </Callout>
 
 ## Event Callbacks
 
-When two colliders collide or trigger overlaps occur, callback functions in [scripts](/en/docs/script/script) attached to the entity owning the collider will be triggered.
+When two colliders collide or trigger overlaps occur, callback functions in [scripts](/en/docs/script/script) on each Collider's own Entity are called. A Collider on a child Entity reports to scripts on that child Entity, not to the Entity of its Rigidbody.
+
+- Trigger callbacks receive `(other, self)`: the other Collider and the Collider on this script's Entity that received the event.
+- Collision callbacks receive a [Collision](/apis/core/#Collision): `collision.collider` is the other Collider and `collision.selfCollider` is the receiving one. `getContacts()` returns contact points whose normals and impulses point from the other Collider toward the receiver. The Collision data is only valid during the callback; copy what you need to keep.
 
 ### Collider Event Callbacks
 | Event Name | Trigger Timing |
@@ -55,30 +57,35 @@ When two colliders collide or trigger overlaps occur, callback functions in [scr
 ## Script Usage
 
 ```typescript
+import { Collider, Collision, ContactPoint, Script } from "@galacean/engine";
+
 class EventHandler extends Script {
+  private _contacts: ContactPoint[] = [];
+
   // Collider events
-  onCollisionEnter(other: Collider) {
-    console.log("Collision started, object:", other.entity.name);
+  onCollisionEnter(collision: Collision) {
+    const count = collision.getContacts(this._contacts);
+    console.log("Collision started, object:", collision.collider.entity.name, "contacts:", count);
   }
 
-  onCollisionStay(other: Collider) {
-    console.log("Collision ongoing, object:", other.entity.name);
+  onCollisionStay(collision: Collision) {
+    console.log("Collision ongoing, object:", collision.collider.entity.name);
   }
 
-  onCollisionExit(other: Collider) {
-    console.log("Collision ended, object:", other.entity.name);
+  onCollisionExit(collision: Collision) {
+    console.log("Collision ended, object:", collision.collider.entity.name);
   }
 
   // Trigger events
-  onTriggerEnter(other: Collider) {
+  onTriggerEnter(other: Collider, self: Collider) {
     console.log("Trigger started, object:", other.entity.name);
   }
 
-  onTriggerStay(other: Collider) {
+  onTriggerStay(other: Collider, self: Collider) {
     console.log("Trigger ongoing, object:", other.entity.name);
   }
 
-  onTriggerExit(other: Collider) {
+  onTriggerExit(other: Collider, self: Collider) {
     console.log("Trigger ended, object:", other.entity.name);
   }
 }

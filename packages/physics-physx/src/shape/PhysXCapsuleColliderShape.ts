@@ -3,174 +3,57 @@ import { Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { PhysXColliderShape } from "./PhysXColliderShape";
+
 /**
  * Capsule collider shape in PhysX.
  */
 export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICapsuleColliderShape {
-  /** @internal */
-  _radius: number;
-  /** @internal */
-  _halfHeight: number;
-  /** @internal */
-  _upAxis: ColliderShapeUpAxis = ColliderShapeUpAxis.Y;
+  // Rotate the native X axis onto the requested capsule axis.
+  private static readonly _axes: readonly (Quaternion | null)[] = [
+    null,
+    PhysXCapsuleColliderShape._yAxis,
+    new Quaternion(0, Math.SQRT1_2, 0, Math.SQRT1_2)
+  ];
+
+  private _axis: Quaternion | null;
+  private readonly _localPosition = new Vector3();
+  private readonly _localRotation = new Quaternion();
 
   constructor(
     physXPhysics: PhysXPhysics,
     uniqueID: number,
     radius: number,
-    height: number,
-    material: PhysXPhysicsMaterial
+    halfHeight: number,
+    material: PhysXPhysicsMaterial,
+    upAxis: number
   ) {
     super(physXPhysics);
-
-    this._radius = radius;
-    this._halfHeight = height * 0.5;
-    this._axis = new Quaternion(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
-    this._physXRotation.copyFrom(this._axis);
-
-    this._pxGeometry = new physXPhysics._physX.PxCapsuleGeometry(radius, this._halfHeight);
+    this._axis = PhysXCapsuleColliderShape._axes[upAxis];
+    this._pxGeometry = new physXPhysics._physX.PxCapsuleGeometry(radius, halfHeight);
     this._initialize(material, uniqueID);
-    this._setLocalPose();
   }
 
   /**
-   * {@inheritDoc ICapsuleColliderShape.setRadius }
+   * {@inheritDoc IColliderShape.setLocalPose }
    */
-  setRadius(value: number): void {
-    this._radius = value;
-    const sizeScale = this._worldScale;
-    switch (this._upAxis) {
-      case ColliderShapeUpAxis.X:
-        this._pxGeometry.radius = this._radius * Math.max(sizeScale.y, sizeScale.z);
-        break;
-      case ColliderShapeUpAxis.Y:
-        this._pxGeometry.radius = this._radius * Math.max(sizeScale.x, sizeScale.z);
-        break;
-      case ColliderShapeUpAxis.Z:
-        this._pxGeometry.radius = this._radius * Math.max(sizeScale.x, sizeScale.y);
-        break;
-    }
-    this._pxShape.setGeometry(this._pxGeometry);
-
-    const radius = this._pxGeometry.radius;
-    const controllers = this._controllers;
-    for (let i = 0, n = controllers.length; i < n; i++) {
-      controllers.get(i)._pxController?.setRadius(radius);
-    }
+  override setLocalPose(position: Vector3, rotation: Quaternion): void {
+    this._localPosition.copyFrom(position);
+    this._localRotation.copyFrom(rotation);
+    this._setLocalPose(position, rotation, this._axis);
   }
 
   /**
-   * {@inheritDoc ICapsuleColliderShape.setHeight }
+   * {@inheritDoc ICapsuleColliderShape.setDimensions }
    */
-  setHeight(value: number): void {
-    this._halfHeight = value * 0.5;
-    const sizeScale = this._worldScale;
-    switch (this._upAxis) {
-      case ColliderShapeUpAxis.X:
-        this._pxGeometry.halfHeight = this._halfHeight * sizeScale.x;
-        break;
-      case ColliderShapeUpAxis.Y:
-        this._pxGeometry.halfHeight = this._halfHeight * sizeScale.y;
-        break;
-      case ColliderShapeUpAxis.Z:
-        this._pxGeometry.halfHeight = this._halfHeight * sizeScale.z;
-        break;
-    }
-    this._pxShape.setGeometry(this._pxGeometry);
-
-    const height = this._pxGeometry.halfHeight * 2;
-    const controllers = this._controllers;
-    for (let i = 0, n = controllers.length; i < n; i++) {
-      controllers.get(i)._pxController?.setHeight(height);
-    }
-  }
-
-  /**
-   * {@inheritDoc ICapsuleColliderShape.setRotation }
-   */
-  override setRotation(value: Vector3): void {
-    super.setRotation(value);
-    if (this._controllers.length > 0) {
-      console.warn("Capsule character controller `rotation` is not supported in PhysX and will be ignored");
-    }
-  }
-
-  /**
-   * {@inheritDoc ICapsuleColliderShape.setUpAxis }
-   */
-  setUpAxis(upAxis: ColliderShapeUpAxis): void {
-    const { _rotation: rotation, _physXRotation: physXRotation } = this;
-    const axis = this._axis!;
-
-    this._upAxis = upAxis;
-    switch (this._upAxis) {
-      case ColliderShapeUpAxis.X:
-        axis.set(0, 0, 0, 1);
-        break;
-      case ColliderShapeUpAxis.Y:
-        axis.set(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
-        break;
-      case ColliderShapeUpAxis.Z:
-        axis.set(0, PhysXColliderShape.halfSqrt, 0, PhysXColliderShape.halfSqrt);
-        break;
-    }
-    if (rotation) {
-      Quaternion.rotationYawPitchRoll(rotation.y, rotation.x, rotation.z, physXRotation);
-      Quaternion.multiply(physXRotation, axis, physXRotation);
-    } else {
-      physXRotation.copyFrom(axis);
-    }
-    this._setLocalPose();
-
-    if (this._controllers.length > 0) {
-      console.warn("Capsule character controller `upAxis` is not supported in PhysX and will be ignored");
-    }
-  }
-
-  /**
-   * {@inheritDoc IColliderShape.setWorldScale }
-   */
-  override setWorldScale(scale: Vector3): void {
-    super.setWorldScale(scale);
-    const sizeScale = this._worldScale;
+  setDimensions(radius: number, halfHeight: number, upAxis: number): void {
     const geometry = this._pxGeometry;
-    switch (this._upAxis) {
-      case ColliderShapeUpAxis.X:
-        geometry.radius = this._radius * Math.max(sizeScale.y, sizeScale.z);
-        geometry.halfHeight = this._halfHeight * sizeScale.x;
-        break;
-      case ColliderShapeUpAxis.Y:
-        geometry.radius = this._radius * Math.max(sizeScale.x, sizeScale.z);
-        geometry.halfHeight = this._halfHeight * sizeScale.y;
-        break;
-      case ColliderShapeUpAxis.Z:
-        geometry.radius = this._radius * Math.max(sizeScale.x, sizeScale.y);
-        geometry.halfHeight = this._halfHeight * sizeScale.z;
-        break;
-    }
+    geometry.radius = radius;
+    geometry.halfHeight = halfHeight;
     this._pxShape.setGeometry(geometry);
-
-    const radius = geometry.radius;
-    const height = geometry.halfHeight * 2;
-    const controllers = this._controllers;
-    for (let i = 0, n = controllers.length; i < n; i++) {
-      const pxController = controllers.get(i)._pxController;
-      if (pxController) {
-        pxController.setRadius(radius);
-        pxController.setHeight(height);
-      }
+    const axis = PhysXCapsuleColliderShape._axes[upAxis];
+    if (axis !== this._axis) {
+      this._axis = axis;
+      this._setLocalPose(this._localPosition, this._localRotation, axis);
     }
   }
-}
-
-/**
- * The up axis of the collider shape.
- */
-export enum ColliderShapeUpAxis {
-  /** Up axis is X. */
-  X,
-  /** Up axis is Y. */
-  Y,
-  /** Up axis is Z. */
-  Z
 }

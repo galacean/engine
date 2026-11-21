@@ -5,10 +5,10 @@ type: Physics
 label: Physics
 ---
 
-Joint components are used to simulate connections between colliders or between a collider and an arbitrary point in world space. By applying forces to restrict degrees of freedom, they achieve specific physical effects. Currently, Galacean supports three types of joint components:
+Joint components are used to simulate connections between Rigidbodies or between a Rigidbody and an arbitrary point in world space. By applying forces to restrict degrees of freedom, they achieve specific physical effects. Currently, Galacean supports three types of joint components:
 
 1. [Fixed Joint](/en/docs/physics/joint/fixedJoint)  
-   A fixed joint completely restricts the relative motion between two colliders, maintaining their fixed relative position and orientation. This type of joint is particularly useful when you need separable objects or synchronized motion without a hierarchical structure.
+   A fixed joint completely restricts the relative motion between two Rigidbodies, maintaining their fixed relative position and orientation. This type of joint is particularly useful when you need separable objects or synchronized motion without a hierarchical structure.
 
    <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*h050RoMxg8sAAAAAAAAAAAAAesJ_AQ/original" />
 
@@ -27,19 +27,24 @@ Joint components are used to simulate connections between colliders or between a
 All joint types share the following common characteristics:
 
 1. **Joint Endpoints**: Each joint involves two acting objects:
-   - Main collider: The collider with the joint component attached
-   - Connected object: The target collider specified by the `connectedCollider` property or a point in world space
+
+   - Own Rigidbody: The Rigidbody on the entity the joint is attached to
+   - Connected object: The target Rigidbody specified by `connectedBody`. Set it to `null` to constrain against the world.
+
+   A body-to-body constraint is active while both bodies are enabled in the same scene. The joint retains the configured body while either body is unavailable, then reconnects when both are active again.
 
 2. **Anchor Settings**:
-   - `anchor`: The connection point on the main collider
+
+   - `anchor`: The connection point on the joint's own Rigidbody
    - `connectedAnchor`: The connection point on the target object
 
 3. **Break Thresholds**:
+
    - `breakForce`: Maximum force the joint can withstand
    - `breakTorque`: Maximum torque the joint can withstand
 
 4. **Physics Calculation Intervention**:
-    - `connectedMassScale` and `massScale`: Used to adjust the mass influence of connected and main colliders
+   - `connectedMassScale` and `massScale`: Used to adjust the mass influence of the connected and own Rigidbodies
 
 ## Script Usage
 
@@ -63,15 +68,17 @@ const hingeJoint = entity.addComponent(HingeJoint);
 All joints can set connection targets and anchor points:
 
 ```typescript
-// Set the target collider to connect to
-joint.connectedCollider = targetEntity.getComponent(Collider);
+joint.connectedBody = targetEntity.getComponent(Rigidbody);
 
-// Set the joint's anchor point on the main collider
-joint.anchor.setValue(0, 1, 0);
+// Coordinates in the joint's own Rigidbody space.
+joint.anchor.set(0, 1, 0);
 
-// Set the joint's connection point on the target collider
-joint.connectedAnchor.setValue(0, 0, 0);
+// Disable automatic placement to use the connected Rigidbody's local coordinates.
+joint.automaticConnectedAnchor = false;
+joint.connectedAnchor.set(0, 0, 0);
 ```
+
+Once written, `connectedAnchor` reads back the manual value. The joint uses a calculated anchor while `automaticConnectedAnchor` is enabled and applies the manual value when it is disabled.
 
 ### Common Property Configuration
 
@@ -91,6 +98,7 @@ joint.automaticConnectedAnchor = true;
 ```
 
 For detailed script usage of each joint type, please refer to their respective documentation:
+
 - [FixedJoint](/en/docs/physics/joint/fixedJoint)
 - [SpringJoint](/en/docs/physics/joint/springJoint)
 - [HingeJoint](/en/docs/physics/joint/hingeJoint)

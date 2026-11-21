@@ -5,9 +5,12 @@ import {
   BloomDownScaleMode,
   BloomEffect,
   Camera,
+  CharacterController,
   Engine,
   Entity,
+  Logger,
   MeshRenderer,
+  PlaneCollider,
   PostProcess,
   PostProcessEffect,
   PostProcessEffectBoolParameter,
@@ -15,9 +18,10 @@ import {
   PostProcessPass,
   PrimitiveMesh,
   RenderTarget,
+  Rigidbody,
   Scene,
-  SphereColliderShape,
-  StaticCollider,
+  Script,
+  SphereCollider,
   Texture2D,
   TextureFormat,
   TonemappingEffect,
@@ -390,10 +394,8 @@ describe("PostProcess", () => {
       const radius = 5;
       pp2.isGlobal = false;
       pp2.blendDistance = radius;
-      const collider = postEntity.addComponent(StaticCollider);
-      const physicsBox = new SphereColliderShape();
-      physicsBox.radius = radius;
-      collider.addShape(physicsBox);
+      const collider = postEntity.addComponent(SphereCollider);
+      collider.radius = radius;
 
       // Inside
       cameraEntity.transform.position.set(radius / 2, 0, 0);
@@ -438,6 +440,62 @@ describe("PostProcess", () => {
       cameraEntity.transform.position.set(radius + pp2.blendDistance, 0, 0);
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(MathUtil.lerp(intensity1, intensity2, 0));
+
+      collider.center.set(radius * 2, 0, 0);
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(intensity2);
+      collider.enabled = false;
+      const volumeWarning = vi.spyOn(Logger, "warn");
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(intensity1);
+      expect(volumeWarning).not.toHaveBeenCalled();
+      volumeWarning.mockRestore();
+      collider.enabled = true;
+      collider.center.set(0, 0, 0);
+
+      const secondCollider = postEntity.addComponent(SphereCollider);
+      secondCollider.radius = 1;
+      const moveBeforeRender = cameraEntity.addComponent(
+        class extends Script {
+          override onBeginRender(): void {
+            secondCollider.center.set(radius * 2, 0, 0);
+          }
+        }
+      );
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(intensity2);
+      moveBeforeRender.destroy();
+      secondCollider.enabled = false;
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(intensity1);
+
+      // Inactive and unsupported volumes must not produce warnings on each update.
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const body = postEntity.addComponent(Rigidbody);
+      body.isKinematic = true;
+      body.enabled = false;
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(intensity1);
+      expect(warnSpy).not.toHaveBeenCalled();
+      expect(errorSpy).not.toHaveBeenCalled();
+
+      const plane = postEntity.addComponent(PlaneCollider);
+      const controller = postEntity.addComponent(CharacterController);
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(intensity1);
+      expect(warnSpy).not.toHaveBeenCalled();
+      expect(errorSpy).not.toHaveBeenCalled();
+      plane.destroy();
+      controller.destroy();
+
+      body.enabled = true;
+      cameraEntity.transform.position.set(radius / 2, 0, 0);
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(intensity2);
+      body.destroy();
+      warnSpy.mockRestore();
+      errorSpy.mockRestore();
 
       engine.destroy();
     }

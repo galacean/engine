@@ -1,5 +1,5 @@
 /**
- * Cooking flags for {@link MeshColliderShape}.
+ * Cooking flags for {@link MeshCollider}.
  */
 export enum MeshColliderShapeCookingFlag {
   /** Remove degenerate triangles and coincident vertices. */

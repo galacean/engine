@@ -5,12 +5,9 @@ import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXJoint } from "./PhysXJoint";
 
 /**
- * A joint which behaves in a similar way to a hinge or axle.
+ * PhysX revolute joint.
  */
 export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
-  protected static _xAxis = new Vector3(1, 0, 0);
-
-  private _axis: Vector3;
   private _axisRotationQuaternion = new Quaternion();
   private _connectedAxisRotationQuaternion = new Quaternion();
 
@@ -28,25 +25,46 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   }
 
   override setRotation(value: Quaternion): void {
-    const axis = this._axis;
     this._rotation.copyFrom(value);
-    axis && this.setAxis(axis);
+    this._updateConnectedPose();
   }
 
   /**
    * {@inheritDoc IHingeJoint.setAxis }
    */
   setAxis(value: Vector3): void {
-    this._axis = value;
-    const xAxis = PhysXHingeJoint._xAxis;
+    const { x, y, z } = value;
+    const len = Math.hypot(x, y, z);
+    if (!(len > 0 && Number.isFinite(len))) {
+      return;
+    }
+    const normalizedY = y / len;
+    const normalizedZ = z / len;
     const axisRotationQuaternion = this._axisRotationQuaternion;
-    xAxis.set(1, 0, 0);
-    const angle = Math.acos(Vector3.dot(xAxis, value));
-    Vector3.cross(xAxis, value, xAxis);
-    Quaternion.rotationAxisAngle(xAxis, angle, axisRotationQuaternion);
+    // Rotate PhysX’s local X axis onto the requested hinge axis.
+    const lateral = Math.hypot(normalizedY, normalizedZ);
+    if (lateral > 0) {
+      const halfAngle = Math.atan2(lateral, x / len) * 0.5;
+      const sine = Math.sin(halfAngle);
+      axisRotationQuaternion.set(
+        0,
+        (-normalizedZ / lateral) * sine,
+        (normalizedY / lateral) * sine,
+        Math.cos(halfAngle)
+      );
+    } else if (x < 0) {
+      // Use a stable rotation axis for the antiparallel case.
+      axisRotationQuaternion.set(0, 1, 0, 0);
+    } else {
+      axisRotationQuaternion.set(0, 0, 0, 1);
+    }
     this._setLocalPose(0, this._anchor, axisRotationQuaternion);
+    this._updateConnectedPose();
+  }
+
+  private _updateConnectedPose(): void {
     const connectedAxisRotationQuaternion = this._connectedAxisRotationQuaternion;
-    Quaternion.multiply(this._rotation, axisRotationQuaternion, connectedAxisRotationQuaternion);
+    Quaternion.multiply(this._rotation, this._axisRotationQuaternion, connectedAxisRotationQuaternion);
     this._setLocalPose(1, this._connectedAnchor, connectedAxisRotationQuaternion);
   }
 
@@ -78,14 +96,14 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   }
 
   /**
-   * {@inheritDoc IHingeJoint.setHardLimitCone }
+   * {@inheritDoc IHingeJoint.setHardLimit }
    */
   setHardLimit(lowerLimit: number, upperLimit: number, contactDist: number): void {
     this._pxJoint.setHardLimit(MathUtil.degreeToRadian(lowerLimit), MathUtil.degreeToRadian(upperLimit), contactDist);
   }
 
   /**
-   * {@inheritDoc IHingeJoint.setHardLimitCone }
+   * {@inheritDoc IHingeJoint.setSoftLimit }
    */
   setSoftLimit(lowerLimit: number, upperLimit: number, stiffness: number, damping: number): void {
     this._pxJoint.setSoftLimit(

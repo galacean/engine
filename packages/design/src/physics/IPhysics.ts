@@ -2,7 +2,6 @@ import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { ICharacterController } from "./ICharacterController";
 import { ICollider } from "./ICollider";
 import { IDynamicCollider } from "./IDynamicCollider";
-import { IPhysicsManager } from "./IPhysicsManager";
 import { IPhysicsMaterial, IPhysicsMaterialProperties } from "./IPhysicsMaterial";
 import { IPhysicsScene } from "./IPhysicsScene";
 import { IStaticCollider } from "./IStaticCollider";
@@ -16,7 +15,7 @@ import {
 } from "./shape";
 
 /**
- * The interface of physics creation.
+ * Creates and configures objects for the physics backend.
  */
 export interface IPhysics {
   /**
@@ -26,15 +25,9 @@ export interface IPhysics {
   initialize(): Promise<void>;
 
   /**
-   * Create physics manager.
+   * Create a native simulation scene.
    */
-  createPhysicsManager(): IPhysicsManager;
-
-  /**
-   * Create physics scene.
-   * @param physicsManager - The physics manager
-   */
-  createPhysicsScene(physicsManager: IPhysicsManager): IPhysicsScene;
+  createPhysicsScene(): IPhysicsScene;
 
   /**
    * Create dynamic collider.
@@ -51,9 +44,11 @@ export interface IPhysics {
   createStaticCollider(position: Vector3, rotation: Quaternion): IStaticCollider;
 
   /**
-   * Create character controller.
+   * Create a character controller for later insertion into a scene.
+   * @param uniqueID - The collider ID reported by queries and events
+   * @param material - The controller material
    */
-  createCharacterController(): ICharacterController;
+  createCharacterController(uniqueID: number, material: IPhysicsMaterial): ICharacterController;
 
   /**
    * Create physics material.
@@ -62,51 +57,54 @@ export interface IPhysics {
   createPhysicsMaterial(properties: IPhysicsMaterialProperties): IPhysicsMaterial;
 
   /**
-   * Create box collider shape.
-   * @param uniqueID - Shape unique id
-   * @param size - Size of the box
+   * Create a box collider shape.
+   * @param uniqueID - The collider ID reported by queries and events
+   * @param halfExtents - Half the size along each box axis, with entity scale applied
    * @param material - The material of this shape
    */
-  createBoxColliderShape(uniqueID: number, size: Vector3, material: IPhysicsMaterial): IBoxColliderShape;
+  createBoxColliderShape(uniqueID: number, halfExtents: Vector3, material: IPhysicsMaterial): IBoxColliderShape;
 
   /**
-   * Create sphere collider shape.
-   * @param uniqueID - Shape unique id
-   * @param radius - Radius of the sphere
+   * Create a sphere collider shape.
+   * @param uniqueID - The collider ID reported by queries and events
+   * @param radius - The radius with entity scale applied
    * @param material - The material of this shape
    */
   createSphereColliderShape(uniqueID: number, radius: number, material: IPhysicsMaterial): ISphereColliderShape;
 
   /**
-   * Create plane collider shape.
-   * @param uniqueID - Shape unique id
+   * Create a plane collider shape.
+   * @param uniqueID - The collider ID reported by queries and events
    * @param material - The material of this shape
    */
   createPlaneColliderShape(uniqueID: number, material: IPhysicsMaterial): IPlaneColliderShape;
 
   /**
-   * Create capsule collider shape.
-   * @param uniqueID - Shape unique id
-   * @param radius - Radius of capsule
-   * @param height - Height of capsule
+   * Create a capsule collider shape.
+   * @param uniqueID - The collider ID reported by queries and events
+   * @param radius - The radius with entity scale applied
+   * @param halfHeight - Half the cylindrical height, with entity scale applied
    * @param material - The material of this shape
+   * @param upAxis - The local up axis
    */
   createCapsuleColliderShape(
     uniqueID: number,
     radius: number,
-    height: number,
-    material: IPhysicsMaterial
+    halfHeight: number,
+    material: IPhysicsMaterial,
+    upAxis: number
   ): ICapsuleColliderShape;
 
   /**
-   * Create mesh collider shape.
-   * @param uniqueID - Shape unique id
-   * @param positions - Vertex positions
-   * @param indices - Index array (null for convex mesh)
+   * Create a collider shape from cooked mesh data.
+   * @param uniqueID - The collider ID reported by queries and events
+   * @param positions - Unscaled vertices in mesh-local space
+   * @param indices - Triangle indices, or null for a convex mesh
    * @param isConvex - Whether to create convex mesh (true) or triangle mesh (false)
    * @param material - The material of this shape
    * @param cookingFlags - Cooking flags
-   * @param worldScale - World scale of the shape
+   * @param scale - The absolute world scale applied to the cooked mesh
+   * @returns The shape, or null if mesh cooking or shape creation fails
    */
   createMeshColliderShape(
     uniqueID: number,
@@ -115,7 +113,7 @@ export interface IPhysics {
     isConvex: boolean,
     material: IPhysicsMaterial,
     cookingFlags: number,
-    worldScale: Vector3
+    scale: Vector3
   ): IMeshColliderShape | null;
 
   /**
@@ -153,7 +151,7 @@ export interface IPhysics {
   setColliderLayerCollision(layer1: number, layer2: number, isCollide: boolean): void;
 
   /**
-   * Destroy physics scene.
+   * Release the physics backend.
    */
   destroy(): void;
 }

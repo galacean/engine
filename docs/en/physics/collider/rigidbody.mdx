@@ -1,0 +1,248 @@
+---
+order: 1
+title: Rigidbody
+type: Physics
+label: Physics
+---
+
+A Rigidbody ([Rigidbody](/apis/core/#Rigidbody)) puts its Entity under physics control. It responds to gravity, forces and collisions, and its simulated pose is written back to the Entity after each physics step. A Rigidbody has no shape of its own: it owns the [Colliders](/en/docs/physics/collider/overview) on its Entity and descendants, stopping at a nested Rigidbody.
+
+## Rules
+
+- An Entity can have at most one Rigidbody; adding a second one throws.
+- The nearest Rigidbody on a Collider's Entity or its ancestors owns that Collider. Several Colliders on the Entity and its children form one compound body.
+- Disabling the Rigidbody removes it and all the Colliders it owns from simulation and queries; they do not become static, and their `enabled` values are unchanged.
+- Removing (destroying) the Rigidbody makes its Colliders static.
+- A [PlaneCollider](/apis/core/#PlaneCollider) or a [MeshCollider](/apis/core/#MeshCollider) with `convex = false` can only belong to a kinematic Rigidbody. When `isKinematic` is `false`, those colliders log an error and are excluded from simulation and queries until the Rigidbody becomes kinematic again.
+- [CharacterController](/en/docs/physics/collider/characterController) is never owned by a Rigidbody.
+
+## Usage
+
+1. Select the target entity and add the Rigidbody component in the inspector.
+2. Add Collider components (for example BoxCollider) to the same entity, or to child entities, and adjust their `center` and size to match the visual model.
+3. Adjust the Rigidbody's properties to tune its physical behavior, as described below.
+
+## Properties
+
+### Basic
+
+| Property | Description | Default |
+| --- | --- | --- |
+| [**mass**](/apis/core/#Rigidbody-mass) | Mass of the Rigidbody. The larger the mass, the harder it is to change the object's motion | 1.0 |
+| [**useGravity**](/apis/core/#Rigidbody-useGravity) | Whether gravity affects the Rigidbody | true |
+| [**isKinematic**](/apis/core/#Rigidbody-isKinematic) | Whether the Rigidbody is kinematic. Physics does not move a kinematic body, but it can push other objects | false |
+
+### Velocity
+
+| Property | Description | Default |
+| --- | --- | --- |
+| [**linearVelocity**](/apis/core/#Rigidbody-linearVelocity) | Linear velocity vector (world units/second) | (0,0,0) |
+| [**angularVelocity**](/apis/core/#Rigidbody-angularVelocity) | Angular velocity vector (degrees/second) | (0,0,0) |
+| [**maxAngularVelocity**](/apis/core/#Rigidbody-maxAngularVelocity) | Maximum angular velocity (degrees/second) | 18000/π |
+| [**maxDepenetrationVelocity**](/apis/core/#Rigidbody-maxDepenetrationVelocity) | Maximum velocity when moving out of a penetrating state | 1e32 |
+
+### Damping
+
+| Property | Description | Default |
+| --- | --- | --- |
+| [**linearDamping**](/apis/core/#Rigidbody-linearDamping) | Linear damping coefficient | 0 |
+| [**angularDamping**](/apis/core/#Rigidbody-angularDamping) | Angular damping coefficient | 0.05 |
+
+### Mass/Inertia Tensor
+
+| Property | Description | Default |
+| --- | --- | --- |
+| [**centerOfMass**](/apis/core/#Rigidbody-centerOfMass) | Center of mass relative to the transform's origin | (0,0,0) |
+| [**automaticCenterOfMass**](/apis/core/#Rigidbody-automaticCenterOfMass) | Whether the center of mass is calculated from the attached Colliders | true |
+| [**inertiaTensor**](/apis/core/#Rigidbody-inertiaTensor) | Diagonal inertia tensor relative to the center of mass | (1,1,1) |
+| [**automaticInertiaTensor**](/apis/core/#Rigidbody-automaticInertiaTensor) | Whether the inertia tensor is calculated from the attached Colliders and mass | true |
+
+Once you write to `centerOfMass` or `inertiaTensor`, the property reads back that manual value. The simulation uses the computed value while automatic mode is enabled. Disabling automatic mode applies the manual value, or preserves the current computed value if the property has never been written.
+
+### Performance
+
+| Property | Description | Default |
+| --- | --- | --- |
+| [**sleepThreshold**](/apis/core/#Rigidbody-sleepThreshold) | Mass-normalized energy threshold below which the Rigidbody goes to sleep | 0.005 |
+| [**solverIterations**](/apis/core/#Rigidbody-solverIterations) | Constraint solver iteration count | 4 |
+
+<Callout type="info">
+Constraint solving is the process used by the physics engine to resolve collisions and constraints between objects. Each iteration attempts to adjust the positions and velocities of objects to satisfy all physical constraints (such as collisions, joints, etc.).
+- More iterations result in more accurate physical behavior but higher computational cost
+- Too few iterations may cause objects to jitter or penetrate
+- It is recommended to balance accuracy and performance based on actual needs:
+  - General objects: Use the default value of 4
+  - Precise physics: Increase to 6-8
+  - Performance priority: Reduce to 2-3
+</Callout>
+
+### Motion Constraints
+
+- [**constraints**](/apis/core/#Rigidbody-constraints)  
+  Freezes motion along specific axes. Position and rotation can be locked separately on the X, Y and Z axes.
+  ```typescript
+  // Lock Y-axis position and all rotations
+  rigidbody.constraints =
+    RigidbodyConstraints.FreezePositionY |
+    RigidbodyConstraints.FreezeRotationX |
+    RigidbodyConstraints.FreezeRotationY |
+    RigidbodyConstraints.FreezeRotationZ;
+  ```
+
+### Collision Detection Mode
+
+- [**collisionDetectionMode**](/apis/core/#Rigidbody-collisionDetectionMode)  
+   Controls the precision of collision detection:
+
+| Mode | Description | Applicable Scenarios | Performance Cost |
+| ---- | ---- | -------- | -------- |
+| **Discrete** | Basic detection mode, detects collisions at fixed time steps, may cause tunneling at high speeds | Low-speed objects | Lowest |
+| **Continuous** | Continuous detection against static mesh geometry, prevents high-speed objects from tunneling through static objects | High-speed projectiles | Moderate |
+| **ContinuousDynamic** | Continuous detection against static and dynamic geometry, prevents high-speed objects from tunneling through each other | Precise physical simulations | High |
+| **ContinuousSpeculative** | Speculative continuous detection for static and dynamic geometry | General game scenarios | Moderate |
+
+With the PhysX backend, Continuous and ContinuousDynamic are mapped to speculative detection while the Rigidbody is kinematic.
+
+#### Selection Recommendations
+
+1. **Based on Object Speed**
+
+   - Low-speed objects: Use Discrete
+   - Medium-speed objects: Use ContinuousSpeculative
+   - High-speed objects: Use Continuous or ContinuousDynamic
+
+2. **Based on Importance**
+
+   - Normal scene objects: Use Discrete
+   - Critical game objects: Use ContinuousSpeculative
+   - Precise physical interactions: Use ContinuousDynamic
+
+3. **Based on Performance**
+   - Performance priority: Use Discrete
+   - Balance between performance and precision: Use ContinuousSpeculative
+   - Precision priority: Use ContinuousDynamic
+
+## Methods
+
+| Method | Description |
+| --- | --- |
+| [**applyForce**](/apis/core/#Rigidbody-applyForce) | Apply a force |
+| [**applyForceAtPosition**](/apis/core/#Rigidbody-applyForceAtPosition) | Apply a force at a world-space position |
+| [**applyTorque**](/apis/core/#Rigidbody-applyTorque) | Apply a torque |
+| [**move**](/apis/core/#Rigidbody-move) | Move a kinematic Rigidbody to a position and/or rotation, affecting Rigidbodies along the path. Only works when `isKinematic` is true |
+| [**sleep**](/apis/core/#Rigidbody-sleep) | Force the Rigidbody to sleep |
+| [**wakeUp**](/apis/core/#Rigidbody-wakeUp) | Wake the Rigidbody up |
+| [**isSleeping**](/apis/core/#Rigidbody-isSleeping) | Whether the Rigidbody is sleeping |
+
+## Script Usage
+
+### Basic Configuration
+
+```typescript
+import { BoxCollider, Rigidbody } from "@galacean/engine";
+
+const rigidbody = entity.addComponent(Rigidbody);
+entity.addComponent(BoxCollider);
+
+rigidbody.mass = 1.0;
+rigidbody.useGravity = true;
+rigidbody.isKinematic = false;
+```
+
+### Motion Control
+
+```typescript
+import { Keys, Rigidbody, RigidbodyConstraints, Script, Vector3 } from "@galacean/engine";
+
+class PhysicsController extends Script {
+  private _rigidbody: Rigidbody;
+
+  onAwake() {
+    this._rigidbody = this.entity.getComponent(Rigidbody);
+    this._rigidbody.linearDamping = 0.1;
+    this._rigidbody.angularDamping = 0.1;
+    this._rigidbody.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+  }
+
+  onUpdate() {
+    const inputManager = this.engine.inputManager;
+    // Apply thrust every frame while W is held.
+    if (inputManager.isKeyHeldDown(Keys.KeyW)) {
+      this._rigidbody.applyForce(new Vector3(0, 0, 10));
+    }
+    if (inputManager.isKeyHeldDown(Keys.KeyR)) {
+      this._rigidbody.applyTorque(new Vector3(0, 10, 0));
+    }
+    // Jump without changing horizontal velocity.
+    if (inputManager.isKeyDown(Keys.Space)) {
+      const velocity = this._rigidbody.linearVelocity;
+      this._rigidbody.linearVelocity = new Vector3(velocity.x, 5, velocity.z);
+    }
+  }
+}
+```
+
+### Kinematic Control
+
+```typescript
+import { Rigidbody, Script, Vector3 } from "@galacean/engine";
+
+class Elevator extends Script {
+  private _rigidbody: Rigidbody;
+  private _position = new Vector3();
+
+  onAwake() {
+    this._rigidbody = this.entity.getComponent(Rigidbody);
+    this._rigidbody.isKinematic = true;
+  }
+
+  onUpdate() {
+    const time = this.engine.time.elapsedTime;
+    this._rigidbody.move(this._position.set(0, Math.sin(time) * 2, 0));
+  }
+}
+```
+
+### Sleep Management
+
+```typescript
+import { Keys, Rigidbody, Script } from "@galacean/engine";
+
+class SleepController extends Script {
+  private _rigidbody: Rigidbody;
+
+  onAwake() {
+    this._rigidbody = this.entity.getComponent(Rigidbody);
+    this._rigidbody.sleepThreshold = 0.005;
+  }
+
+  onUpdate() {
+    if (this._rigidbody.isSleeping()) {
+      console.log("Object is sleeping");
+    }
+    if (this.engine.inputManager.isKeyDown(Keys.KeyS)) {
+      this._rigidbody.sleep();
+    }
+    if (this.engine.inputManager.isKeyDown(Keys.KeyW)) {
+      this._rigidbody.wakeUp();
+    }
+  }
+}
+```
+
+### Mass/Inertia Tensor Settings
+
+```typescript
+import { Rigidbody, Vector3 } from "@galacean/engine";
+
+// The default center of mass and inertia come from the attached colliders.
+const rigidbody = entity.addComponent(Rigidbody);
+rigidbody.mass = 1.0;
+
+// Disable both calculations before assigning these values manually.
+const customRigidbody = otherEntity.addComponent(Rigidbody);
+customRigidbody.automaticCenterOfMass = false;
+customRigidbody.automaticInertiaTensor = false;
+customRigidbody.centerOfMass = new Vector3(0, 0.5, 0);
+customRigidbody.inertiaTensor = new Vector3(1, 1, 1);
+```

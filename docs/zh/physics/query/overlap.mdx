@@ -40,14 +40,14 @@ overlapBoxAll(
   halfExtents: Vector3,
   orientation: Quaternion = new Quaternion(),
   layerMask: Layer = Layer.Everything,
-  shapes: ColliderShape[] = []
-): ColliderShape[]
+  colliders: Collider[] = []
+): Collider[]
 ```
 
 ### 使用示例
 
 ```typescript
-import { Vector3, Quaternion, Layer, ColliderShape } from "@galacean/engine";
+import { Vector3, Quaternion, Layer, Collider } from "@galacean/engine";
 
 // 获取物理场景
 const physicsScene = scene.physics;
@@ -59,8 +59,8 @@ const halfExtents = new Vector3(2, 1, 2); // 盒子半尺寸
 const allOverlapping = physicsScene.overlapBoxAll(center, halfExtents);
 console.log(`检测到 ${allOverlapping.length} 个重叠物体`);
 
-allOverlapping.forEach((shape, index) => {
-  console.log(`${index + 1}. ${shape.collider.entity.name}`);
+allOverlapping.forEach((collider, index) => {
+  console.log(`${index + 1}. ${collider.entity.name}`);
 });
 
 // 示例2: 建造系统 - 检查区域是否被占用
@@ -68,13 +68,13 @@ const buildCenter = new Vector3(5, 0, 3);
 const buildSize = new Vector3(1.5, 1, 1.5);
 const buildingLayerMask = Layer.Layer0 | Layer.Layer1; // 使用实际存在的层
 
-const obstacleShapes: ColliderShape[] = [];
+const obstacleColliders: Collider[] = [];
 const obstacles = physicsScene.overlapBoxAll(
   buildCenter, 
   buildSize, 
   new Quaternion(), // 使用新四元数实例代替不存在的 IDENTITY
   buildingLayerMask, 
-  obstacleShapes
+  obstacleColliders
 );
 
 if (obstacles.length === 0) {
@@ -82,8 +82,8 @@ if (obstacles.length === 0) {
   placeBuildingAt(buildCenter);
 } else {
   console.log("区域被占用，无法建造");
-  obstacles.forEach(shape => {
-    console.log(`障碍物: ${shape.collider.entity.name}`);
+  obstacles.forEach(collider => {
+    console.log(`障碍物: ${collider.entity.name}`);
   });
 }
 
@@ -109,8 +109,8 @@ overlapSphereAll(
   center: Vector3,
   radius: number,
   layerMask: Layer = Layer.Everything,
-  shapes: ColliderShape[] = []
-): ColliderShape[]
+  colliders: Collider[] = []
+): Collider[]
 ```
 
 ### 使用示例
@@ -127,8 +127,8 @@ const affectedTargets = physicsScene.overlapSphereAll(
   targetLayer
 );
 
-affectedTargets.forEach(shape => {
-  const entity = shape.collider.entity;
+affectedTargets.forEach(collider => {
+  const entity = collider.entity;
   const distance = Vector3.distance(explosionCenter, entity.transform.position);
   const damage = calculateExplosionDamage(distance, explosionRadius);
   
@@ -147,27 +147,27 @@ const collectibleItems = physicsScene.overlapSphereAll(
   itemLayer
 );
 
-collectibleItems.forEach(shape => {
-  const item = shape.collider.entity;
+collectibleItems.forEach(collider => {
+  const item = collider.entity;
   console.log(`收集道具: ${item.name}`);
   collectItem(item);
 });
 
 // 示例3: AI 感知系统
 class AIPerception {
-  private readonly _detectedShapes: ColliderShape[] = [];
+  private readonly _detectedColliders: Collider[] = [];
   
   checkVisionRange(aiPosition: Vector3, visionRadius: number): Entity[] {
-    this._detectedShapes.length = 0; // 清空数组
+    this._detectedColliders.length = 0;
     
-    const detectedShapes = physicsScene.overlapSphereAll(
+    const detectedColliders = physicsScene.overlapSphereAll(
       aiPosition,
       visionRadius,
       Layer.Layer0 | Layer.Layer1, // 使用实际层组合
-      this._detectedShapes
+      this._detectedColliders
     );
     
-    return detectedShapes.map(shape => shape.collider.entity);
+    return detectedColliders.map(collider => collider.entity);
   }
 }
 ```
@@ -185,8 +185,8 @@ overlapCapsuleAll(
   height: number,
   orientation: Quaternion = new Quaternion(),
   layerMask: Layer = Layer.Everything,
-  shapes: ColliderShape[] = []
-): ColliderShape[]
+  colliders: Collider[] = []
+): Collider[]
 ```
 
 ### 使用示例
@@ -208,8 +208,8 @@ const attackTargets = physicsScene.overlapCapsuleAll(
 
 if (attackTargets.length > 0) {
   console.log(`攻击命中 ${attackTargets.length} 个目标`);
-  attackTargets.forEach(shape => {
-    const enemy = shape.collider.entity;
+  attackTargets.forEach(collider => {
+    const enemy = collider.entity;
     applyMeleeDamage(enemy, 50);
   });
 }
@@ -228,15 +228,15 @@ const charactersInPortal = physicsScene.overlapCapsuleAll(
   characterLayer
 );
 
-charactersInPortal.forEach(shape => {
-  const character = shape.collider.entity;
+charactersInPortal.forEach(collider => {
+  const character = collider.entity;
   console.log(`${character.name} 进入传送门`);
   teleportCharacter(character, destinationPosition);
 });
 
 // 示例3: 电梯检测系统
 class ElevatorDetector {
-  private readonly _passengersBuffer: ColliderShape[] = [];
+  private readonly _passengersBuffer: Collider[] = [];
   
   detectPassengers(elevatorCenter: Vector3): Entity[] {
     this._passengersBuffer.length = 0;
@@ -250,7 +250,7 @@ class ElevatorDetector {
       this._passengersBuffer
     );
     
-    return passengers.map(shape => shape.collider.entity);
+    return passengers.map(collider => collider.entity);
   }
 }
 ```
@@ -261,7 +261,7 @@ class ElevatorDetector {
 
 - **center** - 检测区域的中心位置（世界坐标）
 - **layerMask** - 层遮罩，用于过滤特定层的碰撞器（默认为 `Layer.Everything`）
-- **shapes** - 可选的输出数组，用于存储结果以避免内存分配
+- **colliders** - 可选的输出数组，用于存储结果以避免内存分配
 
 ### 形状特定参数
 
@@ -272,7 +272,7 @@ class ElevatorDetector {
 
 ## 返回值说明
 
-所有检测函数都返回 `ColliderShape[]` 数组，包含所有重叠的碰撞器形状。
+所有检测函数都返回 `Collider[]` 数组，包含所有重叠的碰撞器。
 
 ## 性能优化建议
 
@@ -284,7 +284,7 @@ class ElevatorDetector {
 ```typescript
 // 性能优化示例
 class OverlapDetector {
-  private static readonly _resultBuffer: ColliderShape[] = [];
+  private static readonly _resultBuffer: Collider[] = [];
   private static readonly _targetLayer = Layer.Layer0 | Layer.Layer3;
   
   static detectTargetsInRange(center: Vector3, radius: number): Entity[] {
@@ -292,7 +292,7 @@ class OverlapDetector {
     this._resultBuffer.length = 0;
     
     // 使用预分配数组和层过滤
-    const shapes = physicsScene.overlapSphereAll(
+    const colliders = physicsScene.overlapSphereAll(
       center,
       radius,
       this._targetLayer,
@@ -300,7 +300,7 @@ class OverlapDetector {
     );
     
     // 转换为实体数组
-    return shapes.map(shape => shape.collider.entity);
+    return colliders.map(collider => collider.entity);
   }
 }
 

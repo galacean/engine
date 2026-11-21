@@ -2,11 +2,11 @@ import { IJoint } from "./IJoint";
 import { Vector3 } from "@galacean/engine-math";
 
 /**
- * A joint which behaves in a similar way to a hinge or axle.
+ * A joint that allows rotation around one axis.
  */
 export interface IHingeJoint extends IJoint {
   /**
-   * The anchor rotation.
+   * Set the hinge axis in the owning actor’s frame.
    */
   setAxis(value: Vector3): void;
 
@@ -16,30 +16,29 @@ export interface IHingeJoint extends IJoint {
   getAngle(): number;
 
   /**
-   * The angular velocity of the joint in degrees per second.
+   * The angular velocity of the joint in radians per second.
    */
   getVelocity(): Readonly<number>;
 
   /**
-   * Set a cone hard limit.
-   * @param lowerLimit The lower angle of the limit
-   * @param upperLimit The upper angle of the limit
-   * @param contactDist The distance from the limit at which it becomes active. Default is the lesser of 0.1 radians, and 0.49 * the lower of the limit angles
+   * Set an angular hard limit.
+   * @param lowerLimit - The lower angle in degrees
+   * @param upperLimit - The upper angle in degrees
+   * @param contactDist - How far inside the limit it becomes active, in radians
    */
   setHardLimit(lowerLimit: number, upperLimit: number, contactDist: number): void;
 
   /**
-   * Set a cone soft limit.
-   * @param lowerLimit The lower angle of the limit
-   * @param upperLimit The upper angle of the limit
-   * @param stiffness the spring strength of the drive
-   * @param damping the damping strength of the drive
+   * Set an angular limit with spring response.
+   * @param lowerLimit - The lower angle in degrees
+   * @param upperLimit - The upper angle in degrees
+   * @param stiffness - The limit spring stiffness
+   * @param damping - The limit spring damping
    */
   setSoftLimit(lowerLimit: number, upperLimit: number, stiffness: number, damping: number): void;
 
   /**
-   * set the target velocity for the drive model.
-   * @param velocity the drive target velocity
+   * Set the drive target angular velocity in radians per second.
    */
   setDriveVelocity(velocity: number): void;
 

@@ -5,20 +5,10 @@ import { IColliderShape } from "./IColliderShape";
  */
 export interface ICapsuleColliderShape extends IColliderShape {
   /**
-   * Set radius of capsule.
-   * @param radius - The radius
+   * Set the dimensions and local orientation of the capsule.
+   * @param radius - The radius with entity scale applied
+   * @param halfHeight - Half the cylindrical height, with entity scale applied
+   * @param upAxis - The local up axis
    */
-  setRadius(radius: number): void;
-
-  /**
-   * Set height of capsule.
-   * @param height - The height
-   */
-  setHeight(height: number): void;
-
-  /**
-   * Set up axis of capsule.
-   * @param upAxis - The up axis
-   */
-  setUpAxis(upAxis: number): void;
+  setDimensions(radius: number, halfHeight: number, upAxis: number): void;
 }

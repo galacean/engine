@@ -14,7 +14,7 @@ export class JointMotor extends DataObject {
   private _freeSpin = false;
 
   /**
-   * The motor will apply a force up to force to achieve targetVelocity.
+   * The target angular velocity in radians per second that the motor tries to achieve.
    */
   get targetVelocity(): number {
     return this._targetVelocity;
@@ -42,7 +42,7 @@ export class JointMotor extends DataObject {
   }
 
   /**
-   * Gear ration for the motor
+   * The motor's gear ratio.
    */
   get gearRatio(): number {
     return this._gearRatio;

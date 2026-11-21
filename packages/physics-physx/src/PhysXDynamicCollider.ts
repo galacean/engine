@@ -216,21 +216,38 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
+   * {@inheritDoc IDynamicCollider.setWorldTransform }
+   */
+  override setWorldTransform(position: Vector3, rotation: Quaternion): void {
+    const transform = this._transform(position, rotation);
+    this._pxActor.setGlobalPose(transform, true);
+    // Replace the pending target so the next simulation step preserves the new pose.
+    if (this._pxActor.getKinematicTarget()) {
+      this._pxActor.setKinematicTarget(transform.translation, transform.rotation);
+    }
+  }
+
+  /**
    * {@inheritDoc IDynamicCollider.move }
    */
   move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void {
+    const actor = this._pxActor;
+    const tempRotation = PhysXDynamicCollider._tempRotation;
     if (rotation) {
-      this._pxActor.setKinematicTarget(positionOrRotation, rotation);
+      tempRotation.set(0, 0, 0, 1);
+      Quaternion.normalize(rotation, tempRotation);
+      actor.setKinematicTarget(positionOrRotation, tempRotation);
       return;
     }
 
-    const tempTranslation = PhysXDynamicCollider._tempTranslation;
-    const tempRotation = PhysXDynamicCollider._tempRotation;
-    this.getWorldTransform(tempTranslation, tempRotation);
+    const pose = actor.getKinematicTarget() ?? actor.getGlobalPose();
     if (positionOrRotation instanceof Vector3) {
-      this._pxActor.setKinematicTarget(positionOrRotation, tempRotation);
+      actor.setKinematicTarget(positionOrRotation, pose.rotation);
     } else {
-      this._pxActor.setKinematicTarget(tempTranslation, positionOrRotation);
+      const priorRotation = pose.rotation;
+      tempRotation.set(priorRotation.x, priorRotation.y, priorRotation.z, priorRotation.w);
+      Quaternion.normalize(positionOrRotation, tempRotation);
+      actor.setKinematicTarget(pose.translation, tempRotation);
     }
   }
 

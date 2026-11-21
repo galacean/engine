@@ -5,102 +5,215 @@ type: 物理
 label: Physics
 ---
 
-碰撞器（[Collider](/apis/core/#Collider)）是一种用于检测和响应物理碰撞的组件。引擎提供以下几种碰撞器：
+碰撞器（[Collider](/apis/core/#Collider)）是为实体提供碰撞形状的组件。每种形状都是一个独立的组件：
 
-| 类型 | 描述 | 适用场景 |
-| --- | --- | --- |
-| [**StaticCollider**](/apis/core/#StaticCollider) | 静态碰撞器，不会移动但可与其他物体碰撞 | 地面、墙壁等静态物体 |
-| [**DynamicCollider**](/apis/core/#DynamicCollider) | 动态碰撞器，受物理引擎影响可自由运动 | 可移动物体、射弹等 |
-| [**CharacterController**](/apis/core/#CharacterController) | 专门用于角色控制的碰撞器 | 玩家角色、NPC等 |
+| 组件 | 形状 | 说明 |
+| :-- | :-- | :-- |
+| [**BoxCollider**](/apis/core/#BoxCollider) | 盒 |  |
+| [**SphereCollider**](/apis/core/#SphereCollider) | 球 |  |
+| [**CapsuleCollider**](/apis/core/#CapsuleCollider) | 胶囊 |  |
+| [**PlaneCollider**](/apis/core/#PlaneCollider) | 朝向实体局部 +Y 轴的无限平面 | 只能是静态或运动学 |
+| [**MeshCollider**](/apis/core/#MeshCollider) | 由网格生成的凸包或三角网格 | 三角网格（`convex = false`）只能是静态或运动学 |
+| [**CharacterController**](/apis/core/#CharacterController) | 自带移动算法的胶囊或盒 | 见[角色控制器](/docs/physics/collider/characterController) |
 
-碰撞器组件用于定义物体的物理属性和碰撞行为。Galacean 物理系统提供了三种类型的碰撞器:
+## 静态还是受物理驱动
 
-1. [动态碰撞器](/docs/physics/collider/dynamicCollider)  
-   动态碰撞器可以自由运动并受物理力的影响,适用于需要物理模拟的可移动物体,如投掷物、可推动的箱子等。
+碰撞器是否随物理运动由层级决定，而不是由碰撞器本身决定：
 
-2. [静态碰撞器](/docs/physics/collider/staticCollider)  
-   静态碰撞器固定在场景中不会移动,通常用于创建固定的物理障碍物,如地面、墙壁等。
+- **静态**：所在实体及其祖先上都没有[刚体](/docs/physics/collider/rigidbody)的碰撞器是静态的。它跟随自身实体，修改实体的变换会把它直接移动（瞬移）到新位置。
+- **归属刚体**：碰撞器所在实体或其祖先中最近的刚体拥有该碰撞器，碰撞器随该刚体运动。`collider.attachedRigidbody` 返回这个刚体，静态碰撞器返回 `null`。
 
-3. [角色控制器](/docs/physics/collider/characterController)  
-   角色控制器是专门为角色移动设计的碰撞器,支持斜坡行走、台阶攀爬等特性,适用于第一人称或第三人称游戏中的角色控制。
+要组合出复合形状，可以在同一实体上添加多个碰撞器组件，或把它们放在同一个刚体下的子实体上。嵌套的刚体会单独成组：它下面的碰撞器属于它，而不属于外层刚体。
 
-## 基本概念
+[PlaneCollider](/apis/core/#PlaneCollider) 和 `convex = false` 的 [MeshCollider](/apis/core/#MeshCollider) 只能是静态的，或属于运动学刚体。放在非运动学刚体下时，它们会被排除在模拟之外并输出控制台错误，直到刚体变为运动学。
 
-所有碰撞器类型都具有以下共同特征：
+### 禁用与移除
 
-1. **形状管理**：每个碰撞器可以包含多个[碰撞形状](/docs/physics/collider/colliderShape) (角色控制器只能添加一个)。关于碰撞形状的详细说明请参考[碰撞形状](/docs/physics/collider/colliderShape)文档。
+| 操作                 | 结果                                                                                        |
+| :------------------- | :------------------------------------------------------------------------------------------ |
+| 禁用碰撞器           | 该碰撞器退出模拟和查询，重新启用后恢复                                                      |
+| 禁用所属刚体         | 刚体及其拥有的所有碰撞器退出模拟和查询；它们**不会**变成静态碰撞器，各自的 `enabled` 值不变 |
+| 移除（销毁）所属刚体 | 它拥有的碰撞器变为静态，或归属层级更上方的下一个刚体                                        |
 
-目前内置 PhysX 后端支持以下 `碰撞形状`：
+组件的改动会在每次物理模拟步进以及每次查询（射线检测、形状投射、重叠检测）之前统一应用，因此添加或启用组件的先后顺序不影响结果。
 
-| 名称                                                     | 解释             |
-| :------------------------------------------------------- | :--------------- |
-| [BoxColliderShape](/apis/core/#BoxColliderShape)         | 盒形碰撞外形     |
-| [SphereColliderShape](/apis/core/#SphereColliderShape)   | 球形碰撞外形     |
-| [PlaneColliderShape](/apis/core/#PlaneColliderShape)     | 无界平面碰撞外形 |
-| [CapsuleColliderShape](/apis/core/#CapsuleColliderShape) | 胶囊碰撞外形     |
+## 通用属性
 
-2. **变换同步**：
+所有碰撞器组件都具有以下属性：
 
-   - 碰撞器会自动同步实体的世界变换，包括位置、旋转和缩放的同步
-   - `碰撞形状` 可以设置相对于实体的局部偏移和旋转
+| 属性 | 描述 | 默认值 |
+| :-- | :-- | :-- |
+| [**center**](/apis/core/#Collider-center) | 形状在实体局部空间中的中心，会乘以实体的世界缩放 | (0, 0, 0) |
+| [**rotation**](/apis/core/#Collider-rotation) | 形状的局部旋转，单位为角度 | (0, 0, 0) |
+| [**isTrigger**](/apis/core/#Collider-isTrigger) | 是否为触发器。触发器只报告重叠，不产生碰撞响应。见[碰撞事件](/docs/physics/collider/event) | false |
+| [**material**](/apis/core/#Collider-material) | 指定的[物理材质](#物理材质)，为 `null` 时使用共享默认材质 | null |
+| [**collisionLayer**](/apis/core/#Collider-collisionLayer) | 碰撞器所属的碰撞层，只能是单个层。见[碰撞层](/docs/physics/collider/collisionLayer) | Layer.Layer0 |
+| [**contactOffset**](/apis/core/#Collider-contactOffset) | 接触偏移。非有限值会抛出异常，负值会被限制为 0 | 0.02 |
+| [**attachedRigidbody**](/apis/core/#Collider-attachedRigidbody) | 只读。拥有该碰撞器的刚体，没有时为 `null` | - |
 
-3. **碰撞/触发事件**：碰撞器在与其他碰撞器交互时可以生成碰撞和触发器事件。有关这些事件的详细信息以及如何处理它们，请参阅[碰撞事件](/docs/physics/collider/event)文档。
+形状尺寸跟随实体的世界缩放。实体在非等比缩放的祖先下旋转可能产生切变，物理会忽略切变。开启日志时，碰撞器会提示一次。
 
-4. **碰撞层**：每个碰撞器可以被分配到一个碰撞层（Layer0 到 Layer31），用于控制不同物体之间的碰撞关系。通过设置碰撞层，可以灵活地控制哪些物体之间可以发生碰撞，哪些物体之间不能发生碰撞。更多信息请参考[碰撞层](/docs/physics/collider/collisionLayer)文档。
+| 方法 | 描述 |
+| :-- | :-- |
+| [**getInstanceMaterial**](/apis/core/#Collider-getInstanceMaterial) | 返回该碰撞器独有的材质，见[物理材质](#物理材质) |
+| [**getClosestPoint**](/apis/core/#Collider-getClosestPoint) | 返回世界空间中某点到碰撞器的距离并写出最近点。碰撞器不在模拟中时返回 -1。PlaneCollider、CharacterController 与非凸 MeshCollider 不支持 |
 
-## 最佳实践
+## 形状属性
 
-1. **合理使用形状**
+### BoxCollider
 
-- 保持碰撞形状数量最小化，仅在必要时添加额外形状，以减少性能开销
-- 避免使用过多的碰撞形状
-- 对于复杂模型，使用简化的碰撞形状代替精确网格
-- 角色控制器推荐使用胶囊体形状，可以更好地处理台阶和斜坡
+| 属性                                     | 描述                     | 默认值    |
+| :--------------------------------------- | :----------------------- | :-------- |
+| [**size**](/apis/core/#BoxCollider-size) | 盒在实体局部空间中的尺寸 | (1, 1, 1) |
 
-2. **性能优化**
+### SphereCollider
 
-   - 将不会移动的物体设置为静态碰撞器
-   - 合并相邻的静态碰撞器
-   - 适当调整动态碰撞器的 solverIterations，在性能和精度间取得平衡
-   - 合理使用 CollisionDetectionMode，只在必要时启用连续碰撞检测
+| 属性                                            | 描述                     | 默认值 |
+| :---------------------------------------------- | :----------------------- | :----- |
+| [**radius**](/apis/core/#SphereCollider-radius) | 球在实体局部空间中的半径 | 1      |
 
-3. **动态碰撞器设置**
+### CapsuleCollider
 
-   - 根据物体质量调整 linearDamping 和 angularDamping，避免物体运动不自然
-   - 使用 constraints 限制不需要的自由度，提高稳定性
-   - 适当设置 sleepThreshold，让静止物体及时进入休眠状态
+| 属性                                                   | 描述                         | 默认值                |
+| :----------------------------------------------------- | :--------------------------- | :-------------------- |
+| [**radius**](/apis/core/#CapsuleCollider-radius)       | 胶囊在实体局部空间中的半径   | 1                     |
+| [**height**](/apis/core/#CapsuleCollider-height)       | 圆柱部分的高度，不含两端半球 | 2                     |
+| [**direction**](/apis/core/#CapsuleCollider-direction) | 胶囊对齐的局部轴             | ColliderShapeUpAxis.Y |
 
-4. **角色控制器配置**
+### PlaneCollider
 
-   - 根据游戏类型设置合适的 stepOffset，避免卡住或跨越不合理
-   - 设置适当的 slopeLimit，需要考虑游戏场景中的斜坡角度
-   - 选择合适的 nonWalkableMode，考虑是否需要滑落效果
-   - 保持碰撞形状与角色视觉模型的合理匹配
+PlaneCollider 没有形状属性。它是朝向实体局部 +Y 轴的无限平面，可通过实体旋转或碰撞器的 `rotation` 调整朝向。
 
-5. **使用场景**
-   - 静态碰撞器：场景边界、地形、建筑等固定物体
-   - 动态碰撞器：可推动物体、物理道具、破坏物等
-   - 角色控制器：玩家角色、NPC 等需要特殊移动控制的对象
+### MeshCollider
+
+| 属性 | 描述 | 默认值 |
+| :-- | :-- | :-- |
+| [**mesh**](/apis/core/#MeshCollider-mesh) | 用于碰撞的 [ModelMesh](/apis/core/#ModelMesh)。网格数据在上传后必须保持可访问，三角网格还需要索引；无效网格在同步时会移出模拟与查询，替换为有效网格后自动恢复 | null |
+| [**convex**](/apis/core/#MeshCollider-convex) | 是否使用由网格顶点生成的凸包。非凸网格不可作为触发器，也不可挂在非运动学刚体下；非法组合会在同步时移出模拟与查询，修正后自动恢复 | false |
+| [**cookingFlags**](/apis/core/#MeshCollider-cookingFlags) | 网格烘焙标志 | Cleaning \| VertexWelding |
+
+## 物理材质
+
+- [**material**](/apis/core/#Collider-material)：读取或指定一个 [PhysicsMaterial](/apis/core/#PhysicsMaterial)，不会创建或克隆材质。修改材质会影响所有引用它的碰撞器。`null` 表示使用共享默认材质。指定属于其他引擎的材质会抛出异常。
+- [**getInstanceMaterial()**](/apis/core/#Collider-getInstanceMaterial)：首次调用时克隆已指定的材质（未指定时创建默认属性的材质）并指定给该碰撞器。之后的调用会复用它，直到指定了其他材质或 `null`。
+
+克隆实体后，克隆出的碰撞器与原碰撞器共享同一个材质引用；如需独立材质，可在克隆体上调用 `getInstanceMaterial()`。自己创建的材质在不再被碰撞器使用后应调用 `destroy()` 释放，共享默认材质无需手动清理。
+
+| 属性 | 描述 | 默认值 |
+| :-- | :-- | :-- |
+| [**staticFriction**](/apis/core/#PhysicsMaterial-staticFriction) | 物体静止时的摩擦系数 | 0.6 |
+| [**dynamicFriction**](/apis/core/#PhysicsMaterial-dynamicFriction) | 物体运动时的摩擦系数 | 0.6 |
+| [**bounciness**](/apis/core/#PhysicsMaterial-bounciness) | 弹性系数，范围 0（不反弹）到 1 | 0 |
+| [**bounceCombine**](/apis/core/#PhysicsMaterial-bounceCombine) | 两个物体弹性系数的组合方式：Average、Minimum、Maximum 或 Multiply | Average |
+| [**frictionCombine**](/apis/core/#PhysicsMaterial-frictionCombine) | 两个物体摩擦系数的组合方式：Average、Minimum、Maximum 或 Multiply | Average |
 
 ## 脚本使用
 
-### 添加碰撞器
+### 静态碰撞器
 
 ```typescript
-// 添加静态碰撞器
-const staticCollider = entity.addComponent(StaticCollider);
+import { BoxCollider, PlaneCollider, Vector3 } from "@galacean/engine";
 
-// 添加动态碰撞器
-const dynamicCollider = entity.addComponent(DynamicCollider);
+// 墙体及其祖先没有刚体，因此墙体是静态的。
+const wall = rootEntity.createChild("wall");
+const wallCollider = wall.addComponent(BoxCollider);
+wallCollider.size = new Vector3(5, 3, 0.5);
 
-// 添加角色控制器
-const characterController = entity.addComponent(CharacterController);
+const ground = rootEntity.createChild("ground");
+ground.addComponent(PlaneCollider);
 ```
+
+### 受物理驱动的碰撞器
+
+```typescript
+import { BoxCollider, Rigidbody, SphereCollider, Vector3 } from "@galacean/engine";
+
+const box = rootEntity.createChild("box");
+box.transform.setPosition(0, 5, 0);
+box.addComponent(Rigidbody);
+box.addComponent(BoxCollider);
+
+// 机器人刚体同时拥有躯干和头部的碰撞器。
+const robot = rootEntity.createChild("robot");
+robot.addComponent(Rigidbody);
+const body = robot.addComponent(BoxCollider);
+body.size = new Vector3(1, 2, 1);
+const head = robot.createChild("head");
+head.transform.setPosition(0, 1.5, 0);
+head.addComponent(SphereCollider).radius = 0.5;
+```
+
+### 触发器
+
+```typescript
+import { BoxCollider, Collider, Script, Vector3 } from "@galacean/engine";
+
+const zone = rootEntity.createChild("zone");
+const zoneCollider = zone.addComponent(BoxCollider);
+zoneCollider.size = new Vector3(4, 2, 4);
+zoneCollider.isTrigger = true;
+
+class ZoneScript extends Script {
+  onTriggerEnter(other: Collider, self: Collider) {
+    console.log(`${other.entity.name} 进入了 ${self.entity.name}`);
+  }
+}
+zone.addComponent(ZoneScript);
+```
+
+### 物理材质
+
+```typescript
+import { BoxCollider, PhysicsMaterial, SphereCollider } from "@galacean/engine";
+
+const sharedMaterial = new PhysicsMaterial(engine);
+sharedMaterial.dynamicFriction = 0.4;
+
+const box = entity.addComponent(BoxCollider);
+const sphere = entity.addComponent(SphereCollider);
+box.material = sharedMaterial;
+sphere.material = sharedMaterial;
+
+// 盒子使用独立材质，球体继续使用共享材质。
+const instance = box.getInstanceMaterial();
+instance.bounciness = 0.8;
+```
+
+## 最佳实践
+
+- 优先使用能满足需求的最简单形状：盒、球、胶囊的开销都低于网格碰撞器。
+- 运动的物体使用凸包 MeshCollider；三角网格（`convex = false`）只用于静态或运动学几何体。
+- 永远不会移动的物体不要添加刚体，让它保持静态。
+- 只需要检测重叠时，使用触发器代替物理碰撞。
+
+## 从碰撞形状迁移
+
+早期版本把形状对象添加到 `StaticCollider` 或 `DynamicCollider` 组件上。现在形状本身就是碰撞器组件，运动由独立的刚体组件负责，且没有兼容层。
+
+| 旧写法 | 新写法 |
+| :-- | :-- |
+| `DynamicCollider` | [`Rigidbody`](/docs/physics/collider/rigidbody)，刚体属性和方法保持一致 |
+| `DynamicColliderConstraints` | `RigidbodyConstraints` |
+| `StaticCollider` | 已移除：实体及其祖先上没有刚体的碰撞器就是静态的 |
+| `new BoxColliderShape()` + `collider.addShape(shape)` | `entity.addComponent(BoxCollider)`；`SphereCollider`、`CapsuleCollider`、`PlaneCollider`、`MeshCollider` 同理 |
+| 一个碰撞器上添加多个形状 | 在同一实体上添加多个碰撞器组件，或放在刚体下的子实体上 |
+| `removeShape()` / `clearShapes()` / `shapes` | 已移除：禁用或销毁碰撞器组件 |
+| `shape.position` | `collider.center` |
+| `shape.rotation` | `collider.rotation`（角度） |
+| `meshShape.isConvex` | `meshCollider.convex` |
+| `capsuleShape.upAxis` | `capsuleCollider.direction` |
+| `shape.material` / `shape.getInstanceMaterial(engine)` | `collider.material` / `collider.getInstanceMaterial()` |
+| `shape.isTrigger` | `collider.isTrigger` |
+| `joint.connectedCollider` | `joint.connectedBody`（`Rigidbody` 或 `null`） |
+| `onTriggerEnter(other: ColliderShape)`（Stay/Exit 同理） | `onTriggerEnter(other: Collider, self: Collider)` |
+| `collision.shape` | `collision.collider`（另一个碰撞器）和 `collision.selfCollider` |
+| `hitResult.shape` | `hitResult.collider` |
+| 返回 `ColliderShape[]` 的 `overlap*All()` | 返回 `Collider[]` 的 `overlap*All()` |
+| `characterController.addShape(capsuleOrBox)` | `characterController.geometry`、`radius`、`height`、`size` 和 `center` |
 
 ## 更多信息
 
-- [动态碰撞器文档](/docs/physics/collider/dynamicCollider)
-- [静态碰撞器文档](/docs/physics/collider/staticCollider)
-- [角色控制器文档](/docs/physics/collider/characterController)
-- [碰撞事件文档](/docs/physics/collider/event)
-- [碰撞层文档](/docs/physics/collider/collisionLayer)
+- [刚体](/docs/physics/collider/rigidbody)
+- [角色控制器](/docs/physics/collider/characterController)
+- [碰撞事件](/docs/physics/collider/event)
+- [碰撞层](/docs/physics/collider/collisionLayer)

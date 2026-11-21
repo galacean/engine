@@ -1,6 +1,5 @@
-import { ISpringJoint } from "@galacean/engine-design";
+import { IDynamicCollider, ISpringJoint } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
-import { Collider } from "../Collider";
 import { Joint } from "./Joint";
 
 /**
@@ -23,7 +22,10 @@ export class SpringJoint extends Joint {
   set minDistance(value: number) {
     if (this._minDistance !== value) {
       this._minDistance = value;
-      (<ISpringJoint>this._nativeJoint)?.setMinDistance(value);
+      if (this._nativeJoint) {
+        (<ISpringJoint>this._nativeJoint).setMinDistance(value);
+        this._wakeBodies();
+      }
     }
   }
 
@@ -37,7 +39,10 @@ export class SpringJoint extends Joint {
   set maxDistance(value: number) {
     if (this._maxDistance !== value) {
       this._maxDistance = value;
-      (<ISpringJoint>this._nativeJoint)?.setMaxDistance(value);
+      if (this._nativeJoint) {
+        (<ISpringJoint>this._nativeJoint).setMaxDistance(value);
+        this._wakeBodies();
+      }
     }
   }
 
@@ -51,7 +56,10 @@ export class SpringJoint extends Joint {
   set tolerance(value: number) {
     if (this._tolerance !== value) {
       this._tolerance = value;
-      (<ISpringJoint>this._nativeJoint)?.setTolerance(value);
+      if (this._nativeJoint) {
+        (<ISpringJoint>this._nativeJoint).setTolerance(value);
+        this._wakeBodies();
+      }
     }
   }
 
@@ -65,12 +73,15 @@ export class SpringJoint extends Joint {
   set stiffness(value: number) {
     if (this._stiffness !== value) {
       this._stiffness = value;
-      (<ISpringJoint>this._nativeJoint)?.setStiffness(value);
+      if (this._nativeJoint) {
+        (<ISpringJoint>this._nativeJoint).setStiffness(value);
+        this._wakeBodies();
+      }
     }
   }
 
   /**
-   * The degree of damping of the joint spring of the joint.
+   * The damping applied by the spring.
    */
   get damping(): number {
     return this._damping;
@@ -79,14 +90,15 @@ export class SpringJoint extends Joint {
   set damping(value: number) {
     if (this._damping !== value) {
       this._damping = value;
-      (<ISpringJoint>this._nativeJoint)?.setDamping(value);
+      if (this._nativeJoint) {
+        (<ISpringJoint>this._nativeJoint).setDamping(value);
+        this._wakeBodies();
+      }
     }
   }
 
-  protected _createJoint(): void {
-    const colliderInfo = this._colliderInfo;
-    colliderInfo.collider = this.entity.getComponent(Collider);
-    this._nativeJoint = Engine._nativePhysics.createSpringJoint(colliderInfo.collider!._nativeCollider);
+  protected override _createJoint(actor: IDynamicCollider): ISpringJoint {
+    return Engine._nativePhysics.createSpringJoint(actor);
   }
 
   protected override _syncNative(): void {

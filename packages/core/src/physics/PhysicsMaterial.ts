@@ -1,11 +1,12 @@
 import { IPhysicsMaterial, IPhysicsMaterialProperties } from "@galacean/engine-design";
+import { ReferResource } from "../asset/ReferResource";
 import { Engine } from "../Engine";
 import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
 
 /**
- * Surface friction, bounciness, and combine modes for collider shapes.
+ * Surface friction, bounciness, and combine modes for colliders.
  */
-export class PhysicsMaterial {
+export class PhysicsMaterial extends ReferResource {
   /** @internal */
   static readonly _defaultProperties: IPhysicsMaterialProperties = {
     staticFriction: 0.6,
@@ -20,17 +21,22 @@ export class PhysicsMaterial {
   private _staticFriction = PhysicsMaterial._defaultProperties.staticFriction;
   private _bounceCombine: PhysicsMaterialCombineMode = PhysicsMaterial._defaultProperties.bounceCombine;
   private _frictionCombine: PhysicsMaterialCombineMode = PhysicsMaterial._defaultProperties.frictionCombine;
-  private _destroyed: boolean;
 
   /** @internal */
   _nativeMaterial: IPhysicsMaterial;
 
-  constructor() {
-    this._nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(PhysicsMaterial._defaultProperties);
+  /**
+   * Create a physics material.
+   * @param engine - Engine to which the physics material belongs
+   */
+  constructor(engine: Engine) {
+    const nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(PhysicsMaterial._defaultProperties);
+    super(engine);
+    this._nativeMaterial = nativeMaterial;
   }
 
   /**
-   * The coefficient of bounciness, ranging from 0 to 1.
+   * The coefficient of bounciness. Must be between 0 and 1.
    */
   get bounciness(): number {
     return this._bounciness;
@@ -44,7 +50,7 @@ export class PhysicsMaterial {
   }
 
   /**
-   * The DynamicFriction value.
+   * The coefficient of dynamic friction.
    */
   get dynamicFriction(): number {
     return this._dynamicFriction;
@@ -100,10 +106,10 @@ export class PhysicsMaterial {
   }
 
   /**
-   * Create an independent material with the same properties.
+   * Create an independent material with the same properties, owned by the same engine.
    */
   clone(): PhysicsMaterial {
-    const material = new PhysicsMaterial();
+    const material = new PhysicsMaterial(this._engine);
     material.staticFriction = this._staticFriction;
     material.dynamicFriction = this._dynamicFriction;
     material.bounciness = this._bounciness;
@@ -113,10 +119,19 @@ export class PhysicsMaterial {
   }
 
   /**
-   * Release this material after all shapes have stopped using it.
+   * @internal
    */
-  destroy() {
-    !this._destroyed && this._nativeMaterial.destroy();
-    this._destroyed = true;
+  override _addReferCount(value: number): void {
+    // Allow _onDestroy() to clear the reference count while the native material still exists.
+    // Colliders may release their references after the native material has been destroyed.
+    if (this._nativeMaterial) {
+      super._addReferCount(value);
+    }
+  }
+
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    this._nativeMaterial.destroy();
+    this._nativeMaterial = null!;
   }
 }

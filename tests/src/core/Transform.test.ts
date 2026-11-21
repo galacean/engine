@@ -9,7 +9,7 @@ import {
   Script,
   Transform
 } from "@galacean/engine-core";
-import { Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
+import { Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -47,6 +47,59 @@ describe("Transform test", function () {
     expect(transform.lossyWorldScale).to.deep.equal(new Vector3(4, 10, 18));
     transform.setRotation(90, 0, 0);
     expect(transform.lossyWorldScale).to.deep.equal(new Vector3(4, 15, 12));
+  });
+
+  it("uses the matrix basis for an aligned child of a matrix-authored parent", () => {
+    const parent = scene.createRootEntity();
+    const child = parent.createChild();
+    const matrix = new Matrix();
+    matrix.elements[1] = matrix.elements[4] = 0.0625;
+    parent.transform.localMatrix = matrix;
+
+    expect(child.transform.lossyWorldScale.x).toBeCloseTo(1, 5);
+    parent.transform.setScale(2, 3, 4);
+    expect(child.transform.lossyWorldScale).toEqual(new Vector3(2, 3, 4));
+    parent.destroy();
+  });
+
+  it("uses custom local matrices for child and descendant world scale", () => {
+    class MatrixScalingTransform extends Transform {
+      private readonly _matrix = new Matrix();
+
+      constructor(entity: Entity) {
+        super(entity);
+        this._matrix.elements[0] = 2;
+      }
+
+      override get localMatrix(): Matrix {
+        return this._matrix;
+      }
+    }
+
+    const root = scene.createRootEntity();
+    const child = root.createChild();
+    const grandchild = child.createChild();
+    const custom = child.addComponent(MatrixScalingTransform);
+    try {
+      root.transform.setScale(3, 3, 3);
+      expect(custom.worldMatrix.elements[0]).toBe(6);
+      expect(custom.lossyWorldScale).toEqual(new Vector3(6, 3, 3));
+
+      const transform = grandchild.transform;
+      expect(transform.lossyWorldScale).toEqual(new Vector3(6, 3, 3));
+      transform.setRotation(0, 0, 90);
+      expect(transform.lossyWorldScale.x).toBeCloseTo(3, 5);
+      expect(transform.lossyWorldScale.y).toBeCloseTo(6, 5);
+
+      scene.addRootEntity(child);
+      expect(custom.worldMatrix.elements[0]).toBe(2);
+      expect(custom.lossyWorldScale).toEqual(new Vector3(2, 1, 1));
+      expect(transform.lossyWorldScale.x).toBeCloseTo(1, 5);
+      expect(transform.lossyWorldScale.y).toBeCloseTo(2, 5);
+    } finally {
+      child.destroy();
+      root.destroy();
+    }
   });
 
   it("Parent Dirty", () => {

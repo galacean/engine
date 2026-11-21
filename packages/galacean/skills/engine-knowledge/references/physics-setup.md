@@ -5,28 +5,30 @@ Use this reference when choosing who owns motion, when synchronization occurs, o
 ## Simulation ownership
 
 - Physics is opt-in through Engine configuration. Without a provider, physics components and physics-backed picking do not have a simulation owner.
-- A non-kinematic dynamic body is simulation-owned. Drive continuous motion through velocity, forces, and torque rather than competing transform writes.
-- A direct Transform change is synchronized to the native collider at a physics step as a teleport. It is not swept through the path between the old and new pose.
-- A kinematic dynamic body is application-owned. Use its supported path-motion operation when interactions along the movement path matter; a direct Transform assignment still has teleport semantics.
-- After simulation, the native pose of an active non-kinematic body is written back to its Transform.
+- A Collider component (`BoxCollider`, `SphereCollider`, `CapsuleCollider`, `PlaneCollider`, `MeshCollider`) is the shape. The nearest `Rigidbody` on its Entity or ancestors owns it; without one it is static and follows its own Entity. Build compound bodies from several Colliders on the Rigidbody's Entity or its descendants. An Entity can have at most one Rigidbody.
+- Disabling a Rigidbody removes it and its Colliders from simulation and queries without making them static; removing the Rigidbody makes them static. `PlaneCollider` and a `MeshCollider` with `convex = false` can only be static or kinematic.
+- A non-kinematic Rigidbody is simulation-owned. Drive continuous motion through velocity, forces, and torque rather than competing transform writes.
+- A direct Transform change is synchronized to the native actor before the next physics step or query as a teleport. It is not swept through the path between the old and new pose.
+- A kinematic Rigidbody is application-owned. Use `Rigidbody.move` when interactions along the movement path matter; a direct Transform assignment still has teleport semantics.
+- After each simulation step, the native pose of every enabled Rigidbody is written back to its Transform. `CharacterController.move` writes the Entity's world position immediately.
 
 ## Fixed-step order
 
-Within a physics step, active Scripts receive `onPhysicsUpdate`, pending Transform poses are synchronized to native colliders, the provider simulates, dynamic poses are read back, and collision or trigger events are dispatched.
+Within a physics step, active Scripts receive `onPhysicsUpdate`, pending component and Transform changes are synchronized to the native scene, the provider simulates, Rigidbody poses are read back, and collision or trigger events are dispatched.
 
 This ordering means a pose or force chosen in `onPhysicsUpdate` affects the upcoming step. Rendered-frame callbacks must not assume exactly one simulation step has occurred.
 
-## Shapes and events
+## Colliders and events
 
-- A collider needs at least one shape to participate in contacts or queries.
-- 3D Script pointer targeting is physics-backed: the pointer ray is tested against eligible collider shapes before callbacks are dispatched to the hit Entity. A visible mesh alone is not a pointer target. The active Camera, culling mask, collision layer, shape raycast flag, and physics provider all participate in that selection.
-- Trigger callbacks receive the other `ColliderShape`. Collision callbacks receive a `Collision` whose `shape` identifies the peer shape.
+- A Collider participates in contacts and queries only while it is enabled in a scene and, if owned, its Rigidbody is enabled. A `MeshCollider` also needs a valid `mesh`.
+- 3D Script pointer targeting is physics-backed: the pointer ray is tested against eligible Colliders before callbacks are dispatched to the hit Collider's own Entity. A visible mesh alone is not a pointer target. The active Camera, culling mask, collision layer, and physics provider all participate in that selection.
+- Events go to Scripts on each Collider's own Entity. Trigger callbacks receive `(other, self)` Colliders. Collision callbacks receive a `Collision` whose `collider` is the other Collider and `selfCollider` is the receiver; contact normals and impulses point toward the receiver.
 - `Collision` and its native contact data are temporary callback data. Copy positions, normals, impulses, or other values that must outlive the callback.
-- Collision layers, trigger mode, collider type, and provider capability all affect whether a pair produces contacts. Resolve the exact current API from the installed declarations instead of copying a provider-specific setup.
+- Collision layers, trigger mode, Rigidbody ownership, and provider capability all affect whether a pair produces contacts. Resolve the exact current API from the installed declarations instead of copying a provider-specific setup.
 
 ## Decision rule
 
-Choose one motion owner per body: simulation for non-kinematic dynamics, application path motion for kinematics, or Transform teleportation for explicit repositioning. Mixing owners produces discontinuities and missed path behavior.
+Choose one motion owner per body: simulation for non-kinematic dynamics, application path motion (`Rigidbody.move`) for kinematics, or Transform teleportation for explicit repositioning. Mixing owners produces discontinuities and missed path behavior.
 
 ## Physics-backed screen picking
 

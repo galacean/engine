@@ -1,151 +1,187 @@
 import { DataObject } from "../../base/DataObject";
-import { IJoint } from "@galacean/engine-design";
+import { IDynamicCollider, IJoint } from "@galacean/engine-design";
 import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Component } from "../../Component";
 import { DependentMode, dependentComponents } from "../../ComponentsDependencies";
 import { Entity } from "../../Entity";
 import { TransformModifyFlags } from "../../Transform";
 import { ignoreClone } from "../../clone/CloneDecorators";
-import { Collider } from "../Collider";
-import { DynamicCollider } from "../DynamicCollider";
+import type { ICloneHook } from "../../clone/ICloneHook";
+import { Rigidbody } from "../Rigidbody";
 
 /**
- * A base class providing common functionality for joints.
- * @decorator `@dependentComponents(Collider, DependentMode.CheckOnly)`
+ * A constraint between the Entity's Rigidbody and another body or the world.
+ * @decorator `@dependentComponents(Rigidbody, DependentMode.AutoAdd)`
  */
-@dependentComponents(DynamicCollider, DependentMode.AutoAdd)
-export abstract class Joint extends Component {
+@dependentComponents(Rigidbody, DependentMode.AutoAdd)
+export abstract class Joint extends Component implements ICloneHook<Joint> {
   private static _tempVector3 = new Vector3();
   private static _tempQuat = new Quaternion();
   private static _tempMatrix = new Matrix();
 
-  protected _colliderInfo = new JointColliderInfo();
-  protected _connectedColliderInfo = new JointColliderInfo();
+  private _bodyInfo = new JointBodyInfo();
+  private _connectedBodyInfo = new JointBodyInfo();
+  private _connectedBody: Rigidbody | null = null;
   @ignoreClone
-  protected _nativeJoint: IJoint | null;
+  protected _nativeJoint: IJoint | null = null;
   private _force = Infinity;
   private _torque = Infinity;
   private _automaticConnectedAnchor = true;
+  private _connectedAnchorAuthored = false;
+  @ignoreClone
+  private _calculatedConnectedAnchor: Vector3 | null = null;
 
   /**
-   * The connected collider.
+   * The connected Rigidbody, or null to constrain against the world.
+   * @remarks With a connected body, the constraint is active only while both bodies are registered in the same scene.
+   * Destroying the connected body clears the connection.
+   * @throws When assigned a destroyed body, the joint's own body, or a body from another engine.
    */
-  get connectedCollider(): Collider | null {
-    return this._connectedColliderInfo.collider;
+  get connectedBody(): Rigidbody | null {
+    return this._connectedBody;
   }
 
-  set connectedCollider(value: Collider) {
-    const preCollider = this._connectedColliderInfo.collider;
-    if (preCollider !== value) {
-      preCollider?.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
-      value?.entity._updateFlagManager.addListener(this._onConnectedTransformChanged);
-      this._connectedColliderInfo.collider = value;
-      this._nativeJoint?.setConnectedCollider(value?._nativeCollider);
-      this._updateRotation();
-      if (this._automaticConnectedAnchor) {
-        this._calculateConnectedAnchor();
-      } else {
-        this._updateActualAnchor(AnchorOwner.Connected);
+  set connectedBody(value: Rigidbody | null) {
+    if (value) {
+      if (value.destroyed) {
+        throw new Error("Joint: connectedBody has been destroyed.");
+      } else if (value.engine !== this.engine) {
+        throw new Error("Joint: connectedBody belongs to another engine.");
+      } else if (value.entity === this.entity) {
+        throw new Error("Joint: cannot connect a Rigidbody to itself.");
       }
+    }
+    const preBody = this._connectedBody;
+    if (preBody !== value) {
+      preBody?.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
+      preBody?._detachJoint(this);
+      value?.entity._updateFlagManager.addListener(this._onConnectedTransformChanged);
+      value?._attachJoint(this);
+      if (this._nativeJoint) Joint._wakeBody(preBody);
+      this._connectedBody = value;
+      this._syncActiveJoint();
     }
   }
 
   /**
-   * The anchor position.
+   * The anchor in this Entity's local space.
    */
   get anchor(): Vector3 {
-    return this._colliderInfo.anchor;
+    return this._bodyInfo.anchor;
   }
 
   set anchor(value: Vector3) {
-    const anchor = this._colliderInfo.anchor;
+    const anchor = this._bodyInfo.anchor;
     if (value !== anchor) {
       anchor.copyFrom(value);
-      this._updateActualAnchor(AnchorOwner.Self);
-      this._automaticConnectedAnchor && this._calculateConnectedAnchor();
     }
   }
 
   /**
-   * The connected anchor position.
-   * @remarks If connectedCollider is set, this anchor is relative offset, or the anchor is world position.
-   * The connectedAnchor is automatically calculated, if you want to set it manually, please set automaticConnectedAnchor to false
+   * The anchor in the connected body's local space, or in world space when {@link connectedBody} is null.
+   * @remarks Reads the authored value if one was set, otherwise the last calculated anchor.
+   * Simulation uses the calculated anchor while {@link automaticConnectedAnchor} is enabled.
    */
   get connectedAnchor(): Vector3 {
-    return this._connectedColliderInfo.anchor;
+    const anchor = this._connectedBodyInfo.anchor;
+    if (!this._connectedAnchorAuthored) {
+      // A retained reference can still be edited after switching to automatic mode.
+      this._calculatedConnectedAnchor ||= anchor.clone();
+    }
+    return anchor;
   }
 
   set connectedAnchor(value: Vector3) {
-    const connectedAnchor = this._connectedColliderInfo.anchor;
-    if (value !== connectedAnchor) {
-      connectedAnchor.copyFrom(value);
+    const anchor = this.connectedAnchor;
+    if (value !== anchor) {
+      anchor.copyFrom(value);
     }
   }
 
   /**
-   * Whether or not to calculate the connectedAnchor automatically, if true, the connectedAnchor will be calculated automatically to match the global position of the anchor property.
+   * Whether the connected anchor automatically matches the world position of {@link anchor}.
+   * @remarks Disabling uses the authored connected anchor if available, or keeps the calculated one.
    */
   get automaticConnectedAnchor(): boolean {
     return this._automaticConnectedAnchor;
   }
 
   set automaticConnectedAnchor(value: boolean) {
-    this._automaticConnectedAnchor = value;
-    value && this._calculateConnectedAnchor();
+    if (value) {
+      this._automaticConnectedAnchor = true;
+      this._calculateConnectedAnchor();
+    } else if (this._automaticConnectedAnchor) {
+      this._automaticConnectedAnchor = false;
+      if (this._connectedAnchorAuthored) this._updateActualAnchor(AnchorOwner.Connected);
+    }
   }
 
   /**
-   *  The scale to apply to the mass of collider 0 for resolving this constraint.
+   * The scale to apply to the mass of the connected body for resolving this constraint.
+   * @throws When the value is not positive and finite.
    */
   get connectedMassScale(): number {
-    return this._connectedColliderInfo.massScale;
+    return this._connectedBodyInfo.massScale;
   }
 
   set connectedMassScale(value: number) {
-    if (value !== this._connectedColliderInfo.massScale) {
-      this._connectedColliderInfo.massScale = value;
+    if (!(value > 0 && Number.isFinite(value))) {
+      throw new Error("Joint connectedMassScale must be positive and finite.");
+    }
+    if (value !== this._connectedBodyInfo.massScale) {
+      this._connectedBodyInfo.massScale = value;
       this._nativeJoint?.setConnectedMassScale(value);
+      if (this._nativeJoint) {
+        this._wakeBodies();
+      }
     }
   }
 
   /**
-   * The scale to apply to the mass of collider 1 for resolving this constraint.
+   * The scale to apply to the mass of this body for resolving this constraint.
+   * @throws When the value is not positive and finite.
    */
   get massScale(): number {
-    return this._colliderInfo.massScale;
+    return this._bodyInfo.massScale;
   }
 
   set massScale(value: number) {
-    if (value !== this._colliderInfo.massScale) {
-      this._colliderInfo.massScale = value;
+    if (!(value > 0 && Number.isFinite(value))) {
+      throw new Error("Joint massScale must be positive and finite.");
+    }
+    if (value !== this._bodyInfo.massScale) {
+      this._bodyInfo.massScale = value;
       this._nativeJoint?.setMassScale(value);
+      if (this._nativeJoint) {
+        this._wakeBodies();
+      }
     }
   }
 
   /**
-   * The scale to apply to the inertia of collider0 for resolving this constraint.
+   * The scale to apply to the inverse inertia of the connected body for resolving this constraint.
    */
   get connectedInertiaScale(): number {
-    return this._connectedColliderInfo.inertiaScale;
+    return this._connectedBodyInfo.inertiaScale;
   }
 
   set connectedInertiaScale(value: number) {
-    if (value !== this._connectedColliderInfo.inertiaScale) {
-      this._connectedColliderInfo.inertiaScale = value;
+    if (value !== this._connectedBodyInfo.inertiaScale) {
+      this._connectedBodyInfo.inertiaScale = value;
       this._nativeJoint?.setConnectedInertiaScale(value);
     }
   }
 
   /**
-   * The scale to apply to the inertia of collider1 for resolving this constraint.
+   * The scale to apply to the inverse inertia of this body for resolving this constraint.
    */
   get inertiaScale(): number {
-    return this._colliderInfo.inertiaScale;
+    return this._bodyInfo.inertiaScale;
   }
 
   set inertiaScale(value: number) {
-    if (value !== this._colliderInfo.inertiaScale) {
-      this._colliderInfo.inertiaScale = value;
+    if (value !== this._bodyInfo.inertiaScale) {
+      this._bodyInfo.inertiaScale = value;
       this._nativeJoint?.setInertiaScale(value);
     }
   }
@@ -180,11 +216,10 @@ export abstract class Joint extends Component {
 
   constructor(entity: Entity) {
     super(entity);
-    //@ts-ignore
-    this._colliderInfo.anchor._onValueChanged = this._updateActualAnchor.bind(this, AnchorOwner.Self);
+    this._onAnchorChanged = this._onAnchorChanged.bind(this);
+    this._bodyInfo.anchor._onValueChanged = this._onAnchorChanged;
     this._handleConnectedAnchorChanged = this._handleConnectedAnchorChanged.bind(this);
-    //@ts-ignore
-    this._connectedColliderInfo.anchor._onValueChanged = this._handleConnectedAnchorChanged.bind(this);
+    this._connectedBodyInfo.anchor._onValueChanged = this._handleConnectedAnchorChanged;
 
     this._onSelfTransformChanged = this._onSelfTransformChanged.bind(this);
     this._onConnectedTransformChanged = this._onConnectedTransformChanged.bind(this);
@@ -196,70 +231,152 @@ export abstract class Joint extends Component {
    * @internal
    */
   override _onEnableInScene(): void {
-    this._createJoint();
-    this._syncNative();
-    this._updateRotation();
+    this.entity.getComponent(Rigidbody)!._attachJoint(this);
+    this._syncActiveJoint();
   }
 
   /**
    * @internal
    */
   override _onDisableInScene(): void {
-    this._nativeJoint!.destroy();
-    this._nativeJoint = null;
+    this.entity.getComponent(Rigidbody)!._detachJoint(this);
+    this._destroyNativeJoint();
   }
 
-  protected abstract _createJoint(): void;
+  /**
+   * @internal
+   */
+  _onClone(target: Joint): void {
+    const targetAnchor = target._bodyInfo.anchor;
+    targetAnchor._onValueChanged = null;
+    targetAnchor.copyFrom(this._bodyInfo.anchor);
+    targetAnchor._onValueChanged = target._onAnchorChanged;
+
+    const targetConnectedAnchor = target._connectedBodyInfo.anchor;
+    targetConnectedAnchor._onValueChanged = null;
+    targetConnectedAnchor.copyFrom(this._connectedBodyInfo.anchor);
+    targetConnectedAnchor._onValueChanged = target._handleConnectedAnchorChanged;
+
+    const connectedBody = target._connectedBody;
+    connectedBody?.entity._updateFlagManager.addListener(target._onConnectedTransformChanged);
+    connectedBody?._attachJoint(target);
+  }
+
+  /**
+   * Clears an authored connection when its target is destroyed.
+   * @internal
+   */
+  _onBodyDestroyed(body: Rigidbody): void {
+    if (this._connectedBody === body) this.connectedBody = null;
+  }
+
+  /**
+   * Reconciles the constraint with both bodies' native scene registrations.
+   * @internal
+   */
+  _syncActiveJoint(): void {
+    const scene = this._registeredScene;
+    if (!scene) return;
+    const bodyActor = this.entity.getComponent(Rigidbody)!._getRegisteredActor(scene);
+    const connectedBody = this._connectedBody;
+    const connectedActor = connectedBody?._getRegisteredActor(scene) ?? null;
+    if (!bodyActor || (connectedBody && !connectedActor)) {
+      this._destroyNativeJoint();
+      return;
+    }
+    const nativeJoint = this._nativeJoint;
+    if (nativeJoint) {
+      nativeJoint.setConnectedCollider(connectedActor);
+      this._syncConnectedFrame();
+    } else {
+      const joint = (this._nativeJoint = this._createJoint(bodyActor));
+      if (connectedActor) joint.setConnectedCollider(connectedActor);
+      this._syncNative();
+    }
+  }
+
+  protected override _onDestroy(): void {
+    this._bodyInfo.anchor._onValueChanged = null;
+    this._connectedBodyInfo.anchor._onValueChanged = null;
+    super._onDestroy();
+    this.entity._updateFlagManager.removeListener(this._onSelfTransformChanged);
+    const connectedBody = this._connectedBody;
+    if (connectedBody) {
+      connectedBody.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
+      connectedBody._detachJoint(this);
+      this._connectedBody = null;
+    }
+  }
+
+  protected abstract _createJoint(actor: IDynamicCollider): IJoint;
+
+  /** @internal */
+  protected _destroyNativeJoint(): void {
+    const nativeJoint = this._nativeJoint;
+    if (nativeJoint) {
+      nativeJoint.destroy();
+      this._nativeJoint = null;
+      this._wakeBodies();
+    }
+  }
 
   protected _syncNative(): void {
-    if (this._nativeJoint) {
-      this._nativeJoint.setConnectedCollider(this._connectedColliderInfo.collider?._nativeCollider || null);
-      this._updateActualAnchor(AnchorOwner.Self);
-      if (this._automaticConnectedAnchor) {
-        this._calculateConnectedAnchor();
-      } else {
-        this._updateActualAnchor(AnchorOwner.Connected);
-      }
-      this._nativeJoint.setConnectedMassScale(this._connectedColliderInfo.massScale);
-      this._nativeJoint.setConnectedInertiaScale(this._connectedColliderInfo.inertiaScale);
-      this._nativeJoint.setMassScale(this._colliderInfo.massScale);
-      this._nativeJoint.setInertiaScale(this._colliderInfo.inertiaScale);
-      this._nativeJoint.setBreakForce(this._force);
-      this._nativeJoint.setBreakTorque(this._torque);
+    const nativeJoint = this._nativeJoint!;
+    this._updateActualAnchor(AnchorOwner.Self);
+    this._syncConnectedFrame();
+    nativeJoint.setConnectedMassScale(this._connectedBodyInfo.massScale);
+    nativeJoint.setConnectedInertiaScale(this._connectedBodyInfo.inertiaScale);
+    nativeJoint.setMassScale(this._bodyInfo.massScale);
+    nativeJoint.setInertiaScale(this._bodyInfo.inertiaScale);
+    nativeJoint.setBreakForce(this._force);
+    nativeJoint.setBreakTorque(this._torque);
+  }
+
+  private _syncConnectedFrame(): void {
+    if (this._automaticConnectedAnchor) {
+      this._calculateConnectedAnchor();
+    } else {
+      this._updateActualAnchor(AnchorOwner.Connected);
     }
+    this._updateRotation();
   }
 
   private _calculateConnectedAnchor(): void {
-    const colliderInfo = this._colliderInfo;
-    const connectedColliderInfo = this._connectedColliderInfo;
-    const connectedAnchor = connectedColliderInfo.anchor;
-    const connectedActualAnchor = connectedColliderInfo.actualAnchor;
-    const connectedCollider = connectedColliderInfo.collider;
+    if (!this._nativeJoint) return;
+    const bodyInfo = this._bodyInfo;
+    const authored = this._connectedAnchorAuthored;
+    const connectedAnchor = authored
+      ? (this._calculatedConnectedAnchor ||= new Vector3())
+      : this._connectedBodyInfo.anchor;
+    const connectedBody = this._connectedBody;
 
-    // @ts-ignore
     connectedAnchor._onValueChanged = null;
-    if (connectedCollider) {
+    if (connectedBody) {
       const tempVector3 = Joint._tempVector3;
       const tempMatrix = Joint._tempMatrix;
-      Vector3.transformCoordinate(colliderInfo.anchor, this.entity.transform.worldMatrix, tempVector3);
-      Matrix.invert(connectedCollider.entity.transform.worldMatrix, tempMatrix);
+      Vector3.transformCoordinate(bodyInfo.anchor, this.entity.transform.worldMatrix, tempVector3);
+      Matrix.invert(connectedBody.entity.transform.worldMatrix, tempMatrix);
       Vector3.transformCoordinate(tempVector3, tempMatrix, connectedAnchor);
     } else {
-      Vector3.transformCoordinate(colliderInfo.anchor, this.entity.transform.worldMatrix, connectedActualAnchor);
-      connectedAnchor.copyFrom(connectedActualAnchor);
+      Vector3.transformCoordinate(bodyInfo.anchor, this.entity.transform.worldMatrix, connectedAnchor);
     }
-    // @ts-ignore
-    connectedAnchor._onValueChanged = this._handleConnectedAnchorChanged;
+    if (!authored) {
+      connectedAnchor._onValueChanged = this._handleConnectedAnchorChanged;
+      this._calculatedConnectedAnchor?.copyFrom(connectedAnchor);
+    }
     this._updateActualAnchor(AnchorOwner.Connected);
   }
 
   @ignoreClone
+  private _onAnchorChanged(): void {
+    this._updateActualAnchor(AnchorOwner.Self);
+    this._automaticConnectedAnchor && this._calculateConnectedAnchor();
+  }
+
+  @ignoreClone
   private _handleConnectedAnchorChanged(): void {
-    if (this._automaticConnectedAnchor) {
-      console.warn("Cannot set connectedAnchor when automaticConnectedAnchor is true.");
-    } else {
-      this._updateActualAnchor(AnchorOwner.Connected);
-    }
+    this._connectedAnchorAuthored = true;
+    if (!this._automaticConnectedAnchor) this._updateActualAnchor(AnchorOwner.Connected);
   }
 
   @ignoreClone
@@ -277,33 +394,51 @@ export abstract class Joint extends Component {
   }
 
   private _updateRotation(): void {
-    const quat = Joint._tempQuat;
-    const connectedColliderInfo = this._connectedColliderInfo;
-    const connectedCollider = connectedColliderInfo.collider;
-    if (connectedCollider) {
-      Quaternion.invert(connectedCollider.entity.transform.worldRotationQuaternion, quat);
+    let rotation = this.entity.transform.worldRotationQuaternion;
+    const connectedBody = this._connectedBody;
+    if (connectedBody) {
+      const relativeRotation = Joint._tempQuat;
+      Quaternion.invert(connectedBody.entity.transform.worldRotationQuaternion, relativeRotation);
+      Quaternion.multiply(relativeRotation, rotation, relativeRotation);
+      rotation = relativeRotation;
     }
-    Quaternion.multiply(quat, this.entity.transform.worldRotationQuaternion, quat);
-    this._nativeJoint?.setRotation(quat);
+    this._nativeJoint?.setRotation(rotation);
   }
 
   private _updateActualAnchor(flag: AnchorOwner): void {
+    const nativeJoint = this._nativeJoint;
+    if (!nativeJoint) return;
+
     if (flag & AnchorOwner.Self) {
       const worldScale = this.entity.transform.lossyWorldScale;
-      const selfColliderInfo = this._colliderInfo;
-      Vector3.multiply(selfColliderInfo.anchor, worldScale, selfColliderInfo.actualAnchor);
-      this._nativeJoint?.setAnchor(selfColliderInfo.actualAnchor);
+      const selfBodyInfo = this._bodyInfo;
+      Vector3.multiply(selfBodyInfo.anchor, worldScale, selfBodyInfo.actualAnchor);
+      nativeJoint.setAnchor(selfBodyInfo.actualAnchor);
     }
     if (flag & AnchorOwner.Connected) {
-      const connectedColliderInfo = this._connectedColliderInfo;
-      const connectedCollider = connectedColliderInfo.collider;
-      if (connectedCollider) {
-        const worldScale = connectedCollider.entity.transform.lossyWorldScale;
-        Vector3.multiply(connectedColliderInfo.anchor, worldScale, connectedColliderInfo.actualAnchor);
+      const connectedBodyInfo = this._connectedBodyInfo;
+      const anchor = (this._automaticConnectedAnchor && this._calculatedConnectedAnchor) || connectedBodyInfo.anchor;
+      const connectedBody = this._connectedBody;
+      if (connectedBody) {
+        const worldScale = connectedBody.entity.transform.lossyWorldScale;
+        Vector3.multiply(anchor, worldScale, connectedBodyInfo.actualAnchor);
       } else {
-        connectedColliderInfo.actualAnchor.copyFrom(connectedColliderInfo.anchor);
+        connectedBodyInfo.actualAnchor.copyFrom(anchor);
       }
-      this._nativeJoint?.setConnectedAnchor(connectedColliderInfo.actualAnchor);
+      nativeJoint.setConnectedAnchor(connectedBodyInfo.actualAnchor);
+    }
+    this._wakeBodies();
+  }
+
+  protected _wakeBodies(): void {
+    Joint._wakeBody(this.entity.getComponent(Rigidbody));
+    const body = this._connectedBody;
+    if (body?.scene === this.scene) Joint._wakeBody(body);
+  }
+
+  private static _wakeBody(body: Rigidbody | null | undefined): void {
+    if (body && !body.destroyed && body._index !== -1 && !body.isKinematic) {
+      body.wakeUp();
     }
   }
 }
@@ -313,16 +448,16 @@ export abstract class Joint extends Component {
  */
 enum AnchorOwner {
   Self = 0x1,
-  Connected = 0x2,
-  Both = 0x3
+  Connected = 0x2
 }
 
 /**
  * @internal
  */
-class JointColliderInfo extends DataObject {
-  collider: Collider | null = null;
+class JointBodyInfo extends DataObject {
+  @ignoreClone
   anchor = new Vector3();
+  @ignoreClone
   actualAnchor = new Vector3();
   massScale: number = 1;
   inertiaScale: number = 1;

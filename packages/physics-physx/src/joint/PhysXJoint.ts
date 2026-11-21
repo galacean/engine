@@ -4,7 +4,7 @@ import { PhysXCollider } from "../PhysXCollider";
 import { PhysXPhysics } from "../PhysXPhysics";
 
 /**
- * a base interface providing common functionality for PhysX joints
+ * Shared actor frames and constraint settings for PhysX joints.
  */
 export class PhysXJoint implements IJoint {
   protected static _defaultVec = new Vector3();
@@ -32,7 +32,7 @@ export class PhysXJoint implements IJoint {
   }
 
   /**
-   * {@inheritDoc IJoint.setConnectedAnchor }
+   * {@inheritDoc IJoint.setAnchor }
    */
   setAnchor(value: Vector3): void {
     this._setLocalPose(0, value, PhysXJoint._defaultQuat);
@@ -47,6 +47,9 @@ export class PhysXJoint implements IJoint {
     this._connectedAnchor = value;
   }
 
+  /**
+   * {@inheritDoc IJoint.setRotation }
+   */
   setRotation(value: Quaternion): void {
     this._setLocalPose(1, this._connectedAnchor, value);
     this._rotation.copyFrom(value);
@@ -56,14 +59,20 @@ export class PhysXJoint implements IJoint {
    * {@inheritDoc IJoint.setMassScale }
    */
   setMassScale(value: number): void {
-    this._pxJoint.setInvMassScale0(1 / value);
+    const inv = Math.fround(1 / value);
+    if (inv > 0 && Number.isFinite(inv)) {
+      this._pxJoint.setInvMassScale0(inv);
+    }
   }
 
   /**
    * {@inheritDoc IJoint.setConnectedMassScale }
    */
   setConnectedMassScale(value: number): void {
-    this._pxJoint.setInvMassScale1(1 / value);
+    const inv = Math.fround(1 / value);
+    if (inv > 0 && Number.isFinite(inv)) {
+      this._pxJoint.setInvMassScale1(inv);
+    }
   }
 
   /**
@@ -102,13 +111,14 @@ export class PhysXJoint implements IJoint {
   destroy(): void {
     if (!this._pxJoint) return;
     this._pxJoint.release();
+    this._pxJoint = null;
     this._collider = null!;
   }
   /**
-   * Set the joint local pose for an actor.
-   * @param actor 0 for the first actor, 1 for the second actor.
-   * @param position the local position for the actor this joint
-   * @param rotation the local rotation for the actor this joint
+   * Set a joint frame. A frame for the world connection uses world coordinates.
+   * @param actor - 0 for the owning actor, 1 for the connected actor or world
+   * @param position - The anchor position in the selected frame
+   * @param rotation - The joint rotation in the selected frame
    */
   protected _setLocalPose(actor: number, position: Vector3, rotation: Quaternion): void {
     this._pxJoint.setLocalPose(actor, position, rotation);

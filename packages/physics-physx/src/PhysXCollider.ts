@@ -5,13 +5,13 @@ import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
 
 /**
- * Abstract class of physical collider.
+ * PhysX rigid actor with a set of attached shapes.
  */
 export abstract class PhysXCollider implements ICollider {
   private static _tempTransform: {
     translation: Vector3;
     rotation: Quaternion;
-  } = { translation: null!, rotation: null! };
+  } = { translation: new Vector3(), rotation: new Quaternion() };
 
   /** @internal  */
   _scene: PhysXPhysicsScene | null = null;
@@ -29,8 +29,8 @@ export abstract class PhysXCollider implements ICollider {
   /**
    * {@inheritDoc ICollider.addShape }
    */
-  addShape(shape: PhysXColliderShape, layer: number): boolean {
-    if (!this._pxActor.attachShapeWithLayer(shape._pxShape, layer)) {
+  addShape(shape: PhysXColliderShape): boolean {
+    if (!this._pxActor.attachShape(shape._pxShape)) {
       return false;
     }
     this._shapes.push(shape);
@@ -49,40 +49,37 @@ export abstract class PhysXCollider implements ICollider {
   }
 
   /**
-   * {@inheritDoc IStaticCollider.replaceShape }
+   * {@inheritDoc ICollider.replaceShape }
    */
-  replaceShape(previousShape: PhysXColliderShape, newShape: PhysXColliderShape, layer: number): boolean {
-    if (!this._pxActor.attachShapeWithLayer(newShape._pxShape, layer)) {
+  replaceShape(previousShape: PhysXColliderShape, newShape: PhysXColliderShape): boolean {
+    if (!this._pxActor.attachShape(newShape._pxShape)) {
       return false;
     }
     this._shapes[this._shapes.indexOf(previousShape)] = newShape;
     this._pxActor.detachShape(previousShape._pxShape, true);
-    this._scene?._removeColliderShape(previousShape._id);
-    this._scene?._addColliderShape(newShape._id);
+    // Re-register the same collider ID so a continuing overlap can stay active.
+    const scene = this._scene;
+    if (scene) {
+      scene._removeColliderShape(previousShape._id);
+      scene._addColliderShape(newShape._id);
+    }
     return true;
   }
 
   /**
-   * {@inheritDoc ICollider.setWorldTransform }
+   * {@inheritDoc IStaticCollider.setWorldTransform }
    */
   setWorldTransform(position: Vector3, rotation: Quaternion): void {
     this._pxActor.setGlobalPose(this._transform(position, rotation), true);
   }
 
   /**
-   * {@inheritDoc ICollider.getWorldTransform }
+   * {@inheritDoc IStaticCollider.getWorldTransform }
    */
   getWorldTransform(outPosition: Vector3, outRotation: Quaternion): void {
-    const transform = this._pxActor.getGlobalPose();
-    outPosition.set(transform.translation.x, transform.translation.y, transform.translation.z);
-    outRotation.set(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
-  }
-
-  /**
-   * {@inheritDoc ICollider.setCollisionLayer }
-   */
-  setCollisionLayer(layer: number): void {
-    this._physXPhysics._physX.setGroup(this._pxActor, layer);
+    const { translation, rotation } = this._pxActor.getGlobalPose();
+    outPosition.copyFrom(translation);
+    outRotation.copyFrom(rotation);
   }
 
   /**
@@ -97,8 +94,9 @@ export abstract class PhysXCollider implements ICollider {
    */
   _transform(pos: Vector3, rot: Quaternion): { translation: Vector3; rotation: Quaternion } {
     const transform = PhysXCollider._tempTransform;
-    transform.translation = pos;
-    transform.rotation = rot.normalize();
+    // Keep entity-owned vectors out of the shared pose to avoid retaining their change callbacks.
+    transform.translation.copyFrom(pos);
+    Quaternion.normalize(rot, transform.rotation);
     return transform;
   }
 }

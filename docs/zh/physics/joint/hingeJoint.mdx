@@ -11,14 +11,14 @@ label: Physics
 
 1. 选中目标实体，并在检查器中点击添加组件按钮，添加 HingeJoint 组件。
 <Callout type="info">
-添加关节组件时，需要确保目标实体上已经挂载了一个 `动态碰撞器组件`，如果你未添加，编辑器会自动为你添加一个`动态碰撞器组件`。
+关节需要所在实体上有一个[刚体](/docs/physics/collider/rigidbody)，如果没有，添加关节时会自动添加一个。
 </Callout>
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*SL8YQLNbsJwAAAAAAAAAAAAAesJ_AQ/original" />
 
-2. 通过组件属性 connectedCollider 设置连接的目标碰撞体（若不需要，可保持为 null，即连接到世界空间中的一点）。
+2. 通过组件属性 connectedBody 设置连接的目标刚体（若不需要，可保持为 null，即连接到世界空间中的一点）。
 <Callout type="positive">
-如果连接的目标是碰撞体，则目标实体需要挂载碰撞体组件（动态碰撞器，静态碰撞器，角色控制器）。
+连接目标必须是[刚体](/docs/physics/collider/rigidbody)。如需把物体固定到静态物体上，可保持 connectedBody 为 null，连接到世界空间中的一点。
 </Callout>
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*SwsmS572tcAAAAAAAAAAAAAAesJ_AQ/original" />
@@ -27,18 +27,18 @@ label: Physics
 
 ## 属性说明
 
-### 碰撞体设置
-- [**connectedCollider**](/apis/core/#HingeJoint-connectedCollider)  
-  指定要连接的目标碰撞体。当设置为 null 时，关节会连接到世界空间中的一个固定点。
+### 连接刚体
+- [**connectedBody**](/apis/core/#HingeJoint-connectedBody)  
+  指定要连接的目标刚体。当设置为 null 时，关节会连接到世界空间中的一个固定点。
 
 ### 锚点设置
 - [**anchor**](/apis/core/#HingeJoint-anchor)  
-  在自身碰撞体上定义的锚点位置（局部坐标）。这个点是铰链的旋转中心。
+  在自身刚体上定义的锚点位置（局部坐标）。这个点是铰链的旋转中心。
 
 - [**connectedAnchor**](/apis/core/#HingeJoint-connectedAnchor)  
   定义连接点的位置：
-  - 当 connectedCollider 为 null 时，表示世界空间中的固定点
-  - 当 connectedCollider 不为 null 时，表示目标碰撞体局部空间中的连接点
+  - 当 connectedBody 为 null 时，表示世界空间中的固定点
+  - 当 connectedBody 不为 null 时，表示目标刚体局部空间中的连接点
 
 - [**automaticConnectedAnchor**](/apis/core/#HingeJoint-automaticConnectedAnchor)  
   是否自动计算连接点位置。启用时会自动保持物体的初始相对位置。
@@ -71,7 +71,7 @@ label: Physics
 
 | 属性            | 描述                                                                 |
 | --------------- | -------------------------------------------------------------------- |
-| **targetVelocity** | 目标角速度（度/秒）                                               |
+| **targetVelocity** | 目标角速度（弧度/秒）                                               |
 | **forceLimit**  | 最大扭矩限制                                                        |
 | **freeSpin**    | 是否允许自由旋转                                                    |
 | **gearRatio**   | 齿轮比，用于调整实际输出的角速度                                    |
@@ -89,7 +89,7 @@ label: Physics
 
 ### 质量计算干预
 - [**connectedMassScale**](/apis/core/#HingeJoint-connectedMassScale) 和 [**massScale**](/apis/core/#HingeJoint-massScale)  
-  调整连接碰撞体和自身碰撞体的质量影响。默认值为 1.0。
+  调整连接刚体和自身刚体的质量影响。默认值为 1.0。
 
 ## 脚本使用
 
@@ -100,10 +100,10 @@ label: Physics
 const hingeJoint = entity.addComponent(HingeJoint);
 
 // 设置连接对象
-hingeJoint.connectedCollider = targetEntity.getComponent(Collider);
+hingeJoint.connectedBody = targetEntity.getComponent(Rigidbody);
 
-// 设置旋转轴
-hingeJoint.axis.setValue(0, 1, 0); // Y轴旋转
+// 绕关节的局部 Y 轴旋转。
+hingeJoint.axis.set(0, 1, 0);
 ```
 
 ### 运动限制
@@ -114,7 +114,7 @@ hingeJoint.useLimits = true;
 hingeJoint.limits = new JointLimits();
 hingeJoint.limits.min = -45;         // 最小角度
 hingeJoint.limits.max = 45;          // 最大角度
-hingeJoint.limits.contactDistance = 5; // 接触距离
+hingeJoint.limits.contactDistance = 0.1; // 距任一边界 0.1 弧度时启用硬限制。
 
 // 启用弹性限制
 hingeJoint.useSpring = true;
@@ -128,7 +128,7 @@ hingeJoint.limits.damping = 0.2;    // 阻尼系数
 // 启用马达
 hingeJoint.useMotor = true;
 hingeJoint.motor = new JointMotor();
-hingeJoint.motor.targetVelocity = 180;  // 目标角速度(度/秒)
+hingeJoint.motor.targetVelocity = Math.PI; // 每秒半圈。
 hingeJoint.motor.forceLimit = 500;      // 最大扭矩
 hingeJoint.motor.freeSpin = false;      // 自由旋转
 hingeJoint.motor.gearRatio = 1;         // 齿轮比

@@ -8,7 +8,6 @@ import {
   IHingeJoint,
   IMeshColliderShape,
   IPhysics,
-  IPhysicsManager,
   IPhysicsMaterialProperties,
   IPhysicsScene,
   IPlaneColliderShape,
@@ -19,7 +18,6 @@ import {
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXDynamicCollider } from "./PhysXDynamicCollider";
-import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
 import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
 import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
 import { PhysXStaticCollider } from "./PhysXStaticCollider";
@@ -59,17 +57,18 @@ export class PhysXPhysics implements IPhysics {
 
   /**
    * Create a PhysXPhysics instance.
-   * @param runtimeMode - Runtime mode, `Auto` prefers WebAssembly SIMD if supported @see {@link PhysXRuntimeMode}
-   * @param runtimeUrls - Manually specify the runtime URLs
+   * @param runtimeMode - Runtime mode. `Auto` prefers WebAssembly SIMD when supported.
+   * @param runtimeUrls - Override the runtime URLs
+   * @see {@link PhysXRuntimeMode}
    */
   constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, runtimeUrls?: PhysXRuntimeUrls) {
     this._runTimeMode = runtimeMode;
     this._wasmSIMDModeUrl =
       runtimeUrls?.wasmSIMDModeUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*Ig51T5AwyTgAAAAAQ4AAAAgAehQnAQ/physx.release.simd.js";
+      "https://mdn.alipayobjects.com/rms/afts/file/A*iP4kRaWKYaUAAAAAQ4AAAAgAehQnAQ/physx.release.simd.js";
     this._wasmModeUrl =
       runtimeUrls?.wasmModeUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*y4S4S5-ud-QAAAAAQ4AAAAgAehQnAQ/physx.release.js";
+      "https://mdn.alipayobjects.com/rms/afts/file/A*MiEITZJl1LcAAAAAQ4AAAAgAehQnAQ/physx.release.js";
   }
 
   /**
@@ -139,17 +138,10 @@ export class PhysXPhysics implements IPhysics {
   }
 
   /**
-   * {@inheritDoc IPhysics.createPhysicsManager }
-   */
-  createPhysicsManager(): IPhysicsManager {
-    return new PhysXPhysicsManager();
-  }
-
-  /**
    * {@inheritDoc IPhysics.createPhysicsScene }
    */
-  createPhysicsScene(physicsManager: PhysXPhysicsManager): IPhysicsScene {
-    const scene = new PhysXPhysicsScene(this, physicsManager);
+  createPhysicsScene(): IPhysicsScene {
+    const scene = new PhysXPhysicsScene(this);
     return scene;
   }
 
@@ -170,8 +162,8 @@ export class PhysXPhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.createCharacterController }
    */
-  createCharacterController(): ICharacterController {
-    return new PhysXCharacterController(this);
+  createCharacterController(uniqueID: number, material: PhysXPhysicsMaterial): ICharacterController {
+    return new PhysXCharacterController(this, uniqueID, material);
   }
 
   /**
@@ -184,8 +176,8 @@ export class PhysXPhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.createBoxColliderShape }
    */
-  createBoxColliderShape(uniqueID: number, size: Vector3, material: PhysXPhysicsMaterial): IBoxColliderShape {
-    return new PhysXBoxColliderShape(this, uniqueID, size, material);
+  createBoxColliderShape(uniqueID: number, halfExtents: Vector3, material: PhysXPhysicsMaterial): IBoxColliderShape {
+    return new PhysXBoxColliderShape(this, uniqueID, halfExtents, material);
   }
 
   /**
@@ -208,10 +200,11 @@ export class PhysXPhysics implements IPhysics {
   createCapsuleColliderShape(
     uniqueID: number,
     radius: number,
-    height: number,
-    material: PhysXPhysicsMaterial
+    halfHeight: number,
+    material: PhysXPhysicsMaterial,
+    upAxis: number
   ): ICapsuleColliderShape {
-    return new PhysXCapsuleColliderShape(this, uniqueID, radius, height, material);
+    return new PhysXCapsuleColliderShape(this, uniqueID, radius, halfHeight, material, upAxis);
   }
 
   /**
@@ -224,7 +217,7 @@ export class PhysXPhysics implements IPhysics {
     isConvex: boolean,
     material: PhysXPhysicsMaterial,
     cookingFlags: number,
-    worldScale: Vector3
+    scale: Vector3
   ): IMeshColliderShape | null {
     const shape = new PhysXMeshColliderShape(
       this,
@@ -234,7 +227,7 @@ export class PhysXPhysics implements IPhysics {
       isConvex,
       material,
       cookingFlags,
-      worldScale
+      scale
     );
     return shape._pxShape ? shape : null;
   }
