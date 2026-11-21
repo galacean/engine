@@ -1,0 +1,16 @@
+packages/core/src/shader/ShaderMacroCollection.ts
+  h_ddbf152d31b140 79-84,124,126,132-135,145-146,148-149,154
+tests/src/core/ShaderMacroCollection.test.ts
+  h_ddbf152d31b140 1-152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "297e62d7f12c6c0de7f836507c384e660174d7ca",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

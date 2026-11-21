@@ -1,0 +1,18 @@
+packages/modify/src/native/core/src/lighting/environment/RealtimeSphericalHarmonicsGPU.ts
+  h_79b10db07e6052 1,25,27,46,107-110
+packages/world-planning/src/integrations/terrain/environment/WorldEnvironmentRuntime.ts
+  h_79b10db07e6052 335-336,492,649,664,671,678,685,693,949-961,965-969
+packages/world-planning/src/integrations/terrain/lighting/TerrainLightingRuntime.ts
+  h_79b10db07e6052 1404
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2b2568cd4c6d10ba2a1ef3d097d30822e9668dc9",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,102 @@
+packages/xr-webxr/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+tests/src/core/postProcess/PostProcess.test.ts
+  s_d2c65ec75a2f3e::t_714c89d1d52420 4,12,19,26-28,170,178-184,200,226,503-1011
+packages/physics-physx/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+packages/galacean/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+packages/shader/src/Shaders/PostProcess/Bloom.shader
+  s_d2c65ec75a2f3e::t_714c89d1d52420 16,26,29,35-42
+tests/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 4
+packages/math/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+packages/shader-parser/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+packages/shader-compiler/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+packages/spine/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+packages/loader/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomDownsample.glsl
+  s_d2c65ec75a2f3e::t_714c89d1d52420 1-49
+packages/core/src/animation/Animator.ts
+  s_d2c65ec75a2f3e::t_714c89d1d52420 76,80-83,90,368-372
+packages/shader-analyzer/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+packages/rhi-webgl/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+examples/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+packages/spine-core-3.8/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+packages/spine-core-4.2/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+packages/shader/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+packages/core/src/postProcess/effects/BloomEffect.ts
+  s_d2c65ec75a2f3e::t_714c89d1d52420 32,40-41,51,61-66
+  s_d2c65ec75a2f3e::t_f6acf18680ad53 67
+packages/design/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+e2e/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 4
+packages/rhi-null/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+packages/shader/src/ShaderLibrary/PostProcess/UberPost.glsl
+  s_d2c65ec75a2f3e::t_714c89d1d52420 13,24,26,30,33,36
+packages/core/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomUpsample.glsl
+  s_d2c65ec75a2f3e::t_714c89d1d52420 9,13,15-20,23-24
+tests/src/core/Animator.test.ts
+  s_d2c65ec75a2f3e::t_714c89d1d52420 1943-1989
+packages/core/src/postProcess/PostProcessUberPass.ts
+  s_d2c65ec75a2f3e::t_714c89d1d52420 7,19,37,68-69,88,99-109,112,117,139-140,143-156,158,160,163,172-176,179-182,186-187,193-196,199-200,221-227,230,232-236,239
+packages/shader/src/ShaderLibrary/index.ts
+  s_d2c65ec75a2f3e::t_714c89d1d52420 43,104
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl
+  s_d2c65ec75a2f3e::t_714c89d1d52420 11-33,35-45
+packages/ui/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+packages/xr/package.json
+  s_d2c65ec75a2f3e::t_714c89d1d52420 3
+e2e/fixtures/originImage/Advance_multi-camera-no-clear.jpg
+  s_d2c65ec75a2f3e::t_6938bde655e455 2-3
+e2e/fixtures/originImage/Advance_multi-scene-clear.jpg
+  s_d2c65ec75a2f3e::t_4b967320aaf15a 2-3
+e2e/fixtures/originImage/Advance_multi-scene-no-clear.jpg
+  s_d2c65ec75a2f3e::t_2bbf08fff4c643 2-3
+e2e/fixtures/originImage/Camera_camera-fxaa.jpg
+  s_d2c65ec75a2f3e::t_b498f20a899408 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-limitVelocity.jpg
+  s_d2c65ec75a2f3e::t_031d8708592124 2-3
+e2e/fixtures/originImage/PostProcess_postProcess-HDR-bloom-ACES.jpg
+  s_d2c65ec75a2f3e::t_8994feaa11cb3f 2-3
+e2e/fixtures/originImage/PostProcess_postProcess-HDR-bloom-neutral.jpg
+  s_d2c65ec75a2f3e::t_cab20d0af1a969 2-3
+e2e/fixtures/originImage/PostProcess_postProcess-LDR-bloom-neutral.jpg
+  s_d2c65ec75a2f3e::t_28516545b03222 2-3
+e2e/fixtures/originImage/PostProcess_postProcess-customPass.jpg
+  s_d2c65ec75a2f3e::t_ba9d58794ba886 2-3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e775eae0d82425e76c9a11c1c88cf10ab2c4f1ac",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
