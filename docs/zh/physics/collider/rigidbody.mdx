@@ -91,36 +91,18 @@ label: Physics
 
 ### 碰撞检测模式
 
-- [**collisionDetectionMode**](/apis/core/#Rigidbody-collisionDetectionMode)  
-   用于控制物体碰撞检测的精确程度：
+使用 PhysX 后端时，[`collisionDetectionMode`](/apis/core/#Rigidbody-collisionDetectionMode) 决定刚体在模拟中如何检测碰撞。
 
-| 模式 | 描述 | 适用场景 | 性能消耗 |
-| ---- | ---- | -------- | -------- |
-| **Discrete** | 最基础的检测模式，按固定的时间步长检测碰撞，可能在高速运动时发生穿透 | 低速物体 | 最低 |
-| **Continuous** | 对静态网格几何体使用连续碰撞检测，可以防止高速物体穿透静态物体 | 高速投射物 | 中等 |
-| **ContinuousDynamic** | 对静态和动态几何体使用连续碰撞检测，可以防止高速物体之间的相互穿透 | 精确物理模拟 | 较高 |
-| **ContinuousSpeculative** | 对静态和动态几何体使用推测性连续碰撞检测 | 一般游戏场景 | 中等 |
+| 模式 | PhysX 行为 |
+| ---- | ---- |
+| **Discrete** | 在每个固定步检测接触。高速刚体可能穿过较薄的碰撞体。 |
+| **Continuous** | 使用扫掠 CCD，该刚体不开启 CCD 摩擦。 |
+| **ContinuousDynamic** | 使用扫掠 CCD，并开启扫掠碰撞时的摩擦。 |
+| **ContinuousSpeculative** | 根据刚体运动预测可能出现的接触。 |
 
-使用 PhysX 后端时，刚体为运动学状态期间，Continuous 和 ContinuousDynamic 会被映射为推测性检测。
+两种扫掠模式都可以检测与静态或动态目标的碰撞。若碰撞双方任一刚体开启了 CCD 摩擦，且接触材质有摩擦，扫掠碰撞就能产生切向摩擦。
 
-#### 选择建议
-
-1. **基于物体速度选择**
-
-   - 低速物体：使用 Discrete
-   - 中速物体：使用 ContinuousSpeculative
-   - 高速物体：使用 Continuous 或 ContinuousDynamic
-
-2. **基于重要性选择**
-
-   - 普通场景物体：使用 Discrete
-   - 游戏关键物体：使用 ContinuousSpeculative
-   - 必须精确的物理交互：使用 ContinuousDynamic
-
-3. **基于性能选择**
-   - 性能优先：使用 Discrete
-   - 性能与精度平衡：使用 ContinuousSpeculative
-   - 精度优先：使用 ContinuousDynamic
+运动学刚体设为 `Continuous` 或 `ContinuousDynamic` 时，PhysX 使用推测性 CCD。
 
 ## 公开方法
 

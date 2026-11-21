@@ -804,11 +804,11 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 export enum CollisionDetectionMode {
   /** Continuous collision detection is off for this Rigidbody. */
   Discrete,
-  /** Continuous collision detection is on for colliding with static mesh geometry. */
+  /** Uses swept CCD without enabling CCD friction on this body. */
   Continuous,
-  /** Continuous collision detection is on for colliding with static and dynamic geometry. */
+  /** Uses swept CCD and enables friction during CCD impacts. */
   ContinuousDynamic,
-  /** Speculative continuous collision detection is on for static and dynamic geometries */
+  /** Uses speculative CCD. */
   ContinuousSpeculative
 }
 

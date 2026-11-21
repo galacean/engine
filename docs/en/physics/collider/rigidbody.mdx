@@ -91,36 +91,18 @@ Constraint solving is the process used by the physics engine to resolve collisio
 
 ### Collision Detection Mode
 
-- [**collisionDetectionMode**](/apis/core/#Rigidbody-collisionDetectionMode)  
-   Controls the precision of collision detection:
+With the PhysX backend, [`collisionDetectionMode`](/apis/core/#Rigidbody-collisionDetectionMode) selects how a Rigidbody detects collisions during simulation.
 
-| Mode | Description | Applicable Scenarios | Performance Cost |
-| ---- | ---- | -------- | -------- |
-| **Discrete** | Basic detection mode, detects collisions at fixed time steps, may cause tunneling at high speeds | Low-speed objects | Lowest |
-| **Continuous** | Continuous detection against static mesh geometry, prevents high-speed objects from tunneling through static objects | High-speed projectiles | Moderate |
-| **ContinuousDynamic** | Continuous detection against static and dynamic geometry, prevents high-speed objects from tunneling through each other | Precise physical simulations | High |
-| **ContinuousSpeculative** | Speculative continuous detection for static and dynamic geometry | General game scenarios | Moderate |
+| Mode | PhysX behavior |
+| ---- | ---- |
+| **Discrete** | Checks for contact at each fixed step. Fast bodies can pass through thin colliders. |
+| **Continuous** | Uses swept CCD without enabling CCD friction on this body. |
+| **ContinuousDynamic** | Uses swept CCD and enables friction during CCD impacts. |
+| **ContinuousSpeculative** | Predicts potential contacts from the body's motion. |
 
-With the PhysX backend, Continuous and ContinuousDynamic are mapped to speculative detection while the Rigidbody is kinematic.
+Both swept modes can detect collisions with static and dynamic targets. A swept impact can apply friction if either body enables CCD friction and the contact materials provide friction.
 
-#### Selection Recommendations
-
-1. **Based on Object Speed**
-
-   - Low-speed objects: Use Discrete
-   - Medium-speed objects: Use ContinuousSpeculative
-   - High-speed objects: Use Continuous or ContinuousDynamic
-
-2. **Based on Importance**
-
-   - Normal scene objects: Use Discrete
-   - Critical game objects: Use ContinuousSpeculative
-   - Precise physical interactions: Use ContinuousDynamic
-
-3. **Based on Performance**
-   - Performance priority: Use Discrete
-   - Balance between performance and precision: Use ContinuousSpeculative
-   - Precision priority: Use ContinuousDynamic
+PhysX uses speculative CCD for kinematic bodies set to `Continuous` or `ContinuousDynamic`.
 
 ## Methods
 
