@@ -93,3 +93,20 @@ export declare class Texture2D extends Texture {
 
 
 通过正确管理纹理的色彩空间设置，可以确保渲染结果的准确性，同时提升性能。
+
+### WebGL1 缺少 EXT_sRGB 时
+
+对于普通 `R8G8B8`、`R8G8B8A8` 纹理，设备缺少 `EXT_sRGB` 时，引擎在上传阶段将 sRGB 输入像素转换为线性 RGB/RGBA 存储。原生 `texture2D` / `textureCube` 和原有的 `texture2DSRGB` 函数都直接返回线性颜色，无需特殊 sampler 命名或解码 uniform。引擎不再启用用于 Shader 软件解码的 `ENGINE_NO_SRGB` 宏，请勿对这些采样结果再次手动解码。
+
+`isSRGBColorSpace` 仍描述输入数据：设置为 `false` 并不会将 sRGB 像素转换为线性像素。线性输入及支持硬件 sRGB 的设备继续使用正常上传路径。压缩 sRGB 纹理依赖各自的格式支持，不属于此转换方案的范围。
+
+像素数组通过查表转换，不修改调用方的缓冲区。图片来源先经过临时 RGBA 上传和回读，再进行转换，以保留浏览器对方向和预乘 Alpha 的处理语义；临时 GPU 资源在每次上传结束后释放。这会增加上传工作，图片来源还会发生同步回读，但不增加绘制 Pass 或每次采样的 Shader 解码。动态纹理每次更新都会承担相应成本。
+
+线性 8 位存储的暗部精度低于 sRGB 存储。对转换后的纹理调用 `getPixelBuffer` 时，引擎会重新编码为声明的 sRGB 空间，因此上传再读回存在量化误差，暗部尤其明显。指定 mip 层和局部区域的上传也会转换；自动生成 mipmap 时则基于线性化后的存储。
+
+这些设备上的内部渲染目标使用线性附件，现有的最终输出 Pass 负责显示转换。显式创建 sRGB `RenderTarget` 仍不受支持，会抛出错误；请使用线性附件：
+
+```ts
+const color = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8, false, false);
+const target = new RenderTarget(engine, width, height, color);
+```

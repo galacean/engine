@@ -84,6 +84,15 @@ describe("ShaderLab", async () => {
       { name: "MATERIAL_ENABLE_TRANSMISSION" },
       { name: "MATERIAL_HAS_THICKNESS" }
     ]);
+
+    // Compile textured variants after removing shader-side fallback decoding.
+    glslValidate(engine, PBRSource, shaderLabRelease, [
+      { name: "MATERIAL_HAS_BASETEXTURE" },
+      { name: "MATERIAL_HAS_EMISSIVETEXTURE" },
+      { name: "MATERIAL_ENABLE_SHEEN" },
+      { name: "MATERIAL_HAS_SHEEN_TEXTURE" },
+      { name: "MATERIAL_ENABLE_TRANSMISSION" }
+    ]);
   });
 
   it("render state", async () => {
