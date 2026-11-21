@@ -1,0 +1,188 @@
+packages/animals/src/gameplay/animal/ProceduralAnimalPresenter.ts
+  h_a3c79ce84ffdc2 44-45
+packages/building/src/building/runtime/BuildingDistanceView.ts
+  h_a3c79ce84ffdc2 501-502,588-589
+packages/building/src/building/runtime/MasonryDistanceSurface.shader
+  h_a3c79ce84ffdc2 6-7
+packages/farming/src/farming/presentation/FarmItemHighlight.ts
+  h_a3c79ce84ffdc2 47
+packages/farming/src/farming/presentation/PlantHarvestEffect.ts
+  h_a3c79ce84ffdc2 213
+packages/farming/src/farming/presentation/PlantHarvestShader.ts
+  h_a3c79ce84ffdc2 17-19,22-27,79
+packages/farming/src/farming/presentation/harvest/HarvestProduce.ts
+  h_a3c79ce84ffdc2 62
+packages/farming/src/farming/presentation/soil/SoilMoistureShader.ts
+  h_a3c79ce84ffdc2 7-8,104
+packages/farming/src/farming/presentation/soil/SoilVisualProvider.ts
+  h_a3c79ce84ffdc2 479
+packages/farming/src/farming/procedural/runtime/PlantOrganMaterials.ts
+  h_a3c79ce84ffdc2 45
+packages/modify/build/local-engine.mjs
+  h_a3c79ce84ffdc2 15
+packages/modify/build/vite.mjs
+  h_a3c79ce84ffdc2 15
+packages/modify/native-overrides.json
+  h_a3c79ce84ffdc2 694-697
+packages/modify/src/native/core/src/Camera.ts
+  h_a3c79ce84ffdc2 190-207
+packages/modify/src/native/core/src/Engine.ts
+  h_a3c79ce84ffdc2 89-90,397-403
+packages/modify/src/native/core/src/RenderPipeline/Blitter.ts
+  h_a3c79ce84ffdc2 23-27,42,53-54,101-124,126,131
+packages/modify/src/native/core/src/RenderPipeline/RenderQueue.ts
+  h_a3c79ce84ffdc2 4,24-26,112-114,130-135,189-201,218,222,230,235,258-262,265-275
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/SSRHistoryState.ts
+  h_a3c79ce84ffdc2 19,23-24,39-46,53-60
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  h_a3c79ce84ffdc2 1,12,37,59-60,95-96,98,143-150,197-199,263-280,283,287-288,290,322,329-355,360,370-387,391-392,395,506,509-510,516,546,572-613,638,648,686-688,860,862,899-931,933-953,1037,1048-1053,1199-1200,1209,1366-1382,1385,1401-1407,1416-1421,1437-1443,1452,1462-1468,1491-1492,1495-1502,1505-1513,1516-1519,1549-1563,1565-1571,1573,1576-1594,1620-1623,1625-1633,1635-1652,1772-1817,1819-1820,1851-1852,1892-1897,1950-1957,1964-1971
+packages/modify/src/native/core/src/material/Material.ts
+  h_a3c79ce84ffdc2 25-31,118
+packages/modify/src/native/core/src/material/PBRMaterial.ts
+  h_a3c79ce84ffdc2 574,590,608,621
+packages/modify/src/native/core/src/postProcess/PostProcessManager.ts
+  h_a3c79ce84ffdc2 28-29,197-202,214,217,220-224,288-290,292,296,300,308-329,344-349
+packages/modify/src/native/core/src/shader/ShaderData.ts
+  h_a3c79ce84ffdc2 28-30,755
+packages/modify/src/native/core/src/shader/ShaderProgram.ts
+  h_a3c79ce84ffdc2 78,80,94,106,114-117,254,438-453,599-601,652-653,685-704
+packages/modify/src/native/galacean/src/ShaderPool.ts
+  h_a3c79ce84ffdc2 104
+packages/modify/src/native/loader/src/MaterialLoader.ts
+  h_a3c79ce84ffdc2 8,90-92,140-157
+packages/modify/src/native/rhi-null/src/NullTexture.ts
+  h_a3c79ce84ffdc2 1-43
+packages/modify/src/native/rhi-webgl/src/GLCapability.ts
+  h_a3c79ce84ffdc2 196-197
+packages/modify/src/native/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl
+  h_a3c79ce84ffdc2 81-88
+packages/modify/src/native/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl
+  h_a3c79ce84ffdc2 8,30,80,84,88-93,104
+packages/modify/src/native/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader
+  h_a3c79ce84ffdc2 34,39,88,93,270,274,374-382,387,410-411,422-429,442-448,450,455-535,569,580,587-591,650-651,663,667,693-695,703-707,715-739,742-744,746-795,825-828,830
+packages/modify/src/native/shader/src/Shaders/Pipeline/SSRReceiver.shader
+  h_a3c79ce84ffdc2 123-124,248,251
+packages/modify/tests/ScreenSpaceReflection.spec.ts
+  h_a3c79ce84ffdc2 4,14,131-140,147,164-199,216-232
+packages/modify/tests/ScreenSpaceReflection.test.ts
+  h_a3c79ce84ffdc2 23,26,35,497-502,703-710,810-814,2479-2486,2488-2498,2540-2549,2775,2781,3269-3949
+packages/runtime-editor/src/runtime-editor/generated/engine-runtime-files.json
+  h_a3c79ce84ffdc2 1
+packages/runtime-editor/src/runtime-editor/generated/engine-runtime-index.json
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/grasslands/public/Shader/Surface.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/grasslands/public/Shader/Terrain.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/grasslands/source/public/Shader/Surface.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/grasslands/source/public/Shader/Terrain.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/project.json
+  h_a3c79ce84ffdc2 232,250
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/public/Shader/Water/WaterAotManifest.cf5f44d1700a53d90b50c615c4292af0f5f589b994913addabd7ced923453107.json
+  h_a3c79ce84ffdc2 28,37-41
+packages/terrain/src/data/seed-world/public/Shader/Water/lake-heightfield-high-hybrid-v2.0f4025d9417d688d4cc120c68810db7e5189280eb5887140425cd2c1c4415528.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/source/Shader/Water/LakeHeightfieldHighHybrid.shader
+  h_a3c79ce84ffdc2 2378-2382,2851-2891,2975
+packages/terrain/src/shaders/Grass.shader
+  h_a3c79ce84ffdc2 3
+packages/terrain/src/shaders/surface/SurfaceDepthShadowPass.glsl
+  h_a3c79ce84ffdc2 25-27,29-31,54-63,145
+packages/terrain/src/terrain/debug/TerrainScreenSpaceReflectionPanel.ts
+  h_a3c79ce84ffdc2 77-89
+packages/vegetation/src/asset-assembly/AssetAssemblySourceLibrary.ts
+  h_a3c79ce84ffdc2 387,402-404,586-587,590,599-600,608-618,627-628,632-639,650-651,661-662,683-684,706-710
+packages/vegetation/src/asset-assembly/ProceduralPlantMaterialBindings.ts
+  h_a3c79ce84ffdc2 90-94,234
+packages/vegetation/src/asset-assembly/ProceduralPlantPreview.ts
+  h_a3c79ce84ffdc2 88-89
+packages/water/src/water/native/WaterMaterialFile.ts
+  h_a3c79ce84ffdc2 481-485
+packages/water/src/water/native/assets/Water/Shaders/builtin/lake.json
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/river.json
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/sources.json
+  h_a3c79ce84ffdc2 2
+packages/water/src/water/native/assets/Water/Shaders/lake-heightfield-high-hybrid-v2.shaderc
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/lake.shader
+  h_a3c79ce84ffdc2 2372-2376,2657-2697,2781
+packages/water/src/water/native/assets/conversion.json
+  h_a3c79ce84ffdc2 275,277-278
+packages/water/src/water/runtime/heightfield/HeightfieldWaterBackend.ts
+  h_a3c79ce84ffdc2 650
+packages/water/src/water/runtime/heightfield/HeightfieldWaterMaterialFactory.ts
+  h_a3c79ce84ffdc2 431-433,494,899-900
+packages/water/src/water/runtime/heightfield/HeightfieldWaterRuntimeController.ts
+  h_a3c79ce84ffdc2 358,607
+packages/water/src/water/runtime/optics/WaterEnvironmentReflectionProvider.ts
+  h_a3c79ce84ffdc2 56-77,194-209
+packages/water/src/water/runtime/river/RiverMaterialFactory.ts
+  h_a3c79ce84ffdc2 430-432
+packages/water/src/water/runtime/river/RiverSurfaceShader.ts
+  h_a3c79ce84ffdc2 293
+packages/water/src/water/shaders/heightfield/SSRReceiver.glsl
+  h_a3c79ce84ffdc2 23-27,141-181
+packages/water/tests/WaterBuiltinShaders.test.ts
+  h_a3c79ce84ffdc2 92-98,103-110
+packages/water/tests/WaterQualityMaterial.test.ts
+  h_a3c79ce84ffdc2 17,19-36,209-258
+packages/world-planning/src/integrations/vegetation/VegetationLandscapePreview.ts
+  h_a3c79ce84ffdc2 664-665,718-719
+packages/world-planning/src/semantic-study/PlanningTerrainDepth.ts
+  h_a3c79ce84ffdc2 63
+packages/world-planning/src/semantic-study/WorldPlanning3DView.ts
+  h_a3c79ce84ffdc2 396-397
+packages/world-planning/src/spatial/director/DirectorSemanticView.ts
+  h_a3c79ce84ffdc2 89
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_a3c79ce84ffdc2 403-405
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  h_a3c79ce84ffdc2 885,889-890
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  h_a3c79ce84ffdc2 421-429
+packages/world-planning/src/world/SeedWorldPicker.ts
+  h_a3c79ce84ffdc2 112,199,398-433,442,452,524,672-673
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_a3c79ce84ffdc2 272-274,280-284,296-309,695-701,1012-1017,1262-1263,1265,1267-1270,1272-1279,1284,1286-1301,1330-1335,1576,1660-1665,1707-1719,1724-1730,1759-1760
+packages/world-planning/tests/SeedWorldPicker.spec.ts
+  h_a3c79ce84ffdc2 4,26-67,69-70,73-80,93,96,98,110-114,118,120,122
+world/demos/screen-space-reflection/main.ts
+  h_a3c79ce84ffdc2 15,136,367,370,372-373,375-378,380-383,387-390,392-393,396-399,401-402,411-417,459-465,467-469,471,474-493
+world/demos/seed-world/src/SeedWorldShaderVariantManifest.ts
+  h_a3c79ce84ffdc2 4-6
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmLandLayer.ts
+  h_a3c79ce84ffdc2 92-93
+world/demos/seed-world/src/planning/spatial/runtime/PlanningSeedObbDebug.ts
+  h_a3c79ce84ffdc2 185
+world/demos/seed-world/src/planning/spatial/runtime/PlanningSeedRuntimeDebug.ts
+  h_a3c79ce84ffdc2 266
+world/demos/water/editor/main.ts
+  h_a3c79ce84ffdc2 24
+world/scripts/generate-water-assets.mjs
+  h_a3c79ce84ffdc2 98-100,102
+world/scripts/typecheck.mjs
+  h_a3c79ce84ffdc2 28,60
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  h_a3c79ce84ffdc2 113-133,136-262,1019-1053
+world/tests/seed-world/SeedWorldScreenSpaceReflection.spec.ts
+  h_a3c79ce84ffdc2 92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "42b0427f925824194f72bf9849b5d49e8271a796",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
