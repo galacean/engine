@@ -1,0 +1,94 @@
+packages/terrain/src/data/seed-world/project.json
+  h_a3c79ce84ffdc2 232,238,250
+packages/terrain/src/data/seed-world/public/Shader/Water/WaterAotManifest.6dbef5870e57f59c6029905314627b0ac17ea1bcad42107b0f53693cff9d8661.json
+  h_a3c79ce84ffdc2 28,37-41,78,81,90-94,124-127
+packages/terrain/src/data/seed-world/public/Shader/Water/lake-heightfield-high-hybrid-v2.cdaeaa5af39f343cddc132b25f06ca6f63559c7b596612e0f7d231f56b775729.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/public/Shader/Water/ocean-near-detailed.82045a50982b3d7f41d410839447ba7139cd16ab91e1dcd90d22dcb44a9c3a17.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/source/Shader/Water/LakeHeightfieldHighHybrid.shader
+  h_a3c79ce84ffdc2 1936-1938,2557-2559,2562-2563
+packages/terrain/src/data/seed-world/source/Shader/Water/OceanNearDetailed.shader
+  h_a3c79ce84ffdc2 76-77,168-169,1516-1520,1652-1653,1700,1728,1790-1791,1794-1795,1815-1816,1819-1820,1967-1969,2077,2110-2111,2118,2172
+packages/water/src/water/authoring/ocean/presets/OceanLook.ts
+  h_a3c79ce84ffdc2 182-194
+packages/water/src/water/authoring/river/RiverWaterBodyAuthoring.ts
+  h_a3c79ce84ffdc2 267
+packages/water/src/water/native/assets/Water/Shaders/builtin/lake.json
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/ocean.json
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/river.json
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/sources.json
+  h_a3c79ce84ffdc2 2-4
+packages/water/src/water/native/assets/Water/Shaders/lake-heightfield-high-hybrid-v2.shaderc
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/lake.shader
+  h_a3c79ce84ffdc2 2103-2105,2724-2726,2729-2730
+packages/water/src/water/native/assets/Water/Shaders/ocean-near-detailed.shaderc
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/ocean.shader
+  h_a3c79ce84ffdc2 1664-1668,1800-1801,1848,1876,2115-2117
+packages/water/src/water/native/assets/Water/Shaders/river.shader
+  h_a3c79ce84ffdc2 1693-1696,1707,2033-2035,2423,2687-2690,2701
+packages/water/src/water/native/assets/conversion.json
+  h_a3c79ce84ffdc2 275,277-278,282,284-285
+packages/water/src/water/runtime/body/WaterBackendRegistry.ts
+  h_a3c79ce84ffdc2 111,129
+packages/water/src/water/runtime/heightfield/HeightfieldWaterMaterialFactory.ts
+  h_a3c79ce84ffdc2 246-257,261-262,265-268,270-272,510-511
+packages/water/src/water/runtime/ocean/FiniteOceanSurfaceGeometry.ts
+  h_a3c79ce84ffdc2 36-37,122-126,131,134,138,286,291-294,308-350,355,373,375,378,382,385,414,571-594,596-659,662,728-729,785-786,791,796-799,878,934-936,938-941,946,948-950,953-954,965-967,972,974,1008-1010
+packages/water/src/water/runtime/ocean/OceanMaterial.ts
+  h_a3c79ce84ffdc2 118-142,161
+packages/water/src/water/runtime/ocean/OceanRenderContract.ts
+  h_a3c79ce84ffdc2 40
+packages/water/src/water/runtime/ocean/OceanSceneFieldDemand.ts
+  h_a3c79ce84ffdc2 7,9,13-135,179-185,187,197,227,253,257-266
+packages/water/src/water/runtime/ocean/OceanWaterRuntimeController.ts
+  h_a3c79ce84ffdc2 129,358,428-430,472-475,483
+packages/water/src/water/runtime/optics/CameraWaterFeatureBroker.ts
+  h_a3c79ce84ffdc2 49-51
+packages/water/src/water/runtime/river/RiverSurfaceShader.ts
+  h_a3c79ce84ffdc2 359-376,457
+packages/water/src/water/runtime/scene/WaterSceneRuntimeHost.ts
+  h_a3c79ce84ffdc2 323-325,336,371-379,394,1180-1182,1735-1737,1829,1840-1841,1843-1845,1849-1850,1854-1890
+packages/water/src/water/runtime/surface/WaterSurfaceAppearanceV2Shader.ts
+  h_a3c79ce84ffdc2 216-221,223-226,228
+packages/water/src/water/shaders/heightfield/HeightfieldSceneColorRefraction.glsl
+  h_a3c79ce84ffdc2 114-116
+packages/water/src/water/shaders/ocean/ForwardPass.glsl
+  h_a3c79ce84ffdc2 129-130,286-288
+packages/water/src/water/shaders/ocean/OceanGeometry.glsl
+  h_a3c79ce84ffdc2 13-17
+packages/water/src/water/shaders/ocean/OceanWaveSpectrum.glsl
+  h_a3c79ce84ffdc2 32,60
+packages/water/src/water/shaders/river/ForwardPass.glsl
+  h_a3c79ce84ffdc2 236-238
+packages/water/src/water/shaders/river/RiverFlowNormal.glsl
+  h_a3c79ce84ffdc2 35-38,49
+packages/water/src/water/shaders/river/SSRReceiver.glsl
+  h_a3c79ce84ffdc2 69
+packages/water/tests/WaterPerformanceOptimizations.test.ts
+  h_a3c79ce84ffdc2 1-528
+packages/world-planning/src/integrations/grasslands/GrasslandsLakeRiverScenario.ts
+  h_a3c79ce84ffdc2 33
+packages/world-planning/src/runtime/SeedWorldWaterRuntime.ts
+  h_a3c79ce84ffdc2 600,663,667
+packages/world-planning/src/semantic-study/PlanningLakeSource.ts
+  h_a3c79ce84ffdc2 151
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  h_a3c79ce84ffdc2 575-580
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "01bfbc6a49bc0144f6f6954bde2a2d85825e65bc",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

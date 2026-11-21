@@ -1,0 +1,34 @@
+packages/building/src/building/runtime/EngineResidentScene.ts
+  h_a3c79ce84ffdc2 69,207
+packages/building/src/building/runtime/Sha256.d.ts
+  h_a3c79ce84ffdc2 1-2
+packages/building/src/building/runtime/Sha256.js
+  h_a3c79ce84ffdc2 1-94
+world/demos/seed-world/SeedWorldDemo.ts
+  h_a3c79ce84ffdc2 36,1030-1031,1033-1036,1039-1042,1044-1047,1049-1052,1054-1057,1059-1062,1064-1067,1070-1073,1104,1106,1129
+world/demos/seed-world/main.ts
+  h_a3c79ce84ffdc2 1
+world/demos/seed-world/src/MobileFrameCapture.ts
+  h_a3c79ce84ffdc2 1-907
+world/demos/seed-world/src/SeedWorldPerfPanel.ts
+  h_a3c79ce84ffdc2 1-5,13-52,128-152,155-156,195-207,216-246,252-253,257-266,272-274,292-306,312,320-321,328,331,339-340,347,350,358-361,368,371,379-382,389,392,400-407,414,417,441-447,457-494,498,506-531,535-538,659-663,666,672,680-688,700,736,750,758
+world/demos/seed-world/src/installInsecureContextCryptoFallback.ts
+  h_a3c79ce84ffdc2 1-48
+world/scripts/mobile-diag-middleware.mjs
+  h_a3c79ce84ffdc2 1-139
+world/tests/seed-world/SeedWorldPerfCapture.spec.ts
+  h_a3c79ce84ffdc2 1-727
+world/vite.config.mjs
+  h_a3c79ce84ffdc2 8,356-375,380
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d55ef91ec23bfb735bb6733b6ddb05a740244129",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

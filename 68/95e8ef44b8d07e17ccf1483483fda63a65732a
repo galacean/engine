@@ -1,0 +1,22 @@
+packages/world-planning/src/spatial/SpatialComposition.ts
+  h_a3c79ce84ffdc2 30,139
+packages/world-planning/src/spatial/hydrology/LakeRegions.ts
+  h_a3c79ce84ffdc2 7,51-123,146-152,159-173,175-177,180-197,199-200,208-215,217-231,233,235,243,257-262,342
+packages/world-planning/tests/TerrainHydrology.test.ts
+  h_a3c79ce84ffdc2 420-475
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  h_a3c79ce84ffdc2 47-50,330-331,335-339
+world/tests/seed-world/SpatialWaterDependencies.spec.ts
+  h_a3c79ce84ffdc2 4-9,235-254
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6895e8ef44b8d07e17ccf1483483fda63a65732a",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

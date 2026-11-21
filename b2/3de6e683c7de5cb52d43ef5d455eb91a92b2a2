@@ -1,0 +1,14 @@
+packages/loader/src/gltf/extensions/GLTFExtensionSchema.ts
+  h_bd4dd7d663e619 217
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b23de6e683c7de5cb52d43ef5d455eb91a92b2a2",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
