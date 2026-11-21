@@ -233,20 +233,14 @@ export class Transform extends Component implements ICloneHook<Transform> {
     if (this._isContainDirtyFlag(TransformModifyFlags.WorldScale)) {
       const parent = this._getParentTransform();
       if (parent) {
+        // Must read parent.lossyWorldScale before branching so ancestor WorldScale dirty flags are cleared on both paths
         const parentLossyWorldScale = parent.lossyWorldScale;
         if (parent._getWorldUniformScaling()) {
           Vector3.multiply(parentLossyWorldScale, this._scale, this._lossyWorldScale);
         } else {
           // Vector3 cannot be used to correctly represent the scaling. Must use Matrix3x3
-          const invRotation = Transform._tempQuat0;
-          const invRotationMat = Transform._tempMat30;
-          const worldRotScaMat = Transform._tempMat31;
-          const scaMat = Transform._tempMat32;
-          worldRotScaMat.copyFromMatrix(this.worldMatrix);
-          Quaternion.invert(this.worldRotationQuaternion, invRotation);
-          Matrix3x3.rotationQuaternion(invRotation, invRotationMat);
-          Matrix3x3.multiply(invRotationMat, worldRotScaMat, scaMat);
-          const e = scaMat.elements;
+          const scaleMat = this._getScaleMatrix();
+          const e = scaleMat.elements;
           this._lossyWorldScale.set(e[0], e[4], e[8]);
         }
       } else {
@@ -814,6 +808,18 @@ export class Transform extends Component implements ICloneHook<Transform> {
         children[i].transform?._updateAllWorldFlag(flags);
       }
     }
+  }
+
+  private _getScaleMatrix(): Matrix3x3 {
+    const invRotation = Transform._tempQuat0;
+    const invRotationMat = Transform._tempMat30;
+    const worldRotScaMat = Transform._tempMat31;
+    const scaMat = Transform._tempMat32;
+    worldRotScaMat.copyFromMatrix(this.worldMatrix);
+    Quaternion.invert(this.worldRotationQuaternion, invRotation);
+    Matrix3x3.rotationQuaternion(invRotation, invRotationMat);
+    Matrix3x3.multiply(invRotationMat, worldRotScaMat, scaMat);
+    return scaMat;
   }
 
   private _rotateByQuat(rotateQuat: Quaternion, relativeToLocal: boolean): void {

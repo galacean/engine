@@ -84,43 +84,46 @@ describe("Transform test", function () {
     const parent = grandparent.createChild("parent");
     const child = parent.createChild("child");
     const scaleMatMultiplySpy = vi.spyOn(Matrix3x3, "multiply");
+    try {
+      // Uniform ancestors with negative scale and arbitrary rotations take the exact scalar-multiply fast path
+      grandparent.transform.setScale(2, 2, 2);
+      parent.transform.setScale(-1, -1, -1);
+      parent.transform.setRotation(0, 90, 0);
+      child.transform.setScale(1, 3, 5);
+      child.transform.setRotation(45, 0, 0);
+      expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(-2, -6, -10));
+      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(0);
 
-    // Uniform ancestors with negative scale and arbitrary rotations take the exact scalar-multiply fast path
-    grandparent.transform.setScale(2, 2, 2);
-    parent.transform.setScale(-1, -1, -1);
-    parent.transform.setRotation(0, 90, 0);
-    child.transform.setScale(1, 3, 5);
-    child.transform.setRotation(45, 0, 0);
-    expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(-2, -6, -10));
-    expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(0);
+      // Non-uniform ancestor after a position edit must still notify and fall back to matrix scale decomposition
+      grandparent.transform.setScale(1, 2, 3);
+      parent.transform.setScale(1, 1, 1);
+      parent.transform.setRotation(0, 0, 0);
+      child.transform.setScale(4, 5, 6);
+      child.transform.setRotation(90, 0, 0);
+      expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(4, 15, 12));
+      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(2);
 
-    // Non-uniform ancestor after a position edit must still notify and fall back to matrix scale decomposition
-    grandparent.transform.setScale(1, 2, 3);
-    parent.transform.setScale(1, 1, 1);
-    parent.transform.setRotation(0, 0, 0);
-    child.transform.setScale(4, 5, 6);
-    child.transform.setRotation(90, 0, 0);
-    expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(4, 15, 12));
-    expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(2);
+      parent.transform.setPosition(4, 0, 0);
+      grandparent.transform.setScale(2, 2, 3);
+      const afterNonUniform = child.transform.lossyWorldScale;
+      expect(afterNonUniform.x).to.be.closeTo(8, 1e-6);
+      expect(afterNonUniform.y).to.be.closeTo(15, 1e-6);
+      expect(afterNonUniform.z).to.be.closeTo(12, 1e-6);
 
-    parent.transform.setPosition(4, 0, 0);
-    grandparent.transform.setScale(2, 2, 3);
-    const afterNonUniform = child.transform.lossyWorldScale;
-    expect(afterNonUniform.x).to.be.closeTo(8, 1e-6);
-    expect(afterNonUniform.y).to.be.closeTo(15, 1e-6);
-    expect(afterNonUniform.z).to.be.closeTo(12, 1e-6);
+      // Establish a clean uniform baseline before testing set localMatrix after position + uniform rotation
+      grandparent.transform.setScale(2, 2, 2);
+      expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(8, 10, 12));
 
-    // Also covers set localMatrix after position + uniform rotation
-    parent.transform.setPosition(1, 2, 3);
-    parent.transform.setRotation(0, 90, 0);
-    const matrix = new Matrix();
-    Matrix.affineTransformation(new Vector3(5, 5, 5), new Quaternion(), new Vector3(1, 2, 3), matrix);
-    parent.transform.localMatrix = matrix;
-    grandparent.transform.setScale(2, 2, 2);
-    expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(40, 50, 60));
-
-    scaleMatMultiplySpy.mockRestore();
-    grandparent.destroy();
+      parent.transform.setPosition(1, 2, 3);
+      parent.transform.setRotation(0, 90, 0);
+      const matrix = new Matrix();
+      Matrix.affineTransformation(new Vector3(5, 5, 5), new Quaternion(), new Vector3(1, 2, 3), matrix);
+      parent.transform.localMatrix = matrix;
+      expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(40, 50, 60));
+    } finally {
+      scaleMatMultiplySpy.mockRestore();
+      grandparent.destroy();
+    }
   });
 
   it("preserves WorldScale listener fidelity across position, uniform rotation, and scale changes", () => {
