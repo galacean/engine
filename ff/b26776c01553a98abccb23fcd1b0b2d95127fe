@@ -1,0 +1,50 @@
+packages/core/src/physics/Rigidbody.ts
+  s_d2c65ec75a2f3e::t_eee22227b3264a 87,429-430,435-445,450-452,793,909
+  s_d2c65ec75a2f3e::t_ee6a6ab21a4c8e 433
+  s_d2c65ec75a2f3e::t_7daee04e423357 434
+  s_d2c65ec75a2f3e::t_f09f6d58b046ce 431-432,796-799
+  s_d2c65ec75a2f3e::t_c8cc0487c51e6a 18
+  s_d2c65ec75a2f3e::t_104b1e5a845f1d 446-449,671-672,679,685
+packages/core/src/physics/joint/Joint.ts
+  s_d2c65ec75a2f3e::t_104b1e5a845f1d 480-487
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_d2c65ec75a2f3e::t_c8cc0487c51e6a 549-553
+packages/physics-physx/src/PhysXDynamicCollider.ts
+  s_d2c65ec75a2f3e::t_6ee81081e16c30 169
+  s_d2c65ec75a2f3e::t_eee22227b3264a 167-168,170-171,173-175
+  s_d2c65ec75a2f3e::t_c8cc0487c51e6a 172
+packages/design/src/physics/IDynamicCollider.ts
+  s_d2c65ec75a2f3e::t_eee22227b3264a 143-146
+  s_d2c65ec75a2f3e::t_6ea493f2ceecac 142
+tests/src/core/physics/CharacterController.test.ts
+  s_d2c65ec75a2f3e::t_75561cf9130e49 1278-1296
+docs/en/physics/collider/rigidbody.mdx
+  s_d2c65ec75a2f3e::t_686c7046c87d3c 33
+tests/src/core/physics/Rigidbody.test.ts
+  s_d2c65ec75a2f3e::t_eee22227b3264a 1094-1118
+  s_d2c65ec75a2f3e::t_a8ffbcab19efb5 1137,1143
+  s_d2c65ec75a2f3e::t_ed3cd6ded377fb 1119,1138,1140
+  s_d2c65ec75a2f3e::t_f09f6d58b046ce 1120-1136,1139,1141-1142,1144-1151
+  s_d2c65ec75a2f3e::t_f496b957876b51 1152-1217
+tests/src/core/physics/PhysicsScene.test.ts
+  s_d2c65ec75a2f3e::t_c8cc0487c51e6a 4,2261,2268,2273,2277-2278,2290,2294
+  s_d2c65ec75a2f3e::t_686c7046c87d3c 2262-2267,2269-2272,2274-2276,2279-2289,2291-2293,2295-2305
+docs/zh/physics/collider/rigidbody.mdx
+  s_d2c65ec75a2f3e::t_686c7046c87d3c 33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ffb26776c01553a98abccb23fcd1b0b2d95127fe",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
