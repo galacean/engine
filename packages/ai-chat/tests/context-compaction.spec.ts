@@ -168,4 +168,38 @@ describe("compaction contract", () => {
     context.clear();
     expect(context.compactedAnchors).toBeUndefined();
   });
+
+  it("retains settled and unknown independent commands from interrupted executions across compaction", () => {
+    const interruptedTail: AgentMessage[] = [
+      {
+        role: "assistant",
+        content: "",
+        toolCalls: [{ id: "e2", type: "function", function: { name: "execute", arguments: '{"code":"..."}' } }]
+      },
+      {
+        role: "tool",
+        toolCallId: "e2",
+        content: JSON.stringify({
+          ok: false,
+          error: "later step failed",
+          receipt: {
+            executionId: "t1:2",
+            status: "interrupted",
+            commands: [
+              { call: 1, tool: "water.digRiver", status: "settled", ok: true },
+              { call: 2, tool: "world.delete", status: "unknown" }
+            ]
+          }
+        })
+      }
+    ];
+    const { context, request, sent } = prepare(interruptedTail);
+    context.applyResponse(request, sent, {
+      ...compacted,
+      replacement: { prefixLength: 2, cutIndex: 2, summary: "server summary verbatim" }
+    });
+    expect(context.compactedAnchors).toEqual({
+      committed: [{ status: "interrupted", commands: ["water.digRiver", "world.delete:unknown"] }]
+    });
+  });
 });

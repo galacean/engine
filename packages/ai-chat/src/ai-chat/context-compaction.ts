@@ -5,7 +5,7 @@ import { readSystemInjection } from "./agent-protocol";
 export type ContextCompactionBudget = { triggerTokens?: number; targetTokens?: number };
 export type ContextCompactionRequest = ContextCompactionBudget & { version: 2; protectedPrefixLength: number };
 export type CompactionCommittedAnchor = {
-  status: "committed" | "completed";
+  status: "committed" | "completed" | "interrupted";
   transactionId?: string;
   revision?: number;
   commands?: readonly string[];
@@ -342,32 +342,33 @@ export class AgentContextTranscript {
       try {
         const parsed = JSON.parse(message.content) as Record<string, unknown>;
         const receipt =
-          parsed &&
-          typeof parsed === "object" &&
-          parsed.ok === true &&
-          parsed.receipt &&
-          typeof parsed.receipt === "object"
+          parsed && typeof parsed === "object" && parsed.receipt && typeof parsed.receipt === "object"
             ? (parsed.receipt as Record<string, unknown>)
             : undefined;
         if (!receipt) continue;
         const status = receipt.status;
-        if (status !== "committed" && status !== "completed") continue;
+        if (status !== "committed" && status !== "completed" && status !== "interrupted") continue;
+        if (status === "committed" && parsed.ok !== true) continue;
         const commands = Array.isArray(receipt.commands)
           ? receipt.commands
               .filter(
                 (entry): entry is Record<string, unknown> =>
                   Boolean(entry) &&
                   typeof entry === "object" &&
-                  (entry as Record<string, unknown>).status === "settled" &&
-                  (entry as Record<string, unknown>).ok === true
+                  (((entry as Record<string, unknown>).status === "settled" &&
+                    (entry as Record<string, unknown>).ok === true) ||
+                    (entry as Record<string, unknown>).status === "unknown")
               )
-              .map((entry) =>
-                typeof entry.tool === "string" ? entry.tool : typeof entry.name === "string" ? entry.name : undefined
-              )
+              .map((entry) => {
+                const name =
+                  typeof entry.tool === "string" ? entry.tool : typeof entry.name === "string" ? entry.name : undefined;
+                if (!name) return undefined;
+                return entry.status === "unknown" ? `${name}:unknown` : name;
+              })
               .filter((name): name is string => Boolean(name))
               .slice(0, 8)
           : [];
-        if (status === "completed" && !commands.length) continue;
+        if ((status === "completed" || status === "interrupted") && !commands.length) continue;
         const executionId = typeof receipt.executionId === "string" ? receipt.executionId : undefined;
         const transactionId = typeof receipt.transactionId === "string" ? receipt.transactionId : undefined;
         const revision = typeof receipt.revision === "number" ? receipt.revision : undefined;

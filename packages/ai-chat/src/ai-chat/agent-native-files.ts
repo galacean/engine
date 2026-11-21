@@ -466,9 +466,11 @@ export class AgentNativeFiles {
       return { blocks, paths, omitted };
     }
 
-    const rootSource = readDeclarationText(snapshot, rootPath) ?? options.rootSourceFallback;
+    const snapshotRootSource = readDeclarationText(snapshot, rootPath);
+    const rootSource = snapshotRootSource ?? options.rootSourceFallback;
     if (!rootSource) return { blocks: [], paths: [], omitted: [] };
-    const initialImports = resolveRelativeDeclarationImports(files, snapshot, rootPath, rootSource);
+    const allowRootCache = !(paginated && snapshotRootSource === undefined);
+    const initialImports = resolveRelativeDeclarationImports(files, snapshot, rootPath, rootSource, allowRootCache);
     if (!initialImports.length) return { blocks: [], paths: [], omitted: [] };
     if (!paginated) claimed.add(rootPath);
     const visitedPaths = new Set<string>([rootPath, ...initialImports]);
@@ -561,9 +563,10 @@ function resolveRelativeDeclarationImports(
   files: VirtualProjectFiles,
   snapshot: ProjectFileSnapshot,
   fromPath: string,
-  source: string
+  source: string,
+  allowCache = true
 ): readonly string[] {
-  const cacheable = fromPath.startsWith("declare/");
+  const cacheable = allowCache && fromPath.startsWith("declare/");
   let byPath = cacheable ? declareRelativeImportCache.get(files) : undefined;
   if (byPath?.has(fromPath)) return byPath.get(fromPath)!;
 
