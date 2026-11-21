@@ -1,0 +1,49 @@
+e2e/.dev/physx.release.simd.js
+  s_d2c65ec75a2f3e::t_7c5c5097a6453e 1
+packages/core/src/physics/CharacterController.ts
+  s_d2c65ec75a2f3e::t_a9b2f4f5bfe6f6 6,17-24,360,363,366-367
+  s_d2c65ec75a2f3e::t_e9bb319216acd2 364-365,371,382-383,385,389,555,557,574
+  s_d2c65ec75a2f3e::t_999321d7259aa6 368
+  s_d2c65ec75a2f3e::t_c924807089441a 370,377-381
+  s_d2c65ec75a2f3e::t_459ef3680168a7 49,369,373-376,390
+docs/zh/physics/collider/characterController.mdx
+  s_d2c65ec75a2f3e::t_999321d7259aa6 83-84
+packages/physics-physx/src/PhysXCharacterController.ts
+  s_d2c65ec75a2f3e::t_a9b2f4f5bfe6f6 2,130-134,136-137,141-143,145
+  s_d2c65ec75a2f3e::t_999321d7259aa6 135,139-140,144
+packages/physics-physx/libs/physx.release.simd.js
+  s_d2c65ec75a2f3e::t_7c5c5097a6453e 1
+e2e/.dev/physx.release.js
+  s_d2c65ec75a2f3e::t_2d604c2f9d83c7 1
+packages/core/src/physics/index.ts
+  s_d2c65ec75a2f3e::t_a9b2f4f5bfe6f6 5
+docs/en/physics/collider/characterController.mdx
+  s_d2c65ec75a2f3e::t_999321d7259aa6 83-84
+tests/src/core/physics/CharacterController.test.ts
+  s_d2c65ec75a2f3e::t_f7cbeda761d8b8 358-387,989-1016,1018-1040
+  s_d2c65ec75a2f3e::t_9fdb1fda23352f 388-393
+  s_d2c65ec75a2f3e::t_b49552903ede13 260-273,275-277,279-284
+  s_d2c65ec75a2f3e::t_7fea751f64c475 274,278,285-299,394,1017
+  s_d2c65ec75a2f3e::t_75f84a59dca420 395
+  s_d2c65ec75a2f3e::t_b6a03c9b946570 1041
+packages/design/src/physics/ICharacterController.ts
+  s_d2c65ec75a2f3e::t_a9b2f4f5bfe6f6 72-73,76-83
+packages/physics-physx/libs/physx.release.js
+  s_d2c65ec75a2f3e::t_2d604c2f9d83c7 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1436cd63fbc80a965e1563b3ab5744cf7c5633b1",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

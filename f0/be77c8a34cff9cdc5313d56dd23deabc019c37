@@ -1,0 +1,44 @@
+packages/design/src/physics/IDynamicCollider.ts
+  s_d2c65ec75a2f3e::t_9b6a27622270c6 130-132
+packages/design/src/physics/IPhysicsEvents.ts
+  s_d2c65ec75a2f3e::t_9b6a27622270c6 37-40
+packages/core/src/Script.ts
+  s_d2c65ec75a2f3e::t_44edee512312ce 154
+  s_d2c65ec75a2f3e::t_9b6a27622270c6 9,143-145,148-153,155-157,269,297
+  s_d2c65ec75a2f3e::t_c5b556de3b0200 146-147
+packages/core/src/physics/Rigidbody.ts
+  s_d2c65ec75a2f3e::t_9b6a27622270c6 54,448,750,760,774-804
+  s_d2c65ec75a2f3e::t_529572767cba2c 53,805
+docs/en/physics/collider/rigidbody.mdx
+  s_d2c65ec75a2f3e::t_44edee512312ce 120-121
+packages/physics-physx/src/PhysXDynamicCollider.ts
+  s_d2c65ec75a2f3e::t_9b6a27622270c6 153-157
+packages/core/src/physics/PhysicsScene.ts
+  s_d2c65ec75a2f3e::t_e133d53261fd1c 103-104,1275-1277,1282-1283,1314,1378-1404,1406-1407
+packages/core/src/physics/joint/Joint.ts
+  s_d2c65ec75a2f3e::t_e133d53261fd1c 331,357
+docs/zh/physics/collider/rigidbody.mdx
+  s_d2c65ec75a2f3e::t_44edee512312ce 120-121
+tests/src/core/physics/Rigidbody.test.ts
+  s_d2c65ec75a2f3e::t_ed7ca621284f6d 18,28-32,1224-1251,1262-1315
+  s_d2c65ec75a2f3e::t_c5b556de3b0200 1252-1261
+  s_d2c65ec75a2f3e::t_d72e617fb9fbda 1316
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_d2c65ec75a2f3e::t_9b6a27622270c6 51-53,78-81,225
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f0be77c8a34cff9cdc5313d56dd23deabc019c37",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
