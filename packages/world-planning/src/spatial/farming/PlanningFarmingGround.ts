@@ -171,6 +171,47 @@ export function createPlanningFarmingGroundView(options: PlanningFarmingGroundOp
         groundId === options.groundId &&
         domains.some((d) => d.containsPolygon(outline)) &&
         (!area || area.containsPolygon(outline));
+      if (options.terrain) {
+        if (!covered) {
+          return {
+            covered: false,
+            maximumSlopeDegrees: 0,
+            surfaces: [],
+            underwater: false,
+            blocked: options.blocked(b)
+          };
+        }
+        const terrain = options.terrain.inspectBounds(b);
+        covered = terrain.covered;
+        let underwater = false;
+        if (covered) {
+          if (options.underwaterBounds) {
+            underwater = options.underwaterBounds(b);
+          } else {
+            const nx = Math.max(1, Math.ceil((b.maximumX - b.minimumX) / step)),
+              nz = Math.max(1, Math.ceil((b.maximumZ - b.minimumZ) / step));
+            for (let iz = 0; iz <= nz && !underwater; iz++)
+              for (let ix = 0; ix <= nx && !underwater; ix++) {
+                const x = b.minimumX + ((b.maximumX - b.minimumX) * ix) / nx,
+                  z = b.minimumZ + ((b.maximumZ - b.minimumZ) * iz) / nz;
+                const y = sampleHeightAt(groundId, x, z);
+                if (y !== null) underwater = options.underwater(x, z, y);
+              }
+          }
+        }
+        return {
+          covered,
+          maximumSlopeDegrees: Number.isFinite(terrain.maximumSlopeDegrees) ? terrain.maximumSlopeDegrees : 0,
+          surfaces: terrain.surfaces,
+          underwater,
+          blocked: options.blocked(b),
+          ...(Number.isFinite(terrain.minimumHeight) &&
+            Number.isFinite(terrain.maximumHeight) && {
+              minimumHeight: terrain.minimumHeight,
+              maximumHeight: terrain.maximumHeight
+            })
+        };
+      }
       let maximumSlopeDegrees = 0,
         underwater = false;
       const surfaces = new Set<GroundSurface>();
@@ -192,21 +233,13 @@ export function createPlanningFarmingGroundView(options: PlanningFarmingGroundOp
           surfaces.add(s.surface);
           underwater ||= options.underwater(x, z, s.position[1]);
         }
-      const terrain = options.terrain?.inspectBounds(b);
-      if (covered && (terrain?.covered ?? true) && options.underwaterBounds) underwater = options.underwaterBounds(b);
+      if (covered && options.underwaterBounds) underwater = options.underwaterBounds(b);
       return {
-        covered: covered && (terrain?.covered ?? true),
-        maximumSlopeDegrees:
-          terrain && Number.isFinite(terrain.maximumSlopeDegrees) ? terrain.maximumSlopeDegrees : maximumSlopeDegrees,
-        surfaces: terrain?.surfaces ?? [...surfaces],
+        covered,
+        maximumSlopeDegrees,
+        surfaces: [...surfaces],
         underwater,
-        blocked: options.blocked(b),
-        ...(terrain &&
-          Number.isFinite(terrain.minimumHeight) &&
-          Number.isFinite(terrain.maximumHeight) && {
-            minimumHeight: terrain.minimumHeight,
-            maximumHeight: terrain.maximumHeight
-          })
+        blocked: options.blocked(b)
       };
     },
     raycast(ray, maximumDistance) {

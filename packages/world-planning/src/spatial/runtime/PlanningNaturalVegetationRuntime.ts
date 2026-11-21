@@ -51,6 +51,11 @@ import {
   PLANT_TREE_SPECIES
 } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesCatalog";
 import { VEGETATION_AUTHORING_REFERENCE_SCALE } from "@galacean/engine-vegetation/asset-assembly/AssetAssemblyRenderProfile";
+import {
+  playAssetEntranceEffect,
+  playAssetExitEffect,
+  playAssetUpdateEffect
+} from "@galacean/engine-vegetation/asset-assembly/AssetEntranceEffect";
 import { plantSpeciesResourceUrl } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
 import { ProceduralPlantLibraryRuntime } from "@galacean/engine-vegetation/asset-assembly/ProceduralPlantLibraryRuntime";
 import { loadPlantJSON } from "@galacean/engine-vegetation/asset-assembly/ProceduralPlantResources";
@@ -80,7 +85,9 @@ import {
   type PlanningPlantAsset
 } from "./PlanningNaturalVegetation";
 import {
+  PLANT_MATERIAL_SLOTS,
   plantMaterialColorOverrideMask,
+  plantMaterialField,
   resolvePlantMaterialColor,
   validatePlantMaterialParameters,
   type PlantMaterialParameters
@@ -187,10 +194,14 @@ export class PlanningNaturalVegetationRuntime {
   plantAssets: readonly PlanningPlantAsset[] = [];
   private readonly trees: Plant[] = [];
   private readonly treePool = new Map<string, Plant>();
+  private readonly plantEffects = new Map<Plant, AbortController>();
+  private readonly exitingPlants = new WeakSet<Plant>();
   private readonly previewColors = new Map<string, readonly [number, number, number]>();
   private readonly previewSurfaces = new WeakMap<Material, PlanningPlantAppearancePreview>();
   private height!: PlanningHeightmap;
   private readonly cells = new Map<string, Cell>();
+  private readonly groundingTargetTrees: Plant[] = [];
+  private readonly groundingTargetCells: Cell[] = [];
   private detailTask?: Promise<void>;
   private readonly plantLodEntries = new WeakMap<Plant, SeedWorldExactInstanceSpatialEntry>();
   private readonly lodCells: SeedWorldExactInstanceCellRuntime;
@@ -236,7 +247,7 @@ export class PlanningNaturalVegetationRuntime {
     private readonly library: AssetAssemblySourceLibrary,
     private plan: IslandPlan,
     private groundingFields: SeedWorldFields,
-    private readonly materialParameters: PlantMaterialParameters,
+    private materialParameters: PlantMaterialParameters,
     private readonly presentation?: { view: LandscapeView; focus: LandscapeFocus }
   ) {
     // Renderer visibility and shadow culling still belong to the engine for these plants.
@@ -331,6 +342,105 @@ export class PlanningNaturalVegetationRuntime {
     }
     this.foliageColors = undefined;
     this.barkColors = undefined;
+  }
+
+  /** Stage an in-place plant material parameter update without rebuilding the vegetation runtime. */
+  prepareMaterialParameters(nextRaw: PlantMaterialParameters): {
+    readonly changedAssetIds: readonly string[];
+    commit(): void;
+    discard(): void;
+  } {
+    const next = validatePlantMaterialParameters(nextRaw);
+    const changedAssetIds = new Set<string>();
+    const changedSlots = new Set<string>();
+    for (const slot of PLANT_MATERIAL_SLOTS) {
+      const changed = (["r", "g", "b"] as const).some((channel) => {
+        const key = plantMaterialField(slot.assetId, slot.materialId, channel);
+        return this.materialParameters[key] !== next[key];
+      });
+      if (changed) {
+        changedAssetIds.add(slot.assetId);
+        changedSlots.add(`${slot.assetId}\0${slot.materialId}`);
+      }
+    }
+    let consumed = false;
+    return {
+      changedAssetIds: [...changedAssetIds],
+      commit: () => {
+        if (consumed || this.disposed) return;
+        consumed = true;
+        this.materialParameters = next;
+        if (!changedSlots.size) return;
+        const camPos = this.camera.entity.transform.worldPosition;
+        const maxEffectDistSq = 140 * 140;
+        const effectCandidates: Array<{ plant: Plant; distSq: number }> = [];
+        // Precompute immutable per-slot override descriptors outside the plant loop
+        // (ShaderData.setVector3 stores Vector3 by reference, so each slot owns an immutable Vector3).
+        const slotOverrides = new Map<
+          string,
+          {
+            readonly authoredChannels: readonly [number, number, number];
+            readonly previewColor: boolean;
+            readonly mask: Vector3;
+          }
+        >();
+        for (const slot of PLANT_MATERIAL_SLOTS) {
+          const slotKey = `${slot.assetId}\0${slot.materialId}`;
+          if (!changedSlots.has(slotKey)) continue;
+          const authoredChannels = plantMaterialColorOverrideMask(
+            this.materialParameters,
+            slot.assetId,
+            slot.materialId
+          );
+          slotOverrides.set(slotKey, {
+            authoredChannels,
+            previewColor: this.previewColors.has(JSON.stringify([slot.assetId, slot.materialId])),
+            mask: new Vector3(...authoredChannels)
+          });
+        }
+        const refresh = (plant: Plant) => {
+          if (!changedAssetIds.has(plant.instance.assetId)) return;
+          let updated = false;
+          for (const { renderer, source } of plant.appearanceBindings) {
+            const override = slotOverrides.get(`${plant.instance.assetId}\0${source.materialId}`);
+            if (!override) continue;
+            updated = true;
+            const { authoredChannels, previewColor, mask } = override;
+            for (const [index, channel] of (["R", "G", "B"] as const).entries()) {
+              const macro = `RENDERER_PLANT_COLOR_OVERRIDE_${channel}`;
+              if (previewColor || authoredChannels[index]) renderer.shaderData.enableMacro(macro);
+              else renderer.shaderData.disableMacro(macro);
+            }
+            if (source.renderer.getMaterials().some((material) => material && this.grassMaterials.has(material))) {
+              renderer.shaderData.setVector3("renderer_GrassColorOverrideMask", mask);
+            }
+            applyPlantRendererColor(
+              renderer,
+              this.plantColor(plant.instance, source),
+              !!source.renderer.shaderData.getVector4("renderer_ProceduralTreeLeafColor")
+            );
+          }
+          if (updated && !this.exitingPlants.has(plant) && !plant.root.destroyed && !plant.root.pendingDestroy) {
+            const dx = plant.instance.position[0] - camPos.x;
+            const dz = plant.instance.position[2] - camPos.z;
+            const distSq = dx * dx + dz * dz;
+            if (distSq <= maxEffectDistSq) effectCandidates.push({ plant, distSq });
+          }
+        };
+        for (const plant of this.treePool.values()) refresh(plant);
+        for (const cell of this.cells.values()) for (const plant of cell.plants) refresh(plant);
+        effectCandidates.sort((a, b) => a.distSq - b.distSq);
+        const maxEffects = Math.min(48, effectCandidates.length);
+        for (let i = 0; i < maxEffects; i++) {
+          this.playPlantEffect(effectCandidates[i]!.plant, "update");
+        }
+        this.foliageColors = undefined;
+        this.barkColors = undefined;
+      },
+      discard: () => {
+        consumed = true;
+      }
+    };
   }
 
   private assetBounds(assetId: string): Source["bounds"] {
@@ -877,10 +987,29 @@ export class PlanningNaturalVegetationRuntime {
       commit: () => {
         if (consumed || this.disposed) throw new Error("Stale native tree edit");
         signal?.throwIfAborted();
-        for (const plant of hidden) plant.root.isActive = false;
+        for (const plant of hidden) {
+          if (plant.root.isActive && !plant.root.destroyed && !plant.root.pendingDestroy) {
+            this.exitingPlants.add(plant);
+            this.playPlantEffect(plant, "exit", () => {
+              this.exitingPlants.delete(plant);
+              if (!plant.root.destroyed && !plant.root.pendingDestroy) plant.root.isActive = false;
+            });
+          } else {
+            this.abortPlantEffect(plant);
+            this.exitingPlants.delete(plant);
+            plant.root.isActive = false;
+          }
+        }
         for (const { plant, instance, ground, transformed, appearance } of updates) {
           const old = this.treePool.get(instance.id);
-          if (old && old !== plant) destroyTree(old.root);
+          if (old && old !== plant) {
+            this.abortPlantEffect(old);
+            this.exitingPlants.delete(old);
+            destroyTree(old.root);
+          }
+          const wasShown = plant === old && plant.root.isActive && !this.exitingPlants.has(plant);
+          const isNewOrRevealed = !wasShown;
+          const isUpdated = wasShown && (transformed || appearance !== undefined);
           if (stagedRoot && plant.root.parent === stagedRoot) this.treeRoot.addChild(plant.root);
           for (const update of appearance ?? [])
             applyPlantRendererColor(update.renderer, update.color, update.proceduralLeaf);
@@ -900,8 +1029,11 @@ export class PlanningNaturalVegetationRuntime {
             }
           }
           if (transformed || !plant.root.isActive) plant.lod.setAuthoringVisible(!this.groundExcluded(instance));
+          this.exitingPlants.delete(plant);
           plant.root.isActive = true;
           this.treePool.set(instance.id, plant);
+          if (isNewOrRevealed) this.playPlantEffect(plant, "enter");
+          else if (isUpdated) this.playPlantEffect(plant, "update");
         }
         this.trees.length = 0;
         for (const { plant } of updates) this.trees.push(plant);
@@ -1817,6 +1949,7 @@ export class PlanningNaturalVegetationRuntime {
     const replacements = new Map<string, Cell>();
     const cellSize = SEED_WORLD_POPULATION_RUNTIME_PROFILE.cellMetres;
     try {
+      let treeSliceDeadline = performance.now() + 8;
       for (const instance of desired) {
         const old = this.treePool.get(instance.id),
           source = this.sources[0].get(instance.assetId);
@@ -1827,6 +1960,11 @@ export class PlanningNaturalVegetationRuntime {
           const plant = this.plant(stage, instance, instance.layerId === "乔木", fields, rockSupport);
           created.push(plant);
           nextTrees.push(plant);
+          if (performance.now() >= treeSliceDeadline) {
+            await new Promise<void>((resolve) => setTimeout(resolve, 0));
+            signal.throwIfAborted();
+            treeSliceDeadline = performance.now() + 8;
+          }
         }
       }
       const keys = new Set(this.cells.keys());
@@ -1951,10 +2089,20 @@ export class PlanningNaturalVegetationRuntime {
       finalize: () => {
         if (state !== "committed") throw Error("Vegetation patch not committed");
         state = "finished";
-        for (const tree of retiredTrees) destroyTree(tree.root);
+        for (const tree of retiredTrees) {
+          this.abortPlantEffect(tree);
+          this.exitingPlants.delete(tree);
+          destroyTree(tree.root);
+        }
         for (const key of replacements.keys()) {
           const old = previous.cells.get(key);
-          if (old) destroyTree(old.root);
+          if (old) {
+            for (const plant of old.plants) {
+              this.abortPlantEffect(plant);
+              this.exitingPlants.delete(plant);
+            }
+            destroyTree(old.root);
+          }
         }
         destroyTree(stage);
       },
@@ -1986,7 +2134,8 @@ export class PlanningNaturalVegetationRuntime {
   prepareGrounding(
     fields: SeedWorldFields,
     signal?: AbortSignal,
-    rocks?: { plan: IslandPlan; formations: readonly RockFormationMesh[] }
+    rocks?: { plan: IslandPlan; formations: readonly RockFormationMesh[] },
+    bounds?: SeedWorldAuthoringRuntimeBoundsV1
   ): { commit(): void; discard(): void } {
     if (this.disposed) throw new Error("Native vegetation is disposed");
     if (this.preparedGroundingFields) throw new Error("Native vegetation grounding is already prepared");
@@ -1994,10 +2143,61 @@ export class PlanningNaturalVegetationRuntime {
     this.preparedGroundingFields = fields;
     const rockGround = rocks ? rockFormationGround(rocks.plan, rocks.formations) : this.rockGround;
     this.preparedRockGround = rockGround;
+    const cellSize = SEED_WORLD_POPULATION_RUNTIME_PROFILE.cellMetres;
+    const margin = 2;
+    const targetTrees = this.groundingTargetTrees;
+    targetTrees.length = 0;
+    if (bounds) {
+      const minBoundX = bounds.minimumX - margin;
+      const maxBoundX = bounds.maximumX + margin;
+      const minBoundZ = bounds.minimumZ - margin;
+      const maxBoundZ = bounds.maximumZ + margin;
+      for (let i = 0; i < this.trees.length; i++) {
+        const tree = this.trees[i]!;
+        const [x, , z] = tree.instance.position;
+        if (x >= minBoundX && x <= maxBoundX && z >= minBoundZ && z <= maxBoundZ) targetTrees.push(tree);
+      }
+    } else {
+      for (let i = 0; i < this.trees.length; i++) targetTrees.push(this.trees[i]!);
+    }
+    const targetCells = this.groundingTargetCells;
+    targetCells.length = 0;
+    if (bounds) {
+      const minBoundX = bounds.minimumX - margin;
+      const maxBoundX = bounds.maximumX + margin;
+      const minBoundZ = bounds.minimumZ - margin;
+      const maxBoundZ = bounds.maximumZ + margin;
+      const minCx = Math.ceil(minBoundX / cellSize) - 1;
+      const maxCx = Math.floor(maxBoundX / cellSize);
+      const minCz = Math.ceil(minBoundZ / cellSize) - 1;
+      const maxCz = Math.floor(maxBoundZ / cellSize);
+      const span = maxCx >= minCx && maxCz >= minCz ? (maxCx - minCx + 1) * (maxCz - minCz + 1) : 0;
+      if (span > 0 && span <= this.cells.size) {
+        for (let cx = minCx; cx <= maxCx; cx++) {
+          for (let cz = minCz; cz <= maxCz; cz++) {
+            const cell = this.cells.get(`${cx}/${cz}`);
+            if (cell) targetCells.push(cell);
+          }
+        }
+      } else if (span > 0) {
+        for (const [key, cell] of this.cells) {
+          const sep = key.indexOf("/");
+          const cx = Number(key.slice(0, sep));
+          const cz = Number(key.slice(sep + 1));
+          const minX = cx * cellSize;
+          const maxX = minX + cellSize;
+          const minZ = cz * cellSize;
+          const maxZ = minZ + cellSize;
+          if (maxX >= minBoundX && minX <= maxBoundX && maxZ >= minBoundZ && minZ <= maxBoundZ) targetCells.push(cell);
+        }
+      }
+    } else {
+      for (const cell of this.cells.values()) targetCells.push(cell);
+    }
     try {
-      for (const tree of this.trees)
+      for (const tree of targetTrees)
         tree.groundHeight = this.plantGroundHeight(fields, tree.instance, this.sources[0].get(tree.instance.assetId));
-      for (const cell of this.cells.values()) {
+      for (const cell of targetCells) {
         if (cell.records) {
           for (const record of cell.records) {
             const h = this.plantGroundHeight(fields, record.instance, this.sources[0].get(record.instance.assetId));
@@ -2014,6 +2214,8 @@ export class PlanningNaturalVegetationRuntime {
         }
       }
     } catch (error) {
+      targetTrees.length = 0;
+      targetCells.length = 0;
       this.preparedGroundingFields = undefined;
       this.preparedRockGround = undefined;
       throw error;
@@ -2024,8 +2226,8 @@ export class PlanningNaturalVegetationRuntime {
         if (consumed) throw new Error("Native vegetation grounding already consumed");
         if (this.disposed) throw new Error("Native vegetation is disposed");
         signal?.throwIfAborted();
-        for (const tree of this.trees) commitPlantGrounding(tree);
-        for (const cell of this.cells.values()) {
+        for (const tree of targetTrees) commitPlantGrounding(tree);
+        for (const cell of targetCells) {
           if (cell.records) {
             for (const record of cell.records) {
               if (record.stagedGroundHeight !== undefined) {
@@ -2036,6 +2238,8 @@ export class PlanningNaturalVegetationRuntime {
           }
           for (const plant of cell.plants) commitPlantGrounding(plant);
         }
+        targetTrees.length = 0;
+        targetCells.length = 0;
         this.lodMembershipDirty = true;
         this.materializeCamX = NaN;
         this.groundingFields = fields;
@@ -2046,9 +2250,11 @@ export class PlanningNaturalVegetationRuntime {
       },
       discard: () => {
         if (consumed) return;
-        for (const cell of this.cells.values()) {
+        for (const cell of targetCells) {
           if (cell.records) for (const record of cell.records) record.stagedGroundHeight = undefined;
         }
+        targetTrees.length = 0;
+        targetCells.length = 0;
         this.preparedGroundingFields = undefined;
         this.preparedRockGround = undefined;
         consumed = true;
@@ -2305,9 +2511,39 @@ export class PlanningNaturalVegetationRuntime {
       error: this.error
     };
   }
+  private playPlantEffect(plant: Plant, kind: "enter" | "exit" | "update", onComplete?: () => void): void {
+    this.abortPlantEffect(plant);
+    if (this.disposed || plant.root.destroyed || plant.root.pendingDestroy) {
+      onComplete?.();
+      return;
+    }
+    const controller = new AbortController();
+    this.plantEffects.set(plant, controller);
+    const play =
+      kind === "enter"
+        ? playAssetEntranceEffect([plant.root], { durationMs: 1350, signal: controller.signal, onComplete })
+        : kind === "exit"
+          ? playAssetExitEffect([plant.root], { durationMs: 750, signal: controller.signal, onComplete })
+          : playAssetUpdateEffect([plant.root], { durationMs: 850, signal: controller.signal, onComplete });
+    void play
+      .catch(() => {})
+      .finally(() => {
+        if (this.plantEffects.get(plant) === controller) this.plantEffects.delete(plant);
+      });
+  }
+  private abortPlantEffect(plant: Plant): void {
+    const active = this.plantEffects.get(plant);
+    if (!active) return;
+    this.plantEffects.delete(plant);
+    active.abort();
+  }
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    for (const controller of this.plantEffects.values()) controller.abort();
+    this.plantEffects.clear();
+    this.groundingTargetTrees.length = 0;
+    this.groundingTargetCells.length = 0;
     destroyTree(this.treeRoot);
     destroyTree(this.detailRoot);
     this.cells.clear();

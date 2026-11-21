@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
+import { ShaderMacroCollection } from "@galacean/engine";
 import { PlanningAnimalHost } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHost";
 import { runSeedWorldStartupShaderWarmup } from "../../demos/seed-world/src/SeedWorldStartupShaderWarmup";
 
@@ -182,6 +183,139 @@ describe("startup shader publication boundary", () => {
     await Promise.resolve();
     expect(dispose).toHaveBeenCalledOnce();
     expect(f.warmup).not.toHaveBeenCalled();
+  });
+  it("defers CRUD reveal/wave variants to deferredShaderVariants when KHR_parallel_shader_compile is unavailable", async () => {
+    const capturedOptions: any[] = [];
+    const run = (parallel: boolean) =>
+      runSeedWorldStartupShaderWarmup({
+        precompileShaders: true,
+        engine: {} as any,
+        scene: { rootEntities: [] } as any,
+        camera: { enabled: true } as any,
+        pageUrl: new URL("http://localhost/"),
+        canvas: { dataset: {} } as any,
+        showAssistant: false,
+        isDisposed: () => false,
+        progress: vi.fn(),
+        timed: (_name, work) => work(),
+        prepareAssistantPresentation: () => undefined,
+        getPostProcessWarmupState: () => ({ enabled: false }) as any,
+        additionalBackgroundMaterials: [],
+        warmupOperations: {
+          hasParallelShaderCompile: () => parallel,
+          warmupSeedWorldRendererVariants: vi.fn(async (_engine, _scene, _camera, _roots, options: any) => {
+            capturedOptions.push(options);
+            options.onVariants?.([
+              { shader: "Terrain/Terrain", si: 0, pi: 0, macros: [] },
+              { shader: "Terrain/Vegetation", si: 0, pi: 0, macros: [] }
+            ]);
+            return {
+              requested: 2,
+              compiled: 2,
+              parallelCompileSupported: parallel,
+              issues: [],
+              elapsedMilliseconds: 5,
+              longestVariantMilliseconds: 5
+            };
+          }) as any
+        }
+      });
+
+    const mobile = await run(false);
+    expect(capturedOptions[0].includeGenerationReveal).toBe(false);
+    expect(
+      mobile.deferredShaderVariants.some(
+        (v) => v.shader === "Terrain/Terrain" && v.macros.some((m) => m.n === "TERRAIN_PROJECT_ENTRANCE_WAVE")
+      )
+    ).toBe(true);
+    expect(
+      mobile.deferredShaderVariants.some(
+        (v) => v.shader === "Terrain/Vegetation" && v.macros.some((m) => m.n === "RENDERER_GENERATION_REVEAL")
+      )
+    ).toBe(true);
+
+    const desktop = await run(true);
+    expect(capturedOptions[1].includeGenerationReveal).toBe(true);
+    expect(desktop.deferredShaderVariants).toEqual([]);
+  });
+  it("collects deferredBackgroundMaterials without leaking mismatched postProcess variants when parallelCompile is false", async () => {
+    const fakeMaterial = (shaderName: string) =>
+      ({
+        destroyed: false,
+        shader: {
+          name: shaderName,
+          destroyed: false,
+          subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
+        },
+        shaderData: { _macroCollection: new ShaderMacroCollection() }
+      }) as any;
+    const bloomMat = fakeMaterial("PostProcess/Bloom");
+    const uberMat = fakeMaterial("PostProcess/Uber");
+    const holoMat = fakeMaterial("SeedWorld/HologramRainbow");
+    const holoAddMat = fakeMaterial("SeedWorld/HologramRainbowAdditive");
+    const engine = {
+      _macroCollection: new ShaderMacroCollection(),
+      _hardwareRenderer: { isWebGL2: true },
+      _basicResources: {},
+      _getActivePostProcessPasses: () => [{ isActive: true, _bloomMaterial: bloomMat, _uberMaterial: uberMat }]
+    } as any;
+    const scene = {
+      rootEntities: [],
+      background: { mode: 0 },
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    } as any;
+    const camera = {
+      enabled: true,
+      enablePostProcess: true,
+      renderTarget: null,
+      shaderData: { _macroCollection: new ShaderMacroCollection() },
+      _updateShaderData: vi.fn(),
+      _isIndependentCanvasEnabled: () => false
+    } as any;
+
+    const result = await runSeedWorldStartupShaderWarmup({
+      precompileShaders: true,
+      engine,
+      scene,
+      camera,
+      pageUrl: new URL("http://localhost/"),
+      canvas: { dataset: {} } as any,
+      showAssistant: false,
+      isDisposed: () => false,
+      progress: vi.fn(),
+      timed: (_name, work) => work(),
+      prepareAssistantPresentation: () => undefined,
+      getPostProcessWarmupState: () => ({
+        enabled: true,
+        bloom: true,
+        bloomHighQuality: true,
+        bloomDirt: false,
+        colorAdjustments: true,
+        tonemappingMode: 1
+      }),
+      additionalBackgroundMaterials: [],
+      deferredBackgroundMaterials: [holoMat, holoAddMat],
+      warmupOperations: {
+        hasParallelShaderCompile: () => false,
+        warmupSeedWorldRendererVariants: vi.fn(async (_e, _s, _c, _r, options: any) => {
+          options.onVariants?.([]);
+          return {
+            requested: 0,
+            compiled: 0,
+            parallelCompileSupported: false,
+            issues: [],
+            elapsedMilliseconds: 1,
+            longestVariantMilliseconds: 1
+          };
+        }) as any
+      }
+    });
+
+    expect(camera._updateShaderData).toHaveBeenCalledOnce();
+    expect(result.deferredShaderVariants.map((v) => v.shader)).toEqual([
+      "SeedWorld/HologramRainbow",
+      "SeedWorld/HologramRainbowAdditive"
+    ]);
   });
 });
 

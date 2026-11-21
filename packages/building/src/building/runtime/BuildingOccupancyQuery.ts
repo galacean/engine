@@ -35,7 +35,36 @@ function hull(points: Point[]): Point[] {
  * render residency. Openings inside a part's envelope remain occupied. No triangles
  * or render arrays are retained. World footprints preserve rotated empty corners. */
 export class BuildingOccupancyQuery {
-  private constructor(private readonly parts: readonly BuildingOccupancyPart[]) {}
+  private readonly minX: number;
+  private readonly minY: number;
+  private readonly minZ: number;
+  private readonly maxX: number;
+  private readonly maxY: number;
+  private readonly maxZ: number;
+
+  private constructor(private readonly parts: readonly BuildingOccupancyPart[]) {
+    let minX = Infinity,
+      minY = Infinity,
+      minZ = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity,
+      maxZ = -Infinity;
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      if (p.min[0] < minX) minX = p.min[0];
+      if (p.min[1] < minY) minY = p.min[1];
+      if (p.min[2] < minZ) minZ = p.min[2];
+      if (p.max[0] > maxX) maxX = p.max[0];
+      if (p.max[1] > maxY) maxY = p.max[1];
+      if (p.max[2] > maxZ) maxZ = p.max[2];
+    }
+    this.minX = minX;
+    this.minY = minY;
+    this.minZ = minZ;
+    this.maxX = maxX;
+    this.maxY = maxY;
+    this.maxZ = maxZ;
+  }
 
   static fromPreview(parts: readonly ConstructionPreviewPart[]): BuildingOccupancyQuery {
     const occupied: BuildingOccupancyPart[] = [];
@@ -131,10 +160,41 @@ export class BuildingOccupancyQuery {
   }
 
   intersectBounds(min: V, max: V): { building: string; subject: string } | null {
-    if (![...min, ...max].every(Number.isFinite) || min.some((v, i) => v > max[i]))
+    const min0 = min[0],
+      min1 = min[1],
+      min2 = min[2],
+      max0 = max[0],
+      max1 = max[1],
+      max2 = max[2];
+    if (
+      !Number.isFinite(min0) ||
+      !Number.isFinite(min1) ||
+      !Number.isFinite(min2) ||
+      !Number.isFinite(max0) ||
+      !Number.isFinite(max1) ||
+      !Number.isFinite(max2) ||
+      min0 > max0 ||
+      min1 > max1 ||
+      min2 > max2
+    )
       throw Error("Ordered finite occupancy bounds required");
-    for (const p of this.parts) {
-      if (p.min.some((v, i) => v > max[i] || p.max[i] < min[i])) continue;
+    const parts = this.parts;
+    if (
+      parts.length === 0 ||
+      this.minX > max0 ||
+      this.maxX < min0 ||
+      this.minY > max1 ||
+      this.maxY < min1 ||
+      this.minZ > max2 ||
+      this.maxZ < min2
+    )
+      return null;
+    for (let k = 0; k < parts.length; k++) {
+      const p = parts[k];
+      const pmin = p.min,
+        pmax = p.max;
+      if (pmin[0] > max0 || pmax[0] < min0 || pmin[1] > max1 || pmax[1] < min1 || pmin[2] > max2 || pmax[2] < min2)
+        continue;
       const polygon = p.footprint;
       let separated = false;
       for (let i = 0; i < polygon.length; i++) {
@@ -144,13 +204,14 @@ export class BuildingOccupancyQuery {
           nz = a[0] - b[0];
         let lo = Infinity,
           hi = -Infinity;
-        for (const q of polygon) {
+        for (let j = 0; j < polygon.length; j++) {
+          const q = polygon[j];
           const d = q[0] * nx + q[1] * nz;
-          lo = Math.min(lo, d);
-          hi = Math.max(hi, d);
+          if (d < lo) lo = d;
+          if (d > hi) hi = d;
         }
-        const qlo = nx * (nx < 0 ? max[0] : min[0]) + nz * (nz < 0 ? max[2] : min[2]);
-        const qhi = nx * (nx < 0 ? min[0] : max[0]) + nz * (nz < 0 ? min[2] : max[2]);
+        const qlo = nx * (nx < 0 ? max0 : min0) + nz * (nz < 0 ? max2 : min2);
+        const qhi = nx * (nx < 0 ? min0 : max0) + nz * (nz < 0 ? min2 : max2);
         if (qhi < lo || qlo > hi) {
           separated = true;
           break;

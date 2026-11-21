@@ -10,7 +10,9 @@ import { preparePlanningSeedWorldData } from "./PlanningSeedWorldData";
 import { preparePlanningNaturalGroundPopulation } from "./PlanningNaturalVegetation";
 import { yieldSeedWorldPreparationTask } from "../../world/SeedWorldPreparationTask";
 import { createPlanningWaterQuery } from "./PlanningWaterQueries";
-import { sampleSeedWorldHeight } from "../../runtime/SeedWorldFields.ts";
+import { sampleSeedWorldHeight, type SeedWorldFields } from "../../runtime/SeedWorldFields.ts";
+import { planningPresentedSolids } from "./PlanningPresentedSolids";
+import { applyPlanningTreeVariations } from "./PlanningTreeVariations";
 import {
   terrainChangedRectangle,
   type PreparedTerrainUpdate
@@ -20,12 +22,14 @@ import { rockFormationPlacements } from "../../integrations/terrain/rock-formati
 import { rockGrassExclusions } from "../../integrations/terrain/rock-formation/GrassExclusions";
 import type { PlanningSeedWorldData } from "./PlanningSeedWorldData";
 
-function nonSurfaceIntent(document: PlanningDocument): string {
+function nonSurfaceIntent(document: PlanningDocument, includeAuthoringContent = false): string {
   const value = structuredClone(document);
   value.revision = 0;
-  // Only physical terrain resources join the existing water-impact transaction.
-  // Other authored content must still use its own preparation path.
-  value.authoredResources = (value.authoredResources ?? []).filter((resource) => !isPlanningTerrainResource(resource));
+  // In local dependent runtime mode, authored vegetation/removals/tree-variations share the
+  // same local surface/vegetation transaction as physical terrain resources.
+  value.authoredResources = includeAuthoringContent
+    ? []
+    : (value.authoredResources ?? []).filter((resource) => !isPlanningTerrainResource(resource));
   delete value.waterAuthoringVersion;
   delete value.layoutOverrides;
   delete value.placementState;
@@ -60,20 +64,34 @@ export function planningSurfacePublicationGate(
     previous.heightTransition.fields.heightSamples !== previous.data.fields.heightSamples
   )
     return "terrain-transition-active";
-  if (nonSurfaceIntent(before) !== nonSurfaceIntent(after)) return "mixed-non-surface-intent";
+  if (nonSurfaceIntent(before, dependentSolids) !== nonSurfaceIntent(after, dependentSolids))
+    return "mixed-non-surface-intent";
   const terrainChanged =
     JSON.stringify(before.authoredResources?.filter(isPlanningTerrainResource) ?? []) !==
     JSON.stringify(after.authoredResources?.filter(isPlanningTerrainResource) ?? []);
-  // These legacy owners do not participate in the reversible surface transaction.
-  if (terrainChanged && previous.template) return "template-terrain-owner";
-  if (terrainChanged && previous.world?.exactPrefabs?.exactInstances.length) return "exact-prefab-terrain-owner";
+  // These legacy owners do not participate in the reversible surface transaction unless
+  // dependent local grounding is enabled by the caller (e.g. exactPrefabs via applyAuthoringHeightPatch).
+  const canGroundExactPrefabsLocally =
+    dependentSolids && typeof previous.world?.applyAuthoringHeightPatch === "function";
+  if (!dependentSolids && terrainChanged && previous.template) return "template-terrain-owner";
+  if (terrainChanged && previous.world?.exactPrefabs?.exactInstances.length && !canGroundExactPrefabsLocally)
+    return "exact-prefab-terrain-owner";
   const a = previous.plan,
     b = result.plan;
-  // The full path animates terrain only when no construction needs the final field.
-  // Do not silently turn those edits into an immediate local publication.
-  if (terrainTransitionDurationSeconds && !b.buildings.length && !b.fences?.length && !b.courtyards?.length)
+  // When local dependent publication is disabled, keep the full path for animated terrain transitions.
+  if (
+    !dependentSolids &&
+    terrainTransitionDurationSeconds &&
+    !b.buildings.length &&
+    !b.fences?.length &&
+    !b.courtyards?.length
+  )
     return "terrain-transition-requested";
-  if (!previous.data.surfaceIntent?.riverBedCoverage && b.waters.some((water) => water.kind === "river"))
+  if (
+    !dependentSolids &&
+    !previous.data.surfaceIntent?.riverBedCoverage &&
+    b.waters.some((water) => water.kind === "river")
+  )
     return "new-river-bed-residency";
   if (
     a.parameters.seed !== b.parameters.seed ||
@@ -81,30 +99,32 @@ export function planningSurfacePublicationGate(
     a.parameters.depth !== b.parameters.depth
   )
     return "world-lattice-changed";
-  for (const key of [
-    "routes",
-    "roadGraph",
-    "roadNetwork",
-    "bridges",
-    "roadApproaches",
-    "buildings",
-    "rocks",
-    "fences",
-    "courtyards",
-    "farming"
-  ] as const)
-    if (JSON.stringify(a[key]) !== JSON.stringify(b[key])) {
-      if (!dependentSolids || ["buildings", "fences", "courtyards", "farming"].includes(key))
-        return "changed-global-owner:" + key;
-      if (previous.template) return "template-terrain-owner";
-      if (previous.world.exactPrefabs.exactInstances.length) return "exact-prefab-terrain-owner";
-    }
-  if (
-    JSON.stringify(a.landscapes?.filter((item) => item.kind === "rock")) !==
-    JSON.stringify(b.landscapes?.filter((item) => item.kind === "rock"))
-  )
-    if (!dependentSolids || previous.template || previous.world.exactPrefabs.exactInstances.length)
+  // When local dependent adaptation is enabled (live player/AI intervention on an existing world),
+  // downstream owners (buildings/fences/courtyards via masonry.prepareTerrain, farming via refreshTerrain,
+  // rocks/bridges via prepareSolids, template via prepareRockGrounding) adapt in-place instead of
+  // forcing a full-world genesis rebuild.
+  if (!dependentSolids) {
+    for (const key of [
+      "routes",
+      "roadGraph",
+      "roadNetwork",
+      "bridges",
+      "roadApproaches",
+      "buildings",
+      "rocks",
+      "fences",
+      "courtyards",
+      "farming"
+    ] as const)
+      if (JSON.stringify(a[key]) !== JSON.stringify(b[key])) return "changed-global-owner:" + key;
+    if (
+      JSON.stringify(a.landscapes?.filter((item) => item.kind === "rock")) !==
+      JSON.stringify(b.landscapes?.filter((item) => item.kind === "rock"))
+    )
       return "changed-global-owner:landscape-rocks";
+  } else if (previous.world?.exactPrefabs?.exactInstances.length && !canGroundExactPrefabsLocally) {
+    return "exact-prefab-terrain-owner";
+  }
   // Validate the actual sample lattice after Raster adopts its Worker result,
   // before staging updates. Reading an uncached heightmap here would bake it on the host.
   return undefined;
@@ -157,6 +177,23 @@ export function planningWaterImpactBounds(
         for (const value of [previous.get(id), next.get(id)]) if (value) points.push(...value.outline);
       }
   }
+  // Include changed authored vegetation/removal footprints when mixed with a local terrain/water edit.
+  const prevResources = new Map((before.plan.authoredResources ?? []).map((r) => [r.resourceId, r]));
+  const nextResources = new Map((plan.authoredResources ?? []).map((r) => [r.resourceId, r]));
+  for (const id of new Set([...prevResources.keys(), ...nextResources.keys()])) {
+    const a = prevResources.get(id);
+    const b = nextResources.get(id);
+    if (JSON.stringify(a) === JSON.stringify(b)) continue;
+    for (const resource of [a, b]) {
+      if (!resource) continue;
+      const props = resource.properties as { x?: number; z?: number; radiusMetres?: number };
+      if (typeof props.x === "number" && typeof props.z === "number") {
+        const radius =
+          typeof props.radiusMetres === "number" && Number.isFinite(props.radiusMetres) ? props.radiusMetres : 12;
+        points.push({ x: props.x - radius, z: props.z - radius }, { x: props.x + radius, z: props.z + radius });
+      }
+    }
+  }
   if (!points.length) return { minimumX: 0, minimumZ: 0, maximumX: 0, maximumZ: 0 };
   // Cell clipping supplies its own lattice halo; the height rectangle above includes interpolation neighbours.
   return {
@@ -190,6 +227,9 @@ export async function preparePlanningWaterImpact(
       data: PlanningSeedWorldData
     ): Promise<{ solids: PublishedPlanningSeedScene["solids"]; update: PreparedTerrainUpdate }>;
     submerged(x: number, y: number, z: number): boolean;
+    terrainTransitionDurationSeconds?: number;
+    onTerrainTweenFrame?: (fields: SeedWorldFields) => void;
+    onTerrainTweenComplete?: () => void;
   }
 ) {
   const started = performance.now(),
@@ -232,6 +272,7 @@ export async function preparePlanningWaterImpact(
       ]) !== JSON.stringify([plan.bridges, plan.rocks, plan.landscapes?.filter((x) => x.kind === "rock")]);
     const replacement = dependencies && solidsChanged ? await dependencies.prepareSolids(data) : undefined;
     if (replacement) updates.push(replacement.update);
+    mark("prepareSolidsMs");
     const solids = replacement?.solids ?? previous.solids;
     await yieldSeedWorldPreparationTask();
     signal.throwIfAborted();
@@ -284,6 +325,9 @@ export async function preparePlanningWaterImpact(
     mark("nativeFieldsMs");
     await yieldSeedWorldPreparationTask();
     signal.throwIfAborted();
+    // Settle any in-flight local height tween to its final canonical state before staging a new
+    // TerrainClipmap prepareRegionUpdate so patchEpoch and oldSamples stay strictly consistent.
+    previous.world.settleLocalHeightTransition?.();
     updates.push(
       previous.world.prepareWaterTerrain(
         data.fields,
@@ -293,6 +337,18 @@ export async function preparePlanningWaterImpact(
         raster.takeSurfaceRelief(plan)
       )
     );
+    if (
+      previous.world.exactPrefabs?.exactInstances.length &&
+      typeof previous.world.applyAuthoringHeightPatch === "function"
+    ) {
+      const previousFields = previous.data.fields;
+      updates.push({
+        commit: () => previous.world.applyAuthoringHeightPatch(data.fields, bounds),
+        rollback: () => previous.world.applyAuthoringHeightPatch(previousFields, bounds),
+        finalize() {},
+        discard() {}
+      });
+    }
     mark("terrainAtlasReliefMs");
     await yieldSeedWorldPreparationTask();
     signal.throwIfAborted();
@@ -306,10 +362,13 @@ export async function preparePlanningWaterImpact(
     );
     const query = createPlanningWaterQuery(plan, (p) => sampleSeedWorldHeight(data.fields, p.x, p.z) ?? 0);
     const waterAreas = planningChangedWaterAreas(previous.plan, plan);
-    if (previous.data.surfaceIntent.riverBedCoverage && data.surfaceIntent.riverBedCoverage) {
+    const prevRiverBed = previous.data.surfaceIntent.riverBedCoverage;
+    const nextRiverBed = data.surfaceIntent.riverBedCoverage;
+    if (prevRiverBed || nextRiverBed) {
+      const length = (nextRiverBed ?? prevRiverBed)!.length;
       const changed = terrainChangedRectangle(
-        previous.data.surfaceIntent.riverBedCoverage,
-        data.surfaceIntent.riverBedCoverage,
+        prevRiverBed ?? new Uint8Array(length),
+        nextRiverBed ?? new Uint8Array(length),
         resolution,
         resolution
       );
@@ -356,8 +415,95 @@ export async function preparePlanningWaterImpact(
           true
         )
       );
+    mark("rockGrassMs");
     if (previous.masonry)
       updates.push(await previous.masonry.prepareTerrain({ data, revision }, signal, replacement?.solids.formations));
+    mark("masonryTerrainMs");
+    const prevTreeVariations = JSON.stringify(
+      (previous.plan.authoredResources ?? []).filter((r) => r.resourceType === "tree-variation")
+    );
+    const nextTreeVariations = JSON.stringify(
+      (plan.authoredResources ?? []).filter((r) => r.resourceType === "tree-variation")
+    );
+    if (prevTreeVariations !== nextTreeVariations) {
+      const oldResources = previous.plan.authoredResources ?? [];
+      const newResources = plan.authoredResources ?? [];
+      updates.push({
+        commit: () => applyPlanningTreeVariations(previous.world.population, newResources),
+        rollback: () => applyPlanningTreeVariations(previous.world.population, oldResources),
+        finalize() {},
+        discard() {}
+      });
+    }
+    const groundTemplateOnFields = (fields: SeedWorldFields) => {
+      if (!previous.template || typeof previous.template.prepareRockGrounding !== "function") return;
+      try {
+        const presented = planningPresentedSolids(solids.sourcePlan ?? plan, fields, data.fields);
+        previous.template.prepareRockGrounding(
+          presented,
+          (x, z) => sampleSeedWorldHeight(fields, x, z),
+          solids.formations
+        )?.();
+      } catch {
+        /* Ignore if template runtime was disposed during an in-flight tween. */
+      }
+    };
+    if (previous.template && typeof previous.template.prepareRockGrounding === "function") {
+      const prevFields = previous.data.fields;
+      updates.push({
+        commit: () => groundTemplateOnFields(data.fields),
+        rollback: () => groundTemplateOnFields(prevFields),
+        finalize() {},
+        discard() {}
+      });
+    }
+    if (typeof previous.world.playLocalHeightTransition === "function") {
+      const previousFields = previous.data.fields;
+      const finalFields = data.fields;
+      const vegetation = previous.vegetation;
+      const activeSolids = solids;
+      const durationSeconds = dependencies?.terrainTransitionDurationSeconds;
+      updates.push({
+        commit: () =>
+          previous.world.playLocalHeightTransition(
+            previousFields,
+            finalFields,
+            bounds,
+            durationSeconds,
+            (fields) => {
+              if (vegetation) {
+                try {
+                  vegetation.prepareGrounding(fields, undefined, undefined, bounds).commit();
+                } catch {
+                  /* Ignore if vegetation is disposed or concurrently staging another grounding transaction. */
+                }
+              }
+              if (activeSolids && typeof activeSolids.prepare === "function" && activeSolids.sourcePlan) {
+                try {
+                  const presented = planningPresentedSolids(activeSolids.sourcePlan, fields, finalFields);
+                  activeSolids.prepare(presented).commit();
+                } catch {
+                  /* Ignore if solids were replaced or disposed during an in-flight tween. */
+                }
+              }
+              groundTemplateOnFields(fields);
+              dependencies?.onTerrainTweenFrame?.(fields);
+            },
+            dependencies?.onTerrainTweenComplete
+          ),
+        rollback() {},
+        finalize() {},
+        discard() {}
+      });
+    } else if (typeof previous.world.playTerrainEditWave === "function") {
+      const previousFields = previous.data.fields;
+      updates.push({
+        commit: () => previous.world.playTerrainEditWave(previousFields, data.fields),
+        rollback() {},
+        finalize() {},
+        discard() {}
+      });
+    }
     signal.throwIfAborted();
     return {
       data,

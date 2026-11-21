@@ -1,7 +1,9 @@
 import { Camera, Engine, Entity, Material, Renderer, Scene } from "@galacean/engine";
 import {
+  collectSeedWorldRendererVariants,
   hasParallelShaderCompile,
   warmupSeedWorldRendererVariants,
+  withSeedWorldGenerationRevealVariants,
   type SeedWorldRendererWarmupOptions,
   type SeedWorldShaderVariantEntry,
   type SeedWorldShaderWarmupReport
@@ -44,6 +46,9 @@ export interface SeedWorldStartupShaderWarmupDeps {
   readonly hasOpaqueScreenSpaceReflection?: () => boolean;
   readonly getPostProcessWarmupState: () => SeedWorldRendererWarmupOptions["postProcessState"];
   readonly additionalBackgroundMaterials: SeedWorldRendererWarmupOptions["additionalBackgroundMaterials"];
+  /** Optional CRUD-only effect materials compiled upfront when parallel shader compile is available,
+   * or deferred to post-ready idle warmup on synchronous (`parallel=false`) mobile GPUs. */
+  readonly deferredBackgroundMaterials?: SeedWorldRendererWarmupOptions["additionalBackgroundMaterials"];
   readonly onWarmupEvent?: (message: string, detail: string) => void;
   readonly warmupOperations?: {
     readonly hasParallelShaderCompile?: typeof hasParallelShaderCompile;
@@ -80,6 +85,7 @@ export async function runSeedWorldStartupShaderWarmup(
   else deps.lifetimeSignal?.addEventListener("abort", onLifetimeAbort, { once: true });
   let prepCleanedUp = false;
   let shaderWarmup: SeedWorldShaderWarmupReport;
+  const deferredShaderVariants: SeedWorldShaderVariantEntry[] = [];
   const agentTraceEnabled = deps.pageUrl.searchParams.get("agentTrace") === "1";
   try {
     await deps.timed("preparePresentation (farming + animals + vegetation + masonry)", () =>
@@ -107,6 +113,11 @@ export async function runSeedWorldStartupShaderWarmup(
       ...(masonryWarmup?.renderers ?? []),
       ...(rockGrassWarmup?.renderers ?? [])
     ];
+    let startupVariants: readonly SeedWorldShaderVariantEntry[] = [];
+    const startupBackgroundMaterials =
+      parallelCompile && deps.deferredBackgroundMaterials?.length
+        ? [...(deps.additionalBackgroundMaterials ?? []), ...deps.deferredBackgroundMaterials]
+        : deps.additionalBackgroundMaterials;
     shaderWarmup = await deps.timed("warmupSeedWorldRendererVariants", () =>
       ops.warmupSeedWorldRendererVariants(deps.engine, deps.scene, deps.camera, deps.scene.rootEntities, {
         strict: true,
@@ -121,6 +132,9 @@ export async function runSeedWorldStartupShaderWarmup(
         includeGpuInstancing: true,
         onlySharedMeshGpuInstancing: true,
         includeLodDither: false,
+        // On synchronous mobile GPUs (parallel=false), defer CRUD-only reveal/wave variants to
+        // post-ready idle frames so startup load time stays at baseline parity.
+        includeGenerationReveal: parallelCompile,
         includeOpaqueScreenSpaceReflection: deps.hasOpaqueScreenSpaceReflection?.() ?? false,
         includeLiquidGlassMask: deps.showAssistant,
         includePhotoCopy: deps.showAssistant,
@@ -128,14 +142,54 @@ export async function runSeedWorldStartupShaderWarmup(
         maximumPendingPrograms: parallelCompile ? 16 : 1,
         overlayRenderers: assistant?.root.getComponentsIncludeChildren(Renderer, []) ?? [],
         postProcessState: deps.getPostProcessWarmupState(),
-        additionalBackgroundMaterials: deps.additionalBackgroundMaterials,
-        onVariants: agentTraceEnabled
-          ? (variants) => {
-              deps.canvas.dataset.buildingShaderWarmupVariants = JSON.stringify(variants);
-            }
-          : undefined
+        additionalBackgroundMaterials: startupBackgroundMaterials,
+        onVariants:
+          agentTraceEnabled || !parallelCompile
+            ? (variants) => {
+                startupVariants = variants;
+                if (agentTraceEnabled) {
+                  deps.canvas.dataset.buildingShaderWarmupVariants = JSON.stringify(variants);
+                }
+              }
+            : undefined
       })
     );
+    if (!parallelCompile) {
+      const variantKey = (entry: SeedWorldShaderVariantEntry) =>
+        `${entry.shader}/${entry.si}/${entry.pi}?${entry.macros.map((m) => `${m.n}=${m.v ?? ""}`).join(";")}`;
+      const seen = new Set(startupVariants.map(variantKey));
+      if (startupVariants.length > 0) {
+        for (const variant of withSeedWorldGenerationRevealVariants(startupVariants)) {
+          const key = variantKey(variant);
+          if (!seen.has(key)) {
+            seen.add(key);
+            deferredShaderVariants.push(variant);
+          }
+        }
+      }
+      if (deps.deferredBackgroundMaterials?.length) {
+        const bgVariants = collectSeedWorldRendererVariants(deps.engine, deps.scene, deps.camera, [], {
+          additionalBackgroundMaterials: deps.deferredBackgroundMaterials,
+          postProcessState: {
+            enabled: false,
+            bloom: false,
+            bloomHighQuality: false,
+            bloomDirt: false,
+            colorAdjustments: false
+          },
+          includeInstanceEntrance: false,
+          includeMasonryEntrance: false,
+          includeMasonryDither: false
+        });
+        for (const variant of bgVariants) {
+          const key = variantKey(variant);
+          if (!seen.has(key)) {
+            seen.add(key);
+            deferredShaderVariants.push(variant);
+          }
+        }
+      }
+    }
   } finally {
     prepCleanedUp = true;
     prepAbort.abort();
@@ -149,10 +203,10 @@ export async function runSeedWorldStartupShaderWarmup(
   }
   deps.onWarmupEvent?.(
     `compiled ${shaderWarmup.compiled}/${shaderWarmup.requested} variants in ${Math.round(shaderWarmup.elapsedMilliseconds)}ms`,
-    `longest=${Math.round(shaderWarmup.longestVariantMilliseconds)}ms parallelCompile=${Boolean(shaderWarmup.parallelCompileSupported)}`
+    `longest=${Math.round(shaderWarmup.longestVariantMilliseconds)}ms parallelCompile=${Boolean(shaderWarmup.parallelCompileSupported)} deferred=${deferredShaderVariants.length}`
   );
   if (agentTraceEnabled) {
     deps.canvas.dataset.buildingShaderWarmup = JSON.stringify(shaderWarmup);
   }
-  return { report: shaderWarmup, deferredShaderVariants: [] };
+  return { report: shaderWarmup, deferredShaderVariants };
 }

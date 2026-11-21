@@ -25,7 +25,11 @@ import { prepareBuildingDetail } from "./BuildingDetail";
 import { terrainAffectsRegion, validateConstructionTerrain } from "../../runtime/TerrainField";
 import type { ConstructionTerrainSource } from "../../runtime/TerrainField";
 import { BuildingOccupancyQuery } from "../../runtime/BuildingOccupancyQuery";
-import { ConstructionEntrance, type ConstructionEntranceState } from "../../runtime/ConstructionEntrance";
+import {
+  CONSTRUCTION_EXIT_SECONDS,
+  ConstructionEntrance,
+  type ConstructionEntranceState
+} from "../../runtime/ConstructionEntrance";
 import { hasConstructionWallRoofJointParams } from "../../runtime/ConstructionWallRoofJoint";
 import { createBuildingDistanceView } from "../../runtime/BuildingDistanceView";
 import { BuildingGlobalProxy } from "../../runtime/BuildingGlobalProxy";
@@ -269,6 +273,7 @@ export class BuildingRuntime extends Script {
   private readonly lightDescriptors: ConstructionDecorationLight[] = [];
   private readonly lightPosition = new Vector3();
   private readonly entrance = new ConstructionEntrance();
+  private readonly exitingViews: { view: View; progress: number; anchor?: Entity }[] = [];
   private entranceEnabled = false;
   private entranceStarted = false;
 
@@ -281,6 +286,11 @@ export class BuildingRuntime extends Script {
     this.shown = value;
     this.surfaceRevision++;
     for (const view of this.views.values()) showView(view, value);
+    for (const item of this.exitingViews) {
+      if (item.anchor && !item.anchor.destroyed) item.anchor.isActive = value;
+      if (!item.view.view.root.destroyed) item.view.view.root.isActive = value;
+      if (item.view.fine && !item.view.fine.runtime.root.destroyed) item.view.fine.runtime.root.isActive = value;
+    }
     this.updateResidency(0);
     this.updateLights(0);
   }
@@ -328,6 +338,7 @@ export class BuildingRuntime extends Script {
     this.terrainUpdate?.discard();
     this.build?.controller.abort();
     this.detailBuild?.controller.abort();
+    this.clearExitingViews();
     if (host.terrain) validateConstructionTerrain(host.terrain.grid);
     this.publishedTerrain = host.terrain;
     this.host = host;
@@ -362,16 +373,19 @@ export class BuildingRuntime extends Script {
           view.signature = "";
           for (const build of [this.build, this.detailBuild]) if (build?.frame === frame) build.controller.abort();
           const id = view.groupIds.get(component)!;
-          view.view.setOwnerVisible(id, false);
           view.occupancy = view.occupancy.withoutOwner(id);
           view.worldOccupancy = undefined;
           this.surfaceRevision++;
-          for (const draw of view.fine?.runtime.draws.values() ?? [])
-            if (draw.ownerId === id) {
-              draw.enabled = false;
-              draw.renderer.enabled = draw.lodRenderer.enabled = false;
-            }
-          if (view.bodies.every((body) => !this.members.has(body))) this.retire(view);
+          if (view.bodies.every((body) => !this.members.has(body))) {
+            this.retire(view, true);
+          } else {
+            view.view.setOwnerVisible(id, false);
+            for (const draw of view.fine?.runtime.draws.values() ?? [])
+              if (draw.ownerId === id) {
+                draw.enabled = false;
+                draw.renderer.enabled = draw.lodRenderer.enabled = false;
+              }
+          }
         }
     }
     this.invalidate();
@@ -417,6 +431,7 @@ export class BuildingRuntime extends Script {
       this.invalidate();
     }
     if (this.entrance.advance(deltaTime)) this.applyEntrance(this.entrance.changed);
+    this.advanceExitingViews(deltaTime);
     this.updateResidency(deltaTime);
     this.updateLights(deltaTime);
     if (this.host && !this.inputUpdates && !this.terrainUpdate && !this.pending && this.applied !== this.revision)
@@ -665,17 +680,88 @@ export class BuildingRuntime extends Script {
     build.controller.abort();
     this.invalidate();
   }
-  private retire(view: View): void {
+  private retire(view: View, animateExit = false): void {
     if (view.kind === "profile") this.residency?.desired.delete(view);
     this.views.delete(view.frame);
     const index = view.kind === "profile" ? this.entries.indexOf(view) : -1;
     if (index >= 0) this.entries.splice(index, 1);
-    destroyView(view);
+    const canAnimateExit =
+      animateExit &&
+      this.entranceEnabled &&
+      this.entranceStarted &&
+      !this.closed &&
+      this.shown &&
+      view.visible &&
+      !view.view.root.destroyed &&
+      view.view.root.isActiveInHierarchy &&
+      !this.entity.destroyed &&
+      this.entity.isActiveInHierarchy;
+    if (canAnimateExit) {
+      // Detach generated geometry from the author frame onto a runtime-owned anchor so
+      // frame.destroy() (editor entity.delete / BuildingManager.remove) cannot cascade-destroy
+      // the exit dissolve animation synchronously.
+      const anchor = this.entity.createChild("Building exiting");
+      markGeneratedBuildingOutput(anchor);
+      const frameTransform = view.frame.transform;
+      anchor.transform.worldPosition = frameTransform.worldPosition;
+      anchor.transform.worldRotationQuaternion = frameTransform.worldRotationQuaternion;
+      anchor.transform.scale = frameTransform.lossyWorldScale;
+      anchor.addChild(view.view.root);
+      if (view.fine && !view.fine.runtime.root.destroyed) {
+        anchor.addChild(view.fine.runtime.root);
+      }
+      for (const [id, range] of view.view.entranceRanges) {
+        view.entranceStates.set(id, {
+          progress: 0.999,
+          minimumY: range.min,
+          height: Math.max(0.001, range.max - range.min)
+        });
+      }
+      view.view.setEntrance(view.entranceStates);
+      if (view.fine && !view.fine.runtime.root.destroyed) {
+        view.fine.runtime.setEntrance(view.entranceStates);
+      }
+      this.exitingViews.push({ view, progress: 1, anchor });
+    } else {
+      destroyView(view);
+    }
     if (this.residency) {
       this.residency.selectionDirty = true;
       this.residency.invalidate();
     }
     this.detailDirty = true;
+  }
+  private advanceExitingViews(deltaTime: number): void {
+    if (this.exitingViews.length === 0) return;
+    const step = Number.isFinite(deltaTime) && deltaTime > 0 ? deltaTime / CONSTRUCTION_EXIT_SECONDS : 0;
+    for (let i = this.exitingViews.length - 1; i >= 0; i--) {
+      const item = this.exitingViews[i]!;
+      if (item.view.view.root.destroyed || item.anchor?.destroyed) {
+        this.exitingViews.splice(i, 1);
+        destroyView(item.view);
+        if (item.anchor && !item.anchor.destroyed) item.anchor.destroy();
+        continue;
+      }
+      item.progress = Math.max(0, item.progress - step);
+      if (item.progress <= 0) {
+        this.exitingViews.splice(i, 1);
+        destroyView(item.view);
+        if (item.anchor && !item.anchor.destroyed) item.anchor.destroy();
+        continue;
+      }
+      for (const state of item.view.entranceStates.values()) state.progress = item.progress;
+      item.view.view.setEntrance(item.view.entranceStates);
+      if (item.view.fine && !item.view.fine.runtime.root.destroyed) {
+        item.view.fine.runtime.setEntrance(item.view.entranceStates);
+      }
+    }
+  }
+  private clearExitingViews(): void {
+    for (const item of this.exitingViews) {
+      destroyView(item.view);
+      if (item.anchor && !item.anchor.destroyed) item.anchor.destroy();
+    }
+    this.exitingViews.length = 0;
   }
   private refreshProbe(view: View): void {
     const matrix = viewRoot(view).transform.worldMatrix,
@@ -692,11 +778,18 @@ export class BuildingRuntime extends Script {
     );
     this.residency!.selectionDirty = true;
   }
-  private acceptEntrance(view: View): void {
+  private acceptEntrance(view: View, previous?: View): void {
     for (const [id, range] of view.view.entranceRanges) {
       const key = buildingInstanceKey(view.frame, buildingGroupKey(id));
-      if (this.entranceEnabled) this.entrance.accept(key, range.min, range.max, this.entranceStarted);
-      else this.entrance.define(key, range.min, range.max);
+      if (this.entranceEnabled) {
+        if (previous && this.entranceStarted && previous.entranceStates.has(id)) {
+          this.entrance.sweep(key, range.min, range.max, true);
+        } else {
+          this.entrance.accept(key, range.min, range.max, this.entranceStarted);
+        }
+      } else {
+        this.entrance.define(key, range.min, range.max);
+      }
       view.entranceStates.set(id, this.entrance.states.get(key)!);
     }
     view.view.setEntrance(view.entranceStates);
@@ -798,7 +891,7 @@ export class BuildingRuntime extends Script {
       try {
         this.host!.validate(this.members.keys());
         const frames = this.frames();
-        for (const [frame, view] of this.views) if (!frames.has(frame)) this.retire(view);
+        for (const [frame, view] of this.views) if (!frames.has(frame)) this.retire(view, true);
         for (const frame of frames.keys()) {
           const input = this.input(frame),
             { signature, bodies } = input;
@@ -823,9 +916,9 @@ export class BuildingRuntime extends Script {
               },
               build.controller.signal
             );
-            this.acceptEntrance(candidate);
+            this.acceptEntrance(candidate, old);
             if (!old || !old.occupancy.hasSameGeometry(candidate.occupancy)) this.surfaceRevision++;
-            if (old) this.retire(old);
+            if (old) this.retire(old, false);
             this.views.set(frame, candidate);
             if (candidate.kind === "profile") this.entries.push(candidate);
             this.refreshProbe(candidate);
@@ -1411,7 +1504,8 @@ export class BuildingRuntime extends Script {
     this.closed = true;
     this.build?.controller.abort();
     this.detailBuild?.controller.abort();
-    for (const view of [...this.views.values()]) this.retire(view);
+    this.clearExitingViews();
+    for (const view of [...this.views.values()]) this.retire(view, false);
     this.compiler.dispose();
     for (const flag of this.members.values()) flag.destroy();
     this.members.clear();

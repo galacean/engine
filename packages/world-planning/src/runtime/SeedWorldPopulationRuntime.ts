@@ -2516,7 +2516,9 @@ export class SeedWorldPopulationRuntime {
     sampleOrigin: readonly [x: number, z: number],
     sampleSize: readonly [width: number, height: number],
     samples: Uint16Array,
-    dirtyBounds: SeedWorldAuthoringRuntimeBoundsV1
+    dirtyBounds: SeedWorldAuthoringRuntimeBoundsV1,
+    heightDecode?: SeedWorldFields["heightDecode"],
+    options?: { readonly transient?: boolean }
   ): void {
     if (this._destroyed) throw new Error("Seed World Population runtime is destroyed");
     const [originX, originZ] = sampleOrigin;
@@ -2532,17 +2534,21 @@ export class SeedWorldPopulationRuntime {
     ) {
       throw new RangeError("Population height patch lies outside the canonical height field");
     }
+    if (heightDecode !== undefined) {
+      (this._fields as { heightDecode?: SeedWorldFields["heightDecode"] }).heightDecode = heightDecode;
+    }
     for (let localZ = 0; localZ < height; localZ++) {
       const sourceOffset = localZ * width;
       const targetOffset = (originZ + localZ) * this._fields.heightResolution + originX;
       this._fields.heightSamples.set(samples.subarray(sourceOffset, sourceOffset + width), targetOffset);
     }
+    const transient = Boolean(options?.transient);
     const dirtyCellIds = populationCellIdsForBounds(this._fields, dirtyBounds);
-    this._refreshDetailCellsGrounding(dirtyCellIds);
-    this._refreshGrassRockAppearance();
+    this._refreshDetailCellsGrounding(dirtyCellIds, transient);
+    if (!transient) this._refreshGrassRockAppearance();
     this._sparseCells.refreshPrecompiledGrounding(dirtyCellIds);
     this._sparseRenderDirty = true;
-    this.update(0);
+    if (!transient) this.update(0);
   }
 
   /**
@@ -4364,17 +4370,18 @@ export class SeedWorldPopulationRuntime {
     this._invalidateDetailCells(new Set([...this._detailCells.cells].map((cell) => cell.data.id)));
   }
 
-  private _refreshDetailCellsGrounding(dirtyCellIds: ReadonlySet<string>): void {
+  private _refreshDetailCellsGrounding(dirtyCellIds: ReadonlySet<string>, transient = false): void {
     this._forwardGrass?.invalidateMask();
     for (const cell of this._detailCells.cells) {
       if (!dirtyCellIds.has(cell.data.id)) continue;
+      if (transient && !cell.resource.detailsActive) continue;
       if (cell.resource.compactionTask) {
         this._cancelDetailCompaction(cell.resource);
         cell.resource.compactionTask = this._createDetailCompactionTask();
       }
       if (cell.resource.detailsLoaded) {
         for (const batches of cell.resource.detailBatches.values()) {
-          for (const batch of batches) refreshDetailBatchGrounding(batch, this._fields);
+          for (const batch of batches) refreshDetailBatchGrounding(batch, this._fields, transient);
         }
       }
     }
@@ -7916,20 +7923,30 @@ function stableGrassHeightVariation(worldX: number, worldZ: number): number {
   return seedWorldDetailUnitFloat(Math.imul(Math.round(worldX * 1_000), 0x9e37_79b9) ^ Math.round(worldZ * 1_000));
 }
 
-function refreshDetailBatchGrounding(batch: DetailPopulationBatch, fields: SeedWorldFields): void {
+function refreshDetailBatchGrounding(batch: DetailPopulationBatch, fields: SeedWorldFields, transient = false): void {
   if (batch.instanceCount === 0) return;
-  const terrainNormal: [x: number, y: number, z: number] = [0, 1, 0];
   const transformFloatCount = batch.instanceCount * DETAIL_TRANSFORM_FLOATS;
-  for (let offset = 0; offset < transformFloatCount; offset += DETAIL_TRANSFORM_FLOATS) {
-    const worldX = batch.transforms[offset]!;
-    const worldZ = batch.transforms[offset + 2]!;
-    const height = sampleSeedWorldHeight(fields, worldX, worldZ);
-    if (height === undefined) continue;
-    sampleSeedWorldTerrainNormal(fields, worldX, worldZ, terrainNormal);
-    batch.transforms[offset + 1] = height;
-    batch.transforms[offset + DETAIL_TERRAIN_NORMAL_FLOAT_OFFSET] = terrainNormal[0];
-    batch.transforms[offset + DETAIL_TERRAIN_NORMAL_FLOAT_OFFSET + 1] = terrainNormal[1];
-    batch.transforms[offset + DETAIL_TERRAIN_NORMAL_FLOAT_OFFSET + 2] = terrainNormal[2];
+  if (transient) {
+    for (let offset = 0; offset < transformFloatCount; offset += DETAIL_TRANSFORM_FLOATS) {
+      const worldX = batch.transforms[offset]!;
+      const worldZ = batch.transforms[offset + 2]!;
+      const height = sampleSeedWorldHeight(fields, worldX, worldZ);
+      if (height === undefined) continue;
+      batch.transforms[offset + 1] = height;
+    }
+  } else {
+    const terrainNormal: [x: number, y: number, z: number] = [0, 1, 0];
+    for (let offset = 0; offset < transformFloatCount; offset += DETAIL_TRANSFORM_FLOATS) {
+      const worldX = batch.transforms[offset]!;
+      const worldZ = batch.transforms[offset + 2]!;
+      const height = sampleSeedWorldHeight(fields, worldX, worldZ);
+      if (height === undefined) continue;
+      sampleSeedWorldTerrainNormal(fields, worldX, worldZ, terrainNormal);
+      batch.transforms[offset + 1] = height;
+      batch.transforms[offset + DETAIL_TERRAIN_NORMAL_FLOAT_OFFSET] = terrainNormal[0];
+      batch.transforms[offset + DETAIL_TERRAIN_NORMAL_FLOAT_OFFSET + 1] = terrainNormal[1];
+      batch.transforms[offset + DETAIL_TERRAIN_NORMAL_FLOAT_OFFSET + 2] = terrainNormal[2];
+    }
   }
   batch.resources.instanceBuffer.setData(batch.transforms, 0, 0, transformFloatCount, SetDataOptions.Discard);
   updateCompactedDetailBounds(batch.bounds, batch.transforms, batch.localBounds, batch.instanceCount);

@@ -226,3 +226,34 @@ export function withSeedWorldLodDitherVariants(
     })
   );
 }
+
+/**
+ * Authoring CRUD rainbow effects toggle `RENDERER_GENERATION_REVEAL` on `Terrain/Vegetation` and
+ * `Terrain/Surface` (trees, shrubs, rocks) and `TERRAIN_PROJECT_ENTRANCE_WAVE` on `Terrain/Terrain`.
+ */
+export function withSeedWorldGenerationRevealVariants(
+  entries: readonly SeedWorldShaderVariantEntry[]
+): readonly SeedWorldShaderVariantEntry[] {
+  return normalizeSeedWorldShaderVariants(
+    entries.flatMap((entry) => {
+      if (entry.macros.some((macro) => macro.n === "RENDERER_WORLD_PICK")) return [entry];
+      if (entry.shader === "Terrain/Vegetation" || entry.shader === "Terrain/Surface") {
+        const has = (name: string) => entry.macros.some((macro) => macro.n === name);
+        if (
+          has("RENDERER_GENERATION_REVEAL") ||
+          has("RENDERER_SEED_WORLD_DETAIL_COMPACT") ||
+          has("RENDERER_ASSET_ASSEMBLY_INSTANCE") ||
+          has("RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG")
+        ) {
+          return [entry];
+        }
+        return [entry, { ...entry, macros: [...entry.macros, { n: "RENDERER_GENERATION_REVEAL" }] }];
+      }
+      if (entry.shader === "Terrain/Terrain") {
+        if (entry.macros.some((macro) => macro.n === "TERRAIN_PROJECT_ENTRANCE_WAVE")) return [entry];
+        return [entry, { ...entry, macros: [...entry.macros, { n: "TERRAIN_PROJECT_ENTRANCE_WAVE" }] }];
+      }
+      return [entry];
+    })
+  );
+}

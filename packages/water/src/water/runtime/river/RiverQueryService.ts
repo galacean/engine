@@ -90,9 +90,15 @@ export class RiverNetworkQueryService {
   private readonly _primitiveSourceIndices: Uint32Array;
   private readonly _primitiveLocalIndices: Uint32Array;
   private readonly _primitiveBounds: Float32Array;
+  private readonly _networkMinX: number;
+  private readonly _networkMinZ: number;
+  private readonly _networkMaxX: number;
+  private readonly _networkMaxZ: number;
   private readonly _cellCoordinates: Int32Array;
   private readonly _cellOffsets: Uint32Array;
   private readonly _cellPrimitiveIndices: Uint32Array;
+  private readonly _boundsVisitStamp: Uint32Array;
+  private _boundsVisitToken = 0;
   private readonly _reachSamples: readonly Float32Array[];
   private readonly _reachSampleStrides: Uint32Array;
   private readonly _junctionBoundaries: readonly Float32Array[];
@@ -125,9 +131,25 @@ export class RiverNetworkQueryService {
     this._primitiveSourceIndices = index.primitiveSourceIndices.borrowTypedArray();
     this._primitiveLocalIndices = index.primitiveLocalIndices.borrowTypedArray();
     this._primitiveBounds = index.primitiveBounds.borrowTypedArray();
+    let networkMinX = Infinity,
+      networkMinZ = Infinity,
+      networkMaxX = -Infinity,
+      networkMaxZ = -Infinity;
+    for (let i = 0; i < this._primitiveKinds.length; i++) {
+      const o = i * 4;
+      if (this._primitiveBounds[o] < networkMinX) networkMinX = this._primitiveBounds[o];
+      if (this._primitiveBounds[o + 1] < networkMinZ) networkMinZ = this._primitiveBounds[o + 1];
+      if (this._primitiveBounds[o + 2] > networkMaxX) networkMaxX = this._primitiveBounds[o + 2];
+      if (this._primitiveBounds[o + 3] > networkMaxZ) networkMaxZ = this._primitiveBounds[o + 3];
+    }
+    this._networkMinX = networkMinX;
+    this._networkMinZ = networkMinZ;
+    this._networkMaxX = networkMaxX;
+    this._networkMaxZ = networkMaxZ;
     this._cellCoordinates = index.cellCoordinates.borrowTypedArray();
     this._cellOffsets = index.cellOffsets.borrowTypedArray();
     this._cellPrimitiveIndices = index.cellPrimitiveIndices.borrowTypedArray();
+    this._boundsVisitStamp = new Uint32Array(this._primitiveKinds.length);
     const localMapAtlas = _data.terrainInteraction.localMapAtlas;
     this._localCurrentSampler = localMapAtlas ? new RiverLocalCurrentSampler(localMapAtlas) : undefined;
     this._reachSamples = _data.reaches.map((reach) => reach.artifact.querySource.samples.borrowTypedArray());
@@ -180,9 +202,18 @@ export class RiverNetworkQueryService {
   /** Conservative bound for static and animated triangle queries, before terrain/cut rejection. */
   maximumSurfaceHeightInBounds(bounds: WaterBoundsXZ): number | null {
     assertWaterQueryBounds(bounds);
+    const primitiveCount = this._primitiveKinds.length;
+    if (
+      primitiveCount === 0 ||
+      bounds.maxX < this._networkMinX - RIVER_QUERY_EPSILON ||
+      bounds.maxZ < this._networkMinZ - RIVER_QUERY_EPSILON ||
+      bounds.minX > this._networkMaxX + RIVER_QUERY_EPSILON ||
+      bounds.minZ > this._networkMaxZ + RIVER_QUERY_EPSILON
+    )
+      return null;
     let maximum = -Infinity;
     const displacement = Math.max(0, this._data.surfaceMotion.maxDisplacement);
-    for (let i = 0; i < this._primitiveKinds.length; i++) {
+    const testPrimitive = (i: number): void => {
       const offset = i * 4;
       if (
         bounds.maxX < this._primitiveBounds[offset] - RIVER_QUERY_EPSILON ||
@@ -190,7 +221,7 @@ export class RiverNetworkQueryService {
         bounds.minX > this._primitiveBounds[offset + 2] + RIVER_QUERY_EPSILON ||
         bounds.minZ > this._primitiveBounds[offset + 3] + RIVER_QUERY_EPSILON
       )
-        continue;
+        return;
       const source = this._primitiveSourceIndices[i];
       if (this._primitiveKinds[i] === RiverQueryPrimitiveKind.Junction) {
         maximum = Math.max(
@@ -199,14 +230,52 @@ export class RiverNetworkQueryService {
         );
       } else {
         const { surfaceGeometry: geometry, querySource } = this._data.reaches[source].artifact;
-        if (querySource.sampleCount < 2 || geometry.positions.length % querySource.sampleCount !== 0) continue;
+        if (querySource.sampleCount < 2 || geometry.positions.length % querySource.sampleCount !== 0) return;
         const rowWidth = geometry.positions.length / querySource.sampleCount;
         const spanIndexCount = Math.max(0, rowWidth - 1) * 6;
         const start = geometry.drawStart + this._primitiveLocalIndices[i] * spanIndexCount;
         const end = Math.min(start + spanIndexCount, geometry.drawStart + geometry.drawCount);
         maximum = Math.max(maximum, maximumGeometryHeightInBounds(geometry, bounds, displacement, start, end));
       }
+    };
+    const cellSize = this._data.queryIndex.cellSize;
+    if (cellSize > 0 && this._data.queryIndex.cellCount > 0) {
+      const minCellX = Math.floor((bounds.minX - RIVER_QUERY_EPSILON) / cellSize);
+      const maxCellX = Math.floor((bounds.maxX + RIVER_QUERY_EPSILON) / cellSize);
+      const minCellZ = Math.floor((bounds.minZ - RIVER_QUERY_EPSILON) / cellSize);
+      const maxCellZ = Math.floor((bounds.maxZ + RIVER_QUERY_EPSILON) / cellSize);
+      const cellSpan = (maxCellX - minCellX + 1) * (maxCellZ - minCellZ + 1);
+      if (cellSpan <= 64 && cellSpan < primitiveCount) {
+        let visitToken = 0;
+        const visitStamp = cellSpan > 1 ? this._boundsVisitStamp : undefined;
+        if (visitStamp) {
+          visitToken = (this._boundsVisitToken + 1) >>> 0;
+          if (visitToken === 0) {
+            visitStamp.fill(0);
+            visitToken = 1;
+          }
+          this._boundsVisitToken = visitToken;
+        }
+        for (let cx = minCellX; cx <= maxCellX; cx++) {
+          for (let cz = minCellZ; cz <= maxCellZ; cz++) {
+            const cellIndex = this._findCell(cx, cz);
+            if (cellIndex < 0) continue;
+            const start = this._cellOffsets[cellIndex];
+            const end = this._cellOffsets[cellIndex + 1];
+            for (let k = start; k < end; k++) {
+              const prim = this._cellPrimitiveIndices[k];
+              if (visitStamp) {
+                if (visitStamp[prim] === visitToken) continue;
+                visitStamp[prim] = visitToken;
+              }
+              testPrimitive(prim);
+            }
+          }
+        }
+        return maximum === -Infinity ? null : maximum;
+      }
     }
+    for (let i = 0; i < primitiveCount; i++) testPrimitive(i);
     return maximum === -Infinity ? null : maximum;
   }
 

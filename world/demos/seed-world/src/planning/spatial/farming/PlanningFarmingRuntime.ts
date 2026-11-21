@@ -261,20 +261,30 @@ export class PlanningFarmingRuntime {
   }
 
   private groundingCurrent?: PublishedPlanningSeedScene;
+  /** Re-mesh farm soil chunks in-place during a local terrain height tween without rebuilding the farm. */
+  refreshLiveTerrain(fields: Parameters<PlanningFarmLandLayer["refreshTerrain"]>[0]): void {
+    if (this.disposed || !this.land) return;
+    this.land.refreshTerrain(fields);
+  }
   /** Rebind an accepted local terrain/water view without recreating the farm or its save state. */
-  refreshTerrain(current: PublishedPlanningSeedScene): void {
+  refreshTerrain(current: PublishedPlanningSeedScene, planningRevision = current.plan.farming?.planningRevision ?? 0): void {
     const previous = this.waterCurrent ?? this.current;
     if (
       this.disposed ||
       !previous ||
       this.options.readCurrent() !== current ||
       previous.world !== current.world ||
-      previous.masonry !== current.masonry ||
-      previous.solids !== current.solids
+      previous.masonry !== current.masonry
     )
       return;
+    if (!this.area && current.plan.farming?.placementCheck.state === "ready") {
+      this.publish(current, planningRevision);
+      return;
+    }
     this.groundingCurrent = current;
     this.waterCurrent = current;
+    this.masonry = current.masonry;
+    this.buildingRevision = current.masonry?.publicationRevision;
     this.revision = current.revision;
     this.land?.refreshTerrain(current.data.fields);
     if (this.createGroundView && this.provider) {
@@ -284,7 +294,7 @@ export class PlanningFarmingRuntime {
       this.requestWaterSupply(view);
     }
     if (this.record) {
-      this.record = { ...this.record, publicationRevision: current.revision };
+      this.record = { ...this.record, planningRevision, publicationRevision: current.revision };
       this.system.diagnostics.publish(this.record);
     }
   }
@@ -298,7 +308,6 @@ export class PlanningFarmingRuntime {
       this.options.readCurrent() !== current ||
       current.world !== previous.world ||
       current.data !== previous.data ||
-      current.solids !== previous.solids ||
       current.vegetation !== previous.vegetation ||
       current.masonry !== previous.masonry ||
       current.masonry?.publicationRevision !== this.buildingRevision
@@ -549,8 +558,9 @@ export class PlanningFarmingRuntime {
     }
     // Height transition publishes the final array by identity. Avoid rendering soil above an intermediate surface.
     while (
-      current.heightTransition &&
-      current.heightTransition.fields.heightSamples !== current.data.fields.heightSamples
+      (current.heightTransition &&
+        current.heightTransition.fields.heightSamples !== current.data.fields.heightSamples) ||
+      Boolean(current.world.getLiveTerrainFields?.())
     ) {
       guard();
       await new Promise<void>((resolve) => {
@@ -755,6 +765,7 @@ export class PlanningFarmingRuntime {
     if (
       current &&
       this.current &&
+      !current.world.getLiveTerrainFields?.() &&
       (this.masonry !== current.masonry || this.buildingRevision !== current.masonry?.publicationRevision)
     )
       this.publish(current, this.record?.planningRevision);

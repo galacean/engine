@@ -438,7 +438,46 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
           );
         }
       });
-      const birth = layout.animals[0];
+      let birth = layout.animals[0];
+      if (!birth) {
+        // Player/LLM summon overrides natural habitat avoidance: fall back to the exact
+        // requested (or nearby viewer) spot as long as it lies on valid physical terrain.
+        const fallbackTarget = input.position ?? this.observer();
+        const width = p.plan.parameters.width;
+        const depth = p.plan.parameters.depth;
+        const fx = Math.max(2, Math.min(width - 2, fallbackTarget.x));
+        const fz = Math.max(2, Math.min(depth - 2, fallbackTarget.z));
+        const groundY = p.navigation.sampleHeightInterpolated(fx, fz);
+        if (groundY !== undefined && Number.isFinite(groundY)) {
+          const waterY = p.navigation.sampleWaterHeight?.(fx, fz);
+          const resolvedAppearance =
+            input.appearanceId ??
+            type?.appearances?.[0]?.appearanceId ??
+            (appearanceWeights as Record<string, AnimalPopulationAppearance[]>)[input.typeId]?.[0]?.appearanceId;
+          if (resolvedAppearance) {
+            const fallbackAsset = this.library.resolve({ typeId: input.typeId, appearanceId: resolvedAppearance });
+            const inWater = waterY !== undefined && Number.isFinite(waterY) && waterY > groundY + 0.05;
+            const preferred = fallbackAsset.profile.preferredMedium ?? "ground";
+            const medium = inWater ? (preferred === "water" ? "water" : preferred) : "ground";
+            const y = inWater ? waterY! : groundY;
+            const seedKey = `${p.plan.parameters.seed}:spawn:${input.requestId}`;
+            let hash = 2166136261;
+            for (let i = 0; i < seedKey.length; i++) {
+              hash ^= seedKey.charCodeAt(i);
+              hash = Math.imul(hash, 16777619);
+            }
+            birth = {
+              id: "",
+              typeId: input.typeId,
+              appearanceId: resolvedAppearance,
+              position: { x: fx, y, z: fz },
+              heading: ((hash >>> 0) % 360) * (Math.PI / 180),
+              seed: (hash >>> 0) || 1,
+              ...(medium ? { medium } : {})
+            };
+          }
+        }
+      }
       if (!birth) receipt = reject("no_safe_spawn_position");
       else {
         birth.id = `animal:authored:${crypto.randomUUID()}`;

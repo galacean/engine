@@ -32,6 +32,8 @@ export interface AssetEntranceEffectOptions {
   readonly liftMetres?: number;
   /** Optional cancellation owned by the publishing runtime. */
   readonly signal?: AbortSignal;
+  /** Optional synchronous callback invoked inside onUpdate on non-aborted completion (before render). */
+  readonly onComplete?: () => void;
 }
 
 /**
@@ -154,8 +156,43 @@ export async function playAssetEntranceEffect(
   options: Readonly<AssetEntranceEffectOptions> = {}
 ): Promise<void> {
   const playbackRoot = roots.find((root) => !root.destroyed && !root.pendingDestroy);
-  const transaction = AssetEntranceTransaction.forRoots(roots, options.liftMetres ?? ASSET_ENTRANCE_LIFT_METRES);
+  const transaction = AssetEntranceTransaction.forRoots(
+    roots,
+    options.liftMetres ?? ASSET_ENTRANCE_LIFT_METRES,
+    "enter"
+  );
   return playAssetEntranceTransaction(playbackRoot, transaction, options);
+}
+
+/**
+ * Plays a top-down reverse rainbow dissolve (`progress: 1 -> 0`) before the caller hides or destroys deleted assets.
+ * Always restores the authored renderer macro state on completion or cancellation.
+ */
+export async function playAssetExitEffect(
+  roots: readonly Entity[],
+  options: Readonly<AssetEntranceEffectOptions> = {}
+): Promise<void> {
+  const playbackRoot = roots.find((root) => !root.destroyed && !root.pendingDestroy);
+  const transaction = AssetEntranceTransaction.forRoots(roots, options.liftMetres ?? 0.9, "exit");
+  return playAssetEntranceTransaction(playbackRoot, transaction, {
+    ...options,
+    durationMs: options.durationMs ?? 750
+  });
+}
+
+/**
+ * Sweeps a non-clipping rainbow highlight wave (`progress: 2 -> 3`) across updated assets without discarding fragments.
+ */
+export async function playAssetUpdateEffect(
+  roots: readonly Entity[],
+  options: Readonly<AssetEntranceEffectOptions> = {}
+): Promise<void> {
+  const playbackRoot = roots.find((root) => !root.destroyed && !root.pendingDestroy);
+  const transaction = AssetEntranceTransaction.forRoots(roots, options.liftMetres ?? 0.55, "update");
+  return playAssetEntranceTransaction(playbackRoot, transaction, {
+    ...options,
+    durationMs: options.durationMs ?? 850
+  });
 }
 
 /**
@@ -177,6 +214,15 @@ export async function playRendererAssetEntranceEffect(
     options.liftMetres ?? ASSET_ENTRANCE_LIFT_METRES
   );
   return playAssetEntranceTransaction(playbackRoot, transaction, options);
+}
+
+type AssetEffectMode = "enter" | "exit" | "update";
+
+function mapModeProgress(mode: AssetEffectMode, normalizedProgress: number): number {
+  const p = Math.min(1, Math.max(0, normalizedProgress));
+  if (mode === "exit") return 1 - p;
+  if (mode === "update") return 2 + p;
+  return p;
 }
 
 async function playAssetEntranceTransaction(
@@ -228,6 +274,13 @@ async function playAssetEntranceTransaction(
       } catch (settlementError) {
         finalError ??= settlementError;
       }
+      if (finalError === undefined && options.onComplete) {
+        try {
+          options.onComplete();
+        } catch (completeError) {
+          finalError = completeError;
+        }
+      }
       finalError === undefined ? resolve() : reject(finalError);
     };
     const abort = (): void =>
@@ -253,7 +306,7 @@ async function playAssetEntranceTransaction(
     }
     try {
       driver = playbackRoot.addComponent(AssetEntrancePlaybackDriver);
-      driver.start(advance);
+      driver.start(advance, () => finish(new DOMException("Asset entrance playback host destroyed", "AbortError")));
     } catch (error) {
       finish(error);
     }
@@ -266,11 +319,13 @@ async function playAssetEntranceTransaction(
  */
 class AssetEntrancePlaybackDriver extends Script {
   private _advance: ((deltaTimeSeconds: number) => void) | undefined;
+  private _onDestroyed: (() => void) | undefined;
   private _armed = false;
 
-  start(advance: (deltaTimeSeconds: number) => void): void {
+  start(advance: (deltaTimeSeconds: number) => void, onDestroyed?: () => void): void {
     if (this._advance) throw new Error("Asset entrance playback driver is already started");
     this._advance = advance;
+    this._onDestroyed = onDestroyed;
   }
 
   override onUpdate(deltaTimeSeconds: number): void {
@@ -284,9 +339,17 @@ class AssetEntrancePlaybackDriver extends Script {
     advance(deltaTimeSeconds);
   }
 
+  override onDestroy(): void {
+    const onDestroyed = this._onDestroyed;
+    this._advance = undefined;
+    this._onDestroyed = undefined;
+    onDestroyed?.();
+  }
+
   stop(): void {
     this._advance = undefined;
-    this.destroy();
+    this._onDestroyed = undefined;
+    if (!this.destroyed) this.destroy();
   }
 }
 
@@ -299,18 +362,28 @@ class AssetEntranceTransaction {
   private constructor(
     roots: readonly Entity[],
     renderers: readonly MeshRenderer[] | undefined,
-    private readonly _liftMetres: number
+    private readonly _liftMetres: number,
+    private readonly _mode: AssetEffectMode = "enter"
   ) {
     this._roots = new Set(roots);
     this._explicitRenderers = renderers ? new Set(renderers) : undefined;
+    this._progress = mapModeProgress(_mode, 0);
   }
 
-  static forRoots(roots: readonly Entity[], liftMetres: number): AssetEntranceTransaction {
-    return new AssetEntranceTransaction(roots, undefined, liftMetres);
+  static forRoots(
+    roots: readonly Entity[],
+    liftMetres: number,
+    mode: AssetEffectMode = "enter"
+  ): AssetEntranceTransaction {
+    return new AssetEntranceTransaction(roots, undefined, liftMetres, mode);
   }
 
-  static forRenderers(renderers: readonly MeshRenderer[], liftMetres: number): AssetEntranceTransaction {
-    return new AssetEntranceTransaction([], renderers, liftMetres);
+  static forRenderers(
+    renderers: readonly MeshRenderer[],
+    liftMetres: number,
+    mode: AssetEffectMode = "enter"
+  ): AssetEntranceTransaction {
+    return new AssetEntranceTransaction([], renderers, liftMetres, mode);
   }
 
   captureInitialMembers(): void {
@@ -323,8 +396,8 @@ class AssetEntranceTransaction {
   }
 
   setProgress(progress: number): void {
-    this._progress = progress;
-    setAssetEntranceProgress(this._renderers, progress);
+    this._progress = mapModeProgress(this._mode, progress);
+    setAssetEntranceProgress(this._renderers, this._progress);
   }
 
   settle(): void {
@@ -338,11 +411,14 @@ class AssetEntranceTransaction {
       this._renderers.delete(renderer);
       return;
     }
-    if (!setRendererAssetEntranceProgress(renderer, this._progress, this._liftMetres)) {
+    const range = resolveAssetEntranceRange(renderer);
+    if (!range) {
+      settleAssetEntranceRenderer(renderer);
       // Fail open. A dynamic runtime can join later by publishing its finite semantic range.
       this._renderers.delete(renderer);
       return;
     }
+    applyRendererAssetEntranceProgress(renderer, this._progress, range.minimumY, range.maximumY, this._liftMetres);
     this._renderers.add(renderer);
   }
 

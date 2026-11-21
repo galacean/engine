@@ -113,6 +113,7 @@ const MATERIAL_GRASS_COLOR_FIELD_VISTA_BLEND = ShaderProperty.getByName("materia
 const MATERIAL_TERRAIN_ROAD_COLOR = ShaderProperty.getByName("material_TerrainRoadColor");
 const MATERIAL_TERRAIN_FAR_LOD = ShaderProperty.getByName("material_TerrainFarLod");
 const SEED_WORLD_TERRAIN_PREFERRED_FAR_LOD = 2;
+const ENTRANCE_WAVE_DIRECTION = new Vector3(1, 0, 0);
 /** Default linear road colour used by the Seed surface palette. */
 export const SEED_WORLD_ROAD_COLOR_DEFAULT = Object.freeze([
   0.5520114015120001, 0.44520119451622786, 0.2831487404299921
@@ -291,6 +292,10 @@ export class SeedWorldTerrainRuntime {
   private readonly _grassAppearanceMaterials = new Map<Material, number>();
   private _surfaceWaterSsrMaterial?: Material;
   private _surfaceWaterSsrEnabled = false;
+  private _terrainEditWave?: (deltaTime: number) => void;
+  private _clearTerrainEditWave?: () => void;
+  private _settleLocalHeightTransition?: () => void;
+  private _localHeightTweenFields?: SeedWorldFields;
 
   /** Applies the current weather demand to the runtime-owned near material, including replacements. */
   setSurfaceWaterSsrEnabled(enabled: boolean): void {
@@ -754,6 +759,7 @@ export class SeedWorldTerrainRuntime {
       this._surfaceFieldsBound = true;
     }
     this._heightTransition?.(deltaTime);
+    this._terrainEditWave?.(deltaTime);
     const cameraTransform = this._camera.entity.transform;
     this.terrainOcclusion.beginFrame(cameraTransform.worldPosition, cameraTransform.worldForward, deltaTime);
     if (this.terrainOcclusion.horizonPublishedThisFrame) {
@@ -859,6 +865,82 @@ export class SeedWorldTerrainRuntime {
       maximumX: seedWorldOriginX(next) + next.sizeMetres,
       maximumZ: seedWorldOriginZ(next) + next.sizeMetres
     };
+    const computeWaveRegion = (fromFields: SeedWorldFields, toFields: SeedWorldFields) => {
+      const res = toFields.heightResolution;
+      if (res < 2 || duration <= 0) return undefined;
+      const fromEnc = encoding(fromFields);
+      const toEnc = encoding(toFields);
+      const originX = seedWorldOriginX(toFields);
+      const originZ = seedWorldOriginZ(toFields);
+      const step = toFields.sizeMetres / (res - 1);
+      let sumX = 0,
+        sumZ = 0,
+        count = 0,
+        minX = Infinity,
+        maxX = -Infinity,
+        minZ = Infinity,
+        maxZ = -Infinity;
+      for (let row = 0; row < res; row++) {
+        const z = originZ + row * step;
+        const rowOff = row * res;
+        for (let col = 0; col < res; col++) {
+          const i = rowOff + col;
+          const prevH = fromEnc.offset + (fromEnc.samples[i]! / 65535) * fromEnc.scale;
+          const nextH = toEnc.offset + (toEnc.samples[i]! / 65535) * toEnc.scale;
+          if (Math.abs(nextH - prevH) <= 0.02) continue;
+          const x = originX + col * step;
+          sumX += x;
+          sumZ += z;
+          count++;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (z < minZ) minZ = z;
+          if (z > maxZ) maxZ = z;
+        }
+      }
+      if (count === 0) return undefined;
+      const radius = Math.max(4, Math.hypot(maxX - minX, maxZ - minZ) * 0.55);
+      const band = Math.max(3.5, Math.min(24, radius * 0.32));
+      return { center: new Vector3(sumX / count, 0, sumZ / count), radius, band };
+    };
+    let waveRegion = computeWaveRegion(previous, next);
+    let waveActive = false;
+    const clearTerrainWave = () => {
+      if (!waveActive) return;
+      waveActive = false;
+      for (const material of this.clipmap.renderMaterials) {
+        if (!material.destroyed) material.shaderData.disableMacro("TERRAIN_PROJECT_ENTRANCE_WAVE");
+      }
+    };
+    const applyTerrainWave = (progress: number) => {
+      if (!waveRegion || progress >= 1 || duration <= 0) {
+        clearTerrainWave();
+        return;
+      }
+      const sceneData = this.root.scene?.shaderData;
+      if (!sceneData) return;
+      const clamped = Math.max(0, Math.min(1, progress));
+      const eased = clamped * clamped * (3 - 2 * clamped);
+      const fade = Math.sin(clamped * Math.PI);
+      if (fade <= 0.001) {
+        clearTerrainWave();
+        return;
+      }
+      sceneData.setVector3("scene_EntranceWaveCenter", waveRegion.center);
+      sceneData.setVector3("scene_EntranceWaveDirection", ENTRANCE_WAVE_DIRECTION);
+      sceneData.setFloat("scene_EntranceWaveBand", waveRegion.band);
+      sceneData.setFloat("scene_EntranceWaveSweep", (waveRegion.radius + waveRegion.band) * eased);
+      sceneData.setFloat("scene_EntranceWaveLift", 0);
+      sceneData.setFloat("scene_EntranceWaveHeightSweep", 0);
+      // Negative height band enables non-clipping surface rainbow wave with smooth fade intensity.
+      sceneData.setFloat("scene_EntranceWaveHeightBand", -fade);
+      if (!waveActive) {
+        waveActive = true;
+        for (const material of this.clipmap.renderMaterials) {
+          if (!material.destroyed) material.shaderData.enableMacro("TERRAIN_PROJECT_ENTRANCE_WAVE");
+        }
+      }
+    };
     let started = false,
       elapsed = 0,
       acceptedElapsed = 0,
@@ -868,12 +950,15 @@ export class SeedWorldTerrainRuntime {
       if (frame.elapsed >= duration) {
         this.clipmap.updateHeightRegion({ ...patch, samples: next.heightSamples });
         this._heightTransition = undefined;
-      } else
+        clearTerrainWave();
+      } else {
         this.clipmap.updateHeightRegionFrame({
           ...patch,
           samples: frame.fields.heightSamples,
           heightDecode: frame.fields.heightDecode
         });
+        applyTerrainWave(frame.elapsed / duration);
+      }
       view.heightSamples = frame.fields.heightSamples;
       view.heightDecode = frame.fields.heightDecode;
       acceptedElapsed = frame.elapsed;
@@ -916,7 +1001,10 @@ export class SeedWorldTerrainRuntime {
           }
         };
       },
-      dispose: () => gate?.dispose(),
+      dispose: () => {
+        clearTerrainWave();
+        gate?.dispose();
+      },
       start: (current = previous) => {
         if (started) return;
         if (this._destroyed) throw new Error("Seed World terrain runtime is destroyed");
@@ -930,13 +1018,17 @@ export class SeedWorldTerrainRuntime {
           throw new Error("Terrain dependents require a stable starting frame");
         if (!dependents) {
           transition = createSeedWorldTerrainHeightTransition(encoding(current), encoding(next));
+          waveRegion = computeWaveRegion(current, next);
           view.heightSamples = duration === 0 ? next.heightSamples : transition.frame(0).slice();
           view.heightDecode =
             duration === 0 ? next.heightDecode : { offset: transition.offset, scale: transition.scale };
         }
         started = true;
         this._heightTransition = update;
-        this._disposeHeightTransition = () => gate?.dispose();
+        this._disposeHeightTransition = () => {
+          clearTerrainWave();
+          gate?.dispose();
+        };
         publish({ fields: view, elapsed: 0 });
       }
     };
@@ -970,6 +1062,7 @@ export class SeedWorldTerrainRuntime {
     preparedRelief?: PreparedSurfaceReliefMask
   ): PreparedTerrainUpdate {
     if (this._destroyed || this._heightTransition) throw Error("Terrain is not available for a local water edit");
+    this.settleLocalHeightTransition();
     const source = buildTerrainSources(fields, settings, normals);
     const layers = buildLayerSources(
       fields,
@@ -1022,6 +1115,407 @@ export class SeedWorldTerrainRuntime {
         terrain.discard();
       }
     };
+  }
+
+  /** Active intermediate terrain fields while a local height tween is animating; undefined once settled. */
+  getLiveTerrainFields(): SeedWorldFields | undefined {
+    return this._localHeightTweenFields;
+  }
+
+  /** Synchronously settles any active local height tween to its final canonical state before a new terrain update. */
+  settleLocalHeightTransition(): void {
+    const settle = this._settleLocalHeightTransition;
+    if (!settle) return;
+    settle();
+  }
+
+  /**
+   * Smoothly tweens a local terrain height edit from previous -> next without rebuilding the world,
+   * keeping grass/exactPrefabs/dependents grounded each frame while sweeping a vivid rainbow wave.
+   */
+  playLocalHeightTransition(
+    previous: SeedWorldFields,
+    next: SeedWorldFields,
+    bounds: SeedWorldRuntimeBounds,
+    durationSeconds?: number,
+    onFrame?: (fields: SeedWorldFields) => void,
+    onComplete?: () => void
+  ): void {
+    if (this._destroyed || this._heightTransition) {
+      onComplete?.();
+      return;
+    }
+    const fromFields = this._localHeightTweenFields ?? previous;
+    this._clearTerrainEditWave?.();
+    const res = next.heightResolution;
+    const duration = durationSeconds === 0 ? 0 : Math.max(0.4, durationSeconds ?? 1.5);
+    if (
+      res < 2 ||
+      fromFields.heightResolution !== res ||
+      fromFields.heightSamples.length !== next.heightSamples.length
+    ) {
+      onComplete?.();
+      return;
+    }
+    const encoding = (fields: SeedWorldFields) => ({
+      samples: fields.heightSamples,
+      offset: fields.heightDecode?.offset ?? SEED_WORLD_HEIGHT_RANGE.minimum,
+      scale: fields.heightDecode?.scale ?? SEED_WORLD_HEIGHT_RANGE.maximum - SEED_WORLD_HEIGHT_RANGE.minimum
+    });
+    const prevEnc = encoding(fromFields);
+    const nextEnc = encoding(next);
+    const originX = seedWorldOriginX(next);
+    const originZ = seedWorldOriginZ(next);
+    const step = next.sizeMetres / (res - 1);
+    let sumX = 0,
+      sumZ = 0,
+      count = 0,
+      minCol = res,
+      maxCol = -1,
+      minRow = res,
+      maxRow = -1,
+      minX = Infinity,
+      maxX = -Infinity,
+      minZ = Infinity,
+      maxZ = -Infinity;
+    for (let row = 0; row < res; row++) {
+      const z = originZ + row * step;
+      const rowOff = row * res;
+      for (let col = 0; col < res; col++) {
+        const i = rowOff + col;
+        const prevH = prevEnc.offset + (prevEnc.samples[i]! / 65535) * prevEnc.scale;
+        const nextH = nextEnc.offset + (nextEnc.samples[i]! / 65535) * nextEnc.scale;
+        if (Math.abs(nextH - prevH) <= 0.02) continue;
+        const x = originX + col * step;
+        sumX += x;
+        sumZ += z;
+        count++;
+        if (col < minCol) minCol = col;
+        if (col > maxCol) maxCol = col;
+        if (row < minRow) minRow = row;
+        if (row > maxRow) maxRow = row;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (z < minZ) minZ = z;
+        if (z > maxZ) maxZ = z;
+      }
+    }
+    if (count === 0) {
+      onComplete?.();
+      return;
+    }
+    if (duration <= 0) {
+      this.playTerrainEditWave(fromFields, next);
+      onComplete?.();
+      return;
+    }
+    // Keep an immutable copy of final height samples so transient frame writes to population never alias `next`.
+    const finalHeightSamples = next.heightSamples.slice();
+    const finalFields: SeedWorldFields = { ...next, heightSamples: finalHeightSamples };
+    const fullPatch = {
+      regionId: SEED_WORLD_REGION_ID,
+      sampleOrigin: [0, 0] as const,
+      sampleSize: [res, res] as const
+    };
+    const dirtyOriginX = Math.max(0, minCol - 1);
+    const dirtyOriginZ = Math.max(0, minRow - 1);
+    const dirtyWidth = Math.min(res - 1, maxCol + 1) - dirtyOriginX + 1;
+    const dirtyHeight = Math.min(res - 1, maxRow + 1) - dirtyOriginZ + 1;
+    const dirtyPatch = {
+      regionId: SEED_WORLD_REGION_ID,
+      sampleOrigin: [dirtyOriginX, dirtyOriginZ] as const,
+      sampleSize: [dirtyWidth, dirtyHeight] as const
+    };
+    const dirtyScratch = new Uint16Array(dirtyWidth * dirtyHeight);
+    const extractDirtyRect = (source: Uint16Array): Uint16Array => {
+      for (let localZ = 0; localZ < dirtyHeight; localZ++) {
+        const srcStart = (dirtyOriginZ + localZ) * res + dirtyOriginX;
+        dirtyScratch.set(source.subarray(srcStart, srcStart + dirtyWidth), localZ * dirtyWidth);
+      }
+      return dirtyScratch;
+    };
+    const exactSameEncoding = prevEnc.offset === nextEnc.offset && prevEnc.scale === nextEnc.scale;
+    const transition = exactSameEncoding
+      ? (() => {
+          // Sparse dirty-rect transition: avoids allocating ~23 MB of full-grid Float64/Uint32
+          // working buffers when the global height range is unchanged (the common local-edit case).
+          const dirtyArea = dirtyWidth * dirtyHeight;
+          const changedIdx = new Uint32Array(dirtyArea);
+          const changedFrom = new Uint16Array(dirtyArea);
+          const changedDelta = new Int32Array(dirtyArea);
+          const samples = prevEnc.samples.slice();
+          let changedCount = 0;
+          for (let localZ = 0; localZ < dirtyHeight; localZ++) {
+            const rowBase = (dirtyOriginZ + localZ) * res + dirtyOriginX;
+            for (let localX = 0; localX < dirtyWidth; localX++) {
+              const i = rowBase + localX;
+              const a = prevEnc.samples[i]!;
+              const b = finalHeightSamples[i]!;
+              if (a !== b) {
+                changedIdx[changedCount] = i;
+                changedFrom[changedCount] = a;
+                changedDelta[changedCount] = b - a;
+                changedCount++;
+              }
+            }
+          }
+          return {
+            offset: nextEnc.offset,
+            scale: nextEnc.scale,
+            frame(progress: number): Uint16Array {
+              const p = Math.max(0, Math.min(1, progress));
+              const eased = p * p * (3 - 2 * p);
+              for (let k = 0; k < changedCount; k++) {
+                const v = Math.round(changedFrom[k]! + changedDelta[k]! * eased);
+                samples[changedIdx[k]!] = v < 0 ? 0 : v > 65535 ? 65535 : v;
+              }
+              return samples;
+            }
+          };
+        })()
+      : createSeedWorldTerrainHeightTransition(prevEnc, nextEnc);
+    const sameDecode =
+      Math.fround(transition.offset) === Math.fround(nextEnc.offset) &&
+      Math.fround(transition.scale) === Math.fround(nextEnc.scale);
+    const worldBounds = {
+      minimumX: Math.min(bounds.minimumX, minX),
+      minimumZ: Math.min(bounds.minimumZ, minZ),
+      maximumX: Math.max(bounds.maximumX, maxX),
+      maximumZ: Math.max(bounds.maximumZ, maxZ)
+    };
+    const center = new Vector3(sumX / count, 0, sumZ / count);
+    const radius = Math.max(6, Math.hypot(maxX - minX, maxZ - minZ) * 0.58);
+    const band = Math.max(5.5, Math.min(34, radius * 0.42));
+    const transitionDecode = { offset: transition.offset, scale: transition.scale };
+    const view: { -readonly [K in keyof SeedWorldFields]: SeedWorldFields[K] } = {
+      ...finalFields,
+      heightSamples: transition.frame(0),
+      heightDecode: transitionDecode
+    };
+    let waveActive = false;
+    let elapsed = 0;
+    let encodedAtlasForTransition = sameDecode;
+    const clear = () => {
+      this._terrainEditWave = undefined;
+      this._clearTerrainEditWave = undefined;
+      this._settleLocalHeightTransition = undefined;
+      this._localHeightTweenFields = undefined;
+      if (!waveActive) return;
+      waveActive = false;
+      for (const material of this.clipmap.renderMaterials) {
+        if (!material.destroyed) material.shaderData.disableMacro("TERRAIN_PROJECT_ENTRANCE_WAVE");
+      }
+    };
+    const setWave = (progress: number) => {
+      const sceneData = this.root.scene?.shaderData;
+      if (!sceneData) return;
+      const clamped = Math.max(0, Math.min(1, progress));
+      const eased = clamped * clamped * (3 - 2 * clamped);
+      const fade = Math.sin(clamped * Math.PI);
+      if (fade <= 0.001) {
+        if (waveActive && clamped > 0.5) {
+          waveActive = false;
+          for (const material of this.clipmap.renderMaterials) {
+            if (!material.destroyed) material.shaderData.disableMacro("TERRAIN_PROJECT_ENTRANCE_WAVE");
+          }
+        }
+        return;
+      }
+      sceneData.setVector3("scene_EntranceWaveCenter", center);
+      sceneData.setVector3("scene_EntranceWaveDirection", ENTRANCE_WAVE_DIRECTION);
+      sceneData.setFloat("scene_EntranceWaveBand", band);
+      sceneData.setFloat("scene_EntranceWaveSweep", (radius + band) * eased);
+      sceneData.setFloat("scene_EntranceWaveLift", 0);
+      sceneData.setFloat("scene_EntranceWaveHeightSweep", 0);
+      sceneData.setFloat("scene_EntranceWaveHeightBand", -fade);
+      if (!waveActive) {
+        waveActive = true;
+        for (const material of this.clipmap.renderMaterials) {
+          if (!material.destroyed) material.shaderData.enableMacro("TERRAIN_PROJECT_ENTRANCE_WAVE");
+        }
+      }
+    };
+    const publishFrame = (progress: number) => {
+      if (this._destroyed) {
+        clear();
+        return;
+      }
+      if (progress >= 1) {
+        if (sameDecode) {
+          const finalRect = extractDirtyRect(finalHeightSamples);
+          // prepareWaterTerrain already uploaded the canonical final normal & puddle atlases;
+          // use updateHeightRegionFrame without heightDecode to commit final R16 heights & pyramid
+          // without redundantly rebaking the full 1025x1025 CPU normal atlas (~190ms).
+          this.clipmap.updateHeightRegionFrame({ ...dirtyPatch, samples: finalRect });
+          this.population.applyAuthoringHeightFrame(
+            dirtyPatch.sampleOrigin,
+            dirtyPatch.sampleSize,
+            finalRect,
+            worldBounds,
+            finalFields.heightDecode
+          );
+        } else {
+          this.clipmap.updateHeightRegionFrame({ ...fullPatch, samples: finalHeightSamples });
+          this.population.applyAuthoringHeightFrame(
+            fullPatch.sampleOrigin,
+            fullPatch.sampleSize,
+            finalHeightSamples,
+            worldBounds,
+            finalFields.heightDecode
+          );
+        }
+        view.heightSamples = finalHeightSamples;
+        view.heightDecode = finalFields.heightDecode;
+        this.applyAuthoringHeightPatch(finalFields, worldBounds);
+        onFrame?.(finalFields);
+        clear();
+        onComplete?.();
+        return;
+      }
+      // Reuse the transition's internal sample buffer in-place (every consumer reads synchronously
+      // within this frame), avoiding ~2.1 MB/frame Uint16Array allocation & mobile GC churn.
+      // Emit a fresh shallow wrapper per frame so identity-checked consumers (e.g. PlanningFarmLandLayer.refreshTerrain)
+      // never short-circuit on `fields === this.fields`.
+      const frameSamples = transition.frame(progress);
+      view.heightSamples = frameSamples;
+      view.heightDecode = transitionDecode;
+      const frameView: SeedWorldFields = { ...view };
+      this._localHeightTweenFields = frameView;
+      if (!encodedAtlasForTransition) {
+        // Re-encode the full atlas once when the edit expanded the global height range;
+        // every subsequent tween frame uploads only the dirty sub-rectangle.
+        encodedAtlasForTransition = true;
+        this.clipmap.updateHeightRegionFrame({
+          ...fullPatch,
+          samples: frameSamples,
+          heightDecode: frameView.heightDecode
+        });
+        this.population.applyAuthoringHeightFrame(
+          fullPatch.sampleOrigin,
+          fullPatch.sampleSize,
+          frameSamples,
+          worldBounds,
+          frameView.heightDecode,
+          { transient: true }
+        );
+      } else {
+        const dirtySamples = extractDirtyRect(frameSamples);
+        this.clipmap.updateHeightRegionFrame({
+          ...dirtyPatch,
+          samples: dirtySamples,
+          heightDecode: frameView.heightDecode
+        });
+        this.population.applyAuthoringHeightFrame(
+          dirtyPatch.sampleOrigin,
+          dirtyPatch.sampleSize,
+          dirtySamples,
+          worldBounds,
+          frameView.heightDecode,
+          { transient: true }
+        );
+      }
+      this.applyAuthoringHeightPatch(frameView, worldBounds);
+      onFrame?.(frameView);
+      setWave(Math.max(0.02, progress));
+    };
+    this._clearTerrainEditWave = clear;
+    this._settleLocalHeightTransition = () => publishFrame(1);
+    this._terrainEditWave = (deltaTime: number) => {
+      elapsed += Math.max(0, Number.isFinite(deltaTime) ? deltaTime : 0);
+      publishFrame(elapsed / duration);
+    };
+    // Immediately hold the starting frame on commit so terrain never flashes/snaps before rising.
+    publishFrame(0);
+  }
+
+  /** Plays a non-clipping radial rainbow wave over the terrain region modified by a local edit. */
+  playTerrainEditWave(previous: SeedWorldFields, next: SeedWorldFields, durationMs = 1850): void {
+    if (this._destroyed || this._heightTransition) return;
+    this._clearTerrainEditWave?.();
+    const duration = Math.max(0, durationMs) / 1000;
+    const res = next.heightResolution;
+    if (duration <= 0 || res < 2 || previous.heightResolution !== res) return;
+    const prevOff = previous.heightDecode?.offset ?? SEED_WORLD_HEIGHT_RANGE.minimum;
+    const prevScale = previous.heightDecode?.scale ?? SEED_WORLD_HEIGHT_RANGE.maximum - SEED_WORLD_HEIGHT_RANGE.minimum;
+    const nextOff = next.heightDecode?.offset ?? SEED_WORLD_HEIGHT_RANGE.minimum;
+    const nextScale = next.heightDecode?.scale ?? SEED_WORLD_HEIGHT_RANGE.maximum - SEED_WORLD_HEIGHT_RANGE.minimum;
+    const originX = seedWorldOriginX(next);
+    const originZ = seedWorldOriginZ(next);
+    const step = next.sizeMetres / (res - 1);
+    let sumX = 0,
+      sumZ = 0,
+      count = 0,
+      minX = Infinity,
+      maxX = -Infinity,
+      minZ = Infinity,
+      maxZ = -Infinity;
+    for (let row = 0; row < res; row++) {
+      const z = originZ + row * step;
+      const rowOff = row * res;
+      for (let col = 0; col < res; col++) {
+        const i = rowOff + col;
+        const prevH = prevOff + (previous.heightSamples[i]! / 65535) * prevScale;
+        const nextH = nextOff + (next.heightSamples[i]! / 65535) * nextScale;
+        if (Math.abs(nextH - prevH) <= 0.02) continue;
+        const x = originX + col * step;
+        sumX += x;
+        sumZ += z;
+        count++;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (z < minZ) minZ = z;
+        if (z > maxZ) maxZ = z;
+      }
+    }
+    if (count === 0) return;
+    const center = new Vector3(sumX / count, 0, sumZ / count);
+    const radius = Math.max(6, Math.hypot(maxX - minX, maxZ - minZ) * 0.58);
+    const band = Math.max(5.5, Math.min(34, radius * 0.42));
+    let waveActive = false;
+    let elapsed = 0;
+    const clear = () => {
+      this._terrainEditWave = undefined;
+      this._clearTerrainEditWave = undefined;
+      if (!waveActive) return;
+      waveActive = false;
+      for (const material of this.clipmap.renderMaterials) {
+        if (!material.destroyed) material.shaderData.disableMacro("TERRAIN_PROJECT_ENTRANCE_WAVE");
+      }
+    };
+    const apply = (progress: number) => {
+      if (this._destroyed || progress >= 1) {
+        clear();
+        return;
+      }
+      const sceneData = this.root.scene?.shaderData;
+      if (!sceneData) return;
+      const clamped = Math.max(0, Math.min(1, progress));
+      const eased = clamped * clamped * (3 - 2 * clamped);
+      const fade = Math.sin(clamped * Math.PI);
+      if (fade <= 0.001) {
+        if (clamped > 0.5) clear();
+        return;
+      }
+      sceneData.setVector3("scene_EntranceWaveCenter", center);
+      sceneData.setVector3("scene_EntranceWaveDirection", ENTRANCE_WAVE_DIRECTION);
+      sceneData.setFloat("scene_EntranceWaveBand", band);
+      sceneData.setFloat("scene_EntranceWaveSweep", (radius + band) * eased);
+      sceneData.setFloat("scene_EntranceWaveLift", 0);
+      sceneData.setFloat("scene_EntranceWaveHeightSweep", 0);
+      sceneData.setFloat("scene_EntranceWaveHeightBand", -fade);
+      if (!waveActive) {
+        waveActive = true;
+        for (const material of this.clipmap.renderMaterials) {
+          if (!material.destroyed) material.shaderData.enableMacro("TERRAIN_PROJECT_ENTRANCE_WAVE");
+        }
+      }
+    };
+    this._clearTerrainEditWave = clear;
+    this._terrainEditWave = (deltaTime: number) => {
+      elapsed += Math.max(0, Number.isFinite(deltaTime) ? deltaTime : 0);
+      apply(elapsed / duration);
+    };
+    apply(0.02);
   }
 
   applyAuthoringHeightPatch(fields: SeedWorldFields, bounds: SeedWorldRuntimeBounds): void {
@@ -1081,6 +1575,7 @@ export class SeedWorldTerrainRuntime {
     this._destroyed = true;
     this._heightTransition = undefined;
     this._disposeHeightTransition?.();
+    this._clearTerrainEditWave?.();
     this._grassAppearanceMaterials.clear();
     this._assetEntranceController?.abort(new DOMException("Seed World terrain runtime destroyed", "AbortError"));
     this._assetEntranceController = undefined;

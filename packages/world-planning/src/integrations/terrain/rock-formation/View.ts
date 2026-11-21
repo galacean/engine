@@ -22,6 +22,11 @@ import { rockFormationPlacements } from "./Placement.ts";
 import { readRockColorBlend, type RockColorBlend } from "./ColorPalette.ts";
 import { RockLodView } from "./RockLodView";
 import { setRockColorBlend } from "./ColorMaterial.ts";
+import {
+  playAssetEntranceEffect,
+  playAssetExitEffect,
+  playAssetUpdateEffect
+} from "@galacean/engine-vegetation/asset-assembly/AssetEntranceEffect";
 import type { SeedWorldTerrainOcclusionReadPort } from "../../../runtime/SeedWorldTerrainOcclusionCuller.ts";
 
 interface RockViewEntry {
@@ -42,6 +47,9 @@ export class RockFormationView {
     Map<boolean, { material: PBRMaterial; release?: () => void; users: number }>
   >();
   private disposed = false;
+  private initialized = false;
+  private readonly rockEffects = new Map<Entity, AbortController>();
+  private readonly retiringEntries = new Set<RockViewEntry>();
   private grassCoveragePreview = false;
   private readonly grassTop: boolean;
   private readonly shoreStoneColor?: readonly [number, number, number];
@@ -200,10 +208,35 @@ export class RockFormationView {
       commit: () => {
         if (consumed || this.disposed || this.entries !== base) throw Error("Stale rock formation frame");
         consumed = true;
+        const animate = this.initialized;
+        this.initialized = true;
         placement();
-        for (const [id, entry] of base) if (next.get(id) !== entry) this.release(entry);
+        const deleted: RockViewEntry[] = [];
+        for (const [id, entry] of base) {
+          if (next.get(id) === entry) continue;
+          if (animate && !next.has(id) && entry.entity.isActive && !entry.entity.destroyed) {
+            entry.collider?.dispose();
+            entry.collider = undefined;
+            entry.batch = undefined;
+            deleted.push(entry);
+          } else {
+            this.release(entry);
+          }
+        }
         this.entries = next;
-        for (const entry of created) entry.entity.isActive = true;
+        for (const entry of created) {
+          entry.entity.isActive = true;
+          if (animate) {
+            this.playRockEffect(entry.entity, base.has(entry.formation.id) ? "update" : "enter");
+          }
+        }
+        for (const entry of deleted) {
+          this.retiringEntries.add(entry);
+          this.playRockEffect(entry.entity, "exit", () => {
+            this.retiringEntries.delete(entry);
+            this.release(entry);
+          });
+        }
       },
       discard: () => {
         if (!consumed) {
@@ -257,14 +290,47 @@ export class RockFormationView {
       visitor(fadingBatch);
     }
   }
+  private playRockEffect(entity: Entity, kind: "enter" | "exit" | "update", onComplete?: () => void): void {
+    const previous = this.rockEffects.get(entity);
+    if (previous) {
+      this.rockEffects.delete(entity);
+      previous.abort();
+    }
+    if (this.disposed || entity.destroyed || entity.pendingDestroy) {
+      onComplete?.();
+      return;
+    }
+    const controller = new AbortController();
+    this.rockEffects.set(entity, controller);
+    const play =
+      kind === "enter"
+        ? playAssetEntranceEffect([entity], { durationMs: 1350, signal: controller.signal, onComplete })
+        : kind === "exit"
+          ? playAssetExitEffect([entity], { durationMs: 750, signal: controller.signal, onComplete })
+          : playAssetUpdateEffect([entity], { durationMs: 850, signal: controller.signal, onComplete });
+    void play
+      .catch(() => {})
+      .finally(() => {
+        if (this.rockEffects.get(entity) === controller) this.rockEffects.delete(entity);
+      });
+  }
   private release(entry: RockViewEntry): void {
+    const active = this.rockEffects.get(entry.entity);
+    if (active) {
+      this.rockEffects.delete(entry.entity);
+      active.abort();
+    }
     entry.collider?.dispose();
-    entry.entity.destroy();
+    if (!entry.entity.destroyed) entry.entity.destroy();
     entry.releaseVariant?.();
   }
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    for (const controller of this.rockEffects.values()) controller.abort();
+    this.rockEffects.clear();
+    for (const entry of this.retiringEntries) this.release(entry);
+    this.retiringEntries.clear();
     for (const entry of this.entries.values()) this.release(entry);
     this.entries.clear();
     this.root.destroy();

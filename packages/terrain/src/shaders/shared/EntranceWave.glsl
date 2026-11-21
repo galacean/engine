@@ -33,6 +33,7 @@
   }
 
   float terrainProjectEntranceWaveReveal(vec3 worldPosition) {
+    if (scene_EntranceWaveHeightBand < 0.0) return 1.0;
     float coordinate = terrainProjectEntranceWaveCoordinate(worldPosition);
     float band = max(scene_EntranceWaveBand, 1.0);
     float edgeJitter = (terrainProjectEntranceWaveNoise(worldPosition.xz * 1.8) - 0.5) * band * 0.85;
@@ -44,20 +45,24 @@
   }
 
   vec3 terrainProjectEntranceWaveSpectrum(float phase) {
-    return 0.54 + 0.46 * cos(6.2831853 * (phase + vec3(0.02, 0.37, 0.71)));
+    vec3 raw = clamp(abs(mod(fract(phase) * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+    return pow(raw, vec3(2.2));
   }
 
   vec3 applyTerrainProjectEntranceWave(vec3 color, vec3 worldPosition) {
     float coordinate = terrainProjectEntranceWaveCoordinate(worldPosition);
     float band = max(scene_EntranceWaveBand, 1.0);
-    float edge = 1.0 - smoothstep(0.0, band * 0.72, abs(coordinate - scene_EntranceWaveSweep));
-    vec2 cell = floor(worldPosition.xz * 1.8);
-    float cellNoise = terrainProjectEntranceWaveNoise(worldPosition.xz * 1.8);
-    float sweepPhase = coordinate * 0.017 + cellNoise * 0.73;
+    float dist = abs(coordinate - scene_EntranceWaveSweep);
+    float edge = 1.0 - smoothstep(0.0, band * 0.95, dist);
+    float core = 1.0 - smoothstep(0.0, band * 0.45, dist);
+    float waveFade = scene_EntranceWaveHeightBand < 0.0 ? clamp(-scene_EntranceWaveHeightBand, 0.0, 1.0) : 1.0;
+    float cellNoise = terrainProjectEntranceWaveNoise(worldPosition.xz * 0.85);
+    float bandNorm = (coordinate - scene_EntranceWaveSweep) / band;
+    float sweepPhase = bandNorm * 0.92 + coordinate * 0.055 + (worldPosition.x - worldPosition.z) * 0.018 + cellNoise * 0.22;
     vec3 crestColor = terrainProjectEntranceWaveSpectrum(sweepPhase);
-    float facets = step(0.42, terrainProjectEntranceWaveCellNoise(cell.yx + 17.0));
-    crestColor = mix(crestColor, terrainProjectEntranceWaveSpectrum(cellNoise * 1.7), facets * 0.38);
-    return color + crestColor * edge * (0.72 + cellNoise * 0.68);
+    float glowMask = clamp(edge * waveFade, 0.0, 1.0);
+    vec3 prism = crestColor * (2.6 + core * 1.4 + cellNoise * 0.45);
+    return mix(color, color * 0.22 + prism, clamp(glowMask * 0.92, 0.0, 0.92));
   }
 
   vec3 terrainProjectApplyEntranceWavePosition(vec3 worldPosition) {
@@ -71,6 +76,7 @@
   }
 
   float terrainProjectEntranceWaveHeightReveal(float sourceWorldY) {
+    if (scene_EntranceWaveHeightBand < 0.0) return 1.0;
     float band = max(scene_EntranceWaveHeightBand, 1.0);
     return 1.0 - smoothstep(
       scene_EntranceWaveHeightSweep - band,
@@ -118,22 +124,24 @@
     #elif defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE) && !defined(RENDERER_ASSET_ASSEMBLY_RENDERER_INSTANCE) && !defined(RENDERER_ASSET_ASSEMBLY_COMPACT_INSTANCE)
       vec4 data = vec4(sourceWorldY, attributes.ASSEMBLY_COLOR.yzw);
       #if defined(MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION) && defined(RENDERER_PROCEDURAL_TREE_GPU_VARIATION)
-        float densityProgress = terrainProjectProceduralTreeDensityReveal(attributes);
-        float elementDistance = attributes.TREE_VARIATION_DATA.w;
-        #ifndef RENDERER_PROCEDURAL_TREE_GPU_BRANCH_VARIATION
-          // Append the leaf's own root-to-tip length to its supporting branch path.
-          float leafLength = attributes.TEXCOORD_1.y * 2.0;
-          elementDistance += clamp(attributes.TEXCOORD_0.y, 0.0, 1.0) * leafLength;
-        #endif
-        // Evaluate the independent whole-instance entrance before changing coordinates.
-        float entranceBand = max(data.w * material_TreeDissolveShape.x, material_TreeDissolveShape.y);
-        float entranceThreshold = mix(-entranceBand, data.w + entranceBand, clamp(data.y, 0.0, 1.0));
-        float entranceAmount = 1.0 - smoothstep(entranceThreshold - entranceBand,
-          entranceThreshold + entranceBand, sourceWorldY - data.z);
-        data.x = elementDistance;
-        data.w = max(attributes.TREE_VARIATION_ROOT.w, 0.000001);
-        data.z = 0.0;
-        data.y = min(densityProgress, entranceAmount);
+        if (data.y <= 1.5) {
+          float densityProgress = terrainProjectProceduralTreeDensityReveal(attributes);
+          float elementDistance = attributes.TREE_VARIATION_DATA.w;
+          #ifndef RENDERER_PROCEDURAL_TREE_GPU_BRANCH_VARIATION
+            // Append the leaf's own root-to-tip length to its supporting branch path.
+            float leafLength = attributes.TEXCOORD_1.y * 2.0;
+            elementDistance += clamp(attributes.TEXCOORD_0.y, 0.0, 1.0) * leafLength;
+          #endif
+          // Evaluate the independent whole-instance entrance before changing coordinates.
+          float entranceBand = max(data.w * material_TreeDissolveShape.x, material_TreeDissolveShape.y);
+          float entranceThreshold = mix(-entranceBand, data.w + entranceBand, clamp(data.y, 0.0, 1.0));
+          float entranceAmount = 1.0 - smoothstep(entranceThreshold - entranceBand,
+            entranceThreshold + entranceBand, sourceWorldY - data.z);
+          data.x = elementDistance;
+          data.w = max(attributes.TREE_VARIATION_ROOT.w, 0.000001);
+          data.z = 0.0;
+          data.y = min(densityProgress, entranceAmount);
+        }
       #endif
       return data;
     #elif defined(RENDERER_INSTANCE_GENERATION_REVEAL) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
@@ -153,13 +161,13 @@
   }
 
   float terrainProjectGenerationRevealAmountFromHeight(float sourceHeight, float progress, float height) {
-    progress = clamp(progress, 0.0, 1.0);
-    // Completed and non-participating instances remain visible even when wind exceeds the reveal interval.
+    // Values >= 1.0 (including [2.0, 3.0] non-clipping update sweep) keep geometry unconditionally visible.
     if (progress >= 1.0) return 1.0;
+    progress = clamp(progress, 0.0, 1.0);
     #ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION
       float band = max(height * material_TreeDissolveSpectrum.w, material_TreeDissolveShape.y);
     #else
-      float band = max(height * 0.075, 0.16);
+      float band = max(height * 0.11, 0.24);
     #endif
     float threshold = mix(-band, height + band, progress);
     return 1.0 - smoothstep(threshold - band, threshold + band, sourceHeight);
@@ -175,12 +183,20 @@
 
   vec3 terrainProjectApplyGenerationRevealPosition(vec3 worldPosition, vec4 revealData) {
     float sourceHeight = revealData.x - revealData.z;
-    float amount = terrainProjectGenerationRevealAmountFromHeight(sourceHeight, revealData.y, revealData.w);
-    float crest = amount * (1.0 - amount) * 4.0;
+    float crest = 0.0;
+    if (revealData.y > 1.5) {
+      float sweepProgress = clamp(revealData.y - 2.0, 0.0, 1.0);
+      float sweepBand = max(revealData.w * 0.16, 0.28);
+      float sweep = mix(-sweepBand, revealData.w + sweepBand, sweepProgress);
+      crest = (1.0 - smoothstep(0.0, sweepBand, abs(sourceHeight - sweep))) * sin(sweepProgress * 3.14159265);
+    } else {
+      float amount = terrainProjectGenerationRevealAmountFromHeight(sourceHeight, revealData.y, revealData.w);
+      crest = amount * (1.0 - amount) * 4.0;
+    }
     #ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION
       float requestedLift = crest * material_TreeDissolveSpectrum.z;
     #else
-      float requestedLift = crest * renderer_GenerationRevealLift * 0.24;
+      float requestedLift = crest * renderer_GenerationRevealLift * 0.26;
     #endif
     // Keep presentation-only deformation inside the semantic reveal interval used by CPU culling.
     // The entrance may lift a vertex toward the interval ceiling, but never beyond it.
@@ -188,32 +204,42 @@
     return worldPosition + vec3(0.0, conservativeLift, 0.0);
   }
 
+  vec3 terrainProjectVividRainbow(float phase) {
+    vec3 raw = clamp(abs(mod(fract(phase) * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+    return pow(raw, vec3(2.2));
+  }
+
   vec3 terrainProjectApplyGenerationRevealTint(vec3 color, vec4 revealData, vec3 tint) {
-    float amount = terrainProjectGenerationRevealAmount(revealData);
-    float edge = amount * (1.0 - amount) * 4.0;
-    #ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION
-      float sweepBand = max(revealData.w * material_TreeDissolveSpectrum.w, material_TreeDissolveShape.y);
-      float edgeBand = max(revealData.w * material_TreeDissolveShape.x, material_TreeDissolveShape.y);
-      float sweep = mix(-sweepBand, revealData.w + sweepBand, clamp(revealData.y, 0.0, 1.0));
-      edge = (1.0 - smoothstep(0.0, edgeBand, abs(revealData.x - revealData.z - sweep))) *
-        step(0.000001, revealData.y) * (1.0 - step(1.0, revealData.y));
-      float frequency = material_TreeDissolveShape.w;
-      float brightness = material_TreeDissolveShape.z;
-    #else
-      float frequency = 0.17;
-      float brightness = 0.62;
-    #endif
-    float heightPhase = fract((revealData.x - revealData.z) * frequency);
-    #ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION
-      vec3 crestColor = max(vec3(0.0), material_TreeDissolveSpectrum.x + material_TreeDissolveSpectrum.y *
-        cos(6.2831853 * (heightPhase + material_TreeDissolvePhase)));
-    #else
-      vec3 crestColor = 0.54 + 0.46 * cos(6.2831853 * (heightPhase + vec3(0.03, 0.36, 0.69)));
-    #endif
-    #ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION
-      crestColor = mix(vec3(1.0), crestColor, material_TreeDissolveColor.w) * tint;
-    #endif
-    return color + crestColor * edge * brightness;
+    float edge = 0.0;
+    float relY = revealData.x - revealData.z;
+    float normY = clamp(relY / max(revealData.w, 0.001), 0.0, 1.0);
+    float sweepShift = 0.0;
+    if (revealData.y > 1.5) {
+      float sweepProgress = clamp(revealData.y - 2.0, 0.0, 1.0);
+      float sweepBand = max(revealData.w * 0.26, 0.55);
+      float sweep = mix(-sweepBand, revealData.w + sweepBand, sweepProgress);
+      edge = (1.0 - smoothstep(0.0, sweepBand, abs(relY - sweep))) *
+        sin(sweepProgress * 3.14159265);
+      sweepShift = sweepProgress * 1.45;
+    } else {
+      #ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION
+        float sweepBand = max(revealData.w * material_TreeDissolveSpectrum.w, material_TreeDissolveShape.y);
+        float edgeBand = max(revealData.w * max(material_TreeDissolveShape.x, 0.20), max(material_TreeDissolveShape.y, 0.45));
+        float sweep = mix(-sweepBand, revealData.w + sweepBand, clamp(revealData.y, 0.0, 1.0));
+        edge = (1.0 - smoothstep(0.0, edgeBand, abs(relY - sweep))) *
+          step(0.000001, revealData.y) * (1.0 - step(1.0, revealData.y));
+        sweepShift = revealData.y * 1.2;
+      #else
+        float amount = terrainProjectGenerationRevealAmount(revealData);
+        edge = amount * (1.0 - amount) * 4.0;
+        sweepShift = revealData.y * 1.2;
+      #endif
+    }
+    if (edge <= 0.001) return color;
+    float heightPhase = fract(normY * 1.65 + relY * 0.22 - sweepShift);
+    vec3 prism = terrainProjectVividRainbow(heightPhase);
+    float mask = clamp(edge, 0.0, 1.0);
+    return mix(color, color * 0.22 + prism * 2.75, clamp(mask * 0.90, 0.0, 0.90));
   }
   vec3 terrainProjectApplyGenerationRevealColor(vec3 color, vec4 revealData) {
     #ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION

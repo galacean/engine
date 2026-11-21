@@ -198,6 +198,7 @@ import {
   resolveWorldTemplateView
 } from "@galacean/engine-world-planning/spatial/WorldTemplateView";
 import { SeedWorldAudioRuntime } from "@galacean/engine-world-planning/world/SeedWorldAudioRuntime";
+import { SeedWorldSceneEntityEffectHost } from "@galacean/engine-world-planning/world/SeedWorldSceneEntityEffectHost";
 import {
   resolveSeedWorldCameraAnglesInto,
   resolveSeedWorldCameraForward,
@@ -206,6 +207,7 @@ import {
 import {
   createSeedWorldShaderVariantSnapshotter,
   warmupSeedWorldRendererVariants,
+  warmupSeedWorldShaderVariants,
   type SeedWorldShaderVariantEntry
 } from "@galacean/engine-world-planning/world/SeedWorldShaderWarmup";
 import { registerSeedWorldVoiceHudStartupShaders } from "./assistant/SeedWorldVoiceHudShaders.ts";
@@ -303,6 +305,7 @@ export async function mountSeedWorldDemo(
   let detachWindExposure: (() => void) | undefined;
   let resizeObserver: ResizeObserver | undefined;
   let nativeBuildingHost: NativeBuildingHost | undefined;
+  let sceneEntityEffectHost: SeedWorldSceneEntityEffectHost | undefined;
   let nativeBuildingPanel: ReturnType<typeof mountNativeBuildingPanel> | undefined;
   let nativeWaterHost: NativeWaterHost | undefined;
   let nativeWaterPanel: ReturnType<typeof mountNativeWaterPanel> | undefined;
@@ -459,6 +462,7 @@ export async function mountSeedWorldDemo(
         tools?.dispose();
         nativeWaterPanel?.destroy();
         nativeBuildingPanel?.destroy();
+        sceneEntityEffectHost?.dispose();
         nativeEditor?.dispose();
         retrieval?.dispose();
       }
@@ -620,7 +624,8 @@ export async function mountSeedWorldDemo(
       "SeedWorld/PhotoCopy",
       "SeedWorld/SnapshotSurfacePack",
       "SeedWorld/InteractionDepthPack",
-      "SeedWorld/PanoramaFarHorizon"
+      "SeedWorld/PanoramaFarHorizon",
+      "SeedWorld/HologramRainbow"
     ]);
     engine.sceneManager.activeScene!?.destroy();
     const resize = () => {
@@ -792,6 +797,7 @@ export async function mountSeedWorldDemo(
     // startup IBL/cloud warmup advances offscreen without rendering the full 3D world behind the orb.
     camera.enabled = false;
     nativeBuildingHost = new NativeBuildingHost(runtimeProject, nativeEditor.editor, scene!, camera);
+    sceneEntityEffectHost = new SeedWorldSceneEntityEffectHost(runtimeProject, nativeEditor.editor, scene!);
     if (pageUrl.searchParams.get("agentTrace") === "1") {
       const probe = camera.entity.addComponent(SeedCameraSubmissionProbe);
       const entries: CameraSubmissionWindow[] = [];
@@ -1269,6 +1275,37 @@ export async function mountSeedWorldDemo(
       diagnostics: () => (farmingSwitch.diagnostic ? [farmingSwitch.diagnostic] : [])
     });
 
+    const isLocalPresentationOrPlantMaterialEdit = (
+      document: Parameters<NonNullable<PlanningSessionOptions["preparePublication"]>>[0],
+      result: Parameters<NonNullable<PlanningSessionOptions["preparePublication"]>>[1],
+      context: Parameters<NonNullable<PlanningSessionOptions["preparePublication"]>>[2]
+    ): boolean => {
+      const current = publication?.current;
+      if (
+        context.forceFull ||
+        !current ||
+        !context.worldUnchanged ||
+        (result.execution !== "runtime" && result.execution !== "presentation")
+      )
+        return false;
+      if (!sameMasonryPlan(current.plan, result.plan)) return false;
+      const rockSupportChanged =
+        JSON.stringify([result.plan.rocks, result.plan.landscapes?.filter((x) => x.kind === "rock")]) !==
+        JSON.stringify([current.plan.rocks, current.plan.landscapes?.filter((x) => x.kind === "rock")]);
+      if (rockSupportChanged) return false;
+      if (JSON.stringify(readSubjectView(document)) !== JSON.stringify(readSubjectView(context.previousDocument)))
+        return false;
+      if (
+        JSON.stringify(readRockFormationSettings(document)) !==
+        JSON.stringify(readRockFormationSettings(context.previousDocument))
+      )
+        return false;
+      const plantMaterialChanged =
+        JSON.stringify(readPlantMaterialParameters(document)) !==
+        JSON.stringify(readPlantMaterialParameters(context.previousDocument));
+      return !plantMaterialChanged || Boolean(current.vegetation);
+    };
+
     const preparePublicationContent: NonNullable<PlanningSessionOptions["preparePublication"]> = async (
       document,
       result,
@@ -1339,6 +1376,14 @@ export async function mountSeedWorldDemo(
               revision,
               {
                 submerged: rockGrassWaterTest(water!),
+                terrainTransitionDurationSeconds: context.terrainTransitionDurationSeconds,
+                onTerrainTweenFrame: (fields) => farmingHost?.runtime?.refreshLiveTerrain(fields),
+                onTerrainTweenComplete: () => {
+                  const accepted = publication?.current;
+                  if (accepted && accepted.revision === revision) {
+                    farmingHost?.runtime?.refreshTerrain(accepted, source?.session.document.revision);
+                  }
+                },
                 prepareSolids: async () => {
                   const formations = await rockFormations.prepare(
                     result.plan,
@@ -1395,7 +1440,9 @@ export async function mountSeedWorldDemo(
           },
           afterCommit: async () => {
             const accepted = publication!.current!;
-            farmingHost?.runtime?.refreshTerrain(accepted);
+            if (!accepted.world.getLiveTerrainFields?.()) {
+              farmingHost?.runtime?.refreshTerrain(accepted, source?.session.document.revision);
+            }
             animals!.synchronize(
               accepted.plan,
               readAnimalPopulationConfig(source!.session.document),
@@ -1555,23 +1602,22 @@ export async function mountSeedWorldDemo(
         };
       }
       farmingHost?.runtime?.inspectCandidate(result.plan, document.revision);
-      if (
-        (result.execution === "runtime" || result.execution === "presentation") &&
-        context.worldUnchanged &&
-        !rockSupportChanged &&
-        plannedGeometryUnchanged &&
-        publication!.current &&
-        JSON.stringify(readPlantMaterialParameters(document)) ===
-          JSON.stringify(readPlantMaterialParameters(context.previousDocument)) &&
-        JSON.stringify(readSubjectView(document)) === JSON.stringify(readSubjectView(context.previousDocument)) &&
-        JSON.stringify(readRockFormationSettings(document)) ===
-          JSON.stringify(readRockFormationSettings(context.previousDocument))
-      ) {
-        // Unchanged geometry retains its owners. Labels and presentation changes
-        // still reach their consumers through the normal publication follow-up.
+      if (isLocalPresentationOrPlantMaterialEdit(document, result, context)) {
+        // Unchanged geometry retains its owners. Plant material color edits apply in-place
+        // with a rainbow update shimmer instead of triggering a full-world rebuild.
+        const plantMaterialChanged =
+          JSON.stringify(readPlantMaterialParameters(document)) !==
+          JSON.stringify(readPlantMaterialParameters(context.previousDocument));
+        const stagedMaterial = plantMaterialChanged
+          ? publication!.current!.vegetation!.prepareMaterialParameters(readPlantMaterialParameters(document))
+          : undefined;
         return {
-          discard() {},
-          commit() {},
+          discard() {
+            stagedMaterial?.discard();
+          },
+          commit() {
+            stagedMaterial?.commit();
+          },
           afterCommit: () => publish(false, context.projectTransaction)
         };
       }
@@ -2050,7 +2096,10 @@ export async function mountSeedWorldDemo(
                 activatedLightRoots: warmupRoots,
                 retiredLightRoots: readWorld() ? [readWorld()!.root] : [],
                 postProcessState: post.getShaderWarmupState(),
-                additionalBackgroundMaterials: environment!.shaderWarmupBackgroundMaterials,
+                additionalBackgroundMaterials: [
+        ...environment!.shaderWarmupBackgroundMaterials,
+        ...(sceneEntityEffectHost ? sceneEntityEffectHost.warmupMaterials : [])
+      ],
                 onVariants:
                   pageUrl.searchParams.get("agentTrace") === "1"
                     ? (variants) => {
@@ -2135,11 +2184,12 @@ export async function mountSeedWorldDemo(
     let preparationPauseCount = 0,
       resumeAfterPreparation = false;
     const preparePublication: NonNullable<PlanningSessionOptions["preparePublication"]> = async (...args) => {
-      // A verified content projection cannot change terrain or its transition.
-      // Do not pause rendering or stage a replacement world for a reveal/instance edit.
+      // A verified content, surface, or in-place plant-material/presentation edit cannot
+      // replace the live world. Never pause rendering or stage a replacement world for it.
       if (
         args[2].contentOnly ||
         args[2].waterUpdate ||
+        isLocalPresentationOrPlantMaterialEdit(args[0], args[1], args[2]) ||
         !planningSurfacePublicationGate(
           publication!.current,
           args[2].previousDocument,
@@ -2721,7 +2771,7 @@ export async function mountSeedWorldDemo(
     timed("warmupPopulationDetails (startup)", () => publication!.current?.world.warmupPopulationDetails());
 
     shaderAudit?.setPhase("startup-warmup");
-    const { report: startupWarmupReport } = await runSeedWorldStartupShaderWarmup({
+    const { report: startupWarmupReport, deferredShaderVariants } = await runSeedWorldStartupShaderWarmup({
       precompileShaders,
       engine: engine!,
       scene: scene!,
@@ -2750,10 +2800,11 @@ export async function mountSeedWorldDemo(
       hasOpaqueScreenSpaceReflection: () => Boolean(environment?.surfaceWaterSsrRequested),
       getPostProcessWarmupState: () => post.getShaderWarmupState(),
       additionalBackgroundMaterials: environment!.shaderWarmupBackgroundMaterials,
+      deferredBackgroundMaterials: sceneEntityEffectHost ? sceneEntityEffectHost.warmupMaterials : undefined,
       onWarmupEvent: (message, detail) => seedWorldBootTrace.event("info", "shader-warmup", message, detail)
     });
     shaderAudit?.setParallelCompile(Boolean(startupWarmupReport?.parallelCompileSupported));
-    shaderAudit?.recordWarmupRequested(startupWarmupReport?.requested ?? 0, 0);
+    shaderAudit?.recordWarmupRequested(startupWarmupReport?.requested ?? 0, deferredShaderVariants.length);
     shaderAudit?.setPhase("reveal");
 
     camera.enabled = true;
@@ -2768,6 +2819,16 @@ export async function mountSeedWorldDemo(
     orb = undefined;
     ready = true;
     shaderAudit?.setPhase("post-ready");
+    if (deferredShaderVariants.length > 0 && !disposed) {
+      // On synchronous mobile GPUs (parallel=false), compile CRUD-only rainbow/hologram shader
+      // variants across post-ready idle frames (1 program / <=4ms per frame) without delaying boot.
+      void warmupSeedWorldShaderVariants(engine!, deferredShaderVariants, {
+        strict: false,
+        frameBudgetMilliseconds: 4,
+        maximumPendingPrograms: 1,
+        signal: editorLifetime.signal
+      }).catch(() => {});
+    }
     disconnectEditorAssets = timed("tools.connectProject", () => tools!.application.connectProject(runtimeProject!));
     const savedEditor = runtimeProject.projectPackage.contents[SEED_WORLD_EDITOR_PATH];
     if (typeof savedEditor === "string")

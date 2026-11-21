@@ -66,7 +66,7 @@ function prepareSceneReaders(
 ) {
   const navigation = new PlanningNavigationSurface(
     plan,
-    (x, z) => sampleSeedWorldHeight(fields, x, z) ?? 0,
+    (x, z) => sampleSeedWorldHeight(world.getLiveTerrainFields?.() ?? fields, x, z) ?? 0,
     water,
     samplePlayerSupport,
     true
@@ -690,6 +690,21 @@ export class PlanningSeedScenePublication {
             notify(() => {
               preparedCandidate.world.root.isActive = true;
             });
+            if (
+              !preparedCandidate.cameraPose &&
+              !preparedCandidate.heightTransition &&
+              this.options.navigation.groundCollision
+            ) {
+              notify(() => {
+                const transform = this.options.camera.entity.transform;
+                const pos = transform.worldPosition;
+                const floor = navigation.sampleHeightInterpolated(pos.x, pos.z);
+                if (floor !== undefined && Number.isFinite(floor)) {
+                  const minY = floor + this.options.navigation.groundClearance;
+                  if (pos.y < minY) transform.setWorldPosition(pos.x, minY, pos.z);
+                }
+              });
+            }
             if (previous) this.release(previous);
             return next;
           }

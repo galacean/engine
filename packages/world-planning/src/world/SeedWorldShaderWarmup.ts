@@ -29,6 +29,7 @@ import {
 import photoCopySource from "./PhotoCopy.shader?raw";
 import {
   normalizeSeedWorldShaderVariants,
+  withSeedWorldGenerationRevealVariants,
   withSeedWorldInstanceEntranceVariants,
   withSeedWorldLodDitherVariants,
   withSeedWorldMasonryDitherVariants,
@@ -39,6 +40,7 @@ import {
 } from "./SeedWorldShaderVariantCoverage";
 
 export {
+  withSeedWorldGenerationRevealVariants,
   withSeedWorldInstanceEntranceVariants,
   withSeedWorldIblBlendVariants,
   withSeedWorldLodDitherVariants,
@@ -142,6 +144,8 @@ export interface SeedWorldRendererWarmupOptions extends SeedWorldShaderWarmupOpt
   readonly includeInstanceEntrance?: boolean;
   /** Whether to expand vegetation shaders with symmetric RENDERER_LOD_DITHER variants. Defaults to false (set once at construction). */
   readonly includeLodDither?: boolean;
+  /** Whether to expand vegetation/surface/terrain shaders with authoring CRUD rainbow reveal/wave variants. Defaults to false. */
+  readonly includeGenerationReveal?: boolean;
   /** Whether opaque SSR receivers (e.g. wet terrain during rain) are active in this template. Defaults to false when dry. */
   readonly includeOpaqueScreenSpaceReflection?: boolean;
   /** Whether to also warm the masked variant (`SEED_WORLD_GLASS_MASK`) for LiquidGlass overlay icons mounted after startup. Defaults to true. */
@@ -1427,6 +1431,7 @@ function collectSeedWorldRendererVariantsInternal(
   // speculative environment-blend macro is not valid for every shader and
   // must not be injected into an otherwise renderable candidate.
   let collected: readonly SeedWorldShaderVariantEntry[] = variants;
+  if (options.includeGenerationReveal === true) collected = withSeedWorldGenerationRevealVariants(collected);
   if (options.includeInstanceEntrance !== false) collected = withSeedWorldInstanceEntranceVariants(collected);
   if (options.includeMasonryEntrance !== false) collected = withSeedWorldMasonryEntranceVariants(collected);
   if (options.includeMasonryDither !== false) collected = withSeedWorldMasonryDitherVariants(collected);

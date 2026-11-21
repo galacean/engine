@@ -17,6 +17,32 @@ float masonryEntranceAmount(vec3 center, float delay, float stagger) {
   float threshold=min(.98,.16+.70*height+delay+jitter);
   return smoothstep(.8*threshold,threshold,pow(progress,.8));
 }
+float masonryEntranceRainbowEdge(vec3 pos, float amount) {
+  float progress=renderer_MasonryEntrance.x;
+  float relY=pos.y+renderer_MasonryEntrance.w-renderer_MasonryEntrance.y;
+  if(progress>1.5){
+    float sweepP=clamp(progress-2.0,0.0,1.0);
+    float normY=clamp(relY/max(renderer_MasonryEntrance.z,0.001),0.0,1.0);
+    float sweep=mix(-0.24,1.24,sweepP);
+    return (1.0-smoothstep(0.0,0.30,abs(normY-sweep)))*sin(sweepP*3.14159265);
+  }
+  if(progress>0.0 && progress<1.0){
+    return amount*(1.0-amount)*4.0;
+  }
+  return 0.0;
+}
+vec3 masonryEntranceRainbow(vec3 pos, float amount) {
+  float edge=masonryEntranceRainbowEdge(pos,amount);
+  if(edge<=0.001) return vec3(0.0);
+  float progress=renderer_MasonryEntrance.x;
+  float relY=pos.y+renderer_MasonryEntrance.w-renderer_MasonryEntrance.y;
+  float normY=clamp(relY/max(renderer_MasonryEntrance.z,0.001),0.0,1.0);
+  float shift=progress>1.5 ? (progress-2.0)*1.4 : progress*1.1;
+  float phase=fract(normY*1.65+(pos.x+pos.z)*0.16-shift);
+  vec3 raw=clamp(abs(mod(phase*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0,0.0,1.0);
+  vec3 spec=pow(raw,vec3(2.2));
+  return spec*edge*2.65;
+}
 #endif
 `;
 export const constructionEntranceCoverageGLSL = `
@@ -33,7 +59,7 @@ export function entranceBinding(data: ShaderData, localY = 0) {
   const value = new Vector4();
   let enabled = false;
   return (state?: ConstructionEntranceState, originY = localY) => {
-    const active = state !== undefined && state.progress < 1;
+    const active = state !== undefined && state.progress !== 1;
     if (active) {
       value.set(state.progress, state.minimumY, state.height, originY);
       data.setVector4("renderer_MasonryEntrance", value);
@@ -113,25 +139,31 @@ export function injectConstructionEntrance(vertex: string, fragment: string, fam
   // vertex weights across a tall wall makes its entire upper half appear early.
   const vertexVaryings = continuous
     ? "out vec3 masonryEntrancePosition; out float masonryEntranceDelay; float masonryEntranceWeight;"
-    : "flat out float masonryEntranceWeight;";
+    : "flat out float masonryEntranceWeight; flat out vec3 masonryEntranceCenter;";
   vertex = vertex.replace(
     "void original_main()",
     `${header}\n#ifdef ${entranceMacro}\n${vertexVaryings}\n#endif\nvoid original_main()`
   );
   vertex = vertex.replace(
     /void main\(\)\s*\{/,
-    `void main(){\n#ifdef ${entranceMacro}\n${declaration}\n${continuous ? `masonryEntrancePosition=(${center}); masonryEntranceDelay=${delay};` : ""}\nmasonryEntranceWeight=masonryEntranceAmount((${center}),${delay},${continuous ? "0.0" : ".035"});\n#endif\n`
+    `void main(){\n#ifdef ${entranceMacro}\n${declaration}\nvec3 masonryEntranceSample=(${center});\n${continuous ? `masonryEntrancePosition=masonryEntranceSample; masonryEntranceDelay=${delay};` : "masonryEntranceCenter=masonryEntranceSample;"}\nmasonryEntranceWeight=masonryEntranceAmount(masonryEntranceSample,${delay},${continuous ? "0.0" : ".035"});\n#endif\n`
   );
   const fragmentVaryings = continuous
     ? `${header}\nin vec3 masonryEntrancePosition; in float masonryEntranceDelay;`
-    : "flat in float masonryEntranceWeight;";
+    : `${header}\nflat in float masonryEntranceWeight; flat in vec3 masonryEntranceCenter;`;
   fragment = `#ifdef ${entranceMacro}\n${fragmentVaryings}\n#endif\n${constructionEntranceCoverageGLSL}\n` + fragment;
   const amount = continuous
     ? "masonryEntranceAmount(masonryEntrancePosition,masonryEntranceDelay,0.0)"
     : "masonryEntranceWeight";
-  fragment = fragment.replace(
-    /void main\(\)\s*\{/,
-    `void main(){\n#ifdef ${entranceMacro}\nmasonryEntranceCoverage(${amount});\n#endif\n`
-  );
+  const rainbowPos = continuous ? "masonryEntrancePosition" : "masonryEntranceCenter";
+  fragment = fragment
+    .replace(
+      /void main\(\)\s*\{/,
+      `void main(){\n#ifdef ${entranceMacro}\nfloat masonryEntranceAmt=${amount};\nmasonryEntranceCoverage(masonryEntranceAmt);\n#endif\n`
+    )
+    .replace(
+      /}\s*$/,
+      `\n#ifdef ${entranceMacro}\nfloat masonryRainbowW=clamp(masonryEntranceRainbowEdge(${rainbowPos},masonryEntranceAmt)*0.76,0.0,0.76);\nresidentColor.rgb=residentColor.rgb*(1.0-masonryRainbowW)+masonryEntranceRainbow(${rainbowPos},masonryEntranceAmt);\n#endif\n}`
+    );
   return { vertex, fragment };
 }

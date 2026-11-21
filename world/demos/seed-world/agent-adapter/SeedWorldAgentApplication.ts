@@ -1194,9 +1194,42 @@ export class SeedWorldAgentApplication {
         break placement;
       }
     }
+    if (!centerline) {
+      // Player/LLM intent overrides natural placement avoidance: fall back directly to the
+      // requested spot in front of the viewer, shifting the whole curve inward so it stays inside
+      // physical world bounds without flattening points against a boundary wall.
+      const size = this._requireState().world.sizeMetres;
+      const margin = Math.max(8, width);
+      const centerMargin = Math.min(size * 0.45, Math.max(margin, length * 0.5 + width));
+      const clampCenter = (value: number) => Math.max(centerMargin, Math.min(size - centerMargin, value));
+      const directCenter = {
+        x: clampCenter(position[0] + fx * distance),
+        z: clampCenter(position[2] + fz * distance)
+      };
+      const directCandidate = seedWorldRiverCenterlines(seed, directCenter, [fx, fz], length).next().value;
+      if (directCandidate?.length) {
+        let minX = Infinity,
+          maxX = -Infinity,
+          minZ = Infinity,
+          maxZ = -Infinity;
+        for (const pt of directCandidate as { x: number; z: number }[]) {
+          if (pt.x < minX) minX = pt.x;
+          if (pt.x > maxX) maxX = pt.x;
+          if (pt.z < minZ) minZ = pt.z;
+          if (pt.z > maxZ) maxZ = pt.z;
+        }
+        const shiftX = minX < margin ? margin - minX : maxX > size - margin ? size - margin - maxX : 0;
+        const shiftZ = minZ < margin ? margin - minZ : maxZ > size - margin ? size - margin - maxZ : 0;
+        const clampCoord = (value: number) => Math.max(margin, Math.min(size - margin, value));
+        centerline = (directCandidate as { x: number; z: number }[]).map((point) => ({
+          x: clampCoord(point.x + shiftX),
+          z: clampCoord(point.z + shiftZ)
+        }));
+      }
+    }
     if (!centerline) throw new AgentToolExecutionError({
       code: "INVALID_ARGUMENT",
-      message: "玩家前方没有找到适合当前宽度与长度的陆地河道。",
+      message: "玩家前方河道坐标超出世界物理边界。",
       executed: false
     });
     const id = `river:authored:${crypto.randomUUID()}`;

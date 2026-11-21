@@ -1359,8 +1359,10 @@ function* spatialWorldStages(
         id: `collision:${v.id}`,
         rule: "volume-exclusion",
         owners: [v.id, ...conflicts],
-        required: true,
-        status: "fail",
+        // Initial seed generation enforces natural non-overlapping volumes;
+        // once a world exists, player/AI edits take precedence and emit a warning instead of rejecting.
+        required: !previous,
+        status: previous ? "unknown" : "fail",
         message: "声明互斥的体量发生相交"
       });
   }

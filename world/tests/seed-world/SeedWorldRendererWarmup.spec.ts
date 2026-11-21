@@ -12,7 +12,8 @@ import {
 } from "@galacean/engine";
 import {
   collectSeedWorldRendererVariants,
-  warmupSeedWorldShaderVariants
+  warmupSeedWorldShaderVariants,
+  withSeedWorldGenerationRevealVariants
 } from "@galacean/engine-world-planning/world/SeedWorldShaderWarmup";
 
 function renderer(active: boolean, skinned = false, materials?: object[]) {
@@ -1233,5 +1234,32 @@ describe("renderer warmup scope", () => {
     } finally {
       findSpy.mockRestore();
     }
+  });
+
+  it("expands vegetation, surface, and terrain shaders for authoring CRUD rainbow effects when includeGenerationReveal is enabled", () => {
+    const expanded = withSeedWorldGenerationRevealVariants([
+      { shader: "Terrain/Vegetation", si: 0, pi: 0, macros: [] },
+      { shader: "Terrain/Surface", si: 0, pi: 0, macros: [] },
+      { shader: "Terrain/Terrain", si: 0, pi: 0, macros: [] },
+      { shader: "Terrain/Vegetation", si: 0, pi: 0, macros: [{ n: "RENDERER_WORLD_PICK" }] }
+    ]);
+    expect(
+      expanded.some((v) => v.shader === "Terrain/Vegetation" && v.macros.some((m) => m.n === "RENDERER_GENERATION_REVEAL"))
+    ).toBe(true);
+    expect(
+      expanded.some((v) => v.shader === "Terrain/Surface" && v.macros.some((m) => m.n === "RENDERER_GENERATION_REVEAL"))
+    ).toBe(true);
+    expect(
+      expanded.some(
+        (v) => v.shader === "Terrain/Terrain" && v.macros.some((m) => m.n === "TERRAIN_PROJECT_ENTRANCE_WAVE")
+      )
+    ).toBe(true);
+    expect(
+      expanded.some(
+        (v) =>
+          v.macros.some((m) => m.n === "RENDERER_WORLD_PICK") &&
+          v.macros.some((m) => m.n === "RENDERER_GENERATION_REVEAL")
+      )
+    ).toBe(false);
   });
 });

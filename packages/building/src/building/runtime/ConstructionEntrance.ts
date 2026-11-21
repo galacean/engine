@@ -6,6 +6,8 @@ export interface ConstructionEntranceState {
   height: number;
 }
 export const CONSTRUCTION_ENTRANCE_SECONDS = 2.4;
+export const CONSTRUCTION_UPDATE_SECONDS = 0.9;
+export const CONSTRUCTION_EXIT_SECONDS = 0.75;
 export class ConstructionEntrance {
   readonly changed = new Set<string>();
   readonly states = new Map<string, ConstructionEntranceState>();
@@ -31,6 +33,19 @@ export class ConstructionEntrance {
     this.define(owner, minimumY, maximumY);
     if (existed) return;
     this.states.get(owner)!.progress = 0;
+    this.newlyAccepted.add(owner);
+    if (play && !this.playing) {
+      this.playing = true;
+      this.armed = true;
+    }
+  }
+  /** Play a non-clipping rainbow highlight sweep (`progress: 2 -> 3 -> 1`) on an already-settled owner after an edit. */
+  sweep(owner: string, minimumY: number, maximumY: number, play: boolean) {
+    const existed = this.states.has(owner);
+    this.define(owner, minimumY, maximumY);
+    const state = this.states.get(owner)!;
+    if (!existed || state.progress < 1) return;
+    state.progress = 2;
     this.newlyAccepted.add(owner);
     if (play && !this.playing) {
       this.playing = true;
@@ -78,7 +93,7 @@ export class ConstructionEntrance {
     }
     let changed = false;
     let active = false;
-    for (const [id, state] of this.states)
+    for (const [id, state] of this.states) {
       if (state.progress < 1) {
         if (this.newlyAccepted.delete(id)) {
           active = true;
@@ -89,12 +104,24 @@ export class ConstructionEntrance {
         changed ||= next !== state.progress;
         state.progress = next;
         active ||= next < 1;
+      } else if (state.progress >= 2) {
+        if (this.newlyAccepted.delete(id)) {
+          active = true;
+          continue;
+        }
+        const rawNext = state.progress + seconds / CONSTRUCTION_UPDATE_SECONDS;
+        const next = rawNext >= 3 ? 1 : rawNext;
+        if (next !== state.progress) this.changed.add(id);
+        changed ||= next !== state.progress;
+        state.progress = next;
+        active ||= next >= 2;
       }
+    }
     this.playing = active;
     return changed;
   }
   get active() {
-    for (const state of this.states.values()) if (state.progress < 1) return true;
+    for (const state of this.states.values()) if (state.progress !== 1) return true;
     return false;
   }
 }

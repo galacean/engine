@@ -545,9 +545,9 @@ export function planVisualGuidance(
             id: "guidance-edit:" + id,
             rule: "visual-guidance-occupancy",
             owners: [intent.id, id],
-            status: "fail",
-            required: true,
-            message: "沿途补充元素的局部编辑违反陆域、坡度、道路净空或已有占地约束"
+            status: "unknown",
+            required: false,
+            message: "沿途补充元素的局部编辑超出自然坡度/道路净空或已有占地约束（已降级为提示）"
           });
       }
     }
