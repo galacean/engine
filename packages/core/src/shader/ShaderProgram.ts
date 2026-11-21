@@ -251,18 +251,17 @@ export class ShaderProgram implements IPlatformShaderProgram {
   }
 
   private _extractMultiGroupUniforms(): void {
+    this._extractBlockMultiGroupUniforms(this.sceneUniformBlock);
+    this._extractBlockMultiGroupUniforms(this.cameraUniformBlock);
+    this._extractBlockMultiGroupUniforms(this.rendererUniformBlock);
+    this._extractBlockMultiGroupUniforms(this.materialUniformBlock);
+    this._extractBlockMultiGroupUniforms(this.renderElementUniformBlock);
+  }
+
+  private _extractBlockMultiGroupUniforms(block: ShaderUniformBlock): void {
     const target = this.multiGroupUniformBlock;
-    const blocks = [
-      this.sceneUniformBlock,
-      this.cameraUniformBlock,
-      this.rendererUniformBlock,
-      this.materialUniformBlock,
-      this.renderElementUniformBlock
-    ];
-    for (let i = 0; i < blocks.length; i++) {
-      this._extractSubMultiGroupUniforms(blocks[i].constUniforms, target.constUniforms);
-      this._extractSubMultiGroupUniforms(blocks[i].textureUniforms, target.textureUniforms);
-    }
+    this._extractSubMultiGroupUniforms(block.constUniforms, target.constUniforms);
+    this._extractSubMultiGroupUniforms(block.textureUniforms, target.textureUniforms);
   }
 
   private _extractSubMultiGroupUniforms(source: ShaderUniform[], target: ShaderUniform[]): void {
