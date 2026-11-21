@@ -230,4 +230,21 @@ describe("Terrain near/far production shader variants", () => {
     expect(source).toContain("uniform float renderer_WorldPickInstanced;");
     expect(source).toMatch(/gl_InstanceID\s*\)\s*\*\s*renderer_WorldPickInstanced/);
   });
+
+  it("early-outs culled grass instances in vertex and preserves full climate wind normal for rain/snow", () => {
+    const macros = new Map([
+      ["GRAPHICS_API_WEBGL2", ""],
+      ["RENDERER_SEED_WORLD_DETAIL_COMPACT", ""],
+      ["RENDERER_TERRAIN_SINGLE_DIFFUSE_SINGLE_MAP", ""]
+    ]);
+    const vs = ShaderMacroProcessor.evaluate(grassForward.vertexShaderInstructions, macros);
+    expect(vs).toContain("grassCulledVaryings");
+    expect(vs).toContain("terrainProjectGroundWindDirectionalNormal");
+    expect(vs).toContain("terrainProjectGroundWindCarrierNormal");
+    expect(vs).toContain("scene_SurfaceClimate");
+
+    const fs = ShaderMacroProcessor.evaluate(grassForward.fragmentShaderInstructions, macros);
+    expect(fs).toContain("terrainProjectApplySurfaceClimate");
+    expect(fs).toContain("evaluateTerrainProjectLightingWithShadow");
+  });
 });

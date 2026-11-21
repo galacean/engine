@@ -73,10 +73,14 @@ const TILE_INDEX_MASK = (1 << TILE_INDEX_BITS) - 1;
 const TILE_COLUMN_MASK = COARSE_GRID_SIZE - 1;
 const QUADRANT_MASK = 0xf;
 const FAR_GROUP_BIT = 1 << 8;
-const ALL_GROUP_BITS = (FAR_GROUP_BIT << 1) - 1;
+const ULTRA_FAR_GROUP_BIT = 1 << 9;
+const ALL_GROUP_BITS = (ULTRA_FAR_GROUP_BIT << 1) - 1;
+const MACRO_GRID_SIZE = COARSE_GRID_SIZE >> 1;
 // The shader decodes a group origin as z * 1024 + x.
 const GROUP_ROW_STRIDE = CANDIDATE_GROUP_WIDTH * 1024;
 const CANDIDATE_RADIAL_PADDING = 1 + CANDIDATE_REUSE_DISTANCE;
+const LOD3_MIN_DISTANCE_METRES = 40;
+const LOD3_MIN_SPAN_AFTER_LOD2_METRES = 24;
 
 const TF_SHADER_NAME = "SeedWorld/ForwardGrassTF";
 const TF_VARYINGS = ["v_PositionRotation", "v_Scale", "v_SurfaceWeights", "v_TerrainNormal"];
@@ -205,6 +209,16 @@ void main() {
     }
     if (outerFeather > 0.001) {
       lodBlendScale = 1.0 - smoothstep(u_RingDistances.y - outerFeather, u_RingDistances.y + outerFeather, dist);
+    } else if (dist > u_RingDistances.y) {
+      emitCulled();
+      return;
+    }
+  } else if (ringLod < 2.5) {
+    if (innerFeather > 0.001 && u_RingDistances.x > 0.001) {
+      lodBlendScale = smoothstep(u_RingDistances.x - innerFeather, u_RingDistances.x + innerFeather, dist);
+    }
+    if (outerFeather > 0.001) {
+      lodBlendScale *= 1.0 - smoothstep(u_RingDistances.y - outerFeather, u_RingDistances.y + outerFeather, dist);
     } else if (dist > u_RingDistances.y) {
       emitCulled();
       return;
@@ -369,7 +383,8 @@ export interface ForwardGrassUpdateParams {
 }
 
 export interface ForwardGrassRingConfig {
-  readonly lod: 0 | 1 | 2;
+  readonly lod: 0 | 1 | 2 | 3;
+  readonly meshLod: 0 | 1 | 2;
   readonly stepMetres: number;
   readonly innerFeatherMetres: number;
   readonly outerFeatherMetres: number;
@@ -380,6 +395,7 @@ export interface ForwardGrassRingConfig {
 const RING_CONFIGS: readonly ForwardGrassRingConfig[] = [
   {
     lod: 0,
+    meshLod: 0,
     stepMetres: 0.25,
     innerFeatherMetres: 0,
     outerFeatherMetres: 4.0,
@@ -388,6 +404,7 @@ const RING_CONFIGS: readonly ForwardGrassRingConfig[] = [
   },
   {
     lod: 1,
+    meshLod: 1,
     stepMetres: 0.25,
     innerFeatherMetres: 4.0,
     outerFeatherMetres: 4.5,
@@ -396,11 +413,21 @@ const RING_CONFIGS: readonly ForwardGrassRingConfig[] = [
   },
   {
     lod: 2,
+    meshLod: 2,
     stepMetres: 0.5,
     innerFeatherMetres: 4.5,
-    outerFeatherMetres: 0,
+    outerFeatherMetres: 6.0,
     widthBoost: 1.25,
-    initialCapacity: 24576
+    initialCapacity: 12288
+  },
+  {
+    lod: 3,
+    meshLod: 2,
+    stepMetres: 1.0,
+    innerFeatherMetres: 6.0,
+    outerFeatherMetres: 0,
+    widthBoost: 1.85,
+    initialCapacity: 8192
   }
 ];
 
@@ -452,8 +479,10 @@ export class SeedWorldForwardGrass {
   private readonly _radialGroupMasks = new Uint16Array(COARSE_GRID_SIZE * COARSE_GRID_SIZE);
   private readonly _radialEpochs = new Uint32Array(COARSE_GRID_SIZE * COARSE_GRID_SIZE);
   private _radialEpoch = 1;
-  private readonly _groupInnerSquared = new Float64Array(3);
-  private readonly _groupOuterSquared = new Float64Array(3);
+  private readonly _farMacroSeen = new Uint32Array(MACRO_GRID_SIZE * MACRO_GRID_SIZE);
+  private _farMacroEpoch = 1;
+  private readonly _groupInnerSquared = new Float64Array(RING_CONFIGS.length);
+  private readonly _groupOuterSquared = new Float64Array(RING_CONFIGS.length);
   private readonly _coarseHasGrass = new Uint8Array(COARSE_GRID_SIZE * COARSE_GRID_SIZE);
   private readonly _rings: ForwardGrassRingState[] = [];
   private readonly _candidateBindings: VertexBufferBinding[] = [];
@@ -484,8 +513,8 @@ export class SeedWorldForwardGrass {
   private _candidatesDirty = true;
   private readonly _cameraXZ = new Float64Array(2);
   private readonly _planes = new Float64Array(24);
-  private readonly _bands = new Float64Array(6);
-  private readonly _visibleRingBounds = new Float64Array(18);
+  private readonly _bands = new Float64Array(RING_CONFIGS.length * 2);
+  private readonly _visibleRingBounds = new Float64Array(RING_CONFIGS.length * 6);
   private readonly _ringInnerSquared = new Float64Array(RING_CONFIGS.length);
   private readonly _ringOuterSquared = new Float64Array(RING_CONFIGS.length);
 
@@ -545,7 +574,7 @@ export class SeedWorldForwardGrass {
         simulator.readBinding,
         bounds,
         entity.name,
-        config.lod
+        config.meshLod
       );
       const renderer = entity.addComponent(MeshRenderer);
       renderer.mesh = ringMesh.mesh;
@@ -746,7 +775,7 @@ export class SeedWorldForwardGrass {
         ring.appliedColorize = params.colorizeLod;
         ring.renderer.shaderData.setVector4(
           params.lodDebugColorProperty,
-          params.colorizeLod ? params.debugColors[ring.config.lod] : params.debugOffColor
+          params.colorizeLod ? params.debugColors[ring.config.meshLod] : params.debugOffColor
         );
       }
     }
@@ -764,7 +793,7 @@ export class SeedWorldForwardGrass {
     };
     for (const ring of this._rings) {
       if (!ring.renderer.enabled || ring.ringMesh.mesh.instanceCount <= 0) continue;
-      const bucket = ring.config.lod === 0 ? out.lod0 : ring.config.lod === 1 ? out.lod1 : out.lod2;
+      const bucket = ring.config.meshLod === 0 ? out.lod0 : ring.config.meshLod === 1 ? out.lod1 : out.lod2;
       const count = ring.ringMesh.mesh.instanceCount;
       bucket.batches += 1;
       bucket.instances += count;
@@ -1370,7 +1399,8 @@ export class SeedWorldForwardGrass {
         if (!groups) continue;
         for (let r = 0; r < this._rings.length; r++) {
           if (nearSquared > this._ringOuterSquared[r]! || farSquared < this._ringInnerSquared[r]!) continue;
-          const groupMask = r === 2 ? groups >> 8 : (groups >> (r * 4)) & QUADRANT_MASK;
+          const groupMask =
+            r === 3 ? (groups >> 9) & 1 : r === 2 ? (groups >> 8) & 1 : (groups >> (r * 4)) & QUADRANT_MASK;
           if (!groupMask) continue;
           const ring = this._rings[r]!;
           const offset = ring.tileCount++;
@@ -1392,11 +1422,13 @@ export class SeedWorldForwardGrass {
     }
   }
 
-  // One bit per 8x8 group. LODs zero and one each use four quadrants; LOD two spans a whole tile.
+  // One bit per 8x8 group. LOD0/1 use four 2m quadrants; LOD2 spans a 4m tile; LOD3 spans an 8m macro-tile.
   private _tileRadialGroups(x: number, z: number, nearestSquared: number, farthestSquared: number): number {
     const inner = this._groupInnerSquared,
       outer = this._groupOuterSquared;
-    let mask = nearestSquared <= outer[2]! && farthestSquared >= inner[2]! ? FAR_GROUP_BIT : 0;
+    let mask =
+      (nearestSquared <= outer[2]! && farthestSquared >= inner[2]! ? FAR_GROUP_BIT : 0) |
+      (nearestSquared <= outer[3]! && farthestSquared >= inner[3]! ? ULTRA_FAR_GROUP_BIT : 0);
     let partialRings = 0;
     for (let r = 0; r < 2; r++) {
       if (nearestSquared > outer[r]! || farthestSquared < inner[r]!) continue;
@@ -1448,14 +1480,31 @@ export class SeedWorldForwardGrass {
       if (x0 + z1 + pw < 0) quadrants &= ~4;
       if (x1 + z1 + pw < 0) quadrants &= ~8;
     }
-    return FAR_GROUP_BIT | (quadrants << 4) | quadrants;
+    return ULTRA_FAR_GROUP_BIT | FAR_GROUP_BIT | (quadrants << 4) | quadrants;
   }
 
   private _writeCandidateGroups(ring: ForwardGrassRingState): number {
     const tiles = ring.tileData,
       groups = ring.candidateGroups;
     let count = 0;
-    if (ring.config.lod === 2) {
+    if (ring.config.lod === 3) {
+      let epoch = ++this._farMacroEpoch;
+      if (epoch === 0) {
+        this._farMacroSeen.fill(0);
+        epoch = this._farMacroEpoch = 1;
+      }
+      const seen = this._farMacroSeen;
+      for (let i = 0; i < ring.tileCount; i++) {
+        const packed = tiles[i]!;
+        if (!(packed >> TILE_INDEX_BITS)) continue;
+        const mx = (packed & TILE_COLUMN_MASK) >> 1;
+        const mz = ((packed & TILE_INDEX_MASK) >> 6) >> 1;
+        const macroIdx = (mz << 5) | mx;
+        if (seen[macroIdx] === epoch) continue;
+        seen[macroIdx] = epoch;
+        groups[count++] = mz * GROUP_ROW_STRIDE + mx * 8;
+      }
+    } else if (ring.config.lod === 2) {
       for (let i = 0; i < ring.tileCount; i++) {
         const packed = tiles[i]!;
         if (packed >> TILE_INDEX_BITS)
@@ -1490,9 +1539,12 @@ export class SeedWorldForwardGrass {
     for (let r = 0; r < this._rings.length; r++) {
       const ring = this._rings[r]!;
       const width = COARSE_TILE_METRES / ring.config.stepMetres;
-      // A tile bounds the number of possible input groups. Each selected group
-      // consumes one float here, and 64 full instance records in the output.
-      const groups = (ring.tileCount * width * width) / CANDIDATE_CELLS_PER_GROUP;
+      // A tile bounds the number of possible input groups. For macro-tile rings (step >= 1m),
+      // each visible coarse tile can address at most one 8x8 macro-tile up to MACRO_GRID_SIZE^2.
+      const groups =
+        ring.config.lod === 3
+          ? Math.min(ring.tileCount, MACRO_GRID_SIZE * MACRO_GRID_SIZE)
+          : (ring.tileCount * width * width) / CANDIDATE_CELLS_PER_GROUP;
       if (groups > ring.groupCapacity) {
         ring.groupCapacity = Math.ceil(groups * 1.25);
       }
@@ -1561,7 +1613,13 @@ export class SeedWorldForwardGrass {
     bands[2] = Math.max(0, params.lod1DistanceMetres);
     bands[3] = Math.max(params.lod1DistanceMetres, Math.min(params.lod2DistanceMetres, params.maximumDistanceMetres));
     bands[4] = Math.max(0, Math.max(params.lod1DistanceMetres, params.lod2DistanceMetres));
-    bands[5] = params.maximumDistanceMetres;
+    const lod3Start = Math.min(
+      params.maximumDistanceMetres,
+      Math.max(bands[4]! + LOD3_MIN_SPAN_AFTER_LOD2_METRES, LOD3_MIN_DISTANCE_METRES)
+    );
+    bands[5] = Math.max(bands[4]!, lod3Start);
+    bands[6] = bands[5]!;
+    bands[7] = params.maximumDistanceMetres;
 
     const fadeStart = Math.max(0, Math.min(params.lod1DistanceMetres, params.maximumDistanceMetres * 0.75));
     if (this._candidatesDirty) this._boundVisibleRings(bands, params);
@@ -1616,7 +1674,7 @@ export class SeedWorldForwardGrass {
       v[5] = worldMinZ;
       v[6] = worldMaxX;
       v[7] = worldMaxZ;
-      v[10] = ring.config.lod === 2 ? 3 : 4;
+      v[10] = ring.config.meshLod === 2 ? 3 : 4;
       v[11] = ring.config.lod;
       v[12] = camX;
       v[13] = camZ;
