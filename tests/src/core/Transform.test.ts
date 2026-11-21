@@ -7,11 +7,12 @@ import {
   MeshRenderer,
   Scene,
   Script,
-  Transform
+  Transform,
+  TransformModifyFlags
 } from "@galacean/engine-core";
-import { Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
+import { Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
@@ -52,7 +53,7 @@ describe("Transform test", function () {
   it("updates child world scale after a parent position and scale edit following a child read", () => {
     const parent = scene.createRootEntity("scale parent");
     const child = parent.createChild("scale child");
-    // Reading only the child must not leave the parent's world scale dirty
+    // Reading only the child clears ancestor pruning without computing ancestor scale matrices
     expect(child.transform.lossyWorldScale.x).to.equal(1);
 
     parent.transform.position.set(4, 0, 0);
@@ -75,6 +76,73 @@ describe("Transform test", function () {
     expect(scale.x).to.be.closeTo(3, 1e-6);
     expect(scale.y).to.be.closeTo(3, 1e-6);
     expect(scale.z).to.be.closeTo(3, 1e-6);
+    parent.destroy();
+  });
+
+  it("updates descendant world scale across 3+ levels without computing ancestor scale matrices", () => {
+    const grandparent = scene.createRootEntity("grandparent");
+    const parent = grandparent.createChild("parent");
+    const child = parent.createChild("child");
+    const parentScaleMatSpy = vi.spyOn(parent.transform as any, "_getScaleMatrix");
+
+    expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(1, 1, 1));
+    expect(parentScaleMatSpy).toHaveBeenCalledTimes(0);
+
+    parent.transform.setPosition(4, 0, 0);
+    grandparent.transform.setScale(3, 1, 1);
+    expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(3, 1, 1));
+
+    // Also covers _updateAllWorldFlag (set localMatrix) after position + uniform rotation
+    parent.transform.setScale(2, 2, 2);
+    expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(6, 2, 2));
+    parent.transform.setPosition(1, 2, 3);
+    parent.transform.setRotation(0, 90, 0);
+    const matrix = new Matrix();
+    Matrix.affineTransformation(new Vector3(5, 5, 5), new Quaternion(), new Vector3(1, 2, 3), matrix);
+    parent.transform.localMatrix = matrix;
+    const updated = child.transform.lossyWorldScale;
+    expect(updated.x).to.be.closeTo(15, 1e-6);
+    expect(updated.y).to.be.closeTo(5, 1e-6);
+    expect(updated.z).to.be.closeTo(5, 1e-6);
+
+    parentScaleMatSpy.mockRestore();
+    grandparent.destroy();
+  });
+
+  it("preserves WorldScale listener fidelity and never dispatches SubtreeWorldScale", () => {
+    const parent = scene.createRootEntity("listener scale parent");
+    const child = parent.createChild("listener scale child");
+    const parentFlags: number[] = [];
+    const childFlags: number[] = [];
+    // @ts-ignore
+    parent._updateFlagManager.addListener((type?: number) => {
+      if (typeof type === "number") parentFlags.push(type);
+    });
+    // @ts-ignore
+    child._updateFlagManager.addListener((type?: number) => {
+      if (typeof type === "number") childFlags.push(type);
+    });
+
+    expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(1, 1, 1));
+    parentFlags.length = 0;
+    childFlags.length = 0;
+
+    // Position change must not dirty or dispatch WorldScale
+    parent.transform.setPosition(4, 0, 0);
+    expect(childFlags.some((flag) => (flag & TransformModifyFlags.WorldScale) !== 0)).to.equal(false);
+    expect(
+      [...parentFlags, ...childFlags].some((flag) => (flag & TransformModifyFlags.SubtreeWorldScale) !== 0)
+    ).to.equal(false);
+
+    parentFlags.length = 0;
+    childFlags.length = 0;
+    // Parent already had Wm|Ws|Wus dirty, so parent must not emit spurious 0 / SubtreeWorldScale,
+    // while child must receive WorldScale.
+    parent.transform.setScale(2, 1, 1);
+    expect(parentFlags).to.deep.equal([]);
+    expect(childFlags.some((flag) => (flag & TransformModifyFlags.WorldScale) !== 0)).to.equal(true);
+    expect(childFlags.some((flag) => (flag & TransformModifyFlags.SubtreeWorldScale) !== 0)).to.equal(false);
+
     parent.destroy();
   });
 

@@ -55,7 +55,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
   @ignoreClone
   private _parentTransformCache: Transform | null = null;
   @ignoreClone
-  private _dirtyFlag: number = TransformModifyFlags.LqLmWmWpWeWqWsWus;
+  private _dirtyFlag: number = TransformModifyFlags.LqLmWmWpWeWqWsWus | TransformModifyFlags.SubtreeWorldScale;
 
   /**
    * Local position.
@@ -233,12 +233,16 @@ export class Transform extends Component implements ICloneHook<Transform> {
     if (this._isContainDirtyFlag(TransformModifyFlags.WorldScale)) {
       const parent = this._getParentTransform();
       if (parent) {
-        // Clean the ancestors' scale first: an ancestor scale edit skips notifying children while its own flag is dirty
-        parent.lossyWorldScale;
         // Vector3 cannot be used to correctly represent the scaling. Must use Matrix3x3
         const scaleMat = this._getScaleMatrix();
         const e = scaleMat.elements;
         this._lossyWorldScale.set(e[0], e[4], e[8]);
+        // Clear ancestor pruning bit so later WorldScale invalidations cannot skip this descendant
+        let ancestor: Transform | null = parent;
+        while (ancestor && ancestor._isContainDirtyFlag(TransformModifyFlags.SubtreeWorldScale)) {
+          ancestor._setDirtyFlagFalse(TransformModifyFlags.SubtreeWorldScale);
+          ancestor = ancestor._getParentTransform();
+        }
       } else {
         this._lossyWorldScale.copyFrom(this._scale);
       }
@@ -281,9 +285,9 @@ export class Transform extends Component implements ICloneHook<Transform> {
     const localUniformScaling = scale.x === scale.y && scale.y === scale.z;
     if (this._localUniformScaling !== localUniformScaling) {
       this._localUniformScaling = localUniformScaling;
-      this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
+      this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus | TransformModifyFlags.SubtreeWorldScale);
     } else {
-      this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWs);
+      this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWs | TransformModifyFlags.SubtreeWorldScale);
     }
   }
 
@@ -576,7 +580,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
    */
   _parentChange(): void {
     this._isParentDirty = true;
-    this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
+    this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus | TransformModifyFlags.SubtreeWorldScale);
   }
 
   /**
@@ -620,7 +624,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
     const rotationDirtyBits = TransformModifyFlags.LocalEuler | TransformModifyFlags.LocalQuat;
     this._dirtyFlag = (this._dirtyFlag & ~rotationDirtyBits) | (source._dirtyFlag & rotationDirtyBits);
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
-    this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
+    this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus | TransformModifyFlags.SubtreeWorldScale);
   }
 
   /**
@@ -656,9 +660,11 @@ export class Transform extends Component implements ICloneHook<Transform> {
   }
 
   protected _worldAssociatedChange(type: number): void {
-    const dispatchFlags = type & ~this._dirtyFlag;
+    const dispatchFlags = type & ~this._dirtyFlag & ~TransformModifyFlags.SubtreeWorldScale;
     this._dirtyFlag |= type;
-    this._entity._updateFlagManager.dispatch(dispatchFlags);
+    if (dispatchFlags !== 0) {
+      this._entity._updateFlagManager.dispatch(dispatchFlags);
+    }
   }
 
   protected _getParentTransform(): Transform | null {
@@ -726,10 +732,17 @@ export class Transform extends Component implements ICloneHook<Transform> {
   private _updateWorldRotationFlag() {
     const parent = this._getParentTransform();
     const parentWorldUniformScaling = parent ? parent._getWorldUniformScaling() : true;
-    let flags = parentWorldUniformScaling ? TransformModifyFlags.WmWeWq : TransformModifyFlags.WmWeWqWs;
+    let flags = parentWorldUniformScaling
+      ? TransformModifyFlags.WmWeWq
+      : TransformModifyFlags.WmWeWqWs | TransformModifyFlags.SubtreeWorldScale;
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
-      flags = this._getWorldUniformScaling() ? TransformModifyFlags.WmWpWeWq : TransformModifyFlags.WmWpWeWqWs;
+      if (this._getWorldUniformScaling()) {
+        flags = TransformModifyFlags.WmWpWeWq;
+      } else {
+        this._setDirtyFlagTrue(TransformModifyFlags.SubtreeWorldScale);
+        flags = TransformModifyFlags.WmWpWeWqWs | TransformModifyFlags.SubtreeWorldScale;
+      }
       const children = this._entity._children;
       for (let i = 0, n = children.length; i < n; i++) {
         children[i].transform?._updateWorldPositionAndRotationFlag(flags); // Rotation update of parent entity will trigger world position, rotation and scale update of all child entity.
@@ -749,7 +762,12 @@ export class Transform extends Component implements ICloneHook<Transform> {
   private _updateWorldPositionAndRotationFlag(flags: TransformModifyFlags): void {
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
-      flags = this._getWorldUniformScaling() ? TransformModifyFlags.WmWpWeWq : TransformModifyFlags.WmWpWeWqWs;
+      if (this._getWorldUniformScaling()) {
+        flags = TransformModifyFlags.WmWpWeWq;
+      } else {
+        this._setDirtyFlagTrue(TransformModifyFlags.SubtreeWorldScale);
+        flags = TransformModifyFlags.WmWpWeWqWs | TransformModifyFlags.SubtreeWorldScale;
+      }
       const children = this._entity._children;
       for (let i = 0, n = children.length; i < n; i++) {
         children[i].transform?._updateWorldPositionAndRotationFlag(flags);
@@ -890,9 +908,9 @@ export class Transform extends Component implements ICloneHook<Transform> {
     const localUniformScaling = x == y && y == z;
     if (this._localUniformScaling !== localUniformScaling) {
       this._localUniformScaling = localUniformScaling;
-      this._updateWorldScaleFlag(TransformModifyFlags.WmWsWus);
+      this._updateWorldScaleFlag(TransformModifyFlags.WmWsWus | TransformModifyFlags.SubtreeWorldScale);
     } else {
-      this._updateWorldScaleFlag(TransformModifyFlags.WmWs);
+      this._updateWorldScaleFlag(TransformModifyFlags.WmWs | TransformModifyFlags.SubtreeWorldScale);
     }
   }
 
@@ -938,6 +956,13 @@ export enum TransformModifyFlags {
    *  of world scaling dirty flags in the case of non-uniform scaling.
    */
   IsWorldUniformScaling = 0x100,
+
+  /**
+   * @internal
+   * Whether all descendants' `WorldScale` flags are already dirty.
+   * `>= 0x10000` avoids `UITransformModifyFlags` (`0x200`–`0x8000`); `0x10000` is reserved by #3228.
+   */
+  SubtreeWorldScale = 0x20000,
 
   /** WorldMatrix | WorldPosition */
   WmWp = 0x84,

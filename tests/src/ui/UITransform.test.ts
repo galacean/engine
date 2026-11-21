@@ -1,4 +1,4 @@
-import { Entity, MeshRenderer, WebGLEngine } from "@galacean/engine";
+import { Entity, MeshRenderer, TransformModifyFlags, WebGLEngine } from "@galacean/engine";
 import { HorizontalAlignmentMode, Image, UICanvas, UITransform, VerticalAlignmentMode } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 
@@ -524,6 +524,28 @@ describe("UITransform", async () => {
       expect(clonedTransform.horizontalAlignment).to.eq(HorizontalAlignmentMode.Left);
       expect(clonedTransform.alignLeft).to.eq(20);
       expect(clonedTransform.position.x).to.eq(originalTransform.position.x);
+    });
+
+    it("keeps SubtreeWorldScale disjoint from UITransformModifyFlags and keeps descendant lossyWorldScale fresh after reparent + position/scale", () => {
+      const uiMask = UITransformModifyFlags.Size | UITransformModifyFlags.Pivot;
+      expect((uiMask & TransformModifyFlags.SubtreeWorldScale) === 0).to.eq(true);
+
+      const newCanvas = root.createChild("ui-scale-canvas");
+      newCanvas.addComponent(UICanvas);
+      const mid = newCanvas.createChild("ui-scale-mid");
+      const leaf = root.createChild("ui-scale-leaf");
+      leaf.addComponent(UITransform);
+      expect(leaf.transform.lossyWorldScale.x).to.eq(1);
+
+      mid.addChild(leaf);
+      expect(leaf.transform.lossyWorldScale.x).to.eq(1);
+
+      mid.transform.setPosition(10, 0, 0);
+      mid.transform.setScale(2, 3, 1);
+      expect(leaf.transform.lossyWorldScale.x).to.eq(2);
+      expect(leaf.transform.lossyWorldScale.y).to.eq(3);
+
+      newCanvas.destroy();
     });
   });
 });
