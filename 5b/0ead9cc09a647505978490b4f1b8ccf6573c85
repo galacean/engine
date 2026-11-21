@@ -1,0 +1,99 @@
+packages/shader/src/Shaders/Pipeline/ShadowCaster.shader
+  s_3cd6502d102d7f::t_d33f196dd8e8a3 18-21
+packages/core/src/shader/ShaderProgram.ts
+  s_3cd6502d102d7f::t_295660e5d5db48 589
+  s_3cd6502d102d7f::t_a22eafe4b227d7 155,157-162,164-165,169,181
+packages/core/src/RenderPipeline/RenderContext.ts
+  s_3cd6502d102d7f::t_df4e6c2607704d 8,15,25-26
+  s_3cd6502d102d7f::t_c8466aeb572355 21-24
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  s_3cd6502d102d7f::t_df4e6c2607704d 11,26
+  s_3cd6502d102d7f::t_c8466aeb572355 27-30
+packages/shader/src/ShaderLibrary/Common/Fog.glsl
+  s_3cd6502d102d7f::t_d33f196dd8e8a3 5-8
+packages/core/src/shader/ShaderFactory.ts
+  s_3cd6502d102d7f::t_cddd4213974417 70,73-74,211,216,304-307
+  s_3cd6502d102d7f::t_939e128b6a0b5d 299,303,308-317,319-320,322
+  s_3cd6502d102d7f::t_dda601f13106ee 50,57,71-72,199-206,208-209,296-297,301-302,340,343,349-350,355-359,363-366,371
+  s_3cd6502d102d7f::t_e7d84d07f34560 293-295,298,300
+  s_3cd6502d102d7f::t_357d39fad15b8e 195-198,351-354,367-370
+packages/shader/src/ShaderLibrary/Particle/ParticleVert.glsl
+  s_3cd6502d102d7f::t_d33f196dd8e8a3 30-38
+packages/shader-parser/src/parser/TargetParser.y
+  s_3cd6502d102d7f::t_a6f903d2792b3c 189
+tests/src/rhi-webgl/GlobalUniformBlocks.test.ts
+  s_3cd6502d102d7f::t_26e71ff94b957c 11,227-246,249-250,290-291
+  s_3cd6502d102d7f::t_ae6fe10a78ee99 5,251-289
+  s_3cd6502d102d7f::t_4ed1ce39b2611c 15,177-206
+  s_3cd6502d102d7f::t_357d39fad15b8e 111-112
+  s_3cd6502d102d7f::t_537b365f7b22ab 323,325,346,350-351
+  s_3cd6502d102d7f::t_659a8c97921e25 17-18,207,292,317-322,324,326-345,347-349,352-379
+  s_3cd6502d102d7f::t_0f15ba22414392 97,247-248
+  s_3cd6502d102d7f::t_ccdaf8ae65317e 208,293
+packages/core/src/shader/ShaderData.ts
+  s_3cd6502d102d7f::t_a22eafe4b227d7 18-35
+packages/design/src/shader-compiler/IShaderProgramSource.ts
+  s_3cd6502d102d7f::t_a6f903d2792b3c 6
+  s_3cd6502d102d7f::t_295660e5d5db48 7
+packages/core/src/shader/GlobalUniformBlock.ts
+  s_3cd6502d102d7f::t_8803d79db4678c 163
+  s_3cd6502d102d7f::t_a22eafe4b227d7 8,10,34,57-58,74,77-78,83,129-130,140,147-148
+  s_3cd6502d102d7f::t_c8466aeb572355 66-72,79-82
+packages/shader-parser/src/lalr/CFG.ts
+  s_3cd6502d102d7f::t_a6f903d2792b3c 35-43
+packages/core/src/RenderPipeline/RenderQueue.ts
+  s_3cd6502d102d7f::t_422f209d8347da 195
+tests/src/core/RenderPipeline/GlobalUniformBlock.test.ts
+  s_3cd6502d102d7f::t_d38267fd6e7b6e 28,31,36,41,50,56,63,102,115
+tests/src/shader-compiler/ExplicitUniformBlocks.test.ts
+  s_3cd6502d102d7f::t_3730c6b87a3220 72-82,95-109
+  s_3cd6502d102d7f::t_7025fa7a01ef8f 52,114,116-135,157-159
+  s_3cd6502d102d7f::t_3114a80abd492e 1,66-71,83-94,110-112
+  s_3cd6502d102d7f::t_1ee8662e350dc1 113,115
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  s_3cd6502d102d7f::t_c62441653d2390 75-80,85-86,116,258-259,264-265,271,279-285,322,647-655,659,670
+  s_3cd6502d102d7f::t_659a8c97921e25 266,272-278
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_3cd6502d102d7f::t_422f209d8347da 455
+packages/shader-compiler/src/codeGen/GLESVisitor.ts
+  s_3cd6502d102d7f::t_295660e5d5db48 240-241,711,713-714,760
+  s_3cd6502d102d7f::t_a6f903d2792b3c 242,712
+packages/core/src/shader/ShaderProperty.ts
+  s_3cd6502d102d7f::t_df4e6c2607704d 34-40,46
+  s_3cd6502d102d7f::t_19fc51a3dd9d0c 47
+packages/shader/src/Shaders/Sky/SkyProcedural.shader
+  s_3cd6502d102d7f::t_d33f196dd8e8a3 90-93
+packages/core/src/Camera.ts
+  s_3cd6502d102d7f::t_df4e6c2607704d 50-52
+packages/core/src/lighting/LightManager.ts
+  s_3cd6502d102d7f::t_df4e6c2607704d 2,14
+  s_3cd6502d102d7f::t_c8466aeb572355 16-19
+packages/core/src/sky/Sky.ts
+  s_3cd6502d102d7f::t_422f209d8347da 125
+packages/shader-compiler/README.md
+  s_3cd6502d102d7f::t_1b21d42deab53d 60-62
+  s_3cd6502d102d7f::t_61643d12a32a2b 64
+  s_3cd6502d102d7f::t_226170e1f0e79f 63
+tests/src/core/RenderPipeline/ShadowGlobalBlocks.test.ts
+  s_3cd6502d102d7f::t_a6f903d2792b3c 15,17-19,21,58-59
+packages/core/src/RenderPipeline/Blitter.ts
+  s_3cd6502d102d7f::t_422f209d8347da 85
+packages/core/src/Scene.ts
+  s_3cd6502d102d7f::t_df4e6c2607704d 27-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5b0ead9cc09a647505978490b4f1b8ccf6573c85",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
