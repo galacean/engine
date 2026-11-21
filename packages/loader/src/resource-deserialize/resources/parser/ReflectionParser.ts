@@ -1,12 +1,9 @@
-import { Component, Entity, Loader } from "@galacean/engine-core";
+import { Component, EngineObject, Entity, Loader } from "@galacean/engine-core";
 import { resolveRefItem } from "../../../schema/refs";
 import type { CallSpec, ComponentRef, MutationBlock, RefItem, SignalListener } from "../../../schema/CommonSchema";
 import { ParserContext, ParserType } from "./ParserContext";
 
 export class ReflectionParser {
-  /** @internal shared with HierarchyParser; each use must length=0 -> getComponents -> read -> length=0 synchronously. */
-  static _componentBuffer: Component[] = [];
-
   constructor(
     private readonly _context: ParserContext,
     private readonly _refs: RefItem[]
@@ -19,8 +16,8 @@ export class ReflectionParser {
   parseProps(instance: any, props?: Record<string, unknown>): Promise<any> {
     if (!props) return Promise.resolve(instance);
 
+    let promises: Promise<any>[] | null = null;
     try {
-      let promises: Promise<any>[] | null = null;
       for (const key in props) {
         const raw = props[key];
         if (raw == null || typeof raw !== "object") {
@@ -28,15 +25,18 @@ export class ReflectionParser {
         } else {
           (promises ||= []).push(
             this._resolveValue(raw, instance[key]).then((v) => {
-              instance[key] = v;
+              if (!(instance instanceof EngineObject && instance.destroyed)) {
+                instance[key] = v;
+              }
             })
           );
         }
       }
-      return promises ? Promise.all(promises).then(() => instance) : Promise.resolve(instance);
     } catch (error) {
-      return Promise.reject(error);
+      if (!promises) return Promise.reject(error);
+      promises.push(Promise.reject(error));
     }
+    return promises ? Promise.all(promises).then(() => instance) : Promise.resolve(instance);
   }
 
   /**
@@ -64,7 +64,7 @@ export class ReflectionParser {
         }
 
         return Promise.all((call.args ?? []).map((arg) => this._resolveValue(arg)))
-          .then((resolvedArgs) => Promise.resolve(method.apply(target, resolvedArgs)))
+          .then((resolvedArgs) => method.apply(target, resolvedArgs))
           .then((result) => {
             if (!call.result) return result;
             if (result == null || (typeof result !== "object" && typeof result !== "function")) {
@@ -84,10 +84,10 @@ export class ReflectionParser {
    * Apply props before executing calls from the same mutation block.
    */
   parseMutationBlock(target: any, block?: MutationBlock): Promise<any> {
-    if (!block || target?.destroyed) return Promise.resolve(target);
-    return this.parseProps(target, block.props)
-      .then(() => (target?.destroyed ? target : this.parseCalls(target, block.calls)))
-      .then(() => target);
+    if (!block || (target instanceof EngineObject && target.destroyed)) return Promise.resolve(target);
+    return this.parseProps(target, block.props).then(() =>
+      target instanceof EngineObject && target.destroyed ? target : this.parseCalls(target, block.calls)
+    );
   }
 
   /**
@@ -180,20 +180,7 @@ export class ReflectionParser {
       originValue && typeof originValue === "object" && !Array.isArray(originValue)
         ? originValue
         : ({} as Record<string, unknown>);
-    try {
-      let promises: Promise<any>[] | null = null;
-      for (const key in obj) {
-        const raw = obj[key];
-        if (raw == null || typeof raw !== "object") {
-          target[key] = raw;
-        } else {
-          (promises ||= []).push(this._resolveValue(raw, target[key]).then((v) => (target[key] = v)));
-        }
-      }
-      return promises ? Promise.all(promises).then(() => target) : Promise.resolve(target);
-    } catch (error) {
-      return Promise.reject(error);
-    }
+    return this.parseProps(target, obj);
   }
 
   private _getRegisteredClass(value: unknown, sentinel: "$type" | "$class"): any {
@@ -235,26 +222,9 @@ export class ReflectionParser {
     if (!entity) return null;
     const type = Loader.getClass(comp.type);
     if (!type) return null;
-    const snapshot = this._context.componentSnapshots?.get(entity);
-    if (snapshot) {
-      let matchIndex = 0;
-      for (let i = 0, n = snapshot.length; i < n; i++) {
-        const candidate = snapshot[i];
-        if (candidate instanceof type) {
-          if (matchIndex === comp.index) {
-            return candidate.destroyed ? null : candidate;
-          }
-          matchIndex++;
-        }
-      }
-      return null;
-    }
-    const buffer = ReflectionParser._componentBuffer;
-    buffer.length = 0;
-    entity.getComponents(type, buffer);
-    const result = buffer[comp.index] ?? null;
-    buffer.length = 0;
-    return result;
+    const components = this._context.componentSnapshots?.get(entity) ?? entity._components;
+    const result = ParserContext._findComponent(components, type, comp.index);
+    return result?.destroyed ? null : result;
   }
 
   private _resolveEntityRef(path: number[]): Entity | null {

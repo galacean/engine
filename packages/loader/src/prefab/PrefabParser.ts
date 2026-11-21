@@ -9,9 +9,28 @@ export class PrefabParser extends HierarchyParser<PrefabResource, ParserContext>
   static parse(engine: Engine, url: string, data: PrefabFile): Promise<PrefabResource> {
     const prefabResource = new PrefabResource(engine, url);
     const context = new ParserContext(engine, ParserType.Prefab, prefabResource);
-    const parser = new PrefabParser(data, context, prefabResource);
-    parser.start();
-    return parser.promise;
+    const fail = (error: unknown): never => {
+      try {
+        prefabResource.destroy(true);
+      } catch {
+        // The load rejection remains the parse error if a template's teardown also fails.
+      }
+      const entities = context.entityInstances;
+      for (let i = 0, n = entities.length; i < n; i++) {
+        try {
+          entities[i]?.destroy();
+        } catch {
+          // Continue disposing entities created before the root was assembled.
+        }
+      }
+      context.clear();
+      throw error;
+    };
+    try {
+      return new PrefabParser(data, context, prefabResource).start().catch(fail);
+    } catch (error) {
+      return fail(error);
+    }
   }
 
   constructor(
@@ -24,7 +43,7 @@ export class PrefabParser extends HierarchyParser<PrefabResource, ParserContext>
 
   protected override _onEntityCreated(entity: Entity): void {
     // @ts-ignore
-    entity._markAsTemplate(this.context.resource);
+    entity._markAsTemplate(this.prefabResource);
   }
 
   protected override _getRootIndices(): number[] {

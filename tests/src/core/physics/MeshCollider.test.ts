@@ -672,6 +672,21 @@ describe("MeshCollider", () => {
     expect(physics.raycast(rayAt(0))).toBe(true);
   });
 
+  it.each([false, true])("becomes queryable after starting at uniform zero scale (convex=%s)", (convex) => {
+    const collider = addMesh(convex);
+    const transform = collider.entity.transform;
+    const ray = rayAt(0);
+    const hit = new HitResult();
+
+    transform.setScale(0, 0, 0);
+    expect(physics.raycast(ray, hit)).toBe(false);
+    expect(physics.overlapSphereAll(new Vector3(), 0.5)).toEqual([]);
+
+    transform.setScale(1, 1, 1);
+    expect(physics.raycast(ray, hit)).toBe(true);
+    expect(hit.collider).toBe(collider);
+  });
+
   it("detaches cleanly on zero world scale without NaN inertia and recovers when scale becomes positive", () => {
     const collider = addMesh(true);
     collider.entity.transform.setPosition(0, 5, 0);

@@ -150,10 +150,9 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   set mass(value: number) {
     if (this._mass !== value) {
       this._mass = value;
-      const scene = this._registeredScene;
-      if (scene) {
+      if (this._registeredScene) {
         this._massDirty |= RigidbodyMassDirty.MassChanged;
-        scene.physics._markMassDirty(this);
+        this._markMassDirty();
       } else {
         this._nativeActor?.setMass(value);
         this._massDirty &= ~RigidbodyMassDirty.MassChanged;
@@ -631,12 +630,14 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * Recompute automatic mass properties before the next simulation step or query.
    */
   _markMassDirty(): void {
-    if (
-      this._automaticCenterOfMass ||
-      this._automaticInertiaTensor ||
-      this._massDirty & RigidbodyMassDirty.MassChanged
-    ) {
-      this._registeredScene?.physics._markMassDirty(this);
+    const dirty = this._massDirty;
+    if (dirty & RigidbodyMassDirty.Queued) return;
+    if (this._automaticCenterOfMass || this._automaticInertiaTensor || dirty & RigidbodyMassDirty.MassChanged) {
+      const scene = this._registeredScene;
+      if (scene) {
+        this._massDirty = dirty | RigidbodyMassDirty.Queued;
+        scene.physics._queueMassUpdate(this);
+      }
     }
   }
 

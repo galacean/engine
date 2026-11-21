@@ -30,8 +30,9 @@ export class PhysicsMaterial extends ReferResource {
    * @param engine - Engine to which the physics material belongs
    */
   constructor(engine: Engine) {
+    const nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(PhysicsMaterial._defaultProperties);
     super(engine);
-    this._nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(PhysicsMaterial._defaultProperties);
+    this._nativeMaterial = nativeMaterial;
   }
 
   /**

@@ -1,5 +1,15 @@
-import { Camera, dependentComponents, DependentMode, Entity, MeshRenderer, Script } from "@galacean/engine-core";
+import {
+  AssetType,
+  Camera,
+  dependentComponents,
+  DependentMode,
+  Entity,
+  Loader,
+  MeshRenderer,
+  Script
+} from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
+import type { PrefabResource } from "@galacean/engine-loader";
 import { describe, beforeAll, expect, it } from "vitest";
 
 const canvasDOM = document.createElement("canvas");
@@ -18,7 +28,7 @@ describe("Component dependencies test", function () {
   it("Super dependencies add check", () => {
     expect(() => {
       entity.addComponent(CustomScriptB);
-    }).throw("Should add MeshRenderer before adding CustomScriptA");
+    }).throw(`Should add ${MeshRenderer.name} before adding CustomScriptA`);
   });
 
   it("Super dependencies remove check", () => {
@@ -26,7 +36,7 @@ describe("Component dependencies test", function () {
       const meshRenderer = entity.addComponent(MeshRenderer);
       entity.addComponent(CustomScriptB);
       meshRenderer.destroy();
-    }).throw("Should remove CustomScriptA before remove MeshRenderer");
+    }).throw(`Should remove CustomScriptA before remove ${MeshRenderer.name}`);
   });
 
   it("reorders unsatisfied dependencies in Entity constructor without duplicating AutoAdd components", () => {
@@ -62,6 +72,90 @@ describe("Component dependencies test", function () {
     expect(clone._components.indexOf(clonedRenderers[1])).toBe(source._components.indexOf(second));
     source.destroy();
     clone.destroy();
+  });
+
+  it.each([false, true])("destroys a prefab replacement before its prerequisite (inherited: %s)", async (inherited) => {
+    const destroyed: string[] = [];
+    class Prerequisite extends Script {
+      override onDestroy(): void {
+        destroyed.push("prerequisite");
+      }
+    }
+    class Provider extends Script {}
+    @dependentComponents(Prerequisite, DependentMode.CheckOnly)
+    class Replacement extends Provider {
+      override onDestroy(): void {
+        destroyed.push("replacement");
+      }
+    }
+    @dependentComponents(Provider, DependentMode.CheckOnly)
+    class Consumer extends Script {
+      override onDestroy(): void {
+        destroyed.push("consumer");
+      }
+    }
+    Loader.registerClass("ReplacementPrerequisite", Prerequisite);
+    Loader.registerClass("ReplacementProvider", Provider);
+    Loader.registerClass("ReplacementComponent", Replacement);
+    Loader.registerClass("ReplacementConsumer", Consumer);
+
+    const basePath = `component-replacement-base-${inherited}.prefab`;
+    const prerequisite = { type: "ReplacementPrerequisite" };
+    const baseComponents = [{ type: "ReplacementProvider" }, { type: "ReplacementConsumer" }];
+    const addedComponents = [{ type: "ReplacementComponent" }];
+    (inherited ? baseComponents : addedComponents).push(prerequisite);
+    const baseUrl = URL.createObjectURL(
+      new Blob(
+        [
+          JSON.stringify({
+            version: "2.0",
+            root: 0,
+            refs: [],
+            entities: [{ components: baseComponents.map((_, i) => i) }],
+            components: baseComponents
+          })
+        ],
+        { type: "application/json" }
+      )
+    );
+    const instanceUrl = URL.createObjectURL(
+      new Blob(
+        [
+          JSON.stringify({
+            version: "2.0",
+            root: 0,
+            refs: [{ url: basePath }],
+            entities: [
+              {
+                instance: {
+                  asset: 0,
+                  overrides: {
+                    removedComponents: [{ path: [], selectors: [{ type: "ReplacementProvider", index: 0 }] }],
+                    addedComponents: addedComponents.map((_, i) => ({ target: [], component: i }))
+                  }
+                }
+              }
+            ],
+            components: addedComponents
+          })
+        ],
+        { type: "application/json" }
+      )
+    );
+    const { resourceManager } = entity.engine;
+    resourceManager.registerVirtualResources([{ virtualPath: basePath, path: baseUrl, type: AssetType.Prefab }]);
+    try {
+      const prefab = await resourceManager.load<PrefabResource>({ url: instanceUrl, type: AssetType.Prefab });
+      const instance = prefab.instantiate();
+      instance.destroy();
+      expect(destroyed).toEqual(["consumer", "replacement", "prerequisite"]);
+      destroyed.length = 0;
+      expect(prefab.destroy()).toBe(true);
+      expect(destroyed).toEqual(["consumer", "replacement", "prerequisite"]);
+    } finally {
+      URL.revokeObjectURL(instanceUrl);
+      URL.revokeObjectURL(baseUrl);
+    }
   });
 });
 

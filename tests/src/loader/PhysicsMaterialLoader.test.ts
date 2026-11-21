@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { AssetType, PhysicsMaterial, BoxCollider, SphereCollider, WebGLEngine } from "@galacean/engine";
+import { AssetType, BoxCollider, Loader, PhysicsMaterial, Script, SphereCollider, WebGLEngine } from "@galacean/engine";
 import { PrefabResource } from "@galacean/engine-loader";
 import { createPhysics } from "../utils/physics";
 
@@ -98,5 +98,216 @@ describe("PhysicsMaterialLoader", () => {
     expect(material.destroy()).toBe(true);
     expect(material.destroyed).toBe(true);
     expect(engine.resourceManager.getFromCache(materialUrl)).toBeNull();
+  });
+
+  it("releases a prefab material when a template script throws during destruction", async () => {
+    const failure = new Error("template script failed to destroy");
+    class ThrowingPrefabScript extends Script {
+      override onDestroy(): void {
+        throw failure;
+      }
+    }
+    Loader.registerClass("ThrowingPrefabScript", ThrowingPrefabScript);
+
+    const materialUrl = assetUrl({});
+    const materialPath = "materials/throwing-prefab.physMat";
+    engine.resourceManager.registerVirtualResources([
+      { virtualPath: materialPath, path: materialUrl, type: AssetType.PhysicsMaterial }
+    ]);
+    const prefab = await engine.resourceManager.load<PrefabResource>(
+      assetUrl(
+        {
+          version: "2.0",
+          refs: [{ url: materialPath }],
+          root: 0,
+          entities: [{ components: [0, 1] }],
+          components: [{ type: "BoxCollider", props: { material: { $ref: 0 } } }, { type: "ThrowingPrefabScript" }]
+        },
+        "prefab"
+      )
+    );
+    const material = await engine.resourceManager.load<PhysicsMaterial>(materialUrl);
+    expect(material.destroy()).toBe(false);
+    expect(() => prefab.destroy()).toThrow(failure);
+    expect(material.destroy()).toBe(true);
+  });
+
+  it.each([false, true])(
+    "releases materials inherited through a nested prefab root (overrides: %s)",
+    async (overrides) => {
+      const materialUrl = assetUrl({});
+      const materialPath = "materials/nested-root.physMat";
+      const innerPath = "materials/nested-root.prefab";
+      const innerUrl = assetUrl(
+        {
+          version: "2.0",
+          refs: [{ url: materialPath }],
+          root: 0,
+          entities: [{ components: [0] }],
+          components: [{ type: "BoxCollider", props: { material: { $ref: 0 } } }]
+        },
+        "prefab"
+      );
+      const resources = engine.resourceManager;
+      resources.registerVirtualResources([
+        { virtualPath: materialPath, path: materialUrl, type: AssetType.PhysicsMaterial },
+        { virtualPath: innerPath, path: innerUrl, type: AssetType.Prefab }
+      ]);
+      const outer = await resources.load<PrefabResource>(
+        assetUrl(
+          {
+            version: "2.0",
+            refs: [{ url: innerPath }],
+            root: 0,
+            entities: [
+              {
+                instance: {
+                  asset: 0,
+                  overrides: overrides
+                    ? {
+                        componentProps: [
+                          { path: [], selector: { type: "BoxCollider", index: 0 }, props: { material: null } }
+                        ]
+                      }
+                    : undefined
+                }
+              }
+            ],
+            components: []
+          },
+          "prefab"
+        )
+      );
+      const inner = await resources.load<PrefabResource>(innerPath);
+      const material = await resources.load<PhysicsMaterial>(materialUrl);
+      const instance = outer.instantiate();
+      try {
+        expect(instance.getComponent(BoxCollider)!.material).toBe(overrides ? null : material);
+        expect(inner.destroy()).toBe(false);
+        resources.gc();
+        const sourceInstance = inner.instantiate();
+        try {
+          expect(sourceInstance.getComponent(BoxCollider)!.material).toBe(material);
+          expect(material.destroyed).toBe(false);
+        } finally {
+          sourceInstance.destroy();
+        }
+      } finally {
+        instance.destroy();
+      }
+      expect(outer.destroy()).toBe(true);
+      expect(material.refCount).toBe(0);
+      expect(inner.destroy()).toBe(true);
+      expect(material.destroy()).toBe(true);
+    }
+  );
+
+  it("releases a nested prefab created before its sibling asset fails to load", async () => {
+    const materialUrl = assetUrl({});
+    const materialPath = "materials/partial-prefab.physMat";
+    const innerPath = "materials/partial-prefab.prefab";
+    const missingPath = "materials/invalid-sibling.prefab";
+    const resources = engine.resourceManager;
+    const innerUrl = assetUrl(
+      {
+        version: "2.0",
+        refs: [{ url: materialPath }],
+        root: 0,
+        entities: [{ children: [1] }, { components: [0] }],
+        components: [{ type: "BoxCollider", props: { material: { $ref: 0 } } }]
+      },
+      "prefab"
+    );
+    resources.registerVirtualResources([
+      { virtualPath: materialPath, path: materialUrl, type: AssetType.PhysicsMaterial },
+      { virtualPath: innerPath, path: innerUrl, type: AssetType.Prefab },
+      { virtualPath: missingPath, path: assetUrl({ version: "1.0" }, "prefab"), type: AssetType.Prefab }
+    ]);
+    const inner = await resources.load<PrefabResource>(innerPath);
+    const material = await resources.load<PhysicsMaterial>(materialUrl);
+    const outerUrl = assetUrl(
+      {
+        version: "2.0",
+        refs: [{ url: innerPath }, { url: missingPath }],
+        root: 0,
+        entities: [{ children: [1, 2] }, { instance: { asset: 0 } }, { instance: { asset: 1 } }],
+        components: []
+      },
+      "prefab"
+    );
+
+    await expect(resources.load<PrefabResource>(outerUrl)).rejects.toThrow("Unsupported prefab format version");
+    expect(inner.destroy()).toBe(true);
+    expect(material.destroy()).toBe(true);
+  });
+
+  it.each([false, true])("releases materials after prefab load failure (cached: %s)", async (cached) => {
+    const failure = new Error("template call failed");
+    class FailingTemplate extends Script {
+      material: PhysicsMaterial;
+
+      fail(): never {
+        throw failure;
+      }
+    }
+    Loader.registerClass("FailingTemplate", FailingTemplate);
+
+    const materialUrl = assetUrl({});
+    const materialPath = "materials/failed-prefab.physMat";
+    engine.resourceManager.registerVirtualResources([
+      { virtualPath: materialPath, path: materialUrl, type: AssetType.PhysicsMaterial }
+    ]);
+    const type = "FailingTemplate";
+    const props = { material: { $ref: 0 } };
+    const calls = [{ method: "fail" }];
+    let nestedPath: string | undefined;
+    if (cached) {
+      await engine.resourceManager.load<PhysicsMaterial>(materialUrl);
+    } else {
+      const nestedUrl = assetUrl(
+        {
+          version: "2.0",
+          refs: [],
+          root: 0,
+          entities: [{ components: [0], children: [1] }, { components: [1] }],
+          components: [{ type }, { type: "BoxCollider" }]
+        },
+        "prefab"
+      );
+      nestedPath = "materials/failed-prefab-base.prefab";
+      engine.resourceManager.registerVirtualResources([
+        { virtualPath: nestedPath, path: nestedUrl, type: AssetType.Prefab }
+      ]);
+      await engine.resourceManager.load<PrefabResource>(nestedPath);
+    }
+    const prefabUrl = assetUrl(
+      {
+        version: "2.0",
+        refs: [{ url: materialPath }, ...(nestedPath ? [{ url: nestedPath }] : [])],
+        root: 0,
+        entities: nestedPath
+          ? [
+              {
+                instance: {
+                  asset: 1,
+                  overrides: {
+                    componentProps: [
+                      { path: [0], selector: { type: "BoxCollider", index: 0 }, props },
+                      { path: [], selector: { type, index: 0 }, calls }
+                    ]
+                  }
+                }
+              }
+            ]
+          : [{ components: [0] }],
+        components: nestedPath ? [] : [{ type, props, calls }]
+      },
+      "prefab"
+    );
+
+    await expect(engine.resourceManager.load<PrefabResource>(prefabUrl)).rejects.toThrow(failure);
+    if (!cached) expect(engine.resourceManager.getFromCache(materialUrl)).toBeNull();
+    const material = await engine.resourceManager.load<PhysicsMaterial>(materialUrl);
+    expect(material.destroy()).toBe(true);
   });
 });

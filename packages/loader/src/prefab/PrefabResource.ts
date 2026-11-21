@@ -7,7 +7,8 @@ export class PrefabResource extends ReferResource {
   /** @internal */
   _root: Entity;
 
-  private _dependenceAssets: Set<ReferResource> = new Set();
+  private readonly _dependenceAssets = new Set<ReferResource>();
+  private _templateSources?: Set<PrefabResource>;
 
   /**
    * @internal
@@ -28,13 +29,24 @@ export class PrefabResource extends ReferResource {
     return this._root?.clone();
   }
 
+  /** @internal */
+  _instantiateAsTemplate(owner: PrefabResource): Entity {
+    const sources = (owner._templateSources ||= new Set());
+    if (!sources.has(this)) {
+      sources.add(this);
+      // GC uses the source Prefab's own reference count when collecting its assets.
+      this._addReferCount(1);
+    }
+    return this._root._clone(owner);
+  }
+
   /**
    * @internal
    */
   _addDependenceAsset(resource: unknown): void {
     // ReflectionParser also passes non-ReferResource assets such as Shader, which have no superResource association.
     // _superResources is a plain array, so the Set ensures each dependency is associated and disassociated exactly once.
-    if (resource instanceof ReferResource && !this._dependenceAssets.has(resource)) {
+    if (!this.destroyed && resource instanceof ReferResource && !this._dependenceAssets.has(resource)) {
       this._dependenceAssets.add(resource);
       resource._associationSuperResource(this);
     }
@@ -42,9 +54,22 @@ export class PrefabResource extends ReferResource {
 
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._root?.destroy();
-    this._dependenceAssets.forEach((asset) => {
-      asset._disassociationSuperResource(this);
-    });
+    try {
+      this._root?.destroy();
+    } finally {
+      this._root = null!;
+      const assets = this._dependenceAssets;
+      for (const asset of assets) {
+        asset._disassociationSuperResource(this);
+      }
+      assets.clear();
+      const sources = this._templateSources;
+      if (sources) {
+        for (const source of sources) {
+          if (!source.destroyed) source._addReferCount(-1);
+        }
+        this._templateSources = null!;
+      }
+    }
   }
 }

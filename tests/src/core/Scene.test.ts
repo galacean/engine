@@ -165,20 +165,118 @@ describe("Scene", () => {
   describe("MultiScene isActive test", () => {
     it("Add and remove", () => {
       const scene = new Scene(engine);
+      const root = scene.createRootEntity();
       expect(scene.isActive).eq(true);
       scene.isActive = false;
       expect(scene.isActive).eq(false);
 
       engine.sceneManager.addScene(scene);
-      expect(scene["_isActiveInEngine"]).eq(false);
+      expect(root.isActiveInHierarchy).eq(false);
       scene.isActive = true;
-      expect(scene["_isActiveInEngine"]).eq(true);
+      expect(root.isActiveInHierarchy).eq(true);
 
       engine.sceneManager.removeScene(scene);
-      expect(scene["_isActiveInEngine"]).eq(false);
+      expect(root.isActiveInHierarchy).eq(false);
       engine.sceneManager.addScene(scene);
-      expect(scene["_isActiveInEngine"]).eq(true);
-      engine.sceneManager.removeScene(scene);
+      expect(root.isActiveInHierarchy).eq(true);
+      scene.destroy();
+    });
+
+    it("deactivates remaining roots when a root onDisable throws", () => {
+      const scene = new Scene(engine);
+      engine.sceneManager.addScene(scene);
+      const earlierRoot = scene.createRootEntity();
+      const error = new Error("onDisable failed");
+      class ThrowingScript extends Script {
+        override onDisable(): void {
+          throw error;
+        }
+      }
+      scene.createRootEntity().addComponent(ThrowingScript);
+
+      try {
+        expect(() => (scene.isActive = false)).toThrow(error);
+        expect(earlierRoot.isActiveInHierarchy).toBe(false);
+      } finally {
+        scene.destroy();
+      }
+    });
+
+    it("preserves scene and root activation when onDisable tries to reactivate the scene", () => {
+      const scene = new Scene(engine);
+      engine.sceneManager.addScene(scene);
+      const first = scene.createRootEntity();
+      class ReactivatingScript extends Script {
+        override onDisable(): void {
+          scene.isActive = true;
+        }
+      }
+      const last = scene.createRootEntity();
+      last.addComponent(ReactivatingScript);
+
+      try {
+        expect(() => (scene.isActive = false)).toThrow();
+        expect([scene.isActive, first.isActiveInHierarchy, last.isActiveInHierarchy]).toEqual([false, false, false]);
+      } finally {
+        scene.destroy();
+      }
+    });
+
+    it.each([true, false])(
+      "keeps scene membership consistent when a root reverses scene registration (%s)",
+      (adding) => {
+        const manager = engine.sceneManager;
+        const scene = new Scene(engine);
+        if (!adding) manager.addScene(scene);
+        const first = scene.createRootEntity();
+        const last = scene.createRootEntity();
+        let armed = true;
+        last.addComponent(
+          class extends Script {
+            override onEnable(): void {
+              if (armed && adding) manager.removeScene(scene);
+            }
+
+            override onDisable(): void {
+              if (armed && !adding) manager.addScene(scene);
+            }
+          }
+        );
+
+        try {
+          expect(() => (adding ? manager.addScene(scene) : manager.removeScene(scene))).toThrow();
+          expect(manager.scenes.includes(scene)).toBe(adding);
+          expect(first.isActiveInHierarchy).toBe(adding);
+          expect(last.isActiveInHierarchy).toBe(adding);
+        } finally {
+          armed = false;
+          scene.destroy();
+        }
+      }
+    );
+
+    it("deactivates remaining roots when a root onDisable removes earlier roots", () => {
+      const scene = new Scene(engine);
+      engine.sceneManager.addScene(scene);
+      const first = scene.createRootEntity();
+      const second = scene.createRootEntity();
+      const remaining = scene.createRootEntity();
+      class RemovingScript extends Script {
+        override onDisable(): void {
+          scene.removeRootEntity(first);
+          scene.removeRootEntity(second);
+        }
+      }
+      scene.createRootEntity().addComponent(RemovingScript);
+
+      try {
+        scene.isActive = false;
+        expect(remaining.isActiveInHierarchy).toBe(false);
+        expect(first.scene).toBeNull();
+        expect(second.scene).toBeNull();
+      } finally {
+        scene.destroy();
+      }
     });
 
     it("The second scene destroy", () => {

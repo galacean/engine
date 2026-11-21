@@ -505,7 +505,7 @@ export class Engine extends EventDispatcher {
     let firstError: unknown;
     let hasError = false;
     try {
-      for (let i = 0; i < pending.length; i++) {
+      for (let i = 0, n = pending.length; i < n; i++) {
         try {
           pending[i].destroy();
         } catch (error) {

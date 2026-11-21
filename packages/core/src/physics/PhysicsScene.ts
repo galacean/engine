@@ -1,4 +1,4 @@
-import { IPhysicsEvents, IPhysicsScene } from "@galacean/engine-design";
+import { IPhysicsEvents, IPhysicsScene, PhysicsEventState } from "@galacean/engine-design";
 import { MathUtil, Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
@@ -20,6 +20,8 @@ export class PhysicsScene {
   private static _tempDirection = new Vector3();
   private static _raycastHitPool: HitResult[] = [];
   private static _raycastSeenHits = new Set<HitResult>();
+  private static readonly _collisionMethods = ["onCollisionEnter", "onCollisionStay", "onCollisionExit"] as const;
+  private static readonly _triggerMethods = ["onTriggerEnter", "onTriggerStay", "onTriggerExit"] as const;
   private static _scriptIndexSetter = (element: Script, index: number) => {
     element._entityScriptsIndex = index;
   };
@@ -866,11 +868,8 @@ export class PhysicsScene {
   /**
    * @internal
    */
-  _markMassDirty(body: Rigidbody): void {
-    if (!(body._massDirty & RigidbodyMassDirty.Queued)) {
-      body._massDirty |= RigidbodyMassDirty.Queued;
-      this._massDirtyBodies.push(body);
-    }
+  _queueMassUpdate(body: Rigidbody): void {
+    this._massDirtyBodies.push(body);
   }
 
   /**
@@ -930,22 +929,22 @@ export class PhysicsScene {
     const collision = PhysicsScene._collision;
     const { contactEvents, contactEventCount, triggerEvents } = events;
 
-    for (let i = 0, n = contactEventCount; i < n; i++) {
-      const event = contactEvents[i];
-      const collider0 = physicalObjectsMap[event.shape0Id];
-      const collider1 = physicalObjectsMap[event.shape1Id];
-      // A Collider destroyed during dispatch is removed from the map; deferred entity destruction keeps it valid
-      if (!collider0 || !collider1) continue;
-      collision._nativeCollision = event;
-      const state = event.state;
-      PhysicsScene._dispatchCollision(collision, state, collider0, collider1);
-      if (!collider0.destroyed && !collider1.destroyed) {
-        PhysicsScene._dispatchCollision(collision, state, collider1, collider0);
+    try {
+      for (let i = 0, n = contactEventCount; i < n; i++) {
+        const event = contactEvents[i];
+        const collider0 = physicalObjectsMap[event.shape0Id];
+        const collider1 = physicalObjectsMap[event.shape1Id];
+        if (!collider0 || !collider1) continue;
+        collision._nativeCollision = event;
+        const state = event.state;
+        PhysicsScene._dispatchScripts(state, collider0, collider1, collision);
+        PhysicsScene._dispatchScripts(state, collider1, collider0, collision);
       }
+    } finally {
+      collision._nativeCollision = null!;
+      collision.collider = null!;
+      collision.selfCollider = null!;
     }
-    collision._nativeCollision = null!;
-    collision.collider = null!;
-    collision.selfCollider = null!;
 
     for (let i = 0, n = triggerEvents.length; i < n; i++) {
       const event = triggerEvents[i];
@@ -953,53 +952,39 @@ export class PhysicsScene {
       const collider1 = physicalObjectsMap[event.index2];
       if (!collider0 || !collider1) continue;
       const state = event.dispatchState;
-      PhysicsScene._dispatchTrigger(state, collider0, collider1);
-      if (!collider0.destroyed && !collider1.destroyed) {
-        PhysicsScene._dispatchTrigger(state, collider1, collider0);
-      }
+      PhysicsScene._dispatchScripts(state, collider0, collider1);
+      PhysicsScene._dispatchScripts(state, collider1, collider0);
     }
   }
 
-  private static _dispatchCollision(
-    collision: Collision,
+  private static _dispatchScripts(
     state: PhysicsEventState,
     self: Collider,
-    other: Collider
+    other: Collider,
+    collision?: Collision
   ): void {
-    self.entity._scripts.forEach((script: Script) => {
-      if (self.destroyed || other.destroyed) return;
-      // A script may receive several events; set both sides before each call
-      collision.collider = other;
-      collision.selfCollider = self;
-      switch (state) {
-        case PhysicsEventState.Enter:
-          script.onCollisionEnter(collision);
-          break;
-        case PhysicsEventState.Stay:
-          script.onCollisionStay(collision);
-          break;
-        case PhysicsEventState.Exit:
-          script.onCollisionExit(collision);
-          break;
+    if (self.destroyed || other.destroyed) return;
+    const scripts = self.entity._scripts;
+    const count = scripts.length;
+    if (count === 0) return;
+    scripts._startLoop();
+    try {
+      const elements = scripts._elements;
+      for (let i = 0; i < count; i++) {
+        const script = elements[i];
+        if (!script) continue;
+        if (collision) {
+          collision.collider = other;
+          collision.selfCollider = self;
+          script[PhysicsScene._collisionMethods[state]](collision);
+        } else {
+          script[PhysicsScene._triggerMethods[state]](other, self);
+        }
+        if (self.destroyed || other.destroyed) break;
       }
-    }, PhysicsScene._scriptIndexSetter);
-  }
-
-  private static _dispatchTrigger(state: PhysicsEventState, self: Collider, other: Collider): void {
-    self.entity._scripts.forEach((script: Script) => {
-      if (self.destroyed || other.destroyed) return;
-      switch (state) {
-        case PhysicsEventState.Enter:
-          script.onTriggerEnter(other, self);
-          break;
-        case PhysicsEventState.Stay:
-          script.onTriggerStay(other, self);
-          break;
-        case PhysicsEventState.Exit:
-          script.onTriggerExit(other, self);
-          break;
-      }
-    }, PhysicsScene._scriptIndexSetter);
+    } finally {
+      scripts._endLoop(PhysicsScene._scriptIndexSetter);
+    }
   }
 
   private static _addDirty<T extends { _dirtyIndex: number }>(list: T[], item: T): void {
@@ -1077,13 +1062,4 @@ export class PhysicsScene {
     hitResult.point.set(0, 0, 0);
     hitResult.normal.set(0, 0, 0);
   }
-}
-
-/**
- * @internal
- */
-enum PhysicsEventState {
-  Enter = 0,
-  Stay = 1,
-  Exit = 2
 }

@@ -65,9 +65,11 @@ export class SceneManager {
         scenes.add(index, targetScene);
       }
     } else {
+      const active = targetScene.isActive;
+      if (active) targetScene._assertActivationIdle();
       targetScene._sceneManager = this;
       scenes.add(index, targetScene);
-      targetScene.isActive && targetScene._processActive(true);
+      if (active) targetScene._processActive(true);
     }
   }
 
@@ -79,10 +81,11 @@ export class SceneManager {
     const scenes = this._scenes;
     const index = scenes.indexOf(scene);
     if (index !== -1) {
-      const removedScene = scenes.getArray()[index];
+      const active = scene.isActive;
+      if (active) scene._assertActivationIdle();
       scenes.removeByIndex(index);
       scene._sceneManager = null;
-      removedScene.isActive && removedScene._processActive(false);
+      if (active) scene._processActive(false);
     }
   }
 

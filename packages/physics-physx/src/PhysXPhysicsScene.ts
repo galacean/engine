@@ -1,5 +1,11 @@
 import { Vector3, DisorderedArray, Quaternion } from "@galacean/engine";
-import { IPhysicsScene, IPhysicsEvents, IContactEvent, ITriggerEvent } from "@galacean/engine-design";
+import {
+  IPhysicsScene,
+  IPhysicsEvents,
+  IContactEvent,
+  ITriggerEvent,
+  PhysicsEventState
+} from "@galacean/engine-design";
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXPhysics } from "./PhysXPhysics";
@@ -28,10 +34,11 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _physXSimulationCallbackInstance: any;
 
   private _activeTriggers: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
-  private _contactEvents: ContactEvent[] = [];
-  private _contactEventCount = 0;
-  private _triggerEvents: TriggerEvent[] = [];
-  private _physicsEvents: IPhysicsEvents = { contactEvents: [], contactEventCount: 0, triggerEvents: [] };
+  private readonly _physicsEvents = {
+    contactEvents: [] as ContactEvent[],
+    contactEventCount: 0,
+    triggerEvents: [] as TriggerEvent[]
+  };
 
   private _triggerEventPool: TriggerEvent[] = [];
   // Trigger pairs are scene-local: only shapes on actors of this scene can form a pair
@@ -60,7 +67,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       onTriggerBegin: (index1, index2) => {
         const small = Math.min(index1, index2);
         const big = Math.max(index1, index2);
-        const pairs = this._eventMap[small];
+        const pairs = (this._eventMap[small] ||= Object.create(null));
         const existing = pairs[big];
         if (existing) {
           // Found again after the shape was removed and added back: the overlap continues
@@ -148,7 +155,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsScene.update }
    */
   update(elapsedTime: number): void {
-    this._contactEventCount = 0;
+    this._physicsEvents.contactEventCount = 0;
     this._syncTriggerPairs();
     const scene = this._pxScene;
     scene.simulate(elapsedTime, true);
@@ -161,7 +168,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   setContactEventEnabled(enabled: boolean): void {
     this._physXPhysics._physX.setContactEventEnabled(this._physXSimulationCallbackInstance, enabled);
     if (!enabled) {
-      this._contactEventCount = 0;
+      this._physicsEvents.contactEventCount = 0;
     }
   }
 
@@ -172,9 +179,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     const physicsEvents = this._physicsEvents;
 
     // Collect trigger events: snapshot state for dispatch, then advance
-    const { _activeTriggers: activeTriggers, _triggerEvents: triggerEvents } = this;
+    const { triggerEvents } = physicsEvents;
     triggerEvents.length = 0;
-    activeTriggers.forEach((event, i) => {
+    this._activeTriggers.forEach((event, i) => {
       event.dispatchState = event.state;
       triggerEvents.push(event);
       if (event.state === PhysicsEventState.Enter) {
@@ -184,9 +191,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       }
     });
 
-    physicsEvents.contactEvents = this._contactEvents;
-    physicsEvents.contactEventCount = this._contactEventCount;
-    physicsEvents.triggerEvents = triggerEvents;
     return physicsEvents;
   }
 
@@ -338,7 +342,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsScene.gc }
    */
   gc(): void {
-    this._contactEvents.length = this._contactEventCount;
+    const { contactEvents, contactEventCount } = this._physicsEvents;
+    contactEvents.length = contactEventCount;
   }
 
   /**
@@ -374,8 +379,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     const changes = this._shapeChanges;
     if (changes.has(id)) {
       changes.set(id, true);
-    } else {
-      this._eventMap[id] = Object.create(null);
     }
   }
 
@@ -489,9 +492,15 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     if (pairs[event.index2] === event) pairs[event.index2] = undefined;
   }
 
-  private _bufferContactEvent(shape0ID: number, shape1ID: number, contacts: Float32Array, state: number): void {
-    const index = this._contactEventCount++;
-    const event = (this._contactEvents[index] ||= new ContactEvent());
+  private _bufferContactEvent(
+    shape0ID: number,
+    shape1ID: number,
+    contacts: Float32Array,
+    state: PhysicsEventState
+  ): void {
+    const events = this._physicsEvents;
+    const index = events.contactEventCount++;
+    const event = (events.contactEvents[index] ||= new ContactEvent());
     event.shape0Id = shape0ID;
     event.shape1Id = shape1ID;
     event.state = state;
@@ -508,12 +517,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       contact.separation = contacts[offset + 9];
     }
   }
-}
-
-enum PhysicsEventState {
-  Enter = 0,
-  Stay = 1,
-  Exit = 2
 }
 
 /**
@@ -556,7 +559,7 @@ class BufferedContacts {
 }
 
 class ContactEvent implements IContactEvent {
-  state: number;
+  state: PhysicsEventState;
   shape0Id: number;
   shape1Id: number;
 

@@ -219,6 +219,43 @@ describe("Script", () => {
       expect(script2.onStart).toHaveBeenCalledOnce();
     });
 
+    it("keeps unvisited and new scripts queued after an onStart callback throws", async () => {
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+      const scene = engine.sceneManager.activeScene;
+      const entity = scene.createRootEntity();
+      const calls: string[] = [];
+      const failure = new Error("onStart failed");
+      class Appended extends Script {
+        override onStart(): void {
+          calls.push("appended");
+        }
+      }
+      class Throwing extends Script {
+        override onStart(): void {
+          entity.addComponent(Appended);
+          throw failure;
+        }
+      }
+      class Pending extends Script {
+        override onStart(): void {
+          calls.push("pending");
+        }
+      }
+      entity.addComponent(Throwing);
+      entity.addComponent(Pending);
+      const starts = scene._componentsManager["_onStartScripts"];
+
+      try {
+        expect(() => engine.update()).toThrow(failure);
+        expect(starts.length).toBe(2);
+        engine.update();
+        expect(calls).toEqual(["pending", "appended"]);
+        expect(starts.length).toBe(0);
+      } finally {
+        engine.destroy();
+      }
+    });
+
     it("Engine destroy outside the main loop", async () => {
       class TestScript extends Script {
         onAwake() {

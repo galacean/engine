@@ -16,6 +16,7 @@ import {
   RenderTarget,
   Rigidbody,
   Scene,
+  Script,
   SphereCollider,
   Texture2D,
   TonemappingEffect
@@ -437,9 +438,16 @@ describe("PostProcess", () => {
       // Local volumes use the closest enabled Collider component on the Entity.
       const secondCollider = postEntity.addComponent(SphereCollider);
       secondCollider.radius = 1;
-      secondCollider.center.set(radius * 2, 0, 0);
+      const moveBeforeRender = cameraEntity.addComponent(
+        class extends Script {
+          override onBeginRender(): void {
+            secondCollider.center.set(radius * 2, 0, 0);
+          }
+        }
+      );
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(intensity2);
+      moveBeforeRender.destroy();
       secondCollider.enabled = false;
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(intensity1);

@@ -1,4 +1,4 @@
-import { Component, ComponentConstructor, Engine, Entity, Loader, Scene } from "@galacean/engine-core";
+import { Component, ComponentConstructor, Entity, Loader, Scene } from "@galacean/engine-core";
 import { GLTFResource } from "../../../gltf";
 import { PrefabResource } from "../../../prefab/PrefabResource";
 import { resolveRefItem } from "../../../schema/refs";
@@ -19,11 +19,6 @@ import { ReflectionParser } from "./ReflectionParser";
 
 /** @Internal */
 export abstract class HierarchyParser<T extends Scene | PrefabResource, V extends ParserContext> {
-  readonly promise: Promise<T>;
-
-  protected _resolve: (item: T) => void;
-  protected _reject: (reason: any) => void;
-  protected _engine: Engine;
   protected _reflectionParser: ReflectionParser;
   private _overrideEntityProps: Array<{ entity: Entity; override: EntityPropOverride }> = [];
   private _overrideComponentProps: Array<{ target: Component; block: ComponentOverride }> = [];
@@ -38,28 +33,21 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       throw new Error(`Unsupported ${resourceType} format version "${data.version}". Expected "2.0".`);
     }
 
-    this._engine = this.context.engine;
-    this.promise = new Promise<T>((resolve, reject) => {
-      this._reject = reject;
-      this._resolve = resolve;
-    });
     this._reflectionParser = new ReflectionParser(context, data.refs);
   }
 
-  public start() {
-    this._parseEntities()
+  start(): Promise<T> {
+    return this._parseEntities()
       .then(() => this._organizeEntities())
       .then(() => this._parseComponents())
       .then(() => this._parseComponentsPropsAndOverrides())
-      .then(() => this._clearAndResolve())
-      .then(this._resolve)
-      .catch(this._reject);
+      .then(() => this._clearAndResolve());
   }
 
   /** Root entity indices for this hierarchy (scene.rootEntities or [prefab.root]). */
   protected abstract _getRootIndices(): number[];
   protected abstract _handleRootEntity(index: number): void;
-  protected abstract _clearAndResolve(): Scene | PrefabResource;
+  protected abstract _clearAndResolve(): T;
 
   protected _onEntityCreated(_entity: Entity): void {}
 
@@ -70,18 +58,14 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   private _parseEntities(): Promise<unknown> {
     const entities = this.data.entities;
     const entityInstances = this.context.entityInstances;
-    const engine = this._engine;
+    const engine = this.context.engine;
     const promises: Promise<void>[] = [];
 
     for (let i = 0, n = entities.length; i < n; i++) {
       const entityConfig = entities[i];
 
       if (HierarchyParser._isPrefabInstanceEntity(entityConfig)) {
-        promises.push(
-          this._loadPrefabInstance(entityConfig, engine).then((entity) => {
-            entityInstances[i] = entity;
-          })
-        );
+        promises.push(this._loadPrefabInstance(entityConfig, i));
       } else {
         const entity = new Entity(engine, entityConfig.name);
         HierarchyParser._applyEntityProps(entity, entityConfig);
@@ -283,10 +267,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
         }
       }
       for (let i = 0, n = removedEntities.length; i < n; i++) {
-        const entity = removedEntities[i];
-        if (!entity.destroyed) {
-          entity.destroy();
-        }
+        removedEntities[i].destroy();
       }
       removedEntities.length = 0;
     }
@@ -318,7 +299,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
         if (target.destroyed) continue;
         const prev = chains.get(target);
         const next = prev
-          ? prev.then(() => (target.destroyed ? undefined : reflectionParser.parseMutationBlock(target, block)))
+          ? prev.then(() => reflectionParser.parseMutationBlock(target, block))
           : reflectionParser.parseMutationBlock(target, block);
         chains.set(target, next);
       }
@@ -337,7 +318,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   // Prefab instance loading
   // ---------------------------------------------------------------------------
 
-  private _loadPrefabInstance(entityConfig: PrefabInstanceEntitySchema, engine: Engine): Promise<Entity> {
+  private _loadPrefabInstance(entityConfig: PrefabInstanceEntitySchema, index: number): Promise<void> {
     const instance = entityConfig.instance;
     let refItem: RefItem;
     try {
@@ -346,16 +327,22 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       return Promise.reject(error);
     }
 
-    return engine.resourceManager
-      .getResourceByRef<PrefabResource | GLTFResource>(refItem)
-      .then<Entity>((prefabResource) => {
-        const entity =
-          prefabResource instanceof PrefabResource
-            ? prefabResource.instantiate()
-            : prefabResource!.instantiateSceneRoot();
+    const context = this.context;
+    const owner = context.resource;
+    return context.resourceManager.getResourceByRef<PrefabResource | GLTFResource>(refItem).then((prefabResource) => {
+      if (owner instanceof PrefabResource && owner.destroyed) {
+        throw new Error("Cannot instantiate an asset into a destroyed prefab.");
+      }
+      let entity: Entity;
+      if (prefabResource instanceof PrefabResource) {
+        entity =
+          owner instanceof PrefabResource ? prefabResource._instantiateAsTemplate(owner) : prefabResource.instantiate();
+      } else {
+        entity = prefabResource!.instantiateSceneRoot();
         this._onEntityCreated(entity);
-        return entity;
-      });
+      }
+      context.entityInstances[index] = entity;
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -377,24 +364,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   private static _resolveComponent(entity: Entity, selector: ComponentSelector, snapshot?: Component[]): Component {
     const type = Loader.getClass(selector.type);
     if (!type) throw new Error(`HierarchyParser: override target component type "${selector.type}" is not registered`);
-    if (snapshot) {
-      let matchIndex = 0;
-      for (let i = 0, n = snapshot.length; i < n; i++) {
-        const candidate = snapshot[i];
-        if (candidate instanceof type) {
-          if (matchIndex === selector.index) {
-            return candidate;
-          }
-          matchIndex++;
-        }
-      }
-      throw new Error(`HierarchyParser: override target component not found: ${selector.type}/${selector.index}`);
-    }
-    const buffer = ReflectionParser._componentBuffer;
-    buffer.length = 0;
-    entity.getComponents(type, buffer);
-    const result = buffer[selector.index];
-    buffer.length = 0;
+    const result = ParserContext._findComponent(snapshot ?? entity._components, type, selector.index);
     if (!result)
       throw new Error(`HierarchyParser: override target component not found: ${selector.type}/${selector.index}`);
     return result;
@@ -421,18 +391,13 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       if (!Class) throw new Error(`Loader.getClass: class "${key}" is not registered`);
       classes[i] = Class;
     }
-    const addedInConfigOrder = componentSnapshot && n > 0 ? new Array<Component>(n) : null;
+    const snapshotStart = componentSnapshot?.length ?? 0;
     entity._applyComponentChanges(removed, classes, (i, instance) => {
       pendingComponents.push({ instance, config: configs[i] });
-      if (addedInConfigOrder) {
-        addedInConfigOrder[i] = instance;
+      if (componentSnapshot) {
+        componentSnapshot[snapshotStart + i] = instance;
       }
     });
-    if (componentSnapshot && addedInConfigOrder) {
-      for (let i = 0; i < n; i++) {
-        componentSnapshot.push(addedInConfigOrder[i]);
-      }
-    }
   }
 
   private static _isPrefabInstanceEntity(entityConfig: EntitySchema): entityConfig is PrefabInstanceEntitySchema {

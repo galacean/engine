@@ -214,14 +214,17 @@ export class MeshCollider extends Collider {
         shape.setScale(scale);
       }
     }
-    if (needsCook || scaleChanged) {
+    const geometryChanged = needsCook || scaleChanged;
+    if (geometryChanged) {
       this._nativeScale.copyFrom(scale);
-      this._attachedBody?._markMassDirty();
     }
 
-    if (this._nativeConvex && this._nativeTrigger !== this._isTrigger) {
+    const triggerChanged = this._nativeConvex && this._nativeTrigger !== this._isTrigger;
+    if (triggerChanged) {
       shape.setIsTrigger(this._isTrigger);
       this._nativeTrigger = this._isTrigger;
+    }
+    if (geometryChanged || triggerChanged) {
       this._attachedBody?._markMassDirty();
     }
 

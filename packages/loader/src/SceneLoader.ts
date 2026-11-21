@@ -171,12 +171,10 @@ class SceneLoader extends Loader<Scene> {
           const parser = new SceneParser(data, context, scene);
           parser._collectDependentAssets(data);
           context._setTaskCompleteProgress = setTaskCompleteProgress;
-          parser.start();
-          return parser.promise.then(() => {
-            return applySceneData(scene, data.scene, resourceManager, data.refs).then(() => {
-              resolve(scene);
-            });
-          });
+          return parser
+            .start()
+            .then(() => applySceneData(scene, data.scene, resourceManager, data.refs))
+            .then(() => resolve(scene));
         })
         .catch(reject);
     });

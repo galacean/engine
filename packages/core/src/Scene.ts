@@ -68,8 +68,6 @@ export class Scene extends EngineObject {
   /** @internal */
   _maskManager: MaskManager = new MaskManager();
   /** @internal */
-  _isActiveInEngine: boolean = false;
-  /** @internal */
   _sceneManager: SceneManager | null;
   /** @internal */
   _rootEntities: Entity[] = [];
@@ -103,12 +101,10 @@ export class Scene extends EngineObject {
 
   set isActive(value: boolean) {
     if (this._isActive !== value) {
+      const manager = this._sceneManager;
+      if (manager) this._assertActivationIdle();
       this._isActive = value;
-      if (value) {
-        this._sceneManager && this._processActive(true);
-      } else {
-        this._sceneManager && this._processActive(false);
-      }
+      if (manager) this._processActive(value);
     }
   }
 
@@ -414,20 +410,39 @@ export class Scene extends EngineObject {
   /**
    * @internal
    */
+  _assertActivationIdle(): void {
+    if (this._activeProcessCount !== 0 && !this._destroyed) {
+      throw new Error("Cannot change a scene's activation while its entities' lifecycle callbacks are running.");
+    }
+  }
+
+  /**
+   * @internal
+   */
   _processActive(active: boolean): void {
-    this._isActiveInEngine = active;
     if (active && this._destroyed) return;
-    const rootEntities = this._rootEntities;
-    for (let i = rootEntities.length - 1; i >= 0; i--) {
-      const entity = rootEntities[i];
-      if (entity._isActive && entity._isActiveInHierarchy !== active) {
-        if (active) {
-          entity._processActive(ActiveChangeFlag.Hierarchy);
-        } else {
-          entity._processInActive(ActiveChangeFlag.Hierarchy);
+    // Lifecycle callbacks can remove or move roots during a transition.
+    const roots = this._rootEntities.slice();
+    let firstError: unknown;
+    let hasError = false;
+    for (let i = roots.length - 1; i >= 0; i--) {
+      const root = roots[i];
+      if (root._scene === this && root._isRoot && root._isActive && root._isActiveInHierarchy !== active) {
+        try {
+          if (active) {
+            root._processActive(ActiveChangeFlag.Hierarchy);
+          } else {
+            root._processInActive(ActiveChangeFlag.Hierarchy);
+          }
+        } catch (error) {
+          if (!hasError) {
+            firstError = error;
+            hasError = true;
+          }
         }
       }
     }
+    if (hasError) throw firstError;
   }
 
   /**
@@ -509,7 +524,7 @@ export class Scene extends EngineObject {
         if (this._rootEntities[0] === root) {
           Entity._removeFromChildren(this._rootEntities, root);
           root._isRoot = false;
-          Entity._traverseSetOwnerScene(root, null);
+          Entity._assignOwnerScene(root, null);
         }
       }
     }

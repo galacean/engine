@@ -520,8 +520,7 @@ describe("SceneParser v2 entity tree", () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
-    parser.start();
-    await parser.promise;
+    await parser.start();
 
     expect(scene.rootEntitiesCount).to.equal(1);
     const root = scene.rootEntities[0];
@@ -537,8 +536,7 @@ describe("SceneParser v2 entity tree", () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
-    parser.start();
-    await parser.promise;
+    await parser.start();
 
     expect(scene.rootEntitiesCount).to.equal(2);
     expect(scene.rootEntities[0].name).to.equal("Root1");
@@ -564,8 +562,7 @@ describe("SceneParser v2 entity tree", () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
-    parser.start();
-    await parser.promise;
+    await parser.start();
 
     const entity = scene.rootEntities[0];
     expect(entity.transform.position.x).to.equal(1);
@@ -585,8 +582,7 @@ describe("SceneParser v2 entity tree", () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
-    parser.start();
-    await parser.promise;
+    await parser.start();
 
     const entity = scene.rootEntities[0];
     expect(entity.isActive).to.equal(false);
@@ -603,8 +599,7 @@ describe("SceneParser v2 entity tree", () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
-    parser.start();
-    await parser.promise;
+    await parser.start();
 
     const a = scene.rootEntities[0];
     expect(a.name).to.equal("A");
@@ -619,8 +614,7 @@ describe("SceneParser v2 entity tree", () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
-    parser.start();
-    await parser.promise;
+    await parser.start();
 
     const entity = scene.rootEntities[0];
     expect(entity.transform.position.x).to.equal(0);
@@ -641,8 +635,7 @@ describe("SceneParser v2 entity tree", () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
-    parser.start();
-    await parser.promise;
+    await parser.start();
 
     const entity = scene.rootEntities[0];
     const camera = entity.getComponent(Camera);
@@ -667,8 +660,7 @@ describe("SceneParser v2 entity tree", () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
-    parser.start();
-    await parser.promise;
+    await parser.start();
 
     const component = scene.rootEntities[0].getComponent(CallOrderComponent);
     expect(component).to.not.be.null;
@@ -703,8 +695,7 @@ describe("SceneParser v2 entity tree", () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
-    parser.start();
-    await parser.promise;
+    await parser.start();
 
     const postProcess = scene.rootEntities[0].getComponent(PostProcess);
     const effect = postProcess.getEffect(BloomEffect);
@@ -720,8 +711,7 @@ describe("SceneParser v2 entity tree", () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
-    parser.start();
-    await expect(parser.promise).rejects.toThrow("UnregisteredComponent999");
+    await expect(parser.start()).rejects.toThrow("UnregisteredComponent999");
   });
 
   it("should collect dependent assets from refs array", () => {

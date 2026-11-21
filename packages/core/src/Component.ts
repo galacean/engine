@@ -82,9 +82,9 @@ export class Component extends EngineObject {
   override destroy(): void {
     if (this._destroyed) return;
     const engine = this._engine;
-    if (!engine?._frameInProcess || engine._processingPendingDestroys) {
+    if (!engine._frameInProcess || engine._processingPendingDestroys) {
       const entity = this._entity;
-      if (entity._components?.includes(this)) {
+      if (entity._components.includes(this)) {
         this._pendingDestroy = false;
         ComponentsDependencies._removeCheck(entity, this.constructor as ComponentConstructor);
       }

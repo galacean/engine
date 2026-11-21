@@ -46,7 +46,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
   private static _tempRelativeRotation = new Quaternion();
   private static _tempInverseBodyRotation = new Quaternion();
   private static _tempScale = new Vector3();
-  private static _shearTolerance = 1e-4;
+  private static readonly _shearToleranceSquared = 1e-8;
 
   /**
    * @internal
@@ -88,7 +88,9 @@ export class Collider extends Component implements ICloneHook<Collider> {
   @ignoreClone
   protected _geometryDirty = false;
   @ignoreClone
-  protected _nativeScale = new Vector3();
+  protected _nativeScale = new Vector3(1, 1, 1);
+  @ignoreClone
+  protected readonly _nativePosition = new Vector3();
 
   @ignoreClone
   private _nativeActor: ICollider | null = null;
@@ -99,13 +101,11 @@ export class Collider extends Component implements ICloneHook<Collider> {
   @ignoreClone
   private _shearWarned = false;
   @ignoreClone
-  private _nativePosition = new Vector3();
+  private _nativeRotation: Quaternion;
   @ignoreClone
-  private _nativeRotation = new Quaternion();
+  private _nativeWorldPosition: Vector3;
   @ignoreClone
-  private _nativeWorldPosition = new Vector3();
-  @ignoreClone
-  private _nativeWorldRotation = new Quaternion();
+  private _nativeWorldRotation: Quaternion;
 
   private _center = new Vector3();
   private _rotation = new Vector3();
@@ -266,6 +266,24 @@ export class Collider extends Component implements ICloneHook<Collider> {
     return f >= 1.17549435e-38 && Number.isFinite(f);
   }
 
+  protected static _clampBoxSize(size: Vector3): boolean {
+    const { x, y, z } = size;
+    const finiteX = Number.isFinite(x);
+    const finiteY = Number.isFinite(y);
+    const finiteZ = Number.isFinite(z);
+    const finite = finiteX && finiteY && finiteZ;
+    if (!finite || x < 0 || y < 0 || z < 0) {
+      //@ts-ignore
+      const listener = size._onValueChanged;
+      //@ts-ignore
+      size._onValueChanged = null;
+      size.set(finiteX && x >= 0 ? x : 0, finiteY && y >= 0 ? y : 0, finiteZ && z >= 0 ? z : 0);
+      //@ts-ignore
+      size._onValueChanged = listener;
+    }
+    return finite;
+  }
+
   /**
    * @internal
    */
@@ -304,6 +322,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * @returns The distance between the point and the Collider, or -1 when the Collider is not in simulation
    */
   getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
+    this._registeredScene?.physics._syncColliders();
     const distance = this._getVolumeDistance(point, outClosestPoint);
     if (distance < 0) {
       console.warn("The collider is not in simulation.");
@@ -313,10 +332,9 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * @internal
-   * Distance from a world-space point to this Collider's active simulation shape, or -1 when unavailable.
+   * Distance from a world-space point to this Collider's synchronized native shape, or -1 when unavailable.
    */
   _getVolumeDistance(point: Vector3, outClosestPoint: Vector3): number {
-    this._registeredScene?.physics._syncColliders();
     const body = this._attachedBody;
     // A disabled Rigidbody is unregistered from the scene's enabled bodies but keeps its Colliders attached
     if (!this._nativeActor || (body && body._index === -1)) {
@@ -607,17 +625,17 @@ export class Collider extends Component implements ICloneHook<Collider> {
     let actor = this._staticActor;
     if (!actor) {
       this._staticActor = actor = Engine._nativePhysics.createStaticCollider(position, rotation);
-    } else {
-      if (
-        !Collider._differsF32(position, this._nativeWorldPosition) &&
-        !Collider._rotationDiffersF32(rotation, this._nativeWorldRotation)
-      ) {
-        return actor;
-      }
-      actor.setWorldTransform(position, rotation);
+      this._nativeWorldPosition = position.clone();
+      this._nativeWorldRotation = rotation.clone();
+      return actor;
     }
-    this._nativeWorldPosition.copyFrom(position);
-    this._nativeWorldRotation.copyFrom(rotation);
+    const nativePosition = this._nativeWorldPosition;
+    const nativeRotation = this._nativeWorldRotation;
+    if (Collider._differsF32(position, nativePosition) || Collider._rotationDiffersF32(rotation, nativeRotation)) {
+      actor.setWorldTransform(position, rotation);
+      nativePosition.copyFrom(position);
+      nativeRotation.copyFrom(rotation);
+    }
     return actor;
   }
 
@@ -642,13 +660,14 @@ export class Collider extends Component implements ICloneHook<Collider> {
     }
 
     const nativePosition = this._nativePosition;
+    const nativeRotation = this._nativeRotation;
     if (
       force ||
       Collider._differsF32(position, nativePosition) ||
-      Collider._rotationDiffersF32(rotation, this._nativeRotation)
+      Collider._rotationDiffersF32(rotation, nativeRotation)
     ) {
       nativePosition.copyFrom(position);
-      this._nativeRotation.copyFrom(rotation);
+      (this._nativeRotation ||= new Quaternion()).copyFrom(rotation);
       shape.setLocalPose(position, rotation);
       this._attachedBody?._markMassDirty();
     }
@@ -685,14 +704,17 @@ export class Collider extends Component implements ICloneHook<Collider> {
     }
     // A rotated, non-uniformly scaled ancestor can skew the basis; a TRS pose cannot represent it
     const e = worldMatrix.elements;
-    const xLength = Math.hypot(e[0], e[1], e[2]);
-    const yLength = Math.hypot(e[4], e[5], e[6]);
-    const zLength = Math.hypot(e[8], e[9], e[10]);
-    const tolerance = Collider._shearTolerance;
+    const xLengthSquared = e[0] * e[0] + e[1] * e[1] + e[2] * e[2];
+    const yLengthSquared = e[4] * e[4] + e[5] * e[5] + e[6] * e[6];
+    const zLengthSquared = e[8] * e[8] + e[9] * e[9] + e[10] * e[10];
+    const xy = e[0] * e[4] + e[1] * e[5] + e[2] * e[6];
+    const xz = e[0] * e[8] + e[1] * e[9] + e[2] * e[10];
+    const yz = e[4] * e[8] + e[5] * e[9] + e[6] * e[10];
+    const tolerance = Collider._shearToleranceSquared;
     if (
-      Math.abs(e[0] * e[4] + e[1] * e[5] + e[2] * e[6]) > tolerance * xLength * yLength ||
-      Math.abs(e[0] * e[8] + e[1] * e[9] + e[2] * e[10]) > tolerance * xLength * zLength ||
-      Math.abs(e[4] * e[8] + e[5] * e[9] + e[6] * e[10]) > tolerance * yLength * zLength
+      xy * xy > tolerance * xLengthSquared * yLengthSquared ||
+      xz * xz > tolerance * xLengthSquared * zLengthSquared ||
+      yz * yz > tolerance * yLengthSquared * zLengthSquared
     ) {
       this._shearWarned = true;
       console.warn(

@@ -50,11 +50,10 @@ export class ComponentsDependencies {
       return;
     }
 
-    // 0 = unvisited, 1 = visiting (cycle guard), 2 = visited
-    const state = new Uint8Array(n);
+    const visited = new Uint8Array(n);
     const visit = (index: number): void => {
-      if (state[index] !== 0) return;
-      state[index] = 1;
+      if (visited[index]) return;
+      visited[index] = 1;
 
       let type: ComponentConstructor = types[index];
       while (type && type !== Component) {
@@ -65,7 +64,7 @@ export class ComponentsDependencies {
             const dep = components[i];
             if (!entity.getComponent(dep)) {
               for (let j = 0; j < n; j++) {
-                if (state[j] === 0 && (types[j] === dep || types[j].prototype instanceof dep)) {
+                if (!visited[j] && (types[j] === dep || types[j].prototype instanceof dep)) {
                   visit(j);
                   break;
                 }
@@ -76,7 +75,6 @@ export class ComponentsDependencies {
         type = Object.getPrototypeOf(type);
       }
 
-      state[index] = 2;
       onAdd(index);
     };
 
@@ -98,11 +96,10 @@ export class ComponentsDependencies {
       return;
     }
 
-    // 0 = unvisited, 1 = visiting (cycle guard), 2 = visited
-    const state = new Uint8Array(n);
+    const visited = new Uint8Array(n);
     const visit = (index: number): void => {
-      if (state[index] !== 0) return;
-      state[index] = 1;
+      if (visited[index]) return;
+      visited[index] = 1;
 
       const entity = components[index].entity;
       let type = components[index].constructor as ComponentConstructor;
@@ -112,7 +109,7 @@ export class ComponentsDependencies {
           for (let i = 0, len = invDeps.length; i < len; i++) {
             const dependent = invDeps[i];
             for (let j = 0; j < n; j++) {
-              if (state[j] === 0 && components[j].entity === entity && components[j] instanceof dependent) {
+              if (!visited[j] && components[j].entity === entity && components[j] instanceof dependent) {
                 visit(j);
               }
             }
@@ -121,7 +118,6 @@ export class ComponentsDependencies {
         type = Object.getPrototypeOf(type);
       }
 
-      state[index] = 2;
       onRemove(index);
     };
 
@@ -159,47 +155,35 @@ export class ComponentsDependencies {
     const n = components.length;
     let usedReplacement = false;
     while (type !== Component) {
-      if (
-        !replacedEntries &&
-        typeof replace === "function" &&
-        (replace === type || replace.prototype instanceof type)
-      ) {
+      if (typeof replace === "function" && (replace === type || replace.prototype instanceof type)) {
         return true;
-      }
-      let count = 0;
-      for (let i = 0; i < n; i++) {
-        if (components[i] instanceof type && ++count > 1) return usedReplacement;
       }
       const invDependencies = ComponentsDependencies._invDependenciesMap.get(type);
       if (invDependencies) {
-        let firstDependentType: ComponentConstructor | null = null;
+        let count = 0;
+        for (let i = 0; i < n; i++) {
+          if (components[i] instanceof type && ++count > 1) return usedReplacement;
+        }
         let dependents: Component[] | null = null;
         for (let i = 0, len = invDependencies.length; i < len; i++) {
           const dependentType = invDependencies[i];
           for (let j = 0; j < n; j++) {
             const comp = components[j];
-            if (comp instanceof dependentType) {
-              firstDependentType ||= dependentType;
-              if (replacedEntries) {
-                dependents ||= [];
-                if (!dependents.includes(comp)) {
-                  dependents.push(comp);
-                }
+            if (!(comp instanceof dependentType)) continue;
+            if (!dependents) {
+              if (
+                typeof replace === "function" ||
+                !replace?.some((candidate) => candidate === type || candidate.prototype instanceof type)
+              ) {
+                throw `Should remove ${dependentType.name} before remove ${type.name}`;
               }
+              dependents = [];
             }
+            if (!dependents.includes(comp)) dependents.push(comp);
           }
         }
-        if (firstDependentType) {
-          const satisfied =
-            typeof replace === "function"
-              ? replace === type || replace.prototype instanceof type
-              : !!(replace && replace.some((r) => r === type || r.prototype instanceof type));
-          if (!satisfied) {
-            throw `Should remove ${firstDependentType.name} before remove ${type.name}`;
-          }
-          if (replacedEntries && dependents) {
-            replacedEntries.push({ dependency: type, dependents });
-          }
+        if (dependents) {
+          replacedEntries!.push({ dependency: type, dependents });
           usedReplacement = true;
         }
       }

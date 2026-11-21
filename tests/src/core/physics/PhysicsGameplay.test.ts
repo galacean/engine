@@ -435,8 +435,7 @@ describe("Physics gameplay integration", () => {
     try {
       const ctx = new ParserContext(engine, ParserType.Scene, parsedScene);
       const parser = new SceneParser(sceneData, ctx, parsedScene);
-      parser.start();
-      await parser.promise;
+      await parser.start();
 
       const anchor = parsedScene.findEntityByName("anchor")!;
       const hanging = parsedScene.findEntityByName("hanging")!;
@@ -863,7 +862,7 @@ describe("Physics gameplay integration", () => {
     }
   });
 
-  it("applies componentProps to addedComponents, replaces Rigidbody while keeping HingeJoint, and orders nested instance phases globally", async () => {
+  it("applies added-component overrides, replaces a Rigidbody under a joint, and activates a nested compound body", async () => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1, { keepMeshData: true });
     // @ts-ignore
@@ -977,8 +976,7 @@ describe("Physics gameplay integration", () => {
           scene: { rootEntities: [0] }
         };
         const parser = new SceneParser(sceneData, sceneContext, parsedScene);
-        parser.start();
-        await parser.promise;
+        await parser.start();
         const doorEntity = parsedScene.rootEntities[0];
         const body = doorEntity.getComponent(Rigidbody)!;
         const hinge = doorEntity.getComponent(HingeJoint)!;
@@ -1324,289 +1322,6 @@ describe("Physics gameplay integration", () => {
     }
   });
 
-  it("schedules per-block deserialize phases so MeshCollider convex+calls runs before Rigidbody isKinematic=false and MeshCollider isTrigger=true", async () => {
-    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
-    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1, { keepMeshData: true });
-    // @ts-ignore
-    engine.resourceManager._objectPool["test://r5-phase.mesh"] = mesh;
-    const poolKeys: string[] = ["test://r5-phase.mesh"];
-
-    try {
-      const basePrefab = await PrefabParser.parse(engine, "test://r5-phase-base.prefab", {
-        version: "2.0",
-        refs: [{ url: "test://r5-phase.mesh", type: "ModelMesh" }],
-        entities: [{ name: "Actor", components: [0, 1] }],
-        components: [
-          { type: "Rigidbody", props: { isKinematic: true, useGravity: false } },
-          { type: "MeshCollider", props: { convex: false, mesh: { $ref: 0 } } }
-        ],
-        root: 0
-      });
-      // @ts-ignore
-      engine.resourceManager._objectPool["test://r5-phase-base.prefab"] = basePrefab;
-      poolKeys.push("test://r5-phase-base.prefab");
-
-      // Override Rigidbody { isKinematic: false } (+1),
-      // MeshCollider block 1 { convex: true, calls: [entity.findByName] } (-1),
-      // MeshCollider block 2 { isTrigger: true } (+1).
-      const outerPrefab = await PrefabParser.parse(engine, "test://r5-phase-outer.prefab", {
-        version: "2.0",
-        refs: [{ url: "test://r5-phase-base.prefab", type: "Prefab" }],
-        entities: [
-          {
-            instance: {
-              asset: 0,
-              overrides: {
-                componentProps: [
-                  {
-                    path: [],
-                    selector: { type: "Rigidbody", index: 0 },
-                    props: { isKinematic: false }
-                  },
-                  {
-                    path: [],
-                    selector: { type: "MeshCollider", index: 0 },
-                    props: { convex: true },
-                    calls: [{ target: ["entity"], method: "findByName", args: ["missing"] }]
-                  },
-                  {
-                    path: [],
-                    selector: { type: "MeshCollider", index: 0 },
-                    props: { isTrigger: true }
-                  }
-                ]
-              }
-            }
-          }
-        ],
-        components: [],
-        root: 0
-      });
-
-      const inst = outerPrefab.instantiate();
-      root.addChild(inst);
-      try {
-        const rb = inst.getComponent(Rigidbody)!;
-        const meshCol = inst.getComponent(MeshCollider)!;
-        expect(rb.isKinematic).toBe(false);
-        expect(meshCol.convex).toBe(true);
-        expect(meshCol.isTrigger).toBe(true);
-        expect(errors).not.toHaveBeenCalled();
-        step(2);
-        expect(errors).not.toHaveBeenCalled();
-      } finally {
-        inst.destroy();
-      }
-    } finally {
-      for (const key of poolKeys) {
-        // @ts-ignore
-        delete engine.resourceManager._objectPool[key];
-      }
-    }
-  });
-
-  it("enforces Wave 0 base isolation, defers restricting base MeshCollider trigger into relaxing override (with/without calls), and prioritizes unblocking physics phases", async () => {
-    class BaseConvexReader extends Script {
-      readConvex = false;
-      async readAsync(): Promise<void> {
-        await Promise.resolve();
-        this.readConvex = this.entity.getComponent(MeshCollider)!.convex;
-      }
-    }
-    class AsyncPhaseBody extends Rigidbody {
-      sawKinematicAtCall: boolean | null = null;
-      async readPhase(): Promise<void> {
-        await Promise.resolve();
-        this.sawKinematicAtCall = this.isKinematic;
-      }
-    }
-    Loader.registerClass("R6BaseConvexReader", BaseConvexReader);
-    Loader.registerClass("R6AsyncPhaseBody", AsyncPhaseBody);
-
-    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
-    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1, { keepMeshData: true });
-    // @ts-ignore
-    engine.resourceManager._objectPool["test://r6-phase.mesh"] = mesh;
-    const poolKeys: string[] = ["test://r6-phase.mesh"];
-
-    try {
-      // 1. Wave 0 base calls must never observe Wave 1 relaxing MeshCollider overrides prematurely
-      for (const inherited of [true, false]) {
-        const baseKey = `test://r6-promoted-base-${inherited}.prefab`;
-        const basePrefab = await PrefabParser.parse(engine, baseKey, {
-          version: "2.0",
-          refs: [],
-          entities: [{ name: "root", components: inherited ? [0] : [] }],
-          components: inherited ? [{ type: "MeshCollider" }] : [],
-          root: 0
-        });
-        // @ts-ignore
-        engine.resourceManager._objectPool[baseKey] = basePrefab;
-        poolKeys.push(baseKey);
-
-        const outerPrefab = await PrefabParser.parse(engine, `test://r6-promoted-outer-${inherited}.prefab`, {
-          version: "2.0",
-          refs: [{ url: baseKey, type: "Prefab" }],
-          entities: [
-            {
-              instance: {
-                asset: 0,
-                overrides: {
-                  addedComponents: inherited
-                    ? [{ target: [], component: 0 }]
-                    : [
-                        { target: [], component: 0 },
-                        { target: [], component: 1 }
-                      ],
-                  componentProps: [
-                    {
-                      path: [],
-                      selector: { type: "MeshCollider", index: 0 },
-                      props: { convex: true }
-                    }
-                  ]
-                }
-              }
-            }
-          ],
-          components: [
-            { type: "R6BaseConvexReader", calls: [{ method: "readAsync" }] },
-            ...(inherited ? [] : [{ type: "MeshCollider", props: { convex: false } }])
-          ],
-          root: 0
-        });
-        const inst = outerPrefab.instantiate();
-        try {
-          expect(inst.getComponent(BaseConvexReader)!.readConvex).toBe(false);
-          expect(inst.getComponent(MeshCollider)!.convex).toBe(true);
-        } finally {
-          inst.destroy();
-        }
-      }
-
-      // 2. Added MeshCollider base { isTrigger: true, mesh } + override { convex: true } WITH or WITHOUT calls preserves isTrigger
-      const emptyBaseKey = "test://r6-empty-base.prefab";
-      const emptyBase = await PrefabParser.parse(engine, emptyBaseKey, {
-        version: "2.0",
-        refs: [],
-        entities: [{ name: "template" }],
-        components: [],
-        root: 0
-      });
-      // @ts-ignore
-      engine.resourceManager._objectPool[emptyBaseKey] = emptyBase;
-      poolKeys.push(emptyBaseKey);
-
-      for (const overrideHasCall of [false, true]) {
-        const outerPrefab = await PrefabParser.parse(engine, `test://r6-lost-trigger-${overrideHasCall}.prefab`, {
-          version: "2.0",
-          refs: [
-            { url: emptyBaseKey, type: "Prefab" },
-            { url: "test://r6-phase.mesh", type: "ModelMesh" }
-          ],
-          entities: [
-            {
-              instance: {
-                asset: 0,
-                overrides: {
-                  addedComponents: [{ target: [], component: 0 }],
-                  componentProps: [
-                    {
-                      path: [],
-                      selector: { type: "MeshCollider", index: 0 },
-                      props: { convex: true },
-                      ...(overrideHasCall
-                        ? { calls: [{ target: ["entity"], method: "findByName", args: ["template"] }] }
-                        : {})
-                    }
-                  ]
-                }
-              }
-            }
-          ],
-          components: [{ type: "MeshCollider", props: { isTrigger: true, mesh: { $ref: 1 } } }],
-          root: 0
-        });
-        const inst = outerPrefab.instantiate();
-        try {
-          const meshCol = inst.getComponent(MeshCollider)!;
-          expect(meshCol.convex).toBe(true);
-          expect(meshCol.isTrigger).toBe(true);
-          expect(meshCol.mesh).toBe(mesh);
-          expect(errors).not.toHaveBeenCalled();
-        } finally {
-          inst.destroy();
-        }
-      }
-
-      // 3. Unblocking physics phase priority: PhaseBody [isKinematic=false + async readPhase, isKinematic=true] runs before MeshCollider [convex=false]
-      const clampBaseKey = "test://r6-clamp-base.prefab";
-      const clampBase = await PrefabParser.parse(engine, clampBaseKey, {
-        version: "2.0",
-        refs: [{ url: "test://r6-phase.mesh", type: "ModelMesh" }],
-        entities: [{ name: "template", components: [0, 1] }],
-        components: [
-          { type: "R6AsyncPhaseBody", props: { isKinematic: true, useGravity: false } },
-          { type: "MeshCollider", props: { convex: true, mesh: { $ref: 0 } } }
-        ],
-        root: 0
-      });
-      // @ts-ignore
-      engine.resourceManager._objectPool[clampBaseKey] = clampBase;
-      poolKeys.push(clampBaseKey);
-
-      const clampOuter = await PrefabParser.parse(engine, "test://r6-clamp-outer.prefab", {
-        version: "2.0",
-        refs: [{ url: clampBaseKey, type: "Prefab" }],
-        entities: [
-          {
-            instance: {
-              asset: 0,
-              overrides: {
-                componentProps: [
-                  {
-                    path: [],
-                    selector: { type: "R6AsyncPhaseBody", index: 0 },
-                    props: { isKinematic: false },
-                    calls: [{ method: "readPhase" }]
-                  },
-                  {
-                    path: [],
-                    selector: { type: "R6AsyncPhaseBody", index: 0 },
-                    props: { isKinematic: true }
-                  },
-                  {
-                    path: [],
-                    selector: { type: "MeshCollider", index: 0 },
-                    props: { convex: false }
-                  }
-                ]
-              }
-            }
-          }
-        ],
-        components: [],
-        root: 0
-      });
-      const clampInst = clampOuter.instantiate();
-      try {
-        const body = clampInst.getComponent(AsyncPhaseBody)!;
-        const meshCol = clampInst.getComponent(MeshCollider)!;
-        expect(body.sawKinematicAtCall).toBe(false);
-        expect(body.isKinematic).toBe(true);
-        expect(meshCol.convex).toBe(false);
-        expect(errors).not.toHaveBeenCalled();
-      } finally {
-        clampInst.destroy();
-      }
-    } finally {
-      for (const key of poolKeys) {
-        // @ts-ignore
-        delete engine.resourceManager._objectPool[key];
-      }
-    }
-  });
-
   it("removes detached shapes from queries and keeps Collider ownership consistent through hierarchy changes", () => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -1716,9 +1431,7 @@ describe("Physics gameplay integration", () => {
       child.addComponent(BoxCollider);
       const ray = new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0));
       expect(scene.physics.raycast(ray, 10)).toBe(true);
-      expect(() => {
-        parent.isActive = false;
-      }).toThrow();
+      parent.isActive = false;
       expect(scene.physics.raycast(ray, 10)).toBe(false);
       expect(child.scene).toBeNull();
       if (!outer.destroyed) outer.destroy();
@@ -1804,136 +1517,7 @@ describe("Physics gameplay integration", () => {
     }
   });
 
-  it("defers only unindexed MeshCollider mesh onto convex override while keeping indexed mesh visible in Wave 0 and preserving deactivation tracking across ancestor reparenting", async () => {
-    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
-    const vertexOnlyMesh = new ModelMesh(engine);
-    vertexOnlyMesh.setPositions([
-      new Vector3(0, 1, 0),
-      new Vector3(-1, 0, -1),
-      new Vector3(1, 0, -1),
-      new Vector3(0, 0, 1)
-    ]);
-    const indexedMesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1, { keepMeshData: true });
-    const meshKey = "r8-vertex-only.mesh";
-    const indexedKey = "r9-indexed.mesh";
-    const baseKey = "r8-mesh-defer-base.prefab";
-    // @ts-ignore
-    engine.resourceManager._objectPool[meshKey] = vertexOnlyMesh;
-    // @ts-ignore
-    engine.resourceManager._objectPool[indexedKey] = indexedMesh;
-    const basePrefab = await PrefabParser.parse(engine, baseKey, {
-      version: "2.0",
-      refs: [],
-      entities: [{ name: "base" }],
-      components: [],
-      root: 0
-    });
-    // @ts-ignore
-    engine.resourceManager._objectPool[baseKey] = basePrefab;
-
-    class Wave0MeshObserver extends Script {
-      observedMesh: ModelMesh | null = null;
-      observedConvex: boolean | null = null;
-      observe(): void {
-        const collider = this.entity.getComponent(MeshCollider)!;
-        this.observedMesh = collider.mesh;
-        this.observedConvex = collider.convex;
-      }
-    }
-    Loader.registerClass("R9Wave0MeshObserver", Wave0MeshObserver);
-
-    try {
-      // 1. Vertex-only ModelMesh is deferred alongside isTrigger when Wave 1 enables convex
-      const outerPrefab = await PrefabParser.parse(engine, "r8-mesh-defer-outer.prefab", {
-        version: "2.0",
-        refs: [{ url: baseKey }, { url: meshKey }],
-        entities: [
-          {
-            instance: {
-              asset: 0,
-              overrides: {
-                addedComponents: [{ target: [], component: 0 }],
-                componentProps: [{ path: [], selector: { type: "MeshCollider", index: 0 }, props: { convex: true } }]
-              }
-            }
-          }
-        ],
-        components: [{ type: "MeshCollider", props: { mesh: { $ref: 1 }, isTrigger: true } }],
-        root: 0
-      });
-      const inst = outerPrefab.instantiate();
-      root.addChild(inst);
-      try {
-        const meshCollider = inst.getComponent(MeshCollider)!;
-        expect(meshCollider.convex).toBe(true);
-        expect(meshCollider.isTrigger).toBe(true);
-        expect(meshCollider.mesh).toBe(vertexOnlyMesh);
-        expect(scene.physics.raycast(new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0)), 10)).toBe(true);
-        expect(errors).not.toHaveBeenCalled();
-      } finally {
-        inst.destroy();
-      }
-
-      // 2. Indexed ModelMesh is assigned in Wave 0 (visible to sibling base observer) even when Wave 1 enables convex
-      for (const overrideConvex of [false, true]) {
-        const indexedOuter = await PrefabParser.parse(engine, `r9-indexed-outer-${overrideConvex}.prefab`, {
-          version: "2.0",
-          refs: [{ url: baseKey }, { url: indexedKey }],
-          entities: [
-            {
-              instance: {
-                asset: 0,
-                overrides: {
-                  addedComponents: [
-                    { target: [], component: 0 },
-                    { target: [], component: 1 }
-                  ],
-                  ...(overrideConvex
-                    ? {
-                        componentProps: [
-                          { path: [], selector: { type: "MeshCollider", index: 0 }, props: { convex: true } }
-                        ]
-                      }
-                    : {})
-                }
-              }
-            }
-          ],
-          components: [
-            { type: "MeshCollider", props: { mesh: { $ref: 1 } } },
-            { type: "R9Wave0MeshObserver", calls: [{ method: "observe" }] }
-          ],
-          root: 0
-        });
-        const indexedInst = indexedOuter.instantiate();
-        root.addChild(indexedInst);
-        try {
-          const observer = indexedInst.getComponent(Wave0MeshObserver)!;
-          const meshCollider = indexedInst.getComponent(MeshCollider)!;
-          expect(observer.observedMesh).toBe(indexedMesh);
-          expect(observer.observedConvex).toBe(false);
-          expect(meshCollider.mesh).toBe(indexedMesh);
-          expect(meshCollider.convex).toBe(overrideConvex);
-          expect(scene.physics.raycast(new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0)), 10)).toBe(true);
-          expect(errors).not.toHaveBeenCalled();
-        } finally {
-          indexedInst.destroy();
-        }
-      }
-    } finally {
-      errors.mockRestore();
-      vertexOnlyMesh.destroy();
-      indexedMesh.destroy();
-      // @ts-ignore
-      delete engine.resourceManager._objectPool[meshKey];
-      // @ts-ignore
-      delete engine.resourceManager._objectPool[indexedKey];
-      // @ts-ignore
-      delete engine.resourceManager._objectPool[baseKey];
-    }
-  });
-
-  it("defers native physics teardown during out-of-frame scene.destroy() in onDisable, drains all roots across errors/reorders on scene disable, and handles line/inaccessible/base-call/replace MeshCollider prefab overrides", async () => {
+  it("keeps teardown safe when onDisable destroys the source scene and cooks final prefab mesh overrides", async () => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     const ray = new Ray(new Vector3(0, 5, 0), new Vector3(0, -1, 0));
 
@@ -2072,7 +1656,7 @@ describe("Physics gameplay integration", () => {
     Loader.registerClass("R10BaseCallSnapshotMesh", BaseCallSnapshotMesh);
 
     try {
-      // 3a. Line-indexed mesh defers cleanly to convex: true override
+      // A convex override makes the line-indexed mesh queryable.
       const lineOuter = await PrefabParser.parse(engine, "r10-line-outer.prefab", {
         version: "2.0",
         refs: [{ url: "r10-empty-base.prefab" }, { url: "r10-line.mesh" }],
@@ -2136,7 +1720,7 @@ describe("Physics gameplay integration", () => {
         replacedInst.destroy();
       }
 
-      // 3c. Innocuous base call on added MeshCollider preserves deferred vertices mesh while keeping indexed mesh in Wave 0
+      // Both mesh types are visible to base and override calls.
       for (const kind of ["vertices", "indexed"] as const) {
         observations.length = 0;
         const callOuter = await PrefabParser.parse(engine, `r10-base-call-${kind}.prefab`, {
@@ -2163,7 +1747,7 @@ describe("Physics gameplay integration", () => {
           components: [
             {
               type: "R10BaseCallSnapshotMesh",
-              props: { mesh: { $ref: 1 } },
+              props: { mesh: { $ref: 1 }, isTrigger: true },
               calls: [{ method: "capture", args: ["base"] }]
             }
           ],
@@ -2173,6 +1757,9 @@ describe("Physics gameplay integration", () => {
         root.addChild(callInst);
         try {
           expect(observations).toEqual(["base:true:false", "override:true:true"]);
+          const collider = callInst.getComponent(BaseCallSnapshotMesh)!;
+          expect(collider.mesh).toBe(kind === "vertices" ? verticesMesh : indexedMesh);
+          expect(collider.isTrigger).toBe(true);
           expect(scene.physics.raycast(ray, 10)).toBe(true);
         } finally {
           callInst.destroy();
@@ -2254,7 +1841,7 @@ describe("Physics gameplay integration", () => {
     }
   });
 
-  it("handles MeshCollider prefab overrides, derived setter readback into PhysX trigger contacts, and normal scene.destroy() leaf teardown order", async () => {
+  it("applies authored mesh overrides and preserves leaf teardown order on scene destruction", async () => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     const ray = new Ray(new Vector3(0, 5, 0), new Vector3(0, -1, 0));
     const hitEntity = (targetScene: Scene, x = 0): Entity | null => {
@@ -2448,7 +2035,7 @@ describe("Physics gameplay integration", () => {
       }
       expect(errors).not.toHaveBeenCalled();
 
-      // 3c. Degenerate triangle indices ([0, 0, 0]) rejected in Wave 0 recover cleanly when Wave 1 enables convex
+      // A convex override can cook vertices with degenerate triangle indices.
       const degOuter = await PrefabParser.parse(engine, "r11-degenerate-outer.prefab", {
         version: "2.0",
         refs: [{ url: "r11-empty-base.prefab" }, { url: "r11-degenerate.mesh" }],

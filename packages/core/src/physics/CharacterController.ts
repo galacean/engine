@@ -33,8 +33,6 @@ export class CharacterController extends Collider {
   private _inScene = false;
   @ignoreClone
   private _syncedCenter = new Vector3();
-  @ignoreClone
-  private _syncedPosition = new Vector3();
 
   /**
    * The geometry type of the controller.
@@ -234,7 +232,7 @@ export class CharacterController extends Collider {
     const transform = this.entity.transform;
     transform.worldPosition = position;
     // Cache what the Entity reports so the next sync does not teleport the controller over a rounding difference
-    this._syncedPosition.copyFrom(transform.worldPosition);
+    this._nativePosition.copyFrom(transform.worldPosition);
     return flags;
   }
 
@@ -267,41 +265,53 @@ export class CharacterController extends Collider {
       Math.abs(lossyScale.y),
       Math.abs(lossyScale.z)
     );
-    if (!this._hasValidGeometry(scale)) {
-      this._detach();
-      return;
+    const force = !this._inScene;
+    const syncGeometry = force || this._geometryDirty || this._scaleChanged(scale);
+    const box = this._geometry === CharacterControllerGeometry.Box;
+    const dimensions = CharacterController._tempExtents;
+    if (syncGeometry) {
+      if (box) {
+        const size = this._size;
+        dimensions.set(size.x * scale.x * 0.5, size.y * scale.y * 0.5, size.z * scale.z * 0.5);
+      } else {
+        dimensions.set(this._radius * Math.max(scale.x, scale.z), this._height * scale.y, 0);
+      }
+      if (
+        !Collider._isValidPositiveFloat32(dimensions.x) ||
+        !Collider._isValidPositiveFloat32(dimensions.y) ||
+        (box && !Collider._isValidPositiveFloat32(dimensions.z))
+      ) {
+        this._detach();
+        return;
+      }
     }
 
     const controller = <ICharacterController>(this._native ||= this._createNative());
-    const force = !this._inScene;
-
-    const center = CharacterController._tempExtents;
+    const center = CharacterController._tempWorldPosition;
     Vector3.multiply(this.center, scale, center);
     const position = transform.worldPosition;
     const syncedCenter = this._syncedCenter;
-    const syncedPosition = this._syncedPosition;
+    const nativePosition = this._nativePosition;
     if (
       force ||
       center.x !== syncedCenter.x ||
       center.y !== syncedCenter.y ||
       center.z !== syncedCenter.z ||
-      position.x !== syncedPosition.x ||
-      position.y !== syncedPosition.y ||
-      position.z !== syncedPosition.z
+      position.x !== nativePosition.x ||
+      position.y !== nativePosition.y ||
+      position.z !== nativePosition.z
     ) {
       syncedCenter.copyFrom(center);
-      syncedPosition.copyFrom(position);
+      nativePosition.copyFrom(position);
       controller.setWorldPosition(position, center);
     }
-    if (force || this._geometryDirty || this._scaleChanged(scale)) {
+    if (syncGeometry) {
       this._geometryDirty = false;
       this._nativeScale.copyFrom(scale);
-      if (this._geometry === CharacterControllerGeometry.Box) {
-        const halfExtents = CharacterController._tempExtents;
-        Vector3.multiply(this._size, scale, halfExtents);
-        controller.setBox(halfExtents.scale(0.5));
+      if (box) {
+        controller.setBox(dimensions);
       } else {
-        controller.setCapsule(this._radius * Math.max(scale.x, scale.z), this._height * scale.y);
+        controller.setCapsule(dimensions.x, dimensions.y);
       }
     }
     if (force) {
@@ -352,60 +362,17 @@ export class CharacterController extends Collider {
     this._setGeometryDirty();
   }
 
-  private _hasValidGeometry(scale: Vector3): boolean {
-    if (this._geometry === CharacterControllerGeometry.Box) {
-      const size = this._size;
-      return (
-        Collider._isValidPositiveFloat32(size.x * scale.x * 0.5) &&
-        Collider._isValidPositiveFloat32(size.y * scale.y * 0.5) &&
-        Collider._isValidPositiveFloat32(size.z * scale.z * 0.5)
-      );
-    }
-    return (
-      Collider._isValidPositiveFloat32(this._radius * Math.max(scale.x, scale.z)) &&
-      Collider._isValidPositiveFloat32(this._height * scale.y)
-    );
-  }
-
   /** @internal */
   override _findRigidbody(): Rigidbody | null {
     return null;
   }
 
-  @ignoreClone
   private _onSizeChanged(): void {
-    const size = this._size;
-    const xFinite = Number.isFinite(size.x);
-    const yFinite = Number.isFinite(size.y);
-    const zFinite = Number.isFinite(size.z);
-    if (!xFinite || !yFinite || !zFinite) {
-      //@ts-ignore
-      const listener = size._onValueChanged;
-      //@ts-ignore
-      size._onValueChanged = null;
-      size.set(
-        xFinite && size.x >= 0 ? size.x : 0,
-        yFinite && size.y >= 0 ? size.y : 0,
-        zFinite && size.z >= 0 ? size.z : 0
-      );
-      //@ts-ignore
-      size._onValueChanged = listener;
-      this._setGeometryDirty();
-      throw new Error("CharacterController size must be finite.");
-    }
-    if (size.x < 0 || size.y < 0 || size.z < 0) {
-      //@ts-ignore
-      const listener = size._onValueChanged;
-      //@ts-ignore
-      size._onValueChanged = null;
-      size.set(size.x < 0 ? 0 : size.x, size.y < 0 ? 0 : size.y, size.z < 0 ? 0 : size.z);
-      //@ts-ignore
-      size._onValueChanged = listener;
-    }
+    const finite = CharacterController._clampBoxSize(this._size);
     this._setGeometryDirty();
+    if (!finite) throw new Error("CharacterController size must be finite.");
   }
 
-  @ignoreClone
   private _setGeometryDirty(): void {
     this._geometryDirty = true;
     this._markDirty();

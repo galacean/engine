@@ -6,17 +6,9 @@ import type { PrefabFile } from "./schema/PrefabSchema";
 @resourceLoader(AssetType.Prefab, ["prefab"])
 export class PrefabLoader extends Loader<PrefabResource> {
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<PrefabResource> {
-    const engine = resourceManager.engine;
-
-    return new AssetPromise((resolve, reject) => {
-      resourceManager
-        ._request<PrefabFile>(item.url!, {
-          ...item,
-          type: "json"
-        })
-        .then((data) => {
-          PrefabParser.parse(engine, item.url!, data).then(resolve).catch(reject);
-        }, reject);
-    });
+    const url = item.url!;
+    return resourceManager
+      ._request<PrefabFile>(url, { ...item, type: "json" })
+      .then((data) => PrefabParser.parse(resourceManager.engine, url, data));
   }
 }

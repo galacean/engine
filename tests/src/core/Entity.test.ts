@@ -828,6 +828,37 @@ describe("Entity", async () => {
       }
     });
 
+    it("reparents a removing root under a detached entity from onDisable", () => {
+      const source = new Scene(engine);
+      engine.sceneManager.addScene(source);
+      const target = new Entity(engine);
+      const moving = source.createRootEntity();
+      moving.addComponent(BoxCollider);
+      moving.addComponent(
+        class extends Script {
+          override onDisable(): void {
+            target.addChild(this.entity);
+          }
+        }
+      );
+      const ray = new Ray(new Vector3(0, 5, 0), new Vector3(0, -1, 0));
+      const hit = new HitResult();
+
+      try {
+        expect(source.physics.raycast(ray, hit)).toBe(true);
+        expect(() => source.removeRootEntity(moving)).not.toThrow();
+        expect(moving.parent).toBe(target);
+        expect(moving.scene).toBe(target.scene);
+        expect(source.physics.raycast(ray, hit)).toBe(false);
+        source.addRootEntity(target);
+        expect(source.physics.raycast(ray, hit)).toBe(true);
+        expect(hit.entity).toBe(moving);
+      } finally {
+        source.destroy();
+        target.destroy();
+      }
+    });
+
     it.each(["throw", "redirect", "detach child", "detach root"] as const)(
       "keeps hierarchy and physics ownership coherent across onDisable (%s)",
       (mode) => {

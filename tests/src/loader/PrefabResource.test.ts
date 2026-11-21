@@ -1,6 +1,7 @@
-import { expect, beforeAll, afterAll, describe, it, vi } from "vitest";
-import { WebGLEngine } from "@galacean/engine";
-import { Loader, MeshCollider, MeshRenderer, Rigidbody, Script } from "@galacean/engine-core";
+import { expect, beforeAll, afterAll, describe, it } from "vitest";
+import { AssetType, WebGLEngine } from "@galacean/engine";
+import { Loader, MeshRenderer, Script } from "@galacean/engine-core";
+import type { PrefabResource } from "@galacean/engine-loader";
 import { PrefabParser } from "../../../packages/loader/src/prefab/PrefabParser";
 import type { PrefabFile } from "../../../packages/loader/src/schema/PrefabSchema";
 
@@ -44,8 +45,80 @@ afterAll(() => {
   engine?.destroy();
 });
 
+async function loadPrefab(data: PrefabFile): Promise<PrefabResource> {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
+  try {
+    return await engine.resourceManager.load<PrefabResource>({ url, type: AssetType.Prefab });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+describe("Prefab mutation blocks", () => {
+  it.each([false, true])("handles started property rejections when a setter throws (nested: %s)", async (nested) => {
+    const failure = new Error("prefab property setter failed");
+    class RejectingProperties extends Script {
+      state = {
+        set invalid(_value: boolean) {
+          throw failure;
+        }
+      };
+
+      set invalid(_value: boolean) {
+        throw failure;
+      }
+    }
+    Loader.registerClass("RejectingProperties", RejectingProperties);
+    const props = { resource: { $ref: 0 }, invalid: true };
+
+    await expect(
+      loadPrefab({
+        version: "2.0",
+        refs: [],
+        root: 0,
+        entities: [{ components: [0] }],
+        components: [{ type: "RejectingProperties", props: nested ? { state: props } : props }]
+      })
+    ).rejects.toThrow(failure);
+  });
+
+  it("applies result blocks to plain objects with a destroyed property", async () => {
+    const results: number[] = [];
+    class ReturnsObject extends Script {
+      createResult() {
+        return {
+          destroyed: true,
+          value: 0,
+          report() {
+            results.push(this.value);
+          }
+        };
+      }
+    }
+    Loader.registerClass("ReturnsObject", ReturnsObject);
+
+    const prefab = await loadPrefab({
+      version: "2.0",
+      refs: [],
+      root: 0,
+      entities: [{ components: [0] }],
+      components: [
+        {
+          type: "ReturnsObject",
+          calls: [{ method: "createResult", result: { props: { value: 42 }, calls: [{ method: "report" }] } }]
+        }
+      ]
+    });
+    try {
+      expect(results).toEqual([42]);
+    } finally {
+      prefab.destroy();
+    }
+  });
+});
+
 describe("PrefabResource refCount", () => {
-  it("should reject prefab data with an unsupported version", () => {
+  it("rejects loading a prefab with an unsupported version", async () => {
     const prefabData = {
       version: "1.0",
       refs: [],
@@ -54,9 +127,7 @@ describe("PrefabResource refCount", () => {
       root: 0
     } as any;
 
-    expect(() => PrefabParser.parse(engine, "invalid.prefab", prefabData)).toThrow(
-      'Unsupported prefab format version "1.0". Expected "2.0".'
-    );
+    await expect(loadPrefab(prefabData)).rejects.toThrow('Unsupported prefab format version "1.0". Expected "2.0".');
   });
 
   it("should increase and decrease with instantiated entities", async () => {
@@ -1194,1113 +1265,108 @@ describe("Cross-prefab $component ref", () => {
     }
   });
 
-  it("should defer only isTrigger onto convex override while keeping other base props in Wave 0, avoid deadlocking neutral async blocks, and serialize paired restrict-relax physics cycles", async () => {
-    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+  it.each([
+    { overrides: false, fails: false },
+    { overrides: true, fails: false },
+    { overrides: false, fails: true }
+  ])("runs a sibling call while another is waiting ($overrides, $fails)", async ({ overrides, fails }) => {
+    const type = "ConcurrentPrefabScript";
+    const failure = new Error("sibling prefab call failed");
+    const seen: string[] = [];
+    let start: () => void;
+    let release: () => void;
+    const started = new Promise<void>((resolve) => (start = resolve));
+    const waiting = new Promise<void>((resolve) => (release = resolve));
+    class ConcurrentPrefabScript extends Script {
+      async waitForSibling(): Promise<void> {
+        seen.push("waiting");
+        start();
+        await waiting;
+        seen.push("resumed");
+      }
 
-    class WaveEnabledReader extends Rigidbody {
-      seenEnabled: boolean | null = null;
-      seenCenterX: number | null = null;
-      observe(): void {
-        const mesh = this.entity.getComponent(MeshCollider)!;
-        this.seenEnabled = mesh.enabled;
-        this.seenCenterX = mesh.center.x;
+      async signal(): Promise<void> {
+        await started;
+        seen.push("signalled");
+        if (fails) throw failure;
+        release();
       }
     }
-    class WaveScriptReader extends Script {
-      seenCenterX: number | null = null;
-      observe(): void {
-        this.seenCenterX = this.entity.getComponent(MeshCollider)!.center.x;
-      }
-    }
-    class PairedBody extends Rigidbody {
-      seen: boolean | undefined;
-      observe(): void {
-        this.seen = this.isKinematic;
-      }
-    }
-    class PairedMesh extends MeshCollider {
-      seen: boolean | undefined;
-      observe(): void {
-        this.seen = this.convex;
-      }
-    }
-    Loader.registerClass("R7WaveEnabledReader", WaveEnabledReader);
-    Loader.registerClass("R7WaveScriptReader", WaveScriptReader);
-    Loader.registerClass("R7PairedBody", PairedBody);
-    Loader.registerClass("R7PairedMesh", PairedMesh);
+    Loader.registerClass(type, ConcurrentPrefabScript);
 
-    const emptyBase = await PrefabParser.parse(engine, "r7-empty-base.prefab", {
+    const calls = [[{ method: "waitForSibling" }], [{ method: "signal" }]];
+    let data: PrefabFile = {
       version: "2.0",
       refs: [],
-      entities: [{ name: "template" }],
-      components: [],
-      root: 0
-    });
-    // @ts-ignore
-    engine.resourceManager._objectPool["r7-empty-base.prefab"] = emptyBase;
-
-    const pairedBase = await PrefabParser.parse(engine, "r7-paired-base.prefab", {
-      version: "2.0",
-      refs: [],
-      entities: [{ name: "root", components: [0, 1] }],
-      components: [
-        { type: "R7PairedBody", props: { isKinematic: true } },
-        { type: "R7PairedMesh", props: { convex: true } }
-      ],
-      root: 0
-    });
-    // @ts-ignore
-    engine.resourceManager._objectPool["r7-paired-base.prefab"] = pairedBase;
-
-    try {
-      // 1. Surgical isTrigger deferral: enabled & center stay in Wave 0 for both Rigidbody and Script observers
-      const deferPrefab = await PrefabParser.parse(engine, "r7-enabled-deferral.prefab", {
-        version: "2.0",
-        refs: [{ url: "r7-empty-base.prefab" }],
+      root: 0,
+      entities: [{ components: [0, 1] }],
+      components: calls.map((calls) => ({ type, calls }))
+    };
+    let templateUrl: string;
+    if (overrides) {
+      const template = { ...data, components: [{ type }, { type }] };
+      templateUrl = URL.createObjectURL(new Blob([JSON.stringify(template)], { type: "application/json" }));
+      const templatePath = "concurrent-template.prefab";
+      engine.resourceManager.registerVirtualResources([
+        { virtualPath: templatePath, path: templateUrl, type: AssetType.Prefab }
+      ]);
+      data = {
+        ...data,
+        refs: [{ url: templatePath }],
         entities: [
           {
             instance: {
               asset: 0,
               overrides: {
-                addedComponents: [
-                  { target: [], component: 0 },
-                  { target: [], component: 1 },
-                  { target: [], component: 2 }
-                ],
-                componentProps: [
-                  {
-                    path: [],
-                    selector: { type: "MeshCollider", index: 0 },
-                    props: { convex: true },
-                    calls: [{ target: ["entity"], method: "findByName", args: ["template"] }]
-                  }
-                ]
+                componentProps: calls.map((calls, index) => ({ path: [], selector: { type, index }, calls }))
               }
             }
           }
         ],
-        components: [
-          { type: "MeshCollider", props: { isTrigger: true, enabled: false, center: { x: 7, y: 0, z: 0 } } },
-          { type: "R7WaveEnabledReader", props: { isKinematic: false }, calls: [{ method: "observe" }] },
-          { type: "R7WaveScriptReader", calls: [{ method: "observe" }] }
-        ],
-        root: 0
-      });
-      const deferInst = deferPrefab.instantiate();
-      try {
-        const mesh = deferInst.getComponent(MeshCollider)!;
-        const bodyReader = deferInst.getComponent(WaveEnabledReader)!;
-        const scriptReader = deferInst.getComponent(WaveScriptReader)!;
-        expect(bodyReader.seenEnabled).toBe(false);
-        expect(bodyReader.seenCenterX).toBe(7);
-        expect(scriptReader.seenCenterX).toBe(7);
-        expect(mesh.enabled).toBe(false);
-        expect(mesh.center.x).toBe(7);
-        expect(mesh.convex).toBe(true);
-        expect(mesh.isTrigger).toBe(true);
-      } finally {
-        deferInst.destroy();
-      }
-
-      // 2. Neutral async chains never deadlock behind unrelated MeshCollider (neutral contactOffset OR phased convex)
-      for (const mode of ["none", "neutral-mesh", "phased-mesh"] as const) {
-        let unblock!: () => void;
-        const gate = new Promise<void>((r) => (unblock = r));
-        const seen: string[] = [];
-        class WaitScript extends Script {
-          async wait(): Promise<void> {
-            seen.push("wait");
-            await gate;
-            seen.push("resumed");
-          }
-        }
-        class ReleaseScript extends Script {
-          stage(): void {
-            seen.push("stage");
-          }
-          release(): void {
-            seen.push("release");
-            unblock();
-          }
-        }
-        const waitType = `R7Wait_${mode}`;
-        const releaseType = `R7Release_${mode}`;
-        Loader.registerClass(waitType, WaitScript);
-        Loader.registerClass(releaseType, ReleaseScript);
-
-        const withMesh = mode !== "none";
-        const baseKey = `r7-neutral-base-${mode}.prefab`;
-        const neutralBase = await PrefabParser.parse(engine, baseKey, {
-          version: "2.0",
-          refs: [],
-          entities: [{ name: "template", components: withMesh ? [0, 1, 2] : [0, 1] }],
-          components: [{ type: waitType }, { type: releaseType }, ...(withMesh ? [{ type: "MeshCollider" }] : [])],
-          root: 0
-        });
-        // @ts-ignore
-        engine.resourceManager._objectPool[baseKey] = neutralBase;
-
-        try {
-          const neutralOuter = await PrefabParser.parse(engine, `r7-neutral-outer-${mode}.prefab`, {
-            version: "2.0",
-            refs: [{ url: baseKey }],
-            entities: [
-              {
-                instance: {
-                  asset: 0,
-                  overrides: {
-                    componentProps: [
-                      { path: [], selector: { type: waitType, index: 0 }, calls: [{ method: "wait" }] },
-                      { path: [], selector: { type: releaseType, index: 0 }, calls: [{ method: "stage" }] },
-                      { path: [], selector: { type: releaseType, index: 0 }, calls: [{ method: "release" }] },
-                      ...(mode === "neutral-mesh"
-                        ? [{ path: [], selector: { type: "MeshCollider", index: 0 }, props: { contactOffset: 0.04 } }]
-                        : mode === "phased-mesh"
-                          ? [{ path: [], selector: { type: "MeshCollider", index: 0 }, props: { convex: true } }]
-                          : [])
-                    ]
-                  }
-                }
-              }
-            ],
-            components: [],
-            root: 0
-          });
-          const inst = neutralOuter.instantiate();
-          inst.destroy();
-          expect(seen).toEqual(["wait", "stage", "release", "resumed"]);
-        } finally {
-          // @ts-ignore
-          delete engine.resourceManager._objectPool[baseKey];
-        }
-      }
-
-      // 3. Paired Rigidbody & MeshCollider restrict->relax cycles succeed cleanly in both override orders
-      const bodyBlocks = [
-        {
-          path: [],
-          selector: { type: "R7PairedBody", index: 0 },
-          props: { isKinematic: false },
-          calls: [{ method: "observe" }]
-        },
-        { path: [], selector: { type: "R7PairedBody", index: 0 }, props: { isKinematic: true } }
-      ];
-      const meshBlocks = [
-        {
-          path: [],
-          selector: { type: "R7PairedMesh", index: 0 },
-          props: { convex: false },
-          calls: [{ method: "observe" }]
-        },
-        { path: [], selector: { type: "R7PairedMesh", index: 0 }, props: { convex: true } }
-      ];
-      for (const order of ["body-first", "mesh-first"] as const) {
-        const pairedOuter = await PrefabParser.parse(engine, `r7-paired-${order}.prefab`, {
-          version: "2.0",
-          refs: [{ url: "r7-paired-base.prefab" }],
-          entities: [
-            {
-              instance: {
-                asset: 0,
-                overrides: {
-                  componentProps:
-                    order === "body-first" ? [...bodyBlocks, ...meshBlocks] : [...meshBlocks, ...bodyBlocks]
-                }
-              }
-            }
-          ],
-          components: [],
-          root: 0
-        });
-        const inst = pairedOuter.instantiate();
-        try {
-          const b = inst.getComponent(PairedBody)!;
-          const m = inst.getComponent(PairedMesh)!;
-          expect(b.seen).toBe(false);
-          expect(m.seen).toBe(false);
-          expect(b.isKinematic).toBe(true);
-          expect(m.convex).toBe(true);
-        } finally {
-          inst.destroy();
-        }
-      }
-
-      // 4. Independent phased Rigidbody chains & independent MeshCollider chains & Script+MeshCollider phaseCalls run concurrently (no deadlock)
-      for (const withRelaxation of [false, true]) {
-        let release!: () => void;
-        const gate = new Promise<void>((r) => (release = r));
-        const observed: string[] = [];
-        class WaitingBody extends Rigidbody {
-          async runCall(): Promise<void> {
-            observed.push(`waiting:${this.isKinematic}`);
-            await gate;
-            observed.push("ready");
-          }
-        }
-        class SignalBody extends Rigidbody {
-          runCall(): void {
-            observed.push(`release:${this.isKinematic}`);
-            release();
-          }
-        }
-        const waitKey = `R8WaitBody_${withRelaxation}`;
-        const sigKey = `R8SigBody_${withRelaxation}`;
-        Loader.registerClass(waitKey, WaitingBody);
-        Loader.registerClass(sigKey, SignalBody);
-
-        const baseKey = `r8-bodies-base-${withRelaxation}.prefab`;
-        const bodiesBase = await PrefabParser.parse(engine, baseKey, {
-          version: "2.0",
-          refs: [],
-          entities: [
-            { name: "root", children: [1, 2] },
-            { name: "a", components: [0] },
-            { name: "b", components: [1] }
-          ],
-          components: [
-            { type: waitKey, props: { isKinematic: true } },
-            { type: sigKey, props: { isKinematic: true } }
-          ],
-          root: 0
-        });
-        // @ts-ignore
-        engine.resourceManager._objectPool[baseKey] = bodiesBase;
-        try {
-          const calls = [waitKey, sigKey].flatMap((type, i) => {
-            const target = { path: [i], selector: { type, index: 0 } };
-            return [
-              { ...target, props: { isKinematic: false }, calls: [{ method: "runCall" }] },
-              ...(withRelaxation ? [{ ...target, props: { isKinematic: true } }] : [])
-            ];
-          });
-          const bodiesOuter = await PrefabParser.parse(engine, `r8-bodies-outer-${withRelaxation}.prefab`, {
-            version: "2.0",
-            refs: [{ url: baseKey }],
-            entities: [{ instance: { asset: 0, overrides: { componentProps: calls } } }],
-            components: [],
-            root: 0
-          });
-          const inst = bodiesOuter.instantiate();
-          try {
-            expect(observed).toEqual(["waiting:false", "release:false", "ready"]);
-            expect(inst.children.map((e) => e.getComponent(Rigidbody)!.isKinematic)).toEqual([
-              withRelaxation,
-              withRelaxation
-            ]);
-          } finally {
-            inst.destroy();
-          }
-        } finally {
-          // @ts-ignore
-          delete engine.resourceManager._objectPool[baseKey];
-        }
-      }
-
-      // Independent MeshCollider restrict->relax pairs & neutral Script + standalone MeshCollider phase calls
-      for (const mode of ["control", "restrict", "relax", "paired"] as const) {
-        let unblock!: () => void;
-        const gate = new Promise<void>((r) => (unblock = r));
-        const seen: string[] = [];
-        class PhaseScript extends Script {
-          async wait(): Promise<void> {
-            seen.push("wait");
-            await gate;
-            seen.push("resumed");
-          }
-          release(): void {
-            seen.push("release");
-            unblock();
-          }
-        }
-        class PhaseMesh extends MeshCollider {
-          async wait(): Promise<void> {
-            seen.push(`wait:${this.convex}`);
-            await gate;
-            seen.push("resumed");
-          }
-          release(): void {
-            seen.push(`release:${this.convex}`);
-            unblock();
-          }
-        }
-        const scriptKey = `R8PhaseScript_${mode}`;
-        const meshKey = `R8PhaseMesh_${mode}`;
-        Loader.registerClass(scriptKey, PhaseScript);
-        Loader.registerClass(meshKey, PhaseMesh);
-
-        const baseKey = `r8-phase-base-${mode}.prefab`;
-        const baseData: PrefabFile =
-          mode === "paired"
-            ? {
-                version: "2.0",
-                refs: [],
-                entities: [
-                  { name: "root", children: [1, 2] },
-                  { name: "first", components: [0] },
-                  { name: "second", components: [1] }
-                ],
-                components: [
-                  { type: meshKey, props: { convex: true } },
-                  { type: meshKey, props: { convex: true } }
-                ],
-                root: 0
-              }
-            : {
-                version: "2.0",
-                refs: [],
-                entities: [{ name: "root", components: [0, 1] }],
-                components: [{ type: scriptKey }, { type: meshKey, props: { convex: mode === "restrict" } }],
-                root: 0
-              };
-        const phaseBase = await PrefabParser.parse(engine, baseKey, baseData);
-        // @ts-ignore
-        engine.resourceManager._objectPool[baseKey] = phaseBase;
-        try {
-          const componentProps =
-            mode === "paired"
-              ? [
-                  {
-                    path: [0],
-                    selector: { type: meshKey, index: 0 },
-                    props: { convex: false },
-                    calls: [{ method: "wait" }]
-                  },
-                  { path: [0], selector: { type: meshKey, index: 0 }, props: { convex: true } },
-                  {
-                    path: [1],
-                    selector: { type: meshKey, index: 0 },
-                    props: { convex: false },
-                    calls: [{ method: "release" }]
-                  },
-                  { path: [1], selector: { type: meshKey, index: 0 }, props: { convex: true } }
-                ]
-              : [
-                  {
-                    path: [],
-                    selector: { type: scriptKey, index: 0 },
-                    calls: [{ method: mode === "relax" ? "release" : "wait" }]
-                  },
-                  {
-                    path: [],
-                    selector: { type: meshKey, index: 0 },
-                    props: mode === "control" ? { contactOffset: 0.04 } : { convex: mode === "relax" },
-                    calls: [{ method: mode === "relax" ? "wait" : "release" }]
-                  }
-                ];
-          const phaseOuter = await PrefabParser.parse(engine, `r8-phase-outer-${mode}.prefab`, {
-            version: "2.0",
-            refs: [{ url: baseKey }],
-            entities: [{ instance: { asset: 0, overrides: { componentProps } } }],
-            components: [],
-            root: 0
-          });
-          const inst = phaseOuter.instantiate();
-          inst.destroy();
-          expect(seen).toContain("resumed");
-        } finally {
-          // @ts-ignore
-          delete engine.resourceManager._objectPool[baseKey];
-        }
-      }
-
-      // 5. Wave 0 primitive prop fast path: MeshCollider center is visible to sibling Script.observe() for both isTrigger=false and isTrigger=true
-      for (const trigger of [false, true]) {
-        const centerPrefab = await PrefabParser.parse(engine, `r8-center-${trigger}.prefab`, {
-          version: "2.0",
-          refs: [{ url: "r7-empty-base.prefab" }],
-          entities: [
-            {
-              instance: {
-                asset: 0,
-                overrides: {
-                  addedComponents: [
-                    { target: [], component: 0 },
-                    { target: [], component: 1 }
-                  ],
-                  componentProps: [{ path: [], selector: { type: "MeshCollider", index: 0 }, props: { convex: true } }]
-                }
-              }
-            }
-          ],
-          components: [
-            { type: "MeshCollider", props: { center: { x: 7, y: 0, z: 0 }, isTrigger: trigger } },
-            { type: "R7WaveScriptReader", calls: [{ method: "observe" }] }
-          ],
-          root: 0
-        });
-        const inst = centerPrefab.instantiate();
-        try {
-          expect(inst.getComponent(WaveScriptReader)!.seenCenterX).toBe(7);
-          expect(inst.getComponent(MeshCollider)!.center.x).toBe(7);
-        } finally {
-          inst.destroy();
-        }
-      }
-
-      // 6. Same-group Rigidbody + already-convex MeshCollider setting isTrigger: true runs concurrently with zero deadlock
-      for (const isTriggered of [false, true]) {
-        let unblock!: () => void;
-        const gate = new Promise<void>((r) => (unblock = r));
-        const observed: string[] = [];
-        class GroupedWaitBody extends Rigidbody {
-          async wait(): Promise<void> {
-            observed.push(`wait:${this.isKinematic}`);
-            await gate;
-            observed.push("resumed");
-          }
-        }
-        class GroupedTriggerMesh extends MeshCollider {
-          signal(): void {
-            observed.push(`signal:${this.convex}:${this.isTrigger}`);
-            unblock();
-          }
-        }
-        const bodyType = `R9GroupedWaitBody_${isTriggered}`;
-        const meshType = `R9GroupedTriggerMesh_${isTriggered}`;
-        Loader.registerClass(bodyType, GroupedWaitBody);
-        Loader.registerClass(meshType, GroupedTriggerMesh);
-
-        const baseKey = `r9-grouped-trigger-base-${isTriggered}.prefab`;
-        const groupedBase = await PrefabParser.parse(engine, baseKey, {
-          version: "2.0",
-          refs: [],
-          entities: [{ name: "root", components: [0, 1] }],
-          components: [
-            { type: bodyType, props: { isKinematic: true } },
-            { type: meshType, props: { convex: true } }
-          ],
-          root: 0
-        });
-        // @ts-ignore
-        engine.resourceManager._objectPool[baseKey] = groupedBase;
-        try {
-          const groupedOuter = await PrefabParser.parse(engine, `r9-grouped-trigger-outer-${isTriggered}.prefab`, {
-            version: "2.0",
-            refs: [{ url: baseKey }],
-            entities: [
-              {
-                instance: {
-                  asset: 0,
-                  overrides: {
-                    componentProps: [
-                      {
-                        path: [],
-                        selector: { type: bodyType, index: 0 },
-                        props: { isKinematic: false },
-                        calls: [{ method: "wait" }]
-                      },
-                      { path: [], selector: { type: bodyType, index: 0 }, props: { isKinematic: true } },
-                      {
-                        path: [],
-                        selector: { type: meshType, index: 0 },
-                        props: isTriggered ? { isTrigger: true } : { contactOffset: 0.04 },
-                        calls: [{ method: "signal" }]
-                      }
-                    ]
-                  }
-                }
-              }
-            ],
-            components: [],
-            root: 0
-          });
-          const inst = groupedOuter.instantiate();
-          try {
-            const body = inst.getComponent(GroupedWaitBody)!;
-            const mesh = inst.getComponent(GroupedTriggerMesh)!;
-            expect(observed).toContain("resumed");
-            expect(observed).toContain(`signal:true:${isTriggered}`);
-            expect(body.isKinematic).toBe(true);
-            expect(mesh.isTrigger).toBe(isTriggered);
-          } finally {
-            inst.destroy();
-          }
-        } finally {
-          // @ts-ignore
-          delete engine.resourceManager._objectPool[baseKey];
-        }
-      }
-
-      // 7. Same-group Rigidbody / MeshCollider relaxing props satisfy the phase barrier without waiting on async calls (both directions)
-      for (const mode of ["body-waits-mesh", "mesh-waits-body-noop", "mesh-waits-body-change"] as const) {
-        let unblock!: () => void;
-        const gate = new Promise<void>((r) => (unblock = r));
-        const seen: string[] = [];
-        const bodyWaits = mode === "body-waits-mesh";
-        class CoupledBody extends Rigidbody {
-          async boot(): Promise<void> {
-            seen.push(`body:${this.isKinematic}`);
-            await gate;
-            seen.push("body-done");
-          }
-          signal(): void {
-            seen.push(`body:${this.isKinematic}`);
-            unblock();
-          }
-        }
-        class CoupledMesh extends MeshCollider {
-          async waitForBody(): Promise<void> {
-            seen.push(`mesh-wait:${this.convex}`);
-            await gate;
-            seen.push("mesh-done");
-          }
-          notify(): void {
-            seen.push(`mesh:${this.convex}`);
-            unblock();
-          }
-        }
-        const bodyType = `R10CoupledBody_${mode}`;
-        const meshType = `R10CoupledMesh_${mode}`;
-        Loader.registerClass(bodyType, CoupledBody);
-        Loader.registerClass(meshType, CoupledMesh);
-
-        const baseKey = `r10-coupled-base-${mode}.prefab`;
-        const coupledBase = await PrefabParser.parse(engine, baseKey, {
-          version: "2.0",
-          refs: [],
-          entities: [
-            { name: "body", components: [0], children: [1] },
-            { name: "mesh", components: [1] }
-          ],
-          components: [
-            { type: bodyType, props: { isKinematic: !bodyWaits } },
-            { type: meshType, props: { convex: mode !== "mesh-waits-body-change" } }
-          ],
-          root: 0
-        });
-        // @ts-ignore
-        engine.resourceManager._objectPool[baseKey] = coupledBase;
-        try {
-          const componentProps = bodyWaits
-            ? [
-                {
-                  path: [],
-                  selector: { type: bodyType, index: 0 },
-                  props: { isKinematic: true },
-                  calls: [{ method: "boot" }]
-                },
-                {
-                  path: [0],
-                  selector: { type: meshType, index: 0 },
-                  props: { convex: false },
-                  calls: [{ method: "notify" }]
-                }
-              ]
-            : [
-                {
-                  path: [],
-                  selector: { type: bodyType, index: 0 },
-                  props: { isKinematic: false },
-                  calls: [{ method: "signal" }]
-                },
-                {
-                  path: [0],
-                  selector: { type: meshType, index: 0 },
-                  props: { convex: true },
-                  calls: [{ method: "waitForBody" }]
-                }
-              ];
-          const coupledOuter = await PrefabParser.parse(engine, `r10-coupled-outer-${mode}.prefab`, {
-            version: "2.0",
-            refs: [{ url: baseKey }],
-            entities: [{ instance: { asset: 0, overrides: { componentProps } } }],
-            components: [],
-            root: 0
-          });
-          const inst = coupledOuter.instantiate();
-          try {
-            const body = inst.getComponent(CoupledBody)!;
-            const mesh = inst.children[0].getComponent(CoupledMesh)!;
-            if (bodyWaits) {
-              expect(seen).toEqual(["body:true", "mesh:false", "body-done"]);
-              expect(body.isKinematic).toBe(true);
-              expect(mesh.convex).toBe(false);
-            } else {
-              expect(seen).toContain("mesh-wait:true");
-              expect(seen).toContain("body:false");
-              expect(seen).toContain("mesh-done");
-              expect(body.isKinematic).toBe(false);
-              expect(mesh.convex).toBe(true);
-            }
-          } finally {
-            inst.destroy();
-          }
-        } finally {
-          // @ts-ignore
-          delete engine.resourceManager._objectPool[baseKey];
-        }
-      }
-
-      // 8. Two sibling MeshColliders under the same kinematic Rigidbody run concurrently even when owner has a phased block,
-      //    and targets destroyed during props skip calls uniformly in both phased and unphased paths
-      for (const withOwnerProp of [true, false]) {
-        let unblock!: () => void;
-        const gate = new Promise<void>((r) => (unblock = r));
-        const seen: string[] = [];
-        class SiblingMesh extends MeshCollider {
-          async wait(): Promise<void> {
-            seen.push(`wait:${this.convex}`);
-            await gate;
-            seen.push("done");
-          }
-          signal(): void {
-            seen.push(`signal:${this.convex}`);
-            unblock();
-          }
-        }
-        const meshType = `R11SiblingMesh_${withOwnerProp}`;
-        Loader.registerClass(meshType, SiblingMesh);
-        const baseKey = `r11-siblings-base-${withOwnerProp}.prefab`;
-        const sibBase = await PrefabParser.parse(engine, baseKey, {
-          version: "2.0",
-          refs: [],
-          entities: [
-            { name: "body", components: [0], children: [1, 2] },
-            { name: "m0", components: [1] },
-            { name: "m1", components: [1] }
-          ],
-          components: [
-            { type: "Rigidbody", props: { isKinematic: true } },
-            { type: meshType, props: { convex: true } }
-          ],
-          root: 0
-        });
-        // @ts-ignore
-        engine.resourceManager._objectPool[baseKey] = sibBase;
-        try {
-          const sibOuter = await PrefabParser.parse(engine, `r11-siblings-outer-${withOwnerProp}.prefab`, {
-            version: "2.0",
-            refs: [{ url: baseKey }],
-            entities: [
-              {
-                instance: {
-                  asset: 0,
-                  overrides: {
-                    componentProps: [
-                      ...(withOwnerProp
-                        ? [{ path: [], selector: { type: "Rigidbody", index: 0 }, props: { isKinematic: true } }]
-                        : []),
-                      {
-                        path: [0],
-                        selector: { type: meshType, index: 0 },
-                        props: { convex: false },
-                        calls: [{ method: "wait" }]
-                      },
-                      {
-                        path: [1],
-                        selector: { type: meshType, index: 0 },
-                        props: { convex: false },
-                        calls: [{ method: "signal" }]
-                      },
-                      { path: [0], selector: { type: meshType, index: 0 }, props: { convex: true } },
-                      { path: [1], selector: { type: meshType, index: 0 }, props: { convex: true } }
-                    ]
-                  }
-                }
-              }
-            ],
-            components: [],
-            root: 0
-          });
-          const inst = sibOuter.instantiate();
-          inst.destroy();
-          expect(seen).toEqual(["wait:false", "signal:false", "done"]);
-        } finally {
-          // @ts-ignore
-          delete engine.resourceManager._objectPool[baseKey];
-        }
-      }
-
-      for (const grouped of [true, false]) {
-        const observed: string[] = [];
-        class DisposeDuringPropsMesh extends MeshCollider {
-          set dispose(value: boolean) {
-            if (value) this.destroy();
-          }
-          capture(): void {
-            observed.push(`called:${this.destroyed}`);
-          }
-        }
-        const meshType = `R11DisposePropsMesh_${grouped}`;
-        Loader.registerClass(meshType, DisposeDuringPropsMesh);
-        const baseKey = `r11-dispose-base-${grouped}.prefab`;
-        const disposeBase = await PrefabParser.parse(engine, baseKey, {
-          version: "2.0",
-          refs: [],
-          entities: [
-            { name: "body", components: [0], children: [1] },
-            { name: "mesh", components: [1] }
-          ],
-          components: [{ type: "Rigidbody", props: { isKinematic: true } }, { type: meshType }],
-          root: 0
-        });
-        // @ts-ignore
-        engine.resourceManager._objectPool[baseKey] = disposeBase;
-        try {
-          const disposeOuter = await PrefabParser.parse(engine, `r11-dispose-outer-${grouped}.prefab`, {
-            version: "2.0",
-            refs: [{ url: baseKey }],
-            entities: [
-              {
-                instance: {
-                  asset: 0,
-                  overrides: {
-                    componentProps: [
-                      ...(grouped
-                        ? [{ path: [], selector: { type: "Rigidbody", index: 0 }, props: { isKinematic: true } }]
-                        : []),
-                      {
-                        path: [0],
-                        selector: { type: meshType, index: 0 },
-                        props: { convex: true, dispose: true },
-                        calls: [{ method: "capture" }]
-                      }
-                    ]
-                  }
-                }
-              }
-            ],
-            components: [],
-            root: 0
-          });
-          const inst = disposeOuter.instantiate();
-          expect(inst.children[0].getComponent(MeshCollider)).toBeNull();
-          inst.destroy();
-          expect(observed).toEqual([]);
-        } finally {
-          // @ts-ignore
-          delete engine.resourceManager._objectPool[baseKey];
-        }
-      }
-
-      // 8. Event-driven live-constraint group scheduling: later owner blocks never stall currently-legal
-      //    peer blocks while owner awaits peer, and symmetric restrict->relax ties follow declaration order
-      for (const restoreKinematic of [false, true]) {
-        let unlock!: () => void;
-        const gate = new Promise<void>((r) => (unlock = r));
-        const trace: string[] = [];
-        class WaitingOwner extends Rigidbody {
-          async waitForPeer(): Promise<void> {
-            trace.push(`wait:${this.isKinematic}`);
-            await gate;
-            trace.push("resumed");
-          }
-          observe(): void {
-            trace.push(`owner:${this.isKinematic}`);
-          }
-        }
-        class SignallingPeer extends MeshCollider {
-          notify(): void {
-            trace.push(`peer:${this.convex}:${this.attachedRigidbody?.isKinematic}`);
-            unlock();
-          }
-          observe(): void {
-            trace.push(`peer:${this.convex}:${this.attachedRigidbody?.isKinematic}`);
-          }
-        }
-        const ownerType = `R12WaitingOwner_${restoreKinematic}`;
-        const peerType = `R12SignallingPeer_${restoreKinematic}`;
-        Loader.registerClass(ownerType, WaitingOwner);
-        Loader.registerClass(peerType, SignallingPeer);
-
-        const baseKey = `r12-owner-cycle-base-${restoreKinematic}.prefab`;
-        const ownerBase = await PrefabParser.parse(engine, baseKey, {
-          version: "2.0",
-          refs: [],
-          entities: [
-            { name: "body", components: [0], children: [1] },
-            { name: "mesh", components: [1] }
-          ],
-          components: [
-            { type: ownerType, props: { isKinematic: true } },
-            { type: peerType, props: { convex: true } }
-          ],
-          root: 0
-        });
-        // @ts-ignore
-        engine.resourceManager._objectPool[baseKey] = ownerBase;
-        try {
-          const outer = await PrefabParser.parse(engine, `r12-owner-cycle-outer-${restoreKinematic}.prefab`, {
-            version: "2.0",
-            refs: [{ url: baseKey }],
-            entities: [
-              {
-                instance: {
-                  asset: 0,
-                  overrides: {
-                    componentProps: [
-                      {
-                        path: [],
-                        selector: { type: ownerType, index: 0 },
-                        props: { isKinematic: true },
-                        calls: [{ method: "waitForPeer" }]
-                      },
-                      {
-                        path: [],
-                        selector: { type: ownerType, index: 0 },
-                        props: { isKinematic: false },
-                        calls: [{ method: "observe" }]
-                      },
-                      ...(restoreKinematic
-                        ? [
-                            {
-                              path: [],
-                              selector: { type: ownerType, index: 0 },
-                              props: { isKinematic: true },
-                              calls: [{ method: "observe" }]
-                            }
-                          ]
-                        : []),
-                      {
-                        path: [0],
-                        selector: { type: peerType, index: 0 },
-                        props: { convex: false },
-                        calls: [{ method: "notify" }]
-                      },
-                      {
-                        path: [0],
-                        selector: { type: peerType, index: 0 },
-                        props: { convex: true },
-                        calls: [{ method: "observe" }]
-                      }
-                    ]
-                  }
-                }
-              }
-            ],
-            components: [],
-            root: 0
-          });
-          const inst = outer.instantiate();
-          try {
-            expect(trace).toContain("peer:false:true");
-            expect(trace).toContain("resumed");
-            expect(inst.getComponent(WaitingOwner)!.isKinematic).toBe(restoreKinematic);
-            expect(inst.children[0].getComponent(SignallingPeer)!.convex).toBe(true);
-          } finally {
-            inst.destroy();
-          }
-        } finally {
-          // @ts-ignore
-          delete engine.resourceManager._objectPool[baseKey];
-        }
-      }
-
-      for (const mode of ["owner-restricts-and-relaxes", "owner-relaxes-twice", "owner-relaxes-once"] as const) {
-        let release!: () => void;
-        const signal = new Promise<void>((r) => (release = r));
-        const events: string[] = [];
-        class GameBody extends Rigidbody {
-          async waitForSetup(): Promise<void> {
-            events.push(`body-wait:${this.isKinematic}`);
-            await signal;
-            events.push("body-ready");
-          }
-        }
-        class GameMesh extends MeshCollider {
-          finishSetup(): void {
-            events.push(`mesh-signal:${this.convex}:${this.attachedRigidbody?.isKinematic}`);
-            release();
-          }
-        }
-        const bodyType = `R12GameBody_${mode}`;
-        const meshType = `R12GameMesh_${mode}`;
-        Loader.registerClass(bodyType, GameBody);
-        Loader.registerClass(meshType, GameMesh);
-
-        const baseKey = `r12-phase-base-${mode}.prefab`;
-        const phaseBase = await PrefabParser.parse(engine, baseKey, {
-          version: "2.0",
-          refs: [],
-          entities: [
-            { name: "body", components: [0], children: [1] },
-            { name: "mesh", components: [1] }
-          ],
-          components: [
-            { type: bodyType, props: { isKinematic: true } },
-            { type: meshType, props: { convex: true } }
-          ],
-          root: 0
-        });
-        // @ts-ignore
-        engine.resourceManager._objectPool[baseKey] = phaseBase;
-        try {
-          const bodyRestricts = mode === "owner-restricts-and-relaxes";
-          const outer = await PrefabParser.parse(engine, `r12-phase-outer-${mode}.prefab`, {
-            version: "2.0",
-            refs: [{ url: baseKey }],
-            entities: [
-              {
-                instance: {
-                  asset: 0,
-                  overrides: {
-                    componentProps: [
-                      {
-                        path: [0],
-                        selector: { type: meshType, index: 0 },
-                        props: { convex: false },
-                        calls: [{ method: "finishSetup" }]
-                      },
-                      { path: [0], selector: { type: meshType, index: 0 }, props: { convex: true } },
-                      {
-                        path: [],
-                        selector: { type: bodyType, index: 0 },
-                        props: { isKinematic: !bodyRestricts },
-                        calls: [{ method: "waitForSetup" }]
-                      },
-                      ...(mode !== "owner-relaxes-once"
-                        ? [{ path: [], selector: { type: bodyType, index: 0 }, props: { isKinematic: true } }]
-                        : [])
-                    ]
-                  }
-                }
-              }
-            ],
-            components: [],
-            root: 0
-          });
-          const inst = outer.instantiate();
-          try {
-            expect(events.some((entry) => entry.startsWith("mesh-signal:false:"))).toBe(true);
-            expect(events).toContain("body-ready");
-            expect(inst.getComponent(GameBody)!.isKinematic).toBe(true);
-            expect(inst.children[0].getComponent(GameMesh)!.convex).toBe(true);
-          } finally {
-            inst.destroy();
-          }
-        } finally {
-          // @ts-ignore
-          delete engine.resourceManager._objectPool[baseKey];
-        }
-      }
-
-      // 9. Owner flipping isKinematic inside async call and awaiting Peer succeeds without deadlock,
-      //    and Peer failure rejects immediately while Owner awaits it
-      for (const dynamicFirst of [false, true]) {
-        let unlock!: () => void;
-        const gate = new Promise<void>((r) => (unlock = r));
-        const log: string[] = [];
-        class SwitchBody extends Rigidbody {
-          async switchAndWait(): Promise<void> {
-            log.push(`before:${this.isKinematic}`);
-            this.isKinematic = true;
-            log.push(`after:${this.isKinematic}`);
-            await gate;
-            log.push("resumed");
-          }
-        }
-        class ReadyMesh extends MeshCollider {
-          ready(): void {
-            log.push(`mesh:${this.convex}`);
-            unlock();
-          }
-        }
-        const bodyType = `R13SwitchBody_${dynamicFirst}`;
-        const meshType = `R13ReadyMesh_${dynamicFirst}`;
-        Loader.registerClass(bodyType, SwitchBody);
-        Loader.registerClass(meshType, ReadyMesh);
-
-        const baseKey = `r13-switch-base-${dynamicFirst}.prefab`;
-        const switchBase = await PrefabParser.parse(engine, baseKey, {
-          version: "2.0",
-          refs: [],
-          entities: [
-            { name: "body", components: [0], children: [1] },
-            { name: "mesh", components: [1] }
-          ],
-          components: [
-            { type: bodyType, props: { isKinematic: true } },
-            { type: meshType, props: { convex: true } }
-          ],
-          root: 0
-        });
-        // @ts-ignore
-        engine.resourceManager._objectPool[baseKey] = switchBase;
-        try {
-          const outer = await PrefabParser.parse(engine, `r13-switch-outer-${dynamicFirst}.prefab`, {
-            version: "2.0",
-            refs: [{ url: baseKey }],
-            entities: [
-              {
-                instance: {
-                  asset: 0,
-                  overrides: {
-                    componentProps: [
-                      {
-                        path: [],
-                        selector: { type: bodyType, index: 0 },
-                        ...(dynamicFirst ? { props: { isKinematic: false } } : {}),
-                        calls: [{ method: "switchAndWait" }]
-                      },
-                      {
-                        path: [0],
-                        selector: { type: meshType, index: 0 },
-                        props: { convex: false },
-                        calls: [{ method: "ready" }]
-                      }
-                    ]
-                  }
-                }
-              }
-            ],
-            components: [],
-            root: 0
-          });
-          const inst = outer.instantiate();
-          try {
-            expect(log).toContain("resumed");
-            expect(log).toContain("mesh:false");
-            expect(inst.getComponent(SwitchBody)!.isKinematic).toBe(true);
-            expect(inst.children[0].getComponent(ReadyMesh)!.convex).toBe(false);
-          } finally {
-            inst.destroy();
-          }
-        } finally {
-          // @ts-ignore
-          delete engine.resourceManager._objectPool[baseKey];
-        }
-      }
-
-      {
-        let unlock!: () => void;
-        const gate = new Promise<void>((r) => (unlock = r));
-        class FailWaitBody extends Rigidbody {
-          async waitForMesh(): Promise<void> {
-            await gate;
-          }
-        }
-        class FailingMesh extends MeshCollider {
-          fail(): void {
-            throw new Error("could not initialize mesh");
-          }
-        }
-        Loader.registerClass("R13FailWaitBody", FailWaitBody);
-        Loader.registerClass("R13FailingMesh", FailingMesh);
-        await expect(
-          PrefabParser.parse(engine, "r13-fail-fast.prefab", {
-            version: "2.0",
-            refs: [],
-            entities: [
-              { name: "body", components: [0], children: [1] },
-              { name: "mesh", components: [1] }
-            ],
-            components: [
-              { type: "R13FailWaitBody", props: { isKinematic: true }, calls: [{ method: "waitForMesh" }] },
-              { type: "R13FailingMesh", props: { convex: true }, calls: [{ method: "fail" }] }
-            ],
-            root: 0
-          })
-        ).rejects.toThrow("could not initialize mesh");
-        unlock();
-      }
-
-      expect(errors).not.toHaveBeenCalled();
-    } finally {
-      errors.mockRestore();
-      // @ts-ignore
-      delete engine.resourceManager._objectPool["r7-empty-base.prefab"];
-      // @ts-ignore
-      delete engine.resourceManager._objectPool["r7-paired-base.prefab"];
+        components: []
+      };
     }
+
+    try {
+      const parsed = PrefabParser.parse(engine, "concurrent-calls.prefab", data);
+      if (fails) {
+        await expect(parsed).rejects.toThrow(failure);
+        expect(seen).toEqual(["waiting", "signalled"]);
+      } else {
+        const prefab = await parsed;
+        expect(seen).toEqual(["waiting", "signalled", "resumed"]);
+        prefab.destroy();
+      }
+    } finally {
+      release();
+      if (templateUrl) URL.revokeObjectURL(templateUrl);
+    }
+  });
+
+  it("skips calls when a property setter destroys the component", async () => {
+    let calls = 0;
+    class DestroyingSetterScript extends Script {
+      set remove(_value: boolean) {
+        this.destroy();
+      }
+
+      count(): void {
+        calls++;
+      }
+    }
+    Loader.registerClass("DestroyingSetterScript", DestroyingSetterScript);
+
+    const prefab = await PrefabParser.parse(engine, "destroying-setter.prefab", {
+      version: "2.0",
+      refs: [],
+      root: 0,
+      entities: [{ components: [0] }],
+      components: [{ type: "DestroyingSetterScript", props: { remove: true }, calls: [{ method: "count" }] }]
+    });
+    const instance = prefab.instantiate();
+    expect(instance.getComponent(DestroyingSetterScript)).toBeNull();
+    expect(calls).toBe(0);
+    instance.destroy();
+    prefab.destroy();
   });
 });

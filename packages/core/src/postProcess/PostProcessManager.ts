@@ -62,6 +62,7 @@ export class PostProcessManager {
     // Sort post process
     this._sortActivePostProcess();
     const activePostProcesses = this._activePostProcesses;
+    let physicsSynced = false;
 
     for (let i = 0, n = activePostProcesses.length; i < n; i++) {
       const postProcess = activePostProcesses[i];
@@ -87,11 +88,16 @@ export class PostProcessManager {
           if (!collider.enabled) {
             continue;
           }
+          if (!physicsSynced) {
+            this.scene.physics._syncColliders();
+            physicsSynced = true;
+          }
           hasCollider = true;
           const distance = collider._getVolumeDistance(cameraPosition, PostProcessManager._tempVector3);
           // A collider outside the simulation has no distance, so it has no influence either
           if (distance >= 0 && distance < closestDistance) {
             closestDistance = distance;
+            if (distance === 0) break;
           }
         }
         currentColliders.length = 0;

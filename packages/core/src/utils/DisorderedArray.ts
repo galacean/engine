@@ -107,12 +107,15 @@ export class DisorderedArray<T> {
    */
   forEach(callbackFn: (element: T, index: number) => void, swapFn?: (element: T, index: number) => void): void {
     this._startLoop();
-    const elements = this._elements;
-    for (let i = 0, n = this.length; i < n; i++) {
-      const element = elements[i];
-      element && callbackFn(element, i);
+    try {
+      const elements = this._elements;
+      for (let i = 0, n = this.length; i < n; i++) {
+        const element = elements[i];
+        element && callbackFn(element, i);
+      }
+    } finally {
+      this._endLoop(swapFn);
     }
-    this._endLoop(swapFn);
   }
 
   /**
@@ -124,11 +127,16 @@ export class DisorderedArray<T> {
     this._startLoop();
     const preEnd = this.length;
     const elements = this._elements;
-    for (let i = 0, n = preEnd; i < n; i++) {
-      const element = elements[i];
-      element && callbackFn(element, i);
+    let next = 0;
+    try {
+      while (next < preEnd) {
+        const i = next++;
+        const element = elements[i];
+        element && callbackFn(element, i);
+      }
+    } finally {
+      this._endLoopAndClean(next, elements, swapFn);
     }
-    this._endLoopAndClean(preEnd, elements, swapFn);
   }
 
   /**
@@ -146,11 +154,13 @@ export class DisorderedArray<T> {
     this._elements.length = this.length;
   }
 
-  private _startLoop(): void {
+  /** @internal */
+  _startLoop(): void {
     ++this._loopCounter;
   }
 
-  private _endLoop(swapFn: ((e: T, idx: number) => void) | undefined): void {
+  /** @internal */
+  _endLoop(swapFn: ((e: T, idx: number) => void) | undefined): void {
     if (--this._loopCounter !== 0) {
       return;
     }

@@ -1,6 +1,5 @@
 import { IBoxColliderShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
-import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
@@ -60,38 +59,10 @@ export class BoxCollider extends Collider {
     return shape;
   }
 
-  @ignoreClone
   private _onSizeChanged(): void {
-    const size = this._size;
-    const xFinite = Number.isFinite(size.x);
-    const yFinite = Number.isFinite(size.y);
-    const zFinite = Number.isFinite(size.z);
-    if (!xFinite || !yFinite || !zFinite) {
-      //@ts-ignore
-      const listener = size._onValueChanged;
-      //@ts-ignore
-      size._onValueChanged = null;
-      size.set(
-        xFinite && size.x >= 0 ? size.x : 0,
-        yFinite && size.y >= 0 ? size.y : 0,
-        zFinite && size.z >= 0 ? size.z : 0
-      );
-      //@ts-ignore
-      size._onValueChanged = listener;
-      this._geometryDirty = true;
-      this._markDirty();
-      throw new Error("BoxCollider size must be finite.");
-    }
-    if (size.x < 0 || size.y < 0 || size.z < 0) {
-      //@ts-ignore
-      const listener = size._onValueChanged;
-      //@ts-ignore
-      size._onValueChanged = null;
-      size.set(size.x < 0 ? 0 : size.x, size.y < 0 ? 0 : size.y, size.z < 0 ? 0 : size.z);
-      //@ts-ignore
-      size._onValueChanged = listener;
-    }
+    const finite = BoxCollider._clampBoxSize(this._size);
     this._geometryDirty = true;
     this._markDirty();
+    if (!finite) throw new Error("BoxCollider size must be finite.");
   }
 }
