@@ -1,0 +1,61 @@
+packages/rhi-webgl/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+examples/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+packages/physics-physx/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+packages/design/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+packages/spine/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+packages/shader/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+packages/ui/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+packages/spine-core-3.8/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+packages/xr-webxr/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+packages/core/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+packages/math/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+e2e/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 4
+packages/spine-core-4.2/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+packages/rhi-null/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+packages/shader-compiler/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+packages/galacean/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+packages/loader/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+packages/xr/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+tests/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 4
+packages/shader-parser/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+packages/shader-analyzer/package.json
+  s_8553eae0743f94::t_7bde1ff6773f6f 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cdadd6af4e161b419c8a8a924b30a83b511b9506",
+  "prompts": {},
+  "sessions": {
+    "s_8553eae0743f94": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2cc-1a9a-77c2-b2be-9e8ac7b76064",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
