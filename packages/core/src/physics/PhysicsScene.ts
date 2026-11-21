@@ -819,7 +819,7 @@ export class PhysicsScene {
    */
   _removeCollider(collider: Collider): void {
     PhysicsScene._removeDirty(this._dirtyColliders, collider);
-    collider._detach();
+    collider._detach(this);
   }
 
   /**

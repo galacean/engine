@@ -20,12 +20,6 @@ export interface ICharacterController {
   setBox(halfExtents: Vector3): void;
 
   /**
-   * Set the geometry center relative to the controller's world position.
-   * @param center - The world-space offset
-   */
-  setCenter(center: Vector3): void;
-
-  /**
    * Set the contact offset.
    * @param offset - A positive contact offset
    */
@@ -59,10 +53,11 @@ export interface ICharacterController {
   move(disp: Vector3, minDist: number, elapsedTime: number): number;
 
   /**
-   * Set the controller's world position, excluding the center offset.
-   * @param position - The world position
+   * Set the controller's world position and its geometry offset in one update.
+   * @param position - The world position before applying the offset
+   * @param center - The world-space geometry offset
    */
-  setWorldPosition(position: Vector3): void;
+  setWorldPosition(position: Vector3, center: Vector3): void;
 
   /**
    * Get the controller's world position, excluding the center offset.

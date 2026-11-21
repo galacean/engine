@@ -17,13 +17,18 @@ export class Component extends EngineObject {
   @ignoreClone
   _awoken: boolean = false;
 
+  /** @internal */
   @ignoreClone
-  protected _phasedActiveInScene: boolean = false;
+  protected _registeredScene: Scene | null = null;
 
   @ignoreClone
   private _phasedActive: boolean = false;
 
   private _enabled: boolean = true;
+
+  protected get _phasedActiveInScene(): boolean {
+    return this._registeredScene !== null;
+  }
 
   /**
    * Indicates whether the component is enabled.
@@ -35,19 +40,7 @@ export class Component extends EngineObject {
   set enabled(value: boolean) {
     if (value !== this._enabled) {
       this._enabled = value;
-      if (this._entity._isActiveInScene) {
-        if (value) {
-          if (!this._phasedActiveInScene) {
-            this._phasedActiveInScene = true;
-            this._onEnableInScene();
-          }
-        } else {
-          if (this._phasedActiveInScene) {
-            this._phasedActiveInScene = false;
-            this._onDisableInScene();
-          }
-        }
-      }
+      this._syncSceneRegistration();
       if (this._entity.isActiveInHierarchy) {
         if (value) {
           if (!this._phasedActive) {
@@ -121,8 +114,9 @@ export class Component extends EngineObject {
 
   /**
    * @internal
+   * Release registration from the given scene, which can differ from the Entity's current scene.
    */
-  _onDisableInScene(): void {}
+  _onDisableInScene(_scene: Scene): void {}
 
   /**
    * @internal
@@ -134,33 +128,22 @@ export class Component extends EngineObject {
    * Deactivate in scene while the owning Entity remains active (used during atomic component replacement).
    */
   _deactivateInScene(): boolean {
-    if (this._phasedActiveInScene) {
-      this._phasedActiveInScene = false;
-      this._onDisableInScene();
-      return true;
-    }
-    return false;
+    const scene = this._registeredScene;
+    if (!scene) return false;
+    this._registeredScene = null;
+    this._onDisableInScene(scene);
+    return true;
   }
 
   /**
    * @internal
    */
   _setActive(value: boolean, activeChangeFlag: ActiveChangeFlag): void {
+    if (this._destroyed) return;
     const entity = this._entity;
 
-    // Process active in scene, precautions are the same as below
     if (activeChangeFlag & ActiveChangeFlag.Scene) {
-      if (value) {
-        if (!this._phasedActiveInScene && entity._isActiveInScene && this._enabled) {
-          this._phasedActiveInScene = true;
-          this._onEnableInScene();
-        }
-      } else {
-        if (this._phasedActiveInScene && !(entity._isActiveInScene && this._enabled)) {
-          this._phasedActiveInScene = false;
-          this._onDisableInScene();
-        }
-      }
+      this._syncSceneRegistration();
     }
 
     // Process active in hierarchy
@@ -200,10 +183,9 @@ export class Component extends EngineObject {
     super._onDestroy();
     let firstError: unknown;
     let hasError = false;
-    if (this._phasedActiveInScene) {
-      this._phasedActiveInScene = false;
+    if (this._registeredScene) {
       try {
-        this._onDisableInScene();
+        this._deactivateInScene();
       } catch (error) {
         firstError = error;
         hasError = true;
@@ -222,6 +204,24 @@ export class Component extends EngineObject {
     }
     if (hasError) {
       throw firstError;
+    }
+  }
+
+  private _syncSceneRegistration(): void {
+    const entity = this._entity;
+    const registeredScene = this._registeredScene;
+    let scene = entity._isActiveInScene && this._enabled ? entity._scene! : null;
+    if (scene === registeredScene) return;
+
+    if (registeredScene) {
+      this._deactivateInScene();
+      // A teardown hook can change the desired scene or register the component again.
+      if (this._registeredScene || this._destroyed) return;
+      scene = entity._isActiveInScene && this._enabled ? entity._scene! : null;
+    }
+    if (scene) {
+      this._registeredScene = scene;
+      this._onEnableInScene();
     }
   }
 }

@@ -1,3 +1,4 @@
+import type { Scene } from "../Scene";
 import { MathUtil } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Component } from "../Component";
@@ -309,8 +310,8 @@ export class Animator extends Component implements ICloneHook<Animator> {
   /**
    * @internal
    */
-  override _onDisableInScene(): void {
-    this.scene!._componentsManager.removeOnUpdateAnimations(this);
+  override _onDisableInScene(scene: Scene): void {
+    scene._componentsManager.removeOnUpdateAnimations(this);
   }
 
   /**

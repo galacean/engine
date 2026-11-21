@@ -6,6 +6,7 @@ import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { CharacterControllerGeometry } from "./enums/CharacterControllerGeometry";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
+import type { PhysicsScene } from "./PhysicsScene";
 import { Rigidbody } from "./Rigidbody";
 
 /**
@@ -224,10 +225,11 @@ export class CharacterController extends Collider {
    * @returns The ControllerCollisionFlag, or 0 when the controller is not active in a scene
    */
   move(disp: Vector3, minDist: number, elapsedTime: number): number {
-    if (!this._phasedActiveInScene) {
+    const scene = this._registeredScene;
+    if (!scene) {
       return 0;
     }
-    this.scene!.physics._syncColliders();
+    scene.physics._syncColliders();
     const controller = <ICharacterController | null>this._native;
     if (!this._inScene || !controller) {
       return 0;
@@ -282,21 +284,21 @@ export class CharacterController extends Collider {
 
     const center = CharacterController._tempExtents;
     Vector3.multiply(this.center, scale, center);
-    const syncedCenter = this._syncedCenter;
-    if (force || center.x !== syncedCenter.x || center.y !== syncedCenter.y || center.z !== syncedCenter.z) {
-      syncedCenter.copyFrom(center);
-      controller.setCenter(center);
-    }
     const position = transform.worldPosition;
+    const syncedCenter = this._syncedCenter;
     const syncedPosition = this._syncedPosition;
     if (
       force ||
+      center.x !== syncedCenter.x ||
+      center.y !== syncedCenter.y ||
+      center.z !== syncedCenter.z ||
       position.x !== syncedPosition.x ||
       position.y !== syncedPosition.y ||
       position.z !== syncedPosition.z
     ) {
+      syncedCenter.copyFrom(center);
       syncedPosition.copyFrom(position);
-      controller.setWorldPosition(position);
+      controller.setWorldPosition(position, center);
     }
     const syncedScale = this._syncedScale;
     if (
@@ -317,7 +319,7 @@ export class CharacterController extends Collider {
       }
     }
     if (force) {
-      this.scene!.physics._nativePhysicsScene.addCharacterController(controller);
+      this._registeredScene!.physics._nativePhysicsScene.addCharacterController(controller);
       this._inScene = true;
     }
   }
@@ -325,9 +327,11 @@ export class CharacterController extends Collider {
   /**
    * @internal
    */
-  override _detach(): void {
+  override _detach(physicsScene?: PhysicsScene): void {
     if (this._inScene) {
-      this.scene!.physics._nativePhysicsScene.removeCharacterController(<ICharacterController>this._native);
+      (physicsScene ?? this._registeredScene!.physics)._nativePhysicsScene.removeCharacterController(
+        <ICharacterController>this._native
+      );
       this._inScene = false;
     }
   }

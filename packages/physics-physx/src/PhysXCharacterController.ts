@@ -85,27 +85,20 @@ export class PhysXCharacterController implements ICharacterController {
   }
 
   /**
-   * {@inheritDoc ICharacterController.setCenter }
-   */
-  setCenter(center: Vector3): void {
-    this._center.copyFrom(center);
-    this._updateNativePosition();
-  }
-
-  /**
    * {@inheritDoc ICharacterController.setContactOffset }
    */
   setContactOffset(offset: number): void {
     this._contactOffset = offset;
-    this._applyToController((controller) => controller.setContactOffset(offset));
+    this._pxController?.setContactOffset(offset);
   }
 
   /**
    * {@inheritDoc ICharacterController.setMaterial }
    */
   setMaterial(material: PhysXPhysicsMaterial): void {
-    this._pxMaterial = material._pxMaterial;
-    this._applyToController((controller) => controller.setMaterial(this._pxMaterial));
+    const pxMaterial = material._pxMaterial;
+    this._pxMaterial = pxMaterial;
+    this._pxController?.setMaterial(pxMaterial);
   }
 
   /**
@@ -113,11 +106,12 @@ export class PhysXCharacterController implements ICharacterController {
    */
   setCollisionLayer(layer: number): void {
     this._collisionLayer = layer;
-    this._applyToController((controller) => {
+    const controller = this._pxController;
+    if (controller) {
       const actor = controller.getActor();
       this._physXPhysics._physX.setGroup(actor, layer);
       actor.delete();
-    });
+    }
   }
 
   /**
@@ -125,7 +119,7 @@ export class PhysXCharacterController implements ICharacterController {
    */
   setIsSceneQuery(value: boolean): void {
     this._isSceneQuery = value;
-    this._applyToController((controller) => controller.setSceneQueryEnabled(value));
+    this._pxController?.setSceneQueryEnabled(value);
   }
 
   /**
@@ -138,9 +132,22 @@ export class PhysXCharacterController implements ICharacterController {
   /**
    * {@inheritDoc ICharacterController.setWorldPosition }
    */
-  setWorldPosition(position: Vector3): void {
-    this._worldPosition.copyFrom(position);
-    this._updateNativePosition();
+  setWorldPosition(position: Vector3, center: Vector3): void {
+    const worldPosition = this._worldPosition;
+    const previousCenter = this._center;
+    const x = position.x + center.x;
+    const y = position.y + center.y;
+    const z = position.z + center.z;
+    const moved =
+      x !== worldPosition.x + previousCenter.x ||
+      y !== worldPosition.y + previousCenter.y ||
+      z !== worldPosition.z + previousCenter.z;
+    worldPosition.copyFrom(position);
+    previousCenter.copyFrom(center);
+    const controller = this._pxController;
+    if (moved && controller) {
+      this._syncControllerPose(controller, PhysXCharacterController._tempVec.set(x, y, z));
+    }
   }
 
   /**
@@ -159,7 +166,7 @@ export class PhysXCharacterController implements ICharacterController {
    */
   setStepOffset(offset: number): void {
     this._stepOffset = offset;
-    this._applyToController((controller) => controller.setStepOffset(offset));
+    this._pxController?.setStepOffset(offset);
   }
 
   /**
@@ -167,7 +174,7 @@ export class PhysXCharacterController implements ICharacterController {
    */
   setNonWalkableMode(flag: number): void {
     this._nonWalkableMode = flag;
-    this._applyToController((controller) => controller.setNonWalkableMode(flag));
+    this._pxController?.setNonWalkableMode(flag);
   }
 
   /**
@@ -182,14 +189,15 @@ export class PhysXCharacterController implements ICharacterController {
       return;
     }
     this._upDirection.set(up.x / len, up.y / len, up.z / len);
-    this._applyToController((controller) => {
+    const controller = this._pxController;
+    if (controller) {
       controller.setUpDirection(this._upDirection);
       // PhysX Controller::setUpDirectionInternal does not update mKineActor's pose;
       // refresh the kinematic target via setPosition and sync globalPose so immediate scene queries match.
       const currentPos = controller.getPosition();
       const pos = PhysXCharacterController._tempVec.set(currentPos.x, currentPos.y, currentPos.z);
       this._syncControllerPose(controller, pos);
-    });
+    }
   }
 
   /**
@@ -197,7 +205,7 @@ export class PhysXCharacterController implements ICharacterController {
    */
   setSlopeLimit(slopeLimit: number): void {
     this._slopeLimit = slopeLimit;
-    this._applyToController((controller) => controller.setSlopeLimit(Math.cos((slopeLimit * Math.PI) / 180)));
+    this._pxController?.setSlopeLimit(Math.cos((slopeLimit * Math.PI) / 180));
   }
 
   /**
@@ -284,12 +292,6 @@ export class PhysXCharacterController implements ICharacterController {
     }
   }
 
-  private _updateNativePosition(): void {
-    const position = PhysXCharacterController._tempVec;
-    Vector3.add(this._worldPosition, this._center, position);
-    this._applyToController((controller) => this._syncControllerPose(controller, position));
-  }
-
   private _syncControllerPose(controller: any, position: Vector3): void {
     controller.setPosition(position);
     // setPosition schedules a kinematic target with mPosition and mUserParams.mQuatFromUp;
@@ -301,16 +303,5 @@ export class PhysXCharacterController implements ICharacterController {
     pose.rotation.set(targetPose.rotation.x, targetPose.rotation.y, targetPose.rotation.z, targetPose.rotation.w);
     actor.setGlobalPose(pose, true);
     actor.delete();
-  }
-
-  /**
-   * Update the native controller when created; failed creation is retried by {@link setCapsule} / {@link setBox}
-   * during scene synchronization once transform, center, and geometry are all updated.
-   */
-  private _applyToController(apply: (controller: any) => void): void {
-    const pxController = this._pxController;
-    if (pxController) {
-      apply(pxController);
-    }
   }
 }

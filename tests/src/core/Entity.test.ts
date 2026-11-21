@@ -1,6 +1,17 @@
 import { createPhysics } from "../utils/physics";
 import { Quaternion } from "@galacean/engine";
-import { Rigidbody, Entity, EntityModifyFlags, Scene, Script } from "@galacean/engine-core";
+import {
+  BoxCollider,
+  CharacterController,
+  Collider,
+  Entity,
+  EntityModifyFlags,
+  HitResult,
+  Rigidbody,
+  Scene,
+  Script
+} from "@galacean/engine-core";
+import { Ray, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -777,6 +788,90 @@ describe("Entity", async () => {
         root.removeChild(A);
       }).not.toThrow();
     });
+
+    it("keeps the new scene when a detached child reparents in onDisable", () => {
+      const origin = scene.createRootEntity("origin");
+      const child = origin.createChild("child");
+      const trigger = origin.createChild("trigger");
+      const detached = new Entity(engine);
+      const destination = new Scene(engine);
+      engine.sceneManager.addScene(destination);
+      const target = destination.createRootEntity("target");
+      target.isActive = false;
+
+      let originalScene: Scene | null | undefined = scene;
+      child.addComponent(
+        class extends Script {
+          override onDisable(): void {
+            originalScene = this.scene;
+            target.addChild(this.entity);
+          }
+        }
+      );
+      trigger.addComponent(
+        class extends Script {
+          override onDisable(): void {
+            detached.addChild(child);
+          }
+        }
+      );
+
+      try {
+        origin.isActive = false;
+        expect(originalScene).toBe(detached.scene);
+        expect(child.parent).toBe(target);
+        expect(child.scene).toBe(destination);
+      } finally {
+        origin.destroy();
+        detached.destroy();
+        destination.destroy();
+      }
+    });
+
+    it.each([BoxCollider, CharacterController])(
+      "unregisters %s when a sibling detaches and destroys its entity",
+      (type) => {
+        const root = scene.createRootEntity("root");
+        const child = root.createChild("child");
+        const trigger = root.createChild("trigger");
+        child.transform.setPosition(249, 0, -33);
+        const collider = child.addComponent<Collider>(type);
+        const ray = new Ray(new Vector3(249, 4, -33), new Vector3(0, -1, 0));
+        const hit = new HitResult();
+        expect(scene.physics.raycast(ray, hit)).toBe(true);
+        expect(hit.collider).toBe(collider);
+
+        const onUpdate = vi.fn();
+        const onDestroy = vi.fn();
+        child.addComponent(
+          class extends Script {
+            override onUpdate(): void {
+              onUpdate();
+            }
+            override onDestroy(): void {
+              onDestroy();
+            }
+          }
+        );
+        trigger.addComponent(
+          class extends Script {
+            override onDisable(): void {
+              root.removeChild(child);
+              child.destroy();
+            }
+          }
+        );
+
+        engine.update();
+        expect(onUpdate).toHaveBeenCalledTimes(1);
+        expect(() => (root.isActive = false)).not.toThrow();
+        engine.update();
+        expect(onDestroy).toHaveBeenCalledTimes(1);
+        expect(onUpdate).toHaveBeenCalledTimes(1);
+        expect(scene.physics.raycast(ray)).toBe(false);
+        root.destroy();
+      }
+    );
 
     it("should throw when child tries to removeChild its deactivating parent (reentrant)", () => {
       // Entity tree: root → A → B

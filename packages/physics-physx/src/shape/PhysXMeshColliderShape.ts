@@ -111,6 +111,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     cooking.setParams(cookingParams);
 
     const verticesPtr = this._allocatePositions(positions);
+    if (!verticesPtr) return null;
     let pxMesh: any;
 
     if (this._isConvex) {
@@ -172,11 +173,27 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     const physX = this._physXPhysics._physX;
     const length = positions.length;
     const ptr = physX._malloc(length * 3 * 4);
-    const view = new Float32Array(physX.HEAPF32.buffer, ptr, length * 3);
-    for (let i = 0, offset = 0; i < length; i++, offset += 3) {
-      positions[i].copyToArray(view, offset);
+    if (!ptr) {
+      console.error("PhysXMeshColliderShape: could not allocate vertex data.");
+      return 0;
     }
-    return ptr;
+    const view = new Float32Array(physX.HEAPF32.buffer, ptr, length * 3);
+    let i = 0;
+    for (let offset = 0; i < length; i++, offset += 3) {
+      const point = positions[i];
+      if (!point) break;
+      const x = Math.fround(point.x);
+      const y = Math.fround(point.y);
+      const z = Math.fround(point.z);
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) break;
+      view[offset] = x;
+      view[offset + 1] = y;
+      view[offset + 2] = z;
+    }
+    if (i === length) return ptr;
+    physX._free(ptr);
+    console.error("PhysXMeshColliderShape: vertex positions must be finite in Float32.");
+    return 0;
   }
 
   private _allocateIndices(indices: Uint8Array | Uint16Array | Uint32Array, isU32: boolean): number {

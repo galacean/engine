@@ -359,7 +359,6 @@ export class Scene extends EngineObject {
       rootEntity._removeFromParent();
       rootEntity._setParentChange();
     } else if (oldScene !== this) {
-      rootEntity._hierarchyStamp = ++Entity._nextHierarchyStamp;
     }
 
     // Add or remove from scene's rootEntities
@@ -405,7 +404,6 @@ export class Scene extends EngineObject {
     if (entity._isRoot && entity._scene === this) {
       Entity._removeFromChildren(this._rootEntities, entity);
       entity._isRoot = false;
-      entity._hierarchyStamp = ++Entity._nextHierarchyStamp;
       let inActiveChangeFlag = ActiveChangeFlag.None;
       entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
       entity._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);

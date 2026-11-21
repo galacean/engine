@@ -39,6 +39,8 @@ import { XRManager } from "./xr/XRManager";
  * Engine.
  */
 export class Engine extends EventDispatcher {
+  private static readonly _noFrameError = {};
+
   /** @internal */
   static _builtinShaders: BuiltinShaders;
 
@@ -315,14 +317,8 @@ export class Engine extends EventDispatcher {
 
     const deltaTime = time.deltaTime;
     this._frameInProcess = true;
-    let firstError: unknown;
-    let hasError = false;
-    const recordError = (error: unknown): void => {
-      if (!hasError) {
-        firstError = error;
-        hasError = true;
-      }
-    };
+    const noError = Engine._noFrameError;
+    let firstError: unknown = noError;
     try {
       this._renderElementPool.clear();
       this._textRenderElementPool.clear();
@@ -382,13 +378,13 @@ export class Engine extends EventDispatcher {
         this._render(scenes);
       }
     } catch (error) {
-      recordError(error);
+      firstError = error;
     } finally {
       // Always drain pending destroys queued during this frame even if an earlier phase threw
       try {
         this._processPendingDestroyObjects();
       } catch (error) {
-        recordError(error);
+        if (firstError === noError) firstError = error;
       }
 
       this._frameInProcess = false;
@@ -397,7 +393,7 @@ export class Engine extends EventDispatcher {
         try {
           this._destroy();
         } catch (error) {
-          recordError(error);
+          if (firstError === noError) firstError = error;
         }
       }
 
@@ -405,13 +401,13 @@ export class Engine extends EventDispatcher {
         try {
           this._gc();
         } catch (error) {
-          recordError(error);
+          if (firstError === noError) firstError = error;
         } finally {
           this._waitingGC = false;
         }
       }
     }
-    if (hasError) {
+    if (firstError !== noError) {
       throw firstError;
     }
   }

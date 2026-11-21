@@ -264,8 +264,29 @@ describe("MeshCollider", () => {
     expect(collider.mesh).toBe(replacement);
     expect(previous.refCount).toBe(0);
     expect(replacement.refCount).toBe(1);
-    expect(physics.raycast(rayAt(1.5), hit)).toBe(true);
-    expect(hit.collider).toBe(collider);
+    if (IndexArray === Uint8Array) {
+      expect(physics.raycast(rayAt(1.5), hit) && hit.collider === collider).toBe(true);
+      return;
+    }
+
+    const physX = (collider["_native"] as any)._physXPhysics._physX;
+    const malloc = physX._malloc;
+    let allocations = 0;
+    const previousBuffer = physX.HEAPF32.buffer;
+    const allocate = vi.spyOn(physX, "_malloc").mockImplementation((bytes: number) => {
+      if (++allocations === 2) {
+        // Grow the WASM heap between the vertex upload and index upload.
+        physX._free(malloc(previousBuffer.byteLength));
+      }
+      return malloc(bytes);
+    });
+    try {
+      expect(physics.raycast(rayAt(1.5), hit) && hit.collider === collider).toBe(true);
+      expect(physX.HEAPF32.buffer).not.toBe(previousBuffer);
+      expect(previousBuffer.byteLength).toBe(0);
+    } finally {
+      allocate.mockRestore();
+    }
   });
 
   it("finds closest points on a scaled convex mesh and updates them after replacement", () => {

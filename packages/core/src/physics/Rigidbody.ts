@@ -528,8 +528,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   /**
    * @internal
    */
-  override _onDisableInScene(): void {
-    const scene = this.scene!;
+  override _onDisableInScene(scene: Scene): void {
     if (scene._mergingInto) {
       const joints = this._connectedJoints;
       if (joints) {
@@ -544,7 +543,9 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     for (let i = colliders.length - 1; i >= 0; i--) {
       const collider = colliders[i];
       if (collider._findRigidbody() !== this) {
-        collider._onOrphanBodyUnavailable(this);
+        // A hierarchy change may be waiting for the next collider sync.
+        collider._detach();
+        collider._markDirty();
       }
     }
     scene.physics._removeRigidbody(this);
@@ -632,7 +633,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    */
   _markMassDirty(): void {
     // Entering a scene marks the body dirty again
-    this._phasedActiveInScene && this.scene!.physics._markMassDirty(this);
+    this._registeredScene?.physics._markMassDirty(this);
   }
 
   /**
@@ -648,7 +649,10 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       const position = transform.worldPosition;
       const rotation = transform.worldRotationQuaternion;
       const nativePosition = this._nativePosition;
-      if (Collider._differsF32(position, nativePosition) || !Quaternion.equals(rotation, this._nativeRotation)) {
+      if (
+        Collider._differsF32(position, nativePosition) ||
+        Collider._rotationDiffersF32(rotation, this._nativeRotation)
+      ) {
         nativePosition.copyFrom(position);
         this._nativeRotation.copyFrom(rotation);
         actor.setWorldTransform(position, rotation);
@@ -771,13 +775,13 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * The native actor after pending Collider and mass changes are applied, like before a query.
    */
   private _getSyncedActor(): IDynamicCollider | null {
-    this._phasedActiveInScene && this.scene!.physics._syncColliders();
+    this._registeredScene?.physics._syncColliders();
     return this._nativeActor;
   }
 
   @ignoreClone
   private _onTransformChanged(): void {
-    this._phasedActiveInScene && this.scene?.physics._markBodyDirty(this);
+    this._registeredScene?.physics._markBodyDirty(this);
   }
 
   @ignoreClone

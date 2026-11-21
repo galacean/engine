@@ -20,9 +20,6 @@ import { DisorderedArray } from "./utils/DisorderedArray";
  * Entity, be used as components container.
  */
 export class Entity extends EngineObject {
-  /** @internal */
-  static _nextHierarchyStamp = 0;
-
   private static _isTransformType(type: ComponentConstructor): boolean {
     return type === Transform || type.prototype instanceof Transform;
   }
@@ -153,8 +150,6 @@ export class Entity extends EngineObject {
   /** @internal */
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
-  /** @internal Monotonic stamp updated whenever this entity's parent or root attachment changes. */
-  _hierarchyStamp: number = 0;
   private _transform: Transform;
   private _templateResource: ReferResource;
   private _parent: Entity | null = null;
@@ -808,7 +803,6 @@ export class Entity extends EngineObject {
    * @internal
    */
   _setParentChange() {
-    this._hierarchyStamp = ++Entity._nextHierarchyStamp;
     this._transform._parentChange();
     this._dispatchModify(EntityModifyFlags.Parent, this);
   }
@@ -941,22 +935,8 @@ export class Entity extends EngineObject {
     let hasError = false;
     try {
       for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
-        const component = activeChangedComponents[i];
-        const entity = component._entity;
         try {
-          if (!isActive && entity._scene !== ownerScene) {
-            // An earlier onDisable callback detached/moved this entity; briefly restore ownerScene
-            // so _onDisableInScene unregisters physics colliders and scripts from ownerScene cleanly.
-            const currentScene = entity._scene;
-            entity._scene = ownerScene;
-            try {
-              component._setActive(false, activeChangeFlag);
-            } finally {
-              entity._scene = currentScene;
-            }
-          } else {
-            component._setActive(isActive, activeChangeFlag);
-          }
+          activeChangedComponents[i]._setActive(isActive, activeChangeFlag);
         } catch (error) {
           if (!hasError) {
             firstError = error;

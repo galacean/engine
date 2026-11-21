@@ -141,6 +141,28 @@ describe("Collider", () => {
     expect(physics.overlapSphereAll(new Vector3(10, 0, 0), 0.1)).toEqual([childCollider]);
   });
 
+  it("updates ownership and raycasts without resubmitting an unchanged shape scale", () => {
+    const shapeEntity = root.createChild();
+    shapeEntity.transform.setPosition(2, 0, 0);
+    shapeEntity.transform.setScale(2, 1, 1);
+    const box = shapeEntity.addComponent(BoxCollider);
+    const hit = new HitResult();
+    const ray = new Ray(new Vector3(2.75, 4, 0), new Vector3(0, -1, 0));
+    expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
+    const scaleWrites = vi.spyOn(box._native!, "setWorldScale");
+
+    const bodyEntity = root.createChild();
+    bodyEntity.transform.setPosition(10, 0, 0);
+    const body = bodyEntity.addComponent(Rigidbody);
+    body.isKinematic = true;
+    bodyEntity.addChild(shapeEntity);
+    expect(physics.raycast(ray)).toBe(false);
+    ray.origin.x += 10;
+    expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
+    expect(box.attachedRigidbody).toBe(body);
+    expect(scaleWrites).not.toHaveBeenCalled();
+  });
+
   describe.each([
     { name: "BoxCollider", Type: BoxCollider },
     { name: "SphereCollider", Type: SphereCollider },
@@ -1132,6 +1154,51 @@ describe("Collider", () => {
     );
   });
 
+  it.each(["inherited", "authored"] as const)(
+    "keeps the compound collider at its Entity origin under %s shear",
+    (source) => {
+      const body = root.createChild("body");
+      if (source === "inherited") {
+        root.transform.setScale(4, 1, 1);
+        body.transform.setRotation(0, 0, 45);
+      } else {
+        const matrix = new Matrix();
+        matrix.elements[4] = matrix.elements[1] = 0.0625;
+        body.transform.localMatrix = matrix;
+      }
+      body.addComponent(Rigidbody).isKinematic = true;
+      const child = body.createChild("box");
+      child.transform.setPosition(0, 8, 0);
+      const box = child.addComponent(BoxCollider);
+      box.size.set(0.25, 0.25, 0.25);
+      const position = child.transform.worldPosition;
+      const hit = new HitResult();
+      const ray = new Ray(new Vector3(position.x, position.y, 8), new Vector3(0, 0, -1));
+      expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
+    }
+  );
+
+  it.each(["static actor", "rigidbody", "shape pose"] as const)(
+    "applies a small authored rotation to the %s",
+    (route) => {
+      if (route === "rigidbody") root.addComponent(Rigidbody).isKinematic = true;
+      const box = root.addComponent(BoxCollider);
+      box.size.set(200000, 1, 0.04);
+      const ray = new Ray(new Vector3(90000, 2, 0), new Vector3(0, -1, 0));
+      const hit = new HitResult();
+      expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
+
+      if (route === "shape pose") {
+        box.rotation.y = 0.00005;
+      } else {
+        root.transform.rotation.y = 0.00005;
+      }
+      expect(physics.raycast(ray)).toBe(false);
+      ray.origin.z = -0.07854;
+      expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
+    }
+  );
+
   describe("unchanged local pose under body motion", () => {
     it("accounts for signed body scale and intermediate transforms in the center of mass", () => {
       const bodyEntity = root.createChild("scaled body");
@@ -1153,10 +1220,10 @@ describe("Collider", () => {
     });
 
     it.each(["child-position", "child-center", "child-mesh", "same-entity-center"] as const)(
-      "writes no native scale, local pose, or mass while a uniformly scaled body rotates (%s)",
+      "writes no native scale, local pose, or mass while a body rotates around an unchanged scale axis (%s)",
       (setup) => {
         const bodyEntity = root.createChild(setup);
-        bodyEntity.transform.setScale(2, 2, 2);
+        bodyEntity.transform.setScale(2, 3, 2);
         const body = bodyEntity.addComponent(Rigidbody);
         body.isKinematic = true;
         const holder = setup === "same-entity-center" ? bodyEntity : bodyEntity.createChild("shape");

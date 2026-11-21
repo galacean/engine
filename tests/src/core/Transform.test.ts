@@ -9,7 +9,7 @@ import {
   Script,
   Transform
 } from "@galacean/engine-core";
-import { Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
+import { Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -47,6 +47,32 @@ describe("Transform test", function () {
     expect(transform.lossyWorldScale).to.deep.equal(new Vector3(4, 10, 18));
     transform.setRotation(90, 0, 0);
     expect(transform.lossyWorldScale).to.deep.equal(new Vector3(4, 15, 12));
+  });
+
+  it("uses the matrix basis for an aligned child of a matrix-authored parent", () => {
+    const parent = scene.createRootEntity();
+    const child = parent.createChild();
+    const matrix = new Matrix();
+    matrix.elements[1] = matrix.elements[4] = 0.0625;
+    parent.transform.localMatrix = matrix;
+
+    expect(child.transform.lossyWorldScale.x).toBeCloseTo(1, 5);
+    parent.transform.setScale(2, 3, 4);
+    expect(child.transform.lossyWorldScale).toEqual(new Vector3(2, 3, 4));
+    parent.destroy();
+  });
+
+  it("refreshes a rotated child's cached world scale after translating and scaling its parent", () => {
+    const parent = scene.createRootEntity();
+    parent.transform.setScale(2, 1, 1);
+    const child = parent.createChild();
+    child.transform.setRotation(0, 0, 45);
+    expect(child.transform.lossyWorldScale.x).toBeCloseTo(1.5, 5);
+
+    parent.transform.setPosition(4, 0, 0);
+    parent.transform.setScale(4, 1, 1);
+    expect(child.transform.lossyWorldScale.x).toBeCloseTo(2.5, 5);
+    parent.destroy();
   });
 
   it("Parent Dirty", () => {

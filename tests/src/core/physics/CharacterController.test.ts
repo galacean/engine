@@ -832,6 +832,20 @@ describe("CharacterController", () => {
       expect(hit.collider).toBe(shiftCC);
     });
 
+    it("keeps one native pose when offset and world position cancel each other", () => {
+      const ray = new Ray(new Vector3(0, 8, 0), new Vector3(0, -1, 0));
+      const hit = new HitResult();
+      expect(physics.raycast(ray, hit) && hit.collider === controller).toBe(true);
+      const native = controller["_native"] as unknown as { _syncControllerPose(): void };
+      const writes = vi.spyOn(native, "_syncControllerPose");
+
+      role.transform.position.x = 1;
+      controller.center.x = -1;
+
+      expect(physics.raycast(ray, hit) && hit.collider === controller).toBe(true);
+      expect(writes).not.toHaveBeenCalled();
+    });
+
     it("uses the authored position and center before composing the native controller pose", () => {
       const entity = engine.sceneManager.activeScene.createRootEntity("offset-controller");
       try {

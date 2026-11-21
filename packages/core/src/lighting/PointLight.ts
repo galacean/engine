@@ -1,3 +1,4 @@
+import type { Scene } from "../Scene";
 import { Vector3 } from "@galacean/engine-math";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -66,8 +67,8 @@ export class PointLight extends Light {
   /**
    * @internal
    */
-  override _onDisableInScene(): void {
-    this.scene!._lightManager._detachPointLight(this);
+  override _onDisableInScene(scene: Scene): void {
+    scene._lightManager._detachPointLight(this);
   }
 }
 
