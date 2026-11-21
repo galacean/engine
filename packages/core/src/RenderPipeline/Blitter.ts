@@ -77,7 +77,12 @@ export class Blitter {
     const program = pass._getShaderProgram(engine, compileMacros);
 
     program.bind();
-    program.groupingOtherUniformBlock();
+    program.groupingOtherUniformBlock(
+      camera.scene!.shaderData,
+      camera.shaderData,
+      rendererShaderData,
+      blitMaterial.shaderData
+    );
     program.uploadAll(program.sceneUniformBlock, camera.scene!.shaderData);
     program.uploadAll(program.cameraUniformBlock, camera.shaderData);
     program.uploadAll(program.rendererUniformBlock, rendererShaderData);

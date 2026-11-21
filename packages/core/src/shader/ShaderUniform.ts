@@ -288,8 +288,11 @@ export class ShaderUniform {
   uploadTextureArray(shaderUniform: ShaderUniform, value: Texture[]): void {
     const rhi = this._rhi;
     const textureIndices = shaderUniform.textureIndex as GLenum[];
-    for (let i = 0; i < value.length; i++) {
-      const texture = value[i];
+    const defaultTextures = shaderUniform.textureDefault as Texture[];
+    const count = Math.min(value.length, textureIndices.length);
+    for (let i = 0; i < count; i++) {
+      const element = value[i];
+      const texture = element instanceof Texture && !element.destroyed ? element : defaultTextures[i];
       rhi.activeTexture(textureIndices[i]);
       rhi.bindTexture(texture._platformTexture);
       texture._setUseDepthCompareMode(shaderUniform.textureUseCompareMode);

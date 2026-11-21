@@ -450,6 +450,7 @@ export class BasicRenderPipeline {
     ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
     const program = pass._getShaderProgram(engine, compileMacros);
     program.bind();
+    program.groupingOtherUniformBlock(undefined, camera.shaderData, undefined, material.shaderData);
     program.uploadAll(program.materialUniformBlock, material.shaderData);
     program.uploadAll(program.cameraUniformBlock, camera.shaderData);
     program.uploadUnGroupTextures();

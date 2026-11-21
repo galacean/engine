@@ -1,4 +1,3 @@
-import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 import { ShaderPropertyType } from "./enums/ShaderPropertyType";
 
 /**
@@ -28,18 +27,8 @@ export class ShaderProperty {
     }
   }
 
-  /**
-   * @internal
-   */
-  static _getShaderPropertyGroup(propertyName: string): ShaderDataGroup | null {
-    const shaderProperty = ShaderProperty._propertyNameMap[propertyName];
-    return shaderProperty?._group;
-  }
-
   /** @internal */
   _uniqueId: number;
-  /** @internal */
-  _group: ShaderDataGroup;
   /** @internal */
   _type: ShaderPropertyType;
 

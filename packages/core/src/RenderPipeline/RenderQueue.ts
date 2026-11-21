@@ -139,7 +139,7 @@ export class RenderQueue {
         // even on the instanced path (GLSL forbids them in UBOs); `_canBatch` ensures the whole
         // batch agrees on those, so the leader's values are correct for the draw call
         if (switchRenderCount) {
-          program.groupingOtherUniformBlock();
+          program.groupingOtherUniformBlock(sceneData, cameraData, rendererData, materialData, renderElementShaderData);
           program.uploadAll(program.sceneUniformBlock, sceneData);
           program.uploadAll(program.cameraUniformBlock, cameraData);
           program.uploadAll(program.rendererUniformBlock, rendererData);
@@ -153,6 +153,7 @@ export class RenderQueue {
           program._uploadMaterialId = materialId;
           program._uploadRenderCount = renderCount;
         } else {
+          program.groupingOtherUniformBlock(sceneData, cameraData, rendererData, materialData, renderElementShaderData);
           if (program._uploadSceneId !== sceneId) {
             program.uploadAll(program.sceneUniformBlock, sceneData);
             program._uploadSceneId = sceneId;

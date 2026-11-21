@@ -26,6 +26,8 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
 
   @ignoreClone
+  private _propertyTypeMap: Record<number, ShaderPropertyType> = Object.create(null);
+  @ignoreClone
   private _batchSharedFields: number[] = [];
   @ignoreClone
   private _macroMap: Record<number, ShaderMacro> = Object.create(null);
@@ -415,12 +417,6 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
   setTexture(property: ShaderProperty, value: Texture | null): void;
 
   setTexture(property: string | ShaderProperty, value: Texture | null): void {
-    const refCount = this._refCount;
-    if (refCount > 0) {
-      const lastValue = this.getPropertyValue<Texture>(property);
-      lastValue && lastValue._addReferCount(-refCount);
-      value && value._addReferCount(refCount);
-    }
     this._setPropertyValue(property, ShaderPropertyType.Texture, value);
   }
 
@@ -457,20 +453,6 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
   setTextureArray(property: ShaderProperty, value: Texture[]): void;
 
   setTextureArray(property: string | ShaderProperty, value: Texture[]): void {
-    const refCount = this._refCount;
-    if (refCount > 0) {
-      const lastValue = this.getPropertyValue<Texture[]>(property);
-      if (lastValue) {
-        for (let i = 0, n = lastValue.length; i < n; i++) {
-          lastValue[i]._addReferCount(-refCount);
-        }
-      }
-      if (value) {
-        for (let i = 0, n = value.length; i < n; i++) {
-          value[i]._addReferCount(refCount);
-        }
-      }
-    }
     this._setPropertyValue(property, ShaderPropertyType.TextureArray, value);
   }
 
@@ -626,15 +608,21 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
     }
     const referCount = target._getReferCount();
     const propertyValueMap = this._propertyValueMap;
+    const propertyTypeMap = this._propertyTypeMap;
     const targetPropertyValueMap = target._propertyValueMap;
+    const targetPropertyTypeMap = target._propertyTypeMap;
     for (const key in targetPropertyValueMap) {
       if (referCount > 0) this._addTexturesReferCount(targetPropertyValueMap[key], -referCount);
-      if (!(key in propertyValueMap)) delete targetPropertyValueMap[key];
+      if (!(key in propertyValueMap)) {
+        delete targetPropertyValueMap[key];
+        delete targetPropertyTypeMap[key];
+      }
     }
     const keys = Object.keys(propertyValueMap);
     for (let i = 0, n = keys.length; i < n; i++) {
       const k = keys[i];
       const property = <ShaderPropertyValueType>propertyValueMap[k];
+      targetPropertyTypeMap[k] = propertyTypeMap[k];
       if (property != null) {
         if (typeof property === "number") {
           targetPropertyValueMap[k] = property;
@@ -647,7 +635,7 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
           referCount > 0 && this._addTexturesReferCount(<ShaderPropertyValueType>cloned, referCount);
         } else {
           const targetProperty = targetPropertyValueMap[k];
-          if (targetProperty) {
+          if (targetProperty && targetProperty.constructor === property.constructor) {
             targetProperty.copyFrom(property);
           } else {
             targetPropertyValueMap[k] = property.clone();
@@ -679,25 +667,27 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
       property = ShaderProperty.getByName(property);
     }
 
-    if (property._group !== this._group) {
-      if (property._group === undefined) {
-        property._group = this._group;
-      } else {
-        throw `Shader property ${property.name} has been used as ${ShaderDataGroup[property._group]} group.`;
-      }
-    }
-
-    if (property._type !== type) {
-      if (property._type === undefined) {
-        property._type = type;
-      } else {
-        throw `Shader property ${property.name} has been used as ${ShaderPropertyType[property._type]} type.`;
-      }
-    }
+    property._type = type;
 
     const id = property._uniqueId;
-    this._updateRendererBatchSharedFields(id, type, value);
-    this._propertyValueMap[id] = value;
+    const propertyValueMap = this._propertyValueMap;
+    const propertyTypeMap = this._propertyTypeMap;
+    const oldValue = propertyValueMap[id];
+    const oldType = propertyTypeMap[id];
+
+    const refCount = this._refCount;
+    if (refCount > 0 && oldValue !== value) {
+      if (oldValue != null && (oldType === ShaderPropertyType.Texture || oldType === ShaderPropertyType.TextureArray)) {
+        this._addTexturesReferCount(oldValue, -refCount);
+      }
+      if (value != null && (type === ShaderPropertyType.Texture || type === ShaderPropertyType.TextureArray)) {
+        this._addTexturesReferCount(value, refCount);
+      }
+    }
+
+    this._updateRendererBatchSharedFields(id, oldType, type, oldValue, value);
+    propertyValueMap[id] = value;
+    propertyTypeMap[id] = type;
   }
 
   /**
@@ -752,18 +742,18 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
     }
   }
 
-  private _updateRendererBatchSharedFields(id: number, type: ShaderPropertyType, value: ShaderPropertyValueType): void {
-    if (
-      this._group !== ShaderDataGroup.Renderer ||
-      (type !== ShaderPropertyType.Texture &&
-        type !== ShaderPropertyType.TextureArray &&
-        type !== ShaderPropertyType.FloatArray &&
-        type !== ShaderPropertyType.IntArray)
-    ) {
+  private _updateRendererBatchSharedFields(
+    id: number,
+    oldType: ShaderPropertyType | undefined,
+    type: ShaderPropertyType,
+    oldValue: ShaderPropertyValueType | undefined,
+    value: ShaderPropertyValueType
+  ): void {
+    if (this._group !== ShaderDataGroup.Renderer) {
       return;
     }
-    const oldHas = this._propertyValueMap[id] != null;
-    const newHas = value != null;
+    const oldHas = oldValue != null && this._isBatchSharedType(oldType);
+    const newHas = value != null && this._isBatchSharedType(type);
     if (oldHas === newHas) {
       return;
     }
@@ -783,6 +773,15 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
     } else {
       fields.splice(fields.indexOf(id), 1);
     }
+  }
+
+  private _isBatchSharedType(type: ShaderPropertyType | undefined): boolean {
+    return (
+      type === ShaderPropertyType.Texture ||
+      type === ShaderPropertyType.TextureArray ||
+      type === ShaderPropertyType.FloatArray ||
+      type === ShaderPropertyType.IntArray
+    );
   }
 }
 
